@@ -3645,7 +3645,7 @@ defmodule Kernel do
         bar
       end
 
-  Note that `do/end` become delimiters. The second example would
+  Note that `do`-`end` become delimiters. The second example would
   translate to:
 
       if foo do

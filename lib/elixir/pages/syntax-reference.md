@@ -11,7 +11,7 @@ These are the reserved words in the Elixir language. They are detailed throughou
   * `true`, `false`, `nil` - used as atoms
   * `when`, `and`, `or`, `not`, `in` - used as operators
   * `fn` - used for anonymous function definitions
-  * `do`, `end`, `catch`, `rescue`, `after`, `else` - used in do/end blocks
+  * `do`, `end`, `catch`, `rescue`, `after`, `else` - used in do-end blocks
 
 ## Data types
 
@@ -122,9 +122,9 @@ Blocks are multiple Elixir expressions separated by newlines or semi-colons. A n
 
 ### Left to right arrow
 
-The left to right arrow (`->`) is used to establish a relationship between left and right, commonly referred as clauses. The left side may have zero, one, or more arguments; the right side is zero, one, or more expressions separated by new line. The `->` may appear one or more times between one of the following terminators: `do`/`end`, `fn`/`end` or `(`/`)`. When `->` is used, only other clauses are allowed between those terminators. Mixing clauses and regular expressions is invalid syntax.
+The left to right arrow (`->`) is used to establish a relationship between left and right, commonly referred as clauses. The left side may have zero, one, or more arguments; the right side is zero, one, or more expressions separated by new line. The `->` may appear one or more times between one of the following terminators: `do`-`end`, `fn`-`end` or `(`-`)`. When `->` is used, only other clauses are allowed between those terminators. Mixing clauses and regular expressions is invalid syntax.
 
-It is seen on `case` and `cond` constructs between `do`/`end`:
+It is seen on `case` and `cond` constructs between `do` and `end`:
 
 ```elixir
 case 1 do
@@ -137,13 +137,13 @@ cond do
 end
 ```
 
-Seen in typespecs between `(`/`)`:
+Seen in typespecs between `(` and `)`:
 
 ```elixir
 (integer(), boolean() -> integer())
 ```
 
-It is also used between `fn/end` for building anonymous functions:
+It is also used between `fn` and `end` for building anonymous functions:
 
 ```elixir
 fn
@@ -352,7 +352,7 @@ end
 #=> {:cond, [], [[do: [{:->, [], [[true], false]}]]]}
 ```
 
-Between `(`/`)`:
+Between `(` and `)`:
 
 ```elixir
 quote do
@@ -362,7 +362,7 @@ end
 #=> [{:->, [], [[1, 2], 3]}, {:->, [], [[4, 5], 6]}]
 ```
 
-Between `fn/end`:
+Between `fn` and `end`:
 
 ```elixir
 quote do
@@ -482,9 +482,9 @@ which in turn is the same as
 if(condition, [{:do, this}, {:else, that}])
 ```
 
-### `do`/`end` blocks
+### `do`-`end` blocks
 
-The last syntax convenience are `do`/`end` blocks. `do`/`end` blocks are equivalent to keywords as the last argument of a function call where the block contents are wrapped in parentheses. For example:
+The last syntax convenience are `do`-`end` blocks. `do`-`end` blocks are equivalent to keywords as the last argument of a function call where the block contents are wrapped in parentheses. For example:
 
 ```elixir
 if true do
@@ -520,7 +520,7 @@ if(true, do: (
 ))
 ```
 
-Inside `do`/`end` blocks you may introduce other keywords, such as `else` used in the `if` above. The supported keywords between `do`/`end` are static and are:
+Inside `do`-`end` blocks you may introduce other keywords, such as `else` used in the `if` above. The supported keywords between `do`-`end` are static and are:
 
   * `after`
   * `catch`

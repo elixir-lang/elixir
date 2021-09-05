@@ -453,10 +453,10 @@ defmodule Code do
       and this option augments this list.
 
     * `:force_do_end_blocks` (since v1.9.0) - when `true`, converts all
-      inline usages of `do: ...`,  `else: ...` and friends into `do/end`
+      inline usages of `do: ...`,  `else: ...` and friends into `do`-`end`
       blocks. Defaults to `false`. Note that this option is convergent:
       once you set it to `true`, **all keywords** will be converted.
-      If you set it to `false` later on, `do/end` blocks won't be
+      If you set it to `false` later on, `do`-`end` blocks won't be
       converted back to keywords.
 
   ## Design principles
@@ -610,7 +610,7 @@ defmodule Code do
       line before and after and 2) empty lines are always squeezed
       together into a single empty line
 
-    * The choice between `:do` keyword and `do/end` blocks is left
+    * The choice between `:do` keyword and `do`-`end` blocks is left
       to the user
 
     * Lists, tuples, bitstrings, maps, structs and function calls will be
@@ -659,7 +659,7 @@ defmodule Code do
   Elixir has two syntaxes for function calls. With parens and no parens.
   By default, Elixir will add parens to all calls except for:
 
-    1. calls that have do/end blocks
+    1. calls that have `do`-`end` blocks
     2. local calls without parens where the name and arity of the local
        call is also listed under `:locals_without_parens` (except for
        calls with arity 0, where the compiler always require parens)
