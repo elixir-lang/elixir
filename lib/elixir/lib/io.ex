@@ -122,6 +122,7 @@ defmodule IO do
   @type nodata :: {:error, term} | :eof
   @type chardata :: String.t() | maybe_improper_list(char | chardata, String.t() | [])
 
+  defguardp is_device(term) when is_atom(term) or is_pid(term)
   defguardp is_iodata(data) when is_list(data) or is_binary(data)
 
   @doc """
@@ -280,7 +281,7 @@ defmodule IO do
 
   """
   @spec puts(device, chardata | String.Chars.t()) :: :ok
-  def puts(device \\ :stdio, item) do
+  def puts(device \\ :stdio, item) when is_device(device) do
     :io.put_chars(map_dev(device), [to_chardata(item), ?\n])
   end
 
@@ -415,7 +416,7 @@ defmodule IO do
   See `inspect/2` for a full list of options.
   """
   @spec inspect(device, item, keyword) :: item when item: var
-  def inspect(device, item, opts) when is_list(opts) do
+  def inspect(device, item, opts) when is_device(device) and is_list(opts) do
     label = if label = opts[:label], do: [to_chardata(label), ": "], else: []
     opts = Inspect.Opts.new(opts)
     doc = Inspect.Algebra.group(Inspect.Algebra.to_doc(item, opts))
