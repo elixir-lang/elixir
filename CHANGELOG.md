@@ -90,6 +90,24 @@ As of Elixir v1.12, implicitly decreasing ranges are soft-deprecated and warning
 
 Elixir v1.12 has the additional of many functions across the standard library. The `Enum` module received additions such as `Enum.count_until/2`, `Enum.product/1`, `Enum.zip_with/2`, and more. The `Integer` module now includes `Integer.pow/2` and `Integer.extended_gcd/2`. Finally, the `Kernel` module got two new functions, `Kernel.then/2` and `Kernel.tap/2`, which are specially useful in `|>` pipelines.
 
+## v1.12.3 (2021-09-05)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code] Make sure that bindings in the default context returned by `Code.eval_*` functions are not returned as tagged tuples
+  * [Kernel] Do not crash when handling ambiguity errors
+  * [Range] Still match on old range patterns throughout the stdlib
+
+#### IEx
+
+  * [IEx.Autocomplete] Do not error autocompletion with module attribute
+
+#### Mix
+
+  * [Mix] Rename inconsistent `:exit_code` option to `:exit_status` on `Mix.raise/2`
+
 ## v1.12.2 (2021-07-01)
 
 ### 1. Bug fixes
