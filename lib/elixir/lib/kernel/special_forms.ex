@@ -1527,7 +1527,7 @@ defmodule Kernel.SpecialForms do
       ** (MatchError) no match of right hand side value: :bar
 
   As with any other function or macro call in Elixir, explicit parens can
-  also be used around the arguments before the `do`/`end` block:
+  also be used around the arguments before the `do`-`end` block:
 
       iex> opts = %{width: 10, height: 15}
       iex> with(
