@@ -56,16 +56,12 @@ extract(Line, Column, Scope, Interpol, [$\\, Char | Rest], Buffer, Output, Last)
 
 %% Catch all clause
 
-extract(Line, Column, Scope, Interpol, [Char | Rest], Buffer, Output, Last) ->
-  NewRest =
-    case Rest of
-      [$\r, $\n | _T] ->
-        Rest;
+extract(Line, Column, Scope, Interpol, [Char1, Char2 | Rest], Buffer, Output, Last)
+    when Char1 =< 255, Char2 =< 255 ->
+  extract(Line, Column + 1, Scope, Interpol, [Char2 | Rest], [Char1 | Buffer], Output, Last);
 
-      _ ->
-        unicode_util:gc(Rest)
-    end,
-
+extract(Line, Column, Scope, Interpol, Rest, Buffer, Output, Last) ->
+  [Char | NewRest] = unicode_util:gc(Rest),
   extract(Line, Column + 1, Scope, Interpol, NewRest, [Char | Buffer], Output, Last).
 
 %% Handle newlines. Heredocs require special attention
