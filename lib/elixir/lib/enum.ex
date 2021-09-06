@@ -1333,7 +1333,7 @@ defmodule Enum do
       value = value_fun.(entry)
 
       case acc do
-        %{^key => existing} -> Map.put(acc, key, [value | existing])
+        %{^key => existing} -> %{acc | key => [value | existing]}
         %{} -> Map.put(acc, key, [value])
       end
     end)

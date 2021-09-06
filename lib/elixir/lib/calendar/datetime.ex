@@ -450,7 +450,7 @@ defmodule DateTime do
         # we get the last microsecond just before.
         before_naive =
           first_period_until_wall
-          |> Map.put(:microsecond, {999_999, 6})
+          |> Map.replace!(:microsecond, {999_999, 6})
           |> NaiveDateTime.add(-1)
 
         after_naive = second_period_from_wall
