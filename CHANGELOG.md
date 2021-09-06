@@ -181,7 +181,10 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
 
 ### 3. Soft-deprecations (no warnings emitted)
 
+#### Elixir
+
   * [IO] `:all` on `IO.getn` is deprecated in favor of `:eof`
+  * [Code] Environment options in `Code.eval_quoted/3` and `Code.eval_string/3`, such as `:aliases` and `:tracers`, have been deprecated in favor of passing an environment
 
 ### 4. Hard-deprecations
 

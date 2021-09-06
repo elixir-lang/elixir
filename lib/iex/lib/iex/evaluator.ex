@@ -241,10 +241,10 @@ defmodule IEx.Evaluator do
       quoted = :elixir.string_to_quoted!(String.to_charlist(code), 1, 1, path, [])
 
       # Evaluate the contents in the same environment server_loop will run in
-      env = :elixir.env_for_eval(state.env, file: path, line: 1)
+      env = %{state.env | file: path, line: 1}
       Process.put(:iex_imported_paths, MapSet.new([path]))
       {_result, binding, env} = :elixir.eval_forms(quoted, state.binding, env)
-      %{state | binding: binding, env: :elixir.env_for_eval(env, file: "iex", line: 1)}
+      %{state | binding: binding, env: %{env | file: "iex", line: 1}}
     catch
       kind, error ->
         io_result("Error while evaluating: #{path}")

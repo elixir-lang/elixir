@@ -820,6 +820,11 @@ defmodule MacroTest do
 
       assert Macro.expand_once(quote, Macro.Env.to_match(__ENV__)) == false
     end
+
+    test "prepend_tracer" do
+      assert %Macro.Env{tracers: [MyCustomTracer | _]} =
+               Macro.Env.prepend_tracer(__ENV__, MyCustomTracer)
+    end
   end
 
   ## pipe/unpipe

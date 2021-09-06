@@ -709,22 +709,24 @@ defmodule Module do
 
   def eval_quoted(%Macro.Env{} = env, quoted, binding, opts)
       when is_list(binding) and is_list(opts) do
-    eval_quoted(env.module, quoted, binding, Keyword.merge(Map.to_list(env), opts))
+    validated_eval_quoted(env.module, quoted, binding, struct!(env, opts))
   end
 
   def eval_quoted(module, quoted, binding, %Macro.Env{} = env)
       when is_atom(module) and is_list(binding) do
-    eval_quoted(module, quoted, binding, Map.to_list(env))
+    validated_eval_quoted(module, quoted, binding, env)
   end
 
   def eval_quoted(module, quoted, binding, opts)
       when is_atom(module) and is_list(binding) and is_list(opts) do
-    assert_not_compiled!(__ENV__.function, module)
+    validated_eval_quoted(module, quoted, binding, opts)
+  end
+
+  defp validated_eval_quoted(module, quoted, binding, env_or_opts) do
+    assert_not_compiled!({:eval_quoted, 4}, module)
     :elixir_def.reset_last(module)
-
-    {value, binding, _env} =
-      :elixir.eval_quoted(quoted, binding, Keyword.put(opts, :module, module))
-
+    env = :elixir.env_for_eval(env_or_opts)
+    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, %{env | module: module})
     {value, binding}
   end
 
