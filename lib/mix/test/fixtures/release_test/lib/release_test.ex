@@ -28,6 +28,12 @@ defmodule ReleaseTest do
     path = Path.join(System.get_env("RELEASE_ROOT"), "RELEASE_BOOTED")
     File.write!(path, :erlang.term_to_binary(info))
 
+    if System.get_env("BOOTED_ONCE") do
+      IO.puts("RESTARTED!!!")
+    else
+      System.put_env("BOOTED_ONCE", "1")
+    end
+
     if System.get_env("RELEASE_NAME") =~ "permanent" do
       Supervisor.start_link([], strategy: :one_for_one)
     else

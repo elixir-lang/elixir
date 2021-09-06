@@ -125,14 +125,6 @@ defmodule Config.ProviderTest do
                "the application :elixir has a different value set for key :unknown"
     end
 
-    test "raises if booting twice in a row" do
-      init_and_assert_boot()
-
-      assert capture_abort(fn ->
-               init_and_assert_boot()
-             end) =~ "Got infinite loop when running Config.Provider"
-    end
-
     test "returns without rebooting" do
       reader = {Config.Reader, fixture_path("configs/kernel.exs")}
       init = Config.Provider.init([reader], @sys_config, reboot_system_after_config: false)
