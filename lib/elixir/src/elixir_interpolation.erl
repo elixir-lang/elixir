@@ -52,12 +52,21 @@ extract(Line, Column, Scope, true, [$#, ${ | Rest], Buffer, Output, Last) ->
   end;
 
 extract(Line, Column, Scope, Interpol, [$\\, Char | Rest], Buffer, Output, Last) ->
-  extract(Line, Column+2, Scope, Interpol, Rest, [Char, $\\ | Buffer], Output, Last);
+  extract(Line, Column + 2, Scope, Interpol, Rest, [Char, $\\ | Buffer], Output, Last);
 
 %% Catch all clause
 
 extract(Line, Column, Scope, Interpol, [Char | Rest], Buffer, Output, Last) ->
-  extract(Line, Column + 1, Scope, Interpol, Rest, [Char | Buffer], Output, Last).
+  NewRest =
+    case Rest of
+      [$\r, $\n | _T] ->
+        Rest;
+
+      _ ->
+        unicode_util:gc(Rest)
+    end,
+
+  extract(Line, Column + 1, Scope, Interpol, NewRest, [Char | Buffer], Output, Last).
 
 %% Handle newlines. Heredocs require special attention
 
