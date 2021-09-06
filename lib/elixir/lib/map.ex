@@ -318,7 +318,7 @@ defmodule Map do
   def replace(map, key, value) do
     case map do
       %{^key => _value} ->
-        put(map, key, value)
+        %{map | key => value}
 
       %{} ->
         map
@@ -614,7 +614,7 @@ defmodule Map do
   def update(map, key, default, fun) when is_function(fun, 1) do
     case map do
       %{^key => value} ->
-        put(map, key, fun.(value))
+        %{map | key => fun.(value)}
 
       %{} ->
         put(map, key, default)
@@ -810,7 +810,7 @@ defmodule Map do
   @spec update!(map, key, (existing_value :: value -> new_value :: value)) :: map
   def update!(map, key, fun) when is_function(fun, 1) do
     value = fetch!(map, key)
-    put(map, key, fun.(value))
+    %{map | key => fun.(value)}
   end
 
   @doc """
@@ -895,7 +895,7 @@ defmodule Map do
 
     case fun.(value) do
       {get, update} ->
-        {get, put(map, key, update)}
+        {get, %{map | key => update}}
 
       :pop ->
         {value, delete(map, key)}
