@@ -725,6 +725,13 @@ defmodule Mix.Tasks.ReleaseTest do
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world()"], env: env) ==
                  {"hello world\n", 0}
 
+        assert System.cmd(script, ["restart"], env: env) == {"", 0}
+
+        assert wait_until(fn ->
+                 File.read!(Path.join(root, "tmp/log/erlang.log.1")) =~
+                   "RESTARTED!!!"
+               end)
+
         assert System.cmd(script, ["stop"], env: env) == {"", 0}
       end)
     end)

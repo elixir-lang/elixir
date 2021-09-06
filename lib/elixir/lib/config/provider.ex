@@ -228,7 +228,6 @@ defmodule Config.Provider do
   end
 
   defp boot_providers(path, provider, reboot_config, reboot_fun) do
-    validate_no_cyclic_boot!(path)
     original_config = read_config!(path)
 
     config =
@@ -352,14 +351,6 @@ defmodule Config.Provider do
 
   defp booted_value(%{prune_runtime_sys_config_after_boot: true}, path), do: {:booted, path}
   defp booted_value(%{prune_runtime_sys_config_after_boot: false}, _path), do: {:booted, nil}
-
-  defp validate_no_cyclic_boot!(path) do
-    if System.get_env("ELIXIR_CONFIG_PROVIDER_BOOTED") do
-      bad_path_abort("Got infinite loop when running Config.Provider", path)
-    else
-      System.put_env("ELIXIR_CONFIG_PROVIDER_BOOTED", "1")
-    end
-  end
 
   defp read_config!(path) do
     case :file.consult(path) do
