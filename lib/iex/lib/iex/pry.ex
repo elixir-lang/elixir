@@ -38,7 +38,7 @@ defmodule IEx.Pry do
       dot_iex_path: "",
       # Remove all tracers because the tracer code is most
       # likely stale by the time we are prying the code.
-      env: %{env | tracers: []},
+      env: %{env | tracers: [], lexical_tracker: nil},
       prefix: "pry",
       stacktrace: prune_stacktrace(stacktrace)
     ]

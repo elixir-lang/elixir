@@ -241,6 +241,20 @@ defmodule Macro.Env do
     do: mod in requires
 
   @doc """
+  Prepend a tracer to the list of tracers in the environment.
+
+  ## Examples
+
+      Macro.Env.prepend_tracer(__ENV__, MyCustomTracer)
+
+  """
+  @doc since: "1.13.0"
+  @spec prepend_tracer(t, module) :: t
+  def prepend_tracer(%{__struct__: Macro.Env, tracers: tracers} = env, tracer) do
+    %{env | tracers: [tracer | tracers]}
+  end
+
+  @doc """
   Returns a `Macro.Env` in the match context.
   """
   @spec to_match(t) :: t

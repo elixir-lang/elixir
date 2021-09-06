@@ -4,8 +4,7 @@
 -behaviour(application).
 -export([start_cli/0,
   string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
-  env_for_eval/1, env_for_eval/2, quoted_to_erl/2,
-  eval_forms/3, eval_quoted/3]).
+  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
 
@@ -163,10 +162,22 @@ start_cli() ->
 
 %% EVAL HOOKS
 
-env_for_eval(Opts) ->
-  env_for_eval(elixir_env:new(), Opts).
+env_for_eval(#{lexical_tracker := Pid} = Env) ->
+  NewEnv = Env#{
+    context := nil,
+    context_modules := [],
+    macro_aliases := [],
+    versioned_vars := #{}
+  },
 
-env_for_eval(Env, Opts) ->
+  case is_pid(Pid) andalso is_process_alive(Pid) of
+    true -> NewEnv;
+    false -> NewEnv#{lexical_tracker := nil, tracers := []}
+  end;
+%% TODO: Deprecate all options except line and file.
+env_for_eval(Opts) when is_list(Opts) ->
+  Env = elixir_env:new(),
+
   Line = case lists:keyfind(line, 1, Opts) of
     {line, LineOpt} when is_integer(LineOpt) -> LineOpt;
     false -> ?key(Env, line)

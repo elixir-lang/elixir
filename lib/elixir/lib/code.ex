@@ -343,31 +343,10 @@ defmodule Code do
 
     * `:line` - the line on which the script starts
 
-  Additionally, the following scope values can be configured:
-
-    * `:aliases` - a list of tuples with the alias and its target
-
-    * `:requires` - a list of modules required
-
-    * `:functions` - a list of tuples where the first element is a module
-      and the second a list of imported function names and arity; the list
-      of function names and arity must be sorted
-
-    * `:macros` - a list of tuples where the first element is a module
-      and the second a list of imported macro names and arity; the list
-      of function names and arity must be sorted
-
-    * `:tracers` - set the compilation tracers to be used during code
-      evaluation
-
-  Note that setting any of the values above overrides Elixir's default
-  values. For example, setting `:requires` to `[]` will no longer
-  automatically require the `Kernel` module. In the same way setting
-  `:macros` will no longer auto-import `Kernel` macros like `Kernel.if/2`,
-  `Kernel.SpecialForms.case/2`, and so on.
-
-  On the other hand, if the evaluated code requires or compiles another
-  file, the settings given to this function will not apply to said files.
+  Additionally, you may also pass an environment as second argument,
+  so the evaluation happens within that environment. However, if the evaluated
+  code requires or compiles another file, the environment given to this function
+  will not apply to said files.
 
   Returns a tuple of the form `{value, binding}`, where `value` is the value
   returned from evaluating `string`. If an error occurs while evaluating
@@ -412,16 +391,15 @@ defmodule Code do
   def eval_string(string, binding \\ [], opts \\ [])
 
   def eval_string(string, binding, %Macro.Env{} = env) do
-    eval_string_with_error_handling(string, binding, Map.to_list(env))
+    validated_eval_string(string, binding, env)
   end
 
   def eval_string(string, binding, opts) when is_list(opts) do
-    validate_eval_opts(opts)
-    eval_string_with_error_handling(string, binding, opts)
+    validated_eval_string(string, binding, opts)
   end
 
-  defp eval_string_with_error_handling(string, binding, opts) do
-    %{line: line, file: file} = env = :elixir.env_for_eval(opts)
+  defp validated_eval_string(string, binding, opts_or_env) do
+    %{line: line, file: file} = env = :elixir.env_for_eval(opts_or_env)
     forms = :elixir.string_to_quoted!(to_charlist(string), line, 1, file, [])
     {value, binding, _env} = :elixir.eval_forms(forms, binding, env)
     {value, binding}
@@ -790,7 +768,7 @@ defmodule Code do
   Macro arguments are typically transformed by unquoting them into the
   returned quoted expressions (instead of evaluated).
 
-  See `eval_string/3` for a description of `binding` and options.
+  See `eval_string/3` for a description of `binding` and `opts`.
 
   ## Examples
 
@@ -816,52 +794,13 @@ defmodule Code do
   def eval_quoted(quoted, binding \\ [], opts \\ [])
 
   def eval_quoted(quoted, binding, %Macro.Env{} = env) do
-    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, Map.to_list(env))
+    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, :elixir.env_for_eval(env))
     {value, binding}
   end
 
   def eval_quoted(quoted, binding, opts) when is_list(opts) do
-    validate_eval_opts(opts)
-    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, opts)
+    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, :elixir.env_for_eval(opts))
     {value, binding}
-  end
-
-  defp validate_eval_opts(opts) do
-    if f = opts[:functions], do: validate_imports(:functions, f)
-    if m = opts[:macros], do: validate_imports(:macros, m)
-    if a = opts[:aliases], do: validate_aliases(:aliases, a)
-    if r = opts[:requires], do: validate_requires(:requires, r)
-  end
-
-  defp validate_requires(kind, requires) do
-    valid = is_list(requires) and Enum.all?(requires, &is_atom(&1))
-
-    unless valid do
-      raise ArgumentError, "expected :#{kind} option given to eval in the format: [module]"
-    end
-  end
-
-  defp validate_aliases(kind, aliases) do
-    valid = is_list(aliases) and Enum.all?(aliases, fn {k, v} -> is_atom(k) and is_atom(v) end)
-
-    unless valid do
-      raise ArgumentError,
-            "expected :#{kind} option given to eval in the format: [{module, module}]"
-    end
-  end
-
-  defp validate_imports(kind, imports) do
-    valid =
-      is_list(imports) and
-        Enum.all?(imports, fn {k, v} ->
-          is_atom(k) and is_list(v) and
-            Enum.all?(v, fn {name, arity} -> is_atom(name) and is_integer(arity) end)
-        end)
-
-    unless valid do
-      raise ArgumentError,
-            "expected :#{kind} option given to eval in the format: [{module, [{name, arity}]}]"
-    end
   end
 
   @doc ~S"""
