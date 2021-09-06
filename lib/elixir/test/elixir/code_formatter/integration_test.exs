@@ -309,7 +309,7 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
-  test "do/end inside binary" do
+  test "do-end inside binary" do
     assert_same """
     <<if true do
         "hello"

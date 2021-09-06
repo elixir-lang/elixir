@@ -167,9 +167,9 @@ defmodule Macro do
       and charlists as a string (such as `"{"`, `"/"`, `"'"`, and the like)
     * `:format` - set to `:keyword` when an atom is defined as a keyword
     * `:do` - contains metadata about the `do` location in a function call with
-      `do/end` blocks (when `:token_metadata` is true)
+      `do`-`end` blocks (when `:token_metadata` is true)
     * `:end` - contains metadata about the `end` location in a function call with
-      `do/end` blocks (when `:token_metadata` is true)
+      `do`-`end` blocks (when `:token_metadata` is true)
     * `:end_of_expression` - denotes when the end of expression effectively
       happens. Available for all expressions except the last one inside a
       `__block__` (when `:token_metadata` is true)
