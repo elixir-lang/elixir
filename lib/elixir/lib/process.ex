@@ -383,10 +383,13 @@ defmodule Process do
   @type spawn_opt ::
           :link
           | :monitor
+          | {:monitor, :erlang.monitor_option()}
           | {:priority, :low | :normal | :high}
           | {:fullsweep_after, non_neg_integer}
           | {:min_heap_size, non_neg_integer}
           | {:min_bin_vheap_size, non_neg_integer}
+          | {:max_heap_size, heap_size}
+          | {:message_queue_data, :off_heap | :on_heap}
   @type spawn_opts :: [spawn_opt]
 
   @doc """
