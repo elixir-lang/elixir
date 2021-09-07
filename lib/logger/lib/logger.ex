@@ -289,8 +289,10 @@ defmodule Logger do
 
   The initial backends are loaded via the `:backends` configuration,
   which must be set before the `:logger` application is started.
-  However, it preferred to add and remove backends via `add_backend/2`
-  and `remove_backend/2` functions. This is often done in your
+  However, by the time the Logger application starts, the code for your
+  own and third-party backends may not yet be available. For this reason,
+  it is preferred to add and remove backends via `add_backend/2` and
+  `remove_backend/2` functions. This is often done in your
   `c:Application.start/2` callback:
 
       @impl true
