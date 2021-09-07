@@ -42,7 +42,7 @@ defmodule Mix.Compilers.Test do
       try do
         failed? =
           case Kernel.ParallelCompiler.require(test_files, parallel_require_opts) do
-            {:ok, [_ | _], _} when warnings_as_errors? -> true
+            {:ok, _, [_ | _]} when warnings_as_errors? -> true
             {:ok, _, _} -> false
             {:error, _, _} -> exit({:shutdown, 1})
           end

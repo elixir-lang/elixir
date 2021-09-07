@@ -430,6 +430,11 @@ defmodule Mix.Tasks.TestTest do
   describe "--warnings-as-errors" do
     test "fail on warning in tests" do
       in_fixture("test_stale", fn ->
+        msg =
+          "Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+        refute mix(["test", "--warnings-as-errors"]) =~ msg
+
         File.write!("lib/warning.ex", """
         unused_compile_var = 1
         """)
@@ -447,9 +452,7 @@ defmodule Mix.Tasks.TestTest do
         output = mix(["test", "--warnings-as-errors", "test/warning_test_stale.exs"])
         assert output =~ "variable \"unused_compile_var\" is unused"
         assert output =~ "variable \"unused_test_var\" is unused"
-
-        assert output =~
-                 "Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+        assert output =~ msg
       end)
     end
 
