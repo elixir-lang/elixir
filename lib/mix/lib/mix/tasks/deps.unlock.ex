@@ -94,9 +94,11 @@ defmodule Mix.Tasks.Deps.Unlock do
   defp unlock(lock, apps) do
     lock |> Map.drop(apps) |> Mix.Dep.Lock.write()
 
-    Mix.shell().info("""
-    Unlocked deps:
-    * #{Enum.join(apps, "\n* ")}
-    """)
+    unless apps == [] do
+      Mix.shell().info("""
+      Unlocked deps:
+      * #{Enum.join(apps, "\n* ")}
+      """)
+    end
   end
 end
