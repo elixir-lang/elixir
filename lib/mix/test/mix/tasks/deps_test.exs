@@ -396,20 +396,13 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  test "unlocking a dep that is not locked does not output a blank line", context do
+  test "unlocking a dep that is not locked is a no-op", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(DepsApp)
-
       Mix.Tasks.Deps.Unlock.run(["unlocked_dep"])
 
       assert_received {:mix_shell, :error, ["warning: unlocked_dep dependency is not locked"]}
-
-      refuted_output = """
-      Unlocked deps:
-      * unlocked_dep
-      """
-
-      refute_received {:mix_shell, :info, [^refuted_output]}
+      refute_received {:mix_shell, :info, [_]}
     end)
   end
 
