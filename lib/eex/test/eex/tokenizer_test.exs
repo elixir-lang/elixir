@@ -160,7 +160,19 @@ defmodule EEx.TokenizerTest do
              {:ok, exprs}
   end
 
-  test "strings with multiple callbacks" do
+  test "strings with fn-end with newline" do
+    exprs = [
+      {:start_expr, 1, 1, '=', ' a fn ->\n'},
+      {:text, 2, 3, 'foo'},
+      {:end_expr, 2, 6, [], ' end '},
+      {:eof, 2, 15}
+    ]
+
+    assert T.tokenize('<%= a fn ->\n%>foo<% end %>', 1, 1, @opts) ==
+             {:ok, exprs}
+  end
+
+  test "strings with multiple fn-end" do
     exprs = [
       {:start_expr, 1, 1, '=', ' a fn -> '},
       {:text, 1, 15, 'foo'},
@@ -174,7 +186,7 @@ defmodule EEx.TokenizerTest do
              {:ok, exprs}
   end
 
-  test "strings with callback followed by do block" do
+  test "strings with fn-end followed by do block" do
     exprs = [
       {:start_expr, 1, 1, '=', ' a fn -> '},
       {:text, 1, 15, 'foo'},

@@ -134,7 +134,7 @@ defmodule EEx.Tokenizer do
 
   # Receives tokens and check if it is a start, middle or an end token.
   defp token_key(tokens, expr) do
-    case {tokens, Enum.reverse(tokens)} do
+    case {tokens, tokens |> Enum.reverse() |> drop_eol()} do
       {[{:end, _} | _], [{:do, _} | _]} ->
         {:middle_expr, expr}
 
@@ -164,6 +164,9 @@ defmodule EEx.Tokenizer do
         end
     end
   end
+
+  defp drop_eol([{:eol, _} | rest]), do: drop_eol(rest)
+  defp drop_eol(rest), do: rest
 
   defp maybe_append_space([?\s]), do: [?\s]
   defp maybe_append_space([h]), do: [h, ?\s]

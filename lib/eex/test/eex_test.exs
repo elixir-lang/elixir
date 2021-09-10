@@ -217,6 +217,11 @@ defmodule EExTest do
 
       assert_eval(
         " 101  102  103 ",
+        "<%= Enum.map([1, 2, 3], fn x ->\n%> <%= 100 + x %> <% end) %>"
+      )
+
+      assert_eval(
+        " 101  102  103 ",
         "<%= apply Enum, :map, [[1, 2, 3], fn x -> %> <%= 100 + x %> <% end] %>"
       )
 
