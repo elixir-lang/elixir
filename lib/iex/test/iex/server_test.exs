@@ -129,17 +129,54 @@ defmodule IEx.ServerTest do
 
       assert Task.await(client) == :ok
     end
+
+    @tag :tmp_dir
+    test "outside evaluator with .iex", %{tmp_dir: tmp_dir} = config do
+      Process.register(self(), config.test)
+      path = Path.join(tmp_dir, "dot-iex")
+      File.write!(path, "my_variable = 144")
+
+      {server, evaluator} = pry_session(config.test, "Y\nmy_variable", dot_iex_path: path)
+      client = pry_request([server])
+      send(evaluator, :run)
+
+      assert Task.await(server) =~
+               "** (UndefinedFunctionError) function :erl_eval.my_variable/0 is undefined or private"
+
+      assert Task.await(client) == :ok
+    end
+
+    @tag :tmp_dir
+    test "after pry outside evaluator .iex", %{tmp_dir: tmp_dir} = config do
+      Process.register(self(), config.test)
+      path = Path.join(tmp_dir, "dot-iex")
+      File.write!(path, "my_variable = 144")
+
+      {server, evaluator} =
+        pry_session(config.test, "Y\ncontinue\nmy_variable", dot_iex_path: path)
+
+      client = pry_request([server])
+      send(evaluator, :run)
+
+      assert Task.await(server) =~ "144"
+
+      assert Task.await(client) == :ok
+    end
   end
 
   # Helpers
 
-  defp pry_session(name, session) do
+  defp pry_session(name, session, server_options \\ []) do
     task =
       Task.async(fn ->
-        capture_iex("""
-        send(#{inspect(name)}, {:running, self()}) && receive do: (:run -> :ok)
-        #{session}
-        """)
+        capture_iex(
+          """
+          send(#{inspect(name)}, {:running, self()}) && receive do: (:run -> :ok)
+          #{session}
+          """,
+          [],
+          server_options
+        )
       end)
 
     assert_receive {:running, evaluator}

@@ -2,7 +2,13 @@ defmodule IEx.State do
   @moduledoc false
   # This state is exchanged between IEx.Server and
   # IEx.Evaluator which is why it is a struct.
-  defstruct buffer: "", counter: 1, prefix: "iex", on_eof: :stop_evaluator, evaluator_options: []
+  defstruct buffer: "",
+            counter: 1,
+            prefix: "iex",
+            on_eof: :stop_evaluator,
+            evaluator_options: [],
+            previous_state: nil
+
   @type t :: %__MODULE__{}
 end
 
@@ -58,6 +64,7 @@ defmodule IEx.Server do
     receive do
       {:take_over, take_pid, take_ref, take_location, take_whereami, take_opts} ->
         if take_over?(take_pid, take_ref, take_location, take_whereami, take_opts) do
+          take_opts = Keyword.put(take_opts, :previous_state, iex_state(opts))
           run_without_registration(take_opts)
         else
           shell_loop(opts, pid, ref)
@@ -196,12 +203,14 @@ defmodule IEx.Server do
 
         if take_over?(take_pid, take_ref, true) do
           kill_input(input)
+          take_opts = Keyword.put(take_opts, :previous_state, state)
           loop(iex_state(take_opts), evaluator, evaluator_ref)
         else
           callback.(state)
         end
 
       take_over?(take_pid, take_ref, take_location, take_whereami, take_opts) ->
+        take_opts = Keyword.put(take_opts, :previous_state, state)
         rerun(take_opts, evaluator, evaluator_ref, input)
 
       true ->
@@ -243,7 +252,12 @@ defmodule IEx.Server do
   end
 
   defp handle_take_over({:respawn, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
-    rerun(state.evaluator_options, evaluator, evaluator_ref, input)
+    opts =
+      if state.previous_state,
+        do: state.previous_state.evaluator_options,
+        else: state.evaluator_options
+
+    rerun(opts, evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over({:continue, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
@@ -260,7 +274,12 @@ defmodule IEx.Server do
          input,
          _callback
        ) do
-    rerun(state.evaluator_options, evaluator, evaluator_ref, input)
+    opts =
+      if state.previous_state,
+        do: state.previous_state.evaluator_options,
+        else: state.evaluator_options
+
+    rerun(opts, evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(
@@ -281,7 +300,12 @@ defmodule IEx.Server do
         io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
     end
 
-    rerun(state.evaluator_options, evaluator, evaluator_ref, input)
+    opts =
+      if state.previous_state,
+        do: state.previous_state.evaluator_options,
+        else: state.evaluator_options
+
+    rerun(opts, evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(_, state, _evaluator, _evaluator_ref, _input, callback) do
@@ -325,6 +349,7 @@ defmodule IEx.Server do
     %IEx.State{
       prefix: prefix,
       on_eof: on_eof,
+      previous_state: Keyword.get(opts, :previous_state),
       evaluator_options: Keyword.take(opts, [:dot_iex_path])
     }
   end
