@@ -1014,8 +1014,7 @@ defmodule Map do
   `Map.reject/2` is faster than using `map |> Enum.reject(fun) |> Enum.into(%{})`,
   as no intermediate list is being built.
 
-  See also `filter/2` which discards all elements where the
-  function returns a falsy value.
+  See also `filter/2`.
 
   ## Examples
 
