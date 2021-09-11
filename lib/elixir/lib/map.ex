@@ -973,8 +973,8 @@ defmodule Map do
   end
 
   @doc """
-  Filters `map`, i.e. returns a map containing
-  only those elements for which the function `fun` returns a truthy value.
+  Filters `map`, i.e. returns a map containing only those pairs for
+  which `fun` returns a truthy value.
 
   `fun` receives the key and value of each of the
   elements in the map as a `{key, value}` tuple.
