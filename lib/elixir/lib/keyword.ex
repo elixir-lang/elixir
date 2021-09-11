@@ -1318,10 +1318,10 @@ defmodule Keyword do
   end
 
   @doc """
-  Returns a keyword list containing only the elements from `keywords`
+  Returns a keyword list containing only the entries from `keywords`
   for which the function `fun` returns a truthy value.
 
-  See also `reject/2` which discards all elements where the function
+  See also `reject/2` which discards all entries where the function
   returns a truthy value.
 
   ## Examples
@@ -1338,19 +1338,19 @@ defmodule Keyword do
 
   defp do_filter([], _fun), do: []
 
-  defp do_filter([element | vals], fun) do
-    if fun.(element) do
-      [element | do_filter(vals, fun)]
+  defp do_filter([entry | entries], fun) do
+    if fun.(entry) do
+      [entry | do_filter(entries, fun)]
     else
-      do_filter(vals, fun)
+      do_filter(entries, fun)
     end
   end
 
   @doc """
-  Returns a keyword list excluding the elements from `keywords`
+  Returns a keyword list excluding the entries from `keywords`
   for which the function `fun` returns a truthy value.
 
-  See also `filter/2` which discards all elements where the function
+  See also `filter/2` which discards all entries where the function
   returns a falsy value.
 
   ## Examples
@@ -1367,11 +1367,11 @@ defmodule Keyword do
 
   defp do_reject([], _fun), do: []
 
-  defp do_reject([element | vals], fun) do
-    if fun.(element) do
-      do_reject(vals, fun)
+  defp do_reject([entry | entries], fun) do
+    if fun.(entry) do
+      do_reject(entries, fun)
     else
-      [element | do_reject(vals, fun)]
+      [entry | do_reject(entries, fun)]
     end
   end
 
