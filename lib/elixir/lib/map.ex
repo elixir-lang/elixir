@@ -1000,6 +1000,7 @@ defmodule Map do
   end
 
   defp do_filter(:none, _fun), do: []
+
   defp do_filter({key, value, iter}, fun) do
     if fun.({key, value}) do
       [{key, value} | do_filter(next(iter), fun)]
@@ -1033,6 +1034,7 @@ defmodule Map do
   end
 
   defp do_reject(:none, _fun), do: []
+
   defp do_reject({key, value, iter}, fun) do
     if fun.({key, value}) do
       do_reject(next(iter), fun)
@@ -1043,10 +1045,13 @@ defmodule Map do
 
   # Inlined version of `:maps.iterator/1`
   defp iterator(map) when is_map(map), do: [0 | map]
-  defp iterator(_other), do: raise BadMapError
+  defp iterator(_other), do: raise(BadMapError)
 
   # Inlined version of `:maps.next/1`
   defp next({key, val, iter}), do: {key, val, iter}
-  defp next([path | map]) when is_integer(path) and is_map(map), do: :erts_internal.map_next(path, map, :iterator)
+
+  defp next([path | map]) when is_integer(path) and is_map(map),
+    do: :erts_internal.map_next(path, map, :iterator)
+
   defp next(:none), do: :none
 end
