@@ -1318,9 +1318,8 @@ defmodule Keyword do
   end
 
   @doc """
-  Filters `keywords` i.e. returns a keyword list containing
-  only the elements from `keywords` for which the function
-  `fun` returns a truthy value.
+  Returns a keyword list containing only the elements from `keywords`
+  for which the function `fun` returns a truthy value.
 
   See also `reject/2` which discards all elements where the function
   returns a truthy value.

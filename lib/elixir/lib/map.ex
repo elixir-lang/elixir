@@ -973,11 +973,11 @@ defmodule Map do
   end
 
   @doc """
-  Filters `map`, i.e. returns a map containing only those pairs for
-  which `fun` returns a truthy value.
+  Returns a map containing only those pairs from `map`
+  for which `fun` returns a truthy value.
 
   `fun` receives the key and value of each of the
-  elements in the map as a `{key, value}` tuple.
+  elements in the map as a key-value pair.
 
   `Map.filter/2` is faster than using `map |> Enum.filter(fun) |> Enum.into(%{})`,
   as no intermediate list is being built.
