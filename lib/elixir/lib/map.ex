@@ -971,4 +971,82 @@ defmodule Map do
   def size(map) do
     map_size(map)
   end
+
+  @doc """
+  Filters `map`, i.e. returns a map containing
+  only those elements for which the function `fun` returns a truthy value.
+
+  `fun` receives the key and value of each of the
+  elements in the map as a `{key, value}` tuple.
+
+  `Map.filter/2` is faster than using `map |> Enum.filter(fun) |> Enum.into(%{})`,
+  as no intermediate list is being built.
+
+
+  See also `reject/2` which discards all elements where the
+  function returns a truthy value.
+
+  ## Examples
+
+      iex> Map.filter(%{one: 1, two: 2, three: 3}, fn x -> rem(x, 2) == 1 end)
+      %{one: 1, three: 3}
+
+  """
+  @since "1.13.0"
+  def filter(map, fun) when is_map(map) and is_function(fun, 1) do
+    iter = iterator(map)
+    next = next(iter)
+    :maps.from_list(do_filter(next, fun))
+  end
+
+  defp do_filter(:none, _fun), do: []
+  defp do_filter({key, value, iter}, fun) do
+    if fun.({key, value}) do
+      [{key, value} | do_filter(next(iter), fun)]
+    else
+      do_filter(next(iter), fun)
+    end
+  end
+
+  @doc """
+  Returns map excluding the elements from `map` for which
+  the function `fun` returns a truthy value.
+
+
+  `Map.reject/2` is faster than using `map |> Enum.reject(fun) |> Enum.into(%{})`,
+  as no intermediate list is being built.
+
+  See also `filter/2` which discards all elements where the
+  function returns a falsy value.
+
+  ## Examples
+
+      iex> Map.reject(%{one: 1, two: 2, three: 3}, fn x -> rem(x, 2) == 1 end)
+      %{two: 2}
+
+  """
+  @since "1.13.0"
+  def reject(map, fun) when is_map(map) and is_function(fun, 1) do
+    iter = iterator(map)
+    next = next(iter)
+    :maps.from_list(do_reject(next, fun))
+  end
+
+  defp do_reject(:none, _fun), do: []
+  defp do_reject({key, value, iter}, fun) do
+    if fun.({key, value}) do
+      do_reject(next(iter), fun)
+    else
+      [{key, value} | do_reject(next(iter), fun)]
+    end
+  end
+
+  # Inlined version of `:maps.iterator/1`
+  defp iterator(map) when is_map(map), do: [0 | map]
+  defp iterator(_other), do: raise BadMapError
+
+  # Inlined version of `:maps.next/1`
+  defp next({key, val, iter}), do: {key, val, iter}
+  defp next([path | map]) when is_integer(path) and is_map(map), do: :erts_internal.map_next(path, map, :iterator)
+  defp next(:none), do: :none
 end
