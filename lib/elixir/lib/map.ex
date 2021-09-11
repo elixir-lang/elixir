@@ -1045,6 +1045,31 @@ defmodule Map do
     end
   end
 
+  @doc """
+  Maps the function `fun` over all `{key, value}`-elements in `map`, returning a map
+  with all the values replaced with the result of the function.
+
+  ## Examples
+
+      iex> Map.map(%{1 => "joe", 2 => "mike", 3 => "robert"}, fn {_key, val} -> String.capitalize(val) end)
+      %{1 => "Joe", 2 => "Mike", 3 => "Robert"}
+
+  """
+  @doc since: "1.13.0"
+  @spec map(map, ({key, value} -> value)) :: map
+  def map(map, fun) when is_map(map) and is_function(fun, 1) do
+    iter = iterator(map)
+    next = next(iter)
+    :maps.from_list(do_map(next, fun))
+  end
+
+  defp do_map(:none, _fun), do: []
+
+  defp do_map({key, value, iter}, fun) do
+    new_value = fun.({key, value})
+    [{key, new_value} | do_map(next(iter), fun)]
+  end
+
   # Inlined version of `:maps.iterator/1`
   defp iterator(map) when is_map(map), do: [0 | map]
 

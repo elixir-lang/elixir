@@ -1375,4 +1375,28 @@ defmodule Keyword do
       [element | do_reject(vals, fun)]
     end
   end
+
+  @doc """
+  Maps the function `fun` over all `{key, value}`-elements in `keywords`,
+  returning a keyword list with all the values replaced with
+  the result of the function.
+
+  ## Examples
+
+      iex> Keyword.map([one: 1, two: 2, three: 3], fn {_key, val} -> to_string(val) end)
+      [one: "1", two: "2", three: "3"]
+
+  """
+  @doc since: "1.13.0"
+  @spec map(t, ({key, value} -> value)) :: t
+  def map(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
+    do_map(keywords, fun)
+  end
+
+  defp do_map([], _fun), do: []
+
+  defp do_map([{key, value} | rest], fun) do
+    new_value = fun.({key, value})
+    [{key, new_value} | do_map(rest, fun)]
+  end
 end
