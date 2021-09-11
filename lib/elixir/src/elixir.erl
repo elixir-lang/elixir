@@ -341,7 +341,7 @@ quoted_to_erl(Quoted, E) ->
 
 quoted_to_erl(Quoted, Env, Scope) ->
   {Expanded, NewExS, NewEnv} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(Env), Env),
-  {Erl, NewErlS} = elixir_erl_pass:translate(Expanded, Scope),
+  {Erl, NewErlS} = elixir_erl_pass:translate(Expanded, erl_anno:new(?key(Env, line)), Scope),
   {Erl, NewErlS, NewExS, NewEnv}.
 
 %% Converts a given string (charlist) into quote expression

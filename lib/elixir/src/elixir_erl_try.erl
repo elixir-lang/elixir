@@ -5,7 +5,7 @@
         ['Elixir.FunctionClauseError', 'Elixir.UndefinedFunctionError',
          'Elixir.KeyError', 'Elixir.ArgumentError', 'Elixir.SystemLimitError']).
 
-clauses(_Meta, Args, S) ->
+clauses(_Ann, Args, S) ->
   Catch = elixir_erl_clauses:get_clauses('catch', Args, 'catch'),
   Rescue = elixir_erl_clauses:get_clauses(rescue, Args, rescue),
   {StackName, SV} = elixir_erl_var:build('__STACKTRACE__', S),
@@ -29,7 +29,7 @@ each_clause({'catch', Meta, Raw, Expr}, S) ->
     end,
 
   {{clause, Line, [TKind, TMatches], TGuards, TBody}, TS} =
-    elixir_erl_clauses:clause(Meta, fun elixir_erl_pass:translate_args/2, Match, Expr, Guards, S),
+    elixir_erl_clauses:clause(?ann(Meta), fun elixir_erl_pass:translate_args/3, Match, Expr, Guards, S),
 
   build_clause(Line, TKind, TMatches, TGuards, TBody, TS);
 
@@ -97,7 +97,7 @@ is_normalized_with_stacktrace(Module) ->
 
 build_rescue(Meta, Var, Guards, Body, S) ->
   {{clause, Line, [TMatch], TGuards, TBody}, TS} =
-    elixir_erl_clauses:clause(Meta, fun elixir_erl_pass:translate_args/2, [Var], Body, Guards, S),
+    elixir_erl_clauses:clause(?ann(Meta), fun elixir_erl_pass:translate_args/3, [Var], Body, Guards, S),
 
   build_clause(Line, {atom, Line, error}, TMatch, TGuards, TBody, TS).
 

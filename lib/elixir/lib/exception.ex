@@ -217,16 +217,17 @@ defmodule Exception do
       clauses =
         for {meta, ex_args, guards, _block} <- clauses do
           scope = :elixir_erl.scope(meta, true)
+          ann = :elixir_erl.get_ann(meta)
 
           {erl_args, scope} =
-            :elixir_erl_clauses.match(&:elixir_erl_pass.translate_args/2, ex_args, scope)
+            :elixir_erl_clauses.match(ann, &:elixir_erl_pass.translate_args/3, ex_args, scope)
 
           {args, binding} =
             [call_args, ex_args, erl_args]
             |> Enum.zip()
             |> Enum.map_reduce([], &blame_arg/2)
 
-          guards = Enum.map(guards, &blame_guard(&1, scope, binding))
+          guards = Enum.map(guards, &blame_guard(&1, ann, scope, binding))
           {args, guards}
         end
 
@@ -266,11 +267,11 @@ defmodule Exception do
     end)
   end
 
-  defp blame_guard({{:., _, [:erlang, op]}, meta, [left, right]}, scope, binding)
+  defp blame_guard({{:., _, [:erlang, op]}, meta, [left, right]}, ann, scope, binding)
        when op == :andalso or op == :orelse do
     guards = [
-      blame_guard(left, scope, binding),
-      blame_guard(right, scope, binding)
+      blame_guard(left, ann, scope, binding),
+      blame_guard(right, ann, scope, binding)
     ]
 
     kernel_op =
@@ -282,8 +283,8 @@ defmodule Exception do
     {kernel_op, meta, guards}
   end
 
-  defp blame_guard(ex_guard, scope, binding) do
-    {erl_guard, _} = :elixir_erl_pass.translate(ex_guard, scope)
+  defp blame_guard(ex_guard, ann, scope, binding) do
+    {erl_guard, _} = :elixir_erl_pass.translate(ex_guard, ann, scope)
 
     match? =
       try do

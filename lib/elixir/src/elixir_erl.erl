@@ -48,7 +48,7 @@ get_ann([], Gen, Line) -> erl_anno:set_generated(Gen, erl_anno:new(Line)).
 %% Converts an Elixir definition to an anonymous function.
 
 definition_to_anonymous(Module, Kind, Meta, Clauses) ->
-  ErlClauses = [translate_clause(Kind, Clause, true) || Clause <- Clauses],
+  ErlClauses = [translate_clause(Kind, 0, Clause, true) || Clause <- Clauses],
   Fun = {'fun', ?ann(Meta), {clauses, ErlClauses}},
   LocalHandler = fun(LocalName, LocalArgs) -> invoke_local(Module, LocalName, LocalArgs) end,
   {value, Result, _Binding} = erl_eval:expr(Fun, [], {value, LocalHandler}),
@@ -131,7 +131,7 @@ dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
                attributes := Attributes, definitions := Definitions, unreachable := Unreachable,
                deprecated := Deprecated, compile_opts := Opts} = Map) ->
   {Def, Defmacro, Macros, Exports, Functions} =
-    split_definition(Definitions, Unreachable, [], [], [], [], {[], []}),
+    split_definition(Definitions, Unreachable, Line, [], [], [], [], {[], []}),
 
   FilteredOpts = lists:filter(fun({no_warn_undefined, _}) -> false; (_) -> true end, Opts),
   Location = {elixir_utils:characters_to_list(RelativeFile), Line},
@@ -147,40 +147,40 @@ dynamic_form(#{module := Module, line := Line, relative_file := RelativeFile,
 
 % Definitions
 
-split_definition([{Tuple, Kind, Meta, Clauses} | T], Unreachable,
+split_definition([{Tuple, Kind, Meta, Clauses} | T], Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
   case lists:member(Tuple, Unreachable) of
     false ->
-      split_definition(Tuple, Kind, Meta, Clauses, T, Unreachable,
+      split_definition(Tuple, Kind, Meta, Clauses, T, Unreachable, Line,
                        Def, Defmacro, Macros, Exports, Functions);
     true ->
-      split_definition(T, Unreachable, Def, Defmacro, Macros, Exports, Functions)
+      split_definition(T, Unreachable, Line, Def, Defmacro, Macros, Exports, Functions)
   end;
-split_definition([], _Unreachable, Def, Defmacro, Macros, Exports, {Head, Tail}) ->
+split_definition([], _Unreachable, _Line, Def, Defmacro, Macros, Exports, {Head, Tail}) ->
   {Def, Defmacro, Macros, Exports, Head ++ Tail}.
 
-split_definition(Tuple, def, Meta, Clauses, T, Unreachable,
+split_definition(Tuple, def, Meta, Clauses, T, Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
-  {_, _, N, A, _} = Entry = translate_definition(def, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, [Tuple | Def], Defmacro, Macros, [{N, A} | Exports],
+  {_, _, N, A, _} = Entry = translate_definition(def, Line, Meta, Tuple, Clauses),
+  split_definition(T, Unreachable, Line, [Tuple | Def], Defmacro, Macros, [{N, A} | Exports],
                    add_definition(Meta, Entry, Functions));
 
-split_definition(Tuple, defp, Meta, Clauses, T, Unreachable,
+split_definition(Tuple, defp, Meta, Clauses, T, Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
-  Entry = translate_definition(defp, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, Def, Defmacro, Macros, Exports,
+  Entry = translate_definition(defp, Line, Meta, Tuple, Clauses),
+  split_definition(T, Unreachable, Line, Def, Defmacro, Macros, Exports,
                    add_definition(Meta, Entry, Functions));
 
-split_definition(Tuple, defmacro, Meta, Clauses, T, Unreachable,
+split_definition(Tuple, defmacro, Meta, Clauses, T, Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
-  {_, _, N, A, _} = Entry = translate_definition(defmacro, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, Def, [Tuple | Defmacro], [Tuple | Macros], [{N, A} | Exports],
+  {_, _, N, A, _} = Entry = translate_definition(defmacro, Line, Meta, Tuple, Clauses),
+  split_definition(T, Unreachable, Line, Def, [Tuple | Defmacro], [Tuple | Macros], [{N, A} | Exports],
                    add_definition(Meta, Entry, Functions));
 
-split_definition(Tuple, defmacrop, Meta, Clauses, T, Unreachable,
+split_definition(Tuple, defmacrop, Meta, Clauses, T, Unreachable, Line,
                  Def, Defmacro, Macros, Exports, Functions) ->
-  Entry = translate_definition(defmacro, Meta, Tuple, Clauses),
-  split_definition(T, Unreachable, Def, Defmacro, [Tuple | Macros], Exports,
+  Entry = translate_definition(defmacro, Line, Meta, Tuple, Clauses),
+  split_definition(T, Unreachable, Line, Def, Defmacro, [Tuple | Macros], Exports,
                    add_definition(Meta, Entry, Functions)).
 
 add_definition(Meta, Body, {Head, Tail}) ->
@@ -197,23 +197,30 @@ add_definition(Meta, Body, {Head, Tail}) ->
       {[Body | Head], Tail}
   end.
 
-translate_definition(Kind, Meta, {Name, Arity}, Clauses) ->
-  ErlClauses = [translate_clause(Kind, Clause, false) || Clause <- Clauses],
+translate_definition(Kind, Line, Meta, {Name, Arity}, Clauses) ->
+  ErlClauses = [translate_clause(Kind, Line, Clause, false) || Clause <- Clauses],
 
   case is_macro(Kind) of
     true -> {function, ?ann(Meta), elixir_utils:macro_name(Name), Arity + 1, ErlClauses};
     false -> {function, ?ann(Meta), Name, Arity, ErlClauses}
   end.
 
-translate_clause(Kind, {Meta, Args, Guards, Body}, ExpandCaptures) ->
+translate_clause(Kind, Line, {Meta, Args, Guards, Body}, ExpandCaptures) ->
   S = scope(Meta, ExpandCaptures),
 
-  {TClause, TS} = elixir_erl_clauses:clause(Meta,
-                    fun elixir_erl_pass:translate_args/2, Args, Body, Guards, S),
+  %% If the line matches the module line, then it is most likely an
+  %% auto-generated function and we don't want to track its contents.
+  Ann =
+    case ?line(Meta) of
+      Line -> erl_anno:new(0);
+      _ -> ?ann(Meta)
+    end,
+
+  {TClause, TS} =
+    elixir_erl_clauses:clause(Ann, fun elixir_erl_pass:translate_args/3, Args, Body, Guards, S),
 
   case is_macro(Kind) of
     true ->
-      Ann = ?ann(Meta),
       FArgs = {var, Ann, '_@CALLER'},
       MClause = setelement(3, TClause, [FArgs | element(3, TClause)]),
 
