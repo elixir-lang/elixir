@@ -1,6 +1,6 @@
 -define(key(M, K), maps:get(K, M)).
--define(ann(Opts), elixir_erl:get_ann(Opts)).
--define(line(Opts), elixir_utils:get_line(Opts)).
+-define(ann(Meta), elixir_erl:get_ann(Meta)).
+-define(line(Meta), elixir_utils:get_line(Meta)).
 -define(generated(Meta), [{generated, true} | Meta]).
 -define(var_context, ?MODULE).
 -define(remote(Ann, Module, Function, Args), {call, Ann, {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}}, Args}).

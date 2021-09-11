@@ -59,7 +59,7 @@ compile(Quoted, ArgsList, E) ->
 
 spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
   {Vars, S} = elixir_env:env_to_erl(E),
-  {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, S),
+  {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, erl_anno:new(Line), S),
 
   Module = retrieve_compiler_module(),
   Fun  = code_fun(?key(E, module)),

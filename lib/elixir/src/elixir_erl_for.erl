@@ -12,10 +12,10 @@ translate(Meta, Args, Return, S) ->
 
 translate_reduce(Meta, Cases, Expr, Reduce, S) ->
   Ann = ?ann(Meta),
-  {TReduce, SR} = elixir_erl_pass:translate(Reduce, S),
+  {TReduce, SR} = elixir_erl_pass:translate(Reduce, Ann, S),
   {TCases, SC} = translate_gen(Meta, Cases, [], SR),
   CaseExpr = {'case', Meta, [ok, [{do, Expr}]]},
-  {TExpr, SE} = elixir_erl_pass:translate(CaseExpr, SC),
+  {TExpr, SE} = elixir_erl_pass:translate(CaseExpr, Ann, SC),
 
   InnerFun = fun
     ({'case', CaseAnn, _, CaseBlock}, InnerAcc) -> {'case', CaseAnn, InnerAcc, CaseBlock}
@@ -28,7 +28,7 @@ translate_into(Meta, Cases, Expr, Opts, Return, S) ->
 
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of
-      {into, Into} -> elixir_erl_pass:translate(Into, S);
+      {into, Into} -> elixir_erl_pass:translate(Into, Ann, S);
       false when Return -> {{nil, Ann}, S};
       false -> {false, S}
     end,
@@ -36,7 +36,7 @@ translate_into(Meta, Cases, Expr, Opts, Return, S) ->
   TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
-  {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr_if_unused(Expr, TInto), SC),
+  {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr_if_unused(Expr, TInto), Ann, SC),
 
   case inline_or_into(TInto) of
     inline -> build_inline(Ann, TCases, TExpr, TInto, TUniq, SE);
@@ -59,17 +59,23 @@ translate_gen(ForMeta, [{'<<>>', _, [{'<-', Meta, [Left, Right]}]} | T], Acc, S)
 translate_gen(_ForMeta, [], Acc, S) ->
   {lists:reverse(Acc), S}.
 
-translate_gen(_Meta, Left, Right, T, S) ->
-  {TRight, SR} = elixir_erl_pass:translate(Right, S),
+translate_gen(Meta, Left, Right, T, S) ->
+  Ann = ?ann(Meta),
+  {TRight, SR} = elixir_erl_pass:translate(Right, Ann, S),
   {LeftArgs, LeftGuards} = elixir_utils:extract_guards(Left),
-  {TLeft, SL} = elixir_erl_clauses:match(fun elixir_erl_pass:translate/2, LeftArgs,
+  {TLeft, SL} = elixir_erl_clauses:match(Ann, fun elixir_erl_pass:translate/3, LeftArgs,
                                          SR#elixir_erl{extra=pin_guard}),
 
-  TLeftGuards = elixir_erl_clauses:guards(LeftGuards, [], SL),
+  TLeftGuards = elixir_erl_clauses:guards(Ann, LeftGuards, [], SL),
   ExtraGuards = [{nil, X} || X <- SL#elixir_erl.extra_guards],
-  SF = SL#elixir_erl{extra=S#elixir_erl.extra, extra_guards=[]},
+  {Filters, TT} = collect_filters(T, []),
 
-  {TT, {TFilters, TS}} = translate_filters(T, SF),
+  {TFilters, TS} =
+    lists:mapfoldr(
+      fun(F, SF) -> translate_filter(F, Ann, SF) end,
+      SL#elixir_erl{extra=S#elixir_erl.extra, extra_guards=[]},
+      Filters
+    ),
 
   %% The list of guards is kept in reverse order
   Guards = TFilters ++ translate_guards(TLeftGuards) ++ ExtraGuards,
@@ -82,12 +88,8 @@ translate_guards([[Guards]]) ->
 translate_guards([[Left], [Right] | Rest]) ->
   translate_guards([[{op, element(2, Left), 'orelse', Left, Right}] | Rest]).
 
-translate_filters(T, S) ->
-  {Filters, Rest} = collect_filters(T, []),
-  {Rest, lists:mapfoldr(fun translate_filter/2, S, Filters)}.
-
-translate_filter(Filter, S) ->
-  {TFilter, TS} = elixir_erl_pass:translate(Filter, S),
+translate_filter(Filter, Ann, S) ->
+  {TFilter, TS} = elixir_erl_pass:translate(Filter, Ann, S),
   case elixir_utils:returns_boolean(Filter) of
     true ->
       {{nil, TFilter}, TS};
