@@ -1013,8 +1013,6 @@ defmodule Map do
   @doc """
   Returns map excluding the elements from `map` for which
   the function `fun` returns a truthy value.
-
-
   `Map.reject/2` is faster than using `map |> Enum.reject(fun) |> Enum.into(%{})`,
   as no intermediate list is being built.
 
