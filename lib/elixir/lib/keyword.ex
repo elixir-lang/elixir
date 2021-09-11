@@ -1316,4 +1316,43 @@ defmodule Keyword do
   def size(keywords) do
     length(keywords)
   end
+
+  @doc """
+  Filters `keywords` i.e. returns a keyword list containing
+  only the elements from `keywords` for which the function
+  `fun` returns a truthy value.
+
+  See also `reject/2` which discards all elements where the function
+  returns a truthy value.
+
+  ## Examples
+
+      iex> Keyword.filter([one: 1, two: 2, three: 3], fn {_key, val} -> rem(val, 2) == 1 end)
+      [one: 1, three: 3]
+
+  """
+  @doc since: "1.13.0"
+  @spec filter(t, ({key, value} -> as_boolean(term))) :: t
+  def filter(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
+    :lists.filter(keywords, fun)
+  end
+
+  @doc """
+  Returns a keyword list excluding the elements from `keywords`
+  for which the function `fun` returns a truthy value.
+
+  See also `filter/2` which discards all elements where the function
+  returns a falsy value.
+
+  ## Examples
+
+      iex> Keyword.reject([one: 1, two: 2, three: 3], fn {_key, val} -> rem(val, 2) == 1 end)
+      [two: 2]
+
+  """
+  @doc since: "1.13.0"
+  @spec reject(t, ({key, value} -> as_boolean(term))) :: t
+  def reject(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
+    :lists.filter(keywords, &(not fun.(&1)))
+  end
 end
