@@ -1350,8 +1350,7 @@ defmodule Keyword do
   Returns a keyword list excluding the entries from `keywords`
   for which the function `fun` returns a truthy value.
 
-  See also `filter/2` which discards all entries where the function
-  returns a falsy value.
+  See also `filter/2`.
 
   ## Examples
 
