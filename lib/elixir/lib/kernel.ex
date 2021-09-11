@@ -1195,7 +1195,7 @@ defmodule Kernel do
   @doc since: "1.12.0"
   defmacro tap(value, fun) do
     quote bind_quoted: [fun: fun, value: value] do
-      fun.(value)
+      _ = fun.(value)
       value
     end
   end
