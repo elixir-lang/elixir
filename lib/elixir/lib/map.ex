@@ -982,7 +982,6 @@ defmodule Map do
   `Map.filter/2` is faster than using `map |> Enum.filter(fun) |> Enum.into(%{})`,
   as no intermediate list is being built.
 
-
   See also `reject/2` which discards all elements where the
   function returns a truthy value.
 
