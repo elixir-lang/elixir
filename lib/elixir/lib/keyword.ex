@@ -1334,7 +1334,7 @@ defmodule Keyword do
   @doc since: "1.13.0"
   @spec filter(t, ({key, value} -> as_boolean(term))) :: t
   def filter(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
-    :lists.filter(keywords, fun)
+    :lists.filter(fun, keywords)
   end
 
   @doc """
@@ -1353,6 +1353,6 @@ defmodule Keyword do
   @doc since: "1.13.0"
   @spec reject(t, ({key, value} -> as_boolean(term))) :: t
   def reject(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
-    :lists.filter(keywords, &(not fun.(&1)))
+    :lists.filter(&(not fun.(&1)), keywords)
   end
 end
