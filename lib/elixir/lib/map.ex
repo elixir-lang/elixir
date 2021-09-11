@@ -1047,7 +1047,6 @@ defmodule Map do
 
   # Inlined version of `:maps.iterator/1`
   defp iterator(map) when is_map(map), do: [0 | map]
-  defp iterator(_other), do: raise(BadMapError)
 
   # Inlined version of `:maps.next/1`
   defp next({key, val, iter}), do: {key, val, iter}
