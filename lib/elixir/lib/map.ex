@@ -988,11 +988,12 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.filter(%{one: 1, two: 2, three: 3}, fn x -> rem(x, 2) == 1 end)
+      iex> Map.filter(%{one: 1, two: 2, three: 3}, fn {_key, val} -> rem(val, 2) == 1 end)
       %{one: 1, three: 3}
 
   """
-  @since "1.13.0"
+  @doc since: "1.13.0"
+  @spec filter(map, ({key, value} -> as_boolean(term))) :: map
   def filter(map, fun) when is_map(map) and is_function(fun, 1) do
     iter = iterator(map)
     next = next(iter)
@@ -1022,11 +1023,12 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.reject(%{one: 1, two: 2, three: 3}, fn x -> rem(x, 2) == 1 end)
+      iex> Map.reject(%{one: 1, two: 2, three: 3}, fn {_key, val} -> rem(val, 2) == 1 end)
       %{two: 2}
 
   """
-  @since "1.13.0"
+  @doc since: "1.13.0"
+  @spec reject(map, ({key, value} -> as_boolean(term))) :: map
   def reject(map, fun) when is_map(map) and is_function(fun, 1) do
     iter = iterator(map)
     next = next(iter)
