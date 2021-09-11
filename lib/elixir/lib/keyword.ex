@@ -1377,7 +1377,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Maps the function `fun` over all `{key, value}`-elements in `keywords`,
+  Maps the function `fun` over all key-value pairs in `keywords`,
   returning a keyword list with all the values replaced with
   the result of the function.
 

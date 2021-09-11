@@ -1046,7 +1046,7 @@ defmodule Map do
   end
 
   @doc """
-  Maps the function `fun` over all `{key, value}`-elements in `map`, returning a map
+  Maps the function `fun` over all key-value pairs in `map`, returning a map
   with all the values replaced with the result of the function.
 
   ## Examples
