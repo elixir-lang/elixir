@@ -1334,15 +1334,17 @@ defmodule Keyword do
   @doc since: "1.13.0"
   @spec filter(t, ({key, value} -> as_boolean(term))) :: t
   def filter(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
-    boolean_fun =
-      fn element ->
-        case fun.(element) do
-          x when x in [false, nil] -> false
-          _ -> true
-        end
-      end
+    do_filter(keywords, fun)
+  end
 
-    :lists.filter(boolean_fun, keywords)
+  defp do_filter([], _fun), do: []
+
+  defp do_filter([element | vals], fun) do
+    if fun.(element) do
+      [element | do_filter(vals, fun)]
+    else
+      do_filter(vals, fun)
+    end
   end
 
   @doc """
@@ -1361,14 +1363,16 @@ defmodule Keyword do
   @doc since: "1.13.0"
   @spec reject(t, ({key, value} -> as_boolean(term))) :: t
   def reject(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
-    boolean_fun =
-    fn element ->
-      case fun.(element) do
-        x when x in [false, nil] -> true
-        _ -> false
-      end
-    end
+    do_reject(keywords, fun)
+  end
 
-    :lists.filter(boolean_fun, keywords)
+  defp do_reject([], _fun), do: []
+
+  defp do_reject([element | vals], fun) do
+    if fun.(element) do
+      do_reject(vals, fun)
+    else
+      [element | do_reject(vals, fun)]
+    end
   end
 end
