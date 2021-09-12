@@ -1338,7 +1338,7 @@ defmodule Keyword do
 
   defp do_filter([], _fun), do: []
 
-  defp do_filter([entry | entries], fun) do
+  defp do_filter([{_, _} = entry | entries], fun) do
     if fun.(entry) do
       [entry | do_filter(entries, fun)]
     else
@@ -1366,7 +1366,7 @@ defmodule Keyword do
 
   defp do_reject([], _fun), do: []
 
-  defp do_reject([entry | entries], fun) do
+  defp do_reject([{_, _} = entry | entries], fun) do
     if fun.(entry) do
       do_reject(entries, fun)
     else
