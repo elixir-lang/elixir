@@ -971,4 +971,110 @@ defmodule Map do
   def size(map) do
     map_size(map)
   end
+
+  @doc """
+  Returns a map containing only those pairs from `map`
+  for which `fun` returns a truthy value.
+
+  `fun` receives the key and value of each of the
+  elements in the map as a key-value pair.
+
+  `Map.filter/2` is faster than using `map |> Enum.filter(fun) |> Enum.into(%{})`,
+  as no intermediate list is being built.
+
+  See also `reject/2` which discards all elements where the
+  function returns a truthy value.
+
+  ## Examples
+
+      iex> Map.filter(%{one: 1, two: 2, three: 3}, fn {_key, val} -> rem(val, 2) == 1 end)
+      %{one: 1, three: 3}
+
+  """
+  @doc since: "1.13.0"
+  @spec filter(map, ({key, value} -> as_boolean(term))) :: map
+  def filter(map, fun) when is_map(map) and is_function(fun, 1) do
+    iter = iterator(map)
+    next = next(iter)
+    :maps.from_list(do_filter(next, fun))
+  end
+
+  defp do_filter(:none, _fun), do: []
+
+  defp do_filter({key, value, iter}, fun) do
+    if fun.({key, value}) do
+      [{key, value} | do_filter(next(iter), fun)]
+    else
+      do_filter(next(iter), fun)
+    end
+  end
+
+  @doc """
+  Returns map excluding the pairs from `map` for which `fun` returns a truthy value.
+  `Map.reject/2` is faster than using `map |> Enum.reject(fun) |> Enum.into(%{})`,
+  as no intermediate list is being built.
+
+  See also `filter/2`.
+
+  ## Examples
+
+      iex> Map.reject(%{one: 1, two: 2, three: 3}, fn {_key, val} -> rem(val, 2) == 1 end)
+      %{two: 2}
+
+  """
+  @doc since: "1.13.0"
+  @spec reject(map, ({key, value} -> as_boolean(term))) :: map
+  def reject(map, fun) when is_map(map) and is_function(fun, 1) do
+    iter = iterator(map)
+    next = next(iter)
+    :maps.from_list(do_reject(next, fun))
+  end
+
+  defp do_reject(:none, _fun), do: []
+
+  defp do_reject({key, value, iter}, fun) do
+    if fun.({key, value}) do
+      do_reject(next(iter), fun)
+    else
+      [{key, value} | do_reject(next(iter), fun)]
+    end
+  end
+
+  @doc """
+  Maps the function `fun` over all key-value pairs in `map`, returning a map
+  with all the values replaced with the result of the function.
+
+  ## Examples
+
+      iex> Map.map(%{1 => "joe", 2 => "mike", 3 => "robert"}, fn {_key, val} -> String.capitalize(val) end)
+      %{1 => "Joe", 2 => "Mike", 3 => "Robert"}
+
+  """
+  @doc since: "1.13.0"
+  @spec map(map, ({key, value} -> value)) :: map
+  def map(map, fun) when is_map(map) and is_function(fun, 1) do
+    iter = iterator(map)
+    next = next(iter)
+    :maps.from_list(do_map(next, fun))
+  end
+
+  defp do_map(:none, _fun), do: []
+
+  defp do_map({key, value, iter}, fun) do
+    new_value = fun.({key, value})
+    [{key, new_value} | do_map(next(iter), fun)]
+  end
+
+  # Inlined version of `:maps.iterator/1`
+  @compile {:inline, iterator: 1}
+  defp iterator(map) when is_map(map), do: [0 | map]
+
+  # Inlined version of `:maps.next/1`
+  @compile {:inline, next: 1}
+  defp next({key, val, iter}), do: {key, val, iter}
+
+  defp next([path | map]),
+    do: :erts_internal.map_next(path, map, :iterator)
+
+  defp next(:none), do: :none
 end
