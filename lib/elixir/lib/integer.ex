@@ -469,8 +469,8 @@ defmodule Integer do
   @doc since: "1.12.0"
   @spec extended_gcd(integer, integer) :: {non_neg_integer, integer, integer}
   def extended_gcd(0, 0), do: {0, 0, 0}
-  def extended_gcd(0, n), do: {n, 0, 1}
-  def extended_gcd(n, 0), do: {n, 1, 0}
+  def extended_gcd(0, b), do: {b, 0, 1}
+  def extended_gcd(a, 0), do: {a, 1, 0}
 
   def extended_gcd(integer1, integer2) when is_integer(integer1) and is_integer(integer2) do
     extended_gcd(integer2, integer1, 0, 1, 1, 0)
