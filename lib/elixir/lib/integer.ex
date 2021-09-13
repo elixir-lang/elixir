@@ -104,15 +104,8 @@ defmodule Integer do
   @spec pow(integer, non_neg_integer) :: integer
   def pow(base, exponent) when is_integer(base) and is_integer(exponent) do
     if exponent < 0, do: :erlang.error(:badarith, [base, exponent])
-    guarded_pow(base, exponent)
+    base ** exponent
   end
-
-  # https://en.wikipedia.org/wiki/Exponentiation_by_squaring
-  defp guarded_pow(b, a \\ 1, e)
-  defp guarded_pow(_, _, 0), do: 1
-  defp guarded_pow(b, a, 1), do: b * a
-  defp guarded_pow(b, a, e) when (e &&& 1) == 0, do: guarded_pow(b * b, a, e >>> 1)
-  defp guarded_pow(b, a, e), do: guarded_pow(b * b, a * b, e >>> 1)
 
   @doc """
   Computes the modulo remainder of an integer division.
