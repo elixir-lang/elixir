@@ -994,8 +994,8 @@ defmodule Map do
   @doc since: "1.13.0"
   @spec filter(map, ({key, value} -> as_boolean(term))) :: map
   def filter(map, fun) when is_map(map) and is_function(fun, 1) do
-    iter = iterator(map)
-    next = next(iter)
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
     :maps.from_list(do_filter(next, fun))
   end
 
@@ -1003,9 +1003,9 @@ defmodule Map do
 
   defp do_filter({key, value, iter}, fun) do
     if fun.({key, value}) do
-      [{key, value} | do_filter(next(iter), fun)]
+      [{key, value} | do_filter(:maps.next(iter), fun)]
     else
-      do_filter(next(iter), fun)
+      do_filter(:maps.next(iter), fun)
     end
   end
 
@@ -1025,8 +1025,8 @@ defmodule Map do
   @doc since: "1.13.0"
   @spec reject(map, ({key, value} -> as_boolean(term))) :: map
   def reject(map, fun) when is_map(map) and is_function(fun, 1) do
-    iter = iterator(map)
-    next = next(iter)
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
     :maps.from_list(do_reject(next, fun))
   end
 
@@ -1034,9 +1034,9 @@ defmodule Map do
 
   defp do_reject({key, value, iter}, fun) do
     if fun.({key, value}) do
-      do_reject(next(iter), fun)
+      do_reject(:maps.next(iter), fun)
     else
-      [{key, value} | do_reject(next(iter), fun)]
+      [{key, value} | do_reject(:maps.next(iter), fun)]
     end
   end
 
@@ -1053,8 +1053,8 @@ defmodule Map do
   @doc since: "1.13.0"
   @spec map(map, ({key, value} -> value)) :: map
   def map(map, fun) when is_map(map) and is_function(fun, 1) do
-    iter = iterator(map)
-    next = next(iter)
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
     :maps.from_list(do_map(next, fun))
   end
 
@@ -1062,19 +1062,6 @@ defmodule Map do
 
   defp do_map({key, value, iter}, fun) do
     new_value = fun.({key, value})
-    [{key, new_value} | do_map(next(iter), fun)]
+    [{key, new_value} | do_map(:maps.next(iter), fun)]
   end
-
-  # Inlined version of `:maps.iterator/1`
-  @compile {:inline, iterator: 1}
-  defp iterator(map) when is_map(map), do: [0 | map]
-
-  # Inlined version of `:maps.next/1`
-  @compile {:inline, next: 1}
-  defp next({key, val, iter}), do: {key, val, iter}
-
-  defp next([path | map]),
-    do: :erts_internal.map_next(path, map, :iterator)
-
-  defp next(:none), do: :none
 end
