@@ -188,8 +188,8 @@ defmodule Code.Formatter do
         else
           _ ->
             raise ArgumentError,
-                  ":sigils must be a keyword list with uppercased letters as key and an anonymous " <>
-                    "function expecting a single argument as value, got: #{inspect(sigils)}"
+                  ":sigils must be a keyword list with a single uppercased letter as key and an " <>
+                    "anonymous function expecting a single argument as value, got: #{inspect(sigils)}"
         end
       end)
 
