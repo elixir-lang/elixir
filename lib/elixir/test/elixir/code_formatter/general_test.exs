@@ -125,7 +125,7 @@ defmodule Code.Formatter.GeneralTest do
       ~W/foo bar baz/
       """
 
-      formatter = & &1 |> String.split(~r/ +/) |> Enum.join(" ")
+      formatter = &(&1 |> String.split(~r/ +/) |> Enum.join(" "))
       assert_format bad, good, sigils: [W: formatter]
 
       bad = """
@@ -136,7 +136,7 @@ defmodule Code.Formatter.GeneralTest do
       var = ~W/foo bar baz/abc
       """
 
-      formatter = & &1 |> String.split(~r/ +/) |> Enum.join(" ")
+      formatter = &(&1 |> String.split(~r/ +/) |> Enum.join(" "))
       assert_format bad, good, sigils: [W: formatter]
     end
 
@@ -153,7 +153,7 @@ defmodule Code.Formatter.GeneralTest do
       '''
       """
 
-      formatter = & &1 |> String.split(~r/ +/) |> Enum.join(" ")
+      formatter = &(&1 |> String.split(~r/ +/) |> Enum.join(" "))
       assert_format bad, good, sigils: [W: formatter]
 
       bad = """
@@ -176,7 +176,7 @@ defmodule Code.Formatter.GeneralTest do
       end
       """
 
-      formatter = & &1 |> String.split(~r/ +/) |> Enum.join("\n")
+      formatter = &(&1 |> String.split(~r/ +/) |> Enum.join("\n"))
       assert_format bad, good, sigils: [W: formatter]
     end
   end

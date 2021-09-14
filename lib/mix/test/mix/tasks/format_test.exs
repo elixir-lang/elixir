@@ -145,20 +145,6 @@ defmodule Mix.Tasks.FormatTest do
     assert output == ""
   end
 
-  test "checks if file is equivalent with --check-equivalent", context do
-    in_tmp(context.test, fn ->
-      File.write!("a.ex", """
-      foo bar
-      """)
-
-      Mix.Tasks.Format.run(["a.ex", "--check-equivalent"])
-
-      assert File.read!("a.ex") == """
-             foo(bar)
-             """
-    end)
-  end
-
   test "uses inputs and configuration from .formatter.exs", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
@@ -204,6 +190,74 @@ defmodule Mix.Tasks.FormatTest do
 
       assert File.read!(".b.ex") == """
              foo(bar)
+             """
+    end)
+  end
+
+  defmodule Elixir.SigilWPlugin do
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [sigils: [:W], extensions: ~w(.w)]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      contents |> String.split(~r/\s/) |> Enum.join("\n")
+    end
+  end
+
+  test "uses sigil plugins from .formatter.exs", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [SigilWPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      if true do
+        ~W'''
+        foo bar baz
+        '''abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             if true do
+               ~W'''
+               foo
+               bar
+               baz
+               '''abc
+             end
+             """
+    end)
+  end
+
+  test "uses extension plugins from .formatter.exs", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.w"],
+        plugins: [SigilWPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.w", """
+      foo bar baz
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.w") == """
+             foo
+             bar
+             baz
              """
     end)
   end
