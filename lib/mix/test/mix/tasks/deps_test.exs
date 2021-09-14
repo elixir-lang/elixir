@@ -286,14 +286,13 @@ defmodule Mix.Tasks.DepsTest do
       assert to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
 
-      # Remove the deps but set build_path, deps won't be pruned, but load paths are
+      # Remove the deps but set build_path, deps won't be pruned
       Mix.ProjectStack.post_config(deps: [], build_path: "_build")
       Mix.State.clear_cache()
       Mix.Project.pop()
       Mix.Project.push(SuccessfulDepsApp)
 
       Mix.Tasks.Deps.Loadpaths.run([])
-      refute to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
       assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
 
@@ -304,6 +303,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Project.push(SuccessfulDepsApp)
 
       Mix.Tasks.Deps.Loadpaths.run([])
+      refute to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
       refute File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
     end)
