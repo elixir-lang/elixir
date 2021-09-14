@@ -4104,6 +4104,50 @@ defmodule Kernel do
   end
 
   @doc """
+  Power operator.
+
+  It expects two numbers are input. If the left-hand side is an integer
+  and the right-hand side is more than or equal to 0, then the result is
+  integer. Otherwise it returns a float.
+
+  ## Examples
+
+      iex> 2 ** 2
+      4
+      iex> 2 ** -4
+      0.0625
+
+      iex> 2.0 ** 2
+      4.0
+      iex> 2 ** 2.0
+      4.0
+
+  """
+  @spec integer ** non_neg_integer :: integer
+  @spec integer ** neg_integer :: float
+  @spec float ** float :: float
+  def base ** exponent when is_integer(base) and is_integer(exponent) and exponent >= 0 do
+    integer_pow(base, 1, exponent)
+  end
+
+  def base ** exponent when is_number(base) and is_number(exponent) do
+    :math.pow(base, exponent)
+  end
+
+  # https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+  defp integer_pow(_, _, 0),
+    do: 1
+
+  defp integer_pow(b, a, 1),
+    do: b * a
+
+  defp integer_pow(b, a, e) when :erlang.band(e, 1) == 0,
+    do: integer_pow(b * b, a, :erlang.bsr(e, 1))
+
+  defp integer_pow(b, a, e),
+    do: integer_pow(b * b, a * b, :erlang.bsr(e, 1))
+
+  @doc """
   Membership operator. Checks if the element on the left-hand side is a member of the
   collection on the right-hand side.
 
