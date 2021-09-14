@@ -270,46 +270,7 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  test "compiles and prunes builds per environment" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(SuccessfulDepsApp)
-
-      # Start from scratch!
-      File.rm_rf("_build")
-
-      Mix.Tasks.Deps.Compile.run([])
-      Mix.Tasks.Deps.Loadpaths.run([])
-      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert File.exists?("_build/dev/lib/ok/priv/sample")
-
-      Mix.Tasks.Compile.run([])
-      assert to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
-      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
-
-      # Remove the deps but set build_path, deps won't be pruned
-      Mix.ProjectStack.post_config(deps: [], build_path: "_build")
-      Mix.State.clear_cache()
-      Mix.Project.pop()
-      Mix.Project.push(SuccessfulDepsApp)
-
-      Mix.Tasks.Deps.Loadpaths.run([])
-      assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
-
-      # Remove the deps without build_path, deps will be pruned
-      Mix.ProjectStack.post_config(deps: [])
-      Mix.State.clear_cache()
-      Mix.Project.pop()
-      Mix.Project.push(SuccessfulDepsApp)
-
-      Mix.Tasks.Deps.Loadpaths.run([])
-      refute to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
-      refute File.exists?("_build/dev/lib/ok/ebin/ok.app")
-      assert File.exists?("_build/dev/lib/sample/ebin/sample.app")
-    end)
-  end
-
-  test "does not load or prune builds with --no-load-deps" do
+  test "does not load deps with --no-load-deps" do
     in_fixture("deps_status", fn ->
       Mix.Project.push(SuccessfulDepsApp)
 

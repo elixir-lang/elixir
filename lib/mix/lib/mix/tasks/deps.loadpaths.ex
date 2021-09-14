@@ -35,22 +35,10 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     end
 
     unless "--no-load-deps" in args do
-      load_paths =
-        for dep <- all,
-            path <- Mix.Dep.load_paths(dep) do
-          _ = Code.prepend_path(path)
-          path
-        end
-
-      # If the build is per environment, we should be able to look
-      # at all dependencies and remove the builds that no longer
-      # have a dependency defined for them.
-      #
-      # Note that we require the build_path to be nil. If it is not nil,
-      # it means the build_path is shared so we don't delete entries.
-      unless "--no-deps-check" in args or config[:build_path] != nil or
-               config[:build_per_environment] == false do
-        prune_deps(config, load_paths)
+      for dep <- all,
+          path <- Mix.Dep.load_paths(dep) do
+        _ = Code.prepend_path(path)
+        path
       end
     end
   end
@@ -70,19 +58,6 @@ defmodule Mix.Tasks.Deps.Loadpaths do
           Mix.raise("Invalid Elixir version requirement #{req} in mix.exs file")
       end
     end
-  end
-
-  defp prune_deps(config, load_paths) do
-    config
-    |> Mix.Project.build_path()
-    |> Path.join("lib/*/ebin")
-    |> Path.wildcard()
-    |> List.delete(config[:app] && Mix.Project.compile_path(config))
-    |> Kernel.--(load_paths)
-    |> Enum.each(fn path ->
-      _ = Code.delete_path(path)
-      path |> Path.dirname() |> File.rm_rf!()
-    end)
   end
 
   defp deps_check(all, no_compile?) do
