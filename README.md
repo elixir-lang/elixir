@@ -11,17 +11,44 @@ For more about Elixir, installation and documentation,
 ## Policies
 
 New releases are announced in the [announcement mailing list][8].
-You can subscribe by sending an email to elixir-lang-ann+subscribe@googlegroups.com and replying to the confirmation email.
+You can subscribe by sending an email to elixir-lang-ann+subscribe@googlegroups.com
+and replying to the confirmation email.
 
-All security releases [will be tagged with `[security]`][10]. For more information, please read our [Security Policy][9].
+All security releases [will be tagged with `[security]`][10]. For more
+information, please read our [Security Policy][9].
 
-All interactions in our official communication channels follow our [Code of Conduct][1].
+All interactions in our official communication channels follow our
+[Code of Conduct][1].
 
 ## Bug reports
 
 For reporting bugs, [visit our issue tracker][2] and follow the steps
 for reporting a new issue. **Please disclose security vulnerabilities
 privately at elixir-security@googlegroups.com**.
+
+## Proposing new features
+
+For proposing new features, please start a discussion in the
+[Elixir Core mailing list][3]. Keep in mind that it is your responsibility
+to argue and explain why a feature is useful and how it will impact the
+codebase and the community.
+
+Once a proposal is accepted, it will be added to [the issue tracker][2].
+The issue tracker focuses on *actionable items* and it holds a list of
+upcoming enhancements and pending bugs. All entries in the tracker are
+tagged for clarity and to ease collaboration.
+
+Features and bug fixes that have already been merged and will be included
+in the next release are marked as "closed" in the issue tracker and are
+added to the [changelog][7].
+
+## Discussions, support, and help
+
+We reserve the issues tracker for *actionable items* that relate to the
+Elixir source code. For general discussions, support, and help, please
+use many of the commnunity spaces [listed on the sidebar of the Elixir
+website](https://elixir-lang.org/), such as forums, chat platforms, etc,
+where the wider community will be available to help you.
 
 ## Compiling from source
 
@@ -48,22 +75,6 @@ you need to add the `bin` directory to [your PATH environment variable](https://
 If Elixir fails to build (specifically when pulling in a new version via
 `git`), be sure to remove any previous build artifacts by running
 `make clean`, then `make test`.
-
-## Proposing new features
-
-For proposing new features, please start a discussion in the
-[Elixir Core mailing list][3]. Keep in mind that it is your responsibility
-to argue and explain why a feature is useful and how it will impact the
-codebase and the community.
-
-Once a proposal is accepted, it will be added to [the issue tracker][2].
-The issue tracker focuses on *actionable items* and it holds a list of
-upcoming enhancements and pending bugs. All entries in the tracker are
-tagged for clarity and to ease collaboration.
-
-Features and bug fixes that have already been merged and will be included
-in the next release are marked as "closed" in the issue tracker and are
-added to the [changelog][7].
 
 ## Contributing
 
