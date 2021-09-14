@@ -1506,6 +1506,10 @@ defmodule String do
     end
   end
 
+  defp replace_guarded(subject, pattern_list, replacement, options) when is_list(pattern) and "" in pattern do
+    replace_guarded(subject, Enum.filter(pattern, &(&1 == "")), replacement, options)
+  end
+
   defp replace_guarded(subject, pattern, replacement, options) do
     if insert = Keyword.get(options, :insert_replaced) do
       IO.warn(
