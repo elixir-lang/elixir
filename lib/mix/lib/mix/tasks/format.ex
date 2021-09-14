@@ -29,6 +29,10 @@ defmodule Mix.Tasks.Format do
       to be used by this task. For example, `["mix.exs", "{config,lib,test}/**/*.{ex,exs}"]`.
       Patterns are expanded with `Path.wildcard/2`.
 
+    * `:plugins` (a list of modules) (since v1.13.0) - specifies a list of
+      modules to customize how the formatter works. See the "Plugins" section
+      below for more information.
+
     * `:subdirectories` (a list of paths and patterns) - specifies subdirectories
       that have their own formatting rules. Each subdirectory should have a
       `.formatter.exs` that configures how entries in that subdirectory should be
@@ -51,29 +55,22 @@ defmodule Mix.Tasks.Format do
 
     * `--check-formatted` - checks that the file is already formatted.
       This is useful in pre-commit hooks and CI scripts if you want to
-      reject contributions with unformatted code. However keep in mind
+      reject contributions with unformatted code. If the check fails,
+      the formatted contents are not written to disk. Keep in mind
       that the formatted output may differ between Elixir versions as
-      improvements and fixes are applied to the formatter.
-
-    * `--check-equivalent` - checks if the files after formatting have the
-      same AST as before formatting. If the ASTs are not equivalent, it is
-      a bug in the code formatter. This option is useful if you suspect you
-      have ran into a formatter bug and you would like confirmation.
+      improvements and fixes are applied to the formatter. If `--check-*`
 
     * `--dry-run` - does not save files after formatting.
 
     * `--dot-formatter` - path to the file with formatter configuration.
-      Defaults to `.formatter.exs` if one is available. See the "Formatting options"
-      section above for more information.
-
-  If any of the `--check-*` options are given and a check fails, the formatted
-  contents won't be written to disk nor printed to standard output.
+      Defaults to `.formatter.exs` if one is available. See the
+      "Formatting options" section above for more information.
 
   ## When to format code
 
   We recommend developers to format code directly in their editors, either
   automatically when saving a file or via an explicit command or key binding. If
-  such option is not yet available in your editor of choice, adding the required
+  such option is not available in your editor of choice, adding the required
   integration is usually a matter of invoking:
 
       cd $project && mix format $file
@@ -85,6 +82,39 @@ defmodule Mix.Tasks.Format do
   of patterns and files to `mix format`, as shown at the top of this task
   documentation. This list can also be set in the `.formatter.exs` file under the
   `:inputs` key.
+
+  ## Plugins
+
+  It is possible to customize how the formatter behaves. Plugins must implement
+  the `Mix.Tasks.Format` behaviour. For example, imagine that your project uses
+  Markdown in two distinct ways: via a custom `~M` sigil and via files with the
+  `.md` and `.markdown` extensions. A custom plugin would look like this:
+
+      defmodule MixMarkdownFormatter do
+        @behaviour Mix.Tasks.Format
+
+        def features(_opts) do
+          [sigils: [:W], extensions: [".md", ".markdown"]]
+        end
+
+        def format(contents, opts) do
+          # logic that formats markdown
+        end
+      end
+
+  Now any application can use your formatter as follows:
+
+      # .formatters.exs
+      [
+        # Define the desired plugins
+        plugins: [MixMarkdownFormatter],
+        # Remember to update the inputs list to include the new extensions
+        inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}", "posts/*.{md,markdown}"]
+      ]
+
+  Remember that, when running the formatter with plugins, you must make
+  sure that your dependencies and your application has been been compiled,
+  so the relevant plugin code can be loaded. Otherwise a warning is logged.
 
   ## Importing dependencies configuration
 
@@ -134,18 +164,36 @@ defmodule Mix.Tasks.Format do
   @manifest "cached_dot_formatter"
   @manifest_vsn 1
 
+  @doc """
+  Returns which features this plugin should plug into.
+  """
+  @callback features() :: [sigils: [atom()], extensions: [binary()]]
+
+  @doc """
+  Receives a string to be formatted with options and returns said string.
+  """
+  @callback format(String.t(), Keyword.t()) :: String.t()
+
   @impl true
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
     {dot_formatter, formatter_opts} = eval_dot_formatter(opts)
 
+    if opts[:check_equivalent] do
+      IO.warn("--check-equivalent has been deprecated and has no effect")
+    end
+
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(dot_formatter, [], formatter_opts, [dot_formatter])
+
+    # In case plugins are given, we need to reenable those tasks
+    Mix.Task.reenable("loadpaths")
+    Mix.Task.reenable("deps.loadpaths")
 
     args
     |> expand_args(dot_formatter, formatter_opts_and_subs)
     |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: 30000)
-    |> Enum.reduce({[], [], []}, &collect_status/2)
+    |> Enum.reduce({[], []}, &collect_status/2)
     |> check!()
   end
 
@@ -195,6 +243,7 @@ defmodule Mix.Tasks.Format do
   defp eval_deps_and_subdirectories(dot_formatter, prefix, formatter_opts, sources) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
     subs = Keyword.get(formatter_opts, :subdirectories, [])
+    plugins = Keyword.get(formatter_opts, :plugins, [])
 
     if not is_list(deps) do
       Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
@@ -203,6 +252,34 @@ defmodule Mix.Tasks.Format do
     if not is_list(subs) do
       Mix.raise("Expected :subdirectories to return a list of directories, got: #{inspect(subs)}")
     end
+
+    if not is_list(plugins) do
+      Mix.raise("Expected :plugins to return a list of directories, got: #{inspect(plugins)}")
+    end
+
+    if plugins != [] do
+      args = ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
+      Mix.Task.run("loadpaths", args)
+    end
+
+    for plugin <- plugins do
+      cond do
+        not Code.ensure_loaded?(plugin) ->
+          Mix.shell().error(
+            "Skipping formatter plugin #{inspect(plugin)} because module cannot be found"
+          )
+
+        not function_exported?(plugin, :features, 1) ->
+          Mix.shell().error(
+            "Skipping formatter plugin #{inspect(plugin)} because it does not define features/0"
+          )
+
+        true ->
+          :ok
+      end
+    end
+
+    formatter_opts = Keyword.put(formatter_opts, :plugins, plugins)
 
     if deps == [] and subs == [] do
       {{formatter_opts, []}, sources}
@@ -406,7 +483,27 @@ defmodule Mix.Tasks.Format do
   end
 
   defp find_formatter_for_file(file, formatter_opts) do
-    &elixir_format(&1, [file: file] ++ formatter_opts)
+    ext = Path.extname(file)
+
+    cond do
+      ext in ~w(.ex .exs) ->
+        &elixir_format(&1, [file: file] ++ formatter_opts)
+
+      plugin = find_plugin_for_extension(formatter_opts, ext) ->
+        &plugin.format(&1, formatter_opts)
+
+      true ->
+        & &1
+    end
+  end
+
+  defp find_plugin_for_extension(formatter_opts, ext) do
+    plugins = Keyword.get(formatter_opts, :plugins, [])
+
+    Enum.find(plugins, fn plugin ->
+      Code.ensure_loaded?(plugin) and function_exported?(plugin, :features, 1) and
+        ext in List.wrap(plugin.features(formatter_opts)[:extensions])
+    end)
   end
 
   defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
@@ -431,7 +528,20 @@ defmodule Mix.Tasks.Format do
   defp stdin_or_wildcard(path), do: path |> Path.expand() |> Path.wildcard(match_dot: true)
 
   defp elixir_format(content, formatter_opts) do
-    IO.iodata_to_binary([Code.format_string!(content, formatter_opts), ?\n])
+    sigils =
+      for plugin <- Keyword.fetch!(formatter_opts, :plugins),
+          sigil <- find_sigils_from_plugins(plugin, formatter_opts),
+          do: {sigil, &plugin.format(&1, formatter_opts)}
+
+    IO.iodata_to_binary([Code.format_string!(content, [sigils: sigils] ++ formatter_opts), ?\n])
+  end
+
+  defp find_sigils_from_plugins(plugin, formatter_opts) do
+    if Code.ensure_loaded?(plugin) and function_exported?(plugin, :features, 1) do
+      List.wrap(plugin.features(formatter_opts)[:sigils])
+    else
+      []
+    end
   end
 
   defp read_file(:stdin), do: IO.stream() |> Enum.to_list() |> IO.iodata_to_binary()
@@ -440,14 +550,10 @@ defmodule Mix.Tasks.Format do
   defp format_file({file, formatter}, task_opts) do
     input = read_file(file)
     output = formatter.(input)
-    check_equivalent? = Keyword.get(task_opts, :check_equivalent, false)
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
     dry_run? = Keyword.get(task_opts, :dry_run, false)
 
     cond do
-      check_equivalent? and not equivalent?(input, output) ->
-        {:not_equivalent, file}
-
       check_formatted? ->
         if input == output, do: :ok, else: {:not_formatted, file}
 
@@ -474,44 +580,29 @@ defmodule Mix.Tasks.Format do
 
   defp collect_status({:ok, :ok}, acc), do: acc
 
-  defp collect_status({:ok, {:exit, _, _, _} = exit}, {exits, not_equivalent, not_formatted}) do
-    {[exit | exits], not_equivalent, not_formatted}
+  defp collect_status({:ok, {:exit, _, _, _} = exit}, {exits, not_formatted}) do
+    {[exit | exits], not_formatted}
   end
 
-  defp collect_status({:ok, {:not_equivalent, file}}, {exits, not_equivalent, not_formatted}) do
-    {exits, [file | not_equivalent], not_formatted}
+  defp collect_status({:ok, {:not_formatted, file}}, {exits, not_formatted}) do
+    {exits, [file | not_formatted]}
   end
 
-  defp collect_status({:ok, {:not_formatted, file}}, {exits, not_equivalent, not_formatted}) do
-    {exits, not_equivalent, [file | not_formatted]}
-  end
-
-  defp check!({[], [], []}) do
+  defp check!({[], []}) do
     :ok
   end
 
-  defp check!({[{:exit, :stdin, exception, stacktrace} | _], _not_equivalent, _not_formatted}) do
+  defp check!({[{:exit, :stdin, exception, stacktrace} | _], _not_formatted}) do
     Mix.shell().error("mix format failed for stdin")
     reraise exception, stacktrace
   end
 
-  defp check!({[{:exit, file, exception, stacktrace} | _], _not_equivalent, _not_formatted}) do
+  defp check!({[{:exit, file, exception, stacktrace} | _], _not_formatted}) do
     Mix.shell().error("mix format failed for file: #{Path.relative_to_cwd(file)}")
     reraise exception, stacktrace
   end
 
-  defp check!({_exits, [_ | _] = not_equivalent, _not_formatted}) do
-    Mix.raise("""
-    mix format failed due to --check-equivalent.
-    The following files are not equivalent:
-
-    #{to_bullet_list(not_equivalent)}
-
-    Please report this bug with the input files at https://github.com/elixir-lang/elixir/issues
-    """)
-  end
-
-  defp check!({_exits, _not_equivalent, [_ | _] = not_formatted}) do
+  defp check!({_exits, [_ | _] = not_formatted}) do
     Mix.raise("""
     mix format failed due to --check-formatted.
     The following files are not formatted:
@@ -522,9 +613,5 @@ defmodule Mix.Tasks.Format do
 
   defp to_bullet_list(files) do
     Enum.map_join(files, "\n", &"  * #{&1 |> to_string() |> Path.relative_to_cwd()}")
-  end
-
-  defp equivalent?(input, output) do
-    Code.Formatter.equivalent(input, output) == :ok
   end
 end

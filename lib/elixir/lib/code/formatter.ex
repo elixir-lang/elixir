@@ -142,55 +142,6 @@ defmodule Code.Formatter do
   @do_end_keywords [:rescue, :catch, :else, :after]
 
   @doc """
-  Checks if two strings are equivalent.
-  """
-  def equivalent(string1, string2) when is_binary(string1) and is_binary(string2) do
-    quoted1 = :elixir.string_to_quoted!(to_charlist(string1), 1, 1, "nofile", [])
-    quoted2 = :elixir.string_to_quoted!(to_charlist(string2), 1, 1, "nofile", [])
-
-    case not_equivalent(quoted1, quoted2) do
-      {left, right} -> {:error, left, right}
-      nil -> :ok
-    end
-  end
-
-  defp not_equivalent({:__block__, _, [left]}, right) do
-    not_equivalent(left, right)
-  end
-
-  defp not_equivalent(left, {:__block__, _, [right]}) do
-    not_equivalent(left, right)
-  end
-
-  defp not_equivalent({:__block__, _, []}, nil) do
-    nil
-  end
-
-  defp not_equivalent(nil, {:__block__, _, []}) do
-    nil
-  end
-
-  defp not_equivalent([left | lefties], [right | righties]) do
-    not_equivalent(left, right) || not_equivalent(lefties, righties)
-  end
-
-  defp not_equivalent({left_name, _, left_args}, {right_name, _, right_args}) do
-    not_equivalent(left_name, right_name) || not_equivalent(left_args, right_args)
-  end
-
-  defp not_equivalent({left1, left2}, {right1, right2}) do
-    not_equivalent(left1, right1) || not_equivalent(left2, right2)
-  end
-
-  defp not_equivalent(side, side) do
-    nil
-  end
-
-  defp not_equivalent(left, right) do
-    {left, right}
-  end
-
-  @doc """
   Converts the quoted expression into an algebra document.
   """
   def to_algebra(quoted, opts \\ []) do
