@@ -58,7 +58,7 @@ defmodule Mix.Tasks.Format do
       reject contributions with unformatted code. If the check fails,
       the formatted contents are not written to disk. Keep in mind
       that the formatted output may differ between Elixir versions as
-      improvements and fixes are applied to the formatter. If `--check-*`
+      improvements and fixes are applied to the formatter.
 
     * `--dry-run` - does not save files after formatting.
 
@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Format do
         @behaviour Mix.Tasks.Format
 
         def features(_opts) do
-          [sigils: [:W], extensions: [".md", ".markdown"]]
+          [sigils: [:M], extensions: [".md", ".markdown"]]
         end
 
         def format(contents, opts) do
@@ -113,7 +113,7 @@ defmodule Mix.Tasks.Format do
       ]
 
   Remember that, when running the formatter with plugins, you must make
-  sure that your dependencies and your application has been been compiled,
+  sure that your dependencies and your application have been compiled,
   so the relevant plugin code can be loaded. Otherwise a warning is logged.
 
   ## Importing dependencies configuration
@@ -167,7 +167,7 @@ defmodule Mix.Tasks.Format do
   @doc """
   Returns which features this plugin should plug into.
   """
-  @callback features() :: [sigils: [atom()], extensions: [binary()]]
+  @callback features(Keyword.t()) :: [sigils: [atom()], extensions: [binary()]]
 
   @doc """
   Receives a string to be formatted with options and returns said string.
@@ -254,7 +254,7 @@ defmodule Mix.Tasks.Format do
     end
 
     if not is_list(plugins) do
-      Mix.raise("Expected :plugins to return a list of directories, got: #{inspect(plugins)}")
+      Mix.raise("Expected :plugins to return a list of modules, got: #{inspect(plugins)}")
     end
 
     if plugins != [] do
@@ -271,7 +271,7 @@ defmodule Mix.Tasks.Format do
 
         not function_exported?(plugin, :features, 1) ->
           Mix.shell().error(
-            "Skipping formatter plugin #{inspect(plugin)} because it does not define features/0"
+            "Skipping formatter plugin #{inspect(plugin)} because it does not define features/1"
           )
 
         true ->

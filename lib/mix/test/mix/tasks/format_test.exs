@@ -195,6 +195,8 @@ defmodule Mix.Tasks.FormatTest do
   end
 
   defmodule Elixir.SigilWPlugin do
+    @behaviour Mix.Tasks.Format
+
     def features(opts) do
       assert opts[:from_formatter_exs] == :yes
       [sigils: [:W], extensions: ~w(.w)]
