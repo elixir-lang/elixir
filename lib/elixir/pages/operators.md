@@ -11,6 +11,7 @@ Operator                                              | Associativity
 `@`                                                   | Unary
 `.`                                                   | Left
 `+` `-` `!` `^` `not` `~~~`                           | Unary
+`**`                                                  | Left
 `*` `/`                                               | Left
 `+` `-`                                               | Left
 `++` `--` `+++` `---` `..` `<>`                       | Right
