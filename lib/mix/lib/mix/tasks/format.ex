@@ -41,9 +41,8 @@ defmodule Mix.Tasks.Format do
 
     * `:import_deps` (a list of dependencies as atoms) - specifies a list
        of dependencies whose formatter configuration will be imported.
-       When specified, the formatter should run in the same directory as
-       the `mix.exs` file that defines those dependencies. See the "Importing
-       dependencies configuration" section below for more information.
+       See the "Importing dependencies configuration" section below for more
+       information.
 
     * `:export` (a keyword list) - specifies formatter configuration to be exported.
       See the "Importing dependencies configuration" section below.
@@ -93,7 +92,7 @@ defmodule Mix.Tasks.Format do
 
   A dependency that wants to export formatter configuration needs to have a
   `.formatter.exs` file at the root of the project. In this file, the dependency
-  can export a `:export` option with configuration to export. For now, only one
+  can list an `:export` option with configuration to export. For now, only one
   option is supported under `:export`: `:locals_without_parens` (whose value has
   the same shape as the value of the `:locals_without_parens` in `Code.format_string!/2`).
 
@@ -151,16 +150,30 @@ defmodule Mix.Tasks.Format do
   end
 
   @doc """
-  Returns formatter options to be used for the given file.
+  Returns a formatter function and the formatter options to
+  be used for the given file.
+
+  The function must be called with the contents of the file
+  to be formatted. The options are returned for reflection
+  purposes.
   """
-  def formatter_opts_for_file(file, opts \\ []) do
+  def formatter_for_file(file, opts \\ []) do
     {dot_formatter, formatter_opts} = eval_dot_formatter(opts)
 
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(dot_formatter, [], formatter_opts, [dot_formatter])
 
-    split = file |> Path.relative_to_cwd() |> Path.split()
-    find_formatter_opts_for_file(split, formatter_opts_and_subs)
+    find_formatter_and_opts_for_file(file, formatter_opts_and_subs)
+  end
+
+  @doc """
+  Returns formatter options to be used for the given file.
+  """
+  # TODO: Deprecate on Elixir v1.17
+  @doc deprecated: "Use formatter_for_file/2 instead"
+  def formatter_opts_for_file(file, opts \\ []) do
+    {_, formatter_opts} = formatter_for_file(file, opts)
+    formatter_opts
   end
 
   defp eval_dot_formatter(opts) do
@@ -326,7 +339,9 @@ defmodule Mix.Tasks.Format do
 
     dot_formatter
     |> expand_dot_inputs([], formatter_opts_and_subs, %{})
-    |> Enum.map(fn {file, {_dot_formatter, formatter_opts}} -> {file, formatter_opts} end)
+    |> Enum.map(fn {file, {_dot_formatter, formatter_opts}} ->
+      {file, find_formatter_for_file(file, formatter_opts)}
+    end)
   end
 
   defp expand_args(files_and_patterns, _dot_formatter, {formatter_opts, subs}) do
@@ -345,10 +360,10 @@ defmodule Mix.Tasks.Format do
 
     for file <- files do
       if file == :stdin do
-        {file, formatter_opts}
+        {file, &elixir_format(&1, [file: "stdin"] ++ formatter_opts)}
       else
-        split = file |> Path.relative_to_cwd() |> Path.split()
-        {file, find_formatter_opts_for_file(split, {formatter_opts, subs})}
+        {formatter, _opts} = find_formatter_and_opts_for_file(file, {formatter_opts, subs})
+        {file, formatter}
       end
     end
   end
@@ -390,10 +405,20 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  defp find_formatter_opts_for_file(split, {formatter_opts, subs}) do
+  defp find_formatter_for_file(file, formatter_opts) do
+    &elixir_format(&1, [file: file] ++ formatter_opts)
+  end
+
+  defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
+    split = file |> Path.relative_to_cwd() |> Path.split()
+    formatter_opts = recur_formatter_opts_for_file(split, formatter_opts_and_subs)
+    {find_formatter_for_file(file, formatter_opts), formatter_opts}
+  end
+
+  defp recur_formatter_opts_for_file(split, {formatter_opts, subs}) do
     Enum.find_value(subs, formatter_opts, fn {sub, formatter_opts_and_subs} ->
       if List.starts_with?(split, Path.split(sub)) do
-        find_formatter_opts_for_file(split, formatter_opts_and_subs)
+        recur_formatter_opts_for_file(split, formatter_opts_and_subs)
       end
     end)
   end
@@ -405,18 +430,16 @@ defmodule Mix.Tasks.Format do
   defp stdin_or_wildcard("-"), do: [:stdin]
   defp stdin_or_wildcard(path), do: path |> Path.expand() |> Path.wildcard(match_dot: true)
 
-  defp read_file(:stdin) do
-    {IO.stream() |> Enum.to_list() |> IO.iodata_to_binary(), file: "stdin"}
+  defp elixir_format(content, formatter_opts) do
+    IO.iodata_to_binary([Code.format_string!(content, formatter_opts), ?\n])
   end
 
-  defp read_file(file) do
-    {File.read!(file), file: file}
-  end
+  defp read_file(:stdin), do: IO.stream() |> Enum.to_list() |> IO.iodata_to_binary()
+  defp read_file(file), do: File.read!(file)
 
-  defp format_file({file, formatter_opts}, task_opts) do
-    {input, extra_opts} = read_file(file)
-    output = IO.iodata_to_binary([Code.format_string!(input, extra_opts ++ formatter_opts), ?\n])
-
+  defp format_file({file, formatter}, task_opts) do
+    input = read_file(file)
+    output = formatter.(input)
     check_equivalent? = Keyword.get(task_opts, :check_equivalent, false)
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
     dry_run? = Keyword.get(task_opts, :dry_run, false)
