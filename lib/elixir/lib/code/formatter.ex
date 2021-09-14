@@ -203,7 +203,6 @@ defmodule Code.Formatter do
       |> state(opts)
 
     {doc, _} = block_to_algebra(quoted, @min_line, @max_line, state)
-
     doc
   end
 
@@ -227,13 +226,29 @@ defmodule Code.Formatter do
   defp state(comments, opts) do
     force_do_end_blocks = Keyword.get(opts, :force_do_end_blocks, false)
     locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
+    sigils = Keyword.get(opts, :sigils, [])
+
+    sigils =
+      Map.new(sigils, fn {key, value} ->
+        with true <- is_atom(key) and is_function(value, 1),
+             [char] <- Atom.to_charlist(key),
+             true <- char in ?A..?Z do
+          {char, value}
+        else
+          _ ->
+            raise ArgumentError,
+                  ":sigils must be a keyword list with uppercased letters as key and an anonymous " <>
+                    "function expecting a single argument as value, got: #{inspect(sigils)}"
+        end
+      end)
 
     %{
       force_do_end_blocks: force_do_end_blocks,
       locals_without_parens: locals_without_parens ++ locals_without_parens(),
       operand_nesting: 2,
       skip_eol: false,
-      comments: comments
+      comments: comments,
+      sigils: sigils
     }
   end
 
@@ -1350,6 +1365,22 @@ defmodule Code.Formatter do
          [{:<<>>, _, entries}, modifiers] when is_list(modifiers) <- args,
          opening_delimiter when not is_nil(opening_delimiter) <- meta[:delimiter] do
       doc = <<?~, name, opening_delimiter::binary>>
+
+      entries =
+        case state.sigils do
+          %{^name => callback} ->
+            case callback.(hd(entries)) do
+              binary when is_binary(binary) ->
+                [binary]
+
+              other ->
+                raise ArgumentError,
+                      "expected sigil callback to return a binary, got: #{inspect(other)}"
+            end
+
+          %{} ->
+            entries
+        end
 
       if opening_delimiter in [@double_heredoc, @single_heredoc] do
         closing_delimiter = concat(opening_delimiter, List.to_string(modifiers))

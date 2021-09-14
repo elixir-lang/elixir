@@ -115,6 +115,70 @@ defmodule Code.Formatter.GeneralTest do
                   """,
                   @short_length
     end
+
+    test "with custom formatting" do
+      bad = """
+      ~W/foo  bar  baz/
+      """
+
+      good = """
+      ~W/foo bar baz/
+      """
+
+      formatter = & &1 |> String.split(~r/ +/) |> Enum.join(" ")
+      assert_format bad, good, sigils: [W: formatter]
+
+      bad = """
+      var = ~W/foo  bar  baz/abc
+      """
+
+      good = """
+      var = ~W/foo bar baz/abc
+      """
+
+      formatter = & &1 |> String.split(~r/ +/) |> Enum.join(" ")
+      assert_format bad, good, sigils: [W: formatter]
+    end
+
+    test "with custom formatting on heredocs" do
+      bad = """
+      ~W'''
+      foo  bar  baz
+      '''
+      """
+
+      good = """
+      ~W'''
+      foo bar baz
+      '''
+      """
+
+      formatter = & &1 |> String.split(~r/ +/) |> Enum.join(" ")
+      assert_format bad, good, sigils: [W: formatter]
+
+      bad = """
+      if true do
+        ~W'''
+        foo
+        bar
+        baz
+        '''abc
+      end
+      """
+
+      good = """
+      if true do
+        ~W'''
+        foo
+        bar
+        baz
+        '''abc
+      end
+      """
+
+      formatter = & &1 |> String.split(~r/ +/) |> Enum.join("\n")
+      assert_format bad, good, sigils: [W: formatter]
+    end
   end
 
   describe "anonymous functions" do
