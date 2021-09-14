@@ -42,7 +42,16 @@ defmodule Mix.Tasks.Deps.Loadpaths do
           path
         end
 
-      prune_deps(config, load_paths, "--no-deps-check" in args)
+      # If the build is per environment, we should be able to look
+      # at all dependencies and remove the builds that no longer
+      # have a dependency defined for them.
+      #
+      # Note that we require the build_path to be nil. If it is not nil,
+      # it means the build_path is shared so we don't delete entries.
+      unless "--no-deps-check" in args or config[:build_path] != nil or
+               config[:build_per_environment] == false do
+        prune_deps(config, load_paths)
+      end
     end
   end
 
@@ -63,40 +72,21 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     end
   end
 
-  # If the build is per environment, we should be able to look
-  # at all dependencies and remove the builds that no longer
-  # have a dependency defined for them.
-  #
-  # Note that we require the build_path to be nil. If it is not nil,
-  # it means the build_path is shared so we don't delete entries.
-  #
-  # We also expect env_path to be nil. If it is not nil, it means
-  # it was set by a parent application and the parent application
-  # should be the one doing the pruning.
-  defp prune_deps(config, load_paths, no_check?) do
-    shared_build? =
-      no_check? or config[:build_path] != nil or config[:build_per_environment] == false
-
+  defp prune_deps(config, load_paths) do
     config
     |> Mix.Project.build_path()
     |> Path.join("lib/*/ebin")
     |> Path.wildcard()
     |> List.delete(config[:app] && Mix.Project.compile_path(config))
     |> Kernel.--(load_paths)
-    |> Enum.each(&prune_path(&1, shared_build?))
-  end
-
-  defp prune_path(path, shared_build?) do
-    _ = Code.delete_path(path)
-
-    unless shared_build? do
+    |> Enum.each(fn path ->
+      _ = Code.delete_path(path)
       path |> Path.dirname() |> File.rm_rf!()
-    end
+    end)
   end
 
   defp deps_check(all, no_compile?) do
     all = Enum.map(all, &check_lock/1)
-
     {not_ok, compile} = partition(all, [], [])
 
     cond do
