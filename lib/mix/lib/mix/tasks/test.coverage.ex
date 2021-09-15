@@ -2,20 +2,81 @@ defmodule Mix.Tasks.Test.Coverage do
   use Mix.Task
 
   @moduledoc """
-  Build report from exported test coverage.
+  Build reports from exported test coverage.
 
-  When using `--cover` with the default coverage tool,
-  the coverage tool supports an `:export` option to
-  export the coverage results into a directory. This is
-  useful when there are multiple test suites (such as in
-  an umbrella app) or when a single test suite is partitioned
-  across multiple runs when using the `mix test --partitions N`
-  option.
+  In this moduledoc, we will describe how the default test
+  coverage works in Elixir and also explore how it is capable
+  of export coverage results to group reports from multiple
+  test runs.
 
-  Once multiple test runs are exported, this task can be
-  used to generate an aggregated report.
+  ## Line coverage
 
-  ## Example: aggregating partitioned runs
+  Elixir uses Erlang's [`:cover`](https://erlang.org/doc/man/cover.html)
+  for its default test coverage. Erlang coverage is done by tracking
+  *executable lines of code*. This implies blank lines, code comments,
+  function signatures, and patterns are not necessarily executable and
+  therefore won't be tracked ín coverage reports. Code in macros are
+  also often executed at compilation time, and therefore may not covered.
+  Similarly, Elixir AST literals, such as atoms, are not executable either.
+
+  Let's see an example:
+
+      if some_condition? do
+        do_this()
+      else
+        do_that()
+      end
+
+  In the example above, if your tests exercise both `some_condition? == true`
+  and `some_condition? == false`, all branches will be covered, as they all
+  have executable code. However, the following code
+
+      if some_condition? do
+        do_this()
+      else
+        :default
+      end
+
+  won't ever mark the `:default` branch as covered, as there is no executable
+  code in the `else` branch. Note, however, this issue does not happen on `case`
+  or `cond`, as Elixir is able to mark the clause operator `->` as executable in
+  such corner cases:
+
+      case some_condition? do
+        true ->
+          do_this()
+
+        false ->
+          :default
+      end
+
+  If the code above is tested with both conditions, you should see entries
+  in both branches marked as covered.
+
+  Finally, it is worth discussing that line coverage by itself has its own
+  limitations. For example, take the following code:
+
+      do_this() || do_that()
+
+  Line coverage is not capable of expressing that both `do_this()` and
+  `do_that()` have been executed, since as soon as `do_this()` is executed,
+  the whole line is covered. Other techniques, such as branch coverage,
+  can help spot those cases, but they are not currently supported by the
+  default coverage tool.
+
+  Overall, code coverage can be a great tool for finding out flaws in our
+  code (such as functions that haven't been covered) but it can also lead
+  teams into a false sense of security since 100% coverage never means all
+  different executions flows have been asserted, even with the most advanced
+  coverage techniques. It is up to you and your team to specify how much
+  emphasis you want to place on it.
+
+  ## Exporting coverage
+
+  This task can be used when you need to group the coverage
+  across multiple test runs. Let's see some examples.
+
+  ### Example: aggregating partitioned runs
 
   If you partition your tests across multiple runs,
   you can unify the report as shown below:
@@ -27,7 +88,7 @@ defmodule Mix.Tasks.Test.Coverage do
   This works because the `--partitions` option
   automatically exports the coverage results.
 
-  ## Example: aggregating coverage reports from all umbrella children
+  ### Example: aggregating coverage reports from all umbrella children
 
   If you run `mix test.coverage` inside an umbrella,
   it will automatically gather exported cover results
@@ -64,6 +125,14 @@ defmodule Mix.Tasks.Test.Coverage do
   project B, those lines will not be marked as covered, which
   is important, as those projects should be developed and tested
   in isolation.
+
+  ### Other scenarios
+
+  There may be other scenarios where you want to export coverage.
+  For example, you may have broken your test suite into two, one
+  for unit tests and another for integration tests. In such scenarios,
+  you can explicitly use the `--export-coverage` command line option,
+  or the `:export` option under `:test_coverage` in your `mix.exs` file.
   """
 
   @shortdoc "Build report from exported test coverage"
