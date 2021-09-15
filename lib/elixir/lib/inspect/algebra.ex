@@ -354,7 +354,13 @@ defmodule Inspect.Algebra do
             try do
               Process.put(:inspect_trap, true)
 
-              res = Inspect.Map.inspect(struct, %{opts | syntax_colors: []})
+              res =
+                Inspect.Map.inspect(struct, %{
+                  opts
+                  | syntax_colors: [],
+                    inspect_fun: Inspect.Opts.default_inspect_fun()
+                })
+
               res = IO.iodata_to_binary(format(res, :infinity))
 
               message =
@@ -364,7 +370,10 @@ defmodule Inspect.Algebra do
               exception = Inspect.Error.exception(message: message)
 
               if opts.safe do
-                Inspect.inspect(exception, opts)
+                Inspect.inspect(exception, %{
+                  opts
+                  | inspect_fun: Inspect.Opts.default_inspect_fun()
+                })
               else
                 reraise(exception, __STACKTRACE__)
               end
