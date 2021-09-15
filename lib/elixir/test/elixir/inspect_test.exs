@@ -711,3 +711,51 @@ defmodule Inspect.OthersTest do
              "#Nested[#1/2]<\n  #Nested[#2/4]<\n    42\n  >\n>"
   end
 end
+
+defmodule Inspect.CustomProtocolTest do
+  use ExUnit.Case
+
+  defprotocol CustomInspect do
+    def inspect(term, opts)
+  end
+
+  defmodule MissingImplementation do
+    defstruct []
+  end
+
+  test "missing implementation unsafe" do
+    msg =
+      "got Protocol.UndefinedError with message \"protocol " <>
+        "Inspect.CustomProtocolTest.CustomInspect not implemented " <>
+        "for %Inspect.CustomProtocolTest.MissingImplementation{} " <>
+        "of type Inspect.CustomProtocolTest.MissingImplementation " <>
+        "(a struct)\" while inspecting %{__struct__: Inspect.CustomProtocolTest.MissingImplementation}"
+
+    opts = [safe: false, inspect_fun: &CustomInspect.inspect/2]
+
+    try do
+      inspect(%MissingImplementation{}, opts)
+    rescue
+      e in Inspect.Error ->
+        assert Exception.message(e) =~ msg
+        assert [{Inspect.CustomProtocolTest.CustomInspect, :impl_for!, 1, _} | _] = __STACKTRACE__
+    else
+      _ -> flunk("expected failure")
+    end
+  end
+
+  test "missing implementation safe" do
+    msg =
+      "got Protocol.UndefinedError with message \"protocol " <>
+        "Inspect.CustomProtocolTest.CustomInspect not implemented " <>
+        "for %Inspect.CustomProtocolTest.MissingImplementation{} of " <>
+        "type Inspect.CustomProtocolTest.MissingImplementation " <>
+        "(a struct)\" while inspecting %{__struct__: " <>
+        "Inspect.CustomProtocolTest.MissingImplementation}"
+
+    opts = [inspect_fun: &CustomInspect.inspect/2]
+
+    assert inspect(%MissingImplementation{}, opts) ==
+             inspect(%Inspect.Error{message: "#{msg}"})
+  end
+end
