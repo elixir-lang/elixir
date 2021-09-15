@@ -267,36 +267,37 @@ defmodule Mix.Tasks.Test do
 
   ## Coverage
 
-  The `:test_coverage` configuration accepts the following options:
+  The `:test_coverage` configures the coverage tool and reports generated
+  by the `--cover` flag. It accepts the following options:
 
-    * `:output` - the output directory for cover results. Defaults to `"cover"`
+    * `:output` - the output directory for cover results. Defaults to `"cover"`.
 
-    * `:tool` - the coverage tool
+    * `:tool` - a module specifying the coverage tool to use.
 
-    * `:summary` - summary output configuration; can be either a boolean
-      or a keyword list. When a keyword list is passed, it can specify a
-      `:threshold`, which is a boolean or numeric value that enables coloring
-      of code coverage results in red or green depending on whether the
-      percentage is below or above the specified threshold, respectively.
-      Defaults to `[threshold: 90]`. The task will exit with status of 1 if
-      the total coverage is below the threshold, unless `:summary` is set
-      to false.
+    * `:summary` - at the end of each coverage run, a summary of each
+      module is printed, with results in red or green depending on whether
+      the percentage is below or above a given threshold. The task will
+      exit with status of 1 if the total coverage is below the threshold.
+      The `:summary` option allows you to customize the summary generation
+      and defaults to `[threshold: 90]`, but it may be set to `false` to
+      disable such reports.
 
-    * `:export` - a file name to export results to instead of generating
-      the result on the fly. The `.coverdata` extension is automatically
-      added to the given file. This option is automatically set via the
-      `--export-coverage` option or when using process partitioning.
-      See `mix test.coverage` to compile a report from multiple exports
+    * `:export` - a filename to export results to instead of generating
+      the coverage result on the fly. The `.coverdata` extension is
+      automatically added to the given file. This option is automatically
+      set via the `--export-coverage` option or when using process partitioning.
+      See `mix test.coverage` to compile a report from multiple exports.
 
     * `:ignore_modules` - modules to ignore from generating reports and
       in summaries. It is a list of module names as atoms and regular
-      expressions that are matched against the module names
+      expressions that are matched against the module names.
 
-    * `:local_only` - by default coverage only tracks local calls, set this
-      option to false if you plan to run coverage across nodes
+    * `:local_only` - by default coverage only tracks local calls,
+      set this option to false if you plan to run coverage across nodes.
 
-  By default, a very simple wrapper around OTP's `cover` is used as a tool,
-  but it can be overridden as follows:
+  By default, a wrapper around OTP's `cover` is used as the default coverage
+  tool. You can learn more about how it works in the docs for
+  `mix test.coverage`. Your tool of choice can be given as follows:
 
       def project() do
         [
@@ -308,8 +309,8 @@ defmodule Mix.Tasks.Test do
 
   `CoverModule` can be any module that exports `start/2`, receiving the
   compilation path and the `test_coverage` options as arguments.
-  It must return either `nil` or an anonymous function of zero arity that will
-  be run after the test suite is done.
+  It must return either `nil` or an anonymous function of zero arity that
+  will run after the test suite is done.
 
   ## Operating system process partitioning
 
