@@ -570,6 +570,36 @@ defmodule Mix do
         {:jason, "~> 1.0"}
       ])
 
+  ## Limitations
+
+  There is one limitation to `Mix.install/2`, which is actually an Elixir
+  behaviour. If you are installing a dependency that defines a struct or
+  macro, you cannot use the struct or macro immediately after the install
+  call. For example, this won't work:
+
+      Mix.install([:decimal])
+      %Decimal{} = Decimal.new(42)
+
+  That's because Elixir first expands all structs and all macros, and then
+  it executes the code. This means that, by the time Elixir tries to expand
+  the `%Decimal{}` struct, the dependency has not been installed yet.
+
+  Luckily this has a straightforward solution, which is move the code to
+  inside a module:
+
+      Mix.install([:decimal])
+
+      defmodule Script do
+        def run do
+          %Decimal{} = Decimal.new(42)
+        end
+      end
+
+      Script.run()
+
+  The contents inside `defmodule` will only be expanded and executed
+  after `Mix.install/2` runs, which means that any struct, macros,
+  and imports will be correctly handled.
   """
   @doc since: "1.12.0"
   def install(deps, opts \\ [])
