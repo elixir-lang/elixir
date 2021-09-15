@@ -388,7 +388,30 @@ defmodule Inspect.Algebra do
   end
 
   def to_doc(arg, %Inspect.Opts{inspect_fun: fun} = opts) do
-    fun.(arg, opts)
+    try do
+      fun.(arg, opts)
+    rescue
+      caught_exception ->
+        res =
+          Inspect.inspect(arg, %{
+            opts
+            | syntax_colors: [],
+              inspect_fun: Inspect.Opts.default_inspect_fun()
+          })
+
+        res = IO.iodata_to_binary(format(res, :infinity))
+
+        message =
+          "got #{inspect(caught_exception.__struct__)} with message " <>
+            "#{inspect(Exception.message(caught_exception))} while inspecting #{res}"
+
+        exception = Inspect.Error.exception(message: message)
+
+        Inspect.inspect(exception, %{
+          opts
+          | inspect_fun: Inspect.Opts.default_inspect_fun()
+        })
+    end
   end
 
   @doc ~S"""

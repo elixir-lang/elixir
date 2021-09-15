@@ -685,6 +685,15 @@ defmodule Inspect.OthersTest do
     assert inspect([uri], opts) == "[#URI<https://elixir-lang.org>]"
   end
 
+  test "bad inspect_fun" do
+    msg = "got RuntimeError with message \"Crash!\" while inspecting \"foo\""
+
+    fun = fn _, _ -> raise "Crash!" end
+    opts = [inspect_fun: fun]
+
+    assert inspect("foo", opts) == inspect(%Inspect.Error{message: "#{msg}"})
+  end
+
   defmodule Nested do
     defstruct nested: nil
 
