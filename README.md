@@ -28,13 +28,13 @@ privately at elixir-security@googlegroups.com**.
 
 ## Issues tracker management
 
-All currently open bugs that related to the Elixir repository are listed
+All currently open bugs related to the Elixir repository are listed
 in the issues tracker. The Elixir team uses the issues tracker to focus
 on *actionable items*, including planned enhancements for the short- and
 medium-term. We also do our best to tag entries for clarity and to ease
 collaboration.
 
-Our *actionable item policy* has some important consequences:
+Our *actionable item policy* has some important consequences, such as:
 
   * Proposing new features as well as request for support, help, and
     guidance must be done in their own spaces, detailed next.
@@ -48,9 +48,9 @@ Our *actionable item policy* has some important consequences:
     time, so we are always glad to revisit issues and reopen if necessary.
 
 While we do our best to help everyone, remember no one is required to
-report bugs and no one is required to address them. All interactions
+file issues and no one is obliged to address them. All interactions
 are based on mutual respect and mutual help. Keep the tone positive,
-be nice, and have fun!
+be kind, and have fun!
 
 ### Proposing new features
 
