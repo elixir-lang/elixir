@@ -141,21 +141,18 @@ defmodule Version do
 
     @doc false
     @spec match?(t, tuple) :: boolean
-    def match?(%__MODULE__{lexed: lexed}, matchable_pattern) do
-      match_lexed?(lexed, matchable_pattern)
+    def match?(%__MODULE__{lexed: [operator, req | rest]}, version) do
+      match_lexed?(rest, version, match_op?(operator, req, version))
     end
 
-    defp match_lexed?([operator, req, :&& | rest], version) do
-      match_op?(operator, req, version) and match_lexed?(rest, version)
-    end
+    defp match_lexed?([:and, operator, req | rest], version, acc),
+      do: match_lexed?(rest, version, acc and match_op?(operator, req, version))
 
-    defp match_lexed?([operator, req, :|| | rest], version) do
-      match_op?(operator, req, version) or match_lexed?(rest, version)
-    end
+    defp match_lexed?([:or, operator, req | rest], version, acc),
+      do: acc or match_lexed?(rest, version, match_op?(operator, req, version))
 
-    defp match_lexed?([operator, req], version) do
-      match_op?(operator, req, version)
-    end
+    defp match_lexed?([], _version, acc),
+      do: acc
 
     defp match_op?(:==, req, version) do
       compare(version, req) == :eq
@@ -471,72 +468,77 @@ defmodule Version do
       {">", :>},
       {"<", :<},
       {"==", :==},
-      {" or ", :||},
-      {" and ", :&&}
+      {" or ", :or},
+      {" and ", :and}
     ]
 
+    def lexer(string) do
+      lexer(string, "", [])
+    end
+
     for {string_op, atom_op} <- operators do
-      def lexer(unquote(string_op) <> rest, acc) do
-        lexer(rest, [unquote(atom_op) | acc])
+      defp lexer(unquote(string_op) <> rest, buffer, acc) do
+        lexer(rest, "", [unquote(atom_op) | maybe_prepend_buffer(buffer, acc)])
       end
     end
 
-    def lexer("!=" <> rest, acc) do
+    defp lexer("!=" <> rest, buffer, acc) do
       IO.warn("!= inside Version requirements is deprecated, use ~> or >= instead")
-      lexer(rest, [:!= | acc])
+      lexer(rest, "", [:!= | maybe_prepend_buffer(buffer, acc)])
     end
 
-    def lexer("!" <> rest, acc) do
+    defp lexer("!" <> rest, buffer, acc) do
       IO.warn("! inside Version requirements is deprecated, use ~> or >= instead")
-      lexer(rest, [:!= | acc])
+      lexer(rest, "", [:!= | maybe_prepend_buffer(buffer, acc)])
     end
 
-    def lexer(" " <> rest, acc) do
-      lexer(rest, acc)
+    defp lexer(" " <> rest, buffer, acc) do
+      lexer(rest, "", maybe_prepend_buffer(buffer, acc))
     end
 
-    def lexer(<<char::utf8, rest::binary>>, []) do
-      lexer(rest, [<<char::utf8>>, :==])
+    defp lexer(<<char::utf8, rest::binary>>, buffer, acc) do
+      lexer(rest, <<buffer::binary, char::utf8>>, acc)
     end
 
-    def lexer(<<char::utf8, body::binary>>, [head | acc]) do
-      acc =
-        case head do
-          head when is_binary(head) ->
-            [<<head::binary, char::utf8>> | acc]
-
-          head when head in [:||, :&&] ->
-            [<<char::utf8>>, :==, head | acc]
-
-          _other ->
-            [<<char::utf8>>, head | acc]
-        end
-
-      lexer(body, acc)
+    defp lexer(<<>>, buffer, acc) do
+      maybe_prepend_buffer(buffer, acc)
     end
 
-    def lexer("", acc) do
-      Enum.map(Enum.reverse(acc), fn
-        op when is_atom(op) ->
-          op
+    defp maybe_prepend_buffer("", acc), do: acc
 
-        version when is_binary(version) ->
-          case Version.Parser.parse_version(version, true) do
-            {:ok, version} -> version
-            :error -> :error
-          end
-      end)
+    defp maybe_prepend_buffer(buffer, [head | _] = acc)
+         when is_atom(head) and head not in [:and, :or],
+         do: [buffer | acc]
+
+    defp maybe_prepend_buffer(buffer, acc),
+      do: [buffer, :== | acc]
+
+    defp revert_lexed([version, op, cond | rest], acc)
+         when is_binary(version) and is_atom(op) and cond in [:or, :and] do
+      with {:ok, version} <- validate_requirement(op, version) do
+        revert_lexed(rest, [cond, op, version | acc])
+      end
+    end
+
+    defp revert_lexed([version, op], acc) when is_binary(version) and is_atom(op) do
+      with {:ok, version} <- validate_requirement(op, version) do
+        {:ok, [op, version | acc]}
+      end
+    end
+
+    defp revert_lexed(_rest, _acc), do: :error
+
+    defp validate_requirement(op, version) do
+      case parse_version(version, true) do
+        {:ok, version} when op == :~> -> {:ok, version}
+        {:ok, {_, _, patch, _, _} = version} when is_integer(patch) -> {:ok, version}
+        _ -> :error
+      end
     end
 
     @spec parse_requirement(String.t()) :: {:ok, term} | :error
     def parse_requirement(source) do
-      lexed = lexer(source, [])
-
-      if valid_requirement?(lexed) do
-        {:ok, lexed}
-      else
-        :error
-      end
+      revert_lexed(lexer(source), [])
     end
 
     def parse_version(string, approximate? \\ false) when is_binary(string) do
@@ -619,44 +621,6 @@ defmodule Version do
     end
 
     defp valid_identifier?(_other) do
-      false
-    end
-
-    defp valid_requirement?([]), do: false
-    defp valid_requirement?([a | next]), do: valid_requirement?(a, next)
-
-    # it must finish with a version
-    defp valid_requirement?(a, []) when is_tuple(a) do
-      true
-    end
-
-    # or <op> | and <op>
-    defp valid_requirement?(a, [b | next]) when is_atom(a) and is_atom(b) and a in [:||, :&&] do
-      valid_requirement?(b, next)
-    end
-
-    # <version> or | <version> and
-    defp valid_requirement?(a, [b | next]) when is_tuple(a) and is_atom(b) and b in [:||, :&&] do
-      valid_requirement?(b, next)
-    end
-
-    # or <version> | and <version>
-    defp valid_requirement?(a, [b | next]) when is_atom(a) and is_tuple(b) and a in [:||, :&&] do
-      valid_requirement?(b, next)
-    end
-
-    # ~> <version>
-    defp valid_requirement?(:~>, [b | next]) when is_tuple(b) do
-      valid_requirement?(b, next)
-    end
-
-    # <op> <version>
-    defp valid_requirement?(a, [{_major, _minor, patch, _pre, _build} = b | next])
-         when is_atom(a) and is_integer(patch) do
-      valid_requirement?(b, next)
-    end
-
-    defp valid_requirement?(_, _) do
       false
     end
   end
