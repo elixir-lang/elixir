@@ -26,7 +26,33 @@ For reporting bugs, [visit our issue tracker][2] and follow the steps
 for reporting a new issue. **Please disclose security vulnerabilities
 privately at elixir-security@googlegroups.com**.
 
-## Proposing new features
+## Issues tracker management
+
+All currently open bugs that related to the Elixir repository are listed
+in the issues tracker. The Elixir team uses the issues tracker to focus
+on *actionable items*, including planned enhancements for the short- and
+medium-term. We also do our best to tag entries for clarity and to ease
+collaboration.
+
+Our *actionable item policy* has some important consequences:
+
+  * Proposing new features as well as request for support, help, and
+    guidance must be done in their own spaces, detailed next.
+
+  * Bugs where we have identified the fix belongs upstream, such as a
+    bug in Erlang/OTP, will be reported upstream (or requested to be
+    reported upstream).
+
+  * We actively close unrelated and non-actionable issues to keep the
+    issues tracker tidy. However, we may get things wrong from time to
+    time, so we are always glad to revisit issues and reopen if necessary.
+
+While we do our best to help everyone, remember no one is required to
+report bugs and no one is required to address them. All interactions
+are based on mutual respect and mutual help. Keep the tone positive,
+be nice, and have fun!
+
+### Proposing new features
 
 For proposing new features, please start a discussion in the
 [Elixir Core mailing list][3]. Keep in mind that it is your responsibility
@@ -34,21 +60,15 @@ to argue and explain why a feature is useful and how it will impact the
 codebase and the community.
 
 Once a proposal is accepted, it will be added to [the issue tracker][2].
-The issue tracker focuses on *actionable items* and it holds a list of
-upcoming enhancements and pending bugs. All entries in the tracker are
-tagged for clarity and to ease collaboration.
-
 Features and bug fixes that have already been merged and will be included
-in the next release are marked as "closed" in the issue tracker and are
-added to the [changelog][7].
+in the next release are then "closed" and added to the [changelog][7].
 
-## Discussions, support, and help
+### Discussions, support, and help
 
-We reserve the issues tracker for *actionable items* that relate to the
-Elixir source code. For general discussions, support, and help, please
-use many of the commnunity spaces [listed on the sidebar of the Elixir
-website](https://elixir-lang.org/), such as forums, chat platforms, etc,
-where the wider community will be available to help you.
+For general discussions, support, and help, please use many of the commnunity
+spaces [listed on the sidebar of the Elixir website](https://elixir-lang.org/),
+such as forums, chat platforms, etc, where the wider community will be available
+to help you.
 
 ## Compiling from source
 
