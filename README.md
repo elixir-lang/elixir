@@ -43,11 +43,12 @@ Our *actionable item policy* has some important consequences, such as:
     such as a bug upstream, will be closed (and requested to be moved
     elsewhere if appropriate).
 
-  * We actively close non-actionable issues to keep the issues tracker
-    tidy. However, we may get things wrong from time to time, so we are
-    always glad to revisit issues and reopen if necessary.
+  * We actively close unrelated and non-actionable issues to keep the
+    issues tracker tidy. However, we may get things wrong from time to
+    time, so we are glad to revisit issues and reopen if necessary.
 
-Keep the tone positive, be kind, and have fun!
+Keep the tone positive and be kind! For more information, see the
+[Code of Conduct][1].
 
 ### Proposing new features
 
