@@ -134,7 +134,7 @@ defmodule Version do
     @compile inline: [compare: 2]
 
     @doc false
-    @spec new(String.t(), :ets.match_spec()) :: t
+    @spec new(String.t(), [atom | matchable]) :: t
     def new(source, lexed) do
       %__MODULE__{source: source, lexed: lexed}
     end
