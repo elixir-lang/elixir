@@ -685,7 +685,7 @@ defmodule Mix.Tasks.Xref do
       end
 
     # Filter according to non direct label
-    file_references = filter(file_references, filter)
+    file_references = filter(file_references, excluded, filter)
 
     # If a label is given, remove empty root nodes
     file_references =
@@ -757,20 +757,22 @@ defmodule Mix.Tasks.Xref do
     Enum.reduce(file_references, 0, fn {_, refs}, total -> total + length(refs) end)
   end
 
-  defp filter_fn(file_references, _compile_time, :compile_connected),
-    do: fn {key, type} -> type == :compile and match?([_ | _], file_references[key]) end
+  defp filter_fn(file_references, excluded, _compile_time, :compile_connected),
+    do: fn {key, type} ->
+      type == :compile and match?([_ | _], file_references[key] -- excluded)
+    end
 
-  defp filter_fn(_file_references, compile_time, :compile),
+  defp filter_fn(_file_references, _excluded, compile_time, :compile),
     do: fn {key, type} -> type == :compile or Map.has_key?(compile_time, key) end
 
-  defp filter_fn(_file_references, _compile_time, filter),
+  defp filter_fn(_file_references, _excluded, _compile_time, filter),
     do: fn {_key, type} -> type == filter end
 
-  defp filter(file_references, :all), do: file_references
+  defp filter(file_references, _excluded, :all), do: file_references
 
-  defp filter(file_references, filter) do
+  defp filter(file_references, excluded, filter) do
     compile_time = compile_time_references(file_references)
-    filter_fn = filter_fn(file_references, compile_time, filter)
+    filter_fn = filter_fn(file_references, excluded, compile_time, filter)
 
     for {key, children} <- file_references,
         into: %{},

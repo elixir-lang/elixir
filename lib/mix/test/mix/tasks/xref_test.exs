@@ -491,6 +491,13 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    test "filter by compile-connected label with exclusions" do
+      assert_graph(~w[--label compile-connected --exclude lib/e.ex], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+      """)
+    end
+
     test "filter by compile-connected label with fail-above" do
       message = "Too many references (found: 2, permitted: 1)"
 
