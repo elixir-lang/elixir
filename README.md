@@ -30,8 +30,8 @@ privately at elixir-security@googlegroups.com**.
 
 All currently open bugs related to the Elixir repository are listed
 in the issues tracker. The Elixir team uses the issues tracker to focus
-on *actionable items*, including planned enhancements for the short- and
-medium-term. We also do our best to tag entries for clarity and to ease
+on *actionable items*, including planned enhancements in the short- and
+medium-term. We also do our best to label entries for clarity and to ease
 collaboration.
 
 Our *actionable item policy* has some important consequences, such as:
@@ -39,18 +39,15 @@ Our *actionable item policy* has some important consequences, such as:
   * Proposing new features as well as request for support, help, and
     guidance must be done in their own spaces, detailed next.
 
-  * Bugs where we have identified the fix belongs upstream, such as a
-    bug in Erlang/OTP, will be reported upstream (or requested to be
-    reported upstream).
+  * Issues where we have identified to be outside of Elixir scope,
+    such as a bug upstream, will be closed (and requested to be moved
+    elsewhere if appropriate).
 
-  * We actively close unrelated and non-actionable issues to keep the
-    issues tracker tidy. However, we may get things wrong from time to
-    time, so we are always glad to revisit issues and reopen if necessary.
+  * We actively close non-actionable issues to keep the issues tracker
+    tidy. However, we may get things wrong from time to time, so we are
+    always glad to revisit issues and reopen if necessary.
 
-While we do our best to help everyone, remember no one is required to
-file issues and no one is obliged to address them. All interactions
-are based on mutual respect and mutual help. Keep the tone positive,
-be kind, and have fun!
+Keep the tone positive, be kind, and have fun!
 
 ### Proposing new features
 
