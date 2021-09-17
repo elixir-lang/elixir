@@ -373,6 +373,8 @@ defmodule Mix.Compilers.Elixir do
       warnings = Mix.Compilers.ApplicationTracer.warnings(modules)
       {:runtime, runtime_modules, warnings}
     else
+      Mix.Utils.compiling_n(length(changed), :ex)
+
       modules =
         for module(sources: source_files) = module <- modules do
           module(module, sources: source_files -- changed)
