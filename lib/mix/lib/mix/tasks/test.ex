@@ -486,7 +486,7 @@ defmodule Mix.Tasks.Test do
     cover =
       if opts[:cover] do
         compile_path = Mix.Project.compile_path(project)
-        partition = opts[:partitions] && System.get_env("MIX_TEST_PARTITION")
+        partition = opts[:partitions] > 1 && System.get_env("MIX_TEST_PARTITION")
 
         cover =
           @cover
@@ -728,30 +728,40 @@ defmodule Mix.Tasks.Test do
   end
 
   defp filter_by_partition(files, shell, opts) do
-    if total = opts[:partitions] do
-      partition = System.get_env("MIX_TEST_PARTITION")
+    total = opts[:partitions]
 
-      case partition && Integer.parse(partition) do
-        {partition, ""} when partition in 1..total ->
-          partition = partition - 1
+    cond do
+      is_integer(total) and total > 1 ->
+        partition = System.get_env("MIX_TEST_PARTITION")
 
-          # We sort the files because Path.wildcard does not guarantee
-          # ordering, so different OSes could return a different order,
-          # meaning run across OSes on different partitions could run
-          # duplicate files.
-          for {file, index} <- Enum.with_index(Enum.sort(files)),
-              rem(index, total) == partition,
-              do: file
+        case partition && Integer.parse(partition) do
+          {partition, ""} when partition in 1..total ->
+            partition = partition - 1
 
-        _ ->
-          raise_with_shell(
-            shell,
-            "The MIX_TEST_PARTITION environment variable must be set to an integer between " <>
-              "1..#{total} when the --partitions option is set, got: #{inspect(partition)}"
-          )
-      end
-    else
-      files
+            # We sort the files because Path.wildcard does not guarantee
+            # ordering, so different OSes could return a different order,
+            # meaning run across OSes on different partitions could run
+            # duplicate files.
+            for {file, index} <- Enum.with_index(Enum.sort(files)),
+                rem(index, total) == partition,
+                do: file
+
+          _ ->
+            raise_with_shell(
+              shell,
+              "The MIX_TEST_PARTITION environment variable must be set to an integer between " <>
+                "1..#{total} when the --partitions option is set, got: #{inspect(partition)}"
+            )
+        end
+
+      total == 1 or is_nil(total) ->
+        files
+
+      not is_nil(total) ->
+        raise_with_shell(
+          shell,
+          "--partitions : expected to be positive integer, got #{total}"
+        )
     end
   end
 
