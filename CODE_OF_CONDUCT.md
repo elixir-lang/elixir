@@ -20,10 +20,18 @@ These are the values Elixir developers should aspire to:
     * Remember that sometimes it is best to refrain entirely from commenting.
   * Be respectful
     * In particular, respect differences of opinion. It is important that we resolve disagreements and differing views constructively.
-  * Avoid destructive behavior
-    * Derailing: stay on topic; if you want to talk about something else, start a new conversation.
-    * Unconstructive criticism: don't merely decry the current state of affairs; offer (or at least solicit) suggestions as to how things may be improved.
-    * Snarking (pithy, unproductive, sniping comments).
+  * Be charitable
+    * Interpret the arguments of others in good faith, do not seek to disagree.
+    * When we do disagree, try to understand why.
+    * Be receptive to feedback, especially those regarding your conduct.
+  * Be constructive
+    * Avoid derailing: stay on topic; if you want to talk about something else, start a new conversation.
+    * Avoid unconstructive criticism: don't merely decry the current state of affairs; offer — or at least solicit — suggestions as to how things may be improved.
+    * Avoid harsh words and stern tone: we are all aligned towards the well-being of the community and the progress of the project. Harsh words exclude, demotivate, and lead to unnecessary conflict, rather than inspire.
+    * Avoid snarking (pithy, unproductive, sniping comments).
+    * Avoid microaggressions (brief and commonplace verbal, behavioral and environmental indignities that communicate hostile, derogatory or negative slights and insults to a person or group).
+  * Be responsible
+    * What you say and do matters. Take responsibility for your words and actions, including their consequences, whether intended or otherwise.
 
 The following actions are explicitly forbidden:
 
@@ -45,7 +53,7 @@ Explicit enforcement of the Code of Conduct applies to the official mediums oper
 
 Other Elixir activities (such as conferences, meetups, and unofficial forums) are encouraged to adopt this Code of Conduct. Such groups must provide their own contact information.
 
-Project maintainers may remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct.
+Project maintainers may block, remove, edit, or reject comments, commits, code, wiki edits, issues, and other contributions that are not aligned to this Code of Conduct.
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported by emailing: elixir-lang-conduct@googlegroups.com. All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate to the circumstances. **All reports will be kept confidential**.
 
