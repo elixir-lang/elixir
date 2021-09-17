@@ -102,8 +102,9 @@ defmodule Config do
 
   The given `opts` are merged into the existing configuration
   for the given `root_key`. Conflicting keys are overridden by the
-  ones specified in `opts`. For example, the application
-  configuration below
+  ones specified in `opts`, unless they are keywords, which are
+  deep merged recursively. For example, the application configuration
+  below
 
       config :logger,
         level: :warn,
@@ -138,8 +139,9 @@ defmodule Config do
 
   The given `opts` are merged into the existing values for `key`
   in the given `root_key`. Conflicting keys are overridden by the
-  ones specified in `opts`. For example, the application
-  configuration below
+  ones specified in `opts`, unless they are keywords, which are
+  deep merged recursively. For example, the application configuration
+  below
 
       config :ecto, Repo,
         log_level: :warn,
