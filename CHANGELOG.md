@@ -28,13 +28,13 @@ In a nutshell, Elixir went from triggering full recompilations whenever any of `
 
 Elixir v1.13 comes with many improvements to `mix xref`, such as:
 
-  * `mix xref graph` now supports multiple `--sink` and `--source` to be given.
-
-  * `mix xref graph` now supports `--label` to be set to "compile-connected" and "compile-direct", which returns all compile files that lead to transitive dependencies and direct compile-time dependencies respectively.
+  * `mix xref graph` now supports `--label` to be set to "compile-direct" and "compile-connected", which returns the direct compile-time dependencies ("compile-direct") or just those that generate additional transitive dependencies ("compile-connected")
 
   * A new `mix xref trace FILE` subcommand receives a file and returns all dependencies in said file, including the line and what caused said dependency (a function/macro call, an alias, a struct, etc).
 
   * All `mix xref` subcommands support the `--fail-above` flag, which allows you to enforce your project has at most a certain number of compile-time cycles, transitive compile-time dependencies, etc.
+
+  * `mix xref graph` now supports multiple `--sink` and `--source` to be given.
 
 With these improvements, it has become simpler to understand the impact code recompilation has in our codebases and how to limit it.
 
