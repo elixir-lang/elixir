@@ -156,7 +156,10 @@ defmodule Macro.Env do
   end
 
   @doc """
-  Returns the alias for the given atom, `nil` otherwise.
+  Fetches the alias for the given atom.
+  
+  Returns `{:ok, alias}` if the alias exists, `:error` 
+  otherwise.
 
   ## Examples
 
@@ -175,7 +178,10 @@ defmodule Macro.Env do
     do: Keyword.fetch(aliases, :"Elixir.#{atom}")
 
   @doc """
-  Returns the macro alias for the given atom, `nil` otherwise.
+  Fetches the macro alias for the given atom.
+  
+  Returns `{:ok, macro_alias}` if the alias exists, `:error`
+  otherwise.
 
   A macro alias is only used inside quoted expansion. See
   `fetch_alias/2` for a more general example.
@@ -187,8 +193,8 @@ defmodule Macro.Env do
       do: Keyword.fetch(aliases, :"Elixir.#{atom}")
 
   @doc """
-  Returns from which modules the given `{name, arity}` is
-  imported from.
+  Returns the modules from which the given `{name, arity}` was
+  imported.
 
   It returns a list of two element tuples in the shape of
   `{:function | :macro, module}`. The elements in the list
