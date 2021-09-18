@@ -13,17 +13,15 @@ The goal of the Code of Conduct is to specify a baseline standard of behavior so
 These are the values Elixir developers should aspire to:
 
   * Be friendly and welcoming
-  * Be patient
+  * Be kind
     * Remember that people have varying communication styles and that not everyone is using their native language. (Meaning and tone can be lost in translation.)
+    * Interpret the arguments of others in good faith, do not seek to disagree.
+    * When we do disagree, try to understand why.
   * Be thoughtful
     * Productive communication requires effort. Think about how your words will be interpreted.
     * Remember that sometimes it is best to refrain entirely from commenting.
   * Be respectful
     * In particular, respect differences of opinion. It is important that we resolve disagreements and differing views constructively.
-  * Be charitable
-    * Interpret the arguments of others in good faith, do not seek to disagree.
-    * When we do disagree, try to understand why.
-    * Be receptive to feedback, especially those regarding your conduct.
   * Be constructive
     * Avoid derailing: stay on topic; if you want to talk about something else, start a new conversation.
     * Avoid unconstructive criticism: don't merely decry the current state of affairs; offer — or at least solicit — suggestions as to how things may be improved.
