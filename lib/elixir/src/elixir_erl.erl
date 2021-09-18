@@ -212,7 +212,7 @@ translate_clause(Kind, Line, {Meta, Args, Guards, Body}, ExpandCaptures) ->
   %% auto-generated function and we don't want to track its contents.
   Ann =
     case ?line(Meta) of
-      Line -> erl_anno:new(0);
+      Line -> erl_anno:set_generated(true, erl_anno:new(0));
       _ -> ?ann(Meta)
     end,
 
