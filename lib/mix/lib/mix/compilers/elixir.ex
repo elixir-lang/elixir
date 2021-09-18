@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 11
+  @manifest_vsn 12
 
   import Record
 
@@ -271,9 +271,8 @@ defmodule Mix.Compilers.Elixir do
       for source(source: source, external: external, size: size, digest: digest, modules: modules) <-
             all_sources,
           {last_mtime, last_size} = Map.fetch!(sources_stats, source),
-          times = Enum.map(external, &(sources_stats |> Map.fetch!(&1) |> elem(0))),
           Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
-            Enum.any?(times, &(&1 > modified)) or
+            Enum.any?(external, &stale_external?(&1, modified, sources_stats)) or
             (size != last_size or
                (last_mtime > modified and
                   (missing_beam_file?(dest, modules) or
@@ -304,9 +303,18 @@ defmodule Mix.Compilers.Elixir do
     {modules, exports, changed, sources_stats}
   end
 
+  defp stale_external?({external, existed?}, modified, sources_stats) do
+    case sources_stats do
+      %{^external => {0, 0}} -> existed?
+      %{^external => {mtime, _}} -> mtime > modified
+    end
+  end
+
   defp mtimes_and_sizes(sources) do
     Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->
-      Enum.reduce([source | external], map, fn file, map ->
+      map = Map.put_new_lazy(map, source, fn -> Mix.Utils.last_modified_and_size(source) end)
+
+      Enum.reduce(external, map, fn {file, _}, map ->
         Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified_and_size(file) end)
       end)
     end)
@@ -507,7 +515,9 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp get_external_resources(module, cwd) do
-    for file <- Module.get_attribute(module, :external_resource), do: Path.relative_to(file, cwd)
+    for file <- Module.get_attribute(module, :external_resource) do
+      {Path.relative_to(file, cwd), File.exists?(file)}
+    end
   end
 
   defp each_file(file, lexical, cwd, verbose) do
