@@ -59,7 +59,7 @@ Instances of abusive, harassing, or otherwise unacceptable behavior may be repor
 
 ## Acknowledgements
 
-This document was based on the Code of Conduct from the Go project with parts derived from Django's Code of Conduct, Rust's Code of Conduct and the Contributor Covenant.
+This document was based on the Code of Conduct from the Go project (dated Sep/2021) and the Contributor Covenant (v1.4).
 
 [1]: https://github.com/elixir-lang/
 [2]: https://web.libera.chat/#elixir
