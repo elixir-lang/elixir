@@ -661,8 +661,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.shell().flush
       purge([A, B])
 
-      # Update external existing resource
+      # Create external resource
       File.touch!(tmp, {{2038, 1, 1}, {0, 0, 0}})
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      # Recompiles once resource is deleted
+      File.rm_rf!(tmp)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
