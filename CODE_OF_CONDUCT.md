@@ -27,9 +27,9 @@ These are the values Elixir developers should aspire to:
   * Be constructive
     * Avoid derailing: stay on topic; if you want to talk about something else, start a new conversation.
     * Avoid unconstructive criticism: don't merely decry the current state of affairs; offer — or at least solicit — suggestions as to how things may be improved.
-    * Avoid harsh words and stern tone: we are all aligned towards the well-being of the community and the progress of the project. Harsh words exclude, demotivate, and lead to unnecessary conflict, rather than inspire.
+    * Avoid harsh words and stern tone: we are all aligned towards the well-being of the community and the progress of the ecosystem. Harsh words exclude, demotivate, and lead to unnecessary conflict.
     * Avoid snarking (pithy, unproductive, sniping comments).
-    * Avoid microaggressions (brief and commonplace verbal, behavioral and environmental indignities that communicate hostile, derogatory or negative slights and insults to a person or group).
+    * Avoid microaggressions (brief and commonplace verbal, behavioral and environmental indignities that communicate hostile, derogatory or negative slights and insults towards a project, person or group).
   * Be responsible
     * What you say and do matters. Take responsibility for your words and actions, including their consequences, whether intended or otherwise.
 
