@@ -1297,7 +1297,8 @@ defmodule IEx.HelpersTest do
                  assert Sample.run() == :run
 
                  File.write!(filename, "defmodule Sample do end")
-                 assert {:reloaded, Sample, [Sample]} = r(Sample)
+                 assert {:reloaded, [Sample]} = r(Sample)
+                 assert {:reloaded, [Sample]} = r([Sample])
 
                  message = "function Sample.run/0 is undefined or private"
 
@@ -1324,7 +1325,8 @@ defmodule IEx.HelpersTest do
         assert :sample.hello() == :world
 
         File.write!(filename, other_erlang_module_code())
-        assert {:reloaded, :sample, [:sample]} = r(:sample)
+        assert {:reloaded, [:sample]} = r(:sample)
+        assert {:reloaded, [:sample]} = r([:sample])
         assert :sample.hello() == :bye
       end)
     after

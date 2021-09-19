@@ -394,10 +394,15 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Recompiles and reloads the given `module`.
+  Recompiles and reloads the given `module` or `modules`.
 
-  Please note that all the modules defined in the same
-  file as `module` are recompiled and reloaded.
+  Please note that all the modules defined in the same file as
+  `modules` are recompiled and reloaded. If you want to reload
+  multiple modules, it is best to reload them at the same time,
+  such as in `r [Foo, Bar]`. This is important to avoid false
+  warnings, since the module is only reloaded in memory and its
+  latest information is not persisted to disk. See the "In-memory
+  reloading" section below.
 
   This function is meant to be used for development and
   debugging purposes. Do not depend on it in production code.
@@ -409,35 +414,48 @@ defmodule IEx.Helpers do
   in disk, probably the one where the first definition of the module
   came from, does not change at all.
 
-  Since typespecs and docs are loaded from the .beam file (they
-  are not loaded in memory with the module because there is no need
-  for them to be in memory), they are not reloaded when you reload
-  the module.
+  Since docs, typespecs, and exports information are loaded from the
+  .beam file, they are not reloaded when you invoke this function.
   """
-  def r(module) when is_atom(module) do
-    {:reloaded, module, do_r(module)}
-  end
+  def r(module_or_modules) do
+    modules = List.wrap(module_or_modules)
 
-  defp do_r(module) do
-    unless Code.ensure_loaded?(module) do
-      raise ArgumentError, "could not load nor find module: #{inspect(module)}"
-    end
+    sources =
+      Enum.map(modules, fn module ->
+        unless Code.ensure_loaded?(module) do
+          raise ArgumentError, "could not load nor find module: #{inspect(module)}"
+        end
 
-    source = source(module)
+        source = source(module)
 
-    cond do
-      source == nil ->
-        raise ArgumentError, "could not find source for module: #{inspect(module)}"
+        cond do
+          source == nil ->
+            raise ArgumentError, "could not find source for module: #{inspect(module)}"
 
-      not File.exists?(source) ->
-        raise ArgumentError, "could not find source (#{source}) for module: #{inspect(module)}"
+          not File.exists?(source) ->
+            raise ArgumentError, "could not find source (#{source}) for module: #{inspect(module)}"
 
-      String.ends_with?(source, ".erl") ->
-        [compile_erlang(source) |> elem(0)]
+          true ->
+            source
+        end
+      end)
 
-      true ->
-        Enum.map(Code.compile_file(source), fn {name, _} -> name end)
-    end
+    {erlang, elixir} = Enum.split_with(sources, &String.ends_with?(&1, ".erl"))
+
+    erlang =
+      for source <- erlang do
+        compile_erlang(source) |> elem(0)
+      end
+
+    elixir =
+      if elixir != [] do
+        {:ok, modules, _warning} = Kernel.ParallelCompiler.compile(elixir)
+        modules
+      else
+        []
+      end
+
+    {:reloaded, erlang ++ elixir}
   end
 
   @doc """
