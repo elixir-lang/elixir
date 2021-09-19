@@ -33,7 +33,8 @@ defmodule Mix.Tasks.Xref do
 
       $ mix xref trace lib/my_app/router.ex
 
-  The `--label` option may be given to keep only certain traces:
+  The `--label` option may be given to keep only certain traces
+  (compile, runtime or export):
 
       $ mix xref trace lib/my_app/router.ex --label compile
 
@@ -194,19 +195,19 @@ defmodule Mix.Tasks.Xref do
       lib/a.ex
       └── lib/b.ex (compile)
 
-  Once you find all "compile-connected" dependencies, you can get the
-  transitive ones by passing the compile-connected dependencies with the
-  label "(compile)" as `--source`:
+  The above says `lib/a.ex` depends on `lib/b.ex` and it has transitive
+  compile time dependencies. We can retrieve them by passing `lib/b.ex`
+  as `--source` to `mix xref graph`:
 
       $ mix xref graph --source lib/b.ex
       lib/b.ex
       └── lib/c.ex
 
-  Similarly, you can use the `--label compile` and the `--sink` flag to
-  find all compile time dependencies that will recompile once the sink
-  changes:
+  Similarly, you can use the `--label compile-connected` and the `--sink`
+  flag to find all compile time dependencies that will recompile once
+  the sink changes:
 
-      $ mix xref graph --label compile --sink lib/c.ex
+      $ mix xref graph --label compile-connected --sink lib/c.ex
       lib/a.ex
       └── lib/b.ex (compile)
 

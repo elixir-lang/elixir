@@ -16,7 +16,7 @@ Elixir v1.13 comes with many improvements to the compiler, so it recompiles your
 
   * If your project has both Erlang and Elixir files, changing an Erlang file will now recompile only the Elixir files that depend on it.
 
-In a nutshell, Elixir went from triggering full recompilations whenever any of `mix.exs`, `config/config.exs`, `src/*`, and `mix.lock` changed on disk to semantic recompilations where it only fully recompiles when:
+In a nutshell, Elixir went from triggering full recompilations whenever any of `mix.exs`, `config/config.exs`, `src/*`, and `mix.lock` changed on disk to semantic recompilations. Now it only fully recompiles when:
 
   * you change the compilation options in `mix.exs`
   * you change the configuration for the current project in `config/config.exs`
@@ -52,7 +52,7 @@ iex(1)> ~
 
 ```
 
-Adding the sigil and pressing tab then shows the available operators:
+Adding the sigil letter and pressing tab then shows the available delimiters:
 
 ```iex
 iex(1)> ~r
@@ -71,7 +71,37 @@ Finally, new compilation tracers have been added, alongside a handful of functio
 
 ## Extended code formatting
 
-The `Code` has been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate source code.
+The `mix format` task has been augmented with the notion of plugins. Plugins can teach the formatter how to format new files and how to format sigils, via the `Mix.Tasks.Format` behaviour.
+
+For example, imagine that your project uses Markdown in two distinct ways: via a custom `~M` sigil and via files with the `.md` and `.markdown` extensions. A custom plugin would look like this:
+
+```elixir
+defmodule MixMarkdownFormatter do
+  @behaviour Mix.Tasks.Format
+
+  def features(_opts) do
+    [sigils: [:M], extensions: [".md", ".markdown"]]
+  end
+
+  def format(contents, opts) do
+    # logic that formats markdown
+  end
+end
+```
+
+Now any application can use your formatter as follows:
+
+```elixir
+# .formatters.exs
+[
+  # Define the desired plugins
+  plugins: [MixMarkdownFormatter],
+  # Remember to update the inputs list to include the new extensions
+  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}", "posts/*.{md,markdown}"]
+]
+```
+
+Finally, the `Code` has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
 
 ## v1.13.0-dev
 
@@ -87,6 +117,7 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
   * [Code] Add `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`
   * [Code] Add more `:token_metadata` to aliases and remote calls when parsing strings
   * [Code] Add `Code.Fragment` module to provide best-effort information from code fragments. The module currently provides an updated `Code.Fragment.cursor_context/2` with operator support and `Code.Fragment.surround_context/2` which looks at a given position in a fragment and find its surrounding delimiters
+  * [Code] Allow custom sigil formatting on `Code.format_string!/2`
   * [Code] Add `{:on_module, bytecode, :none}` trace to compilation tracers
   * [Enum] Optimize `Enum.concat/1` for lists of lists
   * [Exception] Better format Elixir exceptions in Erlang
@@ -94,11 +125,15 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
   * [IO] Allow `:eof` to be given as limit to `IO.getn/2`
   * [Kernel] Make `get_in` consistently abort when `nil` values are found
   * [Kernel] Improve compilation times by reducing the amount of copies of the AST across compiler processes
+  * [Kernel] Raise if trying to define a module with a slash in its name
   * [Kernel] Warn when `?\` is used and there is no need for a escape character
   * [Kernel] Track structs in typespecs as export deps instead of compile-time deps
+  * [Kernel] Add power operator (`**/2`)
   * [Keyword] Add `Keyword.validate/2`
+  * [Keyword] Implement `Keyword.filter/2` and `Keyword.map/2`
   * [List] Add `List.keyfind!/3`
   * [Macro.Env] Add the following reflection functions: `required?/2`, `lookup_import/2`, `fetch_alias/2`, and `fetch_macro_alias/2`
+  * [Map] Implement `Map.filter/2` and `Map.map/2`
   * [Module] Support `:nillify_clauses` in `Module.get_definition/3`
   * [Module] Add `Module.attributes_in/1` and `Module.overridables_in/1`
   * [OptionParser] Add "did you mean?" suggestions to `OptionParser.ParseError` messages
@@ -114,6 +149,7 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
 
   * [IEx.Autocomplete] Add path autocompletion whenever when the cursor follows `"./` or `"/` or `"DRIVER:` where `DRIVER` is a single letter
   * [IEx.Autocomplete] Add autocompletion for sigils and structs
+  * [IEx.Helpers] Allow multiple modules to be given to `r/1`
 
 #### Logger
 
@@ -130,6 +166,8 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
   * [mix compile.elixir] Only recompile needed files when a dependency is configured
   * [mix deps] Add `:subdir` option to git deps
   * [mix escript.install] Run `loadconfig` before building escript
+  * [mix format] Support `:plugins` in `mix format` that can hook into custom extensions and sigils
+  * [mix format] Add `Mix.Tasks.Format.formatter_for_file/2`
   * [mix local.rebar] No longer support `sub_dirs` in Rebar 2 to help migration towards Rebar 3
   * [mix local.rebar] Support `--if-missing` option when installing Rebar
   * [mix local.rebar] Set `REBAR_PROFILE=prod` when compiling Rebar dependencies
@@ -146,6 +184,10 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
 
 ### 2. Bug fixes
 
+#### EEx
+
+  * [EEx] Accept EEx expressions where `->` is followed by newline
+
 #### Elixir
 
   * [Application] Warn if `Application.compile_env` or `Application.compile_env!` are called without a require
@@ -157,15 +199,22 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
   * [Kernel] Ensure that waiting on a struct expansion inside a typespec is correctly tracked as waiting time in the compiler
   * [Kernel] Correctly parse the atom `.` as a keyword list key
   * [Kernel] Do not leak variables from the first generator in `with` and `for` special forms
+  * [Kernel] Fix column number on strings with NFD characters
   * [OptionParser] Validate switch types/modifiers early on to give more precise feedback
   * [Protocol] Add `defdelegate` to the list of unallowed macros inside protocols as protocols do not allow function definitions
   * [Protocol] Warn if `@callback`, `@macrocallback` and `@optional_callbacks` are defined inside protocol
+  * [Protocol] Ensure protocol metadata is deterministic on consolidation
   * [URI] Only percent decode if followed by hex digits (according to https://url.spec.whatwg.org/#percent-decode)
+  * [Version] Ensure proper precedence of `and`/`or` in version requirements
 
 #### ExUnit
 
   * [ExUnit] Invalidate a module's tests in `ExUnit.run/0` results if that module's `setup_all` fails
   * [ExUnit] Fix count in formatter if a module's `setup_all` fails
+
+#### IEx
+
+  * [IEx] Fix the loss of `.iex.exs` context after a pry session
 
 #### Logger
 
@@ -173,10 +222,15 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
 
 #### Mix
 
+  * [mix compile.elixir] Recompile file if `@external_resource` is deleted
+  * [mix compile.elixir] Print number of compiling files on all compiler cycles. This will make the `Compiling N files (.ex)` show up multiple times if necessary
   * [mix deps] Raise if local dep is unavailable while compiling
+  * [mix deps.unlock] Fix blank output when dependency is not locked
   * [mix local.install] Do not respect `MIX_DEPS_PATH` for install commands
   * [mix release] Improve release scripts to make sure shell errors cascade by avoiding exporting and defining variables at once
   * [mix release] Do not boot release if RELEASE_COOKIE is empty
+  * [mix release] Allow release running as a daemon to be restarted
+  * [mix test] Allow coverage engine to also tag `case`, `cond`, and `receive` branches where the right side is a literal
   * [Mix.Shell] Add `default` option to `Mix.Shell.yes?`
 
 ### 3. Soft-deprecations (no warnings emitted)
@@ -185,6 +239,10 @@ The `Code` has been augmented with two functions: `Code.string_to_quoted_with_co
 
   * [IO] `:all` on `IO.getn` is deprecated in favor of `:eof`
   * [Code] Environment options in `Code.eval_quoted/3` and `Code.eval_string/3`, such as `:aliases` and `:tracers`, have been deprecated in favor of passing an environment
+
+#### Mix
+
+  * [mix format] `Mix.Tasks.Format.formatter_opts_for_file/2` is deprecated in favor of `Mix.Tasks.Format.formatter_for_file/2`
 
 ### 4. Hard-deprecations
 
