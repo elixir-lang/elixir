@@ -25,11 +25,14 @@ defprotocol IEx.Info do
   All other sections of information are added (and can be overridden)
   by customized implementations of this function.
 
-  It is recommended to at least include the following sections for a custom implementation:
+  It is recommended to at least include the following sections for a
+  custom implementation:
 
-  - `"Data type"`: Name of the data type. Usually the name of the module defining the data type.
+  - `"Data type"`: Name of the data type. Usually the name of the module
+     defining the data type.
   - `"Description"`: One or a few sentences describing what the data type represents.
-  - `"Reference modules`: One or a few comma-separated module names that focus on working with this datatype.
+  - `"Reference modules`: One or a few comma-separated module names that focus
+    on working with this datatype.
 
   Other recommended sections are:
 
@@ -67,7 +70,7 @@ defimpl IEx.Info, for: Atom do
     description =
       if atom == IEx.dont_display_result() do
         description = """
-        This atom is returned by IEx when a function that should not print itsd
+        This atom is returned by IEx when a function that should not print its
         return value on screen is executed.
         """
 
