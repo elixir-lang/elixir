@@ -14,10 +14,10 @@ defprotocol IEx.Info do
   @doc """
   Returns information for the given term.
 
-  Information should be returned as a list of `info_name`-`info` pairs,
-
-  `info_name` should be short.
-  It is OK for `info` to contain newlines.
+  Information should be returned as a list of `info_name`-`info` tuples,
+  where `info_name` is a string-like value, such as an atom or a string
+  itself, and `info` is a string. `info_name` should be short. `info` can
+  be arbitrarily long and contain newlines.
 
   `IEx.Helpers.i/1` will generate (and always display)
   the 'Implemented protocols' and 'Term' sections in the result.
