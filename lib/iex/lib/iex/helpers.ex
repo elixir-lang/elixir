@@ -433,7 +433,8 @@ defmodule IEx.Helpers do
             raise ArgumentError, "could not find source for module: #{inspect(module)}"
 
           not File.exists?(source) ->
-            raise ArgumentError, "could not find source (#{source}) for module: #{inspect(module)}"
+            raise ArgumentError,
+                  "could not find source (#{source}) for module: #{inspect(module)}"
 
           true ->
             source

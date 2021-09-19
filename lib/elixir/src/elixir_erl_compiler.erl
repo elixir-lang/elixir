@@ -91,15 +91,15 @@ format_warnings(Opts, Warnings) ->
 
 %% Handle warnings from Erlang land
 
-%% Ignore nomatch warnings
-handle_file_warning(true, _File, {_Line, sys_core_fold, nomatch_guard}) -> ok;
-handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) -> ok;
-
 %% Those we implement ourselves
 handle_file_warning(_, _File, {_Line, v3_core, {map_key_repeated, _}}) -> ok;
 handle_file_warning(_, _File, {_Line, sys_core_fold, {ignored, useless_building}}) -> ok;
+
 %% TODO: remove when we require Erlang/OTP 24
 handle_file_warning(_, _File, {_Line, sys_core_fold, useless_building}) -> ok;
+handle_file_warning(true, _File, {_Line, sys_core_fold, nomatch_guard}) -> ok;
+handle_file_warning(true, _File, {_Line, sys_core_fold, {nomatch_shadow, _}}) -> ok;
+%%
 
 %% Ignore all linting errors (only come up on parse transforms)
 handle_file_warning(_, _File, {_Line, erl_lint, _}) -> ok;
@@ -165,6 +165,7 @@ custom_format(sys_core_fold, {no_effect, X}) ->
 custom_format(sys_core_fold, {eval_failure, Error}) ->
   #{'__struct__' := Struct} = 'Elixir.Exception':normalize(error, Error),
   ["this expression will fail with ", elixir_aliases:inspect(Struct)];
+%%
 
 custom_format([], Desc) ->
   io_lib:format("~p", [Desc]);
