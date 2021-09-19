@@ -548,6 +548,9 @@ defmodule Protocol do
           | {:error, :not_a_protocol}
           | {:error, :no_beam_info}
   def consolidate(protocol, types) when is_atom(protocol) do
+    # Ensure the types are sorted so the compiled beam is deterministic
+    types = Enum.sort(types)
+
     with {:ok, ast_info, specs, compile_info} <- beam_protocol(protocol),
          {:ok, definitions} <- change_debug_info(protocol, ast_info, types),
          do: compile(definitions, specs, compile_info)

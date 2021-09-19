@@ -140,7 +140,7 @@ defmodule Protocol.ConsolidationTest do
     assert Sample.__protocol__(:consolidated?)
     assert Sample.__protocol__(:impls) == {:consolidated, [ImplStruct]}
     assert WithAny.__protocol__(:consolidated?)
-    assert WithAny.__protocol__(:impls) == {:consolidated, [Any, ImplStruct, Map]}
+    assert WithAny.__protocol__(:impls) == {:consolidated, [Any, Map, ImplStruct]}
   end
 
   test "consolidation extracts protocols" do
