@@ -3909,15 +3909,15 @@ defmodule Enum do
 
   ## flat_map
 
-  defp flat_map_list([head | tail], fun) do
-    case fun.(head) do
-      list when is_list(list) -> list ++ flat_map_list(tail, fun)
-      other -> to_list(other) ++ flat_map_list(tail, fun)
-    end
-  end
+  defp flat_map_list(list, fun, acc \\ [])
 
-  defp flat_map_list([], _fun) do
-    []
+  defp flat_map_list([], _fun, acc), do: acc
+
+  defp flat_map_list([head | tail], fun, acc) do
+    case fun.(head) do
+      list when is_list(list) -> flat_map_list(tail, fun, list ++ acc)
+      other -> flat_map_list(tail, fun, to_list(other) ++ acc)
+    end
   end
 
   ## intersperse
