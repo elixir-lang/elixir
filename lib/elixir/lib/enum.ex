@@ -1209,12 +1209,15 @@ defmodule Enum do
   def flat_map(enumerable, fun) do
     reduce(enumerable, [], fn entry, acc ->
       case fun.(entry) do
-        list when is_list(list) -> :lists.reverse(list, acc)
-        other -> reduce(other, acc, &[&1 | &2])
+        list when is_list(list) -> [list | acc]
+        other -> [to_list(other) | acc]
       end
     end)
-    |> :lists.reverse()
+    |> flat_reverse([])
   end
+
+  defp flat_reverse([h | t], acc), do: flat_reverse(t, h ++ acc)
+  defp flat_reverse([], acc), do: acc
 
   @doc """
   Maps and reduces an `enumerable`, flattening the given results (only one level deep).
