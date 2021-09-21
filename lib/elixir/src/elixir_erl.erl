@@ -487,8 +487,8 @@ doc_value(Doc, Name) ->
       hidden;
     nil ->
       case erlang:atom_to_list(Name) of
-        [$_ | _] -> none;
-        _ -> #{}
+        [$_ | _] -> hidden;
+        _ -> none
       end;
     Doc ->
       #{<<"en">> => Doc}
@@ -496,9 +496,9 @@ doc_value(Doc, Name) ->
 
 get_moduledoc(Line, Set) ->
   case ets:lookup_element(Set, moduledoc, 2) of
-    nil -> {Line, #{}};
+    nil -> {Line, none};
     {DocLine, false} -> {DocLine, hidden};
-    {DocLine, nil} -> {DocLine, #{}};
+    {DocLine, nil} -> {DocLine, none};
     {DocLine, Doc} -> {DocLine, #{<<"en">> => Doc}}
   end.
 
