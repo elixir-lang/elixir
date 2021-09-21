@@ -422,7 +422,8 @@ defmodule IEx.Introspection do
 
   defp find_doc_with_content(docs, function, arity) do
     case find_doc(docs, function, arity) do
-      {_, _, _, %{}, _} = doc -> doc
+      {_, _, _, :hidden, _} -> nil
+      {_, _, _, _, _} = doc -> doc
       _ -> nil
     end
   end
@@ -453,7 +454,7 @@ defmodule IEx.Introspection do
          {{kind, fun, arity}, _line, signature, doc, metadata},
          spec
        ) do
-    callback_module = doc == %{} and callback_module(mod, fun, arity)
+    callback_module = doc == :none and callback_module(mod, fun, arity)
 
     if callback_module do
       filter = &match?({_, ^fun, ^arity}, elem(&1, 0))
@@ -566,7 +567,7 @@ defmodule IEx.Introspection do
         |> Enum.sort()
         |> Enum.flat_map(fn {{_, function, arity}, _specs} = callback ->
           case find_doc(docs, function, arity) do
-            nil -> [{format, format_callback(callback), %{}, %{}}]
+            nil -> [{format, format_callback(callback), :none, %{}}]
             {_, _, _, :hidden, _} -> []
             {_, _, _, doc, metadata} -> [{format, format_callback(callback), doc, metadata}]
           end
@@ -728,7 +729,7 @@ defmodule IEx.Introspection do
       {_, _, _, content, metadata} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
       {format, format_type(typespec), content, metadata}
     else
-      {format, format_type(typespec), %{}, %{}}
+      {format, format_type(typespec), :none, %{}}
     end
   end
 

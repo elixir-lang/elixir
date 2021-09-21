@@ -254,7 +254,7 @@ defmodule Kernel.DocsTest do
       ] = Enum.sort(docs)
 
       assert {{:callback, :bar, 0}, _, [], :hidden, %{}} = callback_bar
-      assert {{:callback, :baz, 2}, _, [], %{}, %{}} = callback_baz
+      assert {{:callback, :baz, 2}, _, [], :none, %{}} = callback_baz
 
       assert {{:callback, :foo, 1}, _, [], %{"en" => "Callback doc"},
               %{since: "1.2.3", deprecated: "use baz/2 instead", color: :blue, stable: true}} =
@@ -266,7 +266,7 @@ defmodule Kernel.DocsTest do
       assert {{:function, :__struct__, 0}, _, ["%Kernel.DocsTest.SampleDocs{}"],
               %{"en" => "My struct"}, %{}} = function_struct_0
 
-      assert {{:function, :__struct__, 1}, _, ["__struct__(kv)"], :none, %{}} = function_struct_1
+      assert {{:function, :__struct__, 1}, _, ["__struct__(kv)"], :hidden, %{}} = function_struct_1
 
       assert {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple function head doc"},
               %{deprecated: "something else"}} = function_bar
@@ -362,7 +362,7 @@ defmodule Kernel.DocsTest do
              {{:bar, 0}, :hidden},
              {{:baz, 0}, %{"en" => "Baz docs"}},
              {{:foo, 1}, %{"en" => "Foo docs"}},
-             {{:fuz, 0}, %{}}
+             {{:fuz, 0}, :none}
            ] = Enum.sort(function_docs)
   end
 end
