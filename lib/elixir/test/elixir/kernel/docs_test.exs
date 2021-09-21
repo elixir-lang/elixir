@@ -266,7 +266,8 @@ defmodule Kernel.DocsTest do
       assert {{:function, :__struct__, 0}, _, ["%Kernel.DocsTest.SampleDocs{}"],
               %{"en" => "My struct"}, %{}} = function_struct_0
 
-      assert {{:function, :__struct__, 1}, _, ["__struct__(kv)"], :hidden, %{}} = function_struct_1
+      assert {{:function, :__struct__, 1}, _, ["__struct__(kv)"], :hidden, %{}} =
+               function_struct_1
 
       assert {{:function, :bar, 1}, _, ["bar(arg)"], %{"en" => "Multiple function head doc"},
               %{deprecated: "something else"}} = function_bar
