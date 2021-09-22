@@ -53,7 +53,7 @@ defmodule Macro do
   ## Custom Sigils
 
   Macros are also commonly used to implement custom sigils. To create a custom
-  sigil, define a function with the name `sigil_{identifier}` that takes two
+  sigil, define a macro with the name `sigil_{identifier}` that takes two
   arguments. The first argument will be the string, the second will be a charlist
   containing any modifiers. If the sigil is lower case (such as `sigil_x`) then
   the string argument will allow interpolation. If the sigil is upper case
