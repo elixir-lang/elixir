@@ -4692,15 +4692,15 @@ defmodule Kernel do
   Functions containing many arguments can benefit from using `Keyword`
   lists to group and pass attributes as a single value.
 
-     defmodule MyConfiguration do
-       @default_opts [storage: "local"]
+      defmodule MyConfiguration do
+        @default_opts [storage: "local"]
 
-       def configure(resource, opts \\ []) do
-         opts = Keyword.merge(@default_opts, opts)
-         storage = opts[:storage]
-         # ...
-       end
-     end
+        def configure(resource, opts \\ []) do
+          opts = Keyword.merge(@default_opts, opts)
+          storage = opts[:storage]
+          # ...
+        end
+      end
 
   The difference between using `Map` and `Keyword` to store many
   arguments is `Keyword`'s keys:
