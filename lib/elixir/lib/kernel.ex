@@ -306,8 +306,7 @@ defmodule Kernel do
   `apply(module, :function, [arg_1, arg_2, ..., arg_n])`.
 
   The function to be invoked must be a public function in `module`,
-  `apply/3` cannot be used to invoke private functions, even to call
-  private functions in the same `module` as the call to `apply/3`.
+  `apply/3` cannot be used to call private functions.
 
   Inlined by the compiler.
 
