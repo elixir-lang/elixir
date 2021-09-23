@@ -152,9 +152,10 @@ defmodule Mix.Tasks.Test do
 
     * `--only` - runs only tests that match the filter
 
-    * `--partitions` - sets the amount of partitions to split tests in. This option
-      requires the `MIX_TEST_PARTITION` environment variable to be set unless amount of
-      partitions is set to `1` when it will be no-op. See the "Operating system process
+    * `--partitions` - sets the amount of partitions to split tests in. It must be
+      a number greater than zero. If set to one, it acts a no-op. If more than one,
+      then you must also set the `MIX_TEST_PARTITION` environment variable with the
+      partition to use in the current test run. See the "Operating system process
       partitioning" section for more information
 
     * `--preload-modules` - preloads all modules defined in applications
