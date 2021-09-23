@@ -153,8 +153,9 @@ defmodule Mix.Tasks.Test do
     * `--only` - runs only tests that match the filter
 
     * `--partitions` - sets the amount of partitions to split tests in. This option
-      requires the `MIX_TEST_PARTITION` environment variable to be set. See the
-      "Operating system process partitioning" section for more information
+      requires the `MIX_TEST_PARTITION` environment variable to be set unless amount of
+      partitions is set to `1` when it will be no-op. See the "Operating system process
+      partitioning" section for more information
 
     * `--preload-modules` - preloads all modules defined in applications
 
@@ -481,12 +482,14 @@ defmodule Mix.Tasks.Test do
     Mix.Task.run("compile", args -- ["--warnings-as-errors"])
 
     project = Mix.Project.config()
+    {partitions, opts} = Keyword.pop(opts, :partitions)
+    partitioned? = is_integer(partitions) and partitions > 1
 
     # Start cover after we load deps but before we start the app.
     cover =
       if opts[:cover] do
         compile_path = Mix.Project.compile_path(project)
-        partition = opts[:partitions] > 1 && System.get_env("MIX_TEST_PARTITION")
+        partition = partitioned? && System.get_env("MIX_TEST_PARTITION")
 
         cover =
           @cover
@@ -523,7 +526,7 @@ defmodule Mix.Tasks.Test do
       test_files
       |> Mix.Utils.extract_files(test_pattern)
       |> filter_to_allowed_files(allowed_files)
-      |> filter_by_partition(shell, opts)
+      |> filter_by_partition(shell, partitions)
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
@@ -727,42 +730,38 @@ defmodule Mix.Tasks.Test do
     Enum.filter(matched_test_files, &MapSet.member?(allowed_files, Path.expand(&1)))
   end
 
-  defp filter_by_partition(files, shell, opts) do
-    total = opts[:partitions]
+  defp filter_by_partition(files, _shell, total) when total in [nil, 1],
+    do: files
 
-    cond do
-      is_integer(total) and total > 1 ->
-        partition = System.get_env("MIX_TEST_PARTITION")
+  defp filter_by_partition(files, shell, total) when total > 1 do
+    partition = System.get_env("MIX_TEST_PARTITION")
 
-        case partition && Integer.parse(partition) do
-          {partition, ""} when partition in 1..total ->
-            partition = partition - 1
+    case partition && Integer.parse(partition) do
+      {partition, ""} when partition in 1..total ->
+        partition = partition - 1
 
-            # We sort the files because Path.wildcard does not guarantee
-            # ordering, so different OSes could return a different order,
-            # meaning run across OSes on different partitions could run
-            # duplicate files.
-            for {file, index} <- Enum.with_index(Enum.sort(files)),
-                rem(index, total) == partition,
-                do: file
+        # We sort the files because Path.wildcard does not guarantee
+        # ordering, so different OSes could return a different order,
+        # meaning run across OSes on different partitions could run
+        # duplicate files.
+        for {file, index} <- Enum.with_index(Enum.sort(files)),
+            rem(index, total) == partition,
+            do: file
 
-          _ ->
-            raise_with_shell(
-              shell,
-              "The MIX_TEST_PARTITION environment variable must be set to an integer between " <>
-                "1..#{total} when the --partitions option is set, got: #{inspect(partition)}"
-            )
-        end
-
-      total == 1 or is_nil(total) ->
-        files
-
-      not is_nil(total) ->
+      _ ->
         raise_with_shell(
           shell,
-          "--partitions : expected to be positive integer, got #{total}"
+          "The MIX_TEST_PARTITION environment variable must be set to an integer between " <>
+            "1..#{total} when the --partitions option is set, got: #{inspect(partition)}"
         )
     end
+  end
+
+  defp filter_by_partition(_files, shell, total) do
+    raise_with_shell(
+      shell,
+      "--partitions : expected to be positive integer, got #{total}"
+    )
   end
 
   defp color_opts(opts) do
