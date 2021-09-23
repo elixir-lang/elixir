@@ -341,7 +341,7 @@ defmodule List do
 
   """
   @spec keyfind([tuple], any, non_neg_integer, any) :: any
-  def keyfind(list, key, position, default \\ nil) do
+  def keyfind(list, key, position, default \\ nil) when is_integer(position) do
     :lists.keyfind(key, position + 1, list) || default
   end
 
@@ -366,7 +366,7 @@ defmodule List do
   """
   @doc since: "1.13.0"
   @spec keyfind!([tuple], any, non_neg_integer) :: any
-  def keyfind!(list, key, position) do
+  def keyfind!(list, key, position) when is_integer(position) do
     :lists.keyfind(key, position + 1, list) ||
       raise KeyError,
         key: key,
@@ -393,7 +393,7 @@ defmodule List do
 
   """
   @spec keymember?([tuple], any, non_neg_integer) :: boolean
-  def keymember?(list, key, position) do
+  def keymember?(list, key, position) when is_integer(position) do
     :lists.keymember(key, position + 1, list)
   end
 
@@ -411,7 +411,7 @@ defmodule List do
 
   """
   @spec keyreplace([tuple], any, non_neg_integer, tuple) :: [tuple]
-  def keyreplace(list, key, position, new_tuple) do
+  def keyreplace(list, key, position, new_tuple) when is_integer(position) do
     :lists.keyreplace(key, position + 1, list, new_tuple)
   end
 
@@ -429,7 +429,7 @@ defmodule List do
 
   """
   @spec keysort([tuple], non_neg_integer) :: [tuple]
-  def keysort(list, position) do
+  def keysort(list, position) when is_integer(position) do
     :lists.keysort(position + 1, list)
   end
 
@@ -449,7 +449,7 @@ defmodule List do
 
   """
   @spec keystore([tuple], any, non_neg_integer, tuple) :: [tuple, ...]
-  def keystore(list, key, position, new_tuple) do
+  def keystore(list, key, position, new_tuple) when is_integer(position) do
     :lists.keystore(key, position + 1, list, new_tuple)
   end
 
@@ -471,7 +471,7 @@ defmodule List do
 
   """
   @spec keydelete([tuple], any, non_neg_integer) :: [tuple]
-  def keydelete(list, key, position) do
+  def keydelete(list, key, position) when is_integer(position) do
     :lists.keydelete(key, position + 1, list)
   end
 
@@ -495,7 +495,7 @@ defmodule List do
 
   """
   @spec keytake([tuple], any, non_neg_integer) :: {tuple, [tuple]} | nil
-  def keytake(list, key, position) do
+  def keytake(list, key, position) when is_integer(position) do
     case :lists.keytake(key, position + 1, list) do
       {:value, element, list} -> {element, list}
       false -> nil
