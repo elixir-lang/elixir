@@ -305,6 +305,8 @@ defmodule Kernel do
   prefer `module.function(arg_1, arg_2, ..., arg_n)` as it is clearer than
   `apply(module, :function, [arg_1, arg_2, ..., arg_n])`.
 
+  `apply/3` cannot be used to call private functions.
+
   Inlined by the compiler.
 
   ## Examples
