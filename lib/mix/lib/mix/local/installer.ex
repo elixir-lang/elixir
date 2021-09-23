@@ -345,6 +345,9 @@ defmodule Mix.Local.Installer do
           package_path = Path.join([tmp_path, "deps", package_name_string])
 
           post_config = [
+            # Rebar3 doesn't like when the build directory is inside
+            # the deps directory, so we also set the _build to the root.
+            build_path: Path.join(tmp_path, "_build"),
             deps_path: Path.join(tmp_path, "deps"),
             lockfile: Path.join(tmp_path, "mix.lock")
           ]
