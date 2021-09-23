@@ -353,6 +353,38 @@ defmodule Mix.Tasks.TestTest do
         )
       end)
     end
+
+    test "do not raise if partitions flag is set to 1 and no partition given" do
+      in_fixture("test_stale", fn ->
+        assert mix(["test", "--partitions", "1"], []) =~
+                 "2 tests, 0 failures"
+
+        assert mix(["test", "--partitions", "1"], [{"MIX_TEST_PARTITION", ""}]) =~
+                 "2 tests, 0 failures"
+
+        assert mix(["test", "--partitions", "1"], [{"MIX_TEST_PARTITION", "1"}]) =~
+                 "2 tests, 0 failures"
+      end)
+    end
+
+    test "raise if partitions is set to non-positive value" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/test_helper.exs", """
+        Mix.shell(Mix.Shell.Process)
+        ExUnit.start()
+        """)
+
+        assert_run_output(
+          ["--partitions", "0"],
+          "--partitions : expected to be positive integer, got 0"
+        )
+
+        assert_run_output(
+          ["--partitions", "-1"],
+          "--partitions : expected to be positive integer, got -1"
+        )
+      end)
+    end
   end
 
   describe "logs and errors" do
