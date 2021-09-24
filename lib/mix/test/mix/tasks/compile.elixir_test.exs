@@ -342,6 +342,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       bar() -> ok.
       """)
 
+      File.write!("src/bar.erl", """
+      -module(bar).
+      -export([baz/0]).
+      baz() -> ok.
+      """)
+
       File.write!("lib/a.ex", """
       defmodule A do
         :foo.bar()
@@ -358,6 +364,14 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      # Now remove the Erlang file, lib/a.ex must recompile
+      File.rm!("src/foo.erl")
+      File.touch!("_build/dev/lib/sample/.mix/compile.erlang", @old_time)
+
+      Mix.Task.clear()
+      assert Mix.Tasks.Compile.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end)
   end
 

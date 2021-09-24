@@ -89,14 +89,10 @@ defmodule Mix.Compilers.Erlang do
     timestamp = System.os_time(:second)
     entries = read_manifest(manifest)
 
-    # Files to remove are the ones in the manifest
-    # but they no longer have a source
+    # Files to remove are the ones in the manifest but they no longer have a source
     removed =
-      Enum.filter(entries, fn {dest, _} ->
-        not Enum.any?(mappings, fn {_status, _mapping_src, mapping_dest} ->
-          mapping_dest == dest
-        end)
-      end)
+      entries
+      |> Enum.filter(fn {dest, _} -> not List.keymember?(mappings, dest, 2) end)
       |> Enum.map(&elem(&1, 0))
 
     # Remove manifest entries with no source
@@ -111,7 +107,7 @@ defmodule Mix.Compilers.Erlang do
 
     if opts[:all_warnings], do: show_warnings(entries)
 
-    if stale == [] && removed == [] do
+    if stale == [] and removed == [] do
       {:noop, manifest_warnings(entries)}
     else
       Mix.Utils.compiling_n(length(stale), ext)

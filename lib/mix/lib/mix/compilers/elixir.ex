@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 12
+  @manifest_vsn 13
 
   import Record
 
@@ -30,15 +30,37 @@ defmodule Mix.Compilers.Elixir do
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
-  def compile(manifest, srcs, dest, deps_changed?, new_cache_key, stale, opts) do
+  def compile(manifest, srcs, dest, new_cache_key, new_parent_manifests, new_parents, opts) do
+    manifest_last_modified = Mix.Utils.last_modified(manifest)
+    new_parents = :ordsets.from_list(new_parents)
+
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
     # timestamp is used when writing BEAM files and the manifest.
     timestamp = System.os_time(:second)
     all_paths = Mix.Utils.extract_files(srcs, [:ex])
 
-    {all_modules, all_sources, all_local_exports, old_cache_key, old_lock, old_config} =
-      parse_manifest(manifest, dest)
+    {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_lock,
+     old_config} = parse_manifest(manifest, dest)
+
+    # If modules have been added or removed from the Erlang compiler,
+    # we need to recompile all references to old and new modules.
+    stale =
+      if old_parents != new_parents or
+           Mix.Utils.stale?(new_parent_manifests, [manifest_last_modified]) do
+        :ordsets.union(old_parents, new_parents)
+      else
+        []
+      end
+
+    # If mix.exs has changed, recompile anything that calls Mix.Project.
+    stale =
+      if Mix.Utils.stale?([Mix.Project.project_file()], [manifest_last_modified]),
+        do: [Mix.Project | stale],
+        else: stale
+
+    # If the dependencies have changed, we need to traverse lock/config files.
+    deps_changed? = Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest_last_modified])
 
     {force?, stale, new_lock, new_config} =
       cond do
@@ -127,6 +149,7 @@ defmodule Mix.Compilers.Elixir do
             modules,
             sources,
             all_local_exports,
+            new_parents,
             new_cache_key,
             new_lock,
             new_config,
@@ -171,6 +194,7 @@ defmodule Mix.Compilers.Elixir do
           modules,
           sources,
           all_local_exports,
+          new_parents,
           new_cache_key,
           new_lock,
           new_config,
@@ -213,7 +237,7 @@ defmodule Mix.Compilers.Elixir do
     rescue
       _ -> {[], []}
     else
-      {@manifest_vsn, modules, sources, _, _, _, _} -> {modules, sources}
+      {@manifest_vsn, modules, sources, _, _, _, _, _} -> {modules, sources}
       _ -> {[], []}
     end
   end
@@ -856,10 +880,10 @@ defmodule Mix.Compilers.Elixir do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ ->
-        {[], [], %{}, nil, nil, nil}
+        {[], [], %{}, [], nil, nil, nil}
     else
-      {@manifest_vsn, modules, sources, local_exports, cache_key, lock, config} ->
-        {modules, sources, local_exports, cache_key, lock, config}
+      {@manifest_vsn, modules, sources, local_exports, parent, cache_key, lock, config} ->
+        {modules, sources, local_exports, parent, cache_key, lock, config}
 
       # {vsn, modules, sources} v5-v7 (v1.10)
       # {vsn, modules, sources, local_exports} v8-v10 (v1.11)
@@ -871,7 +895,7 @@ defmodule Mix.Compilers.Elixir do
         purge_old_manifest(compile_path, data)
 
       _ ->
-        {[], [], %{}, nil, nil, nil}
+        {[], [], %{}, [], nil, nil, nil}
     end
   end
 
@@ -893,15 +917,35 @@ defmodule Mix.Compilers.Elixir do
     {[], [], %{}, nil, nil, nil}
   end
 
-  defp write_manifest(manifest, [], [], _exports, _cache_key, _lock, _config, _timestamp) do
+  defp write_manifest(
+         manifest,
+         [],
+         [],
+         _exports,
+         _parents,
+         _cache_key,
+         _lock,
+         _config,
+         _timestamp
+       ) do
     File.rm(manifest)
     :ok
   end
 
-  defp write_manifest(manifest, modules, sources, exports, cache_key, lock, config, timestamp) do
+  defp write_manifest(
+         manifest,
+         modules,
+         sources,
+         exports,
+         parents,
+         cache_key,
+         lock,
+         config,
+         timestamp
+       ) do
     File.mkdir_p!(Path.dirname(manifest))
 
-    term = {@manifest_vsn, modules, sources, exports, cache_key, lock, config}
+    term = {@manifest_vsn, modules, sources, exports, parents, cache_key, lock, config}
     manifest_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)
