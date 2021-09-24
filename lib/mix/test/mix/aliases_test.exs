@@ -12,7 +12,8 @@ defmodule Mix.AliasesTest do
           compile: "hello",
           cmd: &call_cmd/1,
           help: ["help", "hello"],
-          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"]
+          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"],
+          invalid_alias: [:not_a_string_or_function]
         ]
       ]
     end
@@ -46,6 +47,12 @@ defmodule Mix.AliasesTest do
   test "runs list aliases" do
     assert Mix.Task.run("nested.h", ["baz"]) == "Hello, foo bar baz!"
     assert_received {:mix_shell, :info, ["[]"]}
+  end
+
+  test "fails for invalid aliases" do
+    assert_raise Mix.Error, ~r/Invalid Mix alias format/, fn ->
+      Mix.Task.run("invalid_alias", [])
+    end
   end
 
   test "run alias override" do
