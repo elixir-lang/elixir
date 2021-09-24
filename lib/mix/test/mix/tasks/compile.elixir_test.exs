@@ -423,6 +423,27 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles project if old manifest" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      Mix.Tasks.Compile.run([])
+      purge([A, B])
+
+      manifest = "_build/dev/lib/sample/.mix/compile.elixir"
+
+      File.read!(manifest)
+      |> :erlang.binary_to_term()
+      |> put_elem(0, 9)
+      |> :erlang.term_to_binary()
+      |> then(&File.write!(manifest, &1))
+
+      Mix.Task.clear()
+      assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+    end)
+  end
+
   test "does not write BEAM files down on failures" do
     in_tmp("blank", fn ->
       Mix.Project.push(MixTest.Case.Sample)
