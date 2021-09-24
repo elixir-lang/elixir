@@ -874,13 +874,15 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
+  @default_manifest {[], [], %{}, [], nil, nil, nil}
+
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do
     try do
       manifest |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ ->
-        {[], [], %{}, [], nil, nil, nil}
+        @default_manifest
     else
       {@manifest_vsn, modules, sources, local_exports, parent, cache_key, lock, config} ->
         {modules, sources, local_exports, parent, cache_key, lock, config}
@@ -895,7 +897,7 @@ defmodule Mix.Compilers.Elixir do
         purge_old_manifest(compile_path, data)
 
       _ ->
-        {[], [], %{}, [], nil, nil, nil}
+        @default_manifest
     end
   end
 
@@ -914,7 +916,7 @@ defmodule Mix.Compilers.Elixir do
         )
     end
 
-    {[], [], %{}, nil, nil, nil}
+    @default_manifest
   end
 
   defp write_manifest(
