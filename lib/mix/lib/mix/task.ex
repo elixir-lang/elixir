@@ -464,7 +464,7 @@ defmodule Mix.Task do
 
   defp run_alias([h | _], _alias_args, _proj, _original_task, _res) do
     Mix.raise(
-      "Invalid Mix alias format, aliases can be either a string (representing a command) " <>
+      "Invalid Mix alias format, aliases can be either a string (representing a Mix task with arguments) " <>
         "or a function that takes one argument (a list of alias arguments), got: #{inspect(h)}"
     )
   end
