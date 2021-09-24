@@ -462,6 +462,14 @@ defmodule Mix.Task do
     run_alias(t, alias_args, proj, original_task, res)
   end
 
+  defp run_alias([h | _], _alias_args, _proj, _original_task, _res) do
+    Mix.raise(
+      "Invalid Mix alias format, aliases can be either a string (representing a Mix task " <>
+        "with arguments) or a function that takes one argument (a list of alias arguments), " <>
+        "got: #{inspect(h)}"
+    )
+  end
+
   defp run_alias([], _alias_args, proj, original_task, res) do
     Mix.TasksServer.put({:task, original_task, proj})
     res
