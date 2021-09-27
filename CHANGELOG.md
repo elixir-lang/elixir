@@ -12,7 +12,7 @@ Elixir v1.13 comes with many improvements to the compiler, so it recompiles your
 
   * Changing compile-time configuration files (`config/config.exs` and any other file imported from it) now only recompiles the project files that depend on the reconfigured applications, instead of a full recompilation. However, if you change the configuration of your application itself, the whole project is still recompiled.
 
-  * Adding or updating a dependency now only recompiles the project files that depend on the modified a dependency. Removing a dependency still triggers a whole project recompilation.
+  * Adding, updating or removing a dependency now only recompiles the project files that depend on the modified a dependency.
 
   * If your project has both Erlang and Elixir files, changing an Erlang file will now recompile only the Elixir files that depend on it.
 
@@ -20,7 +20,6 @@ In a nutshell, Elixir went from triggering full recompilations whenever any of `
 
   * you change the compilation options in `mix.exs`
   * you change the configuration for the current project in `config/config.exs`
-  * you remove a dependency
 
 ## mix xref
 
@@ -162,7 +161,7 @@ Finally, the `Code` has also been augmented with two functions: `Code.string_to_
   * [mix compile.elixir] Do not recompile files if their modification time change but their contents are still the same and the .beam files are still on disk
   * [mix compile.elixir] Do not recompile all Elixir sources when Erlang modules change, only dependent ones
   * [mix compile.elixir] Do not recompile Elixir files if `mix.exs` changes, instead recompile only files using `Mix.Project` or trigger a recompilation if a compiler option changes
-  * [mix compile.elixir] Only recompile needed files when a dependency is added or updated
+  * [mix compile.elixir] Only recompile needed files when a dependency is added, updated or removed
   * [mix compile.elixir] Only recompile needed files when a dependency is configured
   * [mix deps] Add `:subdir` option to git deps
   * [mix escript.install] Run `loadconfig` before building escript
