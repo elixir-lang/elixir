@@ -291,6 +291,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      File.touch!("_build/dev/lib/sample/.mix/compile.app_tracer", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -307,7 +308,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
 
-      # Removing a lock fully recompiles
+      # Removing a lock recompiles
       File.write!("mix.lock", """
       %{}
       """)
@@ -315,7 +316,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
 
       # Adding an unknown dependency returns :ok but does not recompile

@@ -62,6 +62,9 @@ defmodule Mix.Compilers.Elixir do
     # If the dependencies have changed, we need to traverse lock/config files.
     deps_changed? = Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest_last_modified])
 
+    # The app tracker will return information about apps before this compilation.
+    app_tracer = Mix.Compilers.ApplicationTracer.init()
+
     {force?, stale, new_lock, new_config} =
       cond do
         !!opts[:force] or is_nil(old_lock) or is_nil(old_config) or old_cache_key != new_cache_key ->
@@ -72,18 +75,27 @@ defmodule Mix.Compilers.Elixir do
           new_lock = Enum.sort(Mix.Dep.Lock.read())
           new_config = Enum.sort(Mix.Tasks.Loadconfig.read_compile())
 
-          with {:apps, apps} <- merge_lock(old_lock, new_lock, []),
-               apps = merge_config(old_config, new_config, apps),
-               # If the current app is in the list of changes, then we need to force it
-               false <- Mix.Project.config()[:app] in apps do
+          apps = []
+          apps = merge_appset(old_lock, new_lock, apps)
+          apps = merge_appset(old_config, new_config, apps)
+
+          if Mix.Project.config()[:app] in apps do
+            {true, stale, new_lock, new_config}
+          else
             apps_stale =
               apps
               |> deps_on()
-              |> Enum.flat_map(fn {app, _} -> Application.spec(app, :modules) || [] end)
+              |> Enum.flat_map(fn {app, _} ->
+                new_modules = Application.spec(app, :modules) || []
+
+                if old_modules = Mix.Compilers.ApplicationTracer.app_modules(app_tracer, app) do
+                  :ordsets.union(old_modules, :ordsets.from_list(new_modules))
+                else
+                  new_modules
+                end
+              end)
 
             {false, stale ++ apps_stale, new_lock, new_config}
-          else
-            _ -> {true, stale, new_lock, new_config}
           end
 
         true ->
@@ -92,7 +104,7 @@ defmodule Mix.Compilers.Elixir do
 
     modified = Mix.Utils.last_modified(manifest)
 
-    {stale_local_deps, stale_local_mods, stale_local_exports, all_local_exports} =
+    {stale_local_mods, stale_local_exports, all_local_exports} =
       stale_local_deps(manifest, stale, modified, all_local_exports)
 
     prev_paths = for source(source: source) <- all_sources, do: source
@@ -128,10 +140,8 @@ defmodule Mix.Compilers.Elixir do
       Mix.Project.ensure_structure()
       true = Code.prepend_path(dest)
 
-      previous_opts =
-        {stale_local_deps, opts}
-        |> Mix.Compilers.ApplicationTracer.init()
-        |> set_compiler_opts()
+      {pending_tracer, tracer_opts} = Mix.Compilers.ApplicationTracer.prepare(app_tracer, opts)
+      previous_opts = set_compiler_opts(tracer_opts)
 
       # Stores state for keeping track which files were compiled
       # and the dependencies between them.
@@ -167,7 +177,7 @@ defmodule Mix.Compilers.Elixir do
           {:error, warning_diagnostics(sources) ++ warnings ++ errors}
       after
         Code.compiler_options(previous_opts)
-        Mix.Compilers.ApplicationTracer.stop()
+        Mix.Compilers.ApplicationTracer.stop(pending_tracer)
         Code.purge_compiler_modules()
         delete_compiler_info()
       end
@@ -204,6 +214,8 @@ defmodule Mix.Compilers.Elixir do
 
       {status, warning_diagnostics(sources)}
     end
+  after
+    Mix.Compilers.ApplicationTracer.stop()
   end
 
   @doc """
@@ -702,39 +714,33 @@ defmodule Mix.Compilers.Elixir do
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
         Mix.Utils.last_modified(Path.join([opts[:build], ".mix", base])) > modified,
-        reduce: {%{}, stale_modules, %{}, old_exports} do
-      {deps, modules, exports, new_exports} ->
-        {modules, exports, new_exports} =
-          for path <- Mix.Dep.load_paths(dep),
-              beam <- Path.wildcard(Path.join(path, "*.beam")),
-              Mix.Utils.last_modified(beam) > modified,
-              reduce: {modules, exports, new_exports} do
-            {modules, exports, new_exports} ->
-              module = beam |> Path.basename() |> Path.rootname() |> String.to_atom()
-              export = exports_md5(module, false)
-              modules = Map.put(modules, module, true)
+        path <- Mix.Dep.load_paths(dep),
+        beam <- Path.wildcard(Path.join(path, "*.beam")),
+        Mix.Utils.last_modified(beam) > modified,
+        reduce: {stale_modules, %{}, old_exports} do
+      {modules, exports, new_exports} ->
+        module = beam |> Path.basename() |> Path.rootname() |> String.to_atom()
+        export = exports_md5(module, false)
+        modules = Map.put(modules, module, true)
 
-              # If the exports are the same, then the API did not change,
-              # so we do not mark the export as stale. Note this has to
-              # be very conservative. If the module is not loaded or if
-              # the exports were not there, we need to consider it a stale
-              # export.
-              exports =
-                if export && old_exports[module] == export,
-                  do: exports,
-                  else: Map.put(exports, module, true)
+        # If the exports are the same, then the API did not change,
+        # so we do not mark the export as stale. Note this has to
+        # be very conservative. If the module is not loaded or if
+        # the exports were not there, we need to consider it a stale
+        # export.
+        exports =
+          if export && old_exports[module] == export,
+            do: exports,
+            else: Map.put(exports, module, true)
 
-              # In any case, we always store it as the most update export
-              # that we have, otherwise we delete it.
-              new_exports =
-                if export,
-                  do: Map.put(new_exports, module, export),
-                  else: Map.delete(new_exports, module)
+        # In any case, we always store it as the most update export
+        # that we have, otherwise we delete it.
+        new_exports =
+          if export,
+            do: Map.put(new_exports, module, export),
+            else: Map.delete(new_exports, module)
 
-              {modules, exports, new_exports}
-          end
-
-        {Map.put(deps, dep.app, true), modules, exports, new_exports}
+        {modules, exports, new_exports}
     end
   end
 
@@ -802,49 +808,28 @@ defmodule Mix.Compilers.Elixir do
 
   ## Merging of lock and config files
 
-  # Lock for app didn't change
-  defp merge_lock([{app, value} | old_lock], [{app, value} | new_lock], apps),
-    do: merge_lock(old_lock, new_lock, apps)
+  # Value for app didn't change
+  defp merge_appset([{app, value} | old_set], [{app, value} | new_set], apps),
+    do: merge_appset(old_set, new_set, apps)
 
-  # Lock for app changed
-  defp merge_lock([{app, _} | old_lock], [{app, _} | new_lock], apps),
-    do: merge_lock(old_lock, new_lock, [app | apps])
+  # Value for app changed
+  defp merge_appset([{app, _} | old_set], [{app, _} | new_set], apps),
+    do: merge_appset(old_set, new_set, [app | apps])
 
-  # App is in new lock but not the old one, add it to the list
-  defp merge_lock([{app1, _} | _] = old_lock, [{app2, _} | new_lock], apps) when app1 > app2,
-    do: merge_lock(old_lock, new_lock, [app2 | apps])
-
-  # We are done and we may have left overs on new lock, add them to apps
-  defp merge_lock([], new_lock, apps),
-    do: {:apps, Enum.reduce(new_lock, apps, fn {app, _}, apps -> [app | apps] end)}
-
-  # However, if the old lock has exclusive entries, it means deps were deleted,
-  # so we need to force recompilation
-  defp merge_lock(_, _, _),
-    do: :force
-
-  # Config for app didn't change
-  defp merge_config([{app, value} | old_config], [{app, value} | new_config], apps),
-    do: merge_config(old_config, new_config, apps)
-
-  # Config for app changed
-  defp merge_config([{app, _} | old_config], [{app, _} | new_config], apps),
-    do: merge_config(old_config, new_config, [app | apps])
-
-  # Added config for app
-  defp merge_config([{app1, _} | _] = old_config, [{app2, _} | new_config], apps)
+  # Added value for app
+  defp merge_appset([{app1, _} | _] = old_set, [{app2, _} | new_set], apps)
        when app1 > app2,
-       do: merge_config(old_config, new_config, [app2 | apps])
+       do: merge_appset(old_set, new_set, [app2 | apps])
 
-  # Removed config for app
-  defp merge_config([{app1, _} | old_config], [{app2, _} | _] = new_config, apps)
+  # Removed value for app
+  defp merge_appset([{app1, _} | old_set], [{app2, _} | _] = new_set, apps)
        when app1 < app2,
-       do: merge_config(old_config, new_config, [app1 | apps])
+       do: merge_appset(old_set, new_set, [app1 | apps])
 
   # One of them is done, add the others
-  defp merge_config(old_config, new_config, apps) do
-    apps = Enum.reduce(old_config, apps, fn {app, _}, apps -> [app | apps] end)
-    Enum.reduce(new_config, apps, fn {app, _}, apps -> [app | apps] end)
+  defp merge_appset(old_set, new_set, apps) do
+    apps = Enum.reduce(old_set, apps, fn {app, _}, apps -> [app | apps] end)
+    Enum.reduce(new_set, apps, fn {app, _}, apps -> [app | apps] end)
   end
 
   defp deps_on(apps) do

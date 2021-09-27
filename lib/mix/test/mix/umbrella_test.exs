@@ -425,6 +425,7 @@ defmodule Mix.UmbrellaTest do
 
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
+        ensure_touched("_build/dev/lib/foo/ebin/foo.app", mtime)
         ensure_touched("lib/bar.ex", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
@@ -478,7 +479,7 @@ defmodule Mix.UmbrellaTest do
 
         Mix.Task.clear()
         Application.unload(:foo)
-        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.app_tracer")
 
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}

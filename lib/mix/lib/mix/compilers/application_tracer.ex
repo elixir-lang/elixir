@@ -4,33 +4,68 @@ defmodule Mix.Compilers.ApplicationTracer do
   @table __MODULE__
   @warnings_key 0
 
-  def init({stale_deps, opts}) do
+  def init do
+    config = Mix.Project.config()
+    manifest = manifest(config)
+
+    try do
+      # The table is actually @table during tracing
+      # but we pass it around as var for clarity.
+      {:ok, table} = :ets.file2tab(String.to_charlist(manifest))
+      table
+    rescue
+      _ -> nil
+    end
+  end
+
+  def app_modules(table, app) do
+    with true <- table != nil,
+         [{_, modules}] <- :ets.lookup(table, {:application, app}) do
+      modules
+    else
+      _ -> nil
+    end
+  end
+
+  def prepare(table, opts) do
     config = Mix.Project.config()
     manifest = manifest(config)
     modified = Mix.Utils.last_modified(manifest)
 
-    cond do
-      # We need to know whenever the application definition changes and
-      # whenever dependencies are updated. We don't actually depend on
-      # config/*.exs files (only the lock) but this command is fast,
-      # so we are happy with rebuilding even if configs change.
-      Mix.Utils.stale?([Mix.Project.config_mtime(), Mix.Project.project_file()], [modified]) ->
-        build_manifest(config, manifest)
+    pending_save =
+      cond do
+        # There is no table, cache it for the first time
+        is_nil(table) ->
+          File.mkdir_p!(Path.dirname(manifest))
+          build_manifest(config)
+          write_manifest(manifest)
+          nil
 
-      table = read_manifest(manifest, stale_deps) ->
-        for %{app: app, scm: scm, opts: opts} <- Mix.Dep.cached(),
-            not scm.fetchable?,
-            Mix.Utils.last_modified(Path.join([opts[:build], "ebin", "#{app}.app"])) > modified do
-          delete_app(table, app)
-          store_app(table, app)
-        end
+        # If the application definition changed or dependencies were updated,
+        # we need to rebuild. We don't actually depend on config/*.exs files
+        # (only the lock) but this command is fast, so we are happy with
+        # rebuilding even when configs change.
+        Mix.Utils.stale?([Mix.Project.config_mtime(), Mix.Project.project_file()], [modified]) ->
+          :ets.delete(@table)
+          build_manifest(config)
+          manifest
 
-      true ->
-        build_manifest(config, manifest)
-    end
+        true ->
+          stale_local_deps =
+            for %{app: app, scm: scm, opts: opts} <- Mix.Dep.cached(),
+                not scm.fetchable?,
+                Mix.Utils.last_modified(Path.join([opts[:build], "ebin", "#{app}.app"])) >
+                  modified do
+              delete_app(table, app)
+              store_app(table, app)
+              :ok
+            end
+
+          if stale_local_deps != [], do: manifest
+      end
 
     setup_warnings_table(config)
-    Keyword.update(opts, :tracers, [__MODULE__], &[__MODULE__ | &1])
+    {pending_save, Keyword.update(opts, :tracers, [__MODULE__], &[__MODULE__ | &1])}
   end
 
   # :erlang and other preloaded apps are not part of any module.
@@ -114,11 +149,16 @@ defmodule Mix.Compilers.ApplicationTracer do
     end
   end
 
-  def stop() do
+  def stop(pending_save_manifest \\ nil) do
     try do
       :ets.delete(warnings_table())
     rescue
       _ -> false
+    end
+
+    if pending_save_manifest do
+      :ets.delete(@table, @warnings_key)
+      write_manifest(pending_save_manifest)
     end
 
     try do
@@ -164,23 +204,7 @@ defmodule Mix.Compilers.ApplicationTracer do
     Path.join(Mix.Project.manifest_path(config), @manifest)
   end
 
-  defp read_manifest(manifest, stale_deps) do
-    try do
-      {:ok, table} = :ets.file2tab(String.to_charlist(manifest))
-      table
-    rescue
-      _ -> nil
-    else
-      table when stale_deps == %{} ->
-        table
-
-      table ->
-        Enum.reduce(stale_deps, %{}, fn {app, _}, acc -> store_app(table, app, acc) end)
-        write_manifest(table, manifest)
-    end
-  end
-
-  defp build_manifest(config, manifest) do
+  defp build_manifest(config) do
     table = :ets.new(@table, [:public, :named_table, :set, read_concurrency: true])
     {required, optional} = Mix.Tasks.Compile.App.project_apps(config)
 
@@ -189,13 +213,11 @@ defmodule Mix.Compilers.ApplicationTracer do
     |> store_apps(table, optional)
     |> store_apps(table, extra_apps(config))
 
-    File.mkdir_p!(Path.dirname(manifest))
-    write_manifest(table, manifest)
+    table
   end
 
-  defp write_manifest(table, manifest) do
-    :ok = :ets.tab2file(table, String.to_charlist(manifest), sync: true)
-    table
+  defp write_manifest(manifest) do
+    :ok = :ets.tab2file(@table, String.to_charlist(manifest), sync: true)
   end
 
   defp extra_apps(config) do
@@ -231,11 +253,13 @@ defmodule Mix.Compilers.ApplicationTracer do
   end
 
   defp delete_app(table, app) do
+    :ets.delete(table, {:application, app})
     :ets.match_delete(table, {:"$_", app})
   end
 
   defp store_app(table, app) do
     if modules = Application.spec(app, :modules) do
+      :ets.insert(table, {{:application, app}, :ordsets.from_list(modules)})
       :ets.insert(table, Enum.map(modules, &{&1, app}))
       true
     else
