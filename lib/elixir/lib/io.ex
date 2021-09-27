@@ -630,6 +630,8 @@ defmodule IO do
 
   """
   @spec chardata_to_string(chardata) :: String.t()
+  def chardata_to_string(chardata)
+
   def chardata_to_string(string) when is_binary(string) do
     string
   end
