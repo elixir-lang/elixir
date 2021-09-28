@@ -1211,6 +1211,12 @@ defmodule Kernel.SpecialForms do
   reported to where `defadd` was invoked. `location: :keep` affects
   only definitions inside the quote.
 
+  > **Important:** do not use location: :keep if the function definition
+  > also `unquote`s some of the macro arguments. If you do so, Elixir
+  > will store the file definition of the current location but the
+  > unquoted arguments may contain line information of the macro caller,
+  > leading to erroneous stacktraces.
+
   ## Binding and unquote fragments
 
   Elixir quote/unquote mechanisms provide a functionality called

@@ -461,18 +461,6 @@ do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
 do_quote_tuple({Left, Meta, Right}, Q, E) ->
   do_quote_tuple(Left, Meta, Right, Q, E).
 
-% In a def unquote(name)(args) expression name will be an atom literal,
-% thus location: :keep will not have enough information to generate the proper file/line annotation.
-% This alters metadata to force Elixir to show the file to which the definition is added
-% instead of the file where definition is quoted (i.e. we behave the opposite to location: :keep).
-do_quote_tuple(Left, Meta, [{{unquote, _, _}, _, _}, _] = Right, Q, E) when ?defs(Left) ->
-  TLeft  = do_quote(Left, Q, E),
-  [Head, Body] = do_quote(Right, Q, E),
-  {'{}', [], [HLeft, HMeta, HRight]} = Head,
-  NewMeta = lists:keydelete(file, 1, HMeta),
-  NewHead = {'{}', [], [HLeft, NewMeta, HRight]},
-  {'{}', [], [TLeft, meta(Meta, Q), [NewHead, Body]]};
-
 do_quote_tuple(Left, Meta, Right, Q, E) ->
   TLeft = do_quote(Left, Q, E),
   TRight = do_quote(Right, Q, E),
