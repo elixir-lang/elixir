@@ -1,10 +1,24 @@
 defmodule FakeCalendar do
+  def date(year, month, day) do
+    %Date{year: year, month: month, day: day, calendar: __MODULE__}
+  end
+
+  def day_of_week(year, month, day, starting_on) do
+    {day_of_week, _, _} = Calendar.ISO.day_of_week(year, month, day, starting_on)
+    {day_of_week, 6, 5}
+  end
+
   def time_to_string(hour, minute, second, _), do: "#{hour}::#{minute}::#{second}"
   def date_to_string(year, month, day), do: "#{day}/#{month}/#{year}"
 
   def naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) do
     date_to_string(year, month, day) <> "F" <> time_to_string(hour, minute, second, microsecond)
   end
+
+  defdelegate naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond),
+    to: Calendar.ISO
+
+  defdelegate naive_datetime_from_iso_days(iso_days), to: Calendar.ISO
 
   def datetime_to_string(
         year,

@@ -803,6 +803,7 @@ defmodule Date do
     %Date{calendar: Calendar.ISO, year: year, month: month, day: day}
   end
 
+  @days_per_week 7
   def beginning_of_week(%{calendar: calendar} = date, starting_on) do
     %{year: year, month: month, day: day} = date
 
@@ -811,7 +812,11 @@ defmodule Date do
         %Date{calendar: calendar, year: year, month: month, day: day}
 
       {day_of_week, first_day_of_week, _} ->
-        add(date, -(day_of_week - first_day_of_week))
+        days =
+          first_day_of_week - day_of_week -
+            if day_of_week < first_day_of_week, do: @days_per_week, else: 0
+
+        add(date, days)
     end
   end
 
@@ -866,7 +871,11 @@ defmodule Date do
         %Date{calendar: calendar, year: year, month: month, day: day}
 
       {day_of_week, _, last_day_of_week} ->
-        add(date, last_day_of_week - day_of_week)
+        days =
+          last_day_of_week - day_of_week +
+            if day_of_week > last_day_of_week, do: @days_per_week, else: 0
+
+        add(date, days)
     end
   end
 

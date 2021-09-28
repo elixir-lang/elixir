@@ -106,6 +106,15 @@ defmodule DateTest do
 
     assert Date.beginning_of_week(Calendar.Holocene.date(2020, 07, 11), :saturday) ==
              Calendar.Holocene.date(2020, 07, 11)
+
+    assert Date.beginning_of_week(FakeCalendar.date(2020, 07, 10)) ==
+             FakeCalendar.date(2020, 07, 04)
+
+    assert Date.beginning_of_week(FakeCalendar.date(2020, 07, 10), :tuesday) ==
+             FakeCalendar.date(2020, 07, 05)
+
+    assert Date.beginning_of_week(FakeCalendar.date(2020, 07, 10), :sunday) ==
+             FakeCalendar.date(2020, 07, 10)
   end
 
   test "end_of_week" do
@@ -120,6 +129,12 @@ defmodule DateTest do
 
     assert Date.end_of_week(Calendar.Holocene.date(2020, 07, 05), :saturday) ==
              Calendar.Holocene.date(2020, 07, 10)
+
+    assert Date.end_of_week(FakeCalendar.date(2020, 07, 04)) ==
+             FakeCalendar.date(2020, 07, 10)
+
+    assert Date.end_of_week(FakeCalendar.date(2020, 07, 09)) ==
+             FakeCalendar.date(2020, 07, 10)
   end
 
   test "convert/2" do
