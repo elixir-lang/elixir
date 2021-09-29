@@ -27,7 +27,7 @@ defmodule IEx do
 
   Autocomplete may not be available on some Windows shells. You may need
   to pass the `--werl` option when starting IEx, such as `iex --werl`
-  (or `iex.bat --werl` is using PowerShell). `--werl` may be permanently
+  (or `iex.bat --werl` if using PowerShell). `--werl` may be permanently
   enabled by setting the `IEX_WITH_WERL` environment variable to `1`.
 
   ## Encoding and coloring
