@@ -19,22 +19,30 @@ defmodule IEx do
 
       Enum.
 
-  A module may export functions that are not meant to be used directly: these
-  functions won't be autocompleted by IEx. IEx will not autocomplete functions
-  annotated with `@doc false`, `@impl true`, or functions that aren't explicitly
-  documented and where the function name is in the form of `__foo__`.
+  A module may export functions that are not meant to be used directly:
+  these functions won't be autocompleted by IEx. IEx will not autocomplete
+  functions annotated with `@doc false`, `@impl true`, or functions that
+  aren't explicitly documented and where the function name is in the form
+  of `__foo__`.
 
   Autocomplete may not be available on some Windows shells. You may need
-  to pass the `--werl` option when starting IEx, as in `iex --werl` for it
-  to work. `--werl` may be permanently enabled by setting the `IEX_WITH_WERL`
-  environment variable.
+  to pass the `--werl` option when starting IEx, such as `iex --werl`
+  (or `iex.bat --werl` is using PowerShell). `--werl` may be permanently
+  enabled by setting the `IEX_WITH_WERL` environment variable to `1`.
 
-  ## Coloring
+  ## Encoding and coloring
 
-  Coloring is enabled by default on most Unix terminals. They are also
-  available on Windows consoles from Windows 10, although it must be
-  explicitly enabled for the current user in the registry by running
-  the following command:
+  IEx expects inputs and outputs to be in UTF-8 encoding. This is the
+  default for most Unix terminals but it may not be the case on Windows.
+  If you are running on Windows and you see incorrect values printed,
+  you may need change the encoding of your current session by running
+  `chcp 65001` before calling `iex` (or before calling `iex.bat` if using
+  PowerShell).
+
+  Similarly, ANSI coloring is enabled by default on most Unix terminals.
+  They are also available on Windows consoles from Windows 10, although
+  it must be explicitly enabled for the current user in the registry by
+  running the following command:
 
       reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
 
