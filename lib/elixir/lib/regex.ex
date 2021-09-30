@@ -456,7 +456,7 @@ defmodule Regex do
       [[{0, 1}], [{9, 3}]]
 
   """
-  @spec scan(t, String.t(), [term]) :: [[String.t()]]
+  @spec scan(t(), String.t(), [term()]) :: [[String.t()]] | [[{integer(), integer()}]]
   def scan(regex, string, options \\ [])
 
   def scan(%Regex{} = regex, string, options) when is_binary(string) do
