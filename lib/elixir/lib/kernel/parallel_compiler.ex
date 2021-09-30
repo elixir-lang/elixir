@@ -92,7 +92,7 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.6.0"
   def compile(files, options \\ []) when is_list(options) do
-    spawn_workers(files, :compile, find_compilation_root, options)
+    spawn_workers(files, :compile, find_compilation_root(), options)
   end
 
   @doc """
@@ -102,7 +102,7 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.6.0"
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
-    spawn_workers(files, {:compile, path}, find_compilation_root, options)
+    spawn_workers(files, {:compile, path}, find_compilation_root(), options)
   end
 
   @doc """
@@ -127,13 +127,13 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.6.0"
   def require(files, options \\ []) when is_list(options) do
-    spawn_workers(files, :require, find_compilation_root, options)
+    spawn_workers(files, :require, find_compilation_root(), options)
   end
 
   @doc false
   @deprecated "Use Kernel.ParallelCompiler.compile/2 instead"
   def files(files, options \\ []) when is_list(options) do
-    case spawn_workers(files, :compile, find_compilation_root, options) do
+    case spawn_workers(files, :compile, find_compilation_root(), options) do
       {:ok, modules, _} -> modules
       {:error, _, _} -> exit({:shutdown, 1})
     end
@@ -142,7 +142,7 @@ defmodule Kernel.ParallelCompiler do
   @doc false
   @deprecated "Use Kernel.ParallelCompiler.compile_to_path/2 instead"
   def files_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
-    case spawn_workers(files, {:compile, path}, find_compilation_root, options) do
+    case spawn_workers(files, {:compile, path}, find_compilation_root(), options) do
       {:ok, modules, _} -> modules
       {:error, _, _} -> exit({:shutdown, 1})
     end
