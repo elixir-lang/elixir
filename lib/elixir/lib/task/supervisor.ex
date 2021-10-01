@@ -452,28 +452,26 @@ defmodule Task.Supervisor do
     end
   end
 
+  # TODO: Remove conditional on Erlang/OTP 24
+  @compile {:no_warn_undefined, {:erlang, :monitor, 3}}
+
   defp async(supervisor, link_type, module, fun, args, options) do
     owner = self()
-    args = [get_owner(owner), get_callers(owner), :monitor, {module, fun, args}]
     shutdown = options[:shutdown]
 
-    case start_child_with_spec(supervisor, args, :temporary, shutdown) do
+    case start_child_with_spec(supervisor, [get_owner(owner), :monitor], :temporary, shutdown) do
       {:ok, pid} ->
         if link_type == :link, do: Process.link(pid)
 
-        # TODO: Remove conditional on Erlang/OTP 24
-        ref =
+        {reply_to, ref} =
           if function_exported?(:erlang, :monitor, 3) do
             ref = :erlang.monitor(:process, pid, alias: :demonitor)
-            send(pid, {owner, ref, ref})
-            ref
+            {ref, ref}
           else
-            ref = Process.monitor(pid)
-            send(pid, {owner, ref, owner})
-            ref
+            {owner, Process.monitor(pid)}
           end
 
-        send(pid, {owner, ref})
+        send(pid, {owner, ref, reply_to, get_callers(owner), {module, fun, args}})
         %Task{pid: pid, ref: ref, owner: owner}
 
       {:error, :max_children} ->
@@ -487,9 +485,10 @@ defmodule Task.Supervisor do
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
     shutdown = options[:shutdown]
+    owner = self()
 
-    &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn [owner | _] = callers, mfa ->
-      args = [get_owner(owner), callers, :monitor, mfa]
+    &Task.Supervised.stream(enumerable, &1, &2, get_callers(owner), fun, options, fn ->
+      args = [get_owner(owner), :monitor]
 
       case start_child_with_spec(supervisor, args, :temporary, shutdown) do
         {:ok, pid} ->

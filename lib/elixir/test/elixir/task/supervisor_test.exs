@@ -318,10 +318,11 @@ defmodule Task.SupervisorTest do
   describe "await/1" do
     if System.otp_release() >= "24" do
       test "demonitors and unalias on timeout", config do
-        task = Task.Supervisor.async(config[:supervisor], fn ->
-          assert_receive :go
-          :done
-        end)
+        task =
+          Task.Supervisor.async(config[:supervisor], fn ->
+            assert_receive :go
+            :done
+          end)
 
         assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
         new_ref = Process.monitor(task.pid)
