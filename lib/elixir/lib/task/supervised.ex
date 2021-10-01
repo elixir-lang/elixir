@@ -10,27 +10,26 @@ defmodule Task.Supervised do
     {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [owner, callers, fun])}
   end
 
-  def start_link(owner, callers, monitor, fun) do
-    {:ok, :proc_lib.spawn_link(__MODULE__, :reply, [owner, callers, monitor, fun])}
+  def start_link(owner, monitor) do
+    {:ok, :proc_lib.spawn_link(__MODULE__, :reply, [owner, monitor])}
   end
 
-  def reply({_, _, owner_pid} = owner, callers, monitor, mfa) do
-    initial_call(mfa)
-    put_callers(callers)
-
+  def reply({_, _, owner_pid} = owner, monitor) do
     case monitor do
       :monitor ->
         mref = Process.monitor(owner_pid)
-        reply(owner, owner_pid, mref, @ref_timeout, mfa)
+        reply(owner, owner_pid, mref, @ref_timeout)
 
       :nomonitor ->
-        reply(owner, owner_pid, nil, :infinity, mfa)
+        reply(owner, owner_pid, nil, :infinity)
     end
   end
 
-  defp reply(owner, owner_pid, mref, timeout, mfa) do
+  defp reply(owner, owner_pid, mref, timeout) do
     receive do
-      {^owner_pid, ref, reply_to} ->
+      {^owner_pid, ref, reply_to, callers, mfa} ->
+        initial_call(mfa)
+        put_callers(callers)
         _ = mref && Process.demonitor(mref, [:flush])
         send(reply_to, {ref, invoke_mfa(owner, mfa)})
 
@@ -174,7 +173,7 @@ defmodule Task.Supervised do
 
   ## Stream
 
-  def stream(enumerable, acc, reducer, mfa, options, spawn) do
+  def stream(enumerable, acc, reducer, callers, mfa, options, spawn) do
     next = &Enumerable.reduce(enumerable, &1, fn x, acc -> {:suspend, [x | acc]} end)
     max_concurrency = Keyword.get(options, :max_concurrency, System.schedulers_online())
 
@@ -186,7 +185,6 @@ defmodule Task.Supervised do
     timeout = Keyword.get(options, :timeout, 5000)
     on_timeout = Keyword.get(options, :on_timeout, :exit)
     parent = self()
-    callers = get_callers()
 
     {:trap_exit, trap_exit?} = Process.info(self(), :trap_exit)
 
@@ -197,7 +195,7 @@ defmodule Task.Supervised do
 
     {monitor_pid, monitor_ref} =
       Process.spawn(
-        fn -> stream_monitor(callers, mfa, spawn, trap_exit?, timeout) end,
+        fn -> stream_monitor(parent, spawn, trap_exit?, timeout) end,
         spawn_opts
       )
 
@@ -212,7 +210,9 @@ defmodule Task.Supervised do
       monitor_ref: monitor_ref,
       ordered: ordered?,
       timeout: timeout,
-      on_timeout: on_timeout
+      on_timeout: on_timeout,
+      callers: callers,
+      mfa: mfa
     }
 
     stream_reduce(
@@ -226,16 +226,8 @@ defmodule Task.Supervised do
     )
   end
 
-  defp get_callers do
-    case :erlang.get(:"$callers") do
-      [_ | _] = list -> [self() | list]
-      _ -> [self()]
-    end
-  end
-
   defp stream_reduce({:halt, acc}, _max, _spawned, _delivered, _waiting, next, config) do
-    %{monitor_pid: monitor_pid, monitor_ref: monitor_ref, timeout: timeout} = config
-    stream_close(monitor_pid, monitor_ref, timeout)
+    stream_close(config)
     is_function(next) && next.({:halt, []})
     {:halted, acc}
   end
@@ -248,13 +240,7 @@ defmodule Task.Supervised do
   # All spawned, all delivered, next is :done.
   defp stream_reduce({:cont, acc}, _max, spawned, delivered, _waiting, next, config)
        when spawned == delivered and next == :done do
-    %{
-      monitor_pid: monitor_pid,
-      monitor_ref: monitor_ref,
-      timeout: timeout
-    } = config
-
-    stream_close(monitor_pid, monitor_ref, timeout)
+    stream_close(config)
     {:done, acc}
   end
 
@@ -330,21 +316,19 @@ defmodule Task.Supervised do
   end
 
   defp stream_reduce({:cont, acc}, max, spawned, delivered, waiting, next, config) do
-    %{monitor_pid: monitor_pid, monitor_ref: monitor_ref, timeout: timeout} = config
-
     try do
       next.({:cont, []})
     catch
       kind, reason ->
-        stream_close(monitor_pid, monitor_ref, timeout)
+        stream_close(config)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
       {:suspended, [value], next} ->
-        waiting = stream_spawn(value, spawned, waiting, monitor_pid, monitor_ref, timeout)
+        waiting = stream_spawn(value, spawned, waiting, config)
         stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, next, config)
 
       {_, [value]} ->
-        waiting = stream_spawn(value, spawned, waiting, monitor_pid, monitor_ref, timeout)
+        waiting = stream_spawn(value, spawned, waiting, config)
         stream_reduce({:cont, acc}, max - 1, spawned + 1, delivered, waiting, :done, config)
 
       {_, []} ->
@@ -353,19 +337,14 @@ defmodule Task.Supervised do
   end
 
   defp deliver_now(reply, acc, next, config) do
-    %{
-      reducer: reducer,
-      monitor_pid: monitor_pid,
-      monitor_ref: monitor_ref,
-      timeout: timeout
-    } = config
+    %{reducer: reducer} = config
 
     try do
       reducer.(reply, acc)
     catch
       kind, reason ->
         is_function(next) && next.({:halt, []})
-        stream_close(monitor_pid, monitor_ref, timeout)
+        stream_close(config)
         :erlang.raise(kind, reason, __STACKTRACE__)
     end
   end
@@ -380,12 +359,7 @@ defmodule Task.Supervised do
   end
 
   defp stream_deliver({:cont, acc}, max, spawned, delivered, waiting, next, config) do
-    %{
-      reducer: reducer,
-      monitor_pid: monitor_pid,
-      monitor_ref: monitor_ref,
-      timeout: timeout
-    } = config
+    %{reducer: reducer} = config
 
     case waiting do
       %{^delivered => {:done, reply}} ->
@@ -394,7 +368,7 @@ defmodule Task.Supervised do
         catch
           kind, reason ->
             is_function(next) && next.({:halt, []})
-            stream_close(monitor_pid, monitor_ref, timeout)
+            stream_close(config)
             :erlang.raise(kind, reason, __STACKTRACE__)
         else
           pair ->
@@ -407,7 +381,7 @@ defmodule Task.Supervised do
     end
   end
 
-  defp stream_close(monitor_pid, monitor_ref, timeout) do
+  defp stream_close(%{monitor_pid: monitor_pid, monitor_ref: monitor_ref, timeout: timeout}) do
     send(monitor_pid, {:stop, monitor_ref})
 
     receive do
@@ -444,16 +418,25 @@ defmodule Task.Supervised do
 
   # This function spawns a task for the given "value", and puts the pid of this
   # new task in the map of "waiting" tasks, which is returned.
-  defp stream_spawn(value, spawned, waiting, monitor_pid, monitor_ref, timeout) do
-    send(monitor_pid, {:spawn, spawned, value})
+  defp stream_spawn(value, spawned, waiting, config) do
+    %{
+      monitor_pid: monitor_pid,
+      monitor_ref: monitor_ref,
+      timeout: timeout,
+      callers: callers,
+      mfa: mfa
+    } = config
+
+    send(monitor_pid, {:spawn, spawned})
 
     receive do
       {:spawned, {^monitor_ref, ^spawned}, pid} ->
-        send(pid, {self(), {monitor_ref, spawned}, self()})
+        mfa_with_value = normalize_mfa_with_arg(mfa, value)
+        send(pid, {self(), {monitor_ref, spawned}, self(), callers, mfa_with_value})
         Map.put(waiting, spawned, {pid, :running})
 
       {:max_children, ^monitor_ref} ->
-        stream_close(monitor_pid, monitor_ref, timeout)
+        stream_close(config)
 
         raise """
         reached the maximum number of tasks for this task supervisor. The maximum number \
@@ -470,7 +453,7 @@ defmodule Task.Supervised do
     end
   end
 
-  defp stream_monitor([parent_pid | _] = callers, mfa, spawn, trap_exit?, timeout) do
+  defp stream_monitor(parent_pid, spawn, trap_exit?, timeout) do
     Process.flag(:trap_exit, trap_exit?)
     parent_ref = Process.monitor(parent_pid)
 
@@ -480,9 +463,8 @@ defmodule Task.Supervised do
     receive do
       {^parent_pid, monitor_ref} ->
         config = %{
-          callers: callers,
+          parent_pid: parent_pid,
           parent_ref: parent_ref,
-          mfa: mfa,
           spawn: spawn,
           monitor_ref: monitor_ref,
           timeout: timeout
@@ -497,9 +479,8 @@ defmodule Task.Supervised do
 
   defp stream_monitor_loop(running_tasks, config) do
     %{
-      callers: [parent_pid | _] = callers,
-      mfa: mfa,
       spawn: spawn,
+      parent_pid: parent_pid,
       monitor_ref: monitor_ref,
       timeout: timeout
     } = config
@@ -507,8 +488,8 @@ defmodule Task.Supervised do
     receive do
       # The parent process is telling us to spawn a new task to process
       # "value". We spawn it and notify the parent about its pid.
-      {:spawn, position, value} ->
-        case spawn.(callers, normalize_mfa_with_arg(mfa, value)) do
+      {:spawn, position} ->
+        case spawn.() do
           {:ok, type, pid} ->
             ref = Process.monitor(pid)
 
