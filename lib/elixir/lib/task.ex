@@ -436,8 +436,19 @@ defmodule Task do
     mfa = {module, function_name, args}
     owner = self()
     {:ok, pid} = Task.Supervised.start_link(get_owner(owner), get_callers(owner), :nomonitor, mfa)
-    ref = Process.monitor(pid)
-    send(pid, {owner, ref})
+
+    # TODO: Remove conditional on Erlang/OTP 24
+    ref =
+      if function_exported?(:erlang, :monitor, 3) do
+        ref = :erlang.monitor(:process, pid, alias: :demonitor)
+        send(pid, {owner, ref, ref})
+        ref
+      else
+        ref = Process.monitor(pid)
+        send(pid, {owner, ref, owner})
+        ref
+      end
+
     %Task{pid: pid, ref: ref, owner: owner}
   end
 
@@ -796,6 +807,50 @@ defmodule Task do
   end
 
   @doc """
+  Ignores an existing task.
+
+  This means the task will continue running, but it will be unlinked
+  and you can no longer yield, await or shut it down.
+
+  Returns `{:ok, reply}` if the reply is received before ignoring the task,
+  `{:exit, reason}` if the task died before ignoring it, otherwise `nil`.
+
+  Important: avoid using `Task.async` and then immediately ignoring
+  the task. If you want to start tasks you don't care about their
+  results, use `Task.Supervisor.start_child/2` instead.
+
+  Requires Erlang/OTP 24+.
+  """
+  @doc since: "1.13.0"
+  def ignore(%Task{ref: ref, pid: pid, owner: owner} = task) do
+    unless function_exported?(:erlang, :monitor, 3) do
+      raise "Task.ignore/1 requires Erlang/OTP 24+"
+    end
+
+    if owner != self() do
+      raise ArgumentError, invalid_owner_error(task)
+    end
+
+    receive do
+      {^ref, reply} ->
+        Process.unlink(pid)
+        Process.demonitor(ref, [:flush])
+        {:ok, reply}
+
+      {:DOWN, ^ref, _, proc, :noconnection} ->
+        exit({reason(:noconnection, proc), {__MODULE__, :ignore, [task]}})
+
+      {:DOWN, ^ref, _, _, reason} ->
+        {:exit, reason}
+    after
+      0 ->
+        Process.unlink(pid)
+        Process.demonitor(ref, [:flush])
+        nil
+    end
+  end
+
+  @doc """
   Awaits replies from multiple tasks and returns them.
 
   This function receives a list of tasks and waits for their replies in the
@@ -958,6 +1013,18 @@ defmodule Task do
           nil
       end
 
+  If you intend to check on the task but leave it running after the timeout,
+  you can chain this together with `ignore/1`, like so:
+
+      case Task.yield(task, timeout) || Task.ignore(task) do
+        {:ok, result} ->
+          result
+
+        nil ->
+          Logger.warn("Failed to get a result in #{timeout}ms")
+          nil
+      end
+
   That ensures that if the task completes after the `timeout` but before `shutdown/1`
   has been called, you will still get the result, since `shutdown/1` is designed to
   handle this case and return the result.
@@ -1096,7 +1163,8 @@ defmodule Task do
   Unlinks and shuts down the task, and then checks for a reply.
 
   Returns `{:ok, reply}` if the reply is received while shutting down the task,
-  `{:exit, reason}` if the task died, otherwise `nil`.
+  `{:exit, reason}` if the task died, otherwise `nil`. Once shut down,
+  you can no longer await or yield it.
 
   The second argument is either a timeout or `:brutal_kill`. In case
   of a timeout, a `:shutdown` exit signal is sent to the task process

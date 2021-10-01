@@ -31,6 +31,11 @@ defmodule TaskTest do
     number
   end
 
+  def wait_until_down(task) do
+    ref = Process.monitor(task.pid)
+    assert_receive {:DOWN, ^ref, _, _, _}
+  end
+
   test "can be supervised directly" do
     assert {:ok, _} = Supervisor.start_link([{Task, fn -> :ok end}], strategy: :one_for_one)
   end
@@ -204,7 +209,67 @@ defmodule TaskTest do
     assert_receive :done
   end
 
+  if System.otp_release() >= "24" do
+    describe "ignore/1" do
+      test "discards on time replies" do
+        task = Task.async(fn -> :ok end)
+        wait_until_down(task)
+        assert Task.ignore(task) == {:ok, :ok}
+        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+      end
+
+      test "discards late replies" do
+        task = Task.async(fn -> assert_receive(:go) && :ok end)
+        assert Task.ignore(task) == nil
+        send(task.pid, :go)
+        wait_until_down(task)
+        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+      end
+
+      test "discards on-time failures" do
+        Process.flag(:trap_exit, true)
+        task = Task.async(fn -> exit(:oops) end)
+        wait_until_down(task)
+        assert Task.ignore(task) == {:exit, :oops}
+        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+      end
+
+      test "discards late failures" do
+        task = Task.async(fn -> assert_receive(:go) && exit(:oops) end)
+        assert Task.ignore(task) == nil
+        send(task.pid, :go)
+        wait_until_down(task)
+        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+      end
+
+      test "exits on :noconnection" do
+        ref = make_ref()
+        task = %Task{ref: ref, pid: self(), owner: self()}
+        send(self(), {:DOWN, ref, self(), self(), :noconnection})
+        assert catch_exit(Task.ignore(task)) |> elem(0) == {:nodedown, :nonode@nohost}
+      end
+    end
+  end
+
   describe "await/2" do
+    if System.otp_release() >= "24" do
+      test "demonitors and unalias on timeout" do
+        task =
+          Task.async(fn ->
+            assert_receive :go
+            :done
+          end)
+
+        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+        send(task.pid, :go)
+        ref = task.ref
+
+        wait_until_down(task)
+        refute_received {^ref, :done}
+        refute_received {:DOWN, ^ref, _, _, _}
+      end
+    end
+
     test "exits on timeout" do
       task = %Task{ref: make_ref(), owner: self(), pid: nil}
       assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
