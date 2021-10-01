@@ -30,9 +30,9 @@ defmodule Task.Supervised do
 
   defp reply(owner, owner_pid, mref, timeout, mfa) do
     receive do
-      {^owner_pid, ref} ->
-        _ = if mref, do: Process.demonitor(mref, [:flush])
-        send(owner_pid, {ref, invoke_mfa(owner, mfa)})
+      {^owner_pid, ref, reply_to} ->
+        _ = mref && Process.demonitor(mref, [:flush])
+        send(reply_to, {ref, invoke_mfa(owner, mfa)})
 
       {:DOWN, ^mref, _, _, reason} ->
         exit({:shutdown, reason})
@@ -323,7 +323,7 @@ defmodule Task.Supervised do
 
       # The monitor process died. We just cleanup the messages from the monitor
       # process and exit.
-      {:DOWN, ^monitor_ref, _, ^monitor_pid, reason} ->
+      {:DOWN, ^monitor_ref, _, _, reason} ->
         stream_cleanup_inbox(monitor_pid, monitor_ref)
         exit({reason, {__MODULE__, :stream, [timeout]}})
     end
@@ -449,7 +449,7 @@ defmodule Task.Supervised do
 
     receive do
       {:spawned, {^monitor_ref, ^spawned}, pid} ->
-        send(pid, {self(), {monitor_ref, spawned}})
+        send(pid, {self(), {monitor_ref, spawned}, self()})
         Map.put(waiting, spawned, {pid, :running})
 
       {:max_children, ^monitor_ref} ->

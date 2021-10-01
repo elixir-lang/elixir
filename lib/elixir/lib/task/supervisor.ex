@@ -460,7 +460,19 @@ defmodule Task.Supervisor do
     case start_child_with_spec(supervisor, args, :temporary, shutdown) do
       {:ok, pid} ->
         if link_type == :link, do: Process.link(pid)
-        ref = Process.monitor(pid)
+
+        # TODO: Remove conditional on Erlang/OTP 24
+        ref =
+          if function_exported?(:erlang, :monitor, 3) do
+            ref = :erlang.monitor(:process, pid, alias: :demonitor)
+            send(pid, {owner, ref, ref})
+            ref
+          else
+            ref = Process.monitor(pid)
+            send(pid, {owner, ref, owner})
+            ref
+          end
+
         send(pid, {owner, ref})
         %Task{pid: pid, ref: ref, owner: owner}
 
