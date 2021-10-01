@@ -424,6 +424,9 @@ defmodule Task do
     async(:erlang, :apply, [fun, []])
   end
 
+  # TODO: Remove conditional on Erlang/OTP 24
+  @compile {:no_warn_undefined, {:erlang, :monitor, 3}}
+
   @doc """
   Starts a task that must be awaited on.
 
@@ -435,20 +438,17 @@ defmodule Task do
       when is_atom(module) and is_atom(function_name) and is_list(args) do
     mfa = {module, function_name, args}
     owner = self()
-    {:ok, pid} = Task.Supervised.start_link(get_owner(owner), get_callers(owner), :nomonitor, mfa)
+    {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor)
 
-    # TODO: Remove conditional on Erlang/OTP 24
-    ref =
+    {reply_to, ref} =
       if function_exported?(:erlang, :monitor, 3) do
         ref = :erlang.monitor(:process, pid, alias: :demonitor)
-        send(pid, {owner, ref, ref})
-        ref
+        {ref, ref}
       else
-        ref = Process.monitor(pid)
-        send(pid, {owner, ref, owner})
-        ref
+        {owner, Process.monitor(pid)}
       end
 
+    send(pid, {owner, ref, reply_to, get_callers(owner), mfa})
     %Task{pid: pid, ref: ref, owner: owner}
   end
 
@@ -657,8 +657,10 @@ defmodule Task do
   end
 
   defp build_stream(enumerable, fun, options) do
-    &Task.Supervised.stream(enumerable, &1, &2, fun, options, fn [owner | _] = callers, mfa ->
-      {:ok, pid} = Task.Supervised.start_link(get_owner(owner), callers, :nomonitor, mfa)
+    owner = self()
+
+    &Task.Supervised.stream(enumerable, &1, &2, get_callers(owner), fun, options, fn ->
+      {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor)
       {:ok, :link, pid}
     end)
   end
