@@ -264,7 +264,8 @@ sigil_terminator_test() ->
    {identifier, {1, 12, nil}, bar}] = tokenize("~r/foo/ == bar"),
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], "iu", nil, <<"/">>},
    {comp_op, {1, 11, nil}, '=='},
-   {identifier, {1, 14, nil}, bar}] = tokenize("~r/foo/iu == bar").
+   {identifier, {1, 14, nil}, bar}] = tokenize("~r/foo/iu == bar"),
+  [{sigil, {1, 1, nil}, 77, [<<"1 2 3">>], "u8", nil, <<"[">>}] = tokenize("~M[1 2 3]u8").
 
 sigil_heredoc_test() ->
   [{sigil, {1, 1, nil}, 83, [<<"sigil heredoc\n">>], "", 0, <<"\"\"\"">>}] = tokenize("~S\"\"\"\nsigil heredoc\n\"\"\""),
