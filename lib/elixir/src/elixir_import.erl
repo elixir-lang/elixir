@@ -14,6 +14,10 @@ import(Meta, Ref, Opts, E) ->
       {only, macros} ->
         {Added2, Macs} = import_macros(true, Meta, Ref, Opts, E),
         {keydelete(Ref, ?key(E, functions)), Macs, Added2};
+      {only, sigils} -> 
+        {Added1, Funs} = filter_sigils(import_functions(Meta, Ref, Opts, E)),
+        {Added2, Macs} = filter_sigils(import_macros(false, Meta, Ref, Opts, E)),
+        {Funs, Macs, Added1 or Added2};
       {only, List} when is_list(List) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
@@ -45,6 +49,18 @@ import_macros(Force, Meta, Ref, Opts, E) ->
         []
     end
   end).
+
+filter_sigils({true, Key}) -> 
+  Sigils = lists:filter(fun({Name, _}) -> 
+    string:slice(atom_to_list(Name), 0, 6) =:= "sigil_"
+  end, Key),
+
+  case Sigils of 
+    [] -> {false, []};
+    _ -> {true, Sigils}
+  end;
+
+filter_sigils(Pair) -> Pair.
 
 %% Calculates the imports based on only and except
 
