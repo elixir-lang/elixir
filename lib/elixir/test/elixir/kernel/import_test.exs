@@ -143,6 +143,29 @@ defmodule Kernel.ImportTest do
     assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
+  defmodule ModuleWithSigils do
+    def sigil_i(string, []), do: String.to_integer(string)
+
+    defmacro sigil_I(string, []) do
+      quote do
+        String.to_integer(unquote(string))
+      end
+    end
+
+    def bnot(x), do: x
+    defmacro bor(x, _), do: x
+  end
+
+  test "import only sigils" do
+    import ModuleWithSigils, only: :sigils
+
+    assert ~i'10' == 10
+    assert ~I'10' == 10
+    # Ensure that non-sigil functions and macros from ModuleWithSigils were not loaded
+    assert bnot(0) == -1
+    assert bor(0, 1) == 1
+  end
+
   test "import only removes the non-import part" do
     import List
     import List, only: :macros
