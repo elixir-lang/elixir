@@ -68,8 +68,9 @@ import_sigil_macros(Force, Meta, Ref, Opts, E) ->
   end).
 
 filter_sigils(Key) -> 
-  lists:filter(fun({Name, _}) -> 
-    string:slice(atom_to_list(Name), 0, 6) =:= "sigil_"
+  lists:filter(fun({Atom, _}) -> 
+    Name = atom_to_list(Atom),
+    (string:slice(Name, 0, 6) =:= "sigil_") and (length(Name) =:= 7)
   end, Key).
 
 %% Calculates the imports based on only and except
