@@ -189,7 +189,7 @@ defmodule Calendar do
   @doc """
   Calculates the year and era from the given `year`.
   """
-  @callback year_of_era(year) :: {year, era}
+  @callback year_of_era(year, month, day) :: {year, era}
 
   @doc """
   Calculates the day and era from the given `year`, `month`, and `day`.

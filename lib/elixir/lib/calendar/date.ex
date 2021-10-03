@@ -943,8 +943,8 @@ defmodule Date do
   @spec year_of_era(Calendar.date()) :: {Calendar.year(), non_neg_integer()}
   def year_of_era(date)
 
-  def year_of_era(%{calendar: calendar, year: year}) do
-    calendar.year_of_era(year)
+  def year_of_era(%{calendar: calendar, year: year, month: month, day: day}) do
+    calendar.year_of_era(year, month, day)
   end
 
   @doc """
