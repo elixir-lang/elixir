@@ -162,9 +162,11 @@ defmodule Kernel.ImportTest do
     import Kernel, except: [sigil_w: 2]
     import ModuleWithSigils, only: :sigils
 
+    # Ensure that both function and macro sigils are imported
     assert ~i'10' == 10
     assert ~I'10' == 10
     assert ~w(abc def) == []
+
     # Ensure that non-sigil functions and macros from ModuleWithSigils were not loaded
     assert bnot(0) == -1
     assert bor(0, 1) == 1
