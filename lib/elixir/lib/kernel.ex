@@ -4873,13 +4873,13 @@ defmodule Kernel do
 
   A struct is a tagged map that allows developers to provide
   default values for keys, tags to be used in polymorphic
-  dispatches and compile time assertions.
+  dispatches and compile time assertions. For more information
+  about structs, please check `Kernel.SpecialForms.%/2`.
 
-  To define a struct, a developer must define both `__struct__/0` and
-  `__struct__/1` functions. `defstruct/1` is a convenience macro which
-  defines such functions with some conveniences.
-
-  For more information about structs, please check `Kernel.SpecialForms.%/2`.
+  It is only possible to define a struct per module, as the
+  struct it tied to the module itself. Calling `defstruct/1`
+  also defines a `__struct__/0` function that returns the
+  struct itself.
 
   ## Examples
 
