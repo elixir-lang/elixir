@@ -14,6 +14,10 @@ import(Meta, Ref, Opts, E) ->
       {only, macros} ->
         {Added2, Macs} = import_macros(true, Meta, Ref, Opts, E),
         {keydelete(Ref, ?key(E, functions)), Macs, Added2};
+      {only, sigils} -> 
+        {Added1, Funs} = import_sigil_functions(Meta, Ref, Opts, E),
+        {Added2, Macs} = import_sigil_macros(Meta, Ref, Opts, E),
+        {Funs, Macs, Added1 or Added2};
       {only, List} when is_list(List) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
@@ -45,6 +49,29 @@ import_macros(Force, Meta, Ref, Opts, E) ->
         []
     end
   end).
+
+import_sigil_functions(Meta, Ref, Opts, E) ->
+  calculate(Meta, Ref, Opts, ?key(E, functions), ?key(E, file), fun() ->
+    filter_sigils(get_functions(Ref))
+  end).
+
+import_sigil_macros(Meta, Ref, Opts, E) ->
+  calculate(Meta, Ref, Opts, ?key(E, macros), ?key(E, file), fun() ->
+    case fetch_macros(Ref) of
+      {ok, Macros} ->
+        filter_sigils(Macros);
+      error ->
+        []
+    end
+  end).
+
+filter_sigils(Key) -> 
+  lists:filter(fun({Atom, _}) -> 
+    case atom_to_list(Atom) of
+      "sigil_" ++ [L] when L >= $a, L =< $z; L >= $A, L =< $Z -> true;
+      _ -> false
+    end
+  end, Key).
 
 %% Calculates the imports based on only and except
 
