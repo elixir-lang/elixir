@@ -16,7 +16,7 @@ import(Meta, Ref, Opts, E) ->
         {keydelete(Ref, ?key(E, functions)), Macs, Added2};
       {only, sigils} -> 
         {Added1, Funs} = import_sigil_functions(Meta, Ref, Opts, E),
-        {Added2, Macs} = import_sigil_macros(false, Meta, Ref, Opts, E),
+        {Added2, Macs} = import_sigil_macros(Meta, Ref, Opts, E),
         {Funs, Macs, Added1 or Added2};
       {only, List} when is_list(List) ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
@@ -55,13 +55,11 @@ import_sigil_functions(Meta, Ref, Opts, E) ->
     filter_sigils(get_functions(Ref))
   end).
 
-import_sigil_macros(Force, Meta, Ref, Opts, E) ->
+import_sigil_macros(Meta, Ref, Opts, E) ->
   calculate(Meta, Ref, Opts, ?key(E, macros), ?key(E, file), fun() ->
     case fetch_macros(Ref) of
       {ok, Macros} ->
         filter_sigils(Macros);
-      error when Force ->
-        elixir_errors:form_error(Meta, E, ?MODULE, {no_macros, Ref});
       error ->
         []
     end
