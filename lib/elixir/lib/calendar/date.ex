@@ -944,7 +944,13 @@ defmodule Date do
   def year_of_era(date)
 
   def year_of_era(%{calendar: calendar, year: year, month: month, day: day}) do
-    calendar.year_of_era(year, month, day)
+    # TODO: Remove me on 1.17
+    # The behaviour implementation already warns on missing callback.
+    if function_exported?(calendar, :year_of_era, 3) do
+      calendar.year_of_era(year, month, day)
+    else
+      calendar.year_of_era(year)
+    end
   end
 
   @doc """
