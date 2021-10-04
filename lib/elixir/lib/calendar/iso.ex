@@ -965,12 +965,36 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Calculates the year and era from the given `year`
-  `month` and `day`.
+  Calculates the year and era from the given `year`.
 
   The ISO calendar has two eras: the "current era" (CE) which
   starts in year `1` and is defined as era `1`. And "before the current
   era" (BCE) for those years less than `1`, defined as era `0`.
+
+  ## Examples
+
+      iex> Calendar.ISO.year_of_era(1)
+      {1, 1}
+      iex> Calendar.ISO.year_of_era(2018)
+      {2018, 1}
+      iex> Calendar.ISO.year_of_era(0)
+      {1, 0}
+      iex> Calendar.ISO.year_of_era(-1)
+      {2, 0}
+
+  """
+  @doc since: "1.8.0"
+  @spec year_of_era(year) :: {1..10000, era}
+  def year_of_era(year) when is_year_CE(year), do: {year, 1}
+  def year_of_era(year) when is_year_BCE(year), do: {abs(year) + 1, 0}
+
+  @doc """
+  Calendar callback to compute the year and era from the
+  given `year`, `month` and `day`.
+
+  In the ISO calendar, the new year coincides with the new era,
+  so the `month` and `day` arguments are discarded. If you only
+  have the year available, you can `year_of_era/1` instead.
 
   ## Examples
 
@@ -984,18 +1008,9 @@ defmodule Calendar.ISO do
       {2, 0}
 
   """
-  @doc since: "1.8.0"
+  @doc since: "1.13.0"
   @spec year_of_era(year, month, day) :: {1..10000, era}
-  @impl true
-  def year_of_era(year, month \\ 1, day \\ 1)
-
-  def year_of_era(year, _month, _day) when is_year_CE(year) do
-    {year, 1}
-  end
-
-  def year_of_era(year, _month, _day) when is_year_BCE(year) do
-    {abs(year) + 1, 0}
-  end
+  def year_of_era(year, _month, _day), do: year_of_era(year)
 
   @doc """
   Calculates the day and era from the given `year`, `month`, and `day`.
