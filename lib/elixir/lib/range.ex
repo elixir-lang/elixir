@@ -349,7 +349,7 @@ defimpl Inspect, for: Range do
   import Inspect.Algebra
   import Kernel, except: [inspect: 2]
 
-  def inspect(first..last//1, opts) do
+  def inspect(first..last//1, opts) when last >= first do
     concat([to_doc(first, opts), "..", to_doc(last, opts)])
   end
 
