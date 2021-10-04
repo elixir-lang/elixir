@@ -63,7 +63,7 @@ in the next release are then "closed" and added to the [changelog][7].
 
 ### Discussions, support, and help
 
-For general discussions, support, and help, please use many of the commnunity
+For general discussions, support, and help, please use many of the community
 spaces [listed on the sidebar of the Elixir website](https://elixir-lang.org/),
 such as forums, chat platforms, etc, where the wider community will be available
 to help you.
