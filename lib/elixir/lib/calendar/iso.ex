@@ -1009,6 +1009,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.13.0"
+  @impl true
   @spec year_of_era(year, month, day) :: {1..10000, era}
   def year_of_era(year, _month, _day), do: year_of_era(year)
 
