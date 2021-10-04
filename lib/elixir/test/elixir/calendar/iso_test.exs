@@ -98,22 +98,29 @@ defmodule Calendar.ISOTest do
     end
   end
 
-  test "year_of_era/1" do
+  test "year_of_era/3" do
+    # Compatibility tests for year_of_era/1
     assert Calendar.ISO.year_of_era(-9999) == {10000, 0}
     assert Calendar.ISO.year_of_era(-1) == {2, 0}
     assert Calendar.ISO.year_of_era(0) == {1, 0}
     assert Calendar.ISO.year_of_era(1) == {1, 1}
     assert Calendar.ISO.year_of_era(1984) == {1984, 1}
 
+    assert Calendar.ISO.year_of_era(-9999, 1, 1) == {10000, 0}
+    assert Calendar.ISO.year_of_era(-1, 1, 1) == {2, 0}
+    assert Calendar.ISO.year_of_era(0, 12, 1) == {1, 0}
+    assert Calendar.ISO.year_of_era(1, 12, 1) == {1, 1}
+    assert Calendar.ISO.year_of_era(1984, 12, 1) == {1984, 1}
+
     random_positive_year = Enum.random(1..9999)
-    assert Calendar.ISO.year_of_era(random_positive_year) == {random_positive_year, 1}
+    assert Calendar.ISO.year_of_era(random_positive_year, 1, 1) == {random_positive_year, 1}
 
     assert_raise FunctionClauseError, fn ->
-      Calendar.ISO.year_of_era(10000)
+      Calendar.ISO.year_of_era(10000, 1, 1)
     end
 
     assert_raise FunctionClauseError, fn ->
-      Calendar.ISO.year_of_era(-10000)
+      Calendar.ISO.year_of_era(-10000, 12, 1)
     end
   end
 
