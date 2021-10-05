@@ -5187,9 +5187,9 @@ defmodule Kernel do
   An overridable function is lazily defined, allowing a developer to override
   it.
 
-  It is possible for the overridden function to have a different visibility
-  than the original function: A public function can be overridden by a
-  private function and vice-versa.
+  It is possible for the overridden definition to have a different visibility
+  than the original: a public function can be overridden by a private
+  function and vice-versa.
 
   Macros cannot be overridden as functions and vice-versa.
 
