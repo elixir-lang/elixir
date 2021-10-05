@@ -5182,7 +5182,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Makes the given functions in the current module overridable.
+  Makes the given definitions in the current module overridable.
 
   An overridable function is lazily defined, allowing a developer to override
   it.
