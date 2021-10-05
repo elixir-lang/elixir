@@ -5182,10 +5182,15 @@ defmodule Kernel do
   end
 
   @doc """
-  Makes the given functions in the current module overridable.
+  Makes the given definitions in the current module overridable.
 
-  An overridable function is lazily defined, allowing a developer to override
-  it.
+  If the user defines a new function or macro with the same name
+  and arity, then the overridable ones are discarded. Otherwise, the
+  original definitions are used.
+
+  It is possible for the overridden definition to have a different visibility
+  than the original: a public function can be overridden by a private
+  function and vice-versa.
 
   Macros cannot be overridden as functions and vice-versa.
 
