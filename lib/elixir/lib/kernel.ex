@@ -1,4 +1,4 @@
-# Use elixir_bootstrap module to be able to bootstrap Kernel.
+ elixir_bootstrap module to be able to bootstrap Kernel.
 # The bootstrap module provides simpler implementations of the
 # functions removed, simple enough to bootstrap.
 import Kernel,
@@ -5186,6 +5186,10 @@ defmodule Kernel do
 
   An overridable function is lazily defined, allowing a developer to override
   it.
+
+  It is possible for the overridden function to have a different visibility
+  than the original function: A public function can be overridden by a
+  private function and vice-versa.
 
   Macros cannot be overridden as functions and vice-versa.
 
