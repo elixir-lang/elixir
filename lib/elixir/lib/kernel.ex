@@ -1,4 +1,4 @@
- elixir_bootstrap module to be able to bootstrap Kernel.
+# Use elixir_bootstrap module to be able to bootstrap Kernel.
 # The bootstrap module provides simpler implementations of the
 # functions removed, simple enough to bootstrap.
 import Kernel,
