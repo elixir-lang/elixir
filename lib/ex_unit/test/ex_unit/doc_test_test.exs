@@ -82,10 +82,11 @@ defmodule ExUnit.DocTestTest.GoodModule do
   def inspect2_test, do: :ok
 
   @doc """
-  iex> x = Enum.into([:a, :b, :c], MapSet.new())
-  ...> x
-  #MapSet<[:a, :b, :c]>
-  """ |> String.replace("\n", "\r\n")
+       iex> x = Enum.into([:a, :b, :c], MapSet.new())
+       ...> x
+       #MapSet<[:a, :b, :c]>
+       """
+       |> String.replace("\n", "\r\n")
   def crlf_test, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
@@ -552,7 +553,7 @@ defmodule ExUnit.DocTestTest do
                 left:  2
                 right: 3
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+3}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 3}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -569,7 +570,7 @@ defmodule ExUnit.DocTestTest do
                 left:  "This is a slightly shorter text string."
                 right: "This is a much shorter text string."
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+6}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 6}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -583,7 +584,7 @@ defmodule ExUnit.DocTestTest do
                 left:  ":oops"
                 right: "#MapSet<[]>"
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+12}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 12}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -592,7 +593,7 @@ defmodule ExUnit.DocTestTest do
                 ** (UndefinedFunctionError) function Hello.world/0 is undefined (module Hello is not available)
                 stacktrace:
                   Hello.world()
-                  (for doctest at) test/ex_unit/doc_test_test.exs:#{starting_line+15}: (test)
+                  (for doctest at) test/ex_unit/doc_test_test.exs:#{starting_line + 15}: (test)
            """
 
     assert output =~ """
@@ -603,7 +604,7 @@ defmodule ExUnit.DocTestTest do
                   iex> raise "oops"
                   ** (WhatIsThis) "oops"
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+18}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 18}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -618,54 +619,54 @@ defmodule ExUnit.DocTestTest do
                   iex> raise "oops"
                   ** (RuntimeError) "hello"
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+21}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 21}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
              8) doctest ExUnit.DocTestTest.Invalid.a/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line+27}:6: syntax error before: '*'
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 27}:6: syntax error before: '*'
                 doctest:
                   iex> 1 + * 1
                   1
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+27}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 27}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
              9) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line+57}:5: unexpected token: "`" (column 5, code point U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 57}:5: unexpected token: "`" (column 5, code point U+0060)
                 doctest:
                   iex> 1 + 2
                   3
                       ```
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+56}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 56}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
             10) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line+41}:1: unexpected token: "`" (column 1, code point U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 41}:1: unexpected token: "`" (column 1, code point U+0060)
                 doctest:
                   iex> 1 + 2
                   3
                   `
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+40}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 40}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
             11) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (11) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line+49}:3: unexpected token: "`" (column 3, code point U+0060)
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 49}:3: unexpected token: "`" (column 3, code point U+0060)
                 doctest:
                   iex> 1 + 2
                   3
                     ```
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+48}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 48}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -673,44 +674,46 @@ defmodule ExUnit.DocTestTest do
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (UnicodeConversionError) invalid encoding starting at <<255, 34, 41>>
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+63}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 63}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
             13) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (13) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line+69}:7: missing terminator: } (for "{" starting at line #{starting_line+69}). If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
+                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 69}:7: missing terminator: } (for "{" starting at line #{starting_line + 69}). If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, MapSet.new([1, 2, 3])}
                   {:ok, #MapSet<[1, 2, 3]>}
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+69}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 69}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ "14) doctest ExUnit.DocTestTest.Invalid.raising_inspect/0"
     assert output =~ "iex> ExUnit.DocTestTest.Haiku.new(:this, :is, {:not, :a, :haiku})"
-    assert output =~ "test/ex_unit/doc_test_test.exs:#{starting_line+82}: ExUnit.DocTestTest.Invalid (module)"
+
+    assert output =~
+             "test/ex_unit/doc_test_test.exs:#{starting_line + 82}: ExUnit.DocTestTest.Invalid (module)"
 
     assert output =~ """
             15) doctest ExUnit.DocTestTest.Invalid.b/0 (15) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line+33}:6: syntax error before: '*'
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 33}:6: syntax error before: '*'
                 doctest:
                   iex> 1 + * 1
                   1
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+33}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 33}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
             16) doctest ExUnit.DocTestTest.Invalid.t/0 (16) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line+75}:6: syntax error before: '*'
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 75}:6: syntax error before: '*'
                 doctest:
                   iex> 1 + * 1
                   1
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line+75}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 75}: ExUnit.DocTestTest.Invalid (module)
            """
   end
 
