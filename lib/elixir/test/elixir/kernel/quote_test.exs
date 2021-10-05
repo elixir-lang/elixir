@@ -111,6 +111,11 @@ defmodule Kernel.QuoteTest do
     end
   end
 
+  test "unquote call with dynamic line" do
+    assert quote(line: String.to_integer("123"), do: Foo.unquote(:bar)()) ==
+             quote(line: 123, do: Foo.bar())
+  end
+
   test "nested quote" do
     assert {:quote, _, [[do: {:unquote, _, _}]]} = quote(do: quote(do: unquote(x)))
   end

@@ -442,9 +442,9 @@ do_quote_import(Meta, Name, Arity, ArgsOrAtom, Q, E) ->
   do_quote_tuple(Annotated, Q, E).
 
 do_quote_call(Left, Meta, Expr, Args, Q, E) ->
-  All  = [meta(Meta, Q), Left, {unquote, Meta, [Expr]}, Args, Q#elixir_quote.context],
+  All  = [Left, {unquote, Meta, [Expr]}, Args, Q#elixir_quote.context],
   TAll = [do_quote(X, Q, E) || X <- All],
-  {{'.', Meta, [elixir_quote, dot]}, Meta, TAll}.
+  {{'.', Meta, [elixir_quote, dot]}, Meta, [meta(Meta, Q) | TAll]}.
 
 do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
   NewMeta =
