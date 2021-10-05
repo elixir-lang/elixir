@@ -524,7 +524,7 @@ defmodule ExUnit.DocTest do
     do: []
 
   defp extract_tests(line_no, doc, module) do
-    all_lines = String.split(doc, "\n", trim: false)
+    all_lines = String.split(doc, ["\r\n", "\n"], trim: false)
     lines = adjust_indent(all_lines, line_no + 1, module)
     extract_tests(lines, "", "", [], true, module, "")
   end

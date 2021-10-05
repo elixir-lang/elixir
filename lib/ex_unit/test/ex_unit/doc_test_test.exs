@@ -80,6 +80,13 @@ defmodule ExUnit.DocTestTest.GoodModule do
   #MapSet<[:a, :b, :c]>
   """
   def inspect2_test, do: :ok
+
+  @doc """
+  iex> x = Enum.into([:a, :b, :c], MapSet.new())
+  ...> x
+  #MapSet<[:a, :b, :c]>
+  """ |> String.replace("\n", "\r\n")
+  def crlf_test, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
