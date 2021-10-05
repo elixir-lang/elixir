@@ -215,6 +215,50 @@ defmodule MapTest do
     end
   end
 
+  test "from_struct/1" do
+    struct = %{__struct__: TestStruct, a: 1, b: 2}
+    assert Map.from_struct(struct) == %{a: 1, b: 2}
+  end
+
+  test "from_struct/2" do
+    struct = %{__struct__: TestStruct, a: 1, b: 2}
+    assert Map.from_struct(struct, false) == %{a: 1, b: 2}
+
+    struct = %{__struct__: TestStruct, a: 1, b: 2}
+    assert Map.from_struct(struct, true) == %{a: 1, b: 2}
+
+    struct = %{
+      __struct__: TestStruct,
+      a: 1,
+      b: 2,
+      c: %{__struct__: TestStruct2, d: 3},
+      d: [],
+      e: nil,
+      f: "test"
+    }
+
+    assert Map.from_struct(struct, false) == %{
+             a: 1,
+             b: 2,
+             c: %{__struct__: TestStruct2, d: 3},
+             d: [],
+             e: nil,
+             f: "test"
+           }
+
+    struct = %{
+      __struct__: TestStruct,
+      a: 1,
+      b: 2,
+      c: %{__struct__: TestStruct2, d: 3},
+      d: [],
+      e: nil,
+      f: "test"
+    }
+
+    assert Map.from_struct(struct, true) == %{a: 1, b: 2, c: %{d: 3}, d: [], e: nil, f: "test"}
+  end
+
   test "implements (almost) all functions in Keyword" do
     assert Keyword.__info__(:functions) -- Map.__info__(:functions) == [
              delete: 3,
