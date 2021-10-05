@@ -925,14 +925,41 @@ defmodule Map do
       #=> %{name: "john"}
 
   """
-  @spec from_struct(atom | struct) :: map
-  def from_struct(struct) when is_atom(struct) do
-    delete(struct.__struct__(), :__struct__)
+  @type recursively :: boolean()
+  @spec from_struct(atom | struct, recursively()) :: map
+  def from_struct(struct, recursively \\ false)
+
+  def from_struct(struct, recursively) when is_atom(struct) do
+    from_struct(struct.__struct__(), recursively)
   end
 
-  def from_struct(%_{} = struct) do
+  def from_struct(%_{} = struct, false) do
     delete(struct, :__struct__)
   end
+
+  def from_struct(%_{} = struct, true) do
+    iter = :maps.iterator(struct)
+    next = :maps.next(iter)
+    :maps.from_list(do_from_struct(next))
+  end
+
+  defp do_from_struct({key, _value, iter}) when key == :__struct__ do
+    do_from_struct(:maps.next(iter))
+  end
+
+  defp do_from_struct({key, value, iter}) when is_struct(value) do
+    [{key, from_struct(value, true)} | do_from_struct(:maps.next(iter))]
+  end
+
+  defp do_from_struct({key, value, iter}) when is_list(value) do
+    [{key, :lists.map(&from_struct(&1, true), value)} | do_from_struct(:maps.next(iter))]
+  end
+
+  defp do_from_struct({key, value, iter}) do
+    [{key, value} | do_from_struct(:maps.next(iter))]
+  end
+
+  defp do_from_struct(:none), do: []
 
   @doc """
   Checks if two maps are equal.

@@ -39,7 +39,7 @@ With these improvements, it has become simpler to understand the impact code rec
 
 ## Code fragments
 
-The `Code` module also got a companion module called `Code.Fragment`, which hosts functions that work on incomplete code, as is often the scenario in editors, command line, etc. The module contains different heuristics to analyze the source code and return context informational.
+The `Code` module got a companion module called `Code.Fragment`, which hosts functions that work on incomplete code, as is often the scenario in editors, interactive shells, etc. The module contains different heuristics to analyze the source code and return context informational.
 
 Thanks to these improvements, `IEx`' autocomplete got several quality of life improvements, such as the autocompletion of sigils, structs, and paths. For example, typing `~<TAB>` now shows:
 
@@ -100,7 +100,7 @@ Now any application can use your formatter as follows:
 ]
 ```
 
-Finally, the `Code` has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
+Finally, the `Code` module has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
 
 ## v1.13.0-dev
 
@@ -112,6 +112,7 @@ Finally, the `Code` has also been augmented with two functions: `Code.string_to_
 
 #### Elixir
 
+  * [Calendar] Add `c:Calendar.year_of_era/3` to support calendars where the beginning of a new era does not align with the beginning of a new year
   * [CLI] Support `--short-version` on the CLI that does not boot the VM
   * [Code] Add `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`
   * [Code] Add more `:token_metadata` to aliases and remote calls when parsing strings
@@ -122,6 +123,7 @@ Finally, the `Code` has also been augmented with two functions: `Code.string_to_
   * [Exception] Better format Elixir exceptions in Erlang
   * [Inspect] Allow default inspect fun to be set globally with `Inspect.Opts.default_inspect_fun/1`
   * [IO] Allow `:eof` to be given as limit to `IO.getn/2`
+  * [Kernel] Support the `:sigils` option in `import Mod, only: :sigils` and allow the sigil modifiers to be also digits
   * [Kernel] Make `get_in` consistently abort when `nil` values are found
   * [Kernel] Improve compilation times by reducing the amount of copies of the AST across compiler processes
   * [Kernel] Raise if trying to define a module with a slash in its name
@@ -138,6 +140,8 @@ Finally, the `Code` has also been augmented with two functions: `Code.string_to_
   * [OptionParser] Add "did you mean?" suggestions to `OptionParser.ParseError` messages
   * [Record] Add record reflection via `@__records__`
   * [Task] Add `Task.completed/1`
+  * [Task] Add `Task.ignore/1` to keep a task running but ignoring all of its results
+  * [Task] Reduce the amount of copying `Task.async*` functions
 
 #### ExUnit
 
@@ -175,6 +179,7 @@ Finally, the `Code` has also been augmented with two functions: `Code.string_to_
   * [mix test] Allow the exit status of ExUnit to be configured and set the default to 2
   * [mix test] Exit with a status of 3 when coverage falls below threshold
   * [mix test] Write failed manifest when suite fails due to --warnings-as-errors
+  * [mix test] Ignore `MIX_TEST_PARTITION` when partitions set to 1
   * [mix xref] Support multiple sinks and sources in `mix xref graph`
   * [mix xref] Add `trace` subcommand to print compilation dependencies between files
   * [mix xref] Add `--fail-above` option to `mix xref`
@@ -199,17 +204,19 @@ Finally, the `Code` has also been augmented with two functions: `Code.string_to_
   * [Kernel] Correctly parse the atom `.` as a keyword list key
   * [Kernel] Do not leak variables from the first generator in `with` and `for` special forms
   * [Kernel] Fix column number on strings with NFD characters
+  * [Kernel] Fix a bug where a combination of dynamic line in `quote` with `unquote` of remote calls would emit invalid AST metadata
   * [OptionParser] Validate switch types/modifiers early on to give more precise feedback
   * [Protocol] Add `defdelegate` to the list of unallowed macros inside protocols as protocols do not allow function definitions
   * [Protocol] Warn if `@callback`, `@macrocallback` and `@optional_callbacks` are defined inside protocol
   * [Protocol] Ensure protocol metadata is deterministic on consolidation
+  * [Range] Always show step when range is descending
   * [URI] Only percent decode if followed by hex digits (according to https://url.spec.whatwg.org/#percent-decode)
   * [Version] Ensure proper precedence of `and`/`or` in version requirements
 
 #### ExUnit
 
-  * [ExUnit] Invalidate a module's tests in `ExUnit.run/0` results if that module's `setup_all` fails
-  * [ExUnit] Fix count in formatter if a module's `setup_all` fails
+  * [ExUnit] Fix formatter and counters from `ExUnit.run/0` to consider all tests in a module whenever if a module's `setup_all` fails
+  * [ExUnit] Allow doctests newlines to be terminated by CRLF
 
 #### IEx
 
