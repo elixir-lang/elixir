@@ -2157,7 +2157,8 @@ defmodule String do
   end
 
   # TODO: Remove me on v2.0
-  def slice(string, %{__struct__: Range, first: first, last: last} = range) do
+  def slice(string, %{__struct__: Range, first: first, last: last} = range)
+      when is_binary(string) do
     step = if first <= last, do: 1, else: -1
     slice(string, Map.put(range, :step, step))
   end
