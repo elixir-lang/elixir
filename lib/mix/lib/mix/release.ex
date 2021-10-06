@@ -99,8 +99,7 @@ defmodule Mix.Release do
       if Map.has_key?(loaded_apps, :iex) do
         {loaded_apps, apps}
       else
-        {load_apps([:iex], deps_apps, loaded_apps, erts_lib_dir, [], :root),
-         apps ++ [iex: :none]}
+        {load_apps([:iex], deps_apps, loaded_apps, erts_lib_dir, [], :root), apps ++ [iex: :none]}
       end
 
     start_boot = build_start_boot(loaded_apps, apps)
