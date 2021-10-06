@@ -44,6 +44,36 @@ defmodule Mix.Tasks.App.TreeTest do
     end)
   end
 
+  if System.otp_release() >= "24" do
+    @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
+    test "shows the application tree with optional apps", context do
+      in_tmp(context.test, fn ->
+        Mix.Project.push(AppDepsSample)
+
+        load_apps([:app_deps2_sample])
+        Mix.Tasks.App.Tree.run(["--format", "pretty"])
+        assert_received {:mix_shell, :info, ["test"]}
+        assert_received {:mix_shell, :info, ["├── app_deps_sample"]}
+        assert_received {:mix_shell, :info, ["│   ├── app_deps2_sample (optional)"]}
+        assert_received {:mix_shell, :info, ["│   │   └── app_deps4_sample (included)"]}
+        assert_received {:mix_shell, :info, ["│   └── app_deps3_sample"]}
+        assert_received {:mix_shell, :info, ["├── elixir"]}
+        assert_received {:mix_shell, :info, ["└── logger"]}
+        assert_received {:mix_shell, :info, ["    └── elixir"]}
+
+        Application.unload(:app_deps2_sample)
+        Mix.Tasks.App.Tree.run(["--format", "pretty"])
+        assert_received {:mix_shell, :info, ["test"]}
+        assert_received {:mix_shell, :info, ["├── app_deps_sample"]}
+        assert_received {:mix_shell, :info, ["│   ├── app_deps2_sample (optional - missing)"]}
+        assert_received {:mix_shell, :info, ["│   └── app_deps3_sample"]}
+        assert_received {:mix_shell, :info, ["├── elixir"]}
+        assert_received {:mix_shell, :info, ["└── logger"]}
+        assert_received {:mix_shell, :info, ["    └── elixir"]}
+      end)
+    end
+  end
+
   @tag apps: [:test, :app_deps_sample, :app_deps2_sample, :app_deps3_sample, :app_deps4_sample]
   test "shows the given application tree", context do
     in_tmp(context.test, fn ->
@@ -105,14 +135,20 @@ defmodule Mix.Tasks.App.TreeTest do
     end)
   end
 
-  def load_apps() do
+  defp load_apps(optional_apps \\ []) do
     :ok = :application.load({:application, :app_deps4_sample, [vsn: '1.0.0', env: []]})
     :ok = :application.load({:application, :app_deps3_sample, [vsn: '1.0.0', env: []]})
 
     opts = [vsn: '1.0.0', env: [], included_applications: [:app_deps4_sample]]
     :ok = :application.load({:application, :app_deps2_sample, opts})
 
-    opts = [vsn: '1.0.0', env: [], applications: [:app_deps2_sample, :app_deps3_sample]]
+    opts = [
+      vsn: '1.0.0',
+      env: [],
+      applications: [:app_deps2_sample, :app_deps3_sample],
+      optional_applications: optional_apps
+    ]
+
     :ok = :application.load({:application, :app_deps_sample, opts})
   end
 end

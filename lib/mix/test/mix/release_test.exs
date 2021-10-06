@@ -739,11 +739,11 @@ defmodule Mix.ReleaseTest do
         File.write!("my_sample1/ebin/my_sample1.app", format)
 
         release = release(applications: [my_sample1: :permanent])
-        assert release.applications.runtime_tools[:included]
+        assert release.applications.runtime_tools[:type] == :included
         assert release.boot_scripts.start[:runtime_tools] == :load
 
         release = release(applications: [my_sample1: :permanent, runtime_tools: :none])
-        assert release.applications.runtime_tools[:included]
+        assert release.applications.runtime_tools[:type] == :included
         assert release.boot_scripts.start[:runtime_tools] == :none
       end)
     end
@@ -766,6 +766,28 @@ defmodule Mix.ReleaseTest do
         assert_raise Mix.Error,
                      ":runtime_tools is listed both as a regular application and as an included application",
                      fn -> release(applications: [my_sample2: :permanent]) end
+      end)
+    end
+  end
+
+  describe "optional applications" do
+    test "are ignored if not available", context do
+      in_tmp(context.test, fn ->
+        app =
+          {:application, :my_sample1,
+           applications: [:kernel, :stdlib, :elixir, :unknown],
+           optional_applications: [:unknown],
+           description: 'my_sample1',
+           modules: [],
+           vsn: '1.0.0'}
+
+        File.mkdir_p!("my_sample1/ebin")
+        Code.prepend_path("my_sample1/ebin")
+        format = :io_lib.format("%% coding: utf-8~n~p.~n", [app])
+        File.write!("my_sample1/ebin/my_sample1.app", format)
+
+        release = release(applications: [my_sample1: :permanent])
+        assert release.boot_scripts.start[:unknown] == nil
       end)
     end
   end
