@@ -127,14 +127,14 @@ tokenize(String, Line, Column, Opts) ->
 
   Scope =
     lists:foldl(fun
+      ({check_terminators, false}, Acc) ->
+        Acc#elixir_tokenizer{terminators=none};
       ({file, File}, Acc) when is_binary(File) ->
         Acc#elixir_tokenizer{file=File};
       ({existing_atoms_only, ExistingAtomsOnly}, Acc) when is_boolean(ExistingAtomsOnly) ->
         Acc#elixir_tokenizer{existing_atoms_only=ExistingAtomsOnly};
       ({static_atoms_encoder, StaticAtomsEncoder}, Acc) when is_function(StaticAtomsEncoder) ->
         Acc#elixir_tokenizer{static_atoms_encoder=StaticAtomsEncoder};
-      ({check_terminators, CheckTerminators}, Acc) when is_boolean(CheckTerminators) ->
-        Acc#elixir_tokenizer{check_terminators=CheckTerminators};
       ({preserve_comments, PreserveComments}, Acc) when is_function(PreserveComments) ->
         Acc#elixir_tokenizer{preserve_comments=PreserveComments};
       ({unescape, Unescape}, Acc) when is_boolean(Unescape) ->
@@ -150,11 +150,7 @@ tokenize(String, Line, Column, Opts) ->
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
-tokenize([], _Line, _Column, #elixir_tokenizer{terminators=[], warnings = Warnings}, Tokens) ->
-  {ok, lists:reverse(Warnings), lists:reverse(Tokens)};
-
-tokenize([], EndLine, Column, Scope, Tokens) ->
-  #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope,
+tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
   Hint = missing_terminator_hint(Start, End, Scope),
 
@@ -162,6 +158,9 @@ tokenize([], EndLine, Column, Scope, Tokens) ->
     io_lib:format("missing terminator: ~ts (for \"~ts\" starting at line ~B)", [End, Start, StartLine]),
 
   {error, {EndLine, Column, [Message, Hint], []}, [], Tokens};
+
+tokenize([], _Line, _Column, #elixir_tokenizer{warnings = Warnings}, Tokens) ->
+  {ok, lists:reverse(Warnings), lists:reverse(Tokens)};
 
 % VC merge conflict
 
@@ -1261,7 +1260,7 @@ handle_terminator(Rest, Line, Column, _, {'(', _}, [{alias, _, Alias} | Tokens])
 
   {error, {Line, Column, Reason, ["("]}, atom_to_list(Alias) ++ [$( | Rest], Tokens};
 handle_terminator(Rest, Line, Column, Scope, Token, Tokens) when
-    Scope#elixir_tokenizer.check_terminators == false ->
+    Scope#elixir_tokenizer.terminators == none ->
   tokenize(Rest, Line, Column, Scope, [Token | Tokens]);
 handle_terminator(Rest, Line, Column, Scope, Token, Tokens) ->
   #elixir_tokenizer{terminators=Terminators} = Scope,

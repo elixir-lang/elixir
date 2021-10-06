@@ -432,7 +432,7 @@ defmodule Code.Fragment do
 
   This function receives a string with an Elixir code fragment
   and a `position`. It returns a map containing the beginning
-  and ending of the expression alongside its context, or `:none`
+  and ending of the identifier alongside its context, or `:none`
   if there is nothing with a known context.
 
   The difference between `cursor_context/2` and `surround_context/3`
@@ -479,7 +479,7 @@ defmodule Code.Fragment do
 
     * `dot_call`/`dot_arity` and `operator_call`/`operator_arity`
       are collapsed into `dot` and `operator` contexts respectively
-      as they are not meaningful distinction between them
+      as there aren't any meaningful distinctions between them
 
     * On the other hand, this function still makes a distinction between
       `local_call`/`local_arity` and `local_or_var`, since the latter can

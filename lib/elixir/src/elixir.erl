@@ -396,11 +396,11 @@ parser_location(Meta) ->
       case tokens_to_quoted(Tokens, File, Opts) of
         {ok, Forms} ->
           Forms;
-        {error, {Line, Error, Token}} ->
-          elixir_errors:parse_error(Line, File, Error, Token)
+        {error, {Meta, Error, Token}} ->
+          elixir_errors:parse_error(Meta, File, Error, Token)
       end;
-    {error, {Line, Error, Token}} ->
-      elixir_errors:parse_error(Line, File, Error, Token)
+    {error, {Meta, Error, Token}} ->
+      elixir_errors:parse_error(Meta, File, Error, Token)
   end.
 
 to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);

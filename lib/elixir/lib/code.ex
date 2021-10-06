@@ -807,7 +807,7 @@ defmodule Code do
   Converts the given string to its quoted form.
 
   Returns `{:ok, quoted_form}` if it succeeds,
-  `{:error, {line, error, token}}` otherwise.
+  `{:error, {meta, message_info, token}}` otherwise.
 
   ## Options
 
@@ -894,7 +894,7 @@ defmodule Code do
 
   """
   @spec string_to_quoted(List.Chars.t(), keyword) ::
-          {:ok, Macro.t()} | {:error, {location :: keyword, term, term}}
+          {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def string_to_quoted(string, opts \\ []) when is_list(opts) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
