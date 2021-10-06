@@ -159,6 +159,7 @@ defmodule Mix.Tasks.Compile.All do
 
         :ok
       else
+        # Optional applications won't be available
         _ -> :error
       end
     end

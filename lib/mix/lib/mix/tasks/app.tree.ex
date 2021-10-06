@@ -54,8 +54,11 @@ defmodule Mix.Tasks.App.Tree do
     excluded = @default_excluded ++ excluded
 
     callback = fn {app, type} ->
-      load(app)
-      {{app, type(type)}, children_for(app, excluded)}
+      if load(app, type) do
+        {{app, type(type)}, children_for(app, excluded)}
+      else
+        {{app, "(optional - missing)"}, []}
+      end
     end
 
     if opts[:format] == "dot" do
@@ -76,10 +79,11 @@ defmodule Mix.Tasks.App.Tree do
     end
   end
 
-  defp load(app) do
+  defp load(app, type) do
     case Application.load(app) do
-      :ok -> :ok
-      {:error, {:already_loaded, ^app}} -> :ok
+      :ok -> true
+      {:error, {:already_loaded, ^app}} -> true
+      _ when type == :optional -> false
       _ -> Mix.raise("could not find application #{app}")
     end
   end
@@ -87,9 +91,15 @@ defmodule Mix.Tasks.App.Tree do
   defp children_for(app, excluded) do
     apps = Application.spec(app, :applications) -- excluded
     included_apps = Application.spec(app, :included_applications) -- excluded
-    Enum.sort(Enum.map(apps, &{&1, :normal}) ++ Enum.map(included_apps, &{&1, :included}))
+    optional_apps = Application.spec(app, :optional_applications) || []
+
+    Enum.sort(
+      Enum.map(apps, &{&1, if(&1 in optional_apps, do: :optional, else: :normal)}) ++
+        Enum.map(included_apps, &{&1, :included})
+    )
   end
 
   defp type(:normal), do: nil
   defp type(:included), do: "(included)"
+  defp type(:optional), do: "(optional)"
 end

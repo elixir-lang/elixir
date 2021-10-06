@@ -232,9 +232,9 @@ defmodule Mix.Compilers.ApplicationTracer do
     end
   end
 
-  defp store_apps(seen, table, apps) do
-    Enum.reduce(apps, seen, &store_app(table, &1, &2))
-  end
+  # Applications will be nil for optional applications
+  defp store_apps(seen, _table, nil), do: seen
+  defp store_apps(seen, table, apps), do: Enum.reduce(apps, seen, &store_app(table, &1, &2))
 
   defp store_app(table, app, seen) do
     cond do
