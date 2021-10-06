@@ -390,6 +390,7 @@ defmodule Application do
     :maxT,
     :registered,
     :included_applications,
+    :optional_applications,
     :applications,
     :mod,
     :start_phases
