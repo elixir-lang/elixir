@@ -792,6 +792,8 @@ defmodule Module do
   @doc """
   Concatenates a list of aliases and returns a new alias.
 
+  It handles binaries and atoms.
+
   ## Examples
 
       iex> Module.concat([Foo, Bar])
@@ -808,6 +810,8 @@ defmodule Module do
 
   @doc """
   Concatenates two aliases and returns a new alias.
+
+  It handles binaries and atoms.
 
   ## Examples
 
@@ -829,7 +833,7 @@ defmodule Module do
   was already referenced.
 
   If the alias was not referenced yet, fails with `ArgumentError`.
-  It handles charlists, binaries and atoms.
+  It handles binaries and atoms.
 
   ## Examples
 
@@ -847,7 +851,7 @@ defmodule Module do
   already referenced.
 
   If the alias was not referenced yet, fails with `ArgumentError`.
-  It handles charlists, binaries and atoms.
+  It handles binaries and atoms.
 
   ## Examples
 
