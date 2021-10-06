@@ -11,7 +11,7 @@ unescape_tokens/1, unescape_map/1]).
 
 extract(Line, Column, Raw, Interpol, String, Last) ->
   %% Ignore whatever is in the scope and enable terminator checking.
-  Scope = Raw#elixir_tokenizer{terminators=[], check_terminators=true},
+  Scope = Raw#elixir_tokenizer{terminators=[]},
   extract(Line, Column, Scope, Interpol, String, [], [], Last).
 
 %% Terminators
