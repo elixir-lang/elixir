@@ -16,7 +16,6 @@ defmodule Mix.Tasks.NewTest do
       assert_file("hello_world/.gitignore")
 
       assert_file("hello_world/lib/hello_world.ex", ~r/defmodule HelloWorld do/)
-
       assert_file("hello_world/test/test_helper.exs", ~r/ExUnit.start()/)
 
       assert_file("hello_world/test/hello_world_test.exs", fn file ->
@@ -161,6 +160,12 @@ defmodule Mix.Tasks.NewTest do
                    end
 
       assert_raise Mix.Error,
+                   ~r"Cannot use application name \"tools\" because it is already used by Erlang/OTP or Elixir",
+                   fn ->
+                     Mix.Tasks.New.run(["tools"])
+                   end
+
+      assert_raise Mix.Error,
                    ~r"followed by lowercase ASCII letters, numbers, or underscores",
                    fn ->
                      Mix.Tasks.New.run(["invAlid"])
@@ -182,18 +187,6 @@ defmodule Mix.Tasks.NewTest do
     in_tmp("new with an invalid module name from the module options", fn ->
       assert_raise Mix.Error, ~r"Module name must be a valid Elixir alias", fn ->
         Mix.Tasks.New.run(["valid", "--module", "not.valid"])
-      end
-    end)
-
-    in_tmp("new with an already taken application name", fn ->
-      assert_raise Mix.Error, ~r"Module name \w+ is already taken", fn ->
-        Mix.Tasks.New.run(["mix"])
-      end
-    end)
-
-    in_tmp("new with an already taken application name from the app option", fn ->
-      assert_raise Mix.Error, ~r"Module name \w+ is already taken", fn ->
-        Mix.Tasks.New.run(["valid", "--app", "mix"])
       end
     end)
 

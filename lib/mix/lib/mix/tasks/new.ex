@@ -28,7 +28,6 @@ defmodule Mix.Tasks.New do
   An `--umbrella` option can be given to generate an
   umbrella project.
 
-
   ## Examples
 
       mix new hello_world
@@ -167,10 +166,9 @@ defmodule Mix.Tasks.New do
   end
 
   defp check_application_name!(name, inferred?) do
-    unless name =~ ~r/^[a-z][a-z0-9_]*$/ do
+    if message = invalid_app(name) || reserved_app(name) do
       Mix.raise(
-        "Application name must start with a lowercase ASCII letter, followed by " <>
-          "lowercase ASCII letters, numbers, or underscores, got: #{inspect(name)}" <>
+        message <>
           if inferred? do
             ". The application name is inferred from the path, if you'd like to " <>
               "explicitly name the application then use the \"--app APP\" option"
@@ -178,6 +176,19 @@ defmodule Mix.Tasks.New do
             ""
           end
       )
+    end
+  end
+
+  defp invalid_app(name) do
+    unless name =~ ~r/^[a-z][a-z0-9_]*$/ do
+      "Application name must start with a lowercase ASCII letter, followed by " <>
+        "lowercase ASCII letters, numbers, or underscores, got: #{inspect(name)}"
+    end
+  end
+
+  defp reserved_app(name) do
+    if name |> String.to_atom() |> Application.ensure_loaded() == :ok do
+      "Cannot use application name #{inspect(name)} because it is already used by Erlang/OTP or Elixir"
     end
   end
 
