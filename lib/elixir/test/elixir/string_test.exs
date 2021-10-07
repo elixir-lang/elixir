@@ -661,6 +661,10 @@ defmodule StringTest do
     assert String.slice("あいうえお", -10..-15) == ""
     assert String.slice("hello あいうえお Unicode", 8..-1) == "うえお Unicode"
     assert String.slice("abc", -1..14) == "c"
+
+    assert_raise FunctionClauseError, fn ->
+      String.slice(nil, 0..1)
+    end
   end
 
   test "valid?/1" do
