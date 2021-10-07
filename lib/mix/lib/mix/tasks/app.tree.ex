@@ -80,9 +80,8 @@ defmodule Mix.Tasks.App.Tree do
   end
 
   defp load(app, type) do
-    case Application.load(app) do
+    case Application.ensure_loaded(app) do
       :ok -> true
-      {:error, {:already_loaded, ^app}} -> true
       _ when type == :optional -> false
       _ -> Mix.raise("could not find application #{app}")
     end
