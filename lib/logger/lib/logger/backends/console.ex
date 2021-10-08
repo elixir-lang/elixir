@@ -38,7 +38,7 @@ defmodule Logger.Backends.Console do
 
     * `:info` - color for info and notice messages. Defaults to: `:normal`
 
-    * `:warning` - color for warning messages. Defaults to: `:yellow`
+    * `:warn` - color for warning messages. Defaults to: `:yellow`
 
     * `:error` - color for error and higher messages. Defaults to: `:red`
 
@@ -239,7 +239,7 @@ defmodule Logger.Backends.Console do
       emergency: Keyword.get(colors, :debug, :red),
       debug: Keyword.get(colors, :debug, :cyan),
       info: Keyword.get(colors, :info, :normal),
-      warning: Keyword.get(colors, :warning, :yellow),
+      warning: Keyword.get(colors, :warn, :yellow),
       error: Keyword.get(colors, :error, :red),
       notice: Keyword.get(colors, :error, :blue),
       enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
