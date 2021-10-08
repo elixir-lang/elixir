@@ -241,7 +241,7 @@ defmodule Logger.Backends.Console do
       info: Keyword.get(colors, :info, :normal),
       warning: Keyword.get(colors, :warn, :yellow),
       error: Keyword.get(colors, :error, :red),
-      notice: Keyword.get(colors, :error, :blue),
+      notice: Keyword.get(colors, :info, :normal),
       enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
     }
   end
