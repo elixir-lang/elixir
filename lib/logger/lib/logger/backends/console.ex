@@ -138,6 +138,12 @@ defmodule Logger.Backends.Console do
   def handle_event({level, _gl, {Logger, msg, ts, md}}, state) do
     %{level: log_level, ref: ref, buffer_size: buffer_size, max_buffer: max_buffer} = state
 
+    {:erl_level, level} = List.keyfind(md, :erl_level, 0, {:erl_level, level})
+    level = case level do
+      :warning -> :warn
+      _ -> level
+    end
+
     cond do
       not meet_level?(level, log_level) ->
         {:ok, state}
@@ -245,11 +251,6 @@ defmodule Logger.Backends.Console do
   end
 
   defp log_event(level, msg, ts, md, %{device: device} = state) do
-    {:erl_level, level} = List.keyfind(md, :erl_level, 0, {:erl_level, level})
-    level = case level do
-      :warning -> :warn
-      _ -> level
-    end
     output = format_event(level, msg, ts, md, state)
     %{state | ref: async_io(device, output), output: output}
   end
