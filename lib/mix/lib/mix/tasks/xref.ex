@@ -81,10 +81,16 @@ defmodule Mix.Tasks.Xref do
     * `--exclude` - paths to exclude
 
     * `--label` - only shows relationships with the given label.
-      By default, it keeps all labels that are transitive.
-      The labels are "compile", "export" and "runtime" and the label
-      modifiers called "compile-direct" and "compile-connected".
-      See "Dependencies types" section below.
+      The labels are "compile", "export" and "runtime". By default,
+      the `--label` option simply filters the printed graph to show
+      only relationships with the given label. If you want to
+      effectively filter the graph, you can pass the `--only-direct`
+      flag. There is also a special label called "compile-connected"
+      that keeps only compile-time files with at least one transitive
+      dependency. See "Dependencies types" section below.
+
+    * `--only-direct` - keeps only files with the direct relationship
+      given by `--label`
 
     * `--only-nodes` - only shows the node names (no edges).
       Generally useful with the `--sink` flag
@@ -119,8 +125,8 @@ defmodule Mix.Tasks.Xref do
   those options with `--label` and `--only-nodes` to get all files that exhibit a certain
   property, for example:
 
-      # To get all files and their direct compile time dependencies
-      mix xref graph --label compile-direct
+      # To show all compile-time relationships
+      mix xref graph --label compile
 
       # To get the tree that depend on lib/foo.ex at compile time
       mix xref graph --label compile --sink lib/foo.ex
@@ -166,27 +172,16 @@ defmodule Mix.Tasks.Xref do
   This tree means that `lib/a.ex` depends on `lib/b.ex` at compile
   time. And `lib/b.ex` depends on `lib/c.ex` at runtime. This is often
   problematic because if `lib/c.ex` changes, `lib/a.ex` also has to
-  recompile due to this indirect compile time dependency. For this reason,
-  when you pass `--label compile`, the graph remains the same, as `lib/a.ex`
-  effectively has an indirect compile-time dependency on `lib/c.ex`:
+  recompile due to this indirect compile time dependency. When you pass
+  `--label compile`, the graph shows only the compile-time dependencies:
 
       $ mix xref graph --label compile
       lib/a.ex
       └── lib/b.ex (compile)
-      lib/b.ex
-      └── lib/c.ex
 
-  In other words, when using `--label compile`, any dependency on the graph
-  without the "(compile)" label is a transitive compile time dependency.
-  If you want to keep only the direct compile time dependencies, you can
-  use `--label compile-direct`:
-
-      $ mix xref graph --label compile-direct
-      lib/a.ex
-      └── lib/b.ex (compile)
-
-  On the other hand, having direct compile time dependencies is not
-  necessarily an issue. The biggest concern, as mentioned above, are the
+  The `--label compile` flag removes all non-compile dependencies. However,
+  this can be misleading because having direct compile time dependencies is
+  not necessarily an issue. The biggest concern, as mentioned above, are the
   transitive compile time dependencies. You can get all compile time
   dependencies that cause transitive compile time dependencies by using
   `--label compile-connected`:
@@ -195,19 +190,19 @@ defmodule Mix.Tasks.Xref do
       lib/a.ex
       └── lib/b.ex (compile)
 
-  The above says `lib/a.ex` depends on `lib/b.ex` and it has transitive
-  compile time dependencies. We can retrieve them by passing `lib/b.ex`
-  as `--source` to `mix xref graph`:
+  The above says `lib/a.ex` depends on `lib/b.ex` and that causes transitive
+  compile time dependencies - as we know, `lib/a.ex` also depends on `lib/c.ex`.
+  We can retrieve those transitive dependencies by passing `lib/b.ex` as
+  `--source` to `mix xref graph`:
 
       $ mix xref graph --source lib/b.ex
       lib/b.ex
       └── lib/c.ex
 
-  Similarly, you can use the `--label compile-connected` and the `--sink`
-  flag to find all compile time dependencies that will recompile once
-  the sink changes:
+  Similarly, you can use the `--label compile` and the `--sink` flag to find
+  all compile time dependencies that will recompile once the sink changes:
 
-      $ mix xref graph --label compile-connected --sink lib/c.ex
+      $ mix xref graph --label compile --sink lib/c.ex
       lib/a.ex
       └── lib/b.ex (compile)
 
@@ -234,12 +229,6 @@ defmodule Mix.Tasks.Xref do
   to be compiled when the callee changes, unless there is a transitive
   compile or an outdated export time dependency between them. The option
   `--label compile-connected` can be used to find the first case.
-
-  Overall, there are two label modifiers: "compile-connected" and
-  "compile-direct". The label modifier "compile-connected" can be
-  used to find compile time dependencies that cause transitive compile
-  time dependencies. "compile-direct" only shows direct compile time
-  dependencies, removing the transitive aspect.
 
   ## Shared options
 
@@ -275,6 +264,7 @@ defmodule Mix.Tasks.Xref do
     include_siblings: :boolean,
     label: :string,
     only_nodes: :boolean,
+    only_direct: :boolean,
     sink: :keep,
     source: :keep,
     min_cycle_size: :integer
@@ -490,7 +480,11 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp handle_graph(opts) do
-    {direct_filter, transitive_filter} = label_filter(opts[:label])
+    label = label_filter(opts[:label])
+
+    {direct_filter, transitive_filter} =
+      if opts[:only_direct], do: {label, :all}, else: {:all, label}
+
     write_graph(file_references(direct_filter, opts), transitive_filter, opts)
   end
 
@@ -598,13 +592,16 @@ defmodule Mix.Tasks.Xref do
     |> Enum.flat_map(&[{&1, nil}, {&1, :compile}, {&1, :export}])
   end
 
-  defp label_filter(nil), do: {:all, :all}
-  defp label_filter("compile"), do: {:all, :compile}
-  defp label_filter("export"), do: {:all, :export}
-  defp label_filter("runtime"), do: {:all, nil}
-  defp label_filter("compile-connected"), do: {:all, :compile_connected}
-  defp label_filter("compile-direct"), do: {:compile, :all}
+  defp label_filter(nil), do: :all
+  defp label_filter("compile"), do: :compile
+  defp label_filter("export"), do: :export
+  defp label_filter("runtime"), do: nil
+  defp label_filter("compile-connected"), do: :compile_connected
   defp label_filter(other), do: Mix.raise("Unknown --label #{other} in mix xref graph")
+
+  defp file_references(:compile_connected, _opts) do
+    Mix.raise("Cannot use --only-direct with --label=compile-connected")
+  end
 
   defp file_references(filter, opts) do
     module_sources =
@@ -758,22 +755,18 @@ defmodule Mix.Tasks.Xref do
     Enum.reduce(file_references, 0, fn {_, refs}, total -> total + length(refs) end)
   end
 
-  defp filter_fn(file_references, excluded, _compile_time, :compile_connected),
+  defp filter_fn(file_references, excluded, :compile_connected),
     do: fn {key, type} ->
-      type == :compile and match?([_ | _], file_references[key] -- excluded)
+      type == :compile and match?([_ | _], (file_references[key] || []) -- excluded)
     end
 
-  defp filter_fn(_file_references, _excluded, compile_time, :compile),
-    do: fn {key, type} -> type == :compile or Map.has_key?(compile_time, key) end
-
-  defp filter_fn(_file_references, _excluded, _compile_time, filter),
+  defp filter_fn(_file_references, _excluded, filter),
     do: fn {_key, type} -> type == filter end
 
   defp filter(file_references, _excluded, :all), do: file_references
 
   defp filter(file_references, excluded, filter) do
-    compile_time = compile_time_references(file_references)
-    filter_fn = filter_fn(file_references, excluded, compile_time, filter)
+    filter_fn = filter_fn(file_references, excluded, filter)
 
     for {key, children} <- file_references,
         into: %{},
@@ -816,29 +809,6 @@ defmodule Mix.Tasks.Xref do
         Map.update(acc, file_reference, [{file, type}], &[{file, type} | &1])
       end)
     end)
-  end
-
-  defp compile_time_references(file_references) do
-    acc =
-      for {_, children} <- file_references,
-          {key, :compile} <- children,
-          into: %{},
-          do: {key, true}
-
-    compile_time_references(file_references, acc)
-  end
-
-  defp compile_time_references(file_references, acc) do
-    new_acc =
-      for {key, children} <- file_references,
-          acc[key],
-          {key, _} <- children,
-          into: acc,
-          do: {key, true}
-
-    if map_size(new_acc) == map_size(acc),
-      do: acc,
-      else: compile_time_references(file_references, new_acc)
   end
 
   defp print_stats(references, opts) do
