@@ -154,7 +154,7 @@ defmodule Logger.Backends.ConsoleTest do
     Logger.configure_backend(:console, colors: [warn: :cyan])
 
     assert capture_log(fn -> Logger.warn("hello") end) ==
-             IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+             IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()
 
     assert capture_log(fn -> Logger.error("hello") end) ==
              IO.ANSI.red() <> "hello" <> IO.ANSI.reset()

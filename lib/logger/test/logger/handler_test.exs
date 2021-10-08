@@ -37,7 +37,7 @@ defmodule Logger.HandlerTest do
 
     assert capture_log(fn ->
              :error_logger.info_msg('world: ~p', [:ok])
-           end) =~ "[info]  rewritten"
+           end) =~ "[notice] rewritten"
   after
     assert Logger.remove_translator({CustomTranslator, :t})
   end
@@ -97,12 +97,12 @@ defmodule Logger.HandlerTest do
            end) =~ "[info]  :formatted"
   end
 
-  test "converts log levels" do
-    assert capture_log(fn -> :logger.emergency('ok') end) =~ "[error] ok"
-    assert capture_log(fn -> :logger.alert('ok') end) =~ "[error] ok"
-    assert capture_log(fn -> :logger.critical('ok') end) =~ "[error] ok"
+  test "don't converts log levels" do
+    assert capture_log(fn -> :logger.emergency('ok') end) =~ "[emergency] ok"
+    assert capture_log(fn -> :logger.alert('ok') end) =~ "[alert] ok"
+    assert capture_log(fn -> :logger.critical('ok') end) =~ "[critical] ok"
     assert capture_log(fn -> :logger.error('ok') end) =~ "[error] ok"
-    assert capture_log(fn -> :logger.warning('ok') end) =~ "[warn]  ok"
+    assert capture_log(fn -> :logger.warning('ok') end) =~ "[warning] ok"
     assert capture_log(fn -> :logger.info('ok') end) =~ "[info]  ok"
     assert capture_log(fn -> :logger.debug('ok') end) =~ "[debug] ok"
   end
