@@ -129,6 +129,18 @@ defmodule Logger.Backends.ConsoleTest do
     assert capture_log(fn -> Logger.debug("hello") end) == ""
   end
 
+  test "filter by notice" do
+    Logger.configure_backend(:console, level: :notice)
+
+    assert capture_log(fn -> Logger.debug("hello") end) == ""
+    assert capture_log(fn -> Logger.info("hello") end) == ""
+    assert capture_log(fn -> Logger.notice("hello") end) =~ "[notice] hello\n"
+    assert capture_log(fn -> Logger.warning("hello") end) =~ "[warning] hello\n"
+    assert capture_log(fn -> Logger.critical("hello") end) =~ "[critical] hello\n"
+    assert capture_log(fn -> Logger.alert("hello") end) =~ "[alert] hello\n"
+    assert capture_log(fn -> Logger.error("hello") end) =~ "[error] hello\n"
+  end
+
   test "configures colors" do
     Logger.configure_backend(:console, format: "$message", colors: [enabled: true])
 
