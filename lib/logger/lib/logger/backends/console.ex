@@ -244,8 +244,8 @@ defmodule Logger.Backends.Console do
     }
   end
 
-  defp log_event(_level, msg, ts, md, %{device: device} = state) do
-    {:erl_level, level} = List.keyfind(md, :erl_level, 0, {:erl_level, :not_found})
+  defp log_event(level, msg, ts, md, %{device: device} = state) do
+    {:erl_level, level} = List.keyfind(md, :erl_level, 0, {:erl_level, level})
 
     output = format_event(level, msg, ts, md, state)
     %{state | ref: async_io(device, output), output: output}
