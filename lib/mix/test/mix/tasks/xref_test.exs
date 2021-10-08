@@ -460,7 +460,7 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     test "only nodes with compile direct label" do
-      assert_graph(~w[--label compile-direct --only-nodes], """
+      assert_graph(~w[--label compile --only-direct --only-nodes], """
       lib/a.ex
       lib/b.ex
       lib/c.ex
@@ -472,13 +472,9 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      |-- lib/a.ex
-      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
-      lib/d.ex
-      `-- lib/e.ex
       """)
     end
 
@@ -511,8 +507,8 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
 
-    test "filter by compile-direct label" do
-      assert_graph(~w[--label compile-direct], """
+    test "filter by compile direct label" do
+      assert_graph(~w[--label compile --only-direct], """
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
@@ -549,16 +545,19 @@ defmodule Mix.Tasks.XrefTest do
       assert_graph(~w[--source lib/a.ex --label compile], """
       lib/a.ex
       `-- lib/b.ex (compile)
-          |-- lib/a.ex
-          |-- lib/c.ex
-          |   `-- lib/d.ex (compile)
-          |       `-- lib/e.ex
           `-- lib/e.ex (compile)
       """)
     end
 
-    test "source with compile-direct label" do
-      assert_graph(~w[--source lib/a.ex --label compile-direct], """
+    test "source with compile-connected label" do
+      assert_graph(~w[--source lib/a.ex --label compile-connected], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+      """)
+    end
+
+    test "source with compile direct label" do
+      assert_graph(~w[--source lib/a.ex --label compile --only-direct], """
       lib/a.ex
       `-- lib/b.ex (compile)
           `-- lib/e.ex (compile)
@@ -591,18 +590,23 @@ defmodule Mix.Tasks.XrefTest do
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex
-      |-- lib/a.ex
-      |-- lib/c.ex
       `-- lib/e.ex (compile)
       lib/c.ex
       `-- lib/d.ex (compile)
-      lib/d.ex
-      `-- lib/e.ex
       """)
     end
 
-    test "sink with compile-direct label" do
-      assert_graph(~w[--sink lib/e.ex --label compile-direct], """
+    test "sink with compile-connected label" do
+      assert_graph(~w[--sink lib/e.ex --label compile-connected], """
+      lib/a.ex
+      `-- lib/b.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
+      """)
+    end
+
+    test "sink with compile direct label" do
+      assert_graph(~w[--sink lib/e.ex --label compile --only-direct], """
       lib/a.ex
       `-- lib/b.ex (compile)
       lib/b.ex

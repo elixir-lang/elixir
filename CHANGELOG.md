@@ -27,7 +27,7 @@ In a nutshell, Elixir went from triggering full recompilations whenever any of `
 
 Elixir v1.13 comes with many improvements to `mix xref`, such as:
 
-  * `mix xref graph` now supports `--label` to be set to "compile-direct" and "compile-connected", which returns the direct compile-time dependencies ("compile-direct") or just those that generate additional transitive dependencies ("compile-connected")
+  * `mix xref graph` now supports `--label` to be set to "compile-connected", which returns all compile-time dependencies that lead to additional transitive dependencies.
 
   * A new `mix xref trace FILE` subcommand receives a file and returns all dependencies in said file, including the line and what caused said dependency (a function/macro call, an alias, a struct, etc).
 
@@ -184,7 +184,6 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [mix xref] Add `trace` subcommand to print compilation dependencies between files
   * [mix xref] Add `--fail-above` option to `mix xref`
   * [mix xref] Add `--label compile-connected` to `mix xref`
-  * [mix xref] Add `--label compile-direct` to `mix xref` (instead of `--only-direct`)
 
 ### 2. Bug fixes
 
