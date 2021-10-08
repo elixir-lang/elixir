@@ -38,7 +38,7 @@ defmodule Logger.Backends.Console do
 
     * `:info` - color for info and notice messages. Defaults to: `:normal`
 
-    * `:warn` - color for warning messages. Defaults to: `:yellow`
+    * `:warning` - color for warning messages. Defaults to: `:yellow`
 
     * `:error` - color for error and higher messages. Defaults to: `:red`
 
@@ -139,10 +139,6 @@ defmodule Logger.Backends.Console do
     %{level: log_level, ref: ref, buffer_size: buffer_size, max_buffer: max_buffer} = state
 
     {:erl_level, level} = List.keyfind(md, :erl_level, 0, {:erl_level, level})
-    level = case level do
-      :warning -> :warn
-      _ -> level
-    end
 
     cond do
       not meet_level?(level, log_level) ->
@@ -243,7 +239,7 @@ defmodule Logger.Backends.Console do
       emergency: Keyword.get(colors, :debug, :red),
       debug: Keyword.get(colors, :debug, :cyan),
       info: Keyword.get(colors, :info, :normal),
-      warn: Keyword.get(colors, :warn, :yellow),
+      warning: Keyword.get(colors, :warning, :yellow),
       error: Keyword.get(colors, :error, :red),
       notice: Keyword.get(colors, :error, :blue),
       enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
