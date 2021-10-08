@@ -209,7 +209,6 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [ExUnit] Improve error messages for doctests
   * [ExUnit] Compile doctests faster (often by two times)
   * [ExUnit] Add `ExUnit.async_run/0` and `ExUnit.await_run/1`
-  * [ExUnit] Suport running tests with `--warnings-as-errors`, treating warnings as errors and returning a non-zero exit status (only applies to test files, not compilation)
 
 #### IEx
 
@@ -228,6 +227,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [mix release] Add `RELEASE_PROG` to releases with the name of the executable starting the release
   * [mix release] Support `remote.vm.args` to customize how the connecting VM boots
   * [mix test] Run all available tests if there are no pending `--failed` tests. This provides a better workflow as you no longer need to toggle the `--failed` flag between runs
+  * [mix test] Support `mix test --warnings-as-errors`, treating warnings as errors and returning a non-zero exit status (only applies to test files, not compilation)
 
 ### 2. Bug fixes
 
