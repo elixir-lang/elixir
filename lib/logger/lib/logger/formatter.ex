@@ -166,6 +166,7 @@ defmodule Logger.Formatter do
   defp levelpad(:debug), do: ""
   defp levelpad(:info), do: " "
   defp levelpad(:warn), do: " "
+  defp levelpad(:notice), do: " "
   defp levelpad(:error), do: ""
 
   defp metadata([{key, value} | metadata]) do

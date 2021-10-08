@@ -236,11 +236,14 @@ defmodule Logger.Backends.Console do
       info: Keyword.get(colors, :info, :normal),
       warn: Keyword.get(colors, :warn, :yellow),
       error: Keyword.get(colors, :error, :red),
+      notice: Keyword.get(colors, :error, :blue),
       enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
     }
   end
 
-  defp log_event(level, msg, ts, md, %{device: device} = state) do
+  defp log_event(_level, msg, ts, md, %{device: device} = state) do
+    {:erl_level, level} = List.keyfind(md, :erl_level, 0, :not_found)
+
     output = format_event(level, msg, ts, md, state)
     %{state | ref: async_io(device, output), output: output}
   end
