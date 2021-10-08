@@ -232,6 +232,9 @@ defmodule Logger.Backends.Console do
     colors = Keyword.get(config, :colors, [])
 
     %{
+      alert: Keyword.get(colors, :debug, :red),
+      critical: Keyword.get(colors, :debug, :red),
+      emergency: Keyword.get(colors, :debug, :red),
       debug: Keyword.get(colors, :debug, :cyan),
       info: Keyword.get(colors, :info, :normal),
       warn: Keyword.get(colors, :warn, :yellow),
