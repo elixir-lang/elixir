@@ -209,6 +209,7 @@ Elixir v1.12 has the additional of many functions across the standard library. T
   * [ExUnit] Improve error messages for doctests
   * [ExUnit] Compile doctests faster (often by two times)
   * [ExUnit] Add `ExUnit.async_run/0` and `ExUnit.await_run/1`
+  * [ExUnit] Suport running tests with `--warnings-as-errors`, treating warnings as errors and returning a non-zero exit status (only applies to test files, not compilation)
 
 #### IEx
 
