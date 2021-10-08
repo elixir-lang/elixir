@@ -97,7 +97,7 @@ defmodule Logger.HandlerTest do
            end) =~ "[info]  :formatted"
   end
 
-  test "don't converts log levels" do
+  test "uses Erlang log levels" do
     assert capture_log(fn -> :logger.emergency('ok') end) =~ "[emergency] ok"
     assert capture_log(fn -> :logger.alert('ok') end) =~ "[alert] ok"
     assert capture_log(fn -> :logger.critical('ok') end) =~ "[critical] ok"
