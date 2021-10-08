@@ -103,6 +103,7 @@ defmodule Logger.HandlerTest do
     assert capture_log(fn -> :logger.critical('ok') end) =~ "[critical] ok"
     assert capture_log(fn -> :logger.error('ok') end) =~ "[error] ok"
     assert capture_log(fn -> :logger.warning('ok') end) =~ "[warning] ok"
+    assert capture_log(fn -> :logger.notice('ok') end) =~ "[notice] ok"
     assert capture_log(fn -> :logger.info('ok') end) =~ "[info]  ok"
     assert capture_log(fn -> :logger.debug('ok') end) =~ "[debug] ok"
   end
