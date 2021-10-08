@@ -91,6 +91,33 @@ defmodule Mix.Project do
   to be part of the configuration returned by `project/0`. This setting also
   makes sure Elixir is not added as a dependency to the generated `.app` file or
   to the escript generated with `mix escript.build`, and so on.
+
+  ## Invoking this module
+
+  This module contains many functions that return project information and
+  metadata. However, since Mix is not included nor configured during releases,
+  we recommend using the functions in this module only inside Mix tasks.
+  If you need to configure your own app, consider using the application
+  environment instead. For example, don't do this:
+
+      def some_config do
+        Mix.Project.config()[:some_config]
+      end
+
+  Nor this:
+
+      @some_config Mix.Project.config()[:some_config]
+
+  Instead, do this:
+
+      def some_config do
+        Application.get_env(:my_app, :some_config)
+      end
+
+  Or this:
+
+      @some_config Application.compile_env(:my_app, :some_config)
+
   """
 
   @doc false
