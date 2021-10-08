@@ -163,11 +163,10 @@ defmodule Logger.Formatter do
   defp output(:levelpad, level, _, _, _), do: levelpad(level)
   defp output(other, _, _, _, _), do: other
 
-  defp levelpad(:debug), do: ""
+  # TODO: Deprecate me on Elixir v1.13+ or later
   defp levelpad(:info), do: " "
   defp levelpad(:warn), do: " "
-  defp levelpad(:notice), do: " "
-  defp levelpad(:error), do: ""
+  defp levelpad(_), do: ""
 
   defp metadata([{key, value} | metadata]) do
     if formatted = metadata(key, value) do
