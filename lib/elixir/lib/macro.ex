@@ -1597,9 +1597,22 @@ defmodule Macro do
 
   @doc """
   Returns `true` if the given name and arity is an operator.
+
+  ## Examples
+
+      iex> Macro.operator?(:not_an_operator, 3)
+      false
+      iex> Macro.operator?(:+, 1)
+      true
+      iex> Macro.operator?(:++, 2)
+      true
+      iex> Macro.operator?(:..//, 3)
+      true
+
   """
   @doc since: "1.7.0"
   @spec operator?(name :: atom(), arity()) :: boolean()
+  def operator?(:"..//", 3), do: true
   def operator?(name, 2) when is_atom(name), do: Identifier.binary_op(name) != :error
   def operator?(name, 1) when is_atom(name), do: Identifier.unary_op(name) != :error
   def operator?(name, arity) when is_atom(name) and is_integer(arity), do: false
