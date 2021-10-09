@@ -138,6 +138,8 @@ defmodule Logger.Backends.Console do
   def handle_event({level, _gl, {Logger, msg, ts, md}}, state) do
     %{level: log_level, ref: ref, buffer_size: buffer_size, max_buffer: max_buffer} = state
 
+    {:erl_level, level} = List.keyfind(md, :erl_level, 0, {:erl_level, level})
+
     cond do
       not meet_level?(level, log_level) ->
         {:ok, state}
@@ -232,10 +234,14 @@ defmodule Logger.Backends.Console do
     colors = Keyword.get(config, :colors, [])
 
     %{
-      debug: Keyword.get(colors, :debug, :cyan),
-      info: Keyword.get(colors, :info, :normal),
-      warn: Keyword.get(colors, :warn, :yellow),
+      emergency: Keyword.get(colors, :error, :red),
+      alert: Keyword.get(colors, :error, :red),
+      critical: Keyword.get(colors, :error, :red),
       error: Keyword.get(colors, :error, :red),
+      warning: Keyword.get(colors, :warn, :yellow),
+      notice: Keyword.get(colors, :info, :normal),
+      info: Keyword.get(colors, :info, :normal),
+      debug: Keyword.get(colors, :debug, :cyan),
       enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
     }
   end
