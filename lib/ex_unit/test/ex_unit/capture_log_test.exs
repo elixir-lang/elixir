@@ -73,14 +73,14 @@ defmodule ExUnit.CaptureLogTest do
 
     assert logged
     assert logged =~ "[info]  one\n"
-    assert logged =~ "[warn]  two\n"
+    assert logged =~ "[warning] two\n"
     assert logged =~ "[debug] three\n"
     assert logged =~ "[error] one\n"
 
     receive do
       {:nested, logged} ->
         assert logged =~ "[error] one\n"
-        refute logged =~ "[warn]  two\n"
+        refute logged =~ "[warning] two\n"
     end
   end
 

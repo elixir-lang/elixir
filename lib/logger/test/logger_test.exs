@@ -408,15 +408,15 @@ defmodule LoggerTest do
   test "deprecated :warn" do
     assert capture_log(fn ->
              Logger.warn("hello") == :ok
-           end) =~ "[warn]"
+           end) =~ "[warning]"
 
     assert capture_log(fn ->
              Logger.log(:warn, "hello") == :ok
-           end) =~ "[warn]"
+           end) =~ "[warning]"
 
     assert capture_log(fn ->
              Logger.bare_log(:warn, "hello") == :ok
-           end) =~ "[warn]"
+           end) =~ "[warning]"
   end
 
   describe "levels" do
@@ -451,7 +451,7 @@ defmodule LoggerTest do
     test "warning/2" do
       assert capture_log(fn ->
                assert Logger.warning("hello", []) == :ok
-             end) =~ msg_with_meta("[warn]  hello")
+             end) =~ msg_with_meta("[warning] hello")
 
       assert capture_log(:error, fn ->
                assert Logger.warning("hello", []) == :ok
@@ -465,7 +465,7 @@ defmodule LoggerTest do
     test "warn/2" do
       assert capture_log(fn ->
                assert Logger.warn("hello", []) == :ok
-             end) =~ msg_with_meta("[warn]  hello")
+             end) =~ msg_with_meta("[warning] hello")
 
       assert capture_log(:error, fn ->
                assert Logger.warn("hello", []) == :ok
@@ -493,7 +493,7 @@ defmodule LoggerTest do
     test "critical/2" do
       assert capture_log(fn ->
                assert Logger.critical("hello", []) == :ok
-             end) =~ msg_with_meta("[error] hello")
+             end) =~ msg_with_meta("[critical] hello")
 
       assert capture_log(:alert, fn ->
                assert Logger.critical("hello", []) == :ok
@@ -507,7 +507,7 @@ defmodule LoggerTest do
     test "alert/2" do
       assert capture_log(fn ->
                assert Logger.alert("hello", []) == :ok
-             end) =~ msg_with_meta("[error] hello")
+             end) =~ msg_with_meta("[alert] hello")
 
       assert capture_log(:emergency, fn ->
                assert Logger.alert("hello", []) == :ok
@@ -521,7 +521,7 @@ defmodule LoggerTest do
     test "emergency/2" do
       assert capture_log(fn ->
                assert Logger.emergency("hello", []) == :ok
-             end) =~ msg_with_meta("[error] hello")
+             end) =~ msg_with_meta("[emergency] hello")
 
       assert capture_log(:none, fn ->
                assert Logger.emergency("hello", []) == :ok
