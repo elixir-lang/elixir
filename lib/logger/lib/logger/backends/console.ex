@@ -234,14 +234,14 @@ defmodule Logger.Backends.Console do
     colors = Keyword.get(config, :colors, [])
 
     %{
-      alert: Keyword.get(colors, :debug, :red),
-      critical: Keyword.get(colors, :debug, :red),
-      emergency: Keyword.get(colors, :debug, :red),
-      debug: Keyword.get(colors, :debug, :cyan),
-      info: Keyword.get(colors, :info, :normal),
-      warning: Keyword.get(colors, :warn, :yellow),
+      emergency: Keyword.get(colors, :error, :red),
+      alert: Keyword.get(colors, :error, :red),
+      critical: Keyword.get(colors, :error, :red),
       error: Keyword.get(colors, :error, :red),
+      warning: Keyword.get(colors, :warn, :yellow),
       notice: Keyword.get(colors, :info, :normal),
+      info: Keyword.get(colors, :info, :normal),
+      debug: Keyword.get(colors, :debug, :cyan),
       enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
     }
   end
