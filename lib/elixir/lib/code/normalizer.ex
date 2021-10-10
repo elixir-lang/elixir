@@ -333,9 +333,7 @@ defmodule Code.Normalizer do
 
   defp allow_keyword?(:when, 2), do: true
   defp allow_keyword?(:{}, _), do: false
-  defp allow_keyword?(op, 1), do: Code.Identifier.unary_op(op) == :error
-  defp allow_keyword?(op, 2), do: Code.Identifier.binary_op(op) == :error
-  defp allow_keyword?(_, _), do: true
+  defp allow_keyword?(op, arity), do: not is_atom(op) or not Macro.operator?(op, arity)
 
   defp normalize_bitstring({:<<>>, meta, parts} = quoted, state, escape_interpolation \\ false) do
     meta = patch_meta_line(meta, state.parent_meta)
