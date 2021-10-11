@@ -534,6 +534,19 @@ defmodule Mix.Tasks.XrefTest do
       end
     end
 
+    test "exclude many with fail-above" do
+      message = "Too many references (found: 1, permitted: 0)"
+
+      assert_raise Mix.Error, message, fn ->
+        assert_graph(~w[--exclude lib/c.ex --exclude lib/b.ex --fail-above 0], """
+        lib/a.ex
+        lib/d.ex
+        `-- lib/e.ex
+        lib/e.ex
+        """)
+      end
+    end
+
     test "filter by compile direct label" do
       assert_graph(~w[--label compile --only-direct], """
       lib/a.ex
