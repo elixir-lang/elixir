@@ -474,6 +474,8 @@ defmodule ExceptionTest do
              function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
 
                    * get_cookie/0
+                   * get_cookie/1
+                   * set_cookie/1
                    * set_cookie/2
              """
     end
