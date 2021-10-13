@@ -470,11 +470,12 @@ defmodule ExceptionTest do
                    * min/1
              """
 
-      assert blame_message(:erlang, & &1.gt_cookie()) == """
-             function :erlang.gt_cookie/0 is undefined or private. Did you mean one of:
+      assert blame_message(:erlang, & &1.hal()) == """
+             function :erlang.hal/0 is undefined or private. Did you mean one of:
 
-                   * get_cookie/0
-                   * set_cookie/2
+                   * halt/0
+                   * halt/1
+                   * halt/2
              """
     end
 
