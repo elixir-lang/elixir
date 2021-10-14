@@ -169,6 +169,45 @@ defmodule String.Unicode do
         )
     end)
 
+  # The function computes byte lookups based on the prefix. For example,
+  # Á, É, etc all have the same prefix <<195>>, so they are lumped
+  # together for lookup and then we just do a byte lookup later. We
+  # tried doing the byte lookup on 64-element tuple (since the byte
+  # is always within 0b10000000 and 0b10111111) but that's slower,
+  # especially because we need to check the byte range for invalid
+  # Unicode, instead the last byte lookup is a case. Grouping the
+  # top-level lookup makes the cost of a miss 3x cheaper albeit a
+  # hit is 10% more expensive) and reduces bytecode size.
+  compute_lookup = fn key_values ->
+    prefixes =
+      Enum.reduce(key_values, %{}, fn {codepoint, result}, acc ->
+        prefix_size = bit_size(codepoint) - 8
+        <<prefix::size(prefix_size)-bits, byte>> = codepoint
+        Map.update(acc, prefix, [{byte, result}], &[{byte, result} | &1])
+      end)
+
+    {singles, tables} =
+      Enum.reduce(Map.delete(prefixes, ""), {[], []}, fn {prefix, pairs}, {singles, tables} ->
+        case pairs do
+          [{byte, result}] ->
+            {[{prefix <> <<byte>>, result} | singles], tables}
+
+          _ ->
+            clauses =
+              Enum.flat_map(pairs, fn {byte, result} ->
+                quote do
+                  unquote(byte) -> unquote(result)
+                end
+              end)
+
+            clauses = clauses ++ quote do: (byte -> <<unquote(prefix), byte>>)
+            {singles, [{prefix, clauses} | tables]}
+        end
+      end)
+
+    {Enum.sort(singles), Enum.sort_by(tables, &(-byte_size(elem(&1, 0))))}
+  end
+
   # Sigma variants for Greek
   @letter_sigma <<0x03A3::utf8>>
   @letter_small_sigma_final <<0x03C2::utf8>>
@@ -214,16 +253,33 @@ defmodule String.Unicode do
 
   conditional_downcase = [@letter_I, @letter_I_dot_above, @letter_sigma]
 
-  for {codepoint, _upper, lower, _title} <- codes,
-      lower && lower != codepoint,
-      codepoint not in conditional_downcase do
+  {singles, tables} =
+    compute_lookup.(
+      for {codepoint, _upper, lower, _title} <- codes,
+          lower && lower != codepoint,
+          codepoint not in conditional_downcase,
+          do: {codepoint, lower}
+    )
+
+  for {codepoint, lower} <- singles do
     def downcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
       downcase(rest, [unquote(lower) | acc], mode)
     end
   end
 
-  def downcase(<<char, rest::bits>>, acc, mode) do
-    downcase(rest, [<<char>> | acc], mode)
+  for {prefix, clauses} <- tables do
+    def downcase(<<unquote(prefix), byte, rest::bits>>, acc, mode) do
+      value = case byte, do: unquote(clauses)
+      downcase(rest, [value | acc], mode)
+    end
+  end
+
+  def downcase(<<byte, rest::bits>>, acc, mode) do
+    if byte >= ?A and byte <= ?Z do
+      downcase(rest, [byte + 32 | acc], mode)
+    else
+      downcase(rest, [byte | acc], mode)
+    end
   end
 
   def downcase("", acc, _mode), do: IO.iodata_to_binary(:lists.reverse(acc))
@@ -284,16 +340,33 @@ defmodule String.Unicode do
 
   conditional_upcase = [@letter_i]
 
-  for {codepoint, upper, _lower, _title} <- codes,
-      upper && upper != codepoint,
-      codepoint not in conditional_upcase do
+  {singles, tables} =
+    compute_lookup.(
+      for {codepoint, upper, _lower, _title} <- codes,
+          upper && upper != codepoint,
+          codepoint not in conditional_upcase,
+          do: {codepoint, upper}
+    )
+
+  for {codepoint, upper} <- singles do
     def upcase(<<unquote(codepoint), rest::bits>>, acc, mode) do
       upcase(rest, [unquote(upper) | acc], mode)
     end
   end
 
-  def upcase(<<char, rest::bits>>, acc, mode) do
-    upcase(rest, [char | acc], mode)
+  for {prefix, clauses} <- tables do
+    def upcase(<<unquote(prefix), byte, rest::bits>>, acc, mode) do
+      value = case byte, do: unquote(clauses)
+      upcase(rest, [value | acc], mode)
+    end
+  end
+
+  def upcase(<<byte, rest::bits>>, acc, mode) do
+    if byte >= ?a and byte <= ?z do
+      upcase(rest, [byte - 32 | acc], mode)
+    else
+      upcase(rest, [byte | acc], mode)
+    end
   end
 
   def upcase("", acc, _mode), do: IO.iodata_to_binary(:lists.reverse(acc))
@@ -310,16 +383,33 @@ defmodule String.Unicode do
 
   conditional_titlecase = [@letter_i]
 
-  for {codepoint, _upper, _lower, title} <- codes,
-      title && title != codepoint,
-      codepoint not in conditional_titlecase do
-    def titlecase_once(unquote(codepoint) <> rest, _mode) do
+  {singles, tables} =
+    compute_lookup.(
+      for {codepoint, _upper, _lower, title} <- codes,
+          title && title != codepoint,
+          codepoint not in conditional_titlecase,
+          do: {codepoint, title}
+    )
+
+  for {codepoint, title} <- singles do
+    def titlecase_once(<<unquote(codepoint), rest::bits>>, _mode) do
       {unquote(title), rest}
     end
   end
 
+  for {prefix, clauses} <- tables do
+    def titlecase_once(<<unquote(prefix), byte, rest::bits>>, _mode) do
+      value = case byte, do: unquote(clauses)
+      {value, rest}
+    end
+  end
+
   def titlecase_once(<<char::utf8, rest::binary>>, _mode) do
-    {<<char::utf8>>, rest}
+    if char >= ?a and char <= ?z do
+      {<<char - 32::utf8>>, rest}
+    else
+      {<<char::utf8>>, rest}
+    end
   end
 
   def titlecase_once(<<char, rest::binary>>, _mode) do
