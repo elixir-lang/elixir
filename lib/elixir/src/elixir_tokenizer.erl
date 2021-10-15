@@ -757,9 +757,8 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
           Scope
       end,
 
-      case {unescape_tokens(Parts, Line, Column, NewScope), Scope} of
-        {{ok, [Part]}, #elixir_tokenizer{static_atoms_encoder=StaticAtomsEncoder}}
-            when is_function(StaticAtomsEncoder) and is_binary(Part) ->
+      case unescape_tokens(Parts, Line, Column, NewScope) of
+        {ok, [Part]} when is_binary(Part) ->
           case unsafe_to_atom(Part, Line, Column - 1, Scope) of
             {ok, Atom} ->
               Token = {kw_identifier, {Line, Column - 1, nil}, Atom},
@@ -768,7 +767,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
               {error, Reason, Rest, Tokens}
           end;
 
-        {{ok, Unescaped}, _} ->
+        {ok, Unescaped} ->
           Key = case Scope#elixir_tokenizer.existing_atoms_only of
             true  -> kw_identifier_safe;
             false -> kw_identifier_unsafe
@@ -776,7 +775,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
           Token = {Key, {Line, Column - 1, nil}, Unescaped},
           tokenize(Rest, NewLine, NewColumn + 1, NewScope, [Token | Tokens]);
 
-        {{error, Reason},_} ->
+        {error, Reason} ->
           {error, Reason, Rest, Tokens}
       end;
 
