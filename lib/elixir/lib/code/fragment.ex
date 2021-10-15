@@ -104,8 +104,7 @@ defmodule Code.Fragment do
 
   The current algorithm only considers the last line of the input. This means
   it will also show suggestions inside strings, heredocs, etc, which is
-  intentional as it helps with doctests, references, and more. Other functions
-  may be added in the future that consider the tree-structure of the code.
+  intentional as it helps with doctests, references, and more.
   """
   @doc since: "1.13.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
@@ -405,10 +404,10 @@ defmodule Code.Fragment do
 
   defp operator(rest, count, acc, _call_op?) do
     case :elixir_tokenizer.tokenize(acc, 1, 1, []) do
-      {:ok, _, [{:atom, _, _}]} ->
+      {:ok, _, _, _, [{:atom, _, _}]} ->
         {{:unquoted_atom, tl(acc)}, count}
 
-      {:ok, _, [{_, _, op}]} ->
+      {:ok, _, _, _, [{_, _, op}]} ->
         {rest, dot_count} = strip_spaces(rest, count)
 
         cond do
@@ -720,4 +719,89 @@ defmodule Code.Fragment do
 
   defp enum_reverse_at([h | t], n, acc) when n > 0, do: enum_reverse_at(t, n - 1, [h | acc])
   defp enum_reverse_at(rest, _, acc), do: {acc, rest}
+
+  @doc """
+  Receives a code fragment and returns a quoted expression
+  with a cursor at the closest argument.
+
+  For example, take this code, which would be given as input:
+
+      max(some_value,
+
+  This function will return the AST equivalent to:
+
+      max(some_value, __cursor__())
+
+  In other words, this function is capable of closing any open
+  brackets and insert the cursor position. Any content at the
+  cursor position that is after a comma or an opening bracket
+  is discarded. For example, if this is given as input:
+
+      max(some_value, another_val
+
+  It will return the same AST:
+
+      max(some_value, __cursor__())
+
+  Similarly, if only this is given:
+
+      max(some_va
+
+  Then it returns:
+
+      max(__cursor__())
+
+  The AST returned by this function is not safe to evaluate but
+  it can be analyzed and expanded.
+
+  Operators and anonymous functions will also be discarded, the
+  following will all return the same AST:
+
+      max(some_value,
+      max(some_value, fn x -> x end
+      max(some_value, 1 + another_val
+      max(some_value, 1 |> some_fun() |> another_fun
+
+  On the other hand, tuples, lists, maps, etc are all retained:
+
+      max(some_value, [1, 2,
+
+  Returns the following AST:
+
+      max(some_value, [1, 2, __cursor__()])
+
+  The same for keyword list keys:
+
+      max(some_value, some_key:
+
+  Returns:
+
+      max(some_value, some_key: __cursor__())
+
+  ## Examples
+
+      iex> Code.Fragment.argument_cursor_to_quoted("max(some_value, ")
+      {:ok, {:max, [line: 1], [{:some_value, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
+
+  """
+  def argument_cursor_to_quoted(fragment, opts \\ []) do
+    file = Keyword.get(opts, :file, "nofile")
+    line = Keyword.get(opts, :line, 1)
+    column = Keyword.get(opts, :column, 1)
+    fragment = to_charlist(fragment)
+    tokenizer_opts = [file: file, cursor_completion: true]
+
+    case :elixir_tokenizer.tokenize(fragment, line, column, tokenizer_opts) do
+      {:ok, _, _, _warnings, tokens} ->
+        :elixir.tokens_to_quoted(tokens, file, opts)
+
+      {:error, {line, column, {prefix, suffix}, token}, _rest, _warnings, _so_far} ->
+        location = [line: line, column: column]
+        {:error, {location, {to_string(prefix), to_string(suffix)}, to_string(token)}}
+
+      {:error, {line, column, error, token}, _rest, _warnings, _so_far} ->
+        location = [line: line, column: column]
+        {:error, {location, to_string(error), to_string(token)}}
+    end
+  end
 end

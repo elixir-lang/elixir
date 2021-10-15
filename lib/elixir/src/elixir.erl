@@ -348,13 +348,13 @@ quoted_to_erl(Quoted, Env, Scope) ->
 
 string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
   case elixir_tokenizer:tokenize(String, StartLine, StartColumn, [{file, File} | Opts]) of
-    {ok, Warnings, Tokens} ->
-      [elixir_errors:erl_warn(L, F, M) || {L, F, M} <- Warnings],
+    {ok, _Line, _Column, Warnings, Tokens} ->
+      [elixir_errors:erl_warn(L, F, M) || {L, F, M} <- lists:reverse(Warnings)],
       {ok, Tokens};
-    {error, {Line, Column, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _SoFar} ->
+    {error, {Line, Column, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _Warnings, _SoFar} ->
       Location = [{line, Line}, {column, Column}],
       {error, {Location, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
-    {error, {Line, Column, Error, Token}, _Rest, _SoFar} ->
+    {error, {Line, Column, Error, Token}, _Rest, _Warnings, _SoFar} ->
       Location = [{line, Line}, {column, Column}],
       {error, {Location, to_binary(Error), to_binary(Token)}}
   end.

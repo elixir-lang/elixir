@@ -801,4 +801,27 @@ defmodule CodeFragmentTest do
       assert CF.surround_context(":", {1, 1}) == :none
     end
   end
+
+  describe "argument_cursor_to_quoted/2" do
+    # TODO: maps
+    # TODO: &(.. must be ignored
+    # TODO: completed terminators too
+    test "completes terminators" do
+      assert CF.argument_cursor_to_quoted("(") == Code.string_to_quoted("(__cursor__())")
+      assert CF.argument_cursor_to_quoted("[") == Code.string_to_quoted("[__cursor__()]")
+      assert CF.argument_cursor_to_quoted("{") == Code.string_to_quoted("{__cursor__()}")
+      assert CF.argument_cursor_to_quoted("<<") == Code.string_to_quoted("<<__cursor__()>>")
+
+      assert CF.argument_cursor_to_quoted("foo do") ==
+               Code.string_to_quoted("foo do __cursor__() end")
+    end
+
+    test "inside interpolation" do
+      assert CF.argument_cursor_to_quoted(~S|"foo #{(|) ==
+               Code.string_to_quoted(~S|"foo #{(__cursor__())}"|)
+
+      assert CF.argument_cursor_to_quoted(~S|"foo #{"bar #{{|) ==
+               Code.string_to_quoted(~S|"foo #{"bar #{{__cursor__()}}"}"|)
+    end
+  end
 end

@@ -9,72 +9,78 @@ unescape_tokens/1, unescape_map/1]).
 
 %% Extract string interpolations
 
-extract(Line, Column, Raw, Interpol, String, Last) ->
-  %% Ignore whatever is in the scope and enable terminator checking.
-  Scope = Raw#elixir_tokenizer{terminators=[]},
-  extract(Line, Column, Scope, Interpol, String, [], [], Last).
+extract(Line, Column, Scope, Interpol, String, Last) ->
+  extract(String, [], [], Line, Column, Scope, Interpol, Last).
 
 %% Terminators
 
-extract(Line, Column, _Scope, _Interpol, [], _Buffer, _Output, Last) ->
+extract([], _Buffer, _Output, Line, Column, #elixir_tokenizer{cursor_completion=false}, _Interpol, Last) ->
   {error, {string, Line, Column, io_lib:format("missing terminator: ~ts", [[Last]]), []}};
 
-extract(Line, Column, _Scope, _Interpol, [Last | Rest], Buffer, Output, Last) ->
-  finish_extraction(Line, Column + 1, Buffer, Output, Rest);
+extract([], Buffer, Output, Line, Column, Scope, _Interpol, _Last) ->
+  finish_extraction([], Buffer, Output, Line, Column, Scope);
+
+extract([Last | Rest], Buffer, Output, Line, Column, Scope, _Interpol, Last) ->
+  finish_extraction(Rest, Buffer, Output, Line, Column + 1, Scope);
 
 %% Going through the string
 
-extract(Line, _Column, Scope, Interpol, [$\\, $\r, $\n | Rest], Buffer, Output, Last) ->
-  extract_nl(Line, Scope, Interpol, Rest, [$\n, $\r, $\\ | Buffer], Output, Last);
+extract([$\\, $\r, $\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
+  extract_nl(Rest, [$\n, $\r, $\\ | Buffer], Output, Line, Scope, Interpol, Last);
 
-extract(Line, _Column, Scope, Interpol, [$\\, $\n | Rest], Buffer, Output, Last) ->
-  extract_nl(Line, Scope, Interpol, Rest, [$\n, $\\ | Buffer], Output, Last);
+extract([$\\, $\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
+  extract_nl(Rest, [$\n, $\\ | Buffer], Output, Line, Scope, Interpol, Last);
 
-extract(Line, _Column, Scope, Interpol, [$\n | Rest], Buffer, Output, Last) ->
-  extract_nl(Line, Scope, Interpol, Rest, [$\n | Buffer], Output, Last);
+extract([$\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
+  extract_nl(Rest, [$\n | Buffer], Output, Line, Scope, Interpol, Last);
 
-extract(Line, Column, Scope, Interpol, [$\\, Last | Rest], Buffer, Output, Last) ->
-  extract(Line, Column+2, Scope, Interpol, Rest, [Last | Buffer], Output, Last);
+extract([$\\, Last | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
+  extract(Rest, [Last | Buffer], Output, Line, Column+2, Scope, Interpol, Last);
 
-extract(Line, Column, Scope, true, [$\\, $#, ${ | Rest], Buffer, Output, Last) ->
-  extract(Line, Column+1, Scope, true, Rest, [${, $#, $\\ | Buffer], Output, Last);
+extract([$\\, $#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
+  extract(Rest, [${, $#, $\\ | Buffer], Output, Line, Column+1, Scope, true, Last);
 
-extract(Line, Column, Scope, true, [$#, ${ | Rest], Buffer, Output, Last) ->
-  Output1 = build_string(Line, Buffer, Output),
-  case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope) of
-    {error, {EndLine, EndColumn, _, "}"}, [$} | NewRest], Tokens} ->
-      Output2 = build_interpol(Line, Column, EndLine, EndColumn, Tokens, Output1),
-      extract(EndLine, EndColumn + 1, Scope, true, NewRest, [], Output2, Last);
-    {error, Reason, _, _} ->
+extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
+  Output1 = build_string(Buffer, Output),
+  case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope#elixir_tokenizer{terminators=[]}) of
+    {error, {EndLine, EndColumn, _, "}"}, [$} | NewRest], Warnings, Tokens} ->
+      NewScope = Scope#elixir_tokenizer{warnings=Warnings},
+      Output2 = build_interpol(Line, Column, EndLine, EndColumn, lists:reverse(Tokens), Output1),
+      extract(NewRest, [], Output2, EndLine, EndColumn + 1, NewScope, true, Last);
+    {error, Reason, _, _, _} ->
       {error, Reason};
-    {ok, _, _} ->
+    {ok, EndLine, EndColumn, Warnings, Tokens} when Scope#elixir_tokenizer.cursor_completion /= false ->
+      NewScope = Scope#elixir_tokenizer{warnings=Warnings, cursor_completion=terminators},
+      Output2 = build_interpol(Line, Column, EndLine, EndColumn, Tokens, Output1),
+      extract([], [], Output2, EndLine, EndColumn, NewScope, true, Last);
+    {ok, _, _, _, _} ->
       {error, {string, Line, Column, "missing interpolation terminator: \"}\"", []}}
   end;
 
-extract(Line, Column, Scope, Interpol, [$\\, Char | Rest], Buffer, Output, Last) ->
-  extract(Line, Column + 2, Scope, Interpol, Rest, [Char, $\\ | Buffer], Output, Last);
+extract([$\\, Char | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
+  extract(Rest, [Char, $\\ | Buffer], Output, Line, Column + 2, Scope, Interpol, Last);
 
 %% Catch all clause
 
-extract(Line, Column, Scope, Interpol, [Char1, Char2 | Rest], Buffer, Output, Last)
+extract([Char1, Char2 | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last)
     when Char1 =< 255, Char2 =< 255 ->
-  extract(Line, Column + 1, Scope, Interpol, [Char2 | Rest], [Char1 | Buffer], Output, Last);
+  extract([Char2 | Rest], [Char1 | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
 
-extract(Line, Column, Scope, Interpol, Rest, Buffer, Output, Last) ->
+extract(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
   [Char | NewRest] = unicode_util:gc(Rest),
-  extract(Line, Column + 1, Scope, Interpol, NewRest, [Char | Buffer], Output, Last).
+  extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last).
 
 %% Handle newlines. Heredocs require special attention
 
-extract_nl(Line, Scope, Interpol, Rest, Buffer, Output, [H,H,H] = Last) ->
+extract_nl(Rest, Buffer, Output, Line, Scope, Interpol, [H,H,H] = Last) ->
   case strip_horizontal_space(Rest, Buffer, 1) of
     {[H,H,H|NewRest], _NewBuffer, Column} ->
-      finish_extraction(Line + 1, Column + 3, Buffer, Output, NewRest);
+      finish_extraction(NewRest, Buffer, Output, Line + 1, Column + 3, Scope);
     {NewRest, NewBuffer, Column} ->
-      extract(Line + 1, Column, Scope, Interpol, NewRest, NewBuffer, Output, Last)
+      extract(NewRest, NewBuffer, Output, Line + 1, Column, Scope, Interpol, Last)
   end;
-extract_nl(Line, Scope, Interpol, Rest, Buffer, Output, Last) ->
-  extract(Line + 1, 1, Scope, Interpol, Rest, Buffer, Output, Last).
+extract_nl(Rest, Buffer, Output, Line, Scope, Interpol, Last) ->
+  extract(Rest, Buffer, Output, Line + 1, 1, Scope, Interpol, Last).
 
 strip_horizontal_space([H | T], Buffer, Counter) when H =:= $\s; H =:= $\t ->
   strip_horizontal_space(T, [H | Buffer], Counter + 1);
@@ -243,16 +249,16 @@ unescape_map(E)  -> E.
 
 % Extract Helpers
 
-finish_extraction(Line, Column, Buffer, Output, Remaining) ->
-  Final = case build_string(Line, Buffer, Output) of
+finish_extraction(Remaining, Buffer, Output, Line, Column, Scope) ->
+  Final = case build_string(Buffer, Output) of
     [] -> [[]];
     F  -> F
   end,
 
-  {Line, Column, lists:reverse(Final), Remaining}.
+  {Line, Column, lists:reverse(Final), Remaining, Scope}.
 
-build_string(_Line, [], Output) -> Output;
-build_string(_Line, Buffer, Output) -> [lists:reverse(Buffer) | Output].
+build_string([], Output) -> Output;
+build_string(Buffer, Output) -> [lists:reverse(Buffer) | Output].
 
 build_interpol(Line, Column, EndLine, EndColumn, Buffer, Output) ->
-  [{{Line, Column, nil}, {EndLine, EndColumn, nil}, lists:reverse(Buffer)} | Output].
+  [{{Line, Column, nil}, {EndLine, EndColumn, nil}, Buffer} | Output].
