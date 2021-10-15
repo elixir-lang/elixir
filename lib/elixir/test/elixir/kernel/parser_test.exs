@@ -154,6 +154,23 @@ defmodule Kernel.ParserTest do
                Code.string_to_quoted("there_is_no_such_var", static_atoms_encoder: encoder)
     end
 
+    test "encodes quoted keyword keys" do
+      ref = make_ref()
+
+      encoder = fn atom, meta ->
+        assert atom == "there is no such key"
+        assert meta[:line] == 1
+        assert meta[:column] == 2
+        assert meta[:file] == "nofile"
+        {:ok, {:my, "atom", ref}}
+      end
+
+      assert {:ok, [{{:my, "atom", ^ref}, true}]} =
+               Code.string_to_quoted(~S(["there is no such key": true]),
+                 static_atoms_encoder: encoder
+               )
+    end
+
     test "addresses ambiguities" do
       encoder = fn string, _meta -> {:ok, {:atom, string}} end
 

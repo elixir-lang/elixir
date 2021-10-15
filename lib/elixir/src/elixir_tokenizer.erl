@@ -758,6 +758,15 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
       end,
 
       case unescape_tokens(Parts, Line, Column, NewScope) of
+        {ok, [Part]} when is_binary(Part) ->
+          case unsafe_to_atom(Part, Line, Column - 1, Scope) of
+            {ok, Atom} ->
+              Token = {kw_identifier, {Line, Column - 1, nil}, Atom},
+              tokenize(Rest, NewLine, NewColumn + 1, NewScope, [Token | Tokens]);
+            {error, Reason} ->
+              {error, Reason, Rest, Tokens}
+          end;
+
         {ok, Unescaped} ->
           Key = case Scope#elixir_tokenizer.existing_atoms_only of
             true  -> kw_identifier_safe;
