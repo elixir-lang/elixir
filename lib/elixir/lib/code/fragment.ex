@@ -724,8 +724,10 @@ defmodule Code.Fragment do
   Receives a code fragment and returns a quoted expression
   with a cursor at the nearest argument position.
 
-  For example, take this code, which would be given as an
-  input string:
+  A container is any Elixir expression starting with `(`,
+  `{`, and `[`. This includes function calls, tuples, lists,
+  maps, and so on. For example, take this code, which would
+  be given as input:
 
       max(some_value,
 
@@ -752,15 +754,19 @@ defmodule Code.Fragment do
 
       max(__cursor__())
 
-  Operators and anonymous functions will be discarded.
-  All of the following will all return the same AST:
+  Calls without parenthesis are also supported, as we assume the
+  brackets are implicit.
+
+  Operators and anonymous functions are not containers, and therefore
+  will be discarded. The following will all return the same AST:
 
       max(some_value,
       max(some_value, fn x -> x end
       max(some_value, 1 + another_val
       max(some_value, 1 |> some_fun() |> another_fun
 
-  On the other hand, tuples, lists, maps, etc are all retained:
+  On the other hand, tuples, lists, maps, etc all retain the
+  cursor position:
 
       max(some_value, [1, 2,
 
@@ -768,7 +774,7 @@ defmodule Code.Fragment do
 
       max(some_value, [1, 2, __cursor__()])
 
-  Keyword lists (and do-end blocks) are retained. The following:
+  Keyword lists (and do-end blocks) are also retained. The following:
 
       if(some_value, do:
       if(some_value, do: :token
@@ -783,7 +789,7 @@ defmodule Code.Fragment do
 
   ## Examples
 
-      iex> Code.Fragment.argument_cursor_to_quoted("max(some_value, ")
+      iex> Code.Fragment.container_cursor_to_quoted("max(some_value, ")
       {:ok, {:max, [line: 1], [{:some_value, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
 
   ## Options
@@ -802,9 +808,9 @@ defmodule Code.Fragment do
 
   """
   @doc since: "1.13.0"
-  @spec argument_cursor_to_quoted(List.Chars.t(), keyword()) ::
+  @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
-  def argument_cursor_to_quoted(fragment, opts \\ []) do
+  def container_cursor_to_quoted(fragment, opts \\ []) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)

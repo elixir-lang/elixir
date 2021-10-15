@@ -802,64 +802,64 @@ defmodule CodeFragmentTest do
     end
   end
 
-  describe "argument_cursor_to_quoted/2" do
+  describe "container_cursor_to_quoted/2" do
     def s2q(arg), do: Code.string_to_quoted(arg)
-    def ac2q(arg), do: CF.argument_cursor_to_quoted(arg)
+    def cc2q(arg), do: CF.container_cursor_to_quoted(arg)
 
     # TODO: maps and structs and keywords (kw_identifier kw_identifier_safe kw_identifier_unsafe)
     test "completes terminators" do
-      assert ac2q("(") == s2q("(__cursor__())")
-      assert ac2q("[") == s2q("[__cursor__()]")
-      assert ac2q("{") == s2q("{__cursor__()}")
-      assert ac2q("<<") == s2q("<<__cursor__()>>")
-      assert ac2q("%{") == s2q("%{__cursor__()}")
-      assert ac2q("foo do") == s2q("foo do __cursor__() end")
-      assert ac2q("foo do true else") == s2q("foo do true else __cursor__() end")
+      assert cc2q("(") == s2q("(__cursor__())")
+      assert cc2q("[") == s2q("[__cursor__()]")
+      assert cc2q("{") == s2q("{__cursor__()}")
+      assert cc2q("<<") == s2q("<<__cursor__()>>")
+      assert cc2q("%{") == s2q("%{__cursor__()}")
+      assert cc2q("foo do") == s2q("foo do __cursor__() end")
+      assert cc2q("foo do true else") == s2q("foo do true else __cursor__() end")
     end
 
     test "inside interpolation" do
-      assert ac2q(~S|"foo #{(|) == s2q(~S|"foo #{(__cursor__())}"|)
-      assert ac2q(~S|"foo #{"bar #{{|) == s2q(~S|"foo #{"bar #{{__cursor__()}}"}"|)
+      assert cc2q(~S|"foo #{(|) == s2q(~S|"foo #{(__cursor__())}"|)
+      assert cc2q(~S|"foo #{"bar #{{|) == s2q(~S|"foo #{"bar #{{__cursor__()}}"}"|)
     end
 
     test "do-end blocks" do
-      assert ac2q("foo(bar do baz") == s2q("foo(bar do __cursor__() end)")
-      assert ac2q("foo(bar do baz ") == s2q("foo(bar do baz(__cursor__()) end)")
-      assert ac2q("foo(bar do baz(") == s2q("foo(bar do baz(__cursor__()) end)")
-      assert ac2q("foo(bar do baz bat,") == s2q("foo(bar do baz(bat, __cursor__()) end)")
+      assert cc2q("foo(bar do baz") == s2q("foo(bar do __cursor__() end)")
+      assert cc2q("foo(bar do baz ") == s2q("foo(bar do baz(__cursor__()) end)")
+      assert cc2q("foo(bar do baz(") == s2q("foo(bar do baz(__cursor__()) end)")
+      assert cc2q("foo(bar do baz bat,") == s2q("foo(bar do baz(bat, __cursor__()) end)")
 
-      assert {:error, {_, "syntax error before: ", "'end'"}} = ac2q("foo(bar do baz, bat")
+      assert {:error, {_, "syntax error before: ", "'end'"}} = cc2q("foo(bar do baz, bat")
     end
 
     test "removes tokens until opening" do
-      assert ac2q("(123") == s2q("(__cursor__())")
-      assert ac2q("[foo") == s2q("[__cursor__()]")
-      assert ac2q("{'foo'") == s2q("{__cursor__()}")
-      assert ac2q("<<1+2") == s2q("<<__cursor__()>>")
-      assert ac2q("foo do :atom") == s2q("foo do __cursor__() end")
-      assert ac2q("foo(:atom") == s2q("foo(__cursor__())")
+      assert cc2q("(123") == s2q("(__cursor__())")
+      assert cc2q("[foo") == s2q("[__cursor__()]")
+      assert cc2q("{'foo'") == s2q("{__cursor__()}")
+      assert cc2q("<<1+2") == s2q("<<__cursor__()>>")
+      assert cc2q("foo do :atom") == s2q("foo do __cursor__() end")
+      assert cc2q("foo(:atom") == s2q("foo(__cursor__())")
     end
 
     test "removes functions" do
-      assert ac2q("(fn") == s2q("(__cursor__())")
-      assert ac2q("(fn x") == s2q("(__cursor__())")
-      assert ac2q("(fn x ->") == s2q("(__cursor__())")
-      assert ac2q("(fn x -> x") == s2q("(__cursor__())")
-      assert ac2q("(fn x, y -> x + y") == s2q("(__cursor__())")
-      assert ac2q("(fn x, y -> x + y end") == s2q("(__cursor__())")
+      assert cc2q("(fn") == s2q("(__cursor__())")
+      assert cc2q("(fn x") == s2q("(__cursor__())")
+      assert cc2q("(fn x ->") == s2q("(__cursor__())")
+      assert cc2q("(fn x -> x") == s2q("(__cursor__())")
+      assert cc2q("(fn x, y -> x + y") == s2q("(__cursor__())")
+      assert cc2q("(fn x, y -> x + y end") == s2q("(__cursor__())")
     end
 
     test "removes captures" do
-      assert ac2q("[& &1") == s2q("[__cursor__()]")
-      assert ac2q("[&(&1") == s2q("[__cursor__()]")
+      assert cc2q("[& &1") == s2q("[__cursor__()]")
+      assert cc2q("[&(&1") == s2q("[__cursor__()]")
     end
 
     test "removes closed terminators" do
-      assert ac2q("foo([1, 2, 3] |>") == s2q("foo(__cursor__())")
-      assert ac2q("foo({1, 2, 3} |>") == s2q("foo(__cursor__())")
-      assert ac2q("foo((1, 2, 3) |>") == s2q("foo(__cursor__())")
-      assert ac2q("foo(<<1, 2, 3>> |>") == s2q("foo(__cursor__())")
-      assert ac2q("foo(bar do :done end |>") == s2q("foo(__cursor__())")
+      assert cc2q("foo([1, 2, 3] |>") == s2q("foo(__cursor__())")
+      assert cc2q("foo({1, 2, 3} |>") == s2q("foo(__cursor__())")
+      assert cc2q("foo((1, 2, 3) |>") == s2q("foo(__cursor__())")
+      assert cc2q("foo(<<1, 2, 3>> |>") == s2q("foo(__cursor__())")
+      assert cc2q("foo(bar do :done end |>") == s2q("foo(__cursor__())")
     end
   end
 end
