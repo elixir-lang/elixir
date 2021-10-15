@@ -152,23 +152,24 @@ tokenize(String, Line, Column, Opts) ->
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
-tokenize([], Line, Column, #elixir_tokenizer{terminators=Terminators, warnings=Warnings}, Tokens)
-    when Terminators == none; Terminators == [] ->
-  {ok, Line, Column, Warnings, lists:reverse(Tokens)};
+tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
+  #elixir_tokenizer{terminators=Terminators, warnings=Warnings} = Scope,
 
-tokenize([], EndLine, Column, #elixir_tokenizer{cursor_completion=false} = Scope, Tokens) ->
-  #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope,
+  {CursorColumn, CursorTerminators, CursorTokens} =
+    add_cursor(Line, Column, Cursor, Terminators, Tokens),
+
+  AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
+  {ok, Line, Column, Warnings, AccTokens};
+
+tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
   Hint = missing_terminator_hint(Start, End, Scope),
   Message = "missing terminator: ~ts (for \"~ts\" starting at line ~B)",
   Formatted = io_lib:format(Message, [End, Start, StartLine]),
   error({EndLine, Column, [Formatted, Hint], []}, [], Scope, Tokens);
 
-tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) ->
-  #elixir_tokenizer{terminators=Terminators, warnings=Warnings} = Scope,
-  {CursorTokens, CursorColumn} = add_cursor(Tokens, Line, Column, Cursor),
-  AccTokens = cursor_complete(Terminators, Line, CursorColumn, CursorTokens),
-  {ok, Line, Column, Warnings, AccTokens};
+tokenize([], Line, Column, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
+  {ok, Line, Column, Warnings, lists:reverse(Tokens)};
 
 % VC merge conflict
 
@@ -908,6 +909,11 @@ handle_space_sensitive_tokens([Sign, NotMarker | T], Line, Column, Scope, [{Iden
   DualOpToken = {dual_op, {Line, Column, nil}, list_to_atom([Sign])},
   tokenize(Rest, Line, Column + 1, Scope, [DualOpToken, setelement(1, H, op_identifier) | Tokens]);
 
+handle_space_sensitive_tokens([], Line, Column,
+                              #elixir_tokenizer{cursor_completion=Cursor} = Scope,
+                              [{identifier, Info, Identifier} | Tokens]) when Cursor /= false ->
+  tokenize([$(], Line, Column+1, Scope, [{paren_identifier, Info, Identifier} | Tokens]);
+
 handle_space_sensitive_tokens(String, Line, Column, Scope, Tokens) ->
   tokenize(String, Line, Column, Scope, Tokens).
 
@@ -1271,8 +1277,7 @@ handle_terminator(Rest, Line, Column, Scope, {'(', _}, [{alias, _, Alias} | Toke
     ),
 
   error({Line, Column, Reason, ["("]}, atom_to_list(Alias) ++ [$( | Rest], Scope, Tokens);
-handle_terminator(Rest, Line, Column, Scope, Token, Tokens) when
-    Scope#elixir_tokenizer.terminators == none ->
+handle_terminator(Rest, Line, Column, #elixir_tokenizer{terminators=none} = Scope, Token, Tokens) ->
   tokenize(Rest, Line, Column, Scope, [Token | Tokens]);
 handle_terminator(Rest, Line, Column, Scope, Token, Tokens) ->
   #elixir_tokenizer{terminators=Terminators} = Scope,
@@ -1318,23 +1323,20 @@ check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation} | Terminators
 
   {ok, NewScope#elixir_tokenizer{terminators=Terminators}};
 
-check_terminator({End, _}, [{Start, _, _} | Terminators], Scope)
-    when Start == 'fn', End == 'end';
-         Start == '(',  End == ')';
-         Start == '[',  End == ']';
-         Start == '{',  End == '}';
-         Start == '<<', End == '>>' ->
-  {ok, Scope#elixir_tokenizer{terminators=Terminators}};
-
-check_terminator({End, {EndLine, EndColumn, _}}, [{Start, StartLine, _} | _], Scope)
+check_terminator({End, {EndLine, EndColumn, _}}, [{Start, StartLine, _} | Terminators], Scope)
     when End == 'end'; End == ')'; End == ']'; End == '}'; End == '>>' ->
-  ExpectedEnd = terminator(Start),
+  case terminator(Start) of
+    End ->
+      {ok, Scope#elixir_tokenizer{terminators=Terminators}};
 
-  Suffix =
-    [io_lib:format(". The \"~ts\" at line ~B is missing terminator \"~ts\"", [Start, StartLine, ExpectedEnd]),
-     missing_terminator_hint(Start, ExpectedEnd, Scope)],
-
-  {error, {EndLine, EndColumn, {unexpected_token_or_reserved(End), Suffix}, [atom_to_list(End)]}};
+    ExpectedEnd ->
+      Context = ". The \"~ts\" at line ~B is missing terminator \"~ts\"",
+      Suffix = [
+        io_lib:format(Context, [Start, StartLine, ExpectedEnd]),
+        missing_terminator_hint(Start, ExpectedEnd, Scope)
+      ],
+      {error, {EndLine, EndColumn, {unexpected_token_or_reserved(End), Suffix}, [atom_to_list(End)]}}
+  end;
 
 check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints}) ->
   Suffix =
@@ -1414,7 +1416,7 @@ tokenize_keyword(terminator, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
     {ok, [Check | T]} ->
       handle_terminator(Rest, Line, Column + Length, Scope, Check, T);
     {error, Message, Token} ->
-      error({Line, Column, Message, Token}, "do" ++ Rest, Scope, Tokens)
+      error({Line, Column, Message, Token}, Token ++ Rest, Scope, Tokens)
   end;
 
 tokenize_keyword(token, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
@@ -1537,7 +1539,7 @@ error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
 
 %% Cursor handling
 
-cursor_complete(Terminators, Line, Column, Tokens) ->
+cursor_complete(Line, Column, Terminators, Tokens) ->
   {AccTokens, _} =
     lists:foldl(
       fun({Start, _, _}, {NewTokens, NewColumn}) ->
@@ -1551,13 +1553,68 @@ cursor_complete(Terminators, Line, Column, Tokens) ->
     ),
   lists:reverse(AccTokens).
 
-add_cursor(Tokens, _Line, Column, terminators) ->
-  {Tokens, Column};
-add_cursor(Tokens, Line, Column, cursor_and_terminators) ->
+add_cursor(_Line, Column, terminators, Terminators, Tokens) ->
+  {Column, Terminators, Tokens};
+add_cursor(Line, Column, cursor_and_terminators, Terminators, Tokens) ->
+  {PrunedTokens, PrunedTerminators} = prune_tokens(Tokens, [], Terminators),
   CursorTokens = [
     {')', {Line, Column + 11, nil}},
     {'(', {Line, Column + 10, nil}},
     {paren_identifier, {Line, Column, nil}, '__cursor__'}
-    | Tokens
+    | PrunedTokens
   ],
-  {CursorTokens, Column + 12}.
+  {Column + 12, PrunedTerminators, CursorTokens}.
+
+%%% Any terminator needs to be closed
+prune_tokens([{'end', _} | Tokens], Opener, Terminators) ->
+  prune_tokens(Tokens, ['end' | Opener], Terminators);
+prune_tokens([{')', _} | Tokens], Opener, Terminators) ->
+  prune_tokens(Tokens, [')' | Opener], Terminators);
+prune_tokens([{']', _} | Tokens], Opener, Terminators) ->
+  prune_tokens(Tokens, [']' | Opener], Terminators);
+prune_tokens([{'}', _} | Tokens], Opener, Terminators) ->
+  prune_tokens(Tokens, ['}' | Opener], Terminators);
+prune_tokens([{'>>', _} | Tokens], Opener, Terminators) ->
+  prune_tokens(Tokens, ['>>' | Opener], Terminators);
+%%% Close opened terminators
+prune_tokens([{'fn', _} | Tokens], ['end' | Opener], Terminators) ->
+  prune_tokens(Tokens, Opener, Terminators);
+prune_tokens([{'do', _} | Tokens], ['end' | Opener], Terminators) ->
+  prune_tokens(Tokens, Opener, Terminators);
+prune_tokens([{'(', _} | Tokens], [')' | Opener], Terminators) ->
+  prune_tokens(Tokens, Opener, Terminators);
+prune_tokens([{'[', _} | Tokens], [']' | Opener], Terminators) ->
+  prune_tokens(Tokens, Opener, Terminators);
+prune_tokens([{'{', _} | Tokens], ['}' | Opener], Terminators) ->
+  prune_tokens(Tokens, Opener, Terminators);
+prune_tokens([{'<<', _} | Tokens], ['>>' | Opener], Terminators) ->
+  prune_tokens(Tokens, Opener, Terminators);
+%%% Handle anonymous functions
+prune_tokens(Tokens, [], [{'fn', _, _} | Terminators]) ->
+  prune_tokens(drop_including(Tokens, 'fn'), [], Terminators);
+prune_tokens([{'(', _}, {capture_op, _, _} | Tokens], [], [{'(', _, _} | Terminators]) ->
+  prune_tokens(Tokens, [], Terminators);
+%%% or it is time to stop...
+prune_tokens([{',', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{'do', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{'(', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{'[', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{'{', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{'<<', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{block_identifier, _, _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+%%% or we traverse until the end.
+prune_tokens([_ | Tokens], Opener, Terminators) ->
+  prune_tokens(Tokens, Opener, Terminators);
+prune_tokens([], [], Terminators) ->
+  {[], Terminators}.
+
+drop_including([{Token, _} | Tokens], Token) -> Tokens;
+drop_including([_ | Tokens], Token) -> drop_including(Tokens, Token);
+drop_including([], _Token) -> [].

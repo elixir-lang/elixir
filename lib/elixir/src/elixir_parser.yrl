@@ -29,14 +29,13 @@ Nonterminals
 
 Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
-  paren_identifier do_identifier block_identifier
+  paren_identifier do_identifier block_identifier op_identifier
   fn 'end' alias
   atom atom_quoted atom_safe atom_unsafe bin_string list_string sigil
   bin_heredoc list_heredoc
-  dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op mult_op power_op concat_op xor_op pipe_op stab_op when_op
-  assoc_op capture_op rel_op ternary_op
+  assoc_op capture_op rel_op ternary_op dot_call_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   int flt char

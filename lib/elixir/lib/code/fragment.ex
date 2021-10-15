@@ -722,9 +722,10 @@ defmodule Code.Fragment do
 
   @doc """
   Receives a code fragment and returns a quoted expression
-  with a cursor at the closest argument.
+  with a cursor at the nearest argument position.
 
-  For example, take this code, which would be given as input:
+  For example, take this code, which would be given as an
+  input string:
 
       max(some_value,
 
@@ -751,11 +752,8 @@ defmodule Code.Fragment do
 
       max(__cursor__())
 
-  The AST returned by this function is not safe to evaluate but
-  it can be analyzed and expanded.
-
-  Operators and anonymous functions will also be discarded, the
-  following will all return the same AST:
+  Operators and anonymous functions will be discarded.
+  All of the following will all return the same AST:
 
       max(some_value,
       max(some_value, fn x -> x end
@@ -770,30 +768,53 @@ defmodule Code.Fragment do
 
       max(some_value, [1, 2, __cursor__()])
 
-  The same for keyword list keys:
+  Keyword lists (and do-end blocks) are retained. The following:
 
-      max(some_value, some_key:
+      if(some_value, do:
+      if(some_value, do: :token
+      if(some_value, do: 1 + val
 
-  Returns:
+  all return:
 
-      max(some_value, some_key: __cursor__())
+      if(some_value, do: __cursor__())
+
+  The AST returned by this function is not safe to evaluate but
+  it can be analyzed and expanded.
 
   ## Examples
 
       iex> Code.Fragment.argument_cursor_to_quoted("max(some_value, ")
       {:ok, {:max, [line: 1], [{:some_value, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
 
+  ## Options
+
+    * `:file` - the filename to be reported in case of parsing errors.
+      Defaults to `"nofile"`.
+
+    * `:line` - the starting line of the string being parsed.
+      Defaults to 1.
+
+    * `:column` - the starting column of the string being parsed.
+      Defaults to 1.
+
+    * `:columns` - when `true`, attach a `:column` key to the quoted
+      metadata. Defaults to `false`.
+
   """
+  @doc since: "1.13.0"
+  @spec argument_cursor_to_quoted(List.Chars.t(), keyword()) ::
+          {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def argument_cursor_to_quoted(fragment, opts \\ []) do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
+    columns = Keyword.get(opts, :columns, false)
     fragment = to_charlist(fragment)
-    tokenizer_opts = [file: file, cursor_completion: true]
+    tokenizer_opts = [file: file, cursor_completion: true, columns: columns]
 
     case :elixir_tokenizer.tokenize(fragment, line, column, tokenizer_opts) do
       {:ok, _, _, _warnings, tokens} ->
-        :elixir.tokens_to_quoted(tokens, file, opts)
+        :elixir.tokens_to_quoted(tokens, file, columns: columns)
 
       {:error, {line, column, {prefix, suffix}, token}, _rest, _warnings, _so_far} ->
         location = [line: line, column: column]
