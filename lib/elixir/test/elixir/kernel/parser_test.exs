@@ -154,7 +154,7 @@ defmodule Kernel.ParserTest do
                Code.string_to_quoted("there_is_no_such_var", static_atoms_encoder: encoder)
     end
 
-    test "encodes quoted atom keys" do
+    test "encodes quoted keyword keys" do
       ref = make_ref()
 
       encoder = fn atom, meta ->
