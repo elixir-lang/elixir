@@ -149,7 +149,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [Keyword] Add `Keyword.validate/2`
   * [Keyword] Implement `Keyword.filter/2` and `Keyword.map/2`
   * [List] Add `List.keyfind!/3`
-  * [Macro] Add `Macro.prewalker/1`
+  * [Macro] Add `Macro.prewalker/1` and `Macro.postwalker/1`
   * [Macro.Env] Add the following reflection functions: `required?/2`, `lookup_import/2`, `fetch_alias/2`, and `fetch_macro_alias/2`
   * [Map] Implement `Map.filter/2` and `Map.map/2`
   * [Module] Support `:nillify_clauses` in `Module.get_definition/3`

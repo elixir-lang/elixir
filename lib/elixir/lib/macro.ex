@@ -773,6 +773,67 @@ defmodule Macro do
     prewalker(tail, fun.(head, acc), fun)
   end
 
+  @doc """
+  Returns an enumerable that traverses the  `ast` in depth-first,
+  post-order traversal.
+
+  ## Examples
+
+      iex> ast = quote do: foo(1, "abc")
+      iex> Enum.map(Macro.postwalker(ast), & &1)
+      [1, "abc", {:foo, [], [1, "abc"]}]
+
+  """
+  def postwalker(ast) do
+    &postwalker([ast], make_ref(), &1, &2)
+  end
+
+  defp postwalker(_buffer, _ref, {:halt, acc}, _fun) do
+    {:halted, acc}
+  end
+
+  defp postwalker(buffer, ref, {:suspend, acc}, fun) do
+    {:suspended, acc, &postwalker(buffer, ref, &1, fun)}
+  end
+
+  defp postwalker([], _ref, {:cont, acc}, _fun) do
+    {:done, acc}
+  end
+
+  defp postwalker([{ref, head} | tail], ref, {:cont, acc}, fun) do
+    postwalker(tail, ref, fun.(head, acc), fun)
+  end
+
+  defp postwalker([{left, right} = node | tail], ref, {:cont, acc}, fun) do
+    postwalker([right, {ref, node} | tail], ref, fun.(left, acc), fun)
+  end
+
+  defp postwalker([{left, meta, right} = node | tail], ref, {:cont, acc}, fun)
+       when is_atom(left) and is_list(meta) do
+    if is_atom(right) do
+      postwalker(tail, ref, fun.(node, acc), fun)
+    else
+      postwalker(right ++ [{ref, node} | tail], ref, {:cont, acc}, fun)
+    end
+  end
+
+  defp postwalker([{left, meta, right} = node | tail], ref, cont_acc, fun)
+       when is_list(meta) do
+    if is_atom(right) do
+      postwalker([left, {ref, node} | tail], ref, cont_acc, fun)
+    else
+      postwalker([left | right] ++ [{ref, node} | tail], ref, cont_acc, fun)
+    end
+  end
+
+  defp postwalker([list | tail], ref, cont_acc, fun) when is_list(list) do
+    postwalker(list ++ [{ref, list} | tail], ref, cont_acc, fun)
+  end
+
+  defp postwalker([head | tail], ref, {:cont, acc}, fun) do
+    postwalker(tail, ref, fun.(head, acc), fun)
+  end
+
   @doc ~S"""
   Unescapes the given chars.
 
