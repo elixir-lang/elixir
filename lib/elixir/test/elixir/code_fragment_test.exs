@@ -908,9 +908,12 @@ defmodule CodeFragmentTest do
       assert cc2q("foo(bar do :done end |>") == s2q("foo(__cursor__())")
     end
 
-    test "returns column information" do
+    test "options" do
       assert cc2q("foo(", columns: true) == s2q("foo(__cursor__())", columns: true)
       assert cc2q("foo(123,", columns: true) == s2q("foo(123,__cursor__())", columns: true)
+
+      assert cc2q("foo(", token_metadata: true) == s2q("foo(__cursor__())", token_metadata: true)
+      assert cc2q("foo(123,", token_metadata: true) == s2q("foo(123,__cursor__())", token_metadata: true)
     end
   end
 end
