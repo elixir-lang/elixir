@@ -1005,6 +1005,32 @@ defmodule MacroTest do
     assert Macro.struct!(StructBang, __ENV__) == %{__struct__: StructBang, a: nil, b: nil}
   end
 
+  test "prewalker/1" do
+    ast = quote do: :mod.foo(bar({1, 2}), [3, 4, five])
+    map = Enum.map(Macro.prewalker(ast), & &1)
+
+    assert map == [
+             {{:., [], [:mod, :foo]}, [], [{:bar, [], [{1, 2}]}, [3, 4, {:five, [], MacroTest}]]},
+             {:., [], [:mod, :foo]},
+             :mod,
+             :foo,
+             {:bar, [], [{1, 2}]},
+             {1, 2},
+             1,
+             2,
+             [3, 4, {:five, [], MacroTest}],
+             3,
+             4,
+             {:five, [], MacroTest}
+           ]
+
+    assert Enum.zip(Macro.prewalker(ast), []) == Enum.zip(map, [])
+
+    for i <- 0..(length(map) + 1) do
+      assert Enum.take(Macro.prewalker(ast), i) == Enum.take(map, i)
+    end
+  end
+
   test "operator?/2" do
     assert Macro.operator?(:+, 2)
     assert Macro.operator?(:+, 1)
