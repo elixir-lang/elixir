@@ -24,19 +24,17 @@ Nonterminals
   dot_op dot_alias dot_bracket_identifier dot_call_identifier
   dot_identifier dot_op_identifier dot_do_identifier dot_paren_identifier
   do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
-  number
   .
 
 Terminals
   identifier kw_identifier kw_identifier_safe kw_identifier_unsafe bracket_identifier
-  paren_identifier do_identifier block_identifier
+  paren_identifier do_identifier block_identifier op_identifier
   fn 'end' alias
   atom atom_quoted atom_safe atom_unsafe bin_string list_string sigil
   bin_heredoc list_heredoc
-  dot_call_op op_identifier
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op mult_op power_op concat_op xor_op pipe_op stab_op when_op
-  assoc_op capture_op rel_op ternary_op
+  assoc_op capture_op rel_op ternary_op dot_call_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   int flt char
@@ -120,8 +118,8 @@ expr -> unmatched_expr : '$1'.
 %%
 %% Note, in particular, that no_parens_one_ambig expressions are
 %% ambiguous and are interpreted such that the outer function has
-%% arity 1 (for instance, `f g a, b` is interpreted as `f(g(a, b))` rather
-%% than `f(g(a), b)`). Hence the name, no_parens_one_ambig.
+%% arity 1. For instance, `f g a, b` is interpreted as `f(g(a, b))` rather
+%% than `f(g(a), b)`. Hence the name, no_parens_one_ambig.
 %%
 %% The distinction is required because we can't, for example, have
 %% a function call with a do block as argument inside another do
@@ -192,7 +190,6 @@ matched_op_expr -> pipe_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> comp_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> rel_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
-%% Warn for no parens subset
 matched_op_expr -> arrow_op_eol no_parens_one_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
 unmatched_op_expr -> match_op_eol unmatched_expr : {'$1', '$2'}.
@@ -230,7 +227,6 @@ no_parens_op_expr -> pipe_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> comp_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> rel_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> arrow_op_eol no_parens_expr : {'$1', '$2'}.
-%% Warn for no parens subset
 no_parens_op_expr -> arrow_op_eol no_parens_one_ambig_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 no_parens_op_expr -> arrow_op_eol no_parens_many_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
@@ -262,7 +258,9 @@ access_expr -> open_paren ';' stab ';' close_paren : build_stab('$1', '$3', '$5'
 access_expr -> open_paren ';' stab close_paren : build_stab('$1', '$3', '$4').
 access_expr -> open_paren ';' close_paren : build_stab('$1', [], '$3').
 access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', [], []}.
-access_expr -> number : '$1'.
+access_expr -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
+access_expr -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
+access_expr -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
 access_expr -> list : element(1, '$1').
 access_expr -> map : '$1'.
 access_expr -> tuple : '$1'.
@@ -281,10 +279,6 @@ access_expr -> atom_safe : build_quoted_atom('$1', true, delimiter(<<$">>)).
 access_expr -> atom_unsafe : build_quoted_atom('$1', false, delimiter(<<$">>)).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
-
-number -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
-number -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
-number -> char : handle_number(?exprs('$1'), '$1', number_value('$1')).
 
 %% Also used by maps and structs
 parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
@@ -523,7 +517,7 @@ container_args_base -> container_args_base ',' container_expr : ['$3' | '$1'].
 
 container_args -> container_args_base : reverse('$1').
 container_args -> container_args_base ',' : reverse('$1').
-container_args -> container_args_base ',' kw_call : reverse(['$3' | '$1']).
+container_args -> container_args_base ',' kw_data : reverse(['$3' | '$1']).
 
 % Function calls with parentheses
 
@@ -540,14 +534,10 @@ call_args_parens -> open_paren no_parens_expr close_paren :
                       {newlines_pair('$1', '$3'), ['$2']}.
 call_args_parens -> open_paren kw_call close_paren :
                       {newlines_pair('$1', '$3'), ['$2']}.
-call_args_parens -> open_paren kw_call ',' close_paren :
-                      warn_trailing_comma('$3'), {newlines_pair('$1', '$4'), ['$2']}.
 call_args_parens -> open_paren call_args_parens_base close_paren :
                       {newlines_pair('$1', '$3'), reverse('$2')}.
 call_args_parens -> open_paren call_args_parens_base ',' kw_call close_paren :
                       {newlines_pair('$1', '$5'), reverse(['$4' | '$2'])}.
-call_args_parens -> open_paren call_args_parens_base ',' kw_call ',' close_paren :
-                      warn_trailing_comma('$5'), {newlines_pair('$1', '$6'), reverse(['$4' | '$2'])}.
 
 % KV
 
@@ -562,19 +552,18 @@ kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
 
 kw_call -> kw_base : reverse('$1').
-kw_call -> kw_base ',' : reverse('$1').
-kw_call -> kw_base ',' matched_expr : error_bad_keyword_call_follow_up('$2').
+kw_call -> kw_base ',' matched_expr : maybe_bad_keyword_call_follow_up('$2', '$1', '$3').
 
 kw_data -> kw_base : reverse('$1').
 kw_data -> kw_base ',' : reverse('$1').
-kw_data -> kw_base ',' matched_expr : error_bad_keyword_data_follow_up('$2').
+kw_data -> kw_base ',' matched_expr : maybe_bad_keyword_data_follow_up('$2', '$1', '$3').
 
 call_args_no_parens_kw_expr -> kw_eol matched_expr : {'$1', '$2'}.
 call_args_no_parens_kw_expr -> kw_eol no_parens_expr : {'$1', '$2'}.
 
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1' | '$3'].
-call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' matched_expr : error_bad_keyword_call_follow_up('$2').
+call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' matched_expr : maybe_bad_keyword_call_follow_up('$2', ['$1'], '$3').
 
 % Lists
 
@@ -1114,7 +1103,9 @@ error_bad_atom(Token) ->
     "If the '.' was meant to be part of the atom's name, "
     "the atom name must be quoted. Syntax error before: ", "'.'").
 
-error_bad_keyword_call_follow_up(Token) ->
+maybe_bad_keyword_call_follow_up(_Token, KW, {'__cursor__', _, []} = Expr) ->
+  reverse([Expr | KW]);
+maybe_bad_keyword_call_follow_up(Token, _KW, _Expr) ->
   return_error(meta_from_token(Token),
     "unexpected expression after keyword list. Keyword lists must always come as the last argument. Therefore, this is not allowed:\n\n"
     "    function_call(1, some: :option, 2)\n\n"
@@ -1122,7 +1113,9 @@ error_bad_keyword_call_follow_up(Token) ->
     "    function_call(1, [some: :option], 2)\n\n"
     "Syntax error after: ", "','").
 
-error_bad_keyword_data_follow_up(Token) ->
+maybe_bad_keyword_data_follow_up(_Token, KW, {'__cursor__', _, []} = Expr) ->
+  reverse([Expr | KW]);
+maybe_bad_keyword_data_follow_up(Token, _KW, _Expr) ->
   return_error(meta_from_token(Token),
     "unexpected expression after keyword list. Keyword lists must always come last in lists and maps. Therefore, this is not allowed:\n\n"
     "    [some: :value, :another]\n"
@@ -1191,11 +1184,6 @@ warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
   );
 warn_pipe(_Token, _) ->
   ok.
-
-warn_trailing_comma({',', {Line, _, _}}) ->
-  elixir_errors:erl_warn(Line, ?file(),
-    "trailing commas are not allowed inside function/macro call arguments"
-  ).
 
 warn_empty_stab_clause({stab_op, {Line, _, _}, '->'}) ->
   elixir_errors:erl_warn(Line, ?file(),

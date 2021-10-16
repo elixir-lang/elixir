@@ -104,8 +104,7 @@ defmodule Code.Fragment do
 
   The current algorithm only considers the last line of the input. This means
   it will also show suggestions inside strings, heredocs, etc, which is
-  intentional as it helps with doctests, references, and more. Other functions
-  may be added in the future that consider the tree-structure of the code.
+  intentional as it helps with doctests, references, and more.
   """
   @doc since: "1.13.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
@@ -405,10 +404,10 @@ defmodule Code.Fragment do
 
   defp operator(rest, count, acc, _call_op?) do
     case :elixir_tokenizer.tokenize(acc, 1, 1, []) do
-      {:ok, _, [{:atom, _, _}]} ->
+      {:ok, _, _, _, [{:atom, _, _}]} ->
         {{:unquoted_atom, tl(acc)}, count}
 
-      {:ok, _, [{_, _, op}]} ->
+      {:ok, _, _, _, [{_, _, op}]} ->
         {rest, dot_count} = strip_spaces(rest, count)
 
         cond do
@@ -720,4 +719,116 @@ defmodule Code.Fragment do
 
   defp enum_reverse_at([h | t], n, acc) when n > 0, do: enum_reverse_at(t, n - 1, [h | acc])
   defp enum_reverse_at(rest, _, acc), do: {acc, rest}
+
+  @doc """
+  Receives a code fragment and returns a quoted expression
+  with a cursor at the nearest argument position.
+
+  A container is any Elixir expression starting with `(`,
+  `{`, and `[`. This includes function calls, tuples, lists,
+  maps, and so on. For example, take this code, which would
+  be given as input:
+
+      max(some_value,
+
+  This function will return the AST equivalent to:
+
+      max(some_value, __cursor__())
+
+  In other words, this function is capable of closing any open
+  brackets and insert the cursor position. Any content at the
+  cursor position that is after a comma or an opening bracket
+  is discarded. For example, if this is given as input:
+
+      max(some_value, another_val
+
+  It will return the same AST:
+
+      max(some_value, __cursor__())
+
+  Similarly, if only this is given:
+
+      max(some_va
+
+  Then it returns:
+
+      max(__cursor__())
+
+  Calls without parenthesis are also supported, as we assume the
+  brackets are implicit.
+
+  Operators and anonymous functions are not containers, and therefore
+  will be discarded. The following will all return the same AST:
+
+      max(some_value,
+      max(some_value, fn x -> x end
+      max(some_value, 1 + another_val
+      max(some_value, 1 |> some_fun() |> another_fun
+
+  On the other hand, tuples, lists, maps, etc all retain the
+  cursor position:
+
+      max(some_value, [1, 2,
+
+  Returns the following AST:
+
+      max(some_value, [1, 2, __cursor__()])
+
+  Keyword lists (and do-end blocks) are also retained. The following:
+
+      if(some_value, do:
+      if(some_value, do: :token
+      if(some_value, do: 1 + val
+
+  all return:
+
+      if(some_value, do: __cursor__())
+
+  The AST returned by this function is not safe to evaluate but
+  it can be analyzed and expanded.
+
+  ## Examples
+
+      iex> Code.Fragment.container_cursor_to_quoted("max(some_value, ")
+      {:ok, {:max, [line: 1], [{:some_value, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
+
+  ## Options
+
+    * `:file` - the filename to be reported in case of parsing errors.
+      Defaults to `"nofile"`.
+
+    * `:line` - the starting line of the string being parsed.
+      Defaults to 1.
+
+    * `:column` - the starting column of the string being parsed.
+      Defaults to 1.
+
+    * `:columns` - when `true`, attach a `:column` key to the quoted
+      metadata. Defaults to `false`.
+
+  """
+  @doc since: "1.13.0"
+  @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
+          {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
+  def container_cursor_to_quoted(fragment, opts \\ []) do
+    file = Keyword.get(opts, :file, "nofile")
+    line = Keyword.get(opts, :line, 1)
+    column = Keyword.get(opts, :column, 1)
+    columns = Keyword.get(opts, :columns, false)
+    fragment = to_charlist(fragment)
+    tokenizer_opts = [file: file, cursor_completion: true, columns: columns]
+
+    case :elixir_tokenizer.tokenize(fragment, line, column, tokenizer_opts) do
+      {:ok, _, _, _warnings, tokens} ->
+        :elixir.tokens_to_quoted(tokens, file, columns: columns)
+
+      {:error, {line, column, {prefix, suffix}, token}, _rest, _warnings, _so_far} ->
+        location = [line: line, column: column]
+        {:error, {location, {to_string(prefix), to_string(suffix)}, to_string(token)}}
+
+      {:error, {line, column, error, token}, _rest, _warnings, _so_far} ->
+        location = [line: line, column: column]
+        {:error, {location, to_string(error), to_string(token)}}
+    end
+  end
 end
