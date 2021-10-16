@@ -394,6 +394,20 @@ defmodule IEx.AutocompleteTest do
   end
 
   test "completion for struct keys" do
+    assert {:yes, '', entries} = expand('%URI{')
+    assert 'path:' in entries
+    assert 'query:' in entries
+
+    assert {:yes, '', entries} = expand('%URI{path: "foo",')
+    assert 'path:' not in entries
+    assert 'query:' in entries
+
+    assert {:yes, 'ry: ', []} = expand('%URI{path: "foo", que')
+    assert {:no, [], []} = expand('%URI{path: "foo", unkno')
+    assert {:no, [], []} = expand('%Unkown{path: "foo", unkno')
+  end
+
+  test "completion for struct var keys" do
     eval("struct = %IEx.AutocompleteTest.MyStruct{}")
     assert expand('struct.my') == {:yes, '_val', []}
   end
