@@ -806,6 +806,11 @@ defmodule Code.Fragment do
     * `:columns` - when `true`, attach a `:column` key to the quoted
       metadata. Defaults to `false`.
 
+    * `:token_metadata` - when `true`, includes token-related
+      metadata in the expression AST, such as metadata for `do` and `end`
+      tokens, for closing tokens, end of expressions, as well as delimiters
+      for sigils. See `t:Macro.metadata/0`. Defaults to `false`.
+
   """
   @doc since: "1.13.0"
   @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
@@ -815,12 +820,14 @@ defmodule Code.Fragment do
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
     columns = Keyword.get(opts, :columns, false)
+    token_metadata = Keyword.get(opts, :token_metadata, false)
+
     fragment = to_charlist(fragment)
     tokenizer_opts = [file: file, cursor_completion: true, columns: columns]
 
     case :elixir_tokenizer.tokenize(fragment, line, column, tokenizer_opts) do
       {:ok, _, _, _warnings, tokens} ->
-        :elixir.tokens_to_quoted(tokens, file, columns: columns)
+        :elixir.tokens_to_quoted(tokens, file, columns: columns, token_metadata: token_metadata)
 
       {:error, {line, column, {prefix, suffix}, token}, _rest, _warnings, _so_far} ->
         location = [line: line, column: column]
