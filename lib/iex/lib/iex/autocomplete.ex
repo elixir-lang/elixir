@@ -54,10 +54,10 @@ defmodule IEx.Autocomplete do
         expand_dot_call(path, List.to_atom(hint), shell)
 
       :expr ->
-        expand_local_or_var("", shell)
+        expand_struct_fields_or_local_or_var(code, "", shell)
 
       {:local_or_var, local_or_var} ->
-        expand_local_or_var(List.to_string(local_or_var), shell)
+        expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
 
       {:local_arity, local} ->
         expand_local(List.to_string(local), true, shell)
@@ -267,30 +267,70 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  ## Elixir modules
+  ## Structs
 
   defp expand_structs(hint, shell) do
     aliases =
       for {alias, mod} <- aliases_from_env(shell),
           [name] = Module.split(alias),
           String.starts_with?(name, hint),
-          has_struct?(mod),
+          struct?(mod) and not function_exported?(mod, :exception, 1),
           do: %{kind: :struct, name: name}
 
     modules =
       for "Elixir." <> name = full_name <- match_modules("Elixir." <> hint, true),
           String.starts_with?(name, hint),
           mod = String.to_atom(full_name),
-          has_struct?(mod),
+          struct?(mod) and not function_exported?(mod, :exception, 1),
           do: %{kind: :struct, name: name}
 
     format_expansion(aliases ++ modules, hint)
   end
 
-  defp has_struct?(mod) do
-    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1) and
-      not function_exported?(mod, :exception, 1)
+  defp struct?(mod) do
+    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
   end
+
+  defp expand_struct_fields_or_local_or_var(code, hint, shell) do
+    with {:ok, quoted} <- Code.Fragment.container_cursor_to_quoted(code),
+         {aliases, pairs} <- find_struct_fields(quoted),
+         {:ok, alias} <- value_from_alias(aliases, shell),
+         true <- struct?(alias) do
+      pairs =
+        Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
+          Map.delete(map, key)
+        end)
+
+      entries =
+        for {key, _value} <- pairs,
+            name = Atom.to_string(key),
+            if(hint == "",
+              do: not String.starts_with?(name, "_"),
+              else: String.starts_with?(name, hint)
+            ),
+            do: %{kind: :keyword, name: name}
+
+      format_expansion(entries, hint)
+    else
+      _ -> expand_local_or_var(hint, shell)
+    end
+  end
+
+  defp find_struct_fields(ast) do
+    ast
+    |> Macro.prewalker()
+    |> Enum.find_value(fn node ->
+      with {:%, _, [{:__aliases__, _, aliases}, {:%{}, _, pairs}]} <- node,
+           {pairs, [{:__cursor__, _, []}]} <- Enum.split(pairs, -1),
+           true <- Keyword.keyword?(pairs) do
+        {aliases, pairs}
+      else
+        _ -> nil
+      end
+    end)
+  end
+
+  ## Aliases and modules
 
   defp expand_aliases(all, shell) do
     case String.split(all, ".") do
@@ -309,18 +349,12 @@ defmodule IEx.Autocomplete do
     end
   end
 
-  defp value_from_alias([name | rest], shell) when is_binary(name) do
-    name = String.to_atom(name)
-
+  defp value_from_alias([name | rest], shell) do
     case Keyword.fetch(aliases_from_env(shell), Module.concat(Elixir, name)) do
       {:ok, name} when rest == [] -> {:ok, name}
       {:ok, name} -> {:ok, Module.concat([name | rest])}
       :error -> {:ok, Module.concat([name | rest])}
     end
-  end
-
-  defp value_from_alias([_ | _], _) do
-    :error
   end
 
   defp match_aliases(hint, shell) do
@@ -552,6 +586,10 @@ defmodule IEx.Autocomplete do
     ["~#{name} (sigil_#{name})"]
   end
 
+  defp to_entries(%{kind: :keyword, name: name}) do
+    ["#{name}:"]
+  end
+
   defp to_entries(%{kind: _, name: name}) do
     [name]
   end
@@ -576,6 +614,10 @@ defmodule IEx.Autocomplete do
 
   defp to_hint(%{kind: :struct, name: name}, hint) do
     format_hint(name, hint) <> "{"
+  end
+
+  defp to_hint(%{kind: :keyword, name: name}, hint) do
+    format_hint(name, hint) <> ": "
   end
 
   defp to_hint(%{kind: _, name: name}, hint) do
