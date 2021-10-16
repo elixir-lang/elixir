@@ -71,14 +71,14 @@ defmodule EEx.Tokenizer do
       {:ok, expr, new_line, new_column, rest} ->
         {key, expr} =
           case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
-            {:ok, warnings, tokens} ->
-              Enum.each(warnings, fn {line, file, msg} ->
+            {:ok, _line, _column, warnings, tokens} ->
+              Enum.each(Enum.reverse(warnings), fn {line, file, msg} ->
                 :elixir_errors.erl_warn(line, file, msg)
               end)
 
               token_key(tokens, expr)
 
-            {:error, _, _, _} ->
+            {:error, _, _, _, _} ->
               {:expr, expr}
           end
 

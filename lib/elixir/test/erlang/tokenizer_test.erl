@@ -5,11 +5,11 @@ tokenize(String) ->
   tokenize(String, []).
 
 tokenize(String, Opts) ->
-  {ok, _Warnings, Result} = elixir_tokenizer:tokenize(String, 1, Opts),
+  {ok, _Line, _Column, _Warnings, Result} = elixir_tokenizer:tokenize(String, 1, Opts),
   Result.
 
 tokenize_error(String) ->
-  {error, Error, _, _} = elixir_tokenizer:tokenize(String, 1, []),
+  {error, Error, _, _, _} = elixir_tokenizer:tokenize(String, 1, []),
   Error.
 
 type_test() ->

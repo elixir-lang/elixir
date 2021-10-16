@@ -28,6 +28,7 @@
   file=(<<"nofile">>),
   terminators=[],
   unescape=true,
+  cursor_completion=false,
   existing_atoms_only=false,
   static_atoms_encoder=nil,
   preserve_comments=nil,
