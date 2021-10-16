@@ -803,16 +803,14 @@ defmodule CodeFragmentTest do
   end
 
   describe "container_cursor_to_quoted/2" do
-    def s2q(arg), do: Code.string_to_quoted(arg)
-    def cc2q(arg), do: CF.container_cursor_to_quoted(arg)
+    def s2q(arg, opts \\ []), do: Code.string_to_quoted(arg, opts)
+    def cc2q(arg, opts \\ []), do: CF.container_cursor_to_quoted(arg, opts)
 
-    # TODO: maps and structs and keywords (kw_identifier kw_identifier_safe kw_identifier_unsafe)
     test "completes terminators" do
       assert cc2q("(") == s2q("(__cursor__())")
       assert cc2q("[") == s2q("[__cursor__()]")
       assert cc2q("{") == s2q("{__cursor__()}")
       assert cc2q("<<") == s2q("<<__cursor__()>>")
-      assert cc2q("%{") == s2q("%{__cursor__()}")
       assert cc2q("foo do") == s2q("foo do __cursor__() end")
       assert cc2q("foo do true else") == s2q("foo do true else __cursor__() end")
     end
@@ -831,6 +829,46 @@ defmodule CodeFragmentTest do
       assert {:error, {_, "syntax error before: ", "'end'"}} = cc2q("foo(bar do baz, bat")
     end
 
+    test "keyword lists" do
+      assert cc2q("[bar: ") == s2q("[bar: __cursor__()]")
+      assert cc2q("[bar: baz,") == s2q("[bar: baz, __cursor__()]")
+      assert cc2q("[arg, bar: baz,") == s2q("[arg, bar: baz, __cursor__()]")
+      assert cc2q("[arg: val, bar: baz,") == s2q("[arg: val, bar: baz, __cursor__()]")
+
+      assert cc2q("{arg, bar: ") == s2q("{arg, bar: __cursor__()}")
+      assert cc2q("{arg, bar: baz,") == s2q("{arg, bar: baz, __cursor__()}")
+      assert cc2q("{arg: val, bar: baz,") == s2q("{arg: val, bar: baz, __cursor__()}")
+
+      assert cc2q("foo(bar: ") == s2q("foo(bar: __cursor__())")
+      assert cc2q("foo(bar: baz,") == s2q("foo([bar: baz, __cursor__()])")
+      assert cc2q("foo(arg, bar: ") == s2q("foo(arg, bar: __cursor__())")
+      assert cc2q("foo(arg, bar: baz,") == s2q("foo(arg, [bar: baz, __cursor__()])")
+      assert cc2q("foo(arg: val, bar: ") == s2q("foo(arg: val, bar: __cursor__())")
+      assert cc2q("foo(arg: val, bar: baz,") == s2q("foo([arg: val, bar: baz, __cursor__()])")
+
+      assert cc2q("foo bar: ") == s2q("foo(bar: __cursor__())")
+      assert cc2q("foo bar: baz,") == s2q("foo([bar: baz, __cursor__()])")
+      assert cc2q("foo arg, bar: ") == s2q("foo(arg, bar: __cursor__())")
+      assert cc2q("foo arg, bar: baz,") == s2q("foo(arg, [bar: baz, __cursor__()])")
+      assert cc2q("foo arg: val, bar: ") == s2q("foo(arg: val, bar: __cursor__())")
+      assert cc2q("foo arg: val, bar: baz,") == s2q("foo([arg: val, bar: baz, __cursor__()])")
+    end
+
+    test "maps and structs" do
+      assert cc2q("%") == s2q("__cursor__()")
+      assert cc2q("%{") == s2q("%{__cursor__()}")
+      assert cc2q("%{bar: ") == s2q("%{bar: __cursor__()}")
+      assert cc2q("%{bar: baz,") == s2q("%{bar: baz, __cursor__()}")
+
+      assert cc2q("%Foo") == s2q("__cursor__()")
+      assert cc2q("%Foo{") == s2q("%Foo{__cursor__()}")
+      assert cc2q("%Foo{bar: ") == s2q("%Foo{bar: __cursor__()}")
+      assert cc2q("%Foo{bar: baz,") == s2q("%Foo{bar: baz, __cursor__()}")
+
+      assert {:error, {_, "unexpected token: ", "\":\" (column 9, code point U+003A)"}} =
+               cc2q("%Foo{bar:")
+    end
+
     test "removes tokens until opening" do
       assert cc2q("(123") == s2q("(__cursor__())")
       assert cc2q("[foo") == s2q("[__cursor__()]")
@@ -838,6 +876,14 @@ defmodule CodeFragmentTest do
       assert cc2q("<<1+2") == s2q("<<__cursor__()>>")
       assert cc2q("foo do :atom") == s2q("foo do __cursor__() end")
       assert cc2q("foo(:atom") == s2q("foo(__cursor__())")
+    end
+
+    test "removes tokens until comma" do
+      assert cc2q("[bar, 123") == s2q("[bar, __cursor__()]")
+      assert cc2q("{bar, 'foo'") == s2q("{bar, __cursor__()}")
+      assert cc2q("<<bar, 1+2") == s2q("<<bar, __cursor__()>>")
+      assert cc2q("foo(bar, :atom") == s2q("foo(bar, __cursor__())")
+      assert cc2q("foo bar, :atom") == s2q("foo(bar, __cursor__())")
     end
 
     test "removes functions" do
@@ -860,6 +906,11 @@ defmodule CodeFragmentTest do
       assert cc2q("foo((1, 2, 3) |>") == s2q("foo(__cursor__())")
       assert cc2q("foo(<<1, 2, 3>> |>") == s2q("foo(__cursor__())")
       assert cc2q("foo(bar do :done end |>") == s2q("foo(__cursor__())")
+    end
+
+    test "returns column information" do
+      assert cc2q("foo(", columns: true) == s2q("foo(__cursor__())", columns: true)
+      assert cc2q("foo(123,", columns: true) == s2q("foo(123,__cursor__())", columns: true)
     end
   end
 end

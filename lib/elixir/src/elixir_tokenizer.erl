@@ -1609,6 +1609,12 @@ prune_tokens([{'<<', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{block_identifier, _, _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
+prune_tokens([{kw_identifier, _, _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener, Terminators) ->
   prune_tokens(Tokens, Opener, Terminators);
