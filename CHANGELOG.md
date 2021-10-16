@@ -66,6 +66,22 @@ iex(1)> %File.St
 File.Stat      File.Stream
 ```
 
+Once you define the struct, you can hit `tab` to show all struct fields available:
+
+```elixir
+iex(1)> %URI{
+authority:    fragment:     host:         path:         port:
+query:        scheme:       userinfo:
+```
+
+As you fill them in, the already filled structs no longer show up:
+
+```elixir
+iex(1)> %URI{path: "/example",
+authority:    fragment:     host:         port:         query:
+scheme:       userinfo:
+```
+
 Finally, new compilation tracers have been added, alongside a handful of functions in `Module` to retrieve module metadata, which can be used to enrich suggestions in programming environments.
 
 ## Extended code formatting
@@ -133,6 +149,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [Keyword] Add `Keyword.validate/2`
   * [Keyword] Implement `Keyword.filter/2` and `Keyword.map/2`
   * [List] Add `List.keyfind!/3`
+  * [Macro] Add `Macro.prewalker/1`
   * [Macro.Env] Add the following reflection functions: `required?/2`, `lookup_import/2`, `fetch_alias/2`, and `fetch_macro_alias/2`
   * [Map] Implement `Map.filter/2` and `Map.map/2`
   * [Module] Support `:nillify_clauses` in `Module.get_definition/3`
@@ -151,7 +168,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 #### IEx
 
   * [IEx.Autocomplete] Add path autocompletion whenever when the cursor follows `"./` or `"/` or `"DRIVER:` where `DRIVER` is a single letter
-  * [IEx.Autocomplete] Add autocompletion for sigils and structs
+  * [IEx.Autocomplete] Add autocompletion for sigils, struct names, and struct fields
   * [IEx.Helpers] Allow multiple modules to be given to `r/1`
 
 #### Logger
@@ -194,6 +211,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 #### Elixir
 
   * [Application] Warn if `Application.compile_env` or `Application.compile_env!` are called without a require
+  * [Code] Make sure `:static_atoms_encoder` in `Code.string_to_quoted/2` also applies to quoted keyword keys
   * [Code] Ensure bindings with no context are returned as atoms instead of `{binding, nil}` in eval operations
   * [Kernel] Raise if `__CALLER__` or `__ENV__` or `__STACKTRACE__` are used in match
   * [Kernel] Improve error message on invalid argument for `byte_size` from binary concat
@@ -209,6 +227,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [Protocol] Warn if `@callback`, `@macrocallback` and `@optional_callbacks` are defined inside protocol
   * [Protocol] Ensure protocol metadata is deterministic on consolidation
   * [Range] Always show step when range is descending
+  * [String] Update Unicode database to version 14.0
   * [URI] Only percent decode if followed by hex digits (according to https://url.spec.whatwg.org/#percent-decode)
   * [Version] Ensure proper precedence of `and`/`or` in version requirements
 
