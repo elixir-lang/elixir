@@ -717,6 +717,62 @@ defmodule Macro do
 
   defp find_invalid(other), do: {:error, other}
 
+  @doc """
+  Returns an enumerable that traverses the  `ast` in depth-first,
+  pre-order traversal.
+
+  ## Examples
+
+      iex> ast = quote do: foo(1, "abc")
+      iex> Enum.map(Macro.prewalker(ast), & &1)
+      [{:foo, [], [1, "abc"]}, 1, "abc"]
+
+  """
+  def prewalker(ast) do
+    &prewalker([ast], &1, &2)
+  end
+
+  defp prewalker(_buffer, {:halt, acc}, _fun) do
+    {:halted, acc}
+  end
+
+  defp prewalker(buffer, {:suspend, acc}, fun) do
+    {:suspended, acc, &prewalker(buffer, &1, fun)}
+  end
+
+  defp prewalker([], {:cont, acc}, _fun) do
+    {:done, acc}
+  end
+
+  defp prewalker([{left, right} = node | tail], {:cont, acc}, fun) do
+    prewalker([left, right | tail], fun.(node, acc), fun)
+  end
+
+  defp prewalker([{left, meta, right} = node | tail], {:cont, acc}, fun)
+       when is_atom(left) and is_list(meta) do
+    if is_atom(right) do
+      prewalker(tail, fun.(node, acc), fun)
+    else
+      prewalker(right ++ tail, fun.(node, acc), fun)
+    end
+  end
+
+  defp prewalker([{left, meta, right} = node | tail], {:cont, acc}, fun) when is_list(meta) do
+    if is_atom(right) do
+      prewalker([left | tail], fun.(node, acc), fun)
+    else
+      prewalker([left | right] ++ tail, fun.(node, acc), fun)
+    end
+  end
+
+  defp prewalker([list | tail], {:cont, acc}, fun) when is_list(list) do
+    prewalker(list ++ tail, fun.(list, acc), fun)
+  end
+
+  defp prewalker([head | tail], {:cont, acc}, fun) do
+    prewalker(tail, fun.(head, acc), fun)
+  end
+
   @doc ~S"""
   Unescapes the given chars.
 
