@@ -1024,10 +1024,38 @@ defmodule MacroTest do
              {:five, [], MacroTest}
            ]
 
+    assert map == ast |> Macro.prewalk([], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
     assert Enum.zip(Macro.prewalker(ast), []) == Enum.zip(map, [])
 
     for i <- 0..(length(map) + 1) do
       assert Enum.take(Macro.prewalker(ast), i) == Enum.take(map, i)
+    end
+  end
+
+  test "postwalker/1" do
+    ast = quote do: :mod.foo(bar({1, 2}), [3, 4, five])
+    map = Enum.map(Macro.postwalker(ast), & &1)
+
+    assert map == [
+             :mod,
+             :foo,
+             {:., [], [:mod, :foo]},
+             1,
+             2,
+             {1, 2},
+             {:bar, [], [{1, 2}]},
+             3,
+             4,
+             {:five, [], MacroTest},
+             [3, 4, {:five, [], MacroTest}],
+             {{:., [], [:mod, :foo]}, [], [{:bar, [], [{1, 2}]}, [3, 4, {:five, [], MacroTest}]]}
+           ]
+
+    assert map == ast |> Macro.postwalk([], &{&1, [&1 | &2]}) |> elem(1) |> Enum.reverse()
+    assert Enum.zip(Macro.postwalker(ast), []) == Enum.zip(map, [])
+
+    for i <- 0..(length(map) + 1) do
+      assert Enum.take(Macro.postwalker(ast), i) == Enum.take(map, i)
     end
   end
 
