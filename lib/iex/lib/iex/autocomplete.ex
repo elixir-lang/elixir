@@ -192,7 +192,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp recur_expand_dot_path({:alias, var}, shell) do
-    var |> List.to_string() |> String.split(".") |> value_from_alias(shell)
+    {:ok, var |> List.to_string() |> String.split(".") |> value_from_alias(shell)}
   end
 
   defp recur_expand_dot_path({:dot, parent, call}, shell) do
@@ -294,7 +294,7 @@ defmodule IEx.Autocomplete do
   defp expand_struct_fields_or_local_or_var(code, hint, shell) do
     with {:ok, quoted} <- Code.Fragment.container_cursor_to_quoted(code),
          {aliases, pairs} <- find_struct_fields(quoted),
-         {:ok, alias} <- value_from_alias(aliases, shell),
+         alias = value_from_alias(aliases, shell),
          true <- struct?(alias) do
       pairs =
         Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
@@ -342,18 +342,17 @@ defmodule IEx.Autocomplete do
         hint = List.last(parts)
         list = Enum.take(parts, length(parts) - 1)
 
-        case value_from_alias(list, shell) do
-          {:ok, alias} -> match_elixir_modules(alias, hint) |> format_expansion(hint)
-          :error -> no()
-        end
+        value_from_alias(list, shell)
+        |> match_elixir_modules(hint)
+        |> format_expansion(hint)
     end
   end
 
   defp value_from_alias([name | rest], shell) do
     case Keyword.fetch(aliases_from_env(shell), Module.concat(Elixir, name)) do
-      {:ok, name} when rest == [] -> {:ok, name}
-      {:ok, name} -> {:ok, Module.concat([name | rest])}
-      :error -> {:ok, Module.concat([name | rest])}
+      {:ok, name} when rest == [] -> name
+      {:ok, name} -> Module.concat([name | rest])
+      :error -> Module.concat([name | rest])
     end
   end
 
