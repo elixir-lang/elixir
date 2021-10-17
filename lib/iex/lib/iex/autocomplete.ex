@@ -294,7 +294,7 @@ defmodule IEx.Autocomplete do
   defp expand_struct_fields_or_local_or_var(code, hint, shell) do
     with {:ok, quoted} <- Code.Fragment.container_cursor_to_quoted(code),
          {aliases, pairs} <- find_struct_fields(quoted),
-         alias <- value_from_alias(aliases, shell),
+         alias = value_from_alias(aliases, shell),
          true <- struct?(alias) do
       pairs =
         Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
