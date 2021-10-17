@@ -563,12 +563,37 @@ defmodule Mix do
     * `:elixir` - if set, ensures the current Elixir version matches the given
       version requirement (Default: `nil`)
 
+    * `:config` (since v1.13.0) - a keyword list of keyword lists with application
+      configuration to be set before the apps loaded. The configuration is part of
+      the `Mix.install/2` cache, so different configurations will lead to different
+      apps
+
+    * `:system_env` (since v1.13.0) - a map of system environment variable names as
+      binary keys and their respective values as binaries. The system environment is
+      made part of the `Mix.install/2` cache, so different configurations will lead
+      to different apps
+
   ## Examples
+
+  To install `:decimal` and `:jason`:
 
       Mix.install([
         :decimal,
         {:jason, "~> 1.0"}
       ])
+
+  Using `:nx`, `:exla`, and configure the underlying applications
+  and environment variables:
+
+      Mix.install(
+        [:nx, :exla],
+        config: [
+          nx: [default_backend: EXLA]
+        ],
+        system_env: [
+          {"XLA_TARGET", "cuda111"}
+        ]
+      )
 
   ## Limitations
 
@@ -636,29 +661,39 @@ defmodule Mix do
           other
       end)
 
+    config = Keyword.get(opts, :config, [])
+    system_env = Keyword.get(opts, :system_env, [])
+
+    id =
+      {deps, config, system_env}
+      |> :erlang.term_to_binary()
+      |> :erlang.md5()
+      |> Base.encode16(case: :lower)
+
     force? = !!opts[:force]
 
     case Mix.State.get(:installed) do
       nil ->
         :ok
 
-      ^deps when not force? ->
+      ^id when not force? ->
         :ok
 
       _ ->
         Mix.raise("Mix.install/2 can only be called with the same dependencies in the given VM")
     end
 
-    installs_root =
-      System.get_env("MIX_INSTALL_DIR") ||
-        Path.join(Mix.Utils.mix_cache(), "installs")
+    Application.put_all_env(config, persistent: true)
+    System.put_env(system_env)
 
-    id = deps |> :erlang.term_to_binary() |> :erlang.md5() |> Base.encode16(case: :lower)
+    installs_root =
+      System.get_env("MIX_INSTALL_DIR") || Path.join(Mix.Utils.mix_cache(), "installs")
+
     version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
     dir = Path.join([installs_root, version, id])
 
     if opts[:verbose] do
-      Mix.shell().info("using #{dir}")
+      Mix.shell().info("Mix.install/2 using #{dir}")
     end
 
     if force? do
@@ -701,7 +736,7 @@ defmodule Mix do
         Application.ensure_all_started(app)
       end
 
-      Mix.State.put(:installed, deps)
+      Mix.State.put(:installed, id)
       :ok
     after
       Mix.ProjectStack.pop()

@@ -47,7 +47,7 @@ defmodule MixTest do
       assert apply(InstallTest, :hello, []) == :world
     end
 
-    test "call with same deps in the same VM", %{tmp_dir: tmp_dir} do
+    test "works with same deps twice", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
       ])
@@ -57,7 +57,7 @@ defmodule MixTest do
       ])
     end
 
-    test "can't call with Elixir version mismatch", %{tmp_dir: tmp_dir} do
+    test "errors on Elixir version mismatch", %{tmp_dir: tmp_dir} do
       assert_raise Mix.Error, ~r"Mix.install/2 declared it supports only Elixir ~> 2.0", fn ->
         Mix.install(
           [
@@ -68,7 +68,7 @@ defmodule MixTest do
       end
     end
 
-    test "can't call with same deps and force", %{tmp_dir: tmp_dir} do
+    test "errors with same deps and force", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
       ])
@@ -83,7 +83,7 @@ defmodule MixTest do
       end
     end
 
-    test "can't call with different deps in the same VM", %{tmp_dir: tmp_dir} do
+    test "errors with different deps in the same VM", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
       ])
@@ -119,6 +119,22 @@ defmodule MixTest do
       )
 
       refute Protocol.consolidated?(InstallTest.Protocol)
+    end
+
+    test "config and system_env", %{tmp_dir: tmp_dir} do
+      Mix.install(
+        [
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ],
+        config: [unknown_app: [foo: :bar]],
+        system_env: %{"MIX_INSTALL_FOO" => "BAR"}
+      )
+
+      assert Application.fetch_env!(:unknown_app, :foo) == :bar
+      assert System.fetch_env!("MIX_INSTALL_FOO") == "BAR"
+    after
+      System.delete_env("MIX_INSTALL_FOO")
+      Application.delete_env(:unknown_app, :foo, persistent: true)
     end
 
     defp test_project(%{tmp_dir: tmp_dir}) do
