@@ -590,9 +590,9 @@ defmodule Mix do
         config: [
           nx: [default_backend: EXLA]
         ],
-        system_env: [
-          {"XLA_TARGET", "cuda111"}
-        ]
+        system_env: %{
+          "XLA_TARGET" => "cuda111"
+        }
       )
 
   ## Limitations
