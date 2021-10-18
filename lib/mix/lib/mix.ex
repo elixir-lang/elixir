@@ -568,9 +568,9 @@ defmodule Mix do
       the `Mix.install/2` cache, so different configurations will lead to different
       apps
 
-    * `:system_env` (since v1.13.0) - a map of system environment variable names as
-      binary keys and their respective values as binaries. The system environment is
-      made part of the `Mix.install/2` cache, so different configurations will lead
+    * `:system_env` (since v1.13.0) - a list or a map of system environment variable
+      names as binary keys and their respective values as binaries. The system environment
+      is made part of the `Mix.install/2` cache, so different configurations will lead
       to different apps
 
   ## Examples
