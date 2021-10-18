@@ -728,6 +728,7 @@ defmodule Macro do
       [{:foo, [], [1, "abc"]}, 1, "abc"]
 
   """
+  @doc since: "1.13.0"
   def prewalker(ast) do
     &prewalker([ast], &1, &2)
   end
@@ -784,6 +785,7 @@ defmodule Macro do
       [1, "abc", {:foo, [], [1, "abc"]}]
 
   """
+  @doc since: "1.13.0"
   def postwalker(ast) do
     &postwalker([ast], make_ref(), &1, &2)
   end

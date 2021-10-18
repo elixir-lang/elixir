@@ -4125,6 +4125,7 @@ defmodule Kernel do
       4.0
 
   """
+  @doc since: "1.13.0"
   @spec integer ** non_neg_integer :: integer
   @spec integer ** neg_integer :: float
   @spec float ** float :: float
