@@ -366,10 +366,16 @@ defmodule Mix.Tasks.Release do
 
   The following options can be set inside your `mix.exs` on each release definition:
 
-    * `:applications` - a keyword list that configures and adds new applications
-      to the release. The key is the application name and the value is one of:
+    * `:applications` - a keyword list with application names as keys and their
+      mode as value. By default `:applications` includes the current application and
+      all applications the current application depends on, recursively. You can include
+      new applications or change the mode of existing ones by listing them here.
 
-        * `:permanent` - the application is started and the node shuts down
+      The order of the applications given will be preserved as much as possible, with
+      only `:kernel`, `:stdlib`, `:sasl`, and `:elixir` listed before the given application
+      list. The supported values are:
+
+        * `:permanent` (default) - the application is started and the node shuts down
           if the application terminates, regardless of reason
         * `:transient` - the application is started and the node shuts down
           if the application terminates abnormally
@@ -378,19 +384,6 @@ defmodule Mix.Tasks.Release do
         * `:load` - the application is only loaded
         * `:none` - the application is part of the release but it is neither
           loaded nor started
-
-      All applications default to `:permanent`.
-
-      By default `:applications` includes the current application and all
-      applications the current application depends on, recursively.
-      You can include new applications or change the mode of
-      existing ones by listing them here. The order of the applications given
-      in `:applications` will be preserved as much as possible, with only
-      `:kernel`, `:stdlib`, `:sasl`, and `:elixir` listed before the given
-      application list.
-
-      Releases assembled from an umbrella project require this configuration
-      to be explicitly given.
 
     * `:strip_beams` - controls if BEAM files should have their debug information,
       documentation chunks, and other non-essential metadata removed. Defaults to
