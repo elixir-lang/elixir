@@ -715,6 +715,7 @@ defmodule Mix do
       consolidate_protocols: Keyword.get(opts, :consolidate_protocols, true)
     ]
 
+    started_apps = Application.started_applications()
     :ok = Mix.Local.append_archives()
     :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
     build_dir = Path.join(dir, "_build")
@@ -729,6 +730,11 @@ defmodule Mix do
         end
 
         Mix.Task.rerun("deps.loadpaths")
+
+        # Hex and SSL can use a good amount of memory after the registry fetching,
+        # so we stop any app started during deps resolution.
+        stop_apps(Application.started_applications() -- started_apps)
+
         Mix.Task.rerun("compile")
       end)
 
@@ -741,6 +747,33 @@ defmodule Mix do
     after
       Mix.ProjectStack.pop()
     end
+  end
+
+  defp stop_apps([]), do: :ok
+
+  defp stop_apps(apps) do
+    :logger.add_primary_filter(:silence_app_exit, {&silence_app_exit/2, []})
+    Enum.each(apps, fn {app, _, _} -> Application.stop(app) end)
+    :logger.remove_primary_filter(:silence_app_exit)
+    :ok
+  end
+
+  defp silence_app_exit(
+         %{
+           msg:
+             {:report,
+              %{
+                label: {:application_controller, :exit},
+                report: [application: _, exited: :stopped] ++ _
+              }}
+         },
+         _extra
+       ) do
+    :stop
+  end
+
+  defp silence_app_exit(_message, _extra) do
+    :ignore
   end
 
   defp maybe_expand_path_dep(opts) do
