@@ -860,7 +860,7 @@ defmodule System do
     * If an integer, the runtime system exits with the integer value which is
       returned to the operating system.
 
-    * If a string, an Erlang crash dump is produced with status as slogan, and
+    * If a binary, an Erlang crash dump is produced with status as slogan, and
       then the runtime system exits with status code 1.
 
   Note that on many platforms, only the status codes 0-255 are supported
