@@ -282,7 +282,7 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.12.0"
-  def parse_time("T" <> string, format) when is_binary(string),
+  def parse_time("T" <> string, format),
     do: do_parse_time(string, format)
 
   def parse_time(string, format) when is_binary(string),
@@ -356,10 +356,10 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.12.0"
-  def parse_date("-" <> string, format) when is_binary(string),
+  def parse_date("-" <> string, format),
     do: do_parse_date(string, -1, format)
 
-  def parse_date("+" <> string, format) when is_binary(string),
+  def parse_date("+" <> string, format),
     do: do_parse_date(string, 1, format)
 
   def parse_date(string, format) when is_binary(string),
@@ -432,10 +432,10 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.12.0"
-  def parse_naive_datetime("-" <> string, format) when is_binary(string),
+  def parse_naive_datetime("-" <> string, format),
     do: do_parse_naive_datetime(string, -1, format)
 
-  def parse_naive_datetime("+" <> string, format) when is_binary(string),
+  def parse_naive_datetime("+" <> string, format),
     do: do_parse_naive_datetime(string, 1, format)
 
   def parse_naive_datetime(string, format) when is_binary(string),
@@ -527,10 +527,10 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.12.0"
-  def parse_utc_datetime("-" <> string, format) when is_binary(string),
+  def parse_utc_datetime("-" <> string, format),
     do: do_parse_utc_datetime(string, -1, format)
 
-  def parse_utc_datetime("+" <> string, format) when is_binary(string),
+  def parse_utc_datetime("+" <> string, format),
     do: do_parse_utc_datetime(string, 1, format)
 
   def parse_utc_datetime(string, format) when is_binary(string),
