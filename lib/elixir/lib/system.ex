@@ -855,8 +855,13 @@ defmodule System do
   All applications are taken down smoothly, all code is unloaded, and all ports
   are closed before the system terminates by calling `halt/1`.
 
-  `status` must be a non-negative integer value which is returned by the
-  runtime system to the operating system.
+  `status` must be a non-negative integer or a binary.
+
+    * If an integer, the runtime system exits with the integer value which is
+      returned to the operating system.
+
+    * If a binary, an Erlang crash dump is produced with status as slogan, and
+      then the runtime system exits with status code 1.
 
   Note that on many platforms, only the status codes 0-255 are supported
   by the operating system.
