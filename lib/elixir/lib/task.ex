@@ -987,10 +987,11 @@ defmodule Task do
   no reply has arrived, or `{:exit, reason}` if the task has already
   exited. Keep in mind that normally a task failure also causes
   the process owning the task to exit. Therefore this function can
-  return `{:exit, reason}` only if
+  return `{:exit, reason}` if at least one of the conditions below apply:
 
     * the task process exited with the reason `:normal`
-    * it isn't linked to the caller
+    * the task isn't linked to the caller (the task was started
+      with `Task.async_nolink/2` or `Task.Supervisor.async_nolink/3`)
     * the caller is trapping exits
 
   A timeout, in milliseconds or `:infinity`, can be given with a default value
@@ -1079,8 +1080,9 @@ defmodule Task do
 
   `Task.yield_many/2` allows developers to spawn multiple tasks
   and retrieve the results received in a given timeframe.
-  If we combine it with `Task.shutdown/2`, it allows us to gather
-  those results and cancel the tasks that have not replied in time.
+  If we combine it with `Task.shutdown/2` (or `Task.ignore/2`),
+  it allows us to gather those results and cancel (or ignore)
+  the tasks that have not replied in time.
 
   Let's see an example.
 
