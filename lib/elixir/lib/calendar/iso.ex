@@ -156,6 +156,7 @@ defmodule Calendar.ISO do
   @type minute :: 0..59
   @type second :: 0..59
   @type weekday :: :monday | :tuesday | :wednesday | :thursday | :friday | :saturday | :sunday
+  @type utc_offset :: integer
 
   @typedoc """
   Microseconds with stored precision.
@@ -262,6 +263,9 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.10.0"
   @impl true
+  @callback parse_time(String.t()) ::
+              {:ok, {hour, minute, second, microsecond}}
+              | {:error, atom}
   def parse_time(string) when is_binary(string),
     do: parse_time(string, :extended)
 
@@ -336,6 +340,9 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.10.0"
   @impl true
+  @spec parse_date(String.t()) ::
+          {:ok, {year, month, day}}
+          | {:error, atom}
   def parse_date(string) when is_binary(string),
     do: parse_date(string, :extended)
 
@@ -412,6 +419,9 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.10.0"
   @impl true
+  @spec parse_naive_datetime(String.t()) ::
+          {:ok, {year, month, day, hour, minute, second, microsecond}}
+          | {:error, atom}
   def parse_naive_datetime(string) when is_binary(string),
     do: parse_naive_datetime(string, :extended)
 
@@ -507,6 +517,9 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.10.0"
   @impl true
+  @spec parse_utc_datetime(String.t()) ::
+          {:ok, {year, month, day, hour, minute, second, microsecond}, utc_offset}
+          | {:error, atom}
   def parse_utc_datetime(string) when is_binary(string),
     do: parse_utc_datetime(string, :extended)
 
