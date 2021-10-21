@@ -388,7 +388,7 @@ defmodule ExUnit.Formatter do
        ) do
     formatted_mailbox =
       for message <- mailbox do
-        {pattern, value} =
+        {pattern, value, _warnings} =
           format_sides(
             left,
             message,
@@ -419,8 +419,8 @@ defmodule ExUnit.Formatter do
          padding_size,
          width
        ) do
-    {left, right} = format_sides(left, right, context, formatter, padding_size, width)
-    [left: left, right: right]
+    {left, right, extras} = format_sides(left, right, context, formatter, padding_size, width)
+    [left: left, right: right] ++ extras
   end
 
   defp format_sides(left, right, context, formatter, padding_size, width) do
@@ -428,7 +428,7 @@ defmodule ExUnit.Formatter do
     content_width = if width == :infinity, do: width, else: width - padding_size
 
     case format_diff(left, right, context, formatter) do
-      {result, _env} ->
+      {result, env} ->
         left =
           result.left
           |> Diff.to_algebra(&colorize_diff_delete(&1, formatter))
@@ -441,14 +441,18 @@ defmodule ExUnit.Formatter do
           |> Algebra.nest(padding_size)
           |> Algebra.format(content_width)
 
-        {left, right}
+        {left, right, Enum.map(env.hints, &{:hint, format_hint(&1)})}
 
       nil when is_atom(context) ->
-        {if_value(left, inspect), if_value(right, inspect)}
+        {if_value(left, inspect), if_value(right, inspect), []}
 
       nil ->
-        {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect)}
+        {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect), []}
     end
+  end
+
+  defp format_hint(:equivalent_but_different_strings) do
+    "you are comparing strings that have the same visual representation but are made of different Unicode codepoints"
   end
 
   defp format_diff(left, right, context, formatter) do
