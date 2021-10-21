@@ -28,9 +28,10 @@ defmodule ExUnit.FormatterTest do
     false
   end
 
-  defp formatter(_kind, message) do
-    message
-  end
+  defp formatter(_key, value), do: value
+
+  defp diff_formatter(:diff_enabled?, _default), do: true
+  defp diff_formatter(_key, value), do: value
 
   test "formats test case filters" do
     filters = [run: true, slow: false]
@@ -271,6 +272,23 @@ defmodule ExUnit.FormatterTest do
                 code:  assert {3, 2, 1} = {1, 2, 3}
                 left:  {3, 2, 1}
                 right: {1, 2, 3}
+           """
+  end
+
+  nfc_hello = String.normalize("héllo", :nfc)
+  nfd_hello = String.normalize("héllo", :nfd)
+
+  test "formats assertions with hints" do
+    failure = [{:error, catch_assertion(assert unquote(nfc_hello) == unquote(nfd_hello)), []}]
+
+    assert format_test_failure(test(), failure, 1, 80, &diff_formatter/2) =~ """
+             1) world (Hello)
+                test/ex_unit/formatter_test.exs:1
+                Assertion with == failed
+                code:  assert "#{unquote(nfc_hello)}" == "#{unquote(nfd_hello)}"
+                left:  "#{unquote(nfc_hello)}"
+                right: "#{unquote(nfd_hello)}"
+                hint:  you are comparing strings that have the same visual representation but are made of different Unicode codepoints
            """
   end
 

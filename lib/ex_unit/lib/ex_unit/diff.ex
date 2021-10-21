@@ -33,10 +33,10 @@ defmodule ExUnit.Diff do
   end
 
   defp context_to_env({:match, pins}),
-    do: %{pins: Map.new(pins), context: :match, current_vars: %{}}
+    do: %{pins: Map.new(pins), context: :match, current_vars: %{}, hints: []}
 
   defp context_to_env(op) when op in [:==, :===],
-    do: %{pins: %{}, context: op, current_vars: %{}}
+    do: %{pins: %{}, context: op, current_vars: %{}, hints: []}
 
   # Main entry point for recursive diff
 
@@ -725,20 +725,27 @@ defmodule ExUnit.Diff do
     left = IO.iodata_to_binary(escaped_left)
     right = IO.iodata_to_binary(escaped_right)
 
-    diff =
-      cond do
-        diff_string?(left, right) ->
+    cond do
+      left == right ->
+        {string_script_to_diff([eq: left], delimiter, true, [], []), env}
+
+      diff_string?(left, right) ->
+        diff =
           String.myers_difference(left, right)
           |> string_script_to_diff(delimiter, true, [], [])
 
-        left == right ->
-          string_script_to_diff([eq: left], delimiter, true, [], [])
+        env =
+          if String.equivalent?(left, right) do
+            add_hint(env, :equivalent_but_different_strings)
+          else
+            env
+          end
 
-        true ->
-          string_script_to_diff([del: left, ins: right], delimiter, true, [], [])
-      end
+        {diff, env}
 
-    {diff, env}
+      true ->
+        {string_script_to_diff([del: left, ins: right], delimiter, true, [], []), env}
+    end
   end
 
   # Concat all the literals on `left` and split `right` based on the size of
@@ -1030,6 +1037,10 @@ defmodule ExUnit.Diff do
   end
 
   # Diff helpers
+
+  defp add_hint(%{hints: hints} = env, hint) do
+    if hint in hints, do: env, else: %{env | hints: [hint | hints]}
+  end
 
   # The left side is only escaped if it is a value
   defp maybe_escape(other, %{context: :match}), do: other
