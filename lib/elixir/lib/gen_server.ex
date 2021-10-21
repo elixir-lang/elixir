@@ -159,8 +159,8 @@ defmodule GenServer do
   a name on start via the `:name` option. Registered names are also
   automatically cleaned up on termination. The supported values are:
 
-    * an atom - the GenServer is registered locally (to the node) with the given name
-      using `Process.register/2`.
+    * an atom - the GenServer is registered locally (to the current node)
+      with the given name using `Process.register/2`.
 
     * `{:global, term}` - the GenServer is registered globally with the given
       term using the functions in the [`:global` module](`:global`).
