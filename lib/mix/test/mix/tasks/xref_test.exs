@@ -449,6 +449,33 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    @abc_linear_files %{
+      "lib/a.ex" => "defmodule A, do: def a, do: B.b()",
+      "lib/b.ex" => "defmodule B, do: def b, do: C.c()",
+      "lib/c.ex" => "defmodule C, do: def c, do: true"
+    }
+
+    test "exclude one from linear case" do
+      assert_graph(
+        ~w[--exclude lib/b.ex],
+        """
+        lib/a.ex
+        lib/c.ex
+        """,
+        files: @abc_linear_files
+      )
+    end
+
+    test "exclude one with source from linear case" do
+      assert_graph(
+        ~w[--exclude lib/b.ex --source lib/a.ex],
+        """
+        lib/a.ex
+        """,
+        files: @abc_linear_files
+      )
+    end
+
     test "only nodes" do
       assert_graph(~w[--only-nodes], """
       lib/a.ex
