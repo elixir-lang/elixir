@@ -263,9 +263,9 @@ defmodule Calendar.ISO do
   """
   @doc since: "1.10.0"
   @impl true
-  @callback parse_time(String.t()) ::
-              {:ok, {hour, minute, second, microsecond}}
-              | {:error, atom}
+  @spec parse_time(String.t()) ::
+          {:ok, {hour, minute, second, microsecond}}
+          | {:error, atom}
   def parse_time(string) when is_binary(string),
     do: parse_time(string, :extended)
 
