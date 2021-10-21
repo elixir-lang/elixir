@@ -795,49 +795,54 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
-    defp assert_graph(opts \\ [], expected) do
+    @default_files %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: :ok
+        B.b2()
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        def b1, do: A.a() == C.c()
+        def b2, do: :ok
+        :e.e()
+      end
+      """,
+      "lib/c.ex" => """
+      defmodule C do
+        def c, do: :ok
+        :d.d()
+      end
+      """,
+      "lib/d.ex" => """
+      defmodule :d do
+        def d, do: :ok
+        def e, do: :e.e()
+      end
+      """,
+      "lib/e.ex" => """
+      defmodule :e do
+        def e, do: :ok
+      end
+      """
+    }
+
+    defp assert_graph(opts \\ [], expected, params \\ []) do
       in_fixture("no_mixfile", fn ->
-        File.write!("lib/a.ex", """
-        defmodule A do
-          def a, do: :ok
-          B.b2()
-        end
-        """)
-
-        File.write!("lib/b.ex", """
-        defmodule B do
-          def b1, do: A.a() == C.c()
-          def b2, do: :ok
-          :e.e()
-        end
-        """)
-
-        File.write!("lib/c.ex", """
-        defmodule C do
-          def c, do: :ok
-          :d.d()
-        end
-        """)
-
-        File.write!("lib/d.ex", """
-        defmodule :d do
-          def d, do: :ok
-          def e, do: :e.e()
-        end
-        """)
-
-        File.write!("lib/e.ex", """
-        defmodule :e do
-          def e, do: :ok
-        end
-        """)
+        nb_files =
+          Enum.count(params[:files] || @default_files, fn {path, content} ->
+            File.write!(path, content)
+          end)
 
         assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
+        first_line = "Compiling #{nb_files} files (.ex)"
 
-        assert "Compiling 5 files (.ex)\nGenerated sample app\n" <> result =
-                 receive_until_no_messages([])
+        assert [
+                 ^first_line | ["Generated sample app" | result]
+               ] = receive_until_no_messages([]) |> String.split("\n")
 
-        assert normalize_graph_output(result) == expected
+        assert normalize_graph_output(result |> Enum.join("\n")) == expected
       end)
     end
 
