@@ -110,6 +110,28 @@ defmodule EEx.TokenizerTest do
     assert T.tokenize('foo <%# true do %>bar<%# end %>', 1, 1, @opts) == {:ok, exprs}
   end
 
+  test "EEx comments inside do-end" do
+    exprs = [
+      {:start_expr, 1, 1, '', ' if true do '},
+      {:text, 1, 31, 'bar'},
+      {:end_expr, 1, 34, [], ' end '},
+      {:eof, 1, 43}
+    ]
+
+    assert T.tokenize('<% if true do %><%# comment %>bar<% end %>', 1, 1, @opts) == {:ok, exprs}
+
+    exprs = [
+      {:start_expr, 1, 1, [], ' case true do '},
+      {:middle_expr, 1, 33, '', ' true -> '},
+      {:text, 1, 46, 'bar'},
+      {:end_expr, 1, 49, [], ' end '},
+      {:eof, 1, 58}
+    ]
+
+    assert T.tokenize('<% case true do %><%# comment %><% true -> %>bar<% end %>', 1, 1, @opts) ==
+             {:ok, exprs}
+  end
+
   test "Elixir comments" do
     exprs = [
       {:text, 1, 1, 'foo '},

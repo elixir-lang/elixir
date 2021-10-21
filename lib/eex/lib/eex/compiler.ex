@@ -75,7 +75,8 @@ defmodule EEx.Compiler do
       :elixir_errors.erl_warn(start_line, state.file, message)
     end
 
-    {contents, line, rest} = look_ahead_middle(rest, start_line, chars)
+    {rest, line, contents} =
+      look_ahead_middle(rest, start_line, chars) || {rest, start_line, chars}
 
     {contents, rest} =
       generate_buffer(
@@ -194,24 +195,20 @@ defmodule EEx.Compiler do
 
   # Look middle expressions that immediately follow a start_expr
 
-  defp look_ahead_middle(
-         [{:text, _, _, text}, {:middle_expr, line, _, _, chars} | rest] = tokens,
-         start,
-         contents
-       ) do
+  defp look_ahead_middle([{:text, _, _, text} | rest], start, contents) do
     if only_spaces?(text) do
-      {contents ++ text ++ chars, line, rest}
+      look_ahead_middle(rest, start, contents ++ text)
     else
-      {contents, start, tokens}
+      nil
     end
   end
 
   defp look_ahead_middle([{:middle_expr, line, _column, _, chars} | rest], _start, contents) do
-    {contents ++ chars, line, rest}
+    {rest, line, contents ++ chars}
   end
 
-  defp look_ahead_middle(tokens, start, contents) do
-    {contents, start, tokens}
+  defp look_ahead_middle(_tokens, _start, _contents) do
+    nil
   end
 
   defp only_spaces?(chars) do
