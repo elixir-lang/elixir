@@ -263,6 +263,67 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Application.delete_env(:sample, :foo, persistent: true)
   end
 
+  test "recompiles files when config changes with crashes" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      Process.put({MixTest.Case.Sample, :application}, extra_applications: [:logger])
+      File.mkdir_p!("config")
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        require Logger
+        def fun, do: Logger.debug("hello")
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      recompile = fn ->
+        Mix.ProjectStack.pop()
+        Mix.Project.push(MixTest.Case.Sample)
+        Mix.Tasks.Loadconfig.load_compile("config/config.exs")
+        Mix.Tasks.Compile.Elixir.run(["--verbose"])
+      end
+
+      # Adding config recompiles due to macros
+      File.write!("config/config.exs", """
+      import Config
+      config :logger, :compile_time_purge_matching, []
+      """)
+
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      assert recompile.() == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+
+      # Inserting a bogus config should crash
+      File.write!("config/config.exs", """
+      import Config
+      config :logger, :compile_time_purge_matching, [level_lower_than: :debug]
+      """)
+
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      ExUnit.CaptureIO.capture_io(fn -> assert {:error, _} = recompile.() end)
+
+      # Revering the original config should recompile
+      File.write!("config/config.exs", """
+      import Config
+      config :logger, :compile_time_purge_matching, []
+      """)
+
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      assert recompile.() == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+    end)
+  after
+    Application.put_env(:logger, :compile_time_purge_matching, [])
+  end
+
   test "recompiles files when lock changes" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
@@ -968,6 +1029,42 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.rm!("lib/a.ex")
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       refute_received _
+    end)
+  end
+
+  test "recompiles modules with __mix_recompile__ check with crashes" do
+    Agent.start_link(fn -> false end, name: :mix_recompile_raise)
+
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def __mix_recompile__?(), do: Agent.get(:mix_recompile_raise, & &1)
+
+        if Agent.get(:mix_recompile_raise, & &1) do
+          raise "oops"
+        end
+      end
+      """)
+
+      File.touch!("lib/a.ex", @old_time)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+      assert File.stat!("lib/a.ex").mtime == @old_time
+
+      Agent.update(:mix_recompile_raise, fn _ -> true end)
+
+      ExUnit.CaptureIO.capture_io(fn ->
+        assert {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
+      end)
+
+      # After failing to compile and reverting the status, it should still recompile
+      Agent.update(:mix_recompile_raise, fn _ -> false end)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end)
   end
 

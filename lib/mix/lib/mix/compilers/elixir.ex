@@ -23,15 +23,15 @@ defmodule Mix.Compilers.Elixir do
   Compiles stale Elixir files.
 
   It expects a `manifest` file, the source directories, the destination
-  directory, an option to know if compilation is being forced or not, and a
-  list of any additional compiler options.
+  directory, the cache key based on compiler configuration, external
+  manifests, and external modules, followed by opts.
 
   The `manifest` is written down with information including dependencies
   between modules, which helps it recompile only the modules that
   have changed at runtime.
   """
   def compile(manifest, srcs, dest, new_cache_key, new_parent_manifests, new_parents, opts) do
-    manifest_last_modified = Mix.Utils.last_modified(manifest)
+    modified = Mix.Utils.last_modified(manifest)
     new_parents = :ordsets.from_list(new_parents)
 
     # We fetch the time from before we read files so any future
@@ -47,7 +47,7 @@ defmodule Mix.Compilers.Elixir do
     # we need to recompile all references to old and new modules.
     stale =
       if old_parents != new_parents or
-           Mix.Utils.stale?(new_parent_manifests, [manifest_last_modified]) do
+           Mix.Utils.stale?(new_parent_manifests, [modified]) do
         :ordsets.union(old_parents, new_parents)
       else
         []
@@ -55,14 +55,14 @@ defmodule Mix.Compilers.Elixir do
 
     # If mix.exs has changed, recompile anything that calls Mix.Project.
     stale =
-      if Mix.Utils.stale?([Mix.Project.project_file()], [manifest_last_modified]),
+      if Mix.Utils.stale?([Mix.Project.project_file()], [modified]),
         do: [Mix.Project | stale],
         else: stale
 
     # If the dependencies have changed, we need to traverse lock/config files.
-    deps_changed? = Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest_last_modified])
+    deps_changed? = Mix.Utils.stale?([Mix.Project.config_mtime()], [modified])
 
-    # The app tracker will return information about apps before this compilation.
+    # The app tracer will return information about apps before this compilation.
     app_tracer = Mix.Compilers.ApplicationTracer.init()
 
     {force?, stale, new_lock, new_config} =
@@ -102,8 +102,6 @@ defmodule Mix.Compilers.Elixir do
           {false, stale, old_lock, old_config}
       end
 
-    modified = Mix.Utils.last_modified(manifest)
-
     {stale_local_mods, stale_local_exports, all_local_exports} =
       stale_local_deps(manifest, stale, modified, all_local_exports)
 
@@ -116,11 +114,11 @@ defmodule Mix.Compilers.Elixir do
         compiler_info_from_force(manifest, all_paths, all_modules, dest)
       else
         compiler_info_from_updated(
+          manifest,
           modified,
-          all_paths,
+          all_paths -- prev_paths,
           all_modules,
           all_sources,
-          prev_paths,
           removed,
           stale_local_mods,
           Map.merge(stale_local_exports, removed_modules),
@@ -182,9 +180,9 @@ defmodule Mix.Compilers.Elixir do
         delete_compiler_info()
       end
     else
-      # We need to return ok if deps_changed? or stale_local_mods changed
-      # because we want to propagate the changed status to compile.protocols.
-      # This will be the case whenever:
+      # We need to return ok if deps_changed? or stale_local_mods changed,
+      # even if no code was compiled, because we need to propagate the changed
+      # status to compile.protocols. This will be the case whenever:
       #
       #   * the lock file or a config changes
       #   * any module in a path dependency changes
@@ -272,34 +270,43 @@ defmodule Mix.Compilers.Elixir do
     {[], %{}, all_paths, sources_stats}
   end
 
-  # Assume that either all .beam files are missing, or none of them are
+  # If any .beam file is missing, the first one will the first to miss,
+  # so we always check that. If there are no modules, then we can rely
+  # purely on digests.
   defp missing_beam_file?(dest, [mod | _]), do: not File.exists?(beam_path(dest, mod))
   defp missing_beam_file?(_dest, []), do: false
 
   defp compiler_info_from_updated(
+         manifest,
          modified,
-         all_paths,
+         new_paths,
          all_modules,
          all_sources,
-         prev_paths,
          removed,
          stale_local_mods,
          stale_local_exports,
          dest
        ) do
-    # Otherwise let's start with the new sources
-    new_paths = all_paths -- prev_paths
+    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
+    modules_to_recompile =
+      for module(module: module, recompile?: true) <- all_modules,
+          recompile_module?(module),
+          into: %{},
+          do: {module, []}
+
+    {checkpoint_stale, checkpoint_modules} = parse_checkpoint(manifest)
+    modules_to_recompile = Map.merge(checkpoint_modules, modules_to_recompile)
+    stale_local_mods = Map.merge(checkpoint_stale, stale_local_mods)
+
+    if map_size(stale_local_mods) != map_size(checkpoint_stale) or
+         map_size(modules_to_recompile) != map_size(checkpoint_modules) do
+      write_checkpoint(manifest, stale_local_mods, modules_to_recompile)
+    end
 
     sources_stats =
       for path <- new_paths,
           into: mtimes_and_sizes(all_sources),
           do: {path, Mix.Utils.last_modified_and_size(path)}
-
-    modules_to_recompile =
-      for module(module: module, recompile?: true) <- all_modules,
-          recompile_module?(module),
-          into: %{},
-          do: {module, true}
 
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
@@ -307,12 +314,15 @@ defmodule Mix.Compilers.Elixir do
       for source(source: source, external: external, size: size, digest: digest, modules: modules) <-
             all_sources,
           {last_mtime, last_size} = Map.fetch!(sources_stats, source),
-          Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
+          # If the user does a change, compilation fails, and then they revert
+          # the change, the mtime will have changed but the .beam files will
+          # be missing and the digest is the same, so we need to check if .beam
+          # files are available.
+          size != last_size or
+            Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
             Enum.any?(external, &stale_external?(&1, modified, sources_stats)) or
-            (size != last_size or
-               (last_mtime > modified and
-                  (missing_beam_file?(dest, modules) or
-                     digest != digest(source)))),
+            (last_mtime > modified and
+               (missing_beam_file?(dest, modules) or digest != digest(source))),
           do: source
 
     changed = new_paths ++ changed
@@ -436,11 +446,12 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp dependent_runtime_modules(sources, all_modules, pending_modules) do
+    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
     changed_modules =
       for module(module: module) = entry <- all_modules,
           entry not in pending_modules,
           into: %{},
-          do: {module, true}
+          do: {module, []}
 
     fixpoint_runtime_modules(sources, changed_modules, %{}, pending_modules)
   end
@@ -649,7 +660,8 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp update_stale_entries(modules, sources, changed, stale_mods, stale_exports, compile_path) do
-    changed = Enum.into(changed, %{}, &{&1, true})
+    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
+    changed = Enum.into(changed, %{}, &{&1, []})
     reducer = &remove_stale_entry(&1, &2, sources, stale_exports, compile_path)
     remove_stale_entries(modules, %{}, changed, stale_mods, reducer)
   end
@@ -709,7 +721,7 @@ defmodule Mix.Compilers.Elixir do
     base = Path.basename(manifest)
 
     # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
-    stale_modules = for module <- stale_modules, do: {module, true}, into: %{}
+    stale_modules = for module <- stale_modules, do: {module, []}, into: %{}
 
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
@@ -721,7 +733,7 @@ defmodule Mix.Compilers.Elixir do
       {modules, exports, new_exports} ->
         module = beam |> Path.basename() |> Path.rootname() |> String.to_atom()
         export = exports_md5(module, false)
-        modules = Map.put(modules, module, true)
+        modules = Map.put(modules, module, [])
 
         # If the exports are the same, then the API did not change,
         # so we do not mark the export as stale. Note this has to
@@ -731,7 +743,7 @@ defmodule Mix.Compilers.Elixir do
         exports =
           if export && old_exports[module] == export,
             do: exports,
-            else: Map.put(exports, module, true)
+            else: Map.put(exports, module, [])
 
         # In any case, we always store it as the most update export
         # that we have, otherwise we delete it.
@@ -834,7 +846,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp deps_on(apps) do
     # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
-    apps = for app <- apps, do: {app, true}, into: %{}
+    apps = for app <- apps, do: {app, []}, into: %{}
     deps_on(Mix.Dep.cached(), apps, [], false)
   end
 
@@ -846,7 +858,7 @@ defmodule Mix.Compilers.Elixir do
 
       # It depends on one of the apps, store it
       Enum.any?(deps, &Map.has_key?(apps, &1.app)) ->
-        deps_on(cached_deps, Map.put(apps, app, true), acc, true)
+        deps_on(cached_deps, Map.put(apps, app, []), acc, true)
 
       # Otherwise we will check it later
       true ->
@@ -936,6 +948,7 @@ defmodule Mix.Compilers.Elixir do
     manifest_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)
+    delete_checkpoint(manifest)
 
     # Since Elixir is a dependency itself, we need to touch the lock
     # so the current Elixir version, used to compile the files above,
@@ -945,5 +958,42 @@ defmodule Mix.Compilers.Elixir do
 
   defp beam_path(compile_path, module) do
     Path.join(compile_path, Atom.to_string(module) <> ".beam")
+  end
+
+  # Once we added semantic recompilation, the following can happen:
+  #
+  # 1. The user changes config/mix.exs/__mix_recompile__?
+  # 2. We detect the change, remove .beam files and start recompilation
+  # 3. Recompilation fails
+  # 4. The user reverts the change
+  # 5. The compiler no longer recompiles and the .beam files are missing
+  #
+  # Therefore, it is important for us to checkpoint any state that may
+  # have lead to a compilation and which can now be reverted.
+
+  defp parse_checkpoint(manifest) do
+    try do
+      (manifest <> ".checkpoint") |> File.read!() |> :erlang.binary_to_term()
+    rescue
+      _ ->
+        {%{}, %{}}
+    else
+      {@manifest_vsn, stale, recompile_modules} ->
+        {stale, recompile_modules}
+
+      _ ->
+        {%{}, %{}}
+    end
+  end
+
+  defp write_checkpoint(manifest, stale, recompile_modules) do
+    File.mkdir_p!(Path.dirname(manifest))
+    term = {@manifest_vsn, stale, recompile_modules}
+    checkpoint_data = :erlang.term_to_binary(term, [:compressed])
+    File.write!(manifest <> ".checkpoint", checkpoint_data)
+  end
+
+  defp delete_checkpoint(manifest) do
+    File.rm(manifest <> ".checkpoint")
   end
 end
