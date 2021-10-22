@@ -397,10 +397,10 @@ parser_location(Meta) ->
         {ok, Forms} ->
           Forms;
         {error, {Meta, Error, Token}} ->
-          elixir_errors:parse_error(Meta, File, Error, Token)
+          elixir_errors:parse_error(Meta, File, Error, Token, [{line, StartLine}, {column, StartColumn}], String)
       end;
     {error, {Meta, Error, Token}} ->
-      elixir_errors:parse_error(Meta, File, Error, Token)
+      elixir_errors:parse_error(Meta, File, Error, Token, [{line, StartLine}, {column, StartColumn}], String)
   end.
 
 to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);

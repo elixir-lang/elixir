@@ -69,7 +69,14 @@ defmodule IEx.Evaluator do
   end
 
   def parse(@break_trigger, opts, _buffer) do
-    :elixir_errors.parse_error([line: opts[:line]], opts[:file], "incomplete expression", "")
+    :elixir_errors.parse_error(
+      [line: opts[:line]],
+      opts[:file],
+      "incomplete expression",
+      "",
+      [line: opts[:line]],
+      ""
+    )
   end
 
   def parse(input, opts, buffer) do
@@ -92,7 +99,14 @@ defmodule IEx.Evaluator do
         {:incomplete, input}
 
       {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(location, file, error, token)
+        :elixir_errors.parse_error(
+          location,
+          file,
+          error,
+          token,
+          [line: line, column: column],
+          input
+        )
     end
   end
 
