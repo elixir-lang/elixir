@@ -289,14 +289,15 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.12.0"
-  @spec parse_time(String.t()) ::
+  @spec parse_time(String.t(), format) ::
           {:ok, {hour, minute, second, microsecond}}
           | {:error, atom}
-  def parse_time("T" <> string, format) when is_format(format),
-    do: do_parse_time(string, format)
-
-  def parse_time(string, format) when is_binary(string) and is_format(format),
-    do: do_parse_time(string, format)
+  def parse_time(string, format) when is_binary(string) and is_format(format) do
+    case string do
+      "T" <> rest -> do_parse_time(rest, format)
+      _ -> do_parse_time(string, format)
+    end
+  end
 
   defp do_parse_time(<<unquote(match_basic_time), rest::binary>>, :basic)
        when unquote(guard_time) do
@@ -372,13 +373,16 @@ defmodule Calendar.ISO do
   @spec parse_date(String.t(), format) ::
           {:ok, {year, month, day}}
           | {:error, atom}
-  def parse_date("-" <> string, format) when is_format(format),
+  def parse_date(string, format) when is_binary(string) and is_format(format),
+    do: parse_date_guarded(string, format)
+
+  defp parse_date_guarded("-" <> string, format),
     do: do_parse_date(string, -1, format)
 
-  def parse_date("+" <> string, format) when is_format(format),
+  defp parse_date_guarded("+" <> string, format),
     do: do_parse_date(string, 1, format)
 
-  def parse_date(string, format) when is_binary(string) and is_format(format),
+  defp parse_date_guarded(string, format),
     do: do_parse_date(string, 1, format)
 
   defp do_parse_date(unquote(match_basic_date), multiplier, :basic) when unquote(guard_date) do
@@ -454,13 +458,16 @@ defmodule Calendar.ISO do
   @spec parse_naive_datetime(String.t(), format) ::
           {:ok, {year, month, day, hour, minute, second, microsecond}}
           | {:error, atom}
-  def parse_naive_datetime("-" <> string, format) when is_format(format),
+  def parse_naive_datetime(string, format) when is_binary(string) and is_format(format),
+    do: parse_naive_datetime_guarded(string, format)
+
+  defp parse_naive_datetime_guarded("-" <> string, format),
     do: do_parse_naive_datetime(string, -1, format)
 
-  def parse_naive_datetime("+" <> string, format) when is_format(format),
+  defp parse_naive_datetime_guarded("+" <> string, format),
     do: do_parse_naive_datetime(string, 1, format)
 
-  def parse_naive_datetime(string, format) when is_binary(string) and is_format(format),
+  defp parse_naive_datetime_guarded(string, format),
     do: do_parse_naive_datetime(string, 1, format)
 
   defp do_parse_naive_datetime(
@@ -552,16 +559,19 @@ defmodule Calendar.ISO do
 
   """
   @doc since: "1.12.0"
-  @callback parse_utc_datetime(String.t(), format) ::
-              {:ok, {year, month, day, hour, minute, second, microsecond}, utc_offset}
-              | {:error, atom}
-  def parse_utc_datetime("-" <> string, format) when is_format(format),
+  @spec parse_utc_datetime(String.t(), format) ::
+          {:ok, {year, month, day, hour, minute, second, microsecond}, utc_offset}
+          | {:error, atom}
+  def parse_utc_datetime(string, format) when is_binary(string) and is_format(format),
+    do: parse_utc_datetime_guarded(string, format)
+
+  defp parse_utc_datetime_guarded("-" <> string, format),
     do: do_parse_utc_datetime(string, -1, format)
 
-  def parse_utc_datetime("+" <> string, format) when is_format(format),
+  defp parse_utc_datetime_guarded("+" <> string, format),
     do: do_parse_utc_datetime(string, 1, format)
 
-  def parse_utc_datetime(string, format) when is_binary(string) and is_format(format),
+  defp parse_utc_datetime_guarded(string, format),
     do: do_parse_utc_datetime(string, 1, format)
 
   defp do_parse_utc_datetime(
