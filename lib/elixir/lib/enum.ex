@@ -603,6 +603,8 @@ defmodule Enum do
 
   """
   @spec concat(t) :: t
+  def concat(enumerables)
+
   def concat(list) when is_list(list) do
     concat_list(list)
   end
