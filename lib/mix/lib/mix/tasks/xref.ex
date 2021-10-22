@@ -586,10 +586,16 @@ defmodule Mix.Tasks.Xref do
 
   ## Graph
 
-  defp excluded(opts) do
-    opts
-    |> Keyword.get_values(:exclude)
-    |> Enum.flat_map(&[{&1, nil}, {&1, :compile}, {&1, :export}])
+  defp exclude(file_references, []), do: file_references
+
+  defp exclude(file_references, excluded) do
+    excluded_set = MapSet.new(excluded)
+
+    file_references
+    |> Map.drop(excluded)
+    |> Map.new(fn {key, list} ->
+      {key, Enum.reject(list, fn {ref, _kind} -> MapSet.member?(excluded_set, ref) end)}
+    end)
   end
 
   defp label_filter(nil), do: :all
@@ -671,7 +677,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp write_graph(file_references, filter, opts) do
-    excluded = excluded(opts)
+    file_references = exclude(file_references, Keyword.get_values(opts, :exclude))
     sources = get_files(:source, opts, file_references)
     sinks = get_files(:sink, opts, file_references)
 
@@ -683,7 +689,7 @@ defmodule Mix.Tasks.Xref do
       end
 
     # Filter according to non direct label
-    file_references = filter(file_references, excluded, filter)
+    file_references = filter(file_references, filter)
 
     # If a label is given, remove empty root nodes
     file_references =
@@ -700,13 +706,12 @@ defmodule Mix.Tasks.Xref do
         file_references
         |> Map.drop(sinks || [])
         |> Enum.map(&{elem(&1, 0), nil})
-        |> Kernel.--(excluded)
       end
 
     callback = fn {file, type} ->
       children = if opts[:only_nodes], do: [], else: Map.get(file_references, file, [])
       type = type && "(#{type})"
-      {{file, type}, Enum.sort(children -- excluded)}
+      {{file, type}, Enum.sort(children)}
     end
 
     {found, count} =
@@ -755,18 +760,18 @@ defmodule Mix.Tasks.Xref do
     Enum.reduce(file_references, 0, fn {_, refs}, total -> total + length(refs) end)
   end
 
-  defp filter_fn(file_references, excluded, :compile_connected),
+  defp filter_fn(file_references, :compile_connected),
     do: fn {key, type} ->
-      type == :compile and match?([_ | _], (file_references[key] || []) -- excluded)
+      type == :compile and match?([_ | _], file_references[key] || [])
     end
 
-  defp filter_fn(_file_references, _excluded, filter),
+  defp filter_fn(_file_references, filter),
     do: fn {_key, type} -> type == filter end
 
-  defp filter(file_references, _excluded, :all), do: file_references
+  defp filter(file_references, :all), do: file_references
 
-  defp filter(file_references, excluded, filter) do
-    filter_fn = filter_fn(file_references, excluded, filter)
+  defp filter(file_references, filter) do
+    filter_fn = filter_fn(file_references, filter)
 
     for {key, children} <- file_references,
         into: %{},

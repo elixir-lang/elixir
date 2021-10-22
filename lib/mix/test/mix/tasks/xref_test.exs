@@ -449,6 +449,33 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    @abc_linear_files %{
+      "lib/a.ex" => "defmodule A, do: def a, do: B.b()",
+      "lib/b.ex" => "defmodule B, do: def b, do: C.c()",
+      "lib/c.ex" => "defmodule C, do: def c, do: true"
+    }
+
+    test "exclude one from linear case" do
+      assert_graph(
+        ~w[--exclude lib/b.ex],
+        """
+        lib/a.ex
+        lib/c.ex
+        """,
+        files: @abc_linear_files
+      )
+    end
+
+    test "exclude one with source from linear case" do
+      assert_graph(
+        ~w[--exclude lib/b.ex --source lib/a.ex],
+        """
+        lib/a.ex
+        """,
+        files: @abc_linear_files
+      )
+    end
+
     test "only nodes" do
       assert_graph(~w[--only-nodes], """
       lib/a.ex
@@ -503,6 +530,19 @@ defmodule Mix.Tasks.XrefTest do
         `-- lib/b.ex (compile)
         lib/c.ex
         `-- lib/d.ex (compile)
+        """)
+      end
+    end
+
+    test "exclude many with fail-above" do
+      message = "Too many references (found: 1, permitted: 0)"
+
+      assert_raise Mix.Error, message, fn ->
+        assert_graph(~w[--exclude lib/c.ex --exclude lib/b.ex --fail-above 0], """
+        lib/a.ex
+        lib/d.ex
+        `-- lib/e.ex
+        lib/e.ex
         """)
       end
     end
@@ -795,49 +835,54 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
-    defp assert_graph(opts \\ [], expected) do
+    @default_files %{
+      "lib/a.ex" => """
+      defmodule A do
+        def a, do: :ok
+        B.b2()
+      end
+      """,
+      "lib/b.ex" => """
+      defmodule B do
+        def b1, do: A.a() == C.c()
+        def b2, do: :ok
+        :e.e()
+      end
+      """,
+      "lib/c.ex" => """
+      defmodule C do
+        def c, do: :ok
+        :d.d()
+      end
+      """,
+      "lib/d.ex" => """
+      defmodule :d do
+        def d, do: :ok
+        def e, do: :e.e()
+      end
+      """,
+      "lib/e.ex" => """
+      defmodule :e do
+        def e, do: :ok
+      end
+      """
+    }
+
+    defp assert_graph(opts \\ [], expected, params \\ []) do
       in_fixture("no_mixfile", fn ->
-        File.write!("lib/a.ex", """
-        defmodule A do
-          def a, do: :ok
-          B.b2()
-        end
-        """)
-
-        File.write!("lib/b.ex", """
-        defmodule B do
-          def b1, do: A.a() == C.c()
-          def b2, do: :ok
-          :e.e()
-        end
-        """)
-
-        File.write!("lib/c.ex", """
-        defmodule C do
-          def c, do: :ok
-          :d.d()
-        end
-        """)
-
-        File.write!("lib/d.ex", """
-        defmodule :d do
-          def d, do: :ok
-          def e, do: :e.e()
-        end
-        """)
-
-        File.write!("lib/e.ex", """
-        defmodule :e do
-          def e, do: :ok
-        end
-        """)
+        nb_files =
+          Enum.count(params[:files] || @default_files, fn {path, content} ->
+            File.write!(path, content)
+          end)
 
         assert Mix.Task.run("xref", opts ++ ["graph"]) == :ok
+        first_line = "Compiling #{nb_files} files (.ex)"
 
-        assert "Compiling 5 files (.ex)\nGenerated sample app\n" <> result =
-                 receive_until_no_messages([])
+        assert [
+                 ^first_line | ["Generated sample app" | result]
+               ] = receive_until_no_messages([]) |> String.split("\n")
 
-        assert normalize_graph_output(result) == expected
+        assert normalize_graph_output(result |> Enum.join("\n")) == expected
       end)
     end
 
