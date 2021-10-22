@@ -413,7 +413,7 @@ handle_parsing_opts(File, Opts) ->
       false -> false
     end,
   TokenMetadata = lists:keyfind(token_metadata, 1, Opts) == {token_metadata, true},
-  Columns = lists:keyfind(columns, 1, Opts) == {columns, true},
+  Columns = lists:keyfind(columns, 1, Opts) /= {columns, false},
   put(elixir_parser_file, File),
   put(elixir_parser_columns, Columns),
   put(elixir_token_metadata, TokenMetadata),

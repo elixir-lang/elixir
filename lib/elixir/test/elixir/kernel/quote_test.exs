@@ -235,7 +235,7 @@ defmodule Kernel.QuoteTest do
     # The exception to this rule is an empty (). While empty expressions
     # are allowed, an empty () is ambiguous. We also can't use quote here,
     # since the formatter will rewrite (;) to something else.
-    assert {:ok, {:__block__, [line: 1], []}} = Code.string_to_quoted("(;)")
+    assert {:ok, {:__block__, [line: 1, column: 1], []}} = Code.string_to_quoted("(;)")
   end
 
   test "bind quoted" do

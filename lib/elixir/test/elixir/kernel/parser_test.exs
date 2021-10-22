@@ -57,7 +57,7 @@ defmodule Kernel.ParserTest do
 
   describe "strings/sigils" do
     test "delimiter information for sigils is included" do
-      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: false)
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: false, columns: false)
 
       assert parse!("~r/foo/") ==
                {:sigil_r, [delimiter: "/", line: 1], [{:<<>>, [line: 1], ["foo"]}, []]}
@@ -78,39 +78,37 @@ defmodule Kernel.ParserTest do
     end
 
     test "sigil newlines" do
-      assert {:sigil_s, _, [{:<<>>, _, ["here\ndoc"]}, []]} =
-               Code.string_to_quoted!(~s|~s"here\ndoc"|)
+      assert {:sigil_s, _, [{:<<>>, _, ["here\ndoc"]}, []]} = parse!(~s|~s"here\ndoc"|)
 
-      assert {:sigil_s, _, [{:<<>>, _, ["here\r\ndoc"]}, []]} =
-               Code.string_to_quoted!(~s|~s"here\r\ndoc"|)
+      assert {:sigil_s, _, [{:<<>>, _, ["here\r\ndoc"]}, []]} = parse!(~s|~s"here\r\ndoc"|)
     end
 
     test "string newlines" do
-      assert Code.string_to_quoted!(~s|"here\ndoc"|) == "here\ndoc"
-      assert Code.string_to_quoted!(~s|"here\r\ndoc"|) == "here\r\ndoc"
-      assert Code.string_to_quoted!(~s|"here\\\ndoc"|) == "heredoc"
-      assert Code.string_to_quoted!(~s|"here\\\r\ndoc"|) == "heredoc"
+      assert parse!(~s|"here\ndoc"|) == "here\ndoc"
+      assert parse!(~s|"here\r\ndoc"|) == "here\r\ndoc"
+      assert parse!(~s|"here\\\ndoc"|) == "heredoc"
+      assert parse!(~s|"here\\\r\ndoc"|) == "heredoc"
     end
 
     test "heredoc newlines" do
-      assert Code.string_to_quoted!(~s|"""\nhere\ndoc\n"""|) == "here\ndoc\n"
-      assert Code.string_to_quoted!(~s|"""\r\nhere\r\ndoc\r\n"""|) == "here\r\ndoc\r\n"
-      assert Code.string_to_quoted!(~s|  """\n  here\n  doc\n  """|) == "here\ndoc\n"
-      assert Code.string_to_quoted!(~s|  """\r\n  here\r\n  doc\r\n  """|) == "here\r\ndoc\r\n"
-      assert Code.string_to_quoted!(~s|"""\nhere\\\ndoc\\\n"""|) == "heredoc"
-      assert Code.string_to_quoted!(~s|"""\r\nhere\\\r\ndoc\\\r\n"""|) == "heredoc"
+      assert parse!(~s|"""\nhere\ndoc\n"""|) == "here\ndoc\n"
+      assert parse!(~s|"""\r\nhere\r\ndoc\r\n"""|) == "here\r\ndoc\r\n"
+      assert parse!(~s|  """\n  here\n  doc\n  """|) == "here\ndoc\n"
+      assert parse!(~s|  """\r\n  here\r\n  doc\r\n  """|) == "here\r\ndoc\r\n"
+      assert parse!(~s|"""\nhere\\\ndoc\\\n"""|) == "heredoc"
+      assert parse!(~s|"""\r\nhere\\\r\ndoc\\\r\n"""|) == "heredoc"
     end
 
     test "heredoc indentation" do
       meta = [delimiter: "'''", line: 1]
       args = {:sigil_S, meta, [{:<<>>, [indentation: 2, line: 1], ["  sigil heredoc\n"]}, []]}
-      assert Code.string_to_quoted!("~S'''\n    sigil heredoc\n  '''") == args
+      assert parse!("~S'''\n    sigil heredoc\n  '''") == args
     end
   end
 
   describe "string_to_quoted/2" do
     test "converts strings to quoted expressions" do
-      assert Code.string_to_quoted("1 + 2") == {:ok, {:+, [line: 1], [1, 2]}}
+      assert Code.string_to_quoted("1 + 2") == {:ok, {:+, [line: 1, column: 3], [1, 2]}}
 
       assert Code.string_to_quoted("a.1") ==
                {:error, {[line: 1, column: 3], "syntax error before: ", "\"1\""}}
@@ -150,7 +148,7 @@ defmodule Kernel.ParserTest do
         {:ok, {:my, "atom", ref}}
       end
 
-      assert {:ok, {{:my, "atom", ^ref}, [line: 1], nil}} =
+      assert {:ok, {{:my, "atom", ^ref}, [line: 1, column: 1], nil}} =
                Code.string_to_quoted("there_is_no_such_var", static_atoms_encoder: encoder)
     end
 
@@ -181,20 +179,21 @@ defmodule Kernel.ParserTest do
 
     test "does not encode keywords" do
       encoder = fn atom, _meta -> raise "shouldn't be invoked for #{atom}" end
+      string_to_quoted = &Code.string_to_quoted(&1, static_atoms_encoder: encoder, columns: false)
 
       assert {:ok, {:fn, [line: 1], [{:->, [line: 1], [[1], 2]}]}} =
-               Code.string_to_quoted("fn 1 -> 2 end", static_atoms_encoder: encoder)
+               string_to_quoted.("fn 1 -> 2 end")
 
-      assert {:ok, {:or, [line: 1], [true, false]}} =
-               Code.string_to_quoted("true or false", static_atoms_encoder: encoder)
+      assert {:ok, {:or, [line: 1], [true, false]}} = string_to_quoted.("true or false")
 
       encoder = fn atom, _meta -> {:ok, {:encoded, atom}} end
+      string_to_quoted = &Code.string_to_quoted(&1, static_atoms_encoder: encoder, columns: false)
 
       assert {:ok, [encoded: "true", encoded: "do", encoded: "and"]} =
-               Code.string_to_quoted("[:true, :do, :and]", static_atoms_encoder: encoder)
+               string_to_quoted.("[:true, :do, :and]")
 
       assert {:ok, [{{:encoded, "do"}, 1}, {{:encoded, "true"}, 2}, {{:encoded, "end"}, 3}]} =
-               Code.string_to_quoted("[do: 1, true: 2, end: 3]", static_atoms_encoder: encoder)
+               string_to_quoted.("[do: 1, true: 2, end: 3]")
     end
 
     test "returns errors on long atoms even when using static_atoms_encoder" do
@@ -304,7 +303,7 @@ defmodule Kernel.ParserTest do
     end
 
     test "adds pairing information" do
-      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: false)
 
       assert string_to_quoted.("foo") == {:foo, [line: 1], nil}
       assert string_to_quoted.("foo()") == {:foo, [closing: [line: 1], line: 1], []}
@@ -320,7 +319,12 @@ defmodule Kernel.ParserTest do
     end
 
     test "with :literal_encoder" do
-      opts = [literal_encoder: &{:ok, {:__block__, &2, [&1]}}, token_metadata: true]
+      opts = [
+        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+        token_metadata: true,
+        columns: false
+      ]
+
       string_to_quoted = &Code.string_to_quoted!(&1, opts)
 
       assert string_to_quoted.(~s("one")) == {:__block__, [delimiter: "\"", line: 1], ["one"]}
@@ -392,7 +396,7 @@ defmodule Kernel.ParserTest do
     end
 
     test "adds metadata for the last alias segment" do
-      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
+      string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true, columns: false)
 
       assert string_to_quoted.("Foo") == {:__aliases__, [last: [line: 1], line: 1], [:Foo]}
 
@@ -845,7 +849,7 @@ defmodule Kernel.ParserTest do
     end
   end
 
-  defp parse!(string), do: Code.string_to_quoted!(string)
+  defp parse!(string), do: Code.string_to_quoted!(string, columns: false)
 
   defp assert_token_missing(given_message, string) do
     assert_raise TokenMissingError, given_message, fn -> parse!(string) end
