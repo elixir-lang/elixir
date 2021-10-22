@@ -107,7 +107,7 @@ end
 Now any application can use your formatter as follows:
 
 ```elixir
-# .formatters.exs
+# .formatter.exs
 [
   # Define the desired plugins
   plugins: [MixMarkdownFormatter],
