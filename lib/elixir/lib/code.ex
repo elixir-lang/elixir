@@ -820,8 +820,8 @@ defmodule Code do
     * `:column` - (since v1.11.0) the starting column of the string being parsed.
       Defaults to 1.
 
-    * `:columns` - when `true`, attach a `:column` key to the quoted
-      metadata. Defaults to `false`.
+    * `:columns` - when `false`, does not attach a `:column` key to the quoted
+      metadata. Defaults to `true` since v1.13.0.
 
     * `:unescape` (since v1.10.0) - when `false`, preserves escaped sequences.
       For example, `"null byte\\t\\x00"` will be kept as is instead of being
