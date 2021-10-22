@@ -5,6 +5,7 @@ defmodule ExUnit.AssertionsTest.Value do
   def falsy, do: nil
   def truthy, do: :truthy
   def binary, do: <<5, "Frank the Walrus">>
+  def map, do: %{a: 1, b: 2}
 end
 
 defmodule ExUnit.AssertionsTest.BrokenError do
@@ -172,6 +173,23 @@ defmodule ExUnit.AssertionsTest do
              end
              """)
            end) =~ "variable \"var\" is unused"
+  after
+    :code.delete(ExSample)
+    :code.purge(ExSample)
+  end
+
+  test "assert match with empty map" do
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.eval_string("""
+             defmodule ExSample do
+               import ExUnit.Assertions
+
+               def run do
+                 true = %{a: 1, b: 2} == assert %{} = ExUnit.AssertionsTest.Value.map()
+               end
+             end
+             """)
+           end) =~ "Matching against empty map will not check if the map is empty"
   after
     :code.delete(ExSample)
     :code.purge(ExSample)

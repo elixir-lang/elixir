@@ -107,6 +107,20 @@ defmodule ExUnit.Assertions do
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
 
+    if match?({:%{}, _, []}, left) do
+      IO.warn("""
+      Matching against empty map will not check if the map is empty.
+
+      You probably wanted to do:
+
+          assert %{} == #{Macro.to_string(right)}
+
+      If you wanted to check whether the value is just map, then use:
+
+          assert is_map(#{Macro.to_string(right)})
+      """)
+    end
+
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
     # to avoid silly warnings though.
