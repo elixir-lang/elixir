@@ -302,7 +302,7 @@ defmodule Mix do
     * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
       (default: `~/.mix`)
     * `MIX_INSTALL_DIR` - (since v1.12.0) specifies directory where `Mix.install/2` keeps
-      installs cache
+    * `MIX_INSTALL_FORCE` - (since v1.13.0) runs `Mix.install/2` with empty install cache
     * `MIX_PATH` - appends extra code paths
     * `MIX_QUIET` - does not print information messages to the terminal
     * `MIX_REBAR` - path to rebar command that overrides the one Mix installs
@@ -318,9 +318,7 @@ defmodule Mix do
   Environment variables that are not meant to hold a value (and act basically as
   flags) should be set to either `1` or `true`, for example:
 
-  ```bash
-  $ MIX_DEBUG=1 mix compile
-  ```
+      $ MIX_DEBUG=1 mix compile
   """
 
   @mix_install_project __MODULE__.InstallProject
@@ -550,8 +548,9 @@ defmodule Mix do
 
   ## Options
 
-    * `:force` - if `true`, removes install cache. This is useful when you want
-      to update your dependencies or your install got into an inconsistent state
+    * `:force` - if `true`, runs with empty install cache. This is useful when you want
+      to update your dependencies or your install got into an inconsistent state.
+      To use this option, you can also set the `MIX_INSTALL_FORCE` environment variable.
       (Default: `false`)
 
     * `:verbose` - if `true`, prints additional debugging information
@@ -670,7 +669,7 @@ defmodule Mix do
       |> :erlang.md5()
       |> Base.encode16(case: :lower)
 
-    force? = !!opts[:force]
+    force? = System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or !!opts[:force]
 
     case Mix.State.get(:installed) do
       nil ->
