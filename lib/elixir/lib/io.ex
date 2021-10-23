@@ -433,7 +433,6 @@ defmodule IO do
   Otherwise, `count` is the number of raw bytes to be retrieved.
 
   See `IO.getn/3` for a description of return values.
-
   """
   @spec getn(
           device | chardata | String.Chars.t(),
@@ -474,31 +473,32 @@ defmodule IO do
   """
   @spec getn(device, chardata | String.Chars.t(), pos_integer | :eof) :: chardata | nodata
   def getn(device, prompt, :eof) do
-    request = {:get_until, :unicode, to_chardata(prompt), __MODULE__, :__eof__, []}
-    device = map_dev(device)
-
-    case :io.request(device, request) do
-      list when is_list(list) ->
-        with [_ | _] = opts <- :io.getopts(device),
-             false <- Keyword.get(opts, :binary, true) do
-          list
-        else
-          _ -> :unicode.characters_to_binary(list)
-        end
-
-      other ->
-        other
-    end
+    getn_eof(map_dev(device), to_chardata(prompt), [])
   end
 
   def getn(device, prompt, count) when is_integer(count) and count > 0 do
     :io.get_chars(map_dev(device), to_chardata(prompt), count)
   end
 
-  @doc false
-  def __eof__([], :eof), do: {:done, :eof, []}
-  def __eof__(state, :eof), do: {:done, :lists.reverse(state), []}
-  def __eof__(state, data), do: {:more, :lists.reverse(data, state)}
+  defp getn_eof(device, prompt, acc) do
+    case :io.get_line(device, prompt) do
+      line when is_binary(line) or is_list(line) -> getn_eof(device, '', [line | acc])
+      :eof -> read_eof(device, :lists.reverse(acc))
+      other -> other
+    end
+  end
+
+  defp read_eof(_device, [h | _] = acc) when is_binary(h), do: IO.iodata_to_binary(acc)
+  defp read_eof(_device, [h | _] = acc) when is_list(h), do: :lists.flatten(acc)
+
+  defp read_eof(device, []) do
+    with [_ | _] = opts <- :io.getopts(device),
+         false <- Keyword.get(opts, :binary, true) do
+      ''
+    else
+      _ -> ""
+    end
+  end
 
   @doc ~S"""
   Reads a line from the IO `device`.
