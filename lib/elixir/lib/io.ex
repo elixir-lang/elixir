@@ -483,22 +483,14 @@ defmodule IO do
   defp getn_eof(device, prompt, acc) do
     case :io.get_line(device, prompt) do
       line when is_binary(line) or is_list(line) -> getn_eof(device, '', [line | acc])
-      :eof -> read_eof(device, :lists.reverse(acc))
+      :eof -> wrap_eof(:lists.reverse(acc))
       other -> other
     end
   end
 
-  defp read_eof(_device, [h | _] = acc) when is_binary(h), do: IO.iodata_to_binary(acc)
-  defp read_eof(_device, [h | _] = acc) when is_list(h), do: :lists.flatten(acc)
-
-  defp read_eof(device, []) do
-    with [_ | _] = opts <- :io.getopts(device),
-         false <- Keyword.get(opts, :binary, true) do
-      ''
-    else
-      _ -> ""
-    end
-  end
+  defp wrap_eof([h | _] = acc) when is_binary(h), do: IO.iodata_to_binary(acc)
+  defp wrap_eof([h | _] = acc) when is_list(h), do: :lists.flatten(acc)
+  defp wrap_eof([]), do: :eof
 
   @doc ~S"""
   Reads a line from the IO `device`.
