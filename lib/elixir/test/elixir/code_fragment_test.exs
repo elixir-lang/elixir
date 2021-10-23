@@ -803,8 +803,8 @@ defmodule CodeFragmentTest do
   end
 
   describe "container_cursor_to_quoted/2" do
-    def s2q(arg, opts \\ [columns: false]), do: Code.string_to_quoted(arg, opts)
-    def cc2q(arg, opts \\ [columns: false]), do: CF.container_cursor_to_quoted(arg, opts)
+    def s2q(arg, opts \\ []), do: Code.string_to_quoted(arg, opts)
+    def cc2q(arg, opts \\ []), do: CF.container_cursor_to_quoted(arg, opts)
 
     test "completes terminators" do
       assert cc2q("(") == s2q("(__cursor__())")
@@ -913,7 +913,7 @@ defmodule CodeFragmentTest do
       assert cc2q("foo(", opts) == s2q("foo(__cursor__())", opts)
       assert cc2q("foo(123,", opts) == s2q("foo(123,__cursor__())", opts)
 
-      opts = [token_metadata: true, columns: false]
+      opts = [token_metadata: true]
       assert cc2q("foo(", opts) == s2q("foo(__cursor__())", opts)
       assert cc2q("foo(123,", opts) == s2q("foo(123,__cursor__())", opts)
     end
