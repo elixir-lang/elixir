@@ -256,11 +256,11 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
         {Escape, Name} ->
           Msg = io_lib:format("found ?\\ followed by code point 0x~.16B (~ts), please use ?~ts instead",
                               [Char, Name, Escape]),
-          prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
+          prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
 
         false when ?is_downcase(H); ?is_upcase(H) ->
           Msg = io_lib:format("unknown escape sequence ?\\~tc, use ?~tc instead", [H, H]),
-          prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
+          prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
 
         false ->
           Scope
@@ -277,7 +277,7 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
     {Escape, Name} ->
       Msg = io_lib:format("found ? followed by code point 0x~.16B (~ts), please use ?~ts instead",
                           [Char, Name, Escape]),
-      prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
+      prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
     false ->
       Scope
   end,
@@ -357,7 +357,7 @@ tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
 % ## Stand-alone tokens
 
 tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
-  NewScope = maybe_warn_too_many_of_same_char("...", Rest, Line, Scope),
+  NewScope = maybe_warn_too_many_of_same_char("...", Rest, Line, Column, Scope),
   Token = check_call_identifier(Line, Column, '...', Rest),
   tokenize(Rest, Line, Column + 3, NewScope, [Token | Tokens]);
 
@@ -384,19 +384,19 @@ tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?comp_op3(T1, T2
   handle_op(Rest, Line, Column, comp_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?and_op3(T1, T2, T3) ->
-  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Column, Scope),
   handle_op(Rest, Line, Column, and_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?or_op3(T1, T2, T3) ->
-  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Column, Scope),
   handle_op(Rest, Line, Column, or_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?xor_op3(T1, T2, T3) ->
-  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Column, Scope),
   handle_op(Rest, Line, Column, xor_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?concat_op3(T1, T2, T3) ->
-  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Scope),
+  NewScope = maybe_warn_too_many_of_same_char([T1, T2, T3], Rest, Line, Column, Scope),
   handle_op(Rest, Line, Column, concat_op, 3, list_to_atom([T1, T2, T3]), NewScope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?arrow_op3(T1, T2, T3) ->
@@ -511,7 +511,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
             "do not require quotes",
             [hd(Parts)]
           ),
-          prepend_warning({Line, InterScope#elixir_tokenizer.file, WarnMsg}, InterScope);
+          prepend_warning(Line, Column, InterScope#elixir_tokenizer.file, WarnMsg, InterScope);
 
         false ->
           InterScope
@@ -548,7 +548,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Column, Scope, false) of
     {_Kind, Unencoded, Atom, Rest, Length, _Ascii, _Special} ->
-      NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Unencoded, Rest, Scope, Line),
+      NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Unencoded, Rest, Line, Column, Scope),
       Token = {atom, {Line, Column, nil}, Atom},
       tokenize(Rest, Line, Column + 1 + Length, NewScope, [Token | Tokens]);
     empty ->
@@ -668,7 +668,7 @@ tokenize(String, Line, Column, Scope, Tokens) ->
           tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
 
         _ when Kind == identifier ->
-          NewScope = maybe_warn_for_ambiguous_bang_before_equals(identifier, Unencoded, Rest, Scope, Line),
+          NewScope = maybe_warn_for_ambiguous_bang_before_equals(identifier, Unencoded, Rest, Line, Column, Scope),
           Token = check_call_identifier(Line, Column, Atom, Rest),
           tokenize(Rest, Line, Column + Length, NewScope, [Token | Tokens]);
 
@@ -763,7 +763,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
             "letters, numbers, and underscores do not require quotes",
             [hd(Parts)]
           ),
-          prepend_warning({Line, InterScope#elixir_tokenizer.file, WarnMsg}, InterScope);
+          prepend_warning(Line, Column, InterScope#elixir_tokenizer.file, WarnMsg, InterScope);
 
         false ->
           InterScope
@@ -831,7 +831,7 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
         case Op of
           '^^^' ->
             Msg = "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.bxor/2 instead",
-            prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
+            prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
 
           _ ->
             Scope
@@ -875,7 +875,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
             "do not require quotes",
             [Part]
           ),
-          prepend_warning({Line, InterScope#elixir_tokenizer.file, WarnMsg}, InterScope);
+          prepend_warning(Line, Column, InterScope#elixir_tokenizer.file, WarnMsg, InterScope);
 
         false ->
           InterScope
@@ -997,7 +997,7 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
           Fun = fun(Part, Acc) -> extract_heredoc_indent(Part, Acc, Indent) end,
           {Parts1, {ShouldWarn, _}} = lists:mapfoldl(Fun, {false, Line}, Parts0),
           Parts2 = extract_heredoc_head(Parts1),
-          NewScope = maybe_heredoc_warn(ShouldWarn, InterScope, H),
+          NewScope = maybe_heredoc_warn(ShouldWarn, Column, InterScope, H),
           {ok, NewLine, NewColumn, tokens_to_binary(Parts2), Rest, NewScope};
 
         {error, Reason} ->
@@ -1039,9 +1039,9 @@ trim_space([H | T], Spaces) when ?is_horizontal_space(H) -> trim_space(T, Spaces
 trim_space([], _Spaces) -> {[], false};
 trim_space(Rest, _Spaces) -> {Rest, true}.
 
-maybe_heredoc_warn(false, Scope, _Marker) ->
+maybe_heredoc_warn(false, _Column, Scope, _Marker) ->
   Scope;
-maybe_heredoc_warn(Line, Scope, Marker) ->
+maybe_heredoc_warn(Line, Column, Scope, Marker) ->
   Msg = io_lib:format("outdented heredoc line. The contents inside the heredoc should be indented "
                       "at the same level as the closing ~ts. The following is forbidden:~n~n"
                       "    def text do~n"
@@ -1057,7 +1057,7 @@ maybe_heredoc_warn(Line, Scope, Marker) ->
                       "    end~n~n"
                       "The current heredoc line is indented too little", [[Marker, Marker, Marker]]),
 
-  prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope).
+  prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope).
 
 extract_heredoc_head([[$\n|H]|T]) -> [H|T].
 
@@ -1508,19 +1508,19 @@ invalid_do_with_fn_error(Prefix) ->
   "    fn pattern -> expression end"}.
 
 % TODO: Turn into an error on v2.0
-maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Scope) ->
+maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Column, Scope) ->
   Warning =
     case T of
       $. -> "please use parens around \"...\" instead";
       _ -> io_lib:format("please use a space between \"~ts\" and the next \"~ts\"", [Token, [T]])
     end,
   Message = io_lib:format("found \"~ts\" followed by \"~ts\", ~ts", [Token, [T], Warning]),
-  prepend_warning({Line, Scope#elixir_tokenizer.file, Message}, Scope);
-maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, Scope) ->
+  prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Message, Scope);
+maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, _Column, Scope) ->
   Scope.
 
 %% TODO: Turn into an error on v2.0
-maybe_warn_for_ambiguous_bang_before_equals(Kind, Unencoded, [$= | _], Scope, Line) ->
+maybe_warn_for_ambiguous_bang_before_equals(Kind, Unencoded, [$= | _], Line, Column, Scope) ->
   {What, Identifier} =
     case Kind of
       atom -> {"atom", [$: | Unencoded]};
@@ -1533,15 +1533,15 @@ maybe_warn_for_ambiguous_bang_before_equals(Kind, Unencoded, [$= | _], Scope, Li
                           "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
                           "a space before or after ~ts to remove the ambiguity",
                           [What, Identifier, [Last], lists:droplast(Identifier), [Last], Identifier, [Last]]),
-      prepend_warning({Line, Scope#elixir_tokenizer.file, Msg}, Scope);
+      prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
     _ ->
       Scope
   end;
-maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, Scope, _Line) ->
+maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, _Line, _Column, Scope) ->
   Scope.
 
-prepend_warning({Line, File, Msg}, #elixir_tokenizer{warnings=Warnings} = Scope) ->
-  Scope#elixir_tokenizer{warnings = [{Line, File, Msg} | Warnings]}.
+prepend_warning(Line, Column, File, Msg, #elixir_tokenizer{warnings=Warnings} = Scope) ->
+  Scope#elixir_tokenizer{warnings = [{{Line, Column}, File, Msg} | Warnings]}.
 
 error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
   {error, Reason, Rest, Warnings, Tokens}.

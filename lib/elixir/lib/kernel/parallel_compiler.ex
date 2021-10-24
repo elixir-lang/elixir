@@ -3,6 +3,12 @@ defmodule Kernel.ParallelCompiler do
   A module responsible for compiling and requiring files in parallel.
   """
 
+  @typedoc "The line. 0 indicates no line."
+  @type line() :: non_neg_integer()
+  @type location() :: line() | {line(), column :: non_neg_integer}
+  @type warning() :: {file :: Path.t(), location(), message :: String.t()}
+  @type error() :: {file :: Path.t(), line(), message :: String.t()}
+
   @doc """
   Starts a task for parallel compilation.
 
@@ -91,6 +97,7 @@ defmodule Kernel.ParallelCompiler do
 
   """
   @doc since: "1.6.0"
+  @spec compile([Path.t()], keyword()) :: {:ok, [atom], [warning]} | {:error, [error], [warning]}
   def compile(files, options \\ []) when is_list(options) do
     spawn_workers(files, :compile, options)
   end
@@ -101,6 +108,8 @@ defmodule Kernel.ParallelCompiler do
   See `compile/2` for more information.
   """
   @doc since: "1.6.0"
+  @spec compile_to_path([Path.t()], Path.t(), keyword()) ::
+          {:ok, [atom], [warning]} | {:error, [error], [warning]}
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
     spawn_workers(files, {:compile, path}, options)
   end
@@ -126,8 +135,19 @@ defmodule Kernel.ParallelCompiler do
 
   """
   @doc since: "1.6.0"
+  @spec compile_to_path([Path.t()], keyword()) ::
+          {:ok, [atom], [warning]} | {:error, [error], [warning]}
   def require(files, options \\ []) when is_list(options) do
     spawn_workers(files, :require, options)
+  end
+
+  @doc """
+  Prints a warning returned by the compiler.
+  """
+  @doc since: "1.13.0"
+  @spec print_warning(warning) :: :ok
+  def print_warning({file, location, warning}) do
+    :elixir_errors.print_warning(location, file, warning)
   end
 
   @doc false
@@ -557,10 +577,10 @@ defmodule Kernel.ParallelCompiler do
         state = %{state | timer_ref: timer_ref}
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
 
-      {:warning, file, line, message} ->
+      {:warning, file, location, message} ->
         file = file && Path.absname(file)
         message = :unicode.characters_to_binary(message)
-        warning = {file, line, message}
+        warning = {file, location, message}
         wait_for_messages(queue, spawned, waiting, files, result, [warning | warnings], state)
 
       {:file_ok, child_pid, ref, file, lexical} ->
@@ -729,7 +749,7 @@ defmodule Kernel.ParallelCompiler do
     line = get_line(file, reason, stack)
     file = Path.absname(file)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
-    {file, line, message}
+    {file, line || 0, message}
   end
 
   defp get_line(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do

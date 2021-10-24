@@ -4,21 +4,26 @@
 %% Note that this is also called by the Erlang backend, so we also support
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
--export([compile_error/3, compile_error/4, warning_prefix/0,
-         form_error/4, form_warn/4, parse_error/4, erl_warn/3, io_warn/4]).
+-export([compile_error/3, compile_error/4,  form_error/4, parse_error/4]).
+-export([warning_prefix/0, erl_warn/3, print_warning/3, log_and_print_warning/4, form_warn/4]).
 -include("elixir.hrl").
+-type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
 
 %% Low-level warning, should be used only from Erlang passes.
--spec erl_warn(non_neg_integer() | none, unicode:chardata(), unicode:chardata()) -> ok.
+-spec erl_warn(location() | none, unicode:chardata(), unicode:chardata()) -> ok.
 erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
-erl_warn(Line, File, Warning) when is_integer(Line), is_binary(File) ->
-  io_warn(Line, File, Warning, [Warning, "\n  ", file_format(Line, File), $\n]).
+erl_warn(Location, File, Warning) when is_binary(File) ->
+  send_warning(Location, File, Warning),
+  print_warning(Location, File, Warning).
 
-%% Low-level warning, all other warnings are built on top of it.
--spec io_warn(non_neg_integer(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
-io_warn(Line, File, LogMessage, PrintMessage) when is_integer(Line), is_binary(File) or (File == nil) ->
-  send_warning(Line, File, LogMessage),
+-spec print_warning(location(), unicode:chardata(), unicode:chardata()) -> ok.
+print_warning(Location, File, Warning) ->
+  print_warning([Warning, "\n  ", file_format(Location, File), $\n]).
+
+-spec log_and_print_warning(location(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
+log_and_print_warning(Location, File, LogMessage, PrintMessage) when is_binary(File) or (File == nil) ->
+  send_warning(Location, File, LogMessage),
   print_warning(PrintMessage).
 
 -spec warning_prefix() -> binary().
@@ -59,7 +64,7 @@ do_form_warn(Meta, GivenFile, E, Warning) ->
         file_format(Line, File)
     end,
 
-  io_warn(Line, File, Warning, [Warning, "\n  ", Location, $\n]).
+  log_and_print_warning(Line, File, Warning, [Warning, "\n  ", Location, $\n]).
 
 %% Compilation error.
 
@@ -176,9 +181,12 @@ send_warning(Line, File, Message) ->
   end,
   ok.
 
+file_format({0, _Column}, File) ->
+  io_lib:format("~ts", [elixir_utils:relative_to_cwd(File)]);
+file_format({Line, Column}, File) ->
+  io_lib:format("~ts:~w:~w", [elixir_utils:relative_to_cwd(File), Line, Column]);
 file_format(0, File) ->
   io_lib:format("~ts", [elixir_utils:relative_to_cwd(File)]);
-
 file_format(Line, File) ->
   io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
 

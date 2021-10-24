@@ -291,12 +291,10 @@ defmodule Mix.Compilers.Erlang do
 
   defp to_diagnostics(warnings_or_errors, severity) do
     for {file, issues} <- warnings_or_errors,
-        {line, module, data} <- issues do
-      position = line(line)
-
+        {location, module, data} <- issues do
       %Mix.Task.Compiler.Diagnostic{
         file: Path.absname(file),
-        position: position,
+        position: location_normalize(location),
         message: to_string(module.format_error(data)),
         severity: severity,
         compiler_name: to_string(module),
@@ -308,12 +306,19 @@ defmodule Mix.Compilers.Erlang do
   defp show_warnings(entries) do
     for {_, warnings} <- entries,
         {file, issues} <- warnings,
-        {line, module, message} <- issues do
-      IO.puts("#{file}:#{line(line)}: Warning: #{module.format_error(message)}")
+        {location, module, message} <- issues do
+      IO.puts("#{file}:#{location_to_string(location)} warning: #{module.format_error(message)}")
     end
   end
 
-  defp line({line, _column}) when is_integer(line) and line >= 1, do: line
-  defp line(line) when is_integer(line) and line >= 1, do: line
-  defp line(_), do: nil
+  defp location_normalize({line, column})
+       when is_integer(line) and line >= 1 and is_integer(column) and column >= 0,
+       do: {line, column}
+
+  defp location_normalize(line) when is_integer(line) and line >= 1, do: line
+  defp location_normalize(_), do: 0
+
+  defp location_to_string({line, column}), do: "#{line}:#{column}:"
+  defp location_to_string(0), do: ""
+  defp location_to_string(line), do: "#{line}:"
 end

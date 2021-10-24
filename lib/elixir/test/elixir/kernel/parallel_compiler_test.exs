@@ -403,7 +403,7 @@ defmodule Kernel.ParallelCompilerTest do
         )
 
       capture_io(fn ->
-        assert {:error, [{^b, nil, _}], _} = Kernel.ParallelCompiler.compile([a, b])
+        assert {:error, [{^b, 0, _}], _} = Kernel.ParallelCompiler.compile([a, b])
       end)
     end
 
