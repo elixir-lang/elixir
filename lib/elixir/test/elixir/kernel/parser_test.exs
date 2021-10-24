@@ -488,7 +488,7 @@ defmodule Kernel.ParserTest do
 
     test "invalid fn" do
       assert_syntax_error(
-        "nofile:1: expected anonymous functions to be defined with -> inside: 'fn'",
+        "nofile:1:1: expected anonymous functions to be defined with -> inside: 'fn'",
         'fn 1 end'
       )
 
@@ -681,12 +681,12 @@ defmodule Kernel.ParserTest do
         'if true, do\n'
       )
 
-      assert_syntax_error(~r/nofile:1: unexpected keyword: do:./, 'if true do:\n')
+      assert_syntax_error(~r/nofile:1:9: unexpected keyword: do:./, 'if true do:\n')
     end
 
     test "invalid parens call" do
       msg =
-        "nofile:1: unexpected parentheses. If you are making a function call, do not " <>
+        "nofile:1:5: unexpected parentheses. If you are making a function call, do not " <>
           "insert spaces between the function name and the opening parentheses. " <>
           "Syntax error before: '('"
 
@@ -716,7 +716,7 @@ defmodule Kernel.ParserTest do
 
     test "invalid atom dot alias" do
       msg =
-        "nofile:1: atom cannot be followed by an alias. If the '.' was meant to be " <>
+        "nofile:1:6: atom cannot be followed by an alias. If the '.' was meant to be " <>
           "part of the atom's name, the atom name must be quoted. Syntax error before: '.'"
 
       assert_syntax_error(msg, ':foo.Bar')

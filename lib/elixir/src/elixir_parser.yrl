@@ -701,7 +701,7 @@ handle_literal(Literal, Token, ExtraMeta) ->
         {ok, EncodedLiteral} ->
           EncodedLiteral;
         {error, Reason} ->
-          return_error(Meta, elixir_utils:characters_to_list(Reason) ++ [": "], "literal")
+          return_error(?location(Token), elixir_utils:characters_to_list(Reason) ++ [": "], "literal")
       end
   end.
 
@@ -725,7 +725,7 @@ build_op(AST, {_Kind, Location, '//'}, Right) ->
       {'..//', Meta, [Left, Middle, Right]};
 
     _ ->
-      return_error(meta_from_location(Location), "the range step operator (//) must immediately follow the range definition operator (..), for example: 1..9//2. If you wanted to define a default argument, use (\\\\) instead. Syntax error before: ", "'//'")
+      return_error(Location, "the range step operator (//) must immediately follow the range definition operator (..), for example: 1..9//2. If you wanted to define a default argument, use (\\\\) instead. Syntax error before: ", "'//'")
   end;
 
 build_op({UOp, _, [Left]}, {_Kind, Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
@@ -917,7 +917,7 @@ build_fn(Fn, Stab, End) ->
       Meta = newlines_op(?location(Fn)) ++ meta_from_token_with_closing(Fn, End),
       {fn, Meta, collect_stab(Stab, [], [])};
     block ->
-      return_error(meta_from_token(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
+      return_error(?location(Fn), "expected anonymous functions to be defined with -> inside: ", "'fn'")
   end.
 
 %% Access
@@ -1090,23 +1090,28 @@ unwrap_when(Args) ->
 
 %% Warnings and errors
 
-return_error(Meta, Error, Token) ->
-  return_error(Meta, [Error, Token]).
+return_error({Line, Column, _}, ErrorMessage, ErrorToken) ->
+  return_error([{line, Line}, {column, Column}], [ErrorMessage, ErrorToken]).
+
+%% We should prefer to use return_error as it includes
+%% Line and Column but that's not always possible.
+return_error_with_meta(Meta, ErrorMessage, ErrorToken) ->
+  return_error(Meta, [ErrorMessage, ErrorToken]).
 
 error_invalid_stab(MetaStab) ->
-  return_error(MetaStab,
+  return_error_with_meta(MetaStab,
     "unexpected operator ->. If you want to define multiple clauses, the first expression must use ->. "
     "Syntax error before: ", "'->'").
 
 error_bad_atom(Token) ->
-  return_error(meta_from_token(Token), "atom cannot be followed by an alias. "
+  return_error(?location(Token), "atom cannot be followed by an alias. "
     "If the '.' was meant to be part of the atom's name, "
     "the atom name must be quoted. Syntax error before: ", "'.'").
 
 maybe_bad_keyword_call_follow_up(_Token, KW, {'__cursor__', _, []} = Expr) ->
   reverse([Expr | KW]);
 maybe_bad_keyword_call_follow_up(Token, _KW, _Expr) ->
-  return_error(meta_from_token(Token),
+  return_error(?location(Token),
     "unexpected expression after keyword list. Keyword lists must always come as the last argument. Therefore, this is not allowed:\n\n"
     "    function_call(1, some: :option, 2)\n\n"
     "Instead, wrap the keyword in brackets:\n\n"
@@ -1116,7 +1121,7 @@ maybe_bad_keyword_call_follow_up(Token, _KW, _Expr) ->
 maybe_bad_keyword_data_follow_up(_Token, KW, {'__cursor__', _, []} = Expr) ->
   reverse([Expr | KW]);
 maybe_bad_keyword_data_follow_up(Token, _KW, _Expr) ->
-  return_error(meta_from_token(Token),
+  return_error(?location(Token),
     "unexpected expression after keyword list. Keyword lists must always come last in lists and maps. Therefore, this is not allowed:\n\n"
     "    [some: :value, :another]\n"
     "    %{some: :value, another => value}\n\n"
@@ -1126,12 +1131,12 @@ maybe_bad_keyword_data_follow_up(Token, _KW, _Expr) ->
     "Syntax error after: ", "','").
 
 error_no_parens_strict(Token) ->
-  return_error(meta_from_token(Token), "unexpected parentheses. If you are making a "
+  return_error(?location(Token), "unexpected parentheses. If you are making a "
     "function call, do not insert spaces between the function name and the "
     "opening parentheses. Syntax error before: ", "'('").
 
 error_no_parens_many_strict(Node) ->
-  return_error(?meta(Node),
+  return_error_with_meta(?meta(Node),
     "unexpected comma. Parentheses are required to solve ambiguity in nested calls.\n\n"
     "This error happens when you have nested function calls without parentheses. "
     "For example:\n\n"
@@ -1145,7 +1150,7 @@ error_no_parens_many_strict(Node) ->
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
 error_no_parens_container_strict(Node) ->
-  return_error(?meta(Node),
+  return_error_with_meta(?meta(Node),
     "unexpected comma. Parentheses are required to solve ambiguity inside containers.\n\n"
     "This error may happen when you forget a comma in a list or other container:\n\n"
     "    [a, b c, d]\n\n"
@@ -1157,10 +1162,10 @@ error_no_parens_container_strict(Node) ->
     "    [one, two(three, four), five]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
-error_invalid_kw_identifier({_, _, do} = Token) ->
-  return_error(meta_from_token(Token), elixir_tokenizer:invalid_do_error("unexpected keyword: "), "do:");
-error_invalid_kw_identifier({_, _, KW} = Token) ->
-  return_error(meta_from_token(Token), "syntax error before: ", "'" ++ atom_to_list(KW) ++ ":'").
+error_invalid_kw_identifier({_, Location, do}) ->
+  return_error(Location, elixir_tokenizer:invalid_do_error("unexpected keyword: "), "do:");
+error_invalid_kw_identifier({_, Location, KW}) ->
+  return_error(Location, "syntax error before: ", "'" ++ atom_to_list(KW) ++ ":'").
 
 %% TODO: Make this an error on v2.0
 warn_empty_paren({_, {Line, _, _}}) ->
