@@ -121,12 +121,10 @@ parse_error(Location, File, Error, <<>>, StartLocation, InputString) ->
     <<"syntax error before: ">> -> 
       <<"syntax error: expression is incomplete">>;
     _ ->
-      case snippet(InputString, Location, StartLocation) of
-        nil -> <<Error/binary>>;
-        Snippet -> <<Error/binary, <<"\n">>/binary, Snippet/binary>>
-      end
+        <<Error/binary>>
   end,
-  raise(Location, File, 'Elixir.TokenMissingError', Message);
+  Snippet = snippet(InputString, Location, StartLocation),
+  raise(Location, File, 'Elixir.TokenMissingError', Message, Snippet);
 
 %% Show a nicer message for end of line
 parse_error(Location, File, <<"syntax error before: ">>, <<"eol">>, _StartLocation, _InputString) ->
@@ -190,11 +188,9 @@ parse_error(Location, File, <<"syntax error before: ">>, <<$$, Char/binary>>, _S
 
 %% Everything else is fine as is
 parse_error(Location, File, Error, Token, StartLocation, InputString) when is_binary(Error), is_binary(Token) ->
-  Message = case snippet(InputString, Location, StartLocation) of
-    nil -> <<Error/binary, Token/binary>>;
-    Snippet -> <<Error/binary, Token/binary, <<"\n">>/binary, Snippet/binary>>
-  end,
-  raise(Location, File, 'Elixir.SyntaxError', Message).
+  Message = <<Error/binary, Token/binary>>,
+  Snippet = snippet(InputString, Location, StartLocation),
+  raise(Location, File, 'Elixir.SyntaxError', Message, Snippet).
 
 parse_erl_term(Term) ->
   {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
@@ -234,6 +230,9 @@ meta_location(Meta, File) ->
     {F, L} -> [{file, F}, {line, L}];
     nil    -> [{file, File}, {line, ?line(Meta)}]
   end.
+
+raise(Location, File, Kind, Message, Snippet) when is_binary(File) ->
+  raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
 
 raise(Location, File, Kind, Message) when is_binary(File) ->
   raise(Kind, Message, [{file, File} | Location]).
