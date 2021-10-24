@@ -72,7 +72,7 @@ defmodule EEx.Compiler do
       message =
         "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
 
-      :elixir_errors.erl_warn(start_line, state.file, message)
+      :elixir_errors.erl_warn({start_line, start_column}, state.file, message)
     end
 
     {rest, line, contents} =
@@ -117,7 +117,7 @@ defmodule EEx.Compiler do
       "unexpected beginning of EEx tag \"<%#{modifier}\" on \"<%#{modifier}#{chars}%>\", " <>
         "please remove \"#{modifier}\" accordingly"
 
-    :elixir_errors.erl_warn(line, state.file, message)
+    :elixir_errors.erl_warn({line, column}, state.file, message)
     generate_buffer([{:middle_expr, line, column, '', chars} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
@@ -155,7 +155,7 @@ defmodule EEx.Compiler do
       "unexpected beginning of EEx tag \"<%#{modifier}\" on end of " <>
         "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
 
-    :elixir_errors.erl_warn(line, state.file, message)
+    :elixir_errors.erl_warn({line, column}, state.file, message)
     generate_buffer([{:end_expr, line, column, '', chars} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line, column: column
