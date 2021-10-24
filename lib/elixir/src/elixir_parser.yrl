@@ -652,7 +652,7 @@ Erlang code.
 %% The following directive is needed for (significantly) faster
 %% compilation of the generated .erl file by the HiPE compiler
 -compile([{hipe, [{regalloc, linear_scan}]}]).
--compile({inline, meta_from_token/1, meta_from_location/1, line_from_location/1, is_eol/1}).
+-compile({inline, meta_from_token/1, meta_from_location/1, is_eol/1}).
 -import(lists, [reverse/1, reverse/2]).
 
 meta_from_token(Token) ->
@@ -663,8 +663,6 @@ meta_from_location({Line, Column, _}) ->
     true -> [{line, Line}, {column, Column}];
     false -> [{line, Line}]
   end.
-
-line_from_location({Line, _Column, _}) -> Line.
 
 do_end_meta(Do, End) ->
   case ?token_metadata() of
@@ -728,13 +726,14 @@ build_op(AST, {_Kind, Location, '//'}, Right) ->
       return_error(Location, "the range step operator (//) must immediately follow the range definition operator (..), for example: 1..9//2. If you wanted to define a default argument, use (\\\\) instead. Syntax error before: ", "'//'")
   end;
 
-build_op({UOp, _, [Left]}, {_Kind, Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
+build_op({UOp, _, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
   %% TODO: Remove "not left in right" rearrangement on v2.0
-  elixir_errors:erl_warn(line_from_location(Location), ?file(),
+  elixir_errors:erl_warn({Line, Column}, ?file(),
     "\"not expr1 in expr2\" is deprecated. "
     "Instead use \"expr1 not in expr2\" if you require Elixir v1.5+, "
     "or \"not(expr1 in expr2)\" if you have to support earlier Elixir versions"),
-  {UOp, meta_from_location(Location), [{'in', meta_from_location(Location), [Left, Right]}]};
+  Meta = meta_from_location(Location),
+  {UOp, Meta, [{'in', Meta, [Left, Right]}]};
 
 build_op(Left, {_Kind, Location, 'not in'}, Right) ->
   Meta = meta_from_location(Location),
@@ -1168,16 +1167,16 @@ error_invalid_kw_identifier({_, Location, KW}) ->
   return_error(Location, "syntax error before: ", "'" ++ atom_to_list(KW) ++ ":'").
 
 %% TODO: Make this an error on v2.0
-warn_empty_paren({_, {Line, _, _}}) ->
-  elixir_errors:erl_warn(Line, ?file(),
+warn_empty_paren({_, {Line, Column, _}}) ->
+  elixir_errors:erl_warn({Line, Column}, ?file(),
     "invalid expression (). "
     "If you want to invoke or define a function, make sure there are "
     "no spaces between the function name and its arguments. If you wanted "
     "to pass an empty block or code, pass a value instead, such as a nil or an atom").
 
 %% TODO: Make this an error on v2.0
-warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
-  elixir_errors:erl_warn(Line, ?file(),
+warn_pipe({arrow_op, {Line, Column, _}, Op}, {_, [_ | _], [_ | _]}) ->
+  elixir_errors:erl_warn({Line, Column}, ?file(),
     io_lib:format(
       "parentheses are required when piping into a function call. For example:\n\n"
       "    foo 1 ~ts bar 2 ~ts baz 3\n\n"
@@ -1190,7 +1189,7 @@ warn_pipe({arrow_op, {Line, _, _}, Op}, {_, [_ | _], [_ | _]}) ->
 warn_pipe(_Token, _) ->
   ok.
 
-warn_empty_stab_clause({stab_op, {Line, _, _}, '->'}) ->
-  elixir_errors:erl_warn(Line, ?file(),
+warn_empty_stab_clause({stab_op, {Line, Column, _}, '->'}) ->
+  elixir_errors:erl_warn({Line, Column}, ?file(),
     "an expression is always required on the right side of ->. "
     "Please provide a value after ->").

@@ -203,7 +203,7 @@ defmodule Mix.Tasks.CompileTest do
                  compiler_name: "erl_parse",
                  file: ^file,
                  message: "syntax error before: b",
-                 position: 2,
+                 position: {2, 5},
                  severity: :error
                } = diagnostic
       end)

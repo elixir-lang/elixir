@@ -788,8 +788,8 @@ defmodule Mix.Compilers.Elixir do
     for source(source: source, warnings: warnings) <- sources do
       file = Path.absname(source)
 
-      for {line, message} <- warnings do
-        :elixir_errors.erl_warn(line, file, message)
+      for {location, message} <- warnings do
+        Kernel.ParallelCompiler.print_warning({file, location, message})
       end
     end
   end
@@ -804,14 +804,14 @@ defmodule Mix.Compilers.Elixir do
 
   defp warning_diagnostics(sources) do
     for source(source: source, warnings: warnings) <- sources,
-        {line, message} <- warnings,
-        do: diagnostic({Path.absname(source), line, message}, :warning)
+        {location, message} <- warnings,
+        do: diagnostic({Path.absname(source), location, message}, :warning)
   end
 
-  defp diagnostic({file, line, message}, severity) do
+  defp diagnostic({file, location, message}, severity) do
     %Mix.Task.Compiler.Diagnostic{
       file: file,
-      position: line,
+      position: location,
       message: message,
       severity: severity,
       compiler_name: "Elixir"

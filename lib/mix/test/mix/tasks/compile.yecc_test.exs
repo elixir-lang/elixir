@@ -24,7 +24,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
                  compiler_name: "yecc",
                  file: ^file,
                  message: message,
-                 position: 1,
+                 position: {1, 5},
                  severity: :error
                } = diagnostic
 
@@ -54,7 +54,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
                  compiler_name: "yecc",
                  file: ^file,
                  message: "conflicts: 1 shift/reduce, 0 reduce/reduce",
-                 position: nil,
+                 position: 0,
                  severity: :warning
                } = diagnostic
       end)

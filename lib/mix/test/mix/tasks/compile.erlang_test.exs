@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
                  compiler_name: "erl_parse",
                  file: ^file,
                  message: "syntax error before: zzz",
-                 position: 2,
+                 position: {2, 5},
                  severity: :error
                } = diagnostic
       end)
@@ -120,7 +120,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
                  file: ^file,
                  compiler_name: "erl_lint",
                  message: "function my_fn/0 is unused",
-                 position: 2,
+                 position: {2, 1},
                  severity: :warning
                } = diagnostic
 
@@ -157,7 +157,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
           assert {:noop, _} = Mix.Tasks.Compile.Erlang.run(["--all-warnings"])
         end)
 
-      assert output == "src/has_warning.erl:2: Warning: function my_fn/0 is unused\n"
+      assert output == "src/has_warning.erl:2:1: warning: function my_fn/0 is unused\n"
 
       # Should not print old warnings after fixing
       File.write!(file, """
