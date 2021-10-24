@@ -88,21 +88,31 @@ snippet(InputString, Location, StartLocation) ->
     {line, Number} -> Number;
      false -> 1
   end,
-  Lines = string:split(InputString, "\n", all),
-  ErrorLine = elixir_utils:characters_to_binary(lists:nth(Line - StartLine + 1, Lines)),
-  BinaryLineNumber = integer_to_binary(Line),
-  PrefixWithLine = <<<<"%     ">>/binary, BinaryLineNumber/binary, <<"|">>/binary>>,
-
   case lists:keyfind(column, 1, Location) of
     {column, Column} ->
       WhiteSpace = binary:copy(<<" ">>, Column - 1),
-      PrefixWithoutLine = <<<<"%      ">>/binary, <<"|">>/binary>>,
-      <<PrefixWithLine/binary, ErrorLine/binary, <<"\n">>/binary,
-        PrefixWithoutLine/binary, WhiteSpace/binary, <<"^">>/binary>>;
+      ErrorLine = get_error_line(InputString, Line, StartLine),
+      BinaryLineNumber = case Line >= 10 of
+                           true ->
+                             integer_to_binary(Line);
+                           false ->
+                             NumberBin = integer_to_binary(Line),
+                             <<<<" ">>/binary, NumberBin/binary>>
+                         end,
+
+      LineNumberPlaceholder = binary:copy(<<" ">>, max(string:length(BinaryLineNumber), 2)),
+      Line1 = <<<<" ">>/binary, LineNumberPlaceholder/binary, <<" |\n">>/binary>>,
+      Line2 = <<<<" ">>/binary, BinaryLineNumber/binary, <<" | ">>/binary, ErrorLine/binary, "\n">>,
+      Line3 = <<<<" ">>/binary, LineNumberPlaceholder/binary, <<" | ">>/binary, WhiteSpace/binary, <<"^">>/binary>>,
+      <<Line1/binary, Line2/binary, Line3/binary>>;
 
     false ->
       nil
   end.
+
+get_error_line(InputString, Line, StartLine) ->
+  Lines = string:split(InputString, "\n", all),
+  elixir_utils:characters_to_binary(lists:nth(Line - StartLine + 1, Lines)).
 
 -spec parse_error(elixir:keyword(), binary() | {binary(), binary()},
                   binary(), binary(), elixir:keyword(), list()) -> no_return().
