@@ -4,6 +4,12 @@ defmodule Mix.Tasks.Compile.YeccTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
+  if System.otp_release() >= "24" do
+    defmacro position(line, column), do: {line, column}
+  else
+    defmacro position(line, _column), do: line
+  end
+
   setup do
     Mix.Project.push(MixTest.Case.Sample)
     :ok
@@ -24,7 +30,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
                  compiler_name: "yecc",
                  file: ^file,
                  message: message,
-                 position: {1, 5},
+                 position: position(1, 5),
                  severity: :error
                } = diagnostic
 

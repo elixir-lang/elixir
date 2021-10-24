@@ -4,6 +4,12 @@ defmodule Mix.Tasks.Compile.ErlangTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
+  if System.otp_release() >= "24" do
+    defmacro position(line, column), do: {line, column}
+  else
+    defmacro position(line, _column), do: line
+  end
+
   setup config do
     erlc_options = Map.get(config, :erlc_options, [])
     Mix.ProjectStack.post_config(erlc_options: erlc_options)
@@ -94,7 +100,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
                  compiler_name: "erl_parse",
                  file: ^file,
                  message: "syntax error before: zzz",
-                 position: {2, 5},
+                 position: position(2, 5),
                  severity: :error
                } = diagnostic
       end)
@@ -120,7 +126,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
                  file: ^file,
                  compiler_name: "erl_lint",
                  message: "function my_fn/0 is unused",
-                 position: {2, 1},
+                 position: position(2, 1),
                  severity: :warning
                } = diagnostic
 
@@ -157,7 +163,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
           assert {:noop, _} = Mix.Tasks.Compile.Erlang.run(["--all-warnings"])
         end)
 
-      assert output == "src/has_warning.erl:2:1: warning: function my_fn/0 is unused\n"
+      assert output =~ ~r"src/has_warning.erl:2:(1:)? warning: function my_fn/0 is unused\n"
 
       # Should not print old warnings after fixing
       File.write!(file, """

@@ -3,6 +3,12 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.CompileTest do
   use MixTest.Case
 
+  if System.otp_release() >= "24" do
+    defmacro position(line, column), do: {line, column}
+  else
+    defmacro position(line, _column), do: line
+  end
+
   defmodule CustomCompilers do
     def project do
       [compilers: [:elixir, :app, :custom]]
@@ -203,7 +209,7 @@ defmodule Mix.Tasks.CompileTest do
                  compiler_name: "erl_parse",
                  file: ^file,
                  message: "syntax error before: b",
-                 position: {2, 5},
+                 position: position(2, 5),
                  severity: :error
                } = diagnostic
       end)
