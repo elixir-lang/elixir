@@ -551,8 +551,10 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
       NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Unencoded, Rest, Line, Column, Scope),
       Token = {atom, {Line, Column, nil}, Atom},
       tokenize(Rest, Line, Column + 1 + Length, NewScope, [Token | Tokens]);
-    empty ->
+    empty when Scope#elixir_tokenizer.cursor_completion == false ->
       unexpected_token(Original, Line, Column, Scope, Tokens);
+    empty ->
+      tokenize([], Line, Column, Scope, Tokens);
     {error, Reason} ->
       error(Reason, Original, Scope, Tokens)
   end;
@@ -565,17 +567,24 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
   case tokenize_number(T, [H], 1, false) of
     {error, Reason, Original} ->
       error({Line, Column, Reason, Original}, T, Scope, Tokens);
-    {[I | _], _Number, Original, _Length} when ?is_upcase(I); ?is_downcase(I); I == $_ ->
-      Msg =
-        io_lib:format(
-          "invalid character ~ts after number ~ts. If you intended to write a number, "
-          "make sure to add the proper punctuation character after the number (space, comma, etc). "
-          "If you meant to write an identifier, note that identifiers in Elixir cannot start with numbers. "
-          "Unexpected token: ",
-          [[I], Original]
-        ),
+    {[I | Rest], Number, Original, _Length} when ?is_upcase(I); ?is_downcase(I); I == $_ ->
+      if
+        Number == 0, (I =:= $x) orelse (I =:= $o) orelse (I =:= $b), Rest == [],
+        Scope#elixir_tokenizer.cursor_completion /= false ->
+          tokenize([], Line, Column, Scope, Tokens);
 
-      error({Line, Column, Msg, [I]}, T, Scope, Tokens);
+        true ->
+          Msg =
+            io_lib:format(
+              "invalid character ~ts after number ~ts. If you intended to write a number, "
+              "make sure to add the proper punctuation character after the number (space, comma, etc). "
+              "If you meant to write an identifier, note that identifiers in Elixir cannot start with numbers. "
+              "Unexpected token: ",
+              [[I], Original]
+            ),
+
+          error({Line, Column, Msg, [I]}, T, Scope, Tokens)
+      end;
     {Rest, Number, Original, Length} when is_integer(Number) ->
       Token = {int, {Line, Column, Number}, Original},
       tokenize(Rest, Line, Column + Length, Scope, [Token | Tokens]);
@@ -679,8 +688,15 @@ tokenize(String, Line, Column, Scope, Tokens) ->
     {keyword, Atom, Type, Rest, Length} ->
       tokenize_keyword(Type, Rest, Line, Column, Atom, Length, Scope, Tokens);
 
-    empty ->
+    empty when Scope#elixir_tokenizer.cursor_completion == false ->
       unexpected_token(String, Line, Column, Scope, Tokens);
+
+    empty ->
+      case String of
+        [$~, L] when ?is_upcase(L); ?is_downcase(L) -> tokenize([], Line, Column, Scope, Tokens);
+        [$~] -> tokenize([], Line, Column, Scope, Tokens);
+        _ -> unexpected_token(String, Line, Column, Scope, Tokens)
+      end;
 
     {error, Reason} ->
       error(Reason, String, Scope, Tokens)

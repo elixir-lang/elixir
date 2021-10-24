@@ -857,6 +857,7 @@ defmodule CodeFragmentTest do
     test "maps and structs" do
       assert cc2q("%") == s2q("__cursor__()")
       assert cc2q("%{") == s2q("%{__cursor__()}")
+      assert cc2q("%{bar:") == s2q("%{__cursor__()}")
       assert cc2q("%{bar: ") == s2q("%{bar: __cursor__()}")
       assert cc2q("%{bar: baz,") == s2q("%{bar: baz, __cursor__()}")
 
@@ -864,9 +865,6 @@ defmodule CodeFragmentTest do
       assert cc2q("%Foo{") == s2q("%Foo{__cursor__()}")
       assert cc2q("%Foo{bar: ") == s2q("%Foo{bar: __cursor__()}")
       assert cc2q("%Foo{bar: baz,") == s2q("%Foo{bar: baz, __cursor__()}")
-
-      assert {:error, {_, "unexpected token: ", "\":\" (column 9, code point U+003A)"}} =
-               cc2q("%Foo{bar:")
     end
 
     test "removes tokens until opening" do
@@ -906,6 +904,15 @@ defmodule CodeFragmentTest do
       assert cc2q("foo((1, 2, 3) |>") == s2q("foo(__cursor__())")
       assert cc2q("foo(<<1, 2, 3>> |>") == s2q("foo(__cursor__())")
       assert cc2q("foo(bar do :done end |>") == s2q("foo(__cursor__())")
+    end
+
+    test "incomplete expressions" do
+      assert cc2q("foo(123, :") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, %") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, 0x") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, ~") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, ~r") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, ~r/") == s2q("foo(123, __cursor__())")
     end
 
     test "options" do
