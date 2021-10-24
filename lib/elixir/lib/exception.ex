@@ -697,6 +697,16 @@ defmodule Exception do
     end
   end
 
+  def format_snippet(snippet, line, column) do
+    line_digits = Integer.digits(line) |> length()
+    placeholder = String.duplicate(" ", max(line_digits, 2))
+    padding = if line_digits < 2, do: " "
+
+    " #{placeholder} |\n" <>
+      " #{padding}#{line} | #{snippet}\n" <>
+      " #{placeholder} | #{String.duplicate(" ", column - 1)}^"
+  end
+
   defp format_location(opts) when is_list(opts) do
     format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line), " ")
   end
@@ -805,9 +815,9 @@ defmodule SyntaxError do
         description: description,
         snippet: snippet
       })
-      when not is_nil(snippet) do
+      when not is_nil(snippet) and not is_nil(column) do
     Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-      " " <> description <> "\n" <> snippet
+      " " <> description <> "\n" <> Exception.format_snippet(snippet, line, column)
   end
 
   @impl true
@@ -833,9 +843,9 @@ defmodule TokenMissingError do
         description: description,
         snippet: snippet
       })
-      when not is_nil(snippet) do
+      when not is_nil(snippet) and not is_nil(column) do
     Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-      " " <> description <> "\n" <> snippet
+      " " <> description <> "\n" <> Exception.format_snippet(snippet, line, column)
   end
 
   @impl true
