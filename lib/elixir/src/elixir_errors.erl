@@ -98,10 +98,8 @@ snippet(InputString, Location, StartLine, StartColumn) ->
                   binary(), binary(), {list(), integer(), integer()}) -> no_return().
 parse_error(Location, File, Error, <<>>, {InputString, StartLine, StartColumn}) ->
   Message = case Error of
-    <<"syntax error before: ">> -> 
-      <<"syntax error: expression is incomplete">>;
-    _ ->
-        <<Error/binary>>
+    <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
+    _ -> <<Error/binary>>
   end,
   Snippet = snippet(InputString, Location, StartLine, StartColumn),
   raise(Location, File, 'Elixir.TokenMissingError', Message, Snippet);
