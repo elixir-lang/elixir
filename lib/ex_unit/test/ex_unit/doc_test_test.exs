@@ -535,6 +535,9 @@ defmodule ExUnit.DocTestTest do
              1) doctest module ExUnit.DocTestTest.Invalid (1) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line}:6: syntax error before: '*'
+                 #{line_placeholder(starting_line)} |
+                 #{starting_line} |  1 + * 1
+                 #{line_placeholder(starting_line)} |      ^
                 doctest:
                   iex> 1 + * 1
                   1
@@ -626,6 +629,9 @@ defmodule ExUnit.DocTestTest do
              8) doctest ExUnit.DocTestTest.Invalid.a/0 (8) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 27}:6: syntax error before: '*'
+                 #{line_placeholder(starting_line + 27)} |
+                 #{starting_line + 27} |  1 + * 1
+                 #{line_placeholder(starting_line + 27)} |      ^
                 doctest:
                   iex> 1 + * 1
                   1
@@ -637,6 +643,9 @@ defmodule ExUnit.DocTestTest do
              9) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (9) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 57}:5: unexpected token: "`" (column 5, code point U+0060)
+                 #{line_placeholder(starting_line + 57)} |
+                 #{starting_line + 57} |     ```
+                 #{line_placeholder(starting_line + 57)} |     ^
                 doctest:
                   iex> 1 + 2
                   3
@@ -649,6 +658,9 @@ defmodule ExUnit.DocTestTest do
             10) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (10) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 41}:1: unexpected token: "`" (column 1, code point U+0060)
+                 #{line_placeholder(starting_line + 41)} |
+                 #{starting_line + 41} | `
+                 #{line_placeholder(starting_line + 41)} | ^
                 doctest:
                   iex> 1 + 2
                   3
@@ -661,6 +673,9 @@ defmodule ExUnit.DocTestTest do
             11) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (11) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 49}:3: unexpected token: "`" (column 3, code point U+0060)
+                 #{line_placeholder(starting_line + 49)} |
+                 #{starting_line + 49} |   ```
+                 #{line_placeholder(starting_line + 49)} |   ^
                 doctest:
                   iex> 1 + 2
                   3
@@ -680,7 +695,11 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
             13) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (13) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 69}:7: missing terminator: } (for "{" starting at line #{starting_line + 69}). If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
+                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 69}:7: missing terminator: } (for "{" starting at line #{starting_line + 69})
+                 #{line_placeholder(starting_line + 69)} |
+                 #{starting_line + 69} | {:ok, #MapSet<[1, 2, 3]>}
+                 #{line_placeholder(starting_line + 69)} |       ^
+                If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, MapSet.new([1, 2, 3])}
                   {:ok, #MapSet<[1, 2, 3]>}
@@ -698,6 +717,9 @@ defmodule ExUnit.DocTestTest do
             15) doctest ExUnit.DocTestTest.Invalid.b/0 (15) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 33}:6: syntax error before: '*'
+                 #{line_placeholder(starting_line + 33)} |
+                 #{starting_line + 33} |  1 + * 1
+                 #{line_placeholder(starting_line + 33)} |      ^
                 doctest:
                   iex> 1 + * 1
                   1
@@ -709,6 +731,9 @@ defmodule ExUnit.DocTestTest do
             16) doctest ExUnit.DocTestTest.Invalid.t/0 (16) (ExUnit.DocTestTest.ActuallyCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 75}:6: syntax error before: '*'
+                 #{line_placeholder(starting_line + 75)} |
+                 #{starting_line + 75} |  1 + * 1
+                 #{line_placeholder(starting_line + 75)} |      ^
                 doctest:
                   iex> 1 + * 1
                   1
@@ -931,5 +956,14 @@ defmodule ExUnit.DocTestTest do
         doctest ExUnit.DocTestTest.Invalid
       end
     end
+  end
+
+  defp line_placeholder(line_number) do
+    digits =
+      line_number
+      |> Integer.digits()
+      |> length()
+
+    String.duplicate(" ", digits)
   end
 end

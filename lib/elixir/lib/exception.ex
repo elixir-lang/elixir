@@ -697,6 +697,17 @@ defmodule Exception do
     end
   end
 
+  @doc false
+  def format_snippet(snippet, error_line) do
+    line_digits = error_line |> Integer.to_string() |> byte_size()
+    placeholder = String.duplicate(" ", max(line_digits, 2))
+    padding = if line_digits < 2, do: " "
+
+    " #{placeholder} |\n" <>
+      " #{padding}#{error_line} | #{snippet.content}\n" <>
+      " #{placeholder} | #{String.duplicate(" ", snippet.offset)}^"
+  end
+
   defp format_location(opts) when is_list(opts) do
     format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line), " ")
   end
@@ -795,20 +806,56 @@ defmodule SystemLimitError do
 end
 
 defmodule SyntaxError do
-  defexception [:file, :line, :column, description: "syntax error"]
+  defexception [:file, :line, :column, :snippet, description: "syntax error"]
 
   @impl true
-  def message(%{file: file, line: line, column: column, description: description}) do
+  def message(%{
+        file: file,
+        line: line,
+        column: column,
+        description: description,
+        snippet: snippet
+      })
+      when not is_nil(snippet) and not is_nil(column) do
+    Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+      " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
+  end
+
+  @impl true
+  def message(%{
+        file: file,
+        line: line,
+        column: column,
+        description: description
+      }) do
     Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
       " " <> description
   end
 end
 
 defmodule TokenMissingError do
-  defexception [:file, :line, :column, description: "expression is incomplete"]
+  defexception [:file, :line, :snippet, :column, description: "expression is incomplete"]
 
   @impl true
-  def message(%{file: file, line: line, column: column, description: description}) do
+  def message(%{
+        file: file,
+        line: line,
+        column: column,
+        description: description,
+        snippet: snippet
+      })
+      when not is_nil(snippet) and not is_nil(column) do
+    Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+      " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
+  end
+
+  @impl true
+  def message(%{
+        file: file,
+        line: line,
+        column: column,
+        description: description
+      }) do
     Exception.format_file_line_column(file && Path.relative_to_cwd(file), line, column) <>
       " " <> description
   end

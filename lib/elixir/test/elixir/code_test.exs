@@ -140,6 +140,26 @@ defmodule CodeTest do
     Code.unrequire_files([fixture_path("code_sample.exs")])
   end
 
+  test "string_to_quoted!/2 errors take lines and columns into account" do
+    message = "nofile:1:5: syntax error before: '*'\n    |\n  1 | 1 + * 3\n    |     ^"
+
+    assert_raise SyntaxError, message, fn ->
+      Code.string_to_quoted!("1 + * 3")
+    end
+
+    message = "nofile:10:5: syntax error before: '*'\n    |\n 10 | 1 + * 3\n    |     ^"
+
+    assert_raise SyntaxError, message, fn ->
+      Code.string_to_quoted!("1 + * 3", line: 10)
+    end
+
+    message = "nofile:10:7: syntax error before: '*'\n    |\n 10 | 1 + * 3\n    |     ^"
+
+    assert_raise SyntaxError, message, fn ->
+      Code.string_to_quoted!("1 + * 3", line: 10, column: 3)
+    end
+  end
+
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
   end
