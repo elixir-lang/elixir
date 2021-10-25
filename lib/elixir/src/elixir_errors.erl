@@ -88,7 +88,7 @@ snippet(InputString, Location, StartLine, StartColumn) ->
     {column, Column} ->
       Lines = string:split(InputString, "\n", all),
       Snippet = elixir_utils:characters_to_binary(lists:nth(Line - StartLine + 1, Lines)),
-      #{content => Snippet, column => (Column - StartColumn + 1)};
+      #{content => Snippet, offset => (Column - StartColumn)};
 
     false ->
       nil

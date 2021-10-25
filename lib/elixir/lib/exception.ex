@@ -705,7 +705,7 @@ defmodule Exception do
 
     " #{placeholder} |\n" <>
       " #{padding}#{error_line} | #{snippet.content}\n" <>
-      " #{placeholder} | #{String.duplicate(" ", snippet.column - 1)}^"
+      " #{placeholder} | #{String.duplicate(" ", snippet.offset)}^"
   end
 
   defp format_location(opts) when is_list(opts) do
