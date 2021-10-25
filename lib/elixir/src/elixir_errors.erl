@@ -89,7 +89,7 @@ snippet(InputString, Location, StartLine, StartColumn) ->
       Lines = string:split(InputString, "\n", all),
       Snippet = elixir_utils:characters_to_binary(lists:nth(Line - StartLine + 1, Lines)),
       Offset = if Line == StartLine -> Column - StartColumn; true -> Column - 1 end,
-      #{content => unicode:characters_to_binary(Snippet), offset => Offset};
+      #{content => Snippet, offset => Offset};
 
     false ->
       nil
