@@ -135,7 +135,7 @@ defmodule Kernel.ParallelCompiler do
 
   """
   @doc since: "1.6.0"
-  @spec compile_to_path([Path.t()], keyword()) ::
+  @spec require([Path.t()], keyword()) ::
           {:ok, [atom], [warning]} | {:error, [error], [warning]}
   def require(files, options \\ []) when is_list(options) do
     spawn_workers(files, :require, options)
