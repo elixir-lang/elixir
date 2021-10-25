@@ -1008,7 +1008,13 @@ defmodule Code do
         {forms, comments}
 
       {:error, {location, error, token}} ->
-        :elixir_errors.parse_error(location, Keyword.get(opts, :file, "nofile"), error, token)
+        :elixir_errors.parse_error(
+          location,
+          Keyword.get(opts, :file, "nofile"),
+          error,
+          token,
+          {string, Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
+        )
     end
   end
 

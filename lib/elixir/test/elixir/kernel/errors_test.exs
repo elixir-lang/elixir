@@ -233,6 +233,11 @@ defmodule Kernel.ErrorsTest do
                       '%{foo: 1, :bar => :bar}'
   end
 
+  test "syntax errors include formatted snippet" do
+    message = "nofile:1:5: syntax error before: '*'\n    |\n  1 | 1 + * 3\n    |     ^"
+    assert_eval_raise SyntaxError, message, "1 + * 3"
+  end
+
   test "struct fields on defstruct" do
     assert_eval_raise ArgumentError, "struct field names must be atoms, got: 1", '''
     defmodule Kernel.ErrorsTest.StructFieldsOnDefstruct do
@@ -478,12 +483,12 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid fn args" do
     assert_eval_raise TokenMissingError,
-                      "nofile:1:5: missing terminator: end (for \"fn\" starting at line 1)",
+                      ~r/nofile:1:5: missing terminator: end \(for "fn" starting at line 1\).*/,
                       'fn 1'
   end
 
   test "invalid escape" do
-    assert_eval_raise TokenMissingError, "nofile:1:3: invalid escape \\ at end of file", '1 \\'
+    assert_eval_raise TokenMissingError, ~r/nofile:1:3: invalid escape \\ at end of file/, '1 \\'
   end
 
   test "function local conflict" do
