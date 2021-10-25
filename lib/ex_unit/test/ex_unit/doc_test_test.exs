@@ -698,7 +698,8 @@ defmodule ExUnit.DocTestTest do
                 Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 69}:7: missing terminator: } (for "{" starting at line #{starting_line + 69})
                  #{line_placeholder(starting_line + 69)} |
                  #{starting_line + 69} | {:ok, #MapSet<[1, 2, 3]>}
-                 #{line_placeholder(starting_line + 69)} |       ^. If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
+                 #{line_placeholder(starting_line + 69)} |       ^
+                If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, MapSet.new([1, 2, 3])}
                   {:ok, #MapSet<[1, 2, 3]>}

@@ -233,6 +233,11 @@ defmodule Kernel.ErrorsTest do
                       '%{foo: 1, :bar => :bar}'
   end
 
+  test "syntax errors include formatted snippet" do
+    message = "nofile:1:5: syntax error before: '*'\n    |\n  1 | 1 + * 3\n    |     ^"
+    assert_eval_raise SyntaxError, message, "1 + * 3"
+  end
+
   test "struct fields on defstruct" do
     assert_eval_raise ArgumentError, "struct field names must be atoms, got: 1", '''
     defmodule Kernel.ErrorsTest.StructFieldsOnDefstruct do
