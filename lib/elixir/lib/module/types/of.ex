@@ -327,7 +327,7 @@ defmodule Module.Types.Of do
     %{context | warnings: [{__MODULE__, warning, location} | context.warnings]}
   end
 
-  ## Warning formating
+  ## Warning formatting
 
   def format_warning({:undefined_module, module, fun, arity}) do
     [
