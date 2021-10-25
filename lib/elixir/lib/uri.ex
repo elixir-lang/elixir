@@ -476,15 +476,15 @@ defmodule URI do
   defp hex_to_dec(_n), do: nil
 
   @doc """
-  Creates a new URI struct from itself or a string.
+  Creates a new URI struct from a URI or a string.
 
   If a `%URI{}` struct is given, it returns `{:ok, uri}`. If a string is
-  given, it will be parsed and returns `{:ok, uri}`. If the string is
-  invalid, it returns `{:error, part}` instead, with the invalid part of the uri.
+  given, it will parse it and returns `{:ok, uri}`. If the string is
+  invalid, it returns `{:error, part}` instead, with the invalid part of the URI.
 
   This function can parse both absolute and relative URLs. You can check
   if a URI is absolute or relative by checking if the `scheme` field is
-  nil or not. All fields may be nil, except for the `path`.
+  `nil` or not. All fields may be `nil`, except for the `path`.
 
   When a URI is given without a port, the value returned by `URI.default_port/1`
   for the URI's scheme is used for the `:port` field. The scheme is also
@@ -585,7 +585,7 @@ defmodule URI do
   end
 
   @doc """
-  Similar to `new/0` but rasies `URI.Error` if an invalid string is given.
+  Similar to `new/0` but raises `URI.Error` if an invalid string is given.
 
   ## Examples
 
