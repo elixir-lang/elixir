@@ -84,12 +84,23 @@ compile_error(Meta, File, Format, Args) when is_list(Format)  ->
 %% Tokenization parsing/errors.
 snippet(InputString, Location, StartLocation) ->
   {line, Line} = lists:keyfind(line, 1, Location),
-  StartLine = case lists:keyfind(line, 1, StartLocation) of
-    {line, Number} -> Number;
-     false -> 1
-  end,
-  Lines = string:split(InputString, "\n", all),
-  elixir_utils:characters_to_binary(lists:nth(Line - StartLine + 1, Lines)).
+  case lists:keyfind(column, 1, Location) of
+    {column, Column} ->
+      StartLine = case lists:keyfind(line, 1, StartLocation) of
+        {line, X} -> X;
+         false -> 1
+      end,
+      StartColumn = case lists:keyfind(column, 1, StartLocation) of
+        {column, Y} -> Y;
+         false -> 1
+      end,
+      Lines = string:split(InputString, "\n", all),
+      Snippet = elixir_utils:characters_to_binary(lists:nth(Line - StartLine + 1, Lines)),
+      #{content => Snippet, column => (Column - StartColumn + 1)};
+
+    false ->
+      nil
+  end.
 
 -spec parse_error(elixir:keyword(), binary() | {binary(), binary()},
                   binary(), binary(), elixir:keyword(), list()) -> no_return().

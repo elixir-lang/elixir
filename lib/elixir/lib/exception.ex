@@ -697,14 +697,15 @@ defmodule Exception do
     end
   end
 
-  def format_snippet(snippet, line, column) do
-    line_digits = Integer.digits(line) |> length()
+  @doc false
+  def format_snippet(snippet, error_line) do
+    line_digits = error_line |> Integer.to_string() |> byte_size()
     placeholder = String.duplicate(" ", max(line_digits, 2))
     padding = if line_digits < 2, do: " "
 
     " #{placeholder} |\n" <>
-      " #{padding}#{line} | #{snippet}\n" <>
-      " #{placeholder} | #{String.duplicate(" ", column - 1)}^"
+      " #{padding}#{error_line} | #{snippet.content}\n" <>
+      " #{placeholder} | #{String.duplicate(" ", snippet.column - 1)}^"
   end
 
   defp format_location(opts) when is_list(opts) do
@@ -817,7 +818,7 @@ defmodule SyntaxError do
       })
       when not is_nil(snippet) and not is_nil(column) do
     Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-      " " <> description <> "\n" <> Exception.format_snippet(snippet, line, column)
+      " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
   end
 
   @impl true
@@ -845,7 +846,7 @@ defmodule TokenMissingError do
       })
       when not is_nil(snippet) and not is_nil(column) do
     Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-      " " <> description <> "\n" <> Exception.format_snippet(snippet, line, column)
+      " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
   end
 
   @impl true
