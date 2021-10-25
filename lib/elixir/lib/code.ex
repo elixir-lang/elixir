@@ -1013,8 +1013,7 @@ defmodule Code do
           Keyword.get(opts, :file, "nofile"),
           error,
           token,
-          [line: Keyword.get(opts, :line, 1), column: Keyword.get(opts, :column, 1)],
-          string
+          {string, Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
         )
     end
   end
