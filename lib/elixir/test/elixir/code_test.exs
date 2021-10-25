@@ -166,6 +166,13 @@ defmodule CodeTest do
     end
   end
 
+  test "string_to_quoted only requires the List.Chars protocol implementation to work" do
+    assert {:ok, 1.23} = Code.string_to_quoted(1.23)
+    assert 1.23 = Code.string_to_quoted!(1.23)
+    assert {:ok, 1.23, []} = Code.string_to_quoted_with_comments(1.23)
+    assert {1.23, []} = Code.string_to_quoted_with_comments!(1.23)
+  end
+
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
   end
