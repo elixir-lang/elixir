@@ -442,7 +442,7 @@ defmodule Code.Fragment do
   `do` would always be a keyword.
 
   The `position` contains both the `line` and `column`, both starting
-  with the index of 1. The column must preceed the surrounding expression.
+  with the index of 1. The column must precede the surrounding expression.
   For example, the expression `foo`, will return something for the columns
   1, 2, and 3, but not 4:
 

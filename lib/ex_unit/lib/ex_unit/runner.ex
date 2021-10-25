@@ -134,7 +134,7 @@ defmodule ExUnit.Runner do
   # sigquit next.
   #
   # Otherwise, whenever a module has finished executing, update
-  # the runnig modules and attempt to spawn new ones.
+  # the running modules and attempt to spawn new ones.
   defp wait_until_available(config, running) do
     receive do
       {ref, pid, :sigquit} ->

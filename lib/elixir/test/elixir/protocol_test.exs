@@ -201,7 +201,7 @@ defmodule ProtocolTest do
     assert Multi.test(:a) == :a
   end
 
-  test "defimpl without :for option when ouside a module" do
+  test "defimpl without :for option when outside a module" do
     msg = "defimpl/3 expects a :for option when declared outside a module"
 
     assert_raise ArgumentError, msg, fn ->

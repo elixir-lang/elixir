@@ -81,7 +81,7 @@ defprotocol Enumerable do
   The caller is then responsible of managing the continuation and the
   caller must always call the continuation, eventually halting or continuing
   until the end. `Enum.zip/2` uses suspension, so it can be used to test
-  whether your implementation handles suspension corectly. You can also use
+  whether your implementation handles suspension correctly. You can also use
   `Stream.zip/2` with `Enum.take_while/2` to test the combination of
   `:suspend` with `:halt`.
   """
