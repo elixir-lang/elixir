@@ -972,8 +972,7 @@ defmodule Code do
   @doc since: "1.13.0"
   @spec string_to_quoted_with_comments(List.Chars.t(), keyword) ::
           {:ok, Macro.t(), list(map())} | {:error, {location :: keyword, term, term}}
-  def string_to_quoted_with_comments(string, opts \\ [])
-      when is_binary(string) and is_list(opts) do
+  def string_to_quoted_with_comments(string, opts \\ []) when is_list(opts) do
     charlist = to_charlist(string)
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
@@ -1003,7 +1002,9 @@ defmodule Code do
   @doc since: "1.13.0"
   @spec string_to_quoted_with_comments!(List.Chars.t(), keyword) :: {Macro.t(), list(map())}
   def string_to_quoted_with_comments!(string, opts \\ []) do
-    case string_to_quoted_with_comments(string, opts) do
+    charlist = to_charlist(string)
+
+    case string_to_quoted_with_comments(charlist, opts) do
       {:ok, forms, comments} ->
         {forms, comments}
 
@@ -1013,7 +1014,7 @@ defmodule Code do
           Keyword.get(opts, :file, "nofile"),
           error,
           token,
-          {string, Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
+          {charlist, Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
         )
     end
   end
