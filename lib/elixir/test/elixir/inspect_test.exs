@@ -108,6 +108,10 @@ defmodule Inspect.BitStringTest do
 
   test "bitstring" do
     assert inspect(<<1::12-integer-signed>>) == "<<0, 1::size(4)>>"
+
+    assert inspect(<<1::12-integer-signed>>, syntax_colors: [number: :blue]) ==
+             "<<\e[34m0\e[0m, \e[34m1\e[0m::size(4)>>"
+
     assert inspect(<<1, 2, 3, 4, 5>>, pretty: true, width: 10) == "<<1, 2, 3,\n  4, 5>>"
   end
 

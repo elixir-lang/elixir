@@ -157,7 +157,7 @@ defimpl Inspect, for: BitString do
   defp each_bit(bitstring, _counter, opts) do
     size = bit_size(bitstring)
     <<h::size(size)>> = bitstring
-    Inspect.Integer.inspect(h, opts) <> "::size(" <> Integer.to_string(size) <> ")"
+    concat(Inspect.Integer.inspect(h, opts), "::size(" <> Integer.to_string(size) <> ")")
   end
 
   @compile {:inline, decrement: 1}
