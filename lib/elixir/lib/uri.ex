@@ -575,6 +575,8 @@ defmodule URI do
         userinfo: nil
       }}
   """
+  @doc since: "1.13.0"
+  @spec new(t() | String.t()) :: {:ok, t()} | {:error, String.t()}
   def new(%URI{} = uri), do: {:ok, uri}
 
   def new(binary) when is_binary(binary) do
@@ -617,6 +619,8 @@ defmodule URI do
         userinfo: nil
       }
   """
+  @doc since: "1.13.0"
+  @spec new!(t() | String.t()) :: t()
   def new!(%URI{} = uri), do: uri
 
   def new!(binary) when is_binary(binary) do
