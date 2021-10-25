@@ -158,6 +158,12 @@ defmodule CodeTest do
     assert_raise SyntaxError, message, fn ->
       Code.string_to_quoted!("1 + * 3", line: 10, column: 3)
     end
+
+    message = "nofile:11:5: syntax error before: '*'\n    |\n 11 | 1 + * 3\n    |     ^"
+
+    assert_raise SyntaxError, message, fn ->
+      Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
+    end
   end
 
   test "compile source" do
