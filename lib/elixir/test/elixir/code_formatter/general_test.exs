@@ -126,7 +126,7 @@ defmodule Code.Formatter.GeneralTest do
       """
 
       formatter = fn content, opts ->
-        assert opts == [sigil: {:W, []}]
+        assert opts == [sigil: :W, modifiers: []]
         content |> String.split(~r/ +/) |> Enum.join(" ")
       end
 
@@ -141,7 +141,7 @@ defmodule Code.Formatter.GeneralTest do
       """
 
       formatter = fn content, opts ->
-        assert opts == [sigil: {:W, 'abc'}]
+        assert opts == [sigil: :W, modifiers: 'abc']
         content |> String.split(~r/ +/) |> Enum.join(" ")
       end
 
@@ -162,7 +162,7 @@ defmodule Code.Formatter.GeneralTest do
       """
 
       formatter = fn content, opts ->
-        assert opts == [sigil: {:W, []}]
+        assert opts == [sigil: :W, modifiers: []]
         content |> String.split(~r/ +/) |> Enum.join(" ")
       end
 
@@ -189,7 +189,7 @@ defmodule Code.Formatter.GeneralTest do
       """
 
       formatter = fn content, opts ->
-        assert opts == [sigil: {:W, 'abc'}]
+        assert opts == [sigil: :W, modifiers: 'abc']
         content |> String.split(~r/ +/) |> Enum.join("\n")
       end
 

@@ -104,8 +104,9 @@ defmodule Mix.Tasks.Format do
 
   The `opts` passed to `format/2` contains all the formatting options and either:
 
-      * `:sigil` (tuple of sigil and its modifiers) - the sigil being formatted,
-        e.g. `{:M, []}`.
+      * `:sigil` (atom) - the sigil being formatted, e.g. `:M`.
+
+      * `:modifiers` (charlist) - list of sigil modifiers.
 
       * `:extension` (string) - the extension of the file being formatted, e.g. `".md"`.
 
