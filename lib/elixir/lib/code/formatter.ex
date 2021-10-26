@@ -1320,7 +1320,7 @@ defmodule Code.Formatter do
       entries =
         case state.sigils do
           %{^name => callback} ->
-            case callback.(hd(entries), sigil: {List.to_atom([name]), List.to_string(modifiers)}) do
+            case callback.(hd(entries), sigil: {List.to_atom([name]), modifiers}) do
               binary when is_binary(binary) ->
                 [binary]
 
