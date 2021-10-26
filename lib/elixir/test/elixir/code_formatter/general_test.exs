@@ -125,7 +125,11 @@ defmodule Code.Formatter.GeneralTest do
       ~W/foo bar baz/
       """
 
-      formatter = &(&1 |> String.split(~r/ +/) |> Enum.join(" "))
+      formatter = fn content, opts ->
+        assert opts == [sigil: :W, modifiers: []]
+        content |> String.split(~r/ +/) |> Enum.join(" ")
+      end
+
       assert_format bad, good, sigils: [W: formatter]
 
       bad = """
@@ -136,7 +140,11 @@ defmodule Code.Formatter.GeneralTest do
       var = ~W/foo bar baz/abc
       """
 
-      formatter = &(&1 |> String.split(~r/ +/) |> Enum.join(" "))
+      formatter = fn content, opts ->
+        assert opts == [sigil: :W, modifiers: 'abc']
+        content |> String.split(~r/ +/) |> Enum.join(" ")
+      end
+
       assert_format bad, good, sigils: [W: formatter]
     end
 
@@ -153,7 +161,11 @@ defmodule Code.Formatter.GeneralTest do
       '''
       """
 
-      formatter = &(&1 |> String.split(~r/ +/) |> Enum.join(" "))
+      formatter = fn content, opts ->
+        assert opts == [sigil: :W, modifiers: []]
+        content |> String.split(~r/ +/) |> Enum.join(" ")
+      end
+
       assert_format bad, good, sigils: [W: formatter]
 
       bad = """
@@ -176,7 +188,11 @@ defmodule Code.Formatter.GeneralTest do
       end
       """
 
-      formatter = &(&1 |> String.split(~r/ +/) |> Enum.join("\n"))
+      formatter = fn content, opts ->
+        assert opts == [sigil: :W, modifiers: 'abc']
+        content |> String.split(~r/ +/) |> Enum.join("\n")
+      end
+
       assert_format bad, good, sigils: [W: formatter]
     end
   end

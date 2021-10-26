@@ -102,6 +102,14 @@ defmodule Mix.Tasks.Format do
         end
       end
 
+  The `opts` passed to `format/2` contains all the formatting options and either:
+
+      * `:sigil` (atom) - the sigil being formatted, e.g. `:M`.
+
+      * `:modifiers` (charlist) - list of sigil modifiers.
+
+      * `:extension` (string) - the extension of the file being formatted, e.g. `".md"`.
+
   Now any application can use your formatter as follows:
 
       # .formatters.exs
@@ -490,7 +498,7 @@ defmodule Mix.Tasks.Format do
         &elixir_format(&1, [file: file] ++ formatter_opts)
 
       plugin = find_plugin_for_extension(formatter_opts, ext) ->
-        &plugin.format(&1, formatter_opts)
+        &plugin.format(&1, [extension: ext] ++ formatter_opts)
 
       true ->
         & &1
@@ -531,7 +539,7 @@ defmodule Mix.Tasks.Format do
     sigils =
       for plugin <- Keyword.fetch!(formatter_opts, :plugins),
           sigil <- find_sigils_from_plugins(plugin, formatter_opts),
-          do: {sigil, &plugin.format(&1, formatter_opts)}
+          do: {sigil, &plugin.format(&1, &2 ++ formatter_opts)}
 
     IO.iodata_to_binary([Code.format_string!(content, [sigils: sigils] ++ formatter_opts), ?\n])
   end
