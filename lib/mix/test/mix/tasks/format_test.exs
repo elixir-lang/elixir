@@ -199,11 +199,12 @@ defmodule Mix.Tasks.FormatTest do
 
     def features(opts) do
       assert opts[:from_formatter_exs] == :yes
-      [sigils: [:W], extensions: ~w(.w)]
+      [sigils: [:W]]
     end
 
     def format(contents, opts) do
       assert opts[:from_formatter_exs] == :yes
+      assert opts[:sigil] == {:W, "abc"}
       contents |> String.split(~r/\s/) |> Enum.join("\n")
     end
   end
@@ -240,12 +241,26 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  defmodule Elixir.ExtensionWPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [extensions: ~w(.w)]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      contents |> String.split(~r/\s/) |> Enum.join("\n")
+    end
+  end
+
   test "uses extension plugins from .formatter.exs", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
       [
         inputs: ["a.w"],
-        plugins: [SigilWPlugin],
+        plugins: [ExtensionWPlugin],
         from_formatter_exs: :yes
       ]
       """)

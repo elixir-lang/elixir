@@ -531,7 +531,7 @@ defmodule Mix.Tasks.Format do
     sigils =
       for plugin <- Keyword.fetch!(formatter_opts, :plugins),
           sigil <- find_sigils_from_plugins(plugin, formatter_opts),
-          do: {sigil, &plugin.format(&1, formatter_opts)}
+          do: {sigil, &plugin.format(&1, &2 ++ formatter_opts)}
 
     IO.iodata_to_binary([Code.format_string!(content, [sigils: sigils] ++ formatter_opts), ?\n])
   end

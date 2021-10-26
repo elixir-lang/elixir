@@ -181,7 +181,7 @@ defmodule Code.Formatter do
 
     sigils =
       Map.new(sigils, fn {key, value} ->
-        with true <- is_atom(key) and is_function(value, 1),
+        with true <- is_atom(key) and is_function(value, 2),
              [char] <- Atom.to_charlist(key),
              true <- char in ?A..?Z do
           {char, value}
@@ -189,7 +189,7 @@ defmodule Code.Formatter do
           _ ->
             raise ArgumentError,
                   ":sigils must be a keyword list with a single uppercased letter as key and an " <>
-                    "anonymous function expecting a single argument as value, got: #{inspect(sigils)}"
+                    "anonymous function expecting two arguments as value, got: #{inspect(sigils)}"
         end
       end)
 
@@ -1320,7 +1320,7 @@ defmodule Code.Formatter do
       entries =
         case state.sigils do
           %{^name => callback} ->
-            case callback.(hd(entries)) do
+            case callback.(hd(entries), sigil: {List.to_atom([name]), List.to_string(modifiers)}) do
               binary when is_binary(binary) ->
                 [binary]
 
