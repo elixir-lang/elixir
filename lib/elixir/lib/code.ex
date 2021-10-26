@@ -437,6 +437,12 @@ defmodule Code do
       If you set it to `false` later on, `do`-`end` blocks won't be
       converted back to keywords.
 
+    * `:extension` (since v1.13.0) - extension of the file. Used by
+      formatter plugins.
+
+    * `:sigil` (since v1.13.0) - a tuple of the sigil and its modifiers.
+      Used by formatter plugins.
+
   ## Design principles
 
   The formatter was designed under three principles.

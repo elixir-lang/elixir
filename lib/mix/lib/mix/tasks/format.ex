@@ -102,6 +102,13 @@ defmodule Mix.Tasks.Format do
         end
       end
 
+  The `opts` passed to `format/2` contains all the formatting options and either:
+
+      * `:sigil` (tuple of sigil and its modifiers) - the sigil being formatted,
+        e.g. `{:M, []}`.
+
+      * `:extension` (string) - the extension of the file being formatted, e.g. `".md"`.
+
   Now any application can use your formatter as follows:
 
       # .formatters.exs
