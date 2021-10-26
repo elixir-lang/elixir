@@ -497,7 +497,7 @@ defmodule Mix.Tasks.Format do
         &elixir_format(&1, [file: file] ++ formatter_opts)
 
       plugin = find_plugin_for_extension(formatter_opts, ext) ->
-        &plugin.format(&1, [extension: Path.extname(file)] ++ formatter_opts)
+        &plugin.format(&1, [extension: ext] ++ formatter_opts)
 
       true ->
         & &1
