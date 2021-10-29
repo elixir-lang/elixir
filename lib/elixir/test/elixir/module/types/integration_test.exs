@@ -688,6 +688,75 @@ defmodule Module.Types.IntegrationTest do
 
       assert_warnings(files, warning)
     end
+
+    test "collapses list types and fails to unify" do
+      files = %{
+        "a.ex" => """
+        # issue 11204
+        Mix.install([
+          {:decorator, "~> 1.2"},
+        ])
+
+        defmodule TheBug.Decorator do
+          use Decorator.Define, fallback: 0
+
+          def fallback(
+                body,
+                context
+              ) do
+            %{args: controller_args} = context
+
+            quote do
+              [conn, params] = unquote(controller_args)
+
+              unquote(body)
+            end
+          end
+        end
+
+        defmodule TheBug.PageController do
+          use TheBug.Decorator
+
+          @decorate fallback()
+          def index(conn, params) do
+            %{} = params
+            %{} = conn.assigns
+
+            conn
+          end
+        end
+        """
+        }
+
+      warning = """
+      warning: incompatible types:
+
+          %{assigns: var1, optional(dynamic()) => dynamic()} !~ %{optional(dynamic()) => dynamic()} | %{optional(dynamic()) => dynamic()}
+
+      in expression:
+
+          # a.ex:29
+          conn.assigns
+
+      where "conn" was given the type %{optional(dynamic()) => dynamic()} | %{optional(dynamic()) => dynamic()} in:
+
+          # a.ex:23
+          [conn, params] = [conn, params]
+
+      where "conn" was given the type %{assigns: var1, optional(dynamic()) => dynamic()} (due to calling var.field) in:
+
+          # a.ex:29
+          conn.assigns
+
+      HINT: "var.field" (without parentheses) implies "var" is a map() while "var.fun()" (with parentheses) implies "var" is an atom()
+
+      Conflict found at
+        a.ex:29: TheBug.PageController.index/2
+
+      """
+
+      assert_warnings(files, warning)
+    end
   end
 
   defp assert_warnings(files, expected) when is_binary(expected) do
