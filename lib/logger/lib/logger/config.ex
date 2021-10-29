@@ -22,6 +22,7 @@ defmodule Logger.Config do
   def init(counter) do
     state = load_state(counter)
     state = update_counter(state, false)
+    schedule_update_counter(state)
     {:ok, state}
   end
 
