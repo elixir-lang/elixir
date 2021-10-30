@@ -575,7 +575,7 @@ defmodule Kernel.Typespec do
       unless Keyword.has_key?(struct, field) do
         compile_error(
           caller,
-          "undefined field #{inspect(field)} on struct #{Macro.to_string(name)}"
+          "undefined field #{inspect(field)} on struct #{inspect(module)}"
         )
       end
     end

@@ -521,12 +521,23 @@ defmodule TypespecTest do
     end
 
     test "@type with a struct with undefined field" do
-      assert_raise CompileError, ~r"undefined field :no_field on struct TypespecSample", fn ->
-        test_module do
-          defstruct [:hello, :eric]
-          @type my_type :: %TypespecSample{no_field: :world}
-        end
-      end
+      assert_raise CompileError,
+                   ~r"undefined field :no_field on struct TypespecTest.TypespecSample",
+                   fn ->
+                     test_module do
+                       defstruct [:hello, :eric]
+                       @type my_type :: %TypespecSample{no_field: :world}
+                     end
+                   end
+
+      assert_raise CompileError,
+                   ~r"undefined field :no_field on struct TypespecTest.TypespecSample",
+                   fn ->
+                     test_module do
+                       defstruct [:hello, :eric]
+                       @type my_type :: %__MODULE__{no_field: :world}
+                     end
+                   end
     end
 
     test "@type when overriding Elixir built-in" do
