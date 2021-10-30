@@ -183,8 +183,17 @@ defmodule Code.Normalizer do
   end
 
   # Tuples
-  defp do_normalize({:{}, _, args} = quoted, state) when is_list(args) do
-    normalize_literal(quoted, [], state)
+  defp do_normalize({:{}, meta, args} = quoted, state) do
+    {last_arg, args} = List.pop_at(args, -1)
+
+    with [{{:__block__, key_meta, _}, _} | _] <- last_arg, :keyword <- key_meta[:format] do
+      args = normalize_kw_args(args, state)
+      kw_list = normalize_kw_args(last_arg, state)
+      {:__block__, [], [{:{}, meta, args ++ kw_list}]}
+    else
+      _ ->
+        normalize_call(quoted, state)
+    end
   end
 
   # Calls
@@ -232,25 +241,13 @@ defmodule Code.Normalizer do
     end
   end
 
-  # Tuples
-  defp normalize_literal({:{}, _, args} = quoted, meta, state) do
-    last_arg = List.last(args)
-
-    with [{{:__block__, key_meta, _}, _} | _] <- last_arg, :keyword <- key_meta[:format] do
-      {:__block__, meta, [quoted]}
-    else
-      _ ->
-        normalize_call(quoted, state)
-    end
-  end
-
   # 2-tuples
   defp normalize_literal({left, right}, meta, state) do
     meta = patch_meta_line(meta, state.parent_meta)
     state = %{state | parent_meta: meta}
 
     with [{{:__block__, key_meta, _}, _} | _] <- right, :keyword <- key_meta[:format] do
-      {:__block__, meta, [{do_normalize(left, state), right}]}
+      {:__block__, meta, [{do_normalize(left, state), normalize_kw_args(right, state)}]}
     else
       _ ->
         {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
