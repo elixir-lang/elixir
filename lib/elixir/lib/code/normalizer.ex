@@ -182,6 +182,11 @@ defmodule Code.Normalizer do
     end
   end
 
+  # Tuples
+  defp do_normalize({:{}, _, args} = quoted, state) when is_list(args) do
+    normalize_literal(quoted, [], state)
+  end
+
   # Calls
   defp do_normalize({_, _, args} = quoted, state) when is_list(args) do
     normalize_call(quoted, state)
@@ -227,11 +232,29 @@ defmodule Code.Normalizer do
     end
   end
 
+  # Tuples
+  defp normalize_literal({:{}, _, args} = quoted, meta, state) do
+    last_arg = List.last(args)
+
+    with [{{:__block__, key_meta, _}, _} | _] <- last_arg, :keyword <- key_meta[:format] do
+      {:__block__, meta, [quoted]}
+    else
+      _ ->
+        normalize_call(quoted, state)
+    end
+  end
+
   # 2-tuples
   defp normalize_literal({left, right}, meta, state) do
     meta = patch_meta_line(meta, state.parent_meta)
     state = %{state | parent_meta: meta}
-    {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
+
+    with [{{:__block__, key_meta, _}, _} | _] <- right, :keyword <- key_meta[:format] do
+      {:__block__, meta, [{do_normalize(left, state), right}]}
+    else
+      _ ->
+        {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
+    end
   end
 
   # Lists
