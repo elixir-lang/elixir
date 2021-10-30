@@ -573,11 +573,9 @@ defmodule Kernel.Typespec do
 
     fun = fn {field, _} ->
       unless Keyword.has_key?(struct, field) do
-        humanized_module = module |> Atom.to_string() |> String.replace("Elixir.", "")
-
         compile_error(
           caller,
-          "undefined field #{inspect(field)} on struct #{humanized_module}"
+          "undefined field #{inspect(field)} on struct #{inspect(module)}"
         )
       end
     end
