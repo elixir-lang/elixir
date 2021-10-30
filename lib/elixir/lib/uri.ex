@@ -665,7 +665,7 @@ defmodule URI do
 
       case URI.new(path) do
         {:ok, uri} -> uri
-        {:error, _, _} -> %URI{path: path}
+        {:error, _} -> %URI{path: path}
       end
 
   Also note this function sets the authority field, but the field has been
