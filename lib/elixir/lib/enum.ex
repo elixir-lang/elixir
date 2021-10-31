@@ -2556,22 +2556,22 @@ defmodule Enum do
   ## Examples
 
       # Slide a single element
-      iex> Enum.slide([0, 1, 2, 3, 4, 5, 6], 5, 1)
-      [0, 5, 1, 2, 3, 4, 6]
+      iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], 5, 1)
+      [:a, :f, :b, :c, :d, :e, :g]
 
       # Slide a range of elements backward
-      iex> Enum.slide([0, 1, 2, 3, 4, 5, 6], 3..5, 1)
-      [0, 3, 4, 5, 1, 2, 6]
+      iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], 3..5, 1)
+      [:a, :d, :e, :f, :b, :c, :g]
 
       # Slide a range of elements forward
-      iex> Enum.slide([0, 1, 2, 3, 4, 5, 6], 1..3, 5)
-      [0, 4, 5, 1, 2, 3, 6]
+      iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], 1..3, 5)
+      [:a, :e, :f, :b, :c, :d, :g]
 
       # Slide with negative indices (counting from the end)
-      iex> Enum.slide([0, 1, 2, 3, 4, 5, 6], 3..-1//1, 2)
-      [0, 1, 3, 4, 5, 6, 2]
-      iex> Enum.slide([0, 1, 2, 3, 4, 5, 6], -4..-2, 1)
-      [0, 3, 4, 5, 1, 2, 6]
+      iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], 3..-1//1, 2)
+      [:a, :b, :d, :e, :f, :g, :c]
+      iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], -4..-2, 1)
+      [:a, :d, :e, :f, :b, :c, :g]
 
   """
   def slide(enumerable, range_or_single_index, insertion_index)
@@ -2612,7 +2612,7 @@ defmodule Enum do
 
   # Guarantees at this point: step size == 1 and first <= last and (insertion_index < first or insertion_index > last)
   def slide(enumerable, first..last, insertion_index) do
-    impl = if is_list(enumerable), do: &find_start/4, else: &slide_any/4
+    impl = if is_list(enumerable), do: &slide_list_start/4, else: &slide_any/4
 
     cond do
       insertion_index <= first -> impl.(enumerable, insertion_index, first, last)
@@ -2652,36 +2652,36 @@ defmodule Enum do
 
   # Like slide_any/4 above, this optimized implementation of slide for lists depends
   # on the indices being sorted such that we're moving middle..last to be in front of start.
-  defp find_start([h | t], start, middle, last)
+  defp slide_list_start([h | t], start, middle, last)
        when start > 0 and start <= middle and middle <= last do
-    [h | find_start(t, start - 1, middle - 1, last - 1)]
+    [h | slide_list_start(t, start - 1, middle - 1, last - 1)]
   end
 
-  defp find_start(list, 0, middle, last), do: accumulate_start_middle(list, middle, last, [])
+  defp slide_list_start(list, 0, middle, last), do: slide_list_middle(list, middle, last, [])
 
-  defp accumulate_start_middle([h | t], middle, last, acc) when middle > 0 do
-    accumulate_start_middle(t, middle - 1, last - 1, [h | acc])
+  defp slide_list_middle([h | t], middle, last, acc) when middle > 0 do
+    slide_list_middle(t, middle - 1, last - 1, [h | acc])
   end
 
-  defp accumulate_start_middle(list, 0, last, start_to_middle) do
-    {slid_range, tail} = accumulate_middle_last(list, last + 1, [])
+  defp slide_list_middle(list, 0, last, start_to_middle) do
+    {slid_range, tail} = slide_list_last(list, last + 1, [])
     slid_range ++ :lists.reverse(start_to_middle, tail)
   end
 
   # You asked for a middle index off the end of the list... you get what we've got
-  defp accumulate_start_middle([], _, _, acc) do
+  defp slide_list_middle([], _, _, acc) do
     :lists.reverse(acc)
   end
 
-  defp accumulate_middle_last([h | t], last, acc) when last > 0 do
-    accumulate_middle_last(t, last - 1, [h | acc])
+  defp slide_list_last([h | t], last, acc) when last > 0 do
+    slide_list_last(t, last - 1, [h | acc])
   end
 
-  defp accumulate_middle_last(rest, 0, acc) do
+  defp slide_list_last(rest, 0, acc) do
     {:lists.reverse(acc), rest}
   end
 
-  defp accumulate_middle_last([], _, acc) do
+  defp slide_list_last([], _, acc) do
     {:lists.reverse(acc), []}
   end
 
