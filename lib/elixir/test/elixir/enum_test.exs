@@ -923,7 +923,10 @@ defmodule EnumTest do
     test "matches behavior for lists vs. ranges" do
       range = 0..20
       list = Enum.to_list(range)
-      # Below 32 elements, the map implementation currently sticks the pairs these in order
+      # Below 32 elements, the map implementation currently sticks values in order.
+      # If ever the MapSet implementation changes, this will fail (not affecting the correctness
+      # of slide). I figured it'd be worth testing this for the time being just to have
+      # another enumerable (aside from range) testing the generic implementation.
       set = MapSet.new(list)
 
       test_specs = [
