@@ -189,7 +189,7 @@ defmodule Code.Normalizer do
     with [{{:__block__, key_meta, _}, _} | _] <- last_arg, :keyword <- key_meta[:format] do
       args = normalize_kw_args(args, state)
       kw_list = normalize_kw_args(last_arg, state)
-      {:__block__, [], [{:{}, meta, args ++ kw_list}]}
+      {:{}, meta, args ++ kw_list}
     else
       _ ->
         normalize_call(quoted, state)
