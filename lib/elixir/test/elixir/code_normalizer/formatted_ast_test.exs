@@ -342,6 +342,13 @@ defmodule Code.Normalizer.FormatterASTTest do
       @type foo :: a when b: :c
       """
     end
+
+    test "last tuple element as keyword list keeps its format" do
+      assert_same ~S"{:wrapped, [opt1: true, opt2: false]}"
+      assert_same ~S"{:unwrapped, opt1: true, opt2: false}"
+      assert_same ~S"{:wrapped, 1, [opt1: true, opt2: false]}"
+      assert_same ~S"{:unwrapped, 1, opt1: true, opt2: false}"
+    end
   end
 
   describe "preserves user choice on parenthesis" do
