@@ -2533,22 +2533,25 @@ defmodule Enum do
   end
 
   @doc """
-  Pulls out either a single element (denoted by an integer index) or a contiguous range of
-  the enumerable (given by a range) and inserts it in front of the value previously at the
-  insertion index.
+  Slides a single or multiple elements given by `range_or_single_index` from `enumerable`
+  to `insertion_index`.
 
-  The semantics of the range to be moved match the semantics of Enum.slice/2. Specifically,
-  that means:
+  The semantics of the range to be moved match the semantics of `Enum.slice/2`.
+  Specifically, that means:
 
-  * Indices are normalized, meaning that negative indexes will be counted from the end
-    (for example, -1 means the last element of the enumerable). This will result in *two*
-    traversals of your enumerable on types like lists that don't provide a constant-time count.
-  * If the normalized index range's `last` is out of bounds, the range is truncated to the last element.
-  * If the normalized index range's `first` is out of bounds, the selected range for sliding
-    will be empty, so you'll get back your input list.
-  * Decreasing ranges (e.g., the range 5..0//1) also select an empty range to be moved, so you'll
-    get back your input list.
-  * Ranges with any step but 1 will raise an error.
+   * Indices are normalized, meaning that negative indexes will be counted from the end
+      (for example, -1 means the last element of the enumerable). This will result in *two*
+      traversals of your enumerable on types like lists that don't provide a constant-time count.
+
+    * If the normalized index range's `last` is out of bounds, the range is truncated to the last element.
+
+    * If the normalized index range's `first` is out of bounds, the selected range for sliding
+      will be empty, so you'll get back your input list.
+
+    * Decreasing ranges (such as `5..0//1`) also select an empty range to be moved,
+      so you'll get back your input list.
+
+    * Ranges with any step but 1 will raise an error.
 
   ## Examples
 
