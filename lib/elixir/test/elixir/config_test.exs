@@ -117,3 +117,21 @@ defmodule ConfigTest do
     end
   end
 end
+
+defmodule ConfigNoSetupTest do
+  use ExUnit.Case, async: true
+
+  import Config
+
+  test "config_env/0 raises if no env is set" do
+    assert_raise RuntimeError, "no :env key was given to this configuration file", fn ->
+      config_env()
+    end
+  end
+
+  test "config_target/0 raises if no env is set" do
+    assert_raise RuntimeError, "no :target key was given to this configuration file", fn ->
+      config_target()
+    end
+  end
+end

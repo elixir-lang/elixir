@@ -187,7 +187,8 @@ defmodule Config do
   @doc false
   @spec __env__!() :: atom()
   def __env__!() do
-    elem(get_opts!(), 0) || raise "no :env key was given to this configuration file"
+    opts = get_opts!()
+    (is_tuple(opts) && elem(opts, 0)) || raise "no :env key was given to this configuration file"
   end
 
   @doc """
@@ -210,7 +211,10 @@ defmodule Config do
   @doc false
   @spec __target__!() :: atom()
   def __target__!() do
-    elem(get_opts!(), 1) || raise "no :target key was given to this configuration file"
+    opts = get_opts!()
+
+    (is_tuple(opts) && elem(opts, 1)) ||
+      raise "no :target key was given to this configuration file"
   end
 
   @doc ~S"""
