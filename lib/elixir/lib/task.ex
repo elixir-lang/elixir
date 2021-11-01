@@ -991,7 +991,7 @@ defmodule Task do
 
     * the task process exited with the reason `:normal`
     * the task isn't linked to the caller (the task was started
-      with `Task.async_nolink/2` or `Task.Supervisor.async_nolink/3`)
+      with `Task.Supervisor.async_nolink/2` or `Task.Supervisor.async_nolink/4`)
     * the caller is trapping exits
 
   A timeout, in milliseconds or `:infinity`, can be given with a default value
@@ -1080,7 +1080,7 @@ defmodule Task do
 
   `Task.yield_many/2` allows developers to spawn multiple tasks
   and retrieve the results received in a given timeframe.
-  If we combine it with `Task.shutdown/2` (or `Task.ignore/2`),
+  If we combine it with `Task.shutdown/2` (or `Task.ignore/1`),
   it allows us to gather those results and cancel (or ignore)
   the tasks that have not replied in time.
 
