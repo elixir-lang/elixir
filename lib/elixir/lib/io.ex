@@ -142,7 +142,7 @@ defmodule IO do
       NFS volume
 
   """
-  @spec read(device, :eof | :line | non_neg_integer) :: chardata | nodata
+  @spec read(device, :eof | :line | :all | non_neg_integer) :: chardata | nodata
   def read(device \\ :stdio, line_or_chars)
 
   # TODO: Deprecate me on v1.17
