@@ -74,12 +74,22 @@ authority:    fragment:     host:         path:         port:
 query:        scheme:       userinfo:
 ```
 
-As you fill them in, the already filled structs no longer show up:
+As you fill a field in, the already filled fields no longer show up:
 
 ```elixir
 iex(1)> %URI{path: "/example",
 authority:    fragment:     host:         port:         query:
 scheme:       userinfo:
+```
+
+Along the same lines, `SyntaxError` and `TokenMissingError` were improved to show a code snippet whenever possible:
+
+```elixir
+$ elixir -e "hello + * world"
+** (SyntaxError) nofile:1:9: syntax error before: '*'
+    |
+  1 | hello + * world
+    |         ^
 ```
 
 Finally, new compilation tracers have been added, alongside a handful of functions in `Module` to retrieve module metadata, which can be used to enrich suggestions in programming environments.
@@ -136,6 +146,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [Code] Allow custom sigil formatting on `Code.format_string!/2`
   * [Code] Add `{:on_module, bytecode, :none}` trace to compilation tracers
   * [Enum] Optimize `Enum.concat/1` for lists of lists
+  * [Enum] Add `Enum.slide/3`
   * [Exception] Better format Elixir exceptions in Erlang
   * [Inspect] Allow default inspect fun to be set globally with `Inspect.Opts.default_inspect_fun/1`
   * [IO] Allow `:eof` to be given as limit to `IO.getn/2`
@@ -159,9 +170,11 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [Task] Add `Task.completed/1`
   * [Task] Add `Task.ignore/1` to keep a task running but ignoring all of its results
   * [Task] Reduce the amount of copying `Task.async*` functions
+  * [URI] Add `URI.new/1` and `URI.new!/1`
 
 #### ExUnit
 
+  * [ExUnit] Show hint if comparing different but equivalent strings
   * [ExUnit.CaptureIO] Add `with_io/3` to return result with captured io
   * [ExUnit.CaptureLog] Add `with_log/2` to return result with captured logs
 
@@ -177,6 +190,8 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 
 #### Mix
 
+  * [Mix] Add `MIX_INSTALL_FORCE` environment variable support
+  * [Mix] Support `:config` and `:system_env` in `Mix.install/2`
   * [mix archive.install] Run `loadconfig` before building archive
   * [mix compile] Move Elixir version check to before deps are compiled, in order to give feedback earlier
   * [mix compile.elixir] Do not recompile files if their modification time change but their contents are still the same and the .beam files are still on disk
@@ -206,6 +221,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 
 #### EEx
 
+  * [EEx] Accept comments in EEx between do and the first clause
   * [EEx] Accept EEx expressions where `->` is followed by newline
 
 #### Elixir
@@ -213,6 +229,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [Application] Warn if `Application.compile_env` or `Application.compile_env!` are called without a require
   * [Code] Make sure `:static_atoms_encoder` in `Code.string_to_quoted/2` also applies to quoted keyword keys
   * [Code] Ensure bindings with no context are returned as atoms instead of `{binding, nil}` in eval operations
+  * [Inspect] Fix a bug when inspecting a non-binary bitstring with colors
   * [Kernel] Raise if `__CALLER__` or `__ENV__` or `__STACKTRACE__` are used in match
   * [Kernel] Improve error message on invalid argument for `byte_size` from binary concat
   * [Kernel] Raise when aliasing non-Elixir modules without `:as`
@@ -243,6 +260,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 #### Logger
 
   * [Logger] Raise clear error message for invalid `:compile_time_purge_matching` configuration
+  * [Logger] Fix a bug where Logger would not reset its discard counter under some scenarios
 
 #### Mix
 
@@ -261,8 +279,9 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 
 #### Elixir
 
-  * [IO] `:all` on `IO.getn` is deprecated in favor of `:eof`
   * [Code] Environment options in `Code.eval_quoted/3` and `Code.eval_string/3`, such as `:aliases` and `:tracers`, have been deprecated in favor of passing an environment
+  * [IO] `:all` on `IO.getn` is deprecated in favor of `:eof`
+  * [URI] `URI.parse/1` is deprecated in favor of `URI.new/1` and `URI.new!/1`
 
 #### Mix
 

@@ -8,12 +8,11 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.13           | Development
-1.12           | Bug fixes and security patches
+1.13           | Bug fixes and security patches
+1.12           | Security patches only
 1.11           | Security patches only
 1.10           | Security patches only
 1.9            | Security patches only
-1.8            | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 

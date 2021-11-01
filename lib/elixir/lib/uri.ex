@@ -671,6 +671,7 @@ defmodule URI do
   Also note this function sets the authority field, but the field has been
   deprecated and it is not set by `URI.new!/1` and `URI.new/1`.
   """
+  # TODO: Deprecate me at least on v1.17
   @doc deprecated: "Use URI.new/1 or URI.new!/1 instead"
   @spec parse(t | binary) :: t
   def parse(%URI{} = uri), do: uri
