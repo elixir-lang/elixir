@@ -32,7 +32,7 @@
 
 2. Update tables in /SECURITY.md and "Compatibility and Deprecations"
 
-3. Commit "Prepare vMAJOR.MINOR for release"
+3. Commit "Branch out vMAJOR.MINOR"
 
 ### Back in master
 
