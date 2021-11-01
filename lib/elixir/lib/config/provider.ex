@@ -56,8 +56,10 @@ defmodule Config.Provider do
         @behaviour Config.Provider
 
         # Let's pass the path to the JSON file as config
+        @impl true
         def init(path) when is_binary(path), do: path
 
+        @impl true
         def load(config, path) do
           # We need to start any app we may depend on.
           {:ok, _} = Application.ensure_all_started(:jason)
