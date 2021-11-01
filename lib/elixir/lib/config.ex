@@ -75,7 +75,7 @@ defmodule Config do
   @config_key {__MODULE__, :config}
   @imports_key {__MODULE__, :imports}
 
-  defp get_opts!(), do: Process.get(@opts_key)
+  defp get_opts!(), do: Process.get(@opts_key) || raise_improper_use!()
   defp put_opts(value), do: Process.put(@opts_key, value)
   defp delete_opts(), do: Process.delete(@opts_key)
 
