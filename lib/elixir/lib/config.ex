@@ -75,7 +75,7 @@ defmodule Config do
   @config_key {__MODULE__, :config}
   @imports_key {__MODULE__, :imports}
 
-  defp get_opts!(), do: Process.get(@opts_key)
+  defp get_opts!(), do: Process.get(@opts_key) || raise_improper_use!()
   defp put_opts(value), do: Process.put(@opts_key, value)
   defp delete_opts(), do: Process.delete(@opts_key)
 
@@ -187,8 +187,7 @@ defmodule Config do
   @doc false
   @spec __env__!() :: atom()
   def __env__!() do
-    opts = get_opts!()
-    (is_tuple(opts) && elem(opts, 0)) || raise "no :env key was given to this configuration file"
+    elem(get_opts!(), 0) || raise "no :env key was given to this configuration file"
   end
 
   @doc """
@@ -211,10 +210,7 @@ defmodule Config do
   @doc false
   @spec __target__!() :: atom()
   def __target__!() do
-    opts = get_opts!()
-
-    (is_tuple(opts) && elem(opts, 1)) ||
-      raise "no :target key was given to this configuration file"
+    elem(get_opts!(), 1) || raise "no :target key was given to this configuration file"
   end
 
   @doc ~S"""
