@@ -987,7 +987,7 @@ defmodule Logger.TranslatorTest do
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
   end
 
-  test "translates process crash with erts" do
+  test "translates process crash with ERTS" do
     assert {:ok, _msg, meta} =
              Logger.Translator.translate(
                :error,

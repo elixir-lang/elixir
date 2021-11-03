@@ -12,8 +12,8 @@ defmodule Mix.Release do
     * `:path` - the path to the release root
     * `:version_path` - the path to the release version inside the release
     * `:applications` - a map of application with their definitions
-    * `:erts_source` - the erts source as a charlist (or nil)
-    * `:erts_version` - the erts version as a charlist
+    * `:erts_source` - the ERTS source as a charlist (or nil)
+    * `:erts_version` - the ERTS version as a charlist
 
   The following fields may be modified as long as they keep their defined types:
 
