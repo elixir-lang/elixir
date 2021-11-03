@@ -506,7 +506,7 @@ defmodule Module.Types do
   defp map_type?(_other), do: false
 
   defp maplike_type?({:map, _}), do: true
-  defp maplike_type?({:union, union}), do: Enum.all?(union, &maplike_type?/1)
+  defp maplike_type?({:union, union}), do: Enum.any?(union, &maplike_type?/1)
   defp maplike_type?(_other), do: false
 
   defp atom_type?(:atom), do: true
