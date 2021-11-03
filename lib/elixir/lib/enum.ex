@@ -2573,6 +2573,10 @@ defmodule Enum do
       iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], -4..-2, 1)
       [:a, :d, :e, :f, :b, :c, :g]
 
+      # Insert at negative indices (counting from the end)
+      iex> Enum.slide([:a, :b, :c, :d, :e, :f, :g], 3, -1)
+      [:a, :b, :c, :e, :f, :g, :d]
+
   """
   def slide(enumerable, range_or_single_index, insertion_index)
 
@@ -2587,14 +2591,19 @@ defmodule Enum do
   end
 
   # Normalize negative input ranges like Enum.slice/2
-  def slide(enumerable, first..last, insertion_index) when first < 0 or last < 0 do
+  def slide(enumerable, first..last, insertion_index)
+      when first < 0 or last < 0 or insertion_index < 0 do
     count = Enum.count(enumerable)
     normalized_first = if first >= 0, do: first, else: first + count
     normalized_last = if last >= 0, do: last, else: last + count
 
-    if normalized_first >= 0 and normalized_first < count and normalized_first != insertion_index do
+    normalized_insertion_index =
+      if insertion_index >= 0, do: insertion_index, else: insertion_index + count
+
+    if normalized_first >= 0 and normalized_first < count and
+         normalized_first != normalized_insertion_index do
       normalized_range = normalized_first..normalized_last//1
-      slide(enumerable, normalized_range, insertion_index)
+      slide(enumerable, normalized_range, normalized_insertion_index)
     else
       Enum.to_list(enumerable)
     end
@@ -2605,7 +2614,7 @@ defmodule Enum do
   end
 
   def slide(_, first..last, insertion_index)
-      when insertion_index > first and insertion_index < last do
+      when insertion_index > first and insertion_index <= last do
     raise "Insertion index for slide must be outside the range being moved " <>
             "(tried to insert #{first}..#{last} at #{insertion_index})"
   end

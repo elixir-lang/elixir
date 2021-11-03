@@ -823,6 +823,7 @@ defmodule EnumTest do
       end
 
       assert Enum.slide([:a, :b, :c, :d, :e, :f], 3..3, 2) == [:a, :b, :d, :c, :e, :f]
+      assert Enum.slide([:a, :b, :c, :d, :e, :f], 3, 3) == [:a, :b, :c, :d, :e, :f]
     end
 
     test "on a subsection of a list reorders the range correctly" do
@@ -944,6 +945,33 @@ defmodule EnumTest do
         slide = &Enum.slide(&1, slide_range, insertion_point)
         assert slide.(list) == slide.(set)
         assert slide.(list) == slide.(range)
+      end
+    end
+
+    test "inserts at negative indices" do
+      for zero_to_5 <- [0..5, Enum.to_list(0..5)] do
+        assert Enum.slide(zero_to_5, 0, -1) == [1, 2, 3, 4, 5, 0]
+        assert Enum.slide(zero_to_5, 1, -1) == [0, 2, 3, 4, 5, 1]
+        assert Enum.slide(zero_to_5, 1..2, -2) == [0, 3, 4, 1, 2, 5]
+        assert Enum.slide(zero_to_5, -5..-4//1, -2) == [0, 3, 4, 1, 2, 5]
+      end
+
+      assert Enum.slide([:a, :b, :c, :d, :e, :f], -5..-3//1, -2) ==
+               Enum.slide([:a, :b, :c, :d, :e, :f], 1..3, 4)
+    end
+
+    test "raises when insertion index would fall inside the range" do
+      for zero_to_5 <- [0..5, Enum.to_list(0..5)] do
+        assert_raise RuntimeError, fn ->
+          Enum.slide(zero_to_5, 2..3, -3)
+        end
+      end
+
+      for zero_to_10 <- [0..10, Enum.to_list(0..10)],
+          insertion_idx <- 3..5 do
+        assert_raise RuntimeError, fn ->
+          assert Enum.slide(zero_to_10, 2..5, insertion_idx)
+        end
       end
     end
   end
