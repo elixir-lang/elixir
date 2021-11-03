@@ -606,6 +606,42 @@ defmodule Module.Types.TypesTest do
                  %{foo: ^other_key} = event
              """
     end
+
+    test "test" do
+      string =
+        warning(
+            [map1, map2],
+            (
+              [_var1, _var2] = [map1, map2]
+              %{} = map1
+              %{} = map2.subkey
+            )
+          )
+
+      assert string == """
+      incompatible types:
+
+          %{subkey: var1, optional(dynamic()) => dynamic()} !~ %{optional(dynamic()) => dynamic()} | %{optional(dynamic()) => dynamic()}
+
+      in expression:
+
+          # types_test.ex:5
+          map2.subkey
+
+      where "map2" was given the type %{optional(dynamic()) => dynamic()} | %{optional(dynamic()) => dynamic()} in:
+
+          # types_test.ex:3
+          [_var1, _var2] = [map1, map2]
+
+      where "map2" was given the type %{subkey: var1, optional(dynamic()) => dynamic()} (due to calling var.field) in:
+
+          # types_test.ex:5
+          map2.subkey
+
+      HINT: "var.field" (without parentheses) implies "var" is a map() while "var.fun()" (with parentheses) implies "var" is an atom()
+      """
+
+    end
   end
 
   describe "regressions" do
