@@ -674,78 +674,76 @@ defmodule Mix do
 
     case Mix.State.get(:installed) do
       nil ->
-        :ok
+        Application.put_all_env(config, persistent: true)
+        System.put_env(system_env)
+
+        installs_root =
+          System.get_env("MIX_INSTALL_DIR") || Path.join(Mix.Utils.mix_cache(), "installs")
+
+        version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
+        dir = Path.join([installs_root, version, id])
+
+        if opts[:verbose] do
+          Mix.shell().info("Mix.install/2 using #{dir}")
+        end
+
+        if force? do
+          File.rm_rf!(dir)
+        end
+
+        config = [
+          version: "0.1.0",
+          build_embedded: false,
+          build_per_environment: true,
+          build_path: "_build",
+          lockfile: "mix.lock",
+          deps_path: "deps",
+          deps: deps,
+          app: :mix_install,
+          erlc_paths: ["src"],
+          elixirc_paths: ["lib"],
+          compilers: [],
+          consolidate_protocols: Keyword.get(opts, :consolidate_protocols, true)
+        ]
+
+        started_apps = Application.started_applications()
+        :ok = Mix.Local.append_archives()
+        :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
+        build_dir = Path.join(dir, "_build")
+
+        try do
+          run_deps? = not File.dir?(build_dir)
+          File.mkdir_p!(dir)
+
+          File.cd!(dir, fn ->
+            if run_deps? do
+              Mix.Task.rerun("deps.get")
+            end
+
+            Mix.Task.rerun("deps.loadpaths")
+
+            # Hex and SSL can use a good amount of memory after the registry fetching,
+            # so we stop any app started during deps resolution.
+            stop_apps(Application.started_applications() -- started_apps)
+
+            Mix.Task.rerun("compile")
+          end)
+
+          for app <- Mix.Project.deps_apps() do
+            Application.ensure_all_started(app)
+          end
+
+          Mix.State.put(:installed, id)
+          :ok
+        after
+          Mix.ProjectStack.pop()
+        end
 
       ^id when not force? ->
         :ok
 
       _ ->
         Mix.raise("Mix.install/2 can only be called with the same dependencies in the given VM")
-    end
-
-    Application.put_all_env(config, persistent: true)
-    System.put_env(system_env)
-
-    installs_root =
-      System.get_env("MIX_INSTALL_DIR") || Path.join(Mix.Utils.mix_cache(), "installs")
-
-    version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
-    dir = Path.join([installs_root, version, id])
-
-    if opts[:verbose] do
-      Mix.shell().info("Mix.install/2 using #{dir}")
-    end
-
-    if force? do
-      File.rm_rf!(dir)
-    end
-
-    config = [
-      version: "0.1.0",
-      build_embedded: false,
-      build_per_environment: true,
-      build_path: "_build",
-      lockfile: "mix.lock",
-      deps_path: "deps",
-      deps: deps,
-      app: :mix_install,
-      erlc_paths: ["src"],
-      elixirc_paths: ["lib"],
-      compilers: [],
-      consolidate_protocols: Keyword.get(opts, :consolidate_protocols, true)
-    ]
-
-    started_apps = Application.started_applications()
-    :ok = Mix.Local.append_archives()
-    :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
-    build_dir = Path.join(dir, "_build")
-
-    try do
-      run_deps? = not File.dir?(build_dir)
-      File.mkdir_p!(dir)
-
-      File.cd!(dir, fn ->
-        if run_deps? do
-          Mix.Task.rerun("deps.get")
-        end
-
-        Mix.Task.rerun("deps.loadpaths")
-
-        # Hex and SSL can use a good amount of memory after the registry fetching,
-        # so we stop any app started during deps resolution.
-        stop_apps(Application.started_applications() -- started_apps)
-
-        Mix.Task.rerun("compile")
-      end)
-
-      for app <- Mix.Project.deps_apps() do
-        Application.ensure_all_started(app)
-      end
-
-      Mix.State.put(:installed, id)
-      :ok
-    after
-      Mix.ProjectStack.pop()
     end
   end
 
