@@ -1646,7 +1646,7 @@ defmodule Code do
       :error ->
         case :code.which(module) do
           :preloaded ->
-            # The erts directory is not necessarily included in releases
+            # The ERTS directory is not necessarily included in releases
             # unless it is listed as an extra application.
             case :code.lib_dir(:erts) do
               path when is_list(path) ->

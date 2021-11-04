@@ -133,7 +133,7 @@ defmodule Mix.ReleaseTest do
 
     test "uses the locked version of an app", context do
       in_tmp(context.test, fn ->
-        # install newer version of the app in the custom erts
+        # install newer version of the app in the custom ERTS
         custom_erts_path = Path.join([File.cwd!(), "erts-#{@erts_version}"])
         File.cp_r!(@erts_source, custom_erts_path)
 
@@ -512,7 +512,7 @@ defmodule Mix.ReleaseTest do
   describe "make_start_erl/1" do
     @start_erl_path tmp_path("mix_release/start_erl.data")
 
-    test "writes erts and release versions" do
+    test "writes ERTS and release versions" do
       assert make_start_erl(release([]), @start_erl_path) == :ok
       assert File.read!(@start_erl_path) == "#{@erts_version} 0.1.0"
     end
