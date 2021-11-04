@@ -668,8 +668,15 @@ defmodule URI do
         {:error, _} -> %URI{path: path}
       end
 
-  Also note this function sets the authority field, but the field has been
-  deprecated and it is not set by `URI.new!/1` and `URI.new/1`.
+  There are two differencws in the behaviour of this function compared to
+  `URI.new/1`:
+
+    * This function sets the deprecated authority field
+
+    * This function sets the path to `nil` when it is empty,
+      while `new/1` consider the path always exists and sets it
+      to an empty string
+
   """
   # TODO: Deprecate me at least on v1.17
   @doc deprecated: "Use URI.new/1 or URI.new!/1 instead"
@@ -706,6 +713,7 @@ defmodule URI do
                 ],
                 parts
 
+    path = nillify(path)
     scheme = nillify(scheme)
     query = nillify_query(query_with_question_mark)
     {authority, userinfo, host, port} = split_authority(authority_with_slashes)
@@ -817,6 +825,8 @@ defmodule URI do
     merge(parse(base), parse(rel))
   end
 
+  # TODO: Deprecate me on Elixir v1.19
+  defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
   defp merge_paths("", rel_path), do: merge_paths("/", rel_path)
   defp merge_paths(_, "/" <> _ = rel_path), do: remove_dot_segments_from_path(rel_path)
 

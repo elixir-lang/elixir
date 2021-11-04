@@ -449,7 +449,7 @@ defmodule URITest do
         query: nil,
         fragment: nil,
         port: 443,
-        path: "",
+        path: nil,
         userinfo: nil
       }
 
@@ -551,7 +551,7 @@ defmodule URITest do
       expected_uri = %URI{
         scheme: "http",
         host: "foo.com",
-        path: "",
+        path: nil,
         query: nil,
         fragment: nil,
         port: 4444,
@@ -564,7 +564,7 @@ defmodule URITest do
       expected_uri = %URI{
         scheme: "https",
         host: "foo.com",
-        path: "",
+        path: nil,
         query: nil,
         fragment: nil,
         port: 443,
@@ -577,7 +577,7 @@ defmodule URITest do
       expected_uri = %URI{
         scheme: "http",
         host: "foo.com",
-        path: "",
+        path: nil,
         query: nil,
         fragment: nil,
         port: 4444,
@@ -654,6 +654,12 @@ defmodule URITest do
 
     test "preserves an empty query" do
       assert URI.parse("http://foo.com/?").query == ""
+    end
+
+    test "merges empty path" do
+      base = URI.parse("http://example.com")
+      assert URI.merge(base, "/foo") |> to_string == "http://example.com/foo"
+      assert URI.merge(base, "foo") |> to_string == "http://example.com/foo"
     end
   end
 end
