@@ -457,13 +457,12 @@ defmodule Mix.Release do
     end
   end
 
-  defp valid_config?(n) when is_number(n), do: true
-  defp valid_config?(a) when is_atom(a), do: true
-  defp valid_config?(b) when is_binary(b), do: true
+  defp valid_config?(m) when is_map(m),
+    do: Enum.all?(Map.delete(m, :__struct__), &valid_config?/1)
+
   defp valid_config?(l) when is_list(l), do: Enum.all?(l, &valid_config?/1)
-  defp valid_config?(m) when is_map(m), do: Enum.all?(m, &valid_config?/1)
   defp valid_config?(t) when is_tuple(t), do: Enum.all?(Tuple.to_list(t), &valid_config?/1)
-  defp valid_config?(_), do: false
+  defp valid_config?(o), do: is_number(o) or is_atom(o) or is_binary(o)
 
   defp merge_provider_config(%{config_providers: []}, sys_config, _), do: {sys_config, false}
 
