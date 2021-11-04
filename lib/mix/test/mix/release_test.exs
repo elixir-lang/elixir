@@ -585,6 +585,11 @@ defmodule Mix.ReleaseTest do
     test "errors on bad config" do
       assert {:error, "Could not read configuration file." <> _} =
                make_sys_config(release([]), [foo: [bar: self()]], "unused/runtime/path")
+
+      env = %{__ENV__ | lexical_tracker: self()}
+
+      assert {:error, "Could not read configuration file." <> _} =
+               make_sys_config(release([]), [foo: [bar: env]], "unused/runtime/path")
     end
   end
 
