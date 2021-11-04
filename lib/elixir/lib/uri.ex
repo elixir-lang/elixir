@@ -668,7 +668,7 @@ defmodule URI do
         {:error, _} -> %URI{path: path}
       end
 
-  There are two differencws in the behaviour of this function compared to
+  There are two differences in the behaviour of this function compared to
   `URI.new/1`:
 
     * This function sets the deprecated authority field
