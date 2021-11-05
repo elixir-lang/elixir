@@ -114,7 +114,7 @@ in applications inside the `lib` folder:
 
 You can run all tests in the root directory with `make test` and you can
 also run tests for a specific framework `make test_#{APPLICATION}`, for example,
-`make test_ex_unit`. If you just changed something in the Elixir's standard
+`make test_ex_unit`. If you just changed something in Elixir's standard
 library, you can run only that portion through `make test_stdlib`.
 
 If you are changing just one file, you can choose to compile and run tests only
@@ -169,7 +169,7 @@ pull request will be merged, even when modifications are requested, as the Elixi
 team will re-evaluate the contribution as it changes.
 
 Committers may also push style changes directly to your branch. If you would
-rather manage all changes yourself, you can disable "Allow edits from maintainers"
+rather manage all changes yourself, you can disable the "Allow edits from maintainers"
 feature when submitting your pull request.
 
 The Elixir team may optionally assign someone to review a pull request.
