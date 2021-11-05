@@ -251,7 +251,7 @@ defmodule Mix.Tasks.Format do
   defp eval_deps_and_subdirectories(dot_formatter, prefix, formatter_opts, sources) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
     subs = Keyword.get(formatter_opts, :subdirectories, [])
-    plugins = Keyword.get(formatter_opts, :plugins, [])
+    plugins = Keyword.get(formatter_opts, :plugins, []) |> Enum.map(&normalize_plugin(&1))
 
     if not is_list(deps) do
       Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
@@ -270,7 +270,7 @@ defmodule Mix.Tasks.Format do
       Mix.Task.run("loadpaths", args)
     end
 
-    for plugin <- plugins do
+    for {plugin, _opts} <- plugins do
       cond do
         not Code.ensure_loaded?(plugin) ->
           Mix.shell().error(
@@ -300,6 +300,9 @@ defmodule Mix.Tasks.Format do
       end)
     end
   end
+
+  defp normalize_plugin({plugin, opts}), do: {plugin, opts}
+  defp normalize_plugin(plugin), do: {plugin, []}
 
   defp maybe_cache_in_manifest(dot_formatter, manifest, fun) do
     cond do
@@ -508,9 +511,12 @@ defmodule Mix.Tasks.Format do
   defp find_plugin_for_extension(formatter_opts, ext) do
     plugins = Keyword.get(formatter_opts, :plugins, [])
 
-    Enum.find(plugins, fn plugin ->
-      Code.ensure_loaded?(plugin) and function_exported?(plugin, :features, 1) and
-        ext in List.wrap(plugin.features(formatter_opts)[:extensions])
+    plugins
+    |> Enum.find_value(fn {plugin, opts} ->
+      if Code.ensure_loaded?(plugin) and function_exported?(plugin, :features, 1) and
+           ext in List.wrap(plugin.features(opts ++ formatter_opts)[:extensions]) do
+        plugin
+      end
     end)
   end
 
@@ -537,8 +543,8 @@ defmodule Mix.Tasks.Format do
 
   defp elixir_format(content, formatter_opts) do
     sigils =
-      for plugin <- Keyword.fetch!(formatter_opts, :plugins),
-          sigil <- find_sigils_from_plugins(plugin, formatter_opts),
+      for {plugin, opts} <- Keyword.fetch!(formatter_opts, :plugins),
+          sigil <- find_sigils_from_plugins(plugin, opts ++ formatter_opts),
           do: {sigil, &plugin.format(&1, &2 ++ formatter_opts)}
 
     IO.iodata_to_binary([Code.format_string!(content, [sigils: sigils] ++ formatter_opts), ?\n])

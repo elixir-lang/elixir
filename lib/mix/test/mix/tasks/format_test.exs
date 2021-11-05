@@ -199,6 +199,7 @@ defmodule Mix.Tasks.FormatTest do
 
     def features(opts) do
       assert opts[:from_formatter_exs] == :yes
+      assert opts[:custom_opts] == true
       [sigils: [:W]]
     end
 
@@ -215,7 +216,7 @@ defmodule Mix.Tasks.FormatTest do
       File.write!(".formatter.exs", """
       [
         inputs: ["a.ex"],
-        plugins: [SigilWPlugin],
+        plugins: [{SigilWPlugin, custom_opts: true}],
         from_formatter_exs: :yes
       ]
       """)
@@ -247,6 +248,7 @@ defmodule Mix.Tasks.FormatTest do
 
     def features(opts) do
       assert opts[:from_formatter_exs] == :yes
+      assert opts[:custom_opts] == true
       [extensions: ~w(.w)]
     end
 
@@ -262,7 +264,7 @@ defmodule Mix.Tasks.FormatTest do
       File.write!(".formatter.exs", """
       [
         inputs: ["a.w"],
-        plugins: [ExtensionWPlugin],
+        plugins: [{ExtensionWPlugin, [custom_opts: true]}],
         from_formatter_exs: :yes
       ]
       """)
