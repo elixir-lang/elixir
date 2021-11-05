@@ -251,7 +251,7 @@ defmodule Mix.Tasks.Format do
   defp eval_deps_and_subdirectories(dot_formatter, prefix, formatter_opts, sources) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
     subs = Keyword.get(formatter_opts, :subdirectories, [])
-    plugins = Keyword.get(formatter_opts, :plugins, []) |> Enum.map(&normalize_plugin(&1))
+    plugins = Keyword.get(formatter_opts, :plugins, []) |> Enum.map(&normalize_plugin/1)
 
     if not is_list(deps) do
       Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
