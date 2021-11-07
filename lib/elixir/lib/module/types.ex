@@ -354,7 +354,7 @@ defmodule Module.Types do
   end
 
   defp simplify_type?(type, other) do
-    map_type?(type) and not map_type?(other)
+    map_like_type?(type) and not map_like_type?(other)
   end
 
   ## EXPRESSION FORMATTING
@@ -504,6 +504,10 @@ defmodule Module.Types do
 
   defp map_type?({:map, _}), do: true
   defp map_type?(_other), do: false
+
+  defp map_like_type?({:map, _}), do: true
+  defp map_like_type?({:union, union}), do: Enum.any?(union, &map_like_type?/1)
+  defp map_like_type?(_other), do: false
 
   defp atom_type?(:atom), do: true
   defp atom_type?({:atom, _}), do: false
