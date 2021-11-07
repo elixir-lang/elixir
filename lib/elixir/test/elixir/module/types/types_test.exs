@@ -607,40 +607,39 @@ defmodule Module.Types.TypesTest do
              """
     end
 
-    test "test" do
+    test "expands map when maps are nested" do
       string =
         warning(
-            [map1, map2],
-            (
-              [_var1, _var2] = [map1, map2]
-              %{} = map1
-              %{} = map2.subkey
-            )
+          [map1, map2],
+          (
+            [_var1, _var2] = [map1, map2]
+            %{} = map1
+            %{} = map2.subkey
           )
+        )
 
       assert string == """
-      incompatible types:
+             incompatible types:
 
-          %{subkey: var1, optional(dynamic()) => dynamic()} !~ %{optional(dynamic()) => dynamic()} | %{optional(dynamic()) => dynamic()}
+                 %{subkey: var1, optional(dynamic()) => dynamic()} !~ %{optional(dynamic()) => dynamic()} | %{optional(dynamic()) => dynamic()}
 
-      in expression:
+             in expression:
 
-          # types_test.ex:5
-          map2.subkey
+                 # types_test.ex:5
+                 map2.subkey
 
-      where "map2" was given the type %{optional(dynamic()) => dynamic()} | %{optional(dynamic()) => dynamic()} in:
+             where "map2" was given the type %{optional(dynamic()) => dynamic()} | %{optional(dynamic()) => dynamic()} in:
 
-          # types_test.ex:3
-          [_var1, _var2] = [map1, map2]
+                 # types_test.ex:3
+                 [_var1, _var2] = [map1, map2]
 
-      where "map2" was given the type %{subkey: var1, optional(dynamic()) => dynamic()} (due to calling var.field) in:
+             where "map2" was given the type %{subkey: var1, optional(dynamic()) => dynamic()} (due to calling var.field) in:
 
-          # types_test.ex:5
-          map2.subkey
+                 # types_test.ex:5
+                 map2.subkey
 
-      HINT: "var.field" (without parentheses) implies "var" is a map() while "var.fun()" (with parentheses) implies "var" is an atom()
-      """
-
+             HINT: "var.field" (without parentheses) implies "var" is a map() while "var.fun()" (with parentheses) implies "var" is an atom()
+             """
     end
   end
 
