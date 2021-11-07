@@ -18,6 +18,8 @@ defmodule Mix.Shell do
 
   @doc """
   Executes the given command and returns its exit status.
+
+  Shortcut for `cmd/2` with empty options.
   """
   @callback cmd(command :: String.t()) :: integer
 
@@ -46,6 +48,17 @@ defmodule Mix.Shell do
 
   @doc """
   Prompts the user for confirmation.
+
+  Shortcut for `yes?/2` with empty options.
+  """
+  @callback yes?(message :: binary) :: boolean
+
+  @doc """
+  Prompts the user for confirmation.
+
+  ## Options
+
+    * `:default` - `:yes` or `:no` (the default is `:yes`)
   """
   @callback yes?(message :: binary, options :: keyword) :: boolean
 
