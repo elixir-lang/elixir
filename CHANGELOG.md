@@ -192,6 +192,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 
   * [Mix] Add `MIX_INSTALL_FORCE` environment variable support
   * [Mix] Support `:config` and `:system_env` in `Mix.install/2`
+  * [Mix.Shell] Add `:default` option to `Mix.Shell.yes?`
   * [mix archive.install] Run `loadconfig` before building archive
   * [mix compile] Move Elixir version check to before deps are compiled, in order to give feedback earlier
   * [mix compile.elixir] Do not recompile files if their modification time change but their contents are still the same and the .beam files are still on disk
@@ -267,13 +268,12 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [mix compile.elixir] Recompile file if `@external_resource` is deleted
   * [mix compile.elixir] Print number of compiling files on all compiler cycles. This will make the `Compiling N files (.ex)` show up multiple times if necessary
   * [mix deps] Raise if local dep is unavailable while compiling
-  * [mix deps.unlock] Fix blank output when dependency is not locked
+  * [mix deps.unlock] Fix blank output when unlocking a dependency that is not locked
   * [mix local.install] Do not respect `MIX_DEPS_PATH` for install commands
-  * [mix release] Improve release scripts to make sure shell errors cascade by avoiding exporting and defining variables at once
-  * [mix release] Do not boot release if RELEASE_COOKIE is empty
-  * [mix release] Allow release running as a daemon to be restarted
-  * [mix test] Allow coverage engine to also tag `case`, `cond`, and `receive` branches where the right side is a literal
-  * [Mix.Shell] Add `default` option to `Mix.Shell.yes?`
+  * [mix release] Improve release scripts by making sure shell errors cascade (this is done by avoiding exporting and defining variables in a single step)
+  * [mix release] Do not boot release if `RELEASE_COOKIE` is empty
+  * [mix release] Allow releases running as a daemon to be restarted
+  * [mix test] Fix coverage engine to also tag `case`, `cond`, and `receive` branches where the right side is a literal
 
 ### 3. Soft-deprecations (no warnings emitted)
 
