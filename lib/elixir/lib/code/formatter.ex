@@ -1873,19 +1873,25 @@ defmodule Code.Formatter do
   end
 
   defp each_quoted_to_algebra_with_comments([arg | args], acc, max_line, state, comments?, fun) do
-    {doc_start, doc_end} = traverse_line(arg, {@max_line, @min_line})
+    case traverse_line(arg, {@max_line, @min_line}) do
+      {@max_line, @min_line} ->
+        {doc_triplet, state} = fun.(arg, args, state)
+        acc = [doc_triplet | acc]
+        each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
 
-    {acc, comments, comments?} =
-      extract_comments_before(doc_start, acc, state.comments, comments?)
+      {doc_start, doc_end} ->
+        {acc, comments, comments?} =
+          extract_comments_before(doc_start, acc, state.comments, comments?)
 
-    {doc_triplet, state} = fun.(arg, args, %{state | comments: comments})
+        {doc_triplet, state} = fun.(arg, args, %{state | comments: comments})
 
-    {acc, comments, comments?} =
-      extract_comments_trailing(doc_start, doc_end, acc, state.comments, comments?)
+        {acc, comments, comments?} =
+          extract_comments_trailing(doc_start, doc_end, acc, state.comments, comments?)
 
-    acc = [adjust_trailing_newlines(doc_triplet, doc_end, comments) | acc]
-    state = %{state | comments: comments}
-    each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
+        acc = [adjust_trailing_newlines(doc_triplet, doc_end, comments) | acc]
+        state = %{state | comments: comments}
+        each_quoted_to_algebra_with_comments(args, acc, max_line, state, comments?, fun)
+    end
   end
 
   defp extract_comments_before(max, acc, [%{line: line} = comment | rest], _) when line < max do

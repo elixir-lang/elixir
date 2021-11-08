@@ -15,11 +15,14 @@ defmodule Code.Normalizer.FormatterASTTest do
     good = String.trim(good)
 
     to_quoted_opts =
-      [
-        literal_encoder: &{:ok, {:__block__, &2, [&1]}},
-        token_metadata: true,
-        unescape: false
-      ] ++ opts
+      Keyword.merge(
+        [
+          literal_encoder: &{:ok, {:__block__, &2, [&1]}},
+          token_metadata: true,
+          unescape: false
+        ],
+        opts
+      )
 
     {quoted, comments} = Code.string_to_quoted_with_comments!(good, to_quoted_opts)
 
@@ -462,6 +465,29 @@ defmodule Code.Normalizer.FormatterASTTest do
       #
       :foo
       """
+    end
+
+    test "handles comments with unescaped literal" do
+      assert_same """
+                  # before
+                  Mix.install([:foo])
+                  # after
+                  """,
+                  literal_encoder: fn literal, _ -> {:ok, literal} end
+
+      assert_same """
+                  # before
+                  Mix.install([1 + 2, :foo])
+                  # after
+                  """,
+                  literal_encoder: fn literal, _ -> {:ok, literal} end
+
+      assert_same """
+                  # before
+                  Mix.install([:foo, 1 + 2])
+                  # after
+                  """,
+                  literal_encoder: fn literal, _ -> {:ok, literal} end
     end
 
     test "before and after expressions with newlines" do
