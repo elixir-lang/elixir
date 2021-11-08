@@ -150,7 +150,7 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote do: {1, 2}) == "{1, 2}"
       assert quoted_to_string(quote do: {1}) == "{1}"
       assert quoted_to_string(quote do: {1, 2, 3}) == "{1, 2, 3}"
-      assert quoted_to_string(quote do: {1, 2, 3, foo: :bar}) == "{1, 2, 3, [foo: :bar]}"
+      assert quoted_to_string(quote do: {1, 2, 3, foo: :bar}) == "{1, 2, 3, foo: :bar}"
     end
 
     test "tuple call" do
@@ -536,7 +536,7 @@ defmodule Code.Normalizer.QuotedASTTest do
 
       assert quoted_to_string(quote(do: {[]})) == "{[]}"
       assert quoted_to_string(quote(do: {[a: b]})) == "{[a: b]}"
-      assert quoted_to_string(quote(do: {x, a: b})) == "{x, [a: b]}"
+      assert quoted_to_string(quote(do: {x, a: b})) == "{x, a: b}"
       assert quoted_to_string(quote(do: foo(else: a))) == "foo(else: a)"
       assert quoted_to_string(quote(do: foo(catch: a))) == "foo(catch: a)"
       assert quoted_to_string(quote(do: foo |> [bar: :baz])) == "foo |> [bar: :baz]"
