@@ -186,13 +186,12 @@ defmodule Code.Normalizer do
   defp do_normalize({:{}, meta, args} = quoted, state) do
     {last_arg, args} = List.pop_at(args, -1)
 
-    with [{{:__block__, key_meta, _}, _} | _] <- last_arg, :keyword <- key_meta[:format] do
-      args = normalize_kw_args(args, state)
-      kw_list = normalize_kw_args(last_arg, state)
+    if args != [] and match?([_ | _], last_arg) and keyword?(last_arg) do
+      args = normalize_args(args, state)
+      kw_list = normalize_kw_args(last_arg, state, true)
       {:{}, meta, args ++ kw_list}
     else
-      _ ->
-        normalize_call(quoted, state)
+      normalize_call(quoted, state)
     end
   end
 
@@ -246,11 +245,10 @@ defmodule Code.Normalizer do
     meta = patch_meta_line(meta, state.parent_meta)
     state = %{state | parent_meta: meta}
 
-    with [{{:__block__, key_meta, _}, _} | _] <- right, :keyword <- key_meta[:format] do
-      {:__block__, meta, [{do_normalize(left, state), normalize_kw_args(right, state)}]}
+    if match?([_ | _], right) and keyword?(right) do
+      {:__block__, meta, [{do_normalize(left, state), normalize_kw_args(right, state, true)}]}
     else
-      _ ->
-        {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
+      {:__block__, meta, [{do_normalize(left, state), do_normalize(right, state)}]}
     end
   end
 
@@ -282,7 +280,7 @@ defmodule Code.Normalizer do
           meta
         end
 
-      {:__block__, meta, [normalize_kw_args(list, state)]}
+      {:__block__, meta, [normalize_kw_args(list, state, false)]}
     end
   end
 
@@ -402,7 +400,7 @@ defmodule Code.Normalizer do
   end
 
   defp normalize_map_args(args, state) do
-    Enum.map(normalize_kw_args(args, state), fn
+    Enum.map(normalize_kw_args(args, state, false), fn
       {:__block__, _, [{_, _} = pair]} -> pair
       pair -> pair
     end)
@@ -435,7 +433,7 @@ defmodule Code.Normalizer do
     {form, meta, leading_args ++ [kw_blocks]}
   end
 
-  defp normalize_kw_args(elems, state, keyword? \\ false)
+  defp normalize_kw_args(elems, state, keyword?)
 
   defp normalize_kw_args(
          [{{:__block__, key_meta, [key]}, value} = first | rest] = current,
