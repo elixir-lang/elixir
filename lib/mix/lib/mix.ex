@@ -748,7 +748,7 @@ defmodule Mix do
   end
 
   @doc """
-  Returns whether Mix.install/2 was called in the current VM.
+  Returns whether `Mix.install/2` was called in the current node.
   """
   @doc since: "1.13.0"
   def installed? do
