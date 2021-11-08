@@ -137,6 +137,16 @@ defmodule MixTest do
       Application.delete_env(:unknown_app, :foo, persistent: true)
     end
 
+    test "install?", %{tmp_dir: tmp_dir} do
+      refute Mix.installed?()
+
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test")}
+      ])
+
+      assert Mix.installed?()
+    end
+
     defp test_project(%{tmp_dir: tmp_dir}) do
       path = :code.get_path()
 

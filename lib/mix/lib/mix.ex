@@ -747,6 +747,14 @@ defmodule Mix do
     end
   end
 
+  @doc """
+  Returns whether `Mix.install/2` was called in the current node.
+  """
+  @doc since: "1.13.0"
+  def installed? do
+    Mix.State.get(:installed) != nil
+  end
+
   defp stop_apps([]), do: :ok
 
   defp stop_apps(apps) do
