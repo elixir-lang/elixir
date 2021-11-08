@@ -752,7 +752,7 @@ defmodule Mix do
   """
   @doc since: "1.13.0"
   def installed? do
-    !!Mix.State.get(:installed)
+    Mix.State.get(:installed) != nil
   end
 
   defp stop_apps([]), do: :ok
