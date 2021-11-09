@@ -762,11 +762,16 @@ defmodule Mix.Tasks.Xref do
 
   defp filter_fn(file_references, :compile_connected),
     do: fn {key, type} ->
-      type == :compile and match?([_ | _], file_references[key] || [])
+      type == :compile and has_non_compile_time_dependencies?(file_references[key])
     end
 
   defp filter_fn(_file_references, filter),
     do: fn {_key, type} -> type == filter end
+
+  defp has_non_compile_time_dependencies?(nil), do: false
+
+  defp has_non_compile_time_dependencies?(reference_list),
+    do: Enum.any?(reference_list, fn {_key, type} -> type != :compile end)
 
   defp filter(file_references, :all), do: file_references
 

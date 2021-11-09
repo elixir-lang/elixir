@@ -514,6 +514,24 @@ defmodule Mix.Tasks.XrefTest do
       """)
     end
 
+    @abcd_compile_time_files %{
+      "lib/a.ex" => "B.b()\ndefmodule A, do: def a, do: 42",
+      "lib/b.ex" => "C.c()\ndefmodule B, do: def b, do: 42",
+      "lib/c.ex" => "defmodule C, do: def c, do: D.d()",
+      "lib/d.ex" => "defmodule D, do: def d, do: false"
+    }
+
+    test "filter by compile-connected label excludes chained compile-time dependencies" do
+      assert_graph(
+        ~w[--label compile-connected],
+        """
+        lib/b.ex
+        `-- lib/c.ex (compile)
+        """,
+        files: @abcd_compile_time_files
+      )
+    end
+
     test "filter by compile-connected label with exclusions" do
       assert_graph(~w[--label compile-connected --exclude lib/e.ex], """
       lib/a.ex
