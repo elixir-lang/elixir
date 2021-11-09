@@ -16,7 +16,7 @@ default_functions() ->
 default_macros() ->
   [{?kernel, elixir_imported_macros()}].
 default_requires() ->
-  ['Elixir.Kernel', 'Elixir.Kernel.Typespec'].
+  ['Elixir.Application', 'Elixir.Kernel', 'Elixir.Kernel.Typespec'].
 
 %% This is used by elixir_quote. Note we don't record the
 %% import locally because at that point there is no
@@ -68,9 +68,7 @@ import_function(Meta, Name, Arity, E) ->
   end.
 
 require_function(Meta, Receiver, Name, Arity, E) ->
-  Required =
-    is_element(Receiver, ?key(E, requires)) orelse
-      is_deprecated_require(Meta, Receiver, Name, E),
+  Required = is_element(Receiver, ?key(E, requires)),
 
   case is_macro({Name, Arity}, Receiver, Required) of
     true  -> false;
@@ -182,7 +180,7 @@ do_expand_import(Meta, {Name, Arity} = Tuple, Args, Module, S, E, Result) ->
 expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, S, E) ->
   Required =
     (Receiver == ?key(E, module)) orelse required(Meta) orelse
-      is_element(Receiver, ?key(E, requires)) orelse is_deprecated_require(Meta, Receiver, Name, E),
+      is_element(Receiver, ?key(E, requires)),
 
   case is_macro(Tuple, Receiver, Required) of
     true ->
@@ -193,13 +191,6 @@ expand_require(Meta, Receiver, {Name, Arity} = Tuple, Args, S, E) ->
       check_deprecated(Meta, function, Receiver, Name, Arity, E),
       error
   end.
-
-is_deprecated_require(Meta, 'Elixir.Application', Name, E)
-    when Name == 'compile_env'; Name == 'compile_env!' ->
-  elixir_errors:form_warn(Meta, E, ?MODULE, {implicit_application_require, Name}),
-  true;
-is_deprecated_require(_, _, _, _) ->
-  false.
 
 %% Expansion helpers
 
@@ -296,8 +287,6 @@ prune_stacktrace([], _MFA, Info, _E) ->
 
 %% ERROR HANDLING
 
-format_error({implicit_application_require, Name}) ->
-  io_lib:format("you must require Application before calling Application.~ts",[Name]);
 format_error({macro_conflict, {Receiver, Name, Arity}}) ->
   io_lib:format("call to local macro ~ts/~B conflicts with imported ~ts.~ts/~B, "
     "please rename the local macro or remove the conflicting import",
