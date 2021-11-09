@@ -754,23 +754,11 @@ defmodule System do
   @doc """
   Deprecated mechanism to retrieve the last exception stacktrace.
 
-  Starting from Erlang/OTP 23, this function will always return an
-  empty list.
+  It always return an empty list.
   """
-  # TODO: Remove conditional on Erlang/OTP 23+.
-  # Note Elixir may be compiled in an earlier Erlang version but runs on a
-  # newer one, so we need the check at compilation time and runtime.
   @deprecated "Use __STACKTRACE__ instead"
-  if function_exported?(:erlang, :get_stacktrace, 0) do
-    def stacktrace do
-      if function_exported?(:erlang, :get_stacktrace, 0) do
-        apply(:erlang, :get_stacktrace, [])
-      else
-        []
-      end
-    end
-  else
-    def stacktrace, do: []
+  def stacktrace do
+    []
   end
 
   @doc """
