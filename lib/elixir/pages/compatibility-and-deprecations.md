@@ -78,6 +78,9 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.14] | `Application.get_env/3` and similar in module body  | `Application.compile_env/3` (v1.10)
+[v1.14] | `:each_cycle` returning lists or two-element tuples | Return three element tuples (v1.10)
+[v1.14] | `Mix.Tasks.Xref.calls/1`                            | Compilation tracers (outlined in `Code`) (v1.10)
 [v1.13] | `!` and `!=` in Version requirements                | `~>` or `>=` (v1.0)
 [v1.13] | `Mix.Config`                                        | `Config` (v1.9)
 [v1.13] | `:strip_beam` config to `mix escript.build`         | `:strip_beams` (v1.9)
@@ -189,3 +192,4 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.11]: https://github.com/elixir-lang/elixir/blob/v1.11/CHANGELOG.md#4-hard-deprecations
 [v1.12]: https://github.com/elixir-lang/elixir/blob/v1.12/CHANGELOG.md#4-hard-deprecations
 [v1.13]: https://github.com/elixir-lang/elixir/blob/v1.13/CHANGELOG.md#4-hard-deprecations
+[v1.14]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
