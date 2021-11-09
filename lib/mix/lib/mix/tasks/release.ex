@@ -1218,7 +1218,10 @@ defmodule Mix.Tasks.Release do
           {default_path, false}
 
         File.exists?(deprecated_path) ->
-          # TODO: Warn from Elixir v1.14 onwards
+          IO.warn(
+            "config/releases.exs is deprecated, use config/runtime.exs or set :runtime_config_path in your release configuration instead"
+          )
+
           {deprecated_path, true}
 
         true ->

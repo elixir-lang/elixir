@@ -504,8 +504,6 @@ defmodule Application do
   Giving a path is useful to let Elixir know that only certain paths
   in a large configuration are compile time dependent.
   """
-  # TODO: Warn on v1.14 if get_env/fetch_env/fetch_env! is used at
-  # compile time instead of compile_env
   @doc since: "1.10.0"
   @spec compile_env(app, key | list, value) :: value
   defmacro compile_env(app, key_or_path, default \\ nil) when is_atom(app) do

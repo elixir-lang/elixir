@@ -92,7 +92,8 @@ defmodule Mix.Tasks.XrefTest do
 
         Mix.Task.run("compile")
         after_compile.()
-        assert Enum.sort(Mix.Tasks.Xref.calls()) == Enum.sort(expected)
+        xref = Mix.Tasks.Xref
+        assert Enum.sort(xref.calls()) == Enum.sort(expected)
       end)
     end
   end
