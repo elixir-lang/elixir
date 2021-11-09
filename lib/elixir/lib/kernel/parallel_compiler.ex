@@ -479,10 +479,18 @@ defmodule Kernel.ParallelCompiler do
     Enum.count(result, &match?({{:module, _}, _}, &1))
   end
 
-  # TODO: Deprecate other returns on v1.14
   defp each_cycle_return({kind, modules, warnings}), do: {kind, modules, warnings}
-  defp each_cycle_return({kind, modules}), do: {kind, modules, []}
-  defp each_cycle_return(modules) when is_list(modules), do: {:compile, modules, []}
+
+  defp each_cycle_return(other) do
+    IO.warn(
+      "the :each_cycle callback must return a tuple of format {:compile | :runtime, modules, warnings}"
+    )
+
+    case other do
+      {kind, modules} -> {kind, modules, []}
+      modules when is_list(modules) -> {:compile, modules, []}
+    end
+  end
 
   # The goal of this function is to find leaves in the dependency graph,
   # i.e. to find code that depends on code that we know is not being defined.

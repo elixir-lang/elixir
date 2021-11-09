@@ -319,8 +319,7 @@ defmodule Mix.Tasks.Xref do
   information from. To get the function calls of each child in an umbrella,
   execute the function at the root of each individual application.
   """
-  # TODO: Deprecate me on v1.14
-  @doc deprecated: "Use compilation tracers described in the Code module"
+  @deprecated "Use compilation tracers described in the Code module"
   @spec calls(keyword()) :: [
           %{
             callee: {module(), atom(), arity()},
