@@ -34,7 +34,7 @@
 
 3. Commit "Branch out vMAJOR.MINOR"
 
-### Back in master
+### Back in main
 
 1. Bump /VERSION file, bin/elixir and bin/elixir.bat
 
