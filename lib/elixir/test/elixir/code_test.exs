@@ -35,10 +35,6 @@ defmodule CodeTest do
       assert {3, _} = Code.eval_string("a + b", [a: 1, b: 2], __ENV__)
     end
 
-    test "returns bindings from a different context" do
-      assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a, Sample}, 1}]}
-    end
-
     test "supports unnamed scopes" do
       assert {%RuntimeError{}, [a: %RuntimeError{}]} =
                Code.eval_string("a = (try do (raise \"hello\") rescue e -> e end)")
@@ -46,6 +42,16 @@ defmodule CodeTest do
 
     test "supports the :requires option" do
       assert Code.eval_string("Kernel.if true, do: :ok", [], requires: [Z, Kernel]) == {:ok, []}
+    end
+
+    test "returns bindings from a different context" do
+      assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a, Sample}, 1}]}
+    end
+
+    test "does not raise on duplicate bindings" do
+      # The order of which values win is not guaranteed, but it should evaluate successfully.
+      assert Code.eval_string("b = String.Chars.to_string(a)", a: 0, a: 1) ==
+               {"1", [{:b, "1"}, {:a, 1}]}
     end
 
     test "with many options" do

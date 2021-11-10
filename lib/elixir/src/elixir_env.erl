@@ -38,8 +38,7 @@ to_caller(#{} = Env) ->
   Env.
 
 with_vars(Env, Vars) ->
-  {VarVersions, _} = lists:mapfoldl(fun(Var, I) -> {{Var, I}, I + 1} end, 0, Vars),
-  Env#{versioned_vars := maps:from_list(VarVersions)}.
+  Env#{versioned_vars := Vars}.
 
 reset_vars(Env) ->
   Env#{versioned_vars := #{}}.
