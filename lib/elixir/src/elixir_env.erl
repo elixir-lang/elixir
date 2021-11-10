@@ -37,7 +37,11 @@ to_caller({Line, #elixir_ex{vars={Read, _}}, Env}) ->
 to_caller(#{} = Env) ->
   Env.
 
-with_vars(Env, Vars) ->
+with_vars(Env, Vars) when is_list(Vars) ->
+  {ReversedVars, _} =
+    lists:foldl(fun(Var, {Acc, I}) -> {[{Var, I} | Acc], I + 1} end, {[], 0}, Vars),
+  Env#{versioned_vars := maps:from_list(ReversedVars)};
+with_vars(Env, #{} = Vars) ->
   Env#{versioned_vars := Vars}.
 
 reset_vars(Env) ->
