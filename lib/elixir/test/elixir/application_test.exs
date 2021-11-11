@@ -6,6 +6,8 @@ defmodule ApplicationTest do
   import PathHelpers
   import ExUnit.CaptureIO
 
+  @app :elixir
+
   test "application environment" do
     assert_raise ArgumentError, ~r/because the application was not loaded nor configured/, fn ->
       Application.fetch_env!(:unknown, :unknown)
@@ -75,12 +77,14 @@ defmodule ApplicationTest do
 
       assert Application.put_env(:elixir, :unknown, nested: [key: :value]) == :ok
 
+      assert compile_env(@app, :unknown, :default) == [nested: [key: :value]]
       assert compile_env(:elixir, :unknown, :default) == [nested: [key: :value]]
       assert_received {:compile_env, :elixir, [:unknown], {:ok, [nested: [key: :value]]}}
 
       assert compile_env(:elixir, :unknown) == [nested: [key: :value]]
       assert_received {:compile_env, :elixir, [:unknown], {:ok, [nested: [key: :value]]}}
 
+      assert compile_env!(@app, :unknown) == [nested: [key: :value]]
       assert compile_env!(:elixir, :unknown) == [nested: [key: :value]]
       assert_received {:compile_env, :elixir, [:unknown], {:ok, [nested: [key: :value]]}}
 
