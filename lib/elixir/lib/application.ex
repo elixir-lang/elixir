@@ -508,7 +508,7 @@ defmodule Application do
   # compile time instead of compile_env
   @doc since: "1.10.0"
   @spec compile_env(app, key | list, value) :: value
-  defmacro compile_env(app, key_or_path, default \\ nil) when is_atom(app) do
+  defmacro compile_env(app, key_or_path, default \\ nil) do
     if __CALLER__.function do
       raise "Application.compile_env/3 cannot be called inside functions, only in the module body"
     end
@@ -545,7 +545,7 @@ defmodule Application do
   """
   @doc since: "1.10.0"
   @spec compile_env!(app, key | list) :: value
-  defmacro compile_env!(app, key_or_path) when is_atom(app) do
+  defmacro compile_env!(app, key_or_path) do
     if __CALLER__.function do
       raise "Application.compile_env!/2 cannot be called inside functions, only in the module body"
     end
