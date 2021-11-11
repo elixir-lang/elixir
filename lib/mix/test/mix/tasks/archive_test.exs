@@ -148,15 +148,20 @@ defmodule Mix.Tasks.ArchiveTest do
       require Application
       true = Application.compile_env!(:git_repo, :archive_config)
 
-      defmodule GitRepo do
+      defmodule GitRepo.Archive do
         def hello do
           "World"
         end
       end
       """)
 
+      System.cmd("git", ~w[init])
+      System.cmd("git", ~w[add .])
+      System.cmd("git", ~w[commit -m first-commit])
+
       send(self(), {:mix_shell_input, :yes?, true})
       Mix.Tasks.Archive.Install.run(["git", File.cwd!()])
+      assert GitRepo.Archive.hello() == "World"
 
       message = "Generated archive \"git_repo-0.1.0.ez\" with MIX_ENV=prod"
       assert_received {:mix_shell, :info, [^message]}
@@ -165,7 +170,7 @@ defmodule Mix.Tasks.ArchiveTest do
       assert File.dir?(tmp_path("userhome/.mix/archives/git_repo-0.1.0/git_repo-0.1.0/ebin"))
     end)
   after
-    purge([GitRepo, GitRepo.MixProject])
+    purge([GitRepo.Archive, GitRepo.MixProject])
   end
 
   test "archive install, update, and uninstall life-cycle" do
