@@ -1254,6 +1254,39 @@ defmodule EnumTest do
     end
   end
 
+  test "sum/2" do
+    assert Enum.sum(
+             [%{number: 1, not_number: "foo"}, %{number: 2, not_number: "bar"}],
+             & &1.number
+           ) == 3
+
+    assert Enum.sum([%{number: 1}, %{number: 2}], &(&1.number * 2)) == 6
+    assert Enum.sum(%{num_1: 1, num_2: 2, num_3: 3}, fn {_, v} -> v end) == 6
+    assert Enum.sum(42..42, &(&1 * 2)) == 84
+    assert Enum.sum(42..42, &div(&1, 2)) == 21
+    assert Enum.sum(11..17, &(&1 * 2)) == 364
+    assert Enum.sum(11..17, &div(&1, 2)) == 26
+
+    assert_raise ArgumentError, fn ->
+      Enum.sum(11..17, &(&1 / 2))
+    end
+
+    assert_raise ArgumentError, fn ->
+      Enum.sum(42..42, &(&1 / 2))
+    end
+
+    assert_raise ArithmeticError, fn ->
+      Enum.sum(
+        [%{number: 1, not_number: "foo"}, %{number: 2, not_number: "bar"}],
+        & &1.not_number
+      )
+    end
+
+    assert_raise ArithmeticError, fn ->
+      Enum.sum(%{letter_a: "a", letter_b: "b", letter_c: "c"}, fn {_, v} -> v end)
+    end
+  end
+
   test "product/1" do
     assert Enum.product([]) == 1
     assert Enum.product([1]) == 1

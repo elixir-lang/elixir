@@ -3217,19 +3217,30 @@ defmodule Enum do
       iex> Enum.sum(1..10//2)
       25
 
-  """
-  @spec sum(t) :: number
-  def sum(enumerable)
+      iex> Enum.sum(1..10, & &1 * 2)
+      209
 
-  def sum(first..last//step = range) do
-    range
+      iex> Enum.sum([%{num: 1}, %{num: 2}], & &1.num)
+      3
+
+      iex> Enum.sum(%{num_2: 2, num_3: 3}, fn {_, v} -> v end)
+      5
+  """
+  @spec sum(t, (element -> number)) :: number
+  def sum(enumerable, fun \\ fn item -> item end)
+
+  def sum(first..last//step, fun) do
+    first = fun.(first)
+    last = fun.(last)
+
+    first..last//step
     |> Range.size()
     |> Kernel.*(first + last - rem(last - first, step))
     |> div(2)
   end
 
-  def sum(enumerable) do
-    reduce(enumerable, 0, &+/2)
+  def sum(enumerable, fun) do
+    reduce(enumerable, 0, &(fun.(&1) + &2))
   end
 
   @doc """
