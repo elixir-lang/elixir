@@ -149,9 +149,6 @@ defmodule Mix.Tasks.ArchiveTest do
       true = Application.compile_env!(:git_repo, :archive_config)
 
       defmodule GitRepo.Archive do
-        @app :git_repo
-        true = Application.compile_env!(@app, :archive_config)
-
         def hello do
           "World"
         end
