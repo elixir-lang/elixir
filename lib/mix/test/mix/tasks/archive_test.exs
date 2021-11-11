@@ -135,6 +135,7 @@ defmodule Mix.Tasks.ArchiveTest do
     end)
   end
 
+  @compile {:no_warn_undefined, GitRepo.Archive}
   test "archive.install from Git" do
     in_fixture("git_repo", fn ->
       File.mkdir_p!("config")
