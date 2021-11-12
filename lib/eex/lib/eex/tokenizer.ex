@@ -103,7 +103,7 @@ defmodule EEx.Tokenizer do
     end
   end
 
-  # Retrieve marker for <%
+  # Retrieve marker for opening delimiter
 
   defp retrieve_marker([marker | t]) when marker in [?=, ?/, ?|] do
     {[marker], t}
@@ -113,22 +113,14 @@ defmodule EEx.Tokenizer do
     {'', t}
   end
 
-  # Tokenize an expression until we find %>
-
-  defp expr([?%, ?> | t], line, column, _opts, buffer) do
-    {:ok, Enum.reverse(buffer), line, column + 2, t}
-  end
-
-  defp expr('\n' ++ t, line, _column, opts, buffer) do
-    expr(t, line + 1, opts.indentation + 1, opts, [?\n | buffer])
-  end
-
-  defp expr([h | t], line, column, opts, buffer) do
-    expr(t, line, column + 1, opts, [h | buffer])
-  end
-
-  defp expr([], line, column, _opts, _buffer) do
-    {:error, line, column, "missing token '%>'"}
+  # Tokenize an expression until we find the closing delimiter
+  defp expr(list, line, column, opts, buffer) do
+    case list do
+      [@default_delimiter, ?> | t] -> {:ok, Enum.reverse(buffer), line, column + 2, t}
+      '\n' ++ t -> expr(t, line + 1, opts.indentation + 1, opts, [?\n | buffer])
+      [h | t] -> expr(t, line, column + 1, opts, [h | buffer])
+      [] -> {:error, line, column, "missing token '#{[@default_delimiter]}>'"}
+    end
   end
 
   # Receives tokens and check if it is a start, middle or an end token.
@@ -196,19 +188,15 @@ defmodule EEx.Tokenizer do
     end
   end
 
-  defp trim_init([h | t], line, column, opts) when h in @spaces,
-    do: trim_init(t, line, column + 1, opts)
-
-  defp trim_init([?\r, ?\n | t], line, _column, opts),
-    do: trim_init(t, line + 1, opts.indentation + 1, opts)
-
-  defp trim_init([?\n | t], line, _column, opts),
-    do: trim_init(t, line + 1, opts.indentation + 1, opts)
-
-  defp trim_init([?<, ?% | _] = rest, line, column, _opts),
-    do: {rest, line, column}
-
-  defp trim_init(_, _, _, _), do: false
+  defp trim_init(list, line, column, opts) do
+    case list do
+      [h | t] when h in @spaces -> trim_init(t, line, column + 1, opts)
+      [?\r, ?\n | t] -> trim_init(t, line + 1, opts.indentation + 1, opts)
+      [?\n | t] -> trim_init(t, line + 1, opts.indentation + 1, opts)
+      [?<, @default_delimiter | _] = rest -> {rest, line, column}
+      _ -> false
+    end
+  end
 
   defp trim_left(buffer, count) do
     case trim_whitespace(buffer, 0) do
