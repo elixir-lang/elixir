@@ -239,12 +239,13 @@ defmodule IEx.Server do
   defp handle_take_over(
          {:EXIT, pid, reason},
          state,
-         _evaluator,
-         _evaluator_ref,
+         evaluator,
+         evaluator_ref,
          _input,
          callback
        ) do
     if pid == Process.group_leader() do
+      stop_evaluator(evaluator, evaluator_ref)
       exit(reason)
     else
       callback.(state)
