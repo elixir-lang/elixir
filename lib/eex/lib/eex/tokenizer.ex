@@ -10,6 +10,7 @@ defmodule EEx.Tokenizer do
           | {:expr | :start_expr | :middle_expr | :end_expr, line, column, marker, content}
           | {:eof, line, column}
 
+  @default_delimiter ?%
   @spaces [?\s, ?\t]
 
   @doc """
@@ -43,65 +44,63 @@ defmodule EEx.Tokenizer do
     tokenize(list, line, column, opts, [{line, column}], [])
   end
 
-  defp tokenize('<%%' ++ t, line, column, opts, buffer, acc) do
-    tokenize(t, line, column + 3, opts, [?%, ?< | buffer], acc)
-  end
+  defp tokenize(list, line, column, opts, buffer, acc) do
+    case list do
+      [?<, @default_delimiter, @default_delimiter] ++ t ->
+        tokenize(t, line, column + 3, opts, [@default_delimiter, ?< | buffer], acc)
 
-  defp tokenize('<%#' ++ t, line, column, opts, buffer, acc) do
-    case expr(t, line, column + 3, opts, []) do
-      {:error, _, _, _} = error ->
-        error
+      [?<, @default_delimiter, ?\#] ++ t ->
+        case expr(t, line, column + 3, opts, []) do
+          {:error, _, _, _} = error ->
+            error
 
-      {:ok, _, new_line, new_column, rest} ->
-        {rest, new_line, new_column, buffer} =
-          trim_if_needed(rest, new_line, new_column, opts, buffer)
+          {:ok, _, new_line, new_column, rest} ->
+            {rest, new_line, new_column, buffer} =
+              trim_if_needed(rest, new_line, new_column, opts, buffer)
 
-        acc = tokenize_text(buffer, acc)
-        tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], acc)
+            acc = tokenize_text(buffer, acc)
+            tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], acc)
+        end
+
+      [?<, @default_delimiter] ++ t ->
+        {marker, t} = retrieve_marker(t)
+
+        case expr(t, line, column + 2 + length(marker), opts, []) do
+          {:error, _, _, _} = error ->
+            error
+
+          {:ok, expr, new_line, new_column, rest} ->
+            {key, expr} =
+              case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
+                {:ok, _line, _column, warnings, tokens} ->
+                  Enum.each(Enum.reverse(warnings), fn {location, file, msg} ->
+                    :elixir_errors.erl_warn(location, file, msg)
+                  end)
+
+                  token_key(tokens, expr)
+
+                {:error, _, _, _, _} ->
+                  {:expr, expr}
+              end
+
+            {rest, new_line, new_column, buffer} =
+              trim_if_needed(rest, new_line, new_column, opts, buffer)
+
+            acc = tokenize_text(buffer, acc)
+            final = {key, line, column, marker, expr}
+            tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], [final | acc])
+        end
+
+      '\n' ++ t ->
+        tokenize(t, line + 1, opts.indentation + 1, opts, [?\n | buffer], acc)
+
+      [h | t] ->
+        tokenize(t, line, column + 1, opts, [h | buffer], acc)
+
+      [] ->
+        eof = {:eof, line, column}
+        {:ok, Enum.reverse([eof | tokenize_text(buffer, acc)])}
     end
-  end
-
-  defp tokenize('<%' ++ t, line, column, opts, buffer, acc) do
-    {marker, t} = retrieve_marker(t)
-
-    case expr(t, line, column + 2 + length(marker), opts, []) do
-      {:error, _, _, _} = error ->
-        error
-
-      {:ok, expr, new_line, new_column, rest} ->
-        {key, expr} =
-          case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
-            {:ok, _line, _column, warnings, tokens} ->
-              Enum.each(Enum.reverse(warnings), fn {location, file, msg} ->
-                :elixir_errors.erl_warn(location, file, msg)
-              end)
-
-              token_key(tokens, expr)
-
-            {:error, _, _, _, _} ->
-              {:expr, expr}
-          end
-
-        {rest, new_line, new_column, buffer} =
-          trim_if_needed(rest, new_line, new_column, opts, buffer)
-
-        acc = tokenize_text(buffer, acc)
-        final = {key, line, column, marker, expr}
-        tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], [final | acc])
-    end
-  end
-
-  defp tokenize('\n' ++ t, line, _column, opts, buffer, acc) do
-    tokenize(t, line + 1, opts.indentation + 1, opts, [?\n | buffer], acc)
-  end
-
-  defp tokenize([h | t], line, column, opts, buffer, acc) do
-    tokenize(t, line, column + 1, opts, [h | buffer], acc)
-  end
-
-  defp tokenize([], line, column, _opts, buffer, acc) do
-    eof = {:eof, line, column}
-    {:ok, Enum.reverse([eof | tokenize_text(buffer, acc)])}
   end
 
   # Retrieve marker for <%
