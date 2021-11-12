@@ -742,6 +742,22 @@ defmodule EExTest do
     end
   end
 
+  describe "custom delimiter" do
+    test "evaluates simple string" do
+      assert_eval("foo replaced", "foo <$= bar $>", [bar: "replaced"], delimiter: ?$)
+    end
+
+    test "quotation works with duplicated custom delimiter" do
+      assert_eval("foo <$= bar $>", "foo <$$= bar $>", [bar: "replaced"], delimiter: ?$)
+    end
+
+    test "error messages show the correct delimiter" do
+      assert_raise EEx.SyntaxError, "nofile:99:12: missing token '$>'", fn ->
+        EEx.compile_string("foo <$= bar", line: 99, delimiter: ?$)
+      end
+    end
+  end
+
   defp assert_eval(expected, actual, binding \\ [], opts \\ []) do
     opts = Keyword.merge([file: __ENV__.file, engine: opts[:engine] || EEx.Engine], opts)
     result = EEx.eval_string(actual, binding, opts)
