@@ -74,7 +74,7 @@ defmodule Task.Supervisor do
 
   This function could also receive `:restart` and `:shutdown` as options
   but those two options have been deprecated and it is now preferred to
-  give them directly to `start_child` and `async`.
+  give them directly to `start_child`.
   """
   @spec start_link([option]) :: Supervisor.on_start()
   def start_link(options \\ []) do
@@ -105,7 +105,7 @@ defmodule Task.Supervisor do
 
   The `supervisor` must be a reference as defined in `Supervisor`.
   The task will still be linked to the caller, see `Task.async/3` for
-  more information and `async_nolink/2` for a non-linked variant.
+  more information and `async_nolink/3` for a non-linked variant.
 
   Raises an error if `supervisor` has reached the maximum number of
   children.
@@ -126,7 +126,7 @@ defmodule Task.Supervisor do
 
   The `supervisor` must be a reference as defined in `Supervisor`.
   The task will still be linked to the caller, see `Task.async/3` for
-  more information and `async_nolink/2` for a non-linked variant.
+  more information and `async_nolink/3` for a non-linked variant.
 
   Raises an error if `supervisor` has reached the maximum number of
   children.
@@ -235,7 +235,7 @@ defmodule Task.Supervisor do
   children.
 
   Note this function requires the task supervisor to have `:temporary`
-  as the `:restart` option (the default), as `async_nolink/4` keeps a
+  as the `:restart` option (the default), as `async_nolink/5` keeps a
   direct reference to the task which is lost if the task is restarted.
   """
   @spec async_nolink(Supervisor.supervisor(), module, atom, [term], Keyword.t()) :: Task.t()
@@ -249,7 +249,7 @@ defmodule Task.Supervisor do
 
   Each element will be prepended to the given `args` and processed by its
   own task. The tasks will be spawned under the given `supervisor` and
-  linked to the caller process, similarly to `async/4`.
+  linked to the caller process, similarly to `async/5`.
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
@@ -308,7 +308,7 @@ defmodule Task.Supervisor do
 
   Each element in `enumerable` is passed as argument to the given function `fun`
   and processed by its own task. The tasks will be spawned under the given
-  `supervisor` and linked to the caller process, similarly to `async/2`.
+  `supervisor` and linked to the caller process, similarly to `async/3`.
 
   See `async_stream/6` for discussion, options, and examples.
   """
@@ -325,7 +325,7 @@ defmodule Task.Supervisor do
 
   Each element in `enumerable` will be prepended to the given `args` and processed
   by its own task. The tasks will be spawned under the given `supervisor` and
-  will not be linked to the caller process, similarly to `async_nolink/4`.
+  will not be linked to the caller process, similarly to `async_nolink/5`.
 
   See `async_stream/6` for discussion, options, and examples.
   """
@@ -350,7 +350,7 @@ defmodule Task.Supervisor do
   Each element in `enumerable` is passed as argument to the given function `fun`
   and processed by its own task. The tasks will be spawned under the given
   `supervisor` and will not be linked to the caller process, similarly
-  to `async_nolink/2`.
+  to `async_nolink/3`.
 
   See `async_stream/6` for discussion and examples.
   """
@@ -387,7 +387,7 @@ defmodule Task.Supervisor do
   Note that the spawned process is not linked to the caller, but
   only to the supervisor. This command is useful in case the
   task needs to perform side-effects (like I/O) and you have no
-  interest on its results nor if it completes successfully.
+  interest in its results nor if it completes successfully.
 
   ## Options
 
@@ -395,9 +395,9 @@ defmodule Task.Supervisor do
       `:transient` or `:permanent`. `:temporary` means the task is never
       restarted, `:transient` means it is restarted if the exit is not
       `:normal`, `:shutdown` or `{:shutdown, reason}`. A `:permanent` restart
-      strategy means it is always restarted. It defaults to `:temporary`.
+      strategy means it is always restarted.
 
-    * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
+    * `:shutdown` - `:brutal_kill` if the task must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
 
   """
@@ -413,7 +413,7 @@ defmodule Task.Supervisor do
   @doc """
   Starts a task as a child of the given `supervisor`.
 
-  Similar to `start_child/2` except the task is specified
+  Similar to `start_child/3` except the task is specified
   by the given `module`, `fun` and `args`.
   """
   @spec start_child(Supervisor.supervisor(), module, atom, [term], keyword) ::
