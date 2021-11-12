@@ -208,8 +208,7 @@ defmodule EEx.Engine do
   end
 
   def handle_expr(_state, marker, _ast) when marker in ["/", "|"] do
-    raise EEx.SyntaxError,
-          "unsupported EEx syntax <%#{marker} %> (the syntax is valid but not supported by the current EEx engine)"
+    :error_unsupported_marker
   end
 
   defp check_state!(%{binary: _, dynamic: _, vars_count: _}), do: :ok

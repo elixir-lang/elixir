@@ -755,6 +755,13 @@ defmodule EExTest do
       assert_raise EEx.SyntaxError, "nofile:99:12: missing token '$>'", fn ->
         EEx.compile_string("foo <$= bar", line: 99, delimiter: ?$)
       end
+
+      msg =
+        ~r/unsupported EEx syntax <\$\/ \$> \(the syntax is valid but not supported by the current EEx engine\)/
+
+      assert_raise EEx.SyntaxError, msg, fn ->
+        EEx.compile_string("<$/ true $>", delimiter: ?$)
+      end
     end
   end
 

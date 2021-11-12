@@ -29,7 +29,8 @@ defmodule EEx.Compiler do
           quoted: [],
           start_line: nil,
           start_column: nil,
-          parser_options: parser_options
+          parser_options: parser_options,
+          tokenizer_options: tokenizer_options
         }
 
         init = state.engine.init(opts)
@@ -59,7 +60,7 @@ defmodule EEx.Compiler do
   defp generate_buffer([{:expr, line, column, mark, chars} | rest], buffer, scope, state) do
     options = [file: state.file, line: line, column: column(column, mark)] ++ state.parser_options
     expr = Code.string_to_quoted!(chars, options)
-    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
+    buffer = handle_expr(state, buffer, mark, expr)
     generate_buffer(rest, buffer, scope, state)
   end
 
@@ -70,8 +71,10 @@ defmodule EEx.Compiler do
          state
        ) do
     if mark != '=' do
+      delimiter = to_string([state.tokenizer_options[:delimiter]])
+
       message =
-        "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
+        "the contents of this expression won't be output unless the EEx block starts with \"<#{delimiter}=\""
 
       :elixir_errors.erl_warn({start_line, start_column}, state.file, message)
     end
@@ -93,7 +96,7 @@ defmodule EEx.Compiler do
         }
       )
 
-    buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
+    buffer = handle_expr(state, buffer, mark, contents)
     generate_buffer(rest, buffer, scope, state)
   end
 
@@ -114,8 +117,10 @@ defmodule EEx.Compiler do
          [_ | _] = scope,
          state
        ) do
+    delimiter = to_string([state.tokenizer_options[:delimiter]])
+
     message =
-      "unexpected beginning of EEx tag \"<%#{modifier}\" on \"<%#{modifier}#{chars}%>\", " <>
+      "unexpected beginning of EEx tag \"<#{delimiter}#{modifier}\" on \"<#{delimiter}#{modifier}#{chars}#{delimiter}>\", " <>
         "please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn({line, column}, state.file, message)
@@ -125,8 +130,10 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:middle_expr, line, column, _, chars} | _], _buffer, [], state) do
+    delimiter = to_string([state.tokenizer_options[:delimiter]])
+
     raise EEx.SyntaxError,
-      message: "unexpected middle of expression <%#{chars}%>",
+      message: "unexpected middle of expression <#{delimiter}#{chars}#{delimiter}>",
       file: state.file,
       line: line,
       column: column
@@ -152,9 +159,11 @@ defmodule EEx.Compiler do
          [_ | _] = scope,
          state
        ) do
+    delimiter = to_string([state.tokenizer_options[:delimiter]])
+
     message =
-      "unexpected beginning of EEx tag \"<%#{modifier}\" on end of " <>
-        "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
+      "unexpected beginning of EEx tag \"<#{delimiter}#{modifier}\" on end of " <>
+        "expression \"<#{delimiter}#{modifier}#{chars}#{delimiter}>\", please remove \"#{modifier}\" accordingly"
 
     :elixir_errors.erl_warn({line, column}, state.file, message)
     generate_buffer([{:end_expr, line, column, '', chars} | t], buffer, scope, state)
@@ -163,8 +172,10 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:end_expr, line, column, _, chars} | _], _buffer, [], state) do
+    delimiter = to_string([state.tokenizer_options[:delimiter]])
+
     raise EEx.SyntaxError,
-      message: "unexpected end of expression <%#{chars}%>",
+      message: "unexpected end of expression <#{delimiter}#{chars}#{delimiter}>",
       file: state.file,
       line: line,
       column: column
@@ -180,6 +191,21 @@ defmodule EEx.Compiler do
       file: state.file,
       line: line,
       column: column
+  end
+
+  defp handle_expr(state, buffer, mark, expr) do
+    marker = IO.chardata_to_string(mark)
+
+    case state.engine.handle_expr(buffer, marker, expr) do
+      :error_unsupported_marker ->
+        delimiter = to_string([state.tokenizer_options[:delimiter]])
+
+        raise EEx.SyntaxError,
+              "unsupported EEx syntax <#{delimiter}#{marker} #{delimiter}> (the syntax is valid but not supported by the current EEx engine)"
+
+      buffer ->
+        buffer
+    end
   end
 
   # Creates a placeholder and wrap it inside the expression block
