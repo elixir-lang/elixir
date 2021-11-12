@@ -4,7 +4,7 @@ defmodule EEx.TokenizerTest do
   use ExUnit.Case, async: true
   require EEx.Tokenizer, as: T
 
-  @opts %{indentation: 0, trim: false}
+  @opts %{indentation: 0, trim: false, delimiter: ?%}
 
   test "simple chars lists" do
     assert T.tokenize('foo', 1, 1, @opts) == {:ok, [{:text, 1, 1, 'foo'}, {:eof, 1, 4}]}

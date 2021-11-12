@@ -48,6 +48,7 @@ defmodule EEx do
     * `:trim` - if `true`, trims whitespace left and right of quotation as
       long as at least one newline is present. All subsequent newlines and
       spaces are removed but one newline is retained. Defaults to `false`.
+    * `:delimiter` - a character to be used instead of `%` for delimiting EEx tags.
     * `:parser_options` - (since: 1.13.0) allow customizing the parsed code that is generated.
       See `Code.string_to_quoted/2` for available options. Note that the options
       `:file`, `:line` and `:column` are ignored if passed in.
@@ -91,6 +92,13 @@ defmodule EEx do
 
   Note that different engines may have different rules
   for each tag. Other tags may be added in future versions.
+
+  The `:delimiter` option allows you to use an alternative character
+  for delimiting tags, so that for example setting it to `?$` allows
+  you to write tags in the following fashion:
+
+      <$ Elixir expression $>
+      <$$ EEx quotation $>
 
   ### Macros
 

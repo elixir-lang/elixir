@@ -10,7 +10,6 @@ defmodule EEx.Tokenizer do
           | {:expr | :start_expr | :middle_expr | :end_expr, line, column, marker, content}
           | {:eof, line, column}
 
-  @default_delimiter ?%
   @spaces [?\s, ?\t]
 
   @doc """
@@ -45,11 +44,13 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize(list, line, column, opts, buffer, acc) do
-    case list do
-      [?<, @default_delimiter, @default_delimiter] ++ t ->
-        tokenize(t, line, column + 3, opts, [@default_delimiter, ?< | buffer], acc)
+    delimiter = opts.delimiter
 
-      [?<, @default_delimiter, ?\#] ++ t ->
+    case list do
+      [?<, ^delimiter, ^delimiter] ++ t ->
+        tokenize(t, line, column + 3, opts, [delimiter, ?< | buffer], acc)
+
+      [?<, ^delimiter, ?\#] ++ t ->
         case expr(t, line, column + 3, opts, []) do
           {:error, _, _, _} = error ->
             error
@@ -62,7 +63,7 @@ defmodule EEx.Tokenizer do
             tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], acc)
         end
 
-      [?<, @default_delimiter] ++ t ->
+      [?<, ^delimiter] ++ t ->
         {marker, t} = retrieve_marker(t)
 
         case expr(t, line, column + 2 + length(marker), opts, []) do
@@ -115,11 +116,13 @@ defmodule EEx.Tokenizer do
 
   # Tokenize an expression until we find the closing delimiter
   defp expr(list, line, column, opts, buffer) do
+    delimiter = opts.delimiter
+
     case list do
-      [@default_delimiter, ?> | t] -> {:ok, Enum.reverse(buffer), line, column + 2, t}
+      [^delimiter, ?> | t] -> {:ok, Enum.reverse(buffer), line, column + 2, t}
       '\n' ++ t -> expr(t, line + 1, opts.indentation + 1, opts, [?\n | buffer])
       [h | t] -> expr(t, line, column + 1, opts, [h | buffer])
-      [] -> {:error, line, column, "missing token '#{[@default_delimiter]}>'"}
+      [] -> {:error, line, column, "missing token '#{[delimiter]}>'"}
     end
   end
 
@@ -189,11 +192,13 @@ defmodule EEx.Tokenizer do
   end
 
   defp trim_init(list, line, column, opts) do
+    delimiter = opts.delimiter
+
     case list do
       [h | t] when h in @spaces -> trim_init(t, line, column + 1, opts)
       [?\r, ?\n | t] -> trim_init(t, line + 1, opts.indentation + 1, opts)
       [?\n | t] -> trim_init(t, line + 1, opts.indentation + 1, opts)
-      [?<, @default_delimiter | _] = rest -> {rest, line, column}
+      [?<, ^delimiter | _] = rest -> {rest, line, column}
       _ -> false
     end
   end
