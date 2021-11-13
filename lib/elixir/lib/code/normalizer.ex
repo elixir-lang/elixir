@@ -63,15 +63,17 @@ defmodule Code.Normalizer do
   end
 
   # Bit containers
-  defp do_normalize({:<<>>, _, _} = quoted, state) do
+  defp do_normalize({:<<>>, _, args} = quoted, state) when is_list(args) do
     normalize_bitstring(quoted, state)
   end
 
   # Atoms with interpolations
   defp do_normalize(
-         {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta, [{:<<>>, _, _} = string, :utf8]},
+         {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta,
+          [{:<<>>, _, args} = string, :utf8]},
          state
-       ) do
+       )
+       when is_list(args) do
     dot_meta = patch_meta_line(dot_meta, state.parent_meta)
     call_meta = patch_meta_line(call_meta, dot_meta)
 
@@ -166,8 +168,8 @@ defmodule Code.Normalizer do
   end
 
   # Sigils
-  defp do_normalize({sigil, meta, [{:<<>>, _, _} = string, modifiers]} = quoted, state)
-       when is_atom(sigil) do
+  defp do_normalize({sigil, meta, [{:<<>>, _, args} = string, modifiers]} = quoted, state)
+       when is_list(args) and is_atom(sigil) do
     case Atom.to_string(sigil) do
       <<"sigil_", _name>> ->
         meta =
@@ -183,7 +185,7 @@ defmodule Code.Normalizer do
   end
 
   # Tuples
-  defp do_normalize({:{}, meta, args} = quoted, state) do
+  defp do_normalize({:{}, meta, args} = quoted, state) when is_list(args) do
     {last_arg, args} = List.pop_at(args, -1)
 
     if args != [] and match?([_ | _], last_arg) and keyword?(last_arg) do
