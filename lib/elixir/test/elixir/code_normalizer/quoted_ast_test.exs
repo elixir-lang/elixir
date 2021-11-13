@@ -6,6 +6,7 @@ defmodule Code.Normalizer.QuotedASTTest do
   describe "quoted_to_algebra/2" do
     test "variable" do
       assert quoted_to_string(quote(do: foo)) == "foo"
+      assert quoted_to_string({:{}, [], nil}) == "{}"
     end
 
     test "local call" do
