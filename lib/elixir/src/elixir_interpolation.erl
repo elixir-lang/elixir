@@ -3,9 +3,7 @@
 -export([extract/6, unescape_string/1, unescape_string/2,
 unescape_tokens/1, unescape_map/1]).
 -include("elixir.hrl").
--define(is_hex(S), ((S >= $0 andalso S =< $9) orelse
-                    (S >= $A andalso S =< $F) orelse
-                    (S >= $a andalso S =< $f))).
+-include("elixir_tokenizer.hrl").
 
 %% Extract string interpolations
 
@@ -60,8 +58,8 @@ extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
       {error, {string, Line, Column, "missing interpolation terminator: \"}\"", []}}
   end;
 
-extract([$\\, Char | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
-  extract(Rest, [Char, $\\ | Buffer], Output, Line, Column + 2, Scope, Interpol, Last);
+extract([$\\ | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
+  extract_char(Rest, [$\\ | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
 
 %% Catch all clause
 
@@ -70,8 +68,21 @@ extract([Char1, Char2 | Rest], Buffer, Output, Line, Column, Scope, Interpol, La
   extract([Char2 | Rest], [Char1 | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
 
 extract(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
+  extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last).
+
+extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
   [Char | NewRest] = unicode_util:gc(Rest),
-  extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last).
+
+  if
+    ?bidi(Char) ->
+      Token = io_lib:format("\\u~4.16.0B", [Char]),
+      Pre = "invalid bidirectional formatting character in string: ",
+      Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
+      {error, {Line, Column, {Pre, Pos}, Token}};
+
+    true ->
+      extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last)
+  end.
 
 %% Handle newlines. Heredocs require special attention
 
