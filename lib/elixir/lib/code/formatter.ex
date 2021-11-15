@@ -270,7 +270,7 @@ defmodule Code.Formatter do
         {doc, state} =
           entries
           |> prepend_heredoc_line()
-          |> interpolation_to_algebra(:heredoc, state, @double_heredoc, @double_heredoc)
+          |> interpolation_to_algebra(~s["""], state, @double_heredoc, @double_heredoc)
 
         {force_unfit(doc), state}
 
@@ -292,7 +292,7 @@ defmodule Code.Formatter do
         {doc, state} =
           entries
           |> prepend_heredoc_line()
-          |> list_interpolation_to_algebra(:heredoc, state, @single_heredoc, @single_heredoc)
+          |> list_interpolation_to_algebra(~s['''], state, @single_heredoc, @single_heredoc)
 
         {force_unfit(doc), state}
 
@@ -355,7 +355,7 @@ defmodule Code.Formatter do
   defp quoted_to_algebra({:__block__, meta, [list]}, _context, state) when is_list(list) do
     case meta[:delimiter] do
       ~s['''] ->
-        string = list |> List.to_string() |> escape_heredoc()
+        string = list |> List.to_string() |> escape_heredoc(~s['''])
         {@single_heredoc |> concat(string) |> concat(@single_heredoc) |> force_unfit(), state}
 
       ~s['] ->
@@ -369,7 +369,7 @@ defmodule Code.Formatter do
 
   defp quoted_to_algebra({:__block__, meta, [string]}, _context, state) when is_binary(string) do
     if meta[:delimiter] == ~s["""] do
-      string = escape_heredoc(string)
+      string = escape_heredoc(string, ~s["""])
       {@double_heredoc |> concat(string) |> concat(@double_heredoc) |> force_unfit(), state}
     else
       string = escape_string(string, @double_quote)
@@ -1339,7 +1339,7 @@ defmodule Code.Formatter do
         {doc, state} =
           entries
           |> prepend_heredoc_line()
-          |> interpolation_to_algebra(:heredoc, state, doc, closing_delimiter)
+          |> interpolation_to_algebra(opening_delimiter, state, doc, closing_delimiter)
 
         {force_unfit(doc), state}
       else
@@ -1548,11 +1548,13 @@ defmodule Code.Formatter do
     end
   end
 
-  defp escape_heredoc(string) do
+  defp escape_heredoc(string, escape) do
+    string = String.replace(string, escape, "\\" <> escape)
     heredoc_to_algebra(["" | String.split(string, "\n")])
   end
 
-  defp escape_string(string, :heredoc) do
+  defp escape_string(string, <<_, _, _>> = escape) do
+    string = String.replace(string, escape, "\\" <> escape)
     heredoc_to_algebra(String.split(string, "\n"))
   end
 
