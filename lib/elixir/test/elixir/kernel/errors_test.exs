@@ -816,6 +816,24 @@ defmodule Kernel.ErrorsTest do
                       'x = 8; <<a, b::size(^x)>> = <<?a, ?b>>'
   end
 
+  test "invalid bidi in source" do
+    assert_eval_raise SyntaxError,
+                      ~r"nofile:1:1: invalid bidirectional formatting character in comment: \\u202A",
+                      '# This is a \u202A'
+
+    assert_eval_raise SyntaxError,
+                      ~r"nofile:1:5: invalid bidirectional formatting character in comment: \\u202A",
+                      'foo. # This is a \u202A'
+
+    assert_eval_raise SyntaxError,
+                      ~r"nofile:1:12: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
+                      '"this is a \u202A"'
+
+    assert_eval_raise SyntaxError,
+                      ~r"nofile:1:13: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
+                      '"this is a \\\u202A"'
+  end
+
   test "function head with guard" do
     assert_eval_raise CompileError, "nofile:2: missing :do option in \"def\"", '''
     defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
