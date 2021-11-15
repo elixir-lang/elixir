@@ -19,6 +19,7 @@
 -define(is_space(S), (?is_horizontal_space(S) orelse ?is_vertical_space(S))).
 
 %% Bidirectional control
+%% Retrieved from https://trojansource.codes/trojan-source.pdf
 -define(bidi(C), C =:= 16#202A;
                  C =:= 16#202B;
                  C =:= 16#202D;
