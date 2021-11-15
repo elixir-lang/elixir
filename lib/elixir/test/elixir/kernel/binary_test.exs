@@ -47,6 +47,15 @@ defmodule Kernel.BinaryTest do
              )
   end
 
+  test "heredoc with heredoc inside interpolation" do
+    assert """
+           1
+           #{"""
+           2
+           """}
+           """ == "1\n2\n\n"
+  end
+
   test "UTF-8" do
     assert byte_size(" ゆんゆん") == 13
   end

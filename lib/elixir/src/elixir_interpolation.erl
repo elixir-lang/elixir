@@ -37,6 +37,9 @@ extract([$\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
 extract([$\\, Last | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
   extract(Rest, [Last | Buffer], Output, Line, Column+2, Scope, Interpol, Last);
 
+extract([$\\, Last, Last, Last | Rest], Buffer, Output, Line, Column, Scope, Interpol, [Last, Last, Last] = All) ->
+  extract(Rest, [Last, Last, Last | Buffer], Output, Line, Column+4, Scope, Interpol, All);
+
 extract([$\\, $#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
   extract(Rest, [${, $#, $\\ | Buffer], Output, Line, Column+1, Scope, true, Last);
 

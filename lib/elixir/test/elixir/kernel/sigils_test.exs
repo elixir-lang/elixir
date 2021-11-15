@@ -42,6 +42,14 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
            """
   end
 
+  test "sigil S with escaping" do
+    assert "\"" == ~S"\""
+
+    assert "\"\"\"\n" == ~S"""
+           \"""
+           """
+  end
+
   test "sigil s/S expand to binary when possible" do
     assert Macro.expand(quote(do: ~s(foo)), __ENV__) == "foo"
     assert Macro.expand(quote(do: ~S(foo)), __ENV__) == "foo"
