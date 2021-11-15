@@ -1,28 +1,8 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
+-include("elixir_tokenizer.hrl").
 -export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1]).
 
-%% Numbers
--define(is_hex(S), (?is_digit(S) orelse (S >= $A andalso S =< $F) orelse (S >= $a andalso S =< $f))).
--define(is_bin(S), (S >= $0 andalso S =< $1)).
--define(is_octal(S), (S >= $0 andalso S =< $7)).
-
-%% Digits and letters
--define(is_digit(S), (S >= $0 andalso S =< $9)).
--define(is_upcase(S), (S >= $A andalso S =< $Z)).
--define(is_downcase(S), (S >= $a andalso S =< $z)).
-
-%% Others
--define(is_quote(S), (S =:= $" orelse S =:= $')).
--define(is_sigil(S), (S =:= $/ orelse S =:= $< orelse S =:= $" orelse S =:= $' orelse
-                      S =:= $[ orelse S =:= $( orelse S =:= ${ orelse S =:= $|)).
-
-%% Spaces
--define(is_horizontal_space(S), (S =:= $\s orelse S =:= $\t)).
--define(is_vertical_space(S), (S =:= $\r orelse S =:= $\n)).
--define(is_space(S), (?is_horizontal_space(S) orelse ?is_vertical_space(S))).
-
-%% Operators
 -define(at_op(T),
   T =:= $@).
 
@@ -198,9 +178,13 @@ tokenize([$0, $o, H | T], Line, Column, Scope, Tokens) when ?is_octal(H) ->
 % Comments
 
 tokenize([$# | String], Line, Column, Scope, Tokens) ->
-  {Rest, Comment} = tokenize_comment(String, [$#]),
-  preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
-  tokenize(Rest, Line, Column, Scope, reset_eol(Tokens));
+  case tokenize_comment(String, [$#]) of
+    {error, Char} ->
+      error_comment(Char, [$# | String], Line, Column, Scope, Tokens);
+    {Rest, Comment} ->
+      preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
+      tokenize(Rest, Line, Column, Scope, reset_eol(Tokens))
+  end;
 
 % Sigils
 
@@ -645,9 +629,7 @@ tokenize([$% | T], Line, Column, Scope, Tokens) ->
   tokenize(T, Line, Column + 1, Scope, [{'%', {Line, Column, nil}} | Tokens]);
 
 tokenize([$. | T], Line, Column, Scope, Tokens) ->
-  DotInfo = {Line, Column, nil},
-  {Rest, EndLine, EndColumn} = strip_dot_space(T, Line, Column + 1, [{'.', DotInfo}| Tokens], Scope),
-  handle_dot([$. | Rest], EndLine, EndColumn, DotInfo, Scope, Tokens);
+  tokenize_dot(T, Line, Column + 1, {Line, Column, nil}, Scope, Tokens);
 
 % Identifiers
 
@@ -719,18 +701,23 @@ strip_horizontal_space([H | T], Counter) when ?is_horizontal_space(H) ->
 strip_horizontal_space(T, Counter) ->
   {T, Counter}.
 
-strip_dot_space(T, Line, Column, Tokens, Scope) ->
+tokenize_dot(T, Line, Column, DotInfo, Scope, Tokens) ->
   case strip_horizontal_space(T, 0) of
-    {"#" ++ R, _} ->
-      {Rest, Comment} = tokenize_comment(R, [$#]),
-      preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
-      strip_dot_space(Rest, Line, 1, reset_eol(Tokens), Scope);
+    {[$# | R], _} ->
+      case tokenize_comment(R, [$#]) of
+        {error, Char} ->
+          error_comment(Char, [$# | R], Line, Column, Scope, Tokens);
+
+        {Rest, Comment} ->
+          preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
+          tokenize_dot(Rest, Line, 1, DotInfo, Scope, Tokens)
+      end;
     {"\r\n" ++ Rest, _} ->
-      strip_dot_space(Rest, Line + 1, 1, eol(Line, Column, Tokens), Scope);
+      tokenize_dot(Rest, Line + 1, 1, DotInfo, Scope, Tokens);
     {"\n" ++ Rest, _} ->
-      strip_dot_space(Rest, Line + 1, 1, eol(Line, Column, Tokens), Scope);
+      tokenize_dot(Rest, Line + 1, 1, DotInfo, Scope, Tokens);
     {Rest, Length} ->
-      {Rest, Line, Column + Length}
+      handle_dot([$. | Rest], Line, Column + Length, DotInfo, Scope, Tokens)
   end.
 
 handle_char(0)   -> {"\\0", "null byte"};
@@ -1171,10 +1158,17 @@ tokenize_comment("\r\n" ++ _ = Rest, Acc) ->
   {Rest, lists:reverse(Acc)};
 tokenize_comment("\n" ++ _ = Rest, Acc) ->
   {Rest, lists:reverse(Acc)};
+tokenize_comment([H | _Rest], _) when ?bidi(H) ->
+  {error, H};
 tokenize_comment([H | Rest], Acc) ->
   tokenize_comment(Rest, [H | Acc]);
 tokenize_comment([], Acc) ->
   {[], lists:reverse(Acc)}.
+
+error_comment(H, Comment, Line, Column, Scope, Tokens) ->
+  Token = io_lib:format("\\u~4.16.0B", [H]),
+  Reason = {Line, Column, "invalid bidirectional formatting character in comment: ", Token},
+  error(Reason, Comment, Scope, Tokens).
 
 preserve_comments(Line, Column, Tokens, Comment, Rest, Scope) ->
   case Scope#elixir_tokenizer.preserve_comments of
