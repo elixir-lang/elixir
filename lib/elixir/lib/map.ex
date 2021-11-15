@@ -1044,8 +1044,6 @@ defmodule Map do
   Maps the function `fun` over all key-value pairs in `map`, returning a map
   with all the values replaced with the result of the function.
 
-  Duplicated keys are removed; the latest one prevails.
-
   ## Examples
 
       iex> Map.map(%{1 => "joe", 2 => "mike", 3 => "robert"}, fn {_key, val} -> String.capitalize(val) end)
