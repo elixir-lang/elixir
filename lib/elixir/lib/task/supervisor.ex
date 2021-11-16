@@ -370,7 +370,11 @@ defmodule Task.Supervisor do
   end
 
   @doc """
-  Returns all children PIDs.
+  Returns all children PIDs except those that are restarting.
+
+  Note that calling this function when supervising a large number
+  of children under low memory conditions can cause an out of memory
+  exception.
   """
   @spec children(Supervisor.supervisor()) :: [pid]
   def children(supervisor) do
