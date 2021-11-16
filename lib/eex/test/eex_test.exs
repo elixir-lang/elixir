@@ -50,6 +50,16 @@ defmodule EExTest do
   doctest EEx.Engine
   doctest EEx.SmartEngine
 
+  import EEx, only: :sigils
+
+  test "sigil" do
+    world = "world"
+
+    assert ~E"""
+           Hello <%= world %>!
+           """ == "Hello world!\n"
+  end
+
   describe "evaluates" do
     test "simple string" do
       assert_eval("foo bar", "foo bar")
