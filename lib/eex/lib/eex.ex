@@ -92,11 +92,10 @@ defmodule EEx do
   Note that different engines may have different rules
   for each tag. Other tags may be added in future versions.
 
-  ### Macros
+  ### Assigns
 
-  `EEx.SmartEngine` also adds some macros to your template.
-  An example is the `@` macro which allows easy data access
-  in a template:
+  `EEx.SmartEngine` also adds the `@` construct for reading
+  template assigns:
 
       iex> EEx.eval_string("<%= @foo %>", assigns: [foo: 1])
       "1"
@@ -108,6 +107,28 @@ defmodule EEx do
   The `assigns` extension is useful when the number of variables
   required by the template is not specified at compilation time.
   """
+
+  @doc ~S'''
+  Provides `~E` sigil with for EEx handling inside source files.
+
+  ## Examples
+
+      iex> import EEx, only: :sigils
+      iex> ~E"""
+      ...> Hello <%= "world" %>
+      ...> """
+      "Hello world\n"
+
+  '''
+  defmacro sigil_E({:<<>>, meta, [expr]}, []) do
+    options = [
+      file: __CALLER__.file,
+      line: __CALLER__.line + 1,
+      indentation: meta[:indentation] || 0
+    ]
+
+    EEx.compile_string(expr, options)
+  end
 
   @doc """
   Generates a function definition from the given string.
