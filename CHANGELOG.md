@@ -128,6 +128,42 @@ Now any application can use your formatter as follows:
 
 Finally, the `Code` module has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
 
+## v1.13.0-rc.1 (2021-11-16)
+
+### 1. Enhancements
+
+#### Mix
+
+  * [Mix] Add `Mix.installed?/0`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Application] Allow any expression as first argument of `compile_env`
+  * [Kernel] Reject bidirectional formatting characters in strings and comments
+  * [Kernel] Support escaping of terminators in uppercase sigils heredocs for consistency
+
+#### IEx
+
+  * [IEx] Stop evaluator before exiting IEx server
+
+#### Mix
+
+  * [mix release] Raise proper error message when non-serializable values are in configs
+
+### 3. Regressions
+
+#### Elixir
+
+  * [Code] Do not crash on duplicate bindings during eval
+  * [Macro] Do not raise on variables that look like an empty tuple in `Macro.to_string/1`
+  * [URI] Make sure parsed URIs with empty paths have the path field set to nil
+
+#### Mix
+
+  * [Mix.Shell] Re-add `yes?/1` as a callback
+
 ## v1.13.0-rc.0 (2021-11-01)
 
 ### 1. Enhancements
