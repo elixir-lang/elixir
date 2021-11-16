@@ -4,6 +4,10 @@
 
 ### 1. Enhancements
 
+#### EEx
+
+  * [EEx] Add `~E` sigil
+
 #### Elixir
 
 ### 2. Bug fixes
