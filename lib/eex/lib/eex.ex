@@ -109,7 +109,7 @@ defmodule EEx do
   """
 
   @doc ~S'''
-  Provides `~E` sigil with for EEx handling inside source files.
+  Provides `~E` sigil for EEx handling inside source files.
 
   ## Examples
 
@@ -120,6 +120,7 @@ defmodule EEx do
       "Hello world\n"
 
   '''
+  @doc since: "1.14.0"
   defmacro sigil_E({:<<>>, meta, [expr]}, []) do
     options = [
       file: __CALLER__.file,
