@@ -197,6 +197,18 @@ defmodule Code.Normalizer do
     end
   end
 
+  # Module attributes
+  defp do_normalize({:@, meta, [{name, name_meta, [value]}]}, state) do
+    value =
+      if is_list(value) do
+        normalize_kw_args(value, state, false)
+      else
+        do_normalize(value, state)
+      end
+
+    {:@, meta, [{name, name_meta, [value]}]}
+  end
+
   # Calls
   defp do_normalize({_, _, args} = quoted, state) when is_list(args) do
     normalize_call(quoted, state)

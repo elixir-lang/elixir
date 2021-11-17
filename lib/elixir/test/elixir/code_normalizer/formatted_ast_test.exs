@@ -352,6 +352,18 @@ defmodule Code.Normalizer.FormatterASTTest do
       assert_same ~S"{:wrapped, 1, [opt1: true, opt2: false]}"
       assert_same ~S"{:unwrapped, 1, opt1: true, opt2: false}"
     end
+
+    test "on module attribute" do
+      assert_same ~S"""
+      @foo a: b,
+           c: d
+      """
+
+      assert_same ~S"@foo [
+        a: b,
+        c: d
+      ]"
+    end
   end
 
   describe "preserves user choice on parenthesis" do
