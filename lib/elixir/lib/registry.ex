@@ -1318,6 +1318,47 @@ defmodule Registry do
     end
   end
 
+  @doc """
+  Works like `select/2`, but only returns the number of matching records.
+
+  ## Examples
+
+  In the example below we register the current process under different
+  keys in a unique registry but with the same value:
+
+      iex> Registry.start_link(keys: :unique, name: Registry.CountSelectTest)
+      iex> {:ok, _} = Registry.register(Registry.CountSelectTest, "hello", :value)
+      iex> {:ok, _} = Registry.register(Registry.CountSelectTest, "world", :value)
+      iex> Registry.count_select(Registry.CountSelectTest, [{{:_, :_, :value}, [], [true]}])
+      2
+  """
+  @spec count_select(registry, spec) :: non_neg_integer()
+  def count_select(registry, spec)
+      when is_atom(registry) and is_list(spec) do
+    spec =
+      for part <- spec do
+        case part do
+          {{key, pid, value}, guards, select} ->
+            {{key, {pid, value}}, guards, select}
+
+          _ ->
+            raise ArgumentError,
+                  "invalid match specification in Registry.select_count/2: #{inspect(spec)}"
+        end
+      end
+
+    case key_info!(registry) do
+      {_kind, partitions, nil} ->
+        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
+          count = :ets.select_count(key_ets!(registry, partition_index), spec)
+          acc + count
+        end)
+
+      {_kind, 1, key_ets} ->
+        :ets.select_count(key_ets, spec)
+    end
+  end
+
   ## Helpers
 
   @compile {:inline, hash: 2}
