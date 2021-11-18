@@ -53,7 +53,7 @@ defmodule Inspect.Opts do
     * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the `Inspect.Error` exception. This
       is useful when debugging failures and crashes for custom inspect
-      implementations.
+      implementations. Defaults to `true`.
 
     * `:structs` - when `false`, structs are not formatted by the inspect
       protocol, they are instead printed as maps. Defaults to `true`.
