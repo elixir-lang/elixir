@@ -450,16 +450,21 @@ defmodule ExUnit.FormatterTest do
         "in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2\" while inspecting " <>
         "%{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}"
 
-    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
-             1) world (Hello)
-                test/ex_unit/formatter_test.exs:1
-                Assertion with == failed
-                code:  assert :will_fail == %BadInspect{}
-                left:  :will_fail
-                right: %Inspect.Error{
-                         message: #{inspect(message)}
-                       }
-           """
+    output =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+                 1) world (Hello)
+                    test/ex_unit/formatter_test.exs:1
+                    Assertion with == failed
+                    code:  assert :will_fail == %BadInspect{}
+                    left:  :will_fail
+                    right: %Inspect.Error{
+                             message: #{inspect(message)}
+                           }
+               """
+      end)
+
+    assert output =~ "\e[33mwarning: \e[0merror when trying to inspect struct; "
   end
 
   defmodule BadMessage do

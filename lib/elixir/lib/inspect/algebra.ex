@@ -53,7 +53,8 @@ defmodule Inspect.Opts do
     * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the `Inspect.Error` exception. This
       is useful when debugging failures and crashes for custom inspect
-      implementations. Defaults to `true`.
+      implementations. When `true` it will emit a warning is an error inspecting
+      the term is found. Defaults to `true`.
 
     * `:structs` - when `false`, structs are not formatted by the inspect
       protocol, they are instead printed as maps. Defaults to `true`.
@@ -364,18 +365,32 @@ defmodule Inspect.Algebra do
               res = IO.iodata_to_binary(format(res, :infinity))
 
               message =
-                "got #{inspect(caught_exception.__struct__)} with message " <>
-                  "#{inspect(Exception.message(caught_exception))} while inspecting #{res}"
+                "got #{inspect(caught_exception.__struct__, safe: false)} with message " <>
+                  "#{inspect(Exception.message(caught_exception), safe: false)} while inspecting #{res}"
 
-              exception = Inspect.Error.exception(message: message)
+              error_exception = Inspect.Error.exception(message: message)
 
-              if opts.safe do
-                Inspect.inspect(exception, %{
+              if opts.safe && not is_struct(caught_exception, Inspect.Error) do
+                # Since we are not raising, and we are returning the string representation
+                # of the Inspect.Error exception, we warn.
+                IO.warn("error when trying to inspect struct; " <> message, __STACKTRACE__)
+
+                Inspect.inspect(error_exception, %{
                   opts
                   | inspect_fun: Inspect.Opts.default_inspect_fun()
                 })
               else
-                reraise(exception, __STACKTRACE__)
+                attributes =
+                  error_exception
+                  |> Map.drop([:__struct__, :__exception__])
+                  |> Map.put(
+                    :message,
+                    error_exception.message <>
+                      " Stacktrace:\n" <> Exception.format_stacktrace(__STACKTRACE__)
+                  )
+                  |> Map.to_list()
+
+                reraise(Inspect.Error, attributes, __STACKTRACE__)
               end
             after
               Process.delete(:inspect_trap)
