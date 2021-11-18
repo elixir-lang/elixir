@@ -227,7 +227,7 @@ defmodule Inspect.NumberTest do
 end
 
 defmodule Inspect.TupleTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "basic" do
     assert inspect({1, "b", 3}) == "{1, \"b\", 3}"
@@ -390,7 +390,7 @@ defmodule Inspect.ListTest do
 end
 
 defmodule Inspect.MapTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "basic" do
     assert inspect(%{1 => "b"}) == "%{1 => \"b\"}"
@@ -717,7 +717,7 @@ defmodule Inspect.OthersTest do
 end
 
 defmodule Inspect.CustomProtocolTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   defprotocol CustomInspect do
     def inspect(term, opts)
