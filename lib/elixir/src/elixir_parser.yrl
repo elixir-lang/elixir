@@ -552,6 +552,7 @@ kw_base -> kw_eol container_expr : [{'$1', '$2'}].
 kw_base -> kw_base ',' kw_eol container_expr : [{'$3', '$4'} | '$1'].
 
 kw_call -> kw_base : reverse('$1').
+kw_call -> kw_base ',' : warn_trailing_comma('$2'), reverse('$1').
 kw_call -> kw_base ',' matched_expr : maybe_bad_keyword_call_follow_up('$2', '$1', '$3').
 
 kw_data -> kw_base : reverse('$1').
@@ -1165,6 +1166,12 @@ error_invalid_kw_identifier({_, Location, do}) ->
   return_error(Location, elixir_tokenizer:invalid_do_error("unexpected keyword: "), "do:");
 error_invalid_kw_identifier({_, Location, KW}) ->
   return_error(Location, "syntax error before: ", "'" ++ atom_to_list(KW) ++ ":'").
+
+%% TODO: Make this an error on v2.0
+warn_trailing_comma({',', {Line, Column, _}}) ->
+  elixir_errors:erl_warn({Line, Column}, ?file(),
+    "trailing commas are not allowed inside function/macro call arguments"
+  ).
 
 %% TODO: Make this an error on v2.0
 warn_empty_paren({_, {Line, Column, _}}) ->
