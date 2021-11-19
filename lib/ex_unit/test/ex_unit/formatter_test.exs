@@ -459,8 +459,8 @@ defmodule ExUnit.FormatterTest do
                     code:  assert :will_fail == %BadInspect{}
                     left:  :will_fail
                     right: %Inspect.Error{
-                             message: #{inspect(message)}
-                           }
+                             message: #{inspect(message)},
+                             stacktrace: [
                """
       end)
 

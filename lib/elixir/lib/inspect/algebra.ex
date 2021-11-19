@@ -168,7 +168,8 @@ defmodule Inspect.Error do
   @moduledoc """
   Raised when a struct cannot be inspected.
   """
-  defexception [:message]
+  @enforce_keys [:message]
+  defexception message: nil, stacktrace: []
 end
 
 defmodule Inspect.Algebra do
@@ -368,26 +369,20 @@ defmodule Inspect.Algebra do
                 "got #{inspect(caught_exception.__struct__, safe: false)} with message " <>
                   "#{inspect(Exception.message(caught_exception), safe: false)} while inspecting #{res}"
 
-              error_exception = Inspect.Error.exception(message: message)
+              error_exception =
+                Inspect.Error.exception(message: message, stacktrace: __STACKTRACE__)
 
-              if opts.safe && not is_struct(caught_exception, Inspect.Error) do
+              if opts.safe do
                 # Since we are not raising, and we are returning the string representation
                 # of the Inspect.Error exception, we warn.
                 IO.warn("error when trying to inspect struct; " <> message, __STACKTRACE__)
 
-                Inspect.inspect(error_exception, %{
-                  opts
-                  | inspect_fun: Inspect.Opts.default_inspect_fun()
-                })
+                opts = %{opts | inspect_fun: Inspect.Opts.default_inspect_fun()}
+                Inspect.inspect(error_exception, opts)
               else
                 attributes =
                   error_exception
                   |> Map.drop([:__struct__, :__exception__])
-                  |> Map.put(
-                    :message,
-                    error_exception.message <>
-                      " Stacktrace:\n" <> Exception.format_stacktrace(__STACKTRACE__)
-                  )
                   |> Map.to_list()
 
                 reraise(Inspect.Error, attributes, __STACKTRACE__)
