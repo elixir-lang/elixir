@@ -1901,6 +1901,11 @@ defmodule Kernel.WarningTest do
     end
   end
 
+  test "warnings on trailing comma on call" do
+    assert capture_err(fn -> Code.eval_string("Keyword.merge([], foo: 1,)") end) =~
+             "trailing commas are not allowed inside function/macro call arguments"
+  end
+
   test "defstruct warns with duplicate keys" do
     assert capture_err(fn ->
              Code.eval_string("""
