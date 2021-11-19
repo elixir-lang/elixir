@@ -25,20 +25,22 @@ defmodule DateTime do
   datetimes and returns `{:error, :utc_only_time_zone_database}`
   for any other time zone.
 
-  Other time zone databases can also be configured. For example,
-  two of the available options are:
+  Other time zone databases can also be configured. Here are some
+  available options and libraries:
 
-    * [`tz`](https://hexdocs.pm/tz/)
-    * [`tzdata`](https://hexdocs.pm/tzdata/)
+    * [`tz`](https://github.com/mathieuprog/tz)
+    * [`tzdata`](https://github.com/lau/tzdata)
+    * [`zoneinfo`](https://github.com/smartrent/zoneinfo) -
+      recommended for embedded devices
 
   To use them, first make sure it is added as a dependency in `mix.exs`.
   It can then be configured either via configuration:
 
-      config :elixir, :time_zone_database, Tzdata.TimeZoneDatabase
+      config :elixir, :time_zone_database, Tz.TimeZoneDatabase
 
   or by calling `Calendar.put_time_zone_database/1`:
 
-      Calendar.put_time_zone_database(Tzdata.TimeZoneDatabase)
+      Calendar.put_time_zone_database(Tz.TimeZoneDatabase)
 
   See the proper names in the library installation instructions.
   """
