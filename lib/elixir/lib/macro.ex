@@ -661,7 +661,9 @@ defmodule Macro do
   dependency on the given struct.
   """
   @doc since: "1.8.0"
-  @spec struct!(module, Macro.Env.t()) :: %{__struct__: module} when module: module()
+  @spec struct!(module, Macro.Env.t()) ::
+          %{required(:__struct__) => module, optional(atom) => any}
+        when module: module()
   def struct!(module, env) when is_atom(module) do
     if module == env.module do
       Module.get_attribute(module, :__struct__)
