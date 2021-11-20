@@ -371,9 +371,60 @@ defmodule RegistryTest do
                  |> Enum.sort()
       end
 
-      test "raises on incorrect shape of match spec", %{registry: registry} do
+      test "select raises on incorrect shape of match spec", %{registry: registry} do
         assert_raise ArgumentError, fn ->
           Registry.select(registry, [{:_, [], []}])
+        end
+      end
+
+      test "count_select supports match specs", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+        assert 1 == Registry.count_select(registry, [{{:_, :_, value}, [], [true]}])
+        assert 1 == Registry.count_select(registry, [{{"hello", :_, :_}, [], [true]}])
+        assert 1 == Registry.count_select(registry, [{{:_, :_, {1, :atom, :_}}, [], [true]}])
+        assert 1 == Registry.count_select(registry, [{{:_, :_, {:"$1", :_, :"$1"}}, [], [true]}])
+        assert 0 == Registry.count_select(registry, [{{"hello", :_, nil}, [], [true]}])
+
+        value2 = %{a: "a", b: "b"}
+        {:ok, _} = Registry.register(registry, "world", value2)
+        assert 1 == Registry.count_select(registry, [{{"world", :_, :_}, [], [true]}])
+      end
+
+      test "count_select supports guard conditions", %{registry: registry} do
+        value = {1, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value)
+
+        assert 1 ==
+                 Registry.count_select(registry, [
+                   {{:_, :_, {:_, :"$1", :_}}, [{:is_atom, :"$1"}], [true]}
+                 ])
+
+        assert 1 ==
+                 Registry.count_select(registry, [
+                   {{:_, :_, {:_, :_, :"$1"}}, [{:>, :"$1", 1}], [true]}
+                 ])
+
+        assert 0 ==
+                 Registry.count_select(registry, [
+                   {{:_, :_, {:_, :_, :"$1"}}, [{:>, :"$1", 2}], [true]}
+                 ])
+      end
+
+      test "count_select allows multiple specs", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, "hello", :value)
+        {:ok, _} = Registry.register(registry, "world", :value)
+
+        assert 2 ==
+                 Registry.count_select(registry, [
+                   {{"hello", :_, :_}, [], [true]},
+                   {{"world", :_, :_}, [], [true]}
+                 ])
+      end
+
+      test "count_select raises on incorrect shape of match spec", %{registry: registry} do
+        assert_raise ArgumentError, fn ->
+          Registry.count_select(registry, [{:_, [], []}])
         end
       end
 
@@ -819,6 +870,51 @@ defmodule RegistryTest do
                    {{"world", :_, :_}, [], [{:element, 1, :"$_"}]}
                  ])
                  |> Enum.sort()
+      end
+
+      test "count_select supports match specs", %{registry: registry} do
+        value = {1, :atom, 1}
+        {:ok, _} = Registry.register(registry, "hello", value)
+        assert 1 == Registry.count_select(registry, [{{:_, :_, value}, [], [true]}])
+        assert 1 == Registry.count_select(registry, [{{"hello", :_, :_}, [], [true]}])
+        assert 1 == Registry.count_select(registry, [{{:_, :_, {1, :atom, :_}}, [], [true]}])
+        assert 1 == Registry.count_select(registry, [{{:_, :_, {:"$1", :_, :"$1"}}, [], [true]}])
+        assert 0 == Registry.count_select(registry, [{{"hello", :_, nil}, [], [true]}])
+
+        value2 = %{a: "a", b: "b"}
+        {:ok, _} = Registry.register(registry, "world", value2)
+        assert 1 == Registry.count_select(registry, [{{"world", :_, :_}, [], [true]}])
+      end
+
+      test "count_select supports guard conditions", %{registry: registry} do
+        value = {1, :atom, 2}
+        {:ok, _} = Registry.register(registry, "hello", value)
+
+        assert 1 ==
+                 Registry.count_select(registry, [
+                   {{:_, :_, {:_, :"$1", :_}}, [{:is_atom, :"$1"}], [true]}
+                 ])
+
+        assert 1 ==
+                 Registry.count_select(registry, [
+                   {{:_, :_, {:_, :_, :"$1"}}, [{:>, :"$1", 1}], [true]}
+                 ])
+
+        assert 0 ==
+                 Registry.count_select(registry, [
+                   {{:_, :_, {:_, :_, :"$1"}}, [{:>, :"$1", 2}], [true]}
+                 ])
+      end
+
+      test "count_select allows multiple specs", %{registry: registry} do
+        {:ok, _} = Registry.register(registry, "hello", :value)
+        {:ok, _} = Registry.register(registry, "world", :value)
+
+        assert 2 ==
+                 Registry.count_select(registry, [
+                   {{"hello", :_, :_}, [], [true]},
+                   {{"world", :_, :_}, [], [true]}
+                 ])
       end
     end
   end
