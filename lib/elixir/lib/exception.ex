@@ -1631,3 +1631,90 @@ defmodule ErlangError do
   defp nth(3), do: "3rd"
   defp nth(n), do: "#{n}th"
 end
+
+defmodule Inspect.Error do
+  @moduledoc """
+  Raised when a struct cannot be inspected.
+  """
+  # QUESTION: I am not sure if is it considered backward incompatible
+  # to enforce keys that did not exist before
+  @enforce_keys [:exception, :stacktrace, :struct]
+  defexception exception: nil,
+               message: nil,
+               stacktrace: nil,
+               struct: nil
+
+  @impl true
+  def exception(arguments) when is_list(arguments) do
+    with {:ok, exception} <- Keyword.fetch!(arguments, :exception) |> validate(:exception),
+         {:ok, stacktrace} <- Keyword.fetch!(arguments, :stacktrace) |> validate(:stacktrace),
+         {:ok, struct} <- Keyword.fetch!(arguments, :struct) |> validate(:struct),
+         {:ok, message} <- Keyword.get(arguments, :message) |> validate(:message) do
+      message =
+        if message do
+          message
+        else
+          message(%Inspect.Error{
+            exception: exception,
+            stacktrace: stacktrace,
+            struct: struct
+          })
+        end
+
+      %Inspect.Error{
+        exception: exception,
+        message: message,
+        stacktrace: stacktrace,
+        struct: struct
+      }
+    else
+      {:error, key, term} -> raise(ArgumentError, "invalid #{key}, got: " <> inspect(term))
+    end
+  end
+
+  defp validate(term, :exception) when is_exception(term), do: {:ok, term}
+  defp validate(term, :stacktrace) when is_list(term), do: {:ok, term}
+  defp validate(term, :struct) when is_struct(term), do: {:ok, term}
+  defp validate(term, :message) when is_binary(term) or is_nil(term), do: {:ok, term}
+  defp validate(term, key), do: {:error, key, term}
+
+  @impl true
+  def message(%__MODULE__{message: message}) when is_binary(message) do
+    message
+  end
+
+  def message(%__MODULE__{exception: exception, stacktrace: stacktrace, struct: struct})
+      when is_exception(exception) and is_list(stacktrace) and is_struct(struct) do
+    "got #{inspect(exception.__struct__)} with message:\n\n" <>
+      "    \"\"\"\n" <>
+      "#{pad(String.trim_trailing(Exception.message(exception), "\n"), 4)}\n" <>
+      "    \"\"\"\n\n" <>
+      "  while inspecting:\n" <>
+      pad(format_struct(struct), 4) <>
+      "\n"
+  end
+
+  # Helpers
+  def pad(message, padding_length) do
+    padding = String.duplicate(" ", padding_length)
+
+    result =
+      message
+      |> String.replace("\\n", "\n")
+      |> String.split("\n")
+      |> Enum.map(&(padding <> &1))
+      |> Enum.join("\n")
+      |> String.trim("\n")
+
+    result
+  end
+
+  def format_struct(struct) do
+    opts = %Inspect.Opts{}
+
+    struct
+    |> Inspect.Map.inspect(opts)
+    |> Inspect.Algebra.format(opts.width)
+    |> IO.iodata_to_binary()
+  end
+end

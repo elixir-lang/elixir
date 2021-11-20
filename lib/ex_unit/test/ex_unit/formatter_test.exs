@@ -446,25 +446,22 @@ defmodule ExUnit.FormatterTest do
     failure = [{:error, catch_assertion(assert :will_fail == %BadInspect{}), []}]
 
     message =
-      "got FunctionClauseError with message \"no function clause matching " <>
-        "in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2\" while inspecting " <>
-        "%{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}"
+      "  got FunctionClauseError with message:\n\n" <>
+        "    \"\"\"\n" <>
+        "    no function clause matching in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2\n" <>
+        "    \"\"\"\n\n" <>
+        "  while inspecting:\n" <>
+        "    %{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}\n\n" <>
+        "  Stacktrace:"
 
-    output =
-      ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
-                 1) world (Hello)
-                    test/ex_unit/formatter_test.exs:1
-                    Assertion with == failed
-                    code:  assert :will_fail == %BadInspect{}
-                    left:  :will_fail
-                    right: %Inspect.Error{
-                             message: #{inspect(message)},
-                             stacktrace: [
-               """
-      end)
-
-    assert output =~ "\e[33mwarning: \e[0merror when trying to inspect struct; "
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+             1) world (Hello)
+                test/ex_unit/formatter_test.exs:1
+                Assertion with == failed
+                code:  assert :will_fail == %BadInspect{}
+                left:  :will_fail
+                right: #Inspect.Error<\n#{message}\n\
+           """
   end
 
   defmodule BadMessage do

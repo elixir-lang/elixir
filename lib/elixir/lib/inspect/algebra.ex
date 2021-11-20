@@ -53,8 +53,7 @@ defmodule Inspect.Opts do
     * `:safe` - when `false`, failures while inspecting structs will be raised
       as errors instead of being wrapped in the `Inspect.Error` exception. This
       is useful when debugging failures and crashes for custom inspect
-      implementations. When `true` it will emit a warning is an error inspecting
-      the term is found. Defaults to `true`.
+      implementations. Defaults to `true`.
 
     * `:structs` - when `false`, structs are not formatted by the inspect
       protocol, they are instead printed as maps. Defaults to `true`.
@@ -162,14 +161,6 @@ defmodule Inspect.Opts do
   def default_inspect_fun(fun) when is_function(fun, 2) do
     :persistent_term.put({__MODULE__, :inspect_fun}, fun)
   end
-end
-
-defmodule Inspect.Error do
-  @moduledoc """
-  Raised when a struct cannot be inspected.
-  """
-  @enforce_keys [:message]
-  defexception message: nil, stacktrace: []
 end
 
 defmodule Inspect.Algebra do
@@ -356,27 +347,15 @@ defmodule Inspect.Algebra do
             try do
               Process.put(:inspect_trap, true)
 
-              res =
-                Inspect.Map.inspect(struct, %{
-                  opts
-                  | syntax_colors: [],
-                    inspect_fun: Inspect.Opts.default_inspect_fun()
-                })
-
-              res = IO.iodata_to_binary(format(res, :infinity))
-
-              message =
-                "got #{inspect(caught_exception.__struct__, safe: false)} with message " <>
-                  "#{inspect(Exception.message(caught_exception), safe: false)} while inspecting #{res}"
-
               error_exception =
-                Inspect.Error.exception(message: message, stacktrace: __STACKTRACE__)
+                Inspect.Error.exception(
+                  exception: caught_exception,
+                  inspect_opts: opts,
+                  stacktrace: __STACKTRACE__,
+                  struct: struct
+                )
 
               if opts.safe do
-                # Since we are not raising, and we are returning the string representation
-                # of the Inspect.Error exception, we warn.
-                IO.warn("error when trying to inspect struct; " <> message, __STACKTRACE__)
-
                 opts = %{opts | inspect_fun: Inspect.Opts.default_inspect_fun()}
                 Inspect.inspect(error_exception, opts)
               else

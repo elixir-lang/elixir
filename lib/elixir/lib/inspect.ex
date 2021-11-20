@@ -389,6 +389,23 @@ defimpl Inspect, for: Function do
   end
 end
 
+defimpl Inspect, for: Inspect.Error do
+  def inspect(%{stacktrace: stacktrace} = inspect_error, _opts) when is_list(stacktrace) do
+    message =
+      "#Inspect.Error<\n" <>
+        "  #{String.trim_trailing(Exception.message(inspect_error), " \n")}\n"
+
+    if stacktrace == [] do
+      message
+    else
+      message <>
+        "  Stacktrace:\n" <>
+        "#{String.trim_trailing(Exception.format_stacktrace(stacktrace), "\n")}\n" <>
+        ">"
+    end
+  end
+end
+
 defimpl Inspect, for: PID do
   def inspect(pid, _opts) do
     "#PID" <> IO.iodata_to_binary(:erlang.pid_to_list(pid))
