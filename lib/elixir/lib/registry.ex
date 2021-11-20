@@ -1297,17 +1297,7 @@ defmodule Registry do
   @spec select(registry, spec) :: [term]
   def select(registry, spec)
       when is_atom(registry) and is_list(spec) do
-    spec =
-      for part <- spec do
-        case part do
-          {{key, pid, value}, guards, select} ->
-            {{key, {pid, value}}, guards, select}
-
-          _ ->
-            raise ArgumentError,
-                  "invalid match specification in Registry.select/2: #{inspect(spec)}"
-        end
-      end
+    spec = group_match_headers(spec, __ENV__.function)
 
     case key_info!(registry) do
       {_kind, partitions, nil} ->
@@ -1337,17 +1327,7 @@ defmodule Registry do
   @spec count_select(registry, spec) :: non_neg_integer()
   def count_select(registry, spec)
       when is_atom(registry) and is_list(spec) do
-    spec =
-      for part <- spec do
-        case part do
-          {{key, pid, value}, guards, select} ->
-            {{key, {pid, value}}, guards, select}
-
-          _ ->
-            raise ArgumentError,
-                  "invalid match specification in Registry.count_select/2: #{inspect(spec)}"
-        end
-      end
+    spec = group_match_headers(spec, __ENV__.function)
 
     count_entries(registry, spec, fn partitions ->
       count_entries_across_partitions(registry, partitions, spec)
@@ -1361,8 +1341,16 @@ defmodule Registry do
     end)
   end
 
-      {_kind, 1, key_ets} ->
-        :ets.select_count(key_ets, spec)
+  defp group_match_headers(spec, {fun, arity}) do
+    for part <- spec do
+      case part do
+        {{key, pid, value}, guards, select} ->
+          {{key, {pid, value}}, guards, select}
+
+        _ ->
+          raise ArgumentError,
+                "invalid match specification in Registry.#{fun}/#{arity}: #{inspect(spec)}"
+      end
     end
   end
 
