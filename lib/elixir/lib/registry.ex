@@ -1227,53 +1227,20 @@ defmodule Registry do
     guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
     spec = [{{:_, {:_, pattern}}, guards, [true]}]
 
-    count_entries(registry, spec, fn partitions ->
-      :ets.select_count(key_ets!(registry, key, partitions), spec)
-    end)
-  end
-
-  @doc """
-  Works like `select/2`, but only returns the number of matching records.
-
-  ## Examples
-
-  In the example below we register the current process under different
-  keys in a unique registry but with the same value:
-
-      iex> Registry.start_link(keys: :unique, name: Registry.CountSelectTest)
-      iex> {:ok, _} = Registry.register(Registry.CountSelectTest, "hello", :value)
-      iex> {:ok, _} = Registry.register(Registry.CountSelectTest, "world", :value)
-      iex> Registry.count_select(Registry.CountSelectTest, [{{:_, :_, :value}, [], [true]}])
-      2
-  """
-  @spec count_select(registry, spec) :: non_neg_integer()
-  def count_select(registry, spec)
-      when is_atom(registry) and is_list(spec) do
-    spec = group_match_headers(spec, __ENV__.function)
-
-    count_entries(registry, spec, fn partitions ->
-      count_entries_across_partitions(registry, partitions, spec)
-    end)
-  end
-
-  defp count_entries(registry, spec, count_entries_across_unique_partitions_fun) do
     case key_info!(registry) do
-      {:unique, partitions, nil} ->
-        count_entries_across_unique_partitions_fun.(partitions)
+      {:unique, partitions, key_ets} ->
+        key_ets = key_ets || key_ets!(registry, key, partitions)
+        :ets.select_count(key_ets, spec)
 
-      {_kind, 1, key_ets} ->
+      {:duplicate, 1, key_ets} ->
         :ets.select_count(key_ets, spec)
 
       {:duplicate, partitions, _key_ets} ->
-        count_entries_across_partitions(registry, partitions, spec)
+        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
+          count = :ets.select_count(key_ets!(registry, partition_index), spec)
+          acc + count
+        end)
     end
-  end
-
-  defp count_entries_across_partitions(registry, partitions, spec) do
-    Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-      count = :ets.select_count(key_ets!(registry, partition_index), spec)
-      acc + count
-    end)
   end
 
   @doc """
@@ -1338,6 +1305,37 @@ defmodule Registry do
 
       {_kind, 1, key_ets} ->
         :ets.select(key_ets, spec)
+    end
+  end
+
+  @doc """
+  Works like `select/2`, but only returns the number of matching records.
+
+  ## Examples
+
+  In the example below we register the current process under different
+  keys in a unique registry but with the same value:
+
+      iex> Registry.start_link(keys: :unique, name: Registry.CountSelectTest)
+      iex> {:ok, _} = Registry.register(Registry.CountSelectTest, "hello", :value)
+      iex> {:ok, _} = Registry.register(Registry.CountSelectTest, "world", :value)
+      iex> Registry.count_select(Registry.CountSelectTest, [{{:_, :_, :value}, [], [true]}])
+      2
+  """
+  @spec count_select(registry, spec) :: non_neg_integer()
+  def count_select(registry, spec)
+      when is_atom(registry) and is_list(spec) do
+    spec = group_match_headers(spec, __ENV__.function)
+
+    case key_info!(registry) do
+      {_kind, partitions, nil} ->
+        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
+          count = :ets.select_count(key_ets!(registry, partition_index), spec)
+          acc + count
+        end)
+
+      {_kind, 1, key_ets} ->
+        :ets.select_count(key_ets, spec)
     end
   end
 
