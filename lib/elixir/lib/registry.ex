@@ -1227,19 +1227,21 @@ defmodule Registry do
     guards = [{:"=:=", {:element, 1, :"$_"}, {:const, key}} | guards]
     spec = [{{:_, {:_, pattern}}, guards, [true]}]
 
-    case key_info!(registry) do
-      {:unique, partitions, key_ets} ->
-        key_ets = key_ets || key_ets!(registry, key, partitions)
-        :ets.select_count(key_ets, spec)
+    count_entries(registry, spec, fn partitions ->
+      :ets.select_count(key_ets!(registry, key, partitions), spec)
+    end)
+  end
 
-      {:duplicate, 1, key_ets} ->
+  defp count_entries(registry, spec, count_entries_across_unique_partitions_fun) do
+    case key_info!(registry) do
+      {:unique, partitions, nil} ->
+        count_entries_across_unique_partitions_fun.(partitions)
+
+      {_kind, 1, key_ets} ->
         :ets.select_count(key_ets, spec)
 
       {:duplicate, partitions, _key_ets} ->
-        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          count = :ets.select_count(key_ets!(registry, partition_index), spec)
-          acc + count
-        end)
+        count_entries_across_partitions(registry, partitions, spec)
     end
   end
 
@@ -1347,12 +1349,17 @@ defmodule Registry do
         end
       end
 
-    case key_info!(registry) do
-      {_kind, partitions, nil} ->
-        Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
-          count = :ets.select_count(key_ets!(registry, partition_index), spec)
-          acc + count
-        end)
+    count_entries(registry, spec, fn partitions ->
+      count_entries_across_partitions(registry, partitions, spec)
+    end)
+  end
+
+  defp count_entries_across_partitions(registry, partitions, spec) do
+    Enum.reduce(0..(partitions - 1), 0, fn partition_index, acc ->
+      count = :ets.select_count(key_ets!(registry, partition_index), spec)
+      acc + count
+    end)
+  end
 
       {_kind, 1, key_ets} ->
         :ets.select_count(key_ets, spec)
