@@ -1343,7 +1343,7 @@ defmodule Registry do
 
           _ ->
             raise ArgumentError,
-                  "invalid match specification in Registry.select_count/2: #{inspect(spec)}"
+                  "invalid match specification in Registry.count_select/2: #{inspect(spec)}"
         end
       end
 
