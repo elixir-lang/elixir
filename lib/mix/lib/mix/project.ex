@@ -208,7 +208,7 @@ defmodule Mix.Project do
   Returns the path to the file that defines the current project.
 
   The majority of the time, it will point to a `mix.exs` file.
-  Returns nil if not inside a project.
+  Returns `nil` if not inside a project.
   """
   @doc since: "1.13.0"
   @spec project_file() :: binary | nil
@@ -265,7 +265,7 @@ defmodule Mix.Project do
 
   Note: before Elixir v1.13.0, the `mix.exs` file was also included
   in the mtimes, but not anymore. You can compute its modification
-  date by calling  `project_file/0`.
+  date by calling `project_file/0`.
   """
   @doc since: "1.7.0"
   @spec config_mtime() :: posix_mtime when posix_mtime: integer()
@@ -445,7 +445,7 @@ defmodule Mix.Project do
   ## Options
 
     * `:depth` - only returns dependencies to the depth level,
-      a depth of 1 will only return top-level dependencies
+      a depth of `1` will only return top-level dependencies
     * `:parents` - starts the dependency traversal from the
       given parents instead of the application root
 
@@ -457,7 +457,7 @@ defmodule Mix.Project do
   """
   @doc since: "1.10.0"
   @spec deps_scms(keyword) :: %{optional(atom) => Mix.SCM.t()}
-  def deps_scms(opts \\ []) do
+  def deps_scms(opts \\ []) when is_list(opts) do
     traverse_deps(opts, fn %{scm: scm} -> scm end)
   end
 
@@ -467,7 +467,7 @@ defmodule Mix.Project do
   ## Options
 
     * `:depth` - only returns dependencies to the depth level,
-      a depth of 1 will only return top-level dependencies
+      a depth of `1` will only return top-level dependencies
     * `:parents` - starts the dependency traversal from the
       given parents instead of the application root
 
@@ -478,7 +478,7 @@ defmodule Mix.Project do
 
   """
   @spec deps_paths(keyword) :: %{optional(atom) => Path.t()}
-  def deps_paths(opts \\ []) do
+  def deps_paths(opts \\ []) when is_list(opts) do
     traverse_deps(opts, fn %{opts: opts} -> opts[:dest] end)
   end
 
@@ -607,8 +607,10 @@ defmodule Mix.Project do
 
   ## Examples
 
+  If your project defines the app `my_app`:
+
       Mix.Project.manifest_path()
-      #=> "/path/to/project/_build/shared/lib/app/.mix"
+      #=> "/path/to/project/_build/shared/lib/my_app/.mix"
 
   """
   @spec manifest_path(keyword) :: Path.t()
@@ -631,8 +633,10 @@ defmodule Mix.Project do
 
   ## Examples
 
+  If your project defines the app `my_app`:
+
       Mix.Project.app_path()
-      #=> "/path/to/project/_build/shared/lib/app"
+      #=> "/path/to/project/_build/shared/lib/my_app"
 
   """
   @spec app_path(keyword) :: Path.t()
@@ -643,7 +647,7 @@ defmodule Mix.Project do
           Path.join([build_path(config), "lib", Atom.to_string(app)])
 
         config[:apps_path] ->
-          raise "trying to access Mix.Project.app_path for an umbrella project but umbrellas have no app"
+          raise "trying to access Mix.Project.app_path/1 for an umbrella project but umbrellas have no app"
 
         true ->
           Mix.raise(
@@ -663,8 +667,10 @@ defmodule Mix.Project do
 
   ## Examples
 
+  If your project defines the app `my_app`:
+
       Mix.Project.compile_path()
-      #=> "/path/to/project/_build/dev/lib/app/ebin"
+      #=> "/path/to/project/_build/dev/lib/my_app/ebin"
 
   """
   @spec compile_path(keyword) :: Path.t()
@@ -678,6 +684,8 @@ defmodule Mix.Project do
   The returned path will be expanded.
 
   ## Examples
+
+  If your project defines the app `my_app`:
 
       Mix.Project.consolidation_path()
       #=> "/path/to/project/_build/dev/lib/my_app/consolidated"
@@ -745,6 +753,8 @@ defmodule Mix.Project do
   Ensures the project structure for the given project exists.
 
   In case it does exist, it is a no-op. Otherwise, it is built.
+
+  `opts` are the same options that can be passed to `build_structure/2`.
   """
   @spec ensure_structure(keyword, keyword) :: :ok
   def ensure_structure(config \\ config(), opts \\ []) do
