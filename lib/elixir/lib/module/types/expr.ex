@@ -469,12 +469,19 @@ defmodule Module.Types.Expr do
   end
 
   defp of_clauses(clauses, stack, context) do
-    reduce_ok(clauses, context, fn {:->, _meta, [head, body]}, context = acc ->
+    reduce_ok(clauses, context, fn {:->, meta, [head, body]}, context = acc ->
       {patterns, guards} = extract_head(head)
 
-      with {:ok, _, context} <- Pattern.of_head(patterns, guards, stack, context),
-           {:ok, _expr_type, context} <- of_expr(body, :dynamic, stack, context),
-           do: {:ok, keep_warnings(acc, context)}
+      case Pattern.of_head(patterns, guards, stack, context) do
+        {:ok, _, context} ->
+          with {:ok, _expr_type, context} <- of_expr(body, :dynamic, stack, context) do
+            {:ok, keep_warnings(acc, context)}
+          end
+
+        error ->
+          # Skip the clause if it the head has an error
+          if meta[:generated], do: {:ok, acc}, else: error
+      end
     end)
   end
 

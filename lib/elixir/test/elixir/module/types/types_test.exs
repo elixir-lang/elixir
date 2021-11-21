@@ -17,6 +17,10 @@ defmodule Module.Types.TypesTest do
     end
   end
 
+  defmacro generated(ast) do
+    Macro.prewalk(ast, fn node -> Macro.update_meta(node, &([generated: true] ++ &1)) end)
+  end
+
   def __expr__({patterns, guards, body}) do
     with {:ok, _types, context} <-
            Pattern.of_head(patterns, guards, TypeHelper.new_stack(), TypeHelper.new_context()),
@@ -211,6 +215,32 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:1
                  is_integer(x)
              """
+    end
+
+    test "warns on guards from cases unless generated" do
+      string =
+        warning(
+          [var],
+          [is_integer(var)],
+          case var do
+            _ when is_binary(var) -> :ok
+          end
+        )
+
+      assert is_binary(string)
+
+      string =
+        generated(
+          warning(
+            [var],
+            [is_integer(var)],
+            case var do
+              _ when is_binary(var) -> :ok
+            end
+          )
+        )
+
+      assert string == :none
     end
 
     test "only show relevant traces in warning" do
