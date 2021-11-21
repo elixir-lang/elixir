@@ -86,12 +86,12 @@ defmodule Mix.Tasks.Profile.Fprof do
   the total time spent in the function was 50ms.
 
   For a detailed explanation it's worth reading the analysis in
-  [Erlang/OTP documentation for fprof](https://erlang.org/doc/man/fprof.html#analysis).
+  [Erlang/OTP documentation for fprof](https://www.erlang.org/doc/man/fprof.html#analysis).
 
   ## Caveats
 
   You should be aware that the code being profiled is running in an anonymous
-  function which is invoked by [`:fprof` module](https://erlang.org/doc/man/fprof.html).
+  function which is invoked by [`:fprof` module](https://www.erlang.org/doc/man/fprof.html).
   Thus, you'll see some additional entries in your profile output,
   such as `:fprof` calls, an anonymous
   function with high ACC time, or an `:undefined` function which represents

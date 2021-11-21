@@ -171,8 +171,8 @@ defmodule Mix.Tasks.Release do
       $ bin/RELEASE_NAME daemon
 
   In daemon mode, the system is started on the background via
-  [`run_erl`](https://erlang.org/doc/man/run_erl.html). You may also
-  want to enable [`heart`](https://erlang.org/doc/man/heart.html)
+  [`run_erl`](https://www.erlang.org/doc/man/run_erl.html). You may also
+  want to enable [`heart`](https://www.erlang.org/doc/man/heart.html)
   in daemon mode so it automatically restarts the system in case
   of crashes. See the generated `releases/RELEASE_VSN/env.sh` file.
 
@@ -195,7 +195,7 @@ defmodule Mix.Tasks.Release do
 
   While daemons are not available on Windows, it is possible to install a
   released system as a service on Windows with the help of
-  [`erlsrv`](https://erlang.org/doc/man/erlsrv.html). This can be done by
+  [`erlsrv`](https://www.erlang.org/doc/man/erlsrv.html). This can be done by
   running:
 
       $ bin/RELEASE_NAME install
@@ -524,7 +524,7 @@ defmodule Mix.Tasks.Release do
   `@release`, with the `Mix.Release` struct.
 
   The `vm.args` and `remote.vm.args` files may contain any of the VM flags
-  accepted by the [`erl` command](https://erlang.org/doc/man/erl.html).
+  accepted by the [`erl` command](https://www.erlang.org/doc/man/erl.html).
 
   The `env.sh` and `env.bat` is used to set environment variables.
   In there, you can set vars such as `RELEASE_NODE`, `RELEASE_COOKIE`,
@@ -973,13 +973,13 @@ defmodule Mix.Tasks.Release do
   hot code upgrade it. This is one of the many steps necessary
   to perform hot code upgrades and it must be taken into account by
   every process and application being upgraded in the system.
-  The [`.appup` cookbook](https://erlang.org/doc/design_principles/appup_cookbook.html)
+  The [`.appup` cookbook](https://www.erlang.org/doc/design_principles/appup_cookbook.html)
   provides a good reference and more examples.
 
   Once `.appup`s are created, the next step is to create a `.relup`
   file with all instructions necessary to update the release itself.
   Erlang documentation does provide a chapter on
-  [Creating and upgrading a target system](https://erlang.org/doc/system_principles/create_target.html).
+  [Creating and upgrading a target system](https://www.erlang.org/doc/system_principles/create_target.html).
   [Learn You Some Erlang has a chapter on hot code upgrades](https://learnyousomeerlang.com/relups).
 
   Overall, there are many steps, complexities and assumptions made
