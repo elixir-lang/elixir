@@ -816,7 +816,7 @@ defmodule Kernel.ErrorsTest do
                       'x = 8; <<a, b::size(^x)>> = <<?a, ?b>>'
   end
 
-  test "invalid bidi in source" do
+  test "invalid bidi or confusable in source" do
     assert_eval_raise SyntaxError,
                       ~r"nofile:1:1: invalid bidirectional formatting character in comment: \\u202A",
                       '# This is a \u202A'
@@ -826,12 +826,18 @@ defmodule Kernel.ErrorsTest do
                       'foo. # This is a \u202A'
 
     assert_eval_raise SyntaxError,
-                      ~r"nofile:1:12: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
+                      ~r"nofile:1:12: invalid bidirectional formatting character in string: \\u202A. If you want to use such a character, use it in its escaped \\u202A form instead",
                       '"this is a \u202A"'
 
     assert_eval_raise SyntaxError,
-                      ~r"nofile:1:13: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
+                      ~r"nofile:1:13: invalid bidirectional formatting character in string: \\u202A. If you want to use such a character, use it in its escaped \\u202A form instead",
                       '"this is a \\\u202A"'
+
+    assert_eval_raise SyntaxError,
+                      ~r"nofile:1:12: invalid confusable character in string: \\u3164. If you want to use such a character, use it in its escaped \\u3164 form instead",
+                      '"this is a \u3164"'
+
+    Code.eval_string("# confusables are 𝖿𝗂ոе in comments, even hangul filler: #{"\u3164"}")
   end
 
   test "function head with guard" do

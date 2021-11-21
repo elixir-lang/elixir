@@ -77,7 +77,13 @@ extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
     ?bidi(Char) ->
       Token = io_lib:format("\\u~4.16.0B", [Char]),
       Pre = "invalid bidirectional formatting character in string: ",
-      Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
+      Pos = io_lib:format(". If you want to use such a character, use it in its escaped ~ts form instead", [Token]),
+      {error, {Line, Column, {Pre, Pos}, Token}};
+
+    ?confusable(Char) ->
+      Token = io_lib:format("\\u~4.16.0B", [Char]),
+      Pre = "invalid confusable character in string: ",
+      Pos = io_lib:format(". If you want to use such a character, use it in its escaped ~ts form instead", [Token]),
       {error, {Line, Column, {Pre, Pos}, Token}};
 
     true ->
