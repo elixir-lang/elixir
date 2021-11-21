@@ -366,7 +366,7 @@ defmodule Kernel.SpecialForms do
 
   To learn more about specific optimizations and performance considerations,
   check out the
-  ["Constructing and matching binaries" chapter of the Erlang's Efficiency Guide](https://erlang.org/doc/efficiency_guide/binaryhandling.html).
+  ["Constructing and matching binaries" chapter of the Erlang's Efficiency Guide](https://www.erlang.org/doc/efficiency_guide/binaryhandling.html).
   """
   defmacro unquote(:<<>>)(args), do: error!([args])
 

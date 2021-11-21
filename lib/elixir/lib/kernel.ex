@@ -1463,7 +1463,7 @@ defmodule Kernel do
 
   This function is optimized so the complexity of `a -- b` is proportional
   to `length(a) * log(length(b))`. See also the [Erlang efficiency
-  guide](https://erlang.org/doc/efficiency_guide/retired_myths.html).
+  guide](https://www.erlang.org/doc/efficiency_guide/retired_myths.html).
 
   Inlined by the compiler.
 

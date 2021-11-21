@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Release.Init do
   @doc false
   def vm_args_text,
     do: ~S"""
-    ## Customize flags given to the VM: https://erlang.org/doc/man/erl.html
+    ## Customize flags given to the VM: https://www.erlang.org/doc/man/erl.html
     ## -mode/-name/-sname/-setcookie are configured via env vars, do not set them here
 
     ## Number of dirty schedulers doing IO work (file, sockets, and others)

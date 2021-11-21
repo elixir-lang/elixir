@@ -168,7 +168,7 @@ defmodule Application do
   In the sections above, we have configured an application in the
   `application/0` section of the `mix.exs` file. Ultimately, Mix will use
   this configuration to create an [*application resource
-  file*](https://erlang.org/doc/man/application.html), which is a file called
+  file*](https://www.erlang.org/doc/man/application.html), which is a file called
   `APP_NAME.app`. For example, the application resource file of the OTP
   application `ex_unit` is called `ex_unit.app`.
 
@@ -273,9 +273,9 @@ defmodule Application do
 
   For further details on applications please check the documentation of the
   [`:application` Erlang module](`:application`), and the
-  [Applications](https://erlang.org/doc/design_principles/applications.html)
+  [Applications](https://www.erlang.org/doc/design_principles/applications.html)
   section of the [OTP Design Principles User's
-  Guide](https://erlang.org/doc/design_principles/users_guide.html).
+  Guide](https://www.erlang.org/doc/design_principles/users_guide.html).
   """
 
   @doc """

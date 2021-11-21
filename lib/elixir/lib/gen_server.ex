@@ -317,7 +317,7 @@ defmodule GenServer do
 
   ## Debugging with the :sys module
 
-  GenServers, as [special processes](https://erlang.org/doc/design_principles/spec_proc.html),
+  GenServers, as [special processes](https://www.erlang.org/doc/design_principles/spec_proc.html),
   can be debugged using the [`:sys` module](`:sys`).
   Through various hooks, this module allows developers to introspect the state of
   the process and trace system events that happen during its execution, such as
@@ -407,7 +407,7 @@ defmodule GenServer do
 
     * [GenServer - Elixir's Getting Started Guide](https://elixir-lang.org/getting-started/mix-otp/genserver.html)
     * [`:gen_server` module documentation](`:gen_server`)
-    * [gen_server Behaviour - OTP Design Principles](https://erlang.org/doc/design_principles/gen_server_concepts.html)
+    * [gen_server Behaviour - OTP Design Principles](https://www.erlang.org/doc/design_principles/gen_server_concepts.html)
     * [Clients and Servers - Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/clients-and-servers)
 
   """

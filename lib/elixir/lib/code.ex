@@ -1599,7 +1599,7 @@ defmodule Code do
   file.
 
   It returns the term stored in the documentation chunk in the format defined by
-  [EEP 48](https://erlang.org/eep/eeps/eep-0048.html) or `{:error, reason}` if
+  [EEP 48](https://www.erlang.org/eep/eeps/eep-0048.html) or `{:error, reason}` if
   the chunk is not available.
 
   ## Examples
@@ -1702,7 +1702,7 @@ defmodule Code do
   @doc ~S"""
   Deprecated function to retrieve old documentation format.
 
-  Elixir v1.7 adopts [EEP 48](https://erlang.org/eep/eeps/eep-0048.html)
+  Elixir v1.7 adopts [EEP 48](https://www.erlang.org/eep/eeps/eep-0048.html)
   which is a new documentation format meant to be shared across all
   BEAM languages. The old format, used by `Code.get_docs/2`, is no
   longer available, and therefore this function always returns `nil`.
