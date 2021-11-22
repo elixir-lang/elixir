@@ -1,5 +1,6 @@
 defmodule Mix.Tasks.Test.Coverage do
   use Mix.Task
+  import Mix.Generator
 
   @moduledoc """
   Build reports from exported test coverage.
@@ -268,11 +269,20 @@ defmodule Mix.Tasks.Test.Coverage do
     ignore = opts[:ignore_modules] || []
     modules = Enum.reject(:cover.modules(), &ignored?(&1, ignore))
 
+    {module_results, totals} = gather_coverage(ok, modules)
+    module_results = Enum.sort(module_results, :desc)
+
     if summary_opts = Keyword.get(opts, :summary, true) do
-      summary(ok, modules, summary_opts)
+      summary(module_results, totals, summary_opts)
     end
 
-    html(modules, opts)
+    output = Keyword.get(opts, :output, "cover")
+    File.mkdir_p!(output)
+
+    html(modules, output)
+    html_summary(module_results, totals, summary_opts, Path.join(output, "index.html"))
+
+    Mix.shell().info("Generated HTML coverage results in #{inspect(output)} directory")
   end
 
   defp ignored?(mod, ignores) do
@@ -282,20 +292,54 @@ defmodule Mix.Tasks.Test.Coverage do
   defp ignored_any?(mod, %Regex{} = re), do: Regex.match?(re, inspect(mod))
   defp ignored_any?(mod, other), do: mod == other
 
-  defp html(modules, opts) do
-    output = Keyword.get(opts, :output, "cover")
-    File.mkdir_p!(output)
-
+  defp html(modules, output) do
     for mod <- modules do
       {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
     end
-
-    Mix.shell().info("Generated HTML coverage results in #{inspect(output)} directory")
   end
 
-  defp summary(results, keep, summary_opts) do
-    {module_results, totals} = gather_coverage(results, keep)
-    module_results = Enum.sort(module_results, :desc)
+  # TODO: We want an HTML summary regardless of a printed summary.
+  # There has to be a better way to sanitize/unify this first?
+  defp html_summary(results, totals, true, output), do: html_summary(results, totals, [], output)
+  defp html_summary(results, totals, false, output), do: html_summary(results, totals, [], output)
+
+  defp html_summary(results, totals, opts, output) when is_list(opts) do
+    threshold = get_threshold(opts)
+
+    html = index_html_template(%{results: results |> Enum.sort(), totals: totals, threshold: threshold})
+    File.write!(output, html)
+  end
+
+  defp get_html_class(pct, threshold) when pct < threshold, do: "miss"
+  defp get_html_class(_pct, _threshold), do: "hit"
+
+  embed_template(:index_html, """
+  <!DOCTYPE html>
+  <html>
+  <head>
+  <meta charset="utf-8">
+  <style>
+  td.miss {
+    background-color: #ffeef0;
+  }
+  td.hit {
+    background-color: #e6ffed;
+  }
+  </style>
+  </head>
+  <body>
+    <table>
+      <tr><th>Percentage</th><th>Module</th></tr>
+      <%= for {pct, mod} <- assigns.results do %>
+      <tr><td class="<%= get_html_class(pct, assigns.threshold) %>"><%= format_number(pct, 9) %>%</td><td><a href="<%= mod %>.html"><%= mod %></a></td></tr>
+      <% end %>
+      <tr><td class="<%= get_html_class(assigns.totals, assigns.threshold) %>"><%= format_number(assigns.totals, 9) %>%</td><td>Total</td></tr>
+    </table>
+  </body>
+  </html>
+  """)
+
+  defp summary(module_results, totals, summary_opts) do
     print_summary(module_results, totals, summary_opts)
 
     if totals < get_threshold(summary_opts) do
