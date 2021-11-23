@@ -108,29 +108,6 @@ defmodule EEx do
   required by the template is not specified at compilation time.
   """
 
-  @doc ~S'''
-  Provides `~E` sigil for EEx handling inside source files.
-
-  ## Examples
-
-      iex> import EEx, only: :sigils
-      iex> ~E"""
-      ...> Hello <%= "world" %>
-      ...> """
-      "Hello world\n"
-
-  '''
-  @doc since: "1.14.0"
-  defmacro sigil_E({:<<>>, meta, [expr]}, []) do
-    options = [
-      file: __CALLER__.file,
-      line: __CALLER__.line + 1,
-      indentation: meta[:indentation] || 0
-    ]
-
-    EEx.compile_string(expr, options)
-  end
-
   @doc """
   Generates a function definition from the given string.
 
