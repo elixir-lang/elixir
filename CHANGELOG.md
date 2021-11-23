@@ -6,6 +6,8 @@
 
 #### Elixir
 
+  * [Registry] Add `count_select/2`
+
 ### 2. Bug fixes
 
 ### 3. Soft-deprecations (no warnings emitted)

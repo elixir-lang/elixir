@@ -1322,6 +1322,7 @@ defmodule Registry do
       iex> Registry.count_select(Registry.CountSelectTest, [{{:_, :_, :value}, [], [true]}])
       2
   """
+  @doc since: "1.14.0"
   @spec count_select(registry, spec) :: non_neg_integer()
   def count_select(registry, spec)
       when is_atom(registry) and is_list(spec) do
