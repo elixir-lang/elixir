@@ -1633,83 +1633,55 @@ defmodule ErlangError do
 end
 
 defmodule Inspect.Error do
+  import Inspect.Utils, only: [pad: 2]
+
   @moduledoc """
   Raised when a struct cannot be inspected.
   """
-  # QUESTION: I am not sure if is it considered backward incompatible
-  # to enforce keys that did not exist before
-  @enforce_keys [:exception, :stacktrace, :struct]
-  defexception exception: nil,
-               message: nil,
-               stacktrace: nil,
-               struct: nil
+  @enforce_keys [:exception, :exception_message, :stacktrace, :struct]
+  defexception @enforce_keys
 
   @impl true
   def exception(arguments) when is_list(arguments) do
-    with {:ok, exception} <- Keyword.fetch!(arguments, :exception) |> validate(:exception),
-         {:ok, stacktrace} <- Keyword.fetch!(arguments, :stacktrace) |> validate(:stacktrace),
-         {:ok, struct} <- Keyword.fetch!(arguments, :struct) |> validate(:struct),
-         {:ok, message} <- Keyword.get(arguments, :message) |> validate(:message) do
-      message =
-        if message do
-          message
-        else
-          message(%Inspect.Error{
-            exception: exception,
-            stacktrace: stacktrace,
-            struct: struct
-          })
-        end
+    exception = Keyword.fetch!(arguments, :exception)
 
-      %Inspect.Error{
-        exception: exception,
-        message: message,
-        stacktrace: stacktrace,
-        struct: struct
-      }
-    else
-      {:error, key, term} -> raise(ArgumentError, "invalid #{key}, got: " <> inspect(term))
-    end
+    exception_inspected =
+      exception |> Map.fetch!(:__struct__) |> Inspect.Atom.inspect(%Inspect.Opts{})
+
+    exception_message = Exception.message(exception) |> String.trim_trailing("\n")
+    stacktrace = Keyword.fetch!(arguments, :stacktrace)
+    true = is_list(stacktrace)
+    struct_formatted = Keyword.fetch!(arguments, :struct) |> format_struct()
+
+    %Inspect.Error{
+      exception: exception_inspected,
+      exception_message: exception_message,
+      stacktrace: stacktrace,
+      struct: struct_formatted
+    }
   end
-
-  defp validate(term, :exception) when is_exception(term), do: {:ok, term}
-  defp validate(term, :stacktrace) when is_list(term), do: {:ok, term}
-  defp validate(term, :struct) when is_struct(term), do: {:ok, term}
-  defp validate(term, :message) when is_binary(term) or is_nil(term), do: {:ok, term}
-  defp validate(term, key), do: {:error, key, term}
 
   @impl true
-  def message(%__MODULE__{message: message}) when is_binary(message) do
-    message
-  end
+  def message(%__MODULE__{
+        exception: exception,
+        exception_message: exception_message,
+        struct: struct
+      })
+      when is_binary(exception) and is_binary(exception_message) and is_binary(struct) do
+    ~s'''
+    got #{exception} with message:
 
-  def message(%__MODULE__{exception: exception, stacktrace: stacktrace, struct: struct})
-      when is_exception(exception) and is_list(stacktrace) and is_struct(struct) do
-    "got #{inspect(exception.__struct__)} with message:\n\n" <>
-      "    \"\"\"\n" <>
-      "#{pad(String.trim_trailing(Exception.message(exception), "\n"), 4)}\n" <>
-      "    \"\"\"\n\n" <>
-      "  while inspecting:\n" <>
-      pad(format_struct(struct), 4) <>
-      "\n"
+        """
+    #{pad(exception_message, 4)}
+        """
+
+      while inspecting:
+    #{pad(struct, 4)}
+    '''
   end
 
   # Helpers
-  def pad(message, padding_length) do
-    padding = String.duplicate(" ", padding_length)
-
-    result =
-      message
-      |> String.replace("\\n", "\n")
-      |> String.split("\n")
-      |> Enum.map(&(padding <> &1))
-      |> Enum.join("\n")
-      |> String.trim("\n")
-
-    result
-  end
-
-  def format_struct(struct) do
+  defp format_struct(struct) when is_map(struct) do
     opts = %Inspect.Opts{}
 
     struct

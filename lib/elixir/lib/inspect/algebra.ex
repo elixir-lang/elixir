@@ -347,24 +347,18 @@ defmodule Inspect.Algebra do
             try do
               Process.put(:inspect_trap, true)
 
-              error_exception =
+              inspect_error =
                 Inspect.Error.exception(
                   exception: caught_exception,
-                  inspect_opts: opts,
                   stacktrace: __STACKTRACE__,
                   struct: struct
                 )
 
               if opts.safe do
                 opts = %{opts | inspect_fun: Inspect.Opts.default_inspect_fun()}
-                Inspect.inspect(error_exception, opts)
+                Inspect.inspect(inspect_error, opts)
               else
-                attributes =
-                  error_exception
-                  |> Map.drop([:__struct__, :__exception__])
-                  |> Map.to_list()
-
-                reraise(Inspect.Error, attributes, __STACKTRACE__)
+                reraise(inspect_error, __STACKTRACE__)
               end
             after
               Process.delete(:inspect_trap)
