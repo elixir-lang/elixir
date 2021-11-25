@@ -1389,8 +1389,9 @@ defmodule Code do
   """
   @spec compile_string(List.Chars.t(), binary) :: [{module, binary}]
   def compile_string(string, file \\ "nofile") when is_binary(file) do
-    loaded = :elixir_compiler.string(to_charlist(string), file, fn _, _ -> :ok end)
-    Enum.map(loaded, &elem(&1, 0))
+    Module.ParallelChecker.verify(fn ->
+      :elixir_compiler.string(to_charlist(string), file, fn _, _ -> :ok end)
+    end)
   end
 
   @doc """
@@ -1403,8 +1404,9 @@ defmodule Code do
   """
   @spec compile_quoted(Macro.t(), binary) :: [{module, binary}]
   def compile_quoted(quoted, file \\ "nofile") when is_binary(file) do
-    loaded = :elixir_compiler.quoted(quoted, file, fn _, _ -> :ok end)
-    Enum.map(loaded, &elem(&1, 0))
+    Module.ParallelChecker.verify(fn ->
+      :elixir_compiler.quoted(quoted, file, fn _, _ -> :ok end)
+    end)
   end
 
   @doc """

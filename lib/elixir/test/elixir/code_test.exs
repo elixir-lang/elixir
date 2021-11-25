@@ -197,6 +197,15 @@ defmodule CodeTest do
       :code.delete(CompileSimpleSample)
     end
 
+    test "emits checker warnings" do
+      output =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Code.compile_string(File.read!(fixture_path("checker_warning.exs")))
+        end)
+
+      assert output =~ "incompatible types"
+    end
+
     test "works across lexical scopes" do
       assert [{CompileCrossSample, _}] =
                Code.compile_string("CodeTest.genmodule CompileCrossSample")
