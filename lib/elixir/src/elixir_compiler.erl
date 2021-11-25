@@ -177,7 +177,6 @@ bootstrap_files() ->
      <<"lib/elixir/lib/stream/reducers.ex">>,
      <<"lib/elixir/lib/enum.ex">>,
      <<"lib/elixir/lib/regex.ex">>,
-     <<"lib/elixir/lib/inspect/utils.ex">>,
      <<"lib/elixir/lib/inspect/algebra.ex">>,
      <<"lib/elixir/lib/inspect.ex">>,
      <<"lib/elixir/lib/string.ex">>,

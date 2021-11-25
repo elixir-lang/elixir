@@ -347,11 +347,21 @@ defmodule Inspect.Algebra do
             try do
               Process.put(:inspect_trap, true)
 
+              inspected_struct =
+                struct
+                |> Inspect.Map.inspect(%{
+                  opts
+                  | syntax_colors: [],
+                    inspect_fun: Inspect.Opts.default_inspect_fun()
+                })
+                |> format(opts.width)
+                |> IO.iodata_to_binary()
+
               inspect_error =
                 Inspect.Error.exception(
                   exception: caught_exception,
                   stacktrace: __STACKTRACE__,
-                  struct: struct
+                  inspected_struct: inspected_struct
                 )
 
               if opts.safe do
