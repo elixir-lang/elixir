@@ -163,13 +163,6 @@ defmodule Inspect.Opts do
   end
 end
 
-defmodule Inspect.Error do
-  @moduledoc """
-  Raised when a struct cannot be inspected.
-  """
-  defexception [:message]
-end
-
 defmodule Inspect.Algebra do
   @moduledoc ~S"""
   A set of functions for creating and manipulating algebra
@@ -354,28 +347,18 @@ defmodule Inspect.Algebra do
             try do
               Process.put(:inspect_trap, true)
 
-              res =
-                Inspect.Map.inspect(struct, %{
-                  opts
-                  | syntax_colors: [],
-                    inspect_fun: Inspect.Opts.default_inspect_fun()
-                })
-
-              res = IO.iodata_to_binary(format(res, :infinity))
-
-              message =
-                "got #{inspect(caught_exception.__struct__)} with message " <>
-                  "#{inspect(Exception.message(caught_exception))} while inspecting #{res}"
-
-              exception = Inspect.Error.exception(message: message)
+              inspect_error =
+                Inspect.Error.exception(
+                  exception: caught_exception,
+                  stacktrace: __STACKTRACE__,
+                  struct: struct
+                )
 
               if opts.safe do
-                Inspect.inspect(exception, %{
-                  opts
-                  | inspect_fun: Inspect.Opts.default_inspect_fun()
-                })
+                opts = %{opts | inspect_fun: Inspect.Opts.default_inspect_fun()}
+                Inspect.inspect(inspect_error, opts)
               else
-                reraise(exception, __STACKTRACE__)
+                reraise(inspect_error, __STACKTRACE__)
               end
             after
               Process.delete(:inspect_trap)

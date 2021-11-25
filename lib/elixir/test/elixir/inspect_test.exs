@@ -1,5 +1,30 @@
 Code.require_file("test_helper.exs", __DIR__)
 
+# This is to temporarily test some inconsistencies in
+# the error ArgumentError messages
+# https://github.com/erlang/otp/issues/5440
+# TODO: once fixed in OTP and that minimum version is required,
+# please remove MyArgumentError and replace the calls to:
+# - MyArgumentError with ArgumentError
+# - MyArgumentError.culprit() with Atom.to_string("Foo")
+defmodule MyArgumentError do
+  defexception message: "argument error"
+
+  @impl true
+  def message(_) do
+    """
+    errors were found at the given arguments:
+
+      * 1st argument: not an atom
+    """
+  end
+
+  def culprit() do
+    raise = fn -> raise(MyArgumentError) end
+    raise.()
+  end
+end
+
 defmodule Inspect.AtomTest do
   use ExUnit.Case, async: true
 
@@ -434,48 +459,169 @@ defmodule Inspect.MapTest do
   end
 
   defmodule Failing do
-    defstruct key: 0
+    @enforce_keys [:name]
+    defstruct @enforce_keys
 
     defimpl Inspect do
-      def inspect(struct, _) do
-        struct.unknown
+      def inspect(%Failing{name: _name}, _) do
+        MyArgumentError.culprit()
       end
     end
   end
 
-  test "bad implementation unsafe" do
-    msg =
-      "got KeyError with message \"key :unknown not found in: " <>
-        "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
-        "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+  test "safely inspect bad implementation" do
+    assert_raise MyArgumentError, ~r/errors were found at the given arguments:/, fn ->
+      raise(MyArgumentError)
+    end
+
+    message = ~s'''
+    #Inspect.Error<
+      got MyArgumentError with message:
+
+          """
+          errors were found at the given arguments:
+
+            * 1st argument: not an atom
+          """
+
+        while inspecting:
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"\
+    '''
+
+    assert inspect(%Failing{name: "Foo"}) =~ message
+  end
+
+  test "safely inspect bad implementation disables colors" do
+    message = ~s'''
+    #Inspect.Error<
+      got MyArgumentError with message:
+
+          """
+          errors were found at the given arguments:
+
+            * 1st argument: not an atom
+          """
+
+        while inspecting:
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"\
+    '''
+
+    assert inspect(%Failing{name: "Foo"}, syntax_colors: [atom: [:green]]) =~ message
+  end
+
+  test "unsafely inspect bad implementation" do
+    exception_message = ~s'''
+    got MyArgumentError with message:
+
+        """
+        errors were found at the given arguments:
+
+          * 1st argument: not an atom
+        """
+
+      while inspecting:
+        %{__struct__: Inspect.MapTest.Failing, name: "Foo"\
+    '''
 
     try do
-      inspect(%Failing{}, safe: false)
+      inspect(%Failing{name: "Foo"}, safe: false)
     rescue
-      e in Inspect.Error ->
-        assert Exception.message(e) =~ msg
-        assert [{Inspect.Inspect.MapTest.Failing, :inspect, 2, _} | _] = __STACKTRACE__
+      exception in Inspect.Error ->
+        assert Exception.message(exception) =~ exception_message
+
+        assert [
+                 {MyArgumentError, fun_name, 0, [{:file, _}, {:line, _} | _]}
+                 | _
+               ] = __STACKTRACE__
+
+        assert fun_name in [:"-culprit/0-fun-0-", :culprit]
+        assert Exception.message(exception) =~ exception_message
     else
       _ -> flunk("expected failure")
     end
   end
 
-  test "bad implementation safe" do
-    msg =
-      "got KeyError with message \"key :unknown not found in: " <>
-        "%{__struct__: Inspect.MapTest.Failing, key: 0}\" while " <>
-        "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+  test "raise when trying to inspect with a bad implementation from inside another exception that is being raised" do
+    # Inspect.Error is raised here when we tried to print the error message
+    # called by another exception (Protocol.UndefinedError in this case)
+    exception_message = ~s'''
+    protocol Enumerable not implemented for #Inspect.Error<
+      got MyArgumentError with message:
 
-    assert inspect(%Failing{}) == inspect(%Inspect.Error{message: "#{msg}"})
+          """
+          errors were found at the given arguments:
+
+            * 1st argument: not an atom
+          """
+
+        while inspecting:
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"}\
+    '''
+
+    try do
+      Enum.to_list(%Failing{name: "Foo"})
+    rescue
+      exception in Protocol.UndefinedError ->
+        assert Exception.message(exception) =~ exception_message
+
+        assert [
+                 {Enumerable, :impl_for!, 1, _} | _
+               ] = __STACKTRACE__
+
+        # The culprit
+        assert Enum.any?(__STACKTRACE__, fn
+                 {Enum, :to_list, 1, _} -> true
+                 _ -> false
+               end)
+
+        # The line calling the culprit
+        assert Enum.any?(__STACKTRACE__, fn
+                 {Inspect.MapTest, _test_name, 1,
+                  [file: 'test/elixir/inspect_test.exs', line: _line_number]} ->
+                   true
+
+                 _ ->
+                   false
+               end)
+    else
+      _ -> flunk("expected failure")
+    end
   end
 
-  test "bad implementation safe disables colors" do
-    msg =
-      "got KeyError with message \\\"key :unknown not found in: " <>
-        "%{__struct__: Inspect.MapTest.Failing, key: 0}\\\" while " <>
-        "inspecting %{__struct__: Inspect.MapTest.Failing, key: 0}"
+  test "Exception.message/1 with bad implementation" do
+    message = ~s'''
+    #Inspect.Error<
+      got MyArgumentError with message:
 
-    assert inspect(%Failing{}, syntax_colors: [atom: [:green]]) =~ msg
+          """
+          errors were found at the given arguments:
+
+            * 1st argument: not an atom
+          """
+
+        while inspecting:
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"\
+    '''
+
+    {my_argument_error, stacktrace} =
+      try do
+        MyArgumentError.culprit()
+      rescue
+        e ->
+          {e, __STACKTRACE__}
+      end
+
+    inspected =
+      inspect(
+        Inspect.Error.exception(
+          exception: my_argument_error,
+          stacktrace: stacktrace,
+          struct: %Failing{name: "Foo"}
+        )
+      )
+
+    assert inspect(%Failing{name: "Foo"}) =~ message
+    assert inspected =~ message
   end
 
   test "exception" do
@@ -727,13 +873,17 @@ defmodule Inspect.CustomProtocolTest do
     defstruct []
   end
 
-  test "missing implementation unsafe" do
-    msg =
-      "got Protocol.UndefinedError with message \"protocol " <>
-        "Inspect.CustomProtocolTest.CustomInspect not implemented " <>
-        "for %Inspect.CustomProtocolTest.MissingImplementation{} " <>
-        "of type Inspect.CustomProtocolTest.MissingImplementation " <>
-        "(a struct)\" while inspecting %{__struct__: Inspect.CustomProtocolTest.MissingImplementation}"
+  test "unsafely inspect missing implementation" do
+    msg = ~S'''
+    got Protocol.UndefinedError with message:
+
+        """
+        protocol Inspect.CustomProtocolTest.CustomInspect not implemented for %Inspect.CustomProtocolTest.MissingImplementation{} of type Inspect.CustomProtocolTest.MissingImplementation (a struct)
+        """
+
+      while inspecting:
+        %{__struct__: Inspect.CustomProtocolTest.MissingImplementation}
+    '''
 
     opts = [safe: false, inspect_fun: &CustomInspect.inspect/2]
 
@@ -748,18 +898,20 @@ defmodule Inspect.CustomProtocolTest do
     end
   end
 
-  test "missing implementation safe" do
-    msg =
-      "got Protocol.UndefinedError with message \"protocol " <>
-        "Inspect.CustomProtocolTest.CustomInspect not implemented " <>
-        "for %Inspect.CustomProtocolTest.MissingImplementation{} of " <>
-        "type Inspect.CustomProtocolTest.MissingImplementation " <>
-        "(a struct)\" while inspecting %{__struct__: " <>
-        "Inspect.CustomProtocolTest.MissingImplementation}"
+  test "safely inspect missing implementation" do
+    msg = ~S'''
+    #Inspect.Error<
+      got Protocol.UndefinedError with message:
+
+          """
+          protocol Inspect.CustomProtocolTest.CustomInspect not implemented for %Inspect.CustomProtocolTest.MissingImplementation{} of type Inspect.CustomProtocolTest.MissingImplementation (a struct)
+          """
+
+        while inspecting:
+          %{__struct__: Inspect.CustomProtocolTest.MissingImplementation}
+    '''
 
     opts = [inspect_fun: &CustomInspect.inspect/2]
-
-    assert inspect(%MissingImplementation{}, opts) ==
-             inspect(%Inspect.Error{message: "#{msg}"})
+    assert inspect(%MissingImplementation{}, opts) =~ msg
   end
 end
