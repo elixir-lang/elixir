@@ -1633,60 +1633,59 @@ defmodule ErlangError do
 end
 
 defmodule Inspect.Error do
-  import Inspect.Utils, only: [pad: 2]
-
   @moduledoc """
   Raised when a struct cannot be inspected.
   """
-  @enforce_keys [:exception, :exception_message, :stacktrace, :struct]
+  @enforce_keys [:exception_module, :exception_message, :stacktrace, :inspected_struct]
   defexception @enforce_keys
 
   @impl true
   def exception(arguments) when is_list(arguments) do
     exception = Keyword.fetch!(arguments, :exception)
-
-    exception_inspected =
-      exception |> Map.fetch!(:__struct__) |> Inspect.Atom.inspect(%Inspect.Opts{})
-
+    exception_module = exception.__struct__
     exception_message = Exception.message(exception) |> String.trim_trailing("\n")
     stacktrace = Keyword.fetch!(arguments, :stacktrace)
-    true = is_list(stacktrace)
-    struct_formatted = Keyword.fetch!(arguments, :struct) |> format_struct()
+    inspected_struct = Keyword.fetch!(arguments, :inspected_struct)
 
     %Inspect.Error{
-      exception: exception_inspected,
+      exception_module: exception_module,
       exception_message: exception_message,
       stacktrace: stacktrace,
-      struct: struct_formatted
+      inspected_struct: inspected_struct
     }
   end
 
   @impl true
   def message(%__MODULE__{
-        exception: exception,
+        exception_module: exception_module,
         exception_message: exception_message,
-        struct: struct
-      })
-      when is_binary(exception) and is_binary(exception_message) and is_binary(struct) do
+        inspected_struct: inspected_struct
+      }) do
     ~s'''
-    got #{exception} with message:
+    got #{inspect(exception_module)} with message:
 
         """
     #{pad(exception_message, 4)}
         """
 
-      while inspecting:
-    #{pad(struct, 4)}
+    while inspecting:
+
+    #{pad(inspected_struct, 4)}
     '''
   end
 
-  # Helpers
-  defp format_struct(struct) when is_map(struct) do
-    opts = %Inspect.Opts{}
+  @doc false
+  def pad(message, padding_length)
+      when is_binary(message) and is_integer(padding_length) and padding_length >= 0 do
+    padding = String.duplicate(" ", padding_length)
 
-    struct
-    |> Inspect.Map.inspect(opts)
-    |> Inspect.Algebra.format(opts.width)
+    message
+    |> String.split("\n")
+    |> Enum.map(fn
+      "" -> "\n"
+      line -> [padding, line, ?\n]
+    end)
     |> IO.iodata_to_binary()
+    |> String.trim_trailing("\n")
   end
 end

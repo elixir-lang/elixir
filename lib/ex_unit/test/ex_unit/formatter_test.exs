@@ -452,8 +452,10 @@ defmodule ExUnit.FormatterTest do
           no function clause matching in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2
           """
 
-        while inspecting:
+      while inspecting:
+
           %{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}
+
       Stacktrace:
     '''
 

@@ -390,41 +390,30 @@ defimpl Inspect, for: Function do
 end
 
 defimpl Inspect, for: Inspect.Error do
-  import Inspect.Utils, only: [pad: 2]
-
   @impl true
-  def inspect(
-        %{
-          exception: exception,
-          exception_message: exception_message,
-          stacktrace: stacktrace,
-          struct: struct
-        } = inspect_error,
-        _opts
-      )
-      when is_binary(exception) and is_binary(exception_message) and is_list(stacktrace) and
-             is_binary(struct) do
-    message = Exception.message(inspect_error) |> String.trim_trailing()
+  def inspect(%{stacktrace: stacktrace} = inspect_error, _opts) do
+    message = Exception.message(inspect_error)
     format_output(message, stacktrace)
   end
 
-  # Helpers
-  defp format_output(message, stacktrace) when is_list(stacktrace) and stacktrace != [] do
+  defp format_output(message, [_ | _] = stacktrace) do
     stacktrace = Exception.format_stacktrace(stacktrace)
 
     """
     #Inspect.Error<
-    #{pad(message, 2)}
+    #{Inspect.Error.pad(message, 2)}
+
       Stacktrace:
+
     #{stacktrace}
     >\
     """
   end
 
-  defp format_output(message, _stacktrace) when is_binary(message) do
+  defp format_output(message, []) do
     """
-    #Inspect.Error<#
-      {pad(message, 2)}
+    #Inspect.Error<
+      #{Inspect.Error.pad(message, 2)}
     >\
     """
   end

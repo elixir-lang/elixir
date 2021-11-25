@@ -484,8 +484,9 @@ defmodule Inspect.MapTest do
             * 1st argument: not an atom
           """
 
-        while inspecting:
-          %{__struct__: Inspect.MapTest.Failing, name: "Foo"\
+      while inspecting:
+
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
     '''
 
     assert inspect(%Failing{name: "Foo"}) =~ message
@@ -502,8 +503,9 @@ defmodule Inspect.MapTest do
             * 1st argument: not an atom
           """
 
-        while inspecting:
-          %{__struct__: Inspect.MapTest.Failing, name: "Foo"\
+      while inspecting:
+
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
     '''
 
     assert inspect(%Failing{name: "Foo"}, syntax_colors: [atom: [:green]]) =~ message
@@ -519,8 +521,9 @@ defmodule Inspect.MapTest do
           * 1st argument: not an atom
         """
 
-      while inspecting:
-        %{__struct__: Inspect.MapTest.Failing, name: "Foo"\
+    while inspecting:
+
+        %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
     '''
 
     try do
@@ -528,11 +531,7 @@ defmodule Inspect.MapTest do
     rescue
       exception in Inspect.Error ->
         assert Exception.message(exception) =~ exception_message
-
-        assert [
-                 {MyArgumentError, fun_name, 0, [{:file, _}, {:line, _} | _]}
-                 | _
-               ] = __STACKTRACE__
+        assert [{MyArgumentError, fun_name, 0, [{:file, _}, {:line, _} | _]} | _] = __STACKTRACE__
 
         assert fun_name in [:"-culprit/0-fun-0-", :culprit]
         assert Exception.message(exception) =~ exception_message
@@ -554,8 +553,9 @@ defmodule Inspect.MapTest do
             * 1st argument: not an atom
           """
 
-        while inspecting:
-          %{__struct__: Inspect.MapTest.Failing, name: "Foo"}\
+      while inspecting:
+
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
     '''
 
     try do
@@ -576,9 +576,8 @@ defmodule Inspect.MapTest do
 
         # The line calling the culprit
         assert Enum.any?(__STACKTRACE__, fn
-                 {Inspect.MapTest, _test_name, 1,
-                  [file: 'test/elixir/inspect_test.exs', line: _line_number]} ->
-                   true
+                 {Inspect.MapTest, _test_name, 1, file: file, line: _line_number} ->
+                   String.ends_with?(List.to_string(file), "test/elixir/inspect_test.exs")
 
                  _ ->
                    false
@@ -599,8 +598,9 @@ defmodule Inspect.MapTest do
             * 1st argument: not an atom
           """
 
-        while inspecting:
-          %{__struct__: Inspect.MapTest.Failing, name: "Foo"\
+      while inspecting:
+
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
     '''
 
     {my_argument_error, stacktrace} =
@@ -616,7 +616,7 @@ defmodule Inspect.MapTest do
         Inspect.Error.exception(
           exception: my_argument_error,
           stacktrace: stacktrace,
-          struct: %Failing{name: "Foo"}
+          inspected_struct: "%{__struct__: Inspect.MapTest.Failing, name: \"Foo\"}"
         )
       )
 
@@ -881,7 +881,8 @@ defmodule Inspect.CustomProtocolTest do
         protocol Inspect.CustomProtocolTest.CustomInspect not implemented for %Inspect.CustomProtocolTest.MissingImplementation{} of type Inspect.CustomProtocolTest.MissingImplementation (a struct)
         """
 
-      while inspecting:
+    while inspecting:
+
         %{__struct__: Inspect.CustomProtocolTest.MissingImplementation}
     '''
 
@@ -907,7 +908,8 @@ defmodule Inspect.CustomProtocolTest do
           protocol Inspect.CustomProtocolTest.CustomInspect not implemented for %Inspect.CustomProtocolTest.MissingImplementation{} of type Inspect.CustomProtocolTest.MissingImplementation (a struct)
           """
 
-        while inspecting:
+      while inspecting:
+
           %{__struct__: Inspect.CustomProtocolTest.MissingImplementation}
     '''
 
