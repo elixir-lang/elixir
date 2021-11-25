@@ -1631,3 +1631,62 @@ defmodule ErlangError do
   defp nth(3), do: "3rd"
   defp nth(n), do: "#{n}th"
 end
+
+defmodule Inspect.Error do
+  import Inspect.Utils, only: [pad: 2]
+
+  @moduledoc """
+  Raised when a struct cannot be inspected.
+  """
+  @enforce_keys [:exception, :exception_message, :stacktrace, :struct]
+  defexception @enforce_keys
+
+  @impl true
+  def exception(arguments) when is_list(arguments) do
+    exception = Keyword.fetch!(arguments, :exception)
+
+    exception_inspected =
+      exception |> Map.fetch!(:__struct__) |> Inspect.Atom.inspect(%Inspect.Opts{})
+
+    exception_message = Exception.message(exception) |> String.trim_trailing("\n")
+    stacktrace = Keyword.fetch!(arguments, :stacktrace)
+    true = is_list(stacktrace)
+    struct_formatted = Keyword.fetch!(arguments, :struct) |> format_struct()
+
+    %Inspect.Error{
+      exception: exception_inspected,
+      exception_message: exception_message,
+      stacktrace: stacktrace,
+      struct: struct_formatted
+    }
+  end
+
+  @impl true
+  def message(%__MODULE__{
+        exception: exception,
+        exception_message: exception_message,
+        struct: struct
+      })
+      when is_binary(exception) and is_binary(exception_message) and is_binary(struct) do
+    ~s'''
+    got #{exception} with message:
+
+        """
+    #{pad(exception_message, 4)}
+        """
+
+      while inspecting:
+    #{pad(struct, 4)}
+    '''
+  end
+
+  # Helpers
+  defp format_struct(struct) when is_map(struct) do
+    opts = %Inspect.Opts{}
+
+    struct
+    |> Inspect.Map.inspect(opts)
+    |> Inspect.Algebra.format(opts.width)
+    |> IO.iodata_to_binary()
+  end
+end
