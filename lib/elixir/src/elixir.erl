@@ -170,11 +170,22 @@ env_for_eval(#{lexical_tracker := Pid} = Env) ->
     versioned_vars := #{}
   },
 
-  case is_pid(Pid) andalso is_process_alive(Pid) of
-    true -> NewEnv;
-    false -> NewEnv#{lexical_tracker := nil, tracers := []}
+  case is_pid(Pid) of
+    true ->
+      case is_process_alive(Pid) of
+        true ->
+          NewEnv;
+        false ->
+          'Elixir.IO':warn(
+            <<"an __ENV__ with outdated compilation information was given to eval, "
+              "call Macro.Env.prune_compile_info/1 to prune it">>
+          ),
+          NewEnv#{lexical_tracker := nil, tracers := []}
+      end;
+    false ->
+      NewEnv#{tracers := []}
   end;
-%% TODO: Deprecate all options except line and file.
+%% TODO: Deprecate all options except line and file on v1.15.
 env_for_eval(Opts) when is_list(Opts) ->
   Env = elixir_env:new(),
 
