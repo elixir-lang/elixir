@@ -99,14 +99,14 @@ defmodule VersionTest do
     assert Version.parse("0.1.0-&&pre") == :error
   end
 
-  test "Kernel.to_string/1" do
-    assert Version.parse!("1.0.0") |> to_string == "1.0.0"
-    assert Version.parse!("1.0.0-dev") |> to_string == "1.0.0-dev"
-    assert Version.parse!("1.0.0+lol") |> to_string == "1.0.0+lol"
-    assert Version.parse!("1.0.0-dev+lol") |> to_string == "1.0.0-dev+lol"
-    assert Version.parse!("1.0.0-0") |> to_string == "1.0.0-0"
-    assert Version.parse!("1.0.0-rc.0") |> to_string == "1.0.0-rc.0"
-    assert %Version{major: 1, minor: 0, patch: 0} |> to_string() == "1.0.0"
+  test "to_string/1" do
+    assert Version.parse!("1.0.0") |> Version.to_string() == "1.0.0"
+    assert Version.parse!("1.0.0-dev") |> Version.to_string() == "1.0.0-dev"
+    assert Version.parse!("1.0.0+lol") |> Version.to_string() == "1.0.0+lol"
+    assert Version.parse!("1.0.0-dev+lol") |> Version.to_string() == "1.0.0-dev+lol"
+    assert Version.parse!("1.0.0-0") |> Version.to_string() == "1.0.0-0"
+    assert Version.parse!("1.0.0-rc.0") |> Version.to_string() == "1.0.0-rc.0"
+    assert %Version{major: 1, minor: 0, patch: 0} |> Version.to_string() == "1.0.0"
   end
 
   test "match?/2 with invalid versions" do
