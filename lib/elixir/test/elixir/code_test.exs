@@ -88,6 +88,16 @@ defmodule CodeTest do
                    ~r"argument error while evaluating example.ex between lines 1 and 2",
                    fn -> Code.eval_string("a <>\nb", [a: :a, b: :b], file: "example.ex") end
     end
+
+    test "warns when lexical tracker process is dead" do
+      {pid, ref} = spawn_monitor(fn -> :ok end)
+      assert_receive {:DOWN, ^ref, _, _, _}
+      env = %{__ENV__ | lexical_tracker: pid}
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Code.eval_string("1 + 2", [], env) == {3, []}
+             end) =~ "an __ENV__ with outdated compilation information was given to eval"
+    end
   end
 
   test "eval_quoted/1" do

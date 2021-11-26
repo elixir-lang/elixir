@@ -107,6 +107,19 @@ defmodule Macro.Env do
   end
 
   @doc """
+  Prunes compile information from the environment.
+
+  This happens when the environment is captured at compilation
+  time, for example, in the module body, and then used to
+  evaluate code after the module has been defined.
+  """
+  @doc since: "1.14.0"
+  @spec prune_compile_info(t) :: t
+  def prune_compile_info(env) do
+    %{env | lexical_tracker: nil, tracers: []}
+  end
+
+  @doc """
   Returns a list of variables in the current environment.
 
   Each variable is identified by a tuple of two elements,
