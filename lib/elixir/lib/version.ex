@@ -458,6 +458,36 @@ defmodule Version do
     end
   end
 
+  @doc """
+  Converts the given version to a string.
+
+  ### Examples
+
+      iex> Version.to_string(%Version{major: 1, minor: 2, patch: 3})
+      "1.2.3"
+      iex> Version.to_string(Version.parse!("1.14.0-rc.0+build0"))
+      "1.14.0-rc.0+build0"
+  """
+  @doc since: "1.14.0"
+  @spec to_string(Version.t()) :: String.t()
+  def to_string(%Version{} = version) do
+    pre = pre_to_string(version.pre)
+    build = if build = version.build, do: "+#{build}"
+    "#{version.major}.#{version.minor}.#{version.patch}#{pre}#{build}"
+  end
+
+  defp pre_to_string([]) do
+    ""
+  end
+
+  defp pre_to_string(pre) do
+    "-" <>
+      Enum.map_join(pre, ".", fn
+        int when is_integer(int) -> Integer.to_string(int)
+        string when is_binary(string) -> string
+      end)
+  end
+
   defmodule Parser do
     @moduledoc false
 
@@ -627,28 +657,12 @@ defmodule Version do
 end
 
 defimpl String.Chars, for: Version do
-  def to_string(version) do
-    pre = pre(version.pre)
-    build = if build = version.build, do: "+#{build}"
-    "#{version.major}.#{version.minor}.#{version.patch}#{pre}#{build}"
-  end
-
-  defp pre([]) do
-    ""
-  end
-
-  defp pre(pre) do
-    "-" <>
-      Enum.map_join(pre, ".", fn
-        int when is_integer(int) -> Integer.to_string(int)
-        string when is_binary(string) -> string
-      end)
-  end
+  defdelegate to_string(version), to: Version
 end
 
 defimpl Inspect, for: Version do
   def inspect(self, _opts) do
-    "#Version<" <> to_string(self) <> ">"
+    "#Version<" <> Version.to_string(self) <> ">"
   end
 end
 
