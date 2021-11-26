@@ -347,6 +347,9 @@ defimpl Inspect, for: Function do
     name = fun_info[:name]
 
     cond do
+      not is_atom(mod) ->
+        "#Function<#{uniq(fun_info)}/#{fun_info[:arity]}>"
+
       fun_info[:type] == :external and fun_info[:env] == [] ->
         inspected_as_atom = Identifier.inspect_as_atom(mod)
         inspected_as_function = Identifier.inspect_as_function(name)
