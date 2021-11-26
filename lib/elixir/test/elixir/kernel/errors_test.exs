@@ -215,29 +215,6 @@ defmodule Kernel.ErrorsTest do
                       'foo = 1; %{put_in(foo.bar.baz, nil), foo}'
   end
 
-  test "expression after keyword lists" do
-    assert_eval_raise SyntaxError,
-                      ~r"unexpected expression after keyword list",
-                      'call foo: 1, :bar'
-
-    assert_eval_raise SyntaxError,
-                      ~r"unexpected expression after keyword list",
-                      'call(foo: 1, :bar)'
-
-    assert_eval_raise SyntaxError,
-                      ~r"unexpected expression after keyword list",
-                      '[foo: 1, :bar]'
-
-    assert_eval_raise SyntaxError,
-                      ~r"unexpected expression after keyword list",
-                      '%{foo: 1, :bar => :bar}'
-  end
-
-  test "syntax errors include formatted snippet" do
-    message = "nofile:1:5: syntax error before: '*'\n    |\n  1 | 1 + * 3\n    |     ^"
-    assert_eval_raise SyntaxError, message, "1 + * 3"
-  end
-
   test "struct fields on defstruct" do
     assert_eval_raise ArgumentError, "struct field names must be atoms, got: 1", '''
     defmodule Kernel.ErrorsTest.StructFieldsOnDefstruct do
@@ -814,24 +791,6 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError,
                       "nofile:1: cannot use ^x outside of match clauses",
                       'x = 8; <<a, b::size(^x)>> = <<?a, ?b>>'
-  end
-
-  test "invalid bidi in source" do
-    assert_eval_raise SyntaxError,
-                      ~r"nofile:1:1: invalid bidirectional formatting character in comment: \\u202A",
-                      '# This is a \u202A'
-
-    assert_eval_raise SyntaxError,
-                      ~r"nofile:1:5: invalid bidirectional formatting character in comment: \\u202A",
-                      'foo. # This is a \u202A'
-
-    assert_eval_raise SyntaxError,
-                      ~r"nofile:1:12: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
-                      '"this is a \u202A"'
-
-    assert_eval_raise SyntaxError,
-                      ~r"nofile:1:13: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
-                      '"this is a \\\u202A"'
   end
 
   test "function head with guard" do
