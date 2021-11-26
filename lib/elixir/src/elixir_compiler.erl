@@ -65,7 +65,7 @@ spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
   Fun  = code_fun(?key(E, module)),
   Forms = code_mod(Fun, ErlExprs, Line, File, Module, Vars),
 
-  {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch]),
+  {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch, no_bool_opt, no_ssa_opt]),
   code:load_binary(Module, "", Binary),
   {Module, Fun, is_purgeable(Module, Binary)}.
 
