@@ -688,7 +688,13 @@ previous_was_dot([{'.', _} | _]) -> true;
 previous_was_dot(_) -> false.
 
 unexpected_token([T | Rest], Line, Column, Scope, Tokens) ->
-  Message = io_lib:format("\"~ts\" (column ~p, code point U+~4.16.0B)", [[T], Column, T]),
+  Message =
+    case handle_char(T) of
+      {_Escaped, Explanation} ->
+        io_lib:format("~ts (column ~p, code point U+~4.16.0B)", [Explanation, Column, T]);
+      false ->
+        io_lib:format("\"~ts\" (column ~p, code point U+~4.16.0B)", [[T], Column, T])
+    end,
   error({Line, Column, "unexpected token: ", Message}, Rest, Scope, Tokens).
 
 tokenize_eol(Rest, Line, Scope, Tokens) ->

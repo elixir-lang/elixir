@@ -503,6 +503,11 @@ defmodule Kernel.ParserTest do
         ~r/nofile:1:7: unexpected token: "#{"\u200B"}" \(column 7, code point U\+200B\)/,
         '[foo: \u200B]\noops'
       )
+
+      assert_syntax_error(
+        ~r/nofile:1:1: unexpected token: carriage return \(column 1, code point U\+000D\)/,
+        '\r'
+      )
     end
 
     test "reserved tokens" do
