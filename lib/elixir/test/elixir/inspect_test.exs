@@ -763,7 +763,7 @@ defmodule Inspect.OthersTest do
     anony = Application.get_env(:elixir, :anony)
     named = Application.get_env(:elixir, :named)
 
-    assert inspect(anony) =~ ~r"#Function<0.\d+/0 in Inspect.OthersTest.V>"
+    assert inspect(anony) =~ ~r"#Function<0.\d+/0"
     assert inspect(named) =~ ~r"&Inspect.OthersTest.V.fun/0"
   after
     Application.delete_env(:elixir, :anony)
