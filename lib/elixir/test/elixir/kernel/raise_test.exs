@@ -426,7 +426,7 @@ defmodule Kernel.RaiseTest do
         end
 
       assert result =~
-               ~r/function #Function<[0-9]\.[0-9]*\/0 in Kernel.RaiseTest.BadFunction.Missing> is invalid, likely because it points to an old version of the code/
+               ~r/function #Function<[0-9]\.[0-9]*\/0[^>]*> is invalid, likely because it points to an old version of the code/
     end
 
     test "badmatch error" do
