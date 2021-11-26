@@ -800,10 +800,10 @@ defmodule Stream do
   @doc """
   Transforms an existing stream.
 
-  It expects an accumulator and a function that receives each stream element.
-  It must return a tuple, where the first element is a new
-  stream (often a list) or the atom `:halt`, and the second element is the
-  accumulator to be used by the next element, if any, in both cases.
+  It expects an accumulator and a function that receives two arguments,
+  the stream element and the updated accumulator. It must return a tuple,
+  where the first element is a new stream (often a list) or the atom `:halt`,
+  and the second element is the accumulator to be used by the next element.
 
   Note: this function is equivalent to `Enum.flat_map_reduce/3`, except this
   function does not return the accumulator once the stream is processed.
