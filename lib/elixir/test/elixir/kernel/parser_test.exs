@@ -510,6 +510,28 @@ defmodule Kernel.ParserTest do
       )
     end
 
+    test "invalid bidi in source" do
+      assert_syntax_error(
+        ~r"nofile:1:1: invalid bidirectional formatting character in comment: \\u202A",
+        '# This is a \u202A'
+      )
+
+      assert_syntax_error(
+        ~r"nofile:1:5: invalid bidirectional formatting character in comment: \\u202A",
+        'foo. # This is a \u202A'
+      )
+
+      assert_syntax_error(
+        ~r"nofile:1:12: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
+        '"this is a \u202A"'
+      )
+
+      assert_syntax_error(
+        ~r"nofile:1:13: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
+        '"this is a \\\u202A"'
+      )
+    end
+
     test "reserved tokens" do
       assert_syntax_error(~r/nofile:1:1: reserved token: __aliases__/, '__aliases__')
       assert_syntax_error(~r/nofile:1:1: reserved token: __block__/, '__block__')
@@ -589,12 +611,39 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(message, :unicode.characters_to_nfd_list("foó"))
     end
 
-    test "kw missing space" do
+    test "keyword missing space" do
       msg = ~r/nofile:1:1: keyword argument must be followed by space after: foo:/
 
       assert_syntax_error(msg, "foo:bar")
       assert_syntax_error(msg, "foo:+")
       assert_syntax_error(msg, "foo:+1")
+    end
+
+    test "expression after keyword lists" do
+      assert_syntax_error(
+        ~r"unexpected expression after keyword list",
+        'call foo: 1, :bar'
+      )
+
+      assert_syntax_error(
+        ~r"unexpected expression after keyword list",
+        'call(foo: 1, :bar)'
+      )
+
+      assert_syntax_error(
+        ~r"unexpected expression after keyword list",
+        '[foo: 1, :bar]'
+      )
+
+      assert_syntax_error(
+        ~r"unexpected expression after keyword list",
+        '%{foo: 1, :bar => :bar}'
+      )
+    end
+
+    test "syntax errors include formatted snippet" do
+      message = "nofile:1:5: syntax error before: '*'\n    |\n  1 | 1 + * 3\n    |     ^"
+      assert_syntax_error(message, "1 + * 3")
     end
 
     test "invalid map start" do
