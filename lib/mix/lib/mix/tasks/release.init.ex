@@ -181,7 +181,7 @@ defmodule Mix.Tasks.Release.Init do
 
     case $1 in
       start)
-        start "elixir" --no-halt
+        start "elixir" --no-halt -- $@
         ;;
 
       start_iex)
@@ -378,7 +378,7 @@ defmodule Mix.Tasks.Release.Init do
       --erl-config "!RELEASE_SYS_CONFIG!" ^
       --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-      --vm-args "!RELEASE_VM_ARGS!"
+      --vm-args "!RELEASE_VM_ARGS!" -- %*
     goto end
 
     :eval
