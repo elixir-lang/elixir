@@ -509,7 +509,7 @@ defmodule Float do
   defp sign(1, num), do: -num
 
   @doc """
-  Returns a charlist which corresponds to the smallest text representation
+  Returns a charlist which corresponds to the shortest text representation
   of the given float.
 
   The underlying algorithm changes depending on the Erlang/OTP version:
@@ -536,7 +536,7 @@ defmodule Float do
   end
 
   @doc """
-  Returns a binary which corresponds to the smallest text representation
+  Returns a binary which corresponds to the shortest text representation
   of the given float.
 
   The underlying algorithm changes depending on the Erlang/OTP version:
