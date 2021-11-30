@@ -440,7 +440,7 @@ defmodule Version do
   The internal representation is opaque.
   """
   @spec compile_requirement(Requirement.t()) :: Requirement.t()
-  def compile_requirement(requirement) do
+  def compile_requirement(requirement) when is_struct(requirement, Requirement) do
     requirement
   end
 
