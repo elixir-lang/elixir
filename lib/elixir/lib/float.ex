@@ -512,10 +512,14 @@ defmodule Float do
   Returns a charlist which corresponds to the smallest text representation
   of the given float.
 
-  The underlying algorithm changes depending on the OTP version:
-    * For OTP >= 24, it uses the [Ryū algorithm][1]
-    * For OTP < 24, it uses the algorithm presented it "Printing Floating-Point
-      Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '96
+  The underlying algorithm changes depending on the Erlang/OTP version:
+
+    * For OTP >= 24, it uses the algorithm presented in "Ryū: fast
+      float-to-string conversion" in Proceedings of the SIGPLAN '2018
+      Conference on Programming Language Design and Implementation.
+
+    * For OTP < 24, it uses the algorithm presented in "Printing Floating-Point
+      Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '1996
       Conference on Programming Language Design and Implementation.
 
   For a configurable representation, use `:erlang.float_to_list/2`.
@@ -525,7 +529,6 @@ defmodule Float do
       iex> Float.to_charlist(7.0)
       '7.0'
 
-  [1]: https://dl.acm.org/doi/10.1145/3192366.3192369
   """
   @spec to_charlist(float) :: charlist
   def to_charlist(float) when is_float(float) do
@@ -536,10 +539,14 @@ defmodule Float do
   Returns a binary which corresponds to the smallest text representation
   of the given float.
 
-  The underlying algorithm changes depending on the OTP version:
-    * For OTP >= 24, it uses the [Ryū algorithm][1]
-    * For OTP < 24, it uses the algorithm presented it "Printing Floating-Point
-      Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '96
+  The underlying algorithm changes depending on the Erlang/OTP version:
+
+    * For OTP >= 24, it uses the algorithm presented in "Ryū: fast
+      float-to-string conversion" in Proceedings of the SIGPLAN '2018
+      Conference on Programming Language Design and Implementation.
+
+    * For OTP < 24, it uses the algorithm presented in "Printing Floating-Point
+      Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '1996
       Conference on Programming Language Design and Implementation.
 
   For a configurable representation, use `:erlang.float_to_binary/2`.
@@ -549,7 +556,6 @@ defmodule Float do
       iex> Float.to_string(7.0)
       "7.0"
 
-  [1]: https://dl.acm.org/doi/10.1145/3192366.3192369
   """
   @spec to_string(float) :: String.t()
   def to_string(float) when is_float(float) do
