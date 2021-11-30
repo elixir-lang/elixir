@@ -509,13 +509,20 @@ defmodule Float do
   defp sign(1, num), do: -num
 
   @doc """
-  Returns a charlist which corresponds to the text representation
+  Returns a charlist which corresponds to the shortest text representation
   of the given float.
 
-  It uses the shortest representation according to algorithm described
-  in "Printing Floating-Point Numbers Quickly and Accurately" in
-  Proceedings of the SIGPLAN '96 Conference on Programming Language
-  Design and Implementation.
+  The underlying algorithm changes depending on the Erlang/OTP version:
+
+    * For OTP >= 24, it uses the algorithm presented in "Ryū: fast
+      float-to-string conversion" in Proceedings of the SIGPLAN '2018
+      Conference on Programming Language Design and Implementation.
+
+    * For OTP < 24, it uses the algorithm presented in "Printing Floating-Point
+      Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '1996
+      Conference on Programming Language Design and Implementation.
+
+  For a configurable representation, use `:erlang.float_to_list/2`.
 
   ## Examples
 
@@ -529,13 +536,20 @@ defmodule Float do
   end
 
   @doc """
-  Returns a binary which corresponds to the text representation
+  Returns a binary which corresponds to the shortest text representation
   of the given float.
 
-  It uses the shortest representation according to algorithm described
-  in "Printing Floating-Point Numbers Quickly and Accurately" in
-  Proceedings of the SIGPLAN '96 Conference on Programming Language
-  Design and Implementation.
+  The underlying algorithm changes depending on the Erlang/OTP version:
+
+    * For OTP >= 24, it uses the algorithm presented in "Ryū: fast
+      float-to-string conversion" in Proceedings of the SIGPLAN '2018
+      Conference on Programming Language Design and Implementation.
+
+    * For OTP < 24, it uses the algorithm presented in "Printing Floating-Point
+      Numbers Quickly and Accurately" in Proceedings of the SIGPLAN '1996
+      Conference on Programming Language Design and Implementation.
+
+  For a configurable representation, use `:erlang.float_to_binary/2`.
 
   ## Examples
 
