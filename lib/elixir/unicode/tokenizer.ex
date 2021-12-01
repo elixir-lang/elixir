@@ -178,6 +178,10 @@ defmodule String.Tokenizer do
     {:error, :empty}
   end
 
+  def unicode_lint_warnings(tokens, file \\ "nofile") do
+    String.UnicodeSecurity.unicode_lint_warnings(tokens, file)
+  end
+
   defp continue([?! | tail], acc, length, ascii_letters?, special) do
     {[?! | acc], tail, length + 1, ascii_letters?, [?! | special]}
   end
@@ -217,4 +221,106 @@ defmodule String.Tokenizer do
       {:error, {:not_nfc, acc}}
     end
   end
+end
+
+defmodule String.UnicodeSecurity do
+  @moduledoc false
+
+  # implements some more of TR39 (confusable detection)
+  #  https://www.unicode.org/reports/tr39/
+  #
+  # This is its own module, so we can use String.Tokenizer
+  # at compile-time to filter out confusables that wouldn't
+  # be valid Elixir identifiers anyway.
+  # Additional protections (mixedscript, uncommon codepoints)
+  # can also be added in this module.
+
+  confusable_prototype_lookup =
+    Path.join(__DIR__, "confusables.txt")
+    |> File.read!()
+    |> String.split(["\r\n", "\n"], trim: true)
+    |> Enum.reduce(%{}, fn line, acc ->
+      match_mapping = ~r/^((?:[0-9A-F]+ )+);\t((?:[0-9A-F]+ )+);/u
+
+      case Regex.run(match_mapping, line, capture: :all_but_first) do
+        nil ->
+          acc
+
+        [one_char, prototype_chars] ->
+          confusable = String.to_integer(String.trim(one_char), 16)
+
+          prototype =
+            prototype_chars
+            |> String.split(" ", trim: true)
+            |> Enum.map(&String.to_integer(&1, 16))
+
+          case String.Tokenizer.tokenize([confusable]) do
+            {:error, _why} -> acc
+            _ -> Map.put_new(acc, confusable, prototype)
+          end
+
+        other ->
+          throw("unexpected mapping: #{inspect(other)}")
+      end
+    end)
+
+  @skeletons %{}
+
+  def unicode_lint_warnings(tokens, file \\ "nofile") do
+    # this does confusable detection only for now
+    #
+    {_skeletons, warnings} =
+      Enum.reduce(tokens, {@skeletons, []}, fn token, {skeletons, warnings} = acc ->
+        case confusable_check(token, skeletons) do
+          :ok -> acc
+          {:ok, new_skeletons} -> {new_skeletons, warnings}
+          {:warn, reason} -> {skeletons, [format_warning(file, reason, token) | warnings]}
+        end
+      end)
+
+    warnings
+  end
+
+  def skeleton(s) do
+    String.normalize(s, :nfd)
+    |> String.to_charlist()
+    |> Enum.map(&confusable_prototype/1)
+    |> List.to_string()
+    |> String.normalize(:nfd)
+  end
+
+  defp confusable_prototype(c) when c in ?A..?Z or c in ?a..?z or c in ?0..?9, do: c
+
+  defp confusable_prototype(?_), do: ?_
+
+  for {confusable, prototype} <- confusable_prototype_lookup do
+    defp confusable_prototype(unquote(confusable)) do
+      unquote(prototype)
+    end
+  end
+
+  defp confusable_prototype(other), do: other
+
+  defp format_warning(file, reason, token) do
+    {_, {line, col, _}, _name} = token
+    {{line, col}, file, String.to_charlist(reason)}
+  end
+
+  defp confusable_check({_kind, {line, _, _}, name} = token, skeletons) when is_atom(name) do
+    str = to_string(name)
+    skel = skeleton(str)
+
+    case skeletons[skel] do
+      {_, _, existing} when name == existing ->
+        :ok
+
+      {_, {line2, _, _}, existing} when name != existing ->
+        {:warn, "confusable: '#{name}' on L#{line} looks like '#{existing}' up on L#{line2}"}
+
+      _ ->
+        {:ok, Map.put(skeletons, skel, token)}
+    end
+  end
+
+  defp confusable_check(_token, _skeletons), do: :ok
 end

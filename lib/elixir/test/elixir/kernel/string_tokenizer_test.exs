@@ -69,4 +69,22 @@ defmodule Kernel.StringTokenizerTest do
     assert {:error, _} = Code.string_to_quoted("Ola?")
     assert {:error, _} = Code.string_to_quoted("Ola!")
   end
+
+  test "tokenizes confusables with warnings" do
+    assert {:ok, _, _, warnings, _} = :elixir_tokenizer.tokenize('а=1; a=1', 1, 1, file: "f")
+
+    msg = "confusable: 'a' on L1 looks like 'а' up on L1" |> String.to_charlist()
+    assert [{_linecol, _file, ^msg}] = warnings
+  end
+
+  test "unicode tr39 'skeleton' calculation" do
+    import String.UnicodeSecurity, only: [skeleton: 1]
+
+    # cases similar to those from unicode-security .rs
+    assert skeleton("") === ""
+    assert skeleton("ｓ") === "s"
+    assert skeleton("ｓｓｓ") === "sss"
+    assert skeleton("ﶛ") === "نمى"
+    assert skeleton("ﶛﶛ") === "نمىنمى"
+  end
 end
