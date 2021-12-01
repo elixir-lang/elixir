@@ -140,6 +140,12 @@ defmodule Version do
     end
 
     @doc false
+    @spec compile_requirement(t) :: t
+    def compile_requirement(%Requirement{} = requirement) do
+      requirement
+    end
+
+    @doc false
     @spec match?(t, tuple) :: boolean
     def match?(%__MODULE__{lexed: [operator, req | rest]}, version) do
       match_lexed?(rest, version, match_op?(operator, req, version))
@@ -440,9 +446,7 @@ defmodule Version do
   The internal representation is opaque.
   """
   @spec compile_requirement(Requirement.t()) :: Requirement.t()
-  def compile_requirement(%Requirement{} = requirement) do
-    requirement
-  end
+  defdelegate compile_requirement(requirement), to: Requirement
 
   defp to_matchable(%Version{major: major, minor: minor, patch: patch, pre: pre}, allow_pre?) do
     {major, minor, patch, pre, allow_pre?}
