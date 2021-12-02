@@ -209,6 +209,11 @@ defmodule Code.Normalizer do
     {:@, meta, [{name, name_meta, [value]}]}
   end
 
+  # Regular blocks
+  defp do_normalize({:__block__, meta, args}, state) when is_list(args) do
+    {:__block__, meta, normalize_args(args, state)}
+  end
+
   # Calls
   defp do_normalize({_, _, args} = quoted, state) when is_list(args) do
     normalize_call(quoted, state)
