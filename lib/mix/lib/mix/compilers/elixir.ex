@@ -778,8 +778,7 @@ defmodule Mix.Compilers.Elixir do
   defp fixpoint_dep_modules([source | sources], modules, new_modules?, acc_sources) do
     source(export_references: export_refs, runtime_references: runtime_refs) = source
 
-    if has_any_key?(modules, compile_refs) or has_any_key?(modules, export_refs) or
-         has_any_key?(modules, runtime_refs) do
+    if has_any_key?(modules, export_refs) or has_any_key?(modules, runtime_refs) do
       new_modules = Enum.reject(source(source, :modules), &Map.has_key?(modules, &1))
       new_modules? = new_modules? or new_modules != []
       modules = Enum.reduce(new_modules, modules, &Map.put(&2, &1, []))
