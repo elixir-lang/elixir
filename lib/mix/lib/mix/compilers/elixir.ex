@@ -143,18 +143,18 @@ defmodule Mix.Compilers.Elixir do
 
       # Stores state for keeping track which files were compiled
       # and the dependencies between them.
-      put_compiler_info({modules, exports, sources, modules, removed_modules})
+      put_compiler_info({[], exports, sources, modules, removed_modules})
 
       try do
         compile_path(stale, dest, timestamp, opts)
       else
         {:ok, _, warnings} ->
-          {modules, _exports, sources, _pending_modules, _pending_exports} = get_compiler_info()
+          {modules, _exports, sources, pending_modules, _pending_exports} = get_compiler_info()
           sources = apply_warnings(sources, warnings)
 
           write_manifest(
             manifest,
-            modules,
+            modules ++ pending_modules,
             sources,
             all_local_exports,
             new_parents,
@@ -423,16 +423,15 @@ defmodule Mix.Compilers.Elixir do
     end
 
     if changed == [] do
-      runtime_modules = dependent_runtime_modules(sources, modules, pending_modules)
+      modules = Enum.map(modules, &module(&1, :module))
       warnings = Mix.Compilers.ApplicationTracer.warnings(modules)
+
+      # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
+      modules_set = Enum.into(modules, %{}, &{&1, []})
+      {_, runtime_modules} = fixpoint_runtime_modules(sources, modules_set)
       {:runtime, runtime_modules, warnings}
     else
       Mix.Utils.compiling_n(length(changed), :ex)
-
-      modules =
-        for module(sources: source_files) = module <- modules do
-          module(module, sources: source_files -- changed)
-        end
 
       # If we have a compile time dependency to a module, as soon as its file
       # change, we will detect the compile time dependency and recompile. However,
@@ -442,42 +441,6 @@ defmodule Mix.Compilers.Elixir do
       {sources, removed_modules} = update_stale_sources(sources, changed)
       put_compiler_info({modules, exports, sources, pending_modules, removed_modules})
       {:compile, changed, []}
-    end
-  end
-
-  defp dependent_runtime_modules(sources, all_modules, pending_modules) do
-    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
-    changed_modules =
-      for module(module: module) = entry <- all_modules,
-          entry not in pending_modules,
-          into: %{},
-          do: {module, []}
-
-    fixpoint_runtime_modules(sources, changed_modules, %{}, pending_modules)
-  end
-
-  defp fixpoint_runtime_modules(sources, changed, dependent, not_dependent) do
-    {new_dependent, not_dependent} =
-      Enum.reduce(not_dependent, {dependent, []}, fn module, {new_dependent, not_dependent} ->
-        depending? =
-          Enum.any?(module(module, :sources), fn file ->
-            source(runtime_references: runtime_refs) =
-              List.keyfind(sources, file, source(:source))
-
-            has_any_key?(changed, runtime_refs)
-          end)
-
-        if depending? do
-          {Map.put(new_dependent, module(module, :module), true), not_dependent}
-        else
-          {new_dependent, [module | not_dependent]}
-        end
-      end)
-
-    if map_size(dependent) != map_size(new_dependent) do
-      fixpoint_runtime_modules(sources, new_dependent, new_dependent, not_dependent)
-    else
-      Map.keys(new_dependent)
     end
   end
 
@@ -743,7 +706,7 @@ defmodule Mix.Compilers.Elixir do
         # within the dependnecy, they will be recompiled. However, export
         # and runtime dependencies won't have recompiled so we need to
         # propagate them to the parent app.
-        dep_modules = fixpoint_dep_modules(dep_sources, dep_modules, false, [])
+        {dep_modules, _} = fixpoint_runtime_modules(dep_sources, dep_modules)
 
         # Update exports
         {exports, new_exports} =
@@ -775,27 +738,34 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp fixpoint_dep_modules([source | sources], modules, new_modules?, acc_sources) do
+  defp fixpoint_runtime_modules(sources, modules) when modules != %{} do
+    fixpoint_runtime_modules(sources, modules, false, [], [])
+  end
+
+  defp fixpoint_runtime_modules(_sources, modules) do
+    {modules, []}
+  end
+
+  defp fixpoint_runtime_modules([source | sources], modules, new?, acc_modules, acc_sources) do
     source(export_references: export_refs, runtime_references: runtime_refs) = source
 
     if has_any_key?(modules, export_refs) or has_any_key?(modules, runtime_refs) do
       new_modules = Enum.reject(source(source, :modules), &Map.has_key?(modules, &1))
-      new_modules? = new_modules? or new_modules != []
       modules = Enum.reduce(new_modules, modules, &Map.put(&2, &1, []))
-      fixpoint_dep_modules(sources, modules, new_modules?, acc_sources)
+      new? = new? or new_modules != []
+      acc_modules = new_modules ++ acc_modules
+      fixpoint_runtime_modules(sources, modules, new?, acc_modules, acc_sources)
     else
-      fixpoint_dep_modules(sources, modules, new_modules?, [source | acc_sources])
+      fixpoint_runtime_modules(sources, modules, new?, acc_modules, [source | acc_sources])
     end
   end
 
-  defp fixpoint_dep_modules([], modules, false, _),
-    do: modules
+  defp fixpoint_runtime_modules([], modules, new?, acc_modules, acc_sources)
+       when new? == false or acc_sources == [],
+       do: {modules, acc_modules}
 
-  defp fixpoint_dep_modules([], modules, true, []),
-    do: modules
-
-  defp fixpoint_dep_modules([], modules, true, sources),
-    do: fixpoint_dep_modules(sources, modules, false, [])
+  defp fixpoint_runtime_modules([], modules, true, acc_modules, acc_sources),
+    do: fixpoint_runtime_modules(acc_sources, modules, false, acc_modules, [])
 
   defp exports_md5(module, use_attributes?) do
     cond do

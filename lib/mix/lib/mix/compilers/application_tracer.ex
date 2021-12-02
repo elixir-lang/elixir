@@ -100,11 +100,11 @@ defmodule Mix.Compilers.ApplicationTracer do
     :ok
   end
 
-  def warnings(modules_entries) do
+  def warnings(modules) do
     [{_, table, app, excludes}] = :ets.lookup(@table, @warnings_key)
 
-    for module_entry <- modules_entries do
-      :ets.delete(table, elem(module_entry, 1))
+    for module <- modules do
+      :ets.delete(table, module)
     end
 
     warnings =
