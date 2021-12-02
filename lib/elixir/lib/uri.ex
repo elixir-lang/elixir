@@ -20,11 +20,12 @@ defmodule URI do
             host: nil,
             port: nil
 
+  # TODO: Remove nil from path when we fully deprecate URI.parse on Elixir v1.17
   @type t :: %__MODULE__{
           authority: authority,
           fragment: nil | binary,
           host: nil | binary,
-          path: binary,
+          path: nil | binary,
           port: nil | :inet.port_number(),
           query: nil | binary,
           scheme: nil | binary,
