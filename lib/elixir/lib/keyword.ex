@@ -103,6 +103,21 @@ defmodule Keyword do
   @type t(value) :: [{key, value}]
 
   @doc """
+  Builds a keyword from the given `keys` and the fixed `value`.
+
+  ## Examples
+
+      iex> Keyword.from_keys([:foo, :bar, :baz], :atom)
+      [foo: :atom, bar: :atom, baz: :atom]
+
+  """
+  @doc since: "1.14.0"
+  @spec from_keys([key], value) :: t(value)
+  def from_keys(keys, value) when is_list(keys) do
+    :lists.map(&{&1, value}, keys)
+  end
+
+  @doc """
   Returns `true` if `term` is a keyword list, otherwise `false`.
 
   When `term` is a list it is traversed to the end.
