@@ -776,11 +776,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp fixpoint_dep_modules([source | sources], modules, new_modules?, acc_sources) do
-    source(
-      compile_references: compile_refs,
-      export_references: export_refs,
-      runtime_references: runtime_refs
-    ) = source
+    source(export_references: export_refs, runtime_references: runtime_refs) = source
 
     if has_any_key?(modules, compile_refs) or has_any_key?(modules, export_refs) or
          has_any_key?(modules, runtime_refs) do
