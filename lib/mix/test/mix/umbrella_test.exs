@@ -439,17 +439,45 @@ defmodule Mix.UmbrellaTest do
       Mix.Project.in_project(:bar, "bar", fn _ ->
         File.write!("../foo/lib/foo.ex", "defmodule Foo, do: defstruct [:bar]")
 
-        Mix.Task.run("compile", ["--verbose"])
-
         # Add struct dependency
         File.write!("lib/bar.ex", "defmodule Bar, do: %Foo{bar: true}")
-
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        Mix.Task.run("compile", ["--verbose"])
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for struct dependencies
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
         ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
+        ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
+
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+      end)
+    end)
+  end
+
+  test "recompiles after compile through runtime path dependency changes" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        File.write!("../foo/lib/foo.bar.ex", """
+        defmodule Foo.Bar do
+          def hello, do: Foo.Baz.hello()
+        end
+        """)
+
+        File.write!("../foo/lib/foo.baz.ex", """
+        defmodule Foo.Baz do
+          def hello, do: "from bar"
+        end
+        """)
+
+        # Add compile time to Foo.Bar
+        File.write!("lib/bar.ex", "defmodule Bar, do: Foo.Bar.hello()")
+        Mix.Task.run("compile", ["--verbose"])
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # Recompiles for due to compile dependency via runtime dependencies
+        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
+        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.Baz.beam", mtime)
         ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
