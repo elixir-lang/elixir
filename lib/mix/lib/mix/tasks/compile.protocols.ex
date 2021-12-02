@@ -197,11 +197,10 @@ defmodule Mix.Tasks.Compile.Protocols do
       for {protocol, :protocol, beam} <- new_metadata,
           Mix.Utils.last_modified(beam) > modified,
           remove_consolidated(protocol, output),
-          do: {protocol, true},
-          into: %{}
+          do: protocol
 
     protocols =
-      Enum.reduce(new_metadata -- old_metadata, protocols, fn
+      Enum.reduce(new_metadata -- old_metadata, Map.from_keys(protocols, true), fn
         {_, {:impl, protocol}, _beam}, protocols ->
           Map.put(protocols, protocol, true)
 
@@ -214,8 +213,9 @@ defmodule Mix.Tasks.Compile.Protocols do
     removed_protocols =
       for {protocol, :protocol, _beam} <- removed_metadata,
           remove_consolidated(protocol, output),
-          do: {protocol, true},
-          into: %{}
+          do: protocol
+
+    removed_protocols = Map.from_keys(removed_protocols, true)
 
     protocols =
       for {_, {:impl, protocol}, _beam} <- removed_metadata,

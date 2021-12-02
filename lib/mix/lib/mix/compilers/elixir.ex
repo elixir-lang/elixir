@@ -287,15 +287,16 @@ defmodule Mix.Compilers.Elixir do
          stale_local_exports,
          dest
        ) do
-    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
     modules_to_recompile =
       for module(module: module, recompile?: true) <- all_modules,
           recompile_module?(module),
-          into: %{},
-          do: {module, []}
+          do: module
 
     {checkpoint_stale, checkpoint_modules} = parse_checkpoint(manifest)
-    modules_to_recompile = Map.merge(checkpoint_modules, modules_to_recompile)
+
+    modules_to_recompile =
+      Map.merge(checkpoint_modules, Map.from_keys(modules_to_recompile, true))
+
     stale_local_mods = Map.merge(checkpoint_stale, stale_local_mods)
 
     if map_size(stale_local_mods) != map_size(checkpoint_stale) or
@@ -426,8 +427,7 @@ defmodule Mix.Compilers.Elixir do
       modules = Enum.map(modules, &module(&1, :module))
       warnings = Mix.Compilers.ApplicationTracer.warnings(modules)
 
-      # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
-      modules_set = Enum.into(modules, %{}, &{&1, []})
+      modules_set = Map.from_keys(modules, true)
       {_, runtime_modules} = fixpoint_runtime_modules(sources, modules_set)
       {:runtime, runtime_modules, warnings}
     else
@@ -623,8 +623,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp update_stale_entries(modules, sources, changed, stale_mods, stale_exports, compile_path) do
-    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
-    changed = Enum.into(changed, %{}, &{&1, []})
+    changed = Map.from_keys(changed, true)
     reducer = &remove_stale_entry(&1, &2, sources, stale_exports, compile_path)
     remove_stale_entries(modules, %{}, changed, stale_mods, reducer)
   end
@@ -682,9 +681,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp stale_local_deps(manifest, stale_modules, modified, old_exports) do
     base = Path.basename(manifest)
-
-    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
-    stale_modules = for module <- stale_modules, do: {module, []}, into: %{}
+    stale_modules = Map.from_keys(stale_modules, true)
 
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
@@ -694,19 +691,17 @@ defmodule Mix.Compilers.Elixir do
       {modules, exports, new_exports} ->
         {_manifest_modules, dep_sources} = read_manifest(manifest)
 
-        # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
         dep_modules =
           for path <- Mix.Dep.load_paths(dep),
               beam <- Path.wildcard(Path.join(path, "*.beam")),
               Mix.Utils.last_modified(beam) > modified,
-              do: {beam |> Path.basename() |> Path.rootname() |> String.to_atom(), []},
-              into: %{}
+              do: beam |> Path.basename() |> Path.rootname() |> String.to_atom()
 
         # If any module has a compile time dependency on a changed module
         # within the dependnecy, they will be recompiled. However, export
         # and runtime dependencies won't have recompiled so we need to
         # propagate them to the parent app.
-        {dep_modules, _} = fixpoint_runtime_modules(dep_sources, dep_modules)
+        {dep_modules, _} = fixpoint_runtime_modules(dep_sources, Map.from_keys(dep_modules, true))
 
         # Update exports
         {exports, new_exports} =
@@ -722,7 +717,7 @@ defmodule Mix.Compilers.Elixir do
               exports =
                 if export && old_exports[module] == export,
                   do: exports,
-                  else: Map.put(exports, module, [])
+                  else: Map.put(exports, module, true)
 
               # In any case, we always store it as the most update export
               # that we have, otherwise we delete it.
@@ -751,7 +746,7 @@ defmodule Mix.Compilers.Elixir do
 
     if has_any_key?(modules, export_refs) or has_any_key?(modules, runtime_refs) do
       new_modules = Enum.reject(source(source, :modules), &Map.has_key?(modules, &1))
-      modules = Enum.reduce(new_modules, modules, &Map.put(&2, &1, []))
+      modules = Enum.reduce(new_modules, modules, &Map.put(&2, &1, true))
       new? = new? or new_modules != []
       acc_modules = new_modules ++ acc_modules
       fixpoint_runtime_modules(sources, modules, new?, acc_modules, acc_sources)
@@ -856,8 +851,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp deps_on(apps) do
-    # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
-    apps = for app <- apps, do: {app, []}, into: %{}
+    apps = Map.from_keys(apps, true)
     deps_on(Mix.Dep.cached(), apps, [], false)
   end
 
@@ -869,7 +863,7 @@ defmodule Mix.Compilers.Elixir do
 
       # It depends on one of the apps, store it
       Enum.any?(deps, &Map.has_key?(apps, &1.app)) ->
-        deps_on(cached_deps, Map.put(apps, app, []), acc, true)
+        deps_on(cached_deps, Map.put(apps, app, true), acc, true)
 
       # Otherwise we will check it later
       true ->
