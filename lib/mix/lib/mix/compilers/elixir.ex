@@ -293,7 +293,10 @@ defmodule Mix.Compilers.Elixir do
           do: module
 
     {checkpoint_stale, checkpoint_modules} = parse_checkpoint(manifest)
-    modules_to_recompile = Map.merge(checkpoint_modules, Map.from_keys(modules_to_recompile, true))
+
+    modules_to_recompile =
+      Map.merge(checkpoint_modules, Map.from_keys(modules_to_recompile, true))
+
     stale_local_mods = Map.merge(checkpoint_stale, stale_local_mods)
 
     if map_size(stale_local_mods) != map_size(checkpoint_stale) or
