@@ -118,6 +118,7 @@ defmodule Map do
   @compile {:inline, fetch: 2, fetch!: 2, get: 2, put: 3, delete: 2, has_key?: 2, replace!: 3}
 
   # TODO: Remove conditional on Erlang/OTP 24+
+  @compile {:no_warn_undefined, {:maps, :from_keys, 2}}
   @doc """
   Builds a map from the given `keys` and the fixed `value`.
 
