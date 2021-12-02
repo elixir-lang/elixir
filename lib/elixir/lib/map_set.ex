@@ -89,12 +89,8 @@ defmodule MapSet do
   def new(%__MODULE__{} = map_set), do: map_set
 
   def new(enumerable) do
-    map =
-      enumerable
-      |> Enum.to_list()
-      |> new_from_list([])
-
-    %MapSet{map: map}
+    keys = Enum.to_list(enumerable)
+    %MapSet{map: Map.from_keys(keys, @dummy_value)}
   end
 
   @doc """
@@ -108,28 +104,8 @@ defmodule MapSet do
   """
   @spec new(Enum.t(), (term -> val)) :: t(val) when val: value
   def new(enumerable, transform) when is_function(transform, 1) do
-    map =
-      enumerable
-      |> Enum.to_list()
-      |> new_from_list_transform(transform, [])
-
-    %MapSet{map: map}
-  end
-
-  defp new_from_list([], acc) do
-    Map.new(acc)
-  end
-
-  defp new_from_list([element | rest], acc) do
-    new_from_list(rest, [{element, @dummy_value} | acc])
-  end
-
-  defp new_from_list_transform([], _fun, acc) do
-    Map.new(acc)
-  end
-
-  defp new_from_list_transform([element | rest], fun, acc) do
-    new_from_list_transform(rest, fun, [{fun.(element), @dummy_value} | acc])
+    keys = Enum.map(enumerable, transform)
+    %MapSet{map: Map.from_keys(keys, @dummy_value)}
   end
 
   @doc """
@@ -374,8 +350,8 @@ defmodule MapSet do
   end
 
   def union(%MapSet{map: map1}, %MapSet{map: map2}) do
-    map = new_from_list(Map.keys(map1) ++ Map.keys(map2), [])
-    %MapSet{map: map}
+    keys = Map.keys(map1) ++ Map.keys(map2)
+    %MapSet{map: Map.from_keys(keys, @dummy_value)}
   end
 
   @compile {:inline, [order_by_size: 2]}
