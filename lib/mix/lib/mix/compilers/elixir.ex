@@ -725,36 +725,82 @@ defmodule Mix.Compilers.Elixir do
 
     for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
         not scm.fetchable?,
-        Mix.Utils.last_modified(Path.join([opts[:build], ".mix", base])) > modified,
-        path <- Mix.Dep.load_paths(dep),
-        beam <- Path.wildcard(Path.join(path, "*.beam")),
-        Mix.Utils.last_modified(beam) > modified,
+        manifest = Path.join([opts[:build], ".mix", base]),
+        Mix.Utils.last_modified(manifest) > modified,
         reduce: {stale_modules, %{}, old_exports} do
       {modules, exports, new_exports} ->
-        module = beam |> Path.basename() |> Path.rootname() |> String.to_atom()
-        export = exports_md5(module, false)
-        modules = Map.put(modules, module, [])
+        {_manifest_modules, dep_sources} = read_manifest(manifest)
 
-        # If the exports are the same, then the API did not change,
-        # so we do not mark the export as stale. Note this has to
-        # be very conservative. If the module is not loaded or if
-        # the exports were not there, we need to consider it a stale
-        # export.
-        exports =
-          if export && old_exports[module] == export,
-            do: exports,
-            else: Map.put(exports, module, [])
+        # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
+        dep_modules =
+          for path <- Mix.Dep.load_paths(dep),
+              beam <- Path.wildcard(Path.join(path, "*.beam")),
+              Mix.Utils.last_modified(beam) > modified,
+              do: {beam |> Path.basename() |> Path.rootname() |> String.to_atom(), []},
+              into: %{}
 
-        # In any case, we always store it as the most update export
-        # that we have, otherwise we delete it.
-        new_exports =
-          if export,
-            do: Map.put(new_exports, module, export),
-            else: Map.delete(new_exports, module)
+        # If any module has a compile time dependency on a changed module
+        # within the dependnecy, they will be recompiled. However, export
+        # and runtime dependencies won't have recompiled so we need to
+        # propagate them to the parent app.
+        dep_modules = fixpoint_dep_modules(dep_sources, dep_modules, false, [])
 
-        {modules, exports, new_exports}
+        # Update exports
+        {exports, new_exports} =
+          for {module, _} <- dep_modules, reduce: {exports, new_exports} do
+            {exports, new_exports} ->
+              export = exports_md5(module, false)
+
+              # If the exports are the same, then the API did not change,
+              # so we do not mark the export as stale. Note this has to
+              # be very conservative. If the module is not loaded or if
+              # the exports were not there, we need to consider it a stale
+              # export.
+              exports =
+                if export && old_exports[module] == export,
+                  do: exports,
+                  else: Map.put(exports, module, [])
+
+              # In any case, we always store it as the most update export
+              # that we have, otherwise we delete it.
+              new_exports =
+                if export,
+                  do: Map.put(new_exports, module, export),
+                  else: Map.delete(new_exports, module)
+
+              {exports, new_exports}
+          end
+
+        {Map.merge(modules, dep_modules), exports, new_exports}
     end
   end
+
+  defp fixpoint_dep_modules([source | sources], modules, new_modules?, acc_sources) do
+    source(
+      compile_references: compile_refs,
+      export_references: export_refs,
+      runtime_references: runtime_refs
+    ) = source
+
+    if has_any_key?(modules, compile_refs) or has_any_key?(modules, export_refs) or
+         has_any_key?(modules, runtime_refs) do
+      new_modules = Enum.reject(source(source, :modules), &Map.has_key?(modules, &1))
+      new_modules? = new_modules? or new_modules != []
+      modules = Enum.reduce(new_modules, modules, &Map.put(&2, &1, []))
+      fixpoint_dep_modules(sources, modules, new_modules?, acc_sources)
+    else
+      fixpoint_dep_modules(sources, modules, new_modules?, [source | acc_sources])
+    end
+  end
+
+  defp fixpoint_dep_modules([], modules, false, _),
+    do: modules
+
+  defp fixpoint_dep_modules([], modules, true, []),
+    do: modules
+
+  defp fixpoint_dep_modules([], modules, true, sources),
+    do: fixpoint_dep_modules(sources, modules, false, [])
 
   defp exports_md5(module, use_attributes?) do
     cond do
