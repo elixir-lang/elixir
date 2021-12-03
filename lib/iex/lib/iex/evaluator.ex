@@ -64,11 +64,13 @@ defmodule IEx.Evaluator do
   @doc false
   def parse(input, opts, buffer)
 
-  def parse(@break_trigger, _opts, "") do
+  def parse(input, opts, ""), do: parse(input, opts, {"", :none})
+
+  def parse(@break_trigger, _opts, {"", _last_op}) do
     {:incomplete, ""}
   end
 
-  def parse(@break_trigger, opts, _buffer) do
+  def parse(@break_trigger, opts, {_buffer, _last_op}) do
     :elixir_errors.parse_error(
       [line: opts[:line]],
       opts[:file],
@@ -78,12 +80,11 @@ defmodule IEx.Evaluator do
     )
   end
 
-  def parse(input, opts, buffer) do
+  def parse(input, opts, {buffer, last_op}) do
     input = buffer <> input
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
-    last_op = Keyword.get(opts, :last_op, :none)
     charlist = String.to_charlist(input)
 
     result =
@@ -91,10 +92,10 @@ defmodule IEx.Evaluator do
            {:ok, adjusted_tokens} <- adjust_operator(tokens, line, column, file, opts, last_op),
            {:ok, forms} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
         last_op =
-          Enum.reduce_while(tokens, :other, fn
-            {:match_op, _, _}, _ -> {:halt, :match}
-            _, acc -> {:cont, acc}
-          end)
+          case forms do
+            {:=, _, [_, _]} -> :match
+            _ -> :other
+          end
 
         {:ok, forms, last_op}
       end
@@ -112,7 +113,7 @@ defmodule IEx.Evaluator do
           file,
           "pipe shorthand is not allowed immediately after a match expression in IEx; to make it work, surround the whole pipeline with parentheses ",
           token,
-          {charlist, line, column}
+          {charlist, Keyword.get(location, :line, line), Keyword.get(location, :column, column)}
         )
 
       {:error, {location, error, token}} ->
@@ -242,6 +243,7 @@ defmodule IEx.Evaluator do
       env: env,
       server: server,
       history: history,
+      last_op: :none,
       stacktrace: stacktrace,
       ref: ref
     }

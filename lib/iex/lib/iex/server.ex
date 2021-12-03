@@ -5,7 +5,6 @@ defmodule IEx.State do
   defstruct parser_state: "",
             counter: 1,
             prefix: "iex",
-            last_op: :none,
             on_eof: :stop_evaluator,
             evaluator_options: [],
             previous_state: nil
@@ -15,7 +14,6 @@ defmodule IEx.State do
           buffer: binary(),
           counter: pos_integer(),
           prefix: binary(),
-          last_op: :none | :match | :other,
           on_eof: :stop_evaluator | :halt,
           evaluator_options: keyword(),
           previous_state: nil | t()
