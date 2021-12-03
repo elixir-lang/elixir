@@ -6,7 +6,14 @@
 
 #### Elixir
 
+  * [Code] Emit deprecation and type warnings on `Code.compile_string/2` and `Code.compile_quoted/2`
+  * [Code] Warn if an outdated lexical tracker is given on eval
+  * [Inspect] Improve error reporting when there is a faulty inspect implementation
+  * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
+  * [Keyword] Add `Keyword.from_keys/2`
+  * [Map] Add `Map.from_keys/2`
   * [Registry] Add `count_select/2`
+  * [Version] Add `Version.to_string/1`
 
 ### 2. Bug fixes
 
