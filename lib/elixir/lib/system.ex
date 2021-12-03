@@ -700,6 +700,27 @@ defmodule System do
   end
 
   @doc """
+  Fetches an environment variable.
+  Raises an `ArgumentError` in case the variable is not set or its trimmed value is blank.
+
+  Example usage in a config file
+
+  config :my_app,
+    MyModule,
+    my_mandatory_value: System.fetch_mandatory_env!("ENV_THAT_CANNOT_BE_BLANK")
+  """
+  def fetch_mandatory_env!(varname) when is_binary(varname) do
+    value = :os.getenv(String.to_charlist(varname))
+
+    if is_nil(value), do: raise_unset_error(varname)
+
+    case String.trim(value) do
+      "" -> raise_blank_error(varname)
+      non_blank_value -> non_blank_value
+    end
+  end
+
+  @doc """
   Erlang VM process identifier.
 
   Returns the process identifier of the current Erlang emulator
@@ -1328,5 +1349,19 @@ defmodule System do
     )
 
     replacement_unit
+  end
+
+  defp raise_unset_error(varname) do
+    raise(
+      ArgumentError,
+      "could not fetch environment variable #{varname} because it is not set"
+    )
+  end
+
+  defp raise_blank_error(varname) do
+    raise(
+      ArgumentError,
+      "environment variable #{varname} is set, but contains a blank value"
+    )
   end
 end

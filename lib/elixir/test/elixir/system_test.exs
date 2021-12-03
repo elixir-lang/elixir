@@ -74,6 +74,18 @@ defmodule SystemTest do
     assert_raise ArgumentError, ~r[cannot execute System.put_env/2 for key with \"=\"], fn ->
       System.put_env("FOO=BAR", "BAZ")
     end
+
+    System.put_env("NON_BLANK_ENV", "NON_BLANK_VALUE")
+    assert "NON_BLANK_VALUE" == System.fetch_mandatory_env!("NON_BLANK_ENV")
+
+    System.put_env("BLANK_ENV", "         ")
+    assert_raise ArgumentError, ~r[environment variable BLANK_ENV is set, but contains a blank value], fn ->
+      System.fetch_mandatory_env!("NON_BLANK_ENV")
+    end
+
+    assert_raise ArgumentError, ~r[could not fetch environment variable UNSET_ENV because it is not set], fn ->
+      System.fetch_mandatory_env!("UNSET_ENV")
+    end
   end
 
   test "cmd/2 raises for null bytes" do
