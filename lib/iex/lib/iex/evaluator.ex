@@ -129,7 +129,7 @@ defmodule IEx.Evaluator do
 
   defp adjust_operator([{op_type, _, token} | _] = _tokens, line, column, _file, _opts, :match)
        when op_type in @op_tokens,
-       do: {:error, {[line: line, column: column], :malformed_pipe, "('#{token}')"}}
+       do: {:error, {[line: line, column: column], :malformed_pipe, "'#{token}'"}}
 
   defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts, _last_op)
        when op_type in @op_tokens do
