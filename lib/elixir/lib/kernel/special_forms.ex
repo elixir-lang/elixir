@@ -1315,11 +1315,13 @@ defmodule Kernel.SpecialForms do
         sum(1, value, 3)
       end
 
-  Which would then return:
 
-      {:sum, [], [1, {:value, [], Elixir}, 3]}
+  Which the argument for the `:sum` function call is not the
+  expected result:
 
-  Which is not the expected result. For this, we use `unquote`:
+      {:sum, [], [1, {:value, [if_undefined: :apply], Elixir}, 3]}
+
+  For this, we use `unquote`:
 
       iex> value =
       ...>   quote do
