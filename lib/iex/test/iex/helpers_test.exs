@@ -1127,6 +1127,17 @@ defmodule IEx.HelpersTest do
       assert capture_iex("[42]\n++ [24]\n|> IO.inspect(label: \"foo\")") =~ "foo: [42, 24]"
       assert capture_iex("|> IO.puts()") =~ "(RuntimeError) v(-1) is out of bounds"
     end
+
+    test "raises if previous expression was a match" do
+      assert capture_iex("x = 42\n|> IO.puts()") =~
+               "surround the whole pipeline with parentheses '|>'"
+
+      assert capture_iex("%{x: x} = %{x: 42}\n|> IO.puts()") =~
+               "surround the whole pipeline with parentheses '|>'"
+
+      assert capture_iex("%{x: x} = map = %{x: 42}\n|> IO.puts()") =~
+               "surround the whole pipeline with parentheses '|>'"
+    end
   end
 
   describe "c" do
