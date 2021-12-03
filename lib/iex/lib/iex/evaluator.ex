@@ -302,9 +302,6 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp do_eval({:ok, forms, buffer}, iex_state, state) when is_binary(buffer),
-    do: do_eval({:ok, forms, {buffer, :other}}, iex_state, state)
-
   defp do_eval({:ok, forms, parser_state}, iex_state, state) do
     put_history(state)
     put_whereami(state)
