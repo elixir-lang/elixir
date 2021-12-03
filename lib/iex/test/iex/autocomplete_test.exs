@@ -14,7 +14,7 @@ defmodule IEx.AutocompleteTest do
       evaluator = Process.get(:evaluator)
       Process.group_leader(evaluator, Process.group_leader())
       send(evaluator, {:eval, self(), line <> "\n", %IEx.State{}})
-      assert_receive {:evaled, _, _}
+      assert_receive {:evaled, _, _, _}
     end)
   end
 
