@@ -128,43 +128,7 @@ Now any application can use your formatter as follows:
 
 Finally, the `Code` module has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
 
-## v1.13.0-rc.1 (2021-11-16)
-
-### 1. Enhancements
-
-#### Mix
-
-  * [Mix] Add `Mix.installed?/0`
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Application] Allow any expression as first argument of `compile_env`
-  * [Kernel] Reject bidirectional formatting characters in strings and comments
-  * [Kernel] Support escaping of terminators in uppercase sigils heredocs for consistency
-
-#### IEx
-
-  * [IEx] Stop evaluator before exiting IEx server
-
-#### Mix
-
-  * [mix release] Raise proper error message when non-serializable values are in configs
-
-### 3. Regressions
-
-#### Elixir
-
-  * [Code] Do not crash on duplicate bindings during eval
-  * [Macro] Do not raise on variables that look like an empty tuple in `Macro.to_string/1`
-  * [URI] Make sure parsed URIs with empty paths have the path field set to nil
-
-#### Mix
-
-  * [Mix.Shell] Re-add `yes?/1` as a callback
-
-## v1.13.0-rc.0 (2021-11-01)
+## v1.13.0 (2021-12-03)
 
 ### 1. Enhancements
 
@@ -228,6 +192,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 
   * [Mix] Add `MIX_INSTALL_FORCE` environment variable support
   * [Mix] Support `:config` and `:system_env` in `Mix.install/2`
+  * [Mix] Add `Mix.installed?/0`
   * [Mix.Shell] Add `:default` option to `Mix.Shell.yes?`
   * [mix archive.install] Run `loadconfig` before building archive
   * [mix compile] Move Elixir version check to before deps are compiled, in order to give feedback earlier
@@ -263,10 +228,13 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 
 #### Elixir
 
+  * [Application] Allow any expression as first argument of `compile_env`
   * [Application] Warn if `Application.compile_env` or `Application.compile_env!` are called without a require
   * [Code] Make sure `:static_atoms_encoder` in `Code.string_to_quoted/2` also applies to quoted keyword keys
   * [Code] Ensure bindings with no context are returned as atoms instead of `{binding, nil}` in eval operations
   * [Inspect] Fix a bug when inspecting a non-binary bitstring with colors
+  * [Kernel] Reject bidirectional formatting characters in strings and comments
+  * [Kernel] Support escaping of terminators in uppercase sigils heredocs for consistency
   * [Kernel] Raise if `__CALLER__` or `__ENV__` or `__STACKTRACE__` are used in match
   * [Kernel] Improve error message on invalid argument for `byte_size` from binary concat
   * [Kernel] Raise when aliasing non-Elixir modules without `:as`
@@ -293,6 +261,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 #### IEx
 
   * [IEx] Fix the loss of `.iex.exs` context after a pry session
+  * [IEx] Stop evaluator before exiting IEx server to avoid evaluators leaking
 
 #### Logger
 
@@ -301,6 +270,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 
 #### Mix
 
+  * [mix compile.elixir] Track transitive runtime dependencies coming from local/path dependencies
   * [mix compile.elixir] Recompile file if `@external_resource` is deleted
   * [mix compile.elixir] Print number of compiling files on all compiler cycles. This will make the `Compiling N files (.ex)` show up multiple times if necessary
   * [mix deps] Raise if local dep is unavailable while compiling
@@ -309,6 +279,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [mix release] Improve release scripts by making sure shell errors cascade (this is done by avoiding exporting and defining variables in a single step)
   * [mix release] Do not boot release if `RELEASE_COOKIE` is empty
   * [mix release] Allow releases running as a daemon to be restarted
+  * [mix release] Raise proper error message when non-serializable values are in configs
   * [mix test] Fix coverage engine to also tag `case`, `cond`, and `receive` branches where the right side is a literal
 
 ### 3. Soft-deprecations (no warnings emitted)
