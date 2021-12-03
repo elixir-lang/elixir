@@ -107,15 +107,6 @@ defmodule IEx.Evaluator do
       {:error, {_, _, ""}} ->
         {:incomplete, {input, last_op}}
 
-      {:error, {location, :malformed_pipe, token}} ->
-        :elixir_errors.parse_error(
-          location,
-          file,
-          "pipe shorthand is not allowed immediately after a match expression in IEx. To make it work, surround the whole pipeline with parentheses ",
-          token,
-          {charlist, Keyword.get(location, :line, line), Keyword.get(location, :column, column)}
-        )
-
       {:error, {location, error, token}} ->
         :elixir_errors.parse_error(
           location,
@@ -129,7 +120,11 @@ defmodule IEx.Evaluator do
 
   defp adjust_operator([{op_type, _, token} | _] = _tokens, line, column, _file, _opts, :match)
        when op_type in @op_tokens,
-       do: {:error, {[line: line, column: column], :malformed_pipe, "'#{token}'"}}
+       do:
+         {:error,
+          {[line: line, column: column],
+           "pipe shorthand is not allowed immediately after a match expression in IEx. To make it work, surround the whole pipeline with parentheses ",
+           "'#{token}'"}}
 
   defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts, _last_op)
        when op_type in @op_tokens do

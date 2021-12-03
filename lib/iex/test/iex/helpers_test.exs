@@ -1130,13 +1130,13 @@ defmodule IEx.HelpersTest do
 
     test "raises if previous expression was a match" do
       assert capture_iex("x = 42\n|> IO.puts()") =~
-               "surround the whole pipeline with parentheses ('|>')"
+               "surround the whole pipeline with parentheses '|>'"
 
       assert capture_iex("%{x: x} = %{x: 42}\n|> IO.puts()") =~
-               "surround the whole pipeline with parentheses ('|>')"
+               "surround the whole pipeline with parentheses '|>'"
 
       assert capture_iex("%{x: x} = map = %{x: 42}\n|> IO.puts()") =~
-               "surround the whole pipeline with parentheses ('|>')"
+               "surround the whole pipeline with parentheses '|>'"
     end
   end
 
