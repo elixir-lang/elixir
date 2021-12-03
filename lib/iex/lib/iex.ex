@@ -141,7 +141,7 @@ defmodule IEx do
 
       iex(1)> x = 42
       iex(2)> |> IO.puts()
-      ** (SyntaxError) iex:2:1: pipe shorthand is not allowed immediately after a match expression in IEx; to make it work, surround the whole pipeline with parentheses ('|>')
+      ** (SyntaxError) iex:2:1: pipe shorthand is not allowed immediately after a match expression in IEx. To make it work, surround the whole pipeline with parentheses ('|>')
           |
         2 | |> IO.puts()
           | ^

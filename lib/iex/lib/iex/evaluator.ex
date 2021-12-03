@@ -111,7 +111,7 @@ defmodule IEx.Evaluator do
         :elixir_errors.parse_error(
           location,
           file,
-          "pipe shorthand is not allowed immediately after a match expression in IEx; to make it work, surround the whole pipeline with parentheses ",
+          "pipe shorthand is not allowed immediately after a match expression in IEx. To make it work, surround the whole pipeline with parentheses ",
           token,
           {charlist, Keyword.get(location, :line, line), Keyword.get(location, :column, column)}
         )
