@@ -62,15 +62,15 @@ defmodule IEx.Evaluator do
                [:three_op, :concat_op, :mult_op]
 
   @doc false
-  def parse(input, opts, buffer)
+  def parse(input, opts, parser_state)
 
   def parse(input, opts, ""), do: parse(input, opts, {"", :other})
 
-  def parse(@break_trigger, _opts, {"", last_op}) do
-    {:incomplete, {"", last_op}}
+  def parse(@break_trigger, _opts, {"", _} = parser_state) do
+    {:incomplete, parser_state}
   end
 
-  def parse(@break_trigger, opts, {_buffer, _last_op}) do
+  def parse(@break_trigger, opts, _parser_state) do
     :elixir_errors.parse_error(
       [line: opts[:line]],
       opts[:file],
@@ -243,7 +243,6 @@ defmodule IEx.Evaluator do
       env: env,
       server: server,
       history: history,
-      last_op: :other,
       stacktrace: stacktrace,
       ref: ref
     }
@@ -306,7 +305,7 @@ defmodule IEx.Evaluator do
   defp do_eval({:ok, forms, buffer}, iex_state, state) when is_binary(buffer),
     do: do_eval({:ok, forms, {buffer, :other}}, iex_state, state)
 
-  defp do_eval({:ok, forms, {buffer, last_op}}, iex_state, state) do
+  defp do_eval({:ok, forms, parser_state}, iex_state, state) do
     put_history(state)
     put_whereami(state)
     state = handle_eval(forms, iex_state.counter, state)

@@ -11,7 +11,7 @@ defmodule IEx.State do
 
   @type t :: %{
           __struct__: __MODULE__,
-          buffer: binary(),
+          parser_state: binary(),
           counter: pos_integer(),
           prefix: binary(),
           on_eof: :stop_evaluator | :halt,
