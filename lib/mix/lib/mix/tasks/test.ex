@@ -160,7 +160,8 @@ defmodule Mix.Tasks.Test do
 
     * `--preload-modules` - preloads all modules defined in applications
 
-    * `--profile-require` - profiles the time spent to require test files
+    * `--profile-require` - profiles the time spent to require test files.
+      Used only for debugging. The test suite does not run.
 
     * `--raise` - raises if the test suite failed
 
