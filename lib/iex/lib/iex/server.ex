@@ -5,11 +5,21 @@ defmodule IEx.State do
   defstruct parser_state: "",
             counter: 1,
             prefix: "iex",
+            last_op: :none,
             on_eof: :stop_evaluator,
             evaluator_options: [],
             previous_state: nil
 
-  @type t :: %__MODULE__{}
+  @type t :: %{
+          __struct__: __MODULE__,
+          buffer: binary(),
+          counter: pos_integer(),
+          prefix: binary(),
+          last_op: :none | :match | :other,
+          on_eof: :stop_evaluator | :halt,
+          evaluator_options: keyword(),
+          previous_state: nil | t()
+        }
 end
 
 defmodule IEx.Server do

@@ -136,6 +136,16 @@ defmodule IEx do
       iex(1)> |> List.flatten()
       ** (RuntimeError) v(-1) is out of bounds
 
+  If the previous expression was a match operation, the pipe operator will also
+  fail, to prevent an unsolicited break of the match:
+
+      iex(1)> x = 42
+      iex(2)> |> IO.puts()
+      ** (SyntaxError) iex:2:1: pipe shorthand is not allowed immediately after a match expression in IEx; to make it work, surround the whole pipeline with parentheses ('|>')
+          |
+        2 | |> IO.puts()
+          | ^
+
   Note however the above does not work for `+/2` and `-/2`, as they
   are ambiguous with the unary `+/1` and `-/1`:
 

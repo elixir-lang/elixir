@@ -83,19 +83,37 @@ defmodule IEx.Evaluator do
     file = Keyword.get(opts, :file, "nofile")
     line = Keyword.get(opts, :line, 1)
     column = Keyword.get(opts, :column, 1)
+    last_op = Keyword.get(opts, :last_op, :none)
     charlist = String.to_charlist(input)
 
     result =
-      with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, column, file, opts) do
-        :elixir.tokens_to_quoted(adjust_operator(tokens, line, column, file, opts), file, opts)
+      with {:ok, tokens} <- :elixir.string_to_tokens(charlist, line, column, file, opts),
+           {:ok, adjusted_tokens} <- adjust_operator(tokens, line, column, file, opts, last_op),
+           {:ok, forms} <- :elixir.tokens_to_quoted(adjusted_tokens, file, opts) do
+        last_op =
+          Enum.reduce_while(tokens, :other, fn
+            {:match_op, _, _}, _ -> {:halt, :match}
+            _, acc -> {:cont, acc}
+          end)
+
+        {:ok, forms, last_op}
       end
 
     case result do
-      {:ok, forms} ->
-        {:ok, forms, ""}
+      {:ok, forms, last_op} ->
+        {:ok, forms, "", last_op}
 
       {:error, {_, _, ""}} ->
         {:incomplete, input}
+
+      {:error, {location, :malformed_pipe, token}} ->
+        :elixir_errors.parse_error(
+          location,
+          file,
+          "pipe shorthand is not allowed immediately after a match expression in IEx; to make it work, surround the whole pipeline with parentheses ",
+          token,
+          {charlist, line, column}
+        )
 
       {:error, {location, error, token}} ->
         :elixir_errors.parse_error(
@@ -108,13 +126,17 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts)
+  defp adjust_operator([{op_type, _, token} | _] = _tokens, line, column, _file, _opts, :match)
+       when op_type in @op_tokens,
+       do: {:error, {[line: line, column: column], :malformed_pipe, "('#{token}')"}}
+
+  defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts, _last_op)
        when op_type in @op_tokens do
     {:ok, prefix} = :elixir.string_to_tokens('v(-1)', line, column, file, opts)
-    prefix ++ tokens
+    {:ok, prefix ++ tokens}
   end
 
-  defp adjust_operator(tokens, _line, _column, _file, _opts), do: tokens
+  defp adjust_operator(tokens, _line, _column, _file, _opts, _last_op), do: {:ok, tokens}
 
   @doc """
   Gets a value out of the binding, using the provided
