@@ -57,7 +57,7 @@ defmodule Calendar do
   representing the microseconds to external format. If the precision is 0,
   it means microseconds must be skipped.
   """
-  @type microsecond :: {non_neg_integer, non_neg_integer}
+  @type microsecond :: {value :: non_neg_integer, precision :: non_neg_integer}
 
   @typedoc "A calendar implementation"
   @type calendar :: module
