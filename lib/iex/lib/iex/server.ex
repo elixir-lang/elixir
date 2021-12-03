@@ -2,7 +2,7 @@ defmodule IEx.State do
   @moduledoc false
   # This state is exchanged between IEx.Server and
   # IEx.Evaluator which is why it is a struct.
-  defstruct buffer: "",
+  defstruct parser_state: "",
             counter: 1,
             prefix: "iex",
             on_eof: :stop_evaluator,
@@ -89,7 +89,7 @@ defmodule IEx.Server do
     )
 
     evaluator = start_evaluator(opts)
-    loop(iex_state(opts), evaluator, Process.monitor(evaluator))
+    loop(iex_state(opts), :ok, evaluator, Process.monitor(evaluator))
   end
 
   # Starts an evaluator using the provided options.
@@ -121,12 +121,12 @@ defmodule IEx.Server do
     run_without_registration(opts)
   end
 
-  defp loop(state, evaluator, evaluator_ref) do
+  defp loop(state, prompt, evaluator, evaluator_ref) do
     self_pid = self()
     counter = state.counter
 
     {prompt_type, prefix} =
-      if state.buffer != "" do
+      if prompt == :incomplete do
         {:continuation_prompt, "..."}
       else
         {:prompt, state.prefix}
@@ -151,7 +151,7 @@ defmodule IEx.Server do
       # Triggered by pressing "i" as the job control switch
       {:input, ^input, {:error, :interrupted}} ->
         io_error("** (EXIT) interrupted")
-        loop(%{state | buffer: ""}, evaluator, evaluator_ref)
+        loop(%{state | parser_state: ""}, :new, evaluator, evaluator_ref)
 
       # Triggered when IO dies while waiting for input
       {:input, ^input, {:error, :terminated}} ->
@@ -166,8 +166,8 @@ defmodule IEx.Server do
 
   defp wait_eval(state, evaluator, evaluator_ref) do
     receive do
-      {:evaled, ^evaluator, new_state} ->
-        loop(new_state, evaluator, evaluator_ref)
+      {:evaled, ^evaluator, status, new_state} ->
+        loop(new_state, status, evaluator, evaluator_ref)
 
       msg ->
         handle_take_over(msg, state, evaluator, evaluator_ref, nil, fn state ->
@@ -204,7 +204,7 @@ defmodule IEx.Server do
         if take_over?(take_pid, take_ref, true) do
           kill_input(input)
           take_opts = Keyword.put(take_opts, :previous_state, state)
-          loop(iex_state(take_opts), evaluator, evaluator_ref)
+          loop(iex_state(take_opts), :ok, evaluator, evaluator_ref)
         else
           callback.(state)
         end
@@ -233,7 +233,7 @@ defmodule IEx.Server do
     Process.exit(evaluator, :kill)
     Process.demonitor(evaluator_ref, [:flush])
     evaluator = start_evaluator(state.evaluator_options)
-    loop(%{state | buffer: ""}, evaluator, Process.monitor(evaluator))
+    loop(%{state | parser_state: ""}, :ok, evaluator, Process.monitor(evaluator))
   end
 
   defp handle_take_over(

@@ -166,8 +166,8 @@ defmodule IEx.Evaluator do
   defp loop(%{server: server, ref: ref} = state) do
     receive do
       {:eval, ^server, code, iex_state} ->
-        {result, state} = eval(code, iex_state, state)
-        send(server, {:evaled, self(), result})
+        {result, status, state} = eval(code, iex_state, state)
+        send(server, {:evaled, self(), status, result})
         loop(state)
 
       {:fields_from_env, ^server, ref, receiver, fields} ->
@@ -270,27 +270,27 @@ defmodule IEx.Evaluator do
   defp eval(code, iex_state, state) do
     try do
       {parser_module, parser_fun, args} = IEx.Config.parser()
-      args = [code, [line: iex_state.counter, file: "iex"], iex_state.buffer | args]
+      args = [code, [line: iex_state.counter, file: "iex"], iex_state.parser_state | args]
       do_eval(apply(parser_module, parser_fun, args), iex_state, state)
     catch
       kind, error ->
         print_error(kind, error, __STACKTRACE__)
-        {%{iex_state | buffer: ""}, state}
+        {%{iex_state | parser_state: ""}, :ok, state}
     end
   end
 
-  defp do_eval({:ok, forms, buffer}, iex_state, state) do
+  defp do_eval({:ok, forms, parser_state}, iex_state, state) do
     put_history(state)
     put_whereami(state)
     state = handle_eval(forms, iex_state.counter, state)
-    {%{iex_state | buffer: buffer, counter: iex_state.counter + 1}, state}
+    {%{iex_state | parser_state: parser_state, counter: iex_state.counter + 1}, :ok, state}
   after
     Process.delete(:iex_history)
     Process.delete(:iex_whereami)
   end
 
-  defp do_eval({:incomplete, buffer}, iex_state, state) do
-    {%{iex_state | buffer: buffer}, state}
+  defp do_eval({:incomplete, parser_state}, iex_state, state) do
+    {%{iex_state | parser_state: parser_state}, :incomplete, state}
   end
 
   defp put_history(%{history: history}) do
