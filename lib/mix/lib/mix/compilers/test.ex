@@ -25,52 +25,57 @@ defmodule Mix.Compilers.Test do
   def require_and_run(matched_test_files, test_paths, opts) do
     stale = opts[:stale]
 
-    {test_files, stale_manifest_pid, parallel_require_opts} =
+    {test_files, stale_manifest_pid, parallel_require_callbacks} =
       if stale do
         set_up_stale(matched_test_files, test_paths, opts)
       else
         {matched_test_files, nil, []}
       end
 
-    if test_files == [] do
-      :noop
-    else
-      task = ExUnit.async_run()
-      parallel_require_opts = profile_opts(parallel_require_opts, opts)
-      warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
+    cond do
+      test_files == [] ->
+        :noop
 
-      try do
-        failed? =
-          case Kernel.ParallelCompiler.require(test_files, parallel_require_opts) do
-            {:ok, _, [_ | _]} when warnings_as_errors? -> true
-            {:ok, _, _} -> false
-            {:error, _, _} -> exit({:shutdown, 1})
+      Keyword.get(opts, :profile_require) == "time" ->
+        Kernel.ParallelCompiler.require(test_files, profile: :time)
+        :noop
+
+      true ->
+        task = ExUnit.async_run()
+        warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
+
+        try do
+          failed? =
+            case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
+              {:ok, _, [_ | _]} when warnings_as_errors? -> true
+              {:ok, _, _} -> false
+              {:error, _, _} -> exit({:shutdown, 1})
+            end
+
+          %{failures: failures} = results = ExUnit.await_run(task)
+
+          if failures == 0 do
+            if failed? do
+              message =
+                "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+              IO.puts(:stderr, IO.ANSI.format([:red, message]))
+              exit({:shutdown, 1})
+            end
+
+            agent_write_manifest(stale_manifest_pid)
           end
 
-        %{failures: failures} = results = ExUnit.await_run(task)
-
-        if failures == 0 do
-          if failed? do
-            message =
-              "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
-
-            IO.puts(:stderr, IO.ANSI.format([:red, message]))
-            exit({:shutdown, 1})
-          end
-
-          agent_write_manifest(stale_manifest_pid)
+          {:ok, results}
+        catch
+          kind, reason ->
+            # In case there is an error, shut down the runner task
+            # before the error propagates up and trigger links.
+            Task.shutdown(task)
+            :erlang.raise(kind, reason, __STACKTRACE__)
+        after
+          agent_stop(stale_manifest_pid)
         end
-
-        {:ok, results}
-      catch
-        kind, reason ->
-          # In case there is an error, shut down the runner task
-          # before the error propagates up and trigger links.
-          Task.shutdown(task)
-          :erlang.raise(kind, reason, __STACKTRACE__)
-      after
-        agent_stop(stale_manifest_pid)
-      end
     end
   end
 
@@ -165,14 +170,6 @@ defmodule Mix.Compilers.Test do
       Enum.reduce(changed, sources, &List.keystore(&2, &1, source(:source), source(source: &1)))
 
     sources
-  end
-
-  defp profile_opts(target, opts) do
-    if Keyword.get(opts, :profile_require) == "time" do
-      Keyword.put(target, :profile, :time)
-    else
-      target
-    end
   end
 
   ## Manifest
