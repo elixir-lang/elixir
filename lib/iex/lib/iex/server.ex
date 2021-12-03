@@ -9,7 +9,15 @@ defmodule IEx.State do
             evaluator_options: [],
             previous_state: nil
 
-  @type t :: %__MODULE__{}
+  @type t :: %{
+          __struct__: __MODULE__,
+          parser_state: binary(),
+          counter: pos_integer(),
+          prefix: binary(),
+          on_eof: :stop_evaluator | :halt,
+          evaluator_options: keyword(),
+          previous_state: nil | t()
+        }
 end
 
 defmodule IEx.Server do
