@@ -5379,10 +5379,15 @@ defmodule Kernel do
 
       use MyModule, some: :options
 
-  the `__using__/1` macro from the `MyModule` module is invoked with the second
-  argument passed to `use` as its argument. Since `__using__/1` is a macro, all
+  Elixir will invoke `MyModule.__using__/1` passing the second argument of
+  `use` as its argument. Since `__using__/1` is typically a macro, all
   the usual macro rules apply, and its return value should be quoted code
   that is then inserted where `use/2` is called.
+
+  > Note: `use MyModule` works as a code injection point in the caller.
+  > Given the caller of `use MyModule` has little control over how the
+  > code is injected, `use/2` should be used with care. If you can,
+  > avoid use in favor of `import/2` or `alias/2` whenever possible.
 
   ## Examples
 
@@ -5425,9 +5430,9 @@ defmodule Kernel do
 
   ## Best practices
 
-  `__using__/1` is typically used when there is a need to set some state (via
-  module attributes) or callbacks (like `@before_compile`, see the documentation
-  for `Module` for more information) into the caller.
+  `__using__/1` is typically used when there is a need to set some state
+  (via module attributes) or callbacks (like `@before_compile`, see the
+  documentation for `Module` for more information) into the caller.
 
   `__using__/1` may also be used to alias, require, or import functionality
   from different modules:
@@ -5464,12 +5469,6 @@ defmodule Kernel do
   implementation of a previously defined `@callback` or are functions
   meant to be overridden (see `defoverridable/1`). Even in these cases,
   defining functions should be seen as a "last resort".
-
-  In case you want to provide some existing functionality to the user module,
-  please define it in a module which will be imported accordingly; for example,
-  `ExUnit.Case` doesn't define the `test/3` macro in the module that calls
-  `use ExUnit.Case`, but it defines `ExUnit.Case.test/3` and just imports that
-  into the caller when used.
   """
   defmacro use(module, opts \\ []) do
     calls =
