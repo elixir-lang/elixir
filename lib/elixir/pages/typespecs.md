@@ -134,7 +134,7 @@ Built-in type           | Defined as
 `function()`            | `fun()`
 `identifier()`          | `pid()` \| `port()` \| `reference()`
 `iodata()`              | `iolist()` \| `binary()`
-`iolist()`              | `maybe_improper_list(byte() \| binary() \| iolist(), binary() \| [])`
+`iolist()`              | `maybe_improper_list(byte() \| binary() \| iolist(), binary())`
 `keyword()`             | `[{atom(), any()}]`
 `keyword(t)`            | `[{atom(), t}]`
 `list()`                | `[any()]`
