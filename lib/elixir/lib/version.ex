@@ -677,7 +677,12 @@ defimpl String.Chars, for: Version.Requirement do
 end
 
 defimpl Inspect, for: Version.Requirement do
-  def inspect(%Version.Requirement{source: source}, _opts) do
-    "#Version.Requirement<" <> source <> ">"
+  def inspect(%Version.Requirement{source: source}, opts) do
+    formatted =
+      Inspect.Algebra.color(source, :atom, opts)
+      |> Inspect.Algebra.format(opts.width)
+      |> IO.iodata_to_binary()
+
+    "#Version.Requirement<" <> formatted <> ">"
   end
 end
