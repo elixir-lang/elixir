@@ -403,7 +403,7 @@ defmodule Version do
 
       iex> {:ok, requirement} = Version.parse_requirement("== 2.0.1")
       iex> requirement
-      #Version.Requirement<== 2.0.1>
+      #Version.Requirement<"== 2.0.1">
 
       iex> Version.parse_requirement("== == 2.0.1")
       :error
@@ -425,7 +425,7 @@ defmodule Version do
   ## Examples
 
       iex> Version.parse_requirement!("== 2.0.1")
-      #Version.Requirement<== 2.0.1>
+      #Version.Requirement<"== 2.0.1">
 
       iex> Version.parse_requirement!("== == 2.0.1")
       ** (Version.InvalidRequirementError) invalid requirement: "== == 2.0.1"
@@ -678,11 +678,8 @@ end
 
 defimpl Inspect, for: Version.Requirement do
   def inspect(%Version.Requirement{source: source}, opts) do
-    formatted =
-      Inspect.Algebra.color(source, :atom, opts)
-      |> Inspect.Algebra.format(opts.width)
-      |> IO.iodata_to_binary()
+    colorized = Inspect.Algebra.color("\"" <> source <> "\"", :string, opts)
 
-    "#Version.Requirement<" <> formatted <> ">"
+    Inspect.Algebra.concat(["#Version.Requirement<", colorized, ">"])
   end
 end
