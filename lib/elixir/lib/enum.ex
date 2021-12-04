@@ -2578,6 +2578,7 @@ defmodule Enum do
       [:a, :b, :c, :e, :f, :g, :d]
 
   """
+  @doc since: "1.13.0"
   def slide(enumerable, range_or_single_index, insertion_index)
 
   def slide(enumerable, single_index, insertion_index) when is_integer(single_index) do
