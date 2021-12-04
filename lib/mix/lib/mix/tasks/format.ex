@@ -213,6 +213,7 @@ defmodule Mix.Tasks.Format do
   to be formatted. The options are returned for reflection
   purposes.
   """
+  @doc since: "1.13.0"
   def formatter_for_file(file, opts \\ []) do
     {dot_formatter, formatter_opts} = eval_dot_formatter(opts)
 
