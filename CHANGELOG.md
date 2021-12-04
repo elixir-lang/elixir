@@ -151,7 +151,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
   * [Inspect] Allow default inspect fun to be set globally with `Inspect.Opts.default_inspect_fun/1`
   * [IO] Allow `:eof` to be given as limit to `IO.getn/2`
   * [Kernel] Support the `:sigils` option in `import Mod, only: :sigils` and allow the sigil modifiers to be also digits
-  * [Kernel] Make `get_in` consistently abort when `nil` values are found
+  * [Kernel] Make `get_in` consistently abort and return `nil` when `nil` values are found (previously Elixir would raise an error in this case). This allows a user to use `get_in` as a safe navigation operator.
   * [Kernel] Improve compilation times by reducing the amount of copies of the AST across compiler processes
   * [Kernel] Raise if trying to define a module with a slash in its name
   * [Kernel] Warn when `?\` is used and there is no need for a escape character
