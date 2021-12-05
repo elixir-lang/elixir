@@ -214,10 +214,11 @@ defmodule Code.Identifier do
   @doc """
   Escapes the given identifier.
   """
-  @spec escape(binary(), char(), :infinity | non_neg_integer, (char() -> iolist() | false)) ::
+  @spec escape(binary(), char() | nil, :infinity | non_neg_integer, (char() -> iolist() | false)) ::
           {escaped :: iolist(), remaining :: binary()}
   def escape(binary, char, limit \\ :infinity, fun \\ &escape_map/1)
-      when limit == :infinity or (is_integer(limit) and limit >= 0) do
+      when ((char in 0..0x10FFFF or is_nil(char)) and limit == :infinity) or
+             (is_integer(limit) and limit >= 0) do
     escape(binary, char, limit, [], fun)
   end
 
