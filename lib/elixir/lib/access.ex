@@ -174,7 +174,11 @@ defmodule Access do
       exception =
         case __STACKTRACE__ do
           [unquote(top) | _] ->
-            reason = "#{inspect(unquote(module))} does not implement the Access behaviour"
+            reason =
+              "#{inspect(unquote(module))} does not implement the Access behaviour. " <>
+                "If you are using get_in/put_in/update_in, you can specify the field " <>
+                "to be accessed using Access.key!/1"
+
             %{unquote(exception) | reason: reason}
 
           _ ->
