@@ -64,6 +64,11 @@ defmodule Kernel.WarningTest do
     end
   end
 
+  test "warns on :: as atom" do
+    assert capture_err(fn -> Code.eval_string(~s/:::/) end) =~
+             "atom ::: must be written between quotes, as in :\"::\", to avoid ambiguit"
+  end
+
   test "unused variable" do
     output =
       capture_err(fn ->
