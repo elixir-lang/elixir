@@ -2,10 +2,14 @@ import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc ~S"""
-  Macros are compile-time constructs that are invoked with Elixir's AST
-  as input and a superset of Elixir's AST as output.
+  Macros are compile-time constructs that receive Elixir's AST as input
+  and return Elixir's AST as output.
 
-  Let's see a simple example that shows the difference between functions and macros:
+  Many of the functions in this module exist precisely to work with Elixir
+  AST, to traverse, query, and transform it.
+
+  Let's see a simple example that shows the difference between functions
+  and macros:
 
       defmodule Example do
         defmacro macro_inspect(value) do
@@ -49,6 +53,10 @@ defmodule Macro do
 
   To learn more about Elixir's AST and how to build them programmatically,
   see `quote/2`.
+
+  > Note: the functions in this module do not evaluate code. In fact,
+  > evaluating code from macros is often an anti-pattern. For code
+  > evaluation, see the `Code` module.
 
   ## Custom Sigils
 
