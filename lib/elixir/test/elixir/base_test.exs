@@ -799,10 +799,21 @@ defmodule BaseTest do
         |> Enum.shuffle()
         |> IO.iodata_to_binary()
 
+      allowed_opts =
+        encode
+        |> Function.info()
+        |> Keyword.fetch!(:name)
+        |> case do
+          :encode16 -> [:case]
+          :encode64 -> [:padding]
+          :url_encode64 -> [:padding]
+          _ -> [:case, :padding]
+        end
+
       expected =
         data
-        |> encode.(case: encode_case, pad: pad?)
-        |> decode.(case: decode_case, pad: pad?)
+        |> encode.(Keyword.take([case: encode_case, padding: pad?], allowed_opts))
+        |> decode.(Keyword.take([case: decode_case, padding: pad?], allowed_opts))
 
       assert data == expected,
              "identity did not match for #{inspect(data)} when #{inspect(encode)} (#{encode_case})"
