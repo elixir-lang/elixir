@@ -57,7 +57,7 @@ defmodule Code.Formatter.IntegrationTest do
     assert_same """
     defp module_attribute_read?({:@, _, [{var, _, var_context}]})
          when is_atom(var) and is_atom(var_context) do
-      Code.Identifier.classify(var) == :callable_local
+      Macro.classify_atom(var) == :identifier
     end
     """
   end

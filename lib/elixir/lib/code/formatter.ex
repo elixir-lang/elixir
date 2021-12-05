@@ -487,12 +487,10 @@ defmodule Code.Formatter do
 
             {:__block__, _, [atom]} when is_atom(atom) ->
               key =
-                case Code.Identifier.classify(atom) do
-                  type when type in [:callable_local, :callable_operator, :not_callable] ->
-                    IO.iodata_to_binary([Atom.to_string(atom), ?:])
-
-                  _ ->
-                    IO.iodata_to_binary([?", Atom.to_string(atom), ?", ?:])
+                if Macro.classify_atom(atom) in [:identifier, :unquoted] do
+                  IO.iodata_to_binary([Atom.to_string(atom), ?:])
+                else
+                  IO.iodata_to_binary([?", Atom.to_string(atom), ?", ?:])
                 end
 
               {string(key), state}
@@ -865,7 +863,7 @@ defmodule Code.Formatter do
   # @foo(bar)
   defp module_attribute_to_algebra(meta, {name, call_meta, [_] = args} = expr, context, state)
        when is_atom(name) and name not in [:__block__, :__aliases__] do
-    if Code.Identifier.classify(name) == :callable_local do
+    if Macro.classify_atom(name) == :identifier do
       {{call_doc, state}, wrap_in_parens?} =
         call_args_to_algebra(args, call_meta, context, :skip_unless_many_args, false, state)
 
@@ -910,7 +908,7 @@ defmodule Code.Formatter do
        )
        when is_atom(fun) and is_integer(arity) do
     {target_doc, state} = remote_target_to_algebra(target, state)
-    fun = Code.Identifier.inspect_as_function(fun)
+    fun = Macro.inspect_atom(:remote_call, fun)
     {target_doc |> nest(1) |> concat(string(".#{fun}/#{arity}")), state}
   end
 
@@ -955,7 +953,7 @@ defmodule Code.Formatter do
   defp remote_to_algebra({{:., _, [target, fun]}, meta, args}, context, state)
        when is_atom(fun) do
     {target_doc, state} = remote_target_to_algebra(target, state)
-    fun = Code.Identifier.inspect_as_function(fun)
+    fun = Macro.inspect_atom(:remote_call, fun)
     remote_doc = target_doc |> concat(".") |> concat(string(fun))
 
     if args == [] and not remote_target_is_a_module?(target) and not meta?(meta, :closing) do
@@ -1495,12 +1493,10 @@ defmodule Code.Formatter do
     string = Atom.to_string(atom)
 
     iodata =
-      case Code.Identifier.classify(atom) do
-        type when type in [:callable_local, :callable_operator, :not_callable] ->
-          [?:, string]
-
-        _ ->
-          [?:, ?", String.replace(string, "\"", "\\\""), ?"]
+      if Macro.classify_atom(atom) in [:unquoted, :identifier] do
+        [?:, string]
+      else
+        [?:, ?", String.replace(string, "\"", "\\\""), ?"]
       end
 
     iodata |> IO.iodata_to_binary() |> string()
@@ -2042,7 +2038,7 @@ defmodule Code.Formatter do
 
   defp module_attribute_read?({:@, _, [{var, _, var_context}]})
        when is_atom(var) and is_atom(var_context) do
-    Code.Identifier.classify(var) == :callable_local
+    Macro.classify_atom(var) == :identifier
   end
 
   defp module_attribute_read?(_), do: false
