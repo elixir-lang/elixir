@@ -420,6 +420,10 @@ defmodule Macro do
   Generates an AST node representing a unique variable
   given by the atoms `var` and `context`.
 
+  Calling this function with the same arguments will
+  generate another variable, with its own unique counter.
+  See `var/2` for an alternative.
+
   ## Examples
 
       iex> {:foo, [counter: c], __MODULE__} = Macro.unique_var(:foo, __MODULE__)
