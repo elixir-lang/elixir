@@ -799,13 +799,36 @@ defmodule BaseTest do
         |> Enum.shuffle()
         |> IO.iodata_to_binary()
 
+      allowed_opts =
+        encode
+        |> Function.info()
+        |> Keyword.fetch!(:name)
+        |> case do
+          :encode16 -> [:case]
+          :encode64 -> [:padding]
+          :url_encode64 -> [:padding]
+          _ -> [:case, :padding]
+        end
+
       expected =
         data
-        |> encode.(case: encode_case, pad: pad?)
-        |> decode.(case: decode_case, pad: pad?)
+        |> encode.(Keyword.take([case: encode_case, padding: pad?], allowed_opts))
+        |> decode.(Keyword.take([case: decode_case, padding: pad?], allowed_opts))
 
       assert data == expected,
              "identity did not match for #{inspect(data)} when #{inspect(encode)} (#{encode_case})"
+    end
+  end
+
+  test "unknown encode options raise an argument error" do
+    for encode <- [&encode16/2, &encode32/2, &encode64/2, &hex_encode32/2, &url_encode64/2] do
+      assert_raise ArgumentError, fn -> encode.("foobar", pad: false) end
+    end
+  end
+
+  test "unknown decode options raise an argument error" do
+    for decode <- [&decode16/2, &decode32/2, &decode64/2, &hex_decode32/2, &url_decode64/2] do
+      assert_raise ArgumentError, fn -> decode.("cpnmuoj1e8", pad: false) end
     end
   end
 end

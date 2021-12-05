@@ -269,7 +269,8 @@ defmodule Base do
   """
   @spec encode16(binary, keyword) :: binary
   def encode16(data, opts \\ []) when is_binary(data) do
-    case = Keyword.get(opts, :case, :upper)
+    [case: case] = Keyword.validate!(opts, case: :upper)
+
     do_encode16(case, data)
   end
 
@@ -302,9 +303,13 @@ defmodule Base do
   """
   @spec decode16(binary, keyword) :: {:ok, binary} | :error
   def decode16(string, opts \\ []) do
-    {:ok, decode16!(string, opts)}
-  rescue
-    ArgumentError -> :error
+    opts = Keyword.validate!(opts, case: :upper)
+
+    try do
+      {:ok, decode16!(string, opts)}
+    rescue
+      ArgumentError -> :error
+    end
   end
 
   @doc """
@@ -341,7 +346,8 @@ defmodule Base do
   def decode16!(string, opts \\ [])
 
   def decode16!(string, opts) when is_binary(string) and rem(byte_size(string), 2) == 0 do
-    case = Keyword.get(opts, :case, :upper)
+    [case: case] = Keyword.validate!(opts, case: :upper)
+
     do_decode16(case, string)
   end
 
@@ -369,7 +375,8 @@ defmodule Base do
   """
   @spec encode64(binary, keyword) :: binary
   def encode64(data, opts \\ []) when is_binary(data) do
-    pad? = Keyword.get(opts, :padding, true)
+    [padding: pad?] = Keyword.validate!(opts, padding: true)
+
     do_encode64(data, pad?)
   end
 
@@ -399,9 +406,13 @@ defmodule Base do
   """
   @spec decode64(binary, keyword) :: {:ok, binary} | :error
   def decode64(string, opts \\ []) when is_binary(string) do
-    {:ok, decode64!(string, opts)}
-  rescue
-    ArgumentError -> :error
+    opts = Keyword.validate!(opts, ignore: nil, padding: true)
+
+    try do
+      {:ok, decode64!(string, opts)}
+    rescue
+      ArgumentError -> :error
+    end
   end
 
   @doc """
@@ -433,8 +444,9 @@ defmodule Base do
   """
   @spec decode64!(binary, keyword) :: binary
   def decode64!(string, opts \\ []) when is_binary(string) do
-    pad? = Keyword.get(opts, :padding, true)
-    string |> remove_ignored(opts[:ignore]) |> do_decode64(pad?)
+    opts = Keyword.validate!(opts, ignore: nil, padding: true)
+
+    string |> remove_ignored(opts[:ignore]) |> do_decode64(opts[:padding])
   end
 
   @doc """
@@ -455,7 +467,8 @@ defmodule Base do
   """
   @spec url_encode64(binary, keyword) :: binary
   def url_encode64(data, opts \\ []) when is_binary(data) do
-    pad? = Keyword.get(opts, :padding, true)
+    [padding: pad?] = Keyword.validate!(opts, padding: true)
+
     do_encode64url(data, pad?)
   end
 
@@ -483,9 +496,13 @@ defmodule Base do
   """
   @spec url_decode64(binary, keyword) :: {:ok, binary} | :error
   def url_decode64(string, opts \\ []) when is_binary(string) do
-    {:ok, url_decode64!(string, opts)}
-  rescue
-    ArgumentError -> :error
+    opts = Keyword.validate!(opts, ignore: nil, padding: true)
+
+    try do
+      {:ok, url_decode64!(string, opts)}
+    rescue
+      ArgumentError -> :error
+    end
   end
 
   @doc """
@@ -515,8 +532,9 @@ defmodule Base do
   """
   @spec url_decode64!(binary, keyword) :: binary
   def url_decode64!(string, opts \\ []) when is_binary(string) do
-    pad? = Keyword.get(opts, :padding, true)
-    string |> remove_ignored(opts[:ignore]) |> do_decode64url(pad?)
+    opts = Keyword.validate!(opts, ignore: nil, padding: true)
+
+    string |> remove_ignored(opts[:ignore]) |> do_decode64url(opts[:padding])
   end
 
   @doc """
@@ -553,9 +571,9 @@ defmodule Base do
   """
   @spec encode32(binary, keyword) :: binary
   def encode32(data, opts \\ []) when is_binary(data) do
-    case = Keyword.get(opts, :case, :upper)
-    pad? = Keyword.get(opts, :padding, true)
-    do_encode32(case, data, pad?)
+    opts = Keyword.validate!(opts, case: :upper, padding: true)
+
+    do_encode32(opts[:case], data, opts[:padding])
   end
 
   @doc """
@@ -596,9 +614,13 @@ defmodule Base do
   """
   @spec decode32(binary, keyword) :: {:ok, binary} | :error
   def decode32(string, opts \\ []) do
-    {:ok, decode32!(string, opts)}
-  rescue
-    ArgumentError -> :error
+    opts = Keyword.validate!(opts, case: :upper, padding: true)
+
+    try do
+      {:ok, decode32!(string, opts)}
+    rescue
+      ArgumentError -> :error
+    end
   end
 
   @doc """
@@ -642,9 +664,9 @@ defmodule Base do
   """
   @spec decode32!(binary, keyword) :: binary
   def decode32!(string, opts \\ []) when is_binary(string) do
-    case = Keyword.get(opts, :case, :upper)
-    pad? = Keyword.get(opts, :padding, true)
-    do_decode32(case, string, pad?)
+    opts = Keyword.validate!(opts, case: :upper, padding: true)
+
+    do_decode32(opts[:case], string, opts[:padding])
   end
 
   @doc """
@@ -682,9 +704,9 @@ defmodule Base do
   """
   @spec hex_encode32(binary, keyword) :: binary
   def hex_encode32(data, opts \\ []) when is_binary(data) do
-    case = Keyword.get(opts, :case, :upper)
-    pad? = Keyword.get(opts, :padding, true)
-    do_encode32hex(case, data, pad?)
+    opts = Keyword.validate!(opts, case: :upper, padding: true)
+
+    do_encode32hex(opts[:case], data, opts[:padding])
   end
 
   @doc """
@@ -726,9 +748,13 @@ defmodule Base do
   """
   @spec hex_decode32(binary, keyword) :: {:ok, binary} | :error
   def hex_decode32(string, opts \\ []) do
-    {:ok, hex_decode32!(string, opts)}
-  rescue
-    ArgumentError -> :error
+    opts = Keyword.validate!(opts, case: :upper, padding: true)
+
+    try do
+      {:ok, hex_decode32!(string, opts)}
+    rescue
+      ArgumentError -> :error
+    end
   end
 
   @doc """
@@ -773,9 +799,9 @@ defmodule Base do
   """
   @spec hex_decode32!(binary, keyword) :: binary
   def hex_decode32!(string, opts \\ []) when is_binary(string) do
-    case = Keyword.get(opts, :case, :upper)
-    pad? = Keyword.get(opts, :padding, true)
-    do_decode32hex(case, string, pad?)
+    opts = Keyword.validate!(opts, case: :upper, padding: true)
+
+    do_decode32hex(opts[:case], string, opts[:padding])
   end
 
   defp remove_ignored(string, nil), do: string
