@@ -671,13 +671,13 @@ defmodule ExUnit.Diff do
          {:ok, inspect_left} <- safe_inspect(left),
          {:ok, inspect_right} <- safe_inspect(right) do
       if inspect_left != inspect_right do
-        diff_string(inspect_left, inspect_right, :none, env)
+        diff_string(inspect_left, inspect_right, nil, env)
       else
         # If they are equivalent, still use their inspected form
         case diff_map(kw, right, struct1, struct2, env) do
           {%{equivalent?: true}, ctx} ->
-            left = block_diff_container([inspect_left], :none)
-            right = block_diff_container([inspect_right], :none)
+            left = block_diff_container([inspect_left], nil)
+            right = block_diff_container([inspect_right], nil)
             {%__MODULE__{equivalent?: true, left: left, right: right}, ctx}
 
           diff_ctx ->
@@ -853,7 +853,7 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp block_diff_container(contents, :none),
+  defp block_diff_container(contents, nil),
     do: {:__block__, [], contents}
 
   defp block_diff_container(contents, container),
@@ -880,7 +880,7 @@ defmodule ExUnit.Diff do
   # Numbers
 
   defp diff_number(left, right, env) do
-    diff_string(inspect(left), inspect(right), :none, env)
+    diff_string(inspect(left), inspect(right), nil, env)
   end
 
   # Algebra
