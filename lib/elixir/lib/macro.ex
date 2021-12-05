@@ -2,10 +2,14 @@ import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc ~S"""
-  Macros are compile-time constructs that are invoked with Elixir's AST
-  as input and a superset of Elixir's AST as output.
+  Macros are compile-time constructs that receive Elixir's AST as input
+  and return Elixir's AST as output.
 
-  Let's see a simple example that shows the difference between functions and macros:
+  Many of the functions in this module exist precisely to work with Elixir
+  AST, to traverse, query, and transform it.
+
+  Let's see a simple example that shows the difference between functions
+  and macros:
 
       defmodule Example do
         defmacro macro_inspect(value) do
@@ -49,6 +53,10 @@ defmodule Macro do
 
   To learn more about Elixir's AST and how to build them programmatically,
   see `quote/2`.
+
+  > Note: the functions in this module do not evaluate code. In fact,
+  > evaluating code from macros is often an anti-pattern. For code
+  > evaluation, see the `Code` module.
 
   ## Custom Sigils
 
@@ -286,12 +294,12 @@ defmodule Macro do
 
   def pipe(expr, {op, line, args} = op_args, integer) when is_list(args) do
     cond do
-      is_atom(op) and Identifier.unary_op(op) != :error ->
+      is_atom(op) and operator?(op, 1) ->
         raise ArgumentError,
               "cannot pipe #{to_string(expr)} into #{to_string(op_args)}, " <>
                 "the #{to_string(op)} operator can only take one argument"
 
-      is_atom(op) and Identifier.binary_op(op) != :error ->
+      is_atom(op) and operator?(op, 2) ->
         raise ArgumentError,
               "cannot pipe #{to_string(expr)} into #{to_string(op_args)}, " <>
                 "the #{to_string(op)} operator can only take two arguments"
@@ -1283,16 +1291,14 @@ defmodule Macro do
   end
 
   defp unary_call({op, _, [arg]} = ast, fun) when is_atom(op) do
-    case Identifier.unary_op(op) do
-      {_, _} ->
-        if op == :not or op_expr?(arg) do
-          {:ok, fun.(ast, Atom.to_string(op) <> "(" <> to_string(arg, fun) <> ")")}
-        else
-          {:ok, fun.(ast, Atom.to_string(op) <> to_string(arg, fun))}
-        end
-
-      :error ->
-        :error
+    if operator?(op, 1) do
+      if op == :not or op_expr?(arg) do
+        {:ok, fun.(ast, Atom.to_string(op) <> "(" <> to_string(arg, fun) <> ")")}
+      else
+        {:ok, fun.(ast, Atom.to_string(op) <> to_string(arg, fun))}
+      end
+    else
+      :error
     end
   end
 
@@ -1308,15 +1314,13 @@ defmodule Macro do
   end
 
   defp op_call({op, _, [left, right]} = ast, fun) when is_atom(op) do
-    case Identifier.binary_op(op) do
-      {_, _} ->
-        left = op_to_string(left, fun, op, :left)
-        right = op_to_string(right, fun, op, :right)
-        op = if op in [:..], do: "#{op}", else: " #{op} "
-        {:ok, fun.(ast, left <> op <> right)}
-
-      :error ->
-        :error
+    if operator?(op, 2) do
+      left = op_to_string(left, fun, op, :left)
+      right = op_to_string(right, fun, op, :right)
+      op = if op in [:..], do: "#{op}", else: " #{op} "
+      {:ok, fun.(ast, left <> op <> right)}
+    else
+      :error
     end
   end
 
@@ -1363,14 +1367,9 @@ defmodule Macro do
 
   defp op_expr?(expr) do
     case expr do
-      {op, _, [_, _]} ->
-        Identifier.binary_op(op) != :error
-
-      {op, _, [_]} ->
-        Identifier.unary_op(op) != :error
-
-      _ ->
-        false
+      {op, _, [_, _]} -> operator?(op, 2)
+      {op, _, [_]} -> operator?(op, 1)
+      _ -> false
     end
   end
 
@@ -1392,7 +1391,7 @@ defmodule Macro do
   end
 
   defp call_to_string_for_atom(atom) do
-    Identifier.inspect_as_function(atom)
+    Macro.inspect_atom(:remote_call, atom)
   end
 
   defp args_to_string(args, fun) do
@@ -1451,7 +1450,7 @@ defmodule Macro do
 
   defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn {key, value} ->
-      Identifier.inspect_as_key(key) <> " " <> to_string(value, fun)
+      Macro.inspect_atom(:key, key) <> " " <> to_string(value, fun)
     end)
   end
 
@@ -1737,9 +1736,19 @@ defmodule Macro do
   """
   @doc since: "1.7.0"
   @spec operator?(name :: atom(), arity()) :: boolean()
-  def operator?(:"..//", 3), do: true
-  def operator?(name, 2) when is_atom(name), do: Identifier.binary_op(name) != :error
-  def operator?(name, 1) when is_atom(name), do: Identifier.unary_op(name) != :error
+  def operator?(name, arity)
+
+  def operator?(:"..//", 3),
+    do: true
+
+  # Code.Identifier treats :// as a binary operator for precedence
+  # purposes but it isn't really one, so we explicitly skip it.
+  def operator?(name, 2) when is_atom(name),
+    do: Identifier.binary_op(name) != :error and name != :"//"
+
+  def operator?(name, 1) when is_atom(name),
+    do: Identifier.unary_op(name) != :error
+
   def operator?(name, arity) when is_atom(name) and is_integer(arity), do: false
 
   @doc """
@@ -1921,4 +1930,234 @@ defmodule Macro do
 
   defp to_lower_char(char) when char >= ?A and char <= ?Z, do: char + 32
   defp to_lower_char(char), do: char
+
+  ## Atom handling
+
+  @doc """
+  Classifies the given `atom`.
+
+  It returns one of the following atoms:
+
+    * `:alias` - the atom represents an alias
+
+    * `:identifier` - the atom can be used as a variable or local function call
+
+    * `:unquoted` - the atom can be used in its unquoted form,
+      includes operators and atoms with `@` in them
+
+    * `:quoted` - all other atoms which can only be used in their quoted form
+
+  Note operators are going to either be unquoted, such as `:+` and
+  most operators, or quoted, such as `:"::"`. Use `operator?/2` to
+  check if a given atom is an operator.
+
+  ## Examples
+
+      iex> Macro.classify_atom(:foo)
+      :identifier
+      iex> Macro.classify_atom(Foo)
+      :alias
+      iex> Macro.classify_atom(:foo@bar)
+      :unquoted
+      iex> Macro.classify_atom(:+)
+      :unquoted
+      iex> Macro.classify_atom(:Foo)
+      :unquoted
+      iex> Macro.classify_atom(:"with spaces")
+      :quoted
+
+  """
+  @doc since: "1.14.0"
+  @spec classify_atom(atom) :: :alias | :identifier | :quoted | :unquoted
+  def classify_atom(atom) do
+    case inner_classify(atom) do
+      :alias -> :alias
+      :identifier -> :identifier
+      type when type in [:unquoted_operator, :not_callable] -> :unquoted
+      _ -> :quoted
+    end
+  end
+
+  @doc ~S"""
+  Inspects the given atom.
+
+  The atom can be inspected as a literal (`:literal`),
+  as a key (`:key`), or as the function name in a remote call
+  (`:remote_call`).
+
+  ## Examples
+
+  ### As a literal
+
+      iex> Macro.inspect_atom(:literal, nil)
+      "nil"
+      iex> Macro.inspect_atom(:literal, :foo)
+      ":foo"
+      iex> Macro.inspect_atom(:literal, :<>)
+      ":<>"
+      iex> Macro.inspect_atom(:literal, :Foo)
+      ":Foo"
+      iex> Macro.inspect_atom(:literal, :"with spaces")
+      ":\"with spaces\""
+
+  ### As a key
+
+      iex> Macro.inspect_atom(:key, :foo)
+      "foo:"
+      iex> Macro.inspect_atom(:key, :<>)
+      "<>:"
+      iex> Macro.inspect_atom(:key, :Foo)
+      "Foo:"
+      iex> Macro.inspect_atom(:key, :"with spaces")
+      "\"with spaces\":"
+
+  ### As a remote call
+
+      iex> Macro.inspect_atom(:remote_call, :foo)
+      "foo"
+      iex> Macro.inspect_atom(:remote_call, :<>)
+      "<>"
+      iex> Macro.inspect_atom(:remote_call, :Foo)
+      "\"Foo\""
+      iex> Macro.inspect_atom(:remote_call, :"with spaces")
+      "\"with spaces\""
+
+  """
+  @doc since: "1.14.0"
+  @spec inspect_atom(:literal | :key | :remote_call, atom) :: binary
+  def inspect_atom(:literal, atom) when is_nil(atom) or is_boolean(atom) do
+    Atom.to_string(atom)
+  end
+
+  def inspect_atom(:literal, atom) when is_atom(atom) do
+    binary = Atom.to_string(atom)
+
+    case classify_atom(atom) do
+      :alias ->
+        case binary do
+          binary when binary in ["Elixir", "Elixir.Elixir"] -> binary
+          "Elixir.Elixir." <> _rest -> binary
+          "Elixir." <> rest -> rest
+        end
+
+      :quoted ->
+        {escaped, _} = Code.Identifier.escape(binary, ?")
+        IO.iodata_to_binary([?:, ?", escaped, ?"])
+
+      _ ->
+        ":" <> binary
+    end
+  end
+
+  def inspect_atom(:key, atom) when is_atom(atom) do
+    binary = Atom.to_string(atom)
+
+    case classify_atom(atom) do
+      :alias ->
+        IO.iodata_to_binary([?", binary, ?", ?:])
+
+      :quoted ->
+        {escaped, _} = Code.Identifier.escape(binary, ?")
+        IO.iodata_to_binary([?", escaped, ?", ?:])
+
+      _ ->
+        IO.iodata_to_binary([binary, ?:])
+    end
+  end
+
+  def inspect_atom(:remote_call, atom) when is_atom(atom) do
+    binary = Atom.to_string(atom)
+
+    case inner_classify(atom) do
+      type when type in [:identifier, :unquoted_operator, :quoted_operator] ->
+        binary
+
+      type ->
+        escaped =
+          if type in [:not_callable, :alias] do
+            binary
+          else
+            elem(Code.Identifier.escape(binary, ?"), 0)
+          end
+
+        IO.iodata_to_binary([?", escaped, ?"])
+    end
+  end
+
+  # Classifies the given atom into one of the following categories:
+  #
+  #   * `:alias` - a valid Elixir alias, like `Foo`, `Foo.Bar` and so on
+  #
+  #   * `:identifier` - an atom that can be used as a variable/local call;
+  #     this category includes identifiers like `:foo`
+  #
+  #   * `:unquoted_operator` - all callable operators, such as `:<>`. Note
+  #     operators such as `:..` are not callable because of ambiguity
+  #
+  #   * `:quoted_operator` - callable operators that must be wrapped in quotes when
+  #     defined as an atom. For example, `::` must be written as `:"::"` to avoid
+  #     the ambiguity between the atom and the keyword identifier
+  #
+  #   * `:not_callable` - an atom that cannot be used as a function call after the
+  #     `.` operator. Those are typically AST nodes that are special forms (such as
+  #     `:%{}` and `:<<>>>`) as well as nodes that are ambiguous in calls (such as
+  #     `:..` and `:...`). This category also includes atoms like `:Foo`, since
+  #     they are valid identifiers but they need quotes to be used in function
+  #     calls (`Foo."Bar"`)
+  #
+  #   * `:other` - any other atom (these are usually escaped when inspected, like
+  #     `:"foo and bar"`)
+  #
+  defp inner_classify(atom) when is_atom(atom) do
+    cond do
+      atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :"..//", :->] ->
+        :not_callable
+
+      atom in [:"::"] ->
+        :quoted_operator
+
+      operator?(atom, 1) or operator?(atom, 2) ->
+        :unquoted_operator
+
+      true ->
+        charlist = Atom.to_charlist(atom)
+
+        if valid_alias?(charlist) do
+          :alias
+        else
+          case :elixir_config.identifier_tokenizer().tokenize(charlist) do
+            {kind, _acc, [], _, _, special} ->
+              if kind == :identifier and not :lists.member(?@, special) do
+                :identifier
+              else
+                :not_callable
+              end
+
+            _ ->
+              :other
+          end
+        end
+    end
+  end
+
+  defp valid_alias?('Elixir' ++ rest), do: valid_alias_piece?(rest)
+  defp valid_alias?(_other), do: false
+
+  defp valid_alias_piece?([?., char | rest]) when char >= ?A and char <= ?Z,
+    do: valid_alias_piece?(trim_leading_while_valid_identifier(rest))
+
+  defp valid_alias_piece?([]), do: true
+  defp valid_alias_piece?(_other), do: false
+
+  defp trim_leading_while_valid_identifier([char | rest])
+       when char >= ?a and char <= ?z
+       when char >= ?A and char <= ?Z
+       when char >= ?0 and char <= ?9
+       when char == ?_ do
+    trim_leading_while_valid_identifier(rest)
+  end
+
+  defp trim_leading_while_valid_identifier(other) do
+    other
+  end
 end

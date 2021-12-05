@@ -163,7 +163,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   # We cannot use the inspect protocol while consolidating
   # since inspect may not be available.
   defp inspect_protocol(protocol) do
-    Code.Identifier.inspect_as_atom(protocol)
+    Macro.inspect_atom(:literal, protocol)
   end
 
   defp reload(module) do
