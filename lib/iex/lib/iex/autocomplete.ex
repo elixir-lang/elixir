@@ -431,7 +431,7 @@ defmodule IEx.Autocomplete do
   defp usable_as_unquoted_module?(name) do
     # Conversion to atom is not a problem because
     # it is only called with existing modules names.
-    Macro.classify_atom(String.to_atom(name)) != :quoted
+    Macro.classify_atom(String.to_atom(name)) in [:identifier, :unquoted]
   end
 
   defp match_modules(hint, elixir_root?) do

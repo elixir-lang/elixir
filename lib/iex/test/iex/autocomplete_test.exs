@@ -40,6 +40,7 @@ defmodule IEx.AutocompleteTest do
     {:yes, '', list} = expand(':')
     assert is_list(list)
     assert 'lists' in list
+    assert 'Elixir.List' not in list
   end
 
   test "Elixir proxy" do
