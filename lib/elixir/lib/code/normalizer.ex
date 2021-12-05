@@ -244,7 +244,7 @@ defmodule Code.Normalizer do
     meta = patch_meta_line(meta, state.parent_meta)
     literal = maybe_escape_literal(literal, state)
 
-    if is_atom(literal) and Atom.classify(literal) == :alias and
+    if is_atom(literal) and Macro.classify_atom(literal) == :alias and
          is_nil(meta[:delimiter]) do
       "Elixir." <> segments = Atom.to_string(literal)
 

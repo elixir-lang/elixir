@@ -974,7 +974,7 @@ defmodule ExUnit.Diff do
   end
 
   defp safe_key_to_algebra(key, _diff_wrapper) do
-    Atom.inspect_as_key(key)
+    Macro.inspect_atom(:key, key)
   end
 
   defp map_item_to_algebra(quoted, diff_wrapper) do
@@ -1015,7 +1015,7 @@ defmodule ExUnit.Diff do
   end
 
   defp safe_struct_to_algebra(name, _diff_wrapper) do
-    Atom.inspect(name)
+    Macro.inspect_atom(:literal, name)
   end
 
   defp select_list_item_algebra(list) do

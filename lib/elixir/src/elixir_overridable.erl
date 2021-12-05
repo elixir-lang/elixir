@@ -128,6 +128,6 @@ format_error({no_super, Module, {Name, Arity}}) ->
     [Name, Arity, elixir_aliases:inspect(Module), Joined]).
 
 format_fa({Name, Arity}) ->
-  A = 'Elixir.Atom':inspect_as_function(Name),
+  A = 'Elixir.Macro':inspect_atom(remote_call, Name),
   B = integer_to_binary(Arity),
   <<A/binary, $/, B/binary>>.

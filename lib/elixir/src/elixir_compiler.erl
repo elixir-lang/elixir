@@ -173,7 +173,6 @@ bootstrap_files() ->
      <<"lib/elixir/lib/kernel/utils.ex">>,
      <<"lib/elixir/lib/code.ex">>,
      <<"lib/elixir/lib/code/identifier.ex">>,
-     <<"lib/elixir/lib/atom.ex">>,
      <<"lib/elixir/lib/protocol.ex">>,
      <<"lib/elixir/lib/stream/reducers.ex">>,
      <<"lib/elixir/lib/enum.ex">>,
