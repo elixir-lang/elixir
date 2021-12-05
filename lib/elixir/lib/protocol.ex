@@ -244,8 +244,16 @@ defmodule Protocol do
         ...
       end
 
-  Although doing so is not recommended as it may affect your test suite
-  performance.
+  If you are using `Mix.install/2`, you can do by passing the `consolidate_protocols`
+  option:
+
+      Mix.install(
+        deps,
+        consolidate_protocols: false
+      )
+
+  Although doing so is not recommended as it may affect the performance of
+  your code.
 
   Finally, note all protocols are compiled with `debug_info` set to `true`,
   regardless of the option set by the `elixirc` compiler. The debug info is
