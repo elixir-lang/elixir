@@ -78,21 +78,21 @@ defmodule AccessTest do
     end
 
     message =
-      "function AccessTest.Sample.fetch/2 is undefined (AccessTest.Sample does not implement the Access behaviour)"
+      ~r"function AccessTest.Sample.fetch/2 is undefined \(AccessTest.Sample does not implement the Access behaviour"
 
     assert_raise UndefinedFunctionError, message, fn ->
       Access.fetch(struct(Sample, []), :name)
     end
 
     message =
-      "function AccessTest.Sample.get_and_update/3 is undefined (AccessTest.Sample does not implement the Access behaviour)"
+      ~r"function AccessTest.Sample.get_and_update/3 is undefined \(AccessTest.Sample does not implement the Access behaviour"
 
     assert_raise UndefinedFunctionError, message, fn ->
       Access.get_and_update(struct(Sample, []), :name, fn nil -> {:ok, :baz} end)
     end
 
     message =
-      "function AccessTest.Sample.pop/2 is undefined (AccessTest.Sample does not implement the Access behaviour)"
+      ~r"function AccessTest.Sample.pop/2 is undefined \(AccessTest.Sample does not implement the Access behaviour"
 
     assert_raise UndefinedFunctionError, message, fn ->
       Access.pop(struct(Sample, []), :name)
