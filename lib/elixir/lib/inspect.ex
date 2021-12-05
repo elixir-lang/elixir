@@ -94,7 +94,7 @@ defimpl Inspect, for: Atom do
   require Macro
 
   def inspect(atom, opts) do
-    color(Identifier.inspect_as_atom(atom), color_key(atom), opts)
+    color(Atom.inspect(atom), color_key(atom), opts)
   end
 
   defp color_key(atom) when is_boolean(atom), do: :boolean
@@ -222,7 +222,7 @@ defimpl Inspect, for: List do
 
   @doc false
   def keyword({key, value}, opts) do
-    key = color(Identifier.inspect_as_key(key), :atom, opts)
+    key = color(Atom.inspect_as_key(key), :atom, opts)
     concat(key, concat(" ", to_doc(value, opts)))
   end
 
@@ -351,8 +351,8 @@ defimpl Inspect, for: Function do
         "#Function<#{uniq(fun_info)}/#{fun_info[:arity]}>"
 
       fun_info[:type] == :external and fun_info[:env] == [] ->
-        inspected_as_atom = Identifier.inspect_as_atom(mod)
-        inspected_as_function = Identifier.inspect_as_function(name)
+        inspected_as_atom = Atom.inspect(mod)
+        inspected_as_function = Atom.inspect_as_function(name)
         "&#{inspected_as_atom}.#{inspected_as_function}/#{fun_info[:arity]}"
 
       match?('elixir_compiler_' ++ _, Atom.to_charlist(mod)) ->
@@ -368,7 +368,7 @@ defimpl Inspect, for: Function do
   end
 
   defp default_inspect(mod, fun_info) do
-    inspected_as_atom = Identifier.inspect_as_atom(mod)
+    inspected_as_atom = Atom.inspect(mod)
     extracted_name = extract_name(fun_info[:name])
     "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in #{inspected_as_atom}#{extracted_name}>"
   end
@@ -380,10 +380,10 @@ defimpl Inspect, for: Function do
   defp extract_name(name) do
     case Identifier.extract_anonymous_fun_parent(name) do
       {name, arity} ->
-        "." <> Identifier.inspect_as_function(name) <> "/" <> arity
+        "." <> Atom.inspect_as_function(name) <> "/" <> arity
 
       :error ->
-        "." <> Identifier.inspect_as_function(name)
+        "." <> Atom.inspect_as_function(name)
     end
   end
 
@@ -463,7 +463,7 @@ defimpl Inspect, for: Any do
       defimpl Inspect, for: unquote(module) do
         def inspect(var!(struct), var!(opts)) do
           var!(map) = Map.take(var!(struct), unquote(filtered_fields))
-          var!(name) = Identifier.inspect_as_atom(unquote(module))
+          var!(name) = Atom.inspect(unquote(module))
           unquote(inspect_module).inspect(var!(map), var!(name), var!(opts))
         end
       end
@@ -479,7 +479,7 @@ defimpl Inspect, for: Any do
       dunder ->
         if Map.keys(dunder) == Map.keys(struct) do
           pruned = Map.drop(struct, [:__struct__, :__exception__])
-          Inspect.Map.inspect(pruned, Identifier.inspect_as_atom(module), opts)
+          Inspect.Map.inspect(pruned, Atom.inspect(module), opts)
         else
           Inspect.Map.inspect(struct, opts)
         end

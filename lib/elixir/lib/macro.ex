@@ -1388,7 +1388,7 @@ defmodule Macro do
   end
 
   defp call_to_string_for_atom(atom) do
-    Identifier.inspect_as_function(atom)
+    Atom.inspect_as_function(atom)
   end
 
   defp args_to_string(args, fun) do
@@ -1447,7 +1447,7 @@ defmodule Macro do
 
   defp kw_list_to_string(list, fun) do
     Enum.map_join(list, ", ", fn {key, value} ->
-      Identifier.inspect_as_key(key) <> " " <> to_string(value, fun)
+      Atom.inspect_as_key(key) <> " " <> to_string(value, fun)
     end)
   end
 

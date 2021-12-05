@@ -622,12 +622,12 @@ defmodule Exception do
     case Code.Identifier.extract_anonymous_fun_parent(fun) do
       {outer_name, outer_arity} ->
         "anonymous fn#{format_arity(arity)} in " <>
-          "#{Code.Identifier.inspect_as_atom(module)}." <>
-          "#{Code.Identifier.inspect_as_function(outer_name)}/#{outer_arity}"
+          "#{Atom.inspect(module)}." <>
+          "#{Atom.inspect_as_function(outer_name)}/#{outer_arity}"
 
       :error ->
-        "#{Code.Identifier.inspect_as_atom(module)}." <>
-          "#{Code.Identifier.inspect_as_function(fun)}#{format_arity(arity)}"
+        "#{Atom.inspect(module)}." <>
+          "#{Atom.inspect_as_function(fun)}#{format_arity(arity)}"
     end
   end
 
@@ -1093,7 +1093,7 @@ defmodule UndefinedFunctionError do
   end
 
   defp format_fa({_dist, fun, arity}) do
-    ["      * ", Code.Identifier.inspect_as_function(fun), ?/, Integer.to_string(arity), ?\n]
+    ["      * ", Atom.inspect_as_function(fun), ?/, Integer.to_string(arity), ?\n]
   end
 
   defp behaviour_hint(module, function, arity) do

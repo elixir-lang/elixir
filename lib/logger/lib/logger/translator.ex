@@ -581,7 +581,7 @@ defmodule Logger.Translator do
   defp registered_name(_name), do: []
 
   defp format_mfa(mod, fun, :undefined),
-    do: [inspect(mod), ?., Code.Identifier.inspect_as_function(fun) | "/?"]
+    do: [inspect(mod), ?., Atom.inspect_as_function(fun) | "/?"]
 
   defp format_mfa(mod, fun, args),
     do: Exception.format_mfa(mod, fun, args)
