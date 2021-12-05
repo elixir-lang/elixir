@@ -663,9 +663,10 @@ defmodule Mix do
 
     config = Keyword.get(opts, :config, [])
     system_env = Keyword.get(opts, :system_env, [])
+    consolidate_protocols? = Keyword.get(opts, :consolidate_protocols, true)
 
     id =
-      {deps, config, system_env}
+      {deps, config, system_env, consolidate_protocols?}
       |> :erlang.term_to_binary()
       |> :erlang.md5()
       |> Base.encode16(case: :lower)
@@ -703,7 +704,7 @@ defmodule Mix do
           erlc_paths: ["src"],
           elixirc_paths: ["lib"],
           compilers: [],
-          consolidate_protocols: Keyword.get(opts, :consolidate_protocols, true)
+          consolidate_protocols: consolidate_protocols?
         ]
 
         started_apps = Application.started_applications()
