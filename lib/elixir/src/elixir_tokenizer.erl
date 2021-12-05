@@ -324,10 +324,18 @@ tokenize([$:, T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when
   tokenize(Rest, Line, Column + 4, Scope, [Token | Tokens]);
 
 % ## Two Token Operators
+
+%% TODO: Remove this deprecation on Elixir v2.0
+tokenize([$:, $:, $: | Rest], Line, Column, Scope, Tokens) ->
+  Message = "atom ::: must be written between quotes, as in :\"::\", to avoid ambiguity",
+  NewScope = prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Message, Scope),
+  Token = {atom, {Line, Column, nil}, '::'},
+  tokenize(Rest, Line, Column + 3, NewScope, [Token | Tokens]);
+
 tokenize([$:, T1, T2 | Rest], Line, Column, Scope, Tokens) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
     ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?concat_op(T1, T2); ?power_op(T1, T2);
-    ?stab_op(T1, T2); ?type_op(T1, T2) ->
+    ?stab_op(T1, T2) ->
   Token = {atom, {Line, Column, nil}, list_to_atom([T1, T2])},
   tokenize(Rest, Line, Column + 3, Scope, [Token | Tokens]);
 
