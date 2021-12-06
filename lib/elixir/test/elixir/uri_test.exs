@@ -94,7 +94,7 @@ defmodule URITest do
 
   describe "new/1" do
     test "empty" do
-      assert URI.new("") == {:ok, %URI{path: ""}}
+      assert URI.new("") == {:ok, %URI{}}
     end
 
     test "errors on bad URIs" do
@@ -131,7 +131,7 @@ defmodule URITest do
         query: nil,
         fragment: nil,
         port: 443,
-        path: "",
+        path: nil,
         userinfo: nil
       }
 
@@ -349,9 +349,9 @@ defmodule URITest do
     assert URI.merge(base, "") |> to_string == "http://example.com/foo/bar"
     assert URI.merge(base, "#fragment") |> to_string == "http://example.com/foo/bar#fragment"
     assert URI.merge(base, "?query") |> to_string == "http://example.com/foo/bar?query"
-    assert URI.merge(base, %URI{path: ""}) |> to_string == "http://example.com/foo/bar"
+    assert URI.merge(base, %URI{}) |> to_string == "http://example.com/foo/bar"
 
-    assert URI.merge(base, %URI{path: "", fragment: "fragment"})
+    assert URI.merge(base, %URI{fragment: "fragment"})
            |> to_string == "http://example.com/foo/bar#fragment"
 
     base = URI.new!("http://example.com")
