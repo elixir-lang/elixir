@@ -12,7 +12,7 @@ defmodule URI do
   """
 
   defstruct scheme: nil,
-            path: "",
+            path: nil,
             query: nil,
             fragment: nil,
             authority: nil,
@@ -20,7 +20,6 @@ defmodule URI do
             host: nil,
             port: nil
 
-  # TODO: Remove nil from path when we fully deprecate URI.parse on Elixir v1.17
   @type t :: %__MODULE__{
           authority: authority,
           fragment: nil | binary,
@@ -480,12 +479,13 @@ defmodule URI do
   Creates a new URI struct from a URI or a string.
 
   If a `%URI{}` struct is given, it returns `{:ok, uri}`. If a string is
-  given, it will parse it and returns `{:ok, uri}`. If the string is
-  invalid, it returns `{:error, part}` instead, with the invalid part of the URI.
+  given, it will parse and validate it. If the string is valid, it returns
+  `{:ok, uri}`, otherwise it returns `{:error, part}` with the invalid part
+  of the URI. For parsing URIs without further validation, see `parse/1`.
 
   This function can parse both absolute and relative URLs. You can check
   if a URI is absolute or relative by checking if the `scheme` field is
-  `nil` or not. All fields may be `nil`, except for the `path`.
+  `nil` or not.
 
   When a URI is given without a port, the value returned by `URI.default_port/1`
   for the URI's scheme is used for the `:port` field. The scheme is also
@@ -552,7 +552,7 @@ defmodule URI do
       {:ok, %URI{
         fragment: nil,
         host: nil,
-        path: "",
+        path: nil,
         port: 443,
         query: "query",
         scheme: "https",
@@ -634,6 +634,8 @@ defmodule URI do
     end
   end
 
+  defp uri_from_map(%{path: ""} = map), do: uri_from_map(%{map | path: nil})
+
   defp uri_from_map(map) do
     uri = Map.merge(%URI{}, map)
 
@@ -658,29 +660,106 @@ defmodule URI do
   end
 
   @doc """
-  Parses a well-formed URI into its components.
+  Parses a URI into its components, without further validation.
 
-  This function is deprecated as it fails to raise in case of invalid URIs.
-  Use `URI.new!/1` or `URI.new/1` instead. In case you want to mimic the
-  behaviour of this function, you can do:
+  This function can parse both absolute and relative URLs. You can check
+  if a URI is absolute or relative by checking if the `scheme` field is
+  nil or not. Furthermore, this function expects both absolute and
+  relative URIs to be well-formed and does not perform any validation.
+  See the "Examples" section below. Use `new/1` if you want more strict
+  validation.
 
-      case URI.new(path) do
-        {:ok, uri} -> uri
-        {:error, _} -> %URI{path: path}
-      end
+  When a URI is given without a port, the value returned by `URI.default_port/1`
+  for the URI's scheme is used for the `:port` field. The scheme is also
+  normalized to lowercase.
 
-  There are two differencws in the behaviour of this function compared to
-  `URI.new/1`:
+  If a `%URI{}` struct is given to this function, this function returns it
+  unmodified.
 
-    * This function sets the deprecated authority field
+  > Note: this function sets the field :authority for backwards
+  > compatibility reasons but it is deprecated.
 
-    * This function sets the path to `nil` when it is empty,
-      while `new/1` consider the path always exists and sets it
-      to an empty string
+  ## Examples
+
+      iex> URI.parse("https://elixir-lang.org/")
+      %URI{
+        authority: "elixir-lang.org",
+        fragment: nil,
+        host: "elixir-lang.org",
+        path: "/",
+        port: 443,
+        query: nil,
+        scheme: "https",
+        userinfo: nil
+      }
+
+      iex> URI.parse("//elixir-lang.org/")
+      %URI{
+        authority: "elixir-lang.org",
+        fragment: nil,
+        host: "elixir-lang.org",
+        path: "/",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
+      }
+
+      iex> URI.parse("/foo/bar")
+      %URI{
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "/foo/bar",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
+      }
+
+      iex> URI.parse("foo/bar")
+      %URI{
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "foo/bar",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
+      }
+
+  In contrast to `URI.new/1`, this function will parse poorly-formed
+  URIs, for example:
+
+      iex> URI.parse("/invalid_greater_than_in_path/>")
+      %URI{
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "/invalid_greater_than_in_path/>",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
+      }
+
+  Another example is a URI with brackets in query strings. It is accepted
+  by `parse/1` but it will be refused by `new/1`:
+
+      iex> URI.parse("/?foo[bar]=baz")
+      %URI{
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "/",
+        port: nil,
+        query: "foo[bar]=baz",
+        scheme: nil,
+        userinfo: nil
+      }
 
   """
-  # TODO: Deprecate me at least on v1.17
-  @doc deprecated: "Use URI.new/1 or URI.new!/1 instead"
   @spec parse(t | binary) :: t
   def parse(%URI{} = uri), do: uri
 
@@ -813,6 +892,7 @@ defmodule URI do
     %{rel | scheme: base.scheme, path: remove_dot_segments_from_path(rel.path)}
   end
 
+  # TODO: Check only for nils in future versions
   def merge(%URI{} = base, %URI{path: rel_path} = rel) when rel_path in ["", nil] do
     %{base | query: rel.query || base.query, fragment: rel.fragment}
   end
@@ -826,9 +906,7 @@ defmodule URI do
     merge(parse(base), parse(rel))
   end
 
-  # TODO: Deprecate me on Elixir v1.19
   defp merge_paths(nil, rel_path), do: merge_paths("/", rel_path)
-  defp merge_paths("", rel_path), do: merge_paths("/", rel_path)
   defp merge_paths(_, "/" <> _ = rel_path), do: remove_dot_segments_from_path(rel_path)
 
   defp merge_paths(base_path, rel_path) do
@@ -868,7 +946,8 @@ end
 
 defimpl String.Chars, for: URI do
   def to_string(%{host: host, path: path} = uri)
-      when host != nil and path != "" and binary_part(path, 0, 1) != "/" do
+      when host != nil and is_binary(path) and
+             path != "" and binary_part(path, 0, 1) != "/" do
     raise ArgumentError,
           ":path in URI must be empty or an absolute path if URL has a :host, got: #{inspect(uri)}"
   end
