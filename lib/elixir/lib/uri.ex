@@ -892,8 +892,7 @@ defmodule URI do
     %{rel | scheme: base.scheme, path: remove_dot_segments_from_path(rel.path)}
   end
 
-  # TODO: Check only for nils in future versions
-  def merge(%URI{} = base, %URI{path: rel_path} = rel) when rel_path in ["", nil] do
+  def merge(%URI{} = base, %URI{path: nil} = rel) do
     %{base | query: rel.query || base.query, fragment: rel.fragment}
   end
 
