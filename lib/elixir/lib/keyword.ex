@@ -202,8 +202,7 @@ defmodule Keyword do
   end
 
   @doc """
-  Ensures the first argument is a `keyword` with the given
-  keys and default values.
+  Ensures the given `keyword` has only the keys given in `values`.
 
   The second argument must be a list of atoms, specifying
   a given key, or tuples specifying a key and a default value.
