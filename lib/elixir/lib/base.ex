@@ -400,7 +400,7 @@ defmodule Base do
       {:ok, "foob"}
 
   """
-  @spec decode64(binary, ignore: :whitespace, padding: boolean) :: {:ok, binary} | :error
+  @spec decode64(binary, [{:ignore, :whitespace} | {:padding, boolean}]) :: {:ok, binary} | :error
   def decode64(string, opts \\ []) when is_binary(string) do
     {:ok, decode64!(string, opts)}
   rescue
@@ -434,7 +434,7 @@ defmodule Base do
       "foob"
 
   """
-  @spec decode64!(binary, ignore: :whitespace, padding: boolean) :: binary
+  @spec decode64!(binary, [{:ignore, :whitespace} | {:padding, boolean}]) :: binary
   def decode64!(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
     string |> remove_ignored(opts[:ignore]) |> do_decode64(pad?)
@@ -484,7 +484,8 @@ defmodule Base do
       {:ok, <<255, 127, 254, 252>>}
 
   """
-  @spec url_decode64(binary, ignore: :whitespace, padding: boolean) :: {:ok, binary} | :error
+  @spec url_decode64(binary, [{:ignore, :whitespace} | {:padding, boolean}]) ::
+          {:ok, binary} | :error
   def url_decode64(string, opts \\ []) when is_binary(string) do
     {:ok, url_decode64!(string, opts)}
   rescue
@@ -516,7 +517,7 @@ defmodule Base do
       <<255, 127, 254, 252>>
 
   """
-  @spec url_decode64!(binary, ignore: :whitespace, padding: boolean) :: binary
+  @spec url_decode64!(binary, [{:ignore, :whitespace} | {:padding, boolean}]) :: binary
   def url_decode64!(string, opts \\ []) when is_binary(string) do
     pad? = Keyword.get(opts, :padding, true)
     string |> remove_ignored(opts[:ignore]) |> do_decode64url(pad?)
@@ -554,7 +555,7 @@ defmodule Base do
       "MZXW6YTBOI"
 
   """
-  @spec encode32(binary, case: encode_case, padding: boolean) :: binary
+  @spec encode32(binary, [{:case, encode_case} | {:padding, boolean}]) :: binary
   def encode32(data, opts \\ []) when is_binary(data) do
     case = Keyword.get(opts, :case, :upper)
     pad? = Keyword.get(opts, :padding, true)
@@ -597,7 +598,7 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec decode32(binary, case: decode_case, padding: boolean) :: {:ok, binary} | :error
+  @spec decode32(binary, [{:case, decode_case} | {:padding, boolean}]) :: {:ok, binary} | :error
   def decode32(string, opts \\ []) do
     {:ok, decode32!(string, opts)}
   rescue
@@ -643,7 +644,7 @@ defmodule Base do
       "foobar"
 
   """
-  @spec decode32!(binary, case: decode_case, padding: boolean) :: binary
+  @spec decode32!(binary, [{:case, decode_case} | {:padding, boolean}]) :: binary
   def decode32!(string, opts \\ []) when is_binary(string) do
     case = Keyword.get(opts, :case, :upper)
     pad? = Keyword.get(opts, :padding, true)
@@ -683,7 +684,7 @@ defmodule Base do
       "CPNMUOJ1E8"
 
   """
-  @spec hex_encode32(binary, case: encode_case, padding: boolean) :: binary
+  @spec hex_encode32(binary, [{:case, decode_case} | {:padding, boolean}]) :: binary
   def hex_encode32(data, opts \\ []) when is_binary(data) do
     case = Keyword.get(opts, :case, :upper)
     pad? = Keyword.get(opts, :padding, true)
@@ -727,7 +728,8 @@ defmodule Base do
       {:ok, "foobar"}
 
   """
-  @spec hex_decode32(binary, case: decode_case, padding: boolean) :: {:ok, binary} | :error
+  @spec hex_decode32(binary, [{:case, decode_case} | {:padding, boolean}]) ::
+          {:ok, binary} | :error
   def hex_decode32(string, opts \\ []) do
     {:ok, hex_decode32!(string, opts)}
   rescue
@@ -774,7 +776,7 @@ defmodule Base do
       "foobar"
 
   """
-  @spec hex_decode32!(binary, case: decode_case, padding: boolean) :: binary
+  @spec hex_decode32!(binary, [{:case, decode_case} | {:padding, boolean}]) :: binary
   def hex_decode32!(string, opts \\ []) when is_binary(string) do
     case = Keyword.get(opts, :case, :upper)
     pad? = Keyword.get(opts, :padding, true)
