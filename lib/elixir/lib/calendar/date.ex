@@ -830,8 +830,6 @@ defmodule Date do
       ~D[2020-07-05]
       iex> Date.end_of_week(~D[2020-07-06], :sunday)
       ~D[2020-07-11]
-      iex> Date.end_of_week(~D[2020-07-06], :sunday)
-      ~D[2020-07-11]
       iex> Date.end_of_week(~D[2020-07-06], :saturday)
       ~D[2020-07-10]
       iex> Date.end_of_week(~N[2020-07-11 01:23:45])
