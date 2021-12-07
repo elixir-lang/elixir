@@ -21,7 +21,7 @@ echo It accepts all other options listed by "elixir --help".
 goto end
 
 :run
-if defined IEX_WITH_WERL (@set __ELIXIR_IEX_FLAGS=--werl) else (set __ELIXIR_IEX_FLAGS=)
+if defined IEX_WITH_WERL (set __ELIXIR_IEX_FLAGS=--werl) else (set __ELIXIR_IEX_FLAGS=)
 call "%~dp0\elixir.bat" --no-halt --erl "-noshell -user Elixir.IEx.CLI" +iex %__ELIXIR_IEX_FLAGS% %*
 :end
 endlocal
