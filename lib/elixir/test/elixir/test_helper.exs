@@ -39,6 +39,14 @@ defmodule PathHelpers do
     executable_path("elixirc")
   end
 
+  def iex(args) do
+    run_cmd(iex_executable(), args)
+  end
+
+  def iex_executable do
+    executable_path("iex")
+  end
+
   def write_beam({:module, name, bin, _} = res) do
     File.mkdir_p!(unquote(path))
     beam_path = Path.join(unquote(path), Atom.to_string(name) <> ".beam")

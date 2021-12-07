@@ -71,10 +71,14 @@ defmodule Kernel.CLITest do
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
 
+    output = iex('--version')
+    assert output =~ "Erlang/OTP #{System.otp_release()}"
+    assert output =~ "IEx #{System.version()}"
+
     output = elixir('--version -e "IO.puts(:test_output)"')
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
-    assert output =~ "test_output"
+    assert output =~ "Standalone options can't be combined with other options"
   end
 
   test "--short-version smoke test" do
