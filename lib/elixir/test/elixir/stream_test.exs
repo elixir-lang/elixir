@@ -370,6 +370,14 @@ defmodule StreamTest do
     assert Stream.drop_while(nats, &(&1 <= 5)) |> Enum.take(5) == [6, 7, 8, 9, 10]
   end
 
+  test "duplicate/2" do
+    stream = Stream.duplicate(7, 7)
+
+    assert is_function(stream)
+    assert stream |> Stream.take(5) |> Enum.to_list() == [7, 7, 7, 7, 7]
+    assert Enum.to_list(stream) == [7, 7, 7, 7, 7, 7, 7]
+  end
+
   test "each/2" do
     Process.put(:stream_each, [])
 
