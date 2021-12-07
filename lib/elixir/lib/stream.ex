@@ -418,6 +418,39 @@ defmodule Stream do
   end
 
   @doc """
+  Duplicates the given element `n` times in a stream.
+
+  `n` is an integer greater than or equal to `0`.
+
+  If `n` is `0`, an empty stream is returned.
+
+  ## Examples
+
+      iex> stream = Stream.duplicate("hello", 0)
+      iex> Enum.to_list(stream)
+      []
+
+      iex> stream = Stream.duplicate("hi", 1)
+      iex> Enum.to_list(stream)
+      ["hi"]
+
+      iex> stream = Stream.duplicate("bye", 2)
+      iex> Enum.to_list(stream)
+      ["bye", "bye"]
+
+      iex> stream = Stream.duplicate([1, 2], 3)
+      iex> Enum.to_list(stream)
+      [[1, 2], [1, 2], [1, 2]]
+  """
+  @spec duplicate(any, non_neg_integer) :: Enumerable.t()
+  def duplicate(value, n) when is_integer(n) and n >= 0 do
+    unfold(n, fn
+      0 -> nil
+      remaining -> {value, remaining - 1}
+    end)
+  end
+
+  @doc """
   Executes the given function for each element.
 
   Useful for adding side effects (like printing) to a stream.
