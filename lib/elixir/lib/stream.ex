@@ -442,6 +442,7 @@ defmodule Stream do
       iex> Enum.to_list(stream)
       [[1, 2], [1, 2], [1, 2]]
   """
+  @doc since: "1.14.0"
   @spec duplicate(any, non_neg_integer) :: Enumerable.t()
   def duplicate(value, n) when is_integer(n) and n >= 0 do
     unfold(n, fn
