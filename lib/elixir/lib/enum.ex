@@ -3071,6 +3071,31 @@ defmodule Enum do
   end
 
   @doc """
+  Returns the sum of values returned by mapper.
+
+  Raises `ArithmeticError` if `mapper` returns a non-numeric value.
+
+  ## Examples
+
+      iex> Enum.sum([1, 2, 3], &(&1 * 2))
+      12
+
+      iex> Enum.sum(1..10, &(&1 / 2))
+      27.5
+
+      iex> Enum.sum(1..10//2, &(&1**2))
+      165
+
+      iex> Enum.sum([{1}, {2}], &elem(&1, 0))
+      3
+
+  """
+  @spec sum(t, (element -> number)) :: number
+  def sum(enumerable, mapper) do
+    reduce(enumerable, 0, fn elem, acc -> mapper.(elem) + acc end)
+  end
+
+  @doc """
   Returns the product of all elements.
 
   Raises `ArithmeticError` if `enumerable` contains a non-numeric value.

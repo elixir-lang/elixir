@@ -1081,6 +1081,44 @@ defmodule EnumTest do
     end
   end
 
+  describe "sum/2" do
+    test "with identity function behaves exactly the same as sum/1" do
+      id = &Function.identity/1
+
+      assert Enum.sum([], id) == 0
+      assert Enum.sum([1], id) == 1
+      assert Enum.sum([1, 2, 3], id) == 6
+      assert Enum.sum([1.1, 2.2, 3.3], id) == 6.6
+      assert Enum.sum([-3, -2, -1, 0, 1, 2, 3], id) == 0
+      assert Enum.sum(42..42, id) == 42
+      assert Enum.sum(11..17, id) == 98
+      assert Enum.sum(17..11, id) == 98
+      assert Enum.sum(11..-17, id) == Enum.sum(-17..11, id)
+
+      assert_raise ArithmeticError, fn ->
+        Enum.sum([{}], id)
+      end
+
+      assert_raise ArithmeticError, fn ->
+        Enum.sum([1, {}], id)
+      end
+    end
+
+    test "with mapping" do
+      assert Enum.sum([], & &1.foo) == 0
+      assert Enum.sum([%{foo: 1}], & &1.foo) == 1
+      assert Enum.sum([%{foo: 1, bar: 2}], & &1.foo) == 1
+
+      assert Enum.sum([1], &(&1 * 2)) == 2
+      assert Enum.sum([1, 2, 3], &(&1 * 2)) == 12
+      assert Enum.sum([1.1, 2.2, 3.3], &(&1 * 2)) == 13.2
+
+      assert_raise ArithmeticError, fn ->
+        Enum.sum([%{foo: nil}], & &1.foo) == 1
+      end
+    end
+  end
+
   test "product/1" do
     assert Enum.product([]) == 1
     assert Enum.product([1]) == 1
