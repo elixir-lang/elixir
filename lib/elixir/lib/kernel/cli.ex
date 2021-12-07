@@ -236,7 +236,7 @@ defmodule Kernel.CLI do
     end
 
     t != [] && warn_standalone(opt)
-    System.halt(1)
+    System.halt(0)
   end
 
   defp parse_shared(["-pa", h | t], config) do
