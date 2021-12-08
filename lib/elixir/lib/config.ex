@@ -145,16 +145,24 @@ defmodule Config do
 
       config :ecto, Repo,
         log_level: :warn,
-        adapter: Ecto.Adapters.Postgres
+        adapter: Ecto.Adapters.Postgres,
+        metadata: [read_only: true]
 
       config :ecto, Repo,
         log_level: :info,
-        pool_size: 10
+        pool_size: 10,
+        metadata: [replica: true]
 
   will have a final value of the configuration for the `Repo`
   key in the `:ecto` application of:
 
-      [log_level: :info, pool_size: 10, adapter: Ecto.Adapters.Postgres]
+      Application.get_env(:ecto, Repo)
+      #=> [
+      #=>   log_level: :info,
+      #=>   pool_size: 10,
+      #=>   adapter: Ecto.Adapters.Postgres,
+      #=>   metadata: [read_only: true, replica: true]
+      #=> ]
 
   """
   @doc since: "1.9.0"
