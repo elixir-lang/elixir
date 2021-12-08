@@ -2736,7 +2736,7 @@ defmodule String do
     end
   end
 
-  defp codepoint_byte_size(cp) when cp <= 0x00FF, do: 1
+  defp codepoint_byte_size(cp) when cp <= 0x007F, do: 1
   defp codepoint_byte_size(cp) when cp <= 0x07FF, do: 2
   defp codepoint_byte_size(cp) when cp <= 0xFFFF, do: 3
   defp codepoint_byte_size(_), do: 4
