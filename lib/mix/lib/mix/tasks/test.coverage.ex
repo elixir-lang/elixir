@@ -299,6 +299,7 @@ defmodule Mix.Tasks.Test.Coverage do
     print_summary(module_results, totals, summary_opts)
 
     if totals < get_threshold(summary_opts) do
+      print_failed_threshold(totals, get_threshold(summary_opts))
       System.at_exit(fn _ -> exit({:shutdown, 3}) end)
     end
 
@@ -353,6 +354,13 @@ defmodule Mix.Tasks.Test.Coverage do
     Mix.shell().info("")
   end
 
+  defp print_failed_threshold(totals, threshold) do
+    Mix.shell().info("Coverage test failed, threshold not met:\n")
+    Mix.shell().info("    Coverage:  #{format_number(totals, 6)}%")
+    Mix.shell().info("    Threshold: #{format_number(threshold, 6)}%")
+    Mix.shell().info("")
+  end
+
   defp display({percentage, name}, threshold) do
     Mix.shell().info([
       color(percentage, threshold),
@@ -368,6 +376,9 @@ defmodule Mix.Tasks.Test.Coverage do
   defp color(_, false), do: ""
   defp color(percentage, threshold) when percentage >= threshold, do: :green
   defp color(_, _), do: :red
+
+  defp format_number(number, length) when is_integer(number),
+    do: format_number(number / 1, length)
 
   defp format_number(number, length), do: :io_lib.format("~#{length}.2f", [number])
 

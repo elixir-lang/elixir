@@ -168,7 +168,14 @@ defmodule Mix.Tasks.TestTest do
 
         # We skip a test in bar to force coverage below the default threshold
         # which should result in an exit status of 1.
-        assert {_, code} = mix_code(["test", "--cover", "--exclude", "maybe_skip"])
+        assert {output, code} = mix_code(["test", "--cover", "--exclude", "maybe_skip"])
+
+        assert output =~ """
+               Coverage test failed, threshold not met:
+
+                   Coverage:    0.00%
+                   Threshold:  90.00%
+               """
 
         unless windows?() do
           assert code == 3
