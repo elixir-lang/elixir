@@ -164,6 +164,12 @@ defmodule Code.Normalizer.FormatterASTTest do
     end
   end
 
+  describe "lists" do
+    test "on module attribute" do
+      assert_same ~S"@foo [1]"
+    end
+  end
+
   describe "charlists" do
     test "without escapes" do
       assert_same ~S['']
