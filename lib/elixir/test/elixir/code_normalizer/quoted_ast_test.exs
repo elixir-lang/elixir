@@ -542,6 +542,26 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: foo(catch: a))) == "foo(catch: a)"
       assert quoted_to_string(quote(do: foo |> [bar: :baz])) == "foo |> [bar: :baz]"
     end
+
+    test "list in module attribute" do
+      assert quoted_to_string(
+               quote do
+                 @foo [1]
+               end
+             ) == "@foo [1]"
+
+      assert quoted_to_string(
+               quote do
+                 @foo [foo: :bar]
+               end
+             ) == "@foo foo: :bar"
+
+      assert quoted_to_string(
+               quote do
+                 @foo [1, foo: :bar]
+               end
+             ) == "@foo [1, foo: :bar]"
+    end
   end
 
   describe "quoted_to_algebra/2 escapes" do
