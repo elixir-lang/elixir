@@ -518,8 +518,8 @@ defmodule Module do
 
   '''
 
-  @typep definition :: {atom, arity}
-  @typep def_kind :: :def | :defp | :defmacro | :defmacrop
+  @type definition :: {atom, arity}
+  @type def_kind :: :def | :defp | :defmacro | :defmacrop
 
   @extra_error_msg_defines? "Use Kernel.function_exported?/3 and Kernel.macro_exported?/3 " <>
                               "to check for public functions and macros instead"
@@ -1100,7 +1100,7 @@ defmodule Module do
   """
   @doc since: "1.7.0"
   @spec defines_type?(module, definition) :: boolean
-  def defines_type?(module, definition) do
+  def defines_type?(module, definition) when is_atom(module) do
     Kernel.Typespec.defines_type?(module, definition)
   end
 
