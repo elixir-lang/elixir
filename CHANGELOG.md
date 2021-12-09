@@ -11,11 +11,22 @@
   * [Inspect] Improve error reporting when there is a faulty inspect implementation
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
   * [Keyword] Add `Keyword.from_keys/2`
+  * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/1`
   * [Map] Add `Map.from_keys/2`
   * [Registry] Add `count_select/2`
+  * [Stream] Add `Stream.duplicate/2`
   * [Version] Add `Version.to_string/1`
+  * [Version] Colorize `Version.Requirement` source in Inspect protocol
+
+#### Mix
+
+  * [mix test] Improve error message when suite fails due to coverage
 
 ### 2. Bug fixes
+
+#### IEx
+
+  * [IEx] Disallow short-hand pipe after matches
 
 ### 3. Soft-deprecations (no warnings emitted)
 
