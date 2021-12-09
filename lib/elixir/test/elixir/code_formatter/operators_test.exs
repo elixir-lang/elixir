@@ -14,7 +14,6 @@ defmodule Code.Formatter.OperatorsTest do
       assert_format "- 1", "-1"
       assert_format "! 1", "!1"
       assert_format "^ 1", "^1"
-      assert_format "~~~ 1", "~~~1"
     end
 
     test "formats word operators with spaces" do
@@ -63,18 +62,6 @@ defmodule Code.Formatter.OperatorsTest do
 
       good = """
       not foo(
-        bar,
-        baz,
-        bat
-      )
-      """
-
-      assert_format bad, good, @short_length
-
-      bad = "~~~ foo(bar, baz, bat)"
-
-      good = """
-      ~~~foo(
         bar,
         baz,
         bat

@@ -204,23 +204,6 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("not.") == :none
     end
 
-    test "incomplete operators" do
-      assert CF.cursor_context("~~") == {:operator, '~~'}
-      assert CF.cursor_context("~~ ") == :none
-      assert CF.cursor_context("^^") == {:operator, '^^'}
-      assert CF.cursor_context("^^ ") == :none
-
-      assert CF.cursor_context("Foo.~") == {:dot, {:alias, 'Foo'}, '~'}
-      assert CF.cursor_context("Foo . ~") == {:dot, {:alias, 'Foo'}, '~'}
-      assert CF.cursor_context("Foo.~~") == {:dot, {:alias, 'Foo'}, '~~'}
-      assert CF.cursor_context("Foo . ~~") == {:dot, {:alias, 'Foo'}, '~~'}
-      assert CF.cursor_context("Foo.~ ") == :none
-      assert CF.cursor_context("Foo.~~ ") == :none
-      assert CF.cursor_context("Foo.^^") == {:dot, {:alias, 'Foo'}, '^^'}
-      assert CF.cursor_context("Foo . ^^") == {:dot, {:alias, 'Foo'}, '^^'}
-      assert CF.cursor_context("Foo.^^ ") == :none
-    end
-
     test "sigil" do
       assert CF.cursor_context("~") == {:sigil, ''}
       assert CF.cursor_context("~ ") == :none
@@ -711,12 +694,6 @@ defmodule CodeFragmentTest do
       assert CF.surround_context("~", {1, 1}) == :none
       assert CF.surround_context("~~r", {1, 1}) == :none
       assert CF.surround_context("~~r", {1, 2}) == :none
-
-      assert CF.surround_context("~~~", {1, 1}) == %{
-               begin: {1, 1},
-               context: {:operator, '~~~'},
-               end: {1, 4}
-             }
 
       assert CF.surround_context("~r/foo/", {1, 1}) == %{
                begin: {1, 1},

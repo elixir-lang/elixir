@@ -575,7 +575,7 @@ defmodule ExceptionTest do
     end
 
     test "annotates band arithmetic errors" do
-      use Bitwise
+      import Bitwise
 
       assert blame_message(:foo, &band(&1, 10)) ==
                "bad argument in arithmetic expression: Bitwise.band(:foo, 10)"
@@ -585,7 +585,7 @@ defmodule ExceptionTest do
     end
 
     test "annotates bor arithmetic errors" do
-      use Bitwise
+      import Bitwise
 
       assert blame_message(:foo, &bor(&1, 10)) ==
                "bad argument in arithmetic expression: Bitwise.bor(:foo, 10)"
@@ -595,14 +595,14 @@ defmodule ExceptionTest do
     end
 
     test "annotates bxor arithmetic errors" do
-      use Bitwise
+      import Bitwise
 
       assert blame_message(:foo, &bxor(&1, 10)) ==
                "bad argument in arithmetic expression: Bitwise.bxor(:foo, 10)"
     end
 
     test "annotates bsl arithmetic errors" do
-      use Bitwise
+      import Bitwise
 
       assert blame_message(:foo, &bsl(10, &1)) ==
                "bad argument in arithmetic expression: Bitwise.bsl(10, :foo)"
@@ -612,7 +612,7 @@ defmodule ExceptionTest do
     end
 
     test "annotates bsr arithmetic errors" do
-      use Bitwise
+      import Bitwise
 
       assert blame_message(:foo, &bsr(10, &1)) ==
                "bad argument in arithmetic expression: Bitwise.bsr(10, :foo)"
@@ -622,12 +622,9 @@ defmodule ExceptionTest do
     end
 
     test "annotates bnot arithmetic errors" do
-      use Bitwise
+      import Bitwise
 
       assert blame_message(:foo, &bnot(&1)) ==
-               "bad argument in arithmetic expression: Bitwise.bnot(:foo)"
-
-      assert blame_message(:foo, &(~~~&1)) ==
                "bad argument in arithmetic expression: Bitwise.bnot(:foo)"
     end
 

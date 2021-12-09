@@ -78,6 +78,8 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.14] | `use Bitwise`                                       | `import Bitwise` (v1.0)
+[v1.14] | `~~~/1`                                             | `bnot/2` (v1.0)
 [v1.14] | `Application.get_env/3` and similar in module body  | `Application.compile_env/3` (v1.10)
 [v1.14] | `:each_cycle` returning lists or two-element tuples | Return three element tuples (v1.10)
 [v1.14] | `Mix.Tasks.Xref.calls/1`                            | Compilation tracers (outlined in `Code`) (v1.10)

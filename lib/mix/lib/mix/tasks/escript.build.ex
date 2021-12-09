@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Escript.Build do
   use Mix.Task
-  use Bitwise, only_operators: true
+  import Bitwise, only: [|||: 2]
 
   @shortdoc "Builds an escript for the project"
   @recursive true
