@@ -1107,11 +1107,10 @@ defmodule IEx.HelpersTest do
     end
   end
 
+
   describe "use_if_available" do
     test "uses a module only if available" do
       assert "nil" == capture_iex("use_if_available NoSuchModule")
-      assert "1" == capture_iex("use_if_available Bitwise; 1 &&& 1")
-      assert "1" == capture_iex("use_if_available Bitwise, only_operators: true; 1 &&& 1")
     end
   end
 

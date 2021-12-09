@@ -178,7 +178,6 @@ defmodule Code.Fragment do
                     @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
 
   @textual_operators ~w(when not and or in)c
-  @incomplete_operators ~w(^^ ~~ ~)c
 
   defp codepoint_cursor_context(reverse, _opts) do
     {stripped, spaces} = strip_spaces(reverse, 0)
@@ -377,29 +376,15 @@ defmodule Code.Fragment do
     operator(rest, count + 1, [h | acc], call_op?)
   end
 
-  defp operator(rest, count, acc, call_op?) when acc in @incomplete_operators do
-    {rest, dot_count} = strip_spaces(rest, count)
-
-    cond do
-      call_op? ->
-        {:none, 0}
-
-      match?([?. | rest] when rest == [] or hd(rest) != ?., rest) ->
-        dot(tl(rest), dot_count + 1, acc)
-
-      acc == '~' ->
-        {{:sigil, ''}, count}
-
-      true ->
-        {{:operator, acc}, count}
-    end
-  end
-
   # If we are opening a sigil, ignore the operator.
   defp operator([letter, ?~ | rest], _count, [op], _call_op?)
        when op in '<|/' and (letter in ?A..?Z or letter in ?a..?z) and
               (rest == [] or hd(rest) not in @tilde_op_prefix) do
     {:none, 0}
+  end
+
+  defp operator(_rest, count, '~', _call_op?) do
+    {{:sigil, ''}, count}
   end
 
   defp operator(rest, count, acc, _call_op?) do
@@ -605,7 +590,7 @@ defmodule Code.Fragment do
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
-          {{:operator, acc}, offset} when acc not in @incomplete_operators ->
+          {{:operator, acc}, offset} ->
             build_surround({:operator, acc}, reversed, line, offset)
 
           {{:sigil, ''}, offset} when hd(rest) in ?A..?Z or hd(rest) in ?a..?z ->

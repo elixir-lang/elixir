@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Escript do
   to be able to run installed escripts from any directory.
   """
 
-  use Bitwise
+  import Bitwise, only: [|||: 2, &&&: 2]
 
   @impl true
   def run(_) do

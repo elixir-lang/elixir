@@ -24,6 +24,8 @@
 #### Elixir
 
   * [Application] Calling `Application.get_env/3` and friends in the module body is now discouraged, use `Application.compile_env/3` instead
+  * [Bitwise] `use Bitwise` is deprecated, use `import Bitwise` instead
+  * [Bitwise] `~~~` is deprecated in favor of `bnot` for clarity
   * [Kernel.ParallelCompiler] Returning a list or two-element tuple from `:each_cycle` is deprecated, return a `{:compile | :runtime, modules, warnings}` tuple instead
 
 #### Mix

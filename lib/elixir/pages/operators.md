@@ -10,7 +10,7 @@ Operator                                              | Associativity
 ----------------------------------------------------- | -------------
 `@`                                                   | Unary
 `.`                                                   | Left
-`+` `-` `!` `^` `not` `~~~`                           | Unary
+`+` `-` `!` `^` `not`                                 | Unary
 `**`                                                  | Left
 `*` `/`                                               | Left
 `+` `-`                                               | Left
@@ -157,9 +157,8 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `<|>`
   * `+++`
   * `---`
-  * `~~~`
 
-The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), [`|||`](`Bitwise.|||/2`), [`~~~`](`Bitwise.~~~/1`). See the documentation for `Bitwise` for more information.
+The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), and [`|||`](`Bitwise.|||/2`). See the documentation for `Bitwise` for more information.
 
 Note the Elixir community generally discourages custom operators. They can be hard to read and even more to understand, as they don't have a descriptive name like functions do. That said, some specific cases or custom domain specific languages (DSLs) may justify these practices.
 

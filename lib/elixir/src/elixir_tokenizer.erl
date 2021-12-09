@@ -13,9 +13,6 @@
   T =:= $!;
   T =:= $^).
 
--define(unary_op3(T1, T2, T3),
-  T1 =:= $~, T2 =:= $~, T3 =:= $~).
-
 -define(concat_op(T1, T2),
   T1 =:= $+, T2 =:= $+;
   T1 =:= $-, T2 =:= $-;
@@ -25,9 +22,6 @@
 -define(concat_op3(T1, T2, T3),
   T1 =:= $+, T2 =:= $+, T3 =:= $+;
   T1 =:= $-, T2 =:= $-, T3 =:= $-).
-
--define(xor_op3(T1, T2, T3),
-  T1 =:= $^, T2 =:= $^, T3 =:= $^).
 
 -define(power_op(T1, T2),
   T1 =:= $*, T2 =:= $*).
@@ -98,6 +92,14 @@
 
 -define(pipe_op(T),
   T =:= $|).
+
+%% Deprecated operators
+
+-define(unary_op3(T1, T2, T3),
+  T1 =:= $~, T2 =:= $~, T3 =:= $~).
+
+-define(xor_op3(T1, T2, T3),
+  T1 =:= $^, T2 =:= $^, T3 =:= $^).
 
 tokenize(String, Line, Column, #elixir_tokenizer{} = Scope) ->
   tokenize(String, Line, Column, Scope, []);
@@ -848,6 +850,10 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
         case Op of
           '^^^' ->
             Msg = "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.bxor/2 instead",
+            prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+
+          '~~~' ->
+            Msg = "~~~ is deprecated. Use Bitwise.bnot/1 instead for clarity",
             prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
 
           _ ->
