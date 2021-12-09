@@ -1107,7 +1107,6 @@ defmodule IEx.HelpersTest do
     end
   end
 
-
   describe "use_if_available" do
     test "uses a module only if available" do
       assert "nil" == capture_iex("use_if_available NoSuchModule")
