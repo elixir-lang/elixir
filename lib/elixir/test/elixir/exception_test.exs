@@ -423,7 +423,11 @@ defmodule ExceptionTest do
 
       assert blame_message(123, &apply(Kernel, :+, &1)) ==
                "you attempted to apply a function named :+ on module Kernel with arguments 123. " <>
-                 "Arguments (the third argument of apply) must always be a list"
+                 "Arguments (the third argument of apply) must always be a proper list"
+
+      assert blame_message(123, &apply(Kernel, :+, [&1 | 456])) ==
+               "you attempted to apply a function named :+ on module Kernel with arguments [123 | 456]. " <>
+                 "Arguments (the third argument of apply) must always be a proper list"
     end
 
     test "annotates function clause errors" do

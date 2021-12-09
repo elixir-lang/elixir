@@ -732,6 +732,10 @@ defmodule ArgumentError do
       ) do
     message =
       cond do
+        not proper_list?(args) ->
+          "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)} " <>
+            "with arguments #{inspect(args)}. Arguments (the third argument of apply) must always be a proper list"
+
         # Note that args may be an empty list even if they were supplied
         not is_atom(module) and is_atom(function) and args == [] ->
           "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
@@ -747,10 +751,6 @@ defmodule ArgumentError do
           "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)}. " <>
             "However #{inspect(function)} is not a valid function name. Function names (the second argument " <>
             "of apply) must always be an atom"
-
-        not is_list(args) ->
-          "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)} " <>
-            "with arguments #{inspect(args)}. Arguments (the third argument of apply) must always be a list"
       end
 
     {%{exception | message: message}, stacktrace}
@@ -759,6 +759,9 @@ defmodule ArgumentError do
   def blame(exception, stacktrace) do
     {exception, stacktrace}
   end
+
+  defp proper_list?(list) when length(list) >= 0, do: true
+  defp proper_list?(_), do: false
 end
 
 defmodule ArithmeticError do
