@@ -1,5 +1,30 @@
 Code.require_file("test_helper.exs", __DIR__)
 
+# This is to temporarily test some inconsistencies in
+# the error ArgumentError messages
+# https://github.com/erlang/otp/issues/5440
+# TODO: once fixed in OTP and that minimum version is required,
+# please remove MyArgumentError and replace the calls to:
+# - MyArgumentError with ArgumentError
+# - MyArgumentError.culprit() with Atom.to_string("Foo")
+defmodule MyArgumentError do
+  defexception message: "argument error"
+
+  @impl true
+  def message(_) do
+    """
+    errors were found at the given arguments:
+
+      * 1st argument: not an atom
+    """
+  end
+
+  def culprit() do
+    raise = fn -> raise(MyArgumentError) end
+    raise.()
+  end
+end
+
 defmodule Inspect.AtomTest do
   use ExUnit.Case, async: true
 
@@ -439,15 +464,19 @@ defmodule Inspect.MapTest do
 
     defimpl Inspect do
       def inspect(%Failing{name: _name}, _) do
-        Atom.to_string(String.duplicate("Foo", 1))
+        MyArgumentError.culprit()
       end
     end
   end
 
   test "safely inspect bad implementation" do
+    assert_raise MyArgumentError, ~r/errors were found at the given arguments:/, fn ->
+      raise(MyArgumentError)
+    end
+
     message = ~s'''
     #Inspect.Error<
-      got ArgumentError with message:
+      got MyArgumentError with message:
 
           """
           errors were found at the given arguments:
@@ -466,7 +495,7 @@ defmodule Inspect.MapTest do
   test "safely inspect bad implementation disables colors" do
     message = ~s'''
     #Inspect.Error<
-      got ArgumentError with message:
+      got MyArgumentError with message:
 
           """
           errors were found at the given arguments:
@@ -484,7 +513,7 @@ defmodule Inspect.MapTest do
 
   test "unsafely inspect bad implementation" do
     exception_message = ~s'''
-    got ArgumentError with message:
+    got MyArgumentError with message:
 
         """
         errors were found at the given arguments:
@@ -502,7 +531,10 @@ defmodule Inspect.MapTest do
     rescue
       exception in Inspect.Error ->
         assert Exception.message(exception) =~ exception_message
-        assert [{:erlang, :atom_to_binary, _, _} | _] = __STACKTRACE__
+        assert [{MyArgumentError, fun_name, 0, [{:file, _}, {:line, _} | _]} | _] = __STACKTRACE__
+
+        assert fun_name in [:"-culprit/0-fun-0-", :culprit]
+        assert Exception.message(exception) =~ exception_message
     else
       _ -> flunk("expected failure")
     end
@@ -513,7 +545,7 @@ defmodule Inspect.MapTest do
     # called by another exception (Protocol.UndefinedError in this case)
     exception_message = ~s'''
     protocol Enumerable not implemented for #Inspect.Error<
-      got ArgumentError with message:
+      got MyArgumentError with message:
 
           """
           errors were found at the given arguments:
@@ -553,6 +585,43 @@ defmodule Inspect.MapTest do
     else
       _ -> flunk("expected failure")
     end
+  end
+
+  test "Exception.message/1 with bad implementation" do
+    message = ~s'''
+    #Inspect.Error<
+      got MyArgumentError with message:
+
+          """
+          errors were found at the given arguments:
+
+            * 1st argument: not an atom
+          """
+
+      while inspecting:
+
+          %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
+    '''
+
+    {my_argument_error, stacktrace} =
+      try do
+        MyArgumentError.culprit()
+      rescue
+        e ->
+          {e, __STACKTRACE__}
+      end
+
+    inspected =
+      inspect(
+        Inspect.Error.exception(
+          exception: my_argument_error,
+          stacktrace: stacktrace,
+          inspected_struct: "%{__struct__: Inspect.MapTest.Failing, name: \"Foo\"}"
+        )
+      )
+
+    assert inspect(%Failing{name: "Foo"}) =~ message
+    assert inspected =~ message
   end
 
   test "exception" do
