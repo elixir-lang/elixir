@@ -16,7 +16,7 @@ defmodule Task.Supervisor do
 
   The options given in the child specification are documented in `start_link/1`.
 
-  Once started, you can tasks directly under it, for example:
+  Once started, you can start tasks directly under the supervisor, for example:
 
       task = Task.Supervisor.async(MyApp.TaskSupervisor, fn ->
         :do_some_work
