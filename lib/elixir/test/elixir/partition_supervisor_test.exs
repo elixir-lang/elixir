@@ -142,8 +142,10 @@ defmodule PartitionSupervisorTest do
           name: config.test
         )
 
+      partitions = System.schedulers_online()
+
       assert PartitionSupervisor.count_children(config.test) ==
-               %{active: 8, specs: 8, supervisors: 0, workers: 8}
+               %{active: partitions, specs: partitions, supervisors: 0, workers: partitions}
     end
 
     test "with supervisors", config do
@@ -153,8 +155,10 @@ defmodule PartitionSupervisorTest do
           name: config.test
         )
 
+      partitions = System.schedulers_online()
+
       assert PartitionSupervisor.count_children(config.test) ==
-               %{active: 8, specs: 8, supervisors: 8, workers: 0}
+               %{active: partitions, specs: partitions, supervisors: partitions, workers: 0}
     end
   end
 end
