@@ -463,14 +463,14 @@ defmodule System do
   @doc """
   Traps the given `signal` to execute the `fun`.
 
-  **Important**: Trapping signals may have strong implications
-  on how a system shuts down and behave in production and
-  therefore it is extremely discouraged for libraries to
-  set their own traps. Instead, they should redirect users
-  to configure them themselves. The only cases where it is
-  acceptable for libraries to set their own traps is when
-  using Elixir in script mode, such as in `.exs` files and
-  via Mix tasks.
+  > **Important**: Trapping signals may have strong implications
+  > on how a system shuts down and behave in production and
+  > therefore it is extremely discouraged for libraries to
+  > set their own traps. Instead, they should redirect users
+  > to configure them themselves. The only cases where it is
+  > acceptable for libraries to set their own traps is when
+  > using Elixir in script mode, such as in `.exs` files and
+  > via Mix tasks.
 
   An optional `id` that uniquely identifies the function
   can be given, otherwise a unique one is automatically
@@ -877,11 +877,11 @@ defmodule System do
 
   It uses `sh` for Unix-like systems and `cmd` for Windows.
 
-  **Important**: Use this function with care. In particular, **never
-  pass untrusted user input to this function**, as the user would be
-  able to perform "command injection attacks" by executing any code
-  directly on the machine. Generally speaking, prefer to use `cmd/3`
-  over this function.
+  > **Important:**: Use this function with care. In particular, **never
+  > pass untrusted user input to this function**, as the user would be
+  > able to perform "command injection attacks" by executing any code
+  > directly on the machine. Generally speaking, prefer to use `cmd/3`
+  > over this function.
 
   ## Examples
 
