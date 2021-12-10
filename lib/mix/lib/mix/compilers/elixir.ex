@@ -75,9 +75,8 @@ defmodule Mix.Compilers.Elixir do
           new_lock = Enum.sort(Mix.Dep.Lock.read())
           new_config = Enum.sort(Mix.Tasks.Loadconfig.read_compile())
 
-          apps = []
-          apps = merge_appset(old_lock, new_lock, apps)
-          apps = merge_appset(old_config, new_config, apps)
+          config_apps = merge_appset(old_config, new_config, [])
+          apps = merge_appset(old_lock, new_lock, config_apps)
 
           if Mix.Project.config()[:app] in apps do
             {true, stale, new_lock, new_config}
@@ -95,7 +94,14 @@ defmodule Mix.Compilers.Elixir do
                 end
               end)
 
-            {false, stale ++ apps_stale, new_lock, new_config}
+            compile_env_stale =
+              for source(compile_env: compile_env, modules: modules) <- all_sources,
+                  Enum.any?(config_apps, &List.keymember?(compile_env, &1, 0)),
+                  module <- modules,
+                  do: module
+
+            stale = (stale ++ compile_env_stale) ++ apps_stale
+            {false, stale, new_lock, new_config}
           end
 
         true ->
@@ -288,8 +294,8 @@ defmodule Mix.Compilers.Elixir do
          dest
        ) do
     modules_to_recompile =
-      for module(module: module, recompile?: true) <- all_modules,
-          recompile_module?(module),
+      for module(module: module, recompile?: recompile?) <- all_modules,
+          recompile_module?(module, recompile?) or Map.has_key?(stale_local_mods, module),
           do: module
 
     {checkpoint_stale, checkpoint_modules} = parse_checkpoint(manifest)
@@ -495,8 +501,8 @@ defmodule Mix.Compilers.Elixir do
     :ok
   end
 
-  defp recompile_module?(module) do
-    Code.ensure_loaded?(module) and
+  defp recompile_module?(module, recompile?) do
+    recompile? and Code.ensure_loaded?(module) and
       function_exported?(module, :__mix_recompile__?, 0) and
       module.__mix_recompile__?()
   end

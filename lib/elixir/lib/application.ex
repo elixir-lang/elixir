@@ -53,9 +53,15 @@ defmodule Application do
   See the "Configuration" section in the `Mix` module for more information.
 
   You can also change the application environment dynamically by using functions
-  such as `put_env/3` and `delete_env/2`. However, as a rule of thumb, each application
-  is responsible for its own environment. Please do not use the functions in this
-  module for directly accessing or modifying the environment of other applications.
+  such as `put_env/3` and `delete_env/2`.
+
+  > Note: Each application is responsible for its own environment. Do not
+  > use the functions in this module for directly accessing or modifying
+  > the environment of other applications. Whenever you change the application
+  > environment, Elixir's build tool will only recompile the files that
+  > belong to that application. So if you read the application environment
+  > of another application, there is a chance you will be depending on
+  > outdated configuration, as your file won't be recompiled as it changes.
 
   ### Compile-time environment
 
