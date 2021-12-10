@@ -1,6 +1,6 @@
 defmodule PartitionSupervisor do
   @moduledoc """
-  A supervisor with that starts multiple partitions of the same child.
+  A supervisor that starts multiple partitions of the same child.
 
   Certain processes may become bottlenecks in large systems.
   If those processes can have their state trivially partitioned,

@@ -24,7 +24,7 @@ defmodule Task.Supervisor do
 
   See the `Task` module for more examples.
 
-  ## Scalability and partioning
+  ## Scalability and partitioning
 
   The `Task.Supervisor` is a single process responsible for starting
   other processes. In some applications, the `Task.Supervisor` may

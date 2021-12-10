@@ -36,7 +36,7 @@ defmodule DynamicSupervisor do
       DynamicSupervisor.count_children(MyApp.DynamicSupervisor)
       #=> %{active: 2, specs: 2, supervisors: 0, workers: 2}
 
-  ## Scalability and partioning
+  ## Scalability and partitioning
 
   The `DynamicSupervisor` is a single process responsible for starting
   other processes. In some applications, the `DynamicSupervisor` may
