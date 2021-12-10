@@ -491,6 +491,21 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise TokenMissingError, ~r/nofile:1:3: invalid escape \\ at end of file/, '1 \\'
   end
 
+  test "show snippet on missing tokens" do
+    assert_eval_raise TokenMissingError,
+                      "nofile:1:25: missing terminator: end (for \"do\" starting at line 1)\n" <>
+                        "    |\n" <>
+                        "  1 | defmodule ShowSnippet do\n" <>
+                        "    |                         ^",
+                      'defmodule ShowSnippet do'
+  end
+
+  test "don't show snippet when error line is empty" do
+    assert_eval_raise TokenMissingError,
+                      "nofile:3:1: missing terminator: end (for \"do\" starting at line 1)",
+                      'defmodule ShowSnippet do\n\n'
+  end
+
   test "function local conflict" do
     assert_eval_raise CompileError,
                       "nofile:3: imported Kernel.&&/2 conflicts with local function",
