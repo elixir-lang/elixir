@@ -78,15 +78,8 @@ defmodule PartitionSupervisor do
 
   @doc false
   def child_spec(opts) when is_list(opts) do
-    id =
-      case Keyword.get(opts, :name, PartitionSupervisor) do
-        name when is_atom(name) -> name
-        {:global, name} -> name
-        {:via, _module, name} -> name
-      end
-
     %{
-      id: id,
+      id: Keyword.get(opts, :name, PartitionSupervisor),
       start: {PartitionSupervisor, :start_link, [opts]},
       type: :supervisor
     }
@@ -174,6 +167,7 @@ defmodule PartitionSupervisor do
     end
 
     %{start: {mod, fun, args}} = map = Supervisor.child_spec(child_spec, [])
+    modules = map[:modules] || [mod]
 
     children =
       for partition <- 0..(partitions - 1) do
@@ -184,7 +178,7 @@ defmodule PartitionSupervisor do
         end
 
         start = {__MODULE__, :start_child, [mod, fun, args, name, partition]}
-        %{map | id: partition, start: start}
+        Map.merge(map, %{id: partition, start: start, modules: modules})
       end
 
     {init_opts, start_opts} = Keyword.split(opts, [:strategy, :max_seconds, :max_restarts])
@@ -211,7 +205,7 @@ defmodule PartitionSupervisor do
   def init({name, partitions, children, init_opts}) do
     :ets.new(name, [:set, :named_table, :protected, read_concurrency: true])
     :ets.insert(name, {:partitions, partitions})
-    Supervisor.init(children, init_opts)
+    Supervisor.init(children, Keyword.put_new(init_opts, :strategy, :one_for_one))
   end
 
   @doc """

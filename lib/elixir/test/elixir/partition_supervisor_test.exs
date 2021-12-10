@@ -1,0 +1,160 @@
+Code.require_file("test_helper.exs", __DIR__)
+
+defmodule PartitionSupervisorTest do
+  use ExUnit.Case, async: true
+
+  describe "child_spec" do
+    test "uses the name as id" do
+      assert Supervisor.child_spec({PartitionSupervisor, name: Foo}, []) == %{
+               id: Foo,
+               start: {PartitionSupervisor, :start_link, [[name: Foo]]},
+               type: :supervisor
+             }
+    end
+  end
+
+  describe "start_link/1" do
+    test "on success", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: DynamicSupervisor,
+          name: config.test
+        )
+
+      assert PartitionSupervisor.partitions(config.test) == System.schedulers_online()
+
+      refs =
+        for _ <- 1..100 do
+          ref = make_ref()
+
+          DynamicSupervisor.start_child(
+            {:via, PartitionSupervisor, {config.test, ref}},
+            {Agent, fn -> ref end}
+          )
+
+          ref
+        end
+
+      agents =
+        for {_, pid, _, _} <- PartitionSupervisor.which_children(config.test),
+            {_, pid, _, _} <- DynamicSupervisor.which_children(pid),
+            do: Agent.get(pid, & &1)
+
+      assert Enum.sort(refs) == Enum.sort(agents)
+    end
+
+    test "with_arguments", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> raise "unused" end},
+          with_arguments: fn [_fun], partition -> [fn -> partition end] end,
+          partitions: 3,
+          name: config.test
+        )
+
+      assert PartitionSupervisor.partitions(config.test) == 3
+
+      assert Agent.get({:via, PartitionSupervisor, {config.test, 0}}, & &1) == 0
+      assert Agent.get({:via, PartitionSupervisor, {config.test, 1}}, & &1) == 1
+      assert Agent.get({:via, PartitionSupervisor, {config.test, 2}}, & &1) == 2
+
+      assert Agent.get({:via, PartitionSupervisor, {config.test, 3}}, & &1) == 0
+      assert Agent.get({:via, PartitionSupervisor, {config.test, -1}}, & &1) == 1
+    end
+
+    test "raises without name" do
+      assert_raise ArgumentError,
+                   "the :name option must be given to PartitionSupervisor as an atom, got: nil",
+                   fn -> PartitionSupervisor.start_link(child_spec: DynamicSupervisor) end
+    end
+
+    test "raises without child_spec" do
+      assert_raise ArgumentError,
+                   "the :child_spec option must be given to PartitionSupervisor",
+                   fn -> PartitionSupervisor.start_link(name: Foo) end
+    end
+
+    test "raises on bad partitions" do
+      assert_raise ArgumentError,
+                   "the :partitions option must be a positive integer, got: 0",
+                   fn ->
+                     PartitionSupervisor.start_link(
+                       name: Foo,
+                       child_spec: DynamicSupervisor,
+                       partitions: 0
+                     )
+                   end
+    end
+
+    test "raises on bad with_arguments" do
+      assert_raise ArgumentError,
+                   ~r"the :with_arguments option must be a function that receives two arguments",
+                   fn ->
+                     PartitionSupervisor.start_link(
+                       name: Foo,
+                       child_spec: DynamicSupervisor,
+                       with_arguments: 123
+                     )
+                   end
+    end
+  end
+
+  describe "stop/1" do
+    test "is synchronous", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> %{} end},
+          name: config.test
+        )
+
+      assert PartitionSupervisor.stop(config.test) == :ok
+      assert Process.whereis(config.test) == nil
+    end
+  end
+
+  describe "which_children/1" do
+    test "returns all partitions", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> %{} end},
+          name: config.test
+        )
+
+      assert PartitionSupervisor.partitions(config.test) == System.schedulers_online()
+
+      children =
+        config.test
+        |> PartitionSupervisor.which_children()
+        |> Enum.sort()
+
+      for {child, partition} <- Enum.zip(children, 0..(System.schedulers_online() - 1)) do
+        via = {:via, PartitionSupervisor, {config.test, partition}}
+        assert child == {partition, GenServer.whereis(via), :worker, [Agent]}
+      end
+    end
+  end
+
+  describe "count_children/1" do
+    test "with workers", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: {Agent, fn -> %{} end},
+          name: config.test
+        )
+
+      assert PartitionSupervisor.count_children(config.test) ==
+               %{active: 8, specs: 8, supervisors: 0, workers: 8}
+    end
+
+    test "with supervisors", config do
+      {:ok, _} =
+        PartitionSupervisor.start_link(
+          child_spec: DynamicSupervisor,
+          name: config.test
+        )
+
+      assert PartitionSupervisor.count_children(config.test) ==
+               %{active: 8, specs: 8, supervisors: 8, workers: 0}
+    end
+  end
+end
