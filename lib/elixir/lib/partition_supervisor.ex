@@ -96,8 +96,8 @@ defmodule PartitionSupervisor do
       ]
 
   If the supervisor is successfully spawned, this function returns
-  `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
-  is given a name and a process with the specified name already exists,
+  `{:ok, pid}`, where `pid` is the PID of the supervisor. If the given name
+    for the partition supervisor is already assigned to a process,
   the function returns `{:error, {:already_started, pid}}`, where `pid`
   is the PID of that process.
 
@@ -108,6 +108,9 @@ defmodule PartitionSupervisor do
   ## Options
 
     * `:name` - an atom representing the name of the partition supervisor.
+
+    * `:partitions` - a positive integer with the number of partitions.
+      Defaults to `System.schedulers_online()` (typically the number of cores).
 
     * `:strategy` - the restart strategy option, defaults to `:one_for_one`.
       You can learn more about strategies in the `Supervisor` module docs.
@@ -235,7 +238,7 @@ defmodule PartitionSupervisor do
   """
   @doc since: "1.14.0"
   @spec which_children(name()) :: [
-          # module() | :dynamic here because :supervisor.modules() is not exported
+          # Inlining [module()] | :dynamic here because :supervisor.modules() is not exported
           {:undefined, pid | :restarting, :worker | :supervisor, [module()] | :dynamic}
         ]
   def which_children(supervisor) when is_atom(supervisor) do

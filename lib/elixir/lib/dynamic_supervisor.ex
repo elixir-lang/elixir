@@ -557,7 +557,7 @@ defmodule DynamicSupervisor do
   ## Examples
 
       def init(_arg) do
-        DynamicSupervisor.init(max_children: 1000, strategy: :one_for_one)
+        DynamicSupervisor.init(max_children: 1000)
       end
 
   """
