@@ -383,8 +383,14 @@ defmodule Code.Fragment do
     {:none, 0}
   end
 
-  defp operator(_rest, count, '~', _call_op?) do
-    {{:sigil, ''}, count}
+  defp operator(rest, count, '~', call_op?) do
+    {rest, _} = strip_spaces(rest, count)
+
+    if call_op? or match?([?. | rest] when rest == [] or hd(rest) != ?., rest) do
+      {:none, 0}
+    else
+      {{:sigil, ''}, count}
+    end
   end
 
   defp operator(rest, count, acc, _call_op?) do

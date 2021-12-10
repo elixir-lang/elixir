@@ -215,6 +215,9 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("~R") == {:sigil, 'R'}
       assert CF.cursor_context("~R/") == :none
       assert CF.cursor_context("~R<") == :none
+
+      assert CF.cursor_context("Foo.~") == :none
+      assert CF.cursor_context("Foo.~ ") == :none
     end
 
     test "module attribute" do
