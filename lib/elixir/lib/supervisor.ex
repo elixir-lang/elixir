@@ -960,7 +960,7 @@ defmodule Supervisor do
           workers: non_neg_integer
         }
   def count_children(supervisor) do
-    call(supervisor, :count_children) |> Map.new()
+    call(supervisor, :count_children) |> :maps.from_list()
   end
 
   @doc """
