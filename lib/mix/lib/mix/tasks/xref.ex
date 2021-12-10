@@ -83,11 +83,12 @@ defmodule Mix.Tasks.Xref do
     * `--label` - only shows relationships with the given label.
       The labels are "compile", "export" and "runtime". By default,
       the `--label` option simply filters the printed graph to show
-      only relationships with the given label. If you want to
-      effectively filter the graph, you can pass the `--only-direct`
-      flag. There is also a special label called "compile-connected"
-      that keeps only compile-time files with at least one transitive
-      dependency. See "Dependencies types" section below.
+      only relationships with the given label. You can pass `--only-direct`
+      to trim the graph to only the nodes that have the direct
+      relationship given by label. There is also a special label
+      called "compile-connected" that keeps only compile-time files
+      with at least one transitive dependency. See "Dependencies types"
+      section below.
 
     * `--only-direct` - keeps only files with the direct relationship
       given by `--label`
@@ -235,9 +236,7 @@ defmodule Mix.Tasks.Xref do
   Those options are shared across all modes:
 
     * `--fail-above` - generates a failure if the relevant metric is above the
-      given threshold. This metric is the number of references, except for
-      `--format cycles` where it is the number of cycles, and `--format stats`
-      which has none.
+      given threshold. Applies to all modes except `mix xref graph --format stats`.
 
     * `--include-siblings` - includes dependencies that have `:in_umbrella` set
       to true in the current project in the reports. This can be used to find
