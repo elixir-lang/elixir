@@ -87,9 +87,12 @@ snippet(InputString, Location, StartLine, StartColumn) ->
   case lists:keyfind(column, 1, Location) of
     {column, Column} ->
       Lines = string:split(InputString, "\n", all),
-      Snippet = elixir_utils:characters_to_binary(lists:nth(Line - StartLine + 1, Lines)),
+      Snippet = (lists:nth(Line - StartLine + 1, Lines)),
       Offset = if Line == StartLine -> Column - StartColumn; true -> Column - 1 end,
-      #{content => Snippet, offset => Offset};
+      case string:trim(Snippet, leading) of
+        [] -> nil;
+        _ -> #{content => elixir_utils:characters_to_binary(Snippet), offset => Offset}
+      end;
 
     false ->
       nil
