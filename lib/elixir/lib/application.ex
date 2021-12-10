@@ -600,14 +600,13 @@ defmodule Application do
   If the configuration parameter does not exist, the function returns the
   `default` value.
 
-  **Important:** if you are reading the application environment at compilation
-  time, for example, inside the module definition instead of inside of a
-  function, see `compile_env/3` instead.
+  > **Important:** you must use this function to read only your own application
+  > environment. Do not read the environment of other applications.
 
-  **Important:** if you are writing a library to be used by other developers,
-  it is generally recommended to avoid the application environment, as the
-  application environment is effectively a global storage. For more information,
-  read our [library guidelines](library-guidelines.md).
+  > **Important:** if you are writing a library to be used by other developers,
+  > it is generally recommended to avoid the application environment, as the
+  > application environment is effectively a global storage. For more information,
+  > read our [library guidelines](library-guidelines.md).
 
   ## Examples
 
@@ -657,6 +656,14 @@ defmodule Application do
   Returns the value for `key` in `app`'s environment in a tuple.
 
   If the configuration parameter does not exist, the function returns `:error`.
+
+  > **Important:** you must use this function to read only your own application
+  > environment. Do not read the environment of other applications.
+
+  > **Important:** if you are writing a library to be used by other developers,
+  > it is generally recommended to avoid the application environment, as the
+  > application environment is effectively a global storage. For more information,
+  > read our [library guidelines](library-guidelines.md).
   """
   @spec fetch_env(app, key) :: {:ok, value} | :error
   def fetch_env(app, key) when is_atom(app) do
@@ -673,9 +680,13 @@ defmodule Application do
 
   If the configuration parameter does not exist, raises `ArgumentError`.
 
-  **Important:** if you are reading the application environment at compilation
-  time, for example, inside the module definition instead of inside of a
-  function, see `compile_env!/2` instead.
+  > **Important:** you must use this function to read only your own application
+  > environment. Do not read the environment of other applications.
+
+  > **Important:** if you are writing a library to be used by other developers,
+  > it is generally recommended to avoid the application environment, as the
+  > application environment is effectively a global storage. For more information,
+  > read our [library guidelines](library-guidelines.md).
   """
   @spec fetch_env!(app, key) :: value
   def fetch_env!(app, key) when is_atom(app) do
