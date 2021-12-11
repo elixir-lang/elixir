@@ -956,6 +956,7 @@ defmodule Macro do
 
   """
   @spec to_string(t()) :: String.t()
+  # TODO: Allow line_length to be configurable on v1.17
   def to_string(tree) do
     doc = Inspect.Algebra.format(Code.quoted_to_algebra(tree), :infinity)
     IO.iodata_to_binary(doc)

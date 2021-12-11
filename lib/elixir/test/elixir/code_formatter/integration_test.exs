@@ -620,4 +620,38 @@ defmodule Code.Formatter.IntegrationTest do
           when y
     """
   end
+
+  test "functions with infinity line length" do
+    assert_same ~S"""
+                x = fn ->
+                  {:ok, pid} = Repl.start_link({self(), opts})
+                  assert Exception.message(error) =~ msg
+                end
+                """,
+                line_length: :infinity
+
+    assert_same ~S"""
+                capture_log(fn x ->
+                  {:ok, pid} = Repl.start_link({self(), opts})
+                  assert Exception.message(error) =~ msg
+                end) =~ msg
+                """,
+                line_length: :infinity
+
+    assert_same ~S"""
+                capture_log(fn ->
+                  {:ok, pid} = Repl.start_link({self(), opts})
+                  assert Exception.message(error) =~ msg
+                end) =~ msg
+                """,
+                line_length: :infinity
+
+    assert_same ~S"""
+                capture_log(fn x ->
+                  {:ok, pid} = Repl.start_link({self(), opts})
+                  assert Exception.message(error) =~ msg
+                end) =~ msg
+                """,
+                line_length: :infinity
+  end
 end
