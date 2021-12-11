@@ -945,7 +945,7 @@ defmodule Macro do
   """
   @spec to_string(t()) :: String.t()
   def to_string(tree) do
-    doc = Inspect.Algebra.format(Code.quoted_to_algebra(tree), :infinity)
+    doc = Inspect.Algebra.format(Code.quoted_to_algebra(tree), 98)
     IO.iodata_to_binary(doc)
   end
 
