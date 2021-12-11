@@ -281,8 +281,8 @@ defmodule MapSet do
 
       iex> MapSet.put_all(MapSet.new([1, 2, 3]), [4])
       #MapSet<[1, 2, 3, 4]>
-      iex> MapSet.put_all(MapSet.new([1, 2, 3]), [3, 4])
-      #MapSet<[1, 2, 3, 4]>
+      iex> MapSet.put_all(MapSet.new([1, 2, 3]), [3, 5])
+      #MapSet<[1, 2, 3, 5]>
 
   """
   @doc since: "1.14.0"
