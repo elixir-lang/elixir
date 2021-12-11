@@ -218,13 +218,13 @@ defmodule Kernel.CLI do
 
   # Parse shared options
 
-  defp warn_standalone(opt) do
+  defp halt_standalone(opt) do
     IO.puts(:stderr, "#{opt} : Standalone options can't be combined with other options")
+    System.halt(1)
   end
 
   defp parse_shared([opt | _], _config) when opt in @standalone_opts do
-    warn_standalone(opt)
-    System.halt(1)
+    halt_standalone(opt)
   end
 
   defp parse_shared([opt | t], _config) when opt in ["-v", "--version"] do
@@ -235,8 +235,11 @@ defmodule Kernel.CLI do
       IO.puts("Elixir " <> System.build_info()[:build])
     end
 
-    t != [] && warn_standalone(opt)
-    System.halt(0)
+    if t != [] do
+      halt_standalone(opt)
+    else
+      System.halt(0)
+    end
   end
 
   defp parse_shared(["-pa", h | t], config) do
