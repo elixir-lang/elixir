@@ -275,6 +275,24 @@ defmodule MapSet do
   end
 
   @doc """
+  Inserts all values from enumerable into `map_set`.
+
+  ## Examples
+
+      iex> MapSet.put_all(MapSet.new([1, 2, 3]), [4])
+      #MapSet<[1, 2, 3, 4]>
+      iex> MapSet.put_all(MapSet.new([1, 2, 3]), [3, 4])
+      #MapSet<[1, 2, 3, 4]>
+
+  """
+  @doc since: "1.14.0"
+  @spec put_all(t, Enum.t()) :: t
+  def put_all(%MapSet{map: map} = map_set, enumerable) do
+    keys = Enum.to_list(enumerable)
+    %{map_set | map: Map.merge(map, Map.from_keys(keys, @dummy_value))}
+  end
+
+  @doc """
   Returns the number of elements in `map_set`.
 
   ## Examples
