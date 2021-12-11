@@ -1643,12 +1643,15 @@ defmodule Code.Formatter do
        ) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
+    break_or_line = clause_break_or_line(clauses, state)
 
     doc =
       "fn ->"
-      |> glue(body_doc)
+      |> concat(break_or_line)
+      |> concat(body_doc)
       |> nest(2)
-      |> glue("end")
+      |> concat(break_or_line)
+      |> concat("end")
       |> maybe_force_clauses(clauses, state)
       |> group()
 
@@ -1677,12 +1680,16 @@ defmodule Code.Formatter do
       |> nest(:cursor)
       |> group()
 
+    break_or_line = clause_break_or_line(clauses, state)
+
     doc =
       "fn "
       |> concat(head)
-      |> glue(body_doc)
+      |> concat(break_or_line)
+      |> concat(body_doc)
       |> nest(2)
-      |> glue("end")
+      |> concat(break_or_line)
+      |> concat("end")
       |> maybe_force_clauses(clauses, state)
       |> group()
 
@@ -1724,13 +1731,14 @@ defmodule Code.Formatter do
     min_line = line(meta)
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
+    break_or_line = clause_break_or_line(clauses, state)
 
     doc =
       args_doc
       |> ungroup_if_group()
       |> concat(" ->")
       |> group()
-      |> concat(break() |> concat(body_doc) |> nest(2))
+      |> concat(break_or_line |> concat(body_doc) |> nest(2))
       |> wrap_in_parens()
       |> maybe_force_clauses(clauses, state)
       |> group()
@@ -1751,12 +1759,21 @@ defmodule Code.Formatter do
 
   ## Clauses
 
+  defp multi_line_clauses?(clauses, state) do
+    Enum.any?(clauses, fn {:->, meta, [_, block]} ->
+      eol?(meta, state) or multi_line_block?(block)
+    end)
+  end
+
+  defp multi_line_block?({:__block__, _, [_, _ | _]}), do: true
+  defp multi_line_block?(_), do: false
+
+  defp clause_break_or_line(clauses, state) do
+    if multi_line_clauses?(clauses, state), do: line(), else: break()
+  end
+
   defp maybe_force_clauses(doc, clauses, state) do
-    if Enum.any?(clauses, fn {:->, meta, _} -> eol?(meta, state) end) do
-      force_unfit(doc)
-    else
-      doc
-    end
+    if multi_line_clauses?(clauses, state), do: force_unfit(doc), else: doc
   end
 
   defp clauses_to_algebra([{:->, _, _} | _] = clauses, min_line, max_line, state) do
