@@ -92,6 +92,7 @@ defmodule Keyword do
 
       iex> %{1 => 2, foo: :bar}
       %{1 => 2, :foo => :bar}
+
   """
 
   @compile :inline_list_funcs
@@ -238,6 +239,7 @@ defmodule Keyword do
 
       iex> Keyword.validate([three: 3, four: 4], [one: 1, two: 2])
       {:error, [:four, :three]}
+
   """
   @doc since: "1.13.0"
   @spec validate(keyword(), values :: [atom() | {atom(), term()}]) ::
@@ -316,6 +318,7 @@ defmodule Keyword do
 
       iex> Keyword.validate!([three: 3], [one: 1, two: 2])
       ** (ArgumentError) unknown keys [:three] in [three: 3], the allowed keys are: [:one, :two]
+
   """
   @doc since: "1.13.0"
   @spec validate!(keyword(), values :: [atom() | {atom(), term()}]) :: keyword()
@@ -877,11 +880,14 @@ defmodule Keyword do
 
   ## Examples
 
-      iex> Keyword.replace_lazy([{:a, 1}, {:b, 2}], :a, fn v -> v * 4 end)
-      [{:a, 4}, {:b, 2}]
+      iex> Keyword.replace_lazy([a: 1, b: 2], :a, fn v -> v * 4 end)
+      [a: 4, b: 2]
+      
+      iex> Keyword.replace_lazy([a: 2, b: 2, a: 1], :a, fn v -> v * 4 end)
+      [a: 8, b: 2]
 
-      iex> Keyword.replace_lazy([{:a, 1}, {:b, 2}], :c, fn v -> v * 4 end)
-      [{:a, 1}, {:b, 2}]
+      iex> Keyword.replace_lazy([a: 1, b: 2], :c, fn v -> v * 4 end)
+      [a: 1, b: 2]
 
   """
   @doc since: "1.14.0"
