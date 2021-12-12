@@ -902,7 +902,7 @@ defmodule Keyword do
   end
 
   defp do_replace_lazy([{_, _} = e | keywords], key, fun) do
-    [e | replace_lazy(keywords, key, fun)]
+    [e | do_replace_lazy(keywords, key, fun)]
   end
 
   defp do_replace_lazy([], _key, _value), do: []
