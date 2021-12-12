@@ -372,6 +372,32 @@ defmodule Map do
   end
 
   @doc """
+  Replaces the value under `key` using the given function only if
+  `key` already exists in `map`.
+
+  In comparison to `replace/3`, this can be useful when it's expensive to calculate the value.
+
+  If `key` does not exist, the original map is returned unchanged.
+
+  ## Examples
+
+      iex> Map.replace_lazy(%{a: 1, b: 2}, :a, fn v -> v * 4 end)
+      %{a: 4, b: 2}
+
+      iex> Map.replace_lazy(%{a: 1, b: 2}, :c, fn v -> v * 4 end)
+      %{a: 1, b: 2}
+
+  """
+  @doc since: "1.14.0"
+  @spec replace_lazy(map, key, (existing_value :: value -> new_value :: value)) :: map
+  def replace_lazy(map, key, fun) when is_map(map) and is_function(fun, 1) do
+    case map do
+      %{^key => val} -> %{map | key => fun.(val)}
+      %{} -> map
+    end
+  end
+
+  @doc """
   Evaluates `fun` and puts the result under `key`
   in `map` unless `key` is already present.
 
