@@ -870,6 +870,8 @@ defmodule Keyword do
   @doc """
   Replaces the value under `key` using the given function only if
   `key` already exists in `keywords`.
+  
+  In comparison to `replace/3`, this can be useful when it's expensive to calculate the value.
 
   If `key` does not exist, the original keyword list is returned unchanged.
 
