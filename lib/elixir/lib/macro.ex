@@ -1980,15 +1980,19 @@ defmodule Macro do
   end
 
   @doc ~S"""
-  Inspects the given atom.
+  Inspects `atom` according to different source formats.
 
-  The atom can be inspected as a literal (`:literal`),
-  as a key (`:key`), or as the function name in a remote call
+  The atom can be inspected according to the three different
+  formats it appears in source code: as a literal (`:literal`),
+  as a key (`:key`), or as the function name of a remote call
   (`:remote_call`).
 
   ## Examples
 
   ### As a literal
+
+  Literals include regular atoms, quoted atoms, operators,
+  aliases, and the special `nil`, `true`, and `false` atoms.
 
       iex> Macro.inspect_atom(:literal, nil)
       "nil"
@@ -1998,10 +2002,14 @@ defmodule Macro do
       ":<>"
       iex> Macro.inspect_atom(:literal, :Foo)
       ":Foo"
+      iex> Macro.inspect_atom(:literal, Foo.Bar)
+      "Foo.Bar"
       iex> Macro.inspect_atom(:literal, :"with spaces")
       ":\"with spaces\""
 
   ### As a key
+
+  Inspect an atom as a key of a keyword list or a map.
 
       iex> Macro.inspect_atom(:key, :foo)
       "foo:"
@@ -2013,6 +2021,8 @@ defmodule Macro do
       "\"with spaces\":"
 
   ### As a remote call
+
+  Inspect an atom the function name of a remote call.
 
       iex> Macro.inspect_atom(:remote_call, :foo)
       "foo"
@@ -2026,6 +2036,8 @@ defmodule Macro do
   """
   @doc since: "1.14.0"
   @spec inspect_atom(:literal | :key | :remote_call, atom) :: binary
+  def inspect_atom(source_format, atom)
+
   def inspect_atom(:literal, atom) when is_nil(atom) or is_boolean(atom) do
     Atom.to_string(atom)
   end
