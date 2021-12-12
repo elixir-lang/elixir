@@ -899,7 +899,7 @@ defmodule Keyword do
     [e | replace_lazy(keywords, key, fun)]
   end
 
-  defp do_replace_lazy([], key, _value), do: []
+  defp do_replace_lazy([], _key, _value), do: []
 
   @doc """
   Checks if two keywords are equal.
