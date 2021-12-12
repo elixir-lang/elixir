@@ -141,7 +141,7 @@ defmodule Mix.Local do
 
   Used to install both Rebar and Hex from S3.
   """
-  def find_matching_versions_from_signed_csv!(name, path) do
+  def find_matching_versions_from_signed_csv!(name, version, path) do
     csv = read_unsafe_path!(name, path)
 
     signature =
@@ -150,9 +150,12 @@ defmodule Mix.Local do
       |> Base.decode64!()
 
     if Mix.PublicKey.verify(csv, :sha512, signature) do
-      csv
-      |> parse_csv
-      |> find_latest_eligible_version
+      result =
+        csv
+        |> parse_csv()
+        |> find_latest_eligible_version(version)
+
+      result || Mix.raise("Could not find a matching version of #{name}")
     else
       Mix.raise(
         "Could not install #{name} because Mix could not verify authenticity " <>
@@ -199,17 +202,39 @@ defmodule Mix.Local do
     |> Enum.map(&:binary.split(&1, ",", [:global, :trim]))
   end
 
-  defp find_latest_eligible_version(entries) do
-    {:ok, current_version} = Version.parse(System.version())
+  defp find_latest_eligible_version(entries, artifact_version) do
+    elixir_version = Version.parse!(System.version())
 
     entries
     |> Enum.reverse()
-    |> Enum.find_value(entries, &find_version(&1, current_version))
+    |> find_version(artifact_version, elixir_version)
   end
 
-  defp find_version([artifact_version, digest | versions], current_version) do
-    if version = Enum.find(versions, &(Version.compare(&1, current_version) != :gt)) do
+  defp find_version(entries, _artifact_version = nil, elixir_version) do
+    Enum.find_value(entries, &find_by_elixir_version(&1, elixir_version))
+  end
+
+  defp find_version(entries, artifact_version, elixir_version) do
+    Enum.find_value(entries, &find_by_artifact_version(&1, artifact_version, elixir_version))
+  end
+
+  defp find_by_elixir_version([artifact_version, digest | versions], elixir_version) do
+    if version = Enum.find(versions, &(Version.compare(&1, elixir_version) != :gt)) do
       {version, artifact_version, digest}
     end
+  end
+
+  defp find_by_artifact_version(
+         [artifact_version, digest | versions],
+         artifact_version,
+         elixir_version
+       ) do
+    if version = Enum.find(versions, &(Version.compare(&1, elixir_version) != :gt)) do
+      {version, artifact_version, digest}
+    end
+  end
+
+  defp find_by_artifact_version(_entry, _artifact_version, _elixir_version) do
+    nil
   end
 end

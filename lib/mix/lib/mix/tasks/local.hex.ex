@@ -9,7 +9,10 @@ defmodule Mix.Tasks.Local.Hex do
   @moduledoc """
   Installs Hex locally.
 
-      mix local.hex
+      mix local.hex [VERSION]
+
+  By default the latest compatible version of Hex will be installed, unless
+  `VERSION` is specified.
 
   If installing a precompiled Hex does not work, you can compile and install
   Hex directly with this command:
@@ -37,11 +40,17 @@ defmodule Mix.Tasks.Local.Hex do
 
   @impl true
   def run(argv) do
-    {opts, _} = OptionParser.parse!(argv, switches: @switches)
+    {opts, args} = OptionParser.parse!(argv, switches: @switches)
+    version = List.first(args)
 
     should_install? =
       if Keyword.get(opts, :if_missing, false) do
-        not Code.ensure_loaded?(Hex)
+        if version do
+          not Code.ensure_loaded?(Hex) or
+            Version.compare(apply(Hex, :version, []), version) == :gt
+        else
+          not Code.ensure_loaded?(Hex)
+        end
       else
         true
       end
@@ -53,14 +62,18 @@ defmodule Mix.Tasks.Local.Hex do
         []
       end
 
-    should_install? && run_install(argv)
+    should_install? && run_install(version, argv)
   end
 
-  defp run_install(argv) do
+  defp run_install(version, argv) do
     hex_mirror = Mix.Hex.mirror()
 
     {elixir_version, hex_version, sha512} =
-      Mix.Local.find_matching_versions_from_signed_csv!("Hex", hex_mirror <> @hex_list_path)
+      Mix.Local.find_matching_versions_from_signed_csv!(
+        "Hex",
+        version,
+        hex_mirror <> @hex_list_path
+      )
 
     url =
       (hex_mirror <> @hex_archive_path)
