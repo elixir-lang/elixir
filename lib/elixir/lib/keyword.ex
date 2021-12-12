@@ -876,11 +876,13 @@ defmodule Keyword do
   If `key` does not exist, the original keyword list is returned unchanged.
 
   ## Examples
+
       iex> Keyword.replace_lazy([{:a, 1}, {:b, 2}], :a, fn v -> v * 4 end)
       [{:a, 4}, {:b, 2}]
 
       iex> Keyword.replace_lazy([{:a, 1}, {:b, 2}], :c, fn v -> v * 4 end)
       [{:a, 1}, {:b, 2}]
+
   """
   @doc since: "1.14.0"
   @spec replace_lazy(t, key, (existing_value :: value -> new_value :: value)) :: t
