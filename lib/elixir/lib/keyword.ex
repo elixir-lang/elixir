@@ -868,6 +868,29 @@ defmodule Keyword do
   end
 
   @doc """
+  Replaces the value under `key` using the given function only if
+  `key` already exists in `keywords`.
+
+  If `key` does not exist, the original keyword list is returned unchanged.
+
+  ## Examples
+      iex> Keyword.replace_lazy([{:a, 1}, {:b, 2}], :a, fn v -> v * 4 end)
+      [{:a, 4}, {:b, 2}]
+
+      iex> Keyword.replace_lazy([{:a, 1}, {:b, 2}], :c, fn v -> v * 4 end)
+      [{:a, 1}, {:b, 2}]
+  """
+  @doc since: "1.14.0"
+  @spec replace_lazy(t, key, (existing_value :: value -> new_value :: value)) :: t
+  def replace_lazy(keywords, key, fun) when is_list(keywords) and is_atom(key) and is_function(fun, 1) do
+    if Keyword.has_key?(keywords, key) do
+      Keyword.replace(keywords, key, fun.(keywords[key]))
+    else
+      keywords
+    end
+  end
+
+  @doc """
   Checks if two keywords are equal.
 
   Considers two keywords to be equal if they contain
