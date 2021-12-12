@@ -121,7 +121,7 @@ defmodule Mix.Tasks.Local.Rebar do
     list_url = hex_mirror <> list_url
 
     {elixir_version, rebar_version, sha512} =
-      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", list_url)
+      Mix.Local.find_matching_versions_from_signed_csv!("Rebar", _version = nil, list_url)
 
     url =
       (hex_mirror <> escript_url)
