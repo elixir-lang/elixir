@@ -884,7 +884,8 @@ defmodule Keyword do
   """
   @doc since: "1.14.0"
   @spec replace_lazy(t, key, (existing_value :: value -> new_value :: value)) :: t
-  def replace_lazy(keywords, key, fun) when is_list(keywords) and is_atom(key) and is_function(fun, 1) do
+  def replace_lazy(keywords, key, fun)
+      when is_list(keywords) and is_atom(key) and is_function(fun, 1) do
     do_replace_lazy(keywords, key, fun)
   end
 

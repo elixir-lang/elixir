@@ -389,6 +389,7 @@ defmodule Map do
   @doc since: "1.14.0"
   @spec replace_lazy(map, key, (existing_value :: value -> new_value :: value)) :: map
   def replace_lazy(map, key, _) when not is_map_key(map, key), do: map
+
   def replace_lazy(map, key, fun) when is_function(fun, 1) do
     Map.replace(map, key, fun.(map[key]))
   end
