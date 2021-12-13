@@ -47,9 +47,9 @@ defmodule Registry do
 
       {:ok, _} = Registry.start_link(keys: :unique, name: Registry.ViaTest)
       name = {:via, Registry, {Registry.ViaTest, "agent", :hello}}
-      {:ok, _} = Agent.start_link(fn -> 0 end, name: name)
+      {:ok, agent_pid} = Agent.start_link(fn -> 0 end, name: name)
       Registry.lookup(Registry.ViaTest, "agent")
-      #=> [{self(), :hello}]
+      #=> [{agent_pid, :hello}]
 
   To this point, we have been starting `Registry` using `start_link/1`.
   Typically the registry is started as part of a supervision tree though:
