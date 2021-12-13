@@ -1115,7 +1115,7 @@ defmodule IEx.HelpersTest do
 
   describe "iex> |> (and other binary operators)" do
     test "passes previous result to the pipe" do
-      Enum.each([:~>>, :<<~, :~>, :<~, :<~>, :<|>], fn op ->
+      Enum.each([:~>>, :<<~, :~>, :<~, :<~>], fn op ->
         assert capture_iex("42\n  #{op} IO.puts()") =~ "undefined function #{op}/2"
       end)
 

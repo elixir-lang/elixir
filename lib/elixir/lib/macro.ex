@@ -2126,8 +2126,8 @@ defmodule Macro do
       atom in [:%, :%{}, :{}, :<<>>, :..., :.., :., :"..//", :->] ->
         :not_callable
 
-      # ^^^ and ~~~ are deprecated
-      atom in [:"::", :"^^^", :"~~~"] ->
+      # <|>, ^^^, and ~~~ are deprecated
+      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
         :quoted_operator
 
       operator?(atom, 1) or operator?(atom, 2) ->

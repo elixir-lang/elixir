@@ -6,32 +6,32 @@ This document covers operators in Elixir, how they are parsed, how they can be d
 
 The following is a list of all operators that Elixir is capable of parsing, ordered from higher to lower precedence, alongside their associativity:
 
-Operator                                              | Associativity
------------------------------------------------------ | -------------
-`@`                                                   | Unary
-`.`                                                   | Left
-`+` `-` `!` `^` `not`                                 | Unary
-`**`                                                  | Left
-`*` `/`                                               | Left
-`+` `-`                                               | Left
-`++` `--` `+++` `---` `..` `<>`                       | Right
-`in` `not in`                                         | Left
-`\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>` `<\|>`  | Left
-`<` `>` `<=` `>=`                                     | Left
-`==` `!=` `=~` `===` `!==`                            | Left
-`&&` `&&&` `and`                                      | Left
-`\|\|` `\|\|\|` `or`                                  | Left
-`=`                                                   | Right
-`&`                                                   | Unary
-`=>` (valid only inside `%{}`)                        | Right
-`\|`                                                  | Right
-`::`                                                  | Right
-`when`                                                | Right
-`<-` `\\`                                             | Left
+Operator                                       | Associativity
+---------------------------------------------- | -------------
+`@`                                            | Unary
+`.`                                            | Left
+`+` `-` `!` `^` `not`                          | Unary
+`**`                                           | Left
+`*` `/`                                        | Left
+`+` `-`                                        | Left
+`++` `--` `+++` `---` `..` `<>`                | Right
+`in` `not in`                                  | Left
+`\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>`  | Left
+`<` `>` `<=` `>=`                              | Left
+`==` `!=` `=~` `===` `!==`                     | Left
+`&&` `&&&` `and`                               | Left
+`\|\|` `\|\|\|` `or`                           | Left
+`=`                                            | Right
+`&`                                            | Unary
+`=>` (valid only inside `%{}`)                 | Right
+`\|`                                           | Right
+`::`                                           | Right
+`when`                                         | Right
+`<-` `\\`                                      | Left
 
 ## General operators
 
-Elixir provides the following built-in operators that are defined as functions that can be overridden:
+Elixir provides the following built-in operators:
 
   * [`+`](`+/1`) and [`-`](`-/1`) - unary positive/negative
   * [`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), and [`/`](`//2`) - basic arithmetic operations
@@ -119,7 +119,7 @@ The collection types are compared using the following rules:
 
 ### Defining custom operators
 
-Elixir is capable of parsing a predefined set of operators; this means that it's not possible to define new operators (like one could do in Haskell, for example). However, not all operators that Elixir can parse are *used* by Elixir: for example, `+` and `||` are used by Elixir for addition and boolean *or*, but `<~>` is not used (but valid).
+Elixir is capable of parsing a predefined set of operators. It's not possible to define new operators (as supported by some languages). However, not all operators that Elixir can parse are *used* by Elixir: for example, `+` and `||` are used by Elixir for addition and boolean *or*, but `<~>` is not used (but valid).
 
 To define an operator, you can use the usual `def*` constructs (`def`, `defp`, `defmacro`, and so on) but with a syntax similar to how the operator is used:
 
@@ -133,7 +133,7 @@ defmodule MyOperators do
 end
 ```
 
-To use the newly defined operators, we **have to** import the module that defines them:
+To use the newly defined operators, you **have to** import the module that defines them:
 
 ```elixir
 iex> import MyOperators
@@ -154,7 +154,6 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `<~`
   * `~>`
   * `<~>`
-  * `<|>`
   * `+++`
   * `---`
 
