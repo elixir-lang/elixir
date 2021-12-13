@@ -1457,34 +1457,26 @@ defmodule Enum do
   defp into_map(enumerable, collectable),
     do: Enum.reduce(enumerable, collectable, fn {key, val}, acc -> Map.put(acc, key, val) end)
 
-  defp into_protocol(enumerable, collectable) do
+  defp into_protocol(enumerable, collectable) when is_list(enumerable) do
     {initial, fun} = Collectable.into(collectable)
-    reduce_into_protocol(enumerable, initial, fun)
+    acc = :lists.foldl(fn x, acc -> fun.(acc, {:cont, x}) end, initial, enumerable)
+    fun.(acc, :done)
   end
 
-  defp reduce_into_protocol(enumerable, initial, fun) do
+  defp into_protocol(enumerable, collectable) do
+    {initial, fun} = Collectable.into(collectable)
+
     try do
-      wrapped_reduce_into_protocol(enumerable, initial, fun)
+      Enumerable.reduce(enumerable, {:cont, initial}, fn x, acc ->
+        {:cont, fun.(acc, {:cont, x})}
+      end)
     catch
       kind, reason ->
         fun.(initial, :halt)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      acc -> fun.(acc, :done)
+      {_, acc} -> fun.(acc, :done)
     end
-  end
-
-  defp wrapped_reduce_into_protocol(enumerable, initial, fun)
-       when is_list(enumerable) do
-    :lists.foldl(fn x, acc -> fun.(acc, {:cont, x}) end, initial, enumerable)
-  end
-
-  defp wrapped_reduce_into_protocol(enumerable, initial, fun) do
-    enumerable
-    |> Enumerable.reduce({:cont, initial}, fn x, acc ->
-      {:cont, fun.(acc, {:cont, x})}
-    end)
-    |> elem(1)
   end
 
   @doc """
@@ -1528,34 +1520,26 @@ defmodule Enum do
     into_protocol(enumerable, collectable, transform)
   end
 
-  defp into_protocol(enumerable, collectable, transform) do
+  defp into_protocol(enumerable, collectable, transform) when is_list(enumerable) do
     {initial, fun} = Collectable.into(collectable)
-    reduce_into_protocol(enumerable, initial, transform, fun)
+    acc = :lists.foldl(fn x, acc -> fun.(acc, {:cont, transform.(x)}) end, initial, enumerable)
+    fun.(acc, :done)
   end
 
-  defp reduce_into_protocol(enumerable, initial, transform, fun) do
+  defp into_protocol(enumerable, collectable, transform) do
+    {initial, fun} = Collectable.into(collectable)
+
     try do
-      wrapped_reduce_into_protocol(enumerable, initial, transform, fun)
+      Enumerable.reduce(enumerable, {:cont, initial}, fn x, acc ->
+        {:cont, fun.(acc, {:cont, transform.(x)})}
+      end)
     catch
       kind, reason ->
         fun.(initial, :halt)
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
-      acc -> fun.(acc, :done)
+      {_, acc} -> fun.(acc, :done)
     end
-  end
-
-  defp wrapped_reduce_into_protocol(enumerable, initial, transform, fun)
-       when is_list(enumerable) do
-    :lists.foldl(fn x, acc -> fun.(acc, {:cont, transform.(x)}) end, initial, enumerable)
-  end
-
-  defp wrapped_reduce_into_protocol(enumerable, initial, transform, fun) do
-    enumerable
-    |> Enumerable.reduce({:cont, initial}, fn x, acc ->
-      {:cont, fun.(acc, {:cont, transform.(x)})}
-    end)
-    |> elem(1)
   end
 
   @doc """
