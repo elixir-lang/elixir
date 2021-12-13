@@ -657,12 +657,14 @@ defmodule Task do
   end
 
   defp build_stream(enumerable, fun, options) do
-    owner = self()
+    fn acc, acc_fun ->
+      owner = get_owner(self())
 
-    &Task.Supervised.stream(enumerable, &1, &2, get_callers(owner), fun, options, fn ->
-      {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor)
-      {:ok, :link, pid}
-    end)
+      Task.Supervised.stream(enumerable, acc, acc_fun, get_callers(self()), fun, options, fn ->
+        {:ok, pid} = Task.Supervised.start_link(owner, :nomonitor)
+        {:ok, :link, pid}
+      end)
+    end
   end
 
   # Returns a tuple with the node where this is executed and either the

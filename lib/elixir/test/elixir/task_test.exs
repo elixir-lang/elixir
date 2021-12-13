@@ -829,6 +829,15 @@ defmodule TaskTest do
 
       assert_receive :done
     end
+
+    test "consuming from another process" do
+      parent = self()
+      stream = Task.async_stream([1, 2, 3], &send(parent, &1))
+      Task.start(Stream, :run, [stream])
+      assert_receive 1
+      assert_receive 2
+      assert_receive 3
+    end
   end
 
   for {desc, concurrency} <- [==: 4, <: 2, >: 8] do
