@@ -1459,12 +1459,9 @@ defmodule Enum do
 
   defp into_protocol(enumerable, collectable) do
     {initial, fun} = Collectable.into(collectable)
-    reduce_into_protocol(enumerable, initial, fun)
-  end
 
-  defp reduce_into_protocol(enumerable, initial, fun) do
     try do
-      wrapped_reduce_into_protocol(enumerable, initial, fun)
+      reduce_into_protocol(enumerable, initial, fun)
     catch
       kind, reason ->
         fun.(initial, :halt)
@@ -1474,12 +1471,11 @@ defmodule Enum do
     end
   end
 
-  defp wrapped_reduce_into_protocol(enumerable, initial, fun)
-       when is_list(enumerable) do
+  defp reduce_into_protocol(enumerable, initial, fun) when is_list(enumerable) do
     :lists.foldl(fn x, acc -> fun.(acc, {:cont, x}) end, initial, enumerable)
   end
 
-  defp wrapped_reduce_into_protocol(enumerable, initial, fun) do
+  defp reduce_into_protocol(enumerable, initial, fun) do
     enumerable
     |> Enumerable.reduce({:cont, initial}, fn x, acc ->
       {:cont, fun.(acc, {:cont, x})}
@@ -1530,12 +1526,9 @@ defmodule Enum do
 
   defp into_protocol(enumerable, collectable, transform) do
     {initial, fun} = Collectable.into(collectable)
-    reduce_into_protocol(enumerable, initial, transform, fun)
-  end
 
-  defp reduce_into_protocol(enumerable, initial, transform, fun) do
     try do
-      wrapped_reduce_into_protocol(enumerable, initial, transform, fun)
+      reduce_into_protocol(enumerable, initial, transform, fun)
     catch
       kind, reason ->
         fun.(initial, :halt)
@@ -1545,12 +1538,11 @@ defmodule Enum do
     end
   end
 
-  defp wrapped_reduce_into_protocol(enumerable, initial, transform, fun)
-       when is_list(enumerable) do
+  defp reduce_into_protocol(enumerable, initial, transform, fun) when is_list(enumerable) do
     :lists.foldl(fn x, acc -> fun.(acc, {:cont, transform.(x)}) end, initial, enumerable)
   end
 
-  defp wrapped_reduce_into_protocol(enumerable, initial, transform, fun) do
+  defp reduce_into_protocol(enumerable, initial, transform, fun) do
     enumerable
     |> Enumerable.reduce({:cont, initial}, fn x, acc ->
       {:cont, fun.(acc, {:cont, transform.(x)})}
