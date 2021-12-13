@@ -536,20 +536,22 @@ defmodule Task.Supervisor do
   end
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
-    shutdown = options[:shutdown]
-    owner = self()
+    fn acc, acc_fun ->
+      shutdown = options[:shutdown]
+      owner = get_owner(self())
 
-    &Task.Supervised.stream(enumerable, &1, &2, get_callers(owner), fun, options, fn ->
-      args = [get_owner(owner), :monitor]
+      Task.Supervised.stream(enumerable, acc, acc_fun, get_callers(self()), fun, options, fn ->
+        args = [owner, :monitor]
 
-      case start_child_with_spec(supervisor, args, :temporary, shutdown) do
-        {:ok, pid} ->
-          if link_type == :link, do: Process.link(pid)
-          {:ok, link_type, pid}
+        case start_child_with_spec(supervisor, args, :temporary, shutdown) do
+          {:ok, pid} ->
+            if link_type == :link, do: Process.link(pid)
+            {:ok, link_type, pid}
 
-        {:error, :max_children} ->
-          {:error, :max_children}
-      end
-    end)
+          {:error, :max_children} ->
+            {:error, :max_children}
+        end
+      end)
+    end
   end
 end

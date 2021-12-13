@@ -450,6 +450,15 @@ defmodule Task.SupervisorTest do
 
       assert_receive :done
     end
+
+    test "consuming from another process", config do
+      parent = self()
+      stream = Task.Supervisor.async_stream(config[:supervisor], [1, 2, 3], &send(parent, &1))
+      Task.start(Stream, :run, [stream])
+      assert_receive 1
+      assert_receive 2
+      assert_receive 3
+    end
   end
 
   describe "async_stream_nolink" do
