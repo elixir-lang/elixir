@@ -78,6 +78,7 @@ canonical = System.fetch_env!("CANONICAL")
       DynamicSupervisor,
       GenServer,
       Node,
+      PartitionSupervisor,
       Process,
       Registry,
       Supervisor,

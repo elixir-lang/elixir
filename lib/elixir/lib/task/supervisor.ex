@@ -16,7 +16,55 @@ defmodule Task.Supervisor do
 
   The options given in the child specification are documented in `start_link/1`.
 
+  Once started, you can start tasks directly under the supervisor, for example:
+
+      task = Task.Supervisor.async(MyApp.TaskSupervisor, fn ->
+        :do_some_work
+      end)
+
   See the `Task` module for more examples.
+
+  ## Scalability and partitioning
+
+  The `Task.Supervisor` is a single process responsible for starting
+  other processes. In some applications, the `Task.Supervisor` may
+  become a bottleneck. To address this, you can start multiple instances
+  of the `Task.Supervisor` and then pick a random instance to start
+  the task on.
+
+  Instead of:
+
+      children = [
+        {Task.Supervisor, name: Task.Supervisor}
+      ]
+
+  and:
+
+      Task.Supervisor.async(MyApp.TaskSupervisor, fn -> :do_some_work end)
+
+  You can do this:
+
+      children = [
+        {PartitionSupervisor,
+         child_spec: Task.Supervisor,
+         name: MyApp.TaskSupervisors}
+      ]
+
+  and then:
+
+      Task.Supervisor.async(
+        {:via, PartitionSupervisor, {MyApp.TaskSupervisors, self()}},
+        fn -> :do_some_work end
+      )
+
+  In the code above, we start a partition supervisor that will by default
+  start a dynamic supervisor for each core in your machine. Then, instead
+  of calling the `Task.Supervisor` by name, you call it through the
+  partition supervisor using the `{:via, PartitionSupervisor, {name, key}}`
+  format, where `name` is the name of the partition supervisor and `key`
+  is the routing key. We picked `self()` as the routing key, which means
+  each process will be assigned one of the existing task supervisors.
+  Read the `PartitionSupervisor` docs for more information.
 
   ## Name registration
 
