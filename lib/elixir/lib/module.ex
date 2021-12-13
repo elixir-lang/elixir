@@ -128,7 +128,7 @@ defmodule Module do
   Multiple uses of `@compile` will accumulate instead of overriding
   previous ones. See the "Compile options" section below.
 
-  ### `@deprecated`
+  ### `@deprecated` (since 1.6.0)
 
   Provides the deprecation reason for a function. For example:
 
@@ -176,9 +176,14 @@ defmodule Module do
   `@doc` is to be used with a function, macro, callback, or
   macrocallback, while `@typedoc` with a type (public or opaque).
 
-  Accepts a string (often a heredoc) or `false` where `@doc false` will
-  make the entity invisible to documentation extraction tools like
-  [`ExDoc`](https://hexdocs.pm/ex_doc/). For example:
+  Accepts one of these:
+
+    * a string (often a heredoc)
+    * `false`, which will make the entity invisible to documentation-extraction
+      tools like [`ExDoc`](https://hexdocs.pm/ex_doc/)
+    * a keyword list, since Elixir 1.7.0
+
+  For example:
 
       defmodule MyModule do
         @typedoc "This type"
@@ -199,11 +204,11 @@ defmodule Module do
         end
       end
 
-  As can be seen in the example above, `@doc` and `@typedoc` also accept
-  a keyword list that serves as a way to provide arbitrary metadata
+  As can be seen in the example above, since Elixir 1.7.0 `@doc` and `@typedoc`
+  also accept a keyword list that serves as a way to provide arbitrary metadata
   about the entity. Tools like [`ExDoc`](https://hexdocs.pm/ex_doc/) and
   `IEx` may use this information to display annotations. A common use
-  case is `since` that may be used to annotate in which version the
+  case is the `:since` key, which may be used to annotate in which version the
   function was introduced.
 
   As illustrated in the example, it is possible to use these attributes
