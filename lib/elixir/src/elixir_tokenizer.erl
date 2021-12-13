@@ -846,7 +846,7 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
       tokenize(Remaining, Line, Column + Length + Extra, Scope, [Token | Tokens]);
     {Remaining, Extra} ->
       NewScope =
-        %% TODO: Remove this deprecation and fix precedence on Elixir v2.0
+        %% TODO: Remove these deprecations on Elixir v2.0
         case Op of
           '^^^' ->
             Msg = "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.bxor/2 instead",
@@ -854,6 +854,10 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
 
           '~~~' ->
             Msg = "~~~ is deprecated. Use Bitwise.bnot/1 instead for clarity",
+            prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+
+          '<|>' ->
+            Msg = "<|> is deprecated. Use another pipe-like operator",
             prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
 
           _ ->

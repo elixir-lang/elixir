@@ -935,7 +935,7 @@ defmodule Code.Formatter.CommentsTest do
       # before
       foo    # this is foo
       ~> bar # this is bar
-      <|> baz # this is baz
+      <~> baz # this is baz
       # after
       """
 
@@ -946,7 +946,7 @@ defmodule Code.Formatter.CommentsTest do
       # this is bar
       ~> bar
       # this is baz
-      <|> baz
+      <~> baz
 
       # after
       """

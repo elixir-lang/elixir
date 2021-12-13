@@ -227,13 +227,13 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with multiple of the different entry and same precedence" do
-      assert_same "foo <|> bar ~> baz"
+      assert_same "foo <~> bar ~> baz"
 
-      bad = "foo <|> bar ~> baz"
+      bad = "foo <~> bar ~> baz"
 
       good = """
       foo
-      <|> bar
+      <~> bar
       ~> baz
       """
 
