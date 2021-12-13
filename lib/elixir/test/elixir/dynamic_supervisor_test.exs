@@ -10,7 +10,7 @@ defmodule DynamicSupervisorTest do
   end
 
   test "can be supervised directly" do
-    children = [{DynamicSupervisor, strategy: :one_for_one, name: :dyn_sup_spec_test}]
+    children = [{DynamicSupervisor, name: :dyn_sup_spec_test}]
     assert {:ok, _} = Supervisor.start_link(children, strategy: :one_for_one)
     assert DynamicSupervisor.which_children(:dyn_sup_spec_test) == []
   end
@@ -19,10 +19,9 @@ defmodule DynamicSupervisorTest do
     {:ok, _} = Registry.start_link(keys: :unique, name: DynSup.Registry)
 
     children = [
-      {DynamicSupervisor, strategy: :one_for_one, name: :simple_name},
-      {DynamicSupervisor, strategy: :one_for_one, name: {:global, :global_name}},
-      {DynamicSupervisor,
-       strategy: :one_for_one, name: {:via, Registry, {DynSup.Registry, "via_name"}}}
+      {DynamicSupervisor, name: :simple_name},
+      {DynamicSupervisor, name: {:global, :global_name}},
+      {DynamicSupervisor, name: {:via, Registry, {DynSup.Registry, "via_name"}}}
     ]
 
     assert {:ok, supsup} = Supervisor.start_link(children, strategy: :one_for_one)
@@ -69,7 +68,7 @@ defmodule DynamicSupervisorTest do
 
   describe "init/1" do
     test "set default options" do
-      assert DynamicSupervisor.init(strategy: :one_for_one) ==
+      assert DynamicSupervisor.init([]) ==
                {:ok,
                 %{
                   strategy: :one_for_one,

@@ -11,11 +11,10 @@ defmodule DynamicSupervisor do
 
   ## Examples
 
-  A dynamic supervisor is started with no children, a supervision strategy
-  (the only strategy currently supported is `:one_for_one`), and a name:
+  A dynamic supervisor is started with no children and often a name:
 
       children = [
-        {DynamicSupervisor, strategy: :one_for_one, name: MyApp.DynamicSupervisor}
+        {DynamicSupervisor, name: MyApp.DynamicSupervisor}
       ]
 
       Supervisor.start_link(children, strategy: :one_for_one)
@@ -36,6 +35,46 @@ defmodule DynamicSupervisor do
 
       DynamicSupervisor.count_children(MyApp.DynamicSupervisor)
       #=> %{active: 2, specs: 2, supervisors: 0, workers: 2}
+
+  ## Scalability and partitioning
+
+  The `DynamicSupervisor` is a single process responsible for starting
+  other processes. In some applications, the `DynamicSupervisor` may
+  become a bottleneck. To address this, you can start multiple instances
+  of the `DynamicSupervisor` and then pick a "random" instance to start
+  the child on.
+
+  Instead of:
+
+      children = [
+        {DynamicSupervisor, name: MyApp.DynamicSupervisor}
+      ]
+
+  and:
+
+      DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
+
+  You can do this:
+
+      children = [
+        {PartitionSupervisor,
+         child_spec: DynamicSupervisor,
+         name: MyApp.DynamicSupervisors}
+      ]
+
+  and then:
+
+      DynamicSupervisor.start_child(
+        {:via, PartitionSupervisor, {MyApp.DynamicSupervisors, self()}},
+        {Agent, fn -> %{} end}
+      )
+
+  In the code above, we start a partition supervisor that will by default
+  start a dynamic supervisor for each core in your machine. Then, instead
+  of calling the `DynamicSupervisor` by name, you call it through the
+  partition supervisor, using `self()` as the routing key. This means each
+  process will be assigned one of the existing dynamic supervisors.
+  Read the `PartitionSupervisor` docs for more information.
 
   ## Module-based supervisors
 
@@ -232,13 +271,12 @@ defmodule DynamicSupervisor do
   @doc """
   Starts a supervisor with the given options.
 
-  The `:strategy` is a required option and the currently supported
-  value is `:one_for_one`. The remaining options can be found in the
-  `init/1` docs.
+  This function is typically not invoked directly, instead it is invoked
+  when using a `DynamicSupervisor` as a child of another supervisor:
 
-  The `:name` option can also be used to register a supervisor name.
-  The supported values are described under the "Name registration"
-  section in the `GenServer` module docs.
+      children = [
+        {DynamicSupervisor, name: MySupervisor}
+      ]
 
   If the supervisor is successfully spawned, this function returns
   `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
@@ -249,6 +287,33 @@ defmodule DynamicSupervisor do
   Note that a supervisor started with this function is linked to the parent
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
+
+  ## Options
+
+    * `:name` - registers the supervisor under the given name.
+      The supported values are described under the "Name registration"
+      section in the `GenServer` module docs.
+
+    * `:strategy` - the restart strategy option. The only supported
+      value is `:one_for_one` which means that no other child is
+      terminated if a child process terminates. You can learn more
+      about strategies in the `Supervisor` module docs.
+
+    * `:max_restarts` - the maximum number of restarts allowed in
+      a time frame. Defaults to `3`.
+
+    * `:max_seconds` - the time frame in which `:max_restarts` applies.
+      Defaults to `5`.
+
+    * `:max_children` - the maximum amount of children to be running
+      under this supervisor at the same time. When `:max_children` is
+      exceeded, `start_child/2` returns `{:error, :max_children}`. Defaults
+      to `:infinity`.
+
+    * `:extra_arguments` - arguments that are prepended to the arguments
+      specified in the child spec given to `start_child/2`. Defaults to
+      an empty list.
+
   """
   @doc since: "1.6.0"
   @spec start_link([option | init_option]) :: Supervisor.on_start()
@@ -275,6 +340,16 @@ defmodule DynamicSupervisor do
   The `:name` option can also be given in order to register a supervisor
   name, the supported values are described in the "Name registration"
   section in the `GenServer` module docs.
+
+  If the supervisor is successfully spawned, this function returns
+  `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
+  is given a name and a process with the specified name already exists,
+  the function returns `{:error, {:already_started, pid}}`, where `pid`
+  is the PID of that process.
+
+  Note that a supervisor started with this function is linked to the parent
+  process and exits not only on crashes but also if the parent process exits
+  with `:normal` reason.
   """
   @doc since: "1.6.0"
   @spec start_link(module, term, [option]) :: Supervisor.on_start()
@@ -476,46 +551,20 @@ defmodule DynamicSupervisor do
   module-based supervisors. See the "Module-based supervisors" section
   in the module documentation for more information.
 
-  The `options` received by this function are also supported by `start_link/1`.
-
-  This function returns a tuple containing the supervisor options.
+  It accepts the same `options` as `start_link/1` (except for `:name`)
+  and it returns a tuple containing the supervisor options.
 
   ## Examples
 
       def init(_arg) do
-        DynamicSupervisor.init(max_children: 1000, strategy: :one_for_one)
+        DynamicSupervisor.init(max_children: 1000)
       end
-
-  ## Options
-
-    * `:strategy` - the restart strategy option. The only supported
-      value is `:one_for_one` which means that no other child is
-      terminated if a child process terminates. You can learn more
-      about strategies in the `Supervisor` module docs.
-
-    * `:max_restarts` - the maximum number of restarts allowed in
-      a time frame. Defaults to `3`.
-
-    * `:max_seconds` - the time frame in which `:max_restarts` applies.
-      Defaults to `5`.
-
-    * `:max_children` - the maximum amount of children to be running
-      under this supervisor at the same time. When `:max_children` is
-      exceeded, `start_child/2` returns `{:error, :max_children}`. Defaults
-      to `:infinity`.
-
-    * `:extra_arguments` - arguments that are prepended to the arguments
-      specified in the child spec given to `start_child/2`. Defaults to
-      an empty list.
 
   """
   @doc since: "1.6.0"
   @spec init([init_option]) :: {:ok, sup_flags()}
   def init(options) when is_list(options) do
-    unless strategy = options[:strategy] do
-      raise ArgumentError, "expected :strategy option to be given"
-    end
-
+    strategy = Keyword.get(options, :strategy, :one_for_one)
     intensity = Keyword.get(options, :max_restarts, 3)
     period = Keyword.get(options, :max_seconds, 5)
     max_children = Keyword.get(options, :max_children, :infinity)
