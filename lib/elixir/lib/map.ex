@@ -864,8 +864,6 @@ defmodule Map do
   applying `fun` returned a truthy value, and a second map with all the elements
   for which applying `fun` returned a falsy value (`false` or `nil`).
 
-  See the examples below.
-
   ## Examples
 
       iex> Map.split_with(%{a: 1, b: 2, c: 3, d: 4}, fn {_k, v} -> rem(v, 2) == 0 end)
