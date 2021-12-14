@@ -916,6 +916,44 @@ defmodule StringTest do
     end
   end
 
+  test "prepend/2" do
+    assert String.prepend("alice", "") == "alice"
+    assert String.prepend("alice", "/") == "/alice"
+    assert String.prepend("", "") == ""
+    assert String.prepend("", "<-") == "<-"
+
+    assert_raise FunctionClauseError, fn ->
+      String.prepend(:alice, "bob")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.prepend("alice", 606)
+    end
+  end
+
+  test "prepend/3" do
+    assert String.prepend("alice", "", "") == "alice"
+    assert String.prepend("alice", "|", "") == "|alice"
+    assert String.prepend("alice", "", "-") == "-alice"
+    assert String.prepend("alice", "|", "-") == "|-alice"
+    assert String.prepend("", "", "") == ""
+    assert String.prepend("", "|", "") == "|"
+    assert String.prepend("", "", "-") == "-"
+    assert String.prepend("", "|", "-") == "|-"
+
+    assert_raise FunctionClauseError, fn ->
+      String.prepend(:alice, "bob", "-")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.prepend("alice", 606, "-")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.prepend("alice", "bob", :separator)
+    end
+  end
+
   # Carriage return can be a grapheme cluster if followed by
   # newline so we test some corner cases here.
   test "carriage return" do

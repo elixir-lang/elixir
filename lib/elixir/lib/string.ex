@@ -2731,6 +2731,23 @@ defmodule String do
     string <> joiner <> appender
   end
 
+  @doc """
+  Returns the `string` prepended by `prepender`, separated by `joiner`.
+
+  ## Examples
+
+      iex> String.prepend("alice", "bob")
+      "bobalice"
+      iex> String.prepend("alice", "bob", " & ")
+      "bob & alice"
+
+  """
+  @spec prepend(t, t, t) :: t
+  def prepend(string, prepender, joiner \\ "")
+      when is_binary(string) and is_binary(prepender) and is_binary(joiner) do
+    prepender <> joiner <> string
+  end
+
   ## Helpers
 
   @compile {:inline,
