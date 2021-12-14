@@ -2,11 +2,14 @@ defmodule DateTime do
   @moduledoc """
   A datetime implementation with a time zone.
 
-  This datetime can be seen as an ephemeral snapshot
-  of a datetime at a given time zone. For such purposes,
-  it also includes both UTC and Standard offsets, as
-  well as the zone abbreviation field used exclusively
-  for formatting purposes.
+  This datetime can be seen as a snapshot of a date and time
+  at a given time zone. For such purposes, it also includes both
+  UTC and Standard offsets, as well as the zone abbreviation
+  field used exclusively for formatting purposes. Note future
+  datetimes are not necessarily guaranteed to exist, as time
+  zones may change any time in the future due to geopolitical
+  reasons. See the "Datetimes as snapshots" section for more
+  information.
 
   Remember, comparisons in Elixir using `==/2`, `>/2`, `</2` and friends
   are structural and based on the DateTime struct fields. For proper
@@ -41,6 +44,56 @@ defmodule DateTime do
       Calendar.put_time_zone_database(Tzdata.TimeZoneDatabase)
 
   See the proper names in the library installation instructions.
+
+  ## Datetimes as snapshots
+
+  In the first section, we described datetimes as a "snapshot of
+  a date and time at a given time zone". To understand precisely
+  what we mean, let's see an example.
+
+  Imagine someone in Poland wants to schedule a meeting with someone
+  in Brazil in the next year. The meeting will happen at 2:30 AM
+  in the Polish time zone. At what time will the meeting happen in
+  Brazil?
+
+  You can consult the time zone database today, one year before,
+  using the API in this module and it will give you an answer that
+  is valid right now. However, this answer may not be valid in the
+  future. Why? Because both Brazil and Poland may change their timezone
+  rules, ultimately affecting the result. For example, a country may
+  choose to enter or abandon "Daylight Saving Time", which is a
+  process where we adjust the clock one hour forward or one hour
+  back once per year. Whenener the rules change, the exact instant
+  that 2:30 AM in Polish time will be in Brazil may change.
+
+  In other words, whenever working with future DateTimes, there is
+  no guarantee the results you get will always be correct, until
+  the event actually happens. Therefore, when you ask for a future
+  time, the answers you get are a snapshot that reflects the current
+  state of the time zone rules. For datetimes in the past, this is
+  not a problem, because time zone rules do not change for past
+  events.
+
+  To make matters worse, it may be that the 2:30 AM in Polish time
+  does not actually even exist or it is ambiguous. If a certain
+  time zone observes "Daylight Saving Time", they will move their
+  clock forward once a year. When this happens, there is a whole
+  hour that does not exist. Then, when they move the clock back,
+  there is a certain hour that will happen twice. So if you want
+  to schedule a meeting when this shift back happens, you would
+  need to explicitly say which of the 2:30 AM you precisely mean.
+  Applications that are date and time sensitive, need to take
+  these scenarios into account and correctly communicate them to
+  users.
+
+  The good news is: Elixir contains all of the building blocks
+  necessary to tackle those problems. The default timezone database
+  used by Elixir, `Calendar.UTCOnlyTimeZoneDatabase`, only works
+  with UTC, which does not observe those issues. Once you bring
+  a proper time zone database, the functions in this module will
+  query the database and return the relevant information. For
+  example, look at how `DateTime.new/4` returns different results
+  based on the scenarios described in this section.
   """
 
   @enforce_keys [:year, :month, :day, :hour, :minute, :second] ++
