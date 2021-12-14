@@ -525,7 +525,7 @@ defmodule Code.Fragment do
     |> position_surround_context(line, column, opts)
   end
 
-  def surround_context(other, position, opts) do
+  def surround_context(other, {_, _} = position, opts) do
     surround_context(to_charlist(other), position, opts)
   end
 
