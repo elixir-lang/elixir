@@ -1026,11 +1026,13 @@ defmodule Map do
   `fun` receives the key and value of each of the
   elements in the map as a key-value pair.
 
-  `Map.filter/2` is faster than using `map |> Enum.filter(fun) |> Enum.into(%{})`,
-  as no intermediate list is being built.
-
   See also `reject/2` which discards all elements where the
   function returns a truthy value.
+
+  > Note: if you find yourself doing multiple calls to `Map.map/2`
+  > and `Map.filter/2` in a pipeline, it is likely more efficient
+  > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
+  > a map at the end using `Map.new/1`.
 
   ## Examples
 
@@ -1057,9 +1059,8 @@ defmodule Map do
   end
 
   @doc """
-  Returns map excluding the pairs from `map` for which `fun` returns a truthy value.
-  `Map.reject/2` is faster than using `map |> Enum.reject(fun) |> Enum.into(%{})`,
-  as no intermediate list is being built.
+  Returns map excluding the pairs from `map` for which `fun` returns
+  a truthy value.
 
   See also `filter/2`.
 
@@ -1088,8 +1089,15 @@ defmodule Map do
   end
 
   @doc """
-  Maps the function `fun` over all key-value pairs in `map`, returning a map
-  with all the values replaced with the result of the function.
+  Maps the function `fun` over all key-value pairs in `map`
+
+  It returns a map with all the values replaced with the result
+  of the function.
+
+  > Note: if you find yourself doing multiple calls to `Map.map/2`
+  > and `Map.filter/2` in a pipeline, it is likely more efficient
+  > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
+  > a map at the end using `Map.new/1`.
 
   ## Examples
 
