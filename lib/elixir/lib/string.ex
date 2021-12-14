@@ -2714,6 +2714,23 @@ defmodule String do
   @spec to_char_list(t) :: charlist
   def to_char_list(string), do: String.to_charlist(string)
 
+  @doc """
+  Returns the `string` appended by `appender`, separated by `joiner`.
+
+  ## Examples
+
+      iex> String.append("alice", "bob")
+      "alicebob"
+      iex> String.append("alice", "bob", " & ")
+      "alice & bob"
+
+  """
+  @spec append(t, t, t) :: t
+  def append(string, appender, joiner \\ "")
+      when is_binary(string) and is_binary(appender) and is_binary(joiner) do
+    string <> joiner <> appender
+  end
+
   ## Helpers
 
   @compile {:inline,

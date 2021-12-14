@@ -878,6 +878,44 @@ defmodule StringTest do
     assert String.normalize("\u0574\u0576", :nfkc) == "\u0574\u0576"
   end
 
+  test "append/2" do
+    assert String.append("alice", "") == "alice"
+    assert String.append("alice", "/") == "alice/"
+    assert String.append("", "") == ""
+    assert String.append("", "->") == "->"
+
+    assert_raise FunctionClauseError, fn ->
+      String.append(:alice, "bob")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.append("alice", 606)
+    end
+  end
+
+  test "append/3" do
+    assert String.append("alice", "", "") == "alice"
+    assert String.append("alice", "|", "") == "alice|"
+    assert String.append("alice", "", "-") == "alice-"
+    assert String.append("alice", "|", "-") == "alice-|"
+    assert String.append("", "", "") == ""
+    assert String.append("", "|", "") == "|"
+    assert String.append("", "", "-") == "-"
+    assert String.append("", "|", "-") == "-|"
+
+    assert_raise FunctionClauseError, fn ->
+      String.append(:alice, "bob", "-")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.append("alice", 606, "-")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.append("alice", "bob", :separator)
+    end
+  end
+
   # Carriage return can be a grapheme cluster if followed by
   # newline so we test some corner cases here.
   test "carriage return" do
