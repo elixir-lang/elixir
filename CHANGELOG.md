@@ -128,6 +128,29 @@ Now any application can use your formatter as follows:
 
 Finally, the `Code` module has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
 
+## v1.13.1 (2021-12-14)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code] Do not show code snippets in `SyntaxError` and `TokenMissingError` if line is empty
+  * [Exception] Do not fail blaming `ArgumentError` for improper lists on `apply/3`
+  * [Macro] Set a max `line_length` for `Macro.to_string/1`
+  * [Macro] Fix formatting of lists on module attributes for `Macro.to_string/1`
+  * [String] Fix incorrect codepoint byte counting in `slice` with negative positions in ranges
+  * [Task] Ensure async streams can be consumed from another process than the one that creates them
+  * [URI] Undeprecate `URI.parse/1` as `URI.new/1` is too strict in many common cases
+  * [URI] Make sure `URI.new/1` returns nil for empty paths
+
+#### IEx
+
+  * [IEx] Make sure the `--version` flag halts IEx
+
+#### Mix
+
+  * [Mix] Make protocol consolidation part of the `Mix.install/2` cache
+
 ## v1.13.0 (2021-12-03)
 
 ### 1. Enhancements
