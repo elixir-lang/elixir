@@ -112,6 +112,22 @@ defmodule MapTest do
     assert_raise BadMapError, fn -> Map.split(:foo, []) end
   end
 
+  test "split_with/2" do
+    assert Map.split_with(%{}, fn {_k, v} -> rem(v, 2) == 0 end) == {%{}, %{}}
+
+    assert Map.split_with(%{a: 1, b: 2, c: 3}, fn {_k, v} -> rem(v, 2) == 0 end) ==
+             {%{b: 2}, %{a: 1, c: 3}}
+
+    assert Map.split_with(%{a: 2, b: 4, c: 6}, fn {_k, v} -> rem(v, 2) == 0 end) ==
+             {%{a: 2, b: 4, c: 6}, %{}}
+
+    assert Map.split_with(%{1 => 1, 2 => 2, 3 => 3}, fn {k, _v} -> rem(k, 2) == 0 end) ==
+             {%{2 => 2}, %{1 => 1, 3 => 3}}
+
+    assert Map.split_with(%{1 => 2, 3 => 4, 5 => 6}, fn {k, _v} -> rem(k, 2) == 0 end) ==
+             {%{}, %{1 => 2, 3 => 4, 5 => 6}}
+  end
+
   test "get_and_update/3" do
     message = "the given function must return a two-element tuple or :pop, got: 1"
 
