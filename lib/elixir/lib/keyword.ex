@@ -1196,8 +1196,6 @@ defmodule Keyword do
   a second keyword list with all the elements for which applying `fun` returned
   a falsy value (`false` or `nil`).
 
-  See the examples below.
-
   ## Examples
 
       iex> Keyword.split_with([a: 1, b: 2, c: 3], fn {_k, v} -> rem(v, 2) == 0 end)
