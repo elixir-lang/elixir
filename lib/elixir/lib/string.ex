@@ -2748,6 +2748,35 @@ defmodule String do
     prepender <> joiner <> string
   end
 
+  @doc """
+  Returns the `string` surrounded by `surrounder`, separated by `joiner`.
+
+  ## Examples
+
+      iex> String.surround("foo", "|")
+      "|foo|"
+      iex> String.surround("foo", {"<", ">"})
+      "<foo>"
+      iex> String.surround("foo", "|", "_")
+      "|_foo_|"
+      iex> String.surround("foo", {"<", ">"}, "-")
+      "<-foo->"
+
+  """
+  @spec surround(t, t | {t, t}, t) :: t
+  def surround(string, surrounder, joiner \\ "")
+
+  def surround(string, surrounder, joiner)
+      when is_binary(string) and is_binary(surrounder) and is_binary(joiner) do
+    surrounder <> joiner <> string <> joiner <> surrounder
+  end
+
+  def surround(string, {prepender, appender}, joiner)
+      when is_binary(string) and is_binary(prepender) and is_binary(appender) and
+             is_binary(joiner) do
+    prepender <> joiner <> string <> joiner <> appender
+  end
+
   ## Helpers
 
   @compile {:inline,

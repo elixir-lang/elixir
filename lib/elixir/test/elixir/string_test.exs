@@ -954,6 +954,52 @@ defmodule StringTest do
     end
   end
 
+  test "surround/2" do
+    assert String.surround("alice", "") == "alice"
+    assert String.surround("alice", "/") == "/alice/"
+    assert String.surround("", "") == ""
+    assert String.surround("", "/") == "//"
+
+    assert_raise FunctionClauseError, fn ->
+      String.surround(:alice, "/")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.surround("alice", 6)
+    end
+  end
+
+  test "surround/3" do
+    assert String.surround("alice", "", "") == "alice"
+    assert String.surround("alice", "|", "") == "|alice|"
+    assert String.surround("alice", {"<", ">"}, "") == "<alice>"
+    assert String.surround("alice", "", "-") == "-alice-"
+    assert String.surround("alice", "|", "-") == "|-alice-|"
+    assert String.surround("alice", {"<", ">"}, "-") == "<-alice->"
+    assert String.surround("", "", "") == ""
+    assert String.surround("", "|", "") == "||"
+    assert String.surround("", {"<", ">"}, "") == "<>"
+    assert String.surround("", "", "-") == "--"
+    assert String.surround("", "|", "-") == "|--|"
+    assert String.surround("", {"<", ">"}, "-") == "<-->"
+
+    assert_raise FunctionClauseError, fn ->
+      String.surround(:alice, "|", " ")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.surround("alice", 606, " ")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.surround("alice", {}, " ")
+    end
+
+    assert_raise FunctionClauseError, fn ->
+      String.surround("alice", "|", :separator)
+    end
+  end
+
   # Carriage return can be a grapheme cluster if followed by
   # newline so we test some corner cases here.
   test "carriage return" do
