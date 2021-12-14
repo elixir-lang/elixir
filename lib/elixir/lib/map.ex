@@ -885,20 +885,18 @@ defmodule Map do
     iter = :maps.iterator(map)
     next = :maps.next(iter)
 
-    do_split_with(next, fun)
+    do_split_with(next, [], [], fun)
   end
 
-  defp do_split_with(acc \\ {[], []}, next, fun)
-
-  defp do_split_with({while_true, while_false}, :none, _fun) do
+  defp do_split_with(:none, while_true, while_false, _fun) do
     {:maps.from_list(while_true), :maps.from_list(while_false)}
   end
 
-  defp do_split_with({while_true, while_false}, {key, value, iter}, fun) do
+  defp do_split_with({key, value, iter}, while_true, while_false, fun) do
     if fun.({key, value}) do
-      do_split_with({[{key, value} | while_true], while_false}, :maps.next(iter), fun)
+      do_split_with(:maps.next(iter), [{key, value} | while_true], while_false, fun)
     else
-      do_split_with({while_true, [{key, value} | while_false]}, :maps.next(iter), fun)
+      do_split_with(:maps.next(iter), while_true, [{key, value} | while_false], fun)
     end
   end
 
