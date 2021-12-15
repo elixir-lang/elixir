@@ -194,7 +194,7 @@ defmodule Logger do
       with severity less than the configured level will simply
       cause the message to be ignored. Keep in mind that each backend
       may have its specific level, too. In addition to levels mentioned
-      above it also support 2 "meta-levels":
+      above it also supports 2 "meta-levels":
 
         - `:all` - all messages will be logged, conceptually identical to
           `:debug`
