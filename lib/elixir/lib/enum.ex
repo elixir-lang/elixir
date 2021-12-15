@@ -3190,6 +3190,27 @@ defmodule Enum do
   end
 
   @doc """
+  Splits `enumerable` into two enumerables by elements on
+  odd and even positions.
+
+  It returns two-element tuple with lists of elements
+  on even and odd positions.
+
+  ## Examples
+
+      iex> Enum.split_evenly([1, 2, 3, 4])
+      {[1, 3], [2, 4]}
+
+      iex> Enum.split_evenly(1..5)
+      {[1, 3, 5], [2, 4]}
+
+  """
+  @spec split_while(t) :: {list, list}
+  def split_evenly(enumerable) do
+    {take_every(enumerable, 2), drop_every(enumerable, 2)}
+  end
+
+  @doc """
   Splits enumerable in two at the position of the element for which
   `fun` returns a falsy value (`false` or `nil`) for the first time.
 

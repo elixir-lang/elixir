@@ -1225,6 +1225,14 @@ defmodule EnumTest do
     end
   end
 
+  test "split_evenly/1" do
+    assert Enum.split_evenly([1, 2, 3, 4]) == {[1, 3], [2, 4]}
+    assert Enum.split_evenly([1, 2, 3, 4, 5]) == {[1, 3, 5], [2, 4]}
+    assert Enum.split_evenly(1..4) == {[1, 3], [2, 4]}
+    assert Enum.split_evenly(1..5) == {[1, 3, 5], [2, 4]}
+    assert Enum.split_evenly([]) == {[], []}
+  end
+
   test "split_while/2" do
     assert Enum.split_while([1, 2, 3], fn _ -> false end) == {[], [1, 2, 3]}
     assert Enum.split_while([1, 2, 3], fn _ -> true end) == {[1, 2, 3], []}
