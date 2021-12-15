@@ -1489,6 +1489,10 @@ defmodule String do
     subject
   end
 
+  defp replace_guarded(subject, [], _, _) do
+    subject
+  end
+
   defp replace_guarded(subject, "", replacement_binary, options)
        when is_binary(replacement_binary) do
     if Keyword.get(options, :global, true) do

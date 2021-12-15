@@ -424,6 +424,10 @@ defmodule StringTest do
       assert String.replace("ELIXIR", "", ".", global: false) == ".ELIXIR"
     end
 
+    test "with empty pattern list" do
+      assert String.replace("elixir", [], "") == "elixir"
+    end
+
     test "with match pattern and string replacement" do
       assert String.replace("a,b,c", ",", "-") == "a-b-c"
       assert String.replace("a,b,c", [",", "b"], "-") == "a---c"
