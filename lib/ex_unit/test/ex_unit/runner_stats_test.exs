@@ -109,6 +109,28 @@ defmodule ExUnit.RunnerStatsTest do
                }
       end)
     end
+
+    @tag :tmp_dir
+    test "does not change the file if :skip_failures_manifest_file", %{tmp_dir: tmp_dir} do
+      File.cd!(tmp_dir, fn ->
+        simulate_suite(&simulate_test(&1, :test_1, :failed))
+        simulate_suite(&simulate_test(&1, :test_2, :failed))
+
+        failures_manifest = read_failures_manifest()
+
+        assert failures_manifest == %{
+                 {TestModule, :test_1} => __ENV__.file,
+                 {TestModule, :test_2} => __ENV__.file
+               }
+
+        simulate_suite(
+          [failures_manifest_file: @failures_manifest_file, skip_failures_manifest_file: true],
+          &simulate_test(&1, :test_3, :failed)
+        )
+
+        assert failures_manifest == read_failures_manifest()
+      end)
+    end
   end
 
   defp simulate_suite(opts \\ [failures_manifest_file: @failures_manifest_file], fun) do
