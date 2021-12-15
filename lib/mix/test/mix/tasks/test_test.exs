@@ -510,9 +510,7 @@ defmodule Mix.Tasks.TestTest do
         output = mix(["test", "--warnings-as-errors"])
         assert output =~ "2 failures"
         refute output =~ "Test suite aborted after successful execution"
-        # missing assertion here
-
-        output = mix(["test", "----failed"])
+        output = mix(["test", "--failed"])
         assert output =~ "2 failures"
       end)
     end

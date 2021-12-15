@@ -251,8 +251,6 @@ defmodule ExUnit do
     * `:failures_manifest_file` - specifies a path to the file used to store failures
       between runs;
 
-    * `:skip_failures_manifest_file` - skips writing to the failures manifest file;
-
     * `:formatters` - the formatters that will print results,
       defaults to `[ExUnit.CLIFormatter]`;
 

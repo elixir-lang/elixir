@@ -36,7 +36,6 @@ defmodule ExUnit.RunnerStats do
       failures: 0,
       skipped: 0,
       excluded: 0,
-      skip_failures_manifest_file: opts[:skip_failures_manifest_file],
       failures_manifest_file: opts[:failures_manifest_file],
       failures_manifest: FailuresManifest.new(),
       failure_counter: 0,
@@ -76,15 +75,9 @@ defmodule ExUnit.RunnerStats do
     {:noreply, state}
   end
 
-  def handle_cast(
-        {:suite_finished, _},
-        %{skip_failures_manifest_file: should_skip, failures_manifest_file: file} = state
-      )
+  def handle_cast({:suite_finished, _}, %{failures_manifest_file: file} = state)
       when is_binary(file) do
-    unless should_skip do
-      FailuresManifest.write!(state.failures_manifest, file)
-    end
-
+    FailuresManifest.write!(state.failures_manifest, file)
     {:noreply, state}
   end
 
