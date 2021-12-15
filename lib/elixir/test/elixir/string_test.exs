@@ -2,6 +2,11 @@ Code.require_file("test_helper.exs", __DIR__)
 
 defmodule StringTest do
   use ExUnit.Case, async: true
+  import ExUnit.CaptureIO
+
+  defp capture_err(fun) do
+    capture_io(:stderr, fun)
+  end
 
   doctest String
 
@@ -78,6 +83,14 @@ defmodule StringTest do
     assert String.split("hello", [], trim: true) == ["hello"]
     assert String.split("", []) == [""]
     assert String.split("", [], trim: true) == []
+
+    assert_raise ArgumentError, fn ->
+      String.split("a,b,c", [""])
+    end
+
+    assert_raise ArgumentError, fn ->
+      String.split("a,b,c", [""])
+    end
   end
 
   test "split/2,3 with regex" do
@@ -114,6 +127,12 @@ defmodule StringTest do
     assert String.splitter("hello", [], trim: true) |> Enum.to_list() == ["hello"]
     assert String.splitter("", []) |> Enum.to_list() == [""]
     assert String.splitter("", [], trim: true) |> Enum.to_list() == []
+
+    assert String.splitter("1,2 3,4 5", "") |> Enum.take(4) == ["", "1", ",", "2"]
+
+    assert_raise ArgumentError, fn ->
+      String.splitter("a", [""])
+    end
   end
 
   test "split_at/2" do
@@ -432,6 +451,10 @@ defmodule StringTest do
       assert String.replace("ELIXIR", "", ".") == ".E.L.I.X.I.R."
       assert String.replace("ELIXIR", "", ".", global: true) == ".E.L.I.X.I.R."
       assert String.replace("ELIXIR", "", ".", global: false) == ".ELIXIR"
+
+      assert_raise ArgumentError, fn ->
+        String.replace("elixir", [""], "")
+      end
     end
 
     test "with empty pattern list" do
@@ -703,12 +726,19 @@ defmodule StringTest do
     assert String.starts_with?("hello", "he")
     assert String.starts_with?("hello", "hello")
     refute String.starts_with?("hello", [])
+    assert String.starts_with?("hello", "")
+    assert String.starts_with?("hello", [""])
     assert String.starts_with?("hello", ["hellö", "hell"])
     assert String.starts_with?("エリクシア", "エリ")
     refute String.starts_with?("hello", "lo")
     refute String.starts_with?("hello", "hellö")
     refute String.starts_with?("hello", ["hellö", "goodbye"])
     refute String.starts_with?("エリクシア", "仙丹")
+
+    compiled_search_pattern = :binary.compile_pattern("he")
+
+    assert capture_err(fn -> String.starts_with?("hello", compiled_search_pattern) end) =~
+             "compiled patterns are deprecated in starts_with?"
   end
 
   test "ends_with?/2" do
@@ -728,6 +758,8 @@ defmodule StringTest do
     assert String.contains?("elixir of life", "of")
     assert String.contains?("エリクシア", "シ")
     refute String.contains?("elixir of life", [])
+    assert String.contains?("elixir of life", "")
+    assert String.contains?("elixir of life", [""])
     assert String.contains?("elixir of life", ["mercury", "life"])
     refute String.contains?("elixir of life", "death")
     refute String.contains?("エリクシア", "仙")

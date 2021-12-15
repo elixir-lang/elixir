@@ -283,8 +283,21 @@ defmodule String do
   @typedoc "Multiple code points that may be perceived as a single character by readers"
   @type grapheme :: t
 
-  @typedoc "Pattern used in functions like `replace/4` and `split/3`"
-  @type pattern :: t | nonempty_list(t) | :binary.cp()
+  @typedoc """
+  Pattern used in functions like `replace/4` and `split/3`.
+
+  It can either be:
+  - any string
+  - an empty list
+  - a list containing non-empty strings
+  - a compiled search pattern created by `:binary.compile_pattern/1`
+  """
+  # TODO: Replace "nonempty_binary :: <<_::8, _::_*8>>" with "nonempty_binary()" when
+  # when minimum requirement is >= OTP 24.
+  @type pattern ::
+          t()
+          | [nonempty_binary :: <<_::8, _::_*8>>]
+          | (compiled_search_pattern :: :binary.cp())
 
   @conditional_mappings [:greek, :turkic]
 
@@ -2252,6 +2265,14 @@ defmodule String do
       iex> String.starts_with?("elixir", ["", "other"])
       true
 
+  An empty list will never match:
+
+      iex> String.starts_with?("elixir", [])
+      false
+
+      iex> String.starts_with?("", [])
+      false
+
   """
   @spec starts_with?(t, t | [t]) :: boolean
   def starts_with?(string, prefix) when is_binary(string) and is_binary(prefix) do
@@ -2369,6 +2390,14 @@ defmodule String do
       iex> String.contains?("elixir of life", ["", "other"])
       true
 
+  An empty list will never match:
+
+      iex> String.contains?("elixir of life", [])
+      false
+
+      iex> String.contains?("", [])
+      false
+
   Be aware that this function can match within or across grapheme boundaries.
   For example, take the grapheme "é" which is made of the characters
   "e" and the acute accent. The following returns `true`:
@@ -2383,7 +2412,7 @@ defmodule String do
       false
 
   """
-  @spec contains?(t, t | [t] | :binary.cp()) :: boolean
+  @spec contains?(t, pattern | [<<>>]) :: boolean
   def contains?(string, []) when is_binary(string) do
     false
   end
