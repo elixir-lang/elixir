@@ -640,7 +640,6 @@ map -> struct_op struct_expr eol map_args : {'%', meta_from_token('$1'), ['$2', 
 
 Erlang code.
 
--define(file(), get(elixir_parser_file)).
 -define(columns(), get(elixir_parser_columns)).
 -define(token_metadata(), get(elixir_token_metadata)).
 
@@ -729,10 +728,12 @@ build_op(AST, {_Kind, Location, '//'}, Right) ->
 
 build_op({UOp, _, [Left]}, {_Kind, {Line, Column, _} = Location, 'in'}, Right) when ?rearrange_uop(UOp) ->
   %% TODO: Remove "not left in right" rearrangement on v2.0
-  elixir_errors:erl_warn({Line, Column}, ?file(),
+  warn(
+    {Line, Column},
     "\"not expr1 in expr2\" is deprecated. "
     "Instead use \"expr1 not in expr2\" if you require Elixir v1.5+, "
-    "or \"not(expr1 in expr2)\" if you have to support earlier Elixir versions"),
+    "or \"not(expr1 in expr2)\" if you have to support earlier Elixir versions"
+  ),
   Meta = meta_from_location(Location),
   {UOp, Meta, [{'in', Meta, [Left, Right]}]};
 
@@ -1169,21 +1170,22 @@ error_invalid_kw_identifier({_, Location, KW}) ->
 
 %% TODO: Make this an error on v2.0
 warn_trailing_comma({',', {Line, Column, _}}) ->
-  elixir_errors:erl_warn({Line, Column}, ?file(),
-    "trailing commas are not allowed inside function/macro call arguments"
-  ).
+  warn({Line, Column}, "trailing commas are not allowed inside function/macro call arguments").
 
 %% TODO: Make this an error on v2.0
 warn_empty_paren({_, {Line, Column, _}}) ->
-  elixir_errors:erl_warn({Line, Column}, ?file(),
+  warn(
+    {Line, Column},
     "invalid expression (). "
     "If you want to invoke or define a function, make sure there are "
     "no spaces between the function name and its arguments. If you wanted "
-    "to pass an empty block or code, pass a value instead, such as a nil or an atom").
+    "to pass an empty block or code, pass a value instead, such as a nil or an atom"
+  ).
 
 %% TODO: Make this an error on v2.0
 warn_pipe({arrow_op, {Line, Column, _}, Op}, {_, [_ | _], [_ | _]}) ->
-  elixir_errors:erl_warn({Line, Column}, ?file(),
+  warn(
+    {Line, Column},
     io_lib:format(
       "parentheses are required when piping into a function call. For example:\n\n"
       "    foo 1 ~ts bar 2 ~ts baz 3\n\n"
@@ -1197,6 +1199,14 @@ warn_pipe(_Token, _) ->
   ok.
 
 warn_empty_stab_clause({stab_op, {Line, Column, _}, '->'}) ->
-  elixir_errors:erl_warn({Line, Column}, ?file(),
+  warn(
+    {Line, Column},
     "an expression is always required on the right side of ->. "
-    "Please provide a value after ->").
+    "Please provide a value after ->"
+  ).
+
+warn(LineColumn, Message) ->
+  case get(elixir_parser_warning_file) of
+    nil -> ok;
+    File -> elixir_errors:erl_warn(LineColumn, File, Message)
+  end.
