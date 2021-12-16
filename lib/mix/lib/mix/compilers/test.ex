@@ -64,7 +64,7 @@ defmodule Mix.Compilers.Test do
 
           %{failures: failures} = results = ExUnit.await_run(task)
 
-          {:ok, test_count} =
+          :ok =
             ExUnit.mark_files_as_failed(
               compiled_modules,
               files_with_warnings,
