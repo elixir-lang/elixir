@@ -174,7 +174,7 @@ defmodule Keyword do
       [a: 3]
 
   """
-  @spec new(Enum.t()) :: t
+  @spec new(Enumerable.t()) :: t
   def new(pairs) do
     new(pairs, fn pair -> pair end)
   end
@@ -192,7 +192,7 @@ defmodule Keyword do
       [a: :a, b: :b]
 
   """
-  @spec new(Enum.t(), (term -> {key, value})) :: t
+  @spec new(Enumerable.t(), (term -> {key, value})) :: t
   def new(pairs, transform) when is_function(transform, 1) do
     fun = fn el, acc ->
       {k, v} = transform.(el)

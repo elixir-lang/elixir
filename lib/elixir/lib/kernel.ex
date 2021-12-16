@@ -2288,7 +2288,7 @@ defmodule Kernel do
       #=> %User{name: "john"}
 
   """
-  @spec struct(module | struct, Enum.t()) :: struct
+  @spec struct(module | struct, Enumerable.t()) :: struct
   def struct(struct, fields \\ []) do
     struct(struct, fields, fn
       {:__struct__, _val}, acc ->
@@ -2321,7 +2321,7 @@ defmodule Kernel do
       only when building;
 
   """
-  @spec struct!(module | struct, Enum.t()) :: struct
+  @spec struct!(module | struct, Enumerable.t()) :: struct
   def struct!(struct, fields \\ [])
 
   def struct!(struct, fields) when is_atom(struct) do

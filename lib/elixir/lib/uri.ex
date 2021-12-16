@@ -127,7 +127,7 @@ defmodule URI do
       ** (ArgumentError) encode_query/2 values cannot be lists, got: [:a, :list]
 
   """
-  @spec encode_query(Enum.t(), :rfc3986 | :www_form) :: binary
+  @spec encode_query(Enumerable.t(), :rfc3986 | :www_form) :: binary
   def encode_query(enumerable, encoding \\ :www_form) do
     Enum.map_join(enumerable, "&", &encode_kv_pair(&1, encoding))
   end
