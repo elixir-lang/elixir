@@ -1317,84 +1317,21 @@ defmodule Keyword do
     length(keywords)
   end
 
-  @doc """
-  Returns a keyword list containing only the entries from `keywords`
-  for which the function `fun` returns a truthy value.
-
-  See also `reject/2` which discards all entries where the function
-  returns a truthy value.
-
-  ## Examples
-
-      iex> Keyword.filter([one: 1, two: 2, three: 3], fn {_key, val} -> rem(val, 2) == 1 end)
-      [one: 1, three: 3]
-
-  """
-  @doc since: "1.13.0"
-  @spec filter(t, ({key, value} -> as_boolean(term))) :: t
-  def filter(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
-    do_filter(keywords, fun)
+  @doc false
+  @deprecated "Use Enum.filter/2 instead"
+  def filter(keywords, fun) when is_list(keywords) do
+    Enum.filter(keywords, fun)
   end
 
-  defp do_filter([], _fun), do: []
-
-  defp do_filter([{_, _} = entry | entries], fun) do
-    if fun.(entry) do
-      [entry | do_filter(entries, fun)]
-    else
-      do_filter(entries, fun)
-    end
+  @doc false
+  @deprecated "Use Keyword.new/2 instead"
+  def reject(keywords, fun) when is_list(keywords) do
+    Enum.reject(keywords, fun)
   end
 
-  @doc """
-  Returns a keyword list excluding the entries from `keywords`
-  for which the function `fun` returns a truthy value.
-
-  See also `filter/2`.
-
-  ## Examples
-
-      iex> Keyword.reject([one: 1, two: 2, three: 3], fn {_key, val} -> rem(val, 2) == 1 end)
-      [two: 2]
-
-  """
-  @doc since: "1.13.0"
-  @spec reject(t, ({key, value} -> as_boolean(term))) :: t
-  def reject(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
-    do_reject(keywords, fun)
-  end
-
-  defp do_reject([], _fun), do: []
-
-  defp do_reject([{_, _} = entry | entries], fun) do
-    if fun.(entry) do
-      do_reject(entries, fun)
-    else
-      [entry | do_reject(entries, fun)]
-    end
-  end
-
-  @doc """
-  Maps the function `fun` over all key-value pairs in `keywords`,
-  returning a keyword list with all the values replaced with
-  the result of the function.
-
-  ## Examples
-
-      iex> Keyword.map([one: 1, two: 2, three: 3], fn {_key, val} -> to_string(val) end)
-      [one: "1", two: "2", three: "3"]
-
-  """
-  @doc since: "1.13.0"
-  @spec map(t, ({key, value} -> value)) :: t
-  def map(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
-    do_map(keywords, fun)
-  end
-
-  defp do_map([], _fun), do: []
-
-  defp do_map([{key, value} | rest], fun) do
-    new_value = fun.({key, value})
-    [{key, new_value} | do_map(rest, fun)]
+  @doc false
+  @deprecated "Use Keyword.new/2 instead"
+  def map(keywords, fun) when is_list(keywords) do
+    Enum.map(keywords, fn {k, v} -> {k, fun.({k, v})} end)
   end
 end
