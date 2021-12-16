@@ -359,6 +359,80 @@ defmodule MapSet do
   defp order_by_size(map1, map2) when map_size(map1) > map_size(map2), do: {map2, map1}
   defp order_by_size(map1, map2), do: {map1, map2}
 
+  @doc """
+  Filters the set by returning only the elements from `set` for which invoking
+  `fun` returns a truthy value.
+
+  Also see `reject/2` which discards all elements where the function returns
+  a truthy value.
+
+  > Note: if you find yourself doing multiple calls to `MapSet.filter/2`
+  > and `MapSet.reject/2` in a pipeline, it is likely more efficient
+  > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
+  > a map at the end using `Map.new/1`.
+
+  ## Examples
+
+      iex> MapSet.filter(MapSet.new(1..5), fn x -> x > 3 end)
+      #MapSet<[4, 5]>
+
+      iex> MapSet.filter(MapSet.new(["a", :b, "c"]), &is_atom/1)
+      #MapSet<[:b]>
+
+  """
+  @doc since: "1.14.0"
+  @spec filter(t(a), (a -> as_boolean(term))) :: t(a) when a: value
+  def filter(%MapSet{map: map}, fun) when is_map(map) and is_function(fun) do
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
+    keys = filter_keys(next, fun)
+    %MapSet{map: Map.from_keys(keys, @dummy_value)}
+  end
+
+  defp filter_keys(:none, _fun), do: []
+
+  defp filter_keys({key, _value, iter}, fun) do
+    if fun.(key) do
+      [key | filter_keys(:maps.next(iter), fun)]
+    else
+      filter_keys(:maps.next(iter), fun)
+    end
+  end
+
+  @doc """
+  Returns a set by excluding the elements from `set` for which invoking `fun`
+  returns a truthy value.
+
+  See also `filter/2`.
+
+  ## Examples
+
+      iex> MapSet.reject(MapSet.new(1..5), fn x -> rem(x, 2) != 0 end)
+      #MapSet<[2, 4]>
+
+      iex> MapSet.reject(MapSet.new(["a", :b, "c"]), &is_atom/1)
+      #MapSet<["a", "c"]>
+
+  """
+  @doc since: "1.14.0"
+  @spec reject(t(a), (a -> as_boolean(term))) :: t(a) when a: value
+  def reject(%MapSet{map: map}, fun) when is_map(map) and is_function(fun) do
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
+    keys = reject_keys(next, fun)
+    %MapSet{map: Map.from_keys(keys, @dummy_value)}
+  end
+
+  defp reject_keys(:none, _fun), do: []
+
+  defp reject_keys({key, _value, iter}, fun) do
+    if fun.(key) do
+      reject_keys(:maps.next(iter), fun)
+    else
+      [key | reject_keys(:maps.next(iter), fun)]
+    end
+  end
+
   defimpl Enumerable do
     def count(map_set) do
       {:ok, MapSet.size(map_set)}
