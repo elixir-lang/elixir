@@ -176,8 +176,9 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.3]  | `String.valid_character?/1`                         | `String.valid?/1` (v1.0)
 [v1.3]  | `Task.find/2`                                       | Use direct message matching (v1.0)
 [v1.3]  | Non-map as 2nd argument in `URI.decode_query/2`     | Use a map (v1.0)
-[v1.2]  | `Dict` behaviour                                    | `MapSet` data structure (v1.1)
+[v1.2]  | `Dict` behaviour                                    | `Map` and `Keyword` (v1.0)
 [v1.1]  | `?\xHEX`                                            | `0xHEX` (v1.0)
+[v1.1]  | `Access` protocol                                   | `Access` behaviour (v1.1)
 [v1.1]  | `as: true \| false` in `alias/2` and `require/2`    | *None*
 
 [v1.1]: https://github.com/elixir-lang/elixir/blob/v1.1/CHANGELOG.md#4-deprecations
