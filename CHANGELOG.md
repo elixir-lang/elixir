@@ -128,6 +128,15 @@ Now any application can use your formatter as follows:
 
 Finally, the `Code` module has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
 
+## v1.13.2 (2021-12-14)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Keyword] The recently added `Keyword.map/2`, `Keyword.reject/2`, and `Keyword.filter/2` have been deprecated. Use the equivalent `Enum` functions instead
+  * [Map] The recently added `Map.map/2`, `Map.reject/2`, and `Map.filter/2` have been deprecated. Use `Map.new/2` and/or the equivalent `Enum` functions instead
+
 ## v1.13.1 (2021-12-14)
 
 ### 1. Bug fixes
