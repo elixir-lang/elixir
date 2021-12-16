@@ -3081,11 +3081,12 @@ defmodule Enum do
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, :desc)
       ["monster", "some", "kind", "of"]
 
-  As in `sort/2`, avoid using the default sorting function to sort structs, as by default
-  it performs structural comparison instead of a semantic one. In such cases,
-  you shall pass a sorting function as third element or any module that implements
-  a `compare/2` function. For example, to sort users by their birthday in both
-  ascending and descending order respectively:
+  As in `sort/2`, avoid using the default sorting function to sort
+  structs, as by default it performs structural comparison instead of
+  a semantic one. In such cases, you shall pass a sorting function as
+  third element or any module that implements a `compare/2` function.
+  For example, to sort users by their birthday in both ascending and
+  descending order respectively:
 
       iex> users = [
       ...>   %{name: "Ellis", birthday: ~D[1943-05-11]},
@@ -3105,6 +3106,42 @@ defmodule Enum do
         %{name: "Lovelace", birthday: ~D[1815-12-10]}
       ]
 
+  ## Performance characteristics
+
+  As detailed in the initial section, `sort_by/3` calculates the comparison
+  value for each element in the enumerable once instead of once for each
+  element in each comparison. This implies `sort_by/3` must do an initial
+  pass on the data to compute those values.
+
+  However, if those values are cheap to compute, for example, you have
+  already extracted the field you want to sort by into a tuple, then those
+  extra passes become overhead. In such cases, consider using `List.keysort/3`
+  instead.
+
+  Let's see an example. Imagine you have a list of products and you have a
+  list of IDs. You want to keep all products that are in the given IDs and
+  return their names sorted by their price. You could write it like this:
+
+      for(
+        product <- products,
+        product.id in ids,
+        do: product
+      )
+      |> Enum.sort_by(& &1.price)
+      |> Enum.map(& &1.name)
+
+  However, you could also write it like this:
+
+      for(
+        product <- products,
+        product.id in ids,
+        do: {product.name, product.price}
+      )
+      |> List.keysort(1)
+      |> Enum.map(&elem(&1, 0))
+
+  Using `List.keysort/3` will be a better choice for performance sensitive
+  code as it avoids additional traversals.
   """
   @spec sort_by(
           t,
@@ -3116,27 +3153,9 @@ defmodule Enum do
   def sort_by(enumerable, mapper, sorter \\ &<=/2) do
     enumerable
     |> map(&{&1, mapper.(&1)})
-    |> sort(to_sort_by_fun(sorter))
+    |> List.keysort(1, sorter)
     |> map(&elem(&1, 0))
   end
-
-  defp to_sort_by_fun(sorter) when is_function(sorter, 2),
-    do: &sorter.(elem(&1, 1), elem(&2, 1))
-
-  defp to_sort_by_fun(:asc),
-    do: &(elem(&1, 1) <= elem(&2, 1))
-
-  defp to_sort_by_fun(:desc),
-    do: &(elem(&1, 1) >= elem(&2, 1))
-
-  defp to_sort_by_fun(module) when is_atom(module),
-    do: &(module.compare(elem(&1, 1), elem(&2, 1)) != :gt)
-
-  defp to_sort_by_fun({:asc, module}) when is_atom(module),
-    do: &(module.compare(elem(&1, 1), elem(&2, 1)) != :gt)
-
-  defp to_sort_by_fun({:desc, module}) when is_atom(module),
-    do: &(module.compare(elem(&1, 1), elem(&2, 1)) != :lt)
 
   @doc """
   Splits the `enumerable` into two enumerables, leaving `count`
