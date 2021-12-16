@@ -81,7 +81,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.14] | `use Bitwise`                                       | `import Bitwise` (v1.0)
 [v1.14] | `~~~/1`                                             | `bnot/2` (v1.0)
 [v1.14] | `Application.get_env/3` and similar in module body  | `Application.compile_env/3` (v1.10)
-[v1.14] | `:each_cycle` returning lists or two-element tuples | Return three element tuples (v1.10)
+[v1.14] | Compiled patterns in `String.starts_with?/2`        | Pass a list of strings instead (v1.0)
 [v1.14] | `Mix.Tasks.Xref.calls/1`                            | Compilation tracers (outlined in `Code`) (v1.10)
 [v1.13] | `!` and `!=` in Version requirements                | `~>` or `>=` (v1.0)
 [v1.13] | `Mix.Config`                                        | `Config` (v1.9)
@@ -178,7 +178,6 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.3]  | Non-map as 2nd argument in `URI.decode_query/2`     | Use a map (v1.0)
 [v1.2]  | `Dict` behaviour                                    | `MapSet` data structure (v1.1)
 [v1.1]  | `?\xHEX`                                            | `0xHEX` (v1.0)
-[v1.1]  | `Access` protocol                                   | `Access` behaviour (v1.1)
 [v1.1]  | `as: true \| false` in `alias/2` and `require/2`    | *None*
 
 [v1.1]: https://github.com/elixir-lang/elixir/blob/v1.1/CHANGELOG.md#4-deprecations

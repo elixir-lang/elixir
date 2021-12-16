@@ -10,11 +10,15 @@
   * [Code] Warn if an outdated lexical tracker is given on eval
   * [Inspect] Improve error reporting when there is a faulty inspect implementation
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
-  * [Keyword] Add `Keyword.from_keys/2`
+  * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
+  * [List] Add `List.keysort/3` with support for a `sorter` function
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/1`
-  * [Map] Add `Map.from_keys/2`
+  * [Map] Add `Map.from_keys/2` and `Map.replace_lazy/3`
+  * [MapSet] Add `MapSet.map/2`, `MapSet.filter/2`, and `MapSet.reject/2`
+  * [PartitionSupervisor] Add `PartitionSupervisor` that starts multiple isolated partitions of the same child for scalability
   * [Registry] Add `Registry.count_select/2`
   * [Stream] Add `Stream.duplicate/2`
+  * [String] Support empty lookup lists in `String.replace/3`, `String.split/3`, and `String.splitter/3`
   * [Version] Add `Version.to_string/1`
   * [Version] Colorize `Version.Requirement` source in Inspect protocol
 
@@ -38,6 +42,8 @@
   * [Bitwise] `use Bitwise` is deprecated, use `import Bitwise` instead
   * [Bitwise] `~~~` is deprecated in favor of `bnot` for clarity
   * [Kernel.ParallelCompiler] Returning a list or two-element tuple from `:each_cycle` is deprecated, return a `{:compile | :runtime, modules, warnings}` tuple instead
+  * [Kernel] Deprecate the operator `<|>` to avoid ambiguity with upcoming extended numerical operators
+  * [String] Deprecate passing a binary compiled pattern to `String.starts_with?/2`
 
 #### Mix
 
