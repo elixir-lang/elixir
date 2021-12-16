@@ -107,6 +107,74 @@ defmodule ListTest do
     assert List.keysort([a: 4, c: 1, b: 2], 0) == [a: 4, b: 2, c: 1]
   end
 
+  test "keysort/3 with stable sorting" do
+    collection = [
+      {2, 4},
+      {1, 5},
+      {2, 2},
+      {3, 1},
+      {4, 3}
+    ]
+
+    # Stable sorting
+    assert List.keysort(collection, 0) == [
+             {1, 5},
+             {2, 4},
+             {2, 2},
+             {3, 1},
+             {4, 3}
+           ]
+
+    assert List.keysort(collection, 0) ==
+             List.keysort(collection, 0, :asc)
+
+    assert List.keysort(collection, 0, &</2) == [
+             {1, 5},
+             {2, 2},
+             {2, 4},
+             {3, 1},
+             {4, 3}
+           ]
+
+    assert List.keysort(collection, 0, :desc) == [
+             {4, 3},
+             {3, 1},
+             {2, 4},
+             {2, 2},
+             {1, 5}
+           ]
+  end
+
+  test "keysort/3 with module and stable sorting" do
+    collection = [
+      {~D[2010-01-02], 4},
+      {~D[2010-01-01], 5},
+      {~D[2010-01-02], 2},
+      {~D[2010-01-03], 1},
+      {~D[2010-01-04], 3}
+    ]
+
+    # Stable sorting
+    assert List.keysort(collection, 0, Date) == [
+             {~D[2010-01-01], 5},
+             {~D[2010-01-02], 4},
+             {~D[2010-01-02], 2},
+             {~D[2010-01-03], 1},
+             {~D[2010-01-04], 3}
+           ]
+
+    assert List.keysort(collection, 0, Date) ==
+             List.keysort(collection, 0, {:asc, Date})
+
+    assert List.keysort(collection, 0, {:desc, Date}) == [
+             {~D[2010-01-04], 3},
+             {~D[2010-01-03], 1},
+             {~D[2010-01-02], 4},
+             {~D[2010-01-02], 2},
+             {~D[2010-01-01], 5}
+           ]
+  end
+
   test "keystore/4" do
     assert List.keystore([a: 1, b: 2], :a, 0, {:a, 3}) == [a: 3, b: 2]
     assert List.keystore([a: 1], :b, 0, {:b, 2}) == [a: 1, b: 2]

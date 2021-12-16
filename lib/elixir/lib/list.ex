@@ -417,7 +417,13 @@ defmodule List do
 
   @doc """
   Receives a list of tuples and sorts the elements
-  at `position` of the tuples. The sort is stable.
+  at `position` of the tuples.
+
+  The sort is stable.
+
+  A `sorter` argument is available since Elixir v1.14.0. Similar to
+  `Enum.sort/2`, the sorter can be an anonymous function, the atoms
+  `:asc` or `:desc`, or module that implements a compare function.
 
   ## Examples
 
@@ -427,11 +433,70 @@ defmodule List do
       iex> List.keysort([a: 5, c: 1, b: 3], 0)
       [a: 5, b: 3, c: 1]
 
+  To sort in descending order:
+
+      iex> List.keysort([a: 5, c: 1, b: 3], 0, :desc)
+      [c: 1, b: 3, a: 5]
+
+  As in `Enum.sort/2`, avoid using the default sorting function to sort
+  structs, as by default it performs structural comparison instead of a
+  semantic one. In such cases, you shall pass a sorting function as third
+  element or any module that implements a `compare/2` function. For example,
+  if you have tuples with user names and their birthday, and you want to
+  sort on their birthday, in both ascending and descending order, you should
+  do:
+
+      iex> users = [
+      ...>   {"Ellis", ~D[1943-05-11]},
+      ...>   {"Lovelace", ~D[1815-12-10]},
+      ...>   {"Turing", ~D[1912-06-23]}
+      ...> ]
+      iex> List.keysort(users, 1, Date)
+      [
+        {"Lovelace", ~D[1815-12-10]},
+        {"Turing", ~D[1912-06-23]},
+        {"Ellis", ~D[1943-05-11]}
+      ]
+      iex> List.keysort(users, 1, {:desc, Date})
+      [
+        {"Ellis", ~D[1943-05-11]},
+        {"Turing", ~D[1912-06-23]},
+        {"Lovelace", ~D[1815-12-10]}
+      ]
+
   """
-  @spec keysort([tuple], non_neg_integer) :: [tuple]
-  def keysort(list, position) when is_integer(position) do
+  @spec keysort(
+          [tuple],
+          non_neg_integer,
+          (any, any -> boolean) | :asc | :desc | module() | {:asc | :desc, module()}
+        ) :: [tuple]
+  def keysort(list, position, sorter \\ :asc)
+
+  def keysort(list, position, :asc) when is_list(list) and is_integer(position) do
     :lists.keysort(position + 1, list)
   end
+
+  def keysort(list, position, sorter) when is_list(list) and is_integer(position) do
+    :lists.sort(keysort_fun(sorter, position + 1), list)
+  end
+
+  defp keysort_fun(sorter, position) when is_function(sorter, 2),
+    do: &sorter.(:erlang.element(position, &1), :erlang.element(position, &2))
+
+  defp keysort_fun(:asc, position),
+    do: &(:erlang.element(position, &1) <= :erlang.element(position, &2))
+
+  defp keysort_fun(:desc, position),
+    do: &(:erlang.element(position, &1) >= :erlang.element(position, &2))
+
+  defp keysort_fun(module, position) when is_atom(module),
+    do: &(module.compare(:erlang.element(position, &1), :erlang.element(position, &2)) != :gt)
+
+  defp keysort_fun({:asc, module}, position) when is_atom(module),
+    do: &(module.compare(:erlang.element(position, &1), :erlang.element(position, &2)) != :gt)
+
+  defp keysort_fun({:desc, module}, position) when is_atom(module),
+    do: &(module.compare(:erlang.element(position, &1), :erlang.element(position, &2)) != :lt)
 
   @doc """
   Receives a `list` of tuples and replaces the element
