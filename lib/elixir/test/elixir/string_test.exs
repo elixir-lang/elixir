@@ -2,11 +2,6 @@ Code.require_file("test_helper.exs", __DIR__)
 
 defmodule StringTest do
   use ExUnit.Case, async: true
-  import ExUnit.CaptureIO
-
-  defp capture_err(fun) do
-    capture_io(:stderr, fun)
-  end
 
   doctest String
 
@@ -734,11 +729,6 @@ defmodule StringTest do
     refute String.starts_with?("hello", "hellö")
     refute String.starts_with?("hello", ["hellö", "goodbye"])
     refute String.starts_with?("エリクシア", "仙丹")
-
-    compiled_search_pattern = :binary.compile_pattern("he")
-
-    assert capture_err(fn -> String.starts_with?("hello", compiled_search_pattern) end) =~
-             "compiled patterns are deprecated in starts_with?"
   end
 
   test "ends_with?/2" do

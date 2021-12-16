@@ -286,11 +286,13 @@ defmodule String do
   @typedoc """
   Pattern used in functions like `replace/4` and `split/3`.
 
-  It can either be:
-  - any string
-  - an empty list
-  - a list containing non-empty strings
-  - a compiled search pattern created by `:binary.compile_pattern/1`
+  It must be one of:
+
+    * a string
+    * an empty list
+    * a list containing non-empty strings
+    * a compiled search pattern created by `:binary.compile_pattern/1`
+
   """
   # TODO: Replace "nonempty_binary :: <<_::8, _::_*8>>" with "nonempty_binary()" when
   # when minimum requirement is >= OTP 24.
@@ -2412,7 +2414,7 @@ defmodule String do
       false
 
   """
-  @spec contains?(t, pattern | [<<>>]) :: boolean
+  @spec contains?(t, [t] | pattern) :: boolean
   def contains?(string, []) when is_binary(string) do
     false
   end
