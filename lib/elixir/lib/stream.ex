@@ -87,14 +87,14 @@ defmodule Stream do
     * `IO.stream/2`         - streams input lines, one by one
     * `URI.query_decoder/1` - decodes a query string, pair by pair
 
-  This module also provides many convenience functions for creating streams,
+  This module also provides many convenient functions for creating streams,
   like `Stream.cycle/1`, `Stream.unfold/2`, `Stream.resource/3` and more.
 
   Note the functions in this module are guaranteed to return enumerables.
   Since enumerables can have different shapes (structs, anonymous functions,
   and so on), the functions in this module may return any of those shapes
   and this may change at any time. For example, a function that today
-  returns an anonymous function may return a struct in future releases.
+  returns a list may return a struct in future releases.
   """
 
   @doc false
