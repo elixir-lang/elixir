@@ -374,7 +374,7 @@ defmodule MapSet do
 
   """
   @doc since: "1.14.0"
-  @spec map(t, (any -> any)) :: t
+  @spec map(t(a), (a -> b)) :: t(b) when a: value, b: value
   def map(%MapSet{map: map}, fun) when is_map(map) and is_function(fun, 1) do
     iter = :maps.iterator(map)
     next = :maps.next(iter)
@@ -405,7 +405,7 @@ defmodule MapSet do
 
   """
   @doc since: "1.14.0"
-  @spec filter(t, (any -> as_boolean(term))) :: t
+  @spec filter(t(a), (a -> as_boolean(term))) :: t(a) when a: value
   def filter(%MapSet{map: map}, fun) when is_map(map) and is_function(fun) do
     iter = :maps.iterator(map)
     next = :maps.next(iter)
@@ -440,7 +440,7 @@ defmodule MapSet do
 
   """
   @doc since: "1.14.0"
-  @spec reject(t, (any -> as_boolean(term))) :: t
+  @spec reject(t(a), (a -> as_boolean(term))) :: t(a) when a: value
   def reject(%MapSet{map: map}, fun) when is_map(map) and is_function(fun) do
     iter = :maps.iterator(map)
     next = :maps.next(iter)
