@@ -45,24 +45,18 @@ defmodule Mix.Compilers.Test do
         warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
 
         try do
-          compilation_failed? =
+          {compilation_failed?, compiled_modules, files_with_warnings} =
             case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
               {:ok, modules, [_ | _] = warnings} when warnings_as_errors? ->
                 # IO.inspect(second, label: "second")
                 files_with_warnings = Enum.map(warnings, &elem(&1, 0))
                 # IO.inspect(warnings, label: "warnings")
                 # IO.inspect(files_with_warnings, label: "files_with_warnings")
-                :ok  =
-                  ExUnit.mark_files_as_failed(
-                    modules,
-                    files_with_warnings,
-                    opts[:failures_manifest_file]
-                  )
 
-                true
+                {true, modules, files_with_warnings}
 
               {:ok, _, _} ->
-                false
+                {false, [], []}
 
               {:error, _, _} ->
                 exit({:shutdown, 1})
@@ -70,8 +64,12 @@ defmodule Mix.Compilers.Test do
 
           %{failures: failures} = results = ExUnit.await_run(task)
 
-          IO.inspect(results, label: "results")
-          IO.inspect(test_files, label: "test_files")
+          {:ok, test_count} =
+            ExUnit.mark_files_as_failed(
+              compiled_modules,
+              files_with_warnings,
+              opts[:failures_manifest_file]
+            )
 
           if compilation_failed? do
             message =

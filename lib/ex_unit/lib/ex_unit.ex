@@ -442,11 +442,14 @@ defmodule ExUnit do
       ExUnit.FailuresManifest.read(manifest_filename |> IO.inspect(label: "manifest path"))
       |> IO.inspect(label: "manifest before")
 
-    failed_tests
-    |> IO.inspect(label: "failed tests")
-    |> Enum.reduce(manifest, &ExUnit.FailuresManifest.put_test(&2, &1))
-    |> IO.inspect(label: "manifest after")
-    |> ExUnit.FailuresManifest.write!(manifest_filename)
+    :ok =
+      failed_tests
+      |> IO.inspect(label: "failed tests")
+      |> Enum.reduce(manifest, &ExUnit.FailuresManifest.put_test(&2, &1))
+      |> IO.inspect(label: "manifest after")
+      |> ExUnit.FailuresManifest.write!(manifest_filename)
+
+    {:ok, length(failed_tests)}
   end
 
   # Persists default values in application
