@@ -57,7 +57,8 @@ defmodule MapSet do
   @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
   @type t :: t(term)
 
-  # TODO: Remove version key on Elixir v2.0
+  # TODO: Remove version key when we require Erlang/OTP 24
+  # TODO: Implement the functions in this module using Erlang/OTP 24 new sets
   defstruct map: %{}, version: 2
 
   @doc """
@@ -478,11 +479,10 @@ defmodule MapSet do
   end
 
   defimpl Collectable do
-    # TODO: Optimize into an empty mapset by using :maps.from_keys/2 on Erlang/OTP 24+
     def into(map_set) do
       fun = fn
-        list, {:cont, x} -> [{x, []} | list]
-        list, :done -> %{map_set | map: Map.merge(map_set.map, Map.new(list))}
+        list, {:cont, x} -> [x | list]
+        list, :done -> %{map_set | map: Map.merge(map_set.map, Map.from_keys(list, []))}
         _, :halt -> :ok
       end
 
