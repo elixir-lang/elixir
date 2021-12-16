@@ -428,6 +428,27 @@ defmodule ExUnit do
     end
   end
 
+  def mark_files_as_failed(modules, allowed_filenames, manifest_filename) do
+    failed_tests =
+      Enum.flat_map(modules, fn mod ->
+        %ExUnit.TestModule{tests: tests} = mod.__ex_unit__()
+
+        tests
+        |> Enum.filter(&(&1.tags.file in allowed_filenames))
+        |> Enum.map(&%{&1 | state: {:failed, []}})
+      end)
+
+    manifest =
+      ExUnit.FailuresManifest.read(manifest_filename |> IO.inspect(label: "manifest path"))
+      |> IO.inspect(label: "manifest before")
+
+    failed_tests
+    |> IO.inspect(label: "failed tests")
+    |> Enum.reduce(manifest, &ExUnit.FailuresManifest.put_test(&2, &1))
+    |> IO.inspect(label: "manifest after")
+    |> ExUnit.FailuresManifest.write!(manifest_filename)
+  end
+
   # Persists default values in application
   # environment before the test suite starts.
   defp persist_defaults(config) do

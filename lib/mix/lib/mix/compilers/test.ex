@@ -45,24 +45,43 @@ defmodule Mix.Compilers.Test do
         warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
 
         try do
-          failed? =
+          compilation_failed? =
             case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
-              {:ok, _, [_ | _]} when warnings_as_errors? -> true
-              {:ok, _, _} -> false
-              {:error, _, _} -> exit({:shutdown, 1})
+              {:ok, modules, [_ | _] = warnings} when warnings_as_errors? ->
+                # IO.inspect(second, label: "second")
+                files_with_warnings = Enum.map(warnings, &elem(&1, 0))
+                # IO.inspect(warnings, label: "warnings")
+                # IO.inspect(files_with_warnings, label: "files_with_warnings")
+                :ok  =
+                  ExUnit.mark_files_as_failed(
+                    modules,
+                    files_with_warnings,
+                    opts[:failures_manifest_file]
+                  )
+
+                true
+
+              {:ok, _, _} ->
+                false
+
+              {:error, _, _} ->
+                exit({:shutdown, 1})
             end
 
           %{failures: failures} = results = ExUnit.await_run(task)
 
+          IO.inspect(results, label: "results")
+          IO.inspect(test_files, label: "test_files")
+
+          if compilation_failed? do
+            message =
+              "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
+
+            IO.puts(:stderr, IO.ANSI.format([:red, message]))
+            exit({:shutdown, 1})
+          end
+
           if failures == 0 do
-            if failed? do
-              message =
-                "\nERROR! Test suite aborted after successful execution due to warnings while using the --warnings-as-errors option"
-
-              IO.puts(:stderr, IO.ANSI.format([:red, message]))
-              exit({:shutdown, 1})
-            end
-
             agent_write_manifest(stale_manifest_pid)
           end
 

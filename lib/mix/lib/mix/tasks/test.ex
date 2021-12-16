@@ -532,7 +532,10 @@ defmodule Mix.Tasks.Test do
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
-    case CT.require_and_run(matched_test_files, test_paths, opts) do
+    require_and_run_opts =
+      Keyword.put(opts, :failures_manifest_file, ex_unit_opts[:failures_manifest_file])
+
+    case CT.require_and_run(matched_test_files, test_paths, require_and_run_opts) do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
         Mix.shell(shell)
         cover && cover.()

@@ -38,7 +38,7 @@ defmodule ExUnit.FailuresManifest do
 
   @spec write!(t, Path.t()) :: :ok
   def write!(manifest, file) when is_binary(file) do
-    manifest = prune_deleted_tests(manifest)
+    manifest = prune_deleted_tests(manifest) |> IO.inspect(label: "manifest after prune")
     binary = :erlang.term_to_binary({@manifest_vsn, manifest})
     Path.dirname(file) |> File.mkdir_p!()
     File.write!(file, binary)
@@ -79,10 +79,12 @@ defmodule ExUnit.FailuresManifest do
 
       file_exists == {:ok, false} ->
         # The file does not exist, so the test has been deleted.
+        IO.inspect({mod, name}, label: "file does not exist")
         find_deleted_tests(rest, file_existence, [id | acc])
 
       :code.is_loaded(mod) != false and not function_exported?(mod, name, 1) ->
         # The test module has been loaded, but the test no longer exists.
+        IO.inspect({mod, name}, label: "is loaded and function not exported")
         find_deleted_tests(rest, file_existence, [id | acc])
 
       true ->
