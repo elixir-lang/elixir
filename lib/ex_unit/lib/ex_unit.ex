@@ -438,14 +438,10 @@ defmodule ExUnit do
         |> Enum.map(&%{&1 | state: {:failed, []}})
       end)
 
-    manifest =
-      ExUnit.FailuresManifest.read(manifest_filename |> IO.inspect(label: "manifest path"))
-      |> IO.inspect(label: "manifest before")
+    manifest = ExUnit.FailuresManifest.read(manifest_filename)
 
     failed_tests
-    |> IO.inspect(label: "failed tests")
     |> Enum.reduce(manifest, &ExUnit.FailuresManifest.put_test(&2, &1))
-    |> IO.inspect(label: "manifest after")
     |> ExUnit.FailuresManifest.write!(manifest_filename)
   end
 

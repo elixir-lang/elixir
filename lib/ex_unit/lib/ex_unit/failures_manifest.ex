@@ -38,7 +38,7 @@ defmodule ExUnit.FailuresManifest do
 
   @spec write!(t, Path.t()) :: :ok
   def write!(manifest, file) when is_binary(file) do
-    manifest = prune_deleted_tests(manifest) |> IO.inspect(label: "manifest after prune")
+    manifest = prune_deleted_tests(manifest)
     binary = :erlang.term_to_binary({@manifest_vsn, manifest})
     Path.dirname(file) |> File.mkdir_p!()
     File.write!(file, binary)
