@@ -84,7 +84,7 @@ defmodule MapSet do
       #MapSet<[1, 2, 3]>
 
   """
-  @spec new(Enum.t()) :: t
+  @spec new(Enumerable.t()) :: t
   def new(enumerable)
 
   def new(%__MODULE__{} = map_set), do: map_set
@@ -103,7 +103,7 @@ defmodule MapSet do
       #MapSet<[2, 4]>
 
   """
-  @spec new(Enum.t(), (term -> val)) :: t(val) when val: value
+  @spec new(Enumerable.t(), (term -> val)) :: t(val) when val: value
   def new(enumerable, transform) when is_function(transform, 1) do
     keys = Enum.map(enumerable, transform)
     %MapSet{map: Map.from_keys(keys, @dummy_value)}
