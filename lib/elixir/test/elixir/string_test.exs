@@ -73,6 +73,11 @@ defmodule StringTest do
     assert String.split("noël", "") == ["", "n", "o", "ë", "l", ""]
     assert String.split("x-", "-", parts: 2, trim: true) == ["x"]
     assert String.split("x-x-", "-", parts: 3, trim: true) == ["x", "x"]
+
+    assert String.split("hello", []) == ["hello"]
+    assert String.split("hello", [], trim: true) == ["hello"]
+    assert String.split("", []) == [""]
+    assert String.split("", [], trim: true) == []
   end
 
   test "split/2,3 with regex" do
@@ -104,6 +109,11 @@ defmodule StringTest do
     assert String.splitter(" a b c ", " ", trim: true) |> Enum.to_list() == ["a", "b", "c"]
     assert String.splitter(" a b c ", " ", trim: true) |> Enum.take(1) == ["a"]
     assert String.splitter(" a b c ", " ", trim: true) |> Enum.take(2) == ["a", "b"]
+
+    assert String.splitter("hello", []) |> Enum.to_list() == ["hello"]
+    assert String.splitter("hello", [], trim: true) |> Enum.to_list() == ["hello"]
+    assert String.splitter("", []) |> Enum.to_list() == [""]
+    assert String.splitter("", [], trim: true) |> Enum.to_list() == []
   end
 
   test "split_at/2" do

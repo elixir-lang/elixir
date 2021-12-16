@@ -486,6 +486,14 @@ defmodule String do
     end
   end
 
+  def split(string, [], options) when is_binary(string) and is_list(options) do
+    if string == "" and Keyword.get(options, :trim, false) do
+      []
+    else
+      [string]
+    end
+  end
+
   def split(string, pattern, options) when is_binary(string) and is_list(options) do
     parts = Keyword.get(options, :parts, :infinity)
     trim = Keyword.get(options, :trim, false)
@@ -572,6 +580,14 @@ defmodule String do
       Stream.unfold(string, &next_grapheme/1)
     else
       Stream.unfold(:match, &do_empty_splitter(&1, string))
+    end
+  end
+
+  def splitter(string, [], options) when is_binary(string) and is_list(options) do
+    if string == "" and Keyword.get(options, :trim, false) do
+      Stream.duplicate(string, 0)
+    else
+      Stream.duplicate(string, 1)
     end
   end
 
