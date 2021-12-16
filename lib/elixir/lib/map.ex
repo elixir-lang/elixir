@@ -235,7 +235,24 @@ defmodule Map do
 
   """
   @spec new(Enumerable.t(), (term -> {key, value})) :: map
-  def new(enumerable, transform) when is_function(transform, 1) do
+  def new(enumerable, transform)
+  def new(%_{} = enumerable, transform), do: new_from_enum(enumerable, transform)
+  def new(%{} = map, transform), do: new_from_map(map, transform)
+  def new(enumerable, transform), do: new_from_enum(enumerable, transform)
+
+  defp new_from_map(map, transform) when is_function(transform, 1) do
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
+    :maps.from_list(do_map(next, transform))
+  end
+
+  defp do_map(:none, _fun), do: []
+
+  defp do_map({key, value, iter}, transform) do
+    [transform.({key, value}) | do_map(:maps.next(iter), transform)]
+  end
+
+  defp new_from_enum(enumerable, transform) when is_function(transform, 1) do
     enumerable
     |> Enum.map(transform)
     |> :maps.from_list()
@@ -1019,104 +1036,21 @@ defmodule Map do
     map_size(map)
   end
 
-  @doc """
-  Returns a map containing only those pairs from `map`
-  for which `fun` returns a truthy value.
-
-  `fun` receives the key and value of each of the
-  elements in the map as a key-value pair.
-
-  See also `reject/2` which discards all elements where the
-  function returns a truthy value.
-
-  > Note: if you find yourself doing multiple calls to `Map.map/2`
-  > and `Map.filter/2` in a pipeline, it is likely more efficient
-  > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
-  > a map at the end using `Map.new/1`.
-
-  ## Examples
-
-      iex> Map.filter(%{one: 1, two: 2, three: 3}, fn {_key, val} -> rem(val, 2) == 1 end)
-      %{one: 1, three: 3}
-
-  """
-  @doc since: "1.13.0"
-  @spec filter(map, ({key, value} -> as_boolean(term))) :: map
-  def filter(map, fun) when is_map(map) and is_function(fun, 1) do
-    iter = :maps.iterator(map)
-    next = :maps.next(iter)
-    :maps.from_list(do_filter(next, fun))
+  @doc false
+  @deprecated "Use Enum.filter/2 instead"
+  def filter(map, fun) when is_map(map) do
+    Enum.filter(map, fun) |> :maps.from_list()
   end
 
-  defp do_filter(:none, _fun), do: []
-
-  defp do_filter({key, value, iter}, fun) do
-    if fun.({key, value}) do
-      [{key, value} | do_filter(:maps.next(iter), fun)]
-    else
-      do_filter(:maps.next(iter), fun)
-    end
+  @doc false
+  @deprecated "Use Enum.reject/2 instead"
+  def reject(map, fun) when is_map(map) do
+    Enum.reject(map, fun) |> :maps.from_list()
   end
 
-  @doc """
-  Returns map excluding the pairs from `map` for which `fun` returns
-  a truthy value.
-
-  See also `filter/2`.
-
-  ## Examples
-
-      iex> Map.reject(%{one: 1, two: 2, three: 3}, fn {_key, val} -> rem(val, 2) == 1 end)
-      %{two: 2}
-
-  """
-  @doc since: "1.13.0"
-  @spec reject(map, ({key, value} -> as_boolean(term))) :: map
-  def reject(map, fun) when is_map(map) and is_function(fun, 1) do
-    iter = :maps.iterator(map)
-    next = :maps.next(iter)
-    :maps.from_list(do_reject(next, fun))
-  end
-
-  defp do_reject(:none, _fun), do: []
-
-  defp do_reject({key, value, iter}, fun) do
-    if fun.({key, value}) do
-      do_reject(:maps.next(iter), fun)
-    else
-      [{key, value} | do_reject(:maps.next(iter), fun)]
-    end
-  end
-
-  @doc """
-  Maps the function `fun` over all key-value pairs in `map`
-
-  It returns a map with all the values replaced with the result
-  of the function.
-
-  > Note: if you find yourself doing multiple calls to `Map.map/2`
-  > and `Map.filter/2` in a pipeline, it is likely more efficient
-  > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
-  > a map at the end using `Map.new/1`.
-
-  ## Examples
-
-      iex> Map.map(%{1 => "joe", 2 => "mike", 3 => "robert"}, fn {_key, val} -> String.capitalize(val) end)
-      %{1 => "Joe", 2 => "Mike", 3 => "Robert"}
-
-  """
-  @doc since: "1.13.0"
-  @spec map(map, ({key, value} -> value)) :: map
-  def map(map, fun) when is_map(map) and is_function(fun, 1) do
-    iter = :maps.iterator(map)
-    next = :maps.next(iter)
-    :maps.from_list(do_map(next, fun))
-  end
-
-  defp do_map(:none, _fun), do: []
-
-  defp do_map({key, value, iter}, fun) do
-    new_value = fun.({key, value})
-    [{key, new_value} | do_map(:maps.next(iter), fun)]
+  @doc false
+  @deprecated "Use Map.new/2 instead"
+  def map(map, fun) when is_map(map) do
+    new(map, fn {k, v} -> {k, fun.({k, v})} end)
   end
 end
