@@ -109,40 +109,6 @@ defmodule MapSetTest do
     assert Enum.sort(list) == Enum.to_list(5..120)
   end
 
-  test "map/2" do
-    result = MapSet.map(MapSet.new(), &(&1 * 2))
-    assert MapSet.equal?(result, MapSet.new())
-
-    fun = fn x -> x |> Integer.parse() |> elem(0) end
-    result = MapSet.map(MapSet.new(~w(1 1.0 2 2.0)), &fun.(&1))
-    assert MapSet.equal?(result, MapSet.new(1..2))
-
-    result = MapSet.map(MapSet.new(1..2), &{&1 - 1, &1, &1 + 1})
-    assert MapSet.equal?(result, MapSet.new([{0, 1, 2}, {1, 2, 3}]))
-  end
-
-  test "filter/2" do
-    result = MapSet.filter(MapSet.new([1, nil, 2, false]), & &1)
-    assert MapSet.equal?(result, MapSet.new(1..2))
-
-    result = MapSet.filter(MapSet.new(1..10), &(&1 < 2 or &1 > 9))
-    assert MapSet.equal?(result, MapSet.new([1, 10]))
-
-    result = MapSet.filter(MapSet.new(~w(A a B b)), fn x -> String.downcase(x) == x end)
-    assert MapSet.equal?(result, MapSet.new(~w(a b)))
-  end
-
-  test "reject/2" do
-    result = MapSet.reject(MapSet.new(1..10), &(&1 < 8))
-    assert MapSet.equal?(result, MapSet.new(8..10))
-
-    result = MapSet.reject(MapSet.new(["a", :b, 1, 1.0]), &is_integer/1)
-    assert MapSet.equal?(result, MapSet.new(["a", :b, 1.0]))
-
-    result = MapSet.reject(MapSet.new(1..3), fn x -> rem(x, 2) == 0 end)
-    assert MapSet.equal?(result, MapSet.new([1, 3]))
-  end
-
   test "MapSet v1 compatibility" do
     result = 1..5 |> map_set_v1() |> MapSet.new()
     assert MapSet.equal?(result, MapSet.new(1..5))
