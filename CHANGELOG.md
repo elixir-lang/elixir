@@ -14,7 +14,6 @@
   * [List] Add `List.keysort/3` with support for a `sorter` function
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/1`
   * [Map] Add `Map.from_keys/2` and `Map.replace_lazy/3`
-  * [MapSet] Add `MapSet.map/2`, `MapSet.filter/2`, and `MapSet.reject/2`
   * [PartitionSupervisor] Add `PartitionSupervisor` that starts multiple isolated partitions of the same child for scalability
   * [Registry] Add `Registry.count_select/2`
   * [Stream] Add `Stream.duplicate/2`
