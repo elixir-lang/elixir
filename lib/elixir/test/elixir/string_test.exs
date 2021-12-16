@@ -78,6 +78,14 @@ defmodule StringTest do
     assert String.split("hello", [], trim: true) == ["hello"]
     assert String.split("", []) == [""]
     assert String.split("", [], trim: true) == []
+
+    assert_raise ArgumentError, fn ->
+      String.split("a,b,c", [""])
+    end
+
+    assert_raise ArgumentError, fn ->
+      String.split("a,b,c", [""])
+    end
   end
 
   test "split/2,3 with regex" do
@@ -114,6 +122,12 @@ defmodule StringTest do
     assert String.splitter("hello", [], trim: true) |> Enum.to_list() == ["hello"]
     assert String.splitter("", []) |> Enum.to_list() == [""]
     assert String.splitter("", [], trim: true) |> Enum.to_list() == []
+
+    assert String.splitter("1,2 3,4 5", "") |> Enum.take(4) == ["", "1", ",", "2"]
+
+    assert_raise ArgumentError, fn ->
+      String.splitter("a", [""])
+    end
   end
 
   test "split_at/2" do
@@ -432,6 +446,10 @@ defmodule StringTest do
       assert String.replace("ELIXIR", "", ".") == ".E.L.I.X.I.R."
       assert String.replace("ELIXIR", "", ".", global: true) == ".E.L.I.X.I.R."
       assert String.replace("ELIXIR", "", ".", global: false) == ".ELIXIR"
+
+      assert_raise ArgumentError, fn ->
+        String.replace("elixir", [""], "")
+      end
     end
 
     test "with empty pattern list" do
@@ -703,6 +721,8 @@ defmodule StringTest do
     assert String.starts_with?("hello", "he")
     assert String.starts_with?("hello", "hello")
     refute String.starts_with?("hello", [])
+    assert String.starts_with?("hello", "")
+    assert String.starts_with?("hello", [""])
     assert String.starts_with?("hello", ["hellö", "hell"])
     assert String.starts_with?("エリクシア", "エリ")
     refute String.starts_with?("hello", "lo")
@@ -728,6 +748,8 @@ defmodule StringTest do
     assert String.contains?("elixir of life", "of")
     assert String.contains?("エリクシア", "シ")
     refute String.contains?("elixir of life", [])
+    assert String.contains?("elixir of life", "")
+    assert String.contains?("elixir of life", [""])
     assert String.contains?("elixir of life", ["mercury", "life"])
     refute String.contains?("elixir of life", "death")
     refute String.contains?("エリクシア", "仙")
