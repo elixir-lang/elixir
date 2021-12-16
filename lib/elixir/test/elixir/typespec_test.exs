@@ -1316,11 +1316,11 @@ defmodule TypespecTest do
         end
       end
 
-      msg = ~r/The type two_bad_variables\/2 has an invalid argument\(s\): :ok, Enum.t\(\)/
+      msg = ~r/The type two_bad_variables\/2 has an invalid argument\(s\): :ok, Enumerable.t\(\)/
 
       assert_raise CompileError, msg, fn ->
         test_module do
-          @type two_bad_variables(:ok, Enum.t()) :: {:ok, []}
+          @type two_bad_variables(:ok, Enumerable.t()) :: {:ok, []}
         end
       end
 
