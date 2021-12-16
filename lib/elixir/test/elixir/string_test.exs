@@ -425,7 +425,7 @@ defmodule StringTest do
     end
 
     test "with empty pattern list" do
-      assert String.replace("elixir", [], "") == "elixir"
+      assert String.replace("elixir", [], "anything") == "elixir"
     end
 
     test "with match pattern and string replacement" do
