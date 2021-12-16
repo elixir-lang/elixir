@@ -827,7 +827,7 @@ defmodule Code.Fragment do
 
     case :elixir_tokenizer.tokenize(fragment, line, column, tokenizer_opts) do
       {:ok, _, _, _warnings, tokens} ->
-        :elixir.tokens_to_quoted(tokens, file, columns: columns, token_metadata: token_metadata)
+        :elixir.tokens_to_quoted(tokens, nil, columns: columns, token_metadata: token_metadata)
 
       {:error, {line, column, {prefix, suffix}, token}, _rest, _warnings, _so_far} ->
         location = [line: line, column: column]

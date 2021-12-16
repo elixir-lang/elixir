@@ -915,6 +915,11 @@ defmodule CodeFragmentTest do
       assert cc2q("foo(123, ~r/") == s2q("foo(123, __cursor__())")
     end
 
+    test "no warnings" do
+      assert cc2q(~s"?\\ ") == s2q("__cursor__()")
+      assert cc2q(~s"{fn -> end, ") == s2q("{fn -> nil end, __cursor__()}")
+    end
+
     test "options" do
       opts = [columns: true]
       assert cc2q("foo(", opts) == s2q("foo(__cursor__())", opts)
