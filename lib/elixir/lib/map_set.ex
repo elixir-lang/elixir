@@ -358,6 +358,106 @@ defmodule MapSet do
   defp order_by_size(map1, map2) when map_size(map1) > map_size(map2), do: {map2, map1}
   defp order_by_size(map1, map2), do: {map1, map2}
 
+  @doc """
+  Maps the function `fun` over all elements in the set.
+
+  It returns a set where each element is the result of invoking `fun`
+  on each corresponding element in the set.
+
+  ## Examples
+
+      iex> MapSet.map(MapSet.new(1..3), fn x -> x * 2 end)
+      #MapSet<[2, 4, 6]>
+
+      iex> MapSet.map(MapSet.new(~w(a b c)a), &to_string/1)
+      #MapSet<["a", "b", "c"]>
+
+  """
+  @doc since: "1.14.0"
+  @spec map(t(a), (a -> b)) :: t(b) when a: value, b: value
+  def map(%MapSet{map: map}, fun) when is_map(map) and is_function(fun, 1) do
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
+    keys = map_keys(next, fun)
+    %MapSet{map: Map.from_keys(keys, @dummy_value)}
+  end
+
+  defp map_keys(:none, _fun), do: []
+
+  defp map_keys({key, _value, iter}, fun) do
+    [fun.(key) | map_keys(:maps.next(iter), fun)]
+  end
+
+  @doc """
+  Filters the set by returning only the elements from `set` for which invoking
+  `fun` returns a truthy value.
+
+  Also see `reject/2` which discards all elements where the function returns
+  a truthy value.
+
+  ## Examples
+
+      iex> MapSet.filter(MapSet.new(1..5), fn x -> x > 3 end)
+      #MapSet<[4, 5]>
+
+      iex> MapSet.filter(MapSet.new(["a", :b, "c"]), &is_atom/1)
+      #MapSet<[:b]>
+
+  """
+  @doc since: "1.14.0"
+  @spec filter(t(a), (a -> as_boolean(term))) :: t(a) when a: value
+  def filter(%MapSet{map: map}, fun) when is_map(map) and is_function(fun) do
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
+    keys = filter_keys(next, fun)
+    %MapSet{map: Map.from_keys(keys, @dummy_value)}
+  end
+
+  defp filter_keys(:none, _fun), do: []
+
+  defp filter_keys({key, _value, iter}, fun) do
+    if fun.(key) do
+      [key | filter_keys(:maps.next(iter), fun)]
+    else
+      filter_keys(:maps.next(iter), fun)
+    end
+  end
+
+  @doc """
+  Returns a set by rejecting the elements from `set` for which invoking `fun`
+  returns a truthy value.
+
+  Also see `filter/2` which keeps all elements where the function returns
+  a truthy value.
+
+  ## Examples
+
+      iex> MapSet.reject(MapSet.new(1..5), fn x -> rem(x, 2) != 0 end)
+      #MapSet<[2, 4]>
+
+      iex> MapSet.reject(MapSet.new(["a", :b, "c"]), &is_atom/1)
+      #MapSet<["a", "c"]>
+
+  """
+  @doc since: "1.14.0"
+  @spec reject(t(a), (a -> as_boolean(term))) :: t(a) when a: value
+  def reject(%MapSet{map: map}, fun) when is_map(map) and is_function(fun) do
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
+    keys = reject_keys(next, fun)
+    %MapSet{map: Map.from_keys(keys, @dummy_value)}
+  end
+
+  defp reject_keys(:none, _fun), do: []
+
+  defp reject_keys({key, _value, iter}, fun) do
+    if fun.(key) do
+      reject_keys(:maps.next(iter), fun)
+    else
+      [key | reject_keys(:maps.next(iter), fun)]
+    end
+  end
+
   defimpl Enumerable do
     def count(map_set) do
       {:ok, MapSet.size(map_set)}
