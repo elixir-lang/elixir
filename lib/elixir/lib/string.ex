@@ -284,7 +284,7 @@ defmodule String do
   @type grapheme :: t
 
   @typedoc "Pattern used in functions like `replace/4` and `split/3`"
-  @type pattern :: t | [t] | :binary.cp()
+  @type pattern :: t | nonempty_list(t) | :binary.cp()
 
   @conditional_mappings [:greek, :turkic]
 
@@ -2229,12 +2229,6 @@ defmodule String do
       iex> String.starts_with?("elixir", ["erlang", "ruby"])
       false
 
-  A compiled pattern can also be given:
-
-      iex> pattern = :binary.compile_pattern(["erlang", "elixir"])
-      iex> String.starts_with?("elixir", pattern)
-      true
-
   An empty string will always match:
 
       iex> String.starts_with?("elixir", "")
@@ -2243,7 +2237,7 @@ defmodule String do
       true
 
   """
-  @spec starts_with?(t, pattern) :: boolean
+  @spec starts_with?(t, t | [t]) :: boolean
   def starts_with?(string, prefix) when is_binary(string) and is_binary(prefix) do
     starts_with_string?(string, byte_size(string), prefix)
   end
@@ -2254,6 +2248,7 @@ defmodule String do
   end
 
   def starts_with?(string, prefix) when is_binary(string) do
+    IO.warn("compiled patterns are deprecated in starts_with?")
     Kernel.match?({0, _}, :binary.match(string, prefix))
   end
 
@@ -2372,7 +2367,7 @@ defmodule String do
       false
 
   """
-  @spec contains?(t, pattern) :: boolean
+  @spec contains?(t, t | [t] | :binary.cp()) :: boolean
   def contains?(string, []) when is_binary(string) do
     false
   end
