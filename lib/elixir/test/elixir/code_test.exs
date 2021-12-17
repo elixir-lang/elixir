@@ -98,6 +98,15 @@ defmodule CodeTest do
                assert Code.eval_string("1 + 2", [], env) == {3, []}
              end) =~ "an __ENV__ with outdated compilation information was given to eval"
     end
+
+    test "emits checker warnings" do
+      output =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Code.eval_string(File.read!(fixture_path("checker_warning.exs")), [])
+        end)
+
+      assert output =~ "incompatible types"
+    end
   end
 
   test "eval_quoted/1" do
@@ -128,6 +137,17 @@ defmodule CodeTest do
     assert_raise Code.LoadError, fn ->
       Code.eval_file("non_existent.exs")
     end
+  end
+
+  test "eval_quoted_with_env/3" do
+    alias :lists, as: MyList
+    quoted = quote(do: MyList.flatten([[1, 2, 3]]))
+    env = Code.env_for_eval(__ENV__)
+    assert Code.eval_quoted_with_env(quoted, [], env) == {[1, 2, 3], [], env}
+
+    quoted = quote(do: alias(:dict, as: MyDict))
+    {:dict, [], env} = Code.eval_quoted_with_env(quoted, [], env)
+    assert Macro.Env.fetch_alias(env, :MyDict) == {:ok, :dict}
   end
 
   test "compile_file/1" do
