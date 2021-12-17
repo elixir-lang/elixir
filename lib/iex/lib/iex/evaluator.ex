@@ -228,8 +228,8 @@ defmodule IEx.Evaluator do
   end
 
   defp loop_state(ref, server, history, opts) do
-    env = opts[:env] || :elixir.env_for_eval(file: "iex")
-    {_, _, env} = :elixir.eval_quoted(quote(do: import(IEx.Helpers)), [], env)
+    env = opts[:env] || Code.env_for_eval(file: "iex")
+    {_, _, env} = Code.eval_quoted_with_env(quote(do: import(IEx.Helpers)), [], env)
     stacktrace = opts[:stacktrace]
     binding = opts[:binding] || []
 
@@ -273,7 +273,7 @@ defmodule IEx.Evaluator do
       # Evaluate the contents in the same environment server_loop will run in
       env = %{state.env | file: path, line: 1}
       Process.put(:iex_imported_paths, MapSet.new([path]))
-      {_result, binding, env} = :elixir.eval_forms(quoted, state.binding, env)
+      {_result, binding, env} = Code.eval_quoted_with_env(quoted, state.binding, env)
       %{state | binding: binding, env: %{env | file: "iex", line: 1}}
     catch
       kind, error ->
@@ -325,7 +325,7 @@ defmodule IEx.Evaluator do
 
   defp handle_eval(forms, line, state) do
     forms = add_if_undefined_apply_to_vars(forms)
-    {result, binding, env} = :elixir.eval_forms(forms, state.binding, state.env)
+    {result, binding, env} = Code.eval_quoted_with_env(forms, state.binding, state.env)
 
     unless result == IEx.dont_display_result() do
       io_inspect(result)
@@ -412,7 +412,7 @@ defmodule IEx.Evaluator do
     |> Enum.reverse()
     |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
     |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
-    |> Enum.drop_while(&(elem(&1, 0) == :elixir))
+    |> Enum.drop_while(&(elem(&1, 0) in [Code, Module.ParallelChecker, :elixir]))
     |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
     |> Enum.reverse()
     |> Enum.reject(&(elem(&1, 0) in @elixir_internals))

@@ -399,10 +399,28 @@ defmodule Code do
   end
 
   defp validated_eval_string(string, binding, opts_or_env) do
-    %{line: line, file: file} = env = :elixir.env_for_eval(opts_or_env)
+    %{line: line, file: file} = env = env_for_eval(opts_or_env)
     forms = :elixir.string_to_quoted!(to_charlist(string), line, 1, file, [])
-    {value, binding, _env} = :elixir.eval_forms(forms, binding, env)
+    {value, binding, _env} = eval_verify(:eval_forms, forms, binding, env)
     {value, binding}
+  end
+
+  defp eval_verify(fun, forms, binding, env) do
+    Module.ParallelChecker.verify(fn ->
+      previous = :erlang.get(:elixir_module_binaries)
+
+      try do
+        Process.put(:elixir_module_binaries, [])
+        result = apply(:elixir, fun, [forms, binding, env])
+        {result, Enum.map(Process.get(:elixir_module_binaries), &elem(&1, 1))}
+      after
+        if previous == :undefined do
+          :erlang.erase(:elixir_module_binaries)
+        else
+          :erlang.put(:elixir_module_binaries, previous)
+        end
+      end
+    end)
   end
 
   @doc ~S"""
@@ -791,16 +809,47 @@ defmodule Code do
 
   """
   @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
-  def eval_quoted(quoted, binding \\ [], opts \\ [])
-
-  def eval_quoted(quoted, binding, %Macro.Env{} = env) do
-    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, :elixir.env_for_eval(env))
+  def eval_quoted(quoted, binding \\ [], env_or_opts \\ []) do
+    {value, binding, _env} = eval_verify(:eval_quoted, quoted, binding, env_for_eval(env_or_opts))
     {value, binding}
   end
 
-  def eval_quoted(quoted, binding, opts) when is_list(opts) do
-    {value, binding, _env} = :elixir.eval_quoted(quoted, binding, :elixir.env_for_eval(opts))
-    {value, binding}
+  @doc """
+  Returns an environment for evaluation.
+
+  It accepts either a `Macro.Env`, that is then pruned and prepared,
+  or a list of options. It returns an environment that is ready for
+  evaluation.
+
+  Most functions in this module will automatically prepare the given
+  environment for evaluation. The exception is `eval_quoted_with_env/3`,
+  which was designed precisely to be called in a loop, to implement
+  features such as interactive shells or anything else with multiple
+  evaluations.
+
+  ## Options
+
+  If an env is not given, the options can be:
+
+    * `:file` - the file to be considered in the evaluation
+
+    * `:line` - the line on which the script starts
+  """
+  @doc since: "1.14.0"
+  def env_for_eval(env_or_opts), do: :elixir.env_for_eval(env_or_opts)
+
+  @doc """
+  Evaluates the given `quoted` contents with `binding` and `env`.
+
+  This function is meant to be called in a loop, to implement features
+  such as interactive shells or anything else with multiple evaluations.
+  Therefore, the first time you call this function, you must compute
+  the initial environment with `env_for_eval/1`. The remaining calls
+  must pass the environment that was returned by this function.
+  """
+  @doc since: "1.14.0"
+  def eval_quoted_with_env(quoted, binding, %Macro.Env{} = env) when is_list(binding) do
+    eval_verify(:eval_forms, quoted, binding, env)
   end
 
   @doc ~S"""
