@@ -1815,12 +1815,13 @@ defmodule Macro do
   end
 
   @doc """
-  Converts the given atom or binary to underscore format.
+  Converts `module` to a string with underscore-slash format.
 
+  `module` must either be a string or an atom.
   If an atom is given, it is assumed to be an Elixir module,
-  so it is converted to a binary and then processed.
+  so it is converted to a string and then processed.
 
-  This function was designed to underscore language identifiers/tokens,
+  This function was designed to underscore-slash language identifiers/tokens,
   that's why it belongs to the `Macro` module. Do not use it as a general
   mechanism for underscoring strings as it does not support Unicode or
   characters that are not valid in Elixir identifiers.
@@ -1848,10 +1849,13 @@ defmodule Macro do
       iex> Macro.camelize("hello_10")
       "Hello10"
 
+      iex> Macro.camelize("foo/bar")
+      "Foo.Bar"
+
   """
-  @spec underscore(atom | String.t()) :: String.t()
-  def underscore(atom) when is_atom(atom) do
-    "Elixir." <> rest = Atom.to_string(atom)
+  @spec underscore(module() | String.t()) :: String.t()
+  def underscore(module) when is_atom(module) do
+    "Elixir." <> rest = Atom.to_string(module)
     underscore(rest)
   end
 
@@ -1898,6 +1902,9 @@ defmodule Macro do
 
       iex> Macro.camelize("foo_bar")
       "FooBar"
+
+      iex> Macro.camelize("foo/bar")
+      "Foo.Bar"
 
   If uppercase characters are present, they are not modified in any way
   as a mechanism to preserve acronyms:
