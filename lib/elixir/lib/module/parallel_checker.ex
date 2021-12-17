@@ -91,7 +91,7 @@ defmodule Module.ParallelChecker do
         put(self(), checker)
 
         try do
-          {result, compile_info} = Enum.unzip(fun.())
+          {result, compile_info} = fun.()
           _ = verify(checker, compile_info, [])
           result
         after
@@ -107,7 +107,8 @@ defmodule Module.ParallelChecker do
       _ ->
         # If we are during compilation, then they will be
         # reported to the compiler, which will validate them.
-        Enum.map(fun.(), &elem(&1, 0))
+        {result, _info} = fun.()
+        result
     end
   end
 
