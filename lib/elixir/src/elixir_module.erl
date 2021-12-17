@@ -366,7 +366,7 @@ build(Line, File, Module) ->
 %% Handles module and callback evaluations.
 
 eval_form(Line, Module, DataBag, Block, Vars, E) ->
-  {Value, EE} = elixir_compiler:eval_forms(Block, Vars, E),
+  {Value, EE} = elixir_compiler:compile(Block, Vars, E),
   elixir_overridable:store_not_overridden(Module),
   EV = (elixir_env:reset_vars(EE))#{line := Line},
   EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
