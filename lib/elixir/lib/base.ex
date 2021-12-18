@@ -350,7 +350,8 @@ defmodule Base do
 
   def decode16!(string, _opts) when is_binary(string) do
     raise ArgumentError,
-          "odd-length string:\nAn even number of bytes was expected, but got #{byte_size(string)}.\nDo you need to String.trim?"
+          "string given to decode has wrong length. An even number of bytes was expected, got: #{byte_size(string)}. " <>
+            "Double check your string for unwanted characters or pad it accordingly"
   end
 
   @doc """
@@ -930,7 +931,8 @@ defmodule Base do
 
         <<_::8>> ->
           raise ArgumentError,
-                "odd-length string:\nAn even number of bytes was expected, but got #{byte_size(string)}.\nDo you need to String.trim?"
+                "string given to decode has wrong length. An even number of bytes was expected, got: #{byte_size(string)}. " <>
+                  "Double check your string for unwanted characters or pad it accordingly"
 
         <<>> ->
           main

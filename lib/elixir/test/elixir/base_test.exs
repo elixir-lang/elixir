@@ -79,11 +79,9 @@ defmodule BaseTest do
   end
 
   test "decode16!/1 errors odd-length string" do
-    assert_raise ArgumentError,
-                 "odd-length string:\nAn even number of bytes was expected, but got 3.\nDo you need to String.trim?",
-                 fn ->
-                   decode16!("666")
-                 end
+    assert_raise ArgumentError, ~r/string given to decode has wrong length/, fn ->
+      decode16!("666")
+    end
   end
 
   test "encode64/1 can deal with empty strings" do
