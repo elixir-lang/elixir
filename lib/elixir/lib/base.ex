@@ -349,7 +349,9 @@ defmodule Base do
   end
 
   def decode16!(string, _opts) when is_binary(string) do
-    raise ArgumentError, "odd-length string"
+    raise ArgumentError,
+          "string given to decode has wrong length. An even number of bytes was expected, got: #{byte_size(string)}. " <>
+            "Double check your string for unwanted characters or pad it accordingly"
   end
 
   @doc """
@@ -928,7 +930,9 @@ defmodule Base do
           <<main::bits, unquote(fun)(c1)::4, unquote(fun)(c2)::4>>
 
         <<_::8>> ->
-          raise ArgumentError, "odd-length string"
+          raise ArgumentError,
+                "string given to decode has wrong length. An even number of bytes was expected, got: #{byte_size(string)}. " <>
+                  "Double check your string for unwanted characters or pad it accordingly"
 
         <<>> ->
           main

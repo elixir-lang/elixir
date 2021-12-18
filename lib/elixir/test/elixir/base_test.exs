@@ -79,7 +79,7 @@ defmodule BaseTest do
   end
 
   test "decode16!/1 errors odd-length string" do
-    assert_raise ArgumentError, "odd-length string", fn ->
+    assert_raise ArgumentError, ~r/string given to decode has wrong length/, fn ->
       decode16!("666")
     end
   end
