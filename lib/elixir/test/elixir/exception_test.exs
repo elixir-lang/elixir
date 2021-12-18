@@ -446,6 +446,22 @@ defmodule ExceptionTest do
 
                  def fetch(-%module{} = container-, key)
              """
+
+      assert blame_message(Access, & &1.fetch(:foo, :bar)) =~ """
+             no function clause matching in Access.fetch/2
+
+             The following arguments were given to Access.fetch/2:
+
+                 # 1
+                 :foo
+
+                 # 2
+                 :bar
+
+             Attempted function clauses (showing 5 out of 5):
+
+                 x
+             """
     end
 
     test "annotates undefined function error with suggestions" do
