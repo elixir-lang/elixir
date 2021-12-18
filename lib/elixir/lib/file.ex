@@ -1220,9 +1220,6 @@ defmodule File do
             reason
         end
 
-      {:ok, :directory} ->
-        do_rm_directory(path, entry)
-
       {:ok, :regular} ->
         do_rm_regular(path, entry)
 
@@ -1246,29 +1243,10 @@ defmodule File do
     end
   end
 
-  # On Windows, symlinks are treated as directory and must be removed
-  # with rmdir/1. But on Unix-like systems, we remove them via rm/1. So we first try
-  # to remove it as a directory and, if we get :enotdir, we fall back to
-  # a file removal.
-  defp do_rm_directory(path, {:ok, acc} = entry) do
-    case rmdir(path) do
-      :ok -> {:ok, [path | acc]}
-      {:error, :enotdir} -> do_rm_regular(path, entry)
-      {:error, :enoent} -> entry
-      {:error, reason} -> {:error, reason, path}
-    end
-  end
-
   defp safe_list_dir(path) do
     case :elixir_utils.read_link_type(path) do
-      {:ok, :symlink} ->
-        case :elixir_utils.read_file_type(path) do
-          {:ok, :directory} -> {:ok, :directory}
-          _ -> {:ok, :regular}
-        end
-
       {:ok, :directory} ->
-        :file.list_dir(path)
+        :file.list_dir_all(path)
 
       {:ok, _} ->
         {:ok, :regular}
