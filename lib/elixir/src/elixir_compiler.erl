@@ -1,7 +1,7 @@
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
 -export([string/3, quoted/3, bootstrap/0,
-         file/2, file_to_path/3, eval_forms/3]).
+         file/2, file_to_path/3, compile/3]).
 -include("elixir.hrl").
 
 string(Contents, File, Callback) ->
@@ -17,14 +17,19 @@ quoted(Forms, File, Callback) ->
 
     elixir_lexical:run(
       Env,
-      fun (LexicalEnv) -> eval_forms(Forms, [], LexicalEnv) end,
+      fun (LexicalEnv) -> eval_or_compile(Forms, [], LexicalEnv) end,
       fun (#{lexical_tracker := Pid}) -> Callback(File, Pid) end
     ),
 
-    lists:reverse(get(elixir_module_binaries))
+    unzip_reverse(get(elixir_module_binaries), [], [])
   after
     put(elixir_module_binaries, Previous)
   end.
+
+unzip_reverse([{Mod, Info} | Tail], Mods, Infos) ->
+  unzip_reverse(Tail, [Mod | Mods], [Info | Infos]);
+unzip_reverse([], Mods, Infos) ->
+  {Mods, Infos}.
 
 file(File, Callback) ->
   {ok, Bin} = file:read_file(File),
@@ -39,8 +44,7 @@ file_to_path(File, Dest, Callback) when is_binary(File), is_binary(Dest) ->
 %% Evaluates the given code through the Erlang compiler.
 %% It may end-up evaluating the code if it is deemed a
 %% more efficient strategy depending on the code snippet.
-
-eval_forms(Forms, Args, E) ->
+eval_or_compile(Forms, Args, E) ->
   case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) andalso
         (not elixir_config:is_bootstrap()) of
     true  -> fast_compile(Forms, E);
@@ -146,15 +150,18 @@ bootstrap() ->
   elixir_config:put(tracers, []),
   elixir_config:put(parser_options, []),
   {Init, Main} = bootstrap_files(),
-  [bootstrap_file(File) || File <- [<<"lib/elixir/lib/kernel.ex">> | Init]],
+  {ok, Cwd} = file:get_cwd(),
+  Lib = filename:join(Cwd, "lib/elixir/lib"),
+  [bootstrap_file(Lib, File) || File <- [<<"kernel.ex">> | Init]],
   elixir_config:put(docs, true),
-  [bootstrap_file(File) || File <- [<<"lib/elixir/lib/kernel.ex">> | Main]].
+  [bootstrap_file(Lib, File) || File <- [<<"kernel.ex">> | Main]].
 
-bootstrap_file(File) ->
+bootstrap_file(Lib, Suffix) ->
   try
-    Lists = file(filename:absname(File), fun(_, _) -> ok end),
-    _ = [binary_to_path(X, "lib/elixir/ebin") || X <- Lists],
-    io:format("Compiled ~ts~n", [File])
+    File = filename:join(Lib, Suffix),
+    {Mods, _Infos} = file(File, fun(_, _) -> ok end),
+    _ = [binary_to_path(X, "lib/elixir/ebin") || X <- Mods],
+    io:format("Compiled ~ts~n", [Suffix])
   catch
     Kind:Reason:Stacktrace ->
       io:format("~p: ~p~nstacktrace: ~p~n", [Kind, Reason, Stacktrace]),
@@ -164,52 +171,52 @@ bootstrap_file(File) ->
 bootstrap_files() ->
   {
     [
-     <<"lib/elixir/lib/macro/env.ex">>,
-     <<"lib/elixir/lib/keyword.ex">>,
-     <<"lib/elixir/lib/module.ex">>,
-     <<"lib/elixir/lib/list.ex">>,
-     <<"lib/elixir/lib/macro.ex">>,
-     <<"lib/elixir/lib/kernel/typespec.ex">>,
-     <<"lib/elixir/lib/kernel/utils.ex">>,
-     <<"lib/elixir/lib/code.ex">>,
-     <<"lib/elixir/lib/code/identifier.ex">>,
-     <<"lib/elixir/lib/protocol.ex">>,
-     <<"lib/elixir/lib/stream/reducers.ex">>,
-     <<"lib/elixir/lib/enum.ex">>,
-     <<"lib/elixir/lib/regex.ex">>,
-     <<"lib/elixir/lib/inspect/algebra.ex">>,
-     <<"lib/elixir/lib/inspect.ex">>,
-     <<"lib/elixir/lib/string.ex">>,
-     <<"lib/elixir/lib/string/chars.ex">>
+     <<"macro/env.ex">>,
+     <<"keyword.ex">>,
+     <<"module.ex">>,
+     <<"list.ex">>,
+     <<"macro.ex">>,
+     <<"kernel/typespec.ex">>,
+     <<"kernel/utils.ex">>,
+     <<"code.ex">>,
+     <<"code/identifier.ex">>,
+     <<"protocol.ex">>,
+     <<"stream/reducers.ex">>,
+     <<"enum.ex">>,
+     <<"regex.ex">>,
+     <<"inspect/algebra.ex">>,
+     <<"inspect.ex">>,
+     <<"string.ex">>,
+     <<"string/chars.ex">>
     ],
     [
-     <<"lib/elixir/lib/list/chars.ex">>,
-     <<"lib/elixir/lib/module/locals_tracker.ex">>,
-     <<"lib/elixir/lib/module/parallel_checker.ex">>,
-     <<"lib/elixir/lib/module/types/helpers.ex">>,
-     <<"lib/elixir/lib/module/types/unify.ex">>,
-     <<"lib/elixir/lib/module/types/of.ex">>,
-     <<"lib/elixir/lib/module/types/pattern.ex">>,
-     <<"lib/elixir/lib/module/types/expr.ex">>,
-     <<"lib/elixir/lib/module/types.ex">>,
-     <<"lib/elixir/lib/exception.ex">>,
-     <<"lib/elixir/lib/path.ex">>,
-     <<"lib/elixir/lib/file.ex">>,
-     <<"lib/elixir/lib/map.ex">>,
-     <<"lib/elixir/lib/range.ex">>,
-     <<"lib/elixir/lib/access.ex">>,
-     <<"lib/elixir/lib/io.ex">>,
-     <<"lib/elixir/lib/system.ex">>,
-     <<"lib/elixir/lib/code/formatter.ex">>,
-     <<"lib/elixir/lib/code/normalizer.ex">>,
-     <<"lib/elixir/lib/kernel/cli.ex">>,
-     <<"lib/elixir/lib/kernel/error_handler.ex">>,
-     <<"lib/elixir/lib/kernel/parallel_compiler.ex">>,
-     <<"lib/elixir/lib/kernel/lexical_tracker.ex">>
+     <<"list/chars.ex">>,
+     <<"module/locals_tracker.ex">>,
+     <<"module/parallel_checker.ex">>,
+     <<"module/types/helpers.ex">>,
+     <<"module/types/unify.ex">>,
+     <<"module/types/of.ex">>,
+     <<"module/types/pattern.ex">>,
+     <<"module/types/expr.ex">>,
+     <<"module/types.ex">>,
+     <<"exception.ex">>,
+     <<"path.ex">>,
+     <<"file.ex">>,
+     <<"map.ex">>,
+     <<"range.ex">>,
+     <<"access.ex">>,
+     <<"io.ex">>,
+     <<"system.ex">>,
+     <<"code/formatter.ex">>,
+     <<"code/normalizer.ex">>,
+     <<"kernel/cli.ex">>,
+     <<"kernel/error_handler.ex">>,
+     <<"kernel/parallel_compiler.ex">>,
+     <<"kernel/lexical_tracker.ex">>
     ]
   }.
 
-binary_to_path({{ModuleName, Binary}, _Info}, CompilePath) ->
+binary_to_path({ModuleName, Binary}, CompilePath) ->
   Path = filename:join(CompilePath, atom_to_list(ModuleName) ++ ".beam"),
   case file:write_file(Path, Binary) of
     ok -> Path;
