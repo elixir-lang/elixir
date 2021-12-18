@@ -1197,62 +1197,48 @@ defmodule File do
     path
     |> IO.chardata_to_string()
     |> assert_no_null_byte!("File.rm_rf/1")
-    |> do_rm_rf({:ok, []})
+    |> do_rm_rf([])
   end
 
-  defp do_rm_rf(path, {:ok, _} = entry) do
+  defp do_rm_rf(path, acc) do
     case safe_list_dir(path) do
       {:ok, files} when is_list(files) ->
-        res =
-          Enum.reduce(files, entry, fn file, tuple ->
-            do_rm_rf(Path.join(path, file), tuple)
+        acc =
+          Enum.reduce(files, acc, fn file, acc ->
+            # In case we can't delete, continue anyway, we might succeed
+            # to delete it on Windows due to how they handle symlinks.
+            case do_rm_rf(Path.join(path, file), acc) do
+              {:ok, acc} -> acc
+              {:error, _, _} -> acc
+            end
           end)
 
-        case res do
-          {:ok, acc} ->
-            case rmdir(path) do
-              :ok -> {:ok, [path | acc]}
-              {:error, :enoent} -> res
-              {:error, reason} -> {:error, reason, path}
-            end
-
-          reason ->
-            reason
+        case rmdir(path) do
+          :ok -> {:ok, [path | acc]}
+          {:error, :enoent} -> {:ok, acc}
+          {:error, reason} -> {:error, reason, path}
         end
 
       {:ok, :regular} ->
-        do_rm_regular(path, entry)
+        case rm(path) do
+          :ok -> {:ok, [path | acc]}
+          {:error, :enoent} -> {:ok, acc}
+          {:error, reason} -> {:error, reason, path}
+        end
 
       {:error, reason} when reason in [:enoent, :enotdir] ->
-        entry
+        {:ok, acc}
 
       {:error, reason} ->
         {:error, reason, path}
     end
   end
 
-  defp do_rm_rf(_, reason) do
-    reason
-  end
-
-  defp do_rm_regular(path, {:ok, acc} = entry) do
-    case rm(path) do
-      :ok -> {:ok, [path | acc]}
-      {:error, :enoent} -> entry
-      {:error, reason} -> {:error, reason, path}
-    end
-  end
-
   defp safe_list_dir(path) do
     case :elixir_utils.read_link_type(path) do
-      {:ok, :directory} ->
-        :file.list_dir_all(path)
-
-      {:ok, _} ->
-        {:ok, :regular}
-
-      {:error, reason} ->
-        {:error, reason}
+      {:ok, :directory} -> :file.list_dir_all(path)
+      {:ok, _} -> {:ok, :regular}
+      {:error, reason} -> {:error, reason}
     end
   end
 
