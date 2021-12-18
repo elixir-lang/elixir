@@ -1194,20 +1194,22 @@ defmodule File do
   """
   @spec rm_rf(Path.t()) :: {:ok, [binary]} | {:error, posix, binary}
   def rm_rf(path) do
+    {major, _} = :os.type()
+
     path
     |> IO.chardata_to_string()
     |> assert_no_null_byte!("File.rm_rf/1")
-    |> do_rm_rf([])
+    |> do_rm_rf([], major)
   end
 
-  defp do_rm_rf(path, acc) do
-    case safe_list_dir(path) do
+  defp do_rm_rf(path, acc, major) do
+    case safe_list_dir(path, major) do
       {:ok, files} when is_list(files) ->
         acc =
           Enum.reduce(files, acc, fn file, acc ->
             # In case we can't delete, continue anyway, we might succeed
             # to delete it on Windows due to how they handle symlinks.
-            case do_rm_rf(Path.join(path, file), acc) do
+            case do_rm_rf(Path.join(path, file), acc, major) do
               {:ok, acc} -> acc
               {:error, _, _} -> acc
             end
@@ -1219,12 +1221,11 @@ defmodule File do
           {:error, reason} -> {:error, reason, path}
         end
 
+      {:ok, :directory} ->
+        do_rm_directory(path, acc)
+
       {:ok, :regular} ->
-        case rm(path) do
-          :ok -> {:ok, [path | acc]}
-          {:error, :enoent} -> {:ok, acc}
-          {:error, reason} -> {:error, reason, path}
-        end
+        do_rm_regular(path, acc)
 
       {:error, reason} when reason in [:enoent, :enotdir] ->
         {:ok, acc}
@@ -1234,11 +1235,43 @@ defmodule File do
     end
   end
 
-  defp safe_list_dir(path) do
+  defp do_rm_regular(path, acc) do
+    case rm(path) do
+      :ok -> {:ok, [path | acc]}
+      {:error, :enoent} -> {:ok, acc}
+      {:error, reason} -> {:error, reason, path}
+    end
+  end
+
+  # On Windows, symlinks are treated as directory and must be removed
+  # with rmdir/1. But on Unix-like systems, we remove them via rm/1.
+  # So we first try to remove it as a directory and, if we get :enotdir,
+  # we fall back to a file removal.
+  defp do_rm_directory(path, acc) do
+    case rmdir(path) do
+      :ok -> {:ok, [path | acc]}
+      {:error, :enotdir} -> do_rm_regular(path, acc)
+      {:error, :enoent} -> {:ok, acc}
+      {:error, reason} -> {:error, reason, path}
+    end
+  end
+
+  defp safe_list_dir(path, major) do
     case :elixir_utils.read_link_type(path) do
-      {:ok, :directory} -> :file.list_dir_all(path)
-      {:ok, _} -> {:ok, :regular}
-      {:error, reason} -> {:error, reason}
+      {:ok, :directory} ->
+        :file.list_dir_all(path)
+
+      {:ok, :symlink} when major == :win32 ->
+        case :elixir_utils.read_file_type(path) do
+          {:ok, :directory} -> {:ok, :directory}
+          _ -> {:ok, :regular}
+        end
+
+      {:ok, _} ->
+        {:ok, :regular}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
