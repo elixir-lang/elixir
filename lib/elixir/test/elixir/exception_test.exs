@@ -447,20 +447,17 @@ defmodule ExceptionTest do
                  def fetch(-%module{} = container-, key)
              """
 
-      assert blame_message(Access, & &1.fetch(:foo, :bar)) =~ """
-             no function clause matching in Access.fetch/2
+      assert blame_message(%{"a" => "b"}, fn %{"b" => "c"} -> "d" end) =~ """
+             no function clause matching in anonymous fn/1 in ExceptionTest.
 
-             The following arguments were given to Access.fetch/2:
+             The following arguments were given to anonymous fn/1 in ExceptionTest
 
                  # 1
-                 :foo
+                 %{"a" => "b"}
 
-                 # 2
-                 :bar
+             Attempted function clauses (showing 1 out of 1):
 
-             Attempted function clauses (showing 5 out of 5):
-
-                 x
+                 %{"b" => "c"}
              """
     end
 
