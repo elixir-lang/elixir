@@ -448,9 +448,9 @@ defmodule ExceptionTest do
              """
 
       assert blame_message(%{"a" => "b"}, fn %{"b" => "c"} -> "d" end) =~ """
-             no function clause matching in anonymous fn/1 in ExceptionTest.
+             no function clause matching in anonymous fn/1 in ExceptionTest."test blaming annotates function clause errors"
 
-             The following arguments were given to anonymous fn/1 in ExceptionTest
+             The following arguments were given to anonymous fn/1 in ExceptionTest."test blaming annotates function clause errors"
 
                  # 1
                  %{"a" => "b"}
