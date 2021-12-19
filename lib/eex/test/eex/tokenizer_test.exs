@@ -98,6 +98,13 @@ defmodule EEx.TokenizerTest do
     ]
 
     assert T.tokenize('foo <%# true %>', 1, 1, @opts) == {:ok, exprs}
+
+    exprs = [
+      {:text, 1, 1, 'foo '},
+      {:eof, 2, 8}
+    ]
+
+    assert T.tokenize('foo <%#\ntrue %>', 1, 1, @opts) == {:ok, exprs}
   end
 
   test "EEx comments with do-end" do
@@ -130,6 +137,32 @@ defmodule EEx.TokenizerTest do
 
     assert T.tokenize('<% case true do %><%# comment %><% true -> %>bar<% end %>', 1, 1, @opts) ==
              {:ok, exprs}
+  end
+
+  test "EEx multi-line comments" do
+    exprs = [
+      {:text, 1, 1, 'foo '},
+      {:text, 1, 20, ' bar'},
+      {:eof, 1, 24}
+    ]
+
+    assert T.tokenize('foo <%!-- true --%> bar', 1, 1, @opts) == {:ok, exprs}
+
+    exprs = [
+      {:text, 1, 1, 'foo '},
+      {:text, 3, 6, ' bar'},
+      {:eof, 3, 10}
+    ]
+
+    assert T.tokenize('foo <%!-- \ntrue\n --%> bar', 1, 1, @opts) == {:ok, exprs}
+
+    exprs = [
+      {:text, 1, 1, 'foo '},
+      {:text, 1, 27, ' bar'},
+      {:eof, 1, 31}
+    ]
+
+    assert T.tokenize('foo <%!-- <%= true %> --%> bar', 1, 1, @opts) == {:ok, exprs}
   end
 
   test "Elixir comments" do
@@ -258,6 +291,15 @@ defmodule EEx.TokenizerTest do
     ]
 
     assert T.tokenize('  <%# comment %>  \n123', 1, 1, %{@opts | trim: true}) == {:ok, exprs}
+  end
+
+  test "trim mode with multi-line comment" do
+    exprs = [
+      {:text, 1, 23, '\n123'},
+      {:eof, 2, 4}
+    ]
+
+    assert T.tokenize('  <%!-- comment --%>  \n123', 1, 1, %{@opts | trim: true}) == {:ok, exprs}
   end
 
   test "trim mode with CRLF" do
