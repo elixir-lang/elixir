@@ -455,6 +455,12 @@ defmodule Mix.Tasks.Release do
     * `:steps` - a list of steps to execute when assembling the release. See
       the "Steps" section for more information.
 
+    * `:validate_application_mode?` - a boolean defining whether the
+      modes of dependencies of an application should be checked for
+      certain "unsafe" modes. An "unsafe" case is when a parent
+      application mode is `:permanent` but one of the applications it
+      depends on is set to `:load`, for example. Defaults to `true`.
+
   Note each release definition can be given as an anonymous function. This
   is useful if some release attributes are expensive to compute:
 

@@ -479,6 +479,12 @@ defmodule Mix.ReleaseTest do
       assert message =~
                "Application :mix has mode :permanent but it depends on :elixir which is set to :none"
     end
+
+    test "does not raise on child unsafe mode if valid_application_mode? is false" do
+      release = release(applications: [elixir: :load], validate_application_mode?: false)
+      assert make_boot_script(release, @boot_script_path, release.boot_scripts.start) == :ok
+      assert make_boot_script(release, @boot_script_path, release.boot_scripts.start_clean) == :ok
+    end
   end
 
   describe "make_cookie/1" do
