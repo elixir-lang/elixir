@@ -617,13 +617,19 @@ defmodule Mix.Release do
       options: options
     } = release
 
-    validate_application_mode? = Keyword.get(options, :validate_application_mode?, true)
+    skip_mode_validation_index =
+      options
+      |> Keyword.get(:skip_mode_validation_for, [])
+      |> MapSet.new()
 
     rel_apps =
       for {app, mode} <- modes do
         properties = Map.get(apps, app) || throw({:error, "Unknown application #{inspect(app)}"})
         children = Keyword.get(properties, :applications, [])
-        if validate_application_mode?, do: validate_mode!(app, mode, modes, children)
+
+        if not MapSet.member?(skip_mode_validation_index, app),
+          do: validate_mode!(app, mode, modes, children)
+
         build_app_for_release(app, mode, properties)
       end
 
