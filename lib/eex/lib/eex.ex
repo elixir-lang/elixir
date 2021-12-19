@@ -9,13 +9,13 @@ end
 
 defmodule EEx do
   @moduledoc ~S"""
-  EEx stands for Embedded Elixir. It allows you to embed
-  Elixir code inside a string in a robust way.
+  EEx stands for Embedded Elixir.
+
+  Embedded Elixir allows you to embed Elixir code inside a string
+  in a robust way.
 
       iex> EEx.eval_string("foo <%= bar %>", bar: "baz")
       "foo baz"
-
-  ## API
 
   This module provides three main APIs for you to use:
 
@@ -34,6 +34,9 @@ defmodule EEx do
        above and is available to you if you want to provide your own
        ways of handling the compiled template.
 
+  The APIs above support several options, documented below. You may
+  also pass an engine which customizes how the EEx code is compiled.
+
   ## Options
 
   All functions in this module accept EEx-related options.
@@ -41,17 +44,38 @@ defmodule EEx do
 
     * `:file` - the file to be used in the template. Defaults to the given
       file the template is read from or to `"nofile"` when compiling from a string.
+
     * `:line` - the line to be used as the template start. Defaults to `1`.
+
     * `:indentation` - (since v1.11.0) an integer added to the column after every
       new line. Defaults to `0`.
+
     * `:engine` - the EEx engine to be used for compilation.
+
     * `:trim` - if `true`, trims whitespace left and right of quotation as
       long as at least one newline is present. All subsequent newlines and
       spaces are removed but one newline is retained. Defaults to `false`.
-    * `:parser_options` - (since: 1.13.0) allow customizing the parsed code that is generated.
-      See `Code.string_to_quoted/2` for available options. Note that the options
-      `:file`, `:line` and `:column` are ignored if passed in.
-      Defaults to `Code.get_compiler_option(:parser_options)` (which defaults to `[]` if not set).
+
+    * `:parser_options` - (since: 1.13.0) allow customizing the parsed code
+      that is generated. See `Code.string_to_quoted/2` for available options.
+      Note that the options `:file`, `:line` and `:column` are ignored if
+      passed in. Defaults to `Code.get_compiler_option(:parser_options)`
+      (which defaults to `[]` if not set).
+
+  ## Tags
+
+  EEx supports multiple tags, declared below:
+
+      <% Elixir expression: executes code but discards output %>
+      <%= Elixir expression: executes code and prints result %>
+      <%% EEx quotation: returns the contents inside the tag as is %>
+      <%!-- Comments: they are discarded from source --%>
+
+  EEx supports additional tags, that may be used by some engines,
+  but they do not have a meaning by default:
+
+      <%| ... %>
+      <%/ ... %>
 
   ## Engine
 
@@ -61,41 +85,10 @@ defmodule EEx do
   By default, `EEx` uses the `EEx.SmartEngine` that provides some
   conveniences on top of the simple `EEx.Engine`.
 
-  ### Tags
+  ### `EEx.SmartEngine`
 
-  `EEx.SmartEngine` supports the following tags:
-
-      <% Elixir expression - inline with output %>
-      <%= Elixir expression - replace with result %>
-      <%% EEx quotation - returns the contents inside %>
-      <%# Comments - they are discarded from source %>
-
-  All expressions that output something to the template
-  **must** use the equals sign (`=`). Since everything in
-  Elixir is an expression, there are no exceptions for this rule.
-  For example, while some template languages would special-case
-  `if` clauses, they are treated the same in EEx and
-  also require `=` in order to have their result printed:
-
-      <%= if true do %>
-        It is obviously true
-      <% else %>
-        This will never appear
-      <% end %>
-
-  To escape an EEx expression in EEx use `<%% content %>`. For example:
-
-      <%%= x + 3 %>
-
-  will be rendered as `<%= x + 3 %>`.
-
-  Note that different engines may have different rules
-  for each tag. Other tags may be added in future versions.
-
-  ### Assigns
-
-  `EEx.SmartEngine` also adds the `@` construct for reading
-  template assigns:
+  The smart engine uses EEx default rules and adds the `@` construct
+  for reading template assigns:
 
       iex> EEx.eval_string("<%= @foo %>", assigns: [foo: 1])
       "1"
