@@ -47,17 +47,24 @@ defmodule EEx.Tokenizer do
     tokenize(t, line, column + 3, opts, [?%, ?< | buffer], acc)
   end
 
+  defp tokenize('<%!--' ++ t, line, column, opts, buffer, acc) do
+    case comment(t, line, column + 5, opts) do
+      {:error, _, _, _} = error ->
+        error
+
+      {:ok, new_line, new_column, rest} ->
+        trim_and_tokenize(rest, new_line, new_column, opts, buffer, acc, & &1)
+    end
+  end
+
+  # TODO: Deprecate this on Elixir v1.18
   defp tokenize('<%#' ++ t, line, column, opts, buffer, acc) do
     case expr(t, line, column + 3, opts, []) do
       {:error, _, _, _} = error ->
         error
 
       {:ok, _, new_line, new_column, rest} ->
-        {rest, new_line, new_column, buffer} =
-          trim_if_needed(rest, new_line, new_column, opts, buffer)
-
-        acc = tokenize_text(buffer, acc)
-        tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], acc)
+        trim_and_tokenize(rest, new_line, new_column, opts, buffer, acc, & &1)
     end
   end
 
@@ -82,12 +89,8 @@ defmodule EEx.Tokenizer do
               {:expr, expr}
           end
 
-        {rest, new_line, new_column, buffer} =
-          trim_if_needed(rest, new_line, new_column, opts, buffer)
-
-        acc = tokenize_text(buffer, acc)
-        final = {key, line, column, marker, expr}
-        tokenize(rest, new_line, new_column, opts, [{new_line, new_column}], [final | acc])
+        token = {key, line, column, marker, expr}
+        trim_and_tokenize(rest, new_line, new_column, opts, buffer, acc, &[token | &1])
     end
   end
 
@@ -104,6 +107,13 @@ defmodule EEx.Tokenizer do
     {:ok, Enum.reverse([eof | tokenize_text(buffer, acc)])}
   end
 
+  defp trim_and_tokenize(rest, line, column, opts, buffer, acc, fun) do
+    {rest, line, column, buffer} = trim_if_needed(rest, line, column, opts, buffer)
+
+    acc = tokenize_text(buffer, acc)
+    tokenize(rest, line, column, opts, [{line, column}], fun.(acc))
+  end
+
   # Retrieve marker for <%
 
   defp retrieve_marker([marker | t]) when marker in [?=, ?/, ?|] do
@@ -112,6 +122,24 @@ defmodule EEx.Tokenizer do
 
   defp retrieve_marker(t) do
     {'', t}
+  end
+
+  # Tokenize a multi-line comment until we find --%>
+
+  defp comment([?-, ?-, ?%, ?> | t], line, column, _opts) do
+    {:ok, line, column + 4, t}
+  end
+
+  defp comment('\n' ++ t, line, _column, opts) do
+    comment(t, line + 1, opts.indentation + 1, opts)
+  end
+
+  defp comment([_ | t], line, column, opts) do
+    comment(t, line, column + 1, opts)
+  end
+
+  defp comment([], line, column, _opts) do
+    {:error, line, column, "missing token '--%>'"}
   end
 
   # Tokenize an expression until we find %>
@@ -186,6 +214,8 @@ defmodule EEx.Tokenizer do
     [{line, column} | buffer] = Enum.reverse(buffer)
     [{:text, line, column, buffer} | acc]
   end
+
+  ## Trim
 
   defp trim_if_needed(rest, line, column, opts, buffer) do
     if opts.trim do
