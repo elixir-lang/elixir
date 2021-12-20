@@ -140,8 +140,11 @@ defmodule Protocol do
 
   ## Types
 
-  Defining a protocol automatically defines a zero-arity type named `t`, which
-  can be used as follows:
+  Defining a protocol automatically defines two types, a zero-arity type
+  named `t` and a one-arity type also named `t`. They are both equivalent
+  to the `t:term/0` type.
+
+  For example, the `t/0` type can be used as follows:
 
       @spec print_size(Size.t()) :: :ok
       def print_size(data) do
@@ -157,6 +160,15 @@ defmodule Protocol do
 
   The `@spec` above expresses that all types allowed to implement the
   given protocol are valid argument types for the given function.
+
+  The one-arity `t/1` type is useful for documenting what kind of data you
+  expect to feed to the protocol, which can be especially nice in return
+  values for functions. For example:any()
+
+      @spec return_sizable(term()) :: Size.t(list())
+      def return_sizable(term) do
+        Enum.to_list(term)
+      end
 
   ## Reflection
 
@@ -889,6 +901,10 @@ defmodule Protocol do
 
       unless Module.defines_type?(__MODULE__, {:t, 0}) do
         @type t :: term
+      end
+
+      unless Module.defines_type?(__MODULE__, {:t, 1}) do
+        @type t(term) :: term
       end
 
       # Store information as an attribute so it
