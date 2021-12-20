@@ -38,6 +38,23 @@ defprotocol Enumerable do
   """
 
   @typedoc """
+  An enumerable of values with type `value`.
+
+  This type is equivalent to `t:t/0` but is especially useful for documentation.
+
+  For example, imagine I define a function that expects an enumerable of
+  integers and returns an enumerable of strings:
+
+      @spec ints_to_strings(Enumerable.t(integer())) :: Enumerable.t(String.t())
+      def ints_to_strings(ints) do
+        Stream.map(ints, &Integer.to_string/1)
+      end
+
+  """
+  @typedoc since: "1.14.0"
+  @type t(_value) :: t()
+
+  @typedoc """
   The accumulator value for each step.
 
   It must be a tagged tuple with one of the following "tags":
