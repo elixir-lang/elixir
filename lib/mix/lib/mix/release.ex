@@ -626,7 +626,7 @@ defmodule Mix.Release do
       for {app, mode} <- modes do
         properties = Map.get(apps, app) || throw({:error, "Unknown application #{inspect(app)}"})
         children = Keyword.get(properties, :applications, [])
-        app not in skip_mode_validation_for && validate_mode!(app, mode, modes, children)
+        app in skip_mode_validation_for || validate_mode!(app, mode, modes, children)
         build_app_for_release(app, mode, properties)
       end
 
