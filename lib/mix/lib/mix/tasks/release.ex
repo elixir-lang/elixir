@@ -455,6 +455,14 @@ defmodule Mix.Tasks.Release do
     * `:steps` - a list of steps to execute when assembling the release. See
       the "Steps" section for more information.
 
+    * `:skip_mode_validation_for` - a list of application names
+      (atoms) specifying applications to skip strict validation of
+      "unsafe" modes. An "unsafe" case is when a parent application
+      mode is `:permanent` but one of the applications it depends on
+      is set to `:load`. Use this with care, as a release with
+      invalid modes may no longer boot without additional tweaks.
+      Defaults to `[]`.
+
   Note each release definition can be given as an anonymous function. This
   is useful if some release attributes are expensive to compute:
 

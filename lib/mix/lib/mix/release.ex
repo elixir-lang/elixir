@@ -609,13 +609,24 @@ defmodule Mix.Release do
   end
 
   defp build_release_spec(release, modes) do
-    %{name: name, version: version, erts_version: erts_version, applications: apps} = release
+    %{
+      name: name,
+      version: version,
+      erts_version: erts_version,
+      applications: apps,
+      options: options
+    } = release
+
+    skip_mode_validation_for =
+      options
+      |> Keyword.get(:skip_mode_validation_for, [])
+      |> MapSet.new()
 
     rel_apps =
       for {app, mode} <- modes do
         properties = Map.get(apps, app) || throw({:error, "Unknown application #{inspect(app)}"})
         children = Keyword.get(properties, :applications, [])
-        validate_mode!(app, mode, modes, children)
+        app in skip_mode_validation_for || validate_mode!(app, mode, modes, children)
         build_app_for_release(app, mode, properties)
       end
 
