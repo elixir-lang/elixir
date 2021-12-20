@@ -52,7 +52,7 @@ defprotocol Enumerable do
 
   """
   @typedoc since: "1.14.0"
-  @type t(value) :: t()
+  @type t(_value) :: t()
 
   @typedoc """
   The accumulator value for each step.
