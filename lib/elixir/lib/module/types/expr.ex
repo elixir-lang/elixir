@@ -301,7 +301,7 @@ defmodule Module.Types.Expr do
   end
 
   # for pat <- expr do expr end
-  def of_expr({:for, _meta, args} = expr, _expected, stack, context) do
+  def of_expr({:for, _meta, [_ | _] = args} = expr, _expected, stack, context) do
     stack = push_expr_stack(expr, stack)
     {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
 
@@ -320,7 +320,7 @@ defmodule Module.Types.Expr do
   end
 
   # with pat <- expr do expr end
-  def of_expr({:with, _meta, clauses} = expr, _expected, stack, context) do
+  def of_expr({:with, _meta, [_ | _] = clauses} = expr, _expected, stack, context) do
     stack = push_expr_stack(expr, stack)
 
     case reduce_ok(clauses, context, &with_clause(&1, stack, &2)) do
