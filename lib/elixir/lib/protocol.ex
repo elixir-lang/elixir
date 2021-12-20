@@ -763,7 +763,7 @@ defmodule Protocol do
     IO.warn(message, stacktrace)
   end
 
-  # TODO: Convert the following warnings into errors future Elixir versions
+  # TODO: Convert the following warnings into errors in future Elixir versions
   def __before_compile__(env) do
     # Callbacks
     callback_metas = callback_metas(env.module, :callback)
