@@ -993,6 +993,8 @@ defmodule String do
       iex> String.replace_leading("hello hello world", "hello ", "ola ")
       "ola ola world"
 
+  This function can replace across grapheme boundaries. See `replace/3`
+  for more information and examples.
   """
   @spec replace_leading(t, t, t) :: t
   def replace_leading(string, match, replacement)
@@ -1050,6 +1052,8 @@ defmodule String do
       iex> String.replace_trailing("hello world world", " world", " mundo")
       "hello mundo mundo"
 
+  This function can replace across grapheme boundaries. See `replace/3`
+  for more information and examples.
   """
   @spec replace_trailing(t, t, t) :: t
   def replace_trailing(string, match, replacement)
@@ -1110,6 +1114,8 @@ defmodule String do
       iex> String.replace_prefix("world", "", "hello ")
       "hello world"
 
+  This function can replace across grapheme boundaries. See `replace/3`
+  for more information and examples.
   """
   @spec replace_prefix(t, t, t) :: t
   def replace_prefix(string, match, replacement)
@@ -1150,6 +1156,8 @@ defmodule String do
       iex> String.replace_suffix("hello", "", " world")
       "hello world"
 
+  This function can replace across grapheme boundaries. See `replace/3`
+  for more information and examples.
   """
   @spec replace_suffix(t, t, t) :: t
   def replace_suffix(string, match, replacement)
@@ -1502,6 +1510,20 @@ defmodule String do
 
       iex> String.replace("ELIXIR", "", "")
       "ELIXIR"
+
+  Be aware that this function can replace within or across grapheme boundaries.
+  For example, take the grapheme "é" which is made of the characters
+  "e" and the acute accent. The following will replace only the letter "e",
+  moving the accent to the letter "o":
+
+      iex> String.replace(String.normalize("é", :nfd), "e", "o")
+      "ó"
+
+  However, if "é" is represented by the single character "e with acute"
+  accent, then it won't be replaced at all:
+
+      iex> String.replace(String.normalize("é", :nfc), "e", "o")
+      "é"
 
   """
   @spec replace(t, pattern | Regex.t(), t | (t -> t | iodata), keyword) :: t
