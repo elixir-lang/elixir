@@ -12,7 +12,7 @@
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
-  * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/1`
+  * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/2`
   * [Map] Add `Map.from_keys/2` and `Map.replace_lazy/3`
   * [PartitionSupervisor] Add `PartitionSupervisor` that starts multiple isolated partitions of the same child for scalability
   * [Registry] Add `Registry.count_select/2`
