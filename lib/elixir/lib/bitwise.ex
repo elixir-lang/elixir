@@ -4,7 +4,7 @@ defmodule Bitwise do
 
   All bitwise functions work only on integers; otherwise an
   `ArithmeticError` is raised. The functions `band/2`,
-  `bor/2``, `bsl/2`, and `bsr/2` also have operators,
+  `bor/2`, `bsl/2`, and `bsr/2` also have operators,
   respectively: `&&&/2`, `|||/2`, `<<</2`, and `>>>/2`.
 
   ## Guards
