@@ -237,7 +237,7 @@ defmodule Module.Types.Of do
   def remote(module, fun, arity, meta, context) when is_atom(module) do
     # TODO: In the future we may want to warn for modules defined
     # in the local context
-    if Keyword.get(meta, :context_module, false) and context.module != module do
+    if Keyword.get(meta, :context_module, false) do
       context
     else
       ParallelChecker.preload_module(context.cache, module)
