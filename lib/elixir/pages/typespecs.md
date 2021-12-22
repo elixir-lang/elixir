@@ -197,6 +197,8 @@ Type variables with no restriction can also be defined using `var`.
 
     @spec function(arg) :: [arg] when arg: var
 
+This guard notation only works with `@spec`, `@callback`, and `@macrocallback`.
+
 You can also name your arguments in a typespec using `arg_name :: arg_type` syntax. This is particularly useful in documentation as a way to differentiate multiple arguments of the same type (or multiple elements of the same type in a type definition):
 
     @spec days_since_epoch(year :: integer, month :: integer, day :: integer) :: integer
