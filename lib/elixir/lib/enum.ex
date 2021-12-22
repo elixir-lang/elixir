@@ -270,6 +270,14 @@ defmodule Enum do
   @compile :inline_list_funcs
 
   @type t :: Enumerable.t()
+
+  @typedoc """
+  An enumerable of elements of type `element`.
+
+  See `t:Enumerable.t/1` for information."
+  """
+  @type t(element) :: Enumerable.t(element)
+
   @type acc :: any
   @type element :: any
 
