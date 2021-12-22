@@ -841,6 +841,12 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
 
 attach_context_module(_Receiver, Meta, #{function := nil}) ->
   Meta;
+attach_context_module(Receiver, Meta, #{context_modules := [Ctx | _], module := Mod})
+    %% If the context is the current module or
+    %% if the receiver is the current module,
+    %% then there is no context module.
+    when Ctx == Mod; Receiver == Mod ->
+  Meta;
 attach_context_module(Receiver, Meta, #{context_modules := ContextModules}) ->
   case lists:member(Receiver, ContextModules) of
     true -> [{context_module, true} | Meta];
