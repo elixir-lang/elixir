@@ -137,7 +137,8 @@ fast_compile({defmodule, Meta, [Mod, [{do, TailBlock}]]}, NoLineE) ->
       'Elixir.Macro':expand(Mod, E)
   end,
 
-  elixir_module:compile(Expanded, Block, [], E).
+  ContextModules = [Expanded | ?key(E, context_modules)],
+  elixir_module:compile(Expanded, Block, [], E#{context_modules := ContextModules}).
 
 %% Bootstrapper
 
