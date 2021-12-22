@@ -1517,7 +1517,7 @@ defmodule String do
   moving the accent to the letter "o":
 
       iex> String.replace(String.normalize("é", :nfd), "e", "o")
-      "ó"
+      "ó"
 
   However, if "é" is represented by the single character "e with acute"
   accent, then it won't be replaced at all:
