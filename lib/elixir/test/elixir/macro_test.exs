@@ -810,6 +810,14 @@ defmodule MacroTest do
       defmodule Foo.Bar do
         assert __MODULE__ in __ENV__.context_modules
       end
+
+      assert Foo.Bar in __ENV__.context_modules
+
+      Code.compile_string("""
+      defmodule Foo.Bar.Compiled do
+        true = __MODULE__ in __ENV__.context_modules
+      end
+      """)
     end
 
     test "to_match/1" do
