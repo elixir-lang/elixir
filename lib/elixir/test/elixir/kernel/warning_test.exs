@@ -1163,9 +1163,11 @@ defmodule Kernel.WarningTest do
 
             def without_specs(term, options \\ [])
 
+            @callback foo :: {:ok, term}
             @callback foo(term) :: {:ok, term}
             @callback foo(term, keyword) :: {:ok, term, keyword}
 
+            @callback foo_when :: {:ok, x} when x: term
             @callback foo_when(x) :: {:ok, x} when x: term
             @callback foo_when(x, opts) :: {:ok, x, opts} when x: term, opts: keyword
 
@@ -1179,10 +1181,16 @@ defmodule Kernel.WarningTest do
       end)
 
     assert message =~
+             "cannot define @callback foo/0 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"
+
+    assert message =~
              "cannot define @callback foo/1 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"
 
     assert message =~
              "cannot define @callback foo/2 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"
+
+    assert message =~
+             "cannot define @callback foo_when/0 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"
 
     assert message =~
              "cannot define @callback foo_when/1 inside protocol, use def/1 to outline your protocol definition\n  nofile:1"

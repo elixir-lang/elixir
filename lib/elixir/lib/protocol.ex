@@ -723,14 +723,14 @@ defmodule Protocol do
 
   defp callback_ast_to_fa({kind, {:"::", meta, [{name, _, args}, _return]}, _pos})
        when kind in [:callback, :macrocallback] do
-    [{{name, length(args)}, meta}]
+    [{{name, length(List.wrap(args))}, meta}]
   end
 
   defp callback_ast_to_fa(
          {kind, {:when, _, [{:"::", meta, [{name, _, args}, _return]}, _vars]}, _pos}
        )
        when kind in [:callback, :macrocallback] do
-    [{{name, length(args)}, meta}]
+    [{{name, length(List.wrap(args))}, meta}]
   end
 
   defp callback_ast_to_fa({kind, _, _pos}) when kind in [:callback, :macrocallback] do
