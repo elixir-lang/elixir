@@ -273,6 +273,9 @@ defmodule Enum do
   @type acc :: any
   @type element :: any
 
+  @typedoc since: "1.14.0"
+  @type t(element) :: Enumerable.t(element)
+
   @typedoc "Zero-based index. It can also be a negative integer."
   @type index :: integer
 
