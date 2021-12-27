@@ -340,7 +340,7 @@ defmodule Base do
       "foobar"
 
   """
-  @spec decode16!(binary, case: encode_case) :: binary
+  @spec decode16!(binary, case: decode_case) :: binary
   def decode16!(string, opts \\ [])
 
   def decode16!(string, opts) when is_binary(string) and rem(byte_size(string), 2) == 0 do
