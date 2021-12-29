@@ -64,6 +64,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           repository: elixir-lang/ex_doc
+          ref: v0.26.0
           path: ex_doc
         if: ${{ matrix.build_docs }}
       - name: Build ex_doc
@@ -79,8 +80,8 @@ jobs:
           vsn=$(cat VERSION)
           make Docs.zip
           mv "Docs-v${vsn}.zip" Docs.zip
-          shasum -a 1 "Docs.zip" > Docs.zip.sha1sum
-          shasum -a 256 "Docs.zip" > Docs.zip.sha256sum
+          shasum -a 1 Docs.zip > Docs.zip.sha1sum
+          shasum -a 256 Docs.zip > Docs.zip.sha256sum
       - name: Upload Docs
         if: ${{ matrix.build_docs }}
         env:
