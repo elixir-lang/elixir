@@ -95,6 +95,8 @@ jobs:
           for algo in 1 256
           do
             shasum -a ${algo} elixir-${vsn}-otp-22.zip elixir-${vsn}-otp-23.zip elixir-${vsn}-otp-24.zip Docs.zip > "sha${algo}sums.txt"
+            cat "sha${algo}sums.txt" | sed 's/^/    /' | sed "1s/^/### SHA${algo}||/" | tr '|' '\n' >> notes.md
+            printf '\n\n' >> notes.md
           done
       - name: Create a release and upload assets
         env:
@@ -103,7 +105,7 @@ jobs:
           vsn=$(cat VERSION)
           gh release create \
             --title ${{ github.ref_name }} \
-            --notes '' \
+            --notes-file notes.md \
             --draft \
             v${vsn} \
             elixir-${vsn}-otp-22.zip \
