@@ -961,6 +961,8 @@ defmodule ExUnit.DiffTest do
     refute_diff((x when x == 1 when x == 2) = 0, "x when -x == 1- when -x == 2-", "0")
     refute_diff((x when x in [1, 2]) = 0, "x when -x in [1, 2]-", "0")
     refute_diff(({:ok, x} when x == 1) = :error, "-{:ok, x}- when x == 1", "+:error+")
+
+    refute_diff((x when x == z) = 0, "x when x == z", "0", z: 1)
   end
 
   test "charlists" do

@@ -192,7 +192,7 @@ defmodule ExUnit.Diff do
     {guard_clause, guard_equivalent?} =
       if diff_expression.equivalent? do
         bindings = Map.merge(post_env.pins, post_env.current_vars)
-        diff_guard_clause(clause, Map.to_list(bindings))
+        diff_guard_clause(clause, bindings)
       else
         {clause, false}
       end
@@ -223,12 +223,24 @@ defmodule ExUnit.Diff do
   defp diff_guard_clause(quoted, bindings) do
     expanded =
       Macro.prewalk(quoted, fn
-        {_, [{:expanded, expanded} | _], _} -> expanded
-        other -> other
+        {_, [{:expanded, expanded} | _], _} ->
+          expanded
+
+        {var, _, context} = expr when is_atom(var) and is_atom(context) ->
+          if Map.has_key?(bindings, var_context(expr)) do
+            expr
+          else
+            throw(:abort)
+          end
+
+        other ->
+          other
       end)
 
-    {equivalent?, _bindings} = Code.eval_quoted(expanded, bindings)
+    {equivalent?, _bindings} = Code.eval_quoted(expanded, Map.to_list(bindings))
     {update_diff_meta(quoted, !equivalent?), equivalent?}
+  catch
+    :abort -> {quoted, false}
   end
 
   # Pins
@@ -245,7 +257,7 @@ defmodule ExUnit.Diff do
   # Vars
 
   defp diff_var({name, meta, context} = left, right, env) do
-    identifier = {name, meta[:counter] || context}
+    identifier = var_context(left)
 
     case env.current_vars do
       %{^identifier => ^right} ->
