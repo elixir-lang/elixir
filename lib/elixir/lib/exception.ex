@@ -15,7 +15,7 @@ defmodule Exception do
   @typedoc "The exception type"
   @type t :: %{
           required(:__struct__) => module,
-          required(:__exception__) => true,
+          required(:__exception__) => any,
           optional(atom) => any
         }
 
