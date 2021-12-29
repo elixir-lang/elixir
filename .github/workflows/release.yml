@@ -29,9 +29,12 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - otp_release: 22
-          - otp_release: 23
-          - otp_release: 24
+          - otp: 22
+            otp_version: 22.3
+          - otp: 23
+            otp_version: 23.3
+          - otp: 24
+            otp_version: 24.1
             build_docs: build_docs
     runs-on: ubuntu-18.04
     steps:
@@ -40,16 +43,15 @@ jobs:
           fetch-depth: 50
       - uses: erlef/setup-beam@v1
         with:
-          # The otp-version is the latest version of the release. It doesn't guarantee
-          # the minor (or patch) version when running this workflow.
-          otp-version: ${{ matrix.otp_release }}
+          otp-version: ${{ matrix.otp_version }}
+          version-type: strict
       - name: Build Elixir Release
         run: |
           vsn=$(cat VERSION)
           make Precompiled.zip
-          mv Precompiled-v${vsn}.zip elixir-${vsn}-otp-${{ matrix.otp_release }}.zip
-          shasum -a 1 elixir-${vsn}-otp-${{ matrix.otp_release }}.zip > elixir-${vsn}-otp-${{ matrix.otp_release }}.zip.sha1
-          shasum -a 256 elixir-${vsn}-otp-${{ matrix.otp_release }}.zip > elixir-${vsn}-otp-${{ matrix.otp_release }}.zip.sha256
+          mv Precompiled-v${vsn}.zip elixir-${vsn}-otp-${{ matrix.otp }}.zip
+          shasum -a 1 elixir-${vsn}-otp-${{ matrix.otp }}.zip > elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha1sum
+          shasum -a 256 elixir-${vsn}-otp-${{ matrix.otp }}.zip > elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha256sum
           echo "$PWD/bin" >> $GITHUB_PATH
       - name: Upload Pre-built
         env:
@@ -57,8 +59,8 @@ jobs:
         run: |
           vsn=$(cat VERSION)
           gh release upload --clobber "v${vsn}" \
-            elixir-${vsn}-otp-${{ matrix.otp_release }}.zip \
-            elixir-${vsn}-otp-${{ matrix.otp_release }}.zip.sha{1,256}
+            elixir-${vsn}-otp-${{ matrix.otp }}.zip \
+            elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha{1,256}sum
       - uses: actions/checkout@v2
         with:
           repository: elixir-lang/ex_doc
@@ -76,8 +78,9 @@ jobs:
         run: |
           vsn=$(cat VERSION)
           make Docs.zip
-          shasum -a 1 "Docs-v${vsn}.zip" > Docs-v${vsn}.zip.sha1
-          shasum -a 256 "Docs-v${vsn}.zip" > Docs-v${vsn}.zip.sha256
+          mv "Docs-v${vsn}.zip" Docs.zip
+          shasum -a 1 "Docs.zip" > Docs.zip.sha1sum
+          shasum -a 256 "Docs.zip" > Docs.zip.sha256sum
       - name: Upload Docs
         if: ${{ matrix.build_docs }}
         env:
@@ -85,5 +88,5 @@ jobs:
         run: |
           vsn=$(cat VERSION)
           gh release upload --clobber "v${vsn}" \
-            Docs-v${vsn}.zip \
-            Docs-v${vsn}.zip.sha{1,256}
+            Docs.zip \
+            Docs.zip.sha{1,256}sum
