@@ -256,7 +256,7 @@ defmodule ExUnit.Diff do
 
   # Vars
 
-  defp diff_var({name, meta, context} = left, right, env) do
+  defp diff_var(left, right, env) do
     identifier = var_context(left)
 
     case env.current_vars do
