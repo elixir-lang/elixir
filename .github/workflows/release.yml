@@ -10,7 +10,21 @@ env:
   LANG: C.UTF-8
 
 jobs:
+  create_draft_release:
+    runs-on: ubuntu-18.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Create draft release
+        run: |
+          gh release create \
+            --repo ${{ github.repository }} \
+            --title ${{ github.ref_name }} \
+            --notes '' \
+            --draft \
+            ${{ github.ref_name }}
   build_zips:
+    needs: create_draft_release
     strategy:
       fail-fast: true
       matrix:
@@ -64,7 +78,7 @@ jobs:
           name: Docs.zip
           path: Docs.zip
         if: ${{ matrix.build_docs }}
-  create_draft_release:
+  upload_assets:
     needs: build_zips
     runs-on: ubuntu-18.04
     steps:
@@ -96,16 +110,12 @@ jobs:
           do
             shasum -a ${algo} elixir-${vsn}-otp-22.zip elixir-${vsn}-otp-23.zip elixir-${vsn}-otp-24.zip Docs.zip > "sha${algo}sums.txt"
           done
-      - name: Create a release and upload assets
+      - name: Upload assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           vsn=$(cat VERSION)
-          gh release create \
-            --title ${{ github.ref_name }} \
-            --notes '' \
-            --draft \
-            v${vsn} \
+          gh release upload --clobber v${vsn} \
             elixir-${vsn}-otp-22.zip \
             elixir-${vsn}-otp-23.zip \
             elixir-${vsn}-otp-24.zip \
