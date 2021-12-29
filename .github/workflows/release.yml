@@ -23,15 +23,18 @@ jobs:
             --notes '' \
             --draft \
             ${{ github.ref_name }}
-  release_pre_built:
+  build_zips:
     needs: create_draft_release
     strategy:
       fail-fast: true
       matrix:
         include:
-          - otp_release: 22
-          - otp_release: 23
-          - otp_release: 24
+          - otp: 22
+            otp_version: 22.3
+          - otp: 23
+            otp_version: 23.3
+          - otp: 24
+            otp_version: 24.1
             build_docs: build_docs
     runs-on: ubuntu-18.04
     steps:
@@ -40,25 +43,18 @@ jobs:
           fetch-depth: 50
       - uses: erlef/setup-beam@v1
         with:
-          # The otp-version is the latest version of the release. It doesn't guarantee
-          # the minor (or patch) version when running this workflow.
-          otp-version: ${{ matrix.otp_release }}
+          otp-version: ${{ matrix.otp_version }}
+          version-type: strict
       - name: Build Elixir Release
         run: |
           vsn=$(cat VERSION)
           make Precompiled.zip
-          mv Precompiled-v${vsn}.zip elixir-${vsn}-otp-${{ matrix.otp_release }}.zip
-          shasum -a 1 elixir-${vsn}-otp-${{ matrix.otp_release }}.zip > elixir-${vsn}-otp-${{ matrix.otp_release }}.zip.sha1
-          shasum -a 256 elixir-${vsn}-otp-${{ matrix.otp_release }}.zip > elixir-${vsn}-otp-${{ matrix.otp_release }}.zip.sha256
+          mv Precompiled-v${vsn}.zip elixir-otp-${{ matrix.otp }}.zip
           echo "$PWD/bin" >> $GITHUB_PATH
-      - name: Upload Pre-built
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          vsn=$(cat VERSION)
-          gh release upload --clobber "v${vsn}" \
-            elixir-${vsn}-otp-${{ matrix.otp_release }}.zip \
-            elixir-${vsn}-otp-${{ matrix.otp_release }}.zip.sha{1,256}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: elixir-otp-${{ matrix.otp }}.zip
+          path: elixir-otp-${{ matrix.otp }}.zip
       - uses: actions/checkout@v2
         with:
           repository: elixir-lang/ex_doc
@@ -76,14 +72,53 @@ jobs:
         run: |
           vsn=$(cat VERSION)
           make Docs.zip
-          shasum -a 1 "Docs-v${vsn}.zip" > Docs-v${vsn}.zip.sha1
-          shasum -a 256 "Docs-v${vsn}.zip" > Docs-v${vsn}.zip.sha256
-      - name: Upload Docs
+          mv Docs-v${vsn}.zip Docs.zip
+      - uses: actions/upload-artifact@v2
+        with:
+          name: Docs.zip
+          path: Docs.zip
         if: ${{ matrix.build_docs }}
+  upload_assets:
+    needs: build_zips
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - uses: actions/download-artifact@v2
+        with:
+          name: elixir-otp-22.zip
+      - uses: actions/download-artifact@v2
+        with:
+          name: elixir-otp-23.zip
+      - uses: actions/download-artifact@v2
+        with:
+          name: elixir-otp-24.zip
+      - uses: actions/download-artifact@v2
+        with:
+          name: Docs.zip
+      - name: Rename files
+        run: |
+          vsn=$(cat VERSION)
+          mv elixir-otp-22.zip elixir-${vsn}-otp-22.zip
+          mv elixir-otp-23.zip elixir-${vsn}-otp-23.zip
+          mv elixir-otp-24.zip elixir-${vsn}-otp-24.zip
+      - name: Generate checksum
+        run: |
+          vsn=$(cat VERSION)
+          for algo in 1 256
+          do
+            shasum -a ${algo} elixir-${vsn}-otp-22.zip elixir-${vsn}-otp-23.zip elixir-${vsn}-otp-24.zip Docs.zip > "sha${algo}sums.txt"
+          done
+      - name: Upload assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           vsn=$(cat VERSION)
-          gh release upload --clobber "v${vsn}" \
-            Docs-v${vsn}.zip \
-            Docs-v${vsn}.zip.sha{1,256}
+          gh release upload --clobber v${vsn} \
+            elixir-${vsn}-otp-22.zip \
+            elixir-${vsn}-otp-23.zip \
+            elixir-${vsn}-otp-24.zip \
+            Docs.zip \
+            sha1sums.txt \
+            sha256sums.txt
