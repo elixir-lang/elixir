@@ -567,7 +567,10 @@ defmodule Kernel.Typespec do
 
     types =
       :lists.map(
-        fn {field, _} -> {field, Keyword.get(fields, field, quote(do: term()))} end,
+        fn
+          {:__exception__ = field, true} -> {field, Keyword.get(fields, field, true)}
+          {field, _} -> {field, Keyword.get(fields, field, quote(do: term()))}
+        end,
         :lists.sort(struct)
       )
 

@@ -478,6 +478,21 @@ defmodule TypespecTest do
       assert {:type, _, :map_field_exact, [{:atom, _, :other}, {:type, _, :term, []}]} = arg2
     end
 
+    test "@type with an exception struct" do
+      bytecode =
+        test_module do
+          defexception [:message]
+          @type my_type :: %TypespecSample{}
+        end
+
+      assert [type: {:my_type, type, []}] = types(bytecode)
+      assert {:type, _, :map, [struct, arg1, arg2]} = type
+      assert {:type, _, :map_field_exact, struct_args} = struct
+      assert [{:atom, _, :__struct__}, {:atom, _, TypespecSample}] = struct_args
+      assert {:type, _, :map_field_exact, [{:atom, _, :__exception__}, {:atom, _, true}]} = arg1
+      assert {:type, _, :map_field_exact, [{:atom, _, :message}, {:type, _, :term, []}]} = arg2
+    end
+
     @fields Enum.map(10..42, &{:"f#{&1}", :ok})
 
     test "@type with a large struct" do
