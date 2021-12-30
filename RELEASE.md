@@ -10,19 +10,13 @@
 
 4. Update "Compatibility and Deprecations" if a new OTP version is supported
 
-5. Commit changes above with title "Release vVERSION" and generate a new tag
+5. Commit changes above with title "Release vVERSION", generate a new tag, and push it
 
-6. Run `make clean test` to ensure all tests pass from scratch and the CI is green
+6. Wait until GitHub Actions publish artifacts to the given tag and CI is green
 
-7. Recompile an existing project (for example, Ecto) to ensure manifests can be upgraded
+7. Add the release to `elixir.csv` with the minimum supported OTP version (all releases), update `erlang.csv` to the latest supported OTP version, and `_data/elixir-versions.yml` (except for RCs) files in `elixir-lang/elixir-lang.github.com`
 
-8. Push branch and the new tag
-
-9. Publish new zips with `make zips`, upload `Precompiled.zip` and `Docs.zip` to GitHub Releases, and include SHAs+CHANGELOG
-
-10. Add the release to `elixir.csv` (all releases), update `erlang.csv` to the precompiled OTP version, and `_data/elixir-versions.yml` (except for RCs) files in `elixir-lang/elixir-lang.github.com`
-
-11. Send an e-mail to elixir-lang-ann@googlegroups.com with title "Elixir vVERSION released". The body should be a link to the Release page on GitHub and the checksums. If it is a security release, prefix the title with the `[security]` tag
+8. Send an e-mail to elixir-lang-ann@googlegroups.com with title "Elixir vVERSION released". Use `.github/workflows/mail.exs` to generate the body of the email
 
 ## Creating a new vMAJOR.MINOR branch
 
@@ -40,6 +34,16 @@
 
 2. Start new /CHANGELOG.md
 
-3. Update tables in /SECURITY.md in "Compatibility and Deprecations"
+3. Update tables in /SECURITY.md and in "Compatibility and Deprecations"
 
 4. Commit "Start vMAJOR.MINOR+1"
+
+## Changing supported OTP versions
+
+1. Update the table in Compatibility and Deprecations
+
+2. Update `otp_release` checks in /Makefile and `/lib/elixir/src/elixir.erl`
+
+3. Update CI workflows in both `ci.yml` and `releases.yml`
+
+4. Remove `otp_release` version checks that are no longer needed

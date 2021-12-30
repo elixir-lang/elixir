@@ -49,18 +49,17 @@ jobs:
         run: |
           vsn=$(cat VERSION)
           make Precompiled.zip
-          mv Precompiled-v${vsn}.zip elixir-${vsn}-otp-${{ matrix.otp }}.zip
-          shasum -a 1 elixir-${vsn}-otp-${{ matrix.otp }}.zip > elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha1sum
-          shasum -a 256 elixir-${vsn}-otp-${{ matrix.otp }}.zip > elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha256sum
+          mv Precompiled-v${vsn}.zip elixir-otp-${{ matrix.otp }}.zip
+          shasum -a 1 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha1sum
+          shasum -a 256 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha256sum
           echo "$PWD/bin" >> $GITHUB_PATH
       - name: Upload Pre-built
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          vsn=$(cat VERSION)
-          gh release upload --clobber "v${vsn}" \
-            elixir-${vsn}-otp-${{ matrix.otp }}.zip \
-            elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha{1,256}sum
+          gh release upload --clobber "${{ github.ref_name }}" \
+            elixir-otp-${{ matrix.otp }}.zip \
+            elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum
       - uses: actions/checkout@v2
         with:
           repository: elixir-lang/ex_doc
@@ -87,7 +86,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          vsn=$(cat VERSION)
-          gh release upload --clobber "v${vsn}" \
+          gh release upload --clobber "${{ github.ref_name }}" \
             Docs.zip \
             Docs.zip.sha{1,256}sum
