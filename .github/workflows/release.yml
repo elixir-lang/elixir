@@ -1,0 +1,93 @@
+name: Release
+on:
+  push:
+    tags:
+      - v*
+
+env:
+  ELIXIR_OPTS: "--warnings-as-errors"
+  ERLC_OPTS: "warnings_as_errors"
+  LANG: C.UTF-8
+
+jobs:
+  create_draft_release:
+    runs-on: ubuntu-18.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Create draft release
+        run: |
+          gh release create \
+            --repo ${{ github.repository }} \
+            --title ${{ github.ref_name }} \
+            --notes '' \
+            --draft \
+            ${{ github.ref_name }}
+  release_pre_built:
+    needs: create_draft_release
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - otp: 22
+            otp_version: 22.3
+          - otp: 23
+            otp_version: 23.3
+          - otp: 24
+            otp_version: 24.1
+            build_docs: build_docs
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp_version }}
+          version-type: strict
+      - name: Build Elixir Release
+        run: |
+          vsn=$(cat VERSION)
+          make Precompiled.zip
+          mv Precompiled-v${vsn}.zip elixir-${vsn}-otp-${{ matrix.otp }}.zip
+          shasum -a 1 elixir-${vsn}-otp-${{ matrix.otp }}.zip > elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha1sum
+          shasum -a 256 elixir-${vsn}-otp-${{ matrix.otp }}.zip > elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha256sum
+          echo "$PWD/bin" >> $GITHUB_PATH
+      - name: Upload Pre-built
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          vsn=$(cat VERSION)
+          gh release upload --clobber "v${vsn}" \
+            elixir-${vsn}-otp-${{ matrix.otp }}.zip \
+            elixir-${vsn}-otp-${{ matrix.otp }}.zip.sha{1,256}sum
+      - uses: actions/checkout@v2
+        with:
+          repository: elixir-lang/ex_doc
+          ref: v0.26.0
+          path: ex_doc
+        if: ${{ matrix.build_docs }}
+      - name: Build ex_doc
+        if: ${{ matrix.build_docs }}
+        run: |
+          mv ex_doc ../ex_doc
+          cd ../ex_doc
+          ../elixir/bin/mix do local.rebar --force, local.hex --force, deps.get, compile
+          cd ../elixir
+      - name: Build Docs
+        if: ${{ matrix.build_docs }}
+        run: |
+          vsn=$(cat VERSION)
+          make Docs.zip
+          mv "Docs-v${vsn}.zip" Docs.zip
+          shasum -a 1 Docs.zip > Docs.zip.sha1sum
+          shasum -a 256 Docs.zip > Docs.zip.sha256sum
+      - name: Upload Docs
+        if: ${{ matrix.build_docs }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          vsn=$(cat VERSION)
+          gh release upload --clobber "v${vsn}" \
+            Docs.zip \
+            Docs.zip.sha{1,256}sum
