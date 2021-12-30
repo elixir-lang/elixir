@@ -1,0 +1,25 @@
+name: Notify
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    name: Notify
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: 24.2
+          elixir-version: 1.13.1
+      - name: Run Elixir script
+        env:
+          ELIXIR_FORUM_TOKEN: ${{ secret.ELIXIR_FORUM_TOKEN }}
+          ELIXIR_LANG_ANN_TOKEN: ${{ secret.ELIXIR_LANG_ANN_TOKEN }}
+        run: |
+          elixir .github./workflows/notify.exs ${{ github.ref_name }}
