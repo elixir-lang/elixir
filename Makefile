@@ -220,24 +220,14 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 #==> Zip tasks
 
 Docs.zip: docs
-	rm -f Docs-v$(VERSION).zip
-	zip -9 -r Docs-v$(VERSION).zip CHANGELOG.md doc NOTICE LICENSE README.md
-	@ echo "Docs file created $(CURDIR)/Docs-v$(VERSION).zip"
+	rm -f Docs.zip
+	zip -9 -r Docs.zip CHANGELOG.md doc NOTICE LICENSE README.md
+	@ echo "Docs file created $(CURDIR)/Docs.zip"
 
 Precompiled.zip: build_man compile
-	rm -f Precompiled-v$(VERSION).zip
-	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE man NOTICE README.md VERSION
-	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
-
-zips: Precompiled.zip Docs.zip
-	@ echo ""
-	@ echo "### Checksums"
-	@ echo ""
-	@ shasum -a 1 < Precompiled-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA1:"
-	@ shasum -a 512 < Precompiled-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA512:"
-	@ shasum -a 1 < Docs-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Docs.zip SHA1:"
-	@ shasum -a 512 < Docs-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Docs.zip SHA512:"
-	@ echo ""
+	rm -f Precompiled.zip
+	zip -9 -r Precompiled.zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE man NOTICE README.md VERSION
+	@ echo "Precompiled file created $(CURDIR)/Precompiled.zip"
 
 #==> Test tasks
 
