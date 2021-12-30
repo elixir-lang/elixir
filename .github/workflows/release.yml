@@ -47,9 +47,8 @@ jobs:
           version-type: strict
       - name: Build Elixir Release
         run: |
-          vsn=$(cat VERSION)
           make Precompiled.zip
-          mv Precompiled-v${vsn}.zip elixir-otp-${{ matrix.otp }}.zip
+          mv Precompiled.zip elixir-otp-${{ matrix.otp }}.zip
           shasum -a 1 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha1sum
           shasum -a 256 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha256sum
           echo "$PWD/bin" >> $GITHUB_PATH
@@ -76,9 +75,7 @@ jobs:
       - name: Build Docs
         if: ${{ matrix.build_docs }}
         run: |
-          vsn=$(cat VERSION)
           make Docs.zip
-          mv "Docs-v${vsn}.zip" Docs.zip
           shasum -a 1 Docs.zip > Docs.zip.sha1sum
           shasum -a 256 Docs.zip > Docs.zip.sha256sum
       - name: Upload Docs
