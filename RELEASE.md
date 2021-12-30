@@ -12,13 +12,11 @@
 
 5. Commit changes above with title "Release vVERSION", generate a new tag, and push it
 
-6. Wait until GitHub Actions publish artifacts to the given tag and the CI is green
+6. Wait until GitHub Actions publish artifacts to the draft release and the CI is green
 
 7. Copy the relevant bits from /CHANGELOG.md to the GitHub release and publish it
 
 8. Add the release to `elixir.csv` with the minimum supported OTP version (all releases), update `erlang.csv` to the latest supported OTP version, and `_data/elixir-versions.yml` (except for RCs) files in `elixir-lang/elixir-lang.github.com`
-
-9. Send an e-mail to elixir-lang-ann@googlegroups.com with title "Elixir vVERSION released". Use `.github/workflows/mail.exs TAG` to generate the body of the email
 
 ## Creating a new vMAJOR.MINOR branch
 
