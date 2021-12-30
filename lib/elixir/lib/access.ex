@@ -94,8 +94,7 @@ defmodule Access do
 
   @type container :: keyword | struct | map
   @type nil_container :: nil
-  @type any_container :: any
-  @type t :: container | nil_container | any_container
+  @type t :: container | nil_container | any
   @type key :: any
   @type value :: any
 
@@ -153,7 +152,7 @@ defmodule Access do
   """
   @callback get_and_update(data, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
               {current_value, new_data :: data}
-            when current_value: value, data: container | any_container
+            when current_value: value, data: container
 
   @doc """
   Invoked to "pop" the value under `key` out of the given data structure.
@@ -167,7 +166,7 @@ defmodule Access do
 
   See the implementations for `Map.pop/3` or `Keyword.pop/3` for more examples.
   """
-  @callback pop(data, key) :: {value, data} when data: container | any_container
+  @callback pop(data, key) :: {value, data} when data: container
 
   defmacrop raise_undefined_behaviour(exception, module, top) do
     quote do
