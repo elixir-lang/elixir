@@ -1604,7 +1604,7 @@ defmodule File do
     :file.close(io_device)
   end
 
-  @doc """
+  @doc ~S"""
   Returns a `File.Stream` for the given `path` with the given `modes`.
 
   The stream implements both `Enumerable` and `Collectable` protocols,
