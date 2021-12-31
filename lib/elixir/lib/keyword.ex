@@ -1373,19 +1373,19 @@ defmodule Keyword do
 
   @doc false
   @deprecated "Use Enum.filter/2 instead"
-  def filter(keywords, fun) when is_list(keywords) do
+  def filter(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
     Enum.filter(keywords, fun)
   end
 
   @doc false
   @deprecated "Use Keyword.new/2 instead"
-  def reject(keywords, fun) when is_list(keywords) do
+  def reject(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
     Enum.reject(keywords, fun)
   end
 
   @doc false
   @deprecated "Use Keyword.new/2 instead"
-  def map(keywords, fun) when is_list(keywords) do
+  def map(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
     Enum.map(keywords, fn {k, v} -> {k, fun.({k, v})} end)
   end
 end

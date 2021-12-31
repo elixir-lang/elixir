@@ -1038,19 +1038,31 @@ defmodule Map do
 
   @doc false
   @deprecated "Use Enum.filter/2 instead"
-  def filter(map, fun) when is_map(map) do
-    Enum.filter(map, fun) |> :maps.from_list()
+  def filter(map, fun) when is_map(map) and is_function(fun, 1) do
+    Enum.reduce(map, %{}, fn {key, value} = element, acc ->
+      if fun.(element) do
+        Map.put(acc, key, value)
+      else
+        acc
+      end
+    end)
   end
 
   @doc false
   @deprecated "Use Enum.reject/2 instead"
-  def reject(map, fun) when is_map(map) do
-    Enum.reject(map, fun) |> :maps.from_list()
+  def reject(map, fun) when is_map(map) and is_function(fun, 1) do
+    Enum.reduce(map, %{}, fn {key, value} = element, acc ->
+      if fun.(element) do
+        acc
+      else
+        Map.put(acc, key, value)
+      end
+    end)
   end
 
   @doc false
   @deprecated "Use Map.new/2 instead"
-  def map(map, fun) when is_map(map) do
+  def map(map, fun) when is_map(map) and is_function(fun, 1) do
     new(map, fn {k, v} -> {k, fun.({k, v})} end)
   end
 end
