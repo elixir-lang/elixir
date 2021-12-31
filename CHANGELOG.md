@@ -219,6 +219,7 @@ Finally, the `Code` module has also been augmented with two functions: `Code.str
 #### Logger
 
   * [Logger] Add `Logger.put_application_level/2`
+  * [Logger] Print all log levels in accordance to Erlang/OTP. This also means `[warn]` is now shown as `[warning]`
 
 #### Mix
 
