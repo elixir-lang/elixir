@@ -98,6 +98,19 @@ defmodule Kernel.ComprehensionTest do
     assert Process.get(:into_halt)
   end
 
+  test "nested for comprehensions with unique values" do
+    assert for(x <- [1, 1, 2], uniq: true, do: for(y <- [3, 3], uniq: true, do: x * y)) == [
+             [3],
+             [6]
+           ]
+
+    assert for(<<x <- "abcabc">>,
+             uniq: true,
+             into: "",
+             do: for(<<y <- "zz">>, uniq: true, into: "", do: to_bin(x) <> to_bin(y))
+           ) == "azbzcz"
+  end
+
   test "for comprehensions with nilly filters" do
     assert for(x <- 1..3, nilly(), do: x * 2) == []
   end
