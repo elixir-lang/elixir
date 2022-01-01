@@ -21,7 +21,7 @@ translate_reduce(Meta, Cases, Expr, Reduce, S) ->
     ({'case', CaseAnn, _, CaseBlock}, InnerAcc) -> {'case', CaseAnn, InnerAcc, CaseBlock}
   end,
 
-  {build_reduce(Ann, TCases, InnerFun, TExpr, TReduce, false, SE), SE}.
+  build_reduce(Ann, TCases, InnerFun, TExpr, TReduce, false, SE).
 
 translate_into(Meta, Cases, Expr, Opts, Return, S) ->
   Ann = ?ann(Meta),
@@ -115,11 +115,11 @@ build_inline(Ann, Clauses, Expr, Into, Uniq, S) ->
 
 build_inline_each(Ann, Clauses, Expr, false, Uniq, S) ->
   InnerFun = fun(InnerExpr, _InnerAcc) -> InnerExpr end,
-  {build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, S), S};
+  build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, S);
 build_inline_each(Ann, Clauses, Expr, {nil, _} = Into, Uniq, S) ->
   InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
-  ReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, S),
-  {?remote(Ann, lists, reverse, [ReduceExpr]), S};
+  {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, S),
+  {?remote(Ann, lists, reverse, [ReduceExpr]), SR};
 build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
   {InnerValue, SV} = build_var(Ann, S),
   Generated = erl_anno:set_generated(true, Ann),
@@ -138,8 +138,8 @@ build_inline_each(Ann, Clauses, Expr, {bin, _, []}, Uniq, S) ->
     ]}
   end,
 
-  ReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, SV),
-  {?remote(Ann, erlang, list_to_bitstring, [ReduceExpr]), SV}.
+  {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, {nil, Ann}, Uniq, SV),
+  {?remote(Ann, erlang, list_to_bitstring, [ReduceExpr]), SR}.
 
 build_into(Ann, Clauses, Expr, {map, _, []}, Uniq, S) ->
   {ReduceExpr, SR} = build_inline_each(Ann, Clauses, Expr, {nil, Ann}, Uniq, S),
@@ -161,7 +161,7 @@ build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
     ?remote(Ann, 'Elixir.Collectable', into, [Into])
   },
 
-  IntoReduceExpr = build_reduce(Ann, Clauses, InnerFun, Expr, Acc, Uniq, SD),
+  {IntoReduceExpr, SN} = build_reduce(Ann, Clauses, InnerFun, Expr, Acc, Uniq, SD),
 
   TryExpr =
     {'try', Ann,
@@ -173,7 +173,7 @@ build_into(Ann, Clauses, Expr, Into, Uniq, S) ->
       [stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack)],
       []},
 
-  {{block, Ann, [MatchExpr, TryExpr]}, SD}.
+  {{block, Ann, [MatchExpr, TryExpr]}, SN}.
 
 stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack) ->
   {clause, Ann,
@@ -186,7 +186,7 @@ stacktrace_clause(Ann, Fun, Acc, Kind, Reason, Stack) ->
 
 build_reduce(Ann, Clauses, InnerFun, Expr, Into, false, S) ->
   {Acc, SA} = build_var(Ann, S),
-  build_reduce_each(Clauses, InnerFun(Expr, Acc), Into, Acc, SA);
+  {build_reduce_each(Clauses, InnerFun(Expr, Acc), Into, Acc, SA), SA};
 build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, S) ->
   %% Those variables are used only inside the anonymous function
   %% so we don't need to worry about returning the scope.
@@ -209,7 +209,7 @@ build_reduce(Ann, Clauses, InnerFun, Expr, Into, true, S) ->
   ]},
 
   EnumReduceCall = build_reduce_each(Clauses, InnerExpr, NewInto, Acc, SU),
-  ?remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]).
+  {?remote(Ann, erlang, element, [{integer, Ann, 1}, EnumReduceCall]), SU}.
 
 build_reduce_each([{enum, Meta, Left, Right, Filters} | T], Expr, Arg, Acc, S) ->
   Ann = ?ann(Meta),
