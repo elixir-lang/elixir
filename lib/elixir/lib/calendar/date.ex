@@ -990,6 +990,8 @@ defmodule Date do
   """
   @doc since: "1.11.0"
   @spec beginning_of_month(Calendar.date()) :: t()
+  def beginning_of_month(date)
+
   def beginning_of_month(%{year: year, month: month, calendar: calendar}) do
     %Date{year: year, month: month, day: 1, calendar: calendar}
   end
@@ -1009,6 +1011,8 @@ defmodule Date do
   """
   @doc since: "1.11.0"
   @spec end_of_month(Calendar.date()) :: t()
+  def end_of_month(date)
+
   def end_of_month(%{year: year, month: month, calendar: calendar} = date) do
     day = Date.days_in_month(date)
     %Date{year: year, month: month, day: day, calendar: calendar}
