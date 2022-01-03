@@ -1178,16 +1178,23 @@ defmodule IEx.Helpers do
   defp history, do: Process.get(:iex_history)
 
   @doc """
-  Creates a PID from `string`.
+  Creates a PID from `string` or `atom`.
 
   ## Examples
 
       iex> pid("0.21.32")
       #PID<0.21.32>
 
+      iex> pid(:init)
+      #PID<0.0.0>
+
   """
   def pid(string) when is_binary(string) do
     :erlang.list_to_pid('<#{string}>')
+  end
+
+  def pid(name) when is_atom(name) do
+    Process.whereis(name)
   end
 
   @doc """
