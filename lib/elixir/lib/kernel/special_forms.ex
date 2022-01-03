@@ -1410,7 +1410,8 @@ defmodule Kernel.SpecialForms do
 
   Variable assignment based on `=` is treated as filters, and 
   if the value of the expression is falsey (`nil` and `false`), it will be filtered out.
-  in case you don't want variable assignment to be treated as filters, use a `<-` generator
+  in case you don't want variable assignment to be treated as filters, 
+  you could move variable assignment into `do` block, or use a `<-` generator
   and a single-element list literal on its right-hand side.
       iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
 
