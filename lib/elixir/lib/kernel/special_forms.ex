@@ -1409,7 +1409,7 @@ defmodule Kernel.SpecialForms do
   comprehension.
 
   Variable assignment based on `=` is treated as filters, and 
-  if value of the expression is falsey (`nil` and `false`), it would be filtered out.
+  if the value of the expression is falsey (`nil` and `false`), it will be filtered out.
   in case variable assignment don't want to be treated as filters, using assignment via generators would be preferred.
       # A correct comprehension for getting data which doesn't have :b attribute.
       # `b <- [x[:b]]` is treated as generator, and `b` is correctly declared as `x[:b]`
