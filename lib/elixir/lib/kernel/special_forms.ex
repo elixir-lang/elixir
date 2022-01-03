@@ -1425,7 +1425,7 @@ defmodule Kernel.SpecialForms do
       iex> for {language, parent} <- languages do
             grandparent = languages[parent]
             {language, grandparent}
-           end
+          end
       [elixir: :prolog, erlang: nil, prolog: nil]
 
       # Alternative correct comprehension for getting language with grandparent.
