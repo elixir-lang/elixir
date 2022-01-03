@@ -1413,15 +1413,15 @@ defmodule Kernel.SpecialForms do
   in case you don't want variable assignment to be treated as filters, 
   you could move variable assignment into `do` block, or use a `<-` generator
   and a single-element list literal on its right-hand side.
-      iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
-
       # A incorrect comprehension for getting language with grandparent.
       # because `erlang` and `prolog` doesn't have grandparent, assigning `grandparent` is treated as false filter.
+      iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
       iex> for {language, parent} <- languages, grandparent = languages[parent], do: {language, parent}
       [elixir: :prolog]
 
       # A correct comprehension for getting language with grandparent.
       # Here, assignment is moved into `do` block, and not treated as filter.
+      iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
       iex> for {language, parent} <- languages do
       ...>   grandparent = languages[parent]
       ...>   {language, grandparent}
@@ -1430,6 +1430,7 @@ defmodule Kernel.SpecialForms do
 
       # Alternative correct comprehension for getting language with grandparent.
       # Here, assignment changed as generator (<-) with one element list, useful in case you have other filters which depend on `grandparent` data.
+      iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
       iex> for {language, parent} <- languages, grandparent <- [languages[parent]], do: {language, parent}
       [elixir: :prolog, erlang: nil, prolog: nil]
 
