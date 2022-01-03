@@ -1423,7 +1423,7 @@ defmodule Kernel.SpecialForms do
       [elixir: :prolog]
 
   Given the grandparents of Erlang and Prolog were nil, those values were
-  filtered out. IF you don't want this behaviour, a simple option is to
+  filtered out. If you don't want this behaviour, a simple option is to
   move the filter inside the do-block:
 
       iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
