@@ -1410,7 +1410,8 @@ defmodule Kernel.SpecialForms do
 
   Variable assignment based on `=` is treated as filters, and 
   if the value of the expression is falsey (`nil` and `false`), it will be filtered out.
-  in case variable assignment don't want to be treated as filters, using assignment via generators would be preferred.
+  in case you don't want variable assignment to be treated as filters, use a `<-` generator
+  and a single-element list literal on its right-hand side.
       # A correct comprehension for getting data which doesn't have :b attribute.
       # `b <- [x[:b]]` is treated as generator, and `b` is correctly declared as `x[:b]`
       iex> for x <- [%{a: 1, b: 2}, %{a: 2}], b <- [x[:b]], b == nil, do: x
