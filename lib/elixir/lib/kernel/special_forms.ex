@@ -1423,9 +1423,9 @@ defmodule Kernel.SpecialForms do
       # A correct comprehension for getting language with grandparent.
       # Here, assignment is moved into `do` block, and not treated as filter.
       iex> for {language, parent} <- languages do
-          grandparent = languages[parent]
-          {language, grandparent}
-          end
+      ...>   grandparent = languages[parent]
+      ...>   {language, grandparent}
+      ...> end
       [elixir: :prolog, erlang: nil, prolog: nil]
 
       # Alternative correct comprehension for getting language with grandparent.
