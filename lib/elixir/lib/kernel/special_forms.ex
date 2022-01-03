@@ -1412,15 +1412,25 @@ defmodule Kernel.SpecialForms do
   if the value of the expression is falsey (`nil` and `false`), it will be filtered out.
   in case you don't want variable assignment to be treated as filters, use a `<-` generator
   and a single-element list literal on its right-hand side.
-      # A correct comprehension for getting data which doesn't have :b attribute.
-      # `b <- [x[:b]]` is treated as generator, and `b` is correctly declared as `x[:b]`
-      iex> for x <- [%{a: 1, b: 2}, %{a: 2}], b <- [x[:b]], b == nil, do: x
-      [%{a: 2}]
+      iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
 
-      # A wrong comprehension for getting data which doesn't have :b attribute.
-      # `b = x[:b]` is treated as filters, and nil is falsey value
-      iex> for x <- [%{a: 1, b: 2}, %{a: 2}], b = x[:b], b == nil, do: x
-      []
+      # A incorrect comprehension for getting language with grandparent.
+      # because `erlang` and `prolog` doesn't have grandparent, assigning `grandparent` is treated as false filter.
+      iex> for {language, parent} <- languages, grandparent = languages[parent], do: {language, parent}
+      [elixir: :prolog]
+
+      # A correct comprehension for getting language with grandparent.
+      # Here, assignment is moved into `do` block, and not treated as filter.
+      iex> for {language, parent} <- languages do
+            grandparent = languages[parent]
+            {language, grandparent}
+           end
+      [elixir: :prolog, erlang: nil, prolog: nil]
+
+      # Alternative correct comprehension for getting language with grandparent.
+      # Here, assignment changed as generator (<-) with one element list, useful in case you have other filters which depend on `grandparent` data.
+      iex> for {language, parent} <- languages, grandparent <- [languages[parent]], do: {language, parent}
+      [elixir: :prolog, erlang: nil, prolog: nil]
 
   ## The `:into` and `:uniq` options
 
