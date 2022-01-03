@@ -1388,6 +1388,10 @@ defmodule Kernel.SpecialForms do
       iex> for n <- [1, 2, 3, 4, 5, 6], rem(n, 2) == 0, do: n
       [2, 4, 6]
 
+  Filters must evaluate to truthy values (everything but `nil`
+  and `false`). If a filter is falsy, then the current value is
+  discarded.
+
   Generators can also be used to filter as it removes any value
   that doesn't match the pattern on the left side of `<-`:
 
@@ -1407,6 +1411,35 @@ defmodule Kernel.SpecialForms do
   Variable assignments inside the comprehension, be it in generators,
   filters or inside the block, are not reflected outside of the
   comprehension.
+
+  Variable assignments inside filters must still return a truthy value,
+  otherwise values are discarded. Let's see an example. Imagine you have
+  a keyword list where the key is a programming language and the value
+  is its direct parent. Then let's try to compute the grandparent of each
+  language. You could try this:
+
+      iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
+      iex> for {language, parent} <- languages, grandparent = languages[parent], do: {language, grandparent}
+      [elixir: :prolog]
+
+  Given the grandparents of Erlang and Prolog were nil, those values were
+  filtered out. IF you don't want this behaviour, a simple option is to
+  move the filter inside the do-block:
+
+      iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
+      iex> for {language, parent} <- languages do
+      ...>   grandparent = languages[parent]
+      ...>   {language, grandparent}
+      ...> end
+      [elixir: :prolog, erlang: nil, prolog: nil]
+
+  However, such option is not always available, as you may have further
+  filters. An alternative is to convert the filter into a generator by
+  wrapping the right side of `=` in a list:
+
+      iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
+      iex> for {language, parent} <- languages, grandparent <- [languages[parent]], do: {language, grandparent}
+      [elixir: :prolog, erlang: nil, prolog: nil]
 
   ## The `:into` and `:uniq` options
 
