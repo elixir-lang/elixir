@@ -856,6 +856,8 @@ defmodule DateTime do
 
   """
   @spec to_naive(Calendar.datetime()) :: NaiveDateTime.t()
+  def to_naive(datetime)
+
   def to_naive(%{
         calendar: calendar,
         year: year,
@@ -895,6 +897,8 @@ defmodule DateTime do
 
   """
   @spec to_date(Calendar.datetime()) :: Date.t()
+  def to_date(datetime)
+
   def to_date(%{
         year: year,
         month: month,
@@ -925,6 +929,8 @@ defmodule DateTime do
 
   """
   @spec to_time(Calendar.datetime()) :: Time.t()
+  def to_time(datetime)
+
   def to_time(%{
         year: _,
         month: _,
