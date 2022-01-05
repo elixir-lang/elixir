@@ -51,6 +51,7 @@ erl_to_ex(Mod, Fun, Args) ->
 inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 
 ?inline(?atom, to_charlist, 1, erlang, atom_to_list);
+?inline(?atom, to_string, 1, erlang, atom_to_binary);
 
 ?inline(?bitwise, 'bnot', 1, erlang, 'bnot');
 ?inline(?bitwise, 'band', 2, erlang, 'band');
@@ -234,7 +235,6 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args),
   {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
 
-?rewrite(?atom, to_string, [Arg], erlang, atom_to_binary, [Arg, utf8]);
 ?rewrite(?kernel, is_map_key, [Map, Key], erlang, is_map_key, [Key, Map]);
 ?rewrite(?map, delete, [Map, Key], maps, remove, [Key, Map]);
 ?rewrite(?map, fetch, [Map, Key], maps, find, [Key, Map]);

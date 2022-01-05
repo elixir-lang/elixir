@@ -5,7 +5,7 @@
 
 inspect(Atom) when is_atom(Atom) ->
   case elixir_config:is_bootstrap() of
-    true  -> atom_to_binary(Atom, utf8);
+    true  -> atom_to_binary(Atom);
     false -> 'Elixir.Macro':inspect_atom(literal, Atom)
   end.
 
@@ -141,7 +141,7 @@ concat(Args)      -> binary_to_atom(do_concat(Args), utf8).
 safe_concat(Args) -> binary_to_existing_atom(do_concat(Args), utf8).
 
 do_concat([H | T]) when is_atom(H), H /= nil ->
-  do_concat([atom_to_binary(H, utf8) | T]);
+  do_concat([atom_to_binary(H) | T]);
 do_concat([<<"Elixir.", _/binary>>=H | T]) ->
   do_concat(T, H);
 do_concat([<<"Elixir">>=H | T]) ->
@@ -152,7 +152,7 @@ do_concat(T) ->
 do_concat([nil | T], Acc) ->
   do_concat(T, Acc);
 do_concat([H | T], Acc) when is_atom(H) ->
-  do_concat(T, <<Acc/binary, $., (to_partial(atom_to_binary(H, utf8)))/binary>>);
+  do_concat(T, <<Acc/binary, $., (to_partial(atom_to_binary(H)))/binary>>);
 do_concat([H | T], Acc) when is_binary(H) ->
   do_concat(T, <<Acc/binary, $., (to_partial(H))/binary>>);
 do_concat([], Acc) ->
