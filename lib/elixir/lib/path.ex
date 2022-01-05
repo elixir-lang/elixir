@@ -721,4 +721,74 @@ defmodule Path do
   defp major_os_type do
     :os.type() |> elem(0)
   end
+
+  @doc """
+  Returns a relative path that is protected from directory-traversal attacks.
+
+  The given relative path is sanitized by eliminating `..` and `.` components.
+
+  This function checks that, after expanding those components, the path is still "safe".
+  Paths are considered unsafe if either of these is true:
+
+    * The path is not relative, such as `"/foo/bar"`.
+
+    * A `..` component would make it so that the path would travers up above
+      the root of `relative_to`.
+
+    * A symbolic link in the path points to something above the root of `relative_to`.
+
+  ## Examples
+
+      iex> Path.safe_relative_to("deps/my_dep/app.beam", "deps")
+      {:ok, "deps/my_dep/app.beam"}
+
+      iex> Path.safe_relative_to("deps/my_dep/./build/../app.beam", "deps")
+      {:ok, "deps/my_dep/app.beam"}
+
+      iex> Path.safe_relative_to("my_dep/../..", "deps")
+      :error
+
+      iex> Path.safe_relative_to("/usr/local", ".")
+      :error
+
+  """
+  @doc since: "1.14.0"
+  @spec safe_relative_to(t, t) :: {:ok, binary} | :error
+  def safe_relative_to(path, relative_to) do
+    path = IO.chardata_to_string(path)
+
+    case :filelib.safe_relative_path(path, relative_to) do
+      :unsafe -> :error
+      relative_path -> {:ok, IO.chardata_to_string(relative_path)}
+    end
+  end
+
+  @doc """
+  Returns a path relative to the current working directory that is
+  protected from directory-traversal attacks.
+
+  Same as `safe_relative_to/2` with the current working directory as
+  the second argument. If there is an issue retrieving the current working
+  directory, this function raises an error.
+
+  ## Examples
+
+      iex> Path.safe_relative("foo")
+      {:ok, "foo"}
+
+      iex> Path.safe_relative("foo/../bar")
+      {:ok, "bar"}
+
+      iex> Path.safe_relative("foo/../..")
+      :error
+
+      iex> Path.safe_relative("/usr/local")
+      :error
+
+  """
+  @doc since: "1.14.0"
+  @spec safe_relative(t) :: {:ok, binary} | :error
+  def safe_relative(path) do
+    safe_relative_to(path, File.cwd!())
+  end
 end

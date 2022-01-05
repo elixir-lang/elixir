@@ -101,6 +101,21 @@ defmodule PathTest do
       assert Path.split("C:\\foo\\bar") == ["c:/", "foo", "bar"]
       assert Path.split("C:/foo/bar") == ["c:/", "foo", "bar"]
     end
+
+    test "safe_relative/1" do
+      assert Path.safe_relative("local/foo") == {:ok, "local/foo"}
+      assert Path.safe_relative("D:/usr/local/foo") == :error
+      assert Path.safe_relative("d:/usr/local/foo") == :error
+      assert Path.safe_relative("foo/../..") == :error
+    end
+
+    test "safe_relative_to/2" do
+      assert Path.safe_relative_to("local/foo/bar", "local") == {:ok, "foo/bar"}
+      assert Path.safe_relative_to("foo/..", "local") == {:ok, "local"}
+      assert Path.safe_relative_to("..", "local/foo") == :error
+      assert Path.safe_relative_to("d:/usr/local/foo", "D:/") == :error
+      assert Path.safe_relative_to("D:/usr/local/foo", "d:/") == :error
+    end
   end
 
   describe "Unix" do
@@ -213,6 +228,22 @@ defmodule PathTest do
 
     assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
     assert Path.relative_to(["usr", ?/, 'local/foo'], 'usr/local') == "foo"
+  end
+
+  test "safe_relative/1" do
+    assert Path.safe_relative("foo/bar") == {:ok, "foo/bar"}
+    assert Path.safe_relative("foo/..") == {:ok, ""}
+    assert Path.safe_relative("./foo") == {:ok, "foo"}
+
+    assert Path.safe_relative("/usr/local/foo") == :error
+    assert Path.safe_relative("foo/../..") == :error
+  end
+
+  test "safe_relative_to/2" do
+    assert Path.safe_relative_to("/usr/local/foo", "/usr/local") == :error
+    assert Path.safe_relative_to("../../..", "foo/bar") == :error
+    assert Path.safe_relative_to("../../..", "foo/bar") == :error
+    assert Path.safe_relative_to("/usr/local/foo", "/") == :error
   end
 
   test "rootname/2" do
