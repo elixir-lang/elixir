@@ -5562,6 +5562,13 @@ defmodule Kernel do
       target =
         Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
 
+      as = Keyword.get(opts, :as)
+
+      if target == __MODULE__ and is_nil(as) do
+        raise ArgumentError,
+              "defdelegate function is calling itself, which will lead to an infinite loop. You should either change the value of the :to option or specify the :as option"
+      end
+
       if is_list(funs) do
         IO.warn(
           "passing a list to Kernel.defdelegate/2 is deprecated, please define each delegate separately",
