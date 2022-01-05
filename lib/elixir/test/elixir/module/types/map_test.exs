@@ -160,6 +160,13 @@ defmodule Module.Types.MapTest do
              )
            ) == {:ok, {:map, [{:required, {:atom, :a}, {:atom, :b}}]}}
 
+    assert quoted_expr(
+             (
+               a = :a
+               %{{^a, :b} => :c} = %{{:a, :b} => :c}
+             )
+           ) == {:ok, {:map, [{:required, {:tuple, 2, [{:atom, :a}, {:atom, :b}]}, {:atom, :c}}]}}
+
     assert {:error,
             {:unable_unify,
              {{:map, [{:required, {:atom, :c}, {:atom, :d}}]},
