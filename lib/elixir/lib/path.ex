@@ -754,7 +754,7 @@ defmodule Path do
 
   """
   @doc since: "1.14.0"
-  @spec safe_relative_to(t, t) :: {:ok, binary} | {:error, :unsafe}
+  @spec safe_relative_to(t, t) :: {:ok, binary} | :error
   def safe_relative_to(path, relative_to) do
     path = IO.chardata_to_string(path)
 
