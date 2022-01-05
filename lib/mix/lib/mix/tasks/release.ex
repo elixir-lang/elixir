@@ -54,14 +54,13 @@ defmodule Mix.Tasks.Release do
       interactive and embedded. By default, it runs in the interactive
       mode which dynamically loads modules when they are used for the
       first time. The first time your application calls `Enum.map/2`,
-      the VM will find the `Enum` module and load it. There’s a downside.
-      When you start a new server in production, it may need to load
+      the VM will find the `Enum` module and load it. There's a downside:
+      when you start a new server in production, it may need to load
       many other modules, causing the first requests to have an unusual
-      spike in response time. When running in Erlang/OTP earlier than 23,
-      the system always runs in embedded mode. When using Erlang/OTP 23+,
-      they run in interactive mode while being configured and then it
-      swaps to embedded mode, guaranteeing your system is ready to handle
-      requests after booting.
+      spike in response time. With releases, the system is configured in
+      interactive mode and then it swaps to embedded mode, which preloads
+      all modules and guarantees your system is ready to handle requests
+      after booting.
 
     * Configuration and customization. Releases give developers fine
       grained control over system configuration and the VM flags used
@@ -1454,11 +1453,9 @@ defmodule Mix.Tasks.Release do
   # Helper functions
 
   defp release_mode(release, env_var) do
-    # TODO: Remove otp_release check once we require Erlang/OTP 23+
-    otp_gte_23? = :erlang.system_info(:otp_release) >= '23'
     reboot? = Keyword.get(release.options, :reboot_system_after_config, false)
 
-    if otp_gte_23? and reboot? and release.config_providers != [] do
+    if reboot? and release.config_providers != [] do
       "-elixir -config_provider_reboot_mode #{env_var}"
     else
       "-mode #{env_var}"

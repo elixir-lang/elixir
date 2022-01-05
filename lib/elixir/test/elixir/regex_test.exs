@@ -90,10 +90,6 @@ defmodule RegexTest do
     # Non breaking space matches [[:space:]] with Unicode
     assert <<0xA0::utf8>> =~ ~r/[[:space:]]/u
     assert <<0xA0::utf8>> =~ ~r/\s/u
-
-    # Erlang/OTP 23 raises badarg on invalid UTF-8.
-    # Earlier versions simply would not match.
-    assert catch_error(if <<?<, 255, ?>>> =~ ~r/<.>/u, do: flunk("failed"), else: raise("failed"))
     assert <<?<, 255, ?>>> =~ ~r/<.>/
   end
 

@@ -341,8 +341,7 @@ defmodule Config.Provider do
   defp restart_and_sleep() do
     mode = Application.get_env(:elixir, @reboot_mode_key)
 
-    # TODO: Remove otp_release check once we require Erlang/OTP 23+
-    if :erlang.system_info(:otp_release) >= '23' and mode in [:embedded, :interactive] do
+    if mode in [:embedded, :interactive] do
       :init.restart(mode: mode)
     else
       :init.restart()
