@@ -873,10 +873,10 @@ defmodule Stream do
   `Stream.transform/3`.
   """
   @spec transform(Enumerable.t(), start_fun, reducer, after_fun) :: Enumerable.t()
-      when start_fun: (() -> acc),
-           reducer: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
-           after_fun: (acc -> term),
-           acc: any
+        when start_fun: (() -> acc),
+             reducer: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
+             after_fun: (acc -> term),
+             acc: any
   def transform(enum, start_fun, reducer, after_fun)
       when is_function(start_fun, 0) and is_function(reducer, 2) and is_function(after_fun, 1) do
     &do_transform(enum, start_fun, reducer, &1, &2, nil, after_fun)
