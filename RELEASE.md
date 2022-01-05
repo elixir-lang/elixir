@@ -38,7 +38,7 @@
 
 4. Commit "Start vMAJOR.MINOR+1"
 
-## Changing supported OTP versions
+## Changing supported Erlang/OTP versions
 
 1. Update the table in Compatibility and Deprecations
 
