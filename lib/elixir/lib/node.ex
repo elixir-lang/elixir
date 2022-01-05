@@ -258,6 +258,38 @@ defmodule Node do
   end
 
   @doc """
+  Returns the PID of a new process started by the application of `fun` on `node`,
+  and a reference for a monitor created to the new process. Otherwise works
+  like `spawn/1`
+
+  If the node identified by `node` does not support distributed `spawn_monitor()`,
+  the call will fail with a `:notsup` exception.
+
+  Inlined by the compiler.
+  """
+  @doc since: "1.14.0"
+  @spec spawn_monitor(t, (() -> any)) :: {pid, reference}
+  def spawn_monitor(node, fun) do
+    :erlang.spawn_monitor(node, fun)
+  end
+
+  @doc """
+  Returns the PID of a new process started by the application of
+  `module.function(args)` on `node`, and a reference for a monitor created to the
+  new process. Otherwise works like `spawn/3`
+
+  If the node identified by `node` does not support distributed `spawn_monitor()`,
+  the call will fail with a `:notsup` exception.
+
+  Inlined by the compiler.
+  """
+  @doc since: "1.14.0"
+  @spec spawn_monitor(t, module, atom, [any]) :: {pid, reference}
+  def spawn_monitor(node, module, fun, args) do
+    :erlang.spawn_monitor(node, module, fun, args)
+  end
+
+  @doc """
   Sets the magic cookie of `node` to the atom `cookie`.
 
   The default node is `Node.self/0`, the local node. If `node` is the local node,
