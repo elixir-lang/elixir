@@ -258,6 +258,36 @@ defmodule Node do
   end
 
   @doc """
+  Spawns the given function on a node, monitors it and returns its PID
+  and monitoring reference.
+
+  This functionality was added on Erlang/OTP 23. Using this function to
+  communicate with nodes running on earlier versions will fail.
+
+  Inlined by the compiler.
+  """
+  @doc since: "1.14.0"
+  @spec spawn_monitor(t, (() -> any)) :: {pid, reference}
+  def spawn_monitor(node, fun) do
+    :erlang.spawn_monitor(node, fun)
+  end
+
+  @doc """
+  Spawns the given module and function passing the given args on a node,
+  monitors it and returns its PID and monitoring reference.
+
+  This functionality was added on Erlang/OTP 23. Using this function
+  to communicate with nodes running on earlier versions will fail.
+
+  Inlined by the compiler.
+  """
+  @doc since: "1.14.0"
+  @spec spawn_monitor(t, module, atom, [any]) :: {pid, reference}
+  def spawn_monitor(node, module, fun, args) do
+    :erlang.spawn_monitor(node, module, fun, args)
+  end
+
+  @doc """
   Sets the magic cookie of `node` to the atom `cookie`.
 
   The default node is `Node.self/0`, the local node. If `node` is the local node,
