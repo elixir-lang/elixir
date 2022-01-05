@@ -157,6 +157,8 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?node, spawn, 5, erlang, spawn_opt);
 ?inline(?node, spawn_link, 2, erlang, spawn_link);
 ?inline(?node, spawn_link, 4, erlang, spawn_link);
+?inline(?node, spawn_monitor, 2, erlang, spawn_monitor);
+?inline(?node, spawn_monitor, 4, erlang, spawn_monitor);
 
 ?inline(?port, close, 1, erlang, port_close);
 ?inline(?port, command, 2, erlang, port_command);
