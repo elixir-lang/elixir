@@ -1192,7 +1192,7 @@ format_error({invalid_alias, Expr}) ->
     "wrap the function or field name in double quotes",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
 format_error({op_ambiguity, Name, Arg}) ->
-  NameString = atom_to_binary(Name, utf8),
+  NameString = atom_to_binary(Name),
   ArgString = 'Elixir.Macro':to_string(Arg),
 
   Message =

@@ -415,7 +415,7 @@ parser_location(Meta) ->
   end.
 
 to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
-to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom, utf8).
+to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom).
 
 handle_parsing_opts(WarningFile, Opts) ->
   LiteralEncoder =

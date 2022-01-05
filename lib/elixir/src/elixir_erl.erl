@@ -535,7 +535,7 @@ get_type_docs(Set, Types) ->
         {Key, Line, Doc, Meta} <- ets:lookup(Set, {type, Name, Arity})].
 
 signature_to_binary(_Module, Name, _Signature) when Name == '__aliases__'; Name == '__block__' ->
-  <<(atom_to_binary(Name, utf8))/binary, "(args)">>;
+  <<(atom_to_binary(Name))/binary, "(args)">>;
 
 signature_to_binary(_Module, fn, _Signature) ->
   <<"fn(clauses)">>;
@@ -543,7 +543,7 @@ signature_to_binary(_Module, fn, _Signature) ->
 signature_to_binary(_Module, Name, _Signature)
     when Name == '__CALLER__'; Name == '__DIR__'; Name == '__ENV__';
          Name == '__MODULE__'; Name == '__STACKTRACE__'; Name == '%{}' ->
-  atom_to_binary(Name, utf8);
+  atom_to_binary(Name);
 
 signature_to_binary(_Module, '%', _) ->
   <<"%struct{}">>;
