@@ -42,7 +42,7 @@ jobs:
         run: bin/elixir --version
       - name: Check format
         run: make test_formatted && echo "All Elixir source code files are properly formatted."
-      - name: Dyalizer
+      - name: Run Dialyzer
         run: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
       - name: Erlang test suite
         run: make test_erlang
