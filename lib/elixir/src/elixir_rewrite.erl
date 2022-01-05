@@ -232,7 +232,7 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
   {EReceiver, ERight, EArgs} = inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args),
   {{'.', DotMeta, [EReceiver, ERight]}, Meta, EArgs}.
 
-?rewrite(?atom, to_string, [Arg], erlang, atom_to_binary, [Arg, utf8]);
+?rewrite(?atom, to_string, [Arg], erlang, atom_to_binary, [Arg]);
 ?rewrite(?kernel, is_map_key, [Map, Key], erlang, is_map_key, [Key, Map]);
 ?rewrite(?map, delete, [Map, Key], maps, remove, [Key, Map]);
 ?rewrite(?map, fetch, [Map, Key], maps, find, [Key, Map]);

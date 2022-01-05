@@ -58,7 +58,7 @@ validate_runtime(Key, Value) ->
     false ->
       erlang:error(
         'Elixir.ArgumentError':exception(
-          <<"invalid runtime value for option :", (erlang:atom_to_binary(Key, utf8))/binary,
+          <<"invalid runtime value for option :", (erlang:atom_to_binary(Key))/binary,
             " in quote, got: ", ('Elixir.Kernel':inspect(Value))/binary>>
         )
       )
