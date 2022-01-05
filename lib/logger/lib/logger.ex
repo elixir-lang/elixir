@@ -61,6 +61,32 @@ defmodule Logger do
   be passed to backends. If your log level is set to `:alert`, only
   `:alert` and `:emergency` will be printed.
 
+  ## Message
+
+  Logger can be used for logging both unstructured and structured data.
+
+  Unstructured data is a string or a list of strings:
+
+      Logger.info("hello world!")
+      Logger.info(["hello ", "world!"])
+
+  Structured data, also known as reports, are keyword lists and maps:
+
+      Logger.info([new_user: user.id, account_type: :admin])
+      Logger.info(%{new_user: user.id, account_type: :admin})
+
+  Log functions also accept an anonymous function as a message:
+
+      Logger.info(fn -> "hello world!" end)
+
+  The anonymous function can return a message or a tuple containing
+  the message and additional metadata (to be described in the next
+  section).
+
+  In all cases, the arguments given to the `Logger` macros are only
+  evaluated if required by the current log level. The exception is
+  the `bare_log/3` function, which is the raw mechanism for logging.
+
   ## Metadata
 
   Whenever a message is logged, additional information can be given
