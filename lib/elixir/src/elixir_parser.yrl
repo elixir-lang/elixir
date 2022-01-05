@@ -649,9 +649,6 @@ Erlang code.
 -define(meta(Node), element(2, Node)).
 -define(rearrange_uop(Op), (Op == 'not' orelse Op == '!')).
 
-%% The following directive is needed for (significantly) faster
-%% compilation of the generated .erl file by the HiPE compiler
--compile([{hipe, [{regalloc, linear_scan}]}]).
 -compile({inline, meta_from_token/1, meta_from_location/1, is_eol/1}).
 -import(lists, [reverse/1, reverse/2]).
 
