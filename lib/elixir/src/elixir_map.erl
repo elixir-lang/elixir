@@ -60,10 +60,10 @@ clean_struct_key_from_map_assocs(Meta, Assocs, E) ->
       Assocs
   end.
 
-validate_match_key(Meta, {'^', _, [{Name, _, Context}]}, E) when is_atom(Name), is_atom(Context) ->
-  form_error(Meta, E, ?MODULE, {invalid_pin_in_map_key_match, Name});
 validate_match_key(Meta, {Name, _, Context}, E) when is_atom(Name), is_atom(Context) ->
   form_error(Meta, E, ?MODULE, {invalid_variable_in_map_key_match, Name});
+validate_match_key(_, {'^', _, [{Name, _, Context}]}, _) when is_atom(Name), is_atom(Context) ->
+  ok;
 validate_match_key(_, {'%{}', _, [_ | _]}, _) ->
   ok;
 validate_match_key(Meta, {Left, _, Right}, E) ->
@@ -202,11 +202,6 @@ format_error({invalid_struct_name_in_match, Expr}) ->
 format_error({invalid_struct_name, Expr}) ->
   Message = "expected struct name to be a compile time atom or alias, got: ~ts",
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
-format_error({invalid_pin_in_map_key_match, Name}) ->
-  Message =
-    "cannot use pin operator ^~ts inside a data structure as a map key in a pattern. "
-    "The pin operator can only be used as the whole key",
-  io_lib:format(Message, [Name]);
 format_error({invalid_variable_in_map_key_match, Name}) ->
   Message =
     "cannot use variable ~ts as map key inside a pattern. Map keys in patterns can only be literals "
