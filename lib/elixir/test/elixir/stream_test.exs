@@ -1000,6 +1000,52 @@ defmodule StreamTest do
     assert Process.get(:stream_transform)
   end
 
+  test "transform/5 emits last elements on done" do
+    stream =
+      Stream.transform(
+        1..5//2,
+        fn -> 0 end,
+        fn i, _acc -> {i..(i + 1), i+1} end,
+        fn 6 -> {7..10, 10} end,
+        fn i when is_integer(i) -> Process.put(__MODULE__, i) end
+      )
+
+    assert Enum.to_list(stream) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    assert Process.get(__MODULE__) == 10
+
+    assert Enum.take(stream, 3) == [1, 2, 3]
+    assert Process.get(__MODULE__) == 4
+
+    assert Enum.take(stream, 4) == [1, 2, 3, 4]
+    assert Process.get(__MODULE__) == 4
+
+    assert Enum.take(stream, 7) == [1, 2, 3, 4, 5, 6, 7]
+    assert Process.get(__MODULE__) == 10
+  end
+
+  test "transform/5 emits last elements on inner halt done" do
+    stream =
+      Stream.transform(
+        Stream.take(1..15//2, 3),
+        fn -> 0 end,
+        fn i, _acc -> {i..(i + 1), i+1} end,
+        fn 6 -> {7..10, 10} end,
+        fn i when is_integer(i) -> Process.put(__MODULE__, i) end
+      )
+
+    assert Enum.to_list(stream) == [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    assert Process.get(__MODULE__) == 10
+
+    assert Enum.take(stream, 3) == [1, 2, 3]
+    assert Process.get(__MODULE__) == 4
+
+    assert Enum.take(stream, 4) == [1, 2, 3, 4]
+    assert Process.get(__MODULE__) == 4
+
+    assert Enum.take(stream, 7) == [1, 2, 3, 4, 5, 6, 7]
+    assert Process.get(__MODULE__) == 10
+  end
+
   test "scan/2" do
     stream = Stream.scan(1..5, &(&1 + &2))
     assert lazy?(stream)
