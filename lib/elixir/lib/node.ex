@@ -261,8 +261,8 @@ defmodule Node do
   Spawns the given function on a node, monitors it and returns its PID
   and monitoring reference.
 
-  This functionality was added on Erlang/OTP 23. Using this functionality to communicate with
-  a node running on an earlier version will fail.
+  This functionality was added on Erlang/OTP 23. Using this function to
+  communicate with nodes running on earlier versions will fail.
 
   Inlined by the compiler.
   """
@@ -276,8 +276,8 @@ defmodule Node do
   Spawns the given module and function passing the given args on a node,
   monitors it and returns its PID and monitoring reference.
 
-  This functionality was added on Erlang/OTP 23. Using this functionality to communicate with
-  a node running on an earlier version will fail.
+  This functionality was added on Erlang/OTP 23. Using this function
+  to communicate with nodes running on earlier versions will fail.
 
   Inlined by the compiler.
   """
