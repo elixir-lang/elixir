@@ -44,6 +44,6 @@
 
 2. Update `otp_release` checks in /Makefile and `/lib/elixir/src/elixir.erl`
 
-3. Update CI workflows in both `ci.yml` and `releases.yml`
+3. Update CI workflows in `/.cirrus.yml`, `/.github/workflows/ci.yml`, and `/.github/workflows/releases.yml`
 
 4. Remove `otp_release` version checks that are no longer needed
