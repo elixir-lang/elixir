@@ -102,8 +102,6 @@ is_literal(_) -> true.
 
 validate_kv(Meta, KV, Original, #{context := Context} = E) ->
   lists:foldl(fun
-    ({{'^', _, [_]}, _}, {Index, Used}) ->
-      {Index + 1, Used};
     ({K, _V}, {Index, Used}) ->
       (Context == match) andalso validate_match_key(Meta, K, E),
       NewUsed = validate_not_repeated(Meta, K, Used, E),
