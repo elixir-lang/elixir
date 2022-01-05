@@ -1005,7 +1005,7 @@ defmodule StreamTest do
       Stream.transform(
         1..5//2,
         fn -> 0 end,
-        fn i, _acc -> {i..(i + 1), i+1} end,
+        fn i, _acc -> {i..(i + 1), i + 1} end,
         fn 6 -> {7..10, 10} end,
         fn i when is_integer(i) -> Process.put(__MODULE__, i) end
       )
@@ -1028,7 +1028,7 @@ defmodule StreamTest do
       Stream.transform(
         Stream.take(1..15//2, 3),
         fn -> 0 end,
-        fn i, _acc -> {i..(i + 1), i+1} end,
+        fn i, _acc -> {i..(i + 1), i + 1} end,
         fn 6 -> {7..10, 10} end,
         fn i when is_integer(i) -> Process.put(__MODULE__, i) end
       )
