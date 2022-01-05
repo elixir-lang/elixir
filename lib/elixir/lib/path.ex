@@ -788,7 +788,7 @@ defmodule Path do
 
   """
   @doc since: "1.14.0"
-  @spec safe_relative(t) :: {:ok, binary} | {:error, :unsafe}
+  @spec safe_relative(t) :: {:ok, binary} | :error
   def safe_relative(path) do
     safe_relative_to(path, File.cwd!())
   end
