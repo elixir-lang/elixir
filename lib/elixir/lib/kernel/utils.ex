@@ -22,9 +22,38 @@ defmodule Kernel.Utils do
   defp destructure_nil(count), do: [nil | destructure_nil(count - 1)]
 
   @doc """
-  Callback for defdelegate.
+  Callback for defdelegate entry point.
   """
-  def defdelegate(fun, opts) when is_list(opts) do
+  def defdelegate_all(funs, opts, env) do
+    to = Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
+    as = Keyword.get(opts, :as)
+
+    if to == env.module and is_nil(as) do
+      raise ArgumentError,
+            "defdelegate function is calling itself, which will lead to an infinite loop. You should either change the value of the :to option or specify the :as option"
+    end
+
+    if is_list(funs) do
+      IO.warn(
+        "passing a list to Kernel.defdelegate/2 is deprecated, please define each delegate separately",
+        Macro.Env.stacktrace(env)
+      )
+    end
+
+    if Keyword.has_key?(opts, :append_first) do
+      IO.warn(
+        "Kernel.defdelegate/2 :append_first option is deprecated",
+        Macro.Env.stacktrace(env)
+      )
+    end
+
+    to
+  end
+
+  @doc """
+  Callback for each function in defdelegate.
+  """
+  def defdelegate_each(fun, opts) when is_list(opts) do
     # TODO: Remove on v2.0
     append_first? = Keyword.get(opts, :append_first, false)
 

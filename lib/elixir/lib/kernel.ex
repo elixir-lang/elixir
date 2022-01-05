@@ -5559,33 +5559,11 @@ defmodule Kernel do
       end
 
     quote bind_quoted: [funs: funs, opts: opts] do
-      target =
-        Keyword.get(opts, :to) || raise ArgumentError, "expected to: to be given as argument"
+      target = Kernel.Utils.defdelegate_all(funs, opts, __ENV__)
 
-      as = Keyword.get(opts, :as)
-
-      if target == __MODULE__ and is_nil(as) do
-        raise ArgumentError,
-              "defdelegate function is calling itself, which will lead to an infinite loop. You should either change the value of the :to option or specify the :as option"
-      end
-
-      if is_list(funs) do
-        IO.warn(
-          "passing a list to Kernel.defdelegate/2 is deprecated, please define each delegate separately",
-          Macro.Env.stacktrace(__ENV__)
-        )
-      end
-
-      if Keyword.has_key?(opts, :append_first) do
-        IO.warn(
-          "Kernel.defdelegate/2 :append_first option is deprecated",
-          Macro.Env.stacktrace(__ENV__)
-        )
-      end
-
+      # TODO: Remove List.wrap when multiple funs are no longer supported
       for fun <- List.wrap(funs) do
-        {name, args, as, as_args} = Kernel.Utils.defdelegate(fun, opts)
-
+        {name, args, as, as_args} = Kernel.Utils.defdelegate_each(fun, opts)
         @doc delegate_to: {target, as, :erlang.length(as_args)}
 
         # Build the call AST by hand so it doesn't get a
