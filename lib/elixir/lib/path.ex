@@ -724,7 +724,6 @@ defmodule Path do
 
   @doc """
   Returns a relative path that is protected from directory-traversal attacks.
-  Returns `path` relative to `relative_to`, but protecting from directory traversal attacks.
 
   The given relative path is sanitized by eliminating `..` and `.` components.
 
