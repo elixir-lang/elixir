@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Test.Coverage do
 
   In this moduledoc, we will describe how the default test
   coverage works in Elixir and also explore how it is capable
-  of export coverage results to group reports from multiple
+  of exporting coverage results to group reports from multiple
   test runs.
 
   ## Line coverage
@@ -15,8 +15,8 @@ defmodule Mix.Tasks.Test.Coverage do
   for its default test coverage. Erlang coverage is done by tracking
   *executable lines of code*. This implies blank lines, code comments,
   function signatures, and patterns are not necessarily executable and
-  therefore won't be tracked ín coverage reports. Code in macros are
-  also often executed at compilation time, and therefore may not covered.
+  therefore won't be tracked in coverage reports. Code in macros are
+  also often executed at compilation time, and therefore may not be covered.
   Similarly, Elixir AST literals, such as atoms, are not executable either.
 
   Let's see an example:
@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Test.Coverage do
   can help spot those cases, but they are not currently supported by the
   default coverage tool.
 
-  Overall, code coverage can be a great tool for finding out flaws in our
+  Overall, code coverage can be a great tool for finding flaws in our
   code (such as functions that haven't been covered) but it can also lead
   teams into a false sense of security since 100% coverage never means all
   different executions flows have been asserted, even with the most advanced
