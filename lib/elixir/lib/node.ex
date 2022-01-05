@@ -258,12 +258,11 @@ defmodule Node do
   end
 
   @doc """
-  Returns the PID of a new process started by the application of `fun` on `node`,
-  and a reference for a monitor created to the new process. Otherwise works
-  like `spawn/1`
+  Spawns the given function on a node, monitors it and returns its PID
+  and monitoring reference.
 
-  If the node identified by `node` does not support distributed `spawn_monitor()`,
-  the call will fail with a `:notsup` exception.
+  This functionality was added on Erlang/OTP 23. Using this functionality to communicate with
+  a node running on an earlier version will fail.
 
   Inlined by the compiler.
   """
@@ -274,12 +273,11 @@ defmodule Node do
   end
 
   @doc """
-  Returns the PID of a new process started by the application of
-  `module.function(args)` on `node`, and a reference for a monitor created to the
-  new process. Otherwise works like `spawn/3`
+  Spawns the given module and function passing the given args on a node,
+  monitors it and returns its PID and monitoring reference.
 
-  If the node identified by `node` does not support distributed `spawn_monitor()`,
-  the call will fail with a `:notsup` exception.
+  This functionality was added on Erlang/OTP 23. Using this functionality to communicate with
+  a node running on an earlier version will fail.
 
   Inlined by the compiler.
   """
