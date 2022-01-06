@@ -244,6 +244,13 @@ defmodule Kernel.BinaryTest do
     assert (fn <<_, _::size(x)>> -> true end).(<<?a, ?b>>)
   end
 
+  test "bitsyntax with guards" do
+    x = 8
+    assert <<1::3>> == <<1::size(x - 5)>>
+    assert <<1::3*8>> == <<1::size(x - 5)-unit(8)>>
+    assert <<1::4>> == <<1::size(length('abcd'))>>
+  end
+
   defmacrop signed_16 do
     quote do
       big - signed - integer - unit(16)

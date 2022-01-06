@@ -247,10 +247,11 @@ validate_spec(_, _)          -> none.
 expand_spec_arg(Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) ->
   {Expr, S, E};
 expand_spec_arg(Expr, S, _OriginalS, #{context := match} = E) ->
-  {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise}, E#{context := nil}),
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise}, E#{context := guard}),
   {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch}, EE#{context := match}};
 expand_spec_arg(Expr, S, OriginalS, E) ->
-  elixir_expand:expand(Expr, elixir_env:reset_read(S, OriginalS), E).
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, elixir_env:reset_read(S, OriginalS), E#{context := guard}),
+  {EExpr, SE, EE#{context := nil}}.
 
 validate_spec_arg(Meta, size, Value, S, OriginalS, E) ->
   case Value of
@@ -262,11 +263,8 @@ validate_spec_arg(Meta, size, Value, S, OriginalS, E) ->
         false -> form_error(Meta, E, ?MODULE, {undefined_var_in_spec, Value})
       end;
 
-    _ when is_integer(Value) ->
-      ok;
-
-    _ ->
-      form_error(Meta, E, ?MODULE, {bad_size_argument, Value})
+    _  ->
+      ok
   end;
 validate_spec_arg(Meta, unit, Value, _S, _OriginalS, E) when not is_integer(Value) ->
   form_error(Meta, E, ?MODULE, {bad_unit_argument, Value});
@@ -402,9 +400,6 @@ format_error({bittype_mismatch, Val1, Val2, Where}) ->
 format_error({bad_unit_argument, Unit}) ->
   io_lib:format("unit in bitstring expects an integer as argument, got: ~ts",
                 ['Elixir.Macro':to_string(Unit)]);
-format_error({bad_size_argument, Size}) ->
-  io_lib:format("size in bitstring expects an integer or a variable as argument, got: ~ts",
-                ['Elixir.Macro':to_string(Size)]);
 format_error({nested_match, Expr}) ->
   Message =
     "cannot pattern match inside a bitstring "

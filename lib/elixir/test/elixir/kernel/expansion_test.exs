@@ -2494,6 +2494,34 @@ defmodule Kernel.ExpansionTest do
                quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
     end
 
+    test "guard expressions on size" do
+      import Kernel, except: [-: 2, +: 2, length: 1]
+
+      # Arithmentic operations with literals and variables are valid expressions
+      # for bitstring size in OTP 23+
+
+      before_expansion =
+        quote do
+          var = 1
+          <<x::size(var + 3)>>
+        end
+
+      after_expansion =
+        quote do
+          var = 1
+          <<x()::integer()-size(:erlang.+(var, 3))>>
+        end
+
+      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+
+      # Other valid guard expressions are also legal for bitstring size in OTP 23+
+
+      before_expansion = quote(do: <<x::size(length("test"))>>)
+      after_expansion = quote(do: <<x()::integer()-size(:erlang.length("test"))>>)
+
+      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+    end
+
     test "raises on unaligned binaries in match" do
       message = ~r"its number of bits is not divisible by 8"
 
@@ -2569,12 +2597,6 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises for invalid size" do
-      message = ~r"size in bitstring expects an integer or a variable as argument, got: :oops"
-
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: <<"foo"::size(:oops)>>))
-      end
-
       assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
         code =
           quote do
@@ -2602,7 +2624,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
 
-      message = ~r"size in bitstring expects an integer or a variable as argument, got: foo()"
+      message = ~r"cannot find or invoke local foo/0 inside guard"
 
       assert_raise CompileError, message, fn ->
         code =
