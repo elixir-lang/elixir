@@ -12,10 +12,11 @@ defmodule Record do
   manipulate the tuples, providing fast operations on top of
   the tuples' compact structure.
 
-  In Elixir, records are used mostly in two situations:
+  In Elixir, records are used in the following situations:
 
     1. to work with short, internal data
     2. to interface with Erlang records
+    3. to improve perfomance over maps in limited circumstances
 
   The macros `defrecord/3` and `defrecordp/3` can be used to create records
   while `extract/2` and `extract_all/1` can be used to extract records from
