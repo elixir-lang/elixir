@@ -110,8 +110,8 @@ defmodule PathTest do
     end
 
     test "safe_relative_to/2" do
-      assert Path.safe_relative_to("local/foo/bar", "local") == {:ok, "foo/bar"}
-      assert Path.safe_relative_to("foo/..", "local") == {:ok, "local"}
+      assert Path.safe_relative_to("local/foo/bar", "local") == {:ok, "local/foo/bar"}
+      assert Path.safe_relative_to("foo/..", "local") == {:ok, ""}
       assert Path.safe_relative_to("..", "local/foo") == :error
       assert Path.safe_relative_to("d:/usr/local/foo", "D:/") == :error
       assert Path.safe_relative_to("D:/usr/local/foo", "d:/") == :error
