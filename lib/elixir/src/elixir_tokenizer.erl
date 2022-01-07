@@ -1479,7 +1479,11 @@ invalid_do_error(Prefix) ->
   "    end\n\n"
   "or the equivalent construct:\n\n"
   "    if(some_condition?, do: :this, else: :that)\n\n"
-  "where \"some_condition?\" is the first argument and the second argument is a keyword list"}.
+  "where \"some_condition?\" is the first argument and the second argument is a keyword list.\n\n"
+  "** Note:\n\n"
+  "You may see this error if you forget a trailing comma before the \"do\" in a \"do\" expression.\n"
+  "This is common when using a `with` statement or a `for` comprehension spanning multiple lines.\n"
+  "If this is the case, please verify it is contructed correctly."}.
 
 invalid_do_with_fn_error(Prefix) ->
   {Prefix, ". Anonymous functions are written as:\n\n"
