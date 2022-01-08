@@ -57,5 +57,5 @@ body = %{
   "category" => 28
 }
 
-resp = Req.post!("https://elixirforum.com/posts.json", {:json, body}, headers: headers))
+resp = Req.post!("https://elixirforum.com/posts.json", {:json, body}, headers: headers)
 IO.puts("#{resp.status} Elixir Forum\n#{inspect(resp.body)}")
