@@ -1044,9 +1044,7 @@ defmodule File do
   """
   @spec write!(Path.t(), iodata, [mode]) :: :ok
   def write!(path, content, modes \\ []) do
-    modes = normalize_modes(modes, false)
-
-    case :file.write_file(path, content, modes) do
+    case write(path, content, modes) do
       :ok ->
         :ok
 
