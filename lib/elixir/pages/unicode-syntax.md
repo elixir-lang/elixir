@@ -6,6 +6,8 @@ Quoted identifiers, such as strings (`"olá"`) and charlists (`'olá'`), support
 
 Elixir also supports Unicode in identifiers since Elixir v1.5, as defined in the [Unicode Annex #31](https://unicode.org/reports/tr31/). The focus of this document is to describe how Elixir implements the requirements outlined in the Unicode Annex. These requirements are referred to as R1, R6 and so on.
 
+Elixir will warn on confusing or suspicious uses of Unicode in identifiers since Elixir v1.15, as defined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security. The [Unicode Security](unicode-security.html) document describes how Elixir implements the requirements of that Standard.
+
 To check the Unicode version of your current Elixir installation, run `String.Unicode.version()`.
 
 ## R1. Default Identifiers

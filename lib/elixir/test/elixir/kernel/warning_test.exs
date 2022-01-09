@@ -26,6 +26,50 @@ defmodule Kernel.WarningTest do
     assert {:error, _} = Code.string_to_quoted(~s[:"foobar" do])
   end
 
+  describe "unicode identifier security" do
+    test "uncommon codepoints" do
+      assert capture_err(fn -> Code.eval_string("ㅤx = x = 2") end) =~
+               "identifier 'ㅤx' has uncommon codepoint \\u3164"
+
+      assert capture_err(fn -> Code.eval_string("∆_whitelisted_mathy = 1") end) == ""
+    end
+
+    test "warns on confusables" do
+      assert capture_err(fn -> Code.eval_string("а=1; a=1") end) =~
+               "confusable identifier: 'a' looks like 'а' on line 1"
+
+      assert capture_err(fn -> Code.eval_string("x0 = xO = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("l1 = ll = 1") end) == ""
+    end
+
+    test "warnings on mixed scripts" do
+      output = capture_err(fn -> Code.eval_string("夏の幻ㄒㄧㄤ = 2") end)
+
+      assert output =~ ~S"""
+             Mixed-script identifier '夏の幻ㄒㄧㄤ', codepoints:
+
+             \u590F {Han, Han with Bopomofo, Japanese, Korean}
+             \u306E {Hiragana, Japanese}
+             \u5E7B {Han, Han with Bopomofo, Japanese, Korean}
+             \u3112 {Bopomofo, Han with Bopomofo}
+             \u3127 {Bopomofo, Han with Bopomofo}
+             \u3124 {Bopomofo, Han with Bopomofo}
+
+             Resolved script set (intersection): {∅}
+             """
+
+      assert capture_err(fn -> Code.eval_string("cirсlе = 1") end) =~ "Mixed-script"
+      assert capture_err(fn -> Code.eval_string("ㄤ_Latn = 1") end) =~ "Mixed-script"
+      assert capture_err(fn -> Code.eval_string("सवव_Latn = 1") end) =~ "Mixed-script"
+    end
+
+    test "does not warn on valid uses of multiple scripts" do
+      assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ1 = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("_सवव_1 = 1") end) == ""
+    end
+  end
+
   test "operators formed by many of the same character followed by that character" do
     output =
       capture_err(fn ->

@@ -135,13 +135,13 @@ tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
 tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
-  #elixir_tokenizer{terminators=Terminators, warnings=Warnings} = Scope,
-
+  #elixir_tokenizer{file=File, identifier_tokenizer=IdentifierTokenizer, terminators=Terminators, warnings=Warnings} = Scope,
   {CursorColumn, CursorTerminators, CursorTokens} =
     add_cursor(Line, Column, Cursor, Terminators, Tokens),
 
   AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
-  {ok, Line, Column, Warnings, AccTokens};
+  UnicodeWarnings = unicode_lint_warnings(IdentifierTokenizer, Tokens, File),
+  {ok, Line, Column, Warnings ++ UnicodeWarnings, AccTokens};
 
 tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
@@ -150,8 +150,10 @@ tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, 
   Formatted = io_lib:format(Message, [End, Start, StartLine]),
   error({EndLine, Column, [Formatted, Hint], []}, [], Scope, Tokens);
 
-tokenize([], Line, Column, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
-  {ok, Line, Column, Warnings, lists:reverse(Tokens)};
+tokenize([], Line, Column, #elixir_tokenizer{file=File, identifier_tokenizer=IdentifierTokenizer, warnings=Warnings}, TokensReversed) ->
+  Tokens = lists:reverse(TokensReversed),
+  UnicodeWarnings = unicode_lint_warnings(IdentifierTokenizer, Tokens, File),
+  {ok, Line, Column, Warnings ++ UnicodeWarnings, Tokens};
 
 % VC merge conflict
 
@@ -1667,3 +1669,9 @@ prune_tokens([], [], Terminators) ->
 drop_including([{Token, _} | Tokens], Token) -> Tokens;
 drop_including([_ | Tokens], Token) -> drop_including(Tokens, Token);
 drop_including([], _Token) -> [].
+
+unicode_lint_warnings(IdentifierTokenizer, Tokens, File) ->
+  case erlang:function_exported(IdentifierTokenizer, unicode_lint_warnings, 1) of
+    true -> IdentifierTokenizer:unicode_lint_warnings(Tokens, File);
+    false -> []
+  end.
