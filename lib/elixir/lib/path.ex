@@ -504,10 +504,14 @@ defmodule Path do
       iex> Path.join(["/", "foo", "bar/"])
       "/foo/bar"
 
+      iex> Path.join([])
+      ** (ArgumentError) list of paths must have at least one element
+
   """
   @spec join(nonempty_list(t)) :: binary
   def join([name1, name2 | rest]), do: join([join(name1, name2) | rest])
   def join([name]), do: IO.chardata_to_string(name)
+  def join([]), do: raise(ArgumentError, "list of paths must have at least one element")
 
   @doc """
   Joins two paths.
