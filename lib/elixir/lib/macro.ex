@@ -984,7 +984,7 @@ defmodule Macro do
       #=> "one + two"
 
   """
-  @deprecated "Use `Macro.to_string/1` instead"
+  @deprecated "Use Macro.to_string/1 instead"
   @spec to_string(t(), (t(), String.t() -> String.t())) :: String.t()
   def to_string(tree, fun)
 
