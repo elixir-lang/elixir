@@ -1595,6 +1595,7 @@ defmodule Macro do
       end
 
   """
+  @spec expand_once(t(), Macro.Env.t()) :: t()
   def expand_once(ast, env) do
     elem(do_expand_once(ast, env), 0)
   end
@@ -1802,6 +1803,7 @@ defmodule Macro do
   This function uses `expand_once/2` under the hood. Check
   it out for more information and examples.
   """
+  @spec expand(t(), Macro.Env.t()) :: t()
   def expand(ast, env) do
     expand_until({ast, true}, env)
   end
