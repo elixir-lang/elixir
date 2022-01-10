@@ -3,21 +3,25 @@ defmodule Path do
   This module provides conveniences for manipulating or
   retrieving file system paths.
 
-  The functions in this module may receive a chardata as
-  argument (i.e. a string or a list of characters / string)
-  and will always return a string (encoded in UTF-8). If a binary
-  is given, in whatever encoding, its encoding will be kept.
+  The functions in this module may receive chardata as
+  arguments and will always return a string encoded in UTF-8. Chardata
+  is a string or a list of characters and strings, see `t:IO.chardata/0`.
+  If a binary is given, in whatever encoding, its encoding will be kept.
 
   The majority of the functions in this module do not
   interact with the file system, except for a few functions
   that require it (like `wildcard/2` and `expand/1`).
   """
 
+  @typedoc """
+  A path.
+  """
   @type t :: IO.chardata()
 
   @doc """
-  Converts the given path to an absolute one. Unlike
-  `expand/1`, no attempt is made to resolve `..`, `.` or `~`.
+  Converts the given path to an absolute one.
+
+  Unlike `expand/1`, no attempt is made to resolve `..`, `.`, or `~`.
 
   ## Examples
 
@@ -148,8 +152,8 @@ defmodule Path do
   defp reverse_maybe_remove_dir_sep(name, _), do: :lists.reverse(name)
 
   @doc """
-  Converts the path to an absolute one and expands
-  any `.` and `..` characters and a leading `~`.
+  Converts the path to an absolute one, expanding
+  any `.` and `..` components and a leading `~`.
 
   ## Examples
 
@@ -428,10 +432,10 @@ defmodule Path do
 
   The behaviour of this function changed in Erlang/OTP 24 for filenames
   starting with a dot and without an extension. For example, for a file
-  named ".gitignore", `extname/1` now returns an empty string, while it
-  would return ".gitignore" in previous Erlang/OTP versions. This was
+  named `.gitignore`, `extname/1` now returns an empty string, while it
+  would return `".gitignore"` in previous Erlang/OTP versions. This was
   done to match the behaviour of `rootname/1`, which would return
-  ".gitignore" as its name (and therefore it cannot also be an extension).
+  `".gitignore"` as its name (and therefore it cannot also be an extension).
 
   See `basename/1` and `rootname/1` for related functions to extract
   information from paths.
@@ -493,6 +497,8 @@ defmodule Path do
   This function should be used to convert a list of paths to a path.
   Note that any trailing slash is removed when joining.
 
+  Raises an error if the given list of paths is empty.
+
   ## Examples
 
       iex> Path.join(["~", "foo"])
@@ -532,6 +538,7 @@ defmodule Path do
       iex> Path.join(["foo", "bar"], "fiz")
       "foobar/fiz"
 
+  Use `join/1` if you need to join a list of paths instead.
   """
   @spec join(t, t) :: binary
   def join(left, right) do
@@ -565,7 +572,7 @@ defmodule Path do
 
   If an empty string is given, returns an empty list.
 
-  On Windows, path is split on both "\" and "/" separators
+  On Windows, path is split on both `"\"` and `"/"` separators
   and the driver letter, if there is one, is always returned
   in lowercase.
 
@@ -582,7 +589,6 @@ defmodule Path do
 
   """
   @spec split(t) :: [binary]
-
   def split(path) do
     :filename.split(IO.chardata_to_string(path))
   end
@@ -658,7 +664,7 @@ defmodule Path do
 
   """
   @spec wildcard(t, keyword) :: [binary]
-  def wildcard(glob, opts \\ []) do
+  def wildcard(glob, opts \\ []) when is_list(opts) do
     mod = if Keyword.get(opts, :match_dot), do: :file, else: Path.Wildcard
 
     glob
