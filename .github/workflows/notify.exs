@@ -22,7 +22,8 @@ names_and_checksums =
       do: {name, Req.get!(asset["browser_download_url"]).body}
 
 line_items =
-  for {name, checksum} <- Enum.sort(names_and_checksums) do
+  for {name, checksum_and_name} <- Enum.sort(names_and_checksums) do
+    [checksum | _] = String.split(checksum_and_name, " ")
     root = Path.rootname(name)
     "." <> type = Path.extname(name)
     "  * #{root} - #{type} - #{checksum}\n"
