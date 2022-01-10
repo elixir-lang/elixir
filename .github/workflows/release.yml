@@ -14,7 +14,7 @@ env:
 
 jobs:
   create_draft_release:
-    if: ${{ !endsWith(github.ref_name, '-dev') }}
+    if: ${{ github.ref_name != 'main' }}
     runs-on: ubuntu-18.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
