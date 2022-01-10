@@ -743,6 +743,7 @@ defmodule Macro do
 
   """
   @doc since: "1.13.0"
+  @spec prewalker(t()) :: Enumerable.t()
   def prewalker(ast) do
     &prewalker([ast], &1, &2)
   end
@@ -800,6 +801,7 @@ defmodule Macro do
 
   """
   @doc since: "1.13.0"
+  @spec postwalker(t()) :: Enumerable.t()
   def postwalker(ast) do
     &postwalker([ast], make_ref(), &1, &2)
   end
