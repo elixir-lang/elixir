@@ -3,10 +3,10 @@ defmodule Path do
   This module provides conveniences for manipulating or
   retrieving file system paths.
 
-  The functions in this module may receive a `t:IO.chardata/0` as
-  argument (a string or a list of characters and strings)
-  and will always return a string encoded in UTF-8. If a binary
-  is given, in whatever encoding, its encoding will be kept.
+  The functions in this module may receive chardata as
+  arguments and will always return a string encoded in UTF-8. Chardata
+  is a string or a list of characters and strings, see `t:IO.chardata/0`.
+  If a binary is given, in whatever encoding, its encoding will be kept.
 
   The majority of the functions in this module do not
   interact with the file system, except for a few functions
