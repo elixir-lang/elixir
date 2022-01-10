@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - v*
+  schedule:
+    - cron: "0 0 * * *"
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
@@ -12,6 +14,7 @@ env:
 
 jobs:
   create_draft_release:
+    if: ${{ endsWith(github.ref_name, '-dev') }}
     runs-on: ubuntu-18.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
