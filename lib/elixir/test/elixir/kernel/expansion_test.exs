@@ -2516,8 +2516,8 @@ defmodule Kernel.ExpansionTest do
 
       # Other valid guard expressions are also legal for bitstring size in OTP 23+
 
-      before_expansion = quote(do: <<x::size(length("test"))>>)
-      after_expansion = quote(do: <<x()::integer()-size(:erlang.length("test"))>>)
+      before_expansion = quote(do: <<x::size(length('test'))>>)
+      after_expansion = quote(do: <<x()::integer()-size(:erlang.length('test'))>>)
 
       assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
     end
