@@ -743,6 +743,7 @@ defmodule Macro do
 
   """
   @doc since: "1.13.0"
+  @spec prewalker(t()) :: Enumerable.t()
   def prewalker(ast) do
     &prewalker([ast], &1, &2)
   end
@@ -800,6 +801,7 @@ defmodule Macro do
 
   """
   @doc since: "1.13.0"
+  @spec postwalker(t()) :: Enumerable.t()
   def postwalker(ast) do
     &postwalker([ast], make_ref(), &1, &2)
   end
@@ -962,27 +964,7 @@ defmodule Macro do
     IO.iodata_to_binary(doc)
   end
 
-  @doc """
-  Converts the given expression AST to a string.
-
-  The given `fun` is called for every node in the AST with two arguments: the
-  AST of the node being printed and the string representation of that same
-  node. The return value of this function is used as the final string
-  representation for that AST node.
-
-  This function discards all formatting of the original code.
-
-  ## Examples
-
-      Macro.to_string(quote(do: 1 + 2), fn
-        1, _string -> "one"
-        2, _string -> "two"
-        _ast, string -> string
-      end)
-      #=> "one + two"
-
-  """
-  @deprecated "Use Macro.to_string/1 instead"
+  @deprecated "Use `Macro.to_string/1` instead"
   @spec to_string(t(), (t(), String.t() -> String.t())) :: String.t()
   def to_string(tree, fun)
 
@@ -2136,7 +2118,7 @@ defmodule Macro do
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
-      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
+      atom in [:"::", :^^^, :~~~, :<|>] ->
         :quoted_operator
 
       operator?(atom, 1) or operator?(atom, 2) ->
