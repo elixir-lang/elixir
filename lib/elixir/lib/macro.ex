@@ -964,6 +964,26 @@ defmodule Macro do
     IO.iodata_to_binary(doc)
   end
 
+  @doc """
+  Converts the given expression AST to a string.
+
+  The given `fun` is called for every node in the AST with two arguments: the
+  AST of the node being printed and the string representation of that same
+  node. The return value of this function is used as the final string
+  representation for that AST node.
+
+  This function discards all formatting of the original code.
+
+  ## Examples
+
+      Macro.to_string(quote(do: 1 + 2), fn
+        1, _string -> "one"
+        2, _string -> "two"
+        _ast, string -> string
+      end)
+      #=> "one + two"
+
+  """
   @deprecated "Use `Macro.to_string/1` instead"
   @spec to_string(t(), (t(), String.t() -> String.t())) :: String.t()
   def to_string(tree, fun)
@@ -1226,7 +1246,7 @@ defmodule Macro do
 
   defp interpolate(ast, fun), do: interpolate(ast, "\"", "\"", fun)
 
-  defp interpolate({:<<>>, _, [parts]}, left, right, _) when left in [~s["""\n], ~s['''\n]] do
+  defp interpolate({:<<>>, _, [parts]}, left, right, _) when left in [~s[\"""\n], ~s['''\n]] do
     <<left::binary, parts::binary, right::binary>>
   end
 
@@ -1499,7 +1519,7 @@ defmodule Macro do
     end
   end
 
-  @doc """
+  @doc \"""
   Receives an AST node and expands it once.
 
   The following contents are expanded:
@@ -1577,6 +1597,7 @@ defmodule Macro do
       end
 
   """
+
   def expand_once(ast, env) do
     elem(do_expand_once(ast, env), 0)
   end
