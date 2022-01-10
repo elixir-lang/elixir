@@ -5,7 +5,7 @@ on:
     tags:
       - v*
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "*/10 * * * *"
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
