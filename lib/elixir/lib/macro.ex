@@ -1246,7 +1246,7 @@ defmodule Macro do
 
   defp interpolate(ast, fun), do: interpolate(ast, "\"", "\"", fun)
 
-  defp interpolate({:<<>>, _, [parts]}, left, right, _) when left in [~s[\"""\n], ~s['''\n]] do
+  defp interpolate({:<<>>, _, [parts]}, left, right, _) when left in [~s["""\n], ~s['''\n]] do
     <<left::binary, parts::binary, right::binary>>
   end
 
@@ -1519,7 +1519,7 @@ defmodule Macro do
     end
   end
 
-  @doc \"""
+  @doc """
   Receives an AST node and expands it once.
 
   The following contents are expanded:
@@ -1597,7 +1597,6 @@ defmodule Macro do
       end
 
   """
-
   def expand_once(ast, env) do
     elem(do_expand_once(ast, env), 0)
   end
@@ -2139,7 +2138,7 @@ defmodule Macro do
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
-      atom in [:"::", :^^^, :~~~, :<|>] ->
+      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
         :quoted_operator
 
       operator?(atom, 1) or operator?(atom, 2) ->
