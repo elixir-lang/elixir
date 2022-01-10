@@ -2497,7 +2497,7 @@ defmodule Kernel.ExpansionTest do
     test "guard expressions on size" do
       import Kernel, except: [-: 2, +: 2, length: 1]
 
-      # Arithmentic operations with literals and variables are valid expressions
+      # Arithmetic operations with literals and variables are valid expressions
       # for bitstring size in OTP 23+
 
       before_expansion =
