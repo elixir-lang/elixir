@@ -2522,6 +2522,24 @@ defmodule Kernel.ExpansionTest do
       assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
     end
 
+    test "map lookup on size" do
+      import Kernel, except: [-: 2]
+
+      before_expansion =
+        quote do
+          var = %{foo: 3}
+          <<x::size(var.foo)>>
+        end
+
+      after_expansion =
+        quote do
+          var = %{foo: 3}
+          <<x()::integer()-size(var.foo)>>
+        end
+
+      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+    end
+
     test "raises on unaligned binaries in match" do
       message = ~r"its number of bits is not divisible by 8"
 
@@ -2653,18 +2671,6 @@ defmodule Kernel.ExpansionTest do
           quote do
             foo = %{bar: true}
             fn <<_::size(foo.bar())>> -> :ok end
-          end
-
-        expand(code)
-      end
-
-      message = ~r"invalid map lookup in bitstring size specifier, got: foo.bar"
-
-      assert_raise CompileError, message, fn ->
-        code =
-          quote do
-            foo = %{bar: true}
-            fn <<_::size(foo.bar)>> -> :ok end
           end
 
         expand(code)

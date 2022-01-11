@@ -249,6 +249,9 @@ defmodule Kernel.BinaryTest do
     assert <<1::3>> == <<1::size(x - 5)>>
     assert <<1::3*8>> == <<1::size(x - 5)-unit(8)>>
     assert <<1::4>> == <<1::size(length('abcd'))>>
+
+    foo = %{bar: 5}
+    assert <<1::5>> == <<1::size(foo.bar)>>
   end
 
   defmacrop signed_16 do

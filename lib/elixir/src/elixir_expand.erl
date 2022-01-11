@@ -818,12 +818,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
 
   case {Context, lists:keyfind(no_parens, 1, Meta)} of
     {guard, {no_parens, true}} when is_tuple(Receiver) ->
-      case S#elixir_ex.bitsize of
-        true ->
-          form_error(Meta, E, ?MODULE, {invalid_map_lookup_bitsize, Receiver, Right});
-        false ->
-          {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E}
-      end;
+      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
     {guard, _} when is_tuple(Receiver) ->
       case S#elixir_ex.bitsize of
@@ -1320,10 +1315,6 @@ format_error({unknown_variable, Name}) ->
 format_error({parens_map_lookup_guard, Map, Field}) ->
   io_lib:format("cannot invoke remote function in guard. "
                 "If you want to do a map lookup instead, please remove parens from ~ts.~ts()",
-                ['Elixir.Macro':to_string(Map), Field]);
-format_error({invalid_map_lookup_bitsize, Map, Field}) ->
-  io_lib:format("invalid map lookup in bitstring size specifier, "
-                "got: ~ts.~ts",
                 ['Elixir.Macro':to_string(Map), Field]);
 format_error({parens_map_lookup_bitsize, Map, Field}) ->
   io_lib:format("cannot invoke remote function in bitstring size specifier, "
