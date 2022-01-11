@@ -246,6 +246,17 @@ defmodule Kernel.BinaryTest do
 
   test "bitsyntax size using guard expressions" do
     x = 8
+    assert <<1::size(x - 5)>>
+
+    foo = %{bar: 5}
+    assert <<1::size(foo.bar)>>
+
+    assert <<1::size(length('abcd'))>>
+    assert <<255::size(hd([3]))>>
+  end
+
+  test "bitsyntax size using guard expressions in match context" do
+    x = 8
     assert <<1::size(x - 5)>> = <<1::3>>
     assert <<1::size(x - 5)-unit(8)>> = <<1::3*8>>
     assert <<1::size(length('abcd'))>> = <<1::4>>
