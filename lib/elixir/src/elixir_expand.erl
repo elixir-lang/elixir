@@ -6,7 +6,7 @@
 %% =
 
 expand({'=', Meta, [Left, Right]}, S, E) ->
-  assert_no_guard_scope(Meta, "=", E),
+  assert_no_guard_scope(Meta, "=", S, E),
   {ERight, SR, ER} = expand(Right, S, E),
   {ELeft, SL, EL} = elixir_clauses:match(fun expand/3, Left, SR, S, ER),
   refute_parallel_bitstring_match(ELeft, ERight, E, ?key(E, context) == match),
@@ -63,7 +63,7 @@ expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, S, E)
 expand({alias, Meta, [Ref]}, S, E) ->
   expand({alias, Meta, [Ref, []]}, S, E);
 expand({alias, Meta, [Ref, Opts]}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "alias", E),
+  assert_no_match_or_guard_scope(Meta, "alias", S, E),
   {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
   {EOpts, ST, ET} = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), SR, ER),
 
@@ -77,7 +77,7 @@ expand({alias, Meta, [Ref, Opts]}, S, E) ->
 expand({require, Meta, [Ref]}, S, E) ->
   expand({require, Meta, [Ref, []]}, S, E);
 expand({require, Meta, [Ref, Opts]}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "require", E),
+  assert_no_match_or_guard_scope(Meta, "require", S, E),
 
   {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
   {EOpts, ST, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(Opts), SR, ER),
@@ -94,7 +94,7 @@ expand({import, Meta, [Left]}, S, E) ->
   expand({import, Meta, [Left, []]}, S, E);
 
 expand({import, Meta, [Ref, Opts]}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "import", E),
+  assert_no_match_or_guard_scope(Meta, "import", S, E),
   {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
   {EOpts, ST, ET} = expand_opts(Meta, import, [only, except, warn], Opts, SR, ER),
 
@@ -199,7 +199,7 @@ expand({quote, Meta, [_, _]}, _S, E) ->
 %% Functions
 
 expand({'&', Meta, [{super, SuperMeta, Args} = Expr]}, S, E) when is_list(Args) ->
-  assert_no_match_or_guard_scope(Meta, "&", E),
+  assert_no_match_or_guard_scope(Meta, "&", S, E),
 
   case resolve_super(Meta, length(Args), E) of
     {Kind, Name, _} when Kind == def; Kind == defp ->
@@ -209,7 +209,7 @@ expand({'&', Meta, [{super, SuperMeta, Args} = Expr]}, S, E) when is_list(Args) 
   end;
 
 expand({'&', Meta, [{'/', _, [{super, _, Context}, Arity]} = Expr]}, S, E) when is_atom(Context), is_integer(Arity) ->
-  assert_no_match_or_guard_scope(Meta, "&", E),
+  assert_no_match_or_guard_scope(Meta, "&", S, E),
 
   case resolve_super(Meta, Arity, E) of
     {Kind, Name, _} when Kind == def; Kind == defp ->
@@ -219,39 +219,39 @@ expand({'&', Meta, [{'/', _, [{super, _, Context}, Arity]} = Expr]}, S, E) when 
   end;
 
 expand({'&', Meta, [Arg]}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "&", E),
+  assert_no_match_or_guard_scope(Meta, "&", S, E),
   expand_fn_capture(Meta, Arg, S, E);
 
 expand({fn, Meta, Pairs}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "fn", E),
+  assert_no_match_or_guard_scope(Meta, "fn", S, E),
   elixir_fn:expand(Meta, Pairs, S, E);
 
 %% Case/Receive/Try
 
 expand({'cond', Meta, [Opts]}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "cond", E),
+  assert_no_match_or_guard_scope(Meta, "cond", S, E),
   assert_no_underscore_clause_in_cond(Opts, E),
   {EClauses, SC, EC} = elixir_clauses:'cond'(Meta, Opts, S, E),
   {{'cond', Meta, [EClauses]}, SC, EC};
 
 expand({'case', Meta, [Expr, Options]}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "case", E),
+  assert_no_match_or_guard_scope(Meta, "case", S, E),
   expand_case(Meta, Expr, Options, S, E);
 
 expand({'receive', Meta, [Opts]}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "receive", E),
+  assert_no_match_or_guard_scope(Meta, "receive", S, E),
   {EClauses, SC, EC} = elixir_clauses:'receive'(Meta, Opts, S, E),
   {{'receive', Meta, [EClauses]}, SC, EC};
 
 expand({'try', Meta, [Opts]}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "try", E),
+  assert_no_match_or_guard_scope(Meta, "try", S, E),
   {EClauses, SC, EC} = elixir_clauses:'try'(Meta, Opts, S, E),
   {{'try', Meta, [EClauses]}, SC, EC};
 
 %% Comprehensions
 
 expand({for, Meta, [_ | _] = Args}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "for", E),
+  assert_no_match_or_guard_scope(Meta, "for", S, E),
 
   {Cases, Block} =
     case elixir_utils:split_last(Args) of
@@ -293,13 +293,13 @@ expand({for, Meta, [_ | _] = Args}, S, E) ->
 %% With
 
 expand({with, Meta, [_ | _] = Args}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "with", E),
+  assert_no_match_or_guard_scope(Meta, "with", S, E),
   elixir_clauses:with(Meta, Args, S, E);
 
 %% Super
 
 expand({super, Meta, Args}, S, E) when is_list(Args) ->
-  assert_no_match_or_guard_scope(Meta, "super", E),
+  assert_no_match_or_guard_scope(Meta, "super", S, E),
   {Kind, Name, _} = resolve_super(Meta, length(Args), E),
   {EArgs, SA, EA} = expand_args(Args, S, E),
   {{super, [{super, {Kind, Name}} | Meta], EArgs}, SA, EA};
@@ -419,7 +419,7 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
 %% Anonymous calls
 
 expand({{'.', DotMeta, [Expr]}, Meta, Args}, S, E) when is_list(Args) ->
-  assert_no_match_or_guard_scope(Meta, "anonymous call", E),
+  assert_no_match_or_guard_scope(Meta, "anonymous call", S, E),
 
   case expand_args([Expr | Args], S, E) of
     {[EExpr | _], _, _} when is_atom(EExpr) ->
@@ -804,8 +804,12 @@ expand_local(Meta, Name, Args, _S, E) when Name == '|'; Name == '::' ->
   form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
 expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
   form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
-expand_local(Meta, Name, Args, _S, #{context := Context} = E) when Context == match; Context == guard ->
-  form_error(Meta, E, ?MODULE, {invalid_local_invocation, Context, {Name, Meta, Args}}).
+expand_local(Meta, Name, Args, S, #{context := Context} = E) when Context == match; Context == guard ->
+  Error = case S#elixir_ex.bitsize of
+    true -> invalid_local_invocation_in_bitsize;
+    false -> invalid_local_invocation
+  end,
+  form_error(Meta, E, ?MODULE, {Error, Context, {Name, Meta, Args}}).
 
 %% Remote
 
@@ -814,11 +818,20 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
 
   case {Context, lists:keyfind(no_parens, 1, Meta)} of
     {guard, {no_parens, true}} when is_tuple(Receiver) ->
-      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
+      case S#elixir_ex.bitsize of
+        true ->
+          form_error(Meta, E, ?MODULE, {invalid_map_lookup_bitsize, Receiver, Right});
+        false ->
+          {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E}
+      end;
 
     {guard, _} when is_tuple(Receiver) ->
-      form_error(Meta, E, ?MODULE, {parens_map_lookup_guard, Receiver, Right});
-
+      case S#elixir_ex.bitsize of
+        true ->
+          form_error(Meta, E, ?MODULE, {parens_map_lookup_bitsize, Receiver, Right});
+        false ->
+          form_error(Meta, E, ?MODULE, {parens_map_lookup_guard, Receiver, Right})
+      end;
     _ ->
       AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
 
@@ -827,7 +840,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
 
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
 
-      case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs) of
+      case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs, S) of
         {ok, Rewritten} ->
           maybe_warn_comparison(Rewritten, Args, E),
           {Rewritten, elixir_env:close_write(SA, S), EA};
@@ -853,11 +866,11 @@ attach_context_module(Receiver, Meta, #{context_modules := ContextModules}) ->
     false -> Meta
   end.
 
-rewrite(match, Receiver, DotMeta, Right, Meta, EArgs) ->
+rewrite(match, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
   elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
-rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs) ->
-  elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
-rewrite(_, Receiver, DotMeta, Right, Meta, EArgs) ->
+rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs, S) ->
+  elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs, S#elixir_ex.bitsize);
+rewrite(_, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
   {ok, elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs)}.
 
 maybe_warn_comparison({{'.', _, [erlang, Op]}, Meta, [ELeft, ERight]}, [Left, Right], E)
@@ -1087,15 +1100,17 @@ assert_function_scope(Meta, Kind, #{function := nil, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_expr_in_scope, "function", Kind});
 assert_function_scope(_Meta, _Kind, #{function := Function}) -> Function.
 
-assert_no_match_or_guard_scope(Meta, Kind, E) ->
+assert_no_match_or_guard_scope(Meta, Kind, S, E) ->
   assert_no_match_scope(Meta, Kind, E),
-  assert_no_guard_scope(Meta, Kind, E).
+  assert_no_guard_scope(Meta, Kind, S, E).
 assert_no_match_scope(Meta, Kind, #{context := match, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_pattern_in_match, Kind});
 assert_no_match_scope(_Meta, _Kind, _E) -> [].
-assert_no_guard_scope(Meta, Kind, #{context := guard, file := File}) ->
+assert_no_guard_scope(Meta, Kind, #elixir_ex{bitsize=true}, #{context := guard, file := File}) ->
+  form_error(Meta, File, ?MODULE, {invalid_expr_in_bitsize, Kind});
+assert_no_guard_scope(Meta, Kind, _S, #{context := guard, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_expr_in_guard, Kind});
-assert_no_guard_scope(_Meta, _Kind, _E) -> [].
+assert_no_guard_scope(_Meta, _Kind, _S, _E) -> [].
 
 %% Here we look into the Clauses "optimistically", that is, we don't check for
 %% multiple "do"s and similar stuff. After all, the error we're gonna give here
@@ -1180,6 +1195,10 @@ format_error({invalid_expr_in_guard, Kind}) ->
     "invalid expression in guard, ~ts is not allowed in guards. To learn more about "
     "guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html",
   io_lib:format(Message, [Kind]);
+format_error({invalid_expr_in_bitsize, Kind}) ->
+  Message =
+    "invalid expression, ~ts is not allowed in bitstring size specifier",
+  io_lib:format(Message, [Kind]);
 format_error({invalid_pattern_in_match, Kind}) ->
   io_lib:format("invalid pattern in match, ~ts is not allowed in matches", [Kind]);
 format_error({invalid_expr_in_scope, Scope, Kind}) ->
@@ -1233,6 +1252,11 @@ format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
     "cannot find or invoke local ~ts/~B inside ~ts. "
     "Only macros can be invoked in a ~ts and they must be defined before their invocation. Called as: ~ts",
   io_lib:format(Message, [Name, length(Args), Context, Context, 'Elixir.Macro':to_string(Call)]);
+format_error({invalid_local_invocation_in_bitsize, _Context, {Name, _, Args} = Call}) ->
+  Message =
+    "cannot find or invoke local ~ts/~B inside bitstring size specifier. "
+    "Called as: ~ts",
+  io_lib:format(Message, [Name, length(Args), 'Elixir.Macro':to_string(Call)]);
 format_error({invalid_pid_in_function, Pid, {Name, Arity}}) ->
   io_lib:format("cannot compile PID ~ts inside quoted expression for function ~ts/~B",
                 ['Elixir.Kernel':inspect(Pid, []), Name, Arity]);
@@ -1296,6 +1320,14 @@ format_error({unknown_variable, Name}) ->
 format_error({parens_map_lookup_guard, Map, Field}) ->
   io_lib:format("cannot invoke remote function in guard. "
                 "If you want to do a map lookup instead, please remove parens from ~ts.~ts()",
+                ['Elixir.Macro':to_string(Map), Field]);
+format_error({invalid_map_lookup_bitsize, Map, Field}) ->
+  io_lib:format("invalid map lookup in bitstring size specifier, "
+                "got: ~ts.~ts",
+                ['Elixir.Macro':to_string(Map), Field]);
+format_error({parens_map_lookup_bitsize, Map, Field}) ->
+  io_lib:format("cannot invoke remote function in bitstring size specifier, "
+                "got ~ts.~ts()",
                 ['Elixir.Macro':to_string(Map), Field]);
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);

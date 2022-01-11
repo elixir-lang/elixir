@@ -187,7 +187,7 @@ type(Meta, Other, Value, E) ->
 expand_each_spec(Meta, [{Expr, _, Args} = H | T], Map, S, OriginalS, E) when is_atom(Expr) ->
   case validate_spec(Expr, Args) of
     {Key, Arg} ->
-      {Value, SE, EE} = expand_spec_arg(Arg, S, OriginalS, E),
+      {Value, SE, EE} = expand_spec_arg(Key, Arg, S, OriginalS, E),
       validate_spec_arg(Meta, Key, Value, SE, OriginalS, EE),
 
       case maps:get(Key, Map) of
@@ -244,14 +244,20 @@ validate_spec(signed, [])    -> {sign, signed};
 validate_spec(unsigned, [])  -> {sign, unsigned};
 validate_spec(_, _)          -> none.
 
-expand_spec_arg(Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) ->
+expand_spec_arg(_, Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) ->
   {Expr, S, E};
-expand_spec_arg(Expr, S, _OriginalS, #{context := match} = E) ->
-  {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise}, E#{context := guard}),
+expand_spec_arg(size, Expr, S, _OriginalS, #{context := match} = E) ->
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise, bitsize=true}, E#{context := guard}),
   {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch}, EE#{context := match}};
-expand_spec_arg(Expr, S, OriginalS, E) ->
-  {EExpr, SE, EE} = elixir_expand:expand(Expr, elixir_env:reset_read(S, OriginalS), E#{context := guard}),
-  {EExpr, SE, EE#{context := nil}}.
+expand_spec_arg(size, Expr, S, OriginalS, E) ->
+  NewS = elixir_env:reset_read(S, OriginalS),
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, NewS#elixir_ex{bitsize=true}, E#{context := guard}),
+  {EExpr, SE, EE#{context := nil}};
+expand_spec_arg(unit, Expr, S, _OriginalS, #{context := match} = E) ->
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise}, E),
+  {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch}, EE#{context := match}};
+expand_spec_arg(unit, Expr, S, OriginalS, E) ->
+  elixir_expand:expand(Expr, elixir_env:reset_read(S, OriginalS), E).
 
 validate_spec_arg(Meta, size, Value, S, OriginalS, E) ->
   case Value of

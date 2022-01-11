@@ -2624,12 +2624,58 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
 
-      message = ~r"cannot find or invoke local foo/0 inside guard"
+      message = ~r"cannot find or invoke local foo/0 inside bitstring size specifier"
 
       assert_raise CompileError, message, fn ->
         code =
           quote do
             fn <<_::size(foo())>> -> :ok end
+          end
+
+        expand(code)
+      end
+
+      message = ~r"invalid expression, anonymous call is not allowed in bitstring size specifier"
+
+      assert_raise CompileError, message, fn ->
+        code =
+          quote do
+            fn <<_::size(foo.())>> -> :ok end
+          end
+
+        expand(code)
+      end
+
+      message = ~r"cannot invoke remote function in bitstring size specifier, got foo.bar()"
+
+      assert_raise CompileError, message, fn ->
+        code =
+          quote do
+            foo = %{bar: true}
+            fn <<_::size(foo.bar())>> -> :ok end
+          end
+
+        expand(code)
+      end
+
+      message = ~r"invalid map lookup in bitstring size specifier, got: foo.bar"
+
+      assert_raise CompileError, message, fn ->
+        code =
+          quote do
+            foo = %{bar: true}
+            fn <<_::size(foo.bar)>> -> :ok end
+          end
+
+        expand(code)
+      end
+
+      message = ~r"cannot invoke remote function Foo.bar/0 inside bitstring size specifier"
+
+      assert_raise CompileError, message, fn ->
+        code =
+          quote do
+            fn <<_::size(Foo.bar())>> -> :ok end
           end
 
         expand(code)
