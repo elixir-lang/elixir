@@ -248,7 +248,7 @@ expand_spec_arg(_, Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) 
   {Expr, S, E};
 expand_spec_arg(size, Expr, S, _OriginalS, #{context := match} = E) ->
   {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise, bitsize=true}, E#{context := guard}),
-  {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch}, EE#{context := match}};
+  {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch, bitsize=false}, EE#{context := match}};
 expand_spec_arg(size, Expr, S, OriginalS, E) ->
   NewS = elixir_env:reset_read(S, OriginalS),
   {EExpr, SE, EE} = elixir_expand:expand(Expr, NewS#elixir_ex{bitsize=true}, E#{context := guard}),
