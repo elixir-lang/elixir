@@ -246,12 +246,12 @@ defmodule Kernel.BinaryTest do
 
   test "bitsyntax size using guard expressions" do
     x = 8
-    assert <<1::3>> == <<1::size(x - 5)>>
-    assert <<1::3*8>> == <<1::size(x - 5)-unit(8)>>
-    assert <<1::4>> == <<1::size(length('abcd'))>>
+    assert <<1::size(x - 5)>> = <<1::3>>
+    assert <<1::size(x - 5)-unit(8)>> = <<1::3*8>>
+    assert <<1::size(length('abcd'))>> = <<1::4>>
 
     foo = %{bar: 5}
-    assert <<1::5>> == <<1::size(foo.bar)>>
+    assert <<1::size(foo.bar)>> = <<1::5>>
   end
 
   defmacrop signed_16 do
