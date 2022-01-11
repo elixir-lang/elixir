@@ -539,7 +539,7 @@ extract_bit_info(L, _Meta, _S) ->
   {default, extract_bit_type(L, [])}.
 
 extract_bit_size(Size, Meta, S) ->
-  {TSize, _} = translate(Size, ?ann(Meta), S),
+  {TSize, _} = translate(Size, ?ann(Meta), S#elixir_erl{context=guard}),
   TSize.
 
 extract_bit_type({'-', _, [L, R]}, Acc) ->
