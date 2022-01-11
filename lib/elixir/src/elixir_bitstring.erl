@@ -252,7 +252,7 @@ expand_spec_arg(size, Expr, S, _OriginalS, #{context := match} = E) ->
 expand_spec_arg(size, Expr, S, OriginalS, E) ->
   NewS = elixir_env:reset_read(S, OriginalS),
   {EExpr, SE, EE} = elixir_expand:expand(Expr, NewS#elixir_ex{bitsize=true}, E#{context := guard}),
-  {EExpr, SE, EE#{context := nil}};
+  {EExpr, SE#elixir_ex{bitsize=false}, EE#{context := nil}};
 expand_spec_arg(unit, Expr, S, _OriginalS, #{context := match} = E) ->
   {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise}, E),
   {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch}, EE#{context := match}};
