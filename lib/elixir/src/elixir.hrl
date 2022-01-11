@@ -6,7 +6,7 @@
 -define(remote(Ann, Module, Function, Args), {call, Ann, {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}}, Args}).
 
 -record(elixir_ex, {
-  bitsize=false,           %% stores if the situation is a bitstring size modifier
+  bitsize=false,           %% stores if inside a bitstring size modifier
   caller=false,            %% stores if __CALLER__ is allowed
   prematch=warn,           %% {Read, Counter} | warn | raise | pin
   stacktrace=false,        %% stores if __STACKTRACE__ is allowed
