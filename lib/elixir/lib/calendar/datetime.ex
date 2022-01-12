@@ -13,7 +13,13 @@ defmodule DateTime do
 
   Remember, comparisons in Elixir using `==/2`, `>/2`, `</2` and friends
   are structural and based on the DateTime struct fields. For proper
-  comparison between datetimes, use the `compare/2` function.
+  comparison between datetimes, use the `compare/2` function. The
+  existence of the `compare/2` function in this module also allows
+  using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
+  maximum datetime of an `Enum`. For example:
+
+      iex> Enum.min([~U[2022-01-12 00:01:00.00Z], ~U[2021-01-12 00:01:00.00Z]], DateTime)
+      ~U[2021-01-12 00:01:00.00Z]
 
   Developers should avoid creating the `DateTime` struct directly
   and instead rely on the functions provided by this module as
