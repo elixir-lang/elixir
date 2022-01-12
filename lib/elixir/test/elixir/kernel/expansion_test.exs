@@ -2633,10 +2633,19 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
 
-      assert_raise CompileError, ~r/undefined variable "foo" in bitstring segment/, fn ->
+      assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
         code =
           quote do
             fn foo, <<_::size(foo)>> -> :ok end
+          end
+
+        expand(code)
+      end
+
+      assert_raise CompileError, ~r/undefined variable "foo"/, fn ->
+        code =
+          quote do
+            fn foo, <<_::size(foo + 1)>> -> :ok end
           end
 
         expand(code)
@@ -2653,7 +2662,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
 
-      message = ~r"invalid expression, anonymous call is not allowed in bitstring size specifier"
+      message = ~r"anonymous call is not allowed in bitstring size specifier"
 
       assert_raise CompileError, message, fn ->
         code =
@@ -2664,7 +2673,7 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
 
-      message = ~r"cannot invoke remote function in bitstring size specifier, got foo.bar()"
+      message = ~r"cannot invoke remote function in bitstring size specifier"
 
       assert_raise CompileError, message, fn ->
         code =
@@ -2797,7 +2806,7 @@ defmodule Kernel.ExpansionTest do
       expand(code)
     end
 
-    assert_raise CompileError, ~r"invalid expression in guard", fn ->
+    assert_raise CompileError, ~r"anonymous call is not allowed in guards", fn ->
       code =
         quote do
           x = & &1
