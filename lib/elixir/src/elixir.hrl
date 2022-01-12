@@ -6,9 +6,8 @@
 -define(remote(Ann, Module, Function, Args), {call, Ann, {remote, Ann, {atom, Ann, Module}, {atom, Ann, Function}}, Args}).
 
 -record(elixir_ex, {
-  bitsize=false,           %% stores if inside a bitstring size modifier
   caller=false,            %% stores if __CALLER__ is allowed
-  prematch=warn,           %% {Read, Counter} | warn | raise | pin
+  prematch=warn,           %% {Read, Counter} | warn | raise | pin | {bitsize,PreVars,OriginalVars}
   stacktrace=false,        %% stores if __STACKTRACE__ is allowed
   unused={#{}, 0},         %% a map of unused vars and a version counter for vars
   vars={#{}, false}        %% a tuple with maps of read and optional write current vars

@@ -246,42 +246,20 @@ validate_spec(_, _)          -> none.
 
 expand_spec_arg(Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) ->
   {Expr, S, E};
-expand_spec_arg(Expr, S, _OriginalS, #{context := match} = E) ->
-  {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=raise, bitsize=true}, E#{context := guard}),
-  {EExpr, SE#elixir_ex{prematch=S#elixir_ex.prematch, bitsize=false}, EE#{context := match}};
+expand_spec_arg(Expr, S, OriginalS, #{context := match} = E) ->
+  %% We can only access variables that are either on prematch or not in original
+  #elixir_ex{prematch={PreRead, Counter}} = S,
+  #elixir_ex{vars={OriginalRead, _}} = OriginalS,
+  Prematch = {bitsize, PreRead, OriginalRead},
+  {EExpr, SE, EE} = elixir_expand:expand(Expr, S#elixir_ex{prematch=Prematch}, E#{context := guard}),
+  {EExpr, SE#elixir_ex{prematch={PreRead, Counter}}, EE#{context := match}};
 expand_spec_arg(Expr, S, OriginalS, E) ->
-  NewS = elixir_env:reset_read(S, OriginalS),
-  {EExpr, SE, EE} = elixir_expand:expand(Expr, NewS#elixir_ex{bitsize=true}, E#{context := guard}),
-  {EExpr, SE#elixir_ex{bitsize=false}, EE#{context := nil}}.
+  elixir_expand:expand(Expr, elixir_env:reset_read(S, OriginalS), E).
 
-validate_spec_arg(Meta, size, Value, S, OriginalS, E) ->
-  case Value of
-    {Var, VarMeta, Context} when is_atom(Var) and is_atom(Context) ->
-      Tuple = {Var, elixir_utils:var_context(VarMeta, Context)},
-
-      case is_valid_spec_arg_var(Tuple, S, OriginalS, E) of
-        true -> ok;
-        false -> form_error(Meta, E, ?MODULE, {undefined_var_in_spec, Value})
-      end;
-
-    _  ->
-      ok
-  end;
 validate_spec_arg(Meta, unit, Value, _S, _OriginalS, E) when not is_integer(Value) ->
   form_error(Meta, E, ?MODULE, {bad_unit_argument, Value});
 validate_spec_arg(_Meta, _Key, _Value, _S, _OriginalS, _E) ->
   ok.
-
-is_valid_spec_arg_var(Var, S, OriginalS, #{context := match}) ->
-  case S#elixir_ex.prematch of
-    {#{Var := _}, _} -> true;
-    _ -> is_var(Var, S) andalso not is_var(Var, OriginalS)
-  end;
-is_valid_spec_arg_var(_Var, _S, _OriginalS, _E) ->
-  true.
-
-is_var(Var, #elixir_ex{vars={Read, _}}) ->
-  maps:is_key(Var, Read).
 
 validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
   form_error(Meta, E, ?MODULE, unsized_binary);

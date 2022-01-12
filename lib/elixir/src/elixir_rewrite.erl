@@ -319,18 +319,15 @@ static_append(_, _, _) -> throw(impossible).
 %% Guard rewrite is similar to regular rewrite, except
 %% it also verifies the resulting function is supported in
 %% guard context - only certain BIFs and operators are.
-guard_rewrite(Receiver, DotMeta, Right, Meta, Args, Bitsize) ->
+guard_rewrite(Receiver, DotMeta, Right, Meta, Args, Context) ->
   case inner_rewrite(ex_to_erl, DotMeta, Receiver, Right, Args) of
     {erlang, RRight, RArgs} ->
       case allowed_guard(RRight, length(RArgs)) of
         true -> {ok, {{'.', DotMeta, [erlang, RRight]}, Meta, RArgs}};
-        false -> form_invalid_error(Receiver, Right, Args, Bitsize)
+        false -> {error, {invalid_guard, Receiver, Right, length(Args), Context}}
       end;
-    _ -> form_invalid_error(Receiver, Right, Args, Bitsize)
+    _ -> {error, {invalid_guard, Receiver, Right, length(Args), Context}}
   end.
-
-form_invalid_error(Receiver, Right, Args, false) -> {error, {invalid_guard, Receiver, Right, length(Args)}};
-form_invalid_error(Receiver, Right, Args, true) -> {error, {invalid_bitsize, Receiver, Right, length(Args)}}.
 
 %% erlang:is_record/2-3 are compiler guards in Erlang which we
 %% need to explicitly forbid as they are allowed in erl_internal.
@@ -339,12 +336,9 @@ allowed_guard(is_record, 3) -> false;
 allowed_guard(Right, Arity) ->
   erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity).
 
-format_error({invalid_bitsize, Receiver, Right, Arity}) ->
-  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside bitstring size specifier",
-                ['Elixir.Macro':to_string(Receiver), Right, Arity]);
-format_error({invalid_guard, Receiver, Right, Arity}) ->
-  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside guards",
-                ['Elixir.Macro':to_string(Receiver), Right, Arity]);
+format_error({invalid_guard, Receiver, Right, Arity, Context}) ->
+  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside ~ts",
+                ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);
 format_error({invalid_match, Receiver, Right, Arity}) ->
   io_lib:format("cannot invoke remote function ~ts.~ts/~B inside a match",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity]);

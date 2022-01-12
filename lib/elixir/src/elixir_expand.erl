@@ -363,37 +363,52 @@ expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_at
   end;
 
 expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
-  #elixir_ex{vars={Read, _Write}, unused={Unused, Version}} = S,
+  #elixir_ex{vars={Read, _Write}, unused={Unused, Version}, prematch=Prematch} = S,
   Pair = {Name, elixir_utils:var_context(Meta, Kind)},
 
-  case Read of
-    #{Pair := PairVersion} ->
+  Result =
+    case Read of
+      #{Pair := CurrentVersion} ->
+        case Prematch of
+          {bitsize, Pre, Original} ->
+            if
+              is_map_key(Pair, Pre); not is_map_key(Pair, Original) -> {ok, CurrentVersion};
+              true -> raise
+            end;
+
+          _ ->
+            {ok, CurrentVersion}
+        end;
+
+      _ ->
+        Prematch
+    end,
+
+  case Result of
+    {ok, PairVersion} ->
       maybe_warn_underscored_var_access(Meta, Name, Kind, E),
       Var = {Name, [{version, PairVersion} | Meta], Kind},
       {Var, S#elixir_ex{unused={var_used(Pair, PairVersion, Unused), Version}}, E};
 
-    _ ->
+    Error ->
       case lists:keyfind(if_undefined, 1, Meta) of
-        %% TODO: Remove this clause on v2.0 as we will always raise
+        %% TODO: Remove this clause on v2.0 as we will always raise by default
         {if_undefined, raise} ->
           form_error(Meta, E, ?MODULE, {undefined_var, Name, Kind});
 
         {if_undefined, apply} ->
           expand({Name, Meta, []}, S, E);
 
+        %% TODO: Remove this clause on v2.0
+        _ when Error == warn ->
+          elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
+          expand({Name, Meta, []}, S, E);
+
+        _ when Error == pin ->
+          form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind});
+
         _ ->
-          case S#elixir_ex.prematch of
-            %% TODO: Remove this clause on v2.0 as we will always raise
-            warn ->
-              elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
-              expand({Name, Meta, []}, S, E);
-
-            raise ->
-              form_error(Meta, E, ?MODULE, {undefined_var, Name, Kind});
-
-            pin ->
-              form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind})
-          end
+          form_error(Meta, E, ?MODULE, {undefined_var, Name, Kind})
       end
   end;
 
@@ -804,12 +819,10 @@ expand_local(Meta, Name, Args, _S, E) when Name == '|'; Name == '::' ->
   form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
 expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
   form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
-expand_local(Meta, Name, Args, S, #{context := Context} = E) when Context == match; Context == guard ->
-  Error = case S#elixir_ex.bitsize of
-    true -> invalid_local_invocation_in_bitsize;
-    false -> invalid_local_invocation
-  end,
-  form_error(Meta, E, ?MODULE, {Error, Context, {Name, Meta, Args}}).
+expand_local(Meta, Name, Args, _S, #{context := match} = E) ->
+  form_error(Meta, E, ?MODULE, {invalid_local_invocation, match, {Name, Meta, Args}});
+expand_local(Meta, Name, Args, S, #{context := guard} = E) ->
+  form_error(Meta, E, ?MODULE, {invalid_local_invocation, guard_context(S), {Name, Meta, Args}}).
 
 %% Remote
 
@@ -821,12 +834,8 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
       {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
     {guard, _} when is_tuple(Receiver) ->
-      case S#elixir_ex.bitsize of
-        true ->
-          form_error(Meta, E, ?MODULE, {parens_map_lookup_bitsize, Receiver, Right});
-        false ->
-          form_error(Meta, E, ?MODULE, {parens_map_lookup_guard, Receiver, Right})
-      end;
+      form_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, guard_context(S)});
+
     _ ->
       AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
 
@@ -864,7 +873,7 @@ attach_context_module(Receiver, Meta, #{context_modules := ContextModules}) ->
 rewrite(match, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
   elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
 rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs, S) ->
-  elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs, S#elixir_ex.bitsize);
+  elixir_rewrite:guard_rewrite(Receiver, DotMeta, Right, Meta, EArgs, guard_context(S));
 rewrite(_, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
   {ok, elixir_rewrite:rewrite(Receiver, DotMeta, Right, Meta, EArgs)}.
 
@@ -1032,7 +1041,7 @@ expand_for({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
       {ELeft, SL, EL} = elixir_clauses:match(fun(BArg, BS, BE) ->
         elixir_bitstring:expand(Meta, BArg, BS, BE, true)
       end, LeftStart ++ [LeftEnd], SM, SM, ER),
-      {{'<<>>', [], [{'<-', OpMeta, [ELeft, ERight]}]}, SL, EL};
+      {{'<<>>', Meta, [{'<-', OpMeta, [ELeft, ERight]}]}, SL, EL};
     _ ->
       expand(X, S, E)
   end;
@@ -1101,10 +1110,13 @@ assert_no_match_or_guard_scope(Meta, Kind, S, E) ->
 assert_no_match_scope(Meta, Kind, #{context := match, file := File}) ->
   form_error(Meta, File, ?MODULE, {invalid_pattern_in_match, Kind});
 assert_no_match_scope(_Meta, _Kind, _E) -> [].
-assert_no_guard_scope(Meta, Kind, #elixir_ex{bitsize=true}, #{context := guard, file := File}) ->
-  form_error(Meta, File, ?MODULE, {invalid_expr_in_bitsize, Kind});
-assert_no_guard_scope(Meta, Kind, _S, #{context := guard, file := File}) ->
-  form_error(Meta, File, ?MODULE, {invalid_expr_in_guard, Kind});
+assert_no_guard_scope(Meta, Kind, S, #{context := guard, file := File}) ->
+  Key =
+    case S#elixir_ex.prematch of
+      {bitsize, _, _}  -> invalid_expr_in_bitsize;
+      _ -> invalid_expr_in_guard
+    end,
+  form_error(Meta, File, ?MODULE, {Key, Kind});
 assert_no_guard_scope(_Meta, _Kind, _S, _E) -> [].
 
 %% Here we look into the Clauses "optimistically", that is, we don't check for
@@ -1124,6 +1136,9 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
   ok.
 
 %% Errors
+
+guard_context(#elixir_ex{prematch={bitsize, _, _}}) -> "bitstring size specifier";
+guard_context(_) -> "guards".
 
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
@@ -1185,19 +1200,20 @@ format_error({undefined_var_pin, Name, Kind}) ->
 format_error(underscore_in_cond) ->
   "invalid use of _ inside \"cond\". If you want the last clause to always match, "
     "you probably meant to use: true ->";
-format_error({invalid_expr_in_guard, Kind}) ->
-  Message =
-    "invalid expression in guard, ~ts is not allowed in guards. To learn more about "
-    "guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html",
-  io_lib:format(Message, [Kind]);
-format_error({invalid_expr_in_bitsize, Kind}) ->
-  Message =
-    "invalid expression, ~ts is not allowed in bitstring size specifier",
-  io_lib:format(Message, [Kind]);
 format_error({invalid_pattern_in_match, Kind}) ->
   io_lib:format("invalid pattern in match, ~ts is not allowed in matches", [Kind]);
 format_error({invalid_expr_in_scope, Scope, Kind}) ->
   io_lib:format("cannot invoke ~ts outside ~ts", [Kind, Scope]);
+format_error({invalid_expr_in_guard, Kind}) ->
+  Message =
+    "invalid expression in guards, ~ts is not allowed in guards. To learn more about "
+    "guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html",
+  io_lib:format(Message, [Kind]);
+format_error({invalid_expr_in_bitsize, Kind}) ->
+  Message =
+    "~ts is not allowed in bitstring size specifier. The size specifier in matches works like guards. "
+    "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html",
+  io_lib:format(Message, [Kind]);
 format_error({invalid_alias, Expr}) ->
   Message =
     "invalid alias: \"~ts\". If you wanted to define an alias, an alias must expand "
@@ -1247,11 +1263,6 @@ format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
     "cannot find or invoke local ~ts/~B inside ~ts. "
     "Only macros can be invoked in a ~ts and they must be defined before their invocation. Called as: ~ts",
   io_lib:format(Message, [Name, length(Args), Context, Context, 'Elixir.Macro':to_string(Call)]);
-format_error({invalid_local_invocation_in_bitsize, _Context, {Name, _, Args} = Call}) ->
-  Message =
-    "cannot find or invoke local ~ts/~B inside bitstring size specifier. "
-    "Called as: ~ts",
-  io_lib:format(Message, [Name, length(Args), 'Elixir.Macro':to_string(Call)]);
 format_error({invalid_pid_in_function, Pid, {Name, Arity}}) ->
   io_lib:format("cannot compile PID ~ts inside quoted expression for function ~ts/~B",
                 ['Elixir.Kernel':inspect(Pid, []), Name, Arity]);
@@ -1312,14 +1323,10 @@ format_error(stacktrace_not_allowed) ->
 format_error({unknown_variable, Name}) ->
   io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                 " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]);
-format_error({parens_map_lookup_guard, Map, Field}) ->
-  io_lib:format("cannot invoke remote function in guard. "
+format_error({parens_map_lookup, Map, Field, Context}) ->
+  io_lib:format("cannot invoke remote function in ~ts. "
                 "If you want to do a map lookup instead, please remove parens from ~ts.~ts()",
-                ['Elixir.Macro':to_string(Map), Field]);
-format_error({parens_map_lookup_bitsize, Map, Field}) ->
-  io_lib:format("cannot invoke remote function in bitstring size specifier, "
-                "got ~ts.~ts()",
-                ['Elixir.Macro':to_string(Map), Field]);
+                [Context, 'Elixir.Macro':to_string(Map), Field]);
 format_error({super_in_genserver, {Name, Arity}}) ->
   io_lib:format("calling super for GenServer callback ~ts/~B is deprecated", [Name, Arity]);
 format_error({parallel_bitstring_match, Expr}) ->
