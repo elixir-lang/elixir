@@ -822,7 +822,8 @@ defmodule Code do
   evaluation.
 
   Most functions in this module will automatically prepare the given
-  environment for evaluation. The exception is `eval_quoted_with_env/3`,
+  environment for evaluation, so you don't need to explicitly call
+  this function, with the exception of `eval_quoted_with_env/3`,
   which was designed precisely to be called in a loop, to implement
   features such as interactive shells or anything else with multiple
   evaluations.
