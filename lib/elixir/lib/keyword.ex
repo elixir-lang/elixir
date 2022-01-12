@@ -240,6 +240,11 @@ defmodule Keyword do
       iex> Keyword.validate([three: 3, four: 4], [one: 1, two: 2])
       {:error, [:four, :three]}
 
+  Passing the same key multiple times also errors:
+
+      iex> Keyword.validate([one: 1, two: 2, one: 1], [:one, :two])
+      {:error, [:one]}
+
   """
   @doc since: "1.13.0"
   @spec validate(keyword(), values :: [atom() | {atom(), term()}]) ::
@@ -319,6 +324,11 @@ defmodule Keyword do
       iex> Keyword.validate!([three: 3], [one: 1, two: 2])
       ** (ArgumentError) unknown keys [:three] in [three: 3], the allowed keys are: [:one, :two]
 
+  Passing the same key multiple times also errors:
+
+      iex> Keyword.validate!([one: 1, two: 2, one: 1], [:one, :two])
+      ** (ArgumentError) duplicate keys [:one] in [one: 1, two: 2, one: 1]
+
   """
   @doc since: "1.13.0"
   @spec validate!(keyword(), values :: [atom() | {atom(), term()}]) :: keyword()
@@ -332,8 +342,17 @@ defmodule Keyword do
           for value <- values,
               do: if(is_atom(value), do: value, else: elem(value, 0))
 
-        raise ArgumentError,
-              "unknown keys #{inspect(invalid_keys)} in #{inspect(keyword)}, the allowed keys are: #{inspect(keys)}"
+        message =
+          case Enum.split_with(invalid_keys, &(&1 in keys)) do
+            {_, [_ | _] = unknown} ->
+              "unknown keys #{inspect(unknown)} in #{inspect(keyword)}, " <>
+                "the allowed keys are: #{inspect(keys)}"
+
+            {[_ | _] = known, _} ->
+              "duplicate keys #{inspect(known)} in #{inspect(keyword)}"
+          end
+
+        raise ArgumentError, message
     end
   end
 
