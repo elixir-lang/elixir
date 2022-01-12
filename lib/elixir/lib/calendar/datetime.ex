@@ -16,7 +16,10 @@ defmodule DateTime do
   comparison between datetimes, use the `compare/2` function. The
   existence of the `compare/2` function in this module also allows
   using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
-  maximum datetime of an `Enum`.
+  maximum datetime of an `Enum`. For example:
+
+      iex> Enum.min([~U[2022-01-12 00:01:00.00Z], ~U[2021-01-12 00:01:00.00Z]], DateTime)
+      ~U[2021-01-12 00:01:00.00Z]
 
   Developers should avoid creating the `DateTime` struct directly
   and instead rely on the functions provided by this module as
