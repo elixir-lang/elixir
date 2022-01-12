@@ -15,7 +15,7 @@ defmodule DateTime do
   are structural and based on the DateTime struct fields. For proper
   comparison between datetimes, use the `compare/2` function. The
   existence of the `compare/2` function in this module also allows
-  using `Enum.min/3` and `Enum.max/3` functions to get the minimum and
+  using `Enum.min/2` and `Enum.max/2` functions to get the minimum and
   maximum datetime of an `Enum`.
 
   Developers should avoid creating the `DateTime` struct directly
