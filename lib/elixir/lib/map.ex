@@ -214,7 +214,24 @@ defmodule Map do
 
   """
   @spec new(Enumerable.t(), (term -> {key, value})) :: map
-  def new(enumerable, transform) when is_function(transform, 1) do
+  def new(enumerable, transform)
+  def new(%_{} = enumerable, transform), do: new_from_enum(enumerable, transform)
+  def new(%{} = map, transform), do: new_from_map(map, transform)
+  def new(enumerable, transform), do: new_from_enum(enumerable, transform)
+
+  defp new_from_map(map, transform) when is_function(transform, 1) do
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
+    :maps.from_list(do_map(next, transform))
+  end
+
+  defp do_map(:none, _fun), do: []
+
+  defp do_map({key, value, iter}, transform) do
+    [transform.({key, value}) | do_map(:maps.next(iter), transform)]
+  end
+
+  defp new_from_enum(enumerable, transform) when is_function(transform, 1) do
     enumerable
     |> Enum.map(transform)
     |> :maps.from_list()
