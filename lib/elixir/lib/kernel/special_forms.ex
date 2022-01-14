@@ -2092,9 +2092,8 @@ defmodule Kernel.SpecialForms do
         File.rm("tmp/story.txt")
       end
 
-  Although `after` clauses are invoked whether or not there was an error, they cannot be
-  used to override the return value. In all of the following examples the return
-  value would be `:return_me`:
+  Although `after` clauses are invoked whether or not there was an error, they do not
+  modify the return value. All of the following examples return `:return_me`:
 
       try do
         :return_me
