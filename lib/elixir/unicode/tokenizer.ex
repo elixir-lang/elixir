@@ -1,6 +1,6 @@
 # semi-random selection of math chars for now added as PoC
 # we use the same list in Tokenizer & UncommonCodepoints
-unicode_whitelist = 'λ∆Ø∂δω∇Φϕσμπκxαθ'
+unicode_whitelist = 'λ∆Ø∂δω∇Φϕσμπκxαθᵥᵢᵣᵤᵦᵧᵨᵩᵪᶠ∫∪∩∨∧∑∋∈'
 
 defmodule String.Tokenizer do
   @moduledoc false
@@ -243,12 +243,12 @@ defmodule String.Tokenizer do
   end
 end
 
-# the rest of this file is an implementation of the three UTS 39 security
+# ---
+# the rest of this file is the implementation of UTS 39 security
 #
 # 1. UncommonCodepoints
 # 2. Confusables
 # 3. MixedScript
-#
 
 get_lines = fn fname ->
   Path.join(__DIR__, fname)
@@ -272,17 +272,17 @@ defmodule String.Unicode.UncommonCodepoints do
     end
     |> Enum.reverse()
 
-  defp allowed_codepoint?(c) when c < 128, do: true
+  def allowed_codepoint?(c) when c < 128, do: true
 
   for codepoints <- allowed_codepoints do
     case codepoints do
-      [a, b] -> defp allowed_codepoint?(c) when c in unquote(a)..unquote(b), do: true
-      [a] -> defp allowed_codepoint?(unquote(a)), do: true
+      [a, b] -> def allowed_codepoint?(c) when c in unquote(a)..unquote(b), do: true
+      [a] -> def allowed_codepoint?(unquote(a)), do: true
     end
   end
 
-  defp allowed_codepoint?(c) when c in unquote(unicode_whitelist), do: true
-  defp allowed_codepoint?(_), do: false
+  def allowed_codepoint?(c) when c in unquote(unicode_whitelist), do: true
+  def allowed_codepoint?(_), do: false
 
   def check_tokens(tokens) do
     for token <- tokens, reduce: {true, []} do
@@ -347,18 +347,18 @@ defmodule String.Unicode.Confusables do
     end
 
   # don't consider ascii confusable: 0O, l1, etc
-  defp confusable_prototype(c) when c in ?A..?Z or c in ?a..?z or c in ?0..?9, do: c
-  defp confusable_prototype(?_), do: ?_
+  def confusable_prototype(c) when c in ?A..?Z or c in ?a..?z or c in ?0..?9, do: c
+  def confusable_prototype(?_), do: ?_
 
   for {confusable, prototype} <- confusable_prototype_lookup do
-    defp confusable_prototype(unquote(confusable)) do
+    def confusable_prototype(unquote(confusable)) do
       unquote(prototype)
     end
   end
 
-  defp confusable_prototype(other), do: other
+  def confusable_prototype(other), do: other
 
-  defp confusable_skeleton(s) do
+  def confusable_skeleton(s) do
     # "- Convert X to NFD format, as described in [UAX15].
     #  - Concatenate the prototypes for each character in X according to
     #    the specified data, producing a string of exemplar characters.
@@ -404,48 +404,61 @@ end
 defmodule String.Unicode.ScriptSet do
   @moduledoc false
 
+  # ScriptSetResolution uses this at compile-time and run-time
   # there are 160-some scripts, a set is an int of 1-3 64-bit words
+  # Bitwise isn't loaded at Tokenizer load time so use :erlang
   def empty_script_set(), do: 0
+  def is_empty(ss) when ss == 0, do: true
+  def is_empty(_), do: false
   def intersection(left, right), do: :erlang.band(left, right)
   def union(left, right), do: :erlang.bor(left, right)
+  def remove(left, right), do: :erlang.bxor(left, intersection(left, right))
   def set_index(idx), do: :erlang.bsl(1, idx)
 end
 
-defmodule String.Unicode.MixedScript do
-  # Implements UTS 39, Security - 5.1, Mixed Script Detection
-  #   https://www.unicode.org/reports/tr39/#Mixed_Script_Detection)
-  #
-  # Assumes 3 text files from UAX24 (Scripts)
-  # 1. Scripts.txt              codepoint => primary script (by full name)
-  # 2. ScriptExtensions.txt     codepoint => N scripts, (by short names)
-  # 3. PropertyValueAliases.txt short names <=> long names mapping
+# The following implements script resolution and mixed-script protection
+# UTS 39, Security - 5.1, Mixed Script Detection
+#   https://www.unicode.org/reports/tr39/#Mixed_Script_Detection)
+#
+# Assumes 3 text files from UAX24 (Scripts)
+# 1. Scripts.txt              codepoint => primary script (by full name)
+# 2. ScriptExtensions.txt     codepoint => N scripts, (by short names)
+# 3. PropertyValueAliases.txt short names <=> long names mapping
+# And 'confusables.txt' from above for Mixed-Script confusables protection.
 
+# first we'll build a lookup of short <=> long names, starting with:
+initial_mapping = %{
+  "Jpan" => "Japanese",
+  "Kore" => "Korean",
+  "Hanb" => "Han with Bopomofo",
+  "Zzzz" => "Unknown"
+}
+
+script_aliases =
+  Path.join(__DIR__, "PropertyValueAliases.txt")
+  |> File.read!()
+  |> String.split(["\r\n", "\n"], trim: true)
+  |> Enum.map(&String.split(&1, [";", " "], trim: true))
+  |> Enum.reduce(initial_mapping, fn
+    ["sc", short, long | _], acc -> Map.put_new(acc, short, long)
+    _, acc -> acc
+  end)
+  |> Enum.sort()
+
+# ordered lists of names => indices
+script_shortnames_sorted = Enum.map(script_aliases, &elem(&1, 0))
+script_names_sorted = Enum.map(script_aliases, &elem(&1, 1))
+
+defmodule String.Unicode.ScriptSetResolution do
+  # this module uses ScriptSets and data above to impl 'resolved script set';
+  #  that's enough to tell us if script mixing is occurring, and what all of
+  #  the scripts involved are. Since some cases of mixing are legitimate,
+  #  like using acronyms from another language, MixedScript will build on
+  #  that to check script mixing for confusables.
   @moduledoc false
   import String.Unicode.ScriptSet
   @empty empty_script_set()
 
-  # first we'll build a lookup of short <=> long names, starting with:
-  initial_mapping = %{
-    "Jpan" => "Japanese",
-    "Kore" => "Korean",
-    "Hanb" => "Han with Bopomofo",
-    "Zzzz" => "Unknown"
-  }
-
-  script_aliases =
-    Path.join(__DIR__, "PropertyValueAliases.txt")
-    |> File.read!()
-    |> String.split(["\r\n", "\n"], trim: true)
-    |> Enum.map(&String.split(&1, [";", " "], trim: true))
-    |> Enum.reduce(initial_mapping, fn
-      ["sc", short, long | _], acc -> Map.put_new(acc, short, long)
-      _, acc -> acc
-    end)
-    |> Enum.sort()
-
-  # and then to ordered lists of names => indices (for positions in the bit map)
-  script_shortnames_sorted = Enum.map(script_aliases, &elem(&1, 0))
-  script_names_sorted = Enum.map(script_aliases, &elem(&1, 1))
   script_shortname_indices = script_shortnames_sorted |> Enum.with_index() |> Map.new()
   script_indices = script_names_sorted |> Enum.with_index() |> Map.new()
 
@@ -516,44 +529,20 @@ defmodule String.Unicode.MixedScript do
   script_extensions_ss = build_scriptsets.("ScriptExtensions.txt", script_shortname_indices)
   scripts_ss = build_scriptsets.("Scripts.txt", script_indices)
 
-  defp scripts(c) when not is_integer(c), do: {:error, :non_integer}
+  def scripts(c) when not is_integer(c), do: {:error, :non_integer}
 
   # precedence is ScriptExtensions.txt first, then Scripts.txt,
   # then fall back to 'Unknown', per headers of those text files.
   for entry <- script_extensions_ss ++ scripts_ss do
     case entry do
-      {a, b, ss} -> defp scripts(c) when c in unquote(a)..unquote(b), do: unquote(ss)
-      {a, ss} -> defp scripts(unquote(a)), do: unquote(ss)
+      {a, b, ss} -> def scripts(c) when c in unquote(a)..unquote(b), do: unquote(ss)
+      {a, ss} -> def scripts(unquote(a)), do: unquote(ss)
     end
   end
 
-  defp scripts(_other) do
+  def scripts(_other) do
     unquote(scriptset.(script_indices, "Unknown"))
   end
-
-  # UTS 39 section 5.1, a string is 'Mixed script' if:
-  # > ...its 'resolved script set' is empty, and defined to be
-  # > single-script if its resolved script set is nonempty.
-  # > (Note that the term “single-script string” may be confusing.
-  # > It means that there is at least one script in the resolved script
-  # > set, not that there is only one).
-  def check_tokens(tokens) do
-    for warning <- Enum.map(tokens, &scriptset_for_token_resolves/1), warning != :ok do
-      warning
-    end
-  end
-
-  defp scriptset_for_token_resolves({:identifier, _, name} = token) do
-    chars = Atom.to_charlist(name)
-
-    if @empty == resolve(chars) do
-      {token, "Mixed-script identifier '#{name}', codepoints:\n\n#{debug_resolve(chars)}"}
-    else
-      :ok
-    end
-  end
-
-  defp scriptset_for_token_resolves(_other), do: :ok
 
   # 'resolved script set ignores chars w/Extensions {Common}, {Inherited} and augments
   #  characters with CJK scripts with their respective writing systems. [ALL] are
@@ -568,10 +557,10 @@ defmodule String.Unicode.MixedScript do
 
   # 'define the 'resolved script set' for a string to be the intersection
   #  of the augmented script sets over all characters in the string'
-  defp resolve([]), do: @empty
-  defp resolve([c | chars]), do: continue(chars, {scripts(c), scripts(c)})
-  defp continue([c | chars], sets), do: continue(chars, add(sets, scripts(c)))
-  defp continue([], {resolved, _seen}), do: resolved
+  def resolve([]), do: {@empty, @empty}
+  def resolve([c | chars]), do: continue(chars, {scripts(c), scripts(c)})
+  def continue([c | chars], sets), do: continue(chars, add(sets, scripts(c)))
+  def continue([], sets), do: sets
 
   # - 'ignore chars w/Extensions {Common}, {Inherited} when testing for diffs in script'
   # - 'don't resolve {ø} for all-common identifiers, like "_123"' (Table 1a)
@@ -582,6 +571,155 @@ defmodule String.Unicode.MixedScript do
       not all?(ss) and (all?(seen) or seen == @empty) -> {ss, ss}
       true -> {intersection(resolved, ss), union(seen, ss)}
     end
+  end
+end
+
+defmodule String.Unicode.MixedScript do
+  alias String.Unicode.{ScriptSet, Confusables, ScriptSetResolution, UncommonCodepoints}
+  @empty ScriptSet.empty_script_set()
+  empty = ScriptSet.empty_script_set()
+
+  # this module uses the modules defined above to filter
+  # confusables.txt to only allowed chars, and within those,
+  # to only those sets of mutually confusable chars that aren't
+  # single-script -- that is, chars that could be confusable
+  # with chars in a different writing system.
+
+  lines = get_lines.("confusables.txt")
+  regex = ~r/^((?:[0-9A-F]+ )+);\t((?:[0-9A-F]+ )+);/u
+  matches = Enum.map(lines, &Regex.run(regex, &1, capture: :all_but_first))
+
+  allowed_confusables_by_prototype =
+    for [one_char_str, prototype_chars_str] = ls <- matches, !is_nil(ls), reduce: %{} do
+      acc ->
+        confusable = String.to_integer(String.trim(one_char_str), 16)
+
+        prototype =
+          String.split(prototype_chars_str, " ", trim: true)
+          |> Enum.map(&String.to_integer(&1, 16))
+
+        # only build this up from the allowed codepoints, first.
+        if UncommonCodepoints.allowed_codepoint?(confusable) do
+          case Map.has_key?(acc, prototype) do
+            true -> %{acc | prototype => [confusable | acc[prototype]]}
+            false -> Map.put_new(acc, prototype, [confusable])
+          end
+        else
+          acc
+        end
+    end
+
+  sort_by_confusable_prototype = fn a, b ->
+    Confusables.confusable_prototype(a) <= Confusables.confusable_prototype(b)
+  end
+
+  mixed =
+    for {proto, ls} <- allowed_confusables_by_prototype, reduce: [] do
+      acc ->
+        chars =
+          if 1 == length(proto) and UncommonCodepoints.allowed_codepoint?(hd(proto)),
+            do: [hd(proto) | ls],
+            else: ls
+
+        # filter out confusables that aren't mixed script, example:
+        #  529B '力' {Han, Han with Bopomofo, Japanese, Korean}
+        #  30AB 'カ' {Japanese, Katakana}
+        # They're confusable, and only 1 is Katakana. But the 'resolved
+        # script set' is {Japanese}, so while confusable w/each other, (see
+        # Confusables check) they're not 'mixed script confusable characters.
+        {resolved, _seen} = ScriptSetResolution.resolve(chars)
+
+        case resolved do
+          ^empty -> chars ++ acc
+          _ -> acc
+        end
+    end
+    |> Enum.uniq()
+    |> Enum.sort(sort_by_confusable_prototype)
+
+  def table() do
+    unquote(mixed)
+  end
+
+  # about 800 items in 'mixed' right now
+  def is_potential_mixed_script_confusable_char(c) when c in unquote(mixed), do: true
+  def is_potential_mixed_script_confusable_char(_), do: false
+
+  # -- security check!
+
+  def check_tokens(tokens) do
+    # First, check for mixed script.
+    # UTS 39 section 5.1, a string is 'Mixed script' if:
+    # > ...its 'resolved script set' is empty, and defined to be
+    # > single-script if its resolved script set is nonempty.
+    # > (Note that the term “single-script string” may be confusing.
+    # > It means that there is at least one script in the resolved script
+    # > set, not that there is only one).
+    {mixings, uniq_chars} =
+      for token <- tokens, reduce: {[], []} do
+        state -> add_resolution_for_token(state, token)
+      end
+
+    # If there are some, check if mixed script usage will be confusable
+    if [] == mixings,
+      do: [],
+      else: check_confusable_mixed_script(mixings, uniq_chars)
+  end
+
+  defp add_resolution_for_token(acc, {:identifier, _, name} = token) do
+    {warnings, uniq_chars} = acc
+    chars = Atom.to_charlist(name)
+    uniq_chars = for(c <- chars, c not in uniq_chars, do: c) ++ uniq_chars
+
+    case ScriptSetResolution.resolve(chars) do
+      {_resolved = @empty, seen} -> {[{token, chars, seen} | warnings], uniq_chars}
+      _ -> {warnings, uniq_chars}
+    end
+  end
+
+  defp add_resolution_for_token(acc, _token), do: acc
+
+  @latin_scriptset ScriptSetResolution.scripts(hd('L'))
+
+  defp check_confusable_mixed_script(mixings, uniq_chars) do
+    uniq_not_confusable =
+      Enum.filter(uniq_chars, &(!is_potential_mixed_script_confusable_char(&1)))
+
+    {_resolved, scripts_to_verify} = ScriptSetResolution.resolve(uniq_chars)
+    {_resolved, verified} = ScriptSetResolution.resolve(uniq_not_confusable)
+
+    unverified =
+      scripts_to_verify
+      |> ScriptSet.remove(verified)
+      |> ScriptSet.remove(@latin_scriptset)
+
+    case unverified do
+      @empty -> []
+      _ -> warning_per_problematic_script(mixings, unverified)
+    end
+  end
+
+  defp warning_per_problematic_script(mixings, unverified_scripts) do
+    suspicious =
+      for {token, chars, ss} <- mixings do
+        {token, chars, ScriptSet.intersection(unverified_scripts, ss)}
+      end
+
+    one_example_per_scriptset =
+      for {token = {_, {line, _, _}, _}, chars, bad_ss} <- suspicious, reduce: %{} do
+        acc = %{^bad_ss => _already_has_one_example} ->
+          acc
+
+        acc ->
+          msg = """
+          The only uses of #{inspect_scripts(bad_ss)} in this file \
+          are mixed-script confusables, like '#{chars}' on line #{line}:
+          #{debug_resolve(chars, bad_ss, " <- mixed-script confusable")}\
+          """
+
+          Map.put_new(acc, bad_ss, {token, msg})
+      end
+      |> Map.values
   end
 
   # The rest of these fns support script inspection for warning message detail
@@ -606,16 +744,17 @@ defmodule String.Unicode.MixedScript do
     |> Enum.join(", ")
   end
 
-  defp debug_resolve(chars) do
-    scripts_for_each_char =
+  defp debug_resolve(chars, noted_scripts, note) do
+    per_char_msg =
       for c <- chars do
-        hex = Integer.to_string(c, 16)
-        "\\u#{String.pad_leading(hex, 4, "0")} {#{inspect_scripts(scripts(c))}}\n"
+        hex = Integer.to_string(c, 16) |> String.pad_leading(4, "0")
+        scripts = ScriptSetResolution.scripts(c)
+        write_note = @empty != ScriptSet.intersection(noted_scripts, scripts)
+        note = if write_note, do: note, else: ""
+        " \\u#{hex} '#{[c]}' {#{inspect_scripts(scripts)}}#{note}\n"
       end
 
-    """
-    #{scripts_for_each_char}
-    Resolved script set (intersection): {#{chars |> resolve |> inspect_scripts}}
-    """
+    {resolved, _} = ScriptSetResolution.resolve(chars)
+    "#{per_char_msg} Resolved script set (intersection): {#{inspect_scripts(resolved)}}"
   end
 end

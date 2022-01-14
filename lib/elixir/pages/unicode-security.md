@@ -39,16 +39,19 @@ Elixir will not warn on confusability for identifiers made up exclusively of cha
 
 ## C3. Mixed script detection
 
-Elixir will warn on identifiers that contain a mix of characters from different scripts, but only when those scripts are not normally used together in a writing system.
+Elixir will warn on identifiers that contain a mix of characters from different scripts, but only when those scripts are not normally used together in a writing system, and even then, only when usage of that script is comprised solely of confusable characters.
 
 * Some languages naturally use multiple scripts. For instance, the Japanese writing system may use multiple scripts, like Hiragana, Katakana, and Han -- so an identifier in Elixir could be comprised of characters from all of those scripts (as well as Common characters, like _ and 0-9; see below).
 
 * Some letters may be used in multiple writing systems; for instance, a codepoint could appear in scripts used in the Japanese, Korean, and Chinese writing systems.
 
-* However, there is no writing system that mixes Cyrillic and Latin characters, or so if that occurs Elixir will emit a warning on that identifier.
-
 * Some characters are in use in so many writing systems that they have been classified by Unicode as 'Common' or 'Inherited'; these include things like numbers, underscores, etc; Elixir will not warn about mixing of ALL-script characters, like `幻ㄒㄧㄤ1 = :foo; 幻ㄒㄧㄤ2 = :bar`.
 
+However, there is no writing system that mixes Cyrillic and Latin characters, and so if that occurs in an identifier in a file, Elixir will examine the file more closely.
+
+* If the only Cyrillic characters in the file are those confusable with characters in other languages, it will emit a warning to that effect.
+
+* If, however, the file contains non-confusable Cyrillic characters as well, then a warning will not be emitted.
 
 
 ## C4, C5 (inapplicable)

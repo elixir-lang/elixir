@@ -31,42 +31,61 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn -> Code.eval_string("ㅤx = x = 2") end) =~
                "identifier 'ㅤx' has uncommon codepoint \\u3164"
 
+      mathy = "defmodule Mathy do def ∆ᵥ(_) do 42 end end"
+      assert capture_err(fn -> Code.eval_string(mathy) end) == ""
       assert capture_err(fn -> Code.eval_string("∆_whitelisted_mathy = 1") end) == ""
     end
 
     test "warns on confusables" do
-      assert capture_err(fn -> Code.eval_string("а=1; a=1") end) =~
-               "confusable identifier: 'a' looks like 'а' on line 1"
+      assert capture_err(fn -> Code.eval_string("аdmin=1; admin=1") end) =~
+        "confusable identifier: 'admin' looks like 'аdmin' on line 1"
 
+      assert capture_err(fn -> Code.eval_string("力=1; カ=1") end) =~
+        "confusable identifier: 'カ' looks like '力' on line 1"
+
+      # by convention, doesn't warn on ascii-only confusables
       assert capture_err(fn -> Code.eval_string("x0 = xO = 1") end) == ""
       assert capture_err(fn -> Code.eval_string("l1 = ll = 1") end) == ""
     end
 
     test "warnings on mixed scripts" do
-      output = capture_err(fn -> Code.eval_string("夏の幻ㄒㄧㄤ = 2") end)
-
-      assert output =~ ~S"""
-             Mixed-script identifier '夏の幻ㄒㄧㄤ', codepoints:
-
-             \u590F {Han, Han with Bopomofo, Japanese, Korean}
-             \u306E {Hiragana, Japanese}
-             \u5E7B {Han, Han with Bopomofo, Japanese, Korean}
-             \u3112 {Bopomofo, Han with Bopomofo}
-             \u3127 {Bopomofo, Han with Bopomofo}
-             \u3124 {Bopomofo, Han with Bopomofo}
-
-             Resolved script set (intersection): {∅}
-             """
-
-      assert capture_err(fn -> Code.eval_string("cirсlе = 1") end) =~ "Mixed-script"
-      assert capture_err(fn -> Code.eval_string("ㄤ_Latn = 1") end) =~ "Mixed-script"
-      assert capture_err(fn -> Code.eval_string("सवव_Latn = 1") end) =~ "Mixed-script"
+      output = capture_err(fn -> Code.eval_string("cirсlе = 1") end)
+      warning = ~S"""
+      The only uses of Cyrillic in this file are mixed-script confusables, like 'cirсlе' on line 1:
+       \u0063 'c' {Latin}
+       \u0069 'i' {Latin}
+       \u0072 'r' {Latin}
+       \u0441 'с' {Cyrillic} <- mixed-script confusable
+       \u006C 'l' {Latin}
+       \u0435 'е' {Cyrillic} <- mixed-script confusable
+       Resolved script set (intersection): {∅}
+      """
+      assert output =~ warning
     end
 
     test "does not warn on valid uses of multiple scripts" do
+      # writing systems with multiple scripts, and with Common chars like '_'
       assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ = 1") end) == ""
       assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ1 = 1") end) == ""
-      assert capture_err(fn -> Code.eval_string("_सवव_1 = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("__सवव_1? = 1") end) == ""
+
+      # mixed scripts, but verified, by using non-confusable characters too
+      assert capture_err(fn -> Code.eval_string("夏の幻ㄒㄧㄤ = 2") end) == ""
+      assert capture_err(fn -> Code.eval_string("_सवव_twitter_api = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("слово_api = 1") end) == ""
+
+      # we warn if it's *only* confusable chars from a script in use
+      assert capture_err(fn -> Code.eval_string("cirсlе = 1") end) =~ "mixed-script"
+      assert capture_err(fn -> Code.eval_string("рос_api = 1") end) =~ "mixed-script"
+
+      # tokens from the whole file are considered in this check,
+      # and any use of a non-confusable character verifies that script.
+      assert capture_err(fn ->
+        Code.eval_string("""
+        рос_api = :foo  # this line would be mixed-script confusable ...
+        слово = :bar         # this line verifies usage of Cyrillic, so no warning.
+        """)
+      end) == ""
     end
   end
 
