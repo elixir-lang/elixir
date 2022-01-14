@@ -956,6 +956,7 @@ defmodule URI do
       "http://example.com/?x=1&x=2"
   """
   @doc since: "1.14.0"
+  def append_query(uri, query)
   def append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
     %{uri | query: query_to_add}
   end
