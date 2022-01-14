@@ -2092,6 +2092,26 @@ defmodule Kernel.SpecialForms do
         File.rm("tmp/story.txt")
       end
 
+  Although `after` clauses are invoked whether or not there was an error, they cannot be
+  used to override the return value.  In the following examples `:return_me` would be
+  returned each time:
+
+      try do
+        :return_me
+      after
+        IO.puts("I will be printed")
+        :not_returned
+      end
+
+      try do
+        raise "boom"
+      rescue
+        _ -> :return_me
+      after
+        IO.puts("I will be printed")
+        :not_returned
+      end
+
   ## `else` clauses
 
   `else` clauses allow the result of the body passed to `try/1` to be pattern
