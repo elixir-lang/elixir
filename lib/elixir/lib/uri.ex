@@ -952,6 +952,9 @@ defmodule URI do
       iex> URI.append_query(URI.parse("http://example.com/"), "x=1") |> URI.to_string()
       "http://example.com/?x=1"
 
+      iex> URI.append_query(URI.parse("http://example.com/?x=1"), "y=2") |> URI.to_string()
+      "http://example.com/?x=1&y=2"
+
       iex> URI.append_query(URI.parse("http://example.com/?x=1"), "x=2") |> URI.to_string()
       "http://example.com/?x=1&x=2"
   """
