@@ -719,7 +719,8 @@ defmodule String.Unicode.MixedScript do
 
           Map.put_new(acc, bad_ss, {token, msg})
       end
-      |> Map.values
+
+    Map.values(one_example_per_scriptset)
   end
 
   # The rest of these fns support script inspection for warning message detail

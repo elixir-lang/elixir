@@ -31,17 +31,16 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn -> Code.eval_string("ㅤx = x = 2") end) =~
                "identifier 'ㅤx' has uncommon codepoint \\u3164"
 
-      mathy = "defmodule Mathy do def ∆ᵥ(_) do 42 end end"
-      assert capture_err(fn -> Code.eval_string(mathy) end) == ""
-      assert capture_err(fn -> Code.eval_string("∆_whitelisted_mathy = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("defmodule M do def ∆ᵥ(_), do: 1 end") end) == ""
+      assert capture_err(fn -> Code.eval_string("∆_whitelisted = 1") end) == ""
     end
 
     test "warns on confusables" do
       assert capture_err(fn -> Code.eval_string("аdmin=1; admin=1") end) =~
-        "confusable identifier: 'admin' looks like 'аdmin' on line 1"
+               "confusable identifier: 'admin' looks like 'аdmin' on line 1"
 
       assert capture_err(fn -> Code.eval_string("力=1; カ=1") end) =~
-        "confusable identifier: 'カ' looks like '力' on line 1"
+               "confusable identifier: 'カ' looks like '力' on line 1"
 
       # by convention, doesn't warn on ascii-only confusables
       assert capture_err(fn -> Code.eval_string("x0 = xO = 1") end) == ""
@@ -50,6 +49,7 @@ defmodule Kernel.WarningTest do
 
     test "warnings on mixed scripts" do
       output = capture_err(fn -> Code.eval_string("cirсlе = 1") end)
+
       warning = ~S"""
       The only uses of Cyrillic in this file are mixed-script confusables, like 'cirсlе' on line 1:
        \u0063 'c' {Latin}
@@ -60,6 +60,7 @@ defmodule Kernel.WarningTest do
        \u0435 'е' {Cyrillic} <- mixed-script confusable
        Resolved script set (intersection): {∅}
       """
+
       assert output =~ warning
     end
 
@@ -74,18 +75,16 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn -> Code.eval_string("_सवव_twitter_api = 1") end) == ""
       assert capture_err(fn -> Code.eval_string("слово_api = 1") end) == ""
 
-      # we warn if it's *only* confusable chars from a script in use
-      assert capture_err(fn -> Code.eval_string("cirсlе = 1") end) =~ "mixed-script"
+      # tokens from the whole file are considered in this check, and
+      # any use of a non-confusable character verifies that script.
       assert capture_err(fn -> Code.eval_string("рос_api = 1") end) =~ "mixed-script"
 
-      # tokens from the whole file are considered in this check,
-      # and any use of a non-confusable character verifies that script.
       assert capture_err(fn ->
-        Code.eval_string("""
-        рос_api = :foo  # this line would be mixed-script confusable ...
-        слово = :bar         # this line verifies usage of Cyrillic, so no warning.
-        """)
-      end) == ""
+               Code.eval_string("""
+               рос_api = 1 # mixed-script with confusable Cyrillic
+               слово = 1   # verifies Cyrillic in the file
+               """)
+             end) == ""
     end
   end
 
