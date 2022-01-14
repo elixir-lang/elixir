@@ -2093,8 +2093,8 @@ defmodule Kernel.SpecialForms do
       end
 
   Although `after` clauses are invoked whether or not there was an error, they cannot be
-  used to override the return value.  In the following examples `:return_me` would be
-  returned each time:
+  used to override the return value. In all of the following examples the return
+  value would be `:return_me`:
 
       try do
         :return_me
