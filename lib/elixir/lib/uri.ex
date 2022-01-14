@@ -941,6 +941,28 @@ defmodule URI do
   defp path_to_segments(path) do
     path |> String.split("/") |> Enum.reverse()
   end
+
+  @doc """
+  Appends `query` to the given `uri`.
+
+  The given `query` is not automatically encoded, use `encode/2` or `encode_www_form/1`.
+
+  ## Examples
+
+      iex> URI.append_query(URI.parse("http://example.com/"), "x=1") |> URI.to_string()
+      "http://example.com/?x=1"
+
+      iex> URI.append_query(URI.parse("http://example.com/?x=1"), "x=2") |> URI.to_string()
+      "http://example.com/?x=1&x=2"
+  """
+  @doc since: "1.14.0"
+  def append_query(%URI{query: query} = uri, query_to_add) when query in [nil, ""] do
+    %{uri | query: query_to_add}
+  end
+
+  def append_query(%URI{} = uri, query) do
+    %{uri | query: uri.query <> "&" <> query}
+  end
 end
 
 defimpl String.Chars, for: URI do
