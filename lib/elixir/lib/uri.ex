@@ -960,14 +960,11 @@ defmodule URI do
   """
   @doc since: "1.14.0"
   @spec append_query(t(), binary()) :: t()
-  def append_query(uri, query)
-
-  def append_query(%URI{query: query} = uri, query_to_add)
-      when is_binary(query_to_add) and query in [nil, ""] do
-    %{uri | query: query_to_add}
+  def append_query(%URI{} = uri, query) when is_binary(query) and uri.query in [nil, ""] do
+    %{uri | query: query}
   end
 
-  def append_query(%URI{} = uri, query) do
+  def append_query(%URI{} = uri, query) when is_binary(query) do
     %{uri | query: uri.query <> "&" <> query}
   end
 end
