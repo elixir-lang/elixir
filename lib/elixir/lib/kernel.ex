@@ -4175,8 +4175,10 @@ defmodule Kernel do
   ## Guards
 
   The `in/2` operator (as well as `not in`) can be used in guard clauses as
-  long as the right-hand side is a range or a list. In such cases, Elixir will
-  expand the operator to a valid guard expression. For example:
+  long as the right-hand side is a range or a list.
+
+  If the right-hand side is a list, Elixir will expand the operator to a valid
+  guard expression which needs to check each value. For example:
 
       when x in [1, 2, 3]
 
@@ -4187,6 +4189,15 @@ defmodule Kernel do
   However, this construct will be inneficient for large lists. In such cases, it
   is best to stop using guards and use a more appropriate data structure, such
   as `MapSet`.
+
+  If the right-hand side is a range, a more efficient comparison check will be
+  done. For example:
+
+      when x in 1..1000
+
+  translates roughly to:
+
+      when x >= 1 and x <= 1000
 
   ### AST considerations
 
