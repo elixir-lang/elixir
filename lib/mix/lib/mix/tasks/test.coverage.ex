@@ -350,7 +350,7 @@ defmodule Mix.Tasks.Test.Coverage do
     Mix.shell().info("-----------|--------------------------")
     results |> Enum.sort() |> Enum.each(&display(&1, threshold))
     Mix.shell().info("-----------|--------------------------")
-    display({totals, "Total"}, opts)
+    display({totals, "Total"}, threshold)
     Mix.shell().info("")
   end
 
