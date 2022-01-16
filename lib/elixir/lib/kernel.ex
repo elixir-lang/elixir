@@ -5220,7 +5220,7 @@ defmodule Kernel do
         end
       end
 
-      defmodule InheritMod do
+      defmodule ChildMod do
         use DefaultMod
 
         def test(x, y) do
@@ -5231,14 +5231,32 @@ defmodule Kernel do
   As seen as in the example above, `super` can be used to call the default
   implementation.
 
-  If `@behaviour` has been defined, `defoverridable` can also be called with a
-  module as an argument. All implemented callbacks from the behaviour above the
-  call to `defoverridable` will be marked as overridable.
+  > Note: use `defoverridable` with care. If you need to define multiple modules
+  > with the same behaviour, it may be best to move the default implementation
+  > to the caller, and check if a callback exists via `Code.ensure_loaded?/1` and
+  > `function_exported?/3`.
+  >
+  > For example, in the example above, imagine there is a module that calls the
+  > `test/2` function. This module could be defined as such:
+  >
+  >     defmodule CallsTest do
+  >       def receives_module_and_calls_test(module, x, y) do
+  >         if Code.ensure_loaded?(module) and function_exported?(module, :test, 2) do
+  >           module.test(x, y)
+  >         else
+  >           x + y
+  >         end
+  >       end
+  >     end
 
-  ## Example
+  ## Example with behaviour
+
+  You can also pass a behaviour to `defoverridable` and it will mark all of the
+  callbacks in the behaviour as overridable:
+
 
       defmodule Behaviour do
-        @callback foo :: any
+        @callback test(number(), number()) :: number()
       end
 
       defmodule DefaultMod do
@@ -5246,8 +5264,8 @@ defmodule Kernel do
           quote do
             @behaviour Behaviour
 
-            def foo do
-              "Override me"
+            def test(x, y) do
+              x + y
             end
 
             defoverridable Behaviour
@@ -5255,11 +5273,11 @@ defmodule Kernel do
         end
       end
 
-      defmodule InheritMod do
+      defmodule ChildMod do
         use DefaultMod
 
-        def foo do
-          "Overridden"
+        def test(x, y) do
+          x * y + super(x, y)
         end
       end
 
