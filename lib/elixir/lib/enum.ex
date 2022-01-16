@@ -2994,8 +2994,8 @@ defmodule Enum do
 
   ## Ascending and descending
 
-  `sort/2` allows a developer to pass `:asc` or `:desc` as the sorting
-  function, which is a convenience for `<=/2` and `>=/2` respectively.
+  `sort/2` allows a developer to pass `:asc` or `:desc` as the sorter, which is a convenience for
+  [`&<=/2`](`<=/2`) and [`&>=/2`](`>=/2`) respectively.
 
       iex> Enum.sort([2, 3, 1], :asc)
       [1, 2, 3]
@@ -3043,12 +3043,12 @@ defmodule Enum do
           t,
           (element, element -> boolean) | :asc | :desc | module() | {:asc | :desc, module()}
         ) :: list
-  def sort(enumerable, fun) when is_list(enumerable) do
-    :lists.sort(to_sort_fun(fun), enumerable)
+  def sort(enumerable, sorter) when is_list(enumerable) do
+    :lists.sort(to_sort_fun(sorter), enumerable)
   end
 
-  def sort(enumerable, fun) do
-    fun = to_sort_fun(fun)
+  def sort(enumerable, sorter) do
+    fun = to_sort_fun(sorter)
 
     reduce(enumerable, [], &sort_reducer(&1, &2, fun))
     |> sort_terminator(fun)
@@ -3067,8 +3067,8 @@ defmodule Enum do
 
   This function maps each element of the `enumerable` using the
   provided `mapper` function. The enumerable is then sorted by
-  the mapped elements using the `sorter` function, which defaults
-  to `Kernel.<=/2`.
+  the mapped elements using the `sorter`, which defaults
+  to [`&<=/2`](`<=/2`).
 
   `sort_by/3` differs from `sort/2` in that it only calculates the
   comparison value for each element in the enumerable once instead of
@@ -3077,7 +3077,7 @@ defmodule Enum do
 
   ## Examples
 
-  Using the default `sorter` of `<=/2`:
+  Using the default `sorter` of [`&<=/2`](`<=/2`) :
 
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1)
       ["of", "some", "kind", "monster"]
