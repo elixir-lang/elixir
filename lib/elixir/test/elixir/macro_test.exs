@@ -326,6 +326,8 @@ defmodule MacroTest do
     end
 
     test "aliases call" do
+      assert macro_to_string(quote(do: Elixir)) == "Elixir"
+      assert macro_to_string(quote(do: Foo)) == "Foo"
       assert macro_to_string(quote(do: Foo.Bar.baz(1, 2, 3))) == "Foo.Bar.baz(1, 2, 3)"
       assert macro_to_string(quote(do: Foo.Bar.baz([1, 2, 3]))) == "Foo.Bar.baz([1, 2, 3])"
       assert macro_to_string(quote(do: Foo.bar(<<>>, []))) == "Foo.bar(<<>>, [])"

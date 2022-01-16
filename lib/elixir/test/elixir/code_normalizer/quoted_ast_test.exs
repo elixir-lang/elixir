@@ -620,6 +620,7 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string({:__block__, [], [:"a\nb\tc"]}, escape: false) == ~s/:"a\nb\tc"/
       assert quoted_to_string({:__block__, [], [:"a\nb\tc"]}) == ~S/:"a\nb\tc"/
 
+      assert quoted_to_string(quote(do: :"Elixir")) == "Elixir"
       assert quoted_to_string(quote(do: :"Elixir.Foo")) == "Foo"
       assert quoted_to_string(quote(do: :"Elixir.Foo.Bar")) == "Foo.Bar"
       assert quoted_to_string(quote(do: :"Elixir.foobar")) == ~S/:"Elixir.foobar"/

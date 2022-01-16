@@ -115,6 +115,7 @@ defmodule Code.Normalizer.FormatterASTTest do
 
     test "does not reformat aliases" do
       assert_same ~S[:"Elixir.String"]
+      assert_same ~S[:"Elixir"]
     end
 
     test "quoted operators" do
