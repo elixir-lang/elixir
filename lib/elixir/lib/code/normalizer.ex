@@ -251,12 +251,16 @@ defmodule Code.Normalizer do
 
     if is_atom(literal) and Code.Identifier.classify(literal) == :alias and
          is_nil(meta[:delimiter]) do
-      "Elixir." <> segments = Atom.to_string(literal)
-
       segments =
-        segments
-        |> String.split(".")
-        |> Enum.map(&String.to_atom/1)
+        case Atom.to_string(literal) do
+          "Elixir" ->
+            [:"Elixir"]
+
+          "Elixir." <> segments ->
+            segments
+            |> String.split(".")
+            |> Enum.map(&String.to_atom/1)
+        end
 
       {:__aliases__, meta, segments}
     else
