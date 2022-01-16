@@ -523,7 +523,7 @@ defmodule Kernel.QuoteTest.AliasHygieneTest do
     assert {:__aliases__, [alias: Dict.Bar], [:SuperDict, :Bar]} = quote(do: SuperDict.Bar)
 
     # Edge-case
-    assert {:__aliases__, [], [Elixir]} = quote(do: Elixir)
+    assert {:__aliases__, _, [Elixir]} = quote(do: Elixir)
   end
 
   test "expand aliases" do
