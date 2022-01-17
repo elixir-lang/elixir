@@ -43,7 +43,6 @@ defmodule NaiveDateTime do
 
       iex> Enum.min([~N[2020-01-01 23:00:07], ~N[2000-01-01 23:00:07]], NaiveDateTime)
       ~N[2000-01-01 23:00:07]
-  """
 
   ## Using epochs
 
