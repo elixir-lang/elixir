@@ -75,7 +75,7 @@ defmodule Logger do
       Logger.info([new_user: user.id, account_type: :admin])
       Logger.info(%{new_user: user.id, account_type: :admin})
 
-  Log functions also accept an anonymous function as a message:
+  Log functions also accept a zero-arity anonymous function as a message:
 
       Logger.info(fn -> "hello world!" end)
 
@@ -843,7 +843,8 @@ defmodule Logger do
       :logger.macro_log(location, level, msg, add_elixir_domain(metadata))
     else
       IO.warn(
-        "passing #{inspect(msg)} to Logger is deprecated, expected a map, a keyword list, a binary, or an iolist"
+        "passing #{inspect(msg)} to Logger is deprecated, expected a map, a keyword list, " <>
+          "a string, a list of strings, or a zero-arity anonymous function"
       )
 
       :logger.macro_log(location, level, to_string(msg), add_elixir_domain(metadata))
