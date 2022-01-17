@@ -500,6 +500,11 @@ defmodule Kernel.ParserTest do
 
     test "invalid token" do
       assert_syntax_error(
+        ~r/nofile:1:1: unexpected token: "#{"\u3164"}" \(column 1, code point U\+3164\)/,
+        'ㅤ = 1'
+      )
+
+      assert_syntax_error(
         ~r/nofile:1:7: unexpected token: "#{"\u200B"}" \(column 7, code point U\+200B\)/,
         '[foo: \u200B]\noops'
       )
