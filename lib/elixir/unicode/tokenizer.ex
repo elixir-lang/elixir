@@ -76,9 +76,37 @@ defmodule String.Tokenizer do
       end
     end)
 
-  id_upper = letter_uptitlecase -- patterns
-  id_start = start -- patterns
-  id_continue = continue -- patterns
+  type_path = Path.join(__DIR__, "IdentifierType.txt")
+
+  restricted =
+    type_path
+    |> File.read!()
+    |> String.split(["\r\n", "\n"], trim: true)
+    |> Enum.filter(&String.contains?(&1, ";"))
+    |> Enum.reduce([], fn line, acc ->
+      [codepoints, type_str | _] = String.split(line, ";")
+
+      types = type_str |> String.split("#") |> hd |> String.split(" ", trim: true)
+
+      entries =
+        if Enum.any?(types, &(&1 in ~w(Inclusion Recommended))) do
+          []
+        else
+          case String.split(String.trim(codepoints), "..", trim: true) do
+            [a] ->
+              [String.to_integer(a, 16)]
+
+            [a, b] ->
+              Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
+          end
+        end
+
+      entries ++ acc
+    end)
+
+  id_upper = (letter_uptitlecase -- patterns) -- restricted
+  id_start = (start -- patterns) -- restricted
+  id_continue = (continue -- patterns) -- restricted
 
   unicode_upper = Enum.filter(id_upper, &(&1 > 127))
   unicode_start = Enum.filter(id_start, &(&1 > 127))
