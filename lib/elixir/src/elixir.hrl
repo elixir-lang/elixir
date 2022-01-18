@@ -33,6 +33,8 @@
   static_atoms_encoder=nil,
   preserve_comments=nil,
   identifier_tokenizer=elixir_tokenizer,
+  ascii_identifiers_only=true,
+  unicode_warnings=nil,
   indentation=0,
   mismatch_hints=[],
   warn_on_unnecessary_quotes=true,

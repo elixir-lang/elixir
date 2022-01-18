@@ -1,5 +1,34 @@
+type_path = Path.join(__DIR__, "IdentifierType.txt")
+
+restricted =
+  type_path
+  |> File.read!()
+  |> String.split(["\r\n", "\n"], trim: true)
+  |> Enum.filter(&String.contains?(&1, ";"))
+  |> Enum.reduce([], fn line, acc ->
+    [codepoints, type_str | _] = String.split(line, ";")
+
+    types = type_str |> String.split("#") |> hd |> String.split(" ", trim: true)
+
+    entries =
+      if Enum.any?(types, &(&1 in ~w(Inclusion Recommended))) do
+        []
+      else
+        case String.split(String.trim(codepoints), "..", trim: true) do
+          [a] ->
+            [String.to_integer(a, 16)]
+
+          [a, b] ->
+            Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
+        end
+      end
+
+    entries ++ acc
+  end)
+
 defmodule String.Tokenizer do
   @moduledoc false
+  alias String.Unicode.{Confusables, MixedScriptWithOnlyConfusableCharacters}
 
   data_path = Path.join(__DIR__, "UnicodeData.txt")
 
@@ -74,34 +103,6 @@ defmodule String.Tokenizer do
       else
         acc
       end
-    end)
-
-  type_path = Path.join(__DIR__, "IdentifierType.txt")
-
-  restricted =
-    type_path
-    |> File.read!()
-    |> String.split(["\r\n", "\n"], trim: true)
-    |> Enum.filter(&String.contains?(&1, ";"))
-    |> Enum.reduce([], fn line, acc ->
-      [codepoints, type_str | _] = String.split(line, ";")
-
-      types = type_str |> String.split("#") |> hd |> String.split(" ", trim: true)
-
-      entries =
-        if Enum.any?(types, &(&1 in ~w(Inclusion Recommended))) do
-          []
-        else
-          case String.split(String.trim(codepoints), "..", trim: true) do
-            [a] ->
-              [String.to_integer(a, 16)]
-
-            [a, b] ->
-              Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
-          end
-        end
-
-      entries ++ acc
     end)
 
   id_upper = (letter_uptitlecase -- patterns) -- restricted
@@ -244,5 +245,460 @@ defmodule String.Tokenizer do
     else
       {:error, {:not_nfc, acc}}
     end
+  end
+
+  def unicode_lint_warnings(tokens, file \\ "nofile") do
+    for lint <- [Confusables, MixedScriptWithOnlyConfusableCharacters],
+        warning <- lint.check_tokens(tokens),
+        into: [],
+        do: format_warning(file, warning)
+  end
+
+  defp format_warning(file, {token, reason}) do
+    {_, {line, col, _}, _} = token
+    {{line, col}, file, to_charlist(reason)}
+  end
+end
+
+# the rest of this file implements UTS39 unicode security checks C2, C3
+# https://www.unicode.org/reports/tr39/
+
+get_lines = fn fname ->
+  Path.join(__DIR__, fname)
+  |> File.read!()
+  |> String.split(["\r\n", "\n"], trim: true)
+end
+
+defmodule String.Unicode.Confusables do
+  @moduledoc false
+  @skeletons %{}
+
+  # AAAA ;   BBBB CCCC DDDDD ;
+  # ^ char   ^ prototypical char or sequence of chars it can be confused with
+  lines = get_lines.("confusables.txt")
+  regex = ~r/^((?:[0-9A-F]+ )+);\t((?:[0-9A-F]+ )+);/u
+  matches = Enum.map(lines, &Regex.run(regex, &1, capture: :all_but_first))
+
+  confusable_prototype_lookup =
+    for [one_char_str, prototype_chars_str] = ls <- matches, !is_nil(ls), reduce: %{} do
+      acc ->
+        confusable = String.to_integer(String.trim(one_char_str), 16)
+
+        prototype =
+          String.split(prototype_chars_str, " ", trim: true)
+          |> Enum.map(&String.to_integer(&1, 16))
+
+        case String.Tokenizer.tokenize([confusable]) do
+          {:error, _why} -> acc
+          _ -> Map.put_new(acc, confusable, prototype)
+        end
+    end
+
+  # don't consider ascii confusable: 0O, l1, etc
+  def confusable_prototype(c) when c in ?A..?Z or c in ?a..?z or c in ?0..?9, do: c
+  def confusable_prototype(?_), do: ?_
+
+  for {confusable, prototype} <- confusable_prototype_lookup do
+    def confusable_prototype(unquote(confusable)) do
+      unquote(prototype)
+    end
+  end
+
+  def confusable_prototype(other), do: other
+
+  def confusable_skeleton(s) do
+    # "- Convert X to NFD format, as described in [UAX15].
+    #  - Concatenate the prototypes for each character in X according to
+    #    the specified data, producing a string of exemplar characters.
+    #  - Reapply NFD." (UTS 39 section 4, skeleton definition)
+    String.normalize(s, :nfd)
+    |> to_charlist
+    |> Enum.map(&confusable_prototype/1)
+    |> to_string
+    |> String.normalize(:nfd)
+  end
+
+  def check_tokens(tokens) do
+    {_, warnings} =
+      for token <- tokens, reduce: {@skeletons, []} do
+        {skeletons, warnings} ->
+          case check_token(token, skeletons) do
+            {:ok, skeletons} -> {skeletons, warnings}
+            {:warn, reason} -> {skeletons, [{token, reason} | warnings]}
+          end
+      end
+
+    warnings
+  end
+
+  defp check_token({kind, _, name} = token, skeletons) when kind in [:identifier, :alias] do
+    skeleton = name |> to_string |> confusable_skeleton
+
+    case skeletons[skeleton] do
+      {_, _, ^name} ->
+        {:ok, skeletons}
+
+      {_, {line, _, _}, name2} when name != name2 ->
+        {:warn, "confusable identifier: '#{name}' looks like '#{name2}' on line #{line}"}
+
+      _ ->
+        {:ok, Map.put(skeletons, skeleton, token)}
+    end
+  end
+
+  defp check_token(_token, skeletons), do: {:ok, skeletons}
+end
+
+defmodule String.Unicode.ScriptSet do
+  @moduledoc false
+
+  # ScriptSetResolution uses this at compile-time and run-time
+  # There are 160+ scripts, so a script set is an int of 1-3 64-bit words
+  # Bitwise isn't loaded at Tokenizer load time so we use :erlang
+  def empty_script_set(), do: 0
+  def is_empty(ss) when ss == 0, do: true
+  def is_empty(_), do: false
+  def intersection(left, right), do: :erlang.band(left, right)
+  def union(left, right), do: :erlang.bor(left, right)
+  def remove(left, right), do: :erlang.bxor(left, intersection(left, right))
+  def set_index(idx), do: :erlang.bsl(1, idx)
+end
+
+# The following implements script resolution and mixed-script detection,
+#  for use in mixed-script confusable detection
+# UTS 39, Security - 5.1
+#  https://www.unicode.org/reports/tr39/#Mixed_Script_Detection)
+#
+# Assumes 3 text files from UAX24 (Scripts)
+# 1. Scripts.txt               codepoint => primary script (by full name)
+# 2. ScriptExtensions.txt      codepoint => N scripts, (by short names)
+# 3. PropertyValueAliases.txt  short names <=> long names mapping
+#
+# Later we use 'confusables.txt' for Mixed-Script confusables protection
+
+# first we'll build a lookup of short <=> long names, starting with:
+initial_mapping = %{
+  "Jpan" => "Japanese",
+  "Kore" => "Korean",
+  "Hanb" => "Han with Bopomofo",
+  "Zzzz" => "Unknown"
+}
+
+script_aliases =
+  get_lines.("PropertyValueAliases.txt")
+  |> Enum.map(&String.split(&1, [";", " "], trim: true))
+  |> Enum.reduce(initial_mapping, fn
+    ["sc", short, long | _], acc -> Map.put_new(acc, short, long)
+    _, acc -> acc
+  end)
+  |> Enum.sort()
+
+# ordered lists of name => index
+script_shortnames_sorted = Enum.map(script_aliases, &elem(&1, 0))
+script_names_sorted = Enum.map(script_aliases, &elem(&1, 1))
+
+defmodule String.Unicode.ScriptSetResolution do
+  # this module uses ScriptSet, the alias data above, and the Script*.txt
+  # files, to implement 'resolved script sets'. that's enough to tell
+  # us if script mixing is occurring, and which scripts are involved.
+  #
+  # Since some cases of mixing are legitimate, like using acronyms from
+  # another script, we'll use this in 'MixedScriptWithOnlyConfusableCharacters'
+  # to try to highlight only that rare but potentially impactful case.
+  #
+  @moduledoc false
+  import String.Unicode.ScriptSet
+  @empty empty_script_set()
+
+  script_shortname_indices = script_shortnames_sorted |> Enum.with_index() |> Map.new()
+  script_indices = script_names_sorted |> Enum.with_index() |> Map.new()
+
+  # next we handle the 'augmented' part of 'augmented script sets' from UTS 39
+  augmentation_rules = %{
+    "Hani" => ~w(Hanb Jpan Kore),
+    "Hira" => ~w(Jpan),
+    "Kana" => ~w(Jpan),
+    "Hang" => ~w(Kore),
+    "Bopo" => ~w(Hanb)
+  }
+
+  # the above lookup, replaced with their indices in list of scripts
+  #  for use in scriptsets
+  augmented_indices =
+    for {k, vs} <- augmentation_rules, into: %{} do
+      for_script_with_this_index = script_shortname_indices[k]
+      add_these_indices = Enum.map(vs, &script_shortname_indices[&1])
+      {for_script_with_this_index, add_these_indices}
+    end
+
+  # when accumulating script indices into scriptsets,
+  #  we check for those augmentated indices
+  add_script_index_to_scriptset = fn scriptset, script_index ->
+    scriptset = union(scriptset, set_index(script_index))
+
+    case augmented_indices[script_index] do
+      nil ->
+        scriptset
+
+      indices_to_add ->
+        for idx <- indices_to_add, reduce: scriptset do
+          ss -> union(ss, set_index(idx))
+        end
+    end
+  end
+
+  # build a single scriptset a list of script names (using
+  #  the function defined above, so it's an 'augmented script set')
+  scriptset = fn lookup, names ->
+    names
+    |> String.split()
+    |> Enum.reduce(empty_script_set(), fn script_name, scripts_acc_bitmap ->
+      index = Map.get(lookup, script_name)
+      add_script_index_to_scriptset.(scripts_acc_bitmap, index)
+    end)
+  end
+
+  # we can build list of codepoint-to-scriptset mappings
+  # from a file and a scriptname lookup
+  find_matches =
+    &(Regex.run(&2, &1, capture: :all_but_first) || Regex.run(&3, &1, capture: :all_but_first))
+
+  build_scriptsets = fn fname, lu ->
+    single = ~r/^ *([0-9A-F]+) *; *([^#]+) *#/u
+    range = ~r/^ *([0-9A-F]+)\.\.([0-9A-F]+) *; *([^#]+) *#/u
+    matches = Enum.map(get_lines.(fname), &find_matches.(&1, range, single))
+
+    for ls <- matches, ls != nil, reduce: [] do
+      acc ->
+        case ls do
+          [a, b, scripts] ->
+            entry = {String.to_integer(a, 16), String.to_integer(b, 16), scriptset.(lu, scripts)}
+            [entry | acc]
+
+          [a, scripts] ->
+            [{String.to_integer(a, 16), scriptset.(lu, scripts)} | acc]
+        end
+    end
+  end
+
+  script_extensions_ss = build_scriptsets.("ScriptExtensions.txt", script_shortname_indices)
+  scripts_ss = build_scriptsets.("Scripts.txt", script_indices)
+
+  def scripts(c) when not is_integer(c), do: {:error, :non_integer}
+
+  # precedence is ScriptExtensions.txt first, then Scripts.txt,
+  # then fall back to 'Unknown', per headers of those text files.
+  for entry <- script_extensions_ss ++ scripts_ss do
+    case entry do
+      {a, b, ss} -> def scripts(c) when c in unquote(a)..unquote(b), do: unquote(ss)
+      {a, ss} -> def scripts(unquote(a)), do: unquote(ss)
+    end
+  end
+
+  def scripts(_other) do
+    unquote(scriptset.(script_indices, "Unknown"))
+  end
+
+  # 'resolved script set ignores chars w/Extensions {Common}, {Inherited} and augments
+  #  characters with CJK scripts with their respective writing systems. [ALL] are
+  #  ignored when testing for differences in script."
+  common = scriptset.(script_indices, "Common")
+  inh = scriptset.(script_indices, "Inherited")
+  all_ss = union(inh, common)
+  all_sets = [common, inh, all_ss]
+
+  @compile {:inline, all?: 1}
+  defp all?(ss), do: ss in unquote(all_sets)
+
+  # 'define the 'resolved script set' for a string to be the intersection
+  #  of the augmented script sets over all characters in the string'
+  def resolve([]), do: {@empty, @empty}
+  def resolve([c | chars]), do: continue(chars, {scripts(c), scripts(c)})
+  def continue([c | chars], sets), do: continue(chars, add(sets, scripts(c)))
+  def continue([], sets), do: sets
+
+  # - 'ignore chars w/Extensions {Common}, {Inherited} when testing for diffs in script'
+  # - 'don't resolve {ø} for all-common identifiers, like "_123"' (Table 1a)
+  defp add({resolved, seen} = sets, ss) do
+    cond do
+      @empty == seen -> {ss, ss}
+      all?(ss) -> sets
+      not all?(ss) and (all?(seen) or seen == @empty) -> {ss, ss}
+      true -> {intersection(resolved, ss), union(seen, ss)}
+    end
+  end
+end
+
+defmodule String.Unicode.MixedScriptWithOnlyConfusableCharacters do
+  alias String.Unicode.{ScriptSet, Confusables, ScriptSetResolution}
+  @empty ScriptSet.empty_script_set()
+  empty = ScriptSet.empty_script_set()
+
+  # this module uses the modules aliased above to filter
+  # confusables.txt to only allowed chars, and within those,
+  # to only those sets of mutually confusable chars that are
+  # internally mixed-script -- that is, chars that could be
+  # confused with chars in a different writing system.
+
+  lines = get_lines.("confusables.txt")
+  regex = ~r/^((?:[0-9A-F]+ )+);\t((?:[0-9A-F]+ )+);/u
+  matches = Enum.map(lines, &Regex.run(regex, &1, capture: :all_but_first))
+
+  allowed_confusables_by_prototype =
+    for [one_char_str, prototype_chars_str] = ls <- matches, !is_nil(ls), reduce: %{} do
+      acc ->
+        confusable = String.to_integer(String.trim(one_char_str), 16)
+
+        prototype =
+          String.split(prototype_chars_str, " ", trim: true)
+          |> Enum.map(&String.to_integer(&1, 16))
+
+        # only build this up from the allowed codepoints, first.
+        if confusable not in restricted do
+          case Map.has_key?(acc, prototype) do
+            true -> %{acc | prototype => [confusable | acc[prototype]]}
+            false -> Map.put_new(acc, prototype, [confusable])
+          end
+        else
+          acc
+        end
+    end
+
+  sort_by_confusable_prototype = fn a, b ->
+    Confusables.confusable_prototype(a) <= Confusables.confusable_prototype(b)
+  end
+
+  mixed =
+    for {proto, ls} <- allowed_confusables_by_prototype, reduce: [] do
+      acc ->
+        chars = if Enum.all?(proto, &(&1 not in restricted)), do: proto ++ ls, else: ls
+
+        # filter out confusables that aren't mixed script, example:
+        #  529B '力' {Han, Han with Bopomofo, Japanese, Korean}
+        #  30AB 'カ' {Japanese, Katakana}
+        # They're confusable, and only 1 is Katakana. But the 'resolved
+        # script set' is {Japanese}, so while confusable w/each other, (see
+        # Confusables check) they're not 'mixed script confusable characters.
+        {resolved, _seen} = ScriptSetResolution.resolve(chars)
+
+        case resolved do
+          ^empty -> chars ++ acc
+          _ -> acc
+        end
+    end
+    |> Enum.uniq()
+    |> Enum.sort(sort_by_confusable_prototype)
+
+  defp is_potential_mixed_script_confusable_char(c) when c in unquote(mixed), do: true
+  defp is_potential_mixed_script_confusable_char(_), do: false
+
+  def check_tokens(tokens) do
+    # First, check for mixed script.
+    # UTS 39 section 5.1, a string is 'Mixed script' if:
+    # > ...its 'resolved script set' is empty, and defined to be
+    # > single-script if its resolved script set is nonempty.
+    # > (Note that the term “single-script string” may be confusing.
+    # > It means that there is at least one script in the resolved script
+    # > set, not that there is only one).
+    {mixings, uniq_chars} =
+      for token <- tokens, reduce: {[], []} do
+        state -> add_resolution_for_token(state, token)
+      end
+
+    if [] == mixings,
+      do: [],
+      else: check_confusable_mixed_script(mixings, uniq_chars)
+  end
+
+  defp add_resolution_for_token(acc, {:identifier, _, name} = token) do
+    {warnings, uniq_chars} = acc
+    chars = Atom.to_charlist(name)
+    uniq_chars = for(c <- chars, c not in uniq_chars, do: c) ++ uniq_chars
+
+    case ScriptSetResolution.resolve(chars) do
+      {_resolved = @empty, seen} -> {[{token, chars, seen} | warnings], uniq_chars}
+      _ -> {warnings, uniq_chars}
+    end
+  end
+
+  defp add_resolution_for_token(acc, _token), do: acc
+
+  @latin_scriptset ScriptSetResolution.scripts(hd('L'))
+
+  defp check_confusable_mixed_script(mixings, uniq_chars) do
+    uniq_not_confusable =
+      Enum.filter(uniq_chars, &(!is_potential_mixed_script_confusable_char(&1)))
+
+    {_resolved, scripts_to_verify} = ScriptSetResolution.resolve(uniq_chars)
+    {_resolved, verified} = ScriptSetResolution.resolve(uniq_not_confusable)
+
+    unverified =
+      scripts_to_verify
+      |> ScriptSet.remove(verified)
+      |> ScriptSet.remove(@latin_scriptset)
+
+    case unverified do
+      @empty -> []
+      _ -> warning_per_problematic_script(mixings, unverified)
+    end
+  end
+
+  defp warning_per_problematic_script(mixings, unverified_scripts) do
+    suspicious =
+      for {token, chars, ss} <- mixings do
+        {token, chars, ScriptSet.intersection(unverified_scripts, ss)}
+      end
+
+    one_example_per_scriptset =
+      for {token = {_, {line, _, _}, _}, chars, bad_ss} <- suspicious, reduce: %{} do
+        acc = %{^bad_ss => _already_has_one_example} ->
+          acc
+
+        acc ->
+          msg = """
+          The only uses of #{inspect_scripts(bad_ss)} in this file \
+          are mixed-script confusables, like '#{chars}' on line #{line}:
+          #{debug_resolve(chars, bad_ss, " <- mixed-script confusable")}\
+          """
+
+          Map.put_new(acc, bad_ss, {token, msg})
+      end
+
+    Map.values(one_example_per_scriptset)
+  end
+
+  defp script_names, do: unquote(Macro.escape(script_names_sorted))
+  defp script_shortnames, do: unquote(Macro.escape(script_shortnames_sorted))
+
+  defp inspect_scripts(@empty), do: ["∅"]
+
+  defp inspect_scripts(scriptset, naming \\ :full) do
+    lookup = %{full: script_names(), short: script_shortnames()}[naming]
+
+    scriptset
+    |> Integer.to_string(2)
+    |> String.split("", trim: true)
+    |> Enum.reverse()
+    |> Enum.with_index()
+    |> Enum.reduce([], fn
+      {"1", idx}, acc -> [Enum.at(lookup, idx) | acc]
+      _, acc -> acc
+    end)
+    |> Enum.sort()
+    |> Enum.join(", ")
+  end
+
+  defp debug_resolve(chars, noted_scripts, note) do
+    per_char_msg =
+      for c <- chars do
+        hex = Integer.to_string(c, 16) |> String.pad_leading(4, "0")
+        scripts = ScriptSetResolution.scripts(c)
+        write_note = @empty != ScriptSet.intersection(noted_scripts, scripts)
+        note = if write_note, do: note, else: ""
+        " \\u#{hex} '#{[c]}' {#{inspect_scripts(scripts)}}#{note}\n"
+      end
+
+    {resolved, _} = ScriptSetResolution.resolve(chars)
+    "#{per_char_msg} Resolved script set (intersection): {#{inspect_scripts(resolved)}}"
   end
 end

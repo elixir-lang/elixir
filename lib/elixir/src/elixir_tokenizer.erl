@@ -134,6 +134,10 @@ tokenize(String, Line, Column, Opts) ->
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
+tokenize([], Line, Column, #elixir_tokenizer{file=File, unicode_warnings=nil} = Scope, Tokens) ->
+  NewScope = maybe_warn_on_unicode_security(Tokens, File, Scope),
+  tokenize([], Line, Column, NewScope, Tokens);
+
 tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
   #elixir_tokenizer{terminators=Terminators, warnings=Warnings} = Scope,
 
@@ -541,10 +545,11 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
   case tokenize_identifier(String, Line, Column, Scope, false) of
-    {_Kind, Unencoded, Atom, Rest, Length, _Ascii, _Special} ->
+    {_Kind, Unencoded, Atom, Rest, Length, Ascii, _Special} ->
       NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Unencoded, Rest, Line, Column, Scope),
+      TrackedScope = track_ascii(Ascii, NewScope),
       Token = {atom, {Line, Column, nil}, Atom},
-      tokenize(Rest, Line, Column + 1 + Length, NewScope, [Token | Tokens]);
+      tokenize(Rest, Line, Column + 1 + Length, TrackedScope, [Token | Tokens]);
     empty when Scope#elixir_tokenizer.cursor_completion == false ->
       unexpected_token(Original, Line, Column, Scope, Tokens);
     empty ->
@@ -643,10 +648,11 @@ tokenize([$. | T], Line, Column, Scope, Tokens) ->
 
 % Identifiers
 
-tokenize(String, Line, Column, Scope, Tokens) ->
-  case tokenize_identifier(String, Line, Column, Scope, not previous_was_dot(Tokens)) of
+tokenize(String, Line, Column, OriginalScope, Tokens) ->
+  case tokenize_identifier(String, Line, Column, OriginalScope, not previous_was_dot(Tokens)) of
     {Kind, Unencoded, Atom, Rest, Length, Ascii, Special} ->
       HasAt = lists:member($@, Special),
+      Scope = track_ascii(Ascii, OriginalScope),
 
       case Rest of
         [$: | T] when ?is_space(hd(T)) ->
@@ -678,20 +684,20 @@ tokenize(String, Line, Column, Scope, Tokens) ->
       end;
 
     {keyword, Atom, Type, Rest, Length} ->
-      tokenize_keyword(Type, Rest, Line, Column, Atom, Length, Scope, Tokens);
+      tokenize_keyword(Type, Rest, Line, Column, Atom, Length, OriginalScope, Tokens);
 
     empty when Scope#elixir_tokenizer.cursor_completion == false ->
-      unexpected_token(String, Line, Column, Scope, Tokens);
+      unexpected_token(String, Line, Column, OriginalScope, Tokens);
 
     empty ->
       case String of
-        [$~, L] when ?is_upcase(L); ?is_downcase(L) -> tokenize([], Line, Column, Scope, Tokens);
-        [$~] -> tokenize([], Line, Column, Scope, Tokens);
-        _ -> unexpected_token(String, Line, Column, Scope, Tokens)
+        [$~, L] when ?is_upcase(L); ?is_downcase(L) -> tokenize([], Line, Column, OriginalScope, Tokens);
+        [$~] -> tokenize([], Line, Column, OriginalScope, Tokens);
+        _ -> unexpected_token(String, Line, Column, OriginalScope, Tokens)
       end;
 
     {error, Reason} ->
-      error(Reason, String, Scope, Tokens)
+      error(Reason, String, OriginalScope, Tokens)
   end.
 
 previous_was_dot([{'.', _} | _]) -> true;
@@ -1577,6 +1583,20 @@ maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, _Line, _Column,
 
 prepend_warning(Line, Column, File, Msg, #elixir_tokenizer{warnings=Warnings} = Scope) ->
   Scope#elixir_tokenizer{warnings = [{{Line, Column}, File, Msg} | Warnings]}.
+
+track_ascii(Ascii, #elixir_tokenizer{ascii_identifiers_only=AsciiOnly} = Scope) ->
+  Scope#elixir_tokenizer{ascii_identifiers_only=Ascii and AsciiOnly}.
+
+maybe_warn_on_unicode_security(Tokens, File, #elixir_tokenizer{ascii_identifiers_only=false, identifier_tokenizer=IdentifierTokenizer, warnings=Warnings} = Scope) ->
+  UnicodeWarnings =
+    case erlang:function_exported(IdentifierTokenizer, unicode_lint_warnings, 1) of
+      true ->IdentifierTokenizer:unicode_lint_warnings(lists:reverse(Tokens), File);
+      false ->[]
+    end,
+  Scope#elixir_tokenizer{unicode_warnings=UnicodeWarnings, warnings=UnicodeWarnings ++ Warnings};
+
+maybe_warn_on_unicode_security(_Tokens, _File, Scope) ->
+  Scope#elixir_tokenizer{unicode_warnings=[]}.
 
 error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
   {error, Reason, Rest, Warnings, Tokens}.
