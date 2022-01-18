@@ -686,7 +686,7 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
     {keyword, Atom, Type, Rest, Length} ->
       tokenize_keyword(Type, Rest, Line, Column, Atom, Length, OriginalScope, Tokens);
 
-    empty when Scope#elixir_tokenizer.cursor_completion == false ->
+    empty when OriginalScope#elixir_tokenizer.cursor_completion == false ->
       unexpected_token(String, Line, Column, OriginalScope, Tokens);
 
     empty ->
