@@ -1584,8 +1584,8 @@ maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, _Line, _Column,
 prepend_warning(Line, Column, File, Msg, #elixir_tokenizer{warnings=Warnings} = Scope) ->
   Scope#elixir_tokenizer{warnings = [{{Line, Column}, File, Msg} | Warnings]}.
 
-track_ascii(Ascii, #elixir_tokenizer{ascii_identifiers_only=AsciiOnly} = Scope) ->
-  Scope#elixir_tokenizer{ascii_identifiers_only=Ascii and AsciiOnly}.
+track_ascii(true, Scope) -> Scope;
+track_ascii(false, Scope) -> Scope#elixir_tokenizer{ascii_identifiers_only=false}.
 
 maybe_warn_on_unicode_security(Tokens, File, #elixir_tokenizer{ascii_identifiers_only=false, identifier_tokenizer=IdentifierTokenizer, warnings=Warnings} = Scope) ->
   UnicodeWarnings =
