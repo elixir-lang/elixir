@@ -371,6 +371,9 @@ defmodule Path do
       iex> Path.basename("foo/bar")
       "bar"
 
+      iex> Path.basename("lib/module/submodule.ex")
+      "submodule.ex"
+
       iex> Path.basename("/")
       ""
 
