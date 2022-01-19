@@ -294,7 +294,6 @@ normalize_binding([Binding | NextBindings], VarsMap, Normalized, Counter) ->
     #{} ->
       normalize_binding(NextBindings, VarsMap#{Pair => Counter}, [{Pair, Value} | Normalized], Counter + 1)
   end;
-
 normalize_binding([], VarsMap, Normalized, _Counter) ->
   {VarsMap, Normalized}.
 
