@@ -286,11 +286,6 @@ eval_forms(Tree, RawBinding, OrigE) ->
       {Value, elixir_erl_var:dump_binding(NewBinding, NewExS, NewErlS), NewE}
   end.
 
-normalize_pair({Key, Value}) when is_atom(Key) ->
-  {{Key, nil}, Value};
-normalize_pair({Pair, Value}) ->
-  {Pair, Value}.
-
 normalize_binding([Binding | NextBindings], VarsMap, Normalized, Counter) ->
   {Pair, Value} = normalize_pair(Binding),
   case VarsMap of
@@ -302,6 +297,9 @@ normalize_binding([Binding | NextBindings], VarsMap, Normalized, Counter) ->
 
 normalize_binding([], VarsMap, Normalized, _Counter) ->
   {VarsMap, Normalized}.
+
+normalize_pair({Key, Value}) when is_atom(Key) -> {{Key, nil}, Value};
+normalize_pair({Pair, Value}) -> {Pair, Value}.
 
 recur_eval([Expr | Exprs], Binding, Env) ->
   {value, Value, NewBinding} =
