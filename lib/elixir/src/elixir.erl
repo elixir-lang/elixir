@@ -298,7 +298,7 @@ normalize_binding(RawBindings) ->
       nil ->
         {maps:put(Pair, Counter, Map), Counter + 1, [{Pair, Value} | Normalized]};
       C ->
-        {maps:put(Pair, C, Map), Counter, [{Pair, Value} | Normalized]}
+        {Map, Counter, [{Pair, Value} | Normalized]}
     end
   end,
   {#{}, 0, []}, RawBindings),
