@@ -254,7 +254,7 @@ eval_quoted(Tree, Binding, #{line := Line} = E) ->
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
   eval_forms(Tree, Binding, env_for_eval(Opts));
 eval_forms(Tree, RawBinding, OrigE) ->
-  {Vars, Binding} = normalize_binding(RawBinding, [], [], 0),
+  {Vars, Binding} = normalize_binding(RawBinding, #{}, [], 0),
   E = elixir_env:with_vars(OrigE, Vars),
   {_, S} = elixir_env:env_to_erl(E),
   {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, E, S),
@@ -275,12 +275,19 @@ eval_forms(Tree, RawBinding, OrigE) ->
       {Value, elixir_erl_var:dump_binding(NewBinding, NewExS, NewErlS), NewE}
   end.
 
-normalize_binding([{Key, Value} | Binding], Vars, Acc, I) when is_atom(Key) ->
-  normalize_binding(Binding, [{{Key, nil}, I} | Vars], [{{Key, nil}, Value} | Acc], I + 1);
-normalize_binding([{Pair, Value} | Binding], Vars, Acc, I) ->
-  normalize_binding(Binding, [{Pair, I} | Vars], [{Pair, Value} | Acc], I + 1);
-normalize_binding([], Vars, Acc, _I) ->
-  {maps:from_list(Vars), Acc}.
+normalize_binding([Binding | NextBindings], VarsMap, Normalized, Counter) ->
+  {Pair, Value} = normalize_pair(Binding),
+  case VarsMap of
+    #{Pair := _} ->
+      normalize_binding(NextBindings, VarsMap, [{Pair, Value} | Normalized], Counter);
+    #{} ->
+      normalize_binding(NextBindings, VarsMap#{Pair => Counter}, [{Pair, Value} | Normalized], Counter + 1)
+  end;
+normalize_binding([], VarsMap, Normalized, _Counter) ->
+  {VarsMap, Normalized}.
+
+normalize_pair({Key, Value}) when is_atom(Key) -> {{Key, nil}, Value};
+normalize_pair({Pair, Value}) -> {Pair, Value}.
 
 recur_eval([Expr | Exprs], Binding, Env) ->
   {value, Value, NewBinding} =
