@@ -52,6 +52,9 @@ defmodule CodeTest do
       # The order of which values win is not guaranteed, but it should evaluate successfully.
       assert Code.eval_string("b = String.Chars.to_string(a)", a: 0, a: 1) ==
                {"1", [{:b, "1"}, {:a, 1}]}
+
+      assert Code.eval_string("b = String.Chars.to_string(a)", a: 0, a: 1, c: 2) ==
+               {"1", [{:c, 2}, {:b, "1"}, {:a, 1}]}
     end
 
     test "with many options" do
