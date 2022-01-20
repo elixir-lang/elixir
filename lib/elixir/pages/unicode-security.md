@@ -24,22 +24,9 @@ We use the means described in Section 4, 'Confusable Detection', with one noted 
 
 Elixir will not warn on confusability for identifiers made up exclusively of characters in a-z, A-Z, 0-9, and _. This is because ASCII identifiers have existed for so long that the programming community has had their own means of dealing with confusability between identifiers like `l,1` or `O,0` (for instance, fonts designed for programming usually make it easy to differentiate between those characters).
 
-## C3. Mixed script detection
+## C3. (not yet implemented)
 
-Elixir will warn on identifiers that contain a mix of characters from different scripts, but only if all of the following conditions are met:
-
-1. when those scripts are not normally used together in a writing system, as defined by Unicode's definition of 'augmented script set' and 'resolved script set'
-2. when usage of that script is comprised solely of characters that are 'mixed script confusable', per Unicode's definition of that term (confusable with characters in other scripts)
-
-The following will NOT trigger mixed-script confusable warnings:
-
-* Some languages naturally use multiple scripts. For instance, the Japanese writing system may use multiple scripts, like Hiragana, Katakana, and Han -- so an identifier in Elixir could be comprised of characters from all of those scripts (as well as Common characters, like _ and 0-9; see below).
-
-* Some letters may be used in multiple writing systems; for instance, a codepoint could appear in scripts used in the Japanese, Korean, and Chinese writing systems.
-
-* Some characters are in use in so many writing systems that they have been classified by Unicode as 'Common' or 'Inherited'; these include things like numbers, underscores, etc; Elixir will not warn about mixing of ALL-script characters, like `幻ㄒㄧㄤ1 = :foo; 幻ㄒㄧㄤ2 = :bar`.
-
-However, there are some script combinations with no overlap in characters, like {Cyrillic} and {Latin} -- in Unicode terms, the 'resolved script set' would be empty. So if that kind of script mixing occurs in an identifier, and the only Cyrillic characters in the file are those confusable with characters in other languages, it will emit a warning to that effect. (If, however, the file also contains non-confusable Cyrillic characters in source code, then the programmer can visually detect that another script is being used, and no warning is issued).
+C3 has to do with detecting mixed-script-confusable characters -- like, say, a file in which several Cyrillic 'a' characters are present in a file of mostly latin identifiers. Conformance with this clause is not yet claimed.
 
 ## C4, C5 (inapplicable)
 
