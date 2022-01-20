@@ -5,8 +5,9 @@ defmodule String.Tokenizer.Security do
   # checks we can add them to the list of lints here
   #
   def unicode_lint_warnings(tokens, file \\ "nofile") do
-    for lint <- [String.Confusables], warning <- lint.check_tokens(tokens),
-      do: format_warning(file, warning)
+    for lint <- [String.Confusables],
+        warning <- lint.check_tokens(tokens),
+        do: format_warning(file, warning)
   end
 
   defp format_warning(file, {token, reason}) do
@@ -79,7 +80,8 @@ defmodule String.Confusables do
     warnings
   end
 
-  defp check_token_for_confusability({kind, _, name} = token, skeletons) when kind in [:identifier, :alias] do
+  defp check_token_for_confusability({kind, _, name} = token, skeletons)
+       when kind in [:identifier, :alias] do
     skeleton = name |> to_string |> confusable_skeleton
 
     case skeletons[skeleton] do
