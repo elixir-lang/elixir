@@ -38,46 +38,6 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn -> Code.eval_string("x0 = xO = 1") end) == ""
       assert capture_err(fn -> Code.eval_string("l1 = ll = 1") end) == ""
     end
-
-    test "warnings on mixed scripts" do
-      output = capture_err(fn -> Code.eval_string("cirсlе = 1") end)
-
-      warning = ~S"""
-      The only uses of Cyrillic in this file are mixed-script confusables, like 'cirсlе' on line 1:
-       \u0063 'c' {Latin}
-       \u0069 'i' {Latin}
-       \u0072 'r' {Latin}
-       \u0441 'с' {Cyrillic} <- mixed-script confusable
-       \u006C 'l' {Latin}
-       \u0435 'е' {Cyrillic} <- mixed-script confusable
-       Resolved script set (intersection): {∅}
-      """
-
-      assert output =~ warning
-    end
-
-    test "does not warn on valid uses of multiple scripts" do
-      # writing systems with multiple scripts, and with Common chars like '_'
-      assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ = 1") end) == ""
-      assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ1 = 1") end) == ""
-      assert capture_err(fn -> Code.eval_string("__सवव_1? = 1") end) == ""
-
-      # mixed scripts, but verified, by using non-confusable characters too
-      assert capture_err(fn -> Code.eval_string("夏の幻ㄒㄧㄤ = 2") end) == ""
-      assert capture_err(fn -> Code.eval_string("_सवव_twitter_api = 1") end) == ""
-      assert capture_err(fn -> Code.eval_string("слово_api = 1") end) == ""
-
-      # tokens from the whole file are considered in this check, and
-      # any use of a non-confusable character verifies that script.
-      assert capture_err(fn -> Code.eval_string("рос_api = 1") end) =~ "mixed-script"
-
-      assert capture_err(fn ->
-               Code.eval_string("""
-               рос_api = 1 # mixed-script with confusable Cyrillic
-               слово = 1   # verifies Cyrillic in the file
-               """)
-             end) == ""
-    end
   end
 
   test "operators formed by many of the same character followed by that character" do

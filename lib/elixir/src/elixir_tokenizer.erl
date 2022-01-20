@@ -134,18 +134,15 @@ tokenize(String, Line, Column, Opts) ->
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
-tokenize([], Line, Column, #elixir_tokenizer{file=File, unicode_warnings=nil} = Scope, Tokens) ->
-  NewScope = maybe_warn_on_unicode_security(Tokens, File, Scope),
-  tokenize([], Line, Column, NewScope, Tokens);
-
-tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
-  #elixir_tokenizer{terminators=Terminators, warnings=Warnings} = Scope,
+tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
+  #elixir_tokenizer{file=File, terminators=Terminators, warnings=Warnings} = Scope,
 
   {CursorColumn, CursorTerminators, CursorTokens} =
     add_cursor(Line, Column, Cursor, Terminators, Tokens),
 
+  UnicodeWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File),
   AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
-  {ok, Line, Column, Warnings, AccTokens};
+  {ok, Line, Column, Warnings ++ UnicodeWarnings, AccTokens};
 
 tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
@@ -154,8 +151,9 @@ tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, 
   Formatted = io_lib:format(Message, [End, Start, StartLine]),
   error({EndLine, Column, [Formatted, Hint], []}, [], Scope, Tokens);
 
-tokenize([], Line, Column, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
-  {ok, Line, Column, Warnings, lists:reverse(Tokens)};
+tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, file=File, warnings=Warnings}, Tokens) ->
+  UnicodeWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File),
+  {ok, Line, Column, Warnings ++ UnicodeWarnings, lists:reverse(Tokens)};
 
 % VC merge conflict
 
@@ -1587,16 +1585,11 @@ prepend_warning(Line, Column, File, Msg, #elixir_tokenizer{warnings=Warnings} = 
 track_ascii(true, Scope) -> Scope;
 track_ascii(false, Scope) -> Scope#elixir_tokenizer{ascii_identifiers_only=false}.
 
-maybe_warn_on_unicode_security(Tokens, File, #elixir_tokenizer{ascii_identifiers_only=false, identifier_tokenizer=IdentifierTokenizer, warnings=Warnings} = Scope) ->
-  UnicodeWarnings =
-    case erlang:function_exported(IdentifierTokenizer, unicode_lint_warnings, 1) of
-      true ->IdentifierTokenizer:unicode_lint_warnings(lists:reverse(Tokens), File);
-      false ->[]
-    end,
-  Scope#elixir_tokenizer{unicode_warnings=UnicodeWarnings, warnings=UnicodeWarnings ++ Warnings};
+maybe_unicode_lint_warnings(_Ascii=false, Tokens, File) ->
+    'Elixir.String.Tokenizer.Security':unicode_lint_warnings(lists:reverse(Tokens), File);
 
-maybe_warn_on_unicode_security(_Tokens, _File, Scope) ->
-  Scope#elixir_tokenizer{unicode_warnings=[]}.
+maybe_unicode_lint_warnings(_Ascii=true, _Tokens, _File) -> [].
+
 
 error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
   {error, Reason, Rest, Warnings, Tokens}.
