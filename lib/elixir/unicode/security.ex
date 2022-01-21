@@ -3,10 +3,8 @@ defmodule String.Tokenizer.Security do
   # UTS39 security checks that operate on all tokens in a file,
   # like Confusables. If we add whole-file mixed-script-confusables
   # checks we can add them to the list of lints here
-  #
   def unicode_lint_warnings(tokens, file \\ "nofile") do
-    for lint <- [String.Confusables],
-        warning <- lint.check_tokens(tokens),
+    for warning <- confusables(tokens),
         do: format_warning(file, warning)
   end
 
@@ -14,10 +12,54 @@ defmodule String.Tokenizer.Security do
     {_, {line, col, _}, _} = token
     {{line, col}, file, to_charlist(reason)}
   end
-end
 
-defmodule String.Confusables do
-  @moduledoc false
+  ## Confusables
+
+  defp confusables(tokens) do
+    {_, warnings} =
+      for token <- tokens, reduce: {%{}, []} do
+        {skeletons, warnings} ->
+          case check_token_for_confusability(token, skeletons) do
+            {:ok, skeletons} -> {skeletons, warnings}
+            {:warn, reason} -> {skeletons, [{token, reason} | warnings]}
+          end
+      end
+
+    warnings
+  end
+
+  @identifiers [
+    :identifier,
+    :op_identifier,
+    :kw_identifier,
+    :paren_identifier,
+    :bracket_identifier,
+    :alias,
+    :atom
+  ]
+
+  defp check_token_for_confusability(
+         {kind, {_line, _column, [_ | _] = name} = info, _},
+         skeletons
+       )
+       when kind in @identifiers do
+    skeleton = confusable_skeleton(name)
+
+    case skeletons[skeleton] do
+      {_, _, ^name} ->
+        {:ok, skeletons}
+
+      {line, _, previous_name} when name != previous_name ->
+        {:warn,
+         "confusable identifier: '#{name}' looks like '#{previous_name}' on line #{line}, " <>
+           "but they are written using different characters"}
+
+      _ ->
+        {:ok, Map.put(skeletons, skeleton, info)}
+    end
+  end
+
+  defp check_token_for_confusability(_token, skeletons), do: {:ok, skeletons}
 
   # AAAA ;   BBBB CCCC DDDDD ;
   # ^ char   ^ prototypical char or sequence of chars it can be confused with
@@ -32,20 +74,22 @@ defmodule String.Confusables do
   matches = Enum.map(lines, &Regex.run(regex, &1, capture: :all_but_first))
 
   confusable_prototype_lookup =
-    for [one_char_str, prototype_chars_str] = ls <- matches, !is_nil(ls), reduce: %{} do
+    for [confusable_str, prototype_str] <- matches, reduce: %{} do
       acc ->
-        confusable = String.to_integer(String.trim(one_char_str), 16)
+        confusable = String.to_integer(String.trim(confusable_str), 16)
 
-        prototype =
-          String.split(prototype_chars_str, " ", trim: true)
-          |> Enum.map(&String.to_integer(&1, 16))
+        if Map.has_key?(acc, confusable) or
+             confusable in ?A..?Z or confusable in ?a..?z or confusable in ?0..?9 do
+          acc
+        else
+          prototype =
+            prototype_str
+            |> String.split(" ", trim: true)
+            |> Enum.map(&String.to_integer(&1, 16))
 
-        Map.put_new(acc, confusable, prototype)
+          Map.put(acc, confusable, prototype)
+        end
     end
-
-  # don't consider ascii confusable: 0O, l1, etc
-  defp confusable_prototype(c) when c in ?A..?Z or c in ?a..?z or c in ?0..?9, do: c
-  defp confusable_prototype(?_), do: ?_
 
   for {confusable, prototype} <- confusable_prototype_lookup do
     defp confusable_prototype(unquote(confusable)) do
@@ -53,48 +97,15 @@ defmodule String.Confusables do
     end
   end
 
-  defp confusable_prototype(other), do: other
+  defp confusable_prototype(other), do: <<other::utf8>>
 
   defp confusable_skeleton(s) do
     # "- Convert X to NFD format, as described in [UAX15].
     #  - Concatenate the prototypes for each character in X according to
     #    the specified data, producing a string of exemplar characters.
     #  - Reapply NFD." (UTS 39 section 4, skeleton definition)
-    String.normalize(s, :nfd)
-    |> to_charlist
+    :unicode.characters_to_nfd_list(s)
     |> Enum.map(&confusable_prototype/1)
-    |> to_string
-    |> String.normalize(:nfd)
+    |> :unicode.characters_to_nfd_list()
   end
-
-  def check_tokens(tokens) do
-    {_, warnings} =
-      for token <- tokens, reduce: {%{}, []} do
-        {skeletons, warnings} ->
-          case check_token_for_confusability(token, skeletons) do
-            {:ok, skeletons} -> {skeletons, warnings}
-            {:warn, reason} -> {skeletons, [{token, reason} | warnings]}
-          end
-      end
-
-    warnings
-  end
-
-  defp check_token_for_confusability({kind, _, name} = token, skeletons)
-       when kind in [:identifier, :alias] do
-    skeleton = name |> to_string |> confusable_skeleton
-
-    case skeletons[skeleton] do
-      {_, _, ^name} ->
-        {:ok, skeletons}
-
-      {_, {line, _, _}, name2} when name != name2 ->
-        {:warn, "confusable identifier: '#{name}' looks like '#{name2}' on line #{line}"}
-
-      _ ->
-        {:ok, Map.put(skeletons, skeleton, token)}
-    end
-  end
-
-  defp check_token_for_confusability(_token, skeletons), do: {:ok, skeletons}
 end

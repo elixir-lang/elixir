@@ -19,9 +19,9 @@ type_test() ->
   [{'true', {1, 1, nil}},
    {type_op, {1, 5, nil}, '::'},
    {int, {1, 7, 3}, "3"}] = tokenize("true::3"),
-  [{identifier, {1, 1, nil}, name},
+  [{identifier, {1, 1, _}, name},
    {'.', {1, 5, nil}},
-   {paren_identifier, {1, 6, nil}, '::'},
+   {paren_identifier, {1, 6, _}, '::'},
    {'(', {1, 8, nil}},
    {int, {1, 9, 3}, "3"},
    {')', {1, 10, nil}}] = tokenize("name.::(3)").
@@ -34,9 +34,9 @@ arithmetic_test() ->
    {int, {1, 9, 3}, "3"}] = tokenize("1 + 2 + 3").
 
 op_kw_test() ->
-  [{atom, {1, 1, nil}, foo},
+  [{atom, {1, 1, _}, foo},
    {dual_op, {1, 5, nil}, '+'},
-   {atom, {1, 6, nil}, bar}] = tokenize(":foo+:bar").
+   {atom, {1, 6, _}, bar}] = tokenize(":foo+:bar").
 
 scientific_test() ->
   [{flt, {1, 1, 0.1}, "1.0e-1"}] = tokenize("1.0e-1"),
@@ -53,12 +53,12 @@ hex_bin_octal_test() ->
   [{int, {1, 1, 3}, "0b1_1"}] = tokenize("0b1_1").
 
 unquoted_atom_test() ->
-  [{atom, {1, 1, nil}, '+'}] = tokenize(":+"),
-  [{atom, {1, 1, nil}, '-'}] = tokenize(":-"),
-  [{atom, {1, 1, nil}, '*'}] = tokenize(":*"),
-  [{atom, {1, 1, nil}, '/'}] = tokenize(":/"),
-  [{atom, {1, 1, nil}, '='}] = tokenize(":="),
-  [{atom, {1, 1, nil}, '&&'}] = tokenize(":&&").
+  [{atom, {1, 1, _}, '+'}] = tokenize(":+"),
+  [{atom, {1, 1, _}, '-'}] = tokenize(":-"),
+  [{atom, {1, 1, _}, '*'}] = tokenize(":*"),
+  [{atom, {1, 1, _}, '/'}] = tokenize(":/"),
+  [{atom, {1, 1, _}, '='}] = tokenize(":="),
+  [{atom, {1, 1, _}, '&&'}] = tokenize(":&&").
 
 quoted_atom_test() ->
   [{atom_quoted, {1, 1, nil}, 'foo bar'}] = tokenize(":\"foo bar\"").
@@ -69,17 +69,17 @@ oversized_atom_test() ->
     tokenize_error([$: | OversizedAtom]).
 
 op_atom_test() ->
-  [{atom, {1, 1, nil}, f0_1}] = tokenize(":f0_1").
+  [{atom, {1, 1, _}, f0_1}] = tokenize(":f0_1").
 
 kw_test() ->
-  [{kw_identifier, {1, 1, nil}, do}] = tokenize("do: "),
-  [{kw_identifier, {1, 1, nil}, a@}] = tokenize("a@: "),
-  [{kw_identifier, {1, 1, nil}, 'A@'}] = tokenize("A@: "),
-  [{kw_identifier, {1, 1, nil}, a@b}] = tokenize("a@b: "),
-  [{kw_identifier, {1, 1, nil}, 'A@!'}] = tokenize("A@!: "),
-  [{kw_identifier, {1, 1, nil}, 'a@!'}] = tokenize("a@!: "),
-  [{kw_identifier, {1, 1, nil}, foo}, {bin_string, {1, 6, nil}, [<<"bar">>]}] = tokenize("foo: \"bar\""),
-  [{kw_identifier, {1, 1, nil}, '+'}, {bin_string, {1, 6, nil}, [<<"bar">>]}] = tokenize("\"+\": \"bar\"").
+  [{kw_identifier, {1, 1, _}, do}] = tokenize("do: "),
+  [{kw_identifier, {1, 1, _}, a@}] = tokenize("a@: "),
+  [{kw_identifier, {1, 1, _}, 'A@'}] = tokenize("A@: "),
+  [{kw_identifier, {1, 1, _}, a@b}] = tokenize("a@b: "),
+  [{kw_identifier, {1, 1, _}, 'A@!'}] = tokenize("A@!: "),
+  [{kw_identifier, {1, 1, _}, 'a@!'}] = tokenize("a@!: "),
+  [{kw_identifier, {1, 1, _}, foo}, {bin_string, {1, 6, nil}, [<<"bar">>]}] = tokenize("foo: \"bar\""),
+  [{kw_identifier, {1, 1, _}, '+'}, {bin_string, {1, 6, nil}, [<<"bar">>]}] = tokenize("\"+\": \"bar\"").
 
 int_test() ->
   [{int, {1, 1, 123}, "123"}] = tokenize("123"),
@@ -99,63 +99,63 @@ float_test() ->
   {1, 1, "invalid float number ", OversizedFloat} = tokenize_error(OversizedFloat).
 
 identifier_test() ->
-  [{identifier, {1, 1, nil}, abc}] = tokenize("abc "),
-  [{identifier, {1, 1, nil}, 'abc?'}] = tokenize("abc?"),
-  [{identifier, {1, 1, nil}, 'abc!'}] = tokenize("abc!"),
-  [{identifier, {1, 1, nil}, 'a0c!'}] = tokenize("a0c!"),
-  [{paren_identifier, {1, 1, nil}, 'a0c'}, {'(', {1, 4, nil}}, {')', {1, 5, nil}}] = tokenize("a0c()"),
-  [{paren_identifier, {1, 1, nil}, 'a0c!'}, {'(', {1, 5, nil}}, {')', {1, 6, nil}}] = tokenize("a0c!()").
+  [{identifier, {1, 1, _}, abc}] = tokenize("abc "),
+  [{identifier, {1, 1, _}, 'abc?'}] = tokenize("abc?"),
+  [{identifier, {1, 1, _}, 'abc!'}] = tokenize("abc!"),
+  [{identifier, {1, 1, _}, 'a0c!'}] = tokenize("a0c!"),
+  [{paren_identifier, {1, 1, _}, 'a0c'}, {'(', {1, 4, nil}}, {')', {1, 5, nil}}] = tokenize("a0c()"),
+  [{paren_identifier, {1, 1, _}, 'a0c!'}, {'(', {1, 5, nil}}, {')', {1, 6, nil}}] = tokenize("a0c!()").
 
 module_macro_test() ->
-  [{identifier, {1, 1, nil}, '__MODULE__'}] = tokenize("__MODULE__").
+  [{identifier, {1, 1, _}, '__MODULE__'}] = tokenize("__MODULE__").
 
 triple_dot_test() ->
-  [{identifier, {1, 1, nil}, '...'}] = tokenize("..."),
-  [{'.', {1, 1, nil}}, {identifier, {1, 3, nil}, '..'}] = tokenize(". ..").
+  [{identifier, {1, 1, _}, '...'}] = tokenize("..."),
+  [{'.', {1, 1, nil}}, {identifier, {1, 3, _}, '..'}] = tokenize(". ..").
 
 dot_test() ->
-  [{identifier, {1, 1, nil}, foo},
+  [{identifier, {1, 1, _}, foo},
    {'.', {1, 4, nil}},
-   {identifier, {1, 5, nil}, bar},
+   {identifier, {1, 5, _}, bar},
    {'.', {1, 8, nil}},
-   {identifier, {1, 9, nil}, baz}] = tokenize("foo.bar.baz").
+   {identifier, {1, 9, _}, baz}] = tokenize("foo.bar.baz").
 
 dot_keyword_test() ->
- [{identifier, {1, 1, nil}, foo},
+ [{identifier, {1, 1, _}, foo},
   {'.', {1, 4, nil}},
-  {identifier, {1, 5, nil}, do}] = tokenize("foo.do").
+  {identifier, {1, 5, _}, do}] = tokenize("foo.do").
 
 newline_test() ->
-  [{identifier, {1, 1, nil}, foo},
+  [{identifier, {1, 1, _}, foo},
    {'.', {2, 1, nil}},
-   {identifier, {2, 2, nil}, bar}]  = tokenize("foo\n.bar"),
+   {identifier, {2, 2, _}, bar}]  = tokenize("foo\n.bar"),
   [{int, {1, 1, 1}, "1"},
    {concat_op, {2, 1, 1}, '++'},
    {int, {2, 3, 2}, "2"}]  = tokenize("1\n++2").
 
 dot_newline_operator_test() ->
-  [{identifier, {1, 1, nil}, foo},
+  [{identifier, {1, 1, _}, foo},
    {'.', {1, 4, nil}},
-   {identifier, {2, 1, nil}, '+'},
+   {identifier, {2, 1, _}, '+'},
    {int, {2, 2, 1}, "1"}] = tokenize("foo.\n+1"),
-  [{identifier, {1, 1, nil}, foo},
+  [{identifier, {1, 1, _}, foo},
    {'.', {1, 4, nil}},
-   {identifier, {2, 1, nil}, '+'},
+   {identifier, {2, 1, _}, '+'},
    {int, {2, 2, 1}, "1"}] = tokenize("foo.#bar\n+1").
 
 dot_call_operator_test() ->
-  [{identifier, {1, 1, nil}, f},
+  [{identifier, {1, 1, _}, f},
    {dot_call_op, {1, 2, nil}, '.'},
    {'(', {1, 3, nil}},
    {')', {1, 4, nil}}] = tokenize("f.()").
 
 aliases_test() ->
-  [{'alias', {1, 1, nil}, 'Foo'}] = tokenize("Foo"),
-  [{'alias', {1, 1, nil}, 'Foo'},
+  [{'alias', {1, 1, _}, 'Foo'}] = tokenize("Foo"),
+  [{'alias', {1, 1, _}, 'Foo'},
    {'.', {1, 4, nil}},
-   {'alias', {1, 5, nil}, 'Bar'},
+   {'alias', {1, 5, _}, 'Bar'},
    {'.', {1, 8, nil}},
-   {'alias', {1, 9, nil}, 'Baz'}] = tokenize("Foo.Bar.Baz").
+   {'alias', {1, 9, _}, 'Baz'}] = tokenize("Foo.Bar.Baz").
 
 string_test() ->
   [{bin_string, {1, 1, nil}, [<<"foo">>]}] = tokenize("\"foo\""),
@@ -171,18 +171,18 @@ empty_string_test() ->
   [{list_string, {1, 1, nil}, [<<>>]}] = tokenize("''").
 
 concat_test() ->
-  [{identifier, {1, 1, nil}, x},
+  [{identifier, {1, 1, _}, x},
    {concat_op, {1, 3, nil}, '++'},
-   {identifier, {1, 6, nil}, y}] = tokenize("x ++ y"),
-  [{identifier, {1, 1, nil}, x},
+   {identifier, {1, 6, _}, y}] = tokenize("x ++ y"),
+  [{identifier, {1, 1, _}, x},
    {concat_op, {1, 3, nil}, '+++'},
-   {identifier, {1, 7, nil}, y}] = tokenize("x +++ y").
+   {identifier, {1, 7, _}, y}] = tokenize("x +++ y").
 
 space_test() ->
-  [{op_identifier, {1, 1, nil}, foo},
+  [{op_identifier, {1, 1, _}, foo},
    {dual_op, {1, 5, nil}, '-'},
    {int, {1, 6, 2}, "2"}] = tokenize("foo -2"),
-  [{op_identifier, {1, 1, nil}, foo},
+  [{op_identifier, {1, 1, _}, foo},
    {dual_op, {1, 6, nil}, '-'},
    {int, {1, 7, 2}, "2"}] = tokenize("foo  -2").
 
@@ -195,7 +195,7 @@ chars_test() ->
   [{char, {1, 1, "?\\\\"}, 92}] = tokenize("?\\\\").
 
 interpolation_test() ->
-  [{bin_string, {1, 1, nil}, [<<"f">>, {{1, 3, nil},{1, 7, nil}, [{identifier, {1, 5, nil}, oo}]}]},
+  [{bin_string, {1, 1, nil}, [<<"f">>, {{1, 3, nil},{1, 7, nil}, [{identifier, {1, 5, _}, oo}]}]},
    {concat_op, {1, 10, nil}, '<>'},
    {bin_string, {1, 13, nil}, [<<>>]}] = tokenize("\"f#{oo}\" <> \"\"").
 
@@ -209,45 +209,45 @@ capture_test() ->
 
   % Operators
   [{capture_op, {1, 1, nil}, '&'},
-   {identifier, {1, 2, nil}, '||'},
+   {identifier, {1, 2, _}, '||'},
    {mult_op, {1, 4, nil}, '/'},
    {int, {1, 5, 2}, "2"}] = tokenize("&||/2"),
   [{capture_op, {1, 1, nil}, '&'},
-   {identifier, {1, 2, nil}, 'or'},
+   {identifier, {1, 2, _}, 'or'},
    {mult_op, {1, 4, nil}, '/'},
    {int, {1, 5, 2}, "2"}] = tokenize("&or/2"),
   [{capture_op,{1,1,nil},'&'},
-   {identifier,{1,3,nil},'+'},
+   {identifier,{1,3,_},'+'},
    {mult_op,{1,4,nil},'/'},
    {int,{1,5,1},"1"}] = tokenize("& +/1"),
   [{capture_op,{1,1,nil},'&'},
-   {identifier,{1,3,nil},'&'},
+   {identifier,{1,3,_},'&'},
    {mult_op,{1,4,nil},'/'},
    {int,{1,5,1},"1"}] = tokenize("& &/1"),
   [{capture_op,{1,1,nil},'&'},
-   {identifier,{1,3,nil},'..//'},
+   {identifier,{1,3,_},'..//'},
    {mult_op,{1,7,nil},'/'},
    {int,{1,8,3},"3"}] = tokenize("& ..///3"),
   [{capture_op, {1,1,nil}, '&'},
-   {identifier, {1,3,nil}, '/'},
+   {identifier, {1,3,_}, '/'},
    {mult_op, {1,5,nil}, '/'},
    {int, {1,6,2}, "2"}] = tokenize("& / /2"),
   [{capture_op, {1,1,nil}, '&'},
-   {identifier, {1,2,nil}, '/'},
+   {identifier, {1,2,_}, '/'},
    {mult_op, {1,4,nil}, '/'},
    {int, {1,5,2}, "2"}] = tokenize("&/ /2"),
 
   % Only operators
-  [{identifier,{1,1,nil},'&'},
+  [{identifier,{1,1,_},'&'},
    {mult_op,{1,2,nil},'/'},
    {int,{1,3,1},"1"}] = tokenize("&/1"),
-  [{identifier,{1,1,nil},'+'},
+  [{identifier,{1,1,_},'+'},
    {mult_op,{1,2,nil},'/'},
    {int,{1,3,1},"1"}] = tokenize("+/1"),
-  [{identifier, {1,1,nil}, '/'},
+  [{identifier, {1,1,_}, '/'},
    {mult_op, {1,3,nil}, '/'},
    {int, {1,4,2}, "2"}] = tokenize("/ /2"),
-  [{identifier, {1,1,nil}, '..//'},
+  [{identifier, {1,1,_}, '..//'},
    {mult_op, {1,5,nil}, '/'},
    {int, {1,6,3}, "3"}] = tokenize("..///3").
 
@@ -261,10 +261,10 @@ sigil_terminator_test() ->
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], "", nil, <<"\"">>}] = tokenize("~r\"foo\""),
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], "", nil, <<"/">>},
    {comp_op, {1, 9, nil}, '=='},
-   {identifier, {1, 12, nil}, bar}] = tokenize("~r/foo/ == bar"),
+   {identifier, {1, 12, _}, bar}] = tokenize("~r/foo/ == bar"),
   [{sigil, {1, 1, nil}, 114, [<<"foo">>], "iu", nil, <<"/">>},
    {comp_op, {1, 11, nil}, '=='},
-   {identifier, {1, 14, nil}, bar}] = tokenize("~r/foo/iu == bar"),
+   {identifier, {1, 14, _}, bar}] = tokenize("~r/foo/iu == bar"),
   [{sigil, {1, 1, nil}, 77, [<<"1 2 3">>], "u8", nil, <<"[">>}] = tokenize("~M[1 2 3]u8").
 
 sigil_heredoc_test() ->
