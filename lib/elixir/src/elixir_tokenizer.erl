@@ -140,9 +140,9 @@ tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, curso
   {CursorColumn, CursorTerminators, CursorTokens} =
     add_cursor(Line, Column, Cursor, Terminators, Tokens),
 
-  UnicodeWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File),
+  AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File, Warnings),
   AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
-  {ok, Line, Column, Warnings ++ UnicodeWarnings, AccTokens};
+  {ok, Line, Column, AllWarnings, AccTokens};
 
 tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
@@ -152,8 +152,8 @@ tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, 
   error({EndLine, Column, [Formatted, Hint], []}, [], Scope, Tokens);
 
 tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, file=File, warnings=Warnings}, Tokens) ->
-  UnicodeWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File),
-  {ok, Line, Column, Warnings ++ UnicodeWarnings, lists:reverse(Tokens)};
+  AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File, Warnings),
+  {ok, Line, Column, Warnings, lists:reverse(Tokens)};
 
 % VC merge conflict
 
@@ -1585,11 +1585,10 @@ prepend_warning(Line, Column, File, Msg, #elixir_tokenizer{warnings=Warnings} = 
 track_ascii(true, Scope) -> Scope;
 track_ascii(false, Scope) -> Scope#elixir_tokenizer{ascii_identifiers_only=false}.
 
-maybe_unicode_lint_warnings(_Ascii=false, Tokens, File) ->
-    'Elixir.String.Tokenizer.Security':unicode_lint_warnings(lists:reverse(Tokens), File);
-
-maybe_unicode_lint_warnings(_Ascii=true, _Tokens, _File) -> [].
-
+maybe_unicode_lint_warnings(_Ascii=false, Tokens, File, Warnings) ->
+  'Elixir.String.Tokenizer.Security':unicode_lint_warnings(lists:reverse(Tokens), File) ++ Warnings;
+maybe_unicode_lint_warnings(_Ascii=true, _Tokens, _File, Warnings) ->
+  Warnings.
 
 error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->
   {error, Reason, Rest, Warnings, Tokens}.
