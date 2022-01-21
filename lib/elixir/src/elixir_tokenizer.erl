@@ -153,7 +153,7 @@ tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, 
 
 tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, file=File, warnings=Warnings}, Tokens) ->
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File, Warnings),
-  {ok, Line, Column, Warnings, lists:reverse(Tokens)};
+  {ok, Line, Column, AllWarnings, lists:reverse(Tokens)};
 
 % VC merge conflict
 
