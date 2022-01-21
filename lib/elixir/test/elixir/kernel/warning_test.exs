@@ -26,6 +26,20 @@ defmodule Kernel.WarningTest do
     assert {:error, _} = Code.string_to_quoted(~s[:"foobar" do])
   end
 
+  describe "unicode identifier security" do
+    test "warns on confusables" do
+      assert capture_err(fn -> Code.eval_string("аdmin=1; admin=1") end) =~
+               "confusable identifier: 'admin' looks like 'аdmin' on line 1"
+
+      assert capture_err(fn -> Code.eval_string("力=1; カ=1") end) =~
+               "confusable identifier: 'カ' looks like '力' on line 1"
+
+      # by convention, doesn't warn on ascii-only confusables
+      assert capture_err(fn -> Code.eval_string("x0 = xO = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("l1 = ll = 1") end) == ""
+    end
+  end
+
   test "operators formed by many of the same character followed by that character" do
     output =
       capture_err(fn ->

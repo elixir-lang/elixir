@@ -14,12 +14,22 @@ Elixir will not allow tokenization of identifiers with codepoints in `\p{Identif
 
 For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, is an uncommon codepoint and will trigger this warning.
 
-## C2, C3 (planned)
+## C2. Confusable detection
 
-Elixir may implement Confusable Detection, and Mixed-Script Confusable detection, in the future, and will likely emit warnings in those cases; there is a reference implementation.
+Elixir will warn on identifiers that look the same, but aren't. Examples: in `а = a = 1`, the two 'a' characters are Cyrillic and Latin, and could be confused for each other; in `力 = カ = 1`, both are Japanese, but different codepoints, in different scripts of that writing system. Confusable identifiers can lead to hard-to-catch bugs (say, due to copy-pasted code) and can be unsafe, so we will warn about identifiers within a single file that could be confused with each other.
+
+We use the means described in Section 4, 'Confusable Detection', with one noted modification
+
+> Alternatively, it shall declare that it uses a modification, and provide a precise list of character mappings that are added to or removed from the provided ones.
+
+Elixir will not warn on confusability for identifiers made up exclusively of characters in a-z, A-Z, 0-9, and _. This is because ASCII identifiers have existed for so long that the programming community has had their own means of dealing with confusability between identifiers like `l,1` or `O,0` (for instance, fonts designed for programming usually make it easy to differentiate between those characters).
+
+## C3. (not yet implemented)
+
+C3 has to do with detecting mixed-script-confusable characters -- like, say, a file in which several Cyrillic 'a' characters are present in a file of mostly latin identifiers. Conformance with this clause is not yet claimed.
 
 ## C4, C5 (inapplicable)
 
-'C4 - Restriction Level detection' conformance is not claimed and is inapplicable. (It applies to classifying the level of safety of a given arbitrary string into one of 5 restriction levels).
+'C4 - Restriction Level detection' conformance is not claimed and does not apply to identifiers in code; rather, it applies to classifying the level of safety of a given arbitrary string into one of 5 restriction levels.
 
 'C5 - Mixed number detection' conformance is inapplicable as Elixir does not support Unicode numbers.

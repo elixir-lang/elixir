@@ -5,9 +5,10 @@
 # 1. Replace UnicodeData.txt by copying original
 # 2. Replace PropList.txt by copying original
 # 3. Replace SpecialCasing.txt by copying original and removing conditional mappings
-# 4. Replace IdentifierType.txt by copying original from /Public/security/
-# 5. Update String.Unicode.version/0 and on String module docs (version and link)
-# 6. make unicode
+# 4. Replace IdentifierType.txt by copying original (from /Public/security)
+# 5. Replace confusables.txt by copying original (from /Public/security)
+# 6. Update String.Unicode.version/0 and on String module docs (version and link)
+# 7. make unicode
 
 data_path = Path.join(__DIR__, "UnicodeData.txt")
 
