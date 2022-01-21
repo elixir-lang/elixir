@@ -354,7 +354,7 @@ tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
 
 tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
   NewScope = maybe_warn_too_many_of_same_char("...", Rest, Line, Column, Scope),
-  Token = check_call_identifier(Line, Column, '...', Rest),
+  Token = check_call_identifier(Line, Column, "...", '...', Rest),
   tokenize(Rest, Line, Column + 3, NewScope, [Token | Tokens]);
 
 tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
@@ -546,7 +546,7 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
     {_Kind, Unencoded, Atom, Rest, Length, Ascii, _Special} ->
       NewScope = maybe_warn_for_ambiguous_bang_before_equals(atom, Unencoded, Rest, Line, Column, Scope),
       TrackedScope = track_ascii(Ascii, NewScope),
-      Token = {atom, {Line, Column, nil}, Atom},
+      Token = {atom, {Line, Column, Unencoded}, Atom},
       tokenize(Rest, Line, Column + 1 + Length, TrackedScope, [Token | Tokens]);
     empty when Scope#elixir_tokenizer.cursor_completion == false ->
       unexpected_token(Original, Line, Column, Scope, Tokens);
@@ -654,7 +654,7 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
 
       case Rest of
         [$: | T] when ?is_space(hd(T)) ->
-          Token = {kw_identifier, {Line, Column, nil}, Atom},
+          Token = {kw_identifier, {Line, Column, Unencoded}, Atom},
           tokenize(T, Line, Column + Length + 1, Scope, [Token | Tokens]);
 
         [$: | T] when hd(T) =/= $: ->
@@ -670,11 +670,11 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
           error({Line, Column, "reserved token: ", atom_to_list(Atom)}, Rest, Scope, Tokens);
 
         _ when Kind == alias ->
-          tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens);
+          tokenize_alias(Rest, Line, Column, Unencoded, Atom, Length, Ascii, Special, Scope, Tokens);
 
         _ when Kind == identifier ->
           NewScope = maybe_warn_for_ambiguous_bang_before_equals(identifier, Unencoded, Rest, Line, Column, Scope),
-          Token = check_call_identifier(Line, Column, Atom, Rest),
+          Token = check_call_identifier(Line, Column, Unencoded, Atom, Rest),
           tokenize(Rest, Line, Column + Length, NewScope, [Token | Tokens]);
 
         _ ->
@@ -876,19 +876,19 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
 handle_dot([$., T1, T2, T3 | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
     ?arrow_op3(T1, T2, T3); ?xor_op3(T1, T2, T3); ?concat_op3(T1, T2, T3) ->
-  handle_call_identifier(Rest, Line, Column, DotInfo, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column, DotInfo, 3, [T1, T2, T3], Scope, Tokens);
 
 % ## Two Token Operators
 handle_dot([$., T1, T2 | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?comp_op2(T1, T2); ?rel_op2(T1, T2); ?and_op(T1, T2); ?or_op(T1, T2);
     ?arrow_op(T1, T2); ?in_match_op(T1, T2); ?concat_op(T1, T2); ?power_op(T1, T2); ?type_op(T1, T2) ->
-  handle_call_identifier(Rest, Line, Column, DotInfo, 2, list_to_atom([T1, T2]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column, DotInfo, 2, [T1, T2], Scope, Tokens);
 
 % ## Single Token Operators
 handle_dot([$., T | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?at_op(T); ?unary_op(T); ?capture_op(T); ?dual_op(T); ?mult_op(T);
     ?rel_op(T); ?match_op(T); ?pipe_op(T) ->
-  handle_call_identifier(Rest, Line, Column, DotInfo, 1, list_to_atom([T]), Scope, Tokens);
+  handle_call_identifier(Rest, Line, Column, DotInfo, 1, [T], Scope, Tokens);
 
 % ## Exception for .( as it needs to be treated specially in the parser
 handle_dot([$., $( | Rest], Line, Column, DotInfo, Scope, Tokens) ->
@@ -914,7 +914,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
 
       case unsafe_to_atom(Part, Line, Column, NewScope) of
         {ok, Atom} ->
-          Token = check_call_identifier(Line, Column, Atom, Rest),
+          Token = check_call_identifier(Line, Column, Part, Atom, Rest),
           TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
           tokenize(Rest, NewLine, NewColumn, NewScope, [Token | TokensSoFar]);
 
@@ -932,8 +932,8 @@ handle_dot([$. | Rest], Line, Column, DotInfo, Scope, Tokens) ->
   TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
   tokenize(Rest, Line, Column, Scope, TokensSoFar).
 
-handle_call_identifier(Rest, Line, Column, DotInfo, Length, Op, Scope, Tokens) ->
-  Token = check_call_identifier(Line, Column, Op, Rest),
+handle_call_identifier(Rest, Line, Column, DotInfo, Length, UnencodedOp, Scope, Tokens) ->
+  Token = check_call_identifier(Line, Column, UnencodedOp, list_to_atom(UnencodedOp), Rest),
   TokensSoFar = add_token_with_eol({'.', DotInfo}, Tokens),
   tokenize(Rest, Line, Column + Length, Scope, [Token | TokensSoFar]).
 
@@ -1263,30 +1263,28 @@ maybe_keyword(_) -> true.
 list_to_codepoint_hex(List) ->
   [io_lib:format(" 0x~4.16.0B", [Codepoint]) || Codepoint <- List].
 
-tokenize_alias(Rest, Line, Column, Atom, Length, Ascii, Special, Scope, Tokens) ->
+tokenize_alias(Rest, Line, Column, Unencoded, Atom, Length, Ascii, Special, Scope, Tokens) ->
   if
     not Ascii ->
-      AtomName = atom_to_list(Atom),
-      Invalid = hd([C || C <- AtomName, C > 127]),
-      Reason = {Line, Column, invalid_character_error("alias (only ASCII characters are allowed)", Invalid), AtomName},
-      error(Reason, AtomName ++ Rest, Scope, Tokens);
+      Invalid = hd([C || C <- Unencoded, C > 127]),
+      Reason = {Line, Column, invalid_character_error("alias (only ASCII characters are allowed)", Invalid), Unencoded},
+      error(Reason, Unencoded ++ Rest, Scope, Tokens);
     Special /= [] ->
-      AtomName = atom_to_list(Atom),
-      Reason = {Line, Column, invalid_character_error("alias", hd(Special)), AtomName},
-      error(Reason, AtomName ++ Rest, Scope, Tokens);
+      Reason = {Line, Column, invalid_character_error("alias", hd(Special)), Unencoded},
+      error(Reason, Unencoded ++ Rest, Scope, Tokens);
     true ->
-      AliasesToken = {alias, {Line, Column, nil}, Atom},
+      AliasesToken = {alias, {Line, Column, Unencoded}, Atom},
       tokenize(Rest, Line, Column + Length, Scope, [AliasesToken | Tokens])
   end.
 
 %% Check if it is a call identifier (paren | bracket | do)
 
-check_call_identifier(Line, Column, Atom, [$( | _]) ->
-  {paren_identifier, {Line, Column, nil}, Atom};
-check_call_identifier(Line, Column, Atom, [$[ | _]) ->
-  {bracket_identifier, {Line, Column, nil}, Atom};
-check_call_identifier(Line, Column, Atom, _Rest) ->
-  {identifier, {Line, Column, nil}, Atom}.
+check_call_identifier(Line, Column, Unencoded, Atom, [$( | _]) ->
+  {paren_identifier, {Line, Column, Unencoded}, Atom};
+check_call_identifier(Line, Column, Unencoded, Atom, [$[ | _]) ->
+  {bracket_identifier, {Line, Column, Unencoded}, Atom};
+check_call_identifier(Line, Column, Unencoded, Atom, _Rest) ->
+  {identifier, {Line, Column, Unencoded}, Atom}.
 
 add_token_with_eol({unary_op, _, _} = Left, T) -> [Left | T];
 add_token_with_eol(Left, [{eol, _} | T]) -> [Left | T];
