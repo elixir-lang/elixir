@@ -764,7 +764,7 @@ defmodule Protocol do
   end
 
   # TODO: Convert the following warnings into errors in future Elixir versions
-  def __before_compile__(env) do
+  defmacro __before_compile__(env) do
     # Callbacks
     callback_metas = callback_metas(env.module, :callback)
     callbacks = :maps.keys(callback_metas)
@@ -805,6 +805,16 @@ defmodule Protocol do
         env,
         nil
       )
+    end
+
+    quote do
+      # Register the __impl__/1 callback to ensure the protocol is a behaviour.
+      # Without this, a protocol that defines no functions won't be detected
+      # as a behaviour by the Erlang compiler, and any implementations of that
+      # protocol will log a warning.
+      @callback __impl__(:for) :: module()
+      @callback __impl__(:target) :: module()
+      @callback __impl__(:protocol) :: module()
     end
   end
 
