@@ -247,12 +247,13 @@ defmodule Mix.Tasks.FormatTest do
 
     def features(opts) do
       assert opts[:from_formatter_exs] == :yes
-      [extensions: ~w(.w)]
+      [extensions: ~w(.w), sigils: [:W]]
     end
 
     def format(contents, opts) do
       assert opts[:from_formatter_exs] == :yes
       assert opts[:extension] == ".w"
+      assert [W: _fun] = opts[:sigils]
       contents |> String.split(~r/\s/) |> Enum.join("\n")
     end
   end

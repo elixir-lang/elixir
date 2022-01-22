@@ -288,7 +288,15 @@ defmodule Mix.Tasks.Format do
       end
     end
 
-    formatter_opts = Keyword.put(formatter_opts, :plugins, plugins)
+    sigils =
+      for plugin <- plugins,
+          sigil <- find_sigils_from_plugins(plugin, formatter_opts),
+          do: {sigil, &plugin.format(&1, &2 ++ formatter_opts)}
+
+    formatter_opts =
+      formatter_opts
+      |> Keyword.put(:plugins, plugins)
+      |> Keyword.put(:sigils, sigils)
 
     if deps == [] and subs == [] do
       {{formatter_opts, []}, sources}
@@ -537,12 +545,7 @@ defmodule Mix.Tasks.Format do
   defp stdin_or_wildcard(path), do: path |> Path.expand() |> Path.wildcard(match_dot: true)
 
   defp elixir_format(content, formatter_opts) do
-    sigils =
-      for plugin <- Keyword.fetch!(formatter_opts, :plugins),
-          sigil <- find_sigils_from_plugins(plugin, formatter_opts),
-          do: {sigil, &plugin.format(&1, &2 ++ formatter_opts)}
-
-    IO.iodata_to_binary([Code.format_string!(content, [sigils: sigils] ++ formatter_opts), ?\n])
+    IO.iodata_to_binary([Code.format_string!(content, formatter_opts), ?\n])
   end
 
   defp find_sigils_from_plugins(plugin, formatter_opts) do
