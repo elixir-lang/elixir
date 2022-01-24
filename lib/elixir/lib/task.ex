@@ -78,7 +78,7 @@ defmodule Task do
       |> Task.await()
 
   We encourage developers to rely on supervised tasks as much as possible.
-  Supervised tasks improves the visibility of how mant tasks are running
+  Supervised tasks improves the visibility of how many tasks are running
   at a given moment and enable a huge variety of patterns that gives you
   explicit control on how to handle the results, errors, and timeouts.
   Here is a summary:
