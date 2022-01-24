@@ -77,10 +77,11 @@ defmodule Task do
       end)
       |> Task.await()
 
-  We encourage developers to rely on supervised tasks as much as
-  possible. Supervised tasks enable a huge variety of patterns
-  that allow you explicit control on how to handle the results,
-  errors, and timeouts. Here is a summary:
+  We encourage developers to rely on supervised tasks as much as possible.
+  Supervised tasks improves the visibility of how mant tasks are running
+  at a given moment and enable a huge variety of patterns that gives you
+  explicit control on how to handle the results, errors, and timeouts.
+  Here is a summary:
 
     * Using `Task.Supervisor.start_child/2` allows you to start a fire-and-forget
       task that you don't care about its results or if it completes successfully or not.
@@ -95,14 +96,15 @@ defmodule Task do
       the caller won't fail. You will receive the error reason either on
       `yield` or `shutdown`.
 
-  See the `Task.Supervisor` module for details on the supported operations.
+  Furthemore, the supervisor guarantee all tasks first terminate, within a
+  configurable shutdown period, when your application shuts down. See the
+  `Task.Supervisor` module for details on the supported operations.
 
   ### Distributed tasks
 
-  Since Elixir provides a `Task.Supervisor`, it is easy to use one
-  to dynamically start tasks across nodes:
+  With `Task.Supervisor`, it is easy to dynamically start tasks across nodes:
 
-      # On the remote node
+      # On the remote node named :remote@local
       Task.Supervisor.start_link(name: MyApp.DistSupervisor)
 
       # On the client
