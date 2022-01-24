@@ -326,6 +326,15 @@ defmodule Mix.Task do
     end
   end
 
+  @doc false
+  def show_forgotten_apps_warning(apps) do
+    forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
+
+    for app <- forgotten_apps do
+      Mix.shell().info([:yellow, "warning: could not find umbrella app #{inspect(app)}"])
+    end
+  end
+
   @doc """
   Conditionally runs the task (or alias) with the given `args`.
 
@@ -348,44 +357,45 @@ defmodule Mix.Task do
   """
   @spec run(task_name, [any]) :: any
   def run(task, args \\ []) do
-    do_run(task, &run_task/3, args)
+    do_run(task, args)
   end
 
   @doc """
-  Similar to run/2 but, in the context of umbrella applications, it runs the
-  task in the specified list of children apps.
+  Similar to run/2 but it runs the task in the specified list of children apps,
+  in the context of umbrella proyects.
 
-  However, if the task is not recursive, whose purpose is to be run
-  in children applications, it will be run at the project root level.
+  However, if the task is not recursive (whose purpose is to be run in children
+  applications) it runs at the project root level (a warning message is shown
+  in this case).
   """
   @spec run_in_apps(task_name, [atom], [any]) :: any
   def run_in_apps(task, apps, args \\ []) do
-    func = fn proj, task, args -> run_task_in_apps(proj, task, apps, args) end
-    do_run(task, func, args)
+    do_run(task, args, apps: apps)
   end
 
-  defp do_run(task, run_func, args) when is_atom(task) do
-    do_run(Atom.to_string(task), run_func, args)
+  defp do_run(task, args, options \\ [])
+
+  defp do_run(task, args, options) when is_atom(task) do
+    do_run(Atom.to_string(task), args, options)
   end
 
-  defp do_run(task, run_func, args) when is_binary(task) do
+  defp do_run(task, args, options) when is_binary(task) do
     proj = Mix.Project.get()
     alias = Mix.Project.config()[:aliases][String.to_atom(task)]
 
     cond do
       alias && Mix.TasksServer.run({:alias, task, proj}) ->
-        # TODO
-        run_alias(List.wrap(alias), args, proj, task, :ok)
+        run_alias(List.wrap(alias), args, proj, task, options, :ok)
 
       !Mix.TasksServer.get({:task, task, proj}) ->
-        run_func.(proj, task, args)
+        run_task(proj, task, args, options)
 
       true ->
         :noop
     end
   end
 
-  defp run_task(proj, task, args) do
+  defp run_task(proj, task, args, options) do
     # 1. If the task is available, we run it.
     # 2. Otherwise we compile and load dependencies
     # 3. Finally, we compile the current project in hope it is available.
@@ -396,14 +406,42 @@ defmodule Mix.Task do
 
     recursive = recursive(module)
 
+    {in_apps, apps} =
+      case options do
+        [apps: apps] -> {true, apps}
+        _ -> {false, nil}
+      end
+
     cond do
       recursive && Mix.Project.umbrella?() ->
         Mix.ProjectStack.recur(fn ->
-          recur(fn _ -> run(task, args) end)
+          if in_apps do
+            recur_in_apps(fn _ -> run(task, args) end, apps)
+          else
+            recur(fn _ -> run(task, args) end)
+          end
         end)
 
+      in_apps && !Mix.Project.umbrella?() ->
+        Mix.shell().info([
+          :yellow,
+          "warning: running #{inspect(task)} at root level because this is not an umbrella project"
+        ])
+
+        run(task, args)
+
+      in_apps && not recursive ->
+        Mix.shell().info([
+          :yellow,
+          "warning: running #{inspect(task)} at root level because it is not a recursive task (ignoring apps options)"
+        ])
+
+        run(task, args)
+
       not recursive && Mix.ProjectStack.recursing() ->
-        Mix.ProjectStack.on_recursing_root(fn -> run(task, args) end)
+        Mix.ProjectStack.on_recursing_root(fn ->
+          run(task, args)
+        end)
 
       Mix.TasksServer.run({:task, task, proj}) ->
         run_requirements(module)
@@ -419,46 +457,6 @@ defmodule Mix.Task do
 
       true ->
         :noop
-    end
-  end
-
-  @doc false
-  def show_forgotten_apps_warning(apps) do
-    forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
-
-    for app <- forgotten_apps do
-      Mix.shell().info([:yellow, "warning: could not find umbrella app #{inspect(app)}"])
-    end
-  end
-
-  defp run_task_in_apps(proj, task, apps, args) do
-    # 1. If the task is available, we run it.
-    # 2. Otherwise we compile and load dependencies
-    # 3. Finally, we compile the current project in hope it is available.
-    module =
-      get_task_or_run(proj, task, fn -> run("deps.loadpaths") end) ||
-        get_task_or_run(proj, task, fn -> run("compile", []) end) ||
-        get!(task)
-
-    recursive = recursive(module)
-
-    cond do
-      recursive && Mix.Project.umbrella?() ->
-        Mix.ProjectStack.recur(fn ->
-          recur_in_apps(fn _ -> run(task, args) end, apps)
-        end)
-
-      # TODO check if this case makes sense
-      not recursive && Mix.ProjectStack.recursing() ->
-        Mix.ProjectStack.on_recursing_root(fn -> run_in_apps(task, apps, args) end)
-
-      true ->
-        Mix.shell().info([
-          :yellow,
-          "warning: running #{inspect(task)} at root level because it is not a recursive task (ignoring apps options)"
-        ])
-
-        run_task(proj, task, args)
     end
   end
 
@@ -501,24 +499,52 @@ defmodule Mix.Task do
     end
   end
 
-  defp run_alias([h | t], alias_args, proj, original_task, _res) when is_binary(h) do
+  defp run_alias([h | t], alias_args, proj, original_task, options, _res) when is_binary(h) do
     case OptionParser.split(h) do
       [^original_task | args] ->
-        res = run_task(proj, original_task, args ++ alias_args)
-        run_alias(t, [], proj, original_task, res)
+        res = run_task(proj, original_task, args ++ alias_args, options)
+        run_alias(t, [], proj, original_task, options, res)
 
       [task | args] ->
-        res = run(task, join_args(args, alias_args, t))
-        run_alias(t, alias_args, proj, original_task, res)
+        res =
+          case options do
+            [apps: apps] ->
+              run_in_apps(task, apps, join_args(args, alias_args, t))
+
+            _ ->
+              run(task, join_args(args, alias_args, t))
+          end
+
+        run_alias(t, alias_args, proj, original_task, options, res)
     end
   end
 
-  defp run_alias([h | t], alias_args, proj, original_task, _res) when is_function(h, 1) do
-    res = h.(join_args([], alias_args, t))
-    run_alias(t, alias_args, proj, original_task, res)
+  defp run_alias([h | t], alias_args, proj, original_task, options, _res)
+       when is_function(h, 1) do
+    res =
+      case options do
+        [apps: apps] ->
+          if Mix.Project.umbrella?() do
+            Mix.ProjectStack.recur(fn ->
+              recur_in_apps(fn _ -> h.(join_args([], alias_args, t)) end, apps)
+            end)
+          else
+            Mix.shell().info([
+              :yellow,
+              "warning: running #{inspect(original_task)} at root level because this is not an umbrella project"
+            ])
+
+            h.(join_args([], alias_args, t))
+          end
+
+        _ ->
+          h.(join_args([], alias_args, t))
+      end
+
+    run_alias(t, alias_args, proj, original_task, options, res)
   end
 
-  defp run_alias([h | _], _alias_args, _proj, _original_task, _res) do
+  defp run_alias([h | _], _alias_args, _proj, _original_task, _options, _res) do
     Mix.raise(
       "Invalid Mix alias format, aliases can be either a string (representing a Mix task " <>
         "with arguments) or a function that takes one argument (a list of alias arguments), " <>
@@ -526,7 +552,7 @@ defmodule Mix.Task do
     )
   end
 
-  defp run_alias([], _alias_args, proj, original_task, res) do
+  defp run_alias([], _alias_args, proj, original_task, _options, res) do
     Mix.TasksServer.put({:task, original_task, proj})
     res
   end
