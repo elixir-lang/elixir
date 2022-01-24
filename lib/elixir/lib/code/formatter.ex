@@ -177,6 +177,7 @@ defmodule Code.Formatter do
   defp state(comments, opts) do
     force_do_end_blocks = Keyword.get(opts, :force_do_end_blocks, false)
     locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
+    file = Keyword.get(opts, :file, nil)
     sigils = Keyword.get(opts, :sigils, [])
 
     sigils =
@@ -199,7 +200,8 @@ defmodule Code.Formatter do
       operand_nesting: 2,
       skip_eol: false,
       comments: comments,
-      sigils: sigils
+      sigils: sigils,
+      file: file
     }
   end
 
@@ -1320,7 +1322,14 @@ defmodule Code.Formatter do
       entries =
         case state.sigils do
           %{^name => callback} ->
-            case callback.(hd(entries), sigil: List.to_atom([name]), modifiers: modifiers) do
+            metadata = [
+              file: state.file,
+              line: meta[:line],
+              sigil: List.to_atom([name]),
+              modifiers: modifiers
+            ]
+
+            case callback.(hd(entries), metadata) do
               binary when is_binary(binary) ->
                 [binary]
 
