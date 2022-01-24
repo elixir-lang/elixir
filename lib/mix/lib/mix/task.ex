@@ -347,22 +347,25 @@ defmodule Mix.Task do
   task is invalid. See `get!/1` for more information.
   """
   @spec run(task_name, [any]) :: any
-  def run(task, args \\ [])
-
-  def run(task, args) when is_atom(task) do
-    run(Atom.to_string(task), args)
+  def run(task, args \\ []) do
+    do_run(task, &run_task/3, args)
   end
 
-  def run(task, args) when is_binary(task) do
+  defp do_run(task, run_func, args) when is_atom(task) do
+    do_run(Atom.to_string(task), run_func, args)
+  end
+
+  defp do_run(task, run_func, args) when is_binary(task) do
     proj = Mix.Project.get()
     alias = Mix.Project.config()[:aliases][String.to_atom(task)]
 
     cond do
       alias && Mix.TasksServer.run({:alias, task, proj}) ->
+        # TODO
         run_alias(List.wrap(alias), args, proj, task, :ok)
 
       !Mix.TasksServer.get({:task, task, proj}) ->
-        run_task(proj, task, args)
+        run_func.(proj, task, args)
 
       true ->
         :noop
@@ -403,6 +406,52 @@ defmodule Mix.Task do
 
       true ->
         :noop
+    end
+  end
+
+  @doc false
+  def show_forgotten_apps_warning(apps) do
+    forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
+    for app <- forgotten_apps do
+      Mix.shell().info([:yellow, "warning: could not find umbrella app #{inspect(app)}"])
+    end
+  end
+
+  # TODO
+  @spec run_in_apps(task_name, [atom], [any]) :: any
+  def run_in_apps(task, apps, args \\ []) do
+    func = fn proj, task, args -> run_task_in_apps(proj, task, apps, args) end
+    do_run(task, func, args)
+  end
+
+  defp run_task_in_apps(proj, task, apps, args) do
+    # 1. If the task is available, we run it.
+    # 2. Otherwise we compile and load dependencies
+    # 3. Finally, we compile the current project in hope it is available.
+    module =
+      get_task_or_run(proj, task, fn -> run("deps.loadpaths") end) ||
+        get_task_or_run(proj, task, fn -> run("compile", []) end) ||
+        get!(task)
+
+    recursive = recursive(module)
+
+    cond do
+      recursive && Mix.Project.umbrella?() ->
+        Mix.ProjectStack.recur(fn ->
+          run_in_children_apps(fn _ -> run(task, args) end, apps)
+        end)
+
+      # TODO check if this case makes sense
+      not recursive && Mix.ProjectStack.recursing() ->
+        Mix.ProjectStack.on_recursing_root(fn -> run_in_apps(task, apps, args) end)
+
+      true ->
+        Mix.shell().info([
+          :yellow,
+          "warning: running #{inspect(task)} at root level because it is not a recursive task (ignoring apps options)"
+        ])
+
+        run_task(proj, task, args)
     end
   end
 
@@ -528,6 +577,25 @@ defmodule Mix.Task do
     config = Mix.Project.deps_config() |> Keyword.delete(:deps_path)
 
     for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.cached() do
+      Mix.Project.in_project(app, opts[:path], [inherit_parent_config_files: true] ++ config, fun)
+    end
+  end
+
+  defp run_in_children_apps(fun, apps) do
+    # Get all dependency configuration but not the deps path
+    # as we leave the control of the deps path still to the
+    # umbrella child.
+
+    # TODO ^^^ this is duplicated!!
+    config = Mix.Project.deps_config() |> Keyword.delete(:deps_path)
+
+    selected_children =
+      Mix.Dep.Umbrella.cached()
+      |> Enum.filter(fn %Mix.Dep{app: app} ->
+        app in apps
+      end)
+
+    for %Mix.Dep{app: app, opts: opts} <- selected_children do
       Mix.Project.in_project(app, opts[:path], [inherit_parent_config_files: true] ++ config, fun)
     end
   end

@@ -28,7 +28,20 @@ defmodule Mix.Tasks.Do do
   @impl true
   def run(args) do
     Mix.Task.reenable("do")
-    Enum.each(gather_commands(args), fn [task | args] -> Mix.Task.run(task, args) end)
+
+    {apps, args} = extract_apps_from_args(args)
+
+    if apps != [] do
+      Mix.Task.show_forgotten_apps_warning(apps)
+    end
+
+    Enum.each(gather_commands(args), fn [task | args] ->
+      if apps == [] do
+        Mix.Task.run(task, args)
+      else
+        Mix.Task.run_in_apps(task, apps, args)
+      end
+    end)
   end
 
   @doc false
@@ -53,5 +66,16 @@ defmodule Mix.Tasks.Do do
 
   defp gather_commands([], current, acc) do
     Enum.reverse([Enum.reverse(current) | acc])
+  end
+
+  defp extract_apps_from_args(args) do
+    {opts, args} = OptionParser.parse_head!(args, switches: [app: :keep])
+
+    apps =
+      opts
+      |> Keyword.get_values(:app)
+      |> Enum.map(&String.to_atom/1)
+
+    {apps, args}
   end
 end
