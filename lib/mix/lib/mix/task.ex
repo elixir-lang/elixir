@@ -351,6 +351,19 @@ defmodule Mix.Task do
     do_run(task, &run_task/3, args)
   end
 
+  @doc """
+  Similar to run/2 but, in the context of umbrella applications, it runs the
+  task in the specified list of children apps.
+
+  However, if the task is not recursive, whose purpose is to be run
+  in children applications, it will be run at the project root level.
+  """
+  @spec run_in_apps(task_name, [atom], [any]) :: any
+  def run_in_apps(task, apps, args \\ []) do
+    func = fn proj, task, args -> run_task_in_apps(proj, task, apps, args) end
+    do_run(task, func, args)
+  end
+
   defp do_run(task, run_func, args) when is_atom(task) do
     do_run(Atom.to_string(task), run_func, args)
   end
@@ -412,16 +425,10 @@ defmodule Mix.Task do
   @doc false
   def show_forgotten_apps_warning(apps) do
     forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
+
     for app <- forgotten_apps do
       Mix.shell().info([:yellow, "warning: could not find umbrella app #{inspect(app)}"])
     end
-  end
-
-  # TODO
-  @spec run_in_apps(task_name, [atom], [any]) :: any
-  def run_in_apps(task, apps, args \\ []) do
-    func = fn proj, task, args -> run_task_in_apps(proj, task, apps, args) end
-    do_run(task, func, args)
   end
 
   defp run_task_in_apps(proj, task, apps, args) do
@@ -438,7 +445,7 @@ defmodule Mix.Task do
     cond do
       recursive && Mix.Project.umbrella?() ->
         Mix.ProjectStack.recur(fn ->
-          run_in_children_apps(fn _ -> run(task, args) end, apps)
+          recur_in_apps(fn _ -> run(task, args) end, apps)
         end)
 
       # TODO check if this case makes sense
@@ -571,31 +578,27 @@ defmodule Mix.Task do
   end
 
   defp recur(fun) do
-    # Get all dependency configuration but not the deps path
-    # as we leave the control of the deps path still to the
-    # umbrella child.
-    config = Mix.Project.deps_config() |> Keyword.delete(:deps_path)
-
-    for %Mix.Dep{app: app, opts: opts} <- Mix.Dep.Umbrella.cached() do
-      Mix.Project.in_project(app, opts[:path], [inherit_parent_config_files: true] ++ config, fun)
-    end
+    run_in_children_projects(fun, Mix.Dep.Umbrella.cached())
   end
 
-  defp run_in_children_apps(fun, apps) do
-    # Get all dependency configuration but not the deps path
-    # as we leave the control of the deps path still to the
-    # umbrella child.
-
-    # TODO ^^^ this is duplicated!!
-    config = Mix.Project.deps_config() |> Keyword.delete(:deps_path)
-
+  defp recur_in_apps(fun, apps) do
     selected_children =
       Mix.Dep.Umbrella.cached()
       |> Enum.filter(fn %Mix.Dep{app: app} ->
         app in apps
       end)
 
-    for %Mix.Dep{app: app, opts: opts} <- selected_children do
+    run_in_children_projects(fun, selected_children)
+  end
+
+  defp run_in_children_projects(fun, dependencies) do
+    # Get all dependency configuration but not the deps path
+    # as we leave the control of the deps path still to the
+    # umbrella child.
+
+    config = Mix.Project.deps_config() |> Keyword.delete(:deps_path)
+
+    for %Mix.Dep{app: app, opts: opts} <- dependencies do
       Mix.Project.in_project(app, opts[:path], [inherit_parent_config_files: true] ++ config, fun)
     end
   end
