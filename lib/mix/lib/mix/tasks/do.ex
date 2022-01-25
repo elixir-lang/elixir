@@ -15,14 +15,24 @@ defmodule Mix.Tasks.Do do
 
       mix do compile --list, deps
 
-  Note however that the majority of Mix tasks are only
-  executed once per invocation. So for example, the following
-  command will only compile once:
+  You can limit where the tasks are run, in the context of
+  umbrella projects, by passing the app names using --app:
+
+      mix do --app app1 --app app2 compile --list, deps
+
+  Note that the majority of Mix tasks are only executed once
+  per invocation. So for example, the following command will
+  only compile once:
 
       mix do compile, some_other_command, compile
 
   When `compile` is executed again, Mix will notice the task
   has already ran, and skip it.
+
+  ## Command line options
+
+    * `--app` - limit running the tasks to the given app. This
+    option may be given multiple times.
   """
 
   @impl true
