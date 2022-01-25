@@ -30,10 +30,7 @@ defmodule Mix.Tasks.Do do
     Mix.Task.reenable("do")
 
     {apps, args} = extract_apps_from_args(args)
-
-    if apps != [] do
-      Mix.Task.show_forgotten_apps_warning(apps)
-    end
+    show_forgotten_apps_warning(apps)
 
     Enum.each(gather_commands(args), fn [task | args] ->
       if apps == [] do
@@ -42,6 +39,29 @@ defmodule Mix.Tasks.Do do
         Mix.Task.run_in_apps(task, apps, args)
       end
     end)
+  end
+
+  defp show_forgotten_apps_warning([]), do: nil
+
+  defp show_forgotten_apps_warning(apps) do
+    if Mix.Project.umbrella?() do
+      forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
+
+      for app <- forgotten_apps do
+        Mix.shell().info([:yellow, "warning: could not find application #{inspect(app)}"])
+      end
+    end
+  end
+
+  defp extract_apps_from_args(args) do
+    {opts, args} = OptionParser.parse_head!(args, switches: [app: :keep])
+
+    apps =
+      opts
+      |> Keyword.get_values(:app)
+      |> Enum.map(&String.to_atom/1)
+
+    {apps, args}
   end
 
   @doc false
@@ -66,16 +86,5 @@ defmodule Mix.Tasks.Do do
 
   defp gather_commands([], current, acc) do
     Enum.reverse([Enum.reverse(current) | acc])
-  end
-
-  defp extract_apps_from_args(args) do
-    {opts, args} = OptionParser.parse_head!(args, switches: [app: :keep])
-
-    apps =
-      opts
-      |> Keyword.get_values(:app)
-      |> Enum.map(&String.to_atom/1)
-
-    {apps, args}
   end
 end
