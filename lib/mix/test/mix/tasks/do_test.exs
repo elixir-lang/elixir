@@ -63,6 +63,17 @@ defmodule Mix.Tasks.DoTest do
     end)
   end
 
+  test "runs non-recursive tasks at project root level" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        Mix.Tasks.Do.run(["--app", "bar", "--app", "foo", "compile", "--list,", "help"])
+
+        assert_received {:mix_shell, :info, ["mix help" <> _]}
+        assert_received {:mix_shell, :info, ["mix compile.app" <> _]}
+      end)
+    end)
+  end
+
   test "runs given tasks ignoring apps argument when project is not an umbrella" do
     Mix.Tasks.Do.run(["--app", "bar", "--app", "foo", "cmd", "echo", "hello"])
 
@@ -91,6 +102,20 @@ defmodule Mix.Tasks.DoTest do
         assert_received {:mix_shell, :info, ["==> foo"]}
         assert_received {:mix_shell, :run, ["hello" <> ^nl]}
         assert_received {:mix_shell, :info, ["[\"Foo\"]"]}
+      end)
+    end)
+  end
+
+  test "runs non-recursive aliases at project root level" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      aliases = [
+        h: "help"
+      ]
+
+      Mix.Project.in_project(:umbrella, ".", [aliases: aliases], fn _ ->
+        Mix.Tasks.Do.run(["--app", "bar", "--app", "foo", "h"])
+
+        assert_received {:mix_shell, :info, ["mix help" <> _]}
       end)
     end)
   end
