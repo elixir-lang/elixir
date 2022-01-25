@@ -328,10 +328,12 @@ defmodule Mix.Task do
 
   @doc false
   def show_forgotten_apps_warning(apps) do
-    forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
+    if Mix.Project.umbrella?() do
+      forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
 
-    for app <- forgotten_apps do
-      Mix.shell().info([:yellow, "warning: could not find umbrella app #{inspect(app)}"])
+      for app <- forgotten_apps do
+        Mix.shell().info([:yellow, "warning: could not find the #{inspect(app)} application"])
+      end
     end
   end
 
