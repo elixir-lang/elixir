@@ -439,9 +439,7 @@ defmodule Mix.Task do
         run(task, args)
 
       not recursive && Mix.ProjectStack.recursing() ->
-        Mix.ProjectStack.on_recursing_root(fn ->
-          run(task, args)
-        end)
+        Mix.ProjectStack.on_recursing_root(fn -> run(task, args) end)
 
       Mix.TasksServer.run({:task, task, proj}) ->
         run_requirements(module)
@@ -621,7 +619,6 @@ defmodule Mix.Task do
     # Get all dependency configuration but not the deps path
     # as we leave the control of the deps path still to the
     # umbrella child.
-
     config = Mix.Project.deps_config() |> Keyword.delete(:deps_path)
 
     for %Mix.Dep{app: app, opts: opts} <- dependencies do
