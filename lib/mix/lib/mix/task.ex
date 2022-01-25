@@ -332,7 +332,7 @@ defmodule Mix.Task do
       forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
 
       for app <- forgotten_apps do
-        Mix.shell().info([:yellow, "warning: could not find the #{inspect(app)} application"])
+        Mix.shell().info([:yellow, "warning: could not find application #{inspect(app)}"])
       end
     end
   end
