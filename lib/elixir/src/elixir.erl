@@ -365,9 +365,12 @@ quoted_to_erl(Quoted, Env, Scope) ->
 %% Converts a given string (charlist) into quote expression
 
 string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(StartLine), is_binary(File) ->
-  case elixir_tokenizer:tokenize(String, StartLine, StartColumn, [{file, File} | Opts]) of
+  case elixir_tokenizer:tokenize(String, StartLine, StartColumn, Opts) of
+    {ok, _Line, _Column, [], Tokens} ->
+      {ok, Tokens};
     {ok, _Line, _Column, Warnings, Tokens} ->
-      [elixir_errors:erl_warn(L, F, M) || {L, F, M} <- lists:reverse(Warnings)],
+      (lists:keyfind(emit_warnings, 1, Opts) /= {emit_warnings, false}) andalso
+        [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)],
       {ok, Tokens};
     {error, {Line, Column, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _Warnings, _SoFar} ->
       Location = [{line, Line}, {column, Column}],
@@ -424,7 +427,12 @@ parser_location(Meta) ->
 to_binary(List) when is_list(List) -> elixir_utils:characters_to_binary(List);
 to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom).
 
-handle_parsing_opts(WarningFile, Opts) ->
+handle_parsing_opts(File, Opts) ->
+  WarningFile =
+    case lists:keyfind(emit_warnings, 1, Opts) of
+      {emit_warnings, false} -> nil;
+      _ -> File
+    end,
   LiteralEncoder =
     case lists:keyfind(literal_encoder, 1, Opts) of
       {literal_encoder, Fun} -> Fun;

@@ -7,6 +7,10 @@ defmodule Code.Formatter.GeneralTest do
 
   @short_length [line_length: 10]
 
+  test "does not emit warnings" do
+    assert_format "fn -> end", "fn -> nil end"
+  end
+
   describe "aliases" do
     test "with atom-only parts" do
       assert_same "Elixir"

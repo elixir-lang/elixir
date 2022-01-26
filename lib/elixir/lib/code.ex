@@ -749,18 +749,13 @@ defmodule Code do
         unescape: false,
         warn_on_unnecessary_quotes: false,
         literal_encoder: &{:ok, {:__block__, &2, [&1]}},
-        token_metadata: true
+        token_metadata: true,
+        emit_warnings: false
       ] ++ opts
 
     {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
-
-    to_algebra_opts =
-      [
-        comments: comments
-      ] ++ opts
-
+    to_algebra_opts = [comments: comments] ++ opts
     doc = Code.Formatter.to_algebra(forms, to_algebra_opts)
-
     Inspect.Algebra.format(doc, line_length)
   end
 

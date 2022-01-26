@@ -3,14 +3,14 @@ defmodule String.Tokenizer.Security do
   # UTS39 security checks that operate on all tokens in a file,
   # like Confusables. If we add whole-file mixed-script-confusables
   # checks we can add them to the list of lints here
-  def unicode_lint_warnings(tokens, file \\ "nofile") do
+  def unicode_lint_warnings(tokens) do
     for warning <- confusables(tokens),
-        do: format_warning(file, warning)
+        do: format_warning(warning)
   end
 
-  defp format_warning(file, {token, reason}) do
+  defp format_warning({token, reason}) do
     {_, {line, col, _}, _} = token
-    {{line, col}, file, to_charlist(reason)}
+    {{line, col}, to_charlist(reason)}
   end
 
   ## Confusables

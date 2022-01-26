@@ -813,20 +813,14 @@ defmodule Code.Fragment do
     columns = Keyword.get(opts, :columns, false)
     token_metadata = Keyword.get(opts, :token_metadata, false)
 
-    fragment = to_charlist(fragment)
-    tokenizer_opts = [file: file, cursor_completion: true, columns: columns]
-
-    case :elixir_tokenizer.tokenize(fragment, line, column, tokenizer_opts) do
-      {:ok, _, _, _warnings, tokens} ->
-        :elixir.tokens_to_quoted(tokens, nil, columns: columns, token_metadata: token_metadata)
-
-      {:error, {line, column, {prefix, suffix}, token}, _rest, _warnings, _so_far} ->
-        location = [line: line, column: column]
-        {:error, {location, {to_string(prefix), to_string(suffix)}, to_string(token)}}
-
-      {:error, {line, column, error, token}, _rest, _warnings, _so_far} ->
-        location = [line: line, column: column]
-        {:error, {location, to_string(error), to_string(token)}}
-    end
+    Code.string_to_quoted(fragment,
+      file: file,
+      line: line,
+      column: column,
+      columns: columns,
+      token_metadata: token_metadata,
+      cursor_completion: true,
+      emit_warnings: false
+    )
   end
 end

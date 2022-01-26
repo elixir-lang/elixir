@@ -25,7 +25,6 @@
 }).
 
 -record(elixir_tokenizer, {
-  file=(<<"nofile">>),
   terminators=[],
   unescape=true,
   cursor_completion=false,

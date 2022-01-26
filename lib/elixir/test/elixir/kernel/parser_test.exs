@@ -131,7 +131,6 @@ defmodule Kernel.ParserTest do
         assert atom == "there_is_no_such_atom"
         assert meta[:line] == 1
         assert meta[:column] == 1
-        assert meta[:file] == "nofile"
         {:ok, {:my, "atom", ref}}
       end
 
@@ -146,7 +145,6 @@ defmodule Kernel.ParserTest do
         assert atom == "there_is_no_such_var"
         assert meta[:line] == 1
         assert meta[:column] == 1
-        assert meta[:file] == "nofile"
         {:ok, {:my, "atom", ref}}
       end
 
@@ -161,7 +159,6 @@ defmodule Kernel.ParserTest do
         assert atom == "there is no such key"
         assert meta[:line] == 1
         assert meta[:column] == 2
-        assert meta[:file] == "nofile"
         {:ok, {:my, "atom", ref}}
       end
 
