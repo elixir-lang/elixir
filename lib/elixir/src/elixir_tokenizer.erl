@@ -113,8 +113,6 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{terminators=none};
       ({cursor_completion, true}, Acc) ->
         Acc#elixir_tokenizer{cursor_completion=cursor_and_terminators};
-      ({file, File}, Acc) when is_binary(File) ->
-        Acc#elixir_tokenizer{file=File};
       ({existing_atoms_only, ExistingAtomsOnly}, Acc) when is_boolean(ExistingAtomsOnly) ->
         Acc#elixir_tokenizer{existing_atoms_only=ExistingAtomsOnly};
       ({static_atoms_encoder, StaticAtomsEncoder}, Acc) when is_function(StaticAtomsEncoder) ->
@@ -135,12 +133,12 @@ tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
 tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
-  #elixir_tokenizer{file=File, terminators=Terminators, warnings=Warnings} = Scope,
+  #elixir_tokenizer{terminators=Terminators, warnings=Warnings} = Scope,
 
   {CursorColumn, CursorTerminators, CursorTokens} =
     add_cursor(Line, Column, Cursor, Terminators, Tokens),
 
-  AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File, Warnings),
+  AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
   AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
   {ok, Line, Column, AllWarnings, AccTokens};
 
@@ -151,8 +149,8 @@ tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, 
   Formatted = io_lib:format(Message, [End, Start, StartLine]),
   error({EndLine, Column, [Formatted, Hint], []}, [], Scope, Tokens);
 
-tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, file=File, warnings=Warnings}, Tokens) ->
-  AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, File, Warnings),
+tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, warnings=Warnings}, Tokens) ->
+  AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
   {ok, Line, Column, AllWarnings, lists:reverse(Tokens)};
 
 % VC merge conflict
@@ -244,11 +242,11 @@ tokenize([$?, $\\, H | T], Line, Column, Scope, Tokens) ->
         {Escape, Name} ->
           Msg = io_lib:format("found ?\\ followed by code point 0x~.16B (~ts), please use ?~ts instead",
                               [Char, Name, Escape]),
-          prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+          prepend_warning(Line, Column, Msg, Scope);
 
         false when ?is_downcase(H); ?is_upcase(H) ->
           Msg = io_lib:format("unknown escape sequence ?\\~tc, use ?~tc instead", [H, H]),
-          prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+          prepend_warning(Line, Column, Msg, Scope);
 
         false ->
           Scope
@@ -265,7 +263,7 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
     {Escape, Name} ->
       Msg = io_lib:format("found ? followed by code point 0x~.16B (~ts), please use ?~ts instead",
                           [Char, Name, Escape]),
-      prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+      prepend_warning(Line, Column, Msg, Scope);
     false ->
       Scope
   end,
@@ -332,7 +330,7 @@ tokenize([$:, T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when
 %% TODO: Remove this deprecation on Elixir v2.0
 tokenize([$:, $:, $: | Rest], Line, Column, Scope, Tokens) ->
   Message = "atom ::: must be written between quotes, as in :\"::\", to avoid ambiguity",
-  NewScope = prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Message, Scope),
+  NewScope = prepend_warning(Line, Column, Message, Scope),
   Token = {atom, {Line, Column, nil}, '::'},
   tokenize(Rest, Line, Column + 3, NewScope, [Token | Tokens]);
 
@@ -507,7 +505,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
             "do not require quotes",
             [hd(Parts)]
           ),
-          prepend_warning(Line, Column, InterScope#elixir_tokenizer.file, WarnMsg, InterScope);
+          prepend_warning(Line, Column, WarnMsg, InterScope);
 
         false ->
           InterScope
@@ -786,7 +784,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
             "letters, numbers, and underscores do not require quotes",
             [hd(Parts)]
           ),
-          prepend_warning(Line, Column, InterScope#elixir_tokenizer.file, WarnMsg, InterScope);
+          prepend_warning(Line, Column, WarnMsg, InterScope);
 
         false ->
           InterScope
@@ -854,15 +852,15 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
         case Op of
           '^^^' ->
             Msg = "^^^ is deprecated. It is typically used as xor but it has the wrong precedence, use Bitwise.bxor/2 instead",
-            prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+            prepend_warning(Line, Column, Msg, Scope);
 
           '~~~' ->
             Msg = "~~~ is deprecated. Use Bitwise.bnot/1 instead for clarity",
-            prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+            prepend_warning(Line, Column, Msg, Scope);
 
           '<|>' ->
             Msg = "<|> is deprecated. Use another pipe-like operator",
-            prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+            prepend_warning(Line, Column, Msg, Scope);
 
           _ ->
             Scope
@@ -906,7 +904,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
             "do not require quotes",
             [Part]
           ),
-          prepend_warning(Line, Column, InterScope#elixir_tokenizer.file, WarnMsg, InterScope);
+          prepend_warning(Line, Column, WarnMsg, InterScope);
 
         false ->
           InterScope
@@ -981,11 +979,10 @@ unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{}) when
     is_binary(Part) andalso byte_size(Part) > 255;
     is_list(Part) andalso length(Part) > 255 ->
   {error, {Line, Column, "atom length must be less than system limit: ", elixir_utils:characters_to_list(Part)}};
-unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{static_atoms_encoder=StaticAtomsEncoder} = Scope) when
+unsafe_to_atom(Part, Line, Column, #elixir_tokenizer{static_atoms_encoder=StaticAtomsEncoder}) when
     is_function(StaticAtomsEncoder) ->
-  Metadata = [{line, Line}, {column, Column}, {file, Scope#elixir_tokenizer.file}],
   Value = elixir_utils:characters_to_binary(Part),
-  case StaticAtomsEncoder(Value, Metadata) of
+  case StaticAtomsEncoder(Value, [{line, Line}, {column, Column}]) of
     {ok, Term} ->
       {ok, Term};
     {error, Reason} when is_binary(Reason) ->
@@ -1088,7 +1085,7 @@ maybe_heredoc_warn(Line, Column, Scope, Marker) ->
                       "    end~n~n"
                       "The current heredoc line is indented too little", [[Marker, Marker, Marker]]),
 
-  prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope).
+  prepend_warning(Line, Column, Msg, Scope).
 
 extract_heredoc_head([[$\n|H]|T]) -> [H|T].
 
@@ -1552,7 +1549,7 @@ maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Column,
       _ -> io_lib:format("please use a space between \"~ts\" and the next \"~ts\"", [Token, [T]])
     end,
   Message = io_lib:format("found \"~ts\" followed by \"~ts\", ~ts", [Token, [T], Warning]),
-  prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Message, Scope);
+  prepend_warning(Line, Column, Message, Scope);
 maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, _Column, Scope) ->
   Scope.
 
@@ -1570,22 +1567,22 @@ maybe_warn_for_ambiguous_bang_before_equals(Kind, Unencoded, [$= | _], Line, Col
                           "It is unclear if you mean \"~ts ~ts=\" or \"~ts =\". Please add "
                           "a space before or after ~ts to remove the ambiguity",
                           [What, Identifier, [Last], lists:droplast(Identifier), [Last], Identifier, [Last]]),
-      prepend_warning(Line, Column, Scope#elixir_tokenizer.file, Msg, Scope);
+      prepend_warning(Line, Column, Msg, Scope);
     _ ->
       Scope
   end;
 maybe_warn_for_ambiguous_bang_before_equals(_Kind, _Atom, _Rest, _Line, _Column, Scope) ->
   Scope.
 
-prepend_warning(Line, Column, File, Msg, #elixir_tokenizer{warnings=Warnings} = Scope) ->
-  Scope#elixir_tokenizer{warnings = [{{Line, Column}, File, Msg} | Warnings]}.
+prepend_warning(Line, Column, Msg, #elixir_tokenizer{warnings=Warnings} = Scope) ->
+  Scope#elixir_tokenizer{warnings = [{{Line, Column}, Msg} | Warnings]}.
 
 track_ascii(true, Scope) -> Scope;
 track_ascii(false, Scope) -> Scope#elixir_tokenizer{ascii_identifiers_only=false}.
 
-maybe_unicode_lint_warnings(_Ascii=false, Tokens, File, Warnings) ->
-  'Elixir.String.Tokenizer.Security':unicode_lint_warnings(lists:reverse(Tokens), File) ++ Warnings;
-maybe_unicode_lint_warnings(_Ascii=true, _Tokens, _File, Warnings) ->
+maybe_unicode_lint_warnings(_Ascii=false, Tokens, Warnings) ->
+  'Elixir.String.Tokenizer.Security':unicode_lint_warnings(lists:reverse(Tokens)) ++ Warnings;
+maybe_unicode_lint_warnings(_Ascii=true, _Tokens, Warnings) ->
   Warnings.
 
 error(Reason, Rest, #elixir_tokenizer{warnings=Warnings}, Tokens) ->

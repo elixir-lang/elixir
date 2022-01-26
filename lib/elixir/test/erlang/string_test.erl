@@ -8,8 +8,7 @@ eval(Content) ->
   {Value, Binding}.
 
 extract_interpolations(String) ->
-  Tokenizer = #elixir_tokenizer{file = <<"nofile">>},
-  case elixir_interpolation:extract(1, 1, Tokenizer, true, String ++ [$"], $") of
+  case elixir_interpolation:extract(1, 1, #elixir_tokenizer{}, true, String ++ [$"], $") of
     {error, Error} ->
       Error;
     {_, _, Parts, _, _} ->
@@ -23,8 +22,8 @@ extract_interpolations_without_interpolation_test() ->
 
 extract_interpolations_with_escaped_interpolation_test() ->
   ["f\\#{o}o"] = extract_interpolations("f\\#{o}o"),
-  {1, 8, ["f\\#{o}o"], [], _} = elixir_interpolation:extract(1, 2,
-    #elixir_tokenizer{file = <<"nofile">>}, true, "f\\#{o}o\"", $").
+  {1, 8, ["f\\#{o}o"], [], _} =
+    elixir_interpolation:extract(1, 2, #elixir_tokenizer{}, true, "f\\#{o}o\"", $").
 
 extract_interpolations_with_interpolation_test() ->
   ["f",
