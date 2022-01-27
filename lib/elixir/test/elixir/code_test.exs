@@ -153,6 +153,12 @@ defmodule CodeTest do
     assert Macro.Env.fetch_alias(env, :MyDict) == {:ok, :dict}
   end
 
+  test "eval_quoted_with_env/3 with vars" do
+    env = Code.env_for_eval(__ENV__)
+    {1, [x: 1], env} = Code.eval_quoted_with_env(quote(do: var!(x) = 1), [], env)
+    assert Macro.Env.vars(env) == [{:x, nil}]
+  end
+
   test "compile_file/1" do
     assert Code.compile_file(fixture_path("code_sample.exs")) == []
     refute fixture_path("code_sample.exs") in Code.required_files()
