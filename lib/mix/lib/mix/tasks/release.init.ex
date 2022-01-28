@@ -93,8 +93,6 @@ defmodule Mix.Tasks.Release.Init do
     export RELEASE_VSN
     RELEASE_COMMAND="$1"
     export RELEASE_COMMAND
-    RELEASE_MODE="${RELEASE_MODE:-"embedded"}"
-    export RELEASE_MODE
     RELEASE_PROG="${RELEASE_PROG:-"$(echo "$0" | sed 's/.*\///')"}"
     export RELEASE_PROG
 
@@ -103,6 +101,8 @@ defmodule Mix.Tasks.Release.Init do
 
     RELEASE_COOKIE="${RELEASE_COOKIE:-"$(cat "$RELEASE_ROOT/releases/COOKIE")"}"
     export RELEASE_COOKIE
+    RELEASE_MODE="${RELEASE_MODE:-"embedded"}"
+    export RELEASE_MODE
     RELEASE_NODE="${RELEASE_NODE:-"$RELEASE_NAME"}"
     export RELEASE_NODE
     RELEASE_TMP="${RELEASE_TMP:-"$RELEASE_ROOT/tmp"}"
@@ -290,13 +290,13 @@ defmodule Mix.Tasks.Release.Init do
 
     if not defined RELEASE_NAME (set RELEASE_NAME=<%= @release.name %>)
     if not defined RELEASE_VSN (for /f "tokens=1,2" %%K in ('type "!RELEASE_ROOT!\releases\start_erl.data"') do (set ERTS_VSN=%%K) && (set RELEASE_VSN=%%L))
-    if not defined RELEASE_MODE (set RELEASE_MODE=embedded)
     if not defined RELEASE_PROG (set RELEASE_PROG=%~nx0)
     set RELEASE_COMMAND=%~1
     set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
     call "!REL_VSN_DIR!\env.bat"
 
     if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
+    if not defined RELEASE_MODE (set RELEASE_MODE=embedded)
     if not defined RELEASE_NODE (set RELEASE_NODE=!RELEASE_NAME!)
     if not defined RELEASE_TMP (set RELEASE_TMP=!RELEASE_ROOT!\tmp)
     if not defined RELEASE_VM_ARGS (set RELEASE_VM_ARGS=!REL_VSN_DIR!\vm.args)
