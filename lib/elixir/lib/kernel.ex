@@ -2567,10 +2567,17 @@ defmodule Kernel do
   according to the given `keys`, unless the `key` is a
   function, which is detailed in a later section.
 
+  Note that if none of the given keys are functions,
+  there is rarely a reason to use `get_in` over
+  writing "regular" Elixir code using `[]`.
+
   ## Examples
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["john", :age])
+      27
+      iex> # Equivalent to:
+      iex> users["john"][:age]
       27
 
   `get_in/2` can also use the accessors in the `Access` module
@@ -2587,22 +2594,13 @@ defmodule Kernel do
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])
       nil
+      iex> # Equivalent to:
+      iex> users["unknown"][:age]
+      nil
 
       iex> users = nil
       iex> get_in(users, [Access.all(), :age])
       nil
-
-  The main feature of `get_in/2` is precisely that it aborts traversal
-  when a `nil` value is found. Unless you need nil-safety, you are likely
-  better off by writing "regular" Elixir code:
-
-      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
-      iex> users["john"][:age]
-      27
-
-      iex> users = [%{name: "john", age: 27}, %{name: "meg", age: 23}]
-      iex> Enum.map(users, fn user -> user[:age] end)
-      [27, 23]
 
   Alternatively, if you need to access complex data-structures, you can
   use pattern matching:
