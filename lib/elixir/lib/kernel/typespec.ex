@@ -681,10 +681,20 @@ defmodule Kernel.Typespec do
     end
   end
 
-  defp typespec({:"::", meta, [left, right]} = expr, vars, caller, state) do
+  defp typespec({:"::", meta, [left, right]}, vars, caller, state) do
     message =
-      "invalid type annotation. When using the | operator to represent the union of types, " <>
-        "make sure to wrap type annotations in parentheses: #{Macro.to_string(expr)}"
+      "invalid type annotation. The left side of :: must be a variable, got: #{Macro.to_string(left)}"
+
+    message =
+      case left do
+        {:|, _, _} ->
+          message <>
+            ". Note \"left | right :: ann\" is the same as \"(left | right) :: ann\". " <>
+            "To solve this, use parentheses around the union operands: \"left | (right :: ann)\""
+
+        _ ->
+          message
+      end
 
     # TODO: Make this an error on v2.0, and remove the code below and
     # the :undefined_type_error_enabled? key from the state

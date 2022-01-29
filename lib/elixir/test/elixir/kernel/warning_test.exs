@@ -1540,70 +1540,56 @@ defmodule Kernel.WarningTest do
 
       assert capture_err(fn ->
                Code.eval_string("""
-               defmodule Sample do
+               defmodule Sample1 do
                  @type my_type :: ann_type :: nested_ann_type :: atom
                end
                """)
              end) =~ message
 
-      purge(Sample)
+      purge(Sample1)
 
       assert capture_err(fn ->
                Code.eval_string("""
-               defmodule Sample do
+               defmodule Sample2 do
                  @type my_type :: ann_type :: nested_ann_type :: atom | port
                end
                """)
              end) =~ message
 
-      purge(Sample)
+      purge(Sample2)
 
       assert capture_err(fn ->
                Code.eval_string("""
-               defmodule Sample do
+               defmodule Sample3 do
                  @spec foo :: {pid, ann_type :: nested_ann_type :: atom}
                  def foo, do: nil
                end
                """)
              end) =~ message
     after
-      purge(Sample)
+      purge([Sample1, Sample2, Sample3])
     end
 
     test "invalid type annotations" do
-      message =
-        "invalid type annotation. When using the | operator to represent the union of types, " <>
-          "make sure to wrap type annotations in parentheses"
+      assert capture_err(fn ->
+               Code.eval_string("""
+               defmodule Sample1 do
+                 @type my_type :: (pid() :: atom)
+               end
+               """)
+             end) =~ "invalid type annotation. The left side of :: must be a variable, got: pid()"
 
       assert capture_err(fn ->
                Code.eval_string("""
-               defmodule Sample do
+               defmodule Sample2 do
                  @type my_type :: pid | ann_type :: atom
                end
                """)
-             end) =~ message
-
-      purge(Sample)
-
-      assert capture_err(fn ->
-               Code.eval_string("""
-               defmodule Sample do
-                 @type my_type :: pid | ann_type :: atom | port
-               end
-               """)
-             end) =~ message
-
-      purge(Sample)
-
-      assert capture_err(fn ->
-               Code.eval_string("""
-               defmodule Sample do
-                 @type my_type :: {port, pid | ann_type :: atom | port}
-               end
-               """)
-             end) =~ message
+             end) =~
+               "invalid type annotation. The left side of :: must be a variable, got: pid | ann_type. " <>
+                 "Note \"left | right :: ann\" is the same as \"(left | right) :: ann\""
     after
-      purge(Sample)
+      purge([Sample1, Sample2])
     end
   end
 
