@@ -16,48 +16,55 @@ defmodule Supervisor do
   ## Examples
 
   In order to start a supervisor, we need to first define a child process
-  that will be supervised. As an example, we will define a GenServer that
-  represents a stack:
+  that will be supervised. As an example, we will define a `GenServer`,
+  a generic server, that keeps a counter. Other processes can then send
+  messages to this process to read the counter and bump its value.
 
-      defmodule Stack do
+  > Note: in practice you would not define a counter as a GenServer. Instead,
+  > if you need a counter, you would pass it around as inputs and outputs to
+  > the functions that need it. The reason we picked a counter in this example
+  > is due to its simplicity, as it allows us to focus on how Supervisors work.
+
+      defmodule Counter do
         use GenServer
 
-        def start_link(state) do
-          GenServer.start_link(__MODULE__, state, name: __MODULE__)
+        def start_link(arg) when is_integer(arg) do
+          GenServer.start_link(__MODULE__, arg, name: __MODULE__)
         end
 
         ## Callbacks
 
         @impl true
-        def init(stack) do
-          {:ok, stack}
+        def init(counter) do
+          {:ok, counter}
         end
 
         @impl true
-        def handle_call(:pop, _from, [head | tail]) do
-          {:reply, head, tail}
+        def handle_call(:get, _from, counter) do
+          {:reply, counter, counter}
         end
 
-        @impl true
-        def handle_cast({:push, head}, tail) do
-          {:noreply, [head | tail]}
+        def handle_call({:bump, value}, _from, counter) do
+          {:reply, counter, counter + value}
         end
       end
 
-  The stack is a small wrapper around lists. It allows us to put
-  an element on the top of the stack, by prepending to the list,
-  and to get the top of the stack by pattern matching.
+  The `Counter` receives an argument on `start_link`. This argument
+  is passed to the `init/1` callback which becomes the initial value
+  of the counter. Our counter handles two operations (known as calls):
+  `:get`, to get the current counter value, and `:bump`, that bumps
+  the counter by the given `value` and returns the old counter.
 
   We can now start a supervisor that will start and supervise our
-  stack process. The first step is to define a list of **child
+  counter process. The first step is to define a list of **child
   specifications** that control how each child behaves. Each child
   specification is a map, as shown below:
 
       children = [
-        # The Stack is a child started via Stack.start_link([:hello])
+        # The Counter is a child started via Counter.start_link(0)
         %{
-          id: Stack,
-          start: {Stack, :start_link, [[:hello]]}
+          id: Counter,
+          start: {Counter, :start_link, [0]}
         }
       ]
 
@@ -69,30 +76,30 @@ defmodule Supervisor do
       #=> %{active: 1, specs: 1, supervisors: 0, workers: 1}
 
   Note that when starting the GenServer, we are registering it
-  with name `Stack`, which allows us to call it directly and get
-  what is on the stack:
+  with name `Counter` via the `name: __MODULE__` option. This allows
+  us to call it directly and get its value:
 
-      GenServer.call(Stack, :pop)
-      #=> :hello
+      GenServer.call(Counter, :get)
+      #=> 0
 
-      GenServer.cast(Stack, {:push, :world})
-      #=> :ok
+      GenServer.cast(Counter, {:bump, 3})
+      #=> 0
 
-      GenServer.call(Stack, :pop)
-      #=> :world
+      GenServer.call(Counter, :get)
+      #=> 3
 
-  However, there is a bug in our stack server. If we call `:pop` and
-  the stack is empty, it is going to crash because no clause matches:
+  However, there is a bug in our counter server. If we call `:bump` with
+  a non-numeric value, it is going to crash:
 
-      GenServer.call(Stack, :pop)
-      ** (exit) exited in: GenServer.call(Stack, :pop, 5000)
+      GenServer.call(Counter, {:bump, "oops"})
+      ** (exit) exited in: GenServer.call(Counter, {:bump, "oops"}, 5000)
 
   Luckily, since the server is being supervised by a supervisor, the
-  supervisor will automatically start a new one, with the initial stack
-  of `[:hello]`:
+  supervisor will automatically start a new one, reset back to its initial
+  value of `0`:
 
-      GenServer.call(Stack, :pop)
-      #=> :hello
+      GenServer.call(Counter, :get)
+      #=> 0
 
   Supervisors support different strategies; in the example above, we
   have chosen `:one_for_one`. Furthermore, each supervisor can have many
@@ -190,147 +197,92 @@ defmodule Supervisor do
   restart each of its children:
 
       %{
-        id: Stack,
-        start: {Stack, :start_link, [[:hello]]}
+        id: Counter,
+        start: {Counter, :start_link, [0]}
       }
 
-  The map above defines a child with `:id` of `Stack` that is started
-  by calling `Stack.start_link([:hello])`.
+  The map above defines a child with `:id` of `Counter` that is started
+  by calling `Counter.start_link(0)`.
 
   However, specifying the child specification for each child as a map can be
-  quite error prone, as we may change the Stack implementation and forget to
-  update its specification. That's why Elixir allows you to pass a tuple with
+  quite error prone, as we may change the `Counter` implementation and forget
+  to update its specification. That's why Elixir allows you to pass a tuple with
   the module name and the `start_link` argument instead of the specification:
 
       children = [
-        {Stack, [:hello]}
+        {Counter, 0}
       ]
 
-  The supervisor will then invoke `Stack.child_spec([:hello])` to retrieve a
-  child specification. Now the `Stack` module is responsible for building its
+  The supervisor will then invoke `Counter.child_spec([:hello])` to retrieve a
+  child specification. Now the `Counter` module is responsible for building its
   own specification, for example, we could write:
 
       def child_spec(arg) do
         %{
-          id: Stack,
-          start: {Stack, :start_link, [arg]}
+          id: Counter,
+          start: {Counter, :start_link, [arg]}
         }
       end
 
-  Luckily for us, `use GenServer` already defines a `Stack.child_spec/1`
-  exactly like above. If you need to customize the `GenServer`, you can
-  pass the options directly to `use GenServer`:
+  Luckily for us, `use GenServer` already defines a `Counter.child_spec/1`
+  exactly like above, so you don't need to write the definition above yourself.
+  If you want to customize the automatically generated `child_spec/1` function,
+  you can pass the options directly to `use GenServer`:
 
       use GenServer, restart: :transient
 
-  Finally, note it is also possible to simply pass the `Stack` module as
+  Finally, note it is also possible to simply pass the `Counter` module as
   a child:
 
       children = [
-        Stack
+        Counter
       ]
 
-  When only the module name is given, it is equivalent to `{Stack, []}`.
-  By replacing the map specification by `{Stack, [:hello]}` or `Stack`, we keep
-  the child specification encapsulated in the `Stack` module, using the default
-  implementation defined by `use GenServer`. We can now share our `Stack` worker
-  with other developers and they can add it directly to their supervision tree
-  without worrying about the low-level details of the worker.
+  When only the module name is given, it is equivalent to `{Counter, []}`,
+  which in our case would be invalid, which is why we always pass the initial
+  counter explicitly.
+
+  By replacing the map specification by `{Counter, 0}`, we keep the child
+  specification encapsulated in the `Counter` module. We could now share our
+  `Counter` implementation with other developers and they can add it directly
+  to their supervision tree without worrying about the low-level details of
+  the counter.
 
   Overall, the child specification can be one of the following:
 
     * a map representing the child specification itself - as outlined in the
       "Child specification" section
+
     * a tuple with a module as first element and the start argument as second -
-      such as `{Stack, [:hello]}`. In this case, `Stack.child_spec([:hello])`
-      is called to retrieve the child specification
-    * a module - such as `Stack`. In this case, `Stack.child_spec([])`
-      is called to retrieve the child specification
+      such as `{Counter, 0}`. In this case, `Counter.child_spec(0)` is called
+      to retrieve the child specification
+
+    * a module - such as `Counter`. In this case, `Counter.child_spec([])`
+      would be called, which is invalid for the counter, but it is useful in
+      many other cases, especially when you want to pass a list of options
+      to the child process
 
   If you need to convert a tuple or a module child specification to a map or
   modify a child specification, you can use the `Supervisor.child_spec/2` function.
-  For example, to run the stack with a different `:id` and a `:shutdown` value of
+  For example, to run the counter with a different `:id` and a `:shutdown` value of
   10 seconds (10_000 milliseconds):
 
       children = [
-        Supervisor.child_spec({Stack, [:hello]}, id: MyStack, shutdown: 10_000)
+        Supervisor.child_spec({Counter, 0}, id: MyCounter, shutdown: 10_000)
       ]
 
-  ## Module-based supervisors
-
-  In the example above, a supervisor was started by passing the supervision
-  structure to `start_link/2`. However, supervisors can also be created by
-  explicitly defining a supervision module:
-
-      defmodule MyApp.Supervisor do
-        # Automatically defines child_spec/1
-        use Supervisor
-
-        def start_link(init_arg) do
-          Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
-        end
-
-        @impl true
-        def init(_init_arg) do
-          children = [
-            {Stack, [:hello]}
-          ]
-
-          Supervisor.init(children, strategy: :one_for_one)
-        end
-      end
-
-  The difference between the two approaches is that a module-based
-  supervisor gives you more direct control over how the supervisor
-  is initialized. Instead of calling `Supervisor.start_link/2` with
-  a list of children that are automatically initialized, we manually
-  initialize the children by calling `Supervisor.init/2` inside its
-  `c:init/1` callback.
-
-  `use Supervisor` also defines a `child_spec/1` function which allows
-  us to run `MyApp.Supervisor` as a child of another supervisor or
-  at the top of your supervision tree as:
-
-      children = [
-        MyApp.Supervisor
-      ]
-
-      Supervisor.start_link(children, strategy: :one_for_one)
-
-  A general guideline is to use the supervisor without a callback
-  module only at the top of your supervision tree, generally in the
-  `c:Application.start/2` callback. We recommend using module-based
-  supervisors for any other supervisor in your application, so they
-  can run as a child of another supervisor in the tree. The `child_spec/1`
-  generated automatically by `Supervisor` can be customized with the
-  following options:
-
-    * `:id` - the child specification identifier, defaults to the current module
-    * `:restart` - when the supervisor should be restarted, defaults to `:permanent`
-
-  The `@doc` annotation immediately preceding `use Supervisor` will be
-  attached to the generated `child_spec/1` function.
-
-  ## `start_link/2`, `init/2`, and strategies
+  ## Supervisor strategies and options
 
   So far we have started the supervisor passing a single child as a tuple
   as well as a strategy called `:one_for_one`:
 
       children = [
-        {Stack, [:hello]}
+        {Counter, 0}
       ]
 
       Supervisor.start_link(children, strategy: :one_for_one)
 
-  or from inside the `c:init/1` callback:
-
-      children = [
-        {Stack, [:hello]}
-      ]
-
-      Supervisor.init(children, strategy: :one_for_one)
-
-  The first argument given to `start_link/2` and `init/2` is a list of child
+  The first argument given to `start_link/2` is a list of child
   specifications as defined in the "child_spec/1" section above.
 
   The second argument is a keyword list of options:
@@ -374,6 +326,62 @@ defmodule Supervisor do
 
   A supervisor is bound to the same name registration rules as a `GenServer`.
   Read more about these rules in the documentation for `GenServer`.
+
+  ## Module-based supervisors
+
+  In the example so far, the supervisor was started by passing the supervision
+  structure to `start_link/2`. However, supervisors can also be created by
+  explicitly defining a supervision module:
+
+      defmodule MyApp.Supervisor do
+        # Automatically defines child_spec/1
+        use Supervisor
+
+        def start_link(init_arg) do
+          Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+        end
+
+        @impl true
+        def init(_init_arg) do
+          children = [
+            {Counter, 0}
+          ]
+
+          Supervisor.init(children, strategy: :one_for_one)
+        end
+      end
+
+  The difference between the two approaches is that a module-based
+  supervisor gives you more direct control over how the supervisor
+  is initialized. Instead of calling `Supervisor.start_link/2` with
+  a list of children that are automatically initialized, we manually
+  initialize the children by calling `Supervisor.init/2` inside its
+  `c:init/1` callback. `Supervisor.init/2` accepts the same `:strategy`,
+  `:max_restarts`, and `:max_seconds` options as `start_link/2`.
+
+  `use Supervisor` also defines a `child_spec/1` function which allows
+  us to run `MyApp.Supervisor` as a child of another supervisor or
+  at the top of your supervision tree as:
+
+      children = [
+        MyApp.Supervisor
+      ]
+
+      Supervisor.start_link(children, strategy: :one_for_one)
+
+  A general guideline is to use the supervisor without a callback
+  module only at the top of your supervision tree, generally in the
+  `c:Application.start/2` callback. We recommend using module-based
+  supervisors for any other supervisor in your application, so they
+  can run as a child of another supervisor in the tree. The `child_spec/1`
+  generated automatically by `Supervisor` can be customized with the
+  following options:
+
+    * `:id` - the child specification identifier, defaults to the current module
+    * `:restart` - when the supervisor should be restarted, defaults to `:permanent`
+
+  The `@doc` annotation immediately preceding `use Supervisor` will be
+  attached to the generated `child_spec/1` function.
 
   ## Start and shutdown
 
@@ -571,7 +579,7 @@ defmodule Supervisor do
 
       def init(_init_arg) do
         children = [
-          {Stack, [:hello]}
+          {Counter, 0}
         ]
 
         Supervisor.init(children, strategy: :one_for_one)
