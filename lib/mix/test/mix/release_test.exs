@@ -514,6 +514,13 @@ defmodule Mix.ReleaseTest do
       assert make_cookie(release(cookie: "lmnopqrstuv"), @cookie_path) == :ok
       assert File.read!(@cookie_path) == "lmnopqrstuv"
     end
+
+    test "does not ask to change if set to overwrite" do
+      assert make_cookie(release([]), @cookie_path) == :ok
+      send(self(), {:mix_shell_input, :yes?, false})
+      assert make_cookie(release([cookie: "lmnopqrstuv"], overwrite: true), @cookie_path) == :ok
+      assert File.read!(@cookie_path) == "lmnopqrstuv"
+    end
   end
 
   describe "make_start_erl/1" do
@@ -812,8 +819,8 @@ defmodule Mix.ReleaseTest do
     File.stat!(path).mode
   end
 
-  defp release(config) do
-    from_config!(nil, config(releases: [demo: config]), [])
+  defp release(config, overrides \\ []) do
+    from_config!(nil, config(releases: [demo: config]), overrides)
   end
 
   defp config(extra \\ []) do

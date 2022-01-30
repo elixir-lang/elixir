@@ -523,7 +523,8 @@ defmodule Mix.Release do
   def make_cookie(release, path) do
     cond do
       cookie = release.options[:cookie] ->
-        Mix.Generator.create_file(path, cookie, quiet: true)
+        force? = Keyword.get(release.options, :overwrite, false)
+        Mix.Generator.create_file(path, cookie, quiet: true, force: force?)
         :ok
 
       File.exists?(path) ->
