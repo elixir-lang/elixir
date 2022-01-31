@@ -687,5 +687,18 @@ defmodule Module.Types.TypesTest do
                end
              ) == :none
     end
+
+    test "no-recursion on guards with map fields" do
+      assert warning(
+               [assigns],
+               (
+                 variable_enum = assigns.variable_enum
+
+                 case true do
+                   _ when variable_enum != nil -> assigns.variable_enum
+                 end
+               )
+             ) == :none
+    end
   end
 end
