@@ -388,9 +388,14 @@ defmodule Mix do
   Be careful when invoking this function as any project
   configuration won't be reloaded.
   """
-  @spec target(atom()) :: :ok
+  @spec target(atom() | String.t()) :: :ok
   def target(target) when is_atom(target) do
     Mix.State.put(:target, target)
+  end
+
+  def target(target) when is_binary(target) do
+    target = String.trim(target)
+    if target != "", do: target(String.to_atom(target))
   end
 
   @doc """

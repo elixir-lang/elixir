@@ -176,6 +176,20 @@ defmodule Mix.ProjectTest do
     end)
   end
 
+  test "ignore whitespace in target" do
+    Mix.target("  rpi0  ")
+    assert Mix.target() == :rpi0
+
+    Mix.target("  ")
+    assert Mix.target() == :rpi0
+
+    Mix.target("\n\n")
+    assert Mix.target() == :rpi0
+
+    Mix.target("\n\nrpi3\n\n")
+    assert Mix.target() == :rpi3
+  end
+
   defp assert_proj_dir_linked_or_copied(source, target, symlink_path) do
     case :file.read_link(source) do
       {:ok, path} ->
