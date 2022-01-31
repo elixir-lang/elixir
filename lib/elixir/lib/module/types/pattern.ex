@@ -403,10 +403,8 @@ defmodule Module.Types.Pattern do
     # bar, {:ok, baz}
     # bar, {:ok, bat}
 
-    expanded_args =
-      args
-      |> Enum.map(&flatten_union(&1, context))
-      |> cartesian_product()
+    flatten_args = Enum.map(args, &flatten_union(&1, context))
+    cartesian_args = cartesian_product(flatten_args)
 
     # Remove clauses that do not match the expected type
     # Ignore type variables in parameters by changing them to dynamic
@@ -425,11 +423,11 @@ defmodule Module.Types.Pattern do
     # the type contexts from unifying argument and parameter to
     # infer type variables in arguments
     result =
-      flat_map_ok(expanded_args, fn expanded_args ->
+      flat_map_ok(cartesian_args, fn cartesian_args ->
         result =
           Enum.flat_map(clauses, fn {params, return} ->
             result =
-              map_ok(Enum.zip(expanded_args, params), fn {arg, param} ->
+              map_ok(Enum.zip(cartesian_args, params), fn {arg, param} ->
                 case unify(arg, param, stack, context) do
                   {:ok, _type, context} -> {:ok, context}
                   {:error, reason} -> {:error, reason}
@@ -453,7 +451,13 @@ defmodule Module.Types.Pattern do
       {:ok, returns_contexts} ->
         {success_returns, contexts} = Enum.unzip(returns_contexts)
         contexts = Enum.concat(contexts)
-        indexes = Enum.uniq(Enum.flat_map(args, &collect_var_indexes_from_type/1))
+
+        indexes =
+          for types <- flatten_args,
+              type <- types,
+              index <- collect_var_indexes_from_type(type),
+              do: index,
+              uniq: true
 
         # Build unions from collected type contexts to unify with
         # type variables from arguments
