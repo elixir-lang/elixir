@@ -565,9 +565,7 @@ defmodule Mix.Task do
   defp recur(fun, apps) do
     selected_children =
       Mix.Dep.Umbrella.cached()
-      |> Enum.filter(fn %Mix.Dep{app: app} ->
-        app in apps
-      end)
+      |> Enum.filter(fn %Mix.Dep{app: app} -> app in apps end)
 
     run_in_children_projects(fun, selected_children)
   end
