@@ -74,13 +74,12 @@ defmodule Mix.Tasks.DoTest do
     end)
   end
 
-  test "runs given tasks ignoring apps argument when project is not an umbrella" do
-    Mix.Tasks.Do.run(["--app", "bar", "--app", "foo", "cmd", "echo", "hello"])
-
-    assert_received {:mix_shell, :info,
-                     [
-                       "warning: running \"cmd\" at root level because this is not an umbrella project"
-                     ]}
+  test "raises when -app is given but the project is not an umbrella" do
+    assert_raise Mix.Error,
+                 "Could not run \"cmd\" with the --app option because this is not an umbrella project",
+                 fn ->
+                   Mix.Tasks.Do.run(["--app", "bar", "--app", "foo", "cmd", "echo", "hello"])
+                 end
   end
 
   test "runs given aliases for each app specified by app flag" do
@@ -120,7 +119,7 @@ defmodule Mix.Tasks.DoTest do
     end)
   end
 
-  test "runs given aliases ignoring apps argument when project is not an umbrella" do
+  test "raise with aliases when -app is given but the project is not an umbrella" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       aliases = [
         e: ["cmd echo hello"],
@@ -128,17 +127,11 @@ defmodule Mix.Tasks.DoTest do
       ]
 
       Mix.Project.in_project(:foo, "apps/foo", [aliases: aliases], fn _ ->
-        Mix.Tasks.Do.run(["--app", "bar", "--app", "foo", "e,", "p", "Foo"])
-
-        assert_received {:mix_shell, :info,
-                         [
-                           "warning: running \"cmd\" at root level because this is not an umbrella project"
-                         ]}
-
-        assert_received {:mix_shell, :info,
-                         [
-                           "warning: running \"p\" at root level because this is not an umbrella project"
-                         ]}
+        assert_raise Mix.Error,
+                     "Could not run \"e\" with the --app option because this is not an umbrella project",
+                     fn ->
+                       Mix.Tasks.Do.run(["--app", "bar", "--app", "foo", "e,", "p", "Foo"])
+                     end
       end)
     end)
   end

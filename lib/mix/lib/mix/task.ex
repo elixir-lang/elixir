@@ -362,6 +362,12 @@ defmodule Mix.Task do
   @doc since: "1.14.0"
   @spec run_in_apps(task_name, [atom], [any]) :: any
   def run_in_apps(task, apps, args \\ []) do
+    unless Mix.Project.umbrella?() do
+      Mix.raise(
+        "Could not run #{inspect(task)} with the --app option because this is not an umbrella project"
+      )
+    end
+
     do_run(task, args, apps)
   end
 
@@ -401,14 +407,6 @@ defmodule Mix.Task do
         Mix.ProjectStack.recur(fn ->
           recur(fn _ -> run(task, args) end, apps)
         end)
-
-      apps && !Mix.Project.umbrella?() ->
-        Mix.shell().info([
-          :yellow,
-          "warning: running #{inspect(task)} at root level because this is not an umbrella project"
-        ])
-
-        run(task, args)
 
       apps && not recursive ->
         run(task, args)
@@ -488,18 +486,10 @@ defmodule Mix.Task do
        when is_function(h, 1) do
     res =
       cond do
-        apps && Mix.Project.umbrella?() ->
+        apps ->
           Mix.ProjectStack.recur(fn ->
             recur(fn _ -> h.(join_args([], alias_args, t)) end, apps)
           end)
-
-        apps ->
-          Mix.shell().info([
-            :yellow,
-            "warning: running #{inspect(original_task)} at root level because this is not an umbrella project"
-          ])
-
-          h.(join_args([], alias_args, t))
 
         true ->
           h.(join_args([], alias_args, t))
