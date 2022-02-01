@@ -31,8 +31,8 @@ defmodule Mix.Tasks.Do do
 
   ## Command line options
 
-    * `--app` - limit running the tasks to the given app. This
-    option may be given multiple times.
+    * `--app` - limit running the tasks to the given app. This option may
+      be given multiple times and must come before any of the tasks.
   """
 
   @impl true
