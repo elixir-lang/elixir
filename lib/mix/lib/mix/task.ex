@@ -348,7 +348,7 @@ defmodule Mix.Task do
   """
   @spec run(task_name, [any]) :: any
   def run(task, args \\ []) do
-    do_run(task, args)
+    do_run(task, args, nil)
   end
 
   @doc """
@@ -364,8 +364,6 @@ defmodule Mix.Task do
   def run_in_apps(task, apps, args \\ []) do
     do_run(task, args, apps)
   end
-
-  defp do_run(task, args, apps \\ nil)
 
   defp do_run(task, args, apps) when is_atom(task) do
     do_run(Atom.to_string(task), args, apps)
@@ -555,9 +553,12 @@ defmodule Mix.Task do
 
     cond do
       recursive && Mix.Project.umbrella?() ->
-        recur(fn proj ->
-          Mix.TasksServer.delete_many([{:task, task, proj}, {:alias, task, proj}])
-        end)
+        recur(
+          fn proj ->
+            Mix.TasksServer.delete_many([{:task, task, proj}, {:alias, task, proj}])
+          end,
+          nil
+        )
 
       proj = !recursive && Mix.ProjectStack.recursing() ->
         Mix.TasksServer.delete_many([{:task, task, proj}, {:alias, task, proj}])
@@ -569,7 +570,6 @@ defmodule Mix.Task do
     :ok
   end
 
-  defp recur(fun, apps \\ nil)
   defp recur(fun, nil), do: run_in_children_projects(fun, Mix.Dep.Umbrella.cached())
 
   defp recur(fun, apps) do
