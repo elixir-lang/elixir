@@ -119,6 +119,14 @@ defmodule Kernel.DocsTest do
 
           def two_good_names(first, :ok), do: first
           def two_good_names(second, :error), do: second
+
+          def really_long_signature(
+                really_long_var_named_one,
+                really_long_var_named_two,
+                really_long_var_named_three
+              ) do
+            {really_long_var_named_one, really_long_var_named_two, really_long_var_named_three}
+          end
         end
       )
 
@@ -128,6 +136,7 @@ defmodule Kernel.DocsTest do
       assert [
                arg_names,
                only_underscore,
+               really_long_signature,
                two_good_names,
                with_defaults,
                with_map_and_default,
@@ -140,6 +149,12 @@ defmodule Kernel.DocsTest do
 
       # only_underscore/1
       assert {{:only_underscore, 1}, ["only_underscore(_)"]} = only_underscore
+
+      # really_long_signature/3
+      assert {{:really_long_signature, 3},
+              [
+                "really_long_signature(really_long_var_named_one, really_long_var_named_two, really_long_var_named_three)"
+              ]} = really_long_signature
 
       # two_good_names/2
       assert {{:two_good_names, 2}, ["two_good_names(first, atom)"]} = two_good_names
