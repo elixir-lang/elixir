@@ -148,37 +148,9 @@ end
 
 In case you need to configure a process, the options should be passed when starting that process.
 
-The application environment should be reserved only for configurations that are truly global, for example, to control your application boot process and its supervision tree.
+The application environment should be reserved only for configurations that are truly global, for example, to control your application boot process and its supervision tree. And, generally speaking, it is best to avoid global configuration. If you must use configuration, then prefer runtime configuration instead of compile-time configuration. See the `Application` module for more information.
 
 For all remaining scenarios, libraries should not force their users to use the application environment for configuration. If the user of a library believes that certain parameter should be configured globally, then they can wrap the library functionality with their own application environment configuration.
-
-### Avoid compile-time application configuration
-
-Assuming you need to use the application configuration and you cannot avoid it as explained in the previous section, you should also avoid compile-time application configuration. For example, instead of doing this:
-
-```elixir
-@http_client Application.fetch_env!(:my_app, :http_client)
-
-def request(path) do
-  @http_client.request(path)
-end
-```
-
-you should do this:
-
-```elixir
-def request(path) do
-  http_client().request(path)
-end
-
-defp http_client() do
-  Application.fetch_env!(:my_app, :http_client)
-end
-```
-
-That's because by reading the application in the module body and storing it in a module attribute, we are effectively reading the configuration at compile-time, which may become an issue when configuring the system later.
-
-If, for some reason, you must read the application environment at compile time, use `Application.compile_env/2`. Read [the "Compile-time environment" section of the `Application` module documentation](Application.html#module-compile-time-environment) for more information.
 
 ### Avoid defining modules that are not in your "namespace"
 
