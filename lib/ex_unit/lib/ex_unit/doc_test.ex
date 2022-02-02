@@ -131,7 +131,7 @@ defmodule ExUnit.DocTest do
       iex(1)> raise "some error"
       ** (RuntimeError) some error
 
-  Doctest will looking for a line starting with `** (` and it will parse it
+  Doctest will look for a line starting with `** (` and it will parse it
   accordingly to extract the exception name and message. The exception parser
   will consider all following lines part of the exception message until there
   is an empty line or there is a new expression prefixed with `iex>`.
