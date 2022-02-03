@@ -19,6 +19,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
   * [Kernel] Allow composite types with pins as the map key in a pattern match
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
+  * [Kernel] Warn on confusable non-ascii identifiers
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/2`
@@ -31,6 +32,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [Registry] Add `Registry.count_select/2`
   * [Stream] Add `Stream.duplicate/2` and `Stream.transform/5`
   * [String] Support empty lookup lists in `String.replace/3`, `String.split/3`, and `String.splitter/3`
+  * [URI] Add `URI.append_query/2`
   * [Version] Add `Version.to_string/1`
   * [Version] Colorize `Version.Requirement` source in Inspect protocol
 
@@ -40,17 +42,25 @@ Elixir v1.14 requires Erlang/OTP 23+.
 
 #### Mix
 
+  * [mix do] Support `--app` option to restrict recursive tasks in umbrella projects
   * [mix test] Improve error message when suite fails due to coverage
 
 ### 2. Bug fixes
 
 #### Elixir
 
+  * [Code] Do not emit warnings when formatting code
+  * [Kernel] Do not allow restricted restricted characters in identifiers according to UTS39
   * [Kernel] Define `__exception__` field as true when expanding exceptions in typespecs
 
 #### ExUnit
 
   * [ExUnit] Do not raise when diffing unknown bindings in guards
+  * [ExUnit] Properly print diffs when comparing improper lists with strings at the tail position 
+
+#### Mix
+
+  * [mix release] Only set `RELEASE_MODE` after `env.{sh,bat}` are executed
 
 #### IEx
 
@@ -61,6 +71,10 @@ Elixir v1.14 requires Erlang/OTP 23+.
 #### EEx
 
   * [EEx] Using `<%# ... %>` for comments is deprecated. Please use `<% # ... %>` or the new multi-line comments with `<%!-- ... --%>`
+
+#### Mix
+
+  * [mix cmd] The `--app` option in `mix cmd CMD` is deprecated in favor of the more efficient `mix do --app app cmd CMD` 
 
 ### 4. Hard-deprecations
 
