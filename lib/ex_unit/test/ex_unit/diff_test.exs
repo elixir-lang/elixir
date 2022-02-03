@@ -39,6 +39,10 @@ defmodule ExUnit.DiffTest do
     quote(do: ^unquote(x))
   end
 
+  defmacrop block_head({:__block__, _, [head | _]}) do
+    head
+  end
+
   defmacrop assert_diff(expr, expected_binding, pins \\ [])
 
   defmacrop assert_diff({:=, _, [left, right]}, expected_binding, pins) do
@@ -292,6 +296,13 @@ defmodule ExUnit.DiffTest do
     )
 
     assert_diff([:a | x] = [:a | :b], x: :b)
+
+    refute_diff(
+      [[[[], "Hello, "] | "world"] | "!"] ==
+        [[[[], "Hello "] | "world"] | "!"],
+      "[[[[], \"Hello-,- \"] | \"world\"] | \"!\"]",
+      "[[[[], \"Hello \"] | \"world\"] | \"!\"]"
+    )
   end
 
   test "proper lists" do
@@ -963,6 +974,31 @@ defmodule ExUnit.DiffTest do
     refute_diff(({:ok, x} when x == 1) = :error, "-{:ok, x}- when x == 1", "+:error+")
 
     refute_diff((x when x == z) = 0, "x when x == z", "0", z: 1)
+  end
+
+  test "blocks" do
+    refute_diff(
+      block_head(
+        (
+          1
+          2
+        )
+      ) = 3,
+      "1",
+      "3"
+    )
+
+    refute_diff(
+      ["foo" | {:__block__, [], [1]}] = ["bar" | {:__block__, [], [2]}],
+      "[\"-foo-\" | {:__block__, [], [-1-]}]",
+      "[\"+bar+\" | {:__block__, [], [+2+]}]"
+    )
+
+    refute_diff(
+      ["foo" | {:__block__, [], [1]}] == ["bar" | {:__block__, [], [2]}],
+      "[\"-foo-\" | {:__block__, [], [-1-]}]",
+      "[\"+bar+\" | {:__block__, [], [+2+]}]"
+    )
   end
 
   test "charlists" do

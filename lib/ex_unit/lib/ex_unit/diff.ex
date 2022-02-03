@@ -5,14 +5,19 @@ defmodule ExUnit.Diff do
   #
   # The Diff struct contains the fields `:equivalent?`, `:left`, `:right`.
   # The `:equivalent?` field represents if the `:left` and `:right` side are
-  # equivalents and contain no diffs. The `:left` and `:right` represent the sides
-  # of the comparison and contain ASTs with some special metas: `:diff` and
-  # `:diff_container`.
+  # equivalents and contain no diffs. The `:left` and `:right` represent the
+  # sides of the comparison as ASTs.
   #
-  # When meta `:diff` is `true`, the AST inside of it has no equivalent on the
-  # other side and should be rendered in a different color. If the AST is a
-  # literal and doesn't contain meta, the `:diff` meta will be placed in a
-  # wrapping block.
+  # The ASTs may be wrapped in blocks with two special metas:
+  #
+  #   * `:diff` - when `true`, the AST inside of it has no equivalent
+  #     on the other side and should be rendered in a different color
+  #
+  #   * `:delimiter` - that particular block should be rendered with
+  #     a delimiter
+  #
+  # Given blocks are do not appear on the left side or right, it is
+  # safe to perform such wrapping.
 
   alias Inspect.Algebra
 
@@ -370,15 +375,17 @@ defmodule ExUnit.Diff do
     left = Enum.reverse(left)
 
     case extract_diff_meta(right) do
-      {[_ | _] = list, _diff?} ->
-        # Inner was escaped, diffs are inside
+      # Outer was escaped. Copy its diff? to its inner element and potentially escape it.
+      {{unescaped}, diff?} ->
+        rebuild_maybe_improper(unescaped, left, &(&1 |> escape() |> update_diff_meta(diff?)))
+
+      # We have a proper list, if there are any diffs, they will be inside, so copy as is.
+      {[_ | _] = list, false} ->
         rebuild_maybe_improper(list, left, & &1)
 
-      {list, diff?} ->
-        # Outer was escaped, move diffs and escape inside
-        list
-        |> unescape()
-        |> rebuild_maybe_improper(left, &(&1 |> escape() |> update_diff_meta(diff?)))
+      # The right itself is improper, so just add it as is.
+      {_, _} ->
+        rebuild_maybe_improper(right, left, & &1)
     end
   end
 
@@ -687,8 +694,6 @@ defmodule ExUnit.Diff do
         # If they are equivalent, still use their inspected form
         case diff_map(kw, right, struct1, struct2, env) do
           {%{equivalent?: true}, ctx} ->
-            left = block_diff_container([inspect_left], nil)
-            right = block_diff_container([inspect_right], nil)
             {%__MODULE__{equivalent?: true, left: left, right: right}, ctx}
 
           diff_ctx ->
@@ -838,7 +843,7 @@ defmodule ExUnit.Diff do
     {:<>, [], [next, rebuilt_right]}
   end
 
-  defp next_concat_result({:__block__, [{:diff_container, _} | _] = meta, list}, index) do
+  defp next_concat_result({:__block__, [{:delimiter, _} | _] = meta, list}, index) do
     {next, continue} = next_concat_result(list, index)
     {{:__block__, meta, next}, {:__block__, meta, continue}}
   end
@@ -864,15 +869,15 @@ defmodule ExUnit.Diff do
     end
   end
 
-  defp block_diff_container(contents, nil),
+  defp block_delimiter(contents, nil),
     do: {:__block__, [], contents}
 
-  defp block_diff_container(contents, container),
-    do: {:__block__, [diff_container: container], contents}
+  defp block_delimiter(contents, container),
+    do: {:__block__, [delimiter: container], contents}
 
   defp string_script_to_diff([], delimiter, equivalent?, left, right) do
-    left = block_diff_container(Enum.reverse(left), delimiter)
-    right = block_diff_container(Enum.reverse(right), delimiter)
+    left = block_delimiter(Enum.reverse(left), delimiter)
+    right = block_delimiter(Enum.reverse(right), delimiter)
     %__MODULE__{equivalent?: equivalent?, left: left, right: right}
   end
 
@@ -904,9 +909,13 @@ defmodule ExUnit.Diff do
   end
 
   defp safe_to_algebra({:__block__, meta, list}, diff_wrapper) do
-    content_docs = Enum.map(list, &string_to_algebra(&1, diff_wrapper))
+    content_docs =
+      for item <- list do
+        # Each element of the list is either a literal or a wrapped literal in a diff
+        wrap_on_diff(item, fn literal, _ -> literal end, diff_wrapper)
+      end
 
-    if container = meta[:diff_container] do
+    if container = meta[:delimiter] do
       delimiter = to_string([container])
       Algebra.concat([delimiter] ++ content_docs ++ [delimiter])
     else
@@ -957,14 +966,6 @@ defmodule ExUnit.Diff do
 
   defp safe_to_algebra(literal, _diff_wrapper) do
     inspect(literal)
-  end
-
-  def string_to_algebra(quoted, diff_wrapper) do
-    wrap_on_diff(quoted, &safe_string_to_algebra/2, diff_wrapper)
-  end
-
-  def safe_string_to_algebra(literal, _diff_wrapper) do
-    literal
   end
 
   defp keyword_to_algebra(quoted, diff_wrapper) do
@@ -1062,9 +1063,6 @@ defmodule ExUnit.Diff do
   defp escape(other), do: other
 
   defp escape_pair({key, value}), do: {escape(key), escape(value)}
-
-  defp unescape({other}), do: other
-  defp unescape(other), do: other
 
   defp merge_diff(%__MODULE__{} = result1, %__MODULE__{} = result2, fun) do
     {left, right} = fun.(result1.left, result2.left, result1.right, result2.right)
