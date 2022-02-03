@@ -352,12 +352,11 @@ defmodule Mix.Task do
   end
 
   @doc """
-  Similar to run/2 but it runs the task in the specified list of children apps,
-  in the context of umbrella proyects.
+  Runs recursive tasks in the specified list of children apps for umbrella projects.
 
-  However, if the task is not recursive (whose purpose is to be run in children
-  applications) it runs at the project root level (a warning message is shown
-  in this case).
+  If the task is not recursive (whose purpose is to be run in children
+  applications), it runs at the project root level as usual. Calling
+  this function outside of an umbrella project root fails.
   """
   @doc since: "1.14.0"
   @spec run_in_apps(task_name, [atom], [any]) :: any
@@ -485,14 +484,12 @@ defmodule Mix.Task do
   defp run_alias([h | t], alias_args, proj, original_task, apps, _res)
        when is_function(h, 1) do
     res =
-      cond do
-        apps ->
-          Mix.ProjectStack.recur(fn ->
-            recur(fn _ -> h.(join_args([], alias_args, t)) end, apps)
-          end)
-
-        true ->
-          h.(join_args([], alias_args, t))
+      if apps do
+        Mix.ProjectStack.recur(fn ->
+          recur(fn _ -> h.(join_args([], alias_args, t)) end, apps)
+        end)
+      else
+        h.(join_args([], alias_args, t))
       end
 
     run_alias(t, alias_args, proj, original_task, apps, res)
