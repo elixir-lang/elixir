@@ -4,7 +4,9 @@ defmodule Mix.Tasks.Do do
   @shortdoc "Executes the tasks separated by comma"
 
   @moduledoc """
-  Executes the tasks separated by comma.
+  Executes the tasks separated by comma:
+
+      mix do compile --list, deps
 
   The comma should be followed by a space.
 
@@ -15,11 +17,6 @@ defmodule Mix.Tasks.Do do
 
       mix do compile --list, deps
 
-  You can limit where the tasks are run, in the context of
-  umbrella projects, by passing the app names using --app:
-
-      mix do --app app1 --app app2 compile --list, deps
-
   Note that the majority of Mix tasks are only executed once
   per invocation. So for example, the following command will
   only compile once:
@@ -29,10 +26,19 @@ defmodule Mix.Tasks.Do do
   When `compile` is executed again, Mix will notice the task
   has already ran, and skip it.
 
+  Inside umbrella projects, you can limit recursive tasks
+  (the ones that run inside every app) by selecting the
+  desired application via the `--app` flag after `do` and
+  before the first task:
+
+      mix do --app app1 --app app2 compile --list, deps
+
   ## Command line options
 
-    * `--app` - limit running the tasks to the given app. This option may
-      be given multiple times and must come before any of the tasks.
+    * `--app` - limit recursive tasks to the given apps.
+      This option may be given multiple times and must come
+      before any of the tasks.
+
   """
 
   @impl true
@@ -54,17 +60,19 @@ defmodule Mix.Tasks.Do do
   defp show_forgotten_apps_warning([]), do: nil
 
   defp show_forgotten_apps_warning(apps) do
-    if Mix.Project.umbrella?() do
-      forgotten_apps = apps -- Enum.map(Mix.Dep.Umbrella.cached(), & &1.app)
+    config = Mix.Project.config()
 
-      for app <- forgotten_apps do
+    if Mix.Project.umbrella?(config) do
+      known_apps = Mix.Project.apps_paths(config)
+
+      for app <- apps, not Map.has_key?(known_apps, app) do
         Mix.shell().info([:yellow, "warning: could not find application #{inspect(app)}"])
       end
     end
   end
 
   defp extract_apps_from_args(args) do
-    {opts, args} = OptionParser.parse_head!(args, switches: [app: :keep])
+    {opts, args} = OptionParser.parse_head!(args, strict: [app: :keep])
 
     apps =
       opts
