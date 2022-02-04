@@ -2,6 +2,7 @@ defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
   @manifest_vsn 13
+  @checkpoint_vsn 2
 
   import Record
 
@@ -102,7 +103,7 @@ defmodule Mix.Compilers.Elixir do
           {false, stale, old_lock, old_config}
       end
 
-    {stale_local_mods, stale_local_exports, all_local_exports} =
+    {stale_modules, stale_exports, all_local_exports} =
       stale_local_deps(manifest, stale, modified, all_local_exports)
 
     prev_paths = for source(source: source) <- all_sources, do: source
@@ -120,8 +121,8 @@ defmodule Mix.Compilers.Elixir do
           all_modules,
           all_sources,
           removed,
-          stale_local_mods,
-          Map.merge(stale_local_exports, removed_modules),
+          Map.merge(stale_modules, removed_modules),
+          Map.merge(stale_exports, removed_modules),
           dest
         )
       end
@@ -180,7 +181,7 @@ defmodule Mix.Compilers.Elixir do
         delete_compiler_info()
       end
     else
-      # We need to return ok if deps_changed? or stale_local_mods changed,
+      # We need to return ok if deps_changed? or stale_modules changed,
       # even if no code was compiled, because we need to propagate the changed
       # status to compile.protocols. This will be the case whenever:
       #
@@ -193,7 +194,7 @@ defmodule Mix.Compilers.Elixir do
       # will only compute the diff with current protocols. In fact, there is no
       # need to reconsolidate if an Erlang file changes and it doesn't trigger
       # any other change, but the diff check should be reasonably fast anyway.
-      status = if removed != [] or deps_changed? or stale_local_mods != %{}, do: :ok, else: :noop
+      status = if removed != [] or deps_changed? or stale_modules != %{}, do: :ok, else: :noop
 
       # If nothing changed but there is one more recent mtime, bump the manifest
       if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
@@ -283,8 +284,8 @@ defmodule Mix.Compilers.Elixir do
          all_modules,
          all_sources,
          removed,
-         stale_local_mods,
-         stale_local_exports,
+         stale_modules,
+         stale_exports,
          dest
        ) do
     # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
@@ -294,13 +295,17 @@ defmodule Mix.Compilers.Elixir do
           into: %{},
           do: {module, []}
 
-    {checkpoint_stale, checkpoint_modules} = parse_checkpoint(manifest)
-    modules_to_recompile = Map.merge(checkpoint_modules, modules_to_recompile)
-    stale_local_mods = Map.merge(checkpoint_stale, stale_local_mods)
+    {checkpoint_stale_modules, checkpoint_stale_exports, checkpoint_modules} =
+      parse_checkpoint(manifest)
 
-    if map_size(stale_local_mods) != map_size(checkpoint_stale) or
+    modules_to_recompile = Map.merge(checkpoint_modules, modules_to_recompile)
+    stale_modules = Map.merge(checkpoint_stale_modules, stale_modules)
+    stale_exports = Map.merge(checkpoint_stale_exports, stale_exports)
+
+    if map_size(stale_modules) != map_size(checkpoint_stale_modules) or
+         map_size(stale_exports) != map_size(checkpoint_stale_exports) or
          map_size(modules_to_recompile) != map_size(checkpoint_modules) do
-      write_checkpoint(manifest, stale_local_mods, modules_to_recompile)
+      write_checkpoint(manifest, stale_modules, stale_exports, modules_to_recompile)
     end
 
     sources_stats =
@@ -332,8 +337,8 @@ defmodule Mix.Compilers.Elixir do
         all_modules,
         all_sources,
         removed ++ changed,
-        stale_local_mods,
-        stale_local_exports,
+        stale_modules,
+        stale_exports,
         dest
       )
 
@@ -654,16 +659,16 @@ defmodule Mix.Compilers.Elixir do
   # files that have changed. Then it recursively figures out
   # all the files that changed (via the module dependencies) and
   # return the non-changed entries and the removed sources.
-  defp update_stale_entries(modules, _sources, [], stale_mods, stale_exports, _compile_path)
-       when stale_mods == %{} and stale_exports == %{} do
+  defp update_stale_entries(modules, _sources, [], stale_modules, stale_exports, _compile_path)
+       when stale_modules == %{} and stale_exports == %{} do
     {modules, %{}, []}
   end
 
-  defp update_stale_entries(modules, sources, changed, stale_mods, stale_exports, compile_path) do
+  defp update_stale_entries(modules, sources, changed, stale_modules, stale_exports, compile_path) do
     # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
     changed = Enum.into(changed, %{}, &{&1, []})
     reducer = &remove_stale_entry(&1, &2, sources, stale_exports, compile_path)
-    remove_stale_entries(modules, %{}, changed, stale_mods, reducer)
+    remove_stale_entries(modules, %{}, changed, stale_modules, reducer)
   end
 
   defp remove_stale_entries(modules, exports, old_changed, old_stale, reducer) do
@@ -720,6 +725,8 @@ defmodule Mix.Compilers.Elixir do
   defp stale_local_deps(manifest, stale_modules, modified, old_exports) do
     base = Path.basename(manifest)
 
+    # The stale modules so far will become both stale_modules and stale_exports,
+    # as any export from a dependency needs to be recompiled.
     # TODO: Use :maps.from_keys/2 on Erlang/OTP 24+
     stale_modules = for module <- stale_modules, do: {module, []}, into: %{}
 
@@ -727,7 +734,7 @@ defmodule Mix.Compilers.Elixir do
         not scm.fetchable?,
         manifest = Path.join([opts[:build], ".mix", base]),
         Mix.Utils.last_modified(manifest) > modified,
-        reduce: {stale_modules, %{}, old_exports} do
+        reduce: {stale_modules, stale_modules, old_exports} do
       {modules, exports, new_exports} ->
         {_manifest_modules, dep_sources} = read_manifest(manifest)
 
@@ -1017,19 +1024,19 @@ defmodule Mix.Compilers.Elixir do
       (manifest <> ".checkpoint") |> File.read!() |> :erlang.binary_to_term()
     rescue
       _ ->
-        {%{}, %{}}
+        {%{}, %{}, %{}}
     else
-      {@manifest_vsn, stale, recompile_modules} ->
-        {stale, recompile_modules}
+      {@checkpoint_vsn, stale_modules, stale_exports, recompile_modules} ->
+        {stale_modules, stale_exports, recompile_modules}
 
       _ ->
-        {%{}, %{}}
+        {%{}, %{}, %{}}
     end
   end
 
-  defp write_checkpoint(manifest, stale, recompile_modules) do
+  defp write_checkpoint(manifest, stale_modules, stale_exports, recompile_modules) do
     File.mkdir_p!(Path.dirname(manifest))
-    term = {@manifest_vsn, stale, recompile_modules}
+    term = {@checkpoint_vsn, stale_modules, stale_exports, recompile_modules}
     checkpoint_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest <> ".checkpoint", checkpoint_data)
   end
