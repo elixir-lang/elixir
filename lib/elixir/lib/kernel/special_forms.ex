@@ -1637,7 +1637,7 @@ defmodule Kernel.SpecialForms do
         {:ok, backup_path}
       end
 
-      defp validate_extname(path) do
+      defp validate_extension(path) do
         if Path.extname(path) == ".ex", do: :ok, else: {:error, :invalid_extension}
       end
 
@@ -1646,7 +1646,7 @@ defmodule Kernel.SpecialForms do
       end
 
   Note how the code above is better organized and clearer once we
-  make sure each clause in `with` returns a normalize format.
+  make sure each clause in `with` returns a normalized format.
   """
   defmacro with(args), do: error!([args])
 
