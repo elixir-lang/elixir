@@ -182,6 +182,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Process.put({MixTest.Case.Sample, :application}, extra_applications: [:logger])
       File.mkdir_p!("config")
 
+      File.write!("config/config.exs", """
+      import Config
+      config :logger, :level, :debug
+      """)
+
       File.write!("lib/a.ex", """
       defmodule A do
         _ = Logger.metadata()
@@ -234,6 +239,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
 
+      # No-op does not recompile
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      assert recompile.() == {:ok, []}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
       # Changing self fully recompiles
       File.write!("config/config.exs", """
       import Config
@@ -261,6 +272,76 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     Application.delete_env(:sample, :foo, persistent: true)
+  end
+
+  test "recompiles files when config changes export dependencies" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      Process.put({MixTest.Case.Sample, :application}, extra_applications: [:ex_unit])
+      File.mkdir_p!("config")
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def test_struct do
+          %ExUnit.Test{}
+        end
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      recompile = fn ->
+        Mix.ProjectStack.pop()
+        Mix.Project.push(MixTest.Case.Sample)
+        Mix.Tasks.Loadconfig.load_compile("config/config.exs")
+        Mix.Tasks.Compile.Elixir.run(["--verbose"])
+      end
+
+      # Adding config recompiles
+      File.write!("config/config.exs", """
+      import Config
+      config :ex_unit, :some, :config
+      """)
+
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      assert recompile.() == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+
+      # Changing config recompiles
+      File.write!("config/config.exs", """
+      import Config
+      config :ex_unit, :some, :another
+      """)
+
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      assert recompile.() == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+
+      # Removing config recompiles
+      File.write!("config/config.exs", """
+      import Config
+      """)
+
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      assert recompile.() == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+
+      # No-op does not recompile
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      assert recompile.() == {:ok, []}
+      refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+    end)
+  after
+    Application.delete_env(:ex_unit, :some, persistent: true)
   end
 
   test "recompiles files when config changes with crashes" do
