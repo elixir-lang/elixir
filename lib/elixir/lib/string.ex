@@ -2390,11 +2390,13 @@ defmodule String do
   Searches if `string` contains any of the given `contents`.
 
   `contents` can be either a string, a list of strings,
-  or a compiled pattern.
+  or a compiled pattern. If `contents` is a list, this
+  function will search if any of the strings in `contents`
+  are part of `string`.
 
-  > Note: if instead you want to check if `string` is listed
-  > in `contents`, where `contents` is a list, you must use
-  > `Enum.member?(contents, string)` instead.
+  > Note: if you want to check if `string` is listed in `contents`,
+  > where `contents` is a list, use `Enum.member?(contents, string)`
+  > instead.
 
   ## Examples
 
