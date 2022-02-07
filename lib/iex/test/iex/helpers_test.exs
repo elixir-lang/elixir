@@ -1355,7 +1355,10 @@ defmodule IEx.HelpersTest do
 
     test "builds a PID from atom" do
       assert inspect(pid(:init)) == "#PID<0.0.0>"
-      assert pid(:random_atom_ZM6pX6VwQx) == nil
+
+      assert_raise ArgumentError, fn ->
+        pid(:random_atom_ZM6pX6VwQx)
+      end
     end
 
     test "builds a PID from integers" do

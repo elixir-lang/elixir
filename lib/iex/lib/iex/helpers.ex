@@ -1194,7 +1194,10 @@ defmodule IEx.Helpers do
   end
 
   def pid(name) when is_atom(name) do
-    Process.whereis(name)
+    case Process.whereis(name) do
+      p when is_pid(p) -> p
+      _ -> raise ArgumentError, "could not find registered process with name: #{inspect(name)}"
+    end
   end
 
   @doc """
