@@ -324,10 +324,10 @@ defmodule DynamicSupervisor do
   end
 
   @doc """
-  Starts a module-based supervisor process with the given `module` and `arg`.
+  Starts a module-based supervisor process with the given `module` and `init_arg`.
 
   To start the supervisor, the `c:init/1` callback will be invoked in the given
-  `module`, with `arg` as its argument. The `c:init/1` callback must return a
+  `module`, with `init_arg` as its argument. The `c:init/1` callback must return a
   supervisor specification which can be created with the help of the `init/1`
   function.
 
@@ -353,8 +353,8 @@ defmodule DynamicSupervisor do
   """
   @doc since: "1.6.0"
   @spec start_link(module, term, [option]) :: Supervisor.on_start()
-  def start_link(mod, init_arg, opts \\ []) do
-    GenServer.start_link(__MODULE__, {mod, init_arg, opts[:name]}, opts)
+  def start_link(module, init_arg, opts \\ []) do
+    GenServer.start_link(__MODULE__, {module, init_arg, opts[:name]}, opts)
   end
 
   @doc """
