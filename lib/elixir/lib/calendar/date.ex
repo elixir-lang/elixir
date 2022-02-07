@@ -77,16 +77,18 @@ defmodule Date do
   ## Examples
 
       iex> Date.range(~D[1999-01-01], ~D[2000-01-01])
-      #DateRange<~D[1999-01-01], ~D[2000-01-01]>
+      Date.range(~D[1999-01-01], ~D[2000-01-01])
 
   A range of dates implements the `Enumerable` protocol, which means
   functions in the `Enum` module can be used to work with
   ranges:
 
       iex> range = Date.range(~D[2001-01-01], ~D[2002-01-01])
+      iex> range
+      Date.range(~D[2001-01-01], ~D[2002-01-01])
       iex> Enum.count(range)
       366
-      iex> Enum.member?(range, ~D[2001-02-01])
+      iex> ~D[2001-02-01] in range
       true
       iex> Enum.take(range, 3)
       [~D[2001-01-01], ~D[2001-01-02], ~D[2001-01-03]]
@@ -113,10 +115,10 @@ defmodule Date do
 
       iex> range = Date.range(~D[2001-01-01], ~D[2002-01-01], 2)
       iex> range
-      #DateRange<~D[2001-01-01], ~D[2002-01-01], 2>
+      Date.range(~D[2001-01-01], ~D[2002-01-01], 2)
       iex> Enum.count(range)
       183
-      iex> Enum.member?(range, ~D[2001-01-03])
+      iex> ~D[2001-01-03] in range
       true
       iex> Enum.take(range, 3)
       [~D[2001-01-01], ~D[2001-01-03], ~D[2001-01-05]]

@@ -211,11 +211,11 @@ defmodule Date.Range do
     import Kernel, except: [inspect: 2]
 
     def inspect(%Date.Range{first: first, last: last, step: 1}, _) do
-      "#DateRange<" <> inspect(first) <> ", " <> inspect(last) <> ">"
+      "Date.range(" <> inspect(first) <> ", " <> inspect(last) <> ")"
     end
 
     def inspect(%Date.Range{first: first, last: last, step: step}, _) do
-      "#DateRange<" <> inspect(first) <> ", " <> inspect(last) <> ", #{step}>"
+      "Date.range(" <> inspect(first) <> ", " <> inspect(last) <> ", #{step})"
     end
 
     # TODO: Remove me on v2.0
