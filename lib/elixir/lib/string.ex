@@ -2387,10 +2387,14 @@ defmodule String do
   end
 
   @doc """
-  Checks if `string` contains any of the given `contents`.
+  Searches if `string` contains any of the given `contents`.
 
   `contents` can be either a string, a list of strings,
   or a compiled pattern.
+
+  > Note: if instead you want to check if `string` is listed
+  > in `contents`, where `contents` is a list, you must use
+  > `Enum.member?(contents, string)` instead.
 
   ## Examples
 
@@ -2437,17 +2441,27 @@ defmodule String do
 
   """
   @spec contains?(t, [t] | pattern) :: boolean
-  def contains?(string, []) when is_binary(string) do
-    false
-  end
-
   def contains?(string, contents) when is_binary(string) and is_list(contents) do
-    "" in contents or :binary.match(string, contents) != :nomatch
+    list_contains?(string, byte_size(string), contents, [])
   end
 
   def contains?(string, contents) when is_binary(string) do
     "" == contents or :binary.match(string, contents) != :nomatch
   end
+
+  defp list_contains?(string, size, [head | tail], acc) do
+    case byte_size(head) do
+      0 -> true
+      head_size when head_size > size -> list_contains?(string, size, tail, acc)
+      _ -> list_contains?(string, size, tail, [head | acc])
+    end
+  end
+
+  defp list_contains?(_string, _size, [], []),
+    do: false
+
+  defp list_contains?(string, _size, [], contents),
+    do: :binary.match(string, contents) != :nomatch
 
   @doc """
   Converts a string into a charlist.
