@@ -8,18 +8,18 @@ defmodule MapSet do
   A set can be constructed using `MapSet.new/0`:
 
       iex> MapSet.new()
-      #MapSet<[]>
+      MapSet.new([])
 
   Elements in a set don't have to be of the same type and they can be
   populated from an [enumerable](`t:Enumerable.t/0`) using `MapSet.new/1`:
 
       iex> MapSet.new([1, :two, {"three"}])
-      #MapSet<[1, :two, {"three"}]>
+      MapSet.new([1, :two, {"three"}])
 
   Elements can be inserted using `MapSet.put/2`:
 
       iex> MapSet.new([2]) |> MapSet.put(4) |> MapSet.put(0)
-      #MapSet<[0, 2, 4]>
+      MapSet.new([0, 2, 4])
 
   By definition, sets can't contain duplicate elements: when
   inserting an element in a set where it's already present, the insertion is
@@ -27,9 +27,9 @@ defmodule MapSet do
 
       iex> map_set = MapSet.new()
       iex> MapSet.put(map_set, "foo")
-      #MapSet<["foo"]>
+      MapSet.new(["foo"])
       iex> map_set |> MapSet.put("foo") |> MapSet.put("foo")
-      #MapSet<["foo"]>
+      MapSet.new(["foo"])
 
   A `MapSet` is represented internally using the `%MapSet{}` struct. This struct
   can be used whenever there's a need to pattern match on something being a `MapSet`:
@@ -67,7 +67,7 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.new()
-      #MapSet<[]>
+      MapSet.new([])
 
   """
   @spec new :: t
@@ -79,9 +79,9 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.new([:b, :a, 3])
-      #MapSet<[3, :a, :b]>
+      MapSet.new([3, :a, :b])
       iex> MapSet.new([3, 3, 3, 2, 2, 1])
-      #MapSet<[1, 2, 3]>
+      MapSet.new([1, 2, 3])
 
   """
   @spec new(Enumerable.t()) :: t
@@ -100,7 +100,7 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.new([1, 2, 1], fn x -> 2 * x end)
-      #MapSet<[2, 4]>
+      MapSet.new([2, 4])
 
   """
   @spec new(Enumerable.t(), (term -> val)) :: t(val) when val: value
@@ -118,9 +118,9 @@ defmodule MapSet do
 
       iex> map_set = MapSet.new([1, 2, 3])
       iex> MapSet.delete(map_set, 4)
-      #MapSet<[1, 2, 3]>
+      MapSet.new([1, 2, 3])
       iex> MapSet.delete(map_set, 2)
-      #MapSet<[1, 3]>
+      MapSet.new([1, 3])
 
   """
   @spec delete(t(val1), val2) :: t(val1) when val1: value, val2: value
@@ -134,7 +134,7 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.difference(MapSet.new([1, 2]), MapSet.new([2, 3, 4]))
-      #MapSet<[1]>
+      MapSet.new([1])
 
   """
   @spec difference(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
@@ -231,10 +231,10 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.intersection(MapSet.new([1, 2]), MapSet.new([2, 3, 4]))
-      #MapSet<[2]>
+      MapSet.new([2])
 
       iex> MapSet.intersection(MapSet.new([1, 2]), MapSet.new([3, 4]))
-      #MapSet<[]>
+      MapSet.new([])
 
   """
   @spec intersection(t(val), t(val)) :: t(val) when val: value
@@ -265,9 +265,9 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.put(MapSet.new([1, 2, 3]), 3)
-      #MapSet<[1, 2, 3]>
+      MapSet.new([1, 2, 3])
       iex> MapSet.put(MapSet.new([1, 2, 3]), 4)
-      #MapSet<[1, 2, 3, 4]>
+      MapSet.new([1, 2, 3, 4])
 
   """
   @spec put(t(val), new_val) :: t(val | new_val) when val: value, new_val: value
@@ -340,7 +340,7 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.union(MapSet.new([1, 2]), MapSet.new([2, 3, 4]))
-      #MapSet<[1, 2, 3, 4]>
+      MapSet.new([1, 2, 3, 4])
 
   """
   @spec union(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
@@ -374,10 +374,10 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.filter(MapSet.new(1..5), fn x -> x > 3 end)
-      #MapSet<[4, 5]>
+      MapSet.new([4, 5])
 
       iex> MapSet.filter(MapSet.new(["a", :b, "c"]), &is_atom/1)
-      #MapSet<[:b]>
+      MapSet.new([:b])
 
   """
   @doc since: "1.14.0"
@@ -408,10 +408,10 @@ defmodule MapSet do
   ## Examples
 
       iex> MapSet.reject(MapSet.new(1..5), fn x -> rem(x, 2) != 0 end)
-      #MapSet<[2, 4]>
+      MapSet.new([2, 4])
 
       iex> MapSet.reject(MapSet.new(["a", :b, "c"]), &is_atom/1)
-      #MapSet<["a", "c"]>
+      MapSet.new(["a", "c"])
 
   """
   @doc since: "1.14.0"
@@ -469,7 +469,7 @@ defmodule MapSet do
 
     def inspect(map_set, opts) do
       opts = %Inspect.Opts{opts | charlists: :as_lists}
-      concat(["#MapSet<", Inspect.List.inspect(MapSet.to_list(map_set), opts), ">"])
+      concat(["MapSet.new(", Inspect.List.inspect(MapSet.to_list(map_set), opts), ")"])
     end
   end
 end
