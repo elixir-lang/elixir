@@ -783,7 +783,7 @@ defmodule Inspect.OthersTest do
   end
 
   test "map set" do
-    assert "#MapSet<" <> _ = inspect(MapSet.new())
+    assert "MapSet.new(" <> _ = inspect(MapSet.new())
   end
 
   test "PIDs" do

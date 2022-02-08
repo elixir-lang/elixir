@@ -70,21 +70,21 @@ defmodule ExUnit.DocTestTest.GoodModule do
 
   @doc """
   iex> Enum.into([:a, :b, :c], MapSet.new())
-  #MapSet<[:a, :b, :c]>
+  MapSet.new([:a, :b, :c])
   """
   def inspect1_test, do: :ok
 
   @doc """
   iex> x = Enum.into([:a, :b, :c], MapSet.new())
   ...> x
-  #MapSet<[:a, :b, :c]>
+  MapSet.new([:a, :b, :c])
   """
   def inspect2_test, do: :ok
 
   @doc """
        iex> x = Enum.into([:a, :b, :c], MapSet.new())
        ...> x
-       #MapSet<[:a, :b, :c]>
+       MapSet.new([:a, :b, :c])
        """
        |> String.replace("\n", "\r\n")
   def crlf_test, do: :ok
