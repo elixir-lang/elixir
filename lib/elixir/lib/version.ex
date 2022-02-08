@@ -403,7 +403,7 @@ defmodule Version do
 
       iex> {:ok, requirement} = Version.parse_requirement("== 2.0.1")
       iex> requirement
-      #Version.Requirement<"== 2.0.1">
+      Version.parse_requirement!("== 2.0.1")
 
       iex> Version.parse_requirement("== == 2.0.1")
       :error
@@ -422,10 +422,10 @@ defmodule Version do
 
   If `string` is an invalid requirement, a `Version.InvalidRequirementError` is raised.
 
-  ## Examples
+  # Examples
 
       iex> Version.parse_requirement!("== 2.0.1")
-      #Version.Requirement<"== 2.0.1">
+      Version.parse_requirement!("== 2.0.1")
 
       iex> Version.parse_requirement!("== == 2.0.1")
       ** (Version.InvalidRequirementError) invalid requirement: "== == 2.0.1"
@@ -680,6 +680,6 @@ defimpl Inspect, for: Version.Requirement do
   def inspect(%Version.Requirement{source: source}, opts) do
     colorized = Inspect.Algebra.color("\"" <> source <> "\"", :string, opts)
 
-    Inspect.Algebra.concat(["#Version.Requirement<", colorized, ">"])
+    Inspect.Algebra.concat(["Version.parse_requirement!(", colorized, ")"])
   end
 end
