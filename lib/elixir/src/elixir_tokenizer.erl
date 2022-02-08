@@ -1251,6 +1251,8 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
                               "Syntax error before: ",
                               [Wrong, WrongCodepoints, Right, RightCodepoints]),
       {error, {Line, Column, Message, Wrong}};
+    {error, {not_highly_restrictive, Wrong, Message}} ->
+      {error, {Line, Column, Message, Wrong}};
     {error, empty} ->
       empty
   end.

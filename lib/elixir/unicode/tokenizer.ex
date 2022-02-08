@@ -239,10 +239,18 @@ defmodule String.Tokenizer do
   defp validate({acc, rest, length, ascii_letters?, special}, kind) do
     acc = :lists.reverse(acc)
 
-    if ascii_letters? or :unicode.characters_to_nfc_list(acc) == acc do
-      {kind, acc, rest, length, ascii_letters?, special}
-    else
-      {:error, {:not_nfc, acc}}
+    cond do
+      ascii_letters? ->
+        {kind, acc, rest, length, ascii_letters?, special}
+
+      :unicode.characters_to_nfc_list(acc) != acc ->
+        {:error, {:not_nfc, acc}}
+
+      true ->
+        case String.Tokenizer.Security.highly_restrictive(acc) do
+          :ok -> {kind, acc, rest, length, ascii_letters?, special}
+          {:error, msg} -> {:error, {:not_highly_restrictive, acc, msg}}
+        end
     end
   end
 end

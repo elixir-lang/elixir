@@ -28,17 +28,17 @@ defmodule Kernel.WarningTest do
 
   describe "unicode identifier security" do
     test "warns on confusables" do
-      assert capture_err(fn -> Code.string_to_quoted("аdmin=1; admin=1") end) =~
-               "confusable identifier: 'admin' looks like 'аdmin' on line 1"
+      assert capture_err(fn -> Code.string_to_quoted("а=1; a=1") end) =~
+               "confusable identifier: 'a' looks like 'а' on line 1"
 
-      assert capture_err(fn -> Code.string_to_quoted("[{:аdmin, 1}, {:admin, 1}]") end) =~
-               "confusable identifier: 'admin' looks like 'аdmin' on line 1"
+      assert capture_err(fn -> Code.string_to_quoted("[{:а, 1}, {:a, 1}]") end) =~
+               "confusable identifier: 'a' looks like 'а' on line 1"
 
-      assert capture_err(fn -> Code.string_to_quoted("[аdmin: 1, admin: 1]") end) =~
-               "confusable identifier: 'admin' looks like 'аdmin' on line 1"
+      assert capture_err(fn -> Code.string_to_quoted("[а: 1, a: 1]") end) =~
+               "confusable identifier: 'a' looks like 'а' on line 1"
 
-      assert capture_err(fn -> Code.string_to_quoted("quote do: [аdmin(1), admin(1)]") end) =~
-               "confusable identifier: 'admin' looks like 'аdmin' on line 1"
+      assert capture_err(fn -> Code.string_to_quoted("quote do: [а(1), a(1)]") end) =~
+               "confusable identifier: 'a' looks like 'а' on line 1"
 
       assert capture_err(fn -> Code.string_to_quoted("力=1; カ=1") end) =~
                "confusable identifier: 'カ' looks like '力' on line 1"
@@ -49,11 +49,49 @@ defmodule Kernel.WarningTest do
 
       # works with a custom atom encoder
       assert capture_err(fn ->
-               Code.string_to_quoted("[{:аdmin, 1}, {:admin, 1}]",
+               Code.string_to_quoted("[{:а, 1}, {:a, 1}]",
                  static_atoms_encoder: fn token, _ -> {:ok, {:wrapped, token}} end
                )
              end) =~
-               "confusable identifier: 'admin' looks like 'аdmin' on line 1"
+               "confusable identifier: 'a' looks like 'а' on line 1"
+    end
+
+    test "prevents unsafe script mixing in identifiers" do
+      msg =
+        ~S"""
+        nofile:1:4: Unsafe mixed-script identifier 'аdmin' using {Cyrillic, Latin} does not meet the requirements of Unicode TS39 Section 5.2, 'Highly Restrictive'.
+
+          \u0430 'а' {Cyrillic}
+          \u0064 'd' {Latin}
+          \u006D 'm' {Latin}
+          \u0069 'i' {Latin}
+          \u006E 'n' {Latin}
+
+        аdmin
+            |
+          1 | if аdmin, do: :ok, else: :err
+            |    ^
+        """
+        |> String.trim()
+
+      assert_raise SyntaxError, msg, fn ->
+        Code.string_to_quoted!("if аdmin, do: :ok, else: :err")
+      end
+
+      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[аdmin: 1]") end
+      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[{:аdmin, 1}]") end
+      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("quote do: аdmin(1)") end
+      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("рос_api = 1") end
+    end
+
+    test "allows legitimate script mixing" do
+      # writing systems that legitimately mix multiple scripts, and Common chars like _
+      assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ1 = 1") end) == ""
+      assert capture_err(fn -> Code.eval_string("__सवव_1? = 1") end) == ""
+
+      # uts39 5.2 allowed 'highly restrictive' script mixing, like 't-shirt' in Jpan:
+      assert capture_err(fn -> Code.string_to_quoted!(":Tシャツ") end) == ""
     end
   end
 

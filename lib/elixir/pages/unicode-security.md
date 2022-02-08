@@ -24,9 +24,13 @@ We use the means described in Section 4, 'Confusable Detection', with one noted 
 
 Elixir will not warn on confusability for identifiers made up exclusively of characters in a-z, A-Z, 0-9, and _. This is because ASCII identifiers have existed for so long that the programming community has had their own means of dealing with confusability between identifiers like `l,1` or `O,0` (for instance, fonts designed for programming usually make it easy to differentiate between those characters).
 
-## C3. (not yet implemented)
+## C3. Mixed Script Detection
 
-C3 has to do with detecting mixed-script-confusable characters -- like, say, a file in which several Cyrillic 'a' characters are present in a file of mostly latin identifiers. Conformance with this clause is not yet claimed.
+Elixir will not allow tokenization of mixed-script identifiers unless the mixings is one of the exceptions defined in UTS 39 5.2, 'Highly Restrictive'. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring.
+
+Examples: Elixir allows an identifiers like `幻ㄒㄧㄤ`, even though it includes characters from multiple 'scripts', because those scripts all 'resolve' to Japanese when applying the resolution rules from UTS 39 5.1. It also allows an atom like `:Tシャツ`, the Japanese word for 't-shirt', which incorporates a Latin capital T, because {Latn, Jpan} is one of the allowed script mixings in the definition of 'Highly Restrictive' in UTS 39 5.2, and it 'covers' the string.
+
+However, Elixir would prevent tokenization in code like `if аdmin, do: :ok, else: :err`, where the scriptset for the 'a' character is {Cyrillic} but all other characters have scriptsets of {Latin}. The scriptsets fail to resolve, and the scriptsets from the definition of 'Highly Restrictive' in UTS 39 5.2 do not cover the string either, so a descriptive error is shown.
 
 ## C4, C5 (inapplicable)
 
