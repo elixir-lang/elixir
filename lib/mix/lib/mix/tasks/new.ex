@@ -1,6 +1,5 @@
 defmodule Mix.Tasks.New do
   use Mix.Task
-
   import Mix.Generator
 
   @shortdoc "Creates a new Elixir project"
@@ -129,6 +128,25 @@ defmodule Mix.Tasks.New do
     |> Mix.shell().info()
   end
 
+  @doc """
+  Returns a list of reserved application names.
+  """
+  def reserved_application_names do
+    # 1. Command line flags can conflict with application names
+    # 2. OTP names
+    # 3. Elixir names
+    ~w(async_shell_start boot boot_var code_path_cache config configfd connect_all cookie detached
+       emu_args emu_flavor emu_type epmd_module erl_epmd_port eval heart hosts id loader make man
+       mode name no_epmd noinput noshell nostick oldshell pa pz path proto_dist remsh rsh run s
+       setcookie shutdown_time sname start_epmd version)a ++
+      ~w(otp asn1 common_test compiler crypto debugger dialyzer diameter
+         edoc eldap erl_docgen erl_interface erts et eunit ftp hipe
+         inets jinterface kernel megaco mnesia observer odbc os_mon
+         parsetools public_key reltool runtime_tools sasl snmp ssh
+         ssl stdlib syntax_tools toolbar tools typer wx xmerl)a ++
+      ~w(eex elixir ex_unit iex logger mix)a
+  end
+
   defp sup_app(_mod, false), do: ""
   defp sup_app(mod, true), do: ",\n      mod: {#{mod}.Application, []}"
 
@@ -187,7 +205,9 @@ defmodule Mix.Tasks.New do
   end
 
   defp reserved_app(name) do
-    if name |> String.to_atom() |> Application.ensure_loaded() == :ok do
+    atom_name = String.to_atom(name)
+
+    if atom_name in reserved_application_names() or Application.ensure_loaded(atom_name) == :ok do
       "Cannot use application name #{inspect(name)} because it is already used by Erlang/OTP or Elixir"
     end
   end

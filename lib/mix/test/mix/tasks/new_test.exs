@@ -166,6 +166,12 @@ defmodule Mix.Tasks.NewTest do
                    end
 
       assert_raise Mix.Error,
+                   ~r"Cannot use application name \"pa\" because it is already used by Erlang/OTP or Elixir",
+                   fn ->
+                     Mix.Tasks.New.run(["pa"])
+                   end
+
+      assert_raise Mix.Error,
                    ~r"followed by lowercase ASCII letters, numbers, or underscores",
                    fn ->
                      Mix.Tasks.New.run(["invAlid"])
