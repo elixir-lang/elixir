@@ -67,27 +67,6 @@ defmodule ExUnit.DocTestTest.GoodModule do
   bar
   """
   def multiline_exception_test, do: :ok
-
-  @doc """
-  iex> Enum.into([:a, :b, :c], MapSet.new())
-  MapSet.new([:a, :b, :c])
-  """
-  def inspect1_test, do: :ok
-
-  @doc """
-  iex> x = Enum.into([:a, :b, :c], MapSet.new())
-  ...> x
-  MapSet.new([:a, :b, :c])
-  """
-  def inspect2_test, do: :ok
-
-  @doc """
-       iex> x = Enum.into([:a, :b, :c], MapSet.new())
-       ...> x
-       MapSet.new([:a, :b, :c])
-       """
-       |> String.replace("\n", "\r\n")
-  def crlf_test, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -175,7 +154,7 @@ defmodule ExUnit.DocTestTest.Invalid do
       "This is a much shorter text string."
 
       iex> :oops
-      #MapSet<[]>
+      #Inspect<[]>
 
       iex> Hello.world()
       :world
@@ -231,8 +210,8 @@ defmodule ExUnit.DocTestTest.Invalid do
   def invalid_utf8, do: :ok
 
   @doc """
-      iex> {:ok, MapSet.new([1, 2, 3])}
-      {:ok, #MapSet<[1, 2, 3]>}
+      iex> {:ok, :oops}
+      {:ok, #Inspect<[]>}
   """
   def misplaced_opaque_type, do: :ok
 
@@ -375,6 +354,7 @@ defmodule ExUnit.DocTestTest.Haiku do
 
   @doc """
   Creates a new Haiku.
+
   Optionally pass in the `author` as fourth argument.
 
   ## Examples:
@@ -405,6 +385,18 @@ defmodule ExUnit.DocTestTest.Haiku do
       author: author
     }
   end
+
+  @doc """
+       iex> ExUnit.DocTestTest.Haiku.new("古池や", "蛙飛びこむ", "水の音", "Matsuo Basho")
+       #Haiku<
+         古池や
+         蛙飛びこむ
+         水の音
+         -- Matsuo Basho
+       >
+       """
+       |> String.replace("\n", "\r\n")
+  def crlf_test, do: :ok
 
   defimpl Inspect do
     def inspect(haiku, _opts) do
@@ -582,10 +574,10 @@ defmodule ExUnit.DocTestTest do
                 Doctest failed
                 doctest:
                   iex> :oops
-                  "#MapSet<[]>"
-                code:  inspect(:oops) === "#MapSet<[]>"
+                  "#Inspect<[]>"
+                code:  inspect(:oops) === "#Inspect<[]>"
                 left:  ":oops"
-                right: "#MapSet<[]>"
+                right: "#Inspect<[]>"
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:#{starting_line + 12}: ExUnit.DocTestTest.Invalid (module)
            """
@@ -697,12 +689,12 @@ defmodule ExUnit.DocTestTest do
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 69}:7: missing terminator: } (for "{" starting at line #{starting_line + 69})
                  #{line_placeholder(starting_line + 69)} |
-                 #{starting_line + 69} | {:ok, #MapSet<[1, 2, 3]>}
+                 #{starting_line + 69} | {:ok, #Inspect<[]>}
                  #{line_placeholder(starting_line + 69)} |       ^
                 If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
-                  iex> {:ok, MapSet.new([1, 2, 3])}
-                  {:ok, #MapSet<[1, 2, 3]>}
+                  iex> {:ok, :oops}
+                  {:ok, #Inspect<[]>}
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:#{starting_line + 69}: ExUnit.DocTestTest.Invalid (module)
            """
