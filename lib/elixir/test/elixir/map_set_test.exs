@@ -161,7 +161,7 @@ defmodule MapSetTest do
   end
 
   test "inspect" do
-    assert inspect(MapSet.new([?a])) == "#MapSet<[97]>"
+    assert inspect(MapSet.new([?a])) == "MapSet.new([97])"
   end
 
   defp map_set_v1(enumerable) do

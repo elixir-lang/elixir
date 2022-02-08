@@ -35,7 +35,7 @@ defprotocol Collectable do
       ...>   collector_fun.(acc, {:cont, elem})
       ...> end)
       iex> collector_fun.(updated_acc, :done)
-      #MapSet<[1, 2, 3]>
+      MapSet.new([1, 2, 3])
 
   To show how the protocol can be implemented, we can again look at the
   simplified implementation for `MapSet`. In this implementation "collecting" elements
@@ -63,7 +63,7 @@ defprotocol Collectable do
   So now we can call `Enum.into/2`:
 
       iex> Enum.into([1, 2, 3], MapSet.new())
-      #MapSet<[1, 2, 3]>
+      MapSet.new([1, 2, 3])
 
   """
 
