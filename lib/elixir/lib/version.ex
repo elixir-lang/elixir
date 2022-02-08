@@ -355,7 +355,7 @@ defmodule Version do
 
       iex> {:ok, version} = Version.parse("2.0.1-alpha1")
       iex> version
-      #Version<2.0.1-alpha1>
+      Version.parse!("2.0.1-alpha1")
 
       iex> Version.parse("2.0-alpha1")
       :error
@@ -382,7 +382,7 @@ defmodule Version do
   ## Examples
 
       iex> Version.parse!("2.0.1-alpha1")
-      #Version<2.0.1-alpha1>
+      Version.parse!("2.0.1-alpha1")
 
       iex> Version.parse!("2.0-alpha1")
       ** (Version.InvalidVersionError) invalid version: "2.0-alpha1"
@@ -666,7 +666,7 @@ end
 
 defimpl Inspect, for: Version do
   def inspect(self, _opts) do
-    "#Version<" <> Version.to_string(self) <> ">"
+    "Version.parse!(\"" <> Version.to_string(self) <> "\")"
   end
 end
 
