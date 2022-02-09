@@ -37,7 +37,7 @@ defmodule Config.Reader do
       ]
 
   Remember Mix already loads `config/runtime.exs` by default.
-  For more examples and scenarios, see the `Config.Providers` module.
+  For more examples and scenarios, see the `Config.Provider` module.
   """
 
   @behaviour Config.Provider
