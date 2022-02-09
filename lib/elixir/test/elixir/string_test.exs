@@ -131,6 +131,11 @@ defmodule StringTest do
     end
   end
 
+  test "split_at/2 with invalid guard" do
+    assert String.split_at(<<?a, 195, 10, ?a>>, 2) == {<<?a, 195>>, <<10, ?a>>}
+    assert String.split_at(<<107, 205, 135, 184>>, 1) == {<<107, 205, 135>>, <<184>>}
+  end
+
   test "upcase/1" do
     assert String.upcase("123 abcd 456 efg hij ( %$#) kl mnop @ qrst = -_ uvwxyz") ==
              "123 ABCD 456 EFG HIJ ( %$#) KL MNOP @ QRST = -_ UVWXYZ"
