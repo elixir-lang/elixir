@@ -2807,12 +2807,16 @@ defmodule String do
             graphemes_and_length: 1,
             reverse_characters_to_binary: 1}
 
-  defp byte_size_remaining_at(binary, 0) do
-    byte_size(binary)
+  defp byte_size_unicode(binary) when is_binary(binary), do: byte_size(binary)
+  defp byte_size_unicode([head]), do: byte_size_unicode(head)
+  defp byte_size_unicode([head | tail]), do: byte_size_unicode(head) + byte_size_unicode(tail)
+
+  defp byte_size_remaining_at(unicode, 0) do
+    byte_size_unicode(unicode)
   end
 
-  defp byte_size_remaining_at(binary, n) do
-    case :unicode_util.gc(binary) do
+  defp byte_size_remaining_at(unicode, n) do
+    case :unicode_util.gc(unicode) do
       [_] -> 0
       [_ | rest] -> byte_size_remaining_at(rest, n - 1)
       [] -> 0
