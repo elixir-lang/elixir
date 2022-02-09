@@ -128,6 +128,30 @@ Now any application can use your formatter as follows:
 
 Finally, the `Code` module has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
 
+## v1.13.3 (2022-02-09)
+
+### 1. Enhancements
+
+#### Mix
+
+  * [mix format] Supply file and line to formatter plugins
+  * [mix format] Support embedded Elixir expressions inside formatter plugins
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code] Fix duplicate bindings causing errors during evaluation
+  * [Kernel] Make sure signatures stored in the Documentation chunk does not contain newlines
+  * [Kernel] Fix infinite loop when compiling guards with recursive map access
+  * [Macro] Fix error on `Macro.to_string/1` when the plain alias `Elixir` is given
+  * [String] Fix error for certain codepoint combinations in `String.split_at/2`
+
+#### Mix
+
+  * [mix compile] Recompile project files when exports from dependencies change
+  * [mix test] Fix total coverage always showing in red even when above the threshold
+
 ## v1.13.2 (2022-01-13)
 
 ### 1. Enhancements
