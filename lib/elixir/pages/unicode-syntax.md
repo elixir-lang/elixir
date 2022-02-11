@@ -18,7 +18,7 @@ Elixir imposes many restrictions on identifiers for security purposes. For examp
 
 Elixir also disallows mixed-scripts in most scenarios. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so, will raise the following error:
 
-```elixir
+```
 ** (SyntaxError) invalid mixed-script identifier found: аdmin
 
 Mixed-script identifiers are not supported for security reasons. 'аdmin' is made of the following scripts:
