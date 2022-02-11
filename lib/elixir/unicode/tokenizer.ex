@@ -292,7 +292,7 @@ defmodule String.Tokenizer do
     end
   end
 
-  defp unicode_upper(_), do: 0
+  defp unicode_upper(_), do: @bottom
 
   for {first, last, scriptset} <- rangify.(unicode_start) do
     if first == last do
@@ -303,7 +303,7 @@ defmodule String.Tokenizer do
     end
   end
 
-  defp unicode_start(_), do: 0
+  defp unicode_start(_), do: @bottom
 
   for {first, last, scriptset} <- rangify.(unicode_continue) do
     if first == last do
@@ -314,7 +314,7 @@ defmodule String.Tokenizer do
     end
   end
 
-  defp unicode_continue(_), do: 0
+  defp unicode_continue(_), do: @bottom
 
   ##
   ## Now we are ready to tokenize!
@@ -333,9 +333,9 @@ defmodule String.Tokenizer do
 
       true ->
         case unicode_upper(head) do
-          0 ->
+          @bottom ->
             case unicode_start(head) do
-              0 -> {:error, :empty}
+              @bottom -> {:error, :empty}
               scriptset -> validate(continue(tail, [head], 1, false, scriptset, []), :identifier)
             end
 
@@ -374,9 +374,9 @@ defmodule String.Tokenizer do
         {acc, list, length, ascii_letters?, scriptset, special}
 
       true ->
-        with 0 <- unicode_start(head),
-             0 <- unicode_upper(head),
-             0 <- unicode_continue(head) do
+        with @bottom <- unicode_start(head),
+             @bottom <- unicode_upper(head),
+             @bottom <- unicode_continue(head) do
           {acc, list, length, ascii_letters?, scriptset, special}
         else
           ss ->
@@ -458,9 +458,9 @@ defmodule String.Tokenizer do
         @top
 
       true ->
-        with 0 <- unicode_start(head),
-             0 <- unicode_upper(head),
-             0 <- unicode_continue(head),
+        with @bottom <- unicode_start(head),
+             @bottom <- unicode_upper(head),
+             @bottom <- unicode_continue(head),
              do: @top
     end
   end
