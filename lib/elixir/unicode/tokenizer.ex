@@ -167,20 +167,26 @@ defmodule String.Tokenizer do
     all_codepoints_to_scriptset
     |> Enum.flat_map(&elem(&1, 1))
     |> Enum.uniq()
-    |> then(&["Han with Bopomofo", "Japanese", "Korean"] ++ &1)
+    |> then(&(["Han with Bopomofo", "Japanese", "Korean"] ++ &1))
 
   # We will represent scriptsets using a bitmap. So let's define
   # a separate module for said operations. We will also sort the
   # scriptsets and make Latin the first one for convenience.
 
   defmodule ScriptSet do
+    @moduledoc false
     def from_index(idx), do: :erlang.bsl(1, idx)
     def lattices(size), do: {0, trunc(:math.pow(2, size)) - 1}
     def union(left, right), do: :erlang.bor(left, right)
+
+    def to_indexes(set) do
+      for {1, index} <- set |> Integer.digits(2) |> Enum.reverse() |> Enum.with_index() do
+        index
+      end
+    end
   end
 
-  sorted_scriptsets =
-    ["Latin" | all_scriptsets |> List.delete("Latin") |> Enum.sort()]
+  sorted_scriptsets = ["Latin" | all_scriptsets |> List.delete("Latin") |> Enum.sort()]
 
   scriptset_masks =
     sorted_scriptsets
@@ -214,24 +220,33 @@ defmodule String.Tokenizer do
   codepoints_to_mask =
     for {codepoint, scriptsets} <- all_codepoints_to_scriptset, into: %{} do
       {codepoint,
-      scriptsets
-      |> Enum.map(&Map.fetch!(scriptset_masks, &1))
-      |> Enum.reduce(bottom, &ScriptSet.union/2)}
+       scriptsets
+       |> Enum.map(&Map.fetch!(scriptset_masks, &1))
+       |> Enum.reduce(bottom, &ScriptSet.union/2)}
     end
 
   ##
   ## Define functions and module attributes to access characters and their scriptsets
   ##
 
-  # @bottom bottom
+  @bottom bottom
   @latin 1
   @top top
+  @indexed_scriptsets sorted_scriptsets |> Enum.with_index(&{&2, &1}) |> Map.new()
+
+  latin = Map.fetch!(scriptset_masks, "Latin")
+
+  @highly_restrictive [
+    ScriptSet.union(latin, Map.fetch!(scriptset_masks, "Japanese")),
+    ScriptSet.union(latin, Map.fetch!(scriptset_masks, "Han with Bopomofo")),
+    ScriptSet.union(latin, Map.fetch!(scriptset_masks, "Korean"))
+  ]
 
   # ScriptSet helpers. Inline instead of dispatching to ScriptSet for performance
 
-  @compile {:inline, ss_latin: 1, ss_union: 2}
+  @compile {:inline, ss_latin: 1, ss_intersect: 2}
   defp ss_latin(ss), do: :erlang.band(ss, @latin)
-  defp ss_union(left, right), do: :erlang.band(left, right)
+  defp ss_intersect(left, right), do: :erlang.band(left, right)
 
   # Ascii helpers
 
@@ -271,7 +286,8 @@ defmodule String.Tokenizer do
     if first == last do
       defp unicode_upper(unquote(first)), do: unquote(scriptset)
     else
-      defp unicode_upper(entry) when entry in unquote(first)..unquote(last), do: unquote(scriptset)
+      defp unicode_upper(entry) when entry in unquote(first)..unquote(last),
+        do: unquote(scriptset)
     end
   end
 
@@ -281,7 +297,8 @@ defmodule String.Tokenizer do
     if first == last do
       defp unicode_start(unquote(first)), do: unquote(scriptset)
     else
-      defp unicode_start(entry) when entry in unquote(first)..unquote(last), do: unquote(scriptset)
+      defp unicode_start(entry) when entry in unquote(first)..unquote(last),
+        do: unquote(scriptset)
     end
   end
 
@@ -291,11 +308,16 @@ defmodule String.Tokenizer do
     if first == last do
       defp unicode_continue(unquote(first)), do: unquote(scriptset)
     else
-      defp unicode_continue(entry) when entry in unquote(first)..unquote(last), do: unquote(scriptset)
+      defp unicode_continue(entry) when entry in unquote(first)..unquote(last),
+        do: unquote(scriptset)
     end
   end
 
   defp unicode_continue(_), do: 0
+
+  ##
+  ## Now we are ready to tokenize!
+  ##
 
   def tokenize([head | tail]) do
     cond do
@@ -357,7 +379,7 @@ defmodule String.Tokenizer do
           {acc, list, length, ascii_letters?, scriptset, special}
         else
           ss ->
-            continue(tail, [head | acc], length + 1, false, ss_union(scriptset, ss), special)
+            continue(tail, [head | acc], length + 1, false, ss_intersect(scriptset, ss), special)
         end
     end
   end
@@ -366,7 +388,7 @@ defmodule String.Tokenizer do
     {acc, [], length, ascii_letters?, scriptset, special}
   end
 
-  defp validate({acc, rest, length, ascii_letters?, _scriptset, special}, kind) do
+  defp validate({acc, rest, length, ascii_letters?, scriptset, special}, kind) do
     acc = :lists.reverse(acc)
 
     cond do
@@ -376,11 +398,69 @@ defmodule String.Tokenizer do
       :unicode.characters_to_nfc_list(acc) != acc ->
         {:error, {:not_nfc, acc}}
 
+      scriptset == @bottom and not highly_restrictive?(acc) ->
+        breakdown =
+          for codepoint <- acc do
+            scriptsets =
+              case codepoint_to_scriptset(codepoint) do
+                @top ->
+                  ""
+
+                scriptset ->
+                  scriptset
+                  |> ScriptSet.to_indexes()
+                  |> Enum.map(&Map.fetch!(@indexed_scriptsets, &1))
+                  |> then(&(" {" <> Enum.join(&1, ",") <> "}"))
+              end
+
+            hex = :io_lib.format('~4.16.0B', [codepoint])
+            "  \\u#{hex} #{[codepoint]}#{scriptsets}\n"
+          end
+
+        prefix = 'invalid mixed-script identifier found: '
+
+        suffix = '''
+
+
+        Mixed-script identifiers are not supported for security reasons. \
+        '#{acc}' is made of the following scripts:\n
+        #{breakdown}
+        Make sure all characters in the identifier resolve to a single script or a highly
+        restrictive script. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
+        '''
+
+        {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
+
       true ->
-        case String.Tokenizer.Security.highly_restrictive(acc) do
-          :ok -> {kind, acc, rest, length, ascii_letters?, special}
-          {:error, msg} -> {:error, {:not_highly_restrictive, acc, msg}}
-        end
+        {kind, acc, rest, length, ascii_letters?, special}
+    end
+  end
+
+  defp highly_restrictive?(acc) do
+    scriptsets = Enum.map(acc, &codepoint_to_scriptset/1)
+
+    # 'A set of scripts is defined to cover a string if the intersection of
+    #  that set with the augmented script sets of all characters in the string
+    #  is nonempty; in other words, if every character in the string shares at
+    #  least one script with the cover set.'
+    Enum.any?(@highly_restrictive, fn restrictive ->
+      Enum.all?(scriptsets, &ss_intersect(&1, restrictive) != @bottom)
+    end)
+  end
+
+  defp codepoint_to_scriptset(head) do
+    cond do
+      ascii_lower?(head) or ascii_upper?(head) ->
+        @latin
+
+      head == ?_ or ascii_continue?(head) ->
+        @top
+
+      true ->
+        with 0 <- unicode_start(head),
+             0 <- unicode_upper(head),
+             0 <- unicode_continue(head),
+             do: @top
     end
   end
 end
