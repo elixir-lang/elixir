@@ -31,7 +31,7 @@ All operators in Elixir are also valid atoms. Valid examples are `:foo`, `:FOO`,
 
 `true`, `false`, and `nil` are reserved words that are represented by the atoms `:true`, `:false` and `:nil` respectively.
 
-To learn more about all Unicode characters allowed in atom, see the [Unicode syntax](unicode-syntax.md) document
+To learn more about all Unicode characters allowed in atom, see the [Unicode syntax](unicode-syntax.md) document.
 
 ### Strings
 
@@ -92,7 +92,7 @@ Variables in Elixir must start with an underscore or a Unicode letter that is no
 
 ### Non-qualified calls (local calls)
 
-Non-qualified calls, such as `add(1, 2)`, must start with an underscore or a Unicode letter that is not in uppercase or titlecase. The call may continue using a sequence of Unicode letters, numbers, and underscore. Calls may end in `?` or `!`. To learn more about all Unicode characters allowed in calls, see the [Unicode syntax](unicode-syntax.md) document
+Non-qualified calls, such as `add(1, 2)`, must start with an underscore or a Unicode letter that is not in uppercase or titlecase. The call may continue using a sequence of Unicode letters, numbers, and underscore. Calls may end in `?` or `!`. To learn more about all Unicode characters allowed in calls, see the [Unicode syntax](unicode-syntax.md) document.
 
 Parentheses for non-qualified calls are optional, except for zero-arity calls, which would then be ambiguous with variables. If parentheses are used, they must immediately follow the function name *without spaces*. For example, `add (1, 2)` is a syntax error, since `(1, 2)` is treated as an invalid block which is attempted to be given as a single argument to `add`.
 
@@ -104,7 +104,7 @@ As many programming languages, Elixir also support operators as non-qualified ca
 
 ### Qualified calls (remote calls)
 
-Qualified calls, such as `Math.add(1, 2)`, must start with an underscore or a Unicode letter that is not in uppercase or titlecase. The call may continue using a sequence of Unicode letters, numbers, and underscores. Calls may end in `?` or `!`. To learn more about all Unicode characters allowed in calls, see the [Unicode syntax](unicode-syntax.md) document
+Qualified calls, such as `Math.add(1, 2)`, must start with an underscore or a Unicode letter that is not in uppercase or titlecase. The call may continue using a sequence of Unicode letters, numbers, and underscores. Calls may end in `?` or `!`. To learn more about all Unicode characters allowed in calls, see the [Unicode syntax](unicode-syntax.md) document.
 
 [Elixir's naming conventions](naming-conventions.md) recommend calls to be in `snake_case` format.
 

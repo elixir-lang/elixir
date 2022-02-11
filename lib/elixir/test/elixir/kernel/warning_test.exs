@@ -59,7 +59,7 @@ defmodule Kernel.WarningTest do
     test "prevents unsafe script mixing in identifiers" do
       exception =
         assert_raise SyntaxError, fn ->
-          Code.string_to_quoted!("if аdmin, do: :ok, else: :err")
+          Code.string_to_quoted!("if аdmin_, do: :ok, else: :err")
         end
 
       assert Exception.message(exception) =~
@@ -71,6 +71,7 @@ defmodule Kernel.WarningTest do
                \\u006D m {Latin}
                \\u0069 i {Latin}
                \\u006E n {Latin}
+               \\u005F _
              """
 
       # a is in cyrllic
