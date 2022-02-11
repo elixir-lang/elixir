@@ -2,15 +2,54 @@
 
 Elixir supports Unicode throughout the language.
 
-Quoted identifiers, such as strings (`"olá"`) and charlists (`'olá'`), support Unicode since Elixir v1.0. Strings are UTF-8 encoded. Charlists are lists of Unicode code points. In such cases, the contents are kept as written by developers, without any transformation.
+Strings (`"olá"`) and charlists (`'olá'`) support Unicode since Elixir v1.0. Strings are UTF-8 encoded. Charlists are lists of Unicode code points. In such cases, the contents are kept as written by developers, without any transformation.
 
-Elixir also supports Unicode in identifiers since Elixir v1.5, as defined in the [Unicode Annex #31](https://unicode.org/reports/tr31/). The focus of this document is to describe how Elixir implements the requirements outlined in the Unicode Annex. These requirements are referred to as R1, R6 and so on.
-
-Elixir provides identifier security as defined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security. The [Unicode Security](unicode-security.html) document describes how Elixir implements the clauses of that Standard.
+Elixir also supports Unicode in variables, atoms, and calls since Elixir v1.5. The focus of this document is to provide a high-level introduction to how Elixir allows Unicode in its syntax. We also provide technical documentation describing how Elixir complies with the Unicode specification.
 
 To check the Unicode version of your current Elixir installation, run `String.Unicode.version()`.
 
-## R1. Default Identifiers
+## Introduction
+
+Elixir allows Unicode characters in its variables, atoms, and calls. However, the Unicode characters must still obey the rules of the language syntax. In particular, variables and calls cannot start with an uppercase letter. From now on, we will refer to those terms as identifiers.
+
+The characters allowed in identifiers are the ones specified by Unicode. Generally speaking, it is restricted to characters typically used by the writing system of human languages still in activity. In particular, it excludes symbols such as emojis, alternate numeric representations, musical notes, etc.
+
+Elixir imposes many restrictions on identifiers for security purposes. For example, the word "josé" can be written in two ways in Unicode: as the combination of the characters `j o s é` and as a combination of the characters `j o s e ́ `, where the accent is its own character. The former is called NFC form and the latter is the NFD form. Elixir requires all characters to be the in the NFC form.
+
+Elixir also disallows mixed-scripts in most scenarios. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so, will raise the following error:
+
+```
+** (SyntaxError) invalid mixed-script identifier found: аdmin
+
+Mixed-script identifiers are not supported for security reasons. 'аdmin' is made of the following scripts:
+
+  \u0430 а {Cyrillic}
+  \u0064 d {Latin}
+  \u006D m {Latin}
+  \u0069 i {Latin}
+  \u006E n {Latin}
+
+Make sure all characters in the identifier resolve to a single script or a highly
+restrictive script. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
+```
+
+The character must either be all in Cyrillic or all in Latin. The only mixed-scripts that Elixir allows, according to the Highly Restrictive Unicode recommendations, are:
+
+  * Latin and Han with Bopomofo
+  * Latin and Japanese
+  * Latin and Korean
+
+Finally, Elixir will also warn on confusable identifiers in the same file. For example, Elixir will emit a warning if you use both variables `а` (Cyrillic) and `а` (Latin) in your code.
+
+That's the overall introduction of how Unicode is used in Elixir identifiers. In a nutshell, its goal is to support different writing systems in use today while keeping the Elixir languague itself clear and secure.
+
+For the technical details, see the next sections that cover the technical Unicode requirements.
+
+## Unicode Annex #31
+
+Elixir implements the requirements outlined in the [Unicode Annex #31](https://unicode.org/reports/tr31/).
+
+### R1. Default Identifiers
 
 The general Elixir identifier rule is specified as:
 
@@ -34,7 +73,7 @@ The spec also provides a `<Medial>` set but Elixir does not include any characte
 
 Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. R1b is guaranteed for backwards compatibility purposes.
 
-### Atoms
+#### Atoms
 
 Unicode atoms in Elixir follow the identifier rule above with the following modifications:
 
@@ -43,7 +82,7 @@ Unicode atoms in Elixir follow the identifier rule above with the following modi
 
 Note atoms can also be quoted, which allows any characters, such as `:"hello elixir"`. All Elixir operators are also valid atoms (`:+`, `:@`, `:|>`, etc.). The full description of valid atoms is available in the ["Atoms" section in the syntax reference](syntax-reference.html#atoms).
 
-### Variables
+#### Variables
 
 Variables in Elixir follow the identifier rule above with the following modifications:
 
@@ -52,11 +91,11 @@ Variables in Elixir follow the identifier rule above with the following modifica
 
 In set notation: `[\u{005F}\p{Ll}\p{Lm}\p{Lo}\p{Nl}\p{Other_ID_Start}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`.
 
-## R3. Pattern_White_Space and Pattern_Syntax Characters
+### R3. Pattern_White_Space and Pattern_Syntax Characters
 
 Elixir supports only code points `\t` (0009), `\n` (000A), `\r` (000D) and `\s` (0020) as whitespace and therefore does not follow requirement R3. R3 requires a wider variety of whitespace and syntax characters to be supported.
 
-## R6. Filtered Normalized Identifiers
+### R6. Filtered Normalized Identifiers
 
 Identifiers in Elixir are case sensitive.
 
@@ -65,3 +104,39 @@ Elixir requires all atoms and variables to be in NFC form. Any other form will f
 In other words, the atom `:josé` can only be written with the code points `006A 006F 0073 00E9`. Using another normalization form will lead to a tokenizer error. On the other hand, `:"josé"` may be written as `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301`, since it is written between quotes.
 
 Choosing requirement R6 automatically excludes requirements R4, R5 and R7.
+
+## Unicode Technical Standard #39
+
+Elixir conforms to the clauses outlined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security.
+
+### C1. General Security Profile for Identifiers
+
+Elixir will not allow tokenization of identifiers with codepoints in `\p{Identifier_Status=Restricted}`.
+
+> An implementation following the General Security Profile does not permit any characters in \p{Identifier_Status=Restricted}, ...
+
+For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, is an uncommon codepoint and will trigger this warning.
+
+### C2. Confusable detection
+
+Elixir will warn on identifiers that look the same, but aren't. Examples: in `а = a = 1`, the two 'a' characters are Cyrillic and Latin, and could be confused for each other; in `力 = カ = 1`, both are Japanese, but different codepoints, in different scripts of that writing system. Confusable identifiers can lead to hard-to-catch bugs (say, due to copy-pasted code) and can be unsafe, so we will warn about identifiers within a single file that could be confused with each other.
+
+We use the means described in Section 4, 'Confusable Detection', with one noted modification
+
+> Alternatively, it shall declare that it uses a modification, and provide a precise list of character mappings that are added to or removed from the provided ones.
+
+Elixir will not warn on confusability for identifiers made up exclusively of characters in a-z, A-Z, 0-9, and _. This is because ASCII identifiers have existed for so long that the programming community has had their own means of dealing with confusability between identifiers like `l,1` or `O,0` (for instance, fonts designed for programming usually make it easy to differentiate between those characters).
+
+### C3. Mixed Script Detection
+
+Elixir will not allow tokenization of mixed-script identifiers unless the mixings is one of the exceptions defined in UTS 39 5.2, 'Highly Restrictive'. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring.
+
+Examples: Elixir allows an identifiers like `幻ㄒㄧㄤ`, even though it includes characters from multiple 'scripts', because those scripts all 'resolve' to Japanese when applying the resolution rules from UTS 39 5.1. It also allows an atom like `:Tシャツ`, the Japanese word for 't-shirt', which incorporates a Latin capital T, because {Latn, Jpan} is one of the allowed script mixings in the definition of 'Highly Restrictive' in UTS 39 5.2, and it 'covers' the string.
+
+However, Elixir would prevent tokenization in code like `if аdmin, do: :ok, else: :err`, where the scriptset for the 'a' character is {Cyrillic} but all other characters have scriptsets of {Latin}. The scriptsets fail to resolve, and the scriptsets from the definition of 'Highly Restrictive' in UTS 39 5.2 do not cover the string either, so a descriptive error is shown.
+
+### C4, C5 (inapplicable)
+
+'C4 - Restriction Level detection' conformance is not claimed and does not apply to identifiers in code; rather, it applies to classifying the level of safety of a given arbitrary string into one of 5 restriction levels.
+
+'C5 - Mixed number detection' conformance is inapplicable as Elixir does not support Unicode numbers.
