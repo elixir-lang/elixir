@@ -1,7 +1,8 @@
 defmodule String.Tokenizer.Security do
   @moduledoc false
+
   # UTS39 security checks that operate on all tokens in a file,
-  # like Confusables. If we add whole-file mixed-script-confusables
+  # like Confusables. If we add whole-file mixed-script-confusable-characters
   # checks we can add them to the list of lints here
   def unicode_lint_warnings(tokens) do
     for warning <- confusables(tokens),

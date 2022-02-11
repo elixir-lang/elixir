@@ -330,7 +330,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert %{
                  app_dir: app_dir,
                  cookie_env: ^cookie,
-                 encoding: {:time_μs, :"£", "£", '£'},
+                 encoding: {:_μ, :"£", "£", '£'},
                  mode: :embedded,
                  node: release_node("release_test"),
                  protocols_consolidated?: true,
@@ -388,7 +388,7 @@ defmodule Mix.Tasks.ReleaseTest do
           config_env: config_env(),
           config_target: config_target()
 
-        config :release_test, :encoding, {:runtime, :time_μs, :"£", "£", '£'}
+        config :release_test, :encoding, {:runtime, :_μ, :"£", "£", '£'}
         """)
 
         root = Path.absname("_build/dev/rel/runtime_config")
@@ -414,7 +414,7 @@ defmodule Mix.Tasks.ReleaseTest do
         open_port(Path.join(root, "bin/runtime_config"), ['start'])
 
         assert %{
-                 encoding: {:runtime, :time_μs, :"£", "£", '£'},
+                 encoding: {:runtime, :_μ, :"£", "£", '£'},
                  mode: :embedded,
                  node: release_node("runtime_config"),
                  protocols_consolidated?: true,
