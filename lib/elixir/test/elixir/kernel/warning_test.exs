@@ -57,31 +57,30 @@ defmodule Kernel.WarningTest do
     end
 
     test "prevents unsafe script mixing in identifiers" do
-      msg =
-        ~S"""
-        nofile:1:4: Unsafe mixed-script identifier 'аdmin' using {Cyrillic, Latin} does not meet the requirements of Unicode TS39 Section 5.2, 'Highly Restrictive'.
+      exception =
+        assert_raise SyntaxError, fn ->
+          Code.string_to_quoted!("if аdmin, do: :ok, else: :err")
+        end
 
-          \u0430 'а' {Cyrillic}
-          \u0064 'd' {Latin}
-          \u006D 'm' {Latin}
-          \u0069 'i' {Latin}
-          \u006E 'n' {Latin}
+      assert Exception.message(exception) =~
+               "nofile:1:4: invalid mixed-script identifier found: аdmin"
 
-        аdmin
-            |
-          1 | if аdmin, do: :ok, else: :err
-            |    ^
-        """
-        |> String.trim()
+      assert Exception.message(exception) =~ """
+               \\u0430 а {Cyrillic}
+               \\u0064 d {Latin}
+               \\u006D m {Latin}
+               \\u0069 i {Latin}
+               \\u006E n {Latin}
+             """
 
-      assert_raise SyntaxError, msg, fn ->
-        Code.string_to_quoted!("if аdmin, do: :ok, else: :err")
-      end
-
+      # a is in cyrllic
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[аdmin: 1]") end
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[{:аdmin, 1}]") end
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("quote do: аdmin(1)") end
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("рос_api = 1") end
+
+      # T is in cyrillic
+      assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[Тシャツ: 1]") end
     end
 
     test "allows legitimate script mixing" do
