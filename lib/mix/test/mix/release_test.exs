@@ -539,13 +539,13 @@ defmodule Mix.ReleaseTest do
     test "writes sys_config with encoding" do
       assert make_sys_config(
                release([]),
-               [encoding: {:time_μs, :"£", "£", '£'}],
+               [encoding: {:_μ, :"£", "£", '£'}],
                "unused/runtime/path"
              ) ==
                :ok
 
       {:ok, contents} = :file.consult(@sys_config)
-      assert contents == [[encoding: {:time_μs, :"£", "£", '£'}]]
+      assert contents == [[encoding: {:_μ, :"£", "£", '£'}]]
     end
 
     test "writes the given sys_config with config providers" do

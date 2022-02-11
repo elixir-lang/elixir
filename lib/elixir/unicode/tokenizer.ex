@@ -1,10 +1,12 @@
 defmodule String.Tokenizer do
   @moduledoc false
 
-  data_path = Path.join(__DIR__, "UnicodeData.txt")
+  ##
+  ## First let's load all characters that we will allow in identifiers
+  ##
 
   {letter_uptitlecase, start, continue, _} =
-    data_path
+    Path.join(__DIR__, "UnicodeData.txt")
     |> File.read!()
     |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.reduce({[], [], [], nil}, fn line, acc ->
@@ -42,10 +44,10 @@ defmodule String.Tokenizer do
       end
     end)
 
-  prop_path = Path.join(__DIR__, "PropList.txt")
+  # Each character is classified accordingly
 
   {start, continue, patterns} =
-    prop_path
+    Path.join(__DIR__, "PropList.txt")
     |> File.read!()
     |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.reduce({start, continue, []}, fn line, acc ->
@@ -76,32 +78,24 @@ defmodule String.Tokenizer do
       end
     end)
 
-  type_path = Path.join(__DIR__, "IdentifierType.txt")
+  # Also restrict characters for security purposes according to UTS 39
 
   restricted =
-    type_path
+    Path.join(__DIR__, "IdentifierType.txt")
     |> File.read!()
     |> String.split(["\r\n", "\n"], trim: true)
-    |> Enum.filter(&String.contains?(&1, ";"))
-    |> Enum.reduce([], fn line, acc ->
-      [codepoints, type_str | _] = String.split(line, ";")
-
-      types = type_str |> String.split("#") |> hd |> String.split(" ", trim: true)
-
-      entries =
-        if Enum.any?(types, &(&1 in ~w(Inclusion Recommended))) do
-          []
-        else
-          case String.split(String.trim(codepoints), "..", trim: true) do
-            [a] ->
-              [String.to_integer(a, 16)]
-
-            [a, b] ->
-              Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
-          end
+    |> Enum.flat_map(fn line ->
+      with [codepoints, type_with_comments] <- :binary.split(line, ";"),
+           [types, _comments] <- :binary.split(type_with_comments, "#"),
+           types = String.split(types, " ", trim: true),
+           true <- "Inclusion" not in types and "Recommended" not in types do
+        case :binary.split(String.trim(codepoints), "..") do
+          [a] -> [String.to_integer(a, 16)]
+          [a, b] -> Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
         end
-
-      entries ++ acc
+      else
+        _ -> []
+      end
     end)
 
   id_upper = (letter_uptitlecase -- patterns) -- restricted
@@ -112,93 +106,219 @@ defmodule String.Tokenizer do
   unicode_start = Enum.filter(id_start, &(&1 > 127))
   unicode_continue = Enum.filter(id_continue, &(&1 > 127))
 
-  rangify = fn [head | tail] ->
-    {first, last, acc} =
-      Enum.reduce(tail, {head, head, []}, fn
-        number, {first, last, acc} when number == first - 1 ->
-          {number, last, acc}
+  unicode_all = Map.from_keys(unicode_upper ++ unicode_start ++ unicode_continue, [])
 
-        number, {first, last, acc} ->
-          {number, number, [{first, last} | acc]}
-      end)
+  ##
+  ## Compute scriptsets for all characters above
+  ##
 
-    [{first, last} | acc]
+  # 3 text files from UAX24 (Scripts):
+  #
+  # 1. Scripts.txt               codepoint => primary script (by full name)
+  # 2. ScriptExtensions.txt      codepoint => N scripts, (by short names)
+  # 3. PropertyValueAliases.txt  short names <=> long names mapping
+
+  # First we'll build a lookup of short <=> long names, starting with
+  # names that we will make part of the highly restricted set later.
+  script_aliases =
+    Path.join(__DIR__, "PropertyValueAliases.txt")
+    |> File.read!()
+    |> String.split(["\r\n", "\n"], trim: true)
+    |> Enum.flat_map(fn line ->
+      case String.split(line, [";", " "], trim: true) do
+        ["sc", short, long | _] -> [{short, long}]
+        _ -> []
+      end
+    end)
+    |> Map.new()
+
+  # Now we will compute all used scriptsets as well as
+  # a mapping from codepoint to scriptsets.
+  codepoints_to_scriptset = fn file, aliases ->
+    Path.join(__DIR__, file)
+    |> File.read!()
+    |> String.split(["\r\n", "\n"], trim: true)
+    |> Enum.flat_map(fn line ->
+      with [codepoints, scripts_with_comments] <- :binary.split(line, ";"),
+           [scripts, _comments] <- :binary.split(scripts_with_comments, "#"),
+           scripts =
+             scripts |> String.split(" ", trim: true) |> Enum.map(&Map.get(aliases, &1, &1)),
+           true <- "Common" not in scripts and "Inherited" not in scripts do
+        codepoints =
+          case :binary.split(String.trim(codepoints), "..") do
+            [a] -> [String.to_integer(a, 16)]
+            [a, b] -> Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
+          end
+
+        for codepoint <- codepoints,
+            Map.has_key?(unicode_all, codepoint),
+            do: {codepoint, scripts}
+      else
+        _ -> []
+      end
+    end)
   end
 
-  @compile {:inline, ascii_upper?: 1, ascii_start?: 1, ascii_continue?: 1}
-  defp ascii_upper?(entry), do: entry in ?A..?Z
+  scripts = codepoints_to_scriptset.("Scripts.txt", %{})
+  script_extensions = codepoints_to_scriptset.("ScriptExtensions.txt", script_aliases)
+  all_codepoints_to_scriptset = scripts ++ script_extensions
 
-  defp ascii_start?(?_), do: true
-  defp ascii_start?(entry), do: entry in ?a..?z
+  all_scriptsets =
+    all_codepoints_to_scriptset
+    |> Enum.flat_map(&elem(&1, 1))
+    |> Enum.uniq()
+    |> then(&["Han with Bopomofo", "Japanese", "Korean"] ++ &1)
 
-  defp ascii_continue?(entry), do: entry in ?0..?9
+  # We will represent scriptsets using a bitmap. So let's define
+  # a separate module for said operations. We will also sort the
+  # scriptsets and make Latin the first one for convenience.
 
-  range = rangify.(unicode_upper)
+  defmodule ScriptSet do
+    def from_index(idx), do: :erlang.bsl(1, idx)
+    def lattices(size), do: {0, trunc(:math.pow(2, size)) - 1}
+    def union(left, right), do: :erlang.bor(left, right)
+  end
 
-  for {first, last} <- range do
-    if first == last do
-      defp unicode_upper?(unquote(first)), do: true
-    else
-      defp unicode_upper?(entry) when entry in unquote(first)..unquote(last), do: true
+  sorted_scriptsets =
+    ["Latin" | all_scriptsets |> List.delete("Latin") |> Enum.sort()]
+
+  scriptset_masks =
+    sorted_scriptsets
+    |> Enum.with_index(fn scriptset, index ->
+      {scriptset, ScriptSet.from_index(index)}
+    end)
+    |> Map.new()
+
+  # Some scriptsets must be augmented according to the rules below
+  augmentation_rules = %{
+    "Han" => ["Han with Bopomofo", "Japanese", "Korean"],
+    "Hiragana" => ["Japanese"],
+    "Katakana" => ["Japanese"],
+    "Hangul" => ["Korean"],
+    "Bopomofo" => ["Han with Bopomofo"]
+  }
+
+  scriptset_masks =
+    for {key, additions} <- augmentation_rules, reduce: scriptset_masks do
+      acc ->
+        Map.update!(acc, key, fn value ->
+          additions
+          |> Enum.map(&Map.fetch!(acc, &1))
+          |> Enum.reduce(value, &ScriptSet.union/2)
+        end)
     end
-  end
 
-  defp unicode_upper?(_), do: false
+  {bottom, top} = ScriptSet.lattices(map_size(scriptset_masks))
+  IO.puts("[Unicode] Using #{map_size(scriptset_masks)} scriptsets")
 
-  range = rangify.(unicode_start)
-
-  for {first, last} <- range do
-    if first == last do
-      defp unicode_start?(unquote(first)), do: true
-    else
-      defp unicode_start?(entry) when entry in unquote(first)..unquote(last), do: true
+  codepoints_to_mask =
+    for {codepoint, scriptsets} <- all_codepoints_to_scriptset, into: %{} do
+      {codepoint,
+      scriptsets
+      |> Enum.map(&Map.fetch!(scriptset_masks, &1))
+      |> Enum.reduce(bottom, &ScriptSet.union/2)}
     end
-  end
 
-  defp unicode_start?(_), do: false
+  ##
+  ## Define functions and module attributes to access characters and their scriptsets
+  ##
 
-  unless {13312, 19903} in range do
-    raise "CHECK: CJK Ideograph not in range. Make sure all properties are listed."
-  end
+  # @bottom bottom
+  @latin 1
+  @top top
 
-  for {first, last} <- rangify.(unicode_continue) do
-    if first == last do
-      defp unicode_continue?(unquote(first)), do: true
-    else
-      defp unicode_continue?(entry) when entry in unquote(first)..unquote(last), do: true
-    end
-  end
+  # ScriptSet helpers. Inline instead of dispatching to ScriptSet for performance
 
-  defp unicode_continue?(_), do: false
+  @compile {:inline, ss_latin: 1, ss_union: 2}
+  defp ss_latin(ss), do: :erlang.band(ss, @latin)
+  defp ss_union(left, right), do: :erlang.band(left, right)
 
-  # Pattern is used as a performance check since most
-  # atoms and variables end with an atom character.
-  for {first, last} <- rangify.(patterns), last <= 127 do
-    if first == last do
-      defp ascii_pattern?(unquote(first)), do: true
-    else
-      defp ascii_pattern?(entry) when entry in unquote(first)..unquote(last), do: true
-    end
+  # Ascii helpers
+
+  @compile {:inline, ascii_upper?: 1, ascii_lower?: 1, ascii_continue?: 1}
+  defp ascii_upper?(entry), do: entry >= ?A and entry <= ?Z
+  defp ascii_lower?(entry), do: entry >= ?a and entry <= ?z
+  defp ascii_continue?(entry), do: entry >= ?0 and entry <= ?9
+
+  # Pattern is used as a performance check to end sooner before traversing unicode
+  for pattern <- ' \t\n\r!"#$%&\'()*+,-./:;<=>?@[]^`{|}~' do
+    defp ascii_pattern?(unquote(pattern)), do: true
   end
 
   defp ascii_pattern?(_), do: false
 
+  # Unicode helpers
+  # We use ranges whenever possible to reduce bytecode size.
+
+  unicode_upper = Enum.map(unicode_upper, &{&1, Map.get(codepoints_to_mask, &1, top)})
+  unicode_start = Enum.map(unicode_start, &{&1, Map.get(codepoints_to_mask, &1, top)})
+  unicode_continue = Enum.map(unicode_continue, &{&1, Map.get(codepoints_to_mask, &1, top)})
+
+  rangify = fn [{head, scriptset} | tail] ->
+    {first, last, scriptset, acc} =
+      Enum.reduce(tail, {head, head, scriptset, []}, fn
+        {number, scriptset}, {first, last, scriptset, acc} when number == first - 1 ->
+          {number, last, scriptset, acc}
+
+        {number, scriptset}, {first, last, range_scriptset, acc} ->
+          {number, number, scriptset, [{first, last, range_scriptset} | acc]}
+      end)
+
+    [{first, last, scriptset} | acc]
+  end
+
+  for {first, last, scriptset} <- rangify.(unicode_upper) do
+    if first == last do
+      defp unicode_upper(unquote(first)), do: unquote(scriptset)
+    else
+      defp unicode_upper(entry) when entry in unquote(first)..unquote(last), do: unquote(scriptset)
+    end
+  end
+
+  defp unicode_upper(_), do: 0
+
+  for {first, last, scriptset} <- rangify.(unicode_start) do
+    if first == last do
+      defp unicode_start(unquote(first)), do: unquote(scriptset)
+    else
+      defp unicode_start(entry) when entry in unquote(first)..unquote(last), do: unquote(scriptset)
+    end
+  end
+
+  defp unicode_start(_), do: 0
+
+  for {first, last, scriptset} <- rangify.(unicode_continue) do
+    if first == last do
+      defp unicode_continue(unquote(first)), do: unquote(scriptset)
+    else
+      defp unicode_continue(entry) when entry in unquote(first)..unquote(last), do: unquote(scriptset)
+    end
+  end
+
+  defp unicode_continue(_), do: 0
+
   def tokenize([head | tail]) do
     cond do
       ascii_upper?(head) ->
-        validate(continue(tail, [head], 1, true, []), :alias)
+        validate(continue(tail, [head], 1, true, @latin, []), :alias)
 
-      ascii_start?(head) ->
-        validate(continue(tail, [head], 1, true, []), :identifier)
+      ascii_lower?(head) ->
+        validate(continue(tail, [head], 1, true, @latin, []), :identifier)
 
-      unicode_upper?(head) ->
-        validate(continue(tail, [head], 1, false, []), :atom)
-
-      unicode_start?(head) ->
-        validate(continue(tail, [head], 1, false, []), :identifier)
+      head == ?_ ->
+        validate(continue(tail, [head], 1, true, @top, []), :identifier)
 
       true ->
-        {:error, :empty}
+        case unicode_upper(head) do
+          0 ->
+            case unicode_start(head) do
+              0 -> {:error, :empty}
+              scriptset -> validate(continue(tail, [head], 1, false, scriptset, []), :identifier)
+            end
+
+          scriptset ->
+            validate(continue(tail, [head], 1, false, scriptset, []), :atom)
+        end
     end
   end
 
@@ -206,37 +326,47 @@ defmodule String.Tokenizer do
     {:error, :empty}
   end
 
-  defp continue([?! | tail], acc, length, ascii_letters?, special) do
-    {[?! | acc], tail, length + 1, ascii_letters?, [?! | special]}
+  defp continue([?! | tail], acc, length, ascii_letters?, scriptset, special) do
+    {[?! | acc], tail, length + 1, ascii_letters?, scriptset, [?! | special]}
   end
 
-  defp continue([?? | tail], acc, length, ascii_letters?, special) do
-    {[?? | acc], tail, length + 1, ascii_letters?, [?? | special]}
+  defp continue([?? | tail], acc, length, ascii_letters?, scriptset, special) do
+    {[?? | acc], tail, length + 1, ascii_letters?, scriptset, [?? | special]}
   end
 
-  defp continue([?@ | tail], acc, length, ascii_letters?, special) do
-    continue(tail, [?@ | acc], length + 1, ascii_letters?, [?@ | List.delete(special, ?@)])
+  defp continue([?@ | tail], acc, length, ascii_letters?, scriptset, special) do
+    special = [?@ | List.delete(special, ?@)]
+    continue(tail, [?@ | acc], length + 1, ascii_letters?, scriptset, special)
   end
 
-  defp continue([head | tail] = list, acc, length, ascii_letters?, special) do
+  defp continue([head | tail] = list, acc, length, ascii_letters?, scriptset, special) do
     cond do
-      ascii_start?(head) or ascii_upper?(head) or ascii_continue?(head) ->
-        continue(tail, [head | acc], length + 1, ascii_letters?, special)
+      ascii_lower?(head) or ascii_upper?(head) ->
+        continue(tail, [head | acc], length + 1, ascii_letters?, ss_latin(scriptset), special)
 
-      not ascii_pattern?(head) and
-          (unicode_start?(head) or unicode_upper?(head) or unicode_continue?(head)) ->
-        continue(tail, [head | acc], length + 1, false, special)
+      head == ?_ or ascii_continue?(head) ->
+        continue(tail, [head | acc], length + 1, ascii_letters?, scriptset, special)
+
+      ascii_pattern?(head) ->
+        {acc, list, length, ascii_letters?, scriptset, special}
 
       true ->
-        {acc, list, length, ascii_letters?, special}
+        with 0 <- unicode_start(head),
+             0 <- unicode_upper(head),
+             0 <- unicode_continue(head) do
+          {acc, list, length, ascii_letters?, scriptset, special}
+        else
+          ss ->
+            continue(tail, [head | acc], length + 1, false, ss_union(scriptset, ss), special)
+        end
     end
   end
 
-  defp continue([], acc, length, ascii_letters?, special) do
-    {acc, [], length, ascii_letters?, special}
+  defp continue([], acc, length, ascii_letters?, scriptset, special) do
+    {acc, [], length, ascii_letters?, scriptset, special}
   end
 
-  defp validate({acc, rest, length, ascii_letters?, special}, kind) do
+  defp validate({acc, rest, length, ascii_letters?, _scriptset, special}, kind) do
     acc = :lists.reverse(acc)
 
     cond do

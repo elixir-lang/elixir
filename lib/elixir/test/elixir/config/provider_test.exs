@@ -82,11 +82,11 @@ defmodule Config.ProviderTest do
       assert config[:elixir] == [config_provider_booted: {:booted, nil}]
     end
 
-    @tag sys_config: [my_app: [encoding: {:time_μs, :"£", "£", '£'}]]
+    @tag sys_config: [my_app: [encoding: {:_μ, :"£", "£", '£'}]]
     test "writes sys_config with encoding" do
       init_and_assert_boot()
       config = consult(@sys_config)
-      assert config[:my_app][:encoding] == {:time_μs, :"£", "£", '£'}
+      assert config[:my_app][:encoding] == {:_μ, :"£", "£", '£'}
     end
 
     @tag sys_config: [my_app: [key: :old_value, sys_key: :sys_value, extra_config: :old_value]]
