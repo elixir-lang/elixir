@@ -107,6 +107,7 @@ defmodule String.Tokenizer do
   unicode_continue = Enum.filter(id_continue, &(&1 > 127))
 
   unicode_all = Map.from_keys(unicode_upper ++ unicode_start ++ unicode_continue, [])
+  IO.puts(:stderr, "[Unicode] Tokenizing #{map_size(unicode_all)} non-ascii codepoints")
 
   ##
   ## Compute scriptsets for all characters above
@@ -180,7 +181,7 @@ defmodule String.Tokenizer do
     def union(left, right), do: :erlang.bor(left, right)
 
     def to_indexes(set) do
-      for {1, index} <- set |> Integer.digits(2) |> Enum.reverse() |> Enum.with_index() do
+      for {?1, index} <- set |> Integer.to_charlist(2) |> Enum.reverse() |> Enum.with_index() do
         index
       end
     end
@@ -215,7 +216,7 @@ defmodule String.Tokenizer do
     end
 
   {bottom, top} = ScriptSet.lattices(map_size(scriptset_masks))
-  IO.puts("[Unicode] Using #{map_size(scriptset_masks)} scriptsets")
+  IO.puts(:stderr, "[Unicode] Tokenizing #{map_size(scriptset_masks)} scriptsets")
 
   codepoints_to_mask =
     for {codepoint, scriptsets} <- all_codepoints_to_scriptset, into: %{} do
@@ -444,7 +445,7 @@ defmodule String.Tokenizer do
     #  is nonempty; in other words, if every character in the string shares at
     #  least one script with the cover set.'
     Enum.any?(@highly_restrictive, fn restrictive ->
-      Enum.all?(scriptsets, &ss_intersect(&1, restrictive) != @bottom)
+      Enum.all?(scriptsets, &(ss_intersect(&1, restrictive) != @bottom))
     end)
   end
 
