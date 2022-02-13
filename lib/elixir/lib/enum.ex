@@ -2854,29 +2854,35 @@ defmodule Enum do
 
   ## Examples
 
-      iex> Enum.slice(1..100, 5..10)
-      [6, 7, 8, 9, 10, 11]
+      iex> Enum.slice([1, 2, 3, 4, 5], 1..3)
+      [2, 3, 4]
 
-      iex> Enum.slice(1..10, 5..20)
-      [6, 7, 8, 9, 10]
+      iex> Enum.slice([1, 2, 3, 4, 5], 3..10)
+      [4, 5]
 
-      # last five elements (negative indexes)
-      iex> Enum.slice(1..30, -5..-1)
-      [26, 27, 28, 29, 30]
+      # last three elements (negative indexes)
+      iex> Enum.slice([1, 2, 3, 4, 5], -3..-1)
+      [3, 4, 5]
 
   For ranges where `start > stop`, you need to explicit
   mark them as increasing:
 
-      iex> Enum.slice(1..30, 25..-1//1)
-      [26, 27, 28, 29, 30]
+      iex> Enum.slice([1, 2, 3, 4, 5], 1..-2//1)
+      [2, 3, 4]
+
+  The step can be any positive number. For example, to
+  get every 2 elements of the collection:
+
+      iex> Enum.slice([1, 2, 3, 4, 5], 0..-1//2)
+      [1, 3, 5]
 
   If values are out of bounds, it returns an empty list:
 
-      iex> Enum.slice(1..10, 11..20)
+      iex> Enum.slice([1, 2, 3, 4, 5], 6..10)
       []
 
       # first is greater than last
-      iex> Enum.slice(1..10, 6..5)
+      iex> Enum.slice([1, 2, 3, 4, 5], 6..5)
       []
 
   """
@@ -2906,6 +2912,14 @@ defmodule Enum do
   def slice(enumerable, %{__struct__: Range, first: first, last: last} = index_range) do
     step = if first <= last, do: 1, else: -1
     slice(enumerable, Map.put(index_range, :step, step))
+  end
+
+  defp slice_range(enumerable, first, -1, step) when first >= 0 do
+    if step == 1 do
+      Enum.drop(enumerable, first)
+    else
+      enumerable |> Enum.drop(first) |> take_every_list(step - 1)
+    end
   end
 
   defp slice_range(enumerable, first, last, step)
