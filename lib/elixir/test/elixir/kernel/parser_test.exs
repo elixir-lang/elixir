@@ -3,6 +3,18 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.ParserTest do
   use ExUnit.Case, async: true
 
+  describe "nullary ops" do
+    test "in expressions" do
+      assert parse!("..") == {:.., [line: 1], []}
+    end
+
+    test "raises on ambiguous uses" do
+      assert_raise SyntaxError, ~r/syntax error before: do/, fn ->
+        parse!("if .. do end")
+      end
+    end
+  end
+
   describe "unary ops" do
     test "in keywords" do
       assert parse!("f(!: :ok)") == {:f, [line: 1], [[!: :ok]]}

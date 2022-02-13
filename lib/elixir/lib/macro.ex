@@ -1730,6 +1730,8 @@ defmodule Macro do
 
       iex> Macro.operator?(:not_an_operator, 3)
       false
+      iex> Macro.operator?(:.., 0)
+      true
       iex> Macro.operator?(:+, 1)
       true
       iex> Macro.operator?(:++, 2)
@@ -1752,6 +1754,9 @@ defmodule Macro do
 
   def operator?(name, 1) when is_atom(name),
     do: Identifier.unary_op(name) != :error
+
+  def operator?(:.., 0),
+    do: true
 
   def operator?(name, arity) when is_atom(name) and is_integer(arity), do: false
 
