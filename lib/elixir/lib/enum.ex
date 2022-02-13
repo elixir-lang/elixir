@@ -4319,7 +4319,8 @@ defmodule Enum do
         if step == 1 do
           fun.(start, amount)
         else
-          fun.(start, Kernel.min(amount * step, count - start)) |> take_every_list(amount, step - 1)
+          fun.(start, Kernel.min(amount * step, count - start))
+          |> take_every_list(amount, step - 1)
         end
 
       {:ok, count, fun} when is_function(fun, 3) ->
@@ -4392,7 +4393,8 @@ defmodule Enum do
         else
           {count,
            fn start, amount, step ->
-             fun.(start, Kernel.min(amount * step, count - start)) |> take_every_list(amount, step - 1)
+             fun.(start, Kernel.min(amount * step, count - start))
+             |> take_every_list(amount, step - 1)
            end}
         end
 
