@@ -396,7 +396,7 @@ defimpl Enumerable, for: Range do
   end
 
   def slice(first.._//step = range) do
-    {:ok, Range.size(range), &slice(first + &1 * step, step, &2)}
+    {:ok, Range.size(range), &slice(first + &1 * step, step + &3 - 1, &2)}
   end
 
   # TODO: Remove me on v2.0

@@ -644,7 +644,7 @@ defmodule StringTest do
     end
   end
 
-  test "slice/2,3" do
+  test "slice/3" do
     assert String.slice("elixir", 1, 3) == "lix"
     assert String.slice("あいうえお", 2, 2) == "うえ"
     assert String.slice("ειξήριολ", 2, 3) == "ξήρ"
@@ -666,7 +666,9 @@ defmodule StringTest do
     assert String.slice("elixir", -5, 0) == ""
     assert String.slice("", 0, 1) == ""
     assert String.slice("", 1, 1) == ""
+  end
 
+  test "slice/2" do
     assert String.slice("elixir", 0..-2) == "elixi"
     assert String.slice("elixir", 1..3) == "lix"
     assert String.slice("elixir", -5..-3) == "lix"
@@ -694,6 +696,29 @@ defmodule StringTest do
     assert_raise FunctionClauseError, fn ->
       String.slice(nil, 0..1)
     end
+  end
+
+  test "slice/2 with steps" do
+    assert String.slice("elixir", 0..-2//2) == "eii"
+    assert String.slice("elixir", 1..3//2) == "lx"
+    assert String.slice("elixir", -5..-3//2) == "lx"
+    assert String.slice("elixir", -5..3//2) == "lx"
+    assert String.slice("あいうえお", 2..3//2) == "う"
+    assert String.slice("ειξήριολ", 2..4//2) == "ξρ"
+    assert String.slice("elixir", 3..6//2) == "xr"
+    assert String.slice("あいうえお", 3..7//2) == "え"
+    assert String.slice("ειξήριολ", 5..8//2) == "ιλ"
+    assert String.slice("elixir", -3..-2//2) == "x"
+    assert String.slice("あいうえお", -4..-2//2) == "いえ"
+    assert String.slice("ειξήριολ", -5..-3//2) == "ήι"
+    assert String.slice("elixir", 8..9//2) == ""
+    assert String.slice("", 0..0//2) == ""
+    assert String.slice("", 1..1//2) == ""
+    assert String.slice("あいうえお", -2..-4//2) == ""
+    assert String.slice("あいうえお", -10..-15//2) == ""
+    assert String.slice("hello あいうえお Unicode", 8..-1//2) == "うおUioe"
+    assert String.slice("abc", -1..14//2) == "c"
+    assert String.slice("a·̀ͯ‿.⁀:", 0..-2//2) == "a‿⁀"
   end
 
   test "valid?/1" do

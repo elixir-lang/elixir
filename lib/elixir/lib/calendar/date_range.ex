@@ -75,7 +75,7 @@ defmodule Date.Range do
             step: step
           } = range
         ) do
-      {:ok, size(range), &slice(first + &1 * step, step, &2, calendar)}
+      {:ok, size(range), &slice(first + &1 * step, step + &3 - 1, &2, calendar)}
     end
 
     # TODO: Remove me on v2.0
