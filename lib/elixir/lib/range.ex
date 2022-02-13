@@ -3,17 +3,55 @@ defmodule Range do
   Ranges represent a sequence of zero, one or many, ascending
   or descending integers with a common difference called step.
 
-  Ranges are always inclusive and they may have custom steps.
   The most common form of creating and matching on ranges is
   via the [`first..last`](`../2`) and [`first..last//step`](`..///3`)
   notations, auto-imported from `Kernel`:
 
+      iex> 1 in 1..10
+      true
+      iex> 5 in 1..10
+      true
+      iex> 10 in 1..10
+      true
+
+  Ranges are always inclusive in Elixir. When a step is defined,
+  integers will only belong to the range if they match the step:
+
+      iex> 5 in 1..10//2
+      true
+      iex> 4 in 1..10//2
+      false
+
+  When defining a range without a step, the step will be
+  defined based on the first and last position of the
+  range, If `first >= last`, it will be an increasing range
+  with a step of 1. Otherwise, it is a decreasing range.
+  Note however implicit decreasing ranges are deprecated.
+  Therefore, if you need a decreasing range from `3` to `1`,
+  prefer to write `3..1//-1` instead.
+
+  `../0` can also be used as a shortcut to create the range `0..-1//1`,
+  also known as the full-slice range:
+
+      iex> ..
+      0..-1//1
+
+  ## Use cases
+
+  Ranges typically have two uses in Elixir: as a collection or
+  to represent a slice of another data structure.
+
+  ### Ranges as collections
+
+  Ranges in Elixir are enumerables and therefore can be used
+  with the `Enum` module:
+
       iex> Enum.to_list(1..3)
       [1, 2, 3]
-      iex> Enum.to_list(1..3//2)
-      [1, 3]
       iex> Enum.to_list(3..1//-1)
       [3, 2, 1]
+      iex> Enum.to_list(1..5//2)
+      [1, 3, 5]
 
   Ranges may also have a single element:
 
@@ -29,27 +67,54 @@ defmodule Range do
       iex> Enum.to_list(0..10//-1)
       []
 
-  When defining a range without a step, the step will be
-  defined based on the first and last position of the
-  range, If `first >= last`, it will be an increasing range
-  with a step of 1. Otherwise, it is a decreasing range.
-  Note however implicitly decreasing ranges are deprecated.
-  Therefore, if you need a decreasing range from `3` to `1`,
-  prefer to write `3..1//-1` instead.
+  The full-slice range, returned by `../0`, is an empty collection:
+
+      iex> Enum.to_list(..)
+      []
+
+  ### Ranges as slices
+
+  Ranges are also frequently used to slice collections.
+  You can slice strings or any enumerable:
+
+      iex> String.slice("elixir", 1..4)
+      "lixi"
+      iex> Enum.slice([0, 1, 2, 3, 4, 5], 1..4)
+      [1, 2, 3, 4]
+
+  In those cases, the first and last values of the range
+  are mapped to positions in the collections.
+
+  If a negative number is given, it maps to a position
+  from the back:
+
+      iex> String.slice("elixir", 1..-2//1)
+      "lixi"
+      iex> Enum.slice([0, 1, 2, 3, 4, 5], 1..-2//1)
+      [1, 2, 3, 4]
+
+  The range `0..-1//1`, returned by `../0`, returns the
+  collection as is, which is why it is called the full-slice
+  range:
+
+      iex> String.slice("elixir", ..)
+      "lixi"
+      iex> Enum.slice([0, 1, 2, 3, 4, 5], ..)
+      [0, 1, 2, 3, 4, 5]
 
   ## Definition
 
-  An increasing range `first..last//step` is a range from
-  `first` to `last` increasing by `step` where  `step` must be a positive
-  integer and all values `v` must be `first <= v and v <= last`. Therefore, a range
-  `10..0//1` is an empty range because there is no value `v`
-  that is `10 <= v and v <= 0`.
+  An increasing range `first..last//step` is a range from `first`
+  to `last` increasing by `step` where  `step` must be a positive
+  integer and all values `v` must be `first <= v and v <= last`.
+  Therefore, a range `10..0//1` is an empty range because there
+  is no value `v` that is `10 <= v and v <= 0`.
 
   Similarly, a decreasing range `first..last//step` is a range
-  from `first` to `last` decreasing by `step` where `step` must be a negative
-  integer and  values `v` must be `first >= v and v >= last`. Therefore, a range
-  `0..10//-1` is an empty range because there is no value `v`
-  that is `0 >= v and v >= 10`.
+  from `first` to `last` decreasing by `step` where `step` must
+  be a negative integer and  values `v` must be `first >= v and v >= last`.
+  Therefore, a range `0..10//-1` is an empty range because there
+  is no value `v` that is `0 >= v and v >= 10`.
 
   ## Representation
 

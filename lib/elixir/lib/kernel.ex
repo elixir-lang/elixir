@@ -3898,6 +3898,8 @@ defmodule Kernel do
 
     * When used as a `slice`, it returns the sliced element as is
 
+  See `..///3` and the `Range` module for more information.
+
   ## Examples
 
       iex> Enum.to_list(..)
