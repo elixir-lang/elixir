@@ -136,9 +136,8 @@ defmodule Range do
   directly but you should not modify nor create ranges by hand.
   Instead use the proper operators or `new/2` and `new/3`.
 
-  A range implements the `Enumerable` protocol, which means
-  functions in the `Enum` module can be used to work with
-  ranges:
+  Ranges implement the `Enumerable` protocol with memory
+  efficient versions of all `Enumerable` callbacks:
 
       iex> range = 1..10
       1..10
