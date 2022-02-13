@@ -2188,6 +2188,12 @@ defmodule String do
       iex> String.slice("elixir", ..)
       "elixir"
 
+  The step can be any positive number. For example, to
+  get every 2 characters of the string:
+
+      iex> String.slice("elixir", 0..-1//2)
+      "eii"
+
   If values are out of bounds, it returns an empty string:
 
       iex> String.slice("elixir", 10..3)
@@ -2206,16 +2212,16 @@ defmodule String do
   @spec slice(t, Range.t()) :: t
   def slice(string, first..last//step = range) when is_binary(string) do
     # TODO: Deprecate negative steps on Elixir v1.16
-    # TODO: There are two features we can add to slicing ranges:
-    # 1. We can allow the step to be any positive number
-    # 2. We can allow slice and reverse at the same time. However, we can't
-    #    implement so right now. First we will have to raise if a decreasing
-    #    range is given on Elixir v2.0.
-    if step == 1 or (step == -1 and first > last) do
-      slice_range(string, first, last)
-    else
-      raise ArgumentError,
-            "String.slice/2 does not accept ranges with custom steps, got: #{inspect(range)}"
+    cond do
+      step > 0 ->
+        slice_range(string, first, last, step)
+
+      step == -1 and first > last ->
+        slice_range(string, first, last, 1)
+
+      true ->
+        raise ArgumentError,
+              "String.slice/2 does not accept ranges with negative steps, got: #{inspect(range)}"
     end
   end
 
@@ -2226,23 +2232,42 @@ defmodule String do
     slice(string, Map.put(range, :step, step))
   end
 
-  defp slice_range("", _, _), do: ""
+  defp slice_range("", _, _, _), do: ""
 
-  defp slice_range(string, first, -1) when first >= 0 do
-    left = byte_size_remaining_at(string, first)
-    binary_part(string, byte_size(string) - left, left)
+  defp slice_range(_string, first, last, _step) when first >= 0 and last >= 0 and first > last do
+    ""
   end
 
-  defp slice_range(string, first, last) when first >= 0 and last >= 0 do
-    if last >= first do
-      slice(string, first, last - first + 1)
-    else
-      ""
+  defp slice_range(string, first, last, step) when first >= 0 do
+    from_start = byte_size_remaining_at(string, first)
+    rest = binary_part(string, byte_size(string) - from_start, from_start)
+
+    cond do
+      last == -1 ->
+        slice_every(rest, byte_size(rest), step)
+
+      last >= 0 and step == 1 ->
+        from_end = byte_size_remaining_at(rest, last - first + 1)
+        binary_part(rest, 0, from_start - from_end)
+
+      last >= 0 ->
+        slice_every(rest, last - first + 1, step)
+
+      true ->
+        rest
+        |> slice_range_negative(0, last)
+        |> slice_every(byte_size(string), step)
     end
   end
 
-  defp slice_range(string, first, last) do
-    {bytes, length} = acc_bytes(:unicode_util.gc(string), [], 0)
+  defp slice_range(string, first, last, step) do
+    string
+    |> slice_range_negative(first, last)
+    |> slice_every(byte_size(string), step)
+  end
+
+  defp slice_range_negative(string, first, last) do
+    {reversed_bytes, length} = acc_bytes(string, [], 0)
     first = add_if_negative(first, length)
     last = add_if_negative(last, length)
 
@@ -2250,21 +2275,52 @@ defmodule String do
       ""
     else
       last = min(last + 1, length)
-      bytes = Enum.drop(bytes, length - last)
-      first = last - first
-      {length_bytes, start_bytes} = split_bytes(bytes, 0, first)
+      reversed_bytes = Enum.drop(reversed_bytes, length - last)
+      {length_bytes, start_bytes} = split_bytes(reversed_bytes, 0, last - first)
       binary_part(string, start_bytes, length_bytes)
     end
   end
 
-  defp acc_bytes([gc | rest], bytes, length),
-    do: acc_bytes(:unicode_util.gc(rest), [grapheme_byte_size(gc) | bytes], length + 1)
+  defp slice_every(string, _count, 1), do: string
+  defp slice_every(string, count, step), do: slice_every(string, count, step, [])
 
-  defp acc_bytes([], bytes, length),
-    do: {bytes, length}
+  defp slice_every(string, count, to_drop, acc) when count > 0 do
+    case :unicode_util.gc(string) do
+      [current | rest] ->
+        rest
+        |> drop(to_drop)
+        |> slice_every(count - to_drop, to_drop, [current | acc])
 
-  defp acc_bytes({:error, <<_, rest::bits>>}, bytes, length),
-    do: acc_bytes(:unicode_util.gc(rest), [1 | bytes], length + 1)
+      [] ->
+        reverse_characters_to_binary(acc)
+
+      {:error, <<byte, rest::bits>>} ->
+        reverse_characters_to_binary(acc) <>
+          <<byte>> <> slice_every(drop(rest, to_drop), count - to_drop, to_drop, [])
+    end
+  end
+
+  defp slice_every(_string, _count, _to_drop, acc) do
+    reverse_characters_to_binary(acc)
+  end
+
+  defp drop(string, 1), do: string
+
+  defp drop(string, count) do
+    case :unicode_util.gc(string) do
+      [_ | rest] -> drop(rest, count - 1)
+      [] -> ""
+      {:error, <<_, rest::bits>>} -> drop(rest, count - 1)
+    end
+  end
+
+  defp acc_bytes(string, bytes, length) do
+    case :unicode_util.gc(string) do
+      [gc | rest] -> acc_bytes(rest, [grapheme_byte_size(gc) | bytes], length + 1)
+      [] -> {bytes, length}
+      {:error, <<_, rest::bits>>} -> acc_bytes(rest, [1 | bytes], length + 1)
+    end
+  end
 
   defp add_if_negative(value, to_add) when value < 0, do: value + to_add
   defp add_if_negative(value, _to_add), do: value
