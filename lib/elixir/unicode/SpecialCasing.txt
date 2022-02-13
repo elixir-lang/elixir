@@ -195,5 +195,87 @@ FB17; FB17; 0544 056D; 0544 053D; # ARMENIAN SMALL LIGATURE MEN XEH
 1FC7; 1FC7; 0397 0342 0345; 0397 0342 0399; # GREEK SMALL LETTER ETA WITH PERISPOMENI AND YPOGEGRAMMENI
 1FF7; 1FF7; 03A9 0342 0345; 03A9 0342 0399; # GREEK SMALL LETTER OMEGA WITH PERISPOMENI AND YPOGEGRAMMENI
 
+# ================================================================================
+# Conditional Mappings
+# The remainder of this file provides conditional casing data used to produce
+# full case mappings.
+# ================================================================================
+# Language-Insensitive Mappings
+# These are characters whose full case mappings do not depend on language, but do
+# depend on context (which characters come before or after). For more information
+# see the header of this file and the Unicode Standard.
+# ================================================================================
+
+# Special case for final form of sigma
+
+03A3; 03C2; 03A3; 03A3; Final_Sigma; # GREEK CAPITAL LETTER SIGMA
+
+# Note: the following cases for non-final are already in the UnicodeData.txt file.
+
+# 03A3; 03C3; 03A3; 03A3; # GREEK CAPITAL LETTER SIGMA
+# 03C3; 03C3; 03A3; 03A3; # GREEK SMALL LETTER SIGMA
+# 03C2; 03C2; 03A3; 03A3; # GREEK SMALL LETTER FINAL SIGMA
+
+# Note: the following cases are not included, since they would case-fold in lowercasing
+
+# 03C3; 03C2; 03A3; 03A3; Final_Sigma; # GREEK SMALL LETTER SIGMA
+# 03C2; 03C3; 03A3; 03A3; Not_Final_Sigma; # GREEK SMALL LETTER FINAL SIGMA
+
+# ================================================================================
+# Language-Sensitive Mappings
+# These are characters whose full case mappings depend on language and perhaps also
+# context (which characters come before or after). For more information
+# see the header of this file and the Unicode Standard.
+# ================================================================================
+
+# Lithuanian
+
+# Lithuanian retains the dot in a lowercase i when followed by accents.
+
+# Remove DOT ABOVE after "i" with upper or titlecase
+
+0307; 0307; ; ; lt After_Soft_Dotted; # COMBINING DOT ABOVE
+
+# Introduce an explicit dot above when lowercasing capital I's and J's
+# whenever there are more accents above.
+# (of the accents used in Lithuanian: grave, acute, tilde above, and ogonek)
+
+0049; 0069 0307; 0049; 0049; lt More_Above; # LATIN CAPITAL LETTER I
+004A; 006A 0307; 004A; 004A; lt More_Above; # LATIN CAPITAL LETTER J
+012E; 012F 0307; 012E; 012E; lt More_Above; # LATIN CAPITAL LETTER I WITH OGONEK
+00CC; 0069 0307 0300; 00CC; 00CC; lt; # LATIN CAPITAL LETTER I WITH GRAVE
+00CD; 0069 0307 0301; 00CD; 00CD; lt; # LATIN CAPITAL LETTER I WITH ACUTE
+0128; 0069 0307 0303; 0128; 0128; lt; # LATIN CAPITAL LETTER I WITH TILDE
+
+# ================================================================================
+
+# Turkish and Azeri
+
+# I and i-dotless; I-dot and i are case pairs in Turkish and Azeri
+# The following rules handle those cases.
+
+0130; 0069; 0130; 0130; tr; # LATIN CAPITAL LETTER I WITH DOT ABOVE
+0130; 0069; 0130; 0130; az; # LATIN CAPITAL LETTER I WITH DOT ABOVE
+
+# When lowercasing, remove dot_above in the sequence I + dot_above, which will turn into i.
+# This matches the behavior of the canonically equivalent I-dot_above
+
+0307; ; 0307; 0307; tr After_I; # COMBINING DOT ABOVE
+0307; ; 0307; 0307; az After_I; # COMBINING DOT ABOVE
+
+# When lowercasing, unless an I is before a dot_above, it turns into a dotless i.
+
+0049; 0131; 0049; 0049; tr Not_Before_Dot; # LATIN CAPITAL LETTER I
+0049; 0131; 0049; 0049; az Not_Before_Dot; # LATIN CAPITAL LETTER I
+
+# When uppercasing, i turns into a dotted capital I
+
+0069; 0069; 0130; 0130; tr; # LATIN SMALL LETTER I
+0069; 0069; 0130; 0130; az; # LATIN SMALL LETTER I
+
+# Note: the following case is already in the UnicodeData.txt file.
+
+# 0131; 0131; 0049; 0049; tr; # LATIN SMALL LETTER DOTLESS I
+
 # EOF
 

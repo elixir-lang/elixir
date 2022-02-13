@@ -8,7 +8,7 @@
 # 3. Replace PropList.txt by copying original
 # 4. Replace ScriptExtensions.txt by copying original
 # 5. Replace Scripts.txt by copying original
-# 6. Replace SpecialCasing.txt by copying original and removing conditional mappings
+# 6. Replace SpecialCasing.txt by copying original
 # 7. Replace confusables.txt by copying original
 #    (from https://www.unicode.org/Public/security/VERSION_NUMBER/)
 # 8. Replace IdentifierType.txt by copying original
@@ -152,11 +152,13 @@ defmodule String.Unicode do
   @moduledoc false
   def version, do: {14, 0, 0}
 
-  special_path = Path.join(__DIR__, "SpecialCasing.txt")
+  [unconditional_mappings, _conditional_mappings] =
+    Path.join(__DIR__, "SpecialCasing.txt")
+    |> File.read!()
+    |> :binary.split("# Conditional Mappings")
 
   codes =
-    special_path
-    |> File.read!()
+    unconditional_mappings
     |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.reduce(codes, fn
       "", acc ->
@@ -449,6 +451,8 @@ defmodule String.Break do
           acc
       end
     end)
+
+  IO.puts(:stderr, "[Unicode] Break on #{length(whitespace)} whitespace codepoints")
 
   # trim_leading
 
