@@ -3890,6 +3890,28 @@ defmodule Kernel do
   defp validate_step!(_), do: :ok
 
   @doc """
+  Creates the full-slice range `0..-1//1`.
+
+  This macro returns a range with the following properties:
+
+    * When enumerated, it is empty
+
+    * When used as a `slice`, it returns the sliced element as is
+
+  ## Examples
+
+      iex> Enum.to_list(..)
+      []
+
+      iex> String.slice("Hello world!", ..)
+      "Hello world!"
+
+  """
+  defmacro (..) do
+    range(__CALLER__.context, 0, -1, 1)
+  end
+
+  @doc """
   Boolean "and" operator.
 
   Provides a short-circuit operator that evaluates and returns

@@ -445,6 +445,15 @@ defmodule Code.Formatter do
     binary_op_to_algebra(:in, "not in", meta, left, right, context, state)
   end
 
+  # ..
+  defp quoted_to_algebra({:.., _meta, []}, context, state) do
+    if context in [:no_parens_arg, :no_parens_one_arg] do
+      {"(..)", state}
+    else
+      {"..", state}
+    end
+  end
+
   # 1..2//3
   defp quoted_to_algebra({:"..//", meta, [left, middle, right]}, context, state) do
     quoted_to_algebra({:"//", meta, [{:.., meta, [left, middle]}, right]}, context, state)

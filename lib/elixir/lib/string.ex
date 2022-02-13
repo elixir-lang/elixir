@@ -2182,6 +2182,12 @@ defmodule String do
       iex> String.slice("elixir", 1..-2//1)
       "lixi"
 
+  You can use `../0` as a shortcut for `0..-1//1`, which returns
+  the whole string as is:
+
+      iex> String.slice("elixir", ..)
+      "elixir"
+
   If values are out of bounds, it returns an empty string:
 
       iex> String.slice("elixir", 10..3)
