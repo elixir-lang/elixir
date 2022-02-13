@@ -444,7 +444,7 @@ defmodule MapSet do
 
     def slice(map_set) do
       size = MapSet.size(map_set)
-      {:ok, size, &Enumerable.List.slice(MapSet.to_list(map_set), &1, &2, size)}
+      {:ok, size, &MapSet.to_list/1}
     end
 
     def reduce(map_set, acc, fun) do
