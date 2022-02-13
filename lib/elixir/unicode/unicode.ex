@@ -1,15 +1,18 @@
 # How to update the Unicode files
 #
-# Unicode files can be found in https://www.unicode.org/Public/
+# Unicode files can be found in https://www.unicode.org/Public/VERSION_NUMBER/ where
+# VERSION_NUMBER is the current Unicode version.
 #
 # 1. Replace UnicodeData.txt by copying original
-# 2. Replace PropList.txt by copying original
-# 3. Replace SpecialCasing.txt by copying original and removing conditional mappings
-# 4. Replace IdentifierType.txt by copying original (from /Public/security)
-# 5. Replace confusables.txt by copying original (from /Public/security)
-# 6. Replace PropertyValueAliases.txt by copying original
-# 7. Replace Scripts.txt by copying original
-# 8. Replace ScriptExtensions.txt by copying original
+# 2. Replace PropertyValueAliases.txt by copying original
+# 3. Replace PropList.txt by copying original
+# 4. Replace ScriptExtensions.txt by copying original
+# 5. Replace Scripts.txt by copying original
+# 6. Replace SpecialCasing.txt by copying original and removing conditional mappings
+# 7. Replace confusables.txt by copying original
+#    (from https://www.unicode.org/Public/security/VERSION_NUMBER/)
+# 8. Replace IdentifierType.txt by copying original
+#    (from https://www.unicode.org/Public/security/VERSION_NUMBER/)
 # 9. Update String.Unicode.version/0 and on String module docs (version and link)
 # 10. make unicode
 
