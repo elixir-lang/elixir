@@ -98,7 +98,7 @@ defmodule Range do
   range:
 
       iex> String.slice("elixir", ..)
-      "lixi"
+      "elixir"
       iex> Enum.slice([0, 1, 2, 3, 4, 5], ..)
       [0, 1, 2, 3, 4, 5]
 

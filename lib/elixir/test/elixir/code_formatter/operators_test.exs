@@ -28,6 +28,7 @@ defmodule Code.Formatter.OperatorsTest do
       assert_same "require(.., bar)"
 
       assert_same "assert [.., :ok]"
+      assert_same "assert {.., :ok}"
       assert_same "assert (..) == 0..-1//1"
       assert_same "assert 0..-1//1 == (..)"
 
