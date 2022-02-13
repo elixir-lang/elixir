@@ -440,6 +440,12 @@ defmodule KernelTest do
     end
   end
 
+  describe ".." do
+    test "returns 0..-1//1" do
+      assert (..) == 0..-1//1
+    end
+  end
+
   describe "in/2" do
     test "too large list in guards" do
       defmodule TooLargeList do

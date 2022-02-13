@@ -2182,6 +2182,12 @@ defmodule String do
       iex> String.slice("elixir", 1..-2//1)
       "lixi"
 
+  You can use `../0` as a shortcut for `0..-1//1`, which returns
+  the whole string as is:
+
+      iex> String.slice("elixir", ..)
+      "elixir"
+
   The step can be any positive number. For example, to
   get every 2 characters of the string:
 
@@ -2206,11 +2212,6 @@ defmodule String do
   @spec slice(t, Range.t()) :: t
   def slice(string, first..last//step = range) when is_binary(string) do
     # TODO: Deprecate negative steps on Elixir v1.16
-    # TODO: There are two features we can add to slicing ranges:
-    # 1. We can allow the step to be any positive number
-    # 2. We can allow slice and reverse at the same time. However, we can't
-    #    implement so right now. First we will have to raise if a decreasing
-    #    range is given on Elixir v2.0.
     cond do
       step > 0 ->
         slice_range(string, first, last, step)
