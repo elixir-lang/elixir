@@ -37,6 +37,7 @@ defmodule URI do
   defmodule Error do
     defexception [:action, :reason, :part]
 
+    @doc false
     def message(%Error{action: action, reason: reason, part: part}) do
       "cannot #{action} due to reason #{reason}: #{inspect(part)}"
     end
