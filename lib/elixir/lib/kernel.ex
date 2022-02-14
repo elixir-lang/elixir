@@ -1968,145 +1968,6 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns a binary starting at the offset `start`, and of the given `size`.
-
-  This is similar to `binary_part/3` except that if `start + size`
-  is greater than the binary size, it automatically clips it to
-  the binary size instead of raising. Opposite to `binary_part/3`,
-  this function is not allowed in guards.
-
-  This function works with bytes. For a slicing operation that
-  considers characters, see `String.slice/3`.
-
-  ## Examples
-
-      iex> binary_slice("elixir", 0, 6)
-      "elixir"
-      iex> binary_slice("elixir", 0, 5)
-      "elixi"
-      iex> binary_slice("elixir", 1, 4)
-      "lixi"
-      iex> binary_slice("elixir", 0, 10)
-      "elixir"
-
-  If the `size` is zero, an empty binary is returned:
-
-      iex> binary_slice("elixir", 0, 10)
-      "elixir"
-
-  If `start` is greater than or equal to the binary size,
-  an empty binary is returned:
-
-      iex> binary_slice("elixir", 3, 10)
-      "xir"
-      iex> binary_slice("elixir", 10, 10)
-      ""
-
-  """
-  @doc since: "1.14.0"
-  def binary_slice(binary, start, size) when start >= 0 and size >= 0 do
-    total = byte_size(binary)
-
-    case start < total do
-      true -> :erlang.binary_part(binary, start, min(size, total - start))
-      false -> ""
-    end
-  end
-
-  @doc """
-  Returns a binary from the offset given by the start of the
-  range to the offset given by the end of the range.
-
-  If the start or end of the range are negative, they are converted
-  into positive indices based on the binary size. For example,
-  `-1` means the last byte of the binary.
-
-  This is similar to `binary_part/3` except that it works with ranges
-  and it is not allowed in guards.
-
-  This function works with bytes. For a slicing operation that
-  considers characters, see `String.slice/2`.
-
-  ## Examples
-
-      iex> binary_slice("elixir", 0..5)
-      "elixir"
-      iex> binary_slice("elixir", 1..3)
-      "lix"
-      iex> binary_slice("elixir", 1..10)
-      "lixir"
-
-      iex> binary_slice("elixir", -4..-1)
-      "ixir"
-      iex> binary_slice("elixir", -4..6)
-      "ixir"
-
-  For ranges where `start > stop`, you need to explicitly
-  mark them as increasing:
-
-      iex> binary_slice("elixir", 2..-1//1)
-      "ixir"
-      iex> binary_slice("elixir", 1..-2//1)
-      "lixi"
-
-  You can use `../0` as a shortcut for `0..-1//1`, which returns
-  the whole binary as is:
-
-      iex> binary_slice("elixir", ..)
-      "elixir"
-
-  The step can be any positive number. For example, to
-  get every 2 characters of the binary:
-
-      iex> binary_slice("elixir", 0..-1//2)
-      "eii"
-
-  If values are out of bounds, it returns an empty binary:
-
-      iex> binary_slice("elixir", 10..3//1)
-      ""
-      iex> binary_slice("elixir", -10..-7)
-      ""
-      iex> binary_slice("a", 1..1500)
-      ""
-
-  """
-  @doc since: "1.14.0"
-  def binary_slice(binary, first..last//step) when step > 0 do
-    total = byte_size(binary)
-
-    first =
-      case first < 0 do
-        true -> first + total
-        false -> first
-      end
-
-    last =
-      case last < 0 do
-        true -> last + total
-        false -> last
-      end
-
-    case first >= 0 and first < total do
-      true ->
-        part = binary_part(binary, first, min(total - first, last - first + 1))
-
-        case step do
-          1 -> part
-          _ -> for <<byte, _::size(step - 1)-bytes <- part>>, into: "", do: <<byte>>
-        end
-
-      false ->
-        ""
-    end
-  end
-
-  def binary_slice(_binary, range) do
-    raise ArgumentError,
-          "binary_slice/2 does not accept ranges with negative steps, got: #{inspect(range)}"
-  end
-
-  @doc """
   Raises an exception.
 
   If `message` is a string, it raises a `RuntimeError` exception with it.
@@ -4312,7 +4173,9 @@ defmodule Kernel do
     do: integer_pow(b * b, a * b, :erlang.bsr(e, 1))
 
   @doc """
-  Membership operator. Checks if the element on the left-hand side is a member of the
+  Membership operator.
+
+  Checks if the element on the left-hand side is a member of the
   collection on the right-hand side.
 
   ## Examples
@@ -4615,6 +4478,145 @@ defmodule Kernel do
     # Simply remove the alias metadata from the node
     # so it does not affect expansion.
     {:__aliases__, :lists.keydelete(:alias, 1, meta), args}
+  end
+
+  @doc """
+  Returns a binary starting at the offset `start`, and of the given `size`.
+
+  This is similar to `binary_part/3` except that if `start + size`
+  is greater than the binary size, it automatically clips it to
+  the binary size instead of raising. Opposite to `binary_part/3`,
+  this function is not allowed in guards.
+
+  This function works with bytes. For a slicing operation that
+  considers characters, see `String.slice/3`.
+
+  ## Examples
+
+      iex> binary_slice("elixir", 0, 6)
+      "elixir"
+      iex> binary_slice("elixir", 0, 5)
+      "elixi"
+      iex> binary_slice("elixir", 1, 4)
+      "lixi"
+      iex> binary_slice("elixir", 0, 10)
+      "elixir"
+
+  If the `size` is zero, an empty binary is returned:
+
+      iex> binary_slice("elixir", 0, 10)
+      "elixir"
+
+  If `start` is greater than or equal to the binary size,
+  an empty binary is returned:
+
+      iex> binary_slice("elixir", 3, 10)
+      "xir"
+      iex> binary_slice("elixir", 10, 10)
+      ""
+
+  """
+  @doc since: "1.14.0"
+  def binary_slice(binary, start, size) when start >= 0 and size >= 0 do
+    total = byte_size(binary)
+
+    case start < total do
+      true -> :erlang.binary_part(binary, start, min(size, total - start))
+      false -> ""
+    end
+  end
+
+  @doc """
+  Returns a binary from the offset given by the start of the
+  range to the offset given by the end of the range.
+
+  If the start or end of the range are negative, they are converted
+  into positive indices based on the binary size. For example,
+  `-1` means the last byte of the binary.
+
+  This is similar to `binary_part/3` except that it works with ranges
+  and it is not allowed in guards.
+
+  This function works with bytes. For a slicing operation that
+  considers characters, see `String.slice/2`.
+
+  ## Examples
+
+      iex> binary_slice("elixir", 0..5)
+      "elixir"
+      iex> binary_slice("elixir", 1..3)
+      "lix"
+      iex> binary_slice("elixir", 1..10)
+      "lixir"
+
+      iex> binary_slice("elixir", -4..-1)
+      "ixir"
+      iex> binary_slice("elixir", -4..6)
+      "ixir"
+
+  For ranges where `start > stop`, you need to explicitly
+  mark them as increasing:
+
+      iex> binary_slice("elixir", 2..-1//1)
+      "ixir"
+      iex> binary_slice("elixir", 1..-2//1)
+      "lixi"
+
+  You can use `../0` as a shortcut for `0..-1//1`, which returns
+  the whole binary as is:
+
+      iex> binary_slice("elixir", ..)
+      "elixir"
+
+  The step can be any positive number. For example, to
+  get every 2 characters of the binary:
+
+      iex> binary_slice("elixir", 0..-1//2)
+      "eii"
+
+  If values are out of bounds, it returns an empty binary:
+
+      iex> binary_slice("elixir", 10..3//1)
+      ""
+      iex> binary_slice("elixir", -10..-7)
+      ""
+      iex> binary_slice("a", 1..1500)
+      ""
+
+  """
+  @doc since: "1.14.0"
+  def binary_slice(binary, first..last//step) when step > 0 do
+    total = byte_size(binary)
+
+    first =
+      case first < 0 do
+        true -> first + total
+        false -> first
+      end
+
+    last =
+      case last < 0 do
+        true -> last + total
+        false -> last
+      end
+
+    case first >= 0 and first < total do
+      true ->
+        part = binary_part(binary, first, min(total - first, last - first + 1))
+
+        case step do
+          1 -> part
+          _ -> for <<byte, _::size(step - 1)-bytes <- part>>, into: "", do: <<byte>>
+        end
+
+      false ->
+        ""
+    end
+  end
+
+  def binary_slice(_binary, range) do
+    raise ArgumentError,
+          "binary_slice/2 does not accept ranges with negative steps, got: #{inspect(range)}"
   end
 
   ## Definitions implemented in Elixir
