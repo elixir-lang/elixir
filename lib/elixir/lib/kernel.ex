@@ -4504,8 +4504,8 @@ defmodule Kernel do
 
   If the `size` is zero, an empty binary is returned:
 
-      iex> binary_slice("elixir", 0, 10)
-      "elixir"
+      iex> binary_slice("elixir", 1, 0)
+      ""
 
   If `start` is greater than or equal to the binary size,
   an empty binary is returned:
@@ -4517,7 +4517,9 @@ defmodule Kernel do
 
   """
   @doc since: "1.14.0"
-  def binary_slice(binary, start, size) when start >= 0 and size >= 0 do
+  def binary_slice(binary, start, size)
+      when is_binary(binary) and is_integer(start) and is_integer(size) and
+             start >= 0 and size >= 0 do
     total = byte_size(binary)
 
     case start < total do
@@ -4585,7 +4587,8 @@ defmodule Kernel do
 
   """
   @doc since: "1.14.0"
-  def binary_slice(binary, first..last//step) when step > 0 do
+  def binary_slice(binary, first..last//step)
+      when is_binary(binary) and step > 0 do
     total = byte_size(binary)
 
     first =
@@ -4614,7 +4617,7 @@ defmodule Kernel do
     end
   end
 
-  def binary_slice(_binary, range) do
+  def binary_slice(binary, _.._//_ = range) when is_binary(binary) do
     raise ArgumentError,
           "binary_slice/2 does not accept ranges with negative steps, got: #{inspect(range)}"
   end
