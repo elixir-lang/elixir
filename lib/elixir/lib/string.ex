@@ -2084,7 +2084,8 @@ defmodule String do
 
   Remember this function works with Unicode graphemes and considers
   the slices to represent grapheme offsets. If you want to split
-  on raw bytes, check `Kernel.binary_part/3` instead.
+  on raw bytes, check `Kernel.binary_part/3` or `Kernel.binary_slice/3`
+  instead.
 
   ## Examples
 
@@ -2157,19 +2158,18 @@ defmodule String do
 
   Remember this function works with Unicode graphemes and considers
   the slices to represent grapheme offsets. If you want to split
-  on raw bytes, check `Kernel.binary_part/3` instead.
+  on raw bytes, check `Kernel.binary_part/3` or
+  `Kernel.binary_slice/2` instead
 
   ## Examples
 
       iex> String.slice("elixir", 1..3)
       "lix"
-
       iex> String.slice("elixir", 1..10)
       "lixir"
 
       iex> String.slice("elixir", -4..-1)
       "ixir"
-
       iex> String.slice("elixir", -4..6)
       "ixir"
 
@@ -2178,7 +2178,6 @@ defmodule String do
 
       iex> String.slice("elixir", 2..-1//1)
       "ixir"
-
       iex> String.slice("elixir", 1..-2//1)
       "lixi"
 
@@ -2198,13 +2197,8 @@ defmodule String do
 
       iex> String.slice("elixir", 10..3)
       ""
-
       iex> String.slice("elixir", -10..-7)
       ""
-
-      iex> String.slice("a", 0..1500)
-      "a"
-
       iex> String.slice("a", 1..1500)
       ""
 
