@@ -85,6 +85,7 @@ expand({require, Meta, [Ref, Opts]}, S, E) ->
   if
     is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
+      elixir_env:trace({require, Meta, ERef, EOpts}, ET),
       {ERef, ST, expand_require(Meta, ERef, EOpts, ET)};
     true ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, require, Ref})
@@ -954,7 +955,6 @@ no_alias_expansion(Other) ->
   Other.
 
 expand_require(Meta, Ref, Opts, E) ->
-  elixir_env:trace({require, Meta, Ref, Opts}, E),
   RE = E#{requires := ordsets:add_element(Ref, ?key(E, requires))},
   expand_alias(Meta, false, Ref, Opts, RE).
 

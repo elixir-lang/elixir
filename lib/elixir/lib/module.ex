@@ -1814,7 +1814,8 @@ defmodule Module do
           acc
 
         true ->
-          :elixir_env.trace({:require, [], behaviour, []}, env)
+          event = {:remote_function, [], behaviour, :behaviour_info, 1}
+          :elixir_env.trace(event, %{env | function: {:__info__, 1}})
           optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
           callbacks = behaviour_info(behaviour, :callbacks)
           Enum.reduce(callbacks, acc, &add_callback(&1, behaviour, env, optional_callbacks, &2))

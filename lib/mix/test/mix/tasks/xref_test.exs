@@ -254,7 +254,7 @@ defmodule Mix.Tasks.XrefTest do
       output = """
       Compiling 2 files (.ex)
       Generated sample app
-      lib/b.ex:2: require A (export)
+      lib/b.ex:2: import A (export)
       lib/b.ex:3: call A.macro/0 (compile)
       lib/b.ex:4: import A.macro/0 (compile)
       lib/b.ex:5: call A.fun/0 (compile)
@@ -288,6 +288,7 @@ defmodule Mix.Tasks.XrefTest do
       output = """
       Compiling 2 files (.ex)
       Generated sample app
+      lib/b.ex:2: require A (compile)
       lib/b.ex:3: call A.macro/0 (compile)
       """
 
@@ -314,10 +315,11 @@ defmodule Mix.Tasks.XrefTest do
       output = """
       Compiling 2 files (.ex)
       Generated sample app
+      lib/b.ex:3: require A (compile)
       lib/b.ex:3: call A.macro/0 (compile)
       """
 
-      message = "Too many traces (found: 1, permitted: 0)"
+      message = "Too many traces (found: 2, permitted: 0)"
 
       assert_raise Mix.Error, message, fn ->
         assert_trace(~w[--label compile --fail-above 0], "lib/b.ex", files, output)
@@ -760,10 +762,7 @@ defmodule Mix.Tasks.XrefTest do
         defmodule B do
           # Let's also test that we track literal atom behaviours
           @behaviour :"Elixir.A.Behaviour"
-
-          def foo do
-            A.foo()
-          end
+          def foo, do: :foo
         end
         """)
 
@@ -773,7 +772,7 @@ defmodule Mix.Tasks.XrefTest do
                digraph "xref graph" {
                  "lib/a.ex"
                  "lib/a.ex" -> "lib/b.ex" [label="(compile)"]
-                 "lib/b.ex" -> "lib/a.ex" [label="(export)"]
+                 "lib/b.ex" -> "lib/a.ex"
                  "lib/b.ex"
                }
                """
