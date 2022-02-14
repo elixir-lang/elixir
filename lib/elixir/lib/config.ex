@@ -64,7 +64,9 @@ defmodule Config do
 
   The last step is to replace all `Mix.env()` calls in the config files with `config_env()`.
 
-  Since `mix.exs` is run at compile time, you may still use `Mix.env()` inside this file to identify the application's environment. To check the environment at _runtime_, you may add a configuration key:
+  Since `mix.exs` is run at compile time, you may still use `Mix.env()` inside this
+  file to identify the application's environment. To check the environment at
+  _runtime_, you may add a configuration key:
 
       # config.exs
       ...
