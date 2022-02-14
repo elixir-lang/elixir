@@ -2158,7 +2158,7 @@ defmodule String do
 
   Remember this function works with Unicode graphemes and considers
   the slices to represent grapheme offsets. If you want to split
-  on raw bytes, check `Kernel.binary_part/3` instead or
+  on raw bytes, check `Kernel.binary_part/3` or
   `Kernel.binary_slice/2` instead
 
   ## Examples
