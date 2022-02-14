@@ -64,7 +64,7 @@ defmodule Config do
 
   The last step is to replace all `Mix.env()` calls in the config files with `config_env()`.
 
-  To check an applivetion's environment at runtime, you may add a configuration key:
+  To check an application's environment at runtime, you may add a configuration key:
 
       # config.exs
       ...
