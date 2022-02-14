@@ -4481,7 +4481,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns a binary starting at the offset `start`, and of the given `size`.
+  Returns a binary starting at the offset `start` and of the given `size`.
 
   This is similar to `binary_part/3` except that if `start + size`
   is greater than the binary size, it automatically clips it to
