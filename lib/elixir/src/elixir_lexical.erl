@@ -47,10 +47,10 @@ trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
   ok;
 trace({require, _Meta, Module, _Opts}, #{lexical_tracker := Pid}) ->
-  ?tracker:add_require(Pid, Module),
+  ?tracker:remote_dispatch(Pid, Module, compile),
   ok;
 trace({struct_expansion, _Meta, Module, _Keys}, #{lexical_tracker := Pid}) ->
-  ?tracker:add_require(Pid, Module),
+  ?tracker:add_export(Pid, Module),
   ok;
 trace({alias_reference, _Meta, Module}, #{lexical_tracker := Pid} = E) ->
   ?tracker:remote_dispatch(Pid, Module, mode(E)),

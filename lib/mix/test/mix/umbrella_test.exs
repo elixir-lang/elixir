@@ -391,7 +391,7 @@ defmodule Mix.UmbrellaTest do
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # But exports dependencies are not recompiled
-        File.write!("lib/bar.ex", "defmodule Bar, do: (require Foo)")
+        File.write!("lib/bar.ex", "defmodule Bar, do: (import Foo, warn: false)")
 
         assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
