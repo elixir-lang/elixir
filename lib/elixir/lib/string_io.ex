@@ -13,6 +13,7 @@ defmodule StringIO do
 
   """
 
+  @doc false
   use GenServer
 
   @doc ~S"""
