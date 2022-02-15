@@ -64,21 +64,25 @@ defmodule Config do
 
   The last step is to replace all `Mix.env()` calls in the config files with `config_env()`.
 
-  Since `mix.exs` is run at compile time, you may still use `Mix.env()` inside this
-  file to identify the application's environment. To check the environment at
-  _runtime_, you may add a configuration key:
+  Keep in mind you must also avoid using `Mix.env()` inside your project files.
+  To check the environment at _runtime_, you may add a configuration key:
 
       # config.exs
       ...
       config :my_app, env: config_env()
 
-  Then, in other scripts and modules, you may get the environment with `Application.get_env/2`.
+  Then, in other scripts and modules, you may get the environment with
+  `Application.fetch_env!/2`:
 
       # router.exs
       ...
-      if Application.get_env(:my_app, :env) == :prod do
+      if Application.fetch_env!(:my_app, :env) == :prod do
         ...
       end
+
+  The only files where you may acccess functions from the `Mix` module are
+  the `mix.exs` file and inside custom Mix tasks, which always within the
+  `Mix.Tasks` namespace.
 
   ## config/runtime.exs
 
