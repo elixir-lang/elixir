@@ -15,11 +15,15 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [Code] Emit deprecation and type warnings on `Code.compile_string/2` and `Code.compile_quoted/2`
   * [Code] Warn if an outdated lexical tracker is given on eval
   * [Code] Add `Code.env_for_eval/1` and `Code.eval_quoted_with_env/3`
+  * [Enum] Allow slicing with steps in `Enum.slice/2`
   * [Inspect] Improve error reporting when there is a faulty inspect implementation
+  * [Inspect] Use expression-based inspection for `Date.Rage`, `MapSet`, `Version`, and `Version.Requirement`
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
   * [Kernel] Allow composite types with pins as the map key in a pattern match
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
   * [Kernel] Warn on confusable non-ascii identifiers
+  * [Kernel] Add `..` as a nullary operator that returns `0..-1//1`
+  * [Kernel] Implement Unicode Technical Standard #39 recommendations. In particular, we warn for confusable scripts and restrict identifiers to single-scripts or highly restrictive mixed-scripts
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/2`
@@ -32,6 +36,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [Registry] Add `Registry.count_select/2`
   * [Stream] Add `Stream.duplicate/2` and `Stream.transform/5`
   * [String] Support empty lookup lists in `String.replace/3`, `String.split/3`, and `String.splitter/3`
+  * [String] Allow slicing with steps in `String.slice/2`
   * [URI] Add `URI.append_query/2`
   * [Version] Add `Version.to_string/1`
   * [Version] Colorize `Version.Requirement` source in Inspect protocol
@@ -43,6 +48,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
 #### Mix
 
   * [mix do] Support `--app` option to restrict recursive tasks in umbrella projects
+  * [mix new] Do not allow projects to be created with application names that conflict with multi-arg Erlang VM switches
   * [mix test] Improve error message when suite fails due to coverage
 
 ### 2. Bug fixes
