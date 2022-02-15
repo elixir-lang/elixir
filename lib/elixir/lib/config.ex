@@ -62,7 +62,27 @@ defmodule Config do
         import_config config
       end
 
-  The last step is to replace all `Mix.env()` calls by `config_env()`.
+  The last step is to replace all `Mix.env()` calls in the config files with `config_env()`.
+
+  Keep in mind you must also avoid using `Mix.env()` inside your project files.
+  To check the environment at _runtime_, you may add a configuration key:
+
+      # config.exs
+      ...
+      config :my_app, env: config_env()
+
+  Then, in other scripts and modules, you may get the environment with
+  `Application.fetch_env!/2`:
+
+      # router.exs
+      ...
+      if Application.fetch_env!(:my_app, :env) == :prod do
+        ...
+      end
+
+  The only files where you may acccess functions from the `Mix` module are
+  the `mix.exs` file and inside custom Mix tasks, which always within the
+  `Mix.Tasks` namespace.
 
   ## config/runtime.exs
 
