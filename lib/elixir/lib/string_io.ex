@@ -13,8 +13,12 @@ defmodule StringIO do
 
   """
 
-  @doc false
-  use GenServer
+  # We're implementing the GenServer behaviour instead of using the
+  # `use GenServer` macro, because we don't want the `child_spec/1` function
+  # that `use GenServer` generates. Although this module is implemented as a
+  # GenServer, it doesn't make sense to be started under a supervisor so a
+  # `child_spec/1` function isn't needed.
+  @behaviour GenServer
 
   @doc ~S"""
   Creates an IO device.
