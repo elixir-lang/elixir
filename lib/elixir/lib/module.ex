@@ -1511,9 +1511,14 @@ defmodule Module do
   end
 
   @doc """
-  Deletes the module attribute that matches the given key.
+  Deletes the entry (or entries) for the given module attribute.
 
-  It returns the deleted attribute value (or `nil` if nothing was set).
+  It returns the deleted attribute value. If the attribute has not
+  been set nor configured to accumulate, it returns `nil`.
+
+  If the attribute is set to accumulate, then this function always
+  returns a list. Deleting the attribute removes existing entries
+  but the attribute will still accumulate.
 
   ## Examples
 
