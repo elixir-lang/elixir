@@ -1267,6 +1267,41 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "warning from --all-warnings are treated as errors with --warnings-as-errors" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def my_fn(unused), do: :ok
+      end
+      """)
+
+      message = "variable \"unused\" is unused"
+
+      assert capture_io(:stderr, fn ->
+               Mix.Tasks.Compile.Elixir.run([]) == :ok
+             end) =~ message
+
+      # Stale compilation fails due to warnings as errors
+      assert capture_io(:stderr, fn ->
+               catch_exit(Mix.Task.run("compile", ["--all-warnings", "--warnings-as-errors"]))
+             end) =~ message
+
+      Mix.Task.clear()
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+      end
+      """)
+
+      # Recompiling a new file still fails due to warnings as errors
+      assert capture_io(:stderr, fn ->
+               catch_exit(Mix.Task.run("compile", ["--all-warnings", "--warnings-as-errors"]))
+             end) =~ message
+    end)
+  end
+
   test "returns warning diagnostics" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)

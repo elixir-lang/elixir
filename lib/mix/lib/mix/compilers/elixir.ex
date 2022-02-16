@@ -138,8 +138,6 @@ defmodule Mix.Compilers.Elixir do
     {sources, removed_modules} =
       update_stale_sources(sources, stale, removed_modules, sources_stats)
 
-    if opts[:all_warnings], do: show_warnings(sources)
-
     if stale != [] do
       Mix.Utils.compiling_n(length(stale), :ex)
       Mix.Project.ensure_structure()
@@ -157,6 +155,12 @@ defmodule Mix.Compilers.Elixir do
       else
         {:ok, _, warnings} ->
           {modules, _exports, sources, pending_modules, _pending_exports} = get_compiler_info()
+
+          # We only collect the warnings if --all-warnings is given.
+          # In this case, we print them too. Then we apply the new warnings.
+          previous_warnings =
+            if opts[:all_warnings], do: previous_warnings(sources, true), else: []
+
           sources = apply_warnings(sources, warnings)
 
           write_manifest(
@@ -172,14 +176,16 @@ defmodule Mix.Compilers.Elixir do
           )
 
           put_compile_env(sources)
-          {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
+          all_warnings = previous_warnings ++ Enum.map(warnings, &diagnostic(&1, :warning))
+          unless_previous_warnings_as_errors(previous_warnings, opts, {:ok, all_warnings})
 
         {:error, errors, warnings} ->
-          # In case of errors, we show all previous warnings and all new ones
+          # In case of errors, we show all previous warnings and all new ones.
+          # Print the new ones if --all-warnings was given.
           {_, _, sources, _, _} = get_compiler_info()
           errors = Enum.map(errors, &diagnostic(&1, :error))
           warnings = Enum.map(warnings, &diagnostic(&1, :warning))
-          {:error, warning_diagnostics(sources) ++ warnings ++ errors}
+          {:error, previous_warnings(sources, opts[:all_warnings]) ++ warnings ++ errors}
       after
         Code.compiler_options(previous_opts)
         Mix.Compilers.ApplicationTracer.stop(pending_tracer)
@@ -217,7 +223,8 @@ defmodule Mix.Compilers.Elixir do
         )
       end
 
-      {status, warning_diagnostics(sources)}
+      previous_warnings = previous_warnings(sources, opts[:all_warnings])
+      unless_previous_warnings_as_errors(previous_warnings, opts, {status, previous_warnings})
     end
   after
     Mix.Compilers.ApplicationTracer.stop()
@@ -803,13 +810,13 @@ defmodule Mix.Compilers.Elixir do
     _ = :code.delete(module)
   end
 
-  defp show_warnings(sources) do
-    for source(source: source, warnings: warnings) <- sources do
-      file = Path.absname(source)
-
-      for {location, message} <- warnings do
-        Kernel.ParallelCompiler.print_warning({file, location, message})
-      end
+  defp previous_warnings(sources, print?) do
+    for source(source: source, warnings: warnings) <- sources,
+        file = Path.absname(source),
+        {location, message} <- warnings do
+      warning = {file, location, message}
+      print? && Kernel.ParallelCompiler.print_warning(warning)
+      diagnostic(warning, :warning)
     end
   end
 
@@ -819,12 +826,6 @@ defmodule Mix.Compilers.Elixir do
     for source(source: source_path, warnings: source_warnings) = s <- sources do
       source(s, warnings: Map.get(warnings, Path.absname(source_path), source_warnings))
     end
-  end
-
-  defp warning_diagnostics(sources) do
-    for source(source: source, warnings: warnings) <- sources,
-        {location, message} <- warnings,
-        do: diagnostic({Path.absname(source), location, message}, :warning)
   end
 
   defp diagnostic({file, location, message}, severity) do
@@ -1013,5 +1014,15 @@ defmodule Mix.Compilers.Elixir do
 
   defp delete_checkpoint(manifest) do
     File.rm(manifest <> ".checkpoint")
+  end
+
+  defp unless_previous_warnings_as_errors(previous_warnings, opts, {status, all_warnings}) do
+    if previous_warnings != [] and opts[:warnings_as_errors] do
+      message = "Compilation failed due to warnings while using the --warnings-as-errors option"
+      IO.puts(:stderr, message)
+      {:error, all_warnings}
+    else
+      {status, all_warnings}
+    end
   end
 end
