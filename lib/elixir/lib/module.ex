@@ -1566,7 +1566,8 @@ defmodule Module do
     * `:persist` - the attribute will be persisted in the Erlang
       Abstract Format. Useful when interfacing with Erlang libraries.
 
-  By default, both options are `false`.
+  By default, both options are `false`. Once an attribute has been
+  set to accumulate or persist, the behaviour cannot be reverted.
 
   ## Examples
 

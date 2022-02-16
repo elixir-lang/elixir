@@ -667,8 +667,8 @@ defmodule URI do
   if a URI is absolute or relative by checking if the `scheme` field is
   nil or not. Furthermore, this function expects both absolute and
   relative URIs to be well-formed and does not perform any validation.
-  See the "Examples" section below. Use `new/1` if you want more strict
-  validation.
+  See the "Examples" section below. Use `new/1` if you want to validate
+  the URI fields after parsing.
 
   When a URI is given without a port, the value returned by `URI.default_port/1`
   for the URI's scheme is used for the `:port` field. The scheme is also
@@ -746,7 +746,8 @@ defmodule URI do
       }
 
   Another example is a URI with brackets in query strings. It is accepted
-  by `parse/1` but it will be refused by `new/1`:
+  by `parse/1`, it is commonly accepted by browsers, but it will be refused
+  by `new/1`:
 
       iex> URI.parse("/?foo[bar]=baz")
       %URI{
