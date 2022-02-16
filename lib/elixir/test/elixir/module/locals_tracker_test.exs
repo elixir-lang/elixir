@@ -119,7 +119,6 @@ defmodule Module.LocalsTrackerTest do
   end
 
   test "does not include unreachable locals" do
-    assert NoPrivate.module_info(:functions) ==
-             [__info__: 1, baz: 0, module_info: 0, module_info: 1]
+    assert NoPrivate.module_info(:functions) |> Keyword.take([:foo, :bar, :"MACRO-foo"]) == []
   end
 end
