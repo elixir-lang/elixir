@@ -20,7 +20,7 @@ defmodule Logger.FormatterTest do
 
   test "compile/1 with nil" do
     assert compile(nil) ==
-             ["\n", :time, " ", :metadata, "[", :level, "] ", :levelpad, :message, "\n"]
+             ["\n", :time, " ", :metadata, "[", :level, "] ", :message, "\n"]
   end
 
   test "compile/1 with str" do

@@ -43,7 +43,7 @@ defmodule Logger.Formatter do
   @type time :: {{1970..10000, 1..12, 1..31}, {0..23, 0..59, 0..59, 0..999}}
   @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
-  @default_pattern "\n$time $metadata[$level] $levelpad$message\n"
+  @default_pattern "\n$time $metadata[$level] $message\n"
   @replacement "�"
 
   @doc """
