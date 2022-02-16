@@ -1287,6 +1287,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert capture_io(:stderr, fn ->
                catch_exit(Mix.Task.run("compile", ["--all-warnings", "--warnings-as-errors"]))
              end) =~ message
+
       Mix.Task.clear()
 
       File.write!("lib/b.ex", """
