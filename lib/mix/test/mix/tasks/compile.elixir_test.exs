@@ -1283,13 +1283,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
                Mix.Tasks.Compile.Elixir.run([]) == :ok
              end) =~ message
 
+      # Stale compilation fails due to warnings as errors
       assert capture_io(:stderr, fn ->
-               assert catch_exit(
-                        Mix.Task.run("compile", [
-                          "--all-warnings",
-                          "--warnings-as-errors"
-                        ])
-                      )
+               catch_exit(Mix.Task.run("compile", ["--all-warnings", "--warnings-as-errors"]))
              end) =~ message
     end)
   end
