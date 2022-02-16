@@ -138,30 +138,96 @@ defmodule Mix.Compilers.Elixir do
     {sources, removed_modules} =
       update_stale_sources(sources, stale, removed_modules, sources_stats)
 
-    if opts[:all_warnings], do: show_warnings(sources)
-
-    if stale != [] do
-      Mix.Utils.compiling_n(length(stale), :ex)
-      Mix.Project.ensure_structure()
-      true = Code.prepend_path(dest)
-
-      {pending_tracer, tracer_opts} = Mix.Compilers.ApplicationTracer.prepare(app_tracer, opts)
-      previous_opts = set_compiler_opts(tracer_opts)
-
-      # Stores state for keeping track which files were compiled
-      # and the dependencies between them.
-      put_compiler_info({[], exports, sources, modules, removed_modules})
-
-      try do
-        compile_path(stale, dest, timestamp, opts)
+    previous_warning_causes_error? =
+      if opts[:all_warnings] do
+        warnings = get_warnings(sources)
+        show_warnings(warnings)
+        warnings != [] and opts[:warnings_as_errors]
       else
-        {:ok, _, warnings} ->
-          {modules, _exports, sources, pending_modules, _pending_exports} = get_compiler_info()
-          sources = apply_warnings(sources, warnings)
+        false
+      end
 
+    cond do
+      stale != [] ->
+        Mix.Utils.compiling_n(length(stale), :ex)
+        Mix.Project.ensure_structure()
+        true = Code.prepend_path(dest)
+
+        {pending_tracer, tracer_opts} = Mix.Compilers.ApplicationTracer.prepare(app_tracer, opts)
+        previous_opts = set_compiler_opts(tracer_opts)
+
+        # Stores state for keeping track which files were compiled
+        # and the dependencies between them.
+        put_compiler_info({[], exports, sources, modules, removed_modules})
+
+        try do
+          compile_path(stale, dest, timestamp, opts)
+        else
+          {:ok, _, warnings} ->
+            {modules, _exports, sources, pending_modules, _pending_exports} = get_compiler_info()
+
+            if previous_warning_causes_error? do
+              display_warnings_as_error_message()
+              warnings = Enum.map(warnings, &diagnostic(&1, :warning))
+
+              {:error, warning_diagnostics(sources) ++ warnings}
+            else
+              sources = apply_warnings(sources, warnings)
+
+              write_manifest(
+                manifest,
+                modules ++ pending_modules,
+                sources,
+                all_local_exports,
+                new_parents,
+                new_cache_key,
+                new_lock,
+                new_config,
+                timestamp
+              )
+
+              put_compile_env(sources)
+              {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
+            end
+
+          {:error, errors, warnings} ->
+            # In case of errors, we show all previous warnings and all new ones
+            {_, _, sources, _, _} = get_compiler_info()
+            errors = Enum.map(errors, &diagnostic(&1, :error))
+            warnings = Enum.map(warnings, &diagnostic(&1, :warning))
+            {:error, warning_diagnostics(sources) ++ warnings ++ errors}
+        after
+          Code.compiler_options(previous_opts)
+          Mix.Compilers.ApplicationTracer.stop(pending_tracer)
+          Code.purge_compiler_modules()
+          delete_compiler_info()
+        end
+
+      previous_warning_causes_error? ->
+        display_warnings_as_error_message()
+        {:error, warning_diagnostics(sources)}
+
+      true ->
+        # We need to return ok if deps_changed? or stale_modules changed,
+        # even if no code was compiled, because we need to propagate the changed
+        # status to compile.protocols. This will be the case whenever:
+        #
+        #   * the lock file or a config changes
+        #   * any module in a path dependency changes
+        #   * the mix.exs changes
+        #   * the Erlang manifest updates (Erlang files are compiled)
+        #
+        # In the first case, we will consolidate from scratch. In the remaining, we
+        # will only compute the diff with current protocols. In fact, there is no
+        # need to reconsolidate if an Erlang file changes and it doesn't trigger
+        # any other change, but the diff check should be reasonably fast anyway.
+        status = if removed != [] or deps_changed? or stale_modules != %{}, do: :ok, else: :noop
+
+        # If nothing changed but there is one more recent mtime, bump the manifest
+        if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
           write_manifest(
             manifest,
-            modules ++ pending_modules,
+            modules,
             sources,
             all_local_exports,
             new_parents,
@@ -170,54 +236,9 @@ defmodule Mix.Compilers.Elixir do
             new_config,
             timestamp
           )
+        end
 
-          put_compile_env(sources)
-          {:ok, Enum.map(warnings, &diagnostic(&1, :warning))}
-
-        {:error, errors, warnings} ->
-          # In case of errors, we show all previous warnings and all new ones
-          {_, _, sources, _, _} = get_compiler_info()
-          errors = Enum.map(errors, &diagnostic(&1, :error))
-          warnings = Enum.map(warnings, &diagnostic(&1, :warning))
-          {:error, warning_diagnostics(sources) ++ warnings ++ errors}
-      after
-        Code.compiler_options(previous_opts)
-        Mix.Compilers.ApplicationTracer.stop(pending_tracer)
-        Code.purge_compiler_modules()
-        delete_compiler_info()
-      end
-    else
-      # We need to return ok if deps_changed? or stale_modules changed,
-      # even if no code was compiled, because we need to propagate the changed
-      # status to compile.protocols. This will be the case whenever:
-      #
-      #   * the lock file or a config changes
-      #   * any module in a path dependency changes
-      #   * the mix.exs changes
-      #   * the Erlang manifest updates (Erlang files are compiled)
-      #
-      # In the first case, we will consolidate from scratch. In the remaining, we
-      # will only compute the diff with current protocols. In fact, there is no
-      # need to reconsolidate if an Erlang file changes and it doesn't trigger
-      # any other change, but the diff check should be reasonably fast anyway.
-      status = if removed != [] or deps_changed? or stale_modules != %{}, do: :ok, else: :noop
-
-      # If nothing changed but there is one more recent mtime, bump the manifest
-      if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
-        write_manifest(
-          manifest,
-          modules,
-          sources,
-          all_local_exports,
-          new_parents,
-          new_cache_key,
-          new_lock,
-          new_config,
-          timestamp
-        )
-      end
-
-      {status, warning_diagnostics(sources)}
+        {status, warning_diagnostics(sources)}
     end
   after
     Mix.Compilers.ApplicationTracer.stop()
@@ -803,14 +824,22 @@ defmodule Mix.Compilers.Elixir do
     _ = :code.delete(module)
   end
 
-  defp show_warnings(sources) do
-    for source(source: source, warnings: warnings) <- sources do
-      file = Path.absname(source)
+  defp get_warnings(sources) do
+    for source(source: source, warnings: warnings) <- sources, reduce: [] do
+      acc ->
+        file = Path.absname(source)
 
-      for {location, message} <- warnings do
-        Kernel.ParallelCompiler.print_warning({file, location, message})
-      end
+        warnings =
+          for {location, message} <- warnings do
+            {file, location, message}
+          end
+
+        acc ++ warnings
     end
+  end
+
+  defp show_warnings(warnings) do
+    Enum.each(warnings, &Kernel.ParallelCompiler.print_warning/1)
   end
 
   defp apply_warnings(sources, warnings) do
@@ -1013,5 +1042,10 @@ defmodule Mix.Compilers.Elixir do
 
   defp delete_checkpoint(manifest) do
     File.rm(manifest <> ".checkpoint")
+  end
+
+  defp display_warnings_as_error_message do
+    message = "Compilation failed due to warnings while using the --warnings-as-errors option"
+    IO.puts(:stderr, message)
   end
 end
