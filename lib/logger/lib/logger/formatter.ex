@@ -99,6 +99,11 @@ defmodule Logger.Formatter do
     end
   end
 
+  defp compile_code(:levelpad) do
+    IO.warn("$levelpad in Logger message format is deprecated, please remove it")
+    :levelpad
+  end
+
   defp compile_code(key) when key in @valid_patterns, do: key
 
   defp compile_code(key) when is_atom(key) do
@@ -163,7 +168,6 @@ defmodule Logger.Formatter do
   defp output(:levelpad, level, _, _, _), do: levelpad(level)
   defp output(other, _, _, _, _), do: other
 
-  # TODO: Deprecate me on Elixir v1.13+ or later
   defp levelpad(:info), do: " "
   defp levelpad(:warn), do: " "
   defp levelpad(_), do: ""
