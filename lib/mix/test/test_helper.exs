@@ -7,12 +7,27 @@ Application.put_env(:logger, :backends, [])
 
 os_exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
-ExUnit.start(trace: "--trace" in System.argv(), exclude: epmd_exclude ++ os_exclude)
 
-unless {1, 7, 4} <= Mix.SCM.Git.git_version() do
-  IO.puts(:stderr, "Skipping tests with git sparse checkouts...")
-  ExUnit.configure(exclude: :git_sparse)
-end
+git_exclude =
+  if Mix.SCM.Git.git_version() <= {1, 7, 4} do
+    IO.puts(:stderr, "Skipping tests with git sparse checkouts...")
+    [git_sparse: true]
+  else
+    []
+  end
+
+rebar_exclude =
+  if System.otp_release() >= "25" do
+    IO.puts(:stderr, "Skipping tests with rebar2")
+    [rebar: true]
+  else
+    []
+  end
+
+ExUnit.start(
+  trace: "--trace" in System.argv(),
+  exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ rebar_exclude
+)
 
 # Clear environment variables that may affect tests
 System.delete_env("http_proxy")
