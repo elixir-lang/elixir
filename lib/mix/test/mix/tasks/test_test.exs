@@ -433,9 +433,14 @@ defmodule Mix.Tasks.TestTest do
       in_fixture("umbrella_test", fn ->
         # Run false positive test first so at least the code is compiled
         # and we can perform more aggressive assertions later
-        assert mix(["test", "apps/unknown_app/test"]) =~ """
+        output = mix(["test", "apps/unknown_app/test"])
+
+        assert output =~ """
                ==> bar
                Paths given to "mix test" did not match any directory/file: apps/unknown_app/test
+               """
+
+        assert output =~ """
                ==> foo
                Paths given to "mix test" did not match any directory/file: apps/unknown_app/test
                """
