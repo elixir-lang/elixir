@@ -153,6 +153,10 @@ defmodule GenServer do
   detailed information. The `@doc` annotation immediately preceding
   `use GenServer` will be attached to the generated `child_spec/1` function.
 
+  When stopping the GenServer, for example by returing a `{:stop, reason, new_state}` tuple from a
+  callback, the exit reason is used by the supervisor to determine whether the GenServer needs to be
+  restarted. See the "Exit reasons and restarts" section in the `Supervisor` module.
+
   ## Name registration
 
   Both `start_link/3` and `start/3` support the `GenServer` to register
