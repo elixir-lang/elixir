@@ -90,6 +90,15 @@ defmodule Mix.Dep.Loader do
     #   4. Inferred from files in dependency (mix.exs, rebar.config, Makefile)
     manager = opts[:manager] || scm_manager(scm, opts) || manager || infer_manager(opts[:dest])
 
+    # TODO: Remove rebar2 support on Elixir v1.15+.
+    if manager == :rebar do
+      Mix.shell().error(
+        "dependency #{inspect(dep.app)} is using Rebar 2, " <>
+          "which is no longer maintained and no longer works in recent Erlang/OTP versions. " <>
+          "Remove the :manager option or set it to :rebar3 instead"
+      )
+    end
+
     dep = %{dep | manager: manager, status: scm_status(scm, opts)}
 
     {dep, children} =
