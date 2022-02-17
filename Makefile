@@ -171,6 +171,7 @@ clean_residual_files:
 	rm -rf lib/mix/test/fixtures/git_rebar/
 	rm -rf lib/mix/test/fixtures/git_repo/
 	rm -rf lib/mix/test/fixtures/git_sparse_repo/
+	rm -rf lib/mix/test/fixtures/archive/ebin/
 	rm -f erl_crash.dump
 	$(Q) $(MAKE) clean_man
 

@@ -412,6 +412,26 @@ Enum.each([:invalidapp, :invalidvsn, :noappfile, :nosemver, :ok], fn dep ->
   File.mkdir_p!(Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__))
 end)
 
+# Archive ebin
+target = Path.expand("fixtures/archive", __DIR__)
+
+unless File.dir?(Path.join(target, "ebin")) do
+  File.mkdir_p!(Path.join(target, "ebin"))
+
+  File.write!(Path.join([target, "ebin", "local_sample.app"]), """
+  {application,local_sample,
+    [
+      {modules,['Elixir.Mix.Tasks.Local.Sample']},
+      {applications,[kernel,stdlib,elixir]}
+    ]
+  }.
+  """)
+
+  [{name, bin}] = Code.compile_file("lib/local.sample.ex", target)
+
+  File.write!(Path.join([target, "ebin", Atom.to_string(name) <> ".beam"]), bin)
+end
+
 ## Generate helper modules
 
 path = MixTest.Case.tmp_path("beams")
