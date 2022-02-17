@@ -7,22 +7,8 @@ Application.put_env(:logger, :backends, [])
 
 os_exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
-
-git_exclude =
-  if Mix.SCM.Git.git_version() <= {1, 7, 4} do
-    IO.puts(:stderr, "Skipping tests with git sparse checkouts...")
-    [git_sparse: true]
-  else
-    []
-  end
-
-rebar_exclude =
-  if System.otp_release() >= "25" do
-    IO.puts(:stderr, "Skipping tests with rebar2")
-    [rebar: true]
-  else
-    []
-  end
+git_exclude = if Mix.SCM.Git.git_version() <= {1, 7, 4}, do: [git_sparse: true], else: []
+rebar_exclude = if System.otp_release() >= "25", do: [rebar: true], else: []
 
 ExUnit.start(
   trace: "--trace" in System.argv(),
