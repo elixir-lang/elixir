@@ -496,8 +496,11 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) ==
-                 [:git_repo, :abc_repo, :deps_repo]
+        # Both orders below are valid after topological sort
+        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) in [
+                 [:git_repo, :abc_repo, :deps_repo],
+                 [:abc_repo, :git_repo, :deps_repo]
+               ]
 
         assert Map.keys(Mix.Project.deps_paths()) == [:abc_repo, :deps_repo, :git_repo]
 
