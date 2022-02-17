@@ -216,10 +216,11 @@ System.put_env("MIX_HOME", mix)
 System.delete_env("XDG_DATA_HOME")
 System.delete_env("XDG_CONFIG_HOME")
 
-rebar = System.get_env("REBAR") || Path.expand("fixtures/rebar", __DIR__)
-File.cp!(rebar, Path.join(mix, "rebar"))
-rebar = System.get_env("REBAR3") || Path.expand("fixtures/rebar3", __DIR__)
-File.cp!(rebar, Path.join(mix, "rebar3"))
+rebar3_source = System.get_env("REBAR3") || Path.expand("fixtures/rebar3", __DIR__)
+elixir_version = System.version() |> :binary.split("-") |> hd()
+rebar3_target = Path.join([mix, "elixir", elixir_version, "rebar3"])
+File.mkdir_p!(Path.dirname(rebar3_target))
+File.cp!(rebar3_source, rebar3_target)
 
 ## Copy fixtures to tmp
 

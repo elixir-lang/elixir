@@ -310,7 +310,7 @@ defmodule Mix.DepTest do
     dep_path = tmp_path("rebar_dep")
 
     system_env = [{"FILE_FROM_ENV", file_path}, {"CONTENTS_FROM_ENV", "contents dep test"}]
-    deps = [{:rebar_dep, path: dep_path, app: false, manager: :rebar, system_env: system_env}]
+    deps = [{:rebar_dep, path: dep_path, app: false, manager: :rebar3, system_env: system_env}]
 
     with_deps(deps, fn ->
       in_tmp("load dependency with env vars", fn ->

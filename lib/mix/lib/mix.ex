@@ -306,8 +306,6 @@ defmodule Mix do
     * `MIX_INSTALL_FORCE` - (since v1.13.0) runs `Mix.install/2` with empty install cache
     * `MIX_PATH` - appends extra code paths
     * `MIX_QUIET` - does not print information messages to the terminal
-    * `MIX_REBAR` - path to rebar command that overrides the one Mix installs
-      (default: `~/.mix/rebar`)
     * `MIX_REBAR3` - path to rebar3 command that overrides the one Mix installs
       (default: `~/.mix/rebar3`)
     * `MIX_XDG` - asks Mix to follow the [XDG Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
