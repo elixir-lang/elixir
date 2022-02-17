@@ -270,7 +270,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
              assert Logger.bare_log(:info, "ok", application: nil, module: LoggerTest) == :ok
-           end) =~ msg("module=LoggerTest [info]  ok")
+           end) =~ msg("module=LoggerTest [info] ok")
   end
 
   test "metadata compile-time merge" do
@@ -278,7 +278,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
              assert Logger.log(:info, "ok", application: nil, module: CustomTest) == :ok
-           end) =~ msg("module=CustomTest [info]  ok")
+           end) =~ msg("module=CustomTest [info] ok")
   end
 
   test "metadata merge when the argument function returns metadata" do
@@ -288,7 +288,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
              assert Logger.bare_log(:info, fun, application: nil, module: LoggerTest) == :ok
-           end) =~ msg("module=Function [info]  ok")
+           end) =~ msg("module=Function [info] ok")
   end
 
   describe "log with function" do
@@ -297,7 +297,7 @@ defmodule LoggerTest do
 
       assert capture_log(fn ->
                assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
-             end) =~ msg("module=FunctionTest [info]  ok:example")
+             end) =~ msg("module=FunctionTest [info] ok:example")
     end
 
     test "supports binaries" do
@@ -305,7 +305,7 @@ defmodule LoggerTest do
 
       assert capture_log(fn ->
                assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok
-             end) =~ msg("module=FunctionTest [info]  ok:example")
+             end) =~ msg("module=FunctionTest [info] ok:example")
     end
   end
 
@@ -314,13 +314,13 @@ defmodule LoggerTest do
       assert capture_log(fn ->
                assert Logger.bare_log(:info, %{foo: 10}, application: nil, module: FunctionTest) ==
                         :ok
-             end) =~ msg("module=FunctionTest [info]  [foo: 10]")
+             end) =~ msg("module=FunctionTest [info] [foo: 10]")
     end
 
     test "supports keyword" do
       assert capture_log(fn ->
                assert Logger.bare_log(:info, foo: 10) == :ok
-             end) =~ msg("[info]  [foo: 10]")
+             end) =~ msg("[info] [foo: 10]")
     end
 
     test "supports custom report_cb" do
@@ -328,27 +328,27 @@ defmodule LoggerTest do
 
       assert capture_log(fn ->
                assert Logger.bare_log(:info, %{foo: 10}, report_cb: report_cb) == :ok
-             end) =~ msg("[info]  Foo is 10")
+             end) =~ msg("[info] Foo is 10")
 
       report_cb = fn %{foo: foo}, _opts -> "Foo is #{foo}" end
 
       assert capture_log(fn ->
                assert Logger.bare_log(:info, %{foo: 20}, report_cb: report_cb) == :ok
-             end) =~ msg("[info]  Foo is 20")
+             end) =~ msg("[info] Foo is 20")
     end
 
     test "support function that return report" do
       assert capture_log(fn ->
                assert Logger.bare_log(:info, fn -> %{foo: 10} end) == :ok
-             end) =~ msg("[info]  [foo: 10]")
+             end) =~ msg("[info] [foo: 10]")
 
       assert capture_log(fn ->
                assert Logger.bare_log(:info, fn -> {%{foo: 10}, []} end) == :ok
-             end) =~ msg("[info]  [foo: 10]")
+             end) =~ msg("[info] [foo: 10]")
 
       assert capture_log(fn ->
                assert Logger.bare_log(:info, fn -> {[foo: 10], []} end) == :ok
-             end) =~ msg("[info]  [foo: 10]")
+             end) =~ msg("[info] [foo: 10]")
     end
   end
 
@@ -437,7 +437,7 @@ defmodule LoggerTest do
     test "info/2" do
       assert capture_log(fn ->
                assert Logger.info("hello", []) == :ok
-             end) =~ msg_with_meta("[info]  hello")
+             end) =~ msg_with_meta("[info] hello")
 
       assert capture_log(:notice, fn ->
                assert Logger.info("hello", []) == :ok
@@ -598,7 +598,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
              assert SampleNoApp.info() == :ok
-           end) =~ msg("module=LoggerTest.SampleNoApp [info]  hello")
+           end) =~ msg("module=LoggerTest.SampleNoApp [info] hello")
 
     Logger.configure(compile_time_application: :sample_app)
 
@@ -610,7 +610,7 @@ defmodule LoggerTest do
 
     assert capture_log(fn ->
              assert SampleApp.info() == :ok
-           end) =~ msg("application=sample_app module=LoggerTest.SampleApp [info]  hello")
+           end) =~ msg("application=sample_app module=LoggerTest.SampleApp [info] hello")
   after
     Logger.configure(compile_time_application: nil)
   end
@@ -721,8 +721,8 @@ defmodule LoggerTest do
         Logger.flush()
       end)
 
-    assert log =~ ~r"\[warn\]  Attempted to log \d+ messages, which is above :discard_threshold"
-    assert log =~ ~r"\[warn\]  Attempted to log \d+ messages, which is below :discard_threshold"
+    assert log =~ ~r"\[warn\] Attempted to log \d+ messages, which is above :discard_threshold"
+    assert log =~ ~r"\[warn\] Attempted to log \d+ messages, which is below :discard_threshold"
   after
     :sys.resume(Logger)
     assert :ok = Logger.configure(discard_threshold: 500)

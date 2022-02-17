@@ -20,7 +20,7 @@ defmodule Logger.FormatterTest do
 
   test "compile/1 with nil" do
     assert compile(nil) ==
-             ["\n", :time, " ", :metadata, "[", :level, "] ", :levelpad, :message, "\n"]
+             ["\n", :time, " ", :metadata, "[", :level, "] ", :message, "\n"]
   end
 
   test "compile/1 with str" do
@@ -88,12 +88,6 @@ defmodule Logger.FormatterTest do
 
     assert format(compiled, :error, "hello", nil, metadata) ==
              [["foo", 61, "bar", 32], " ", "hello"]
-  end
-
-  test "padding takes account of length of level" do
-    compiled = compile("[$level] $levelpad $message")
-    assert format(compiled, :error, "hello", nil, []) == ["[", "error", "] ", "", " ", "hello"]
-    assert format(compiled, :info, "hello", nil, []) == ["[", "info", "] ", " ", " ", "hello"]
   end
 
   test "format_date/1" do

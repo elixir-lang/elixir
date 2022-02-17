@@ -21,8 +21,6 @@ defmodule Logger.Formatter do
     * `$level`    - the log level
     * `$node`     - the node that prints the message
     * `$metadata` - user controlled data presented in `"key=val key2=val2 "` format
-    * `$levelpad` - sets to a single space if level is 4 characters long,
-      otherwise set to the empty space. Used to align the message after level.
 
   Backends typically allow developers to supply such control
   strings via configuration files. This module provides `compile/1`,
@@ -43,7 +41,7 @@ defmodule Logger.Formatter do
   @type time :: {{1970..10000, 1..12, 1..31}, {0..23, 0..59, 0..59, 0..999}}
   @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
-  @default_pattern "\n$time $metadata[$level] $levelpad$message\n"
+  @default_pattern "\n$time $metadata[$level] $message\n"
   @replacement "�"
 
   @doc """
@@ -97,6 +95,11 @@ defmodule Logger.Formatter do
         _ -> part
       end
     end
+  end
+
+  defp compile_code(:levelpad) do
+    IO.warn("$levelpad in Logger message format is deprecated, please remove it")
+    :levelpad
   end
 
   defp compile_code(key) when key in @valid_patterns, do: key
@@ -163,7 +166,6 @@ defmodule Logger.Formatter do
   defp output(:levelpad, level, _, _, _), do: levelpad(level)
   defp output(other, _, _, _, _), do: other
 
-  # TODO: Deprecate me on Elixir v1.13+ or later
   defp levelpad(:info), do: " "
   defp levelpad(:warn), do: " "
   defp levelpad(_), do: ""

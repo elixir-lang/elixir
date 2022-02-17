@@ -9,7 +9,7 @@ defmodule Logger.Backends.Console do
       `:level` configuration for the `:logger` application first.
 
     * `:format` - the format message used to print logs.
-      Defaults to: `"\n$time $metadata[$level] $levelpad$message\n"`.
+      Defaults to: `"\n$time $metadata[$level] $message\n"`.
       It may also be a `{module, function}` tuple that is invoked
       with the log level, the message, the current timestamp and
       the metadata.
@@ -48,7 +48,7 @@ defmodule Logger.Backends.Console do
   `config/config.exs` file:
 
       config :logger, :console,
-        format: "\n$time $metadata[$level] $levelpad$message\n",
+        format: "\n$time $metadata[$level] $message\n",
         metadata: [:user_id]
 
   ## Custom formatting
