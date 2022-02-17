@@ -90,12 +90,6 @@ defmodule Logger.FormatterTest do
              [["foo", 61, "bar", 32], " ", "hello"]
   end
 
-  test "padding takes account of length of level" do
-    compiled = compile("[$level] $levelpad $message")
-    assert format(compiled, :error, "hello", nil, []) == ["[", "error", "] ", "", " ", "hello"]
-    assert format(compiled, :info, "hello", nil, []) == ["[", "info", "] ", " ", " ", "hello"]
-  end
-
   test "format_date/1" do
     date = {2015, 1, 30}
     assert format_date(date) == ["2015", ?-, [?0, "1"], ?-, "30"]
