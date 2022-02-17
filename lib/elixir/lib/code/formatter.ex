@@ -1333,7 +1333,8 @@ defmodule Code.Formatter do
               file: state.file,
               line: meta[:line],
               sigil: List.to_atom([name]),
-              modifiers: modifiers
+              modifiers: modifiers,
+              opening_delimiter: opening_delimiter
             ]
 
             case callback.(hd(entries), metadata) do

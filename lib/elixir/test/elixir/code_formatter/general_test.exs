@@ -130,22 +130,22 @@ defmodule Code.Formatter.GeneralTest do
       """
 
       formatter = fn content, opts ->
-        assert opts == [file: nil, line: 1, sigil: :W, modifiers: []]
+        assert opts == [file: nil, line: 1, sigil: :W, modifiers: [], opening_delimiter: "/"]
         content |> String.split(~r/ +/) |> Enum.join(" ")
       end
 
       assert_format bad, good, sigils: [W: formatter]
 
       bad = """
-      var = ~W/foo  bar  baz/abc
+      var = ~W<foo  bar  baz>abc
       """
 
       good = """
-      var = ~W/foo bar baz/abc
+      var = ~W<foo bar baz>abc
       """
 
       formatter = fn content, opts ->
-        assert opts == [file: nil, line: 1, sigil: :W, modifiers: 'abc']
+        assert opts == [file: nil, line: 1, sigil: :W, modifiers: 'abc', opening_delimiter: "<"]
         content |> String.split(~r/ +/) |> Enum.intersperse(" ")
       end
 
@@ -166,34 +166,41 @@ defmodule Code.Formatter.GeneralTest do
       """
 
       formatter = fn content, opts ->
-        assert opts == [file: nil, line: 1, sigil: :W, modifiers: []]
+        assert opts == [file: nil, line: 1, sigil: :W, modifiers: [], opening_delimiter: "'''"]
         content |> String.split(~r/ +/) |> Enum.join(" ")
       end
 
       assert_format bad, good, sigils: [W: formatter]
 
-      bad = """
+      bad = ~S'''
       if true do
-        ~W'''
+        ~W"""
         foo
         bar
         baz
-        '''abc
+        """abc
       end
-      """
+      '''
 
-      good = """
+      good = ~S'''
       if true do
-        ~W'''
+        ~W"""
         foo
         bar
         baz
-        '''abc
+        """abc
       end
-      """
+      '''
 
       formatter = fn content, opts ->
-        assert opts == [file: nil, line: 2, sigil: :W, modifiers: 'abc']
+        assert opts == [
+                 file: nil,
+                 line: 2,
+                 sigil: :W,
+                 modifiers: 'abc',
+                 opening_delimiter: ~S/"""/
+               ]
+
         content |> String.split(~r/ +/) |> Enum.join("\n")
       end
 
