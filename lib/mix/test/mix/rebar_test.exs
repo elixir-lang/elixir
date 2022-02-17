@@ -202,7 +202,7 @@ defmodule Mix.RebarTest do
 
     # We run only on Unix because Windows has a hard time
     # removing the Rebar executable after executed.
-    @tag [unix: true]
+    @tag :unix
     test "gets and compiles dependencies" do
       in_tmp("get and compile dependencies", fn ->
         Mix.Project.push(RebarAsDep)
@@ -256,7 +256,7 @@ defmodule Mix.RebarTest do
 
     # We run only on Unix because Windows has a hard time
     # removing the Rebar executable after executed.
-    @tag [unix: true]
+    @tag :unix
     test "applies variables from :system_env option when compiling dependencies" do
       in_tmp("applies variables from system_env", fn ->
         Mix.Project.push(RebarAsDepWithEnv)
@@ -295,6 +295,7 @@ defmodule Mix.RebarTest do
       File.rm(MixTest.Case.tmp_path("rebar_dep/mix.exs"))
     end
 
+    @tag :rebar
     test "gets and compiles dependencies with Rebar2" do
       in_tmp("get and compile dependencies for Rebar2", fn ->
         Mix.Project.push(Rebar2AsDep)
@@ -328,7 +329,8 @@ defmodule Mix.RebarTest do
 
     # We run only on Unix because Windows has a hard time
     # removing the Rebar executable after executed.
-    @tag [unix: true]
+    @tag :unix
+    @tag :rebar
     test "applies variables from :system_env option when compiling dependencies for Rebar2" do
       in_tmp("applies variables from system_env for Rebar2", fn ->
         Mix.Project.push(Rebar2AsDep)
