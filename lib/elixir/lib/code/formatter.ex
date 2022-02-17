@@ -1337,12 +1337,12 @@ defmodule Code.Formatter do
             ]
 
             case callback.(hd(entries), metadata) do
-              binary when is_binary(binary) ->
-                [binary]
+              iodata when is_binary(iodata) or is_list(iodata) ->
+                [IO.iodata_to_binary(iodata)]
 
               other ->
                 raise ArgumentError,
-                      "expected sigil callback to return a binary, got: #{inspect(other)}"
+                      "expected sigil callback to return iodata, got: #{inspect(other)}"
             end
 
           %{} ->

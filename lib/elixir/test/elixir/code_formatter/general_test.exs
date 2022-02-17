@@ -146,7 +146,7 @@ defmodule Code.Formatter.GeneralTest do
 
       formatter = fn content, opts ->
         assert opts == [file: nil, line: 1, sigil: :W, modifiers: 'abc']
-        content |> String.split(~r/ +/) |> Enum.join(" ")
+        content |> String.split(~r/ +/) |> Enum.intersperse(" ")
       end
 
       assert_format bad, good, sigils: [W: formatter]
