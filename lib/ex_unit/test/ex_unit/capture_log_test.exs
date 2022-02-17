@@ -72,7 +72,7 @@ defmodule ExUnit.CaptureLogTest do
       end)
 
     assert logged
-    assert logged =~ "[info]  one\n"
+    assert logged =~ "[info] one\n"
     assert logged =~ "[warning] two\n"
     assert logged =~ "[debug] three\n"
     assert logged =~ "[error] one\n"

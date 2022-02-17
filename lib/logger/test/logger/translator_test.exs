@@ -713,7 +713,7 @@ defmodule Logger.TranslatorTest do
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\]  Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) started
+           \[info\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) started
            Pid: #PID<\d+\.\d+\.\d+>
            Start Call: Task.start_link\(Logger.TranslatorTest, :sleep, \[#PID<\d+\.\d+\.\d+>\]\)
            """
@@ -728,7 +728,7 @@ defmodule Logger.TranslatorTest do
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\]  Child Task of Supervisor Logger.TranslatorTest started
+           \[info\] Child Task of Supervisor Logger.TranslatorTest started
            """
 
     {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one, name: {:global, __MODULE__})
@@ -739,7 +739,7 @@ defmodule Logger.TranslatorTest do
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\]  Child Task of Supervisor Logger.TranslatorTest started
+           \[info\] Child Task of Supervisor Logger.TranslatorTest started
            """
 
     {:ok, pid} =
@@ -751,7 +751,7 @@ defmodule Logger.TranslatorTest do
              Process.exit(pid, :normal)
              receive do: ({:DOWN, ^ref, _, _, _} -> :ok)
            end) =~ ~r"""
-           \[info\]  Child Task of Supervisor Logger.TranslatorTest started
+           \[info\] Child Task of Supervisor Logger.TranslatorTest started
            """
   end
 
@@ -960,7 +960,7 @@ defmodule Logger.TranslatorTest do
              receive do: ({:EXIT, ^pid, _} -> :ok)
              Process.flag(:trap_exit, trap)
            end) =~ ~r"""
-           \[info\]  Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) started
+           \[info\] Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) started
            Pid: #PID<\d+\.\d+\.\d+>
            Start Call: Logger.TranslatorTest.MyBridge.init\(:normal\)
            """

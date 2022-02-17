@@ -51,7 +51,7 @@ defmodule Logger.HandlerTest do
 
     assert capture_log(fn ->
              :logger.info('world: ~p', [:ok])
-           end) =~ "[info]  rewritten"
+           end) =~ "[info] rewritten"
 
     assert capture_log(fn ->
              :logger.info(%{hello: :ok})
@@ -59,7 +59,7 @@ defmodule Logger.HandlerTest do
 
     assert capture_log(fn ->
              :logger.info(%{world: :ok})
-           end) =~ "[info]  rewritten"
+           end) =~ "[info] rewritten"
   after
     assert Logger.remove_translator({CustomTranslator, :t})
   end
@@ -68,7 +68,7 @@ defmodule Logger.HandlerTest do
     assert Logger.add_translator({CustomTranslator, :t})
 
     message = capture_log(fn -> :logger.info(%{error: "oops"}) end)
-    assert message =~ "[info]  Failure while translating Erlang's logger event\n"
+    assert message =~ "[info] Failure while translating Erlang's logger event\n"
     assert message =~ "** (RuntimeError) oops\n"
   after
     assert Logger.remove_translator({CustomTranslator, :t})
@@ -94,7 +94,7 @@ defmodule Logger.HandlerTest do
     assert capture_log(fn ->
              callback = fn %{hello: :world} -> {"~p~n", [:formatted]} end
              :logger.info(%{hello: :world}, %{report_cb: callback})
-           end) =~ "[info]  :formatted"
+           end) =~ "[info] :formatted"
   end
 
   test "uses Erlang log levels" do
@@ -104,7 +104,7 @@ defmodule Logger.HandlerTest do
     assert capture_log(fn -> :logger.error('ok') end) =~ "[error] ok"
     assert capture_log(fn -> :logger.warning('ok') end) =~ "[warning] ok"
     assert capture_log(fn -> :logger.notice('ok') end) =~ "[notice] ok"
-    assert capture_log(fn -> :logger.info('ok') end) =~ "[info]  ok"
+    assert capture_log(fn -> :logger.info('ok') end) =~ "[info] ok"
     assert capture_log(fn -> :logger.debug('ok') end) =~ "[debug] ok"
   end
 
