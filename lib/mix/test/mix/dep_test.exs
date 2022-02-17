@@ -496,8 +496,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) ==
-                 [:git_repo, :abc_repo, :deps_repo]
+        assert [_, _, :deps_repo] = Enum.map(Mix.Dep.load_on_environment([]), & &1.app)
 
         assert Map.keys(Mix.Project.deps_paths()) == [:abc_repo, :deps_repo, :git_repo]
 
