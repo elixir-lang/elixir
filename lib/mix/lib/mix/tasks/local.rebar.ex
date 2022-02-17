@@ -1,27 +1,23 @@
 defmodule Mix.Tasks.Local.Rebar do
   use Mix.Task
 
-  @rebar2_list_url "/installs/rebar-1.x.csv"
-  @rebar2_escript_url "/installs/[ELIXIR_VERSION]/rebar-[REBAR_VERSION]"
   @rebar3_list_url "/installs/rebar3-1.x.csv"
   @rebar3_escript_url "/installs/[ELIXIR_VERSION]/rebar3-[REBAR_VERSION]"
 
   @shortdoc "Installs Rebar locally"
 
   @moduledoc """
-  Fetches a copy of `rebar` or `rebar3` from the given path or URL.
+  Fetches a copy of `rebar3` from the given path or URL.
 
   It defaults to safely download a Rebar copy from Hex's CDN.
   However, a URL can be given as an argument, usually for an existing
   local copy of Rebar:
 
-      mix local.rebar rebar path/to/rebar
       mix local.rebar rebar3 path/to/rebar
 
-  If neither `rebar` or `rebar3` are specified, both versions will be fetched.
-
-  The local copy is stored in your `MIX_HOME` (defaults to `~/.mix`).
-  This version of Rebar will be used as required by `mix deps.compile`.
+  The local copy is stored in your `MIX_HOME` (defaults to `~/.mix`)
+  according to the current Elixir. The installed version of Rebar will
+  be used whenever required by `mix deps.compile`.
 
   ## Command line options
 
@@ -48,17 +44,13 @@ defmodule Mix.Tasks.Local.Rebar do
 
   @impl true
   def run(argv) do
-    {opts, argv, _} = OptionParser.parse(argv, switches: @switches)
+    {opts, _, _} = OptionParser.parse(argv, switches: @switches)
 
     case argv do
-      ["rebar", path | _] ->
-        maybe_install_from_path(:rebar, path, opts)
-
       ["rebar3", path | _] ->
         maybe_install_from_path(:rebar3, path, opts)
 
       [] ->
-        maybe_install_from_s3(:rebar, @rebar2_list_url, @rebar2_escript_url, opts)
         maybe_install_from_s3(:rebar3, @rebar3_list_url, @rebar3_escript_url, opts)
 
       _ ->

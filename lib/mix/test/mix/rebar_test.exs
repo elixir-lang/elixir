@@ -50,24 +50,6 @@ defmodule Mix.RebarTest do
     end
   end
 
-  defmodule Rebar2AsDep do
-    def project do
-      [
-        app: :rebar_as_dep,
-        version: "0.1.0",
-        deps: [
-          {
-            :rebar_dep,
-            path: MixTest.Case.tmp_path("rebar_dep"),
-            app: false,
-            manager: :rebar,
-            system_env: [{"FILE_FROM_ENV", "rebar-test-rebar"}, {"CONTENTS_FROM_ENV", "rebar"}]
-          }
-        ]
-      ]
-    end
-  end
-
   describe "load_config/1" do
     test "loads rebar.config" do
       path = MixTest.Case.fixture_path("rebar_dep")
@@ -293,56 +275,6 @@ defmodule Mix.RebarTest do
       end)
     after
       File.rm(MixTest.Case.tmp_path("rebar_dep/mix.exs"))
-    end
-
-    @tag :rebar
-    test "gets and compiles dependencies with Rebar2" do
-      in_tmp("get and compile dependencies for Rebar2", fn ->
-        Mix.Project.push(Rebar2AsDep)
-
-        Mix.Tasks.Deps.Get.run([])
-        assert_received {:mix_shell, :info, ["* Getting git_rebar" <> _]}
-
-        Mix.Tasks.Deps.Compile.run([])
-        assert_received {:mix_shell, :run, ["==> git_rebar (compile)\n"]}
-        assert_received {:mix_shell, :run, ["==> rebar_dep (compile)\n"]}
-        assert :git_rebar.any_function() == :ok
-        assert :rebar_dep.any_function() == :ok
-
-        load_paths =
-          Mix.Dep.load_on_environment([])
-          |> Enum.map(&Mix.Dep.load_paths(&1))
-          |> Enum.concat()
-
-        assert File.exists?("_build/dev/lib/rebar_dep/ebin/rebar_dep.beam")
-        assert File.exists?("_build/dev/lib/git_rebar/ebin/git_rebar.beam")
-
-        # Assert we have no .mix/compile.lock as a .mix/compile.lock
-        # means we check for the Elixir version on every command.
-        refute File.exists?("_build/dev/lib/rebar_dep/.mix/compile.lock")
-        refute File.exists?("_build/dev/lib/git_rebar/.mix/compile.lock")
-
-        assert Enum.any?(load_paths, &String.ends_with?(&1, "git_rebar/ebin"))
-        assert Enum.any?(load_paths, &String.ends_with?(&1, "rebar_dep/ebin"))
-      end)
-    end
-
-    # We run only on Unix because Windows has a hard time
-    # removing the Rebar executable after executed.
-    @tag :unix
-    @tag :rebar
-    test "applies variables from :system_env option when compiling dependencies for Rebar2" do
-      in_tmp("applies variables from system_env for Rebar2", fn ->
-        Mix.Project.push(Rebar2AsDep)
-
-        expected_file = Path.join(tmp_path("rebar_dep"), "rebar-test-rebar")
-        File.rm(expected_file)
-
-        Mix.Tasks.Deps.Get.run([])
-        Mix.Tasks.Deps.Compile.run([])
-
-        assert {:ok, "rebar"} = File.read(expected_file)
-      end)
     end
   end
 end

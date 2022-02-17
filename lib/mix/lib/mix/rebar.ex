@@ -3,19 +3,21 @@ defmodule Mix.Rebar do
 
   @doc """
   Returns the path supposed to host the local copy of `rebar`.
+
+  The rebar3 installation is specific to the Elixir version,
+  in order to force updates when new Elixir versions come out.
   """
-  def local_rebar_path(manager) do
-    Path.join(Mix.Utils.mix_home(), Atom.to_string(manager))
+  def local_rebar_path(:rebar3) do
+    elixir_version = System.version() |> :binary.split("-") |> hd()
+    Path.join([Mix.Utils.mix_home(), "elixir", elixir_version, "rebar3"])
   end
 
   @doc """
-  Returns the path to the global copy of `rebar`, defined by the
-  environment variables `MIX_REBAR` or `MIX_REBAR3`.
+  Returns the path to the global copy of `rebar` defined by the
+  environment variable `MIX_REBAR3`.
   """
-  def global_rebar_cmd(manager) do
-    env = manager_to_env(manager)
-
-    if cmd = System.get_env(env) do
+  def global_rebar_cmd(:rebar3) do
+    if cmd = System.get_env("MIX_REBAR3") do
       wrap_cmd(cmd)
     end
   end
@@ -175,9 +177,6 @@ defmodule Mix.Rebar do
         end
     end
   end
-
-  defp manager_to_env(:rebar), do: "MIX_REBAR"
-  defp manager_to_env(:rebar3), do: "MIX_REBAR3"
 
   defp eval_script(script_path, config) do
     script = String.to_charlist(Path.basename(script_path))

@@ -91,9 +91,6 @@ defmodule Mix.Tasks.Deps.Compile do
             Mix.Dep.make?(dep) ->
               do_make(dep, config)
 
-            dep.manager == :rebar ->
-              do_rebar(dep, config)
-
             dep.manager == :rebar3 ->
               do_rebar3(dep, config)
 
@@ -187,14 +184,6 @@ defmodule Mix.Tasks.Deps.Compile do
           :erlang.raise(kind, reason, __STACKTRACE__)
       end
     end)
-  end
-
-  defp do_rebar(dep, config) do
-    lib_path = Path.join(config[:env_path], "lib")
-    cmd = "#{rebar_cmd(dep)} compile skip_deps=true deps_dir=#{inspect(lib_path)}"
-    do_command(dep, config, cmd, false)
-    build_structure(dep, config)
-    true
   end
 
   defp do_rebar3(%Mix.Dep{opts: opts} = dep, config) do
