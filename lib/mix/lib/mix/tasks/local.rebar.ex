@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
       _ ->
         Mix.raise(
-          "Invalid arguments given to mix local.rebar (#{inspect(args)}). " <>
+          "Invalid arguments given to mix local.rebar: #{inspect(args)}. " <>
             "To find out the proper call syntax run \"mix help local.rebar\""
         )
     end
@@ -72,13 +72,6 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp install_from_path(manager, path, opts) do
-    Mix.shell().info([
-      :green,
-      "* installing Rebar locally ",
-      :reset,
-      "from #{inspect(path)} with options #{inspect(opts)}"
-    ])
-
     local = Mix.Rebar.local_rebar_path(manager)
 
     if opts[:force] || Mix.Generator.overwrite?(local) do
