@@ -21,8 +21,6 @@ defmodule Mix.Tasks.Local.Rebar do
 
   ## Command line options
 
-    * `rebar PATH` - specifies a path for `rebar`
-
     * `rebar3 PATH` - specifies a path for `rebar3`
 
     * `--sha512` - checks the Rebar script matches the given SHA-512 checksum

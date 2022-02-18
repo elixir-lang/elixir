@@ -194,7 +194,7 @@ defmodule Mix.DepTest do
     Process.put(:custom_deps_git_repo_opts, manager: :make)
 
     deps = [
-      {:deps_repo, "0.1.0", path: "custom/deps_repo", manager: :rebar},
+      {:deps_repo, "0.1.0", path: "custom/deps_repo", manager: :rebar3},
       {:git_repo, "0.2.0", git: MixTest.Case.fixture_path("git_repo")}
     ]
 
@@ -202,7 +202,7 @@ defmodule Mix.DepTest do
       in_fixture("deps_status", fn ->
         [dep1, dep2] = Mix.Dep.load_on_environment([])
         assert dep1.manager == nil
-        assert dep2.manager == :rebar
+        assert dep2.manager == :rebar3
       end)
     end)
   end
