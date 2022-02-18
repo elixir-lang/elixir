@@ -21,8 +21,6 @@ defmodule Mix.Tasks.Local.Rebar do
 
   ## Command line options
 
-    * `rebar PATH` - specifies a path for `rebar`
-
     * `rebar3 PATH` - specifies a path for `rebar3`
 
     * `--sha512` - checks the Rebar script matches the given SHA-512 checksum
@@ -44,9 +42,9 @@ defmodule Mix.Tasks.Local.Rebar do
 
   @impl true
   def run(argv) do
-    {opts, _, _} = OptionParser.parse(argv, switches: @switches)
+    {opts, args, _} = OptionParser.parse(argv, switches: @switches)
 
-    case argv do
+    case args do
       ["rebar3", path | _] ->
         maybe_install_from_path(:rebar3, path, opts)
 
@@ -55,7 +53,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
       _ ->
         Mix.raise(
-          "Invalid arguments given to mix local.rebar. " <>
+          "Invalid arguments given to mix local.rebar (#{inspect(args)}). " <>
             "To find out the proper call syntax run \"mix help local.rebar\""
         )
     end
@@ -74,6 +72,13 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp install_from_path(manager, path, opts) do
+    Mix.shell().info([
+      :green,
+      "* installing Rebar locally ",
+      :reset,
+      "from #{inspect(path)} with options #{inspect(opts)}"
+    ])
+
     local = Mix.Rebar.local_rebar_path(manager)
 
     if opts[:force] || Mix.Generator.overwrite?(local) do
