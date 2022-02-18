@@ -220,7 +220,7 @@ defmodule Mix.Dep.Loader do
 
   # Note that we ignore Make dependencies because the
   # file based heuristic will always figure it out.
-  @scm_managers ~w(mix rebar rebar3)a
+  @scm_managers ~w(mix rebar3)a
 
   defp scm_manager(scm, opts) do
     managers = scm.managers(opts)
