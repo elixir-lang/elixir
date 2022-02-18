@@ -42,9 +42,9 @@ defmodule Mix.Tasks.Local.Rebar do
 
   @impl true
   def run(argv) do
-    {opts, _, _} = OptionParser.parse(argv, switches: @switches)
+    {opts, args, _} = OptionParser.parse(argv, switches: @switches)
 
-    case argv do
+    case args do
       ["rebar3", path | _] ->
         maybe_install_from_path(:rebar3, path, opts)
 
@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
       _ ->
         Mix.raise(
-          "Invalid arguments given to mix local.rebar. " <>
+          "Invalid arguments given to mix local.rebar: #{inspect(args)}. " <>
             "To find out the proper call syntax run \"mix help local.rebar\""
         )
     end
