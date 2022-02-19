@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Cmd do
 
   The tasks aborts whenenever a command exits with a non-zero status.
 
-  This task is automatically reenabled, so it can be called multiple times
+  This task is automatically re-enabled, so it can be called multiple times
   with different arguments.
 
   ## Command line options

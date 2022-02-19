@@ -196,7 +196,7 @@ defmodule Mix.Tasks.Deps.Compile do
     #
     # TODO: We still symlink ebin/ by default for backwards compatibility.
     # This partially negates the effects of REBAR_BARE_COMPILER_OUTPUT_DIR
-    # if an ebin diretory exists, so we should consider disabling it in future
+    # if an ebin directory exists, so we should consider disabling it in future
     # releases when rebar3 v3.14+ is reasonably adopted.
     config = Keyword.put(config, :app_path, build_path)
     Mix.Project.build_structure(config, symlink_ebin: true, source: dep_path)

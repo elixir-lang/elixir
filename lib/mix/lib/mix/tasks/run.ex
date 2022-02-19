@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Run do
 
       elixir --sname hello -S mix run --no-halt
 
-  This task is automatically reenabled, so it can be called multiple times
+  This task is automatically re-enabled, so it can be called multiple times
   with different arguments.
 
   ## Command-line options
