@@ -1084,7 +1084,9 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on non-continuous" do
-      assert_raise CompileError, ~r"capture argument &0 is not allowed", fn -> expand(quote(do: &foo(&0))) end
+      assert_raise CompileError, ~r"capture argument &0 is not allowed", fn ->
+        expand(quote(do: &foo(&0)))
+      end
 
       assert_raise CompileError, ~r"capture argument &2 cannot be defined without &1", fn ->
         expand(quote(do: & &2))
@@ -1138,9 +1140,9 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on integers" do
-      assert_raise CompileError, ~r"capture argument &1 must be used within the capture operator &", fn ->
-        expand(quote(do: &1))
-      end
+      assert_raise CompileError,
+                   ~r"capture argument &1 must be used within the capture operator &",
+                   fn -> expand(quote(do: &1)) end
     end
   end
 
