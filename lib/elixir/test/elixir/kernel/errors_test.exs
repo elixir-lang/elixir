@@ -398,7 +398,7 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError, "nofile:1: unquote called outside quote", 'unquote 1'
   end
 
-  test "invalid unquote splicing in oneliners" do
+  test "invalid unquote splicing in one-liners" do
     assert_eval_raise ArgumentError,
                       "unquote_splicing only works inside arguments and block contexts, " <>
                         "wrap it in parens if you want it to work with one-liners",

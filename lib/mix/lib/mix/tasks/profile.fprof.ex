@@ -19,7 +19,7 @@ defmodule Mix.Tasks.Profile.Fprof do
       mix profile.fprof -e Hello.world
       mix profile.fprof my_script.exs arg1 arg2 arg3
 
-  This task is automatically reenabled, so you can profile multiple times
+  This task is automatically re-enabled, so you can profile multiple times
   in the same Mix invocation.
 
   ## Command line options

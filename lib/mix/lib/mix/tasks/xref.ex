@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Xref do
 
   All available modes are discussed below.
 
-  This task is automatically reenabled, so you can print
+  This task is automatically re-enabled, so you can print
   information multiple times in the same Mix invocation.
 
   ## mix xref callers MODULE

@@ -355,13 +355,13 @@ defmodule Module.Types.PatternTest do
              ) == {:ok, [{:map, [{:optional, :dynamic, :dynamic}]}]}
     end
 
-    test "interesection functions" do
+    test "intersection functions" do
       assert quoted_head([x], [+x]) == {:ok, [{:union, [:integer, :float]}]}
       assert quoted_head([x], [x + 1]) == {:ok, [{:union, [:float, :integer]}]}
       assert quoted_head([x], [x + 1.0]) == {:ok, [{:union, [:integer, :float]}]}
     end
 
-    test "nested calls with interesections in guards" do
+    test "nested calls with intersections in guards" do
       assert quoted_head([x], [:erlang.rem(x, 2)]) == {:ok, [:integer]}
       assert quoted_head([x], [:erlang.rem(x + x, 2)]) == {:ok, [:integer]}
 

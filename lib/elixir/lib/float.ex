@@ -15,7 +15,7 @@ defmodule Float do
   ## Known issues
 
   There are some very well known problems with floating-point numbers
-  and arithmetics due to the fact most decimal fractions cannot be
+  and arithmetic due to the fact most decimal fractions cannot be
   represented by a floating-point binary and most operations are not exact,
   but operate on approximations. Those issues are not specific
   to Elixir, they are a property of floating point representation itself.

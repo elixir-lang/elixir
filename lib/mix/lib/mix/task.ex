@@ -524,10 +524,10 @@ defmodule Mix.Task do
   @doc """
   Reenables a given task so it can be executed again down the stack.
 
-  Both alias and the regular stack are reenabled when this function
+  Both alias and the regular stack are re-enabled when this function
   is called.
 
-  If an umbrella project reenables a task, it is reenabled for all
+  If an umbrella project reenables a task, it is re-enabled for all
   child projects.
   """
   @spec reenable(task_name) :: :ok
