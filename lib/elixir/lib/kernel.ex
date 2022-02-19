@@ -2589,7 +2589,7 @@ defmodule Kernel do
       [27, 23]
 
   In case any of the components returns `nil`, `nil` will be returned
-  and `get_in/2` won't traverse any futher:
+  and `get_in/2` won't traverse any further:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users, ["unknown", :age])

@@ -80,7 +80,7 @@ defmodule Config do
         ...
       end
 
-  The only files where you may acccess functions from the `Mix` module are
+  The only files where you may access functions from the `Mix` module are
   the `mix.exs` file and inside custom Mix tasks, which always within the
   `Mix.Tasks` namespace.
 

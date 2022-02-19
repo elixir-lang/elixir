@@ -96,7 +96,7 @@ defmodule Task do
       the caller won't fail. You will receive the error reason either on
       `yield` or `shutdown`.
 
-  Furthemore, the supervisor guarantee all tasks first terminate, within a
+  Furthermore, the supervisor guarantee all tasks first terminate, within a
   configurable shutdown period, when your application shuts down. See the
   `Task.Supervisor` module for details on the supported operations.
 

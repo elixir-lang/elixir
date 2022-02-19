@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Profile.Cprof do
       mix profile.cprof -e "[1, 2, 3] |> Enum.reverse |> Enum.map(&Integer.to_string/1)"
       mix profile.cprof my_script.exs arg1 arg2 arg3
 
-  This task is automatically reenabled, so you can profile multiple times
+  This task is automatically re-enabled, so you can profile multiple times
   in the same Mix invocation.
 
   ## Command line options

@@ -74,7 +74,7 @@ defmodule Kernel.WarningTest do
                \\u005F _
              """
 
-      # a is in cyrllic
+      # a is in cyrillic
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[аdmin: 1]") end
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("[{:аdmin, 1}]") end
       assert_raise SyntaxError, ~r/mixed/, fn -> Code.string_to_quoted!("quote do: аdmin(1)") end
