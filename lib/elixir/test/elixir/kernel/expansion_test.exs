@@ -1084,21 +1084,19 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on non-continuous" do
-      assert_raise CompileError, ~r"capture &0 is not allowed", fn ->
-        expand(quote(do: &foo(&0)))
-      end
+      assert_raise CompileError, ~r"capture argument &0 is not allowed", fn -> expand(quote(do: &foo(&0))) end
 
-      assert_raise CompileError, ~r"capture &2 cannot be defined without &1", fn ->
+      assert_raise CompileError, ~r"capture argument &2 cannot be defined without &1", fn ->
         expand(quote(do: & &2))
       end
 
-      assert_raise CompileError, ~r"capture &255 cannot be defined without &1", fn ->
+      assert_raise CompileError, ~r"capture argument &255 cannot be defined without &1", fn ->
         expand(quote(do: & &255))
       end
     end
 
     test "fails on block" do
-      message = ~r"invalid args for &, block expressions are not allowed, got: 1\n2"
+      message = ~r"block expressions are not allowed inside the capture operator &, got: 1\n2"
 
       assert_raise CompileError, message, fn ->
         code =
@@ -1120,7 +1118,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on invalid arity" do
-      message = ~r"invalid arity for &, expected a number between 0 and 255, got: 256"
+      message = ~r"capture argument &256 must be a number between 0 and 255"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: &Mod.fun/256))
@@ -1134,13 +1132,13 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on nested capture" do
-      assert_raise CompileError, ~r"nested captures via & are not allowed: & &1", fn ->
+      assert_raise CompileError, ~r"nested captures are not allowed", fn ->
         expand(quote(do: &(& &1)))
       end
     end
 
     test "fails on integers" do
-      assert_raise CompileError, ~r"unhandled &1 outside of a capture", fn ->
+      assert_raise CompileError, ~r"capture argument &1 must be used within the capture operator &", fn ->
         expand(quote(do: &1))
       end
     end
