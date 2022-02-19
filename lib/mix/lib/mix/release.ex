@@ -7,8 +7,7 @@ defmodule Mix.Release do
   The Mix.Release struct has the following read-only fields:
 
     * `:name` - the name of the release as an atom
-    * `:version` - the version of the release as a string or
-       `{:from_app, app_name}`
+    * `:version` - the version of the release as a string
     * `:path` - the path to the release root
     * `:version_path` - the path to the release version inside the release
     * `:applications` - a map of application with their definitions
@@ -54,7 +53,7 @@ defmodule Mix.Release do
           name: atom(),
           version: String.t(),
           path: String.t(),
-          version_path: String.t() | {:from_app, application()},
+          version_path: String.t(),
           applications: %{application() => keyword()},
           boot_scripts: %{atom() => [{application(), mode()}]},
           erts_version: charlist(),
