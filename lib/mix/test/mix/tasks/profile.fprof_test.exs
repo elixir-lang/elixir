@@ -98,4 +98,12 @@ defmodule Mix.Tasks.Profile.FprofTest do
              end) =~ "Warmup..."
     end)
   end
+
+  describe ".profile/2" do
+    test "returns the return value of the function call" do
+      capture_io(fn ->
+        assert 42 == Fprof.profile(fn -> 42 end)
+      end)
+    end
+  end
 end

@@ -171,6 +171,8 @@ defmodule Mix.Tasks.Profile.Eprof do
   @doc """
   Allows to programmatically run the `eprof` profiler on expression in `fun`.
 
+  Returns the return value of `fun`.
+
   ## Options
 
     * `:matching` - only profile calls matching the given pattern in form of
@@ -181,10 +183,14 @@ defmodule Mix.Tasks.Profile.Eprof do
     * `:sort` - sort the results by `:time` or `:calls` (default: `:time`)
 
   """
+  @spec profile((() -> any())) :: any()
+  @spec profile((() -> any()), keyword()) :: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
-    fun
-    |> profile_and_analyse(opts)
-    |> print_output()
+    {return_value, results} = profile_and_analyse(fun, opts)
+
+    print_output(results)
+
+    return_value
   end
 
   defp profile_and_analyse(fun, opts) do
@@ -194,7 +200,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     end
 
     :eprof.start()
-    :eprof.profile([], fun, Keyword.get(opts, :matching, {:_, :_, :_}))
+    {:ok, return_value} = :eprof.profile([], fun, Keyword.get(opts, :matching, {:_, :_, :_}))
 
     results =
       Enum.map(:eprof.dump(), fn {pid, call_results} ->
@@ -209,7 +215,7 @@ defmodule Mix.Tasks.Profile.Eprof do
 
     :eprof.stop()
 
-    results
+    {return_value, results}
   end
 
   defp filter_results(call_results, opts) do

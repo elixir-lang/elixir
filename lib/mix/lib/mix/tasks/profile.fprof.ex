@@ -166,6 +166,8 @@ defmodule Mix.Tasks.Profile.Fprof do
   @doc """
   Allows to programmatically run the `fprof` profiler on expression in `fun`.
 
+  Returns the return value of `fun`.
+
   ## Options
 
     * `:callers` - prints detailed information about immediate callers and called functions
@@ -173,10 +175,14 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `:sort` - sorts the output by given key: `:acc` (default) or `:own`
 
   """
+  @spec profile((() -> any())) :: any()
+  @spec profile((() -> any()), keyword()) :: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
-    fun
-    |> profile_and_analyse(opts)
-    |> print_output
+    {return_value, analysis_output} = profile_and_analyse(fun, opts)
+
+    print_output(analysis_output)
+
+    return_value
   end
 
   defp profile_and_analyse(fun, opts) do
@@ -186,7 +192,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     end
 
     {:ok, tracer} = :fprof.profile(:start)
-    :fprof.apply(fun, [], tracer: tracer)
+    return_value = :fprof.apply(fun, [], tracer: tracer)
 
     {:ok, analyse_dest} = StringIO.open("")
 
@@ -201,7 +207,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     else
       :ok ->
         {_in, analysis_output} = StringIO.contents(analyse_dest)
-        String.to_charlist(analysis_output)
+        {return_value, String.to_charlist(analysis_output)}
     after
       StringIO.close(analyse_dest)
     end
