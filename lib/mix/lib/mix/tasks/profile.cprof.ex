@@ -157,6 +157,8 @@ defmodule Mix.Tasks.Profile.Cprof do
   @doc """
   Allows to programmatically run the `cprof` profiler on expression in `fun`.
 
+  Returns the return value of `fun`.
+
   ## Options
 
     * `:matching` - only profile calls matching the given pattern in form of
@@ -166,12 +168,15 @@ defmodule Mix.Tasks.Profile.Cprof do
     * `:module` - filters out any results not pertaining to the given module
 
   """
+  @spec profile((() -> any()), keyword()) :: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
-    fun
-    |> profile_and_analyse(opts)
-    |> print_output
+    {return_value, num_matched_functions, analysis_result} = profile_and_analyse(fun, opts)
+
+    print_output(num_matched_functions, analysis_result)
 
     :cprof.stop()
+
+    return_value
   end
 
   defp profile_and_analyse(fun, opts) do
@@ -186,7 +191,7 @@ defmodule Mix.Tasks.Profile.Cprof do
         :error -> :cprof.start()
       end
 
-    apply(fun, [])
+    return_value = apply(fun, [])
 
     :cprof.pause()
 
@@ -209,19 +214,19 @@ defmodule Mix.Tasks.Profile.Cprof do
           end
       end
 
-    {num_matched_functions, analysis_result}
+    {return_value, num_matched_functions, analysis_result}
   end
 
   defp string_to_existing_module(":" <> module), do: String.to_existing_atom(module)
   defp string_to_existing_module(module), do: Module.concat([module])
 
-  defp print_output({num_matched_functions, {all_call_count, mod_analysis_list}}) do
+  defp print_output(num_matched_functions, {all_call_count, mod_analysis_list}) do
     print_total_row(all_call_count)
     Enum.each(mod_analysis_list, &print_analysis_result/1)
     print_number_of_matched_functions(num_matched_functions)
   end
 
-  defp print_output({num_matched_functions, {_mod, _call_count, _mod_fun_list} = mod_analysis}) do
+  defp print_output(num_matched_functions, {_mod, _call_count, _mod_fun_list} = mod_analysis) do
     print_analysis_result(mod_analysis)
     print_number_of_matched_functions(num_matched_functions)
   end
