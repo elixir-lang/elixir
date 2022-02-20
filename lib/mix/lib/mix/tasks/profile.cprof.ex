@@ -168,7 +168,6 @@ defmodule Mix.Tasks.Profile.Cprof do
     * `:module` - filters out any results not pertaining to the given module
 
   """
-  @spec profile((() -> any())) :: any()
   @spec profile((() -> any()), keyword()) :: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     {return_value, num_matched_functions, analysis_result} = profile_and_analyse(fun, opts)
