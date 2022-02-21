@@ -132,7 +132,7 @@ escape({'&', _, [Pos]}, _E, Dict) when is_integer(Pos), Pos > 0 ->
   Var = {list_to_atom([$x | integer_to_list(Pos)]), [], ?var_context},
   {Var, orddict:store(Pos, Var, Dict)};
 escape({'&', Meta, [Pos]}, E, _Dict) when is_integer(Pos) ->
-  form_error(Meta, E, ?MODULE, {unallowed_capture_arg, Pos});
+  form_error(Meta, E, ?MODULE, {invalid_arity_for_capture, Pos});
 escape({'&', Meta, _} = Arg, E, _Dict) ->
   form_error(Meta, E, ?MODULE, {nested_capture, Arg});
 escape({Left, Meta, Right}, E, Dict0) ->
@@ -185,14 +185,12 @@ format_error({nested_capture, Arg}) ->
     " the capture operator & inside another function defined via &. Got invalid nested "
     "capture: ~ts", ['Elixir.Macro':to_string(Arg)]);
 format_error({invalid_arity_for_capture, Arity}) ->
-  io_lib:format("capture argument &~B is invalid (it must be numbered between 0 and 255)", [Arity]);
+  io_lib:format("capture argument &~B must be numbered between 1 and 255", [Arity]);
 format_error({capture_arg_outside_of_capture, Integer}) ->
   io_lib:format("capture argument &~B must be used within the capture operator &", [Integer]);
 format_error({capture_arg_without_predecessor, Pos, Expected}) ->
   io_lib:format("capture argument &~B cannot be defined without &~B "
     "(you cannot skip arguments, all arguments must be numbered)", [Pos, Expected]);
-format_error({unallowed_capture_arg, Integer}) ->
-  io_lib:format("capture argument &~B is not allowed (it must be a positive number)", [Integer]);
 format_error({invalid_args_for_capture, Arg}) ->
   Message =
     "invalid args for &, expected one of:\n\n"
