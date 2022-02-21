@@ -1120,7 +1120,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on invalid arity" do
-      message = ~r"capture argument &256 must be a number between 0 and 255"
+      message = ~r"capture argument &256 must be numbered between 0 and 255"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: &Mod.fun/256))
