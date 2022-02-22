@@ -1482,13 +1482,9 @@ defmodule ErlangError do
 
   @doc false
   def normalize(:badarg, stacktrace) do
-    case error_info(:badarg, stacktrace) do
-      {:ok, args} ->
-        message = "errors were found at the given arguments:\n\n#{args}"
-        %ArgumentError{message: message}
-
-      :error ->
-        %ArgumentError{}
+    case error_info(:badarg, stacktrace, "errors were found at the given arguments") do
+      {:ok, message} -> %ArgumentError{message: message}
+      :error -> %ArgumentError{}
     end
   end
 
@@ -1497,15 +1493,11 @@ defmodule ErlangError do
   end
 
   def normalize(:system_limit, stacktrace) do
-    case error_info(:system_limit, stacktrace) do
-      {:ok, args} ->
-        message =
-          "a system limit has been reached due to errors at the given arguments:\n\n#{args}"
+    default_reason = "a system limit has been reached due to errors at the given arguments"
 
-        %SystemLimitError{message: message}
-
-      :error ->
-        %SystemLimitError{}
+    case error_info(:system_limit, stacktrace, default_reason) do
+      {:ok, message} -> %SystemLimitError{message: message}
+      :error -> %SystemLimitError{}
     end
   end
 
@@ -1597,18 +1589,7 @@ defmodule ErlangError do
     {nil, nil, nil}
   end
 
-  defp error_info(:badarg, [{:erlang, fun, _, _} | _]) when fun in [:byte_size, :bit_size] do
-    {:ok,
-     """
-       * 1st argument: not a bitstring
-
-     This typically happens when calling Kernel.#{fun}/1 with an invalid argument \
-     or when performing binary construction or binary concatenation with <> and \
-     one of the arguments is not a binary\
-     """}
-  end
-
-  defp error_info(erl_exception, stacktrace) do
+  defp error_info(erl_exception, stacktrace, default_reason) do
     with [{module, _, args_or_arity, opts} | _] <- stacktrace,
          %{} = error_info <- opts[:error_info] do
       module = Map.get(error_info, :module, module)
@@ -1616,11 +1597,17 @@ defmodule ErlangError do
       arity = if is_integer(args_or_arity), do: args_or_arity, else: length(args_or_arity)
       extra = apply(module, function, [erl_exception, stacktrace])
       args_errors = Map.take(extra, Enum.to_list(1..arity//1))
+      reason = Map.get(extra, :reason, default_reason)
 
-      if map_size(args_errors) > 0 do
-        {:ok, IO.iodata_to_binary(Enum.map(args_errors, &arg_error/1))}
-      else
-        :error
+      cond do
+        map_size(args_errors) > 0 ->
+          {:ok, IO.iodata_to_binary(["#{reason}:\n\n" | Enum.map(args_errors, &arg_error/1)])}
+
+        general = extra[:general] ->
+          {:ok, "#{reason}: #{general}"}
+
+        true ->
+          :error
       end
     else
       _ -> :error
