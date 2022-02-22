@@ -71,7 +71,7 @@ defmodule Kernel.RaiseTest do
     end
   end
 
-  if :erlang.system_info(:otp_release) >= '24' do
+  if System.otp_release() >= "24" do
     test "raise with error_info" do
       {exception, stacktrace} =
         try do

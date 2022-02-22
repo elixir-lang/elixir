@@ -512,11 +512,9 @@ defmodule ExceptionTest do
                "function ExceptionTest.ImplementationWithOptional.optional/0 is undefined or private"
     end
 
-    if :erlang.system_info(:otp_release) >= '23' do
-      test "annotates undefined function clause error with otp obsolete hints" do
-        assert blame_message(:erlang, & &1.hash(1, 2)) ==
-                 "function :erlang.hash/2 is undefined or private, use erlang:phash2/2 instead"
-      end
+    test "annotates undefined function clause error with otp obsolete hints" do
+      assert blame_message(:erlang, & &1.hash(1, 2)) ==
+               "function :erlang.hash/2 is undefined or private, use erlang:phash2/2 instead"
     end
 
     test "annotates undefined function clause error with nil hints" do
@@ -789,7 +787,7 @@ defmodule ExceptionTest do
     end
   end
 
-  if :erlang.system_info(:otp_release) >= '24' do
+  if System.otp_release() >= "24" do
     describe "error_info" do
       test "badarg on erlang" do
         assert message(:erlang, & &1.element("foo", "bar")) == """
@@ -819,14 +817,25 @@ defmodule ExceptionTest do
                  * 1st argument: counters array size reached a system limit
                """
       end
+    end
+  end
 
-      defp message(arg, fun) do
-        try do
-          fun.(arg)
-        rescue
-          e -> Exception.message(e)
-        end
+  if System.otp_release() >= "25" do
+    describe "binary constructor error info" do
+      defp concat(a, b), do: a <> b
+
+      test "on binary concatenation" do
+        assert message(123, &concat(&1, "bar")) ==
+                 "construction of binary failed: segment 1 of type 'binary': expected a binary but got: 123"
       end
+    end
+  end
+
+  defp message(arg, fun) do
+    try do
+      fun.(arg)
+    rescue
+      e -> Exception.message(e)
     end
   end
 end
