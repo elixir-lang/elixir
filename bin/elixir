@@ -38,6 +38,8 @@ The following options are related to node distribution.
   --hidden                     Makes a hidden node
   --name NAME                  Makes and assigns a name to the distributed node
   --rpc-eval NODE "COMMAND"    Evaluates the given command on the given remote node (*)
+  --rpc-call NODE MOD FUN      Calls the given module function with the list of remaining
+                               arguments on the remote node
   --sname NAME                 Makes and assigns a short name to the distributed node
 
 ## Release options
@@ -120,6 +122,9 @@ while [ $I -le $LENGTH ]; do
         ;;
     --rpc-eval)
         C=3
+        ;;
+    --rpc-call)
+        C=4
         ;;
     --hidden)
         S=1

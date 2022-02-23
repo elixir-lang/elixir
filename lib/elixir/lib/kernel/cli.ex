@@ -109,6 +109,15 @@ defmodule Kernel.CLI do
     kind, reason -> {kind, reason, __STACKTRACE__}
   end
 
+  @doc """
+  Function invoked across nodes for `--rpc-call`.
+  """
+  def rpc_call(mod, fun, args) do
+    wrapper(fn -> apply(mod, fun, [args]) end)
+  catch
+    kind, reason -> {kind, reason, __STACKTRACE__}
+  end
+
   ## Helpers
 
   defp at_exit(res) do
@@ -280,6 +289,16 @@ defmodule Kernel.CLI do
     {[], new_config}
   end
 
+  defp parse_shared(["--rpc-call", node, mod, fun | args], config) do
+    node = append_hostname(node)
+    {[], %{config | commands: [{:rpc_call, node, mod, fun, args} | config.commands]}}
+  end
+
+  defp parse_shared(["--rpc-call" | _], config) do
+    new_config = %{config | errors: ["--rpc-call : wrong number of arguments" | config.errors]}
+    {[], new_config}
+  end
+
   defp parse_shared(["-r", h | t], config) do
     parse_shared(t, %{config | commands: [{:require, h} | config.commands]})
   end
@@ -448,6 +467,23 @@ defmodule Kernel.CLI do
       :ok -> :ok
       {:badrpc, {:EXIT, exit}} -> Process.exit(self(), exit)
       {:badrpc, reason} -> {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
+      {kind, error, stack} -> :erlang.raise(kind, error, stack)
+    end
+  end
+
+  defp process_command({:rpc_call, node, module, function, args}, _config) do
+    module =
+      case module do
+        ":" <> atom -> String.to_atom(atom)
+        _ -> Module.concat([module])
+      end
+
+    function = String.to_atom(function)
+
+    case :rpc.call(String.to_atom(node), __MODULE__, :rpc_call, [module, function, args]) do
+      :ok -> :ok
+      {:badrpc, {:EXIT, exit}} -> Process.exit(self(), exit)
+      {:badrpc, reason} -> {:error, "--rpc-call : rpc failed with reason #{inspect(reason)}"}
       {kind, error, stack} -> :erlang.raise(kind, error, stack)
     end
   end

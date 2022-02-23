@@ -138,7 +138,7 @@ defmodule Mix.Tasks.Release.Init do
       esac
     }
 
-    rpc () {
+    rpc_eval () {
       exec "$REL_VSN_DIR/elixir" \
            --hidden --cookie "$RELEASE_COOKIE" \
            $(release_distribution "rpc-$(rand)-$RELEASE_NODE") \
@@ -146,6 +146,16 @@ defmodule Mix.Tasks.Release.Init do
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --vm-args "$RELEASE_REMOTE_VM_ARGS" \
            --rpc-eval "$RELEASE_NODE" "$1"
+    }
+
+    rpc_call () {
+      exec "$REL_VSN_DIR/elixir" \
+           --hidden --cookie "$RELEASE_COOKIE" \
+           $(release_distribution "rpc-$(rand)-$RELEASE_NODE") \
+           --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
+           --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
+           --vm-args "$RELEASE_REMOTE_VM_ARGS" \
+           --rpc-call "$RELEASE_NODE" $@
     }
 
     start () {
@@ -226,15 +236,21 @@ defmodule Mix.Tasks.Release.Init do
           echo "ERROR: RPC expects an expression as argument" >&2
           exit 1
         fi
-        rpc "$2"
+
+        if [ -z "$3" ]; then
+          rpc_eval "$2"
+        else
+          shift
+          rpc_call $@
+        fi
         ;;
 
       restart|stop)
-        rpc "System.$1()"
+        rpc_eval "System.$1()"
         ;;
 
       pid)
-        rpc "IO.puts System.pid()"
+        rpc_eval "IO.puts System.pid()"
         ;;
 
       version)
@@ -252,6 +268,8 @@ defmodule Mix.Tasks.Release.Init do
         daemon_iex     Starts the system as a daemon with IEx attached
         eval \"EXPR\"    Executes the given expression on a new, non-booted system
         rpc \"EXPR\"     Executes the given expression remotely on the running system
+        rpc MOD FUN    Executes the given module function with the list of remaining arguments
+                       on the running system
         remote         Connects to the running system via a remote shell
         restart        Restarts the running system via a remote command
         stop           Stops the running system via a remote command
@@ -408,6 +426,7 @@ defmodule Mix.Tasks.Release.Init do
     goto end
 
     :rpc
+    Rem TODO: support --rpc-call
     if "!RELEASE_DISTRIBUTION!" == "none" (
       set RELEASE_DISTRIBUTION_FLAG=
     ) else (

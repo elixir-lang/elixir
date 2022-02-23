@@ -725,6 +725,9 @@ defmodule Mix.Tasks.ReleaseTest do
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world()"], env: env) ==
                  {"hello world\n", 0}
 
+        assert System.cmd(script, ["rpc", "IO", "puts", "foo", "bar", "--baz"], env: env) ==
+                 {"foobar--baz\n", 0}
+
         assert System.cmd(script, ["restart"], env: env) == {"", 0}
 
         assert wait_until(fn ->

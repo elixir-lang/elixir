@@ -143,7 +143,7 @@ defmodule Kernel.CLITest do
   end
 end
 
-defmodule Kernel.CLI.RPCTest do
+defmodule Kernel.CLI.RPCEvalTest do
   use ExUnit.Case, async: true
 
   import Retry
@@ -190,6 +190,63 @@ defmodule Kernel.CLI.RPCTest do
 
     assert rpc_eval("IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})") ==
              "false\n"
+
+    assert elixir('--name cli-rpc#{System.unique_integer()} --rpc-eval badnode "IO.puts :hi"') ==
+             "--rpc-eval : RPC failed with reason :nodedown\n"
+  end
+end
+
+defmodule Kernel.CLI.RPCCallTest do
+  use ExUnit.Case, async: true
+
+  import Retry
+
+  defp rpc_call(module, function, args) do
+    node = "cli-rpc#{System.unique_integer()}@127.0.0.1"
+    elixir('--name #{node} --rpc-call #{node} #{module} #{function} #{args}')
+  end
+
+  test "invokes command on remote node" do
+    assert rpc_call("IO", "inspect", "a b -c --d") == ~s|["a", "b", "-c", "--d"]\n|
+  end
+
+  test "invokes command on remote node without host" do
+    node = "cli-rpc#{System.unique_integer()}"
+    assert elixir('--name #{node}@127.0.0.1 --rpc-call #{node} IO puts hi') == "hi\n"
+  end
+
+  test "invokes Erlang modules" do
+    node = "cli-rpc#{System.unique_integer()}"
+    assert elixir('--name #{node}@127.0.0.1 --rpc-call #{node} :io format hi') == "hi"
+  end
+
+  test "fails on wrong arguments" do
+    node = "cli-rpc#{System.unique_integer()}"
+
+    assert elixir('--name #{node}@127.0.0.1 --rpc-call') ==
+             "--rpc-call : wrong number of arguments\n"
+
+    assert elixir('--name #{node}@127.0.0.1 --rpc-call #{node}') ==
+             "--rpc-call : wrong number of arguments\n"
+
+    assert elixir('--name #{node}@127.0.0.1 --rpc-call #{node} IO') ==
+             "--rpc-call : wrong number of arguments\n"
+  end
+
+  stderr_test "properly formats errors" do
+    assert String.starts_with?(
+             rpc_call(":erlang", "throw", "a b"),
+             ~s|** (throw) ["a", "b"]|
+           )
+
+    assert String.starts_with?(
+             rpc_call(":erlang", "error", "a b"),
+             ~s|** (ErlangError) Erlang error: ["a", "b"]|
+           )
+
+    # TODO: why does it time out?
+    # assert elixir('--name cli-rpc#{System.unique_integer()} --rpc-call badnode IO puts hi"') ==
+    #          "--rpc-call : RPC failed with reason :nodedown\n"
   end
 end
 

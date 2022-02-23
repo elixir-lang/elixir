@@ -132,6 +132,12 @@ defmodule Mix.Tasks.Release do
   You can also use `remote` to connect a remote IEx session to the
   system.
 
+  The `rpc` command also supports passing a module and a function to
+  execute on the remote node with a list of remaining arguments:
+
+      $ bin/RELEASE_NAME rpc IO inspect foo bar --baz
+      ["foo", "bar", "--baz"]
+
   #### Helper module
 
   As you operate your system, you may find yourself running some piece of code
