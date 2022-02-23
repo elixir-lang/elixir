@@ -17,9 +17,9 @@ defmodule EEx.Compiler do
     indentation = opts[:indentation] || 0
     trim = opts[:trim] || false
     parser_options = opts[:parser_options] || Code.get_compiler_option(:parser_options)
-    tokenizer_options = %{trim: trim, indentation: indentation}
+    tokenizer_options = %{trim: trim, indentation: indentation, line: line, column: column}
 
-    case EEx.Tokenizer.tokenize(source, line, column, tokenizer_options) do
+    case EEx.Tokenizer.tokenize(source, tokenizer_options) do
       {:ok, tokens} ->
         state = %{
           engine: opts[:engine] || @default_engine,
@@ -42,10 +42,10 @@ defmodule EEx.Compiler do
   # Generates the buffers by handling each expression from the tokenizer.
   # It returns Macro.t/0 or it raises.
 
-  defp generate_buffer([{:text, line, column, chars} | rest], buffer, scope, state) do
+  defp generate_buffer([{:text, chars, meta} | rest], buffer, scope, state) do
     buffer =
       if function_exported?(state.engine, :handle_text, 3) do
-        meta = [line: line, column: column]
+        meta = [line: meta.line, column: meta.column]
         state.engine.handle_text(buffer, meta, IO.chardata_to_string(chars))
       else
         # TODO: Remove this branch on Elixir v2.0
@@ -55,15 +55,18 @@ defmodule EEx.Compiler do
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:expr, line, column, mark, chars} | rest], buffer, scope, state) do
-    options = [file: state.file, line: line, column: column(column, mark)] ++ state.parser_options
+  defp generate_buffer([{:expr, mark, chars, meta} | rest], buffer, scope, state) do
+    options =
+      [file: state.file, line: meta.line, column: column(meta.column, mark)] ++
+        state.parser_options
+
     expr = Code.string_to_quoted!(chars, options)
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
     generate_buffer(rest, buffer, scope, state)
   end
 
   defp generate_buffer(
-         [{:start_expr, start_line, start_column, mark, chars} | rest],
+         [{:start_expr, mark, chars, meta} | rest],
          buffer,
          scope,
          state
@@ -72,11 +75,10 @@ defmodule EEx.Compiler do
       message =
         "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
 
-      :elixir_errors.erl_warn({start_line, start_column}, state.file, message)
+      :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
     end
 
-    {rest, line, contents} =
-      look_ahead_middle(rest, start_line, chars) || {rest, start_line, chars}
+    {rest, line, contents} = look_ahead_middle(rest, meta.line, chars) || {rest, meta.line, chars}
 
     {contents, rest} =
       generate_buffer(
@@ -87,8 +89,8 @@ defmodule EEx.Compiler do
           state
           | quoted: [],
             line: line,
-            start_line: start_line,
-            start_column: column(start_column, mark)
+            start_line: meta.line,
+            start_column: column(meta.column, mark)
         }
       )
 
@@ -97,18 +99,18 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:middle_expr, line, _column, '', chars} | rest],
+         [{:middle_expr, '', chars, meta} | rest],
          buffer,
          [current | scope],
          state
        ) do
-    {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
-    state = %{state | line: line}
+    {wrapped, state} = wrap_expr(current, meta.line, buffer, chars, state)
+    state = %{state | line: meta.line}
     generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], state)
   end
 
   defp generate_buffer(
-         [{:middle_expr, line, column, modifier, chars} | t],
+         [{:middle_expr, modifier, chars, meta} | t],
          buffer,
          [_ | _] = scope,
          state
@@ -117,27 +119,27 @@ defmodule EEx.Compiler do
       "unexpected beginning of EEx tag \"<%#{modifier}\" on \"<%#{modifier}#{chars}%>\", " <>
         "please remove \"#{modifier}\" accordingly"
 
-    :elixir_errors.erl_warn({line, column}, state.file, message)
-    generate_buffer([{:middle_expr, line, column, '', chars} | t], buffer, scope, state)
+    :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
+    generate_buffer([{:middle_expr, '', chars, meta} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line
   end
 
-  defp generate_buffer([{:middle_expr, line, column, _, chars} | _], _buffer, [], state) do
+  defp generate_buffer([{:middle_expr, _, chars, meta} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected middle of expression <%#{chars}%>",
       file: state.file,
-      line: line,
-      column: column
+      line: meta.line,
+      column: meta.column
   end
 
   defp generate_buffer(
-         [{:end_expr, line, _column, '', chars} | rest],
+         [{:end_expr, '', chars, meta} | rest],
          buffer,
          [current | _],
          state
        ) do
-    {wrapped, state} = wrap_expr(current, line, buffer, chars, state)
+    {wrapped, state} = wrap_expr(current, meta.line, buffer, chars, state)
     column = state.start_column
     options = [file: state.file, line: state.start_line, column: column] ++ state.parser_options
     tuples = Code.string_to_quoted!(wrapped, options)
@@ -146,7 +148,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:end_expr, line, column, modifier, chars} | t],
+         [{:end_expr, modifier, chars, meta} | t],
          buffer,
          [_ | _] = scope,
          state
@@ -155,30 +157,30 @@ defmodule EEx.Compiler do
       "unexpected beginning of EEx tag \"<%#{modifier}\" on end of " <>
         "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
 
-    :elixir_errors.erl_warn({line, column}, state.file, message)
-    generate_buffer([{:end_expr, line, column, '', chars} | t], buffer, scope, state)
+    :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
+    generate_buffer([{:end_expr, '', chars, meta} | t], buffer, scope, state)
     # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
     # raise EEx.SyntaxError, message: message, file: state.file, line: line, column: column
   end
 
-  defp generate_buffer([{:end_expr, line, column, _, chars} | _], _buffer, [], state) do
+  defp generate_buffer([{:end_expr, _, chars, meta} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected end of expression <%#{chars}%>",
       file: state.file,
-      line: line,
-      column: column
+      line: meta.line,
+      column: meta.column
   end
 
-  defp generate_buffer([{:eof, _, _}], buffer, [], state) do
+  defp generate_buffer([{:eof, _meta}], buffer, [], state) do
     state.engine.handle_body(buffer)
   end
 
-  defp generate_buffer([{:eof, line, column}], _buffer, _scope, state) do
+  defp generate_buffer([{:eof, meta}], _buffer, _scope, state) do
     raise EEx.SyntaxError,
       message: "unexpected end of string, expected a closing '<% end %>'",
       file: state.file,
-      line: line,
-      column: column
+      line: meta.line,
+      column: meta.column
   end
 
   # Creates a placeholder and wrap it inside the expression block
@@ -195,7 +197,7 @@ defmodule EEx.Compiler do
 
   # Look middle expressions that immediately follow a start_expr
 
-  defp look_ahead_middle([{:text, _, _, text} | rest], start, contents) do
+  defp look_ahead_middle([{:text, text, _meta} | rest], start, contents) do
     if only_spaces?(text) do
       look_ahead_middle(rest, start, contents ++ text)
     else
@@ -203,8 +205,8 @@ defmodule EEx.Compiler do
     end
   end
 
-  defp look_ahead_middle([{:middle_expr, line, _column, _, chars} | rest], _start, contents) do
-    {rest, line, contents ++ chars}
+  defp look_ahead_middle([{:middle_expr, chars, meta} | rest], _start, contents) do
+    {rest, meta.line, contents ++ chars}
   end
 
   defp look_ahead_middle(_tokens, _start, _contents) do
