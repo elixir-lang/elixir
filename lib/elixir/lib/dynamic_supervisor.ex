@@ -362,7 +362,9 @@ defmodule DynamicSupervisor do
 
   `child_spec` should be a valid child specification as detailed in the
   "Child specification" section of the documentation for `Supervisor`. The child
-  process will be started as defined in the child specification.
+  process will be started as defined in the child specification. Note that while
+  the `:id` field is still required in the spec, the value is ignored and
+  therefore does not need to be unique.
 
   If the child process start function returns `{:ok, child}` or `{:ok, child,
   info}`, then child specification and PID are added to the supervisor and
