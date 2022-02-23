@@ -275,6 +275,11 @@ defmodule Kernel.CLI do
     parse_shared(t, %{config | commands: [{:rpc_eval, node, h} | config.commands]})
   end
 
+  defp parse_shared(["--rpc-eval" | _], config) do
+    new_config = %{config | errors: ["--rpc-eval : wrong number of arguments" | config.errors]}
+    {[], new_config}
+  end
+
   defp parse_shared(["-r", h | t], config) do
     parse_shared(t, %{config | commands: [{:require, h} | config.commands]})
   end

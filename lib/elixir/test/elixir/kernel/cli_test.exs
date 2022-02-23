@@ -162,6 +162,24 @@ defmodule Kernel.CLI.RPCTest do
     assert elixir('--name #{node}@127.0.0.1 --rpc-eval #{node} "IO.puts :ok"') == "ok\n"
   end
 
+  test "can be invoked multiple times" do
+    node = "cli-rpc#{System.unique_integer()}"
+
+    assert elixir(
+             '--name #{node}@127.0.0.1 --rpc-eval #{node} "IO.puts :foo" --rpc-eval #{node} "IO.puts :bar"'
+           ) == "foo\nbar\n"
+  end
+
+  test "fails on wrong arguments" do
+    node = "cli-rpc#{System.unique_integer()}"
+
+    assert elixir('--name #{node}@127.0.0.1 --rpc-eval') ==
+             "--rpc-eval : wrong number of arguments\n"
+
+    assert elixir('--name #{node}@127.0.0.1 --rpc-eval #{node}') ==
+             "--rpc-eval : wrong number of arguments\n"
+  end
+
   stderr_test "properly formats errors" do
     assert String.starts_with?(rpc_eval(":erlang.throw 1"), "** (throw) 1")
     assert String.starts_with?(rpc_eval(":erlang.error 1"), "** (ErlangError) Erlang error: 1")
