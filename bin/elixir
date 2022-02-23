@@ -118,8 +118,8 @@ while [ $I -le $LENGTH ]; do
         set -- "$@" "$1" "$2"
         ;;
     --rpc-eval)
-        S=3
-        set -- "$@" "$1" "$2" "$3"
+        S=1
+        set -- "$@" "$1"
         ;;
     --detached)
         echo "warning: the --detached option is deprecated" >&2
