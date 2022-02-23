@@ -118,10 +118,11 @@ defmodule Supervisor do
   The child specification is a map containing up to 6 elements. The first two keys
   in the following list are required, and the remaining ones are optional:
 
-    * `:id` - any term used to identify the child specification
-      internally by the supervisor; defaults to the given module.
-      In the case of conflicting `:id` values, the supervisor will refuse
-      to initialize and require explicit IDs. This key is required.
+    * `:id` - any term used to identify the child specification internally by
+      the supervisor; defaults to the given module. This key is required. 
+      For Supervisors, in the case of conflicting `:id` values, the supervisor
+      will refuse to initialize and require explicit IDs. This is not the case
+      for DynamicSupervisors though.
 
     * `:start` - a tuple with the module-function-args to be invoked
       to start the child process. This key is required.
