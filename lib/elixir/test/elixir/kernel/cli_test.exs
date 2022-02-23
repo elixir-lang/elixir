@@ -157,9 +157,9 @@ defmodule Kernel.CLI.RPCTest do
     assert rpc_eval("IO.puts :ok") == "ok\n"
   end
 
-  test "invokes command on remote node without host" do
+  test "invokes command on remote node without host and --name after --rpc-eval" do
     node = "cli-rpc#{System.unique_integer()}"
-    assert elixir('--name #{node}@127.0.0.1 --rpc-eval #{node} "IO.puts :ok"') == "ok\n"
+    assert elixir('--rpc-eval #{node} "IO.puts :ok" --name #{node}@127.0.0.1 ') == "ok\n"
   end
 
   test "can be invoked multiple times" do

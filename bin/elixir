@@ -100,32 +100,29 @@ LENGTH=$#
 set -- "$@" -extra
 
 while [ $I -le $LENGTH ]; do
-  S=1
+  # S counts to be shifted, C counts to be copied
+  S=0
+  C=0
   case "$1" in
     +iex)
-        set -- "$@" "$1"
+        C=1
         MODE="iex"
         ;;
     +elixirc)
-        set -- "$@" "$1"
+        C=1
         MODE="elixirc"
         ;;
     -v|--no-halt)
-        set -- "$@" "$1"
+        C=1
         ;;
     -e|-r|-pr|-pa|-pz|--app|--eval|--remsh|--dot-iex)
-        S=2
-        set -- "$@" "$1" "$2"
+        C=2
         ;;
     --rpc-eval)
-        S=1
-        set -- "$@" "$1"
-        ;;
-    --detached)
-        echo "warning: the --detached option is deprecated" >&2
-        ERL="$ERL -detached"
+        C=3
         ;;
     --hidden)
+        S=1
         ERL="$ERL -hidden"
         ;;
     --logger-otp-reports)
@@ -186,6 +183,7 @@ while [ $I -le $LENGTH ]; do
         fi
         ;;
     --werl)
+        S=1
         if [ "$OS" = "Windows_NT" ]; then ERL_EXEC="werl"; fi
         ;;
     *)
@@ -197,6 +195,13 @@ while [ $I -le $LENGTH ]; do
         break
         ;;
   esac
+
+  while [ $I -le $LENGTH ] && [ $C -gt 0 ]; do
+    C=$((C - 1))
+    I=$((I + 1))
+    set -- "$@" "$1"
+    shift
+  done
 
   I=$((I + S))
   shift $S
