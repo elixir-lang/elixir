@@ -43,12 +43,12 @@ defmodule Module.Types.Unify do
     {:ok, same, context}
   end
 
-  def unify(type, {:var, var}, stack, context) do
-    unify_var(var, type, stack, context, _var_source = false)
-  end
-
   def unify({:var, var}, type, stack, context) do
     unify_var(var, type, stack, context, _var_source = true)
+  end
+
+  def unify(type, {:var, var}, stack, context) do
+    unify_var(var, type, stack, context, _var_source = false)
   end
 
   def unify({:tuple, n, sources}, {:tuple, n, targets}, stack, context) do

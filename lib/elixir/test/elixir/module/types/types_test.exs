@@ -200,20 +200,20 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:1
                  is_binary(y)
 
-             where "y" was given the same type as "x" in:
+             where "x" was given the same type as "y" in:
 
                  # types_test.ex:1
                  x = y
+
+             where "y" was given the type integer() in:
+
+                 # types_test.ex:1
+                 is_integer(x)
 
              where "y" was given the type binary() in:
 
                  # types_test.ex:1
                  is_binary(y)
-
-             where "x" was given the type integer() in:
-
-                 # types_test.ex:1
-                 is_integer(x)
              """
     end
 
@@ -256,20 +256,20 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:1
                  is_binary(y)
 
-             where "y" was given the same type as "x" in:
+             where "x" was given the same type as "y" in:
 
                  # types_test.ex:1
                  x = y
+
+             where "y" was given the type integer() in:
+
+                 # types_test.ex:1
+                 is_integer(x)
 
              where "y" was given the type binary() in:
 
                  # types_test.ex:1
                  is_binary(y)
-
-             where "x" was given the type integer() in:
-
-                 # types_test.ex:1
-                 is_integer(x)
              """
     end
 
@@ -443,7 +443,17 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:5
                  %{"id" => user_id} = user
 
-             where "user" was given the same type as "amount" in:
+             where "amount" was given the type binary() in:
+
+                 # types_test.ex:3
+                 %{"amount" => amount} = event
+
+             where "amount" was given the same type as "user" in:
+
+                 # types_test.ex:4
+                 %{"user" => user} = event
+
+             where "user" was given the type binary() in:
 
                  # types_test.ex:4
                  %{"user" => user} = event
@@ -452,11 +462,6 @@ defmodule Module.Types.TypesTest do
 
                  # types_test.ex:5
                  %{"id" => user_id} = user
-
-             where "amount" was given the type binary() in:
-
-                 # types_test.ex:3
-                 %{"amount" => amount} = event
              """
     end
 
@@ -697,6 +702,33 @@ defmodule Module.Types.TypesTest do
                  case true do
                    _ when variable_enum != nil -> assigns.variable_enum
                  end
+               )
+             ) == :none
+    end
+
+    test "other recursive" do
+      assert warning(
+               [x, y],
+               (
+                 key_var = y
+                 %{^key_var => _value} = x
+                 key_var2 = y
+                 %{^key_var2 => _value2} = x
+                 y.z
+               )
+             ) == :none
+    end
+
+    test "other recursive2" do
+      assert warning(
+               [x, y],
+               (
+                 key_var = y
+                 %{^key_var => _value} = x
+                 key_var2 = y
+                 %{^key_var2 => _value2} = x
+                 key_var3 = y
+                 %{^key_var3 => _value3} = x
                )
              ) == :none
     end
