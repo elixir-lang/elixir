@@ -242,6 +242,10 @@ defmodule Kernel.CLI do
     end
   end
 
+  defp parse_shared(["--" | t], config) do
+    {t, config}
+  end
+
   defp parse_shared(["-pa", h | t], config) do
     paths = expand_code_path(h)
     Enum.each(paths, &:code.add_patha/1)
@@ -298,8 +302,13 @@ defmodule Kernel.CLI do
     parse_shared(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
-  defp parse_shared(list, config) do
-    {list, config}
+  defp parse_shared([h | t], config) do
+    {list, config} = parse_shared(t, config)
+    {[h | list], config}
+  end
+
+  defp parse_shared([], config) do
+    {[], config}
   end
 
   defp append_hostname(node) do

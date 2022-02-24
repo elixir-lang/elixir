@@ -220,6 +220,22 @@ defmodule Kernel.CLI.RPCCallTest do
     assert elixir('--name #{node}@127.0.0.1 --rpc-call #{node} :io format hi') == "hi"
   end
 
+  test "can be mixed with other flags" do
+    node = "cli-rpc#{System.unique_integer()}"
+
+    assert elixir(
+             '--name #{node}@127.0.0.1 --rpc-call #{node} IO puts hello --eval "IO.puts(:world)"'
+           ) == "hello\nworld\n"
+  end
+
+  test "supports --" do
+    node = "cli-rpc#{System.unique_integer()}"
+
+    assert elixir(
+             '--name #{node}@127.0.0.1 --rpc-call #{node} IO inspect foo -- --eval "IO.puts(:bar)"'
+           ) == ~s|["foo", "--eval", "IO.puts(:bar)"]\n|
+  end
+
   test "fails on wrong arguments" do
     node = "cli-rpc#{System.unique_integer()}"
 
