@@ -155,7 +155,7 @@ defmodule Mix.Tasks.Release.Init do
            --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --vm-args "$RELEASE_REMOTE_VM_ARGS" \
-           --rpc-call "$RELEASE_NODE" $@
+           --rpc-call "$RELEASE_NODE" "$@"
     }
 
     start () {
@@ -241,7 +241,7 @@ defmodule Mix.Tasks.Release.Init do
           rpc_eval "$2"
         else
           shift
-          rpc_call $@
+          rpc_call "$@"
         fi
         ;;
 
