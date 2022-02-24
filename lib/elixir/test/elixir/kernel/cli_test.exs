@@ -170,6 +170,8 @@ defmodule Kernel.CLI.RPCTest do
            ) == "foo\nbar\n"
   end
 
+  # Windows does not provide an easy to check for missing args
+  @tag :unix
   test "fails on wrong arguments" do
     node = "cli-rpc#{System.unique_integer()}"
 
