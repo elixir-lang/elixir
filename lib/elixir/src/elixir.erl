@@ -282,7 +282,8 @@ eval_forms(Tree, RawBinding, OrigE) ->
         end,
 
       ErlBinding = elixir_erl_var:load_binding(Binding, E, S),
-      {value, Value, NewBinding} = recur_eval(Exprs, ErlBinding, NewE),
+      ExternalHandler = eval_external_handler(NewE),
+      {value, Value, NewBinding} = erl_eval:exprs(Exprs, ErlBinding, none, ExternalHandler),
       {Value, elixir_erl_var:dump_binding(NewBinding, NewExS, NewErlS), NewE}
   end.
 
@@ -300,56 +301,53 @@ normalize_binding([], VarsMap, Normalized, _Counter) ->
 normalize_pair({Key, Value}) when is_atom(Key) -> {{Key, nil}, Value};
 normalize_pair({Pair, Value}) -> {Pair, Value}.
 
-recur_eval([Expr | Exprs], Binding, Env) ->
-  {value, Value, NewBinding} =
-    % Below must be all one line for locations to be the same
-    % when the stacktrace is extended to the full stacktrace.
-    try erl_eval:expr(Expr, Binding, none, none, none) catch Class:Exception:Stacktrace -> erlang:raise(Class, rewrite_exception(Exception, Stacktrace, Expr, Env), rewrite_stacktrace(Stacktrace)) end,
-
-  case Exprs of
-    [] -> {value, Value, NewBinding};
-    _ -> recur_eval(Exprs, NewBinding, Env)
-  end.
-
-rewrite_exception(badarg, [{Mod, _, _, _} | _], Erl, #{file := File}) when Mod == erl_eval; Mod == eval_bits ->
-  {Min, Max} =
-    erl_parse:fold_anno(fun(Anno, {Min, Max}) ->
-      case erl_anno:line(Anno) of
-        Line when Line > 0 -> {min(Min, Line), max(Max, Line)};
-        _ -> {Min, Max}
+%% TODO: Remove conditional once we require Erlang/OTP 25+.
+-if(?OTP_RELEASE >= 25).
+eval_external_handler(Env) ->
+  Fun = fun(Ann, FunOrModFun, Args) ->
+    try
+      case FunOrModFun of
+          {Mod, Fun} -> apply(Mod, Fun, Args);
+          Fun -> apply(Fun, Args)
       end
-    end, {999999, -999999}, Erl),
+    catch
+      Kind:Reason:Stacktrace ->
+        %% Take everything up to the Elixir module
+        Pruned =
+            lists:takewhile(fun
+              ({elixir,_,_,_}) -> false;
+              (_) -> true
+            end, Stacktrace),
 
-  'Elixir.ArgumentError':exception(
-    erlang:iolist_to_binary(
-      ["argument error while evaluating", badarg_file(File), badarg_line(Min, Max)]
-    )
-  );
-rewrite_exception(Other, _, _, _) ->
-  Other.
+        Caller =
+            lists:dropwhile(fun
+              ({elixir,_,_,_}) -> false;
+              (_) -> true
+            end, Stacktrace),
 
-badarg_file(<<"nofile">>) -> "";
-badarg_file(Path) -> [$\s, 'Elixir.Path':relative_to_cwd(Path)].
+        %% Now we prune any shared code path from erl_eval
+        {current_stacktrace, Current} =
+            erlang:process_info(self(), current_stacktrace),
 
-badarg_line(999999, -999999) -> [];
-badarg_line(Line, Line) -> [" at line ", integer_to_binary(Line)];
-badarg_line(Min, Max) -> [" between lines ", integer_to_binary(Min), " and ", integer_to_binary(Max)].
+        Reversed = drop_common(lists:reverse(Current), lists:reverse(Pruned)),
+        File = elixir_utils:characters_to_list(?key(Env, file)),
+        Location = [{file, File}, {line, erl_anno:line(Ann)}],
 
-rewrite_stacktrace(Stacktrace) ->
-  % eval_eval and eval_bits can call :erlang.raise/3 without the full
-  % stacktrace. When this occurs re-add the current stacktrace so that no
-  % stack information is lost.
-  {current_stacktrace, CurrentStack} = erlang:process_info(self(), current_stacktrace),
-  merge_stacktrace(Stacktrace, tl(CurrentStack)).
+        %% Add file+line information at the bottom
+        Custom = lists:reverse([{elixir_eval, '__FILE__', 1, Location} | Reversed], Caller),
+        erlang:raise(Kind, Reason, Custom)
+    end
+  end,
+  {value, Fun}.
 
-% The stacktrace did not include the current stack, re-add it.
-merge_stacktrace([], CurrentStack) ->
-  CurrentStack;
-% The stacktrace includes the current stack.
-merge_stacktrace(CurrentStack, CurrentStack) ->
-  CurrentStack;
-merge_stacktrace([StackItem | Stacktrace], CurrentStack) ->
-  [StackItem | merge_stacktrace(Stacktrace, CurrentStack)].
+drop_common([H | T1], [H | T2]) -> drop_common(T1, T2);
+drop_common([_ | T1], T2) -> drop_common(T1, T2);
+drop_common([], [{?MODULE, _, _, _} | T2]) -> T2;
+drop_common([], T2) -> T2.
+-else.
+eval_external_handler(_Env) ->
+  none.
+-endif.
 
 %% Converts a quoted expression to Erlang abstract format
 

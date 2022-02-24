@@ -69,27 +69,35 @@ defmodule CodeTest do
       assert Code.eval_string(code, [], options) == {true, []}
     end
 
-    test "yields the correct stacktrace" do
+    test "keeps caller in stacktrace" do
       try do
-        Code.eval_string("<<a::size(b)>>", a: :a, b: :b)
+        Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
       rescue
         _ ->
           assert Enum.any?(__STACKTRACE__, &(elem(&1, 0) == __MODULE__))
       end
     end
 
-    test "raises streamlined argument errors" do
-      assert_raise ArgumentError,
-                   ~r"argument error while evaluating at line 1",
-                   fn -> Code.eval_string("a <> b", a: :a, b: :b) end
+    if System.otp_release() >= "25" do
+      test "includes eval file in stacktrace" do
+        try do
+          Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
+        rescue
+          _ ->
+            assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
+        end
 
-      assert_raise ArgumentError,
-                   ~r"argument error while evaluating example.ex at line 1",
-                   fn -> Code.eval_string("a <> b", [a: :a, b: :b], file: "example.ex") end
-
-      assert_raise ArgumentError,
-                   ~r"argument error while evaluating example.ex between lines 1 and 2",
-                   fn -> Code.eval_string("a <>\nb", [a: :a, b: :b], file: "example.ex") end
+        try do
+          Code.eval_string(
+            "Enum.map([a: :a, b: :b], fn {a, b} -> <<a::size(b)>> end)",
+            [],
+            file: "myfile"
+          )
+        rescue
+          _ ->
+            assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
+        end
+      end
     end
 
     test "warns when lexical tracker process is dead" do
