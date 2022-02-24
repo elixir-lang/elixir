@@ -398,23 +398,32 @@ defmodule IEx.Evaluator do
     end
   end
 
-  @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
-                      [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
-                      [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass] ++
-                      [Kernel.ErrorHandler, Module.ParallelChecker]
+  if System.otp_release() >= "25" do
+    defp prune_stacktrace(stack) do
+      stack
+      |> Enum.reverse()
+      |> Enum.drop_while(&(elem(&1, 0) != :elixir_eval))
+      |> Enum.reverse()
+    end
+  else
+    @elixir_internals [:elixir, :elixir_expand, :elixir_compiler, :elixir_module] ++
+                        [:elixir_clauses, :elixir_lexical, :elixir_def, :elixir_map] ++
+                        [:elixir_erl, :elixir_erl_clauses, :elixir_erl_pass] ++
+                        [Kernel.ErrorHandler, Module.ParallelChecker]
 
-  defp prune_stacktrace(stacktrace) do
-    # The order in which each drop_while is listed is important.
-    # For example, the user may call Code.eval_string/2 in IEx
-    # and if there is an error we should not remove erl_eval
-    # and eval_bits information from the user stacktrace.
-    stacktrace
-    |> Enum.reverse()
-    |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
-    |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
-    |> Enum.drop_while(&(elem(&1, 0) in [Code, Module.ParallelChecker, :elixir]))
-    |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
-    |> Enum.reverse()
-    |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
+    defp prune_stacktrace(stacktrace) do
+      # The order in which each drop_while is listed is important.
+      # For example, the user may call Code.eval_string/2 in IEx
+      # and if there is an error we should not remove erl_eval
+      # and eval_bits information from the user stacktrace.
+      stacktrace
+      |> Enum.reverse()
+      |> Enum.drop_while(&(elem(&1, 0) == :proc_lib))
+      |> Enum.drop_while(&(elem(&1, 0) == __MODULE__))
+      |> Enum.drop_while(&(elem(&1, 0) in [Code, Module.ParallelChecker, :elixir]))
+      |> Enum.drop_while(&(elem(&1, 0) in [:erl_eval, :eval_bits]))
+      |> Enum.reverse()
+      |> Enum.reject(&(elem(&1, 0) in @elixir_internals))
+    end
   end
 end
