@@ -260,7 +260,7 @@ defmodule Kernel.CLI.RPCCallTest do
              ~s|** (ErlangError) Erlang error: ["a", "b"]|
            )
 
-    assert elixir('--name cli-rpc#{System.unique_integer()} --rpc-call badnode IO puts hi"') ==
+    assert elixir('--name cli-rpc#{System.unique_integer()} --rpc-call badnode IO puts hi') ==
              "--rpc-call : RPC failed with reason :nodedown\n"
   end
 end
