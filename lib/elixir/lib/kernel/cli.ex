@@ -329,10 +329,6 @@ defmodule Kernel.CLI do
 
   # Process init options
 
-  defp parse_argv(["--" | t], config) do
-    {config, t}
-  end
-
   defp parse_argv(["+elixirc" | t], config) do
     parse_compiler(t, config)
   end
