@@ -101,19 +101,10 @@ defmodule Kernel.CLI do
   end
 
   @doc """
-  Function invoked across nodes for `--rpc-eval`.
-  """
-  def rpc_eval(expr) do
-    wrapper(fn -> Code.eval_string(expr) end)
-  catch
-    kind, reason -> {kind, reason, __STACKTRACE__}
-  end
-
-  @doc """
-  Function invoked across nodes for `--rpc-call`.
+  Function invoked across nodes for `--rpc-eval` and `--rpc-call`.
   """
   def rpc_call(mod, fun, args) do
-    wrapper(fn -> apply(mod, fun, [args]) end)
+    wrapper(fn -> apply(mod, fun, args) end)
   catch
     kind, reason -> {kind, reason, __STACKTRACE__}
   end
@@ -289,9 +280,9 @@ defmodule Kernel.CLI do
     {[], new_config}
   end
 
-  defp parse_shared(["--rpc-call", node, mod, fun | args], config) do
+  defp parse_shared(["--rpc-call", node, mod, fun | t], config) do
     node = append_hostname(node)
-    {[], %{config | commands: [{:rpc_call, node, mod, fun, args} | config.commands]}}
+    parse_shared(t, %{config | commands: [{:rpc_call, node, mod, fun} | config.commands]})
   end
 
   defp parse_shared(["--rpc-call" | _], config) do
@@ -351,10 +342,15 @@ defmodule Kernel.CLI do
         shared_option?(list, config, &parse_argv(&1, &2))
 
       _ ->
-        if List.keymember?(config.commands, :eval, 0) do
-          {config, list}
-        else
-          {%{config | commands: [{:file, h} | config.commands]}, t}
+        cond do
+          List.keymember?(config.commands, :eval, 0) ->
+            {config, list}
+
+          List.keymember?(config.commands, :rpc_call, 0) ->
+            {config, list}
+
+          true ->
+            {%{config | commands: [{:file, h} | config.commands]}, t}
         end
     end
   end
@@ -463,7 +459,7 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:rpc_eval, node, expr}, _config) when is_binary(expr) do
-    case :rpc.call(String.to_atom(node), __MODULE__, :rpc_eval, [expr]) do
+    case :rpc.call(String.to_atom(node), __MODULE__, :rpc_call, [Code, :eval_string, [expr]]) do
       :ok -> :ok
       {:badrpc, {:EXIT, exit}} -> Process.exit(self(), exit)
       {:badrpc, reason} -> {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
@@ -471,7 +467,7 @@ defmodule Kernel.CLI do
     end
   end
 
-  defp process_command({:rpc_call, node, module, function, args}, _config) do
+  defp process_command({:rpc_call, node, module, function}, _config) do
     module =
       case module do
         ":" <> atom -> String.to_atom(atom)
@@ -479,8 +475,9 @@ defmodule Kernel.CLI do
       end
 
     function = String.to_atom(function)
+    args = System.argv()
 
-    case :rpc.call(String.to_atom(node), __MODULE__, :rpc_call, [module, function, args]) do
+    case :rpc.call(String.to_atom(node), __MODULE__, :rpc_call, [module, function, [args]]) do
       :ok -> :ok
       {:badrpc, {:EXIT, exit}} -> Process.exit(self(), exit)
       {:badrpc, reason} -> {:error, "--rpc-call : rpc failed with reason #{inspect(reason)}"}
