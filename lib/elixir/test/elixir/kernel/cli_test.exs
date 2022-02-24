@@ -261,7 +261,7 @@ defmodule Kernel.CLI.RPCCallTest do
            )
 
     assert elixir('--name cli-rpc#{System.unique_integer()} --rpc-call badnode IO puts hi') ==
-             "--rpc-call : RPC failed with reason :nodedown\n"
+             "--rpc-call : rpc failed with reason :nodedown\n"
   end
 end
 
