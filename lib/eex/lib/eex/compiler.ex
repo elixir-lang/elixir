@@ -17,9 +17,9 @@ defmodule EEx.Compiler do
     indentation = opts[:indentation] || 0
     trim = opts[:trim] || false
     parser_options = opts[:parser_options] || Code.get_compiler_option(:parser_options)
-    tokenizer_options = %{trim: trim, indentation: indentation, line: line, column: column}
+    tokenizer_options = %{trim: trim, indentation: indentation, file: file}
 
-    case EEx.Tokenizer.tokenize(source, tokenizer_options) do
+    case EEx.Tokenizer.tokenize(source, line, column, tokenizer_options) do
       {:ok, tokens} ->
         state = %{
           engine: opts[:engine] || @default_engine,
@@ -71,7 +71,7 @@ defmodule EEx.Compiler do
          scope,
          state
        ) do
-    if mark != '=' do
+    if mark == '' do
       message =
         "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
 
@@ -109,22 +109,6 @@ defmodule EEx.Compiler do
     generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], state)
   end
 
-  defp generate_buffer(
-         [{:middle_expr, modifier, chars, meta} | t],
-         buffer,
-         [_ | _] = scope,
-         state
-       ) do
-    message =
-      "unexpected beginning of EEx tag \"<%#{modifier}\" on \"<%#{modifier}#{chars}%>\", " <>
-        "please remove \"#{modifier}\" accordingly"
-
-    :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
-    generate_buffer([{:middle_expr, '', chars, meta} | t], buffer, scope, state)
-    # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
-    # raise EEx.SyntaxError, message: message, file: state.file, line: line
-  end
-
   defp generate_buffer([{:middle_expr, _, chars, meta} | _], _buffer, [], state) do
     raise EEx.SyntaxError,
       message: "unexpected middle of expression <%#{chars}%>",
@@ -145,22 +129,6 @@ defmodule EEx.Compiler do
     tuples = Code.string_to_quoted!(wrapped, options)
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, rest}
-  end
-
-  defp generate_buffer(
-         [{:end_expr, modifier, chars, meta} | t],
-         buffer,
-         [_ | _] = scope,
-         state
-       ) do
-    message =
-      "unexpected beginning of EEx tag \"<%#{modifier}\" on end of " <>
-        "expression \"<%#{modifier}#{chars}%>\", please remove \"#{modifier}\" accordingly"
-
-    :elixir_errors.erl_warn({meta.line, meta.column}, state.file, message)
-    generate_buffer([{:end_expr, '', chars, meta} | t], buffer, scope, state)
-    # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
-    # raise EEx.SyntaxError, message: message, file: state.file, line: line, column: column
   end
 
   defp generate_buffer([{:end_expr, _, chars, meta} | _], _buffer, [], state) do

@@ -27,14 +27,13 @@ defmodule EEx.Tokenizer do
 
   Or `{:error, message, %{column: column, line: line}}` in case of errors.
   """
-  @spec tokenize(binary | charlist, map) ::
-          {:ok, [token]} | {:error, line, column, String.t()}
-  def tokenize(contents, opts) do
-    line = opts[:line] || 1
-    column = opts[:column] || 1
-    tokenize(contents, line, column, opts)
-  end
-
+  @spec tokenize(
+          binary | charlist,
+          pos_integer,
+          pos_integer,
+          %{indentation: non_neg_integer, trim: boolean, file: String.t()}
+        ) ::
+          {:ok, [token]} | {:error, String.t(), metadata}
   def tokenize(bin, line, column, opts) when is_binary(bin) do
     tokenize(String.to_charlist(bin), line, column, opts)
   end
@@ -93,6 +92,20 @@ defmodule EEx.Tokenizer do
 
             {:error, _, _, _, _} ->
               {:expr, expr}
+          end
+
+        marker =
+          if key in [:middle_expr, :end_expr] and marker != '' do
+            message =
+              "unexpected beginning of EEx tag \"<%#{marker}\" on \"<%#{marker}#{expr}%>\", " <>
+                "please remove \"#{marker}\""
+
+            :elixir_errors.erl_warn({line, column}, opts.file, message)
+            # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
+            # raise EEx.SyntaxError, message: message, file: state.file, line: line
+            ''
+          else
+            marker
           end
 
         token = {key, marker, expr, %{line: line, column: column}}

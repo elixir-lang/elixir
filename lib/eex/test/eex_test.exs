@@ -317,7 +317,7 @@ defmodule EExTest do
       assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
                EEx.compile_string("foo <%= if true do %>true<% else %>false<%= end %>")
              end) =~
-               ~s[unexpected beginning of EEx tag \"<%=\" on end of expression \"<%= end %>\"]
+               ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= end %>\"]
     end
 
     test "when trying to use marker '/' without implementation" do
