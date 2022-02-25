@@ -5,10 +5,11 @@ defmodule EEx.Tokenizer do
   @type line :: non_neg_integer
   @type column :: non_neg_integer
   @type marker :: '=' | '/' | '|' | ''
+  @type metadata :: %{column: column, line: line}
   @type token ::
-          {:text, line, column, content}
-          | {:expr | :start_expr | :middle_expr | :end_expr, line, column, marker, content}
-          | {:eof, line, column}
+          {:text, content, metadata}
+          | {:expr | :start_expr | :middle_expr | :end_expr, marker, content, metadata}
+          | {:eof, metadata}
 
   @spaces [?\s, ?\t]
 
@@ -17,17 +18,22 @@ defmodule EEx.Tokenizer do
 
   It returns {:ok, list} with the following tokens:
 
-    * `{:text, line, column, content}`
-    * `{:expr, line, column, marker, content}`
-    * `{:start_expr, line, column, marker, content}`
-    * `{:middle_expr, line, column, marker, content}`
-    * `{:end_expr, line, column, marker, content}`
-    * `{:eof, line, column}`
+    * `{:text, content, %{column: column, line: line}}`
+    * `{:expr, marker, content, %{column: column, line: line}}`
+    * `{:start_expr, marker, content, %{column: column, line: line}}`
+    * `{:middle_expr, marker, content, %{column: column, line: line}}`
+    * `{:end_expr, marker, content, %{column: column, line: line}}`
+    * `{:eof, %{column: column, line: line}}`
 
-  Or `{:error, line, column, message}` in case of errors.
+  Or `{:error, message, %{column: column, line: line}}` in case of errors.
   """
-  @spec tokenize(binary | charlist, line, column, map) ::
+  @spec tokenize(binary | charlist, map) ::
           {:ok, [token]} | {:error, line, column, String.t()}
+  def tokenize(contents, opts) do
+    line = opts[:line] || 1
+    column = opts[:column] || 1
+    tokenize(contents, line, column, opts)
+  end
 
   def tokenize(bin, line, column, opts) when is_binary(bin) do
     tokenize(String.to_charlist(bin), line, column, opts)
@@ -49,8 +55,8 @@ defmodule EEx.Tokenizer do
 
   defp tokenize('<%!--' ++ t, line, column, opts, buffer, acc) do
     case comment(t, line, column + 5, opts) do
-      {:error, _, _, _} = error ->
-        error
+      {:error, line, column, message} ->
+        {:error, message, %{line: line, column: column}}
 
       {:ok, new_line, new_column, rest} ->
         trim_and_tokenize(rest, new_line, new_column, opts, buffer, acc, & &1)
@@ -60,8 +66,8 @@ defmodule EEx.Tokenizer do
   # TODO: Deprecate this on Elixir v1.18
   defp tokenize('<%#' ++ t, line, column, opts, buffer, acc) do
     case expr(t, line, column + 3, opts, []) do
-      {:error, _, _, _} = error ->
-        error
+      {:error, line, column, message} ->
+        {:error, message, %{line: line, column: column}}
 
       {:ok, _, new_line, new_column, rest} ->
         trim_and_tokenize(rest, new_line, new_column, opts, buffer, acc, & &1)
@@ -72,8 +78,8 @@ defmodule EEx.Tokenizer do
     {marker, t} = retrieve_marker(t)
 
     case expr(t, line, column + 2 + length(marker), opts, []) do
-      {:error, _, _, _} = error ->
-        error
+      {:error, line, column, message} ->
+        {:error, message, %{line: line, column: column}}
 
       {:ok, expr, new_line, new_column, rest} ->
         {key, expr} =
@@ -89,7 +95,7 @@ defmodule EEx.Tokenizer do
               {:expr, expr}
           end
 
-        token = {key, line, column, marker, expr}
+        token = {key, marker, expr, %{line: line, column: column}}
         trim_and_tokenize(rest, new_line, new_column, opts, buffer, acc, &[token | &1])
     end
   end
@@ -103,7 +109,7 @@ defmodule EEx.Tokenizer do
   end
 
   defp tokenize([], line, column, _opts, buffer, acc) do
-    eof = {:eof, line, column}
+    eof = {:eof, %{line: line, column: column}}
     {:ok, Enum.reverse([eof | tokenize_text(buffer, acc)])}
   end
 
@@ -212,7 +218,7 @@ defmodule EEx.Tokenizer do
 
   defp tokenize_text(buffer, acc) do
     [{line, column} | buffer] = Enum.reverse(buffer)
-    [{:text, line, column, buffer} | acc]
+    [{:text, buffer, %{line: line, column: column}} | acc]
   end
 
   ## Trim
