@@ -1,16 +1,6 @@
 defmodule EEx.Tokenizer do
   @moduledoc false
 
-  @type content :: IO.chardata()
-  @type line :: non_neg_integer
-  @type column :: non_neg_integer
-  @type marker :: '=' | '/' | '|' | ''
-  @type metadata :: %{column: column, line: line}
-  @type token ::
-          {:text, content, metadata}
-          | {:expr | :start_expr | :middle_expr | :end_expr, marker, content, metadata}
-          | {:eof, metadata}
-
   @spaces [?\s, ?\t]
 
   @doc """
@@ -27,13 +17,6 @@ defmodule EEx.Tokenizer do
 
   Or `{:error, message, %{column: column, line: line}}` in case of errors.
   """
-  @spec tokenize(
-          binary | charlist,
-          pos_integer,
-          pos_integer,
-          %{indentation: non_neg_integer, trim: boolean, file: String.t()}
-        ) ::
-          {:ok, [token]} | {:error, String.t(), metadata}
   def tokenize(bin, line, column, opts) when is_binary(bin) do
     tokenize(String.to_charlist(bin), line, column, opts)
   end
