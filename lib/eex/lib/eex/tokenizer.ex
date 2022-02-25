@@ -101,8 +101,6 @@ defmodule EEx.Tokenizer do
                 "please remove \"#{marker}\""
 
             :elixir_errors.erl_warn({line, column}, opts.file, message)
-            # TODO: Make this an error on Elixir v2.0 since it accidentally worked previously.
-            # raise EEx.SyntaxError, message: message, file: state.file, line: line
             ''
           else
             marker
