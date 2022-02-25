@@ -25,7 +25,7 @@ defmodule EEx.Tokenizer do
     * `{:end_expr, marker, content, %{column: column, line: line}}`
     * `{:eof, %{column: column, line: line}}`
 
-  Or `{:error, line, column, message}` in case of errors.
+  Or `{:error, message, %{column: column, line: line}}` in case of errors.
   """
   @spec tokenize(binary | charlist, map) ::
           {:ok, [token]} | {:error, line, column, String.t()}
@@ -55,8 +55,8 @@ defmodule EEx.Tokenizer do
 
   defp tokenize('<%!--' ++ t, line, column, opts, buffer, acc) do
     case comment(t, line, column + 5, opts) do
-      {:error, _, _, _} = error ->
-        error
+      {:error, line, column, message} ->
+        {:error, message, %{line: line, column: column}}
 
       {:ok, new_line, new_column, rest} ->
         trim_and_tokenize(rest, new_line, new_column, opts, buffer, acc, & &1)
@@ -66,8 +66,8 @@ defmodule EEx.Tokenizer do
   # TODO: Deprecate this on Elixir v1.18
   defp tokenize('<%#' ++ t, line, column, opts, buffer, acc) do
     case expr(t, line, column + 3, opts, []) do
-      {:error, _, _, _} = error ->
-        error
+      {:error, line, column, message} ->
+        {:error, message, %{line: line, column: column}}
 
       {:ok, _, new_line, new_column, rest} ->
         trim_and_tokenize(rest, new_line, new_column, opts, buffer, acc, & &1)
@@ -78,8 +78,8 @@ defmodule EEx.Tokenizer do
     {marker, t} = retrieve_marker(t)
 
     case expr(t, line, column + 2 + length(marker), opts, []) do
-      {:error, _, _, _} = error ->
-        error
+      {:error, line, column, message} ->
+        {:error, message, %{line: line, column: column}}
 
       {:ok, expr, new_line, new_column, rest} ->
         {key, expr} =

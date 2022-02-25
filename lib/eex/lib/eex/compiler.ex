@@ -34,7 +34,7 @@ defmodule EEx.Compiler do
         init = state.engine.init(opts)
         generate_buffer(tokens, init, [], state)
 
-      {:error, line, column, message} ->
+      {:error, message, %{column: column, line: line}} ->
         raise EEx.SyntaxError, file: file, line: line, column: column, message: message
     end
   end
