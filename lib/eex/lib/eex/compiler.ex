@@ -205,7 +205,7 @@ defmodule EEx.Compiler do
     end
   end
 
-  defp look_ahead_middle([{:middle_expr, chars, meta} | rest], _start, contents) do
+  defp look_ahead_middle([{:middle_expr, _, chars, meta} | rest], _start, contents) do
     {rest, meta.line, contents ++ chars}
   end
 
