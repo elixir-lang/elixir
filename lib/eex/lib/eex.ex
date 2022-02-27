@@ -100,6 +100,7 @@ defmodule EEx do
   The `assigns` extension is useful when the number of variables
   required by the template is not specified at compilation time.
   """
+
   @type content :: IO.chardata()
   @type line :: non_neg_integer
   @type column :: non_neg_integer
@@ -298,6 +299,7 @@ defmodule EEx do
       {:ok, [{:text, 'foo', %{column: 1, line: 1}}, {:eof, %{column: 4, line: 1}}]}
 
   """
+  @doc since: "1.14.0"
   @spec tokenize(contents :: binary | charlist, opts :: keyword) ::
           {:ok, token()} | {:error, String.t(), metadata()}
   def tokenize(contents, opts \\ []) do
