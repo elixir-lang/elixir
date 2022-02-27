@@ -100,14 +100,14 @@ defmodule EEx do
   The `assigns` extension is useful when the number of variables
   required by the template is not specified at compilation time.
   """
-  @type content :: IO.chardata()
+
   @type line :: non_neg_integer
   @type column :: non_neg_integer
   @type marker :: '=' | '/' | '|' | ''
   @type metadata :: %{column: column, line: line}
   @type token ::
-          {:text, content, metadata}
-          | {:expr | :start_expr | :middle_expr | :end_expr, marker, content, metadata}
+          {:text, charlist, metadata}
+          | {:expr | :start_expr | :middle_expr | :end_expr, marker, charlist, metadata}
           | {:eof, metadata}
 
   @doc """
@@ -208,7 +208,14 @@ defmodule EEx do
   """
   @spec compile_string(String.t(), keyword) :: Macro.t()
   def compile_string(source, options \\ []) when is_binary(source) and is_list(options) do
-    EEx.Compiler.compile(source, options)
+    case tokenize(source, options) do
+      {:ok, tokens} ->
+        EEx.Compiler.compile(tokens, options)
+
+      {:error, message, %{column: column, line: line}} ->
+        file = options[:file] || "nofile"
+        raise EEx.SyntaxError, file: file, line: line, column: column, message: message
+    end
   end
 
   @doc """
@@ -284,31 +291,37 @@ defmodule EEx do
   @doc """
   Tokenize the given contents according to the given options.
 
-  ## options
+  ## Options
 
-  * `line` - An integer to start as line. Default is 1.
-  * `column` - An integer to start as column. Default is 1.
-  * `indentation` - An integer that indicates the indentation. Default is 0.
-  * `trim` - Tells the tokenizer to either trim the content or not. Default is false.
-  * `file` - Can be either a file or a string "nofile".
+    * `:line` - An integer to start as line. Default is 1.
+    * `:column` - An integer to start as column. Default is 1.
+    * `:indentation` - An integer that indicates the indentation. Default is 0.
+    * `:trim` - Tells the tokenizer to either trim the content or not. Default is false.
+    * `:file` - Can be either a file or a string "nofile".
 
   ## Examples
 
       iex> EEx.tokenize('foo', line: 1, column: 1)
       {:ok, [{:text, 'foo', %{column: 1, line: 1}}, {:eof, %{column: 4, line: 1}}]}
 
+  ## Result
+
+  It returns `{:ok, [token]}` where a token is one of:
+
+      * `{:text, content, %{column: column, line: line}}`
+      * `{:expr, marker, content, %{column: column, line: line}}`
+      * `{:start_expr, marker, content, %{column: column, line: line}}`
+      * `{:middle_expr, marker, content, %{column: column, line: line}}`
+      * `{:end_expr, marker, content, %{column: column, line: line}}`
+      * `{:eof, %{column: column, line: line}}`
+
+  Or `{:error, message, %{column: column, line: line}}` in case of errors.
+  Note new tokens may be added in the future.
   """
-  @spec tokenize(contents :: binary | charlist, opts :: keyword) ::
+  @spec tokenize(IO.chardata(), opts :: keyword) ::
           {:ok, token()} | {:error, String.t(), metadata()}
   def tokenize(contents, opts \\ []) do
-    file = opts[:file] || "nofile"
-    line = opts[:line] || 1
-    column = opts[:column] || 1
-    indentation = opts[:indentation] || 0
-    trim = opts[:trim] || false
-    tokenizer_opts = %{trim: trim, indentation: indentation, file: file}
-
-    EEx.Tokenizer.tokenize(contents, line, column, tokenizer_opts)
+    EEx.Compiler.tokenize(contents, opts)
   end
 
   ### Helpers
