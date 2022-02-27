@@ -13,13 +13,9 @@ defmodule EEx.Compiler do
   def compile(source, opts) when is_binary(source) and is_list(opts) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
-    column = 1
-    indentation = opts[:indentation] || 0
-    trim = opts[:trim] || false
     parser_options = opts[:parser_options] || Code.get_compiler_option(:parser_options)
-    tokenizer_options = %{trim: trim, indentation: indentation, file: file}
 
-    case EEx.Tokenizer.tokenize(source, line, column, tokenizer_options) do
+    case EEx.tokenize(source, opts) do
       {:ok, tokens} ->
         state = %{
           engine: opts[:engine] || @default_engine,

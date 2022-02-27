@@ -751,6 +751,26 @@ defmodule EExTest do
     end
   end
 
+  describe "tokenize/2" do
+    test "tokenize the given contents with the given options" do
+      assert {:ok,
+              [
+                {:text, 'foo ', %{column: 3, line: 2}},
+                {:expr, '=', ' bar ', %{column: 7, line: 2}},
+                {:eof, %{column: 17, line: 2}}
+              ]} = EEx.tokenize("foo <%= bar %>", line: 2, column: 2, trim: true, indentation: 1)
+    end
+
+    test "tokenize the given contents using default options" do
+      assert {:ok,
+              [
+                {:text, 'foo ', %{column: 1, line: 1}},
+                {:expr, '=', ' bar ', %{column: 5, line: 1}},
+                {:eof, %{column: 15, line: 1}}
+              ]} = EEx.tokenize("foo <%= bar %>")
+    end
+  end
+
   defp assert_eval(expected, actual, binding \\ [], opts \\ []) do
     opts = Keyword.merge([file: __ENV__.file, engine: opts[:engine] || EEx.Engine], opts)
     result = EEx.eval_string(actual, binding, opts)
