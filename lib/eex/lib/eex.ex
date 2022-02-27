@@ -100,6 +100,15 @@ defmodule EEx do
   The `assigns` extension is useful when the number of variables
   required by the template is not specified at compilation time.
   """
+  @type content :: IO.chardata()
+  @type line :: non_neg_integer
+  @type column :: non_neg_integer
+  @type marker :: '=' | '/' | '|' | ''
+  @type metadata :: %{column: column, line: line}
+  @type token ::
+          {:text, content, metadata}
+          | {:expr | :start_expr | :middle_expr | :end_expr, marker, content, metadata}
+          | {:eof, metadata}
 
   @doc """
   Generates a function definition from the given string.
@@ -270,6 +279,36 @@ defmodule EEx do
     options = Keyword.put_new(options, :file, filename)
     compiled = compile_file(filename, options)
     do_eval(compiled, bindings, options)
+  end
+
+  @doc """
+  Tokenize the given contents according to the given options.
+
+  ## options
+
+  * `line` - An integer to start as line. Default is 1.
+  * `column` - An integer to start as column. Default is 1.
+  * `indentation` - An integer that indicates the indentation. Default is 0.
+  * `trim` - Tells the tokenizer to either trim the content or not. Default is false.
+  * `file` - Can be either a file or a string "nofile".
+
+  ## Examples
+
+      iex> EEx.tokenize('foo', line: 1, column: 1)
+      {:ok, [{:text, 'foo', %{column: 1, line: 1}}, {:eof, %{column: 4, line: 1}}]}
+
+  """
+  @spec tokenize(contents :: binary | charlist, opts :: keyword) ::
+          {:ok, token()} | {:error, String.t(), metadata()}
+  def tokenize(contents, opts \\ []) do
+    file = opts[:file] || "nofile"
+    line = opts[:line] || 1
+    column = opts[:column] || 1
+    indentation = opts[:indentation] || 0
+    trim = opts[:trim] || false
+    tokenizer_opts = %{trim: trim, indentation: indentation, file: file}
+
+    EEx.Tokenizer.tokenize(contents, line, column, tokenizer_opts)
   end
 
   ### Helpers
