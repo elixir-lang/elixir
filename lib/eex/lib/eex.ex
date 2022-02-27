@@ -318,6 +318,7 @@ defmodule EEx do
   Or `{:error, message, %{column: column, line: line}}` in case of errors.
   Note new tokens may be added in the future.
   """
+  @doc since: "1.14.0"
   @spec tokenize(IO.chardata(), opts :: keyword) ::
           {:ok, token()} | {:error, String.t(), metadata()}
   def tokenize(contents, opts \\ []) do
