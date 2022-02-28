@@ -509,7 +509,9 @@ defmodule Task do
 
   When streamed, each task will emit `{:ok, value}` upon successful
   completion or `{:exit, reason}` if the caller is trapping exits.
-  The order of results depends on the value of the `:ordered` option.
+  It's possible to have `{:exit, {element, reason}}` for exits
+  using the `:zip_input_on_exit` option. The order of results depends
+  on the value of the `:ordered` option.
 
   The level of concurrency and the time tasks are allowed to run can
   be controlled via options (see the "Options" section below).
@@ -542,6 +544,11 @@ defmodule Task do
       * `:exit` (default) - the caller (the process that spawned the tasks) exits.
       * `:kill_task` - the task that timed out is killed. The value
         emitted for that task is `{:exit, :timeout}`.
+
+    * `:zip_input_on_exit` - (since v1.14.0) adds the original
+      input to `:exit` tuples. The value emitted for that task is
+      `{:exit, {input, reason}}`, where `input` is the collection element
+      that caused an exited during processing. Defaults to `false`.
 
   ## Example
 
