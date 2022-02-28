@@ -320,7 +320,7 @@ defmodule EEx do
   """
   @doc since: "1.14.0"
   @spec tokenize(IO.chardata(), opts :: keyword) ::
-          {:ok, token()} | {:error, String.t(), metadata()}
+          {:ok, [token()]} | {:error, String.t(), metadata()}
   def tokenize(contents, opts \\ []) do
     EEx.Compiler.tokenize(contents, opts)
   end

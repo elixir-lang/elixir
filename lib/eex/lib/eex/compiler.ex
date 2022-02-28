@@ -274,7 +274,7 @@ defmodule EEx.Compiler do
   and the engine together by handling the tokens and invoking
   the engine every time a full expression or text is received.
   """
-  @spec compile(EEx.tokens(), keyword) :: Macro.t()
+  @spec compile([EEx.token()], keyword) :: Macro.t()
   def compile(tokens, opts) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
