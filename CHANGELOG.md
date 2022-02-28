@@ -9,7 +9,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
 #### EEx
 
   * [EEx] Support multi-line comments to EEx via `<%!-- --%>`
-  * [EEx] Expose Eex.tokenize/2 as public API.
+  * [EEx] Expose EEx.tokenize/2 as public API.
 
 #### Elixir
 
