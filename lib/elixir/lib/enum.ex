@@ -204,7 +204,7 @@ defprotocol Enumerable do
       a `start` position, the `amount` of elements to fetch, and a
       `step`.
 
-    * `{:ok, size, to_list_fun} - if the `enumerable` has a known bound
+    * `{:ok, size, to_list_fun}` - if the `enumerable` has a known bound
       and can access a position in the `enumerable` by first converting
       it to a list via `to_list_fun`.
 
