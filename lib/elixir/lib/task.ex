@@ -545,9 +545,10 @@ defmodule Task do
       * `:kill_task` - the task that timed out is killed. The value
         emitted for that task is `{:exit, :timeout}`.
 
-    * `:zip_input_on_exit` - adds original element to exits.
-      The value emitted for that task is `{:exit, {element, reason}}`,
-      where `element` is the element it exited on. Defaults to `false`.
+    * `:zip_input_on_exit` - (since v1.14.0) adds the original
+      input to `:exit` tuples. The value emitted for that task is
+      `{:exit, {input, reason}}`, where `input` is the collection element
+      that caused an exited during processing. Defaults to `false`.
 
   ## Example
 
