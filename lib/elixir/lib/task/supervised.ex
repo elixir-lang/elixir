@@ -427,7 +427,8 @@ defmodule Task.Supervised do
       monitor_ref: monitor_ref,
       timeout: timeout,
       callers: callers,
-      mfa: mfa
+      mfa: mfa,
+      zip_input_on_exit: zip_input_on_exit?
     } = config
 
     send(monitor_pid, {:spawn, spawned})
@@ -436,7 +437,8 @@ defmodule Task.Supervised do
       {:spawned, {^monitor_ref, ^spawned}, pid} ->
         mfa_with_value = normalize_mfa_with_arg(mfa, value)
         send(pid, {self(), {monitor_ref, spawned}, self(), callers, mfa_with_value})
-        Map.put(waiting, spawned, {pid, :running, value})
+        stored_value = if zip_input_on_exit?, do: value, else: nil
+        Map.put(waiting, spawned, {pid, :running, stored_value})
 
       {:max_children, ^monitor_ref} ->
         stream_close(config)
