@@ -33,12 +33,13 @@ defmodule EEx.Compiler do
   end
 
   defp tokenize('<%!--' ++ t, line, column, state, buffer, acc) do
-    case comment(t, line, column + 5, state) do
-      {:error, line, column, message} ->
+    case comment(t, line, column + 5, state, []) do
+      {:error, line, column, message, _} ->
         {:error, message, %{line: line, column: column}}
 
-      {:ok, new_line, new_column, rest} ->
-        trim_and_tokenize(rest, new_line, new_column, state, buffer, acc, & &1)
+      {:ok, new_line, new_column, rest, comments} ->
+        token = {:comment, Enum.reverse(comments), %{line: line, column: column}}
+        trim_and_tokenize(rest, new_line, new_column, state, buffer, acc, &[token | &1])
     end
   end
 
@@ -123,19 +124,19 @@ defmodule EEx.Compiler do
 
   # Tokenize a multi-line comment until we find --%>
 
-  defp comment([?-, ?-, ?%, ?> | t], line, column, _state) do
-    {:ok, line, column + 4, t}
+  defp comment([?-, ?-, ?%, ?> | t], line, column, _state, buffer) do
+    {:ok, line, column + 4, t, buffer}
   end
 
-  defp comment('\n' ++ t, line, _column, state) do
-    comment(t, line + 1, state.indentation + 1, state)
+  defp comment('\n' ++ t, line, _column, state, buffer) do
+    comment(t, line + 1, state.indentation + 1, state, '\n' ++ buffer)
   end
 
-  defp comment([_ | t], line, column, state) do
-    comment(t, line, column + 1, state)
+  defp comment([head | t], line, column, state, buffer) do
+    comment(t, line, column + 1, state, [head | buffer])
   end
 
-  defp comment([], line, column, _state) do
+  defp comment([], line, column, _state, _buffer) do
     {:error, line, column, "missing token '--%>'"}
   end
 
@@ -295,6 +296,11 @@ defmodule EEx.Compiler do
     generate_buffer(tokens, init, [], state)
   end
 
+  # Ignore tokens related to comment.
+  defp generate_buffer([{:comment, _chars, _meta} | rest], buffer, scope, state) do
+    generate_buffer(rest, buffer, scope, state)
+  end
+
   # Generates the buffers by handling each expression from the tokenizer.
   # It returns Macro.t/0 or it raises.
 
@@ -421,6 +427,9 @@ defmodule EEx.Compiler do
   end
 
   # Look middle expressions that immediately follow a start_expr
+
+  defp look_ahead_middle([{:comment, _comment, _meta} | rest], start, contents),
+    do: look_ahead_middle(rest, start, contents)
 
   defp look_ahead_middle([{:text, text, _meta} | rest], start, contents) do
     if only_spaces?(text) do

@@ -176,6 +176,7 @@ defmodule EEx.TokenizerTest do
   test "EEx multi-line comments" do
     exprs = [
       {:text, 'foo ', %{column: 1, line: 1}},
+      {:comment, ' true ', %{column: 5, line: 1}},
       {:text, ' bar', %{column: 20, line: 1}},
       {:eof, %{column: 24, line: 1}}
     ]
@@ -184,6 +185,7 @@ defmodule EEx.TokenizerTest do
 
     exprs = [
       {:text, 'foo ', %{column: 1, line: 1}},
+      {:comment, ' \ntrue\n ', %{column: 5, line: 1}},
       {:text, ' bar', %{column: 6, line: 3}},
       {:eof, %{column: 10, line: 3}}
     ]
@@ -192,6 +194,7 @@ defmodule EEx.TokenizerTest do
 
     exprs = [
       {:text, 'foo ', %{column: 1, line: 1}},
+      {:comment, ' <%= true %> ', %{column: 5, line: 1}},
       {:text, ' bar', %{column: 27, line: 1}},
       {:eof, %{column: 31, line: 1}}
     ]
@@ -329,6 +332,7 @@ defmodule EEx.TokenizerTest do
 
   test "trim mode with multi-line comment" do
     exprs = [
+      {:comment, ' comment ', %{column: 3, line: 1}},
       {:text, '\n123', %{column: 23, line: 1}},
       {:eof, %{column: 4, line: 2}}
     ]
