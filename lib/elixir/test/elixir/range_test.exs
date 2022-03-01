@@ -51,6 +51,11 @@ defmodule RangeTest do
     assert inspect(3..1//1) == "3..1//1"
   end
 
+  test "shift" do
+    assert Range.shift(1..3, 2) == 3..5
+    assert Range.shift(1..3, -3) == -2..0
+  end
+
   test "limits are integer only" do
     first = 1.0
     last = 3.0

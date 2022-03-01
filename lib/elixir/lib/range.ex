@@ -256,6 +256,22 @@ defmodule Range do
   end
 
   @doc """
+  Shifts the first and last of a range by a given amount
+
+  ## Examples
+
+      iex> Range.shift(1..10, 2)
+      3..12
+
+      iex> Range.shift(1..10, -2)
+      -1..8
+  """
+  def shift(first..last//step, amount_to_shift)
+      when is_integer(first) and is_integer(last) and is_integer(amount_to_shift) do
+    new(first + amount_to_shift, last + amount_to_shift, step)
+  end
+
+  @doc """
   Checks if two ranges are disjoint.
 
   ## Examples
