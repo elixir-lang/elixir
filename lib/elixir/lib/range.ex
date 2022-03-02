@@ -256,19 +256,40 @@ defmodule Range do
   end
 
   @doc """
-  Shifts the first and last of a range by a given amount
+  Adds the given amount to the first and last of a range
 
   ## Examples
 
-      iex> Range.shift(1..10, 2)
+      iex> Range.add(1..10, 2)
       3..12
 
-      iex> Range.shift(1..10, -2)
+      iex> Range.add(1..10, -2)
       -1..8
   """
-  def shift(first..last//step, amount_to_shift)
-      when is_integer(first) and is_integer(last) and is_integer(amount_to_shift) do
-    new(first + amount_to_shift, last + amount_to_shift, step)
+  def add(first..last//step, amount_to_add)
+      when is_integer(first) and is_integer(last) and is_integer(amount_to_add) do
+    new(first + amount_to_add, last + amount_to_add, step)
+  end
+
+  @doc """
+  Shifts a range by the given number of steps
+
+  ## Examples
+
+      iex> Range.shift(0..10//2, 2)
+      4..14//2
+  """
+  def shift(first..last//step, steps_to_shift)
+      when is_integer(first) and is_integer(last) and is_integer(step) and
+             is_integer(steps_to_shift) do
+    new(first + steps_to_shift * step, last + steps_to_shift * step, step)
+  end
+
+  # TODO: Remove me on v2.0
+  def shift(%{__struct__: Range, first: first, last: last} = range, steps_to_shift)
+      when is_integer(first) and is_integer(last) and is_integer(steps_to_shift) do
+    step = if first <= last, do: 1, else: -1
+    shift(Map.put(range, :step, step), steps_to_shift)
   end
 
   @doc """
