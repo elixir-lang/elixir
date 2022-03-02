@@ -250,6 +250,12 @@ defmodule Macro do
   @spec pipe(t(), t(), integer) :: t()
   def pipe(expr, call_args, position)
 
+  def pipe(expr, args, _integer) when not is_tuple(args) do
+    raise ArgumentError,
+          "cannot pipe #{to_string(expr)} into #{to_string(args)}, " <>
+            "the 2nd argument must be an AST."
+  end
+
   def pipe(expr, {:&, _, _} = call_args, _integer) do
     raise ArgumentError, bad_pipe(expr, call_args)
   end
