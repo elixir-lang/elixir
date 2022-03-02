@@ -245,7 +245,33 @@ defmodule Macro do
   end
 
   @doc """
-  Pipes `expr` into the `call_args` at the given `position`.
+  Pipes the `expr` into the `call_args` at the given `position`.
+
+  - `expr` Might be an AST, or just a literal value.
+  - `call_args` Must be an AST; otherwise error will be raised.
+
+  ## Examples
+
+      iex> ast = Macro.pipe(quote(do: div(10, 2)), quote(do: div(5)), 0)
+      {:div, [], [{:div, [context: MacroTest, import: Kernel], [10, 2]}, 5]}
+      iex> Code.eval_quoted(ast)
+      {1, []}
+
+  If attempted to pipe an expression into a non AST,
+  the following error will be raised:
+
+      iex> Macro.pipe(10, 20, 0)
+      ** (ArgumentError) cannot pipe 10 into 20, the 2nd argument must be an AST.
+
+  It's also good to remind that even if the
+  expression is piped into the AST, it doesn't mean that
+  the AST is valid, and it might generate runtime issues,
+  for example:
+
+      iex> ast = Macro.pipe(10, {:div, [], [2, 5]}, 0)
+      {:div, [], [10, 2, 5]}
+      iex> Code.eval_quoted(ast)
+      ** (CompileError) nofile:1: undefined function div/3 (there is no such import)
   """
   @spec pipe(t(), t(), integer) :: t()
   def pipe(expr, call_args, position)
