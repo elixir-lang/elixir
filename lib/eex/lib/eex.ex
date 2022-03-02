@@ -106,7 +106,8 @@ defmodule EEx do
   @type marker :: '=' | '/' | '|' | ''
   @type metadata :: %{column: column, line: line}
   @type token ::
-          {:text, charlist, metadata}
+          {:comment, charlist, metadata}
+          | {:text, charlist, metadata}
           | {:expr | :start_expr | :middle_expr | :end_expr, marker, charlist, metadata}
           | {:eof, metadata}
 
