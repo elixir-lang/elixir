@@ -248,26 +248,13 @@ defmodule Macro do
   Pipes `expr` into the `call_args` at the given `position`.
 
   `expr` is the AST of an expression. `call_args` must be the AST *of a call*,
-  otherwise this function will raise an error.
+  otherwise this function will raise an error. As an example, consider the pipe
+  operator `|>/2`, which uses this function to build pipelines.
 
-  ## Examples
-
-      iex> ast = Macro.pipe(quote(do: div(10, 2)), quote(do: div(5)), 0)
-      {:div, [], [{:div, [context: MacroTest, import: Kernel], [10, 2]}, 5]}
-      iex> Code.eval_quoted(ast)
-      {1, []}
-
-  If attempted to pipe an expression into something other than a call,
-  the following error will be raised:
-
-      iex> Macro.pipe(10, 20, 0)
-      ** (ArgumentError) cannot pipe 10 into 20, can only pipe into local calls foo(), remote calls Foo.bar() or anonymous function calls foo.()
-
-  Even if the expression is piped into the AST, it doesn't
-  necessarily mean that the AST is valid and it might generate runtime issues.
-  For example, you could pipe an argument to div/2 effectively turning it into a
-  call to div/3, which is a function that won't exist at runtime.
-
+  Even if the expression is piped into the AST, it doesn't necessarily mean that
+  the AST is valid. For example, you could pipe an argument to `div/2`, effectively
+  turning it into a call to `div/3`, which is a function that doesn't exist by
+  default. The code will raise unless a `div/3` function is locally defined.
   """
   @spec pipe(t(), t(), integer) :: t()
   def pipe(expr, call_args, position)
