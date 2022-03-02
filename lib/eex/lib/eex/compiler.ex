@@ -34,7 +34,7 @@ defmodule EEx.Compiler do
 
   defp tokenize('<%!--' ++ t, line, column, state, buffer, acc) do
     case comment(t, line, column + 5, state, []) do
-      {:error, line, column, message, _} ->
+      {:error, line, column, message} ->
         {:error, message, %{line: line, column: column}}
 
       {:ok, new_line, new_column, rest, comments} ->
