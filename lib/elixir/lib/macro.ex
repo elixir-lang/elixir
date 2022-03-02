@@ -246,6 +246,15 @@ defmodule Macro do
 
   @doc """
   Pipes `expr` into the `call_args` at the given `position`.
+
+  `expr` is the AST of an expression. `call_args` must be the AST *of a call*,
+  otherwise this function will raise an error. As an example, consider the pipe
+  operator `|>/2`, which uses this function to build pipelines.
+
+  Even if the expression is piped into the AST, it doesn't necessarily mean that
+  the AST is valid. For example, you could pipe an argument to `div/2`, effectively
+  turning it into a call to `div/3`, which is a function that doesn't exist by
+  default. The code will raise unless a `div/3` function is locally defined.
   """
   @spec pipe(t(), t(), integer) :: t()
   def pipe(expr, call_args, position)
