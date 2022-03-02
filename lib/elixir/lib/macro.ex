@@ -247,8 +247,8 @@ defmodule Macro do
   @doc """
   Pipes the `expr` into the `call_args` at the given `position`.
 
-  - `expr` Might be an AST, or just a literal value.
-  - `call_args` Must be an AST; otherwise error will be raised.
+  `expr` is the AST of an expression. `call_args` must be the AST *of a call*,
+  otherwise this function will raise an error.
 
   ## Examples
 
@@ -257,30 +257,24 @@ defmodule Macro do
       iex> Code.eval_quoted(ast)
       {1, []}
 
-  If attempted to pipe an expression into a non AST,
+  If attempted to pipe an expression into something other than a call,
   the following error will be raised:
 
       iex> Macro.pipe(10, 20, 0)
       ** (ArgumentError) cannot pipe 10 into 20, the 2nd argument must be an AST.
 
-  It's also good to remind that even if the
-  expression is piped into the AST, it doesn't mean that
-  the AST is valid, and it might generate runtime issues,
+  Even if the expression is piped into the AST, it doesn't
+  necessarily mean that the AST is valid and it might generate runtime issues,
   for example:
 
       iex> ast = Macro.pipe(10, {:div, [], [2, 5]}, 0)
       {:div, [], [10, 2, 5]}
       iex> Code.eval_quoted(ast)
       ** (CompileError) nofile:1: undefined function div/3 (there is no such import)
+
   """
   @spec pipe(t(), t(), integer) :: t()
   def pipe(expr, call_args, position)
-
-  def pipe(expr, args, _integer) when not is_tuple(args) do
-    raise ArgumentError,
-          "cannot pipe #{to_string(expr)} into #{to_string(args)}, " <>
-            "the 2nd argument must be an AST."
-  end
 
   def pipe(expr, {:&, _, _} = call_args, _integer) do
     raise ArgumentError, bad_pipe(expr, call_args)
