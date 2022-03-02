@@ -261,7 +261,7 @@ defmodule Macro do
   the following error will be raised:
 
       iex> Macro.pipe(10, 20, 0)
-      ** (ArgumentError) cannot pipe 10 into 20, the 2nd argument must be an AST.
+      ** (ArgumentError) cannot pipe 10 into 20, can only pipe into local calls foo(), remote calls Foo.bar() or anonymous function calls foo.()
 
   Even if the expression is piped into the AST, it doesn't
   necessarily mean that the AST is valid and it might generate runtime issues,
