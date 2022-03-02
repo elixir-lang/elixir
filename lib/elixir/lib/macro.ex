@@ -245,7 +245,7 @@ defmodule Macro do
   end
 
   @doc """
-  Pipes the `expr` into the `call_args` at the given `position`.
+  Pipes `expr` into the `call_args` at the given `position`.
 
   `expr` is the AST of an expression. `call_args` must be the AST *of a call*,
   otherwise this function will raise an error.
@@ -264,13 +264,9 @@ defmodule Macro do
       ** (ArgumentError) cannot pipe 10 into 20, can only pipe into local calls foo(), remote calls Foo.bar() or anonymous function calls foo.()
 
   Even if the expression is piped into the AST, it doesn't
-  necessarily mean that the AST is valid and it might generate runtime issues,
-  for example:
-
-      iex> ast = Macro.pipe(10, {:div, [], [2, 5]}, 0)
-      {:div, [], [10, 2, 5]}
-      iex> Code.eval_quoted(ast)
-      ** (CompileError) nofile:1: undefined function div/3 (there is no such import)
+  necessarily mean that the AST is valid and it might generate runtime issues.
+  For example, you could pipe an argument to div/2 effectively turning it into a
+  call to div/3, which is a function that won't exist at runtime.
 
   """
   @spec pipe(t(), t(), integer) :: t()
