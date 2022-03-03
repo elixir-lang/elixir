@@ -9,12 +9,14 @@ Elixir v1.14 requires Erlang/OTP 23+.
 #### EEx
 
   * [EEx] Support multi-line comments to EEx via `<%!-- --%>`
+  * [EEx] Add `EEx.tokenize/2`
 
 #### Elixir
 
   * [Code] Emit deprecation and type warnings on `Code.compile_string/2` and `Code.compile_quoted/2`
   * [Code] Warn if an outdated lexical tracker is given on eval
   * [Code] Add `Code.env_for_eval/1` and `Code.eval_quoted_with_env/3`
+  * [Code] Improve stacktraces from eval operations on Erlang/OTP 25
   * [Enum] Allow slicing with steps in `Enum.slice/2`
   * [Inspect] Improve error reporting when there is a faulty inspect implementation
   * [Inspect] Use expression-based inspection for `Date.Rage`, `MapSet`, `Version`, and `Version.Requirement`
@@ -24,6 +26,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [Kernel] Warn on confusable non-ascii identifiers
   * [Kernel] Add `..` as a nullary operator that returns `0..-1//1`
   * [Kernel] Implement Unicode Technical Standard #39 recommendations. In particular, we warn for confusable scripts and restrict identifiers to single-scripts or highly restrictive mixed-scripts
+  * [Kernel] Add `binary_slice/2` and `binary_slice/3`
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/2`
@@ -37,6 +40,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [Stream] Add `Stream.duplicate/2` and `Stream.transform/5`
   * [String] Support empty lookup lists in `String.replace/3`, `String.split/3`, and `String.splitter/3`
   * [String] Allow slicing with steps in `String.slice/2`
+  * [Task] Add `:zip_input_on_exit` option to `Task.async_stream/3`
   * [URI] Add `URI.append_query/2`
   * [Version] Add `Version.to_string/1`
   * [Version] Colorize `Version.Requirement` source in Inspect protocol
@@ -50,11 +54,13 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [mix do] Support `--app` option to restrict recursive tasks in umbrella projects
   * [mix new] Do not allow projects to be created with application names that conflict with multi-arg Erlang VM switches
   * [mix test] Improve error message when suite fails due to coverage
+  * [mix profile] Return the return value of the profiled function
 
 ### 2. Bug fixes
 
 #### Elixir
 
+  * [CLI] Improve errors on incorrect `--rpc-eval` usage
   * [Code] Do not emit warnings when formatting code
   * [Kernel] Do not allow restricted restricted characters in identifiers according to UTS39
   * [Kernel] Define `__exception__` field as true when expanding exceptions in typespecs
@@ -66,6 +72,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
 
 #### Mix
 
+  * [mix compile.elixir] Fix `--warnings-as-errors` when used with `--all-warnings`
   * [mix release] Only set `RELEASE_MODE` after `env.{sh,bat}` are executed
 
 #### IEx
@@ -93,9 +100,19 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [Kernel] Deprecate the operator `<|>` to avoid ambiguity with upcoming extended numerical operators
   * [String] Deprecate passing a binary compiled pattern to `String.starts_with?/2`
 
+#### Logger
+
+  * [Logger] Deprecate `$levelpad` on message formatting
+
 #### Mix
 
   * [Mix] `Mix.Tasks.Xref.calls/1` is deprecated in favor of compilation tracers
+
+### 5. Backwards incompatible changes
+
+#### Mix
+
+  * [mix local.rebar] Remove support for rebar2, which has not been updated in 5 years, and is no longer supported on recent Erlang/OTP versions
 
 ## v1.13
 
