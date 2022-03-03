@@ -869,6 +869,25 @@ defmodule List do
   end
 
   @doc """
+  Returns and removes the first value matching `fun` in the `list`.
+
+  ## Examples
+
+     iex> List.pop([1, 2, 3, 4], &(&1 > 2))
+     {3, [1, 2, 4]}
+
+     iex> List.pop([1, 2, 3, 4], &(&1 > 20))
+     {nil, [1, 2, 3, 4]}
+
+  """
+  def pop(list, fun) do
+    case Enum.find_index(list, fun) do
+      nil -> {nil, list}
+      i -> pop_at(list, i)
+    end
+  end
+
+  @doc """
   Returns and removes the value at the specified `index` in the `list`.
 
   Negative indices indicate an offset from the end of the `list`.
