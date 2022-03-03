@@ -621,6 +621,30 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "nested heredocs with multi-line string in interpolation" do
+    bad = ~S'''
+    def foo do
+      """
+      #{(feature_flag(:feature_x) && "
+      new_field
+      " || "")}
+      """
+    end
+    '''
+
+    good = ~S'''
+    def foo do
+      """
+      #{(feature_flag(:feature_x) && "
+      new_field
+      ") || ""}
+      """
+    end
+    '''
+
+    assert_format bad, good
+  end
+
   test "functions with infinity line length" do
     assert_same ~S"""
                 x = fn ->
