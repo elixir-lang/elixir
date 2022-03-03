@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-18.04
     steps: 
       - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
       - uses: dev-drprasad/delete-tag-and-release@v0.2.0
         with:
           delete_release: true 
@@ -18,3 +20,6 @@ jobs:
       - uses: actions-ecosystem/action-push-tag@v1
         with: 
           tag: main-nightly
+      - uses: ./.github/workflows/prepare-release.yml
+        with:
+          version: main-nightly

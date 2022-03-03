@@ -1,33 +1,14 @@
-name: Release
+name: Prepare Release
 
 on:
-  push:
-    tags:
-      - v*
-      - main-nightly
-
-env:
-  ELIXIR_OPTS: "--warnings-as-errors"
-  ERLC_OPTS: "warnings_as_errors"
-  LANG: C.UTF-8
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
 
 jobs:
-  create_draft_release:
-    runs-on: ubuntu-18.04
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - name: Create draft release
-        run: |
-          gh release create \
-            --repo ${{ github.repository }} \
-            --title ${{ github.ref_name }} \
-            --notes '' \
-            --draft \
-            ${{ github.ref_name }}
-        if: ${{ github.ref_name != 'main' }}
   release_pre_built:
-    needs: create_draft_release
     strategy:
       fail-fast: true
       matrix:
@@ -39,9 +20,6 @@ jobs:
             build_docs: build_docs
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 50
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp_version }}
@@ -89,7 +67,3 @@ jobs:
           gh release upload --clobber "v${vsn}" \
             Docs.zip \
             Docs.zip.sha{1,256}sum
-      - name: Create pre-release for nightly build
-        if: ${{ github.ref_name == "main-nightly" }}
-        run: |
-          gh release create --prerelease ${{ github.ref_name }}
