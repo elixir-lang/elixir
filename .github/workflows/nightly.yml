@@ -18,7 +18,19 @@ jobs:
           tag_name: main-nightly
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   prepare_release:
     uses: ./.github/workflows/prepare-release.yml
     with:
       version: main-nightly
+
+  publish_pre_release:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+          ref: main
+      - uses: geertvdc/setup-hub@master
+      - run: |
+          hub release edit main-nightly --prerelease
