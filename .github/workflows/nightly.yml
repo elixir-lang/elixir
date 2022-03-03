@@ -5,7 +5,7 @@ on:
     - cron: "*/10 * * * *"
 
 jobs:
-  delete_previous_nightly_and_tag: 
+  delete_previous_nightly: 
     runs-on: ubuntu-18.04
     steps: 
       - uses: actions/checkout@v2
@@ -20,11 +20,13 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   prepare_release:
+    needs: delete_previous_nightly
     uses: ./.github/workflows/prepare-release.yml
     with:
       version: main-nightly
 
   publish_pre_release:
+    needs: prepare_release
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
