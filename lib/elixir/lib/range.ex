@@ -256,6 +256,25 @@ defmodule Range do
   end
 
   @doc """
+  Shifts a range by the given number of steps.
+
+  ## Examples
+
+      iex> Range.shift(0..10, 1)
+      1..11
+      iex> Range.shift(0..10, 2)
+      2..12
+
+      iex> Range.shift(0..10//2, 2)
+      4..14//2
+  """
+  def shift(first..last//step, steps_to_shift)
+      when is_integer(first) and is_integer(last) and is_integer(step) and
+             is_integer(steps_to_shift) do
+    new(first + steps_to_shift * step, last + steps_to_shift * step, step)
+  end
+
+  @doc """
   Checks if two ranges are disjoint.
 
   ## Examples
