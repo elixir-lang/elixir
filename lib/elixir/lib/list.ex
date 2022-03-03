@@ -339,6 +339,11 @@ defmodule List do
       iex> List.keyfind([a: 1, b: 2], :c, 0)
       nil
 
+  This function works for any list of tuples:
+
+      iex> List.keyfind([{22, "SSH"}, {80, "HTTP"}], 22, 0)
+      {22, "SSH"}
+
   """
   @spec keyfind([tuple], any, non_neg_integer, any) :: any
   def keyfind(list, key, position, default \\ nil) when is_integer(position) do
@@ -362,6 +367,11 @@ defmodule List do
 
       iex> List.keyfind!([a: 1, b: 2], :c, 0)
       ** (KeyError) key :c at position 0 not found in: [a: 1, b: 2]
+
+  This function works for any list of tuples:
+
+      iex> List.keyfind!([{22, "SSH"}, {80, "HTTP"}], 22, 0)
+      {22, "SSH"}
 
   """
   @doc since: "1.13.0"
@@ -391,6 +401,11 @@ defmodule List do
       iex> List.keymember?([a: 1, b: 2], :c, 0)
       false
 
+  This function works for any list of tuples:
+
+      iex> List.keymember?([{22, "SSH"}, {80, "HTTP"}], 22, 0)
+      true
+
   """
   @spec keymember?([tuple], any, non_neg_integer) :: boolean
   def keymember?(list, key, position) when is_integer(position) do
@@ -408,6 +423,11 @@ defmodule List do
 
       iex> List.keyreplace([a: 1, b: 2], :a, 1, {:a, 3})
       [a: 1, b: 2]
+
+  This function works for any list of tuples:
+
+      iex> List.keyreplace([{22, "SSH"}, {80, "HTTP"}], 22, 0, {22, "Secure Shell"})
+      [{22, "Secure Shell"}, {80, "HTTP"}]
 
   """
   @spec keyreplace([tuple], any, non_neg_integer, tuple) :: [tuple]
@@ -512,6 +532,11 @@ defmodule List do
       iex> List.keystore([a: 1, b: 2], :c, 0, {:c, 3})
       [a: 1, b: 2, c: 3]
 
+  This function works for any list of tuples:
+
+      iex> List.keystore([{22, "SSH"}], 80, 0, {80, "HTTP"})
+      [{22, "SSH"}, {80, "HTTP"}]
+
   """
   @spec keystore([tuple], any, non_neg_integer, tuple) :: [tuple, ...]
   def keystore(list, key, position, new_tuple) when is_integer(position) do
@@ -533,6 +558,11 @@ defmodule List do
 
       iex> List.keydelete([a: 1, b: 2], :c, 0)
       [a: 1, b: 2]
+
+  This function works for any list of tuples:
+
+      iex> List.keydelete([{22, "SSH"}, {80, "HTTP"}], 80, 0)
+      [{22, "SSH"}]
 
   """
   @spec keydelete([tuple], any, non_neg_integer) :: [tuple]
@@ -557,6 +587,11 @@ defmodule List do
 
       iex> List.keytake([a: 1, b: 2], :c, 0)
       nil
+
+  This function works for any list of tuples:
+
+      iex> List.keytake([{22, "SSH"}, {80, "HTTP"}], 80, 0)
+      {{80, "HTTP"}, [{22, "SSH"}]}
 
   """
   @spec keytake([tuple], any, non_neg_integer) :: {tuple, [tuple]} | nil
