@@ -8,13 +8,13 @@ jobs:
   delete_previous_nightly_and_tag: 
     runs-on: ubuntu-18.04
     steps: 
+      - uses: actions/checkout@v2
       - uses: dev-drprasad/delete-tag-and-release@v0.2.0
         with:
           delete_release: true 
           tag_name: main-nightly
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions-ecosystem/action-push-tag@v1
         with: 
           tag: main-nightly
