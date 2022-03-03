@@ -4,8 +4,6 @@ on:
   push:
     tags:
       - v*
-  schedule:
-    - cron: "*/10 * * * *"
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
