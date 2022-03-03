@@ -1,4 +1,4 @@
-name: Tag Nightly
+name: Nightly Release
 
 on: 
   schedule:
