@@ -2,6 +2,18 @@
 
 Elixir v1.14 requires Erlang/OTP 23+.
 
+## PartitionSupervisor
+
+TODO.
+
+## Improved errors on binaries and evaluation
+
+TODO.
+
+## Slicing with steps
+
+TODO.
+
 ## v1.14.0-dev
 
 ### 1. Enhancements
@@ -19,7 +31,7 @@ Elixir v1.14 requires Erlang/OTP 23+.
   * [Code] Improve stacktraces from eval operations on Erlang/OTP 25
   * [Enum] Allow slicing with steps in `Enum.slice/2`
   * [Inspect] Improve error reporting when there is a faulty inspect implementation
-  * [Inspect] Use expression-based inspection for `Date.Rage`, `MapSet`, `Version`, and `Version.Requirement`
+  * [Inspect] Use expression-based inspection for `Date.Range`, `MapSet`, `Version`, and `Version.Requirement`
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
   * [Kernel] Allow composite types with pins as the map key in a pattern match
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
