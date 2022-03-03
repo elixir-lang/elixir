@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - v*
+      - main-nightly
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
