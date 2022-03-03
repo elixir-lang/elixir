@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - v*
+      - main-nightly
   schedule:
     - cron: "*/10 * * * *"
 
@@ -26,7 +27,6 @@ jobs:
             --notes '' \
             --draft \
             ${{ github.ref_name }}
-        if: ${{ github.ref_name != 'main' }}
   release_pre_built:
     needs: create_draft_release
     strategy:
