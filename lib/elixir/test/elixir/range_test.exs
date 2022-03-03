@@ -51,16 +51,10 @@ defmodule RangeTest do
     assert inspect(3..1//1) == "3..1//1"
   end
 
-  test "add" do
-    assert Range.add(1..3, 2) == 3..5
-    assert Range.add(1..3, -3) == -2..0
-  end
-
   test "shift" do
     assert Range.shift(0..10//2, 2) == 4..14//2
     assert Range.shift(10..0//-2, 2) == 6..-4//-2
     assert Range.shift(10..0//-2, -2) == 14..4//-2
-    assert Range.shift(%{__struct__: Range, first: 1, last: 3}, 2) == 3..5
   end
 
   test "limits are integer only" do
