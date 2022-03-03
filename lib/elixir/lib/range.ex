@@ -268,6 +268,7 @@ defmodule Range do
       iex> Range.shift(0..10//2, 2)
       4..14//2
   """
+  @doc since: "1.14.0"
   def shift(first..last//step, steps_to_shift)
       when is_integer(first) and is_integer(last) and is_integer(step) and
              is_integer(steps_to_shift) do
