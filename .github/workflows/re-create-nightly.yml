@@ -1,4 +1,4 @@
-name: Create Nightly Build
+name: Tag Nightly
 
 on: 
   schedule:
