@@ -31,6 +31,8 @@ jobs:
         with:
           fetch-depth: 50
           ref: main
+      # NOTE: The `gh` command doesn't support edit release. It's needs to wait until they 
+      # implement https://github.com/cli/cli/issues/1997. Temporary fixed by using `hub` instead.
       - uses: geertvdc/setup-hub@master
       - run: |
-          hub release edit main-nightly --prerelease
+          hub release edit main-nightly --draft=false --prerelease
