@@ -5,7 +5,7 @@ on:
     - cron: "*/10 * * * *"
 
 jobs:
-  delete_previous_nightly: 
+  delete_previous_nightly_and_tag: 
     runs-on: ubuntu-18.04
     steps: 
       - uses: dev-drprasad/delete-tag-and-release@v0.2.0
