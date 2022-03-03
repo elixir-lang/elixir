@@ -20,6 +20,7 @@ jobs:
       - uses: actions-ecosystem/action-push-tag@v1
         with: 
           tag: main-nightly
-      - uses: ./.github/workflows/prepare-release.yml
-        with:
-          version: main-nightly
+  prepare_release:
+    uses: ./.github/workflows/prepare-release.yml
+    with:
+      version: main-nightly

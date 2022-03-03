@@ -19,7 +19,11 @@ jobs:
             otp_version: 24.1
             build_docs: build_docs
     runs-on: ubuntu-18.04
-    steps:
+    steps: 
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 50
+          ref: ${{ inputs.version }}
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp_version }}
