@@ -18,6 +18,9 @@ jobs:
           tag_name: main-nightly
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions-ecosystem/action-push-tag@v1
+        with:
+          tag: main-nightly
 
   prepare_release:
     needs: delete_previous_nightly
