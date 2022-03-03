@@ -8,6 +8,19 @@ on:
         type: string
 
 jobs:
+  create_draft_release:
+    runs-on: ubuntu-18.04
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Create draft release
+        run: |
+          gh release create \
+            --repo ${{ github.repository }} \
+            --title ${{ inputs.version }} \
+            --notes '' \
+            --draft \
+            ${{ inputs.version }}
   release_pre_built:
     strategy:
       fail-fast: true
@@ -39,7 +52,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          vsn=$(cat VERSION)
           gh release upload --clobber ${{ inputs.version }} \
             elixir-otp-${{ matrix.otp }}.zip \
             elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum
@@ -67,7 +79,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          vsn=$(cat VERSION)
           gh release upload --clobber ${{ inputs.version }} \
             Docs.zip \
             Docs.zip.sha{1,256}sum
