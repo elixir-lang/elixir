@@ -255,10 +255,16 @@ defmodule Inspect.Algebra do
           | doc_group
           | doc_nest
           | doc_string
+          | doc_limit
 
   @typep doc_string :: {:doc_string, t, non_neg_integer}
   defmacrop doc_string(string, length) do
     quote do: {:doc_string, unquote(string), unquote(length)}
+  end
+
+  @typep doc_limit :: {:doc_limit, t, pos_integer | :infinity}
+  defmacrop doc_limit(doc, limit) do
+    quote do: {:doc_limit, unquote(doc), unquote(limit)}
   end
 
   @typep doc_cons :: {:doc_cons, t, t}
@@ -310,7 +316,8 @@ defmodule Inspect.Algebra do
     :doc_force,
     :doc_group,
     :doc_nest,
-    :doc_string
+    :doc_string,
+    :doc_limit
   ]
 
   defguard is_doc(doc)
@@ -573,6 +580,10 @@ defmodule Inspect.Algebra do
   @spec concat(t, t) :: t
   def concat(doc1, doc2) when is_doc(doc1) and is_doc(doc2) do
     doc_cons(doc1, doc2)
+  end
+
+  def no_limit(doc) do
+    doc_limit(doc, :infinity)
   end
 
   @doc ~S"""
@@ -1030,9 +1041,17 @@ defmodule Inspect.Algebra do
   defp fits?(w, k, b?, [{i, m, doc_group(x, _)} | t]),
     do: fits?(w, k, b?, [{i, m, x} | {:tail, b?, t}])
 
-  @spec format(width :: non_neg_integer() | :infinity, column :: non_neg_integer(), [
-          {integer, mode, t}
-        ]) :: [binary]
+  defp fits?(w, k, b?, [{i, m, doc_limit(x, :infinity)} | t]) when w != :infinity,
+    do: fits?(:infinity, k, b?, [{i, :flat, x}, {i, m, doc_limit(empty(), w)} | t])
+
+  defp fits?(_w, k, b?, [{i, m, doc_limit(x, w)} | t]),
+    do: fits?(w, k, b?, [{i, m, x} | t])
+
+  @spec format(
+          width :: non_neg_integer() | :infinity,
+          column :: non_neg_integer(),
+          [{integer, mode, t}]
+        ) :: [binary]
   defp format(_, _, []), do: []
   defp format(w, k, [{_, _, :doc_nil} | t]), do: format(w, k, t)
   defp format(w, _, [{i, _, :doc_line} | t]), do: [indent(i) | format(w, i, t)]
@@ -1084,6 +1103,15 @@ defmodule Inspect.Algebra do
     else
       format(w, k, [{i, :break, x} | t])
     end
+  end
+
+  # Limit is set to infinity and then reverts
+  defp format(w, k, [{i, m, doc_limit(x, :infinity)} | t]) when w != :infinity do
+    format(:infinity, k, [{i, :flat, x}, {i, m, doc_limit(empty(), w)} | t])
+  end
+
+  defp format(_w, k, [{i, m, doc_limit(x, w)} | t]) do
+    format(w, k, [{i, m, x} | t])
   end
 
   defp collapse(["\n" <> _ | t], max, count, i) do

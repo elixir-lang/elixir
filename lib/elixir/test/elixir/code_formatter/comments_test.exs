@@ -278,10 +278,19 @@ defmodule Code.Formatter.CommentsTest do
 
       assert_format bad, good
 
-      assert_same ~S"""
+      bad = ~S"""
       IO.puts("Hello #{hello
       world}")
       """
+
+      good = ~S"""
+      IO.puts(
+        "Hello #{hello
+        world}"
+      )
+      """
+
+      assert_format bad, good
     end
   end
 

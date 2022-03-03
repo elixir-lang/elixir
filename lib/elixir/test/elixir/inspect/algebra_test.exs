@@ -213,6 +213,12 @@ defmodule Inspect.AlgebraTest do
     assert render(group(doc), 5) == "a\nb\nc\ndhello"
   end
 
+  test "no limit doc" do
+    doc = no_limit(group(glue(glue("hello", "a"), "b")))
+    assert render(doc, 5) == "hello a b"
+    assert render(doc, :infinity) == "hello a b"
+  end
+
   test "collapse lines" do
     # Consistent with definitions
     assert collapse_lines(3) == {:doc_collapse, 3}
