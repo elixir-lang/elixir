@@ -976,7 +976,7 @@ defmodule Inspect.Algebra do
   @typep mode :: :flat | :flat_no_break | :break | :break_no_flat
 
   @spec fits?(
-          width :: non_neg_integer(),
+          width :: non_neg_integer() | :infinity,
           column :: non_neg_integer(),
           break? :: boolean(),
           entries
