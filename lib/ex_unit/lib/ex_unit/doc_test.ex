@@ -258,7 +258,10 @@ defmodule ExUnit.DocTest do
 
   defp filter_tests(module, tests, except, only) do
     {filtered_tests, fun_arities} =
-      for test <- tests, test.fun_arity not in except, test.fun_arity in only, reduce: {[], []} do
+      for test <- tests,
+          test.fun_arity not in except,
+          test.fun_arity in only,
+          reduce: {[], []} do
         {tests, fun_arities} -> {[test | tests], [test.fun_arity | fun_arities]}
       end
 
