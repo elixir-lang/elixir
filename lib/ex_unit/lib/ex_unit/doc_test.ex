@@ -257,12 +257,10 @@ defmodule ExUnit.DocTest do
   end
 
   defp filter_tests(module, tests, except, only) do
-    filtered_tests =
-      tests
-      |> Stream.reject(&(&1.fun_arity in except))
-      |> Stream.filter(&(&1.fun_arity in only))
-
-    fun_arities = Enum.map(filtered_tests, & &1.fun_arity)
+    {filtered_tests, fun_arities} =
+      for test <- tests, test.fun_arity not in except, test.fun_arity in only, reduce: {[], []} do
+        {tests, fun_arities} -> {[test | tests], [test.fun_arity | fun_arities]}
+      end
 
     case only -- fun_arities do
       [] ->
