@@ -269,12 +269,11 @@ defmodule ExUnit.DocTest do
         filtered_tests
 
       [_ | _] = undefined_fun_arities ->
-        module_name = module |> Module.split() |> Enum.join(".")
         functions = Enum.map_join(undefined_fun_arities, ", ", fn {f, a} -> "#{f}/#{a}" end)
 
         raise Error,
           module: module,
-          message: "undefined or private function(s): #{functions} in module #{module_name}"
+          message: "undefined or private function(s): #{functions} in module #{inspect(module)}"
     end
   end
 
