@@ -234,14 +234,14 @@ defmodule ExUnit.DocTest do
     do_import = Keyword.get(opts, :import, false)
 
     extract(module)
-    |> filter_by_opts(opts)
+    |> filter_by_opts(module, opts)
     |> Stream.with_index()
     |> Enum.map(fn {test, acc} ->
       compile_test(test, module, do_import, acc + 1)
     end)
   end
 
-  defp filter_by_opts(tests, opts) do
+  defp filter_by_opts(tests, module, opts) do
     except = Keyword.get(opts, :except, [])
 
     case Keyword.fetch(opts, :only) do
@@ -249,12 +249,32 @@ defmodule ExUnit.DocTest do
         []
 
       {:ok, only} ->
-        tests
-        |> Stream.reject(&(&1.fun_arity in except))
-        |> Stream.filter(&(&1.fun_arity in only))
+        filter_tests(module, tests, except, only)
 
       :error ->
         Stream.reject(tests, &(&1.fun_arity in except))
+    end
+  end
+
+  defp filter_tests(module, tests, except, only) do
+    filtered_tests =
+      tests
+      |> Stream.reject(&(&1.fun_arity in except))
+      |> Stream.filter(&(&1.fun_arity in only))
+
+    fun_arities = Enum.map(filtered_tests, & &1.fun_arity)
+
+    case only -- fun_arities do
+      [] ->
+        filtered_tests
+
+      [_ | _] = undefined_fun_arities ->
+        module_name = module |> Module.split() |> Enum.join(".")
+        functions = Enum.map_join(undefined_fun_arities, ", ", fn {f, a} -> "#{f}/#{a}" end)
+
+        raise Error,
+          module: module,
+          message: "undefined or private function(s): #{functions} in module #{module_name}"
     end
   end
 

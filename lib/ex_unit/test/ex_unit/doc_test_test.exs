@@ -898,6 +898,21 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
+  test "fails when testing function not found" do
+    message =
+      ~r[test/ex_unit/doc_test_test\.exs: undefined or private function\(s\): three/0, four/1 in module ExUnit.DocTestTest.SomewhatGoodModuleWithOnly]
+
+    assert_raise ExUnit.DocTest.Error, message, fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+
+        doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly,
+          only: [three: 0, four: 1],
+          import: true
+      end
+    end
+  end
+
   test "fails when there are no docs" do
     message = ~r"could not retrieve the documentation for module ExUnit\.DocTestTest"
 
