@@ -739,6 +739,15 @@ defmodule Mix.ReleaseTest do
       assert {:ok, {EEx, [{'Dbgi', _}]}} = :beam_lib.chunks(beam, ['Dbgi'])
       assert {:ok, {EEx, [{'Docs', _}]}} = :beam_lib.chunks(beam, ['Docs'])
     end
+
+    test "strip beams without compression" do
+      {:ok, beam} =
+        Path.join(@eex_ebin, "Elixir.EEx.beam")
+        |> File.read!()
+        |> strip_beam(compress: false)
+
+      assert match?(<<"FOR1", _::binary>>, beam)
+    end
   end
 
   describe "included applications" do
