@@ -898,9 +898,26 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
-  test "fails when testing functions not found" do
+  test "fails when testing single function not found" do
     message = """
-    test/ex_unit/doc_test_test\.exs: undefined or private function(s) given to doctest:
+    test/ex_unit/doc_test_test\.exs: undefined or private function given to doctest:
+
+        ExUnit.DocTestTest.SomewhatGoodModuleWithOnly.three/0
+
+    """
+
+    assert_raise ExUnit.DocTest.Error, message, fn ->
+      defmodule NeverCompiled do
+        import ExUnit.DocTest
+
+        doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [three: 0], import: true
+      end
+    end
+  end
+
+  test "fails when testing multiple functions not found" do
+    message = """
+    test/ex_unit/doc_test_test\.exs: undefined or private functions given to doctest:
 
         ExUnit.DocTestTest.SomewhatGoodModuleWithOnly.three/0
         ExUnit.DocTestTest.SomewhatGoodModuleWithOnly.four/1

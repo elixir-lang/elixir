@@ -270,6 +270,8 @@ defmodule ExUnit.DocTest do
         filtered_tests
 
       undefined_fun_arities ->
+        pluralized = pluralize_list_name("function", undefined_fun_arities)
+
         functions =
           Enum.map_join(undefined_fun_arities, "\n    ", fn {fun, arity} ->
             Exception.format_mfa(module, fun, arity)
@@ -277,9 +279,12 @@ defmodule ExUnit.DocTest do
 
         raise Error,
           module: module,
-          message: "undefined or private function(s) given to doctest:\n\n    #{functions}\n\n"
+          message: "undefined or private #{pluralized} given to doctest:\n\n    #{functions}\n\n"
     end
   end
+
+  defp pluralize_list_name(name, [_]), do: name
+  defp pluralize_list_name(name, _), do: ExUnit.plural_rule(name)
 
   ## Compilation of extracted tests
 
