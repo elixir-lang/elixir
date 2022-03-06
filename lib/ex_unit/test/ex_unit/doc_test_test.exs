@@ -898,9 +898,14 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
-  test "fails when testing function not found" do
-    message =
-      ~r[test/ex_unit/doc_test_test\.exs: undefined or private function\(s\): three/0, four/1 in module ExUnit.DocTestTest.SomewhatGoodModuleWithOnly]
+  test "fails when testing functions not found" do
+    message = """
+    test/ex_unit/doc_test_test\.exs: undefined or private function(s) given to doctest:
+
+        ExUnit.DocTestTest.SomewhatGoodModuleWithOnly.three/0
+        ExUnit.DocTestTest.SomewhatGoodModuleWithOnly.four/1
+
+    """
 
     assert_raise ExUnit.DocTest.Error, message, fn ->
       defmodule NeverCompiled do

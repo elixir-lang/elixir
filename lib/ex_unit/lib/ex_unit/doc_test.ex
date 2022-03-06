@@ -269,7 +269,7 @@ defmodule ExUnit.DocTest do
       [] ->
         filtered_tests
 
-      [_ | _] = undefined_fun_arities ->
+      undefined_fun_arities ->
         functions =
           Enum.map_join(undefined_fun_arities, "\n    ", fn {fun, arity} ->
             Exception.format_mfa(module, fun, arity)
@@ -277,7 +277,7 @@ defmodule ExUnit.DocTest do
 
         raise Error,
           module: module,
-          message: "undefined or private functions(s) given to doctest: #{functions}"
+          message: "undefined or private function(s) given to doctest:\n\n    #{functions}\n\n"
     end
   end
 
