@@ -387,7 +387,10 @@ defmodule Mix.Tasks.Release do
     * `:strip_beams` - controls if BEAM files should have their debug information,
       documentation chunks, and other non-essential metadata removed. Defaults to
       `true`. May be set to `false` to disable stripping. Also accepts
-      `[keep: ["Docs", "Dbgi"]]` to keep certain chunks that are usually stripped.
+     `[keep: ["Docs", "Dbgi"]]` to keep certain chunks that are usually stripped.
+     You can also set the `:compress` option to true to enable individual
+     compression of BEAM files, although it is typically preferred to compress
+     the whole release instead.
 
     * `:cookie` - a string representing the Erlang Distribution cookie. If this
       option is not set, a random cookie is written to the `releases/COOKIE` file

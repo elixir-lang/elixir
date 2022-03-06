@@ -856,12 +856,18 @@ defmodule Mix.Release do
   def strip_beam(binary, options \\ []) when is_list(options) do
     chunks_to_keep = options[:keep] |> List.wrap() |> Enum.map(&String.to_charlist/1)
     all_chunks = Enum.uniq(@significant_chunks ++ chunks_to_keep)
+    compress? = Keyword.get(options, :compress, false)
 
     case :beam_lib.chunks(binary, all_chunks, [:allow_missing_chunks]) do
       {:ok, {_, chunks}} ->
         chunks = for {name, chunk} <- chunks, is_binary(chunk), do: {name, chunk}
         {:ok, binary} = :beam_lib.build_module(chunks)
-        {:ok, :zlib.gzip(binary)}
+
+        if compress? do
+          {:ok, :zlib.gzip(binary)}
+        else
+          {:ok, binary}
+        end
 
       {:error, _, _} = error ->
         error
