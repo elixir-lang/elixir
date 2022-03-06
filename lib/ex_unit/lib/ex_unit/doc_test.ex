@@ -234,14 +234,14 @@ defmodule ExUnit.DocTest do
     do_import = Keyword.get(opts, :import, false)
 
     extract(module)
-    |> filter_by_opts(opts)
+    |> filter_by_opts(module, opts)
     |> Stream.with_index()
     |> Enum.map(fn {test, acc} ->
       compile_test(test, module, do_import, acc + 1)
     end)
   end
 
-  defp filter_by_opts(tests, opts) do
+  defp filter_by_opts(tests, module, opts) do
     except = Keyword.get(opts, :except, [])
 
     case Keyword.fetch(opts, :only) do
@@ -249,14 +249,42 @@ defmodule ExUnit.DocTest do
         []
 
       {:ok, only} ->
-        tests
-        |> Stream.reject(&(&1.fun_arity in except))
-        |> Stream.filter(&(&1.fun_arity in only))
+        filter_tests(module, tests, except, only)
 
       :error ->
         Stream.reject(tests, &(&1.fun_arity in except))
     end
   end
+
+  defp filter_tests(module, tests, except, only) do
+    {filtered_tests, fun_arities} =
+      for test <- tests,
+          test.fun_arity not in except,
+          test.fun_arity in only,
+          reduce: {[], []} do
+        {tests, fun_arities} -> {[test | tests], [test.fun_arity | fun_arities]}
+      end
+
+    case only -- fun_arities do
+      [] ->
+        filtered_tests
+
+      undefined_fun_arities ->
+        pluralized = pluralize_list_name("function", undefined_fun_arities)
+
+        functions =
+          Enum.map_join(undefined_fun_arities, "\n    ", fn {fun, arity} ->
+            Exception.format_mfa(module, fun, arity)
+          end)
+
+        raise Error,
+          module: module,
+          message: "undefined or private #{pluralized} given to doctest:\n\n    #{functions}\n\n"
+    end
+  end
+
+  defp pluralize_list_name(name, [_]), do: name
+  defp pluralize_list_name(name, _), do: ExUnit.plural_rule(name)
 
   ## Compilation of extracted tests
 
