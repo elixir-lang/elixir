@@ -237,7 +237,6 @@ defmodule Mix.ProjectStack do
       else
         # Consider the first children to always have io_done
         # because we don't need to print anything unless another
-        # because we don't need to print anything unless another
         # project takes ahold of the shell.
         io_done? = stack == []
         config = Keyword.merge(config, post_config)
