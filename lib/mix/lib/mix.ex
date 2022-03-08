@@ -162,8 +162,8 @@ defmodule Mix do
       import Config
       config :my_app, :secret_key, System.fetch_env!("MY_APP_SECRET_KEY")
 
-  This file will be executed whenever your Mix project. If you assemble
-  a release with `mix release`, it is also booted every time your release
+  This file is executed whenever your project runs. If you assemble
+  a release with `mix release`, it also executes every time your release
   starts.
 
   ## Aliases
