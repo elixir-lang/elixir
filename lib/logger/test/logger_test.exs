@@ -246,6 +246,34 @@ defmodule LoggerTest do
     Logger.delete_all_module_levels()
   end
 
+  test "per-process levels" do
+    assert Logger.get_process_level(self()) == nil
+
+    assert capture_log(fn -> Logger.debug("debug_msg") end) =~ "debug_msg"
+
+    Logger.put_process_level(self(), :debug)
+    assert Logger.get_process_level(self()) == :debug
+
+    assert capture_log(fn -> Logger.debug("debug_msg") end) =~ "debug_msg"
+
+    Logger.put_process_level(self(), :error)
+
+    assert capture_log(fn -> Logger.debug("debug_msg") end) == ""
+    assert capture_log(fn -> Logger.error("error_msg") end) =~ "error_msg"
+
+    Logger.put_process_level(self(), :none)
+    assert Logger.get_process_level(self()) == :none
+
+    assert capture_log(fn -> Logger.debug("debug_msg") end) == ""
+    assert capture_log(fn -> Logger.error("error_msg") end) == ""
+
+    Logger.delete_process_level(self())
+    assert Logger.get_process_level(self()) == nil
+
+    assert capture_log(fn -> Logger.debug("debug_msg") end) =~ "debug_msg"
+    assert capture_log(fn -> Logger.error("error_msg") end) =~ "error_msg"
+  end
+
   test "process metadata" do
     assert Logger.metadata(data: true) == :ok
     assert Logger.metadata() == [data: true]
