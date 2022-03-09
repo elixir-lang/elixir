@@ -527,6 +527,8 @@ defmodule Logger do
 
       delete_process_level(pid)
   """
+  # TODO: Deprecate me on v1.18
+  @doc deprecated: "Use Logger.delete_process_level(pid) instead"
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
     delete_process_level(pid)
@@ -542,6 +544,8 @@ defmodule Logger do
 
       put_process_level(pid, :none)
   """
+  # TODO: Deprecate me on v1.18
+  @doc deprecated: "Use Logger.put_process_level(pid, :none) instead"
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
     put_process_level(pid, :none)
@@ -553,7 +557,8 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
   """
-  @doc since: "1.10.0"
+  # TODO: Deprecate me on v1.18
+  @doc deprecated: "Use Logger.get_process_level(pid) instead"
   @spec enabled?(pid) :: boolean
   def enabled?(pid) when pid == self() do
     get_process_level(pid) != :none
