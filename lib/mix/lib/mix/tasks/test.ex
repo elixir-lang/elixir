@@ -425,7 +425,9 @@ defmodule Mix.Tasks.Test do
       do_run(opts, args, files)
     else
       {files_in_apps_path, files_not_in_apps_path} =
-        Enum.split_with(files, &String.starts_with?(&1, "apps/"))
+        files
+        |> Enum.map(&String.trim_leading(&1, "./"))
+        |> Enum.split_with(&String.starts_with?(&1, "apps/"))
 
       app = Mix.Project.config()[:app]
       current_app_path = "apps/#{app}/"
