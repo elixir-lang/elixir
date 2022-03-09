@@ -728,7 +728,7 @@ defmodule Logger do
   """
   @spec put_process_level(pid(), level()) :: :ok
   def put_process_level(pid, level) when pid == self() do
-    Process.put(@metadata, level)
+    Process.put(@metadata, Logger.Handler.elixir_level_to_erlang_level(level))
     :ok
   end
 
@@ -871,14 +871,14 @@ defmodule Logger do
   def __should_log__(level, module) do
     level = Logger.Handler.elixir_level_to_erlang_level(level)
 
-    if process_allowed?(level, self()) and :logger.allow(level, module) do
+    if :logger.allow(level, module) do
       level
     end
   end
 
-  defp process_allowed?(level, pid) do
+  @doc false
+  def process_allowed?(level, pid) do
     if process_level = get_process_level(pid) do
-      process_level = Logger.Handler.elixir_level_to_erlang_level(process_level)
       :logger.compare_levels(level, process_level) != :lt
     else
       true
