@@ -532,7 +532,6 @@ defmodule Logger do
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
     delete_process_level(pid)
-    :ok
   end
 
   @doc """
@@ -549,7 +548,6 @@ defmodule Logger do
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
     put_process_level(pid, :none)
-    :ok
   end
 
   @doc """
