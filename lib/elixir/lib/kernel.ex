@@ -4060,7 +4060,7 @@ defmodule Kernel do
   but the value is expected outside of the first argument, such as
   above. By replacing `some_fun` by its value, we get:
 
-      "Hello" |> then(&Regex.replace(~r/l/,&1, "L"))
+      "Hello" |> then(&Regex.replace(~r/l/, &1, "L"))
 
   """
   defmacro left |> right do
