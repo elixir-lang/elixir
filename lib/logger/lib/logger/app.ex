@@ -48,7 +48,7 @@ defmodule Logger.App do
   @doc false
   def stop(handlers) do
     _ = :logger.remove_handler(Logger)
-    _ = :logger.remove_primary_filter(:process_disabled)
+    _ = :logger.remove_primary_filter(:process_level)
     add_handlers(handlers)
 
     :logger.add_primary_filter(
@@ -114,7 +114,7 @@ defmodule Logger.App do
         :ok
     end
 
-    :ok = :logger.add_primary_filter(:process_disabled, {&Logger.Filter.process_disabled/2, []})
+    :ok = :logger.add_primary_filter(:process_level, {&Logger.Filter.process_level/2, []})
     :ok = :logger.add_handler(Logger, Logger.Handler, config)
     primary_config
   end

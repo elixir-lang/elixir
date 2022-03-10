@@ -19,6 +19,9 @@ defmodule Logger do
     * Integrates with Erlang's [`:logger`](`:logger`)
       to convert terms to Elixir syntax.
 
+    * Allows overriding the logging level for a specific module,
+      application or process.
+
   Logging is useful for tracking when an event of interest happens in your
   system. For example, it may be helpful to log whenever a user is deleted.
 
@@ -465,7 +468,7 @@ defmodule Logger do
   @type metadata :: keyword()
   @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
 
-  @metadata :logger_enabled
+  @metadata :logger_level
   @compile {:inline, enabled?: 1}
 
   @doc """
@@ -519,22 +522,32 @@ defmodule Logger do
   Enables logging for the current process.
 
   Currently the only accepted PID is `self()`.
+
+  Equivalent of:
+
+      delete_process_level(pid)
   """
+  # TODO: Deprecate me on v1.18
+  @doc deprecated: "Use Logger.delete_process_level(pid) instead"
   @spec enable(pid) :: :ok
   def enable(pid) when pid == self() do
-    Process.delete(@metadata)
-    :ok
+    delete_process_level(pid)
   end
 
   @doc """
   Disables logging for the current process.
 
   Currently the only accepted PID is `self()`.
+
+  Equivalent of:
+
+      put_process_level(pid, :none)
   """
+  # TODO: Deprecate me on v1.18
+  @doc deprecated: "Use Logger.put_process_level(pid, :none) instead"
   @spec disable(pid) :: :ok
   def disable(pid) when pid == self() do
-    Process.put(@metadata, false)
-    :ok
+    put_process_level(pid, :none)
   end
 
   @doc """
@@ -542,10 +555,11 @@ defmodule Logger do
 
   Currently the only accepted PID is `self()`.
   """
-  @doc since: "1.10.0"
+  # TODO: Deprecate me on v1.18
+  @doc deprecated: "Use Logger.get_process_level(pid) instead"
   @spec enabled?(pid) :: boolean
   def enabled?(pid) when pid == self() do
-    Process.get(@metadata, true)
+    get_process_level(pid) != :none
   end
 
   @doc """
@@ -665,14 +679,14 @@ defmodule Logger do
   defdelegate get_module_level(mod), to: :logger
 
   @doc """
-  Deletes logging level for a given module to primary level.
+  Resets the logging level for a given module to the primary level.
   """
   @doc since: "1.11.0"
   @spec delete_module_level(module() | [module()]) :: :ok
   defdelegate delete_module_level(module), to: :logger, as: :unset_module_level
 
   @doc """
-  Deletes logging level for all modules to primary level.
+  Resets the logging level for all modules to the primary level.
   """
   @doc since: "1.11.0"
   @spec delete_all_module_levels() :: :ok
@@ -693,7 +707,7 @@ defmodule Logger do
   defdelegate put_application_level(appname, level), to: :logger, as: :set_application_level
 
   @doc """
-  Deletes logging level for all modules in given application to primary level.
+  Resets logging level for all modules in the given application to the primary level.
 
   Equivalent of:
 
@@ -703,6 +717,45 @@ defmodule Logger do
   @spec delete_application_level(application) :: :ok | {:error, {:not_loaded, application}}
         when application: atom()
   defdelegate delete_application_level(appname), to: :logger, as: :unset_application_level
+
+  @doc """
+  Puts logging level for the current process.
+
+  Currently the only accepted PID is `self()`.
+
+  This will take priority over the primary level set, so it can be
+  used to increase or decrease verbosity of some parts of the running system.
+  """
+  @spec put_process_level(pid(), level()) :: :ok
+  def put_process_level(pid, level) when pid == self() do
+    Process.put(@metadata, Logger.Handler.elixir_level_to_erlang_level(level))
+    :ok
+  end
+
+  @doc """
+  Gets logging level for the current process.
+
+  Currently the only accepted PID is `self()`.
+
+  The returned value will be the effective value used. If no value
+  was set for a given process, then it will not be present in
+  the returned list.
+  """
+  @spec get_process_level(pid) :: level() | :all | :none | nil
+  def get_process_level(pid) when pid == self() do
+    Process.get(@metadata, nil)
+  end
+
+  @doc """
+  Resets logging level for the current process to the primary level.
+
+  Currently the only accepted PID is `self()`.
+  """
+  @spec delete_process_level(pid()) :: :ok
+  def delete_process_level(pid) when pid == self() do
+    Process.delete(@metadata)
+    :ok
+  end
 
   @doc """
   Adds a new backend.
@@ -818,7 +871,7 @@ defmodule Logger do
   def __should_log__(level, module) do
     level = Logger.Handler.elixir_level_to_erlang_level(level)
 
-    if enabled?(self()) and :logger.allow(level, module) do
+    if :logger.allow(level, module) do
       level
     end
   end

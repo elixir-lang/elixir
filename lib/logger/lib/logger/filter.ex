@@ -12,13 +12,15 @@ defmodule Logger.Filter do
   end
 
   @doc """
-  Filter out logs if current process opted out of log reports.
+  Filter out logs if current process opted out of certain levels.
   """
-  def process_disabled(_log, _extra) do
-    if Logger.enabled?(self()) do
-      :ignore
-    else
+  def process_level(%{level: level}, _extra) do
+    process_level = Logger.get_process_level(self())
+
+    if process_level != nil and :logger.compare_levels(level, process_level) == :lt do
       :stop
+    else
+      :ignore
     end
   end
 
