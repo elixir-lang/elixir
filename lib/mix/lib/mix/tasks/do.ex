@@ -1,27 +1,27 @@
 defmodule Mix.Tasks.Do do
   use Mix.Task
 
-  @shortdoc "Executes the tasks separated by comma"
+  @shortdoc "Executes the tasks separated by plus"
 
   @moduledoc """
-  Executes the tasks separated by comma:
+  Executes the tasks separated by `+`:
 
-      mix do compile --list, deps
+      mix do compile --list + deps
 
-  The comma should be followed by a space.
+  The plus should be followed by at least one space before and after.
 
   ## Examples
 
   The example below prints the available compilers and
   then the list of dependencies.
 
-      mix do compile --list, deps
+      mix do compile --list + deps
 
   Note that the majority of Mix tasks are only executed once
   per invocation. So for example, the following command will
   only compile once:
 
-      mix do compile, some_other_command, compile
+      mix do compile + some_other_command + compile
 
   When `compile` is executed again, Mix will notice the task
   has already ran, and skip it.
@@ -31,12 +31,15 @@ defmodule Mix.Tasks.Do do
   desired application via the `--app` flag after `do` and
   before the first task:
 
-      mix do --app app1 --app app2 compile --list, deps
+      mix do --app app1 --app app2 compile --list + deps
 
-  On Windows terminals, the comma is a reserved special character.
-  You can use a `+` in place of the comma instead:
+  Elixir versions prior to v1.14 used the comma exclusively
+  to separate commands:
 
-      mix do compile --list + deps
+      mix do compile --list, deps
+
+  Since then, the `+` operator has been introduced as a
+  separator for better support on Windows terminals.
 
   ## Command line options
 
@@ -45,6 +48,8 @@ defmodule Mix.Tasks.Do do
       before any of the tasks.
 
   """
+
+  # TODO: Deprecate using comma on Elixir v1.18
 
   @impl true
   def run(args) do
