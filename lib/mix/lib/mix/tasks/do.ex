@@ -104,14 +104,7 @@ defmodule Mix.Tasks.Do do
     gather_commands(rest, [], [current | acc])
   end
 
-  defp gather_commands([head | rest], current, acc)
-       when binary_part(head, byte_size(head), -2) == " +" do
-    current =
-      case binary_part(head, 0, byte_size(head) - 2) do
-        "" -> Enum.reverse(current)
-        part -> Enum.reverse([part | current])
-      end
-
+  defp gather_commands(["+" | rest], current, acc) do
     gather_commands(rest, [], [current | acc])
   end
 
