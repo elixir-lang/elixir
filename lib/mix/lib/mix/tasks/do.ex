@@ -33,9 +33,8 @@ defmodule Mix.Tasks.Do do
 
       mix do --app app1 --app app2 compile --list, deps
 
-  On Windows in cmd and PowerShell the comma is a reserved
-  special character. You can use a + in place of the comma
-  instead:
+  On Windows terminals, the comma is a reserved special character.
+  You can use a `+` in place of the comma instead:
 
       mix do compile --list + deps
 
