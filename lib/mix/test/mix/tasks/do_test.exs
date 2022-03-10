@@ -15,6 +15,7 @@ defmodule Mix.Tasks.DoTest do
     import Mix.Tasks.Do, only: [gather_commands: 1]
     assert gather_commands(["compile", "--list,", "help"]) == [["compile", "--list"], ["help"]]
     assert gather_commands(["help,", "compile", "--list"]) == [["help"], ["compile", "--list"]]
+    assert gather_commands(["help +", "compile", "--list"]) == [["help"], ["compile", "--list"]]
 
     assert gather_commands(["compile,", "run", "-e", "IO.puts :hello"]) ==
              [["compile"], ["run", "-e", "IO.puts :hello"]]

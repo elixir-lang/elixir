@@ -33,6 +33,12 @@ defmodule Mix.Tasks.Do do
 
       mix do --app app1 --app app2 compile --list, deps
 
+  On Windows in cmd and PowerShell the comma is a reserved
+  special character. You can use a + in place of the comma
+  instead:
+
+      mix do compile --list + deps
+
   ## Command line options
 
     * `--app` - limit recursive tasks to the given apps.
@@ -91,6 +97,17 @@ defmodule Mix.Tasks.Do do
        when binary_part(head, byte_size(head), -1) == "," do
     current =
       case binary_part(head, 0, byte_size(head) - 1) do
+        "" -> Enum.reverse(current)
+        part -> Enum.reverse([part | current])
+      end
+
+    gather_commands(rest, [], [current | acc])
+  end
+
+  defp gather_commands([head | rest], current, acc)
+       when binary_part(head, byte_size(head), -2) == " +" do
+    current =
+      case binary_part(head, 0, byte_size(head) - 2) do
         "" -> Enum.reverse(current)
         part -> Enum.reverse([part | current])
       end
