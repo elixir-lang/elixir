@@ -309,12 +309,12 @@ defmodule EEx do
 
   It returns `{:ok, [token]}` where a token is one of:
 
-      * `{:text, content, %{column: column, line: line}}`
-      * `{:expr, marker, content, %{column: column, line: line}}`
-      * `{:start_expr, marker, content, %{column: column, line: line}}`
-      * `{:middle_expr, marker, content, %{column: column, line: line}}`
-      * `{:end_expr, marker, content, %{column: column, line: line}}`
-      * `{:eof, %{column: column, line: line}}`
+    * `{:text, content, %{column: column, line: line}}`
+    * `{:expr, marker, content, %{column: column, line: line}}`
+    * `{:start_expr, marker, content, %{column: column, line: line}}`
+    * `{:middle_expr, marker, content, %{column: column, line: line}}`
+    * `{:end_expr, marker, content, %{column: column, line: line}}`
+    * `{:eof, %{column: column, line: line}}`
 
   Or `{:error, message, %{column: column, line: line}}` in case of errors.
   Note new tokens may be added in the future.
