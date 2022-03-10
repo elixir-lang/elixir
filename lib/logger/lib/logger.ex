@@ -876,15 +876,6 @@ defmodule Logger do
     end
   end
 
-  @doc false
-  def process_allowed?(level, pid) do
-    if process_level = get_process_level(pid) do
-      :logger.compare_levels(level, process_level) != :lt
-    else
-      true
-    end
-  end
-
   defguardp is_msg(msg) when is_binary(msg) or is_list(msg) or is_map(msg)
 
   @doc false

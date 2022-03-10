@@ -15,10 +15,12 @@ defmodule Logger.Filter do
   Filter out logs if current process opted out of certain levels.
   """
   def process_level(%{level: level}, _extra) do
-    if Logger.process_allowed?(level, self()) do
-      :ignore
-    else
+    process_level = Logger.get_process_level(self())
+
+    if process_level != nil and :logger.compare_levels(level, process_level) == :lt do
       :stop
+    else
+      :ignore
     end
   end
 
