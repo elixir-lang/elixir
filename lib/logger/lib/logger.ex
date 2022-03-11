@@ -703,7 +703,7 @@ defmodule Logger do
       appname |> Application.spec(:modules) |> Logger.put_module_level(level)
   """
   @doc since: "1.13.0"
-  @spec put_application_level(atom(), level()) :: :ok | {:error, :not_loaded}
+  @spec put_application_level(atom(), level() | :all | :none) :: :ok | {:error, :not_loaded}
   defdelegate put_application_level(appname, level), to: :logger, as: :set_application_level
 
   @doc """
@@ -726,7 +726,7 @@ defmodule Logger do
   This will take priority over the primary level set, so it can be
   used to increase or decrease verbosity of some parts of the running system.
   """
-  @spec put_process_level(pid(), level()) :: :ok
+  @spec put_process_level(pid(), level() | :all | :none) :: :ok
   def put_process_level(pid, level) when pid == self() do
     Process.put(@metadata, Logger.Handler.elixir_level_to_erlang_level(level))
     :ok
@@ -738,8 +738,7 @@ defmodule Logger do
   Currently the only accepted PID is `self()`.
 
   The returned value will be the effective value used. If no value
-  was set for a given process, then it will not be present in
-  the returned list.
+  was set for a given process, then `nil` is returned.
   """
   @spec get_process_level(pid) :: level() | :all | :none | nil
   def get_process_level(pid) when pid == self() do
