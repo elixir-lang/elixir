@@ -703,7 +703,7 @@ defmodule Logger do
       appname |> Application.spec(:modules) |> Logger.put_module_level(level)
   """
   @doc since: "1.13.0"
-  @spec put_application_level(atom(), level()) :: :ok | {:error, :not_loaded}
+  @spec put_application_level(atom(), level() | :all | :none) :: :ok | {:error, :not_loaded}
   defdelegate put_application_level(appname, level), to: :logger, as: :set_application_level
 
   @doc """
