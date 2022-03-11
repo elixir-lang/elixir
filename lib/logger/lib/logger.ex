@@ -726,7 +726,7 @@ defmodule Logger do
   This will take priority over the primary level set, so it can be
   used to increase or decrease verbosity of some parts of the running system.
   """
-  @spec put_process_level(pid(), level()) :: :ok
+  @spec put_process_level(pid(), level() | :all | :none) :: :ok
   def put_process_level(pid, level) when pid == self() do
     Process.put(@metadata, Logger.Handler.elixir_level_to_erlang_level(level))
     :ok
