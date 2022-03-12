@@ -379,8 +379,8 @@ defmodule Code.Formatter do
     end
   end
 
-  defp quoted_to_algebra({:__block__, _, [atom]}, _context, state) when is_atom(atom) do
-    {atom_to_algebra(atom), state}
+  defp quoted_to_algebra({:__block__, meta, [atom]}, _context, state) when is_atom(atom) do
+    {atom_to_algebra(atom, meta), state}
   end
 
   defp quoted_to_algebra({:__block__, meta, [integer]}, _context, state)
@@ -1487,16 +1487,29 @@ defmodule Code.Formatter do
     end
   end
 
-  defp atom_to_algebra(atom) when atom in [nil, true, false] do
+  defp atom_to_algebra(atom, _) when atom in [nil, true, false] do
     Atom.to_string(atom)
   end
 
   # TODO: Remove this clause in v1.16 when we no longer quote operator :..//
-  defp atom_to_algebra(:"..//") do
+  defp atom_to_algebra(:"..//", _) do
     string(":\"..//\"")
   end
 
-  defp atom_to_algebra(atom) do
+  defp atom_to_algebra(:\\, meta) do
+    # Since we parse strings without unescaping, the atoms
+    # :\\ and :"\\" have the same representation, so we need
+    # to check the delimiter and handle them accordingly.
+    string =
+      case Keyword.get(meta, :delimiter) do
+        "\"" -> ":\"\\\\\""
+        _ -> ":\\\\"
+      end
+
+    string(string)
+  end
+
+  defp atom_to_algebra(atom, _) do
     string = Atom.to_string(atom)
 
     iodata =
