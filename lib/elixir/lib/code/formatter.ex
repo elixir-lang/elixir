@@ -1498,12 +1498,12 @@ defmodule Code.Formatter do
 
   defp atom_to_algebra(:\\, meta) do
     string =
+      # Since we parse strings without unescaping, the atoms
+      # :\\ and :"\\" have the same representation, so we need
+      # to check the delimiter and handle them accordingly.
       case Keyword.get(meta, :delimiter) do
-        "\"" ->
-          ":\"\\\\\""
-
-        _ ->
-          ":\\\\"
+        "\"" -> ":\"\\\\\""
+        _ -> ":\\\\"
       end
 
     string(string)
