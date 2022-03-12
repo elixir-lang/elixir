@@ -85,6 +85,7 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "without escapes" do
       assert_same ~S[:foo]
+      assert_same ~S[:\\]
     end
 
     test "with escapes" do
@@ -92,6 +93,7 @@ defmodule Code.Formatter.LiteralsTest do
       assert_format ~S[:'f\a\b\ro'], ~S[:"f\a\b\ro"]
       assert_format ~S[:'single \' quote'], ~S[:"single ' quote"]
       assert_format ~S[:"double \" quote"], ~S[:"double \" quote"]
+      assert_same ~S[:"\\"]
     end
 
     test "with unicode" do
