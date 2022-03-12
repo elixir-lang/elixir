@@ -455,6 +455,16 @@ defmodule Mix.Tasks.TestTest do
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
+        output = mix(["test", "./apps/bar/test/bar_tests.exs"])
+
+        assert output =~ """
+               ==> bar
+               ....
+               """
+
+        refute output =~ "==> foo"
+        refute output =~ "Paths given to \"mix test\" did not match any directory/file"
+
         output = mix(["test", "apps/bar/test/bar_tests.exs:10"])
 
         assert output =~ """
