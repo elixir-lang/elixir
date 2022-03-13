@@ -857,7 +857,7 @@ defmodule ExUnit.Assertions do
       assert catch_exit(exit(1)) == 1
 
   To assert exits from linked processes started from the test, trap exits
-  with `Process.flag/2` and assert the exit message with `assert_received/2`.
+  with `Process.flag/2` and assert the exit message with `assert_receive/2`.
 
       Process.flag(:trap_exit, true)
       pid = spawn_link(fn -> Process.exit(self(), :normal) end)
