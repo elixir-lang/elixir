@@ -1380,6 +1380,33 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "returns error diagnostics for invalid struct key", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      File.mkdir_p!("lib")
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def my_fn(), do: %Date{invalid_key: 2020}
+      end
+      """)
+
+      file = Path.absname("lib/a.ex")
+
+      capture_io(fn ->
+        assert {:error, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+
+        assert %Diagnostic{
+                 file: ^file,
+                 severity: :error,
+                 position: 2,
+                 message: "** (KeyError) key :invalid_key not found" <> _,
+                 compiler_name: "Elixir"
+               } = diagnostic
+      end)
+    end)
+  end
+
   test "returns error diagnostics when deadlocked" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)

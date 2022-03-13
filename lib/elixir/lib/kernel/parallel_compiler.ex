@@ -770,7 +770,8 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp get_line(file, _reason, [{_, _, _, [file: 'expanding macro']}, {_, _, _, info} | _]) do
+  defp get_line(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
+       when expanding in ['expanding macro', 'expanding struct'] do
     if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
       Keyword.get(info, :line)
     end
