@@ -154,6 +154,29 @@ defmodule Kernel.ParallelCompilerTest do
              end) =~ expected_msg
     end
 
+    test "returns error when fails to expand struct" do
+      [fixture] =
+        write_tmp(
+          "compile_struct_invalid_key",
+          undef: """
+          defmodule InvalidStructKey do
+            def invalid_struct_key() do
+              %Date{invalid_key: 2020}
+            end
+          end
+          """
+        )
+
+      expected_msg = "** (KeyError) key :invalid_key not found"
+
+      assert capture_io(fn ->
+               assert {:error, [{^fixture, 3, msg}], []} =
+                        Kernel.ParallelCompiler.compile([fixture])
+
+               assert msg =~ expected_msg
+             end) =~ expected_msg
+    end
+
     test "does not hang on missing dependencies" do
       [fixture] =
         write_tmp(
