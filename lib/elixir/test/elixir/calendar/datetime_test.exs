@@ -288,127 +288,31 @@ defmodule DateTimeTest do
   end
 
   test "from_iso8601/3 with basic format handles positive and negative offsets" do
-    assert DateTime.from_iso8601("20150124T095007-1000", Calendar.ISO, :basic) |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 1,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: 2015,
-               zone_abbr: "UTC",
-               day: 24,
-               hour: 19,
-               minute: 50,
-               second: 7
-             }
+    assert DateTime.from_iso8601("20150124T095007-1000", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("2015-01-24T09:50:07-10:00", Calendar.ISO)
 
-    assert DateTime.from_iso8601("20150124T095007+1000", Calendar.ISO, :basic) |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 1,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: 2015,
-               zone_abbr: "UTC",
-               day: 23,
-               hour: 23,
-               minute: 50,
-               second: 7
-             }
+    assert DateTime.from_iso8601("20150124T095007+1000", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("2015-01-24T09:50:07+10:00", Calendar.ISO)
 
-    assert DateTime.from_iso8601("00000101T012207+1030", Calendar.ISO, :basic) |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 12,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: -1,
-               zone_abbr: "UTC",
-               day: 31,
-               hour: 14,
-               minute: 52,
-               second: 7
-             }
+    assert DateTime.from_iso8601("00000101T012207+1030", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("0000-01-01T01:22:07+10:30", Calendar.ISO)
   end
 
   test "from_iso8601/3 with basic format handles negative dates" do
-    assert DateTime.from_iso8601("-20150124T095007-1000", Calendar.ISO, :basic) |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 1,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: -2015,
-               zone_abbr: "UTC",
-               day: 24,
-               hour: 19,
-               minute: 50,
-               second: 7
-             }
+    assert DateTime.from_iso8601("-20150124T095007-1000", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("-2015-01-24T09:50:07-10:00", Calendar.ISO)
 
-    assert DateTime.from_iso8601("-20150124T095007+1000", Calendar.ISO, :basic) |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 1,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: -2015,
-               zone_abbr: "UTC",
-               day: 23,
-               hour: 23,
-               minute: 50,
-               second: 7
-             }
+    assert DateTime.from_iso8601("-20150124T095007+1000", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("-2015-01-24T09:50:07+10:00", Calendar.ISO)
 
-    assert DateTime.from_iso8601("-00010101T012207+1030", Calendar.ISO, :basic) |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 12,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: -2,
-               zone_abbr: "UTC",
-               day: 31,
-               hour: 14,
-               minute: 52,
-               second: 7
-             }
+    assert DateTime.from_iso8601("-00010101T012207+1030", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("-0001-01-01T01:22:07+10:30", Calendar.ISO)
 
-    assert DateTime.from_iso8601("-00010101T012207-1030", Calendar.ISO, :basic) |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 1,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: -1,
-               zone_abbr: "UTC",
-               day: 1,
-               hour: 11,
-               minute: 52,
-               second: 7
-             }
+    assert DateTime.from_iso8601("-00010101T012207-1030", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("-0001-01-01T01:22:07-10:30", Calendar.ISO)
 
-    assert DateTime.from_iso8601("-00011231T232207-1030", Calendar.ISO, :basic) |> elem(1) ==
-             %DateTime{
-               microsecond: {0, 0},
-               month: 1,
-               std_offset: 0,
-               time_zone: "Etc/UTC",
-               utc_offset: 0,
-               year: 0,
-               zone_abbr: "UTC",
-               day: 1,
-               hour: 9,
-               minute: 52,
-               second: 7
-             }
+    assert DateTime.from_iso8601("-00011231T232207-1030", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("-0001-12-31T23:22:07-10:30", Calendar.ISO)
   end
 
   test "from_iso8601 handles invalid date, time, formats correctly" do
@@ -776,69 +680,17 @@ defmodule DateTimeTest do
   end
 
   test "from_iso8601/3 with basic format with tz offsets" do
-    assert DateTime.from_iso8601("20170602T140000+0100", Calendar.ISO, :basic)
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 13,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("20170602T140000+0100", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("2017-06-02T14:00:00+01:00", Calendar.ISO)
 
-    assert DateTime.from_iso8601("20170602T140000-0400", Calendar.ISO, :basic)
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 18,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("20170602T140000-0400", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("2017-06-02T14:00:00-04:00")
 
-    assert DateTime.from_iso8601("20170602T140000+01", Calendar.ISO, :basic)
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 13,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("20170602T140000+01", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("2017-06-02T14:00:00+01")
 
-    assert DateTime.from_iso8601("20170602T140000-04", Calendar.ISO, :basic)
-           |> elem(1) ==
-             %DateTime{
-               year: 2017,
-               month: 6,
-               day: 2,
-               zone_abbr: "UTC",
-               hour: 18,
-               minute: 0,
-               second: 0,
-               microsecond: {0, 0},
-               utc_offset: 0,
-               std_offset: 0,
-               time_zone: "Etc/UTC"
-             }
+    assert DateTime.from_iso8601("20170602T140000-04", Calendar.ISO, :basic) ==
+             DateTime.from_iso8601("2017-06-02T14:00:00-04")
   end
 
   test "truncate/2" do
