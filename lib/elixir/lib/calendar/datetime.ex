@@ -1084,6 +1084,16 @@ defmodule DateTime do
       Calendar.ISO.time_to_string(hour, minute, second, microsecond, format)
   end
 
+  def from_iso8601(string, format_or_calendar)
+
+  def from_iso8601(string, format) when format in [:basic, :extended] do
+    from_iso8601(string, Calendar.ISO, format)
+  end
+
+  def from_iso8601(string, calendar) when is_atom(calendar) do
+    from_iso8601(string, calendar, :extended)
+  end
+
   @doc """
   Parses the extended "Date and time of day" format described by
   [ISO 8601:2019](https://en.wikipedia.org/wiki/ISO_8601).
@@ -1119,6 +1129,10 @@ defmodule DateTime do
       iex> {:ok, datetime, 9000} = DateTime.from_iso8601("-2015-01-23T23:50:07,123+02:30")
       iex> datetime
       ~U[-2015-01-23 21:20:07.123Z]
+
+      iex> {:ok, datetime, 9000} = DateTime.from_iso8601("20150123T235007.123+0230", :basic)
+      iex> datetime
+      ~U[2015-01-23 21:20:07.123Z]
 
       iex> {:ok, datetime, 9000} = DateTime.from_iso8601("20150123T235007.123+0230", Calendar.ISO, :basic)
       iex> datetime

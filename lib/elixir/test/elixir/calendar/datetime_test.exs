@@ -315,6 +315,11 @@ defmodule DateTimeTest do
              DateTime.from_iso8601("-0001-12-31T23:22:07-10:30", Calendar.ISO)
   end
 
+  test "from_iso8601/2 handles either a calendar or a format as the second parameter" do
+    assert DateTime.from_iso8601("20150124T095007-1000", :basic) ==
+             DateTime.from_iso8601("2015-01-24T09:50:07-10:00", Calendar.ISO)
+  end
+
   test "from_iso8601 handles invalid date, time, formats correctly" do
     assert DateTime.from_iso8601("2015-01-23T23:50:07") == {:error, :missing_offset}
     assert DateTime.from_iso8601("2015-01-23 23:50:61") == {:error, :invalid_time}
@@ -332,6 +337,9 @@ defmodule DateTimeTest do
              {:error, :invalid_date}
 
     assert DateTime.from_iso8601("20150123 235007A", Calendar.ISO, :basic) ==
+             {:error, :invalid_format}
+
+    assert DateTime.from_iso8601("2015-01-24T09:50:07-10:00", Calendar.ISO, :basic) ==
              {:error, :invalid_format}
 
     assert DateTime.from_iso8601("20150123T235007.123-0060", Calendar.ISO, :basic) ==
