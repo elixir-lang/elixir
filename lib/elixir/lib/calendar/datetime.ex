@@ -1120,6 +1120,10 @@ defmodule DateTime do
       iex> datetime
       ~U[-2015-01-23 21:20:07.123Z]
 
+      iex> {:ok, datetime, 9000} = DateTime.from_iso8601("20150123T235007.123+0230", :basic)
+      iex> datetime
+      ~U[2015-01-23 21:20:07.123Z]
+
       iex> DateTime.from_iso8601("2015-01-23P23:50:07")
       {:error, :invalid_format}
       iex> DateTime.from_iso8601("2015-01-23T23:50:07")
@@ -1133,11 +1137,37 @@ defmodule DateTime do
 
   """
   @doc since: "1.4.0"
-  @spec from_iso8601(String.t(), Calendar.calendar()) ::
+  @spec from_iso8601(String.t(), Calendar.calendar(), :extended | :basic) ::
           {:ok, t, Calendar.utc_offset()} | {:error, atom}
-  def from_iso8601(string, calendar \\ Calendar.ISO) do
+
+  def from_iso8601(string, format_or_calendar \\ Calendar.ISO)
+
+  def from_iso8601(string, format) when format in [:basic, :extended] do
+    from_iso8601(string, Calendar.ISO, format)
+  end
+
+  def from_iso8601(string, calendar) when is_atom(calendar) do
+    from_iso8601(string, calendar, :extended)
+  end
+
+  @doc """
+  Converts to ISO8601 specifying both a calendar and a mode.
+
+  See `from_iso8601/2` for more information.
+
+  ## Examples
+
+      iex> {:ok, datetime, 9000} = DateTime.from_iso8601("2015-01-23T23:50:07,123+02:30", Calendar.ISO, :extended)
+      iex> datetime
+      ~U[2015-01-23 21:20:07.123Z]
+
+      iex> {:ok, datetime, 9000} = DateTime.from_iso8601("20150123T235007.123+0230", Calendar.ISO, :basic)
+      iex> datetime
+      ~U[2015-01-23 21:20:07.123Z]
+  """
+  def from_iso8601(string, calendar, format) do
     with {:ok, {year, month, day, hour, minute, second, microsecond}, offset} <-
-           Calendar.ISO.parse_utc_datetime(string) do
+           Calendar.ISO.parse_utc_datetime(string, format) do
       datetime = %DateTime{
         year: year,
         month: month,
