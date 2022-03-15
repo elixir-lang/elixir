@@ -1205,7 +1205,10 @@ defmodule Kernel do
   @doc """
   A non-local return from a function.
 
-  Check `Kernel.SpecialForms.try/1` for more information.
+  Using `throw/1` is generally discouraged, as it allows a function
+  to escape from its regular execution flow, which can make the code
+  harder to read. Furthermore, all thrown values must be caught by
+  `try/catch`. See `try/1` for more information.
 
   Inlined by the compiler.
   """
