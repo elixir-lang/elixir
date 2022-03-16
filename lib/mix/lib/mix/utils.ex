@@ -662,7 +662,8 @@ defmodule Mix.Utils do
     try do
       case httpc_request(request, http_options) do
         {:error, {:failed_connect, [{:to_address, _}, {inet, _, reason}]}}
-        when inet in [:inet, :inet6] and reason in [:ehostunreach, :enetunreach] ->
+        when inet in [:inet, :inet6] and
+               reason in [:ehostunreach, :enetunreach, :eprotonosupport, :nxdomain] ->
           :httpc.set_options([ipfamily: fallback(inet)], :mix)
           request |> httpc_request(http_options) |> httpc_response()
 
