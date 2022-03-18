@@ -706,7 +706,7 @@ defmodule Module.Types.TypesTest do
              ) == :none
     end
 
-    test "other recursive" do
+    test "map patterns with pinned keys and field access" do
       assert warning(
                [x, y],
                (
@@ -719,7 +719,7 @@ defmodule Module.Types.TypesTest do
              ) == :none
     end
 
-    test "other recursive2" do
+    test "map patterns with pinned keys" do
       assert warning(
                [x, y],
                (
