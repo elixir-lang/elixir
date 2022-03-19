@@ -732,5 +732,17 @@ defmodule Module.Types.TypesTest do
                )
              ) == :none
     end
+
+    test "map updates with var key" do
+      assert warning(
+               [state0, key0],
+               (
+                 state1 = %{state0 | key0 => true}
+                 key1 = key0
+                 state2 = %{state1 | key1 => true}
+                 state2
+               )
+             ) == :none
+    end
   end
 end
