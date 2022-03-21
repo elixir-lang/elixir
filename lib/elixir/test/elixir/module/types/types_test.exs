@@ -706,7 +706,7 @@ defmodule Module.Types.TypesTest do
              ) == :none
     end
 
-    test "other recursive" do
+    test "map patterns with pinned keys and field access" do
       assert warning(
                [x, y],
                (
@@ -719,7 +719,7 @@ defmodule Module.Types.TypesTest do
              ) == :none
     end
 
-    test "other recursive2" do
+    test "map patterns with pinned keys" do
       assert warning(
                [x, y],
                (
@@ -729,6 +729,18 @@ defmodule Module.Types.TypesTest do
                  %{^key_var2 => _value2} = x
                  key_var3 = y
                  %{^key_var3 => _value3} = x
+               )
+             ) == :none
+    end
+
+    test "map updates with var key" do
+      assert warning(
+               [state0, key0],
+               (
+                 state1 = %{state0 | key0 => true}
+                 key1 = key0
+                 state2 = %{state1 | key1 => true}
+                 state2
                )
              ) == :none
     end

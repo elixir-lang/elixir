@@ -201,8 +201,8 @@ defmodule Module.Types.MapTest do
 
     assert {:error,
             {:unable_unify,
-             {{:map, [{:required, {:atom, :bar}, :dynamic}, {:optional, :dynamic, :dynamic}]},
-              {:map, [{:required, {:atom, :foo}, {:atom, :a}}]},
+             {{:map, [{:required, {:atom, :foo}, {:atom, :a}}]},
+              {:map, [{:required, {:atom, :bar}, :dynamic}, {:optional, :dynamic, :dynamic}]},
               _}}} =
              quoted_expr(
                (
@@ -231,8 +231,8 @@ defmodule Module.Types.MapTest do
             {:unable_unify,
              {{:map,
                [
-                 {:required, {:atom, :field}, {:atom, :b}},
                  {:required, {:atom, :foo}, {:var, 1}},
+                 {:required, {:atom, :field}, {:atom, :b}},
                  {:optional, :dynamic, :dynamic}
                ]},
               {:map,
@@ -276,12 +276,12 @@ defmodule Module.Types.MapTest do
     assert {:error,
             {:unable_unify,
              {{:map,
-               [{:required, {:atom, :not_field}, :dynamic}, {:optional, :dynamic, :dynamic}]},
-              {:map,
                [
                  {:required, {:atom, :field}, {:atom, nil}},
                  {:required, {:atom, :__struct__}, {:atom, Module.Types.MapTest.Struct2}}
                ]},
+              {:map,
+               [{:required, {:atom, :not_field}, :dynamic}, {:optional, :dynamic, :dynamic}]},
               _}}} =
              quoted_expr(
                (
