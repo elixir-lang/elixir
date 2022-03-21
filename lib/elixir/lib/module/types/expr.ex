@@ -151,7 +151,7 @@ defmodule Module.Types.Expr do
          dynamic_value_pairs =
            Enum.map(arg_pairs, fn {:required, key, _value} -> {:required, key, :dynamic} end),
          args_type = {:map, dynamic_value_pairs ++ [{:optional, :dynamic, :dynamic}]},
-         {:ok, type, context} <- unify(args_type, map_type, stack, context) do
+         {:ok, type, context} <- unify(map_type, args_type, stack, context) do
       # Retrieve map type and overwrite with the new value types from the map update
       {:map, pairs} = resolve_var(type, context)
 
