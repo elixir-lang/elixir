@@ -182,7 +182,7 @@ defmodule Kernel.SpecialForms do
       <<1, 2, 3>>
 
   Elixir also accepts by default the segment to be a literal
-  string or a literal charlist, which are by default expanded to integers:
+  string which expands to integers:
 
       iex> <<0, "foo">>
       <<0, 102, 111, 111>>
