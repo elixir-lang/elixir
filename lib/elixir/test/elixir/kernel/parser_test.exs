@@ -864,7 +864,7 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(~r/nofile:1:5: syntax error before: \"12.3\"/, ':ok 12.3')
 
       assert_syntax_error(
-        ~r"nofile:1:1: invalid character _ after number 123_456",
+        ~r"nofile:1:1: invalid character \"_\" after number 123_456",
         '123_456_foo'
       )
     end

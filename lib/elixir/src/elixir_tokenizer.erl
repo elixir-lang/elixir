@@ -576,10 +576,10 @@ tokenize([H | T], Line, Column, Scope, Tokens) when ?is_digit(H) ->
         true ->
           Msg =
             io_lib:format(
-              "invalid character ~ts after number ~ts. If you intended to write a number, "
-              "make sure to add the proper punctuation character after the number (space, comma, etc). "
-              "If you meant to write an identifier, note that identifiers in Elixir cannot start with numbers. "
-              "Unexpected token: ",
+              "invalid character \"~ts\" after number ~ts. If you intended to write a number, "
+              "make sure to separate the number from the character (using comma, space, etc). "
+              "If you meant to write a function name or a variable, note that identifiers in "
+              "Elixir cannot start with numbers. Unexpected token: ",
               [[I], Original]
             ),
 
