@@ -427,7 +427,7 @@ defmodule IEx do
   ## Inspect
 
   A keyword list containing inspect options used by the shell
-  when printing results of expression evaluation. Default to
+  when printing results of expression evaluation. Defaults to
   pretty formatting with a limit of 50 entries.
 
   To show all entries, configure the limit to `:infinity`:
