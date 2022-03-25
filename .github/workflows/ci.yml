@@ -63,7 +63,7 @@ jobs:
           cd ..
           git clone https://github.com/elixir-lang/ex_doc.git --branch main --depth 1
           cd ex_doc
-          ../elixir/bin/mix do local.rebar --force, local.hex --force, deps.get, compile
+          ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
           cd ../elixir/
           make docs
 
