@@ -14,9 +14,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        otp_release: ['OTP-24.3', 'OTP-24.0', 'OTP-23.3', 'OTP-23.0']
-        development: [false]
         include:
+          - otp_release: OTP-24.3
+            otp_latest: true
+          - otp_release: OTP-24.0
+          - otp_release: OTP-23.3
+          - otp_release: OTP-23.0
           - otp_release: master
             development: true
           - otp_release: maint
@@ -38,6 +41,7 @@ jobs:
         run: |
           rm -rf .git
           make compile
+          echo "$PWD/bin" >> $GITHUB_PATH
       - name: Build info
         run: bin/elixir --version
       - name: Check format
@@ -52,7 +56,16 @@ jobs:
         continue-on-error: ${{ matrix.development }}
       - name: Check reproducible builds
         run: taskset 1 make check_reproducible
-        if: matrix.otp_release == 'OTP-24.0'
+        if: ${{ matrix.otp_latest }}
+      - name: Build docs
+        if: ${{ matrix.otp_latest }}
+        run: |
+          cd ..
+          git clone https://github.com/elixir-lang/ex_doc.git --branch main --depth 1
+          cd ex_doc
+          ../elixir/bin/mix do local.rebar --force, local.hex --force, deps.get, compile
+          cd ../elixir/
+          make docs
 
   test_windows:
     name: Windows, OTP-${{ matrix.otp_release }}, Windows Server 2019
