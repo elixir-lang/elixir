@@ -827,6 +827,9 @@ defmodule ExceptionTest do
       test "on binary concatenation" do
         assert message(123, &concat(&1, "bar")) ==
                  "construction of binary failed: segment 1 of type 'binary': expected a binary but got: 123"
+
+        assert message(~D[0001-02-03], &concat(&1, "bar")) ==
+                 "construction of binary failed: segment 1 of type 'binary': expected a binary but got: ~D[0001-02-03]"
       end
     end
   end
