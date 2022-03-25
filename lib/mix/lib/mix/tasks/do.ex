@@ -109,7 +109,7 @@ defmodule Mix.Tasks.Do do
   end
 
   defp gather_commands(["+" | rest], current, acc) do
-    gather_commands(rest, [], [current | acc])
+    gather_commands(rest, [], [Enum.reverse(current) | acc])
   end
 
   defp gather_commands([head | rest], current, acc) do
