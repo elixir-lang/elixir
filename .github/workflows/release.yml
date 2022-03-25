@@ -33,7 +33,7 @@ jobs:
           - otp: 23
             otp_version: 23.3
           - otp: 24
-            otp_version: 24.1
+            otp_version: 24.3
             build_docs: build_docs
     runs-on: ubuntu-18.04
     steps:
@@ -69,7 +69,7 @@ jobs:
         run: |
           mv ex_doc ../ex_doc
           cd ../ex_doc
-          ../elixir/bin/mix do local.rebar --force, local.hex --force, deps.get, compile
+          ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
           cd ../elixir
       - name: Build Docs
         if: ${{ matrix.build_docs }}
