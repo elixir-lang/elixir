@@ -214,9 +214,9 @@ defmodule Supervisor do
         {Counter, 0}
       ]
 
-  The supervisor will then invoke `Counter.child_spec([:hello])` to retrieve a
-  child specification. Now the `Counter` module is responsible for building its
-  own specification, for example, we could write:
+  The supervisor will then invoke `Counter.child_spec(0)` to retrieve a child
+  specification. Now the `Counter` module is responsible for building its own
+  specification, for example, we could write:
 
       def child_spec(arg) do
         %{
