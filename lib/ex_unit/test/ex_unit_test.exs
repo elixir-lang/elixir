@@ -467,6 +467,25 @@ defmodule ExUnitTest do
     assert output =~ "trying to set reserved field :file"
   end
 
+  test "removes new lines from multiline test name (with --trace option)" do
+    defmodule Multiline do
+      use ExUnit.Case
+
+      test """
+      - line 1
+      - line 2
+      """ do
+        :ok
+      end
+    end
+
+    configure_and_reload_on_exit(trace: true)
+
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ "test - line 1 - line 2"
+  end
+
   test "raises on reserved tag :async in setup" do
     defmodule ReservedSetupTagAsync do
       use ExUnit.Case
