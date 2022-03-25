@@ -206,7 +206,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp trace_test_started(test) do
-    "  * #{test.name}"
+    String.replace("  * #{test.name}", "\n", " ")
   end
 
   defp trace_test_result(test) do
