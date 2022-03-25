@@ -78,18 +78,20 @@ defmodule CodeTest do
       end
     end
 
-    test "raises streamlined argument errors" do
-      assert_raise ArgumentError,
-                   ~r"argument error while evaluating at line 1",
-                   fn -> Code.eval_string("a <> b", a: :a, b: :b) end
+    if System.otp_release() < "25" do
+      test "raises streamlined argument errors" do
+        assert_raise ArgumentError,
+                     ~r"argument error while evaluating at line 1",
+                     fn -> Code.eval_string("a <> b", a: :a, b: :b) end
 
-      assert_raise ArgumentError,
-                   ~r"argument error while evaluating example.ex at line 1",
-                   fn -> Code.eval_string("a <> b", [a: :a, b: :b], file: "example.ex") end
+        assert_raise ArgumentError,
+                     ~r"argument error while evaluating example.ex at line 1",
+                     fn -> Code.eval_string("a <> b", [a: :a, b: :b], file: "example.ex") end
 
-      assert_raise ArgumentError,
-                   ~r"argument error while evaluating example.ex between lines 1 and 2",
-                   fn -> Code.eval_string("a <>\nb", [a: :a, b: :b], file: "example.ex") end
+        assert_raise ArgumentError,
+                     ~r"argument error while evaluating example.ex between lines 1 and 2",
+                     fn -> Code.eval_string("a <>\nb", [a: :a, b: :b], file: "example.ex") end
+      end
     end
   end
 
