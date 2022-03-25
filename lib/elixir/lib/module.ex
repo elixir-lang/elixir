@@ -226,8 +226,7 @@ defmodule Module do
 
   ### `@dialyzer`
 
-  Defines warnings to request or suppress when using a version of
-  `:dialyzer` that supports module attributes.
+  Defines warnings to request or suppress when using `:dialyzer`.
 
   Accepts an atom, a tuple, or a list of atoms and tuples. For example:
 
