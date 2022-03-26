@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Escript.Install do
   (created with `mix escript.build`), then the escript will be installed
   locally. For example:
 
-      mix do escript.build, escript.install
+      mix do escript.build + escript.install
 
   If an argument is provided, it should be a local path to a prebuilt escript,
   a Git repository, a GitHub repository, or a Hex package.

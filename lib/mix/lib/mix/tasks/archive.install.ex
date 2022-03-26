@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Archive.Install do
   root directory (created with `mix archive.build`), then the archive
   will be installed locally. For example:
 
-      mix do archive.build, archive.install
+      mix do archive.build + archive.install
 
   If an argument is provided, it should be a local path to a
   prebuilt archive, a Git repository, a GitHub repository, or a Hex
