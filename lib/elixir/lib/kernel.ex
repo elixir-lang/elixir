@@ -1175,17 +1175,18 @@ defmodule Kernel do
   end
 
   @doc """
-  Pipes `value` to the given `fun` and returns the `value` itself.
+  Pipes the first argument, `value`, into the second argument, a function `fun`,
+  and returns the given first argument, `value`, itself.
 
-  Useful for running synchronous side effects in a pipeline.
+  Useful for running synchronous side effects in a pipeline, using the `|>/2` operator.
 
   ## Examples
 
       iex> tap(1, fn x -> x + 1 end)
       1
 
-  Most commonly, this is used in pipelines. For example,
-  let's suppose you want to inspect part of a data structure.
+  Most commonly, this is used in pipelines, using the `|>/2` operator.
+  For example, let's suppose you want to inspect part of a data structure.
   You could write:
 
       %{a: 1}
@@ -2542,10 +2543,13 @@ defmodule Kernel do
   end
 
   @doc """
-  Pipes `value` into the given `fun`.
+  Pipes the first argument, `value`, into the second argument, a function `fun`,
+  and returns the result of the given function `fun`.
 
-  In other words, it invokes `fun` with `value` as argument.
-  This is most commonly used in pipelines, allowing you
+  In other words, it invokes the function `fun` with `value` as argument,
+  and returns its result.
+
+  This is most commonly used in pipelines, using the `|>/2` operator, allowing you
   to pipe a value to a function outside of its first argument.
 
   ### Examples
