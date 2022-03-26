@@ -4010,7 +4010,7 @@ defmodule Kernel do
 
   The example above is the same as calling `List.flatten([1, [2], 3])`.
 
-  The `|>` operator is mostly useful when there is a desire to execute a series
+  The `|>/2` operator is mostly useful when there is a desire to execute a series
   of operations resembling a pipeline:
 
       iex> [1, [2], 3] |> List.flatten() |> Enum.map(fn x -> x * 2 end)
