@@ -71,7 +71,7 @@ expand({alias, Meta, [Ref, Opts]}, S, E) ->
     false -> ok
   end,
   if
-    is_atom(ERef)->
+    is_atom(ERef) ->
       {ERef, ST, expand_alias(Meta, true, ERef, EOpts, ET)};
     true ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, alias, Ref})
