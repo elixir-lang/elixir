@@ -58,12 +58,17 @@ jobs:
           gh release upload --clobber "${{ github.ref_name }}" \
             elixir-otp-${{ matrix.otp }}.zip \
             elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum
+      - name: Get latest stable ExDoc version
+        if: ${{ matrix.build_docs }}
+        run: |
+          EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
+          echo "EX_DOC_LATEST_STABLE_VERSION=${EX_DOC_LATEST_STABLE_VERSION}" >> $GITHUB_ENV
       - uses: actions/checkout@v2
+        if: ${{ matrix.build_docs }}
         with:
           repository: elixir-lang/ex_doc
-          ref: v0.26.0
+          ref: v${{ env.EX_DOC_LATEST_STABLE_VERSION }}
           path: ex_doc
-        if: ${{ matrix.build_docs }}
       - name: Build ex_doc
         if: ${{ matrix.build_docs }}
         run: |
