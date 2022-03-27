@@ -1179,7 +1179,7 @@ format_error({invalid_alias_module, Ref}) ->
                 ['Elixir.Macro':to_string(Ref)]);
 format_error({commonly_mistaken_alias, Ref}) ->
   Module = 'Elixir.Macro':to_string(Ref),
-  io_lib:format("~ts resolves to :'Elixir.~ts'", [Module, Module]);
+  io_lib:format("reserved alias \"~ts\" expands to the atom :\"Elixir.~ts\". Perhaps you meant to write \"~ts\" instead?", [Module, Module, string:casefold(Module)]);
 format_error({expected_compile_time_module, Kind, GivenTerm}) ->
   io_lib:format("invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(GivenTerm)]);
