@@ -66,9 +66,12 @@ expand({alias, Meta, [Ref, Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "alias", S, E),
   {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
   {EOpts, ST, ET} = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), SR, ER),
-
+  case lists:member(ERef, ['Elixir.True', 'Elixir.False', 'Elixir.Nil']) of
+    true ->  elixir_errors:form_warn(Meta, E, ?MODULE, {commonly_mistaken_alias, Ref});
+    false -> ok
+  end,
   if
-    is_atom(ERef) ->
+    is_atom(ERef)->
       {ERef, ST, expand_alias(Meta, true, ERef, EOpts, ET)};
     true ->
       form_error(Meta, E, ?MODULE, {expected_compile_time_module, alias, Ref})
@@ -1174,6 +1177,9 @@ format_error(as_in_multi_alias_call) ->
 format_error({invalid_alias_module, Ref}) ->
   io_lib:format("alias cannot be inferred automatically for module: ~ts, please use the :as option. Implicit aliasing is only supported with Elixir modules",
                 ['Elixir.Macro':to_string(Ref)]);
+format_error({commonly_mistaken_alias, Ref}) ->
+  Module = 'Elixir.Macro':to_string(Ref),
+  io_lib:format("~ts resolves to :'Elixir.~ts'", [Module, Module]);
 format_error({expected_compile_time_module, Kind, GivenTerm}) ->
   io_lib:format("invalid argument for ~ts, expected a compile time atom or alias, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(GivenTerm)]);
