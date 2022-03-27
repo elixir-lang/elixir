@@ -60,12 +60,18 @@ jobs:
       - name: Build docs
         if: ${{ matrix.otp_latest }}
         run: |
-          cd ..
-          git clone https://github.com/elixir-lang/ex_doc.git --branch main --depth 1
-          cd ex_doc
-          ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
-          cd ../elixir/
-          make docs
+          git config --global advice.detachedHead false
+          EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
+          for branch in main v${EX_DOC_LATEST_STABLE_VERSION}; do
+            echo "Building docs with ExDoc ${branch}"
+            cd ..
+            git clone https://github.com/elixir-lang/ex_doc.git --branch ${branch} --depth 1
+            cd ex_doc
+            ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
+            cd ../elixir/
+            make docs
+            rm -rf ../ex_doc/
+          done
 
   test_windows:
     name: Windows, OTP-${{ matrix.otp_release }}, Windows Server 2019
