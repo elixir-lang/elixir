@@ -206,7 +206,7 @@ defmodule Macro do
   @doc """
   Breaks a pipeline expression into a list.
 
-  The AST for a pipeline (a sequence of applications of `|>`) is similar to the
+  The AST for a pipeline (a sequence of applications of `|>/2`) is similar to the
   AST of a sequence of binary operators or function applications: the top-level
   expression is the right-most `:|>` (which is the last one to be executed), and
   its left-hand and right-hand sides are its arguments:
@@ -214,7 +214,7 @@ defmodule Macro do
       quote do: 100 |> div(5) |> div(2)
       #=> {:|>, _, [arg1, arg2]}
 
-  In the example above, the `|>` pipe is the right-most pipe; `arg1` is the AST
+  In the example above, the `|>/2` pipe is the right-most pipe; `arg1` is the AST
   for `100 |> div(5)`, and `arg2` is the AST for `div(2)`.
 
   It's often useful to have the AST for such a pipeline as a list of function
