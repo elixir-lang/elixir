@@ -4,6 +4,7 @@ SHARE_PREFIX ?= $(PREFIX)/share
 MAN_PREFIX ?= $(SHARE_PREFIX)/man
 #CANONICAL := MAJOR.MINOR/
 CANONICAL ?= main/
+DOCS_FORMAT ?= html
 ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL_MAKE := if [ -n "$(ERLC_OPTS)" ]; then ERL_COMPILER_OPTIONS=$(ERLC_OPTS) erl -make; else erl -make; fi
@@ -180,7 +181,6 @@ clean_residual_files:
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}")
-DOCS_FORMAT = html
 COMPILE_DOCS = CANONICAL=$(CANONICAL) bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" --formatter "$(DOCS_FORMAT)" $(4)
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
