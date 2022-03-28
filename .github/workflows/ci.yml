@@ -70,6 +70,12 @@ jobs:
             ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
             cd ../elixir/
             make docs
+            DOCS_FORMAT=epub make docs
+            for app in elixir eex ex_unit iex logger mix; do
+              App=$(echo ${app} | sed -e 's/^\([a-z]\)/\u\1/g')
+              test -f doc/${app}/index.html && echo "doc/${app}/index.html exists."
+              test -f doc/${app}/${App}.epub && echo "doc/${app}/${App}.epub exists."
+            done
             rm -rf ../ex_doc/
           done
 
