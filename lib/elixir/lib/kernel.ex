@@ -1176,7 +1176,7 @@ defmodule Kernel do
 
   @doc """
   Pipes the first argument, `value`, into the second argument, a function `fun`,
-  and returns the given first argument, `value`, itself.
+  and returns `value` itself.
 
   Useful for running synchronous side effects in a pipeline, using the `|>/2` operator.
 
@@ -2544,7 +2544,7 @@ defmodule Kernel do
 
   @doc """
   Pipes the first argument, `value`, into the second argument, a function `fun`,
-  and returns the result of the given function `fun`.
+  and returns the result of calling `fun`.
 
   In other words, it invokes the function `fun` with `value` as argument,
   and returns its result.
