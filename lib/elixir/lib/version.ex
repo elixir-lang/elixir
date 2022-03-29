@@ -365,7 +365,7 @@ defmodule Version do
   def parse(string) when is_binary(string) do
     case Version.Parser.parse_version(string) do
       {:ok, {major, minor, patch, pre, build_parts}} ->
-        build = if build_parts == [], do: nil, else: Enum.join(build_parts, "")
+        build = if build_parts == [], do: nil, else: Enum.join(build_parts, ".")
         version = %Version{major: major, minor: minor, patch: patch, pre: pre, build: build}
         {:ok, version}
 

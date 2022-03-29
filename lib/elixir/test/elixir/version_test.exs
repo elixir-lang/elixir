@@ -67,8 +67,12 @@ defmodule VersionTest do
 
   test "parse/1" do
     assert {:ok, %Version{major: 1, minor: 2, patch: 3}} = Version.parse("1.2.3")
-    assert {:ok, %Version{major: 1, minor: 4, patch: 5}} = Version.parse("1.4.5+ignore")
-    assert {:ok, %Version{major: 0, minor: 0, patch: 1}} = Version.parse("0.0.1+sha.0702245")
+
+    assert {:ok, %Version{major: 1, minor: 4, patch: 5, build: "ignore"}} =
+             Version.parse("1.4.5+ignore")
+
+    assert {:ok, %Version{major: 0, minor: 0, patch: 1, build: "sha.0702245"}} =
+             Version.parse("0.0.1+sha.0702245")
 
     assert {:ok, %Version{major: 1, minor: 4, patch: 5, pre: ["6-g3318bd5"]}} =
              Version.parse("1.4.5-6-g3318bd5")
@@ -104,6 +108,7 @@ defmodule VersionTest do
     assert Version.parse!("1.0.0-dev") |> Version.to_string() == "1.0.0-dev"
     assert Version.parse!("1.0.0+lol") |> Version.to_string() == "1.0.0+lol"
     assert Version.parse!("1.0.0-dev+lol") |> Version.to_string() == "1.0.0-dev+lol"
+    assert Version.parse!("1.0.0-dev+lol.4") |> Version.to_string() == "1.0.0-dev+lol.4"
     assert Version.parse!("1.0.0-0") |> Version.to_string() == "1.0.0-0"
     assert Version.parse!("1.0.0-rc.0") |> Version.to_string() == "1.0.0-rc.0"
     assert %Version{major: 1, minor: 0, patch: 0} |> Version.to_string() == "1.0.0"
