@@ -547,6 +547,36 @@ defmodule URITest do
       assert URI.parse("ldap://ldap.example.com/cn=John%20Doe,dc=foo,dc=com") == expected_uri
     end
 
+    test "works with WebSocket scheme" do
+      expected_uri = %URI{
+        authority: "ws.example.com",
+        fragment: "content",
+        host: "ws.example.com",
+        path: "/path/to",
+        port: 80,
+        query: "here",
+        scheme: "ws",
+        userinfo: nil
+      }
+
+      assert URI.parse("ws://ws.example.com/path/to?here#content") == expected_uri
+    end
+
+    test "works with WebSocket Secure scheme" do
+      expected_uri = %URI{
+        authority: "ws.example.com",
+        fragment: "content",
+        host: "ws.example.com",
+        path: "/path/to",
+        port: 443,
+        query: "here",
+        scheme: "wss",
+        userinfo: nil
+      }
+
+      assert URI.parse("wss://ws.example.com/path/to?here#content") == expected_uri
+    end
+
     test "splits authority" do
       expected_uri = %URI{
         scheme: "http",
