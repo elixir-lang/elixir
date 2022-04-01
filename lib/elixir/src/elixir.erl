@@ -45,7 +45,9 @@ start(_Type, _Args) ->
     {{uri, <<"tftp">>}, 69},
     {{uri, <<"http">>}, 80},
     {{uri, <<"https">>}, 443},
-    {{uri, <<"ldap">>}, 389}
+    {{uri, <<"ldap">>}, 389},
+    {{uri, <<"ws">>}, 80},
+    {{uri, <<"wss">>}, 443}
   ],
 
   Config = [
