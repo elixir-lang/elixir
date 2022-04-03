@@ -833,12 +833,4 @@ defmodule ExceptionTest do
       end
     end
   end
-
-  defp message(arg, fun) do
-    try do
-      fun.(arg)
-    rescue
-      e -> Exception.message(e)
-    end
-  end
 end
