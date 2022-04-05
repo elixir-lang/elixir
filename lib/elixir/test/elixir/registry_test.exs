@@ -992,6 +992,20 @@ defmodule RegistryTest do
     assert {%RuntimeError{message: "some error"}, _stacktrace} = error
   end
 
+  test "send works", %{registry: registry} do
+    name = {registry, "self"}
+    Registry.register_name(name, self())
+    Registry.send(name, :message)
+    assert_received :message
+  end
+
+  test "send works with value", %{registry: registry} do
+    name = {registry, "self", "value"}
+    Registry.register_name(name, self())
+    Registry.send(name, :message)
+    assert_received :message
+  end
+
   defp register_task(registry, key, value) do
     parent = self()
 
