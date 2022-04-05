@@ -995,15 +995,15 @@ defmodule RegistryTest do
   test "send works", %{registry: registry} do
     name = {registry, "self"}
     Registry.register_name(name, self())
-    Registry.send(name, :message)
-    assert_received :message
+    GenServer.cast({:via, Registry, name}, :message)
+    assert_received {:"$gen_cast", :message}
   end
 
   test "send works with value", %{registry: registry} do
     name = {registry, "self", "value"}
     Registry.register_name(name, self())
-    Registry.send(name, :message)
-    assert_received :message
+    GenServer.cast({:via, Registry, name}, :message)
+    assert_received {:"$gen_cast", :message}
   end
 
   defp register_task(registry, key, value) do
