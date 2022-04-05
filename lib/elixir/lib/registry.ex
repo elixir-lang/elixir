@@ -260,7 +260,6 @@ defmodule Registry do
     end
   end
 
-  @doc false
   def send({registry, key, _value}, msg) do
     Registry.send({registry, key}, msg)
   end
