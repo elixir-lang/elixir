@@ -260,6 +260,10 @@ defmodule Registry do
     end
   end
 
+  def send({registry, key, _value}, msg) do
+    Registry.send({registry, key}, msg)
+  end
+
   @doc false
   def unregister_name({registry, key}), do: unregister(registry, key)
   def unregister_name({registry, key, _value}), do: unregister(registry, key)
