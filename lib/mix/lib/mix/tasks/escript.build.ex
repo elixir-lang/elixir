@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Escript.Build do
   life-cycles.
 
   All of the configuration defined in `config/config.exs` will
-  be included as part of the escript. `config/runtime.exs`is also
+  be included as part of the escript. `config/runtime.exs` is also
   included for Elixir escripts. Once the configuration is loaded,
   this task starts the current application. If this is not desired,
   set the `:app` configuration to nil.
