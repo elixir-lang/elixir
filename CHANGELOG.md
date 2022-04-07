@@ -128,6 +128,31 @@ Now any application can use your formatter as follows:
 
 Finally, the `Code` module has also been augmented with two functions: `Code.string_to_quoted_with_comments/2` and `Code.quoted_to_algebra/2`. Those functions allow someone to retrieve the Elixir AST with their original source code comments, and then convert this AST to formatted code. In other words, those functions provide a wrapper around the Elixir Code Formatter, supporting developers who wish to create tools that directly manipulate and custom format Elixir source code.
 
+## v1.13.4 (2022-04-07)
+
+This release has been verified to work with Erlang/OTP 25 RC2.
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Code] Allow iodata to be returned in sigil formatting functions
+  * [Code] Pass opening delimiter information to sigil formatting functions
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Tweak type unification to fix infinite loop with recursive vars
+  * [Kernel] Add compile-time dependencies on `require`
+  * [Registry] Make `Registry` send work with named triplets
+
+### 3. Deprecations
+
+#### Mix
+
+  * [mix rebar] Deprecate Rebar 2 as it no longer works on Erlang/OTP 25
+
 ## v1.13.3 (2022-02-09)
 
 ### 1. Enhancements
