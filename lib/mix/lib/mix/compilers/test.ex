@@ -34,6 +34,8 @@ defmodule Mix.Compilers.Test do
 
     cond do
       test_files == [] ->
+        _ = ExUnit.configure(formatters: [])
+        _ = ExUnit.run()
         :noop
 
       Keyword.get(opts, :profile_require) == "time" ->
