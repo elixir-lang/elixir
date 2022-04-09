@@ -392,12 +392,28 @@ defmodule Mix.Tasks.TestTest do
         )
       end)
     end
+
+    test "runs after_suite with partitions with no tests" do
+      in_fixture("test_stale", fn ->
+        File.write!("test/test_helper.exs", """
+        ExUnit.after_suite(fn _stats -> IO.puts("AFTER SUITE") end)
+        ExUnit.start()
+        """)
+
+        assert mix(["test", "--partitions", "3"], [{"MIX_TEST_PARTITION", "3"}]) =~ """
+               AFTER SUITE
+               There are no tests to run
+               """
+      end)
+    end
   end
 
   describe "logs and errors" do
     test "logs test absence for a project with no test paths" do
       in_fixture("test_stale", fn ->
         File.rm_rf!("test")
+        File.mkdir_p!("test")
+        File.write!("test/test_helper.exs", "ExUnit.start()")
 
         assert_run_output("There are no tests to run")
       end)
