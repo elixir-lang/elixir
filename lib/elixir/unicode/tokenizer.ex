@@ -5,6 +5,13 @@ defmodule String.Tokenizer do
   ## First let's load all characters that we will allow in identifiers
   ##
 
+  range_to_codepoints = fn range ->
+    case :binary.split(String.trim(range), "..") do
+      [a] -> [String.to_integer(a, 16)]
+      [a, b] -> Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
+    end
+  end
+
   {letter_uptitlecase, start, continue, _} =
     Path.join(__DIR__, "UnicodeData.txt")
     |> File.read!()
@@ -51,7 +58,7 @@ defmodule String.Tokenizer do
     |> File.read!()
     |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.reduce({start, continue, []}, fn line, acc ->
-      [codepoints | category] = :binary.split(line, ";")
+      [range | category] = :binary.split(line, ";")
 
       pos =
         case category do
@@ -63,16 +70,7 @@ defmodule String.Tokenizer do
         end
 
       if pos >= 0 do
-        entries =
-          case :binary.split(codepoints, "..") do
-            [<<codepoint::4-binary, _::binary>>] ->
-              [String.to_integer(codepoint, 16)]
-
-            [first, <<last::4-binary, _::binary>>] ->
-              Enum.to_list(String.to_integer(last, 16)..String.to_integer(first, 16))
-          end
-
-        put_elem(acc, pos, entries ++ elem(acc, pos))
+        put_elem(acc, pos, range_to_codepoints.(range) ++ elem(acc, pos))
       else
         acc
       end
@@ -85,14 +83,11 @@ defmodule String.Tokenizer do
     |> File.read!()
     |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.flat_map(fn line ->
-      with [codepoints, type_with_comments] <- :binary.split(line, ";"),
+      with [range, type_with_comments] <- :binary.split(line, ";"),
            [types, _comments] <- :binary.split(type_with_comments, "#"),
            types = String.split(types, " ", trim: true),
            true <- "Inclusion" not in types and "Recommended" not in types do
-        case :binary.split(String.trim(codepoints), "..") do
-          [a] -> [String.to_integer(a, 16)]
-          [a, b] -> Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
-        end
+        range_to_codepoints.(range)
       else
         _ -> []
       end
@@ -140,18 +135,12 @@ defmodule String.Tokenizer do
     |> File.read!()
     |> String.split(["\r\n", "\n"], trim: true)
     |> Enum.flat_map(fn line ->
-      with [codepoints, scripts_with_comments] <- :binary.split(line, ";"),
+      with [range, scripts_with_comments] <- :binary.split(line, ";"),
            [scripts, _comments] <- :binary.split(scripts_with_comments, "#"),
            scripts =
              scripts |> String.split(" ", trim: true) |> Enum.map(&Map.get(aliases, &1, &1)),
            true <- "Common" not in scripts and "Inherited" not in scripts do
-        codepoints =
-          case :binary.split(String.trim(codepoints), "..") do
-            [a] -> [String.to_integer(a, 16)]
-            [a, b] -> Enum.to_list(String.to_integer(a, 16)..String.to_integer(b, 16))
-          end
-
-        for codepoint <- codepoints,
+        for codepoint <- range_to_codepoints.(range),
             Map.has_key?(unicode_all, codepoint),
             do: {codepoint, scripts}
       else
