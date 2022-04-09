@@ -1,6 +1,19 @@
 defmodule String.Tokenizer do
   @moduledoc false
 
+  # We special case some characters so they are included even if restricted.
+  scripts_special_cases = %{
+    # µ is removed because it normalizes to greek's lower mu.
+    # However, they can't be used at the same time as they
+    # belong to different scripts, so we add µ as latin.
+    #
+    # The mathematical characters between 1D6A8..1D7CB exhibit
+    # a similar property. However, because some of them can
+    # conflict with both Latin and Greek characters, such as 𝚳,
+    # they are not added here.
+    0x00B5 => ["Latin"]
+  }
+
   ##
   ## First let's load all characters that we will allow in identifiers
   ##
@@ -86,8 +99,8 @@ defmodule String.Tokenizer do
       with [range, type_with_comments] <- :binary.split(line, ";"),
            [types, _comments] <- :binary.split(type_with_comments, "#"),
            types = String.split(types, " ", trim: true),
-           true <- "Inclusion" not in types and "Recommended" not in types do
-        range_to_codepoints.(range)
+           false <- "Inclusion" in types or "Recommended" in types do
+        Enum.reject(range_to_codepoints.(range), &Map.has_key?(scripts_special_cases, &1))
       else
         _ -> []
       end
@@ -139,7 +152,7 @@ defmodule String.Tokenizer do
            [scripts, _comments] <- :binary.split(scripts_with_comments, "#"),
            scripts =
              scripts |> String.split(" ", trim: true) |> Enum.map(&Map.get(aliases, &1, &1)),
-           true <- "Common" not in scripts and "Inherited" not in scripts do
+           false <- "Common" in scripts or "Inherited" in scripts do
         for codepoint <- range_to_codepoints.(range),
             Map.has_key?(unicode_all, codepoint),
             do: {codepoint, scripts}
@@ -151,7 +164,7 @@ defmodule String.Tokenizer do
 
   scripts = codepoints_to_scriptset.("Scripts.txt", %{})
   script_extensions = codepoints_to_scriptset.("ScriptExtensions.txt", script_aliases)
-  all_codepoints_to_scriptset = scripts ++ script_extensions
+  all_codepoints_to_scriptset = Map.to_list(scripts_special_cases) ++ scripts ++ script_extensions
 
   all_scriptsets =
     all_codepoints_to_scriptset

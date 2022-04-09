@@ -43,6 +43,9 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn -> Code.string_to_quoted("力=1; カ=1") end) =~
                "confusable identifier: 'カ' looks like '力' on line 1"
 
+      assert capture_err(fn -> Code.string_to_quoted("µ=1; μ=1") end) =~
+               "confusable identifier: 'μ' looks like 'µ' on line 1"
+
       # by convention, doesn't warn on ascii-only confusables
       assert capture_err(fn -> Code.string_to_quoted("x0 = xO = 1") end) == ""
       assert capture_err(fn -> Code.string_to_quoted("l1 = ll = 1") end) == ""
@@ -86,12 +89,15 @@ defmodule Kernel.WarningTest do
 
     test "allows legitimate script mixing" do
       # writing systems that legitimately mix multiple scripts, and Common chars like _
-      assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ = 1") end) == ""
-      assert capture_err(fn -> Code.eval_string("幻ㄒㄧㄤ1 = 1") end) == ""
-      assert capture_err(fn -> Code.eval_string("__सवव_1? = 1") end) == ""
+      assert Code.eval_string("幻ㄒㄧㄤ = 1")
+      assert Code.eval_string("幻ㄒㄧㄤ1 = 1")
+      assert Code.eval_string("__सवव_1? = 1")
 
       # uts39 5.2 allowed 'highly restrictive' script mixing, like 't-shirt' in Jpan:
-      assert capture_err(fn -> Code.string_to_quoted!(":Tシャツ") end) == ""
+      assert Code.string_to_quoted!(":Tシャツ")
+
+      # allow Elixir special cases
+      assert Code.string_to_quoted!(":duration_µs")
     end
   end
 
