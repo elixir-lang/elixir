@@ -213,8 +213,6 @@ defmodule String.Tokenizer do
   {bottom, top} = ScriptSet.lattices(map_size(scriptset_masks))
   IO.puts(:stderr, "[Unicode] Tokenizing #{map_size(scriptset_masks)} scriptsets")
 
-  # scriptset_masks = %{scriptset_masks | "Common" => top, "Inherited" => top}
-
   codepoints_to_mask =
     for {codepoint, scriptsets} <- all_codepoints_to_scriptset, into: %{} do
       {codepoint,
