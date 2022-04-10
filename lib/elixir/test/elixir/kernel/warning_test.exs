@@ -98,6 +98,8 @@ defmodule Kernel.WarningTest do
 
       # allow Elixir special cases
       assert Code.string_to_quoted!(":duration_µs")
+      # Common 'micro' character can be used with any script
+      assert Code.string_to_quoted!(":सवव_µ")
     end
   end
 

@@ -2,17 +2,10 @@ defmodule String.Tokenizer do
   @moduledoc false
 
   # We special case some characters so they are included even if restricted.
-  scripts_special_cases = %{
-    # µ is removed because it normalizes to greek's lower mu.
-    # However, they can't be used at the same time as they
-    # belong to different scripts, so we add µ as latin.
-    #
-    # The mathematical characters between 1D6A8..1D7CB exhibit
-    # a similar property. However, because some of them can
-    # conflict with both Latin and Greek characters, such as 𝚳,
-    # they are not added here.
-    0x00B5 => ["Latin"]
-  }
+  restricted_special_cases = [
+    # µ is the Common-scriptset character for micro
+    0x00B5
+  ]
 
   ##
   ## First let's load all characters that we will allow in identifiers
@@ -100,7 +93,7 @@ defmodule String.Tokenizer do
            [types, _comments] <- :binary.split(type_with_comments, "#"),
            types = String.split(types, " ", trim: true),
            false <- "Inclusion" in types or "Recommended" in types do
-        Enum.reject(range_to_codepoints.(range), &Map.has_key?(scripts_special_cases, &1))
+        Enum.reject(range_to_codepoints.(range), &(&1 in restricted_special_cases))
       else
         _ -> []
       end
@@ -164,7 +157,7 @@ defmodule String.Tokenizer do
 
   scripts = codepoints_to_scriptset.("Scripts.txt", %{})
   script_extensions = codepoints_to_scriptset.("ScriptExtensions.txt", script_aliases)
-  all_codepoints_to_scriptset = Map.to_list(scripts_special_cases) ++ scripts ++ script_extensions
+  all_codepoints_to_scriptset = scripts ++ script_extensions
 
   all_scriptsets =
     all_codepoints_to_scriptset
@@ -219,6 +212,8 @@ defmodule String.Tokenizer do
 
   {bottom, top} = ScriptSet.lattices(map_size(scriptset_masks))
   IO.puts(:stderr, "[Unicode] Tokenizing #{map_size(scriptset_masks)} scriptsets")
+
+  # scriptset_masks = %{scriptset_masks | "Common" => top, "Inherited" => top}
 
   codepoints_to_mask =
     for {codepoint, scriptsets} <- all_codepoints_to_scriptset, into: %{} do

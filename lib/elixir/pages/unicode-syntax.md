@@ -113,7 +113,7 @@ Elixir conforms to the clauses outlined in the [Unicode Technical Standard #39](
 
 > An implementation following the General Security Profile does not permit any characters in \p{Identifier_Status=Restricted}, unless it documents the additional characters that it does allow
 
-Elixir will not allow tokenization of identifiers with codepoints in `\p{Identifier_Status=Restricted}`, with the single exception of MICRO SIGN µ (U+00B5), used by international system of units and assigned a scriptset of Latin.
+Elixir will not allow tokenization of identifiers with codepoints in `\p{Identifier_Status=Restricted}`, with the single exception of MICRO SIGN µ (U+00B5), used by international system of units.
 
 For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, is an uncommon codepoint and will trigger this warning. Codepoints that are not NFKC normalized are also removed (with the exception of µ above).
 
