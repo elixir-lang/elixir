@@ -36,9 +36,7 @@ defmodule ExUnit.CLIFormatter do
     IO.puts(format_times(times_us))
 
     if config.slowest > 0 do
-      IO.write("\n")
-      IO.puts(format_slowest_total(config, times_us.run))
-      IO.puts(format_slowest_times(config))
+      IO.puts(format_slowest_tests(config, times_us.run))
     end
 
     print_summary(config, false)
@@ -57,11 +55,8 @@ defmodule ExUnit.CLIFormatter do
       IO.write(success(".", config))
     end
 
-    test_counter = update_test_counter(config.test_counter, test)
-    test_timings = update_test_timings(config, test)
-    config = %{config | test_counter: test_counter, test_timings: test_timings}
-
-    {:noreply, config}
+    config = %{config | test_counter: update_test_counter(config.test_counter, test)}
+    {:noreply, update_test_timings(config, test)}
   end
 
   def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, _}} = test}, config) do
@@ -117,17 +112,10 @@ defmodule ExUnit.CLIFormatter do
     print_logs(test.logs)
 
     test_counter = update_test_counter(config.test_counter, test)
-    test_timings = update_test_timings(config, test)
     failure_counter = config.failure_counter + 1
+    config = %{config | test_counter: test_counter, failure_counter: failure_counter}
 
-    config = %{
-      config
-      | test_counter: test_counter,
-        test_timings: test_timings,
-        failure_counter: failure_counter
-    }
-
-    {:noreply, config}
+    {:noreply, update_test_timings(config, test)}
   end
 
   def handle_cast({:module_started, %ExUnit.TestModule{name: name, file: file}}, config) do
@@ -250,26 +238,20 @@ defmodule ExUnit.CLIFormatter do
 
   ## Slowest
 
-  defp format_slowest_total(%{slowest: slowest} = config, run_us) do
-    slowest_us =
-      config
-      |> extract_slowest_tests()
-      |> Enum.reduce(0, &(&1.time + &2))
+  defp format_slowest_tests(%{slowest: slowest, test_timings: timings}, run_us) do
+    slowest_tests =
+      timings
+      |> Enum.sort_by(fn %{time: time} -> -time end)
+      |> Enum.take(slowest)
 
-    slowest_time =
-      slowest_us
-      |> normalize_us()
-      |> format_us()
-
+    slowest_us = Enum.reduce(slowest_tests, 0, &(&1.time + &2))
+    slowest_time = slowest_us |> normalize_us() |> format_us()
     percentage = Float.round(slowest_us / run_us * 100, 1)
 
-    "Top #{slowest} slowest (#{slowest_time}s), #{percentage}% of total time:\n"
-  end
-
-  defp format_slowest_times(config) do
-    config
-    |> extract_slowest_tests()
-    |> Enum.map(&format_slow_test/1)
+    [
+      "\nTop #{slowest} slowest (#{slowest_time}s), #{percentage}% of total time:\n\n"
+      | Enum.map(slowest_tests, &format_slow_test/1)
+    ]
   end
 
   defp format_slow_test(%ExUnit.Test{time: time, module: module} = test) do
@@ -277,17 +259,12 @@ defmodule ExUnit.CLIFormatter do
       "[#{trace_test_file_line(test)}]\n"
   end
 
-  defp extract_slowest_tests(%{slowest: slowest, test_timings: timings} = _config) do
-    timings
-    |> Enum.sort_by(fn %{time: time} -> -time end)
-    |> Enum.take(slowest)
-  end
-
-  defp update_test_timings(config, %ExUnit.Test{} = test) do
-    if config.slowest > 0 do
-      [test | config.test_timings]
+  defp update_test_timings(%{slowest: slowest} = config, %ExUnit.Test{} = test) do
+    if slowest > 0 do
+      # Do not store logs, as they are not used for timings and consume memory.
+      update_in(config.test_timings, &[%{test | logs: ""} | &1])
     else
-      config.test_timings
+      config
     end
   end
 
