@@ -58,7 +58,7 @@ defmodule ExUnit.CLIFormatter do
     end
 
     test_counter = update_test_counter(config.test_counter, test)
-    test_timings = update_test_timings(config.test_timings, test)
+    test_timings = update_test_timings(config, test)
     config = %{config | test_counter: test_counter, test_timings: test_timings}
 
     {:noreply, config}
@@ -117,7 +117,7 @@ defmodule ExUnit.CLIFormatter do
     print_logs(test.logs)
 
     test_counter = update_test_counter(config.test_counter, test)
-    test_timings = update_test_timings(config.test_timings, test)
+    test_timings = update_test_timings(config, test)
     failure_counter = config.failure_counter + 1
 
     config = %{
@@ -283,8 +283,12 @@ defmodule ExUnit.CLIFormatter do
     |> Enum.take(slowest)
   end
 
-  defp update_test_timings(timings, %ExUnit.Test{} = test) do
-    [test | timings]
+  defp update_test_timings(config, %ExUnit.Test{} = test) do
+    if config.slowest > 0 do
+      [test | config.test_timings]
+    else
+      config.test_timings
+    end
   end
 
   ## Printing
