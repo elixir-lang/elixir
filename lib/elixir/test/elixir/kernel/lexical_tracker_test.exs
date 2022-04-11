@@ -21,8 +21,8 @@ defmodule Kernel.LexicalTrackerTest do
     assert D.references(config[:pid]) == {[String], [], [], []}
   end
 
-  test "can add module requires and exports", config do
-    D.add_export(config[:pid], URI)
+  test "can add requires", config do
+    D.add_require(config[:pid], URI)
     assert D.references(config[:pid]) == {[], [URI], [], []}
 
     D.remote_dispatch(config[:pid], URI, :runtime)
@@ -33,6 +33,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add module imports", config do
+    D.add_require(config[:pid], String)
     D.add_import(config[:pid], String, [], 1, true)
 
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :runtime)
@@ -43,7 +44,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add module with {function, arity} imports", config do
-    D.add_export(config[:pid], String)
+    D.add_require(config[:pid], String)
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
 
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
@@ -180,18 +181,18 @@ defmodule Kernel.LexicalTrackerTest do
       {{compile, _exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.Defdelegate do
-          defdelegate parse(arg), to: URI
+          defdelegate a, to: A
 
-          opts = [to: Range]
-          defdelegate disjoint?(left, right), opts
+          opts = [to: B]
+          defdelegate b, opts
 
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
         end |> elem(3)
         """)
 
-      refute URI in compile
-      assert Range in compile
-      assert URI in runtime
+      refute A in compile
+      assert B in compile
+      assert A in runtime
     end
 
     test "imports adds an export dependency" do
@@ -205,20 +206,6 @@ defmodule Kernel.LexicalTrackerTest do
 
       refute String in compile
       assert String in exports
-      refute String in runtime
-    end
-
-    test "requires adds a compile dependency" do
-      {{compile, exports, runtime, _}, _binding} =
-        Code.eval_string("""
-        defmodule Kernel.LexicalTrackerTest.Requires do
-          require String
-          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
-        end |> elem(3)
-        """)
-
-      assert String in compile
-      refute String in exports
       refute String in runtime
     end
 
