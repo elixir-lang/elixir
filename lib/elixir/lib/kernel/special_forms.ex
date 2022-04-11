@@ -554,9 +554,7 @@ defmodule Kernel.SpecialForms do
   defmacro alias(module, opts), do: error!([module, opts])
 
   @doc """
-  Requires a module as a compile-time dependency.
-
-  Requiring a module is necessary in order to use its macros.
+  Requires a module in order to use its macros.
 
   ## Examples
 
@@ -578,6 +576,7 @@ defmodule Kernel.SpecialForms do
 
   `require/2` also accepts `:as` as an option so it automatically sets
   up an alias. Please check `alias/2` for more information.
+
   """
   defmacro require(module, opts), do: error!([module, opts])
 

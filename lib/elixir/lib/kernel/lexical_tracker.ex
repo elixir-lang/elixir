@@ -30,8 +30,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_export(pid, module) when is_atom(module) do
-    :gen_server.cast(pid, {:add_export, module})
+  def add_require(pid, module) when is_atom(module) do
+    :gen_server.cast(pid, {:add_require, module})
   end
 
   @doc false
@@ -168,16 +168,15 @@ defmodule Kernel.LexicalTracker do
     {:noreply, update_in(state.compile_env, &:ordsets.add_element({app, path, return}, &1))}
   end
 
-  def handle_cast({:add_export, module}, state) do
+  def handle_cast({:add_require, module}, state) do
     {:noreply, put_in(state.exports[module], true)}
   end
 
   def handle_cast({:add_import, module, fas, line, warn}, state) do
-    %{directives: directives, exports: exports} = state
-    to_remove = for {{:import, {^module, _, _}} = key, _} <- directives, do: key
+    to_remove = for {{:import, {^module, _, _}} = key, _} <- state.directives, do: key
 
     directives =
-      directives
+      state.directives
       |> Map.drop(to_remove)
       |> add_directive(module, line, warn, :import)
 
@@ -186,7 +185,7 @@ defmodule Kernel.LexicalTracker do
         add_directive(directives, {module, function, arity}, line, warn, :import)
       end)
 
-    {:noreply, %{state | directives: directives, exports: Map.put(exports, module, true)}}
+    {:noreply, %{state | directives: directives}}
   end
 
   def handle_cast({:add_alias, module, line, warn}, state) do
@@ -222,9 +221,9 @@ defmodule Kernel.LexicalTracker do
     do: Map.put(references, module, :compile)
 
   defp add_reference(references, module, :runtime) when is_atom(module) do
-    case references do
-      %{^module => _} -> references
-      _ -> Map.put(references, module, :runtime)
+    case Map.fetch(references, module) do
+      {:ok, _} -> references
+      :error -> Map.put(references, module, :runtime)
     end
   end
 

@@ -508,16 +508,13 @@ defmodule Mix.Tasks.Xref do
 
   @doc false
   def trace({:require, meta, module, _opts}, env),
-    do: add_trace(:compile, :require, module, module, meta, env)
-
-  def trace({:import, meta, module, _opts}, env),
-    do: add_trace(:export, :import, module, module, meta, env)
+    do: add_trace(:export, :require, module, module, meta, env)
 
   def trace({:struct_expansion, meta, module, _keys}, env),
     do: add_trace(:export, :struct, module, module, meta, env)
 
   def trace({:alias_reference, meta, module}, env) when env.module != module,
-    do: add_trace(mode(env), :module, module, module, meta, env)
+    do: add_trace(mode(env), :alias, module, module, meta, env)
 
   def trace({:remote_function, meta, module, function, arity}, env),
     do: add_trace(mode(env), :call, module, {module, function, arity}, meta, env)
@@ -552,14 +549,14 @@ defmodule Mix.Tasks.Xref do
     # We don't want to show aliases if there is an entry of the same type
     non_aliases =
       for {_file, _line, module_or_mfa, mode, type} <- entries,
-          type != :module,
+          type != :alias,
           into: %{},
           do: {{trace_module(module_or_mfa), mode}, []}
 
     shell = Mix.shell()
 
     for {file, line, module_or_mfa, mode, type} <- entries,
-        type != :module or not Map.has_key?(non_aliases, {module_or_mfa, mode}) do
+        type != :alias or not Map.has_key?(non_aliases, {module_or_mfa, mode}) do
       shell.info([
         Exception.format_file_line(Path.relative_to_cwd(file), line),
         ?\s,
