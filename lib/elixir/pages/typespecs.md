@@ -99,7 +99,7 @@ The following literals are also supported in typespecs:
           | []                            # empty list
           | [...]                         # shorthand for nonempty_list(any())
           | [type, ...]                   # shorthand for nonempty_list(type)
-          | [key: value_type]             # keyword list with key :key of value_type
+          | [key: value_type]             # keyword list with optional key :key of value_type
 
                                                   ## Maps
           | %{}                                   # empty map
