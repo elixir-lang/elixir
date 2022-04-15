@@ -17,7 +17,7 @@ defmodule Kernel.DefaultsTest do
     {x, y, z}
   end
 
-  test "function with block defaults" do
+  test "with block defaults" do
     assert {1, "y", "z"} = fun_with_block_defaults(1)
     assert {1, 2, "z"} = fun_with_block_defaults(1, 2)
     assert {1, 2, 3} = fun_with_block_defaults(1, 2, 3)
