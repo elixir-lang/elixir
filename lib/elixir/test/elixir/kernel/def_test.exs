@@ -1,6 +1,6 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
-defmodule Kernel.DefTest do
+defmodule Kernel.DefaultsTest do
   use ExUnit.Case, async: true
 
   def fun_with_block_defaults(
