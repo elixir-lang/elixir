@@ -261,26 +261,26 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
 %% Handling of defaults
 
 unpack_defaults(Kind, Meta, Name, Args, S, E) ->
-  Expanded = expand_defaults(Args, S, E#{context := nil}),
-  unpack_expanded(Kind, Meta, Name, Expanded, [], []).
+  {Expanded, #elixir_ex{unused={_, VersionOffset}}} = expand_defaults(Args, S, E#{context := nil}, []),
+  unpack_expanded(Kind, Meta, Name, Expanded, VersionOffset, [], []).
 
-unpack_expanded(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, Acc, Clauses) ->
-  Base = match_defaults(Acc, length(Acc), []),
+unpack_expanded(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, VersionOffset, Acc, Clauses) ->
+  Base = match_defaults(Acc, length(Acc) + VersionOffset, []),
   {Args, Invoke} = extract_defaults(List, length(Base), [], []),
   Clause = {Meta, Base ++ Args, [], {super, [{super, {Kind, Name}} | DefaultMeta], Base ++ Invoke}},
-  unpack_expanded(Kind, Meta, Name, T, [Expr | Acc], [Clause | Clauses]);
-unpack_expanded(Kind, Meta, Name, [H | T], Acc, Clauses) ->
-  unpack_expanded(Kind, Meta, Name, T, [H | Acc], Clauses);
-unpack_expanded(_Kind, _Meta, _Name, [], Acc, Clauses) ->
+  unpack_expanded(Kind, Meta, Name, T, VersionOffset, [Expr | Acc], [Clause | Clauses]);
+unpack_expanded(Kind, Meta, Name, [H | T], VersionOffset, Acc, Clauses) ->
+  unpack_expanded(Kind, Meta, Name, T, VersionOffset, [H | Acc], Clauses);
+unpack_expanded(_Kind, _Meta, _Name, [], _VersionOffset, Acc, Clauses) ->
   {lists:reverse(Acc), lists:reverse(Clauses)}.
 
-expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], S, E) ->
-  {ExpandedDefault, _, _} = elixir_expand:expand(Default, S, E),
-  [{'\\\\', Meta, [Expr, ExpandedDefault]} | expand_defaults(Args, S, E)];
-expand_defaults([Arg | Args], S, E) ->
-  [Arg | expand_defaults(Args, S, E)];
-expand_defaults([], _S, _E) ->
-  [].
+expand_defaults([{'\\\\', Meta, [Expr, Default]} | Args], S, E, Acc) ->
+  {ExpandedDefault, SE, _} = elixir_expand:expand(Default, S, E),
+  expand_defaults(Args, SE, E, [{'\\\\', Meta, [Expr, ExpandedDefault]} | Acc]);
+expand_defaults([Arg | Args], S, E, Acc) ->
+   expand_defaults(Args, S, E, [Arg | Acc]);
+expand_defaults([], S, _E, Acc) ->
+  {lists:reverse(Acc), S}.
 
 extract_defaults([{'\\\\', _, [_Expr, Default]} | T], Counter, NewArgs, NewInvoke) ->
   extract_defaults(T, Counter, NewArgs, [Default | NewInvoke]);
@@ -290,7 +290,7 @@ extract_defaults([_ | T], Counter, NewArgs, NewInvoke) ->
 extract_defaults([], _Counter, NewArgs, NewInvoke) ->
   {lists:reverse(NewArgs), lists:reverse(NewInvoke)}.
 
-match_defaults([], 0, Acc) ->
+match_defaults([], _Counter, Acc) ->
   Acc;
 match_defaults([_ | T], Counter, Acc) ->
   NewCounter = Counter - 1,
