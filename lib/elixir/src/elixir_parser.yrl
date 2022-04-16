@@ -65,7 +65,8 @@ Right     70 pipe_op_eol.     %% |
 Right     80 assoc_op_eol.    %% =>
 Nonassoc  90 capture_op_eol.  %% &
 Right    100 match_op_eol.    %% =
-Left     120 or_op_eol.       %% ||, |||, or
+Left     110 or_op_eol.       %% ||, |||, or
+% Left     120 xor_op_eol.     %% ^^^
 Left     130 and_op_eol.      %% &&, &&&, and
 Left     140 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     150 rel_op_eol.      %% <, >, <=, >=
