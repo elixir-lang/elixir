@@ -25,7 +25,7 @@ defmodule Kernel.DefaultsTest do
     assert {1, 2, 3} = fun_with_block_defaults(1, 2, 3)
   end
 
-  test "accessing variable from default block" do
+  test "errors on accessing variable from default block" do
     message = "variable \"default\" does not exist"
 
     assert capture_io(:stderr, fn ->
@@ -36,5 +36,60 @@ defmodule Kernel.DefaultsTest do
                end
              end
            end) =~ message
+  end
+
+  test "errors on multiple defaults" do
+    message = ~r"def hello/1 defines defaults multiple times"
+
+    assert_raise CompileError, message, fn ->
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+        def hello(_arg \\ 0)
+        def hello(_arg \\ 1)
+      end
+    end
+
+    assert_raise CompileError, message, fn ->
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+        def hello(_arg \\ 0), do: nil
+        def hello(_arg \\ 1), do: nil
+      end
+    end
+
+    assert_raise CompileError, message, fn ->
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+        def hello(_arg \\ 0)
+        def hello(_arg \\ 1), do: nil
+      end
+    end
+
+    assert_raise CompileError, message, fn ->
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
+        def hello(_arg \\ 0), do: nil
+        def hello(_arg \\ 1)
+      end
+    end
+
+    assert_raise CompileError, ~r"undefined function foo/0", fn ->
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
+        def hello(foo, bar \\ foo)
+        def hello(foo, bar), do: foo + bar
+      end
+    end
+  end
+
+  test "errors on conflicting defaults" do
+    assert_raise CompileError, ~r"def hello/3 defaults conflicts with hello/2", fn ->
+      defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults1 do
+        def hello(a, b \\ nil), do: a + b
+        def hello(a, b \\ nil, c \\ nil), do: a + b + c
+      end
+    end
+
+    assert_raise CompileError, ~r"def hello/2 conflicts with defaults from hello/3", fn ->
+      defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults2 do
+        def hello(a, b \\ nil, c \\ nil), do: a + b + c
+        def hello(a, b \\ nil), do: a + b
+      end
+    end
   end
 end

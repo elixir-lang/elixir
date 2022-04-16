@@ -11,7 +11,7 @@ defmodule Kernel.ErrorsTest do
     end
   end
 
-  test "no optional arguments in fn" do
+  test "no default arguments in fn" do
     assert_eval_raise CompileError,
                       "nofile:1: anonymous functions cannot have optional arguments",
                       'fn x \\\\ 1 -> x end'
@@ -35,77 +35,6 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise CompileError,
                       "nofile:1: __STACKTRACE__ is available only inside catch and rescue clauses of try expressions",
                       'defmodule Sample do try do raise "oops" rescue _ -> def hello do __STACKTRACE__ end end end'
-  end
-
-  test "clause with defaults" do
-    message = ~r"nofile:3: def hello/1 defines defaults multiple times"
-
-    assert_eval_raise CompileError,
-                      message,
-                      ~C'''
-                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
-                        def hello(_arg \\ 0)
-                        def hello(_arg \\ 1)
-                      end
-                      '''
-
-    assert_eval_raise CompileError,
-                      message,
-                      ~C'''
-                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
-                        def hello(_arg \\ 0), do: nil
-                        def hello(_arg \\ 1), do: nil
-                      end
-                      '''
-
-    assert_eval_raise CompileError,
-                      message,
-                      ~C'''
-                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
-                        def hello(_arg \\ 0)
-                        def hello(_arg \\ 1), do: nil
-                      end
-                      '''
-
-    assert_eval_raise CompileError,
-                      message,
-                      ~C'''
-                      defmodule Kernel.ErrorsTest.ClauseWithDefaults do
-                        def hello(_arg \\ 0), do: nil
-                        def hello(_arg \\ 1)
-                      end
-                      '''
-
-    assert_eval_raise CompileError,
-                      ~r"nofile:4: undefined function foo/0",
-                      ~C'''
-                      defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
-                        def hello(
-                              foo,
-                              bar \\ foo()
-                            )
-
-                        def hello(foo, bar), do: foo + bar
-                      end
-                      '''
-  end
-
-  test "different defs with defaults" do
-    assert_eval_raise CompileError, "nofile:3: def hello/3 defaults conflicts with hello/2", ~C'''
-    defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults1 do
-      def hello(a, b \\ nil), do: a + b
-      def hello(a, b \\ nil, c \\ nil), do: a + b + c
-    end
-    '''
-
-    assert_eval_raise CompileError,
-                      "nofile:3: def hello/2 conflicts with defaults from hello/3",
-                      ~C'''
-                      defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults2 do
-                        def hello(a, b \\ nil, c \\ nil), do: a + b + c
-                        def hello(a, b \\ nil), do: a + b
-                      end
-                      '''
   end
 
   test "undefined function" do
