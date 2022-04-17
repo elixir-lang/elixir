@@ -1,14 +1,11 @@
-name: Release
+name: Prepare Release
 
 on:
-  push:
-    tags:
-      - v*
-
-env:
-  ELIXIR_OPTS: "--warnings-as-errors"
-  ERLC_OPTS: "warnings_as_errors"
-  LANG: C.UTF-8
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
 
 jobs:
   create_draft_release:
@@ -20,13 +17,11 @@ jobs:
         run: |
           gh release create \
             --repo ${{ github.repository }} \
-            --title ${{ github.ref_name }} \
+            --title ${{ inputs.version }} \
             --notes '' \
             --draft \
-            ${{ github.ref_name }}
-        if: ${{ github.ref_name != 'main' }}
+            ${{ inputs.version }}
   release_pre_built:
-    needs: create_draft_release
     strategy:
       fail-fast: true
       matrix:
@@ -34,13 +29,14 @@ jobs:
           - otp: 23
             otp_version: 23.3
           - otp: 24
-            otp_version: 24.3
+            otp_version: 24.1
             build_docs: build_docs
     runs-on: ubuntu-18.04
-    steps:
+    steps: 
       - uses: actions/checkout@v2
         with:
           fetch-depth: 50
+          ref: ${{ inputs.version }}
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp_version }}
@@ -56,27 +52,21 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          vsn=$(cat VERSION)
-          gh release upload --clobber "v${vsn}" \
+          gh release upload --clobber ${{ inputs.version }} \
             elixir-otp-${{ matrix.otp }}.zip \
             elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum
-      - name: Get latest stable ExDoc version
-        if: ${{ matrix.build_docs }}
-        run: |
-          EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
-          echo "EX_DOC_LATEST_STABLE_VERSION=${EX_DOC_LATEST_STABLE_VERSION}" >> $GITHUB_ENV
       - uses: actions/checkout@v2
-        if: ${{ matrix.build_docs }}
         with:
           repository: elixir-lang/ex_doc
-          ref: v${{ env.EX_DOC_LATEST_STABLE_VERSION }}
+          ref: v0.26.0
           path: ex_doc
+        if: ${{ matrix.build_docs }}
       - name: Build ex_doc
         if: ${{ matrix.build_docs }}
         run: |
           mv ex_doc ../ex_doc
           cd ../ex_doc
-          ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
+          ../elixir/bin/mix do local.rebar --force, local.hex --force, deps.get, compile
           cd ../elixir
       - name: Build Docs
         if: ${{ matrix.build_docs }}
@@ -89,11 +79,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          vsn=$(cat VERSION)
-          gh release upload --clobber "v${vsn}" \
+          gh release upload --clobber ${{ inputs.version }} \
             Docs.zip \
             Docs.zip.sha{1,256}sum
-      - name: Create pre-release for nightly build
-        if: ${{ github.ref_name == "main-nightly" }}
-        run: |
-          gh release create --prerelease ${{ github.ref_name }}
