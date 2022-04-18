@@ -161,6 +161,19 @@ defmodule ExUnit.CaseTest.TmpDir do
     |> String.starts_with?("/")
   end
 
+  defp ends_with_short_hash_and_extra_path?(string, extra_path) do
+    extra_path = "/" <> extra_path
+    extra_path_length = String.length(extra_path)
+
+    case String.split_at(string, -extra_path_length) do
+      {tmp_dir_base, extra_path_new} when extra_path_new == extra_path ->
+        ends_with_short_hash?(tmp_dir_base)
+
+      _ ->
+        false
+    end
+  end
+
   defp starts_with_path?(tmp_dir, path) do
     String.starts_with?(tmp_dir, Path.expand(path))
   end
@@ -184,10 +197,10 @@ defmodule ExUnit.CaseTest.TmpDir do
   test "custom path", context do
     assert starts_with_path?(
              context.tmp_dir,
-             "tmp/ExUnit.CaseTest.TmpDir/test-custom-path/foo/bar/"
+             "tmp/ExUnit.CaseTest.TmpDir/test-custom-path/"
            ) == true
 
-    assert ends_with_short_hash?(context.tmp_dir) == true
+    assert ends_with_short_hash_and_extra_path?(context.tmp_dir, "foo/bar") == true
   end
 
   test "colliding-test-names", context do
@@ -196,7 +209,7 @@ defmodule ExUnit.CaseTest.TmpDir do
              "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names/"
            ) == true
 
-    assert String.ends_with?(context.tmp_dir, "/44141789") == true
+    assert String.ends_with?(context.tmp_dir, "/e09bee07") == true
   end
 
   test "colliding+test+names", context do
@@ -205,7 +218,7 @@ defmodule ExUnit.CaseTest.TmpDir do
              "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names/"
            ) == true
 
-    assert String.ends_with?(context.tmp_dir, "/7646c6e4") == true
+    assert String.ends_with?(context.tmp_dir, "/c96d2f8c") == true
   end
 
   @tag tmp_dir: false
