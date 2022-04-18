@@ -225,7 +225,7 @@ defmodule Mix.CLITest do
   @tag tmp_dir: "new_with_tests"
   test "new with tests and cover", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
-      output = mix(~w[new .])
+      output = mix(~w[new . --app new_with_tests])
       assert output =~ "* creating lib/new_with_tests.ex"
 
       output = mix(~w[test test/new_with_tests_test.exs --cover])
@@ -239,7 +239,7 @@ defmodule Mix.CLITest do
   @tag tmp_dir: "sup_with_tests"
   test "new --sup with tests", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
-      output = mix(~w[new --sup .])
+      output = mix(~w[new . --app sup_with_tests --sup])
       assert output =~ "* creating lib/sup_with_tests.ex"
 
       output = mix(~w[test])

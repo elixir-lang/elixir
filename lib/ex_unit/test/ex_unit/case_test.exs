@@ -155,18 +155,57 @@ defmodule ExUnit.CaseTest.TmpDir do
 
   @moduletag :tmp_dir
 
+  defp ends_with_short_hash?(string) do
+    string
+    |> String.slice(-9..-1)
+    |> String.starts_with?("/")
+  end
+
+  defp starts_with_path?(tmp_dir, path) do
+    String.starts_with?(tmp_dir, Path.expand(path))
+  end
+
   test "default path", context do
-    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-default-path")
+    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-default-path/") ==
+             true
+
+    assert ends_with_short_hash?(context.tmp_dir) == true
     assert File.ls!(context.tmp_dir) == []
   end
 
   test "escapes foo?/0", context do
-    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-escapes-foo--0")
+    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-escapes-foo--0/") ==
+             true
+
+    assert ends_with_short_hash?(context.tmp_dir) == true
   end
 
   @tag tmp_dir: "foo/bar"
   test "custom path", context do
-    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-custom-path/foo/bar")
+    assert starts_with_path?(
+             context.tmp_dir,
+             "tmp/ExUnit.CaseTest.TmpDir/test-custom-path/foo/bar/"
+           ) == true
+
+    assert ends_with_short_hash?(context.tmp_dir) == true
+  end
+
+  test "colliding-test-names", context do
+    assert starts_with_path?(
+             context.tmp_dir,
+             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names/"
+           ) == true
+
+    assert String.ends_with?(context.tmp_dir, "/44141789") == true
+  end
+
+  test "colliding+test+names", context do
+    assert starts_with_path?(
+             context.tmp_dir,
+             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names/"
+           ) == true
+
+    assert String.ends_with?(context.tmp_dir, "/7646c6e4") == true
   end
 
   @tag tmp_dir: false

@@ -389,10 +389,22 @@ defmodule ExUnit.Runner do
     context
   end
 
+  defp short_hash(module, test_name, extra_path) do
+    (module <> "/" <> test_name <> "/" <> extra_path)
+    |> :erlang.md5()
+    |> Base.encode16(case: :lower)
+    |> String.slice(0..7)
+  end
+
   defp create_tmp_dir!(test, extra_path, context) do
-    module = escape_path(inspect(test.module))
-    name = escape_path(to_string(test.name))
-    path = ["tmp", module, name, extra_path] |> Path.join() |> Path.expand()
+    module_string = inspect(test.module)
+    name_string = to_string(test.name)
+
+    module = escape_path(module_string)
+    name = escape_path(name_string)
+    short_hash = short_hash(module_string, name_string, extra_path)
+
+    path = ["tmp", module, name, extra_path, short_hash] |> Path.join() |> Path.expand()
     File.rm_rf!(path)
     File.mkdir_p!(path)
     Map.put(context, :tmp_dir, path)
