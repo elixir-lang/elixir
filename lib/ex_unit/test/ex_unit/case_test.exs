@@ -158,7 +158,7 @@ defmodule ExUnit.CaseTest.TmpDir do
   defp ends_with_short_hash?(string) do
     string
     |> String.slice(-9..-1)
-    |> String.starts_with?("/")
+    |> String.starts_with?("-")
   end
 
   defp ends_with_short_hash_and_extra_path?(string, extra_path) do
@@ -179,46 +179,38 @@ defmodule ExUnit.CaseTest.TmpDir do
   end
 
   test "default path", context do
-    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-default-path/") ==
-             true
-
-    assert ends_with_short_hash?(context.tmp_dir) == true
+    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-default-path-")
+    assert ends_with_short_hash?(context.tmp_dir)
     assert File.ls!(context.tmp_dir) == []
   end
 
   test "escapes foo?/0", context do
-    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-escapes-foo--0/") ==
-             true
-
-    assert ends_with_short_hash?(context.tmp_dir) == true
+    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-escapes-foo--0-")
+    assert ends_with_short_hash?(context.tmp_dir)
   end
 
   @tag tmp_dir: "foo/bar"
   test "custom path", context do
-    assert starts_with_path?(
-             context.tmp_dir,
-             "tmp/ExUnit.CaseTest.TmpDir/test-custom-path/"
-           ) == true
-
-    assert ends_with_short_hash_and_extra_path?(context.tmp_dir, "foo/bar") == true
+    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-custom-path-")
+    assert ends_with_short_hash_and_extra_path?(context.tmp_dir, "foo/bar")
   end
 
   test "colliding-test-names", context do
     assert starts_with_path?(
              context.tmp_dir,
-             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names/"
-           ) == true
+             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names-"
+           )
 
-    assert String.ends_with?(context.tmp_dir, "/e09bee07") == true
+    assert String.ends_with?(context.tmp_dir, "-e09bee07")
   end
 
   test "colliding+test+names", context do
     assert starts_with_path?(
              context.tmp_dir,
-             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names/"
-           ) == true
+             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names-"
+           )
 
-    assert String.ends_with?(context.tmp_dir, "/c96d2f8c") == true
+    assert String.ends_with?(context.tmp_dir, "-c96d2f8c")
   end
 
   @tag tmp_dir: false

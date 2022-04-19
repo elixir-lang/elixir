@@ -404,7 +404,7 @@ defmodule ExUnit.Runner do
     name = escape_path(name_string)
     short_hash = short_hash(module_string, name_string)
 
-    path = ["tmp", module, name, short_hash, extra_path] |> Path.join() |> Path.expand()
+    path = ["tmp", module, "#{name}-#{short_hash}", extra_path] |> Path.join() |> Path.expand()
     File.rm_rf!(path)
     File.mkdir_p!(path)
     Map.put(context, :tmp_dir, path)
