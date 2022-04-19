@@ -141,6 +141,25 @@ defmodule Kernel.CLITest do
     assert error =~ "def fetch(-%module{} = container-, +key+)"
     assert error =~ ~r"\(elixir #{System.version()}\) lib/access\.ex:\d+: Access\.fetch/2"
   end
+
+  test "proper handling of spaces in --app-env" do
+    command =
+      "IO.inspect(:init.get_arguments()[:mnesia]); " <>
+        "IO.inspect(Application.load(:mnesia))"
+
+    output = elixir('--app-env mnesia dir \'"/tmp/with spaces/abc"\' -e "#{command}"')
+
+    assert results =
+             [_, _] =
+             output
+             |> String.trim()
+             |> String.split("\n")
+
+    [{app_env_result, _}, {load_result, _}] = Enum.map(results, &Code.eval_string(&1, []))
+
+    assert app_env_result == ['dir', '\"/tmp/with spaces/abc\"']
+    assert load_result == :ok
+  end
 end
 
 defmodule Kernel.CLI.RPCTest do
