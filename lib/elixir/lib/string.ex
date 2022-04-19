@@ -17,6 +17,9 @@ defmodule String do
       iex> "hello" <> " " <> "world"
       "hello world"
 
+  The functions in this module act according to
+  [The Unicode Standard, Version 14.0.0](http://www.unicode.org/versions/Unicode14.0.0/).
+
   ## Interpolation
 
   Strings in Elixir also support interpolation. This allows
@@ -66,29 +69,82 @@ defmodule String do
   low-level manipulations of string, so let's explore them in
   detail next.
 
-  ## Code points and grapheme cluster
+  ## Unicode and code points
 
-  The functions in this module act according to
-  [The Unicode Standard, Version 14.0.0](http://www.unicode.org/versions/Unicode14.0.0/).
+  In order to facilitate meaningful communication between computers
+  across multiple languages, a standard is required so that the ones
+  and zeros on one machine mean the same thing when they are transmitted
+  to another. The Unicode Standard acts as an official registry of
+  virtually all the characters we know: this includes characters from
+  classical and historical texts, emoji, and formatting and control
+  characters as well.
 
-  As per the standard, a code point is a single Unicode Character,
-  which may be represented by one or more bytes.
+  Unicode organizes all of the characters in its repertoire into code
+  charts, and each character is given a unique numerical index. This
+  numerical index is known as a Code Point.
 
-  For example, although the code point "é" is a single character,
-  its underlying representation uses two bytes:
+  In Elixir you can use a `?` in front of a character literal to reveal
+  its code point:
 
-      iex> String.length("é")
-      1
-      iex> byte_size("é")
-      2
+      iex> ?a
+      97
+      iex> ?ł
+      322
 
-  Furthermore, this module also presents the concept of grapheme cluster
-  (from now on referenced as graphemes). Graphemes can consist of multiple
-  code points that may be perceived as a single character by readers. For
-  example, "é" can be represented either as a single "e with acute" code point
-  or as the letter "e" followed by a "combining acute accent" (two code points):
+  Note that most Unicode code charts will refer to a code point by its
+  hexadecimal (hex) representation, e.g. `97` translates to `0061` in hex,
+  and we can represent any Unicode character in an Elixir string by
+  using the `\u` escape character followed by its code point number:
+
+      iex> "\u0061" === "a"
+      true
+      iex> 0x0061 = 97 = ?a
+      97
+
+  The hex representation will also help you look up information about a
+  code point, e.g. [https://codepoints.net/U+0061](https://codepoints.net/U+0061)
+  has a data sheet all about the lower case `a`, a.k.a. code point 97.
+  Remember you can get the hex presentation of a number by calling
+  `Integer.to_string/2`:
+
+      iex> Integer.to_string(?a, 16)
+      "61"
+
+  ## UTF-8 encoded and encodings
+
+  Now that we understand what the Unicode standard is and what code points
+  are, we can finally talk about encodings. Whereas the code point is **what**
+  we store, an encoding deals with **how** we store it: encoding is an
+  implementation. In other words, we need a mechanism to convert the code
+  point numbers into bytes so they can be stored in memory, written to disk, etc.
+
+  Elixir uses UTF-8 to encode its strings, which means that code points are
+  encoded as a series of 8-bit bytes. UTF-8 is a **variable width** character
+  encoding that uses one to four bytes to store each code point. It is capable
+  of encoding all valid Unicode code points. Let's see an example:
+
+      iex> string = "héllo"
+      "héllo"
+      iex> String.length(string)
+      5
+      iex> byte_size(string)
+      6
+
+  Although the string above has 5 characters, it uses 6 bytes, as two bytes
+  are used to represent the character `é`.
+
+  ## Grapheme clusters
+
+  This module also works with the concept of grapheme cluster
+  (from now on referenced as graphemes). Graphemes can consist
+  of multiple code points that may be perceived as a single character
+  by readers. For example, "é" can be represented either as a single
+  "e with acute" code point, as seen above in the string `"héllo"`,
+  or as the letter "e" followed by a "combining acute accent"
+  (two code points):
 
       iex> string = "\u0065\u0301"
+      "é"
       iex> byte_size(string)
       3
       iex> String.length(string)
@@ -98,14 +154,13 @@ defmodule String do
       iex> String.graphemes(string)
       ["é"]
 
-  Although the example above is made of two characters, it is
-  perceived by users as one.
+  Although it looks visually the same as before, the example above
+  is made of two characters, it is perceived by users as one.
 
-  Graphemes can also be two characters that are interpreted
-  as one by some languages. For example, some languages may
-  consider "ch" as a single character. However, since this
-  information depends on the locale, it is not taken into account
-  by this module.
+  Graphemes can also be two characters that are interpreted as one
+  by some languages. For example, some languages may consider "ch"
+  as a single character. However, since this information depends on
+  the locale, it is not taken into account by this module.
 
   In general, the functions in this module rely on the Unicode
   Standard, but do not contain any of the locale specific behaviour.
@@ -135,95 +190,15 @@ defmodule String do
     * Plus a number of functions for working with binaries (bytes)
       in the [`:binary` module](`:binary`)
 
-  There are many situations where using the `String` module can
-  be avoided in favor of binary functions or pattern matching.
-  For example, imagine you have a string `prefix` and you want to
-  remove this prefix from another string named `full`.
+  A `utf8` modifier is also available inside the binary syntax `<<>>`.
+  It can be used to match code points out of a binary/string:
 
-  One may be tempted to write:
+      iex> <<eacute::utf8>> = "é"
+      iex> eacute
+      233
 
-      iex> take_prefix = fn full, prefix ->
-      ...>   base = String.length(prefix)
-      ...>   String.slice(full, base, String.length(full) - base)
-      ...> end
-      iex> take_prefix.("Mr. John", "Mr. ")
-      "John"
-
-  Although the function above works, it performs poorly. To
-  calculate the length of the string, we need to traverse it
-  fully, so we traverse both `prefix` and `full` strings, then
-  slice the `full` one, traversing it again.
-
-  A first attempt at improving it could be with ranges:
-
-      iex> take_prefix = fn full, prefix ->
-      ...>   base = String.length(prefix)
-      ...>   String.slice(full, base..-1)
-      ...> end
-      iex> take_prefix.("Mr. John", "Mr. ")
-      "John"
-
-  While this is much better (we don't traverse `full` twice),
-  it could still be improved. In this case, since we want to
-  extract a substring from a string, we can use `Kernel.byte_size/1`
-  and `Kernel.binary_part/3` as there is no chance we will slice in
-  the middle of a code point made of more than one byte:
-
-      iex> take_prefix = fn full, prefix ->
-      ...>   base = byte_size(prefix)
-      ...>   binary_part(full, base, byte_size(full) - base)
-      ...> end
-      iex> take_prefix.("Mr. John", "Mr. ")
-      "John"
-
-  Or simply use pattern matching:
-
-      iex> take_prefix = fn full, prefix ->
-      ...>   base = byte_size(prefix)
-      ...>   <<_::binary-size(base), rest::binary>> = full
-      ...>   rest
-      ...> end
-      iex> take_prefix.("Mr. John", "Mr. ")
-      "John"
-
-  On the other hand, if you want to dynamically slice a string
-  based on an integer value, then using `String.slice/3` is the
-  best option as it guarantees we won't incorrectly split a valid
-  code point into multiple bytes.
-
-  ## Integer code points
-
-  Although code points are represented as integers, this module
-  represents code points in their encoded format as strings.
-  For example:
-
-      iex> String.codepoints("olá")
-      ["o", "l", "á"]
-
-  There are a couple of ways to retrieve the character code point.
-  One may use the `?` construct:
-
-      iex> ?o
-      111
-
-      iex> ?á
-      225
-
-  Or also via pattern matching:
-
-      iex> <<aacute::utf8>> = "á"
-      iex> aacute
-      225
-
-  As we have seen above, code points can be inserted into
-  a string by their hexadecimal code:
-
-      iex> "ol\u00E1"
-      "olá"
-
-  Finally, to convert a String into a list of integer
-  code points, known as "charlists" in Elixir, you can call
-  `String.to_charlist`:
+  You can also fully convert a string into a list of integer code points,
+  known as "charlists" in Elixir, by calling `String.to_charlist/1`:
 
       iex> String.to_charlist("olá")
       [111, 108, 225]
