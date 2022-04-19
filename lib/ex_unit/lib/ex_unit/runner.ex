@@ -393,7 +393,7 @@ defmodule ExUnit.Runner do
     (module <> "/" <> test_name)
     |> :erlang.md5()
     |> Base.encode16(case: :lower)
-    |> String.slice(0..7)
+    |> binary_part(0, 7)
   end
 
   defp create_tmp_dir!(test, extra_path, context) do
