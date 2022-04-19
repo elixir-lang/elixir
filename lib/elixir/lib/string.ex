@@ -200,8 +200,21 @@ defmodule String do
   You can also fully convert a string into a list of integer code points,
   known as "charlists" in Elixir, by calling `String.to_charlist/1`:
 
-      iex> String.to_charlist("olá")
-      [111, 108, 225]
+      iex> String.to_charlist("héllo")
+      [104, 233, 108, 108, 111]
+
+  If you would rather see the underlying bytes of a string, instead of
+  its codepoints, a common trick is to concatenate the null byte `<<0>>`
+  to it:
+
+      iex> "héllo" <> <<0>>
+      <<104, 195, 169, 108, 108, 111, 0>>
+
+  Alternatively, you can view a string's binary representation by
+  passing an option to `IO.inspect/2`:
+
+    iex> IO.inspect("héllo", binaries: :as_binaries)
+    <<104, 195, 169, 108, 108, 111>>
 
   ## Self-synchronization
 
