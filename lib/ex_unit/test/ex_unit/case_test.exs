@@ -157,7 +157,7 @@ defmodule ExUnit.CaseTest.TmpDir do
 
   defp ends_with_short_hash?(string) do
     string
-    |> String.slice(-9..-1)
+    |> binary_slice(-9..-1)
     |> String.starts_with?("-")
   end
 
