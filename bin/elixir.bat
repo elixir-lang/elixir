@@ -26,6 +26,7 @@ echo   -pz "PATH"                   Appends the given path to Erlang code path (
 echo   -v, --version                Prints Erlang/OTP and Elixir versions (standalone)
 echo.
 echo   --app APP                    Starts the given app and its dependencies (*)
+echo   --app-env APP KEY VAL        Sets app environment variable (*)
 echo   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
 echo   --eval "COMMAND"             Evaluates the given command, same as -e (*)
 echo   --logger-otp-reports BOOL    Enables or disables OTP reporting
@@ -142,6 +143,7 @@ if ""==!par:--no-halt=!   (set "parsElixir=!parsElixir! --no-halt" && goto start
 if ""==!par:--remsh=!     (set "parsElixir=!parsElixir! --remsh %1" && shift && goto startloop)
 if ""==!par:--dot-iex=!   (set "parsElixir=!parsElixir! --dot-iex %1" && shift && goto startloop)
 rem ******* ERLANG PARAMETERS **********************
+if ""==!par:--app-env=!         (set "parsErlang=!parsErlang! -%1 %2 %3" && shift && shift && shift && goto startloop)
 if ""==!par:--boot=!                (set "parsErlang=!parsErlang! -boot %1" && shift && goto startloop)
 if ""==!par:--boot-var=!            (set "parsErlang=!parsErlang! -boot_var %1 %2" && shift && shift && goto startloop)
 if ""==!par:--cookie=!              (set "parsErlang=!parsErlang! -setcookie %1" && shift && goto startloop)
