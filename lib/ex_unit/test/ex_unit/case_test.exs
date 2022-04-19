@@ -155,18 +155,62 @@ defmodule ExUnit.CaseTest.TmpDir do
 
   @moduletag :tmp_dir
 
+  defp ends_with_short_hash?(string) do
+    string
+    |> binary_slice(-9..-1)
+    |> String.starts_with?("-")
+  end
+
+  defp ends_with_short_hash_and_extra_path?(string, extra_path) do
+    extra_path = "/" <> extra_path
+    extra_path_length = String.length(extra_path)
+
+    case String.split_at(string, -extra_path_length) do
+      {tmp_dir_base, extra_path_new} when extra_path_new == extra_path ->
+        ends_with_short_hash?(tmp_dir_base)
+
+      _ ->
+        false
+    end
+  end
+
+  defp starts_with_path?(tmp_dir, path) do
+    String.starts_with?(tmp_dir, Path.expand(path))
+  end
+
   test "default path", context do
-    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-default-path")
+    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-default-path-")
+    assert ends_with_short_hash?(context.tmp_dir)
     assert File.ls!(context.tmp_dir) == []
   end
 
   test "escapes foo?/0", context do
-    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-escapes-foo--0")
+    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-escapes-foo--0-")
+    assert ends_with_short_hash?(context.tmp_dir)
   end
 
   @tag tmp_dir: "foo/bar"
   test "custom path", context do
-    assert context.tmp_dir == Path.expand("tmp/ExUnit.CaseTest.TmpDir/test-custom-path/foo/bar")
+    assert starts_with_path?(context.tmp_dir, "tmp/ExUnit.CaseTest.TmpDir/test-custom-path-")
+    assert ends_with_short_hash_and_extra_path?(context.tmp_dir, "foo/bar")
+  end
+
+  test "colliding-test-names", context do
+    assert starts_with_path?(
+             context.tmp_dir,
+             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names-"
+           )
+
+    assert String.ends_with?(context.tmp_dir, "-e09bee07")
+  end
+
+  test "colliding+test+names", context do
+    assert starts_with_path?(
+             context.tmp_dir,
+             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names-"
+           )
+
+    assert String.ends_with?(context.tmp_dir, "-c96d2f8c")
   end
 
   @tag tmp_dir: false
