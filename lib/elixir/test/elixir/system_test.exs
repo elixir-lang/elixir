@@ -189,6 +189,10 @@ defmodule SystemTest do
       assert {"hello\n", 0} = System.shell("echo hello")
     end
 
+    test "shell/1 with interpolation" do
+      assert {"1\n", 0} = System.shell("x=1; echo $x")
+    end
+
     test "shell/2 (with options)" do
       opts = [
         into: [],

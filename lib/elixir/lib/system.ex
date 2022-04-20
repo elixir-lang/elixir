@@ -910,10 +910,10 @@ defmodule System do
         {:unix, _} ->
           command =
             command
-            |> String.replace("\"", "\\\"")
+            |> String.replace("'", "\\'")
             |> String.to_charlist()
 
-          'sh -c "' ++ command ++ '"'
+          'sh -c \'' ++ command ++ '\''
 
         {:win32, osname} ->
           command = String.to_charlist(command)
