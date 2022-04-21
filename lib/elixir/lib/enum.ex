@@ -3722,11 +3722,11 @@ defmodule Enum do
   def with_index(enumerable, fun_or_offset \\ 0)
 
   def with_index(enumerable, offset) when is_list(enumerable) and is_integer(offset) do
-    with_index_list(enumerable, offset, [])
+    with_index_list(enumerable, offset)
   end
 
   def with_index(enumerable, fun) when is_list(enumerable) and is_function(fun, 2) do
-    with_index_list(enumerable, 0, fun, [])
+    with_index_list(enumerable, 0, fun)
   end
 
   def with_index(enumerable, offset) when is_integer(offset) do
@@ -4661,17 +4661,17 @@ defmodule Enum do
 
   ## with_index
 
-  defp with_index_list([elem | rest], offset, acc) do
-    with_index_list(rest, offset + 1, [{elem, offset} | acc])
+  defp with_index_list([head | tail], offset) do
+    [{head, offset} | with_index_list(tail, offset + 1)]
   end
 
-  defp with_index_list([], _offset, acc), do: :lists.reverse(acc)
+  defp with_index_list([], _offset), do: []
 
-  defp with_index_list([elem | rest], offset, fun, acc) do
-    with_index_list(rest, offset + 1, fun, [fun.(elem, offset) | acc])
+  defp with_index_list([head | tail], offset, fun) do
+    [fun.(head, offset) | with_index_list(tail, offset + 1, fun)]
   end
 
-  defp with_index_list([], _offset, _fun, acc), do: :lists.reverse(acc)
+  defp with_index_list([], _offset, _fun), do: []
 
   ## zip
 
