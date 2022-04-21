@@ -913,7 +913,7 @@ defmodule System do
             |> String.replace(["\"", "$"], &("\\" <> &1))
             |> String.to_charlist()
 
-          'sh -c "' ++ command ++ '"'
+          'sh -c "(' ++ command ++ '\n) </dev/null"'
 
         {:win32, osname} ->
           command = String.to_charlist(command)

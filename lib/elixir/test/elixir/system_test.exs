@@ -193,6 +193,15 @@ defmodule SystemTest do
       assert {"1\n2\n", 0} = System.shell("x=1; echo $x; echo '2'")
     end
 
+    @tag timeout: 1_000
+    test "shell/1 returns when command awaits input" do
+      assert {"", 0} = System.shell("cat")
+    end
+
+    test "shell/1 with comment" do
+      assert {"1\n", 0} = System.shell("echo '1' # comment")
+    end
+
     test "shell/2 (with options)" do
       opts = [
         into: [],
