@@ -905,27 +905,24 @@ defmodule System do
 
     # Finding shell command logic from :os.cmd in OTP
     # https://github.com/erlang/otp/blob/8deb96fb1d017307e22d2ab88968b9ef9f1b71d0/lib/kernel/src/os.erl#L184
-    command =
-      case :os.type() do
-        {:unix, _} ->
-          command =
-            command
-            |> String.replace(["\"", "$"], &("\\" <> &1))
-            |> String.to_charlist()
+    case :os.type() do
+      {:unix, _} ->
+        shell_path = :os.find_executable('sh') || :erlang.error(:enoent, [command, opts])
+        command = "(#{command}\n) </dev/null"
+        do_cmd({:spawn_executable, shell_path}, [args: ["-c", command]], opts)
 
-          'sh -c "(' ++ command ++ '\n) </dev/null"'
+      {:win32, osname} ->
+        command = String.to_charlist(command)
 
-        {:win32, osname} ->
-          command = String.to_charlist(command)
-
+        command =
           case {System.get_env("COMSPEC"), osname} do
             {nil, :windows} -> 'command.com /s /c ' ++ command
             {nil, _} -> 'cmd /s /c ' ++ command
             {cmd, _} -> '#{cmd} /s /c ' ++ command
           end
-      end
 
-    do_cmd({:spawn, command}, [], opts)
+        do_cmd({:spawn, command}, [], opts)
+    end
   end
 
   @doc ~S"""
