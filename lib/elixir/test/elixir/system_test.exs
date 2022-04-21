@@ -190,7 +190,7 @@ defmodule SystemTest do
     end
 
     test "shell/1 with interpolation" do
-      assert {"1\n", 0} = System.shell("x=1; echo $x")
+      assert {"1\n2\n", 0} = System.shell("x=1; echo $x; echo '2'")
     end
 
     test "shell/2 (with options)" do
