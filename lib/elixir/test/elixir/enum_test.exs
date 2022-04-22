@@ -1409,6 +1409,13 @@ defmodule EnumTest do
 
     assert Enum.with_index([1, 2, 3], fn element, index -> {index, element} end) ==
              [{0, 1}, {1, 2}, {2, 3}]
+
+    assert Enum.with_index(1..0//1) == []
+    assert Enum.with_index(1..3) == [{1, 0}, {2, 1}, {3, 2}]
+    assert Enum.with_index(1..3, 10) == [{1, 10}, {2, 11}, {3, 12}]
+
+    assert Enum.with_index(1..3, fn element, index -> {index, element} end) ==
+             [{0, 1}, {1, 2}, {2, 3}]
   end
 
   test "zip/2" do
