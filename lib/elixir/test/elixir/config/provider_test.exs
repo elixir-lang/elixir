@@ -171,7 +171,7 @@ defmodule Config.ProviderTest do
   end
 
   defp capture_abort(fun) do
-    capture_io(:stderr, fn ->
+    capture_io(fn ->
       assert_raise ErlangError, fun
     end)
   end
