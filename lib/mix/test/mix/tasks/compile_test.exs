@@ -306,7 +306,7 @@ defmodule Mix.Tasks.CompileTest do
       Mix.Tasks.Loadconfig.run([])
       Application.unload(:sample)
 
-      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert ExUnit.CaptureIO.capture_io(fn ->
                assert_raise ErlangError, fn -> Mix.Tasks.Compile.All.run([]) end
              end) =~
                " the application :sample has a different value set for key :hello during runtime compared to compile time"
