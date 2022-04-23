@@ -409,7 +409,7 @@ defmodule Config.Provider do
   end
 
   defp abort(msg) do
-    IO.puts(:stderr, "ERROR! " <> msg)
+    IO.puts("ERROR! " <> msg)
     :erlang.raise(:error, "aborting boot", [{Config.Provider, :boot, 2, []}])
   end
 end
