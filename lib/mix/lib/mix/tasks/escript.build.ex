@@ -101,27 +101,31 @@ defmodule Mix.Tasks.Escript.Build do
 
   ## Example
 
-      defmodule MyApp.MixProject do
-        use Mix.Project
+  * `mix.exs`:
 
-        def project do
-          [
-            app: :my_app,
-            version: "0.0.1",
-            escript: escript()
-          ]
+        defmodule MyApp.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              app: :my_app,
+              version: "0.0.1",
+              escript: escript()
+            ]
+          end
+
+          def escript do
+            [main_module: MyApp.CLI]
+          end
         end
 
-        def escript do
-          [main_module: MyApp.CLI]
-        end
-      end
+  * `lib/cli.ex`:
 
-      defmodule MyApp.CLI do
-        def main(_args) do
-          IO.puts("Hello from MyApp!")
+        defmodule MyApp.CLI do
+          def main(_args) do
+            IO.puts("Hello from MyApp!")
+          end
         end
-      end
 
   """
 
