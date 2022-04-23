@@ -331,21 +331,37 @@ eval_external_handler(Env) ->
         {current_stacktrace, Current} =
             erlang:process_info(self(), current_stacktrace),
 
-        Reversed = drop_common(lists:reverse(Current), lists:reverse(Pruned)),
+        %% We need to make sure that we don't generate more
+        %% frames than supported. So we do our best to drop
+        %% from the Caller, but if the caller has no frames,
+        %% we need to drop from Pruned.
+        {DroppedCaller, ToDrop} =
+          case Caller of
+            [] -> {[], true};
+            _ -> {lists:droplast(Caller), false}
+          end,
+
+        Reversed = drop_common(lists:reverse(Current), lists:reverse(Pruned), ToDrop),
         File = elixir_utils:characters_to_list(?key(Env, file)),
         Location = [{file, File}, {line, erl_anno:line(Ann)}],
 
         %% Add file+line information at the bottom
-        Custom = lists:reverse([{elixir_eval, '__FILE__', 1, Location} | Reversed], Caller),
+        Custom = lists:reverse([{elixir_eval, '__FILE__', 1, Location} | Reversed], DroppedCaller),
         erlang:raise(Kind, Reason, Custom)
     end
   end,
   {value, Fun}.
 
-drop_common([H | T1], [H | T2]) -> drop_common(T1, T2);
-drop_common([_ | T1], T2) -> drop_common(T1, T2);
-drop_common([], [{?MODULE, _, _, _} | T2]) -> T2;
-drop_common([], T2) -> T2.
+%% We need to check if we have dropped any frames.
+%% If we have not dropped frames, then we need to drop one
+%% at the end so we can put the elixir_eval frame in. If
+%% we have more traces then depth, Erlang would discard
+%% the whole stacktrace.
+drop_common([H | T1], [H | T2], _ToDrop) -> drop_common(T1, T2, false);
+drop_common([_ | T1], T2, ToDrop) -> drop_common(T1, T2, ToDrop);
+drop_common([], [{?MODULE, _, _, _} | T2], _ToDrop) -> T2;
+drop_common([], [_ | T2], true) -> T2;
+drop_common([], T2, _) -> T2.
 -else.
 eval_external_handler(_Env) ->
   none.
