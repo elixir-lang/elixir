@@ -140,19 +140,21 @@ defmodule ExUnit.Case do
   The following tags are set automatically by ExUnit and are
   therefore reserved:
 
-    * `:module`     - the module on which the test was defined
+    * `:module` - the module on which the test was defined
 
-    * `:file`       - the file on which the test was defined
+    * `:file` - the file on which the test was defined
 
-    * `:line`       - the line on which the test was defined
+    * `:line` - the line on which the test was defined
 
-    * `:test`       - the test name
+    * `:test` - the test name
 
-    * `:async`      - if the test case is in async mode
+    * `:async` - if the test case is in async mode
 
     * `:registered` - used for `ExUnit.Case.register_attribute/3` values
 
-    * `:describe`   - the describe block the test belongs to
+    * `:describe` - the describe block the test belongs to
+
+    * `:describe_line` - the line the describe block begins on
 
   The following tags customize how tests behave:
 
