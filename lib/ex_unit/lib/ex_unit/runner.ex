@@ -398,7 +398,7 @@ defmodule ExUnit.Runner do
 
   defp create_tmp_dir!(test, extra_path, context) do
     module_string = inspect(test.module)
-    name_string = to_string(test.name)
+    name_string = simplify_test_name(test.name)
 
     module = escape_path(module_string)
     name = escape_path(name_string)
@@ -408,6 +408,12 @@ defmodule ExUnit.Runner do
     File.rm_rf!(path)
     File.mkdir_p!(path)
     Map.put(context, :tmp_dir, path)
+  end
+
+  defp simplify_test_name(test_name) do
+    test_name
+    |> to_string()
+    |> String.trim_leading("test ")
   end
 
   @escape Enum.map(' [~#%&*{}\\:<>?/+|"]', &<<&1::utf8>>)
