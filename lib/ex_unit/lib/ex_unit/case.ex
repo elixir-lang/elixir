@@ -154,6 +154,8 @@ defmodule ExUnit.Case do
 
     * `:describe`   - the describe block the test belongs to
 
+    * `:describe_line` - the line the describe block begins on
+
   The following tags customize how tests behave:
 
     * `:capture_log` - see the "Log Capture" section below
