@@ -213,8 +213,8 @@ defmodule String do
   Alternatively, you can view a string's binary representation by
   passing an option to `IO.inspect/2`:
 
-    iex> IO.inspect("héllo", binaries: :as_binaries)
-    <<104, 195, 169, 108, 108, 111>>
+      IO.inspect("héllo", binaries: :as_binaries)
+      #=> <<104, 195, 169, 108, 108, 111>>
 
   ## Self-synchronization
 
