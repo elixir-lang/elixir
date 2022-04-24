@@ -69,12 +69,16 @@ defmodule Kernel.DefaultsTest do
       end
     end
 
-    assert_raise CompileError, ~r"undefined function foo/0", fn ->
-      defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
-        def hello(foo, bar \\ foo)
-        def hello(foo, bar), do: foo + bar
-      end
-    end
+    assert capture_io(:stderr, fn ->
+             assert_raise CompileError, ~r"undefined function foo/0", fn ->
+               defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
+                 def hello(foo, bar \\ foo)
+                 def hello(foo, bar), do: foo + bar
+               end
+             end
+           end) =~
+             "variable \"foo\" does not exist and is being expanded to \"foo()\", " <>
+               "please use parentheses to remove the ambiguity or change the variable name"
   end
 
   test "errors on conflicting defaults" do
