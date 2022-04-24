@@ -195,26 +195,28 @@ defmodule ExUnit.CaseTest.TmpDir do
     assert ends_with_short_hash_and_extra_path?(context.tmp_dir, "foo/bar")
   end
 
-  test "colliding-test-names", context do
-    assert starts_with_path?(
-             context.tmp_dir,
-             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names-"
-           )
-
-    assert String.ends_with?(context.tmp_dir, "-e09bee07")
-  end
-
-  test "colliding+test+names", context do
-    assert starts_with_path?(
-             context.tmp_dir,
-             "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names-"
-           )
-
-    assert String.ends_with?(context.tmp_dir, "-c96d2f8c")
-  end
-
   @tag tmp_dir: false
   test "disabled", context do
     refute context[:tmp_dir]
+  end
+
+  describe "colliding test names" do
+    test "foo-bar", context do
+      assert starts_with_path?(
+               context.tmp_dir,
+               "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names-foo-bar-"
+             )
+
+      assert String.ends_with?(context.tmp_dir, "-2489e2ce")
+    end
+
+    test "foo+bar", context do
+      assert starts_with_path?(
+               context.tmp_dir,
+               "tmp/ExUnit.CaseTest.TmpDir/test-colliding-test-names-foo-bar-"
+             )
+
+      assert String.ends_with?(context.tmp_dir, "-9633ed5f")
+    end
   end
 end
