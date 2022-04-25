@@ -80,7 +80,7 @@ TODO.
 #### ExUnit
 
   * [ExUnit] Do not raise when diffing unknown bindings in guards
-  * [ExUnit] Properly print diffs when comparing improper lists with strings at the tail position 
+  * [ExUnit] Properly print diffs when comparing improper lists with strings at the tail position
 
 #### Mix
 
@@ -99,7 +99,7 @@ TODO.
 
 #### Mix
 
-  * [mix cmd] The `--app` option in `mix cmd CMD` is deprecated in favor of the more efficient `mix do --app app cmd CMD` 
+  * [mix cmd] The `--app` option in `mix cmd CMD` is deprecated in favor of the more efficient `mix do --app app cmd CMD`
 
 ### 4. Hard-deprecations
 
