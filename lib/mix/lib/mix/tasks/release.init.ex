@@ -60,7 +60,7 @@ defmodule Mix.Tasks.Release.Init do
     do: ~S"""
     #!/bin/sh
 
-    # Sets and enables heart (recommended only in daemon mode)
+    ## Sets and enables heart (recommended only in daemon mode)
     # case $RELEASE_COMMAND in
     #   daemon*)
     #     HEART_COMMAND="$RELEASE_ROOT/bin/$RELEASE_NAME $RELEASE_COMMAND"
@@ -71,8 +71,8 @@ defmodule Mix.Tasks.Release.Init do
     #     ;;
     # esac
 
-    # Set the release to work across nodes.
-    # RELEASE_DISTRIBUTION must be "sname" (local), "name" (distributed) or "none".
+    ## Set the release to work across nodes.
+    ## RELEASE_DISTRIBUTION must be "sname" (local), "name" (distributed) or "none".
     # export RELEASE_DISTRIBUTION=name
     # export RELEASE_NODE=<%= @release.name %>
     """
