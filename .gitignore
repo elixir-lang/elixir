@@ -4,6 +4,8 @@
 /lib/*/tmp/
 /lib/elixir/src/*_parser.erl
 /lib/elixir/test/ebin/
+/lib/*/test/fixtures/*/_build/
+/lib/*/test/fixtures/*/apps/*/_build/
 /man/elixir.1
 /man/iex.1
 /Docs-v*.zip
