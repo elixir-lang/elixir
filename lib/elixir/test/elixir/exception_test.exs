@@ -33,6 +33,12 @@ defmodule ExceptionTest do
     assert Exception.normalize({:EXIT, self()}, :badarg, []) == :badarg
     assert Exception.normalize(:error, :badarg, []).__struct__ == ArgumentError
     assert Exception.normalize(:error, %ArgumentError{}, []).__struct__ == ArgumentError
+
+    assert %ErlangError{original: :no_translation, reason: ": foo"} =
+             Exception.normalize(:error, :no_translation, [
+               {:io, :put_chars, [self(), <<222>>],
+                [error_info: %{module: __MODULE__, function: :dummy_error_extras}]}
+             ])
   end
 
   test "format/2 without stacktrace" do
@@ -841,4 +847,6 @@ defmodule ExceptionTest do
       e -> Exception.message(e)
     end
   end
+
+  def dummy_error_extras(_exception, _stacktrace), do: %{general: "foo"}
 end
