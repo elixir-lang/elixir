@@ -388,6 +388,10 @@ defmodule ExUnit.Callbacks do
   test, as simply shutting down the process would cause it to be restarted
   according to its `:restart` value.
 
+  The started process is not linked to the test process and a crash will
+  not necessarily fail the test. To start and link a process to guarantee
+  that any crash would also fail the test use `start_link_supervised!/2`.
+
   This function returns `{:ok, pid}` in case of success, otherwise it
   returns `{:error, reason}`.
   """
@@ -444,6 +448,21 @@ defmodule ExUnit.Callbacks do
   defp start_supervised_error(reason), do: Exception.format_exit({:start_spec, reason})
 
   @doc """
+  Same as `start_supervised!/2` but links the started process to the test process.
+
+  This means that if the process that was started crashes that crash is propagated to
+  the test process, failing the test and printing the cause of the crash.
+  """
+  @doc since: "1.14.0"
+  @spec start_link_supervised!(Supervisor.child_spec() | module | {module, term}, keyword) ::
+          Supervisor.on_start_child()
+  def start_link_supervised!(child_spec_or_module, opts \\ []) do
+    pid = start_supervised!(child_spec_or_module, opts)
+    Process.link(pid)
+    pid
+  end
+
+  @doc """
   Stops a child process started via `start_supervised/2`.
 
   This function expects the `id` in the child specification.
@@ -463,6 +482,12 @@ defmodule ExUnit.Callbacks do
         {:error, :not_found}
 
       {:ok, sup} ->
+        pid = pid_for_child(sup, id)
+
+        if pid do
+          Process.unlink(pid)
+        end
+
         with :ok <- Supervisor.terminate_child(sup, id) do
           # If the terminated child was temporary, delete_child returns {:error, :not_found}.
           # Since the child was successfully terminated, we treat this result as a success.
@@ -472,6 +497,14 @@ defmodule ExUnit.Callbacks do
 
       :error ->
         raise ArgumentError, "stop_supervised/1 can only be invoked from the test process"
+    end
+  end
+
+  defp pid_for_child(sup, id) do
+    children = Supervisor.which_children(sup)
+
+    with {_id, pid, _type, _modules} <- List.keyfind(children, id, 0) do
+      pid
     end
   end
 
