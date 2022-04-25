@@ -1072,11 +1072,10 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Injects the contents of the file at `path` as if it was typed into
-  the shell.
+  Injects the contents of the file at `path`.
 
   This would be the equivalent of getting all of the file contents and
-  packing it all into a single line in IEx and executing it.
+  pasting it all at once in IEx and executing it.
 
   By default, the contents of a `.iex.exs` file in the same directory
   as you are starting IEx are automatically imported. See the section

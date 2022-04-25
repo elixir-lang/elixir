@@ -78,6 +78,24 @@ defmodule IEx.InteractionTest do
     :code.delete(Sample)
   end
 
+  test "blocks" do
+    input = """
+    (
+      defmodule Sample do
+        def foo, do: bar()
+        def bar, do: 13
+      end
+      import Sample
+      foo()
+    )
+    """
+
+    assert capture_iex(input) =~ "13"
+  after
+    :code.purge(Sample)
+    :code.delete(Sample)
+  end
+
   test "prompt" do
     opts = [default_prompt: "prompt(%counter)>"]
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
@@ -180,19 +198,34 @@ defmodule IEx.InteractionTest do
 
     @tag :tmp_dir
     test "single .iex", %{tmp_dir: tmp_dir} do
-      path = write_dot_iex!(tmp_dir, "dot-iex", "my_variable = 144")
-      assert capture_iex("my_variable", [], dot_iex_path: path) == "144"
+      path =
+        write_dot_iex!(tmp_dir, "dot-iex", """
+        defmodule DotIEx do
+          def my_fun_single, do: :single
+        end
+        import DotIEx
+        my_variable = 42
+        """)
+
+      assert capture_iex("{my_fun_single(), my_variable}", [], dot_iex_path: path) ==
+               "{:single, 42}"
     end
 
     @tag :tmp_dir
     test "nested .iex", %{tmp_dir: tmp_dir} do
-      write_dot_iex!(tmp_dir, "dot-iex-1", "nested_var = 13\nimport IO")
+      write_dot_iex!(tmp_dir, "dot-iex-1", """
+      defmodule DotIExNested do
+        def my_fun_nested, do: :nested
+      end
+      import DotIExNested
+      nested_var = 42
+      """)
 
       path =
-        write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=14")
+        write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=13")
 
-      input = "nested_var\nmy_variable\nputs \"hello\""
-      assert capture_iex(input, [], dot_iex_path: path) == "13\n14\nhello\n:ok"
+      input = "nested_var\nmy_variable\nmy_fun_nested()"
+      assert capture_iex(input, [], dot_iex_path: path) == "42\n13\n:nested"
     end
   end
 
