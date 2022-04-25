@@ -9,7 +9,7 @@
 #
 # For documentation and usage, see http://www.unicode.org/reports/tr39
 #
-05AD ;	0596 ;	MA	# ( ֭ → ֖ ) HEBREW ACCENT DEHI → HEBREW ACCENT TIPEHA	# 
+05AD ;	0596 ;	MA	# ( ֭ → ֖ ) HEBREW ACCENT DEHI → HEBREW ACCENT TIPEHA	#
 
 05AE ;	0598 ;	MA	# ( ֮ → ֘ ) HEBREW ACCENT ZINOR → HEBREW ACCENT ZARQA	# 
 

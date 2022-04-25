@@ -14,7 +14,7 @@ import(Meta, Ref, Opts, E) ->
       {only, macros} ->
         {Added2, Macs} = import_macros(true, Meta, Ref, Opts, E),
         {keydelete(Ref, ?key(E, functions)), Macs, Added2};
-      {only, sigils} -> 
+      {only, sigils} ->
         {Added1, Funs} = import_sigil_functions(Meta, Ref, Opts, E),
         {Added2, Macs} = import_sigil_macros(Meta, Ref, Opts, E),
         {Funs, Macs, Added1 or Added2};
@@ -65,8 +65,8 @@ import_sigil_macros(Meta, Ref, Opts, E) ->
     end
   end).
 
-filter_sigils(Key) -> 
-  lists:filter(fun({Atom, _}) -> 
+filter_sigils(Key) ->
+  lists:filter(fun({Atom, _}) ->
     case atom_to_list(Atom) of
       "sigil_" ++ [L] when L >= $a, L =< $z; L >= $A, L =< $Z -> true;
       _ -> false
