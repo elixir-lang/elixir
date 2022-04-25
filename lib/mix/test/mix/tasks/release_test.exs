@@ -296,7 +296,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert_received {:mix_shell, :info, ["* assembling release_test-0.1.0 on MIX_ENV=dev"]}
 
         assert_received {:mix_shell, :info,
-                         ["\nRelease created at _build/dev/rel/release_test!" <> _]}
+                         ["\nRelease created at _build/dev/rel/release_test\n" <> _]}
 
         assert_received {:mix_shell, :info, ["* skipping runtime configuration" <> _]}
 
