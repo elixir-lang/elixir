@@ -143,6 +143,10 @@ defmodule StringIOTest do
     assert_raise ArgumentError, fn ->
       IO.write(pid, [<<1::1>>])
     end
+
+    assert_raise ErlangError, ~r/no_translation/, fn ->
+      IO.write(pid, <<222>>)
+    end
   end
 
   test "IO.binwrite" do
