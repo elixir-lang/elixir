@@ -448,8 +448,7 @@ defmodule ExUnit.Callbacks do
   defp start_supervised_error(reason), do: Exception.format_exit({:start_spec, reason})
 
   @doc """
-  Same as `start_link_supervised/2` but returns the PID on success and raises if
-  not started properly.
+  Same as `start_supervised!/2` but links the started process to the test process.
 
   This means that if the process that was started crashes that crash is propagated to
   the test process, failing the test and printing the cause of the crash.
