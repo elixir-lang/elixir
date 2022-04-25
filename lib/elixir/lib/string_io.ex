@@ -290,7 +290,7 @@ defmodule StringIO do
         {:ok, %{state | output: state.output <> string}}
 
       {_, _, _} ->
-        {{:error, req}, state}
+        {{:error, {:no_translation, encoding, state.encoding}}, state}
     end
   rescue
     ArgumentError -> {{:error, req}, state}

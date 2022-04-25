@@ -337,6 +337,10 @@ defmodule Logger.Backends.Console do
     retry_log({:put_chars, :unicode, output}, state)
   end
 
+  defp handle_io_reply({:error, {:no_translation, _encoding_from, _encoding_to} = error}, state) do
+    retry_log(error, state)
+  end
+
   defp handle_io_reply({:error, error}, _) do
     raise "failure while logging console messages: " <> inspect(error)
   end
