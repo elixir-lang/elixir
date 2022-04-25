@@ -1473,17 +1473,23 @@ defmodule File.LinkError do
 end
 
 defmodule ErlangError do
-  defexception [:original]
+  defexception [:original, :reason]
 
   @impl true
-  def message(exception) do
-    "Erlang error: #{inspect(exception.original)}"
+  def message(exception)
+
+  def message(%__MODULE__{original: original, reason: nil}) do
+    "Erlang error: #{inspect(original)}"
+  end
+
+  def message(%__MODULE__{original: original, reason: reason}) do
+    IO.iodata_to_binary(["Erlang error: ", inspect(original), reason])
   end
 
   @doc false
   def normalize(:badarg, stacktrace) do
     case error_info(:badarg, stacktrace, "errors were found at the given arguments") do
-      {:ok, message} -> %ArgumentError{message: message}
+      {:ok, reason, details} -> %ArgumentError{message: reason <> details}
       :error -> %ArgumentError{}
     end
   end
@@ -1496,7 +1502,7 @@ defmodule ErlangError do
     default_reason = "a system limit has been reached due to errors at the given arguments"
 
     case error_info(:system_limit, stacktrace, default_reason) do
-      {:ok, message} -> %SystemLimitError{message: message}
+      {:ok, reason, details} -> %SystemLimitError{message: reason <> details}
       :error -> %SystemLimitError{}
     end
   end
@@ -1573,8 +1579,11 @@ defmodule ErlangError do
     %ArgumentError{message: "argument error: #{inspect(payload)}"}
   end
 
-  def normalize(other, _stacktrace) do
-    %ErlangError{original: other}
+  def normalize(other, stacktrace) do
+    case error_info(other, stacktrace, "") do
+      {:ok, _reason, details} -> %ErlangError{original: other, reason: details}
+      :error -> %ErlangError{original: other}
+    end
   end
 
   defp from_stacktrace([{module, function, args, _} | _]) when is_list(args) do
@@ -1605,10 +1614,10 @@ defmodule ErlangError do
 
       cond do
         map_size(args_errors) > 0 ->
-          {:ok, IO.iodata_to_binary(["#{reason}:\n\n" | Enum.map(args_errors, &arg_error/1)])}
+          {:ok, reason, IO.iodata_to_binary([":\n\n" | Enum.map(args_errors, &arg_error/1)])}
 
         general = extra[:general] ->
-          {:ok, "#{reason}: #{general}"}
+          {:ok, reason, ": " <> general}
 
         true ->
           :error
