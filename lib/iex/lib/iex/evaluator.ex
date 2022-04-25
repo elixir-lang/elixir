@@ -184,7 +184,7 @@ defmodule IEx.Evaluator do
   defp loop(%{server: server, ref: ref} = state) do
     receive do
       {:eval, ^server, code, iex_state} ->
-        {result, status, state} = eval(code, iex_state, state)
+        {result, status, state} = parse_eval_inspect(code, iex_state, state)
         send(server, {:evaled, self(), status, result})
         loop(state)
 
@@ -269,11 +269,11 @@ defmodule IEx.Evaluator do
     try do
       code = File.read!(path)
       quoted = :elixir.string_to_quoted!(String.to_charlist(code), 1, 1, path, [])
+      Process.put(:iex_imported_paths, MapSet.new([path]))
 
       # Evaluate the contents in the same environment server_loop will run in
       env = %{state.env | file: path, line: 1}
-      Process.put(:iex_imported_paths, MapSet.new([path]))
-      {_result, binding, env} = Code.eval_quoted_with_env(quoted, state.binding, env)
+      {_result, binding, env} = eval_expr_by_expr(quoted, state.binding, env)
       %{state | binding: binding, env: %{env | file: "iex", line: 1}}
     catch
       kind, error ->
@@ -285,11 +285,11 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp eval(code, iex_state, state) do
+  defp parse_eval_inspect(code, iex_state, state) do
     try do
       {parser_module, parser_fun, args} = IEx.Config.parser()
       args = [code, [line: iex_state.counter, file: "iex"], iex_state.parser_state | args]
-      do_eval(apply(parser_module, parser_fun, args), iex_state, state)
+      eval_and_inspect_parsed(apply(parser_module, parser_fun, args), iex_state, state)
     catch
       kind, error ->
         print_error(kind, error, __STACKTRACE__)
@@ -297,17 +297,17 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp do_eval({:ok, forms, parser_state}, iex_state, state) do
+  defp eval_and_inspect_parsed({:ok, forms, parser_state}, iex_state, state) do
     put_history(state)
     put_whereami(state)
-    state = handle_eval(forms, iex_state.counter, state)
+    state = eval_and_inspect(forms, iex_state.counter, state)
     {%{iex_state | parser_state: parser_state, counter: iex_state.counter + 1}, :ok, state}
   after
     Process.delete(:iex_history)
     Process.delete(:iex_whereami)
   end
 
-  defp do_eval({:incomplete, parser_state}, iex_state, state) do
+  defp eval_and_inspect_parsed({:incomplete, parser_state}, iex_state, state) do
     {%{iex_state | parser_state: parser_state}, :incomplete, state}
   end
 
@@ -323,16 +323,16 @@ defmodule IEx.Evaluator do
     Process.put(:iex_whereami, {file, line, stacktrace})
   end
 
-  defp handle_eval(forms, line, state) do
+  defp eval_and_inspect(forms, line, state) do
     forms = add_if_undefined_apply_to_vars(forms)
-    {result, binding, env} = Code.eval_quoted_with_env(forms, state.binding, state.env)
+    {result, binding, env} = eval_expr_by_expr(forms, state.binding, state.env)
 
     unless result == IEx.dont_display_result() do
       io_inspect(result)
     end
 
-    state = %{state | env: env, binding: binding}
-    update_history(state, line, result)
+    history = IEx.History.append(state.history, {line, result}, IEx.Config.history_size())
+    %{state | env: env, binding: binding, history: history}
   end
 
   defp add_if_undefined_apply_to_vars(forms) do
@@ -345,9 +345,16 @@ defmodule IEx.Evaluator do
     end)
   end
 
-  defp update_history(state, counter, result) do
-    history_size = IEx.Config.history_size()
-    update_in(state.history, &IEx.History.append(&1, {counter, result}, history_size))
+  defp eval_expr_by_expr(expr, binding, env) do
+    case Macro.expand(expr, env) do
+      {:__block__, _, exprs} ->
+        Enum.reduce(exprs, {nil, binding, env}, fn expr, {_result, binding, env} ->
+          eval_expr_by_expr(expr, binding, env)
+        end)
+
+      expr ->
+        Code.eval_quoted_with_env(expr, binding, env)
+    end
   end
 
   defp io_inspect(result) do

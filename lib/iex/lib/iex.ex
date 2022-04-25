@@ -303,14 +303,12 @@ defmodule IEx do
 
   When starting, IEx looks for a local `.iex.exs` file (located in the current
   working directory), then a global one (located at `~/.iex.exs`) and loads the
-  first one it finds (if any). Note the location of the `.iex.exs` files, both
-  in the current directory and the global one, are taken relative to the user
-  that started the application, not to the user that is connecting to the node in
-  case of remote IEx connections.
+  first one it finds (if any).
 
-  The code in the loaded `.iex.exs` file is evaluated in the shell's context.
-  For instance, any modules that are loaded or variables that are bound in the
-  `.iex.exs` file will be available in the shell after it has booted.
+  The code in the chosen `.iex.exs` file is evaluated line by line in the shell's
+  context, as if each line were being typed in the shell. For instance, any modules
+  that are loaded or variables that are bound in the `.iex.exs` file will be available
+  in the shell after it has booted.
 
   Take the following `.iex.exs` file:
 
@@ -337,8 +335,12 @@ defmodule IEx do
       iex(1)> value
       13
 
-  It is possible to load another file by supplying the `--dot-iex`
-  option to IEx. See `iex --help`.
+  It is possible to load another file by supplying the `--dot-iex` option
+  to IEx. See `iex --help`.
+
+  In case of remote nodes, the location of the `.iex.exs` files are taken
+  relative to the user that started the application, not to the user that
+  is connecting to the node in case of remote IEx connections.
 
   ## Configuring the shell
 
