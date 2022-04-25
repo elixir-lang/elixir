@@ -212,7 +212,7 @@ defmodule PartitionSupervisor do
   end
 
   @doc """
-  Returns the number of partitions for the partition supervisor.  
+  Returns the number of partitions for the partition supervisor.
   """
   @doc since: "1.14.0"
   @spec partitions(name()) :: pos_integer()

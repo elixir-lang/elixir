@@ -171,7 +171,7 @@ defmodule Macro.Env do
   @doc """
   Fetches the alias for the given atom.
 
-  Returns `{:ok, alias}` if the alias exists, `:error` 
+  Returns `{:ok, alias}` if the alias exists, `:error`
   otherwise.
 
   ## Examples

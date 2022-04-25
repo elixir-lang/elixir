@@ -119,7 +119,7 @@ defmodule Supervisor do
   in the following list are required, and the remaining ones are optional:
 
     * `:id` - any term used to identify the child specification internally by
-      the supervisor; defaults to the given module. This key is required. 
+      the supervisor; defaults to the given module. This key is required.
       For Supervisors, in the case of conflicting `:id` values, the supervisor
       will refuse to initialize and require explicit IDs. This is not the case
       for DynamicSupervisors though.
