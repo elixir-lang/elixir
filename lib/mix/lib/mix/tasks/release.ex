@@ -1302,7 +1302,7 @@ defmodule Mix.Tasks.Release do
 
     info(release, """
 
-    Release created at #{path}!
+    Release created at #{path}
 
         # To start your system
         #{cmd} start
