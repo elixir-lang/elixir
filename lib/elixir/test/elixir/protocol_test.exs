@@ -267,27 +267,84 @@ defmodule ProtocolTest do
              String.to_charlist(__ENV__.file)
   end
 
-  test "cannot derive without any implementation" do
-    assert_raise ArgumentError,
-                 ~r"could not load module #{inspect(Sample.Any)} due to reason :nofile, cannot derive #{inspect(Sample)}",
-                 fn ->
-                   defmodule NotCompiled do
-                     @derive [Sample]
-                     defstruct hello: :world
-                   end
-                 end
+  describe "warnings" do
+    import ExUnit.CaptureIO
+
+    test "with no definitions" do
+      assert capture_io(:stderr, fn ->
+               defprotocol SampleWithNoDefinitions do
+               end
+             end) =~ "protocols must define at least one function, but none was defined"
+    end
+
+    test "when @callbacks and friends are defined inside a protocol" do
+      message =
+        capture_io(:stderr, fn ->
+          defprotocol SampleWithCallbacks do
+            @spec with_specs(any(), keyword()) :: tuple()
+            def with_specs(term, options \\ [])
+
+            @spec with_specs_and_when(any(), opts) :: tuple() when opts: keyword
+            def with_specs_and_when(term, options \\ [])
+
+            def without_specs(term, options \\ [])
+
+            @callback foo :: {:ok, term}
+            @callback foo(term) :: {:ok, term}
+            @callback foo(term, keyword) :: {:ok, term, keyword}
+
+            @callback foo_when :: {:ok, x} when x: term
+            @callback foo_when(x) :: {:ok, x} when x: term
+            @callback foo_when(x, opts) :: {:ok, x, opts} when x: term, opts: keyword
+
+            @macrocallback bar(term) :: {:ok, term}
+            @macrocallback bar(term, keyword) :: {:ok, term, keyword}
+
+            @optional_callbacks [foo: 1, foo: 2]
+            @optional_callbacks [without_specs: 2]
+          end
+        end)
+
+      assert message =~
+               "cannot define @callback foo/0 inside protocol, use def/1 to outline your protocol definition"
+
+      assert message =~
+               "cannot define @callback foo/1 inside protocol, use def/1 to outline your protocol definition"
+
+      assert message =~
+               "cannot define @callback foo/2 inside protocol, use def/1 to outline your protocol definition"
+
+      assert message =~
+               "cannot define @callback foo_when/0 inside protocol, use def/1 to outline your protocol definition"
+
+      assert message =~
+               "cannot define @callback foo_when/1 inside protocol, use def/1 to outline your protocol definition"
+
+      assert message =~
+               "cannot define @callback foo_when/2 inside protocol, use def/1 to outline your protocol definition"
+
+      assert message =~
+               "cannot define @macrocallback bar/1 inside protocol, use def/1 to outline your protocol definition"
+
+      assert message =~
+               "cannot define @macrocallback bar/2 inside protocol, use def/1 to outline your protocol definition"
+
+      assert message =~
+               "cannot define @optional_callbacks inside protocol, all of the protocol definitions are required"
+    end
   end
 
-  test "malformed @callback raises with CompileError" do
-    assert_raise CompileError,
-                 "nofile:2: type specification missing return type: foo(term)",
-                 fn ->
-                   Code.eval_string("""
-                   defprotocol WithMalformedCallback do
-                     @callback foo(term)
+  describe "errors" do
+    test "cannot derive without any implementation" do
+      assert_raise ArgumentError,
+                   ~r"could not load module #{inspect(Sample.Any)} due to reason :nofile, cannot derive #{inspect(Sample)}",
+                   fn ->
+                     defmodule NotCompiled do
+                       @derive [Sample]
+                       defstruct hello: :world
+                     end
                    end
-                   """)
-                 end
+    end
   end
 end
 
@@ -299,6 +356,7 @@ defmodule Protocol.DebugInfoTest do
 
     {:module, _, binary, _} =
       defprotocol DebugInfoProto do
+        def example(info)
       end
 
     assert {:ok, {DebugInfoProto, [debug_info: debug_info]}} =

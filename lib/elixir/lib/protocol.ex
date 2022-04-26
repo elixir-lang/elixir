@@ -763,13 +763,20 @@ defmodule Protocol do
     IO.warn(message, stacktrace)
   end
 
-  # TODO: Convert the following warnings into errors in future Elixir versions
   def __before_compile__(env) do
-    # Callbacks
     callback_metas = callback_metas(env.module, :callback)
     callbacks = :maps.keys(callback_metas)
     functions = Module.get_attribute(env.module, :__functions__)
 
+    if functions == [] do
+      warn(
+        "protocols must define at least one function, but none was defined",
+        env,
+        nil
+      )
+    end
+
+    # TODO: Convert the following warnings into errors in future Elixir versions
     :lists.map(
       fn {name, arity} = fa ->
         warn(
@@ -799,7 +806,7 @@ defmodule Protocol do
     # Optional Callbacks
     optional_callbacks = Module.get_attribute(env.module, :optional_callbacks)
 
-    if length(optional_callbacks) > 0 do
+    if optional_callbacks != [] do
       warn(
         "cannot define @optional_callbacks inside protocol, all of the protocol definitions are required",
         env,
