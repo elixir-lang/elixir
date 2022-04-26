@@ -290,8 +290,7 @@ defmodule ExUnit.Case do
         :moduletag,
         :ex_unit_registered_test_attributes,
         :ex_unit_registered_describe_attributes,
-        :ex_unit_registered_module_attributes,
-        :ex_unit_used_describes
+        :ex_unit_registered_module_attributes
       ]
 
       Enum.each(attributes, &Module.register_attribute(module, &1, accumulate: true))
@@ -299,8 +298,7 @@ defmodule ExUnit.Case do
       attributes = [
         before_compile: ExUnit.Case,
         after_compile: ExUnit.Case,
-        ex_unit_async: false,
-        ex_unit_describe: nil
+        ex_unit_async: false
       ]
 
       Enum.each(attributes, fn {k, v} -> Module.put_attribute(module, k, v) end)
@@ -454,48 +452,23 @@ defmodule ExUnit.Case do
   setup steps involved.
   """
   defmacro describe(message, do: block) do
-    quote do
-      ExUnit.Case.__describe__(__MODULE__, __ENV__.line, unquote(message), fn ->
-        unquote(block)
-      end)
-    end
-  end
-
-  @doc false
-  def __describe__(module, line, message, fun) do
-    if Module.get_attribute(module, :ex_unit_describe) do
-      raise "cannot call \"describe\" inside another \"describe\". See the documentation " <>
-              "for ExUnit.Case.describe/2 on named setups and how to handle hierarchies"
-    end
-
-    cond do
-      not is_binary(message) ->
-        raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
-
-      message in Module.get_attribute(module, :ex_unit_used_describes) ->
-        raise ExUnit.DuplicateDescribeError,
-              "describe #{inspect(message)} is already defined in #{inspect(module)}"
-
-      true ->
-        :ok
-    end
-
-    if Module.get_attribute(module, :describetag) != [] do
-      raise "@describetag must be set inside describe/2 blocks"
-    end
-
-    Module.put_attribute(module, :ex_unit_describe, {line, message})
-    Module.put_attribute(module, :ex_unit_used_describes, message)
-
-    try do
-      fun.()
-    after
-      Module.put_attribute(module, :ex_unit_describe, nil)
-      Module.delete_attribute(module, :describetag)
-
-      for attribute <- Module.get_attribute(module, :ex_unit_registered_describe_attributes) do
-        Module.delete_attribute(module, attribute)
+    definition =
+      quote unquote: false do
+        defp unquote(name)(var!(context)), do: unquote(body)
       end
+
+    quote do
+      ExUnit.Callbacks.__describe__(__MODULE__, __ENV__.line, unquote(message), fn
+        message, describes ->
+          res = unquote(block)
+
+          case ExUnit.Callbacks.__describe__(__MODULE__, message, describes) do
+            {nil, nil} -> :ok
+            {name, body} -> unquote(definition)
+          end
+
+          res
+      end)
     end
   end
 
@@ -554,11 +527,11 @@ defmodule ExUnit.Case do
 
     {name, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
-        {line, describe} ->
+        {line, describe, _counter} ->
           description = :"#{test_type} #{describe} #{name}"
           {description, describe, line, Module.get_attribute(mod, :describetag)}
 
-        _ ->
+        nil ->
           {:"#{test_type} #{name}", nil, nil, []}
       end
 

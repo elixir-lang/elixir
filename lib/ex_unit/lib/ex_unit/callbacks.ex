@@ -167,6 +167,7 @@ defmodule ExUnit.Callbacks do
       @ex_unit_describe nil
       @ex_unit_setup []
       @ex_unit_setup_all []
+      @ex_unit_used_describes %{}
 
       @before_compile unquote(__MODULE__)
       import unquote(__MODULE__)
@@ -175,7 +176,8 @@ defmodule ExUnit.Callbacks do
 
   @doc false
   defmacro __before_compile__(env) do
-    [compile_callbacks(env, :setup), compile_callbacks(env, :setup_all)]
+    used_describes = Module.get_attribute(env.module, :ex_unit_used_describes)
+    [compile_setup(env, :setup, used_describes), compile_setup(env, :setup_all, %{})]
   end
 
   @doc """
@@ -208,8 +210,7 @@ defmodule ExUnit.Callbacks do
       do_setup(quote(do: _), block)
     else
       quote do
-        @ex_unit_setup ExUnit.Callbacks.__callback__(unquote(block), @ex_unit_describe) ++
-                         @ex_unit_setup
+        ExUnit.Callbacks.__setup__(__MODULE__, unquote(block))
       end
     end
   end
@@ -236,10 +237,29 @@ defmodule ExUnit.Callbacks do
 
   defp do_setup(context, block) do
     quote bind_quoted: [context: escape(context), block: escape(block)] do
-      name = :"__ex_unit_setup_#{length(@ex_unit_setup)}"
+      name = ExUnit.Callbacks.__setup__(__MODULE__)
       defp unquote(name)(unquote(context)), unquote(block)
-      @ex_unit_setup [{name, @ex_unit_describe} | @ex_unit_setup]
     end
+  end
+
+  @doc false
+  def __setup__(module, callbacks) do
+    setup = Module.get_attribute(module, :ex_unit_setup)
+    Module.put_attribute(module, :ex_unit_setup, Enum.reverse(callbacks(callbacks), setup))
+  end
+
+  @doc false
+  def __setup__(module) do
+    setup = Module.get_attribute(module, :ex_unit_setup)
+
+    name =
+      case Module.get_attribute(module, :ex_unit_describe) do
+        {_line, _message, counter} -> :"__ex_unit_setup_#{counter}_#{length(setup)}"
+        nil -> :"__ex_unit_setup_#{length(setup)}"
+      end
+
+    Module.put_attribute(module, :ex_unit_setup, [name | setup])
+    name
   end
 
   @doc """
@@ -283,12 +303,7 @@ defmodule ExUnit.Callbacks do
       do_setup_all(quote(do: _), block)
     else
       quote do
-        @ex_unit_describe &&
-          raise "cannot invoke setup_all/1 inside describe as setup_all/1 " <>
-                  "always applies to all tests in a module"
-
-        @ex_unit_setup_all ExUnit.Callbacks.__callback__(unquote(block), nil) ++
-                             @ex_unit_setup_all
+        ExUnit.Callbacks.__setup_all__(__MODULE__, unquote(block))
       end
     end
   end
@@ -312,10 +327,48 @@ defmodule ExUnit.Callbacks do
 
   defp do_setup_all(context, block) do
     quote bind_quoted: [context: escape(context), block: escape(block)] do
-      @ex_unit_describe && raise "cannot invoke setup_all/2 inside describe"
-      name = :"__ex_unit_setup_all_#{length(@ex_unit_setup_all)}"
+      name = ExUnit.Callbacks.__setup_all__(__MODULE__)
       defp unquote(name)(unquote(context)), unquote(block)
-      @ex_unit_setup_all [{name, nil} | @ex_unit_setup_all]
+    end
+  end
+
+  @doc false
+  def __setup_all__(module, callbacks) do
+    no_describe!(module)
+    setup_all = Module.get_attribute(module, :ex_unit_setup_all)
+
+    Module.put_attribute(
+      module,
+      :ex_unit_setup_all,
+      Enum.reverse(callbacks(callbacks), setup_all)
+    )
+  end
+
+  @doc false
+  def __setup_all__(module) do
+    no_describe!(module)
+    setup_all = Module.get_attribute(module, :ex_unit_setup_all)
+    name = :"__ex_unit_setup_all_#{length(setup_all)}"
+    Module.put_attribute(module, :ex_unit_setup_all, [name | setup_all])
+    name
+  end
+
+  defp no_describe!(module) do
+    if Module.get_attribute(module, :ex_unit_describe) do
+      raise "cannot invoke setup_all/1-2 inside describe as setup_all " <>
+              "always applies to all tests in a module"
+    end
+  end
+
+  defp callbacks(callbacks) do
+    for k <- List.wrap(callbacks) do
+      if not is_atom(k) do
+        raise ArgumentError,
+              "setup/setup_all expect a callback name as an atom or " <>
+                "a list of callback names, got: #{inspect(k)}"
+      end
+
+      k
     end
   end
 
@@ -558,8 +611,8 @@ defmodule ExUnit.Callbacks do
     raise_merge_failed!(mod, original_value)
   end
 
-  defp merge(mod, context, data, original_value) when is_list(data) do
-    merge(mod, context, Map.new(data), original_value)
+  defp merge(mod, context, data, _original_value) when is_list(data) do
+    context_merge(mod, context, Map.new(data))
   end
 
   defp merge(mod, context, data, _original_value) when is_map(data) do
@@ -594,44 +647,112 @@ defmodule ExUnit.Callbacks do
     Macro.escape(contents, unquote: true)
   end
 
-  defp compile_callbacks(env, kind) do
-    callbacks = Module.get_attribute(env.module, :"ex_unit_#{kind}") |> Enum.reverse()
+  @doc false
+  def __describe__(module, line, message, fun) do
+    if Module.get_attribute(module, :ex_unit_describe) do
+      raise "cannot call \"describe\" inside another \"describe\". See the documentation " <>
+              "for ExUnit.Case.describe/2 on named setups and how to handle hierarchies"
+    end
 
-    acc =
-      case callbacks do
-        [] ->
-          quote(do: context)
+    used_describes = Module.get_attribute(module, :ex_unit_used_describes)
 
-        [h | t] ->
-          Enum.reduce(t, compile_merge(h), fn callback_describe, acc ->
-            quote do
-              context = unquote(acc)
-              unquote(compile_merge(callback_describe))
-            end
-          end)
-      end
+    cond do
+      not is_binary(message) ->
+        raise ArgumentError, "describe name must be a string, got: #{inspect(message)}"
 
-    quote do
-      def __ex_unit__(unquote(kind), context) do
-        describe = Map.get(context, :describe, nil)
-        unquote(acc)
+      is_map_key(used_describes, message) ->
+        raise ExUnit.DuplicateDescribeError,
+              "describe #{inspect(message)} is already defined in #{inspect(module)}"
+
+      true ->
+        :ok
+    end
+
+    if Module.get_attribute(module, :describetag) != [] do
+      raise "@describetag must be set inside describe/2 blocks"
+    end
+
+    setup = Module.get_attribute(module, :ex_unit_setup)
+    Module.put_attribute(module, :ex_unit_setup, [])
+    Module.put_attribute(module, :ex_unit_describe, {line, message, map_size(used_describes)})
+
+    try do
+      fun.(message, used_describes)
+    after
+      Module.put_attribute(module, :ex_unit_describe, nil)
+      Module.put_attribute(module, :ex_unit_setup, setup)
+      Module.delete_attribute(module, :describetag)
+
+      for attribute <- Module.get_attribute(module, :ex_unit_registered_describe_attributes) do
+        Module.delete_attribute(module, attribute)
       end
     end
   end
 
-  defp compile_merge({callback, nil}) do
-    quote do
-      unquote(__MODULE__).__merge__(__MODULE__, context, unquote(callback)(context))
-    end
+  @doc false
+  def __describe__(module, message, used_describes) do
+    {name, body} =
+      case Module.get_attribute(module, :ex_unit_setup) do
+        [] -> {nil, nil}
+        callbacks -> {:"__ex_unit_describe_#{map_size(used_describes)}", compile_setup(callbacks)}
+      end
+
+    used_describes = Map.put(used_describes, message, name)
+    Module.put_attribute(module, :ex_unit_used_describes, used_describes)
+    {name, body}
   end
 
-  defp compile_merge({callback, {_line, describe}}) do
-    quote do
-      if unquote(describe) == describe do
-        unquote(compile_merge({callback, nil}))
+  defp compile_setup(env, kind, describes) do
+    calls =
+      env.module
+      |> Module.get_attribute(:"ex_unit_#{kind}")
+      |> compile_setup()
+
+    describe_clauses =
+      for {describe, callback} <- describes,
+          callback != nil,
+          clause <- quote(do: (unquote(describe) -> unquote(callback)(var!(context)))),
+          do: clause
+
+    body =
+      if describe_clauses == [] do
+        calls
       else
-        context
+        describe_clauses =
+          describe_clauses ++
+            quote do
+              _ -> var!(context)
+            end
+
+        quote do
+          var!(context) = unquote(calls)
+          case Map.get(var!(context), :describe, nil), do: unquote(describe_clauses)
+        end
       end
+
+    quote do
+      def __ex_unit__(unquote(kind), var!(context)), do: unquote(body)
+    end
+  end
+
+  defp compile_setup([]) do
+    quote(do: var!(context))
+  end
+
+  defp compile_setup(callbacks) do
+    [h | t] = Enum.reverse(callbacks)
+
+    Enum.reduce(t, compile_setup_call(h), fn callback, acc ->
+      quote do
+        var!(context) = unquote(acc)
+        unquote(compile_setup_call(callback))
+      end
+    end)
+  end
+
+  defp compile_setup_call(callback) do
+    quote do
+      unquote(__MODULE__).__merge__(__MODULE__, var!(context), unquote(callback)(var!(context)))
     end
   end
 end
