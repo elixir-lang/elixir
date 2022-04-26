@@ -309,9 +309,17 @@ defimpl Inspect, for: Integer do
 end
 
 defimpl Inspect, for: Float do
-  def inspect(term, opts) do
-    inspected = IO.iodata_to_binary(:io_lib_format.fwrite_g(term))
-    color(inspected, :number, opts)
+  def inspect(float, opts) do
+    abs = abs(float)
+
+    formatted =
+      if abs >= 1.0 and abs < 1.0e16 and trunc(float) == float do
+        [Integer.to_string(trunc(float)), ?., ?0]
+      else
+        :io_lib_format.fwrite_g(float)
+      end
+
+    color(IO.iodata_to_binary(formatted), :number, opts)
   end
 end
 
