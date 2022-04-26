@@ -27,14 +27,23 @@ defmodule ExUnit.DescribeTest do
       [setup_tag: :from_describe]
     end
 
-    test "from describe has higher precedence", context do
+    test "from describe runs later", context do
       assert context.setup_tag == :from_describe
+    end
+  end
+
+  describe "setup from import" do
+    import Map
+    setup :to_list
+
+    test "is expanded within describe block", context do
+      assert context.setup_tag == :from_module
     end
   end
 
   describe "failures" do
     test "when using setup_all inside describe" do
-      assert_raise RuntimeError, ~r"cannot invoke setup_all/2 inside describe", fn ->
+      assert_raise RuntimeError, ~r"cannot invoke setup_all/1-2 inside describe", fn ->
         defmodule Sample do
           use ExUnit.Case
 
