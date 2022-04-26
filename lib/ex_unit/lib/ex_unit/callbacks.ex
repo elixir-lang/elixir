@@ -595,31 +595,31 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc false
-  def __merge__(mod, context, value) do
-    merge(mod, context, value, value)
-  end
-
-  defp merge(_mod, context, :ok, _original_value) do
+  def __merge__(_mod, context, :ok) do
     context
   end
 
-  defp merge(mod, context, {:ok, value}, original_value) do
-    merge(mod, context, value, original_value)
+  def __merge__(mod, context, {:ok, value}) do
+    unwrapped_merge(mod, context, value, {:ok, value})
   end
 
-  defp merge(mod, _context, %_{}, original_value) do
+  def __merge__(mod, context, value) do
+    unwrapped_merge(mod, context, value, value)
+  end
+
+  defp unwrapped_merge(mod, _context, %_{}, original_value) do
     raise_merge_failed!(mod, original_value)
   end
 
-  defp merge(mod, context, data, _original_value) when is_list(data) do
+  defp unwrapped_merge(mod, context, data, _original_value) when is_list(data) do
     context_merge(mod, context, Map.new(data))
   end
 
-  defp merge(mod, context, data, _original_value) when is_map(data) do
+  defp unwrapped_merge(mod, context, data, _original_value) when is_map(data) do
     context_merge(mod, context, data)
   end
 
-  defp merge(mod, _, _return_value, original_value) do
+  defp unwrapped_merge(mod, _, _return_value, original_value) do
     raise_merge_failed!(mod, original_value)
   end
 
