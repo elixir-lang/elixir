@@ -455,7 +455,7 @@ defmodule ExUnit.Callbacks do
   """
   @doc since: "1.14.0"
   @spec start_link_supervised!(Supervisor.child_spec() | module | {module, term}, keyword) ::
-          Supervisor.on_start_child()
+          pid
   def start_link_supervised!(child_spec_or_module, opts \\ []) do
     pid = start_supervised!(child_spec_or_module, opts)
     Process.link(pid)
