@@ -25,11 +25,13 @@ TODO.
 
 #### Elixir
 
-  * [Code] Emit deprecation and type warnings on `Code.compile_string/2` and `Code.compile_quoted/2`
+  * [Calendar] Support ISO8601 basic format parsing with `DateTime.from_iso8601`
+  * [Code] Emit deprecation and type warnings for invalid options in on `Code.compile_string/2` and `Code.compile_quoted/2`
   * [Code] Warn if an outdated lexical tracker is given on eval
   * [Code] Add `Code.env_for_eval/1` and `Code.eval_quoted_with_env/3`
-  * [Code] Improve stacktraces from eval operations on Erlang/OTP 25
+  * [Code] Improve stacktraces from eval operations on Erlang/OTP 25+
   * [Enum] Allow slicing with steps in `Enum.slice/2`
+  * [Float] Do not show floats in scientific notation if below `1.0e16` and the fractional value is precisely zero
   * [Inspect] Improve error reporting when there is a faulty inspect implementation
   * [Inspect] Use expression-based inspection for `Date.Range`, `MapSet`, `Version`, and `Version.Requirement`
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
@@ -57,16 +59,27 @@ TODO.
   * [Version] Add `Version.to_string/1`
   * [Version] Colorize `Version.Requirement` source in Inspect protocol
 
+#### ExUnit
+
+  * [ExUnit] Add `ExUnit.Callbacks.start_link_supervised!/2`
+
 #### IEx
 
+  * [IEx] Evaluate `--dot-iex` line by line
   * [IEx.Helpers] Allow an atom to be given to `pid/1`
+
+#### Logger
+
+  * [Logger] Add `Logger.put_process_level/2`
 
 #### Mix
 
   * [mix do] Support `--app` option to restrict recursive tasks in umbrella projects
+  * [mix do] Allow using `+` as a task separator instead of comma
   * [mix new] Do not allow projects to be created with application names that conflict with multi-arg Erlang VM switches
   * [mix test] Improve error message when suite fails due to coverage
   * [mix profile] Return the return value of the profiled function
+  * [mix release] Make BEAM compression opt-in
 
 ### 2. Bug fixes
 
@@ -76,11 +89,15 @@ TODO.
   * [Code] Do not emit warnings when formatting code
   * [Kernel] Do not allow restricted restricted characters in identifiers according to UTS39
   * [Kernel] Define `__exception__` field as true when expanding exceptions in typespecs
+  * [Kernel] Warn if any of `True`, `False`, and `Nil` aliases are used
 
 #### ExUnit
 
   * [ExUnit] Do not raise when diffing unknown bindings in guards
   * [ExUnit] Properly print diffs when comparing improper lists with strings at the tail position
+  * [ExUnit] Add short hash to `tmp_dir` in ExUnit to avoid test name collision
+  * [ExUnit] Do not store logs in the CLI formatter (this reduces memory usage for suites with `capture_log`)
+  * [ExUnit] Run `after_suite` even when no tests run
 
 #### Mix
 
@@ -96,6 +113,10 @@ TODO.
 #### EEx
 
   * [EEx] Using `<%# ... %>` for comments is deprecated. Please use `<% # ... %>` or the new multi-line comments with `<%!-- ... --%>`
+
+#### Logger
+
+  * [Logger] Deprecate `Logger.enable/1` and `Logger.disable/1` in favor of `Logger.put_process_level/1`
 
 #### Mix
 
