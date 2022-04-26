@@ -541,8 +541,8 @@ defmodule ExUnit.Case do
 
     tags =
       (tags ++ tag ++ describetag ++ moduletag)
-      |> normalize_tags
-      |> validate_tags
+      |> normalize_tags()
+      |> validate_tags()
       |> Map.merge(%{
         line: line,
         file: file,
