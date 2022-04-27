@@ -6,8 +6,9 @@ defmodule Mix.Tasks.Deps.Compile do
   @moduledoc """
   Compiles dependencies.
 
-  By default, compile all dependencies. A list of dependencies
-  can be given to compile multiple dependencies in order.
+  By default, this task attempts to compile all dependencies.
+  A list of dependencies can be given to compile multiple
+  dependencies in order.
 
   This task attempts to detect if the project contains one of
   the following files and act accordingly:
