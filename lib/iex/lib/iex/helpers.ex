@@ -261,7 +261,7 @@ defmodule IEx.Helpers do
       ELIXIR_EDITOR="subl"
 
   Which will then try to open it as:
-  
+
       subl path/to/file:line
 
   For Visual Studio Code, once enabled on the command line,
