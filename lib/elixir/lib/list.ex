@@ -949,13 +949,21 @@ defmodule List do
   end
 
   @doc """
-  Converts a charlist to an existing atom. Raises an `ArgumentError`
-  if the atom does not exist.
+  Converts a charlist to an existing atom.
 
   Elixir supports conversions from charlists which contains any Unicode
-  code point.
+  code point. Raises an `ArgumentError` if the atom does not exist.
 
   Inlined by the compiler.
+
+  > #### Atoms and modules {: .info}
+  >
+  > Since Elixir is a compiled language, the atoms defined in a module
+  > will only exist after said module is loaded, which typically happens
+  > whenever a function in the module is executed. Therefore, it is
+  > generally recommended to call `List.to_existing_atom/1` only to
+  > convert atoms defined within the module making the function call
+  > to `to_existing_atom/1`.
 
   ## Examples
 
