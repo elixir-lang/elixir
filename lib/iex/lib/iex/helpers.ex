@@ -255,10 +255,19 @@ defmodule IEx.Helpers do
   and falls back to `EDITOR` if the former is not available.
 
   By default, it attempts to open the file and line using the
-  `file:line` notation. For example, if your editor is called
-  `subl`, it will open the file as:
+  `file:line` notation. For example, for Sublime Text you can
+  set it as:
 
+      ELIXIR_EDITOR="subl"
+
+  Which will then try to open it as:
+  
       subl path/to/file:line
+
+  For Visual Studio Code, once enabled on the command line,
+  you can set it to:
+
+      ELIXIR_EDITOR="code --goto"
 
   It is important that you choose an editor command that does
   not block nor that attempts to run an editor directly in the
@@ -266,12 +275,11 @@ defmodule IEx.Helpers do
   configuration so they open up the given file and line in a
   separate window.
 
-  Custom editors are supported by using the `__FILE__` and
-  `__LINE__` notations, for example:
+  For more complex use cases, you can use the `__FILE__` and
+  `__LINE__` notations to explicitly interpolate the file and
+  line into the command:
 
       ELIXIR_EDITOR="my_editor +__LINE__ __FILE__"
-
-  and Elixir will properly interpolate values.
 
   Since this function prints the result returned by the editor,
   `ELIXIR_EDITOR` can be set "echo" if you prefer to display the
