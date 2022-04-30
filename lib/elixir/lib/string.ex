@@ -2569,8 +2569,18 @@ defmodule String do
   Converts a string to an existing atom.
 
   The maximum atom size is of 255 Unicode code points.
+  Raises an `ArgumentError` if the atom does not exist.
 
   Inlined by the compiler.
+
+  > #### Atoms and modules {: .info}
+  >
+  > Since Elixir is a compiled language, the atoms defined in a module
+  > will only exist after said module is loaded, which typically happens
+  > whenever a function in the module is executed. Therefore, it is
+  > generally recommended to call `String.to_existing_atom/1` only to
+  > convert atoms defined within the module making the function call
+  > to `to_existing_atom/1`.
 
   ## Examples
 
