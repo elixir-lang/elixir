@@ -260,6 +260,13 @@ defmodule IEx.Helpers do
 
       subl path/to/file:line
 
+  If you are using Visual Studio Code, the pre-requirement for Mac users
+  is to have the `code` [command enabled](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line).
+  Once you have it, the value of the `ELIXIR_EDITOR` variable
+  should be:
+
+      ELIXIR_EDITOR="code --goto"
+
   It is important that you choose an editor command that does
   not block nor that attempts to run an editor directly in the
   terminal. Command-line based editors likely need extra
