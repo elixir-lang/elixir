@@ -361,6 +361,23 @@ defmodule ExUnit do
   end
 
   @doc """
+  Rerun the given test modules synchronously.
+
+  Returns a map containing the total number of tests, the number
+  of failures, the number of excluded tests and the number of skipped tests.
+  """
+  @spec rerun(list(atom())) :: suite_result()
+  def rerun(modules) do
+    for module <- modules do
+      ExUnit.Server.add_sync_module(module)
+    end
+
+    _ = ExUnit.Server.modules_loaded()
+    options = persist_defaults(configuration())
+    ExUnit.Runner.run(options, nil)
+  end
+
+  @doc """
   Starts tests asynchronously while test cases are still loading.
 
   It returns a task that must be given to `await_run/0` when a result
