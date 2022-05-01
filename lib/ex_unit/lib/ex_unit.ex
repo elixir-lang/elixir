@@ -359,7 +359,8 @@ defmodule ExUnit do
   @spec run(list(atom)) :: suite_result()
   def run(additional_modules \\ []) do
     for module <- additional_modules do
-      module_attributes = module.__info__(:attributes) |> IO.inspect()
+      module_attributes = module.__info__(:attributes)
+
       if Keyword.get(module_attributes, :ex_unit_async) do
         ExUnit.Server.add_async_module(module)
       else
