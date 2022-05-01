@@ -32,6 +32,52 @@ defmodule ExUnitTest do
            end) =~ "\n0 failures\n"
   end
 
+  test "supports rerunning given modules" do
+    defmodule SampleAsyncTest do
+      use ExUnit.Case, async: true
+
+      test "true" do
+        assert false
+      end
+    end
+
+    defmodule SampleSyncTest do
+      use ExUnit.Case
+
+      test "true" do
+        assert false
+      end
+    end
+
+    defmodule IgnoreTest do
+      use ExUnit.Case
+
+      test "true" do
+        assert false
+      end
+    end
+
+    configure_and_reload_on_exit([])
+
+    assert capture_io(fn ->
+             assert ExUnit.run() == %{
+                      failures: 3,
+                      skipped: 0,
+                      total: 3,
+                      excluded: 0
+                    }
+           end) =~ "\n3 tests, 3 failures\n"
+
+    assert capture_io(fn ->
+             assert ExUnit.run([SampleSyncTest, SampleAsyncTest]) == %{
+                      failures: 2,
+                      skipped: 0,
+                      total: 2,
+                      excluded: 0
+                    }
+           end) =~ "\n2 tests, 2 failures\n"
+  end
+
   test "prints aborted runs on sigquit", config do
     Process.register(self(), :aborted_on_sigquit)
     line = __ENV__.line + 5
