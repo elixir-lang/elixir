@@ -350,11 +350,25 @@ defmodule ExUnit do
   Runs the tests. It is invoked automatically
   if ExUnit is started via `start/1`.
 
+  From Elixir v1.14, it accepts an optional list of modules to run
+  as part of the suite. This is often used to rerun modules already
+  loaded in memory.
+
   Returns a map containing the total number of tests, the number
   of failures, the number of excluded tests and the number of skipped tests.
   """
-  @spec run() :: suite_result()
-  def run do
+  @spec run(list(atom)) :: suite_result()
+  def run(additional_modules \\ []) do
+    for module <- additional_modules do
+      module_attributes = module.__info__(:attributes)
+
+      if Keyword.get(module_attributes, :ex_unit_async) do
+        ExUnit.Server.add_async_module(module)
+      else
+        ExUnit.Server.add_sync_module(module)
+      end
+    end
+
     _ = ExUnit.Server.modules_loaded()
     options = persist_defaults(configuration())
     ExUnit.Runner.run(options, nil)
