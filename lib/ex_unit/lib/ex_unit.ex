@@ -350,8 +350,9 @@ defmodule ExUnit do
   Runs the tests. It is invoked automatically
   if ExUnit is started via `start/1`.
 
-  It accepts an optional list of modules to rerun
-  the tests of specified modules.
+  From Elixir v1.14, it accepts an optional list of modules to run
+  as part of the suite. This is often used to rerun modules already
+  loaded in memory.
 
   Returns a map containing the total number of tests, the number
   of failures, the number of excluded tests and the number of skipped tests.
