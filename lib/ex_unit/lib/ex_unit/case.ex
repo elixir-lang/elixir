@@ -294,6 +294,9 @@ defmodule ExUnit.Case do
 
       Enum.each(attributes, &Module.register_attribute(module, &1, accumulate: true))
 
+      persisted_attributes = [:ex_unit_async]
+      Enum.each(persisted_attributes, &Module.register_attribute(module, &1, persist: true))
+
       attributes = [
         before_compile: ExUnit.Case,
         after_compile: ExUnit.Case,

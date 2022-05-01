@@ -32,15 +32,27 @@ defmodule ExUnitTest do
            end) =~ "\n0 failures\n"
   end
 
-  test "supports reruns" do
+  test "supports rerunning given modules" do
     defmodule SampleAsyncTest do
       use ExUnit.Case, async: true
 
       test "true" do
         assert false
       end
+    end
 
-      test "false" do
+    defmodule SampleSyncTest do
+      use ExUnit.Case
+
+      test "true" do
+        assert false
+      end
+    end
+
+    defmodule IgnoreTest do
+      use ExUnit.Case
+
+      test "true" do
         assert false
       end
     end
@@ -49,15 +61,15 @@ defmodule ExUnitTest do
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{
-                      failures: 2,
+                      failures: 3,
                       skipped: 0,
-                      total: 2,
+                      total: 3,
                       excluded: 0
                     }
-           end) =~ "\n2 tests, 2 failures\n"
+           end) =~ "\n3 tests, 3 failures\n"
 
     assert capture_io(fn ->
-             assert ExUnit.rerun([SampleAsyncTest]) == %{
+             assert ExUnit.run([SampleSyncTest, SampleAsyncTest]) == %{
                       failures: 2,
                       skipped: 0,
                       total: 2,

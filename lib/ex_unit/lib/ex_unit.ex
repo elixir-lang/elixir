@@ -350,26 +350,21 @@ defmodule ExUnit do
   Runs the tests. It is invoked automatically
   if ExUnit is started via `start/1`.
 
-  Returns a map containing the total number of tests, the number
-  of failures, the number of excluded tests and the number of skipped tests.
-  """
-  @spec run() :: suite_result()
-  def run do
-    _ = ExUnit.Server.modules_loaded()
-    options = persist_defaults(configuration())
-    ExUnit.Runner.run(options, nil)
-  end
-
-  @doc """
-  Rerun the given test modules synchronously.
+  It accepts an optional list of modules to rerun
+  the tests of specified modules.
 
   Returns a map containing the total number of tests, the number
   of failures, the number of excluded tests and the number of skipped tests.
   """
-  @spec rerun(list(atom())) :: suite_result()
-  def rerun(modules) do
-    for module <- modules do
-      ExUnit.Server.add_sync_module(module)
+  @spec run(list(atom)) :: suite_result()
+  def run(additional_modules \\ []) do
+    for module <- additional_modules do
+      module_attributes = module.__info__(:attributes) |> IO.inspect()
+      if Keyword.get(module_attributes, :ex_unit_async) do
+        ExUnit.Server.add_async_module(module)
+      else
+        ExUnit.Server.add_sync_module(module)
+      end
     end
 
     _ = ExUnit.Server.modules_loaded()
