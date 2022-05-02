@@ -524,7 +524,7 @@ defmodule Task.Supervisor do
           end
 
         send(pid, {owner, ref, reply_to, get_callers(owner), {module, fun, args}})
-        %Task{pid: pid, ref: ref, owner: owner}
+        %Task{pid: pid, ref: ref, owner: owner, mfa: {module, fun, length(args)}}
 
       {:error, :max_children} ->
         raise """
