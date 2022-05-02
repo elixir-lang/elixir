@@ -190,6 +190,13 @@ defmodule Mix.Tasks.Test do
 
   These configurations can be set in the `def project` section of your `mix.exs`:
 
+    * `:test_coverage` - a set of options to be passed down to the coverage
+      mechanism. See the "Coverage" section for more information
+
+    * `:test_elixirc_options` - the compiler options to used when
+      loading/compiling test files. By default it disables the debug chunk
+      and docs chunk
+
     * `:test_paths` - list of paths containing test files. Defaults to
       `["test"]` if the `test` directory exists; otherwise, it defaults to `[]`.
       It is expected that all test paths contain a `test_helper.exs` file
@@ -198,9 +205,6 @@ defmodule Mix.Tasks.Test do
 
     * `:warn_test_pattern` - a pattern to match potentially misnamed test files
       and display a warning. Defaults to `*_test.ex`
-
-    * `:test_coverage` - a set of options to be passed down to the coverage
-      mechanism. See the "Coverage" section for more information
 
   ## Coloring
 
@@ -523,6 +527,7 @@ defmodule Mix.Tasks.Test do
     ExUnit.configure(merge_helper_opts(ex_unit_opts))
 
     # Finally parse, require and load the files
+    test_elixirc_options = project[:test_elixirc_options] || []
     test_files = parse_files(files, shell, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
@@ -535,7 +540,7 @@ defmodule Mix.Tasks.Test do
 
     display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
 
-    case CT.require_and_run(matched_test_files, test_paths, opts) do
+    case CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts) do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
         Mix.shell(shell)
         cover && cover.()

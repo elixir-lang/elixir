@@ -22,7 +22,7 @@ defmodule Mix.Compilers.Test do
   It expects all of the test patterns, the test files that were matched for the
   test patterns, the test paths, and the opts from the test task.
   """
-  def require_and_run(matched_test_files, test_paths, opts) do
+  def require_and_run(matched_test_files, test_paths, elixirc_opts, opts) do
     stale = opts[:stale]
 
     {test_files, stale_manifest_pid, parallel_require_callbacks} =
@@ -39,7 +39,7 @@ defmodule Mix.Compilers.Test do
         :noop
 
       Keyword.get(opts, :profile_require) == "time" ->
-        Kernel.ParallelCompiler.require(test_files, profile: :time)
+        require(test_files, [profile: :time], elixirc_opts)
         :noop
 
       true ->
@@ -48,7 +48,7 @@ defmodule Mix.Compilers.Test do
 
         try do
           failed? =
-            case Kernel.ParallelCompiler.require(test_files, parallel_require_callbacks) do
+            case require(test_files, parallel_require_callbacks, elixirc_opts) do
               {:ok, _, [_ | _]} when warnings_as_errors? -> true
               {:ok, _, _} -> false
               {:error, _, _} -> exit({:shutdown, 1})
@@ -78,6 +78,17 @@ defmodule Mix.Compilers.Test do
         after
           agent_stop(stale_manifest_pid)
         end
+    end
+  end
+
+  defp require(files, require_opts, elixirc_opts) do
+    elixirc_opts = Keyword.merge([docs: false, debug_info: false], elixirc_opts)
+    previous_opts = Code.compiler_options(elixirc_opts)
+
+    try do
+      Kernel.ParallelCompiler.require(files, require_opts)
+    after
+      Code.compiler_options(previous_opts)
     end
   end
 
