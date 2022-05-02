@@ -226,7 +226,7 @@ defmodule Task do
   It contains these fields:
 
     * `mfa` - a three-element tuple containing the module, function name,
-        and arity; stored for reflection purposes
+        and arity invoked to start the task in `async/1` and `async/3`
 
     * `:pid` - the PID of the task process; `nil` if the task does
       not use a task process
