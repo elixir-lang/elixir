@@ -66,7 +66,7 @@ iex> {x, x} = {1, 2}
 ** (MatchError) no match of right hand side value: {1, 2}
 ```
 
-The underscore variable (`_`) has a special meaning, as it can never be bound to any value. It is especially useful when you don't care about certain value in a pattern:
+The underscore variable (`_`) has a special meaning as it can never be bound to any value. It is especially useful when you don't care about certain value in a pattern:
 
 ```iex
 iex> {_, integer} = {:not_important, 1}

@@ -170,7 +170,7 @@ pull request will be merged, even when modifications are requested, as the Elixi
 team will re-evaluate the contribution as it changes.
 
 Committers may also push style changes directly to your branch. If you would
-rather to manage all changes yourself, you can disable the "Allow edits from maintainers"
+rather manage all changes yourself, you can disable the "Allow edits from maintainers"
 feature when submitting your pull request.
 
 The Elixir team may optionally assign someone to review a pull request.

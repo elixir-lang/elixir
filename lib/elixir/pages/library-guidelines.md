@@ -84,7 +84,7 @@ The usage of `:ok`/`:error` tuples is about the domain that the function works o
 
 Elixir programs should prefer to validate data as close to the end user as possible, so the errors are easy to locate and fix. This practice also saves you from writing defensive code in the internals of the library.
 
-For example, imagine you have an API that receives a filename as a binary. At some point, you will want to write to this file. You could have a function like this:
+For example, imagine you have an API that receives a filename as a binary. At some point you will want to write to this file. You could have a function like this:
 
 ```elixir
 def my_fun(some_arg, file_to_write_to, options \\ []) do

@@ -55,7 +55,7 @@ The general Elixir identifier rule is specified as:
 
     <Identifier> := <Start> <Continue>* <Ending>?
 
-where `<Start>` uses the same categories as the spec but, restricts them to the NFC form (see R6):
+where `<Start>` uses the same categories as the spec but restricts them to the NFC form (see R6):
 
 > characters derived from the Unicode General Category of uppercase letters, lowercase letters, titlecase letters, modifier letters, other letters, letter numbers, plus `Other_ID_Start`, minus `Pattern_Syntax` and `Pattern_White_Space` code points
 >
