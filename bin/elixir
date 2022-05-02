@@ -52,7 +52,7 @@ The following options are generally used under releases.
 
 --pipe-to starts Elixir detached from console (Unix-like only).
 It will attempt to create PIPEDIR and LOGDIR if they don't exist.
-See run_erl to learn more. To reattach, run: to_erl PIPEDIR.
+See run_erl to learn more. To reattach, run: to_erl PIPEDIR
 
 ** Options marked with (*) can be given more than once.
 ** Standalone options can't be combined with other options.
