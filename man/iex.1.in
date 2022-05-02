@@ -57,9 +57,10 @@ and, in a case of success, executes the code from the file in the context of the
 .Xr mix 1
 .Sh AUTHOR
 .Bl -tag -width Ds
-.It Elixir is maintained by the Elixir Core Team.
+.It Elixir is maintained by The Elixir Team.
 .It This manual page was contributed by Evgeny Golyshev.
 .It Copyright (c) 2012 Plataformatec.
+.It Copyright (c) 2021 The Elixir Team.
 .El
 .Sh INTERNET RESOURCES
 .Bl -tag -width Ds
