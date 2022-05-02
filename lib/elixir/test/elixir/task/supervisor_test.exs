@@ -146,6 +146,7 @@ defmodule Task.SupervisorTest do
 
     send(task.pid, true)
     assert task.__struct__ == Task
+    assert task.mfa == {__MODULE__, :wait_and_send, 2}
     assert Task.await(task) == :done
   end
 
@@ -160,6 +161,7 @@ defmodule Task.SupervisorTest do
       assert task.__struct__ == Task
       assert is_pid(task.pid)
       assert is_reference(task.ref)
+      assert task.mfa == {:erlang, :apply, 2}
 
       # Refute the link
       {:links, links} = Process.info(self(), :links)
@@ -212,6 +214,7 @@ defmodule Task.SupervisorTest do
 
     send(task.pid, true)
     assert task.__struct__ == Task
+    assert task.mfa == {__MODULE__, :wait_and_send, 2}
     assert Task.await(task) == :done
   end
 

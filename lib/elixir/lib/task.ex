@@ -233,8 +233,8 @@ defmodule Task do
     * `:owner` - the PID of the process that started the task
 
   """
-  @enforce_keys [:pid, :ref, :owner]
-  defstruct pid: nil, ref: nil, owner: nil
+  @enforce_keys [:pid, :ref, :owner, :mfa]
+  defstruct @enforce_keys
 
   @typedoc """
   The Task type.
@@ -244,7 +244,8 @@ defmodule Task do
   @type t :: %__MODULE__{
           pid: pid() | nil,
           ref: reference(),
-          owner: pid()
+          owner: pid(),
+          mfa: mfa()
         }
 
   defguardp is_timeout(timeout)
@@ -420,6 +421,12 @@ defmodule Task do
       to any supervisor, you may leave dangling tasks in case
       the caller process dies.
 
+  ## Metadata
+
+  The task created with this function stores `:erlang.apply/2` in
+  its `:mfa` metadata field, which is used internally to apply
+  the anonymous function. Use `async/3` if you want another function
+  to be used as metadata.
   """
   @spec async((() -> any)) :: t
   def async(fun) when is_function(fun, 0) do
@@ -434,11 +441,13 @@ defmodule Task do
 
   Similar to `async/1` except the function to be started is
   specified by the given `module`, `function_name`, and `args`.
+  The `module`, `function_name`, and its arity are stored as
+  a tuple in the `:mfa` field for reflection purposes.
   """
   @spec async(module, atom, [term]) :: t
   def async(module, function_name, args)
       when is_atom(module) and is_atom(function_name) and is_list(args) do
-    mfa = {module, function_name, args}
+    mfargs = {module, function_name, args}
     owner = self()
     {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor)
 
@@ -450,8 +459,8 @@ defmodule Task do
         {owner, Process.monitor(pid)}
       end
 
-    send(pid, {owner, ref, reply_to, get_callers(owner), mfa})
-    %Task{pid: pid, ref: ref, owner: owner}
+    send(pid, {owner, ref, reply_to, get_callers(owner), mfargs})
+    %Task{pid: pid, ref: ref, owner: owner, mfa: {module, function_name, length(args)}}
   end
 
   @doc """
@@ -494,7 +503,7 @@ defmodule Task do
     # "complete" the task immediately
     send(owner, {ref, result})
 
-    %Task{pid: nil, ref: ref, owner: owner}
+    %Task{pid: nil, ref: ref, owner: owner, mfa: {Task, :completed, 1}}
   end
 
   @doc """
