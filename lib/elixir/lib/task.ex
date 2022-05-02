@@ -228,15 +228,15 @@ defmodule Task do
     * `mfa` - a three-element tuple containing the module, function name,
         and arity invoked to start the task in `async/1` and `async/3`
 
+    * `:owner` - the PID of the process that started the task
+
     * `:pid` - the PID of the task process; `nil` if the task does
       not use a task process
 
     * `:ref` - the task monitor reference
 
-    * `:owner` - the PID of the process that started the task
-
   """
-  @enforce_keys [:mfa, :pid, :ref, :owner]
+  @enforce_keys [:mfa, :owner, :pid, :ref]
   defstruct @enforce_keys
 
   @typedoc """
