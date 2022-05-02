@@ -234,7 +234,7 @@ defmodule Task do
 
   """
   @enforce_keys [:pid, :ref, :owner, :mfa]
-  defstruct [:pid, :ref, :owner, :mfa]
+  defstruct @enforce_keys
 
   @typedoc """
   The Task type.
@@ -441,7 +441,7 @@ defmodule Task do
 
   Similar to `async/1` except the function to be started is
   specified by the given `module`, `function_name`, and `args`.
-  The `module`, `function_name`, and its arity is stored as
+  The `module`, `function_name`, and its arity are stored as
   a tuple in the `:mfa` field for reflection purposes.
   """
   @spec async(module, atom, [term]) :: t
