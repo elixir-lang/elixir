@@ -69,7 +69,7 @@ and `<Continue>` uses the same categories as the spec but restricts them to the 
 
 `<Ending>` is an addition specific to Elixir that includes only the code points `?` (003F) and `!` (0021).
 
-The spec also provides a `<Medial>` set but Elixir does not include any character on this set. Therefore the identifier rule has been simplified to consider this.
+The spec also provides a `<Medial>` set, but Elixir does not include any character on this set. Therefore, the identifier rule has been simplified to consider this.
 
 Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. R1b is guaranteed for backwards compatibility purposes.
 
