@@ -225,27 +225,30 @@ defmodule Task do
 
   It contains these fields:
 
+    * `:mfa` - a three-element tuple containing the module, function name,
+      and arity invoked to start the task in `async/1` and `async/3`
+
+    * `:owner` - the PID of the process that started the task
+
     * `:pid` - the PID of the task process; `nil` if the task does
       not use a task process
 
     * `:ref` - the task monitor reference
 
-    * `:owner` - the PID of the process that started the task
-
   """
-  @enforce_keys [:pid, :ref, :owner, :mfa]
+  @enforce_keys [:mfa, :owner, :pid, :ref]
   defstruct @enforce_keys
 
   @typedoc """
   The Task type.
 
-  See `%Task{}` for information about each field of the structure.
+  See [`%Task{}`](`__struct__/0`) for information about each field of the structure.
   """
   @type t :: %__MODULE__{
-          pid: pid() | nil,
-          ref: reference(),
+          mfa: mfa(),
           owner: pid(),
-          mfa: mfa()
+          pid: pid() | nil,
+          ref: reference()
         }
 
   defguardp is_timeout(timeout)
