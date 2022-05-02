@@ -104,7 +104,7 @@ def my_fun(some_arg, file_to_write_to, options \\ []) when is_binary(file_to_wri
 
 Elixir also leverages pattern matching and guards in function clauses to provide clear error messages in case invalid arguments are given.
 
-This advice does not only apply to libraries but to any Elixir code. Every time you receive multiple options or work with external data, you should validate the data at the boundary and convert it to structured data. For example, if you provide a `GenServer` that can be started with multiple options, you want to validate those options when the server starts and rely only on structured data throughout the process life cycle. Similarly, if a database or a socket gives you a map of strings, after you receive the data, you should validate it and potentially convert it to a struct or a map of atoms.
+This advice does not only apply to libraries, but to any Elixir code. Every time you receive multiple options or work with external data, you should validate the data at the boundary and convert it to structured data. For example, if you provide a `GenServer` that can be started with multiple options, you want to validate those options when the server starts and rely only on structured data throughout the process life cycle. Similarly, if a database or a socket gives you a map of strings, after you receive the data, you should validate it and potentially convert it to a struct or a map of atoms.
 
 ### Avoid application configuration
 
@@ -154,11 +154,11 @@ For all remaining scenarios, libraries should not force their users to use the a
 
 ### Avoid defining modules that are not in your "namespace"
 
-Even though Elixir does not formally have the concept of namespaces, a library should use its name as a "prefix" for all of its modules (except for special cases like mix tasks). For example if the library's OTP application name is `:my_lib`, then all of its modules should start with the `MyLib` prefix, for example `MyLib.User`, `MyLib.SubModule`, and `MyLib.Application`.
+Even though Elixir does not formally have the concept of namespaces, a library should use its name as a "prefix" for all of its modules (except for special cases like mix tasks). For example, if the library's OTP application name is `:my_lib`, then all of its modules should start with the `MyLib` prefix, for example `MyLib.User`, `MyLib.SubModule`, and `MyLib.Application`.
 
 This is important because the Erlang VM can only load one instance of a module at a time. So if there are multiple libraries that define the same module, then they are incompatible with each other due to this limitation. By always using the library name as a prefix, it avoids module name clashes due to the unique prefix.
 
-Furthermore, when writing a library that is an extension of another library, you should avoid defining modules inside the parent's library namespace. For example, if you are writing a package that adds authentication to [`Plug`](https://github.com/elixir-plug/plug) called `plug_auth`, its modules should be namespaced under `PlugAuth` instead of `Plug.Auth`, so it avoid conflicts with `Plug` if it were to ever define its own authentication functionality.
+Furthermore, when writing a library that is an extension of another library, you should avoid defining modules inside the parent's library namespace. For example, if you are writing a package that adds authentication to [`Plug`](https://github.com/elixir-plug/plug) called `plug_auth`, its modules should be namespaced under `PlugAuth` instead of `Plug.Auth`, so it avoids conflicts with `Plug` if it were to ever define its own authentication functionality.
 
 ### Avoid `use` when an `import` is enough
 
@@ -186,7 +186,7 @@ defmodule MyApp do
 end
 ```
 
-it allows `use MyLib` to run *any* code into the `MyApp` module. For someone reading the code, it is impossible to assess the impact that `use MyLib` has in a module without looking at the implementation of `__using__`.
+It allows `use MyLib` to run *any* code into the `MyApp` module. For someone reading the code, it is impossible to assess the impact that `use MyLib` has in a module without looking at the implementation of `__using__`.
 
 The following code is clearer:
 
@@ -239,7 +239,7 @@ def handle_call({:subtract, a, b}, _from, state) do
 end
 ```
 
-This is an anti-pattern not only because it convolutes the calculator logic but also because you put the calculator logic behind a single process that will potentially become a bottleneck in your system, especially as the number of calls grow. Instead just define the functions directly:
+This is an anti-pattern not only because it convolutes the calculator logic but also because you put the calculator logic behind a single process that will potentially become a bottleneck in your system, especially as the number of calls grow. Instead, just define the functions directly:
 
 ```elixir
 def add(a, b) do

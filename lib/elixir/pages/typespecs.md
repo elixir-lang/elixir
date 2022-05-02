@@ -204,7 +204,7 @@ You can also name your arguments in a typespec using `arg_name :: arg_type` synt
     @spec days_since_epoch(year :: integer, month :: integer, day :: integer) :: integer
     @type color :: {red :: integer, green :: integer, blue :: integer}
 
-Specifications can be overloaded just like ordinary functions.
+Specifications can be overloaded, just like ordinary functions.
 
     @spec function(integer) :: atom
     @spec function(atom) :: integer
