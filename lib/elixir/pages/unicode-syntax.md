@@ -55,7 +55,7 @@ The general Elixir identifier rule is specified as:
 
     <Identifier> := <Start> <Continue>* <Ending>?
 
-where `<Start>` uses the same categories as the spec but restricts them to the NFC form (see R6):
+where `<Start>` uses the same categories as the spec but, restricts them to the NFC form (see R6):
 
 > characters derived from the Unicode General Category of uppercase letters, lowercase letters, titlecase letters, modifier letters, other letters, letter numbers, plus `Other_ID_Start`, minus `Pattern_Syntax` and `Pattern_White_Space` code points
 >
@@ -69,7 +69,7 @@ and `<Continue>` uses the same categories as the spec but restricts them to the 
 
 `<Ending>` is an addition specific to Elixir that includes only the code points `?` (003F) and `!` (0021).
 
-The spec also provides a `<Medial>` set but Elixir does not include any character on this set. Therefore the identifier rule has been simplified to consider this.
+The spec also provides a `<Medial>` set, but Elixir does not include any character on this set. Therefore, the identifier rule has been simplified to consider this.
 
 Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. R1b is guaranteed for backwards compatibility purposes.
 

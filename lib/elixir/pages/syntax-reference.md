@@ -256,7 +256,7 @@ end
 
 ### Aliases
 
-Aliases are represented by an `__aliases__` call with each segment separated by dot as an argument:
+Aliases are represented by an `__aliases__` call with each segment separated by a dot as an argument:
 
 ```elixir
 quote do
@@ -274,7 +274,7 @@ All arguments, except the first, are guaranteed to be atoms.
 
 ### Data structures
 
-Remember lists are literals, so they are represented as themselves in the AST:
+Remember, lists are literals, so they are represented as themselves in the AST:
 
 ```elixir
 quote do
@@ -306,7 +306,7 @@ end
 #=> {:<<>>, [], [1, 2, 3]}
 ```
 
-The same applies to maps where each pair is treated as a list of tuples with two elements:
+The same applies to maps, where each pair is treated as a list of tuples with two elements:
 
 ```elixir
 quote do
@@ -378,7 +378,7 @@ end
 
 ### Qualified tuples
 
-Qualified tuples (`foo.{bar, baz}`) is represented by a `{:., [], [expr, :{}]}` call, where the `expr` represents the left hand side of the dot, and the arguments represent the elements inside the curly braces. This is used in Elixir to provide multi aliases:
+Qualified tuples (`foo.{bar, baz}`) are represented by a `{:., [], [expr, :{}]}` call, where the `expr` represents the left hand side of the dot, and the arguments represent the elements inside the curly braces. This is used in Elixir to provide multi aliases:
 
 ```elixir
 quote do
@@ -444,13 +444,13 @@ In practice, developers prefer to add parentheses to most of their calls. They a
 
 ### Keywords
 
-Keywords in Elixir are a list of tuples of two elements where the first element is an atom. Using the base constructs, they would be represented as:
+Keywords in Elixir are a list of tuples of two elements, where the first element is an atom. Using the base constructs, they would be represented as:
 
 ```elixir
 [{:foo, 1}, {:bar, 2}]
 ```
 
-However Elixir introduces a syntax sugar where the keywords above may be written as follows:
+However, Elixir introduces a syntax sugar where the keywords above may be written as follows:
 
 ```elixir
 [foo: 1, bar: 2]
@@ -466,7 +466,7 @@ Remember that, because lists and two-element tuples are quoted literals, by defi
 
 ### Keywords as last arguments
 
-Elixir also supports a syntax where if the last argument of a call is a keyword list then the square brackets can be skipped. This means that the following:
+Elixir also supports a syntax where if the last argument of a call is a keyword list, then the square brackets can be skipped. This means that the following:
 
 ```elixir
 if(condition, do: this, else: that)
@@ -486,7 +486,7 @@ if(condition, [{:do, this}, {:else, that}])
 
 ### `do`-`end` blocks
 
-The last syntax convenience are `do`-`end` blocks. `do`-`end` blocks are equivalent to keywords as the last argument of a function call where the block contents are wrapped in parentheses. For example:
+The last syntax convenience are `do`-`end` blocks. `do`-`end` blocks are equivalent to keywords as the last argument of a function call, where the block contents are wrapped in parentheses. For example:
 
 ```elixir
 if true do

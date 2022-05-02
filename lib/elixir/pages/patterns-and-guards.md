@@ -66,7 +66,7 @@ iex> {x, x} = {1, 2}
 ** (MatchError) no match of right hand side value: {1, 2}
 ```
 
-The underscore variable (`_`) has a special meaning as it can never be bound to any value. It is especially useful when you don't care about certain value in a pattern:
+The underscore variable (`_`) has a special meaning, as it can never be bound to any value. It is especially useful when you don't care about certain value in a pattern:
 
 ```iex
 iex> {_, integer} = {:not_important, 1}
@@ -351,7 +351,7 @@ iex> case "hello" do
 
 In many cases, we can take advantage of this. In the code above, we used `tuple_size/1` to both check that the given value is a tuple *and* check its size (instead of using `is_tuple(something) and tuple_size(something) == 2`).
 
-However, if your guard has multiple conditions, such as checking for tuples or maps, it is best to call type-check functions like `is_tuple/1` before `tuple_size/1`, otherwise the whole guard will fail if a tuple is not given. Alternatively your function clause can use multiple guards as shown in the following section.
+However, if your guard has multiple conditions, such as checking for tuples or maps, it is best to call type-check functions like `is_tuple/1` before `tuple_size/1`, otherwise the whole guard will fail if a tuple is not given. Alternatively, your function clause can use multiple guards as shown in the following section.
 
 ### Multiple guards in the same clause
 
@@ -487,7 +487,7 @@ def my_function(number) when is_integer(number) and rem(number, 2) == 0 do
 end
 ```
 
-It would be repetitive to write every time we need this check. Instead you can use `defguard/1` and `defguardp/1` to create guard macros. Here's an example how:
+It would be repetitive to write every time we need this check. Instead, you can use `defguard/1` and `defguardp/1` to create guard macros. Here's an example how:
 
 ```elixir
 defmodule MyInteger do
