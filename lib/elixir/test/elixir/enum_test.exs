@@ -868,6 +868,9 @@ defmodule EnumTest do
 
         assert Enum.slide(zero_to_20, -6..20, 8) ==
                  Enum.slide(zero_to_20, 15..20, 8)
+
+        assert Enum.slide(zero_to_20, -100..5, 8) ==
+                 Enum.slide(zero_to_20, 0..5, 8)
       end
     end
 
@@ -901,7 +904,7 @@ defmodule EnumTest do
 
     test "raises when the insertion point is inside the range" do
       for zero_to_20 <- [0..20, Enum.to_list(0..20)] do
-        assert_raise RuntimeError, fn ->
+        assert_raise ArgumentError, fn ->
           Enum.slide(zero_to_20, 10..18, 14)
         end
       end
@@ -962,14 +965,14 @@ defmodule EnumTest do
 
     test "raises when insertion index would fall inside the range" do
       for zero_to_5 <- [0..5, Enum.to_list(0..5)] do
-        assert_raise RuntimeError, fn ->
+        assert_raise ArgumentError, fn ->
           Enum.slide(zero_to_5, 2..3, -3)
         end
       end
 
       for zero_to_10 <- [0..10, Enum.to_list(0..10)],
           insertion_idx <- 3..5 do
-        assert_raise RuntimeError, fn ->
+        assert_raise ArgumentError, fn ->
           assert Enum.slide(zero_to_10, 2..5, insertion_idx)
         end
       end
@@ -1034,7 +1037,7 @@ defmodule EnumTest do
     assert Enum.slice(list, 6, 5) == []
     assert Enum.slice(list, 6, 0) == []
     assert Enum.slice(list, -6, 0) == []
-    assert Enum.slice(list, -6, 5) == []
+    assert Enum.slice(list, -6, 5) == [1, 2, 3, 4, 5]
     assert Enum.slice(list, -2, 5) == [4, 5]
     assert Enum.slice(list, -3, 1) == [3]
 
@@ -2061,11 +2064,11 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, 6..0) == []
     assert Enum.slice(1..5, -3..0) == []
     assert Enum.slice(1..5, -3..1) == []
-    assert Enum.slice(1..5, -6..0) == []
-    assert Enum.slice(1..5, -6..5) == []
+    assert Enum.slice(1..5, -6..0) == [1]
+    assert Enum.slice(1..5, -6..5) == [1, 2, 3, 4, 5]
+    assert Enum.slice(1..5, -6..-1) == [1, 2, 3, 4, 5]
     assert Enum.slice(1..5, -5..-1) == [1, 2, 3, 4, 5]
     assert Enum.slice(1..5, -5..-3) == [1, 2, 3]
-    assert Enum.slice(1..5, -6..-1) == []
 
     assert Enum.slice(1..5, 0..10//2) == [1, 3, 5]
     assert Enum.slice(1..5, 0..10//3) == [1, 4]
@@ -2100,11 +2103,11 @@ defmodule EnumTest.Range do
     assert Enum.slice(5..1, 5..5) == []
     assert Enum.slice(5..1, 6..5) == []
     assert Enum.slice(5..1, 6..0) == []
-    assert Enum.slice(5..1, -6..0) == []
-    assert Enum.slice(5..1, -6..5) == []
+    assert Enum.slice(5..1, -6..0) == [5]
+    assert Enum.slice(5..1, -6..5) == [5, 4, 3, 2, 1]
+    assert Enum.slice(5..1, -6..-1) == [5, 4, 3, 2, 1]
     assert Enum.slice(5..1, -5..-1) == [5, 4, 3, 2, 1]
     assert Enum.slice(5..1, -5..-3) == [5, 4, 3]
-    assert Enum.slice(5..1, -6..-1) == []
 
     assert Enum.slice(1..10//2, 0..0) == [1]
     assert Enum.slice(1..10//2, 0..1) == [1, 3]
@@ -2119,11 +2122,11 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..10//2, 6..0) == []
     assert Enum.slice(1..10//2, -3..0) == []
     assert Enum.slice(1..10//2, -3..1) == []
-    assert Enum.slice(1..10//2, -6..0) == []
-    assert Enum.slice(1..10//2, -6..5) == []
+    assert Enum.slice(1..10//2, -6..0) == [1]
+    assert Enum.slice(1..10//2, -6..5) == [1, 3, 5, 7, 9]
+    assert Enum.slice(1..10//2, -6..-1) == [1, 3, 5, 7, 9]
     assert Enum.slice(1..10//2, -5..-1) == [1, 3, 5, 7, 9]
     assert Enum.slice(1..10//2, -5..-3) == [1, 3, 5]
-    assert Enum.slice(1..10//2, -6..-1) == []
 
     assert_raise ArgumentError,
                  "Enum.slice/2 does not accept ranges with negative steps, got: 1..3//-2",
@@ -2142,7 +2145,7 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, 6, 5) == []
     assert Enum.slice(1..5, 6, 0) == []
     assert Enum.slice(1..5, -6, 0) == []
-    assert Enum.slice(1..5, -6, 5) == []
+    assert Enum.slice(1..5, -6, 5) == [1, 2, 3, 4, 5]
     assert Enum.slice(1..5, -2, 5) == [4, 5]
     assert Enum.slice(1..5, -3, 1) == [3]
 
@@ -2170,7 +2173,7 @@ defmodule EnumTest.Range do
     assert Enum.slice(5..1, 6, 5) == []
     assert Enum.slice(5..1, 6, 0) == []
     assert Enum.slice(5..1, -6, 0) == []
-    assert Enum.slice(5..1, -6, 5) == []
+    assert Enum.slice(5..1, -6, 5) == [5, 4, 3, 2, 1]
 
     assert Enum.slice(1..10//2, 0, 0) == []
     assert Enum.slice(1..10//2, 0, 1) == [1]
@@ -2183,7 +2186,7 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..10//2, 6, 5) == []
     assert Enum.slice(1..10//2, 6, 0) == []
     assert Enum.slice(1..10//2, -6, 0) == []
-    assert Enum.slice(1..10//2, -6, 5) == []
+    assert Enum.slice(1..10//2, -6, 5) == [1, 3, 5, 7, 9]
     assert Enum.slice(1..10//2, -2, 5) == [7, 9]
     assert Enum.slice(1..10//2, -3, 1) == [5]
   end
@@ -2461,7 +2464,7 @@ defmodule EnumTest.Map do
     assert Enum.slice(map, 6, 5) == []
     assert Enum.slice(map, 6, 0) == []
     assert Enum.slice(map, -6, 0) == []
-    assert Enum.slice(map, -6, 5) == []
+    assert Enum.slice(map, -6, 5) == [a: 1, b: 2, c: 3, d: 4, e: 5]
     assert Enum.slice(map, -2, 5) == [d: 4, e: 5]
     assert Enum.slice(map, -3, 1) == [c: 3]
 
@@ -2488,7 +2491,7 @@ defmodule EnumTest.Map do
     assert Enum.slice(map, 6, 5) == []
     assert Enum.slice(map, 6, 0) == []
     assert Enum.slice(map, -6, 0) == []
-    assert Enum.slice(map, -6, 5) == []
+    assert Enum.slice(map, -6, 5) == [a: 1, b: 2, c: 3, d: 4, e: 5]
     assert Enum.slice(map, -2, 5) == [d: 4, e: 5]
     assert Enum.slice(map, -3, 1) == [c: 3]
 

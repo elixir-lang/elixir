@@ -4509,6 +4509,14 @@ defmodule Kernel do
       iex> binary_slice("elixir", 0, 10)
       "elixir"
 
+  If `start` is negative, it is normalized against the binary
+  size and clamped to 0:
+
+      iex> binary_slice("elixir", -3, 10)
+      "xir"
+      iex> binary_slice("elixir", -10, 10)
+      "elixir"
+
   If the `size` is zero, an empty binary is returned:
 
       iex> binary_slice("elixir", 1, 0)
@@ -4517,17 +4525,15 @@ defmodule Kernel do
   If `start` is greater than or equal to the binary size,
   an empty binary is returned:
 
-      iex> binary_slice("elixir", 3, 10)
-      "xir"
       iex> binary_slice("elixir", 10, 10)
       ""
 
   """
   @doc since: "1.14.0"
   def binary_slice(binary, start, size)
-      when is_binary(binary) and is_integer(start) and is_integer(size) and
-             start >= 0 and size >= 0 do
+      when is_binary(binary) and is_integer(start) and is_integer(size) and size >= 0 do
     total = byte_size(binary)
+    start = if start < 0, do: max(total + start, 0), else: start
 
     case start < total do
       true -> :erlang.binary_part(binary, start, min(size, total - start))
@@ -4562,6 +4568,8 @@ defmodule Kernel do
       "ixir"
       iex> binary_slice("elixir", -4..6)
       "ixir"
+      iex> binary_slice("elixir", -10..10)
+      "elixir"
 
   For ranges where `start > stop`, you need to explicitly
   mark them as increasing:
@@ -4583,7 +4591,8 @@ defmodule Kernel do
       iex> binary_slice("elixir", 0..-1//2)
       "eii"
 
-  If values are out of bounds, it returns an empty binary:
+  If the first position is after the string ends or after
+  the last position of the range, it returns an empty string:
 
       iex> binary_slice("elixir", 10..3//1)
       ""
@@ -4600,7 +4609,7 @@ defmodule Kernel do
 
     first =
       case first < 0 do
-        true -> first + total
+        true -> max(first + total, 0)
         false -> first
       end
 
@@ -4610,7 +4619,7 @@ defmodule Kernel do
         false -> last
       end
 
-    case first >= 0 and first < total do
+    case first < total do
       true ->
         part = binary_part(binary, first, min(total - first, last - first + 1))
 

@@ -465,7 +465,7 @@ defmodule Enum do
   """
   @spec at(t, index, default) :: element | default
   def at(enumerable, index, default \\ nil) when is_integer(index) do
-    case slice_any(enumerable, index, 1, 1) do
+    case slice_forward(enumerable, index, 1, 1) do
       [value] -> value
       [] -> default
     end
@@ -1034,7 +1034,7 @@ defmodule Enum do
   """
   @spec fetch(t, index) :: {:ok, element} | :error
   def fetch(enumerable, index) when is_integer(index) do
-    case slice_any(enumerable, index, 1, 1) do
+    case slice_forward(enumerable, index, 1, 1) do
       [value] -> {:ok, value}
       [] -> :error
     end
@@ -1060,7 +1060,7 @@ defmodule Enum do
   """
   @spec fetch!(t, index) :: element
   def fetch!(enumerable, index) when is_integer(index) do
-    case slice_any(enumerable, index, 1, 1) do
+    case slice_forward(enumerable, index, 1, 1) do
       [value] -> value
       [] -> raise Enum.OutOfBoundsError
     end
@@ -2657,14 +2657,13 @@ defmodule Enum do
   def slide(enumerable, first..last, insertion_index)
       when first < 0 or last < 0 or insertion_index < 0 do
     count = Enum.count(enumerable)
-    normalized_first = if first >= 0, do: first, else: first + count
+    normalized_first = if first >= 0, do: first, else: Kernel.max(first + count, 0)
     normalized_last = if last >= 0, do: last, else: last + count
 
     normalized_insertion_index =
       if insertion_index >= 0, do: insertion_index, else: insertion_index + count
 
-    if normalized_first >= 0 and normalized_first < count and
-         normalized_first != normalized_insertion_index do
+    if normalized_first < count and normalized_first != normalized_insertion_index do
       normalized_range = normalized_first..normalized_last//1
       slide(enumerable, normalized_range, normalized_insertion_index)
     else
@@ -2678,7 +2677,8 @@ defmodule Enum do
 
   def slide(_, first..last, insertion_index)
       when insertion_index > first and insertion_index <= last do
-    raise "Insertion index for slide must be outside the range being moved " <>
+    raise ArgumentError,
+          "insertion index for slide must be outside the range being moved " <>
             "(tried to insert #{first}..#{last} at #{insertion_index})"
   end
 
@@ -2876,7 +2876,9 @@ defmodule Enum do
       iex> Enum.slice([1, 2, 3, 4, 5], 0..-1//2)
       [1, 3, 5]
 
-  If values are out of bounds, it returns an empty list:
+  If the first position is after the end of the enumerable
+  or after the last position of the range, it returns an
+  empty list:
 
       iex> Enum.slice([1, 2, 3, 4, 5], 6..10)
       []
@@ -2924,16 +2926,16 @@ defmodule Enum do
 
   defp slice_range(enumerable, first, last, step)
        when last >= first and last >= 0 and first >= 0 do
-    slice_any(enumerable, first, last - first + 1, step)
+    slice_forward(enumerable, first, last - first + 1, step)
   end
 
   defp slice_range(enumerable, first, last, step) do
     {count, fun} = slice_count_and_fun(enumerable, step)
-    first = if first >= 0, do: first, else: first + count
+    first = if first >= 0, do: first, else: Kernel.max(first + count, 0)
     last = if last >= 0, do: last, else: last + count
     amount = last - first + 1
 
-    if first >= 0 and first < count and amount > 0 do
+    if first < count and amount > 0 do
       amount = Kernel.min(amount, count - first)
       amount = if step == 1, do: amount, else: div(amount - 1, step) + 1
       fun.(first, amount, step)
@@ -2971,13 +2973,11 @@ defmodule Enum do
       # using a negative start index
       iex> Enum.slice(1..10, -6, 3)
       [5, 6, 7]
-
-      # out of bound start index (positive)
-      iex> Enum.slice(1..10, 10, 5)
-      []
-
-      # out of bound start index (negative)
       iex> Enum.slice(1..10, -11, 5)
+      [1, 2, 3, 4, 5]
+
+      # out of bound start index
+      iex> Enum.slice(1..10, 10, 5)
       []
 
   """
@@ -2985,8 +2985,21 @@ defmodule Enum do
   def slice(_enumerable, start_index, 0) when is_integer(start_index), do: []
 
   def slice(enumerable, start_index, amount)
+      when is_integer(start_index) and start_index < 0 and is_integer(amount) and amount >= 0 do
+    {count, fun} = slice_count_and_fun(enumerable, 1)
+    start_index = Kernel.max(count + start_index, 0)
+    amount = Kernel.min(amount, count - start_index)
+
+    if amount > 0 do
+      fun.(start_index, amount, 1)
+    else
+      []
+    end
+  end
+
+  def slice(enumerable, start_index, amount)
       when is_integer(start_index) and is_integer(amount) and amount >= 0 do
-    slice_any(enumerable, start_index, amount, 1)
+    slice_forward(enumerable, start_index, amount, 1)
   end
 
   @doc """
@@ -4308,7 +4321,7 @@ defmodule Enum do
 
   ## slice
 
-  defp slice_any(enumerable, start, amount, step) when start < 0 do
+  defp slice_forward(enumerable, start, amount, step) when start < 0 do
     {count, fun} = slice_count_and_fun(enumerable, step)
     start = count + start
 
@@ -4321,11 +4334,11 @@ defmodule Enum do
     end
   end
 
-  defp slice_any(list, start, amount, step) when is_list(list) do
+  defp slice_forward(list, start, amount, step) when is_list(list) do
     slice_list(list, start, amount, step)
   end
 
-  defp slice_any(enumerable, start, amount, step) do
+  defp slice_forward(enumerable, start, amount, step) do
     case Enumerable.slice(enumerable) do
       {:ok, count, _} when start >= count ->
         []
