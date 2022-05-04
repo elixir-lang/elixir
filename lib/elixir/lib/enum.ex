@@ -881,7 +881,11 @@ defmodule Enum do
     drop_list(enumerable, amount)
   end
 
-  def drop(enumerable, amount) when is_integer(amount) and amount >= 0 do
+  def drop(enumerable, 0) do
+    to_list(enumerable)
+  end
+
+  def drop(enumerable, amount) when is_integer(amount) and amount > 0 do
     {result, _} = reduce(enumerable, {[], amount}, R.drop())
     if is_list(result), do: :lists.reverse(result), else: []
   end
@@ -2918,9 +2922,9 @@ defmodule Enum do
 
   defp slice_range(enumerable, first, -1, step) when first >= 0 do
     if step == 1 do
-      Enum.drop(enumerable, first)
+      drop(enumerable, first)
     else
-      enumerable |> Enum.drop(first) |> take_every_list(step - 1)
+      enumerable |> drop(first) |> take_every_list(step - 1)
     end
   end
 
