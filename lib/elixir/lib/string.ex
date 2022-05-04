@@ -2086,19 +2086,19 @@ defmodule String do
       iex> String.slice("elixir", 10, 3)
       ""
 
+  If the start position is negative, it is normalized
+  against the string length and clamped to 0:
+
       iex> String.slice("elixir", -4, 4)
       "ixir"
 
       iex> String.slice("elixir", -10, 3)
-      ""
+      "eli"
 
-      iex> String.slice("a", 0, 1500)
-      "a"
+  If start is more than the string length, an empty
+  string is returned:
 
-      iex> String.slice("a", 1, 1500)
-      ""
-
-      iex> String.slice("a", 2, 1500)
+      iex> String.slice("elixir", 10, 1500)
       ""
 
   """
@@ -2117,12 +2117,8 @@ defmodule String do
   def slice(string, start, length)
       when is_binary(string) and is_integer(start) and is_integer(length) and start < 0 and
              length >= 0 do
-    start = length(string) + start
-
-    case start >= 0 do
-      true -> do_slice(string, start, length)
-      false -> ""
-    end
+    start = max(length(string) + start, 0)
+    do_slice(string, start, length)
   end
 
   defp do_slice(string, start, length) do
@@ -2160,6 +2156,8 @@ defmodule String do
       "ixir"
       iex> String.slice("elixir", -4..6)
       "ixir"
+      iex> String.slice("elixir", -100..100)
+      "elixir"
 
   For ranges where `start > stop`, you need to explicitly
   mark them as increasing:
@@ -2181,11 +2179,10 @@ defmodule String do
       iex> String.slice("elixir", 0..-1//2)
       "eii"
 
-  If values are out of bounds, it returns an empty string:
+  If the first position is after the string ends or after
+  the last position of the range, it returns an empty string:
 
       iex> String.slice("elixir", 10..3)
-      ""
-      iex> String.slice("elixir", -10..-7)
       ""
       iex> String.slice("a", 1..1500)
       ""
@@ -2250,10 +2247,10 @@ defmodule String do
 
   defp slice_range_negative(string, first, last) do
     {reversed_bytes, length} = acc_bytes(string, [], 0)
-    first = add_if_negative(first, length)
+    first = add_if_negative(first, length) |> max(0)
     last = add_if_negative(last, length)
 
-    if first < 0 or first > last or first > length do
+    if first > last or first > length do
       ""
     else
       last = min(last + 1, length)

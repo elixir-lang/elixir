@@ -72,7 +72,9 @@ defmodule Date.RangeTest do
     end
 
     test "for empty range" do
+      assert Enum.slice(@empty_range, 1, 3) == []
       assert Enum.slice(@empty_range, 3, 3) == []
+      assert Enum.slice(@empty_range, -1, 3) == []
       assert Enum.slice(@empty_range, -3, 3) == []
     end
   end
