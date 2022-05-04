@@ -181,18 +181,18 @@ defmodule Kernel.LexicalTrackerTest do
       {{compile, _exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.Defdelegate do
-          defdelegate a, to: A
+          defdelegate decode_query(query), to: URI
 
-          opts = [to: B]
-          defdelegate b, opts
+          opts = [to: Enum]
+          defdelegate concat(enum), opts
 
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
         end |> elem(3)
         """)
 
-      refute A in compile
-      assert B in compile
-      assert A in runtime
+      refute URI in compile
+      assert Enum in compile
+      assert URI in runtime
     end
 
     test "imports adds an export dependency" do
