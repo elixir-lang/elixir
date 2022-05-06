@@ -100,7 +100,13 @@ defmodule Kernel.Utils do
   @doc """
   Callback for defstruct.
   """
-  def defstruct(module, fields) do
+  def defstruct(module, fields, bootstrapped?) do
+    if Module.has_attribute?(module, :__struct__) do
+      raise ArgumentError,
+            "defstruct has already been called for " <>
+              "#{Kernel.inspect(module)}, defstruct can only be called once per module"
+    end
+
     case fields do
       fs when is_list(fs) ->
         :ok
@@ -142,12 +148,54 @@ defmodule Kernel.Utils do
     end
 
     :lists.foreach(foreach, enforce_keys)
-
     struct = :maps.put(:__struct__, module, :maps.from_list(fields))
+
+    body =
+      case bootstrapped? do
+        true ->
+          case enforce_keys do
+            [] ->
+              quote do
+                Enum.reduce(var!(kv), @__struct__, fn {key, val}, map ->
+                  Map.replace!(map, key, val)
+                end)
+              end
+
+            _ ->
+              quote do
+                {map, keys} =
+                  Enum.reduce(var!(kv), {@__struct__, @enforce_keys}, fn {key, val},
+                                                                         {map, keys} ->
+                    {Map.replace!(map, key, val), List.delete(keys, key)}
+                  end)
+
+                case keys do
+                  [] ->
+                    map
+
+                  _ ->
+                    raise ArgumentError,
+                          "the following keys must also be given when building " <>
+                            "struct #{inspect(__MODULE__)}: #{inspect(keys)}"
+                end
+              end
+          end
+
+        false ->
+          quote do
+            _ = @enforce_keys
+
+            :lists.foldl(
+              fn {key, val}, acc -> Map.replace!(acc, key, val) end,
+              @__struct__,
+              var!(kv)
+            )
+          end
+      end
 
     case enforce_keys -- :maps.keys(struct) do
       [] ->
-        {struct, enforce_keys, Module.get_attribute(module, :derive)}
+        {struct, enforce_keys, Module.get_attribute(module, :derive), body}
 
       error_keys ->
         raise ArgumentError,
