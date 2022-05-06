@@ -694,6 +694,30 @@ defmodule Inspect.MapTest do
              "%Inspect.MapTest.StructWithAllFieldsInOnlyOption{\n  a: 1,\n  b: 2\n}"
   end
 
+  test "struct missing fields in the :only option" do
+    message =
+      ~r"When deriving inspect protocol of Elixir.Inspect.MapTest.StructMissingFieldsInOnlyOption, values must match struct fields"
+
+    assert_raise CompileError, message, fn ->
+      defmodule StructMissingFieldsInOnlyOption do
+        @derive {Inspect, only: [:c]}
+        defstruct [:a, :b]
+      end
+    end
+  end
+
+  test "struct missing fields in the :except option" do
+    message =
+      ~r"When deriving inspect protocol of Elixir.Inspect.MapTest.StructMissingFieldsInExceptOption, values must match struct fields"
+
+    assert_raise CompileError, message, fn ->
+      defmodule StructMissingFieldsInExceptOption do
+        @derive {Inspect, except: [:c]}
+        defstruct [:a, :b]
+      end
+    end
+  end
+
   defmodule StructWithExceptOption do
     @derive {Inspect, except: [:b, :c]}
     defstruct [:a, :b, :c, :d]

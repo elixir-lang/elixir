@@ -455,6 +455,9 @@ defimpl Inspect, for: Any do
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
 
+    :ok = validate_option(only, fields, module, __CALLER__)
+    :ok = validate_option(except, fields, module, __CALLER__)
+
     filtered_fields =
       fields
       |> Enum.reject(&(&1 in except))
@@ -476,6 +479,15 @@ defimpl Inspect, for: Any do
         end
       end
     end
+  end
+
+  defp validate_option(option_list, fields, module, caller) do
+    if not Enum.empty?(option_list -- fields) do
+      description = "When deriving inspect protocol of #{module}, values must match struct fields"
+      raise CompileError, file: caller.file, line: caller.line, description: description
+    end
+
+    :ok
   end
 
   def inspect(%module{} = struct, opts) do
