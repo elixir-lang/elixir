@@ -5177,56 +5177,8 @@ defmodule Kernel do
   use `@type`.
   """
   defmacro defstruct(fields) do
-    builder =
-      case bootstrapped?(Enum) do
-        true ->
-          quote do
-            case @enforce_keys do
-              [] ->
-                def __struct__(kv) do
-                  Enum.reduce(kv, @__struct__, fn {key, val}, map ->
-                    Map.replace!(map, key, val)
-                  end)
-                end
-
-              _ ->
-                def __struct__(kv) do
-                  {map, keys} =
-                    Enum.reduce(kv, {@__struct__, @enforce_keys}, fn {key, val}, {map, keys} ->
-                      {Map.replace!(map, key, val), List.delete(keys, key)}
-                    end)
-
-                  case keys do
-                    [] ->
-                      map
-
-                    _ ->
-                      raise ArgumentError,
-                            "the following keys must also be given when building " <>
-                              "struct #{inspect(__MODULE__)}: #{inspect(keys)}"
-                  end
-                end
-            end
-          end
-
-        false ->
-          quote do
-            _ = @enforce_keys
-
-            def __struct__(kv) do
-              :lists.foldl(fn {key, val}, acc -> Map.replace!(acc, key, val) end, @__struct__, kv)
-            end
-          end
-      end
-
-    quote do
-      if Module.has_attribute?(__MODULE__, :__struct__) do
-        raise ArgumentError,
-              "defstruct has already been called for " <>
-                "#{Kernel.inspect(__MODULE__)}, defstruct can only be called once per module"
-      end
-
-      {struct, keys, derive} = Kernel.Utils.defstruct(__MODULE__, unquote(fields))
+    quote bind_quoted: [fields: fields, bootstrapped?: bootstrapped?(Enum)] do
+      {struct, keys, derive, body} = Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?)
       @__struct__ struct
       @enforce_keys keys
 
@@ -5235,11 +5187,9 @@ defmodule Kernel do
         _ -> Protocol.__derive__(derive, __MODULE__, __ENV__)
       end
 
-      def __struct__() do
-        @__struct__
-      end
+      def __struct__(), do: @__struct__
+      def __struct__(var!(kv)), do: unquote(body)
 
-      unquote(builder)
       Kernel.Utils.announce_struct(__MODULE__)
       struct
     end
