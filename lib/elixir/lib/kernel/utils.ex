@@ -164,9 +164,9 @@ defmodule Kernel.Utils do
             _ ->
               quote do
                 {map, keys} =
-                  Enum.reduce(var!(kv), {@__struct__, @enforce_keys}, fn {key, val},
-                                                                         {map, keys} ->
-                    {Map.replace!(map, key, val), List.delete(keys, key)}
+                  Enum.reduce(var!(kv), {@__struct__, unquote(enforce_keys)}, fn
+                    {key, val}, {map, keys} ->
+                      {Map.replace!(map, key, val), List.delete(keys, key)}
                   end)
 
                 case keys do
@@ -183,8 +183,6 @@ defmodule Kernel.Utils do
 
         false ->
           quote do
-            _ = @enforce_keys
-
             :lists.foldl(
               fn {key, val}, acc -> Map.replace!(acc, key, val) end,
               @__struct__,
@@ -195,7 +193,10 @@ defmodule Kernel.Utils do
 
     case enforce_keys -- :maps.keys(struct) do
       [] ->
-        {struct, enforce_keys, Module.get_attribute(module, :derive), body}
+        derive = Module.get_attribute(module, :derive)
+        Module.put_attribute(module, :__struct__, struct)
+        Module.put_attribute(module, :__derived__, derive)
+        {struct, Module.get_attribute(module, :derive), body}
 
       error_keys ->
         raise ArgumentError,
