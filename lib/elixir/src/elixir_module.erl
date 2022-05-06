@@ -127,7 +127,7 @@ compile(Line, Module, Block, Vars, E) ->
         make_readonly(Module),
 
         (not elixir_config:is_bootstrap()) andalso
-         'Elixir.Module':check_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
+         'Elixir.Module':check_derive_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),

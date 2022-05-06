@@ -332,6 +332,25 @@ defmodule ProtocolTest do
       assert message =~
                "cannot define @optional_callbacks inside protocol, all of the protocol definitions are required"
     end
+
+    test "when deriving after struct" do
+      assert capture_io(:stderr, fn ->
+               defmodule DeriveTooLate do
+                 defstruct []
+                 @derive [{Derivable, :ok}]
+               end
+             end) =~
+               "module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
+    end
+
+    test "when deriving with no struct" do
+      assert capture_io(:stderr, fn ->
+               defmodule DeriveNeverUsed do
+                 @derive [{Derivable, :ok}]
+               end
+             end) =~
+               "module attribute @derive was set but never used (it must come before defstruct)"
+    end
   end
 
   describe "errors" do

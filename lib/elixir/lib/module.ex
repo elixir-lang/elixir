@@ -1787,7 +1787,8 @@ defmodule Module do
   defp args_count([], total, defaults), do: {total, defaults}
 
   @doc false
-  def check_behaviours_and_impls(env, _set, bag, all_definitions) do
+  def check_derive_behaviours_and_impls(env, set, bag, all_definitions) do
+    check_derive(env, set, bag)
     behaviours = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
     impls = bag_lookup_element(bag, :impls, 2)
     callbacks = check_behaviours(env, behaviours)
@@ -1803,6 +1804,30 @@ defmodule Module do
 
     check_callbacks(env, pending_callbacks, all_definitions)
     :ok
+  end
+
+  defp check_derive(env, set, bag) do
+    case bag_lookup_element(bag, {:accumulate, :derive}, 2) do
+      [] ->
+        :ok
+
+      to_derive ->
+        case :ets.lookup(set, :__derived__) do
+          [{_, derived, _}] ->
+            if to_derive != :lists.reverse(derived) do
+              message =
+                "warning: module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
+
+              IO.warn(message, Macro.Env.stacktrace(env))
+            end
+
+          [] ->
+            message =
+              "warning: module attribute @derive was set but never used (it must come before defstruct)"
+
+            IO.warn(message, Macro.Env.stacktrace(env))
+        end
+    end
   end
 
   defp check_behaviours(env, behaviours) do
