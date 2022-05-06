@@ -455,8 +455,8 @@ defimpl Inspect, for: Any do
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
 
-    :ok = validate_option(only, fields, module, __CALLER__)
-    :ok = validate_option(except, fields, module, __CALLER__)
+    :ok = validate_option(only, fields, module)
+    :ok = validate_option(except, fields, module)
 
     filtered_fields =
       fields
@@ -481,13 +481,15 @@ defimpl Inspect, for: Any do
     end
   end
 
-  defp validate_option(option_list, fields, module, caller) do
-    if not Enum.empty?(option_list -- fields) do
-      description = "When deriving inspect protocol of #{module}, values must match struct fields"
-      raise CompileError, file: caller.file, line: caller.line, description: description
-    end
+  defp validate_option(option_list, fields, module) do
+    case option_list -- fields do
+      [] ->
+        :ok
 
-    :ok
+      unknown_fields ->
+        raise ArgumentError,
+              "unknown fields #{Kernel.inspect(unknown_fields)} given when deriving the Inspect protocol for #{Kernel.inspect(module)}. :only and :except values must match struct fields"
+    end
   end
 
   def inspect(%module{} = struct, opts) do
