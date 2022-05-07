@@ -15,6 +15,16 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
+  test "doesn't format empty lines into line breaks", context do
+    in_tmp(context.test, fn ->
+      File.write!("a.exs", "")
+
+      Mix.Tasks.Format.run(["a.exs"])
+
+      assert File.read!("a.exs") == ""
+    end)
+  end
+
   test "formats the given files", context do
     in_tmp(context.test, fn ->
       File.write!("a.ex", """
