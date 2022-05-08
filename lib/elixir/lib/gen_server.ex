@@ -434,10 +434,10 @@ defmodule GenServer do
   except the process is hibernated before entering the loop. See
   `c:handle_call/3` for more information on hibernation.
 
-  Returning `{:ok, state, {:continue, continue}}` is similar to
+  Returning `{:ok, state, {:continue, continue_arg}}` is similar to
   `{:ok, state}` except that immediately after entering the loop,
-  the `c:handle_continue/2` callback will be invoked with the value
-  `continue` as first argument.
+  the `c:handle_continue/2` callback will be invoked with `continue_arg`
+  as the first argument and `state` as the second one.
 
   Returning `:ignore` will cause `start_link/3` to return `:ignore` and
   the process will exit normally without entering the loop or calling
@@ -460,7 +460,7 @@ defmodule GenServer do
   """
   @callback init(init_arg :: term) ::
               {:ok, state}
-              | {:ok, state, timeout | :hibernate | {:continue, term}}
+              | {:ok, state, timeout | :hibernate | {:continue, continue_arg :: term}}
               | :ignore
               | {:stop, reason :: any}
             when state: any
@@ -487,9 +487,10 @@ defmodule GenServer do
   `GenServer` causes garbage collection and leaves a continuous heap that
   minimises the memory used by the process.
 
-  Returning `{:reply, reply, new_state, {:continue, continue}}` is similar to
-  `{:reply, reply, new_state}` except `c:handle_continue/2` will be invoked
-  immediately after with the value `continue` as first argument.
+  Returning `{:reply, reply, new_state, {:continue, continue_arg}}` is similar to
+  `{:reply, reply, new_state}` except that `c:handle_continue/2` will be invoked
+  immediately after with `continue_arg` as the first argument and
+  `state` as the second one.
 
   Hibernating should not be used aggressively as too much time could be spent
   garbage collecting. Normally it should only be used when a message is not
@@ -512,7 +513,7 @@ defmodule GenServer do
   process exits without replying as the caller will be blocking awaiting a
   reply.
 
-  Returning `{:noreply, new_state, timeout | :hibernate | {:continue, continue}}`
+  Returning `{:noreply, new_state, timeout | :hibernate | {:continue, continue_arg}}`
   is similar to `{:noreply, new_state}` except a timeout, hibernation or continue
   occurs as with a `:reply` tuple.
 
@@ -528,9 +529,10 @@ defmodule GenServer do
   """
   @callback handle_call(request :: term, from, state :: term) ::
               {:reply, reply, new_state}
-              | {:reply, reply, new_state, timeout | :hibernate | {:continue, term}}
+              | {:reply, reply, new_state,
+                 timeout | :hibernate | {:continue, continue_arg :: term}}
               | {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, continue_arg :: term}}
               | {:stop, reason, reply, new_state}
               | {:stop, reason, new_state}
             when reply: term, new_state: term, reason: term
@@ -551,9 +553,10 @@ defmodule GenServer do
   `{:noreply, new_state}` except the process is hibernated before continuing the
   loop. See `c:handle_call/3` for more information.
 
-  Returning `{:noreply, new_state, {:continue, continue}}` is similar to
+  Returning `{:noreply, new_state, {:continue, continue_arg}}` is similar to
   `{:noreply, new_state}` except `c:handle_continue/2` will be invoked
-  immediately after with the value `continue` as first argument.
+  immediately after with `continue_arg` as the first argument and
+  `state` as the second one.
 
   Returning `{:stop, reason, new_state}` stops the loop and `c:terminate/2` is
   called with the reason `reason` and state `new_state`. The process exits with
@@ -564,7 +567,7 @@ defmodule GenServer do
   """
   @callback handle_cast(request :: term, state :: term) ::
               {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, continue_arg :: term}}
               | {:stop, reason :: term, new_state}
             when new_state: term
 
@@ -581,12 +584,12 @@ defmodule GenServer do
   """
   @callback handle_info(msg :: :timeout | term, state :: term) ::
               {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, continue_arg :: term}}
               | {:stop, reason :: term, new_state}
             when new_state: term
 
   @doc """
-  Invoked to handle `continue` instructions.
+  Invoked to handle continue instructions.
 
   It is useful for performing work after initialization or for splitting the work
   in a callback in multiple steps, updating the process state along the way.
@@ -596,11 +599,11 @@ defmodule GenServer do
   This callback is optional. If one is not implemented, the server will fail
   if a continue instruction is used.
   """
-  @callback handle_continue(continue :: term, state :: term) ::
+  @callback handle_continue(continue_arg, state :: term) ::
               {:noreply, new_state}
-              | {:noreply, new_state, timeout | :hibernate | {:continue, term}}
+              | {:noreply, new_state, timeout | :hibernate | {:continue, continue_arg}}
               | {:stop, reason :: term, new_state}
-            when new_state: term
+            when new_state: term, continue_arg: term
 
   @doc """
   Invoked when the server is about to exit. It should do any cleanup required.
