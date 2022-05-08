@@ -23,7 +23,7 @@ defmodule Dict do
     import Kernel, except: [size: 1]
 
     if __CALLER__.module != HashDict do
-      IO.warn("use Dict is deprecated. " <> unquote(message), Macro.Env.stacktrace(__CALLER__))
+      IO.warn("use Dict is deprecated. " <> unquote(message), __CALLER__)
     end
 
     quote do

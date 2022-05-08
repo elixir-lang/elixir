@@ -434,7 +434,7 @@ defmodule Record do
 
     if Keyword.has_key?(keyword, :_) do
       message = "updating a record with a default (:_) is equivalent to creating a new record"
-      IO.warn(message, Macro.Env.stacktrace(caller))
+      IO.warn(message, caller)
       create(tag, fields, keyword, caller)
     else
       updates =

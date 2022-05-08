@@ -866,7 +866,7 @@ defmodule GenServer do
       the arguments given to GenServer.start_link/3 to the server state.
       """
 
-      IO.warn(message, Macro.Env.stacktrace(env))
+      IO.warn(message, env)
 
       quote do
         @doc false

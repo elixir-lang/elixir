@@ -286,13 +286,23 @@ defmodule IO do
   end
 
   @doc """
-  Writes a `message` to stderr, along with the given `stacktrace`.
+  Writes a `message` to stderr, along with the given `stacktrace_info`.
+
+  The `stacktrace_info` must be one of:
+
+    * a `__STACKTRACE__`, where all entries in the stacktrace will be
+      included in the error message
+
+    * a `Macro.Env` structure, where a single stacktrace entry from
+      the compilation environment will be used
+
+    * a keyword list with at least the `:file` option representing
+      a single stacktrace entry. The `:line`, `:module`, `:function`
+      options are also supported
 
   This function also notifies the compiler a warning was printed
   (in case --warnings-as-errors was enabled). It returns `:ok`
   if it succeeds.
-
-  An empty list can be passed to avoid stacktrace printing.
 
   ## Examples
 
@@ -302,10 +312,34 @@ defmodule IO do
       #=>   my_app.ex:4: MyApp.main/1
 
   """
-  @spec warn(chardata | String.Chars.t(), Exception.stacktrace()) :: :ok
+  @spec warn(chardata | String.Chars.t(), Exception.stacktrace() | keyword() | Macro.Env.t()) ::
+          :ok
+  def warn(message, stacktrace_info)
+
   def warn(message, []) do
     message = [to_chardata(message), ?\n]
     :elixir_errors.log_and_print_warning(0, nil, message, message)
+  end
+
+  def warn(message, %Macro.Env{} = env) do
+    warn(message, Macro.Env.stacktrace(env))
+  end
+
+  def warn(message, [{_, _} | _] = keyword) do
+    if file = keyword[:file] do
+      warn(
+        message,
+        %{
+          __ENV__
+          | module: keyword[:module],
+            function: keyword[:function],
+            line: keyword[:line],
+            file: file
+        }
+      )
+    else
+      warn(message, [])
+    end
   end
 
   def warn(message, [{_, _, _, opts} | _] = stacktrace) do

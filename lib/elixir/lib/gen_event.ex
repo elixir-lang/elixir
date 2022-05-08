@@ -91,7 +91,7 @@ defmodule GenEvent do
     deprecation_message =
       "the GenEvent module is deprecated, see its documentation for alternatives"
 
-    IO.warn(deprecation_message, Macro.Env.stacktrace(__CALLER__))
+    IO.warn(deprecation_message, __CALLER__)
 
     quote location: :keep do
       @behaviour :gen_event

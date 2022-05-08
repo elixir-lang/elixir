@@ -3466,7 +3466,7 @@ defmodule Kernel do
 
       name == :behavior ->
         warn_message = "@behavior attribute is not supported, please use @behaviour instead"
-        IO.warn(warn_message, Macro.Env.stacktrace(env))
+        IO.warn(warn_message, env)
 
       :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
         arg = {env.line, arg}

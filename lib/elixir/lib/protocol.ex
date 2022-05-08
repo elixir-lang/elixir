@@ -755,7 +755,7 @@ defmodule Protocol do
     do: :maps.get(fa, metas, [])[:line]
 
   defp warn(message, env, nil) do
-    IO.warn(message, Macro.Env.stacktrace(env))
+    IO.warn(message, env)
   end
 
   defp warn(message, env, line) when is_integer(line) do
@@ -1028,7 +1028,7 @@ defmodule Protocol do
           "implement protocols after compilation or during tests, check the " <>
           "\"Consolidation\" section in the Protocol module documentation"
 
-      IO.warn(message, Macro.Env.stacktrace(env))
+      IO.warn(message, env)
     end
 
     :ok
