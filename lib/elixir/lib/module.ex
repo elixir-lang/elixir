@@ -1679,7 +1679,7 @@ defmodule Module do
         "#{kind} #{name}/#{arity} is private, " <>
           "@doc attribute is always discarded for private functions/macros/types"
 
-      IO.warn(message, Macro.Env.stacktrace(%{env | line: line}))
+      IO.warn(message, %{env | line: line})
     end
   end
 
@@ -1707,7 +1707,7 @@ defmodule Module do
               def #{name}(...)
           '''
 
-          IO.warn(message, Macro.Env.stacktrace(%{env | line: line}))
+          IO.warn(message, %{env | line: line})
         end
 
         signature = merge_signatures(current_sign, signature, 1)
@@ -1818,14 +1818,14 @@ defmodule Module do
               message =
                 "warning: module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
 
-              IO.warn(message, Macro.Env.stacktrace(env))
+              IO.warn(message, env)
             end
 
           [] ->
             message =
               "warning: module attribute @derive was set but never used (it must come before defstruct)"
 
-            IO.warn(message, Macro.Env.stacktrace(env))
+            IO.warn(message, env)
         end
     end
   end
@@ -1837,14 +1837,14 @@ defmodule Module do
           message =
             "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
 
-          IO.warn(message, Macro.Env.stacktrace(env))
+          IO.warn(message, env)
           acc
 
         not function_exported?(behaviour, :behaviour_info, 1) ->
           message =
             "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(env.module)})"
 
-          IO.warn(message, Macro.Env.stacktrace(env))
+          IO.warn(message, env)
           acc
 
         true ->
@@ -1870,7 +1870,7 @@ defmodule Module do
               "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(env.module)})"
           end
 
-        IO.warn(message, Macro.Env.stacktrace(env))
+        IO.warn(message, env)
 
       %{} ->
         :ok
@@ -1887,7 +1887,7 @@ defmodule Module do
             format_callback(callback, kind, behaviour) <>
               " is not implemented (in module #{inspect(env.module)})"
 
-          IO.warn(message, Macro.Env.stacktrace(env))
+          IO.warn(message, env)
 
         {_, wrong_kind, _, _} when kind != wrong_kind ->
           message =
@@ -1895,7 +1895,7 @@ defmodule Module do
               " was implemented as \"#{wrong_kind}\" but should have been \"#{kind}\" " <>
               "(in module #{inspect(env.module)})"
 
-          IO.warn(message, Macro.Env.stacktrace(env))
+          IO.warn(message, env)
 
         _ ->
           :ok
@@ -1931,7 +1931,7 @@ defmodule Module do
 
         {:error, message} ->
           formatted = format_impl_warning(fa, kind, message)
-          IO.warn(formatted, Macro.Env.stacktrace(%{env | line: line, file: file}))
+          IO.warn(formatted, %{env | line: line, file: file})
           acc
       end
     end)
@@ -2047,7 +2047,7 @@ defmodule Module do
             "This either means you forgot to add the \"@impl true\" annotation before the " <>
             "definition or that you are accidentally overriding this callback"
 
-        IO.warn(message, Macro.Env.stacktrace(%{env | line: :elixir_utils.get_line(meta)}))
+        IO.warn(message, %{env | line: :elixir_utils.get_line(meta)})
       end
     end
 
