@@ -290,7 +290,8 @@ do_quote({unquote, _Meta, [Expr]}, #elixir_quote{unquote=true}, _) ->
 
 %% Aliases
 
-do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=true} = Q, E) when is_atom(H) and (H /= 'Elixir') ->
+do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=true} = Q, E)
+    when is_atom(H), H /= 'Elixir' ->
   Annotation =
     case elixir_aliases:expand(Alias, E) of
       Atom when is_atom(Atom) -> Atom;
@@ -301,12 +302,14 @@ do_quote({'__aliases__', Meta, [H | T]} = Alias, #elixir_quote{aliases_hygiene=t
 
 %% Vars
 
-do_quote({Name, Meta, nil}, #elixir_quote{vars_hygiene=true, imports_hygiene=true} = Q, E) when is_atom(Name) ->
-  ImportMeta = import_meta(Meta, Name, 0, Q, E),
-  {'{}', [], [Name, meta(ImportMeta, Q), Q#elixir_quote.context]};
+do_quote({Name, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, E)
+    when is_atom(Name), is_list(Meta) ->
+  ImportMeta = if
+    Q#elixir_quote.imports_hygiene -> import_meta(Meta, Name, 0, Q, E);
+    true -> Meta
+  end,
 
-do_quote({Name, Meta, nil}, #elixir_quote{vars_hygiene=true} = Q, _E) when is_atom(Name) ->
-  {'{}', [], [Name, meta(Meta, Q), Q#elixir_quote.context]};
+  {'{}', [], [Name, meta(ImportMeta, Q), Q#elixir_quote.context]};
 
 %% Unquote
 
@@ -320,13 +323,26 @@ do_quote({{'.', Meta, [Left, unquote]}, _, [Expr]}, #elixir_quote{unquote=true} 
 
 do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
          #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(F), is_integer(A), is_atom(C) ->
-  do_quote_fa('&', Meta, Args, F, A, Q, E);
+  NewMeta =
+    case elixir_dispatch:find_import(Meta, F, A, E) of
+      false ->
+        Meta;
 
-do_quote({Name, Meta, Args}, #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(Name), is_list(Args) ->
-  do_quote_import(Meta, Name, length(Args), Args, Q, E);
+      Receiver ->
+        keystore(context, keystore(imports, Meta, [{Receiver, A}]), Q#elixir_quote.context)
+    end,
+  do_quote_tuple('&', NewMeta, Args, Q, E);
 
-do_quote({Name, Meta, Context}, #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(Name), is_atom(Context) ->
-  do_quote_import(Meta, Name, 0, Context, Q, E);
+do_quote({Name, Meta, ArgsOrContext}, #elixir_quote{imports_hygiene=true} = Q, E)
+    when is_atom(Name), is_list(Meta), is_list(ArgsOrContext) or is_atom(ArgsOrContext) ->
+  Arity = if
+    is_atom(ArgsOrContext) -> 0;
+    true -> length(ArgsOrContext)
+  end,
+
+  ImportMeta = import_meta(Meta, Name, Arity, Q, E),
+  Annotated = annotate({Name, ImportMeta, ArgsOrContext}, Q#elixir_quote.context),
+  do_quote_tuple(Annotated, Q, E);
 
 %% Two-element tuples
 
@@ -424,39 +440,23 @@ bad_escape(Arg) ->
 
 import_meta(Meta, Name, Arity, Q, E) ->
   case (keyfind(import, Meta) == false) andalso
-      elixir_dispatch:find_import(Meta, Name, Arity, E) of
-    false ->
+      elixir_dispatch:find_imports(Meta, Name, Arity, E) of
+    [] ->
       case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
         {ambiguous_op, nil} -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
         _ -> Meta
       end;
-    Receiver ->
-      keystore(import, keystore(context, Meta, Q#elixir_quote.context), Receiver)
+
+    Imports ->
+      keystore(imports, keystore(context, Meta, Q#elixir_quote.context), Imports)
   end.
 
 %% do_quote_*
-
-do_quote_import(Meta, Name, Arity, ArgsOrAtom, Q, E) ->
-  ImportMeta = import_meta(Meta, Name, Arity, Q, E),
-  Annotated = annotate({Name, ImportMeta, ArgsOrAtom}, Q#elixir_quote.context),
-  do_quote_tuple(Annotated, Q, E).
 
 do_quote_call(Left, Meta, Expr, Args, Q, E) ->
   All  = [Left, {unquote, Meta, [Expr]}, Args, Q#elixir_quote.context],
   TAll = [do_quote(X, Q, E) || X <- All],
   {{'.', Meta, [elixir_quote, dot]}, Meta, [meta(Meta, Q) | TAll]}.
-
-do_quote_fa(Target, Meta, Args, F, A, Q, E) ->
-  NewMeta =
-    case elixir_dispatch:find_import(Meta, F, A, E) of
-      false -> Meta;
-      Receiver ->
-        lists:keystore(context, 1,
-          lists:keystore(import, 1, Meta, {import, Receiver}),
-          {context, Q#elixir_quote.context}
-        )
-    end,
-  do_quote_tuple(Target, NewMeta, Args, Q, E).
 
 do_quote_tuple({Left, Meta, Right}, Q, E) ->
   do_quote_tuple(Left, Meta, Right, Q, E).

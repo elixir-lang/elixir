@@ -187,7 +187,7 @@ defmodule Macro do
 
     * `:alias` - Used for alias hygiene.
     * `:ambiguous_op` - Used for improved error messages in the compiler.
-    * `:import` - Used for import hygiene.
+    * `:imports` - Used for import hygiene.
     * `:var` - Used for improved error messages on undefined variables.
 
   Do not rely on them as they may change or be fully removed in future versions

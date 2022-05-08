@@ -6,7 +6,7 @@
   require_function/5, import_function/4,
   expand_import/7, expand_require/6,
   default_functions/0, default_macros/0, default_requires/0,
-  find_import/4, format_error/1]).
+  find_import/4, find_imports/4, format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 -define(kernel, 'Elixir.Kernel').
@@ -34,6 +34,20 @@ find_import(Meta, Name, Arity, E) ->
       Receiver;
     _ ->
       false
+  end.
+
+find_imports(Meta, Name, Arity, E) ->
+  Tuple = {Name, Arity},
+
+  case find_dispatch(Meta, Tuple, [], E) of
+    {function, Receiver} ->
+      elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
+      [{Receiver, Arity}];
+    {macro, Receiver} ->
+      elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
+      [{Receiver, Arity}];
+    _ ->
+      []
   end.
 
 %% Function retrieval
@@ -233,8 +247,8 @@ caller(Line, E) ->
 required(Meta) ->
   lists:keyfind(required, 1, Meta) == {required, true}.
 
-find_dispatch(Meta, Tuple, Extra, E) ->
-  case is_import(Meta) of
+find_dispatch(Meta, {_Name, Arity} = Tuple, Extra, E) ->
+  case is_import(Meta, Arity) of
     {import, _} = Import ->
       Import;
     false ->
@@ -258,11 +272,15 @@ find_dispatch(Meta, Tuple, Extra, E) ->
 find_dispatch(Tuple, List) ->
   [Receiver || {Receiver, Set} <- List, is_element(Tuple, Set)].
 
-is_import(Meta) ->
-  case lists:keyfind(import, 1, Meta) of
-    {import, _} = Import ->
+is_import(Meta, Arity) ->
+  case lists:keyfind(imports, 1, Meta) of
+    {imports, Imports} ->
       case lists:keyfind(context, 1, Meta) of
-        {context, _} -> Import;
+        {context, _} ->
+          case lists:keyfind(Arity, 2, Imports) of
+            {Receiver, Arity} -> {import, Receiver};
+            false -> false
+          end;
         false -> false
       end;
     false -> false
