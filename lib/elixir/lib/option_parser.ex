@@ -29,7 +29,12 @@ defmodule OptionParser do
   @type argv :: [String.t()]
   @type parsed :: keyword
   @type errors :: [{String.t(), String.t() | nil}]
-  @type options :: [switches: keyword, strict: keyword, aliases: keyword]
+  @type options :: [
+          switches: keyword,
+          strict: keyword,
+          aliases: keyword,
+          allow_nonexistent_atoms: boolean
+        ]
 
   defmodule ParseError do
     defexception [:message]
