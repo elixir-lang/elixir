@@ -544,10 +544,11 @@ defmodule Mix.Tasks.Format do
   defp stdin_or_wildcard("-"), do: [:stdin]
   defp stdin_or_wildcard(path), do: path |> Path.expand() |> Path.wildcard(match_dot: true)
 
-  defp elixir_format("", _formatter_opts), do: ""
-
   defp elixir_format(content, formatter_opts) do
-    IO.iodata_to_binary([Code.format_string!(content, formatter_opts), ?\n])
+    case Code.format_string!(content, formatter_opts) do
+      [] -> ""
+      _ -> IO.iodata_to_binary([Code.format_string!(content, formatter_opts), ?\n])
+    end
   end
 
   defp find_sigils_from_plugins(plugin, formatter_opts) do
