@@ -694,6 +694,28 @@ defmodule Inspect.MapTest do
              "%Inspect.MapTest.StructWithAllFieldsInOnlyOption{\n  a: 1,\n  b: 2\n}"
   end
 
+  test "struct missing fields in the :only option" do
+    assert_raise ArgumentError,
+                 "unknown fields [:c] given when deriving the Inspect protocol for Inspect.MapTest.StructMissingFieldsInOnlyOption. :only and :except values must match struct fields",
+                 fn ->
+                   defmodule StructMissingFieldsInOnlyOption do
+                     @derive {Inspect, only: [:c]}
+                     defstruct [:a, :b]
+                   end
+                 end
+  end
+
+  test "struct missing fields in the :except option" do
+    assert_raise ArgumentError,
+                 "unknown fields [:c, :d] given when deriving the Inspect protocol for Inspect.MapTest.StructMissingFieldsInExceptOption. :only and :except values must match struct fields",
+                 fn ->
+                   defmodule StructMissingFieldsInExceptOption do
+                     @derive {Inspect, except: [:c, :d]}
+                     defstruct [:a, :b]
+                   end
+                 end
+  end
+
   defmodule StructWithExceptOption do
     @derive {Inspect, except: [:b, :c]}
     defstruct [:a, :b, :c, :d]

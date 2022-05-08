@@ -455,6 +455,9 @@ defimpl Inspect, for: Any do
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
 
+    :ok = validate_option(only, fields, module)
+    :ok = validate_option(except, fields, module)
+
     filtered_fields =
       fields
       |> Enum.reject(&(&1 in except))
@@ -475,6 +478,17 @@ defimpl Inspect, for: Any do
           unquote(inspect_module).inspect(var!(map), var!(name), var!(opts))
         end
       end
+    end
+  end
+
+  defp validate_option(option_list, fields, module) do
+    case option_list -- fields do
+      [] ->
+        :ok
+
+      unknown_fields ->
+        raise ArgumentError,
+              "unknown fields #{Kernel.inspect(unknown_fields)} given when deriving the Inspect protocol for #{Kernel.inspect(module)}. :only and :except values must match struct fields"
     end
   end
 
