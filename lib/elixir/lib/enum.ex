@@ -3052,7 +3052,7 @@ defmodule Enum do
       iex> Enum.sort(["some", "kind", "of", "monster"], &(byte_size(&1) < byte_size(&2)))
       ["of", "kind", "some", "monster"]
 
-  ## Ascending and descending
+  ## Ascending and descending (since v1.10.0)
 
   `sort/2` allows a developer to pass `:asc` or `:desc` as the sorter, which is a convenience for
   [`&<=/2`](`<=/2`) and [`&>=/2`](`>=/2`) respectively.
@@ -3153,7 +3153,7 @@ defmodule Enum do
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, &>=/2)
       ["monster", "some", "kind", "of"]
 
-  Or use `:asc` and `:desc`:
+  Or use `:asc` and `:desc` (since v1.10.0):
 
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, :desc)
       ["monster", "some", "kind", "of"]
