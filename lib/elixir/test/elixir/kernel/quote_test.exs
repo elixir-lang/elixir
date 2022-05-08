@@ -631,6 +631,6 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
   test "checks the context also for variables to zero-arity functions" do
     import BinaryUtils
     {:int32, meta, __MODULE__} = quote(do: int32)
-    assert meta[:import] == BinaryUtils
+    assert meta[:imports] == [{BinaryUtils, 0}]
   end
 end

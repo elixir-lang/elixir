@@ -418,7 +418,7 @@ defmodule Kernel.ExpansionTest do
     test "in guards" do
       code = quote(do: fn pid when :erlang.==(pid, self) -> pid end)
       expanded_code = quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
-      assert clean_meta(expand(code), [:import, :context]) == expanded_code
+      assert clean_meta(expand(code), [:imports, :context]) == expanded_code
 
       message = ~r"cannot find or invoke local foo/1"
 
@@ -1061,10 +1061,11 @@ defmodule Kernel.ExpansionTest do
 
     test "expands remotes" do
       assert expand(quote(do: &List.flatten/2)) ==
-               quote(do: &:"Elixir.List".flatten/2) |> clean_meta([:import, :context, :no_parens])
+               quote(do: &:"Elixir.List".flatten/2)
+               |> clean_meta([:imports, :context, :no_parens])
 
       assert expand(quote(do: &Kernel.is_atom/1)) ==
-               quote(do: &:erlang.is_atom/1) |> clean_meta([:import, :context, :no_parens])
+               quote(do: &:erlang.is_atom/1) |> clean_meta([:imports, :context, :no_parens])
     end
 
     test "expands macros" do
