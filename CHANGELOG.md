@@ -14,6 +14,10 @@ TODO.
 
 TODO.
 
+## Expression-based inspection
+
+TODO.
+
 ## v1.14.0-dev
 
 ### 1. Enhancements
@@ -55,6 +59,7 @@ TODO.
   * [String] Support empty lookup lists in `String.replace/3`, `String.split/3`, and `String.splitter/3`
   * [String] Allow slicing with steps in `String.slice/2`
   * [Task] Add `:zip_input_on_exit` option to `Task.async_stream/3`
+  * [Task] Store `:mfa` in the Task struct for reflection purposes
   * [URI] Add `URI.append_query/2`
   * [Version] Add `Version.to_string/1`
   * [Version] Colorize `Version.Requirement` source in Inspect protocol
@@ -62,6 +67,7 @@ TODO.
 #### ExUnit
 
   * [ExUnit] Add `ExUnit.Callbacks.start_link_supervised!/2`
+  * [ExUnit] Add `ExUnit.run/1` to rerun test modules
 
 #### IEx
 
@@ -77,9 +83,10 @@ TODO.
   * [mix do] Support `--app` option to restrict recursive tasks in umbrella projects
   * [mix do] Allow using `+` as a task separator instead of comma
   * [mix new] Do not allow projects to be created with application names that conflict with multi-arg Erlang VM switches
-  * [mix test] Improve error message when suite fails due to coverage
   * [mix profile] Return the return value of the profiled function
   * [mix release] Make BEAM compression opt-in
+  * [mix test] Improve error message when suite fails due to coverage
+  * [mix test] Support `:test_elixirc_options` and default to not generating docs nor debug info chunk for tests
 
 ### 2. Bug fixes
 
@@ -87,9 +94,13 @@ TODO.
 
   * [CLI] Improve errors on incorrect `--rpc-eval` usage
   * [Code] Do not emit warnings when formatting code
+  * [Enum] Allow slices to overflow on both starting and ending positions
   * [Kernel] Do not allow restricted restricted characters in identifiers according to UTS39
   * [Kernel] Define `__exception__` field as true when expanding exceptions in typespecs
   * [Kernel] Warn if any of `True`, `False`, and `Nil` aliases are used
+  * [Kernel] Warn on underived `@derive` attributes
+  * [Protocol] Warn if a protocol has no definitions
+  * [String] Allow slices to overflow on both starting and ending positions
 
 #### ExUnit
 
@@ -98,10 +109,12 @@ TODO.
   * [ExUnit] Add short hash to `tmp_dir` in ExUnit to avoid test name collision
   * [ExUnit] Do not store logs in the CLI formatter (this reduces memory usage for suites with `capture_log`)
   * [ExUnit] Run `after_suite` even when no tests run
+  * [ExUnit] Fix scenario where `setup` with imported function from within `describe` failed to compile
 
 #### Mix
 
   * [mix compile.elixir] Fix `--warnings-as-errors` when used with `--all-warnings`
+  * [mix format] Do not add new lines if the formatted file is empty
   * [mix release] Only set `RELEASE_MODE` after `env.{sh,bat}` are executed
 
 #### IEx
