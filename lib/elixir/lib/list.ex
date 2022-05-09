@@ -130,11 +130,14 @@ defmodule List do
 
   @compile :inline_list_funcs
 
-  defguardp is_sorter(sorter)
-            when is_function(sorter, 2) or
-                   is_atom(sorter) or
-                   (is_tuple(sorter) and tuple_size(sorter) == 2 and
-                      elem(sorter, 0) in [:asc, :desc] and is_atom(elem(sorter, 1)))
+  defmacrop is_sorter(sorter) do
+    quote do
+      is_function(unquote(sorter), 2) or
+        is_atom(unquote(sorter)) or
+        (is_tuple(unquote(sorter)) and tuple_size(unquote(sorter)) == 2 and
+           elem(unquote(sorter), 0) in [:asc, :desc] and is_atom(elem(unquote(sorter), 1)))
+    end
+  end
 
   @doc """
   Deletes the given `element` from the `list`. Returns a new list without
@@ -497,7 +500,9 @@ defmodule List do
           (any, any -> boolean) | :asc | :desc | module() | {:asc | :desc, module()}
         ) :: [tuple]
   def keysort(list, position, sorter \\ :asc)
-      when is_list(list) and is_integer(position) and position >= 0 and is_sorter(sorter) do
+      when is_list(list) and
+             is_integer(position) and
+             position >= 0 and is_sorter(sorter) do
     keysort_guarded(list, position, sorter)
   end
 
