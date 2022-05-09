@@ -39,8 +39,8 @@ defmodule EEx do
 
   ## Options
 
-  All functions in this module accept EEx-related options.
-  They are:
+  All functions in this module, unless otherwise noted, accept EEx-related
+  options. They are:
 
     * `:file` - the file to be used in the template. Defaults to the given
       file the template is read from or to `"nofile"` when compiling from a string.
@@ -118,7 +118,9 @@ defmodule EEx do
   The `name` argument is the name that the generated function will have.
   `template` is the string containing the EEx template. `args` is a list of arguments
   that the generated function will accept. They will be available inside the EEx
-  template. `options` is a list of EEx compilation options (see the module documentation).
+  template.
+
+  The supported `options` are described [in the module docs](#module-options).
 
   ## Examples
 
@@ -150,10 +152,12 @@ defmodule EEx do
   The `name` argument is the name that the generated function will have.
   `file` is the path to the EEx template file. `args` is a list of arguments
   that the generated function will accept. They will be available inside the EEx
-  template. `options` is a list of EEx compilation options (see the module documentation).
+  template.
 
   This function is useful in case you have templates but
   you want to precompile inside a module for speed.
+
+  The supported `options` are described [in the module docs](#module-options).
 
   ## Examples
 
@@ -199,6 +203,8 @@ defmodule EEx do
   will use the `a` and `b` variables in the context where it's evaluated. See
   examples below.
 
+  The supported `options` are described [in the module docs](#module-options).
+
   ## Examples
 
       iex> quoted = EEx.compile_string("<%= a + b %>")
@@ -232,6 +238,8 @@ defmodule EEx do
   will use the `a` and `b` variables in the context where it's evaluated. See
   examples below.
 
+  The supported `options` are described [in the module docs](#module-options).
+
   ## Examples
 
       # sample.eex
@@ -253,8 +261,8 @@ defmodule EEx do
 
   @doc """
   Gets a string `source` and evaluate the values using the `bindings`.
-  
-  The `options` argument is the same as in `Code.eval_quoted/3`.
+
+  The supported `options` are described [in the module docs](#module-options).
 
   ## Examples
 
@@ -271,6 +279,8 @@ defmodule EEx do
 
   @doc """
   Gets a `filename` and evaluate the values using the `bindings`.
+
+  The supported `options` are described [in the module docs](#module-options).
 
   ## Examples
 
