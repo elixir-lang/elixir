@@ -252,14 +252,15 @@ defmodule EEx do
   end
 
   @doc """
-  Gets a string `source` and evaluate the values using the `bindings` and optional `options`.
+  Gets a string `source` and evaluate the values using the `bindings`.
+  
+  The `options` argument is the same as in `Code.eval_quoted/3`.
 
   ## Examples
 
       iex> EEx.eval_string("foo <%= bar %>", bar: "baz")
       "foo baz"
 
-  The `options` argument is the same as Code.eval_quoted/3.
   """
   @spec eval_string(String.t(), keyword, keyword) :: String.t()
   def eval_string(source, bindings \\ [], options \\ [])
