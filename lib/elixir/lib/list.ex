@@ -130,6 +130,12 @@ defmodule List do
 
   @compile :inline_list_funcs
 
+  defguardp is_sorter(sorter)
+            when is_function(sorter, 2) or
+                   is_atom(sorter) or
+                   (is_tuple(sorter) and tuple_size(sorter) == 2 and
+                      elem(sorter, 0) in [:asc, :desc] and is_atom(elem(sorter, 1)))
+
   @doc """
   Deletes the given `element` from the `list`. Returns a new list without
   the element.
@@ -491,32 +497,32 @@ defmodule List do
           (any, any -> boolean) | :asc | :desc | module() | {:asc | :desc, module()}
         ) :: [tuple]
   def keysort(list, position, sorter \\ :asc)
+      when is_list(list) and is_integer(position) and position >= 0 and is_sorter(sorter) do
+    keysort_guarded(list, position, sorter)
+  end
 
-  def keysort(list, position, :asc) when is_list(list) and is_integer(position) do
+  def keysort_guarded(list, position, :asc) do
     :lists.keysort(position + 1, list)
   end
 
-  def keysort(list, position, sorter) when is_list(list) and is_integer(position) do
+  def keysort_guarded(list, position, sorter) do
     :lists.sort(keysort_fun(sorter, position + 1), list)
   end
 
   defp keysort_fun(sorter, position) when is_function(sorter, 2),
     do: &sorter.(:erlang.element(position, &1), :erlang.element(position, &2))
 
-  defp keysort_fun(:asc, position),
-    do: &(:erlang.element(position, &1) <= :erlang.element(position, &2))
-
   defp keysort_fun(:desc, position),
     do: &(:erlang.element(position, &1) >= :erlang.element(position, &2))
 
-  defp keysort_fun(module, position) when is_atom(module),
+  defp keysort_fun({:asc, module}, position),
     do: &(module.compare(:erlang.element(position, &1), :erlang.element(position, &2)) != :gt)
 
-  defp keysort_fun({:asc, module}, position) when is_atom(module),
-    do: &(module.compare(:erlang.element(position, &1), :erlang.element(position, &2)) != :gt)
-
-  defp keysort_fun({:desc, module}, position) when is_atom(module),
+  defp keysort_fun({:desc, module}, position),
     do: &(module.compare(:erlang.element(position, &1), :erlang.element(position, &2)) != :lt)
+
+  defp keysort_fun(module, position),
+    do: &(module.compare(:erlang.element(position, &1), :erlang.element(position, &2)) != :gt)
 
   @doc """
   Receives a `list` of tuples and replaces the element
