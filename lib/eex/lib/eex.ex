@@ -253,6 +253,8 @@ defmodule EEx do
 
   @doc """
   Gets a string `source` and evaluate the values using the `bindings`.
+  
+  The `options` argument is the same as in `Code.eval_quoted/3`.
 
   ## Examples
 
