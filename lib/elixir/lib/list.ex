@@ -485,6 +485,7 @@ defmodule List do
       ]
 
   """
+  @doc since: "1.14.0"
   @spec keysort(
           [tuple],
           non_neg_integer,
