@@ -503,9 +503,6 @@ defmodule List do
   defp keysort_fun(sorter, position) when is_function(sorter, 2),
     do: &sorter.(:erlang.element(position, &1), :erlang.element(position, &2))
 
-  defp keysort_fun(:asc, position),
-    do: &(:erlang.element(position, &1) <= :erlang.element(position, &2))
-
   defp keysort_fun(:desc, position),
     do: &(:erlang.element(position, &1) >= :erlang.element(position, &2))
 
