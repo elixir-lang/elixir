@@ -346,7 +346,7 @@ defmodule IEx.Evaluator do
   end
 
   defp eval_expr_by_expr(expr, binding, env) do
-    case Macro.expand(expr, env) do
+    case maybe_expand(expr, env) do
       {:__block__, _, exprs} ->
         Enum.reduce(exprs, {nil, binding, env}, fn expr, {_result, binding, env} ->
           eval_expr_by_expr(expr, binding, env)
@@ -356,6 +356,13 @@ defmodule IEx.Evaluator do
         Code.eval_quoted_with_env(expr, binding, env)
     end
   end
+
+  defp maybe_expand({import_file, _, [_ | _]} = expr, env)
+       when import_file in [:import_file, :import_file_if_available],
+       do: Macro.expand(expr, env)
+
+  defp maybe_expand(expr, _env),
+    do: expr
 
   defp io_inspect(result) do
     io_result(inspect(result, IEx.inspect_opts()))
