@@ -96,6 +96,12 @@ defmodule IEx.InteractionTest do
     :code.delete(Sample)
   end
 
+  test "ExUnit.Assertions" do
+    capture = capture_iex("import ExUnit.Assertions; assert 1 == 2")
+    assert capture =~ "** (ExUnit.AssertionError)"
+    assert capture =~ "assert 1 == 2"
+  end
+
   test "prompt" do
     opts = [default_prompt: "prompt(%counter)>"]
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
