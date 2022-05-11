@@ -1494,4 +1494,41 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       refute_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
     end)
   end
+
+  defmodule GitApp do
+    def project do
+      [
+        app: :git_app,
+        version: "0.1.0",
+        deps: [
+          {:git_repo, "0.1.0", git: fixture_path("git_repo"), optional: true}
+        ]
+      ]
+    end
+  end
+
+  test "compiles without optional dependencies" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(GitApp)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def hello, do: GitRepo.hello()
+      end
+      """)
+
+      assert capture_io(:stderr, fn ->
+               Mix.Tasks.Compile.run(["--no-optional-deps"]) == :ok
+             end) =~ "GitRepo.hello/0 is undefined"
+    end)
+  end
+
+  test "recompiles if --no-optional-deps change" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
+      assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
+      assert Mix.Tasks.Compile.Elixir.run(["--no-optional-deps"]) == {:ok, []}
+    end)
+  end
 end
