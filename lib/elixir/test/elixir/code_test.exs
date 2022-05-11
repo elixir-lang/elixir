@@ -226,6 +226,12 @@ defmodule CodeTest do
     assert {1.23, []} = Code.string_to_quoted_with_comments!(1.23)
   end
 
+  test "string_to_quoted returns error on incomplete escaped string" do
+    assert Code.string_to_quoted("\"\\") ==
+             {:error,
+              {[line: 1, column: 3], "missing terminator: \" (for string starting at line 1)", ""}}
+  end
+
   test "compile source" do
     assert __MODULE__.__info__(:compile)[:source] == String.to_charlist(__ENV__.file)
   end
