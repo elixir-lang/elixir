@@ -238,7 +238,7 @@ defmodule Kernel.ExpansionTest do
 
     test "raises on conflicting options" do
       message =
-        ~r":only and :except can only be given together to import when :only is either :functions or :macros"
+        ~r":only and :except can only be given together to import when :only is :functions, :macros, or :sigils"
 
       assert_raise CompileError, message, fn ->
         expand(quote(do: import(Kernel, only: [], except: [])))

@@ -185,7 +185,7 @@ ensure_no_duplicates(Meta, File, Option, Kind) ->
 
 format_error(only_and_except_given) ->
   ":only and :except can only be given together to import "
-  "when :only is either :functions or :macros";
+  "when :only is :functions, :macros, or :sigils";
 
 format_error({duplicated_import, {Option, Name, Arity}}) ->
   io_lib:format("invalid :~s option for import, ~ts/~B is duplicated", [Option, Name, Arity]);
