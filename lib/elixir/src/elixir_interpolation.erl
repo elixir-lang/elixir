@@ -71,17 +71,18 @@ extract(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
   extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last).
 
 extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
-  [Char | NewRest] = unicode_util:gc(Rest),
-
-  if
-    ?bidi(Char) ->
+  case unicode_util:gc(Rest) of
+    [Char | _] when ?bidi(Char) ->
       Token = io_lib:format("\\u~4.16.0B", [Char]),
       Pre = "invalid bidirectional formatting character in string: ",
       Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
       {error, {Line, Column, {Pre, Pos}, Token}};
 
-    true ->
-      extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last)
+    [Char | NewRest] ->
+      extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
+
+    [] ->
+      extract([], Buffer, Output, Line, Column, Scope, Interpol, Last)
   end.
 
 %% Handle newlines. Heredocs require special attention
