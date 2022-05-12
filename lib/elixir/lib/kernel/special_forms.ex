@@ -604,11 +604,12 @@ defmodule Kernel.SpecialForms do
 
       import List
 
-  A developer can filter to import only macros or functions via
-  the only option:
+  A developer can filter to import only functions, macros, or sigils
+  (which can be functions or macros) via the `:only` option:
 
       import List, only: :functions
       import List, only: :macros
+      import Kernel, only: :sigils
 
   Alternatively, Elixir allows a developer to pass pairs of
   name/arities to `:only` or `:except` as a fine grained control
