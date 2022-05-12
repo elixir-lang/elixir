@@ -460,7 +460,7 @@ defmodule Mix.Tasks.Format do
 
     for file <- files do
       if file == :stdin do
-        stdin_filename = Keyword.get(opts, :stdin_filename, "stdin")
+        stdin_filename = Keyword.get(opts, :stdin_filename, "stdin.exs")
 
         {formatter, _opts} =
           find_formatter_and_opts_for_file(stdin_filename, {formatter_opts, subs})
@@ -517,7 +517,7 @@ defmodule Mix.Tasks.Format do
       plugin = find_plugin_for_extension(formatter_opts, ext) ->
         &plugin.format(&1, [extension: ext, file: file] ++ formatter_opts)
 
-      ext in ~w(.ex .exs) or file == "stdin" ->
+      ext in ~w(.ex .exs) ->
         &elixir_format(&1, [file: file] ++ formatter_opts)
 
       true ->
