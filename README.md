@@ -189,7 +189,7 @@ to be installed and built alongside Elixir:
 
 ```sh
 # After cloning and compiling Elixir, in its parent directory:
-git clone git://github.com/elixir-lang/ex_doc.git
+git clone https://github.com/elixir-lang/ex_doc.git
 cd ex_doc && ../elixir/bin/mix do deps.get + compile
 ```
 
