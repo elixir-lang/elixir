@@ -66,6 +66,11 @@ defmodule Mix.Tasks.Format do
       Defaults to `.formatter.exs` if one is available. See the
       "Formatting options" section above for more information.
 
+    * `--stdin-filename` - path to the file being formatted on stdin.
+      This is useful if you are using plugins to support custom filetypes such
+      as `.heex`. Without passing this flag, it is assumed that the code being
+      passed via stdin is valid Elixir code.
+
   ## When to format code
 
   We recommend developers to format code directly in their editors, either
@@ -166,7 +171,8 @@ defmodule Mix.Tasks.Format do
     check_equivalent: :boolean,
     check_formatted: :boolean,
     dot_formatter: :string,
-    dry_run: :boolean
+    dry_run: :boolean,
+    stdin_filename: :string
   ]
 
   @manifest "cached_dot_formatter"
