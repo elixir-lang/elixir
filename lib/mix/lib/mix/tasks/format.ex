@@ -66,6 +66,11 @@ defmodule Mix.Tasks.Format do
       Defaults to `.formatter.exs` if one is available. See the
       "Formatting options" section above for more information.
 
+    * `--stdin-filename` - path to the file being formatted on stdin.
+      This is useful if you are using plugins to support custom filetypes such
+      as `.heex`. Without passing this flag, it is assumed that the code being
+      passed via stdin is valid Elixir code. Defaults to "stdin.exs".
+
   ## When to format code
 
   We recommend developers to format code directly in their editors, either
@@ -166,7 +171,8 @@ defmodule Mix.Tasks.Format do
     check_equivalent: :boolean,
     check_formatted: :boolean,
     dot_formatter: :string,
-    dry_run: :boolean
+    dry_run: :boolean,
+    stdin_filename: :string
   ]
 
   @manifest "cached_dot_formatter"
@@ -199,7 +205,7 @@ defmodule Mix.Tasks.Format do
     Mix.Task.reenable("deps.loadpaths")
 
     args
-    |> expand_args(dot_formatter, formatter_opts_and_subs)
+    |> expand_args(dot_formatter, formatter_opts_and_subs, opts)
     |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: 30000)
     |> Enum.reduce({[], []}, &collect_status/2)
     |> check!()
@@ -423,7 +429,7 @@ defmodule Mix.Tasks.Format do
     opts
   end
 
-  defp expand_args([], dot_formatter, formatter_opts_and_subs) do
+  defp expand_args([], dot_formatter, formatter_opts_and_subs, _opts) do
     if no_entries_in_formatter_opts?(formatter_opts_and_subs) do
       Mix.raise(
         "Expected one or more files/patterns to be given to mix format " <>
@@ -438,7 +444,7 @@ defmodule Mix.Tasks.Format do
     end)
   end
 
-  defp expand_args(files_and_patterns, _dot_formatter, {formatter_opts, subs}) do
+  defp expand_args(files_and_patterns, _dot_formatter, {formatter_opts, subs}, opts) do
     files =
       for file_or_pattern <- files_and_patterns,
           file <- stdin_or_wildcard(file_or_pattern),
@@ -454,7 +460,12 @@ defmodule Mix.Tasks.Format do
 
     for file <- files do
       if file == :stdin do
-        {file, &elixir_format(&1, [file: "stdin"] ++ formatter_opts)}
+        stdin_filename = Keyword.get(opts, :stdin_filename, "stdin.exs")
+
+        {formatter, _opts} =
+          find_formatter_and_opts_for_file(stdin_filename, {formatter_opts, subs})
+
+        {file, formatter}
       else
         {formatter, _opts} = find_formatter_and_opts_for_file(file, {formatter_opts, subs})
         {file, formatter}

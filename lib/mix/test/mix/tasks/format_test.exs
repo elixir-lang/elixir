@@ -298,6 +298,30 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "uses extension plugins with --stdin-filename", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.w"],
+        plugins: [ExtensionWPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      output =
+        capture_io("foo bar baz", fn ->
+          Mix.Tasks.Format.run(["--stdin-filename", Path.join(File.cwd!(), "a.w"), "-"])
+        end)
+
+      assert output ==
+               String.trim("""
+               foo
+               bar
+               baz
+               """)
+    end)
+  end
+
   test "uses inputs and configuration from --dot-formatter", context do
     in_tmp(context.test, fn ->
       File.write!("custom_formatter.exs", """
@@ -612,7 +636,7 @@ defmodule Mix.Tasks.FormatTest do
 
   test "raises SyntaxError when parsing invalid stdin", context do
     in_tmp(context.test, fn ->
-      assert_raise SyntaxError, ~r"stdin:1:13: syntax error before: '='", fn ->
+      assert_raise SyntaxError, ~r"stdin.exs:1:13: syntax error before: '='", fn ->
         capture_io("defmodule <%= module %>.Bar do end", fn ->
           Mix.Tasks.Format.run(["-"])
         end)
