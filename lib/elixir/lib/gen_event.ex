@@ -2,7 +2,7 @@ defmodule GenEvent do
   # Functions from this module are deprecated in elixir_dispatch.
 
   @moduledoc """
-  A event manager with event handlers behaviour.
+  An event manager with event handlers behaviour.
 
   If you are interested in implementing an event manager, please read the
   "Alternatives" section below. If you have to implement an event handler to

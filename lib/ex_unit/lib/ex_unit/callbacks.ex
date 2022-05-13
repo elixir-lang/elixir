@@ -409,7 +409,7 @@ defmodule ExUnit.Callbacks do
 
   However, `on_exit/2` may also be called dynamically. An "ID" (the
   `name_or_ref` argument) can be used to guarantee that the callback
-  will be invoked only once. ExUnit uses this term to identify a
+  will be invoked only once. ExUnit uses this term to identify an
   `on_exit/2` handler: if you want to override a previous handler, for
   example, use the same `name_or_ref` across multiple `on_exit/2`
   calls.
