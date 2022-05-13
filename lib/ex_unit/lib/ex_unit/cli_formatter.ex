@@ -271,11 +271,12 @@ defmodule ExUnit.CLIFormatter do
   ## Printing
 
   defp print_summary(config, force_failures?) do
-    test_type_counts = format_test_type_counts(config)
+    formatted_test_type_counts = format_test_type_counts(config)
+    test_type_counts = collect_test_type_counts(config)
     failure_pl = pluralize(config.failure_counter, "failure", "failures")
 
     message =
-      "#{test_type_counts}#{config.failure_counter} #{failure_pl}"
+      "#{formatted_test_type_counts}#{config.failure_counter} #{failure_pl}"
       |> if_true(
         config.excluded_counter > 0,
         &(&1 <> ", #{config.excluded_counter} excluded")
@@ -290,9 +291,17 @@ defmodule ExUnit.CLIFormatter do
       )
 
     cond do
-      config.failure_counter > 0 or force_failures? -> IO.puts(failure(message, config))
-      config.invalid_counter > 0 -> IO.puts(invalid(message, config))
-      true -> IO.puts(success(message, config))
+      config.failure_counter > 0 or force_failures? ->
+        IO.puts(failure(message, config))
+
+      config.invalid_counter > 0 ->
+        IO.puts(invalid(message, config))
+
+      config.failure_counter == 0 && config.excluded_counter == test_type_counts ->
+        IO.puts(invalid(message, config))
+
+      true ->
+        IO.puts(success(message, config))
     end
 
     IO.puts("\nRandomized with seed #{config.seed}")
@@ -325,6 +334,12 @@ defmodule ExUnit.CLIFormatter do
     Enum.map(test_counter, fn {test_type, count} ->
       type_pluralized = pluralize(count, test_type, ExUnit.plural_rule(test_type |> to_string()))
       "#{count} #{type_pluralized}, "
+    end)
+  end
+
+  defp collect_test_type_counts(%{test_counter: test_counter} = _config) do
+    Enum.reduce(test_counter, 0, fn {_, count}, acc ->
+      acc + count
     end)
   end
 
