@@ -40,7 +40,7 @@ defmodule String do
       "2 + 2 = 4"
 
   In case the value you want to interpolate cannot be
-  converted to a string, because it doesn't have an human
+  converted to a string, because it doesn't have a human
   textual representation, a protocol error will be raised.
 
   ## Escape characters
