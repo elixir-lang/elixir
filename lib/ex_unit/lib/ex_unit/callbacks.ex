@@ -274,6 +274,15 @@ defmodule ExUnit.Callbacks do
   `setup_all/1` callbacks are executed in a separate process than tests.
   All `setup_all/1` callbacks are executed in order in the same process.
 
+  ## On-Exit Handlers
+
+  On-exit handlers that you register inside `setup_all/1` callbacks
+  are executed at once after all tests in the module have been run.
+  They are all executed *in the same process*, which is a separate
+  process dedicated to running these handlers. These handlers are
+  executed in the reverse order of their respective `setup_all/1`
+  callbacks.
+
   ## Examples
 
       # One-arity function name
@@ -297,6 +306,22 @@ defmodule ExUnit.Callbacks do
         # ...
       end
 
+  ### Handlers
+
+  You can define "global" on-exit handlers in `setup_all/1` callbacks:
+
+      setup_all do
+        Database.create_table_for(__MODULE__)
+
+        on_exit(fn ->
+          Database.drop_table_for(__MODULE__)
+        end)
+
+        :ok
+      end
+
+  The handler in the example above will be executed only once, after
+  running all tests in the module.
   """
   defmacro setup_all(block) do
     if Keyword.keyword?(block) do
@@ -373,24 +398,30 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc """
-  Defines a callback that runs once the test exits.
+  Registers a callback that runs once the test exits.
 
   `callback` is a function that receives no arguments and
-  runs in a separate process than the caller.
+  runs in a separate process than the caller. Its return
+  value is irrelevant and is discarded.
 
-  `on_exit/2` is usually called from `setup` and `setup_all`
+  `on_exit/2` is usually called from `setup/1` and `setup_all/1`
   callbacks, often to undo the action performed during the setup.
-  However, `on_exit/2` may also be called dynamically, where a
-  reference can be used to guarantee the callback will be invoked
-  only once.
 
-  `on_exit/2` gets executed in a blocking fashion after a test
-  exits and **before** running the next test. This means that no
-  other test from the same test case will be running while the
-  `on_exit/2` callback for a previous test is running.
+  However, `on_exit/2` may also be called dynamically. An "ID" (the
+  `name_or_ref` argument) can be used to guarantee that the callback
+  will be invoked only once. ExUnit uses this term to identify a
+  `on_exit/2` handler: if you want to override a previous handler, for
+  example, use the same `name_or_ref` across multiple `on_exit/2`
+  calls.
 
-  `on_exit/2` is executed in a different process than the test
-  process.
+  If `on_exit/2` is called inside `setup/1` or inside a test, it's
+  executed in a blocking fashion after the test exits and *before
+  running the next test*. This means that no other test from the same
+  test case will be running while the `on_exit/2` callback for a
+  previous test is running. `on_exit/2` is executed in a different
+  process than the test process. On the other hand, if `on_exit/2` is
+  called inside a `setup_all/1` callback then `callback` is executed
+  after running *all tests* (see `setup_all/1` for more information).
 
   ## Examples
 
@@ -399,6 +430,23 @@ defmodule ExUnit.Callbacks do
         on_exit(fn -> File.rm!("fixture.json") end)
       end
 
+  You can use the same `name_or_ref` across multiple `on_exit/2` calls
+  to "override" the registered handler:
+
+      setup do
+        on_exit(:drop_table, fn ->
+          Database.drop_table()
+        end)
+      end
+
+      test "a test that shouldn't drop the table" do
+        on_exit(:drop_table, fn -> :ok end)
+      end
+
+  Relying too much on overriding callbacks like this can lead to test
+  cases that are hard to understand and with too many layers of
+  indirection. However, it can be useful in some cases or for library
+  authors, for example.
   """
   @spec on_exit(term, (() -> term)) :: :ok
   def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) do
