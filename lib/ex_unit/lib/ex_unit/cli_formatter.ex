@@ -289,6 +289,10 @@ defmodule ExUnit.CLIFormatter do
         config.skipped_counter > 0,
         &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config))
       )
+      |> if_true(
+        config.failure_counter == 0 && config.excluded_counter == test_type_counts,
+        &(&1 <> "\nNo tests have been run")
+      )
 
     cond do
       config.failure_counter > 0 or force_failures? ->
