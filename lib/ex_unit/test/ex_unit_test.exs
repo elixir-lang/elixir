@@ -127,6 +127,7 @@ defmodule ExUnitTest do
            Showing results so far...
 
            0 failures
+           No tests have been run
 
            Randomized with seed 0
            """
