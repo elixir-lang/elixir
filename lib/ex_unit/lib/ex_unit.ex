@@ -243,7 +243,7 @@ defmodule ExUnit do
         defaults to `IO.ANSI.color_background(0, 2, 0)`;
 
     * `:exclude` - specifies which tests are run by skipping tests that match the
-      filter;
+      filter. See the "Filters" section in the documentation for `ExUnit.Case`;
 
     * `:exit_status` - specifies an alternate exit status to use when the test
       suite fails. Defaults to 2;
@@ -258,7 +258,7 @@ defmodule ExUnit do
       match the filter. Keep in mind that all tests are included by default, so unless they are
       excluded first, the `:include` option has no effect. To only run the tests
       that match the `:include` filter, exclude the `:test` tag first (see the
-      documentation for `ExUnit.Case` for more information on tags);
+      documentation for `ExUnit.Case` for more information on tags and filters);
 
     * `:max_cases` - maximum number of tests to run in parallel. Only tests from
       different modules run in parallel. It defaults to `System.schedulers_online * 2`
@@ -312,6 +312,8 @@ defmodule ExUnit do
 
   @doc """
   Returns ExUnit configuration.
+
+  For the available configuration options, see `configure/1`.
   """
   @spec configuration() :: Keyword.t()
   def configuration do
