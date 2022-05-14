@@ -280,17 +280,14 @@ defmodule Exception do
   defp is_struct_macro?(_), do: false
 
   defp translate_guard(guard) do
-    cond do
-      is_struct_macro?(guard) ->
-        undo_guard_macro(:is_struct, guard)
-
-      true ->
-        guard
+    if is_struct_macro?(guard) do
+      undo_is_struct_guard(guard)
+    else
+      guard
     end
   end
 
-  defp undo_guard_macro(
-         :is_struct,
+  defp undo_is_struct_guard(
          {:and, meta, [_, %{node: {_, _, [{_, _, [_, {struct, _, _}]} | optional]}}]}
        ) do
     args =
