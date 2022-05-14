@@ -275,6 +275,10 @@ defmodule ExUnit.CLIFormatter do
     test_type_counts = collect_test_type_counts(config)
     failure_pl = pluralize(config.failure_counter, "failure", "failures")
 
+    if test_type_counts > 0 && config.excluded_counter == test_type_counts do
+      IO.puts(invalid("All tests have been excluded.", config))
+    end
+
     message =
       "#{formatted_test_type_counts}#{config.failure_counter} #{failure_pl}"
       |> if_true(
@@ -289,10 +293,6 @@ defmodule ExUnit.CLIFormatter do
         config.skipped_counter > 0,
         &(&1 <> ", " <> skipped("#{config.skipped_counter} skipped", config))
       )
-      |> if_true(
-        config.failure_counter == 0 && config.excluded_counter == test_type_counts,
-        &(&1 <> "\nNo tests have been run")
-      )
 
     cond do
       config.failure_counter > 0 or force_failures? ->
@@ -301,7 +301,7 @@ defmodule ExUnit.CLIFormatter do
       config.invalid_counter > 0 ->
         IO.puts(invalid(message, config))
 
-      config.failure_counter == 0 && config.excluded_counter == test_type_counts ->
+      test_type_counts > 0 && config.excluded_counter == test_type_counts ->
         IO.puts(invalid(message, config))
 
       true ->

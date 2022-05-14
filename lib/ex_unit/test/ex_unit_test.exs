@@ -127,7 +127,6 @@ defmodule ExUnitTest do
            Showing results so far...
 
            0 failures
-           No tests have been run
 
            Randomized with seed 0
            """
@@ -872,6 +871,27 @@ defmodule ExUnitTest do
       config = ExUnit.configuration()
       assert config[:exit_status] == 5
     end
+  end
+
+  test "prints warning when all tests are excluded" do
+    defmodule OnlyExcludedTests do
+      use ExUnit.Case
+
+      @tag :exclude
+      test "excluded test", do: assert(false)
+
+      @tag :exclude
+      test "one more excluded test", do: assert(false)
+    end
+
+    configure_and_reload_on_exit([])
+
+    output =
+      capture_io(fn ->
+        assert ExUnit.run() == %{total: 2, failures: 0, excluded: 2, skipped: 0}
+      end)
+
+    assert output =~ "All tests have been excluded.\n2 tests, 0 failures, 2 excluded\n"
   end
 
   ##  Helpers
