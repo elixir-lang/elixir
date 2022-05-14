@@ -227,7 +227,11 @@ defmodule Exception do
             |> Enum.zip()
             |> Enum.map_reduce([], &blame_arg/2)
 
-          guards = Enum.map(guards, &blame_guard(&1, ann, scope, binding))
+          guards =
+            guards
+            |> Enum.map(&blame_guard(&1, ann, scope, binding))
+            |> Enum.map(&Macro.prewalk(&1, fn guard -> translate_guard(guard) end))
+
           {args, guards}
         end
 
@@ -235,6 +239,71 @@ defmodule Exception do
     else
       _ -> :error
     end
+  end
+
+  defp is_map_node?({:is_map, _, [_]}), do: true
+  defp is_map_node?(_), do: false
+  defp is_map_key_node?({:is_map_key, _, [_, _]}), do: true
+  defp is_map_key_node?(_), do: false
+
+  defp struct_validation_node?(
+         {:is_atom, _, [{{:., [], [:erlang, :map_get]}, _, [:__struct__, _]}]}
+       ),
+       do: true
+
+  defp struct_validation_node?(
+         {:==, _, [{{:., [], [:erlang, :map_get]}, _, [:__struct__, _]}, _module]}
+       ),
+       do: true
+
+  defp struct_validation_node?(_), do: false
+
+  defp is_struct_macro?(
+         {:and, _,
+          [
+            {:and, _, [%{node: node_1 = {_, _, [arg]}}, %{node: node_2 = {_, _, [arg, _]}}]},
+            %{node: node_3 = {_, _, [{_, _, [_, arg]}]}}
+          ]}
+       ),
+       do: is_map_node?(node_1) and is_map_key_node?(node_2) and struct_validation_node?(node_3)
+
+  defp is_struct_macro?(
+         {:and, _,
+          [
+            {:and, _,
+             [
+               {:and, _,
+                [
+                  %{node: node_1 = {_, _, [arg]}},
+                  {:or, _, [%{node: {:is_atom, _, [_]}}, %{node: :fail}]}
+                ]},
+               %{node: node_2 = {_, _, [arg, _]}}
+             ]},
+            %{node: node_3 = {_, _, [{_, _, [_, arg]}, _]}}
+          ]}
+       ),
+       do: is_map_node?(node_1) and is_map_key_node?(node_2) and struct_validation_node?(node_3)
+
+  defp is_struct_macro?(_), do: false
+
+  defp translate_guard(guard) do
+    if is_struct_macro?(guard) do
+      undo_is_struct_guard(guard)
+    else
+      guard
+    end
+  end
+
+  defp undo_is_struct_guard(
+         {:and, meta, [_, %{node: {_, _, [{_, _, [_, {struct, _, _}]} | optional]}}]}
+       ) do
+    args =
+      case optional do
+        [] -> [{struct, meta, nil}]
+        [module] -> [{struct, meta, nil}, module]
+      end
+
+    %{match?: meta[:value], node: {:is_struct, meta, args}}
   end
 
   defp blame_arg({call_arg, ex_arg, erl_arg}, binding) do
@@ -280,22 +349,37 @@ defmodule Exception do
         :andalso -> :and
       end
 
-    {kernel_op, meta, guards}
+    evaluate_guard(kernel_op, meta, guards)
   end
 
   defp blame_guard(ex_guard, ann, scope, binding) do
-    {erl_guard, _} = :elixir_erl_pass.translate(ex_guard, ann, scope)
+    ex_guard
+    |> blame_guard?(binding, ann, scope)
+    |> blame_wrap(rewrite_guard(ex_guard))
+  end
 
-    match? =
-      try do
-        {:value, true, _} = :erl_eval.expr(erl_guard, binding, :none)
-        true
-      rescue
-        _ -> false
+  defp blame_guard?(ex_guard, binding, ann, scope) do
+    {erl_guard, _} = :elixir_erl_pass.translate(ex_guard, ann, scope)
+    {:value, true, _} = :erl_eval.expr(erl_guard, binding, :none)
+    true
+  rescue
+    _ -> false
+  end
+
+  defp evaluate_guard(kernel_op, meta, guards = [_, _]) do
+    [x, y] = Enum.map(guards, &evaluate_guard/1)
+
+    logic_value =
+      case kernel_op do
+        :or -> x or y
+        :and -> x and y
       end
 
-    blame_wrap(match?, rewrite_guard(ex_guard))
+    {kernel_op, Keyword.put(meta, :value, logic_value), guards}
   end
+
+  defp evaluate_guard(%{match?: value}), do: value
+  defp evaluate_guard({_, meta, _}) when is_list(meta), do: meta[:value]
 
   defp rewrite_guard(guard) do
     Macro.prewalk(guard, fn
