@@ -891,7 +891,8 @@ defmodule ExUnitTest do
         assert ExUnit.run() == %{total: 2, failures: 0, excluded: 2, skipped: 0}
       end)
 
-    assert output =~ "All tests have been excluded.\n2 tests, 0 failures, 2 excluded\n"
+    assert output =~ "All tests have been excluded.\n"
+    assert output =~ "2 tests, 0 failures, 2 excluded\n"
   end
 
   ##  Helpers

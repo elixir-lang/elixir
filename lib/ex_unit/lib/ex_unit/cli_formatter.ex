@@ -32,7 +32,13 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:suite_finished, times_us}, config) do
-    IO.write("\n\n")
+    test_type_counts = collect_test_type_counts(config)
+
+    if test_type_counts > 0 && config.excluded_counter == test_type_counts do
+      IO.puts(invalid("All tests have been excluded.", config))
+    end
+
+    IO.write("\n")
     IO.puts(format_times(times_us))
 
     if config.slowest > 0 do
@@ -274,10 +280,6 @@ defmodule ExUnit.CLIFormatter do
     formatted_test_type_counts = format_test_type_counts(config)
     test_type_counts = collect_test_type_counts(config)
     failure_pl = pluralize(config.failure_counter, "failure", "failures")
-
-    if test_type_counts > 0 && config.excluded_counter == test_type_counts do
-      IO.puts(invalid("All tests have been excluded.", config))
-    end
 
     message =
       "#{formatted_test_type_counts}#{config.failure_counter} #{failure_pl}"
