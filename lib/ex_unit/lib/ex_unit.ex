@@ -304,7 +304,7 @@ defmodule ExUnit do
   other options will be ignored by ExUnit itself.
   """
   @spec configure(Keyword.t()) :: :ok
-  def configure(options) do
+  def configure(options) when is_list(options) do
     Enum.each(options, fn {k, v} ->
       Application.put_env(:ex_unit, k, v)
     end)
