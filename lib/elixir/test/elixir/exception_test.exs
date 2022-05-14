@@ -412,37 +412,6 @@ defmodule ExceptionTest do
       assert Exception.blame(:exit, :function_clause, stack) == {:function_clause, stack}
     end
 
-    test "ensures `Kernel.is_struct` macro hasn't changed since v1.14" do
-      assert {{:., [], [:erlang, :andalso]}, [],
-              [
-                {:and, _,
-                 [{:is_map, _, _}, {{:., [], [:erlang, :is_map_key]}, [], [:__struct__, _]}]},
-                {:is_atom, _, [{{:., [], [:erlang, :map_get]}, [], [:__struct__, _]}]}
-              ]} =
-               Macro.expand(
-                 quote do
-                   is_struct(%{})
-                 end,
-                 %{__ENV__ | context: :guard}
-               )
-
-      assert {{:., [], [:erlang, :andalso]}, [],
-              [
-                {:and, _,
-                 [
-                   {:and, _, [{:is_map, _, _}, {:or, _, [{:is_atom, _, [:atom]}, :fail]}]},
-                   {{:., [], [:erlang, :is_map_key]}, [], [:__struct__, _]}
-                 ]},
-                {:==, _, [{{:., [], [:erlang, :map_get]}, [], [:__struct__, _]}, :atom]}
-              ]} =
-               Macro.expand(
-                 quote do
-                   is_struct(%{}, :atom)
-                 end,
-                 %{__ENV__ | context: :guard}
-               )
-    end
-
     test "reverts is_struct macro on guards for blaming" do
       import PathHelpers
 
