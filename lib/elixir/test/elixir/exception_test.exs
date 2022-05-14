@@ -412,6 +412,102 @@ defmodule ExceptionTest do
       assert Exception.blame(:exit, :function_clause, stack) == {:function_clause, stack}
     end
 
+    test "ensures `Kernel.is_struct` macro hasn't changed since v1.14" do
+      assert {{:., [], [:erlang, :andalso]}, [],
+              [
+                {:and, _,
+                 [{:is_map, _, _}, {{:., [], [:erlang, :is_map_key]}, [], [:__struct__, _]}]},
+                {:is_atom, _, [{{:., [], [:erlang, :map_get]}, [], [:__struct__, _]}]}
+              ]} =
+               Macro.expand(
+                 quote do
+                   is_struct(%{})
+                 end,
+                 %{__ENV__ | context: :guard}
+               )
+
+      assert {{:., [], [:erlang, :andalso]}, [],
+              [
+                {:and, _,
+                 [
+                   {:and, _, [{:is_map, _, _}, {:or, _, [{:is_atom, _, [:atom]}, :fail]}]},
+                   {{:., [], [:erlang, :is_map_key]}, [], [:__struct__, _]}
+                 ]},
+                {:==, _, [{{:., [], [:erlang, :map_get]}, [], [:__struct__, _]}, :atom]}
+              ]} =
+               Macro.expand(
+                 quote do
+                   is_struct(%{}, :atom)
+                 end,
+                 %{__ENV__ | context: :guard}
+               )
+    end
+
+    test "reverts is_struct macro on guards for blaming" do
+      import PathHelpers
+
+      write_beam(
+        defmodule Req do
+          def get!(url)
+              when is_binary(url) or (is_struct(url) and is_struct(url, URI) and false) do
+            url
+          end
+
+          def get!(url, url_module)
+              when is_binary(url) or (is_struct(url) and is_struct(url, url_module) and false) do
+            url
+          end
+        end
+      )
+
+      :code.delete(Req)
+      :code.purge(Req)
+
+      assert blame_message(Req, & &1.get!(url: "https://elixir-lang.org")) =~ """
+             no function clause matching in ExceptionTest.Req.get!/1
+
+             The following arguments were given to ExceptionTest.Req.get!/1:
+
+                 # 1
+                 [url: "https://elixir-lang.org"]
+
+             Attempted function clauses (showing 1 out of 1):
+
+                 def get!(url) when -is_binary(url)- or -is_struct(url)- and -is_struct(url, URI)- and -false-
+             """
+
+      elixir_uri = %URI{} = URI.parse("https://elixir-lang.org")
+
+      assert blame_message(Req, & &1.get!(elixir_uri, URI)) =~ """
+             no function clause matching in ExceptionTest.Req.get!/2
+
+             The following arguments were given to ExceptionTest.Req.get!/2:
+
+                 # 1
+                 %URI{authority: \"elixir-lang.org\", fragment: nil, host: \"elixir-lang.org\", path: nil, port: 443, query: nil, scheme: \"https\", userinfo: nil}
+
+                 # 2
+                 URI
+
+             Attempted function clauses (showing 1 out of 1):
+
+                 def get!(url, url_module) when -is_binary(url)- or is_struct(url) and is_struct(url, url_module) and -false-
+             """
+
+      assert blame_message(Req, & &1.get!(elixir_uri)) =~ """
+             no function clause matching in ExceptionTest.Req.get!/1
+
+             The following arguments were given to ExceptionTest.Req.get!/1:
+
+                 # 1
+                 %URI{authority: \"elixir-lang.org\", fragment: nil, host: \"elixir-lang.org\", path: nil, port: 443, query: nil, scheme: \"https\", userinfo: nil}
+
+             Attempted function clauses (showing 1 out of 1):
+
+                 def get!(url) when -is_binary(url)- or is_struct(url) and is_struct(url, URI) and -false-
+             """
+    end
+
     test "annotates badarg on apply" do
       assert blame_message([], & &1.foo) ==
                "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
