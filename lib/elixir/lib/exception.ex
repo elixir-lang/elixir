@@ -259,7 +259,11 @@ defmodule Exception do
   defp struct_validation_node?(_), do: false
 
   defp is_struct_macro?(
-         {:and, _, [{:and, _, [%{node: node_1}, %{node: node_2}]}, %{node: node_3}]}
+         {:and, _,
+          [
+            {:and, _, [%{node: node_1 = {_, _, [arg]}}, %{node: node_2 = {_, _, [arg, _]}}]},
+            %{node: node_3 = {_, _, [{_, _, [_, arg]}]}}
+          ]}
        ),
        do: is_map_node?(node_1) and is_map_key_node?(node_2) and struct_validation_node?(node_3)
 
@@ -269,10 +273,13 @@ defmodule Exception do
             {:and, _,
              [
                {:and, _,
-                [%{node: node_1}, {:or, _, [%{node: {:is_atom, _, [_]}}, %{node: :fail}]}]},
-               %{node: node_2}
+                [
+                  %{node: node_1 = {_, _, [arg]}},
+                  {:or, _, [%{node: {:is_atom, _, [_]}}, %{node: :fail}]}
+                ]},
+               %{node: node_2 = {_, _, [arg, _]}}
              ]},
-            %{node: node_3}
+            %{node: node_3 = {_, _, [{_, _, [_, arg]}, _]}}
           ]}
        ),
        do: is_map_node?(node_1) and is_map_key_node?(node_2) and struct_validation_node?(node_3)
