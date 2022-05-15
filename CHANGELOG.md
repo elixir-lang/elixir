@@ -129,7 +129,7 @@ TODO.
 
 #### Logger
 
-  * [Logger] Deprecate `Logger.enable/1` and `Logger.disable/1` in favor of `Logger.put_process_level/1`
+  * [Logger] Deprecate `Logger.enable/1` and `Logger.disable/1` in favor of `Logger.put_process_level/2`
 
 #### Mix
 
