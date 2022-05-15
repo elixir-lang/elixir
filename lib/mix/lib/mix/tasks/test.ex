@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Test do
   tests run concurrently.
 
   Finally, how many tests we have run, how many of them
-  failed, how many were invalid, etc.
+  failed, how many were invalid, and so on.
 
   ### Understanding test failures
 

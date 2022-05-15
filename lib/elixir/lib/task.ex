@@ -132,7 +132,7 @@ defmodule Task do
 
   This is often useful when you need to execute some steps while
   setting up your supervision tree. For example: to warm up caches,
-  log the initialization status, etc.
+  log the initialization status, and such.
 
   If you don't want to put the Task code directly under the `Supervisor`,
   you can wrap the `Task` in its own module, similar to how you would
