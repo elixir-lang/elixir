@@ -532,9 +532,12 @@ defmodule Supervisor do
   @doc """
   Starts a supervisor with the given children.
 
-  The children is a list of modules, two-element tuples with module and
-  arguments or a map with the child specification. A strategy is required
-  to be provided through the `:strategy` option. See
+  `children` is a list that includes every child expressed in of the following forms:
+    - a module
+    - a two-element tuple in the shape of `{module, arguments}` with `arguments` being a keyword-list
+    - a [child specification](`t:child_spec/0`)
+
+  A strategy is required to be provided through the `:strategy` option. See
   "start_link/2, init/2, and strategies" for examples and other options.
 
   The options can also be used to register a supervisor name.
@@ -543,7 +546,7 @@ defmodule Supervisor do
 
   If the supervisor and its child processes are successfully spawned
   (if the start function of each child process returns `{:ok, child}`,
-  `{:ok, child, info}`, or `:ignore`) this function returns
+  `{:ok, child, info}`, or `:ignore`) or if `children` is an empty list, this function returns
   `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
   is given a name and a process with the specified name already exists,
   the function returns `{:error, {:already_started, pid}}`, where `pid`
