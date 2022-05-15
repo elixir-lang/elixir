@@ -527,7 +527,9 @@ defmodule Supervisor do
           required(:id) => atom() | term(),
           required(:start) => {module(), atom(), [term()]},
           optional(:restart) => :permanent | :transient | :temporary,
-          optional(:shutdown) => timeout() | :brutal_kill,
+          # TODO: Update :shutdown to "timeout() | :brutal_kill" when we require Erlang/OTP 24.
+          #       Additionally apply https://github.com/elixir-lang/elixir/pull/11836
+          optional(:shutdown) => pos_integer() | :infinity | :brutal_kill,
           optional(:type) => :worker | :supervisor,
           optional(:modules) => [module()] | :dynamic
         }
