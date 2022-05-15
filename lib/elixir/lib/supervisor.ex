@@ -535,18 +535,26 @@ defmodule Supervisor do
   @doc """
   Starts a supervisor with the given children.
 
-  The children is a list of modules, two-element tuples with module and
-  arguments or a map with the child specification. A strategy is required
-  to be provided through the `:strategy` option. See
+  `children` is a list of the following forms:
+
+    * a [child specification](`t:child_spec/0`)
+
+    * a module, where `module.child_spec([])` will be invoked to retrieve
+      its child specification
+
+    * a two-element tuple in the shape of `{module, arg}`, where `module.child_spec(arg)`
+      will be invoked to retrieve its child specification
+
+  A strategy is required to be provided through the `:strategy` option. See
   "start_link/2, init/2, and strategies" for examples and other options.
 
   The options can also be used to register a supervisor name.
   The supported values are described under the "Name registration"
   section in the `GenServer` module docs.
 
-  If the supervisor and its child processes are successfully spawned
+  If the supervisor and all child processes are successfully spawned
   (if the start function of each child process returns `{:ok, child}`,
-  `{:ok, child, info}`, or `:ignore`) this function returns
+  `{:ok, child, info}`, or `:ignore`), this function returns
   `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
   is given a name and a process with the specified name already exists,
   the function returns `{:error, {:already_started, pid}}`, where `pid`
