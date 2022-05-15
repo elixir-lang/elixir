@@ -534,13 +534,13 @@ defmodule Supervisor do
 
   `children` is a list of the following forms:
 
+    * a [child specification](`t:child_spec/0`)
+
     * a module, where `module.child_spec([])` will be invoked to retrieve
       its child specification
 
     * a two-element tuple in the shape of `{module, arg}`, where `module.child_spec(arg)`
-      will be invoked for retrieve its child specification
-
-    * a [child specification](`t:child_spec/0`)
+      will be invoked to retrieve its child specification
 
   A strategy is required to be provided through the `:strategy` option. See
   "start_link/2, init/2, and strategies" for examples and other options.
