@@ -544,8 +544,8 @@ defmodule Calendar do
     parse_modifiers(rest, width, "", parser_data)
   end
 
-  defp parse_modifiers("0" <> rest, width, nil, parser_data) do
-    parse_modifiers(rest, width, ?0, parser_data)
+  defp parse_modifiers("0" <> rest, nil, nil, parser_data) do
+    parse_modifiers(rest, nil, ?0, parser_data)
   end
 
   defp parse_modifiers("_" <> rest, width, nil, parser_data) do
