@@ -749,8 +749,8 @@ defmodule LoggerTest do
         Logger.flush()
       end)
 
-    assert log =~ ~r"\[warn\] Attempted to log \d+ messages, which is above :discard_threshold"
-    assert log =~ ~r"\[warn\] Attempted to log \d+ messages, which is below :discard_threshold"
+    assert log =~ ~r"\[warning\] Attempted to log \d+ messages, which is above :discard_threshold"
+    assert log =~ ~r"\[warning\] Attempted to log \d+ messages, which is below :discard_threshold"
   after
     :sys.resume(Logger)
     assert :ok = Logger.configure(discard_threshold: 500)
