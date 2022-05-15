@@ -139,8 +139,11 @@ defmodule Supervisor do
     * `:type` - specifies that the child process is a `:worker` or a
       `:supervisor`. This key is optional and defaults to `:worker`.
 
-  There is a sixth key, `:modules`, which is optional and is rarely changed.
-  It is set automatically based on the `:start` value.
+    * `:modules` - a list of modules used by hot code upgrade mechanisms
+      to determine which processes are using certain modules. It is typically
+      set to the callback module of behaviours such as `GenServer`, `Supervisor`,
+      etc. It is set automatically based on the `:start` value and it is rarely
+      changed in practice.
 
   Let's understand what the `:shutdown` and `:restart` options control.
 
