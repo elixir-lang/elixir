@@ -532,10 +532,15 @@ defmodule Supervisor do
   @doc """
   Starts a supervisor with the given children.
 
-  `children` is a list that includes every child expressed in of the following forms:
-    - a module
-    - a two-element tuple in the shape of `{module, arguments}` with `arguments` being a keyword-list
-    - a [child specification](`t:child_spec/0`)
+  `children` is a list of the following forms:
+
+    * a module, where `module.child_spec([])` will be invoked to retrieve
+      its child specification
+
+    * a two-element tuple in the shape of `{module, arg}`, where `module.child_spec(arg)`
+      will be invoked for retrieve its child specification
+
+    * a [child specification](`t:child_spec/0`)
 
   A strategy is required to be provided through the `:strategy` option. See
   "start_link/2, init/2, and strategies" for examples and other options.
