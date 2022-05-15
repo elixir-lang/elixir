@@ -313,6 +313,11 @@ defmodule CalendarTest do
       assert Calendar.strftime(~N[2019-08-15 17:07:57], "%f") == "0"
     end
 
+    test "handles `0` both as padding and as part of a width" do
+      assert Calendar.strftime(~N[2019-08-15 17:07:57], "%10A") == "  Thursday"
+      assert Calendar.strftime(~N[2019-08-15 17:07:57], "%010A") == "00Thursday"
+    end
+
     test "formats datetime with all options and modifiers" do
       assert Calendar.strftime(
                ~U[2019-08-15 17:07:57.001Z],
