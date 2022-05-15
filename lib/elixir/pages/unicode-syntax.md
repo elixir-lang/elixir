@@ -12,7 +12,7 @@ To check the Unicode version of your current Elixir installation, run `String.Un
 
 Elixir allows Unicode characters in its variables, atoms, and calls. However, the Unicode characters must still obey the rules of the language syntax. In particular, variables and calls cannot start with an uppercase letter. From now on, we will refer to those terms as identifiers.
 
-The characters allowed in identifiers are the ones specified by Unicode. Generally speaking, it is restricted to characters typically used by the writing system of human languages still in activity. In particular, it excludes symbols such as emojis, alternate numeric representations, musical notes, etc.
+The characters allowed in identifiers are the ones specified by Unicode. Generally speaking, it is restricted to characters typically used by the writing system of human languages still in activity. In particular, it excludes symbols such as emojis, alternate numeric representations, musical notes, and the like.
 
 Elixir imposes many restrictions on identifiers for security purposes. For example, the word "josé" can be written in two ways in Unicode: as the combination of the characters `j o s é` and as a combination of the characters `j o s e ́ `, where the accent is its own character. The former is called NFC form and the latter is the NFD form. Elixir requires all characters to be the in the NFC form.
 
@@ -80,7 +80,7 @@ Unicode atoms in Elixir follow the identifier rule above with the following modi
   * `<Start>` additionally includes the code point `_` (005F)
   * `<Continue>` additionally includes the code point `@` (0040)
 
-Note atoms can also be quoted, which allows any characters, such as `:"hello elixir"`. All Elixir operators are also valid atoms (`:+`, `:@`, `:|>`, etc.). The full description of valid atoms is available in the ["Atoms" section in the syntax reference](syntax-reference.html#atoms).
+Note atoms can also be quoted, which allows any characters, such as `:"hello elixir"`. All Elixir operators are also valid atoms, such as `:+`, `:@`, `:|>`, and others. The full description of valid atoms is available in the ["Atoms" section in the syntax reference](syntax-reference.html#atoms).
 
 #### Variables
 

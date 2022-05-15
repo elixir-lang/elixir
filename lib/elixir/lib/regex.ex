@@ -39,7 +39,7 @@ defmodule Regex do
   The modifiers available when creating a Regex are:
 
     * `unicode` (u) - enables Unicode specific patterns like `\p` and causes
-      character classes like `\w`, `\W`, `\s`, etc. to also match on Unicode
+      character classes like `\w`, `\W`, `\s`, and the like to also match on Unicode
       (see examples below in "Character classes"). It expects valid Unicode
       strings to be given on match
 
