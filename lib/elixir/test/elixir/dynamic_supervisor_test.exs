@@ -229,6 +229,13 @@ defmodule DynamicSupervisorTest do
 
       assert DynamicSupervisor.start_child(:not_used, %{id: 1, start: {Task, :foo, :bar}}) ==
                {:error, {:invalid_mfa, {Task, :foo, :bar}}}
+
+      assert DynamicSupervisor.start_child(:not_used, %{
+               id: 1,
+               start: {Task, :foo, [:bar]},
+               shutdown: -1
+             }) ==
+               {:error, {:invalid_shutdown, -1}}
     end
 
     test "with different returns" do
@@ -449,6 +456,33 @@ defmodule DynamicSupervisorTest do
       assert {:ok, child_pid} = DynamicSupervisor.start_child(pid, child)
       assert_kill(child_pid, :shutdown)
       assert_receive {:EXIT, ^pid, :shutdown}
+    end
+
+    # == 
+
+    test "with valid shutdown" do
+      Process.flag(:trap_exit, true)
+
+      {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one)
+
+      for n <- 0..1 do
+        assert {:ok, child_pid} =
+                 DynamicSupervisor.start_child(pid, %{
+                   id: n,
+                   start: {Task, :start_link, [fn -> :ok end]},
+                   shutdown: n
+                 })
+
+        assert_kill(child_pid, :shutdown)
+      end
+    end
+
+    test "with invalid valid shutdown" do
+      assert DynamicSupervisor.start_child(:not_used, %{
+               id: 1,
+               start: {Task, :start_link, [fn -> :ok end]},
+               shutdown: -1
+             }) == {:error, {:invalid_shutdown, -1}}
     end
 
     def start_link(:ok3), do: {:ok, spawn_link(fn -> Process.sleep(:infinity) end), :extra}

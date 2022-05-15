@@ -447,7 +447,7 @@ defmodule DynamicSupervisor do
   defp validate_restart(restart) when restart in [:permanent, :temporary, :transient], do: :ok
   defp validate_restart(restart), do: {:invalid_restart_type, restart}
 
-  defp validate_shutdown(shutdown) when is_integer(shutdown) and shutdown > 0, do: :ok
+  defp validate_shutdown(shutdown) when is_integer(shutdown) and shutdown >= 0, do: :ok
   defp validate_shutdown(shutdown) when shutdown in [:infinity, :brutal_kill], do: :ok
   defp validate_shutdown(shutdown), do: {:invalid_shutdown, shutdown}
 
