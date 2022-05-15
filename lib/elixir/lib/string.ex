@@ -116,7 +116,7 @@ defmodule String do
   are, we can finally talk about encodings. Whereas the code point is **what**
   we store, an encoding deals with **how** we store it: encoding is an
   implementation. In other words, we need a mechanism to convert the code
-  point numbers into bytes so they can be stored in memory, written to disk, etc.
+  point numbers into bytes so they can be stored in memory, written to disk, and such.
 
   Elixir uses UTF-8 to encode its strings, which means that code points are
   encoded as a series of 8-bit bytes. UTF-8 is a **variable width** character

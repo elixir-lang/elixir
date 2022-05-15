@@ -391,7 +391,7 @@ defmodule Mix.Tasks.Compile.App do
   ## Helpers for loading and manipulating apps
 
   @doc false
-  # Entry point function used by app tracer, app loader, etc.
+  # Entry point function used by app tracer, app loader, and others.
   def project_apps(config) do
     project = Mix.Project.get!()
 
