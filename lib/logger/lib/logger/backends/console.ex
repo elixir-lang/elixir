@@ -38,7 +38,7 @@ defmodule Logger.Backends.Console do
 
     * `:info` - color for info and notice messages. Defaults to: `:normal`
 
-    * `:warn` - color for warning messages. Defaults to: `:yellow`
+    * `:warning` - color for warning messages. Defaults to: `:yellow`
 
     * `:error` - color for error and higher messages. Defaults to: `:red`
 
@@ -233,12 +233,22 @@ defmodule Logger.Backends.Console do
   defp configure_colors(config) do
     colors = Keyword.get(config, :colors, [])
 
+    warning =
+      Keyword.get_lazy(colors, :warning, fn ->
+        # TODO: Deprecate :warn option on Elixir v.19
+        if warn = Keyword.get(colors, :warn) do
+          warn
+        else
+          :yellow
+        end
+      end)
+
     %{
       emergency: Keyword.get(colors, :error, :red),
       alert: Keyword.get(colors, :error, :red),
       critical: Keyword.get(colors, :error, :red),
       error: Keyword.get(colors, :error, :red),
-      warning: Keyword.get(colors, :warn, :yellow),
+      warning: warning,
       notice: Keyword.get(colors, :info, :normal),
       info: Keyword.get(colors, :info, :normal),
       debug: Keyword.get(colors, :debug, :cyan),
