@@ -168,6 +168,11 @@ defmodule Logger.Backends.ConsoleTest do
     assert capture_log(fn -> Logger.warn("hello") end) ==
              IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
 
+    Logger.configure_backend(:console, colors: [warning: :magenta])
+
+    assert capture_log(fn -> Logger.warning("hello") end) ==
+             IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
+
     assert capture_log(fn -> Logger.error("hello") end) ==
              IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
 
