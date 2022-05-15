@@ -549,7 +549,7 @@ defmodule Supervisor do
   The supported values are described under the "Name registration"
   section in the `GenServer` module docs.
 
-  If the supervisor and its child processes are successfully spawned
+  If the supervisor and all child processes are successfully spawned
   (if the start function of each child process returns `{:ok, child}`,
   `{:ok, child, info}`, or `:ignore`), this function returns
   `{:ok, pid}`, where `pid` is the PID of the supervisor. If the supervisor
