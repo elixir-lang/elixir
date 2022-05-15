@@ -116,7 +116,7 @@ defmodule Logger.Config do
   defp warn(message) do
     utc_log = Application.fetch_env!(:logger, :utc_log)
     event = {Logger, message, Logger.Utils.timestamp(utc_log), pid: self()}
-    :gen_event.notify(self(), {:warn, Process.group_leader(), event})
+    :gen_event.notify(self(), {:warning, Process.group_leader(), event})
   end
 
   defp schedule_update_counter({_, _, _, discard_period}) do
