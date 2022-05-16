@@ -467,9 +467,12 @@ defmodule Code do
 
   The formatter was designed under three principles.
 
-  First, the formatter never changes the semantics of the code by default.
-  This means the input AST and the output AST are equivalent, except in
-  very few cases, which can be disabled via an option.
+  First, the formatter never changes the semantics of the code.
+  This means the input AST and the output AST are almost always equivalent.
+  The only cases where the formatter will change the AST is when the input AST
+  would cause *compiler warnings* and the output AST won't. The cases where
+  the formatter changes the AST can be disabled through formatting options
+  if desired.
 
   The second principle is to provide as little configuration as possible.
   This eases the formatter adoption by removing contention points while
