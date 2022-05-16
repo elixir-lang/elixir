@@ -14,5 +14,6 @@
 
     # Errors tests
     assert_eval_raise: 3
-  ]
+  ],
+  normalize_bitstring_modifiers: false
 ]

@@ -455,12 +455,21 @@ defmodule Code do
       If you set it to `false` later on, `do`-`end` blocks won't be
       converted back to keywords.
 
+    * `:normalize_bitstring_modifiers` (since v1.14.0) - when `true`,
+      removes un-necessary parentheses in known bitstring
+      [modifiers](`Kernel.<<>>/1`),
+      e.g. `<<foo::binary()>>` becomes `<<foo::binary>>`, or adds
+      parentheses for custom modifiers, e.g. `<<foo::custom_type>>`
+      becomes `<<foo::custom_type()>>`.
+      Defaults to `true`. This option changes the AST.
+
   ## Design principles
 
   The formatter was designed under three principles.
 
-  First, the formatter never changes the semantics of the code by
-  default. This means the input AST and the output AST are equivalent.
+  First, the formatter never changes the semantics of the code by default.
+  This means the input AST and the output AST are equivalent, except in
+  very few cases, which can be disabled via an option.
 
   The second principle is to provide as little configuration as possible.
   This eases the formatter adoption by removing contention points while
