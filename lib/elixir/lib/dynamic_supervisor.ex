@@ -388,10 +388,9 @@ defmodule DynamicSupervisor do
           Supervisor.child_spec()
           | {module, term}
           | module
-          | old_erlang_child_spec
+          | :supervisor.child_spec()
         ) ::
           on_start_child()
-        when old_erlang_child_spec: :supervisor.child_spec()
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     validate_and_start_child(supervisor, child_spec)
   end
