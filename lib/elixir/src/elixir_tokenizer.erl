@@ -506,7 +506,8 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
         true ->
           WarnMsg = io_lib:format(
             "found quoted atom \"~ts\" but the quotes are not required. "
-            "Atoms made exclusively of ASCII letters, numbers, underscores, and optionally ending with ! or ? "
+            "Atoms made exclusively of ASCII letters, numbers, underscores, "
+            "beginning with a letter or underscore, and optionally ending with ! or ? "
             "do not require quotes",
             [hd(Parts)]
           ),
@@ -786,7 +787,8 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
             "found quoted keyword \"~ts\" but the quotes are not required. "
             "Note that keywords are always atoms, even when quoted. "
             "Similar to atoms, keywords made exclusively of ASCII "
-            "letters, numbers, and underscores do not require quotes",
+            "letters, numbers, and underscores and not beginning with a "
+            "number do not require quotes",
             [hd(Parts)]
           ),
           prepend_warning(Line, Column, WarnMsg, InterScope);
@@ -907,6 +909,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
           WarnMsg = io_lib:format(
             "found quoted call \"~ts\" but the quotes are not required. "
             "Calls made exclusively of Unicode letters, numbers, and underscores "
+            "and not beginning with a number "
             "do not require quotes",
             [Part]
           ),
