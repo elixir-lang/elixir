@@ -486,7 +486,7 @@ defmodule Supervisor do
   init callback to return the proper supervision flags.
   """
   @callback init(init_arg :: term) ::
-              {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}}
+              {:ok, {:supervisor.sup_flags(), [child_spec() | old_erlang_child_spec()]}}
               | :ignore
 
   @typedoc "Return values of `start_link` functions"
@@ -503,7 +503,7 @@ defmodule Supervisor do
 
   @type child :: pid | :undefined
 
-  @typedoc "The Supervisor name"
+  @typedoc "The supervisor name"
   @type name :: atom | {:global, term} | {:via, module, term}
 
   @typedoc "Option values used by the `start*` functions"
@@ -518,26 +518,58 @@ defmodule Supervisor do
           | {:max_restarts, non_neg_integer}
           | {:max_seconds, pos_integer}
 
+  @typedoc "Supported restart options"
+  @type restart :: :permanent | :transient | :temporary
+
+  # TODO: Update :shutdown to "timeout() | :brutal_kill" when we require Erlang/OTP 24.
+  #       Additionally apply https://github.com/elixir-lang/elixir/pull/11836
+  @typedoc "Supported shutdown options"
+  @type shutdown :: pos_integer() | :infinity | :brutal_kill
+
   @typedoc "Supported strategies"
   @type strategy :: :one_for_one | :one_for_all | :rest_for_one
 
+  @typedoc """
+  Supervisor type
+
+  Whether the supervisor is a worker or a supervisor.
+  """
+  @type type :: :worker | :supervisor
+
   # Note we have inlined all types for readability
-  @typedoc "The supervisor specification"
+  @typedoc """
+  The supervisor child specification.
+
+  It defines how the supervisor should start, stop and restart each of its children.
+  """
   @type child_spec :: %{
           required(:id) => atom() | term(),
-          required(:start) => {module(), function_name :: atom(), args :: [term()]},
-          optional(:restart) => :permanent | :transient | :temporary,
-          # TODO: Update :shutdown to "timeout() | :brutal_kill" when we require Erlang/OTP 24.
-          #       Additionally apply https://github.com/elixir-lang/elixir/pull/11836
-          optional(:shutdown) => pos_integer() | :infinity | :brutal_kill,
-          optional(:type) => :worker | :supervisor,
+          required(:start) => {module(), function_name :: atom(), args :: [term()] | :undefined},
+          optional(:restart) => restart(),
+          optional(:shutdown) => shutdown(),
+          optional(:type) => type(),
           optional(:modules) => [module()] | :dynamic
         }
 
-  @doc """
-  Starts a supervisor with the given children.
+  @typedoc """
+  The old Erlang/OTP child specification.
 
-  `children` is a list of the following forms:
+  Kept for compatibility, it is represented as a tuple.
+  Use the `t:child_spec/0` instead.
+  """
+  @type old_erlang_child_spec :: {
+          id :: atom() | term(),
+          start :: {module(), function_name :: atom(), args :: [term()] | :undefined},
+          restart :: restart(),
+          shutdown :: shutdown(),
+          worker :: type(),
+          modules :: [module()] | :dynamic
+        }
+
+  @typedoc """
+  A child list.
+
+  It is a list of the following forms:
 
     * a [child specification](`t:child_spec/0`)
 
@@ -546,6 +578,13 @@ defmodule Supervisor do
 
     * a two-element tuple in the shape of `{module, arg}`, where `module.child_spec(arg)`
       will be invoked to retrieve its child specification
+  """
+  @type children :: [child_spec() | module | {module, arg :: term}]
+
+  @doc """
+  Starts a supervisor with the given children.
+
+  See `t:children/0` for a description of the accepted values.
 
   A strategy is required to be provided through the `:strategy` option. See
   "Supervisor strategies and options" for examples and other options.
@@ -571,9 +610,9 @@ defmodule Supervisor do
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
   """
-  @spec start_link([:supervisor.child_spec() | {module, term} | module], [option | init_option]) ::
+  @spec start_link(children, [option | init_option]) ::
           {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
-  def start_link(children, options) when is_list(children) do
+  def start_link(children, options) when is_list(children) and is_list(options) do
     {sup_opts, start_opts} = Keyword.split(options, [:strategy, :max_seconds, :max_restarts])
     start_link(Supervisor.Default, init(children, sup_opts), start_opts)
   end
@@ -584,6 +623,9 @@ defmodule Supervisor do
   This is typically invoked at the end of the `c:init/1` callback of
   module-based supervisors. See the sections "Supervisor strategies and options" and
   "Module-based supervisors" in the module documentation for more information.
+
+  See `t:children/0` for a description of the accepted values.
+
 
   This function returns a tuple containing the supervisor
   flags and child specifications.
@@ -614,7 +656,7 @@ defmodule Supervisor do
   description of the available strategies.
   """
   @doc since: "1.5.0"
-  @spec init([:supervisor.child_spec() | {module, term} | module], [init_option]) :: {:ok, tuple}
+  @spec init(children, [init_option]) :: {:ok, tuple}
   def init(children, options) when is_list(children) and is_list(options) do
     strategy =
       case options[:strategy] do
@@ -837,7 +879,10 @@ defmodule Supervisor do
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
   """
-  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module) ::
+  @spec start_child(
+          supervisor,
+          child_spec() | old_erlang_child_spec() | {module, term} | module
+        ) ::
           on_start_child
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     call(supervisor, {:start_child, child_spec})
