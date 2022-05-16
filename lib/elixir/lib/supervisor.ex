@@ -486,8 +486,9 @@ defmodule Supervisor do
   init callback to return the proper supervision flags.
   """
   @callback init(init_arg :: term) ::
-              {:ok, {:supervisor.sup_flags(), [child_spec() | old_erlang_child_spec()]}}
+              {:ok, {:supervisor.sup_flags(), [child_spec() | old_erlang_child_spec]}}
               | :ignore
+            when old_erlang_child_spec: :supervisor.child_spec()
 
   @typedoc "Return values of `start_link` functions"
   @type on_start ::
@@ -530,7 +531,7 @@ defmodule Supervisor do
   @type strategy :: :one_for_one | :one_for_all | :rest_for_one
 
   @typedoc """
-  Supervisor type
+  Supervisor type.
 
   Whether the supervisor is a worker or a supervisor.
   """
@@ -544,26 +545,11 @@ defmodule Supervisor do
   """
   @type child_spec :: %{
           required(:id) => atom() | term(),
-          required(:start) => {module(), function_name :: atom(), args :: [term()] | :undefined},
+          required(:start) => {module(), function_name :: atom(), args :: [term()]},
           optional(:restart) => restart(),
           optional(:shutdown) => shutdown(),
           optional(:type) => type(),
           optional(:modules) => [module()] | :dynamic
-        }
-
-  @typedoc """
-  The old Erlang/OTP child specification.
-
-  Kept for compatibility, it is represented as a tuple.
-  Use the `t:child_spec/0` instead.
-  """
-  @type old_erlang_child_spec :: {
-          id :: atom() | term(),
-          start :: {module(), function_name :: atom(), args :: [term()] | :undefined},
-          restart :: restart(),
-          shutdown :: shutdown(),
-          worker :: type(),
-          modules :: [module()] | :dynamic
         }
 
   @typedoc """
@@ -625,7 +611,6 @@ defmodule Supervisor do
   "Module-based supervisors" in the module documentation for more information.
 
   See `t:children/0` for a description of the accepted values.
-
 
   This function returns a tuple containing the supervisor
   flags and child specifications.
@@ -881,9 +866,10 @@ defmodule Supervisor do
   """
   @spec start_child(
           supervisor,
-          child_spec() | old_erlang_child_spec() | {module, term} | module
+          child_spec() | old_erlang_child_spec | {module, term} | module
         ) ::
           on_start_child
+        when old_erlang_child_spec: :supervisor.child_spec()
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     call(supervisor, {:start_child, child_spec})
   end
