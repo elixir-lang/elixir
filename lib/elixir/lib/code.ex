@@ -153,8 +153,9 @@ defmodule Code do
       is defined. This is equivalent to the `@after_compile` callback and invoked
       after any `@after_compile` in the given module. The third element is currently
       `:none` but it may provide more metadata in the future. It is best to ignore
-      it at the moment. Note that `Module` functions expecting not yet compiled module
-      (e.g. `Module.definitions_in/1`) are available at the time this event is emitted.
+      it at the moment. Note that `Module` functions expecting not yet compiled modules
+      (such as `Module.definitions_in/1`) are still available at the time this event
+      is emitted.
 
   The `:tracers` compiler option can be combined with the `:parser_options`
   compiler option to enrich the metadata of the traced events above.
