@@ -548,7 +548,7 @@ defmodule Supervisor do
       will be invoked to retrieve its child specification
 
   A strategy is required to be provided through the `:strategy` option. See
-  "start_link/2, init/2, and strategies" for examples and other options.
+  "Supervisor strategies and options" for examples and other options.
 
   The options can also be used to register a supervisor name.
   The supported values are described under the "Name registration"
@@ -582,9 +582,8 @@ defmodule Supervisor do
   Receives a list of `children` to initialize and a set of `options`.
 
   This is typically invoked at the end of the `c:init/1` callback of
-  module-based supervisors. See the sections "Module-based supervisors"
-  and "start_link/2, init/2, and strategies" in the module
-  documentation for more information.
+  module-based supervisors. See the sections "Supervisor strategies and options" and
+  "Module-based supervisors" in the module documentation for more information.
 
   This function returns a tuple containing the supervisor
   flags and child specifications.
