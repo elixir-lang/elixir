@@ -1445,7 +1445,7 @@ defmodule Code.Formatter do
          state = %{normalize_bitstring_modifiers: true}
        )
        when is_atom(atom) and empty_args in [nil, []] do
-    empty_args = bitstring_spec_notmalized_empty_args(atom)
+    empty_args = bitstring_spec_normalize_empty_args(atom)
     quoted_to_algebra_with_parens_if_operator({atom, meta, empty_args}, :parens_arg, state)
   end
 
@@ -1453,8 +1453,8 @@ defmodule Code.Formatter do
     quoted_to_algebra_with_parens_if_operator(spec_element, :parens_arg, state)
   end
 
-  defp bitstring_spec_notmalized_empty_args(atom) when atom in @bitstring_modifiers, do: nil
-  defp bitstring_spec_notmalized_empty_args(_atom), do: []
+  defp bitstring_spec_normalize_empty_args(atom) when atom in @bitstring_modifiers, do: nil
+  defp bitstring_spec_normalize_empty_args(_atom), do: []
 
   defp bitstring_wrap_parens(doc, i, last) when i == 0 or i == last do
     string = format_to_string(doc)
