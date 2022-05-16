@@ -119,6 +119,7 @@ defmodule Kernel.WarningTest do
       assert capture_err(fn -> Code.eval_string(~s/:"Foo"/) end) == ""
       assert capture_err(fn -> Code.eval_string(~s/:"foo@bar"/) end) == ""
       assert capture_err(fn -> Code.eval_string(~s/:"héllò"/) end) == ""
+      assert capture_err(fn -> Code.eval_string(~s/:"3L1X1R"/) end) == ""
     end
 
     test "warns for unnecessary quotes" do
