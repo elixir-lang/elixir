@@ -456,11 +456,10 @@ defmodule Code do
       converted back to keywords.
 
     * `:normalize_bitstring_modifiers` (since v1.14.0) - when `true`,
-      removes un-necessary parentheses in known bitstring
-      [modifiers](`Kernel.<<>>/1`),
-      e.g. `<<foo::binary()>>` becomes `<<foo::binary>>`, or adds
-      parentheses for custom modifiers, e.g. `<<foo::custom_type>>`
-      becomes `<<foo::custom_type()>>`.
+      removes unnecessary parentheses in known bitstring
+      [modifiers](`Kernel.<<>>/1`), for example `<<foo::binary()>>`
+      becomes `<<foo::binary>>`, or adds parentheses for custom
+      modifiers, where `<<foo::custom_type>>` becomes `<<foo::custom_type()>>`.
       Defaults to `true`. This option changes the AST.
 
   ## Design principles
