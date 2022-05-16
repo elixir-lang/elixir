@@ -394,6 +394,9 @@ defmodule Module do
 
   Callbacks will run in the order they are registered.
 
+  `Module` functions expecting not yet compiled module (e.g. `Module.definitions_in/1`)
+  are availanble at the time `@after_compile` is invoked.
+
   #### Example
 
       defmodule MyModule do
