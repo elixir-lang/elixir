@@ -235,7 +235,7 @@ defmodule Logger.Backends.Console do
 
     warning =
       Keyword.get_lazy(colors, :warning, fn ->
-        # TODO: Deprecate :warn option on Elixir v.19
+        # TODO: Deprecate :warn option on Elixir v1.19
         if warn = Keyword.get(colors, :warn) do
           warn
         else
