@@ -141,6 +141,24 @@ defmodule Code.Formatter do
 
   @do_end_keywords [:rescue, :catch, :else, :after]
 
+  @bitstring_modifiers [
+    :integer,
+    :float,
+    :bits,
+    :bitstring,
+    :binary,
+    :bytes,
+    :utf8,
+    :utf16,
+    :utf32,
+    :signed,
+    :unsigned,
+    :little,
+    :big,
+    :native,
+    :_
+  ]
+
   @doc """
   Converts the quoted expression into an algebra document.
   """
@@ -179,6 +197,7 @@ defmodule Code.Formatter do
     locals_without_parens = Keyword.get(opts, :locals_without_parens, [])
     file = Keyword.get(opts, :file, nil)
     sigils = Keyword.get(opts, :sigils, [])
+    normalize_bitstring_modifiers = Keyword.get(opts, :normalize_bitstring_modifiers, true)
 
     sigils =
       Map.new(sigils, fn {key, value} ->
@@ -201,7 +220,8 @@ defmodule Code.Formatter do
       skip_eol: false,
       comments: comments,
       sigils: sigils,
-      file: file
+      file: file,
+      normalize_bitstring_modifiers: normalize_bitstring_modifiers
     }
   end
 
@@ -1412,13 +1432,29 @@ defmodule Code.Formatter do
 
   defp bitstring_spec_to_algebra({op, _, [left, right]}, state) when op in [:-, :*] do
     {left, state} = bitstring_spec_to_algebra(left, state)
-    {right, state} = quoted_to_algebra_with_parens_if_operator(right, :parens_arg, state)
+    {right, state} = bitstring_spec_element_to_algebra(right, state)
     {concat(concat(left, Atom.to_string(op)), right), state}
   end
 
   defp bitstring_spec_to_algebra(spec, state) do
-    quoted_to_algebra_with_parens_if_operator(spec, :parens_arg, state)
+    bitstring_spec_element_to_algebra(spec, state)
   end
+
+  defp bitstring_spec_element_to_algebra(
+         {atom, meta, empty_args},
+         state = %{normalize_bitstring_modifiers: true}
+       )
+       when is_atom(atom) and empty_args in [nil, []] do
+    empty_args = bitstring_spec_normalize_empty_args(atom)
+    quoted_to_algebra_with_parens_if_operator({atom, meta, empty_args}, :parens_arg, state)
+  end
+
+  defp bitstring_spec_element_to_algebra(spec_element, state) do
+    quoted_to_algebra_with_parens_if_operator(spec_element, :parens_arg, state)
+  end
+
+  defp bitstring_spec_normalize_empty_args(atom) when atom in @bitstring_modifiers, do: nil
+  defp bitstring_spec_normalize_empty_args(_atom), do: []
 
   defp bitstring_wrap_parens(doc, i, last) when i == 0 or i == last do
     string = format_to_string(doc)

@@ -128,17 +128,17 @@ defmodule Module.Types.TypesTest do
              in expression:
 
                  # types_test.ex:1
-                 <<..., var::binary()>>
+                 <<..., var::binary>>
 
              where "var" was given the type integer() in:
 
                  # types_test.ex:1
-                 <<var::integer(), ...>>
+                 <<var::integer, ...>>
 
              where "var" was given the type binary() in:
 
                  # types_test.ex:1
-                 <<..., var::binary()>>
+                 <<..., var::binary>>
              """
     end
 
@@ -337,7 +337,7 @@ defmodule Module.Types.TypesTest do
              in expression:
 
                  # types_test.ex:1
-                 <<foo::integer()>>
+                 <<foo::integer>>
 
              where "foo" was given the type binary() in:
 
@@ -347,7 +347,7 @@ defmodule Module.Types.TypesTest do
              where "foo" was given the type integer() in:
 
                  # types_test.ex:1
-                 <<foo::integer()>>
+                 <<foo::integer>>
              """
     end
 
