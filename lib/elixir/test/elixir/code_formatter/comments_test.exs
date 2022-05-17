@@ -906,7 +906,7 @@ defmodule Code.Formatter.CommentsTest do
       foo
       # |> bar
       # |> baz
-      |> bat
+      |> bat()
       """
 
       bad = """
@@ -922,9 +922,9 @@ defmodule Code.Formatter.CommentsTest do
       # this is foo
       foo
       # this is bar
-      |> bar
+      |> bar()
       # this is baz
-      |> baz
+      |> baz()
 
       # after
       """

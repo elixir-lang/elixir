@@ -457,6 +457,12 @@ defmodule Code do
       If you set it to `false` later on, `do`-`end` blocks won't be
       converted back to keywords.
 
+    * `:enforce_calls_on_right_hand_side_of` (since v.14.0) - a list of
+      atoms containing binary operators for which the right operand must
+      enforce parentheses on function calls. This is typically used for
+      pipe operators, for example `foo |> bar` should become `foo |> bar()`.
+      Defaults to `[:|>]`.
+
     * `:normalize_bitstring_modifiers` (since v1.14.0) - when `true`,
       removes unnecessary parentheses in known bitstring
       [modifiers](`Kernel.<<>>/1`), for example `<<foo::binary()>>`

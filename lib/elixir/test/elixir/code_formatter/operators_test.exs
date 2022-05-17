@@ -283,7 +283,7 @@ defmodule Code.Formatter.OperatorsTest do
     test "preserves user choice even when it fits" do
       assert_same """
       foo
-      |> bar
+      |> bar()
       """
 
       assert_same """
@@ -295,15 +295,33 @@ defmodule Code.Formatter.OperatorsTest do
 
       bad = """
       foo |>
-        bar
+        bar()
       """
 
       good = """
       foo
-      |> bar
+      |> bar()
       """
 
       assert_format bad, good
+    end
+
+    test "adds parentheses to the right side of enforce_calls_on_right_hand_side_of" do
+      assert_same "foo |> bar ~> baz", enforce_calls_on_right_hand_side_of: []
+
+      enforce_opts = [enforce_calls_on_right_hand_side_of: [:~>]]
+
+      assert_format "foo ~> bar", "foo ~> bar()", enforce_opts
+
+      assert_format "foo ~> bar ~> baz", "foo ~> bar() ~> baz()", enforce_opts
+
+      assert_format "foo |> bar ~> baz", "foo |> bar ~> baz()", enforce_opts
+
+      assert_format "foo ~> bar |> baz", "foo ~> bar() |> baz", enforce_opts
+
+      assert_format "foo(bar ~> baz)", "foo(bar ~> baz())", enforce_opts
+
+      assert_same "defmacro x ~> f, do: foo(f, x)", enforce_opts
     end
   end
 
@@ -518,10 +536,10 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with required parens" do
-      assert_same "(a |> b) ++ (c |> d)"
+      assert_same "(a |> b()) ++ (c |> d())"
       assert_format "a + b |> c + d", "(a + b) |> (c + d)"
       assert_format "a ++ b |> c ++ d", "(a ++ b) |> (c ++ d)"
-      assert_format "a |> b ++ c |> d", "a |> (b ++ c) |> d"
+      assert_format "a |> b ++ c |> d", "a |> (b ++ c) |> d()"
     end
 
     test "with required parens skips on no parens" do

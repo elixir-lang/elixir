@@ -199,6 +199,9 @@ defmodule Code.Formatter do
     sigils = Keyword.get(opts, :sigils, [])
     normalize_bitstring_modifiers = Keyword.get(opts, :normalize_bitstring_modifiers, true)
 
+    enforce_calls_on_right_hand_side_of =
+      Keyword.get(opts, :enforce_calls_on_right_hand_side_of, [:|>])
+
     sigils =
       Map.new(sigils, fn {key, value} ->
         with true <- is_atom(key) and is_function(value, 2),
@@ -221,7 +224,8 @@ defmodule Code.Formatter do
       comments: comments,
       sigils: sigils,
       file: file,
-      normalize_bitstring_modifiers: normalize_bitstring_modifiers
+      normalize_bitstring_modifiers: normalize_bitstring_modifiers,
+      enforce_calls_on_right_hand_side_of: enforce_calls_on_right_hand_side_of
     }
   end
 
@@ -764,6 +768,22 @@ defmodule Code.Formatter do
        when op in [:not, :!] do
     {doc, state} = unary_op_to_algebra(op, meta, arg, context, state)
     {wrap_in_parens(doc), state}
+  end
+
+  defp binary_operand_to_algebra(
+         operand = {atom, meta, nil},
+         context,
+         state = %{enforce_calls_on_right_hand_side_of: parent_ops},
+         parent_op,
+         _parent_info,
+         _side = :right,
+         _nesting
+       )
+       # do not add parentheses in patterns like `defmacro x |> f do`
+       when is_atom(atom) and context != :no_parens_arg do
+    operand = if parent_op in parent_ops, do: {atom, meta, []}, else: operand
+
+    quoted_to_algebra(operand, context, state)
   end
 
   defp binary_operand_to_algebra(operand, context, state, parent_op, parent_info, side, nesting) do
