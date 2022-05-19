@@ -18,10 +18,10 @@ defmodule PartitionSupervisor do
   The `DynamicSupervisor` is a single process responsible for starting
   other processes. In some applications, the `DynamicSupervisor` may
   become a bottleneck. To address this, you can start multiple instances
-  of the `DynamicSupervisor` and then pick a "random" instance to start
-  the child on.
+  of the `DynamicSupervisor` through a `PartitionSupervisor`, and then
+  pick a "random" instance to start the child on.
 
-  Instead of:
+  Instead of starting a single `DynamicSupervisor`:
 
       children = [
         {DynamicSupervisor, name: MyApp.DynamicSupervisor}
@@ -29,11 +29,11 @@ defmodule PartitionSupervisor do
 
       Supervisor.start_link(children, strategy: :one_for_one)
 
-  and:
+  and starting children on that dynamic supervisor directly:
 
       DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
 
-  You can do this:
+  You can do start the dynamic supervisors under a `PartitionSupervisor`:
 
       children = [
         {PartitionSupervisor,
@@ -63,12 +63,13 @@ defmodule PartitionSupervisor do
   The `PartitionSupervisor` requires a name as an atom to be given on start,
   as it uses an ETS table to keep all of the partitions. Under the hood,
   the `PartitionSupervisor` generates a child spec for each partition and
-  then act as a regular supervisor. The id of each child spec is the
+  then act as a regular supervisor. The ID of each child spec is the
   partition number.
 
   For routing, two strategies are used. If `key` is an integer, it is routed
-  using `rem(abs(key), partitions)`. Otherwise it uses `:erlang.phash2(key, partitions)`.
-  The particular routing may change in the future, and therefore cannot
+  using `rem(abs(key), partitions)` where `partitions` is the number of
+  partitions. Otherwise it uses `:erlang.phash2(key, partitions)`.
+  The particular routing may change in the future, and therefore must
   be relied on. If you want to retrieve a particular PID for a certain key,
   you can use `GenServer.whereis({:via, PartitionSupervisor, {name, key}})`.
   """
@@ -97,7 +98,7 @@ defmodule PartitionSupervisor do
 
   If the supervisor is successfully spawned, this function returns
   `{:ok, pid}`, where `pid` is the PID of the supervisor. If the given name
-    for the partition supervisor is already assigned to a process,
+  for the partition supervisor is already assigned to a process,
   the function returns `{:error, {:already_started, pid}}`, where `pid`
   is the PID of that process.
 
@@ -107,7 +108,8 @@ defmodule PartitionSupervisor do
 
   ## Options
 
-    * `:name` - an atom representing the name of the partition supervisor.
+    * `:name` - an atom representing the name of the partition supervisor
+      (see `t:name/0`).
 
     * `:partitions` - a positive integer with the number of partitions.
       Defaults to `System.schedulers_online()` (typically the number of cores).
@@ -129,16 +131,18 @@ defmodule PartitionSupervisor do
 
   Sometimes you want each partition to know their partition assigned number.
   This can be done with the `:with_arguments` option. This function receives
-  the list of arguments of the child specification with the partition and
-  it must return a new list of arguments.
+  the list of arguments of the child specification and the partition. It
+  must return a new list of arguments that will be passed to the child specification
+  of children.
 
   For example, most processes are started by calling `start_link(opts)`,
-  where `opts` is a keyword list. You could attach the partition to the
-  keyword list like this:
+  where `opts` is a keyword list. You could inject the partition into the
+  options given to the child:
 
       with_arguments: fn [opts], partition ->
         [Keyword.put(opts, :partition, partition)]
       end
+
   """
   def start_link(opts) do
     name = opts[:name]
