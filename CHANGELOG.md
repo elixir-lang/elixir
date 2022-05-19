@@ -29,21 +29,21 @@ TODO.
 
 #### Elixir
 
-  * [Calendar] Support ISO8601 basic format parsing with `DateTime.from_iso8601`
+  * [Calendar] Support ISO8601 basic format parsing with `DateTime.from_iso8601/2`
   * [Code] Emit deprecation and type warnings for invalid options in on `Code.compile_string/2` and `Code.compile_quoted/2`
   * [Code] Warn if an outdated lexical tracker is given on eval
   * [Code] Add `Code.env_for_eval/1` and `Code.eval_quoted_with_env/3`
   * [Code] Improve stacktraces from eval operations on Erlang/OTP 25+
   * [Enum] Allow slicing with steps in `Enum.slice/2`
   * [Float] Do not show floats in scientific notation if below `1.0e16` and the fractional value is precisely zero
-  * [Inspect] Improve error reporting when there is a faulty inspect implementation
+  * [Inspect] Improve error reporting when there is a faulty implementation of the `Inspect` protocol
   * [Inspect] Use expression-based inspection for `Date.Range`, `MapSet`, `Version`, and `Version.Requirement`
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
   * [Kernel] Allow composite types with pins as the map key in a pattern match
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
-  * [Kernel] Warn on confusable non-ascii identifiers
+  * [Kernel] Warn on confusable non-ASCII identifiers
   * [Kernel] Add `..` as a nullary operator that returns `0..-1//1`
-  * [Kernel] Implement Unicode Technical Standard #39 recommendations. In particular, we warn for confusable scripts and restrict identifiers to single-scripts or highly restrictive mixed-scripts
+  * [Kernel] Implement Unicode Technical Standard #39 recommendations; in particular, we warn for confusable scripts and restrict identifiers to single-scripts or highly restrictive mixed-scripts
   * [Kernel] Add `binary_slice/2` and `binary_slice/3`
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
@@ -59,10 +59,10 @@ TODO.
   * [String] Support empty lookup lists in `String.replace/3`, `String.split/3`, and `String.splitter/3`
   * [String] Allow slicing with steps in `String.slice/2`
   * [Task] Add `:zip_input_on_exit` option to `Task.async_stream/3`
-  * [Task] Store `:mfa` in the Task struct for reflection purposes
+  * [Task] Store `:mfa` in the `Task` struct for reflection purposes
   * [URI] Add `URI.append_query/2`
   * [Version] Add `Version.to_string/1`
-  * [Version] Colorize `Version.Requirement` source in Inspect protocol
+  * [Version] Colorize `Version.Requirement` source in the `Inspect` protocol
 
 #### ExUnit
 
@@ -95,8 +95,8 @@ TODO.
   * [CLI] Improve errors on incorrect `--rpc-eval` usage
   * [Code] Do not emit warnings when formatting code
   * [Enum] Allow slices to overflow on both starting and ending positions
-  * [Kernel] Do not allow restricted restricted characters in identifiers according to UTS39
-  * [Kernel] Define `__exception__` field as true when expanding exceptions in typespecs
+  * [Kernel] Do not allow restricted characters in identifiers according to UTS39
+  * [Kernel] Define `__exception__` field as `true` when expanding exceptions in typespecs
   * [Kernel] Warn if any of `True`, `False`, and `Nil` aliases are used
   * [Kernel] Warn on underived `@derive` attributes
   * [Protocol] Warn if a protocol has no definitions
@@ -108,7 +108,7 @@ TODO.
   * [ExUnit] Properly print diffs when comparing improper lists with strings at the tail position
   * [ExUnit] Add short hash to `tmp_dir` in ExUnit to avoid test name collision
   * [ExUnit] Do not store logs in the CLI formatter (this reduces memory usage for suites with `capture_log`)
-  * [ExUnit] Run `after_suite` even when no tests run
+  * [ExUnit] Run `ExUnit.after_suite/1` callback even when no tests run
   * [ExUnit] Fix scenario where `setup` with imported function from within `describe` failed to compile
 
 #### Mix
@@ -121,7 +121,7 @@ TODO.
 
   * [IEx] Disallow short-hand pipe after matches
 
-### 3. Soft-deprecations (no warnings emitted)
+### 3. Soft deprecations (no warnings emitted)
 
 #### EEx
 
@@ -135,7 +135,7 @@ TODO.
 
   * [mix cmd] The `--app` option in `mix cmd CMD` is deprecated in favor of the more efficient `mix do --app app cmd CMD`
 
-### 4. Hard-deprecations
+### 4. Hard deprecations
 
 #### Elixir
 
