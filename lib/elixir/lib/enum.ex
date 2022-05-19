@@ -2884,10 +2884,11 @@ defmodule Enum do
       iex> Enum.slice([1, 2, 3, 4, 5], 0..-1//2)
       [1, 3, 5]
 
-  To get every third element up to the 12th element:
+  To get every third element up to the 8th element:
 
       iex> integers = Enum.to_list(1..20)
-      iex> Enum.slice(integers, 0..4//3)
+      iex> Enum.slice(integers, 0..9//3)
+      [1, 4, 7, 10]
 
   If the first position is after the end of the enumerable
   or after the last position of the range, it returns an
