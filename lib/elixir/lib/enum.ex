@@ -2844,7 +2844,7 @@ defmodule Enum do
 
   `index_range` must be a `Range`. Given an `enumerable`, it drops
   elements before `index_range.first` (zero-base), then it takes elements
-  until element `index_range.last * index_range.step` (inclusively).
+  until element `index_range.last` (inclusively).
 
   Indexes are normalized, meaning that negative indexes will be counted
   from the end (for example, `-1` means the last element of the `enumerable`).
@@ -2857,7 +2857,7 @@ defmodule Enum do
   then `[]` is returned.
 
   If a step `n` (other than `1`) is used in `index_range`, then it takes
-  every `n`th element from `index_range.first` to `index_range.last * n`
+  every `n`th element from `index_range.first` to `index_range.last`
   (according to the same rules described above).
 
   ## Examples
@@ -2884,7 +2884,7 @@ defmodule Enum do
       iex> Enum.slice([1, 2, 3, 4, 5], 0..-1//2)
       [1, 3, 5]
 
-  To get every third element up to the 8th element:
+  To get every third element of the first ten elements:
 
       iex> integers = Enum.to_list(1..20)
       iex> Enum.slice(integers, 0..9//3)
