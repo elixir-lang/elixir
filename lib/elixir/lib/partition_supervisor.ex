@@ -75,6 +75,10 @@ defmodule PartitionSupervisor do
   """
 
   @behaviour Supervisor
+
+  @typedoc """
+  The name of the `PartitionSupervisor`.
+  """
   @type name :: atom()
 
   @doc false
@@ -144,7 +148,9 @@ defmodule PartitionSupervisor do
       end
 
   """
-  def start_link(opts) do
+  @doc since: "1.14.0"
+  @spec start_link(keyword) :: Supervisor.on_start()
+  def start_link(opts) when is_list(opts) do
     name = opts[:name]
 
     unless name && is_atom(name) do
