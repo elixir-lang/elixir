@@ -4348,6 +4348,7 @@ defmodule Enum do
   end
 
   defp slice_forward(list, start, amount, step) when is_list(list) do
+    amount = if step == 1, do: amount, else: div(amount - 1, step) + 1
     slice_list(list, start, amount, step)
   end
 

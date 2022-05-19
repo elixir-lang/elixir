@@ -1007,6 +1007,9 @@ defmodule EnumTest do
     assert Enum.slice(list, 0..10//5) == [1]
     assert Enum.slice(list, 0..10//6) == [1]
 
+    assert Enum.slice(list, 0..2//2) == [1, 3]
+    assert Enum.slice(list, 0..2//3) == [1]
+
     assert Enum.slice(list, 0..-1//2) == [1, 3, 5]
     assert Enum.slice(list, 0..-1//3) == [1, 4]
     assert Enum.slice(list, 0..-1//4) == [1, 5]
@@ -2075,6 +2078,9 @@ defmodule EnumTest.Range do
     assert Enum.slice(1..5, 0..10//4) == [1, 5]
     assert Enum.slice(1..5, 0..10//5) == [1]
     assert Enum.slice(1..5, 0..10//6) == [1]
+
+    assert Enum.slice(1..5, 0..2//2) == [1, 3]
+    assert Enum.slice(1..5, 0..2//3) == [1]
 
     assert Enum.slice(1..5, 0..-1//2) == [1, 3, 5]
     assert Enum.slice(1..5, 0..-1//3) == [1, 4]
