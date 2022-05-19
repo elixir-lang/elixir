@@ -2856,6 +2856,10 @@ defmodule Enum do
   `enumerable`, or this one is greater than the normalized `index_range.last`,
   then `[]` is returned.
 
+  If a step `n` (other than `1`) is used in `index_range`, then it takes
+  every `n`th element from `index_range.first` to `index_range.last`
+  (according to the same rules described above).
+
   ## Examples
 
       iex> Enum.slice([1, 2, 3, 4, 5], 1..3)
@@ -2864,7 +2868,7 @@ defmodule Enum do
       iex> Enum.slice([1, 2, 3, 4, 5], 3..10)
       [4, 5]
 
-      # last three elements (negative indexes)
+      # Last three elements (negative indexes)
       iex> Enum.slice([1, 2, 3, 4, 5], -3..-1)
       [3, 4, 5]
 
@@ -2879,6 +2883,12 @@ defmodule Enum do
 
       iex> Enum.slice([1, 2, 3, 4, 5], 0..-1//2)
       [1, 3, 5]
+
+  To get every third element of the first ten elements:
+
+      iex> integers = Enum.to_list(1..20)
+      iex> Enum.slice(integers, 0..9//3)
+      [1, 4, 7, 10]
 
   If the first position is after the end of the enumerable
   or after the last position of the range, it returns an
