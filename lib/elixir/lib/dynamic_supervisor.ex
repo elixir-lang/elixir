@@ -383,14 +383,7 @@ defmodule DynamicSupervisor do
   this function returns `{:error, :max_children}`.
   """
   @doc since: "1.6.0"
-  @spec start_child(
-          Supervisor.supervisor(),
-          Supervisor.child_spec()
-          | {module, term}
-          | module
-          | (old_erlang_child_spec :: :supervisor.child_spec())
-        ) ::
-          on_start_child()
+  @spec start_child(Supervisor.supervisor(), Supervisor.child_declaration()) :: on_start_child()
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     validate_and_start_child(supervisor, child_spec)
   end
