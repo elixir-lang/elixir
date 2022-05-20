@@ -2419,7 +2419,7 @@ defmodule String do
       iex> String.match?("bar", ~r/foo/)
       false
 
-  Elixir also provides `Kernel.=~/2` and `Regex.match?/2` as
+  Elixir also provides text-based match operator `=~/2` and function `Regex.match?/2` as
   alternatives to test strings against regular expressions.
   """
   @spec match?(t, Regex.t()) :: boolean

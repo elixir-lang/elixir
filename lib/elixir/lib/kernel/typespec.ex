@@ -104,7 +104,7 @@ defmodule Kernel.Typespec do
   @doc """
   Defines a typespec.
 
-  Invoked by `Kernel.@/1` expansion.
+  Invoked by `@/1` expansion.
   """
   def deftypespec(:spec, expr, _line, _file, module, pos) do
     {_set, bag} = :elixir_module.data_tables(module)

@@ -8,7 +8,7 @@ defmodule List do
       [1, "two", 3, :four]
 
   Two lists can be concatenated and subtracted using the
-  `Kernel.++/2` and `Kernel.--/2` operators:
+  `++/2` and `--/2` operators:
 
       iex> [1, 2, 3] ++ [4, 5, 6]
       [1, 2, 3, 4, 5, 6]

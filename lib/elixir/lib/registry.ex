@@ -165,7 +165,7 @@ defmodule Registry do
   the value from the registry and sending it a message. Many parts of the standard
   library are designed to cope with that, such as `Process.monitor/1` which will
   deliver the `:DOWN` message immediately if the monitored process is already dead
-  and `Kernel.send/2` which acts as a no-op for dead processes.
+  and `send/2` which acts as a no-op for dead processes.
 
   ## ETS
 
