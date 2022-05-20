@@ -86,8 +86,8 @@ The following literals are also supported in typespecs:
           | <<_::size, _::_*unit>>
 
                                           ## (Anonymous) Functions
-          | (-> type)                     # 0-arity, returns type
-          | (type1, type2 -> type)        # 2-arity, returns type
+          | (-> type)                     # zero-arity, returns type
+          | (type1, type2 -> type)        # two-arity, returns type
           | (... -> type)                 # any arity, returns type
 
                                           ## Integers
