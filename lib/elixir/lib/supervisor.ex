@@ -781,7 +781,7 @@ defmodule Supervisor do
   section in the `GenServer` module docs.
   """
 
-  # It is important to keep the 2-arity spec because it is a catch
+  # It is important to keep the two-arity spec because it is a catch
   # all to start_link(children, options).
   @spec start_link(module, term) :: on_start
   @spec start_link(module, term, [option]) :: on_start
