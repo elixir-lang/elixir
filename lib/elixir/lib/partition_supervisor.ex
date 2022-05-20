@@ -69,7 +69,7 @@ defmodule PartitionSupervisor do
   For routing, two strategies are used. If `key` is an integer, it is routed
   using `rem(abs(key), partitions)` where `partitions` is the number of
   partitions. Otherwise it uses `:erlang.phash2(key, partitions)`.
-  The particular routing may change in the future, and therefore must
+  The particular routing may change in the future, and therefore must not
   be relied on. If you want to retrieve a particular PID for a certain key,
   you can use `GenServer.whereis({:via, PartitionSupervisor, {name, key}})`.
   """
