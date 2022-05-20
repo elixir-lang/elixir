@@ -7,7 +7,7 @@ defmodule Supervisor do
   process structure called a *supervision tree*. Supervision trees provide
   fault-tolerance and encapsulate how our applications start and shutdown.
 
-  A supervisor may be started directly with a list of children via
+  A supervisor may be started directly with a list of child specifications via
   `start_link/2` or you may define a module-based supervisor that implements
   the required callbacks. The sections below use `start_link/2` to start
   supervisors in most examples, but it also includes a specific section
@@ -23,7 +23,7 @@ defmodule Supervisor do
   > Note: in practice you would not define a counter as a GenServer. Instead,
   > if you need a counter, you would pass it around as inputs and outputs to
   > the functions that need it. The reason we picked a counter in this example
-  > is due to its simplicity, as it allows us to focus on how Supervisors work.
+  > is due to its simplicity, as it allows us to focus on how supervisors work.
 
       defmodule Counter do
         use GenServer
@@ -120,9 +120,9 @@ defmodule Supervisor do
 
     * `:id` - any term used to identify the child specification internally by
       the supervisor; defaults to the given module. This key is required.
-      For Supervisors, in the case of conflicting `:id` values, the supervisor
+      For [supervisors](`Supervisor`), in the case of conflicting `:id` values, the supervisor
       will refuse to initialize and require explicit IDs. This is not the case
-      for DynamicSupervisors though.
+      for [dynamic supervisors](`DynamicSupervisor`) though.
 
     * `:start` - a tuple with the module-function-args to be invoked
       to start the child process. This key is required.
@@ -194,9 +194,9 @@ defmodule Supervisor do
   For a more complete understanding of the exit reasons and their
   impact, see the "Exit reasons and restarts" section.
 
-  ## child_spec/1
+  ## child_spec/1 function
 
-  When starting a supervisor, we pass a list of child specifications. Those
+  When starting a supervisor, we may pass a list of child specifications. Those
   specifications are maps that tell how the supervisor should start, stop and
   restart each of its children:
 
@@ -208,7 +208,7 @@ defmodule Supervisor do
   The map above defines a child with `:id` of `Counter` that is started
   by calling `Counter.start_link(0)`.
 
-  However, specifying the child specification for each child as a map can be
+  However, definining the child specification for each child as a map can be
   quite error prone, as we may change the `Counter` implementation and forget
   to update its specification. That's why Elixir allows you to pass a tuple with
   the module name and the `start_link` argument instead of the specification:
@@ -246,13 +246,13 @@ defmodule Supervisor do
   which in our case would be invalid, which is why we always pass the initial
   counter explicitly.
 
-  By replacing the map specification by `{Counter, 0}`, we keep the child
-  specification encapsulated in the `Counter` module. We could now share our
+  By replacing the child specification with `{Counter, 0}`, we keep it
+  encapsulated in the `Counter` module. We could now share our
   `Counter` implementation with other developers and they can add it directly
   to their supervision tree without worrying about the low-level details of
   the counter.
 
-  Overall, the child specification can be one of the following:
+  Overall, a child specification can be one of the following:
 
     * a map representing the child specification itself - as outlined in the
       "Child specification" section
@@ -266,8 +266,9 @@ defmodule Supervisor do
       many other cases, especially when you want to pass a list of options
       to the child process
 
-  If you need to convert a tuple or a module child specification to a map or
-  modify a child specification, you can use the `Supervisor.child_spec/2` function.
+  If you need to convert a `{module, arg}` tuple or a module child specification to a
+  [child specification](`t:child_spec/0`) or modify a child specification itself,
+  you can use the `Supervisor.child_spec/2` function.
   For example, to run the counter with a different `:id` and a `:shutdown` value of
   10 seconds (10_000 milliseconds):
 
@@ -358,7 +359,7 @@ defmodule Supervisor do
   The difference between the two approaches is that a module-based
   supervisor gives you more direct control over how the supervisor
   is initialized. Instead of calling `Supervisor.start_link/2` with
-  a list of children that are automatically initialized, we manually
+  a list of child specifications that are automatically initialized, we manually
   initialize the children by calling `Supervisor.init/2` inside its
   `c:init/1` callback. `Supervisor.init/2` accepts the same `:strategy`,
   `:max_restarts`, and `:max_seconds` options as `start_link/2`.
@@ -501,9 +502,15 @@ defmodule Supervisor do
           | {:ok, child, info :: term}
           | {:error, {:already_started, child} | :already_present | term}
 
+  @typedoc """
+  A child process.
+
+  It can be PID when a process was started, or `:undefined` when a
+  child was created by a [dynamic supervisor](`DynamicSupervisor`).
+  """
   @type child :: pid | :undefined
 
-  @typedoc "The Supervisor name"
+  @typedoc "The supervisor name"
   @type name :: atom | {:global, term} | {:via, module, term}
 
   @typedoc "Option values used by the `start*` functions"
@@ -518,19 +525,36 @@ defmodule Supervisor do
           | {:max_restarts, non_neg_integer}
           | {:max_seconds, pos_integer}
 
+  @typedoc "Supported restart options"
+  @type restart :: :permanent | :transient | :temporary
+
+  # TODO: Update :shutdown to "timeout() | :brutal_kill" when we require Erlang/OTP 24.
+  #       Additionally apply https://github.com/elixir-lang/elixir/pull/11836
+  @typedoc "Supported shutdown options"
+  @type shutdown :: pos_integer() | :infinity | :brutal_kill
+
   @typedoc "Supported strategies"
   @type strategy :: :one_for_one | :one_for_all | :rest_for_one
 
+  @typedoc """
+  Supervisor type.
+
+  Whether the supervisor is a worker or a supervisor.
+  """
+  @type type :: :worker | :supervisor
+
   # Note we have inlined all types for readability
-  @typedoc "The supervisor specification"
+  @typedoc """
+  The supervisor child specification.
+
+  It defines how the supervisor should start, stop and restart each of its children.
+  """
   @type child_spec :: %{
           required(:id) => atom() | term(),
           required(:start) => {module(), function_name :: atom(), args :: [term()]},
-          optional(:restart) => :permanent | :transient | :temporary,
-          # TODO: Update :shutdown to "timeout() | :brutal_kill" when we require Erlang/OTP 24.
-          #       Additionally apply https://github.com/elixir-lang/elixir/pull/11836
-          optional(:shutdown) => pos_integer() | :infinity | :brutal_kill,
-          optional(:type) => :worker | :supervisor,
+          optional(:restart) => restart(),
+          optional(:shutdown) => shutdown(),
+          optional(:type) => type(),
           optional(:modules) => [module()] | :dynamic
         }
 
@@ -579,7 +603,7 @@ defmodule Supervisor do
   end
 
   @doc """
-  Receives a list of `children` to initialize and a set of `options`.
+  Receives a list of child specifications to initialize and a set of `options`.
 
   This is typically invoked at the end of the `c:init/1` callback of
   module-based supervisors. See the sections "Supervisor strategies and options" and
@@ -720,10 +744,14 @@ defmodule Supervisor do
   @doc """
   Builds and overrides a child specification.
 
-  Similar to `start_link/2` and `init/2`, it expects a
-  `module`, `{module, arg}` or a map as the child specification.
-  If a module is given, the specification is retrieved by calling
-  `module.child_spec(arg)`.
+  Similar to `start_link/2` and `init/2`, it expects a module, `{module, arg}`
+  or a child specification.
+
+  If a two-element tuple in the shape of `{module, arg}` is given,
+  the child specification is retrieved by calling `module.child_spec(arg)`.
+
+  If a module is given, the child specification is retrieved by calling
+  `module.child_spec([])`.
 
   After the child specification is retrieved, the fields on `overrides`
   are directly applied on the child spec. If `overrides` has keys that
@@ -781,8 +809,8 @@ defmodule Supervisor do
   section in the `GenServer` module docs.
   """
 
-  # It is important to keep the two-arity spec because it is a catch
-  # all to start_link(children, options).
+  # It is important to keep the two-arity spec because it is a catch-all
+  # to start_link(children, options).
   @spec start_link(module, term) :: on_start
   @spec start_link(module, term, [option]) :: on_start
   def start_link(module, init_arg, options \\ []) when is_list(options) do
