@@ -2154,7 +2154,7 @@ defmodule Macro do
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
-      atom in [:"::", :^^^, :~~~, :<|>] ->
+      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
         :quoted_operator
 
       operator?(atom, 1) or operator?(atom, 2) ->
