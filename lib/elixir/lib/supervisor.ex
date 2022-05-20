@@ -745,7 +745,7 @@ defmodule Supervisor do
   Builds and overrides a child specification.
 
   Similar to `start_link/2` and `init/2`, it expects a module, `{module, arg}`,
-  or a child specification.
+  or a [child specification](`t:child_spec/0`).
 
   If a two-element tuple in the shape of `{module, arg}` is given,
   the child specification is retrieved by calling `module.child_spec(arg)`.
