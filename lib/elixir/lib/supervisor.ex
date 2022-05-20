@@ -120,7 +120,7 @@ defmodule Supervisor do
 
     * `:id` - any term used to identify the child specification internally by
       the supervisor; defaults to the given module. This key is required.
-      For [supervisors](`Supervisor`), in the case of conflicting `:id` values, the supervisor
+      For supervisors, in the case of conflicting `:id` values, the supervisor
       will refuse to initialize and require explicit IDs. This is not the case
       for [dynamic supervisors](`DynamicSupervisor`) though.
 
@@ -194,7 +194,7 @@ defmodule Supervisor do
   For a more complete understanding of the exit reasons and their
   impact, see the "Exit reasons and restarts" section.
 
-  ## child_spec/1 function
+  ## `child_spec/1` function
 
   When starting a supervisor, we may pass a list of child specifications. Those
   specifications are maps that tell how the supervisor should start, stop and
@@ -505,8 +505,8 @@ defmodule Supervisor do
   @typedoc """
   A child process.
 
-  It can be PID when a process was started, or `:undefined` when a
-  child was created by a [dynamic supervisor](`DynamicSupervisor`).
+  It can be a PID when the child process was started, or `:undefined` when
+  the child was created by a [dynamic supervisor](`DynamicSupervisor`).
   """
   @type child :: pid | :undefined
 
@@ -744,7 +744,7 @@ defmodule Supervisor do
   @doc """
   Builds and overrides a child specification.
 
-  Similar to `start_link/2` and `init/2`, it expects a module, `{module, arg}`
+  Similar to `start_link/2` and `init/2`, it expects a module, `{module, arg}`,
   or a child specification.
 
   If a two-element tuple in the shape of `{module, arg}` is given,
