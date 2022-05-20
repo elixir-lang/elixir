@@ -29,7 +29,7 @@ defmodule Kernel do
 
       import Kernel, except: [if: 2, unless: 2]
 
-  See `import/2` for more information on importing.
+  See `Kernel.SpecialForms.import/2` for more information on importing.
 
   Elixir also has special forms that are always imported and
   cannot be skipped. These are described in `Kernel.SpecialForms`.
@@ -58,7 +58,7 @@ defmodule Kernel do
 
   There are two data types without an accompanying module:
 
-    * Bitstring - a sequence of bits, created with `<<>>/1`.
+    * Bitstring - a sequence of bits, created with `Kernel.SpecialForms.<<>>/1`.
       When the number of bits is divisible by 8, they are called binaries and can
       be manipulated with Erlang's `:binary` module
     * Reference - a unique value in the runtime system, created with `make_ref/0`
@@ -4437,8 +4437,8 @@ defmodule Kernel do
   Marks that the given variable should not be hygienized.
 
   This macro expects a variable and it is typically invoked
-  inside `quote/2` to mark that a variable
-  should not be hygienized. See `quote/2`
+  inside `Kernel.SpecialForms.quote/2` to mark that a variable
+  should not be hygienized. See `Kernel.SpecialForms.quote/2`
   for more information.
 
   ## Examples
@@ -4475,7 +4475,7 @@ defmodule Kernel do
   be hygienized. This means the alias will be expanded when
   the macro is expanded.
 
-  Check `quote/2` for more information.
+  Check `Kernel.SpecialForms.quote/2` for more information.
   """
   defmacro alias!(alias) when is_atom(alias) do
     alias
@@ -4683,7 +4683,7 @@ defmodule Kernel do
   If the `Foo.Bar` module is moved somewhere else, the references to `Bar` in
   the `Foo` module need to be updated to the fully-qualified name (`Foo.Bar`) or
   an alias has to be explicitly set in the `Foo` module with the help of
-  `alias/2`.
+  `Kernel.SpecialForms.alias/2`.
 
       defmodule Foo.Bar do
         # code
@@ -4932,7 +4932,7 @@ defmodule Kernel do
 
   ## `rescue`/`catch`/`after`/`else`
 
-  Function bodies support `rescue`, `catch`, `after`, and `else` as `try/1`
+  Function bodies support `rescue`, `catch`, `after`, and `else` as `Kernel.SpecialForms.try/1`
   does (known as "implicit try"). For example, the following two functions are equivalent:
 
       def convert(number) do
@@ -5068,7 +5068,7 @@ defmodule Kernel do
   A struct is a tagged map that allows developers to provide
   default values for keys, tags to be used in polymorphic
   dispatches and compile time assertions. For more information
-  about structs, please check `%/2`.
+  about structs, please check `Kernel.SpecialForms.%/2`.
 
   It is only possible to define a struct per module, as the
   struct it tied to the module itself. Calling `defstruct/1`
