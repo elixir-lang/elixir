@@ -3148,10 +3148,7 @@ defmodule Enum do
   ## Ascending and descending (since v1.10.0)
 
   `sort_by/3` allows a developer to pass `:asc` or `:desc` as the sorter,
-  which is a convenience for [`&<=/2`](`<=/2`) and [`&>=/2`](`>=/2`) respectively.
-
-  It is adviced to use `:asc` and `:desc` as they are more performant than their function counterparts.
-
+  which is a convenience for [`&<=/2`](`<=/2`) and [`&>=/2`](`>=/2`) respectively:
       iex> Enum.sort_by([2, 3, 1], &(&1), :asc)
       [1, 2, 3]
 
