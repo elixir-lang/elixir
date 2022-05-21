@@ -57,7 +57,7 @@ Some other operators are special forms and cannot be overridden:
   * [`.`](`./2`) - dot operator
   * [`=`](`=/2`) - match operator
   * [`&`](`&/1`) - capture operator
-  * [`::`](`Kernel.SpecialForms.::/2`) - type operator
+  * [`::`](`::/2`) - type operator
 
 Finally, these operators appear in the precedence table above but are only meaningful within certain constructs:
 

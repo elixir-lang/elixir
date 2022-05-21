@@ -22,7 +22,7 @@ defmodule Function do
 
   It is also possible to capture public module functions and pass them
   around as if they were anonymous functions by using the capture
-  operator `Kernel.SpecialForms.&/1`:
+  operator `&/1`:
 
       iex> add = &Kernel.+/2
       iex> add.(1, 2)

@@ -459,7 +459,7 @@ defmodule Code do
 
     * `:normalize_bitstring_modifiers` (since v1.14.0) - when `true`,
       removes unnecessary parentheses in known bitstring
-      [modifiers](`Kernel.SpecialForms.<<>>/1`), for example `<<foo::binary()>>`
+      [modifiers](`<<>>/1`), for example `<<foo::binary()>>`
       becomes `<<foo::binary>>`, or adds parentheses for custom
       modifiers, where `<<foo::custom_type>>` becomes `<<foo::custom_type()>>`.
       Defaults to `true`. This option changes the AST.
