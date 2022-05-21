@@ -265,7 +265,8 @@ defmodule ExUnit do
       to optimize both CPU-bound and IO-bound tests;
 
     * `:max_failures` - the suite stops evaluating tests when this number of test failures
-      is reached. All tests within a module that fail when using the `setup_all/1,2` callbacks
+      is reached. All tests within a module that fail when using the
+      [`setup_all/1,2`](`ExUnit.Callbacks.setup_all/1`) callbacks
       are counted as failures. Defaults to `:infinity`;
 
     * `:only_test_ids` - a list of `{module_name, test_name}` tuples that limits
