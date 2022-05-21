@@ -12,31 +12,13 @@ defmodule Code.Formatter.GeneralTest do
   end
 
   describe "unicode normalization" do
-    test "with custom normalizations" do
-      # we normalize *treatment* of the codepoints
-      # in elixir's custom normalizations list,
-      # as regards restriction level and scriptset.
-      #
-      # however, when we decide whether or not they
-      # should actually emit the same token, that has
-      # formatter impacts.
-      #
-      # So, writing a normalized codepoint multiple
-      # ways in one file will either result in
-      #
-      # (1) confusability error, since they're not
-      # the same codepoints, which will remind you to
-      # not mix the way you're writing it, or
-      #
-      # (2) formatter errors if you write it consistently
-      # the 'wrong' (not-normalized) way.
-      #
-      # write how you want, but be consistent, or
-      # it's a confusability fail:
-      # assert_same "µs"
+    test "with nfc normalizations" do
+      # prior to elixir 1.14, non-nfc-norm'd was an error
+      assert_format "ç", "ç"
+    end
 
-      # write how you want, but the formatter will
-      # change it/error on it if you're using the formatter
+    test "with custom normalizations" do
+      # prior to elixir 1.14, these would be separate; see warnings_test
       assert_format "µs", "μs"
     end
   end
