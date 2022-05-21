@@ -74,7 +74,7 @@ defmodule Mix.Tasks.Profile.Cprof do
 
   The pattern can be a module name, such as `String` to count all calls to that module,
   a call without arity, such as `String.split`, to count all calls to that function
-  regardless of arity, or a call with arity, such as `String.split/2`, to count all
+  regardless of arity, or a call with arity, such as `String.split/3`, to count all
   calls to that exact module, function and arity.
 
   ## Caveats
