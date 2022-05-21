@@ -636,9 +636,9 @@ defmodule Macro do
       the amount of data `ExUnit` needs to keep around. Only the minimal
       amount of metadata is kept, such as `:line` and `:no_parens`.
 
-  ## Comparison to `Kernel.SpecialForms.quote/2`
+  ## Comparison to `quote/2`
 
-  The `escape/2` function is sometimes confused with `Kernel.SpecialForms.quote/2`,
+  The `escape/2` function is sometimes confused with `quote/2`,
   because the above examples behave the same with both. The key difference is
   best illustrated when the value to escape is stored in a variable.
 
@@ -659,7 +659,7 @@ defmodule Macro do
       {:a, :b, :c}
 
   `escape/2` is used to escape *values* (either directly passed or variable
-  bound), while `Kernel.SpecialForms.quote/2` produces syntax trees for
+  bound), while `quote/2` produces syntax trees for
   expressions.
   """
   @spec escape(term, keyword) :: t()
