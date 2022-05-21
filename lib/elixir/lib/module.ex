@@ -345,7 +345,7 @@ defmodule Module do
     * `@enforce_keys` - ensures the given keys are always set when building
       the struct defined in the current module
 
-  See `Kernel.defstruct/1` for more information on building and using structs.
+  See `defstruct/1` for more information on building and using structs.
 
   ### Typespec attributes
 
@@ -767,7 +767,7 @@ defmodule Module do
 
   `Module.create/3` works similarly to `Kernel.defmodule/2`
   and return the same results. While one could also use
-  `defmodule` to define modules dynamically, this function
+  `Kernel.defmodule/2` to define modules dynamically, this function
   is preferred when the module body is given by a quoted
   expression.
 

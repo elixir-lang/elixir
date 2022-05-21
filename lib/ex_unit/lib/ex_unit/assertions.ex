@@ -101,8 +101,7 @@ defmodule ExUnit.Assertions do
       assert nil = some_function_that_returns_nil()
 
   Even though the match works, `assert` still expects a truth
-  value. In such cases, simply use `Kernel.==/2` or
-  `Kernel.match?/2`.
+  value. In such cases, simply use `==/2` or `match?/2`.
   """
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
@@ -181,8 +180,7 @@ defmodule ExUnit.Assertions do
   The code above will fail because the `=` operator always fails
   when the sides do not match and `refute/2` does not change it.
 
-  The correct way to write the refutation above is to use
-  `Kernel.match?/2`:
+  The correct way to write the refutation above is to use `match?/2`:
 
       refute match?({:ok, _}, some_function_that_returns_error_tuple())
 
