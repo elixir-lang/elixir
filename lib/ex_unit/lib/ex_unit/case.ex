@@ -255,11 +255,6 @@ defmodule ExUnit.Case do
 
   @doc false
   defmacro __using__(opts) do
-    unless Process.whereis(ExUnit.Server) do
-      raise "cannot use ExUnit.Case without starting the ExUnit application, " <>
-              "please call ExUnit.start() or explicitly start the :ex_unit app"
-    end
-
     quote do
       unless ExUnit.Case.__register__(__MODULE__, unquote(opts)) do
         use ExUnit.Callbacks
@@ -486,10 +481,18 @@ defmodule ExUnit.Case do
 
   @doc false
   def __after_compile__(%{module: module}, _) do
-    if Module.get_attribute(module, :ex_unit_async) do
-      ExUnit.Server.add_async_module(module)
-    else
-      ExUnit.Server.add_sync_module(module)
+    cond do
+      Process.whereis(ExUnit.Server) == nil ->
+        unless Code.can_await_module_compilation?() do
+          raise "cannot use ExUnit.Case without starting the ExUnit application, " <>
+                  "please call ExUnit.start() or explicitly start the :ex_unit app"
+        end
+
+      Module.get_attribute(module, :ex_unit_async) ->
+        ExUnit.Server.add_async_module(module)
+
+      true ->
+        ExUnit.Server.add_sync_module(module)
     end
   end
 
