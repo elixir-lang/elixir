@@ -67,6 +67,26 @@ defmodule Kernel.ParserTest do
     end
   end
 
+  describe "identifier unicode normalization" do
+    test "nfc normalization is performed" do
+      # before elixir 1.14, non-nfc would error
+      #  non-nfc:        "ç" (code points 0x0063 0x0327)
+      #  nfc-normalized: "ç" (code points 0x00E7)
+      assert Code.eval_string("ç = 1; ç") == {1, [ç: 1]}
+    end
+
+    test "elixir's additional normalization is performed" do
+      # Common micro => Greek mu. See code formatter test too.
+      assert Code.eval_string("µs = 1; μs") == {1, [{:μs, 1}]}
+
+      # placeholder for math symbols capability in
+      # elixir_normalizations, to ensure that we *can* handle
+      # codepoints that are Common-script and non-ASCII,
+      # when we decide what those are/how we want to compute them
+      assert Code.eval_string("_ℕ𝕩 = 1") == {1, [{:_ℕ𝕩, 1}]}
+    end
+  end
+
   describe "strings/sigils" do
     test "delimiter information for sigils is included" do
       string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: false)
@@ -609,20 +629,20 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(message, 'Foó')
 
-      message = ~r"""
-      Elixir expects unquoted Unicode atoms, variables, and calls to be in NFC form.
+      message =
+        String.trim("""
+        Unicode codepoint did not parse, but its NFKC normalization would parse.
 
-      Got:
+          Got:  𝚳 \(codepoints 0x1D6B3\) at column 4
+          NFKC: Μ \(codepoints 0x0039C\)
 
-          "foó" \(code points 0x0066 0x006F 0x006F 0x0301\)
+        Syntax error before:
+            |
+          1 | foO𝚳
+            |    ^
+        """)
 
-      Expected:
-
-          "foó" \(code points 0x0066 0x006F 0x00F3\)
-
-      """
-
-      assert_syntax_error(message, :unicode.characters_to_nfd_list("foó"))
+      assert_syntax_error(~r/#{message}/, 'foO𝚳')
     end
 
     test "keyword missing space" do

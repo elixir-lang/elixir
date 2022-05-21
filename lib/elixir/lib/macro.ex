@@ -2169,7 +2169,14 @@ defmodule Macro do
           case :elixir_config.identifier_tokenizer().tokenize(charlist) do
             {kind, _acc, [], _, _, special} ->
               if kind == :identifier and not :lists.member(?@, special) do
-                :identifier
+                # identifier_tokenizer used to return errors for non-nfc, but
+                #  now it nfc-normalizes everything. however, lack of nfc is
+                #  still a good reason to quote an atom when printing.
+                if charlist == :unicode.characters_to_nfc_list(charlist) do
+                  :identifier
+                else
+                  :other
+                end
               else
                 :not_callable
               end

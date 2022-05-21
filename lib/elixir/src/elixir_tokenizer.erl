@@ -681,20 +681,20 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
           tokenize(Rest, Line, Column + Length, NewScope, [Token | Tokens]);
 
         _ ->
-          unexpected_token(String, Line, Column, Scope, Tokens)
+          unexpected_identifier_token(String, Line, Column, Scope, Tokens)
       end;
 
     {keyword, Atom, Type, Rest, Length} ->
       tokenize_keyword(Type, Rest, Line, Column, Atom, Length, OriginalScope, Tokens);
 
     empty when OriginalScope#elixir_tokenizer.cursor_completion == false ->
-      unexpected_token(String, Line, Column, OriginalScope, Tokens);
+      unexpected_identifier_token(String, Line, Column, OriginalScope, Tokens);
 
     empty ->
       case String of
         [$~, L] when ?is_upcase(L); ?is_downcase(L) -> tokenize([], Line, Column, OriginalScope, Tokens);
         [$~] -> tokenize([], Line, Column, OriginalScope, Tokens);
-        _ -> unexpected_token(String, Line, Column, OriginalScope, Tokens)
+        _ -> unexpected_identifier_token(String, Line, Column, OriginalScope, Tokens)
       end;
 
     {error, Reason} ->
@@ -703,6 +703,23 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
 
 previous_was_dot([{'.', _} | _]) -> true;
 previous_was_dot(_) -> false.
+
+unexpected_identifier_token([T | Rest] = String, Line, Column, Scope, Tokens) ->
+  AsNFKC = unicode:characters_to_nfkc_list(unicode:characters_to_nfc_list([T])),
+  case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(AsNFKC) of
+    {error, _} ->
+      unexpected_token(String, Line, Column, Scope, Tokens);
+    _NFKCWouldWork ->
+      Wrong = [T],
+      WrongCodepoints = list_to_codepoint_hex([T]),
+      NFKCCodepoints = list_to_codepoint_hex(AsNFKC),
+      Message = io_lib:format("Unicode codepoint did not parse, but its NFKC normalization would parse.\n\n"
+                              "  Got:  ~ts (codepoints~ts) at column ~p\n"
+                              "  NFKC: ~ts (codepoints~ts)\n\n"
+                              "Syntax error at:",
+                              [Wrong, WrongCodepoints, Column, AsNFKC, NFKCCodepoints]),
+      error({Line, Column, "unexpected token: ", Message}, Rest, Scope, Tokens)
+  end.
 
 unexpected_token([T | Rest], Line, Column, Scope, Tokens) ->
   Message =
@@ -1244,16 +1261,6 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
         {error, _Reason} = Error ->
           Error
       end;
-    {error, {not_nfc, Wrong}} ->
-      Right = unicode:characters_to_nfc_list(Wrong),
-      RightCodepoints = list_to_codepoint_hex(Right),
-      WrongCodepoints = list_to_codepoint_hex(Wrong),
-      Message = io_lib:format("Elixir expects unquoted Unicode atoms, variables, and calls to be in NFC form.\n\n"
-                              "Got:\n\n    \"~ts\" (code points~ts)\n\n"
-                              "Expected:\n\n    \"~ts\" (code points~ts)\n\n"
-                              "Syntax error before: ",
-                              [Wrong, WrongCodepoints, Right, RightCodepoints]),
-      {error, {Line, Column, Message, Wrong}};
     {error, {not_highly_restrictive, Wrong, Message}} ->
       {error, {Line, Column, Message, Wrong}};
     {error, empty} ->
@@ -1266,7 +1273,7 @@ maybe_keyword([$: | _]) -> false;
 maybe_keyword(_) -> true.
 
 list_to_codepoint_hex(List) ->
-  [io_lib:format(" 0x~4.16.0B", [Codepoint]) || Codepoint <- List].
+  [io_lib:format(" 0x~5.16.0B", [Codepoint]) || Codepoint <- List].
 
 tokenize_alias(Rest, Line, Column, Unencoded, Atom, Length, Ascii, Special, Scope, Tokens) ->
   if

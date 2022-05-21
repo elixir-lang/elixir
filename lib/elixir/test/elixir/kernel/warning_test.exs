@@ -27,6 +27,13 @@ defmodule Kernel.WarningTest do
   end
 
   describe "unicode identifier security" do
+    test "prevents Restricted codepoints in identifiers" do
+      exception = assert_raise SyntaxError, fn -> Code.string_to_quoted!("_shibㅤ = 1") end
+
+      assert Exception.message(exception) =~
+               "unexpected token: \"ㅤ\" (column 6, code point U+3164)"
+    end
+
     test "warns on confusables" do
       assert capture_err(fn -> Code.string_to_quoted("а=1; a=1") end) =~
                "confusable identifier: 'a' looks like 'а' on line 1"
@@ -92,6 +99,10 @@ defmodule Kernel.WarningTest do
 
       # uts39 5.2 allowed 'highly restrictive' script mixing, like 't-shirt' in Jpan:
       assert capture_err(fn -> Code.string_to_quoted!(":Tシャツ") end) == ""
+
+      # elixir's normalizations combine scriptsets of the 'from' and 'to' characters,
+      # ex: {Common} MICRO => {Greek} MU == {Common, Greek}; Common intersects w/all
+      assert capture_err(fn -> Code.string_to_quoted!("μs") end) == ""
     end
   end
 

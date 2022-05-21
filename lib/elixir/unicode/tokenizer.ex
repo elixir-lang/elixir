@@ -1,6 +1,29 @@
 defmodule String.Tokenizer do
   @moduledoc false
 
+  ## Custom normalization definitions
+  #
+  # These codepoints will be normalized from => to, and their
+  # scriptset will be the union of both. If one of the two
+  # codepoints is Script='Common|Inherited', this means both
+  # codepoints can be used without unsafe script mixing;
+  # similarly, they are exempted from the Restricted list.
+  #
+  elixir_normalizations = %{
+    # NFKC-based normalizations for codepoints in use
+    'µ' => 'μ',
+
+    # math symbols can be supported by this same means;
+    # this 'easter egg', which no users are likely to rely on,
+    # is put here so we can exercise the mechanism for allowing
+    # mathematical symbols, where perhaps even the 'to'
+    # codepoint will be Script=Common.
+    'ℕ' => 'ℕ',
+    '𝕩' => '𝕩'
+  }
+
+  normalizations = for {[a], [b]} <- elixir_normalizations, into: %{}, do: {a, b}
+
   ##
   ## First let's load all characters that we will allow in identifiers
   ##
@@ -86,8 +109,8 @@ defmodule String.Tokenizer do
       with [range, type_with_comments] <- :binary.split(line, ";"),
            [types, _comments] <- :binary.split(type_with_comments, "#"),
            types = String.split(types, " ", trim: true),
-           true <- "Inclusion" not in types and "Recommended" not in types do
-        range_to_codepoints.(range)
+           false <- "Inclusion" in types or "Recommended" in types do
+        Enum.reject(range_to_codepoints.(range), &Map.has_key?(normalizations, &1))
       else
         _ -> []
       end
@@ -102,6 +125,7 @@ defmodule String.Tokenizer do
   unicode_continue = Enum.filter(id_continue, &(&1 > 127))
 
   unicode_all = Map.from_keys(unicode_upper ++ unicode_start ++ unicode_continue, [])
+
   IO.puts(:stderr, "[Unicode] Tokenizing #{map_size(unicode_all)} non-ascii codepoints")
 
   ##
@@ -138,10 +162,11 @@ defmodule String.Tokenizer do
       with [range, scripts_with_comments] <- :binary.split(line, ";"),
            [scripts, _comments] <- :binary.split(scripts_with_comments, "#"),
            scripts =
-             scripts |> String.split(" ", trim: true) |> Enum.map(&Map.get(aliases, &1, &1)),
-           true <- "Common" not in scripts and "Inherited" not in scripts do
+             scripts |> String.split(" ", trim: true) |> Enum.map(&Map.get(aliases, &1, &1)) do
         for codepoint <- range_to_codepoints.(range),
-            Map.has_key?(unicode_all, codepoint),
+            (Map.has_key?(unicode_all, codepoint) and
+               "Common" not in scripts and "Inherited" not in scripts) or
+              Map.has_key?(normalizations, codepoint),
             do: {codepoint, scripts}
       else
         _ -> []
@@ -207,6 +232,8 @@ defmodule String.Tokenizer do
   {bottom, top} = ScriptSet.lattices(map_size(scriptset_masks))
   IO.puts(:stderr, "[Unicode] Tokenizing #{map_size(scriptset_masks)} scriptsets")
 
+  scriptset_masks = Map.put(scriptset_masks, "Common", top)
+
   codepoints_to_mask =
     for {codepoint, scriptsets} <- all_codepoints_to_scriptset, into: %{} do
       {codepoint,
@@ -215,12 +242,30 @@ defmodule String.Tokenizer do
        |> Enum.reduce(bottom, &ScriptSet.union/2)}
     end
 
+  # add our custom normalizations
+  codepoints_to_mask =
+    for {from, to} <- normalizations, reduce: codepoints_to_mask do
+      acc ->
+        ss = ScriptSet.union(Map.get(acc, from, top), Map.get(acc, to, top))
+        Map.put(acc, from, ss)
+        Map.put(acc, to, ss)
+    end
+
+  for {from, to} <- normalizations do
+    defp normalize(unquote(from)), do: unquote(to)
+  end
+
+  defp normalize(codepoint), do: codepoint
+
   ##
   ## Define functions and module attributes to access characters and their scriptsets
   ##
 
+  # bottom of bitmap == all bits are 0, no scripts in the scriptset
   @bottom bottom
   @latin 1
+  # top of bitmap (all bits are 1) is ALL in UTS39 ('Common', 'Inherited');
+  # a scriptset that will intersect with other all non-empty scriptsets
   @top top
   @indexed_scriptsets sorted_scriptsets |> Enum.with_index(&{&2, &1}) |> Map.new()
 
@@ -379,14 +424,12 @@ defmodule String.Tokenizer do
   end
 
   defp validate({acc, rest, length, ascii_letters?, scriptset, special}, kind) do
-    acc = :lists.reverse(acc)
+    # this is
+    acc = :unicode.characters_to_nfc_list(:lists.reverse(acc))
 
     cond do
       ascii_letters? ->
         {kind, acc, rest, length, ascii_letters?, special}
-
-      :unicode.characters_to_nfc_list(acc) != acc ->
-        {:error, {:not_nfc, acc}}
 
       scriptset == @bottom and not highly_restrictive?(acc) ->
         breakdown =
@@ -416,12 +459,13 @@ defmodule String.Tokenizer do
         '#{acc}' is made of the following scripts:\n
         #{breakdown}
         Make sure all characters in the identifier resolve to a single script or a highly
-        restrictive script. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
+        restrictive set of scripts. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
         '''
 
         {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
 
       true ->
+        acc = Enum.map(acc, &normalize(&1))
         {kind, acc, rest, length, ascii_letters?, special}
     end
   end
