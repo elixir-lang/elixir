@@ -21,7 +21,11 @@ defmodule ExUnit.FormatterTest do
   end
 
   defp test do
-    %ExUnit.Test{name: :world, module: Hello, tags: %{file: __ENV__.file, line: 1}}
+    %ExUnit.Test{
+      name: :world,
+      module: Hello,
+      tags: %{file: __ENV__.file, first_line: 1, last_line: 1}
+    }
   end
 
   def falsy() do

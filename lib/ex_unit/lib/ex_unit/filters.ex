@@ -199,7 +199,11 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:line, line}, %{line: _, describe_line: describe_line} = tags, collection) do
+  defp has_tag(
+         {:line, line},
+         %{first_line: _, last_line: _, describe_line: describe_line} = tags,
+         collection
+       ) do
     line = to_integer(line)
 
     cond do
@@ -210,7 +214,7 @@ defmodule ExUnit.Filters do
         false
 
       true ->
-        tags.line <= line and closest_test_before_line(line, collection).tags.line == tags.line
+        line >= tags.first_line and line <= tags.last_line
     end
   end
 
@@ -233,6 +237,8 @@ defmodule ExUnit.Filters do
     end
   end
 
+  defp has_tag(:line, %{first_line: _, last_line: _}), do: :line
+
   defp has_tag(key, tags) when is_atom(key), do: Map.has_key?(tags, key) and key
 
   defp to_integer(integer) when is_integer(integer), do: integer
@@ -246,16 +252,6 @@ defmodule ExUnit.Filters do
   defp describe_block?(line, collection) do
     Enum.any?(collection, fn %ExUnit.Test{tags: %{describe_line: describe_line}} ->
       line == describe_line
-    end)
-  end
-
-  defp closest_test_before_line(line, collection) do
-    Enum.min_by(collection, fn %ExUnit.Test{tags: %{line: test_line}} ->
-      if line - test_line >= 0 do
-        line - test_line
-      else
-        :infinity
-      end
     end)
   end
 end

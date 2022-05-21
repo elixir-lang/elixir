@@ -192,11 +192,11 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp trace_test_line(%ExUnit.Test{tags: tags}) do
-    "L##{tags.line}"
+    "L##{tags.first_line}"
   end
 
   defp trace_test_file_line(%ExUnit.Test{tags: tags}) do
-    "#{Path.relative_to_cwd(tags.file)}:#{tags.line}"
+    "#{Path.relative_to_cwd(tags.file)}:#{tags.first_line}"
   end
 
   defp trace_test_started(test) do

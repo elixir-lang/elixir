@@ -159,28 +159,84 @@ defmodule ExUnit.FiltersTest do
 
   test "evaluating filter uses special rules for line" do
     tests = [
-      %ExUnit.Test{tags: %{line: 3, describe_line: 2}},
-      %ExUnit.Test{tags: %{line: 5, describe_line: nil}},
-      %ExUnit.Test{tags: %{line: 8, describe_line: 7}},
-      %ExUnit.Test{tags: %{line: 10, describe_line: 7}},
-      %ExUnit.Test{tags: %{line: 13, describe_line: 12}}
+      %ExUnit.Test{tags: %{first_line: 3, last_line: 4, describe_line: 2}},
+      %ExUnit.Test{tags: %{first_line: 5, last_line: 6, describe_line: nil}},
+      %ExUnit.Test{tags: %{first_line: 8, last_line: 9, describe_line: 7}},
+      %ExUnit.Test{tags: %{first_line: 10, last_line: 11, describe_line: 7}},
+      %ExUnit.Test{tags: %{first_line: 13, last_line: 15, describe_line: 12}}
     ]
 
-    assert ExUnit.Filters.eval([line: "3"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "4"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "5"], [:line], %{line: 5, describe_line: nil}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "6"], [:line], %{line: 5, describe_line: nil}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "2"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 8, describe_line: 7}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 10, describe_line: 7}, tests) == :ok
+    assert ExUnit.Filters.eval(
+             [line: "3"],
+             [:line],
+             %{first_line: 3, last_line: 4, describe_line: 2},
+             tests
+           ) == :ok
 
-    assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
+    assert ExUnit.Filters.eval(
+             [line: "4"],
+             [:line],
+             %{first_line: 3, last_line: 4, describe_line: 2},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [line: "5"],
+             [:line],
+             %{first_line: 5, last_line: 6, describe_line: nil},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [line: "6"],
+             [:line],
+             %{first_line: 5, last_line: 6, describe_line: nil},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [line: "2"],
+             [:line],
+             %{first_line: 3, last_line: 4, describe_line: 2},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [line: "7"],
+             [:line],
+             %{first_line: 8, last_line: 9, describe_line: 7},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [line: "7"],
+             [:line],
+             %{first_line: 10, last_line: 11, describe_line: 7},
+             tests
+           ) == :ok
+
+    assert ExUnit.Filters.eval(
+             [line: "1"],
+             [:line],
+             %{first_line: 3, last_line: 4, describe_line: 2},
+             tests
+           ) ==
              {:excluded, "due to line filter"}
 
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 3, describe_line: 2}, tests) ==
+    assert ExUnit.Filters.eval(
+             [line: "7"],
+             [:line],
+             %{first_line: 3, last_line: 4, describe_line: 2},
+             tests
+           ) ==
              {:excluded, "due to line filter"}
 
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 5, describe_line: nil}, tests) ==
+    assert ExUnit.Filters.eval(
+             [line: "7"],
+             [:line],
+             %{first_line: 5, last_line: 6, describe_line: nil},
+             tests
+           ) ==
              {:excluded, "due to line filter"}
   end
 

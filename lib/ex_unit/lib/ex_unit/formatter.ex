@@ -508,7 +508,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp with_location(tags) do
-    path = "#{Path.relative_to_cwd(tags[:file])}:#{tags[:line]}"
+    path = "#{Path.relative_to_cwd(tags[:file])}:#{tags[:first_line]}"
 
     if prefix = Application.get_env(:ex_unit, :test_location_relative_path) do
       Path.join(prefix, path)

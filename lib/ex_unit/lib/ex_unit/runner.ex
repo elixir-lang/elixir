@@ -216,7 +216,7 @@ defmodule ExUnit.Runner do
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should be run or skipped
-    tests = prepare_tests(config, test_module.tests)
+    tests = prepare_tests(config, test_module)
     {excluded_and_skipped_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
 
     for excluded_or_skipped_test <- excluded_and_skipped_tests do
@@ -251,14 +251,19 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp prepare_tests(config, tests) do
-    tests = shuffle(config, tests)
+  defp prepare_tests(config, test_module) do
+    tests = shuffle(config, test_module.tests)
     include = config.include
     exclude = config.exclude
     test_ids = config.only_test_ids
 
     for test <- tests, include_test?(test_ids, test) do
-      tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+      tags =
+        Map.merge(test.tags, %{
+          test: test.name,
+          module: test.module,
+          last_module_line: test_module.last_line
+        })
 
       case ExUnit.Filters.eval(include, exclude, tags, tests) do
         :ok -> %{test | tags: tags}

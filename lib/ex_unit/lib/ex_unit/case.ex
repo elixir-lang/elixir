@@ -359,9 +359,22 @@ defmodule ExUnit.Case do
             message: message,
             mod: mod,
             file: file,
-            line: line
+            first_line: line
           ] do
-      name = ExUnit.Case.register_test(mod, file, line, :test, message, [])
+      {_, last_line} =
+        contents
+        |> Macro.prewalk(first_line, fn
+          {_left, meta, _right} = expr, acc ->
+            case Keyword.get(meta, :line) do
+              line when line > acc and line != nil -> {expr, line}
+              _other -> {expr, acc}
+            end
+
+          other, acc ->
+            {other, acc}
+        end)
+
+      name = ExUnit.Case.register_test(mod, file, first_line, last_line, :test, message, [])
       def unquote(name)(unquote(var)), do: unquote(contents)
     end
   end
@@ -383,7 +396,7 @@ defmodule ExUnit.Case do
     %{module: mod, file: file, line: line} = __CALLER__
 
     quote bind_quoted: binding() do
-      name = ExUnit.Case.register_test(mod, file, line, :test, message, [:not_implemented])
+      name = ExUnit.Case.register_test(mod, file, line, line, :test, message, [:not_implemented])
       def unquote(name)(_), do: flunk("Not implemented")
     end
   end
@@ -508,7 +521,7 @@ defmodule ExUnit.Case do
   display. You can use `ExUnit.plural_rule/2` to set a custom
   pluralization.
   """
-  def register_test(mod, file, line, test_type, name, tags) do
+  def register_test(mod, file, first_line, last_line, test_type, name, tags) do
     unless Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
               "\"use ExUnit.Case\" in the current module"
@@ -550,7 +563,8 @@ defmodule ExUnit.Case do
       |> normalize_tags()
       |> validate_tags()
       |> Map.merge(%{
-        line: line,
+        first_line: first_line,
+        last_line: last_line,
         file: file,
         registered: registered,
         async: async,
@@ -577,7 +591,7 @@ defmodule ExUnit.Case do
   """
   @doc deprecated: "Use register_test/6 instead"
   def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
-    register_test(mod, file, line, test_type, name, tags)
+    register_test(mod, file, line, :infinity, test_type, name, tags)
   end
 
   @doc """
