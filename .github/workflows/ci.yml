@@ -15,8 +15,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp_release: OTP-24.3
+          - otp_release: OTP-25.0
             otp_latest: true
+          - otp_release: OTP-24.3
           - otp_release: OTP-24.0
           - otp_release: OTP-23.3
           - otp_release: OTP-23.0

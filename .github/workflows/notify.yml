@@ -7,7 +7,7 @@ on:
 
 jobs:
   notify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     name: Notify
     steps:
       - uses: actions/checkout@v2
@@ -15,8 +15,8 @@ jobs:
           fetch-depth: 50
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: 24.2
-          elixir-version: 1.13.1
+          otp-version: 24.3
+          elixir-version: 1.13.4
       - name: Run Elixir script
         env:
           ELIXIR_FORUM_TOKEN: ${{ secret.ELIXIR_FORUM_TOKEN }}

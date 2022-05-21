@@ -43,8 +43,8 @@ Erlang/OTP versioning is independent from the versioning of Elixir. Erlang relea
 
 Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
-1.14           | 23 - 24
-1.13           | 22 - 24
+1.14           | 23 - 25
+1.13           | 22 - 24 (and Erlang/OTP 25 from v1.13.4)
 1.12           | 22 - 24
 1.11           | 21 - 23 (and Erlang/OTP 24 from v1.11.4)
 1.10           | 21 - 22 (and Erlang/OTP 23 from v1.10.3)
