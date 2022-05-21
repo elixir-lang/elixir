@@ -3137,17 +3137,30 @@ defmodule Enum do
 
   This function maps each element of the `enumerable` using the
   provided `mapper` function. The enumerable is then sorted by
-  the mapped elements using the `sorter`, which defaults
-  to [`&<=/2`](`<=/2`).
+  the mapped elements using the `sorter`, which defaults to `:asc`
+  and sorts the elements ascendingly.
 
   `sort_by/3` differs from `sort/2` in that it only calculates the
   comparison value for each element in the enumerable once instead of
   once for each element in each comparison. If the same function is
   being called on both elements, it's more efficient to use `sort_by/3`.
 
+  ## Ascending and descending (since v1.10.0)
+
+  `sort_by/3` allows a developer to pass `:asc` or `:desc` as the sorter,
+  which is a convenience for [`&<=/2`](`<=/2`) and [`&>=/2`](`>=/2`) respectively.
+
+  It is adviced to use `:asc` and `:desc` as they are more performant than their function counterparts.
+
+      iex> Enum.sort_by([2, 3, 1], &(&1), :asc)
+      [1, 2, 3]
+
+      iex> Enum.sort_by([2, 3, 1], &(&1), :desc)
+      [3, 2, 1]
+
   ## Examples
 
-  Using the default `sorter` of [`&<=/2`](`<=/2`) :
+  Using the default `sorter` of `:asc` :
 
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1)
       ["of", "some", "kind", "monster"]
@@ -3159,11 +3172,6 @@ defmodule Enum do
       ["of", "kind", "some", "monster"]
 
   Similar to `sort/2`, you can pass a custom sorter:
-
-      iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, &>=/2)
-      ["monster", "some", "kind", "of"]
-
-  Or use `:asc` and `:desc` (since v1.10.0):
 
       iex> Enum.sort_by(["some", "kind", "of", "monster"], &byte_size/1, :desc)
       ["monster", "some", "kind", "of"]
@@ -3237,7 +3245,7 @@ defmodule Enum do
         ) ::
           list
         when mapped_element: element
-  def sort_by(enumerable, mapper, sorter \\ &<=/2)
+  def sort_by(enumerable, mapper, sorter \\ :asc)
 
   def sort_by(enumerable, mapper, :desc) when is_function(mapper, 1) do
     enumerable
