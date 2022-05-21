@@ -13,12 +13,10 @@ defmodule Code.Formatter.GeneralTest do
 
   describe "unicode normalization" do
     test "with nfc normalizations" do
-      # prior to elixir 1.14, non-nfc-norm'd was an error
       assert_format "ç", "ç"
     end
 
     test "with custom normalizations" do
-      # prior to elixir 1.14, these would be separate; see warnings_test
       assert_format "µs", "μs"
     end
   end
