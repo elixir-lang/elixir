@@ -365,7 +365,7 @@ defmodule ExUnit do
     for module <- additional_modules do
       module_attributes = module.__info__(:attributes)
 
-      if Keyword.get(module_attributes, :ex_unit_async) do
+      if true in Keyword.get(module_attributes, :ex_unit_async, []) do
         ExUnit.Server.add_async_module(module)
       else
         ExUnit.Server.add_sync_module(module)
