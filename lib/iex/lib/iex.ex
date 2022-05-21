@@ -266,7 +266,7 @@ defmodule IEx do
       $ iex --sname bar
       iex(bar@HOST)1>
 
-  If we try to dispatch to `Hello.world`, it won't be available
+  If we try to dispatch to `Hello.world/0`, it won't be available
   as it was defined only in the other shell:
 
       iex(bar@HOST)1> Hello.world()

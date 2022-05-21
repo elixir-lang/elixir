@@ -840,7 +840,7 @@ defmodule Task do
   Returns `{:ok, reply}` if the reply is received before ignoring the task,
   `{:exit, reason}` if the task died before ignoring it, otherwise `nil`.
 
-  Important: avoid using `Task.async` and then immediately ignoring
+  Important: avoid using [`Task.async/1,3`](`async/1`) and then immediately ignoring
   the task. If you want to start tasks you don't care about their
   results, use `Task.Supervisor.start_child/2` instead.
 
