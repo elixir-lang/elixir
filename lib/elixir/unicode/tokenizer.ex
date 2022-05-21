@@ -424,7 +424,6 @@ defmodule String.Tokenizer do
   end
 
   defp validate({acc, rest, length, ascii_letters?, scriptset, special}, kind) do
-    # this is
     acc = :unicode.characters_to_nfc_list(:lists.reverse(acc))
 
     cond do
@@ -458,8 +457,9 @@ defmodule String.Tokenizer do
         Mixed-script identifiers are not supported for security reasons. \
         '#{acc}' is made of the following scripts:\n
         #{breakdown}
-        Make sure all characters in the identifier resolve to a single script or a highly
-        restrictive set of scripts. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
+        Make sure all characters in the identifier resolve to a single script,
+        or use a highly restrictive set of scripts.
+        See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
         '''
 
         {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
