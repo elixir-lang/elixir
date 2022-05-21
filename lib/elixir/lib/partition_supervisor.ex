@@ -60,10 +60,10 @@ defmodule PartitionSupervisor do
 
   ## Implementation notes
 
-  The `PartitionSupervisor` requires a name as an atom to be given on start,
-  as it uses an ETS table to keep all of the partitions. Under the hood,
-  the `PartitionSupervisor` generates a child spec for each partition and
-  then act as a regular supervisor. The ID of each child spec is the
+  The `PartitionSupervisor` uses a combination of persistent_term and
+  an ETS table to manage all of the partitions. Under the hood, the
+  `PartitionSupervisor` generates a child spec for each partition and
+  then acts as a regular supervisor. The ID of each child spec is the
   partition number.
 
   For routing, two strategies are used. If `key` is an integer, it is routed
@@ -153,9 +153,8 @@ defmodule PartitionSupervisor do
   def start_link(opts) when is_list(opts) do
     name = opts[:name]
 
-    unless name && is_atom(name) do
-      raise ArgumentError,
-            "the :name option must be given to PartitionSupervisor as an atom, got: #{inspect(name)}"
+    unless name do
+      raise ArgumentError, "the :name option must be given to PartitionSupervisor"
     end
 
     {child_spec, opts} = Keyword.pop(opts, :child_spec)
@@ -200,13 +199,15 @@ defmodule PartitionSupervisor do
 
   @doc false
   def start_child(mod, fun, args, name, partition) do
+    tab = :persistent_term.get(name)
+
     case apply(mod, fun, args) do
       {:ok, pid} ->
-        :ets.insert(name, {partition, pid})
+        :ets.insert(tab, {partition, pid})
         {:ok, pid}
 
       {:ok, pid, info} ->
-        :ets.insert(name, {partition, pid})
+        :ets.insert(tab, {partition, pid})
         {:ok, pid, info}
 
       other ->
@@ -216,8 +217,11 @@ defmodule PartitionSupervisor do
 
   @impl true
   def init({name, partitions, children, init_opts}) do
-    :ets.new(name, [:set, :named_table, :protected, read_concurrency: true])
-    :ets.insert(name, {:partitions, partitions})
+    tab = :ets.new(:partitions, [:set, :protected, read_concurrency: true])
+    :ets.insert(tab, {:partitions, partitions})
+
+    :persistent_term.put(name, tab)
+
     Supervisor.init(children, Keyword.put_new(init_opts, :strategy, :one_for_one))
   end
 
@@ -226,8 +230,10 @@ defmodule PartitionSupervisor do
   """
   @doc since: "1.14.0"
   @spec partitions(name()) :: pos_integer()
-  def partitions(supervisor) when is_atom(supervisor) do
-    :ets.lookup_element(supervisor, :partitions, 2)
+  def partitions(name) do
+    name
+    |> :persistent_term.get()
+    |> :ets.lookup_element(:partitions, 2)
   end
 
   @doc """
@@ -308,7 +314,9 @@ defmodule PartitionSupervisor do
     partition =
       if is_integer(key), do: rem(abs(key), partitions), else: :erlang.phash2(key, partitions)
 
-    :ets.lookup_element(name, partition, 2)
+    name
+    |> :persistent_term.get()
+    |> :ets.lookup_element(partition, 2)
   end
 
   @doc false

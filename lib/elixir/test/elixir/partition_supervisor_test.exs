@@ -62,9 +62,17 @@ defmodule PartitionSupervisorTest do
       assert Agent.get({:via, PartitionSupervisor, {config.test, -1}}, & &1) == 1
     end
 
+    test "accepts any valid supervisor name", config do
+      assert {:ok, _} =
+               PartitionSupervisor.start_link(
+                 child_spec: DynamicSupervisor,
+                 name: {:global, config.test}
+               )
+    end
+
     test "raises without name" do
       assert_raise ArgumentError,
-                   "the :name option must be given to PartitionSupervisor as an atom, got: nil",
+                   "the :name option must be given to PartitionSupervisor",
                    fn -> PartitionSupervisor.start_link(child_spec: DynamicSupervisor) end
     end
 
