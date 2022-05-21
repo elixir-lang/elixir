@@ -26,7 +26,7 @@ defmodule IEx.Pry do
 
   You can invoke this function directly when you are not able to invoke
   `IEx.pry/0` as a macro. This function expects the binding (from
-  `Kernel.binding/0`) and the environment (from `__ENV__/0`).
+  `binding/0`) and the environment (from `__ENV__/0`).
   """
   def pry(binding, %Macro.Env{} = env) do
     self = self()

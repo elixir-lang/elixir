@@ -4,11 +4,11 @@ defmodule Integer do
 
   Some functions that work on integers are found in `Kernel`:
 
-    * `abs/1`
-    * `div/2`
-    * `max/2`
-    * `min/2`
-    * `rem/2`
+    * `Kernel.abs/1`
+    * `Kernel.div/2`
+    * `Kernel.max/2`
+    * `Kernel.min/2`
+    * `Kernel.rem/2`
 
   """
 

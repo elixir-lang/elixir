@@ -212,7 +212,7 @@ defmodule GenServer do
   the GenServer callbacks as doing so will cause the GenServer to misbehave.
 
   Besides the synchronous and asynchronous communication provided by `call/3`
-  and `cast/2`, "regular" messages sent by functions such as `Kernel.send/2`,
+  and `cast/2`, "regular" messages sent by functions such as `send/2`,
   `Process.send_after/4` and similar, can be handled inside the `c:handle_info/2`
   callback.
 
@@ -616,7 +616,7 @@ defmodule GenServer do
   does one of the following:
 
     * returns a `:stop` tuple
-    * raises (via `Kernel.raise/2`) or exits (via `Kernel.exit/1`)
+    * raises (via `raise/2`) or exits (via `exit/1`)
     * returns an invalid value
 
   If part of a supervision tree, a `GenServer` will receive an exit
