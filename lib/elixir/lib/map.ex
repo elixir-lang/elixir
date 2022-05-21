@@ -610,7 +610,7 @@ defmodule Map do
   If you have a struct and you would like to merge a set of keys into the
   struct, do not use this function, as it would merge all keys on the right
   side into the struct, even if the key is not part of the struct. Instead,
-  use `Kernel.struct/2`.
+  use `struct/2`.
 
   Inlined by the compiler.
 

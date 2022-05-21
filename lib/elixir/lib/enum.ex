@@ -648,7 +648,7 @@ defmodule Enum do
   Concatenates the enumerable on the `right` with the enumerable on the
   `left`.
 
-  This function produces the same result as the `Kernel.++/2` operator
+  This function produces the same result as the `++/2` operator
   for lists.
 
   ## Examples

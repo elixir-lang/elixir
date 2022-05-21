@@ -71,7 +71,7 @@ More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `Fi
 
 There are also some non-paired functions, with no non-bang variant. The bang still signifies that it will raise an exception on failure. Example: `Protocol.assert_protocol!/1`.
 
-In macro code, the bang on `Kernel.alias!/1` and `Kernel.var!/2` signifies that [macro hygiene](https://elixir-lang.org/getting-started/meta/macros.html#macro-hygiene) is set aside.
+In macro code, the bang on `alias!/1` and `var!/2` signifies that [macro hygiene](https://elixir-lang.org/getting-started/meta/macros.html#macro-hygiene) is set aside.
 
 ## Trailing question mark (`foo?`)
 
@@ -85,7 +85,7 @@ However, functions that return booleans and are valid in guards follow another c
 
 Type checks and other boolean checks that are allowed in guard clauses are named with an `is_` prefix.
 
-Examples: `Integer.is_even/1`, `Kernel.is_list/1`
+Examples: `Integer.is_even/1`, `is_list/1`
 
 These functions and macros follow the Erlang convention of an `is_` prefix, instead of a trailing question mark, precisely to indicate that they are allowed in guard clauses.
 
@@ -99,10 +99,10 @@ Some names have specific meaning in Elixir. We detail those cases below.
 
 When you see `size` in a function name, it means the operation runs in constant time (also written as "O(1) time") because the size is stored alongside the data structure.
 
-Examples: `Kernel.map_size/1`, `Kernel.tuple_size/1`
+Examples: `map_size/1`, `tuple_size/1`
 
 When you see `length`, the operation runs in linear time ("O(n) time") because the entire data structure has to be traversed.
 
-Examples: `Kernel.length/1`, `String.length/1`
+Examples: `length/1`, `String.length/1`
 
 In other words, functions using the word "size" in its name will take the same amount of time whether the data structure is tiny or huge. Conversely, functions having "length" in its name will take more time as the data structure grows in size.

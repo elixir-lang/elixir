@@ -24,7 +24,7 @@ defmodule Port do
   receives data from multiple inputs and concatenates them in the output.
 
   After the port was created, we sent it two commands in the form of
-  messages using `Kernel.send/2`. The first command has the binary payload
+  messages using `send/2`. The first command has the binary payload
   of "hello" and the second has "world".
 
   After sending those two messages, we invoked the IEx helper `flush()`,
