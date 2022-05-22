@@ -84,8 +84,14 @@ defmodule PartitionSupervisor do
 
   @doc false
   def child_spec(opts) when is_list(opts) do
+    id =
+      case Keyword.get(opts, :name, DynamicSupervisor) do
+        name when is_atom(name) -> name
+        {:via, _module, name} -> name
+      end
+
     %{
-      id: Keyword.get(opts, :name, PartitionSupervisor),
+      id: id,
       start: {PartitionSupervisor, :start_link, [opts]},
       type: :supervisor
     }
@@ -219,13 +225,12 @@ defmodule PartitionSupervisor do
   end
 
   defp register_child({:via, _, _}, partition, pid) do
-    Registry.register(@registry, {pid, partition}, [])
+    Registry.register(@registry, {self(), partition}, pid)
   end
 
   @impl true
   def init({name, partitions, children, init_opts}) do
     init_partitions(name, partitions)
-
     Supervisor.init(children, Keyword.put_new(init_opts, :strategy, :one_for_one))
   end
 
@@ -241,7 +246,7 @@ defmodule PartitionSupervisor do
       Supervisor.start_child(:elixir_sup, child_spec)
     end
 
-    Registry.register(@registry, self(), {:partitions, partitions})
+    Registry.register(@registry, self(), partitions)
   end
 
   @doc """
@@ -249,16 +254,28 @@ defmodule PartitionSupervisor do
   """
   @doc since: "1.14.0"
   @spec partitions(name()) :: pos_integer()
-  def partitions(name) when is_atom(name) do
-    :ets.lookup_element(name, :partitions, 2)
+  def partitions(name) do
+    {_name, partitions} = name_partitions(name)
+    partitions
   end
 
-  def partitions(name) do
-    supervisor_pid = GenServer.whereis(name)
+  # For whereis_name, we want to lookup on GenServer.whereis/1
+  # just once, so we lookup the name and partitions together.
+  defp name_partitions(name) when is_atom(name) do
+    try do
+      {name, :ets.lookup_element(name, :partitions, 2)}
+    rescue
+      _ -> exit({:noproc, {__MODULE__, :partitions, [name]}})
+    end
+  end
 
-    [{_pid, {:partitions, partitions}}] = Registry.lookup(@registry, supervisor_pid)
-
-    partitions
+  defp name_partitions(name) when is_tuple(name) do
+    with pid when is_pid(pid) <- GenServer.whereis(name),
+         [name_partitions] <- Registry.lookup(@registry, pid) do
+      name_partitions
+    else
+      _ -> exit({:noproc, {__MODULE__, :partitions, [name]}})
+    end
   end
 
   @doc """
@@ -333,8 +350,8 @@ defmodule PartitionSupervisor do
   ## Via callbacks
 
   @doc false
-  def whereis_name({name, key}) do
-    partitions = partitions(name)
+  def whereis_name({name, key}) when is_atom(name) or is_tuple(name) do
+    {name, partitions} = name_partitions(name)
 
     partition =
       if is_integer(key), do: rem(abs(key), partitions), else: :erlang.phash2(key, partitions)
@@ -346,12 +363,10 @@ defmodule PartitionSupervisor do
     :ets.lookup_element(name, partition, 2)
   end
 
-  defp whereis_name(name, partition) when is_tuple(name) do
-    supervisor_pid = GenServer.whereis(name)
-
+  defp whereis_name(name, partition) when is_pid(name) do
     @registry
-    |> Registry.select([{{{:"$1", partition}, supervisor_pid, :_}, [], [:"$1"]}])
-    |> List.first()
+    |> Registry.values({name, partition}, name)
+    |> List.first(:undefined)
   end
 
   @doc false
