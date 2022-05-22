@@ -9,9 +9,9 @@ defmodule Mix.Tasks.Eval do
       mix eval "IO.puts 1 + 2"
 
   The given code is evaluated after the current application
-  has been configured, but without starting/running it.
+  has been configured and loaded, but without starting/running it.
   See `mix run` for running code and scripts within a running
-  application:
+  application.
 
   This task is designed to mirror the `bin/my_app eval` command
   in releases. If you want to start your application, you may do
