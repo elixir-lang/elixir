@@ -80,7 +80,7 @@ defmodule PartitionSupervisor do
   @typedoc """
   The name of the `PartitionSupervisor`.
   """
-  @type name :: Supervisor.name()
+  @type name :: atom() | {:via, module(), term()}
 
   @doc false
   def child_spec(opts) when is_list(opts) do
@@ -113,8 +113,8 @@ defmodule PartitionSupervisor do
 
   ## Options
 
-    * `:name` - an atom, global, or via tuple representing the name of the
-      partition supervisor (see `t:name/0`).
+    * `:name` - an atom or via tuple representing the name of the partition
+      supervisor (see `t:name/0`).
 
     * `:partitions` - a positive integer with the number of partitions.
       Defaults to `System.schedulers_online()` (typically the number of cores).
@@ -202,11 +202,11 @@ defmodule PartitionSupervisor do
   def start_child(mod, fun, args, name, partition) do
     case apply(mod, fun, args) do
       {:ok, pid} ->
-        register_child(name, {partition, pid})
+        register_child(name, partition, pid)
         {:ok, pid}
 
       {:ok, pid, info} ->
-        register_child(name, {partition, pid})
+        register_child(name, partition, pid)
         {:ok, pid, info}
 
       other ->
@@ -214,12 +214,12 @@ defmodule PartitionSupervisor do
     end
   end
 
-  defp register_child(name, key) when is_atom(name) do
-    :ets.insert(name, key)
+  defp register_child(name, partition, pid) when is_atom(name) do
+    :ets.insert(name, {partition, pid})
   end
 
-  defp register_child(name, key) when is_tuple(name) do
-    Registry.register(@registry, name, key)
+  defp register_child({:via, _, _}, partition, pid) do
+    Registry.register(@registry, {pid, partition}, [])
   end
 
   @impl true
@@ -234,16 +234,14 @@ defmodule PartitionSupervisor do
     :ets.insert(name, {:partitions, partitions})
   end
 
-  defp init_partitions(name, partitions) when is_tuple(name) do
-    child_spec = {Registry, keys: :duplicate, name: @registry}
+  defp init_partitions({:via, _, _}, partitions) do
+    child_spec = {Registry, keys: :unique, name: @registry}
 
-    case Supervisor.start_child(:elixir_sup, child_spec) do
-      {:ok, _pid} ->
-        Registry.register(@registry, name, {:partitions, partitions})
-
-      {:error, {:already_started, _pid}} ->
-        Registry.register(@registry, name, {:partitions, partitions})
+    with nil <- Process.whereis(@registry) do
+      Supervisor.start_child(:elixir_sup, child_spec)
     end
+
+    Registry.register(@registry, self(), {:partitions, partitions})
   end
 
   @doc """
@@ -256,9 +254,11 @@ defmodule PartitionSupervisor do
   end
 
   def partitions(name) do
-    @registry
-    |> Registry.select([{{name, :_, {:partitions, :"$1"}}, [], [:"$1"]}])
-    |> List.first()
+    supervisor_pid = GenServer.whereis(name)
+
+    [{_pid, {:partitions, partitions}}] = Registry.lookup(@registry, supervisor_pid)
+
+    partitions
   end
 
   @doc """
@@ -282,7 +282,7 @@ defmodule PartitionSupervisor do
           # Inlining [module()] | :dynamic here because :supervisor.modules() is not exported
           {:undefined, pid | :restarting, :worker | :supervisor, [module()] | :dynamic}
         ]
-  def which_children(name) when is_atom(name) or is_tuple(name) do
+  def which_children(name) when is_atom(name) or elem(name, 0) == :via do
     Supervisor.which_children(name)
   end
 
@@ -347,8 +347,10 @@ defmodule PartitionSupervisor do
   end
 
   defp whereis_name(name, partition) when is_tuple(name) do
+    supervisor_pid = GenServer.whereis(name)
+
     @registry
-    |> Registry.select([{{name, :_, {partition, :"$1"}}, [], [:"$1"]}])
+    |> Registry.select([{{{:"$1", partition}, supervisor_pid, :_}, [], [:"$1"]}])
     |> List.first()
   end
 

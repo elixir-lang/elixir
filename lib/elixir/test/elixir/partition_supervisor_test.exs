@@ -99,33 +99,21 @@ defmodule PartitionSupervisorTest do
     end
   end
 
-  describe "start_link/1 with a tuple name" do
-    test "on success", config do
-      name = {:global, config.test}
+  describe "start_link/1 with a via name" do
+    setup do
+      {:ok, _} = Registry.start_link(keys: :unique, name: PartitionRegistry)
 
-      {:ok, _} = PartitionSupervisor.start_link(child_spec: DynamicSupervisor, name: name)
+      :ok
+    end
+
+    test "on success", config do
+      name = {:via, Registry, {PartitionRegistry, config.test}}
+
+      {:ok, _} = PartitionSupervisor.start_link(child_spec: {Agent, fn -> :hello end}, name: name)
 
       assert PartitionSupervisor.partitions(name) == System.schedulers_online()
 
-      DynamicSupervisor.start_child(
-        {:via, PartitionSupervisor, {name, make_ref()}},
-        {Agent, fn -> :hello end}
-      )
-
-      agents =
-        for {_, pid, _, _} <- PartitionSupervisor.which_children(name),
-            {_, pid, _, _} <- DynamicSupervisor.which_children(pid),
-            do: Agent.get(pid, & &1)
-
-      assert [:hello] == agents
-    end
-
-    test "with multiple instances", config do
-      name_1 = {:global, Module.concat(config.test, One)}
-      name_2 = {:global, Module.concat(config.test, Two)}
-
-      {:ok, _} = PartitionSupervisor.start_link(child_spec: DynamicSupervisor, name: name_1)
-      {:ok, _} = PartitionSupervisor.start_link(child_spec: DynamicSupervisor, name: name_2)
+      assert Agent.get({:via, PartitionSupervisor, {name, 0}}, & &1) == :hello
     end
   end
 
