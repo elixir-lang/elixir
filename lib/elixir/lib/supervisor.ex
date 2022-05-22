@@ -487,7 +487,9 @@ defmodule Supervisor do
   init callback to return the proper supervision flags.
   """
   @callback init(init_arg :: term) ::
-              {:ok, {:supervisor.sup_flags(), [:supervisor.child_spec()]}}
+              {:ok,
+               {sup_flags() | (old_erlang_sup_flags :: :supervisor.sup_flags()),
+                [child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
               | :ignore
 
   @typedoc "Return values of `start_link` functions"
@@ -515,6 +517,13 @@ defmodule Supervisor do
 
   @typedoc "Option values used by the `start*` functions"
   @type option :: {:name, name}
+
+  @typedoc "The supervisor flags returned on init"
+  @type sup_flags() :: %{
+          strategy: strategy(),
+          intensity: non_neg_integer(),
+          period: pos_integer()
+        }
 
   @typedoc "The supervisor reference"
   @type supervisor :: pid | name | {atom, node}
@@ -595,8 +604,15 @@ defmodule Supervisor do
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
   """
-  @spec start_link([:supervisor.child_spec() | {module, term} | module], [option | init_option]) ::
-          {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
+  @spec start_link(
+          [
+            child_spec()
+            | {module, term}
+            | module
+            | (old_erlang_child_spec :: :supervisor.child_spec())
+          ],
+          [option | init_option]
+        ) :: {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
   def start_link(children, options) when is_list(children) do
     {sup_opts, start_opts} = Keyword.split(options, [:strategy, :max_seconds, :max_restarts])
     start_link(Supervisor.Default, init(children, sup_opts), start_opts)
@@ -638,7 +654,15 @@ defmodule Supervisor do
   description of the available strategies.
   """
   @doc since: "1.5.0"
-  @spec init([:supervisor.child_spec() | {module, term} | module], [init_option]) :: {:ok, tuple}
+  @spec init(
+          [
+            child_spec()
+            | {module, term}
+            | module
+            | (old_erlang_child_spec :: :supervisor.child_spec())
+          ],
+          [init_option]
+        ) :: {:ok, sup_flags() | (old_erlang_sup_flags :: :supervisor.sup_flags())}
   def init(children, options) when is_list(children) and is_list(options) do
     strategy =
       case options[:strategy] do
@@ -865,7 +889,13 @@ defmodule Supervisor do
   returns `{:error, error}` where `error` is a term containing information about
   the error and child specification.
   """
-  @spec start_child(supervisor, :supervisor.child_spec() | {module, term} | module) ::
+  @spec start_child(
+          supervisor,
+          child_spec()
+          | {module, term}
+          | module
+          | (old_erlang_child_spec :: :supervisor.child_spec())
+        ) ::
           on_start_child
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     call(supervisor, {:start_child, child_spec})

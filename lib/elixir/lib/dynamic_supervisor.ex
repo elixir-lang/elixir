@@ -175,7 +175,8 @@ defmodule DynamicSupervisor do
   Developers typically invoke `DynamicSupervisor.init/1` at the end of
   their init callback to return the proper supervision flags.
   """
-  @callback init(init_arg :: term) :: {:ok, sup_flags()} | :ignore
+  @callback init(init_arg :: term) ::
+              {:ok, sup_flags() | (old_erlang_sup_flags :: :supervisor.sup_flags())} | :ignore
 
   @typedoc "The supervisor flags returned on init"
   @type sup_flags() :: %{
@@ -564,7 +565,8 @@ defmodule DynamicSupervisor do
 
   """
   @doc since: "1.6.0"
-  @spec init([init_option]) :: {:ok, sup_flags()}
+  @spec init([init_option]) ::
+          {:ok, sup_flags() | (old_erlang_sup_flags :: :supervisor.sup_flags())}
   def init(options) when is_list(options) do
     strategy = Keyword.get(options, :strategy, :one_for_one)
     intensity = Keyword.get(options, :max_restarts, 3)
