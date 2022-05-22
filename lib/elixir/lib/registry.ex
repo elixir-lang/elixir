@@ -1278,7 +1278,7 @@ defmodule Registry do
 
   ## Examples
 
-  This example shows how to get everything from the registry.
+  This example shows how to get everything from the registry:
 
       iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
@@ -1286,7 +1286,7 @@ defmodule Registry do
       iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}])
       [{"world", self(), :value}, {"hello", self(), :value}]
 
-  Get all keys in the registry.
+  Get all keys in the registry:
 
       iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)

@@ -4,17 +4,27 @@ defmodule PartitionSupervisorTest do
   use ExUnit.Case, async: true
 
   describe "child_spec" do
-    test "uses the name as id" do
+    test "uses the atom name as id" do
       assert Supervisor.child_spec({PartitionSupervisor, name: Foo}, []) == %{
                id: Foo,
                start: {PartitionSupervisor, :start_link, [[name: Foo]]},
                type: :supervisor
              }
     end
+
+    test "uses the via value as id" do
+      via = {:via, Foo, {:bar, :baz}}
+
+      assert Supervisor.child_spec({PartitionSupervisor, name: via}, []) == %{
+               id: {:bar, :baz},
+               start: {PartitionSupervisor, :start_link, [[name: via]]},
+               type: :supervisor
+             }
+    end
   end
 
   describe "start_link/1" do
-    test "on success", config do
+    test "on success with atom name", config do
       {:ok, _} =
         PartitionSupervisor.start_link(
           child_spec: DynamicSupervisor,
@@ -41,6 +51,18 @@ defmodule PartitionSupervisorTest do
             do: Agent.get(pid, & &1)
 
       assert Enum.sort(refs) == Enum.sort(agents)
+    end
+
+    test "on success with via name", config do
+      {:ok, _} = Registry.start_link(keys: :unique, name: PartitionRegistry)
+
+      name = {:via, Registry, {PartitionRegistry, config.test}}
+
+      {:ok, _} = PartitionSupervisor.start_link(child_spec: {Agent, fn -> :hello end}, name: name)
+
+      assert PartitionSupervisor.partitions(name) == System.schedulers_online()
+
+      assert Agent.get({:via, PartitionSupervisor, {name, 0}}, & &1) == :hello
     end
 
     test "with_arguments", config do
@@ -99,20 +121,6 @@ defmodule PartitionSupervisorTest do
     end
   end
 
-  describe "start_link/1 with a via name" do
-    test "on success", config do
-      {:ok, _} = Registry.start_link(keys: :unique, name: PartitionRegistry)
-
-      name = {:via, Registry, {PartitionRegistry, config.test}}
-
-      {:ok, _} = PartitionSupervisor.start_link(child_spec: {Agent, fn -> :hello end}, name: name)
-
-      assert PartitionSupervisor.partitions(name) == System.schedulers_online()
-
-      assert Agent.get({:via, PartitionSupervisor, {name, 0}}, & &1) == :hello
-    end
-  end
-
   describe "stop/1" do
     test "is synchronous", config do
       {:ok, _} =
@@ -123,6 +131,18 @@ defmodule PartitionSupervisorTest do
 
       assert PartitionSupervisor.stop(config.test) == :ok
       assert Process.whereis(config.test) == nil
+    end
+  end
+
+  describe "partitions/1" do
+    test "raises noproc for unknown atom partition supervisor" do
+      assert {:noproc, _} = catch_exit(PartitionSupervisor.partitions(:unknown))
+    end
+
+    test "raises noproc for unknown via partition supervisor", config do
+      {:ok, _} = Registry.start_link(keys: :unique, name: config.test)
+      via = {:via, Registry, {config.test, :unknown}}
+      assert {:noproc, _} = catch_exit(PartitionSupervisor.partitions(via))
     end
   end
 
@@ -173,6 +193,10 @@ defmodule PartitionSupervisorTest do
 
       assert PartitionSupervisor.count_children(config.test) ==
                %{active: partitions, specs: partitions, supervisors: partitions, workers: 0}
+    end
+
+    test "raises noproc for unknown partition supervisor" do
+      assert {:noproc, _} = catch_exit(PartitionSupervisor.count_children(:unknown))
     end
   end
 end
