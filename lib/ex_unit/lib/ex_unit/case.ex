@@ -534,11 +534,12 @@ defmodule ExUnit.Case do
     {name, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
         {line, describe, _counter} ->
-          description = :"#{test_type} #{describe} #{name}"
-          {description, describe, line, Module.get_attribute(mod, :describetag)}
+          test_name = validate_test_name("#{test_type} #{describe} #{name}")
+          {test_name, describe, line, Module.get_attribute(mod, :describetag)}
 
         nil ->
-          {:"#{test_type} #{name}", nil, nil, []}
+          test_name = validate_test_name("#{test_type} #{name}")
+          {test_name, nil, nil, []}
       end
 
     if Module.defines?(mod, {name, 1}) do
@@ -735,6 +736,18 @@ defmodule ExUnit.Case do
     end
 
     tags
+  end
+
+  defp validate_test_name(name) do
+    if byte_size(name) <= 255 do
+      String.to_atom(name)
+    else
+      raise """
+      the computed name of a test (which includes its type, the name of its parent describe \
+      block if present, and the test name itself) must be shorter than 255 characters, \
+      got: #{inspect(name)}
+      """
+    end
   end
 
   defp normalize_tags(tags) do
