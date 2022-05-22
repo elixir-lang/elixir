@@ -62,14 +62,6 @@ defmodule PartitionSupervisorTest do
       assert Agent.get({:via, PartitionSupervisor, {config.test, -1}}, & &1) == 1
     end
 
-    test "accepts any valid supervisor name", config do
-      assert {:ok, _} =
-               PartitionSupervisor.start_link(
-                 child_spec: DynamicSupervisor,
-                 name: {:global, config.test}
-               )
-    end
-
     test "raises without name" do
       assert_raise ArgumentError,
                    "the :name option must be given to PartitionSupervisor",
@@ -104,6 +96,36 @@ defmodule PartitionSupervisorTest do
                        with_arguments: 123
                      )
                    end
+    end
+  end
+
+  describe "start_link/1 with a tuple name" do
+    test "on success", config do
+      name = {:global, config.test}
+
+      {:ok, _} = PartitionSupervisor.start_link(child_spec: DynamicSupervisor, name: name)
+
+      assert PartitionSupervisor.partitions(name) == System.schedulers_online()
+
+      DynamicSupervisor.start_child(
+        {:via, PartitionSupervisor, {name, make_ref()}},
+        {Agent, fn -> :hello end}
+      )
+
+      agents =
+        for {_, pid, _, _} <- PartitionSupervisor.which_children(name),
+            {_, pid, _, _} <- DynamicSupervisor.which_children(pid),
+            do: Agent.get(pid, & &1)
+
+      assert [:hello] == agents
+    end
+
+    test "with multiple instances", config do
+      name_1 = {:global, Module.concat(config.test, One)}
+      name_2 = {:global, Module.concat(config.test, Two)}
+
+      {:ok, _} = PartitionSupervisor.start_link(child_spec: DynamicSupervisor, name: name_1)
+      {:ok, _} = PartitionSupervisor.start_link(child_spec: DynamicSupervisor, name: name_2)
     end
   end
 

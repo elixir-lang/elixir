@@ -60,11 +60,10 @@ defmodule PartitionSupervisor do
 
   ## Implementation notes
 
-  The `PartitionSupervisor` uses a combination of persistent_term and
-  an ETS table to manage all of the partitions. Under the hood, the
-  `PartitionSupervisor` generates a child spec for each partition and
-  then acts as a regular supervisor. The ID of each child spec is the
-  partition number.
+  The `PartitionSupervisor` uses either an ETS table or a `Registry` to
+  manage all of the partitions. Under the hood, the `PartitionSupervisor`
+  generates a child spec for each partition and then acts as a regular
+  supervisor. The ID of each child spec is the partition number.
 
   For routing, two strategies are used. If `key` is an integer, it is routed
   using `rem(abs(key), partitions)` where `partitions` is the number of
@@ -76,10 +75,12 @@ defmodule PartitionSupervisor do
 
   @behaviour Supervisor
 
+  @registry PartitionSupervisor.Registry
+
   @typedoc """
   The name of the `PartitionSupervisor`.
   """
-  @type name :: atom()
+  @type name :: Supervisor.name()
 
   @doc false
   def child_spec(opts) when is_list(opts) do
@@ -112,8 +113,8 @@ defmodule PartitionSupervisor do
 
   ## Options
 
-    * `:name` - an atom representing the name of the partition supervisor
-      (see `t:name/0`).
+    * `:name` - an atom, global, or via tuple representing the name of the
+      partition supervisor (see `t:name/0`).
 
     * `:partitions` - a positive integer with the number of partitions.
       Defaults to `System.schedulers_online()` (typically the number of cores).
@@ -199,15 +200,13 @@ defmodule PartitionSupervisor do
 
   @doc false
   def start_child(mod, fun, args, name, partition) do
-    tab = :persistent_term.get(name)
-
     case apply(mod, fun, args) do
       {:ok, pid} ->
-        :ets.insert(tab, {partition, pid})
+        register_child(name, {partition, pid})
         {:ok, pid}
 
       {:ok, pid, info} ->
-        :ets.insert(tab, {partition, pid})
+        register_child(name, {partition, pid})
         {:ok, pid, info}
 
       other ->
@@ -215,14 +214,36 @@ defmodule PartitionSupervisor do
     end
   end
 
+  defp register_child(name, key) when is_atom(name) do
+    :ets.insert(name, key)
+  end
+
+  defp register_child(name, key) when is_tuple(name) do
+    Registry.register(@registry, name, key)
+  end
+
   @impl true
   def init({name, partitions, children, init_opts}) do
-    tab = :ets.new(:partitions, [:set, :protected, read_concurrency: true])
-    :ets.insert(tab, {:partitions, partitions})
-
-    :persistent_term.put(name, tab)
+    init_partitions(name, partitions)
 
     Supervisor.init(children, Keyword.put_new(init_opts, :strategy, :one_for_one))
+  end
+
+  defp init_partitions(name, partitions) when is_atom(name) do
+    :ets.new(name, [:set, :named_table, :protected, read_concurrency: true])
+    :ets.insert(name, {:partitions, partitions})
+  end
+
+  defp init_partitions(name, partitions) when is_tuple(name) do
+    child_spec = {Registry, keys: :duplicate, name: @registry}
+
+    case Supervisor.start_child(:elixir_sup, child_spec) do
+      {:ok, _pid} ->
+        Registry.register(@registry, name, {:partitions, partitions})
+
+      {:error, {:already_started, _pid}} ->
+        Registry.register(@registry, name, {:partitions, partitions})
+    end
   end
 
   @doc """
@@ -230,10 +251,14 @@ defmodule PartitionSupervisor do
   """
   @doc since: "1.14.0"
   @spec partitions(name()) :: pos_integer()
+  def partitions(name) when is_atom(name) do
+    :ets.lookup_element(name, :partitions, 2)
+  end
+
   def partitions(name) do
-    name
-    |> :persistent_term.get()
-    |> :ets.lookup_element(:partitions, 2)
+    @registry
+    |> Registry.select([{{name, :_, {:partitions, :"$1"}}, [], [:"$1"]}])
+    |> List.first()
   end
 
   @doc """
@@ -257,8 +282,8 @@ defmodule PartitionSupervisor do
           # Inlining [module()] | :dynamic here because :supervisor.modules() is not exported
           {:undefined, pid | :restarting, :worker | :supervisor, [module()] | :dynamic}
         ]
-  def which_children(supervisor) when is_atom(supervisor) do
-    Supervisor.which_children(supervisor)
+  def which_children(name) when is_atom(name) or is_tuple(name) do
+    Supervisor.which_children(name)
   end
 
   @doc """
@@ -308,15 +333,23 @@ defmodule PartitionSupervisor do
   ## Via callbacks
 
   @doc false
-  def whereis_name({name, key}) when is_atom(name) do
+  def whereis_name({name, key}) do
     partitions = partitions(name)
 
     partition =
       if is_integer(key), do: rem(abs(key), partitions), else: :erlang.phash2(key, partitions)
 
-    name
-    |> :persistent_term.get()
-    |> :ets.lookup_element(partition, 2)
+    whereis_name(name, partition)
+  end
+
+  defp whereis_name(name, partition) when is_atom(name) do
+    :ets.lookup_element(name, partition, 2)
+  end
+
+  defp whereis_name(name, partition) when is_tuple(name) do
+    @registry
+    |> Registry.select([{{name, :_, {partition, :"$1"}}, [], [:"$1"]}])
+    |> List.first()
   end
 
   @doc false
