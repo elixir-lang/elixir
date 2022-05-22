@@ -281,9 +281,9 @@ defmodule Kernel.BinaryTest do
     sec_data = "another"
 
     <<
-      byte_size(refb)::refb_spec,
+      byte_size(refb)::refb_spec(),
       refb::binary,
-      byte_size(sec_data)::size(1)-signed_16,
+      byte_size(sec_data)::size(1)-signed_16(),
       sec_data::binary
     >>
   end
