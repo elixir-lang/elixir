@@ -1656,25 +1656,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "custom bitstring modifier is being expanded to macro call" do
-    output =
-      capture_err(fn ->
-        Code.eval_string("""
-        defmodule Sample do
-          defmacrop my_encoding() do
-            quote do: utf8
-          end
-          def test(foo), do: <<foo::my_encoding>>
-        end
-        """)
-      end)
-
-    assert output =~
-             "bitstring specifier \"my_encoding\" does not exist and is being expanded to \"my_encoding()\""
-  after
-    purge(Sample)
-  end
-
   defmodule User do
     defstruct [:name]
   end
