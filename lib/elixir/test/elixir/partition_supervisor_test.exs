@@ -64,7 +64,7 @@ defmodule PartitionSupervisorTest do
 
     test "raises without name" do
       assert_raise ArgumentError,
-                   "the :name option must be given to PartitionSupervisor as an atom, got: nil",
+                   "the :name option must be given to PartitionSupervisor",
                    fn -> PartitionSupervisor.start_link(child_spec: DynamicSupervisor) end
     end
 
@@ -96,6 +96,20 @@ defmodule PartitionSupervisorTest do
                        with_arguments: 123
                      )
                    end
+    end
+  end
+
+  describe "start_link/1 with a via name" do
+    test "on success", config do
+      {:ok, _} = Registry.start_link(keys: :unique, name: PartitionRegistry)
+
+      name = {:via, Registry, {PartitionRegistry, config.test}}
+
+      {:ok, _} = PartitionSupervisor.start_link(child_spec: {Agent, fn -> :hello end}, name: name)
+
+      assert PartitionSupervisor.partitions(name) == System.schedulers_online()
+
+      assert Agent.get({:via, PartitionSupervisor, {name, 0}}, & &1) == :hello
     end
   end
 
