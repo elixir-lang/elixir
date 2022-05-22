@@ -186,16 +186,20 @@ defmodule Module.Types.PatternTest do
                  ]}}
     end
 
+    defmacrop custom_type do
+      quote do: 1 * 8 - big - signed - integer
+    end
+
     test "binary" do
       assert quoted_pattern(<<"foo"::binary>>) == {:ok, :binary}
       assert quoted_pattern(<<123::integer>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::little>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::integer>>) == {:ok, :binary}
-      assert quoted_pattern(<<foo::integer()>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::integer-little>>) == {:ok, :binary}
       assert quoted_pattern(<<foo::little-integer>>) == {:ok, :binary}
       assert quoted_pattern(<<123::utf8>>) == {:ok, :binary}
       assert quoted_pattern(<<"foo"::utf8>>) == {:ok, :binary}
+      assert quoted_pattern(<<foo::custom_type()>>) == {:ok, :binary}
 
       assert quoted_pattern({<<foo::integer>>, foo}) == {:ok, {:tuple, 2, [:binary, :integer]}}
       assert quoted_pattern({<<foo::binary>>, foo}) == {:ok, {:tuple, 2, [:binary, :binary]}}

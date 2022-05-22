@@ -187,6 +187,11 @@ type(Meta, Other, Value, E) ->
 expand_each_spec(Meta, [{Expr, MetaE, Args} = H | T], Map, S, OriginalS, E) when is_atom(Expr) ->
   case validate_spec(Expr, Args) of
     {Key, Arg} ->
+      case Args of
+        [] ->
+          elixir_errors:form_warn(Meta, E, ?MODULE, {parens_bittype, Expr});
+        _ -> ok
+      end,
       {Value, SE, EE} = expand_spec_arg(Arg, S, OriginalS, E),
       validate_spec_arg(Meta, Key, Value, SE, OriginalS, EE),
 
@@ -384,6 +389,10 @@ format_error({undefined_bittype, Expr}) ->
 format_error({unknown_bittype, Name}) ->
   io_lib:format("bitstring specifier \"~ts\" does not exist and is being expanded to \"~ts()\","
                 " please use parentheses to remove the ambiguity", [Name, Name]);
+format_error({parens_bittype, Name}) ->
+    io_lib:format("extra parentheses on a bitstring specifier \"~ts()\" have been deprecated. "
+    "Please remove the parentheses: \"~ts\"",
+    [Name, Name]);
 format_error({bittype_mismatch, Val1, Val2, Where}) ->
   io_lib:format("conflicting ~ts specification for bit field: \"~p\" and \"~p\"", [Where, Val1, Val2]);
 format_error({bad_unit_argument, Unit}) ->

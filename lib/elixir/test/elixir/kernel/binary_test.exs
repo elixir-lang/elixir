@@ -299,4 +299,14 @@ defmodule Kernel.BinaryTest do
            end) =~
              "bitstring specifier \"signed_16\" does not exist and is being expanded to \"signed_16()\""
   end
+
+  test "bitsyntax with extra parentheses warns" do
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.eval_string("<<1::big()>>")
+           end) =~ "extra parentheses on a bitstring specifier \"big()\" have been deprecated"
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.eval_string("<<1::size(8)-integer()>>")
+           end) =~ "extra parentheses on a bitstring specifier \"integer()\" have been deprecated"
+  end
 end
