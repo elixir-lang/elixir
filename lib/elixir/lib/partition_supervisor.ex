@@ -237,7 +237,7 @@ defmodule PartitionSupervisor do
   defp init_partitions({:via, _, _}, partitions) do
     child_spec = {Registry, keys: :unique, name: @registry}
 
-    with nil <- Process.whereis(@registry) do
+    unless Process.whereis(@registry) do
       Supervisor.start_child(:elixir_sup, child_spec)
     end
 
