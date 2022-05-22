@@ -100,13 +100,9 @@ defmodule PartitionSupervisorTest do
   end
 
   describe "start_link/1 with a via name" do
-    setup do
+    test "on success", config do
       {:ok, _} = Registry.start_link(keys: :unique, name: PartitionRegistry)
 
-      :ok
-    end
-
-    test "on success", config do
       name = {:via, Registry, {PartitionRegistry, config.test}}
 
       {:ok, _} = PartitionSupervisor.start_link(child_spec: {Agent, fn -> :hello end}, name: name)
