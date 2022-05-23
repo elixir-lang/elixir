@@ -556,10 +556,8 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
       unexpected_token(Original, Line, Column, Scope, Tokens);
     empty ->
       tokenize([], Line, Column, Scope, Tokens);
-    {error, {unexpected_token, Length}} when Scope#elixir_tokenizer.cursor_completion == false ->
+    {unexpected_token, Length} ->
       unexpected_token(lists:nthtail(Length - 1, String), Line, Column + Length - 1, Scope, Tokens);
-    {error, {unexpected_token, _}} ->
-      unexpected_token_completion(String, Line, Column, Scope, Tokens);
     {error, Reason} ->
       error(Reason, Original, Scope, Tokens)
   end;
@@ -696,23 +694,17 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
       unexpected_token(String, Line, Column, OriginalScope, Tokens);
 
     empty  ->
-      unexpected_token_completion(String, Line, Column, OriginalScope, Tokens);
+      case String of
+        [$~, L] when ?is_upcase(L); ?is_downcase(L) -> tokenize([], Line, Column, OriginalScope, Tokens);
+        [$~] -> tokenize([], Line, Column, OriginalScope, Tokens);
+        _ -> unexpected_token(String, Line, Column, OriginalScope, Tokens)
+      end;
 
-    {error, {unexpected_token, Length}} when OriginalScope#elixir_tokenizer.cursor_completion == false ->
+    {unexpected_token, Length} ->
       unexpected_token(lists:nthtail(Length - 1, String), Line, Column + Length - 1, OriginalScope, Tokens);
-
-    {error, {unexpected_token, _}} ->
-      unexpected_token_completion(String, Line, Column, OriginalScope, Tokens);
 
     {error, Reason} ->
       error(Reason, String, OriginalScope, Tokens)
-  end.
-
-unexpected_token_completion(String, Line, Column, OriginalScope, Tokens) ->
-  case String of
-    [$~, L] when ?is_upcase(L); ?is_downcase(L) -> tokenize([], Line, Column, OriginalScope, Tokens);
-    [$~] -> tokenize([], Line, Column, OriginalScope, Tokens);
-    _ -> unexpected_token(String, Line, Column, OriginalScope, Tokens)
   end.
 
 previous_was_dot([{'.', _} | _]) -> true;
@@ -1260,6 +1252,7 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
         {error, _Reason} = Error ->
           Error
       end;
+
     {error, {not_highly_restrictive, Wrong, {Prefix, Suffix}}} ->
       WrongColumn = Column + length(Wrong) - 1,
       case suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) of
@@ -1267,21 +1260,25 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
           %% we append a pointer to more info if we aren't appending a suggestion
           MoreInfo = "\nSee https://hexdocs.pm/elixir/unicode-syntax.html for more information.",
           {error, {Line, Column, {Prefix, Suffix ++ MoreInfo}, Wrong}};
+
         {_, {Line, WrongColumn, _, SuggestionMessage}} = _SuggestionError ->
           {error, {Line, WrongColumn, {Prefix, Suffix ++ SuggestionMessage}, Wrong}}
       end;
+
     {error, {unexpected_token, Wrong}} ->
       WrongColumn = Column + length(Wrong) - 1,
       case suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) of
         no_suggestion ->
           [T | _] = lists:reverse(Wrong),
           case suggest_simpler_unexpected_token_in_error([T], Line, WrongColumn, Scope) of
-            no_suggestion -> {error, {unexpected_token, length(Wrong)}};
+            no_suggestion -> {unexpected_token, length(Wrong)};
             SuggestionError -> SuggestionError
           end;
+
         SuggestionError ->
           SuggestionError
       end;
+
     {error, empty} ->
       empty
   end.
