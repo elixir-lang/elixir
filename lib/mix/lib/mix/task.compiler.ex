@@ -70,7 +70,7 @@ defmodule Mix.Task.Compiler do
     first line, the range would be `{1, 0, 1, n}`.
     """
     @type position ::
-            pos_integer
+            non_neg_integer
             | {pos_integer, non_neg_integer}
             | {pos_integer, non_neg_integer, pos_integer, non_neg_integer}
 
