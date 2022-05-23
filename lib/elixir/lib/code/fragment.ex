@@ -482,6 +482,7 @@ defmodule Code.Fragment do
       `{:struct, ''}` as context
 
     * This function never returns `:expr`
+
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
