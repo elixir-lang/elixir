@@ -662,7 +662,7 @@ defmodule Supervisor do
             | (old_erlang_child_spec :: :supervisor.child_spec())
           ],
           [init_option]
-        ) :: {:ok, sup_flags() | (old_erlang_sup_flags :: :supervisor.sup_flags())}
+        ) :: {:ok, sup_flags()}
   def init(children, options) when is_list(children) and is_list(options) do
     strategy =
       case options[:strategy] do
