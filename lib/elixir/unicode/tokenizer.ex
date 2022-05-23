@@ -362,7 +362,7 @@ defmodule String.Tokenizer do
         case unicode_upper(head) do
           @bottom ->
             case unicode_start(head) do
-              @bottom -> {:error, {:unexpected_token, [head]}}
+              @bottom -> {:error, :empty}
               scriptset -> validate(continue(tail, [head], 1, false, scriptset, []), :identifier)
             end
 
