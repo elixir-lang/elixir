@@ -70,7 +70,7 @@ defmodule Kernel.WarningTest do
         end
 
       assert Exception.message(exception) =~
-               "nofile:1:4: invalid mixed-script identifier found: аdmin"
+               "nofile:1:9: invalid mixed-script identifier found: аdmin"
 
       assert Exception.message(exception) =~ """
                \\u0430 а {Cyrillic}
@@ -79,6 +79,13 @@ defmodule Kernel.WarningTest do
                \\u0069 i {Latin}
                \\u006E n {Latin}
                \\u005F _
+             """
+
+      # includes suggestion about what to change
+      assert Exception.message(exception) =~ """
+             Hint: You could write the above in a similar way that is accepted by Elixir:
+
+                 "admin_" (code points 0x00061 0x00064 0x0006D 0x00069 0x0006E 0x0005F)
              """
 
       # a is in cyrillic

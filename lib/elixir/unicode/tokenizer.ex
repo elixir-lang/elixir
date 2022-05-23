@@ -6,23 +6,14 @@ defmodule String.Tokenizer do
   # These codepoints will be normalized from => to, and their
   # scriptset will be the union of both. If one of the two
   # codepoints is Script='Common|Inherited', this means both
-  # codepoints can be used without unsafe script mixing;
+  # codepoints can be used anywhere without unsafe script mixing;
   # similarly, they are exempted from the Restricted list.
   #
-  elixir_normalizations = %{
-    # NFKC-based normalizations for codepoints in use
-    'µ' => 'μ',
-
-    # math symbols can be supported by this same means;
-    # this 'easter egg', which no users are likely to rely on,
-    # is put here so we can exercise the mechanism for allowing
-    # mathematical symbols, where perhaps even the 'to'
-    # codepoint will be Script=Common.
-    'ℕ' => 'ℕ',
-    '𝕩' => '𝕩'
+  normalizations = %{
+    # NFKC-based automatic normalizations
+    # U+00B5 => U+03BC
+    ?µ => ?μ
   }
-
-  normalizations = for {[a], [b]} <- elixir_normalizations, into: %{}, do: {a, b}
 
   ##
   ## First let's load all characters that we will allow in identifiers
@@ -247,8 +238,10 @@ defmodule String.Tokenizer do
     for {from, to} <- normalizations, reduce: codepoints_to_mask do
       acc ->
         ss = ScriptSet.union(Map.get(acc, from, top), Map.get(acc, to, top))
-        Map.put(acc, from, ss)
-        Map.put(acc, to, ss)
+
+        acc
+        |> Map.put(from, ss)
+        |> Map.put(to, ss)
     end
 
   for {from, to} <- normalizations do
@@ -369,7 +362,7 @@ defmodule String.Tokenizer do
         case unicode_upper(head) do
           @bottom ->
             case unicode_start(head) do
-              @bottom -> {:error, :empty}
+              @bottom -> {:error, {:unexpected_token, [head]}}
               scriptset -> validate(continue(tail, [head], 1, false, scriptset, []), :identifier)
             end
 
@@ -411,7 +404,7 @@ defmodule String.Tokenizer do
         with @bottom <- unicode_start(head),
              @bottom <- unicode_upper(head),
              @bottom <- unicode_continue(head) do
-          {acc, list, length, ascii_letters?, scriptset, special}
+          {:error, {:unexpected_token, :lists.reverse([head | acc])}}
         else
           ss ->
             continue(tail, [head | acc], length + 1, false, ss_intersect(scriptset, ss), special)
@@ -423,8 +416,13 @@ defmodule String.Tokenizer do
     {acc, [], length, ascii_letters?, scriptset, special}
   end
 
+  defp validate({:error, _} = error, _kind) do
+    error
+  end
+
   defp validate({acc, rest, length, ascii_letters?, scriptset, special}, kind) do
-    acc = :unicode.characters_to_nfc_list(:lists.reverse(acc))
+    acc = :lists.reverse(acc)
+    acc = if ascii_letters?, do: acc, else: :unicode.characters_to_nfc_list(acc)
 
     cond do
       ascii_letters? ->
@@ -457,9 +455,8 @@ defmodule String.Tokenizer do
         Mixed-script identifiers are not supported for security reasons. \
         '#{acc}' is made of the following scripts:\n
         #{breakdown}
-        Make sure all characters in the identifier resolve to a single script,
+        All characters in the identifier should resolve to a single script, \
         or use a highly restrictive set of scripts.
-        See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
         '''
 
         {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}

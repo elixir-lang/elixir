@@ -100,7 +100,7 @@ defmodule String.Tokenizer.Security do
 
   defp confusable_prototype(other), do: <<other::utf8>>
 
-  defp confusable_skeleton(s) do
+  def confusable_skeleton(s) do
     # "- Convert X to NFD format, as described in [UAX15].
     #  - Concatenate the prototypes for each character in X according to
     #    the specified data, producing a string of exemplar characters.
