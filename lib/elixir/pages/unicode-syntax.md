@@ -99,9 +99,9 @@ Elixir supports only code points `\t` (0009), `\n` (000A), `\r` (000D) and `\s` 
 
 Identifiers in Elixir are case sensitive.
 
-Elixir requires all atoms and variables to be in NFC form. Any other form will fail with a relevant error message. Quoted-atoms and strings can, however, be in any form and are not verified by the parser.
+Elixir requires all atoms and variables to be in NFC form. If another form is given, NFC is automatically applied. Quoted-atoms and strings can, however, be in any form and are not verified by the parser.
 
-In other words, the atom `:josé` can only be written with the code points `006A 006F 0073 00E9`. Using another normalization form will will be overridden by the tokenizer, which will use the NFC form; prior to Elixir 1.14 this would be an error at compile-time, but now Elixir's formatter can fix it. On the other hand, `:"josé"` may be written as `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301`, since it is written between quotes.
+In other words, the atom `:josé` can only be written with the code points `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301`, but Elixir will rewrite it to the former (from Elixir 1.14). On the other hand, `:"josé"` may be written as `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301` and its form will be retained, since it is written between quotes.
 
 Choosing requirement R6 automatically excludes requirements R4, R5 and R7.
 
