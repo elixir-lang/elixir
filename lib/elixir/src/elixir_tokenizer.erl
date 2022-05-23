@@ -655,7 +655,7 @@ tokenize([$. | T], Line, Column, Scope, Tokens) ->
 tokenize(String, Line, Column, OriginalScope, Tokens) ->
   case tokenize_identifier(String, Line, Column, OriginalScope, not previous_was_dot(Tokens)) of
     {Kind, Unencoded, Atom, Rest, Length, Ascii, Special} ->
-      HasAt = lists:member($@, Special),
+      HasAt = lists:member(at, Special),
       Scope = track_ascii(Ascii, OriginalScope),
 
       case Rest of
@@ -982,7 +982,7 @@ eol(Line, Column, Tokens) ->
 
 is_unnecessary_quote([Part], #elixir_tokenizer{warn_on_unnecessary_quotes=true} = Scope) when is_list(Part) ->
   case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(Part) of
-    {identifier, _, [], _, true, Special} -> not lists:member($@, Special);
+    {identifier, _, [], _, true, Special} -> not lists:member(at, Special);
     _ -> false
   end;
 
@@ -1229,11 +1229,11 @@ tokenize(_List) ->
   {error, empty}.
 
 tokenize_continue([$@ | T], Acc, Length, Special) ->
-  tokenize_continue(T, [$@ | Acc], Length + 1, [$@ | lists:delete($@, Special)]);
+  tokenize_continue(T, [$@ | Acc], Length + 1, [at | lists:delete(at, Special)]);
 tokenize_continue([$! | T], Acc, Length, Special) ->
-  {[$! | Acc], T, Length + 1, [$! | Special]};
+  {[$! | Acc], T, Length + 1, [punctuation | Special]};
 tokenize_continue([$? | T], Acc, Length, Special) ->
-  {[$? | Acc], T, Length + 1, [$? | Special]};
+  {[$? | Acc], T, Length + 1, [punctuation | Special]};
 tokenize_continue([H | T], Acc, Length, Special) when ?is_upcase(H); ?is_downcase(H); ?is_digit(H); H =:= $_ ->
   tokenize_continue(T, [H | Acc], Length + 1, Special);
 tokenize_continue(Rest, Acc, Length, Special) ->
@@ -1326,13 +1326,11 @@ list_to_codepoint_hex(List) ->
 
 tokenize_alias(Rest, Line, Column, Unencoded, Atom, Length, Ascii, Special, Scope, Tokens) ->
   if
-    not Ascii ->
-      Invalid = hd([C || C <- Unencoded, C > 127]),
-      Reason = {Line, Column, invalid_character_error("alias (only ASCII characters are allowed)", Invalid), Unencoded},
+    not Ascii or (Special /= []) ->
+      Invalid = hd([C || C <- Unencoded, (C < $A) or (C > 127)]),
+      Reason = {Line, Column, invalid_character_error("alias (only ASCII characters, without punctuation, are allowed)", Invalid), Unencoded},
       error(Reason, Unencoded ++ Rest, Scope, Tokens);
-    Special /= [] ->
-      Reason = {Line, Column, invalid_character_error("alias", hd(Special)), Unencoded},
-      error(Reason, Unencoded ++ Rest, Scope, Tokens);
+
     true ->
       AliasesToken = {alias, {Line, Column, Unencoded}, Atom},
       tokenize(Rest, Line, Column + Length, Scope, [AliasesToken | Tokens])

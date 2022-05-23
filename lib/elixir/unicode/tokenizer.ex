@@ -9,11 +9,13 @@ defmodule String.Tokenizer do
   # codepoints can be used anywhere without unsafe script mixing;
   # similarly, they are exempted from the Restricted list.
   #
-  normalizations = %{
+  start_normalizations = %{
     # NFKC-based automatic normalizations
     # U+00B5 => U+03BC
     ?µ => ?μ
   }
+
+  normalizations = start_normalizations
 
   ##
   ## First let's load all characters that we will allow in identifiers
@@ -101,7 +103,7 @@ defmodule String.Tokenizer do
            [types, _comments] <- :binary.split(type_with_comments, "#"),
            types = String.split(types, " ", trim: true),
            false <- "Inclusion" in types or "Recommended" in types do
-        Enum.reject(range_to_codepoints.(range), &Map.has_key?(normalizations, &1))
+        range_to_codepoints.(range)
       else
         _ -> []
       end
@@ -155,9 +157,8 @@ defmodule String.Tokenizer do
            scripts =
              scripts |> String.split(" ", trim: true) |> Enum.map(&Map.get(aliases, &1, &1)) do
         for codepoint <- range_to_codepoints.(range),
-            (Map.has_key?(unicode_all, codepoint) and
-               "Common" not in scripts and "Inherited" not in scripts) or
-              Map.has_key?(normalizations, codepoint),
+            Map.has_key?(unicode_all, codepoint) and
+              "Common" not in scripts and "Inherited" not in scripts,
             do: {codepoint, scripts}
       else
         _ -> []
@@ -223,8 +224,6 @@ defmodule String.Tokenizer do
   {bottom, top} = ScriptSet.lattices(map_size(scriptset_masks))
   IO.puts(:stderr, "[Unicode] Tokenizing #{map_size(scriptset_masks)} scriptsets")
 
-  scriptset_masks = Map.put(scriptset_masks, "Common", top)
-
   codepoints_to_mask =
     for {codepoint, scriptsets} <- all_codepoints_to_scriptset, into: %{} do
       {codepoint,
@@ -233,22 +232,14 @@ defmodule String.Tokenizer do
        |> Enum.reduce(bottom, &ScriptSet.union/2)}
     end
 
-  # add our custom normalizations
+  # Add our custom normalizations
+
   codepoints_to_mask =
     for {from, to} <- normalizations, reduce: codepoints_to_mask do
       acc ->
         ss = ScriptSet.union(Map.get(acc, from, top), Map.get(acc, to, top))
-
-        acc
-        |> Map.put(from, ss)
-        |> Map.put(to, ss)
+        Map.put(acc, to, ss)
     end
-
-  for {from, to} <- normalizations do
-    defp normalize(unquote(from)), do: unquote(to)
-  end
-
-  defp normalize(codepoint), do: codepoint
 
   ##
   ## Define functions and module attributes to access characters and their scriptsets
@@ -343,6 +334,15 @@ defmodule String.Tokenizer do
 
   defp unicode_continue(_), do: @bottom
 
+  # Hardcoded normalizations. Also split by upper, start, continue.
+
+  for {from, to} <- start_normalizations do
+    mask = Map.fetch!(codepoints_to_mask, to)
+    defp normalize_start(unquote(from)), do: {unquote(to), unquote(mask)}
+  end
+
+  defp normalize_start(_codepoint), do: @bottom
+
   ##
   ## Now we are ready to tokenize!
   ##
@@ -362,8 +362,17 @@ defmodule String.Tokenizer do
         case unicode_upper(head) do
           @bottom ->
             case unicode_start(head) do
-              @bottom -> {:error, :empty}
-              scriptset -> validate(continue(tail, [head], 1, false, scriptset, []), :identifier)
+              @bottom ->
+                case normalize_start(head) do
+                  @bottom ->
+                    {:error, :empty}
+
+                  {head, scriptset} ->
+                    validate(continue(tail, [head], 1, false, scriptset, [:nfkc]), :identifier)
+                end
+
+              scriptset ->
+                validate(continue(tail, [head], 1, false, scriptset, []), :identifier)
             end
 
           scriptset ->
@@ -377,15 +386,15 @@ defmodule String.Tokenizer do
   end
 
   defp continue([?! | tail], acc, length, ascii_letters?, scriptset, special) do
-    {[?! | acc], tail, length + 1, ascii_letters?, scriptset, [?! | special]}
+    {[?! | acc], tail, length + 1, ascii_letters?, scriptset, [:punctuation | special]}
   end
 
   defp continue([?? | tail], acc, length, ascii_letters?, scriptset, special) do
-    {[?? | acc], tail, length + 1, ascii_letters?, scriptset, [?? | special]}
+    {[?? | acc], tail, length + 1, ascii_letters?, scriptset, [:punctuation | special]}
   end
 
   defp continue([?@ | tail], acc, length, ascii_letters?, scriptset, special) do
-    special = [?@ | List.delete(special, ?@)]
+    special = [:at | List.delete(special, :at)]
     continue(tail, [?@ | acc], length + 1, ascii_letters?, scriptset, special)
   end
 
@@ -404,10 +413,19 @@ defmodule String.Tokenizer do
         with @bottom <- unicode_start(head),
              @bottom <- unicode_upper(head),
              @bottom <- unicode_continue(head) do
-          {:error, {:unexpected_token, :lists.reverse([head | acc])}}
+          case normalize_start(head) do
+            @bottom ->
+              {:error, {:unexpected_token, :lists.reverse([head | acc])}}
+
+            {head, ss} ->
+              ss = ss_intersect(scriptset, ss)
+              special = [:nfkc | List.delete(special, :nfkc)]
+              continue(tail, [head | acc], length + 1, false, ss, special)
+          end
         else
           ss ->
-            continue(tail, [head | acc], length + 1, false, ss_intersect(scriptset, ss), special)
+            ss = ss_intersect(scriptset, ss)
+            continue(tail, [head | acc], length + 1, false, ss, special)
         end
     end
   end
@@ -420,50 +438,55 @@ defmodule String.Tokenizer do
     error
   end
 
-  defp validate({acc, rest, length, ascii_letters?, scriptset, special}, kind) do
-    acc = :lists.reverse(acc)
-    acc = if ascii_letters?, do: acc, else: :unicode.characters_to_nfc_list(acc)
+  defp validate({acc, rest, length, true, _scriptset, special}, kind) do
+    {kind, :lists.reverse(acc), rest, length, true, special}
+  end
 
-    cond do
-      ascii_letters? ->
-        {kind, acc, rest, length, ascii_letters?, special}
+  defp validate({original_acc, rest, length, false, scriptset, special}, kind) do
+    original_acc = :lists.reverse(original_acc)
+    acc = :unicode.characters_to_nfc_list(original_acc)
 
-      scriptset == @bottom and not highly_restrictive?(acc) ->
-        breakdown =
-          for codepoint <- acc do
-            scriptsets =
-              case codepoint_to_scriptset(codepoint) do
-                @top ->
-                  ""
+    special =
+      if original_acc == acc do
+        special
+      else
+        [:nfkc | List.delete(special, :nfkc)]
+      end
 
-                scriptset ->
-                  scriptset
-                  |> ScriptSet.to_indexes()
-                  |> Enum.map(&Map.fetch!(@indexed_scriptsets, &1))
-                  |> then(&(" {" <> Enum.join(&1, ",") <> "}"))
-              end
+    if scriptset != @bottom or highly_restrictive?(acc) do
+      {kind, acc, rest, length, false, special}
+    else
+      breakdown =
+        for codepoint <- acc do
+          scriptsets =
+            case codepoint_to_scriptset(codepoint) do
+              @top ->
+                ""
 
-            hex = :io_lib.format('~4.16.0B', [codepoint])
-            "  \\u#{hex} #{[codepoint]}#{scriptsets}\n"
-          end
+              scriptset ->
+                scriptset
+                |> ScriptSet.to_indexes()
+                |> Enum.map(&Map.fetch!(@indexed_scriptsets, &1))
+                |> then(&(" {" <> Enum.join(&1, ",") <> "}"))
+            end
 
-        prefix = 'invalid mixed-script identifier found: '
+          hex = :io_lib.format('~4.16.0B', [codepoint])
+          "  \\u#{hex} #{[codepoint]}#{scriptsets}\n"
+        end
 
-        suffix = '''
+      prefix = 'invalid mixed-script identifier found: '
+
+      suffix = '''
 
 
-        Mixed-script identifiers are not supported for security reasons. \
-        '#{acc}' is made of the following scripts:\n
-        #{breakdown}
-        All characters in the identifier should resolve to a single script, \
-        or use a highly restrictive set of scripts.
-        '''
+      Mixed-script identifiers are not supported for security reasons. \
+      '#{acc}' is made of the following scripts:\n
+      #{breakdown}
+      All characters in the identifier should resolve to a single script, \
+      or use a highly restrictive set of scripts.
+      '''
 
-        {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
-
-      true ->
-        acc = Enum.map(acc, &normalize(&1))
-        {kind, acc, rest, length, ascii_letters?, special}
+      {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
     end
   end
 

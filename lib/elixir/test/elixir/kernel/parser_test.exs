@@ -80,8 +80,8 @@ defmodule Kernel.ParserTest do
       assert Code.eval_string("µs = 1; μs") == {1, [{:μs, 1}]}
 
       # commented out: math symbols capability in elixir
-      #  normalizations, to ensure that we *can* handle codepoints
-      #  that are Common-script and non-ASCII
+      # normalizations, to ensure that we *can* handle codepoints
+      # that are Common-script and non-ASCII
       # assert Code.eval_string("_ℕ𝕩 = 1") == {1, [{:"_ℕ𝕩", 1}]}
     end
   end
@@ -617,14 +617,18 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(message.("Foo@"), 'Foo@')
       assert_syntax_error(message.("Foo@bar"), 'Foo@bar')
 
-      message = ~r/nofile:1:1: invalid character "\!" \(code point U\+0021\) in alias: Foo\!/
+      message =
+        ~r/nofile:1:1: invalid character "\!" \(code point U\+0021\) in alias \(only ASCII characters, without punctuation, are allowed\): Foo\!/
+
       assert_syntax_error(message, 'Foo!')
 
-      message = ~r/nofile:1:1: invalid character \"\?\" \(code point U\+003F\) in alias: Foo\?/
+      message =
+        ~r/nofile:1:1: invalid character "\?" \(code point U\+003F\) in alias \(only ASCII characters, without punctuation, are allowed\): Foo\?/
+
       assert_syntax_error(message, 'Foo?')
 
       message =
-        ~r/nofile:1:1: invalid character \"ó\" \(code point U\+00F3\) in alias \(only ASCII characters are allowed\): Foó/
+        ~r/nofile:1:1: invalid character \"ó\" \(code point U\+00F3\) in alias \(only ASCII characters, without punctuation, are allowed\): Foó/
 
       assert_syntax_error(message, 'Foó')
 

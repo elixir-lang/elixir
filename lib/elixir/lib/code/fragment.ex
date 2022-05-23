@@ -337,7 +337,7 @@ defmodule Code.Fragment do
         :none
 
       {kind, _, [], _, _, extra} ->
-        if ?@ in extra do
+        if :at in extra do
           :none
         else
           {kind, rest, acc, count}
