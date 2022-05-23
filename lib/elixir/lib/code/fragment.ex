@@ -480,6 +480,8 @@ defmodule Code.Fragment do
 
     * This function never returns empty sigils `{:sigil, ''}` or empty structs
       `{:struct, ''}` as context
+
+    * This function never returns `:expr`
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
