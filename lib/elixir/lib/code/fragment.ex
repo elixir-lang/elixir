@@ -492,6 +492,8 @@ defmodule Code.Fragment do
                | {:local_call, charlist}
                | {:module_attribute, charlist}
                | {:operator, charlist}
+               | {:sigil, charlist}
+               | {:struct, charlist}
                | {:unquoted_atom, charlist},
              inside_dot:
                {:alias, charlist}
