@@ -67,6 +67,25 @@ defmodule Kernel.ParserTest do
     end
   end
 
+  describe "identifier unicode normalization" do
+    test "nfc normalization is performed" do
+      # before elixir 1.14, non-nfc would error
+      #  non-nfc:        "ç" (code points 0x0063 0x0327)
+      #  nfc-normalized: "ç" (code points 0x00E7)
+      assert Code.eval_string("ç = 1; ç") == {1, [ç: 1]}
+    end
+
+    test "elixir's additional normalization is performed" do
+      # Common micro => Greek mu. See code formatter test too.
+      assert Code.eval_string("µs = 1; μs") == {1, [{:μs, 1}]}
+
+      # commented out: math symbols capability in elixir
+      #  normalizations, to ensure that we *can* handle codepoints
+      #  that are Common-script and non-ASCII
+      # assert Code.eval_string("_ℕ𝕩 = 1") == {1, [{:"_ℕ𝕩", 1}]}
+    end
+  end
+
   describe "strings/sigils" do
     test "delimiter information for sigils is included" do
       string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: false)
@@ -609,20 +628,55 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(message, 'Foó')
 
-      message = ~r"""
-      Elixir expects unquoted Unicode atoms, variables, and calls to be in NFC form.
+      # token suggestion heuristic:
+      #  "for foO𝚳, NFKC isn't enough because 𝚳 nfkc's to Greek Μ, would be mixed script.
+      #   however the 'confusability skeleton' for that token produces an all-Latin foOM
+      #   and would tokenize -- so suggest that, in case that's what they want"
+      message =
+        String.trim("""
+        Codepoint failed identifier tokenization, but a simpler form was found.
 
-      Got:
+        Got:
 
-          "foó" \(code points 0x0066 0x006F 0x006F 0x0301\)
+            "foO𝚳" (code points 0x00066 0x0006F 0x0004F 0x1D6B3)
 
-      Expected:
+        Hint: You could write the above in a similar way that is accepted by Elixir:
 
-          "foó" \(code points 0x0066 0x006F 0x00F3\)
+            "foOM" (code points 0x00066 0x0006F 0x0004F 0x0004D)
 
-      """
+        See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
+            |
+          1 | foO𝚳
+            |    ^
+        """)
 
-      assert_syntax_error(message, :unicode.characters_to_nfd_list("foó"))
+      assert_syntax_error(~r/#{message}/, 'foO𝚳')
+
+      # token suggestion heuristic:
+      #  "for fooی𝚳, both NKFC and confusability would result in mixed scripts,
+      #   because the Farsi letter is confusable with a different Arabic letter.
+      #   Well, can't fix it all at once -- let's check for a suggestion just on
+      #   the one codepoint that triggered this, the 𝚳 -- that would at least
+      #   nudge them forwards."
+      message =
+        String.trim("""
+        Elixir expects unquoted Unicode atoms, variables, and calls to use allowed codepoints and to be in NFC form.
+
+        Got:
+
+            "𝚳" (code points 0x1D6B3)
+
+        Hint: You could write the above in a compatible format that is accepted by Elixir:
+
+            "Μ" (code points 0x0039C)
+
+        See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
+            |
+          2 | fooی𝚳
+            |     ^
+        """)
+
+      assert_syntax_error(~r/#{message}/, 'fooی𝚳')
     end
 
     test "keyword missing space" do

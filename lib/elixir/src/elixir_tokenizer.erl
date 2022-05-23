@@ -556,6 +556,10 @@ tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
       unexpected_token(Original, Line, Column, Scope, Tokens);
     empty ->
       tokenize([], Line, Column, Scope, Tokens);
+    {error, {unexpected_token, Length}} when Scope#elixir_tokenizer.cursor_completion == false ->
+      unexpected_token(lists:nthtail(Length - 1, String), Line, Column + Length - 1, Scope, Tokens);
+    {error, {unexpected_token, _}} ->
+      unexpected_token_completion(String, Line, Column, Scope, Tokens);
     {error, Reason} ->
       error(Reason, Original, Scope, Tokens)
   end;
@@ -691,15 +695,24 @@ tokenize(String, Line, Column, OriginalScope, Tokens) ->
     empty when OriginalScope#elixir_tokenizer.cursor_completion == false ->
       unexpected_token(String, Line, Column, OriginalScope, Tokens);
 
-    empty ->
-      case String of
-        [$~, L] when ?is_upcase(L); ?is_downcase(L) -> tokenize([], Line, Column, OriginalScope, Tokens);
-        [$~] -> tokenize([], Line, Column, OriginalScope, Tokens);
-        _ -> unexpected_token(String, Line, Column, OriginalScope, Tokens)
-      end;
+    empty  ->
+      unexpected_token_completion(String, Line, Column, OriginalScope, Tokens);
+
+    {error, {unexpected_token, Length}} when OriginalScope#elixir_tokenizer.cursor_completion == false ->
+      unexpected_token(lists:nthtail(Length - 1, String), Line, Column + Length - 1, OriginalScope, Tokens);
+
+    {error, {unexpected_token, _}} ->
+      unexpected_token_completion(String, Line, Column, OriginalScope, Tokens);
 
     {error, Reason} ->
       error(Reason, String, OriginalScope, Tokens)
+  end.
+
+unexpected_token_completion(String, Line, Column, OriginalScope, Tokens) ->
+  case String of
+    [$~, L] when ?is_upcase(L); ?is_downcase(L) -> tokenize([], Line, Column, OriginalScope, Tokens);
+    [$~] -> tokenize([], Line, Column, OriginalScope, Tokens);
+    _ -> unexpected_token(String, Line, Column, OriginalScope, Tokens)
   end.
 
 previous_was_dot([{'.', _} | _]) -> true;
@@ -1247,21 +1260,64 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
         {error, _Reason} = Error ->
           Error
       end;
-    {error, {not_nfc, Wrong}} ->
-      Right = unicode:characters_to_nfc_list(Wrong),
-      RightCodepoints = list_to_codepoint_hex(Right),
-      WrongCodepoints = list_to_codepoint_hex(Wrong),
-      Message = io_lib:format("Elixir expects unquoted Unicode atoms, variables, and calls to be in NFC form.\n\n"
-                              "Got:\n\n    \"~ts\" (code points~ts)\n\n"
-                              "Expected:\n\n    \"~ts\" (code points~ts)\n\n"
-                              "Syntax error before: ",
-                              [Wrong, WrongCodepoints, Right, RightCodepoints]),
-      {error, {Line, Column, Message, Wrong}};
-    {error, {not_highly_restrictive, Wrong, Message}} ->
-      {error, {Line, Column, Message, Wrong}};
+    {error, {not_highly_restrictive, Wrong, {Prefix, Suffix}}} ->
+      WrongColumn = Column + length(Wrong) - 1,
+      case suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) of
+        no_suggestion ->
+          %% we append a pointer to more info if we aren't appending a suggestion
+          MoreInfo = "\nSee https://hexdocs.pm/elixir/unicode-syntax.html for more information.",
+          {error, {Line, Column, {Prefix, Suffix ++ MoreInfo}, Wrong}};
+        {_, {Line, WrongColumn, _, SuggestionMessage}} = _SuggestionError ->
+          {error, {Line, WrongColumn, {Prefix, Suffix ++ SuggestionMessage}, Wrong}}
+      end;
+    {error, {unexpected_token, Wrong}} ->
+      WrongColumn = Column + length(Wrong) - 1,
+      case suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) of
+        no_suggestion ->
+          [T | _] = lists:reverse(Wrong),
+          case suggest_simpler_unexpected_token_in_error([T], Line, WrongColumn, Scope) of
+            no_suggestion -> {error, {unexpected_token, length(Wrong)}};
+            SuggestionError -> SuggestionError
+          end;
+        SuggestionError ->
+          SuggestionError
+      end;
     {error, empty} ->
       empty
   end.
+
+%% hueristic: try nfkc; try confusability skeleton; try calling this again w/just failed codepoint
+suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) ->
+  NFKC = unicode:characters_to_nfkc_list(Wrong),
+  case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(NFKC) of
+    {error, _Reason} ->
+       ConfusableSkeleton = 'Elixir.String.Tokenizer.Security':confusable_skeleton(Wrong),
+       case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(ConfusableSkeleton) of
+         {_, Simpler, _, _, _, _} ->
+           Message = suggest_change("Codepoint failed identifier tokenization, but a simpler form was found.",
+                                    Wrong,
+                                    "You could write the above in a similar way that is accepted by Elixir:",
+                                    Simpler,
+                                    "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."),
+           {error, {Line, WrongColumn, "unexpected token: ", Message}};
+         _other ->
+           no_suggestion
+       end;
+    {_, _NFKC, _, _, _, _} ->
+      Message = suggest_change("Elixir expects unquoted Unicode atoms, variables, and calls to use allowed codepoints and to be in NFC form.",
+                               Wrong,
+                               "You could write the above in a compatible format that is accepted by Elixir:",
+                               NFKC,
+                               "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."),
+          {error, {Line, WrongColumn, "unexpected token: ", Message}}
+    end.
+
+suggest_change(Intro, WrongForm, Hint, HintedForm, Ending) ->
+  WrongCodepoints = list_to_codepoint_hex(WrongForm),
+  HintedCodepoints = list_to_codepoint_hex(HintedForm),
+  io_lib:format("~ts\n\nGot:\n\n    \"~ts\" (code points~ts)\n\n"
+                "Hint: ~ts\n\n    \"~ts\" (code points~ts)\n\n~ts",
+                [Intro, WrongForm, WrongCodepoints, Hint, HintedForm, HintedCodepoints, Ending]).
 
 maybe_keyword([]) -> true;
 maybe_keyword([$:, $: | _]) -> true;
@@ -1269,7 +1325,7 @@ maybe_keyword([$: | _]) -> false;
 maybe_keyword(_) -> true.
 
 list_to_codepoint_hex(List) ->
-  [io_lib:format(" 0x~4.16.0B", [Codepoint]) || Codepoint <- List].
+  [io_lib:format(" 0x~5.16.0B", [Codepoint]) || Codepoint <- List].
 
 tokenize_alias(Rest, Line, Column, Unencoded, Atom, Length, Ascii, Special, Scope, Tokens) ->
   if
