@@ -480,6 +480,9 @@ defmodule Code.Fragment do
 
     * This function never returns empty sigils `{:sigil, ''}` or empty structs
       `{:struct, ''}` as context
+
+    * This function never returns `:expr`
+
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
@@ -492,6 +495,8 @@ defmodule Code.Fragment do
                | {:local_call, charlist}
                | {:module_attribute, charlist}
                | {:operator, charlist}
+               | {:sigil, charlist}
+               | {:struct, charlist}
                | {:unquoted_atom, charlist},
              inside_dot:
                {:alias, charlist}
