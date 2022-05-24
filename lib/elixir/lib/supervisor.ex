@@ -488,8 +488,7 @@ defmodule Supervisor do
   """
   @callback init(init_arg :: term) ::
               {:ok,
-               {sup_flags() | (old_erlang_sup_flags :: :supervisor.sup_flags()),
-                [child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
+               {sup_flags(), [child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
               | :ignore
 
   @typedoc "Return values of `start_link` functions"
