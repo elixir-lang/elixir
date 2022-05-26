@@ -518,11 +518,13 @@ defmodule Macro do
   ## Examples
 
       iex> ast = quote do: 5 + 3 * 7
+      {:+, _, [5, {:*, _, [3, 7]}]} = ast
       iex> new_ast = Macro.prewalk(ast, fn
       ...>   {:+, meta, children} -> {:*, meta, children}
       ...>   {:*, meta, children} -> {:+, meta, children}
       ...>   other -> other
       ...> end)
+      {:*, _, [5, {:+, _, [3, 7]}]} = new_ast
       iex> Code.eval_quoted(ast)
       {26, []}
       iex> Code.eval_quoted(new_ast)
