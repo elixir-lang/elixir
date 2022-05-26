@@ -477,7 +477,7 @@ defmodule Mix.DepTest do
       Mix.RemoteConverger.register(RaiseRemoteConverger)
 
       in_fixture("deps_cycle", fn ->
-        assert_raise Mix.Error, ~r/cycles in the dependency graph/, fn ->
+        assert_raise Mix.Error, ~r/Could not sort dependencies/, fn ->
           Mix.Tasks.Deps.Get.run([])
         end
 
