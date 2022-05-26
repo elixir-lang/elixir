@@ -546,7 +546,8 @@ defmodule Macro do
   end
 
   @doc """
-  Performs a depth-first, post-order traversal of quoted expressions.
+  This function behaves like `prewalk/2`, but performs a depth-first,
+  post-order traversal of quoted expressions.
   """
   @spec postwalk(t, (t -> t)) :: t
   def postwalk(ast, fun) when is_function(fun, 1) do
