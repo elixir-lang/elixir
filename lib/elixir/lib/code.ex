@@ -3,8 +3,9 @@ defmodule Code do
   Utilities for managing code compilation, code evaluation, and code loading.
 
   This module complements Erlang's [`:code` module](`:code`)
-  to add behaviour which is specific to Elixir. Almost all of the functions in this module
-  have global side effects on the behaviour of Elixir.
+  to add behaviour which is specific to Elixir. For functions to
+  manipulate Elixir's AST (rather than evaluating it), see the
+  `Macro` module.
 
   ## Working with files
 
@@ -232,6 +233,8 @@ defmodule Code do
   calling this function only removes them from the list,
   allowing them to be required again.
 
+  The list of files is managed per Erlang VM node.
+
   ## Examples
 
       # Require EEx test code
@@ -261,7 +264,8 @@ defmodule Code do
   Appends a path to the end of the Erlang VM code path list.
 
   This is the list of directories the Erlang VM uses for
-  finding module code.
+  finding module code. The list of files is managed per Erlang
+  VM node.
 
   The path is expanded with `Path.expand/1` before being appended.
   If this path does not exist, an error is returned.
@@ -284,7 +288,7 @@ defmodule Code do
   Prepends a path to the beginning of the Erlang VM code path list.
 
   This is the list of directories the Erlang VM uses for finding
-  module code.
+  module code. The list of files is managed per Erlang VM node.
 
   The path is expanded with `Path.expand/1` before being prepended.
   If this path does not exist, an error is returned.
@@ -304,8 +308,10 @@ defmodule Code do
   end
 
   @doc """
-  Deletes a path from the Erlang VM code path list. This is the list of
-  directories the Erlang VM uses for finding module code.
+  Deletes a path from the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for finding
+  module code. The list of files is managed per Erlang VM node.
 
   The path is expanded with `Path.expand/1` before being deleted. If the
   path does not exist, this function returns `false`.
@@ -1208,7 +1214,7 @@ defmodule Code do
   ones will block until the file is available. This means that if `require_file/2`
   is called more than once with a given file, that file will be compiled only once.
   The first process to call `require_file/2` will get the list of loaded modules,
-  others will get `nil`.
+  others will get `nil`. The list of required files is managed per Erlang VM node.
 
   See `compile_file/2` if you would like to compile a file without tracking its
   filenames. Finally, if you would like to get the result of evaluating a file rather
@@ -1269,8 +1275,10 @@ defmodule Code do
   @doc """
   Stores all given compilation options.
 
-  To store individual options and for a description of all
-  options, see `put_compiler_option/2`.
+  Changing the compilation options affect all processes
+  running in a given Erlang VM node. To store individual
+  options and for a description of all options, see
+  `put_compiler_option/2`.
 
   ## Examples
 
@@ -1323,7 +1331,8 @@ defmodule Code do
   @doc """
   Stores a compilation option.
 
-  These options are global since they are stored by Elixir's code server.
+  Changing the compilation options affect all processes running in a
+  given Erlang VM node.
 
   Available options are:
 
@@ -1422,6 +1431,9 @@ defmodule Code do
   This function purges all modules currently kept by the compiler, allowing
   old compiler module names to be reused. If there are any processes running
   any code from such modules, they will be terminated too.
+
+  This function is only meant to be called if you have a long running node
+  that is constantly evaluating code.
 
   It returns `{:ok, number_of_modules_purged}`.
   """
