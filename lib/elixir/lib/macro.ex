@@ -2,6 +2,8 @@ import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc ~S"""
+  Functions for manipulating AST and implementing macros.
+
   Macros are compile-time constructs that receive Elixir's AST as input
   and return Elixir's AST as output.
 
@@ -36,7 +38,7 @@ defmodule Macro do
       #=> 1
 
   So far they behave the same, as we are passing an integer as argument.
-  But what happens when we pass an expression:
+  But let's see what happens when we pass an expression:
 
       macro_inspect(1 + 2)
       #=> {:+, [line: 3], [1, 2]}
@@ -694,11 +696,12 @@ defmodule Macro do
   @doc """
   Validates the given expressions are valid quoted expressions.
 
-  Checks the `t:Macro.t/0` for the specification of a valid
-  quoted expression.
+  Check the type `t:Macro.t/0` for a complete specification of a
+  valid quoted expression.
 
-  It returns `:ok` if the expression is valid. Otherwise it returns a tuple in the form of
-  `{:error, remainder}` where `remainder` is the invalid part of the quoted expression.
+  It returns `:ok` if the expression is valid. Otherwise it returns
+  a tuple in the form of `{:error, remainder}` where `remainder` is
+  the invalid part of the quoted expression.
 
   ## Examples
 
@@ -862,7 +865,7 @@ defmodule Macro do
   end
 
   @doc ~S"""
-  Unescapes the given chars.
+  Unescapes characters in a string.
 
   This is the unescaping behaviour used by default in Elixir
   single- and double-quoted strings. Check `unescape_string/2`
@@ -874,8 +877,9 @@ defmodule Macro do
   `\uNNNN` escapes.
 
   This function is commonly used on sigil implementations
-  (like `~r`, `~s` and others) which receive a raw, unescaped
-  string.
+  (like `~r`, `~s` and others), which receive a raw, unescaped
+  string, and it can be used anywhere that needs to mimic how
+  Elixir parses strings.
 
   ## Examples
 
@@ -891,15 +895,18 @@ defmodule Macro do
   end
 
   @doc ~S"""
-  Unescapes the given chars according to the map given.
+  Unescapes characters in a string according to the given mapping.
 
-  Check `unescape_string/1` if you want to use the same map
+  Check `unescape_string/1` if you want to use the same mapping
   as Elixir single- and double-quoted strings.
 
-  ## Map
+  ## Mapping function
 
-  The map must be a function. The function receives an integer
-  representing the code point of the character it wants to unescape.
+  The mapping function receives an integer representing the code point
+  of the character it wants to unescape. There are also the special atoms
+  `:newline`, `:unicode`, and `:hex`, which control newline, unicode,
+  and escaping respectively.
+
   Here is the default mapping function implemented by Elixir:
 
       def unescape_map(:newline), do: true
@@ -920,10 +927,6 @@ defmodule Macro do
 
   If the `unescape_map/1` function returns `false`, the char is
   not escaped and the backslash is kept in the string.
-
-  Newlines, Unicode, and hexadecimals code points will be escaped if
-  the map returns `true` respectively for `:newline`, `:unicode`, and
-  `:hex`.
 
   ## Examples
 
@@ -956,8 +959,10 @@ defmodule Macro do
   @doc """
   Converts the given expression AST to a string.
 
-  This function discards all formatting of the original code.
-  See `Code.quoted_to_algebra/2` as a lower level function
+  This is a convenience function for converting AST into
+  a string, which discards all formatting of the original
+  code and wraps newlines around 98 characters. See
+  `Code.quoted_to_algebra/2` as a lower level function
   with more control around formatting.
 
   ## Examples
@@ -1962,22 +1967,23 @@ defmodule Macro do
   ## Atom handling
 
   @doc """
-  Classifies the given `atom`.
+  Classifies a runtime `atom` based on its possible AST placement.
 
   It returns one of the following atoms:
 
     * `:alias` - the atom represents an alias
 
-    * `:identifier` - the atom can be used as a variable or local function call
+    * `:identifier` - the atom can be used as a variable or local function
+      call (as well as be an unquoted atom)
 
     * `:unquoted` - the atom can be used in its unquoted form,
       includes operators and atoms with `@` in them
 
     * `:quoted` - all other atoms which can only be used in their quoted form
 
-  Note operators are going to either be unquoted, such as `:+` and
-  most operators, or quoted, such as `:"::"`. Use `operator?/2` to
-  check if a given atom is an operator.
+  Most operators are going to be `:unquoted`, such as `:+`, with
+  some exceptions returning `:quoted` due to ambiguity, such as
+  `:"::"`. Use `operator?/2` to check if a given atom is an operator.
 
   ## Examples
 
@@ -2010,7 +2016,7 @@ defmodule Macro do
   Inspects `atom` according to different source formats.
 
   The atom can be inspected according to the three different
-  formats it appears in source code: as a literal (`:literal`),
+  formats it appears in the AST: as a literal (`:literal`),
   as a key (`:key`), or as the function name of a remote call
   (`:remote_call`).
 
