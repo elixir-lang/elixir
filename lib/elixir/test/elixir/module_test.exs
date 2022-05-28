@@ -596,11 +596,14 @@ defmodule ModuleTest do
       @on_load :on_load
 
       defp on_load do
-        send(:on_load_test_process, :on_loaded)
+        send(:on_load_test_process, :loaded)
         :ok
       end
     end
 
-    assert_received :on_loaded
+    assert_received :loaded
+  after
+    purge(OnLoadTest)
+    Process.unregister(:on_load_test_process)
   end
 end
