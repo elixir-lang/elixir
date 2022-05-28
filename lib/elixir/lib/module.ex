@@ -2245,7 +2245,7 @@ defmodule Module do
       _ ->
         raise ArgumentError,
               "@on_load is a built-in module attribute that annotates a function to be invoked " <>
-                "when the module is loaded. It should be an atom or a {atom, 0} tuple, " <>
+                "when the module is loaded. It should be an atom or an {atom, 0} tuple, " <>
                 "got: #{inspect(value)}"
     end
   end
