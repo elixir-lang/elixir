@@ -520,11 +520,13 @@ defmodule Macro do
   ## Examples
 
       iex> ast = quote do: 5 + 3 * 7
+      iex> {:+, _, [5, {:*, _, [3, 7]}]} = ast
       iex> new_ast = Macro.prewalk(ast, fn
       ...>   {:+, meta, children} -> {:*, meta, children}
       ...>   {:*, meta, children} -> {:+, meta, children}
       ...>   other -> other
       ...> end)
+      {:*, _, [5, {:+, _, [3, 7]}]} = new_ast
       iex> Code.eval_quoted(ast)
       {26, []}
       iex> Code.eval_quoted(new_ast)
@@ -539,6 +541,26 @@ defmodule Macro do
   @doc """
   Performs a depth-first, pre-order traversal of quoted expressions
   using an accumulator.
+
+  Returns a tuple where the first element is a new AST where each node is the
+  result of invoking `fun` on each corresponding node and the second one is the
+  final accumulator.
+
+  ## Examples
+
+      iex> ast = quote do: 5 + 3 * 7
+      iex> {:+, _, [5, {:*, _, [3, 7]}]} = ast
+      iex> {new_ast, acc} = Macro.prewalk(ast, [], fn
+      ...>   {:+, meta, children}, acc -> {{:*, meta, children}, [:+ | acc]}
+      ...>   {:*, meta, children}, acc -> {{:+, meta, children}, [:* | acc]}
+      ...>   other, acc -> {other, acc}
+      ...> end)
+      iex> {{:*, _, [5, {:+, _, [3, 7]}]}, [:*, :+]} = {new_ast, acc}
+      iex> Code.eval_quoted(ast)
+      {26, []}
+      iex> Code.eval_quoted(new_ast)
+      {50, []}
+
   """
   @spec prewalk(t, any, (t, any -> {t, any})) :: {t, any}
   def prewalk(ast, acc, fun) when is_function(fun, 2) do
@@ -546,7 +568,8 @@ defmodule Macro do
   end
 
   @doc """
-  Performs a depth-first, post-order traversal of quoted expressions.
+  This function behaves like `prewalk/2`, but performs a depth-first,
+  post-order traversal of quoted expressions.
   """
   @spec postwalk(t, (t -> t)) :: t
   def postwalk(ast, fun) when is_function(fun, 1) do
@@ -554,8 +577,8 @@ defmodule Macro do
   end
 
   @doc """
-  Performs a depth-first, post-order traversal of quoted expressions
-  using an accumulator.
+  This functions behaves like `prewalk/3`, but performs a depth-first,
+  post-order traversal of quoted expressions using an accumulator.
   """
   @spec postwalk(t, any, (t, any -> {t, any})) :: {t, any}
   def postwalk(ast, acc, fun) when is_function(fun, 2) do
