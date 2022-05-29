@@ -526,7 +526,7 @@ defmodule Macro do
       ...>   {:*, meta, children} -> {:+, meta, children}
       ...>   other -> other
       ...> end)
-      {:*, _, [5, {:+, _, [3, 7]}]} = new_ast
+      iex> {:*, _, [5, {:+, _, [3, 7]}]} = new_ast
       iex> Code.eval_quoted(ast)
       {26, []}
       iex> Code.eval_quoted(new_ast)
