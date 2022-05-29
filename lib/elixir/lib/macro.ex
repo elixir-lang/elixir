@@ -518,7 +518,7 @@ defmodule Macro do
   ## Examples
 
       iex> ast = quote do: 5 + 3 * 7
-      {:+, _, [5, {:*, _, [3, 7]}]} = ast
+      iex> {:+, _, [5, {:*, _, [3, 7]}]} = ast
       iex> new_ast = Macro.prewalk(ast, fn
       ...>   {:+, meta, children} -> {:*, meta, children}
       ...>   {:*, meta, children} -> {:+, meta, children}
@@ -540,24 +540,25 @@ defmodule Macro do
   Performs a depth-first, pre-order traversal of quoted expressions
   using an accumulator.
 
-  Returns a tuple where the first element is a new ast where each node is the
+  Returns a tuple where the first element is a new AST where each node is the
   result of invoking `fun` on each corresponding node and the second one is the
   final accumulator.
 
   ## Examples
 
       iex> ast = quote do: 5 + 3 * 7
-      {:+, _, [5, {:*, _, [3, 7]}]} = ast
+      iex> {:+, _, [5, {:*, _, [3, 7]}]} = ast
       iex> {new_ast, acc} = Macro.prewalk(ast, [], fn
       ...>   {:+, meta, children}, acc -> {{:*, meta, children}, [:+ | acc]}
       ...>   {:*, meta, children}, acc -> {{:+, meta, children}, [:* | acc]}
       ...>   other, acc -> {other, acc}
       ...> end)
-      {{:*, _, [5, {:+, _, [3, 7]}]}, [:*, :+]} = {new_ast, acc}
+      iex> {{:*, _, [5, {:+, _, [3, 7]}]}, [:*, :+]} = {new_ast, acc}
       iex> Code.eval_quoted(ast)
       {26, []}
       iex> Code.eval_quoted(new_ast)
       {50, []}
+
   """
   @spec prewalk(t, any, (t, any -> {t, any})) :: {t, any}
   def prewalk(ast, acc, fun) when is_function(fun, 2) do
