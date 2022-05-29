@@ -514,7 +514,7 @@ defmodule Macro do
   @doc """
   Performs a depth-first, pre-order traversal of quoted expressions.
 
-  Returns a new ast where each node is the result of invoking `fun` on each
+  Returns a new AST where each node is the result of invoking `fun` on each
   corresponding node of `ast`.
 
   ## Examples
