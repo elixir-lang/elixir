@@ -1690,7 +1690,13 @@ defmodule ErlangError do
 
       error_info = Map.put(error_info, :pretty_printer, &inspect/1)
       head = {module, fun, args_or_arity, Keyword.put(opts, :error_info, error_info)}
-      extra = apply(error_module, error_fun, [erl_exception, [head | tail]])
+
+      extra =
+        try do
+          apply(error_module, error_fun, [erl_exception, [head | tail]])
+        rescue
+          _ -> %{}
+        end
 
       arity = if is_integer(args_or_arity), do: args_or_arity, else: length(args_or_arity)
       args_errors = Map.take(extra, Enum.to_list(1..arity//1))
