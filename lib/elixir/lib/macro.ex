@@ -460,6 +460,36 @@ defmodule Macro do
   @doc """
   Performs a depth-first traversal of quoted expressions
   using an accumulator.
+
+  Returns a tuple where the first element is a new AST and the second one is
+  the final accumulator. The new AST is the result of invoking `pre` on each
+  node of `ast` during the pre-order phase and `post` during the post-order
+  phase.
+
+  ## Examples
+
+      iex> ast = quote do: 5 + 3 * 7
+      iex> {:+, _, [5, {:*, _, [3, 7]}]} = ast
+      iex> {new_ast, acc} =
+      ...>  Macro.traverse(
+      ...>    ast,
+      ...>    [],
+      ...>    fn
+      ...>      {:+, meta, children}, acc -> {{:-, meta, children}, [:- | acc]}
+      ...>      {:*, meta, children}, acc -> {{:/, meta, children}, [:/ | acc]}
+      ...>      other, acc -> {other, acc}
+      ...>    end,
+      ...>    fn
+      ...>      {:-, meta, children}, acc -> {{:min, meta, children}, [:min | acc]}
+      ...>      {:/, meta, children}, acc -> {{:max, meta, children}, [:max | acc]}
+      ...>      other, acc -> {other, acc}
+      ...>    end
+      ...>  )
+      iex> {:min, _, [5, {:max, _, [3, 7]}]} = new_ast
+      iex> [:min, :max, :/, :-] = acc
+      iex> Code.eval_quoted(new_ast)
+      {5, []}
+
   """
   @spec traverse(t, any, (t, any -> {t, any}), (t, any -> {t, any})) :: {t, any}
   def traverse(ast, acc, pre, post) when is_function(pre, 2) and is_function(post, 2) do
@@ -514,7 +544,7 @@ defmodule Macro do
   @doc """
   Performs a depth-first, pre-order traversal of quoted expressions.
 
-  Returns a new ast where each node is the result of invoking `fun` on each
+  Returns a new AST where each node is the result of invoking `fun` on each
   corresponding node of `ast`.
 
   ## Examples
@@ -526,7 +556,7 @@ defmodule Macro do
       ...>   {:*, meta, children} -> {:+, meta, children}
       ...>   other -> other
       ...> end)
-      {:*, _, [5, {:+, _, [3, 7]}]} = new_ast
+      iex> {:*, _, [5, {:+, _, [3, 7]}]} = new_ast
       iex> Code.eval_quoted(ast)
       {26, []}
       iex> Code.eval_quoted(new_ast)
