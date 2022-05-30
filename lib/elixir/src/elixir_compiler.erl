@@ -154,7 +154,6 @@ bootstrap() ->
   {ok, Cwd} = file:get_cwd(),
   Lib = filename:join(Cwd, "lib/elixir/lib"),
   [bootstrap_file(Lib, File) || File <- [<<"kernel.ex">> | Init]],
-  elixir_config:put(docs, true),
   [bootstrap_file(Lib, File) || File <- [<<"kernel.ex">> | Main]].
 
 bootstrap_file(Lib, Suffix) ->
