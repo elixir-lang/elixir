@@ -1246,8 +1246,8 @@ defmodule Kernel do
 
   """
   @doc guard: true
-  @spec tl(nonempty_maybe_improper_list(elem, tail)) :: maybe_improper_list(elem, tail) | tail
-        when elem: term, tail: term
+  @spec tl(nonempty_maybe_improper_list(elem, last)) :: maybe_improper_list(elem, last) | last
+        when elem: term, last: term
   def tl(list) do
     :erlang.tl(list)
   end
