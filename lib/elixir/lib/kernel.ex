@@ -547,7 +547,7 @@ defmodule Kernel do
 
   """
   @doc guard: true
-  @spec hd(nonempty_maybe_improper_list(elem, any)) :: elem when elem: term
+  @spec hd(nonempty_maybe_improper_list(elem, tail)) :: elem when elem: term, tail: term
   def hd(list) do
     :erlang.hd(list)
   end
