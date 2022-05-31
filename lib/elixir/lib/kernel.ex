@@ -528,6 +528,8 @@ defmodule Kernel do
   @doc """
   Returns the head of a list. Raises `ArgumentError` if the list is empty.
 
+  The head of a list is its first element.
+
   It works with improper lists.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1221,6 +1223,8 @@ defmodule Kernel do
   @doc """
   Returns the tail of a list. Raises `ArgumentError` if the list is empty.
 
+  The tail of a list is the list without its first element.
+
   It works with improper lists.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -1233,8 +1237,8 @@ defmodule Kernel do
       tl([:one])
       #=> []
 
-      tl([:a, :b | :c])
-      #=> [:b | :c]
+      tl([:a, :b | :improper_end])
+      #=> [:b | :improper_end]
 
       tl([:a | %{b: 1}])
       #=> %{b: 1}
