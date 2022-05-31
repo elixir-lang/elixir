@@ -269,6 +269,12 @@ defmodule ExUnit.Case do
 
   @doc false
   def __register__(module, opts) do
+    unless Keyword.keyword?(opts) do
+      raise ArgumentError,
+            ~s(the argument passed to "use ExUnit.Case" must be a list of options, ) <>
+              ~s(got: #{inspect(opts)})
+    end
+
     registered? = Module.has_attribute?(module, :ex_unit_tests)
 
     unless registered? do
