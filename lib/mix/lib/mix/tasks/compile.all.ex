@@ -152,7 +152,7 @@ defmodule Mix.Tasks.Compile.All do
     else
       with {:ok, bin} <- read_app(app, lib_path),
            {:ok, {:application, _, properties} = application_data} <- consult_app_file(bin),
-           :ok <- Application.load(application_data) do
+           :ok <- :application.load(application_data) do
         if compile_env = validate_compile_env? && properties[:compile_env] do
           Config.Provider.validate_compile_env(compile_env, false)
         end
