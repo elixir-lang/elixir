@@ -16,7 +16,7 @@ defmodule Mix.Tasks.App.Config do
     * `--permanent` - starts the application as permanent
     * `--preload-modules` - preloads all modules defined in applications
     * `--no-archives-check` - does not check archives
-    * `--no-app-loading` - does not load .app resource files (including from deps) before compiling
+    * `--no-app-loading` - does not load .app resource file after compilation
     * `--no-compile` - does not compile even if files require compilation
     * `--no-deps-check` - does not check dependencies
     * `--no-elixir-version-check` - does not check Elixir version

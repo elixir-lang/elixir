@@ -20,10 +20,7 @@ defmodule Mix.Tasks.Compile.All do
     # during compilation. It is likely this will be invoked anyway,
     # as both Elixir and app compilers rely on it.
     Mix.Dep.cached()
-
-    unless "--no-app-loading" in args do
-      load_apps(config, lib_path, validate_compile_env?)
-    end
+    load_apps(config, lib_path, validate_compile_env?)
 
     result =
       if "--no-compile" in args do
@@ -40,9 +37,12 @@ defmodule Mix.Tasks.Compile.All do
         end)
       end
 
-    app = config[:app]
     _ = Code.prepend_path(Mix.Project.compile_path())
-    load_app(app, lib_path, validate_compile_env?)
+
+    unless "--no-app-loading" in args do
+      load_app(config[:app], lib_path, validate_compile_env?)
+    end
+
     result
   end
 
