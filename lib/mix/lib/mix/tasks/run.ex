@@ -1,20 +1,18 @@
 defmodule Mix.Tasks.Run do
   use Mix.Task
 
-  @shortdoc "Starts and runs the current application"
+  @shortdoc "Runs the current application"
 
   @moduledoc """
-  Starts the current application and runs code.
+  Runs the current application.
 
-  `mix run` can be used to start the current application dependencies,
-  the application itself, and optionally run some code in its context.
-  For long running systems, this is typically done with the `--no-halt`
-  option:
+  `mix run` starts the current application dependencies and the
+  application itself. The application will be compiled if it has
+  not been compiled yet or it is outdated.
 
-      mix run --no-halt
-
-  Once the current application and its dependencies have been started,
-  you can run a script in its context by passing a filename:
+  `mix run` may also run code in the application context through
+  additional options. For example, to run a script within the
+  current application, you may pass a filename as argument:
 
       mix run my_app_script.exs arg1 arg2 arg3
 
@@ -23,17 +21,18 @@ defmodule Mix.Tasks.Run do
       mix run -e "DbUtils.delete_old_records()" -- arg1 arg2 arg3
 
   In both cases, the command-line arguments for the script or expression
-  are available in `System.argv/0`.
+  are available in `System.argv/0`. This mirror the command line interface
+  in the `elixir` executable.
 
-  Before doing anything, Mix will compile the current application if
-  needed, unless you pass `--no-compile`.
+  For starting long running systems, one typically passes the `--no-halt`
+  option:
 
-  If for some reason the application needs to be configured before it is
-  started, the `--no-start` option can be used and you are then responsible
-  for starting all applications by using functions such as
-  `Application.ensure_all_started/1`. For more information about the
-  application life-cycle and dynamically configuring applications, see
-  the `Application` module.
+      mix run --no-halt
+
+  The `--no-start` option can also be given and the current application,
+  nor its dependencies will be started. Alternatively, you may use
+  `mix eval` to evaluate a single expression without starting the current
+  application.
 
   If you need to pass options to the Elixir executable at the same time
   you use `mix run`, it can be done as follows:
@@ -45,18 +44,17 @@ defmodule Mix.Tasks.Run do
 
   ## Command-line options
 
-    * `--config` - loads the given configuration files
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - executes the given pattern/file
     * `--parallel`, `-p` - makes all requires parallel
     * `--preload-modules` - preloads all modules defined in applications
+    * `--no-archives-check` - does not check archives
     * `--no-compile` - does not compile even if files require compilation
     * `--no-deps-check` - does not check dependencies
-    * `--no-archives-check` - does not check archives
+    * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
     * `--no-halt` - does not halt the system after running the command
     * `--no-mix-exs` - allows the command to run even if there is no mix.exs
     * `--no-start` - does not start applications after compilation
-    * `--no-elixir-version-check` - does not check the Elixir version from mix.exs
 
   """
 
