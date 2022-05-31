@@ -63,7 +63,7 @@ defmodule ExUnit.CaseTemplate do
       use ExUnit.Callbacks
 
       import ExUnit.Assertions
-      import unquote(__MODULE__), only: [using: 1, using: 2]
+      import unquote(__MODULE__)
 
       defmacro __using__(opts) do
         unquote(__MODULE__).__proxy__(__MODULE__, opts)
