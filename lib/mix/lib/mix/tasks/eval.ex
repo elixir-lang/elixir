@@ -4,20 +4,38 @@ defmodule Mix.Tasks.Eval do
   @shortdoc "Evaluates the given code"
 
   @moduledoc """
-  Evaluates the given code.
+  Evaluates the given code within a configured application.
 
-      mix eval "IO.puts 1 + 2"
+      mix eval "IO.puts(1 + 2)"
 
   The given code is evaluated after the current application
-  has been configured and loaded, but without starting/running it.
-  See `mix run` for running code and scripts within a running
-  application.
+  has been configured, but without loading nor starting it.
+  See `mix run` for running your application and scripts within
+  a started application.
 
   This task is designed to mirror the `bin/my_app eval` command
-  in releases. If you want to start your application, you may do
-  so by using functions such as `Application.ensure_all_started/1`.
-  For more information about the application life-cycle and
-  dynamically configuring applications, see the `Application` module.
+  in releases. It is typically used to invoke functions already
+  defined within your application. For example, you may have a
+  module such as:
+
+      defmodule MyApp.ReleaseTasks do
+        def migrate_database do
+          Application.load(:my_app)
+          ...
+        end
+      end
+
+  Once defined, you can invoke this function either via `mix eval` or
+  via `bin/my_app eval` inside a release as follows:
+
+      $ mix eval MyApp.ReleaseTasks.migrate_database
+      $ bin/my_app eval MyApp.ReleaseTasks.migrate_database
+
+  As you can see, the current application has to be either explicitly
+  loaded or started in your tasks, either by calling `Application.load/1`
+  or `Application.ensure_all_started/1`. This gives you full control over
+  the application booting life-cycle. For more information, see the
+  `Application` module.
 
   This task is automatically re-enabled, so it can be called multiple
   times with different arguments.
@@ -50,7 +68,7 @@ defmodule Mix.Tasks.Eval do
       [to_eval] ->
         cond do
           Mix.Project.get() ->
-            Mix.Task.run("app.config", args)
+            Mix.Task.run("app.config", ["--no-app-loading" | args])
 
           "--no-mix-exs" in args ->
             :ok

@@ -9,7 +9,7 @@ defmodule Mix.Tasks.EvalTest do
 
   test "does not start applications", context do
     in_tmp(context.test, fn ->
-      expr = "send self(), {:apps, Application.started_applications()}"
+      expr = "send self(), {:apps, Application.loaded_applications()}"
       Mix.Tasks.Eval.run([expr])
       assert_received {:apps, apps}
       refute List.keyfind(apps, :sample, 0)

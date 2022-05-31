@@ -1,16 +1,18 @@
 defmodule Mix.Tasks.Run do
   use Mix.Task
 
-  @shortdoc "Runs the current application and scripts"
+  @shortdoc "Runs the current application"
 
   @moduledoc """
-  Runs the current application and scripts.
+  Runs the current application.
 
-  `mix run` starts the current application dependencies, the application
-  itself, and may also run some code in its context.
+  `mix run` starts the current application dependencies and the
+  application itself. The application will be compiled if it has
+  not been compiled yet or it is outdated.
 
-  To run a script within the current application, after it has been
-  started, you may pass a filename as argument:
+  `mix run` may also run code in the application context through
+  additional options. For example, to run a script within the
+  current application, you may pass a filename as argument:
 
       mix run my_app_script.exs arg1 arg2 arg3
 
@@ -19,18 +21,16 @@ defmodule Mix.Tasks.Run do
       mix run -e "DbUtils.delete_old_records()" -- arg1 arg2 arg3
 
   In both cases, the command-line arguments for the script or expression
-  are available in `System.argv/0`.
+  are available in `System.argv/0`. This mirror the command line interface
+  in the `elixir` executable.
 
   For starting long running systems, one typically passes the `--no-halt`
   option:
 
       mix run --no-halt
 
-  In all cases, Mix will compile the current application if needed,
-  unless you pass `--no-compile`.
-
   The `--no-start` option can also be given and the current application,
-  nor its dependencies, will be started. Alternatively, you may use
+  nor its dependencies will be started. Alternatively, you may use
   `mix eval` to evaluate a single expression without starting the current
   application.
 
