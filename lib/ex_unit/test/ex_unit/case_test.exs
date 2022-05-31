@@ -226,13 +226,9 @@ defmodule ExUnit.BadOptsCase do
 
   test "raises if passed something other than options" do
     assert_raise ArgumentError, ~r/must be a list of options, got: "not a list of options"/, fn ->
-      Code.eval_quoted(
-        quote do
-          defmodule MyBadCase do
-            use ExUnit.Case, "not a list of options"
-          end
-        end
-      )
+      defmodule MyBadCase do
+        use ExUnit.Case, "not a list of options"
+      end
     end
   end
 end
