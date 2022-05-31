@@ -112,6 +112,7 @@ defmodule File do
           encoding_mode()
           | :append
           | :compressed
+          | :delayed_write
           | :trim_bom
           | {:read_ahead, pos_integer | false}
           | {:delayed_write, non_neg_integer, non_neg_integer}
