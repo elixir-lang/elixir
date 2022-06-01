@@ -1,11 +1,8 @@
 # Changelog for Elixir v1.14
 
-Elixir v1.14 requires Erlang/OTP 23+ and it adds support for Erlang/OTP 25.
-
-v1.14 is a release without any major features or focus. It ships with a new
-feature (`PartitionSupervisor`), some improvements based on OTP 25, some new
-functions in existing modules, and some changes to the `Inspect` protocol
-implementation for some existing structs.
+Elixir v1.14 requires Erlang/OTP 23+ with a small batch of new features
+and the usual enhancements and bug fixes to Elixir and its standard library.
+We cover the most notable changes next.
 
 ## PartitionSupervisor
 
