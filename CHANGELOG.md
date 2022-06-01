@@ -1,10 +1,59 @@
 # Changelog for Elixir v1.14
 
-Elixir v1.14 requires Erlang/OTP 23+.
+Elixir v1.14 requires Erlang/OTP 23+ and it adds support for Erlang/OTP 25.
+
+v1.14 is a release without any major features or focus. It ships with a new
+feature (`PartitionSupervisor`), some improvements based on OTP 25, some new
+functions in existing modules, and some changes to the `Inspect` protocol
+implementation for some existing structs.
 
 ## PartitionSupervisor
 
-TODO.
+`PartitionSupervisor` is a new module that implements a new supervisor type. The
+partition supervisor is designed to help with situations where you have a single
+supervised process that becomes a bottleneck. If that process's state can be
+easily partitioned, then you can use `PartitionSupervisor` to supervise multiple
+isolated copies of that process running concurrently, each assigned its own
+partition.
+
+For example, imagine you have a `ErrorReporter` process that you use to report
+errors to a monitoring service.
+
+```elixir
+# Application supervisor:
+children = [
+  # ...,
+  ErrorReporter
+]
+
+Supervisor.start_link(children, strategy: :one_for_one)
+```
+
+As the concurrency of your application goes up, the `ErrorReporter` process
+might receive requests from many other processes and eventually become a
+bottleneck. In a case like this, it could help to spin up multiple copies of the
+`ErrorReporter` process under a `PartitionSupervisor`.
+
+```elixir
+# Application supervisor
+children = [
+  {PartitionSupervisor, child_spec: {ErrorReporter, []}, name: Reporters}
+]
+```
+
+The `PartitionSupervisor` will spin up a number of processes equal to
+`System.schedulers_online()` by default (most often one per core). Now, when
+routing requests to `ErrorReporter` processes we can use a `:via` tuple and
+route the requests through the partition supervisor.
+
+```elixir
+partitioning_key = self()
+ErrorReporter.report({:via, PartitionSupervisor, {Reporters, partitioning_key}}, error)
+```
+
+Using `self()` as the partitioning key here means that the same process will
+always report errors to the same `ErrorReporter` process, ensuring a form of
+back-pressure. You can use any term as the partitioning key.
 
 ## Improved errors on binaries and evaluation
 
