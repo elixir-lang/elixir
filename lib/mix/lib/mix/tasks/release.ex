@@ -797,9 +797,11 @@ defmodule Mix.Tasks.Release do
       files to. It can be set to a custom directory. It defaults to
       `$RELEASE_ROOT/tmp`
 
-    * `RELEASE_MODE` - if the release should start in embedded or
-      interactive mode. Defaults to "embedded". It applies only to
-      start/daemon/install commands
+    * `RELEASE_MODE` - if the release should load code on demand (interactive)
+      or preload it (embedded). Defaults to "embedded", which increases boot
+      time but it means the runtime will respond faster as it doesn't have to
+      load code. Choose interactive if you need to decrease boot time and reduce
+      memory usage on boot. It applies only to start/daemon/install commands
 
     * `RELEASE_DISTRIBUTION` - how do we want to run the distribution.
       May be `name` (long names), `sname` (short names) or `none`

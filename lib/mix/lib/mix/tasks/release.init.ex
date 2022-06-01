@@ -45,9 +45,6 @@ defmodule Mix.Tasks.Release.Init do
     ## Customize flags given to the VM: https://www.erlang.org/doc/man/erl.html
     ## -mode/-name/-sname/-setcookie are configured via env vars, do not set them here
 
-    ## Number of dirty schedulers doing IO work (file, sockets, and others)
-    ##+SDio 5
-
     ## Increase number of concurrent ports/sockets
     ##+Q 65536
 
@@ -70,6 +67,9 @@ defmodule Mix.Tasks.Release.Init do
     #   *)
     #     ;;
     # esac
+
+    # # Set the release to load code on demand (interactive) instead of preloading (embedded).
+    # export RELEASE_MODE=interactive
 
     # # Set the release to work across nodes.
     # # RELEASE_DISTRIBUTION must be "sname" (local), "name" (distributed) or "none".
@@ -271,6 +271,9 @@ defmodule Mix.Tasks.Release.Init do
   def env_bat_text,
     do: ~S"""
     @echo off
+    rem Set the release to load code on demand (interactive) instead of preloading (embedded).
+    rem set RELEASE_MODE=interactive
+
     rem Set the release to work across nodes.
     rem RELEASE_DISTRIBUTION must be "sname" (local), "name" (distributed) or "none".
     rem set RELEASE_DISTRIBUTION=name
