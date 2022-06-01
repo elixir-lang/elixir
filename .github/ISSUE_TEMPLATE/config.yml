@@ -1,0 +1,10 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: Discuss proposals
+    url: https://groups.google.com/g/elixir-lang-core
+    about: Discuss proposals
+  - name: Ask Questions
+    url: https://elixirforum.com/
+    about: Ask and answer questions here.
+

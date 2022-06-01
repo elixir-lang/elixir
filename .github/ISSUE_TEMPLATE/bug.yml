@@ -1,0 +1,47 @@
+name: 🐞 Bug Report
+description: Tell us about something that's not working the way we (probably) intend.
+labels: ["Kind:Bug", "State:Triage"]
+body:
+  - type: input
+    id: elixir-version
+    attributes:
+      label: Elixir version
+      description: Use `elixir -v` to find the Elixir version.
+    validations:
+      required: true
+
+  - type: input
+    id: erlang-version
+    attributes:
+      label: Erlang version
+      description: Use `elixir -v` to find the Erlang version.
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operation System
+      description: The operation system
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: Include code samples, errors and stacktraces if appropriate. If reporting a bug, please include the reproducing steps.
+      placeholder: |-
+        1. foo
+        2. bar
+        3. baz
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A short description on how you expect the code to behave.
+    validations:
+      required: true
