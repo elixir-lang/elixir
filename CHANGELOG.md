@@ -34,7 +34,7 @@ bottleneck. In a case like this, it could help to spin up multiple copies of the
 ```elixir
 # Application supervisor
 children = [
-  {PartitionSupervisor, child_spec: {ErrorReporter, []}, name: Reporters}
+  {PartitionSupervisor, child_spec: ErrorReporter, name: Reporters}
 ]
 ```
 
