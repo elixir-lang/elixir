@@ -8,16 +8,86 @@ defprotocol Inspect do
   The `Inspect` protocol converts an Elixir data structure into an
   algebra document.
 
+  This is typically done when you want to customize how your own
+  structs are inspected in logs and the terminal.
+
   This documentation refers to implementing the `Inspect` protocol
   for your own data structures. To learn more about using inspect,
   see `Kernel.inspect/2` and `IO.inspect/2`.
 
-  The `inspect/2` function receives the entity to be inspected
-  followed by the inspecting options, represented by the struct
-  `Inspect.Opts`. Building of the algebra document is done with
-  `Inspect.Algebra`.
+  ## Inspect representation
 
-  ## Examples
+  There are typically three choices of inspect representation. In order
+  to understand them, let's imagine we have the following `User` struct:
+
+      defmodule User do
+        defstruct [:id, :name, :address]
+      end
+
+  Our choices are:
+
+    1. Print the struct using Elixir's struct syntax, for example:
+       `%User{address: "Earth", id: 13, name: "Jane"}`. This is the
+       best choice if all struct fields are public.
+
+    2. Print using the `#User<...>` notation, for example: `#User<id: 13, name: "Jane", ...>`.
+       This notation does not emit valid Elixir code and is typically
+       used when the struct has private fields (for example, you may want
+       to hide the field `:address` to redact person identifiable information).
+
+    3. Print the struct using the expression syntax, for example:
+       `User.new(13, "Jane", "Earth")`. This assumes there is a `User.new/3`
+       function. This option is mostly used as an alternative to option 2
+       for representing custom data structures, such as `MapSet`, `Date.Range`,
+       and others.
+
+  You can implement the Inspect protocol for your own structs while
+  adhering to the conventions above. However, options 1 and 2 can be
+  quickly achieved by deriving the `Inspect` protocol. For option 3,
+  you need your custom implementation.
+
+  ## Deriving
+
+  The `Inspect` protocol can be derived to customize the order of fields
+  (the default is alphabetical) and hide certain fields from structs,
+  so they don't show up in logs, inspects and similar. The latter is
+  especially useful for fields containing private information.
+
+  There are four possible options:
+
+    * `:only` - only include the given fields when inspecting.
+
+    * `:except` - remove the given fields when inspecting.
+
+    * `:order` - (since v1.14.0) include fields in the given order.
+      Non-listed fields come after the listed ones.
+
+    * `:optional` - (since v1.14.0) do not include a field if it
+      matches its default value.
+
+  Whenever `:only` or `:except` are used to restrict fields,
+  the struct will be printed using the `#User<...>` notation,
+  as the struct can no longer be copy and pasted as valid Elixir
+  code. Let's see an example:
+
+      defmodule User do
+        @derive {Inspect, only: [:id, :name]}
+        defstruct [:id, :name, :address]
+      end
+
+      inspect(%User{id: 1, name: "Jane", address: "Earth"})
+      #=> #User<id: 1, name: "Jane", ...>
+
+  If you use only the options `:order` and `:optional`, the struct
+  will still be printed as `%User{...}`.
+
+  ## Custom implementation
+
+  You can also define your custom protocol implementation by
+  defining the `inspect/2` function. The function receives the
+  entity to be inspected followed by the inspecting options,
+  represented by the struct `Inspect.Opts`. Building of the
+  algebra document is done with `Inspect.Algebra`.
 
   Many times, inspecting a structure can be implemented in function
   of existing entities. For example, here is `MapSet`'s `inspect/2`
@@ -27,23 +97,24 @@ defprotocol Inspect do
         import Inspect.Algebra
 
         def inspect(map_set, opts) do
-          concat(["#MapSet<", to_doc(MapSet.to_list(map_set), opts), ">"])
+          concat(["MapSet.new(", Inspect.List.inspect(MapSet.to_list(map_set), opts), ")"])
         end
       end
 
   The [`concat/1`](`Inspect.Algebra.concat/1`) function comes from
   `Inspect.Algebra` and it concatenates algebra documents together.
-  In the example above it is concatenating the string `"#MapSet<"`,
+  In the example above it is concatenating the string `"MapSet.new("`,
   the document returned by `Inspect.Algebra.to_doc/2`, and the final
-  string `">"`. We prefix the module name `#` to denote the inspect
-  presentation is not actually valid Elixir syntax.
+  string `")"`. Therefore, the MapSet with the numbers 1, 2, and 3
+  will be printed as:
 
-  Finally, note strings themselves are valid algebra documents that
-  keep their formatting when pretty printed. This means your `Inspect`
-  implementation may simply return a string, although that will devoid
-  it of any pretty-printing.
+      iex> MapSet.new([1, 2, 3], fn x -> x * 2 end)
+      MapSet.new([2, 4, 6])
 
-  ## Error handling
+  In other words, `MapSet`'s inspect representation returns an expression
+  that, when evaluated, builds the `MapSet` itself.
+
+  ### Error handling
 
   In case there is an error while your structure is being inspected,
   Elixir will raise an `ArgumentError` error and will automatically fall back
@@ -54,24 +125,6 @@ defprotocol Inspect do
   you can invoke it as:
 
       Inspect.MapSet.inspect(MapSet.new(), %Inspect.Opts{})
-
-  ## Deriving
-
-  The `Inspect` protocol can be derived to hide certain fields from
-  structs, so they don't show up in logs, inspects and similar. This
-  is especially useful for fields containing private information.
-
-  The options `:only` and `:except` can be used with `@derive` to
-  specify which fields should and should not appear in the
-  algebra document:
-
-      defmodule User do
-        @derive {Inspect, only: [:id, :name]}
-        defstruct [:id, :name, :address]
-      end
-
-      inspect(%User{id: 1, name: "Homer", address: "742 Evergreen Terrace"})
-      #=> #User<id: 1, name: "Homer", ...>
 
   """
 
@@ -250,15 +303,18 @@ end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
-    inspect(map, "", opts)
+    inspect(Map.to_list(map), "", opts)
   end
 
-  def inspect(map, name, opts) do
-    map = Map.to_list(map)
+  def inspect(list, name, opts) do
     open = color("%" <> name <> "{", :map, opts)
     sep = color(",", :map, opts)
     close = color("}", :map, opts)
-    container_doc(open, map, close, opts, traverse_fun(map, opts), separator: sep, break: :strict)
+
+    container_doc(open, list, close, opts, traverse_fun(list, opts),
+      separator: sep,
+      break: :strict
+    )
   end
 
   defp traverse_fun(list, opts) do
@@ -451,17 +507,16 @@ end
 
 defimpl Inspect, for: Any do
   defmacro __deriving__(module, struct, options) do
-    fields = Map.keys(struct) -- [:__exception__, :__struct__]
+    fields = Enum.sort(Map.keys(struct) -- [:__exception__, :__struct__])
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
+    optional = Keyword.get(options, :optional, [])
+    order = Keyword.get(options, :order, [])
 
-    :ok = validate_option(only, fields, module)
-    :ok = validate_option(except, fields, module)
-
-    filtered_fields =
-      fields
-      |> Enum.reject(&(&1 in except))
-      |> Enum.filter(&(&1 in only))
+    :ok = validate_option(:only, only, fields, module)
+    :ok = validate_option(:except, except, fields, module)
+    :ok = validate_option(:optional, optional, fields, module)
+    :ok = validate_option(:order, order, fields, module)
 
     inspect_module =
       if fields == only and except == [] do
@@ -470,25 +525,71 @@ defimpl Inspect, for: Any do
         Inspect.Any
       end
 
+    filtered_fields =
+      fields
+      |> Enum.reject(&(&1 in except))
+      |> Enum.filter(&(&1 in only))
+
+    ordered_fields = order ++ (filtered_fields -- order)
+
+    mapper =
+      if optional == [] do
+        # If there are no optional fields, we will always include all fields,
+        # so a map operation suffices.
+        quote do
+          Enum.map(unquote(ordered_fields), fn var!(key) ->
+            case var!(struct) do
+              %{^var!(key) => var!(value)} -> {var!(key), var!(value)}
+              %{} -> {var!(key), nil}
+            end
+          end)
+        end
+      else
+        optional_fields =
+          Enum.map(ordered_fields, fn field ->
+            if field in optional, do: {field, Map.fetch!(struct, field)}, else: field
+          end)
+
+        # If there are optional fields, then we need to keep the order
+        # but potentially skip fields that match to their default value.
+        quote do
+          Enum.flat_map(unquote(Macro.escape(optional_fields)), fn
+            {var!(key), var!(default)} ->
+              case var!(struct) do
+                %{^var!(key) => ^var!(default)} -> []
+                %{^var!(key) => var!(value)} -> [{var!(key), var!(value)}]
+                %{} -> [{var!(key), nil}]
+              end
+
+            var!(key) ->
+              case var!(struct) do
+                %{^var!(key) => var!(value)} -> [{var!(key), var!(value)}]
+                %{} -> [{var!(key), nil}]
+              end
+          end)
+        end
+      end
+
     quote do
       defimpl Inspect, for: unquote(module) do
         def inspect(var!(struct), var!(opts)) do
-          var!(map) = Map.take(var!(struct), unquote(filtered_fields))
+          var!(list) = unquote(mapper)
           var!(name) = Macro.inspect_atom(:literal, unquote(module))
-          unquote(inspect_module).inspect(var!(map), var!(name), var!(opts))
+          unquote(inspect_module).inspect(var!(list), var!(name), var!(opts))
         end
       end
     end
   end
 
-  defp validate_option(option_list, fields, module) do
+  defp validate_option(option, option_list, fields, module) do
     case option_list -- fields do
       [] ->
         :ok
 
       unknown_fields ->
         raise ArgumentError,
-              "unknown fields #{Kernel.inspect(unknown_fields)} given when deriving the Inspect protocol for #{Kernel.inspect(module)}. :only and :except values must match struct fields"
+              "unknown fields #{Kernel.inspect(unknown_fields)} in #{Kernel.inspect(option)} " <>
+                "when deriving the Inspect protocol for #{Kernel.inspect(module)}"
     end
   end
 
@@ -501,15 +602,14 @@ defimpl Inspect, for: Any do
       dunder ->
         if Map.keys(dunder) == Map.keys(struct) do
           pruned = Map.drop(struct, [:__struct__, :__exception__])
-          Inspect.Map.inspect(pruned, Macro.inspect_atom(:literal, module), opts)
+          Inspect.Map.inspect(Map.to_list(pruned), Macro.inspect_atom(:literal, module), opts)
         else
           Inspect.Map.inspect(struct, opts)
         end
     end
   end
 
-  def inspect(map, name, opts) do
-    map = Map.to_list(map) ++ [:...]
+  def inspect(list, name, opts) do
     open = color("#" <> name <> "<", :map, opts)
     sep = color(",", :map, opts)
     close = color(">", :map, opts)
@@ -519,7 +619,7 @@ defimpl Inspect, for: Any do
       :..., _opts -> "..."
     end
 
-    container_doc(open, map, close, opts, fun, separator: sep, break: :strict)
+    container_doc(open, list ++ [:...], close, opts, fun, separator: sep, break: :strict)
   end
 end
 
