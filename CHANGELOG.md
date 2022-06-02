@@ -52,6 +52,31 @@ Using `self()` as the partitioning key here means that the same process will
 always report errors to the same `ErrorReporter` process, ensuring a form of
 back-pressure. You can use any term as the partitioning key.
 
+### A Common Example
+
+A common and practical example of a good use case for `PartitionSupervisor` is
+partitioning something like a `Task.Supervisor`. With many tasks under it, a
+task supervisor can be a bottleneck. Instead of starting a single
+`Task.Supervisor` for a set of tasks, you can start multiple ones:
+
+```elixir
+children = [
+  {PartitionSupervisor, child_spec: Task.Supervisor, name: MyApp.TaskSupervisors}
+]
+
+Supervisor.start_link(children, strategy: :one_for_one)
+```
+
+Now you start tasks on the task supervisor for the right partition. For
+instance, you can partition by PID, like in the previous example:
+
+```elixir
+Task.Supervisor.async(
+  {:via, PartitionSupervisor, {MyApp.TaskSupervisors, self()}},
+  fn -> :do_some_work end
+)
+```
+
 ## Improved errors on binaries and evaluation
 
 TODO.
