@@ -3,18 +3,10 @@ description: Tell us about something that's not working the way we (probably) in
 labels: ["Kind:Bug", "State:Triage"]
 body:
   - type: input
-    id: elixir-version
+    id: elixir-and-otp-version
     attributes:
-      label: Elixir version
-      description: Use `elixir -v` to find the Elixir version.
-    validations:
-      required: true
-
-  - type: input
-    id: erlang-version
-    attributes:
-      label: Erlang version
-      description: Use `elixir -v` to find the Erlang version.
+      label: Elixir and Erlang/OTP versions
+      description: Paste the output of `elixir -v` here.
     validations:
       required: true
 
