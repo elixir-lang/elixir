@@ -21,8 +21,8 @@ body:
   - type: input
     id: os
     attributes:
-      label: Operation System
-      description: The operation system
+      label: Operating System
+      description: The operating system that this issue is happening on.
     validations:
       required: true
 
