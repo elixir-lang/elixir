@@ -100,6 +100,7 @@ defmodule Version do
   import Kernel, except: [match?: 2]
 
   @enforce_keys [:major, :minor, :patch]
+  @derive {Inspect, order: [:major, :minor, :patch, :pre, :build], optional: [:pre, :build]}
   defstruct [:major, :minor, :patch, :build, pre: []]
 
   @type version :: String.t() | t
@@ -353,9 +354,8 @@ defmodule Version do
 
   ## Examples
 
-      iex> {:ok, version} = Version.parse("2.0.1-alpha1")
-      iex> version
-      Version.parse!("2.0.1-alpha1")
+      iex> Version.parse("2.0.1-alpha1")
+      {:ok, %Version{major: 2, minor: 0, patch: 1, pre: ["alpha1"]}}
 
       iex> Version.parse("2.0-alpha1")
       :error
@@ -382,7 +382,7 @@ defmodule Version do
   ## Examples
 
       iex> Version.parse!("2.0.1-alpha1")
-      Version.parse!("2.0.1-alpha1")
+      %Version{major: 2, minor: 0, patch: 1, pre: ["alpha1"]}
 
       iex> Version.parse!("2.0-alpha1")
       ** (Version.InvalidVersionError) invalid version: "2.0-alpha1"
@@ -662,12 +662,6 @@ end
 
 defimpl String.Chars, for: Version do
   defdelegate to_string(version), to: Version
-end
-
-defimpl Inspect, for: Version do
-  def inspect(self, _opts) do
-    "Version.parse!(\"" <> Version.to_string(self) <> "\")"
-  end
 end
 
 defimpl String.Chars, for: Version.Requirement do
