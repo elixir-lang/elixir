@@ -1,5 +1,5 @@
 name: 🐞 Bug Report
-description: Tell us about something that's not working the way we (probably) intend.
+description: Tell us about something that's not working the way we (probably) intend
 body:
   - type: input
     id: elixir-and-otp-version
