@@ -807,7 +807,7 @@ defmodule Application do
   @doc """
   Ensures the given `app` is loaded.
 
-  Same as `load/2` but returns `:ok` if the application was already
+  Same as `load/1` but returns `:ok` if the application was already
   loaded.
   """
   @doc since: "1.10.0"
