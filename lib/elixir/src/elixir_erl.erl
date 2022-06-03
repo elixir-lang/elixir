@@ -75,6 +75,9 @@ elixir_to_erl([], Ann) ->
   {nil, Ann};
 elixir_to_erl(<<>>, Ann) ->
   {bin, Ann, []};
+elixir_to_erl(#{} = Map, Ann) ->
+  Assocs = [{map_field_assoc, Ann, elixir_to_erl(K, Ann), elixir_to_erl(V, Ann)} || {K, V} <- maps:to_list(Map)],
+  {map, Ann, Assocs};
 elixir_to_erl(Tree, Ann) when is_list(Tree) ->
   elixir_to_erl_cons(Tree, Ann);
 elixir_to_erl(Tree, Ann) when is_atom(Tree) ->
@@ -249,7 +252,7 @@ functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated, Struct) -
   [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body].
 
 add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
-  AllowedAttrs = [attributes, compile, functions, macros, md5, exports_md5, module, deprecated],
+  AllowedAttrs = [attributes, compile, functions, macros, md5, exports_md5, module, deprecated, struct],
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
   SortedDef = lists:sort(Def),
   SortedDefmacro = lists:sort(Defmacro),
@@ -269,6 +272,7 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
       get_module_info(Module),
       functions_info(SortedDef),
       macros_info(SortedDefmacro),
+      struct_info(Struct),
       exports_md5_info(Struct, SortedDef, SortedDefmacro),
       get_module_info(Module, attributes),
       get_module_info(Module, compile),
@@ -285,20 +289,26 @@ exports_md5_info(Struct, Def, Defmacro) ->
   %% Deprecations do not need to be part of exports_md5 because it is always
   %% checked by the runtime pass, so it is not really part of compilation.
   Md5 = erlang:md5(erlang:term_to_binary({Def, Defmacro, Struct})),
-  {clause, 0, [{atom, 0, exports_md5}], [], [elixir_erl:elixir_to_erl(Md5)]}.
+  {clause, 0, [{atom, 0, exports_md5}], [], [elixir_to_erl(Md5)]}.
 
 functions_info(Def) ->
-  {clause, 0, [{atom, 0, functions}], [], [elixir_erl:elixir_to_erl(Def)]}.
+  {clause, 0, [{atom, 0, functions}], [], [elixir_to_erl(Def)]}.
 
 macros_info(Defmacro) ->
-  {clause, 0, [{atom, 0, macros}], [], [elixir_erl:elixir_to_erl(Defmacro)]}.
+  {clause, 0, [{atom, 0, macros}], [], [elixir_to_erl(Defmacro)]}.
+
+struct_info(nil) ->
+  {clause, 0, [{atom, 0, struct}], [], [{atom, 0, nil}]};
+struct_info(Fields) ->
+  FieldsWithoutDefault = [maps:remove(default, FieldInfo) || FieldInfo <- Fields],
+  {clause, 0, [{atom, 0, struct}], [], [elixir_to_erl(FieldsWithoutDefault)]}.
 
 get_module_info(Module, Key) ->
   Call = ?remote(0, erlang, get_module_info, [{atom, 0, Module}, {var, 0, 'Key'}]),
   {clause, 0, [{match, 0, {var, 0, 'Key'}, {atom, 0, Key}}], [], [Call]}.
 
 deprecated_info(Deprecated) ->
-  {clause, 0, [{atom, 0, deprecated}], [], [elixir_erl:elixir_to_erl(Deprecated)]}.
+  {clause, 0, [{atom, 0, deprecated}], [], [elixir_to_erl(Deprecated)]}.
 
 % Typespecs
 
