@@ -5,9 +5,6 @@ contact_links:
   - name: Discuss proposals
     url: https://groups.google.com/g/elixir-lang-core
     about: Send proposals for new ideas to our mailing list
-  - name: Ask questions. Guidance. Support
+  - name: Ask questions and support
     url: https://elixirforum.com/
-    about: >
-      Ask and answer questions on Elixir Forum.
-      Ask for guidance or support.
-      Share your thoughts about the language.
+    about: Ask questions, provide support and more on Elixir Forum
