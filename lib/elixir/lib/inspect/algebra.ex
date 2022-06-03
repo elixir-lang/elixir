@@ -403,9 +403,12 @@ defmodule Inspect.Algebra do
   The limit in the given `inspect_opts` is respected and when reached this
   function stops processing and outputs `"..."` instead.
 
+  Empty algebra documents are not included in the output.
+
   ## Options
 
     * `:separator` - the separator used between each doc
+
     * `:break` - If `:strict`, always break between each element. If `:flex`,
       breaks only when necessary. If `:maybe`, chooses `:flex` only if all
       elements are text-based, otherwise is `:strict`
@@ -469,9 +472,12 @@ defmodule Inspect.Algebra do
 
   defp container_each([term | terms], limit, opts, fun, acc, simple?)
        when is_list(terms) and is_limit(limit) do
-    limit = decrement(limit)
-    doc = fun.(term, %{opts | limit: limit})
-    container_each(terms, limit, opts, fun, [doc | acc], simple? and simple?(doc))
+    new_limit = decrement(limit)
+
+    case fun.(term, %{opts | limit: new_limit}) do
+      :doc_nil -> container_each(terms, limit, opts, fun, acc, simple?)
+      doc -> container_each(terms, new_limit, opts, fun, [doc | acc], simple? and simple?(doc))
+    end
   end
 
   defp container_each([left | right], limit, opts, fun, acc, simple?) when is_limit(limit) do
@@ -480,8 +486,10 @@ defmodule Inspect.Algebra do
     right = fun.(right, %{opts | limit: limit})
     simple? = simple? and simple?(left) and simple?(right)
 
-    doc = join(left, right, simple?, @tail_separator)
-    {:lists.reverse([doc | acc]), simple?}
+    case join(left, right, simple?, @tail_separator) do
+      :doc_nil -> {:lists.reverse(acc), simple?}
+      doc -> {:lists.reverse([doc | acc]), simple?}
+    end
   end
 
   defp decrement(:infinity), do: :infinity

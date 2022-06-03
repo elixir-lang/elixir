@@ -100,8 +100,8 @@ defmodule Version do
   import Kernel, except: [match?: 2]
 
   @enforce_keys [:major, :minor, :patch]
-  @derive {Inspect, order: [:major, :minor, :patch, :pre, :build], optional: [:pre, :build]}
-  defstruct [:major, :minor, :patch, :build, pre: []]
+  @derive {Inspect, order: [:major, :minor, :patch, :pre, :build]}
+  defstruct [:major, :minor, :patch, pre: [], build: nil]
 
   @type version :: String.t() | t
   @type requirement :: String.t() | Version.Requirement.t()

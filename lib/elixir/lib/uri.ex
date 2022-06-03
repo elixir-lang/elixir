@@ -11,7 +11,7 @@ defmodule URI do
   """
 
   fields = [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
-  @derive {Inspect, order: fields, optional: fields}
+  @derive {Inspect, order: fields}
   defstruct fields
 
   @type t :: %__MODULE__{

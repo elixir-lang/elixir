@@ -483,7 +483,7 @@ defmodule ExUnit.FormatterTest do
 
     message =
       "got RuntimeError with message \"oops\" while retrieving Exception.message/1 " <>
-        "for %ExUnit.FormatterTest.BadMessage{key: 0}. Stacktrace:"
+        "for %ExUnit.FormatterTest.BadMessage{}. Stacktrace:"
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
              1) world (Hello)

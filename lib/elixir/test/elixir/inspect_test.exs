@@ -623,8 +623,8 @@ defmodule Inspect.MapTest do
   end
 
   test "exception" do
-    assert inspect(%RuntimeError{message: "runtime error"}) ==
-             "%RuntimeError{message: \"runtime error\"}"
+    assert inspect(%RuntimeError{}) == "%RuntimeError{}"
+    assert inspect(%RuntimeError{message: "another"}) == "%RuntimeError{message: \"another\"}"
   end
 
   test "colors" do
@@ -667,6 +667,9 @@ defmodule Inspect.MapTest do
     assert inspect(struct, pretty: true, width: 1) ==
              "#Inspect.MapTest.StructWithOnlyOption<\n  b: 2,\n  c: 3,\n  ...\n>"
 
+    struct = %StructWithOnlyOption{a: 1, b: 2}
+    assert inspect(struct) == "#Inspect.MapTest.StructWithOnlyOption<b: 2, ...>"
+
     struct = %{struct | c: [1, 2, 3, 4]}
     assert inspect(struct) == "#Inspect.MapTest.StructWithOnlyOption<b: 2, c: [1, 2, 3, 4], ...>"
   end
@@ -692,6 +695,9 @@ defmodule Inspect.MapTest do
 
     assert inspect(struct, pretty: true, width: 1) ==
              "%Inspect.MapTest.StructWithAllFieldsInOnlyOption{\n  a: 1,\n  b: 2\n}"
+
+    struct = %StructWithAllFieldsInOnlyOption{a: 1}
+    assert inspect(struct) == "%Inspect.MapTest.StructWithAllFieldsInOnlyOption{a: 1}"
   end
 
   test "struct missing fields in the :only option" do
@@ -740,38 +746,6 @@ defmodule Inspect.MapTest do
 
     assert inspect(struct, pretty: true, width: 1) ==
              "#Inspect.MapTest.StructWithBothOnlyAndExceptOptions<\n  a: 1,\n  ...\n>"
-  end
-
-  defmodule StructWithOptionalAndOrder do
-    @derive {Inspect, order: [:c, :d], optional: [:b, :c]}
-    defstruct [:a, :b, :c, :d]
-  end
-
-  test "struct with both :order and :optional options" do
-    struct = %StructWithOptionalAndOrder{a: 1, b: 2, c: 3, d: 4}
-
-    assert inspect(struct) ==
-             "%Inspect.MapTest.StructWithOptionalAndOrder{c: 3, d: 4, a: 1, b: 2}"
-
-    struct = %StructWithOptionalAndOrder{}
-    assert inspect(struct) == "%Inspect.MapTest.StructWithOptionalAndOrder{d: nil, a: nil}"
-  end
-
-  defmodule StructWithExceptOptionalAndOrder do
-    @derive {Inspect, order: [:c, :d], optional: [:b, :c], except: [:e]}
-    defstruct [:a, :b, :c, :d, :e]
-  end
-
-  test "struct with :except, :order, and :optional options" do
-    struct = %StructWithExceptOptionalAndOrder{a: 1, b: 2, c: 3, d: 4}
-
-    assert inspect(struct) ==
-             "#Inspect.MapTest.StructWithExceptOptionalAndOrder<c: 3, d: 4, a: 1, b: 2, ...>"
-
-    struct = %StructWithExceptOptionalAndOrder{}
-
-    assert inspect(struct) ==
-             "#Inspect.MapTest.StructWithExceptOptionalAndOrder<d: nil, a: nil, ...>"
   end
 end
 
