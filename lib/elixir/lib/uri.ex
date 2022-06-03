@@ -10,9 +10,14 @@ defmodule URI do
   be aware that the `authority` field is deprecated and should not be populated.
   """
 
-  fields = [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
-  @derive {Inspect, order: fields, optional: fields}
-  defstruct fields
+  defstruct scheme: nil,
+            path: nil,
+            query: nil,
+            fragment: nil,
+            authority: nil,
+            userinfo: nil,
+            host: nil,
+            port: nil
 
   @type t :: %__MODULE__{
           scheme: nil | binary,
@@ -490,39 +495,68 @@ defmodule URI do
 
       iex> URI.new("https://elixir-lang.org/")
       {:ok, %URI{
-        scheme: "https",
+        fragment: nil,
         host: "elixir-lang.org",
+        path: "/",
         port: 443,
-        path: "/"
+        query: nil,
+        scheme: "https",
+        userinfo: nil
       }}
 
       iex> URI.new("//elixir-lang.org/")
       {:ok, %URI{
+        fragment: nil,
         host: "elixir-lang.org",
-        path: "/"
+        path: "/",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
       }}
 
       iex> URI.new("/foo/bar")
       {:ok, %URI{
-        path: "/foo/bar"
+        fragment: nil,
+        host: nil,
+        path: "/foo/bar",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
       }}
 
       iex> URI.new("foo/bar")
       {:ok, %URI{
-        path: "foo/bar"
+        fragment: nil,
+        host: nil,
+        path: "foo/bar",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
       }}
 
       iex> URI.new("//[fe80::]/")
       {:ok, %URI{
+        fragment: nil,
         host: "fe80::",
-        path: "/"
+        path: "/",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
       }}
 
       iex> URI.new("https:?query")
       {:ok, %URI{
-        scheme: "https",
+        fragment: nil,
+        host: nil,
+        path: nil,
         port: 443,
-        query: "query"
+        query: "query",
+        scheme: "https",
+        userinfo: nil
       }}
 
       iex> URI.new("/invalid_greater_than_in_path/>")
@@ -533,10 +567,13 @@ defmodule URI do
       iex> {:ok, uri} = URI.new("https://elixir-lang.org/")
       iex> URI.new(uri)
       {:ok, %URI{
-        scheme: "https",
+        fragment: nil,
         host: "elixir-lang.org",
+        path: "/",
         port: 443,
-        path: "/"
+        query: nil,
+        scheme: "https",
+        userinfo: nil
       }}
   """
   @doc since: "1.13.0"
@@ -557,10 +594,13 @@ defmodule URI do
 
       iex> URI.new!("https://elixir-lang.org/")
       %URI{
-        scheme: "https",
+        fragment: nil,
         host: "elixir-lang.org",
+        path: "/",
         port: 443,
-        path: "/"
+        query: nil,
+        scheme: "https",
+        userinfo: nil
       }
 
       iex> URI.new!("/invalid_greater_than_in_path/>")
@@ -571,10 +611,13 @@ defmodule URI do
       iex> uri = URI.new!("https://elixir-lang.org/")
       iex> URI.new!(uri)
       %URI{
-        scheme: "https",
+        fragment: nil,
         host: "elixir-lang.org",
+        path: "/",
         port: 443,
-        path: "/"
+        query: nil,
+        scheme: "https",
+        userinfo: nil
       }
   """
   @doc since: "1.13.0"
@@ -640,28 +683,50 @@ defmodule URI do
 
       iex> URI.parse("https://elixir-lang.org/")
       %URI{
-        scheme: "https",
         authority: "elixir-lang.org",
+        fragment: nil,
         host: "elixir-lang.org",
         path: "/",
-        port: 443
+        port: 443,
+        query: nil,
+        scheme: "https",
+        userinfo: nil
       }
 
       iex> URI.parse("//elixir-lang.org/")
       %URI{
         authority: "elixir-lang.org",
+        fragment: nil,
         host: "elixir-lang.org",
-        path: "/"
+        path: "/",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
       }
 
       iex> URI.parse("/foo/bar")
       %URI{
-        path: "/foo/bar"
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "/foo/bar",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
       }
 
       iex> URI.parse("foo/bar")
       %URI{
-        path: "foo/bar"
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "foo/bar",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
       }
 
   In contrast to `URI.new/1`, this function will parse poorly-formed
@@ -669,7 +734,14 @@ defmodule URI do
 
       iex> URI.parse("/invalid_greater_than_in_path/>")
       %URI{
-        path: "/invalid_greater_than_in_path/>"
+        authority: nil,
+        fragment: nil,
+        host: nil,
+        path: "/invalid_greater_than_in_path/>",
+        port: nil,
+        query: nil,
+        scheme: nil,
+        userinfo: nil
       }
 
   Another example is a URI with brackets in query strings. It is accepted
@@ -678,8 +750,14 @@ defmodule URI do
 
       iex> URI.parse("/?foo[bar]=baz")
       %URI{
+        authority: nil,
+        fragment: nil,
+        host: nil,
         path: "/",
-        query: "foo[bar]=baz"
+        port: nil,
+        query: "foo[bar]=baz",
+        scheme: nil,
+        userinfo: nil
       }
 
   """
