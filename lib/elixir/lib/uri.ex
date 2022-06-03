@@ -5,19 +5,25 @@ defmodule URI do
   This module provides functions for working with URIs (for example, parsing
   URIs or encoding query strings). The functions in this module are implemented
   according to [RFC 3986](https://tools.ietf.org/html/rfc3986).
-
-  URIs are represented with Elixir structs. If you are creating `URI` structs manually,
-  be aware that the `authority` field is deprecated and should not be populated.
   """
 
-  defstruct scheme: nil,
-            path: nil,
-            query: nil,
-            fragment: nil,
-            authority: nil,
-            userinfo: nil,
-            host: nil,
-            port: nil
+  @doc """
+  The URI struct.
+
+  The fields are defined to match the following URI representation
+  (with field names between brackets):
+
+      [scheme]://[userinfo]@[host]:[port][path]?[query]#[fragment]
+
+
+  Note the `authority` field is deprecated. `parse/1` will still
+  populate it for backwards compatibility but you should generally
+  avoid setting or getting it.
+  """
+
+  fields = [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
+  @derive {Inspect, order: fields, optional: [:authority]}
+  defstruct fields
 
   @type t :: %__MODULE__{
           scheme: nil | binary,
@@ -707,7 +713,6 @@ defmodule URI do
 
       iex> URI.parse("/foo/bar")
       %URI{
-        authority: nil,
         fragment: nil,
         host: nil,
         path: "/foo/bar",
@@ -719,7 +724,6 @@ defmodule URI do
 
       iex> URI.parse("foo/bar")
       %URI{
-        authority: nil,
         fragment: nil,
         host: nil,
         path: "foo/bar",
@@ -734,7 +738,6 @@ defmodule URI do
 
       iex> URI.parse("/invalid_greater_than_in_path/>")
       %URI{
-        authority: nil,
         fragment: nil,
         host: nil,
         path: "/invalid_greater_than_in_path/>",
@@ -750,7 +753,6 @@ defmodule URI do
 
       iex> URI.parse("/?foo[bar]=baz")
       %URI{
-        authority: nil,
         fragment: nil,
         host: nil,
         path: "/",
