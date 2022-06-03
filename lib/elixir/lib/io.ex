@@ -293,12 +293,12 @@ defmodule IO do
     * a `__STACKTRACE__`, where all entries in the stacktrace will be
       included in the error message
 
-    * a `Macro.Env` structure, where a single stacktrace entry from
-      the compilation environment will be used
+    * a `Macro.Env` structure (since v1.14.0), where a single stacktrace
+      entry from the compilation environment will be used
 
     * a keyword list with at least the `:file` option representing
-      a single stacktrace entry. The `:line`, `:module`, `:function`
-      options are also supported
+      a single stacktrace entry (since v1.14.0). The `:line`, `:module`,
+      `:function` options are also supported
 
   This function also notifies the compiler a warning was printed
   (in case --warnings-as-errors was enabled). It returns `:ok`

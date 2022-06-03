@@ -85,14 +85,18 @@ often be hard-to-debug generic "argument errors". With Erlang/OTP 25 and Elixir 
 more detail is provided for easier debugging. This work is part of [EEP
 54](https://www.erlang.org/eeps/eep-0054).
 
+Before:
+
 ```elixir
-# Before:
 int = 1
 bin = "foo"
 int <> bin
 #=> ** (ArgumentError) argument error
+```
 
-# Now:
+Now:
+
+```elixir
 int = 1
 bin = "foo"
 int <> bin
@@ -123,17 +127,18 @@ Enum.slice(letters, 0..5//2)
 #=> ["a", "c", "e"]
 ```
 
-Another one is `binary_slice/2` in the `Kernel` module:
+`binary_slice/2` (and `binary_slice/3` for completeness) has been added to the
+`Kernel` module, that works with bytes and also support stepped ranges:
 
 ```elixir
 binary_slice("Elixir", 1..5//2)
 #=> "lx"
 ```
 
-## Expression-based inspection
+## Expression-based inspection and `Inspect` improvements
 
-In Elixir, it's conventional to implement the `Inspect` protocol for structs so
-that they're inspected with a syntax resembling this:
+In Elixir, it's conventional to implement the `Inspect` protocol for opaque
+structs so that they're inspected with a special notation, resembling this:
 
 ```elixir
 MapSet.new([:apple, :banana])
@@ -151,7 +156,7 @@ and pasting it into an IEx session or similar.
 Elixir v1.14 changes the convention for some of the standard-library structs.
 The `Inspect` implementation for those structs is now a string with a valid
 Elixir expression that recreates the struct itself if evaluated. In the
-`Version` example above, this is what we have now:
+`MapSet` example above, this is what we have now:
 
 ```elixir
 fruits = MapSet.new([:apple, :banana])
@@ -160,12 +165,16 @@ MapSet.put(fruits, :pear)
 ```
 
 The `MapSet.new/1` expression evaluates to exactly the struct that we're
-inspecting.
+inspecting. This allows us to hide the internals of `MapSet`, while keeping
+it as valid Elixir code. This expression-based inspection has been
+implemented for `Version.Requirement`, `MapSet`, and `Date.Range`.
 
-This expression-based inspection has been implemented for `Version`,
-`Version.Requirement`, `MapSet`, and `Date.Range`. Other data types (such as
-`PID`) still use the `#name<...>` convention because generally there is no
-Elixir expression that can deterministically recreate the data type.
+Finally, we have also improved the `Inspect` protocol for structs so the
+fields are inspected in the order they are declared in `defstruct`.
+The option `:optional` has also been added when deriving the `Inspect`
+protocol, giving developers more control over the struct representation.
+See the updated documentation for `Inspect` for a general rundown on
+the approaches and options available.
 
 ## v1.14.0-dev
 
@@ -179,6 +188,7 @@ Elixir expression that can deterministically recreate the data type.
 #### Elixir
 
   * [Calendar] Support ISO8601 basic format parsing with `DateTime.from_iso8601/2`
+  * [Code] Add `:normalize_bitstring_modifiers` to `Code.format_string!/2`
   * [Code] Emit deprecation and type warnings for invalid options in on `Code.compile_string/2` and `Code.compile_quoted/2`
   * [Code] Warn if an outdated lexical tracker is given on eval
   * [Code] Add `Code.env_for_eval/1` and `Code.eval_quoted_with_env/3`
@@ -186,15 +196,17 @@ Elixir expression that can deterministically recreate the data type.
   * [Enum] Allow slicing with steps in `Enum.slice/2`
   * [Float] Do not show floats in scientific notation if below `1.0e16` and the fractional value is precisely zero
   * [Inspect] Improve error reporting when there is a faulty implementation of the `Inspect` protocol
-  * [Inspect] Allow `:optional` when deriving the Inspect protocol
-  * [Inspect] Inspect struct fields in the order they are defined
+  * [Inspect] Allow `:optional` when deriving the Inspect protocol for hiding fields that match their default value
+  * [Inspect] Inspect struct fields in the order they are declared in `defstruct`
   * [Inspect] Use expression-based inspection for `Date.Range`, `MapSet`, and `Version.Requirement`
+  * [IO] Support `Macro.Env` and keywords as stacktrace definitions in `IO.warn/2`
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
   * [Kernel] Allow composite types with pins as the map key in a pattern match
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
   * [Kernel] Warn on confusable non-ASCII identifiers
   * [Kernel] Add `..` as a nullary operator that returns `0..-1//1`
-  * [Kernel] Implement Unicode Technical Standard #39 recommendations; in particular, we warn for confusable scripts and restrict identifiers to single-scripts or highly restrictive mixed-scripts
+  * [Kernel] Implement Unicode Technical Standard #39 recommendations. In particular, we warn for confusable scripts and restrict identifiers to single-scripts or highly restrictive mixed-scripts
+  * [Kernel] Automatically perform NFC conversion of identifiers
   * [Kernel] Add `binary_slice/2` and `binary_slice/3`
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
@@ -219,6 +231,7 @@ Elixir expression that can deterministically recreate the data type.
 
   * [ExUnit] Add `ExUnit.Callbacks.start_link_supervised!/2`
   * [ExUnit] Add `ExUnit.run/1` to rerun test modules
+  * [ExUnit] Colorize summary in yellow with message when all tests are excluded
 
 #### IEx
 
@@ -231,8 +244,11 @@ Elixir expression that can deterministically recreate the data type.
 
 #### Mix
 
+  * [mix compile] Add `--no-optional-deps` to skip optional dependencies to test compilation works without optional dependencies
+  * [mix deps] `Mix.Dep.Converger` now tells which deps formed a cycle
   * [mix do] Support `--app` option to restrict recursive tasks in umbrella projects
   * [mix do] Allow using `+` as a task separator instead of comma
+  * [mix format] Support filename in `mix format -` when reading from stdin
   * [mix new] Do not allow projects to be created with application names that conflict with multi-arg Erlang VM switches
   * [mix profile] Return the return value of the profiled function
   * [mix release] Make BEAM compression opt-in
@@ -243,6 +259,7 @@ Elixir expression that can deterministically recreate the data type.
 
 #### Elixir
 
+  * [Calendar] Handle widths with "0" in them in `Calendar.strftime/3`
   * [CLI] Improve errors on incorrect `--rpc-eval` usage
   * [Code] Do not emit warnings when formatting code
   * [Enum] Allow slices to overflow on both starting and ending positions
