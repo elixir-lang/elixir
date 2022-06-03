@@ -79,9 +79,9 @@ Task.Supervisor.async(
 
 ## Improved errors on binaries and evaluation
 
-OTP 25 improved errors on binary construction and evaluation. These improvements
+Erlang/OTP 25 improved errors on binary construction and evaluation. These improvements
 apply to Elixir as well. Before v1.14, errors when constructing binaries would
-often be hard-to-debug generic "argument errors". With OTP 25 and Elixir v1.14,
+often be hard-to-debug generic "argument errors". With Erlang/OTP 25 and Elixir v1.14,
 more detail is provided for easier debugging. This work is part of [EEP
 54](https://www.erlang.org/eeps/eep-0054).
 
@@ -90,15 +90,15 @@ more detail is provided for easier debugging. This work is part of [EEP
 int = 1
 bin = "foo"
 int <> bin
-# ** (ArgumentError) argument error
+#=> ** (ArgumentError) argument error
 
 # Now:
 int = 1
 bin = "foo"
 int <> bin
-# ** (ArgumentError) construction of binary failed:
-# segment 1 of type 'binary':
-# expected a binary but got: 1
+#=> ** (ArgumentError) construction of binary failed:
+#=>          segment 1 of type 'binary':
+#=>          expected a binary but got: 1
 ```
 
 ## Slicing with steps
