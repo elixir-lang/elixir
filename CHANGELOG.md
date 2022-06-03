@@ -115,12 +115,19 @@ Stepped ranges are particularly useful for numerical operations involving
 vectors and matrices (see [Nx](https://github.com/elixir-nx/nx), for example).
 However, the Elixir standard library was not making use of stepped ranges in its
 APIs. Elixir v1.14 starts to take advantage of steps with support for stepped
-ranges in `Enum.slice/2`:
+ranges in a couple of functions. One of them is `Enum.slice/2`:
 
 ```elixir
 letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
-Enum.slice(integers, 0..5//2)
+Enum.slice(letters, 0..5//2)
 #=> ["a", "c", "e"]
+```
+
+Another one is `binary_slice/2` in the `Kernel` module:
+
+```elixir
+binary_slice("Elixir", 1..5//2)
+#=> "lx"
 ```
 
 ## Expression-based inspection
@@ -129,13 +136,13 @@ In Elixir, it's conventional to implement the `Inspect` protocol for structs so
 that they're inspected with a syntax resembling this:
 
 ```elixir
-IO.inspect(Version.parse("1.0.0"))
-#=> {:ok, #Version<1.0.0>}
+MapSet.new([:apple, :banana])
+#MapSet<[:apple, :banana]>
 ```
 
 This is generally done when the struct content or part of it is private and the
-`%Version{...}` representation would reveal fields that are not part of the
-public API.
+`%name{...}` representation would reveal fields that are not part of the public
+API.
 
 The downside of the `#name<...>` convention is that *the inspected output is not
 valid Elixir code*. You cannot do things such as copying the inspected output
@@ -147,11 +154,12 @@ Elixir expression that recreates the struct itself if evaluated. In the
 `Version` example above, this is what we have now:
 
 ```elixir
-IO.inspect(Version.parse("1.0.0"))
-#=> {:ok, Version.parse!("1.0.0")}
+fruits = MapSet.new([:apple, :banana])
+MapSet.put(fruits, :pear)
+#=> MapSet.new([:apple, :banana, :pear])
 ```
 
-The `Version.parse/1` expression evaluates to exactly the struct that we're
+The `MapSet.new/1` expression evaluates to exactly the struct that we're
 inspecting.
 
 This expression-based inspection has been implemented for `Version`,
