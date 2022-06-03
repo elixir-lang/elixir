@@ -170,7 +170,7 @@ defmodule IEx.InfoTest do
       assert get_key(info, "Data type") == "Date"
 
       assert get_key(info, "Raw representation") ==
-               "%Date{calendar: Calendar.ISO, day: 1, month: 1, year: 2017}"
+               "%Date{year: 2017, month: 1, day: 1, calendar: Calendar.ISO}"
 
       assert get_key(info, "Reference modules") == "Date, Calendar, Map"
       assert get_key(info, "Description") =~ "a date"
@@ -183,7 +183,7 @@ defmodule IEx.InfoTest do
       assert get_key(info, "Data type") == "Time"
 
       assert get_key(info, "Raw representation") ==
-               "%Time{calendar: Calendar.ISO, hour: 23, microsecond: {0, 0}, minute: 59, second: 59}"
+               "%Time{hour: 23, minute: 59, second: 59, microsecond: {0, 0}, calendar: Calendar.ISO}"
 
       assert get_key(info, "Reference modules") == "Time, Calendar, Map"
       assert get_key(info, "Description") =~ "a time"
@@ -196,7 +196,7 @@ defmodule IEx.InfoTest do
       assert get_key(info, "Data type") == "NaiveDateTime"
 
       assert get_key(info, "Raw representation") ==
-               "%NaiveDateTime{calendar: Calendar.ISO, day: 1, hour: 23, microsecond: {0, 0}, minute: 59, month: 1, second: 59, year: 2017}"
+               "%NaiveDateTime{year: 2017, month: 1, day: 1, hour: 23, minute: 59, second: 59, microsecond: {0, 0}, calendar: Calendar.ISO}"
 
       assert get_key(info, "Reference modules") == "NaiveDateTime, Calendar, Map"
 

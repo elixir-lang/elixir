@@ -20,10 +20,8 @@ defmodule URI do
   populate it for backwards compatibility but you should generally
   avoid setting or getting it.
   """
-
-  fields = [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
-  @derive {Inspect, order: fields, optional: [:authority]}
-  defstruct fields
+  @derive {Inspect, optional: [:authority]}
+  defstruct [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
 
   @type t :: %__MODULE__{
           scheme: nil | binary,

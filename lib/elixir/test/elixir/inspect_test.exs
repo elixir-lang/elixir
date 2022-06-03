@@ -743,8 +743,8 @@ defmodule Inspect.MapTest do
   end
 
   defmodule StructWithOptionalAndOrder do
-    @derive {Inspect, order: [:c, :d], optional: [:b, :c]}
-    defstruct [:a, :b, :c, :d]
+    @derive {Inspect, optional: [:b, :c]}
+    defstruct [:c, :d, :a, :b]
   end
 
   test "struct with both :order and :optional options" do
@@ -758,8 +758,8 @@ defmodule Inspect.MapTest do
   end
 
   defmodule StructWithExceptOptionalAndOrder do
-    @derive {Inspect, order: [:c, :d], optional: [:b, :c], except: [:e]}
-    defstruct [:a, :b, :c, :d, :e]
+    @derive {Inspect, optional: [:b, :c], except: [:e]}
+    defstruct [:c, :d, :e, :a, :b]
   end
 
   test "struct with :except, :order, and :optional options" do

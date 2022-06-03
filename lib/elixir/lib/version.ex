@@ -26,14 +26,6 @@ defmodule Version do
 
       "1.0.0-alpha.3+20130417140000.amd64"
 
-  ## Struct
-
-  The version is represented by the `Version` struct and fields
-  are named according to SemVer 2.0: `:major`, `:minor`, `:patch`,
-  `:pre`, and `:build`. You can read those fields but you should
-  not create a new `Version` directly via the struct syntax. Instead
-  use the functions in this module.
-
   ## Requirements
 
   Requirements allow you to specify which versions of a given
@@ -99,9 +91,19 @@ defmodule Version do
 
   import Kernel, except: [match?: 2]
 
+  @doc """
+  The Version struct.
+
+  It contains the fields `:major`, `:minor`, `:patch`, `:pre`, and
+  `:build` according to SemVer 2.0, where `:pre` is a list.
+
+  You can read those fields but you should not create a new `Version`
+  directly via the struct syntax. Instead use the functions in this
+  module.
+  """
   @enforce_keys [:major, :minor, :patch]
-  @derive {Inspect, order: [:major, :minor, :patch, :pre, :build], optional: [:pre, :build]}
-  defstruct [:major, :minor, :patch, :build, pre: []]
+  @derive {Inspect, optional: [:pre, :build]}
+  defstruct [:major, :minor, :patch, pre: [], build: nil]
 
   @type version :: String.t() | t
   @type requirement :: String.t() | Version.Requirement.t()
