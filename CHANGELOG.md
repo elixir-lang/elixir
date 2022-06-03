@@ -79,15 +79,93 @@ Task.Supervisor.async(
 
 ## Improved errors on binaries and evaluation
 
-TODO.
+Erlang/OTP 25 improved errors on binary construction and evaluation. These improvements
+apply to Elixir as well. Before v1.14, errors when constructing binaries would
+often be hard-to-debug generic "argument errors". With Erlang/OTP 25 and Elixir v1.14,
+more detail is provided for easier debugging. This work is part of [EEP
+54](https://www.erlang.org/eeps/eep-0054).
+
+```elixir
+# Before:
+int = 1
+bin = "foo"
+int <> bin
+#=> ** (ArgumentError) argument error
+
+# Now:
+int = 1
+bin = "foo"
+int <> bin
+#=> ** (ArgumentError) construction of binary failed:
+#=>          segment 1 of type 'binary':
+#=>          expected a binary but got: 1
+```
 
 ## Slicing with steps
 
-TODO.
+Elixir v1.12 introduced **stepped ranges**, which are ranges where you can
+specify the "step":
+
+```elixir
+Enum.to_list(1..10//3)
+#=> [1, 4, 7, 10]
+```
+
+Stepped ranges are particularly useful for numerical operations involving
+vectors and matrices (see [Nx](https://github.com/elixir-nx/nx), for example).
+However, the Elixir standard library was not making use of stepped ranges in its
+APIs. Elixir v1.14 starts to take advantage of steps with support for stepped
+ranges in a couple of functions. One of them is `Enum.slice/2`:
+
+```elixir
+letters = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
+Enum.slice(letters, 0..5//2)
+#=> ["a", "c", "e"]
+```
+
+Another one is `binary_slice/2` in the `Kernel` module:
+
+```elixir
+binary_slice("Elixir", 1..5//2)
+#=> "lx"
+```
 
 ## Expression-based inspection
 
-TODO.
+In Elixir, it's conventional to implement the `Inspect` protocol for structs so
+that they're inspected with a syntax resembling this:
+
+```elixir
+MapSet.new([:apple, :banana])
+#MapSet<[:apple, :banana]>
+```
+
+This is generally done when the struct content or part of it is private and the
+`%name{...}` representation would reveal fields that are not part of the public
+API.
+
+The downside of the `#name<...>` convention is that *the inspected output is not
+valid Elixir code*. You cannot do things such as copying the inspected output
+and pasting it into an IEx session or similar.
+
+Elixir v1.14 changes the convention for some of the standard-library structs.
+The `Inspect` implementation for those structs is now a string with a valid
+Elixir expression that recreates the struct itself if evaluated. In the
+`Version` example above, this is what we have now:
+
+```elixir
+fruits = MapSet.new([:apple, :banana])
+MapSet.put(fruits, :pear)
+#=> MapSet.new([:apple, :banana, :pear])
+```
+
+The `MapSet.new/1` expression evaluates to exactly the struct that we're
+inspecting.
+
+This expression-based inspection has been implemented for `Version`,
+`Version.Requirement`, `MapSet`, and `Date.Range`. Other data types (such as
+`PID`) still use the `#name<...>` convention because generally there is no
+Elixir expression that can deterministically recreate the data type.
 
 ## v1.14.0-dev
 
