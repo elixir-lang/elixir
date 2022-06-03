@@ -453,7 +453,7 @@ defmodule ExceptionTest do
              The following arguments were given to ExceptionTest.Req.get!/2:
 
                  # 1
-                 %URI{authority: \"elixir-lang.org\", fragment: nil, host: \"elixir-lang.org\", path: nil, port: 443, query: nil, scheme: \"https\", userinfo: nil}
+                 %URI{scheme: \"https\", authority: \"elixir-lang.org\", userinfo: nil, host: \"elixir-lang.org\", port: 443, path: nil, query: nil, fragment: nil}
 
                  # 2
                  URI
@@ -469,7 +469,7 @@ defmodule ExceptionTest do
              The following arguments were given to ExceptionTest.Req.get!/1:
 
                  # 1
-                 %URI{authority: \"elixir-lang.org\", fragment: nil, host: \"elixir-lang.org\", path: nil, port: 443, query: nil, scheme: \"https\", userinfo: nil}
+                 %URI{scheme: \"https\", authority: \"elixir-lang.org\", userinfo: nil, host: \"elixir-lang.org\", port: 443, path: nil, query: nil, fragment: nil}
 
              Attempted function clauses (showing 1 out of 1):
 

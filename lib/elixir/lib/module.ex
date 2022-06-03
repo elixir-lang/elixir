@@ -550,6 +550,8 @@ defmodule Module do
 
     * `:module` - the module atom name
 
+    * `:struct` - if the module defines a struct and if so each field in order
+
   """
   @callback __info__(:attributes) :: keyword()
   @callback __info__(:compile) :: [term()]
@@ -557,6 +559,7 @@ defmodule Module do
   @callback __info__(:macros) :: keyword()
   @callback __info__(:md5) :: binary()
   @callback __info__(:module) :: module()
+  @callback __info__(:struct) :: list(%{field: atom(), required: boolean()}) | nil
 
   @doc """
   Returns information about module attributes used by Elixir.
@@ -1814,22 +1817,17 @@ defmodule Module do
       [] ->
         :ok
 
-      to_derive ->
-        case :ets.lookup(set, :__derived__) do
-          [{_, derived, _}] ->
-            if to_derive != :lists.reverse(derived) do
-              message =
-                "warning: module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
-
-              IO.warn(message, env)
-            end
-
-          [] ->
-            message =
+      _ ->
+        message =
+          case :ets.lookup(set, :__struct__) do
+            [] ->
               "warning: module attribute @derive was set but never used (it must come before defstruct)"
 
-            IO.warn(message, env)
-        end
+            _ ->
+              "warning: module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
+          end
+
+        IO.warn(message, env)
     end
   end
 

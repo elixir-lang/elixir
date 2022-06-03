@@ -811,6 +811,11 @@ defmodule KernelTest do
       refute {:__info__, 1} in Kernel.__info__(:functions)
     end
 
+    test ":struct" do
+      assert Kernel.__info__(:struct) == nil
+      assert hd(URI.__info__(:struct)) == %{field: :scheme, required: false}
+    end
+
     test "others" do
       assert Kernel.__info__(:module) == Kernel
       assert is_list(Kernel.__info__(:compile))

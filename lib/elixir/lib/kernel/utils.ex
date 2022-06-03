@@ -157,7 +157,7 @@ defmodule Kernel.Utils do
             [] ->
               quote do
                 Enum.reduce(var!(kv), @__struct__, fn {key, val}, map ->
-                  Map.replace!(map, key, val)
+                  %{map | key => val}
                 end)
               end
 
@@ -166,7 +166,7 @@ defmodule Kernel.Utils do
                 {map, keys} =
                   Enum.reduce(var!(kv), {@__struct__, unquote(enforce_keys)}, fn
                     {key, val}, {map, keys} ->
-                      {Map.replace!(map, key, val), List.delete(keys, key)}
+                      {%{map | key => val}, List.delete(keys, key)}
                   end)
 
                 case keys do
@@ -193,10 +193,17 @@ defmodule Kernel.Utils do
 
     case enforce_keys -- :maps.keys(struct) do
       [] ->
-        derive = Module.get_attribute(module, :derive)
+        # The __struct__ field is used for expansion and for loading remote structs
         Module.put_attribute(module, :__struct__, struct)
-        Module.put_attribute(module, :__derived__, derive)
-        {struct, Module.get_attribute(module, :derive), body}
+
+        # Finally store all field metadata to go into __info__(:struct)
+        mapper = fn {key, val} ->
+          %{field: key, default: val, required: :lists.member(key, enforce_keys)}
+        end
+
+        {set, _} = :elixir_module.data_tables(module)
+        :ets.insert(set, {{:elixir, :struct}, :lists.map(mapper, fields)})
+        {struct, Module.delete_attribute(module, :derive), body}
 
       error_keys ->
         raise ArgumentError,
