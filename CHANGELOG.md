@@ -108,7 +108,7 @@ TODO.
   * [Enum] Allow slicing with steps in `Enum.slice/2`
   * [Float] Do not show floats in scientific notation if below `1.0e16` and the fractional value is precisely zero
   * [Inspect] Improve error reporting when there is a faulty implementation of the `Inspect` protocol
-  * [Inspect] Allow `:order` and `:optional` when deriving the Inspect protocol
+  * [Inspect] Skip fields set to their default value when inspecting structs
   * [Inspect] Use expression-based inspection for `Date.Range`, `MapSet`, and `Version.Requirement`
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
   * [Kernel] Allow composite types with pins as the map key in a pattern match
