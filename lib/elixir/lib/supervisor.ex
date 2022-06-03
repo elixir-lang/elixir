@@ -208,7 +208,7 @@ defmodule Supervisor do
   The map above defines a child with `:id` of `Counter` that is started
   by calling `Counter.start_link(0)`.
 
-  However, definining the child specification for each child as a map can be
+  However, defining the child specification for each child as a map can be
   quite error prone, as we may change the `Counter` implementation and forget
   to update its specification. That's why Elixir allows you to pass a tuple with
   the module name and the `start_link` argument instead of the specification:
