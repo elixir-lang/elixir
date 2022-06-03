@@ -54,7 +54,7 @@ defprotocol Inspect do
   so they don't show up in logs, inspects and similar. The latter is
   especially useful for fields containing private information.
 
-  There are four possible options:
+  The supported options are:
 
     * `:only` - only include the given fields when inspecting.
 
