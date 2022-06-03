@@ -508,7 +508,7 @@ end
 
 defimpl Inspect, for: Any do
   defmacro __deriving__(module, struct, options) do
-    fields = Enum.sort(Map.keys(struct) -- [:__exception__, :__struct__])
+    fields = Map.keys(struct) -- [:__exception__, :__struct__]
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
     optional = Keyword.get(options, :optional, [])
