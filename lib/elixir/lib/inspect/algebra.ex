@@ -403,12 +403,9 @@ defmodule Inspect.Algebra do
   The limit in the given `inspect_opts` is respected and when reached this
   function stops processing and outputs `"..."` instead.
 
-  Empty algebra documents are not included in the output.
-
   ## Options
 
     * `:separator` - the separator used between each doc
-
     * `:break` - If `:strict`, always break between each element. If `:flex`,
       breaks only when necessary. If `:maybe`, chooses `:flex` only if all
       elements are text-based, otherwise is `:strict`

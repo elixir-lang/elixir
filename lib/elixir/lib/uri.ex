@@ -11,13 +11,13 @@ defmodule URI do
   """
 
   fields = [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
-  @derive {Inspect, order: fields}
+  @derive {Inspect, order: fields, optional: fields}
   defstruct fields
 
   @type t :: %__MODULE__{
           scheme: nil | binary,
           authority: authority,
-          userinfo: nil | binary
+          userinfo: nil | binary,
           host: nil | binary,
           port: nil | :inet.port_number(),
           path: nil | binary,

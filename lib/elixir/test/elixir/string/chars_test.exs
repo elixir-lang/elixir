@@ -155,7 +155,7 @@ defmodule String.Chars.ErrorsTest do
 
   test "user-defined struct" do
     message =
-      "protocol String\.Chars not implemented for %String.Chars.ErrorsTest.Foo{} of type String.Chars.ErrorsTest.Foo (a struct)"
+      "protocol String\.Chars not implemented for %String.Chars.ErrorsTest.Foo{foo: \"bar\"} of type String.Chars.ErrorsTest.Foo (a struct)"
 
     assert_raise Protocol.UndefinedError, message, fn ->
       to_string(%Foo{})

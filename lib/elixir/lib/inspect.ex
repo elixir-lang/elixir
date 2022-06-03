@@ -63,6 +63,10 @@ defprotocol Inspect do
     * `:order` - (since v1.14.0) include fields in the given order.
       Non-listed fields come after the listed ones.
 
+    * `:optional` - (since v1.14.0) do not include a field if it
+      matches its default value. This can be used to simplify the
+      struct representation at the cost of hiding information.
+
   Whenever `:only` or `:except` are used to restrict fields,
   the struct will be printed using the `#User<...>` notation,
   as the struct can no longer be copy and pasted as valid Elixir
@@ -76,8 +80,8 @@ defprotocol Inspect do
       inspect(%User{id: 1, name: "Jane", address: "Earth"})
       #=> #User<id: 1, name: "Jane", ...>
 
-  If you use only the `:order` option, the struct will still be
-  printed as `%User{...}`.
+  If you use only the options `:order` and `:optional`, the struct
+  will still be printed as `%User{...}`.
 
   ## Custom implementation
 
@@ -301,39 +305,31 @@ end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
-    list = Map.to_list(map)
+    inspect(Map.to_list(map), "", opts)
+  end
 
-    fun =
-      if Inspect.List.keyword?(list) do
-        &Inspect.List.keyword/2
-      else
-        sep = color(" => ", :map, opts)
-        &to_map(&1, &2, sep)
-      end
+  def inspect(list, name, opts) do
+    open = color("%" <> name <> "{", :map, opts)
+    sep = color(",", :map, opts)
+    close = color("}", :map, opts)
 
-    map_container_doc("%{", list, opts, fun)
+    container_doc(open, list, close, opts, traverse_fun(list, opts),
+      separator: sep,
+      break: :strict
+    )
+  end
+
+  defp traverse_fun(list, opts) do
+    if Inspect.List.keyword?(list) do
+      &Inspect.List.keyword/2
+    else
+      sep = color(" => ", :map, opts)
+      &to_map(&1, &2, sep)
+    end
   end
 
   defp to_map({key, value}, opts, sep) do
     concat(concat(to_doc(key, opts), sep), to_doc(value, opts))
-  end
-
-  def inspect(list, name, struct, opts) do
-    fun = fn {key, value}, opts ->
-      case struct do
-        %{^key => ^value} -> empty()
-        %{} -> Inspect.List.keyword({key, value}, opts)
-      end
-    end
-
-    map_container_doc("%" <> name <> "{", list, opts, fun)
-  end
-
-  defp map_container_doc(open, list, opts, fun) do
-    open = color(open, :map, opts)
-    sep = color(",", :map, opts)
-    close = color("}", :map, opts)
-    container_doc(open, list, close, opts, fun, separator: sep, break: :strict)
   end
 end
 
@@ -516,10 +512,12 @@ defimpl Inspect, for: Any do
     fields = Enum.sort(Map.keys(struct) -- [:__exception__, :__struct__])
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
+    optional = Keyword.get(options, :optional, [])
     order = Keyword.get(options, :order, [])
 
     :ok = validate_option(:only, only, fields, module)
     :ok = validate_option(:except, except, fields, module)
+    :ok = validate_option(:optional, optional, fields, module)
     :ok = validate_option(:order, order, fields, module)
 
     inspect_module =
@@ -536,25 +534,50 @@ defimpl Inspect, for: Any do
 
     ordered_fields = order ++ (filtered_fields -- order)
 
+    mapper =
+      if optional == [] do
+        # If there are no optional fields, we will always include all fields,
+        # so a map operation suffices.
+        quote do
+          Enum.map(unquote(ordered_fields), fn var!(key) ->
+            case var!(struct) do
+              %{^var!(key) => var!(value)} -> {var!(key), var!(value)}
+              %{} -> {var!(key), nil}
+            end
+          end)
+        end
+      else
+        optional_fields =
+          Enum.map(ordered_fields, fn field ->
+            if field in optional, do: {field, Map.fetch!(struct, field)}, else: field
+          end)
+
+        # If there are optional fields, then we need to keep the order
+        # but potentially skip fields that match to their default value.
+        quote do
+          Enum.flat_map(unquote(Macro.escape(optional_fields)), fn
+            {var!(key), var!(default)} ->
+              case var!(struct) do
+                %{^var!(key) => ^var!(default)} -> []
+                %{^var!(key) => var!(value)} -> [{var!(key), var!(value)}]
+                %{} -> [{var!(key), nil}]
+              end
+
+            var!(key) ->
+              case var!(struct) do
+                %{^var!(key) => var!(value)} -> [{var!(key), var!(value)}]
+                %{} -> [{var!(key), nil}]
+              end
+          end)
+        end
+      end
+
     quote do
       defimpl Inspect, for: unquote(module) do
         def inspect(var!(struct), var!(opts)) do
-          var!(list) =
-            Enum.map(unquote(ordered_fields), fn var!(key) ->
-              case var!(struct) do
-                %{^var!(key) => var!(value)} -> {var!(key), var!(value)}
-                %{} -> {var!(key), nil}
-              end
-            end)
-
+          var!(list) = unquote(mapper)
           var!(name) = Macro.inspect_atom(:literal, unquote(module))
-
-          unquote(inspect_module).inspect(
-            var!(list),
-            var!(name),
-            unquote(module).__struct__(),
-            var!(opts)
-          )
+          unquote(inspect_module).inspect(var!(list), var!(name), var!(opts))
         end
       end
     end
@@ -581,28 +604,21 @@ defimpl Inspect, for: Any do
       dunder ->
         if Map.keys(dunder) == Map.keys(struct) do
           pruned = Map.drop(struct, [:__struct__, :__exception__])
-          name = Macro.inspect_atom(:literal, module)
-          Inspect.Map.inspect(Map.to_list(pruned), name, dunder, opts)
+          Inspect.Map.inspect(Map.to_list(pruned), Macro.inspect_atom(:literal, module), opts)
         else
           Inspect.Map.inspect(struct, opts)
         end
     end
   end
 
-  def inspect(list, name, struct, opts) do
+  def inspect(list, name, opts) do
     open = color("#" <> name <> "<", :map, opts)
     sep = color(",", :map, opts)
     close = color(">", :map, opts)
 
     fun = fn
-      {key, value}, opts ->
-        case struct do
-          %{^key => ^value} -> empty()
-          %{} -> Inspect.List.keyword({key, value}, opts)
-        end
-
-      :..., _opts ->
-        "..."
+      {key, value}, opts -> Inspect.List.keyword({key, value}, opts)
+      :..., _opts -> "..."
     end
 
     container_doc(open, list ++ [:...], close, opts, fun, separator: sep, break: :strict)

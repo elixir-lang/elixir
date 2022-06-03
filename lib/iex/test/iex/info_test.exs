@@ -168,7 +168,10 @@ defmodule IEx.InfoTest do
       {:ok, date} = Date.new(2017, 1, 1)
       info = Info.info(date)
       assert get_key(info, "Data type") == "Date"
-      assert get_key(info, "Raw representation") == "%Date{day: 1, month: 1, year: 2017}"
+
+      assert get_key(info, "Raw representation") ==
+               "%Date{calendar: Calendar.ISO, day: 1, month: 1, year: 2017}"
+
       assert get_key(info, "Reference modules") == "Date, Calendar, Map"
       assert get_key(info, "Description") =~ "a date"
       assert get_key(info, "Description") =~ "`~D`"
@@ -178,7 +181,10 @@ defmodule IEx.InfoTest do
       {:ok, time} = Time.new(23, 59, 59)
       info = Info.info(time)
       assert get_key(info, "Data type") == "Time"
-      assert get_key(info, "Raw representation") == "%Time{hour: 23, minute: 59, second: 59}"
+
+      assert get_key(info, "Raw representation") ==
+               "%Time{calendar: Calendar.ISO, hour: 23, microsecond: {0, 0}, minute: 59, second: 59}"
+
       assert get_key(info, "Reference modules") == "Time, Calendar, Map"
       assert get_key(info, "Description") =~ "a time"
       assert get_key(info, "Description") =~ "`~T`"
@@ -190,7 +196,7 @@ defmodule IEx.InfoTest do
       assert get_key(info, "Data type") == "NaiveDateTime"
 
       assert get_key(info, "Raw representation") ==
-               "%NaiveDateTime{day: 1, hour: 23, minute: 59, month: 1, second: 59, year: 2017}"
+               "%NaiveDateTime{calendar: Calendar.ISO, day: 1, hour: 23, microsecond: {0, 0}, minute: 59, month: 1, second: 59, year: 2017}"
 
       assert get_key(info, "Reference modules") == "NaiveDateTime, Calendar, Map"
 
