@@ -1283,7 +1283,7 @@ tokenize_identifier(String, Line, Column, Scope, MaybeKeyword) ->
       empty
   end.
 
-%% hueristic: try nfkc; try confusability skeleton; try calling this again w/just failed codepoint
+%% heuristic: try nfkc; try confusability skeleton; try calling this again w/just failed codepoint
 suggest_simpler_unexpected_token_in_error(Wrong, Line, WrongColumn, Scope) ->
   NFKC = unicode:characters_to_nfkc_list(Wrong),
   case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(NFKC) of
