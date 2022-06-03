@@ -588,7 +588,7 @@ defmodule URI do
   end
 
   @doc """
-  Similar to `new/0` but raises `URI.Error` if an invalid string is given.
+  Similar to `new/1` but raises `URI.Error` if an invalid string is given.
 
   ## Examples
 
