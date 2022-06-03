@@ -6,7 +6,7 @@ defmodule URI do
   URIs or encoding query strings). The functions in this module are implemented
   according to [RFC 3986](https://tools.ietf.org/html/rfc3986).
 
-  URIs are structs behind the scenes. If you are creating `URI` structs manually,
+  URIs are represented with Elixir structs. If you are creating `URI` structs manually,
   be aware that the `authority` field is deprecated and should not be populated.
   """
 
@@ -15,14 +15,14 @@ defmodule URI do
   defstruct fields
 
   @type t :: %__MODULE__{
-          authority: authority,
-          fragment: nil | binary,
-          host: nil | binary,
-          path: nil | binary,
-          port: nil | :inet.port_number(),
-          query: nil | binary,
           scheme: nil | binary,
+          authority: authority,
           userinfo: nil | binary
+          host: nil | binary,
+          port: nil | :inet.port_number(),
+          path: nil | binary,
+          query: nil | binary,
+          fragment: nil | binary
         }
 
   @typedoc deprecated: "The authority field is deprecated"
