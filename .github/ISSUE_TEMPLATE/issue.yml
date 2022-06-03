@@ -1,4 +1,4 @@
-name: 🐞 Bug Report
+name: Report an issue
 description: Tell us about something that's not working the way we (probably) intend
 body:
   - type: input
