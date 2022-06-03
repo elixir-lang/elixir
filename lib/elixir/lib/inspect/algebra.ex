@@ -473,11 +473,9 @@ defmodule Inspect.Algebra do
   defp container_each([term | terms], limit, opts, fun, acc, simple?)
        when is_list(terms) and is_limit(limit) do
     new_limit = decrement(limit)
-
-    case fun.(term, %{opts | limit: new_limit}) do
-      :doc_nil -> container_each(terms, limit, opts, fun, acc, simple?)
-      doc -> container_each(terms, new_limit, opts, fun, [doc | acc], simple? and simple?(doc))
-    end
+    doc = fun.(term, %{opts | limit: new_limit})
+    limit = if doc == :doc_nil, do: limit, else: new_limit
+    container_each(terms, limit, opts, fun, [doc | acc], simple? and simple?(doc))
   end
 
   defp container_each([left | right], limit, opts, fun, acc, simple?) when is_limit(limit) do
@@ -486,10 +484,8 @@ defmodule Inspect.Algebra do
     right = fun.(right, %{opts | limit: limit})
     simple? = simple? and simple?(left) and simple?(right)
 
-    case join(left, right, simple?, @tail_separator) do
-      :doc_nil -> {:lists.reverse(acc), simple?}
-      doc -> {:lists.reverse([doc | acc]), simple?}
-    end
+    doc = join(left, right, simple?, @tail_separator)
+    {:lists.reverse([doc | acc]), simple?}
   end
 
   defp decrement(:infinity), do: :infinity
