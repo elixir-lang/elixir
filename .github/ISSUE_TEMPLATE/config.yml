@@ -5,6 +5,15 @@ contact_links:
   - name: Discuss proposals
     url: https://groups.google.com/g/elixir-lang-core
     about: Send proposals for new ideas to our mailing list
-  - name: Ask questions and support
+  - name: Elixir Forum
     url: https://elixirforum.com/
     about: Ask questions, provide support and more on Elixir Forum
+  - name: Stack Overflow
+    url: https://stackoverflow.com/questions/tagged/elixir
+    about: Ask questions, provide support and more on Stack Overflow
+  - name: Elixir Slack
+    url: https://elixir-slackin.herokuapp.com
+    about: Chat with other people on Slack
+  - name: Elixir Discord
+    url: https://discord.gg/elixir
+    about: Chat with other people on Discord
