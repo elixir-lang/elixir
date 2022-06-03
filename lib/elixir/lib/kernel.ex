@@ -5119,13 +5119,21 @@ defmodule Kernel do
   list before invoking `defstruct/1`:
 
       defmodule User do
-        @derive [MyProtocol]
-        defstruct name: nil, age: 10 + 11
+        @derive MyProtocol
+        defstruct name: nil, age: nil
       end
 
       MyProtocol.call(john) # it works!
 
-  For each protocol in the `@derive` list, Elixir will assert the protocol has
+  A common example is to `@derive` the `Inspect` protocol to hide certain fields
+  when the struct is printed:
+
+      defmodule User do
+        @derive {Inspect, only: :name}
+        defstruct name: nil, age: nil
+      end
+
+  For each protocol in `@derive`, Elixir will assert the protocol has
   been implemented for `Any`. If the `Any` implementation defines a
   `__deriving__/3` callback, the callback will be invoked and it should define
   the implementation module. Otherwise an implementation that simply points to

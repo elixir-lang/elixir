@@ -186,7 +186,9 @@ Elixir expression that can deterministically recreate the data type.
   * [Enum] Allow slicing with steps in `Enum.slice/2`
   * [Float] Do not show floats in scientific notation if below `1.0e16` and the fractional value is precisely zero
   * [Inspect] Improve error reporting when there is a faulty implementation of the `Inspect` protocol
-  * [Inspect] Use expression-based inspection for `Date.Range`, `MapSet`, `Version`, and `Version.Requirement`
+  * [Inspect] Allow `:optional` when deriving the Inspect protocol
+  * [Inspect] Inspect struct fields in the order they are defined
+  * [Inspect] Use expression-based inspection for `Date.Range`, `MapSet`, and `Version.Requirement`
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
   * [Kernel] Allow composite types with pins as the map key in a pattern match
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens

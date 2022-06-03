@@ -430,14 +430,9 @@ warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
    || [Key, Line] <- ets:select(DataSet, Query)].
 
 get_struct(Set) ->
-  case ets:lookup(Set, '__struct__') of
+  case ets:lookup(Set, {elixir, struct}) of
     [] -> nil;
-    [{_, Struct, _}] ->
-      case ets:lookup(Set, enforce_keys) of
-        [] -> {Struct, []};
-        [{_, EnforceKeys, _}] when is_list(EnforceKeys) -> {Struct, EnforceKeys};
-        [{_, EnforceKeys, _}] -> {Struct, [EnforceKeys]}
-      end
+    [{_, Struct}] -> Struct
   end.
 
 get_deprecated(Bag) ->

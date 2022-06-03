@@ -469,8 +469,9 @@ defmodule Inspect.Algebra do
 
   defp container_each([term | terms], limit, opts, fun, acc, simple?)
        when is_list(terms) and is_limit(limit) do
-    limit = decrement(limit)
-    doc = fun.(term, %{opts | limit: limit})
+    new_limit = decrement(limit)
+    doc = fun.(term, %{opts | limit: new_limit})
+    limit = if doc == :doc_nil, do: limit, else: new_limit
     container_each(terms, limit, opts, fun, [doc | acc], simple? and simple?(doc))
   end
 
