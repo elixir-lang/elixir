@@ -55,25 +55,26 @@ back-pressure. You can use any term as the partitioning key.
 ### A Common Example
 
 A common and practical example of a good use case for `PartitionSupervisor` is
-partitioning something like a `Task.Supervisor`. With many tasks under it, a
-task supervisor can be a bottleneck. Instead of starting a single
-`Task.Supervisor` for a set of tasks, you can start multiple ones:
+partitioning something like a `DynamicSupervisor`. When starting many processes
+under it, a dynamic supervisor can be a bottleneck, especially if said processes
+take long to initialize. Instead of starting a single `DynamicSupervisor`,
+you can start multiple ones:
 
 ```elixir
 children = [
-  {PartitionSupervisor, child_spec: Task.Supervisor, name: MyApp.TaskSupervisors}
+  {PartitionSupervisor, child_spec: DynamicSupervisor, name: MyApp.DynamicSupervisors}
 ]
 
 Supervisor.start_link(children, strategy: :one_for_one)
 ```
 
-Now you start tasks on the task supervisor for the right partition. For
-instance, you can partition by PID, like in the previous example:
+Now you start processes on the dynamic supervisor for the right partition.
+For instance, you can partition by PID, like in the previous example:
 
 ```elixir
-Task.Supervisor.async(
-  {:via, PartitionSupervisor, {MyApp.TaskSupervisors, self()}},
-  fn -> :do_some_work end
+DynamicSupervisor.start_child(
+  {:via, PartitionSupervisor, {MyApp.DynamicSupervisors, self()}},
+  my_child_specification
 )
 ```
 
@@ -101,8 +102,8 @@ int = 1
 bin = "foo"
 int <> bin
 #=> ** (ArgumentError) construction of binary failed:
-#=>          segment 1 of type 'binary':
-#=>          expected a binary but got: 1
+#=>    segment 1 of type 'binary':
+#=>    expected a binary but got: 1
 ```
 
 ## Slicing with steps
