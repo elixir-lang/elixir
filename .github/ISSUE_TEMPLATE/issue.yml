@@ -1,12 +1,13 @@
 ---
 name: Report an issue
 description:
-  Tell us about something that is not working the way we (probably) intend.
+  Tell us about something that is not working the way we (probably) intend
 body:
   - type: markdown
     attributes:
       value: >
         Thank you for contributing to Elixir! :heart:
+
 
         Please, do not use this form for guidance, questions or support.
         Try instead in [Elixir Forum](https://elixirforum.com),
@@ -37,6 +38,8 @@ body:
       label: Current behavior
       description: >
         Include code samples, errors, and stacktraces if appropriate.
+
+
         If reporting a bug, please include the reproducing steps.
     validations:
       required: true
