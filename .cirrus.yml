@@ -1,3 +1,5 @@
+---
+
 env:
   CIRRUS_CLONE_DEPTH: 50
   ELIXIR_ASSERT_TIMEOUT: 2000
@@ -34,9 +36,13 @@ test_freebsd_task:
 
   test_formatted_script:
     - gmake test_formatted &&
-      echo "All Elixir source code files are properly formatted."
+        echo "All Elixir source code files are properly formatted."
 
-  dialyzer_script: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
+  dialyzer_script:
+    - dialyzer \
+        -pa lib/elixir/ebin \
+        --build_plt --output_plt elixir.plt \
+        --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
   test_erlang_script: gmake test_erlang
 
@@ -46,5 +52,6 @@ test_freebsd_task:
     if [ -n "$CHECK_REPRODUCIBLE" ]; then
       gmake check_reproducible
     else
-      echo "The reproducibility of the build is only checked in the last stable Erlang/OTP version."
+      echo "The reproducibility of the build is only checked"\
+        "in the last stable Erlang/OTP version."
     fi

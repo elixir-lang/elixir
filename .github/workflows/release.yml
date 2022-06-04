@@ -1,3 +1,4 @@
+---
 name: Release
 
 on:
@@ -50,8 +51,10 @@ jobs:
         run: |
           make Precompiled.zip
           mv Precompiled.zip elixir-otp-${{ matrix.otp }}.zip
-          shasum -a 1 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha1sum
-          shasum -a 256 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha256sum
+          shasum -a 1 elixir-otp-${{ matrix.otp }}.zip \
+            > elixir-otp-${{ matrix.otp }}.zip.sha1sum
+          shasum -a 256 elixir-otp-${{ matrix.otp }}.zip \
+            > elixir-otp-${{ matrix.otp }}.zip.sha256sum
           echo "$PWD/bin" >> $GITHUB_PATH
       - name: Upload Pre-built
         env:
@@ -63,7 +66,10 @@ jobs:
       - name: Get latest stable ExDoc version
         if: ${{ matrix.build_docs }}
         run: |
-          EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
+          EX_DOC_LATEST_STABLE_VERSION=$(\
+            curl -s https://hex.pm/api/packages/ex_doc \
+              | jq --raw-output '.latest_stable_version' \
+          )
           echo "EX_DOC_LATEST_STABLE_VERSION=${EX_DOC_LATEST_STABLE_VERSION}" >> $GITHUB_ENV
       - uses: actions/checkout@v2
         if: ${{ matrix.build_docs }}

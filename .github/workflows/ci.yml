@@ -1,3 +1,4 @@
+---
 name: CI
 
 on: [pull_request, push]
@@ -33,7 +34,8 @@ jobs:
       - name: Install Erlang/OTP
         run: |
           cd $RUNNER_TEMP
-          wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-18.04/${{ matrix.otp_release }}.tar.gz
+          wget -O otp.tar.gz \
+            https://repo.hex.pm/builds/otp/ubuntu-18.04/${{ matrix.otp_release }}.tar.gz
           mkdir -p otp
           tar zxf otp.tar.gz -C otp --strip-components=1
           otp/Install -minimal $(pwd)/otp
@@ -48,7 +50,11 @@ jobs:
       - name: Check format
         run: make test_formatted && echo "All Elixir source code files are properly formatted."
       - name: Run Dialyzer
-        run: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
+        run: |
+          dialyzer \
+            -pa lib/elixir/ebin \
+            --build_plt --output_plt elixir.plt \
+            --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
       - name: Erlang test suite
         run: make test_erlang
         continue-on-error: ${{ matrix.development }}
@@ -62,7 +68,10 @@ jobs:
         if: ${{ matrix.otp_latest }}
         run: |
           git config --global advice.detachedHead false
-          EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
+          EX_DOC_LATEST_STABLE_VERSION=$(\
+            curl -s https://hex.pm/api/packages/ex_doc \
+              | jq --raw-output '.latest_stable_version' \
+          )
           for branch in main v${EX_DOC_LATEST_STABLE_VERSION}; do
             echo "Building docs with ExDoc ${branch}"
             cd ..
