@@ -5,6 +5,9 @@ on:
     types:
       - published
 
+permissions:
+  contents: read
+
 jobs:
   notify:
     runs-on: ubuntu-18.04
