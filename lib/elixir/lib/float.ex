@@ -46,6 +46,31 @@ defmodule Float do
   @precision_range 0..15
   @type precision_range :: 0..15
 
+  @min_finite then(<<0xFFEFFFFFFFFFFFFF::64>>, fn <<num::float>> -> num end)
+  @max_finite then(<<0x7FEFFFFFFFFFFFFF::64>>, fn <<num::float>> -> num end)
+
+  @doc """
+  Returns the maximum finite value for a float.
+
+  ## Examples
+
+      iex> Float.max_finite()
+      1.7976931348623157e308
+
+  """
+  def max_finite, do: @max_finite
+
+  @doc """
+  Returns the minimum finite value for a float.
+
+  ## Examples
+
+      iex> Float.min_finite()
+      -1.7976931348623157e308
+
+  """
+  def min_finite, do: @min_finite
+
   @doc """
   Computes `base` raised to power of `exponent`.
 
