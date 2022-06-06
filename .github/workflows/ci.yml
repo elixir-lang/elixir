@@ -8,6 +8,9 @@ env:
   ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
 
+permissions:
+  contents: read
+
 jobs:
   test_linux:
     name: Linux, ${{ matrix.otp_release }}, Ubuntu 18.04
