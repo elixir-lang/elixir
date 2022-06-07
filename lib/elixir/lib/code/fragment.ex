@@ -133,6 +133,7 @@ defmodule Code.Fragment do
   def cursor_context(fragment, opts \\ [])
 
   def cursor_context(binary, opts) when is_binary(binary) and is_list(opts) do
+    # CRLF not relevant here - we discard everything before last `\n`
     binary =
       case :binary.matches(binary, "\n") do
         [] ->
@@ -151,6 +152,7 @@ defmodule Code.Fragment do
   end
 
   def cursor_context(charlist, opts) when is_list(charlist) and is_list(opts) do
+    # CRLF not relevant here - we discard everything before last `\n`
     charlist =
       case charlist |> Enum.chunk_by(&(&1 == ?\n)) |> List.last([]) do
         [?\n | _] -> []
@@ -508,7 +510,7 @@ defmodule Code.Fragment do
 
   def surround_context(binary, {line, column}, opts) when is_binary(binary) do
     binary
-    |> String.split("\n")
+    |> String.split(["\r\n", "\n"])
     |> Enum.at(line - 1, '')
     |> String.to_charlist()
     |> position_surround_context(line, column, opts)
@@ -516,6 +518,8 @@ defmodule Code.Fragment do
 
   def surround_context(charlist, {line, column}, opts) when is_list(charlist) do
     charlist
+    |> :string.replace('\r\n', '\n', :all)
+    |> :string.join('')
     |> :string.split('\n', :all)
     |> Enum.at(line - 1, '')
     |> position_surround_context(line, column, opts)
