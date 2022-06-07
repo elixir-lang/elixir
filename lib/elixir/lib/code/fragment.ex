@@ -180,6 +180,7 @@ defmodule Code.Fragment do
                     @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
 
   @textual_operators ~w(when not and or in)c
+  @keywords ~w(do end after else catch rescue fn true false nil)c
 
   defp codepoint_cursor_context(reverse, _opts) do
     {stripped, spaces} = strip_spaces(reverse, 0)
@@ -483,6 +484,8 @@ defmodule Code.Fragment do
     * This function never returns empty sigils `{:sigil, ''}` or empty structs
       `{:struct, ''}` as context
 
+    * This function returns keywords as `{:keyword, 'do'}`
+
     * This function never returns `:expr`
 
   """
@@ -499,7 +502,8 @@ defmodule Code.Fragment do
                | {:operator, charlist}
                | {:sigil, charlist}
                | {:struct, charlist}
-               | {:unquoted_atom, charlist},
+               | {:unquoted_atom, charlist}
+               | {:keyword, charlist},
              inside_dot:
                {:alias, charlist}
                | {:dot, inside_dot, charlist}
@@ -561,7 +565,10 @@ defmodule Code.Fragment do
           {{:local_or_var, acc}, offset} when acc in @textual_operators ->
             build_surround({:operator, acc}, reversed, line, offset)
 
-          {{:local_or_var, acc}, offset} when acc not in ~w(do end after else catch rescue)c ->
+          {{:local_or_var, acc}, offset} when acc in @keywords ->
+            build_surround({:keyword, acc}, reversed, line, offset)
+
+          {{:local_or_var, acc}, offset} ->
             build_surround({:local_or_var, acc}, reversed, line, offset)
 
           {{:module_attribute, ''}, offset} ->
