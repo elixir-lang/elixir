@@ -327,8 +327,14 @@ defmodule CodeFragmentTest do
       assert CF.surround_context("안녕_세상", {1, 6}) == :none
 
       # Keywords are not local or var
-      for keyword <- ~w(do end after catch else rescue) do
-        assert CF.surround_context(keyword, {1, 1}) == :none
+      for keyword <- ~w(do end after catch else rescue fn true false nil)c do
+        keyword_length = length(keyword) + 1
+
+        assert %{
+                 context: {:keyword, ^keyword},
+                 begin: {1, 1},
+                 end: {1, ^keyword_length}
+               } = CF.surround_context(keyword, {1, 1})
       end
     end
 
