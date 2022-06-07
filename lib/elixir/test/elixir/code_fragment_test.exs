@@ -20,6 +20,10 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context('\n') == :expr
       assert CF.cursor_context("\n\n") == :expr
       assert CF.cursor_context('\n\n') == :expr
+      assert CF.cursor_context("\r\n") == :expr
+      assert CF.cursor_context('\r\n') == :expr
+      assert CF.cursor_context("\r\n\r\n") == :expr
+      assert CF.cursor_context('\r\n\r\n') == :expr
     end
 
     test "local_or_var" do
@@ -267,6 +271,8 @@ defmodule CodeFragmentTest do
     test "newlines" do
       assert CF.cursor_context("this+does-not*matter\nHello.") == {:dot, {:alias, 'Hello'}, ''}
       assert CF.cursor_context('this+does-not*matter\nHello.') == {:dot, {:alias, 'Hello'}, ''}
+      assert CF.cursor_context("this+does-not*matter\r\nHello.") == {:dot, {:alias, 'Hello'}, ''}
+      assert CF.cursor_context('this+does-not*matter\r\nHello.') == {:dot, {:alias, 'Hello'}, ''}
     end
   end
 
@@ -274,6 +280,18 @@ defmodule CodeFragmentTest do
     test "newlines" do
       for i <- 1..8 do
         assert CF.surround_context("\n\nhello_wo\n", {3, i}) == %{
+                 context: {:local_or_var, 'hello_wo'},
+                 begin: {3, 1},
+                 end: {3, 9}
+               }
+
+        assert CF.surround_context("\r\n\r\nhello_wo\r\n", {3, i}) == %{
+                 context: {:local_or_var, 'hello_wo'},
+                 begin: {3, 1},
+                 end: {3, 9}
+               }
+
+        assert CF.surround_context('\r\n\r\nhello_wo\r\n', {3, i}) == %{
                  context: {:local_or_var, 'hello_wo'},
                  begin: {3, 1},
                  end: {3, 9}
