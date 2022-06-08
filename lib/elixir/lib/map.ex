@@ -1106,8 +1106,8 @@ defmodule Map do
   end
 
   @doc false
-  @deprecated "Use Map.new/2 instead"
+  @deprecated "Use Map.new/2 instead (invoke Map.from_struct/1 before if you have a struct)"
   def map(map, fun) when is_map(map) do
-    new(map, fn {k, v} -> {k, fun.({k, v})} end)
+    :maps.map(fn k, v -> fun.({k, v}) end, map)
   end
 end
