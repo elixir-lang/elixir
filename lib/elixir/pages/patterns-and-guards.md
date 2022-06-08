@@ -284,6 +284,7 @@ You can find the built-in list of guards [in the `Kernel` module](Kernel.html#gu
   * [`in`](`in/2`) and [`not in`](`in/2`) operators (as long as the right-hand side is a list or a range)
   * "type-check" functions (`is_list/1`, `is_number/1`, and the like)
   * functions that work on built-in datatypes (`abs/1`, `hd/1`, `map_size/1`, and others)
+  * guards also support the `map.field` syntax
 
 The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
 
@@ -413,22 +414,6 @@ Check.empty?(%{})
 
 Check.empty?({})
 #=> true
-```
-
-### Using guards for map fields
-
-Guards also support the `map.field` syntax, this allows fine grained control on each field:
-
-```elixir
-def publish(review) when review.is_ready do
-  # ...
-  :ok
-end
-
-def fetch(query) when is_struct(query, Query) and query.limit > 0 do
-  # ...
-  :ok
-end
 ```
 
 ## Where patterns and guards can be used
