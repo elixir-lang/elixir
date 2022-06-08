@@ -415,6 +415,22 @@ Check.empty?({})
 #=> true
 ```
 
+### Using guards for map fields
+
+Guards also support the `map.field` syntax, this allows fine grained control on each field:
+
+```elixir
+def publish(review) when review.is_ready do
+  # ...
+  :ok
+end
+
+def fetch(query) when is_struct(query, Query) and query.limit > 0 do
+  # ...
+  :ok
+end
+```
+
 ## Where patterns and guards can be used
 
 In the examples above, we have used the match operator ([`=`](`=/2`)) and function clauses to showcase patterns and guards respectively. Here is the list of the built-in constructs in Elixir that support patterns and guards.
