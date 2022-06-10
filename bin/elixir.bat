@@ -174,10 +174,18 @@ if %errorlevel% == 0 (
 if not !runMode! == "iex" (
   set beforeExtra=-noshell -s elixir start_cli !beforeExtra!
 )
-if defined useWerl (
-  start "" "!ERTS_BIN!werl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+if defined ELIXIR_CLI_DRY_RUN (
+   if defined useWerl (
+     echo start "" "!ERTS_BIN!werl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+   ) else (
+     echo "!ERTS_BIN!erl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+   )
 ) else (
-  "!ERTS_BIN!erl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+  if defined useWerl (
+    start "" "!ERTS_BIN!werl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+  ) else (
+    "!ERTS_BIN!erl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
+  )
 )
 :end
 endlocal
