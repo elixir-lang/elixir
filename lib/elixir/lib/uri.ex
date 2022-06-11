@@ -794,9 +794,9 @@ defmodule URI do
                 ],
                 parts
 
-    path = nillify(path)
-    scheme = nillify(scheme)
-    query = nillify_query(query_with_question_mark)
+    path = nilify(path)
+    scheme = nilify(scheme)
+    query = nilify_query(query_with_question_mark)
     {authority, userinfo, host, port} = split_authority(authority_with_slashes)
 
     scheme = scheme && String.downcase(scheme)
@@ -814,8 +814,8 @@ defmodule URI do
     }
   end
 
-  defp nillify_query("?" <> query), do: query
-  defp nillify_query(_other), do: nil
+  defp nilify_query("?" <> query), do: query
+  defp nilify_query(_other), do: nil
 
   # Split an authority into its userinfo, host and port parts.
   #
@@ -834,17 +834,17 @@ defmodule URI do
     components = Regex.run(regex, authority)
 
     destructure [_, _, userinfo, host, _, port], components
-    userinfo = nillify(userinfo)
-    host = if nillify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
-    port = if nillify(port), do: String.to_integer(port)
+    userinfo = nilify(userinfo)
+    host = if nilify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
+    port = if nilify(port), do: String.to_integer(port)
 
     {authority, userinfo, host, port}
   end
 
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
-  defp nillify(""), do: nil
-  defp nillify(other), do: other
+  defp nilify(""), do: nil
+  defp nilify(other), do: other
 
   @doc """
   Returns the string representation of the given [URI struct](`t:t/0`).
