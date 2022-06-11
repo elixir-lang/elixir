@@ -1170,10 +1170,10 @@ defmodule Module do
         def foo, do: 1
         def bar, do: 2
 
-        defoverridable foo: 1, bar: 1
+        defoverridable foo: 0, bar: 0
         def foo, do: 3
 
-        [:bar, :foo] = Module.overridables_in(__MODULE__) |> Enum.sort()
+        [bar: 0, foo: 0] = Module.overridables_in(__MODULE__) |> Enum.sort()
       end
 
   """
