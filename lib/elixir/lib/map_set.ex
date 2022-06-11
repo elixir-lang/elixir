@@ -54,7 +54,8 @@ defmodule MapSet do
 
   @type value :: term
 
-  @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
+  @opaque internal(value) :: %{optional(value) => []}
+  @type t(value) :: %__MODULE__{map: internal(value)}
   @type t :: t(term)
 
   # TODO: Remove version key when we require Erlang/OTP 24
