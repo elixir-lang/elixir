@@ -116,7 +116,7 @@ defmodule Process do
   """
   @spec put(term, term) :: term | nil
   def put(key, value) do
-    nillify(:erlang.put(key, value))
+    nilify(:erlang.put(key, value))
   end
 
   @doc """
@@ -136,7 +136,7 @@ defmodule Process do
   """
   @spec delete(term) :: term | nil
   def delete(key) do
-    nillify(:erlang.erase(key))
+    nilify(:erlang.erase(key))
   end
 
   @doc """
@@ -650,7 +650,7 @@ defmodule Process do
   """
   @spec whereis(atom) :: pid | port | nil
   def whereis(name) do
-    nillify(:erlang.whereis(name))
+    nilify(:erlang.whereis(name))
   end
 
   @doc """
@@ -749,7 +749,7 @@ defmodule Process do
   """
   @spec info(pid) :: keyword | nil
   def info(pid) do
-    nillify(:erlang.process_info(pid))
+    nilify(:erlang.process_info(pid))
   end
 
   @doc """
@@ -770,7 +770,7 @@ defmodule Process do
   end
 
   def info(pid, spec) when is_atom(spec) or is_list(spec) do
-    nillify(:erlang.process_info(pid, spec))
+    nilify(:erlang.process_info(pid, spec))
   end
 
   @doc """
@@ -788,7 +788,7 @@ defmodule Process do
   @spec hibernate(module, atom, list) :: no_return
   defdelegate hibernate(mod, fun_name, args), to: :erlang
 
-  @compile {:inline, nillify: 1}
-  defp nillify(:undefined), do: nil
-  defp nillify(other), do: other
+  @compile {:inline, nilify: 1}
+  defp nilify(:undefined), do: nil
+  defp nilify(other), do: other
 end

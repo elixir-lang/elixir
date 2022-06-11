@@ -250,7 +250,7 @@ defmodule Port do
   """
   @spec info(port) :: keyword | nil
   def info(port) do
-    nillify(:erlang.port_info(port))
+    nilify(:erlang.port_info(port))
   end
 
   @doc """
@@ -270,7 +270,7 @@ defmodule Port do
   end
 
   def info(port, item) do
-    nillify(:erlang.port_info(port, item))
+    nilify(:erlang.port_info(port, item))
   end
 
   @doc """
@@ -323,7 +323,7 @@ defmodule Port do
     :erlang.ports()
   end
 
-  @compile {:inline, nillify: 1}
-  defp nillify(:undefined), do: nil
-  defp nillify(other), do: other
+  @compile {:inline, nilify: 1}
+  defp nilify(:undefined), do: nil
+  defp nilify(other), do: other
 end
