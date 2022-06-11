@@ -311,7 +311,8 @@ defmodule Logger do
   The available backends by default are:
 
     * `:console` - logs messages to the console (enabled by default).
-      `:console` is simply a shortcut for `Logger.Backends.Console`.
+      `:console` is simply a shortcut for `Logger.Backends.Console`
+      (see its documentation for more information)
 
   Developers may also implement their own backends, an option that
   is explored in more detail below.

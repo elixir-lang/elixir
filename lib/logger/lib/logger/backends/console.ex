@@ -12,7 +12,7 @@ defmodule Logger.Backends.Console do
       Defaults to: `"\n$time $metadata[$level] $message\n"`.
       It may also be a `{module, function}` tuple that is invoked
       with the log level, the message, the current timestamp and
-      the metadata.
+      the metadata. See `Logger.Formatter`.
 
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata).
@@ -51,52 +51,6 @@ defmodule Logger.Backends.Console do
         format: "\n$time $metadata[$level] $message\n",
         metadata: [:user_id]
 
-  ## Custom formatting
-
-  The console backend allows you to customize the format of your
-  log messages with the `:format` option.
-
-  You may set `:format` to either a string or a `{module, function}`
-  tuple if you wish to provide your own format function. Here is an
-  example of how to configure the `:console` backend in a
-  `config/config.exs` file:
-
-      config :logger, :console,
-        format: {MyConsoleLogger, :format}
-
-  And here is an example of how you can define `MyConsoleLogger.format/4`
-  from the above configuration:
-
-      defmodule MyConsoleLogger do
-        def format(level, message, timestamp, metadata) do
-          # Custom formatting logic...
-        end
-      end
-
-  It is extremely important that **the formatting function does
-  not fail**, as it will bring that particular logger instance down,
-  causing your system to temporarily lose messages. If necessary,
-  wrap the function in a `rescue` and log a default message instead:
-
-      defmodule MyConsoleLogger do
-        def format(level, message, timestamp, metadata) do
-          # Custom formatting logic...
-        rescue
-          _ -> "could not format: #{inspect({level, message, metadata})}"
-        end
-      end
-
-  The `{module, function}` will be invoked with four arguments:
-
-    * the log level: an atom
-    * the message: this is usually chardata, but in some cases it
-      may contain invalid data. Since the formatting function should
-      *never* fail, you need to prepare for the message being anything
-    * the current timestamp: a term of type `t:Logger.Formatter.time/0`
-    * the metadata: a keyword list
-
-  You can read more about formatting in `Logger.Formatter`, especially
-  if you want to support custom formatting in a custom backend.
   """
 
   @behaviour :gen_event
