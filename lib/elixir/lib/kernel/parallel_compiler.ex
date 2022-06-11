@@ -496,7 +496,7 @@ defmodule Kernel.ParallelCompiler do
   # i.e. to find code that depends on code that we know is not being defined.
   # Note that not all files have been compiled yet, so they may not be in waiting.
   defp without_definition(waiting, files) do
-    nillify_empty(
+    nilify_empty(
       for %{pid: pid} <- files,
           {_, _, ref, ^pid, on, _, _} <- waiting,
           not defining?(on, waiting),
@@ -505,7 +505,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp deadlocked(waiting, type, defining?) do
-    nillify_empty(
+    nilify_empty(
       for {_, _, ref, _, on, _, ^type} <- waiting,
           defining?(on, waiting) == defining?,
           do: {ref, :deadlock}
@@ -516,8 +516,8 @@ defmodule Kernel.ParallelCompiler do
     Enum.any?(waiting, fn {_, _, _, _, _, defining, _} -> on in defining end)
   end
 
-  defp nillify_empty([]), do: nil
-  defp nillify_empty([_ | _] = list), do: list
+  defp nilify_empty([]), do: nil
+  defp nilify_empty([_ | _] = list), do: list
 
   # Wait for messages from child processes
   defp wait_for_messages(queue, spawned, waiting, files, result, warnings, state) do
