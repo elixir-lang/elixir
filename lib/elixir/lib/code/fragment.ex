@@ -276,6 +276,9 @@ defmodule Code.Fragment do
       {:identifier, _, acc, count} when call_op? and acc in @textual_operators ->
         {{:operator, acc}, count}
 
+      {:identifier, [?%], acc, count} ->
+        {{:struct, acc}, count + 1}
+
       {:identifier, rest, acc, count} ->
         case strip_spaces(rest, count) do
           {'.' ++ rest, count} when rest == [] or hd(rest) != ?. ->
@@ -357,6 +360,7 @@ defmodule Code.Fragment do
     case identifier_to_cursor_context(rest, count, true) do
       {{:struct, prev}, count} -> {{:struct, prev ++ '.' ++ acc}, count}
       {{:alias, prev}, count} -> {{:alias, prev ++ '.' ++ acc}, count}
+      {{:local_or_var, prev = '__MODULE__'}, count} -> {{:alias, prev ++ '.' ++ acc}, count}
       _ -> {:none, 0}
     end
   end

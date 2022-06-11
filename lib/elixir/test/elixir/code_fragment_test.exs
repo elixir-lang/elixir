@@ -39,6 +39,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("hello? world") == {:local_or_var, 'world'}
       assert CF.cursor_context("hello! world") == {:local_or_var, 'world'}
       assert CF.cursor_context("hello: world") == {:local_or_var, 'world'}
+      assert CF.cursor_context("__MODULE__") == {:local_or_var, '__MODULE__'}
     end
 
     test "dot" do
@@ -59,6 +60,8 @@ defmodule CodeFragmentTest do
 
       assert CF.cursor_context("nested.map.wor") ==
                {:dot, {:dot, {:var, 'nested'}, 'map'}, 'wor'}
+
+      assert CF.cursor_context("__MODULE__.") == {:dot, {:var, '__MODULE__'}, ''}
     end
 
     test "local_arity" do
@@ -120,6 +123,9 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Foo . + (") == {:dot_call, {:alias, 'Foo'}, '+'}
       assert CF.cursor_context("Foo . + (\s") == {:dot_call, {:alias, 'Foo'}, '+'}
       assert CF.cursor_context("Foo . + (\t") == {:dot_call, {:alias, 'Foo'}, '+'}
+
+      assert CF.cursor_context("__MODULE__.Foo.hello(") ==
+               {:dot_call, {:alias, '__MODULE__.Foo'}, 'hello'}
     end
 
     test "alias" do
@@ -128,6 +134,8 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Hello . Wor") == {:alias, 'Hello.Wor'}
       assert CF.cursor_context("Hello::Wor") == {:alias, 'Wor'}
       assert CF.cursor_context("Hello..Wor") == {:alias, 'Wor'}
+
+      assert CF.cursor_context("__MODULE__.Wor") == {:alias, '__MODULE__.Wor'}
     end
 
     test "structs" do
@@ -139,6 +147,11 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("%Hello.") == {:struct, 'Hello.'}
       assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
       assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
+
+      assert CF.cursor_context("%__MODULE_") == {:struct, '__MODULE_'}
+      assert CF.cursor_context("%__MODULE__") == {:struct, '__MODULE__'}
+      assert CF.cursor_context("%__MODULE__.") == {:struct, '__MODULE__.'}
+      assert CF.cursor_context("%__MODULE__.Wor") == {:struct, '__MODULE__.Wor'}
     end
 
     test "unquoted atom" do
@@ -552,6 +565,50 @@ defmodule CodeFragmentTest do
                  end: {1, 16}
                }
       end
+    end
+
+    test "underscored special forms" do
+      assert CF.surround_context("__MODULE__", {1, 1}) == %{
+               context: {:local_or_var, '__MODULE__'},
+               begin: {1, 1},
+               end: {1, 11}
+             }
+
+      assert CF.surround_context("__MODULE__.Foo", {1, 12}) == %{
+               context: {:alias, '__MODULE__.Foo'},
+               begin: {1, 1},
+               end: {1, 15}
+             }
+
+      assert CF.surround_context("%__MODULE__{}", {1, 5}) == %{
+               context: {:struct, '__MODULE__'},
+               begin: {1, 1},
+               end: {1, 12}
+             }
+
+      assert CF.surround_context("%__MODULE__.Foo{}", {1, 13}) == %{
+               context: {:struct, '__MODULE__.Foo'},
+               begin: {1, 1},
+               end: {1, 16}
+             }
+
+      assert CF.surround_context("__MODULE__.call()", {1, 13}) == %{
+               context: {:dot, {:var, '__MODULE__'}, 'call'},
+               begin: {1, 1},
+               end: {1, 16}
+             }
+
+      assert CF.surround_context("__MODULE__.Foo.call()", {1, 17}) == %{
+               context: {:dot, {:alias, '__MODULE__.Foo'}, 'call'},
+               begin: {1, 1},
+               end: {1, 20}
+             }
+
+      assert CF.surround_context("__ENV__.module.call()", {1, 17}) == %{
+               context: {:dot, {:dot, {:var, '__ENV__'}, 'module'}, 'call'},
+               begin: {1, 1},
+               end: {1, 20}
+             }
     end
 
     test "struct" do
