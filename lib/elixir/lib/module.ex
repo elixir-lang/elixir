@@ -1253,14 +1253,15 @@ defmodule Module do
 
   ## Options
 
-    * `:nillify_clauses` (since v1.13.0) - returns `nil` instead
+    * `:skip_clauses` (since v1.14.0) - returns `[]` instead
       of returning the clauses. This is useful when there is
-      only an interest in fetching the kind and metadata
+      only an interest in fetching the kind and the metadata
 
   """
+  # TODO: Deprecate :nillify_clauses in options on Elixir v1.16
   @spec get_definition(module, definition, keyword) ::
           {:v1, def_kind, meta :: keyword,
-           [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}] | nil}
+           [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}]}
   @doc since: "1.12.0"
   def get_definition(module, {name, arity}, options \\ [])
       when is_atom(module) and is_atom(name) and is_integer(arity) and is_list(options) do
@@ -1270,8 +1271,8 @@ defmodule Module do
     case :ets.lookup(set, {:def, {name, arity}}) do
       [{_key, kind, meta, _, _, _}] ->
         clauses =
-          if options[:nillify_clauses],
-            do: nil,
+          if options[:skip_clauses],
+            do: [],
             else: bag_lookup_element(bag, {:clauses, {name, arity}}, 2)
 
         {:v1, kind, meta, clauses}

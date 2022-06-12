@@ -489,8 +489,7 @@ defmodule ModuleTest do
                  {{:., _, [:erlang, :+]}, _, [{:a, _, nil}, {:b, _, nil}]}}
               ]} = Module.get_definition(__MODULE__, {:foo, 2})
 
-      assert {:v1, :def, _, nil} =
-               Module.get_definition(__MODULE__, {:foo, 2}, nillify_clauses: true)
+      assert {:v1, :def, _, []} = Module.get_definition(__MODULE__, {:foo, 2}, skip_clauses: true)
 
       assert Module.delete_definition(__MODULE__, {:foo, 2})
       assert Module.get_definition(__MODULE__, {:foo, 2}) == nil
