@@ -254,6 +254,9 @@ defmodule Code.Fragment do
       :operator ->
         operator(reverse, count, [], call_op?)
 
+      {:struct, {:module_attribute, acc}, count} ->
+        {{:struct, {:module_attribute, acc}}, count + 1}
+
       {:module_attribute, acc, count} ->
         {{:module_attribute, acc}, count}
 
@@ -310,7 +313,7 @@ defmodule Code.Fragment do
 
   defp rest_identifier(rest, count, [?@ | acc]) do
     case tokenize_identifier(rest, count, acc) |> IO.inspect(label: "tokenized") do
-      {:identifier, [?% | _rest], acc, count} -> {:struct, '@' ++ acc, count}
+      {:identifier, [?% | _rest], acc, count} -> {:struct, {:module_attribute, acc}, count}
       {:identifier, _rest, acc, count} -> {:module_attribute, acc, count}
       :none when acc == [] -> {:module_attribute, '', count}
       _ -> :none
@@ -364,12 +367,29 @@ defmodule Code.Fragment do
     {rest, count} = strip_spaces(rest, count)
 
     case identifier_to_cursor_context(rest, count, true) |> IO.inspect(label: "nested") do
-      {{:struct, {:alias, prev}}, count} -> {{:struct, {:alias, prev ++ '.' ++ acc}}, count}
-      {{:struct, prev}, count} -> {{:struct, {:alias, prev, acc}}, count}
-      {{:alias, prev}, count} -> {{:alias, prev ++ '.' ++ acc}, count}
-      {{:local_or_var, prev}, count} -> {{:alias, {:local_or_var, prev}, acc}, count}
-      {{:module_attribute, prev}, count} -> {{:alias, '@' ++ prev ++ '.' ++ acc}, count}
-      _ -> {:none, 0}
+      {{:struct, {:alias, prev}}, count} ->
+        {{:struct, {:alias, prev ++ '.' ++ acc}}, count}
+
+      {{:struct, {:alias, parent, prev}}, count} ->
+        {{:struct, {:alias, parent, prev ++ '.' ++ acc}}, count}
+
+      {{:struct, prev}, count} ->
+        {{:struct, {:alias, prev, acc}}, count}
+
+      {{:alias, prev}, count} ->
+        {{:alias, prev ++ '.' ++ acc}, count}
+
+      {{:alias, parent, prev}, count} ->
+        {{:alias, parent, prev ++ '.' ++ acc}, count}
+
+      {{:local_or_var, prev}, count} ->
+        {{:alias, {:local_or_var, prev}, acc}, count}
+
+      {{:module_attribute, prev}, count} ->
+        {{:alias, {:module_attribute, prev}, acc}, count}
+
+      _ ->
+        {:none, 0}
     end
   end
 
