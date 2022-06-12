@@ -47,7 +47,9 @@ defmodule Code.Fragment do
       `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
       itself. If a var is given, this may either be a remote call or a map
       field access. Examples are `Hello.wor`, `:hello.wor`, `hello.wor`,
-      `Hello.nested.wor`, `hello.nested.wor`, and `@hello.world`
+      `Hello.nested.wor`, `hello.nested.wor`, and `@hello.world`. If `charlist`
+      is empty and `inside_dot` is an alias, then the autocompletion may either
+      be an alias or a remote call.
 
     * `{:dot_arity, inside_dot, charlist}` - the context is a dot arity
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
