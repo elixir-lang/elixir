@@ -143,18 +143,18 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context(":%") == {:unquoted_atom, '%'}
       assert CF.cursor_context("::%") == {:struct, ''}
 
-      assert CF.cursor_context("%HelloWor") == {:struct, 'HelloWor'}
+      assert CF.cursor_context("%HelloWor") == {:struct, {:alias, 'HelloWor'}}
       # TODO does it make sense
       # assert CF.cursor_context("%Hello.") == {:struct, 'Hello.'}
-      assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
-      assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
+      assert CF.cursor_context("%Hello.Wor") == {:struct, {:alias, 'Hello.Wor'}}
+      assert CF.cursor_context("% Hello . Wor") == {:struct, {:alias, 'Hello.Wor'}}
 
       assert CF.cursor_context("%__MODULE_") == {:struct, {:local_or_var, '__MODULE_'}}
       assert CF.cursor_context("%__MODULE__") == {:struct, {:local_or_var, '__MODULE__'}}
       # TODO does it make sense
       # assert CF.cursor_context("%__MODULE__.") == {:struct, {:local_or_var, '__MODULE__'}}
       assert CF.cursor_context("%__MODULE__.Wor") ==
-               {:struct, {:local_or_var, '__MODULE__'}, 'Wor'}
+               {:struct, {:alias, {:local_or_var, '__MODULE__'}, 'Wor'}}
     end
 
     test "unquoted atom" do
@@ -590,7 +590,7 @@ defmodule CodeFragmentTest do
              }
 
       assert CF.surround_context("%__MODULE__.Foo{}", {1, 13}) == %{
-               context: {:struct, {:local_or_var, '__MODULE__'}, 'Foo'},
+               context: {:struct, {:alias, {:local_or_var, '__MODULE__'}, 'Foo'}},
                begin: {1, 1},
                end: {1, 16}
              }
@@ -622,33 +622,33 @@ defmodule CodeFragmentTest do
       assert CF.surround_context("::%Hello", {1, 2}) == :none
 
       assert CF.surround_context("::%Hello", {1, 3}) == %{
-               context: {:struct, 'Hello'},
+               context: {:struct, {:alias, 'Hello'}},
                begin: {1, 3},
                end: {1, 9}
              }
 
       assert CF.surround_context("::% Hello", {1, 3}) == %{
-               context: {:struct, 'Hello'},
+               context: {:struct, {:alias, 'Hello'}},
                begin: {1, 3},
                end: {1, 10}
              }
 
       assert CF.surround_context("::% Hello", {1, 4}) == %{
-               context: {:struct, 'Hello'},
+               context: {:struct, {:alias, 'Hello'}},
                begin: {1, 3},
                end: {1, 10}
              }
 
       # Alias
       assert CF.surround_context("%HelloWor", {1, 1}) == %{
-               context: {:struct, 'HelloWor'},
+               context: {:struct, {:alias, 'HelloWor'}},
                begin: {1, 1},
                end: {1, 10}
              }
 
       for i <- 2..9 do
         assert CF.surround_context("%HelloWor", {1, i}) == %{
-                 context: {:struct, 'HelloWor'},
+                 context: {:struct, {:alias, 'HelloWor'}},
                  begin: {1, 1},
                  end: {1, 10}
                }
@@ -658,14 +658,14 @@ defmodule CodeFragmentTest do
 
       # With dot
       assert CF.surround_context("%Hello.Wor", {1, 1}) == %{
-               context: {:struct, 'Hello.Wor'},
+               context: {:struct, {:alias, 'Hello.Wor'}},
                begin: {1, 1},
                end: {1, 11}
              }
 
       for i <- 2..10 do
         assert CF.surround_context("%Hello.Wor", {1, i}) == %{
-                 context: {:struct, 'Hello.Wor'},
+                 context: {:struct, {:alias, 'Hello.Wor'}},
                  begin: {1, 1},
                  end: {1, 11}
                }
@@ -675,14 +675,14 @@ defmodule CodeFragmentTest do
 
       # With spaces
       assert CF.surround_context("% Hello . Wor", {1, 1}) == %{
-               context: {:struct, 'Hello.Wor'},
+               context: {:struct, {:alias, 'Hello.Wor'}},
                begin: {1, 1},
                end: {1, 14}
              }
 
       for i <- 2..13 do
         assert CF.surround_context("% Hello . Wor", {1, i}) == %{
-                 context: {:struct, 'Hello.Wor'},
+                 context: {:struct, {:alias, 'Hello.Wor'}},
                  begin: {1, 1},
                  end: {1, 14}
                }
