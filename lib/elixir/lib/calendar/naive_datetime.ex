@@ -46,8 +46,8 @@ defmodule NaiveDateTime do
 
   ## Using epochs
 
-  The `add/3` and `diff/3` functions can be used for computing with
-  date times or retrieving the number of seconds between instants.
+  The `add/3` and `diff/3` functions can be used for computing date
+  times or retrieving the number of seconds between instants.
   For example, if there is an interest in computing the number of
   seconds from the Unix epoch (1970-01-01 00:00:00):
 
@@ -358,6 +358,14 @@ defmodule NaiveDateTime do
 
   Accepts an `amount_to_add` in any `unit` available from `t:System.time_unit/0`.
   Negative values will move backwards in time.
+
+  This function always consider the seconds to be the equivalent
+  amount of seconds according to the Gregorian calendar.
+
+  This function only works with second (or subsecond) precision
+  to avoid rounding issues. For example, when adding 1 month to
+  Jan 31, you need to either round up or down. This function
+  considers seconds contiguously, as a way to avoid such issues.
 
   ## Examples
 
