@@ -143,6 +143,9 @@ defmodule DateTime do
   @doc """
   Returns the current datetime in UTC.
 
+  If you want the current time in Unix seconds,
+  use `System.os_time/1` instead.
+
   ## Examples
 
       iex> datetime = DateTime.utc_now()
@@ -814,10 +817,6 @@ defmodule DateTime do
   It will return the integer with the given unit,
   according to `System.convert_time_unit/3`.
 
-  If you want to get the current time in Unix seconds,
-  do not do `DateTime.utc_now() |> DateTime.to_unix()`.
-  Simply call `System.os_time(:second)` instead.
-
   ## Examples
 
       iex> 1_464_096_368 |> DateTime.from_unix!() |> DateTime.to_unix()
@@ -1427,15 +1426,22 @@ defmodule DateTime do
   @doc """
   Adds a specified amount of time to a `DateTime`.
 
-  Accepts an `amount_to_add` in any `unit` available from `t:System.time_unit/0`.
+  It accepts an `amount_to_add` in any `unit` available from `t:System.time_unit/0`.
   Negative values will move backwards in time.
 
-  Takes changes such as summer time/DST into account. This means that adding time
-  can cause the wall time to "go backwards" during "fall back" during autumn.
-  Adding just a few seconds to a datetime just before "spring forward" can cause wall
-  time to increase by more than an hour.
+  This function always consider the seconds to be the equivalent
+  amount of seconds according to the Gregorian calendar.
 
-  Fractional second precision stays the same in a similar way to `NaiveDateTime.add/2`.
+  This function only works with second (or subsecond) precision
+  to avoid rounding issues. For example, when adding 1 month to
+  Jan 31, you need to either round up or down. This function
+  considers seconds contiguously, as a way to avoid such issues.
+
+  Another consequence of considering seconds contiguously is that,
+  when there are summer time/daylight saving time changes, the wall
+  time may "go backwards" during "fall back" during autumn. Adding
+  just a few seconds to a datetime just before "spring forward" can
+  cause wall time to increase by more than an hour.
 
   ### Examples
 
