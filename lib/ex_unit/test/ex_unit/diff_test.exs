@@ -778,6 +778,14 @@ defmodule ExUnit.DiffTest do
       "%+Date+{calendar: Calendar.ISO, day: 1, month: 1, year: 2020}",
       pins
     )
+
+    # right side is not map-like
+    refute_diff(
+      %^type{age: ^age, name: "john"} = nil,
+      "-%^type{age: ^age, name: \"john\"}-",
+      "+nil+",
+      pins
+    )
   end
 
   test "invalid structs" do

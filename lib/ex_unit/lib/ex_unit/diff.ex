@@ -1027,6 +1027,10 @@ defmodule ExUnit.Diff do
     wrap_on_diff(quoted, &safe_struct_to_algebra/2, diff_wrapper)
   end
 
+  defp safe_struct_to_algebra({:^, _, _} = name, _diff_wrapper) do
+    Macro.to_string(name)
+  end
+
   defp safe_struct_to_algebra(name, _diff_wrapper) do
     Macro.inspect_atom(:literal, name)
   end
