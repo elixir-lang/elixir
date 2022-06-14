@@ -292,6 +292,27 @@ defmodule ExUnit.FormatterTest do
            """
   end
 
+  test "formats match error between pinned struct type and a non-struct" do
+    failure = [
+      {:error,
+       catch_assertion do
+         expected_module = ExUnit.TestModule
+         assert %^expected_module{} = nil
+       end, []}
+    ]
+
+    assert format_test_failure(test(), failure, 1, 80, &diff_formatter/2) =~ """
+             1) world (Hello)
+                test/ex_unit/formatter_test.exs:1
+                match (=) failed
+                The following variables were pinned:
+                  expected_module = ExUnit.TestModule
+                code:  assert %^expected_module{} = nil
+                left:  %^expected_module{}
+                right: nil
+           """
+  end
+
   test "formats multiple assertions" do
     failure = [
       {:error, catch_assertion(assert ExUnit.FormatterTest.falsy()), []},
