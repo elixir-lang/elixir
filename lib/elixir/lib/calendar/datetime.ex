@@ -1387,12 +1387,11 @@ defmodule DateTime do
   @doc """
   Subtracts `datetime2` from `datetime1`.
 
-  The answer can be returned in any `unit` available from `t:System.time_unit/0`.
+  The answer can be returned in any `:day`, `:hour`, `:minute`, or any `unit`
+  available from `t:System.time_unit/0`. The unit is measured according to
+  `Calendar.ISO` and defaults to `:second`.
 
-  Leap seconds are not taken into account.
-
-  This function returns the difference in seconds where seconds are measured
-  according to `Calendar.ISO`.
+  Fractional results are not supported and are truncated.
 
   ## Examples
 
@@ -1406,14 +1405,36 @@ defmodule DateTime do
       18000
       iex> DateTime.diff(dt2, dt1)
       -18000
+      iex> DateTime.diff(dt1, dt2, :hour)
+      5
+      iex> DateTime.diff(dt2, dt1, :hour)
+      -5
 
   """
   @doc since: "1.5.0"
-  @spec diff(Calendar.datetime(), Calendar.datetime(), System.time_unit()) :: integer()
+  @spec diff(
+          Calendar.datetime(),
+          Calendar.datetime(),
+          :day | :hour | :minute | System.time_unit()
+        ) :: integer()
+  def diff(datetime1, datetime2, unit \\ :second)
+
+  def diff(datetime1, datetime2, :day) do
+    diff(datetime1, datetime2, :second) |> div(86400)
+  end
+
+  def diff(datetime1, datetime2, :hour) do
+    diff(datetime1, datetime2, :second) |> div(3600)
+  end
+
+  def diff(datetime1, datetime2, :minute) do
+    diff(datetime1, datetime2, :second) |> div(60)
+  end
+
   def diff(
         %{utc_offset: utc_offset1, std_offset: std_offset1} = datetime1,
         %{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2,
-        unit \\ :second
+        unit
       ) do
     naive_diff =
       (datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)) -
@@ -1426,22 +1447,30 @@ defmodule DateTime do
   @doc """
   Adds a specified amount of time to a `DateTime`.
 
-  It accepts an `amount_to_add` in any `unit` available from `t:System.time_unit/0`.
-  Negative values will move backwards in time.
+  Accepts an `amount_to_add` in any `unit`. `unit` can be `:day`,
+  `:hour`, `:minute`, `:second` or any subsecond precision from
+  `t:System.time_unit/0`. It defaults to `:second`. Negative values
+  will move backwards in time.
 
-  This function always consider the seconds to be the equivalent
-  amount of seconds according to the Gregorian calendar.
+  This function always consider the unit to be computed according
+  to the `Calendar.ISO`.
 
-  This function only works with second (or subsecond) precision
-  to avoid rounding issues. For example, when adding 1 month to
-  Jan 31, you need to either round up or down. This function
-  considers seconds contiguously, as a way to avoid such issues.
+  This function uses relies on a contiguous representation of time,
+  ignoring the wall time and timezone changes. For example, if you add
+  one day when there are summer time/daylight saving time changes,
+  it will also change the time forward or backward by one hour,
+  so the ellapsed time is precisely 24 hours. Similarly, adding just
+  a few seconds to a datetime just before "spring forward" can cause
+  wall time to increase by more than an hour.
 
-  Another consequence of considering seconds contiguously is that,
-  when there are summer time/daylight saving time changes, the wall
-  time may "go backwards" during "fall back" during autumn. Adding
-  just a few seconds to a datetime just before "spring forward" can
-  cause wall time to increase by more than an hour.
+  While this means this function is precise in terms of ellapsed time,
+  its result may be misleading in certain use cases. For example, if a
+  user requests a meeting to happen every day at 15:00 and you use this
+  function to compute all future meetings by adding day after day, this
+  function may change the meeting time to 14:00 or 16:00 if there are
+  changes to the current timezone. Computing of recurring datetimes is
+  not currently supported in Elixir's standard library but it is available
+  by third-party libraries.
 
   ### Examples
 
@@ -1452,15 +1481,26 @@ defmodule DateTime do
       iex> DateTime.add(~U[2018-11-15 10:00:00Z], 3600, :second)
       ~U[2018-11-15 11:00:00Z]
 
-  When adding 3 seconds just before "spring forward" we go from 1:59:59 to 3:00:02
+  When adding 3 seconds just before "spring forward" we go from 1:59:59 to 3:00:02:
 
       iex> dt = DateTime.from_naive!(~N[2019-03-31 01:59:59.123], "Europe/Copenhagen", FakeTimeZoneDatabase)
       iex> dt |> DateTime.add(3, :second, FakeTimeZoneDatabase)
       #DateTime<2019-03-31 03:00:02.123+02:00 CEST Europe/Copenhagen>
 
+  When adding 1 day during "spring forward", the hour also changes:
+
+      iex> dt = DateTime.from_naive!(~N[2019-03-31 01:00:00], "Europe/Copenhagen", FakeTimeZoneDatabase)
+      iex> dt |> DateTime.add(1, :day, FakeTimeZoneDatabase)
+      #DateTime<2019-04-01 02:00:00+02:00 CEST Europe/Copenhagen>
+
   """
   @doc since: "1.8.0"
-  @spec add(Calendar.datetime(), integer, System.time_unit(), Calendar.time_zone_database()) ::
+  @spec add(
+          Calendar.datetime(),
+          integer,
+          :day | :hour | :minute | System.time_unit(),
+          Calendar.time_zone_database()
+        ) ::
           t()
   def add(
         datetime,
@@ -1468,7 +1508,20 @@ defmodule DateTime do
         unit \\ :second,
         time_zone_database \\ Calendar.get_time_zone_database()
       )
-      when is_integer(amount_to_add) do
+
+  def add(datetime, amount_to_add, :day, time_zone_database) when is_integer(amount_to_add) do
+    add(datetime, amount_to_add * 86400, :second, time_zone_database)
+  end
+
+  def add(datetime, amount_to_add, :hour, time_zone_database) when is_integer(amount_to_add) do
+    add(datetime, amount_to_add * 3600, :second, time_zone_database)
+  end
+
+  def add(datetime, amount_to_add, :minute, time_zone_database) when is_integer(amount_to_add) do
+    add(datetime, amount_to_add * 60, :second, time_zone_database)
+  end
+
+  def add(datetime, amount_to_add, unit, time_zone_database) when is_integer(amount_to_add) do
     %{
       utc_offset: utc_offset,
       std_offset: std_offset,
