@@ -535,7 +535,7 @@ defmodule Application do
     key_or_path = expand_key_or_path(key_or_path, __CALLER__)
 
     quote do
-      Application.__compile_env__(unquote(app), unquote(key_or_path), unquote(default), __ENV__)
+      Application.compile_env(__ENV__, unquote(app), unquote(key_or_path), unquote(default))
     end
   end
 
@@ -548,8 +548,24 @@ defmodule Application do
   defp expand_key_or_path(other, _env),
     do: other
 
-  @doc false
-  def __compile_env__(app, key_or_path, default, env) do
+  @doc """
+  Reads the application environment at compilation time from a macro.
+
+  Typically, developers will use `compile_env/3`. This function must
+  only be invoked from macros who wish to read the compilation environment
+  dynamically.
+
+  It expects a `Macro.Env` as first argument, where the `Macro.Env` is
+  typically the `__CALLER__` in a macro. It raises if `Macro.Env` comes
+  from a function.
+  """
+  @doc since: "1.14.0"
+  @spec compile_env(Macro.Env.t(), app, key | list, value) :: value
+  def compile_env(%Macro.Env{} = env, app, key_or_path, default) do
+    if env.function do
+      raise "Application.compile_env/4 cannot be called inside functions, only in the module body"
+    end
+
     case fetch_compile_env(app, key_or_path, env) do
       {:ok, value} -> value
       :error -> default
@@ -572,12 +588,29 @@ defmodule Application do
     key_or_path = expand_key_or_path(key_or_path, __CALLER__)
 
     quote do
-      Application.__compile_env__!(unquote(app), unquote(key_or_path), __ENV__)
+      Application.compile_env!(__ENV__, unquote(app), unquote(key_or_path))
     end
   end
 
-  @doc false
-  def __compile_env__!(app, key_or_path, env) do
+  @doc """
+  Reads the application environment at compilation time from a macro
+  or raises.
+
+  Typically, developers will use `compile_env!/2`. This function must
+  only be invoked from macros who wish to read the compilation environment
+  dynamically.
+
+  It expects a `Macro.Env` as first argument, where the `Macro.Env` is
+  typically the `__CALLER__` in a macro. It raises if `Macro.Env` comes
+  from a function.
+  """
+  @doc since: "1.14.0"
+  @spec compile_env!(Macro.Env.t(), app, key | list) :: value
+  def compile_env!(%Macro.Env{} = env, app, key_or_path) do
+    if env.function do
+      raise "Application.compile_env!/3 cannot be called inside functions, only in the module body"
+    end
+
     case fetch_compile_env(app, key_or_path, env) do
       {:ok, value} ->
         value
@@ -589,8 +622,9 @@ defmodule Application do
     end
   end
 
-  defp fetch_compile_env(app, key, env) when is_atom(key),
-    do: fetch_compile_env(app, key, [], env)
+  defp fetch_compile_env(app, key, env) when is_atom(key) do
+    fetch_compile_env(app, key, [], env)
+  end
 
   defp fetch_compile_env(app, [key | paths], env) when is_atom(key),
     do: fetch_compile_env(app, key, paths, env)
