@@ -171,13 +171,13 @@ bootstrap_file(Lib, Suffix) ->
 bootstrap_files() ->
   {
     [
+     <<"kernel/utils.ex">>,
      <<"macro/env.ex">>,
      <<"keyword.ex">>,
      <<"module.ex">>,
      <<"list.ex">>,
      <<"macro.ex">>,
      <<"kernel/typespec.ex">>,
-     <<"kernel/utils.ex">>,
      <<"code.ex">>,
      <<"code/identifier.ex">>,
      <<"protocol.ex">>,
