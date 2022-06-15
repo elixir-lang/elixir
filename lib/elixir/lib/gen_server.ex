@@ -695,7 +695,6 @@ defmodule GenServer do
   `GenServer`. For example, it can be used to return a compact representation of
   the `GenServer`'s state to avoid having large state terms printed.
 
-
   `pdict_and_state` is a two-elements list `[pdict, state]` where `pdict` is a
   list of `{key, value}` tuples representing the current process dictionary of
   the `GenServer` and `state` is the current state of the `GenServer`.
