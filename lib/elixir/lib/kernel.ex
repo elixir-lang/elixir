@@ -5190,7 +5190,7 @@ defmodule Kernel do
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields, bootstrapped?: bootstrapped?(Enum)] do
-      {struct, derive, body} = Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?)
+      {struct, derive, kv, body} = Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?)
 
       case derive do
         [] -> :ok
@@ -5198,7 +5198,7 @@ defmodule Kernel do
       end
 
       def __struct__(), do: @__struct__
-      def __struct__(var!(kv)), do: unquote(body)
+      def __struct__(unquote(kv)), do: unquote(body)
 
       Kernel.Utils.announce_struct(__MODULE__)
       struct

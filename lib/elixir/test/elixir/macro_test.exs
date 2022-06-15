@@ -793,6 +793,10 @@ defmodule MacroTest do
   describe "env" do
     doctest Macro.Env
 
+    test "inspect" do
+      assert inspect(__ENV__) =~ "#Macro.Env<"
+    end
+
     test "prune_compile_info" do
       assert %Macro.Env{lexical_tracker: nil, tracers: []} =
                Macro.Env.prune_compile_info(%{__ENV__ | lexical_tracker: self(), tracers: [Foo]})
