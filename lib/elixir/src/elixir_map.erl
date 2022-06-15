@@ -126,6 +126,16 @@ validate_struct(Atom, _) when is_atom(Atom) -> true;
 validate_struct(_, _) -> false.
 
 load_struct(Meta, Name, Args, Keys, E) ->
+  try
+    wrapped_load_struct(Meta, Name, Args, Keys, E)
+  catch
+    Kind:Reason ->
+      Info = [{Name, '__struct__', length(Args), [{file, "expanding struct"}]},
+              elixir_utils:caller(?line(Meta), ?key(E, file), ?key(E, module), ?key(E, function))],
+      erlang:raise(Kind, Reason, Info)
+  end.
+
+wrapped_load_struct(Meta, Name, Args, Keys, E) ->
   %% We also include the current module because it won't be present
   %% in context module in case the module name is defined dynamically.
   InContext = lists:member(Name, [?key(E, module) | ?key(E, context_modules)]),
@@ -160,6 +170,7 @@ load_struct(Meta, Name, Args, Keys, E) ->
 
     #{'__struct__' := StructName} when is_atom(StructName) ->
       form_error(Meta, E, ?MODULE, {struct_name_mismatch, Name, Arity, StructName});
+
     Other ->
       form_error(Meta, E, ?MODULE, {invalid_struct_return_value, Name, Arity, Other})
   catch
@@ -169,12 +180,7 @@ load_struct(Meta, Name, Args, Keys, E) ->
           form_error(Meta, E, ?MODULE, {inaccessible_struct, Name});
         false ->
           form_error(Meta, E, ?MODULE, {undefined_struct, Name, Arity})
-      end;
-
-    Kind:Reason ->
-      Info = [{Name, '__struct__', Arity, [{file, "expanding struct"}]},
-              elixir_utils:caller(?line(Meta), ?key(E, file), ?key(E, module), ?key(E, function))],
-      erlang:raise(Kind, Reason, Info)
+      end
   end.
 
 ensure_loaded(Module) ->
