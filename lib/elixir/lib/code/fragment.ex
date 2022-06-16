@@ -222,8 +222,7 @@ defmodule Code.Fragment do
   defp unquoted_atom_or_expr(_), do: {:expr, 0}
 
   defp arity_to_cursor_context({reverse, spaces}) do
-    case identifier_to_cursor_context(reverse, spaces, true)
-         |> IO.inspect(label: "identifier_to_cursor_context 225") do
+    case identifier_to_cursor_context(reverse, spaces, true) do
       {{:local_or_var, acc}, count} -> {{:local_arity, acc}, count}
       {{:dot, base, acc}, count} -> {{:dot_arity, base, acc}, count}
       {{:operator, acc}, count} -> {{:operator_arity, acc}, count}
@@ -232,8 +231,7 @@ defmodule Code.Fragment do
   end
 
   defp call_to_cursor_context({reverse, spaces}) do
-    case identifier_to_cursor_context(reverse, spaces, true)
-         |> IO.inspect(label: "identifier_to_cursor_context 234") do
+    case identifier_to_cursor_context(reverse, spaces, true) do
       {{:local_or_var, acc}, count} -> {{:local_call, acc}, count}
       {{:dot, base, acc}, count} -> {{:dot_call, base, acc}, count}
       {{:operator, acc}, count} -> {{:operator_call, acc}, count}
@@ -247,7 +245,7 @@ defmodule Code.Fragment do
   defp identifier_to_cursor_context([?., ?. | _], n, _), do: {{:operator, '..'}, n + 2}
 
   defp identifier_to_cursor_context(reverse, count, call_op?) do
-    case identifier(reverse, count) |> IO.inspect(label: "identifier 248") do
+    case identifier(reverse, count) do
       :none ->
         {:none, 0}
 
@@ -269,7 +267,7 @@ defmodule Code.Fragment do
       {:alias, rest, acc, count} ->
         case strip_spaces(rest, count) do
           {'.' ++ rest, count} when rest == [] or hd(rest) != ?. ->
-            nested_alias(rest, count + 1, acc) |> IO.inspect(label: "nested_alias")
+            nested_alias(rest, count + 1, acc)
 
           {'%' ++ _, count} ->
             {{:struct, acc}, count + 1}
@@ -312,7 +310,7 @@ defmodule Code.Fragment do
   end
 
   defp rest_identifier(rest, count, [?@ | acc]) do
-    case tokenize_identifier(rest, count, acc) |> IO.inspect(label: "tokenized") do
+    case tokenize_identifier(rest, count, acc) do
       {:identifier, [?% | _rest], acc, count} -> {:struct, {:module_attribute, acc}, count}
       {:identifier, _rest, acc, count} -> {:module_attribute, acc, count}
       :none when acc == [] -> {:module_attribute, '', count}
@@ -342,7 +340,7 @@ defmodule Code.Fragment do
   end
 
   defp tokenize_identifier(rest, count, acc) do
-    case String.Tokenizer.tokenize(acc) |> IO.inspect(label: "tokenize_identifier") do
+    case String.Tokenizer.tokenize(acc) do
       # Not actually an atom cause rest is not a :
       {:atom, _, _, _, _, _} ->
         :none
@@ -366,7 +364,7 @@ defmodule Code.Fragment do
   defp nested_alias(rest, count, acc) do
     {rest, count} = strip_spaces(rest, count)
 
-    case identifier_to_cursor_context(rest, count, true) |> IO.inspect(label: "nested") do
+    case identifier_to_cursor_context(rest, count, true) do
       {{:struct, prev}, count} when is_list(prev) ->
         {{:struct, prev ++ '.' ++ acc}, count}
 
@@ -396,8 +394,7 @@ defmodule Code.Fragment do
   defp dot(rest, count, acc) do
     {rest, count} = strip_spaces(rest, count)
 
-    case identifier_to_cursor_context(rest, count, true)
-         |> IO.inspect(label: "identifier_to_cursor_context 373") do
+    case identifier_to_cursor_context(rest, count, true) do
       {{:local_or_var, var}, count} -> {{:dot, {:var, var}, acc}, count}
       {{:unquoted_atom, _} = prev, count} -> {{:dot, prev, acc}, count}
       {{:alias, _} = prev, count} -> {{:dot, prev, acc}, count}
@@ -572,7 +569,7 @@ defmodule Code.Fragment do
     {reversed_pre, post} = string_reverse_at(charlist, column - 1, [])
     {reversed_pre, post} = adjust_position(reversed_pre, post)
 
-    case take_identifier(post, []) |> IO.inspect() do
+    case take_identifier(post, []) do
       {_, [], _} ->
         maybe_operator(reversed_pre, post, line, opts)
 
@@ -580,8 +577,7 @@ defmodule Code.Fragment do
         {rest, _} = strip_spaces(rest, 0)
         reversed = reversed_post ++ reversed_pre
 
-        case codepoint_cursor_context(reversed |> IO.inspect(), opts)
-             |> IO.inspect(label: "codepoint_cursor_context 555") do
+        case codepoint_cursor_context(reversed, opts) do
           {{:struct, acc}, offset} ->
             build_surround({:struct, acc}, reversed, line, offset)
 
@@ -631,8 +627,7 @@ defmodule Code.Fragment do
       {:alias, reversed_post, _rest} ->
         reversed = reversed_post ++ reversed_pre
 
-        case codepoint_cursor_context(reversed, opts)
-             |> IO.inspect(label: "codepoint_cursor_context 602") do
+        case codepoint_cursor_context(reversed, opts) do
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
