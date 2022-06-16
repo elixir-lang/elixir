@@ -552,7 +552,7 @@ defmodule Application do
   Reads the application environment at compilation time from a macro.
 
   Typically, developers will use `compile_env/3`. This function must
-  only be invoked from macros who wish to read the compilation environment
+  only be invoked from macros which aim to read the compilation environment
   dynamically.
 
   It expects a `Macro.Env` as first argument, where the `Macro.Env` is
@@ -597,7 +597,7 @@ defmodule Application do
   or raises.
 
   Typically, developers will use `compile_env!/2`. This function must
-  only be invoked from macros who wish to read the compilation environment
+  only be invoked from macros which aim to read the compilation environment
   dynamically.
 
   It expects a `Macro.Env` as first argument, where the `Macro.Env` is
