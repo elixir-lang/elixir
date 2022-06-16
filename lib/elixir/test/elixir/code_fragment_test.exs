@@ -155,20 +155,29 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("::%") == {:struct, ''}
 
       assert CF.cursor_context("%HelloWor") == {:struct, 'HelloWor'}
-      # TODO does it make sense
-      # assert CF.cursor_context("%Hello.") == {:struct, 'Hello.'}
+
+      assert CF.cursor_context("%Hello.") == {:struct, {:dot, 'Hello', ''}}
+      assert CF.cursor_context("%Hello.nam") == {:struct, {:dot, 'Hello', 'nam'}}
       assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
       assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
 
       assert CF.cursor_context("%__MODULE_") == {:struct, {:local_or_var, '__MODULE_'}}
       assert CF.cursor_context("%__MODULE__") == {:struct, {:local_or_var, '__MODULE__'}}
-      # TODO does it make sense
-      # assert CF.cursor_context("%__MODULE__.") == {:struct, {:local_or_var, '__MODULE__'}}
+
+      assert CF.cursor_context("%__MODULE__.") ==
+               {:struct, {:dot, {:local_or_var, '__MODULE__'}, ''}}
+
+      assert CF.cursor_context("%__MODULE__.Sub.") ==
+               {:struct, {:dot, {:alias, {:local_or_var, '__MODULE__'}, 'Sub'}, ''}}
+
       assert CF.cursor_context("%__MODULE__.Wor") ==
                {:struct, {:alias, {:local_or_var, '__MODULE__'}, 'Wor'}}
 
       assert CF.cursor_context("%@foo") ==
                {:struct, {:module_attribute, 'foo'}}
+
+      assert CF.cursor_context("%@foo.") ==
+               {:struct, {:dot, {:module_attribute, 'foo'}, ''}}
 
       assert CF.cursor_context("%@foo.Wor") ==
                {:struct, {:alias, {:module_attribute, 'foo'}, 'Wor'}}
@@ -729,6 +738,12 @@ defmodule CodeFragmentTest do
                context: {:struct, 'HelloWor'},
                begin: {1, 1},
                end: {1, 10}
+             }
+
+      assert CF.surround_context("%HelloWor.some", {1, 12}) == %{
+               context: {:struct, {:dot, 'HelloWor', 'some'}},
+               begin: {1, 1},
+               end: {1, 15}
              }
 
       for i <- 2..9 do

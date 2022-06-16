@@ -402,6 +402,7 @@ defmodule Code.Fragment do
       {{:unquoted_atom, _} = prev, count} -> {{:dot, prev, acc}, count}
       {{:alias, _} = prev, count} -> {{:dot, prev, acc}, count}
       {{:alias, _, _} = prev, count} -> {{:dot, prev, acc}, count}
+      {{:struct, inner}, count} -> {{:struct, {:dot, inner, acc}}, count}
       {{:dot, _, _} = prev, count} -> {{:dot, prev, acc}, count}
       {{:module_attribute, _} = prev, count} -> {{:dot, prev, acc}, count}
       {_, _} -> {:none, 0}
