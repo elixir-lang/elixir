@@ -629,9 +629,6 @@ defmodule Code.Fragment do
           {{:struct, acc}, offset} ->
             build_surround({:struct, acc}, reversed, line, offset)
 
-          {{:struct, parent, acc}, offset} ->
-            build_surround({:struct, parent, acc}, reversed, line, offset)
-
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
