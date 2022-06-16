@@ -42,6 +42,11 @@ defmodule Code.Fragment do
     * `{:alias, charlist}` - the context is an alias, potentially
       a nested one, such as `Hello.Wor` or `HelloWor`
 
+    * `{:alias, inside_alias, charlist}` - the context is an alias, potentially
+      a nested one, where `inside_alias` is an expression `{:module_attribute, charlist}`
+      or {:local_or_var, charlist}` and `charlist` is a static part
+      Examples are `__MODULE__.Submodule` or `@hello.Submodule`
+
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
@@ -95,7 +100,10 @@ defmodule Code.Fragment do
       of a sigil, such as `~` or `~s`, or an operator starting with `~`, such as
       `~>` and `~>>`
 
-    * `{:struct, charlist}` - the context is a struct, such as `%`, `%UR` or `%URI`
+    * `{:struct, inside_struct}` - the context is a struct, such as `%`, `%UR` or `%URI`.
+      `inside_struct` can either be a `charlist` in case of a static alias or an
+      expression `{:alias, inside_alias, charlist}`, `{:module_attribute, charlist}`,
+      `{:local_or_var, charlist}`, `{:dot, inside_dot, charlist}`
 
     * `{:unquoted_atom, charlist}` - the context is an unquoted atom. This
       can be any atom or an atom representing a module
@@ -109,6 +117,7 @@ defmodule Code.Fragment do
   @doc since: "1.13.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
+          | {:alias, inside_alias, charlist}
           | {:dot, inside_dot, charlist}
           | {:dot_arity, inside_dot, charlist}
           | {:dot_call, inside_dot, charlist}
@@ -122,14 +131,24 @@ defmodule Code.Fragment do
           | {:operator_call, charlist}
           | :none
           | {:sigil, charlist}
-          | {:struct, charlist}
+          | {:struct, inside_struct}
           | {:unquoted_atom, charlist}
         when inside_dot:
                {:alias, charlist}
+               | {:alias, inside_alias, charlist}
                | {:dot, inside_dot, charlist}
                | {:module_attribute, charlist}
                | {:unquoted_atom, charlist}
-               | {:var, charlist}
+               | {:var, charlist},
+             inside_alias:
+               {:local_or_var, charlist}
+               | {:module_attribute, charlist},
+             inside_struct:
+               charlist
+               | {:alias, inside_alias, charlist}
+               | {:local_or_var, charlist}
+               | {:module_attribute, charlist}
+               | {:dot, inside_dot, charlist}
   def cursor_context(fragment, opts \\ [])
 
   def cursor_context(binary, opts) when is_binary(binary) and is_list(opts) do
@@ -543,6 +562,7 @@ defmodule Code.Fragment do
           %{begin: position, end: position, context: context} | :none
         when context:
                {:alias, charlist}
+               | {:alias, inside_alias, charlist}
                | {:dot, inside_dot, charlist}
                | {:local_or_var, charlist}
                | {:local_arity, charlist}
@@ -550,15 +570,25 @@ defmodule Code.Fragment do
                | {:module_attribute, charlist}
                | {:operator, charlist}
                | {:sigil, charlist}
-               | {:struct, charlist}
+               | {:struct, inside_struct}
                | {:unquoted_atom, charlist}
                | {:keyword, charlist},
              inside_dot:
                {:alias, charlist}
+               | {:alias, inside_alias, charlist}
                | {:dot, inside_dot, charlist}
                | {:module_attribute, charlist}
                | {:unquoted_atom, charlist}
-               | {:var, charlist}
+               | {:var, charlist},
+             inside_alias:
+               {:local_or_var, charlist}
+               | {:module_attribute, charlist},
+             inside_struct:
+               charlist
+               | {:alias, inside_alias, charlist}
+               | {:local_or_var, charlist}
+               | {:module_attribute, charlist}
+               | {:dot, inside_dot, charlist}
   def surround_context(fragment, position, options \\ [])
 
   def surround_context(binary, {line, column}, opts) when is_binary(binary) do
