@@ -195,7 +195,7 @@ defmodule Task do
   This provides more visibility and allows you to control how those tasks are
   terminated when a node shuts down. That might look something like
   `Task.Supervisor.start_child(MySupervisor, task_function)`. This means
-  that, although your code is the one who invokes the task, the actual ancestor of
+  that, although your code is the one invoking the task, the actual ancestor of
   the task is the supervisor, as the supervisor is the one effectively starting it.
 
   To track the relationship between your code and the task, we use the `$callers`
