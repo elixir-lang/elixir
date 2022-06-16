@@ -154,11 +154,11 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context(":%") == {:unquoted_atom, '%'}
       assert CF.cursor_context("::%") == {:struct, ''}
 
-      assert CF.cursor_context("%HelloWor") == {:struct, {:alias, 'HelloWor'}}
+      assert CF.cursor_context("%HelloWor") == {:struct, 'HelloWor'}
       # TODO does it make sense
       # assert CF.cursor_context("%Hello.") == {:struct, 'Hello.'}
-      assert CF.cursor_context("%Hello.Wor") == {:struct, {:alias, 'Hello.Wor'}}
-      assert CF.cursor_context("% Hello . Wor") == {:struct, {:alias, 'Hello.Wor'}}
+      assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
+      assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
 
       assert CF.cursor_context("%__MODULE_") == {:struct, {:local_or_var, '__MODULE_'}}
       assert CF.cursor_context("%__MODULE__") == {:struct, {:local_or_var, '__MODULE__'}}
@@ -707,33 +707,33 @@ defmodule CodeFragmentTest do
       assert CF.surround_context("::%Hello", {1, 2}) == :none
 
       assert CF.surround_context("::%Hello", {1, 3}) == %{
-               context: {:struct, {:alias, 'Hello'}},
+               context: {:struct, 'Hello'},
                begin: {1, 3},
                end: {1, 9}
              }
 
       assert CF.surround_context("::% Hello", {1, 3}) == %{
-               context: {:struct, {:alias, 'Hello'}},
+               context: {:struct, 'Hello'},
                begin: {1, 3},
                end: {1, 10}
              }
 
       assert CF.surround_context("::% Hello", {1, 4}) == %{
-               context: {:struct, {:alias, 'Hello'}},
+               context: {:struct, 'Hello'},
                begin: {1, 3},
                end: {1, 10}
              }
 
       # Alias
       assert CF.surround_context("%HelloWor", {1, 1}) == %{
-               context: {:struct, {:alias, 'HelloWor'}},
+               context: {:struct, 'HelloWor'},
                begin: {1, 1},
                end: {1, 10}
              }
 
       for i <- 2..9 do
         assert CF.surround_context("%HelloWor", {1, i}) == %{
-                 context: {:struct, {:alias, 'HelloWor'}},
+                 context: {:struct, 'HelloWor'},
                  begin: {1, 1},
                  end: {1, 10}
                }
@@ -743,14 +743,14 @@ defmodule CodeFragmentTest do
 
       # With dot
       assert CF.surround_context("%Hello.Wor", {1, 1}) == %{
-               context: {:struct, {:alias, 'Hello.Wor'}},
+               context: {:struct, 'Hello.Wor'},
                begin: {1, 1},
                end: {1, 11}
              }
 
       for i <- 2..10 do
         assert CF.surround_context("%Hello.Wor", {1, i}) == %{
-                 context: {:struct, {:alias, 'Hello.Wor'}},
+                 context: {:struct, 'Hello.Wor'},
                  begin: {1, 1},
                  end: {1, 11}
                }
@@ -760,14 +760,14 @@ defmodule CodeFragmentTest do
 
       # With spaces
       assert CF.surround_context("% Hello . Wor", {1, 1}) == %{
-               context: {:struct, {:alias, 'Hello.Wor'}},
+               context: {:struct, 'Hello.Wor'},
                begin: {1, 1},
                end: {1, 14}
              }
 
       for i <- 2..13 do
         assert CF.surround_context("% Hello . Wor", {1, i}) == %{
-                 context: {:struct, {:alias, 'Hello.Wor'}},
+                 context: {:struct, 'Hello.Wor'},
                  begin: {1, 1},
                  end: {1, 14}
                }

@@ -272,7 +272,7 @@ defmodule Code.Fragment do
             nested_alias(rest, count + 1, acc) |> IO.inspect(label: "nested_alias")
 
           {'%' ++ _, count} ->
-            {{:struct, {:alias, acc}}, count + 1}
+            {{:struct, acc}, count + 1}
 
           _ ->
             {{:alias, acc}, count}
@@ -367,8 +367,8 @@ defmodule Code.Fragment do
     {rest, count} = strip_spaces(rest, count)
 
     case identifier_to_cursor_context(rest, count, true) |> IO.inspect(label: "nested") do
-      {{:struct, {:alias, prev}}, count} ->
-        {{:struct, {:alias, prev ++ '.' ++ acc}}, count}
+      {{:struct, prev}, count} when is_list(prev) ->
+        {{:struct, prev ++ '.' ++ acc}, count}
 
       {{:struct, {:alias, parent, prev}}, count} ->
         {{:struct, {:alias, parent, prev ++ '.' ++ acc}}, count}
