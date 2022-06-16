@@ -395,14 +395,32 @@ defmodule Code.Fragment do
     {rest, count} = strip_spaces(rest, count)
 
     case identifier_to_cursor_context(rest, count, true) do
-      {{:local_or_var, var}, count} -> {{:dot, {:var, var}, acc}, count}
-      {{:unquoted_atom, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {{:alias, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {{:alias, _, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {{:struct, inner}, count} -> {{:struct, {:dot, inner, acc}}, count}
-      {{:dot, _, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {{:module_attribute, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {_, _} -> {:none, 0}
+      {{:local_or_var, var}, count} ->
+        {{:dot, {:var, var}, acc}, count}
+
+      {{:unquoted_atom, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {{:alias, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {{:alias, _, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {{:struct, inner}, count} when is_list(inner) ->
+        {{:struct, {:dot, {:alias, inner}, acc}}, count}
+
+      {{:struct, inner}, count} ->
+        {{:struct, {:dot, inner, acc}}, count}
+
+      {{:dot, _, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {{:module_attribute, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {_, _} ->
+        {:none, 0}
     end
   end
 

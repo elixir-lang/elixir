@@ -156,8 +156,8 @@ defmodule CodeFragmentTest do
 
       assert CF.cursor_context("%HelloWor") == {:struct, 'HelloWor'}
 
-      assert CF.cursor_context("%Hello.") == {:struct, {:dot, 'Hello', ''}}
-      assert CF.cursor_context("%Hello.nam") == {:struct, {:dot, 'Hello', 'nam'}}
+      assert CF.cursor_context("%Hello.") == {:struct, {:dot, {:alias, 'Hello'}, ''}}
+      assert CF.cursor_context("%Hello.nam") == {:struct, {:dot, {:alias, 'Hello'}, 'nam'}}
       assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
       assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
 
@@ -741,7 +741,7 @@ defmodule CodeFragmentTest do
              }
 
       assert CF.surround_context("%HelloWor.some", {1, 12}) == %{
-               context: {:struct, {:dot, 'HelloWor', 'some'}},
+               context: {:struct, {:dot, {:alias, 'HelloWor'}, 'some'}},
                begin: {1, 1},
                end: {1, 15}
              }
