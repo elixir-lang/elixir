@@ -345,6 +345,42 @@ defmodule Enum do
   end
 
   @doc """
+  Returns `true` if `fun.(element)` is falsy for all elements in `enumerable`.
+
+  Iterates over `enumerable` and invokes `fun` on each element. If `fun` ever
+  returns a truthy value, iteration stops immediately and
+  `false` is returned. Otherwise, `true` is returned.
+
+  ## Examples
+
+      iex> Enum.none?([2, 4, 6], fn x -> rem(x, 2) != 0 end)
+      true
+
+      iex> Enum.none?([2, 3, 4], fn x -> rem(x, 2) != 0 end)
+      false
+
+      iex> Enum.none?([], fn _ -> nil end)
+      true
+
+  As the last example shows, `Enum.none?/2` returns `true` if `enumerable` is
+  empty, regardless of `fun`. In an empty enumerable there is no element for
+  which `fun` returns a truthy value, so the result must be `true`. This is a
+  well-defined logical argument for empty collections.
+
+  """
+  @spec none?(t, (element -> as_boolean(term))) :: boolean
+  def none?(enumerable, fun) when is_list(enumerable) do
+    none_list(enumerable, fun)
+  end
+
+  def none?(enumerable, fun) do
+    Enumerable.reduce(enumerable, {:cont, true}, fn entry, _ ->
+      if fun.(entry), do: {:halt, false}, else: {:cont, true}
+    end)
+    |> elem(1)
+  end
+
+  @doc """
   Returns `true` if all elements in `enumerable` are truthy.
 
   When an element has a falsy value (`false` or `nil`) iteration stops immediately
@@ -4126,6 +4162,18 @@ defmodule Enum do
   end
 
   defp none_list([]) do
+    true
+  end
+
+  defp none_list([h | t], fun) do
+    if fun.(h) do
+      false
+    else
+      none_list(t, fun)
+    end
+  end
+
+  defp none_list([], _) do
     true
   end
 

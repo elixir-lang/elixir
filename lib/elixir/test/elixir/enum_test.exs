@@ -62,14 +62,21 @@ defmodule EnumTest do
     end
   end
 
-  test "none?/1" do
+  test "none?/2" do
     assert Enum.none?([])
     assert Enum.none?([nil])
     assert Enum.none?([false])
 
-    assert Enum.none?([0]) == false
-    assert Enum.none?([1]) == false
-    assert Enum.none?([1, 2]) == false
+    refute Enum.none?([0])
+    refute Enum.none?([1])
+    refute Enum.none?([1, 2])
+
+    assert Enum.none?([], fn _ -> nil end)
+    assert Enum.none?([nil], fn x -> x end)
+    assert Enum.none?([3, 5, 7], fn x -> rem(x, 2) == 0 end)
+
+    refute Enum.none?([0], fn x -> x end)
+    refute Enum.none?([2, 4, 6], fn x -> rem(x, 2) == 0 end)
   end
 
   test "all?/2" do
