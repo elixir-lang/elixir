@@ -745,14 +745,15 @@ defmodule ExUnit.Case do
   end
 
   defp validate_test_name(name) do
-    if byte_size(name) <= 255 do
+    try do
       String.to_atom(name)
-    else
-      raise """
-      the computed name of a test (which includes its type, the name of its parent describe \
-      block if present, and the test name itself) must be shorter than 255 characters, \
-      got: #{inspect(name)}
-      """
+    rescue
+      SystemLimitError ->
+        raise SystemLimitError, """
+        the computed name of a test (which includes its type, the name of its parent describe \
+        block if present, and the test name itself) must be shorter than 255 characters, \
+        got: #{inspect(name)}
+        """
     end
   end
 

@@ -114,7 +114,7 @@ defmodule ExUnit.CaseTest do
   end
 
   test "raises when name is longer than 255 characters" do
-    assert_raise RuntimeError,
+    assert_raise SystemLimitError,
                  ~r/must be shorter than 255 characters, got: "test a{256}"/,
                  fn ->
                    defmodule LongNameTest do
@@ -124,7 +124,7 @@ defmodule ExUnit.CaseTest do
                    end
                  end
 
-    assert_raise RuntimeError,
+    assert_raise SystemLimitError,
                  ~r/must be shorter than 255 characters, got: "test a{100} a{156}"/,
                  fn ->
                    defmodule LongDescribeNameTest do
