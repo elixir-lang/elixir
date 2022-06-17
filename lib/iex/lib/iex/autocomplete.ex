@@ -80,8 +80,11 @@ defmodule IEx.Autocomplete do
       {:sigil, [_]} ->
         {:yes, [], ~w|" """ ' ''' \( / < [ { \||c}
 
-      {:struct, struct} ->
+      {:struct, struct} when is_list(struct) ->
         expand_structs(List.to_string(struct), shell)
+
+      {:struct, {:dot, {:alias, struct}, ''}} when is_list(struct) ->
+        expand_structs(List.to_string(struct ++ '.'), shell)
 
       # {:module_attribute, charlist}
       # :none
