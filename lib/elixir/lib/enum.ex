@@ -313,6 +313,38 @@ defmodule Enum do
   end
 
   @doc """
+  Returns `true` if all elements in `enumerable` are falsy.
+
+  When an element has a truthy value iteration stops immediately
+  and `false` is returned. In all other cases `true` is returned.
+
+  ## Examples
+
+    iex> Enum.none?([])
+    true
+
+    iex> Enum.none?([false])
+    true
+
+    iex> Enum.none?([false, nil])
+    true
+
+    iex> Enum.none?([0, 1])
+    false
+  """
+  @spec none?(t) :: boolean
+  def none?(enumerable) when is_list(enumerable) do
+    none_list(enumerable)
+  end
+
+  def none?(enumerable) do
+    Enumerable.reduce(enumerable, {:cont, true}, fn entry, _ ->
+      if entry, do: {:halt, false}, else: {:cont, true}
+    end)
+    |> elem(1)
+  end
+
+  @doc """
   Returns `true` if all elements in `enumerable` are truthy.
 
   When an element has a falsy value (`false` or `nil`) iteration stops immediately
@@ -4083,6 +4115,19 @@ defmodule Enum do
   end
 
   ## Implementations
+
+  ## none?
+  defp none_list([h | t]) do
+    if h do
+      false
+    else
+      none_list(t)
+    end
+  end
+
+  defp none_list([]) do
+    true
+  end
 
   ## all?
 
