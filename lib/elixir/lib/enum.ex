@@ -320,9 +320,6 @@ defmodule Enum do
 
   ## Examples
 
-    iex> Enum.none?([])
-    true
-
     iex> Enum.none?([false])
     true
 
@@ -331,7 +328,16 @@ defmodule Enum do
 
     iex> Enum.none?([0, 1])
     false
+
+    iex> Enum.none?([])
+    true
+
+  As the last example shows, `Enum.none?/1` returns `true` if `enumerable` is
+  empty. In an empty enumerable there is no element that can be truhty so the 
+  result must be `true`. This is a well-defined logical argument for empty collections.
+
   """
+  @doc since: "1.14.0"
   @spec none?(t) :: boolean
   def none?(enumerable) when is_list(enumerable) do
     none_list(enumerable)
@@ -368,6 +374,7 @@ defmodule Enum do
   well-defined logical argument for empty collections.
 
   """
+  @doc since: "1.14.0"
   @spec none?(t, (element -> as_boolean(term))) :: boolean
   def none?(enumerable, fun) when is_list(enumerable) do
     none_list(enumerable, fun)
