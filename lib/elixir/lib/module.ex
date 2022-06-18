@@ -1262,6 +1262,7 @@ defmodule Module do
   @spec get_definition(module, definition, keyword) ::
           {:v1, def_kind, meta :: keyword,
            [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}]}
+          | nil
   @doc since: "1.12.0"
   def get_definition(module, {name, arity}, options \\ [])
       when is_atom(module) and is_atom(name) and is_integer(arity) and is_list(options) do
