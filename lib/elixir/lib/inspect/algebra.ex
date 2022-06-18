@@ -636,7 +636,7 @@ defmodule Inspect.Algebra do
       ["hello", "\n     ", "world"]
 
   """
-  @spec nest(t, non_neg_integer | :cursor | :reset, :always | :break) :: doc_nest
+  @spec nest(t, non_neg_integer | :cursor | :reset, :always | :break) :: doc_nest | t
   def nest(doc, level, mode \\ :always)
 
   def nest(doc, :cursor, mode) when is_doc(doc) and mode in [:always, :break] do
