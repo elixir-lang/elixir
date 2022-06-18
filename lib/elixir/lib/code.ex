@@ -328,7 +328,14 @@ defmodule Code do
   """
   @spec delete_path(Path.t()) :: boolean
   def delete_path(path) do
-    :code.del_path(to_charlist(Path.expand(path)))
+    case :code.del_path(to_charlist(Path.expand(path))) do
+      result when is_boolean(result) ->
+        result
+
+      {:error, :bad_name} ->
+        raise ArgumentError,
+              "invalid argument #{inspect(path)}"
+    end
   end
 
   @doc """
