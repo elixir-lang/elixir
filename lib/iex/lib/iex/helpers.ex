@@ -861,7 +861,16 @@ defmodule IEx.Helpers do
   end
 
   @doc """
-  Macro-based shortcut for `IEx.break!/4`.
+  Sets up a breakpoint in the AST of shape `Module.function/arity`
+  with the given number of `stops`.
+
+  See `IEx.break!/4` for a complete description of breakpoints
+  in IEx.
+
+  ## Examples
+
+      break! URI.decode_query/2
+
   """
   @doc since: "1.5.0"
   defmacro break!(ast, stops \\ 1) do
@@ -877,6 +886,11 @@ defmodule IEx.Helpers do
 
   See `IEx.break!/4` for a complete description of breakpoints
   in IEx.
+
+  ## Examples
+
+      break! URI, :decode_query, 2
+
   """
   @doc since: "1.5.0"
   defdelegate break!(module, function, arity, stops \\ 1), to: IEx
