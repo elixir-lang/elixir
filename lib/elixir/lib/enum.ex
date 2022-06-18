@@ -320,17 +320,17 @@ defmodule Enum do
 
   ## Examples
 
-    iex> Enum.none?([false])
-    true
+      iex> Enum.none?([false])
+      true
 
-    iex> Enum.none?([false, nil])
-    true
+      iex> Enum.none?([false, nil])
+      true
 
-    iex> Enum.none?([0, 1])
-    false
+      iex> Enum.none?([0, 1])
+      false
 
-    iex> Enum.none?([])
-    true
+      iex> Enum.none?([])
+      true
 
   As the last example shows, `Enum.none?/1` returns `true` if `enumerable` is
   empty. In an empty enumerable there is no element that can be truhty so the 
