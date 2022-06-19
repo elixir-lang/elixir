@@ -329,7 +329,6 @@ tokenize([$:, T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when
 
 % ## Two Token Operators
 
-%% TODO: Remove this deprecation on Elixir v2.0
 tokenize([$:, $:, $: | Rest], Line, Column, Scope, Tokens) ->
   Message = "atom ::: must be written between quotes, as in :\"::\", to avoid ambiguity",
   NewScope = prepend_warning(Line, Column, Message, Scope),
@@ -914,8 +913,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
           WarnMsg = io_lib:format(
             "found quoted call \"~ts\" but the quotes are not required. "
             "Calls made exclusively of Unicode letters, numbers, and underscores "
-            "and not beginning with a number "
-            "do not require quotes",
+            "and not beginning with a number do not require quotes",
             [Part]
           ),
           prepend_warning(Line, Column, WarnMsg, InterScope);
