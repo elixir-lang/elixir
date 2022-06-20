@@ -157,7 +157,7 @@ defmodule ExUnit.AssertionsTest do
     use ExUnit.Case
     use ExUnit.AssertionsTest.OverrideOperator
 
-    test "assert when operator be overrided" do
+    test "assert when operator be overrode" do
       assert [_a, _b] =~ [1, 2]
     end
   end
