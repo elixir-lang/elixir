@@ -45,7 +45,8 @@ defmodule ExUnit.Server do
       loaded: System.monotonic_time(),
       waiting: nil,
       async_modules: [],
-      sync_modules: []
+      sync_modules: [],
+      all_modules: []
     }
 
     {:ok, state}
@@ -63,7 +64,7 @@ defmodule ExUnit.Server do
   end
 
   def handle_call(:get_all_modules, _from, state) do
-    {:reply, state.sync_modules ++ state.async_modules, state}
+    {:reply, state.all_modules, state}
   end
 
   def handle_call(:modules_loaded, _from, %{loaded: :done} = state) do
@@ -78,12 +79,16 @@ defmodule ExUnit.Server do
   def handle_call({:add, name, :async}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state = update_in(state.async_modules, &[name | &1])
+    state = update_in(state.all_modules, &[name | &1])
+
     {:reply, :ok, take_modules(state)}
   end
 
   def handle_call({:add, name, :sync}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state = update_in(state.sync_modules, &[name | &1])
+    state = update_in(state.all_modules, &[name | &1])
+
     {:reply, :ok, state}
   end
 
