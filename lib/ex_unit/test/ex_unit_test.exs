@@ -493,6 +493,29 @@ defmodule ExUnitTest do
     assert output =~ "\n2 tests, 1 failure, 1 excluded\n"
   end
 
+  test "filtering cases with :line tag with sync and async modules" do
+    defmodule FifthTestModule do
+      use ExUnit.Case, async: true
+      test "ok", do: :ok
+    end
+
+    defmodule SixthTestModule do
+      use ExUnit.Case
+      test "false", do: assert(false)
+    end
+
+    sixth_test_line = __ENV__.line - 3
+
+    ## Empty because it is already loaded and would execute twice
+    {result, output} =
+      [exclude: :test, include: [line: sixth_test_line]]
+      |> run_with_filter([])
+
+    assert result == %{failures: 1, skipped: 0, excluded: 1, total: 2}
+    assert output =~ "\n  1) test false (ExUnitTest.SixthTestModule)\n"
+    assert output =~ "\n2 tests, 1 failure, 1 excluded\n"
+  end
+
   test "raises on reserved tag :file in module" do
     assert_raise RuntimeError, "cannot set tag :file because it is reserved by ExUnit", fn ->
       defmodule ReservedTagFile do

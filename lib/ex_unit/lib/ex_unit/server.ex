@@ -34,6 +34,10 @@ defmodule ExUnit.Server do
     GenServer.call(@name, :take_sync_modules, @timeout)
   end
 
+  def get_all_modules() do
+    GenServer.call(@name, :get_all_modules, @timeout)
+  end
+
   ## Callbacks
 
   def init(:ok) do
@@ -56,6 +60,10 @@ defmodule ExUnit.Server do
   def handle_call(:take_sync_modules, _from, state) do
     %{waiting: nil, loaded: :done, async_modules: []} = state
     {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
+  end
+
+  def handle_call(:get_all_modules, _from, state) do
+    {:reply, state.sync_modules ++ state.async_modules, state}
   end
 
   def handle_call(:modules_loaded, _from, %{loaded: :done} = state) do

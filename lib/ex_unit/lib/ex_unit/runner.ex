@@ -43,7 +43,11 @@ defmodule ExUnit.Runner do
 
     start_time = System.monotonic_time()
     EM.suite_started(config.manager, opts)
-    async_stop_time = async_loop(config, %{}, false)
+
+    all_modules = ExUnit.Server.get_all_modules()
+    tests_per_file = tests_per_file(all_modules)
+
+    async_stop_time = async_loop(config, %{}, tests_per_file, false)
     stop_time = System.monotonic_time()
 
     if max_failures_reached?(config) do
@@ -92,20 +96,20 @@ defmodule ExUnit.Runner do
     |> Keyword.put(:include, include)
   end
 
-  defp async_loop(config, running, async_once?) do
+  defp async_loop(config, running, tests_per_file, async_once?) do
     available = config.max_cases - map_size(running)
 
     cond do
       # No modules available, wait for one
       available <= 0 ->
         running = wait_until_available(config, running)
-        async_loop(config, running, async_once?)
+        async_loop(config, running, tests_per_file, async_once?)
 
       # Slots are available, start with async modules
       modules = ExUnit.Server.take_async_modules(available) ->
-        included_modules_and_tests = exclude_tests(modules, config)
+        included_modules_and_tests = exclude_tests(modules, tests_per_file, config)
         running = spawn_modules(config, included_modules_and_tests, running)
-        async_loop(config, running, true)
+        async_loop(config, running, tests_per_file, true)
 
       true ->
         sync_modules = ExUnit.Server.take_sync_modules()
@@ -119,7 +123,7 @@ defmodule ExUnit.Runner do
         async_stop_time = if async_once?, do: System.monotonic_time(), else: nil
 
         # Run all sync modules directly
-        included_modules_and_tests = exclude_tests(sync_modules, config)
+        included_modules_and_tests = exclude_tests(sync_modules, tests_per_file, config)
 
         for {module, tests_to_run} <- included_modules_and_tests do
           running = spawn_modules(config, [{module, tests_to_run}], %{})
@@ -130,9 +134,7 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp exclude_tests(modules, config) do
-    tests_per_file = tests_per_file(modules)
-
+  defp exclude_tests(modules, tests_per_file, config) do
     for module <- modules do
       test_module = module.__ex_unit__()
       EM.module_started(config.manager, test_module)
