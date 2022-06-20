@@ -103,7 +103,8 @@ defmodule ExUnit.Runner do
 
       # Slots are available, start with async modules
       modules = ExUnit.Server.take_async_modules(available) ->
-        running = spawn_modules(config, modules, running)
+        included_modules_and_tests = exclude_tests(modules, config)
+        running = spawn_modules(config, included_modules_and_tests, running)
         async_loop(config, running, true)
 
       true ->
@@ -118,13 +119,47 @@ defmodule ExUnit.Runner do
         async_stop_time = if async_once?, do: System.monotonic_time(), else: nil
 
         # Run all sync modules directly
-        for module <- sync_modules do
-          running = spawn_modules(config, [module], %{})
+        included_modules_and_tests = exclude_tests(sync_modules, config)
+
+        for {module, tests_to_run} <- included_modules_and_tests do
+          running = spawn_modules(config, [{module, tests_to_run}], %{})
           running != %{} and wait_until_available(config, running)
         end
 
         async_stop_time
     end
+  end
+
+  defp exclude_tests(modules, config) do
+    tests_per_file = tests_per_file(modules)
+
+    for module <- modules do
+      test_module = module.__ex_unit__()
+      EM.module_started(config.manager, test_module)
+
+      # Prepare tests, selecting which ones should be run or skipped
+      tests_in_file = Map.fetch!(tests_per_file, test_module.file)
+      tests_in_module = test_module.tests
+      tests = prepare_tests(config, tests_in_module, tests_in_file)
+      {excluded_and_skipped_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
+
+      for excluded_or_skipped_test <- excluded_and_skipped_tests do
+        EM.test_started(config.manager, excluded_or_skipped_test)
+        EM.test_finished(config.manager, excluded_or_skipped_test)
+      end
+
+      {test_module, to_run_tests}
+    end
+  end
+
+  defp tests_per_file(modules) do
+    modules
+    |> Enum.map(fn module ->
+      test_module = module.__ex_unit__()
+      {test_module.file, test_module.tests}
+    end)
+    |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+    |> Enum.into(%{}, fn {module, nested_tests} -> {module, Enum.concat(nested_tests)} end)
   end
 
   # Expect down messages from the spawned modules.
@@ -155,12 +190,12 @@ defmodule ExUnit.Runner do
     running
   end
 
-  defp spawn_modules(config, [module | modules], running) do
+  defp spawn_modules(config, [module_and_tests | modules_and_tests], running) do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
-      spawn_modules(config, modules, Map.put(running, ref, pid))
+      {pid, ref} = spawn_monitor(fn -> run_module(config, module_and_tests) end)
+      spawn_modules(config, modules_and_tests, Map.put(running, ref, pid))
     end
   end
 
@@ -209,21 +244,29 @@ defmodule ExUnit.Runner do
     _ -> nil
   end
 
+  defp prepare_tests(config, tests_in_module, tests_in_file) do
+    tests_in_module = shuffle(config, tests_in_module)
+    include = config.include
+    exclude = config.exclude
+    test_ids = config.only_test_ids
+
+    for test <- tests_in_module, include_test?(test_ids, test) do
+      tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+
+      case ExUnit.Filters.eval(include, exclude, tags, tests_in_file) do
+        :ok -> %{test | tags: tags}
+        excluded_or_skipped -> %{test | state: excluded_or_skipped}
+      end
+    end
+  end
+
+  defp include_test?(test_ids, test) do
+    test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
+  end
+
   ## Running modules
 
-  defp run_module(config, module) do
-    test_module = module.__ex_unit__()
-    EM.module_started(config.manager, test_module)
-
-    # Prepare tests, selecting which ones should be run or skipped
-    tests = prepare_tests(config, test_module.tests)
-    {excluded_and_skipped_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
-
-    for excluded_or_skipped_test <- excluded_and_skipped_tests do
-      EM.test_started(config.manager, excluded_or_skipped_test)
-      EM.test_finished(config.manager, excluded_or_skipped_test)
-    end
-
+  defp run_module(config, {test_module, to_run_tests}) do
     {test_module, invalid_tests, finished_tests} = run_module(config, test_module, to_run_tests)
 
     pending_tests =
@@ -249,26 +292,6 @@ defmodule ExUnit.Runner do
       test_module = %{test_module | tests: Enum.reverse(finished_tests, pending_tests)}
       EM.module_finished(config.manager, test_module)
     end
-  end
-
-  defp prepare_tests(config, tests) do
-    tests = shuffle(config, tests)
-    include = config.include
-    exclude = config.exclude
-    test_ids = config.only_test_ids
-
-    for test <- tests, include_test?(test_ids, test) do
-      tags = Map.merge(test.tags, %{test: test.name, module: test.module})
-
-      case ExUnit.Filters.eval(include, exclude, tags, tests) do
-        :ok -> %{test | tags: tags}
-        excluded_or_skipped -> %{test | state: excluded_or_skipped}
-      end
-    end
-  end
-
-  defp include_test?(test_ids, test) do
-    test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
   end
 
   defp run_module(_config, test_module, []) do
