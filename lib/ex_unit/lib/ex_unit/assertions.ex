@@ -238,22 +238,26 @@ defmodule ExUnit.Assertions do
 
   defp translate_assertion(:assert, {operator, meta, [_, _]} = expr, caller)
        when operator in @operator do
-    left = Macro.var(:left, __MODULE__)
-    right = Macro.var(:right, __MODULE__)
-    call = {operator, meta, [left, right]}
-    equality_check? = operator in [:<, :>, :!==, :!=]
-    message = "Assertion with #{operator} failed"
-    translate_operator(:assert, expr, call, message, equality_check?, caller)
+    if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {operator, 2})) do
+      left = Macro.var(:left, __MODULE__)
+      right = Macro.var(:right, __MODULE__)
+      call = {operator, meta, [left, right]}
+      equality_check? = operator in [:<, :>, :!==, :!=]
+      message = "Assertion with #{operator} failed"
+      translate_operator(:assert, expr, call, message, equality_check?, caller)
+    end
   end
 
   defp translate_assertion(:refute, {operator, meta, [_, _]} = expr, caller)
        when operator in @operator do
-    left = Macro.var(:left, __MODULE__)
-    right = Macro.var(:right, __MODULE__)
-    call = {:not, meta, [{operator, meta, [left, right]}]}
-    equality_check? = operator in [:<=, :>=, :===, :==, :=~]
-    message = "Refute with #{operator} failed"
-    translate_operator(:refute, expr, call, message, equality_check?, caller)
+    if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {operator, 2})) do
+      left = Macro.var(:left, __MODULE__)
+      right = Macro.var(:right, __MODULE__)
+      call = {:not, meta, [{operator, meta, [left, right]}]}
+      equality_check? = operator in [:<=, :>=, :===, :==, :=~]
+      message = "Refute with #{operator} failed"
+      translate_operator(:refute, expr, call, message, equality_check?, caller)
+    end
   end
 
   defp translate_assertion(_kind, _expected, _caller) do

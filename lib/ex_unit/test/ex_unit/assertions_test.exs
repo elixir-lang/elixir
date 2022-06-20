@@ -16,6 +16,23 @@ defmodule ExUnit.AssertionsTest.BrokenError do
   end
 end
 
+defmodule ExUnit.AssertionsTest.OverrideOperator do
+  import Kernel, except: [{:=~, 2}]
+
+  defmacro __using__(_) do
+    quote do
+      import Kernel, except: [{:=~, 2}]
+      import ExUnit.AssertionsTest.OverrideOperator
+    end
+  end
+
+  defmacro left =~ right do
+    quote do
+      match?(unquote(left), unquote(right))
+    end
+  end
+end
+
 alias ExUnit.AssertionsTest.{BrokenError, Value}
 
 defmodule ExUnit.AssertionsTest do
@@ -134,6 +151,15 @@ defmodule ExUnit.AssertionsTest do
   test "assert does not expand variables" do
     assert argless_macro = 1
     assert argless_macro == 1
+  end
+
+  defmodule OperatorOverrideTest do
+    use ExUnit.Case
+    use ExUnit.AssertionsTest.OverrideOperator
+
+    test "assert when operator be overrode" do
+      assert [_a, _b] =~ [1, 2]
+    end
   end
 
   test "refute when value is falsy" do
