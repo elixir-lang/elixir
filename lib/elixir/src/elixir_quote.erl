@@ -333,6 +333,19 @@ do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
     end,
   do_quote_tuple('&', NewMeta, Args, Q, E);
 
+do_quote({'|>', M, [B, {F, Meta, As}]},
+         #elixir_quote{imports_hygiene=true} = Q, E) when is_atom(F), is_list(As) ->
+  A = length(As) + 1,
+  NewMeta =
+    case elixir_dispatch:find_import(Meta, F, A, E) of
+      false ->
+        Meta;
+
+      Receiver ->
+        keystore(context, keystore(imports, Meta, [{Receiver, A}]), Q#elixir_quote.context)
+    end,
+  do_quote_tuple('|>', M, [B, {F, NewMeta, As}], Q, E);
+
 do_quote({Name, Meta, ArgsOrContext}, #elixir_quote{imports_hygiene=true} = Q, E)
     when is_atom(Name), is_list(Meta), is_list(ArgsOrContext) or is_atom(ArgsOrContext) ->
   Arity = if

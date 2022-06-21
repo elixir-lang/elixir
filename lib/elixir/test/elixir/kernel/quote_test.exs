@@ -69,6 +69,12 @@ defmodule Kernel.QuoteTest do
     assert quote(generated: true, do: bar(1)) == {:bar, [generated: true], [1]}
   end
 
+  test "quote pipe with imports" do
+    import Integer, only: [is_odd: 1]
+    q = quote(do: 2 |> is_odd())
+    assert {false, _} = Code.eval_quoted(q)
+  end
+
   test "unquote call" do
     assert quote(do: foo(bar)[unquote(:baz)]) == quote(do: foo(bar)[:baz])
     assert quote(do: unquote(:bar)()) == quote(do: bar())
