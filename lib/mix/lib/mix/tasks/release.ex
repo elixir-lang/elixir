@@ -634,6 +634,9 @@ defmodule Mix.Tasks.Release do
         ]
       ]
 
+  By setting `:runtime_config_path` to `false` it can be used to prevent
+  a runtime configuration file to be included in the release.
+
   Finally, in order for runtime configuration to work properly (as well
   as any other "Config provider" as defined next), it needs to be able
   to persist the newly computed configuration to disk. The computed config
@@ -1216,6 +1219,9 @@ defmodule Mix.Tasks.Release do
 
     {path, reboot?} =
       cond do
+        opts[:runtime_config_path] == false ->
+          {nil, false}
+
         path = opts[:runtime_config_path] ->
           {path, false}
 
