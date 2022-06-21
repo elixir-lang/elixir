@@ -1257,7 +1257,7 @@ defmodule Mix.Tasks.Release do
         update_in(release.options, &Keyword.put_new(&1, :reboot_system_after_config, reboot?))
 
       release.config_providers == [] ->
-        skipping("runtime configuration (#{default_path} not found)")
+        skipping("runtime configuration (#{default_path} not found or disabled)")
         release
 
       true ->
