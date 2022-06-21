@@ -1220,7 +1220,7 @@ defmodule Mix.Tasks.Release do
     {path, reboot?} =
       cond do
         opts[:runtime_config_path] == false ->
-          {nil, false}
+          {false, false}
 
         path = opts[:runtime_config_path] ->
           {path, false}
@@ -1256,8 +1256,8 @@ defmodule Mix.Tasks.Release do
         release = update_in(release.config_providers, &[{Config.Reader, opts} | &1])
         update_in(release.options, &Keyword.put_new(&1, :reboot_system_after_config, reboot?))
 
-      release.config_providers == [] ->
-        skipping("runtime configuration (#{default_path} not found or disabled)")
+      release.config_providers == [] and path != false ->
+        skipping("runtime configuration (#{default_path} not found)")
         release
 
       true ->
