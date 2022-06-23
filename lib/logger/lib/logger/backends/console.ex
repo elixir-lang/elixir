@@ -12,7 +12,8 @@ defmodule Logger.Backends.Console do
       Defaults to: `"\n$time $metadata[$level] $message\n"`.
       It may also be a `{module, function}` tuple that is invoked
       with the log level, the message, the current timestamp and
-      the metadata. See `Logger.Formatter`.
+      the metadata and must return `t:IO.chardata/0`. See
+      `Logger.Formatter`.
 
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata).
