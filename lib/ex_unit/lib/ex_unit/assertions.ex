@@ -108,21 +108,20 @@ defmodule ExUnit.Assertions do
 
     # If the match works, we need to check if the value
     # is not nil nor false. We need to rewrite the if
-    # to avoid silly warnings though.
+    # to avoid silly dialyzer warnings though.
     check =
-      suppress_warning(
-        quote do
-          case right do
-            x when x in [nil, false] ->
-              raise ExUnit.AssertionError,
-                expr: expr,
-                message: "Expected truthy, got #{inspect(right)}"
+      quote generated: true do
+        case right do
+          # We cannot use in/2 because it doesn't support generated: true
+          x when x == nil or x == false ->
+            raise ExUnit.AssertionError,
+              expr: expr,
+              message: "Expected truthy, got #{inspect(right)}"
 
-            _ ->
-              :ok
-          end
+          _ ->
+            :ok
         end
-      )
+      end
 
     __match__(left, right, code, check, __CALLER__)
   end
@@ -154,17 +153,19 @@ defmodule ExUnit.Assertions do
     else
       {args, value} = extract_args(assertion, __CALLER__)
 
-      quote do
-        value = unquote(value)
+      # unless value, raise
+      # We need to rewrite it to avoid dialyzer warnings though.
+      quote generated: true do
+        case unquote(value) do
+          value when value == nil or value == false ->
+            raise ExUnit.AssertionError,
+              args: unquote(args),
+              expr: unquote(escape_quoted(:assert, [], assertion)),
+              message: "Expected truthy, got #{inspect(value)}"
 
-        unless value do
-          raise ExUnit.AssertionError,
-            args: unquote(args),
-            expr: unquote(escape_quoted(:assert, [], assertion)),
-            message: "Expected truthy, got #{inspect(value)}"
+          value ->
+            value
         end
-
-        value
       end
     end
   end
@@ -217,17 +218,19 @@ defmodule ExUnit.Assertions do
     else
       {args, value} = extract_args(assertion, __CALLER__)
 
-      quote do
-        value = unquote(value)
+      # if value, raise
+      # We need to rewrite it to avoid dialyzer warnings though.
+      quote generated: true do
+        case unquote(value) do
+          value when value == nil or value == false ->
+            value
 
-        if value do
-          raise ExUnit.AssertionError,
-            args: unquote(args),
-            expr: unquote(escape_quoted(:refute, [], assertion)),
-            message: "Expected false or nil, got #{inspect(value)}"
+          value ->
+            raise ExUnit.AssertionError,
+              args: unquote(args),
+              expr: unquote(escape_quoted(:refute, [], assertion)),
+              message: "Expected false or nil, got #{inspect(value)}"
         end
-
-        value
       end
     end
   end
