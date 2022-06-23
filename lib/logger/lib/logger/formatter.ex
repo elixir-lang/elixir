@@ -51,19 +51,21 @@ defmodule Logger.Formatter do
   from the above configuration:
 
       defmodule MyConsoleLogger do
+        @spec format(atom, term, Logger.Formatter.time(), keyword()) :: IO.chardata()
         def format(level, message, timestamp, metadata) do
-          # Custom formatting logic...
+          # Custom formatting logic that must return chardata.
+          # ...
         end
       end
 
-  It is extremely important that **the formatting function does
-  not fail**, as it will bring that particular logger instance down,
-  causing your system to temporarily lose messages. If necessary,
-  wrap the function in a `rescue` and log a default message instead:
+  **The `format/4` function must not fail**. If it does, it will bring
+  that particular logger instance down, causing your system to temporarily
+  lose log messages. If necessary, wrap the function in a `rescue` and
+  log a default message instead:
 
       defmodule MyConsoleLogger do
         def format(level, message, timestamp, metadata) do
-          # Custom formatting logic...
+          # Custom formatting logic
         rescue
           _ -> "could not format: #{inspect({level, message, metadata})}"
         end
@@ -71,12 +73,14 @@ defmodule Logger.Formatter do
 
   The `{module, function}` will be invoked with four arguments:
 
-    * the log level: an atom
-    * the message: this is usually chardata, but in some cases it
-      may contain invalid data. Since the formatting function should
+    * the log level: an atom (`t:atom/0`)
+    * the message: this is usually `t:IO.chardata/0`, but in some cases it
+      may contain invalid data. Since the formatting function must
       *never* fail, you need to prepare for the message being anything
-    * the current timestamp: a term of type `t:time/0`
-    * the metadata: a keyword list
+    * the current timestamp: a term of type `t:Logger.Formatter.time/0`
+    * the metadata: a keyword list (`t:keyword/0`)
+
+  The `{module, function}` must return a term of type `t:IO.chardata/0`.
 
   ## Metadata
 
@@ -185,6 +189,11 @@ defmodule Logger.Formatter do
   Takes a compiled format and injects the level, timestamp, message, and
   metadata keyword list and returns a properly formatted string.
 
+  If `pattern_or_function` is a `{module, function_name}` tuple,
+  then `module.function_name(level, message, timestamp, metadata)` is
+  invoked to get the message. See `Logger.Backends.Console` for more
+  information on this.
+
   ## Examples
 
       iex> pattern = Logger.Formatter.compile("[$level] $message")
@@ -194,8 +203,11 @@ defmodule Logger.Formatter do
       "[info] hello"
 
   """
-  @spec format({atom, atom} | [pattern | binary], Logger.level(), Logger.message(), time, keyword) ::
+  @spec format(mod_and_fun | [pattern | binary], Logger.level(), Logger.message(), time, keyword) ::
           IO.chardata()
+        when mod_and_fun: {atom, atom}
+  def format(pattern_or_function, level, message, timestamp, metadata)
+
   def format({mod, fun}, level, msg, timestamp, metadata) do
     apply(mod, fun, [level, msg, timestamp, metadata])
   end
