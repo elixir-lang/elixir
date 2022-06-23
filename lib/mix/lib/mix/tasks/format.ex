@@ -558,7 +558,7 @@ defmodule Mix.Tasks.Format do
   defp elixir_format(content, formatter_opts) do
     case Code.format_string!(content, formatter_opts) do
       [] -> ""
-      _ -> IO.iodata_to_binary([Code.format_string!(content, formatter_opts), ?\n])
+      formatted_content -> IO.iodata_to_binary([formatted_content, ?\n])
     end
   end
 
