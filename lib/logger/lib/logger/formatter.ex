@@ -58,7 +58,7 @@ defmodule Logger.Formatter do
         end
       end
 
-  **The `format/4` function must not fail**. It it does, it will bring
+  **The `format/4` function must not fail**. If it does, it will bring
   that particular logger instance down, causing your system to temporarily
   lose log messages. If necessary, wrap the function in a `rescue` and
   log a default message instead:
