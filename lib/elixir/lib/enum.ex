@@ -169,7 +169,7 @@ defprotocol Enumerable do
   Retrieves the number of elements in the `enumerable`.
 
   It should return `{:ok, count}` if you can count the number of elements
-  in `enumerable` without traversing it.
+  in `enumerable` in a faster way than manually traversing it.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.
@@ -4740,8 +4740,7 @@ defmodule Enum do
 end
 
 defimpl Enumerable, for: List do
-  def count([]), do: {:ok, 0}
-  def count(_list), do: {:error, __MODULE__}
+  def count(list), do: {:ok, length(list)}
 
   def member?([], _value), do: {:ok, false}
   def member?(_list, _value), do: {:error, __MODULE__}
