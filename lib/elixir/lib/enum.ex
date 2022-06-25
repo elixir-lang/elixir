@@ -169,7 +169,7 @@ defprotocol Enumerable do
   Retrieves the number of elements in the `enumerable`.
 
   It should return `{:ok, count}` if you can count the number of elements
-  in `enumerable` in a faster way than manually traversing it.
+  in `enumerable` in a faster way than fully traversing it.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.

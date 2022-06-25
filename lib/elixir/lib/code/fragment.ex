@@ -902,25 +902,15 @@ defmodule Code.Fragment do
       tokens, for closing tokens, end of expressions, as well as delimiters
       for sigils. See `t:Macro.metadata/0`. Defaults to `false`.
 
+    * `:literal_encoder` - a function to encode literals in the AST.
+      See the documentation for `Code.string_to_quoted/2` for more information.
+
   """
   @doc since: "1.13.0"
   @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
-    file = Keyword.get(opts, :file, "nofile")
-    line = Keyword.get(opts, :line, 1)
-    column = Keyword.get(opts, :column, 1)
-    columns = Keyword.get(opts, :columns, false)
-    token_metadata = Keyword.get(opts, :token_metadata, false)
-
-    Code.string_to_quoted(fragment,
-      file: file,
-      line: line,
-      column: column,
-      columns: columns,
-      token_metadata: token_metadata,
-      cursor_completion: true,
-      emit_warnings: false
-    )
+    opts = Keyword.take(opts, [:file, :line, :column, :columns, :token_metadata, :literal_encoder])
+    Code.string_to_quoted(fragment, [cursor_completion: true, emit_warnings: false] ++ opts)
   end
 end
