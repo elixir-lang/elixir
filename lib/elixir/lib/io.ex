@@ -172,8 +172,17 @@ defmodule IO do
   @doc """
   Reads from the IO `device`. The operation is Unicode unsafe.
 
-  The `device` is iterated by the given number of bytes, line by line if
-  `:line` is given, or until `:eof`.
+  The `device` is iterated as specified by the `line_or_chars` argument:
+
+    * if `line_or_chars` is an integer, it represents a number of bytes. The device is
+      iterated by that number of bytes.
+
+    * if `line_or_chars` is `:line`, the device is iterated line by line.
+
+    * if `line_or_chars` is `:eof`, the device is iterated until `:eof`. `line_or_chars`
+      can only be `:eof` since Elixir 1.13.0. `:eof` replaces the deprecated `:all`,
+      with the difference that `:all` returns `""` on end of file, while `:eof` returns
+      `:eof` itself.
 
   It returns:
 
