@@ -910,7 +910,9 @@ defmodule Code.Fragment do
   @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
-    opts = Keyword.take(opts, [:file, :line, :column, :columns, :token_metadata, :literal_encoder])
+    opts =
+      Keyword.take(opts, [:file, :line, :column, :columns, :token_metadata, :literal_encoder])
+
     Code.string_to_quoted(fragment, [cursor_completion: true, emit_warnings: false] ++ opts)
   end
 end
