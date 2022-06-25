@@ -477,6 +477,12 @@ defmodule Mix.Tasks.XrefTest do
       )
     end
 
+    test "invalid exclude" do
+      assert_raise Mix.Error, "Excluded files could not be found: lib/a2.ex, lib/a3.ex", fn ->
+        assert_graph(~w[--exclude lib/a2.ex --exclude lib/a.ex --exclude lib/a3.ex], "")
+      end
+    end
+
     test "only nodes" do
       assert_graph(~w[--only-nodes], """
       lib/a.ex

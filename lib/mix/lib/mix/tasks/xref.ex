@@ -584,7 +584,7 @@ defmodule Mix.Tasks.Xref do
 
   ## Graph
 
-  defp exclude(file_references, []), do: file_references
+  defp exclude(file_references, nil), do: file_references
 
   defp exclude(file_references, excluded) do
     excluded_set = MapSet.new(excluded)
@@ -658,14 +658,18 @@ defmodule Mix.Tasks.Xref do
         into: %{}
   end
 
+  @humanize_option %{
+    source: "Sources",
+    sink: "Sinks",
+    exclude: "Excluded files"
+  }
+
   defp get_files(what, opts, file_references) do
     files = Keyword.get_values(opts, what)
 
     case files -- Map.keys(file_references) do
       [_ | _] = missing ->
-        Mix.raise(
-          "#{Macro.camelize(to_string(what))}s could not be found: #{Enum.join(missing, ", ")}"
-        )
+        Mix.raise("#{@humanize_option[what]} could not be found: #{Enum.join(missing, ", ")}")
 
       _ ->
         :ok
@@ -675,7 +679,7 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp write_graph(file_references, filter, opts) do
-    file_references = exclude(file_references, Keyword.get_values(opts, :exclude))
+    file_references = exclude(file_references, get_files(:exclude, opts, file_references))
     sources = get_files(:source, opts, file_references)
     sinks = get_files(:sink, opts, file_references)
 
