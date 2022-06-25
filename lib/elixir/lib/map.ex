@@ -88,11 +88,14 @@ defmodule Map do
       %{1 => :one, 2 => :two, 3 => :three}
 
   Maps also support a specific update syntax to update the value stored under
-  *existing* atom keys:
+  *existing* keys:
 
       iex> map = %{one: 1, two: 2}
       iex> %{map | one: "one"}
       %{one: "one", two: 2}
+      iex> other_map = %{"three" => 3, "four" => 4}
+      iex> %{other_map | "three" => "three"}
+      %{"four" => 4, "three" => "three"}
 
   When a key that does not exist in the map is updated a `KeyError` exception will be raised:
 
