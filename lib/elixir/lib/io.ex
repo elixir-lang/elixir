@@ -172,8 +172,17 @@ defmodule IO do
   @doc """
   Reads from the IO `device`. The operation is Unicode unsafe.
 
-  The `device` is iterated by the given number of bytes, line by line if
-  `:line` is given, or until `:eof`.
+  The `device` is iterated as specified by the `line_or_chars` argument:
+
+    * if `line_or_chars` is an integer, it represents a number of bytes. The device is
+      iterated by that number of bytes.
+
+    * if `line_or_chars` is `:line`, the device is iterated line by line.
+
+    * if `line_or_chars` is `:eof`, the device is iterated until `:eof`. `line_or_chars`
+      can only be `:eof` since Elixir 1.13.0. `:eof` now replaces the deprecated `:all`,
+      with the difference that with `:all` then `""` would be returned on EOF, while with
+      `:eof` then `:eof` itself is returned on EOF.
 
   It returns:
 
@@ -188,7 +197,8 @@ defmodule IO do
   Note: do not use this function on IO devices in Unicode mode
   as it will return the wrong result.
   """
-  @spec binread(device, :eof | :line | non_neg_integer) :: iodata | nodata
+  @spec binread(device, :eof | :line | non_neg_integer | deprecated_all) :: iodata | nodata
+        when deprecated_all: :all
   def binread(device \\ :stdio, line_or_chars)
 
   # TODO: Deprecate me on v1.17
