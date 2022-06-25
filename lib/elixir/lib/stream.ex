@@ -454,9 +454,10 @@ defmodule Stream do
   @doc """
   Executes the given function for each element.
 
-  Useful for adding side effects (like printing) to a stream.
-
-  Returns the provided enumerable unchanged. See `map/2` if producing a modified stream is desired.
+  The values in the stream do not change, therefore this
+  function is useful for adding side effects (like printing)
+  to a stream. See `map/2` if producing a different stream
+  is desired.
 
   ## Examples
 
