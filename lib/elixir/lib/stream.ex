@@ -456,6 +456,8 @@ defmodule Stream do
 
   Useful for adding side effects (like printing) to a stream.
 
+  Returns the provided enumerable unchanged. See `map/2` if producing a modified stream is desired.
+
   ## Examples
 
       iex> stream = Stream.each([1, 2, 3], fn x -> send(self(), x) end)
