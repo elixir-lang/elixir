@@ -180,9 +180,9 @@ defmodule IO do
     * if `line_or_chars` is `:line`, the device is iterated line by line.
 
     * if `line_or_chars` is `:eof`, the device is iterated until `:eof`. `line_or_chars`
-      can only be `:eof` since Elixir 1.13.0. `:eof` now replaces the deprecated `:all`,
-      with the difference that with `:all` then `""` would be returned on EOF, while with
-      `:eof` then `:eof` itself is returned on EOF.
+      can only be `:eof` since Elixir 1.13.0. `:eof` replaces the deprecated `:all`,
+      with the difference that `:all` returns `""` on end of file, while `:eof` returns
+      `:eof` itself.
 
   It returns:
 
@@ -197,8 +197,7 @@ defmodule IO do
   Note: do not use this function on IO devices in Unicode mode
   as it will return the wrong result.
   """
-  @spec binread(device, :eof | :line | non_neg_integer | deprecated_all) :: iodata | nodata
-        when deprecated_all: :all
+  @spec binread(device, :eof | :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ :stdio, line_or_chars)
 
   # TODO: Deprecate me on v1.17
