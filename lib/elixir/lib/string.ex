@@ -48,6 +48,7 @@ defmodule String do
   Besides allowing double-quotes to be escaped with a backslash,
   strings also support the following escape characters:
 
+    * `\0` - Null byte
     * `\a` - Bell
     * `\b` - Backspace
     * `\t` - Horizontal tab
@@ -56,7 +57,9 @@ defmodule String do
     * `\f` - Form feed
     * `\r` - Carriage return
     * `\e` - Command Escape
+    * `\s` - Space
     * `\#` - Returns the `#` character itself, skipping interpolation
+    * `\\` - Single backslash
     * `\xNN` - A byte represented by the hexadecimal `NN`
     * `\uNNNN` - A Unicode code point represented by `NNNN`
 
