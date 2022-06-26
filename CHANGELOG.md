@@ -13,7 +13,7 @@ easily partitioned, then you can use `PartitionSupervisor` to supervise multiple
 isolated copies of that process running concurrently, each assigned its own
 partition.
 
-For example, imagine you have a `ErrorReporter` process that you use to report
+For example, imagine you have an `ErrorReporter` process that you use to report
 errors to a monitoring service.
 
 ```elixir
@@ -57,8 +57,8 @@ back-pressure. You can use any term as the partitioning key.
 A common and practical example of a good use case for `PartitionSupervisor` is
 partitioning something like a `DynamicSupervisor`. When starting many processes
 under it, a dynamic supervisor can be a bottleneck, especially if said processes
-take long to initialize. Instead of starting a single `DynamicSupervisor`,
-you can start multiple ones:
+take a long time to initialize. Instead of starting a single `DynamicSupervisor`,
+you can start multiple:
 
 ```elixir
 children = [
@@ -151,13 +151,13 @@ This is generally done when the struct content or part of it is private and the
 API.
 
 The downside of the `#name<...>` convention is that *the inspected output is not
-valid Elixir code*. You cannot do things such as copying the inspected output
-and pasting it into an IEx session or similar.
+valid Elixir code*. For example, you cannot copy the inspected output and paste
+it into an IEx session.
 
 Elixir v1.14 changes the convention for some of the standard-library structs.
-The `Inspect` implementation for those structs is now a string with a valid
-Elixir expression that recreates the struct itself if evaluated. In the
-`MapSet` example above, this is what we have now:
+The `Inspect` implementation for those structs now returns a string with a valid
+Elixir expression that recreates the struct when evaluated. In the `MapSet`
+example above, this is what we have now:
 
 ```elixir
 fruits = MapSet.new([:apple, :banana])
@@ -170,7 +170,7 @@ inspecting. This allows us to hide the internals of `MapSet`, while keeping
 it as valid Elixir code. This expression-based inspection has been
 implemented for `Version.Requirement`, `MapSet`, and `Date.Range`.
 
-Finally, we have also improved the `Inspect` protocol for structs so the
+Finally, we have improved the `Inspect` protocol for structs so that
 fields are inspected in the order they are declared in `defstruct`.
 The option `:optional` has also been added when deriving the `Inspect`
 protocol, giving developers more control over the struct representation.
