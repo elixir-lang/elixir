@@ -172,6 +172,21 @@ defmodule MapSet do
   end
 
   @doc """
+  Returns a set with elements that are present in only one but not both sets.
+
+  ## Examples
+
+      iex> MapSet.disjoint(MapSet.new([1, 2, 3]), MapSet.new([2, 3, 4]))
+      MapSet.new([1, 4])
+  """
+  @spec disjoint(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
+  def disjoint(left = %MapSet{}, right = %MapSet{}) do
+    diff_left_right = MapSet.difference(left, right)
+    diff_right_left = MapSet.difference(right, left)
+    MapSet.union(diff_left_right, diff_right_left)
+  end
+
+  @doc """
   Checks if `map_set1` and `map_set2` have no members in common.
 
   ## Examples
