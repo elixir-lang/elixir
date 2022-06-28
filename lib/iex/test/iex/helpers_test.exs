@@ -902,7 +902,7 @@ defmodule IEx.HelpersTest do
     end
 
     test "prints private types" do
-      assert capture_io(fn -> t(Date.Range) end) =~ "@typep iso_days"
+      assert capture_io(fn -> t(Date.Range) end) =~ "@typep days"
     end
 
     test "prints type information" do
