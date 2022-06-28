@@ -3248,7 +3248,16 @@ defmodule Kernel do
       iex> Enum.filter(list, &match?({:a, x} when x < 2, &1))
       [a: 1]
 
-  However, variables assigned in the match will not be available
+  However, because `match?/2` is a macro, it cannot take into account the
+  runtime value of a variable.  Passing a variable as the pattern will always
+  return `true` and will result in a warning that the variable is unused.
+
+      # don't do this
+      iex> pattern = %{a: :a}
+      iex> match?(pattern, %{b: :b})
+      true
+
+  Also, variables assigned in the match will not be available
   outside of the function call (unlike regular pattern matching with the `=`
   operator):
 
