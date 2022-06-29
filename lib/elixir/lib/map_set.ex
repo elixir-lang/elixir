@@ -193,19 +193,19 @@ defmodule MapSet do
     %MapSet{map: map}
   end
 
-  defp disjointer(:none, {small, list}) do
+  defp disjointer(:none, small, list) do
     {small, list}
   end
 
-  defp disjointer({key, _val, iter}, {small, list}) do
+  defp disjointer({key, _val, iter}, small, list) do
     if :erlang.is_map_key(key, small) do
       iter
       |> :maps.next()
-      |> disjointer({Map.delete(small, key), list})
+      |> disjointer(Map.delete(small, key), list)
     else
       iter
       |> :maps.next()
-      |> disjointer({small, [{key, []} | list]})
+      |> disjointer(small, [{key, []} | list])
     end
   end
 
@@ -213,7 +213,7 @@ defmodule MapSet do
     large
     |> :maps.iterator()
     |> :maps.next()
-    |> disjointer({small, []})
+    |> disjointer(small, [])
   end
 
   @doc """
