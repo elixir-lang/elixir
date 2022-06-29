@@ -180,10 +180,40 @@ defmodule MapSet do
       MapSet.new([1, 4])
   """
   @spec disjoint(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
-  def disjoint(left = %MapSet{}, right = %MapSet{}) do
-    diff_left_right = MapSet.difference(left, right)
-    diff_right_left = MapSet.difference(right, left)
-    MapSet.union(diff_left_right, diff_right_left)
+  def disjoint(%MapSet{map: left}, %MapSet{map: right}) do
+    {small, large} =
+      case map_size(left) > map_size(right) do
+        true -> {right, left}
+        false -> {left, right}
+      end
+
+    {small, list} = disjointer(large, small)
+
+    map = list |> :maps.from_keys([]) |> Map.merge(small)
+    %MapSet{map: map}
+  end
+
+  defp disjointer(:none, {small, list}) do
+    {small, list}
+  end
+
+  defp disjointer({key, _val, iter}, {small, list}) do
+    if :erlang.is_map_key(key, small) do
+      iter
+      |> :maps.next()
+      |> disjointer({Map.delete(small, key), list})
+    else
+      iter
+      |> :maps.next()
+      |> disjointer({small, [key | list]})
+    end
+  end
+
+  defp disjointer(large, small) do
+    large
+    |> :maps.iterator()
+    |> :maps.next()
+    |> disjointer({small, []})
   end
 
   @doc """
