@@ -172,6 +172,51 @@ defmodule MapSet do
   end
 
   @doc """
+  Returns a set with elements that are present in only one but not both sets.
+
+  ## Examples
+
+      iex> MapSet.disjoint(MapSet.new([1, 2, 3]), MapSet.new([2, 3, 4]))
+      MapSet.new([1, 4])
+  """
+  @spec disjoint(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
+  def disjoint(%MapSet{map: left}, %MapSet{map: right}) do
+    {small, large} =
+      case map_size(left) > map_size(right) do
+        true -> {right, left}
+        false -> {left, right}
+      end
+
+    {small, list} = disjointer(large, small)
+
+    map = list |> :maps.from_list() |> Map.merge(small)
+    %MapSet{map: map}
+  end
+
+  defp disjointer(:none, small, list) do
+    {small, list}
+  end
+
+  defp disjointer({key, _val, iter}, small, list) do
+    if :erlang.is_map_key(key, small) do
+      iter
+      |> :maps.next()
+      |> disjointer(Map.delete(small, key), list)
+    else
+      iter
+      |> :maps.next()
+      |> disjointer(small, [{key, []} | list])
+    end
+  end
+
+  defp disjointer(large, small) do
+    large
+    |> :maps.iterator()
+    |> :maps.next()
+    |> disjointer(small, [])
+  end
+
+  @doc """
   Checks if `map_set1` and `map_set2` have no members in common.
 
   ## Examples

@@ -59,6 +59,17 @@ defmodule MapSetTest do
     assert MapSet.equal?(result, MapSet.new([1, 101]))
   end
 
+  test "disjoint/2" do
+    result = MapSet.disjoint(MapSet.new(1..5), MapSet.new(3..8))
+    assert MapSet.equal?(result, MapSet.new([1, 2, 6, 7, 8]))
+
+    result = MapSet.disjoint(MapSet.new(), MapSet.new())
+    assert MapSet.equal?(result, MapSet.new())
+
+    result = MapSet.disjoint(MapSet.new(1..5), MapSet.new(1..5))
+    assert MapSet.equal?(result, MapSet.new())
+  end
+
   test "disjoint?/2" do
     assert MapSet.disjoint?(MapSet.new(), MapSet.new())
     assert MapSet.disjoint?(MapSet.new(1..6), MapSet.new(8..20))
