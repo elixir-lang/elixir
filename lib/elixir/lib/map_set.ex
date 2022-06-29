@@ -189,7 +189,7 @@ defmodule MapSet do
 
     {small, list} = disjointer(large, small)
 
-    map = list |> :maps.from_keys([]) |> Map.merge(small)
+    map = list |> :maps.from_list() |> Map.merge(small)
     %MapSet{map: map}
   end
 
@@ -205,7 +205,7 @@ defmodule MapSet do
     else
       iter
       |> :maps.next()
-      |> disjointer({small, [key | list]})
+      |> disjointer({small, [{key, []} | list]})
     end
   end
 
