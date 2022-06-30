@@ -3248,25 +3248,36 @@ defmodule Kernel do
       iex> Enum.filter(list, &match?({:a, x} when x < 2, &1))
       [a: 1]
 
-  However, because `match?/2` is a macro, it cannot take into account the
-  runtime value of a variable.  Passing a variable as the pattern will always
-  return `true` and will result in a warning that the variable is unused.
-
-      # don't do this
-      iex> pattern = %{a: :a}
-      iex> match?(pattern, %{b: :b})
-      true
-
-  Also, variables assigned in the match will not be available
-  outside of the function call (unlike regular pattern matching with the `=`
-  operator):
+  Variables assigned in the match will not be available outside of the
+  function call (unlike regular pattern matching with the `=` operator):
 
       iex> match?(_x, 1)
       true
       iex> binding()
       []
 
-  Furthermore, remember the pin operator matches _values_, not _patterns_:
+  ## Values vs patterns
+
+  Remember the pin operator matches _values_, not _patterns_.
+  Passing a variable as the pattern will always return `true` and will
+  result in a warning that the variable is unused:
+
+      # don't do this
+      pattern = %{a: :a}
+      match?(pattern, %{b: :b})
+
+  Similarly, moving an expression out the pattern may no longer preserve
+  its semantics. For example:
+
+      match?([_ | _], [1, 2, 3])
+      #=> true
+
+      pattern = [_ | _]
+      match?(pattern, [1, 2, 3])
+      ** (CompileError) invalid use of _. "_" represents a value to be ignored in a pattern and cannot be used in expressions
+
+  Another example is that a map as a pattern performs a subset match, but not
+  once assigned to a variable:
 
       match?(%{x: 1}, %{x: 1, y: 2})
       #=> true
