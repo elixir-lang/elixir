@@ -274,13 +274,6 @@ defmodule String.Tokenizer do
   defp ascii_lower?(entry), do: entry >= ?a and entry <= ?z
   defp ascii_continue?(entry), do: entry >= ?0 and entry <= ?9
 
-  # Pattern is used as a performance check to end sooner before traversing unicode
-  for pattern <- ' \t\n\r!"#$%&\'()*+,-./:;<=>?@[]^`{|}~' do
-    defp ascii_pattern?(unquote(pattern)), do: true
-  end
-
-  defp ascii_pattern?(_), do: false
-
   # Unicode helpers
   # We use ranges whenever possible to reduce bytecode size.
 
@@ -406,7 +399,9 @@ defmodule String.Tokenizer do
       head == ?_ or ascii_continue?(head) ->
         continue(tail, [head | acc], length + 1, ascii_letters?, scriptset, special)
 
-      ascii_pattern?(head) ->
+      # Pattern is used for performance and to not mark ascii tokens as unicode
+      # ' \\\t\n\r!"#$%&\'()*+,-./:;<=>?@[]^`{|}~'
+      head <= 127 ->
         {acc, list, length, ascii_letters?, scriptset, special}
 
       true ->

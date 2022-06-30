@@ -410,7 +410,6 @@ defmodule StringIO do
     end
   end
 
-  defp binary_to_list(data, _) when is_list(data), do: data
   defp binary_to_list(data, :unicode) when is_binary(data), do: String.to_charlist(data)
   defp binary_to_list(data, :latin1) when is_binary(data), do: :erlang.binary_to_list(data)
 

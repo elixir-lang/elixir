@@ -180,7 +180,7 @@ defmodule MapSet do
       MapSet.new([1, 4])
   """
   @doc since: "1.14.0"
-  @spec symmetric_difference(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
+  @spec symmetric_difference(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
   def symmetric_difference(%MapSet{map: map1}, %MapSet{map: map2}) do
     {small, large} = order_by_size(map1, map2)
 

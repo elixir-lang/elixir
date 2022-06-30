@@ -68,6 +68,11 @@ defmodule Kernel.ParserTest do
   end
 
   describe "identifier unicode normalization" do
+    test "stops at ascii codepoints" do
+      assert {:ok, {:ç, _, nil}} = Code.string_to_quoted("ç\n")
+      assert {:ok, {:\\, _, [{:ç, _, nil}, 1]}} = Code.string_to_quoted(~S"ç\\1")
+    end
+
     test "nfc normalization is performed" do
       # before elixir 1.14, non-nfc would error
       #  non-nfc:        "ç" (code points 0x0063 0x0327)
