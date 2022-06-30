@@ -214,7 +214,7 @@ the approaches and options available.
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/2`
   * [Macro.Env] Add `Macro.Env.prune_compile_info/1`
   * [Map] Add `Map.from_keys/2` and `Map.replace_lazy/3`
-  * [MapSet] Add `MapSet.filter/2` and `MapSet.reject/2`
+  * [MapSet] Add `MapSet.filter/2`, `MapSet.reject/2`, and `MapSet.symmetric_difference/2`
   * [Node] Add `Node.spawn_monitor/2` and `Node.spawn_monitor/4`
   * [PartitionSupervisor] Add `PartitionSupervisor` that starts multiple isolated partitions of the same child for scalability
   * [Path] Add `Path.safe_relative/1` and `Path.safe_relative_to/2`
