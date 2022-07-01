@@ -893,12 +893,6 @@ defmodule MacroTest do
     end
   end
 
-  test "unpipe/1" do
-    assert Macro.unpipe(quote(do: foo)) == quote(do: [{foo, 0}])
-    assert Macro.unpipe(quote(do: foo |> bar)) == quote(do: [{foo, 0}, {bar, 0}])
-    assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
-  end
-
   ## traverse/pre/postwalk
 
   test "traverse/4" do
