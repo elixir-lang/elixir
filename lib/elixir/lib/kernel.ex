@@ -4095,13 +4095,7 @@ defmodule Kernel do
 
   """
   defmacro left |> right do
-    [{h, _} | t] = Macro.unpipe({:|>, [], [left, right]})
-
-    fun = fn {x, pos}, acc ->
-      Macro.pipe(acc, x, pos)
-    end
-
-    :lists.foldl(fun, h, t)
+    Macro.pipe(left, right, 0)
   end
 
   @doc """
