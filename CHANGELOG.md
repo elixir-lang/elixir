@@ -188,14 +188,18 @@ the approaches and options available.
 
 #### Elixir
 
+  * [Application] Add `Application.compile_env/4` and `Application.compile_env!/3` to read the compile-time environment inside macros
   * [Calendar] Support ISO8601 basic format parsing with `DateTime.from_iso8601/2`
+  * [Calendar] Add `day`/`hour`/`minute` on `add`/`diff` across different calendar modules
   * [Code] Add `:normalize_bitstring_modifiers` to `Code.format_string!/2`
   * [Code] Emit deprecation and type warnings for invalid options in on `Code.compile_string/2` and `Code.compile_quoted/2`
   * [Code] Warn if an outdated lexical tracker is given on eval
   * [Code] Add `Code.env_for_eval/1` and `Code.eval_quoted_with_env/3`
   * [Code] Improve stacktraces from eval operations on Erlang/OTP 25+
+  * [Code.Fragment] Add support for `__MODULE__` in several functions
   * [Enum] Allow slicing with steps in `Enum.slice/2`
   * [Float] Do not show floats in scientific notation if below `1.0e16` and the fractional value is precisely zero
+  * [Float] Add `Float.min_finite/0` and `Float.max_finite/0`
   * [Inspect] Improve error reporting when there is a faulty implementation of the `Inspect` protocol
   * [Inspect] Allow `:optional` when deriving the Inspect protocol for hiding fields that match their default value
   * [Inspect] Inspect struct fields in the order they are declared in `defstruct`
@@ -233,6 +237,7 @@ the approaches and options available.
   * [ExUnit] Add `ExUnit.Callbacks.start_link_supervised!/2`
   * [ExUnit] Add `ExUnit.run/1` to rerun test modules
   * [ExUnit] Colorize summary in yellow with message when all tests are excluded
+  * [ExUnit] Display friendly error when test name is too long
 
 #### IEx
 
@@ -253,8 +258,10 @@ the approaches and options available.
   * [mix new] Do not allow projects to be created with application names that conflict with multi-arg Erlang VM switches
   * [mix profile] Return the return value of the profiled function
   * [mix release] Make BEAM compression opt-in
+  * [mix release] Let `:runtime_config_path` accept `false` to skip the `config/runtime.exs`
   * [mix test] Improve error message when suite fails due to coverage
   * [mix test] Support `:test_elixirc_options` and default to not generating docs nor debug info chunk for tests
+  * [mix xref] Support `--group` flag in `mix xref graph`
 
 ### 2. Bug fixes
 
