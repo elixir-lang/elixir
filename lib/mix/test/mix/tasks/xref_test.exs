@@ -842,6 +842,53 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
+    test "group with multiple unconnected files" do
+      assert_graph(~w[--group lib/a.ex,lib/c.ex,lib/e.ex], """
+      lib/a.ex+
+      |-- lib/b.ex (compile)
+      `-- lib/d.ex (compile)
+      lib/b.ex
+      `-- lib/a.ex+ (compile)
+      lib/d.ex
+      `-- lib/a.ex+
+      """)
+    end
+
+    test "group with directly dependent files and cycle" do
+      assert_graph(~w[--group lib/a.ex,lib/b.ex], """
+      lib/a.ex+
+      |-- lib/c.ex
+      `-- lib/e.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
+      lib/d.ex
+      `-- lib/e.ex
+      lib/e.ex
+      """)
+    end
+
+    test "multiple groups" do
+      assert_graph(~w[--group lib/a.ex,lib/b.ex --group lib/c.ex,lib/e.ex], """
+      lib/a.ex+
+      `-- lib/c.ex+ (compile)
+      lib/c.ex+
+      `-- lib/d.ex (compile)
+      lib/d.ex
+      `-- lib/c.ex+
+      """)
+    end
+
+    test "group with sink" do
+      assert_graph(~w[--group lib/a.ex,lib/c.ex,lib/e.ex --sink lib/e.ex], """
+      lib/b.ex
+      `-- lib/a.ex+ (compile)
+          |-- lib/b.ex (compile)
+          `-- lib/d.ex (compile)
+      lib/d.ex
+      `-- lib/a.ex+
+      """)
+    end
+
     @default_files %{
       "lib/a.ex" => """
       defmodule A do
