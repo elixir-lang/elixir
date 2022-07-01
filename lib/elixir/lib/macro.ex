@@ -206,7 +206,7 @@ defmodule Macro do
   @type captured_remote_function :: fun
 
   @doc false
-  @deprecated "Use Macro.pipe/3 directly"
+  @deprecated "Use Macro.pipe/3 exclusively"
   def unpipe(expr) do
     :lists.reverse(unpipe(expr, []))
   end
@@ -221,6 +221,13 @@ defmodule Macro do
 
   @doc """
   Pipes `expr` into the `call_args` at the given `position`.
+
+  This function can be used to implement `|>` like functionality. For example,
+  `|>` itself is implemented as:
+
+      defmacro left |> right do
+        Macro.pipe(left, right, 0)
+      end
 
   `expr` is the AST of an expression. `call_args` must be the AST *of a call*,
   otherwise this function will raise an error. As an example, consider the pipe
