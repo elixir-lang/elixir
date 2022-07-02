@@ -148,7 +148,7 @@ compile(Line, Module, Block, Vars, E) ->
           after_verify => AfterVerify,
           compile_opts => CompileOpts,
           deprecated => get_deprecated(DataBag),
-          is_behaviour => is_behaviour(DataBag)
+          defines_behaviour => defines_behaviour(DataBag)
         },
 
         Binary = elixir_erl:compile(ModuleMap),
@@ -233,7 +233,7 @@ validate_dialyzer_attribute({dialyzer, Dialyzer}, Defs, File, Line) ->
 validate_dialyzer_attribute(false, _Defs, _File, _Line) ->
   ok.
 
-is_behaviour(DataBag) ->
+defines_behaviour(DataBag) ->
   ets:member(DataBag, {accumulate, callback}) orelse ets:member(DataBag, {accumulate, macrocallback}).
 
 %% An undef error for a function in the module being compiled might result in an

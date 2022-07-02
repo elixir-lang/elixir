@@ -396,8 +396,8 @@ defmodule Module.ParallelChecker do
     :ets.insert(ets, {{:cached, module}, :elixir})
   end
 
-  defp behaviour_exports(%{is_behaviour: true}), do: [{{:behaviour_info, 1}, :def}]
-  defp behaviour_exports(%{is_behaviour: false}), do: []
+  defp behaviour_exports(%{defines_behaviour: true}), do: [{{:behaviour_info, 1}, :def}]
+  defp behaviour_exports(%{defines_behaviour: false}), do: []
 
   defp behaviour_exports(module) when is_atom(module) do
     if function_exported?(module, :behaviour_info, 1) do
