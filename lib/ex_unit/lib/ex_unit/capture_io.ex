@@ -158,7 +158,7 @@ defmodule ExUnit.CaptureIO do
   ## Examples
 
       {result, output} =
-        assert with_io(fn ->
+        with_io(fn ->
           IO.puts("a")
           IO.puts("b")
           2 + 2
