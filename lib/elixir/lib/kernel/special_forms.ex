@@ -1612,7 +1612,7 @@ defmodule Kernel.SpecialForms do
       end
 
   Note how the code above is better organized and clearer once we
-  make sure each clause in `with` returns a normalize format.
+  make sure each clause in `with` returns a normalized format.
   """
   defmacro with(args), do: error!([args])
 
