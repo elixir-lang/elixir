@@ -181,6 +181,7 @@ bootstrap_files() ->
      <<"list/chars.ex">>,
      <<"module/locals_tracker.ex">>,
      <<"module/parallel_checker.ex">>,
+     <<"module/types/behaviour.ex">>,
      <<"module/types/helpers.ex">>,
      <<"module/types/unify.ex">>,
      <<"module/types/of.ex">>,
