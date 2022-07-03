@@ -1949,7 +1949,7 @@ defmodule Macro do
   end
 
   @doc """
-  Converts the given string to CamelCase format.
+  Converts the given string to CamelCase format (strictly it is PascalCase, because camelCase is Camel Case).
 
   This function was designed to camelize language identifiers/tokens,
   that's why it belongs to the `Macro` module. Do not use it as a general
