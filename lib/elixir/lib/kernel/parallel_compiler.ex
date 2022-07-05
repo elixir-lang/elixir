@@ -5,7 +5,7 @@ defmodule Kernel.ParallelCompiler do
 
   @typedoc "The line. 0 indicates no line."
   @type line() :: non_neg_integer()
-  @type location() :: line() | {line(), column :: non_neg_integer}
+  @type location() :: line() | {pos_integer(), column :: non_neg_integer}
   @type warning() :: {file :: Path.t(), location(), message :: String.t()}
   @type error() :: {file :: Path.t(), line(), message :: String.t()}
 
