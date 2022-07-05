@@ -7,7 +7,7 @@ defmodule Kernel.ParallelCompiler do
   @type line() :: non_neg_integer()
   @type location() :: line() | {pos_integer(), column :: non_neg_integer}
   @type warning() :: {file :: Path.t(), location(), message :: String.t()}
-  @type error() :: {file :: Path.t(), line(), message :: String.t()}
+  @type error() :: {file :: Path.t(), location(), message :: String.t()}
 
   @doc """
   Starts a task for parallel compilation.
@@ -758,6 +758,11 @@ defmodule Kernel.ParallelCompiler do
     file = Path.absname(file)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
     {file, line || 0, message}
+  end
+
+  defp get_line(_file, %{line: line, column: column}, _stack)
+       when is_integer(line) and line > 0 and is_integer(column) and column >= 0 do
+    {line, column}
   end
 
   defp get_line(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
