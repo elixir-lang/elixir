@@ -266,7 +266,7 @@ unpack_defaults(Kind, Meta, Name, Args, S, E) ->
 
 unpack_expanded(Kind, Meta, Name, [{'\\\\', DefaultMeta, [Expr, _]} | T] = List, VersionOffset, Acc, Clauses) ->
   Base = match_defaults(Acc, length(Acc) + VersionOffset, []),
-  {Args, Invoke} = extract_defaults(List, length(Base), [], []),
+  {Args, Invoke} = extract_defaults(List, length(Base) + VersionOffset, [], []),
   Clause = {Meta, Base ++ Args, [], {super, [{super, {Kind, Name}} | DefaultMeta], Base ++ Invoke}},
   unpack_expanded(Kind, Meta, Name, T, VersionOffset, [Expr | Acc], [Clause | Clauses]);
 unpack_expanded(Kind, Meta, Name, [H | T], VersionOffset, Acc, Clauses) ->
