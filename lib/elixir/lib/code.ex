@@ -1190,19 +1190,19 @@ defmodule Code do
   """
   @spec eval_file(binary, nil | binary) :: {term, binding}
   def eval_file(file, relative_to \\ nil) when is_binary(file) do
-    file = find_file(file, relative_to)
-    eval_string(File.read!(file), [], file: file, line: 1)
+    {charlist, file} = find_file!(file, relative_to)
+    eval_string(charlist, [], file: file, line: 1)
   end
 
   @deprecated "Use Code.require_file/2 or Code.compile_file/2 instead"
   @doc false
   def load_file(file, relative_to \\ nil) when is_binary(file) do
-    file = find_file(file, relative_to)
+    {charlist, file} = find_file!(file, relative_to)
     :elixir_code_server.call({:acquire, file})
 
     loaded =
       Module.ParallelChecker.verify(fn ->
-        :elixir_compiler.file(file, fn _, _ -> :ok end)
+        :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
       end)
 
     :elixir_code_server.cast({:required, file})
@@ -1243,7 +1243,7 @@ defmodule Code do
   """
   @spec require_file(binary, nil | binary) :: [{module, binary}] | nil
   def require_file(file, relative_to \\ nil) when is_binary(file) do
-    file = find_file(file, relative_to)
+    {charlist, file} = find_file!(file, relative_to)
 
     case :elixir_code_server.call({:acquire, file}) do
       :required ->
@@ -1252,7 +1252,7 @@ defmodule Code do
       :proceed ->
         loaded =
           Module.ParallelChecker.verify(fn ->
-            :elixir_compiler.file(file, fn _, _ -> :ok end)
+            :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
           end)
 
         :elixir_code_server.cast({:required, file})
@@ -1504,7 +1504,8 @@ defmodule Code do
   @spec compile_file(binary, nil | binary) :: [{module, binary}]
   def compile_file(file, relative_to \\ nil) when is_binary(file) do
     Module.ParallelChecker.verify(fn ->
-      :elixir_compiler.file(find_file(file, relative_to), fn _, _ -> :ok end)
+      {charlist, file} = find_file!(file, relative_to)
+      :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
     end)
   end
 
@@ -1798,7 +1799,7 @@ defmodule Code do
   # Finds the file given the relative_to path.
   #
   # If the file is found, returns its path in binary, fails otherwise.
-  defp find_file(file, relative_to) do
+  defp find_file!(file, relative_to) do
     file =
       if relative_to do
         Path.expand(file, relative_to)
@@ -1806,10 +1807,9 @@ defmodule Code do
         Path.expand(file)
       end
 
-    if File.regular?(file) do
-      file
-    else
-      raise Code.LoadError, file: file
+    case File.read(file) do
+      {:ok, bin} -> {String.to_charlist(bin), file}
+      {:error, reason} -> raise Code.LoadError, file: file, reason: reason
     end
   end
 end

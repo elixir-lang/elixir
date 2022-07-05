@@ -1338,11 +1338,13 @@ defmodule FunctionClauseError do
 end
 
 defmodule Code.LoadError do
-  defexception [:file, :message]
+  defexception [:file, :message, :reason]
 
   def exception(opts) do
     file = Keyword.fetch!(opts, :file)
-    %Code.LoadError{message: "could not load #{file}", file: file}
+    reason = Keyword.fetch!(opts, :reason)
+    message = "could not load #{file}. Reason: #{reason}"
+    %Code.LoadError{message: message, file: file, reason: reason}
   end
 end
 
