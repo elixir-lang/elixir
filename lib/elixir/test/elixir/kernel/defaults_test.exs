@@ -5,6 +5,15 @@ defmodule Kernel.DefaultsTest do
 
   import ExUnit.CaptureIO
 
+  def fun_with_fn_defaults(
+        x,
+        fun1 \\ & &1,
+        fun2 \\ & &1,
+        y
+      ) do
+    {fun1.(x), fun2.(y)}
+  end
+
   def fun_with_block_defaults(
         x,
         y \\ (
@@ -17,6 +26,12 @@ defmodule Kernel.DefaultsTest do
         )
       ) do
     {x, y, z}
+  end
+
+  test "with anonymous function defaults" do
+    assert {1, 2} = fun_with_fn_defaults(1, 2)
+    assert {100, 2} = fun_with_fn_defaults(1, &(&1 * 100), 2)
+    assert {100, 12} = fun_with_fn_defaults(1, &(&1 * 100), &(&1 + 10), 2)
   end
 
   test "with block defaults" do
