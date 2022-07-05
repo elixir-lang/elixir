@@ -146,8 +146,8 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
 
   {File, DefMeta} =
     case retrieve_location(Location, ?key(E, module)) of
-      {F, L} ->
-        {F, [{line, Line}, {file, {F, L}} | Generated]};
+      {AF, RF, L} ->
+        {AF, [{line, Line}, {file, {RF, L}} | Generated]};
       nil ->
         {nil, [{line, Line} | Generated]}
     end,
@@ -191,15 +191,15 @@ retrieve_location(Location, Module) ->
   case ets:take(Set, file) of
     [] when is_tuple(Location) ->
       {File, Line} = Location,
-      {elixir_utils:relative_to_cwd(File), Line};
+      {filename:absname(File), elixir_utils:relative_to_cwd(File), Line};
     [] ->
       nil;
     [{file, File, _}] when is_binary(File) ->
       'Elixir.Module':delete_attribute(Module, file),
-      {elixir_utils:relative_to_cwd(File), 0};
+      {filename:absname(File), elixir_utils:relative_to_cwd(File), 0};
     [{file, {File, Line}, _}] when is_binary(File) andalso is_integer(Line) ->
       'Elixir.Module':delete_attribute(Module, file),
-      {elixir_utils:relative_to_cwd(File), Line}
+      {filename:absname(File), elixir_utils:relative_to_cwd(File), Line}
   end.
 
 run_with_location_change(nil, E, Callback) ->

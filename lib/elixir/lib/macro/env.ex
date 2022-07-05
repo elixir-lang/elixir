@@ -24,7 +24,7 @@ defmodule Macro.Env do
     * `context` - the context of the environment; it can be `nil`
       (default context), `:guard` (inside a guard) or `:match` (inside a match)
     * `context_modules` - a list of modules defined in the current context
-    * `file` - the current file name as a binary
+    * `file` - the current absolute file name as a binary
     * `function` - a tuple as `{atom, integer}`, where the first
       element is the function name and the second its arity; returns
       `nil` if not inside a function

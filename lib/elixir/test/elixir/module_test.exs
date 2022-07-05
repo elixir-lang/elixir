@@ -267,7 +267,7 @@ defmodule ModuleTest do
 
   @file "sample.ex"
   test "@file sets __ENV__.file" do
-    assert __ENV__.file == "sample.ex"
+    assert __ENV__.file == Path.absname("sample.ex")
   end
 
   test "@file raises when invalid" do
