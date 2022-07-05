@@ -36,7 +36,7 @@ defmodule Mix.Task.Compiler do
     @type t :: %__MODULE__{
             file: Path.t(),
             severity: severity,
-            message: String.t(),
+            message: IO.chardata(),
             position: position,
             compiler_name: String.t(),
             details: any
