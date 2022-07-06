@@ -252,6 +252,8 @@ defmodule Mix.Tasks.Format do
     end
   end
 
+  @loadpath_args ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
+
   # This function reads exported configuration from the imported
   # dependencies and subdirectories and deals with caching the result
   # of reading such configuration in a manifest file.
@@ -273,21 +275,20 @@ defmodule Mix.Tasks.Format do
     end
 
     if plugins != [] do
-      args = ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
-      Mix.Task.run("loadpaths", args)
+      Mix.Task.run("loadpaths", @loadpath_args)
+    end
+
+    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
+      Mix.Task.run("compile", @loadpath_args)
     end
 
     for plugin <- plugins do
       cond do
         not Code.ensure_loaded?(plugin) ->
-          Mix.shell().error(
-            "Skipping formatter plugin #{inspect(plugin)} because module cannot be found"
-          )
+          Mix.raise("Formatter plugin #{inspect(plugin)} cannot be found")
 
         not function_exported?(plugin, :features, 1) ->
-          Mix.shell().error(
-            "Skipping formatter plugin #{inspect(plugin)} because it does not define features/1"
-          )
+          Mix.raise("Formatter plugin #{inspect(plugin)} does not define features/1")
 
         true ->
           :ok
