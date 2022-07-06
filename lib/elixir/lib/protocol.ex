@@ -1021,7 +1021,8 @@ defmodule Protocol do
 
   @doc false
   def __ensure_defimpl__(protocol, for, env) do
-    if Protocol.consolidated?(protocol) do
+    if not Code.get_compiler_option(:ignore_already_consolidated) and
+         Protocol.consolidated?(protocol) do
       message =
         "the #{inspect(protocol)} protocol has already been consolidated, an " <>
           "implementation for #{inspect(for)} has no effect. If you want to " <>

@@ -462,7 +462,8 @@ defmodule Mix.Tasks.Xref do
           into: MapSet.new(),
           do: module
 
-    old = Code.compiler_options(ignore_module_conflict: true, tracers: [__MODULE__])
+    new = [ignore_already_consolidated: true, ignore_module_conflict: true, tracers: [__MODULE__]]
+    old = Code.compiler_options(new)
     ets = :ets.new(__MODULE__, [:named_table, :duplicate_bag, :public])
     :ets.insert(ets, [{:config, set, trace_label(opts[:label])}])
 
