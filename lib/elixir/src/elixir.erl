@@ -58,6 +58,7 @@ start(_Type, _Args) ->
 
     %% Compiler options
     {docs, true},
+    {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {parser_options, []},
     {debug_info, true},
