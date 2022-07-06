@@ -8,8 +8,8 @@ defmodule Mix.Rebar do
   in order to force updates when new Elixir versions come out.
   """
   def local_rebar_path(:rebar3) do
-    elixir_version = System.version() |> :binary.split("-") |> hd()
-    Path.join([Mix.Utils.mix_home(), "elixir", elixir_version, "rebar3"])
+    [major, minor | _] = String.split(System.version(), ".")
+    Path.join([Mix.Utils.mix_home(), "elixir", "#{major}-#{minor}", "rebar3"])
   end
 
   @doc """
