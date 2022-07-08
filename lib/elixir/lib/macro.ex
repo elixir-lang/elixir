@@ -1844,8 +1844,40 @@ defmodule Macro do
   def quoted_literal?({:%{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({:{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
-  def quoted_literal?(list) when is_list(list), do: Enum.all?(list, &quoted_literal?/1)
+  def quoted_literal?(list) when is_list(list), do: :lists.all(&quoted_literal?/1, list)
   def quoted_literal?(term), do: is_atom(term) or is_number(term) or is_binary(term)
+
+  @doc """
+  Expands a `quoted_literal` with the given `
+
+  This function checks if the given AST represents a quoted literal
+  (using `quoted_literal?/1`) and then expands all relevant nodes.
+  If a literal node is not given, then it returns the AST as is.
+  At the moment, the only expandable literal nodes in an AST are
+  aliases, so this function only expands aliases.
+
+  This function is mostly used to remove compile-time dependencies
+  from AST nodes. In such cases, the given environment is usually
+  manipulate to represent a function:
+
+      Macro.expand_literal(ast, %{env | function: {:my_code, 1}})
+
+  However, be careful when removing compile-time dependencies between
+  modules. If you remove them but you still invoke the module at
+  compile-time, you may end-up with broken behaviour.
+  """
+  @doc since: "1.14.0"
+  @spec expand_literal(t(), Macro.Env.t()) :: t()
+  def expand_literal(ast, env) do
+    if quoted_literal?(ast) do
+      prewalk(ast, fn
+        {:__aliases__, _, _} = alias -> expand(alias, env)
+        other -> other
+      end)
+    else
+      ast
+    end
+  end
 
   @doc """
   Receives an AST node and expands it until it can no longer

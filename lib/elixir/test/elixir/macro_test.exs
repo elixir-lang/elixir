@@ -259,6 +259,11 @@ defmodule MacroTest do
     assert expand_and_clean(quote(do: oror(1, false)), __ENV__) == quoted
   end
 
+  test "expand_literal" do
+    assert Macro.expand_literal(quote(do: Foo), __ENV__) == Foo
+    assert Macro.expand_literal(quote(do: Foo + Bar), __ENV__) == quote(do: Foo + Bar)
+  end
+
   test "var/2" do
     assert Macro.var(:foo, nil) == {:foo, [], nil}
     assert Macro.var(:foo, Other) == {:foo, [], Other}

@@ -5339,14 +5339,7 @@ defmodule Kernel do
   See the `Protocol` module for more information.
   """
   defmacro defimpl(name, opts, do_block \\ []) do
-    merged = Keyword.merge(opts, do_block)
-    merged = Keyword.put_new(merged, :for, __CALLER__.module)
-
-    if Keyword.fetch!(merged, :for) == nil do
-      raise ArgumentError, "defimpl/3 expects a :for option when declared outside a module"
-    end
-
-    Protocol.__impl__(name, merged)
+    Protocol.__impl__(name, opts, do_block, __CALLER__)
   end
 
   @doc """
