@@ -922,15 +922,29 @@ defmodule Protocol do
     do: [:lists.foldl(&{:|, [], [&1, &2]}, head, tail), quote(do: ...)]
 
   @doc false
-  def __impl__(protocol, opts) do
-    do_defimpl(protocol, :lists.keysort(1, opts))
+  def __impl__(protocol, opts, do_block, env) do
+    opts = Keyword.merge(opts, do_block)
+
+    {for, opts} =
+      Keyword.pop_lazy(opts, :for, fn ->
+        env.module ||
+          raise ArgumentError, "defimpl/3 expects a :for option when declared outside a module"
+      end)
+
+    for = Macro.expand_literal(for, %{env | lexical_tracker: nil})
+
+    case opts do
+      [] -> raise ArgumentError, "defimpl expects a do-end block"
+      [do: block] -> __impl__(protocol, for, block)
+      _ -> raise ArgumentError, "unknown options given to defimpl, got: #{Macro.to_string(opts)}"
+    end
   end
 
-  defp do_defimpl(protocol, do: block, for: for) when is_list(for) do
-    for f <- for, do: do_defimpl(protocol, do: block, for: f)
+  defp __impl__(protocol, for, block) when is_list(for) do
+    for f <- for, do: __impl__(protocol, f, block)
   end
 
-  defp do_defimpl(protocol, do: block, for: for) do
+  defp __impl__(protocol, for, block) do
     # Unquote the implementation just later
     # when all variables will already be injected
     # into the module body.
@@ -958,12 +972,12 @@ defmodule Protocol do
         @protocol protocol
         @for for
 
-        unquote(block)
-
+        res = unquote(block)
         Module.register_attribute(__MODULE__, :__impl__, persist: true)
         @__impl__ [protocol: @protocol, for: @for]
 
         unquote(impl)
+        res
       end
     end
   end
