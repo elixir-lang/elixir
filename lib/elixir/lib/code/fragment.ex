@@ -812,8 +812,13 @@ defmodule Code.Fragment do
   defp enum_reverse_at(rest, _, acc), do: {acc, rest}
 
   @doc """
-  Receives a code fragment and returns a quoted expression
+  Receives a string and returns a quoted expression
   with a cursor at the nearest argument position.
+
+  This function receives a string with an Elixir code fragment,
+  representing a cursor position, and converts such string to
+  AST with the inclusion of special `__cursor__()` node based
+  on the position of the cursor with a container.
 
   A container is any Elixir expression starting with `(`,
   `{`, and `[`. This includes function calls, tuples, lists,
