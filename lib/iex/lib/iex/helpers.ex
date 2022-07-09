@@ -788,7 +788,7 @@ defmodule IEx.Helpers do
     # print items in multiple columns (2 columns in the worst case)
     lengths = Enum.map(list, &String.length(&1))
     max_length = max_length(lengths)
-    offset = min(max_length, 30) + 5
+    offset = min(max_length, 30) + 4
     print_table(list, printer, offset)
   end
 
@@ -802,8 +802,11 @@ defmodule IEx.Helpers do
           length
         end
 
-      IO.write(printer.(item, offset))
-      length + offset
+      printed = printer.(item, offset)
+      actual_offset = String.length(printed) + 1
+
+      IO.write(printed <> " ")
+      length + actual_offset
     end)
 
     IO.puts("")
