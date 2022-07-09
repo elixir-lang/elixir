@@ -216,6 +216,7 @@ the approaches and options available.
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/2`
+  * [Macro] Add `Macro.expand_literal/2` and `Macro.path/2`
   * [Macro.Env] Add `Macro.Env.prune_compile_info/1`
   * [Map] Add `Map.from_keys/2` and `Map.replace_lazy/3`
   * [MapSet] Add `MapSet.filter/2`, `MapSet.reject/2`, and `MapSet.symmetric_difference/2`
@@ -242,6 +243,7 @@ the approaches and options available.
 #### IEx
 
   * [IEx] Evaluate `--dot-iex` line by line
+  * [IEx.Autocomplete] Autocomplete bitstrings modifiers (after `::` inside `<<...>>`)
   * [IEx.Helpers] Allow an atom to be given to `pid/1`
 
 #### Logger
@@ -251,10 +253,12 @@ the approaches and options available.
 #### Mix
 
   * [mix compile] Add `--no-optional-deps` to skip optional dependencies to test compilation works without optional dependencies
+  * [mix compile] Include column information on error diagnostics when possible
   * [mix deps] `Mix.Dep.Converger` now tells which deps formed a cycle
   * [mix do] Support `--app` option to restrict recursive tasks in umbrella projects
   * [mix do] Allow using `+` as a task separator instead of comma
   * [mix format] Support filename in `mix format -` when reading from stdin
+  * [mix format] Compile if `mix format` plugins are missing
   * [mix new] Do not allow projects to be created with application names that conflict with multi-arg Erlang VM switches
   * [mix profile] Return the return value of the profiled function
   * [mix release] Make BEAM compression opt-in
@@ -275,6 +279,7 @@ the approaches and options available.
   * [Kernel] Define `__exception__` field as `true` when expanding exceptions in typespecs
   * [Kernel] Warn if any of `True`, `False`, and `Nil` aliases are used
   * [Kernel] Warn on underived `@derive` attributes
+  * [Kernel] Remove compile-time dependency from `defimpl :for`
   * [Protocol] Warn if a protocol has no definitions
   * [String] Allow slices to overflow on both starting and ending positions
 
@@ -292,10 +297,13 @@ the approaches and options available.
   * [mix compile.elixir] Fix `--warnings-as-errors` when used with `--all-warnings`
   * [mix format] Do not add new lines if the formatted file is empty
   * [mix release] Only set `RELEASE_MODE` after `env.{sh,bat}` are executed
+  * [mix xref] Do not emit already consolidated warnings during `mix xref trace`
+  * [Mix] Do not start apps with `runtime: false` on `Mix.install/2`
 
 #### IEx
 
   * [IEx] Disallow short-hand pipe after matches
+  * [IEx] Fix `exports/1` in IEx for long function names
 
 ### 3. Soft deprecations (no warnings emitted)
 
