@@ -740,8 +740,16 @@ defmodule IEx.Helpers do
         Atom.to_string(name) <> "/" <> Integer.to_string(arity)
       end)
 
-    print_table(list)
+    print_table(list, &pad_trailing_min_one/2)
     dont_display_result()
+  end
+
+  defp pad_trailing_min_one(string, count) do
+    if String.length(string) >= count do
+      string <> " "
+    else
+      String.pad_trailing(string, count)
+    end
   end
 
   @doc """
