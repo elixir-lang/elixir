@@ -26,6 +26,10 @@ result = dbg(
 |> hd()
 |> dbg()
 
+dbg(case 1 + 1 do
+  2 -> :two
+  _ -> :math_broke
+end)
 Application.put_env(:elixir, :ansi_enabled, false)
 [:pipe1, :pipe2]
 |> tl()

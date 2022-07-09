@@ -289,6 +289,27 @@ defmodule MacroTest do
       assert formatted =~ ~s[Atom.to_string(:foo) #=> "foo"]
     end
 
+    test "with a multiline input" do
+      {formatted, result} =
+        dbg_format(
+          quote do
+            case 1 + 1 do
+              2 -> :two
+              _other -> :math_is_broken
+            end
+          end
+        )
+
+      assert result == :two
+
+      assert formatted =~ """
+             case 1 + 1 do
+               2 -> :two
+               _other -> :math_is_broken
+             end #=> :two
+             """
+    end
+
     test "with a pipeline" do
       {formatted, result} = dbg_format(quote(do: [:a, :b, :c] |> tl() |> tl |> Kernel.hd()))
       assert result == :c
