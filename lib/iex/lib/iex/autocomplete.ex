@@ -1,6 +1,23 @@
 defmodule IEx.Autocomplete do
   @moduledoc false
 
+  @bitstring_modifiers [
+    %{kind: :variable, name: "big"},
+    %{kind: :variable, name: "binary"},
+    %{kind: :variable, name: "bitstring"},
+    %{kind: :variable, name: "integer"},
+    %{kind: :variable, name: "float"},
+    %{kind: :variable, name: "little"},
+    %{kind: :variable, name: "native"},
+    %{kind: :variable, name: "signed"},
+    %{kind: :function, name: "size", arity: 1},
+    %{kind: :function, name: "unit", arity: 1},
+    %{kind: :variable, name: "unsigned"},
+    %{kind: :variable, name: "utf8"},
+    %{kind: :variable, name: "utf16"},
+    %{kind: :variable, name: "utf32"}
+  ]
+
   @doc """
   Provides one helper function that is injected into connecting
   remote nodes to properly handle autocompletion.
@@ -54,16 +71,21 @@ defmodule IEx.Autocomplete do
         expand_dot_call(path, List.to_atom(hint), shell)
 
       :expr ->
-        expand_struct_fields_or_local_or_var(code, "", shell)
+        expand_container_context(code, :expr, "", shell) || expand_local_or_var("", shell)
 
       {:local_or_var, local_or_var} ->
-        expand_struct_fields_or_local_or_var(code, List.to_string(local_or_var), shell)
+        hint = List.to_string(local_or_var)
+        expand_container_context(code, :expr, hint, shell) || expand_local_or_var(hint, shell)
 
       {:local_arity, local} ->
         expand_local(List.to_string(local), true, shell)
 
       {:local_call, local} ->
         expand_local_call(List.to_atom(local), shell)
+
+      {:operator, operator} when operator in ~w(:: -)c ->
+        expand_container_context(code, :operator, "", shell) ||
+          expand_local(List.to_string(operator), false, shell)
 
       {:operator, operator} ->
         expand_local(List.to_string(operator), false, shell)
@@ -294,43 +316,65 @@ defmodule IEx.Autocomplete do
     Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
   end
 
-  defp expand_struct_fields_or_local_or_var(code, hint, shell) do
-    with {:ok, quoted} <- Code.Fragment.container_cursor_to_quoted(code),
-         {aliases, pairs} <- find_struct_fields(quoted),
-         alias = value_from_alias(aliases, shell),
-         true <- struct?(alias) do
-      pairs =
-        Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
-          Map.delete(map, key)
-        end)
+  defp expand_container_context(code, context, hint, shell) do
+    case container_context(code, shell) do
+      {:struct, alias, pairs} when context == :expr ->
+        pairs =
+          Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
+            Map.delete(map, key)
+          end)
 
-      entries =
-        for {key, _value} <- pairs,
-            name = Atom.to_string(key),
-            if(hint == "",
-              do: not String.starts_with?(name, "_"),
-              else: String.starts_with?(name, hint)
-            ),
-            do: %{kind: :keyword, name: name}
+        entries =
+          for {key, _value} <- pairs,
+              name = Atom.to_string(key),
+              if(hint == "",
+                do: not String.starts_with?(name, "_"),
+                else: String.starts_with?(name, hint)
+              ),
+              do: %{kind: :keyword, name: name}
 
-      format_expansion(entries, hint)
-    else
-      _ -> expand_local_or_var(hint, shell)
+        format_expansion(entries, hint)
+
+      :bitstring_modifier ->
+        existing =
+          code
+          |> List.to_string()
+          |> String.split("::")
+          |> List.last()
+          |> String.split("-")
+
+        @bitstring_modifiers
+        |> Enum.filter(&(String.starts_with?(&1.name, hint) and &1.name not in existing))
+        |> format_expansion(hint)
+
+      _ ->
+        nil
     end
   end
 
-  defp find_struct_fields(ast) do
-    ast
-    |> Macro.prewalker()
-    |> Enum.find_value(fn node ->
-      with {:%, _, [{:__aliases__, _, aliases}, {:%{}, _, pairs}]} <- node,
-           {pairs, [{:__cursor__, _, []}]} <- Enum.split(pairs, -1),
-           true <- Keyword.keyword?(pairs) do
-        {aliases, pairs}
-      else
-        _ -> nil
-      end
-    end)
+  defp container_context(code, shell) do
+    case Code.Fragment.container_cursor_to_quoted(code) do
+      {:ok, quoted} ->
+        case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
+          [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
+            with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+                 alias = value_from_alias(aliases, shell),
+                 true <- Keyword.keyword?(pairs) and struct?(alias) do
+              {:struct, alias, pairs}
+            else
+              _ -> nil
+            end
+
+          [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] ->
+            :bitstring_modifier
+
+          _ ->
+            nil
+        end
+
+      {:error, _} ->
+        nil
+    end
   end
 
   ## Aliases and modules

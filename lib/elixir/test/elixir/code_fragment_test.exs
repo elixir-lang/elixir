@@ -1031,6 +1031,13 @@ defmodule CodeFragmentTest do
       assert cc2q("%Foo{bar: baz,") == s2q("%Foo{bar: baz, __cursor__()}")
     end
 
+    test "binaries" do
+      assert cc2q("<<") == s2q("<<__cursor__()>>")
+      assert cc2q("<<foo") == s2q("<<__cursor__()>>")
+      assert cc2q("<<foo, bar") == s2q("<<foo, __cursor__()>>")
+      assert cc2q("<<foo, bar::baz") == s2q("<<foo, bar::__cursor__()>>")
+    end
+
     test "removes tokens until opening" do
       assert cc2q("(123") == s2q("(__cursor__())")
       assert cc2q("[foo") == s2q("[__cursor__()]")

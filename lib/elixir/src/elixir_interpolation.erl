@@ -51,7 +51,7 @@ extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
     {error, Reason, _, _, _} ->
       {error, Reason};
     {ok, EndLine, EndColumn, Warnings, Tokens} when Scope#elixir_tokenizer.cursor_completion /= false ->
-      NewScope = Scope#elixir_tokenizer{warnings=Warnings, cursor_completion=terminators},
+      NewScope = Scope#elixir_tokenizer{warnings=Warnings, cursor_completion=noprune},
       Output2 = build_interpol(Line, Column, EndLine, EndColumn, Tokens, Output1),
       extract([], [], Output2, EndLine, EndColumn, NewScope, true, Last);
     {ok, _, _, _, _} ->
