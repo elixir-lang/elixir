@@ -406,6 +406,18 @@ defmodule IEx.AutocompleteTest do
     assert expand('struct.my') == {:yes, '_val', []}
   end
 
+  test "completion for bitstring modifiers" do
+    assert {:yes, '', entries} = expand('<<foo::')
+    assert 'integer' in entries
+    assert 'size/1' in entries
+
+    assert {:yes, 'eger', []} = expand('<<foo::int')
+
+    assert {:yes, '', entries} = expand('<<foo::integer-')
+    refute 'integer' in entries
+    assert 'size/1' in entries
+  end
+
   test "ignore invalid Elixir module literals" do
     defmodule(:"Elixir.IEx.AutocompleteTest.Unicodé", do: nil)
     assert expand('IEx.AutocompleteTest.Unicod') == {:no, '', []}

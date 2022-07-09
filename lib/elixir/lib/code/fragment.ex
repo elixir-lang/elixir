@@ -861,7 +861,7 @@ defmodule Code.Fragment do
       max(some_value, 1 + another_val
       max(some_value, 1 |> some_fun() |> another_fun
 
-  On the other hand, tuples, lists, maps, etc all retain the
+  On the other hand, tuples, lists, maps, and binaries all retain the
   cursor position:
 
       max(some_value, [1, 2,
@@ -885,8 +885,20 @@ defmodule Code.Fragment do
 
   ## Examples
 
+  Function call:
+
       iex> Code.Fragment.container_cursor_to_quoted("max(some_value, ")
       {:ok, {:max, [line: 1], [{:some_value, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
+
+  Containers (for example, a list):
+
+      iex> Code.Fragment.container_cursor_to_quoted("[some, value")
+      {:ok, [{:some, [line: 1], nil}, {:__cursor__, [line: 1], []}]}
+
+  For binaries, the `::` is exclusively kept as an operator:
+
+      iex> Code.Fragment.container_cursor_to_quoted("<<some::integer")
+      {:ok, {:<<>>, [line: 1], [{:"::", [line: 1], [{:some, [line: 1], nil}, {:__cursor__, [line: 1], []}]}]}}
 
   ## Options
 

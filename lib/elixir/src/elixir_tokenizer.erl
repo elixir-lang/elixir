@@ -114,7 +114,7 @@ tokenize(String, Line, Column, Opts) ->
       ({check_terminators, false}, Acc) ->
         Acc#elixir_tokenizer{terminators=none};
       ({cursor_completion, true}, Acc) ->
-        Acc#elixir_tokenizer{cursor_completion=cursor_and_terminators};
+        Acc#elixir_tokenizer{cursor_completion=prune_and_cursor};
       ({existing_atoms_only, ExistingAtomsOnly}, Acc) when is_boolean(ExistingAtomsOnly) ->
         Acc#elixir_tokenizer{existing_atoms_only=ExistingAtomsOnly};
       ({static_atoms_encoder, StaticAtomsEncoder}, Acc) when is_function(StaticAtomsEncoder) ->
@@ -134,8 +134,8 @@ tokenize(String, Line, Column, Opts) ->
 tokenize(String, Line, Opts) ->
   tokenize(String, Line, 1, Opts).
 
-tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
-  #elixir_tokenizer{terminators=Terminators, warnings=Warnings} = Scope,
+tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, Tokens) when Cursor /= false ->
+  #elixir_tokenizer{ascii_identifiers_only=Ascii, terminators=Terminators, warnings=Warnings} = Scope,
 
   {CursorColumn, CursorTerminators, CursorTokens} =
     add_cursor(Line, Column, Cursor, Terminators, Tokens),
@@ -151,7 +151,8 @@ tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, 
   Formatted = io_lib:format(Message, [End, Start, StartLine]),
   error({EndLine, Column, [Formatted, Hint], []}, [], Scope, Tokens);
 
-tokenize([], Line, Column, #elixir_tokenizer{ascii_identifiers_only=Ascii, warnings=Warnings}, Tokens) ->
+tokenize([], Line, Column, #elixir_tokenizer{} = Scope, Tokens) ->
+  #elixir_tokenizer{ascii_identifiers_only=Ascii, warnings=Warnings} = Scope,
   AllWarnings = maybe_unicode_lint_warnings(Ascii, Tokens, Warnings),
   {ok, Line, Column, AllWarnings, lists:reverse(Tokens)};
 
@@ -1664,9 +1665,9 @@ cursor_complete(Line, Column, Terminators, Tokens) ->
     ),
   lists:reverse(AccTokens).
 
-add_cursor(_Line, Column, terminators, Terminators, Tokens) ->
+add_cursor(_Line, Column, noprune, Terminators, Tokens) ->
   {Column, Terminators, Tokens};
-add_cursor(Line, Column, cursor_and_terminators, Terminators, Tokens) ->
+add_cursor(Line, Column, prune_and_cursor, Terminators, Tokens) ->
   {PrunedTokens, PrunedTerminators} = prune_tokens(Tokens, [], Terminators),
   CursorTokens = [
     {')', {Line, Column + 11, nil}},
@@ -1725,6 +1726,9 @@ prune_tokens([{kw_identifier, _, _} | _] = Tokens, [], Terminators) ->
 prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+%%% we usually skip operators, except these contextual ones
+prune_tokens([{type_op, _, '::'} | _] = Tokens, [], [{'<<', _, _} | _] = Terminators) ->
   {Tokens, Terminators};
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener, Terminators) ->
