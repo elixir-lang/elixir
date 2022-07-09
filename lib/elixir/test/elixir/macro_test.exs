@@ -269,6 +269,30 @@ defmodule MacroTest do
     assert Macro.var(:foo, Other) == {:foo, [], Other}
   end
 
+  describe "__default_dbg_fun__/3" do
+    test "with a simple variable" do
+      env = __ENV__
+      quoted = Macro.__default_dbg_fun__(quote(do: my_var), _opts = [], env)
+
+      output =
+        ExUnit.CaptureIO.capture_io(fn ->
+          {result, _binding} =
+            Code.eval_quoted(
+              quote do
+                my_var = :foo
+                unquote(quoted)
+              end
+            )
+
+          assert result == :foo
+        end)
+
+      assert output =~ "my_var"
+      assert output =~ ":foo"
+      assert output =~ ~r/\[.*macro_test\.exs:\d+\]/
+    end
+  end
+
   describe "to_string/1" do
     test "converts quoted to string" do
       assert Macro.to_string(quote do: hello(world)) == "hello(world)"
