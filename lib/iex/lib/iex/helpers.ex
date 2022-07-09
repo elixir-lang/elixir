@@ -786,8 +786,6 @@ defmodule IEx.Helpers do
 
   defp expand_home(other), do: other
 
-  defp print_table(list, printer \\ &String.pad_trailing/2)
-
   defp print_table([], _printer) do
     :ok
   end
