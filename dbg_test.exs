@@ -31,3 +31,5 @@ Application.put_env(:elixir, :ansi_enabled, false)
 |> tl()
 |> hd()
 |> dbg()
+
+dbg([:a, :b, :c] |> tl() |> tl |> Kernel.hd())

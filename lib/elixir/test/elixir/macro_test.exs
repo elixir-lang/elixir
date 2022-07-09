@@ -269,27 +269,38 @@ defmodule MacroTest do
     assert Macro.var(:foo, Other) == {:foo, [], Other}
   end
 
-  describe "__default_dbg_fun__/3" do
-    test "with a simple variable" do
-      env = __ENV__
-      quoted = Macro.__default_dbg_fun__(quote(do: my_var), _opts = [], env)
+  defp dbg_format(ast) do
+    quoted = Macro.__default_dbg_fun_format__(ast, [syntax_colors: []], __ENV__)
+    {{formatted, result}, _bindings} = Code.eval_quoted(quoted)
+    {IO.chardata_to_string(formatted), result}
+  end
 
-      output =
-        ExUnit.CaptureIO.capture_io(fn ->
-          {result, _binding} =
-            Code.eval_quoted(
-              quote do
-                my_var = :foo
-                unquote(quoted)
-              end
-            )
+  describe "__default_dbg_fun_format__/3" do
+    test "with a simple expression" do
+      {formatted, result} = dbg_format(quote(do: 1 + 1))
+      assert result == 2
+      assert formatted =~ "1 + 1 #=> 2"
+    end
 
-          assert result == :foo
-        end)
+    test "with a function call" do
+      {formatted, result} = dbg_format(quote(do: Atom.to_string(:foo)))
 
-      assert output =~ "my_var"
-      assert output =~ ":foo"
-      assert output =~ ~r/\[.*macro_test\.exs:\d+\]/
+      assert result == "foo"
+      assert formatted =~ ~s[Atom.to_string(:foo) #=> "foo"]
+    end
+
+    test "with a pipeline" do
+      {formatted, result} = dbg_format(quote(do: [:a, :b, :c] |> tl() |> tl |> Kernel.hd()))
+      assert result == :c
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             [:a, :b, :c] #=> [:a, :b, :c]
+             |> tl() #=> [:b, :c]
+             |> tl #=> [:c]
+             |> Kernel.hd() #=> :c
+             """
     end
   end
 

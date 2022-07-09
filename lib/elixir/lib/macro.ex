@@ -2427,11 +2427,16 @@ defmodule Macro do
   # Made public for testing, since it doesn't use i/o. Whatever chardata is returned
   # from this is just passed to IO.write/1.
   def __default_dbg_fun_format__(ast, opts, env) do
+    opts_var = Macro.unique_var(:opts, __MODULE__)
+    ansi_enabled_var = Macro.unique_var(:ansi_enabled, __MODULE__)
+
     quote do
-      {formatted, result} = unquote(dbg_format_ast_with_values(ast, opts))
+      unquote(opts_var) = unquote(opts)
+      unquote(ansi_enabled_var) = (unquote(opts_var)[:syntax_colors] || []) != []
+      {formatted, result} = unquote(dbg_format_ast_with_values(ast, opts_var, ansi_enabled_var))
 
       formatted = [
-        unquote(dbg_format_header(env)),
+        unquote(dbg_format_header(env, ansi_enabled_var)),
         formatted,
         ?\n
       ]
@@ -2440,8 +2445,8 @@ defmodule Macro do
     end
   end
 
-  defp dbg_format_header(env) do
-    quote bind_quoted: [env: escape(env)] do
+  defp dbg_format_header(env, ansi_enabled_var) do
+    quote bind_quoted: [env: escape(env), ansi?: ansi_enabled_var] do
       location =
         case env do
           %Macro.Env{file: nil} -> ""
@@ -2466,12 +2471,12 @@ defmodule Macro do
           {location, mfa} -> "[#{location}: #{mfa}]"
         end
 
-      IO.ANSI.format([:cyan, :italic, header, ?\n])
+      IO.ANSI.format([:cyan, :italic, header, ?\n], ansi?)
     end
   end
 
   # Pipelines.
-  defp dbg_format_ast_with_values({:|>, _meta, _args} = pipe_ast, opts) do
+  defp dbg_format_ast_with_values({:|>, _meta, _args} = pipe_ast, opts, ansi_enabled_var) do
     [{start_ast, 0} | rest_asts] = unpipe(pipe_ast)
     value_acc = Macro.unique_var(:value_acc, __MODULE__)
     formatted_acc = Macro.unique_var(:formatted_acc, __MODULE__)
@@ -2481,38 +2486,43 @@ defmodule Macro do
         unquote(value_acc) = unquote(start_ast)
 
         unquote(formatted_acc) = [
-          unquote(dbg_format_ast(start_ast)),
+          unquote(dbg_format_ast(start_ast, ansi_enabled_var)),
           " ",
           inspect(unquote(value_acc), unquote(opts))
         ]
       end
 
     ast =
-      for {step_ast, index} <- rest_asts, reduce: ast_acc do
+      for {step_ast, 0} <- rest_asts, reduce: ast_acc do
         ast_acc ->
-          {fun_name, meta, args} = step_ast
-
-          # The args could be nil if the code is piped to the AST of a variable.
-          # For example: "[1, 2, 3] |> tl |> hd".
-          args = args || []
+          {fun_name, meta, args} =
+            case step_ast do
+              # This is the AST for when you pipe into "|> foo", without parens.
+              {var_name, meta, ctx} when is_atom(ctx) -> {var_name, meta, []}
+              {_fun, _meta, _args} = tuple -> tuple
+            end
 
           # Inject the previous value of the accumulator as the nth argument,
           # to calculate the actual value of the pipe expression.
-          injected_ast = {fun_name, meta, List.insert_at(args, index, value_acc)}
+          injected_ast = {fun_name, meta, [value_acc | args]}
 
           quote do
             unquote(ast_acc)
             unquote(value_acc) = unquote(injected_ast)
 
-            formatted = [
-              ?\n,
-              IO.ANSI.faint(),
-              "|> ",
-              IO.ANSI.reset(),
-              unquote(dbg_format_ast(step_ast)),
-              " ",
-              inspect(unquote(value_acc), unquote(opts))
-            ]
+            formatted =
+              IO.ANSI.format(
+                [
+                  ?\n,
+                  :faint,
+                  "|> ",
+                  :reset,
+                  unquote(dbg_format_ast(step_ast, ansi_enabled_var)),
+                  " ",
+                  inspect(unquote(value_acc), unquote(opts))
+                ],
+                unquote(ansi_enabled_var)
+              )
 
             unquote(formatted_acc) = [unquote(formatted_acc), formatted]
           end
@@ -2525,12 +2535,12 @@ defmodule Macro do
   end
 
   # Any other AST.
-  defp dbg_format_ast_with_values(ast, opts) do
+  defp dbg_format_ast_with_values(ast, opts, ansi_enabled_var) do
     quote do
       result = unquote(ast)
 
       formatted = [
-        unquote(dbg_format_ast(ast)),
+        unquote(dbg_format_ast(ast, ansi_enabled_var)),
         " ",
         inspect(result, unquote(opts)),
         "\n\n"
@@ -2540,9 +2550,12 @@ defmodule Macro do
     end
   end
 
-  defp dbg_format_ast(ast) do
+  defp dbg_format_ast(ast, ansi_enabled_var) do
     quote do
-      IO.ANSI.format([:bright, unquote(to_string(ast)), :reset, :faint, " #=>"])
+      IO.ANSI.format(
+        [:bright, unquote(to_string(ast)), :reset, :faint, " #=>"],
+        unquote(ansi_enabled_var)
+      )
     end
   end
 
