@@ -47,6 +47,20 @@ defmodule MixTest do
       assert apply(InstallTest, :hello, []) == :world
     end
 
+    test "with runtime: false", %{tmp_dir: tmp_dir} do
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test"), runtime: false}
+      ])
+
+      assert File.dir?(Path.join(tmp_dir, "installs"))
+      assert_received {:mix_shell, :info, ["==> install_test"]}
+      assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+      assert_received {:mix_shell, :info, ["Generated install_test app"]}
+      refute_received _
+
+      refute List.keyfind(Application.started_applications(), :install_test, 0)
+    end
+
     test "works with same deps twice", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
@@ -137,7 +151,7 @@ defmodule MixTest do
       Application.delete_env(:unknown_app, :foo, persistent: true)
     end
 
-    test "install?", %{tmp_dir: tmp_dir} do
+    test "installed?", %{tmp_dir: tmp_dir} do
       refute Mix.installed?()
 
       Mix.install([

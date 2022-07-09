@@ -728,7 +728,8 @@ defmodule Mix do
             Mix.Task.rerun("compile")
           end)
 
-          for app <- Mix.Project.deps_apps() do
+          for %{app: app, opts: opts} <- Mix.Dep.cached(),
+              Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) do
             Application.ensure_all_started(app)
           end
 
