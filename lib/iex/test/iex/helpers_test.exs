@@ -1039,6 +1039,13 @@ defmodule IEx.HelpersTest do
       exports = capture_io(fn -> exports(IEx.Autocomplete) end)
       assert exports == "expand/1      expand/2      exports/1     remsh/1       \n"
     end
+
+    test "handles long function names" do
+      exports = capture_io(fn -> exports(Calendar.UTCOnlyTimeZoneDatabase) end)
+
+      assert exports ==
+               "time_zone_period_from_utc_iso_days/2 time_zone_periods_from_wall_datetime/2 \n"
+    end
   end
 
   describe "import_file" do
