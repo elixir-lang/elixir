@@ -325,7 +325,7 @@ defmodule Supervisor do
   In the above, process termination refers to unsuccessful termination, which
   is determined by the `:restart` option.
 
-  To dynamically supervise children, see `DynamicSupervisor`.
+  To efficiently supervise children started dynamically, see `DynamicSupervisor`.
 
   ### Name registration
 
