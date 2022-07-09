@@ -14,7 +14,7 @@ defmodule Code.Identifier do
   def unary_op(op) do
     cond do
       op in [:&] -> {:non_associative, 90}
-      op in [:!, :^, :not, :+, :-, :"~~~"] -> {:non_associative, 300}
+      op in [:!, :^, :not, :+, :-, :~~~] -> {:non_associative, 300}
       op in [:@] -> {:non_associative, 320}
       true -> :error
     end
@@ -41,9 +41,9 @@ defmodule Code.Identifier do
       op in [:&&, :&&&, :and] -> {:left, 130}
       op in [:==, :!=, :=~, :===, :!==] -> {:left, 140}
       op in [:<, :<=, :>=, :>] -> {:left, 150}
-      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :"<|>"] -> {:left, 160}
+      op in [:|>, :<<<, :>>>, :<~, :~>, :<<~, :~>>, :<~>, :<|>] -> {:left, 160}
       op in [:in] -> {:left, 170}
-      op in [:"^^^"] -> {:left, 180}
+      op in [:^^^] -> {:left, 180}
       op in [:"//"] -> {:right, 190}
       op in [:++, :--, :.., :<>, :+++, :---] -> {:right, 200}
       op in [:+, :-] -> {:left, 210}

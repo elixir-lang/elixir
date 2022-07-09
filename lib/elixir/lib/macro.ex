@@ -2342,7 +2342,7 @@ defmodule Macro do
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
-      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
+      atom in [:"::", :^^^, :~~~, :<|>] ->
         :quoted_operator
 
       operator?(atom, 1) or operator?(atom, 2) ->
@@ -2396,5 +2396,125 @@ defmodule Macro do
 
   defp trim_leading_while_valid_identifier(other) do
     other
+  end
+
+  # Made public since it's used by the Kernel.dbg/2 macro.
+  @doc false
+  def __default_dbg_fun__(ast, opts, env)
+
+  # Pipelines.
+  def __default_dbg_fun__({:|>, _meta, _args} = pipe_ast, opts, env) do
+    [{start_ast, 0} | rest_asts] = unpipe(pipe_ast)
+    value_acc = Macro.unique_var(:pipe_acc, __MODULE__)
+    prefix = Macro.unique_var(:prefix, __MODULE__)
+
+    ast_acc =
+      quote do
+        opts = Keyword.merge([syntax_colors: unquote(dbg_default_syntax_colors())], unquote(opts))
+
+        unquote(value_acc) = unquote(start_ast)
+
+        file_line_prefix_length =
+          IO.iodata_length(unquote(dbg_file_line_prefix(env, _ansi? = false)))
+
+        file_line_prefix = unquote(dbg_file_line_prefix(env))
+
+        unquote(prefix) =
+          IO.ANSI.format([
+            :cyan,
+            "[" <> String.duplicate(".", file_line_prefix_length - 2) <> "] "
+          ])
+
+        IO.puts([
+          file_line_prefix,
+          " ",
+          unquote(dbg_format_ast(start_ast)),
+          " ",
+          inspect(unquote(value_acc), opts)
+        ])
+      end
+
+    ast =
+      for {step_ast, index} <- rest_asts, reduce: ast_acc do
+        ast_acc ->
+          {fun_name, meta, args} = step_ast
+
+          # The args could be nil if the code is piped to the AST of a variable.
+          # For example: "[1, 2, 3] |> tl |> hd".
+          args = args || []
+
+          # Inject the previous value of the accumulator as the nth argument,
+          # to calculate the actual value of the pipe expression.
+          injected_ast = {fun_name, meta, List.insert_at(args, index, value_acc)}
+
+          quote do
+            unquote(ast_acc)
+            unquote(value_acc) = unquote(injected_ast)
+
+            IO.puts([
+              unquote(prefix),
+              IO.ANSI.faint(),
+              "|> ",
+              IO.ANSI.reset(),
+              unquote(dbg_format_ast(step_ast)),
+              " ",
+              inspect(unquote(value_acc), opts)
+            ])
+          end
+      end
+
+    quote do
+      unquote(dbg_file_line_prefix(env))
+      unquote(ast)
+      unquote(value_acc)
+    end
+  end
+
+  # Any other AST.
+  def __default_dbg_fun__(ast, opts, env) when is_list(opts) do
+    quote do
+      result = unquote(ast)
+
+      IO.write([
+        unquote(dbg_file_line_prefix(env)),
+        " ",
+        unquote(dbg_format_ast(ast)),
+        " ",
+        inspect(result, unquote(opts)),
+        "\n"
+      ])
+
+      result
+    end
+  end
+
+  defp dbg_file_line_prefix(env, ansi? \\ nil) do
+    if env.file && env.line do
+      quote bind_quoted: [env: escape(env), ansi?: ansi?] do
+        ansi_enabled? = if is_boolean(ansi?), do: ansi?, else: IO.ANSI.enabled?()
+        IO.ANSI.format([:cyan, "[#{Path.relative_to_cwd(env.file)}:#{env.line}]"], ansi_enabled?)
+      end
+    else
+      ""
+    end
+  end
+
+  defp dbg_format_ast(ast) do
+    quote do
+      IO.ANSI.format([:bright, unquote(to_string(ast)), :reset, :faint, " #=>"])
+    end
+  end
+
+  defp dbg_default_syntax_colors do
+    [
+      atom: :cyan,
+      string: :green,
+      list: :default_color,
+      boolean: :magenta,
+      nil: :magenta,
+      tuple: :default_color,
+      binary: :default_color,
+      map: :default_color
+    ]
   end
 end

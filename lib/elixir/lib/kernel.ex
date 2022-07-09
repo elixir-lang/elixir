@@ -5731,6 +5731,15 @@ defmodule Kernel do
     end
   end
 
+  @doc """
+  TODO
+  """
+  @doc since: "1.14.0"
+  defmacro dbg(ast, opts \\ []) do
+    {mod, fun, args} = Application.get_env(:elixir, :dbg_fun, {Macro, :__default_dbg_fun__, []})
+    apply(mod, fun, [ast, opts, __CALLER__ | args])
+  end
+
   ## Sigils
 
   @doc ~S"""
