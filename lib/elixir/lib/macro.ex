@@ -2400,38 +2400,83 @@ defmodule Macro do
 
   # Made public since it's used by the Kernel.dbg/2 macro.
   @doc false
-  def __default_dbg_fun__(ast, opts, env)
+  def __default_dbg_fun__(ast, opts, env) do
+    default_opts = [
+      syntax_colors: dbg_default_syntax_colors(),
+      width: 80,
+      pretty: true
+    ]
+
+    opts = quote do: Keyword.merge(unquote(default_opts), unquote(opts))
+
+    quote do
+      {formatted, result} = unquote(__default_dbg_fun_format__(ast, opts, env))
+      :ok = IO.write(formatted)
+      result
+    end
+  end
+
+  # Made public for testing, since it doesn't use i/o. Whatever chardata is returned
+  # from this is just passed to IO.write/1.
+  def __default_dbg_fun_format__(ast, opts, env) do
+    quote do
+      {formatted, result} = unquote(dbg_format_ast_with_values(ast, opts))
+
+      formatted = [
+        unquote(dbg_format_header(env)),
+        formatted,
+        ?\n
+      ]
+
+      {formatted, result}
+    end
+  end
+
+  defp dbg_format_header(env) do
+    quote bind_quoted: [env: escape(env)] do
+      location =
+        case env do
+          %Macro.Env{file: nil} -> ""
+          %Macro.Env{file: file, line: 0} -> file
+          %Macro.Env{file: file, line: line} -> "#{Path.relative_to_cwd(file)}:#{line}"
+        end
+
+      mfa =
+        case env do
+          %Macro.Env{module: mod, function: {fun, arity}} when not is_nil(mod) ->
+            Exception.format_mfa(mod, fun, arity)
+
+          _other ->
+            ""
+        end
+
+      header =
+        case {location, mfa} do
+          {"", ""} -> ""
+          {location, ""} -> "[#{location}]"
+          {"", mfa} -> "[#{mfa}]"
+          {location, mfa} -> "[#{location}: #{mfa}]"
+        end
+
+      IO.ANSI.format([:cyan, :italic, header, ?\n])
+    end
+  end
 
   # Pipelines.
-  def __default_dbg_fun__({:|>, _meta, _args} = pipe_ast, opts, env) do
+  defp dbg_format_ast_with_values({:|>, _meta, _args} = pipe_ast, opts) do
     [{start_ast, 0} | rest_asts] = unpipe(pipe_ast)
-    value_acc = Macro.unique_var(:pipe_acc, __MODULE__)
-    prefix = Macro.unique_var(:prefix, __MODULE__)
+    value_acc = Macro.unique_var(:value_acc, __MODULE__)
+    formatted_acc = Macro.unique_var(:formatted_acc, __MODULE__)
 
     ast_acc =
       quote do
-        opts = Keyword.merge([syntax_colors: unquote(dbg_default_syntax_colors())], unquote(opts))
-
         unquote(value_acc) = unquote(start_ast)
 
-        file_line_prefix_length =
-          IO.iodata_length(unquote(dbg_file_line_prefix(env, _ansi? = false)))
-
-        file_line_prefix = unquote(dbg_file_line_prefix(env))
-
-        unquote(prefix) =
-          IO.ANSI.format([
-            :cyan,
-            "[" <> String.duplicate(".", file_line_prefix_length - 2) <> "] "
-          ])
-
-        IO.puts([
-          file_line_prefix,
-          " ",
+        unquote(formatted_acc) = [
           unquote(dbg_format_ast(start_ast)),
           " ",
-          inspect(unquote(value_acc), opts)
-        ])
+          inspect(unquote(value_acc), unquote(opts))
+        ]
       end
 
     ast =
@@ -2451,51 +2496,39 @@ defmodule Macro do
             unquote(ast_acc)
             unquote(value_acc) = unquote(injected_ast)
 
-            IO.puts([
-              unquote(prefix),
+            formatted = [
+              ?\n,
               IO.ANSI.faint(),
               "|> ",
               IO.ANSI.reset(),
               unquote(dbg_format_ast(step_ast)),
               " ",
-              inspect(unquote(value_acc), opts)
-            ])
+              inspect(unquote(value_acc), unquote(opts))
+            ]
+
+            unquote(formatted_acc) = [unquote(formatted_acc), formatted]
           end
       end
 
     quote do
-      unquote(dbg_file_line_prefix(env))
       unquote(ast)
-      unquote(value_acc)
+      {[unquote(formatted_acc), ?\n], unquote(value_acc)}
     end
   end
 
   # Any other AST.
-  def __default_dbg_fun__(ast, opts, env) when is_list(opts) do
+  defp dbg_format_ast_with_values(ast, opts) do
     quote do
       result = unquote(ast)
 
-      IO.write([
-        unquote(dbg_file_line_prefix(env)),
-        " ",
+      formatted = [
         unquote(dbg_format_ast(ast)),
         " ",
         inspect(result, unquote(opts)),
-        "\n"
-      ])
+        "\n\n"
+      ]
 
-      result
-    end
-  end
-
-  defp dbg_file_line_prefix(env, ansi? \\ nil) do
-    if env.file && env.line do
-      quote bind_quoted: [env: escape(env), ansi?: ansi?] do
-        ansi_enabled? = if is_boolean(ansi?), do: ansi?, else: IO.ANSI.enabled?()
-        IO.ANSI.format([:cyan, "[#{Path.relative_to_cwd(env.file)}:#{env.line}]"], ansi_enabled?)
-      end
-    else
-      ""
+      {formatted, result}
     end
   end
 
