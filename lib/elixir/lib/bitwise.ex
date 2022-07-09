@@ -30,7 +30,7 @@ defmodule Bitwise do
           [bnot: 1, band: 2, bor: 2, bxor: 2, bsl: 2, bsr: 2]
 
         Keyword.get(options, :skip_operators) ->
-          [~~~: 1, &&&: 2, |||: 2, ^^^: 2, <<<: 2, >>>: 2]
+          ["~~~": 1, &&&: 2, |||: 2, "^^^": 2, <<<: 2, >>>: 2]
 
         true ->
           []
@@ -62,7 +62,7 @@ defmodule Bitwise do
   end
 
   @doc false
-  def unquote(:~~~)(expr) do
+  def unquote(:"~~~")(expr) do
     :erlang.bnot(expr)
   end
 
@@ -156,7 +156,7 @@ defmodule Bitwise do
   end
 
   @doc false
-  def unquote(:^^^)(left, right) do
+  def unquote(:"^^^")(left, right) do
     :erlang.bxor(left, right)
   end
 
