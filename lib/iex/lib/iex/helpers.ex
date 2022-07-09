@@ -740,16 +740,8 @@ defmodule IEx.Helpers do
         Atom.to_string(name) <> "/" <> Integer.to_string(arity)
       end)
 
-    print_table(list, &pad_trailing_min_one/2)
+    print_table(list)
     dont_display_result()
-  end
-
-  defp pad_trailing_min_one(string, count) do
-    if String.length(string) >= count do
-      string <> " "
-    else
-      String.pad_trailing(string, count)
-    end
   end
 
   @doc """
@@ -786,6 +778,8 @@ defmodule IEx.Helpers do
 
   defp expand_home(other), do: other
 
+  defp print_table(list, printer \\ &String.pad_trailing/2)
+
   defp print_table([], _printer) do
     :ok
   end
@@ -794,7 +788,7 @@ defmodule IEx.Helpers do
     # print items in multiple columns (2 columns in the worst case)
     lengths = Enum.map(list, &String.length(&1))
     max_length = max_length(lengths)
-    offset = min(max_length, 30) + 5
+    offset = min(max_length, 30) + 4
     print_table(list, printer, offset)
   end
 
@@ -808,8 +802,11 @@ defmodule IEx.Helpers do
           length
         end
 
-      IO.write(printer.(item, offset))
-      length + offset
+      printed = printer.(item, offset)
+      actual_offset = String.length(printed) + 1
+
+      IO.write(printed <> " ")
+      length + actual_offset
     end)
 
     IO.puts("")
