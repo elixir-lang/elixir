@@ -2402,12 +2402,20 @@ defmodule Macro do
   @doc false
   def __default_dbg_fun__(ast, opts, env) do
     default_opts = [
-      syntax_colors: dbg_default_syntax_colors(),
       width: 80,
       pretty: true
     ]
 
     opts = quote do: Keyword.merge(unquote(default_opts), unquote(opts))
+
+    opts =
+      quote do
+        if IO.ANSI.enabled?() do
+          Keyword.put_new(unquote(opts), :syntax_colors, unquote(dbg_default_syntax_colors()))
+        else
+          unquote(opts)
+        end
+      end
 
     quote do
       {formatted, result} = unquote(__default_dbg_fun_format__(ast, opts, env))
