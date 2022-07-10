@@ -2398,15 +2398,30 @@ defmodule Macro do
     other
   end
 
-  # Made public since it's used by the Kernel.dbg/2 macro.
-  @doc false
-  def __default_dbg_callback__(ast, opts, env) do
+  @doc """
+  Default backend for `Kernel.dbg/2`.
+
+  This function provides a default backend for `Kernel.dbg/2`. See the
+  `Kernel.dbg/2` documentation for more information.
+
+  This function:
+
+    * prints information about the given `env`
+    * prints information about `code` and its returned value (using `opts` to inspect terms)
+    * returns the value returned by evaluating `code`
+
+  You can call this function directly to build `Kernel.dbg/2` backends that fall back
+  to this function.
+  """
+  @doc since: "1.14.0"
+  @spec dbg(t, t, Macro.Env.t()) :: t
+  def dbg(code, options, %Macro.Env{} = env) do
     default_opts = [
       width: 80,
       pretty: true
     ]
 
-    opts = quote do: Keyword.merge(unquote(default_opts), unquote(opts))
+    opts = quote do: Keyword.merge(unquote(default_opts), unquote(options))
 
     opts =
       quote do
@@ -2418,7 +2433,7 @@ defmodule Macro do
       end
 
     quote do
-      {formatted, result} = unquote(__default_dbg_callback_format__(ast, opts, env))
+      {formatted, result} = unquote(__default_dbg_callback_format__(code, opts, env))
       :ok = IO.write(formatted)
       result
     end

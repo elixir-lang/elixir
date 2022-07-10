@@ -5767,11 +5767,10 @@ defmodule Kernel do
 
   ## Default debug function
 
-  By default, the debug function just prints information about the code to standard output
-  and returns the value returned by evaluating `code`.
-
-  `options` are used to control how terms are inspected. They are the same options
-  accepted by `inspect/2`.
+  By default, the debug function we use is `Macro.dbg/3`. It just prints
+  information about the code to standard output and returns the value
+  returned by evaluating `code`. `options` are used to control how terms
+  are inspected. They are the same options accepted by `inspect/2`.
 
   ### Examples
 
@@ -5789,8 +5788,7 @@ defmodule Kernel do
   """
   @doc since: "1.14.0"
   defmacro dbg(code, options \\ []) do
-    default_dbg_callback = {Macro, :__default_dbg_callback__, []}
-    {mod, fun, args} = Application.get_env(:elixir, :dbg_callback, default_dbg_callback)
+    {mod, fun, args} = Application.get_env(:elixir, :dbg_callback, {Macro, :dbg, []})
     apply(mod, fun, [code, options, __CALLER__ | args])
   end
 
