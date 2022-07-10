@@ -3580,18 +3580,7 @@ defmodule Kernel do
   end
 
   defp expand_attribute(:compile, arg, env) do
-    Macro.prewalk(arg, fn
-      # {:no_warn_undefined, alias}
-      {elem, {:__aliases__, _, _} = alias} ->
-        {elem, Macro.expand(alias, %{env | function: {:__info__, 1}})}
-
-      # {alias, fun, arity}
-      {:{}, meta, [{:__aliases__, _, _} = alias, fun, arity]} ->
-        {:{}, meta, [Macro.expand(alias, %{env | function: {:__info__, 1}}), fun, arity]}
-
-      node ->
-        node
-    end)
+    Macro.expand_literal(arg, %{env | function: {:__info__, 1}})
   end
 
   defp expand_attribute(_, arg, _), do: arg
@@ -5723,18 +5712,7 @@ defmodule Kernel do
   """
   defmacro defdelegate(funs, opts) do
     funs = Macro.escape(funs, unquote: true)
-
-    # don't add compile-time dependency on :to
-    opts =
-      with true <- is_list(opts),
-           {:ok, target} <- Keyword.fetch(opts, :to),
-           {:__aliases__, _, _} <- target do
-        target = Macro.expand(target, %{__CALLER__ | function: {:__info__, 1}})
-        Keyword.replace!(opts, :to, target)
-      else
-        _ ->
-          opts
-      end
+    opts = Macro.expand_literal(opts, %{__CALLER__ | function: {:__info__, 1}})
 
     quote bind_quoted: [funs: funs, opts: opts] do
       target = Kernel.Utils.defdelegate_all(funs, opts, __ENV__)
