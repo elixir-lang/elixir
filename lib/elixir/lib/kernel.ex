@@ -5738,7 +5738,7 @@ defmodule Kernel do
 
   ## Configuring debug function
 
-  The debug function can be configured at compile time through the `:dbg_fun` key
+  The debug function can be configured at compile time through the `:dbg_callback` key
   of the `:elixir` application. The debug function must be a `{module, function, args}`
   tuple. The `function` function in `module` will be invoked with three arguments
   *prepended* to `args`:
@@ -5763,7 +5763,7 @@ defmodule Kernel do
   To configure the debug function:
 
       # In config/config.exs
-      config :elixir, :dbg_fun, {MyMod, :debug_fun, [:stdio]}
+      config :elixir, :dbg_callback, {MyMod, :debug_fun, [:stdio]}
 
   ## Default debug function
 
@@ -5789,8 +5789,8 @@ defmodule Kernel do
   """
   @doc since: "1.14.0"
   defmacro dbg(code, options \\ []) do
-    default_dbg_fun = {Macro, :__default_dbg_fun__, []}
-    {mod, fun, args} = Application.get_env(:elixir, :dbg_fun, default_dbg_fun)
+    default_dbg_callback = {Macro, :__default_dbg_callback__, []}
+    {mod, fun, args} = Application.get_env(:elixir, :dbg_callback, default_dbg_callback)
     apply(mod, fun, [code, options, __CALLER__ | args])
   end
 

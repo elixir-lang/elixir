@@ -2342,7 +2342,7 @@ defmodule Macro do
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
-      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
+      atom in [:"::", :^^^, :~~~, :<|>] ->
         :quoted_operator
 
       operator?(atom, 1) or operator?(atom, 2) ->
@@ -2400,7 +2400,7 @@ defmodule Macro do
 
   # Made public since it's used by the Kernel.dbg/2 macro.
   @doc false
-  def __default_dbg_fun__(ast, opts, env) do
+  def __default_dbg_callback__(ast, opts, env) do
     default_opts = [
       width: 80,
       pretty: true
@@ -2418,7 +2418,7 @@ defmodule Macro do
       end
 
     quote do
-      {formatted, result} = unquote(__default_dbg_fun_format__(ast, opts, env))
+      {formatted, result} = unquote(__default_dbg_callback_format__(ast, opts, env))
       :ok = IO.write(formatted)
       result
     end
@@ -2426,7 +2426,7 @@ defmodule Macro do
 
   # Made public for testing, since it doesn't use i/o. Whatever chardata is returned
   # from this is just passed to IO.write/1.
-  def __default_dbg_fun_format__(ast, opts, env) do
+  def __default_dbg_callback_format__(ast, opts, env) do
     opts_var = Macro.unique_var(:opts, __MODULE__)
     ansi_enabled_var = Macro.unique_var(:ansi_enabled, __MODULE__)
 

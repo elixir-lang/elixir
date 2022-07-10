@@ -270,12 +270,12 @@ defmodule MacroTest do
   end
 
   defp dbg_format(ast) do
-    quoted = Macro.__default_dbg_fun_format__(ast, [syntax_colors: []], __ENV__)
+    quoted = Macro.__default_dbg_callback_format__(ast, [syntax_colors: []], __ENV__)
     {{formatted, result}, _bindings} = Code.eval_quoted(quoted)
     {IO.chardata_to_string(formatted), result}
   end
 
-  describe "__default_dbg_fun_format__/3" do
+  describe "__default_dbg_callback_format__/3" do
     test "with a simple expression" do
       {formatted, result} = dbg_format(quote(do: 1 + 1))
       assert result == 2
