@@ -5744,8 +5744,8 @@ defmodule Kernel do
   *prepended* to `args`:
 
     1. The AST of `code`
-    1. The AST of `options`
-    1. The `Macro.Env` environment of where `dbg/2` is invoked
+    2. The AST of `options`
+    3. The `Macro.Env` environment of where `dbg/2` is invoked
 
   Whatever is returned by the debug function is then the return value of `dbg/2`.
 
