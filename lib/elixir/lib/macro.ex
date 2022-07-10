@@ -2416,162 +2416,150 @@ defmodule Macro do
   @doc since: "1.14.0"
   @spec dbg(t, t, Macro.Env.t()) :: t
   def dbg(code, options, %Macro.Env{} = env) do
-    default_opts = [
-      width: 80,
-      pretty: true
-    ]
-
-    opts = quote do: Keyword.merge(unquote(default_opts), unquote(options))
-
-    opts =
-      quote do
-        if IO.ANSI.enabled?() do
-          Keyword.put_new(unquote(opts), :syntax_colors, unquote(dbg_default_syntax_colors()))
-        else
-          unquote(opts)
-        end
-      end
+    header = dbg_format_header(env)
 
     quote do
-      {formatted, result} = unquote(__default_dbg_callback_format__(code, opts, env))
-      :ok = IO.write(formatted)
-      result
-    end
-  end
-
-  # Made public for testing, since it doesn't use i/o. Whatever chardata is returned
-  # from this is just passed to IO.write/1.
-  def __default_dbg_callback_format__(ast, opts, env) do
-    opts_var = Macro.unique_var(:opts, __MODULE__)
-    ansi_enabled_var = Macro.unique_var(:ansi_enabled, __MODULE__)
-
-    quote do
-      unquote(opts_var) = unquote(opts)
-      unquote(ansi_enabled_var) = (unquote(opts_var)[:syntax_colors] || []) != []
-      {formatted, result} = unquote(dbg_format_ast_with_values(ast, opts_var, ansi_enabled_var))
-
-      formatted = [
-        unquote(dbg_format_header(env, ansi_enabled_var)),
-        formatted,
-        ?\n
-      ]
-
-      {formatted, result}
-    end
-  end
-
-  defp dbg_format_header(env, ansi_enabled_var) do
-    quote bind_quoted: [env: escape(env), ansi?: ansi_enabled_var] do
-      location =
-        case env do
-          %Macro.Env{file: nil} -> ""
-          %Macro.Env{file: file, line: 0} -> file
-          %Macro.Env{file: file, line: line} -> "#{Path.relative_to_cwd(file)}:#{line}"
-        end
-
-      mfa =
-        case env do
-          %Macro.Env{module: mod, function: {fun, arity}} when not is_nil(mod) ->
-            Exception.format_mfa(mod, fun, arity)
-
-          _other ->
-            ""
-        end
-
-      header =
-        case {location, mfa} do
-          {"", ""} -> ""
-          {location, ""} -> "[#{location}]"
-          {"", mfa} -> "[#{mfa}]"
-          {location, mfa} -> "[#{location}: #{mfa}]"
-        end
-
-      IO.ANSI.format([:cyan, :italic, header, ?\n], ansi?)
+      to_debug = unquote(dbg_ast_to_debuggable(code))
+      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
     end
   end
 
   # Pipelines.
-  defp dbg_format_ast_with_values({:|>, _meta, _args} = pipe_ast, opts, ansi_enabled_var) do
-    [{start_ast, 0} | rest_asts] = unpipe(pipe_ast)
+  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
     value_acc = Macro.unique_var(:value_acc, __MODULE__)
-    formatted_acc = Macro.unique_var(:formatted_acc, __MODULE__)
+    values = Macro.unique_var(:values, __MODULE__)
 
-    ast_acc =
-      quote do
-        unquote(value_acc) = unquote(start_ast)
+    [start_ast | rest_asts] = asts = for {ast, 0} <- Macro.unpipe(pipe_ast), do: ast
 
-        unquote(formatted_acc) = [
-          unquote(dbg_format_ast(start_ast, ansi_enabled_var)),
-          " ",
-          inspect(unquote(value_acc), unquote(opts))
-        ]
+    rest_asts =
+      for ast <- rest_asts do
+        case ast do
+          {var_name, meta, ctx} when is_atom(ctx) -> {var_name, meta, [value_acc]}
+          {fun_name, meta, args} -> {fun_name, meta, [value_acc | args]}
+        end
       end
 
-    ast =
-      for {step_ast, 0} <- rest_asts, reduce: ast_acc do
+    initial_acc =
+      quote do
+        unquote(value_acc) = unquote(start_ast)
+        unquote(values) = [unquote(value_acc)]
+      end
+
+    values_ast =
+      for step_ast <- rest_asts, reduce: initial_acc do
         ast_acc ->
-          {fun_name, meta, args} =
-            case step_ast do
-              # This is the AST for when you pipe into "|> foo", without parens.
-              {var_name, meta, ctx} when is_atom(ctx) -> {var_name, meta, []}
-              {_fun, _meta, _args} = tuple -> tuple
-            end
-
-          # Inject the previous value of the accumulator as the nth argument,
-          # to calculate the actual value of the pipe expression.
-          injected_ast = {fun_name, meta, [value_acc | args]}
-
           quote do
             unquote(ast_acc)
-            unquote(value_acc) = unquote(injected_ast)
-
-            formatted =
-              IO.ANSI.format(
-                [
-                  ?\n,
-                  :faint,
-                  "|> ",
-                  :reset,
-                  unquote(dbg_format_ast(step_ast, ansi_enabled_var)),
-                  " ",
-                  inspect(unquote(value_acc), unquote(opts))
-                ],
-                unquote(ansi_enabled_var)
-              )
-
-            unquote(formatted_acc) = [unquote(formatted_acc), formatted]
+            unquote(value_acc) = unquote(step_ast)
+            unquote(values) = [unquote(value_acc) | unquote(values)]
           end
       end
 
     quote do
-      unquote(ast)
-      {[unquote(formatted_acc), ?\n], unquote(value_acc)}
+      unquote(values_ast)
+      {:pipe, unquote(escape(asts)), Enum.reverse(unquote(values))}
     end
   end
 
   # Any other AST.
-  defp dbg_format_ast_with_values(ast, opts, ansi_enabled_var) do
+  defp dbg_ast_to_debuggable(ast) do
     quote do
-      result = unquote(ast)
-
-      formatted = [
-        unquote(dbg_format_ast(ast, ansi_enabled_var)),
-        " ",
-        inspect(result, unquote(opts)),
-        "\n\n"
-      ]
-
-      {formatted, result}
+      {:value, unquote(escape(ast)), unquote(ast)}
     end
   end
 
-  defp dbg_format_ast(ast, ansi_enabled_var) do
-    quote do
-      IO.ANSI.format(
-        [:bright, unquote(to_string(ast)), :reset, :faint, " #=>"],
-        unquote(ansi_enabled_var)
-      )
+  # Made public to be called from Macro.dbg/3, so that we generate as little code
+  # as possible and call out into a function as soon as we can.
+  def __dbg__(header_string, to_debug, options) do
+    {formatted, result} = __dbg_format__(header_string, to_debug, options)
+    :ok = IO.write(formatted)
+    result
+  end
+
+  # Made public for testing without using i/o.
+  def __dbg_format__(header_string, to_debug, options) do
+    options = Keyword.merge([width: 80, pretty: true], options)
+
+    options =
+      if IO.ANSI.enabled?() do
+        Keyword.put_new(options, :syntax_colors, dbg_default_syntax_colors())
+      else
+        options
+      end
+
+    {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
+
+    formatted =
+      IO.ANSI.format([
+        :cyan,
+        :italic,
+        header_string,
+        :reset,
+        "\n",
+        formatted,
+        "\n\n"
+      ])
+
+    {formatted, result}
+  end
+
+  defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
+    result = List.last(values)
+
+    formatted =
+      Enum.map(Enum.zip(code_asts, values), fn {code_ast, value} ->
+        IO.ANSI.format([
+          :faint,
+          "|> ",
+          :reset,
+          dbg_format_ast(code_ast),
+          " ",
+          inspect(value, options),
+          ?\n
+        ])
+      end)
+
+    {formatted, result}
+  end
+
+  defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
+    formatted =
+      IO.ANSI.format([
+        dbg_format_ast(code_ast),
+        " ",
+        inspect(value, options)
+      ])
+
+    {formatted, value}
+  end
+
+  defp dbg_format_header(env) do
+    location =
+      case env do
+        %Macro.Env{file: nil} -> ""
+        %Macro.Env{file: file, line: 0} -> file
+        %Macro.Env{file: file, line: line} -> "#{Path.relative_to_cwd(file)}:#{line}"
+      end
+
+    mfa =
+      case env do
+        %Macro.Env{module: mod, function: {fun, arity}} when not is_nil(mod) ->
+          Exception.format_mfa(mod, fun, arity)
+
+        _other ->
+          ""
+      end
+
+    case {location, mfa} do
+      {"", ""} -> ""
+      {location, ""} -> "[#{location}]"
+      {"", mfa} -> "[#{mfa}]"
+      {location, mfa} -> "[#{location}: #{mfa}]"
     end
+  end
+
+  defp dbg_format_ast(ast) do
+    IO.ANSI.format([:bright, to_string(ast), :reset, :faint, " #=>"])
   end
 
   defp dbg_default_syntax_colors do
