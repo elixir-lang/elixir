@@ -1,6 +1,7 @@
 %% Compiler backend to Erlang.
+
 -module(elixir_erl).
--export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/4, compile/1, consolidate/3,
+-export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/5, compile/1, consolidate/3,
          get_ann/1, debug_info/4, scope/2, format_error/1]).
 -include("elixir.hrl").
 -define(typespecs, 'Elixir.Kernel.Typespec').
@@ -47,23 +48,11 @@ get_ann([], Gen, Line) -> erl_anno:set_generated(Gen, erl_anno:new(Line)).
 
 %% Converts an Elixir definition to an anonymous function.
 
-definition_to_anonymous(Module, Kind, Meta, Clauses) ->
+definition_to_anonymous(Kind, Meta, Clauses, LocalHandler, ExternalHandler) ->
   ErlClauses = [translate_clause(Kind, 0, Clause, true) || Clause <- Clauses],
   Fun = {'fun', ?ann(Meta), {clauses, ErlClauses}},
-  LocalHandler = fun(LocalName, LocalArgs) -> invoke_local(Module, LocalName, LocalArgs) end,
-  {value, Result, _Binding} = erl_eval:expr(Fun, [], {value, LocalHandler}),
+  {value, Result, _Binding} = erl_eval:expr(Fun, [], LocalHandler, ExternalHandler),
   Result.
-
-invoke_local(Module, ErlName, Args) ->
-  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, length(Args)),
-
-  case elixir_def:local_for(Module, Name, Arity, all) of
-    false ->
-      {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
-      erlang:raise(error, undef, [{Module, Name, Arity, []} | T]);
-    Fun ->
-      apply(Fun, Args)
-  end.
 
 %% Converts Elixir quoted literals to Erlang AST.
 elixir_to_erl(Tree) ->

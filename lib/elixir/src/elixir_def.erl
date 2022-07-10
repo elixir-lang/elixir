@@ -1,6 +1,6 @@
 % Holds the logic responsible for function definitions (def(p) and defmacro(p)).
 -module(elixir_def).
--export([setup/1, reset_last/1, local_for/4,
+-export([setup/1, reset_last/1, local_for/5, external_for/5,
   take_definition/2, store_definition/5, store_definition/9,
   fetch_definitions/2, format_error/1]).
 -include("elixir.hrl").
@@ -16,24 +16,53 @@ reset_last({DataSet, _DataBag}) ->
 reset_last(Module) when is_atom(Module) ->
   reset_last(elixir_module:data_tables(Module)).
 
-local_for(Module, Name, Arity, Kinds) ->
+%% Finds the local definition for the current module.
+local_for(Meta, Name, Arity, Kinds, E) ->
+  External = fun({Mod, Fun}, Args) ->
+    invoke_external([{from_local_macro, {Name, Arity}} | Meta], Mod, Fun, Args, E)
+  end,
+  fun_for(Meta, ?key(E, module), Name, Arity, Kinds, {value, External}).
+
+%% Finds the local definition for an external module.
+external_for(Meta, Module, Name, Arity, Kinds) ->
+  fun_for(Meta, Module, Name, Arity, Kinds, none).
+
+fun_for(Meta, Module, Name, Arity, Kinds, External) ->
   Tuple = {Name, Arity},
 
   try
     {Set, Bag} = elixir_module:data_tables(Module),
     {ets:lookup(Set, {def, Tuple}), ets:lookup(Bag, {clauses, Tuple})}
   of
-    {[{_, Kind, Meta, _, _, _}], Clauses} ->
+    {[{_, Kind, LocalMeta, _, _, _}], ClausesPairs} ->
       case (Kinds == all) orelse (lists:member(Kind, Kinds)) of
-        true -> elixir_erl:definition_to_anonymous(Module, Kind, Meta,
-                                                   [Clause || {_, Clause} <- Clauses]);
-        false -> false
+        true ->
+          Local = {value, fun(Fun, Args) -> invoke_local(Meta, Module, Fun, Args, External) end},
+          Clauses = [Clause || {_, Clause} <- ClausesPairs],
+          elixir_erl:definition_to_anonymous(Kind, LocalMeta, Clauses, Local, External);
+        false ->
+          false
       end;
     {[], _} ->
       false
   catch
     _:_ -> false
   end.
+
+invoke_local(Meta, Module, ErlName, Args, External) ->
+  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, length(Args)),
+
+  case fun_for(Meta, Module, Name, Arity, all, External) of
+    false ->
+      {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
+      erlang:raise(error, undef, [{Module, Name, Arity, []} | T]);
+    Fun ->
+      apply(Fun, Args)
+  end.
+
+invoke_external(Meta, Mod, Name, Args, E) ->
+  is_map(E) andalso elixir_env:trace({require, Meta, Mod, []}, E),
+  apply(Mod, Name, Args).
 
 %% Take a definition out of the table
 

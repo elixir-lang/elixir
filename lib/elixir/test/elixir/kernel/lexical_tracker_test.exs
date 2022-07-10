@@ -22,7 +22,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add requires", config do
-    D.add_require(config[:pid], URI)
+    D.add_export(config[:pid], URI)
     assert D.references(config[:pid]) == {[], [URI], [], []}
 
     D.remote_dispatch(config[:pid], URI, :runtime)
@@ -33,7 +33,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add module imports", config do
-    D.add_require(config[:pid], String)
+    D.add_export(config[:pid], String)
     D.add_import(config[:pid], String, [], 1, true)
 
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :runtime)
@@ -44,7 +44,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add module with {function, arity} imports", config do
-    D.add_require(config[:pid], String)
+    D.add_export(config[:pid], String)
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
 
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
@@ -59,32 +59,32 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "unused module imports", config do
     D.add_import(config[:pid], String, [], 1, true)
-    assert D.collect_unused_imports(config[:pid]) == [{String, 1}]
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{String => 1}}]
   end
 
   test "used module imports are not unused", config do
     D.add_import(config[:pid], String, [], 1, true)
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
-    assert D.collect_unused_imports(config[:pid]) == []
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{}}]
   end
 
   test "unused {module, function, arity} imports", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
-    assert D.collect_unused_imports(config[:pid]) == [{String, 1}, {{String, :upcase, 1}, 1}]
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{String => 1, {:upcase, 1} => 1}}]
   end
 
   test "used {module, function, arity} imports are not unused", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.add_import(config[:pid], String, [downcase: 1], 1, true)
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
-    assert D.collect_unused_imports(config[:pid]) == [{{String, :downcase, 1}, 1}]
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{{:downcase, 1} => 1}}]
   end
 
   test "overwriting {module, function, arity} import with module import", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.add_import(config[:pid], String, [], 1, true)
     D.import_dispatch(config[:pid], String, {:downcase, 1}, :compile)
-    assert D.collect_unused_imports(config[:pid]) == []
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{}}]
   end
 
   test "imports with no warn are not unused", config do
@@ -281,6 +281,28 @@ defmodule Kernel.LexicalTrackerTest do
       refute Kernel.LexicalTrackerTest.Defmodule in compile
       refute Kernel.LexicalTrackerTest.Defmodule in exports
       refute Kernel.LexicalTrackerTest.Defmodule in runtime
+    end
+
+    # TODO: This should not be an export dependency but all requires are exports at the moment
+    test "defmacro adds an export dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Defmacro do
+          defmacro uri() do
+            Macro.escape(URI.parse("/hello"))
+          end
+
+          def fun() do
+            uri()
+          end
+
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute URI in compile
+      assert URI in exports
+      assert URI in runtime
     end
   end
 end

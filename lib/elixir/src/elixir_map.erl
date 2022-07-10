@@ -141,13 +141,14 @@ wrapped_load_struct(Meta, Name, Args, Keys, E) ->
   InContext = lists:member(Name, [?key(E, module) | ?key(E, context_modules)]),
 
   Arity = length(Args),
-  Local = InContext orelse (not(ensure_loaded(Name)) andalso wait_for_struct(Name)),
+  External = InContext orelse (not(ensure_loaded(Name)) andalso wait_for_struct(Name)),
 
   try
-    case Local andalso elixir_def:local_for(Name, '__struct__', Arity, [def]) of
+    case External andalso elixir_def:external_for(Meta, Name, '__struct__', Arity, [def]) of
       false ->
         apply(Name, '__struct__', Args);
-      LocalFun ->
+
+      ExternalFun ->
         %% There is an inherent race condition when using local_for.
         %% By the time we got to execute the function, the ETS table
         %% with temporary definitions for the given module may no longer
@@ -157,7 +158,7 @@ wrapped_load_struct(Meta, Name, Args, Keys, E) ->
         %% the table has not been deleted (unless compilation of that
         %% module failed which should then cause this call to fail too).
         try
-          apply(LocalFun, Args)
+          apply(ExternalFun, Args)
         catch
           error:undef -> apply(Name, '__struct__', Args)
         end
