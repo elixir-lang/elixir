@@ -5732,12 +5732,66 @@ defmodule Kernel do
   end
 
   @doc """
-  TODO
+  Debugs the given `code`.
+
+  `dbg/2` can be used to debug the given `code` through a configurable debug function.
+
+  ## Configuring debug function
+
+  The debug function can be configured at compile time through the `:dbg_fun` key
+  of the `:elixir_application`. The debug function must be a `{module, function, args}`
+  tuple. The `function` function in `module` will be invoked with three arguments
+  *prepended* to `args`:
+
+    1. The AST of `code`
+    1. The AST of `options`
+    1. The `Macro.Env` environment of where `dbg/2` is invoked
+
+  Whatever is returned by the debug function is then the return value of `dbg/2`.
+
+  Here's an example:
+
+      defmodule MyMod do
+        def debug_fun(code, options, caller, device) do
+          quote do
+            result = unquote(code)
+            IO.inspect(unquote(device), result, label: unquote(Macro.to_string(code)))
+          end
+        end
+      end
+
+  To configure the debug function:
+
+      # In config/config.exs
+      config :elixir, :dbg_fun, {MyMod, :debug_fun, [:stdio]}
+
+  ## Default debug function
+
+  By default, the debug function just prints information about the code to standard output
+  and returns the value returned by evaluating `code`.
+
+  `options` are used to control how terms are inspected. They are the same options
+  accepted by `inspect/2`.
+
+  ### Examples
+
+  Let's take this call to `dbg/2`:
+
+      dbg(Atom.to_string(:debugging))
+      #=> "debugging"
+
+  It returns the string `"debugging"`, which is the result of the `Atom.to_string/1` call.
+  Additionally, the call above prints:
+
+      [my_file.ex:10: MyMod.my_fun/0]
+      Atom.to_string(:debugging) #=> "debugging"
+
   """
   @doc since: "1.14.0"
-  defmacro dbg(ast, opts \\ []) do
-    {mod, fun, args} = Application.get_env(:elixir, :dbg_fun, {Macro, :__default_dbg_fun__, []})
-    apply(mod, fun, [ast, opts, __CALLER__ | args])
+  defmacro dbg(code, options \\ []) do
+    default_dbg_fun = {Macro, :__default_dbg_fun__, []}
+    {mod, fun, args} = Application.compile_env(:elixir, :dbg_fun, default_dbg_fun)
+    apply(mod, fun, [code, options, __CALLER__ | args])
   end
 
   ## Sigils
