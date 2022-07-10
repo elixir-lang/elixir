@@ -5790,7 +5790,7 @@ defmodule Kernel do
   @doc since: "1.14.0"
   defmacro dbg(code, options \\ []) do
     default_dbg_fun = {Macro, :__default_dbg_fun__, []}
-    {mod, fun, args} = Application.compile_env(:elixir, :dbg_fun, default_dbg_fun)
+    {mod, fun, args} = Application.get_env(:elixir, :dbg_fun, default_dbg_fun)
     apply(mod, fun, [code, options, __CALLER__ | args])
   end
 
