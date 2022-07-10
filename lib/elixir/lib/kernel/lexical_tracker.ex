@@ -30,8 +30,8 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_require(pid, module) when is_atom(module) do
-    :gen_server.cast(pid, {:add_require, module})
+  def add_export(pid, module) when is_atom(module) do
+    :gen_server.cast(pid, {:add_export, module})
   end
 
   @doc false
@@ -88,23 +88,24 @@ defmodule Kernel.LexicalTracker do
 
   @doc false
   def collect_unused_imports(pid) do
-    unused(pid, :import)
+    unused(pid, :unused_imports)
   end
 
   @doc false
   def collect_unused_aliases(pid) do
-    unused(pid, :alias)
+    unused(pid, :unused_aliases)
   end
 
   defp unused(pid, tag) do
-    :gen_server.call(pid, {:unused, tag}, @timeout)
+    :gen_server.call(pid, tag, @timeout)
   end
 
   # Callbacks
 
   def init(:ok) do
     state = %{
-      directives: %{},
+      aliases: %{},
+      imports: %{},
       references: %{},
       exports: %{},
       cache: %{},
@@ -116,13 +117,12 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def handle_call({:unused, tag}, _from, state) do
-    directives =
-      for {{^tag, module_or_mfa}, marker} <- state.directives, is_integer(marker) do
-        {module_or_mfa, marker}
-      end
+  def handle_call(:unused_aliases, _from, state) do
+    {:reply, Enum.sort(state.aliases), state}
+  end
 
-    {:reply, Enum.sort(directives), state}
+  def handle_call(:unused_imports, _from, state) do
+    {:reply, Enum.sort(state.imports), state}
   end
 
   def handle_call(:references, _from, state) do
@@ -148,12 +148,26 @@ defmodule Kernel.LexicalTracker do
   end
 
   def handle_cast({:import_dispatch, module, {function, arity}, mode}, state) do
-    state = add_import_dispatch(state, module, function, arity, mode)
-    {:noreply, state}
+    %{imports: imports, references: references} = state
+
+    imports =
+      case imports do
+        %{^module => modules_and_fas} ->
+          modules_and_fas
+          |> Map.delete(module)
+          |> Map.delete({function, arity})
+          |> then(&Map.put(imports, module, &1))
+
+        %{} ->
+          imports
+      end
+
+    references = add_reference(references, module, mode)
+    {:noreply, %{state | imports: imports, references: references}}
   end
 
-  def handle_cast({:alias_dispatch, module}, state) do
-    {:noreply, %{state | directives: add_dispatch(state.directives, module, :alias)}}
+  def handle_cast({:alias_dispatch, module}, %{aliases: aliases} = state) do
+    {:noreply, %{state | aliases: Map.delete(aliases, module)}}
   end
 
   def handle_cast({:set_file, file}, state) do
@@ -168,28 +182,25 @@ defmodule Kernel.LexicalTracker do
     {:noreply, update_in(state.compile_env, &:ordsets.add_element({app, path, return}, &1))}
   end
 
-  def handle_cast({:add_require, module}, state) do
+  def handle_cast({:add_export, module}, state) do
     {:noreply, put_in(state.exports[module], true)}
   end
 
   def handle_cast({:add_import, module, fas, line, warn}, state) do
-    to_remove = for {{:import, {^module, _, _}} = key, _} <- state.directives, do: key
-
-    directives =
-      state.directives
-      |> Map.drop(to_remove)
-      |> add_directive(module, line, warn, :import)
-
-    directives =
-      Enum.reduce(fas, directives, fn {function, arity}, directives ->
-        add_directive(directives, {module, function, arity}, line, warn, :import)
-      end)
-
-    {:noreply, %{state | directives: directives}}
+    if warn do
+      imports = for module_or_fa <- [module | fas], do: {module_or_fa, line}, into: %{}
+      {:noreply, put_in(state.imports[module], imports)}
+    else
+      {:noreply, state}
+    end
   end
 
   def handle_cast({:add_alias, module, line, warn}, state) do
-    {:noreply, %{state | directives: add_directive(state.directives, module, line, warn, :alias)}}
+    if warn do
+      {:noreply, put_in(state.aliases[module], line)}
+    else
+      {:noreply, state}
+    end
   end
 
   @doc false
@@ -221,31 +232,9 @@ defmodule Kernel.LexicalTracker do
     do: Map.put(references, module, :compile)
 
   defp add_reference(references, module, :runtime) when is_atom(module) do
-    case Map.fetch(references, module) do
-      {:ok, _} -> references
-      :error -> Map.put(references, module, :runtime)
+    case references do
+      %{^module => _} -> references
+      %{} -> Map.put(references, module, :runtime)
     end
-  end
-
-  defp add_import_dispatch(state, module, function, arity, mode) do
-    directives =
-      state.directives
-      |> add_dispatch(module, :import)
-      |> add_dispatch({module, function, arity}, :import)
-
-    references = add_reference(state.references, module, mode)
-    %{state | directives: directives, references: references}
-  end
-
-  # In the map we keep imports and aliases.
-  # If the value is a line, it was imported/aliased and has a pending warning
-  # If the value is true, it was imported/aliased and used
-  defp add_directive(directives, module_or_mfa, line, warn, tag) do
-    marker = if warn, do: line, else: true
-    Map.put(directives, {tag, module_or_mfa}, marker)
-  end
-
-  defp add_dispatch(directives, module_or_mfa, tag) do
-    Map.put(directives, {tag, module_or_mfa}, true)
   end
 end

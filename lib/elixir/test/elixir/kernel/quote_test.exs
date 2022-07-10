@@ -601,7 +601,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
 
   test "lazy expand imports no conflicts" do
     import Kernel, except: [length: 1]
-    import String, only: [length: 1]
+    import String, only: [length: 1], warn: false
 
     assert get_list_length() == 5
     assert get_list_length_with_partial() == 5

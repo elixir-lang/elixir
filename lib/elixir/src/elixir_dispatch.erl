@@ -71,7 +71,7 @@ import_function(Meta, Name, Arity, E) ->
           Function = ?key(E, function),
 
           case (Function /= nil) andalso (Function /= Tuple) andalso
-                elixir_def:local_for(?key(E, module), Name, Arity, [defmacro, defmacrop]) of
+                elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E) of
             false ->
               elixir_env:trace({local_function, Meta, Name, Arity}, E),
               elixir_locals:record_local(Tuple, ?key(E, module), ?key(E, function), Meta, false),
@@ -142,7 +142,7 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, S, E, Extra, External) ->
     _ ->
       AllowLocals = External orelse ((Function /= nil) andalso (Function /= Tuple)),
       Local = AllowLocals andalso
-                elixir_def:local_for(Module, Name, Arity, [defmacro, defmacrop]),
+                elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E),
 
       case Dispatch of
         %% There is a local and an import. This is a conflict unless
