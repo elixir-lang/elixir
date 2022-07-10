@@ -5739,7 +5739,7 @@ defmodule Kernel do
   ## Configuring debug function
 
   The debug function can be configured at compile time through the `:dbg_fun` key
-  of the `:elixir_application`. The debug function must be a `{module, function, args}`
+  of the `:elixir` application. The debug function must be a `{module, function, args}`
   tuple. The `function` function in `module` will be invoked with three arguments
   *prepended* to `args`:
 
