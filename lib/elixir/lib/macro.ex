@@ -2429,15 +2429,11 @@ defmodule Macro do
     value_var = Macro.unique_var(:value, __MODULE__)
     values_acc_var = Macro.unique_var(:values, __MODULE__)
 
-    [start_ast | rest_asts] = asts = :lists.reverse(dbg_unpipe(pipe_ast, _acc = []))
+    # Using the private version of unpipe/2 here because Macro.unpipe/1 is deprecated.
+    [start_ast | rest_asts] =
+      asts = for {ast, 0} <- :lists.reverse(unpipe(pipe_ast, _acc = [])), do: ast
 
-    rest_asts =
-      for ast <- rest_asts do
-        case ast do
-          {var_name, meta, ctx} when is_atom(ctx) -> {var_name, meta, [value_var]}
-          {fun_name, meta, args} -> {fun_name, meta, [value_var | args]}
-        end
-      end
+    rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
 
     initial_acc =
       quote do
@@ -2464,14 +2460,6 @@ defmodule Macro do
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
-  end
-
-  defp dbg_unpipe({:|>, _meta, [left, right]}, acc) do
-    dbg_unpipe(right, dbg_unpipe(left, acc))
-  end
-
-  defp dbg_unpipe(other, acc) do
-    [other | acc]
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
