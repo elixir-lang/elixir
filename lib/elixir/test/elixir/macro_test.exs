@@ -333,7 +333,12 @@ defmodule MacroTest do
 
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
-      refute formatted =~ "\\e["
+      refute formatted =~ "\e["
+    end
+
+    test "with \"syntax_colors: [...]\" it forces color sequences" do
+      {_result, formatted} = dbg_format("hello", syntax_colors: [string: :cyan])
+      assert formatted =~ IO.iodata_to_binary(IO.ANSI.format([:cyan, ~s("hello")]))
     end
 
     test "forwards options to the underlying inspect calls" do

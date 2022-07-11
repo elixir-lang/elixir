@@ -2430,8 +2430,9 @@ defmodule Macro do
     values_acc_var = Macro.unique_var(:values, __MODULE__)
 
     [start_ast | rest_asts] = asts = for {ast, 0} <- unpipe(pipe_ast), do: ast
-
     rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
+
+    string_asts = Enum.map(asts, &to_string/1)
 
     initial_acc =
       quote do
@@ -2451,13 +2452,13 @@ defmodule Macro do
 
     quote do
       unquote(values_ast)
-      {:pipe, unquote(escape(asts)), Enum.reverse(unquote(values_acc_var))}
+      {:pipe, unquote(string_asts), Enum.reverse(unquote(values_acc_var))}
     end
   end
 
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
-    quote do: {:value, unquote(escape(ast)), unquote(ast)}
+    quote do: {:value, unquote(to_string(ast)), unquote(ast)}
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2469,18 +2470,18 @@ defmodule Macro do
 
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
 
-    :ok =
-      [
-        :cyan,
-        :italic,
-        header_string,
-        :reset,
-        "\n",
-        formatted,
-        "\n\n"
-      ]
-      |> IO.ANSI.format(_ansi_enabled? = options[:syntax_colors] != [])
-      |> IO.write()
+    formatted = [
+      :cyan,
+      :italic,
+      header_string,
+      :reset,
+      "\n",
+      formatted,
+      "\n\n"
+    ]
+
+    ansi_enabled? = options[:syntax_colors] != []
+    :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
 
     result
   end
@@ -2515,7 +2516,7 @@ defmodule Macro do
   end
 
   defp dbg_format_ast(ast) do
-    [:bright, to_string(ast), :reset, :faint, " #=>"]
+    [:bright, ast, :reset, :faint, " #=>", :reset]
   end
 
   defp dbg_default_syntax_colors do
