@@ -1602,6 +1602,9 @@ defmodule Enum do
       iex> Enum.join([1, 2, 3], " = ")
       "1 = 2 = 3"
 
+      iex> Enum.join([["a", "b"], ["c", "d", "e", ["f", "g"]], "h", "i"], " ")
+      "ab cdefg h i"
+
   """
   @spec join(t, String.t()) :: String.t()
   def join(enumerable, joiner \\ "")
