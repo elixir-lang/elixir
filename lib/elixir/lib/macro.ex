@@ -2429,9 +2429,7 @@ defmodule Macro do
     value_var = Macro.unique_var(:value, __MODULE__)
     values_acc_var = Macro.unique_var(:values, __MODULE__)
 
-    # Using the private version of unpipe/2 here because Macro.unpipe/1 is deprecated.
-    [start_ast | rest_asts] =
-      asts = for {ast, 0} <- :lists.reverse(unpipe(pipe_ast, _acc = [])), do: ast
+    [start_ast | rest_asts] = asts = for {ast, 0} <- unpipe(pipe_ast), do: ast
 
     rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
 
