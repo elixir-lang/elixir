@@ -46,8 +46,11 @@ trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid}) ->
 trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
   ok;
-trace({require, _Meta, Module, _Opts}, #{lexical_tracker := Pid}) ->
-  ?tracker:add_export(Pid, Module),
+trace({require, Meta, Module, _Opts}, #{lexical_tracker := Pid}) ->
+  case lists:keyfind(from_macro, 1, Meta) of
+    {from_macro, true} -> ?tracker:remote_dispatch(Pid, Module, compile);
+    _ -> ?tracker:add_export(Pid, Module)
+  end,
   ok;
 trace({struct_expansion, _Meta, Module, _Keys}, #{lexical_tracker := Pid}) ->
   ?tracker:add_export(Pid, Module),
