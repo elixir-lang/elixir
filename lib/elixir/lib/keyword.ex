@@ -1201,7 +1201,7 @@ defmodule Keyword do
   """
   @spec take(t, [key]) :: t
   def take(keywords, keys) when is_list(keywords) and is_list(keys) do
-    :lists.filter(fn {k, _} -> k in keys end, keywords)
+    :lists.filter(fn {k, _} -> :lists.member(k, keys) end, keywords)
   end
 
   @doc """
