@@ -226,6 +226,16 @@ defmodule MacroTest do
       assert Macro.expand_once(expr, __ENV__) == expr
     end
 
+    test "propagates generated" do
+      assert {:||, meta, [1, false]} = Macro.expand_once(quote(do: oror(1, false)), __ENV__)
+      refute meta[:generated]
+
+      assert {:||, meta, [1, false]} =
+               Macro.expand_once(quote(generated: true, do: oror(1, false)), __ENV__)
+
+      assert meta[:generated]
+    end
+
     test "does not expand module attributes" do
       message =
         "could not call Module.get_attribute/2 because the module #{inspect(__MODULE__)} " <>

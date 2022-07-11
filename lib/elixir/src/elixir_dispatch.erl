@@ -226,16 +226,15 @@ expand_macro_named(Meta, Receiver, Name, Arity, Args, S, E) ->
   expand_macro_fun(Meta, Fun, Receiver, Name, Args, S, E).
 
 expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E) ->
-  Line = ?line(Meta),
   Next = elixir_module:next_counter(?key(E, module)),
 
   try
-    ToExpand = elixir_quote:linify_with_context_counter(Line, {Receiver, Next}, Quoted),
+    ToExpand = elixir_quote:linify_with_context_counter(Meta, {Receiver, Next}, Quoted),
     elixir_expand:expand(ToExpand, S, E)
   catch
     Kind:Reason:Stacktrace ->
       MFA  = {Receiver, elixir_utils:macro_name(Name), Arity+1},
-      Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(Line, E)],
+      Info = [{Receiver, Name, Arity, [{file, "expanding macro"}]}, caller(?line(Meta), E)],
       erlang:raise(Kind, Reason, prune_stacktrace(Stacktrace, MFA, Info, error))
   end.
 

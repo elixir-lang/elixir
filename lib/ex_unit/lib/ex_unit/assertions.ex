@@ -111,15 +111,12 @@ defmodule ExUnit.Assertions do
     # to avoid silly dialyzer warnings though.
     check =
       quote generated: true do
-        case right do
-          # We cannot use in/2 because it doesn't support generated: true
-          x when x == nil or x == false ->
-            raise ExUnit.AssertionError,
-              expr: expr,
-              message: "Expected truthy, got #{inspect(right)}"
-
-          _ ->
-            :ok
+        if right do
+          :ok
+        else
+          raise ExUnit.AssertionError,
+            expr: expr,
+            message: "Expected truthy, got #{inspect(right)}"
         end
       end
 
@@ -153,11 +150,9 @@ defmodule ExUnit.Assertions do
     else
       {args, value} = extract_args(assertion, __CALLER__)
 
-      # unless value, raise
-      # We need to rewrite it to avoid dialyzer warnings though.
       quote generated: true do
         case unquote(value) do
-          value when value == nil or value == false ->
+          value when value in [nil, false] ->
             raise ExUnit.AssertionError,
               args: unquote(args),
               expr: unquote(escape_quoted(:assert, [], assertion)),
@@ -222,7 +217,7 @@ defmodule ExUnit.Assertions do
       # We need to rewrite it to avoid dialyzer warnings though.
       quote generated: true do
         case unquote(value) do
-          value when value == nil or value == false ->
+          value when value in [nil, false] ->
             value
 
           value ->
