@@ -2342,7 +2342,7 @@ defmodule Macro do
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
-      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
+      atom in [:"::", :^^^, :~~~, :<|>] ->
         :quoted_operator
 
       operator?(atom, 1) or operator?(atom, 2) ->
@@ -2510,28 +2510,9 @@ defmodule Macro do
   end
 
   defp dbg_format_header(env) do
-    location =
-      case env do
-        %Macro.Env{file: nil} -> ""
-        %Macro.Env{file: file, line: 0} -> file
-        %Macro.Env{file: file, line: line} -> "#{Path.relative_to_cwd(file)}:#{line}"
-      end
-
-    mfa =
-      case env do
-        %Macro.Env{module: mod, function: {fun, arity}} when not is_nil(mod) ->
-          Exception.format_mfa(mod, fun, arity)
-
-        _other ->
-          ""
-      end
-
-    case {location, mfa} do
-      {"", ""} -> ""
-      {location, ""} -> "[#{location}]"
-      {"", mfa} -> "[#{mfa}]"
-      {location, mfa} -> "[#{location}: #{mfa}]"
-    end
+    env = Map.update!(env, :file, &(&1 && Path.relative_to_cwd(&1)))
+    [stacktrace_entry] = Macro.Env.stacktrace(env)
+    "[" <> Exception.format_stacktrace_entry(stacktrace_entry) <> "]"
   end
 
   defp dbg_format_ast(ast) do
