@@ -2464,6 +2464,7 @@ defmodule Macro do
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
   # as possible and call out into a function as soon as we can.
+  @doc false
   def __dbg__(header_string, to_debug, options) do
     syntax_colors = if IO.ANSI.enabled?(), do: dbg_default_syntax_colors(), else: []
     options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
