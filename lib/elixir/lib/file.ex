@@ -741,6 +741,8 @@ defmodule File do
   @doc since: "1.1.0"
   @spec rename(Path.t(), Path.t()) :: :ok | {:error, posix}
   def rename(source, destination) do
+    source = IO.chardata_to_string(source)
+    destination = IO.chardata_to_string(destination)
     :file.rename(source, destination)
   end
 
