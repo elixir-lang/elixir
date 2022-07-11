@@ -300,9 +300,9 @@ defmodule Kernel.LexicalTrackerTest do
         end |> elem(3)
         """)
 
-      refute URI in compile
-      assert URI in exports
-      assert URI in runtime
+      assert URI in compile
+      refute URI in exports
+      refute URI in runtime
     end
   end
 end

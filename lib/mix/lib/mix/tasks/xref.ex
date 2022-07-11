@@ -518,7 +518,7 @@ defmodule Mix.Tasks.Xref do
 
   @doc false
   def trace({:require, meta, module, _opts}, env),
-    do: add_trace(:export, :require, module, module, meta, env)
+    do: add_trace(require_mode(meta), :require, module, module, meta, env)
 
   def trace({:struct_expansion, meta, module, _keys}, env),
     do: add_trace(:export, :struct, module, module, meta, env)
@@ -540,6 +540,8 @@ defmodule Mix.Tasks.Xref do
 
   def trace(_event, _env),
     do: :ok
+
+  defp require_mode(meta), do: if(meta[:from_macro], do: :compile, else: :export)
 
   defp mode(%{function: nil}), do: :compile
   defp mode(_), do: :runtime

@@ -19,7 +19,7 @@ reset_last(Module) when is_atom(Module) ->
 %% Finds the local definition for the current module.
 local_for(Meta, Name, Arity, Kinds, E) ->
   External = fun({Mod, Fun}, Args) ->
-    invoke_external([{from_local_macro, {Name, Arity}} | Meta], Mod, Fun, Args, E)
+    invoke_external([{from_macro, true} | Meta], Mod, Fun, Args, E)
   end,
   fun_for(Meta, ?key(E, module), Name, Arity, Kinds, {value, External}).
 
