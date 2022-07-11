@@ -792,8 +792,8 @@ defmodule Module do
     end
 
     next = :elixir_module.next_counter(nil)
-    line = Keyword.get(opts, :line, 0)
-    quoted = :elixir_quote.linify_with_context_counter(line, {module, next}, quoted)
+    meta = Keyword.take(opts, [:line, :generated])
+    quoted = :elixir_quote.linify_with_context_counter(meta, {module, next}, quoted)
     :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
   end
 

@@ -1834,7 +1834,9 @@ defmodule Macro do
       case expand do
         {:ok, receiver, quoted} ->
           next = :elixir_module.next_counter(module)
-          {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
+          # We don't want the line to propagate yet, but generated might!
+          meta = Keyword.take(meta, [:generated])
+          {:elixir_quote.linify_with_context_counter(meta, {receiver, next}, quoted), true}
 
         {:ok, Kernel, op, [arg]} when op in [:+, :-] ->
           case expand_once(arg, env) do
@@ -1867,7 +1869,9 @@ defmodule Macro do
         case expand do
           {:ok, receiver, quoted} ->
             next = :elixir_module.next_counter(env.module)
-            {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
+            # We don't want the line to propagate yet, but generated might!
+            meta = Keyword.take(meta, [:generated])
+            {:elixir_quote.linify_with_context_counter(meta, {receiver, next}, quoted), true}
 
           :error ->
             {original, false}
