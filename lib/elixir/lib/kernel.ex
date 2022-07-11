@@ -5747,7 +5747,8 @@ defmodule Kernel do
     2. The AST of `options`
     3. The `Macro.Env` environment of where `dbg/2` is invoked
 
-  Whatever is returned by the debug function is then the return value of `dbg/2`.
+  Whatever is returned by the debug function is then the return value of `dbg/2`. The
+  debug function is invoked at compile time.
 
   Here's an example:
 
