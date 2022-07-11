@@ -205,8 +205,35 @@ defmodule Macro do
   @typedoc "A captured remote function in the format of &Mod.fun/arity"
   @type captured_remote_function :: fun
 
-  @doc false
-  @deprecated "Use Macro.pipe/3 exclusively"
+  @doc """
+  Breaks a pipeline expression into a list.
+
+  The AST for a pipeline (a sequence of applications of `|>/2`) is similar to the
+  AST of a sequence of binary operators or function applications: the top-level
+  expression is the right-most `:|>` (which is the last one to be executed), and
+  its left-hand and right-hand sides are its arguments:
+
+      quote do: 100 |> div(5) |> div(2)
+      #=> {:|>, _, [arg1, arg2]}
+
+  In the example above, the `|>/2` pipe is the right-most pipe; `arg1` is the AST
+  for `100 |> div(5)`, and `arg2` is the AST for `div(2)`.
+
+  It's often useful to have the AST for such a pipeline as a list of function
+  applications. This function does exactly that:
+
+      Macro.unpipe(quote do: 100 |> div(5) |> div(2))
+      #=> [{100, 0}, {{:div, [], [5]}, 0}, {{:div, [], [2]}, 0}]
+
+  We get a list that follows the pipeline directly: first the `100`, then the
+  `div(5)` (more precisely, its AST), then `div(2)`. The `0` as the second
+  element of the tuples is the position of the previous element in the pipeline
+  inside the current function application: `{{:div, [], [5]}, 0}` means that the
+  previous element (`100`) will be inserted as the 0th (first) argument to the
+  `div/2` function, so that the AST for that function will become `{:div, [],
+  [100, 5]}` (`div(100, 5)`).
+  """
+  @spec unpipe(t()) :: [t()]
   def unpipe(expr) do
     :lists.reverse(unpipe(expr, []))
   end
