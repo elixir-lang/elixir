@@ -694,7 +694,10 @@ defmodule File do
   @spec copy(Path.t() | io_device, Path.t() | io_device, pos_integer | :infinity) ::
           {:ok, non_neg_integer} | {:error, posix}
   def copy(source, destination, bytes_count \\ :infinity) do
-    :file.copy(maybe_to_string(source), maybe_to_string(destination), bytes_count)
+    source = normalize_path_or_io_device(source)
+    destination = normalize_path_or_io_device(destination)
+
+    :file.copy(source, destination, bytes_count)
   end
 
   @doc """
@@ -712,8 +715,8 @@ defmodule File do
         raise File.CopyError,
           reason: reason,
           action: "copy",
-          source: maybe_to_string(source),
-          destination: maybe_to_string(destination)
+          source: normalize_path_or_io_device(source),
+          destination: normalize_path_or_io_device(destination)
     end
   end
 
@@ -1803,7 +1806,8 @@ defmodule File do
   defp normalize_modes([], true), do: [:binary]
   defp normalize_modes([], false), do: []
 
-  defp maybe_to_string(path) when is_list(path), do: IO.chardata_to_string(path)
-  defp maybe_to_string(path) when is_binary(path), do: path
-  defp maybe_to_string(path), do: path
+  defp normalize_path_or_io_device(path) when is_list(path), do: IO.chardata_to_string(path)
+  defp normalize_path_or_io_device(path) when is_binary(path), do: path
+  defp normalize_path_or_io_device(io_device) when is_pid(io_device), do: io_device
+  defp normalize_path_or_io_device(io_device = {:file_descriptor, _, _}), do: io_device
 end
