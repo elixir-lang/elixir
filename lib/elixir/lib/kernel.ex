@@ -5735,12 +5735,28 @@ defmodule Kernel do
   Debugs the given `code`.
 
   `dbg/2` can be used to debug the given `code` through a configurable debug function.
+  It returns the result of the given code.
+
+  ## Examples
+
+  Let's take this call to `dbg/2`:
+
+      dbg(Atom.to_string(:debugging))
+      #=> "debugging"
+
+  It returns the string `"debugging"`, which is the result of the `Atom.to_string/1` call.
+  Additionally, the call above prints:
+
+      [my_file.ex:10: MyMod.my_fun/0]
+      Atom.to_string(:debugging) #=> "debugging"
 
   ## Configuring debug function
 
-  The debug function can be configured at compile time through the `:dbg_callback` key
-  of the `:elixir` application. The debug function must be a `{module, function, args}`
-  tuple. The `function` function in `module` will be invoked with three arguments
+  One of the benefits of `dbg/2` is that its debugging logic is configurable,
+  allowing tools to extend `dbg` with enhanced behaviour. The debug function
+  can be configured at compile time through the `:dbg_callback` key of the `:elixir`
+  application. The debug function must be a `{module, function, args}` tuple.
+  The `function` function in `module` will be invoked with three arguments
   *prepended* to `args`:
 
     1. The AST of `code`
@@ -5750,7 +5766,7 @@ defmodule Kernel do
   Whatever is returned by the debug function is then the return value of `dbg/2`. The
   debug function is invoked at compile time.
 
-  Here's an example:
+  Here's a simple example:
 
       defmodule MyMod do
         def debug_fun(code, options, caller, device) do
@@ -5766,26 +5782,12 @@ defmodule Kernel do
       # In config/config.exs
       config :elixir, :dbg_callback, {MyMod, :debug_fun, [:stdio]}
 
-  ## Default debug function
+  ### Default debug function
 
   By default, the debug function we use is `Macro.dbg/3`. It just prints
   information about the code to standard output and returns the value
   returned by evaluating `code`. `options` are used to control how terms
   are inspected. They are the same options accepted by `inspect/2`.
-
-  ### Examples
-
-  Let's take this call to `dbg/2`:
-
-      dbg(Atom.to_string(:debugging))
-      #=> "debugging"
-
-  It returns the string `"debugging"`, which is the result of the `Atom.to_string/1` call.
-  Additionally, the call above prints:
-
-      [my_file.ex:10: MyMod.my_fun/0]
-      Atom.to_string(:debugging) #=> "debugging"
-
   """
   @doc since: "1.14.0"
   defmacro dbg(code, options \\ []) do
