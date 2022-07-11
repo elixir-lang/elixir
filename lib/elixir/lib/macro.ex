@@ -2342,7 +2342,7 @@ defmodule Macro do
         :not_callable
 
       # <|>, ^^^, and ~~~ are deprecated
-      atom in [:"::", :^^^, :~~~, :<|>] ->
+      atom in [:"::", :"^^^", :"~~~", :"<|>"] ->
         :quoted_operator
 
       operator?(atom, 1) or operator?(atom, 2) ->
@@ -2426,23 +2426,23 @@ defmodule Macro do
 
   # Pipelines.
   defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
-    value_acc = Macro.unique_var(:value_acc, __MODULE__)
-    values = Macro.unique_var(:values, __MODULE__)
+    value_var = Macro.unique_var(:value, __MODULE__)
+    values_acc_var = Macro.unique_var(:values, __MODULE__)
 
-    [start_ast | rest_asts] = asts = for {ast, 0} <- Macro.unpipe(pipe_ast), do: ast
+    [start_ast | rest_asts] = asts = :lists.reverse(dbg_unpipe(pipe_ast, _acc = []))
 
     rest_asts =
       for ast <- rest_asts do
         case ast do
-          {var_name, meta, ctx} when is_atom(ctx) -> {var_name, meta, [value_acc]}
-          {fun_name, meta, args} -> {fun_name, meta, [value_acc | args]}
+          {var_name, meta, ctx} when is_atom(ctx) -> {var_name, meta, [value_var]}
+          {fun_name, meta, args} -> {fun_name, meta, [value_var | args]}
         end
       end
 
     initial_acc =
       quote do
-        unquote(value_acc) = unquote(start_ast)
-        unquote(values) = [unquote(value_acc)]
+        unquote(value_var) = unquote(start_ast)
+        unquote(values_acc_var) = [unquote(value_var)]
       end
 
     values_ast =
@@ -2450,47 +2450,40 @@ defmodule Macro do
         ast_acc ->
           quote do
             unquote(ast_acc)
-            unquote(value_acc) = unquote(step_ast)
-            unquote(values) = [unquote(value_acc) | unquote(values)]
+            unquote(value_var) = unquote(step_ast)
+            unquote(values_acc_var) = [unquote(value_var) | unquote(values_acc_var)]
           end
       end
 
     quote do
       unquote(values_ast)
-      {:pipe, unquote(escape(asts)), Enum.reverse(unquote(values))}
+      {:pipe, unquote(escape(asts)), Enum.reverse(unquote(values_acc_var))}
     end
   end
 
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
-    quote do
-      {:value, unquote(escape(ast)), unquote(ast)}
-    end
+    quote do: {:value, unquote(escape(ast)), unquote(ast)}
+  end
+
+  defp dbg_unpipe({:|>, _meta, [left, right]}, acc) do
+    dbg_unpipe(right, dbg_unpipe(left, acc))
+  end
+
+  defp dbg_unpipe(other, acc) do
+    [other | acc]
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
   # as possible and call out into a function as soon as we can.
   def __dbg__(header_string, to_debug, options) do
-    {formatted, result} = __dbg_format__(header_string, to_debug, options)
-    :ok = IO.write(formatted)
-    result
-  end
-
-  # Made public for testing without using i/o.
-  def __dbg_format__(header_string, to_debug, options) do
-    options = Keyword.merge([width: 80, pretty: true], options)
-
-    options =
-      if IO.ANSI.enabled?() do
-        Keyword.put_new(options, :syntax_colors, dbg_default_syntax_colors())
-      else
-        options
-      end
+    syntax_colors = if IO.ANSI.enabled?(), do: dbg_default_syntax_colors(), else: []
+    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
 
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
 
-    formatted =
-      IO.ANSI.format([
+    :ok =
+      [
         :cyan,
         :italic,
         header_string,
@@ -2498,9 +2491,11 @@ defmodule Macro do
         "\n",
         formatted,
         "\n\n"
-      ])
+      ]
+      |> IO.ANSI.format(_ansi_enabled? = options[:syntax_colors] != [])
+      |> IO.write()
 
-    {formatted, result}
+    result
   end
 
   defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
@@ -2508,7 +2503,7 @@ defmodule Macro do
 
     formatted =
       Enum.map(Enum.zip(code_asts, values), fn {code_ast, value} ->
-        IO.ANSI.format([
+        [
           :faint,
           "|> ",
           :reset,
@@ -2516,21 +2511,14 @@ defmodule Macro do
           " ",
           inspect(value, options),
           ?\n
-        ])
+        ]
       end)
 
     {formatted, result}
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
-    formatted =
-      IO.ANSI.format([
-        dbg_format_ast(code_ast),
-        " ",
-        inspect(value, options)
-      ])
-
-    {formatted, value}
+    {[dbg_format_ast(code_ast), " ", inspect(value, options)], value}
   end
 
   defp dbg_format_header(env) do
@@ -2559,7 +2547,7 @@ defmodule Macro do
   end
 
   defp dbg_format_ast(ast) do
-    IO.ANSI.format([:bright, to_string(ast), :reset, :faint, " #=>"])
+    [:bright, to_string(ast), :reset, :faint, " #=>"]
   end
 
   defp dbg_default_syntax_colors do
