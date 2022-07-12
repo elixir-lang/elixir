@@ -241,7 +241,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp write_module_binaries(result, {:compile, path}, timestamp) do
     Enum.flat_map(result, fn
-      {{:module, module}, {binary, _map}} ->
+      {{:module, module}, binary} ->
         full_path = Path.join(path, Atom.to_string(module) <> ".beam")
         File.write!(full_path, binary)
         if timestamp, do: File.touch!(full_path, timestamp)
@@ -268,8 +268,8 @@ defmodule Kernel.ParallelCompiler do
     %{profile: profile, checker: checker} = state
 
     compiled_modules =
-      for {{:module, _module}, {_binary, info}} <- result,
-          do: info
+      for {{:module, module}, _} <- result,
+          do: module
 
     runtime_modules =
       for module <- runtime_modules,
@@ -278,7 +278,7 @@ defmodule Kernel.ParallelCompiler do
           do: {module, path}
 
     profile_checker(profile, compiled_modules, runtime_modules, fn ->
-      Module.ParallelChecker.verify(checker, compiled_modules, runtime_modules)
+      Module.ParallelChecker.verify(checker, runtime_modules)
     end)
   end
 
@@ -536,7 +536,7 @@ defmodule Kernel.ParallelCompiler do
         result = Map.put(result, {kind, module}, true)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
-      {:module_available, child, ref, file, module, binary, checker_info} ->
+      {:module_available, child, ref, file, module, binary} ->
         state.each_module.(file, module, binary)
 
         # Release the module loader which is waiting for an ack
@@ -546,7 +546,7 @@ defmodule Kernel.ParallelCompiler do
           for {:module, _, ref, _, ^module, _defining, _deadlock} <- waiting,
               do: {ref, :found}
 
-        result = Map.put(result, {:module, module}, {binary, checker_info})
+        result = Map.put(result, {:module, module}, binary)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
       # If we are simply requiring files, we do not add to waiting.

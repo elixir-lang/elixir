@@ -105,7 +105,7 @@ compile(Line, Module, Block, Vars, E) ->
     {Result, NE} = eval_form(Line, Module, DataBag, Block, Vars, E),
     CheckerInfo = checker_info(),
 
-    {Binary, PersistedAttributes, Autoload, CheckerPid} =
+    {Binary, PersistedAttributes, Autoload} =
       elixir_erl_compiler:spawn(fun() ->
         PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
         Attributes = attributes(DataSet, DataBag, PersistedAttributes),
@@ -148,15 +148,15 @@ compile(Line, Module, Block, Vars, E) ->
 
         Binary = elixir_erl:compile(ModuleMap),
         Autoload = proplists:get_value(autoload, CompileOpts, true),
-        CheckerPid = spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
-        {Binary, PersistedAttributes, Autoload, CheckerPid}
+        spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
+        {Binary, PersistedAttributes, Autoload}
       end),
 
     Autoload andalso code:load_binary(Module, beam_location(ModuleAsCharlist), Binary),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     elixir_env:trace({on_module, Binary, none}, E),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
-    make_module_available(Module, Binary, CheckerPid),
+    make_module_available(Module, Binary),
     {module, Module, Binary, Result}
   catch
     error:undef:Stacktrace ->
@@ -466,10 +466,10 @@ spawn_parallel_checker(undefined, _Module, _ModuleMap) ->
 spawn_parallel_checker(CheckerInfo, Module, ModuleMap) ->
   'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap).
 
-make_module_available(Module, Binary, CheckerPid) ->
+make_module_available(Module, Binary) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
-      put(elixir_module_binaries, [{{Module, Binary}, CheckerPid} | Current]);
+      put(elixir_module_binaries, [{Module, Binary} | Current]);
     _ ->
       ok
   end,
@@ -479,7 +479,7 @@ make_module_available(Module, Binary, CheckerPid) ->
       ok;
     {PID, _} ->
       Ref = make_ref(),
-      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, CheckerPid},
+      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
       receive {Ref, ack} -> ok end
   end.
 
