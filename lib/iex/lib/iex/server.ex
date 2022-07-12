@@ -118,7 +118,7 @@ defmodule IEx.Server do
   defp stop_evaluator(evaluator, evaluator_ref) do
     Process.delete(:evaluator)
     Process.demonitor(evaluator_ref, [:flush])
-    send(evaluator, {:done, self()})
+    send(evaluator, {:done, self(), false})
     :ok
   end
 
@@ -269,9 +269,16 @@ defmodule IEx.Server do
     rerun(opts, evaluator, evaluator_ref, input)
   end
 
-  defp handle_take_over({:continue, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
+  defp handle_take_over(
+         {:continue, evaluator, next?},
+         state,
+         evaluator,
+         evaluator_ref,
+         input,
+         _callback
+       ) do
     kill_input(input)
-    send(evaluator, {:done, self()})
+    send(evaluator, {:done, self(), next?})
     wait_take_over(state, evaluator, evaluator_ref)
   end
 

@@ -53,7 +53,7 @@ defmodule IEx.Pry do
       end
 
     whereami =
-      case whereami(file, line, 2) do
+      case whereami(file, line, 3) do
         {:ok, lines} -> [?\n, ?\n, lines]
         :error -> []
       end
@@ -83,6 +83,11 @@ defmodule IEx.Pry do
   def pry(binding, opts) when is_list(opts) do
     vars = for {k, _} when is_atom(k) <- binding, do: {k, nil}
     pry(binding, opts |> :elixir.env_for_eval() |> :elixir_env.with_vars(vars))
+  end
+
+  @doc false
+  def pry_with_next(next?, binding, opts_or_env) when is_boolean(next?) do
+    next? and pry(binding, opts_or_env) == {:ok, true}
   end
 
   @elixir_internals [:elixir, :erl_eval, IEx.Evaluator, IEx.Pry]
@@ -466,23 +471,12 @@ defmodule IEx.Pry do
   end
 
   defp instrument_clause({meta, args, guards, clause}, ref, case_pattern, opts) do
-    opts = [line: Keyword.get(meta, :line, 1)] ++ opts
-
-    # We store variables on a map ignoring the context.
-    # In the rare case where variables in different contexts
-    # have the same name, the last one wins.
-    {_, binding} =
-      Macro.prewalk(args, %{}, fn
-        {name, _, ctx} = var, acc when name != :_ and is_atom(name) and is_atom(ctx) ->
-          {var, Map.put(acc, name, var)}
-
-        expr, acc ->
-          {expr, acc}
-      end)
+    arity = length(args)
+    exprs = unwrap_block(clause)
 
     # Have an extra binding per argument for case matching.
     case_vars =
-      for id <- tl(Enum.to_list(0..length(args))) do
+      for id <- 1..arity//1 do
         {String.to_atom("arg" <> Integer.to_string(id)), [version: -id], __MODULE__}
       end
 
@@ -492,19 +486,20 @@ defmodule IEx.Pry do
     # Generate the take_over condition with the ETS lookup.
     # Remember this is expanded AST, so no aliases allowed,
     # no locals (such as the unary -) and so on.
-    condition =
+    initialize_next =
       quote do
-        case unquote(case_head) do
-          unquote(case_pattern) ->
-            # :ets.update_counter(table, key, {pos, inc, threshold, reset})
-            case :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)) do
-              unquote(-1) -> :ok
-              _ -> :"Elixir.IEx.Pry".pry(unquote(Map.to_list(binding)), unquote(opts))
-            end
+        unquote(next_var(arity + 1)) =
+          case unquote(case_head) do
+            unquote(case_pattern) ->
+              :erlang."/="(
+                # :ets.update_counter(table, key, {pos, inc, threshold, reset})
+                :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)),
+                unquote(-1)
+              )
 
-          _ ->
-            :ok
-        end
+            _ ->
+              false
+          end
       end
 
     args =
@@ -512,10 +507,109 @@ defmodule IEx.Pry do
       |> Enum.zip(args)
       |> Enum.map(fn {var, arg} -> {:=, [], [arg, var]} end)
 
-    {meta, args, guards, {:__block__, [], [condition, clause]}}
+    # The variable we pass around will start after the arity,
+    # as we use the arity to instrument the clause.
+    binding = match_binding(args, %{})
+    line = Keyword.get(meta, :line, 1)
+    exprs = instrument_body(exprs, true, line, arity + 1, binding, opts)
+
+    {meta, args, guards, {:__block__, meta, [initialize_next | exprs]}}
+  end
+
+  defp instrument_body([expr | exprs], force?, line, version, binding, opts) do
+    next_binding = binding(expr, binding)
+    {min_line, max_line} = line_range(expr, line)
+
+    if force? or (min_line > line and min_line != :infinity) do
+      pry_var = next_var(version)
+      pry_binding = Map.to_list(binding)
+      pry_opts = [line: min_line] ++ opts
+
+      pry =
+        quote do
+          unquote(next_var(version + 1)) =
+            :"Elixir.IEx.Pry".pry_with_next(
+              unquote(pry_var),
+              unquote(pry_binding),
+              unquote(pry_opts)
+            )
+        end
+
+      [pry, expr | instrument_body(exprs, false, max_line, version + 1, next_binding, opts)]
+    else
+      [expr | instrument_body(exprs, false, max_line, version, next_binding, opts)]
+    end
+  end
+
+  defp instrument_body([], _force?, _line, _version, _binding, _opts) do
+    []
+  end
+
+  defp line_range(ast, line) do
+    {_, min_max} =
+      Macro.prewalk(ast, {:infinity, line}, fn
+        {_, meta, _} = ast, {min_line, max_line} when is_list(meta) ->
+          line = meta[:line]
+
+          if line > 0 do
+            {ast, {min(line, min_line), max(line, max_line)}}
+          else
+            {ast, {min_line, max_line}}
+          end
+
+        ast, acc ->
+          {ast, acc}
+      end)
+
+    min_max
+  end
+
+  defp binding(ast, binding) do
+    {_, binding} =
+      Macro.prewalk(ast, binding, fn
+        {:=, _, [left, _right]}, acc ->
+          {:ok, match_binding(left, acc)}
+
+        {:case, _, [arg, _block]}, acc ->
+          {arg, acc}
+
+        {special_form, _, _}, acc
+        when special_form in [:cond, :fn, :for, :receive, :try, :with] ->
+          {:ok, acc}
+
+        expr, acc ->
+          {expr, acc}
+      end)
+
+    binding
+  end
+
+  defp match_binding(match, binding) do
+    {_, binding} =
+      Macro.prewalk(match, binding, fn
+        {name, _, nil} = var, acc when name != :_ and is_atom(name) ->
+          {var, Map.put(acc, name, var)}
+
+        # Stop traversing inside pin operators and :: in binaries
+        {special_form, _, _}, acc when special_form in [:^, :"::"] ->
+          {:ok, acc}
+
+        expr, acc ->
+          {expr, acc}
+      end)
+
+    binding
+  end
+
+  defp next_var(id) do
+    {:next?, [version: -id], __MODULE__}
   end
 
   defp instrumented?(module) do
     module.__info__(:attributes)[:iex_pry] == [true]
   end
+
+  defp unwrap_block(expr), do: expr |> unwrap_block([]) |> Enum.reverse()
+  defp unwrap_block({:__block__, _, exprs}, acc), do: Enum.reduce(exprs, acc, &unwrap_block/2)
+  defp unwrap_block(expr, acc), do: [expr | acc]
 end

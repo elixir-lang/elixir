@@ -848,6 +848,9 @@ defmodule IEx.Helpers do
   until the next breakpoint, which will automatically yield control
   back to IEx without requesting permission to pry.
 
+  If you simply want to move to the next line of the current breakpoint,
+  use `n/0` or `next/0` instead.
+
   If the running process terminates, a new IEx session is
   started.
 
@@ -858,10 +861,38 @@ defmodule IEx.Helpers do
   @doc since: "1.5.0"
   def continue do
     if iex_server = Process.get(:iex_server) do
-      send(iex_server, {:continue, self()})
+      send(iex_server, {:continue, self(), false})
     end
 
     dont_display_result()
+  end
+
+  @doc """
+  Goes to the next line of the current breakpoint.
+
+  This is usually called by sessions started with `IEx.break!/4`.
+  If instead of the next line you want to move to the next breakpoint,
+  call `continue/0` instead.
+
+  While the process executes, the user will no longer have
+  control of the shell. If you would rather start a new shell,
+  use `respawn/0` instead.
+  """
+  @doc since: "1.14.0"
+  def next do
+    if iex_server = Process.get(:iex_server) do
+      send(iex_server, {:continue, self(), true})
+    end
+
+    dont_display_result()
+  end
+
+  @doc """
+  A shortcut for `next/0`.
+  """
+  @doc since: "1.14.0"
+  def n do
+    next()
   end
 
   @doc """
