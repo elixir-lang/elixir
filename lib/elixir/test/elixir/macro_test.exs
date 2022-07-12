@@ -282,9 +282,16 @@ defmodule MacroTest do
   describe "dbg/3" do
     defmacrop dbg_format(ast, options \\ quote(do: [syntax_colors: []])) do
       quote do
-        ExUnit.CaptureIO.with_io(fn ->
-          unquote(Macro.dbg(ast, options, __CALLER__))
-        end)
+        {result, formatted} =
+          ExUnit.CaptureIO.with_io(fn ->
+            unquote(Macro.dbg(ast, options, __CALLER__))
+          end)
+
+        # Make sure there's an empty line after the output.
+        assert String.ends_with?(formatted, "\n\n") or
+                 String.ends_with?(formatted, "\n\n" <> IO.ANSI.reset())
+
+        {result, formatted}
       end
     end
 
@@ -334,11 +341,15 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             [:a, :b, :c] #=> [:a, :b, :c]
+             \n[:a, :b, :c] #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
              |> tl #=> [:c]
              |> Kernel.hd() #=> :c
              """
+
+      # Regression for pipes sometimes erroneously ending with three newlines (one
+      # extra than needed).
+      assert formatted =~ ~r/[^\n]\n\n$/
     end
 
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
