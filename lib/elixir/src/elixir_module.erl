@@ -103,7 +103,7 @@ compile(Line, Module, Block, Vars, E) ->
   try
     put_compiler_modules([Module | CompilerModules]),
     {Result, NE} = eval_form(Line, Module, DataBag, Block, Vars, E),
-    CheckerInfo = get(elixir_checker_info),
+    CheckerInfo = checker_info(),
 
     {Binary, PersistedAttributes, Autoload, CheckerPid} =
       elixir_erl_compiler:spawn(fun() ->
@@ -454,6 +454,12 @@ beam_location(ModuleAsCharlist) ->
   end.
 
 %% Integration with elixir_compiler that makes the module available
+
+checker_info() ->
+  case get(elixir_checker_info) of
+    undefined -> undefined;
+    _ -> 'Elixir.Module.ParallelChecker':get()
+  end.
 
 spawn_parallel_checker(undefined, _Module, _ModuleMap) ->
   nil;

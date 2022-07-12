@@ -27,14 +27,21 @@ defmodule Module.ParallelChecker do
   Gets the parallel checker data from pdict.
   """
   def get do
-    {_, checker} = :erlang.get(:elixir_checker_info)
-    checker
+    case :erlang.get(:elixir_checker_info) do
+      {parent, nil} ->
+        {:ok, checker} = start_link()
+        put(parent, checker)
+        {parent, checker}
+
+      {parent, checker} ->
+        {parent, checker}
+    end
   end
 
   @doc """
   Stores the parallel checker information.
   """
-  def put(pid, checker) do
+  def put(pid, checker) when is_pid(pid) and is_pid(checker) do
     :erlang.put(:elixir_checker_info, {pid, checker})
   end
 
@@ -86,22 +93,27 @@ defmodule Module.ParallelChecker do
   def verify(fun) do
     case :erlang.get(:elixir_compiler_info) do
       :undefined ->
-        previous = :erlang.get(:elixir_checker_info)
-        {:ok, checker} = start_link()
-        put(self(), checker)
+        previous = :erlang.put(:elixir_checker_info, {self(), nil})
 
         try do
           {result, compile_info} = fun.()
-          _ = verify(checker, compile_info, [])
+
+          case :erlang.get(:elixir_checker_info) do
+            {_, nil} -> :ok
+            {_, checker} -> verify(checker, compile_info, [])
+          end
+
           result
         after
+          {_, checker} = :erlang.get(:elixir_checker_info)
+
           if previous != :undefined do
             :erlang.put(:elixir_checker_info, previous)
           else
             :erlang.erase(:elixir_checker_info)
           end
 
-          stop(checker)
+          checker && stop(checker)
         end
 
       _ ->
