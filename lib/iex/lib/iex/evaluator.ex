@@ -22,7 +22,7 @@ defmodule IEx.Evaluator do
     Process.put(:iex_evaluator, ref)
 
     if old_evaluator do
-      send(self(), {:done, old_evaluator})
+      send(self(), {:done, old_evaluator, false})
     end
 
     state = loop_state(ref, server, IEx.History.init(), opts)
@@ -202,11 +202,11 @@ defmodule IEx.Evaluator do
         send(receiver, {ref, value})
         loop(state)
 
-      {:done, ^server} ->
-        :ok
+      {:done, ^server, next?} ->
+        {:ok, next?}
 
-      {:done, ^ref} ->
-        :ok
+      {:done, ^ref, next?} ->
+        {:ok, next?}
     end
   end
 

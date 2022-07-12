@@ -188,9 +188,11 @@ defmodule IEx do
   introspected.
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
-  on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible, it does not contain
-  information about imports and aliases from the source code.
+  on a given module, function, and arity you have no control of.
+  `IEx.break!/4` allows you to debug the function line by line
+  and access its variables, but it does not contain information
+  about imports and aliases from the source code, nor it can
+  access private functions.
 
   ## The User switch command
 
@@ -575,9 +577,11 @@ defmodule IEx do
   still need to be accessed via `Mod.fun(args)`.
 
   Alternatively, you can use `IEx.break!/4` to setup a breakpoint
-  on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible,  it does not contain
-  information about imports and aliases from the source code.
+  on a given module, function, and arity you have no control of.
+  `IEx.break!/4` allows you to debug the function line by line
+  and access its variables, but it does not contain information
+  about imports and aliases from the source code, nor it can
+  access private functions.
 
   ## Examples
 
@@ -714,8 +718,9 @@ defmodule IEx do
   the given number of `stops`.
 
   This function will instrument the given module and load a new
-  version in memory with breakpoints at the given function and
-  arity. If the module is recompiled, all breakpoints are lost.
+  version in memory with line by line breakpoints at the given
+  function and arity. If the module is recompiled, all breakpoints
+  are lost.
 
   When a breakpoint is reached, IEx will ask if you want to `pry`
   the given function and arity. In other words, this works similar
@@ -733,6 +738,8 @@ defmodule IEx do
     * `IEx.Helpers.break!/4` - sets up a breakpoint for the given module, function, arity
     * `IEx.Helpers.breaks/0` - prints all breakpoints and their IDs
     * `IEx.Helpers.continue/0` - continues until the next breakpoint in the same shell
+    * `IEx.Helpers.n/0` - goes to the next line of the current breakpoint
+    * `IEx.Helpers.next/0` - same as above
     * `IEx.Helpers.open/0` - opens editor on the current breakpoint
     * `IEx.Helpers.remove_breaks/0` - removes all breakpoints in all modules
     * `IEx.Helpers.remove_breaks/1` - removes all breakpoints in a given module
@@ -763,23 +770,23 @@ defmodule IEx do
   a breakpoint directly from your IEx shell. But you can set up a break
   from anywhere by using the fully qualified name `IEx.break!`.
 
-  The following sets up a breakpoint on `URI.decode_query/2`:
+  The following sets up a breakpoint on `URI.parse/2`:
 
-      break! URI, :decode_query, 2
+      break! URI, :parse, 1
 
   This call will setup a breakpoint that stops once.
   To set a breakpoint that will stop 10 times:
 
-      break! URI, :decode_query, 2, 10
+      break! URI, :parse, 1, 10
 
   `IEx.break!/2` is a convenience macro that allows breakpoints
   to be given in the `Mod.fun/arity` format:
 
-      break! URI.decode_query/2
+      break! URI.parse/1
 
   Or to set a breakpoint that will stop 10 times:
 
-      break! URI.decode_query/2, 10
+      break! URI.parse/1, 10
 
   This function returns the breakpoint ID and will raise if there
   is an error setting up the breakpoint.
@@ -788,23 +795,22 @@ defmodule IEx do
 
   `IEx.break!/2` allows patterns to be given, triggering the
   breakpoint only in some occasions. For example, to trigger
-  the breakpoint only when the first argument is the "foo=bar"
-  string:
+  the breakpoint only when the first argument starts with the
+  "https" string:
 
-      break! URI.decode_query("foo=bar", _)
-
-  Or to trigger it whenever the second argument is a map with
-  more than one element:
-
-      break! URI.decode_query(_, map) when map_size(map) > 0
+      break! URI.parse("https" <> _, _)
 
   Only a single break point can be set per function. So if you call
   `IEx.break!` multiple times with different patterns, only the last
   pattern is kept.
 
-  Note that, while patterns may be given to macros, remember that
-  macros receive ASTs as arguments, and not values. For example, if
-  you try to break on a macro with the following pattern:
+  ## Macros
+
+  While it is possible to set breakpoint in macros, remember that macros
+  are generally expanded at compilation time, and therfore they may never
+  be invoked during runtime. Similarly, while patterns may be given to
+  macros, macros receive ASTs as arguments, and not values. For example,
+  if you try to break on a macro with the following pattern:
 
       break! MyModule.some_macro(pid) when pid == self()
 

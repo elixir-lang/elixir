@@ -36,7 +36,7 @@ defmodule IEx.ServerTest do
       send(evaluator, :run)
 
       assert Task.await(server) =~ ":inside_pry"
-      assert Task.await(client) == :ok
+      assert Task.await(client) == {:ok, false}
     end
 
     test "outside of the evaluator with refusal", config do
@@ -79,7 +79,7 @@ defmodule IEx.ServerTest do
       assert refused =~ "** session was already accepted elsewhere"
       assert refused =~ "undefined function iex_context"
 
-      assert Task.await(client) == :ok
+      assert Task.await(client) == {:ok, false}
     end
 
     test "outside of the evaluator with double refusal", config do
@@ -112,7 +112,7 @@ defmodule IEx.ServerTest do
       assert Task.await(server1) =~ ":inside_pry"
       assert Task.await(server2) =~ "undefined function iex_context"
 
-      assert Task.await(client) == :ok
+      assert Task.await(client) == {:ok, false}
     end
 
     test "outside of the evaluator with refusal and then acceptance", config do
@@ -127,7 +127,7 @@ defmodule IEx.ServerTest do
       assert Task.await(server1) =~ "undefined function iex_context"
       assert Task.await(server2) =~ ":inside_pry"
 
-      assert Task.await(client) == :ok
+      assert Task.await(client) == {:ok, false}
     end
 
     @tag :tmp_dir
@@ -143,7 +143,7 @@ defmodule IEx.ServerTest do
       assert Task.await(server) =~
                "** (UndefinedFunctionError) function :erl_eval.my_variable/0 is undefined or private"
 
-      assert Task.await(client) == :ok
+      assert Task.await(client) == {:ok, false}
     end
 
     @tag :tmp_dir
@@ -159,8 +159,15 @@ defmodule IEx.ServerTest do
       send(evaluator, :run)
 
       assert Task.await(server) =~ "144"
+      assert Task.await(client) == {:ok, false}
 
-      assert Task.await(client) == :ok
+      {server, evaluator} = pry_session(config.test, "Y\nnext\nmy_variable", dot_iex_path: path)
+
+      client = pry_request([server])
+      send(evaluator, :run)
+
+      assert Task.await(server) =~ "144"
+      assert Task.await(client) == {:ok, true}
     end
   end
 
