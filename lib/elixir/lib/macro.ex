@@ -2481,7 +2481,7 @@ defmodule Macro do
       :reset,
       "\n",
       formatted,
-      "\n\n"
+      "\n"
     ]
 
     ansi_enabled? = options[:syntax_colors] != []
@@ -2492,25 +2492,20 @@ defmodule Macro do
 
   defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
     result = List.last(values)
+    [{first_ast, first_value} | asts_with_values] = Enum.zip(code_asts, values)
 
-    formatted =
-      Enum.map(Enum.zip(code_asts, values), fn {code_ast, value} ->
-        [
-          :faint,
-          "|> ",
-          :reset,
-          dbg_format_ast(code_ast),
-          " ",
-          inspect(value, options),
-          ?\n
-        ]
+    first_formatted = [dbg_format_ast(first_ast), " ", inspect(first_value, options), ?\n]
+
+    rest_formatted =
+      Enum.map(asts_with_values, fn {code_ast, value} ->
+        [:faint, "|> ", :reset, dbg_format_ast(code_ast), " ", inspect(value, options), ?\n]
       end)
 
-    {formatted, result}
+    {[first_formatted | rest_formatted], result}
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
-    {[dbg_format_ast(code_ast), " ", inspect(value, options)], value}
+    {[dbg_format_ast(code_ast), " ", inspect(value, options), ?\n], value}
   end
 
   defp dbg_format_header(env) do
