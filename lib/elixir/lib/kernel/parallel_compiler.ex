@@ -28,7 +28,7 @@ defmodule Kernel.ParallelCompiler do
         dest = :erlang.get(:elixir_compiler_dest)
 
         {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
-        checker = Module.ParallelChecker.get()
+        {_parent, checker} = Module.ParallelChecker.get()
 
         Task.async(fn ->
           send(compiler, {:async, self()})
