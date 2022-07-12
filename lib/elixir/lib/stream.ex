@@ -186,6 +186,9 @@ defmodule Stream do
       iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list()
       [[1, 2, 3], [4, 5, 6]]
 
+      iex> Stream.chunk_every([1, 2, 3, 4], 3, 3, Stream.cycle([0])) |> Enum.to_list()
+      [[1, 2, 3], [4, 0, 0]]
+
   """
   @doc since: "1.5.0"
   @spec chunk_every(Enumerable.t(), pos_integer, pos_integer, Enumerable.t() | :discard) ::

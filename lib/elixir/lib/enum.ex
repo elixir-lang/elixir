@@ -529,6 +529,9 @@ defmodule Enum do
       iex> Enum.chunk_every([1, 2, 3, 4, 5], 2, 3, [])
       [[1, 2], [4, 5]]
 
+      iex> Enum.chunk_every([1, 2, 3, 4], 3, 3, Stream.cycle([0]))
+      [[1, 2, 3], [4, 0, 0]]
+
   """
   @doc since: "1.5.0"
   @spec chunk_every(t, pos_integer, pos_integer, t | :discard) :: [list]
