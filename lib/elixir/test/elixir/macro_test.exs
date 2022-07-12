@@ -279,6 +279,85 @@ defmodule MacroTest do
     assert Macro.var(:foo, Other) == {:foo, [], Other}
   end
 
+  describe "dbg/3" do
+    defmacrop dbg_format(ast, options \\ quote(do: [syntax_colors: []])) do
+      quote do
+        ExUnit.CaptureIO.with_io(fn ->
+          unquote(Macro.dbg(ast, options, __CALLER__))
+        end)
+      end
+    end
+
+    test "with a simple expression" do
+      {result, formatted} = dbg_format(1 + 1)
+      assert result == 2
+      assert formatted =~ "1 + 1 #=> 2"
+    end
+
+    test "with variables" do
+      my_var = 1 + 1
+      {result, formatted} = dbg_format(my_var)
+      assert result == 2
+      assert formatted =~ "my_var #=> 2"
+    end
+
+    test "with a function call" do
+      {result, formatted} = dbg_format(Atom.to_string(:foo))
+
+      assert result == "foo"
+      assert formatted =~ ~s[Atom.to_string(:foo) #=> "foo"]
+    end
+
+    test "with a multiline input" do
+      {result, formatted} =
+        dbg_format(
+          case 1 + 1 do
+            2 -> :two
+            _other -> :math_is_broken
+          end
+        )
+
+      assert result == :two
+
+      assert formatted =~ """
+             case 1 + 1 do
+               2 -> :two
+               _other -> :math_is_broken
+             end #=> :two
+             """
+    end
+
+    test "with a pipeline" do
+      {result, formatted} = dbg_format([:a, :b, :c] |> tl() |> tl |> Kernel.hd())
+      assert result == :c
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             [:a, :b, :c] #=> [:a, :b, :c]
+             |> tl() #=> [:b, :c]
+             |> tl #=> [:c]
+             |> Kernel.hd() #=> :c
+             """
+    end
+
+    test "with \"syntax_colors: []\" it doesn't print any color sequences" do
+      {_result, formatted} = dbg_format("hello")
+      refute formatted =~ "\e["
+    end
+
+    test "with \"syntax_colors: [...]\" it forces color sequences" do
+      {_result, formatted} = dbg_format("hello", syntax_colors: [string: :cyan])
+      assert formatted =~ IO.iodata_to_binary(IO.ANSI.format([:cyan, ~s("hello")]))
+    end
+
+    test "forwards options to the underlying inspect calls" do
+      value = 'hello'
+      assert {^value, formatted} = dbg_format(value, syntax_colors: [], charlists: :as_lists)
+      assert formatted =~ "value #=> [104, 101, 108, 108, 111]\n"
+    end
+  end
+
   describe "to_string/1" do
     test "converts quoted to string" do
       assert Macro.to_string(quote do: hello(world)) == "hello(world)"
