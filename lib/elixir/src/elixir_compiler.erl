@@ -1,7 +1,6 @@
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
--export([string/3, quoted/3, bootstrap/0,
-         file/2, file_to_path/3, compile/3]).
+-export([string/3, quoted/3, bootstrap/0, file/2, compile/3]).
 -include("elixir.hrl").
 
 string(Contents, File, Callback) ->
@@ -21,25 +20,14 @@ quoted(Forms, File, Callback) ->
       fun (#{lexical_tracker := Pid}) -> Callback(File, Pid) end
     ),
 
-    unzip_reverse(get(elixir_module_binaries), [], [])
+    lists:reverse(get(elixir_module_binaries))
   after
     put(elixir_module_binaries, Previous)
   end.
 
-unzip_reverse([{Mod, Info} | Tail], Mods, Infos) ->
-  unzip_reverse(Tail, [Mod | Mods], [Info | Infos]);
-unzip_reverse([], Mods, Infos) ->
-  {Mods, Infos}.
-
 file(File, Callback) ->
   {ok, Bin} = file:read_file(File),
   string(elixir_utils:characters_to_list(Bin), File, Callback).
-
-file_to_path(File, Dest, Callback) when is_binary(File), is_binary(Dest) ->
-  file(File, fun(CallbackFile, CallbackLexical) ->
-    _ = [binary_to_path(Mod, Dest) || Mod <- get(elixir_module_binaries)],
-    Callback(CallbackFile, CallbackLexical)
-  end).
 
 %% Evaluates the given code through the Erlang compiler.
 %% It may end-up evaluating the code if it is deemed a
@@ -159,7 +147,7 @@ bootstrap() ->
 bootstrap_file(Lib, Suffix) ->
   try
     File = filename:join(Lib, Suffix),
-    {Mods, _Infos} = file(File, fun(_, _) -> ok end),
+    Mods = file(File, fun(_, _) -> ok end),
     _ = [binary_to_path(X, "lib/elixir/ebin") || X <- Mods],
     io:format("Compiled ~ts~n", [Suffix])
   catch

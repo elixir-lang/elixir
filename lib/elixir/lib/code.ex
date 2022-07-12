@@ -425,19 +425,7 @@ defmodule Code do
 
   defp eval_verify(fun, forms, binding, env) do
     Module.ParallelChecker.verify(fn ->
-      previous = :erlang.get(:elixir_module_binaries)
-
-      try do
-        Process.put(:elixir_module_binaries, [])
-        result = apply(:elixir, fun, [forms, binding, env])
-        {result, Enum.map(Process.get(:elixir_module_binaries), &elem(&1, 1))}
-      after
-        if previous == :undefined do
-          :erlang.erase(:elixir_module_binaries)
-        else
-          :erlang.put(:elixir_module_binaries, previous)
-        end
-      end
+      apply(:elixir, fun, [forms, binding, env])
     end)
   end
 

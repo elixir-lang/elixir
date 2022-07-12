@@ -82,7 +82,8 @@ defmodule Module.ParallelChecker do
         end
       end)
 
-    {spawned, ref}
+    register(checker, spawned, ref)
+    :ok
   end
 
   @doc """
@@ -96,11 +97,11 @@ defmodule Module.ParallelChecker do
         previous = :erlang.put(:elixir_checker_info, {self(), nil})
 
         try do
-          {result, compile_info} = fun.()
+          result = fun.()
 
           case :erlang.get(:elixir_checker_info) do
             {_, nil} -> :ok
-            {_, checker} -> verify(checker, compile_info, [])
+            {_, checker} -> verify(checker, [])
           end
 
           result
@@ -119,8 +120,7 @@ defmodule Module.ParallelChecker do
       _ ->
         # If we are during compilation, then they will be
         # reported to the compiler, which will validate them.
-        {result, _info} = fun.()
-        result
+        fun.()
     end
   end
 
@@ -129,15 +129,13 @@ defmodule Module.ParallelChecker do
   the modules and adds the ExCk chunk to the binaries. Returns the updated
   list of warnings from the verification.
   """
-  @spec verify(pid(), [{pid(), reference()}], [{module(), binary()}]) :: [warning()]
-  def verify(checker, compiled_info, runtime_files) do
-    runtime_info =
-      for {module, file} <- runtime_files do
-        spawn({self(), checker}, module, file)
-      end
+  @spec verify(pid(), [{module(), binary()}]) :: [warning()]
+  def verify(checker, runtime_files) do
+    for {module, file} <- runtime_files do
+      spawn({self(), checker}, module, file)
+    end
 
-    modules = compiled_info ++ runtime_info
-    :gen_server.cast(checker, {:start, modules})
+    modules = :gen_server.call(checker, :start)
     collect_results(modules, [])
   end
 
@@ -427,7 +425,11 @@ defmodule Module.ParallelChecker do
   end
 
   defp unlock(server, module) do
-    :gen_server.call(server, {:unlock, module})
+    :gen_server.call(server, {:unlock, module}, :infinity)
+  end
+
+  defp register(server, pid, ref) do
+    :gen_server.cast(server, {:register, pid, ref})
   end
 
   ## Server callbacks
@@ -444,6 +446,20 @@ defmodule Module.ParallelChecker do
     }
 
     {:ok, state}
+  end
+
+  def handle_call(:start, _from, %{ets: ets, modules: modules} = state) do
+    for {pid, ref} <- modules do
+      send(pid, {ref, :cache, ets})
+    end
+
+    for {_pid, ref} <- modules do
+      receive do
+        {^ref, :cached} -> :ok
+      end
+    end
+
+    {:reply, modules, run_checkers(state)}
   end
 
   def handle_call(:ets, _from, state) do
@@ -478,18 +494,8 @@ defmodule Module.ParallelChecker do
     {:stop, :normal, state}
   end
 
-  def handle_cast({:start, modules}, %{ets: ets} = state) do
-    for {pid, ref} <- modules do
-      send(pid, {ref, :cache, ets})
-    end
-
-    for {_pid, ref} <- modules do
-      receive do
-        {^ref, :cached} -> :ok
-      end
-    end
-
-    {:noreply, run_checkers(%{state | modules: modules})}
+  def handle_cast({:register, pid, ref}, %{modules: modules} = state) do
+    {:noreply, %{state | modules: [{pid, ref} | modules]}}
   end
 
   defp run_checkers(%{modules: []} = state) do
