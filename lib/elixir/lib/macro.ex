@@ -2401,4 +2401,138 @@ defmodule Macro do
   defp trim_leading_while_valid_identifier(other) do
     other
   end
+
+  @doc """
+  Default backend for `Kernel.dbg/2`.
+
+  This function provides a default backend for `Kernel.dbg/2`. See the
+  `Kernel.dbg/2` documentation for more information.
+
+  This function:
+
+    * prints information about the given `env`
+    * prints information about `code` and its returned value (using `opts` to inspect terms)
+    * returns the value returned by evaluating `code`
+
+  You can call this function directly to build `Kernel.dbg/2` backends that fall back
+  to this function.
+  """
+  @doc since: "1.14.0"
+  @spec dbg(t, t, Macro.Env.t()) :: t
+  def dbg(code, options, %Macro.Env{} = env) do
+    header = dbg_format_header(env)
+
+    quote do
+      to_debug = unquote(dbg_ast_to_debuggable(code))
+      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
+    end
+  end
+
+  # Pipelines.
+  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
+    value_var = Macro.unique_var(:value, __MODULE__)
+    values_acc_var = Macro.unique_var(:values, __MODULE__)
+
+    [start_ast | rest_asts] = asts = for {ast, 0} <- unpipe(pipe_ast), do: ast
+    rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
+
+    string_asts = Enum.map(asts, &to_string/1)
+
+    initial_acc =
+      quote do
+        unquote(value_var) = unquote(start_ast)
+        unquote(values_acc_var) = [unquote(value_var)]
+      end
+
+    values_ast =
+      for step_ast <- rest_asts, reduce: initial_acc do
+        ast_acc ->
+          quote do
+            unquote(ast_acc)
+            unquote(value_var) = unquote(step_ast)
+            unquote(values_acc_var) = [unquote(value_var) | unquote(values_acc_var)]
+          end
+      end
+
+    quote do
+      unquote(values_ast)
+      {:pipe, unquote(string_asts), Enum.reverse(unquote(values_acc_var))}
+    end
+  end
+
+  # Any other AST.
+  defp dbg_ast_to_debuggable(ast) do
+    quote do: {:value, unquote(to_string(ast)), unquote(ast)}
+  end
+
+  # Made public to be called from Macro.dbg/3, so that we generate as little code
+  # as possible and call out into a function as soon as we can.
+  @doc false
+  def __dbg__(header_string, to_debug, options) do
+    syntax_colors = if IO.ANSI.enabled?(), do: dbg_default_syntax_colors(), else: []
+    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
+
+    {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
+
+    formatted = [
+      :cyan,
+      :italic,
+      header_string,
+      :reset,
+      "\n",
+      formatted,
+      "\n\n"
+    ]
+
+    ansi_enabled? = options[:syntax_colors] != []
+    :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
+
+    result
+  end
+
+  defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
+    result = List.last(values)
+
+    formatted =
+      Enum.map(Enum.zip(code_asts, values), fn {code_ast, value} ->
+        [
+          :faint,
+          "|> ",
+          :reset,
+          dbg_format_ast(code_ast),
+          " ",
+          inspect(value, options),
+          ?\n
+        ]
+      end)
+
+    {formatted, result}
+  end
+
+  defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
+    {[dbg_format_ast(code_ast), " ", inspect(value, options)], value}
+  end
+
+  defp dbg_format_header(env) do
+    env = Map.update!(env, :file, &(&1 && Path.relative_to_cwd(&1)))
+    [stacktrace_entry] = Macro.Env.stacktrace(env)
+    "[" <> Exception.format_stacktrace_entry(stacktrace_entry) <> "]"
+  end
+
+  defp dbg_format_ast(ast) do
+    [:bright, ast, :reset, :faint, " #=>", :reset]
+  end
+
+  defp dbg_default_syntax_colors do
+    [
+      atom: :cyan,
+      string: :green,
+      list: :default_color,
+      boolean: :magenta,
+      nil: :magenta,
+      tuple: :default_color,
+      binary: :default_color,
+      map: :default_color
+    ]
+  end
 end

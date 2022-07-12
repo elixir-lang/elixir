@@ -1456,4 +1456,29 @@ defmodule KernelTest do
       Code.eval_string(~s{~U[2015-01-13 13:00:07+00:30]})
     end
   end
+
+  describe "dbg/2" do
+    import ExUnit.CaptureIO
+
+    test "prints the given expression and returns its value" do
+      output = capture_io(fn -> assert dbg(List.duplicate(:foo, 3)) == [:foo, :foo, :foo] end)
+      assert output =~ "kernel_test.exs"
+      assert output =~ "KernelTest"
+      assert output =~ "List.duplicate(:foo, 3)"
+      assert output =~ ":foo"
+    end
+
+    test "doesn't print any colors if :syntax_colors is []" do
+      output =
+        capture_io(fn ->
+          assert dbg(List.duplicate(:foo, 3), syntax_colors: []) == [:foo, :foo, :foo]
+        end)
+
+      assert output =~ "kernel_test.exs"
+      assert output =~ "KernelTest."
+      assert output =~ "List.duplicate(:foo, 3)"
+      assert output =~ "[:foo, :foo, :foo]"
+      refute output =~ "\\e["
+    end
+  end
 end
