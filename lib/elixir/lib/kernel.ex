@@ -5750,7 +5750,25 @@ defmodule Kernel do
       [my_file.ex:10: MyMod.my_fun/0]
       Atom.to_string(:debugging) #=> "debugging"
 
-  ## Configuring debug function
+  The default debugging function prints additional debugging info when dealing with
+  pipelines. It prints the values at every "step" of the pipeline.
+
+      "Elixir is cool!"
+      |> String.trim_trailing("!")
+      |> String.split()
+      |> List.first()
+      |> dbg()
+      #=> "Elixir"
+
+  The code above prints:
+
+      [my_file.ex:10: MyMod.my_fun/0]
+      "Elixir is cool!" #=> "Elixir is cool!"
+      |> String.trim_trailing("!") #=> "Elixir is cool"
+      |> String.split() #=> ["Elixir", "is", "cool"]
+      |> List.first() #=> "Elixir"
+
+  ## Configuring the debug function
 
   One of the benefits of `dbg/2` is that its debugging logic is configurable,
   allowing tools to extend `dbg` with enhanced behaviour. The debug function
