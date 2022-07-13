@@ -674,7 +674,7 @@ defmodule KernelTest do
     end
 
     test "with a non-literal non-escaped compile-time range in guards" do
-      message = "non-literal range in guard should be escaped with Macro.escape/2"
+      message = ~r"found unescaped value on the right side of in/2: 1..3"
 
       assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
