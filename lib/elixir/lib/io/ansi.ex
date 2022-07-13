@@ -252,9 +252,9 @@ defmodule IO.ANSI do
       [[[[[[], "Hello, "] | "\e[31m"] | "\e[1m"], "world!"] | "\e[0m"]
 
   """
-  @spec format(IO.chardata(), boolean) :: IO.chardata()
-  def format(chardata, emit? \\ enabled?()) when is_boolean(emit?) do
-    do_format(chardata, [], [], emit?, :maybe)
+  @spec format(ansidata, boolean) :: IO.chardata()
+  def format(ansidata, emit? \\ enabled?()) when is_boolean(emit?) do
+    do_format(ansidata, [], [], emit?, :maybe)
   end
 
   @doc ~S"""
@@ -273,9 +273,9 @@ defmodule IO.ANSI do
       [[[[[[] | "\e[1m"], 87], 111], 114], 100]
 
   """
-  @spec format_fragment(IO.chardata(), boolean) :: IO.chardata()
-  def format_fragment(chardata, emit? \\ enabled?()) when is_boolean(emit?) do
-    do_format(chardata, [], [], emit?, false)
+  @spec format_fragment(ansidata, boolean) :: IO.chardata()
+  def format_fragment(ansidata, emit? \\ enabled?()) when is_boolean(emit?) do
+    do_format(ansidata, [], [], emit?, false)
   end
 
   defp do_format([term | rest], rem, acc, emit?, append_reset) do
