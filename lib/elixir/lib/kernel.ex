@@ -4276,17 +4276,21 @@ defmodule Kernel do
           false -> quote(do: :lists.member(unquote(left), unquote(right)))
         end
 
-      {:%{}, _meta, [__struct__: Elixir.Range, first: first, last: last, step: step]} ->
-        in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last), expand.(step)))
-
-      right when in_body? ->
-        quote(do: Elixir.Enum.member?(unquote(right), unquote(left)))
-
-      %{__struct__: Elixir.Range, first: _, last: _, step: _} ->
-        raise ArgumentError, "non-literal range in guard should be escaped with Macro.escape/2"
+      %{} = right ->
+        raise ArgumentError, "found unescaped value on the right side of in/2: #{inspect(right)}"
 
       right ->
-        raise_on_invalid_args_in_2(right)
+        with {:%{}, _meta, fields} <- right,
+             [__struct__: Elixir.Range, first: first, last: last, step: step] <-
+               :lists.usort(fields) do
+          in_var(in_body?, left, &in_range(&1, expand.(first), expand.(last), expand.(step)))
+        else
+          _ when in_body? ->
+            quote(do: Elixir.Enum.member?(unquote(right), unquote(left)))
+
+          _ ->
+            raise_on_invalid_args_in_2(right)
+        end
     end
   end
 
