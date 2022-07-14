@@ -1783,17 +1783,8 @@ defmodule Code do
       {:error, {:invalid_chunk, bin}}
   end
 
-  @doc ~S"""
-  Deprecated function to retrieve old documentation format.
-
-  Elixir v1.7 adopts [EEP 48](https://www.erlang.org/eeps/eep-0048.html)
-  which is a new documentation format meant to be shared across all
-  BEAM languages. The old format, used by `Code.get_docs/2`, is no
-  longer available, and therefore this function always returns `nil`.
-  Use `Code.fetch_docs/1` instead.
-  """
+  @doc false
   @deprecated "Code.get_docs/2 always returns nil as its outdated documentation is no longer stored on BEAM files. Use Code.fetch_docs/1 instead"
-  @spec get_docs(module, :moduledoc | :docs | :callback_docs | :type_docs | :all) :: nil
   def get_docs(_module, _kind) do
     nil
   end

@@ -1,12 +1,11 @@
 Code.require_file("test_helper.exs", __DIR__)
 
 # This is to temporarily test some inconsistencies in
-# the error ArgumentError messages
-# https://github.com/erlang/otp/issues/5440
-# TODO: once fixed in OTP and that minimum version is required,
-# please remove MyArgumentError and replace the calls to:
+# the error ArgumentError messages.
+# Remove MyArgumentError and replace the calls to:
 # - MyArgumentError with ArgumentError
 # - MyArgumentError.culprit() with Atom.to_string("Foo")
+# in Erlang/OTP 25
 defmodule MyArgumentError do
   defexception message: "argument error"
 
