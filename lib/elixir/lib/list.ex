@@ -740,6 +740,37 @@ defmodule List do
   def improper?(list) when is_list(list), do: true
 
   @doc """
+  Returns `true` if `list` has inside the given `sublist` list; otherwise returns `false`.
+
+  Raises `ArgumentError` if:
+    a)Second parameter `sublist` is an empty list.
+    b)First or second parameters are not a list.
+
+  ## Examples
+
+      iex> List.includes_list?([1,2,3,4,5,6], [3,4])
+      true
+
+      iex> List.includes_list?([1,2,3,4,5,6], [3,6])
+      false
+
+      iex> List.includes_list?([1,2], [2,1])
+      false
+
+      iex> List.includes_list?([2,1,2], [1,2])
+      true
+
+      iex> List.includes_list?([:a, :b, :c], [:b,:c])
+      true
+
+  """
+  @spec includes_list?(list, nonempty_list) :: boolean
+  def includes_list?(list, sublist) when is_list(list) and is_list(sublist) and length(sublist) > 0  do
+    Enum.chunk_every(list, length(sublist), 1, :discard)
+    |> Enum.member?(sublist)
+  end
+
+  @doc """
   Returns a list with `value` inserted at the specified `index`.
 
   Note that `index` is capped at the list length. Negative indices
