@@ -89,7 +89,7 @@ defmodule ModuleTest do
       end
 
     assert_raise ArgumentError,
-                 "could not call Module.__put_attribute__/4 because the module ModuleTest.Raise is in read-only mode (@after_compile)",
+                 "could not call Module.put_attribute/3 because the module ModuleTest.Raise is in read-only mode (@after_compile)",
                  fn ->
                    Module.create(ModuleTest.Raise, contents, __ENV__)
                  end

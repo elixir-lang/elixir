@@ -3489,21 +3489,26 @@ defmodule Kernel do
         raise ArgumentError, "cannot set attribute @#{name} inside function/macro"
 
       name == :behavior ->
-        warn_message = "@behavior attribute is not supported, please use @behaviour instead"
-        IO.warn(warn_message, env)
+        raise ArgumentError, "@behavior attribute is not supported, please use @behaviour instead"
 
       :lists.member(name, [:moduledoc, :typedoc, :doc]) ->
         arg = {env.line, arg}
 
         quote do
-          Module.__put_attribute__(__MODULE__, unquote(name), unquote(arg), unquote(line))
+          Module.__put_attribute__(__MODULE__, unquote(name), unquote(arg), unquote(line), [])
         end
 
       true ->
-        arg = expand_attribute(name, arg, env)
+        {arg, traces} = collect_traces(name, arg, env)
 
         quote do
-          Module.__put_attribute__(__MODULE__, unquote(name), unquote(arg), unquote(line))
+          Module.__put_attribute__(
+            __MODULE__,
+            unquote(name),
+            unquote(arg),
+            unquote(line),
+            unquote(Macro.escape(traces))
+          )
         end
     end
   end
@@ -3526,7 +3531,7 @@ defmodule Kernel do
     case function? do
       true ->
         value =
-          case Module.__get_attribute__(env.module, name, line) do
+          case Module.__get_attribute__(env.module, name, line, false) do
             {_, doc} when doc_attr? -> doc
             other -> other
           end
@@ -3542,7 +3547,7 @@ defmodule Kernel do
 
       false when doc_attr? ->
         quote do
-          case Module.__get_attribute__(__MODULE__, unquote(name), unquote(line)) do
+          case Module.__get_attribute__(__MODULE__, unquote(name), unquote(line), false) do
             {_, doc} -> doc
             other -> other
           end
@@ -3550,7 +3555,7 @@ defmodule Kernel do
 
       false ->
         quote do
-          Module.__get_attribute__(__MODULE__, unquote(name), unquote(line))
+          Module.__get_attribute__(__MODULE__, unquote(name), unquote(line), true)
         end
     end
   end
@@ -3579,11 +3584,37 @@ defmodule Kernel do
     raise ArgumentError, "expected 0 or 1 argument for @#{name}, got: #{length(args)}"
   end
 
-  defp expand_attribute(:compile, arg, env) do
-    Macro.expand_literal(arg, %{env | function: {:__info__, 1}})
-  end
+  # Those are always compile-time dependencies, so we can skip the trace.
+  defp collect_traces(:before_compile, arg, _env), do: {arg, []}
+  defp collect_traces(:after_compile, arg, _env), do: {arg, []}
+  defp collect_traces(:on_definition, arg, _env), do: {arg, []}
 
-  defp expand_attribute(_, arg, _), do: arg
+  defp collect_traces(_name, arg, env) do
+    case is_pid(env.lexical_tracker) and Macro.quoted_literal?(arg) do
+      true ->
+        env = %{env | function: {:__info__, 1}}
+
+        {arg, aliases} =
+          Macro.prewalk(arg, %{}, fn
+            {:__aliases__, _, _} = alias, acc ->
+              case Macro.expand(alias, env) do
+                atom when is_atom(atom) -> {atom, Map.put(acc, atom, [])}
+                _ -> {alias, acc}
+              end
+
+            node, acc ->
+              {node, acc}
+          end)
+
+        case map_size(aliases) do
+          0 -> {arg, []}
+          _ -> {arg, [{env.line, env.lexical_tracker, env.tracers, :maps.keys(aliases)}]}
+        end
+
+      false ->
+        {arg, []}
+    end
+  end
 
   defp typespec?(:type), do: true
   defp typespec?(:typep), do: true
@@ -3627,7 +3658,7 @@ defmodule Kernel do
         {v, wrap_binding(in_match?, {v, [generated: true], c})}
       end
 
-    :lists.sort(bindings)
+    :lists.usort(bindings)
   end
 
   defp wrap_binding(true, var) do
@@ -5266,18 +5297,20 @@ defmodule Kernel do
   """
   defmacro defexception(fields) do
     quote bind_quoted: [fields: fields] do
-      @behaviour Exception
+      Elixir.Kernel.@(behaviour(Exception))
       struct = defstruct([__exception__: true] ++ fields)
 
       if Map.has_key?(struct, :message) do
-        @impl true
+        Elixir.Kernel.@(impl(true))
+
         def message(exception) do
           exception.message
         end
 
         defoverridable message: 1
 
-        @impl true
+        Elixir.Kernel.@(impl(true))
+
         def exception(msg) when Kernel.is_binary(msg) do
           exception(message: msg)
         end
@@ -5288,7 +5321,8 @@ defmodule Kernel do
       # with different metadata (:import, :context) depending on if
       # it is the bootstrapped version or not.
       # TODO: Change the implementation on v2.0 to simply call Kernel.struct!/2
-      @impl true
+      Elixir.Kernel.@(impl(true))
+
       def exception(args) when Kernel.is_list(args) do
         struct = __struct__()
         {valid, invalid} = Enum.split_with(args, fn {k, _} -> Map.has_key?(struct, k) end)
@@ -5520,7 +5554,7 @@ defmodule Kernel do
               end
 
             quote do
-              @doc guard: true
+              Elixir.Kernel.@(doc(guard: true))
               unquote(macro_definition)
             end
 
@@ -5724,7 +5758,7 @@ defmodule Kernel do
       # TODO: Remove List.wrap when multiple funs are no longer supported
       for fun <- List.wrap(funs) do
         {name, args, as, as_args} = Kernel.Utils.defdelegate_each(fun, opts)
-        @doc delegate_to: {target, as, :erlang.length(as_args)}
+        Elixir.Kernel.@(doc(delegate_to: {target, as, :erlang.length(as_args)}))
 
         # Build the call AST by hand so it doesn't get a
         # context and it warns on things like missing @impl

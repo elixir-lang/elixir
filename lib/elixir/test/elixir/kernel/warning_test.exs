@@ -1215,18 +1215,6 @@ defmodule Kernel.WarningTest do
     purge(EmptyBehaviour)
   end
 
-  test "undefined behavior" do
-    assert capture_err(fn ->
-             Code.eval_string("""
-             defmodule Sample do
-               @behavior Hello
-             end
-             """)
-           end) =~ "@behavior attribute is not supported, please use @behaviour instead"
-  after
-    purge(Sample)
-  end
-
   test "undefined function for protocol" do
     assert capture_err(fn ->
              Code.eval_string("""

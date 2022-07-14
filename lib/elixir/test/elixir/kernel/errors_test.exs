@@ -561,7 +561,7 @@ defmodule Kernel.ErrorsTest do
   test "ensure valid import :except option" do
     assert_eval_raise CompileError,
                       "nofile:3: invalid :except option for import, expected value to be a list " <>
-                        "literal, got: Module.__get_attribute__(Kernel.ErrorsTest.Only, :x, 3)",
+                        "literal, got: Module.__get_attribute__(Kernel.ErrorsTest.Only, :x, 3, true)",
                       '''
                       defmodule Kernel.ErrorsTest.Only do
                         @x [flatten: 1]

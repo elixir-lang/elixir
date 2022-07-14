@@ -650,10 +650,6 @@ defmodule Module do
       derive: %{
         doc:
           "Derives an implementation for the given protocol for the struct defined in the current module."
-      },
-      enforce_keys: %{
-        doc:
-          "Ensures the given keys are always set when building the struct defined in the current module."
       }
     }
   end
@@ -1153,7 +1149,7 @@ defmodule Module do
   def attributes_in(module) when is_atom(module) do
     assert_not_compiled!(__ENV__.function, module)
     {set, _} = data_tables_for(module)
-    :ets.select(set, [{{:"$1", :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}])
+    :ets.select(set, [{{:"$1", :_, :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}])
   end
 
   @doc """
@@ -1437,7 +1433,7 @@ defmodule Module do
   """
   @spec put_attribute(module, atom, term) :: :ok
   def put_attribute(module, key, value) when is_atom(module) and is_atom(key) do
-    __put_attribute__(module, key, value, nil)
+    __put_attribute__(module, key, value, nil, [])
   end
 
   @doc """
@@ -1479,7 +1475,7 @@ defmodule Module do
   """
   @spec get_attribute(module, atom, term) :: term
   def get_attribute(module, key, default \\ nil) when is_atom(module) and is_atom(key) do
-    case __get_attribute__(module, key, nil) do
+    case __get_attribute__(module, key, nil, true) do
       nil -> default
       value -> value
     end
@@ -1545,10 +1541,12 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
-      [{_, _, :accumulate}] ->
+      [{_, _, :accumulate, traces}] ->
+        trace_attribute(true, module, traces, set, key, [])
         reverse_values(:ets.take(bag, {:accumulate, key}), [])
 
-      [{_, value, _}] ->
+      [{_, value, _, traces}] ->
+        trace_attribute(module, traces)
         :ets.delete(set, key)
         value
 
@@ -1602,11 +1600,11 @@ defmodule Module do
     end
 
     if Keyword.get(options, :accumulate) do
-      :ets.insert_new(set, {attribute, [], :accumulate}) ||
+      :ets.insert_new(set, {attribute, [], :accumulate, []}) ||
         :ets.update_element(set, attribute, {3, :accumulate})
     else
       :ets.insert_new(bag, {:warn_attributes, attribute})
-      :ets.insert_new(set, {attribute, nil, :unset})
+      :ets.insert_new(set, {attribute, nil, :unset, []})
     end
 
     :ok
@@ -1737,14 +1735,14 @@ defmodule Module do
 
   defp get_doc_meta(existing_meta, set) do
     case :ets.take(set, {:doc, :meta}) do
-      [{{:doc, :meta}, metadata, _}] -> Map.merge(existing_meta, metadata)
+      [{{:doc, :meta}, metadata}] -> Map.merge(existing_meta, metadata)
       [] -> existing_meta
     end
   end
 
   defp compile_deprecated(doc_meta, set, bag, name, arity, defaults) do
     case :ets.take(set, :deprecated) do
-      [{:deprecated, reason, _}] when is_binary(reason) ->
+      [{:deprecated, reason, _, _}] when is_binary(reason) ->
         :ets.insert(bag, deprecated_reasons(defaults, name, arity, reason))
         Map.put(doc_meta, :deprecated, reason)
 
@@ -1774,7 +1772,7 @@ defmodule Module do
     %{line: line, file: file} = env
 
     case :ets.take(set, :impl) do
-      [{:impl, value, _}] ->
+      [{:impl, value, _, _}] ->
         impl = {{name, arity}, context, defaults, kind, line, file, value}
         :ets.insert(bag, {:impls, impl})
         value
@@ -1851,7 +1849,7 @@ defmodule Module do
           acc
 
         true ->
-          :elixir_env.trace({:require, [], behaviour, []}, env)
+          :elixir_env.trace({:require, [from_macro: true], behaviour, []}, env)
           optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
           callbacks = behaviour_info(behaviour, :callbacks)
           Enum.reduce(callbacks, acc, &add_callback(&1, behaviour, env, optional_callbacks, &2))
@@ -2090,7 +2088,7 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def __get_attribute__(module, key, line) when is_atom(key) do
+  def __get_attribute__(module, key, caller_line, trace?) when is_atom(key) do
     assert_not_compiled!(
       {:get_attribute, 2},
       module,
@@ -2100,23 +2098,25 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
-      [{_, _, :accumulate}] ->
+      [{_, _, :accumulate, traces}] ->
+        trace_attribute(trace?, module, traces, set, key, [])
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
 
-      [{_, val, line}] when is_integer(line) ->
-        :ets.update_element(set, key, {3, :used})
-        val
+      [{_, value, warn_line, traces}] when is_integer(warn_line) ->
+        trace_attribute(trace?, module, traces, set, key, [{3, :used}])
+        value
 
-      [{_, val, _}] ->
-        val
+      [{_, value, _, traces}] ->
+        trace_attribute(trace?, module, traces, set, key, [])
+        value
 
-      [] when is_integer(line) ->
+      [] when is_integer(caller_line) ->
         # TODO: Consider raising instead of warning on v2.0 as it usually cascades
         error_message =
           "undefined module attribute @#{key}, " <>
             "please remove access to @#{key} or explicitly set it before access"
 
-        IO.warn(error_message, attribute_stack(module, line))
+        IO.warn(error_message, attribute_stack(module, caller_line))
         nil
 
       [] ->
@@ -2124,25 +2124,90 @@ defmodule Module do
     end
   end
 
+  defp trace_attribute(module, traces) do
+    :lists.foreach(
+      fn {line, lexical_tracker, tracers, aliases} ->
+        env = %{
+          Macro.Env.__struct__()
+          | line: line,
+            lexical_tracker: lexical_tracker,
+            module: module,
+            tracers: tracers
+        }
+
+        :lists.foreach(
+          fn alias ->
+            :elixir_env.trace({:alias_reference, [line: line], alias}, env)
+          end,
+          aliases
+        )
+      end,
+      traces
+    )
+  end
+
+  defp trace_attribute(trace?, module, traces, set, key, updates) do
+    updates =
+      if trace? and traces != [] do
+        trace_attribute(module, traces)
+        updates ++ [{4, []}]
+      else
+        updates
+      end
+
+    case updates do
+      [] -> :ok
+      _ -> :ets.update_element(set, key, updates)
+    end
+
+    :ok
+  end
+
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def __put_attribute__(module, key, value, line) when is_atom(key) do
-    assert_not_readonly!(__ENV__.function, module)
+  def __put_attribute__(module, key, value, warn_line, traces) when is_atom(key) do
+    assert_not_readonly!({:put_attribute, 3}, module)
     {set, bag} = data_tables_for(module)
-    value = preprocess_attribute(key, value)
-    put_attribute(module, key, value, line, set, bag)
+    put_attribute(module, key, value, warn_line, traces, set, bag)
     :ok
+  end
+
+  defp put_attribute(_module, :on_load, value, warn_line, traces, set, bag) do
+    value =
+      case value do
+        _ when is_atom(value) ->
+          {value, 0}
+
+        {atom, 0} = tuple when is_atom(atom) ->
+          tuple
+
+        _ ->
+          raise ArgumentError,
+                "@on_load is a built-in module attribute that annotates a function to be invoked " <>
+                  "when the module is loaded. It should be an atom or an {atom, 0} tuple, " <>
+                  "got: #{inspect(value)}"
+      end
+
+    try do
+      :ets.lookup_element(set, :on_load, 3)
+    catch
+      :error, :badarg ->
+        :ets.insert(set, {:on_load, value, warn_line, traces})
+        :ets.insert(bag, {:warn_attributes, :on_load})
+    else
+      _ -> raise ArgumentError, "the @on_load attribute can only be set once per module"
+    end
   end
 
   # If any of the doc attributes are called with a keyword list that
   # will become documentation metadata. Multiple calls will be merged
   # into the same map overriding duplicate keys.
-  defp put_attribute(module, key, {_, metadata}, line, set, _bag)
+  defp put_attribute(module, key, {_, metadata}, warn_line, _traces, set, _bag)
        when key in [:doc, :typedoc, :moduledoc] and is_list(metadata) do
-    metadata_map = preprocess_doc_meta(metadata, module, line, %{})
+    metadata_map = preprocess_doc_meta(metadata, module, warn_line, %{})
 
-    case :ets.insert_new(set, {{key, :meta}, metadata_map, line}) do
+    case :ets.insert_new(set, {{key, :meta}, metadata_map}) do
       true ->
         :ok
 
@@ -2154,46 +2219,45 @@ defmodule Module do
 
   # Optimize some attributes by avoiding writing to the attributes key
   # in the bag table since we handle them internally.
-  defp put_attribute(module, key, value, line, set, _bag)
+  defp put_attribute(module, key, value, warn_line, traces, set, _bag)
        when key in [:doc, :typedoc, :moduledoc, :impl, :deprecated] do
+    value = preprocess_attribute(key, value)
+
     try do
       :ets.lookup_element(set, key, 3)
     catch
       :error, :badarg -> :ok
     else
-      unread_line when is_integer(line) and is_integer(unread_line) ->
+      unread_line when is_integer(warn_line) and is_integer(unread_line) ->
         message = "redefining @#{key} attribute previously set at line #{unread_line}"
-        IO.warn(message, attribute_stack(module, line))
+        IO.warn(message, attribute_stack(module, warn_line))
 
       _ ->
         :ok
     end
 
-    :ets.insert(set, {key, value, line})
+    :ets.insert(set, {key, value, warn_line, traces})
   end
 
-  defp put_attribute(_module, :on_load, value, line, set, bag) do
-    try do
-      :ets.lookup_element(set, :on_load, 3)
-    catch
-      :error, :badarg ->
-        :ets.insert(set, {:on_load, value, line})
-        :ets.insert(bag, {:warn_attributes, :on_load})
-    else
-      _ -> raise ArgumentError, "the @on_load attribute can only be set once per module"
-    end
-  end
+  defp put_attribute(_module, key, value, warn_line, traces, set, bag) do
+    value = preprocess_attribute(key, value)
 
-  defp put_attribute(_module, key, value, line, set, bag) do
     try do
       :ets.lookup_element(set, key, 3)
     catch
       :error, :badarg ->
-        :ets.insert(set, {key, value, line})
+        :ets.insert(set, {key, value, warn_line, traces})
         :ets.insert(bag, {:warn_attributes, key})
     else
-      :accumulate -> :ets.insert(bag, {{:accumulate, key}, value})
-      _ -> :ets.insert(set, {key, value, line})
+      :accumulate ->
+        if traces != [] do
+          :ets.update_element(set, key, {4, traces ++ :ets.lookup_element(set, key, 4)})
+        end
+
+        :ets.insert(bag, {{:accumulate, key}, value})
+
+      _ ->
+        :ets.insert(set, {key, value, warn_line, traces})
     end
   end
 
@@ -2207,9 +2271,6 @@ defmodule Module do
   defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
     case value do
       {line, doc} when is_integer(line) and (is_binary(doc) or doc == false or is_nil(doc)) ->
-        value
-
-      {line, [{key, _} | _]} when is_integer(line) and is_atom(key) ->
         value
 
       {line, doc} when is_integer(line) ->
@@ -2231,22 +2292,6 @@ defmodule Module do
       value
     else
       raise ArgumentError, "@behaviour expects a module, got: #{inspect(value)}"
-    end
-  end
-
-  defp preprocess_attribute(:on_load, value) do
-    case value do
-      _ when is_atom(value) ->
-        {value, 0}
-
-      {atom, 0} = tuple when is_atom(atom) ->
-        tuple
-
-      _ ->
-        raise ArgumentError,
-              "@on_load is a built-in module attribute that annotates a function to be invoked " <>
-                "when the module is loaded. It should be an atom or an {atom, 0} tuple, " <>
-                "got: #{inspect(value)}"
     end
   end
 
@@ -2387,7 +2432,7 @@ defmodule Module do
 
   defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
-      [{:doc, {_, _} = pair, _}] ->
+      [{:doc, {_, _} = pair, _, _}] ->
         pair
 
       [] ->

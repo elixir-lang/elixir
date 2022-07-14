@@ -223,10 +223,10 @@ retrieve_location(Location, Module) ->
       {filename:absname(File), elixir_utils:relative_to_cwd(File), Line};
     [] ->
       nil;
-    [{file, File, _}] when is_binary(File) ->
+    [{file, File, _, _}] when is_binary(File) ->
       'Elixir.Module':delete_attribute(Module, file),
       {filename:absname(File), elixir_utils:relative_to_cwd(File), 0};
-    [{file, {File, Line}, _}] when is_binary(File) andalso is_integer(Line) ->
+    [{file, {File, Line}, _, _}] when is_binary(File) andalso is_integer(Line) ->
       'Elixir.Module':delete_attribute(Module, file),
       {filename:absname(File), elixir_utils:relative_to_cwd(File), Line}
   end.

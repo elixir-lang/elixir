@@ -139,8 +139,8 @@ defmodule Kernel.Utils do
 
     enforce_keys =
       case :ets.take(set, :enforce_keys) do
-        [{_, enforce_keys, _}] when is_list(enforce_keys) -> enforce_keys
-        [{_, enforce_key, _}] -> [enforce_key]
+        [{_, enforce_keys, _, _}] when is_list(enforce_keys) -> enforce_keys
+        [{_, enforce_key, _, _}] -> [enforce_key]
         [] -> []
       end
 
@@ -202,7 +202,7 @@ defmodule Kernel.Utils do
     case enforce_keys -- :maps.keys(struct) do
       [] ->
         # The __struct__ field is used for expansion and for loading remote structs
-        :ets.insert(set, {:__struct__, struct, nil})
+        :ets.insert(set, {:__struct__, struct, nil, []})
 
         # Store all field metadata to go into __info__(:struct)
         mapper = fn {key, val} ->
