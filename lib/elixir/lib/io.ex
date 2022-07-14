@@ -588,7 +588,7 @@ defmodule IO do
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
 
-  `stream/1` has been introduced in Elixir v1.12.0,
+  `stream/0` has been introduced in Elixir v1.12.0,
   while `stream/2` has been available since v1.0.0.
 
   ## Examples
@@ -633,7 +633,7 @@ defmodule IO do
   Finally, do not use this function on IO devices in Unicode
   mode as it will return the wrong result.
 
-  `binstream/1` has been introduced in Elixir v1.12.0,
+  `binstream/0` has been introduced in Elixir v1.12.0,
   while `binstream/2` has been available since v1.0.0.
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t()
