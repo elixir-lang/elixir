@@ -282,7 +282,7 @@ validate_module_name(Line, File, Module) ->
 build(Line, File, Module) ->
   %% In the set table we store:
   %%
-  %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
+  %% * {Attribute, Value, AccumulateOrUnsetOrReadOrUnreadline, TraceLineOrNil}
   %% * {{elixir, ...}, ...}
   %% * {{cache, ...}, ...}
   %% * {{function, Tuple}, ...}, {{macro, Tuple}, ...}
@@ -311,25 +311,25 @@ build(Line, File, Module) ->
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
   ets:insert(DataSet, [
-    % {Key, Value, ReadOrUnreadLine}
-    {moduledoc, nil, nil},
+    % {Key, Value, ReadOrUnreadLine, TraceLine}
+    {moduledoc, nil, nil, []},
 
-    % {Key, Value, accumulate}
-    {after_compile, [], accumulate},
-    {before_compile, [], accumulate},
-    {behaviour, [], accumulate},
-    {compile, [], accumulate},
-    {derive, [], accumulate},
-    {dialyzer, [], accumulate},
-    {external_resource, [], accumulate},
-    {on_definition, [], accumulate},
-    {type, [], accumulate},
-    {opaque, [], accumulate},
-    {typep, [], accumulate},
-    {spec, [], accumulate},
-    {callback, [], accumulate},
-    {macrocallback, [], accumulate},
-    {optional_callbacks, [], accumulate},
+    % {Key, Value, accumulate, TraceLine}
+    {after_compile, [], accumulate, []},
+    {before_compile, [], accumulate, []},
+    {behaviour, [], accumulate, []},
+    {compile, [], accumulate, []},
+    {derive, [], accumulate, []},
+    {dialyzer, [], accumulate, []},
+    {external_resource, [], accumulate, []},
+    {on_definition, [], accumulate, []},
+    {type, [], accumulate, []},
+    {opaque, [], accumulate, []},
+    {typep, [], accumulate, []},
+    {spec, [], accumulate, []},
+    {callback, [], accumulate, []},
+    {macrocallback, [], accumulate, []},
+    {optional_callbacks, [], accumulate, []},
 
     % Others
     {?counter_attr, 0}
@@ -381,8 +381,6 @@ eval_callbacks(Line, DataBag, Name, Args, E) ->
   end, E, Callbacks).
 
 expand_callback(Line, M, F, Args, Acc, Fun) ->
-  %% TODO: Remove this reset_vars once we move variables to S
-  %% as we can expect all variables to have been previously reset
   E = elixir_env:reset_vars(Acc),
   S = elixir_env:env_to_ex(E),
   Meta = [{line, Line}, {required, true}],
@@ -414,9 +412,9 @@ attributes(DataSet, DataBag, PersistedAttributes) ->
 
 lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
   case ets:lookup(DataSet, Key) of
-    [{_, _, accumulate}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
-    [{_, _, unset}] -> [];
-    [{_, Value, _}] -> [Value];
+    [{_, _, accumulate, _}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
+    [{_, _, unset, _}] -> [];
+    [{_, Value, _, _}] -> [Value];
     [] -> []
   end.
 
@@ -425,7 +423,7 @@ warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
   %% This is the same list as in Module.put_attribute
   %% without moduledoc which are never warned on.
   Attrs = [doc, typedoc, impl, deprecated | StoredAttrs -- PersistedAttrs],
-  Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
+  Query = [{{Attr, '_', '$1', '_'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
    || [Key, Line] <- ets:select(DataSet, Query)].
 

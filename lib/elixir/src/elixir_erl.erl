@@ -504,7 +504,7 @@ get_moduledoc(Line, Set) ->
 get_moduledoc_meta(Set) ->
   case ets:lookup(Set, {moduledoc, meta}) of
     [] -> #{};
-    [{{moduledoc, meta}, Map, _}] when is_map(Map) -> Map
+    [{{moduledoc, meta}, Map}] when is_map(Map) -> Map
   end.
 
 get_docs(Set, Module, Definitions, Kind) ->

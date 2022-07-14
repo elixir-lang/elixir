@@ -158,6 +158,76 @@ defmodule Kernel.LexicalTrackerTest do
       refute URI in compile
     end
 
+    test "attributes adds dependency based on expansion" do
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute1 do
+          @example [String, Enum]
+          def foo(atom) when atom in @example, do: atom
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute String in compile
+      refute Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute2 do
+          @example [String, Enum]
+          def foo(atom) when atom in @example, do: atom
+          _ = @example
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert String in compile
+      assert Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute3 do
+          @example [String, Enum]
+          _ = Module.get_attribute(__MODULE__, :example)
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert String in compile
+      assert Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute4 do
+          Module.register_attribute(__MODULE__, :example, accumulate: true)
+          @example String
+          def foo(atom) when atom in @example, do: atom
+          @example Enum
+          def bar(atom) when atom in @example, do: atom
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute String in compile
+      refute Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute5 do
+          Module.register_attribute(__MODULE__, :example, accumulate: true)
+          @example String
+          def foo(atom) when atom in @example, do: atom
+          @example Enum
+          def bar(atom) when atom in @example, do: atom
+          _ = Module.get_attribute(__MODULE__, :example)
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert String in compile
+      assert Enum in compile
+    end
+
     test "@compile adds a runtime dependency" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
@@ -175,6 +245,48 @@ defmodule Kernel.LexicalTrackerTest do
       refute Enum in compile
       refute Enum in exports
       assert Enum in runtime
+    end
+
+    def __before_compile__(_), do: :ok
+    def __after_compile__(_, _), do: :ok
+    def __on_definition__(_, _, _, _, _, _), do: :ok
+
+    test "module callbacks add a compile dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.BeforeCompile do
+          @before_compile Kernel.LexicalTrackerTest
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Kernel.LexicalTrackerTest in compile
+      refute Kernel.LexicalTrackerTest in exports
+      refute Kernel.LexicalTrackerTest in runtime
+
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.AfterCompile do
+          @after_compile Kernel.LexicalTrackerTest
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Kernel.LexicalTrackerTest in compile
+      refute Kernel.LexicalTrackerTest in exports
+      refute Kernel.LexicalTrackerTest in runtime
+
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.OnDefinition do
+          @on_definition Kernel.LexicalTrackerTest
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Kernel.LexicalTrackerTest in compile
+      refute Kernel.LexicalTrackerTest in exports
+      refute Kernel.LexicalTrackerTest in runtime
     end
 
     test "defdelegate with literal adds runtime dependency" do
@@ -283,8 +395,7 @@ defmodule Kernel.LexicalTrackerTest do
       refute Kernel.LexicalTrackerTest.Defmodule in runtime
     end
 
-    # TODO: This should not be an export dependency but all requires are exports at the moment
-    test "defmacro adds an export dependency" do
+    test "defmacro adds a compile-time dependency for local calls" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.Defmacro do

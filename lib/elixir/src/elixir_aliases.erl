@@ -85,7 +85,9 @@ expand_or_concat(Aliases, E) ->
 
 %% Ensure a module is loaded before its usage.
 
-ensure_loaded(_Meta, 'Elixir.Kernel', _E) -> ok;
+%% Skip Kernel verification for bootstrap purposes.
+ensure_loaded(_Meta, 'Elixir.Kernel', _E) ->
+  ok;
 ensure_loaded(Meta, Module, E) ->
   case code:ensure_loaded(Module) of
     {module, Module} ->
