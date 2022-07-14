@@ -188,7 +188,7 @@ env_for_eval(#{lexical_tracker := Pid} = Env) ->
     false ->
       NewEnv#{tracers := []}
   end;
-%% TODO: Deprecate all options except line and file on v1.15.
+%% TODO: Deprecate all options except line, file, module, and function on v1.15.
 env_for_eval(Opts) when is_list(Opts) ->
   Env = elixir_env:new(),
 

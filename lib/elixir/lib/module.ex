@@ -1282,7 +1282,6 @@ defmodule Module do
       only an interest in fetching the kind and the metadata
 
   """
-  # TODO: Deprecate :nillify_clauses in options on Elixir v1.16
   @spec get_definition(module, definition, keyword) ::
           {:v1, def_kind, meta :: keyword,
            [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}]}

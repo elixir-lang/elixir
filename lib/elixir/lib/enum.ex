@@ -2912,11 +2912,7 @@ defmodule Enum do
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, first..last//step = index_range) do
     # TODO: Deprecate negative steps on Elixir v1.16
-    # TODO: There are two features we can add to slicing ranges:
-    # 1. We can allow the step to be any positive number
-    # 2. We can allow slice and reverse at the same time. However, we can't
-    #    implement so right now. First we will have to raise if a decreasing
-    #    range is given on Elixir v2.0.
+    # TODO: Support negative steps as a reverse on Elixir v2.0.
     cond do
       step > 0 ->
         slice_range(enumerable, first, last, step)
