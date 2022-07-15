@@ -1,10 +1,8 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([
-  new/0, to_caller/1, with_vars/2, reset_vars/1,
-  env_to_ex/1, env_to_erl/1,
-  reset_unused_vars/1, check_unused_vars/2,
-  merge_and_check_unused_vars/3,
+  new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1,
+  reset_unused_vars/1, check_unused_vars/2, merge_and_check_unused_vars/3,
   trace/2, format_error/1,
   reset_read/2, prepare_write/1, close_write/2
 ]).
@@ -54,19 +52,6 @@ env_to_ex(#{context := match, versioned_vars := Vars}) ->
   #elixir_ex{prematch={Vars, Counter}, vars={Vars, false}, unused={#{}, Counter}};
 env_to_ex(#{versioned_vars := Vars}) ->
   #elixir_ex{vars={Vars, false}, unused={#{}, map_size(Vars)}}.
-
-env_to_erl(#{context := Context, versioned_vars := Read}) ->
-  {VarsList, _Counter} = lists:mapfoldl(fun to_erl_var/2, 0, maps:values(Read)),
-  VarsMap = maps:from_list(VarsList),
-  Scope = #elixir_erl{
-    context=Context,
-    var_names=VarsMap,
-    counter=#{'_' => map_size(VarsMap)}
-  },
-  {VarsList, Scope}.
-
-to_erl_var(Version, Counter) ->
-  {{Version, list_to_atom("_@" ++ integer_to_list(Counter))}, Counter + 1}.
 
 %% VAR HANDLING
 
