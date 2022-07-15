@@ -50,7 +50,7 @@ compile(Quoted, ArgsList, E) ->
   {dispatch(Module, Fun, Args, Purgeable), EE}.
 
 spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
-  {Vars, S} = elixir_env:env_to_erl(E),
+  {Vars, S} = elixir_erl_var:from_env(E),
   {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, erl_anno:new(Line), S),
 
   Module = retrieve_compiler_module(),
