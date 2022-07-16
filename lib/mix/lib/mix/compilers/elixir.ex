@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 13
+  @manifest_vsn 14
   @checkpoint_vsn 2
 
   import Record
@@ -41,8 +41,8 @@ defmodule Mix.Compilers.Elixir do
     timestamp = System.os_time(:second)
     all_paths = Mix.Utils.extract_files(srcs, [:ex])
 
-    {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_lock,
-     old_config} = parse_manifest(manifest, dest)
+    {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_deps_config} =
+      parse_manifest(manifest, dest)
 
     # If modules have been added or removed from the Erlang compiler,
     # we need to recompile all references to old and new modules.
@@ -63,24 +63,26 @@ defmodule Mix.Compilers.Elixir do
     # If the dependencies have changed, we need to traverse lock/config files.
     deps_changed? = Mix.Utils.stale?([Mix.Project.config_mtime()], [modified])
 
+    # If a configuration is only accessed at compile-time, we don't need to
+    # track modules, only the compile env. So far this is only true for Elixir's
+    # dbg callback.
+    compile_env_apps = deps_config_compile_env_apps(old_deps_config)
+
     # The app tracer will return information about apps before this compilation.
     app_tracer = Mix.Compilers.ApplicationTracer.init()
 
-    {force?, stale, new_lock, new_config} =
+    {force?, stale, new_deps_config} =
       cond do
-        !!opts[:force] or is_nil(old_lock) or is_nil(old_config) or old_cache_key != new_cache_key ->
-          {true, stale, Enum.sort(Mix.Dep.Lock.read()),
-           Enum.sort(Mix.Tasks.Loadconfig.read_compile())}
+        !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key ->
+          {true, stale, deps_config()}
 
-        deps_changed? ->
-          new_lock = Enum.sort(Mix.Dep.Lock.read())
-          new_config = Enum.sort(Mix.Tasks.Loadconfig.read_compile())
-
-          config_apps = merge_appset(old_config, new_config, [])
-          apps = merge_appset(old_lock, new_lock, config_apps)
+        deps_changed? or compile_env_apps != [] ->
+          new_deps_config = deps_config()
+          config_apps = merge_appset(old_deps_config.config, new_deps_config.config, [])
+          apps = merge_appset(old_deps_config.lock, new_deps_config.lock, config_apps)
 
           if Mix.Project.config()[:app] in apps do
-            {true, stale, new_lock, new_config}
+            {true, stale, new_deps_config}
           else
             apps_stale =
               apps
@@ -95,18 +97,20 @@ defmodule Mix.Compilers.Elixir do
                 end
               end)
 
+            compile_env_apps = compile_env_apps ++ config_apps
+
             compile_env_stale =
               for source(compile_env: compile_env, modules: modules) <- all_sources,
-                  Enum.any?(config_apps, &List.keymember?(compile_env, &1, 0)),
+                  Enum.any?(compile_env_apps, &List.keymember?(compile_env, &1, 0)),
                   module <- modules,
                   do: module
 
             stale = (stale ++ compile_env_stale) ++ apps_stale
-            {false, stale, new_lock, new_config}
+            {false, stale, new_deps_config}
           end
 
         true ->
-          {false, stale, old_lock, old_config}
+          {false, stale, old_deps_config}
       end
 
     {stale_modules, stale_exports, all_local_exports} =
@@ -170,8 +174,7 @@ defmodule Mix.Compilers.Elixir do
             all_local_exports,
             new_parents,
             new_cache_key,
-            new_lock,
-            new_config,
+            new_deps_config,
             timestamp
           )
 
@@ -217,8 +220,7 @@ defmodule Mix.Compilers.Elixir do
           all_local_exports,
           new_parents,
           new_cache_key,
-          new_lock,
-          new_config,
+          new_deps_config,
           timestamp
         )
       end
@@ -228,6 +230,23 @@ defmodule Mix.Compilers.Elixir do
     end
   after
     Mix.Compilers.ApplicationTracer.stop()
+  end
+
+  defp deps_config do
+    # If you change this config, you need to bump @manifest_vsn
+    %{
+      lock: Enum.sort(Mix.Dep.Lock.read()),
+      config: Enum.sort(Mix.Tasks.Loadconfig.read_compile()),
+      dbg: Application.fetch_env!(:elixir, :dbg_callback)
+    }
+  end
+
+  defp deps_config_compile_env_apps(deps_config) do
+    if deps_config[:dbg] != Application.fetch_env!(:elixir, :dbg_callback) do
+      [:elixir]
+    else
+      []
+    end
   end
 
   @doc """
@@ -261,7 +280,7 @@ defmodule Mix.Compilers.Elixir do
     rescue
       _ -> {[], []}
     else
-      {@manifest_vsn, modules, sources, _, _, _, _, _} -> {modules, sources}
+      {@manifest_vsn, modules, sources, _, _, _, _} -> {modules, sources}
       _ -> {[], []}
     end
   end
@@ -890,7 +909,7 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  @default_manifest {[], [], %{}, [], nil, nil, nil}
+  @default_manifest {[], [], %{}, [], nil, nil}
 
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do
@@ -900,8 +919,8 @@ defmodule Mix.Compilers.Elixir do
       _ ->
         @default_manifest
     else
-      {@manifest_vsn, modules, sources, local_exports, parent, cache_key, lock, config} ->
-        {modules, sources, local_exports, parent, cache_key, lock, config}
+      {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config} ->
+        {modules, sources, local_exports, parent, cache_key, deps_config}
 
       # {vsn, modules, sources} v5-v7 (v1.10)
       # {vsn, modules, sources, local_exports} v8-v10 (v1.11)
@@ -935,17 +954,7 @@ defmodule Mix.Compilers.Elixir do
     @default_manifest
   end
 
-  defp write_manifest(
-         manifest,
-         [],
-         [],
-         _exports,
-         _parents,
-         _cache_key,
-         _lock,
-         _config,
-         _timestamp
-       ) do
+  defp write_manifest(manifest, [], [], _exports, _parents, _cache_key, _deps_config, _timestamp) do
     File.rm(manifest)
     :ok
   end
@@ -957,13 +966,12 @@ defmodule Mix.Compilers.Elixir do
          exports,
          parents,
          cache_key,
-         lock,
-         config,
+         deps_config,
          timestamp
        ) do
     File.mkdir_p!(Path.dirname(manifest))
 
-    term = {@manifest_vsn, modules, sources, exports, parents, cache_key, lock, config}
+    term = {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config}
     manifest_data = :erlang.term_to_binary(term, [:compressed])
     File.write!(manifest, manifest_data)
     File.touch!(manifest, timestamp)

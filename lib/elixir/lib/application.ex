@@ -553,10 +553,6 @@ defmodule Application do
   @doc since: "1.14.0"
   @spec compile_env(Macro.Env.t(), app, key | list, value) :: value
   def compile_env(%Macro.Env{} = env, app, key_or_path, default) do
-    if env.function do
-      raise "Application.compile_env/4 cannot be called inside functions, only in the module body"
-    end
-
     case fetch_compile_env(app, key_or_path, env) do
       {:ok, value} -> value
       :error -> default
@@ -598,10 +594,6 @@ defmodule Application do
   @doc since: "1.14.0"
   @spec compile_env!(Macro.Env.t(), app, key | list) :: value
   def compile_env!(%Macro.Env{} = env, app, key_or_path) do
-    if env.function do
-      raise "Application.compile_env!/3 cannot be called inside functions, only in the module body"
-    end
-
     case fetch_compile_env(app, key_or_path, env) do
       {:ok, value} ->
         value

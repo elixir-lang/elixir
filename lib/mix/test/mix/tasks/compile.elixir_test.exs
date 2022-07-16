@@ -1,9 +1,10 @@
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.ElixirTest do
+  use MixTest.Case
+
   import ExUnit.CaptureIO
   alias Mix.Task.Compiler.Diagnostic
-  use MixTest.Case
 
   def trace(event, env) do
     send(__MODULE__, {event, env})
@@ -272,6 +273,41 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     Application.delete_env(:sample, :foo, persistent: true)
+  end
+
+  defdelegate dbg(code, options, env), to: Macro
+
+  test "recompiles only config files when elixir config changes" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def a, do: dbg(:ok)
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def b, do: :ok
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      # Change the dbg_callback at runtime
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      Application.put_env(:elixir, :dbg_callback, {__MODULE__, :dbg, []})
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+    end)
+  after
+    Application.put_env(:elixir, :dbg_callback, {Macro, :dbg, []})
   end
 
   test "recompiles files when config changes export dependencies" do
