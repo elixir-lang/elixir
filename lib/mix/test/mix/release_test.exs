@@ -329,6 +329,30 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start[:iex] == :temporary
     end
 
+    test "configures other applications in cascade", context do
+      in_tmp(context.test, fn ->
+        app =
+          {:application, :my_sample_mode,
+           applications: [:kernel, :stdlib, :elixir, :runtime_tools],
+           description: 'my_sample_mode',
+           modules: [],
+           vsn: '1.0.0'}
+
+        File.mkdir_p!("my_sample_mode/ebin")
+        Code.prepend_path("my_sample_mode/ebin")
+        format = :io_lib.format("%% coding: utf-8~n~p.~n", [app])
+        File.write!("my_sample_mode/ebin/my_sample_mode.app", format)
+
+        release = release(applications: [my_sample_mode: :temporary])
+        assert release.boot_scripts.start[:my_sample_mode] == :temporary
+        assert release.boot_scripts.start[:runtime_tools] == :temporary
+
+        release = release(applications: [my_sample_mode: :temporary, runtime_tools: :none])
+        assert release.boot_scripts.start[:my_sample_mode] == :temporary
+        assert release.boot_scripts.start[:runtime_tools] == :none
+      end)
+    end
+
     test "generates a start_clean script with only kernel and stdlib starting up" do
       release = release([])
 
@@ -767,11 +791,9 @@ defmodule Mix.ReleaseTest do
         File.write!("my_sample1/ebin/my_sample1.app", format)
 
         release = release(applications: [my_sample1: :permanent])
-        assert release.applications.runtime_tools[:type] == :included
         assert release.boot_scripts.start[:runtime_tools] == :load
 
         release = release(applications: [my_sample1: :permanent, runtime_tools: :none])
-        assert release.applications.runtime_tools[:type] == :included
         assert release.boot_scripts.start[:runtime_tools] == :none
       end)
     end
@@ -792,7 +814,7 @@ defmodule Mix.ReleaseTest do
         File.write!("my_sample2/ebin/my_sample2.app", format)
 
         assert_raise Mix.Error,
-                     ":runtime_tools is listed both as a regular application and as an included application",
+                     ~r":runtime_tools has been given conflicting modes: :load and :permanent",
                      fn -> release(applications: [my_sample2: :permanent]) end
       end)
     end
