@@ -23,7 +23,11 @@ defmodule Module.Types.Behaviour do
         context
       end
 
-    check_callbacks(context, all_definitions)
+    context = check_callbacks(context, all_definitions)
+
+    for {message, env} <- context.warnings do
+      IO.warn(message, env)
+    end
   end
 
   defp context(env) do
@@ -31,8 +35,15 @@ defmodule Module.Types.Behaviour do
       # Macro.Env
       env: env,
       # Map containing the callbacks to be implemented
-      callbacks: %{}
+      callbacks: %{},
+      # list of warnings {message, env}
+      warnings: []
     }
+  end
+
+  defp warn(context, message, env_override \\ %{}) do
+    warning = {message, Map.merge(context.env, env_override)}
+    update_in(context.warnings, &[warning | &1])
   end
 
   defp check_behaviours(context, behaviours) do
@@ -42,15 +53,13 @@ defmodule Module.Types.Behaviour do
           message =
             "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(context.env.module)})"
 
-          IO.warn(message, context.env)
-          context
+          warn(context, message)
 
         not function_exported?(behaviour, :behaviour_info, 1) ->
           message =
             "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(context.env.module)})"
 
-          IO.warn(message, context.env)
-          context
+          warn(context, message)
 
         true ->
           :elixir_env.trace({:require, [from_macro: true], behaviour, []}, context.env)
@@ -64,50 +73,51 @@ defmodule Module.Types.Behaviour do
   defp add_callback(context, original, behaviour, optional_callbacks) do
     {callback, kind} = normalize_macro_or_function_callback(original)
 
-    case context.callbacks do
-      %{^callback => {_kind, conflict, _optional?}} ->
-        message =
-          if conflict == behaviour do
-            "the behavior #{inspect(conflict)} has been declared twice " <>
-              "(conflict in #{format_definition(kind, callback)} in module #{inspect(context.env.module)})"
-          else
-            "conflicting behaviours found. #{format_definition(kind, callback)} is required by " <>
-              "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(context.env.module)})"
-          end
+    context =
+      case context.callbacks do
+        %{^callback => {_kind, conflict, _optional?}} ->
+          message =
+            if conflict == behaviour do
+              "the behavior #{inspect(conflict)} has been declared twice " <>
+                "(conflict in #{format_definition(kind, callback)} in module #{inspect(context.env.module)})"
+            else
+              "conflicting behaviours found. #{format_definition(kind, callback)} is required by " <>
+                "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(context.env.module)})"
+            end
 
-        IO.warn(message, context.env)
+          warn(context, message)
 
-      %{} ->
-        :ok
-    end
+        %{} ->
+          context
+      end
 
     put_in(context.callbacks[callback], {kind, behaviour, original in optional_callbacks})
   end
 
   defp check_callbacks(context, all_definitions) do
-    for {callback, {kind, behaviour, optional?}} <- context.callbacks do
-      case :lists.keyfind(callback, 1, all_definitions) do
-        false when not optional? ->
-          message =
-            format_callback(callback, kind, behaviour) <>
-              " is not implemented (in module #{inspect(context.env.module)})"
+    for {callback, {kind, behaviour, optional?}} <- context.callbacks,
+        reduce: context do
+      context ->
+        case :lists.keyfind(callback, 1, all_definitions) do
+          false when not optional? ->
+            message =
+              format_callback(callback, kind, behaviour) <>
+                " is not implemented (in module #{inspect(context.env.module)})"
 
-          IO.warn(message, context.env)
+            warn(context, message)
 
-        {_, wrong_kind, _, _} when kind != wrong_kind ->
-          message =
-            format_callback(callback, kind, behaviour) <>
-              " was implemented as \"#{wrong_kind}\" but should have been \"#{kind}\" " <>
-              "(in module #{inspect(context.env.module)})"
+          {_, wrong_kind, _, _} when kind != wrong_kind ->
+            message =
+              format_callback(callback, kind, behaviour) <>
+                " was implemented as \"#{wrong_kind}\" but should have been \"#{kind}\" " <>
+                "(in module #{inspect(context.env.module)})"
 
-          IO.warn(message, context.env)
+            warn(context, message)
 
-        _ ->
-          :ok
-      end
+          _ ->
+            context
+        end
     end
-
-    :ok
   end
 
   defp format_callback(callback, kind, module) do
@@ -141,7 +151,7 @@ defmodule Module.Types.Behaviour do
 
         {:error, message} ->
           formatted = format_impl_warning(fa, kind, message)
-          IO.warn(formatted, %{context.env | line: line, file: file})
+          context = warn(context, formatted, %{line: line, file: file})
           {context, impl_contexts}
       end
     end)
@@ -248,21 +258,21 @@ defmodule Module.Types.Behaviour do
   end
 
   defp warn_missing_impls(context, impl_contexts, defs) do
-    for {pair, kind, meta, _clauses} <- defs,
-        kind in [:def, :defmacro] do
-      with {:ok, {_, behaviour, _}} <- Map.fetch(context.callbacks, pair),
-           true <- missing_impl_in_context?(meta, behaviour, impl_contexts) do
-        message =
-          "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
-            "callback (specified in #{inspect(behaviour)}). " <>
-            "This either means you forgot to add the \"@impl true\" annotation before the " <>
-            "definition or that you are accidentally overriding this callback"
+    for {pair, kind, meta, _clauses} <- defs, kind in [:def, :defmacro], reduce: context do
+      context ->
+        with {:ok, {_, behaviour, _}} <- Map.fetch(context.callbacks, pair),
+             true <- missing_impl_in_context?(meta, behaviour, impl_contexts) do
+          message =
+            "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
+              "callback (specified in #{inspect(behaviour)}). " <>
+              "This either means you forgot to add the \"@impl true\" annotation before the " <>
+              "definition or that you are accidentally overriding this callback"
 
-        IO.warn(message, %{context.env | line: :elixir_utils.get_line(meta)})
-      end
+          warn(context, message, %{line: :elixir_utils.get_line(meta)})
+        else
+          _ -> context
+        end
     end
-
-    context
   end
 
   defp missing_impl_in_context?(meta, behaviour, impl_contexts) do
