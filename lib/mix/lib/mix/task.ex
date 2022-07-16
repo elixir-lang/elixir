@@ -567,13 +567,13 @@ defmodule Mix.Task do
     run_in_children_projects(fun, selected_children)
   end
 
-  defp run_in_children_projects(fun, dependencies) do
+  defp run_in_children_projects(fun, deps) do
     # Get all dependency configuration but not the deps path
     # as we leave the control of the deps path still to the
     # umbrella child.
     config = Mix.Project.deps_config() |> Keyword.delete(:deps_path)
 
-    for %Mix.Dep{app: app, opts: opts} <- dependencies do
+    for %Mix.Dep{app: app, opts: opts} <- deps do
       Mix.Project.in_project(app, opts[:path], [inherit_parent_config_files: true] ++ config, fun)
     end
   end

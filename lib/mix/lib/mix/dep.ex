@@ -259,7 +259,10 @@ defmodule Mix.Dep do
       |> Keyword.put(:app_path, opts[:build])
       |> Keyword.put(:build_scm, scm)
 
-    config = Keyword.take(opts, [:inherit_parent_config_files]) ++ config
+    # If the dependency is not fetchable, then it is never compiled
+    # from scratch and therefore it needs the parent configuration
+    # files to know when to recompile.
+    config = [inherit_parent_config_files: not scm.fetchable?] ++ config
     env = opts[:env] || :prod
     old_env = Mix.env()
 

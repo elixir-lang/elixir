@@ -27,7 +27,6 @@ defmodule Mix.SCM.Path do
         path = "../#{app}"
 
         opts
-        |> Keyword.put(:inherit_parent_config_files, true)
         |> Keyword.put(:dest, Path.expand(path))
         |> Keyword.put_new(:path, path)
         |> Keyword.put_new(:env, Mix.env())

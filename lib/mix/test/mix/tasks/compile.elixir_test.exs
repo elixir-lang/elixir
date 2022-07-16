@@ -673,6 +673,63 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles files from path dependencies when its deps change" do
+    # Get Git repo first revision
+    [last, first | _] = get_git_repo_revs("git_repo")
+
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("path_on_git_repo/lib")
+
+      File.write!("path_on_git_repo/mix.exs", """
+      defmodule PathOnGitRepo.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :path_on_git_repo,
+            version: "0.1.0",
+            deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}]
+          ]
+        end
+      end
+      """)
+
+      File.write!("path_on_git_repo/lib/path_on_hello.ex", """
+      defmodule PathOnGitRepo.Hello do
+        IO.puts("GitRepo is defined: \#{Code.ensure_loaded?(GitRepo)}")
+      end
+      """)
+
+      File.write!("mix.lock", inspect(%{git_repo: {:git, fixture_path("git_repo"), first, []}}))
+      Mix.ProjectStack.post_config(deps: [{:path_on_git_repo, path: "path_on_git_repo"}])
+      Mix.Project.push(MixTest.Case.Sample)
+
+      Mix.Tasks.Deps.Get.run([])
+      assert capture_io(fn -> Mix.Task.run("compile") end) =~ "GitRepo is defined: false"
+
+      Mix.Task.clear()
+      Mix.State.clear_cache()
+      purge([GitRepo.MixProject, PathOnGitRepo.MixProject, PathOnGitRepo.Hello])
+
+      # Unload the git repo application so we can pick the new modules definition
+      :ok = Application.unload(:git_repo)
+
+      Mix.Tasks.Deps.Update.run(["--all"])
+      assert File.read!("mix.lock") =~ last
+
+      # The lock of sample (the parent app) is the one that changed
+      # but that should mirror on child path dependencies too.
+      ensure_touched(
+        "_build/dev/lib/sample/.mix/compile.lock",
+        "_build/dev/lib/path_on_git_repo/.mix/compile.elixir"
+      )
+
+      assert capture_io(fn -> Mix.Task.run("compile") end) =~ "GitRepo is defined: true"
+    end)
+  after
+    purge([GitRepo, GitRepo.MixProject])
+  end
+
   test "does not write BEAM files down on failures" do
     in_tmp("blank", fn ->
       Mix.Project.push(MixTest.Case.Sample)
@@ -893,7 +950,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles dependent changed externa resources" do
+  test "compiles dependent changed external resources" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       tmp = tmp_path("c.eex")
@@ -1529,6 +1586,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
       assert Mix.Tasks.Compile.Elixir.run(["--no-optional-deps"]) == {:ok, []}
+    end)
+  end
+
+  defp get_git_repo_revs(repo) do
+    File.cd!(fixture_path(repo), fn ->
+      Regex.split(~r/\r?\n/, System.cmd("git", ["log", "--format=%H"]) |> elem(0))
     end)
   end
 end
