@@ -407,6 +407,7 @@ defmodule Kernel.CLI do
   # These clauses are here so that Kernel.CLI does not error out with "unknown option"
   defp parse_iex(["--dot-iex", _ | t], config), do: parse_iex(t, config)
   defp parse_iex(["--remsh", _ | t], config), do: parse_iex(t, config)
+  defp parse_iex(["--no-pry" | t], config), do: parse_iex(t, config)
 
   defp parse_iex(["-S", h | t], config) do
     {%{config | commands: [{:script, h} | config.commands]}, t}
