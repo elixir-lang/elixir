@@ -5847,7 +5847,7 @@ defmodule Kernel do
   """
   @doc since: "1.14.0"
   defmacro dbg(code, options \\ []) do
-    {mod, fun, args} = Application.get_env(:elixir, :dbg_callback, {Macro, :dbg, []})
+    {mod, fun, args} = Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
     apply(mod, fun, [code, options, __CALLER__ | args])
   end
 

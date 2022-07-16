@@ -5,5 +5,10 @@
  {registered, [elixir_sup, elixir_config, elixir_code_server]},
  {applications, [kernel,stdlib,compiler]},
  {mod, {elixir,[]}},
- {env, [{check_endianness, true}, {ansi_enabled, false}, {time_zone_database, 'Elixir.Calendar.UTCOnlyTimeZoneDatabase'}]}
+ {env, [
+  {check_endianness, true},
+  {ansi_enabled, false},
+  {time_zone_database, 'Elixir.Calendar.UTCOnlyTimeZoneDatabase'},
+  {dbg_callback, {'Elixir.Macro', dbg, []}}
+ ]}
 ]}.
