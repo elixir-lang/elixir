@@ -21,8 +21,7 @@ defmodule Mix.Dep.Umbrella do
           dest: dest_path,
           from_umbrella: true,
           env: env,
-          build: build_path,
-          inherit_parent_config_files: true
+          build: build_path
         ]
 
         %Mix.Dep{

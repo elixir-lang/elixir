@@ -241,7 +241,7 @@ defmodule Mix.ProjectStack do
         io_done? = stack == []
         config = Keyword.merge(config, post_config)
         manifest_file = Path.join(Mix.Project.manifest_path(config), @manifest)
-        parent_config = peek_config_files(config[:inherit_parent_config_files], stack)
+        parent_files = peek_config_files(config[:inherit_parent_config_files], stack)
 
         project = %{
           name: module,
@@ -251,7 +251,7 @@ defmodule Mix.ProjectStack do
           recursing?: false,
           io_done: io_done?,
           config_apps: [],
-          config_files: [manifest_file | parent_config],
+          config_files: [manifest_file | parent_files],
           config_mtime: nil,
           after_compiler: %{},
           compile_env: nil

@@ -167,7 +167,8 @@ defmodule Mix.Project do
       consolidate_protocols: false,
       consolidation_path: consolidation_path(config),
       deps_path: deps_path(config),
-      env_path: build_path(config)
+      env_path: build_path(config),
+      lockfile: Path.expand(config[:lockfile])
     ]
   end
 
