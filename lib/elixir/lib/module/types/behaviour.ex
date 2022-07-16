@@ -12,88 +12,95 @@ defmodule Module.Types.Behaviour do
 
   @doc false
   def check_behaviours_and_impls(env, behaviours, impls, all_definitions) do
-    callbacks = check_behaviours(env, behaviours)
+    context = check_behaviours(context(env), behaviours)
 
-    pending_callbacks =
+    context =
       if impls != [] do
-        {non_implemented_callbacks, impl_contexts} =
-          check_impls(env, behaviours, callbacks, impls)
+        {context, impl_contexts} = check_impls(context, behaviours, impls)
 
-        warn_missing_impls(env, non_implemented_callbacks, impl_contexts, all_definitions)
-        non_implemented_callbacks
+        warn_missing_impls(context, impl_contexts, all_definitions)
       else
-        callbacks
+        context
       end
 
-    check_callbacks(env, pending_callbacks, all_definitions)
+    check_callbacks(context, all_definitions)
   end
 
-  defp check_behaviours(env, behaviours) do
-    Enum.reduce(behaviours, %{}, fn behaviour, acc ->
+  defp context(env) do
+    %{
+      # Macro.Env
+      env: env,
+      # Map containing the callbacks to be implemented
+      callbacks: %{}
+    }
+  end
+
+  defp check_behaviours(context, behaviours) do
+    Enum.reduce(behaviours, context, fn behaviour, context ->
       cond do
         not Code.ensure_loaded?(behaviour) ->
           message =
-            "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(env.module)})"
+            "@behaviour #{inspect(behaviour)} does not exist (in module #{inspect(context.env.module)})"
 
-          IO.warn(message, env)
-          acc
+          IO.warn(message, context.env)
+          context
 
         not function_exported?(behaviour, :behaviour_info, 1) ->
           message =
-            "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(env.module)})"
+            "module #{inspect(behaviour)} is not a behaviour (in module #{inspect(context.env.module)})"
 
-          IO.warn(message, env)
-          acc
+          IO.warn(message, context.env)
+          context
 
         true ->
-          :elixir_env.trace({:require, [from_macro: true], behaviour, []}, env)
+          :elixir_env.trace({:require, [from_macro: true], behaviour, []}, context.env)
           optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
           callbacks = behaviour_info(behaviour, :callbacks)
-          Enum.reduce(callbacks, acc, &add_callback(&1, behaviour, env, optional_callbacks, &2))
+          Enum.reduce(callbacks, context, &add_callback(&2, &1, behaviour, optional_callbacks))
       end
     end)
   end
 
-  defp add_callback(original, behaviour, env, optional_callbacks, acc) do
+  defp add_callback(context, original, behaviour, optional_callbacks) do
     {callback, kind} = normalize_macro_or_function_callback(original)
 
-    case acc do
+    case context.callbacks do
       %{^callback => {_kind, conflict, _optional?}} ->
         message =
           if conflict == behaviour do
             "the behavior #{inspect(conflict)} has been declared twice " <>
-              "(conflict in #{format_definition(kind, callback)} in module #{inspect(env.module)})"
+              "(conflict in #{format_definition(kind, callback)} in module #{inspect(context.env.module)})"
           else
             "conflicting behaviours found. #{format_definition(kind, callback)} is required by " <>
-              "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(env.module)})"
+              "#{inspect(conflict)} and #{inspect(behaviour)} (in module #{inspect(context.env.module)})"
           end
 
-        IO.warn(message, env)
+        IO.warn(message, context.env)
 
       %{} ->
         :ok
     end
 
-    Map.put(acc, callback, {kind, behaviour, original in optional_callbacks})
+    put_in(context.callbacks[callback], {kind, behaviour, original in optional_callbacks})
   end
 
-  defp check_callbacks(env, callbacks, all_definitions) do
-    for {callback, {kind, behaviour, optional?}} <- callbacks do
+  defp check_callbacks(context, all_definitions) do
+    for {callback, {kind, behaviour, optional?}} <- context.callbacks do
       case :lists.keyfind(callback, 1, all_definitions) do
         false when not optional? ->
           message =
             format_callback(callback, kind, behaviour) <>
-              " is not implemented (in module #{inspect(env.module)})"
+              " is not implemented (in module #{inspect(context.env.module)})"
 
-          IO.warn(message, env)
+          IO.warn(message, context.env)
 
         {_, wrong_kind, _, _} when kind != wrong_kind ->
           message =
             format_callback(callback, kind, behaviour) <>
               " was implemented as \"#{wrong_kind}\" but should have been \"#{kind}\" " <>
-              "(in module #{inspect(env.module)})"
+              "(in module #{inspect(context.env.module)})"
 
-          IO.warn(message, env)
+          IO.warn(message, context.env)
 
         _ ->
           :ok
@@ -115,25 +122,27 @@ defmodule Module.Types.Behaviour do
       module.__protocol__(:module) == module
   end
 
-  defp check_impls(env, behaviours, callbacks, impls) do
-    acc = {callbacks, %{}}
+  defp check_impls(context, behaviours, impls) do
+    all_callbacks = context.callbacks
+    acc = {context, %{}}
 
-    Enum.reduce(impls, acc, fn {fa, impl_context, defaults, kind, line, file, value}, acc ->
-      case impl_behaviours(fa, defaults, kind, value, behaviours, callbacks) do
+    Enum.reduce(impls, acc, fn {fa, impl_context, defaults, kind, line, file, value},
+                               {context, impl_contexts} = acc ->
+      case impl_behaviours(fa, defaults, kind, value, behaviours, all_callbacks) do
         {:ok, impl_behaviours} ->
-          Enum.reduce(impl_behaviours, acc, fn {fa, behaviour}, {callbacks, impl_contexts} ->
-            callbacks = Map.delete(callbacks, fa)
+          Enum.reduce(impl_behaviours, acc, fn {fa, behaviour}, {context, impl_contexts} ->
+            {_, context} = pop_in(context.callbacks[fa])
 
             impl_contexts =
               Map.update(impl_contexts, behaviour, [impl_context], &[impl_context | &1])
 
-            {callbacks, impl_contexts}
+            {context, impl_contexts}
           end)
 
         {:error, message} ->
           formatted = format_impl_warning(fa, kind, message)
-          IO.warn(formatted, %{env | line: line, file: file})
-          acc
+          IO.warn(formatted, %{context.env | line: line, file: file})
+          {context, impl_contexts}
       end
     end)
   end
@@ -233,14 +242,15 @@ defmodule Module.Types.Behaviour do
       "but this behaviour does not specify such callback#{known_callbacks(callbacks)}"
   end
 
-  defp warn_missing_impls(_env, callbacks, _impl_contexts, _defs) when map_size(callbacks) == 0 do
-    :ok
+  defp warn_missing_impls(%{callbacks: callbacks} = context, _impl_contexts, _defs)
+       when map_size(callbacks) == 0 do
+    context
   end
 
-  defp warn_missing_impls(env, non_implemented_callbacks, impl_contexts, defs) do
+  defp warn_missing_impls(context, impl_contexts, defs) do
     for {pair, kind, meta, _clauses} <- defs,
         kind in [:def, :defmacro] do
-      with {:ok, {_, behaviour, _}} <- Map.fetch(non_implemented_callbacks, pair),
+      with {:ok, {_, behaviour, _}} <- Map.fetch(context.callbacks, pair),
            true <- missing_impl_in_context?(meta, behaviour, impl_contexts) do
         message =
           "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
@@ -248,11 +258,11 @@ defmodule Module.Types.Behaviour do
             "This either means you forgot to add the \"@impl true\" annotation before the " <>
             "definition or that you are accidentally overriding this callback"
 
-        IO.warn(message, %{env | line: :elixir_utils.get_line(meta)})
+        IO.warn(message, %{context.env | line: :elixir_utils.get_line(meta)})
       end
     end
 
-    :ok
+    context
   end
 
   defp missing_impl_in_context?(meta, behaviour, impl_contexts) do
