@@ -16,8 +16,10 @@ defmodule Module.Types.Behaviour do
 
     pending_callbacks =
       if impls != [] do
-        {non_implemented_callbacks, contexts} = check_impls(env, behaviours, callbacks, impls)
-        warn_missing_impls(env, non_implemented_callbacks, contexts, all_definitions)
+        {non_implemented_callbacks, impl_contexts} =
+          check_impls(env, behaviours, callbacks, impls)
+
+        warn_missing_impls(env, non_implemented_callbacks, impl_contexts, all_definitions)
         non_implemented_callbacks
       else
         callbacks
@@ -116,13 +118,16 @@ defmodule Module.Types.Behaviour do
   defp check_impls(env, behaviours, callbacks, impls) do
     acc = {callbacks, %{}}
 
-    Enum.reduce(impls, acc, fn {fa, context, defaults, kind, line, file, value}, acc ->
+    Enum.reduce(impls, acc, fn {fa, impl_context, defaults, kind, line, file, value}, acc ->
       case impl_behaviours(fa, defaults, kind, value, behaviours, callbacks) do
         {:ok, impl_behaviours} ->
-          Enum.reduce(impl_behaviours, acc, fn {fa, behaviour}, {callbacks, contexts} ->
+          Enum.reduce(impl_behaviours, acc, fn {fa, behaviour}, {callbacks, impl_contexts} ->
             callbacks = Map.delete(callbacks, fa)
-            contexts = Map.update(contexts, behaviour, [context], &[context | &1])
-            {callbacks, contexts}
+
+            impl_contexts =
+              Map.update(impl_contexts, behaviour, [impl_context], &[impl_context | &1])
+
+            {callbacks, impl_contexts}
           end)
 
         {:error, message} ->
@@ -228,15 +233,15 @@ defmodule Module.Types.Behaviour do
       "but this behaviour does not specify such callback#{known_callbacks(callbacks)}"
   end
 
-  defp warn_missing_impls(_env, callbacks, _contexts, _defs) when map_size(callbacks) == 0 do
+  defp warn_missing_impls(_env, callbacks, _impl_contexts, _defs) when map_size(callbacks) == 0 do
     :ok
   end
 
-  defp warn_missing_impls(env, non_implemented_callbacks, contexts, defs) do
+  defp warn_missing_impls(env, non_implemented_callbacks, impl_contexts, defs) do
     for {pair, kind, meta, _clauses} <- defs,
         kind in [:def, :defmacro] do
       with {:ok, {_, behaviour, _}} <- Map.fetch(non_implemented_callbacks, pair),
-           true <- missing_impl_in_context?(meta, behaviour, contexts) do
+           true <- missing_impl_in_context?(meta, behaviour, impl_contexts) do
         message =
           "module attribute @impl was not set for #{format_definition(kind, pair)} " <>
             "callback (specified in #{inspect(behaviour)}). " <>
@@ -250,8 +255,8 @@ defmodule Module.Types.Behaviour do
     :ok
   end
 
-  defp missing_impl_in_context?(meta, behaviour, contexts) do
-    case contexts do
+  defp missing_impl_in_context?(meta, behaviour, impl_contexts) do
+    case impl_contexts do
       %{^behaviour => known} -> Keyword.get(meta, :context) in known
       %{} -> not Keyword.has_key?(meta, :context)
     end
