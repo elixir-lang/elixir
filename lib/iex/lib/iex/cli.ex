@@ -144,8 +144,7 @@ defmodule IEx.CLI do
   end
 
   defp options do
-    args = :init.get_plain_arguments()
-    [dot_iex_path: find_dot_iex(args), on_eof: :halt, pry: pry?(args)]
+    [dot_iex_path: find_dot_iex(:init.get_plain_arguments()), on_eof: :halt]
   end
 
   defp abort(msg) do
@@ -164,10 +163,6 @@ defmodule IEx.CLI do
   defp get_remsh(['--remsh', h | _]), do: List.to_atom(append_hostname(h))
   defp get_remsh([_ | t]), do: get_remsh(t)
   defp get_remsh([]), do: nil
-
-  defp pry?(['--no-pry' | _]), do: false
-  defp pry?([_ | t]), do: pry?(t)
-  defp pry?([]), do: true
 
   defp append_hostname(node) do
     case :string.find(node, '@') do
