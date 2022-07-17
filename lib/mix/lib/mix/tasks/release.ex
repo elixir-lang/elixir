@@ -384,6 +384,11 @@ defmodule Mix.Tasks.Release do
         * `:none` - the application is part of the release but it is neither
           loaded nor started
 
+      If you change the mode of an application, the mode will apply to all its child
+      applications. However, if an application has two parents, the mode of the parent
+      with highest priority wins (where `:permanent` has the highest priority, according
+      to the list above).
+
     * `:strip_beams` - controls if BEAM files should have their debug information,
       documentation chunks, and other non-essential metadata removed. Defaults to
       `true`. May be set to `false` to disable stripping. Also accepts

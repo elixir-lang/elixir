@@ -814,7 +814,7 @@ defmodule Mix.ReleaseTest do
         File.write!("my_sample2/ebin/my_sample2.app", format)
 
         assert_raise Mix.Error,
-                     ~r":runtime_tools has been given conflicting modes: :load and :permanent",
+                     ":runtime_tools is listed both as a regular application and as an included application",
                      fn -> release(applications: [my_sample2: :permanent]) end
       end)
     end

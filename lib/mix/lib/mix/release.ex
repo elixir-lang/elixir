@@ -275,18 +275,37 @@ defmodule Mix.Release do
           is_nil(properties) ->
             load_app(app, mode, deps_apps, seen, otp_root, optional, overrides)
 
-          properties[:mode] != mode and not Keyword.has_key?(overrides, app) ->
-            Mix.raise(
-              "#{inspect(app)} has been given conflicting modes: #{inspect(mode)} and #{inspect(properties[:mode])}. " <>
-                "You must list the desired mode in your releases configuration. " <>
-                "Note included applications must always be listed as :load"
-            )
+          Keyword.has_key?(overrides, app) ->
+            seen
 
           true ->
-            seen
+            put_in(seen[app][mode], merge_mode!(app, mode, properties[:mode]))
         end
     end
   end
+
+  defp merge_mode!(_app, mode, mode), do: mode
+
+  defp merge_mode!(app, left, right) do
+    if left == :included or right == :included do
+      Mix.raise(
+        "#{inspect(app)} is listed both as a regular application and as an included application"
+      )
+    else
+      merge_mode(left, right)
+    end
+  end
+
+  defp merge_mode(:none, other), do: other
+  defp merge_mode(other, :none), do: other
+  defp merge_mode(:load, other), do: other
+  defp merge_mode(other, :load), do: other
+  defp merge_mode(:temporary, other), do: other
+  defp merge_mode(other, :temporary), do: other
+  defp merge_mode(:transient, other), do: other
+  defp merge_mode(other, :transient), do: other
+  defp merge_mode(:permanent, other), do: other
+  defp merge_mode(other, :permanent), do: other
 
   defp load_app(app, mode, deps_apps, seen, otp_root, optional, overrides) do
     cond do
@@ -326,11 +345,12 @@ defmodule Mix.Release do
         [{:application, ^app, properties}] = terms
         value = [path: path, otp_app?: otp_app?, mode: mode] ++ properties
         seen = Map.put(seen, app, value)
+        child_mode = if mode == :included, do: :load, else: mode
 
         applications =
           properties
           |> Keyword.get(:applications, [])
-          |> Enum.map(&{&1, mode})
+          |> Enum.map(&{&1, child_mode})
 
         optional = Keyword.get(properties, :optional_applications, [])
         seen = load_apps(applications, deps_apps, seen, otp_root, optional, overrides)
@@ -338,7 +358,7 @@ defmodule Mix.Release do
         included_applications =
           properties
           |> Keyword.get(:included_applications, [])
-          |> Enum.map(&{&1, :load})
+          |> Enum.map(&{&1, :included})
 
         load_apps(included_applications, deps_apps, seen, otp_root, [], overrides)
 
@@ -353,10 +373,13 @@ defmodule Mix.Release do
         for(
           {app, props} <- all_apps,
           not List.keymember?(specified_apps, app, 0),
-          do: {app, props[:mode]}
+          do: {app, boot_mode(props[:mode])}
         )
       )
   end
+
+  defp boot_mode(:included), do: :load
+  defp boot_mode(mode), do: mode
 
   defp build_start_clean_boot(boot) do
     for({app, _mode} <- boot, do: {app, :none})
