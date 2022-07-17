@@ -333,7 +333,7 @@ defmodule Mix.ReleaseTest do
       in_tmp(context.test, fn ->
         app =
           {:application, :my_sample_mode,
-           applications: [:kernel, :stdlib, :elixir, :runtime_tools],
+           applications: [:kernel, :stdlib, :elixir, :runtime_tools, :compiler],
            description: 'my_sample_mode',
            modules: [],
            vsn: '1.0.0'}
@@ -343,13 +343,17 @@ defmodule Mix.ReleaseTest do
         format = :io_lib.format("%% coding: utf-8~n~p.~n", [app])
         File.write!("my_sample_mode/ebin/my_sample_mode.app", format)
 
-        release = release(applications: [my_sample_mode: :temporary])
+        apps = [my_sample_mode: :temporary]
+        release = release(applications: apps)
         assert release.boot_scripts.start[:my_sample_mode] == :temporary
         assert release.boot_scripts.start[:runtime_tools] == :temporary
+        assert release.boot_scripts.start[:compiler] == :permanent
 
-        release = release(applications: [my_sample_mode: :temporary, runtime_tools: :none])
+        apps = [my_sample_mode: :temporary, runtime_tools: :none, compiler: :none]
+        release = release(applications: apps)
         assert release.boot_scripts.start[:my_sample_mode] == :temporary
         assert release.boot_scripts.start[:runtime_tools] == :none
+        assert release.boot_scripts.start[:compiler] == :none
       end)
     end
 
