@@ -845,10 +845,6 @@ defmodule IEx do
         _ -> :init.wait_until_started()
       end
 
-      if opts[:pry] do
-        Application.put_env(:elixir, :dbg_callback, {IEx.Pry, :dbg, []})
-      end
-
       :ok = start_iex()
       :ok = set_expand_fun()
       :ok = run_after_spawn()
