@@ -16,6 +16,7 @@ echo                       Defaults to evaluating .iex.exs or ~/.iex.exs, if any
 echo                       If FILE is empty, then no file will be loaded.
 echo   --remsh NAME        Connects to a node using a remote shell
 echo   --werl              Uses Erlang's Windows shell GUI (Windows only)
+echo   --no-pry            Doesn't start pry sessions when dbg/2 is called.
 echo.
 echo Set the IEX_WITH_WERL environment variable to always use werl.
 echo It accepts all other options listed by "elixir --help".

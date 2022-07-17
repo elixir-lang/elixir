@@ -141,6 +141,7 @@ if ""==!par:--app=!       (set "parsElixir=!parsElixir! --app %1" && shift && go
 if ""==!par:--no-halt=!   (set "parsElixir=!parsElixir! --no-halt" && goto startloop)
 if ""==!par:--remsh=!     (set "parsElixir=!parsElixir! --remsh %1" && shift && goto startloop)
 if ""==!par:--dot-iex=!   (set "parsElixir=!parsElixir! --dot-iex %1" && shift && goto startloop)
+if ""==!par:--no-pry=!    (set "parsElixir=!parsElixir! --no-pry" && goto startloop)
 rem ******* ERLANG PARAMETERS **********************
 if ""==!par:--boot=!                (set "parsErlang=!parsErlang! -boot %1" && shift && goto startloop)
 if ""==!par:--boot-var=!            (set "parsErlang=!parsErlang! -boot_var %1 %2" && shift && shift && goto startloop)
