@@ -10,7 +10,8 @@ The following options are exclusive to IEx:
   --dot-iex "FILE"    Evaluates FILE, line by line, to set up IEx' environment.
                       Defaults to evaluating .iex.exs or ~/.iex.exs, if any exists.
                       If FILE is empty, then no file will be loaded.
-  --remsh NAME        Connects to a node using a remote shell
+  --remsh NAME        Connects to a node using a remote shell.
+  --no-pry            Doesn't start pry sessions when dbg/2 is called.
 
 It accepts all other options listed by "elixir --help".
 USAGE

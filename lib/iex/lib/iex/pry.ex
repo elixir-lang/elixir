@@ -612,4 +612,13 @@ defmodule IEx.Pry do
   defp unwrap_block(expr), do: expr |> unwrap_block([]) |> Enum.reverse()
   defp unwrap_block({:__block__, _, exprs}, acc), do: Enum.reduce(exprs, acc, &unwrap_block/2)
   defp unwrap_block(expr, acc), do: [expr | acc]
+
+  # IEx backend for Kernel.dbg/2.
+  @doc false
+  def dbg(ast, options, %Macro.Env{} = env) when is_list(options) do
+    quote do
+      IEx.Pry.pry(binding(), __ENV__)
+      unquote(Macro.dbg(ast, options, env))
+    end
+  end
 end

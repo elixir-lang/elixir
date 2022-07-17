@@ -13,7 +13,8 @@ defmodule Kernel.CLI do
     pa: [],
     pz: [],
     verbose_compile: false,
-    profile: nil
+    profile: nil,
+    pry: false
   }
 
   @standalone_opts ["-h", "--help", "--short-version"]
@@ -27,6 +28,10 @@ defmodule Kernel.CLI do
     {config, argv} = parse_argv(argv)
     System.argv(argv)
     System.no_halt(config.no_halt)
+
+    if config.pry do
+      Application.put_env(:elixir, :dbg_callback, {IEx.Pry, :dbg, []})
+    end
 
     fun = fn _ ->
       errors = process_commands(config)
@@ -319,7 +324,7 @@ defmodule Kernel.CLI do
   end
 
   defp parse_argv(["+iex" | t], config) do
-    parse_iex(t, config)
+    parse_iex(t, %{config | pry: true})
   end
 
   defp parse_argv(["-S", h | t], config) do
@@ -407,6 +412,10 @@ defmodule Kernel.CLI do
   # These clauses are here so that Kernel.CLI does not error out with "unknown option"
   defp parse_iex(["--dot-iex", _ | t], config), do: parse_iex(t, config)
   defp parse_iex(["--remsh", _ | t], config), do: parse_iex(t, config)
+
+  defp parse_iex(["--no-pry" | t], config) do
+    {%{config | pry: false}, t}
+  end
 
   defp parse_iex(["-S", h | t], config) do
     {%{config | commands: [{:script, h} | config.commands]}, t}
