@@ -622,7 +622,7 @@ defmodule IEx.Pry do
 
     initial_acc = [
       quote do
-        env = unquote(Macro.escape(env))
+        env = __ENV__
         options = unquote(options)
 
         options =
