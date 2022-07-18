@@ -381,6 +381,16 @@ defimpl Inspect, for: Float do
 end
 
 defimpl Inspect, for: Regex do
+  def inspect(regex = %{opts: regex_opts}, opts) when is_list(regex_opts) do
+    concat([
+      "Regex.compile!(",
+      Inspect.BitString.inspect(regex.source, opts),
+      ", ",
+      Inspect.List.inspect(regex_opts, opts),
+      ")"
+    ])
+  end
+
   def inspect(regex, opts) do
     {escaped, _} =
       regex.source

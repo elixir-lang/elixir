@@ -155,7 +155,7 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: "", re_version: ""
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | list(atom)}
 
   defmodule CompileError do
     defexception message: "regex could not be compiled"
@@ -203,12 +203,17 @@ defmodule Regex do
   defp compile(source, opts, doc_opts, version) do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
+        doc_opts = format_doc_opts(doc_opts, opts)
         {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: doc_opts}}
 
       error ->
         error
     end
   end
+
+  defp format_doc_opts(_doc_opts = "", _opts = []), do: ""
+  defp format_doc_opts(_doc_opts = "", opts), do: opts
+  defp format_doc_opts(doc_opts, _opts), do: doc_opts
 
   @doc """
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
