@@ -69,6 +69,34 @@ defmodule IO.ANSI do
     Application.get_env(:elixir, :ansi_enabled, false)
   end
 
+  @doc """
+  Syntax colors to be used by `Inspect`.
+
+  Those colors are used throughout Elixir's standard library,
+  such as `dbg/2` and `IEx`.
+
+  The colors can be changed by setting the `:ansi_syntax_colors`
+  in the `:elixir` application configuration. Configuration for
+  most built-in data types are supported: `:atom`, `:binary`,
+  `:boolean`, `:charlist`, `:list`, `:map`, `:nil`, `:number`,
+  `:string`, and `:tuple`. The default is:
+
+      [
+        atom: :cyan
+        boolean: :magenta,
+        charlist: :yellow,
+        nil: :magenta,
+        number: :yellow,
+        string: :green
+      ]
+
+  """
+  @doc since: "1.14.0"
+  @spec syntax_colors :: Keyword.t(ansidata)
+  def syntax_colors do
+    Application.fetch_env!(:elixir, :ansi_syntax_colors)
+  end
+
   @doc "Sets foreground color."
   @spec color(0..255) :: String.t()
   def color(code) when code in 0..255, do: "\e[38;5;#{code}m"

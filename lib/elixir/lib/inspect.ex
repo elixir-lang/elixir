@@ -262,7 +262,7 @@ defimpl Inspect, for: List do
             {escaped, _} -> [?', escaped, ?', " ++ ..."]
           end
 
-        IO.iodata_to_binary(inspected)
+        color(IO.iodata_to_binary(inspected), :charlist, opts)
 
       keyword?(term) ->
         container_doc(open, term, close, opts, &keyword/2, separator: sep, break: :strict)

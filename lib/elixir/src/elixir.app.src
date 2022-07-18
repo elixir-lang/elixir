@@ -6,9 +6,21 @@
  {applications, [kernel,stdlib,compiler]},
  {mod, {elixir,[]}},
  {env, [
-  {check_endianness, true},
   {ansi_enabled, false},
-  {time_zone_database, 'Elixir.Calendar.UTCOnlyTimeZoneDatabase'},
-  {dbg_callback, {'Elixir.Macro', dbg, []}}
+  {ansi_syntax_colors, [
+    {atom, cyan},
+    {binary, default_color},
+    {boolean, magenta},
+    {charlist, yellow},
+    {list, default_color},
+    {map, default_color},
+    {nil, magenta},
+    {number, yellow},
+    {string, green},
+    {tuple, default_color}
+  ]},
+  {check_endianness, true},
+  {dbg_callback, {'Elixir.Macro', dbg, []}},
+  {time_zone_database, 'Elixir.Calendar.UTCOnlyTimeZoneDatabase'}
  ]}
 ]}.

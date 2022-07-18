@@ -2469,7 +2469,7 @@ defmodule Macro do
   # as possible and call out into a function as soon as we can.
   @doc false
   def __dbg__(header_string, to_debug, options) do
-    syntax_colors = if IO.ANSI.enabled?(), do: dbg_default_syntax_colors(), else: []
+    syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
     options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
 
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
@@ -2515,19 +2515,6 @@ defmodule Macro do
   end
 
   defp dbg_format_ast(ast) do
-    [:bright, ast, :reset, :faint, " #=>", :reset]
-  end
-
-  defp dbg_default_syntax_colors do
-    [
-      atom: :cyan,
-      string: :green,
-      list: :default_color,
-      boolean: :magenta,
-      nil: :magenta,
-      tuple: :default_color,
-      binary: :default_color,
-      map: :default_color
-    ]
+    [ast, :faint, " #=>", :reset]
   end
 end
