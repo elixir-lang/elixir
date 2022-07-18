@@ -2469,20 +2469,18 @@ defmodule Macro do
   # as possible and call out into a function as soon as we can.
   @doc false
   def __dbg__(header_string, to_debug, options) do
+    {print_location?, options} = Keyword.pop(options, :print_location, true)
     syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
     options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
 
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
 
-    formatted = [
-      :cyan,
-      :italic,
-      header_string,
-      :reset,
-      "\n",
-      formatted,
-      "\n"
-    ]
+    formatted =
+      if print_location? do
+        [:cyan, :italic, header_string, :reset, "\n", formatted, "\n"]
+      else
+        [formatted, "\n"]
+      end
 
     ansi_enabled? = options[:syntax_colors] != []
     :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
