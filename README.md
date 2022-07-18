@@ -127,6 +127,12 @@ bin/elixirc lib/elixir/lib/string.ex -o lib/elixir/ebin
 bin/elixir lib/elixir/test/elixir/string_test.exs
 ```
 
+You can also use the `LINE` env var to run a single test:
+
+```sh
+LINE=123 bin/elixir lib/elixir/test/elixir/string_test.exs
+````
+
 To recompile (including Erlang modules):
 
 ```sh
