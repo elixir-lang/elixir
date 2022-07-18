@@ -131,6 +131,7 @@ defmodule RegexTest do
 
   test "opts/1" do
     assert Regex.opts(Regex.compile!("foo", "i")) == "i"
+    assert Regex.opts(Regex.compile!("foo", [:caseless])) == [:caseless]
   end
 
   test "names/1" do

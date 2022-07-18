@@ -403,7 +403,7 @@ defmodule Regex do
       "m"
 
   """
-  @spec opts(t) :: String.t()
+  @spec opts(t) :: String.t() | [term]
   def opts(%Regex{opts: opts}) do
     opts
   end
