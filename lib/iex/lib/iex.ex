@@ -417,16 +417,13 @@ defmodule IEx do
 
       IEx.configure(colors: [syntax_colors: false])
 
-  You can also configure the syntax colors, however, as desired:
+  You can also configure the syntax colors, however, as desired.
+  The below will format atoms in red and remove the coloring for
+  all other data types:
 
       IEx.configure(colors: [syntax_colors: [atom: :red]])
 
-  Configuration for most built-in data types are supported: `:atom`,
-  `:string`, `:binary`, `:list`, `:number`, `:boolean`, `:nil`, and others.
-  The default is:
-
-      [number: :magenta, atom: :cyan, string: :green,
-       boolean: :magenta, nil: :magenta]
+  The default values can be found in `IO.ANSI.syntax_colors/0`.
 
   ## Inspect
 
