@@ -375,7 +375,7 @@ defmodule Calendar do
   @doc since: "1.8.0"
   @spec get_time_zone_database() :: time_zone_database()
   def get_time_zone_database() do
-    Application.get_env(:elixir, :time_zone_database, Calendar.UTCOnlyTimeZoneDatabase)
+    Application.fetch_env!(:elixir, :time_zone_database)
   end
 
   @doc """
