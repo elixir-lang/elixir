@@ -91,6 +91,7 @@ defmodule IO.ANSI do
       ]
 
   """
+  @doc since: "1.14.0"
   @spec syntax_colors :: Keyword.t(ansidata)
   def syntax_colors do
     Application.fetch_env!(:elixir, :ansi_syntax_colors)
