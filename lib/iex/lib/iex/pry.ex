@@ -615,10 +615,99 @@ defmodule IEx.Pry do
 
   # IEx backend for Kernel.dbg/2.
   @doc false
+  def dbg(ast, options, env)
+
+  def dbg({:|>, _meta, _args} = ast, options, %Macro.Env{} = env) when is_list(options) do
+    [first_ast_chunk | asts_chunks] = ast |> Macro.unpipe() |> chunk_pipeline_asts_by_line(env)
+
+    initial_acc = [
+      quote do
+        options =
+          Keyword.put_new(unquote(Macro.escape(options)), :syntax_colors, IO.ANSI.syntax_colors())
+
+        env = unquote(ast_for_env_with_updated_line_from_asts(first_ast_chunk))
+        next? = IEx.Pry.pry_with_next(true, binding(), env)
+        value = unquote(pipe_chunk_of_asts(first_ast_chunk))
+
+        IEx.Pry.__dbg_pipe_step__(
+          value,
+          unquote(asts_chunk_to_strings(first_ast_chunk)),
+          _start_with_pipe? = false,
+          options
+        )
+      end
+    ]
+
+    for asts_chunk <- asts_chunks, reduce: initial_acc do
+      ast_acc ->
+        piped_asts = pipe_chunk_of_asts([{quote(do: value), _index = 0}] ++ asts_chunk)
+
+        quote do
+          unquote(ast_acc)
+          env = unquote(ast_for_env_with_updated_line_from_asts(asts_chunk))
+          next? = IEx.Pry.pry_with_next(next?, binding(), env)
+          value = unquote(piped_asts)
+
+          IEx.Pry.__dbg_pipe_step__(
+            value,
+            unquote(asts_chunk_to_strings(asts_chunk)),
+            _start_with_pipe? = true,
+            options
+          )
+        end
+    end
+  end
+
   def dbg(ast, options, %Macro.Env{} = env) when is_list(options) do
     quote do
       IEx.Pry.pry(binding(), __ENV__)
       unquote(Macro.dbg(ast, options, env))
+    end
+  end
+
+  # Made public to be called from IEx.Pry.dbg/3 to reduce the amount of generated code.
+  @doc false
+  def __dbg_pipe_step__(value, string_asts, start_with_pipe?, options) do
+    asts_string = Enum.intersperse(string_asts, [:faint, " |> ", :reset])
+
+    asts_string =
+      if start_with_pipe? do
+        IO.ANSI.format([:faint, "|> ", :reset, asts_string])
+      else
+        asts_string
+      end
+
+    [asts_string, :faint, " #=> ", :reset, inspect(value, options), "\n\n"]
+    |> IO.ANSI.format()
+    |> IO.write()
+  end
+
+  defp chunk_pipeline_asts_by_line(asts, %Macro.Env{line: env_line}) do
+    Enum.chunk_by(asts, fn
+      {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line] || env_line
+      {_other_ast, _pipe_index} -> env_line
+    end)
+  end
+
+  defp pipe_chunk_of_asts([{first_ast, _first_index} | asts] = _ast_chunk) do
+    Enum.reduce(asts, first_ast, fn {ast, index}, acc -> Macro.pipe(acc, ast, index) end)
+  end
+
+  defp asts_chunk_to_strings(asts) do
+    Enum.map(asts, fn {ast, _pipe_index} -> Macro.to_string(ast) end)
+  end
+
+  defp ast_for_env_with_updated_line_from_asts(asts) do
+    line =
+      Enum.find_value(asts, fn
+        {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
+        {_ast, _pipe_index} -> nil
+      end)
+
+    if line do
+      quote(do: %Macro.Env{__ENV__ | line: unquote(line)})
+    else
+      quote(do: __ENV__)
     end
   end
 end

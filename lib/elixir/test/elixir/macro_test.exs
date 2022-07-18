@@ -334,8 +334,33 @@ defmodule MacroTest do
              """
     end
 
-    test "with a pipeline" do
+    test "with a pipeline on a single line" do
       {result, formatted} = dbg_format([:a, :b, :c] |> tl() |> tl |> Kernel.hd())
+      assert result == :c
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             \n[:a, :b, :c] #=> [:a, :b, :c]
+             |> tl() #=> [:b, :c]
+             |> tl #=> [:c]
+             |> Kernel.hd() #=> :c
+             """
+
+      # Regression for pipes sometimes erroneously ending with three newlines (one
+      # extra than needed).
+      assert formatted =~ ~r/[^\n]\n\n$/
+    end
+
+    test "with a pipeline on multiple lines" do
+      {result, formatted} =
+        dbg_format(
+          [:a, :b, :c]
+          |> tl()
+          |> tl
+          |> Kernel.hd()
+        )
+
       assert result == :c
 
       assert formatted =~ "macro_test.exs"
