@@ -9,9 +9,13 @@ os_exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [window
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
 git_exclude = if Mix.SCM.Git.git_version() <= {1, 7, 4}, do: [git_sparse: true], else: []
 
+{line_exclude, line_include} =
+  if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
+
 ExUnit.start(
-  trace: "--trace" in System.argv(),
-  exclude: epmd_exclude ++ os_exclude ++ git_exclude
+  trace: !!System.get_env("TRACE"),
+  exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude,
+  include: line_include
 )
 
 # Clear environment variables that may affect tests

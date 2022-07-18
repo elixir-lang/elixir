@@ -1,10 +1,18 @@
 assert_timeout = String.to_integer(System.get_env("ELIXIR_ASSERT_TIMEOUT") || "500")
-
 System.put_env("ELIXIR_EDITOR", "echo")
 
 {:ok, _} = Application.ensure_all_started(:iex)
 IEx.configure(colors: [enabled: false])
-ExUnit.start(trace: "--trace" in System.argv(), assert_receive_timeout: assert_timeout)
+
+{line_exclude, line_include} =
+  if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
+
+ExUnit.start(
+  assert_receive_timeout: assert_timeout,
+  trace: !!System.get_env("TRACE"),
+  include: line_include,
+  exclude: line_exclude
+)
 
 defmodule IEx.Case do
   use ExUnit.CaseTemplate
