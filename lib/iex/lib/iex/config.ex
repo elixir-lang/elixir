@@ -70,11 +70,8 @@ defmodule IEx.Config do
   defp color(color, colors) do
     if colors_enabled?(colors) do
       case Keyword.fetch(colors, color) do
-        {:ok, value} ->
-          value
-
-        :error ->
-          default_color(color)
+        {:ok, value} -> value
+        :error -> default_color(color)
       end
     else
       nil
@@ -105,16 +102,7 @@ defmodule IEx.Config do
 
   # Used by inspect
   defp default_color(:syntax_colors) do
-    [
-      atom: :cyan,
-      string: :green,
-      list: :default_color,
-      boolean: :magenta,
-      nil: :magenta,
-      tuple: :default_color,
-      binary: :default_color,
-      map: :default_color
-    ]
+    IO.ANSI.syntax_colors()
   end
 
   # Used by ansi docs
