@@ -667,7 +667,7 @@ defmodule IEx.Pry do
   end
 
   def dbg(ast, options, %Macro.Env{} = env) when is_list(options) do
-    options = quote(do: Keyword.put(unquote(options), :print_header, false))
+    options = quote(do: Keyword.put(unquote(options), :print_location, false))
 
     quote do
       IEx.Pry.pry(binding(), __ENV__)
@@ -716,7 +716,7 @@ defmodule IEx.Pry do
 
     if line do
       quote do
-        %Macro.Env{env | line: unquote(line)}
+        %{env | line: unquote(line)}
       end
     else
       quote do: env

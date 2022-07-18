@@ -393,8 +393,8 @@ defmodule MacroTest do
       assert formatted =~ "value #=> [104, 101, 108, 108, 111]\n"
     end
 
-    test "with the :print_header option set to false, doesn't print any header" do
-      {result, formatted} = dbg_format("hello", print_header: false)
+    test "with the :print_location option set to false, doesn't print any header" do
+      {result, formatted} = dbg_format("hello", print_location: false)
       assert result == "hello"
       refute formatted =~ Path.basename(__ENV__.file)
     end
