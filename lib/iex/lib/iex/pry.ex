@@ -622,10 +622,17 @@ defmodule IEx.Pry do
 
     initial_acc = [
       quote do
-        options =
-          Keyword.put_new(unquote(Macro.escape(options)), :syntax_colors, IO.ANSI.syntax_colors())
+        env = unquote(Macro.escape(env))
+        options = unquote(options)
 
-        env = unquote(ast_for_env_with_updated_line_from_asts(first_ast_chunk))
+        options =
+          if IO.ANSI.enabled?() do
+            Keyword.put_new(options, :syntax_colors, IO.ANSI.syntax_colors())
+          else
+            options
+          end
+
+        env = Map.update!(env, :line, &(unquote(line_from_asts(first_ast_chunk)) || &1))
         next? = IEx.Pry.pry_with_next(true, binding(), env)
         value = unquote(pipe_chunk_of_asts(first_ast_chunk))
 
@@ -644,7 +651,7 @@ defmodule IEx.Pry do
 
         quote do
           unquote(ast_acc)
-          env = unquote(ast_for_env_with_updated_line_from_asts(asts_chunk))
+          env = Map.update!(env, :line, &(unquote(line_from_asts(asts_chunk)) || &1))
           next? = IEx.Pry.pry_with_next(next?, binding(), env)
           value = unquote(piped_asts)
 
@@ -659,9 +666,12 @@ defmodule IEx.Pry do
   end
 
   def dbg(ast, options, %Macro.Env{} = env) when is_list(options) do
+    options_var = Macro.unique_var(:options, __MODULE__)
+
     quote do
       IEx.Pry.pry(binding(), __ENV__)
-      unquote(Macro.dbg(ast, options, env))
+      unquote(options_var) = Keyword.put(unquote(options), :print_header, false)
+      unquote(Macro.dbg(ast, options_var, env))
     end
   end
 
@@ -697,17 +707,10 @@ defmodule IEx.Pry do
     Enum.map(asts, fn {ast, _pipe_index} -> Macro.to_string(ast) end)
   end
 
-  defp ast_for_env_with_updated_line_from_asts(asts) do
-    line =
-      Enum.find_value(asts, fn
-        {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
-        {_ast, _pipe_index} -> nil
-      end)
-
-    if line do
-      quote(do: %Macro.Env{__ENV__ | line: unquote(line)})
-    else
-      quote(do: __ENV__)
-    end
+  defp line_from_asts(asts) do
+    Enum.find_value(asts, fn
+      {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
+      {_ast, _pipe_index} -> nil
+    end)
   end
 end
