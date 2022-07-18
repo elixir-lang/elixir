@@ -349,10 +349,22 @@ defmodule Mix.ReleaseTest do
         assert release.boot_scripts.start[:runtime_tools] == :temporary
         assert release.boot_scripts.start[:compiler] == :permanent
 
+        apps = [my_sample_mode: :temporary, elixir: :permanent]
+        release = release(applications: apps)
+        assert release.boot_scripts.start[:my_sample_mode] == :temporary
+        assert release.boot_scripts.start[:runtime_tools] == :temporary
+        assert release.boot_scripts.start[:compiler] == :permanent
+
         apps = [my_sample_mode: :temporary, runtime_tools: :none, compiler: :none]
         release = release(applications: apps)
         assert release.boot_scripts.start[:my_sample_mode] == :temporary
         assert release.boot_scripts.start[:runtime_tools] == :none
+        assert release.boot_scripts.start[:compiler] == :none
+
+        apps = [my_sample_mode: :temporary, elixir: :permanent, compiler: :none]
+        release = release(applications: apps)
+        assert release.boot_scripts.start[:my_sample_mode] == :temporary
+        assert release.boot_scripts.start[:runtime_tools] == :temporary
         assert release.boot_scripts.start[:compiler] == :none
       end)
     end

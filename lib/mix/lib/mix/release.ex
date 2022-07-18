@@ -273,13 +273,13 @@ defmodule Mix.Release do
 
         cond do
           is_nil(properties) ->
-            load_app(app, mode, deps_apps, seen, otp_root, optional, overrides)
+            load_app(app, overrides[app] || mode, deps_apps, seen, otp_root, optional, overrides)
 
           Keyword.has_key?(overrides, app) ->
             seen
 
           true ->
-            put_in(seen[app][mode], merge_mode!(app, mode, properties[:mode]))
+            put_in(seen[app][:mode], merge_mode!(app, mode, properties[:mode]))
         end
     end
   end
