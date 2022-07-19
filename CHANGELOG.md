@@ -4,6 +4,64 @@ Elixir v1.14 requires Erlang/OTP 23+ with a small batch of new features
 and the usual enhancements and bug fixes to Elixir and its standard library.
 We cover the most notable changes next.
 
+## `dbg`
+
+`Kernel.dbg/2` is a new macro that's somewhat similar to `IO.inspect/2`, but
+specifically tailored for **debugging**.
+
+When called, it prints the value of whatever you pass to it, plus the debugged
+code itself as well as its location. This code:
+
+```elixir
+# In my_file.exs
+feature = %{name: :dbg, inspiration: "Rust"}
+dbg(feature)
+dbg(Map.put(feature, :in_version, "1.14.0"))
+```
+
+Prints this:
+
+```shell
+$ elixir my_file.exs
+[my_file.exs:2: (file)]
+feature #=> %{inspiration: "Rust", name: :dbg}
+
+[my_file.exs:3: (file)]
+Map.put(feature, :in_version, "1.14.0") #=> %{in_version: "1.14.0", inspiration: "Rust", name: :dbg}
+```
+
+`dbg/2` can do more. It's a macro, so it *understands Elixir code*. You can see
+that when you pass a series of `|>` pipes to it. `dbg/2` will print the value
+for every step of the pipeline. This code:
+
+```elixir
+# In dbg_pipes.exs
+__ENV__.file
+|> String.split("/", trim: true)
+|> List.last()
+|> File.exists?()
+|> dbg()
+```
+
+Prints this:
+
+```shell
+$ elixir dbg_pipes.exs
+[dbg_pipes.exs:5: (file)]
+__ENV__.file #=> "/home/myuser/dbg_pipes.exs"
+|> String.split("/", trim: true) #=> ["home", "myuser", "dbg_pipes.exs"]
+|> List.last() #=> "dbg_pipes.exs"
+|> File.exists?() #=> true
+```
+
+### IEx and Prying
+
+`dbg/2` works on top of a configurable backend. This allows Elixir to ship with
+an IEx backend that sets up a **pry breakpoint on every `dbg/2` call** when you
+invoke your code via IEx. This also works with pipelines: if you pass a series
+of `|>` pipe calls to `dbg` (or pipe into it at the end, like `|> dbg()`),
+you'll be able to step through every line in the pipeline.
+
 ## PartitionSupervisor
 
 `PartitionSupervisor` is a new module that implements a new supervisor type. The
