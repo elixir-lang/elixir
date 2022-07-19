@@ -155,7 +155,7 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: "", re_version: ""
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | list(atom)}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
 
   defmodule CompileError do
     defexception message: "regex could not be compiled"
@@ -167,7 +167,7 @@ defmodule Regex do
   The given options can either be a binary with the characters
   representing the same regex options given to the
   `~r` (see `sigil_r/2`) sigil, or a list of options, as
-  expected by the Erlang's `:re` module.
+  expected by the Erlang's [`:re`](`:re`) module.
 
   It returns `{:ok, regex}` in case of success,
   `{:error, reason}` otherwise.
@@ -395,12 +395,18 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the regex options as a string.
+  Returns the regex options, as a string or list depending on how
+  it was compiled.
+
+  See the documentation of `Regex.compile/2` for more information.
 
   ## Examples
 
       iex> Regex.opts(~r/foo/m)
       "m"
+
+      iex> Regex.opts(Regex.compile!("foo", [:caseless]))
+      [:caseless]
 
   """
   @spec opts(t) :: String.t() | [term]
