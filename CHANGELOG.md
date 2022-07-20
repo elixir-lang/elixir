@@ -56,11 +56,13 @@ __ENV__.file #=> "/home/myuser/dbg_pipes.exs"
 
 ### IEx and Prying
 
-`dbg/2` works on top of a configurable backend. This allows Elixir to ship with
-an IEx backend that sets up a **pry breakpoint on every `dbg/2` call** when you
-invoke your code via IEx. This also works with pipelines: if you pass a series
-of `|>` pipe calls to `dbg` (or pipe into it at the end, like `|> dbg()`),
-you'll be able to step through every line in the pipeline.
+`dbg/2` supports configurable backends. IEx automatically replaces the default
+backend by one that halts the code execution with `IEx.Pry`, giving developers
+the option to access local variables, imports, and more. This also works with
+pipelines: if you pass a series of `|>` pipe calls to `dbg` (or pipe into it at the
+end, like `|> dbg()`), you'll be able to step through every line in the pipeline.
+
+You can keep the default behaviour by passing the `--no-pry` option to IEx.
 
 ## PartitionSupervisor
 
