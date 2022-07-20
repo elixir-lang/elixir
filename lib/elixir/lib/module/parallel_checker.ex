@@ -58,21 +58,19 @@ defmodule Module.ParallelChecker do
 
         receive do
           {^ref, :cache, ets} ->
-            loaded_info =
+            module_map =
               if is_map(info) do
-                cache_from_module_map(ets, info)
                 info
               else
-                info = File.read!(info)
-                cache_from_chunk(ets, module, info)
-                info
+                info |> File.read!() |> fetch_module_map!(module)
               end
 
+            cache_from_module_map(ets, module_map)
             send(checker, {ref, :cached})
 
             receive do
               {^ref, :check} ->
-                warnings = check_module(module, loaded_info, {checker, ets})
+                warnings = check_module(module_map, {checker, ets})
                 send(pid, {__MODULE__, module, warnings})
                 send(checker, {__MODULE__, :done})
             end
@@ -206,35 +204,26 @@ defmodule Module.ParallelChecker do
 
   ## Module checking
 
-  defp check_module(module, info, cache) do
-    case extract_definitions(module, info) do
-      {:ok, module, file, definitions, no_warn_undefined} ->
-        Module.Types.warnings(module, file, definitions, no_warn_undefined, cache)
-        |> group_warnings()
-        |> emit_warnings()
+  defp check_module(module_map, cache) do
+    %{module: module, file: file, compile_opts: compile_opts, definitions: definitions} =
+      module_map
 
-      :error ->
-        []
-    end
-  end
-
-  defp extract_definitions(module, module_map) when is_map(module_map) do
     no_warn_undefined =
-      module_map.compile_opts
+      compile_opts
       |> extract_no_warn_undefined()
       |> merge_compiler_no_warn_undefined()
 
-    {:ok, module, module_map.file, module_map.definitions, no_warn_undefined}
-  end
+    warnings =
+      module
+      |> Module.Types.warnings(file, definitions, no_warn_undefined, cache)
+      |> group_warnings()
+      |> emit_warnings()
 
-  defp extract_definitions(module, binary) when is_binary(binary) do
-    with {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
-         {:debug_info_v1, backend, data} <- chunk,
-         {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
-      extract_definitions(module, module_map)
-    else
-      _ -> :error
-    end
+    module_map
+    |> Map.get(:after_verify, [])
+    |> Enum.each(fn {verify_mod, verify_fun} -> apply(verify_mod, verify_fun, [module]) end)
+
+    warnings
   end
 
   defp extract_no_warn_undefined(compile_opts) do
@@ -247,11 +236,8 @@ defmodule Module.ParallelChecker do
 
   defp merge_compiler_no_warn_undefined(no_warn_undefined) do
     case Code.get_compiler_option(:no_warn_undefined) do
-      :all ->
-        :all
-
-      list when is_list(list) ->
-        no_warn_undefined ++ list
+      :all -> :all
+      list when is_list(list) -> no_warn_undefined ++ list
     end
   end
 
@@ -322,30 +308,14 @@ defmodule Module.ParallelChecker do
   end
 
   defp cache_from_chunk(ets, module) do
-    case :code.get_object_code(module) do
-      {^module, binary, _filename} -> cache_from_chunk(ets, module, binary)
-      _other -> false
-    end
-  end
-
-  defp cache_from_chunk(ets, module, binary) do
-    with {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
+    with {^module, binary, _filename} <- :code.get_object_code(module),
+         {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
       cache_chunk(ets, module, contents.exports)
       true
     else
       _ -> false
     end
-  end
-
-  defp cache_from_module_map(ets, map) do
-    exports =
-      [{{:__info__, 1}, :def}] ++
-        behaviour_exports(map) ++
-        definitions_to_exports(map.definitions)
-
-    deprecated = Map.new(map.deprecated)
-    cache_info(ets, map.module, exports, deprecated, :elixir)
   end
 
   defp cache_from_info(ets, module) do
@@ -376,6 +346,23 @@ defmodule Module.ParallelChecker do
     Map.new(module.__info__(:deprecated))
   rescue
     _ -> %{}
+  end
+
+  defp fetch_module_map!(binary, module) when is_binary(binary) do
+    {:ok, {_, [debug_info: chunk]}} = :beam_lib.chunks(binary, [:debug_info])
+    {:debug_info_v1, backend, data} = chunk
+    {:ok, module_map} = backend.debug_info(:elixir_v1, module, data, [])
+    module_map
+  end
+
+  defp cache_from_module_map(ets, map) do
+    exports =
+      [{{:__info__, 1}, :def}] ++
+        behaviour_exports(map) ++
+        definitions_to_exports(map.definitions)
+
+    deprecated = Map.new(map.deprecated)
+    cache_info(ets, map.module, exports, deprecated, :elixir)
   end
 
   defp cache_info(ets, module, exports, deprecated, mode) do

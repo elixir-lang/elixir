@@ -108,6 +108,18 @@ defmodule ModuleTest do
     assert_received 42
   end
 
+  test "supports @after_verify for inlined modules" do
+    defmodule ModuleTest.AfterVerify do
+      @after_verify __MODULE__
+
+      def __after_verify__(ModuleTest.AfterVerify) do
+        send(self(), ModuleTest.AfterVerify)
+      end
+    end
+
+    assert_received ModuleTest.AfterVerify
+  end
+
   test "in memory modules are tagged as so" do
     assert :code.which(__MODULE__) == ''
   end

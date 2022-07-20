@@ -22,6 +22,12 @@ defmodule Module do
   Accepts a module or a `{module, function_name}`. See the "Compile callbacks"
   section below.
 
+  ### `@after_verify` (since v1.14.0)
+
+  A hook that will be invoked right after the current module is verified for
+  undefined functions, deprecations, etc. Accepts a module or a `{module, function_name}`.
+  See the "Compile callbacks" section below.
+
   ### `@before_compile`
 
   A hook that will be invoked before the module is compiled.
@@ -128,7 +134,7 @@ defmodule Module do
   Multiple uses of `@compile` will accumulate instead of overriding
   previous ones. See the "Compile options" section below.
 
-  ### `@deprecated` (since 1.6.0)
+  ### `@deprecated` (since v1.6.0)
 
   Provides the deprecation reason for a function. For example:
 
@@ -238,8 +244,7 @@ defmodule Module do
         end
       end
 
-  For the list of supported warnings, see
-  [`:dialyzer` module](`:dialyzer`).
+  For the list of supported warnings, see [`:dialyzer` module](`:dialyzer`).
 
   Multiple uses of `@dialyzer` will accumulate instead of overriding
   previous ones.
@@ -300,17 +305,59 @@ defmodule Module do
   A hook that will be invoked when each function or macro in the current
   module is defined. Useful when annotating functions.
 
-  Accepts a module or a `{module, function_name}` tuple. See the
-  "Compile callbacks" section below.
+  Accepts a module or a `{module, function_name}` tuple. The function
+  must take 6 arguments:
+
+    * the module environment
+    * the kind of the function/macro: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
+    * the function/macro name
+    * the list of quoted arguments
+    * the list of quoted guards
+    * the quoted function body
+
+  If the function/macro being defined has multiple clauses, the hook will
+  be called for each clause.
+
+  Unlike other hooks, `@on_definition` will only invoke functions and
+  never macros. This is to avoid `@on_definition` callbacks from
+  redefining functions that have just been defined in favor of more
+  explicit approaches.
+
+  When just a module is provided, the function is assumed to be
+  `__on_definition__/6`.
+
+  #### Example
+
+      defmodule Hooks do
+        def on_def(_env, kind, name, args, guards, body) do
+          IO.puts("Defining #{kind} named #{name} with args:")
+          IO.inspect(args)
+          IO.puts("and guards")
+          IO.inspect(guards)
+          IO.puts("and body")
+          IO.puts(Macro.to_string(body))
+        end
+      end
+
+      defmodule MyModule do
+        @on_definition {Hooks, :on_def}
+
+        def hello(arg) when is_binary(arg) or is_list(arg) do
+          "Hello" <> to_string(arg)
+        end
+
+        def hello(_) do
+          :ok
+        end
+      end
 
   ### `@on_load`
 
   A hook that will be invoked whenever the module is loaded.
 
-  Accepts the function name (as an atom) of a function in the current module or
-  `{function_name, 0}` tuple where `function_name` is the name of a function in
-  the current module. The function must have an arity of 0 (no arguments). If
-  the function does not return `:ok`, the loading of the module will be aborted.
+  Accepts the function name (as an atom) of a function in the current module.
+  The function must have an arity of 0 (no arguments). If the function does
+  not return `:ok`, the loading of the module will be aborted.
   For example:
 
       defmodule MyModule do
@@ -380,8 +427,48 @@ defmodule Module do
 
   ## Compile callbacks
 
-  There are three callbacks that are invoked when functions are defined,
-  as well as before and immediately after the module bytecode is generated.
+  There are three compilation callbacks, invoked in this order:
+  `@before_compile`, `@after_compile`, and `@after_verify`.
+  They are described next.
+
+  ### `@before_compile`
+
+  A hook that will be invoked before the module is compiled. This is
+  often used to change how the current module is being compiled.
+
+  Accepts a module or a `{module, function_or_macro_name}` tuple. The
+  function/macro must take one argument: the module environment. If
+  it's a macro, its returned value will be injected at the end of the
+  module definition before the compilation starts.
+
+  When just a module is provided, the function/macro is assumed to be
+  `__before_compile__/1`.
+
+  Callbacks will run in the order they are registered. Any overridable
+  definition will be made concrete before the first callback runs.
+  A definition may be made overridable again in another before compile
+  callback and it will be made concrete one last time after all callbacks
+  run.
+
+  *Note*: the callback function/macro must be placed in a separate module
+  (because when the callback is invoked, the current module does not yet exist).
+
+  #### Example
+
+      defmodule A do
+        defmacro __before_compile__(_env) do
+          quote do
+            def hello, do: "world"
+          end
+        end
+      end
+
+      defmodule B do
+        @before_compile A
+      end
+
+      B.hello()
+      #=> "world"
 
   ### `@after_compile`
 
@@ -407,92 +494,30 @@ defmodule Module do
         end
       end
 
-  ### `@before_compile`
+  ### `@after_verify`
 
-  A hook that will be invoked before the module is compiled.
-
-  Accepts a module or a `{module, function_or_macro_name}` tuple. The
-  function/macro must take one argument: the module environment. If
-  it's a macro, its returned value will be injected at the end of the
-  module definition before the compilation starts.
-
-  When just a module is provided, the function/macro is assumed to be
-  `__before_compile__/1`.
-
-  Callbacks will run in the order they are registered. Any overridable
-  definition will be made concrete before the first callback runs.
-  A definition may be made overridable again in another before compile
-  callback and it will be made concrete one last time after all callbacks
-  run.
-
-  *Note*: unlike `@after_compile`, the callback function/macro must
-  be placed in a separate module (because when the callback is invoked,
-  the current module does not yet exist).
-
-  #### Example
-
-      defmodule A do
-        defmacro __before_compile__(_env) do
-          quote do
-            def hello, do: "world"
-          end
-        end
-      end
-
-      defmodule B do
-        @before_compile A
-      end
-
-      B.hello()
-      #=> "world"
-
-  ### `@on_definition`
-
-  A hook that will be invoked when each function or macro in the current
-  module is defined. Useful when annotating functions.
+  A hook that will be invoked right after the current module is verified for
+  undefined functions, deprecations, etc. A module is always verified after
+  it is compiled. In Mix projects, a module is also verified when any of its
+  runtime dependencies change. Therefore this is useful to perform verification
+  of the current module while avoiding compile-time dependencies.
 
   Accepts a module or a `{module, function_name}` tuple. The function
-  must take 6 arguments:
+  must take one argument: the module name. When just a module is provided,
+  the function is assumed to be `__after_verify__/2`.
 
-    * the module environment
-    * the kind of the function/macro: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
-    * the function/macro name
-    * the list of quoted arguments
-    * the list of quoted guards
-    * the quoted function body
+  Callbacks will run in the order they are registered.
 
-  If the function/macro being defined has multiple clauses, the hook will
-  be called for each clause.
-
-  Unlike other hooks, `@on_definition` will only invoke functions and
-  never macros. This is to avoid `@on_definition` callbacks from
-  redefining functions that have just been defined in favor of more
-  explicit approaches.
-
-  When just a module is provided, the function is assumed to be
-  `__on_definition__/6`.
+  `Module` functions expecting not yet compiled modules are no longer available
+  at the time `@after_verify` is invoked.
 
   #### Example
 
-      defmodule Hooks do
-        def on_def(_env, kind, name, args, guards, body) do
-          IO.puts("Defining #{kind} named #{name} with args:")
-          IO.inspect(args)
-          IO.puts("and guards")
-          IO.inspect(guards)
-          IO.puts("and body")
-          IO.puts(Macro.to_string(body))
-        end
-      end
-
       defmodule MyModule do
-        @on_definition {Hooks, :on_def}
+        @after_verify __MODULE__
 
-        def hello(arg) when is_binary(arg) or is_list(arg) do
-          "Hello" <> to_string(arg)
-        end
-
-        def hello(_) do
+        def __after_verify__(module) do
+          IO.inspect(module)
           :ok
         end
       end
@@ -581,6 +606,9 @@ defmodule Module do
     %{
       after_compile: %{
         doc: "A hook that will be invoked right after the current module is compiled."
+      },
+      after_verify: %{
+        doc: "A hook that will be invoked right after the current module is verified."
       },
       before_compile: %{
         doc: "A hook that will be invoked before the module is compiled."
@@ -2311,6 +2339,9 @@ defmodule Module do
 
   defp preprocess_attribute(:after_compile, atom) when is_atom(atom),
     do: {atom, :__after_compile__}
+
+  defp preprocess_attribute(:after_verify, atom) when is_atom(atom),
+    do: {atom, :__after_verify__}
 
   defp preprocess_attribute(:on_definition, atom) when is_atom(atom),
     do: {atom, :__on_definition__}
