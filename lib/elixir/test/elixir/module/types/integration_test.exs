@@ -557,6 +557,29 @@ defmodule Module.Types.IntegrationTest do
     end
   end
 
+  describe "after_verify" do
+    test "reports functions" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @after_verify __MODULE__
+
+          def __after_verify__(__MODULE__) do
+            IO.warn "from after_verify", []
+          end
+        end
+        """
+      }
+
+      warning = """
+      warning: from after_verify
+
+      """
+
+      assert_warnings(files, warning)
+    end
+  end
+
   describe "deprecated" do
     test "reports functions" do
       files = %{

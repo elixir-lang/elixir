@@ -1549,8 +1549,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       File.write!("lib/c.ex", """
       defmodule C do
+        @after_verify __MODULE__
         def foo(), do: B.foo()
         def bar(), do: B.bar()
+        def __after_verify__(__MODULE__), do: IO.puts(:stderr, "AFTER_VERIFY")
       end
       """)
 
@@ -1561,6 +1563,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       refute output =~ "A.foo/0 is undefined or private"
       assert output =~ "B.bar/0 is undefined or private"
+      assert output =~ "AFTER_VERIFY"
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -1580,6 +1583,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # Check C due to transient dependency on A
       assert output =~ "A.foo/0 is undefined or private"
       assert output =~ "B.bar/0 is undefined or private"
+      assert output =~ "AFTER_VERIFY"
 
       # Ensure only A was recompiled
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}

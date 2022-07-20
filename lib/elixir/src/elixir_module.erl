@@ -131,6 +131,7 @@ compile(Line, Module, Block, Vars, E) ->
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
+        AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
 
         ModuleMap = #{
           struct => get_struct(DataSet),
@@ -141,6 +142,7 @@ compile(Line, Module, Block, Vars, E) ->
           attributes => Attributes,
           definitions => AllDefinitions,
           unreachable => Unreachable,
+          after_verify => AfterVerify,
           compile_opts => CompileOpts,
           deprecated => get_deprecated(DataBag),
           is_behaviour => is_behaviour(DataBag)
@@ -157,6 +159,7 @@ compile(Line, Module, Block, Vars, E) ->
     elixir_env:trace({on_module, Binary, none}, E),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     make_module_available(Module, Binary),
+    (CheckerInfo == undefined) andalso eval_callbacks(Line, DataBag, after_verify, [Module], NE),
     {module, Module, Binary, Result}
   catch
     error:undef:Stacktrace ->
@@ -316,6 +319,7 @@ build(Line, File, Module) ->
 
     % {Key, Value, accumulate, TraceLine}
     {after_compile, [], accumulate, []},
+    {after_verify, [], accumulate, []},
     {before_compile, [], accumulate, []},
     {behaviour, [], accumulate, []},
     {compile, [], accumulate, []},
