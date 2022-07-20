@@ -38,6 +38,7 @@ defmodule Mix.Compilers.Test do
         formatters = Application.fetch_env!(:ex_unit, :formatters)
 
         try do
+          Application.put_env(:ex_unit, :formatters, [])
           _ = ExUnit.run()
           :noop
         after
