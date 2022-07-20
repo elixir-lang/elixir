@@ -34,9 +34,15 @@ defmodule Mix.Compilers.Test do
 
     cond do
       test_files == [] ->
-        _ = ExUnit.configure(formatters: [])
-        _ = ExUnit.run()
-        :noop
+        # Make sure we run the after_suite callbacks but with no feedback
+        formatters = Application.fetch_env!(:ex_unit, :formatters)
+
+        try do
+          _ = ExUnit.run()
+          :noop
+        after
+          Application.put_env(:ex_unit, :formatters, formatters)
+        end
 
       Keyword.get(opts, :profile_require) == "time" ->
         require(test_files, [profile: :time], elixirc_opts)
