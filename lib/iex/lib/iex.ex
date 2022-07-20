@@ -170,29 +170,46 @@ defmodule IEx do
 
   If you are connected to remote shell, it remains alive after disconnection.
 
-  ## Prying and breakpoints
+  ## `dbg` and breakpoints
 
-  IEx also has the ability to set breakpoints on Elixir code and
-  "pry" into running processes. This allows the developer to have
-  an IEx session run inside a given function.
-
-  `IEx.pry/0` can be used when you are able to modify the source
-  code directly and recompile it:
+  IEx integrates with `Kernel.dbg/2` and introduces a backend that
+  can pause code execution:
 
       def my_fun(arg1, arg2) do
-        require IEx; IEx.pry()
+        dbg(arg1 + arg2)
         ... implementation ...
       end
 
-  When the code is executed, it will ask you for permission to be
-  introspected.
+  When the code is executed with `iex` (most often by calling
+  `iex -S mix`), it will ask you permission to use "pry". If you
+  agree, it will start an IEx shell in the context of the function
+  above, with access to its variables, imports, and aliases. However,
+  you can only access existing values, it is not possible to access
+  private functions nor change the execution itself (hence the name
+  "pry").
 
-  Alternatively, you can use `IEx.break!/4` to setup a breakpoint
-  on a given module, function, and arity you have no control of.
-  `IEx.break!/4` allows you to debug the function line by line
-  and access its variables, but it does not contain information
-  about imports and aliases from the source code, nor it can
-  access private functions.
+  When using `|> dbg()` at the end of a pipeline, you can pry each
+  step of the pipeline. You can type `n` whenever you want to jump
+  into the next pipe. Type `continue` when you want to execute all
+  of the steps but stay within the pried process. Type `respawn` when
+  you want to leave the pried process and start a new shell.
+
+  You can disable "pry" as the `dbg/2` backend by calling `iex --no-pry`.
+  Alternatively, you can start a pry session directly, without `dbg/2`
+  by calling `IEx.pry/0`.
+
+  IEx also allows you to set breakpoints to start pry sessions
+  on a given module, function, and arity you have no control of
+  via `IEx.break!/4`. Similar to pipelines in `dbg()`, `IEx.break!/4`
+  allows you to debug a function line by line and access its variables.
+  However, breakpoints do not contain information about imports and
+  aliases from the source code.
+
+  When using `dbg` or breakpoints with tests, remember to pass the
+  `--trace` to `mix test` to avoid running into timeouts:
+
+      iex -S mix test --trace
+      iex -S mix test path/to/file:line --trace
 
   ## The User switch command
 
@@ -560,7 +577,10 @@ defmodule IEx do
   @doc """
   Pries into the process environment.
 
-  This is useful for debugging a particular chunk of code
+  When you start `iex`, IEx will set this function to be the
+  default `dbg/2` backend unless the `--no-pry` flag is given.
+
+  This function is useful for debugging a particular chunk of code
   when executed by a particular process. The process becomes
   the evaluator of IEx commands and is temporarily changed to
   have a custom group leader. Those values are reverted by
@@ -569,16 +589,11 @@ defmodule IEx do
 
   When a process is pried, all code runs inside IEx and has
   access to all imports and aliases from the original code.
-  However, the code is evaluated and therefore cannot access
-  private functions of the module being pried. Module functions
-  still need to be accessed via `Mod.fun(args)`.
+  However, you cannot change the execution of the code nor
+  access private functions of the module being pried. Module
+  functions still need to be accessed via `Mod.fun(args)`.
 
-  Alternatively, you can use `IEx.break!/4` to setup a breakpoint
-  on a given module, function, and arity you have no control of.
-  `IEx.break!/4` allows you to debug the function line by line
-  and access its variables, but it does not contain information
-  about imports and aliases from the source code, nor it can
-  access private functions.
+  See also `break!/4` for others ways to pry.
 
   ## Examples
 
@@ -756,10 +771,11 @@ defmodule IEx do
   `IEx.Helpers.remove_breaks/1` and on all modules by calling
   `IEx.Helpers.remove_breaks/0`.
 
-  To exit a breakpoint, the developer can either invoke `continue()`,
-  which will block the shell until the next breakpoint is found or
-  the process terminates, or invoke `respawn()`, which starts a new IEx
-  shell, freeing up the pried one.
+  Within a breakpoint, you can call `n` to jump to the next line.
+  To exit a breakpoint, you can either invoke `continue`, which will
+  block the shell until the next breakpoint is found or the process
+  terminates, or invoke `respawn`, which starts a new IEx shell,
+  freeing up the pried one.
 
   ## Examples
 
