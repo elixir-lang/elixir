@@ -1552,7 +1552,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         @after_verify __MODULE__
         def foo(), do: B.foo()
         def bar(), do: B.bar()
-        def __after_verify__(__MODULE__), do: IO.puts(:stderr, "AFTER_VERIFY")
+        def __after_verify__(__MODULE__), do: IO.warn("AFTER_VERIFY", Macro.Env.stacktrace(__ENV__))
       end
       """)
 
@@ -1589,6 +1589,16 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+
+      # We can retrieve all warnings if desired
+      output =
+        capture_io(:stderr, fn ->
+          Mix.Tasks.Compile.Elixir.run(["--verbose", "--all-warnings"])
+        end)
+
+      assert output =~ "A.foo/0 is undefined or private"
+      assert output =~ "B.bar/0 is undefined or private"
+      assert output =~ "AFTER_VERIFY"
     end)
   end
 

@@ -70,6 +70,8 @@ defmodule Module.ParallelChecker do
 
             receive do
               {^ref, :check} ->
+                # Set the compiler info so we can collect warnings
+                :erlang.put(:elixir_compiler_info, {pid, self()})
                 warnings = check_module(module_map, {checker, ets})
                 send(pid, {__MODULE__, module, warnings})
                 send(checker, {__MODULE__, :done})
@@ -141,10 +143,16 @@ defmodule Module.ParallelChecker do
     warnings
   end
 
-  defp collect_results([_ | modules], warnings) do
+  defp collect_results(modules, warnings) do
     receive do
+      {:warning, file, location, message} ->
+        file = file && Path.absname(file)
+        message = :unicode.characters_to_binary(message)
+        warning = {file, location, message}
+        collect_results(modules, [warning | warnings])
+
       {__MODULE__, _module, new_warnings} ->
-        collect_results(modules, new_warnings ++ warnings)
+        collect_results(tl(modules), new_warnings ++ warnings)
     end
   end
 
