@@ -820,15 +820,8 @@ defmodule ArgumentError do
           "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)} " <>
             "with arguments #{inspect(args)}. Arguments (the third argument of apply) must always be a proper list"
 
-        # Note that args may be an empty list even if they were supplied
-        not is_atom(module) and is_atom(function) and args == [] ->
-          "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
-            "If you are using Kernel.apply/3, make sure the module is an atom. " <>
-            "If you are using the dot syntax, such as map.field or module.function(), " <>
-            "make sure the left side of the dot is an atom or a map"
-
         not is_atom(module) ->
-          "you attempted to apply a function on #{inspect(module)}. " <>
+          "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
             "Modules (the first argument of apply) must always be an atom"
 
         not is_atom(function) ->
@@ -1637,6 +1630,22 @@ defmodule ErlangError do
 
   def normalize({:badkey, key, map}, _stacktrace) do
     %KeyError{key: key, term: map}
+  end
+
+  def normalize({:baddot, true, key, map}, _stacktrace) do
+    %ArgumentError{
+      message:
+        "could not find key #{inspect(key)} on #{inspect(map)}. " <>
+          "When using the map.field syntax, make sure the left side of the dot is a map"
+    }
+  end
+
+  def normalize({:baddot, false, key, module}, _stacktrace) do
+    %ArgumentError{
+      message:
+        "could not find function #{inspect(key)} on #{inspect(module)}. " <>
+          "When using the module.function() syntax, make sure the left side of the dot is a module"
+    }
   end
 
   def normalize({:case_clause, term}, _stacktrace) do

@@ -477,16 +477,37 @@ defmodule ExceptionTest do
              """
     end
 
-    test "annotates badarg on apply" do
+    test "annotates dot syntax on invalid argument errors" do
       assert blame_message([], & &1.foo) ==
-               "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
-                 "the module is an atom. If you are using the dot syntax, such as " <>
-                 "map.field or module.function(), make sure the left side of the dot is an atom or a map"
+               "could not find key :foo on []. When using the map.field syntax, " <>
+                 "make sure the left side of the dot is a map"
 
+      assert blame_message([], & &1.foo()) ==
+               "could not find function :foo on []. When using the module.function() " <>
+                 "syntax, make sure the left side of the dot is a module"
+
+      # atoms that are invalid module name:
+      assert blame_message(nil, & &1.foo()) ==
+               "could not find function :foo on nil. When using the module.function() " <>
+                 "syntax, make sure the left side of the dot is a module"
+
+      assert blame_message(false, & &1.foo()) ==
+               "could not find function :foo on false. When using the module.function() " <>
+                 "syntax, make sure the left side of the dot is a module"
+
+      assert blame_message(nil, fn _ -> nil.foo() end) ==
+               "could not find function :foo on nil. When using the module.function() " <>
+                 "syntax, make sure the left side of the dot is a module"
+
+      assert blame_message(false, fn _ -> false.foo() end) ==
+               "could not find function :foo on false. When using the module.function() " <>
+                 "syntax, make sure the left side of the dot is a module"
+    end
+
+    test "annotates badarg on apply" do
       assert blame_message([], &apply(&1, :foo, [])) ==
-               "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
-                 "the module is an atom. If you are using the dot syntax, such as " <>
-                 "map.field or module.function(), make sure the left side of the dot is an atom or a map"
+               "you attempted to apply a function named :foo on []. Modules " <>
+                 "(the first argument of apply) must always be an atom"
 
       assert blame_message([], &apply(Kernel, &1, [1, 2])) ==
                "you attempted to apply a function named [] on module Kernel. However [] is not a valid function name. " <>
@@ -586,12 +607,6 @@ defmodule ExceptionTest do
     test "annotates undefined function clause error with otp obsolete hints" do
       assert blame_message(:erlang, & &1.hash(1, 2)) ==
                "function :erlang.hash/2 is undefined or private, use erlang:phash2/2 instead"
-    end
-
-    test "annotates undefined function clause error with nil hints" do
-      assert blame_message(nil, & &1.foo) ==
-               "function nil.foo/0 is undefined. If you are using the dot syntax, " <>
-                 "such as map.field or module.function(), make sure the left side of the dot is an atom or a map"
     end
 
     test "annotates key error with suggestions if keys are atoms" do
