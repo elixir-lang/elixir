@@ -177,9 +177,7 @@ defmodule Mix.Tasks.TestTest do
                    Threshold:  90.00%
                """
 
-        unless windows?() do
-          assert code == 3
-        end
+        assert code == 3
       end)
     end
 
