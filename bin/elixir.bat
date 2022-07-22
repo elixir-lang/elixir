@@ -188,5 +188,6 @@ if defined ELIXIR_CLI_DRY_RUN (
     "!ERTS_BIN!erl.exe" !ext_libs! !ELIXIR_ERL_OPTIONS! !parsErlang! !beforeExtra! -extra !parsElixir!
   )
 )
+exit /B %ERRORLEVEL%
 :end
 endlocal

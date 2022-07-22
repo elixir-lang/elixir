@@ -19,7 +19,6 @@ defmodule Mix.CLITest do
     end)
   end
 
-  @tag :unix
   test "Mix.raise/2 can set exit status", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
       File.mkdir_p!("lib")
