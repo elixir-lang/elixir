@@ -93,10 +93,10 @@ $(KERNEL): lib/elixir/lib/*.ex lib/elixir/lib/*/*.ex lib/elixir/lib/*/*/*.ex
 		echo "==> bootstrap (compile)"; \
 		$(ERL) -s elixir_compiler bootstrap -s erlang halt; \
 	fi
-	$(Q) $(MAKE) unicode
+	$(Q) "$(MAKE)" unicode
 	@ echo "==> elixir (compile)";
 	$(Q) cd lib/elixir && ../../$(ELIXIRC) "lib/**/*.ex" -o ebin;
-	$(Q) $(MAKE) app
+	$(Q) "$(MAKE)" app
 
 app: $(APP)
 $(APP): lib/elixir/src/elixir.app.src lib/elixir/ebin VERSION $(GENERATE_APP)
@@ -128,7 +128,7 @@ install: compile
 	$(Q) for file in "$(DESTDIR)$(PREFIX)"/$(LIBDIR)/elixir/bin/*; do \
 		ln -sf "../$(LIBDIR)/elixir/bin/$${file##*/}" "$(DESTDIR)$(PREFIX)/$(BINDIR)/"; \
 	done
-	$(MAKE) install_man
+	"$(MAKE)" install_man
 
 check_reproducible: compile
 	$(Q) echo "==> Checking for reproducible builds..."
@@ -146,7 +146,7 @@ check_reproducible: compile
 	$(Q) mv lib/iex/ebin/* lib/iex/tmp/ebin_reproducible/
 	$(Q) mv lib/logger/ebin/* lib/logger/tmp/ebin_reproducible/
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
-	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) $(MAKE) compile
+	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) "$(MAKE)" compile
 	$(Q) echo "Diffing..."
 	$(Q) bin/elixir lib/elixir/diff.exs lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
 	$(Q) bin/elixir lib/elixir/diff.exs lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
@@ -160,7 +160,7 @@ clean:
 	rm -rf ebin
 	rm -rf lib/*/ebin
 	rm -rf $(PARSER)
-	$(Q) $(MAKE) clean_residual_files
+	$(Q) "$(MAKE)" clean_residual_files
 
 clean_elixir:
 	$(Q) rm -f lib/*/ebin/Elixir.*.beam
@@ -175,7 +175,7 @@ clean_residual_files:
 	rm -rf lib/mix/test/fixtures/git_sparse_repo/
 	rm -rf lib/mix/test/fixtures/archive/ebin/
 	rm -f erl_crash.dump
-	$(Q) $(MAKE) clean_man
+	$(Q) "$(MAKE)" clean_man
 
 #==> Documentation tasks
 
@@ -326,4 +326,4 @@ install_man: build_man
 	$(Q) $(INSTALL_DATA) man/elixirc.1 $(DESTDIR)$(MAN_PREFIX)/man1
 	$(Q) $(INSTALL_DATA) man/iex.1     $(DESTDIR)$(MAN_PREFIX)/man1
 	$(Q) $(INSTALL_DATA) man/mix.1     $(DESTDIR)$(MAN_PREFIX)/man1
-	$(MAKE) clean_man
+	"$(MAKE)" clean_man
