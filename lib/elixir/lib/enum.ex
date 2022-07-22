@@ -234,7 +234,7 @@ defmodule Enum do
   import Kernel, except: [max: 2, min: 2]
 
   @moduledoc """
-  Provides a set of algorithms to work with enumerables.
+  Provides a set of functions to work with enumerables.
 
   In Elixir, an enumerable is any data type that implements the
   `Enumerable` protocol. `List`s (`[1, 2, 3]`), `Map`s (`%{foo: 1, bar: 2}`)
