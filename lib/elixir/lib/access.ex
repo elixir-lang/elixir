@@ -829,4 +829,91 @@ defmodule Access do
   defp get_and_update_filter([], _func, _next, updates, gets) do
     {:lists.reverse(gets), :lists.reverse(updates)}
   end
+
+  @doc ~S"""
+  Returns a function that accesses all items of a list that are within the provided range.
+
+  The returned function is typically passed as an accessor to `Kernel.get_in/2`,
+  `Kernel.get_and_update_in/3`, and friends.
+
+  ## Examples
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}, %{name: "vitor", salary: 25}]
+      iex> get_in(list, [Access.slice(1..2), :name])
+      ["francine", "vitor"]
+      iex> get_and_update_in(list, [Access.slice(1..3//2), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {["francine"], [%{name: "john", salary: 10}, %{name: "FRANCINE", salary: 30}, %{name: "vitor", salary: 25}]}
+
+  `slice/1` can also be used to pop elements out of a list or
+  a key inside of a list:
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}, %{name: "vitor", salary: 25}]
+      iex> pop_in(list, [Access.slice(-2..-1)])
+      {[%{name: "francine", salary: 30}, %{name: "vitor", salary: 25}], [%{name: "john", salary: 10}]}
+      iex> pop_in(list, [Access.slice(-2..-1), :name])
+      {["francine", "vitor"], [%{name: "john", salary: 10}, %{salary: 30}, %{salary: 25}]}
+
+  When no match is found, an empty list is returned and the update function is never called
+
+      iex> list = [%{name: "john", salary: 10}, %{name: "francine", salary: 30}, %{name: "vitor", salary: 25}]
+      iex> get_in(list, [Access.slice(5..10//2), :name])
+      []
+      iex> get_and_update_in(list, [Access.slice(5..10//2), :name], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {[], [%{name: "john", salary: 10}, %{name: "francine", salary: 30}, %{name: "vitor", salary: 25}]}
+
+  An error is raised if the accessed structure is not a list:
+
+      iex> get_in(%{}, [Access.slice(2..10//3)])
+      ** (RuntimeError) Access.slice/1 expected a list, got: %{}
+
+  """
+  @doc since: "1.14"
+  @spec slice(Range.t()) :: access_fun(data :: list, current_value :: list)
+  def slice(%Range{} = range) do
+    fn op, data, next -> slice(op, data, range, next) end
+  end
+
+  defp slice(:get, data, %Range{} = range, next) when is_list(data) do
+    data
+    |> Enum.slice(range)
+    |> Enum.map(next)
+  end
+
+  defp slice(:get_and_update, data, range, next) when is_list(data) do
+    index = if(range.first >= 0, do: 0, else: length(data) * -1)
+    get_and_update_slice(data, range, next, [], [], index)
+  end
+
+  defp slice(_op, data, _range, _next) do
+    raise "Access.slice/1 expected a list, got: #{inspect(data)}"
+  end
+
+  defp get_and_update_slice([head | rest], range, next, updates, gets, index) do
+    if index in range do
+      case next.(head) do
+        :pop ->
+          get_and_update_slice(rest, range, next, updates, [head | gets], index + 1)
+
+        {get, update} ->
+          get_and_update_slice(
+            rest,
+            range,
+            next,
+            [update | updates],
+            [get | gets],
+            index + 1
+          )
+      end
+    else
+      get_and_update_slice(rest, range, next, [head | updates], gets, index + 1)
+    end
+  end
+
+  defp get_and_update_slice([], _range, _next, updates, gets, _index) do
+    {:lists.reverse(gets), :lists.reverse(updates)}
+  end
 end
