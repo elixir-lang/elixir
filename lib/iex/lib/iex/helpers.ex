@@ -1371,8 +1371,8 @@ defmodule IEx.Helpers do
 
   """
   def nl(nodes \\ Node.list(), module) when is_list(nodes) and is_atom(module) do
-    case :code.get_object_code(module) do
-      {^module, bin, beam_path} ->
+    case get_beam_and_path(module) do
+      {bin, beam_path} ->
         results =
           for node <- nodes do
             case :rpc.call(node, :code, :load_binary, [module, beam_path, bin]) do
@@ -1387,6 +1387,15 @@ defmodule IEx.Helpers do
 
       _otherwise ->
         {:error, :nofile}
+    end
+  end
+
+  defp get_beam_and_path(module) do
+    with {^module, beam, filename} <- :code.get_object_code(module),
+         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+      {beam, filename}
+    else
+      _ -> :error
     end
   end
 end
