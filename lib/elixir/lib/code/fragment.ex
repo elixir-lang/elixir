@@ -153,35 +153,10 @@ defmodule Code.Fragment do
                | {:dot, inside_dot, charlist}
   def cursor_context(fragment, opts \\ [])
 
-  def cursor_context(binary, opts) when is_binary(binary) and is_list(opts) do
-    # CRLF not relevant here - we discard everything before last `\n`
-    binary = last_line(binary)
-    # case :binary.matches(binary, "\n") do
-    #   [] ->
-    #     binary
-
-    #   matches ->
-    #     {position, _} = List.last(matches)
-    #     binary_part(binary, position + 1, byte_size(binary) - position - 1)
-    # end
-
-    binary
-    |> String.to_charlist()
-    |> :lists.reverse()
-    |> codepoint_cursor_context(opts)
-    |> elem(0)
-  end
-
-  def cursor_context(charlist, opts) when is_list(charlist) and is_list(opts) do
-    # CRLF not relevant here - we discard everything before last `\n`
-    # charlist =
-    #   case charlist |> Enum.chunk_by(&(&1 == ?\n)) |> List.last([]) do
-    #     [?\n | _] -> []
-    #     rest -> rest
-    #   end
-
-    charlist
-    |> last_line
+  def cursor_context(fragment, opts)
+      when (is_binary(fragment) or is_list(fragment)) and is_list(opts) do
+    fragment
+    |> last_line()
     |> :lists.reverse()
     |> codepoint_cursor_context(opts)
     |> elem(0)
@@ -594,18 +569,19 @@ defmodule Code.Fragment do
                | {:dot, inside_dot, charlist}
   def surround_context(fragment, position, options \\ [])
 
-  def surround_context(string, {line, column}, opts) when is_binary(string) or is_list(string) do
-    {binary, {lines_before_reversed_lengths, cursor_line_length, lines_after_lengths}} =
-      join_lines(string, line, column)
+  def surround_context(string, {line, column}, opts)
+      when (is_binary(string) or is_list(string)) and is_list(opts) do
+    {charlist, lines_before_lengths, lines_current_and_after_lengths} =
+      surround_line(string, line, column)
 
-    prepended_columns = Enum.sum(lines_before_reversed_lengths)
+    prepended_columns = Enum.sum(lines_before_lengths)
 
-    binary
-    |> String.to_charlist()
+    charlist
     |> position_surround_context(line, column + prepended_columns, opts)
     |> to_multiline_range(
       prepended_columns,
-      {lines_before_reversed_lengths, cursor_line_length, lines_after_lengths}
+      lines_before_lengths,
+      lines_current_and_after_lengths
     )
   end
 
@@ -810,22 +786,13 @@ defmodule Code.Fragment do
   defp enum_reverse_at([h | t], n, acc) when n > 0, do: enum_reverse_at(t, n - 1, [h | acc])
   defp enum_reverse_at(rest, _, acc), do: {acc, rest}
 
-  @comment_strip ~r/(?<!\<)\#(?!\{).*$/
-
   defp last_line(binary) when is_binary(binary) do
     [last_line | lines_reverse] =
       binary
       |> String.split(["\r\n", "\n"])
       |> Enum.reverse()
 
-    lines_reverse =
-      lines_reverse
-      |> Enum.map(&Regex.replace(@comment_strip, &1, ""))
-
-    last_line = last_line
-
-    prepend_lines_before(last_line, lines_reverse)
-    |> IO.chardata_to_string()
+    prepend_cursor_lines(lines_reverse, String.to_charlist(last_line))
   end
 
   defp last_line(charlist) when is_list(charlist) do
@@ -836,177 +803,128 @@ defmodule Code.Fragment do
       |> :string.split('\n', :all)
       |> Enum.reverse()
 
-    lines_reverse =
-      lines_reverse
-      |> Enum.map(&Regex.replace(@comment_strip, List.to_string(&1), ""))
-
-    last_line = last_line |> List.to_string()
-
-    prepend_lines_before(last_line, lines_reverse)
-    |> IO.chardata_to_string()
-    |> String.to_charlist()
+    prepend_cursor_lines(lines_reverse, last_line)
   end
 
-  defp prepend_lines_before(cursor_line, lines_before_reverse) do
-    lines_before_reverse
-    |> Enum.reduce_while([cursor_line], fn line, [head | _] = acc ->
-      line_trimmed = String.trim(line)
-      acc_trimmed = String.trim_leading(head)
-
-      if String.starts_with?(acc_trimmed, ".") or line_trimmed == "" or
-           String.ends_with?(line_trimmed, ".") or String.ends_with?(line_trimmed, "(") do
-        {:cont, [line | acc]}
-      else
-        {:halt, acc}
-      end
-    end)
+  defp prepend_cursor_lines(lines, last_line) do
+    with [line | lines] <- lines,
+         {trimmed_line, incomplete?} = ends_as_incomplete(to_charlist(line), [], true),
+         true <- incomplete? or starts_with_dot?(last_line) do
+      prepend_cursor_lines(lines, Enum.reverse(trimmed_line, last_line))
+    else
+      _ -> last_line
+    end
   end
 
-  defp append_lines_after(cursor_line, lines_after) do
-    lines_after
-    |> Enum.reduce_while([cursor_line], fn line, [head | _] = acc ->
-      line_trimmed = String.trim_leading(line)
-      acc_trimmed = String.trim(head)
+  defp starts_with_dot?([?. | _]), do: true
+  defp starts_with_dot?([h | t]) when h in @space, do: starts_with_dot?(t)
+  defp starts_with_dot?(_), do: false
 
-      if String.starts_with?(line_trimmed, ".") or acc_trimmed == "" or
-           String.ends_with?(acc_trimmed, ".") or String.ends_with?(acc_trimmed, "(") do
-        {:cont, [line | acc]}
-      else
-        {:halt, acc}
-      end
-    end)
-    |> Enum.reverse()
+  defp ends_as_incomplete([?# | _], acc, incomplete?),
+    do: {acc, incomplete?}
+
+  defp ends_as_incomplete([h | t], acc, _incomplete?) when h in [?(, ?.],
+    do: ends_as_incomplete(t, [h | acc], true)
+
+  defp ends_as_incomplete([h | t], acc, incomplete?) when h in @space,
+    do: ends_as_incomplete(t, [h | acc], incomplete?)
+
+  defp ends_as_incomplete([h | t], acc, _incomplete?),
+    do: ends_as_incomplete(t, [h | acc], false)
+
+  defp ends_as_incomplete([], acc, incomplete?),
+    do: {acc, incomplete?}
+
+  defp surround_line(binary, line, column) when is_binary(binary) do
+    binary
+    |> String.split(["\r\n", "\n"])
+    |> Enum.map(&String.to_charlist/1)
+    |> surround_lines(line, column)
   end
 
-  def join_lines(binary, line, column) when is_binary(binary) do
-    lines =
-      binary
-      |> String.split(["\r\n", "\n"])
-
-    lines_before_reverse =
-      if line > 1 do
-        lines
-        |> Enum.slice(0..(line - 2))
-        |> Enum.reverse()
-        |> Enum.map(&Regex.replace(@comment_strip, &1, ""))
-      else
-        []
-      end
-
-    lines_after =
-      lines
-      |> Enum.slice(line..-1)
-      |> Enum.map(&Regex.replace(@comment_strip, &1, ""))
-
-    cursor_line =
-      lines
-      |> Enum.at(line - 1)
-
-    cursor_line_stripped = Regex.replace(@comment_strip, cursor_line, "")
-
-    cursor_line_stripped =
-      if column - 1 > String.length(cursor_line_stripped) do
-        cursor_line
-      else
-        cursor_line_stripped
-      end
-
-    added_before_lines = prepend_lines_before(cursor_line_stripped, lines_before_reverse)
-    [_ | added_after_lines] = append_lines_after(cursor_line_stripped, lines_after)
-
-    built =
-      [added_before_lines, added_after_lines]
-      |> IO.chardata_to_string()
-
-    {built,
-     {Enum.map(lines_before_reverse, &String.length/1), String.length(cursor_line_stripped),
-      Enum.map(lines_after, &String.length/1)}}
+  defp surround_line(charlist, line, column) when is_list(charlist) do
+    charlist
+    |> :string.replace('\r\n', '\n', :all)
+    |> :string.join('')
+    |> :string.split('\n', :all)
+    |> surround_lines(line, column)
   end
 
-  def join_lines(charlist, line, column) when is_list(charlist) do
-    lines =
-      charlist
-      |> :string.replace('\r\n', '\n', :all)
-      |> :string.join('')
-      |> :string.split('\n', :all)
+  defp surround_lines(lines, line, column) do
+    {lines_before_reverse, cursor_line, lines_after} = split_at(lines, line, [])
+    {trimmed_cursor_line, incomplete?} = ends_as_incomplete(to_charlist(cursor_line), [], true)
 
-    lines_before_reverse =
-      if line > 1 do
-        lines
-        |> Enum.slice(0..(line - 2))
-        |> Enum.reverse()
-        |> Enum.map(&Regex.replace(@comment_strip, List.to_string(&1), ""))
+    reversed_cursor_line =
+      if column - 1 > length(trimmed_cursor_line) do
+        # Don't strip comments if cursor is inside a comment
+        Enum.reverse(cursor_line)
       else
-        []
+        trimmed_cursor_line
       end
 
-    lines_after =
-      lines
-      |> Enum.slice(line..-1)
-      |> Enum.map(&Regex.replace(@comment_strip, List.to_string(&1), ""))
+    {cursor_line, after_lengths} =
+      append_surround_lines(lines_after, [], [reversed_cursor_line], incomplete?)
 
-    cursor_line =
-      lines
-      |> Enum.at(line - 1)
-      |> List.to_string()
-
-    cursor_line_stripped = Regex.replace(@comment_strip, cursor_line, "")
-
-    cursor_line_stripped =
-      if column - 1 > String.length(cursor_line_stripped) do
-        # no comment strip if cursor is inside a comment
-        # we want to provide results inside comment
-        cursor_line
-      else
-        cursor_line_stripped
-      end
-
-    added_before_lines = prepend_lines_before(cursor_line_stripped, lines_before_reverse)
-    [_ | added_after_lines] = append_lines_after(cursor_line_stripped, lines_after)
-
-    built =
-      [added_before_lines, added_after_lines]
-      |> IO.chardata_to_string()
-
-    {built,
-     {Enum.map(lines_before_reverse, &String.length/1), String.length(cursor_line_stripped),
-      Enum.map(lines_after, &String.length/1)}}
+    {cursor_line, before_lengths} = prepend_surround_lines(lines_before_reverse, [], cursor_line)
+    {cursor_line, before_lengths, [length(reversed_cursor_line) | after_lengths]}
   end
 
-  defp to_multiline_range(:none, _, _), do: :none
+  defp split_at([line], _, acc), do: {acc, line, []}
+  defp split_at([line | lines], 1, acc), do: {acc, line, lines}
+  defp split_at([line | lines], count, acc), do: split_at(lines, count - 1, [line | acc])
+
+  defp prepend_surround_lines(lines, lengths, last_line) do
+    with [line | lines] <- lines,
+         {trimmed_line, incomplete?} = ends_as_incomplete(to_charlist(line), [], true),
+         true <- incomplete? or starts_with_dot?(last_line) do
+      lengths = [length(trimmed_line) | lengths]
+      prepend_surround_lines(lines, lengths, Enum.reverse(trimmed_line, last_line))
+    else
+      _ -> {last_line, Enum.reverse(lengths)}
+    end
+  end
+
+  defp append_surround_lines(lines, lengths, acc_lines, incomplete?) do
+    with [line | lines] <- lines,
+         line = to_charlist(line),
+         true <- incomplete? or starts_with_dot?(line) do
+      {trimmed_line, incomplete?} = ends_as_incomplete(line, [], true)
+      lengths = [length(trimmed_line) | lengths]
+      append_surround_lines(lines, lengths, [trimmed_line | acc_lines], incomplete?)
+    else
+      _ -> {Enum.reduce(acc_lines, [], &Enum.reverse/2), Enum.reverse(lengths)}
+    end
+  end
+
+  defp to_multiline_range(:none, _, _, _), do: :none
 
   defp to_multiline_range(
          %{begin: {begin_line, begin_column}, end: {end_line, end_column}} = context,
          prepended,
-         {lines_before_reversed_lengths, cursor_line_length, lines_after_lengths}
+         lines_before_lengths,
+         lines_current_and_after_lengths
        ) do
     {begin_line, begin_column} =
-      lines_before_reversed_lengths
-      |> Enum.reduce_while({begin_line, begin_column - prepended}, fn line_length,
-                                                                      {acc_line, acc_column} ->
-        if acc_column < 1 do
-          {:cont, {acc_line - 1, acc_column + line_length}}
-        else
-          {:halt, {acc_line, acc_column}}
-        end
+      Enum.reduce_while(lines_before_lengths, {begin_line, begin_column - prepended}, fn
+        line_length, {acc_line, acc_column} ->
+          if acc_column < 1 do
+            {:cont, {acc_line - 1, acc_column + line_length}}
+          else
+            {:halt, {acc_line, acc_column}}
+          end
       end)
 
     {end_line, end_column} =
-      [cursor_line_length | lines_after_lengths]
-      |> Enum.reduce_while({end_line, end_column - prepended}, fn line_length,
-                                                                  {acc_line, acc_column} ->
-        if acc_column > line_length + 1 do
-          {:cont, {acc_line + 1, acc_column - line_length}}
-        else
-          {:halt, {acc_line, acc_column}}
-        end
+      Enum.reduce_while(lines_current_and_after_lengths, {end_line, end_column - prepended}, fn
+        line_length, {acc_line, acc_column} ->
+          if acc_column > line_length + 1 do
+            {:cont, {acc_line + 1, acc_column - line_length}}
+          else
+            {:halt, {acc_line, acc_column}}
+          end
       end)
 
-    context
-    |> Map.merge(%{
-      begin: {begin_line, begin_column},
-      end: {end_line, end_column}
-    })
+    %{context | begin: {begin_line, begin_column}, end: {end_line, end_column}}
   end
 
   @doc """

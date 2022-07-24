@@ -591,9 +591,9 @@ defmodule CodeFragmentTest do
                end: {2, 7}
              }
 
-      assert CF.surround_context("hello. # comment\n\n  wor", {3, 4}) == %{
+      assert CF.surround_context("123 + hello. # comment\n\n  wor", {3, 4}) == %{
                context: {:dot, {:var, 'hello'}, 'wor'},
-               begin: {1, 1},
+               begin: {1, 7},
                end: {3, 6}
              }
 
