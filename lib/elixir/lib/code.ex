@@ -1706,8 +1706,8 @@ defmodule Code do
   def fetch_docs(module_or_path)
 
   def fetch_docs(module) when is_atom(module) do
-    case :code.get_object_code(module) do
-      {_module, bin, beam_path} ->
+    case get_beam_and_path(module) do
+      {bin, beam_path} ->
         case fetch_docs_from_beam(bin) do
           {:error, :chunk_not_found} ->
             app_root = Path.expand(Path.join(["..", ".."]), beam_path)
@@ -1740,6 +1740,15 @@ defmodule Code do
 
   def fetch_docs(path) when is_binary(path) do
     fetch_docs_from_beam(String.to_charlist(path))
+  end
+
+  defp get_beam_and_path(module) do
+    with {^module, beam, filename} <- :code.get_object_code(module),
+         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+      {beam, filename}
+    else
+      _ -> :error
+    end
   end
 
   @docs_chunk 'Docs'

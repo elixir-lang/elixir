@@ -174,9 +174,11 @@ defmodule Code.Typespec do
   end
 
   defp get_module_and_beam(module) when is_atom(module) do
-    case :code.get_object_code(module) do
-      {^module, beam, _filename} -> {module, beam}
-      :error -> :error
+    with {^module, beam, _filename} <- :code.get_object_code(module),
+         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+      {module, beam}
+    else
+      _ -> :error
     end
   end
 
