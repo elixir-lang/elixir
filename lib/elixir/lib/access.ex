@@ -833,6 +833,8 @@ defmodule Access do
   @doc ~S"""
   Returns a function that accesses all items of a list that are within the provided range.
 
+  The range will be normalized following the same rules from `Enum.slice/2`.
+
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
@@ -870,7 +872,7 @@ defmodule Access do
       iex> get_in(%{}, [Access.slice(2..10//3)])
       ** (RuntimeError) Access.slice/1 expected a list, got: %{}
 
-  An error is raised if step of the range is negative:
+  An error is raised if the step of the range is negative:
 
       iex> get_in([], [Access.slice(2..10//-1)])
       ** (ArgumentError) Access.slice/1 does not accept ranges with negative steps, got: 2..10//-1

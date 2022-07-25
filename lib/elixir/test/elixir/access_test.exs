@@ -146,6 +146,14 @@ defmodule AccessTest do
       assert [6, 7] == get_in(@test_list, [Access.slice(-2..-1)])
     end
 
+    test "retrieves a range from positive first and negative last" do
+      assert [2, 3, 4, 5, 6] == get_in(@test_list, [Access.slice(1..-2//1)])
+    end
+
+    test "retrieves a range from negative first and positive last" do
+      assert [6, 7] == get_in(@test_list, [Access.slice(-2..7//1)])
+    end
+
     test "retrieves a range with steps" do
       assert [1, 3] == get_in(@test_list, [Access.slice(0..2//2)])
       assert [2, 5] == get_in(@test_list, [Access.slice(1..4//3)])
