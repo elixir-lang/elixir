@@ -5806,6 +5806,8 @@ defmodule Kernel do
       |> String.split() #=> ["Elixir", "is", "cool"]
       |> List.first() #=> "Elixir"
 
+  With no arguments, `dbg()` debugs information about the current binding. See `binding/1`.
+
   ## Configuring the debug function
 
   One of the benefits of `dbg/2` is that its debugging logic is configurable,
@@ -5846,7 +5848,7 @@ defmodule Kernel do
   are inspected. They are the same options accepted by `inspect/2`.
   """
   @doc since: "1.14.0"
-  defmacro dbg(code, options \\ []) do
+  defmacro dbg(code \\ quote(do: binding()), options \\ []) do
     {mod, fun, args} = Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
     apply(mod, fun, [code, options, __CALLER__ | args])
   end
