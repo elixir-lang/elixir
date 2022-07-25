@@ -1488,8 +1488,8 @@ defmodule KernelTest do
       output = capture_io(fn -> dbg() end)
 
       assert output =~ "binding()"
-      assert output =~ "my_var:\e[0m \e[33m1"
-      assert output =~ "my_other_var:\e[0m \e[36m:foo"
+      assert output =~ "my_var:"
+      assert output =~ "my_other_var:"
     end
   end
 end
