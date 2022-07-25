@@ -352,6 +352,8 @@ tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
 
 % ## Stand-alone tokens
 
+%% TODO: Consider either making ... as nullary operator (same as ..)
+%% or deprecating it. In Elixir itself it is only used in typespecs.
 tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
   NewScope = maybe_warn_too_many_of_same_char("...", Rest, Line, Column, Scope),
   Token = check_call_identifier(Line, Column, "...", '...', Rest),
