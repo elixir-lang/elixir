@@ -1480,5 +1480,16 @@ defmodule KernelTest do
       assert output =~ "[:foo, :foo, :foo]"
       refute output =~ "\\e["
     end
+
+    test "prints binding() if no arguments are given" do
+      my_var = 1
+      my_other_var = :foo
+
+      output = capture_io(fn -> dbg() end)
+
+      assert output =~ "binding()"
+      assert output =~ "my_var:\e[0m \e[33m1"
+      assert output =~ "my_other_var:\e[0m \e[36m:foo"
+    end
   end
 end
