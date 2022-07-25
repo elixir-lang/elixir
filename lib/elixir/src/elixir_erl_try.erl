@@ -203,13 +203,9 @@ erl_rescue_guard_for(Meta, Var, 'Elixir.KeyError') ->
 erl_rescue_guard_for(Meta, Var, 'Elixir.ArgumentError') ->
   erl_or(Meta,
          {erl(Meta, '=='), Meta, [Var, badarg]},
-         erl_or(Meta,
-            erl_and(Meta,
-                    erl_tuple_size(Meta, Var, 2),
-                    erl_record_compare(Meta, Var, badarg)),
-            erl_and(Meta,
-                    erl_tuple_size(Meta, Var, 4),
-                    erl_record_compare(Meta, Var, baddot))));
+         erl_and(Meta,
+                 erl_tuple_size(Meta, Var, 2),
+                 erl_record_compare(Meta, Var, badarg)));
 
 erl_rescue_guard_for(Meta, Var, 'Elixir.ErlangError') ->
   Condition =

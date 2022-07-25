@@ -232,34 +232,41 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S) when is_tuple(Left), is_
   Generated = erl_anno:set_generated(true, Ann),
   {Var, SV} = elixir_erl_var:build('_', SL),
   TVar = {var, Generated, Var},
-  TBadKeyError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
-  TBadDotError = build_baddot_error(TVar, TRight, Ann, Meta),
 
-  {{'case', Generated, TLeft, [
-    {clause, Generated,
-      [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
-      [],
-      [TVar]},
-    {clause, Generated,
-      [TVar],
-      [[?remote(Generated, erlang, is_map, [TVar])]],
-      [?remote(Ann, erlang, error, [TBadKeyError])]},
-    {clause, Generated,
-      [TVar],
-      [[{op, Ann, 'orelse',
-        {op, Ann, '=:=', TVar, {atom, Ann, nil}},
-        ?remote(Generated, erlang, is_boolean, [TVar])
-      }]],
-      [?remote(Ann, erlang, error, [TBadDotError])]},
-    {clause, Generated,
-      [TVar],
-      [[?remote(Generated, erlang, is_atom, [TVar])]],
-      [{call, Generated, {remote, Generated, TVar, TRight}, []}]},
-    {clause, Generated,
-      [TVar],
-      [],
-      [?remote(Ann, erlang, error, [TBadDotError])]}
-  ]}, SV};
+  case proplists:get_value(no_parens, Meta, false) of
+    true ->
+      TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TVar]},
+      {{'case', Generated, TLeft, [
+        {clause, Generated,
+          [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
+          [],
+          [TVar]},
+        {clause, Generated,
+          [TVar],
+          [[
+            ?remote(Generated, erlang, is_atom, [TVar]),
+            {op, Generated, '=/=', TVar, {atom, Generated, nil}},
+            {op, Generated, '=/=', TVar, {atom, Generated, true}},
+            {op, Generated, '=/=', TVar, {atom, Generated, false}}
+          ]],
+          [{call, Generated, {remote, Generated, TVar, TRight}, []}]},
+        {clause, Generated,
+          [TVar],
+          [],
+          [?remote(Ann, erlang, error, [TError])]}
+      ]}, SV};
+    false ->
+      {{'case', Generated, TLeft, [
+        {clause, Generated,
+          [{map, Ann, [{map_field_exact, Ann, TRight, TVar}]}],
+          [],
+          [TVar]},
+        {clause, Generated,
+          [TVar],
+          [],
+          [{call, Generated, {remote, Generated, TVar, TRight}, []}]}
+      ]}, SV}
+    end;
 
 translate({{'.', _, [Left, Right]}, Meta, Args}, _Ann, S)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
@@ -608,12 +615,18 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
     {[TMap1, TMap2], TS} ->
       {{call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, merge}}, [TMap1, TMap2]}, TS}
   end;
-
-translate_remote(Left, Right, Meta, _Args, S)
+translate_remote(Left, Right, Meta, [], S)
     when (Left =:= nil orelse is_boolean(Left)), is_atom(Right) ->
   Ann = ?ann(Meta),
-  TBadDotError = build_baddot_error({atom, Ann, Left}, {atom, Ann, Right}, Ann, Meta),
-  {?remote(Ann, erlang, error, [TBadDotError]), S};
+  TLeft = {atom, Ann, Left},
+  TRight = {atom, Ann, Right},
+  case proplists:get_value(no_parens, Meta, false) of
+    true ->
+      TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TLeft]},
+      {?remote(Ann, erlang, error, [TError]), S};
+    false ->
+      {{call, Ann, {remote, Ann, TLeft, TRight}, []}, S}
+  end;
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),
   {TLeft, SL} = translate(Left, Ann, S),
@@ -633,10 +646,6 @@ translate_remote(Left, Right, Meta, Args, S) ->
     false ->
       {{call, Ann, {remote, Ann, TLeft, TRight}, TArgs}, SA}
   end.
-
-build_baddot_error(Left, Right, Ann, Meta) ->
-  NoParens = proplists:get_value(no_parens, Meta, false),
-  {tuple, Ann, [{atom, Ann, baddot}, {atom, Ann, NoParens}, Right, Left]}.
 
 generate_struct_name_guard([{map_field_exact, Ann, {atom, _, '__struct__'} = Key, Var} | Rest], Acc, S0) ->
   {ModuleVarName, S1} = elixir_erl_var:build('_', S0),
