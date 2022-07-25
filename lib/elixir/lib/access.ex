@@ -870,11 +870,21 @@ defmodule Access do
       iex> get_in(%{}, [Access.slice(2..10//3)])
       ** (RuntimeError) Access.slice/1 expected a list, got: %{}
 
+  An error is raised if step of the range is negative:
+
+      iex> get_in([], [Access.slice(2..10//-1)])
+      ** (ArgumentError) Access.slice/1 does not accept ranges with negative steps, got: 2..10//-1
+
   """
   @doc since: "1.14"
   @spec slice(Range.t()) :: access_fun(data :: list, current_value :: list)
   def slice(%Range{} = range) do
-    fn op, data, next -> slice(op, data, range, next) end
+    if range.step > 0 do
+      fn op, data, next -> slice(op, data, range, next) end
+    else
+      raise ArgumentError,
+            "Access.slice/1 does not accept ranges with negative steps, got: #{inspect(range)}"
+    end
   end
 
   defp slice(:get, data, %Range{} = range, next) when is_list(data) do
