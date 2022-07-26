@@ -468,7 +468,6 @@ defmodule Mix.Utils do
           {:win32, _} -> source
           _ -> make_relative_path(source, target)
         end
-        |> String.to_charlist()
 
       case File.read_link(target) do
         {:ok, ^link} ->
