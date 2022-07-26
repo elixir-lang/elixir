@@ -1,8 +1,12 @@
 # Changelog for Elixir v1.14
 
-Elixir v1.14 requires Erlang/OTP 23+ with a small batch of new features
-and the usual enhancements and bug fixes to Elixir and its standard library.
-We cover the most notable changes next.
+Elixir v1.14 brings many improvements to the debugging experience in Elixir
+and data-type inspection. It also includes a new abstraction for easy
+partitioning of processes called `PartitionSupervisor`, as well as improved
+compilation times and error messages.
+
+Elixir v1.14 is the last version to support Erlang/OTP 23. Consider updating
+to Erlang/OTP 24 or Erlang/OTP 25.
 
 ## `dbg`
 
