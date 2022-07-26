@@ -512,7 +512,7 @@ defmodule Mix.Utils do
   end
 
   defp do_symlink_or_copy(source, target, link) do
-    case :file.make_symlink(link, target) do
+    case File.ln_s(link, target) do
       :ok ->
         :ok
 
