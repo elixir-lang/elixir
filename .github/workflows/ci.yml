@@ -81,7 +81,7 @@ jobs:
     name: Windows, OTP-${{ matrix.otp_release }}, Windows Server 2019
     strategy:
       matrix:
-        otp_release: ['23.3']
+        otp_release: ['24.0']
     runs-on: windows-2019
     steps:
       - name: Configure Git
