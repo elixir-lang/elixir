@@ -209,26 +209,6 @@ defmodule AccessTest do
       assert [-1, 2, -3, 4, -5, 6, 7] ==
                update_in(@test_list, [Access.slice(0..4//2)], &(&1 * -1))
     end
-
-    test "gets and updates a range from the start of the list" do
-      assert {[2, 3], [1, -2, -3, 4, 5, 6, 7]} ==
-               get_and_update_in(@test_list, [Access.slice(1..2)], &{&1, &1 * -1})
-    end
-
-    test "gets and updates a range from the end of the list" do
-      assert {[6, 7], [1, 2, 3, 4, 5, -6, -7]} ==
-               get_and_update_in(@test_list, [Access.slice(-2..-1)], &{&1, &1 * -1})
-    end
-
-    test "gets and updates a range from positive first and negative last" do
-      assert {[2, 3, 4, 5, 6], [1, -2, -3, -4, -5, -6, 7]} ==
-               get_and_update_in(@test_list, [Access.slice(1..-2//1)], &{&1, &1 * -1})
-    end
-
-    test "gets and updates a range from negative first and positive last" do
-      assert {[6, 7], [1, 2, 3, 4, 5, -6, -7]} ==
-               get_and_update_in(@test_list, [Access.slice(-2..7//1)], &{&1, &1 * -1})
-    end
   end
 
   describe "at/1" do
