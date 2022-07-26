@@ -478,15 +478,15 @@ defmodule ExceptionTest do
     end
 
     test "annotates badarg on apply" do
-      assert blame_message([], & &1.foo) ==
+      assert blame_message([], & &1.foo()) ==
                "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
-                 "map.field or module.function(), make sure the left side of the dot is an atom or a map"
+                 "module.function(), make sure the left-hand side of the dot is a module atom"
 
       assert blame_message([], &apply(&1, :foo, [])) ==
                "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
-                 "map.field or module.function(), make sure the left side of the dot is an atom or a map"
+                 "module.function(), make sure the left-hand side of the dot is a module atom"
 
       assert blame_message([], &apply(Kernel, &1, [1, 2])) ==
                "you attempted to apply a function named [] on module Kernel. However [] is not a valid function name. " <>
@@ -588,10 +588,27 @@ defmodule ExceptionTest do
                "function :erlang.hash/2 is undefined or private, use erlang:phash2/2 instead"
     end
 
-    test "annotates undefined function clause error with nil hints" do
+    test "annotates undefined key error with nil hints" do
       assert blame_message(nil, & &1.foo) ==
+               "key :foo not found in: nil. If you are using the dot syntax, " <>
+                 "such as map.field, make sure the left-hand side of the dot is a map"
+
+      # we use `Code.eval_string/1` to escape the formatter and warnings
+      assert blame_message("nil.foo", &Code.eval_string/1) ==
+               "key :foo not found in: nil. If you are using the dot syntax, " <>
+                 "such as map.field, make sure the left-hand side of the dot is a map"
+    end
+
+    test "annotates undefined function clause error with nil hints" do
+      assert blame_message(nil, & &1.foo()) ==
                "function nil.foo/0 is undefined. If you are using the dot syntax, " <>
-                 "such as map.field or module.function(), make sure the left side of the dot is an atom or a map"
+                 "such as module.function(), make sure the left-hand side of " <>
+                 "the dot is a module atom"
+
+      assert blame_message("nil.foo()", &Code.eval_string/1) ==
+               "function nil.foo/0 is undefined. If you are using the dot syntax, " <>
+                 "such as module.function(), make sure the left-hand side of " <>
+                 "the dot is a module atom"
     end
 
     test "annotates key error with suggestions if keys are atoms" do
