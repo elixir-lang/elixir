@@ -224,7 +224,8 @@ translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, #elixir_erl{context=guard} 
   TRight = {atom, Ann, Right},
   {?remote(Ann, erlang, map_get, [TRight, TLeft]), SL};
 
-translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S) when is_tuple(Left), is_atom(Right), is_list(Meta) ->
+translate({{'.', _, [Left, Right]}, Meta, []}, _Ann, S)
+  when is_tuple(Left) orelse Left =:= nil orelse is_boolean(Left), is_atom(Right), is_list(Meta) ->
   Ann = ?ann(Meta),
   {TLeft, SL} = translate(Left, Ann, S),
   TRight = {atom, Ann, Right},
@@ -614,18 +615,6 @@ translate_remote(maps, merge, Meta, [Map1, Map2], S) ->
 
     {[TMap1, TMap2], TS} ->
       {{call, Ann, {remote, Ann, {atom, Ann, maps}, {atom, Ann, merge}}, [TMap1, TMap2]}, TS}
-  end;
-translate_remote(Left, Right, Meta, [], S)
-    when (Left =:= nil orelse is_boolean(Left)), is_atom(Right) ->
-  Ann = ?ann(Meta),
-  TLeft = {atom, Ann, Left},
-  TRight = {atom, Ann, Right},
-  case proplists:get_value(no_parens, Meta, false) of
-    true ->
-      TError = {tuple, Ann, [{atom, Ann, badkey}, TRight, TLeft]},
-      {?remote(Ann, erlang, error, [TError]), S};
-    false ->
-      {{call, Ann, {remote, Ann, TLeft, TRight}, []}, S}
   end;
 translate_remote(Left, Right, Meta, Args, S) ->
   Ann = ?ann(Meta),
