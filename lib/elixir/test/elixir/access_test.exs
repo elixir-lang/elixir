@@ -135,6 +135,86 @@ defmodule AccessTest do
     end
   end
 
+  describe "slice/1" do
+    @test_list [1, 2, 3, 4, 5, 6, 7]
+
+    test "retrieves a range from the start of the list" do
+      assert [2, 3] == get_in(@test_list, [Access.slice(1..2)])
+    end
+
+    test "retrieves a range from the end of the list" do
+      assert [6, 7] == get_in(@test_list, [Access.slice(-2..-1)])
+    end
+
+    test "retrieves a range from positive first and negative last" do
+      assert [2, 3, 4, 5, 6] == get_in(@test_list, [Access.slice(1..-2//1)])
+    end
+
+    test "retrieves a range from negative first and positive last" do
+      assert [6, 7] == get_in(@test_list, [Access.slice(-2..7//1)])
+    end
+
+    test "retrieves a range with steps" do
+      assert [1, 3] == get_in(@test_list, [Access.slice(0..2//2)])
+      assert [2, 5] == get_in(@test_list, [Access.slice(1..4//3)])
+      assert [2] == get_in(@test_list, [Access.slice(1..2//3)])
+      assert [1, 3, 5, 7] == get_in(@test_list, [Access.slice(0..6//2)])
+    end
+
+    test "pops a range from the start of the list" do
+      assert {[2, 3], [1, 4, 5, 6, 7]} == pop_in(@test_list, [Access.slice(1..2)])
+    end
+
+    test "pops a range from the end of the list" do
+      assert {[6, 7], [1, 2, 3, 4, 5]} == pop_in(@test_list, [Access.slice(-2..-1)])
+    end
+
+    test "pops a range from positive first and negative last" do
+      assert {[2, 3, 4, 5, 6], [1, 7]} == pop_in(@test_list, [Access.slice(1..-2//1)])
+    end
+
+    test "pops a range from negative first and positive last" do
+      assert {[6, 7], [1, 2, 3, 4, 5]} == pop_in(@test_list, [Access.slice(-2..7//1)])
+    end
+
+    test "pops a range with steps" do
+      assert {[1, 3, 5], [2, 4, 6, 7]} == pop_in(@test_list, [Access.slice(0..4//2)])
+      assert {[2], [1, 3, 4, 5, 6, 7]} == pop_in(@test_list, [Access.slice(1..2//2)])
+      assert {[1, 4], [1, 2, 5, 6, 7]} == pop_in([1, 2, 1, 4, 5, 6, 7], [Access.slice(2..3)])
+    end
+
+    test "updates range from the start of the list" do
+      assert [-1, 2, 3, 4, 5, 6, 7] == update_in(@test_list, [Access.slice(0..0)], &(&1 * -1))
+
+      assert [1, -2, -3, 4, 5, 6, 7] == update_in(@test_list, [Access.slice(1..2)], &(&1 * -1))
+    end
+
+    test "updates range from the end of the list" do
+      assert [1, 2, 3, 4, 5, -6, -7] == update_in(@test_list, [Access.slice(-2..-1)], &(&1 * -1))
+
+      assert [-1, -2, 3, 4, 5, 6, 7] == update_in(@test_list, [Access.slice(-7..-6)], &(&1 * -1))
+    end
+
+    test "updates a range from positive first and negative last" do
+      assert [1, -2, -3, -4, -5, -6, 7] ==
+               update_in(@test_list, [Access.slice(1..-2//1)], &(&1 * -1))
+    end
+
+    test "updates a range from negative first and positive last" do
+      assert [1, 2, 3, 4, 5, -6, -7] ==
+               update_in(@test_list, [Access.slice(-2..7//1)], &(&1 * -1))
+    end
+
+    test "updates a range with steps" do
+      assert [-1, 2, -3, 4, -5, 6, 7] ==
+               update_in(@test_list, [Access.slice(0..4//2)], &(&1 * -1))
+    end
+
+    test "returns empty when the start of the range is greater than the end" do
+      assert [] == get_in(@test_list, [Access.slice(2..1//1)])
+    end
+  end
+
   describe "at/1" do
     @test_list [1, 2, 3, 4, 5, 6]
 
