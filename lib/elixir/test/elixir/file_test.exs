@@ -646,6 +646,7 @@ defmodule FileTest do
       end
     end
 
+    @tag :unix
     test "cp_r with relative symlink" do
       doc = tmp_path("tmp/doc")
       src = tmp_path("tmp/src")
@@ -665,6 +666,7 @@ defmodule FileTest do
       end
     end
 
+    @tag :unix
     test "cp_r with dereference relative symlink" do
       doc = tmp_path("tmp/doc")
       src = tmp_path("tmp/src")
