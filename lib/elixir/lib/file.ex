@@ -778,11 +778,6 @@ defmodule File do
   be a path to a non-existent file. If either is a directory, `{:error, :eisdir}`
   will be returned.
 
-  An optional `on_conflict` callback is invoked if the `destination_file` already
-  exists. The function receives arguments for `source_file` and `destination_file`.
-  It should return `true` if the existing file should be overwritten, `false` if
-  otherwise. The default callback returns `true`.
-
   The function returns `:ok` in case of success. Otherwise, it returns
   `{:error, reason}`.
 
@@ -794,6 +789,15 @@ defmodule File do
   whether the destination is an existing directory or not. We have chosen to
   explicitly disallow copying to a destination which is a directory,
   and an error will be returned if tried.
+
+  ## Options
+
+    * `:on_conflict` - (since v1.14.0) Invoked a file already exists in the destination.
+      The function receives arguments for `source_file` and `destination_file`. It should
+      return `true` if the existing file should be overwritten, `false` if otherwise.
+      The default callback returns `true`. On earlier versions, this callback could be
+      given as third argument, but such behaviour is now deprecated.
+
   """
   @spec cp(Path.t(), Path.t(), on_conflict: on_conflict_callback) :: :ok | {:error, posix}
   def cp(source_file, destination_file, options \\ [])
@@ -849,9 +853,8 @@ defmodule File do
   If `source` is a directory, or a symbolic link to it, then `destination` must
   be an existent `directory` or a symbolic link to one, or a path to a non-existent directory.
 
-  If the source is a file, it copies `source` to
-  `destination`. If the `source` is a directory, it copies
-  the contents inside source into the `destination` directory.
+  If the source is a file, it copies `source` to `destination`. If the `source`
+  is a directory, it copies the contents inside source into the `destination` directory.
 
   If a file already exists in the destination, it invokes the optional `on_conflict`
   callback given as an option. See "Options" for more information.
@@ -871,15 +874,16 @@ defmodule File do
 
   ## Options
 
-    * `:on_conflict` - Invoked a file already exists in the destination. The function
-      receives arguments for `source` and `destination`. It should return `true` if
-      the existing file should be overwritten, `false` if otherwise. The default
-      callback returns `true`.
+    * `:on_conflict` - (since v1.14.0) Invoked a file already exists in the destination.
+      The function receives arguments for `source` and `destination`. It should return
+      `true` if the existing file should be overwritten, `false` if otherwise. The default
+      callback returns `true`. On earlier versions, this callback could be given as third
+      argument, but such behaviour is now deprecated.
 
-    * `:dereference_symlinks` - By default, this function will copy symlinks by creating
-      symlinks that point to the same location. This option forces symlinks to be dereferenced
-      and have their contents copied instead when set to true. If the dereferenced files
-      do not exist, than the operation fails. The default is `false`.
+    * `:dereference_symlinks` - (since v1.14.0) By default, this function will copy symlinks
+      by creating symlinks that point to the same location. This option forces symlinks to be
+      dereferenced and have their contents copied instead when set to true. If the dereferenced
+      files do not exist, than the operation fails. The default is `false`.
 
   ## Examples
 
