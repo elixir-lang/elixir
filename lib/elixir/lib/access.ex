@@ -905,12 +905,15 @@ defmodule Access do
     raise ArgumentError, "Access.slice/1 expected a list, got: #{inspect(data)}"
   end
 
-  defp normalize_range(%{first: first, last: last, step: step}, list) do
+  defp normalize_range(%Range{first: first, last: last, step: step}, list)
+       when first < 0 or last < 0 do
     count = length(list)
     first = if first >= 0, do: first, else: Kernel.max(first + count, 0)
     last = if last >= 0, do: last, else: last + count
     Range.new(first, last, step)
   end
+
+  defp normalize_range(range, _list), do: range
 
   defp get_and_update_slice([head | rest], range, next, updates, gets, index) do
     if index in range do
