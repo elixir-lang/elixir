@@ -520,9 +520,7 @@ defmodule Mix.Utils do
       {:error, _} ->
         files =
           File.cp_r!(source, target, fn orig, dest ->
-            {orig_mtime, orig_size} = last_modified_and_size(orig)
-            {dest_mtime, dest_size} = last_modified_and_size(dest)
-            orig_mtime > dest_mtime or orig_size != dest_size
+            File.stat!(orig).mtime > File.stat!(dest).mtime
           end)
 
         {:ok, files}
