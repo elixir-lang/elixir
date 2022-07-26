@@ -792,7 +792,7 @@ defmodule File do
 
   ## Options
 
-    * `:on_conflict` - (since v1.14.0) Invoked a file already exists in the destination.
+    * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
       The function receives arguments for `source_file` and `destination_file`. It should
       return `true` if the existing file should be overwritten, `false` if otherwise.
       The default callback returns `true`. On earlier versions, this callback could be
@@ -874,7 +874,7 @@ defmodule File do
 
   ## Options
 
-    * `:on_conflict` - (since v1.14.0) Invoked a file already exists in the destination.
+    * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
       The function receives arguments for `source` and `destination`. It should return
       `true` if the existing file should be overwritten, `false` if otherwise. The default
       callback returns `true`. On earlier versions, this callback could be given as third
@@ -882,7 +882,7 @@ defmodule File do
 
     * `:dereference_symlinks` - (since v1.14.0) By default, this function will copy symlinks
       by creating symlinks that point to the same location. This option forces symlinks to be
-      dereferenced and have their contents copied instead when set to true. If the dereferenced
+      dereferenced and have their contents copied instead when set to `true`. If the dereferenced
       files do not exist, than the operation fails. The default is `false`.
 
   ## Examples
