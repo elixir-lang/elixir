@@ -437,6 +437,7 @@ defmodule Mix.Utils do
 
   @doc """
   Symlinks or copy with the option to force a hard copy.
+  See `symlink_or_copy/2`.
   """
   def symlink_or_copy(hard_copy?, source, target) do
     if hard_copy? do
@@ -453,6 +454,9 @@ defmodule Mix.Utils do
   Symlinks directory `source` to `target` or copies it recursively
   in case symlink fails.
 
+  In case of conflicts, it copies files only if they have been
+  recently touched.
+
   Expects source and target to be absolute paths as it generates
   a relative symlink.
   """
@@ -464,9 +468,8 @@ defmodule Mix.Utils do
           {:win32, _} -> source
           _ -> make_relative_path(source, target)
         end
-        |> String.to_charlist()
 
-      case :file.read_link(target) do
+      case File.read_link(target) do
         {:ok, ^link} ->
           :ok
 
@@ -509,14 +512,16 @@ defmodule Mix.Utils do
   end
 
   defp do_symlink_or_copy(source, target, link) do
-    case :file.make_symlink(link, target) do
+    case File.ln_s(link, target) do
       :ok ->
         :ok
 
       {:error, _} ->
         files =
           File.cp_r!(source, target, fn orig, dest ->
-            File.stat!(orig).mtime > File.stat!(dest).mtime
+            {orig_mtime, orig_size} = last_modified_and_size(orig)
+            {dest_mtime, dest_size} = last_modified_and_size(dest)
+            orig_mtime > dest_mtime or orig_size != dest_size
           end)
 
         {:ok, files}
