@@ -1643,29 +1643,29 @@ defmodule FileTest do
       assert_raise File.Error, fn -> File.read_link!(dest) end
     end
 
-    unless windows?() do
-      test "read_link with symlink" do
-        target = tmp_path("does_not_need_to_exist")
-        dest = tmp_path("symlink")
-        File.ln_s(target, dest)
+    @tag :unix
+    test "read_link with symlink" do
+      target = tmp_path("does_not_need_to_exist")
+      dest = tmp_path("symlink")
+      File.ln_s(target, dest)
 
-        try do
-          assert File.read_link(dest) == {:ok, target}
-        after
-          File.rm(dest)
-        end
+      try do
+        assert File.read_link(dest) == {:ok, target}
+      after
+        File.rm(dest)
       end
+    end
 
-      test "read_link! with symlink" do
-        target = tmp_path("does_not_need_to_exist")
-        dest = tmp_path("symlink")
-        File.ln_s(target, dest)
+    @tag :unix
+    test "read_link! with symlink" do
+      target = tmp_path("does_not_need_to_exist")
+      dest = tmp_path("symlink")
+      File.ln_s(target, dest)
 
-        try do
-          assert File.read_link!(dest) == target
-        after
-          File.rm(dest)
-        end
+      try do
+        assert File.read_link!(dest) == target
+      after
+        File.rm(dest)
       end
     end
 
