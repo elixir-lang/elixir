@@ -187,7 +187,7 @@ defmodule AccessTest do
       assert [-1, -2, 3, 4, 5, 6, 7] == update_in(@test_list, [Access.slice(-7..-6)], &(&1 * -1))
     end
 
-    test "updates  a range with steps" do
+    test "updates a range with steps" do
       assert [-1, 2, -3, 4, -5, 6, 7] ==
                update_in(@test_list, [Access.slice(0..4//2)], &(&1 * -1))
     end
