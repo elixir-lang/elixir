@@ -901,7 +901,7 @@ defmodule Access do
   end
 
   defp slice(_op, data, _range, _next) do
-    raise "Access.slice/1 expected a list, got: #{inspect(data)}"
+    raise ArgumentError, "Access.slice/1 expected a list, got: #{inspect(data)}"
   end
 
   defp get_and_update_slice([head | rest], range, next, updates, gets, index) do
