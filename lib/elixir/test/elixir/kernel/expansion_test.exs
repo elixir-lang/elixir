@@ -2306,7 +2306,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expands size * unit" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
       import Kernel.ExpansionTarget
 
       assert expand(quote(do: <<x::13>>)) |> clean_meta([:alignment]) ==
@@ -2338,7 +2338,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expands binary/bitstring specifiers" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<x::binary>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::binary()>>)
@@ -2363,7 +2363,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expands utf* specifiers" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<x::utf8>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::utf8()>>)
@@ -2386,7 +2386,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expands numbers specifiers" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<x::integer>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer()>>)
@@ -2412,7 +2412,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expands macro specifiers" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
       import Kernel.ExpansionTarget
 
       assert expand(quote(do: <<x::seventeen>>)) |> clean_meta([:alignment]) ==
@@ -2424,7 +2424,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "expands macro in args" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
 
       before_expansion =
         quote do
@@ -2442,7 +2442,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "supports dynamic size" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
 
       before_expansion =
         quote do
@@ -2471,7 +2471,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "merges bitstrings" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<x, <<y::signed-native>>, z>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer(), y()::integer()-native()-signed(), z()::integer()>>)
@@ -2482,7 +2482,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "merges binaries" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: "foo" <> x)) |> clean_meta([:alignment]) ==
                quote(do: <<"foo"::binary(), x()::binary()>>)
@@ -2496,7 +2496,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "guard expressions on size" do
-      import Kernel, except: [-: 2, +: 2, length: 1]
+      import Kernel, except: [-: 1, -: 2, +: 1, +: 2, length: 1]
 
       # Arithmetic operations with literals and variables are valid expressions
       # for bitstring size in OTP 23+
@@ -2524,7 +2524,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "map lookup on size" do
-      import Kernel, except: [-: 2]
+      import Kernel, except: [-: 1, -: 2]
 
       before_expansion =
         quote do
@@ -2572,7 +2572,7 @@ defmodule Kernel.ExpansionTest do
     # TODO: Simplify when we require Erlang/OTP 24
     if System.otp_release() >= "24" do
       test "16-bit floats" do
-        import Kernel, except: [-: 2]
+        import Kernel, except: [-: 1, -: 2]
 
         assert expand(quote(do: <<12.3::float-16>>)) |> clean_meta([:alignment]) ==
                  quote(do: <<12.3::float()-size(16)>>)

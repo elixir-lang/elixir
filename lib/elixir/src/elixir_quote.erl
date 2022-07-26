@@ -330,7 +330,7 @@ do_quote({'&', Meta, [{'/', _, [{F, _, C}, A]}] = Args},
         Meta;
 
       Receiver ->
-        keystore(context, keystore(imports, Meta, [{Receiver, A}]), Q#elixir_quote.context)
+        keystore(context, keystore(imports, Meta, [{A, Receiver}]), Q#elixir_quote.context)
     end,
   do_quote_tuple('&', NewMeta, Args, Q, E);
 
@@ -380,7 +380,7 @@ do_quote(Other, _, _) ->
 
 import_meta(Meta, Name, Arity, Q, E) ->
   case (keyfind(import, Meta) == false) andalso
-      elixir_dispatch:find_imports(Meta, Name, Arity, E) of
+      elixir_dispatch:find_imports(Meta, Name, E) of
     [] ->
       case (Arity == 1) andalso keyfind(ambiguous_op, Meta) of
         {ambiguous_op, nil} -> keystore(ambiguous_op, Meta, Q#elixir_quote.context);
