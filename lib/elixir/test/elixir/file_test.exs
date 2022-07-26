@@ -470,7 +470,7 @@ defmodule FileTest do
       end
     end
 
-    test "copy file to itself" do
+    test "cp itself" do
       src = dest = tmp_path("tmp.file")
 
       File.write!(src, "here")
@@ -592,6 +592,86 @@ defmodule FileTest do
       assert File.cp_r(src, dest) == {:error, :enoent, src}
     end
 
+    test "cp_r with absolute symlink" do
+      linked_src = fixture_path("cp_r")
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/dest")
+
+      File.mkdir_p!(src)
+      :ok = :file.make_symlink(Path.join(linked_src, "a"), Path.join(src, "sym"))
+
+      try do
+        {:ok, files} = File.cp_r(src, dest)
+        assert length(files) == 2
+
+        assert File.exists?(tmp_path("tmp/dest/sym/1.txt"))
+        assert File.exists?(tmp_path("tmp/dest/sym/a/2.txt"))
+      after
+        File.rm_rf(src)
+        File.rm_rf(dest)
+      end
+    end
+
+    test "cp_r with dereference absolute symlink" do
+      linked_src = fixture_path("cp_r")
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/dest")
+
+      File.mkdir_p!(src)
+      :ok = :file.make_symlink(Path.join(linked_src, "a"), Path.join(src, "sym"))
+
+      try do
+        {:ok, files} = File.cp_r(src, dest, dereference_symlinks: true)
+        assert length(files) == 5
+
+        assert File.exists?(tmp_path("tmp/dest/sym/1.txt"))
+        assert File.exists?(tmp_path("tmp/dest/sym/a/2.txt"))
+      after
+        File.rm_rf(src)
+        File.rm_rf(dest)
+      end
+    end
+
+    @tag :unix
+    test "cp_r with relative symlink" do
+      doc = tmp_path("tmp/doc")
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/dest")
+
+      File.mkdir_p!(src)
+      File.write!(doc, "hello")
+      :ok = :file.make_symlink("../doc", Path.join(src, "sym"))
+
+      try do
+        {:ok, files} = File.cp_r(src, dest)
+        assert length(files) == 2
+        assert File.lstat!(tmp_path("tmp/dest/sym")).type == :symlink
+      after
+        File.rm_rf(src)
+        File.rm_rf(dest)
+      end
+    end
+
+    @tag :unix
+    test "cp_r with dereference relative symlink" do
+      doc = tmp_path("tmp/doc")
+      src = tmp_path("tmp/src")
+      dest = tmp_path("tmp/dest")
+
+      File.mkdir_p!(src)
+      File.write!(doc, "hello")
+      :ok = :file.make_symlink("../doc", Path.join(src, "sym"))
+
+      try do
+        {:ok, files} = File.cp_r(src, dest, dereference_symlinks: true)
+        assert length(files) == 2
+        assert File.lstat!(tmp_path("tmp/dest/sym")).type == :regular
+      after
+        File.rm_rf(src)
+        File.rm_rf(dest)
+      end
+    end
+
     test "cp_r with dir and file conflict" do
       src = fixture_path("cp_r")
       dest = tmp_path("tmp")
@@ -687,7 +767,7 @@ defmodule FileTest do
       end
     end
 
-    test "cp_r with src_unknown!" do
+    test "cp_r! with src unknown" do
       src = fixture_path("unknown")
       dest = tmp_path("tmp")
 

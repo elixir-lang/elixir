@@ -123,6 +123,8 @@ defmodule File do
 
   @type posix_time :: integer()
 
+  @type on_conflict_callback :: (Path.t(), Path.t() -> boolean)
+
   @doc """
   Returns `true` if the path is a regular file.
 
@@ -776,11 +778,6 @@ defmodule File do
   be a path to a non-existent file. If either is a directory, `{:error, :eisdir}`
   will be returned.
 
-  The `callback` function is invoked if the `destination_file` already exists.
-  The function receives arguments for `source_file` and `destination_file`;
-  it should return `true` if the existing file should be overwritten, `false` if
-  otherwise. The default callback returns `true`.
-
   The function returns `:ok` in case of success. Otherwise, it returns
   `{:error, reason}`.
 
@@ -792,13 +789,30 @@ defmodule File do
   whether the destination is an existing directory or not. We have chosen to
   explicitly disallow copying to a destination which is a directory,
   and an error will be returned if tried.
+
+  ## Options
+
+    * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
+      The function receives arguments for `source_file` and `destination_file`. It should
+      return `true` if the existing file should be overwritten, `false` if otherwise.
+      The default callback returns `true`. On earlier versions, this callback could be
+      given as third argument, but such behaviour is now deprecated.
+
   """
-  @spec cp(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: :ok | {:error, posix}
-  def cp(source_file, destination_file, callback \\ fn _, _ -> true end) do
+  @spec cp(Path.t(), Path.t(), on_conflict: on_conflict_callback) :: :ok | {:error, posix}
+  def cp(source_file, destination_file, options \\ [])
+
+  # TODO: Deprecate me on Elixir v1.19
+  def cp(source_file, destination_file, callback) when is_function(callback, 2) do
+    cp(source_file, destination_file, on_conflict: callback)
+  end
+
+  def cp(source_file, destination_file, options) when is_list(options) do
+    on_conflict = Keyword.get(options, :on_conflict, fn _, _ -> true end)
     source_file = IO.chardata_to_string(source_file)
     destination_file = IO.chardata_to_string(destination_file)
 
-    case do_cp_file(source_file, destination_file, callback, []) do
+    case do_cp_file(source_file, destination_file, on_conflict, []) do
       {:error, reason, _} -> {:error, reason}
       _ -> :ok
     end
@@ -814,9 +828,9 @@ defmodule File do
   The same as `cp/3`, but raises a `File.CopyError` exception if it fails.
   Returns `:ok` otherwise.
   """
-  @spec cp!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: :ok
-  def cp!(source_file, destination_file, callback \\ fn _, _ -> true end) do
-    case cp(source_file, destination_file, callback) do
+  @spec cp!(Path.t(), Path.t(), on_conflict: on_conflict_callback) :: :ok
+  def cp!(source_file, destination_file, options \\ []) do
+    case cp(source_file, destination_file, options) do
       :ok ->
         :ok
 
@@ -839,18 +853,15 @@ defmodule File do
   If `source` is a directory, or a symbolic link to it, then `destination` must
   be an existent `directory` or a symbolic link to one, or a path to a non-existent directory.
 
-  If the source is a file, it copies `source` to
-  `destination`. If the `source` is a directory, it copies
-  the contents inside source into the `destination` directory.
+  If the source is a file, it copies `source` to `destination`. If the `source`
+  is a directory, it copies the contents inside source into the `destination` directory.
 
-  If a file already exists in the destination, it invokes `callback`.
-  `callback` must be a function that takes two arguments: `source` and `destination`.
-  The callback should return `true` if the existing file should be overwritten and `false` otherwise.
+  If a file already exists in the destination, it invokes the optional `on_conflict`
+  callback given as an option. See "Options" for more information.
 
-  This function may fail while copying files,
-  in such cases, it will leave the destination
-  directory in a dirty state, where file which have already been copied
-  won't be removed.
+  This function may fail while copying files, in such cases, it will leave the
+  destination directory in a dirty state, where file which have already been
+  copied won't be removed.
 
   The function returns `{:ok, files_and_directories}` in case of
   success, `files_and_directories` lists all files and directories copied in no
@@ -861,6 +872,19 @@ defmodule File do
   explicitly disallow this behaviour. If `source` is a `file` and `destination`
   is a directory, `{:error, :eisdir}` will be returned.
 
+  ## Options
+
+    * `:on_conflict` - (since v1.14.0) Invoked when a file already exists in the destination.
+      The function receives arguments for `source` and `destination`. It should return
+      `true` if the existing file should be overwritten, `false` if otherwise. The default
+      callback returns `true`. On earlier versions, this callback could be given as third
+      argument, but such behaviour is now deprecated.
+
+    * `:dereference_symlinks` - (since v1.14.0) By default, this function will copy symlinks
+      by creating symlinks that point to the same location. This option forces symlinks to be
+      dereferenced and have their contents copied instead when set to `true`. If the dereferenced
+      files do not exist, than the operation fails. The default is `false`.
+
   ## Examples
 
       # Copies file "a.txt" to "b.txt"
@@ -870,14 +894,28 @@ defmodule File do
       File.cp_r("samples", "tmp")
 
       # Same as before, but asks the user how to proceed in case of conflicts
-      File.cp_r("samples", "tmp", fn source, destination ->
+      File.cp_r("samples", "tmp", on_conflict: fn source, destination ->
         IO.gets("Overwriting #{destination} by #{source}. Type y to confirm. ") == "y\n"
       end)
 
   """
-  @spec cp_r(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) ::
+  @spec cp_r(Path.t(), Path.t(),
+          on_conflict: on_conflict_callback,
+          dereference_symlinks: boolean()
+        ) ::
           {:ok, [binary]} | {:error, posix, binary}
-  def cp_r(source, destination, callback \\ fn _, _ -> true end) when is_function(callback, 2) do
+
+  def cp_r(source, destination, options \\ [])
+
+  # TODO: Deprecate me on Elixir v1.19
+  def cp_r(source, destination, callback) when is_function(callback, 2) do
+    cp_r(source, destination, on_conflict: callback)
+  end
+
+  def cp_r(source, destination, options) when is_list(options) do
+    on_conflict = Keyword.get(options, :on_conflict, fn _, _ -> true end)
+    dereference? = Keyword.get(options, :dereference_symlinks, false)
+
     source =
       source
       |> IO.chardata_to_string()
@@ -888,7 +926,7 @@ defmodule File do
       |> IO.chardata_to_string()
       |> assert_no_null_byte!("File.cp_r/3")
 
-    case do_cp_r(source, destination, callback, []) do
+    case do_cp_r(source, destination, on_conflict, dereference?, []) do
       {:error, _, _} = error -> error
       res -> {:ok, res}
     end
@@ -898,9 +936,12 @@ defmodule File do
   The same as `cp_r/3`, but raises a `File.CopyError` exception if it fails.
   Returns the list of copied files otherwise.
   """
-  @spec cp_r!(Path.t(), Path.t(), (Path.t(), Path.t() -> boolean)) :: [binary]
-  def cp_r!(source, destination, callback \\ fn _, _ -> true end) do
-    case cp_r(source, destination, callback) do
+  @spec cp_r!(Path.t(), Path.t(),
+          on_conflict: on_conflict_callback,
+          dereference_symlinks: boolean()
+        ) :: [binary]
+  def cp_r!(source, destination, options \\ []) do
+    case cp_r(source, destination, options) do
       {:ok, files} ->
         files
 
@@ -914,15 +955,21 @@ defmodule File do
     end
   end
 
-  defp do_cp_r(src, dest, callback, acc) when is_list(acc) do
+  defp do_cp_r(src, dest, on_conflict, dereference?, acc) when is_list(acc) do
     case :elixir_utils.read_link_type(src) do
       {:ok, :regular} ->
-        do_cp_file(src, dest, callback, acc)
+        do_cp_file(src, dest, on_conflict, acc)
 
       {:ok, :symlink} ->
         case :file.read_link(src) do
-          {:ok, link} -> do_cp_link(link, src, dest, callback, acc)
-          {:error, reason} -> {:error, reason, src}
+          {:ok, link} when dereference? ->
+            do_cp_r(Path.expand(link, Path.dirname(src)), dest, on_conflict, dereference?, acc)
+
+          {:ok, link} ->
+            do_cp_link(link, src, dest, on_conflict, acc)
+
+          {:error, reason} ->
+            {:error, reason, src}
         end
 
       {:ok, :directory} ->
@@ -931,7 +978,7 @@ defmodule File do
             case mkdir(dest) do
               success when success in [:ok, {:error, :eexist}] ->
                 Enum.reduce(files, [dest | acc], fn x, acc ->
-                  do_cp_r(Path.join(src, x), Path.join(dest, x), callback, acc)
+                  do_cp_r(Path.join(src, x), Path.join(dest, x), on_conflict, dereference?, acc)
                 end)
 
               {:error, reason} ->
@@ -950,9 +997,8 @@ defmodule File do
     end
   end
 
-  # If we reach this clause, there was an error while
-  # processing a file.
-  defp do_cp_r(_, _, _, acc) do
+  # If we reach this clause, there was an error while processing a file.
+  defp do_cp_r(_, _, _, _, acc) do
     acc
   end
 
@@ -961,14 +1007,14 @@ defmodule File do
   end
 
   # Both src and dest are files.
-  defp do_cp_file(src, dest, callback, acc) do
+  defp do_cp_file(src, dest, on_conflict, acc) do
     case :file.copy(src, {dest, [:exclusive]}) do
       {:ok, _} ->
         copy_file_mode!(src, dest)
         [dest | acc]
 
       {:error, :eexist} ->
-        if path_differs?(src, dest) and callback.(src, dest) do
+        if path_differs?(src, dest) and on_conflict.(src, dest) do
           case copy(src, dest) do
             {:ok, _} ->
               copy_file_mode!(src, dest)
@@ -987,13 +1033,13 @@ defmodule File do
   end
 
   # Both src and dest are files.
-  defp do_cp_link(link, src, dest, callback, acc) do
+  defp do_cp_link(link, src, dest, on_conflict, acc) do
     case :file.make_symlink(link, dest) do
       :ok ->
         [dest | acc]
 
       {:error, :eexist} ->
-        if path_differs?(src, dest) and callback.(src, dest) do
+        if path_differs?(src, dest) and on_conflict.(src, dest) do
           # If rm/1 fails, :file.make_symlink/2 will fail
           _ = rm(dest)
 
