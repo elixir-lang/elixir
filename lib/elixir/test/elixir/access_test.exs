@@ -209,6 +209,10 @@ defmodule AccessTest do
       assert [-1, 2, -3, 4, -5, 6, 7] ==
                update_in(@test_list, [Access.slice(0..4//2)], &(&1 * -1))
     end
+
+    test "returns empty when the start of the range is greater than the end" do
+      assert [] == get_in(@test_list, [Access.slice(2..1//1)])
+    end
   end
 
   describe "at/1" do
