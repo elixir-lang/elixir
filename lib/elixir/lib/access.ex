@@ -870,7 +870,7 @@ defmodule Access do
   An error is raised if the accessed structure is not a list:
 
       iex> get_in(%{}, [Access.slice(2..10//3)])
-      ** (RuntimeError) Access.slice/1 expected a list, got: %{}
+      ** (ArgumentError) Access.slice/1 expected a list, got: %{}
 
   An error is raised if the step of the range is negative:
 
@@ -896,12 +896,20 @@ defmodule Access do
   end
 
   defp slice(:get_and_update, data, range, next) when is_list(data) do
+    range = normalize_range(range, data)
     index = if(range.first >= 0, do: 0, else: length(data) * -1)
     get_and_update_slice(data, range, next, [], [], index)
   end
 
   defp slice(_op, data, _range, _next) do
     raise ArgumentError, "Access.slice/1 expected a list, got: #{inspect(data)}"
+  end
+
+  defp normalize_range(%{first: first, last: last, step: step}, list) do
+    count = length(list)
+    first = if first >= 0, do: first, else: Kernel.max(first + count, 0)
+    last = if last >= 0, do: last, else: last + count
+    Range.new(first, last, step)
   end
 
   defp get_and_update_slice([head | rest], range, next, updates, gets, index) do
