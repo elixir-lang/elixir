@@ -566,6 +566,12 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     end
   end
 
+  defmacrop get_list_length_with_pipe do
+    quote do
+      'hello' |> length()
+    end
+  end
+
   defmacrop get_list_length_with_partial do
     quote do
       (&length(&1)).('hello')
@@ -581,6 +587,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
   test "expand imports" do
     import Kernel, except: [length: 1]
     assert get_list_length() == 5
+    assert get_list_length_with_pipe() == 5
     assert get_list_length_with_partial() == 5
     assert get_list_length_with_function() == 5
   end
@@ -631,6 +638,6 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
   test "checks the context also for variables to zero-arity functions" do
     import BinaryUtils
     {:int32, meta, __MODULE__} = quote(do: int32)
-    assert meta[:imports] == [{BinaryUtils, 0}]
+    assert meta[:imports] == [{0, BinaryUtils}]
   end
 end

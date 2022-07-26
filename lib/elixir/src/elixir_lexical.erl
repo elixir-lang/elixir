@@ -70,6 +70,9 @@ trace({imported_function, _Meta, Module, Function, Arity}, #{lexical_tracker := 
 trace({imported_macro, _Meta, Module, Function, Arity}, #{lexical_tracker := Pid}) ->
   ?tracker:import_dispatch(Pid, Module, {Function, Arity}, compile),
   ok;
+trace({imported_quoted, _Meta, Module, Function, Arities}, #{lexical_tracker := Pid}) ->
+  ?tracker:import_quoted(Pid, Module, Function, Arities),
+  ok;
 trace({compile_env, App, Path, Return}, #{lexical_tracker := Pid}) ->
   ?tracker:add_compile_env(Pid, App, Path, Return),
   ok;

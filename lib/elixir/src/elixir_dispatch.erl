@@ -6,7 +6,7 @@
   require_function/5, import_function/4,
   expand_import/7, expand_require/6,
   default_functions/0, default_macros/0, default_requires/0,
-  find_import/4, find_imports/4, format_error/1]).
+  find_import/4, find_imports/3, format_error/1]).
 -include("elixir.hrl").
 -import(ordsets, [is_element/2]).
 -define(kernel, 'Elixir.Kernel').
@@ -25,7 +25,7 @@ default_requires() ->
 find_import(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
 
-  case find_dispatch(Meta, Tuple, [], E) of
+  case find_import_by_name_arity(Meta, Tuple, [], E) of
     {function, Receiver} ->
       elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
       Receiver;
@@ -36,25 +36,37 @@ find_import(Meta, Name, Arity, E) ->
       false
   end.
 
-find_imports(Meta, Name, Arity, E) ->
-  Tuple = {Name, Arity},
+find_imports(Meta, Name, E) ->
+  Funs = ?key(E, functions),
+  Macs = ?key(E, macros),
 
-  case find_dispatch(Meta, Tuple, [], E) of
-    {function, Receiver} ->
-      elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
-      [{Receiver, Arity}];
-    {macro, Receiver} ->
-      elixir_env:trace({imported_macro, Meta, Receiver, Name, Arity}, E),
-      [{Receiver, Arity}];
-    _ ->
-      []
-  end.
+  Acc0 = #{},
+  Acc1 = find_imports_by_name(Funs, Acc0, Name, Meta, E),
+  Acc2 = find_imports_by_name(Macs, Acc1, Name, Meta, E),
+
+  Imports = lists:sort(maps:to_list(Acc2)),
+  trace_import_quoted(Imports, Meta, Name, E),
+  Imports.
+
+trace_import_quoted([{Arity, Mod} | Imports], Meta, Name, E) ->
+  {Rest, Arities} = collect_trace_import_quoted(Imports, Mod, [], [Arity]),
+  elixir_env:trace({imported_quoted, Meta, Mod, Name, Arities}, E),
+  trace_import_quoted(Rest, Meta, Name, E);
+trace_import_quoted([], _Meta, _Name, _E) ->
+  ok.
+
+collect_trace_import_quoted([{Arity, Mod} | Imports], Mod, Acc, Arities) ->
+  collect_trace_import_quoted(Imports, Mod, Acc, [Arity | Arities]);
+collect_trace_import_quoted([Import | Imports], Mod, Acc, Arities) ->
+  collect_trace_import_quoted(Imports, Mod, [Import | Acc], Arities);
+collect_trace_import_quoted([], _Mod, Acc, Arities) ->
+  {lists:reverse(Acc), lists:reverse(Arities)}.
 
 %% Function retrieval
 
 import_function(Meta, Name, Arity, E) ->
   Tuple = {Name, Arity},
-  case find_dispatch(Meta, Tuple, [], E) of
+  case find_import_by_name_arity(Meta, Tuple, [], E) of
     {function, Receiver} ->
       elixir_env:trace({imported_function, Meta, Receiver, Name, Arity}, E),
       elixir_locals:record_import(Tuple, Receiver, ?key(E, module), ?key(E, function)),
@@ -134,15 +146,14 @@ dispatch_require(_Meta, Receiver, Name, Args, _S, _E, Callback) ->
 expand_import(Meta, {Name, Arity} = Tuple, Args, S, E, Extra, External) ->
   Module = ?key(E, module),
   Function = ?key(E, function),
-  Dispatch = find_dispatch(Meta, Tuple, Extra, E),
+  Dispatch = find_import_by_name_arity(Meta, Tuple, Extra, E),
 
   case Dispatch of
     {import, _} ->
       do_expand_import(Meta, Tuple, Args, Module, S, E, Dispatch);
     _ ->
       AllowLocals = External orelse ((Function /= nil) andalso (Function /= Tuple)),
-      Local = AllowLocals andalso
-                elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E),
+      Local = AllowLocals andalso elixir_def:local_for(Meta, Name, Arity, [defmacro, defmacrop], E),
 
       case Dispatch of
         %% There is a local and an import. This is a conflict unless
@@ -246,15 +257,35 @@ caller(Line, E) ->
 required(Meta) ->
   lists:keyfind(required, 1, Meta) == {required, true}.
 
-find_dispatch(Meta, {_Name, Arity} = Tuple, Extra, E) ->
+find_imports_by_name([{Mod, Imports} | ModImports], Acc, Name, Meta, E) ->
+  NewAcc = find_imports_by_name(Name, Imports, Acc, Mod, Meta, E),
+  find_imports_by_name(ModImports, NewAcc, Name, Meta, E);
+find_imports_by_name([], Acc, _Name, _Meta, _E) ->
+  Acc.
+
+find_imports_by_name(Name, [{Name, Arity} | Imports], Acc, Mod, Meta, E) ->
+  case Acc of
+    #{Arity := OtherMod} ->
+      Error = {ambiguous_call, {Mod, OtherMod, Name, Arity}},
+      elixir_errors:form_error(Meta, E, ?MODULE, Error);
+
+    #{} ->
+      find_imports_by_name(Name, Imports, Acc#{Arity => Mod}, Mod, Meta, E)
+  end;
+find_imports_by_name(Name, [{ImportName, _} | Imports], Acc, Mod, Meta, E) when Name > ImportName ->
+  find_imports_by_name(Name, Imports, Acc, Mod, Meta, E);
+find_imports_by_name(_Name, _Imports, Acc, _Mod, _Meta, _E) ->
+  Acc.
+
+find_import_by_name_arity(Meta, {_Name, Arity} = Tuple, Extra, E) ->
   case is_import(Meta, Arity) of
     {import, _} = Import ->
       Import;
     false ->
       Funs = ?key(E, functions),
       Macs = Extra ++ ?key(E, macros),
-      FunMatch = find_dispatch(Tuple, Funs),
-      MacMatch = find_dispatch(Tuple, Macs),
+      FunMatch = find_import_by_name_arity(Tuple, Funs),
+      MacMatch = find_import_by_name_arity(Tuple, Macs),
 
       case {FunMatch, MacMatch} of
         {[], [Receiver]} -> {macro, Receiver};
@@ -268,7 +299,7 @@ find_dispatch(Meta, {_Name, Arity} = Tuple, Extra, E) ->
       end
   end.
 
-find_dispatch(Tuple, List) ->
+find_import_by_name_arity(Tuple, List) ->
   [Receiver || {Receiver, Set} <- List, is_element(Tuple, Set)].
 
 is_import(Meta, Arity) ->
@@ -276,8 +307,8 @@ is_import(Meta, Arity) ->
     {imports, Imports} ->
       case lists:keyfind(context, 1, Meta) of
         {context, _} ->
-          case lists:keyfind(Arity, 2, Imports) of
-            {Receiver, Arity} -> {import, Receiver};
+          case lists:keyfind(Arity, 1, Imports) of
+            {Arity, Receiver} -> {import, Receiver};
             false -> false
           end;
         false -> false

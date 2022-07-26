@@ -60,6 +60,11 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
+  def import_quoted(pid, module, function, arities) when is_atom(module) do
+    :gen_server.cast(pid, {:import_quoted, module, function, arities})
+  end
+
+  @doc false
   def add_compile_env(pid, app, path, return) do
     :gen_server.cast(pid, {:compile_env, app, path, return})
   end
@@ -168,6 +173,24 @@ defmodule Kernel.LexicalTracker do
 
   def handle_cast({:alias_dispatch, module}, %{aliases: aliases} = state) do
     {:noreply, %{state | aliases: Map.delete(aliases, module)}}
+  end
+
+  def handle_cast({:import_quoted, module, function, arities}, state) do
+    %{imports: imports} = state
+
+    imports =
+      case imports do
+        %{^module => modules_and_fas} ->
+          arities
+          |> Enum.reduce(modules_and_fas, &Map.delete(&2, {function, &1}))
+          |> Map.delete(module)
+          |> then(&Map.put(imports, module, &1))
+
+        %{} ->
+          imports
+      end
+
+    {:noreply, %{state | imports: imports}}
   end
 
   def handle_cast({:set_file, file}, state) do
