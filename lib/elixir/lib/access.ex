@@ -896,8 +896,13 @@ defmodule Access do
   end
 
   defp slice(:get_and_update, data, range, next) when is_list(data) do
-    range = normalize_range(range, data)
-    get_and_update_slice(data, range, next, [], [], 0)
+    %{first: first, last: last} = normalize_range(range, data)
+
+    if first > last do
+      []
+    else
+      get_and_update_slice(data, range, next, [], [], 0)
+    end
   end
 
   defp slice(_op, data, _range, _next) do
