@@ -257,7 +257,9 @@ the approaches and options available.
   * [Code] Add `Code.env_for_eval/1` and `Code.eval_quoted_with_env/3`
   * [Code] Improve stacktraces from eval operations on Erlang/OTP 25+
   * [Code.Fragment] Add support for `__MODULE__` in several functions
+  * [Code.Fragment] Support surround and context suggestions across multiple lines
   * [Enum] Allow slicing with steps in `Enum.slice/2`
+  * [File] Support `dereference_symlinks: true` in `File.cp/3` and `File.cp_r/3`
   * [Float] Do not show floats in scientific notation if below `1.0e16` and the fractional value is precisely zero
   * [Float] Add `Float.min_finite/0` and `Float.max_finite/0`
   * [Inspect] Improve error reporting when there is a faulty implementation of the `Inspect` protocol
@@ -265,6 +267,8 @@ the approaches and options available.
   * [Inspect] Inspect struct fields in the order they are declared in `defstruct`
   * [Inspect] Use expression-based inspection for `Date.Range`, `MapSet`, and `Version.Requirement`
   * [IO] Support `Macro.Env` and keywords as stacktrace definitions in `IO.warn/2`
+  * [IO] Add `IO.ANSI.syntax_colors/0` and related configuration to be shared across IEx and `dbg`
+  * [Kernel] Add new `dbg/0-2` macro
   * [Kernel] Allow any guard expression as the size of a bitstring in a pattern match
   * [Kernel] Allow composite types with pins as the map key in a pattern match
   * [Kernel] Print escaped version of control chars when they show up as unexpected tokens
@@ -273,6 +277,8 @@ the approaches and options available.
   * [Kernel] Implement Unicode Technical Standard #39 recommendations. In particular, we warn for confusable scripts and restrict identifiers to single-scripts or highly restrictive mixed-scripts
   * [Kernel] Automatically perform NFC conversion of identifiers
   * [Kernel] Add `binary_slice/2` and `binary_slice/3`
+  * [Kernel] Lazily expand module attributes to avoid compile-time deps
+  * [Kernel] Automatically cascade `generated: true` annotations on macro expansion
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/2`
@@ -281,6 +287,7 @@ the approaches and options available.
   * [Map] Add `Map.from_keys/2` and `Map.replace_lazy/3`
   * [MapSet] Add `MapSet.filter/2`, `MapSet.reject/2`, and `MapSet.symmetric_difference/2`
   * [Node] Add `Node.spawn_monitor/2` and `Node.spawn_monitor/4`
+  * [Module] Support new `@after_verify` attribute for executing code whenever a module is verified
   * [PartitionSupervisor] Add `PartitionSupervisor` that starts multiple isolated partitions of the same child for scalability
   * [Path] Add `Path.safe_relative/1` and `Path.safe_relative_to/2`
   * [Registry] Add `Registry.count_select/2`
@@ -303,6 +310,7 @@ the approaches and options available.
 #### IEx
 
   * [IEx] Evaluate `--dot-iex` line by line
+  * [IEx] Add line-by-line evaluation of IEx breakpoints
   * [IEx.Autocomplete] Autocomplete bitstrings modifiers (after `::` inside `<<...>>`)
   * [IEx.Helpers] Allow an atom to be given to `pid/1`
 
@@ -333,6 +341,7 @@ the approaches and options available.
 
   * [Calendar] Handle widths with "0" in them in `Calendar.strftime/3`
   * [CLI] Improve errors on incorrect `--rpc-eval` usage
+  * [CLI] Return proper exit code on Windows
   * [Code] Do not emit warnings when formatting code
   * [Enum] Allow slices to overflow on both starting and ending positions
   * [Kernel] Do not allow restricted characters in identifiers according to UTS39
@@ -341,31 +350,39 @@ the approaches and options available.
   * [Kernel] Warn on underived `@derive` attributes
   * [Kernel] Remove compile-time dependency from `defimpl :for`
   * [Protocol] Warn if a protocol has no definitions
+  * [Regex] Show list options when inspecting a Regex manually defined with `Regex.compile/2`
   * [String] Allow slices to overflow on both starting and ending positions
 
 #### ExUnit
 
-  * [ExUnit] Do not raise when diffing unknown bindings in guards
+  * [ExUnit] Do not crash when diffing unknown bindings in guards
   * [ExUnit] Properly print diffs when comparing improper lists with strings at the tail position
   * [ExUnit] Add short hash to `tmp_dir` in ExUnit to avoid test name collision
   * [ExUnit] Do not store logs in the CLI formatter (this reduces memory usage for suites with `capture_log`)
   * [ExUnit] Run `ExUnit.after_suite/1` callback even when no tests run
   * [ExUnit] Fix scenario where `setup` with imported function from within `describe` failed to compile
 
-#### Mix
-
-  * [mix compile.elixir] Fix `--warnings-as-errors` when used with `--all-warnings`
-  * [mix format] Do not add new lines if the formatted file is empty
-  * [mix release] Only set `RELEASE_MODE` after `env.{sh,bat}` are executed
-  * [mix xref] Do not emit already consolidated warnings during `mix xref trace`
-  * [Mix] Do not start apps with `runtime: false` on `Mix.install/2`
-
 #### IEx
 
   * [IEx] Disallow short-hand pipe after matches
   * [IEx] Fix `exports/1` in IEx for long function names
 
+#### Mix
+
+  * [mix compile.elixir] Fix `--warnings-as-errors` when used with `--all-warnings`
+  * [mix compile.elixir] Ensure semantic recompilation cascades to path dependencies
+  * [mix format] Do not add new lines if the formatted file is empty
+  * [mix release] Only set `RELEASE_MODE` after `env.{sh,bat}` are executed
+  * [mix release] Allow application mode configuration to cascade to dependencies
+  * [mix xref] Do not emit already consolidated warnings during `mix xref trace`
+  * [Mix] Do not start apps with `runtime: false` on `Mix.install/2`
+
 ### 3. Soft deprecations (no warnings emitted)
+
+#### Elixir
+
+  * [File] Passing a callback as third argument to `File.cp/3` and `File.cp_r/3` is deprecated.
+    Instead pass the callback the `:on_conflict` key of a keyword list
 
 #### EEx
 
