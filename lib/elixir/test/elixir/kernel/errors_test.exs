@@ -862,7 +862,7 @@ defmodule Kernel.ErrorsTest do
                       "defmodule MisplacedOperator, do: (def bar(1 | 2), do: :ok)"
   end
 
-  defp bad_remote_call(x), do: x.foo
+  defp bad_remote_call(x), do: x.foo()
 
   defmacro sample(0), do: 0
 

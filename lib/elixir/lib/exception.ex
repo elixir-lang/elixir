@@ -824,8 +824,8 @@ defmodule ArgumentError do
         not is_atom(module) and is_atom(function) and args == [] ->
           "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
             "If you are using Kernel.apply/3, make sure the module is an atom. " <>
-            "If you are using the dot syntax, such as map.field or module.function(), " <>
-            "make sure the left side of the dot is an atom or a map"
+            "If you are using the dot syntax, such as module.function(), " <>
+            "make sure the left-hand side of the dot is a module atom"
 
         not is_atom(module) ->
           "you attempted to apply a function on #{inspect(module)}. " <>
@@ -1114,8 +1114,8 @@ defmodule UndefinedFunctionError do
   end
 
   defp hint(nil, _function, 0, _loaded?) do
-    ". If you are using the dot syntax, such as map.field or module.function(), " <>
-      "make sure the left side of the dot is an atom or a map"
+    ". If you are using the dot syntax, such as module.function(), " <>
+      "make sure the left-hand side of the dot is a module atom"
   end
 
   defp hint(module, function, arity, true) do
@@ -1635,8 +1635,17 @@ defmodule ErlangError do
     %KeyError{key: key, term: term}
   end
 
-  def normalize({:badkey, key, map}, _stacktrace) do
+  def normalize({:badkey, key, map}, _stacktrace) when is_map(map) do
     %KeyError{key: key, term: map}
+  end
+
+  def normalize({:badkey, key, term}, _stacktrace) do
+    message =
+      "key #{inspect(key)} not found in: #{inspect(term)}. " <>
+        "If you are using the dot syntax, such as map.field, " <>
+        "make sure the left-hand side of the dot is a map"
+
+    %KeyError{key: key, term: term, message: message}
   end
 
   def normalize({:case_clause, term}, _stacktrace) do
