@@ -631,7 +631,8 @@ defmodule System do
 
   """
   @doc since: "1.9.0"
-  @spec get_env(String.t(), String.t() | nil) :: String.t() | nil
+  @spec get_env(String.t(), String.t()) :: String.t()
+  @spec get_env(String.t(), nil) :: String.t() | nil
   def get_env(varname, default \\ nil)
       when is_binary(varname) and
              (is_binary(default) or is_nil(default)) do
