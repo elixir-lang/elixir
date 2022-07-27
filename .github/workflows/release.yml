@@ -32,8 +32,6 @@ jobs:
       fail-fast: true
       matrix:
         include:
-          - otp: 23
-            otp_version: 23.3
           - otp: 24
             otp_version: 24.3
           - otp: 25

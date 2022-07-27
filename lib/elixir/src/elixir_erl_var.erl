@@ -88,15 +88,7 @@ load_binding([Binding | NextBindings], ExVars, ErlVars, Normalized, Counter) ->
       )
   end;
 load_binding([], ExVars, ErlVars, Normalized, _Counter) ->
-  %% TODO: Remove me once we require Erlang/OTP 24+
-  %% Also revisit dump_binding below and remove the vars field for simplicity.
-  Mod =
-    case erlang:system_info(otp_release) >= "24" of
-      true -> maps;
-      false -> orddict
-    end,
-
-  {ExVars, maps:from_list(ErlVars), Mod:from_list(lists:reverse(Normalized))}.
+  {ExVars, maps:from_list(ErlVars), maps:from_list(lists:reverse(Normalized))}.
 
 load_pair({Key, Value}) when is_atom(Key) -> {{Key, nil}, Value};
 load_pair({Pair, Value}) -> {Pair, Value}.
@@ -110,20 +102,9 @@ dump_binding(Binding, #elixir_ex{vars={ExVars, _}}, #elixir_erl{var_names=ErlVar
       end,
 
       ErlName = maps:get(Version, ErlVars),
-      Value = find_binding(ErlName, Binding),
+      Value = maps:get(ErlName, Binding, nil),
       [{Key, Value} | Acc];
 
     (_, _, Acc) ->
       Acc
   end, [], ExVars).
-
-find_binding(ErlName, Binding = #{}) ->
-  case Binding of
-    #{ErlName := V} -> V;
-    _ -> nil
-  end;
-find_binding(ErlName, Binding) ->
-  case orddict:find(ErlName, Binding) of
-    {ok, V} -> V;
-    error -> nil
-  end.

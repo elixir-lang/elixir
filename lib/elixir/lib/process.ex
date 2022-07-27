@@ -383,7 +383,7 @@ defmodule Process do
   @type spawn_opt ::
           :link
           | :monitor
-          | {:monitor, monitor_option()}
+          | {:monitor, :erlang.monitor_option()}
           | {:priority, :low | :normal | :high}
           | {:fullsweep_after, non_neg_integer}
           | {:min_heap_size, non_neg_integer}
@@ -391,10 +391,6 @@ defmodule Process do
           | {:max_heap_size, heap_size}
           | {:message_queue_data, :off_heap | :on_heap}
   @type spawn_opts :: [spawn_opt]
-
-  # TODO: Use :erlang.monitor_option() on Erlang/OTP 24+
-  @typep monitor_option ::
-           [alias: :explicit_unalias | :demonitor | :reply_demonitor, tag: term()]
 
   @doc """
   Spawns the given function according to the given options.

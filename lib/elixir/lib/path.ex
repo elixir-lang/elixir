@@ -433,12 +433,8 @@ defmodule Path do
   @doc """
   Returns the extension of the last component of `path`.
 
-  The behaviour of this function changed in Erlang/OTP 24 for filenames
-  starting with a dot and without an extension. For example, for a file
-  named `.gitignore`, `extname/1` now returns an empty string, while it
-  would return `".gitignore"` in previous Erlang/OTP versions. This was
-  done to match the behaviour of `rootname/1`, which would return
-  `".gitignore"` as its name (and therefore it cannot also be an extension).
+  For filenames starting with a dot and without an extension, it returns
+  an empty string.
 
   See `basename/1` and `rootname/1` for related functions to extract
   information from paths.
@@ -449,6 +445,9 @@ defmodule Path do
       ".erl"
 
       iex> Path.extname("~/foo/bar")
+      ""
+
+      iex> Path.extname(".gitignore")
       ""
 
   """

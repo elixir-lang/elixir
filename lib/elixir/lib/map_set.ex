@@ -58,9 +58,8 @@ defmodule MapSet do
   @type t(value) :: %__MODULE__{map: internal(value)}
   @type t :: t(term)
 
-  # TODO: Remove version key when we require Erlang/OTP 24
   # TODO: Implement the functions in this module using Erlang/OTP 24 new sets
-  defstruct map: %{}, version: 2
+  defstruct map: %{}
 
   @doc """
   Returns a new set.
@@ -92,7 +91,7 @@ defmodule MapSet do
 
   def new(enumerable) do
     keys = Enum.to_list(enumerable)
-    %MapSet{map: Map.from_keys(keys, @dummy_value)}
+    %MapSet{map: :maps.from_keys(keys, @dummy_value)}
   end
 
   @doc """
@@ -107,7 +106,7 @@ defmodule MapSet do
   @spec new(Enumerable.t(), (term -> val)) :: t(val) when val: value
   def new(enumerable, transform) when is_function(transform, 1) do
     keys = Enum.map(enumerable, transform)
-    %MapSet{map: Map.from_keys(keys, @dummy_value)}
+    %MapSet{map: :maps.from_keys(keys, @dummy_value)}
   end
 
   @doc """
@@ -254,14 +253,8 @@ defmodule MapSet do
 
   """
   @spec equal?(t, t) :: boolean
-  def equal?(%MapSet{map: map1, version: version}, %MapSet{map: map2, version: version}) do
-    map1 === map2
-  end
-
-  # Elixir v1.5 changed the map representation, so on
-  # version mismatch we need to compare the keys directly.
   def equal?(%MapSet{map: map1}, %MapSet{map: map2}) do
-    map_size(map1) == map_size(map2) and all_in?(map1, map2)
+    map1 === map2
   end
 
   @doc """
@@ -385,13 +378,8 @@ defmodule MapSet do
   @spec union(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
   def union(map_set1, map_set2)
 
-  def union(%MapSet{map: map1, version: version} = map_set, %MapSet{map: map2, version: version}) do
+  def union(%MapSet{map: map1} = map_set, %MapSet{map: map2}) do
     %{map_set | map: Map.merge(map1, map2)}
-  end
-
-  def union(%MapSet{map: map1}, %MapSet{map: map2}) do
-    keys = Map.keys(map1) ++ Map.keys(map2)
-    %MapSet{map: Map.from_keys(keys, @dummy_value)}
   end
 
   @compile {:inline, [order_by_size: 2]}
