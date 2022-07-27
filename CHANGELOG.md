@@ -252,6 +252,7 @@ the approaches and options available.
 
 #### Elixir
 
+  * [Access] Add `Access.slice/1`
   * [Application] Add `Application.compile_env/4` and `Application.compile_env!/3` to read the compile-time environment inside macros
   * [Calendar] Support ISO8601 basic format parsing with `DateTime.from_iso8601/2`
   * [Calendar] Add `day`/`hour`/`minute` on `add`/`diff` across different calendar modules
@@ -353,6 +354,7 @@ the approaches and options available.
   * [Kernel] Warn if any of `True`, `False`, and `Nil` aliases are used
   * [Kernel] Warn on underived `@derive` attributes
   * [Kernel] Remove compile-time dependency from `defimpl :for`
+  * [Kernel] Track all arities on imported functions
   * [Protocol] Warn if a protocol has no definitions
   * [Regex] Show list options when inspecting a Regex manually defined with `Regex.compile/2`
   * [String] Allow slices to overflow on both starting and ending positions
@@ -375,6 +377,7 @@ the approaches and options available.
 
   * [mix compile.elixir] Fix `--warnings-as-errors` when used with `--all-warnings`
   * [mix compile.elixir] Ensure semantic recompilation cascades to path dependencies
+  * [mix compile.elixir] Lock the compiler to avoid concurrent usage
   * [mix format] Do not add new lines if the formatted file is empty
   * [mix release] Only set `RELEASE_MODE` after `env.{sh,bat}` are executed
   * [mix release] Allow application mode configuration to cascade to dependencies
