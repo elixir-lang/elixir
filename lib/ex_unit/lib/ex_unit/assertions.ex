@@ -106,9 +106,6 @@ defmodule ExUnit.Assertions do
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
 
-    # If the match works, we need to check if the value
-    # is not nil nor false. We need to rewrite the if
-    # to avoid silly dialyzer warnings though.
     check =
       quote generated: true do
         if right do
@@ -151,15 +148,13 @@ defmodule ExUnit.Assertions do
       {args, value} = extract_args(assertion, __CALLER__)
 
       quote generated: true do
-        case unquote(value) do
-          value when value in [nil, false] ->
-            raise ExUnit.AssertionError,
-              args: unquote(args),
-              expr: unquote(escape_quoted(:assert, [], assertion)),
-              message: "Expected truthy, got #{inspect(value)}"
-
-          value ->
-            value
+        if value = unquote(value) do
+          value
+        else
+          raise ExUnit.AssertionError,
+            args: unquote(args),
+            expr: unquote(escape_quoted(:assert, [], assertion)),
+            message: "Expected truthy, got #{inspect(value)}"
         end
       end
     end
@@ -213,18 +208,14 @@ defmodule ExUnit.Assertions do
     else
       {args, value} = extract_args(assertion, __CALLER__)
 
-      # if value, raise
-      # We need to rewrite it to avoid dialyzer warnings though.
       quote generated: true do
-        case unquote(value) do
-          value when value in [nil, false] ->
-            value
-
-          value ->
-            raise ExUnit.AssertionError,
-              args: unquote(args),
-              expr: unquote(escape_quoted(:refute, [], assertion)),
-              message: "Expected false or nil, got #{inspect(value)}"
+        if value = unquote(value) do
+          raise ExUnit.AssertionError,
+            args: unquote(args),
+            expr: unquote(escape_quoted(:refute, [], assertion)),
+            message: "Expected false or nil, got #{inspect(value)}"
+        else
+          value
         end
       end
     end
