@@ -67,7 +67,6 @@ defmodule Mix.SCM.Git do
 
   @impl true
   def lock_status(opts) do
-    assert_git!()
     lock = opts[:lock]
 
     cond do
@@ -102,7 +101,6 @@ defmodule Mix.SCM.Git do
 
   @impl true
   def checkout(opts) do
-    assert_git!()
     path = opts[:checkout]
     File.rm_rf!(path)
     File.mkdir_p!(opts[:dest])
@@ -116,7 +114,6 @@ defmodule Mix.SCM.Git do
 
   @impl true
   def update(opts) do
-    assert_git!()
     path = opts[:checkout]
     File.cd!(path, fn -> checkout(path, opts) end)
   end
@@ -286,7 +283,17 @@ defmodule Mix.SCM.Git do
   defp git!(args, into \\ default_into()) do
     opts = cmd_opts(into: into, stderr_to_stdout: true)
 
-    case System.cmd("git", args, opts) do
+    try do
+      System.cmd("git", args, opts)
+    catch
+      :error, :enoent ->
+        Mix.raise(
+          "Error fetching/updating Git repository: the \"git\" " <>
+            "executable is not available in your PATH. Please install " <>
+            "Git on this machine or pass --no-deps-check if you want to " <>
+            "run a previously built application on a system without Git."
+        )
+    else
       {response, 0} ->
         response
 
@@ -305,25 +312,18 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp assert_git! do
-    case Mix.State.fetch(:git_available) do
-      {:ok, true} ->
-        :ok
-
-      :error ->
-        if System.find_executable("git") do
-          Mix.State.put(:git_available, true)
-        else
-          Mix.raise(
-            "Error fetching/updating Git repository: the \"git\" " <>
-              "executable is not available in your PATH. Please install " <>
-              "Git on this machine or pass --no-deps-check if you want to " <>
-              "run a previously built application on a system without Git."
-          )
-        end
+  # Attempt to set the current working directory by default.
+  # This addresses an issue changing the working directory when executing from
+  # within a secondary node since file I/O is done through the main node.
+  defp cmd_opts(opts) do
+    case File.cwd() do
+      {:ok, cwd} -> Keyword.put(opts, :cd, cwd)
+      _ -> opts
     end
   end
 
+  # Also invoked by lib/mix/test/test_helper.exs
+  @doc false
   def git_version do
     case Mix.State.fetch(:git_version) do
       {:ok, version} ->
@@ -333,7 +333,7 @@ defmodule Mix.SCM.Git do
         version =
           ["--version"]
           |> git!("")
-          |> parse_version
+          |> parse_version()
 
         Mix.State.put(:git_version, version)
         version
@@ -351,15 +351,5 @@ defmodule Mix.SCM.Git do
   defp to_integer(string) do
     {int, _} = Integer.parse(string)
     int
-  end
-
-  # Attempt to set the current working directory by default.
-  # This addresses an issue changing the working directory when executing from
-  # within a secondary node since file I/O is done through the main node.
-  defp cmd_opts(opts) do
-    case File.cwd() do
-      {:ok, cwd} -> Keyword.put(opts, :cd, cwd)
-      _ -> opts
-    end
   end
 end

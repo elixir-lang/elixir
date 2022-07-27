@@ -128,21 +128,20 @@ defmodule Mix.SCM do
   until a matching one is found.
   """
   def available do
-    {:ok, scm} = Mix.State.fetch(:scm)
-    scm
+    Mix.State.get(:scm)
   end
 
   @doc """
   Prepends the given SCM module to the list of available SCMs.
   """
   def prepend(mod) when is_atom(mod) do
-    Mix.State.prepend_scm(mod)
+    Mix.State.update(:scm, &[mod | List.delete(&1, mod)])
   end
 
   @doc """
   Appends the given SCM module to the list of available SCMs.
   """
   def append(mod) when is_atom(mod) do
-    Mix.State.append_scm(mod)
+    Mix.State.update(:scm, &(List.delete(&1, mod) ++ [mod]))
   end
 end

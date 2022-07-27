@@ -94,7 +94,7 @@ defmodule Mix.TaskTest do
       """)
 
       # Clean up the tasks and update task
-      Mix.TasksServer.clear()
+      Mix.Task.clear()
 
       # Task was found from deps loadpaths
       assert Mix.Task.run("task_hello") == "Hello World v1"
@@ -103,7 +103,7 @@ defmodule Mix.TaskTest do
       assert Mix.Task.run("compile") != :noop
 
       # Clean up the tasks and update task
-      Mix.TasksServer.clear()
+      Mix.Task.clear()
 
       File.write!("custom/raw_repo/lib/task_hello.ex", """
       defmodule Mix.Tasks.TaskHello do

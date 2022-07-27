@@ -1,22 +1,25 @@
 defmodule Mix.State do
   @moduledoc false
   @name __MODULE__
-  @timeout :infinity
 
-  use Agent
+  use GenServer
 
   def start_link(_opts) do
-    Agent.start_link(__MODULE__, :init, [], name: @name)
+    GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
-  def init() do
-    %{
+  @impl true
+  def init(:ok) do
+    table = :ets.new(@name, [:public, :set, :named_table, read_concurrency: true])
+
+    :ets.insert(table,
       shell: Mix.Shell.IO,
       env: from_env("MIX_ENV", :dev),
       target: from_env("MIX_TARGET", :host),
-      scm: [Mix.SCM.Git, Mix.SCM.Path],
-      cache: :ets.new(@name, [:public, :set, :named_table, read_concurrency: true])
-    }
+      scm: [Mix.SCM.Git, Mix.SCM.Path]
+    )
+
+    {:ok, table}
   end
 
   defp from_env(varname, default) do
@@ -28,50 +31,43 @@ defmodule Mix.State do
   end
 
   def fetch(key) do
-    Agent.get(@name, Map, :fetch, [key], @timeout)
-  end
-
-  def get(key, default \\ nil) do
-    Agent.get(@name, Map, :get, [key, default], @timeout)
-  end
-
-  def put(key, value) do
-    Agent.update(@name, Map, :put, [key, value], @timeout)
-  end
-
-  def prepend_scm(value) do
-    Agent.update(
-      @name,
-      fn state -> update_in(state.scm, &[value | List.delete(&1, value)]) end,
-      @timeout
-    )
-  end
-
-  def append_scm(value) do
-    Agent.update(
-      @name,
-      fn state -> update_in(state.scm, &(List.delete(&1, value) ++ [value])) end,
-      @timeout
-    )
-  end
-
-  def read_cache(key) do
     case :ets.lookup(@name, key) do
-      [{^key, value}] -> value
-      [] -> nil
+      [{^key, value}] -> {:ok, value}
+      [] -> :error
     end
   end
 
-  def write_cache(key, value) do
+  def get(key, default \\ nil) do
+    case :ets.lookup(@name, key) do
+      [{^key, value}] -> value
+      [] -> default
+    end
+  end
+
+  def put(key, value) do
     :ets.insert(@name, {key, value})
+  end
+
+  def update(key, fun) do
+    :ets.insert(@name, {key, fun.(:ets.lookup_element(@name, key, 2))})
+  end
+
+  def read_cache(key) do
+    :persistent_term.get({__MODULE__, key}, nil)
+  end
+
+  def write_cache(key, value) do
+    :persistent_term.put({__MODULE__, key}, value)
     value
   end
 
   def delete_cache(key) do
-    :ets.delete(@name, key)
+    :persistent_term.erase({__MODULE__, key})
   end
 
   def clear_cache do
-    :ets.delete_all_objects(@name)
+    for {{__MODULE__, _} = key, _value} <- :persistent_term.get() do
+      :persistent_term.erase(key)
+    end
   end
 end
