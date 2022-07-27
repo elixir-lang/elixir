@@ -1174,11 +1174,8 @@ defmodule GenServer do
 
   """
   @spec reply(from, term) :: :ok
-  def reply(client, reply)
-
-  def reply({to, tag}, reply) when is_pid(to) do
-    send(to, {tag, reply})
-    :ok
+  def reply(client, reply) do
+    :gen.reply(client, reply)
   end
 
   @doc """
