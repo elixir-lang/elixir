@@ -60,11 +60,10 @@ defmodule PartitionSupervisor do
 
   ## Implementation notes
 
-  The `PartitionSupervisor` requires a name as an atom to be given on start,
-  as it uses an ETS table to keep all of the partitions. Under the hood,
-  the `PartitionSupervisor` generates a child spec for each partition and
-  then act as a regular supervisor. The ID of each child spec is the
-  partition number.
+  The `PartitionSupervisor` uses either an ETS table or a `Registry` to
+  manage all of the partitions. Under the hood, the `PartitionSupervisor`
+  generates a child spec for each partition and then acts as a regular
+  supervisor. The ID of each child spec is the partition number.
 
   For routing, two strategies are used. If `key` is an integer, it is routed
   using `rem(abs(key), partitions)` where `partitions` is the number of
@@ -76,15 +75,23 @@ defmodule PartitionSupervisor do
 
   @behaviour Supervisor
 
+  @registry PartitionSupervisor.Registry
+
   @typedoc """
   The name of the `PartitionSupervisor`.
   """
-  @type name :: atom()
+  @type name :: atom() | {:via, module(), term()}
 
   @doc false
   def child_spec(opts) when is_list(opts) do
+    id =
+      case Keyword.get(opts, :name, DynamicSupervisor) do
+        name when is_atom(name) -> name
+        {:via, _module, name} -> name
+      end
+
     %{
-      id: Keyword.get(opts, :name, PartitionSupervisor),
+      id: id,
       start: {PartitionSupervisor, :start_link, [opts]},
       type: :supervisor
     }
@@ -112,8 +119,8 @@ defmodule PartitionSupervisor do
 
   ## Options
 
-    * `:name` - an atom representing the name of the partition supervisor
-      (see `t:name/0`).
+    * `:name` - an atom or via tuple representing the name of the partition
+      supervisor (see `t:name/0`).
 
     * `:partitions` - a positive integer with the number of partitions.
       Defaults to `System.schedulers_online()` (typically the number of cores).
@@ -153,9 +160,8 @@ defmodule PartitionSupervisor do
   def start_link(opts) when is_list(opts) do
     name = opts[:name]
 
-    unless name && is_atom(name) do
-      raise ArgumentError,
-            "the :name option must be given to PartitionSupervisor as an atom, got: #{inspect(name)}"
+    unless name do
+      raise ArgumentError, "the :name option must be given to PartitionSupervisor"
     end
 
     {child_spec, opts} = Keyword.pop(opts, :child_spec)
@@ -202,11 +208,11 @@ defmodule PartitionSupervisor do
   def start_child(mod, fun, args, name, partition) do
     case apply(mod, fun, args) do
       {:ok, pid} ->
-        :ets.insert(name, {partition, pid})
+        register_child(name, partition, pid)
         {:ok, pid}
 
       {:ok, pid, info} ->
-        :ets.insert(name, {partition, pid})
+        register_child(name, partition, pid)
         {:ok, pid, info}
 
       other ->
@@ -214,11 +220,33 @@ defmodule PartitionSupervisor do
     end
   end
 
+  defp register_child(name, partition, pid) when is_atom(name) do
+    :ets.insert(name, {partition, pid})
+  end
+
+  defp register_child({:via, _, _}, partition, pid) do
+    Registry.register(@registry, {self(), partition}, pid)
+  end
+
   @impl true
   def init({name, partitions, children, init_opts}) do
+    init_partitions(name, partitions)
+    Supervisor.init(children, Keyword.put_new(init_opts, :strategy, :one_for_one))
+  end
+
+  defp init_partitions(name, partitions) when is_atom(name) do
     :ets.new(name, [:set, :named_table, :protected, read_concurrency: true])
     :ets.insert(name, {:partitions, partitions})
-    Supervisor.init(children, Keyword.put_new(init_opts, :strategy, :one_for_one))
+  end
+
+  defp init_partitions({:via, _, _}, partitions) do
+    child_spec = {Registry, keys: :unique, name: @registry}
+
+    unless Process.whereis(@registry) do
+      Supervisor.start_child(:elixir_sup, child_spec)
+    end
+
+    Registry.register(@registry, self(), partitions)
   end
 
   @doc """
@@ -226,8 +254,28 @@ defmodule PartitionSupervisor do
   """
   @doc since: "1.14.0"
   @spec partitions(name()) :: pos_integer()
-  def partitions(supervisor) when is_atom(supervisor) do
-    :ets.lookup_element(supervisor, :partitions, 2)
+  def partitions(name) do
+    {_name, partitions} = name_partitions(name)
+    partitions
+  end
+
+  # For whereis_name, we want to lookup on GenServer.whereis/1
+  # just once, so we lookup the name and partitions together.
+  defp name_partitions(name) when is_atom(name) do
+    try do
+      {name, :ets.lookup_element(name, :partitions, 2)}
+    rescue
+      _ -> exit({:noproc, {__MODULE__, :partitions, [name]}})
+    end
+  end
+
+  defp name_partitions(name) when is_tuple(name) do
+    with pid when is_pid(pid) <- GenServer.whereis(name),
+         [name_partitions] <- Registry.lookup(@registry, pid) do
+      name_partitions
+    else
+      _ -> exit({:noproc, {__MODULE__, :partitions, [name]}})
+    end
   end
 
   @doc """
@@ -251,8 +299,8 @@ defmodule PartitionSupervisor do
           # Inlining [module()] | :dynamic here because :supervisor.modules() is not exported
           {:undefined, pid | :restarting, :worker | :supervisor, [module()] | :dynamic}
         ]
-  def which_children(supervisor) when is_atom(supervisor) do
-    Supervisor.which_children(supervisor)
+  def which_children(name) when is_atom(name) or elem(name, 0) == :via do
+    Supervisor.which_children(name)
   end
 
   @doc """
@@ -302,13 +350,23 @@ defmodule PartitionSupervisor do
   ## Via callbacks
 
   @doc false
-  def whereis_name({name, key}) when is_atom(name) do
-    partitions = partitions(name)
+  def whereis_name({name, key}) when is_atom(name) or is_tuple(name) do
+    {name, partitions} = name_partitions(name)
 
     partition =
       if is_integer(key), do: rem(abs(key), partitions), else: :erlang.phash2(key, partitions)
 
+    whereis_name(name, partition)
+  end
+
+  defp whereis_name(name, partition) when is_atom(name) do
     :ets.lookup_element(name, partition, 2)
+  end
+
+  defp whereis_name(name, partition) when is_pid(name) do
+    @registry
+    |> Registry.values({name, partition}, name)
+    |> List.first(:undefined)
   end
 
   @doc false

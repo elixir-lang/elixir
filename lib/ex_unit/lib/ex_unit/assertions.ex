@@ -106,23 +106,16 @@ defmodule ExUnit.Assertions do
   defmacro assert({:=, meta, [left, right]} = assertion) do
     code = escape_quoted(:assert, meta, assertion)
 
-    # If the match works, we need to check if the value
-    # is not nil nor false. We need to rewrite the if
-    # to avoid silly warnings though.
     check =
-      suppress_warning(
-        quote do
-          case right do
-            x when x in [nil, false] ->
-              raise ExUnit.AssertionError,
-                expr: expr,
-                message: "Expected truthy, got #{inspect(right)}"
-
-            _ ->
-              :ok
-          end
+      quote generated: true do
+        if right do
+          :ok
+        else
+          raise ExUnit.AssertionError,
+            expr: expr,
+            message: "Expected truthy, got #{inspect(right)}"
         end
-      )
+      end
 
     __match__(left, right, code, check, __CALLER__)
   end
@@ -154,17 +147,15 @@ defmodule ExUnit.Assertions do
     else
       {args, value} = extract_args(assertion, __CALLER__)
 
-      quote do
-        value = unquote(value)
-
-        unless value do
+      quote generated: true do
+        if value = unquote(value) do
+          value
+        else
           raise ExUnit.AssertionError,
             args: unquote(args),
             expr: unquote(escape_quoted(:assert, [], assertion)),
             message: "Expected truthy, got #{inspect(value)}"
         end
-
-        value
       end
     end
   end
@@ -217,17 +208,15 @@ defmodule ExUnit.Assertions do
     else
       {args, value} = extract_args(assertion, __CALLER__)
 
-      quote do
-        value = unquote(value)
-
-        if value do
+      quote generated: true do
+        if value = unquote(value) do
           raise ExUnit.AssertionError,
             args: unquote(args),
             expr: unquote(escape_quoted(:refute, [], assertion)),
             message: "Expected false or nil, got #{inspect(value)}"
+        else
+          value
         end
-
-        value
       end
     end
   end
@@ -238,22 +227,26 @@ defmodule ExUnit.Assertions do
 
   defp translate_assertion(:assert, {operator, meta, [_, _]} = expr, caller)
        when operator in @operator do
-    left = Macro.var(:left, __MODULE__)
-    right = Macro.var(:right, __MODULE__)
-    call = {operator, meta, [left, right]}
-    equality_check? = operator in [:<, :>, :!==, :!=]
-    message = "Assertion with #{operator} failed"
-    translate_operator(:assert, expr, call, message, equality_check?, caller)
+    if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {operator, 2})) do
+      left = Macro.var(:left, __MODULE__)
+      right = Macro.var(:right, __MODULE__)
+      call = {operator, meta, [left, right]}
+      equality_check? = operator in [:<, :>, :!==, :!=]
+      message = "Assertion with #{operator} failed"
+      translate_operator(:assert, expr, call, message, equality_check?, caller)
+    end
   end
 
   defp translate_assertion(:refute, {operator, meta, [_, _]} = expr, caller)
        when operator in @operator do
-    left = Macro.var(:left, __MODULE__)
-    right = Macro.var(:right, __MODULE__)
-    call = {:not, meta, [{operator, meta, [left, right]}]}
-    equality_check? = operator in [:<=, :>=, :===, :==, :=~]
-    message = "Refute with #{operator} failed"
-    translate_operator(:refute, expr, call, message, equality_check?, caller)
+    if match?([{_, Kernel}], Macro.Env.lookup_import(caller, {operator, 2})) do
+      left = Macro.var(:left, __MODULE__)
+      right = Macro.var(:right, __MODULE__)
+      call = {:not, meta, [{operator, meta, [left, right]}]}
+      equality_check? = operator in [:<=, :>=, :===, :==, :=~]
+      message = "Refute with #{operator} failed"
+      translate_operator(:refute, expr, call, message, equality_check?, caller)
+    end
   end
 
   defp translate_assertion(_kind, _expected, _caller) do

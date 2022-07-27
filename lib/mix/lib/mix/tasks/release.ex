@@ -384,6 +384,11 @@ defmodule Mix.Tasks.Release do
         * `:none` - the application is part of the release but it is neither
           loaded nor started
 
+      If you change the mode of an application, the mode will apply to all its child
+      applications. However, if an application has two parents, the mode of the parent
+      with highest priority wins (where `:permanent` has the highest priority, according
+      to the list above).
+
     * `:strip_beams` - controls if BEAM files should have their debug information,
       documentation chunks, and other non-essential metadata removed. Defaults to
       `true`. May be set to `false` to disable stripping. Also accepts
@@ -634,6 +639,9 @@ defmodule Mix.Tasks.Release do
         ]
       ]
 
+  By setting `:runtime_config_path` to `false` it can be used to prevent
+  a runtime configuration file to be included in the release.
+
   Finally, in order for runtime configuration to work properly (as well
   as any other "Config provider" as defined next), it needs to be able
   to persist the newly computed configuration to disk. The computed config
@@ -797,9 +805,11 @@ defmodule Mix.Tasks.Release do
       files to. It can be set to a custom directory. It defaults to
       `$RELEASE_ROOT/tmp`
 
-    * `RELEASE_MODE` - if the release should start in embedded or
-      interactive mode. Defaults to "embedded". It applies only to
-      start/daemon/install commands
+    * `RELEASE_MODE` - if the release should load code on demand (interactive)
+      or preload it (embedded). Defaults to "embedded", which increases boot
+      time but it means the runtime will respond faster as it doesn't have to
+      load code. Choose interactive if you need to decrease boot time and reduce
+      memory usage on boot. It applies only to start/daemon/install commands
 
     * `RELEASE_DISTRIBUTION` - how do we want to run the distribution.
       May be `name` (long names), `sname` (short names) or `none`
@@ -1214,6 +1224,9 @@ defmodule Mix.Tasks.Release do
 
     {path, reboot?} =
       cond do
+        opts[:runtime_config_path] == false ->
+          {false, false}
+
         path = opts[:runtime_config_path] ->
           {path, false}
 
@@ -1248,7 +1261,7 @@ defmodule Mix.Tasks.Release do
         release = update_in(release.config_providers, &[{Config.Reader, opts} | &1])
         update_in(release.options, &Keyword.put_new(&1, :reboot_system_after_config, reboot?))
 
-      release.config_providers == [] ->
+      release.config_providers == [] and path != false ->
         skipping("runtime configuration (#{default_path} not found)")
         release
 

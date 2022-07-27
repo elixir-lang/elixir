@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-ELIXIR_VERSION=1.14.0-dev
+ELIXIR_VERSION=1.15.0-dev
 
 if [ $# -eq 0 ] || { [ $# -eq 1 ] && { [ "$1" = "--help" ] || [ "$1" = "-h" ]; }; }; then
   cat <<USAGE >&2
@@ -115,7 +115,7 @@ while [ $I -le $LENGTH ]; do
     -v|--no-halt)
         C=1
         ;;
-    -e|-r|-pr|-pa|-pz|--app|--eval|--remsh|--dot-iex)
+    -e|-r|-pr|-pa|-pz|--app|--eval|--remsh|--dot-iex|--no-pry)
         C=2
         ;;
     --rpc-eval)

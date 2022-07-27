@@ -311,6 +311,17 @@ defmodule CodeTest do
       Code.put_compiler_option(:debug_info, :not_a_boolean)
     end
   end
+
+  describe "fetch_docs/1" do
+    test "is case sensitive" do
+      assert {:docs_v1, _, :elixir, _, %{"en" => module_doc}, _, _} = Code.fetch_docs(IO)
+
+      assert "Functions handling input/output (IO)." =
+               module_doc |> String.split("\n") |> Enum.at(0)
+
+      assert Code.fetch_docs(Io) == {:error, :module_not_found}
+    end
+  end
 end
 
 defmodule Code.SyncTest do

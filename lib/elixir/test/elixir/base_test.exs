@@ -54,22 +54,22 @@ defmodule BaseTest do
              decode16!("a1B2c3D4e5F67891", case: :mixed)
   end
 
-  test "decode16/1 errors on non-alphabet digit" do
+  test "decode16/1 errors on non-alphabet character" do
     assert :error == decode16("66KF")
     assert :error == decode16("66ff")
     assert :error == decode16("66FF", case: :lower)
   end
 
-  test "decode16!/1 errors on non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: \"K\" (byte 75)", fn ->
+  test "decode16!/1 errors on non-alphabet character" do
+    assert_raise ArgumentError, "non-alphabet character found: \"K\" (byte 75)", fn ->
       decode16!("66KF")
     end
 
-    assert_raise ArgumentError, "non-alphabet digit found: \"f\" (byte 102)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"f\" (byte 102)", fn ->
       decode16!("66ff")
     end
 
-    assert_raise ArgumentError, "non-alphabet digit found: \"F\" (byte 70)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"F\" (byte 70)", fn ->
       decode16!("66FF", case: :lower)
     end
   end
@@ -147,12 +147,12 @@ defmodule BaseTest do
     assert "Aladdin:open sesam" == decode64!("QWxhZGRpbjpvcGVuIHNlc2Ft")
   end
 
-  test "decode64/1 errors on non-alphabet digit" do
+  test "decode64/1 errors on non-alphabet character" do
     assert :error == decode64("Zm9)")
   end
 
-  test "decode64!/1 errors on non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
+  test "decode64!/1 errors on non-alphabet character" do
+    assert_raise ArgumentError, "non-alphabet character found: \")\" (byte 41)", fn ->
       decode64!("Zm9)")
     end
   end
@@ -165,7 +165,7 @@ defmodule BaseTest do
   end
 
   test "decode64!/1 errors on whitespace unless there's ignore: :whitespace" do
-    assert_raise ArgumentError, "non-alphabet digit found: \"\\n\" (byte 10)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"\\n\" (byte 10)", fn ->
       decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
     end
 
@@ -291,7 +291,7 @@ defmodule BaseTest do
   end
 
   test "url_decode64!/1,2 error on whitespace unless there's ignore: :whitespace" do
-    assert_raise ArgumentError, "non-alphabet digit found: \"\\n\" (byte 10)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"\\n\" (byte 10)", fn ->
       url_decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t")
     end
 
@@ -299,12 +299,12 @@ defmodule BaseTest do
              url_decode64!("\nQWxhZGRp bjpvcGVu\sIHNlc2Ft\t", ignore: :whitespace)
   end
 
-  test "url_decode64/1 errors on non-alphabet digit" do
+  test "url_decode64/1 errors on non-alphabet character" do
     assert :error == url_decode64("Zm9)")
   end
 
-  test "url_decode64!/1 errors on non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
+  test "url_decode64!/1 errors on non-alphabet character" do
+    assert_raise ArgumentError, "non-alphabet character found: \")\" (byte 41)", fn ->
       url_decode64!("Zm9)")
     end
   end
@@ -467,26 +467,26 @@ defmodule BaseTest do
     assert "fooba" == decode32!("MZXW6YTB")
   end
 
-  test "decode32/1,2 error on non-alphabet digit" do
+  test "decode32/1,2 error on non-alphabet character" do
     assert :error == decode32("MZX)6YTB")
     assert :error == decode32("66ff")
     assert :error == decode32("66FF", case: :lower)
   end
 
-  test "decode32!/1,2 argument error on non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
+  test "decode32!/1,2 argument error on non-alphabet character" do
+    assert_raise ArgumentError, "non-alphabet character found: \")\" (byte 41)", fn ->
       decode32!("MZX)6YTB")
     end
 
-    assert_raise ArgumentError, "non-alphabet digit found: \"m\" (byte 109)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"m\" (byte 109)", fn ->
       decode32!("mzxw6ytboi======")
     end
 
-    assert_raise ArgumentError, "non-alphabet digit found: \"M\" (byte 77)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"M\" (byte 77)", fn ->
       decode32!("MZXW6YTBOI======", case: :lower)
     end
 
-    assert_raise ArgumentError, "non-alphabet digit found: \"0\" (byte 48)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"0\" (byte 48)", fn ->
       decode32!("0ZXW6YTB0I======", case: :mixed)
     end
   end
@@ -664,22 +664,22 @@ defmodule BaseTest do
     assert "fooba" == hex_decode32!("CPNMUOJ1")
   end
 
-  test "hex_decode32/1,2 error on non-alphabet digit" do
+  test "hex_decode32/1,2 error on non-alphabet character" do
     assert :error == hex_decode32("CPN)UOJ1")
     assert :error == hex_decode32("66f")
     assert :error == hex_decode32("66F", case: :lower)
   end
 
-  test "hex_decode32!/1,2 error non-alphabet digit" do
-    assert_raise ArgumentError, "non-alphabet digit found: \")\" (byte 41)", fn ->
+  test "hex_decode32!/1,2 error non-alphabet character" do
+    assert_raise ArgumentError, "non-alphabet character found: \")\" (byte 41)", fn ->
       hex_decode32!("CPN)UOJ1")
     end
 
-    assert_raise ArgumentError, "non-alphabet digit found: \"c\" (byte 99)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"c\" (byte 99)", fn ->
       hex_decode32!("cpnmuoj1e8======")
     end
 
-    assert_raise ArgumentError, "non-alphabet digit found: \"C\" (byte 67)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"C\" (byte 67)", fn ->
       hex_decode32!("CPNMUOJ1E8======", case: :lower)
     end
   end
@@ -711,7 +711,7 @@ defmodule BaseTest do
   end
 
   test "decode16!/1 errors on non-UTF-8 char" do
-    assert_raise ArgumentError, "non-alphabet digit found: \"\\0\" (byte 0)", fn ->
+    assert_raise ArgumentError, "non-alphabet character found: \"\\0\" (byte 0)", fn ->
       decode16!("012" <> <<0>>)
     end
   end

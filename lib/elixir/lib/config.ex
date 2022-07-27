@@ -321,8 +321,6 @@ defmodule Config do
         :ok
     end
 
-    # TODO: Emit a warning if Mix.env() is found in said files in Elixir v1.15.
-    # Note this won't be a deprecation warning as it will always be emitted.
     Code.eval_string(contents, [], file: file)
   end
 

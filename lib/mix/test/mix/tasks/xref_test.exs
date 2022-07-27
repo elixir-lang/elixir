@@ -477,6 +477,12 @@ defmodule Mix.Tasks.XrefTest do
       )
     end
 
+    test "invalid exclude" do
+      assert_raise Mix.Error, "Excluded files could not be found: lib/a2.ex, lib/a3.ex", fn ->
+        assert_graph(~w[--exclude lib/a2.ex --exclude lib/a.ex --exclude lib/a3.ex], "")
+      end
+    end
+
     test "only nodes" do
       assert_graph(~w[--only-nodes], """
       lib/a.ex
@@ -773,7 +779,7 @@ defmodule Mix.Tasks.XrefTest do
                digraph "xref graph" {
                  "lib/a.ex"
                  "lib/a.ex" -> "lib/b.ex" [label="(compile)"]
-                 "lib/b.ex" -> "lib/a.ex" [label="(export)"]
+                 "lib/b.ex" -> "lib/a.ex" [label="(compile)"]
                  "lib/b.ex"
                }
                """
@@ -834,6 +840,53 @@ defmodule Mix.Tasks.XrefTest do
         Mix.Tasks.Xref.run(["graph", "--no-compile"])
         refute receive_until_no_messages([]) =~ "lib/a.ex"
       end)
+    end
+
+    test "group with multiple unconnected files" do
+      assert_graph(~w[--group lib/a.ex,lib/c.ex,lib/e.ex], """
+      lib/a.ex+
+      |-- lib/b.ex (compile)
+      `-- lib/d.ex (compile)
+      lib/b.ex
+      `-- lib/a.ex+ (compile)
+      lib/d.ex
+      `-- lib/a.ex+
+      """)
+    end
+
+    test "group with directly dependent files and cycle" do
+      assert_graph(~w[--group lib/a.ex,lib/b.ex], """
+      lib/a.ex+
+      |-- lib/c.ex
+      `-- lib/e.ex (compile)
+      lib/c.ex
+      `-- lib/d.ex (compile)
+      lib/d.ex
+      `-- lib/e.ex
+      lib/e.ex
+      """)
+    end
+
+    test "multiple groups" do
+      assert_graph(~w[--group lib/a.ex,lib/b.ex --group lib/c.ex,lib/e.ex], """
+      lib/a.ex+
+      `-- lib/c.ex+ (compile)
+      lib/c.ex+
+      `-- lib/d.ex (compile)
+      lib/d.ex
+      `-- lib/c.ex+
+      """)
+    end
+
+    test "group with sink" do
+      assert_graph(~w[--group lib/a.ex,lib/c.ex,lib/e.ex --sink lib/e.ex], """
+      lib/b.ex
+      `-- lib/a.ex+ (compile)
+          |-- lib/b.ex (compile)
+          `-- lib/d.ex (compile)
+      lib/d.ex
+      `-- lib/a.ex+
+      """)
     end
 
     @default_files %{

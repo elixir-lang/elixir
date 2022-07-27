@@ -824,8 +824,8 @@ defmodule ArgumentError do
         not is_atom(module) and is_atom(function) and args == [] ->
           "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
             "If you are using Kernel.apply/3, make sure the module is an atom. " <>
-            "If you are using the dot syntax, such as map.field or module.function(), " <>
-            "make sure the left side of the dot is an atom or a map"
+            "If you are using the dot syntax, such as module.function(), " <>
+            "make sure the left-hand side of the dot is a module atom"
 
         not is_atom(module) ->
           "you attempted to apply a function on #{inspect(module)}. " <>
@@ -1114,8 +1114,8 @@ defmodule UndefinedFunctionError do
   end
 
   defp hint(nil, _function, 0, _loaded?) do
-    ". If you are using the dot syntax, such as map.field or module.function(), " <>
-      "make sure the left side of the dot is an atom or a map"
+    ". If you are using the dot syntax, such as module.function(), " <>
+      "make sure the left-hand side of the dot is a module atom"
   end
 
   defp hint(module, function, arity, true) do
@@ -1338,11 +1338,13 @@ defmodule FunctionClauseError do
 end
 
 defmodule Code.LoadError do
-  defexception [:file, :message]
+  defexception [:file, :message, :reason]
 
   def exception(opts) do
     file = Keyword.fetch!(opts, :file)
-    %Code.LoadError{message: "could not load #{file}", file: file}
+    reason = Keyword.fetch!(opts, :reason)
+    message = "could not load #{file}. Reason: #{reason}"
+    %Code.LoadError{message: message, file: file, reason: reason}
   end
 end
 
@@ -1633,8 +1635,17 @@ defmodule ErlangError do
     %KeyError{key: key, term: term}
   end
 
-  def normalize({:badkey, key, map}, _stacktrace) do
+  def normalize({:badkey, key, map}, _stacktrace) when is_map(map) do
     %KeyError{key: key, term: map}
+  end
+
+  def normalize({:badkey, key, term}, _stacktrace) do
+    message =
+      "key #{inspect(key)} not found in: #{inspect(term)}. " <>
+        "If you are using the dot syntax, such as map.field, " <>
+        "make sure the left-hand side of the dot is a map"
+
+    %KeyError{key: key, term: term, message: message}
   end
 
   def normalize({:case_clause, term}, _stacktrace) do
@@ -1690,7 +1701,13 @@ defmodule ErlangError do
 
       error_info = Map.put(error_info, :pretty_printer, &inspect/1)
       head = {module, fun, args_or_arity, Keyword.put(opts, :error_info, error_info)}
-      extra = apply(error_module, error_fun, [erl_exception, [head | tail]])
+
+      extra =
+        try do
+          apply(error_module, error_fun, [erl_exception, [head | tail]])
+        rescue
+          _ -> %{}
+        end
 
       arity = if is_integer(args_or_arity), do: args_or_arity, else: length(args_or_arity)
       args_errors = Map.take(extra, Enum.to_list(1..arity//1))

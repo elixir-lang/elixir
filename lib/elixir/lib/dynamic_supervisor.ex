@@ -1,13 +1,14 @@
 defmodule DynamicSupervisor do
   @moduledoc ~S"""
-  A supervisor that starts children dynamically.
+  A supervisor optimized to only start children dynamically.
 
   The `Supervisor` module was designed to handle mostly static children
   that are started in the given order when the supervisor starts. A
   `DynamicSupervisor` starts with no children. Instead, children are
-  started on demand via `start_child/2`. When a dynamic supervisor
-  terminates, all children are shut down at the same time, with no guarantee
-  of ordering.
+  started on demand via `start_child/2` and there is no ordering between
+  children. This allows the `DynamicSupervisor` to hold millions of
+  children by using efficient data structures and to execute certain
+  operations, such as shutting down, concurrently.
 
   ## Examples
 

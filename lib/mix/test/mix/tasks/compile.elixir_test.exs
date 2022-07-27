@@ -1,9 +1,10 @@
 Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule Mix.Tasks.Compile.ElixirTest do
+  use MixTest.Case
+
   import ExUnit.CaptureIO
   alias Mix.Task.Compiler.Diagnostic
-  use MixTest.Case
 
   def trace(event, env) do
     send(__MODULE__, {event, env})
@@ -272,6 +273,41 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     Application.delete_env(:sample, :foo, persistent: true)
+  end
+
+  defdelegate dbg(code, options, env), to: Macro
+
+  test "recompiles only config files when elixir config changes" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      File.write!("lib/a.ex", """
+      defmodule A do
+        def a, do: dbg(:ok)
+      end
+      """)
+
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def b, do: :ok
+      end
+      """)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      # Change the dbg_callback at runtime
+      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      Application.put_env(:elixir, :dbg_callback, {__MODULE__, :dbg, []})
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
+    end)
+  after
+    Application.put_env(:elixir, :dbg_callback, {Macro, :dbg, []})
   end
 
   test "recompiles files when config changes export dependencies" do
@@ -673,6 +709,63 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles files from path dependencies when its deps change" do
+    # Get Git repo first revision
+    [last, first | _] = get_git_repo_revs("git_repo")
+
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("path_on_git_repo/lib")
+
+      File.write!("path_on_git_repo/mix.exs", """
+      defmodule PathOnGitRepo.MixProject do
+        use Mix.Project
+
+        def project do
+          [
+            app: :path_on_git_repo,
+            version: "0.1.0",
+            deps: [{:git_repo, git: MixTest.Case.fixture_path("git_repo")}]
+          ]
+        end
+      end
+      """)
+
+      File.write!("path_on_git_repo/lib/path_on_hello.ex", """
+      defmodule PathOnGitRepo.Hello do
+        IO.puts("GitRepo is defined: \#{Code.ensure_loaded?(GitRepo)}")
+      end
+      """)
+
+      File.write!("mix.lock", inspect(%{git_repo: {:git, fixture_path("git_repo"), first, []}}))
+      Mix.ProjectStack.post_config(deps: [{:path_on_git_repo, path: "path_on_git_repo"}])
+      Mix.Project.push(MixTest.Case.Sample)
+
+      Mix.Tasks.Deps.Get.run([])
+      assert capture_io(fn -> Mix.Task.run("compile") end) =~ "GitRepo is defined: false"
+
+      Mix.Task.clear()
+      Mix.State.clear_cache()
+      purge([GitRepo.MixProject, PathOnGitRepo.MixProject, PathOnGitRepo.Hello])
+
+      # Unload the git repo application so we can pick the new modules definition
+      :ok = Application.unload(:git_repo)
+
+      Mix.Tasks.Deps.Update.run(["--all"])
+      assert File.read!("mix.lock") =~ last
+
+      # The lock of sample (the parent app) is the one that changed
+      # but that should mirror on child path dependencies too.
+      ensure_touched(
+        "_build/dev/lib/sample/.mix/compile.lock",
+        "_build/dev/lib/path_on_git_repo/.mix/compile.elixir"
+      )
+
+      assert capture_io(fn -> Mix.Task.run("compile") end) =~ "GitRepo is defined: true"
+    end)
+  after
+    purge([GitRepo, GitRepo.MixProject])
+  end
+
   test "does not write BEAM files down on failures" do
     in_tmp("blank", fn ->
       Mix.Project.push(MixTest.Case.Sample)
@@ -893,7 +986,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "compiles dependent changed externa resources" do
+  test "compiles dependent changed external resources" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
       tmp = tmp_path("c.eex")
@@ -1372,7 +1465,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         assert %Diagnostic{
                  file: ^file,
                  severity: :error,
-                 position: 2,
+                 position: {2, 20},
                  message: "** (SyntaxError) lib/a.ex:2:" <> _,
                  compiler_name: "Elixir"
                } = diagnostic
@@ -1456,8 +1549,10 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       File.write!("lib/c.ex", """
       defmodule C do
+        @after_verify __MODULE__
         def foo(), do: B.foo()
         def bar(), do: B.bar()
+        def __after_verify__(__MODULE__), do: IO.warn("AFTER_VERIFY", Macro.Env.stacktrace(__ENV__))
       end
       """)
 
@@ -1468,6 +1563,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       refute output =~ "A.foo/0 is undefined or private"
       assert output =~ "B.bar/0 is undefined or private"
+      assert output =~ "AFTER_VERIFY"
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -1487,11 +1583,22 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # Check C due to transient dependency on A
       assert output =~ "A.foo/0 is undefined or private"
       assert output =~ "B.bar/0 is undefined or private"
+      assert output =~ "AFTER_VERIFY"
 
       # Ensure only A was recompiled
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/c.ex"]}
+
+      # We can retrieve all warnings if desired
+      output =
+        capture_io(:stderr, fn ->
+          Mix.Tasks.Compile.Elixir.run(["--verbose", "--all-warnings"])
+        end)
+
+      assert output =~ "A.foo/0 is undefined or private"
+      assert output =~ "B.bar/0 is undefined or private"
+      assert output =~ "AFTER_VERIFY"
     end)
   end
 
@@ -1529,6 +1636,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert Mix.Tasks.Compile.Elixir.run([]) == {:ok, []}
       assert Mix.Tasks.Compile.Elixir.run([]) == {:noop, []}
       assert Mix.Tasks.Compile.Elixir.run(["--no-optional-deps"]) == {:ok, []}
+    end)
+  end
+
+  defp get_git_repo_revs(repo) do
+    File.cd!(fixture_path(repo), fn ->
+      Regex.split(~r/\r?\n/, System.cmd("git", ["log", "--format=%H"]) |> elem(0))
     end)
   end
 end

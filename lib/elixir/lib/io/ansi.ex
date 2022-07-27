@@ -3,6 +3,7 @@ defmodule IO.ANSI.Sequence do
 
   defmacro defsequence(name, code, terminator \\ "m") do
     quote bind_quoted: [name: name, code: code, terminator: terminator] do
+      @spec unquote(name)() :: String.t()
       def unquote(name)() do
         "\e[#{unquote(code)}#{unquote(terminator)}"
       end
@@ -66,6 +67,34 @@ defmodule IO.ANSI do
   @spec enabled? :: boolean
   def enabled? do
     Application.get_env(:elixir, :ansi_enabled, false)
+  end
+
+  @doc """
+  Syntax colors to be used by `Inspect`.
+
+  Those colors are used throughout Elixir's standard library,
+  such as `dbg/2` and `IEx`.
+
+  The colors can be changed by setting the `:ansi_syntax_colors`
+  in the `:elixir` application configuration. Configuration for
+  most built-in data types are supported: `:atom`, `:binary`,
+  `:boolean`, `:charlist`, `:list`, `:map`, `:nil`, `:number`,
+  `:string`, and `:tuple`. The default is:
+
+      [
+        atom: :cyan
+        boolean: :magenta,
+        charlist: :yellow,
+        nil: :magenta,
+        number: :yellow,
+        string: :green
+      ]
+
+  """
+  @doc since: "1.14.0"
+  @spec syntax_colors :: Keyword.t(ansidata)
+  def syntax_colors do
+    Application.fetch_env!(:elixir, :ansi_syntax_colors)
   end
 
   @doc "Sets foreground color."
@@ -251,8 +280,9 @@ defmodule IO.ANSI do
       [[[[[[], "Hello, "] | "\e[31m"] | "\e[1m"], "world!"] | "\e[0m"]
 
   """
-  def format(chardata, emit? \\ enabled?()) when is_boolean(emit?) do
-    do_format(chardata, [], [], emit?, :maybe)
+  @spec format(ansidata, boolean) :: IO.chardata()
+  def format(ansidata, emit? \\ enabled?()) when is_boolean(emit?) do
+    do_format(ansidata, [], [], emit?, :maybe)
   end
 
   @doc ~S"""
@@ -271,8 +301,9 @@ defmodule IO.ANSI do
       [[[[[[] | "\e[1m"], 87], 111], 114], 100]
 
   """
-  def format_fragment(chardata, emit? \\ enabled?()) when is_boolean(emit?) do
-    do_format(chardata, [], [], emit?, false)
+  @spec format_fragment(ansidata, boolean) :: IO.chardata()
+  def format_fragment(ansidata, emit? \\ enabled?()) when is_boolean(emit?) do
+    do_format(ansidata, [], [], emit?, false)
   end
 
   defp do_format([term | rest], rem, acc, emit?, append_reset) do

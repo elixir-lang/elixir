@@ -115,7 +115,7 @@ defmodule IEx.InteractionTest do
   if IO.ANSI.enabled?() do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
-      assert capture_iex("1 + 2", opts) == "\e[31m3\e[0m"
+      assert capture_iex("1 + 2", opts) == "\e[31m\e[33m3\e[0m\e[31m\e[0m"
       assert capture_iex("IO.ANSI.blue()", opts) == "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
 
       assert capture_iex("{:ok}", opts) ==

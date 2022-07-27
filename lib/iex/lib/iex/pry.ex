@@ -53,7 +53,7 @@ defmodule IEx.Pry do
       end
 
     whereami =
-      case whereami(file, line, 2) do
+      case whereami(file, line, 3) do
         {:ok, lines} -> [?\n, ?\n, lines]
         :error -> []
       end
@@ -83,6 +83,11 @@ defmodule IEx.Pry do
   def pry(binding, opts) when is_list(opts) do
     vars = for {k, _} when is_atom(k) <- binding, do: {k, nil}
     pry(binding, opts |> :elixir.env_for_eval() |> :elixir_env.with_vars(vars))
+  end
+
+  @doc false
+  def pry_with_next(next?, binding, opts_or_env) when is_boolean(next?) do
+    next? and pry(binding, opts_or_env) == {:ok, true}
   end
 
   @elixir_internals [:elixir, :erl_eval, IEx.Evaluator, IEx.Pry]
@@ -466,23 +471,12 @@ defmodule IEx.Pry do
   end
 
   defp instrument_clause({meta, args, guards, clause}, ref, case_pattern, opts) do
-    opts = [line: Keyword.get(meta, :line, 1)] ++ opts
-
-    # We store variables on a map ignoring the context.
-    # In the rare case where variables in different contexts
-    # have the same name, the last one wins.
-    {_, binding} =
-      Macro.prewalk(args, %{}, fn
-        {name, _, ctx} = var, acc when name != :_ and is_atom(name) and is_atom(ctx) ->
-          {var, Map.put(acc, name, var)}
-
-        expr, acc ->
-          {expr, acc}
-      end)
+    arity = length(args)
+    exprs = unwrap_block(clause)
 
     # Have an extra binding per argument for case matching.
     case_vars =
-      for id <- tl(Enum.to_list(0..length(args))) do
+      for id <- 1..arity//1 do
         {String.to_atom("arg" <> Integer.to_string(id)), [version: -id], __MODULE__}
       end
 
@@ -492,19 +486,20 @@ defmodule IEx.Pry do
     # Generate the take_over condition with the ETS lookup.
     # Remember this is expanded AST, so no aliases allowed,
     # no locals (such as the unary -) and so on.
-    condition =
+    initialize_next =
       quote do
-        case unquote(case_head) do
-          unquote(case_pattern) ->
-            # :ets.update_counter(table, key, {pos, inc, threshold, reset})
-            case :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)) do
-              unquote(-1) -> :ok
-              _ -> :"Elixir.IEx.Pry".pry(unquote(Map.to_list(binding)), unquote(opts))
-            end
+        unquote(next_var(arity + 1)) =
+          case unquote(case_head) do
+            unquote(case_pattern) ->
+              :erlang."/="(
+                # :ets.update_counter(table, key, {pos, inc, threshold, reset})
+                :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)),
+                unquote(-1)
+              )
 
-          _ ->
-            :ok
-        end
+            _ ->
+              false
+          end
       end
 
     args =
@@ -512,10 +507,219 @@ defmodule IEx.Pry do
       |> Enum.zip(args)
       |> Enum.map(fn {var, arg} -> {:=, [], [arg, var]} end)
 
-    {meta, args, guards, {:__block__, [], [condition, clause]}}
+    # The variable we pass around will start after the arity,
+    # as we use the arity to instrument the clause.
+    binding = match_binding(args, %{})
+    line = Keyword.get(meta, :line, 1)
+    exprs = instrument_body(exprs, true, line, arity + 1, binding, opts)
+
+    {meta, args, guards, {:__block__, meta, [initialize_next | exprs]}}
+  end
+
+  defp instrument_body([expr | exprs], force?, line, version, binding, opts) do
+    next_binding = binding(expr, binding)
+    {min_line, max_line} = line_range(expr, line)
+
+    if force? or (min_line > line and min_line != :infinity) do
+      pry_var = next_var(version)
+      pry_binding = Map.to_list(binding)
+      pry_opts = [line: min_line] ++ opts
+
+      pry =
+        quote do
+          unquote(next_var(version + 1)) =
+            :"Elixir.IEx.Pry".pry_with_next(
+              unquote(pry_var),
+              unquote(pry_binding),
+              unquote(pry_opts)
+            )
+        end
+
+      [pry, expr | instrument_body(exprs, false, max_line, version + 1, next_binding, opts)]
+    else
+      [expr | instrument_body(exprs, false, max_line, version, next_binding, opts)]
+    end
+  end
+
+  defp instrument_body([], _force?, _line, _version, _binding, _opts) do
+    []
+  end
+
+  defp line_range(ast, line) do
+    {_, min_max} =
+      Macro.prewalk(ast, {:infinity, line}, fn
+        {_, meta, _} = ast, {min_line, max_line} when is_list(meta) ->
+          line = meta[:line]
+
+          if line > 0 do
+            {ast, {min(line, min_line), max(line, max_line)}}
+          else
+            {ast, {min_line, max_line}}
+          end
+
+        ast, acc ->
+          {ast, acc}
+      end)
+
+    min_max
+  end
+
+  defp binding(ast, binding) do
+    {_, binding} =
+      Macro.prewalk(ast, binding, fn
+        {:=, _, [left, _right]}, acc ->
+          {:ok, match_binding(left, acc)}
+
+        {:case, _, [arg, _block]}, acc ->
+          {arg, acc}
+
+        {special_form, _, _}, acc
+        when special_form in [:cond, :fn, :for, :receive, :try, :with] ->
+          {:ok, acc}
+
+        expr, acc ->
+          {expr, acc}
+      end)
+
+    binding
+  end
+
+  defp match_binding(match, binding) do
+    {_, binding} =
+      Macro.prewalk(match, binding, fn
+        {name, _, nil} = var, acc when name != :_ and is_atom(name) ->
+          {var, Map.put(acc, name, var)}
+
+        # Stop traversing inside pin operators and :: in binaries
+        {special_form, _, _}, acc when special_form in [:^, :"::"] ->
+          {:ok, acc}
+
+        expr, acc ->
+          {expr, acc}
+      end)
+
+    binding
+  end
+
+  defp next_var(id) do
+    {:next?, [version: -id], __MODULE__}
   end
 
   defp instrumented?(module) do
     module.__info__(:attributes)[:iex_pry] == [true]
+  end
+
+  defp unwrap_block(expr), do: expr |> unwrap_block([]) |> Enum.reverse()
+  defp unwrap_block({:__block__, _, exprs}, acc), do: Enum.reduce(exprs, acc, &unwrap_block/2)
+  defp unwrap_block(expr, acc), do: [expr | acc]
+
+  # IEx backend for Kernel.dbg/2.
+  @doc false
+  def dbg(ast, options, env)
+
+  def dbg({:|>, _meta, _args} = ast, options, %Macro.Env{} = env) when is_list(options) do
+    [first_ast_chunk | asts_chunks] = ast |> Macro.unpipe() |> chunk_pipeline_asts_by_line(env)
+
+    initial_acc = [
+      quote do
+        env = __ENV__
+        options = unquote(options)
+
+        options =
+          if IO.ANSI.enabled?() do
+            Keyword.put_new(options, :syntax_colors, IO.ANSI.syntax_colors())
+          else
+            options
+          end
+
+        env = unquote(env_with_line_from_asts(first_ast_chunk))
+
+        next? = IEx.Pry.pry_with_next(true, binding(), env)
+        value = unquote(pipe_chunk_of_asts(first_ast_chunk))
+
+        IEx.Pry.__dbg_pipe_step__(
+          value,
+          unquote(asts_chunk_to_strings(first_ast_chunk)),
+          _start_with_pipe? = false,
+          options
+        )
+      end
+    ]
+
+    for asts_chunk <- asts_chunks, reduce: initial_acc do
+      ast_acc ->
+        piped_asts = pipe_chunk_of_asts([{quote(do: value), _index = 0}] ++ asts_chunk)
+
+        quote do
+          unquote(ast_acc)
+          env = unquote(env_with_line_from_asts(asts_chunk))
+          next? = IEx.Pry.pry_with_next(next?, binding(), env)
+          value = unquote(piped_asts)
+
+          IEx.Pry.__dbg_pipe_step__(
+            value,
+            unquote(asts_chunk_to_strings(asts_chunk)),
+            _start_with_pipe? = true,
+            options
+          )
+        end
+    end
+  end
+
+  def dbg(ast, options, %Macro.Env{} = env) when is_list(options) do
+    options = quote(do: Keyword.put(unquote(options), :print_location, false))
+
+    quote do
+      IEx.Pry.pry(binding(), __ENV__)
+      unquote(Macro.dbg(ast, options, env))
+    end
+  end
+
+  # Made public to be called from IEx.Pry.dbg/3 to reduce the amount of generated code.
+  @doc false
+  def __dbg_pipe_step__(value, string_asts, start_with_pipe?, options) do
+    asts_string = Enum.intersperse(string_asts, [:faint, " |> ", :reset])
+
+    asts_string =
+      if start_with_pipe? do
+        IO.ANSI.format([:faint, "|> ", :reset, asts_string])
+      else
+        asts_string
+      end
+
+    [asts_string, :faint, " #=> ", :reset, inspect(value, options), "\n\n"]
+    |> IO.ANSI.format()
+    |> IO.write()
+  end
+
+  defp chunk_pipeline_asts_by_line(asts, %Macro.Env{line: env_line}) do
+    Enum.chunk_by(asts, fn
+      {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line] || env_line
+      {_other_ast, _pipe_index} -> env_line
+    end)
+  end
+
+  defp pipe_chunk_of_asts([{first_ast, _first_index} | asts] = _ast_chunk) do
+    Enum.reduce(asts, first_ast, fn {ast, index}, acc -> Macro.pipe(acc, ast, index) end)
+  end
+
+  defp asts_chunk_to_strings(asts) do
+    Enum.map(asts, fn {ast, _pipe_index} -> Macro.to_string(ast) end)
+  end
+
+  defp env_with_line_from_asts(asts) do
+    line =
+      Enum.find_value(asts, fn
+        {{_fun_or_var, meta, _args}, _pipe_index} -> meta[:line]
+        {_ast, _pipe_index} -> nil
+      end)
+
+    if line do
+      quote do
+        %{env | line: unquote(line)}
+      end
+    else
+      quote do: env
+    end
   end
 end

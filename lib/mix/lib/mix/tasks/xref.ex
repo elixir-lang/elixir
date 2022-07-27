@@ -78,7 +78,7 @@ defmodule Mix.Tasks.Xref do
 
   The following options are accepted:
 
-    * `--exclude` - paths to exclude
+    * `--exclude` - path to exclude. Can be repeated to exclude multiple paths.
 
     * `--label` - only shows relationships with the given label.
       The labels are "compile", "export" and "runtime". By default,
@@ -90,6 +90,13 @@ defmodule Mix.Tasks.Xref do
       with at least one transitive dependency. See "Dependencies types"
       section below.
 
+    * `--group` - provide comma-separated paths to consider as a group. Dependencies
+      from and into multiple files of the group are considered a single dependency.
+      Dependencies between the group elements are ignored. This is useful when you
+      are computing compile and compile-connected dependencies and you want a
+      series of files to be treated as one. The group is printed using the first path,
+      with a `+` suffix. Can be repeated to create multiple groups.
+
     * `--only-direct` - keeps only files with the direct relationship
       given by `--label`
 
@@ -97,10 +104,11 @@ defmodule Mix.Tasks.Xref do
       Generally useful with the `--sink` flag
 
     * `--source` - displays all files that the given source file
-      references (directly or indirectly)
+      references (directly or indirectly). Can be repeated to display
+      references from multiple sources.
 
     * `--sink` - displays all files that reference the given file
-      (directly or indirectly)
+      (directly or indirectly). Can be repeated.
 
     * `--min-cycle-size` - controls the minimum cycle size on formats
       like `stats` and `cycles`
@@ -260,6 +268,7 @@ defmodule Mix.Tasks.Xref do
     exclude: :keep,
     fail_above: :integer,
     format: :string,
+    group: :keep,
     include_siblings: :boolean,
     label: :string,
     only_nodes: :boolean,
@@ -453,7 +462,8 @@ defmodule Mix.Tasks.Xref do
           into: MapSet.new(),
           do: module
 
-    old = Code.compiler_options(ignore_module_conflict: true, tracers: [__MODULE__])
+    new = [ignore_already_consolidated: true, ignore_module_conflict: true, tracers: [__MODULE__]]
+    old = Code.compiler_options(new)
     ets = :ets.new(__MODULE__, [:named_table, :duplicate_bag, :public])
     :ets.insert(ets, [{:config, set, trace_label(opts[:label])}])
 
@@ -508,7 +518,7 @@ defmodule Mix.Tasks.Xref do
 
   @doc false
   def trace({:require, meta, module, _opts}, env),
-    do: add_trace(:export, :require, module, module, meta, env)
+    do: add_trace(require_mode(meta), :require, module, module, meta, env)
 
   def trace({:struct_expansion, meta, module, _keys}, env),
     do: add_trace(:export, :struct, module, module, meta, env)
@@ -530,6 +540,8 @@ defmodule Mix.Tasks.Xref do
 
   def trace(_event, _env),
     do: :ok
+
+  defp require_mode(meta), do: if(meta[:from_macro], do: :compile, else: :export)
 
   defp mode(%{function: nil}), do: :compile
   defp mode(_), do: :runtime
@@ -584,7 +596,75 @@ defmodule Mix.Tasks.Xref do
 
   ## Graph
 
-  defp exclude(file_references, []), do: file_references
+  defp merge_groups(file_references, comma_separated_groups) do
+    for group_paths <- comma_separated_groups,
+        reduce: {file_references, %{}} do
+      {file_references, aliases} ->
+        group_paths
+        |> String.split(",")
+        |> check_files(file_references, :group)
+        |> group(file_references, aliases)
+    end
+  end
+
+  @type_order %{
+    compile: 0,
+    export: 1,
+    nil: 2
+  }
+
+  # Group the given paths.
+  # In graph theory vocabulary, this is done by vertex identification
+  # and removal of edges between contracting vertices.
+  defp group(paths, file_references, aliases) do
+    group_name = hd(paths) <> "+"
+    aliases = paths |> Map.new(&{&1, group_name}) |> Map.merge(aliases)
+
+    # Merge the references *from* the paths to group
+    {from_group, file_references} = Map.split(file_references, paths)
+
+    file_references =
+      Map.put(file_references, group_name, merge_references_from_group(from_group))
+
+    # Remap the references *to* the merged group
+    file_references =
+      Map.new(file_references, fn {file, references} ->
+        {file, remap_references_to_group(references, aliases, group_name)}
+      end)
+
+    # Remove the resulting reference from the merged group to itself, if there is one
+    file_references = Map.update!(file_references, group_name, &List.keydelete(&1, group_name, 0))
+
+    {file_references, aliases}
+  end
+
+  # Calculate the references from the merged group by concatenating all the references
+  # from its components; in case of duplicates keep the one with the most important type.
+  defp merge_references_from_group(file_references_to_merge) do
+    file_references_to_merge
+    |> Map.values()
+    |> Enum.concat()
+    |> Enum.sort_by(fn {_ref, type} -> @type_order[type] end)
+    |> Enum.uniq_by(fn {ref, _type} -> ref end)
+    |> Enum.sort()
+  end
+
+  defp remap_references_to_group(references, aliases, group_name) do
+    case Enum.split_with(references, fn {ref, _type} -> Map.has_key?(aliases, ref) end) do
+      {[], _all_references} ->
+        references
+
+      {refs_to_merge, other_refs} ->
+        type =
+          refs_to_merge
+          |> Enum.map(fn {_ref, type} -> type end)
+          |> Enum.min_by(&@type_order[&1])
+
+        Enum.sort([{group_name, type} | other_refs])
+    end
+  end
+
+  defp exclude(file_references, nil), do: file_references
 
   defp exclude(file_references, excluded) do
     excluded_set = MapSet.new(excluded)
@@ -658,14 +738,26 @@ defmodule Mix.Tasks.Xref do
         into: %{}
   end
 
-  defp get_files(what, opts, file_references) do
-    files = Keyword.get_values(opts, what)
+  @humanize_option %{
+    group: "Group files",
+    source: "Sources",
+    sink: "Sinks",
+    exclude: "Excluded files"
+  }
 
+  defp get_files(what, opts, file_references, aliases) do
+    files =
+      for file <- Keyword.get_values(opts, what) do
+        Map.get(aliases, file, file)
+      end
+
+    check_files(files, file_references, what)
+  end
+
+  defp check_files(files, file_references, what) do
     case files -- Map.keys(file_references) do
       [_ | _] = missing ->
-        Mix.raise(
-          "#{Macro.camelize(to_string(what))}s could not be found: #{Enum.join(missing, ", ")}"
-        )
+        Mix.raise("#{@humanize_option[what]} could not be found: #{Enum.join(missing, ", ")}")
 
       _ ->
         :ok
@@ -675,9 +767,13 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp write_graph(file_references, filter, opts) do
-    file_references = exclude(file_references, Keyword.get_values(opts, :exclude))
-    sources = get_files(:source, opts, file_references)
-    sinks = get_files(:sink, opts, file_references)
+    {file_references, aliases} = merge_groups(file_references, Keyword.get_values(opts, :group))
+
+    file_references =
+      exclude(file_references, get_files(:exclude, opts, file_references, aliases))
+
+    sources = get_files(:source, opts, file_references, aliases)
+    sinks = get_files(:sink, opts, file_references, aliases)
 
     file_references =
       cond do

@@ -561,7 +561,7 @@ defmodule Kernel.ErrorsTest do
   test "ensure valid import :except option" do
     assert_eval_raise CompileError,
                       "nofile:3: invalid :except option for import, expected value to be a list " <>
-                        "literal, got: Module.__get_attribute__(Kernel.ErrorsTest.Only, :x, 3)",
+                        "literal, got: Module.__get_attribute__(Kernel.ErrorsTest.Only, :x, 3, true)",
                       '''
                       defmodule Kernel.ErrorsTest.Only do
                         @x [flatten: 1]
@@ -680,7 +680,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "@on_load attribute format" do
-    assert_raise ArgumentError, ~r/should be an atom or a {atom, 0} tuple/, fn ->
+    assert_raise ArgumentError, ~r/should be an atom or an {atom, 0} tuple/, fn ->
       defmodule BadOnLoadAttribute do
         Module.put_attribute(__MODULE__, :on_load, "not an atom")
       end
@@ -862,7 +862,7 @@ defmodule Kernel.ErrorsTest do
                       "defmodule MisplacedOperator, do: (def bar(1 | 2), do: :ok)"
   end
 
-  defp bad_remote_call(x), do: x.foo
+  defp bad_remote_call(x), do: x.foo()
 
   defmacro sample(0), do: 0
 

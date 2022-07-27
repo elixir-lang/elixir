@@ -69,12 +69,13 @@ defmodule IEx.Helpers do
   import IEx, only: [dont_display_result: 0]
 
   @doc """
-  Recompiles the current Mix application.
+  Recompiles the current Mix project.
 
   This helper only works when IEx is started with a Mix
   project, for example, `iex -S mix`. Note this function
   simply recompiles Elixir modules, without reloading
-  configuration and without restarting applications.
+  configuration, recompiling dependencies, or restarting
+  applications.
 
   Therefore, any long running process may crash on recompilation,
   as changed modules will be temporarily removed and recompiled,
@@ -787,7 +788,7 @@ defmodule IEx.Helpers do
     # print items in multiple columns (2 columns in the worst case)
     lengths = Enum.map(list, &String.length(&1))
     max_length = max_length(lengths)
-    offset = min(max_length, 30) + 5
+    offset = min(max_length, 30) + 4
     print_table(list, printer, offset)
   end
 
@@ -801,8 +802,11 @@ defmodule IEx.Helpers do
           length
         end
 
-      IO.write(printer.(item, offset))
-      length + offset
+      printed = printer.(item, offset)
+      actual_offset = String.length(printed) + 1
+
+      IO.write(printed <> " ")
+      length + actual_offset
     end)
 
     IO.puts("")
@@ -844,6 +848,9 @@ defmodule IEx.Helpers do
   until the next breakpoint, which will automatically yield control
   back to IEx without requesting permission to pry.
 
+  If you simply want to move to the next line of the current breakpoint,
+  use `n/0` or `next/0` instead.
+
   If the running process terminates, a new IEx session is
   started.
 
@@ -854,14 +861,51 @@ defmodule IEx.Helpers do
   @doc since: "1.5.0"
   def continue do
     if iex_server = Process.get(:iex_server) do
-      send(iex_server, {:continue, self()})
+      send(iex_server, {:continue, self(), false})
     end
 
     dont_display_result()
   end
 
   @doc """
-  Macro-based shortcut for `IEx.break!/4`.
+  Goes to the next line of the current breakpoint.
+
+  This is usually called by sessions started with `IEx.break!/4`.
+  If instead of the next line you want to move to the next breakpoint,
+  call `continue/0` instead.
+
+  While the process executes, the user will no longer have
+  control of the shell. If you would rather start a new shell,
+  use `respawn/0` instead.
+  """
+  @doc since: "1.14.0"
+  def next do
+    if iex_server = Process.get(:iex_server) do
+      send(iex_server, {:continue, self(), true})
+    end
+
+    dont_display_result()
+  end
+
+  @doc """
+  A shortcut for `next/0`.
+  """
+  @doc since: "1.14.0"
+  def n do
+    next()
+  end
+
+  @doc """
+  Sets up a breakpoint in the AST of shape `Module.function/arity`
+  with the given number of `stops`.
+
+  See `IEx.break!/4` for a complete description of breakpoints
+  in IEx.
+
+  ## Examples
+
+      break! URI.decode_query/2
+
   """
   @doc since: "1.5.0"
   defmacro break!(ast, stops \\ 1) do
@@ -877,6 +921,11 @@ defmodule IEx.Helpers do
 
   See `IEx.break!/4` for a complete description of breakpoints
   in IEx.
+
+  ## Examples
+
+      break! URI, :decode_query, 2
+
   """
   @doc since: "1.5.0"
   defdelegate break!(module, function, arity, stops \\ 1), to: IEx
@@ -1322,8 +1371,8 @@ defmodule IEx.Helpers do
 
   """
   def nl(nodes \\ Node.list(), module) when is_list(nodes) and is_atom(module) do
-    case :code.get_object_code(module) do
-      {^module, bin, beam_path} ->
+    case get_beam_and_path(module) do
+      {bin, beam_path} ->
         results =
           for node <- nodes do
             case :rpc.call(node, :code, :load_binary, [module, beam_path, bin]) do
@@ -1338,6 +1387,15 @@ defmodule IEx.Helpers do
 
       _otherwise ->
         {:error, :nofile}
+    end
+  end
+
+  defp get_beam_and_path(module) do
+    with {^module, beam, filename} <- :code.get_object_code(module),
+         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+      {beam, filename}
+    else
+      _ -> :error
     end
   end
 end

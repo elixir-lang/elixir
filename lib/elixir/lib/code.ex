@@ -3,8 +3,9 @@ defmodule Code do
   Utilities for managing code compilation, code evaluation, and code loading.
 
   This module complements Erlang's [`:code` module](`:code`)
-  to add behaviour which is specific to Elixir. Almost all of the functions in this module
-  have global side effects on the behaviour of Elixir.
+  to add behaviour which is specific to Elixir. For functions to
+  manipulate Elixir's AST (rather than evaluating it), see the
+  `Macro` module.
 
   ## Working with files
 
@@ -129,6 +130,8 @@ defmodule Code do
 
     * `{:require, meta, module, opts}` - traced whenever `module` is required.
       `meta` is the require AST metadata and `opts` are the require options.
+      If the `meta` option contains the `:from_macro`, then `require` was called
+      from within a macro and therefore must be treated as a compile-time dependency.
 
     * `{:struct_expansion, meta, module, keys}` - traced whenever `module`'s struct
       is expanded. `meta` is the struct AST metadata and `keys` are the keys being
@@ -149,7 +152,7 @@ defmodule Code do
       of keys to traverse in the application environment and `return` is either
       `{:ok, value}` or `:error`.
 
-    * `{:on_module, bytecode, :none}` - (since v1.11.0) traced whenever a module
+    * `{:on_module, bytecode, _ignore}` - (since v1.11.0) traced whenever a module
       is defined. This is equivalent to the `@after_compile` callback and invoked
       after any `@after_compile` in the given module. The third element is currently
       `:none` but it may provide more metadata in the future. It is best to ignore
@@ -188,6 +191,7 @@ defmodule Code do
   @boolean_compiler_options [
     :docs,
     :debug_info,
+    :ignore_already_consolidated,
     :ignore_module_conflict,
     :relative_paths,
     :warnings_as_errors
@@ -232,6 +236,8 @@ defmodule Code do
   calling this function only removes them from the list,
   allowing them to be required again.
 
+  The list of files is managed per Erlang VM node.
+
   ## Examples
 
       # Require EEx test code
@@ -261,7 +267,8 @@ defmodule Code do
   Appends a path to the end of the Erlang VM code path list.
 
   This is the list of directories the Erlang VM uses for
-  finding module code.
+  finding module code. The list of files is managed per Erlang
+  VM node.
 
   The path is expanded with `Path.expand/1` before being appended.
   If this path does not exist, an error is returned.
@@ -284,7 +291,7 @@ defmodule Code do
   Prepends a path to the beginning of the Erlang VM code path list.
 
   This is the list of directories the Erlang VM uses for finding
-  module code.
+  module code. The list of files is managed per Erlang VM node.
 
   The path is expanded with `Path.expand/1` before being prepended.
   If this path does not exist, an error is returned.
@@ -304,8 +311,10 @@ defmodule Code do
   end
 
   @doc """
-  Deletes a path from the Erlang VM code path list. This is the list of
-  directories the Erlang VM uses for finding module code.
+  Deletes a path from the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for finding
+  module code. The list of files is managed per Erlang VM node.
 
   The path is expanded with `Path.expand/1` before being deleted. If the
   path does not exist, this function returns `false`.
@@ -322,7 +331,14 @@ defmodule Code do
   """
   @spec delete_path(Path.t()) :: boolean
   def delete_path(path) do
-    :code.del_path(to_charlist(Path.expand(path)))
+    case :code.del_path(to_charlist(Path.expand(path))) do
+      result when is_boolean(result) ->
+        result
+
+      {:error, :bad_name} ->
+        raise ArgumentError,
+              "invalid argument #{inspect(path)}"
+    end
   end
 
   @doc """
@@ -409,19 +425,7 @@ defmodule Code do
 
   defp eval_verify(fun, forms, binding, env) do
     Module.ParallelChecker.verify(fn ->
-      previous = :erlang.get(:elixir_module_binaries)
-
-      try do
-        Process.put(:elixir_module_binaries, [])
-        result = apply(:elixir, fun, [forms, binding, env])
-        {result, Enum.map(Process.get(:elixir_module_binaries), &elem(&1, 1))}
-      after
-        if previous == :undefined do
-          :erlang.erase(:elixir_module_binaries)
-        else
-          :erlang.put(:elixir_module_binaries, previous)
-        end
-      end
+      apply(:elixir, fun, [forms, binding, env])
     end)
   end
 
@@ -1177,19 +1181,19 @@ defmodule Code do
   """
   @spec eval_file(binary, nil | binary) :: {term, binding}
   def eval_file(file, relative_to \\ nil) when is_binary(file) do
-    file = find_file(file, relative_to)
-    eval_string(File.read!(file), [], file: file, line: 1)
+    {charlist, file} = find_file!(file, relative_to)
+    eval_string(charlist, [], file: file, line: 1)
   end
 
   @deprecated "Use Code.require_file/2 or Code.compile_file/2 instead"
   @doc false
   def load_file(file, relative_to \\ nil) when is_binary(file) do
-    file = find_file(file, relative_to)
+    {charlist, file} = find_file!(file, relative_to)
     :elixir_code_server.call({:acquire, file})
 
     loaded =
       Module.ParallelChecker.verify(fn ->
-        :elixir_compiler.file(file, fn _, _ -> :ok end)
+        :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
       end)
 
     :elixir_code_server.cast({:required, file})
@@ -1208,7 +1212,7 @@ defmodule Code do
   ones will block until the file is available. This means that if `require_file/2`
   is called more than once with a given file, that file will be compiled only once.
   The first process to call `require_file/2` will get the list of loaded modules,
-  others will get `nil`.
+  others will get `nil`. The list of required files is managed per Erlang VM node.
 
   See `compile_file/2` if you would like to compile a file without tracking its
   filenames. Finally, if you would like to get the result of evaluating a file rather
@@ -1230,7 +1234,7 @@ defmodule Code do
   """
   @spec require_file(binary, nil | binary) :: [{module, binary}] | nil
   def require_file(file, relative_to \\ nil) when is_binary(file) do
-    file = find_file(file, relative_to)
+    {charlist, file} = find_file!(file, relative_to)
 
     case :elixir_code_server.call({:acquire, file}) do
       :required ->
@@ -1239,7 +1243,7 @@ defmodule Code do
       :proceed ->
         loaded =
           Module.ParallelChecker.verify(fn ->
-            :elixir_compiler.file(file, fn _, _ -> :ok end)
+            :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
           end)
 
         :elixir_code_server.cast({:required, file})
@@ -1269,8 +1273,10 @@ defmodule Code do
   @doc """
   Stores all given compilation options.
 
-  To store individual options and for a description of all
-  options, see `put_compiler_option/2`.
+  Changing the compilation options affect all processes
+  running in a given Erlang VM node. To store individual
+  options and for a description of all options, see
+  `put_compiler_option/2`.
 
   ## Examples
 
@@ -1323,7 +1329,8 @@ defmodule Code do
   @doc """
   Stores a compilation option.
 
-  These options are global since they are stored by Elixir's code server.
+  Changing the compilation options affect all processes running in a
+  given Erlang VM node.
 
   Available options are:
 
@@ -1334,11 +1341,15 @@ defmodule Code do
       module. This allows a developer to reconstruct the original source
       code. Defaults to `true`.
 
-    * `:ignore_module_conflict` - when `true`, override modules that were
-      already defined without raising errors. Defaults to `false`.
+    * `:ignore_already_consolidated` - when `true`, does not warn when a protocol
+      has already been consolidated and a new implementation is added. Defaults
+      to `false`.
+
+    * `:ignore_module_conflict` - when `true`, does not warn when a module has
+      already been defined. Defaults to `false`.
 
     * `:relative_paths` - when `true`, use relative paths in quoted nodes,
-      warnings and errors generated by the compiler. Note disabling this option
+      warnings, and errors generated by the compiler. Note disabling this option
       won't affect runtime warnings and errors. Defaults to `true`.
 
     * `:warnings_as_errors` - causes compilation to fail when warnings are
@@ -1423,6 +1434,9 @@ defmodule Code do
   old compiler module names to be reused. If there are any processes running
   any code from such modules, they will be terminated too.
 
+  This function is only meant to be called if you have a long running node
+  that is constantly evaluating code.
+
   It returns `{:ok, number_of_modules_purged}`.
   """
   @doc since: "1.7.0"
@@ -1485,7 +1499,8 @@ defmodule Code do
   @spec compile_file(binary, nil | binary) :: [{module, binary}]
   def compile_file(file, relative_to \\ nil) when is_binary(file) do
     Module.ParallelChecker.verify(fn ->
-      :elixir_compiler.file(find_file(file, relative_to), fn _, _ -> :ok end)
+      {charlist, file} = find_file!(file, relative_to)
+      :elixir_compiler.string(charlist, file, fn _, _ -> :ok end)
     end)
   end
 
@@ -1691,8 +1706,8 @@ defmodule Code do
   def fetch_docs(module_or_path)
 
   def fetch_docs(module) when is_atom(module) do
-    case :code.get_object_code(module) do
-      {_module, bin, beam_path} ->
+    case get_beam_and_path(module) do
+      {bin, beam_path} ->
         case fetch_docs_from_beam(bin) do
           {:error, :chunk_not_found} ->
             app_root = Path.expand(Path.join(["..", ".."]), beam_path)
@@ -1727,6 +1742,15 @@ defmodule Code do
     fetch_docs_from_beam(String.to_charlist(path))
   end
 
+  defp get_beam_and_path(module) do
+    with {^module, beam, filename} <- :code.get_object_code(module),
+         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+      {beam, filename}
+    else
+      _ -> :error
+    end
+  end
+
   @docs_chunk 'Docs'
 
   defp fetch_docs_from_beam(bin_or_path) do
@@ -1759,17 +1783,8 @@ defmodule Code do
       {:error, {:invalid_chunk, bin}}
   end
 
-  @doc ~S"""
-  Deprecated function to retrieve old documentation format.
-
-  Elixir v1.7 adopts [EEP 48](https://www.erlang.org/eeps/eep-0048.html)
-  which is a new documentation format meant to be shared across all
-  BEAM languages. The old format, used by `Code.get_docs/2`, is no
-  longer available, and therefore this function always returns `nil`.
-  Use `Code.fetch_docs/1` instead.
-  """
+  @doc false
   @deprecated "Code.get_docs/2 always returns nil as its outdated documentation is no longer stored on BEAM files. Use Code.fetch_docs/1 instead"
-  @spec get_docs(module, :moduledoc | :docs | :callback_docs | :type_docs | :all) :: nil
   def get_docs(_module, _kind) do
     nil
   end
@@ -1779,7 +1794,7 @@ defmodule Code do
   # Finds the file given the relative_to path.
   #
   # If the file is found, returns its path in binary, fails otherwise.
-  defp find_file(file, relative_to) do
+  defp find_file!(file, relative_to) do
     file =
       if relative_to do
         Path.expand(file, relative_to)
@@ -1787,10 +1802,9 @@ defmodule Code do
         Path.expand(file)
       end
 
-    if File.regular?(file) do
-      file
-    else
-      raise Code.LoadError, file: file
+    case File.read(file) do
+      {:ok, bin} -> {String.to_charlist(bin), file}
+      {:error, reason} -> raise Code.LoadError, file: file, reason: reason
     end
   end
 end

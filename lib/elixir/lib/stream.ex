@@ -186,6 +186,9 @@ defmodule Stream do
       iex> Stream.chunk_every([1, 2, 3, 4, 5, 6], 3, 3, []) |> Enum.to_list()
       [[1, 2, 3], [4, 5, 6]]
 
+      iex> Stream.chunk_every([1, 2, 3, 4], 3, 3, Stream.cycle([0])) |> Enum.to_list()
+      [[1, 2, 3], [4, 0, 0]]
+
   """
   @doc since: "1.5.0"
   @spec chunk_every(Enumerable.t(), pos_integer, pos_integer, Enumerable.t() | :discard) ::
@@ -454,7 +457,10 @@ defmodule Stream do
   @doc """
   Executes the given function for each element.
 
-  Useful for adding side effects (like printing) to a stream.
+  The values in the stream do not change, therefore this
+  function is useful for adding side effects (like printing)
+  to a stream. See `map/2` if producing a different stream
+  is desired.
 
   ## Examples
 

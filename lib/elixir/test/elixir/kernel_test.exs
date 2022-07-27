@@ -674,7 +674,7 @@ defmodule KernelTest do
     end
 
     test "with a non-literal non-escaped compile-time range in guards" do
-      message = "non-literal range in guard should be escaped with Macro.escape/2"
+      message = ~r"found unescaped value on the right side of in/2: 1..3"
 
       assert_eval_raise(ArgumentError, message, """
       defmodule InErrors do
@@ -809,6 +809,11 @@ defmodule KernelTest do
 
     test ":functions" do
       refute {:__info__, 1} in Kernel.__info__(:functions)
+    end
+
+    test ":struct" do
+      assert Kernel.__info__(:struct) == nil
+      assert hd(URI.__info__(:struct)) == %{field: :scheme, required: false}
     end
 
     test "others" do
@@ -1449,6 +1454,42 @@ defmodule KernelTest do
 
     assert_raise ArgumentError, ~r"reason: :non_utc_offset", fn ->
       Code.eval_string(~s{~U[2015-01-13 13:00:07+00:30]})
+    end
+  end
+
+  describe "dbg/2" do
+    import ExUnit.CaptureIO
+
+    test "prints the given expression and returns its value" do
+      output = capture_io(fn -> assert dbg(List.duplicate(:foo, 3)) == [:foo, :foo, :foo] end)
+      assert output =~ "kernel_test.exs"
+      assert output =~ "KernelTest"
+      assert output =~ "List.duplicate(:foo, 3)"
+      assert output =~ ":foo"
+    end
+
+    test "doesn't print any colors if :syntax_colors is []" do
+      output =
+        capture_io(fn ->
+          assert dbg(List.duplicate(:foo, 3), syntax_colors: []) == [:foo, :foo, :foo]
+        end)
+
+      assert output =~ "kernel_test.exs"
+      assert output =~ "KernelTest."
+      assert output =~ "List.duplicate(:foo, 3)"
+      assert output =~ "[:foo, :foo, :foo]"
+      refute output =~ "\\e["
+    end
+
+    test "prints binding() if no arguments are given" do
+      my_var = 1
+      my_other_var = :foo
+
+      output = capture_io(fn -> dbg() end)
+
+      assert output =~ "binding()"
+      assert output =~ "my_var:"
+      assert output =~ "my_other_var:"
     end
   end
 end

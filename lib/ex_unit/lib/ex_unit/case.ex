@@ -269,6 +269,12 @@ defmodule ExUnit.Case do
 
   @doc false
   def __register__(module, opts) do
+    unless Keyword.keyword?(opts) do
+      raise ArgumentError,
+            ~s(the argument passed to "use ExUnit.Case" must be a list of options, ) <>
+              ~s(got: #{inspect(opts)})
+    end
+
     registered? = Module.has_attribute?(module, :ex_unit_tests)
 
     unless registered? do
@@ -534,11 +540,12 @@ defmodule ExUnit.Case do
     {name, describe, describe_line, describetag} =
       case Module.get_attribute(mod, :ex_unit_describe) do
         {line, describe, _counter} ->
-          description = :"#{test_type} #{describe} #{name}"
-          {description, describe, line, Module.get_attribute(mod, :describetag)}
+          test_name = validate_test_name("#{test_type} #{describe} #{name}")
+          {test_name, describe, line, Module.get_attribute(mod, :describetag)}
 
         nil ->
-          {:"#{test_type} #{name}", nil, nil, []}
+          test_name = validate_test_name("#{test_type} #{name}")
+          {test_name, nil, nil, []}
       end
 
     if Module.defines?(mod, {name, 1}) do
@@ -735,6 +742,19 @@ defmodule ExUnit.Case do
     end
 
     tags
+  end
+
+  defp validate_test_name(name) do
+    try do
+      String.to_atom(name)
+    rescue
+      SystemLimitError ->
+        raise SystemLimitError, """
+        the computed name of a test (which includes its type, the name of its parent describe \
+        block if present, and the test name itself) must be shorter than 255 characters, \
+        got: #{inspect(name)}
+        """
+    end
   end
 
   defp normalize_tags(tags) do

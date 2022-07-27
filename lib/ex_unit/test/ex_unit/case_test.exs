@@ -112,6 +112,30 @@ defmodule ExUnit.CaseTest do
       end
     end
   end
+
+  test "raises when name is longer than 255 characters" do
+    assert_raise SystemLimitError,
+                 ~r/must be shorter than 255 characters, got: "test a{256}"/,
+                 fn ->
+                   defmodule LongNameTest do
+                     use ExUnit.Case
+
+                     test String.duplicate("a", 256)
+                   end
+                 end
+
+    assert_raise SystemLimitError,
+                 ~r/must be shorter than 255 characters, got: "test a{100} a{156}"/,
+                 fn ->
+                   defmodule LongDescribeNameTest do
+                     use ExUnit.Case
+
+                     describe String.duplicate("a", 100) do
+                       test String.duplicate("a", 156)
+                     end
+                   end
+                 end
+  end
 end
 
 defmodule ExUnit.DoubleCaseTest1 do
@@ -217,6 +241,18 @@ defmodule ExUnit.CaseTest.TmpDir do
              )
 
       assert String.ends_with?(context.tmp_dir, "-9633ed5f")
+    end
+  end
+end
+
+defmodule ExUnit.BadOptsCase do
+  use ExUnit.Case, async: true
+
+  test "raises if passed something other than options" do
+    assert_raise ArgumentError, ~r/must be a list of options, got: "not a list of options"/, fn ->
+      defmodule MyBadCase do
+        use ExUnit.Case, "not a list of options"
+      end
     end
   end
 end

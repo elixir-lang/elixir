@@ -270,7 +270,8 @@ defmodule ExUnit do
       are counted as failures. Defaults to `:infinity`;
 
     * `:only_test_ids` - a list of `{module_name, test_name}` tuples that limits
-      what tests get run;
+      what tests get run. This is typically used by Mix to filter which tests
+      should run;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
       calls in milliseconds, defaults to `100`;
@@ -292,13 +293,13 @@ defmodule ExUnit do
     * `:timeout` - sets the timeout for the tests in milliseconds, defaults to `60_000`;
 
     * `:trace` - sets ExUnit into trace mode, this sets `:max_cases` to `1` and
-      prints each test case and test while running. Note that in trace mode test timeouts
-      will be ignored as timeout is set to `:infinity`.
+      prints each test case and test while running. Note that in trace mode test
+      timeouts will be ignored as timeout is set to `:infinity`;
 
     * `:test_location_relative_path` - the test location is the file:line information
       printed by tests as a shortcut to run a given test. When this value is set,
       the value is used as a prefix for the test itself. This is typically used by
-      Mix to properly set-up umbrella projects
+      Mix to properly set-up umbrella projects;
 
   Any arbitrary configuration can also be passed to `configure/1` or `start/1`,
   and these options can then be used in places such as custom formatters. These

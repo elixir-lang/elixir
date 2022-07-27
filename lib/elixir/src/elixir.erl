@@ -58,6 +58,7 @@ start(_Type, _Args) ->
 
     %% Compiler options
     {docs, true},
+    {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {parser_options, []},
     {debug_info, true},
@@ -187,7 +188,7 @@ env_for_eval(#{lexical_tracker := Pid} = Env) ->
     false ->
       NewEnv#{tracers := []}
   end;
-%% TODO: Deprecate all options except line and file on v1.15.
+%% TODO: Deprecate all options except line, file, module, and function on v1.15.
 env_for_eval(Opts) when is_list(Opts) ->
   Env = elixir_env:new(),
 
@@ -266,15 +267,15 @@ eval_quoted(Tree, Binding, #{line := Line} = E) ->
 
 eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
   eval_forms(Tree, Binding, env_for_eval(Opts));
-eval_forms(Tree, RawBinding, OrigE) ->
-  {Vars, Binding} = normalize_binding(RawBinding, #{}, [], 0),
-  E = elixir_env:with_vars(OrigE, Vars),
-  {_, S} = elixir_env:env_to_erl(E),
+eval_forms(Tree, Binding, OrigE) ->
+  {ExVars, ErlVars, ErlBinding} = elixir_erl_var:load_binding(Binding),
+  E = elixir_env:with_vars(OrigE, ExVars),
+  S = elixir_erl_var:from_env(E, ErlVars),
   {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, E, S),
 
   case Erl of
     {atom, _, Atom} ->
-      {Atom, RawBinding, NewE};
+      {Atom, Binding, NewE};
 
     _  ->
       Exprs =
@@ -283,25 +284,10 @@ eval_forms(Tree, RawBinding, OrigE) ->
           _ -> [Erl]
         end,
 
-      ErlBinding = elixir_erl_var:load_binding(Binding, E, S),
       ExternalHandler = eval_external_handler(NewE),
       {value, Value, NewBinding} = erl_eval:exprs(Exprs, ErlBinding, none, ExternalHandler),
       {Value, elixir_erl_var:dump_binding(NewBinding, NewExS, NewErlS), NewE}
   end.
-
-normalize_binding([Binding | NextBindings], VarsMap, Normalized, Counter) ->
-  {Pair, Value} = normalize_pair(Binding),
-  case VarsMap of
-    #{Pair := _} ->
-      normalize_binding(NextBindings, VarsMap, [{Pair, Value} | Normalized], Counter);
-    #{} ->
-      normalize_binding(NextBindings, VarsMap#{Pair => Counter}, [{Pair, Value} | Normalized], Counter + 1)
-  end;
-normalize_binding([], VarsMap, Normalized, _Counter) ->
-  {VarsMap, Normalized}.
-
-normalize_pair({Key, Value}) when is_atom(Key) -> {{Key, nil}, Value};
-normalize_pair({Pair, Value}) -> {Pair, Value}.
 
 %% TODO: Remove conditional once we require Erlang/OTP 25+.
 -if(?OTP_RELEASE >= 25).
@@ -370,7 +356,7 @@ eval_external_handler(_Env) ->
 %% Converts a quoted expression to Erlang abstract format
 
 quoted_to_erl(Quoted, E) ->
-  {_, S} = elixir_env:env_to_erl(E),
+  {_, S} = elixir_erl_var:from_env(E),
   quoted_to_erl(Quoted, E, S).
 
 quoted_to_erl(Quoted, Env, Scope) ->

@@ -14,9 +14,9 @@ Elixir allows Unicode characters in its variables, atoms, and calls. However, th
 
 The characters allowed in identifiers are the ones specified by Unicode. Generally speaking, it is restricted to characters typically used by the writing system of human languages still in activity. In particular, it excludes symbols such as emojis, alternate numeric representations, musical notes, and the like.
 
-Elixir imposes many restrictions on identifiers for security purposes. For example, the word "josé" can be written in two ways in Unicode: as the combination of the characters `j o s é` and as a combination of the characters `j o s e ́ `, where the accent is its own character. The former is called NFC form and the latter is the NFD form. Elixir requires all characters to be the in the NFC form.
+Elixir imposes many restrictions on identifiers for security purposes. For example, the word "josé" can be written in two ways in Unicode: as the combination of the characters `j o s é` and as a combination of the characters `j o s e ́ `, where the accent is its own character. The former is called NFC form and the latter is the NFD form. Elixir normalizes all characters to be the in the NFC form.
 
-Elixir also disallows mixed-scripts in most scenarios. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so, will raise the following error:
+Elixir also disallows mixed-scripts in most scenarios. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so will raise the following error:
 
 ```
 ** (SyntaxError) invalid mixed-script identifier found: аdmin
@@ -99,9 +99,9 @@ Elixir supports only code points `\t` (0009), `\n` (000A), `\r` (000D) and `\s` 
 
 Identifiers in Elixir are case sensitive.
 
-Elixir requires all atoms and variables to be in NFC form. Any other form will fail with a relevant error message. Quoted-atoms and strings can, however, be in any form and are not verified by the parser.
+Elixir requires all atoms and variables to be in NFC form. If another form is given, NFC is automatically applied. Quoted-atoms and strings can, however, be in any form and are not verified by the parser.
 
-In other words, the atom `:josé` can only be written with the code points `006A 006F 0073 00E9`. Using another normalization form will lead to a tokenizer error. On the other hand, `:"josé"` may be written as `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301`, since it is written between quotes.
+In other words, the atom `:josé` can only be written with the code points `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301`, but Elixir will rewrite it to the former (from Elixir 1.14). On the other hand, `:"josé"` may be written as `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301` and its form will be retained, since it is written between quotes.
 
 Choosing requirement R6 automatically excludes requirements R4, R5 and R7.
 
@@ -117,6 +117,8 @@ Elixir will not allow tokenization of identifiers with codepoints in `\p{Identif
 
 For instance, the 'HANGUL FILLER' (`ㅤ`) character, which is often invisible, is an uncommon codepoint and will trigger this warning.
 
+See the note below about additional normalizations, which can perform automatic replacement of some Restricted identifiers.
+
 ### C2. Confusable detection
 
 Elixir will warn on identifiers that look the same, but aren't. Examples: in `а = a = 1`, the two 'a' characters are Cyrillic and Latin, and could be confused for each other; in `力 = カ = 1`, both are Japanese, but different codepoints, in different scripts of that writing system. Confusable identifiers can lead to hard-to-catch bugs (say, due to copy-pasted code) and can be unsafe, so we will warn about identifiers within a single file that could be confused with each other.
@@ -129,7 +131,7 @@ Elixir will not warn on confusability for identifiers made up exclusively of cha
 
 ### C3. Mixed Script Detection
 
-Elixir will not allow tokenization of mixed-script identifiers unless the mixings is one of the exceptions defined in UTS 39 5.2, 'Highly Restrictive'. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring.
+Elixir will not allow tokenization of mixed-script identifiers unless the mixings is one of the exceptions defined in UTS 39 5.2, 'Highly Restrictive'. We use the means described in Section 5.1, Mixed-Script Detection, to determine if script mixing is occurring, with the modification documented in the section 'Additional Normalizations', below.
 
 Examples: Elixir allows an identifiers like `幻ㄒㄧㄤ`, even though it includes characters from multiple 'scripts', because those scripts all 'resolve' to Japanese when applying the resolution rules from UTS 39 5.1. It also allows an atom like `:Tシャツ`, the Japanese word for 't-shirt', which incorporates a Latin capital T, because {Latn, Jpan} is one of the allowed script mixings in the definition of 'Highly Restrictive' in UTS 39 5.2, and it 'covers' the string.
 
@@ -140,3 +142,17 @@ However, Elixir would prevent tokenization in code like `if аdmin, do: :ok, els
 'C4 - Restriction Level detection' conformance is not claimed and does not apply to identifiers in code; rather, it applies to classifying the level of safety of a given arbitrary string into one of 5 restriction levels.
 
 'C5 - Mixed number detection' conformance is inapplicable as Elixir does not support Unicode numbers.
+
+### Addition normalizations and documented UTS 39 modifications
+
+As of Elixir 1.14, some codepoints in `\p{Identifier_Status=Restricted}` are *normalized* to other, unrestricted codepoints.
+
+Initially this is only done to translate MICRO SIGN `µ` to Greek lowercase mu, `μ`.
+
+This is not a modification of UTS39 clauses C1 (General Security Profile) or C2 (Confusability Detection); however it is a documented modification of C3, 'Mixed-Script detection'.
+
+Mixed-script detection is modified by these normalizations to the extent that the normalized codepoint is given the union of scriptsets from both characters.
+
+- For instance, in the example of MICRO => MU, Micro was a 'Common'-script character -- the same script given to the '_' underscore codepoint -- and thus the normalized character's scriptset will be {Greek, Common}. 'Common' intersects with all non-empty scriptsets, and thus the normalized character can be used in tokens written in any script without causing script mixing.
+
+- The code points normalized in this fashion are those that are in use in the community, and judged not likely to cause issues with unsafe script mixing. For instance, the MICRO or MU codepoint may be used in an atom or variable dealing with microseconds.

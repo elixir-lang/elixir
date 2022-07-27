@@ -1,6 +1,7 @@
 %% Compiler backend to Erlang.
+
 -module(elixir_erl).
--export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/4, compile/1, consolidate/3,
+-export([elixir_to_erl/1, elixir_to_erl/2, definition_to_anonymous/5, compile/1, consolidate/3,
          get_ann/1, debug_info/4, scope/2, format_error/1]).
 -include("elixir.hrl").
 -define(typespecs, 'Elixir.Kernel.Typespec').
@@ -47,23 +48,11 @@ get_ann([], Gen, Line) -> erl_anno:set_generated(Gen, erl_anno:new(Line)).
 
 %% Converts an Elixir definition to an anonymous function.
 
-definition_to_anonymous(Module, Kind, Meta, Clauses) ->
+definition_to_anonymous(Kind, Meta, Clauses, LocalHandler, ExternalHandler) ->
   ErlClauses = [translate_clause(Kind, 0, Clause, true) || Clause <- Clauses],
   Fun = {'fun', ?ann(Meta), {clauses, ErlClauses}},
-  LocalHandler = fun(LocalName, LocalArgs) -> invoke_local(Module, LocalName, LocalArgs) end,
-  {value, Result, _Binding} = erl_eval:expr(Fun, [], {value, LocalHandler}),
+  {value, Result, _Binding} = erl_eval:expr(Fun, [], LocalHandler, ExternalHandler),
   Result.
-
-invoke_local(Module, ErlName, Args) ->
-  {Name, Arity} = elixir_utils:erl_fa_to_elixir_fa(ErlName, length(Args)),
-
-  case elixir_def:local_for(Module, Name, Arity, all) of
-    false ->
-      {current_stacktrace, [_ | T]} = erlang:process_info(self(), current_stacktrace),
-      erlang:raise(error, undef, [{Module, Name, Arity, []} | T]);
-    Fun ->
-      apply(Fun, Args)
-  end.
 
 %% Converts Elixir quoted literals to Erlang AST.
 elixir_to_erl(Tree) ->
@@ -75,6 +64,9 @@ elixir_to_erl([], Ann) ->
   {nil, Ann};
 elixir_to_erl(<<>>, Ann) ->
   {bin, Ann, []};
+elixir_to_erl(#{} = Map, Ann) ->
+  Assocs = [{map_field_assoc, Ann, elixir_to_erl(K, Ann), elixir_to_erl(V, Ann)} || {K, V} <- maps:to_list(Map)],
+  {map, Ann, Assocs};
 elixir_to_erl(Tree, Ann) when is_list(Tree) ->
   elixir_to_erl_cons(Tree, Ann);
 elixir_to_erl(Tree, Ann) when is_atom(Tree) ->
@@ -249,7 +241,7 @@ functions_form(Line, Module, Def, Defmacro, Exports, Body, Deprecated, Struct) -
   [{attribute, Line, export, lists:sort([{'__info__', 1} | Exports])}, Spec, Info | Body].
 
 add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
-  AllowedAttrs = [attributes, compile, functions, macros, md5, exports_md5, module, deprecated],
+  AllowedAttrs = [attributes, compile, functions, macros, md5, exports_md5, module, deprecated, struct],
   AllowedArgs = lists:map(fun(Atom) -> {atom, Line, Atom} end, AllowedAttrs),
   SortedDef = lists:sort(Def),
   SortedDefmacro = lists:sort(Defmacro),
@@ -269,6 +261,7 @@ add_info_function(Line, Module, Def, Defmacro, Deprecated, Struct) ->
       get_module_info(Module),
       functions_info(SortedDef),
       macros_info(SortedDefmacro),
+      struct_info(Struct),
       exports_md5_info(Struct, SortedDef, SortedDefmacro),
       get_module_info(Module, attributes),
       get_module_info(Module, compile),
@@ -285,20 +278,26 @@ exports_md5_info(Struct, Def, Defmacro) ->
   %% Deprecations do not need to be part of exports_md5 because it is always
   %% checked by the runtime pass, so it is not really part of compilation.
   Md5 = erlang:md5(erlang:term_to_binary({Def, Defmacro, Struct})),
-  {clause, 0, [{atom, 0, exports_md5}], [], [elixir_erl:elixir_to_erl(Md5)]}.
+  {clause, 0, [{atom, 0, exports_md5}], [], [elixir_to_erl(Md5)]}.
 
 functions_info(Def) ->
-  {clause, 0, [{atom, 0, functions}], [], [elixir_erl:elixir_to_erl(Def)]}.
+  {clause, 0, [{atom, 0, functions}], [], [elixir_to_erl(Def)]}.
 
 macros_info(Defmacro) ->
-  {clause, 0, [{atom, 0, macros}], [], [elixir_erl:elixir_to_erl(Defmacro)]}.
+  {clause, 0, [{atom, 0, macros}], [], [elixir_to_erl(Defmacro)]}.
+
+struct_info(nil) ->
+  {clause, 0, [{atom, 0, struct}], [], [{atom, 0, nil}]};
+struct_info(Fields) ->
+  FieldsWithoutDefault = [maps:remove(default, FieldInfo) || FieldInfo <- Fields],
+  {clause, 0, [{atom, 0, struct}], [], [elixir_to_erl(FieldsWithoutDefault)]}.
 
 get_module_info(Module, Key) ->
   Call = ?remote(0, erlang, get_module_info, [{atom, 0, Module}, {var, 0, 'Key'}]),
   {clause, 0, [{match, 0, {var, 0, 'Key'}, {atom, 0, Key}}], [], [Call]}.
 
 deprecated_info(Deprecated) ->
-  {clause, 0, [{atom, 0, deprecated}], [], [elixir_erl:elixir_to_erl(Deprecated)]}.
+  {clause, 0, [{atom, 0, deprecated}], [], [elixir_to_erl(Deprecated)]}.
 
 % Typespecs
 
@@ -505,7 +504,7 @@ get_moduledoc(Line, Set) ->
 get_moduledoc_meta(Set) ->
   case ets:lookup(Set, {moduledoc, meta}) of
     [] -> #{};
-    [{{moduledoc, meta}, Map, _}] when is_map(Map) -> Map
+    [{{moduledoc, meta}, Map}] when is_map(Map) -> Map
   end.
 
 get_docs(Set, Module, Definitions, Kind) ->

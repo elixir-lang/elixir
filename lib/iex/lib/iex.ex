@@ -170,27 +170,46 @@ defmodule IEx do
 
   If you are connected to remote shell, it remains alive after disconnection.
 
-  ## Prying and breakpoints
+  ## `dbg` and breakpoints
 
-  IEx also has the ability to set breakpoints on Elixir code and
-  "pry" into running processes. This allows the developer to have
-  an IEx session run inside a given function.
-
-  `IEx.pry/0` can be used when you are able to modify the source
-  code directly and recompile it:
+  IEx integrates with `Kernel.dbg/2` and introduces a backend that
+  can pause code execution:
 
       def my_fun(arg1, arg2) do
-        require IEx; IEx.pry()
+        dbg(arg1 + arg2)
         ... implementation ...
       end
 
-  When the code is executed, it will ask you for permission to be
-  introspected.
+  When the code is executed with `iex` (most often by calling
+  `iex -S mix`), it will ask you permission to use "pry". If you
+  agree, it will start an IEx shell in the context of the function
+  above, with access to its variables, imports, and aliases. However,
+  you can only access existing values, it is not possible to access
+  private functions nor change the execution itself (hence the name
+  "pry").
 
-  Alternatively, you can use `IEx.break!/4` to setup a breakpoint
-  on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible, it does not contain
-  information about imports and aliases from the source code.
+  When using `|> dbg()` at the end of a pipeline, you can pry each
+  step of the pipeline. You can type `n` whenever you want to jump
+  into the next pipe. Type `continue` when you want to execute all
+  of the steps but stay within the pried process. Type `respawn` when
+  you want to leave the pried process and start a new shell.
+
+  You can disable "pry" as the `dbg/2` backend by calling `iex --no-pry`.
+  Alternatively, you can start a pry session directly, without `dbg/2`
+  by calling `IEx.pry/0`.
+
+  IEx also allows you to set breakpoints to start pry sessions
+  on a given module, function, and arity you have no control of
+  via `IEx.break!/4`. Similar to pipelines in `dbg()`, `IEx.break!/4`
+  allows you to debug a function line by line and access its variables.
+  However, breakpoints do not contain information about imports and
+  aliases from the source code.
+
+  When using `dbg` or breakpoints with tests, remember to pass the
+  `--trace` to `mix test` to avoid running into timeouts:
+
+      iex -S mix test --trace
+      iex -S mix test path/to/file:line --trace
 
   ## The User switch command
 
@@ -415,16 +434,13 @@ defmodule IEx do
 
       IEx.configure(colors: [syntax_colors: false])
 
-  You can also configure the syntax colors, however, as desired:
+  You can also configure the syntax colors, however, as desired.
+  The below will format atoms in red and remove the coloring for
+  all other data types:
 
       IEx.configure(colors: [syntax_colors: [atom: :red]])
 
-  Configuration for most built-in data types are supported: `:atom`,
-  `:string`, `:binary`, `:list`, `:number`, `:boolean`, `:nil`, and others.
-  The default is:
-
-      [number: :magenta, atom: :cyan, string: :green,
-       boolean: :magenta, nil: :magenta]
+  The default values can be found in `IO.ANSI.syntax_colors/0`.
 
   ## Inspect
 
@@ -561,7 +577,10 @@ defmodule IEx do
   @doc """
   Pries into the process environment.
 
-  This is useful for debugging a particular chunk of code
+  When you start `iex`, IEx will set this function to be the
+  default `dbg/2` backend unless the `--no-pry` flag is given.
+
+  This function is useful for debugging a particular chunk of code
   when executed by a particular process. The process becomes
   the evaluator of IEx commands and is temporarily changed to
   have a custom group leader. Those values are reverted by
@@ -570,14 +589,11 @@ defmodule IEx do
 
   When a process is pried, all code runs inside IEx and has
   access to all imports and aliases from the original code.
-  However, the code is evaluated and therefore cannot access
-  private functions of the module being pried. Module functions
-  still need to be accessed via `Mod.fun(args)`.
+  However, you cannot change the execution of the code nor
+  access private functions of the module being pried. Module
+  functions still need to be accessed via `Mod.fun(args)`.
 
-  Alternatively, you can use `IEx.break!/4` to setup a breakpoint
-  on a given module, function and arity you have no control of.
-  While `IEx.break!/4` is more flexible,  it does not contain
-  information about imports and aliases from the source code.
+  See also `break!/4` for others ways to pry.
 
   ## Examples
 
@@ -714,8 +730,9 @@ defmodule IEx do
   the given number of `stops`.
 
   This function will instrument the given module and load a new
-  version in memory with breakpoints at the given function and
-  arity. If the module is recompiled, all breakpoints are lost.
+  version in memory with line by line breakpoints at the given
+  function and arity. If the module is recompiled, all breakpoints
+  are lost.
 
   When a breakpoint is reached, IEx will ask if you want to `pry`
   the given function and arity. In other words, this works similar
@@ -733,6 +750,8 @@ defmodule IEx do
     * `IEx.Helpers.break!/4` - sets up a breakpoint for the given module, function, arity
     * `IEx.Helpers.breaks/0` - prints all breakpoints and their IDs
     * `IEx.Helpers.continue/0` - continues until the next breakpoint in the same shell
+    * `IEx.Helpers.n/0` - goes to the next line of the current breakpoint
+    * `IEx.Helpers.next/0` - same as above
     * `IEx.Helpers.open/0` - opens editor on the current breakpoint
     * `IEx.Helpers.remove_breaks/0` - removes all breakpoints in all modules
     * `IEx.Helpers.remove_breaks/1` - removes all breakpoints in a given module
@@ -752,10 +771,11 @@ defmodule IEx do
   `IEx.Helpers.remove_breaks/1` and on all modules by calling
   `IEx.Helpers.remove_breaks/0`.
 
-  To exit a breakpoint, the developer can either invoke `continue()`,
-  which will block the shell until the next breakpoint is found or
-  the process terminates, or invoke `respawn()`, which starts a new IEx
-  shell, freeing up the pried one.
+  Within a breakpoint, you can call `n` to jump to the next line.
+  To exit a breakpoint, you can either invoke `continue`, which will
+  block the shell until the next breakpoint is found or the process
+  terminates, or invoke `respawn`, which starts a new IEx shell,
+  freeing up the pried one.
 
   ## Examples
 
@@ -763,23 +783,23 @@ defmodule IEx do
   a breakpoint directly from your IEx shell. But you can set up a break
   from anywhere by using the fully qualified name `IEx.break!`.
 
-  The following sets up a breakpoint on `URI.decode_query/2`:
+  The following sets up a breakpoint on `URI.parse/2`:
 
-      break! URI, :decode_query, 2
+      break! URI, :parse, 1
 
   This call will setup a breakpoint that stops once.
   To set a breakpoint that will stop 10 times:
 
-      break! URI, :decode_query, 2, 10
+      break! URI, :parse, 1, 10
 
   `IEx.break!/2` is a convenience macro that allows breakpoints
   to be given in the `Mod.fun/arity` format:
 
-      break! URI.decode_query/2
+      break! URI.parse/1
 
   Or to set a breakpoint that will stop 10 times:
 
-      break! URI.decode_query/2, 10
+      break! URI.parse/1, 10
 
   This function returns the breakpoint ID and will raise if there
   is an error setting up the breakpoint.
@@ -788,23 +808,22 @@ defmodule IEx do
 
   `IEx.break!/2` allows patterns to be given, triggering the
   breakpoint only in some occasions. For example, to trigger
-  the breakpoint only when the first argument is the "foo=bar"
-  string:
+  the breakpoint only when the first argument starts with the
+  "https" string:
 
-      break! URI.decode_query("foo=bar", _)
-
-  Or to trigger it whenever the second argument is a map with
-  more than one element:
-
-      break! URI.decode_query(_, map) when map_size(map) > 0
+      break! URI.parse("https" <> _, _)
 
   Only a single break point can be set per function. So if you call
   `IEx.break!` multiple times with different patterns, only the last
   pattern is kept.
 
-  Note that, while patterns may be given to macros, remember that
-  macros receive ASTs as arguments, and not values. For example, if
-  you try to break on a macro with the following pattern:
+  ## Macros
+
+  While it is possible to set breakpoint in macros, remember that macros
+  are generally expanded at compilation time, and therfore they may never
+  be invoked during runtime. Similarly, while patterns may be given to
+  macros, macros receive ASTs as arguments, and not values. For example,
+  if you try to break on a macro with the following pattern:
 
       break! MyModule.some_macro(pid) when pid == self()
 

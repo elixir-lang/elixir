@@ -5,29 +5,33 @@ defmodule URI do
   This module provides functions for working with URIs (for example, parsing
   URIs or encoding query strings). The functions in this module are implemented
   according to [RFC 3986](https://tools.ietf.org/html/rfc3986).
-
-  URIs are structs behind the scenes. If you are creating `URI` structs manually,
-  be aware that the `authority` field is deprecated and should not be populated.
   """
 
-  defstruct scheme: nil,
-            path: nil,
-            query: nil,
-            fragment: nil,
-            authority: nil,
-            userinfo: nil,
-            host: nil,
-            port: nil
+  @doc """
+  The URI struct.
+
+  The fields are defined to match the following URI representation
+  (with field names between brackets):
+
+      [scheme]://[userinfo]@[host]:[port][path]?[query]#[fragment]
+
+
+  Note the `authority` field is deprecated. `parse/1` will still
+  populate it for backwards compatibility but you should generally
+  avoid setting or getting it.
+  """
+  @derive {Inspect, optional: [:authority]}
+  defstruct [:scheme, :authority, :userinfo, :host, :port, :path, :query, :fragment]
 
   @type t :: %__MODULE__{
-          authority: authority,
-          fragment: nil | binary,
-          host: nil | binary,
-          path: nil | binary,
-          port: nil | :inet.port_number(),
-          query: nil | binary,
           scheme: nil | binary,
-          userinfo: nil | binary
+          authority: authority,
+          userinfo: nil | binary,
+          host: nil | binary,
+          port: nil | :inet.port_number(),
+          path: nil | binary,
+          query: nil | binary,
+          fragment: nil | binary
         }
 
   @typedoc deprecated: "The authority field is deprecated"
@@ -588,7 +592,7 @@ defmodule URI do
   end
 
   @doc """
-  Similar to `new/0` but raises `URI.Error` if an invalid string is given.
+  Similar to `new/1` but raises `URI.Error` if an invalid string is given.
 
   ## Examples
 
@@ -707,7 +711,6 @@ defmodule URI do
 
       iex> URI.parse("/foo/bar")
       %URI{
-        authority: nil,
         fragment: nil,
         host: nil,
         path: "/foo/bar",
@@ -719,7 +722,6 @@ defmodule URI do
 
       iex> URI.parse("foo/bar")
       %URI{
-        authority: nil,
         fragment: nil,
         host: nil,
         path: "foo/bar",
@@ -734,7 +736,6 @@ defmodule URI do
 
       iex> URI.parse("/invalid_greater_than_in_path/>")
       %URI{
-        authority: nil,
         fragment: nil,
         host: nil,
         path: "/invalid_greater_than_in_path/>",
@@ -750,7 +751,6 @@ defmodule URI do
 
       iex> URI.parse("/?foo[bar]=baz")
       %URI{
-        authority: nil,
         fragment: nil,
         host: nil,
         path: "/",
@@ -794,9 +794,9 @@ defmodule URI do
                 ],
                 parts
 
-    path = nillify(path)
-    scheme = nillify(scheme)
-    query = nillify_query(query_with_question_mark)
+    path = nilify(path)
+    scheme = nilify(scheme)
+    query = nilify_query(query_with_question_mark)
     {authority, userinfo, host, port} = split_authority(authority_with_slashes)
 
     scheme = scheme && String.downcase(scheme)
@@ -814,8 +814,8 @@ defmodule URI do
     }
   end
 
-  defp nillify_query("?" <> query), do: query
-  defp nillify_query(_other), do: nil
+  defp nilify_query("?" <> query), do: query
+  defp nilify_query(_other), do: nil
 
   # Split an authority into its userinfo, host and port parts.
   #
@@ -834,17 +834,17 @@ defmodule URI do
     components = Regex.run(regex, authority)
 
     destructure [_, _, userinfo, host, _, port], components
-    userinfo = nillify(userinfo)
-    host = if nillify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
-    port = if nillify(port), do: String.to_integer(port)
+    userinfo = nilify(userinfo)
+    host = if nilify(host), do: host |> String.trim_leading("[") |> String.trim_trailing("]")
+    port = if nilify(port), do: String.to_integer(port)
 
     {authority, userinfo, host, port}
   end
 
   # Regex.run returns empty strings sometimes. We want
   # to replace those with nil for consistency.
-  defp nillify(""), do: nil
-  defp nillify(other), do: other
+  defp nilify(""), do: nil
+  defp nilify(other), do: other
 
   @doc """
   Returns the string representation of the given [URI struct](`t:t/0`).

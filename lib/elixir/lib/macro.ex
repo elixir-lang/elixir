@@ -2,6 +2,8 @@ import Kernel, except: [to_string: 1]
 
 defmodule Macro do
   @moduledoc ~S"""
+  Functions for manipulating AST and implementing macros.
+
   Macros are compile-time constructs that receive Elixir's AST as input
   and return Elixir's AST as output.
 
@@ -36,7 +38,7 @@ defmodule Macro do
       #=> 1
 
   So far they behave the same, as we are passing an integer as argument.
-  But what happens when we pass an expression:
+  But let's see what happens when we pass an expression:
 
       macro_inspect(1 + 2)
       #=> {:+, [line: 3], [1, 2]}
@@ -247,6 +249,13 @@ defmodule Macro do
   @doc """
   Pipes `expr` into the `call_args` at the given `position`.
 
+  This function can be used to implement `|>` like functionality. For example,
+  `|>` itself is implemented as:
+
+      defmacro left |> right do
+        Macro.pipe(left, right, 0)
+      end
+
   `expr` is the AST of an expression. `call_args` must be the AST *of a call*,
   otherwise this function will raise an error. As an example, consider the pipe
   operator `|>/2`, which uses this function to build pipelines.
@@ -374,6 +383,96 @@ defmodule Macro do
   def generate_arguments(amount, context), do: generate_arguments(amount, context, &var/2)
 
   @doc """
+  Returns the path to the node in `ast` which `fun` returns true.
+
+  The path is a list, starting with the node in which `fun` returns
+  true, followed by all of its parents.
+
+  Computing the path can be an efficient operation when you want
+  to find a particular node in the AST within its context and then
+  assert something about it.
+
+  ## Examples
+
+      iex> Macro.path(quote(do: [1, 2, 3]), & &1 == 3)
+      [3, [1, 2, 3]]
+
+      iex> Macro.path(quote(do: Foo.bar(3)), & &1 == 3)
+      [3, quote(do: Foo.bar(3))]
+
+      iex> Macro.path(quote(do: %{foo: [bar: :baz]}), & &1 == :baz)
+      [
+        :baz,
+        {:bar, :baz},
+        [bar: :baz],
+        {:foo, [bar: :baz]},
+        {:%{}, [], [foo: [bar: :baz]]}
+      ]
+
+  """
+  @doc since: "1.14.0"
+  def path(ast, fun) when is_function(fun, 1) do
+    path(ast, [], fun)
+  end
+
+  defp path({form, _, args} = ast, acc, fun) when is_atom(form) do
+    acc = [ast | acc]
+
+    if fun.(ast) do
+      acc
+    else
+      path_args(args, acc, fun)
+    end
+  end
+
+  defp path({form, _meta, args} = ast, acc, fun) do
+    acc = [ast | acc]
+
+    if fun.(ast) do
+      acc
+    else
+      path(form, acc, fun) || path_args(args, acc, fun)
+    end
+  end
+
+  defp path({left, right} = ast, acc, fun) do
+    acc = [ast | acc]
+
+    if fun.(ast) do
+      acc
+    else
+      path(left, acc, fun) || path(right, acc, fun)
+    end
+  end
+
+  defp path(list, acc, fun) when is_list(list) do
+    acc = [list | acc]
+
+    if fun.(list) do
+      acc
+    else
+      path_list(list, acc, fun)
+    end
+  end
+
+  defp path(ast, acc, fun) do
+    if fun.(ast) do
+      [ast | acc]
+    end
+  end
+
+  defp path_args(atom, _acc, _fun) when is_atom(atom), do: nil
+  defp path_args(list, acc, fun) when is_list(list), do: path_list(list, acc, fun)
+
+  defp path_list([], _acc, _fun) do
+    nil
+  end
+
+  defp path_list([arg | args], acc, fun) do
+    path(arg, acc, fun) || path_list(args, acc, fun)
+  end
+
+  @doc """
   Generates AST nodes for a given number of required argument
   variables using `Macro.unique_var/2`.
 
@@ -458,6 +557,36 @@ defmodule Macro do
   @doc """
   Performs a depth-first traversal of quoted expressions
   using an accumulator.
+
+  Returns a tuple where the first element is a new AST and the second one is
+  the final accumulator. The new AST is the result of invoking `pre` on each
+  node of `ast` during the pre-order phase and `post` during the post-order
+  phase.
+
+  ## Examples
+
+      iex> ast = quote do: 5 + 3 * 7
+      iex> {:+, _, [5, {:*, _, [3, 7]}]} = ast
+      iex> {new_ast, acc} =
+      ...>  Macro.traverse(
+      ...>    ast,
+      ...>    [],
+      ...>    fn
+      ...>      {:+, meta, children}, acc -> {{:-, meta, children}, [:- | acc]}
+      ...>      {:*, meta, children}, acc -> {{:/, meta, children}, [:/ | acc]}
+      ...>      other, acc -> {other, acc}
+      ...>    end,
+      ...>    fn
+      ...>      {:-, meta, children}, acc -> {{:min, meta, children}, [:min | acc]}
+      ...>      {:/, meta, children}, acc -> {{:max, meta, children}, [:max | acc]}
+      ...>      other, acc -> {other, acc}
+      ...>    end
+      ...>  )
+      iex> {:min, _, [5, {:max, _, [3, 7]}]} = new_ast
+      iex> [:min, :max, :/, :-] = acc
+      iex> Code.eval_quoted(new_ast)
+      {5, []}
+
   """
   @spec traverse(t, any, (t, any -> {t, any}), (t, any -> {t, any})) :: {t, any}
   def traverse(ast, acc, pre, post) when is_function(pre, 2) and is_function(post, 2) do
@@ -512,17 +641,19 @@ defmodule Macro do
   @doc """
   Performs a depth-first, pre-order traversal of quoted expressions.
 
-  Returns a new ast where each node is the result of invoking `fun` on each
+  Returns a new AST where each node is the result of invoking `fun` on each
   corresponding node of `ast`.
 
   ## Examples
 
       iex> ast = quote do: 5 + 3 * 7
+      iex> {:+, _, [5, {:*, _, [3, 7]}]} = ast
       iex> new_ast = Macro.prewalk(ast, fn
       ...>   {:+, meta, children} -> {:*, meta, children}
       ...>   {:*, meta, children} -> {:+, meta, children}
       ...>   other -> other
       ...> end)
+      iex> {:*, _, [5, {:+, _, [3, 7]}]} = new_ast
       iex> Code.eval_quoted(ast)
       {26, []}
       iex> Code.eval_quoted(new_ast)
@@ -537,6 +668,26 @@ defmodule Macro do
   @doc """
   Performs a depth-first, pre-order traversal of quoted expressions
   using an accumulator.
+
+  Returns a tuple where the first element is a new AST where each node is the
+  result of invoking `fun` on each corresponding node and the second one is the
+  final accumulator.
+
+  ## Examples
+
+      iex> ast = quote do: 5 + 3 * 7
+      iex> {:+, _, [5, {:*, _, [3, 7]}]} = ast
+      iex> {new_ast, acc} = Macro.prewalk(ast, [], fn
+      ...>   {:+, meta, children}, acc -> {{:*, meta, children}, [:+ | acc]}
+      ...>   {:*, meta, children}, acc -> {{:+, meta, children}, [:* | acc]}
+      ...>   other, acc -> {other, acc}
+      ...> end)
+      iex> {{:*, _, [5, {:+, _, [3, 7]}]}, [:*, :+]} = {new_ast, acc}
+      iex> Code.eval_quoted(ast)
+      {26, []}
+      iex> Code.eval_quoted(new_ast)
+      {50, []}
+
   """
   @spec prewalk(t, any, (t, any -> {t, any})) :: {t, any}
   def prewalk(ast, acc, fun) when is_function(fun, 2) do
@@ -544,7 +695,8 @@ defmodule Macro do
   end
 
   @doc """
-  Performs a depth-first, post-order traversal of quoted expressions.
+  This function behaves like `prewalk/2`, but performs a depth-first,
+  post-order traversal of quoted expressions.
   """
   @spec postwalk(t, (t -> t)) :: t
   def postwalk(ast, fun) when is_function(fun, 1) do
@@ -552,8 +704,8 @@ defmodule Macro do
   end
 
   @doc """
-  Performs a depth-first, post-order traversal of quoted expressions
-  using an accumulator.
+  This functions behaves like `prewalk/3`, but performs a depth-first,
+  post-order traversal of quoted expressions using an accumulator.
   """
   @spec postwalk(t, any, (t, any -> {t, any})) :: {t, any}
   def postwalk(ast, acc, fun) when is_function(fun, 2) do
@@ -694,11 +846,12 @@ defmodule Macro do
   @doc """
   Validates the given expressions are valid quoted expressions.
 
-  Checks the `t:Macro.t/0` for the specification of a valid
-  quoted expression.
+  Check the type `t:Macro.t/0` for a complete specification of a
+  valid quoted expression.
 
-  It returns `:ok` if the expression is valid. Otherwise it returns a tuple in the form of
-  `{:error, remainder}` where `remainder` is the invalid part of the quoted expression.
+  It returns `:ok` if the expression is valid. Otherwise it returns
+  a tuple in the form of `{:error, remainder}` where `remainder` is
+  the invalid part of the quoted expression.
 
   ## Examples
 
@@ -862,7 +1015,7 @@ defmodule Macro do
   end
 
   @doc ~S"""
-  Unescapes the given chars.
+  Unescapes characters in a string.
 
   This is the unescaping behaviour used by default in Elixir
   single- and double-quoted strings. Check `unescape_string/2`
@@ -874,8 +1027,9 @@ defmodule Macro do
   `\uNNNN` escapes.
 
   This function is commonly used on sigil implementations
-  (like `~r`, `~s` and others) which receive a raw, unescaped
-  string.
+  (like `~r`, `~s` and others), which receive a raw, unescaped
+  string, and it can be used anywhere that needs to mimic how
+  Elixir parses strings.
 
   ## Examples
 
@@ -891,15 +1045,18 @@ defmodule Macro do
   end
 
   @doc ~S"""
-  Unescapes the given chars according to the map given.
+  Unescapes characters in a string according to the given mapping.
 
-  Check `unescape_string/1` if you want to use the same map
+  Check `unescape_string/1` if you want to use the same mapping
   as Elixir single- and double-quoted strings.
 
-  ## Map
+  ## Mapping function
 
-  The map must be a function. The function receives an integer
-  representing the code point of the character it wants to unescape.
+  The mapping function receives an integer representing the code point
+  of the character it wants to unescape. There are also the special atoms
+  `:newline`, `:unicode`, and `:hex`, which control newline, unicode,
+  and escaping respectively.
+
   Here is the default mapping function implemented by Elixir:
 
       def unescape_map(:newline), do: true
@@ -920,10 +1077,6 @@ defmodule Macro do
 
   If the `unescape_map/1` function returns `false`, the char is
   not escaped and the backslash is kept in the string.
-
-  Newlines, Unicode, and hexadecimals code points will be escaped if
-  the map returns `true` respectively for `:newline`, `:unicode`, and
-  `:hex`.
 
   ## Examples
 
@@ -956,8 +1109,10 @@ defmodule Macro do
   @doc """
   Converts the given expression AST to a string.
 
-  This function discards all formatting of the original code.
-  See `Code.quoted_to_algebra/2` as a lower level function
+  This is a convenience function for converting AST into
+  a string, which discards all formatting of the original
+  code and wraps newlines around 98 characters. See
+  `Code.quoted_to_algebra/2` as a lower level function
   with more control around formatting.
 
   ## Examples
@@ -1679,7 +1834,9 @@ defmodule Macro do
       case expand do
         {:ok, receiver, quoted} ->
           next = :elixir_module.next_counter(module)
-          {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
+          # We don't want the line to propagate yet, but generated might!
+          meta = Keyword.take(meta, [:generated])
+          {:elixir_quote.linify_with_context_counter(meta, {receiver, next}, quoted), true}
 
         {:ok, Kernel, op, [arg]} when op in [:+, :-] ->
           case expand_once(arg, env) do
@@ -1712,7 +1869,9 @@ defmodule Macro do
         case expand do
           {:ok, receiver, quoted} ->
             next = :elixir_module.next_counter(env.module)
-            {:elixir_quote.linify_with_context_counter(0, {receiver, next}, quoted), true}
+            # We don't want the line to propagate yet, but generated might!
+            meta = Keyword.take(meta, [:generated])
+            {:elixir_quote.linify_with_context_counter(meta, {receiver, next}, quoted), true}
 
           :error ->
             {original, false}
@@ -1806,8 +1965,40 @@ defmodule Macro do
   def quoted_literal?({:%{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({:{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
-  def quoted_literal?(list) when is_list(list), do: Enum.all?(list, &quoted_literal?/1)
+  def quoted_literal?(list) when is_list(list), do: :lists.all(&quoted_literal?/1, list)
   def quoted_literal?(term), do: is_atom(term) or is_number(term) or is_binary(term)
+
+  @doc """
+  Expands a `quoted_literal` with the given `
+
+  This function checks if the given AST represents a quoted literal
+  (using `quoted_literal?/1`) and then expands all relevant nodes.
+  If a literal node is not given, then it returns the AST as is.
+  At the moment, the only expandable literal nodes in an AST are
+  aliases, so this function only expands aliases.
+
+  This function is mostly used to remove compile-time dependencies
+  from AST nodes. In such cases, the given environment is usually
+  manipulate to represent a function:
+
+      Macro.expand_literal(ast, %{env | function: {:my_code, 1}})
+
+  However, be careful when removing compile-time dependencies between
+  modules. If you remove them but you still invoke the module at
+  compile-time, you may end-up with broken behaviour.
+  """
+  @doc since: "1.14.0"
+  @spec expand_literal(t(), Macro.Env.t()) :: t()
+  def expand_literal(ast, env) do
+    if quoted_literal?(ast) do
+      prewalk(ast, fn
+        {:__aliases__, _, _} = alias -> expand(alias, env)
+        other -> other
+      end)
+    else
+      ast
+    end
+  end
 
   @doc """
   Receives an AST node and expands it until it can no longer
@@ -1962,22 +2153,23 @@ defmodule Macro do
   ## Atom handling
 
   @doc """
-  Classifies the given `atom`.
+  Classifies a runtime `atom` based on its possible AST placement.
 
   It returns one of the following atoms:
 
     * `:alias` - the atom represents an alias
 
-    * `:identifier` - the atom can be used as a variable or local function call
+    * `:identifier` - the atom can be used as a variable or local function
+      call (as well as be an unquoted atom)
 
     * `:unquoted` - the atom can be used in its unquoted form,
       includes operators and atoms with `@` in them
 
     * `:quoted` - all other atoms which can only be used in their quoted form
 
-  Note operators are going to either be unquoted, such as `:+` and
-  most operators, or quoted, such as `:"::"`. Use `operator?/2` to
-  check if a given atom is an operator.
+  Most operators are going to be `:unquoted`, such as `:+`, with
+  some exceptions returning `:quoted` due to ambiguity, such as
+  `:"::"`. Use `operator?/2` to check if a given atom is an operator.
 
   ## Examples
 
@@ -2010,7 +2202,7 @@ defmodule Macro do
   Inspects `atom` according to different source formats.
 
   The atom can be inspected according to the three different
-  formats it appears in source code: as a literal (`:literal`),
+  formats it appears in the AST: as a literal (`:literal`),
   as a key (`:key`), or as the function name of a remote call
   (`:remote_call`).
 
@@ -2168,10 +2360,18 @@ defmodule Macro do
         else
           case :elixir_config.identifier_tokenizer().tokenize(charlist) do
             {kind, _acc, [], _, _, special} ->
-              if kind == :identifier and not :lists.member(?@, special) do
-                :identifier
-              else
-                :not_callable
+              cond do
+                kind != :identifier or :lists.member(:at, special) ->
+                  :not_callable
+
+                # identifier_tokenizer used to return errors for non-nfc, but
+                # now it nfc-normalizes everything. However, lack of nfc is
+                # still a good reason to quote an atom when printing.
+                :lists.member(:nfkc, special) ->
+                  :other
+
+                true ->
+                  :identifier
               end
 
             _ ->
@@ -2200,5 +2400,119 @@ defmodule Macro do
 
   defp trim_leading_while_valid_identifier(other) do
     other
+  end
+
+  @doc """
+  Default backend for `Kernel.dbg/2`.
+
+  This function provides a default backend for `Kernel.dbg/2`. See the
+  `Kernel.dbg/2` documentation for more information.
+
+  This function:
+
+    * prints information about the given `env`
+    * prints information about `code` and its returned value (using `opts` to inspect terms)
+    * returns the value returned by evaluating `code`
+
+  You can call this function directly to build `Kernel.dbg/2` backends that fall back
+  to this function.
+  """
+  @doc since: "1.14.0"
+  @spec dbg(t, t, Macro.Env.t()) :: t
+  def dbg(code, options, %Macro.Env{} = env) do
+    header = dbg_format_header(env)
+
+    quote do
+      to_debug = unquote(dbg_ast_to_debuggable(code))
+      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
+    end
+  end
+
+  # Pipelines.
+  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
+    value_var = Macro.unique_var(:value, __MODULE__)
+    values_acc_var = Macro.unique_var(:values, __MODULE__)
+
+    [start_ast | rest_asts] = asts = for {ast, 0} <- unpipe(pipe_ast), do: ast
+    rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
+
+    string_asts = Enum.map(asts, &to_string/1)
+
+    initial_acc =
+      quote do
+        unquote(value_var) = unquote(start_ast)
+        unquote(values_acc_var) = [unquote(value_var)]
+      end
+
+    values_ast =
+      for step_ast <- rest_asts, reduce: initial_acc do
+        ast_acc ->
+          quote do
+            unquote(ast_acc)
+            unquote(value_var) = unquote(step_ast)
+            unquote(values_acc_var) = [unquote(value_var) | unquote(values_acc_var)]
+          end
+      end
+
+    quote do
+      unquote(values_ast)
+      {:pipe, unquote(string_asts), Enum.reverse(unquote(values_acc_var))}
+    end
+  end
+
+  # Any other AST.
+  defp dbg_ast_to_debuggable(ast) do
+    quote do: {:value, unquote(to_string(ast)), unquote(ast)}
+  end
+
+  # Made public to be called from Macro.dbg/3, so that we generate as little code
+  # as possible and call out into a function as soon as we can.
+  @doc false
+  def __dbg__(header_string, to_debug, options) do
+    {print_location?, options} = Keyword.pop(options, :print_location, true)
+    syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
+    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
+
+    {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
+
+    formatted =
+      if print_location? do
+        [:cyan, :italic, header_string, :reset, "\n", formatted, "\n"]
+      else
+        [formatted, "\n"]
+      end
+
+    ansi_enabled? = options[:syntax_colors] != []
+    :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
+
+    result
+  end
+
+  defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
+    result = List.last(values)
+    [{first_ast, first_value} | asts_with_values] = Enum.zip(code_asts, values)
+
+    first_formatted = [dbg_format_ast(first_ast), " ", inspect(first_value, options), ?\n]
+
+    rest_formatted =
+      Enum.map(asts_with_values, fn {code_ast, value} ->
+        [:faint, "|> ", :reset, dbg_format_ast(code_ast), " ", inspect(value, options), ?\n]
+      end)
+
+    {[first_formatted | rest_formatted], result}
+  end
+
+  defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
+    {[dbg_format_ast(code_ast), " ", inspect(value, options), ?\n], value}
+  end
+
+  defp dbg_format_header(env) do
+    env = Map.update!(env, :file, &(&1 && Path.relative_to_cwd(&1)))
+    [stacktrace_entry] = Macro.Env.stacktrace(env)
+    "[" <> Exception.format_stacktrace_entry(stacktrace_entry) <> "]"
+  end
+
+  defp dbg_format_ast(ast) do
+    [ast, :faint, " #=>", :reset]
   end
 end

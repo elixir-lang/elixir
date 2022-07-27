@@ -902,7 +902,7 @@ defmodule IEx.HelpersTest do
     end
 
     test "prints private types" do
-      assert capture_io(fn -> t(Date.Range) end) =~ "@typep iso_days"
+      assert capture_io(fn -> t(Date.Range) end) =~ "@typep days"
     end
 
     test "prints type information" do
@@ -1038,6 +1038,13 @@ defmodule IEx.HelpersTest do
     test "prints module exports" do
       exports = capture_io(fn -> exports(IEx.Autocomplete) end)
       assert exports == "expand/1      expand/2      exports/1     remsh/1       \n"
+    end
+
+    test "handles long function names" do
+      exports = capture_io(fn -> exports(Calendar.UTCOnlyTimeZoneDatabase) end)
+
+      assert exports ==
+               "time_zone_period_from_utc_iso_days/2 time_zone_periods_from_wall_datetime/2 \n"
     end
   end
 

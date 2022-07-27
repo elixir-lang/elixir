@@ -103,9 +103,9 @@ compile(Line, Module, Block, Vars, E) ->
   try
     put_compiler_modules([Module | CompilerModules]),
     {Result, NE} = eval_form(Line, Module, DataBag, Block, Vars, E),
-    CheckerInfo = get(elixir_checker_info),
+    CheckerInfo = checker_info(),
 
-    {Binary, PersistedAttributes, Autoload, CheckerPid} =
+    {Binary, PersistedAttributes, Autoload} =
       elixir_erl_compiler:spawn(fun() ->
         PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
         Attributes = attributes(DataSet, DataBag, PersistedAttributes),
@@ -131,6 +131,7 @@ compile(Line, Module, Block, Vars, E) ->
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
+        AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
 
         ModuleMap = #{
           struct => get_struct(DataSet),
@@ -141,6 +142,7 @@ compile(Line, Module, Block, Vars, E) ->
           attributes => Attributes,
           definitions => AllDefinitions,
           unreachable => Unreachable,
+          after_verify => AfterVerify,
           compile_opts => CompileOpts,
           deprecated => get_deprecated(DataBag),
           is_behaviour => is_behaviour(DataBag)
@@ -148,15 +150,16 @@ compile(Line, Module, Block, Vars, E) ->
 
         Binary = elixir_erl:compile(ModuleMap),
         Autoload = proplists:get_value(autoload, CompileOpts, true),
-        CheckerPid = spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
-        {Binary, PersistedAttributes, Autoload, CheckerPid}
+        spawn_parallel_checker(CheckerInfo, Module, ModuleMap),
+        {Binary, PersistedAttributes, Autoload}
       end),
 
     Autoload andalso code:load_binary(Module, beam_location(ModuleAsCharlist), Binary),
     eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
     elixir_env:trace({on_module, Binary, none}, E),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
-    make_module_available(Module, Binary, CheckerPid),
+    make_module_available(Module, Binary),
+    (CheckerInfo == undefined) andalso eval_callbacks(Line, DataBag, after_verify, [Module], NE),
     {module, Module, Binary, Result}
   catch
     error:undef:Stacktrace ->
@@ -282,7 +285,7 @@ validate_module_name(Line, File, Module) ->
 build(Line, File, Module) ->
   %% In the set table we store:
   %%
-  %% * {Attribute, Value, AccumulateOrReadOrUnreadline}
+  %% * {Attribute, Value, AccumulateOrUnsetOrReadOrUnreadline, TraceLineOrNil}
   %% * {{elixir, ...}, ...}
   %% * {{cache, ...}, ...}
   %% * {{function, Tuple}, ...}, {{macro, Tuple}, ...}
@@ -311,25 +314,26 @@ build(Line, File, Module) ->
   DataBag = ets:new(Module, [duplicate_bag, public]),
 
   ets:insert(DataSet, [
-    % {Key, Value, ReadOrUnreadLine}
-    {moduledoc, nil, nil},
+    % {Key, Value, ReadOrUnreadLine, TraceLine}
+    {moduledoc, nil, nil, []},
 
-    % {Key, Value, accumulate}
-    {after_compile, [], accumulate},
-    {before_compile, [], accumulate},
-    {behaviour, [], accumulate},
-    {compile, [], accumulate},
-    {derive, [], accumulate},
-    {dialyzer, [], accumulate},
-    {external_resource, [], accumulate},
-    {on_definition, [], accumulate},
-    {type, [], accumulate},
-    {opaque, [], accumulate},
-    {typep, [], accumulate},
-    {spec, [], accumulate},
-    {callback, [], accumulate},
-    {macrocallback, [], accumulate},
-    {optional_callbacks, [], accumulate},
+    % {Key, Value, accumulate, TraceLine}
+    {after_compile, [], accumulate, []},
+    {after_verify, [], accumulate, []},
+    {before_compile, [], accumulate, []},
+    {behaviour, [], accumulate, []},
+    {compile, [], accumulate, []},
+    {derive, [], accumulate, []},
+    {dialyzer, [], accumulate, []},
+    {external_resource, [], accumulate, []},
+    {on_definition, [], accumulate, []},
+    {type, [], accumulate, []},
+    {opaque, [], accumulate, []},
+    {typep, [], accumulate, []},
+    {spec, [], accumulate, []},
+    {callback, [], accumulate, []},
+    {macrocallback, [], accumulate, []},
+    {optional_callbacks, [], accumulate, []},
 
     % Others
     {?counter_attr, 0}
@@ -381,8 +385,6 @@ eval_callbacks(Line, DataBag, Name, Args, E) ->
   end, E, Callbacks).
 
 expand_callback(Line, M, F, Args, Acc, Fun) ->
-  %% TODO: Remove this reset_vars once we move variables to S
-  %% as we can expect all variables to have been previously reset
   E = elixir_env:reset_vars(Acc),
   S = elixir_env:env_to_ex(E),
   Meta = [{line, Line}, {required, true}],
@@ -414,9 +416,9 @@ attributes(DataSet, DataBag, PersistedAttributes) ->
 
 lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
   case ets:lookup(DataSet, Key) of
-    [{_, _, accumulate}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
-    [{_, _, unset}] -> [];
-    [{_, Value, _}] -> [Value];
+    [{_, _, accumulate, _}] -> bag_lookup_element(DataBag, {accumulate, Key}, 2);
+    [{_, _, unset, _}] -> [];
+    [{_, Value, _, _}] -> [Value];
     [] -> []
   end.
 
@@ -425,19 +427,14 @@ warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
   %% This is the same list as in Module.put_attribute
   %% without moduledoc which are never warned on.
   Attrs = [doc, typedoc, impl, deprecated | StoredAttrs -- PersistedAttrs],
-  Query = [{{Attr, '_', '$1'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
+  Query = [{{Attr, '_', '$1', '_'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
   [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
    || [Key, Line] <- ets:select(DataSet, Query)].
 
 get_struct(Set) ->
-  case ets:lookup(Set, '__struct__') of
+  case ets:lookup(Set, {elixir, struct}) of
     [] -> nil;
-    [{_, Struct, _}] ->
-      case ets:lookup(Set, enforce_keys) of
-        [] -> {Struct, []};
-        [{_, EnforceKeys, _}] when is_list(EnforceKeys) -> {Struct, EnforceKeys};
-        [{_, EnforceKeys, _}] -> {Struct, [EnforceKeys]}
-      end
+    [{_, Struct}] -> Struct
   end.
 
 get_deprecated(Bag) ->
@@ -460,15 +457,21 @@ beam_location(ModuleAsCharlist) ->
 
 %% Integration with elixir_compiler that makes the module available
 
+checker_info() ->
+  case get(elixir_checker_info) of
+    undefined -> undefined;
+    _ -> 'Elixir.Module.ParallelChecker':get()
+  end.
+
 spawn_parallel_checker(undefined, _Module, _ModuleMap) ->
   nil;
 spawn_parallel_checker(CheckerInfo, Module, ModuleMap) ->
   'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap).
 
-make_module_available(Module, Binary, CheckerPid) ->
+make_module_available(Module, Binary) ->
   case get(elixir_module_binaries) of
     Current when is_list(Current) ->
-      put(elixir_module_binaries, [{{Module, Binary}, CheckerPid} | Current]);
+      put(elixir_module_binaries, [{Module, Binary} | Current]);
     _ ->
       ok
   end,
@@ -478,7 +481,7 @@ make_module_available(Module, Binary, CheckerPid) ->
       ok;
     {PID, _} ->
       Ref = make_ref(),
-      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary, CheckerPid},
+      PID ! {module_available, self(), Ref, get(elixir_compiler_file), Module, Binary},
       receive {Ref, ack} -> ok end
   end.
 

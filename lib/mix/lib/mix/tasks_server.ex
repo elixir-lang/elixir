@@ -1,35 +1,33 @@
 defmodule Mix.TasksServer do
   @moduledoc false
   @name __MODULE__
-  @timeout :infinity
 
   use Agent
 
   def start_link(_opts) do
-    Agent.start_link(fn -> %{} end, name: @name)
-  end
-
-  def run(tuple) do
-    Agent.get_and_update(
-      @name,
-      fn set -> {not Map.has_key?(set, tuple), Map.put(set, tuple, true)} end,
-      @timeout
+    Agent.start_link(
+      fn -> :ets.new(@name, [:public, :set, :named_table]) end,
+      name: @name
     )
   end
 
+  def run(tuple) do
+    :ets.insert_new(@name, {tuple})
+  end
+
   def put(tuple) do
-    Agent.update(@name, &Map.put(&1, tuple, true), @timeout)
+    :ets.insert(@name, {tuple})
   end
 
   def get(tuple) do
-    Agent.get(@name, &Map.get(&1, tuple), @timeout)
+    :ets.member(@name, tuple)
   end
 
   def delete_many(many) do
-    Agent.update(@name, &Map.drop(&1, many), @timeout)
+    Enum.each(many, &:ets.delete(@name, &1))
   end
 
   def clear() do
-    Agent.update(@name, fn _ -> %{} end, @timeout)
+    :ets.delete_all_objects(@name)
   end
 end

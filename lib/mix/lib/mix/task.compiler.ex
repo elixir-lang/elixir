@@ -36,7 +36,7 @@ defmodule Mix.Task.Compiler do
     @type t :: %__MODULE__{
             file: Path.t(),
             severity: severity,
-            message: String.t(),
+            message: IO.chardata(),
             position: position,
             compiler_name: String.t(),
             details: any
@@ -70,7 +70,7 @@ defmodule Mix.Task.Compiler do
     first line, the range would be `{1, 0, 1, n}`.
     """
     @type position ::
-            pos_integer
+            non_neg_integer
             | {pos_integer, non_neg_integer}
             | {pos_integer, non_neg_integer, pos_integer, non_neg_integer}
 

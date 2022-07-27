@@ -22,6 +22,12 @@ defmodule Module do
   Accepts a module or a `{module, function_name}`. See the "Compile callbacks"
   section below.
 
+  ### `@after_verify` (since v1.14.0)
+
+  A hook that will be invoked right after the current module is verified for
+  undefined functions, deprecations, etc. Accepts a module or a `{module, function_name}`.
+  See the "Compile callbacks" section below.
+
   ### `@before_compile`
 
   A hook that will be invoked before the module is compiled.
@@ -128,7 +134,7 @@ defmodule Module do
   Multiple uses of `@compile` will accumulate instead of overriding
   previous ones. See the "Compile options" section below.
 
-  ### `@deprecated` (since 1.6.0)
+  ### `@deprecated` (since v1.6.0)
 
   Provides the deprecation reason for a function. For example:
 
@@ -238,8 +244,7 @@ defmodule Module do
         end
       end
 
-  For the list of supported warnings, see
-  [`:dialyzer` module](`:dialyzer`).
+  For the list of supported warnings, see [`:dialyzer` module](`:dialyzer`).
 
   Multiple uses of `@dialyzer` will accumulate instead of overriding
   previous ones.
@@ -300,17 +305,59 @@ defmodule Module do
   A hook that will be invoked when each function or macro in the current
   module is defined. Useful when annotating functions.
 
-  Accepts a module or a `{module, function_name}` tuple. See the
-  "Compile callbacks" section below.
+  Accepts a module or a `{module, function_name}` tuple. The function
+  must take 6 arguments:
+
+    * the module environment
+    * the kind of the function/macro: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
+    * the function/macro name
+    * the list of quoted arguments
+    * the list of quoted guards
+    * the quoted function body
+
+  If the function/macro being defined has multiple clauses, the hook will
+  be called for each clause.
+
+  Unlike other hooks, `@on_definition` will only invoke functions and
+  never macros. This is to avoid `@on_definition` callbacks from
+  redefining functions that have just been defined in favor of more
+  explicit approaches.
+
+  When just a module is provided, the function is assumed to be
+  `__on_definition__/6`.
+
+  #### Example
+
+      defmodule Hooks do
+        def on_def(_env, kind, name, args, guards, body) do
+          IO.puts("Defining #{kind} named #{name} with args:")
+          IO.inspect(args)
+          IO.puts("and guards")
+          IO.inspect(guards)
+          IO.puts("and body")
+          IO.puts(Macro.to_string(body))
+        end
+      end
+
+      defmodule MyModule do
+        @on_definition {Hooks, :on_def}
+
+        def hello(arg) when is_binary(arg) or is_list(arg) do
+          "Hello" <> to_string(arg)
+        end
+
+        def hello(_) do
+          :ok
+        end
+      end
 
   ### `@on_load`
 
   A hook that will be invoked whenever the module is loaded.
 
-  Accepts the function name (as an atom) of a function in the current module or
-  `{function_name, 0}` tuple where `function_name` is the name of a function in
-  the current module. The function must have an arity of 0 (no arguments). If
-  the function does not return `:ok`, the loading of the module will be aborted.
+  Accepts the function name (as an atom) of a function in the current module.
+  The function must have an arity of 0 (no arguments). If the function does
+  not return `:ok`, the loading of the module will be aborted.
   For example:
 
       defmodule MyModule do
@@ -380,8 +427,48 @@ defmodule Module do
 
   ## Compile callbacks
 
-  There are three callbacks that are invoked when functions are defined,
-  as well as before and immediately after the module bytecode is generated.
+  There are three compilation callbacks, invoked in this order:
+  `@before_compile`, `@after_compile`, and `@after_verify`.
+  They are described next.
+
+  ### `@before_compile`
+
+  A hook that will be invoked before the module is compiled. This is
+  often used to change how the current module is being compiled.
+
+  Accepts a module or a `{module, function_or_macro_name}` tuple. The
+  function/macro must take one argument: the module environment. If
+  it's a macro, its returned value will be injected at the end of the
+  module definition before the compilation starts.
+
+  When just a module is provided, the function/macro is assumed to be
+  `__before_compile__/1`.
+
+  Callbacks will run in the order they are registered. Any overridable
+  definition will be made concrete before the first callback runs.
+  A definition may be made overridable again in another before compile
+  callback and it will be made concrete one last time after all callbacks
+  run.
+
+  *Note*: the callback function/macro must be placed in a separate module
+  (because when the callback is invoked, the current module does not yet exist).
+
+  #### Example
+
+      defmodule A do
+        defmacro __before_compile__(_env) do
+          quote do
+            def hello, do: "world"
+          end
+        end
+      end
+
+      defmodule B do
+        @before_compile A
+      end
+
+      B.hello()
+      #=> "world"
 
   ### `@after_compile`
 
@@ -407,92 +494,30 @@ defmodule Module do
         end
       end
 
-  ### `@before_compile`
+  ### `@after_verify`
 
-  A hook that will be invoked before the module is compiled.
-
-  Accepts a module or a `{module, function_or_macro_name}` tuple. The
-  function/macro must take one argument: the module environment. If
-  it's a macro, its returned value will be injected at the end of the
-  module definition before the compilation starts.
-
-  When just a module is provided, the function/macro is assumed to be
-  `__before_compile__/1`.
-
-  Callbacks will run in the order they are registered. Any overridable
-  definition will be made concrete before the first callback runs.
-  A definition may be made overridable again in another before compile
-  callback and it will be made concrete one last time after all callbacks
-  run.
-
-  *Note*: unlike `@after_compile`, the callback function/macro must
-  be placed in a separate module (because when the callback is invoked,
-  the current module does not yet exist).
-
-  #### Example
-
-      defmodule A do
-        defmacro __before_compile__(_env) do
-          quote do
-            def hello, do: "world"
-          end
-        end
-      end
-
-      defmodule B do
-        @before_compile A
-      end
-
-      B.hello()
-      #=> "world"
-
-  ### `@on_definition`
-
-  A hook that will be invoked when each function or macro in the current
-  module is defined. Useful when annotating functions.
+  A hook that will be invoked right after the current module is verified for
+  undefined functions, deprecations, etc. A module is always verified after
+  it is compiled. In Mix projects, a module is also verified when any of its
+  runtime dependencies change. Therefore this is useful to perform verification
+  of the current module while avoiding compile-time dependencies.
 
   Accepts a module or a `{module, function_name}` tuple. The function
-  must take 6 arguments:
+  must take one argument: the module name. When just a module is provided,
+  the function is assumed to be `__after_verify__/2`.
 
-    * the module environment
-    * the kind of the function/macro: `:def`, `:defp`, `:defmacro`, or `:defmacrop`
-    * the function/macro name
-    * the list of quoted arguments
-    * the list of quoted guards
-    * the quoted function body
+  Callbacks will run in the order they are registered.
 
-  If the function/macro being defined has multiple clauses, the hook will
-  be called for each clause.
-
-  Unlike other hooks, `@on_definition` will only invoke functions and
-  never macros. This is to avoid `@on_definition` callbacks from
-  redefining functions that have just been defined in favor of more
-  explicit approaches.
-
-  When just a module is provided, the function is assumed to be
-  `__on_definition__/6`.
+  `Module` functions expecting not yet compiled modules are no longer available
+  at the time `@after_verify` is invoked.
 
   #### Example
 
-      defmodule Hooks do
-        def on_def(_env, kind, name, args, guards, body) do
-          IO.puts("Defining #{kind} named #{name} with args:")
-          IO.inspect(args)
-          IO.puts("and guards")
-          IO.inspect(guards)
-          IO.puts("and body")
-          IO.puts(Macro.to_string(body))
-        end
-      end
-
       defmodule MyModule do
-        @on_definition {Hooks, :on_def}
+        @after_verify __MODULE__
 
-        def hello(arg) when is_binary(arg) or is_list(arg) do
-          "Hello" <> to_string(arg)
-        end
-
-        def hello(_) do
+        def __after_verify__(module) do
+          IO.inspect(module)
           :ok
         end
       end
@@ -550,6 +575,8 @@ defmodule Module do
 
     * `:module` - the module atom name
 
+    * `:struct` - if the module defines a struct and if so each field in order
+
   """
   @callback __info__(:attributes) :: keyword()
   @callback __info__(:compile) :: [term()]
@@ -557,6 +584,7 @@ defmodule Module do
   @callback __info__(:macros) :: keyword()
   @callback __info__(:md5) :: binary()
   @callback __info__(:module) :: module()
+  @callback __info__(:struct) :: list(%{field: atom(), required: boolean()}) | nil
 
   @doc """
   Returns information about module attributes used by Elixir.
@@ -578,6 +606,9 @@ defmodule Module do
     %{
       after_compile: %{
         doc: "A hook that will be invoked right after the current module is compiled."
+      },
+      after_verify: %{
+        doc: "A hook that will be invoked right after the current module is verified."
       },
       before_compile: %{
         doc: "A hook that will be invoked before the module is compiled."
@@ -647,10 +678,6 @@ defmodule Module do
       derive: %{
         doc:
           "Derives an implementation for the given protocol for the struct defined in the current module."
-      },
-      enforce_keys: %{
-        doc:
-          "Ensures the given keys are always set when building the struct defined in the current module."
       }
     }
   end
@@ -789,8 +816,8 @@ defmodule Module do
     end
 
     next = :elixir_module.next_counter(nil)
-    line = Keyword.get(opts, :line, 0)
-    quoted = :elixir_quote.linify_with_context_counter(line, {module, next}, quoted)
+    meta = Keyword.take(opts, [:line, :generated])
+    quoted = :elixir_quote.linify_with_context_counter(meta, {module, next}, quoted)
     :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
   end
 
@@ -1150,7 +1177,7 @@ defmodule Module do
   def attributes_in(module) when is_atom(module) do
     assert_not_compiled!(__ENV__.function, module)
     {set, _} = data_tables_for(module)
-    :ets.select(set, [{{:"$1", :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}])
+    :ets.select(set, [{{:"$1", :_, :_, :_}, [{:is_atom, :"$1"}], [:"$1"]}])
   end
 
   @doc """
@@ -1167,10 +1194,10 @@ defmodule Module do
         def foo, do: 1
         def bar, do: 2
 
-        defoverridable foo: 1, bar: 1
+        defoverridable foo: 0, bar: 0
         def foo, do: 3
 
-        [:bar, :foo] = Module.overridables_in(__MODULE__) |> Enum.sort()
+        [bar: 0, foo: 0] = Module.overridables_in(__MODULE__) |> Enum.sort()
       end
 
   """
@@ -1250,14 +1277,15 @@ defmodule Module do
 
   ## Options
 
-    * `:nillify_clauses` (since v1.13.0) - returns `nil` instead
+    * `:skip_clauses` (since v1.14.0) - returns `[]` instead
       of returning the clauses. This is useful when there is
-      only an interest in fetching the kind and metadata
+      only an interest in fetching the kind and the metadata
 
   """
   @spec get_definition(module, definition, keyword) ::
           {:v1, def_kind, meta :: keyword,
-           [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}] | nil}
+           [{meta :: keyword, arguments :: [Macro.t()], guards :: [Macro.t()], Macro.t()}]}
+          | nil
   @doc since: "1.12.0"
   def get_definition(module, {name, arity}, options \\ [])
       when is_atom(module) and is_atom(name) and is_integer(arity) and is_list(options) do
@@ -1267,8 +1295,8 @@ defmodule Module do
     case :ets.lookup(set, {:def, {name, arity}}) do
       [{_key, kind, meta, _, _, _}] ->
         clauses =
-          if options[:nillify_clauses],
-            do: nil,
+          if options[:skip_clauses],
+            do: [],
             else: bag_lookup_element(bag, {:clauses, {name, arity}}, 2)
 
         {:v1, kind, meta, clauses}
@@ -1432,7 +1460,7 @@ defmodule Module do
   """
   @spec put_attribute(module, atom, term) :: :ok
   def put_attribute(module, key, value) when is_atom(module) and is_atom(key) do
-    __put_attribute__(module, key, value, nil)
+    __put_attribute__(module, key, value, nil, [])
   end
 
   @doc """
@@ -1474,7 +1502,7 @@ defmodule Module do
   """
   @spec get_attribute(module, atom, term) :: term
   def get_attribute(module, key, default \\ nil) when is_atom(module) and is_atom(key) do
-    case __get_attribute__(module, key, nil) do
+    case __get_attribute__(module, key, nil, true) do
       nil -> default
       value -> value
     end
@@ -1540,10 +1568,12 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
-      [{_, _, :accumulate}] ->
+      [{_, _, :accumulate, traces}] ->
+        trace_attribute(true, module, traces, set, key, [])
         reverse_values(:ets.take(bag, {:accumulate, key}), [])
 
-      [{_, value, _}] ->
+      [{_, value, _, traces}] ->
+        trace_attribute(module, traces)
         :ets.delete(set, key)
         value
 
@@ -1597,11 +1627,11 @@ defmodule Module do
     end
 
     if Keyword.get(options, :accumulate) do
-      :ets.insert_new(set, {attribute, [], :accumulate}) ||
+      :ets.insert_new(set, {attribute, [], :accumulate, []}) ||
         :ets.update_element(set, attribute, {3, :accumulate})
     else
       :ets.insert_new(bag, {:warn_attributes, attribute})
-      :ets.insert_new(set, {attribute, nil, :unset})
+      :ets.insert_new(set, {attribute, nil, :unset, []})
     end
 
     :ok
@@ -1732,14 +1762,14 @@ defmodule Module do
 
   defp get_doc_meta(existing_meta, set) do
     case :ets.take(set, {:doc, :meta}) do
-      [{{:doc, :meta}, metadata, _}] -> Map.merge(existing_meta, metadata)
+      [{{:doc, :meta}, metadata}] -> Map.merge(existing_meta, metadata)
       [] -> existing_meta
     end
   end
 
   defp compile_deprecated(doc_meta, set, bag, name, arity, defaults) do
     case :ets.take(set, :deprecated) do
-      [{:deprecated, reason, _}] when is_binary(reason) ->
+      [{:deprecated, reason, _, _}] when is_binary(reason) ->
         :ets.insert(bag, deprecated_reasons(defaults, name, arity, reason))
         Map.put(doc_meta, :deprecated, reason)
 
@@ -1769,7 +1799,7 @@ defmodule Module do
     %{line: line, file: file} = env
 
     case :ets.take(set, :impl) do
-      [{:impl, value, _}] ->
+      [{:impl, value, _, _}] ->
         impl = {{name, arity}, context, defaults, kind, line, file, value}
         :ets.insert(bag, {:impls, impl})
         value
@@ -1814,22 +1844,17 @@ defmodule Module do
       [] ->
         :ok
 
-      to_derive ->
-        case :ets.lookup(set, :__derived__) do
-          [{_, derived, _}] ->
-            if to_derive != :lists.reverse(derived) do
-              message =
-                "warning: module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
-
-              IO.warn(message, env)
-            end
-
-          [] ->
-            message =
+      _ ->
+        message =
+          case :ets.lookup(set, :__struct__) do
+            [] ->
               "warning: module attribute @derive was set but never used (it must come before defstruct)"
 
-            IO.warn(message, env)
-        end
+            _ ->
+              "warning: module attribute @derive was set after defstruct, all @derive calls must come before defstruct"
+          end
+
+        IO.warn(message, env)
     end
   end
 
@@ -1851,7 +1876,7 @@ defmodule Module do
           acc
 
         true ->
-          :elixir_env.trace({:require, [], behaviour, []}, env)
+          :elixir_env.trace({:require, [from_macro: true], behaviour, []}, env)
           optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
           callbacks = behaviour_info(behaviour, :callbacks)
           Enum.reduce(callbacks, acc, &add_callback(&1, behaviour, env, optional_callbacks, &2))
@@ -2090,7 +2115,7 @@ defmodule Module do
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def __get_attribute__(module, key, line) when is_atom(key) do
+  def __get_attribute__(module, key, caller_line, trace?) when is_atom(key) do
     assert_not_compiled!(
       {:get_attribute, 2},
       module,
@@ -2100,23 +2125,25 @@ defmodule Module do
     {set, bag} = data_tables_for(module)
 
     case :ets.lookup(set, key) do
-      [{_, _, :accumulate}] ->
+      [{_, _, :accumulate, traces}] ->
+        trace_attribute(trace?, module, traces, set, key, [])
         :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
 
-      [{_, val, line}] when is_integer(line) ->
-        :ets.update_element(set, key, {3, :used})
-        val
+      [{_, value, warn_line, traces}] when is_integer(warn_line) ->
+        trace_attribute(trace?, module, traces, set, key, [{3, :used}])
+        value
 
-      [{_, val, _}] ->
-        val
+      [{_, value, _, traces}] ->
+        trace_attribute(trace?, module, traces, set, key, [])
+        value
 
-      [] when is_integer(line) ->
+      [] when is_integer(caller_line) ->
         # TODO: Consider raising instead of warning on v2.0 as it usually cascades
         error_message =
           "undefined module attribute @#{key}, " <>
             "please remove access to @#{key} or explicitly set it before access"
 
-        IO.warn(error_message, attribute_stack(module, line))
+        IO.warn(error_message, attribute_stack(module, caller_line))
         nil
 
       [] ->
@@ -2124,25 +2151,90 @@ defmodule Module do
     end
   end
 
+  defp trace_attribute(module, traces) do
+    :lists.foreach(
+      fn {line, lexical_tracker, tracers, aliases} ->
+        env = %{
+          Macro.Env.__struct__()
+          | line: line,
+            lexical_tracker: lexical_tracker,
+            module: module,
+            tracers: tracers
+        }
+
+        :lists.foreach(
+          fn alias ->
+            :elixir_env.trace({:alias_reference, [line: line], alias}, env)
+          end,
+          aliases
+        )
+      end,
+      traces
+    )
+  end
+
+  defp trace_attribute(trace?, module, traces, set, key, updates) do
+    updates =
+      if trace? and traces != [] do
+        trace_attribute(module, traces)
+        updates ++ [{4, []}]
+      else
+        updates
+      end
+
+    case updates do
+      [] -> :ok
+      _ -> :ets.update_element(set, key, updates)
+    end
+
+    :ok
+  end
+
   @doc false
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
-  def __put_attribute__(module, key, value, line) when is_atom(key) do
-    assert_not_readonly!(__ENV__.function, module)
+  def __put_attribute__(module, key, value, warn_line, traces) when is_atom(key) do
+    assert_not_readonly!({:put_attribute, 3}, module)
     {set, bag} = data_tables_for(module)
-    value = preprocess_attribute(key, value)
-    put_attribute(module, key, value, line, set, bag)
+    put_attribute(module, key, value, warn_line, traces, set, bag)
     :ok
+  end
+
+  defp put_attribute(_module, :on_load, value, warn_line, traces, set, bag) do
+    value =
+      case value do
+        _ when is_atom(value) ->
+          {value, 0}
+
+        {atom, 0} = tuple when is_atom(atom) ->
+          tuple
+
+        _ ->
+          raise ArgumentError,
+                "@on_load is a built-in module attribute that annotates a function to be invoked " <>
+                  "when the module is loaded. It should be an atom or an {atom, 0} tuple, " <>
+                  "got: #{inspect(value)}"
+      end
+
+    try do
+      :ets.lookup_element(set, :on_load, 3)
+    catch
+      :error, :badarg ->
+        :ets.insert(set, {:on_load, value, warn_line, traces})
+        :ets.insert(bag, {:warn_attributes, :on_load})
+    else
+      _ -> raise ArgumentError, "the @on_load attribute can only be set once per module"
+    end
   end
 
   # If any of the doc attributes are called with a keyword list that
   # will become documentation metadata. Multiple calls will be merged
   # into the same map overriding duplicate keys.
-  defp put_attribute(module, key, {_, metadata}, line, set, _bag)
+  defp put_attribute(module, key, {_, metadata}, warn_line, _traces, set, _bag)
        when key in [:doc, :typedoc, :moduledoc] and is_list(metadata) do
-    metadata_map = preprocess_doc_meta(metadata, module, line, %{})
+    metadata_map = preprocess_doc_meta(metadata, module, warn_line, %{})
 
-    case :ets.insert_new(set, {{key, :meta}, metadata_map, line}) do
+    case :ets.insert_new(set, {{key, :meta}, metadata_map}) do
       true ->
         :ok
 
@@ -2154,46 +2246,45 @@ defmodule Module do
 
   # Optimize some attributes by avoiding writing to the attributes key
   # in the bag table since we handle them internally.
-  defp put_attribute(module, key, value, line, set, _bag)
+  defp put_attribute(module, key, value, warn_line, traces, set, _bag)
        when key in [:doc, :typedoc, :moduledoc, :impl, :deprecated] do
+    value = preprocess_attribute(key, value)
+
     try do
       :ets.lookup_element(set, key, 3)
     catch
       :error, :badarg -> :ok
     else
-      unread_line when is_integer(line) and is_integer(unread_line) ->
+      unread_line when is_integer(warn_line) and is_integer(unread_line) ->
         message = "redefining @#{key} attribute previously set at line #{unread_line}"
-        IO.warn(message, attribute_stack(module, line))
+        IO.warn(message, attribute_stack(module, warn_line))
 
       _ ->
         :ok
     end
 
-    :ets.insert(set, {key, value, line})
+    :ets.insert(set, {key, value, warn_line, traces})
   end
 
-  defp put_attribute(_module, :on_load, value, line, set, bag) do
-    try do
-      :ets.lookup_element(set, :on_load, 3)
-    catch
-      :error, :badarg ->
-        :ets.insert(set, {:on_load, value, line})
-        :ets.insert(bag, {:warn_attributes, :on_load})
-    else
-      _ -> raise ArgumentError, "the @on_load attribute can only be set once per module"
-    end
-  end
+  defp put_attribute(_module, key, value, warn_line, traces, set, bag) do
+    value = preprocess_attribute(key, value)
 
-  defp put_attribute(_module, key, value, line, set, bag) do
     try do
       :ets.lookup_element(set, key, 3)
     catch
       :error, :badarg ->
-        :ets.insert(set, {key, value, line})
+        :ets.insert(set, {key, value, warn_line, traces})
         :ets.insert(bag, {:warn_attributes, key})
     else
-      :accumulate -> :ets.insert(bag, {{:accumulate, key}, value})
-      _ -> :ets.insert(set, {key, value, line})
+      :accumulate ->
+        if traces != [] do
+          :ets.update_element(set, key, {4, traces ++ :ets.lookup_element(set, key, 4)})
+        end
+
+        :ets.insert(bag, {{:accumulate, key}, value})
+
+      _ ->
+        :ets.insert(set, {key, value, warn_line, traces})
     end
   end
 
@@ -2207,9 +2298,6 @@ defmodule Module do
   defp preprocess_attribute(key, value) when key in [:moduledoc, :typedoc, :doc] do
     case value do
       {line, doc} when is_integer(line) and (is_binary(doc) or doc == false or is_nil(doc)) ->
-        value
-
-      {line, [{key, _} | _]} when is_integer(line) and is_atom(key) ->
         value
 
       {line, doc} when is_integer(line) ->
@@ -2234,22 +2322,6 @@ defmodule Module do
     end
   end
 
-  defp preprocess_attribute(:on_load, value) do
-    case value do
-      _ when is_atom(value) ->
-        {value, 0}
-
-      {atom, 0} = tuple when is_atom(atom) ->
-        tuple
-
-      _ ->
-        raise ArgumentError,
-              "@on_load is a built-in module attribute that annotates a function to be invoked " <>
-                "when the module is loaded. It should be an atom or a {atom, 0} tuple, " <>
-                "got: #{inspect(value)}"
-    end
-  end
-
   defp preprocess_attribute(:impl, value) do
     if is_boolean(value) or (is_atom(value) and value != nil) do
       value
@@ -2266,6 +2338,9 @@ defmodule Module do
 
   defp preprocess_attribute(:after_compile, atom) when is_atom(atom),
     do: {atom, :__after_compile__}
+
+  defp preprocess_attribute(:after_verify, atom) when is_atom(atom),
+    do: {atom, :__after_verify__}
 
   defp preprocess_attribute(:on_definition, atom) when is_atom(atom),
     do: {atom, :__on_definition__}
@@ -2387,7 +2462,7 @@ defmodule Module do
 
   defp get_doc_info(table, env) do
     case :ets.take(table, :doc) do
-      [{:doc, {_, _} = pair, _}] ->
+      [{:doc, {_, _} = pair, _, _}] ->
         pair
 
       [] ->

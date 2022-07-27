@@ -12,6 +12,8 @@ env:
 
 jobs:
   create_draft_release:
+    permissions:
+      contents: none
     runs-on: ubuntu-18.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -39,7 +41,7 @@ jobs:
             build_docs: build_docs
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 50
       - uses: erlef/setup-beam@v1
@@ -65,7 +67,7 @@ jobs:
         run: |
           EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
           echo "EX_DOC_LATEST_STABLE_VERSION=${EX_DOC_LATEST_STABLE_VERSION}" >> $GITHUB_ENV
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         if: ${{ matrix.build_docs }}
         with:
           repository: elixir-lang/ex_doc

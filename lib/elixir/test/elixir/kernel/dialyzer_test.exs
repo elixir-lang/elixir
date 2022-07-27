@@ -152,6 +152,11 @@ defmodule Kernel.DialyzerTest do
     assert_dialyze_no_warnings!(context)
   end
 
+  test "no warning on ExUnit assertions", context do
+    copy_beam!(context, Dialyzer.Assertions)
+    assert_dialyze_no_warnings!(context)
+  end
+
   defp copy_beam!(context, module) do
     name = "#{module}.beam"
     File.cp!(Path.join(context.base_dir, name), Path.join(context.outdir, name))

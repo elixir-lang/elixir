@@ -42,12 +42,19 @@ defmodule Code.Fragment do
     * `{:alias, charlist}` - the context is an alias, potentially
       a nested one, such as `Hello.Wor` or `HelloWor`
 
+    * `{:alias, inside_alias, charlist}` - the context is an alias, potentially
+      a nested one, where `inside_alias` is an expression `{:module_attribute, charlist}`
+      or {:local_or_var, charlist}` and `charlist` is a static part
+      Examples are `__MODULE__.Submodule` or `@hello.Submodule`
+
     * `{:dot, inside_dot, charlist}` - the context is a dot
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
       `{:module_attribute, charlist}`, `{:unquoted_atom, charlist}` or a `dot`
       itself. If a var is given, this may either be a remote call or a map
       field access. Examples are `Hello.wor`, `:hello.wor`, `hello.wor`,
-      `Hello.nested.wor`, `hello.nested.wor`, and `@hello.world`
+      `Hello.nested.wor`, `hello.nested.wor`, and `@hello.world`. If `charlist`
+      is empty and `inside_dot` is an alias, then the autocompletion may either
+      be an alias or a remote call.
 
     * `{:dot_arity, inside_dot, charlist}` - the context is a dot arity
       where `inside_dot` is either a `{:var, charlist}`, `{:alias, charlist}`,
@@ -95,7 +102,10 @@ defmodule Code.Fragment do
       of a sigil, such as `~` or `~s`, or an operator starting with `~`, such as
       `~>` and `~>>`
 
-    * `{:struct, charlist}` - the context is a struct, such as `%`, `%UR` or `%URI`
+    * `{:struct, inside_struct}` - the context is a struct, such as `%`, `%UR` or `%URI`.
+      `inside_struct` can either be a `charlist` in case of a static alias or an
+      expression `{:alias, inside_alias, charlist}`, `{:module_attribute, charlist}`,
+      `{:local_or_var, charlist}`, `{:dot, inside_dot, charlist}`
 
     * `{:unquoted_atom, charlist}` - the context is an unquoted atom. This
       can be any atom or an atom representing a module
@@ -109,6 +119,7 @@ defmodule Code.Fragment do
   @doc since: "1.13.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
           {:alias, charlist}
+          | {:alias, inside_alias, charlist}
           | {:dot, inside_dot, charlist}
           | {:dot_arity, inside_dot, charlist}
           | {:dot_call, inside_dot, charlist}
@@ -122,42 +133,30 @@ defmodule Code.Fragment do
           | {:operator_call, charlist}
           | :none
           | {:sigil, charlist}
-          | {:struct, charlist}
+          | {:struct, inside_struct}
           | {:unquoted_atom, charlist}
         when inside_dot:
                {:alias, charlist}
+               | {:alias, inside_alias, charlist}
                | {:dot, inside_dot, charlist}
                | {:module_attribute, charlist}
                | {:unquoted_atom, charlist}
-               | {:var, charlist}
+               | {:var, charlist},
+             inside_alias:
+               {:local_or_var, charlist}
+               | {:module_attribute, charlist},
+             inside_struct:
+               charlist
+               | {:alias, inside_alias, charlist}
+               | {:local_or_var, charlist}
+               | {:module_attribute, charlist}
+               | {:dot, inside_dot, charlist}
   def cursor_context(fragment, opts \\ [])
 
-  def cursor_context(binary, opts) when is_binary(binary) and is_list(opts) do
-    binary =
-      case :binary.matches(binary, "\n") do
-        [] ->
-          binary
-
-        matches ->
-          {position, _} = List.last(matches)
-          binary_part(binary, position + 1, byte_size(binary) - position - 1)
-      end
-
-    binary
-    |> String.to_charlist()
-    |> :lists.reverse()
-    |> codepoint_cursor_context(opts)
-    |> elem(0)
-  end
-
-  def cursor_context(charlist, opts) when is_list(charlist) and is_list(opts) do
-    charlist =
-      case charlist |> Enum.chunk_by(&(&1 == ?\n)) |> List.last([]) do
-        [?\n | _] -> []
-        rest -> rest
-      end
-
-    charlist
+  def cursor_context(fragment, opts)
+      when (is_binary(fragment) or is_list(fragment)) and is_list(opts) do
+    fragment
+    |> last_line()
     |> :lists.reverse()
     |> codepoint_cursor_context(opts)
     |> elem(0)
@@ -178,6 +177,7 @@ defmodule Code.Fragment do
                     @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
 
   @textual_operators ~w(when not and or in)c
+  @keywords ~w(do end after else catch rescue fn true false nil)c
 
   defp codepoint_cursor_context(reverse, _opts) do
     {stripped, spaces} = strip_spaces(reverse, 0)
@@ -249,6 +249,9 @@ defmodule Code.Fragment do
       :operator ->
         operator(reverse, count, [], call_op?)
 
+      {:struct, {:module_attribute, acc}, count} ->
+        {{:struct, {:module_attribute, acc}}, count + 1}
+
       {:module_attribute, acc, count} ->
         {{:module_attribute, acc}, count}
 
@@ -272,6 +275,12 @@ defmodule Code.Fragment do
 
       {:identifier, _, acc, count} when call_op? and acc in @textual_operators ->
         {{:operator, acc}, count}
+
+      {:identifier, [?%], acc, count} ->
+        case identifier_to_cursor_context(acc |> Enum.reverse(), count, true) do
+          {{:local_or_var, _} = idenifier, _} -> {{:struct, idenifier}, count + 1}
+          _ -> {:none, 0}
+        end
 
       {:identifier, rest, acc, count} ->
         case strip_spaces(rest, count) do
@@ -299,6 +308,7 @@ defmodule Code.Fragment do
 
   defp rest_identifier(rest, count, [?@ | acc]) do
     case tokenize_identifier(rest, count, acc) do
+      {:identifier, [?% | _rest], acc, count} -> {:struct, {:module_attribute, acc}, count}
       {:identifier, _rest, acc, count} -> {:module_attribute, acc, count}
       :none when acc == [] -> {:module_attribute, '', count}
       _ -> :none
@@ -337,7 +347,7 @@ defmodule Code.Fragment do
         :none
 
       {kind, _, [], _, _, extra} ->
-        if ?@ in extra do
+        if :at in extra do
           :none
         else
           {kind, rest, acc, count}
@@ -352,9 +362,29 @@ defmodule Code.Fragment do
     {rest, count} = strip_spaces(rest, count)
 
     case identifier_to_cursor_context(rest, count, true) do
-      {{:struct, prev}, count} -> {{:struct, prev ++ '.' ++ acc}, count}
-      {{:alias, prev}, count} -> {{:alias, prev ++ '.' ++ acc}, count}
-      _ -> {:none, 0}
+      {{:struct, prev}, count} when is_list(prev) ->
+        {{:struct, prev ++ '.' ++ acc}, count}
+
+      {{:struct, {:alias, parent, prev}}, count} ->
+        {{:struct, {:alias, parent, prev ++ '.' ++ acc}}, count}
+
+      {{:struct, prev}, count} ->
+        {{:struct, {:alias, prev, acc}}, count}
+
+      {{:alias, prev}, count} ->
+        {{:alias, prev ++ '.' ++ acc}, count}
+
+      {{:alias, parent, prev}, count} ->
+        {{:alias, parent, prev ++ '.' ++ acc}, count}
+
+      {{:local_or_var, prev}, count} ->
+        {{:alias, {:local_or_var, prev}, acc}, count}
+
+      {{:module_attribute, prev}, count} ->
+        {{:alias, {:module_attribute, prev}, acc}, count}
+
+      _ ->
+        {:none, 0}
     end
   end
 
@@ -362,13 +392,32 @@ defmodule Code.Fragment do
     {rest, count} = strip_spaces(rest, count)
 
     case identifier_to_cursor_context(rest, count, true) do
-      {{:local_or_var, var}, count} -> {{:dot, {:var, var}, acc}, count}
-      {{:unquoted_atom, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {{:alias, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {{:dot, _, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {{:module_attribute, _} = prev, count} -> {{:dot, prev, acc}, count}
-      {{:struct, acc}, count} -> {{:struct, acc ++ '.'}, count}
-      {_, _} -> {:none, 0}
+      {{:local_or_var, var}, count} ->
+        {{:dot, {:var, var}, acc}, count}
+
+      {{:unquoted_atom, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {{:alias, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {{:alias, _, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {{:struct, inner}, count} when is_list(inner) ->
+        {{:struct, {:dot, {:alias, inner}, acc}}, count}
+
+      {{:struct, inner}, count} ->
+        {{:struct, {:dot, inner, acc}}, count}
+
+      {{:dot, _, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {{:module_attribute, _} = prev, count} ->
+        {{:dot, prev, acc}, count}
+
+      {_, _} ->
+        {:none, 0}
     end
   end
 
@@ -480,40 +529,60 @@ defmodule Code.Fragment do
 
     * This function never returns empty sigils `{:sigil, ''}` or empty structs
       `{:struct, ''}` as context
+
+    * This function returns keywords as `{:keyword, 'do'}`
+
+    * This function never returns `:expr`
+
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
           %{begin: position, end: position, context: context} | :none
         when context:
                {:alias, charlist}
+               | {:alias, inside_alias, charlist}
                | {:dot, inside_dot, charlist}
                | {:local_or_var, charlist}
                | {:local_arity, charlist}
                | {:local_call, charlist}
                | {:module_attribute, charlist}
                | {:operator, charlist}
-               | {:unquoted_atom, charlist},
+               | {:sigil, charlist}
+               | {:struct, inside_struct}
+               | {:unquoted_atom, charlist}
+               | {:keyword, charlist},
              inside_dot:
                {:alias, charlist}
+               | {:alias, inside_alias, charlist}
                | {:dot, inside_dot, charlist}
                | {:module_attribute, charlist}
                | {:unquoted_atom, charlist}
-               | {:var, charlist}
+               | {:var, charlist},
+             inside_alias:
+               {:local_or_var, charlist}
+               | {:module_attribute, charlist},
+             inside_struct:
+               charlist
+               | {:alias, inside_alias, charlist}
+               | {:local_or_var, charlist}
+               | {:module_attribute, charlist}
+               | {:dot, inside_dot, charlist}
   def surround_context(fragment, position, options \\ [])
 
-  def surround_context(binary, {line, column}, opts) when is_binary(binary) do
-    binary
-    |> String.split("\n")
-    |> Enum.at(line - 1, '')
-    |> String.to_charlist()
-    |> position_surround_context(line, column, opts)
-  end
+  def surround_context(string, {line, column}, opts)
+      when (is_binary(string) or is_list(string)) and is_list(opts) do
+    {charlist, lines_before_lengths, lines_current_and_after_lengths} =
+      surround_line(string, line, column)
 
-  def surround_context(charlist, {line, column}, opts) when is_list(charlist) do
+    prepended_columns = Enum.sum(lines_before_lengths)
+
     charlist
-    |> :string.split('\n', :all)
-    |> Enum.at(line - 1, '')
-    |> position_surround_context(line, column, opts)
+    |> position_surround_context(line, column + prepended_columns, opts)
+    |> to_multiline_range(
+      prepended_columns,
+      lines_before_lengths,
+      lines_current_and_after_lengths
+    )
   end
 
   def surround_context(other, {_, _} = position, opts) do
@@ -540,6 +609,9 @@ defmodule Code.Fragment do
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
+          {{:alias, parent, acc}, offset} ->
+            build_surround({:alias, parent, acc}, reversed, line, offset)
+
           {{:dot, _, [_ | _]} = dot, offset} ->
             build_surround(dot, reversed, line, offset)
 
@@ -552,7 +624,10 @@ defmodule Code.Fragment do
           {{:local_or_var, acc}, offset} when acc in @textual_operators ->
             build_surround({:operator, acc}, reversed, line, offset)
 
-          {{:local_or_var, acc}, offset} when acc not in ~w(do end after else catch rescue)c ->
+          {{:local_or_var, acc}, offset} when acc in @keywords ->
+            build_surround({:keyword, acc}, reversed, line, offset)
+
+          {{:local_or_var, acc}, offset} ->
             build_surround({:local_or_var, acc}, reversed, line, offset)
 
           {{:module_attribute, ''}, offset} ->
@@ -711,9 +786,155 @@ defmodule Code.Fragment do
   defp enum_reverse_at([h | t], n, acc) when n > 0, do: enum_reverse_at(t, n - 1, [h | acc])
   defp enum_reverse_at(rest, _, acc), do: {acc, rest}
 
+  defp last_line(binary) when is_binary(binary) do
+    [last_line | lines_reverse] =
+      binary
+      |> String.split(["\r\n", "\n"])
+      |> Enum.reverse()
+
+    prepend_cursor_lines(lines_reverse, String.to_charlist(last_line))
+  end
+
+  defp last_line(charlist) when is_list(charlist) do
+    [last_line | lines_reverse] =
+      charlist
+      |> :string.replace('\r\n', '\n', :all)
+      |> :string.join('')
+      |> :string.split('\n', :all)
+      |> Enum.reverse()
+
+    prepend_cursor_lines(lines_reverse, last_line)
+  end
+
+  defp prepend_cursor_lines(lines, last_line) do
+    with [line | lines] <- lines,
+         {trimmed_line, incomplete?} = ends_as_incomplete(to_charlist(line), [], true),
+         true <- incomplete? or starts_with_dot?(last_line) do
+      prepend_cursor_lines(lines, Enum.reverse(trimmed_line, last_line))
+    else
+      _ -> last_line
+    end
+  end
+
+  defp starts_with_dot?([?. | _]), do: true
+  defp starts_with_dot?([h | t]) when h in @space, do: starts_with_dot?(t)
+  defp starts_with_dot?(_), do: false
+
+  defp ends_as_incomplete([?# | _], acc, incomplete?),
+    do: {acc, incomplete?}
+
+  defp ends_as_incomplete([h | t], acc, _incomplete?) when h in [?(, ?.],
+    do: ends_as_incomplete(t, [h | acc], true)
+
+  defp ends_as_incomplete([h | t], acc, incomplete?) when h in @space,
+    do: ends_as_incomplete(t, [h | acc], incomplete?)
+
+  defp ends_as_incomplete([h | t], acc, _incomplete?),
+    do: ends_as_incomplete(t, [h | acc], false)
+
+  defp ends_as_incomplete([], acc, incomplete?),
+    do: {acc, incomplete?}
+
+  defp surround_line(binary, line, column) when is_binary(binary) do
+    binary
+    |> String.split(["\r\n", "\n"])
+    |> Enum.map(&String.to_charlist/1)
+    |> surround_lines(line, column)
+  end
+
+  defp surround_line(charlist, line, column) when is_list(charlist) do
+    charlist
+    |> :string.replace('\r\n', '\n', :all)
+    |> :string.join('')
+    |> :string.split('\n', :all)
+    |> surround_lines(line, column)
+  end
+
+  defp surround_lines(lines, line, column) do
+    {lines_before_reverse, cursor_line, lines_after} = split_at(lines, line, [])
+    {trimmed_cursor_line, incomplete?} = ends_as_incomplete(to_charlist(cursor_line), [], true)
+
+    reversed_cursor_line =
+      if column - 1 > length(trimmed_cursor_line) do
+        # Don't strip comments if cursor is inside a comment
+        Enum.reverse(cursor_line)
+      else
+        trimmed_cursor_line
+      end
+
+    {cursor_line, after_lengths} =
+      append_surround_lines(lines_after, [], [reversed_cursor_line], incomplete?)
+
+    {cursor_line, before_lengths} = prepend_surround_lines(lines_before_reverse, [], cursor_line)
+    {cursor_line, before_lengths, [length(reversed_cursor_line) | after_lengths]}
+  end
+
+  defp split_at([line], _, acc), do: {acc, line, []}
+  defp split_at([line | lines], 1, acc), do: {acc, line, lines}
+  defp split_at([line | lines], count, acc), do: split_at(lines, count - 1, [line | acc])
+
+  defp prepend_surround_lines(lines, lengths, last_line) do
+    with [line | lines] <- lines,
+         {trimmed_line, incomplete?} = ends_as_incomplete(to_charlist(line), [], true),
+         true <- incomplete? or starts_with_dot?(last_line) do
+      lengths = [length(trimmed_line) | lengths]
+      prepend_surround_lines(lines, lengths, Enum.reverse(trimmed_line, last_line))
+    else
+      _ -> {last_line, Enum.reverse(lengths)}
+    end
+  end
+
+  defp append_surround_lines(lines, lengths, acc_lines, incomplete?) do
+    with [line | lines] <- lines,
+         line = to_charlist(line),
+         true <- incomplete? or starts_with_dot?(line) do
+      {trimmed_line, incomplete?} = ends_as_incomplete(line, [], true)
+      lengths = [length(trimmed_line) | lengths]
+      append_surround_lines(lines, lengths, [trimmed_line | acc_lines], incomplete?)
+    else
+      _ -> {Enum.reduce(acc_lines, [], &Enum.reverse/2), Enum.reverse(lengths)}
+    end
+  end
+
+  defp to_multiline_range(:none, _, _, _), do: :none
+
+  defp to_multiline_range(
+         %{begin: {begin_line, begin_column}, end: {end_line, end_column}} = context,
+         prepended,
+         lines_before_lengths,
+         lines_current_and_after_lengths
+       ) do
+    {begin_line, begin_column} =
+      Enum.reduce_while(lines_before_lengths, {begin_line, begin_column - prepended}, fn
+        line_length, {acc_line, acc_column} ->
+          if acc_column < 1 do
+            {:cont, {acc_line - 1, acc_column + line_length}}
+          else
+            {:halt, {acc_line, acc_column}}
+          end
+      end)
+
+    {end_line, end_column} =
+      Enum.reduce_while(lines_current_and_after_lengths, {end_line, end_column - prepended}, fn
+        line_length, {acc_line, acc_column} ->
+          if acc_column > line_length + 1 do
+            {:cont, {acc_line + 1, acc_column - line_length}}
+          else
+            {:halt, {acc_line, acc_column}}
+          end
+      end)
+
+    %{context | begin: {begin_line, begin_column}, end: {end_line, end_column}}
+  end
+
   @doc """
-  Receives a code fragment and returns a quoted expression
+  Receives a string and returns a quoted expression
   with a cursor at the nearest argument position.
+
+  This function receives a string with an Elixir code fragment,
+  representing a cursor position, and converts such string to
+  AST with the inclusion of special `__cursor__()` node based
+  on the position of the cursor with a container.
 
   A container is any Elixir expression starting with `(`,
   `{`, and `[`. This includes function calls, tuples, lists,
@@ -756,7 +977,7 @@ defmodule Code.Fragment do
       max(some_value, 1 + another_val
       max(some_value, 1 |> some_fun() |> another_fun
 
-  On the other hand, tuples, lists, maps, etc all retain the
+  On the other hand, tuples, lists, maps, and binaries all retain the
   cursor position:
 
       max(some_value, [1, 2,
@@ -780,8 +1001,20 @@ defmodule Code.Fragment do
 
   ## Examples
 
+  Function call:
+
       iex> Code.Fragment.container_cursor_to_quoted("max(some_value, ")
       {:ok, {:max, [line: 1], [{:some_value, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
+
+  Containers (for example, a list):
+
+      iex> Code.Fragment.container_cursor_to_quoted("[some, value")
+      {:ok, [{:some, [line: 1], nil}, {:__cursor__, [line: 1], []}]}
+
+  For binaries, the `::` is exclusively kept as an operator:
+
+      iex> Code.Fragment.container_cursor_to_quoted("<<some::integer")
+      {:ok, {:<<>>, [line: 1], [{:"::", [line: 1], [{:some, [line: 1], nil}, {:__cursor__, [line: 1], []}]}]}}
 
   ## Options
 
@@ -802,25 +1035,17 @@ defmodule Code.Fragment do
       tokens, for closing tokens, end of expressions, as well as delimiters
       for sigils. See `t:Macro.metadata/0`. Defaults to `false`.
 
+    * `:literal_encoder` - a function to encode literals in the AST.
+      See the documentation for `Code.string_to_quoted/2` for more information.
+
   """
   @doc since: "1.13.0"
   @spec container_cursor_to_quoted(List.Chars.t(), keyword()) ::
           {:ok, Macro.t()} | {:error, {location :: keyword, binary | {binary, binary}, binary}}
   def container_cursor_to_quoted(fragment, opts \\ []) do
-    file = Keyword.get(opts, :file, "nofile")
-    line = Keyword.get(opts, :line, 1)
-    column = Keyword.get(opts, :column, 1)
-    columns = Keyword.get(opts, :columns, false)
-    token_metadata = Keyword.get(opts, :token_metadata, false)
+    opts =
+      Keyword.take(opts, [:file, :line, :column, :columns, :token_metadata, :literal_encoder])
 
-    Code.string_to_quoted(fragment,
-      file: file,
-      line: line,
-      column: column,
-      columns: columns,
-      token_metadata: token_metadata,
-      cursor_completion: true,
-      emit_warnings: false
-    )
+    Code.string_to_quoted(fragment, [cursor_completion: true, emit_warnings: false] ++ opts)
   end
 end

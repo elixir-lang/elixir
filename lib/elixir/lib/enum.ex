@@ -169,7 +169,7 @@ defprotocol Enumerable do
   Retrieves the number of elements in the `enumerable`.
 
   It should return `{:ok, count}` if you can count the number of elements
-  in `enumerable` without traversing it.
+  in `enumerable` in a faster way than fully traversing it.
 
   Otherwise it should return `{:error, __MODULE__}` and a default algorithm
   built on top of `reduce/3` that runs in linear time will be used.
@@ -234,7 +234,7 @@ defmodule Enum do
   import Kernel, except: [max: 2, min: 2]
 
   @moduledoc """
-  Provides a set of algorithms to work with enumerables.
+  Functions for working with collections (known as enumerables).
 
   In Elixir, an enumerable is any data type that implements the
   `Enumerable` protocol. `List`s (`[1, 2, 3]`), `Map`s (`%{foo: 1, bar: 2}`)
@@ -528,6 +528,9 @@ defmodule Enum do
 
       iex> Enum.chunk_every([1, 2, 3, 4, 5], 2, 3, [])
       [[1, 2], [4, 5]]
+
+      iex> Enum.chunk_every([1, 2, 3, 4], 3, 3, Stream.cycle([0]))
+      [[1, 2, 3], [4, 0, 0]]
 
   """
   @doc since: "1.5.0"
@@ -1601,6 +1604,9 @@ defmodule Enum do
 
       iex> Enum.join([1, 2, 3], " = ")
       "1 = 2 = 3"
+
+      iex> Enum.join([["a", "b"], ["c", "d", "e", ["f", "g"]], "h", "i"], " ")
+      "ab cdefg h i"
 
   """
   @spec join(t, String.t()) :: String.t()
@@ -2906,11 +2912,7 @@ defmodule Enum do
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, first..last//step = index_range) do
     # TODO: Deprecate negative steps on Elixir v1.16
-    # TODO: There are two features we can add to slicing ranges:
-    # 1. We can allow the step to be any positive number
-    # 2. We can allow slice and reverse at the same time. However, we can't
-    #    implement so right now. First we will have to raise if a decreasing
-    #    range is given on Elixir v2.0.
+    # TODO: Support negative steps as a reverse on Elixir v2.0.
     cond do
       step > 0 ->
         slice_range(enumerable, first, last, step)
@@ -4740,8 +4742,7 @@ defmodule Enum do
 end
 
 defimpl Enumerable, for: List do
-  def count([]), do: {:ok, 0}
-  def count(_list), do: {:error, __MODULE__}
+  def count(list), do: {:ok, length(list)}
 
   def member?([], _value), do: {:ok, false}
   def member?(_list, _value), do: {:error, __MODULE__}

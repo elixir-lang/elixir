@@ -20,6 +20,10 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context('\n') == :expr
       assert CF.cursor_context("\n\n") == :expr
       assert CF.cursor_context('\n\n') == :expr
+      assert CF.cursor_context("\r\n") == :expr
+      assert CF.cursor_context('\r\n') == :expr
+      assert CF.cursor_context("\r\n\r\n") == :expr
+      assert CF.cursor_context('\r\n\r\n') == :expr
     end
 
     test "local_or_var" do
@@ -35,6 +39,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("hello? world") == {:local_or_var, 'world'}
       assert CF.cursor_context("hello! world") == {:local_or_var, 'world'}
       assert CF.cursor_context("hello: world") == {:local_or_var, 'world'}
+      assert CF.cursor_context("__MODULE__") == {:local_or_var, '__MODULE__'}
     end
 
     test "dot" do
@@ -53,8 +58,50 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context(":hell@@o.wor") == {:dot, {:unquoted_atom, 'hell@@o'}, 'wor'}
       assert CF.cursor_context("@hello.wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
 
+      assert CF.cursor_context("@hello. wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context("@hello .wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context("@hello . wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+
+      assert CF.cursor_context("@hello.\nwor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context("@hello. \nwor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context("@hello.\n wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context("@hello.\r\nwor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context("@hello\n.wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context("@hello \n.wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context("@hello\n .wor") == {:dot, {:module_attribute, 'hello'}, 'wor'}
+
+      assert CF.cursor_context("@hello. # some comment\nwor") ==
+               {:dot, {:module_attribute, 'hello'}, 'wor'}
+
+      assert CF.cursor_context("@hello. # some comment\n\nwor") ==
+               {:dot, {:module_attribute, 'hello'}, 'wor'}
+
+      assert CF.cursor_context("@hello. # some comment\nsub\n.wor") ==
+               {:dot, {:dot, {:module_attribute, 'hello'}, 'sub'}, 'wor'}
+
+      assert CF.cursor_context('@hello.\nwor') == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context('@hello.\r\nwor') == {:dot, {:module_attribute, 'hello'}, 'wor'}
+      assert CF.cursor_context('@hello\n.wor') == {:dot, {:module_attribute, 'hello'}, 'wor'}
+
+      assert CF.cursor_context('@hello. # some comment\nwor') ==
+               {:dot, {:module_attribute, 'hello'}, 'wor'}
+
+      assert CF.cursor_context('@hello. # some comment\n\nwor') ==
+               {:dot, {:module_attribute, 'hello'}, 'wor'}
+
+      assert CF.cursor_context('@hello. # some comment\nsub\n.wor') ==
+               {:dot, {:dot, {:module_attribute, 'hello'}, 'sub'}, 'wor'}
+
       assert CF.cursor_context("nested.map.wor") ==
                {:dot, {:dot, {:var, 'nested'}, 'map'}, 'wor'}
+
+      assert CF.cursor_context("__MODULE__.") == {:dot, {:var, '__MODULE__'}, ''}
+
+      assert CF.cursor_context("__MODULE__.Sub.") ==
+               {:dot, {:alias, {:local_or_var, '__MODULE__'}, 'Sub'}, ''}
+
+      assert CF.cursor_context("@hello.Sub.wor") ==
+               {:dot, {:alias, {:module_attribute, 'hello'}, 'Sub'}, 'wor'}
     end
 
     test "local_arity" do
@@ -67,6 +114,8 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("hello(") == {:local_call, 'hello'}
       assert CF.cursor_context("hello(\s") == {:local_call, 'hello'}
       assert CF.cursor_context("hello(\t") == {:local_call, 'hello'}
+      assert CF.cursor_context("hello(\n") == {:local_call, 'hello'}
+      assert CF.cursor_context("hello(\r\n") == {:local_call, 'hello'}
     end
 
     test "dot_arity" do
@@ -101,6 +150,8 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("foo.hello(") == {:dot_call, {:var, 'foo'}, 'hello'}
       assert CF.cursor_context("foo.hello(\s") == {:dot_call, {:var, 'foo'}, 'hello'}
       assert CF.cursor_context("foo.hello(\t") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert CF.cursor_context("foo.hello(\n") == {:dot_call, {:var, 'foo'}, 'hello'}
+      assert CF.cursor_context("foo.hello(\r\n") == {:dot_call, {:var, 'foo'}, 'hello'}
 
       assert CF.cursor_context("@f.hello\s") == {:dot_call, {:module_attribute, 'f'}, 'hello'}
       assert CF.cursor_context("@f.hello\t") == {:dot_call, {:module_attribute, 'f'}, 'hello'}
@@ -116,14 +167,26 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("Foo . + (") == {:dot_call, {:alias, 'Foo'}, '+'}
       assert CF.cursor_context("Foo . + (\s") == {:dot_call, {:alias, 'Foo'}, '+'}
       assert CF.cursor_context("Foo . + (\t") == {:dot_call, {:alias, 'Foo'}, '+'}
+
+      assert CF.cursor_context("__MODULE__.Foo.hello(") ==
+               {:dot_call, {:alias, {:local_or_var, '__MODULE__'}, 'Foo'}, 'hello'}
+
+      assert CF.cursor_context("@foo.Foo.hello(") ==
+               {:dot_call, {:alias, {:module_attribute, 'foo'}, 'Foo'}, 'hello'}
     end
 
     test "alias" do
       assert CF.cursor_context("HelloWor") == {:alias, 'HelloWor'}
       assert CF.cursor_context("Hello.Wor") == {:alias, 'Hello.Wor'}
+      assert CF.cursor_context("Hello.\nWor") == {:alias, 'Hello.Wor'}
+      assert CF.cursor_context("Hello.\r\nWor") == {:alias, 'Hello.Wor'}
       assert CF.cursor_context("Hello . Wor") == {:alias, 'Hello.Wor'}
       assert CF.cursor_context("Hello::Wor") == {:alias, 'Wor'}
       assert CF.cursor_context("Hello..Wor") == {:alias, 'Wor'}
+
+      assert CF.cursor_context("__MODULE__.Wor") == {:alias, {:local_or_var, '__MODULE__'}, 'Wor'}
+
+      assert CF.cursor_context("@foo.Wor") == {:alias, {:module_attribute, 'foo'}, 'Wor'}
     end
 
     test "structs" do
@@ -132,9 +195,32 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("::%") == {:struct, ''}
 
       assert CF.cursor_context("%HelloWor") == {:struct, 'HelloWor'}
-      assert CF.cursor_context("%Hello.") == {:struct, 'Hello.'}
+
+      assert CF.cursor_context("%Hello.") == {:struct, {:dot, {:alias, 'Hello'}, ''}}
+      assert CF.cursor_context("%Hello.nam") == {:struct, {:dot, {:alias, 'Hello'}, 'nam'}}
       assert CF.cursor_context("%Hello.Wor") == {:struct, 'Hello.Wor'}
       assert CF.cursor_context("% Hello . Wor") == {:struct, 'Hello.Wor'}
+
+      assert CF.cursor_context("%__MODULE_") == {:struct, {:local_or_var, '__MODULE_'}}
+      assert CF.cursor_context("%__MODULE__") == {:struct, {:local_or_var, '__MODULE__'}}
+
+      assert CF.cursor_context("%__MODULE__.") ==
+               {:struct, {:dot, {:local_or_var, '__MODULE__'}, ''}}
+
+      assert CF.cursor_context("%__MODULE__.Sub.") ==
+               {:struct, {:dot, {:alias, {:local_or_var, '__MODULE__'}, 'Sub'}, ''}}
+
+      assert CF.cursor_context("%__MODULE__.Wor") ==
+               {:struct, {:alias, {:local_or_var, '__MODULE__'}, 'Wor'}}
+
+      assert CF.cursor_context("%@foo") ==
+               {:struct, {:module_attribute, 'foo'}}
+
+      assert CF.cursor_context("%@foo.") ==
+               {:struct, {:dot, {:module_attribute, 'foo'}, ''}}
+
+      assert CF.cursor_context("%@foo.Wor") ==
+               {:struct, {:alias, {:module_attribute, 'foo'}, 'Wor'}}
     end
 
     test "unquoted atom" do
@@ -257,7 +343,7 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("@Hello") == :none
       assert CF.cursor_context("Hello(") == :none
       assert CF.cursor_context("Hello ") == :none
-      assert CF.cursor_context("hello.World") == :none
+      assert CF.cursor_context("hello.World") == {:alias, {:local_or_var, 'hello'}, 'World'}
 
       # Identifier
       assert CF.cursor_context("foo@bar") == :none
@@ -267,6 +353,8 @@ defmodule CodeFragmentTest do
     test "newlines" do
       assert CF.cursor_context("this+does-not*matter\nHello.") == {:dot, {:alias, 'Hello'}, ''}
       assert CF.cursor_context('this+does-not*matter\nHello.') == {:dot, {:alias, 'Hello'}, ''}
+      assert CF.cursor_context("this+does-not*matter\r\nHello.") == {:dot, {:alias, 'Hello'}, ''}
+      assert CF.cursor_context('this+does-not*matter\r\nHello.') == {:dot, {:alias, 'Hello'}, ''}
     end
   end
 
@@ -274,6 +362,18 @@ defmodule CodeFragmentTest do
     test "newlines" do
       for i <- 1..8 do
         assert CF.surround_context("\n\nhello_wo\n", {3, i}) == %{
+                 context: {:local_or_var, 'hello_wo'},
+                 begin: {3, 1},
+                 end: {3, 9}
+               }
+
+        assert CF.surround_context("\r\n\r\nhello_wo\r\n", {3, i}) == %{
+                 context: {:local_or_var, 'hello_wo'},
+                 begin: {3, 1},
+                 end: {3, 9}
+               }
+
+        assert CF.surround_context('\r\n\r\nhello_wo\r\n', {3, i}) == %{
                  context: {:local_or_var, 'hello_wo'},
                  begin: {3, 1},
                  end: {3, 9}
@@ -327,8 +427,14 @@ defmodule CodeFragmentTest do
       assert CF.surround_context("안녕_세상", {1, 6}) == :none
 
       # Keywords are not local or var
-      for keyword <- ~w(do end after catch else rescue) do
-        assert CF.surround_context(keyword, {1, 1}) == :none
+      for keyword <- ~w(do end after catch else rescue fn true false nil)c do
+        keyword_length = length(keyword) + 1
+
+        assert %{
+                 context: {:keyword, ^keyword},
+                 begin: {1, 1},
+                 end: {1, ^keyword_length}
+               } = CF.surround_context(keyword, {1, 1})
       end
     end
 
@@ -478,6 +584,24 @@ defmodule CodeFragmentTest do
                  end: {1, 10}
                }
       end
+
+      assert CF.surround_context("hello # comment\n  .wor", {2, 4}) == %{
+               context: {:dot, {:var, 'hello'}, 'wor'},
+               begin: {1, 1},
+               end: {2, 7}
+             }
+
+      assert CF.surround_context("123 + hello. # comment\n\n  wor", {3, 4}) == %{
+               context: {:dot, {:var, 'hello'}, 'wor'},
+               begin: {1, 7},
+               end: {3, 6}
+             }
+
+      assert CF.surround_context("hello. # comment\n\n # wor", {3, 5}) == %{
+               context: {:local_or_var, 'wor'},
+               begin: {3, 4},
+               end: {3, 7}
+             }
     end
 
     test "alias" do
@@ -528,6 +652,126 @@ defmodule CodeFragmentTest do
                  end: {1, 16}
                }
       end
+
+      for i <- 1..3 do
+        assert CF.surround_context("Foo # dc\n. Bar .\n Baz", {i, 1}) == %{
+                 context: {:alias, 'Foo.Bar.Baz'},
+                 begin: {1, 1},
+                 end: {3, 5}
+               }
+      end
+    end
+
+    test "underscored special forms" do
+      assert CF.surround_context("__MODULE__", {1, 1}) == %{
+               context: {:local_or_var, '__MODULE__'},
+               begin: {1, 1},
+               end: {1, 11}
+             }
+
+      assert CF.surround_context("__MODULE__.Foo", {1, 12}) == %{
+               context: {:alias, {:local_or_var, '__MODULE__'}, 'Foo'},
+               begin: {1, 1},
+               end: {1, 15}
+             }
+
+      assert CF.surround_context("__MODULE__.Foo.Sub", {1, 16}) == %{
+               context: {:alias, {:local_or_var, '__MODULE__'}, 'Foo.Sub'},
+               begin: {1, 1},
+               end: {1, 19}
+             }
+
+      assert CF.surround_context("%__MODULE__{}", {1, 5}) == %{
+               context: {:struct, {:local_or_var, '__MODULE__'}},
+               begin: {1, 1},
+               end: {1, 12}
+             }
+
+      assert CF.surround_context("%__MODULE__.Foo{}", {1, 13}) == %{
+               context: {:struct, {:alias, {:local_or_var, '__MODULE__'}, 'Foo'}},
+               begin: {1, 1},
+               end: {1, 16}
+             }
+
+      assert CF.surround_context("%__MODULE__.Foo.Sub{}", {1, 17}) == %{
+               context: {:struct, {:alias, {:local_or_var, '__MODULE__'}, 'Foo.Sub'}},
+               begin: {1, 1},
+               end: {1, 20}
+             }
+
+      assert CF.surround_context("__MODULE__.call()", {1, 13}) == %{
+               context: {:dot, {:var, '__MODULE__'}, 'call'},
+               begin: {1, 1},
+               end: {1, 16}
+             }
+
+      assert CF.surround_context("__MODULE__.Foo.call()", {1, 17}) == %{
+               context: {:dot, {:alias, {:local_or_var, '__MODULE__'}, 'Foo'}, 'call'},
+               begin: {1, 1},
+               end: {1, 20}
+             }
+
+      assert CF.surround_context("__MODULE__.Foo.Sub.call()", {1, 21}) == %{
+               context: {:dot, {:alias, {:local_or_var, '__MODULE__'}, 'Foo.Sub'}, 'call'},
+               begin: {1, 1},
+               end: {1, 24}
+             }
+
+      assert CF.surround_context("__ENV__.module.call()", {1, 17}) == %{
+               context: {:dot, {:dot, {:var, '__ENV__'}, 'module'}, 'call'},
+               begin: {1, 1},
+               end: {1, 20}
+             }
+    end
+
+    test "attribute submodules" do
+      assert CF.surround_context("@some.Foo", {1, 8}) == %{
+               context: {:alias, {:module_attribute, 'some'}, 'Foo'},
+               begin: {1, 1},
+               end: {1, 10}
+             }
+
+      assert CF.surround_context("@some.Foo.Sub", {1, 12}) == %{
+               context: {:alias, {:module_attribute, 'some'}, 'Foo.Sub'},
+               begin: {1, 1},
+               end: {1, 14}
+             }
+
+      assert CF.surround_context("%@some{}", {1, 5}) == %{
+               context: {:struct, {:module_attribute, 'some'}},
+               begin: {1, 1},
+               end: {1, 7}
+             }
+
+      assert CF.surround_context("%@some.Foo{}", {1, 10}) == %{
+               context: {:struct, {:alias, {:module_attribute, 'some'}, 'Foo'}},
+               begin: {1, 1},
+               end: {1, 11}
+             }
+
+      assert CF.surround_context("%@some.Foo.Sub{}", {1, 14}) == %{
+               context: {:struct, {:alias, {:module_attribute, 'some'}, 'Foo.Sub'}},
+               begin: {1, 1},
+               end: {1, 15}
+             }
+
+      assert CF.surround_context("@some.call()", {1, 8}) == %{
+               context: {:dot, {:module_attribute, 'some'}, 'call'},
+               begin: {1, 1},
+               end: {1, 11}
+             }
+
+      assert CF.surround_context("@some.Foo.call()", {1, 12}) == %{
+               context: {:dot, {:alias, {:module_attribute, 'some'}, 'Foo'}, 'call'},
+               begin: {1, 1},
+               end: {1, 15}
+             }
+
+      assert CF.surround_context("@some.Foo.Sub.call()", {1, 16}) == %{
+               context: {:dot, {:alias, {:module_attribute, 'some'}, 'Foo.Sub'}, 'call'},
+               begin: {1, 1},
+               end: {1, 19}
+             }
     end
 
     test "struct" do
@@ -560,6 +804,12 @@ defmodule CodeFragmentTest do
                context: {:struct, 'HelloWor'},
                begin: {1, 1},
                end: {1, 10}
+             }
+
+      assert CF.surround_context("%HelloWor.some", {1, 12}) == %{
+               context: {:struct, {:dot, {:alias, 'HelloWor'}, 'some'}},
+               begin: {1, 1},
+               end: {1, 15}
              }
 
       for i <- 2..9 do
@@ -847,6 +1097,13 @@ defmodule CodeFragmentTest do
       assert cc2q("%Foo{bar: baz,") == s2q("%Foo{bar: baz, __cursor__()}")
     end
 
+    test "binaries" do
+      assert cc2q("<<") == s2q("<<__cursor__()>>")
+      assert cc2q("<<foo") == s2q("<<__cursor__()>>")
+      assert cc2q("<<foo, bar") == s2q("<<foo, __cursor__()>>")
+      assert cc2q("<<foo, bar::baz") == s2q("<<foo, bar::__cursor__()>>")
+    end
+
     test "removes tokens until opening" do
       assert cc2q("(123") == s2q("(__cursor__())")
       assert cc2q("[foo") == s2q("[__cursor__()]")
@@ -908,6 +1165,10 @@ defmodule CodeFragmentTest do
       opts = [token_metadata: true]
       assert cc2q("foo(", opts) == s2q("foo(__cursor__())", opts)
       assert cc2q("foo(123,", opts) == s2q("foo(123,__cursor__())", opts)
+
+      opts = [literal_encoder: fn ast, _ -> {:ok, {:literal, ast}} end]
+      assert cc2q("foo(", opts) == s2q("foo(__cursor__())", opts)
+      assert cc2q("foo(123,", opts) == s2q("foo({:literal, 123},__cursor__())", [])
     end
   end
 end

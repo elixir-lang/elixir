@@ -24,7 +24,7 @@ defmodule Macro.Env do
     * `context` - the context of the environment; it can be `nil`
       (default context), `:guard` (inside a guard) or `:match` (inside a match)
     * `context_modules` - a list of modules defined in the current context
-    * `file` - the current file name as a binary
+    * `file` - the current absolute file name as a binary
     * `function` - a tuple as `{atom, integer}`, where the first
       element is the function name and the second its arity; returns
       `nil` if not inside a function
@@ -79,32 +79,27 @@ defmodule Macro.Env do
           versioned_vars: versioned_vars
         }
 
-  # Define the __struct__ callbacks by hand for bootstrap reasons.
-  @doc false
-  def __struct__ do
-    %{
-      __struct__: __MODULE__,
-      aliases: [],
-      context: nil,
-      context_modules: [],
-      file: "nofile",
-      function: nil,
-      functions: [],
-      lexical_tracker: nil,
-      line: 0,
-      macro_aliases: [],
-      macros: [],
-      module: nil,
-      requires: [],
-      tracers: [],
-      versioned_vars: %{}
-    }
-  end
+  fields = [
+    aliases: [],
+    context: nil,
+    context_modules: [],
+    file: "nofile",
+    function: nil,
+    functions: [],
+    lexical_tracker: nil,
+    line: 0,
+    macro_aliases: [],
+    macros: [],
+    module: nil,
+    requires: [],
+    tracers: [],
+    versioned_vars: %{}
+  ]
 
-  @doc false
-  def __struct__(kv) do
-    Enum.reduce(kv, __struct__(), fn {k, v}, acc -> :maps.update(k, v, acc) end)
-  end
+  # Define the __struct__ callbacks by hand for bootstrap reasons.
+  {struct, [], kv, body} = Kernel.Utils.defstruct(__MODULE__, fields, false)
+  def __struct__(), do: unquote(:elixir_quote.escape(struct, false, :none))
+  def __struct__(unquote(kv)), do: unquote(body)
 
   @doc """
   Prunes compile information from the environment.

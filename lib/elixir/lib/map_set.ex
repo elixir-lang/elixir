@@ -54,7 +54,8 @@ defmodule MapSet do
 
   @type value :: term
 
-  @opaque t(value) :: %__MODULE__{map: %{optional(value) => []}}
+  @opaque internal(value) :: %{optional(value) => []}
+  @type t(value) :: %__MODULE__{map: internal(value)}
   @type t :: t(term)
 
   # TODO: Remove version key when we require Erlang/OTP 24
@@ -160,13 +161,51 @@ defmodule MapSet do
     %{map_set | map: Map.drop(map1, Map.keys(map2))}
   end
 
-  defp filter_not_in(:none, _map2, acc), do: Map.new(acc)
+  defp filter_not_in(:none, _map2, acc), do: Map.from_keys(acc, @dummy_value)
 
   defp filter_not_in({key, _val, iter}, map2, acc) do
-    if :erlang.is_map_key(key, map2) do
+    if is_map_key(map2, key) do
       filter_not_in(:maps.next(iter), map2, acc)
     else
-      filter_not_in(:maps.next(iter), map2, [{key, @dummy_value} | acc])
+      filter_not_in(:maps.next(iter), map2, [key | acc])
+    end
+  end
+
+  @doc """
+  Returns a set with elements that are present in only one but not both sets.
+
+  ## Examples
+
+      iex> MapSet.symmetric_difference(MapSet.new([1, 2, 3]), MapSet.new([2, 3, 4]))
+      MapSet.new([1, 4])
+  """
+  @doc since: "1.14.0"
+  @spec symmetric_difference(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
+  def symmetric_difference(%MapSet{map: map1}, %MapSet{map: map2}) do
+    {small, large} = order_by_size(map1, map2)
+
+    map =
+      large
+      |> :maps.iterator()
+      |> :maps.next()
+      |> disjointer(small, [])
+
+    %MapSet{map: map}
+  end
+
+  defp disjointer(:none, small, list) do
+    list |> Map.from_keys(@dummy_value) |> Map.merge(small)
+  end
+
+  defp disjointer({key, _val, iter}, small, list) do
+    if is_map_key(small, key) do
+      iter
+      |> :maps.next()
+      |> disjointer(Map.delete(small, key), list)
+    else
+      iter
+      |> :maps.next()
+      |> disjointer(small, [key | list])
     end
   end
 
@@ -194,7 +233,7 @@ defmodule MapSet do
   defp none_in?(:none, _), do: true
 
   defp none_in?({key, _val, iter}, map2) do
-    not :erlang.is_map_key(key, map2) and none_in?(:maps.next(iter), map2)
+    not is_map_key(map2, key) and none_in?(:maps.next(iter), map2)
   end
 
   @doc """
@@ -256,7 +295,7 @@ defmodule MapSet do
   """
   @spec member?(t, value) :: boolean
   def member?(%MapSet{map: map}, value) do
-    :erlang.is_map_key(value, map)
+    is_map_key(map, value)
   end
 
   @doc """

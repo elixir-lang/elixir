@@ -64,6 +64,7 @@ defmodule Inspect.Opts do
       `:atom`, `:binary`, `:boolean`, `:list`, `:map`, `:number`, `:regex`,
       `:string`, and `:tuple`. Custom data types may provide their own options.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
+      A default list of colors can be retrieved from `IO.ANSI.syntax_colors/0`.
 
     * `:width` - number of characters per line used when pretty is `true` or when
       printing to IO devices. Set to `0` to force each item to be printed on its
@@ -89,11 +90,9 @@ defmodule Inspect.Opts do
 
   @type color_key :: atom
 
-  # TODO: Remove :char_lists key and :as_char_lists value on v2.0
   @type t :: %__MODULE__{
           base: :decimal | :binary | :hex | :octal,
           binaries: :infer | :as_binaries | :as_strings,
-          char_lists: :infer | :as_lists | :as_char_lists,
           charlists: :infer | :as_lists | :as_charlists,
           custom_options: keyword,
           inspect_fun: (any, t -> Inspect.Algebra.t()),
@@ -469,8 +468,9 @@ defmodule Inspect.Algebra do
 
   defp container_each([term | terms], limit, opts, fun, acc, simple?)
        when is_list(terms) and is_limit(limit) do
-    limit = decrement(limit)
-    doc = fun.(term, %{opts | limit: limit})
+    new_limit = decrement(limit)
+    doc = fun.(term, %{opts | limit: new_limit})
+    limit = if doc == :doc_nil, do: limit, else: new_limit
     container_each(terms, limit, opts, fun, [doc | acc], simple? and simple?(doc))
   end
 
@@ -635,7 +635,7 @@ defmodule Inspect.Algebra do
       ["hello", "\n     ", "world"]
 
   """
-  @spec nest(t, non_neg_integer | :cursor | :reset, :always | :break) :: doc_nest
+  @spec nest(t, non_neg_integer | :cursor | :reset, :always | :break) :: doc_nest | t
   def nest(doc, level, mode \\ :always)
 
   def nest(doc, :cursor, mode) when is_doc(doc) and mode in [:always, :break] do

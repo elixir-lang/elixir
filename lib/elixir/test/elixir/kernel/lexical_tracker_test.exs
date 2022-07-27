@@ -22,7 +22,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add requires", config do
-    D.add_require(config[:pid], URI)
+    D.add_export(config[:pid], URI)
     assert D.references(config[:pid]) == {[], [URI], [], []}
 
     D.remote_dispatch(config[:pid], URI, :runtime)
@@ -33,7 +33,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add module imports", config do
-    D.add_require(config[:pid], String)
+    D.add_export(config[:pid], String)
     D.add_import(config[:pid], String, [], 1, true)
 
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :runtime)
@@ -44,7 +44,7 @@ defmodule Kernel.LexicalTrackerTest do
   end
 
   test "can add module with {function, arity} imports", config do
-    D.add_require(config[:pid], String)
+    D.add_export(config[:pid], String)
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
 
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
@@ -59,32 +59,32 @@ defmodule Kernel.LexicalTrackerTest do
 
   test "unused module imports", config do
     D.add_import(config[:pid], String, [], 1, true)
-    assert D.collect_unused_imports(config[:pid]) == [{String, 1}]
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{String => 1}}]
   end
 
   test "used module imports are not unused", config do
     D.add_import(config[:pid], String, [], 1, true)
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
-    assert D.collect_unused_imports(config[:pid]) == []
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{}}]
   end
 
   test "unused {module, function, arity} imports", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
-    assert D.collect_unused_imports(config[:pid]) == [{String, 1}, {{String, :upcase, 1}, 1}]
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{String => 1, {:upcase, 1} => 1}}]
   end
 
   test "used {module, function, arity} imports are not unused", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.add_import(config[:pid], String, [downcase: 1], 1, true)
     D.import_dispatch(config[:pid], String, {:upcase, 1}, :compile)
-    assert D.collect_unused_imports(config[:pid]) == [{{String, :downcase, 1}, 1}]
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{{:downcase, 1} => 1}}]
   end
 
   test "overwriting {module, function, arity} import with module import", config do
     D.add_import(config[:pid], String, [upcase: 1], 1, true)
     D.add_import(config[:pid], String, [], 1, true)
     D.import_dispatch(config[:pid], String, {:downcase, 1}, :compile)
-    assert D.collect_unused_imports(config[:pid]) == []
+    assert D.collect_unused_imports(config[:pid]) == [{String, %{}}]
   end
 
   test "imports with no warn are not unused", config do
@@ -158,6 +158,76 @@ defmodule Kernel.LexicalTrackerTest do
       refute URI in compile
     end
 
+    test "attributes adds dependency based on expansion" do
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute1 do
+          @example [String, Enum]
+          def foo(atom) when atom in @example, do: atom
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute String in compile
+      refute Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute2 do
+          @example [String, Enum]
+          def foo(atom) when atom in @example, do: atom
+          _ = @example
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert String in compile
+      assert Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute3 do
+          @example [String, Enum]
+          _ = Module.get_attribute(__MODULE__, :example)
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert String in compile
+      assert Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute4 do
+          Module.register_attribute(__MODULE__, :example, accumulate: true)
+          @example String
+          def foo(atom) when atom in @example, do: atom
+          @example Enum
+          def bar(atom) when atom in @example, do: atom
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute String in compile
+      refute Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute5 do
+          Module.register_attribute(__MODULE__, :example, accumulate: true)
+          @example String
+          def foo(atom) when atom in @example, do: atom
+          @example Enum
+          def bar(atom) when atom in @example, do: atom
+          _ = Module.get_attribute(__MODULE__, :example)
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert String in compile
+      assert Enum in compile
+    end
+
     test "@compile adds a runtime dependency" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
@@ -175,6 +245,48 @@ defmodule Kernel.LexicalTrackerTest do
       refute Enum in compile
       refute Enum in exports
       assert Enum in runtime
+    end
+
+    def __before_compile__(_), do: :ok
+    def __after_compile__(_, _), do: :ok
+    def __on_definition__(_, _, _, _, _, _), do: :ok
+
+    test "module callbacks add a compile dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.BeforeCompile do
+          @before_compile Kernel.LexicalTrackerTest
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Kernel.LexicalTrackerTest in compile
+      refute Kernel.LexicalTrackerTest in exports
+      refute Kernel.LexicalTrackerTest in runtime
+
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.AfterCompile do
+          @after_compile Kernel.LexicalTrackerTest
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Kernel.LexicalTrackerTest in compile
+      refute Kernel.LexicalTrackerTest in exports
+      refute Kernel.LexicalTrackerTest in runtime
+
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.OnDefinition do
+          @on_definition Kernel.LexicalTrackerTest
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Kernel.LexicalTrackerTest in compile
+      refute Kernel.LexicalTrackerTest in exports
+      refute Kernel.LexicalTrackerTest in runtime
     end
 
     test "defdelegate with literal adds runtime dependency" do
@@ -281,6 +393,27 @@ defmodule Kernel.LexicalTrackerTest do
       refute Kernel.LexicalTrackerTest.Defmodule in compile
       refute Kernel.LexicalTrackerTest.Defmodule in exports
       refute Kernel.LexicalTrackerTest.Defmodule in runtime
+    end
+
+    test "defmacro adds a compile-time dependency for local calls" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Defmacro do
+          defmacro uri() do
+            Macro.escape(URI.parse("/hello"))
+          end
+
+          def fun() do
+            uri()
+          end
+
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert URI in compile
+      refute URI in exports
+      refute URI in runtime
     end
   end
 end

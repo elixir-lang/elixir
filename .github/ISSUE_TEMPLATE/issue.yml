@@ -1,0 +1,53 @@
+---
+name: Report an issue
+description:
+  Tell us about something that is not working the way we (probably) intend
+body:
+  - type: markdown
+    attributes:
+      value: >
+        Thank you for contributing to Elixir! :heart:
+
+
+        Please, do not use this form for guidance, questions or support.
+        Try instead in [Elixir Forum](https://elixirforum.com),
+        the [IRC Chat](https://web.libera.chat/#elixir),
+        [Stack Overflow](https://stackoverflow.com/questions/tagged/elixir),
+        [Slack](https://elixir-slackin.herokuapp.com),
+        [Discord](https://discord.gg/elixir) or in other online communities.
+
+  - type: textarea
+    id: elixir-and-otp-version
+    attributes:
+      label: Elixir and Erlang/OTP versions
+      description: Paste the output of `elixir --version` here.
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: The operating system that this issue is happening on.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-behavior
+    attributes:
+      label: Current behavior
+      description: >
+        Include code samples, errors, and stacktraces if appropriate.
+
+
+        If reporting a bug, please include the reproducing steps.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected behavior
+      description: A short description on how you expect the code to behave.
+    validations:
+      required: true

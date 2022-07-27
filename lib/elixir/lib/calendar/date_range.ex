@@ -16,12 +16,12 @@ defmodule Date.Range do
   @type t :: %__MODULE__{
           first: Date.t(),
           last: Date.t(),
-          first_in_iso_days: iso_days(),
-          last_in_iso_days: iso_days(),
+          first_in_iso_days: days(),
+          last_in_iso_days: days(),
           step: pos_integer | neg_integer
         }
 
-  @typep iso_days() :: Calendar.iso_days()
+  @typep days() :: integer()
 
   @enforce_keys [:first, :last, :first_in_iso_days, :last_in_iso_days, :step]
   defstruct [:first, :last, :first_in_iso_days, :last_in_iso_days, :step]

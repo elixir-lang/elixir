@@ -60,7 +60,7 @@ defmodule Protocol.ConsolidationTest do
     refute Protocol.consolidated?(Enumerable)
   end
 
-  test "consolidation prevents new implementations" do
+  test "consolidation warns on new implementations" do
     output =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
         defimpl WithAny, for: Integer do
@@ -70,6 +70,18 @@ defmodule Protocol.ConsolidationTest do
 
     assert output =~ ~r"the .+WithAny protocol has already been consolidated"
   after
+    :code.purge(WithAny.Integer)
+    :code.delete(WithAny.Integer)
+  end
+
+  test "consolidation warns on new implementations unless disabled" do
+    Code.put_compiler_option(:ignore_already_consolidated, true)
+
+    defimpl WithAny, for: Integer do
+      def ok(_any), do: :ok
+    end
+  after
+    Code.put_compiler_option(:ignore_already_consolidated, false)
     :code.purge(WithAny.Integer)
     :code.delete(WithAny.Integer)
   end

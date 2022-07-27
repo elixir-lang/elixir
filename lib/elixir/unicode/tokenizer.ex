@@ -1,6 +1,22 @@
 defmodule String.Tokenizer do
   @moduledoc false
 
+  ## Custom normalization definitions
+  #
+  # These codepoints will be normalized from => to, and their
+  # scriptset will be the union of both. If one of the two
+  # codepoints is Script='Common|Inherited', this means both
+  # codepoints can be used anywhere without unsafe script mixing;
+  # similarly, they are exempted from the Restricted list.
+  #
+  start_normalizations = %{
+    # NFKC-based automatic normalizations
+    # U+00B5 => U+03BC
+    ?µ => ?μ
+  }
+
+  normalizations = start_normalizations
+
   ##
   ## First let's load all characters that we will allow in identifiers
   ##
@@ -86,7 +102,7 @@ defmodule String.Tokenizer do
       with [range, type_with_comments] <- :binary.split(line, ";"),
            [types, _comments] <- :binary.split(type_with_comments, "#"),
            types = String.split(types, " ", trim: true),
-           true <- "Inclusion" not in types and "Recommended" not in types do
+           false <- "Inclusion" in types or "Recommended" in types do
         range_to_codepoints.(range)
       else
         _ -> []
@@ -102,6 +118,7 @@ defmodule String.Tokenizer do
   unicode_continue = Enum.filter(id_continue, &(&1 > 127))
 
   unicode_all = Map.from_keys(unicode_upper ++ unicode_start ++ unicode_continue, [])
+
   IO.puts(:stderr, "[Unicode] Tokenizing #{map_size(unicode_all)} non-ascii codepoints")
 
   ##
@@ -138,10 +155,10 @@ defmodule String.Tokenizer do
       with [range, scripts_with_comments] <- :binary.split(line, ";"),
            [scripts, _comments] <- :binary.split(scripts_with_comments, "#"),
            scripts =
-             scripts |> String.split(" ", trim: true) |> Enum.map(&Map.get(aliases, &1, &1)),
-           true <- "Common" not in scripts and "Inherited" not in scripts do
+             scripts |> String.split(" ", trim: true) |> Enum.map(&Map.get(aliases, &1, &1)) do
         for codepoint <- range_to_codepoints.(range),
-            Map.has_key?(unicode_all, codepoint),
+            Map.has_key?(unicode_all, codepoint) and
+              "Common" not in scripts and "Inherited" not in scripts,
             do: {codepoint, scripts}
       else
         _ -> []
@@ -215,12 +232,24 @@ defmodule String.Tokenizer do
        |> Enum.reduce(bottom, &ScriptSet.union/2)}
     end
 
+  # Add our custom normalizations
+
+  codepoints_to_mask =
+    for {from, to} <- normalizations, reduce: codepoints_to_mask do
+      acc ->
+        ss = ScriptSet.union(Map.get(acc, from, top), Map.get(acc, to, top))
+        Map.put(acc, to, ss)
+    end
+
   ##
   ## Define functions and module attributes to access characters and their scriptsets
   ##
 
+  # bottom of bitmap == all bits are 0, no scripts in the scriptset
   @bottom bottom
   @latin 1
+  # top of bitmap (all bits are 1) is ALL in UTS39 ('Common', 'Inherited');
+  # a scriptset that will intersect with other all non-empty scriptsets
   @top top
   @indexed_scriptsets sorted_scriptsets |> Enum.with_index(&{&2, &1}) |> Map.new()
 
@@ -244,13 +273,6 @@ defmodule String.Tokenizer do
   defp ascii_upper?(entry), do: entry >= ?A and entry <= ?Z
   defp ascii_lower?(entry), do: entry >= ?a and entry <= ?z
   defp ascii_continue?(entry), do: entry >= ?0 and entry <= ?9
-
-  # Pattern is used as a performance check to end sooner before traversing unicode
-  for pattern <- ' \t\n\r!"#$%&\'()*+,-./:;<=>?@[]^`{|}~' do
-    defp ascii_pattern?(unquote(pattern)), do: true
-  end
-
-  defp ascii_pattern?(_), do: false
 
   # Unicode helpers
   # We use ranges whenever possible to reduce bytecode size.
@@ -305,6 +327,15 @@ defmodule String.Tokenizer do
 
   defp unicode_continue(_), do: @bottom
 
+  # Hardcoded normalizations. Also split by upper, start, continue.
+
+  for {from, to} <- start_normalizations do
+    mask = Map.fetch!(codepoints_to_mask, to)
+    defp normalize_start(unquote(from)), do: {unquote(to), unquote(mask)}
+  end
+
+  defp normalize_start(_codepoint), do: @bottom
+
   ##
   ## Now we are ready to tokenize!
   ##
@@ -324,8 +355,17 @@ defmodule String.Tokenizer do
         case unicode_upper(head) do
           @bottom ->
             case unicode_start(head) do
-              @bottom -> {:error, :empty}
-              scriptset -> validate(continue(tail, [head], 1, false, scriptset, []), :identifier)
+              @bottom ->
+                case normalize_start(head) do
+                  @bottom ->
+                    {:error, :empty}
+
+                  {head, scriptset} ->
+                    validate(continue(tail, [head], 1, false, scriptset, [:nfkc]), :identifier)
+                end
+
+              scriptset ->
+                validate(continue(tail, [head], 1, false, scriptset, []), :identifier)
             end
 
           scriptset ->
@@ -339,15 +379,15 @@ defmodule String.Tokenizer do
   end
 
   defp continue([?! | tail], acc, length, ascii_letters?, scriptset, special) do
-    {[?! | acc], tail, length + 1, ascii_letters?, scriptset, [?! | special]}
+    {[?! | acc], tail, length + 1, ascii_letters?, scriptset, [:punctuation | special]}
   end
 
   defp continue([?? | tail], acc, length, ascii_letters?, scriptset, special) do
-    {[?? | acc], tail, length + 1, ascii_letters?, scriptset, [?? | special]}
+    {[?? | acc], tail, length + 1, ascii_letters?, scriptset, [:punctuation | special]}
   end
 
   defp continue([?@ | tail], acc, length, ascii_letters?, scriptset, special) do
-    special = [?@ | List.delete(special, ?@)]
+    special = [:at | List.delete(special, :at)]
     continue(tail, [?@ | acc], length + 1, ascii_letters?, scriptset, special)
   end
 
@@ -359,17 +399,28 @@ defmodule String.Tokenizer do
       head == ?_ or ascii_continue?(head) ->
         continue(tail, [head | acc], length + 1, ascii_letters?, scriptset, special)
 
-      ascii_pattern?(head) ->
+      # Pattern is used for performance and to not mark ascii tokens as unicode
+      # ' \\\t\n\r!"#$%&\'()*+,-./:;<=>?@[]^`{|}~'
+      head <= 127 ->
         {acc, list, length, ascii_letters?, scriptset, special}
 
       true ->
         with @bottom <- unicode_start(head),
              @bottom <- unicode_upper(head),
              @bottom <- unicode_continue(head) do
-          {acc, list, length, ascii_letters?, scriptset, special}
+          case normalize_start(head) do
+            @bottom ->
+              {:error, {:unexpected_token, :lists.reverse([head | acc])}}
+
+            {head, ss} ->
+              ss = ss_intersect(scriptset, ss)
+              special = [:nfkc | List.delete(special, :nfkc)]
+              continue(tail, [head | acc], length + 1, false, ss, special)
+          end
         else
           ss ->
-            continue(tail, [head | acc], length + 1, false, ss_intersect(scriptset, ss), special)
+            ss = ss_intersect(scriptset, ss)
+            continue(tail, [head | acc], length + 1, false, ss, special)
         end
     end
   end
@@ -378,51 +429,59 @@ defmodule String.Tokenizer do
     {acc, [], length, ascii_letters?, scriptset, special}
   end
 
-  defp validate({acc, rest, length, ascii_letters?, scriptset, special}, kind) do
-    acc = :lists.reverse(acc)
+  defp validate({:error, _} = error, _kind) do
+    error
+  end
 
-    cond do
-      ascii_letters? ->
-        {kind, acc, rest, length, ascii_letters?, special}
+  defp validate({acc, rest, length, true, _scriptset, special}, kind) do
+    {kind, :lists.reverse(acc), rest, length, true, special}
+  end
 
-      :unicode.characters_to_nfc_list(acc) != acc ->
-        {:error, {:not_nfc, acc}}
+  defp validate({original_acc, rest, length, false, scriptset, special}, kind) do
+    original_acc = :lists.reverse(original_acc)
+    acc = :unicode.characters_to_nfc_list(original_acc)
 
-      scriptset == @bottom and not highly_restrictive?(acc) ->
-        breakdown =
-          for codepoint <- acc do
-            scriptsets =
-              case codepoint_to_scriptset(codepoint) do
-                @top ->
-                  ""
+    special =
+      if original_acc == acc do
+        special
+      else
+        [:nfkc | List.delete(special, :nfkc)]
+      end
 
-                scriptset ->
-                  scriptset
-                  |> ScriptSet.to_indexes()
-                  |> Enum.map(&Map.fetch!(@indexed_scriptsets, &1))
-                  |> then(&(" {" <> Enum.join(&1, ",") <> "}"))
-              end
+    if scriptset != @bottom or highly_restrictive?(acc) do
+      {kind, acc, rest, length, false, special}
+    else
+      breakdown =
+        for codepoint <- acc do
+          scriptsets =
+            case codepoint_to_scriptset(codepoint) do
+              @top ->
+                ""
 
-            hex = :io_lib.format('~4.16.0B', [codepoint])
-            "  \\u#{hex} #{[codepoint]}#{scriptsets}\n"
-          end
+              scriptset ->
+                scriptset
+                |> ScriptSet.to_indexes()
+                |> Enum.map(&Map.fetch!(@indexed_scriptsets, &1))
+                |> then(&(" {" <> Enum.join(&1, ",") <> "}"))
+            end
 
-        prefix = 'invalid mixed-script identifier found: '
+          hex = :io_lib.format('~4.16.0B', [codepoint])
+          "  \\u#{hex} #{[codepoint]}#{scriptsets}\n"
+        end
 
-        suffix = '''
+      prefix = 'invalid mixed-script identifier found: '
+
+      suffix = '''
 
 
-        Mixed-script identifiers are not supported for security reasons. \
-        '#{acc}' is made of the following scripts:\n
-        #{breakdown}
-        Make sure all characters in the identifier resolve to a single script or a highly
-        restrictive script. See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
-        '''
+      Mixed-script identifiers are not supported for security reasons. \
+      '#{acc}' is made of the following scripts:\n
+      #{breakdown}
+      All characters in the identifier should resolve to a single script, \
+      or use a highly restrictive set of scripts.
+      '''
 
-        {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
-
-      true ->
-        {kind, acc, rest, length, ascii_letters?, special}
+      {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
     end
   end
 

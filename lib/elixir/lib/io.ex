@@ -172,8 +172,17 @@ defmodule IO do
   @doc """
   Reads from the IO `device`. The operation is Unicode unsafe.
 
-  The `device` is iterated by the given number of bytes, line by line if
-  `:line` is given, or until `:eof`.
+  The `device` is iterated as specified by the `line_or_chars` argument:
+
+    * if `line_or_chars` is an integer, it represents a number of bytes. The device is
+      iterated by that number of bytes.
+
+    * if `line_or_chars` is `:line`, the device is iterated line by line.
+
+    * if `line_or_chars` is `:eof`, the device is iterated until `:eof`. `line_or_chars`
+      can only be `:eof` since Elixir 1.13.0. `:eof` replaces the deprecated `:all`,
+      with the difference that `:all` returns `""` on end of file, while `:eof` returns
+      `:eof` itself.
 
   It returns:
 
@@ -293,12 +302,12 @@ defmodule IO do
     * a `__STACKTRACE__`, where all entries in the stacktrace will be
       included in the error message
 
-    * a `Macro.Env` structure, where a single stacktrace entry from
-      the compilation environment will be used
+    * a `Macro.Env` structure (since v1.14.0), where a single stacktrace
+      entry from the compilation environment will be used
 
     * a keyword list with at least the `:file` option representing
-      a single stacktrace entry. The `:line`, `:module`, `:function`
-      options are also supported
+      a single stacktrace entry (since v1.14.0). The `:line`, `:module`,
+      `:function` options are also supported
 
   This function also notifies the compiler a warning was printed
   (in case --warnings-as-errors was enabled). It returns `:ok`
@@ -579,7 +588,7 @@ defmodule IO do
   Note that an IO stream has side effects and every time
   you go over the stream you may get different results.
 
-  `stream/1` has been introduced in Elixir v1.12.0,
+  `stream/0` has been introduced in Elixir v1.12.0,
   while `stream/2` has been available since v1.0.0.
 
   ## Examples
@@ -624,7 +633,7 @@ defmodule IO do
   Finally, do not use this function on IO devices in Unicode
   mode as it will return the wrong result.
 
-  `binstream/1` has been introduced in Elixir v1.12.0,
+  `binstream/0` has been introduced in Elixir v1.12.0,
   while `binstream/2` has been available since v1.0.0.
   """
   @spec binstream(device, :line | pos_integer) :: Enumerable.t()

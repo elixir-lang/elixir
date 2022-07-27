@@ -18,9 +18,9 @@ defmodule Mix.Tasks.Help do
   ## Colors
 
   When possible, `mix help` is going to use coloring for formatting
-  guides. The formatting can be customized by configuring the Mix
-  application either inside your project (in `config/config.exs`) or
-  by using the local config (in `~/.mix/config.exs`).
+  the help information. The formatting can be customized by configuring
+  the Mix application either inside your project (in `config/config.exs`)
+  or by using the local config (in `~/.mix/config.exs`).
 
   For example, to disable color, one may use the configuration:
 

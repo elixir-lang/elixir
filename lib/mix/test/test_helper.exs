@@ -9,9 +9,13 @@ os_exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [window
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
 git_exclude = if Mix.SCM.Git.git_version() <= {1, 7, 4}, do: [git_sparse: true], else: []
 
+{line_exclude, line_include} =
+  if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
+
 ExUnit.start(
-  trace: "--trace" in System.argv(),
-  exclude: epmd_exclude ++ os_exclude ++ git_exclude
+  trace: !!System.get_env("TRACE"),
+  exclude: epmd_exclude ++ os_exclude ++ git_exclude ++ line_exclude,
+  include: line_include
 )
 
 # Clear environment variables that may affect tests
@@ -216,8 +220,8 @@ System.delete_env("XDG_DATA_HOME")
 System.delete_env("XDG_CONFIG_HOME")
 
 rebar3_source = System.get_env("REBAR3") || Path.expand("fixtures/rebar3", __DIR__)
-elixir_version = System.version() |> :binary.split("-") |> hd()
-rebar3_target = Path.join([mix, "elixir", elixir_version, "rebar3"])
+[major, minor | _] = String.split(System.version(), ".")
+rebar3_target = Path.join([mix, "elixir", "#{major}-#{minor}", "rebar3"])
 File.mkdir_p!(Path.dirname(rebar3_target))
 File.cp!(rebar3_source, rebar3_target)
 

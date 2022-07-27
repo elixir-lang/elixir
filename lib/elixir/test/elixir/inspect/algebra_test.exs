@@ -308,4 +308,12 @@ defmodule Inspect.AlgebraTest do
     assert sm.(["a" | empty()]) |> render(80) == "[a]"
     assert sm.([empty() | "b"]) |> render(80) == "[b]"
   end
+
+  test "formatting container_doc with empty and limit" do
+    opts = %Inspect.Opts{limit: 2}
+    value = ["a", empty(), "b"]
+
+    assert container_doc("[", value, "]", opts, fn d, _ -> d end, separator: ",") |> render(80) ==
+             "[a, b]"
+  end
 end

@@ -1,12 +1,11 @@
 Code.require_file("test_helper.exs", __DIR__)
 
 # This is to temporarily test some inconsistencies in
-# the error ArgumentError messages
-# https://github.com/erlang/otp/issues/5440
-# TODO: once fixed in OTP and that minimum version is required,
-# please remove MyArgumentError and replace the calls to:
+# the error ArgumentError messages.
+# Remove MyArgumentError and replace the calls to:
 # - MyArgumentError with ArgumentError
 # - MyArgumentError.culprit() with Atom.to_string("Foo")
+# in Erlang/OTP 25
 defmodule MyArgumentError do
   defexception message: "argument error"
 
@@ -696,7 +695,7 @@ defmodule Inspect.MapTest do
 
   test "struct missing fields in the :only option" do
     assert_raise ArgumentError,
-                 "unknown fields [:c] given when deriving the Inspect protocol for Inspect.MapTest.StructMissingFieldsInOnlyOption. :only and :except values must match struct fields",
+                 "unknown fields [:c] in :only when deriving the Inspect protocol for Inspect.MapTest.StructMissingFieldsInOnlyOption",
                  fn ->
                    defmodule StructMissingFieldsInOnlyOption do
                      @derive {Inspect, only: [:c]}
@@ -707,7 +706,7 @@ defmodule Inspect.MapTest do
 
   test "struct missing fields in the :except option" do
     assert_raise ArgumentError,
-                 "unknown fields [:c, :d] given when deriving the Inspect protocol for Inspect.MapTest.StructMissingFieldsInExceptOption. :only and :except values must match struct fields",
+                 "unknown fields [:c, :d] in :except when deriving the Inspect protocol for Inspect.MapTest.StructMissingFieldsInExceptOption",
                  fn ->
                    defmodule StructMissingFieldsInExceptOption do
                      @derive {Inspect, except: [:c, :d]}
@@ -740,6 +739,38 @@ defmodule Inspect.MapTest do
 
     assert inspect(struct, pretty: true, width: 1) ==
              "#Inspect.MapTest.StructWithBothOnlyAndExceptOptions<\n  a: 1,\n  ...\n>"
+  end
+
+  defmodule StructWithOptionalAndOrder do
+    @derive {Inspect, optional: [:b, :c]}
+    defstruct [:c, :d, :a, :b]
+  end
+
+  test "struct with both :order and :optional options" do
+    struct = %StructWithOptionalAndOrder{a: 1, b: 2, c: 3, d: 4}
+
+    assert inspect(struct) ==
+             "%Inspect.MapTest.StructWithOptionalAndOrder{c: 3, d: 4, a: 1, b: 2}"
+
+    struct = %StructWithOptionalAndOrder{}
+    assert inspect(struct) == "%Inspect.MapTest.StructWithOptionalAndOrder{d: nil, a: nil}"
+  end
+
+  defmodule StructWithExceptOptionalAndOrder do
+    @derive {Inspect, optional: [:b, :c], except: [:e]}
+    defstruct [:c, :d, :e, :a, :b]
+  end
+
+  test "struct with :except, :order, and :optional options" do
+    struct = %StructWithExceptOptionalAndOrder{a: 1, b: 2, c: 3, d: 4}
+
+    assert inspect(struct) ==
+             "#Inspect.MapTest.StructWithExceptOptionalAndOrder<c: 3, d: 4, a: 1, b: 2, ...>"
+
+    struct = %StructWithExceptOptionalAndOrder{}
+
+    assert inspect(struct) ==
+             "#Inspect.MapTest.StructWithExceptOptionalAndOrder<d: nil, a: nil, ...>"
   end
 end
 
@@ -831,6 +862,9 @@ defmodule Inspect.OthersTest do
     assert inspect(~r<\a\b\d\e\f\n\r\s\t\v/>) == "~r/\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v\\//"
     assert inspect(~r" \\/ ") == "~r/ \\\\\\/ /"
     assert inspect(~r/hi/, syntax_colors: [regex: :red]) == "\e[31m~r/hi/\e[0m"
+
+    assert inspect(Regex.compile!("foo", "i")) == "~r/foo/i"
+    assert inspect(Regex.compile!("foo", [:caseless])) == ~S'Regex.compile!("foo", [:caseless])'
   end
 
   test "inspect_fun" do

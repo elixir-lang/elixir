@@ -126,18 +126,29 @@ validate_struct(Atom, _) when is_atom(Atom) -> true;
 validate_struct(_, _) -> false.
 
 load_struct(Meta, Name, Args, Keys, E) ->
+  try
+    wrapped_load_struct(Meta, Name, Args, Keys, E)
+  catch
+    Kind:Reason ->
+      Info = [{Name, '__struct__', length(Args), [{file, "expanding struct"}]},
+              elixir_utils:caller(?line(Meta), ?key(E, file), ?key(E, module), ?key(E, function))],
+      erlang:raise(Kind, Reason, Info)
+  end.
+
+wrapped_load_struct(Meta, Name, Args, Keys, E) ->
   %% We also include the current module because it won't be present
   %% in context module in case the module name is defined dynamically.
   InContext = lists:member(Name, [?key(E, module) | ?key(E, context_modules)]),
 
   Arity = length(Args),
-  Local = InContext orelse (not(ensure_loaded(Name)) andalso wait_for_struct(Name)),
+  External = InContext orelse (not(ensure_loaded(Name)) andalso wait_for_struct(Name)),
 
   try
-    case Local andalso elixir_def:local_for(Name, '__struct__', Arity, [def]) of
+    case External andalso elixir_def:external_for(Meta, Name, '__struct__', Arity, [def]) of
       false ->
         apply(Name, '__struct__', Args);
-      LocalFun ->
+
+      ExternalFun ->
         %% There is an inherent race condition when using local_for.
         %% By the time we got to execute the function, the ETS table
         %% with temporary definitions for the given module may no longer
@@ -147,7 +158,7 @@ load_struct(Meta, Name, Args, Keys, E) ->
         %% the table has not been deleted (unless compilation of that
         %% module failed which should then cause this call to fail too).
         try
-          apply(LocalFun, Args)
+          apply(ExternalFun, Args)
         catch
           error:undef -> apply(Name, '__struct__', Args)
         end
@@ -160,6 +171,7 @@ load_struct(Meta, Name, Args, Keys, E) ->
 
     #{'__struct__' := StructName} when is_atom(StructName) ->
       form_error(Meta, E, ?MODULE, {struct_name_mismatch, Name, Arity, StructName});
+
     Other ->
       form_error(Meta, E, ?MODULE, {invalid_struct_return_value, Name, Arity, Other})
   catch
@@ -169,12 +181,7 @@ load_struct(Meta, Name, Args, Keys, E) ->
           form_error(Meta, E, ?MODULE, {inaccessible_struct, Name});
         false ->
           form_error(Meta, E, ?MODULE, {undefined_struct, Name, Arity})
-      end;
-
-    Kind:Reason ->
-      Info = [{Name, '__struct__', Arity, [{file, "expanding struct"}]},
-              elixir_utils:caller(?line(Meta), ?key(E, file), ?key(E, module), ?key(E, function))],
-      erlang:raise(Kind, Reason, Info)
+      end
   end.
 
 ensure_loaded(Module) ->

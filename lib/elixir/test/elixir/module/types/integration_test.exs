@@ -201,6 +201,8 @@ defmodule Module.Types.IntegrationTest do
 
           @file "external_source.ex"
           def c, do: E.no_module()
+
+          def i, do: Io.puts "hello"
         end
         """
       }
@@ -211,6 +213,9 @@ defmodule Module.Types.IntegrationTest do
 
       warning: E.no_module/0 is undefined (module E is not available or is yet to be defined)
         external_source.ex:5: A.c/0
+
+      warning: Io.puts/1 is undefined (module Io is not available or is yet to be defined)
+        a.ex:7: A.i/0
 
       """
 
@@ -554,6 +559,29 @@ defmodule Module.Types.IntegrationTest do
       after
         Code.compiler_options(no_warn_undefined: no_warn_undefined)
       end
+    end
+  end
+
+  describe "after_verify" do
+    test "reports functions" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @after_verify __MODULE__
+
+          def __after_verify__(__MODULE__) do
+            IO.warn "from after_verify", []
+          end
+        end
+        """
+      }
+
+      warning = """
+      warning: from after_verify
+
+      """
+
+      assert_warnings(files, warning)
     end
   end
 

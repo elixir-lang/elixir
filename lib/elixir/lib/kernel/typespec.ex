@@ -194,14 +194,14 @@ defmodule Kernel.Typespec do
 
   defp get_doc_info(set, attr, line) do
     case :ets.take(set, attr) do
-      [{^attr, {line, doc}, _}] -> {line, doc}
+      [{^attr, {line, doc}, _, _}] -> {line, doc}
       [] -> {line, nil}
     end
   end
 
   defp get_doc_meta(spec_meta, doc_kind, set) do
     case :ets.take(set, {doc_kind, :meta}) do
-      [{{^doc_kind, :meta}, metadata, _}] -> Map.merge(metadata, spec_meta)
+      [{{^doc_kind, :meta}, metadata}] -> Map.merge(metadata, spec_meta)
       [] -> spec_meta
     end
   end

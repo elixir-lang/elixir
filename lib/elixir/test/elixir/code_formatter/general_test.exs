@@ -11,6 +11,16 @@ defmodule Code.Formatter.GeneralTest do
     assert_format "fn -> end", "fn -> nil end"
   end
 
+  describe "unicode normalization" do
+    test "with nfc normalizations" do
+      assert_format "ç", "ç"
+    end
+
+    test "with custom normalizations" do
+      assert_format "µs", "μs"
+    end
+  end
+
   describe "aliases" do
     test "with atom-only parts" do
       assert_same "Elixir"

@@ -922,26 +922,40 @@ defmodule Protocol do
     do: [:lists.foldl(&{:|, [], [&1, &2]}, head, tail), quote(do: ...)]
 
   @doc false
-  def __impl__(protocol, opts) do
-    do_defimpl(protocol, :lists.keysort(1, opts))
+  def __impl__(protocol, opts, do_block, env) do
+    opts = Keyword.merge(opts, do_block)
+
+    {for, opts} =
+      Keyword.pop_lazy(opts, :for, fn ->
+        env.module ||
+          raise ArgumentError, "defimpl/3 expects a :for option when declared outside a module"
+      end)
+
+    for = Macro.expand_literal(for, %{env | module: Kernel, function: {:defimpl, 3}})
+
+    case opts do
+      [] -> raise ArgumentError, "defimpl expects a do-end block"
+      [do: block] -> __impl__(protocol, for, block)
+      _ -> raise ArgumentError, "unknown options given to defimpl, got: #{Macro.to_string(opts)}"
+    end
   end
 
-  defp do_defimpl(protocol, do: block, for: for) when is_list(for) do
-    for f <- for, do: do_defimpl(protocol, do: block, for: f)
+  defp __impl__(protocol, for, block) when is_list(for) do
+    for f <- for, do: __impl__(protocol, f, block)
   end
 
-  defp do_defimpl(protocol, do: block, for: for) do
+  defp __impl__(protocol, for, block) do
     # Unquote the implementation just later
     # when all variables will already be injected
     # into the module body.
     impl =
       quote unquote: false do
         @doc false
-        @spec __impl__(:for) :: unquote(for)
         @spec __impl__(:target) :: __MODULE__
+        @spec __impl__(:for) :: unquote(for)
         @spec __impl__(:protocol) :: unquote(protocol)
-        def __impl__(:for), do: unquote(for)
         def __impl__(:target), do: __MODULE__
+        def __impl__(:for), do: unquote(for)
         def __impl__(:protocol), do: unquote(protocol)
       end
 
@@ -958,12 +972,12 @@ defmodule Protocol do
         @protocol protocol
         @for for
 
-        unquote(block)
-
+        res = unquote(block)
         Module.register_attribute(__MODULE__, :__impl__, persist: true)
         @__impl__ [protocol: @protocol, for: @for]
 
         unquote(impl)
+        res
       end
     end
   end
@@ -1021,7 +1035,8 @@ defmodule Protocol do
 
   @doc false
   def __ensure_defimpl__(protocol, for, env) do
-    if Protocol.consolidated?(protocol) do
+    if not Code.get_compiler_option(:ignore_already_consolidated) and
+         Protocol.consolidated?(protocol) do
       message =
         "the #{inspect(protocol)} protocol has already been consolidated, an " <>
           "implementation for #{inspect(for)} has no effect. If you want to " <>

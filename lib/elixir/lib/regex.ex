@@ -38,35 +38,35 @@ defmodule Regex do
 
   The modifiers available when creating a Regex are:
 
-    * `unicode` (u) - enables Unicode specific patterns like `\p` and causes
+    * `:unicode` (u) - enables Unicode specific patterns like `\p` and causes
       character classes like `\w`, `\W`, `\s`, and the like to also match on Unicode
       (see examples below in "Character classes"). It expects valid Unicode
       strings to be given on match
 
-    * `caseless` (i) - adds case insensitivity
+    * `:caseless` (i) - adds case insensitivity
 
-    * `dotall` (s) - causes dot to match newlines and also set newline to
+    * `:dotall` (s) - causes dot to match newlines and also set newline to
       anycrlf; the new line setting can be overridden by setting `(*CR)` or
       `(*LF)` or `(*CRLF)` or `(*ANY)` according to `:re` documentation
 
-    * `multiline` (m) - causes `^` and `$` to mark the beginning and end of
+    * `:multiline` (m) - causes `^` and `$` to mark the beginning and end of
       each line; use `\A` and `\z` to match the end or beginning of the string
 
-    * `extended` (x) - whitespace characters are ignored except when escaped
+    * `:extended` (x) - whitespace characters are ignored except when escaped
       and allow `#` to delimit comments
 
-    * `firstline` (f) - forces the unanchored pattern to match before or at the
+    * `:firstline` (f) - forces the unanchored pattern to match before or at the
       first newline, though the matched text may continue over the newline
 
-    * `ungreedy` (U) - inverts the "greediness" of the regexp
+    * `:ungreedy` (U) - inverts the "greediness" of the regexp
       (the previous `r` option is deprecated in favor of `U`)
 
   The options not available are:
 
-    * `anchored` - not available, use `^` or `\A` instead
-    * `dollar_endonly` - not available, use `\z` instead
-    * `no_auto_capture` - not available, use `?:` instead
-    * `newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
+    * `:anchored` - not available, use `^` or `\A` instead
+    * `:dollar_endonly` - not available, use `\z` instead
+    * `:no_auto_capture` - not available, use `?:` instead
+    * `:newline` - not available, use `(*CR)` or `(*LF)` or `(*CRLF)` or
       `(*ANYCRLF)` or `(*ANY)` at the beginning of the regexp according to the
       `:re` documentation
 
@@ -155,7 +155,7 @@ defmodule Regex do
 
   defstruct re_pattern: nil, source: "", opts: "", re_version: ""
 
-  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary}
+  @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
 
   defmodule CompileError do
     defexception message: "regex could not be compiled"
@@ -167,7 +167,7 @@ defmodule Regex do
   The given options can either be a binary with the characters
   representing the same regex options given to the
   `~r` (see `sigil_r/2`) sigil, or a list of options, as
-  expected by the Erlang's `:re` module.
+  expected by the Erlang's [`:re`](`:re`) module.
 
   It returns `{:ok, regex}` in case of success,
   `{:error, reason}` otherwise.
@@ -179,6 +179,12 @@ defmodule Regex do
 
       iex> Regex.compile("*foo")
       {:error, {'nothing to repeat', 0}}
+
+      iex> Regex.compile("foo", "i")
+      {:ok, ~r/foo/i}
+
+      iex> Regex.compile("foo", [:caseless])
+      {:ok, Regex.compile!("foo", [:caseless])}
 
   """
   @spec compile(binary, binary | [term]) :: {:ok, t} | {:error, any}
@@ -203,12 +209,17 @@ defmodule Regex do
   defp compile(source, opts, doc_opts, version) do
     case :re.compile(source, opts) do
       {:ok, re_pattern} ->
+        doc_opts = format_doc_opts(doc_opts, opts)
         {:ok, %Regex{re_pattern: re_pattern, re_version: version, source: source, opts: doc_opts}}
 
       error ->
         error
     end
   end
+
+  defp format_doc_opts(_doc_opts = "", _opts = []), do: ""
+  defp format_doc_opts(_doc_opts = "", opts), do: opts
+  defp format_doc_opts(doc_opts, _opts), do: doc_opts
 
   @doc """
   Compiles the regular expression and raises `Regex.CompileError` in case of errors.
@@ -384,15 +395,21 @@ defmodule Regex do
   end
 
   @doc """
-  Returns the regex options as a string.
+  Returns the regex options, as a string or list depending on how
+  it was compiled.
+
+  See the documentation of `Regex.compile/2` for more information.
 
   ## Examples
 
       iex> Regex.opts(~r/foo/m)
       "m"
 
+      iex> Regex.opts(Regex.compile!("foo", [:caseless]))
+      [:caseless]
+
   """
-  @spec opts(t) :: String.t()
+  @spec opts(t) :: String.t() | [term]
   def opts(%Regex{opts: opts}) do
     opts
   end

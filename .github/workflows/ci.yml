@@ -8,6 +8,9 @@ env:
   ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
 
+permissions:
+  contents: read
+
 jobs:
   test_linux:
     name: Linux, ${{ matrix.otp_release }}, Ubuntu 18.04
@@ -27,7 +30,7 @@ jobs:
             development: true
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 50
       - name: Install Erlang/OTP
@@ -83,11 +86,11 @@ jobs:
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 50
       - name: Cache Erlang/OTP package
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey\erlang
           key: OTP-${{ matrix.otp_release }}-windows-2019
@@ -112,7 +115,7 @@ jobs:
     name: Check POSIX-compliant
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 50
       - name: Install Shellcheck

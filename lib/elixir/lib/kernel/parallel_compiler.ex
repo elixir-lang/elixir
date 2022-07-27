@@ -5,9 +5,9 @@ defmodule Kernel.ParallelCompiler do
 
   @typedoc "The line. 0 indicates no line."
   @type line() :: non_neg_integer()
-  @type location() :: line() | {line(), column :: non_neg_integer}
+  @type location() :: line() | {pos_integer(), column :: non_neg_integer}
   @type warning() :: {file :: Path.t(), location(), message :: String.t()}
-  @type error() :: {file :: Path.t(), line(), message :: String.t()}
+  @type error() :: {file :: Path.t(), location(), message :: String.t()}
 
   @doc """
   Starts a task for parallel compilation.
@@ -28,7 +28,7 @@ defmodule Kernel.ParallelCompiler do
         dest = :erlang.get(:elixir_compiler_dest)
 
         {:error_handler, error_handler} = :erlang.process_info(self(), :error_handler)
-        checker = Module.ParallelChecker.get()
+        {_parent, checker} = Module.ParallelChecker.get()
 
         Task.async(fn ->
           send(compiler, {:async, self()})
@@ -241,7 +241,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp write_module_binaries(result, {:compile, path}, timestamp) do
     Enum.flat_map(result, fn
-      {{:module, module}, {binary, _map}} ->
+      {{:module, module}, binary} ->
         full_path = Path.join(path, Atom.to_string(module) <> ".beam")
         File.write!(full_path, binary)
         if timestamp, do: File.touch!(full_path, timestamp)
@@ -268,8 +268,8 @@ defmodule Kernel.ParallelCompiler do
     %{profile: profile, checker: checker} = state
 
     compiled_modules =
-      for {{:module, _module}, {_binary, info}} <- result,
-          do: info
+      for {{:module, module}, _} <- result,
+          do: module
 
     runtime_modules =
       for module <- runtime_modules,
@@ -278,7 +278,7 @@ defmodule Kernel.ParallelCompiler do
           do: {module, path}
 
     profile_checker(profile, compiled_modules, runtime_modules, fn ->
-      Module.ParallelChecker.verify(checker, compiled_modules, runtime_modules)
+      Module.ParallelChecker.verify(checker, runtime_modules)
     end)
   end
 
@@ -496,7 +496,7 @@ defmodule Kernel.ParallelCompiler do
   # i.e. to find code that depends on code that we know is not being defined.
   # Note that not all files have been compiled yet, so they may not be in waiting.
   defp without_definition(waiting, files) do
-    nillify_empty(
+    nilify_empty(
       for %{pid: pid} <- files,
           {_, _, ref, ^pid, on, _, _} <- waiting,
           not defining?(on, waiting),
@@ -505,7 +505,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp deadlocked(waiting, type, defining?) do
-    nillify_empty(
+    nilify_empty(
       for {_, _, ref, _, on, _, ^type} <- waiting,
           defining?(on, waiting) == defining?,
           do: {ref, :deadlock}
@@ -516,8 +516,8 @@ defmodule Kernel.ParallelCompiler do
     Enum.any?(waiting, fn {_, _, _, _, _, defining, _} -> on in defining end)
   end
 
-  defp nillify_empty([]), do: nil
-  defp nillify_empty([_ | _] = list), do: list
+  defp nilify_empty([]), do: nil
+  defp nilify_empty([_ | _] = list), do: list
 
   # Wait for messages from child processes
   defp wait_for_messages(queue, spawned, waiting, files, result, warnings, state) do
@@ -536,7 +536,7 @@ defmodule Kernel.ParallelCompiler do
         result = Map.put(result, {kind, module}, true)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
-      {:module_available, child, ref, file, module, binary, checker_info} ->
+      {:module_available, child, ref, file, module, binary} ->
         state.each_module.(file, module, binary)
 
         # Release the module loader which is waiting for an ack
@@ -546,7 +546,7 @@ defmodule Kernel.ParallelCompiler do
           for {:module, _, ref, _, ^module, _defining, _deadlock} <- waiting,
               do: {ref, :found}
 
-        result = Map.put(result, {:module, module}, {binary, checker_info})
+        result = Map.put(result, {:module, module}, binary)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
       # If we are simply requiring files, we do not add to waiting.
@@ -758,6 +758,11 @@ defmodule Kernel.ParallelCompiler do
     file = Path.absname(file)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
     {file, line || 0, message}
+  end
+
+  defp get_line(_file, %{line: line, column: column}, _stack)
+       when is_integer(line) and line > 0 and is_integer(column) and column >= 0 do
+    {line, column}
   end
 
   defp get_line(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
