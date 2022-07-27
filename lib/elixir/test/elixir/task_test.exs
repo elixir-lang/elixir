@@ -211,45 +211,47 @@ defmodule TaskTest do
     assert_receive :done
   end
 
-  if System.otp_release() >= "24" do
-    describe "ignore/1" do
-      test "discards on time replies" do
-        task = Task.async(fn -> :ok end)
-        wait_until_down(task)
-        assert Task.ignore(task) == {:ok, :ok}
-        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
-      end
+  describe "ignore/1" do
+    test "discards on time replies" do
+      task = Task.async(fn -> :ok end)
+      wait_until_down(task)
+      assert Task.ignore(task) == {:ok, :ok}
+      assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+    end
 
-      test "discards late replies" do
-        task = Task.async(fn -> assert_receive(:go) && :ok end)
-        assert Task.ignore(task) == nil
-        send(task.pid, :go)
-        wait_until_down(task)
-        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
-      end
+    test "discards late replies" do
+      task = Task.async(fn -> assert_receive(:go) && :ok end)
+      assert Task.ignore(task) == nil
+      send(task.pid, :go)
+      wait_until_down(task)
+      assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+    end
 
-      test "discards on-time failures" do
-        Process.flag(:trap_exit, true)
-        task = Task.async(fn -> exit(:oops) end)
-        wait_until_down(task)
-        assert Task.ignore(task) == {:exit, :oops}
-        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
-      end
+    test "discards on-time failures" do
+      Process.flag(:trap_exit, true)
+      task = Task.async(fn -> exit(:oops) end)
+      wait_until_down(task)
+      assert Task.ignore(task) == {:exit, :oops}
+      assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+    end
 
-      test "discards late failures" do
-        task = Task.async(fn -> assert_receive(:go) && exit(:oops) end)
-        assert Task.ignore(task) == nil
-        send(task.pid, :go)
-        wait_until_down(task)
-        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
-      end
+    test "discards late failures" do
+      task = Task.async(fn -> assert_receive(:go) && exit(:oops) end)
+      assert Task.ignore(task) == nil
+      send(task.pid, :go)
+      wait_until_down(task)
+      assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+    end
 
-      test "exits on :noconnection" do
-        ref = make_ref()
-        task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
-        send(self(), {:DOWN, ref, self(), self(), :noconnection})
-        assert catch_exit(Task.ignore(task)) |> elem(0) == {:nodedown, :nonode@nohost}
-      end
+    test "exits on :noconnection" do
+      ref = make_ref()
+      task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
+      send(self(), {:DOWN, ref, self(), self(), :noconnection})
+      assert catch_exit(Task.ignore(task)) |> elem(0) == {:nodedown, :nonode@nohost}
+    end
+
+    test "can ignore completed tasks" do
+      assert Task.ignore(Task.completed(:done)) == {:ok, :done}
     end
   end
 
@@ -652,10 +654,18 @@ defmodule TaskTest do
                {{:nodedown, node()}, {Task, :shutdown, [task, 5000]}}
     end
 
-    test "raises if task PID is nil" do
-      task = %Task{ref: make_ref(), owner: nil, pid: nil, mfa: {__MODULE__, :test, 1}}
-      message = "task #{inspect(task)} does not have an associated task process"
-      assert_raise ArgumentError, message, fn -> Task.shutdown(task) end
+    test "ignores if task PID is nil" do
+      ref = make_ref()
+      send(self(), {ref, :done})
+
+      assert Task.shutdown(%Task{ref: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}) ==
+               {:ok, :done}
+
+      ref = make_ref()
+      send(self(), {:DOWN, ref, :process, self(), :done})
+
+      assert Task.shutdown(%Task{ref: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}) ==
+               {:exit, :done}
     end
 
     test "raises when invoked from a non-owner process" do

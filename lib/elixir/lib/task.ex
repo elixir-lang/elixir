@@ -230,10 +230,10 @@ defmodule Task do
 
     * `:owner` - the PID of the process that started the task
 
-    * `:pid` - the PID of the task process; `nil` if the task does
-      not use a task process
+    * `:pid` - the PID of the task process; `nil` if there is no process
+      specifically assigned for the task
 
-    * `:ref` - the task monitor reference
+    * `:ref` - an opaque term used as the task monitor reference
 
   """
   @enforce_keys [:mfa, :owner, :pid, :ref]
@@ -248,8 +248,13 @@ defmodule Task do
           mfa: mfa(),
           owner: pid(),
           pid: pid() | nil,
-          ref: reference()
+          ref: ref()
         }
+
+  @typedoc """
+  The task opaque reference.
+  """
+  @opaque ref :: reference()
 
   defguardp is_timeout(timeout)
             when timeout == :infinity or (is_integer(timeout) and timeout >= 0)
@@ -774,7 +779,7 @@ defmodule Task do
 
         # If the task succeeds...
         def handle_info({ref, result}, state) do
-          # The task succeed so we can cancel the monitoring and discard the DOWN message
+          # The task succeed so we can demonitor its reference
           Process.demonitor(ref, [:flush])
 
           {url, state} = pop_in(state.tasks[ref])
@@ -809,14 +814,14 @@ defmodule Task do
 
     receive do
       {^ref, reply} ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         reply
 
       {:DOWN, ^ref, _, proc, reason} ->
         exit({reason(reason, proc), {__MODULE__, :await, [task, timeout]}})
     after
       timeout ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         exit({:timeout, {__MODULE__, :await, [task, timeout]}})
     end
   end
@@ -842,8 +847,8 @@ defmodule Task do
 
     receive do
       {^ref, reply} ->
-        Process.unlink(pid)
-        Process.demonitor(ref, [:flush])
+        pid && Process.unlink(pid)
+        demonitor(ref)
         {:ok, reply}
 
       {:DOWN, ^ref, _, proc, :noconnection} ->
@@ -853,8 +858,8 @@ defmodule Task do
         {:exit, reason}
     after
       0 ->
-        Process.unlink(pid)
-        Process.demonitor(ref, [:flush])
+        pid && Process.unlink(pid)
+        demonitor(ref)
         nil
     end
   end
@@ -958,7 +963,7 @@ defmodule Task do
 
   defp demonitor_pending_tasks(awaiting) do
     Enum.each(awaiting, fn {ref, _} ->
-      Process.demonitor(ref, [:flush])
+      demonitor(ref)
     end)
   end
 
@@ -967,7 +972,7 @@ defmodule Task do
   def find(tasks, {ref, reply}) when is_reference(ref) do
     Enum.find_value(tasks, fn
       %Task{ref: ^ref} = task ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         {reply, task}
 
       %Task{} ->
@@ -1047,7 +1052,7 @@ defmodule Task do
 
     receive do
       {^ref, reply} ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         {:ok, reply}
 
       {:DOWN, ^ref, _, proc, :noconnection} ->
@@ -1149,7 +1154,7 @@ defmodule Task do
 
     receive do
       {^ref, reply} ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         [{task, {:ok, reply}} | yield_many(rest, timeout_ref, timeout)]
 
       {:DOWN, ^ref, _, proc, :noconnection} ->
@@ -1190,6 +1195,10 @@ defmodule Task do
   `:shutdown` to shut down all of its linked processes, including tasks, that
   are not trapping exits without generating any log messages.
 
+  If there is no process linked to the task, such as tasks started by
+  `Task.completed/1`, we check for a response or error accordingly, but without
+  shutting a process down.
+
   If a task's monitor has already been demonitored or received and there is not
   a response waiting in the message queue this function will return
   `{:exit, :noproc}` as the result or exit reason can not be determined.
@@ -1198,7 +1207,7 @@ defmodule Task do
   def shutdown(task, shutdown \\ 5000)
 
   def shutdown(%Task{pid: nil} = task, _) do
-    raise ArgumentError, "task #{inspect(task)} does not have an associated task process"
+    ignore(task)
   end
 
   def shutdown(%Task{owner: owner} = task, _) when owner != self() do
@@ -1207,7 +1216,7 @@ defmodule Task do
 
   def shutdown(%Task{pid: pid} = task, :brutal_kill) do
     mon = Process.monitor(pid)
-    exit(pid, :kill)
+    shutdown_send(pid, :kill)
 
     case shutdown_receive(task, mon, :brutal_kill, :infinity) do
       {:down, proc, :noconnection} ->
@@ -1223,7 +1232,7 @@ defmodule Task do
 
   def shutdown(%Task{pid: pid} = task, timeout) when is_timeout(timeout) do
     mon = Process.monitor(pid)
-    exit(pid, :shutdown)
+    shutdown_send(pid, :shutdown)
 
     case shutdown_receive(task, mon, :shutdown, timeout) do
       {:down, proc, :noconnection} ->
@@ -1237,27 +1246,19 @@ defmodule Task do
     end
   end
 
-  ## Helpers
-
-  defp reason(:noconnection, proc), do: {:nodedown, monitor_node(proc)}
-  defp reason(reason, _), do: reason
-
-  defp monitor_node(pid) when is_pid(pid), do: node(pid)
-  defp monitor_node({_, node}), do: node
-
-  # spawn a process to ensure task gets exit signal if process dies from exit signal
-  # between unlink and exit.
-  defp exit(task, reason) do
+  # Spawn a process to ensure task gets exit signal
+  # if process dies from exit signal between unlink and exit.
+  defp shutdown_send(pid, reason) do
     caller = self()
     ref = make_ref()
-    enforcer = spawn(fn -> enforce_exit(task, reason, caller, ref) end)
-    Process.unlink(task)
-    Process.exit(task, reason)
+    enforcer = spawn(fn -> shutdown_send(pid, reason, caller, ref) end)
+    Process.unlink(pid)
+    Process.exit(pid, reason)
     send(enforcer, {:done, ref})
     :ok
   end
 
-  defp enforce_exit(pid, reason, caller, ref) do
+  defp shutdown_send(pid, reason, caller, ref) do
     mon = Process.monitor(caller)
 
     receive do
@@ -1269,11 +1270,11 @@ defmodule Task do
   defp shutdown_receive(%{ref: ref} = task, mon, type, timeout) do
     receive do
       {:DOWN, ^mon, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         flush_reply(ref)
 
       {:DOWN, ^mon, _, _, :killed} when type == :brutal_kill ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         flush_reply(ref)
 
       {:DOWN, ^mon, _, proc, :noproc} ->
@@ -1281,7 +1282,7 @@ defmodule Task do
         flush_reply(ref) || reason
 
       {:DOWN, ^mon, _, proc, reason} ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         flush_reply(ref) || {:down, proc, reason}
     after
       timeout ->
@@ -1310,10 +1311,23 @@ defmodule Task do
         {:down, proc, reason}
     after
       0 ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
         {:down, proc, :noproc}
     end
   end
+
+  ## Helpers
+
+  defp demonitor(ref) when is_reference(ref) do
+    Process.demonitor(ref, [:flush])
+    :ok
+  end
+
+  defp reason(:noconnection, proc), do: {:nodedown, monitor_node(proc)}
+  defp reason(reason, _), do: reason
+
+  defp monitor_node(pid) when is_pid(pid), do: node(pid)
+  defp monitor_node({_, node}), do: node
 
   defp invalid_owner_error(task) do
     "task #{inspect(task)} must be queried from the owner but was queried from #{inspect(self())}"

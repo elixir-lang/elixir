@@ -145,9 +145,4 @@ defmodule MapSetTest do
   test "inspect" do
     assert inspect(MapSet.new([?a])) == "MapSet.new([97])"
   end
-
-  defp map_set_v1(enumerable) do
-    map = Map.from_keys(Enum.to_list(enumerable), true)
-    %{__struct__: MapSet, map: map}
-  end
 end
