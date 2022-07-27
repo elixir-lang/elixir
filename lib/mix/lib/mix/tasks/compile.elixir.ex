@@ -111,15 +111,20 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> tracers_opts(tracers)
       |> profile_opts()
 
-    Mix.Compilers.Elixir.compile(
-      manifest,
-      srcs,
-      dest,
-      cache_key,
-      Mix.Tasks.Compile.Erlang.manifests(),
-      Mix.Tasks.Compile.Erlang.modules(),
-      opts
-    )
+    # The Elixir compiler relies on global state in the application tracer.
+    # However, even without it, having compilations racing with other is most
+    # likely undesired, so we wrap the compiler in a lock.
+    Mix.State.lock(__MODULE__, fn ->
+      Mix.Compilers.Elixir.compile(
+        manifest,
+        srcs,
+        dest,
+        cache_key,
+        Mix.Tasks.Compile.Erlang.manifests(),
+        Mix.Tasks.Compile.Erlang.modules(),
+        opts
+      )
+    end)
   end
 
   @impl true
