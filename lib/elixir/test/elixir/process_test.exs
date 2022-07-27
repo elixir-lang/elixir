@@ -117,6 +117,40 @@ defmodule ProcessTest do
     refute Process.alive?(pid)
   end
 
+  describe "alias/0, alias/1, and unalias/1" do
+    test "simple alias + unalias flow" do
+      server =
+        spawn(fn ->
+          receive do
+            {:ping, alias} -> send(alias, :pong)
+          end
+        end)
+
+      alias = Process.alias()
+      Process.unalias(alias)
+
+      send(server, {:ping, alias})
+      refute_receive :pong, 20
+    end
+
+    test "with :reply option when aliasing" do
+      server =
+        spawn(fn ->
+          receive do
+            {:ping, alias} ->
+              send(alias, :pong)
+              send(alias, :extra_pong)
+          end
+        end)
+
+      alias = Process.alias([:reply])
+
+      send(server, {:ping, alias})
+      assert_receive :pong
+      refute_receive :extra_pong, 20
+    end
+  end
+
   defp expand(expr, env) do
     {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
     expr

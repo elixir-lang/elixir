@@ -17,6 +17,59 @@ defmodule Process do
   `Registry`, `Supervisor` and `Task` for building their systems and
   resort to this module for gathering information, trapping exits, links
   and monitoring.
+
+  ## Aliases
+
+  Aliases are a feature introduced in Erlang/OTP 24. An alias is a way
+  to refer to a PID in order to send messages to it. The advantage of using
+  aliases is that they can be deactivated even if the aliased process is still
+  running. If you send a message to a deactivated alias, nothing will happen.
+  This makes request/response scenarios easier to implement.
+
+  You can use `alias/0` or `alias/1` to set an alias, and then you can send
+  messages to that alias like you do with PIDs using `send/2`. To deactivate
+  an alias, you can use `unalias/1`. If you send a message to a deactivated alias,
+  nothing will happen.
+
+  For example, you could have a process that listens for `:ping` messages:
+
+      def server do
+        receive do
+          {:ping, source_alias} ->
+            send(source_alias, :pong)
+            server()
+        end
+      end
+
+  Now, another process might ping this process:
+
+      server = spawn(&server/0)
+
+      source_alias = Process.alias()
+      send(server, {:ping, source_alias})
+
+      receive do
+        :pong -> :pong
+      end
+      #=> :pong
+
+  If now you deactivate the `source_alias` and ping the server again, you
+  won't receive any response since the server will `send/2` the `:pong` response
+  to a deactivated alias.
+
+      Process.unalias(source_alias)
+      send(server, {:ping, source_alias})
+
+      receive do
+        :pong -> :pong
+      after
+        1000 -> :timeout
+      end
+      #=> :timeout
+
+  See also the [*Process Aliases*
+  section](https://www.erlang.org/doc/reference_manual/processes.html#process-aliases)
+  of the *Erlang reference manual*.
   """
 
   @typedoc """
@@ -783,6 +836,55 @@ defmodule Process do
   """
   @spec hibernate(module, atom, list) :: no_return
   defdelegate hibernate(mod, fun_name, args), to: :erlang
+
+  @type alias_opt :: :explicit_unalias | :reply
+
+  @typedoc """
+  An alias returned by `alias/0` or `alias/1`.
+
+  See [the module documentation](#module-aliases) for more information about aliases.
+  """
+  @type alias :: reference
+
+  @doc """
+  Creates a *process alias*.
+
+  This is the same as calling `alias/1` as `alias([:explicit_unalias])`. See
+  also `:erlang.alias/0`.
+  """
+  @doc since: "1.15.0"
+  @spec alias() :: alias
+  defdelegate alias(), to: :erlang
+
+  @doc """
+  Creates a *process alias*.
+
+  See [the module documentation](#module-aliases) for more information about aliases.
+  See also `:erlang.alias/1`.
+  """
+  @doc since: "1.15.0"
+  @spec alias([alias_opt]) :: alias
+  defdelegate alias(options), to: :erlang
+
+  @doc """
+  Explicitly deactivates a process alias.
+
+  Returns `true` if `alias` was a currently-active alias for current processes,
+  or `false` otherwise.
+
+  See [the module documentation](#module-aliases) for more information about aliases.
+  See also `:erlang.unalias/1`.
+
+  ## Examples
+
+      alias = Process.alias()
+      Process.unalias(alias)
+      #=> true
+
+  """
+  @doc since: "1.15.0"
+  @spec unalias(alias) :: boolean
+  defdelegate unalias(alias), to: :erlang
 
   @compile {:inline, nilify: 1}
   defp nilify(:undefined), do: nil
