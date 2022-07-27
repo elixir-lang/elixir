@@ -227,6 +227,26 @@ defmodule SupervisorTest do
 
       assert Supervisor.start_child(pid, %{id: 1, start: {Task, :foo, :bar}}) ==
                {:error, {:invalid_mfa, {Task, :foo, :bar}}}
+
+      assert Supervisor.start_child(pid, %{id: 1, start: {Task, :foo, [:bar]}, shutdown: -1}) ==
+               {:error, {:invalid_shutdown, -1}}
+    end
+
+    test "with valid child spec" do
+      Process.flag(:trap_exit, true)
+
+      {:ok, pid} = Supervisor.start_link([], strategy: :one_for_one)
+
+      for n <- 0..1 do
+        assert {:ok, child_pid} =
+                 Supervisor.start_child(pid, %{
+                   id: n,
+                   start: {Task, :start_link, [fn -> :ok end]},
+                   shutdown: n
+                 })
+
+        assert_kill(child_pid, :shutdown)
+      end
     end
   end
 
@@ -260,5 +280,11 @@ defmodule SupervisorTest do
     unless Process.whereis(name) do
       wait_until_registered(name)
     end
+  end
+
+  defp assert_kill(pid, reason) do
+    ref = Process.monitor(pid)
+    Process.exit(pid, reason)
+    assert_receive {:DOWN, ^ref, _, _, _}
   end
 end
