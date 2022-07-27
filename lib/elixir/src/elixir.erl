@@ -188,7 +188,6 @@ env_for_eval(#{lexical_tracker := Pid} = Env) ->
     false ->
       NewEnv#{tracers := []}
   end;
-%% TODO: Deprecate all options except line, file, module, and function on v1.15.
 env_for_eval(Opts) when is_list(Opts) ->
   Env = elixir_env:new(),
 
@@ -202,28 +201,14 @@ env_for_eval(Opts) when is_list(Opts) ->
     false -> ?key(Env, file)
   end,
 
-  Aliases = case lists:keyfind(aliases, 1, Opts) of
-    {aliases, AliasesOpt} when is_list(AliasesOpt) -> AliasesOpt;
-    false -> ?key(Env, aliases)
-  end,
-
-  Requires = case lists:keyfind(requires, 1, Opts) of
-    {requires, RequiresOpt} when is_list(RequiresOpt) -> ordsets:from_list(RequiresOpt);
-    false -> ?key(Env, requires)
-  end,
-
-  Functions = case lists:keyfind(functions, 1, Opts) of
-    {functions, FunctionsOpt} when is_list(FunctionsOpt) -> FunctionsOpt;
-    false -> ?key(Env, functions)
-  end,
-
-  Macros = case lists:keyfind(macros, 1, Opts) of
-    {macros, MacrosOpt} when is_list(MacrosOpt) -> MacrosOpt;
-    false -> ?key(Env, macros)
-  end,
-
   Module = case lists:keyfind(module, 1, Opts) of
     {module, ModuleOpt} when is_atom(ModuleOpt) -> ModuleOpt;
+    false -> nil
+  end,
+
+  FA = case lists:keyfind(function, 1, Opts) of
+    {function, {Function, Arity}} when is_atom(Function), is_integer(Arity) -> {Function, Arity};
+    {function, nil} -> nil;
     false -> nil
   end,
 
@@ -232,24 +217,52 @@ env_for_eval(Opts) when is_list(Opts) ->
     false -> []
   end,
 
+  Aliases = case lists:keyfind(aliases, 1, Opts) of
+    {aliases, AliasesOpt} when is_list(AliasesOpt) ->
+      'Elixir.IO':warn(<<":aliases option in eval is deprecated">>),
+      AliasesOpt;
+    false ->
+      ?key(Env, aliases)
+  end,
+
+  Requires = case lists:keyfind(requires, 1, Opts) of
+    {requires, RequiresOpt} when is_list(RequiresOpt) ->
+      'Elixir.IO':warn(<<":requires option in eval is deprecated">>),
+      ordsets:from_list(RequiresOpt);
+    false ->
+      ?key(Env, requires)
+  end,
+
+  Functions = case lists:keyfind(functions, 1, Opts) of
+    {functions, FunctionsOpt} when is_list(FunctionsOpt) ->
+      'Elixir.IO':warn(<<":functions option in eval is deprecated">>),
+      FunctionsOpt;
+    false ->
+      ?key(Env, functions)
+  end,
+
+  Macros = case lists:keyfind(macros, 1, Opts) of
+    {macros, MacrosOpt} when is_list(MacrosOpt) ->
+      'Elixir.IO':warn(<<":macros option in eval is deprecated">>),
+      MacrosOpt;
+    false ->
+      ?key(Env, macros)
+  end,
+
   %% If there is a dead PID or lexical tracker is nil,
   %% we assume the tracers also cannot be (re)used.
   {LexicalTracker, Tracers} = case lists:keyfind(lexical_tracker, 1, Opts) of
     {lexical_tracker, Pid} when is_pid(Pid) ->
+      'Elixir.IO':warn(<<":lexical_tracker option in eval is deprecated">>),
       case is_process_alive(Pid) of
         true -> {Pid, TempTracers};
         false -> {nil, []}
       end;
     {lexical_tracker, nil} ->
+      'Elixir.IO':warn(<<":lexical_tracker option in eval is deprecated">>),
       {nil, []};
     false ->
       {nil, TempTracers}
-  end,
-
-  FA = case lists:keyfind(function, 1, Opts) of
-    {function, {Function, Arity}} when is_atom(Function), is_integer(Arity) -> {Function, Arity};
-    {function, nil} -> nil;
-    false -> nil
   end,
 
   Env#{

@@ -17,8 +17,11 @@ defmodule Logger.Handler do
   defp erlang_level_to_elixir_level(:debug), do: :debug
   defp erlang_level_to_elixir_level(:all), do: :debug
 
-  # TODO: Warn on deprecated level on v1.15
-  def elixir_level_to_erlang_level(:warn), do: :warning
+  def elixir_level_to_erlang_level(:warn) do
+    IO.warn("the log level :warn is deprecated, use :warning instead")
+    :warning
+  end
+
   def elixir_level_to_erlang_level(other), do: other
 
   ## Config management

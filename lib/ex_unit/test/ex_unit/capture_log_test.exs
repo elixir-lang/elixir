@@ -34,7 +34,7 @@ defmodule ExUnit.CaptureLogTest do
   end
 
   test "level aware" do
-    assert capture_log([level: :warn], fn ->
+    assert capture_log([level: :warning], fn ->
              Logger.info("here")
            end) == ""
   end
@@ -61,7 +61,7 @@ defmodule ExUnit.CaptureLogTest do
         logged = capture_log(fn -> Logger.error("one") end)
         send(test = self(), {:nested, logged})
 
-        Logger.warn("two")
+        Logger.warning("two")
 
         spawn(fn ->
           Logger.debug("three")

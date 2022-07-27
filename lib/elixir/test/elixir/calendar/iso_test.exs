@@ -62,14 +62,14 @@ defmodule Calendar.ISOTest do
     end
   end
 
-  describe "day_of_week/3" do
+  describe "day_of_week/4" do
     test "raises with invalid dates" do
       assert_raise ArgumentError, "invalid date: 2018-02-30", fn ->
-        Calendar.ISO.day_of_week(2018, 2, 30)
+        Calendar.ISO.day_of_week(2018, 2, 30, :default)
       end
 
       assert_raise ArgumentError, "invalid date: 2017-11-00", fn ->
-        Calendar.ISO.day_of_week(2017, 11, 0)
+        Calendar.ISO.day_of_week(2017, 11, 0, :default)
       end
     end
   end

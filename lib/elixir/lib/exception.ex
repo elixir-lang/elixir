@@ -49,11 +49,8 @@ defmodule Exception do
     %{general: message(exception), reason: "#" <> Atom.to_string(struct)}
   end
 
-  @doc """
-  Returns `true` if the given `term` is an exception.
-  """
-  # TODO: Deprecate this on Elixir v1.15
-  @doc deprecated: "Use Kernel.is_exception/1 instead"
+  @doc false
+  @deprecated "Use Kernel.is_exception/1 instead"
   def exception?(term)
   def exception?(%_{__exception__: true}), do: true
   def exception?(_), do: false

@@ -57,18 +57,6 @@ defmodule CodeTest do
                {"1", [{:c, 2}, {:b, "1"}, {:a, 1}]}
     end
 
-    test "with many options" do
-      options = [
-        functions: [{Kernel, [is_atom: 1]}],
-        macros: [{Kernel, [and: 2]}],
-        aliases: [{K, Kernel}],
-        requires: [Kernel]
-      ]
-
-      code = "is_atom(:foo) and K.is_list([])"
-      assert Code.eval_string(code, [], options) == {true, []}
-    end
-
     test "keeps caller in stacktrace" do
       try do
         Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
