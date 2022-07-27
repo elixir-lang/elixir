@@ -875,36 +875,34 @@ defmodule ExceptionTest do
     end
   end
 
-  if System.otp_release() >= "24" do
-    describe "error_info" do
-      test "badarg on erlang" do
-        assert message(:erlang, & &1.element("foo", "bar")) == """
-               errors were found at the given arguments:
+  describe "error_info" do
+    test "badarg on erlang" do
+      assert message(:erlang, & &1.element("foo", "bar")) == """
+             errors were found at the given arguments:
 
-                 * 1st argument: not an integer
-                 * 2nd argument: not a tuple
-               """
-      end
+               * 1st argument: not an integer
+               * 2nd argument: not a tuple
+             """
+    end
 
-      test "badarg on ets" do
-        ets = :ets.new(:foo, [])
-        :ets.delete(ets)
+    test "badarg on ets" do
+      ets = :ets.new(:foo, [])
+      :ets.delete(ets)
 
-        assert message(:ets, & &1.insert(ets, 1)) == """
-               errors were found at the given arguments:
+      assert message(:ets, & &1.insert(ets, 1)) == """
+             errors were found at the given arguments:
 
-                 * 1st argument: the table identifier does not refer to an existing ETS table
-                 * 2nd argument: not a tuple
-               """
-      end
+               * 1st argument: the table identifier does not refer to an existing ETS table
+               * 2nd argument: not a tuple
+             """
+    end
 
-      test "system_limit on counters" do
-        assert message(:counters, & &1.new(123_456_789_123_456_789_123_456_789, [])) == """
-               a system limit has been reached due to errors at the given arguments:
+    test "system_limit on counters" do
+      assert message(:counters, & &1.new(123_456_789_123_456_789_123_456_789, [])) == """
+             a system limit has been reached due to errors at the given arguments:
 
-                 * 1st argument: counters array size reached a system limit
-               """
-      end
+               * 1st argument: counters array size reached a system limit
+             """
     end
   end
 

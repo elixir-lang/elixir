@@ -4,11 +4,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
-  if System.otp_release() >= "24" do
-    defmacro position(line, column), do: {line, column}
-  else
-    defmacro position(line, _column), do: line
-  end
+  defmacro position(line, column), do: {line, column}
 
   setup config do
     erlc_options = Map.get(config, :erlc_options, [])

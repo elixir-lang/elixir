@@ -4,11 +4,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
   use MixTest.Case
   import ExUnit.CaptureIO
 
-  if System.otp_release() >= "24" do
-    defmacro position(line, column), do: {line, column}
-  else
-    defmacro position(line, _column), do: line
-  end
+  defmacro position(line, column), do: {line, column}
 
   setup do
     Mix.Project.push(MixTest.Case.Sample)
