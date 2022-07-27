@@ -458,8 +458,6 @@ defmodule DynamicSupervisorTest do
       assert_receive {:EXIT, ^pid, :shutdown}
     end
 
-    # == 
-
     test "with valid shutdown" do
       Process.flag(:trap_exit, true)
 
