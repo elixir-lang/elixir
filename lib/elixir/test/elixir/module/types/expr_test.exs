@@ -68,12 +68,16 @@ defmodule Module.Types.ExprTest do
       assert quoted_expr(<<"foo"::utf8>>) == {:ok, :binary}
     end
 
+    defmacrop custom_type do
+      quote do: 1 * 8 - big - signed - integer
+    end
+
     test "variable" do
       assert quoted_expr([foo], <<foo::little>>) == {:ok, :binary}
       assert quoted_expr([foo], <<foo::integer>>) == {:ok, :binary}
-      assert quoted_expr([foo], <<foo::integer()>>) == {:ok, :binary}
       assert quoted_expr([foo], <<foo::integer-little>>) == {:ok, :binary}
       assert quoted_expr([foo], <<foo::little-integer>>) == {:ok, :binary}
+      assert quoted_expr([foo], <<foo::custom_type()>>) == {:ok, :binary}
     end
 
     test "infer" do

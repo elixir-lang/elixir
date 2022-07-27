@@ -264,13 +264,13 @@ defmodule Kernel.BinaryTest do
     assert <<1::size(foo.bar)>> = <<1::5>>
   end
 
-  defmacrop signed_16 do
+  defmacro signed_16 do
     quote do
       big - signed - integer - unit(16)
     end
   end
 
-  defmacrop refb_spec do
+  defmacro refb_spec do
     quote do
       1 * 8 - big - signed - integer
     end
@@ -281,10 +281,32 @@ defmodule Kernel.BinaryTest do
     sec_data = "another"
 
     <<
-      byte_size(refb)::refb_spec,
+      byte_size(refb)::refb_spec(),
       refb::binary,
-      byte_size(sec_data)::size(1)-signed_16,
+      byte_size(sec_data)::size(1)-signed_16(),
       sec_data::binary
     >>
+  end
+
+  test "bitsyntax macro is expanded with a warning" do
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.eval_string("<<1::refb_spec>>", [], __ENV__)
+           end) =~
+             "bitstring specifier \"refb_spec\" does not exist and is being expanded to \"refb_spec()\""
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.eval_string("<<1::size(1)-signed_16>>", [], __ENV__)
+           end) =~
+             "bitstring specifier \"signed_16\" does not exist and is being expanded to \"signed_16()\""
+  end
+
+  test "bitsyntax with extra parentheses warns" do
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.eval_string("<<1::big()>>")
+           end) =~ "extra parentheses on a bitstring specifier \"big()\" have been deprecated"
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.eval_string("<<1::size(8)-integer()>>")
+           end) =~ "extra parentheses on a bitstring specifier \"integer()\" have been deprecated"
   end
 end

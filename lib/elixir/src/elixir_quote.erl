@@ -140,7 +140,7 @@ do_escape(BitString, _, _) when is_bitstring(BitString) ->
       BitString;
     Size ->
       <<Bits:Size, Bytes/binary>> = BitString,
-      {'<<>>', [], [{'::', [], [Bits, {size, [], [Size]}]}, {'::', [], [Bytes, {binary, [], []}]}]}
+      {'<<>>', [], [{'::', [], [Bits, {size, [], [Size]}]}, {'::', [], [Bytes, {binary, [], nil}]}]}
   end;
 
 do_escape(Map, Q, E) when is_map(Map) ->

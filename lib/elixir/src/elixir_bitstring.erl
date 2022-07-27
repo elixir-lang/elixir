@@ -184,9 +184,14 @@ type(_, default, Type, _) ->
 type(Meta, Other, Value, E) ->
   form_error(Meta, E, ?MODULE, {bittype_mismatch, Value, Other, type}).
 
-expand_each_spec(Meta, [{Expr, _, Args} = H | T], Map, S, OriginalS, E) when is_atom(Expr) ->
+expand_each_spec(Meta, [{Expr, MetaE, Args} = H | T], Map, S, OriginalS, E) when is_atom(Expr) ->
   case validate_spec(Expr, Args) of
     {Key, Arg} ->
+      case Args of
+        [] ->
+          elixir_errors:form_warn(Meta, E, ?MODULE, {parens_bittype, Expr});
+        _ -> ok
+      end,
       {Value, SE, EE} = expand_spec_arg(Arg, S, OriginalS, E),
       validate_spec_arg(Meta, Key, Value, SE, OriginalS, EE),
 
@@ -199,8 +204,14 @@ expand_each_spec(Meta, [{Expr, _, Args} = H | T], Map, S, OriginalS, E) when is_
       expand_each_spec(Meta, T, maps:put(Key, Value, Map), SE, OriginalS, EE);
 
     none ->
-      case 'Elixir.Macro':expand(H, E#{line := ?line(Meta)}) of
-        H ->
+      HA = case Args of
+        nil ->
+          elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_bittype, Expr}),
+          {Expr, MetaE, []};
+        _ -> H
+      end,
+      case 'Elixir.Macro':expand(HA, E#{line := ?line(Meta)}) of
+        HA ->
           form_error(Meta, E, ?MODULE, {undefined_bittype, H});
 
         NewTypes ->
@@ -221,28 +232,29 @@ unpack_specs({'*', _, [Size, Unit]}, Acc) ->
 unpack_specs(Size, Acc) when is_integer(Size) ->
   [{size, [], [Size]} | Acc];
 unpack_specs({Expr, Meta, Args}, Acc) when is_atom(Expr) ->
-  ListArgs = if is_atom(Args) -> []; is_list(Args) -> Args end,
+  ListArgs = if is_atom(Args) -> nil; is_list(Args) -> Args end,
   [{Expr, Meta, ListArgs} | Acc];
 unpack_specs(Other, Acc) ->
   [Other | Acc].
 
-validate_spec(big, [])       -> {endianness, big};
-validate_spec(little, [])    -> {endianness, little};
-validate_spec(native, [])    -> {endianness, native};
-validate_spec(size, [Size])  -> {size, Size};
-validate_spec(unit, [Unit])  -> {unit, Unit};
-validate_spec(integer, [])   -> {type, integer};
-validate_spec(float, [])     -> {type, float};
-validate_spec(binary, [])    -> {type, binary};
-validate_spec(bytes, [])     -> {type, binary};
-validate_spec(bitstring, []) -> {type, bitstring};
-validate_spec(bits, [])      -> {type, bitstring};
-validate_spec(utf8, [])      -> {type, utf8};
-validate_spec(utf16, [])     -> {type, utf16};
-validate_spec(utf32, [])     -> {type, utf32};
-validate_spec(signed, [])    -> {sign, signed};
-validate_spec(unsigned, [])  -> {sign, unsigned};
-validate_spec(_, _)          -> none.
+validate_spec(Spec, [])       -> validate_spec(Spec, nil);
+validate_spec(big, nil)       -> {endianness, big};
+validate_spec(little, nil)    -> {endianness, little};
+validate_spec(native, nil)    -> {endianness, native};
+validate_spec(size, [Size])   -> {size, Size};
+validate_spec(unit, [Unit])   -> {unit, Unit};
+validate_spec(integer, nil)   -> {type, integer};
+validate_spec(float, nil)     -> {type, float};
+validate_spec(binary, nil)    -> {type, binary};
+validate_spec(bytes, nil)     -> {type, binary};
+validate_spec(bitstring, nil) -> {type, bitstring};
+validate_spec(bits, nil)      -> {type, bitstring};
+validate_spec(utf8, nil)      -> {type, utf8};
+validate_spec(utf16, nil)     -> {type, utf16};
+validate_spec(utf32, nil)     -> {type, utf32};
+validate_spec(signed, nil)    -> {sign, signed};
+validate_spec(unsigned, nil)  -> {sign, unsigned};
+validate_spec(_, _)           -> none.
 
 expand_spec_arg(Expr, S, _OriginalS, E) when is_atom(Expr); is_integer(Expr) ->
   {Expr, S, E};
@@ -373,6 +385,13 @@ format_error({invalid_literal, Literal}) ->
   io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
 format_error({undefined_bittype, Expr}) ->
   io_lib:format("unknown bitstring specifier: ~ts", ['Elixir.Macro':to_string(Expr)]);
+format_error({unknown_bittype, Name}) ->
+  io_lib:format("bitstring specifier \"~ts\" does not exist and is being expanded to \"~ts()\","
+                " please use parentheses to remove the ambiguity", [Name, Name]);
+format_error({parens_bittype, Name}) ->
+    io_lib:format("extra parentheses on a bitstring specifier \"~ts()\" have been deprecated. "
+    "Please remove the parentheses: \"~ts\"",
+    [Name, Name]);
 format_error({bittype_mismatch, Val1, Val2, Where}) ->
   io_lib:format("conflicting ~ts specification for bit field: \"~p\" and \"~p\"", [Where, Val1, Val2]);
 format_error({bad_unit_argument, Unit}) ->
