@@ -773,7 +773,7 @@ defmodule Mix.Release do
 
     release.erts_source
     |> Path.join("bin")
-    |> File.cp_r!(destination)
+    |> File.cp_r!(destination, on_conflict: fn _, _ -> false end)
 
     _ = File.rm(Path.join(destination, "erl"))
     _ = File.rm(Path.join(destination, "erl.ini"))
