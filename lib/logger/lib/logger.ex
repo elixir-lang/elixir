@@ -628,7 +628,7 @@ defmodule Logger do
     Logger.Config.configure(options)
 
     # Then we can read from the writes
-    :ok = :logger.set_handler_config(Logger, %{config: %{}})
+    :ok = :logger.update_handler_config(Logger, :config, :refresh)
   end
 
   @doc """

@@ -128,7 +128,6 @@ defmodule Logger.Config do
   defp update_translators(fun) do
     {:ok, %{config: data}} = :logger.get_handler_config(Logger)
     translators = fun.(data.translators)
-    Application.put_env(:logger, :translators, translators)
-    :ok = :logger.update_handler_config(Logger, :config, translators: translators)
+    :ok = :logger.update_handler_config(Logger, :config, {:translators, translators})
   end
 end

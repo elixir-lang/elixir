@@ -27,27 +27,13 @@ defmodule Logger.Handler do
     {:ok, update_in(config.config, &Map.merge(default_config(), &1))}
   end
 
-  def changing_config(
-        op,
-        %{config: %{counter: counter} = old_data} = old_config,
-        %{config: new_data} = new_config
-      ) do
-    old_data =
-      case op do
-        :set -> default_config()
-        :update -> old_data
-      end
+  def changing_config(:update, config, %{config: :refresh}) do
+    {:ok, update_in(config.config, &Map.merge(&1, default_config()))}
+  end
 
-    data =
-      Enum.reduce(new_data, old_data, fn {k, v}, acc ->
-        case acc do
-          %{^k => _} -> %{acc | k => v}
-          %{} -> acc
-        end
-      end)
-
-    config = Map.merge(old_config, new_config)
-    {:ok, Map.put(config, :config, Map.put(data, :counter, counter))}
+  def changing_config(:update, config, %{config: {:translators, translators}}) do
+    Application.put_env(:logger, :translators, translators)
+    {:ok, put_in(config.config.translators, translators)}
   end
 
   def filter_config(%{config: data} = config) do
