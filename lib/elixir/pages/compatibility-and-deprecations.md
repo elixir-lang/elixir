@@ -8,12 +8,12 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.14           | Development
-1.13           | Bug fixes and security patches
+1.15           | Development
+1.14           | Bug fixes and security patches
+1.13           | Security patches only
 1.12           | Security patches only
 1.11           | Security patches only
 1.10           | Security patches only
-1.9            | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
@@ -84,6 +84,8 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.14] | `Application.get_env/3` and similar in module body  | `Application.compile_env/3` (v1.10)
 [v1.14] | Compiled patterns in `String.starts_with?/2`        | Pass a list of strings instead (v1.0)
 [v1.14] | `Mix.Tasks.Xref.calls/1`                            | Compilation tracers (outlined in `Code`) (v1.10)
+[v1.14] | `$levelpad` in Logger                               | *None*
+[v1.14] | `<|>` as a custom operator                          | Another custom operator (v1.0)
 [v1.13] | `!` and `!=` in Version requirements                | `~>` or `>=` (v1.0)
 [v1.13] | `Mix.Config`                                        | `Config` (v1.9)
 [v1.13] | `:strip_beam` config to `mix escript.build`         | `:strip_beams` (v1.9)
@@ -195,4 +197,5 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.11]: https://github.com/elixir-lang/elixir/blob/v1.11/CHANGELOG.md#4-hard-deprecations
 [v1.12]: https://github.com/elixir-lang/elixir/blob/v1.12/CHANGELOG.md#4-hard-deprecations
 [v1.13]: https://github.com/elixir-lang/elixir/blob/v1.13/CHANGELOG.md#4-hard-deprecations
-[v1.14]: CHANGELOG.md#4-hard-deprecations
+[v1.14]: https://github.com/elixir-lang/elixir/blob/v1.14/CHANGELOG.md#4-hard-deprecations
+[v1.15]: CHANGELOG.md#4-hard-deprecations
