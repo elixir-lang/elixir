@@ -436,9 +436,6 @@ defmodule Task do
     async(:erlang, :apply, [fun, []])
   end
 
-  # TODO: Remove conditional on Erlang/OTP 24
-  @compile {:no_warn_undefined, {:erlang, :monitor, 3}}
-
   @doc """
   Starts a task that must be awaited on.
 
@@ -454,16 +451,9 @@ defmodule Task do
     owner = self()
     {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor)
 
-    {reply_to, ref} =
-      if function_exported?(:erlang, :monitor, 3) do
-        ref = :erlang.monitor(:process, pid, alias: :demonitor)
-        {ref, ref}
-      else
-        {owner, Process.monitor(pid)}
-      end
-
-    send(pid, {owner, ref, reply_to, get_callers(owner), mfargs})
-    %Task{pid: pid, ref: ref, owner: owner, mfa: {module, function_name, length(args)}}
+    alias = :erlang.monitor(:process, pid, alias: :demonitor)
+    send(pid, {owner, alias, alias, get_callers(owner), mfargs})
+    %Task{pid: pid, ref: alias, owner: owner, mfa: {module, function_name, length(args)}}
   end
 
   @doc """
@@ -843,15 +833,9 @@ defmodule Task do
   Important: avoid using [`Task.async/1,3`](`async/1`) and then immediately ignoring
   the task. If you want to start tasks you don't care about their
   results, use `Task.Supervisor.start_child/2` instead.
-
-  Requires Erlang/OTP 24+.
   """
   @doc since: "1.13.0"
   def ignore(%Task{ref: ref, pid: pid, owner: owner} = task) do
-    unless function_exported?(:erlang, :monitor, 3) do
-      raise "Task.ignore/1 requires Erlang/OTP 24+"
-    end
-
     if owner != self() do
       raise ArgumentError, invalid_owner_error(task)
     end

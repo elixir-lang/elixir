@@ -504,9 +504,6 @@ defmodule Task.Supervisor do
     end
   end
 
-  # TODO: Remove conditional on Erlang/OTP 24
-  @compile {:no_warn_undefined, {:erlang, :monitor, 3}}
-
   defp async(supervisor, link_type, module, fun, args, options) do
     owner = self()
     shutdown = options[:shutdown]
@@ -514,17 +511,9 @@ defmodule Task.Supervisor do
     case start_child_with_spec(supervisor, [get_owner(owner), :monitor], :temporary, shutdown) do
       {:ok, pid} ->
         if link_type == :link, do: Process.link(pid)
-
-        {reply_to, ref} =
-          if function_exported?(:erlang, :monitor, 3) do
-            ref = :erlang.monitor(:process, pid, alias: :demonitor)
-            {ref, ref}
-          else
-            {owner, Process.monitor(pid)}
-          end
-
-        send(pid, {owner, ref, reply_to, get_callers(owner), {module, fun, args}})
-        %Task{pid: pid, ref: ref, owner: owner, mfa: {module, fun, length(args)}}
+        alias = :erlang.monitor(:process, pid, alias: :demonitor)
+        send(pid, {owner, alias, alias, get_callers(owner), {module, fun, args}})
+        %Task{pid: pid, ref: alias, owner: owner, mfa: {module, fun, length(args)}}
 
       {:error, :max_children} ->
         raise """

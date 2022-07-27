@@ -536,10 +536,8 @@ defmodule Supervisor do
   @typedoc "Supported restart options"
   @type restart :: :permanent | :transient | :temporary
 
-  # TODO: Update :shutdown to "timeout() | :brutal_kill" when we require Erlang/OTP 24.
-  #       Additionally apply https://github.com/elixir-lang/elixir/pull/11836
   @typedoc "Supported shutdown options"
-  @type shutdown :: pos_integer() | :infinity | :brutal_kill
+  @type shutdown :: timeout() | :brutal_kill
 
   @typedoc "Supported strategies"
   @type strategy :: :one_for_one | :one_for_all | :rest_for_one

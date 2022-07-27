@@ -111,10 +111,10 @@ preload_common_modules() ->
 parse_otp_release() ->
   %% Whenever we change this check, we should also change Makefile.
   case string:to_integer(erlang:system_info(otp_release)) of
-    {Num, _} when Num >= 23 ->
+    {Num, _} when Num >= 24 ->
       Num;
     _ ->
-      io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 23+~n", []),
+      io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 24+~n", []),
       erlang:halt(1)
   end.
 

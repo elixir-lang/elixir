@@ -597,9 +597,6 @@ defmodule System do
     end
   end
 
-  # TODO: Remove this once we require Erlang/OTP 24+
-  @compile {:no_warn_undefined, {:os, :env, 0}}
-
   @doc """
   Returns all system environment variables.
 
@@ -608,17 +605,9 @@ defmodule System do
   """
   @spec get_env() :: %{optional(String.t()) => String.t()}
   def get_env do
-    if function_exported?(:os, :env, 0) do
-      Map.new(:os.env(), fn {k, v} ->
-        {IO.chardata_to_string(k), IO.chardata_to_string(v)}
-      end)
-    else
-      Enum.into(:os.getenv(), %{}, fn var ->
-        var = IO.chardata_to_string(var)
-        [k, v] = String.split(var, "=", parts: 2)
-        {k, v}
-      end)
-    end
+    Map.new(:os.env(), fn {k, v} ->
+      {IO.chardata_to_string(k), IO.chardata_to_string(v)}
+    end)
   end
 
   @doc """
