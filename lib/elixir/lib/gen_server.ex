@@ -1043,12 +1043,12 @@ defmodule GenServer do
   end
 
   @doc """
-  Sends an asynchronous request to the `server`.
+  Casts a request to the `server` without waiting for a response.
 
   This function always returns `:ok` regardless of whether
   the destination `server` (or node) exists. Therefore it
   is unknown whether the destination `server` successfully
-  handled the message.
+  handled the request.
 
   `server` can be any of the values described in the "Name registration"
   section of the documentation for this module.
@@ -1123,10 +1123,6 @@ defmodule GenServer do
   `nodes` is a list of node names to which the request is sent. The default
   value is the list of all known nodes (including this node).
 
-  To avoid that late answers (after the timeout) pollute the caller's message
-  queue, a middleman process is used to do the actual calls. Late answers will
-  then be discarded when they arrive to a terminated process.
-
   ## Examples
 
   Assuming the `Stack` GenServer mentioned in the docs for the `GenServer`
@@ -1174,11 +1170,8 @@ defmodule GenServer do
 
   """
   @spec reply(from, term) :: :ok
-  def reply(client, reply)
-
-  def reply({to, tag}, reply) when is_pid(to) do
-    send(to, {tag, reply})
-    :ok
+  def reply(client, reply) do
+    :gen.reply(client, reply)
   end
 
   @doc """
