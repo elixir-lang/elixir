@@ -256,22 +256,20 @@ defmodule TaskTest do
   end
 
   describe "await/2" do
-    if System.otp_release() >= "24" do
-      test "demonitors and unalias on timeout" do
-        task =
-          Task.async(fn ->
-            assert_receive :go
-            :done
-          end)
+    test "demonitors and unalias on timeout" do
+      task =
+        Task.async(fn ->
+          assert_receive :go
+          :done
+        end)
 
-        assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
-        send(task.pid, :go)
-        ref = task.ref
+      assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
+      send(task.pid, :go)
+      ref = task.ref
 
-        wait_until_down(task)
-        refute_received {^ref, :done}
-        refute_received {:DOWN, ^ref, _, _, _}
-      end
+      wait_until_down(task)
+      refute_received {^ref, :done}
+      refute_received {:DOWN, ^ref, _, _, _}
     end
 
     test "exits on timeout" do

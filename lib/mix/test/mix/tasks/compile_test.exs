@@ -3,11 +3,7 @@ Code.require_file("../../test_helper.exs", __DIR__)
 defmodule Mix.Tasks.CompileTest do
   use MixTest.Case
 
-  if System.otp_release() >= "24" do
-    defmacro position(line, column), do: {line, column}
-  else
-    defmacro position(line, _column), do: line
-  end
+  defmacro position(line, column), do: {line, column}
 
   defmodule CustomCompilers do
     def project do

@@ -71,21 +71,19 @@ defmodule Kernel.RaiseTest do
     end
   end
 
-  if System.otp_release() >= "24" do
-    test "raise with error_info" do
-      {exception, stacktrace} =
-        try do
-          raise "a"
-        rescue
-          e -> {e, __STACKTRACE__}
-        end
+  test "raise with error_info" do
+    {exception, stacktrace} =
+      try do
+        raise "a"
+      rescue
+        e -> {e, __STACKTRACE__}
+      end
 
-      assert [{__MODULE__, _, _, meta} | _] = stacktrace
-      assert meta[:error_info] == %{module: Exception}
+    assert [{__MODULE__, _, _, meta} | _] = stacktrace
+    assert meta[:error_info] == %{module: Exception}
 
-      assert Exception.format_error(exception, stacktrace) ==
-               %{general: "a", reason: "#Elixir.RuntimeError"}
-    end
+    assert Exception.format_error(exception, stacktrace) ==
+             %{general: "a", reason: "#Elixir.RuntimeError"}
   end
 
   test "reraise message" do
