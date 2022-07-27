@@ -80,6 +80,10 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.15] | `Calendar.ISO.day_of_week/3`                        | `Calendar.ISO.day_of_week/4` (v1.11)
+[v1.15] | `Exception.exception?/1`                            | `Kernel.is_exception/1` (v1.11)
+[v1.15] | `Regex.regex?/1`                                    | `Kernel.is_struct/2` (v1.11)
+[v1.15] | `Logger.warn/2`                                     | `Logger.warning/2` (v1.11)
 [v1.14] | `use Bitwise`                                       | `import Bitwise` (v1.0)
 [v1.14] | `~~~/1`                                             | `bnot/2` (v1.0)
 [v1.14] | `Application.get_env/3` and similar in module body  | `Application.compile_env/3` (v1.10)

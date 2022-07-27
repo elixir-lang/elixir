@@ -177,7 +177,7 @@ defmodule Code.Formatter.IntegrationTest do
           str |> Model.Node.model_to_node_type()
 
         value, _ ->
-          Logger.warn("Could not extract node type from value: #{inspect(value)}")
+          Logger.warning("Could not extract node type from value: #{inspect(value)}")
           nil
       end)
     end

@@ -807,7 +807,7 @@ defmodule Module do
   def create(module, quoted, opts)
 
   def create(module, quoted, %Macro.Env{} = env) when is_atom(module) do
-    create(module, quoted, Map.to_list(env))
+    create([line: env.line], module, quoted, env)
   end
 
   def create(module, quoted, opts) when is_atom(module) and is_list(opts) do
@@ -815,10 +815,14 @@ defmodule Module do
       raise ArgumentError, "expected :file to be given as option"
     end
 
-    next = :elixir_module.next_counter(nil)
     meta = Keyword.take(opts, [:line, :generated])
+    create(meta, module, quoted, :elixir.env_for_eval(opts))
+  end
+
+  defp create(meta, module, quoted, env_or_opts) do
+    next = :elixir_module.next_counter(nil)
     quoted = :elixir_quote.linify_with_context_counter(meta, {module, next}, quoted)
-    :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
+    :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(env_or_opts))
   end
 
   @doc """

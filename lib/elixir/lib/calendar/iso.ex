@@ -877,8 +877,8 @@ defmodule Calendar.ISO do
     rem(year, 4) === 0 and (rem(year, 100) !== 0 or rem(year, 400) === 0)
   end
 
-  # TODO: Deprecate me on v1.15
   @doc false
+  @deprecated "Use Calendar.ISO.day_of_week/4 instead"
   def day_of_week(year, month, day) do
     day_of_week(year, month, day, :default) |> elem(0)
   end

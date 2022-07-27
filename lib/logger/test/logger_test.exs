@@ -124,9 +124,6 @@ defmodule LoggerTest do
     Logger.configure(level: :notice)
     assert Logger.level() == :notice
 
-    Logger.configure(level: :warn)
-    assert Logger.level() == :warning
-
     Logger.configure(level: :warning)
     assert Logger.level() == :warning
 
@@ -410,7 +407,6 @@ defmodule LoggerTest do
     assert Logger.compare_levels(:debug, :debug) == :eq
     assert Logger.compare_levels(:debug, :info) == :lt
     assert Logger.compare_levels(:debug, :notice) == :lt
-    assert Logger.compare_levels(:debug, :warn) == :lt
     assert Logger.compare_levels(:debug, :warning) == :lt
     assert Logger.compare_levels(:debug, :error) == :lt
     assert Logger.compare_levels(:debug, :critical) == :lt
@@ -419,32 +415,30 @@ defmodule LoggerTest do
 
     assert Logger.compare_levels(:info, :debug) == :gt
     assert Logger.compare_levels(:info, :info) == :eq
-    assert Logger.compare_levels(:info, :warn) == :lt
+    assert Logger.compare_levels(:info, :warning) == :lt
     assert Logger.compare_levels(:info, :error) == :lt
 
-    assert Logger.compare_levels(:warn, :debug) == :gt
-    assert Logger.compare_levels(:warn, :info) == :gt
-    assert Logger.compare_levels(:warn, :warn) == :eq
-    assert Logger.compare_levels(:warn, :error) == :lt
+    assert Logger.compare_levels(:warning, :debug) == :gt
+    assert Logger.compare_levels(:warning, :info) == :gt
+    assert Logger.compare_levels(:warning, :warning) == :eq
+    assert Logger.compare_levels(:warning, :error) == :lt
 
     assert Logger.compare_levels(:error, :debug) == :gt
     assert Logger.compare_levels(:error, :info) == :gt
-    assert Logger.compare_levels(:error, :warn) == :gt
+    assert Logger.compare_levels(:error, :warning) == :gt
     assert Logger.compare_levels(:error, :error) == :eq
   end
 
   test "deprecated :warn" do
-    assert capture_log(fn ->
-             Logger.warn("hello") == :ok
-           end) =~ "[warning]"
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert capture_log(fn ->
+               Logger.log(:warn, "hello") == :ok
+             end) =~ "[warning]"
 
-    assert capture_log(fn ->
-             Logger.log(:warn, "hello") == :ok
-           end) =~ "[warning]"
-
-    assert capture_log(fn ->
-             Logger.bare_log(:warn, "hello") == :ok
-           end) =~ "[warning]"
+      assert capture_log(fn ->
+               Logger.bare_log(:warn, "hello") == :ok
+             end) =~ "[warning]"
+    end)
   end
 
   describe "levels" do
@@ -487,20 +481,6 @@ defmodule LoggerTest do
 
       assert capture_log(:error, fn ->
                assert Logger.warning(raise("not invoked"), []) == :ok
-             end) == ""
-    end
-
-    test "warn/2" do
-      assert capture_log(fn ->
-               assert Logger.warn("hello", []) == :ok
-             end) =~ msg_with_meta("[warning] hello")
-
-      assert capture_log(:error, fn ->
-               assert Logger.warn("hello", []) == :ok
-             end) == ""
-
-      assert capture_log(:error, fn ->
-               assert Logger.warn(raise("not invoked"), []) == :ok
              end) == ""
     end
 
@@ -568,7 +548,7 @@ defmodule LoggerTest do
         [module: LoggerTest.PurgeMatching, function: "two_filters/0"],
         [function: "one_filter/0"],
         [custom: true],
-        [function: "level_filter/0", level_lower_than: :warn],
+        [function: "level_filter/0", level_lower_than: :warning],
         [application: :sample_app, level_lower_than: :info]
       ]
     )
@@ -588,7 +568,6 @@ defmodule LoggerTest do
 
       def level_filter do
         Logger.info("info_filter")
-        Logger.warn("warn_filter")
         Logger.warning("warning_filter")
       end
 
@@ -605,7 +584,7 @@ defmodule LoggerTest do
     assert capture_log(fn -> assert PurgeMatching.one_filter() == :ok end) == ""
     assert capture_log(fn -> assert PurgeMatching.two_filters() == :ok end) == ""
     assert capture_log(fn -> assert PurgeMatching.custom_filters() == :ok end) == ""
-    assert capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "warn_filter"
+    assert capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "warning_filter"
     refute capture_log(fn -> assert PurgeMatching.level_filter() == :ok end) =~ "info_filter"
 
     capture_log(fn -> assert PurgeMatching.log(:info) == :ok end)
@@ -695,10 +674,10 @@ defmodule LoggerTest do
     Application.start(:logger)
   end
 
-  test "starts the application with warn level" do
+  test "starts the application with warning level" do
     Logger.App.stop()
     assert %{level: :notice} = :logger.get_primary_config()
-    Application.put_env(:logger, :level, :warn)
+    Application.put_env(:logger, :level, :warning)
     Application.start(:logger)
     assert %{level: :warning} = :logger.get_primary_config()
   after

@@ -84,36 +84,11 @@ defmodule Logger.App do
         end
     }
 
-    %{level: erl_level} = primary_config = :logger.get_primary_config()
+    primary_config = :logger.get_primary_config()
+    level = Application.get_env(:logger, :level, :debug)
+    level = Logger.Handler.elixir_level_to_erlang_level(level)
 
-    # Elixir's logger level is no longer set by default.
-    #
-    # If it is set, it always has higher precedence, but we warn
-    # in case of mismatches.
-    #
-    # If it is not set, we revert Erlang's kernel to debug, if it
-    # has its default value, otherwise, we keep it as is.
-    case Application.fetch_env(:logger, :level) do
-      {:ok, app_level} ->
-        level = Logger.Handler.elixir_level_to_erlang_level(app_level)
-
-        if erl_level != :notice and erl_level != level do
-          IO.warn(
-            "the level for Erlang's logger was set to #{inspect(erl_level)}, " <>
-              "but Elixir's logger was set to #{inspect(app_level)}. " <>
-              "Elixir's logger value will take higher precedence"
-          )
-        end
-
-        :ok = :logger.set_primary_config(:level, level)
-
-      :error when erl_level == :notice ->
-        :ok = :logger.set_primary_config(:level, :debug)
-
-      :error ->
-        :ok
-    end
-
+    :ok = :logger.set_primary_config(:level, level)
     :ok = :logger.add_primary_filter(:process_level, {&Logger.Filter.process_level/2, []})
     :ok = :logger.add_handler(Logger, Logger.Handler, config)
     primary_config

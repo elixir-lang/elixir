@@ -294,12 +294,8 @@ defmodule Regex do
     safe_run(regex, string, [{:capture, :none}]) == :match
   end
 
-  @doc """
-  Returns `true` if the given `term` is a regex.
-  Otherwise returns `false`.
-  """
-  # TODO: deprecate permanently on Elixir v1.15
-  @doc deprecated: "Use Kernel.is_struct/2 or pattern match on %Regex{} instead"
+  @doc false
+  @deprecated "Use Kernel.is_struct/2 or pattern match on %Regex{} instead"
   def regex?(term)
   def regex?(%Regex{}), do: true
   def regex?(_), do: false

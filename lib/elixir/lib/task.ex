@@ -1024,7 +1024,7 @@ defmodule Task do
           result
 
         nil ->
-          Logger.warn("Failed to get a result in #{timeout}ms")
+          Logger.warning("Failed to get a result in #{timeout}ms")
           nil
       end
 
@@ -1036,7 +1036,7 @@ defmodule Task do
           result
 
         nil ->
-          Logger.warn("Failed to get a result in #{timeout}ms")
+          Logger.warning("Failed to get a result in #{timeout}ms")
           nil
       end
 

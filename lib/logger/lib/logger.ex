@@ -914,7 +914,6 @@ defmodule Logger do
     emergency: :error,
     alert: :error,
     critical: :error,
-    warning: :warn,
     notice: :info
   }
 
@@ -958,19 +957,7 @@ defmodule Logger do
     end
   end
 
-  @doc """
-  Logs a warning message.
-
-  Returns `:ok`.
-
-  This macro is deprecated in favour of `warning/2`.
-
-  ## Examples
-
-      Logger.warn("knob turned too far to the right")
-
-  """
-  # TODO: Hard deprecate it in favour of `warning/1-2` macro on v1.15
+  @deprecated "Use Logger.warning/2 instead"
   defmacro warn(message_or_fun, metadata \\ []) do
     maybe_log(:warning, message_or_fun, metadata, __CALLER__)
   end
