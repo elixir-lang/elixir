@@ -89,6 +89,9 @@ defmodule IEx.CLI do
   defp tty_args do
     if remote = get_remsh(:init.get_plain_arguments()) do
       if Node.alive?() do
+        # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
+        _ = :net_kernel.connect_node(remote)
+
         case :rpc.call(remote, :code, :ensure_loaded, [IEx]) do
           {:badrpc, reason} ->
             message =
@@ -166,7 +169,7 @@ defmodule IEx.CLI do
 
   defp append_hostname(node) do
     case :string.find(node, '@') do
-      :nomatch -> node ++ :string.find(Atom.to_charlist(node()), '@')
+      :nomatch -> node ++ :string.find(Atom.to_charlist(:net_kernel.nodename()), '@')
       _ -> node
     end
   end
