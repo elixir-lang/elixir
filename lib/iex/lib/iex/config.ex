@@ -56,11 +56,7 @@ defmodule IEx.Config do
   end
 
   def alive_continuation_prompt() do
-    Application.get_env(
-      :iex,
-      :alive_continuation_prompt,
-      alive_prompt()
-    )
+    Application.get_env(:iex, :alive_continuation_prompt, alive_prompt())
   end
 
   def parser() do
