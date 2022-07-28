@@ -53,10 +53,15 @@ defmodule MapSet do
   @type value :: term
 
   @opaque internal(value) :: :sets.set(value)
-  @type t(value) :: %__MODULE__{set: internal(value)}
+  @type t(value) :: %__MODULE__{map: internal(value)}
   @type t :: t(term)
 
-  defstruct set: :sets.new(version: 2)
+  # The key name is :map because the MapSet implementation used to be based on top of maps before
+  # Elixir 1.15 (and Erlang/OTP 24, which introduced :sets version 2). :sets v2's internal
+  # representation is, anyways, exactly the same as MapSet's previous implementation. We cannot
+  # change the :map key name here because we'd break backwards compatibility with code compiled
+  # with Elixir 1.14 and earlier and executed on Elixir 1.15+.
+  defstruct map: :sets.new(version: 2)
 
   @doc """
   Returns a new set.
@@ -92,7 +97,7 @@ defmodule MapSet do
       |> Enum.to_list()
       |> :sets.from_list(version: 2)
 
-    %MapSet{set: set}
+    %MapSet{map: set}
   end
 
   @doc """
@@ -111,7 +116,7 @@ defmodule MapSet do
       |> Enum.map(transform)
       |> :sets.from_list(version: 2)
 
-    %MapSet{set: set}
+    %MapSet{map: set}
   end
 
   @doc """
@@ -129,8 +134,8 @@ defmodule MapSet do
 
   """
   @spec delete(t(val1), val2) :: t(val1) when val1: value, val2: value
-  def delete(%MapSet{set: set} = map_set, value) do
-    %{map_set | set: :sets.del_element(value, set)}
+  def delete(%MapSet{map: set} = map_set, value) do
+    %{map_set | map: :sets.del_element(value, set)}
   end
 
   @doc """
@@ -143,8 +148,8 @@ defmodule MapSet do
 
   """
   @spec difference(t(val1), t(val2)) :: t(val1) when val1: value, val2: value
-  def difference(%MapSet{set: set1} = map_set1, %MapSet{set: set2} = _map_set2) do
-    %{map_set1 | set: :sets.subtract(set1, set2)}
+  def difference(%MapSet{map: set1} = map_set1, %MapSet{map: set2} = _map_set2) do
+    %{map_set1 | map: :sets.subtract(set1, set2)}
   end
 
   @doc """
@@ -158,7 +163,7 @@ defmodule MapSet do
   """
   @doc since: "1.14.0"
   @spec symmetric_difference(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
-  def symmetric_difference(%MapSet{set: set1} = map_set1, %MapSet{set: set2} = _map_set2) do
+  def symmetric_difference(%MapSet{map: set1} = map_set1, %MapSet{map: set2} = _map_set2) do
     {small, large} = if :sets.size(set1) <= :sets.size(set2), do: {set1, set2}, else: {set2, set1}
 
     disjointer_fun = fn elem, {small, acc} ->
@@ -170,7 +175,7 @@ defmodule MapSet do
     end
 
     {new_small, list} = :sets.fold(disjointer_fun, {small, []}, large)
-    %{map_set1 | set: :sets.union(new_small, :sets.from_list(list, version: 2))}
+    %{map_set1 | map: :sets.union(new_small, :sets.from_list(list, version: 2))}
   end
 
   @doc """
@@ -185,7 +190,7 @@ defmodule MapSet do
 
   """
   @spec disjoint?(t, t) :: boolean
-  def disjoint?(%MapSet{set: set1}, %MapSet{set: set2}) do
+  def disjoint?(%MapSet{map: set1}, %MapSet{map: set2}) do
     :sets.is_disjoint(set1, set2)
   end
 
@@ -207,7 +212,7 @@ defmodule MapSet do
 
   """
   @spec equal?(t, t) :: boolean
-  def equal?(%MapSet{set: set1}, %MapSet{set: set2}) do
+  def equal?(%MapSet{map: set1}, %MapSet{map: set2}) do
     set1 === set2
   end
 
@@ -224,8 +229,8 @@ defmodule MapSet do
 
   """
   @spec intersection(t(val), t(val)) :: t(val) when val: value
-  def intersection(%MapSet{set: set1} = map_set1, %MapSet{set: set2} = _map_set2) do
-    %{map_set1 | set: :sets.intersection(set1, set2)}
+  def intersection(%MapSet{map: set1} = map_set1, %MapSet{map: set2} = _map_set2) do
+    %{map_set1 | map: :sets.intersection(set1, set2)}
   end
 
   @doc """
@@ -240,7 +245,7 @@ defmodule MapSet do
 
   """
   @spec member?(t, value) :: boolean
-  def member?(%MapSet{set: set}, value) do
+  def member?(%MapSet{map: set}, value) do
     :sets.is_element(value, set)
   end
 
@@ -256,8 +261,8 @@ defmodule MapSet do
 
   """
   @spec put(t(val), new_val) :: t(val | new_val) when val: value, new_val: value
-  def put(%MapSet{set: set} = map_set, value) do
-    %{map_set | set: :sets.add_element(value, set)}
+  def put(%MapSet{map: set} = map_set, value) do
+    %{map_set | map: :sets.add_element(value, set)}
   end
 
   @doc """
@@ -270,7 +275,7 @@ defmodule MapSet do
 
   """
   @spec size(t) :: non_neg_integer
-  def size(%MapSet{set: set}) do
+  def size(%MapSet{map: set}) do
     :sets.size(set)
   end
 
@@ -288,7 +293,7 @@ defmodule MapSet do
 
   """
   @spec subset?(t, t) :: boolean
-  def subset?(%MapSet{set: set1}, %MapSet{set: set2}) do
+  def subset?(%MapSet{map: set1}, %MapSet{map: set2}) do
     :sets.is_subset(set1, set2)
   end
 
@@ -302,7 +307,7 @@ defmodule MapSet do
 
   """
   @spec to_list(t(val)) :: [val] when val: value
-  def to_list(%MapSet{set: set}) do
+  def to_list(%MapSet{map: set}) do
     :sets.to_list(set)
   end
 
@@ -316,8 +321,8 @@ defmodule MapSet do
 
   """
   @spec union(t(val1), t(val2)) :: t(val1 | val2) when val1: value, val2: value
-  def union(%MapSet{set: set1} = map_set1, %MapSet{set: set2} = _map_set2) do
-    %{map_set1 | set: :sets.union(set1, set2)}
+  def union(%MapSet{map: set1} = map_set1, %MapSet{map: set2} = _map_set2) do
+    %{map_set1 | map: :sets.union(set1, set2)}
   end
 
   @doc """
@@ -343,9 +348,9 @@ defmodule MapSet do
   """
   @doc since: "1.14.0"
   @spec filter(t(a), (a -> as_boolean(term))) :: t(a) when a: value
-  def filter(%MapSet{set: set} = map_set, fun) when is_function(fun) do
+  def filter(%MapSet{map: set} = map_set, fun) when is_function(fun) do
     pred = fn element -> !!fun.(element) end
-    %{map_set | set: :sets.filter(pred, set)}
+    %{map_set | map: :sets.filter(pred, set)}
   end
 
   @doc """
@@ -365,9 +370,9 @@ defmodule MapSet do
   """
   @doc since: "1.14.0"
   @spec reject(t(a), (a -> as_boolean(term))) :: t(a) when a: value
-  def reject(%MapSet{set: set} = map_set, fun) when is_function(fun) do
+  def reject(%MapSet{map: set} = map_set, fun) when is_function(fun) do
     pred = fn element -> !fun.(element) end
-    %{map_set | set: :sets.filter(pred, set)}
+    %{map_set | map: :sets.filter(pred, set)}
   end
 
   defimpl Enumerable do
@@ -390,10 +395,10 @@ defmodule MapSet do
   end
 
   defimpl Collectable do
-    def into(%@for{set: set} = map_set) do
+    def into(%@for{map: set} = map_set) do
       fun = fn
         list, {:cont, x} -> [x | list]
-        list, :done -> %{map_set | set: :sets.union(set, :sets.from_list(list, version: 2))}
+        list, :done -> %{map_set | map: :sets.union(set, :sets.from_list(list, version: 2))}
         _, :halt -> :ok
       end
 
