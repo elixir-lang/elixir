@@ -27,11 +27,30 @@ defmodule ProcessTest do
   end
 
   # In contrast with other inlined functions,
-  # it is important to test that monitor/1 is inlined,
+  # it is important to test that monitor/1,2 are inlined,
   # this way we gain the monitor receive optimisation.
-  test "monitor/1 is inlined" do
+  test "monitor/1 and monitor/2 are inlined" do
     assert expand(quote(do: Process.monitor(pid())), __ENV__) ==
              quote(do: :erlang.monitor(:process, pid()))
+
+    assert expand(quote(do: Process.monitor(pid(), alias: :demonitor)), __ENV__) ==
+             quote(do: :erlang.monitor(:process, pid(), alias: :demonitor))
+  end
+
+  test "monitor/2 with monitor options" do
+    pid =
+      spawn(fn ->
+        receive do
+          {:ping, source_alias} -> send(source_alias, :pong)
+        end
+      end)
+
+    ref_and_alias = Process.monitor(pid, alias: :reply_demonitor)
+
+    send(pid, {:ping, ref_and_alias})
+
+    assert_receive :pong
+    assert_receive {:DOWN, ^ref_and_alias, _, _, _}
   end
 
   test "sleep/1" do

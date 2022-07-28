@@ -248,6 +248,7 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
 ?rewrite(?port, monitor, [Arg], erlang, monitor, [port, Arg]);
 ?rewrite(?process, group_leader, [Pid, Leader], erlang, group_leader, [Leader, Pid]);
 ?rewrite(?process, monitor, [Arg], erlang, monitor, [process, Arg]);
+?rewrite(?process, monitor, [Arg, Opts], erlang, monitor, [process, Arg, Opts]);
 ?rewrite(?process, send_after, [Dest, Msg, Time], erlang, send_after, [Time, Dest, Msg]);
 ?rewrite(?process, send_after, [Dest, Msg, Time, Opts], erlang, send_after, [Time, Dest, Msg, Opts]);
 ?rewrite(?string, to_atom, [Arg], erlang, binary_to_atom, [Arg, utf8]);

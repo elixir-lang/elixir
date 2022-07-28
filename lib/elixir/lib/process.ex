@@ -529,6 +529,43 @@ defmodule Process do
   end
 
   @doc """
+  Starts monitoring the given `item` from the calling process.
+
+  This function is similar to `monitor/1`, but accepts options to customize how
+  `item` is monitored. See `:erlang.monitor/3` for documentation on those
+  options.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      pid =
+        spawn(fn ->
+          receive do
+            {:ping, source_alias} -> send(source_alias, :pong)
+          end
+        end)
+      #=> #PID<0.118.0>
+
+      ref_and_alias = Process.monitor(pid, alias: :reply_demonitor)
+      #=> #Reference<0.906660723.3006791681.40191>
+
+      send(pid, {:ping, ref_and_alias})
+
+      receive do: msg -> msg
+      #=> :pong
+
+      receive do: msg -> msg
+      #=> {:DOWN, #Reference<0.906660723.3006791681.40191>, :process, #PID<0.118.0>, :noproc}
+
+  """
+  @doc since: "1.15.0"
+  @spec monitor(pid | {name, node} | name, :erlang.monitor_option()) :: reference when name: atom
+  def monitor(item, options) do
+    :erlang.monitor(:process, item, options)
+  end
+
+  @doc """
   Demonitors the monitor identified by the given `reference`.
 
   If `monitor_ref` is a reference which the calling process
