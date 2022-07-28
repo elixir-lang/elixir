@@ -45,7 +45,7 @@ defmodule ProcessTest do
         end
       end)
 
-    ref_and_alias = Process.monitor(pid, alias: :reply_demonitor)
+    ref_and_alias = Process.monitor(pid, alias: :explicit_unalias)
 
     send(pid, {:ping, ref_and_alias})
 
