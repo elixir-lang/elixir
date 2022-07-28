@@ -230,6 +230,31 @@ defmodule Module.Types.ExprTest do
     end
   end
 
+  describe "cond" do
+    test "do not leak body inference between clauses" do
+      assert quoted_expr(
+               [],
+               cond do
+                 1 ->
+                   b = :foo
+                   b
+
+                 2 ->
+                   b = :bar
+                   b
+               end
+             ) == {:ok, :dynamic}
+
+      assert quoted_expr(
+               [b],
+               cond do
+                 1 -> :foo = b
+                 2 -> :bar = b
+               end
+             ) == {:ok, :dynamic}
+    end
+  end
+
   test "fn" do
     assert quoted_expr(fn :foo = b -> :foo = b end) == {:ok, :dynamic}
 
