@@ -418,9 +418,14 @@ defmodule Mix.Tasks.Compile.App do
 
   defp split_by_type(apps) do
     Enum.reduce(apps, {[], [], []}, fn
-      app, {all, required, optional} when is_atom(app) -> {[app | all], [app | required], optional}
-      {app, :required}, {all, required, optional} -> {[app | all], [app | required], optional}
-      {app, :optional}, {all, required, optional} -> {[app | all], required, [app | optional]}
+      app, {all, required, optional} when is_atom(app) ->
+        {[app | all], [app | required], optional}
+
+      {app, :required}, {all, required, optional} ->
+        {[app | all], [app | required], optional}
+
+      {app, :optional}, {all, required, optional} ->
+        {[app | all], required, [app | optional]}
     end)
   end
 
