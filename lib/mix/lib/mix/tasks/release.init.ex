@@ -141,7 +141,7 @@ defmodule Mix.Tasks.Release.Init do
     rpc () {
       exec "$REL_VSN_DIR/elixir" \
            --hidden --cookie "$RELEASE_COOKIE" \
-           $(release_distribution "undefined") \
+           $(release_distribution "rpc-$(rand)-$RELEASE_NODE") \
            --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
            --vm-args "$RELEASE_REMOTE_VM_ARGS" \
@@ -398,7 +398,7 @@ defmodule Mix.Tasks.Release.Init do
     if "!RELEASE_DISTRIBUTION!" == "none" (
       set RELEASE_DISTRIBUTION_FLAG=
     ) else (
-      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "undefined"
+      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!"
     )
 
     "!REL_VSN_DIR!\iex.bat" ^
@@ -414,7 +414,7 @@ defmodule Mix.Tasks.Release.Init do
     if "!RELEASE_DISTRIBUTION!" == "none" (
       set RELEASE_DISTRIBUTION_FLAG=
     ) else (
-      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "undefined"
+      set RELEASE_DISTRIBUTION_FLAG=--!RELEASE_DISTRIBUTION! "rem-!RANDOM!-!RELEASE_NODE!"
     )
 
     "!REL_VSN_DIR!\elixir.bat" ^
