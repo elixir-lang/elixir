@@ -40,10 +40,6 @@ defmodule CodeTest do
                Code.eval_string("a = (try do (raise \"hello\") rescue e -> e end)")
     end
 
-    test "supports the :requires option" do
-      assert Code.eval_string("Kernel.if true, do: :ok", [], requires: [Z, Kernel]) == {:ok, []}
-    end
-
     test "returns bindings from a different context" do
       assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a, Sample}, 1}]}
     end
