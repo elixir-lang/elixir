@@ -165,12 +165,12 @@ defmodule MapSet do
       if :sets.is_element(elem, small) do
         {:sets.del_element(elem, small), acc}
       else
-        {small, :sets.add_element(elem, acc)}
+        {small, [elem | acc]}
       end
     end
 
-    {new_small, acc} = :sets.fold(disjointer_fun, {small, :sets.new(version: 2)}, large)
-    %{map_set1 | set: :sets.union(new_small, acc)}
+    {new_small, list} = :sets.fold(disjointer_fun, {small, []}, large)
+    %{map_set1 | set: :sets.union(new_small, :sets.from_list(list, version: 2))}
   end
 
   @doc """
