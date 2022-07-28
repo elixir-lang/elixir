@@ -168,6 +168,8 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?port, list, 0, erlang, ports);
 ?inline(?port, open, 2, erlang, open_port);
 
+?inline(?process, alias, 0, erlang, alias);
+?inline(?process, alias, 1, erlang, alias);
 ?inline(?process, 'alive?', 1, erlang, is_process_alive);
 ?inline(?process, cancel_timer, 1, erlang, cancel_timer);
 ?inline(?process, cancel_timer, 2, erlang, cancel_timer);
@@ -188,6 +190,7 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?process, send, 3, erlang, send);
 ?inline(?process, spawn, 2, erlang, spawn_opt);
 ?inline(?process, spawn, 4, erlang, spawn_opt);
+?inline(?process, unalias, 1, erlang, unalias);
 ?inline(?process, unlink, 1, erlang, unlink);
 ?inline(?process, unregister, 1, erlang, unregister);
 
@@ -245,6 +248,7 @@ rewrite(Receiver, DotMeta, Right, Meta, Args) ->
 ?rewrite(?port, monitor, [Arg], erlang, monitor, [port, Arg]);
 ?rewrite(?process, group_leader, [Pid, Leader], erlang, group_leader, [Leader, Pid]);
 ?rewrite(?process, monitor, [Arg], erlang, monitor, [process, Arg]);
+?rewrite(?process, monitor, [Arg, Opts], erlang, monitor, [process, Arg, Opts]);
 ?rewrite(?process, send_after, [Dest, Msg, Time], erlang, send_after, [Time, Dest, Msg]);
 ?rewrite(?process, send_after, [Dest, Msg, Time, Opts], erlang, send_after, [Time, Dest, Msg, Opts]);
 ?rewrite(?string, to_atom, [Arg], erlang, binary_to_atom, [Arg, utf8]);
