@@ -68,6 +68,12 @@ defmodule MapSetTest do
 
     result = MapSet.symmetric_difference(MapSet.new(1..5), MapSet.new(1..5))
     assert MapSet.equal?(result, MapSet.new())
+
+    result = MapSet.symmetric_difference(MapSet.new([1, 2, 3]), MapSet.new())
+    assert MapSet.equal?(result, MapSet.new([1, 2, 3]))
+
+    result = MapSet.symmetric_difference(MapSet.new(), MapSet.new([1, 2, 3]))
+    assert MapSet.equal?(result, MapSet.new([1, 2, 3]))
   end
 
   test "disjoint?/2" do
