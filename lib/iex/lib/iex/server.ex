@@ -386,10 +386,17 @@ defmodule IEx.Server do
       end
 
     prompt =
-      apply(IEx.Config, mode, [])
-      |> String.replace("%counter", to_string(counter))
-      |> String.replace("%prefix", to_string(prefix))
-      |> String.replace("%node", to_string(node()))
+      case apply(IEx.Config, mode, []) do
+        p when is_function(p) ->
+          node = node()
+          p.(%{counter: to_string(counter), prefix: to_string(prefix), node: to_string(node)})
+
+        p when is_binary(p) ->
+          p
+          |> String.replace("%counter", to_string(counter))
+          |> String.replace("%prefix", to_string(prefix))
+          |> String.replace("%node", to_string(node()))
+      end
 
     prompt <> " "
   end

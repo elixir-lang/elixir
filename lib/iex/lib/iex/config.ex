@@ -45,36 +45,22 @@ defmodule IEx.Config do
 
   def default_prompt() do
     Application.fetch_env!(:iex, :default_prompt)
-    |> execute_prompt()
   end
 
   def continuation_prompt() do
-    Application.get_env(:iex, :continuation_prompt, Application.fetch_env!(:iex, :default_prompt))
-    |> execute_prompt()
+    Application.get_env(:iex, :continuation_prompt, default_prompt())
   end
 
   def alive_prompt() do
     Application.fetch_env!(:iex, :alive_prompt)
-    |> execute_prompt()
   end
 
   def alive_continuation_prompt() do
     Application.get_env(
       :iex,
       :alive_continuation_prompt,
-      Application.fetch_env!(:iex, :alive_prompt)
+      alive_prompt()
     )
-    |> execute_prompt()
-  end
-
-  defp execute_prompt(prompt_value) do
-    case prompt_value do
-      prompt when is_function(prompt) ->
-        prompt.()
-
-      prompt ->
-        prompt
-    end
   end
 
   def parser() do
