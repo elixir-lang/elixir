@@ -299,7 +299,7 @@ defmodule Kernel.CLI do
 
   defp append_hostname(node) do
     case :string.find(node, "@") do
-      :nomatch -> node <> :string.find(Atom.to_string(node()), "@")
+      :nomatch -> node <> :string.find(Atom.to_string(:net_kernel.nodename()), "@")
       _ -> node
     end
   end
@@ -447,11 +447,21 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:rpc_eval, node, expr}, _config) when is_binary(expr) do
-    case :rpc.call(String.to_atom(node), __MODULE__, :rpc_eval, [expr]) do
-      :ok -> :ok
-      {:badrpc, {:EXIT, exit}} -> Process.exit(self(), exit)
-      {:badrpc, reason} -> {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
-      {kind, error, stack} -> :erlang.raise(kind, error, stack)
+    if Node.alive?() do
+      node = String.to_atom(node)
+
+      # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
+      _ = :net_kernel.connect_node(node)
+
+      case :rpc.call(node, __MODULE__, :rpc_eval, [expr]) do
+        :ok -> :ok
+        {:badrpc, {:EXIT, exit}} -> Process.exit(self(), exit)
+        {:badrpc, reason} -> {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
+        {kind, error, stack} -> :erlang.raise(kind, error, stack)
+      end
+    else
+      {:error,
+       "--rpc-eval : Cannot run --rpc-eval if the node is not alive (set --name or --sname)"}
     end
   end
 
