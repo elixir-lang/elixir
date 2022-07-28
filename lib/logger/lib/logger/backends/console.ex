@@ -18,7 +18,8 @@ defmodule Logger.Backends.Console do
     * `:metadata` - the metadata to be printed by `$metadata`.
       Defaults to an empty list (no metadata).
       Setting `:metadata` to `:all` prints all metadata. See
-      the "Metadata" section for more information.
+      the "Metadata" section in the `Logger` documentation for
+      more information.
 
     * `:colors` - a keyword list of coloring options.
 

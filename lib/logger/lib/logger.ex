@@ -138,17 +138,9 @@ defmodule Logger do
 
       Logger.error("We have a problem", [error_code: :pc_load_letter])
 
-  In your app's logger configuration, you would need to include the
-  `:error_code` key and you would need to include `$metadata` as part of
-  your log format template:
-
-      config :logger, :console,
-       format: "[$level] $message $metadata\n",
-       metadata: [:error_code, :file]
-
-  Your logs might then receive lines like this:
-
-      [error] We have a problem error_code=pc_load_letter file=lib/app.ex
+  You might need to configure your logger backends to handle those metadata
+  values. For the default `:console` backend there's an example in
+  `Logger.Backends.Console`.
 
   ## Configuration
 
