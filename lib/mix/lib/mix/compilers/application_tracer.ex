@@ -206,11 +206,10 @@ defmodule Mix.Compilers.ApplicationTracer do
 
   defp build_manifest(config) do
     table = :ets.new(@table, [:public, :named_table, :set, read_concurrency: true])
-    {required, optional} = Mix.Tasks.Compile.App.project_apps(config)
+    {all, _optional} = Mix.Tasks.Compile.App.project_apps(config)
 
     %{}
-    |> store_apps(table, required)
-    |> store_apps(table, optional)
+    |> store_apps(table, all)
     |> store_apps(table, extra_apps(config))
 
     table
