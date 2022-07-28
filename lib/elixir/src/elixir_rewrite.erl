@@ -168,6 +168,8 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?port, list, 0, erlang, ports);
 ?inline(?port, open, 2, erlang, open_port);
 
+?inline(?process, alias, 0, erlang, alias);
+?inline(?process, alias, 1, erlang, alias);
 ?inline(?process, 'alive?', 1, erlang, is_process_alive);
 ?inline(?process, cancel_timer, 1, erlang, cancel_timer);
 ?inline(?process, cancel_timer, 2, erlang, cancel_timer);
@@ -188,6 +190,7 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?process, send, 3, erlang, send);
 ?inline(?process, spawn, 2, erlang, spawn_opt);
 ?inline(?process, spawn, 4, erlang, spawn_opt);
+?inline(?process, unalias, 1, erlang, unalias);
 ?inline(?process, unlink, 1, erlang, unlink);
 ?inline(?process, unregister, 1, erlang, unregister);
 

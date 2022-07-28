@@ -851,6 +851,13 @@ defmodule Process do
 
   This is the same as calling `alias/1` as `alias([:explicit_unalias])`. See
   also `:erlang.alias/0`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      alias = Process.alias()
+
   """
   @doc since: "1.15.0"
   @spec alias() :: alias
@@ -861,6 +868,13 @@ defmodule Process do
 
   See [the module documentation](#module-aliases) for more information about aliases.
   See also `:erlang.alias/1`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      alias = Process.alias([:reply])
+
   """
   @doc since: "1.15.0"
   @spec alias([alias_opt]) :: alias
@@ -874,6 +888,8 @@ defmodule Process do
 
   See [the module documentation](#module-aliases) for more information about aliases.
   See also `:erlang.unalias/1`.
+
+  Inlined by the compiler.
 
   ## Examples
 
