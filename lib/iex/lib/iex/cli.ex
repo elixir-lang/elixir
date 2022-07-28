@@ -88,33 +88,31 @@ defmodule IEx.CLI do
 
   defp tty_args do
     if remote = get_remsh(:init.get_plain_arguments()) do
-      if Node.alive?() do
-        # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
-        _ = :net_kernel.connect_node(remote)
+      # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
+      _ = :net_kernel.connect_node(remote)
 
-        case :rpc.call(remote, :code, :ensure_loaded, [IEx]) do
-          {:badrpc, reason} ->
-            message =
+      case :rpc.call(remote, :code, :ensure_loaded, [IEx]) do
+        {:badrpc, reason} ->
+          message =
+            if reason == :nodedown and :net_kernel.nodename() == :ignored do
+              "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
+            else
               "Could not contact remote node #{remote}, reason: #{inspect(reason)}. Aborting..."
-
-            abort(message)
-
-          {:module, IEx} ->
-            case :rpc.call(remote, :net_kernel, :get_net_ticktime, []) do
-              seconds when is_integer(seconds) -> :net_kernel.set_net_ticktime(seconds)
-              _ -> :ok
             end
 
-            {mod, fun, args} = remote_start_mfa()
-            {remote, mod, fun, args}
+          abort(message)
 
-          _ ->
-            abort("Could not find IEx on remote node #{remote}. Aborting...")
-        end
-      else
-        abort(
-          "In order to use --remsh, you need to name the current node using --name or --sname. Aborting..."
-        )
+        {:module, IEx} ->
+          case :rpc.call(remote, :net_kernel, :get_net_ticktime, []) do
+            seconds when is_integer(seconds) -> :net_kernel.set_net_ticktime(seconds)
+            _ -> :ok
+          end
+
+          {mod, fun, args} = remote_start_mfa()
+          {remote, mod, fun, args}
+
+        _ ->
+          abort("Could not find IEx on remote node #{remote}. Aborting...")
       end
     else
       local_start_mfa()
@@ -168,8 +166,10 @@ defmodule IEx.CLI do
   defp get_remsh([]), do: nil
 
   defp append_hostname(node) do
-    case :string.find(node, '@') do
-      :nomatch -> node ++ :string.find(Atom.to_charlist(:net_kernel.nodename()), '@')
+    with :nomatch <- :string.find(node, "@"),
+         [_ | _] = suffix <- :string.find(Atom.to_charlist(:net_kernel.nodename()), "@") do
+      node ++ suffix
+    else
       _ -> node
     end
   end
