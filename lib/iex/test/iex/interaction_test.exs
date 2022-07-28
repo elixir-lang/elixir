@@ -102,9 +102,14 @@ defmodule IEx.InteractionTest do
     assert capture =~ "assert 1 == 2"
   end
 
-  test "prompt" do
+  test "prompt with string input" do
     opts = [default_prompt: "prompt(%counter)>"]
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
+  end
+
+  test "prompt with function input" do
+    opts = [default_prompt: fn %{counter: c} -> "prompt(#{c})[#{String.to_integer(c) + 1}]>" end]
+    assert capture_iex("1\n", opts, [], true) == "prompt(1)[2]> 1\nprompt(2)[3]>"
   end
 
   test "continuation prompt" do
