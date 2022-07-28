@@ -67,7 +67,7 @@ defmodule Process do
       end
       #=> :timeout
 
-  See also the [*Process Aliases*
+  See also the [Process Aliases
   section](https://www.erlang.org/doc/reference_manual/processes.html#process-aliases)
   of the *Erlang reference manual*.
   """
