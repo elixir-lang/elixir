@@ -490,6 +490,21 @@ defmodule IEx do
     * `%prefix`  - a prefix given by `IEx.Server`
     * `%node`    - the name of the local node
 
+  ### Dynamic Prompt
+
+  If a dynamic prompt is needed, you can pass an anonymous function to the prompt configuration.
+  That function must have an arity of 1 and return a string. When the function is called, it will
+  be given a map of prompt strings as its argument: `%{prefix: p, counter: c, node: n}`
+
+  The resulting prompt will update after each input. For example, to print the counter and a
+  random number, your configuration may look like this:
+
+      IEx.configure(
+        default_prompt: fn %{counter: c} ->
+          "Random number: \#{:rand.uniform(42)} (\#{c})>"
+        end
+      )
+
   ## Parser
 
   This is an option determining the parser to use for IEx.
