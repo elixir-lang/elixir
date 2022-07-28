@@ -298,8 +298,10 @@ defmodule Kernel.CLI do
   end
 
   defp append_hostname(node) do
-    case :string.find(node, "@") do
-      :nomatch -> node <> :string.find(Atom.to_string(:net_kernel.nodename()), "@")
+    with :nomatch <- :string.find(node, "@"),
+         <<suffix::binary>> <- :string.find(Atom.to_string(:net_kernel.nodename()), "@") do
+      node <> suffix
+    else
       _ -> node
     end
   end
@@ -435,11 +437,7 @@ defmodule Kernel.CLI do
   # Process commands
 
   defp process_command({:cookie, h}, _config) do
-    if Node.alive?() do
-      wrapper(fn -> Node.set_cookie(String.to_atom(h)) end)
-    else
-      {:error, "--cookie : Cannot set cookie if the node is not alive (set --name or --sname)"}
-    end
+    wrapper(fn -> Node.set_cookie(String.to_atom(h)) end)
   end
 
   defp process_command({:eval, expr}, _config) when is_binary(expr) do
@@ -447,21 +445,28 @@ defmodule Kernel.CLI do
   end
 
   defp process_command({:rpc_eval, node, expr}, _config) when is_binary(expr) do
-    if Node.alive?() do
-      node = String.to_atom(node)
+    node = String.to_atom(node)
 
-      # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
-      _ = :net_kernel.connect_node(node)
+    # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
+    _ = :net_kernel.connect_node(node)
 
-      case :rpc.call(node, __MODULE__, :rpc_eval, [expr]) do
-        :ok -> :ok
-        {:badrpc, {:EXIT, exit}} -> Process.exit(self(), exit)
-        {:badrpc, reason} -> {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
-        {kind, error, stack} -> :erlang.raise(kind, error, stack)
-      end
-    else
-      {:error,
-       "--rpc-eval : Cannot run --rpc-eval if the node is not alive (set --name or --sname)"}
+    case :rpc.call(node, __MODULE__, :rpc_eval, [expr]) do
+      :ok ->
+        :ok
+
+      {:badrpc, {:EXIT, exit}} ->
+        Process.exit(self(), exit)
+
+      {:badrpc, reason} ->
+        if reason == :nodedown and :net_kernel.nodename() == :ignored do
+          {:error,
+           "--rpc-eval : Cannot run --rpc-eval if the node is not alive (set --name or --sname)"}
+        else
+          {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
+        end
+
+      {kind, error, stack} ->
+        :erlang.raise(kind, error, stack)
     end
   end
 
