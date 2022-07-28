@@ -36,10 +36,12 @@ defmodule Mix.State do
 
   def put(key, value) do
     :ets.insert(@name, {key, value})
+    :ok
   end
 
   def update(key, fun) do
     :ets.insert(@name, {key, fun.(:ets.lookup_element(@name, key, 2))})
+    :ok
   end
 
   ## Persistent term cache (persistent, cleared in tests)
