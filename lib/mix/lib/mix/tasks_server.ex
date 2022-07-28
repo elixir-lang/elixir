@@ -17,6 +17,7 @@ defmodule Mix.TasksServer do
 
   def put(tuple) do
     :ets.insert(@name, {tuple})
+    :ok
   end
 
   def get(tuple) do
@@ -29,5 +30,6 @@ defmodule Mix.TasksServer do
 
   def clear() do
     :ets.delete_all_objects(@name)
+    :ok
   end
 end
