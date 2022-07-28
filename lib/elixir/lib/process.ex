@@ -884,7 +884,7 @@ defmodule Process do
   @type alias :: reference
 
   @doc """
-  Creates a *process alias*.
+  Creates a process alias.
 
   This is the same as calling `alias/1` as `alias([:explicit_unalias])`. See
   also `:erlang.alias/0`.
@@ -901,7 +901,7 @@ defmodule Process do
   defdelegate alias(), to: :erlang
 
   @doc """
-  Creates a *process alias*.
+  Creates a process alias.
 
   See [the module documentation](#module-aliases) for more information about aliases.
   See also `:erlang.alias/1`.
