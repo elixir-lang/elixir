@@ -216,6 +216,30 @@ defmodule Module.Types.Expr do
     end
   end
 
+  # cond do pat -> expr end
+  def of_expr({:cond, _meta, [[{:do, clauses}]]} = expr, _expected, stack, context) do
+    stack = push_expr_stack(expr, stack)
+
+    {result, context} =
+      reduce_ok(clauses, context, fn {:->, meta, [head, body]}, context = acc ->
+        case of_expr(head, :dynamic, stack, context) do
+          {:ok, _, context} ->
+            with {:ok, _expr_type, context} <- of_expr(body, :dynamic, stack, context) do
+              {:ok, keep_warnings(acc, context)}
+            end
+
+          error ->
+            # Skip the clause if it the head has an error
+            if meta[:generated], do: {:ok, acc}, else: error
+        end
+      end)
+
+    case result do
+      :ok -> {:ok, :dynamic, context}
+      :error -> {:error, context}
+    end
+  end
+
   # case expr do pat -> expr end
   def of_expr({:case, _meta, [case_expr, [{:do, clauses}]]} = expr, _expected, stack, context) do
     stack = push_expr_stack(expr, stack)
