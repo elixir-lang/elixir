@@ -29,14 +29,13 @@ test_freebsd_task:
     - pkg install -y erlang-runtime24 git gmake
     - rm -rf .git
     - gmake compile
+    - sudo hostname elixirci
 
   build_info_script: bin/elixir --version
 
   test_formatted_script:
     - gmake test_formatted &&
       echo "All Elixir source code files are properly formatted."
-
-  dialyzer_script: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
 
   test_erlang_script: gmake test_erlang
 
