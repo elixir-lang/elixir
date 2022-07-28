@@ -27,11 +27,30 @@ defmodule ProcessTest do
   end
 
   # In contrast with other inlined functions,
-  # it is important to test that monitor/1 is inlined,
+  # it is important to test that monitor/1,2 are inlined,
   # this way we gain the monitor receive optimisation.
-  test "monitor/1 is inlined" do
+  test "monitor/1 and monitor/2 are inlined" do
     assert expand(quote(do: Process.monitor(pid())), __ENV__) ==
              quote(do: :erlang.monitor(:process, pid()))
+
+    assert expand(quote(do: Process.monitor(pid(), alias: :demonitor)), __ENV__) ==
+             quote(do: :erlang.monitor(:process, pid(), alias: :demonitor))
+  end
+
+  test "monitor/2 with monitor options" do
+    pid =
+      spawn(fn ->
+        receive do
+          {:ping, source_alias} -> send(source_alias, :pong)
+        end
+      end)
+
+    ref_and_alias = Process.monitor(pid, alias: :explicit_unalias)
+
+    send(pid, {:ping, ref_and_alias})
+
+    assert_receive :pong
+    assert_receive {:DOWN, ^ref_and_alias, _, _, _}
   end
 
   test "sleep/1" do
@@ -115,6 +134,40 @@ defmodule ProcessTest do
     pid = spawn_link(fn -> Process.exit(self(), :normal) end)
     assert_receive {:EXIT, ^pid, :normal}
     refute Process.alive?(pid)
+  end
+
+  describe "alias/0, alias/1, and unalias/1" do
+    test "simple alias + unalias flow" do
+      server =
+        spawn(fn ->
+          receive do
+            {:ping, alias} -> send(alias, :pong)
+          end
+        end)
+
+      alias = Process.alias()
+      Process.unalias(alias)
+
+      send(server, {:ping, alias})
+      refute_receive :pong, 20
+    end
+
+    test "with :reply option when aliasing" do
+      server =
+        spawn(fn ->
+          receive do
+            {:ping, alias} ->
+              send(alias, :pong)
+              send(alias, :extra_pong)
+          end
+        end)
+
+      alias = Process.alias([:reply])
+
+      send(server, {:ping, alias})
+      assert_receive :pong
+      refute_receive :extra_pong, 20
+    end
   end
 
   defp expand(expr, env) do
