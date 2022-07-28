@@ -285,11 +285,9 @@ defmodule String do
     * a compiled search pattern created by `:binary.compile_pattern/1`
 
   """
-  # TODO: Replace "nonempty_binary :: <<_::8, _::_*8>>" with "nonempty_binary()"
-  # when minimum requirement is >= OTP 24.
   @type pattern ::
           t()
-          | [nonempty_binary :: <<_::8, _::_*8>>]
+          | [nonempty_binary]
           | (compiled_search_pattern :: :binary.cp())
 
   @conditional_mappings [:greek, :turkic]

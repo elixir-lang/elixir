@@ -124,7 +124,9 @@ Built-in type           | Defined as
 `arity()`               | `0..255`
 `as_boolean(t)`         | `t`
 `binary()`              | `<<_::_*8>>`
+`nonempty_binary()`     | `<<_::8, _::_*8>>`
 `bitstring()`           | `<<_::_*1>>`
+`nonempty_bitstring()`  | `<<_::1, _::_*1>>`
 `boolean()`             | `true` \| `false`
 `byte()`                | `0..255`
 `char()`                | `0..0x10FFFF`
