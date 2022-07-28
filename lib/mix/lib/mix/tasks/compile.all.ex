@@ -96,12 +96,12 @@ defmodule Mix.Tasks.Compile.All do
   ## App loading helpers
 
   defp load_apps(config, lib_path, validate_compile_env?) do
-    {runtime, optional} = Mix.Tasks.Compile.App.project_apps(config)
+    {all, _optional} = Mix.Tasks.Compile.App.project_apps(config)
     parent = self()
     opts = [ordered: false, timeout: :infinity]
     deps = for dep <- Mix.Dep.cached(), into: %{}, do: {dep.app, lib_path}
 
-    stream_apps(runtime ++ optional, deps)
+    stream_apps(all, deps)
     |> Task.async_stream(&load_stream_app(&1, parent, validate_compile_env?), opts)
     |> Stream.run()
   end

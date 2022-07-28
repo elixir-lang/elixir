@@ -116,8 +116,12 @@ defmodule Mix.Tasks.Compile.AppTest do
       properties = parse_resource_file(:custom_project)
       assert properties[:vsn] == '0.2.0'
       assert properties[:maxT] == :infinity
-      assert properties[:applications] == [:kernel, :stdlib, :elixir, :logger, :example_app]
+      assert properties[:optional_applications] == [:ex_unit, :mix]
       assert properties[:description] == 'Some UTF-8 dëscriptión'
+
+      assert properties[:applications] ==
+               [:kernel, :stdlib, :elixir, :logger, :ex_unit, :example_app, :mix]
+
       refute Keyword.has_key?(properties, :extra_applications)
     end)
   end
@@ -132,7 +136,9 @@ defmodule Mix.Tasks.Compile.AppTest do
       properties = parse_resource_file(:custom_deps)
 
       assert properties[:applications] ==
-               [:kernel, :stdlib, :elixir, :logger, :ok1, :ok3, :ok4, :ok7, :ok11]
+               [:kernel, :stdlib, :elixir, :logger, :ok1, :ok3, :ok4, :ok6, :ok7, :ok11]
+
+      assert properties[:optional_applications] == [:ok6]
     end)
   end
 
