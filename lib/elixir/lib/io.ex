@@ -598,6 +598,14 @@ defmodule IO do
 
       Enum.each(IO.stream(:stdio, :line), &IO.write(&1))
 
+  Another example where you might want to collect a user input
+  every new line and break on an empty line, followed by removing
+  redundant new line characters (`"\n"`):
+
+      IO.stream(:stdio, :line)
+      |> Enum.take_while(&(&1 != "\n"))
+      |> Enum.map(&String.replace(&1, "\n", ""))
+
   """
   @spec stream(device, :line | pos_integer) :: Enumerable.t()
   def stream(device \\ :stdio, line_or_codepoints)
