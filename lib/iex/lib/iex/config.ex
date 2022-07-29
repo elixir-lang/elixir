@@ -188,13 +188,29 @@ defmodule IEx.Config do
   defp validate_option({:inspect, new}) when is_list(new), do: :ok
   defp validate_option({:history_size, new}) when is_integer(new), do: :ok
   defp validate_option({:default_prompt, new}) when is_binary(new), do: :ok
-  defp validate_option({:default_prompt, new}) when is_function(new), do: :ok
+
+  defp validate_option({:default_prompt, {module, function, []}})
+       when is_atom(module) and is_atom(function),
+       do: :ok
+
   defp validate_option({:continuation_prompt, new}) when is_binary(new), do: :ok
-  defp validate_option({:continuation_prompt, new}) when is_function(new), do: :ok
+
+  defp validate_option({:continuation_prompt, {module, function, []}})
+       when is_atom(module) and is_atom(function),
+       do: :ok
+
   defp validate_option({:alive_prompt, new}) when is_binary(new), do: :ok
-  defp validate_option({:alive_prompt, new}) when is_function(new), do: :ok
+
+  defp validate_option({:alive_prompt, {module, function, []}})
+       when is_atom(module) and is_atom(function),
+       do: :ok
+
   defp validate_option({:alive_continuation_prompt, new}) when is_binary(new), do: :ok
-  defp validate_option({:alive_continuation_prompt, new}) when is_function(new), do: :ok
+
+  defp validate_option({:alive_continuation_prompt, {module, function, []}})
+       when is_atom(module) and is_atom(function),
+       do: :ok
+
   defp validate_option({:width, new}) when is_integer(new), do: :ok
   defp validate_option({:parser, tuple}) when tuple_size(tuple) == 3, do: :ok
 

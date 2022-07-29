@@ -107,8 +107,14 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
-  test "prompt with function input" do
-    opts = [default_prompt: fn %{counter: c} -> "prompt(#{c})[#{String.to_integer(c) + 1}]>" end]
+  test "prompt with mfa input" do
+    defmodule Foo do
+      def define_prompt(%{counter: c}) do
+        "prompt(#{c})[#{String.to_integer(c) + 1}]>"
+      end
+    end
+
+    opts = [default_prompt: {Foo, :define_prompt, []}]
     assert capture_iex("1\n", opts, [], true) == "prompt(1)[2]> 1\nprompt(2)[3]>"
   end
 

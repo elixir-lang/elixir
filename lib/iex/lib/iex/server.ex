@@ -387,9 +387,12 @@ defmodule IEx.Server do
 
     prompt =
       case apply(IEx.Config, mode, []) do
-        p when is_function(p) ->
+        {mod, func, []} when is_atom(mod) and is_atom(func) ->
           node = node()
-          p.(%{counter: to_string(counter), prefix: to_string(prefix), node: to_string(node)})
+
+          apply(mod, func, [
+            %{counter: to_string(counter), prefix: to_string(prefix), node: to_string(node)}
+          ])
 
         p when is_binary(p) ->
           p
