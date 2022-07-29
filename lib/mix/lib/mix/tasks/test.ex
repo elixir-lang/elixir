@@ -86,7 +86,7 @@ defmodule Mix.Tasks.Test do
       test/foo_test.exs:5
 
   If you want to re-run only this test, all you need to do is to
-  copy the line above and past it in front of `mix test`:
+  copy the line above and paste it in front of `mix test`:
 
       mix test test/foo_test.exs:5
 
