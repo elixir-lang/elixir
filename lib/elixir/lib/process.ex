@@ -560,7 +560,8 @@ defmodule Process do
 
   """
   @doc since: "1.15.0"
-  @spec monitor(pid | {name, node} | name, [:erlang.monitor_option()]) :: reference when name: atom
+  @spec monitor(pid | {name, node} | name, [:erlang.monitor_option()]) :: reference
+        when name: atom
   def monitor(item, options) do
     :erlang.monitor(:process, item, options)
   end
