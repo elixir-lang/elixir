@@ -602,7 +602,6 @@ defmodule IO do
   every new line and break on an empty line, followed by removing
   redundant new line characters (`"\n"`):
 
-
       IO.stream(:stdio, :line)
       |> Enum.take_while(&(&1 != "\n"))
       |> Enum.map(&String.replace(&1, "\n", ""))
