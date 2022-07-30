@@ -723,11 +723,28 @@ defmodule System do
   Sets multiple environment variables.
 
   Sets a new value for each environment variable corresponding
-  to each `{key, value}` pair in `enum`.
+  to each `{key, value}` pair in `enum`. Keys are automatically
+  converted to strings, values are sent as is. `nil` values erase
+  the given keys.
   """
   @spec put_env(Enumerable.t()) :: :ok
   def put_env(enum) do
-    Enum.each(enum, fn {key, val} -> put_env(key, val) end)
+    Enum.each(enum, fn
+      {key, nil} ->
+        :os.unsetenv(to_charlist(key))
+
+      {key, val} ->
+        key = to_charlist(key)
+
+        case :string.find(key, "=") do
+          :nomatch ->
+            :os.putenv(key, to_charlist(val))
+
+          _ ->
+            raise ArgumentError,
+                  "cannot execute System.put_env/1 for key with \"=\", got: #{inspect(key)}"
+        end
+    end)
   end
 
   @doc """

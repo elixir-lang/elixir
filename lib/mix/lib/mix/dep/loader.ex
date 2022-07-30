@@ -61,6 +61,7 @@ defmodule Mix.Dep.Loader do
   def with_system_env(%Mix.Dep{system_env: new_env}, callback) do
     old_env =
       for {key, _} <- new_env do
+        key = to_string(key)
         {key, System.get_env(key)}
       end
 
@@ -68,13 +69,7 @@ defmodule Mix.Dep.Loader do
       System.put_env(new_env)
       callback.()
     after
-      for {key, value} <- old_env do
-        if value do
-          System.put_env(key, value)
-        else
-          System.delete_env(key)
-        end
-      end
+      System.put_env(old_env)
     end
   end
 
@@ -208,7 +203,7 @@ defmodule Mix.Dep.Loader do
       requirement: req,
       status: scm_status(scm, opts),
       opts: Keyword.put_new(opts, :env, :prod),
-      system_env: system_env
+      system_env: Enum.to_list(system_env)
     }
   end
 
