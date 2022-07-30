@@ -50,7 +50,7 @@ defmodule SystemTest do
 
   @test_var "SYSTEM_ELIXIR_ENV_TEST_VAR"
 
-  test "*_env/*" do
+  test "get_env/put_env/delete_env" do
     assert System.get_env(@test_var) == nil
     assert System.get_env(@test_var, "SAMPLE") == "SAMPLE"
     assert System.fetch_env(@test_var) == :error
@@ -68,12 +68,20 @@ defmodule SystemTest do
     System.delete_env(@test_var)
     assert System.get_env(@test_var) == nil
 
-    System.put_env(%{@test_var => "OTHER_SAMPLE"})
-    assert System.get_env(@test_var) == "OTHER_SAMPLE"
-
     assert_raise ArgumentError, ~r[cannot execute System.put_env/2 for key with \"=\"], fn ->
       System.put_env("FOO=BAR", "BAZ")
     end
+  end
+
+  test "put_env/2" do
+    System.put_env(%{@test_var => "MAP_STRING"})
+    assert System.get_env(@test_var) == "MAP_STRING"
+
+    System.put_env([{String.to_atom(@test_var), "KW_ATOM"}])
+    assert System.get_env(@test_var) == "KW_ATOM"
+
+    System.put_env([{String.to_atom(@test_var), nil}])
+    assert System.get_env(@test_var) == nil
   end
 
   test "cmd/2 raises for null bytes" do
