@@ -117,7 +117,7 @@ defmodule Mix.Tasks.Format do
 
   Now any application can use your formatter as follows:
 
-      # .formatters.exs
+      # .formatter.exs
       [
         # Define the desired plugins
         plugins: [MixMarkdownFormatter, AnotherMarkdownFormatter],
@@ -129,8 +129,8 @@ defmodule Mix.Tasks.Format do
   sure that your dependencies and your application have been compiled,
   so the relevant plugin code can be loaded. Otherwise a warning is logged.
 
-  In addition, the order by which you input your plugins is the format order. 
-  So, in the above `.formatters.exs`, the `MixMarkdownFormatter` will format 
+  In addition, the order by which you input your plugins is the format order.
+  So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
   the markdown files and sigils before `AnotherMarkdownFormatter`.
 
 
