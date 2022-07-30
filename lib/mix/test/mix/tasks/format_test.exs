@@ -326,7 +326,7 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  test "uses multiple plugins from .formatter.exs with the same file extension", context do
+  test "uses multiple plugins from .formatter.exs targetting the same file extension", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
       [
@@ -346,7 +346,8 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  test "uses multiple plugins from .formatter.exs with same file extension in declared order", context do
+  test "uses multiple plugins from .formatter.exs targetting the same file extension in declared order",
+       context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
       [

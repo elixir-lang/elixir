@@ -120,7 +120,7 @@ defmodule Mix.Tasks.Format do
       # .formatters.exs
       [
         # Define the desired plugins
-        plugins: [MixMarkdownFormatter],
+        plugins: [MixMarkdownFormatter, AnotherMarkdownFormatter],
         # Remember to update the inputs list to include the new extensions
         inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}", "posts/*.{md,markdown}"]
       ]
@@ -128,6 +128,11 @@ defmodule Mix.Tasks.Format do
   Remember that, when running the formatter with plugins, you must make
   sure that your dependencies and your application have been compiled,
   so the relevant plugin code can be loaded. Otherwise a warning is logged.
+
+  In addition, the order by which you input your plugins is the format order. 
+  So, in the above `.formatters.exs`, the `MixMarkdownFormatter` will format 
+  the markdown files and sigils before `AnotherMarkdownFormatter`.
+
 
   ## Importing dependencies configuration
 
