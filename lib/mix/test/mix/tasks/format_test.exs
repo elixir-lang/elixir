@@ -371,9 +371,9 @@ defmodule Mix.Tasks.FormatTest do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
       [
-      inputs: ["a.w"],
-      plugins: [ExtensionWPlugin],
-      from_formatter_exs: :yes
+        inputs: ["a.w"],
+        plugins: [ExtensionWPlugin],
+        from_formatter_exs: :yes
       ]
       """)
 
@@ -395,8 +395,8 @@ defmodule Mix.Tasks.FormatTest do
     in_tmp(context.test, fn ->
       File.write!("custom_formatter.exs", """
       [
-      inputs: ["a.ex"],
-      locals_without_parens: [foo: 1]
+        inputs: ["a.ex"],
+        locals_without_parens: [foo: 1]
       ]
       """)
 
