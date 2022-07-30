@@ -586,7 +586,7 @@ defmodule Mix.Tasks.Format do
 
   defp format_file({file, formatters}, task_opts) do
     input = read_file(file)
-    output = Enum.reduce(formatters, input, fn format_fn, output -> format_fn.(output) end)
+    output = Enum.reduce(formatters, input, fn formatter, output -> formatter.(output) end)
 
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
     dry_run? = Keyword.get(task_opts, :dry_run, false)
