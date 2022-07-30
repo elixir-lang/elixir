@@ -279,7 +279,7 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
-  defmodule Elixir.NewlineWrapPlugin do
+  defmodule Elixir.NewlineToDotPlugin do
     @behaviour Mix.Tasks.Format
 
     def features(opts) do
@@ -298,7 +298,7 @@ defmodule Mix.Tasks.FormatTest do
         assert is_function(sigil_fun, 2)
       end)
 
-      contents |> String.trim() |> (&("\n" <> &1 <> "\n")).()
+      contents |> String.replace("\n", ".")
     end
   end
 
@@ -326,12 +326,12 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  test "uses multiple extension plugins from .formatter.exs", context do
+  test "uses multiple plugins from .formatter.exs with the same file extension", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
       [
         inputs: ["a.w"],
-        plugins: [ExtensionWPlugin, NewlineWrapPlugin],
+        plugins: [ExtensionWPlugin, NewlineToDotPlugin],
         from_formatter_exs: :yes
       ]
       """)
@@ -342,12 +342,27 @@ defmodule Mix.Tasks.FormatTest do
 
       Mix.Tasks.Format.run([])
 
-      assert File.read!("a.w") == """
+      assert File.read!("a.w") == "foo.bar.baz."
+    end)
+  end
 
-             foo
-             bar
-             baz
-             """
+  test "uses multiple plugins from .formatter.exs with same file extension in declared order", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.w"],
+        plugins: [NewlineToDotPlugin, ExtensionWPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.w", """
+      foo bar baz
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.w") == "foo\nbar\nbaz."
     end)
   end
 
