@@ -141,13 +141,15 @@ defmodule MixTest do
           {:install_test, path: Path.join(tmp_dir, "install_test")}
         ],
         config: [unknown_app: [foo: :bar]],
-        system_env: %{"MIX_INSTALL_FOO" => "BAR"}
+        system_env: %{"MIX_INSTALL_FOO" => "BAR", MIX_INSTALL_BAZ: "BAT"}
       )
 
       assert Application.fetch_env!(:unknown_app, :foo) == :bar
       assert System.fetch_env!("MIX_INSTALL_FOO") == "BAR"
+      assert System.fetch_env!("MIX_INSTALL_BAZ") == "BAT"
     after
       System.delete_env("MIX_INSTALL_FOO")
+      System.delete_env("MIX_INSTALL_BAZ")
       Application.delete_env(:unknown_app, :foo, persistent: true)
     end
 
