@@ -268,9 +268,37 @@ defmodule Mix.Tasks.FormatTest do
       assert opts[:from_formatter_exs] == :yes
       assert opts[:extension] == ".w"
       assert opts[:file] =~ ~r/\/a\.w$/
-      assert [W: sigil_fun] = opts[:sigils]
-      assert is_function(sigil_fun, 2)
+      sigils = opts[:sigils]
+
+      Enum.each(sigils, fn sigil ->
+        assert {:W, sigil_fun} = sigil
+        assert is_function(sigil_fun, 2)
+      end)
+
       contents |> String.split(~r/\s/) |> Enum.join("\n")
+    end
+  end
+
+  defmodule Elixir.NewlineWrapPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [extensions: ~w(.w), sigils: [:W]]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+      assert opts[:extension] == ".w"
+      assert opts[:file] =~ ~r/\/a\.w$/
+      sigils = opts[:sigils]
+
+      Enum.each(sigils, fn sigil ->
+        assert {:W, sigil_fun} = sigil
+        assert is_function(sigil_fun, 2)
+      end)
+
+      contents |> String.trim() |> (&("\n" <> &1 <> "\n")).()
     end
   end
 
@@ -298,13 +326,38 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  test "uses extension plugins with --stdin-filename", context do
+  test "uses multiple extension plugins from .formatter.exs", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
       [
         inputs: ["a.w"],
-        plugins: [ExtensionWPlugin],
+        plugins: [ExtensionWPlugin, NewlineWrapPlugin],
         from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.w", """
+      foo bar baz
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.w") == """
+
+             foo
+             bar
+             baz
+             """
+    end)
+  end
+
+  test "uses extension plugins with --stdin-filename", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+      inputs: ["a.w"],
+      plugins: [ExtensionWPlugin],
+      from_formatter_exs: :yes
       ]
       """)
 
@@ -326,8 +379,8 @@ defmodule Mix.Tasks.FormatTest do
     in_tmp(context.test, fn ->
       File.write!("custom_formatter.exs", """
       [
-        inputs: ["a.ex"],
-        locals_without_parens: [foo: 1]
+      inputs: ["a.ex"],
+      locals_without_parens: [foo: 1]
       ]
       """)
 
@@ -355,9 +408,9 @@ defmodule Mix.Tasks.FormatTest do
       [inputs: "a.ex", locals_without_parens: [my_fun: 2]]
       """)
 
-      {formatter, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
+      {formatters, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
       assert Keyword.get(formatter_opts, :locals_without_parens) == [my_fun: 2]
-      assert formatter.("my_fun 1, 2") == "my_fun 1, 2\n"
+      Enum.each(formatters, &assert(&1.("my_fun 1, 2") == "my_fun 1, 2\n"))
 
       File.write!("lib/a.ex", """
       my_fun :foo, :bar

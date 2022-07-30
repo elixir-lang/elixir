@@ -226,7 +226,7 @@ defmodule Mix.Tasks.Format do
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(dot_formatter, [], formatter_opts, [dot_formatter])
 
-    find_formatter_and_opts_for_file(file, formatter_opts_and_subs)
+    find_formatters_and_opts_for_file(file, formatter_opts_and_subs)
   end
 
   @doc """
@@ -441,7 +441,7 @@ defmodule Mix.Tasks.Format do
     dot_formatter
     |> expand_dot_inputs([], formatter_opts_and_subs, %{})
     |> Enum.map(fn {file, {_dot_formatter, formatter_opts}} ->
-      {file, find_formatter_for_file(file, formatter_opts)}
+      {file, find_formatters_for_file(file, formatter_opts)}
     end)
   end
 
@@ -463,13 +463,13 @@ defmodule Mix.Tasks.Format do
       if file == :stdin do
         stdin_filename = Keyword.get(opts, :stdin_filename, "stdin.exs")
 
-        {formatter, _opts} =
-          find_formatter_and_opts_for_file(stdin_filename, {formatter_opts, subs})
+        {formatters, _opts} =
+          find_formatters_and_opts_for_file(stdin_filename, {formatter_opts, subs})
 
-        {file, formatter}
+        {file, formatters}
       else
-        {formatter, _opts} = find_formatter_and_opts_for_file(file, {formatter_opts, subs})
-        {file, formatter}
+        {formatters, _opts} = find_formatters_and_opts_for_file(file, {formatter_opts, subs})
+        {file, formatters}
       end
     end
   end
@@ -511,34 +511,39 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  defp find_formatter_for_file(file, formatter_opts) do
+  defp find_formatters_for_file(file, formatter_opts) do
     ext = Path.extname(file)
 
     cond do
-      plugin = find_plugin_for_extension(formatter_opts, ext) ->
-        &plugin.format(&1, [extension: ext, file: file] ++ formatter_opts)
+      plugins = find_plugins_for_extension(formatter_opts, ext) ->
+        Enum.map(plugins, fn plugin ->
+          &plugin.format(&1, [extension: ext, file: file] ++ formatter_opts)
+        end)
 
       ext in ~w(.ex .exs) ->
-        &elixir_format(&1, [file: file] ++ formatter_opts)
+        [&elixir_format(&1, [file: file] ++ formatter_opts)]
 
       true ->
-        & &1
+        [& &1]
     end
   end
 
-  defp find_plugin_for_extension(formatter_opts, ext) do
+  defp find_plugins_for_extension(formatter_opts, ext) do
     plugins = Keyword.get(formatter_opts, :plugins, [])
 
-    Enum.find(plugins, fn plugin ->
-      Code.ensure_loaded?(plugin) and function_exported?(plugin, :features, 1) and
-        ext in List.wrap(plugin.features(formatter_opts)[:extensions])
-    end)
+    plugins =
+      Enum.filter(plugins, fn plugin ->
+        Code.ensure_loaded?(plugin) and function_exported?(plugin, :features, 1) and
+          ext in List.wrap(plugin.features(formatter_opts)[:extensions])
+      end)
+
+    if Enum.any?(plugins), do: plugins, else: nil
   end
 
-  defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
+  defp find_formatters_and_opts_for_file(file, formatter_opts_and_subs) do
     split = file |> Path.relative_to_cwd() |> Path.split()
     formatter_opts = recur_formatter_opts_for_file(split, formatter_opts_and_subs)
-    {find_formatter_for_file(file, formatter_opts), formatter_opts}
+    {find_formatters_for_file(file, formatter_opts), formatter_opts}
   end
 
   defp recur_formatter_opts_for_file(split, {formatter_opts, subs}) do
@@ -574,9 +579,10 @@ defmodule Mix.Tasks.Format do
   defp read_file(:stdin), do: IO.stream() |> Enum.to_list() |> IO.iodata_to_binary()
   defp read_file(file), do: File.read!(file)
 
-  defp format_file({file, formatter}, task_opts) do
+  defp format_file({file, formatters}, task_opts) do
     input = read_file(file)
-    output = formatter.(input)
+    output = Enum.reduce(formatters, input, fn format_fn, output -> format_fn.(output) end)
+
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
     dry_run? = Keyword.get(task_opts, :dry_run, false)
 
