@@ -43,9 +43,10 @@ capture(Meta, {'/', _, [{{'.', _, [M, F]} = Dot, RequireMeta, []}, A]}, S, E) wh
   handle_capture_possible_warning(Meta, RequireMeta, M, F, A, E),
   capture_require(Meta, {Dot, RequireMeta, Args}, S, E, true);
 
-capture(Meta, {'/', _, [{F, _, C}, A]}, S, E) when is_atom(F), is_integer(A), is_atom(C) ->
+capture(Meta, {'/', _, [{F, ImportMeta, C}, A]}, S, E) when is_atom(F), is_integer(A), is_atom(C) ->
   Args = args_from_arity(Meta, A, E),
-  capture_import(Meta, {F, Meta, Args}, S, E, true);
+  MergedMeta = lists:keymerge(1, lists:keysort(1, ImportMeta), lists:keysort(1, Meta)),
+  capture_import(Meta, {F, MergedMeta, Args}, S, E, true);
 
 capture(Meta, {{'.', _, [_, Fun]}, _, Args} = Expr, S, E) when is_atom(Fun), is_list(Args) ->
   capture_require(Meta, Expr, S, E, is_sequential_and_not_empty(Args));
