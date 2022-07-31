@@ -1320,7 +1320,7 @@ defmodule Kernel.SpecialForms do
   Which the argument for the `:sum` function call is not the
   expected result:
 
-      {:sum, [], [1, {:value, [if_undefined: :apply], Elixir}, 3]}
+      {:sum, [], [1, {:value, [], Elixir}, 3]}
 
   For this, we use `unquote`:
 

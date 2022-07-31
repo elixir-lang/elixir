@@ -324,8 +324,9 @@ defmodule IEx.Evaluator do
   end
 
   defp eval_and_inspect(forms, line, state) do
-    forms = add_if_undefined_apply_to_vars(forms)
-    {result, binding, env} = eval_expr_by_expr(forms, state.binding, state.env)
+    %{env: env, binding: binding} = state
+    forms = add_if_undefined_apply_to_vars(forms, env)
+    {result, binding, env} = eval_expr_by_expr(forms, binding, env)
 
     unless result == IEx.dont_display_result() do
       io_inspect(result)
@@ -335,10 +336,14 @@ defmodule IEx.Evaluator do
     %{state | env: env, binding: binding, history: history}
   end
 
-  defp add_if_undefined_apply_to_vars(forms) do
+  defp add_if_undefined_apply_to_vars(forms, env) do
     Macro.prewalk(forms, fn
       {var, meta, context} when is_atom(var) and is_atom(context) ->
-        {var, Keyword.put_new(meta, :if_undefined, :apply), context}
+        if Macro.Env.lookup_import(env, {var, 0}) != [] do
+          {var, Keyword.put_new(meta, :if_undefined, :apply), context}
+        else
+          {var, meta, context}
+        end
 
       other ->
         other
