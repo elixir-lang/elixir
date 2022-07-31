@@ -38,10 +38,10 @@ fn_arity(Args) -> length(Args).
 
 %% Capture
 
-capture(Meta, {'/', _, [{{'.', _, [M, F]} = Dot, DotMeta, []}, A]}, S, E) when is_atom(F), is_integer(A) ->
+capture(Meta, {'/', _, [{{'.', _, [M, F]} = Dot, RequireMeta, []}, A]}, S, E) when is_atom(F), is_integer(A) ->
   Args = args_from_arity(Meta, A, E),
-  handle_capture_possible_warning(Meta, DotMeta, M, F, A, E),
-  capture_require(Meta, {Dot, Meta, Args}, S, E, true);
+  handle_capture_possible_warning(Meta, RequireMeta, M, F, A, E),
+  capture_require(Meta, {Dot, RequireMeta, Args}, S, E, true);
 
 capture(Meta, {'/', _, [{F, _, C}, A]}, S, E) when is_atom(F), is_integer(A), is_atom(C) ->
   Args = args_from_arity(Meta, A, E),
@@ -94,7 +94,7 @@ capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, 
       end,
 
       Dot = {{'.', DotMeta, [ELeft, Right]}, RequireMeta, Args},
-      handle_capture(Res, Meta, Dot, SE, EE, Sequential);
+      handle_capture(Res, RequireMeta, Dot, SE, EE, Sequential);
 
     {EscLeft, Escaped} ->
       Dot = {{'.', DotMeta, [EscLeft, Right]}, RequireMeta, Args},
@@ -103,8 +103,8 @@ capture_require(Meta, {{'.', DotMeta, [Left, Right]}, RequireMeta, Args}, S, E, 
 
 handle_capture(false, Meta, Expr, S, E, Sequential) ->
   capture_expr(Meta, Expr, S, E, Sequential);
-handle_capture(LocalOrRemote, _Meta, _Expr, S, E, _Sequential) ->
-  {LocalOrRemote, S, E}.
+handle_capture(LocalOrRemote, Meta, _Expr, S, E, _Sequential) ->
+  {LocalOrRemote, Meta, S, E}.
 
 capture_expr(Meta, Expr, S, E, Sequential) ->
   capture_expr(Meta, Expr, S, E, [], Sequential).
