@@ -6,17 +6,17 @@ Mix.install([
   {:jason, "~> 1.0"}
 ])
 
-%{status: 200, body: body} =
+%{status: 200, body: release} =
   Req.get!("https://api.github.com/repos/elixir-lang/elixir/releases/tags/#{tag}")
 
-if body["draft"] do
+if release["draft"] do
   raise "cannot notify a draft release"
 end
 
 ## Notify on elixir-lang-ann
 
 names_and_checksums =
-  for asset <- body["assets"],
+  for asset <- release["assets"],
       name = asset["name"],
       name =~ ~r/.sha\d+sum$/,
       do: {name, Req.get!(asset["browser_download_url"]).body}
@@ -29,34 +29,44 @@ line_items =
     "  * #{root} - #{type} - #{checksum}\n"
   end
 
-headers = %{
-  "X-Postmark-Server-Token" => System.fetch_env!("ELIXIR_LANG_ANN_TOKEN")
-}
-
-body = %{
+mail = %{
   "From" => "jose.valim@dashbit.co",
   "To" => "elixir-lang-ann@googlegroups.com",
   "Subject" => "Elixir #{tag} released",
   "HtmlBody" => "https://github.com/elixir-lang/elixir/releases/tag/#{tag}\n\n#{line_items}",
-  "MessageStream": "outbound"
+  "MessageStream" => "outbound"
 }
 
-resp = Req.post!("https://api.postmarkapp.com/email", {:json, body}, headers: headers)
-IO.puts("#{resp.status} elixir-lang-ann\n#{inspect(resp.body)}")
+if System.get_env("DRYRUN") do
+  IO.puts("MAIL")
+  IO.inspect(mail)
+else
+  headers = %{
+    "X-Postmark-Server-Token" => System.fetch_env!("ELIXIR_LANG_ANN_TOKEN")
+  }
+
+  resp = Req.post!("https://api.postmarkapp.com/email", {:json, mail}, headers: headers)
+  IO.puts("#{resp.status} elixir-lang-ann\n#{inspect(resp.body)}")
+end
 
 ## Notify on Elixir Forum
 
-headers = %{
-  "api-key" => System.fetch_env!("ELIXIR_FORUM_TOKEN"),
-  "api-username" => "Elixir"
-}
-
-body = %{
+post = %{
   "title" => "Elixir #{tag} released",
-  "raw" => "https://github.com/elixir-lang/elixir/releases/tag/#{tag}\n\n#{body["body"]}",
+  "raw" => "https://github.com/elixir-lang/elixir/releases/tag/#{tag}\n\n#{release["body"]}",
   # Elixir News
   "category" => 28
 }
 
-resp = Req.post!("https://elixirforum.com/posts.json", {:json, body}, headers: headers)
-IO.puts("#{resp.status} Elixir Forum\n#{inspect(resp.body)}")
+if System.get_env("DRYRUN") do
+  IO.puts("POST")
+  IO.inspect(post)
+else
+  headers = %{
+    "api-key" => System.fetch_env!("ELIXIR_FORUM_TOKEN"),
+    "api-username" => "Elixir"
+  }
+
+  resp = Req.post!("https://elixirforum.com/posts.json", {:json, post}, headers: headers)
+  IO.puts("#{resp.status} Elixir Forum\n#{inspect(resp.body)}")
+end
