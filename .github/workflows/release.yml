@@ -13,7 +13,7 @@ env:
 jobs:
   create_draft_release:
     permissions:
-      contents: none
+      contents: write
     runs-on: ubuntu-18.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
