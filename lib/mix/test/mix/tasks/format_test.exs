@@ -266,21 +266,10 @@ defmodule Mix.Tasks.FormatTest do
 
     def format(contents, opts) do
       assert opts[:from_formatter_exs] == :yes
-
-      cond do
-        opts[:extension] ->
-          assert opts[:extension] == ".w"
-          assert opts[:file] =~ ~r/\/a\.w$/
-          assert [W: sigil_fun] = opts[:sigils]
-          assert is_function(sigil_fun, 2)
-
-        opts[:sigil] ->
-          assert opts[:sigil] == :W
-          assert opts[:inputs] == ["a.ex"]
-
-        true ->
-          flunk("Plugin not loading in correctly.")
-      end
+      assert opts[:extension] == ".w"
+      assert opts[:file] =~ ~r/\/a\.w$/
+      assert [W: sigil_fun] = opts[:sigils]
+      assert is_function(sigil_fun, 2)
 
       contents |> String.split(~r/\s/) |> Enum.join("\n")
     end
@@ -307,6 +296,7 @@ defmodule Mix.Tasks.FormatTest do
         opts[:sigil] ->
           assert opts[:sigil] == :W
           assert opts[:inputs] == ["a.ex"]
+          assert opts[:modifiers] == 'abc'
 
         true ->
           flunk("Plugin not loading in correctly.")
@@ -386,14 +376,14 @@ defmodule Mix.Tasks.FormatTest do
       File.write!(".formatter.exs", """
       [
         inputs: ["a.ex"],
-        plugins: [NewlineToDotPlugin, ExtensionWPlugin],
+        plugins: [NewlineToDotPlugin, SigilWPlugin],
         from_formatter_exs: :yes
       ]
       """)
 
       File.write!("a.ex", """
       def sigil_test(assigns) do
-        ~W"foo bar baz\n"
+        ~W"foo bar baz\n"abc
       end
       """)
 
@@ -401,33 +391,7 @@ defmodule Mix.Tasks.FormatTest do
 
       assert File.read!("a.ex") == """
              def sigil_test(assigns) do
-               ~W"foo\nbar\nbaz."
-             end
-             """
-    end)
-  end
-
-  test "uses single plugin from .formatter.exs with sigil", context do
-    in_tmp(context.test, fn ->
-      File.write!(".formatter.exs", """
-      [
-        inputs: ["a.ex"],
-        plugins: [ExtensionWPlugin],
-        from_formatter_exs: :yes
-      ]
-      """)
-
-      File.write!("a.ex", """
-      def sigil_test(assigns) do
-        ~W"foo bar baz"
-      end
-      """)
-
-      Mix.Tasks.Format.run([])
-
-      assert File.read!("a.ex") == """
-             def sigil_test(assigns) do
-               ~W"foo\nbar\nbaz"
+               ~W"foo\nbar\nbaz."abc
              end
              """
     end)
@@ -439,14 +403,14 @@ defmodule Mix.Tasks.FormatTest do
       File.write!(".formatter.exs", """
       [
         inputs: ["a.ex"],
-        plugins: [ExtensionWPlugin, NewlineToDotPlugin],
+        plugins: [SigilWPlugin, NewlineToDotPlugin],
         from_formatter_exs: :yes
       ]
       """)
 
       File.write!("a.ex", """
       def sigil_test(assigns) do
-        ~W"foo bar baz"
+        ~W"foo bar baz"abc
       end
       """)
 
@@ -454,7 +418,7 @@ defmodule Mix.Tasks.FormatTest do
 
       assert File.read!("a.ex") == """
              def sigil_test(assigns) do
-               ~W"foo.bar.baz"
+               ~W"foo.bar.baz"abc
              end
              """
     end)
