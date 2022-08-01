@@ -266,14 +266,21 @@ defmodule Mix.Tasks.FormatTest do
 
     def format(contents, opts) do
       assert opts[:from_formatter_exs] == :yes
-      assert opts[:extension] == ".w"
-      assert opts[:file] =~ ~r/\/a\.w$/
-      sigils = opts[:sigils]
 
-      Enum.each(sigils, fn sigil ->
-        assert {:W, sigil_fun} = sigil
-        assert is_function(sigil_fun, 2)
-      end)
+      cond do
+        opts[:extension] ->
+          assert opts[:extension] == ".w"
+          assert opts[:file] =~ ~r/\/a\.w$/
+          assert [W: sigil_fun] = opts[:sigils]
+          assert is_function(sigil_fun, 2)
+
+        opts[:sigil] ->
+          assert opts[:sigil] == :W
+          assert opts[:inputs] == ["a.ex"]
+
+        true ->
+          flunk("Plugin not loading in correctly.")
+      end
 
       contents |> String.split(~r/\s/) |> Enum.join("\n")
     end
@@ -289,14 +296,21 @@ defmodule Mix.Tasks.FormatTest do
 
     def format(contents, opts) do
       assert opts[:from_formatter_exs] == :yes
-      assert opts[:extension] == ".w"
-      assert opts[:file] =~ ~r/\/a\.w$/
-      sigils = opts[:sigils]
 
-      Enum.each(sigils, fn sigil ->
-        assert {:W, sigil_fun} = sigil
-        assert is_function(sigil_fun, 2)
-      end)
+      cond do
+        opts[:extension] ->
+          assert opts[:extension] == ".w"
+          assert opts[:file] =~ ~r/\/a\.w$/
+          assert [W: sigil_fun] = opts[:sigils]
+          assert is_function(sigil_fun, 2)
+
+        opts[:sigil] ->
+          assert opts[:sigil] == :W
+          assert opts[:inputs] == ["a.ex"]
+
+        true ->
+          flunk("Plugin not loading in correctly.")
+      end
 
       contents |> String.replace("\n", ".")
     end
@@ -346,7 +360,7 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  test "uses multiple plugins from .formatter.exs targetting the same file extension in declared order",
+  test "uses multiple plugins from .formatter.exs with the same file extension in declared order",
        context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
@@ -364,6 +378,85 @@ defmodule Mix.Tasks.FormatTest do
       Mix.Tasks.Format.run([])
 
       assert File.read!("a.w") == "foo\nbar\nbaz."
+    end)
+  end
+
+  test "uses multiple plugins from .formatter.exs targetting the same sigil", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [NewlineToDotPlugin, ExtensionWPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def sigil_test(assigns) do
+        ~W"foo bar baz\n"
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             def sigil_test(assigns) do
+               ~W"foo\nbar\nbaz."
+             end
+             """
+    end)
+  end
+
+  test "uses single plugin from .formatter.exs with sigil", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionWPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def sigil_test(assigns) do
+        ~W"foo bar baz"
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             def sigil_test(assigns) do
+               ~W"foo\nbar\nbaz"
+             end
+             """
+    end)
+  end
+
+  test "uses multiple plugins from .formatter.exs with the same sigil in declared order",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [ExtensionWPlugin, NewlineToDotPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def sigil_test(assigns) do
+        ~W"foo bar baz"
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             def sigil_test(assigns) do
+               ~W"foo.bar.baz"
+             end
+             """
     end)
   end
 
@@ -426,7 +519,7 @@ defmodule Mix.Tasks.FormatTest do
 
       {formatters, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
       assert Keyword.get(formatter_opts, :locals_without_parens) == [my_fun: 2]
-      Enum.each(formatters, &assert(&1.("my_fun 1, 2") == "my_fun 1, 2\n"))
+      assert formatters.("my_fun 1, 2") == "my_fun 1, 2\n"
 
       File.write!("lib/a.ex", """
       my_fun :foo, :bar

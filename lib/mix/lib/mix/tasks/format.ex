@@ -303,7 +303,21 @@ defmodule Mix.Tasks.Format do
     sigils =
       for plugin <- plugins,
           sigil <- find_sigils_from_plugins(plugin, formatter_opts),
-          do: {sigil, &plugin.format(&1, &2 ++ formatter_opts)}
+          do: {sigil, plugin}
+
+    sigils =
+      Keyword.keys(sigils)
+      |> Enum.uniq()
+      |> Enum.map(fn sigil ->
+        plugins = Keyword.get_values(sigils, sigil)
+
+        {sigil,
+         fn input, opts ->
+           Enum.reduce(plugins, input, fn plugin, input ->
+             plugin.format(input, opts ++ formatter_opts)
+           end)
+         end}
+      end)
 
     formatter_opts =
       formatter_opts
@@ -521,15 +535,17 @@ defmodule Mix.Tasks.Format do
 
     cond do
       plugins = find_plugins_for_extension(formatter_opts, ext) ->
-        Enum.map(plugins, fn plugin ->
-          &plugin.format(&1, [extension: ext, file: file] ++ formatter_opts)
-        end)
+        fn input ->
+          Enum.reduce(plugins, input, fn plugin, input ->
+            plugin.format(input, [extension: ext, file: file] ++ formatter_opts)
+          end)
+        end
 
       ext in ~w(.ex .exs) ->
-        [&elixir_format(&1, [file: file] ++ formatter_opts)]
+        &elixir_format(&1, [file: file] ++ formatter_opts)
 
       true ->
-        [& &1]
+        & &1
     end
   end
 
@@ -542,7 +558,7 @@ defmodule Mix.Tasks.Format do
           ext in List.wrap(plugin.features(formatter_opts)[:extensions])
       end)
 
-    if Enum.any?(plugins), do: plugins, else: nil
+    if plugins != [], do: plugins, else: nil
   end
 
   defp find_formatters_and_opts_for_file(file, formatter_opts_and_subs) do
@@ -586,7 +602,7 @@ defmodule Mix.Tasks.Format do
 
   defp format_file({file, formatters}, task_opts) do
     input = read_file(file)
-    output = Enum.reduce(formatters, input, fn formatter, output -> formatter.(output) end)
+    output = formatters.(input)
 
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
     dry_run? = Keyword.get(task_opts, :dry_run, false)
