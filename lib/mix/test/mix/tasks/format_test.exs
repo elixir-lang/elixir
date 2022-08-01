@@ -270,7 +270,6 @@ defmodule Mix.Tasks.FormatTest do
       assert opts[:file] =~ ~r/\/a\.w$/
       assert [W: sigil_fun] = opts[:sigils]
       assert is_function(sigil_fun, 2)
-
       contents |> String.split(~r/\s/) |> Enum.join("\n")
     end
   end

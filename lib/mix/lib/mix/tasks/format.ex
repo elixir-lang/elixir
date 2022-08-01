@@ -133,7 +133,6 @@ defmodule Mix.Tasks.Format do
   So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
   the markdown files and sigils before `AnotherMarkdownFormatter`.
 
-
   ## Importing dependencies configuration
 
   This task supports importing formatter configuration from dependencies.
@@ -600,7 +599,6 @@ defmodule Mix.Tasks.Format do
   defp format_file({file, formatter}, task_opts) do
     input = read_file(file)
     output = formatter.(input)
-
     check_formatted? = Keyword.get(task_opts, :check_formatted, false)
     dry_run? = Keyword.get(task_opts, :dry_run, false)
 
