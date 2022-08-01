@@ -196,4 +196,4 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.11]: https://github.com/elixir-lang/elixir/blob/v1.11/CHANGELOG.md#4-hard-deprecations
 [v1.12]: https://github.com/elixir-lang/elixir/blob/v1.12/CHANGELOG.md#4-hard-deprecations
 [v1.13]: https://github.com/elixir-lang/elixir/blob/v1.13/CHANGELOG.md#4-hard-deprecations
-[v1.14]: CHANGELOG.md#4-hard-deprecations
+[v1.14]: https://github.com/elixir-lang/elixir/blob/v1.14/CHANGELOG.md#4-hard-deprecations

@@ -241,7 +241,7 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
-## v1.14.0-dev
+## v1.14.0-rc.0 (2022-08-01)
 
 ### 1. Enhancements
 
