@@ -90,7 +90,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.14] | Compiled patterns in `String.starts_with?/2`        | Pass a list of strings instead (v1.0)
 [v1.14] | `Mix.Tasks.Xref.calls/1`                            | Compilation tracers (outlined in `Code`) (v1.10)
 [v1.14] | `$levelpad` in Logger                               | *None*
-[v1.14] | `<|>` as a custom operator                          | Another custom operator (v1.0)
+[v1.14] | `<\|>` as a custom operator                         | Another custom operator (v1.0)
 [v1.13] | `!` and `!=` in Version requirements                | `~>` or `>=` (v1.0)
 [v1.13] | `Mix.Config`                                        | `Config` (v1.9)
 [v1.13] | `:strip_beam` config to `mix escript.build`         | `:strip_beams` (v1.9)
