@@ -481,9 +481,9 @@ defmodule Mix.Tasks.FormatTest do
       [inputs: "a.ex", locals_without_parens: [my_fun: 2]]
       """)
 
-      {formatters, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
+      {formatter, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
       assert Keyword.get(formatter_opts, :locals_without_parens) == [my_fun: 2]
-      assert formatters.("my_fun 1, 2") == "my_fun 1, 2\n"
+      assert formatter.("my_fun 1, 2") == "my_fun 1, 2\n"
 
       File.write!("lib/a.ex", """
       my_fun :foo, :bar
