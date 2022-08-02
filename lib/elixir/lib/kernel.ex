@@ -5142,6 +5142,14 @@ defmodule Kernel do
         defstruct [:title, :content, :author]
       end
 
+  Documentation can be added to a struct the same way as to a function, using
+  the `@doc` attribute.
+
+      defmodule Post do
+        @doc "A post. The content should be valid Markdown."
+        defstruct [:title, :content, :author]
+      end
+
   ## Deriving
 
   Although structs are maps, by default structs do not implement

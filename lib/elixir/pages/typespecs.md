@@ -14,11 +14,14 @@ Type specifications (sometimes referred to as *typespecs*) are defined in differ
   * `@callback`
   * `@macrocallback`
 
+In addition, you can use `@typedoc` to describe a custom `@type` definition.
+
 See the "User-defined types" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
 
 ## A simple example
 
     defmodule StringHelpers do
+      @typedoc "A word from the dictionary"
       @type word() :: String.t()
 
       @spec long_word?(word()) :: boolean()
@@ -27,11 +30,13 @@ See the "User-defined types" and "Defining a specification" sub-sections below f
       end
     end
 
-In the example above, this happens:
+In the example above:
 
-  * we declare a new type (`word()`) that is equivalent to the string type (`String.t()`);
+  * We declare a new type (`word()`) that is equivalent to the string type (`String.t()`).
 
-  * we specify that the `long_word?/1` function takes an argument of type `word()` and
+  * We describe the type using a `@typedoc`, which will be included in the generated documentation.
+
+  * We specify that the `long_word?/1` function takes an argument of type `word()` and
     returns a boolean (`boolean()`), that is, either `true` or `false`.
 
 ## Types and their syntax
