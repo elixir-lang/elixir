@@ -1081,7 +1081,8 @@ defmodule Kernel.ExpansionTest do
           fn -> 17 end
         end
 
-      assert expand(before_expansion) == after_expansion
+      assert clean_meta(expand(before_expansion), [:import, :context, :no_parens]) ==
+               after_expansion
     end
 
     test "fails on non-continuous" do
