@@ -265,6 +265,20 @@ defmodule EnumTest do
     end
   end
 
+  test "drop/2 with streams" do
+    drop_stream = fn list, count -> list |> Stream.map(& &1) |> Enum.drop(count) end
+
+    assert drop_stream.([1, 2, 3], 0) == [1, 2, 3]
+    assert drop_stream.([1, 2, 3], 1) == [2, 3]
+    assert drop_stream.([1, 2, 3], 2) == [3]
+    assert drop_stream.([1, 2, 3], 3) == []
+    assert drop_stream.([1, 2, 3], 4) == []
+    assert drop_stream.([1, 2, 3], -1) == [1, 2]
+    assert drop_stream.([1, 2, 3], -2) == [1]
+    assert drop_stream.([1, 2, 3], -4) == []
+    assert drop_stream.([], 3) == []
+  end
+
   test "drop_every/2" do
     assert Enum.drop_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 2) == [2, 4, 6, 8, 10]
     assert Enum.drop_every([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], 3) == [2, 3, 5, 6, 8, 9]
