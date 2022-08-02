@@ -4491,7 +4491,7 @@ defmodule Enum do
 
         {count,
          fn start, amount, _step ->
-           list |> :lists.reverse() |> slice_exact(start, amount, 1, 1)
+           list |> :lists.reverse() |> slice_exact(start, amount, 1, count)
          end}
     end
   end
