@@ -34,7 +34,7 @@ defmodule IEx.Autocomplete do
   @doc """
   The expansion logic.
 
-  Some of the expansion has to be use the current shell
+  Some of the expansion has to use the current shell
   environment, which is found via the broker.
   """
   def expand(code, shell \\ IEx.Broker.shell()) do
@@ -108,8 +108,6 @@ defmodule IEx.Autocomplete do
       {:struct, {:dot, {:alias, struct}, ''}} when is_list(struct) ->
         expand_structs(List.to_string(struct ++ '.'), shell)
 
-      # {:module_attribute, charlist}
-      # :none
       _ ->
         no()
     end
