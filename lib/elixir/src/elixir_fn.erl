@@ -41,13 +41,11 @@ fn_arity(Args) -> length(Args).
 capture(Meta, {'/', _, [{{'.', _, [M, F]} = Dot, RequireMeta, []}, A]}, S, E) when is_atom(F), is_integer(A) ->
   Args = args_from_arity(Meta, A, E),
   handle_capture_possible_warning(Meta, RequireMeta, M, F, A, E),
-  MergedMeta = maps:merge(maps:from_list(Meta), maps:from_list(RequireMeta)),
-  capture_require(Meta, {Dot, maps:to_list(MergedMeta), Args}, S, E, true);
+  capture_require(Meta, {Dot, RequireMeta, Args}, S, E, true);
 
 capture(Meta, {'/', _, [{F, ImportMeta, C}, A]}, S, E) when is_atom(F), is_integer(A), is_atom(C) ->
   Args = args_from_arity(Meta, A, E),
-  MergedMeta = maps:merge(maps:from_list(Meta), maps:from_list(ImportMeta)),
-  capture_import(Meta, {F, maps:to_list(MergedMeta), Args}, S, E, true);
+  capture_import(Meta, {F, ImportMeta, Args}, S, E, true);
 
 capture(Meta, {{'.', _, [_, Fun]}, _, Args} = Expr, S, E) when is_atom(Fun), is_list(Args) ->
   capture_require(Meta, Expr, S, E, is_sequential_and_not_empty(Args));
