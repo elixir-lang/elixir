@@ -4469,29 +4469,15 @@ defmodule Enum do
 
       {:error, module} ->
         {list, count} =
-          if step == 1 do
-            enumerable
-            |> module.reduce({:cont, {[], 0}}, fn elem, {acc, count} ->
-              {:cont, {[elem | acc], count + 1}}
-            end)
-            |> elem(1)
-          else
-            # We want to count all elements but we only keep the ones we need
-            {_, {list, _, count}} =
-              module.reduce(enumerable, {:cont, {[], 1, 0}}, fn
-                elem, {acc, 1, count} ->
-                  {:cont, {[elem | acc], step, count + 1}}
-
-                _elem, {acc, to_drop, count} ->
-                  {:cont, {acc, to_drop - 1, count + 1}}
-              end)
-
-            {list, count}
-          end
+          enumerable
+          |> module.reduce({:cont, {[], 0}}, fn elem, {acc, count} ->
+            {:cont, {[elem | acc], count + 1}}
+          end)
+          |> elem(1)
 
         {count,
-         fn start, amount, _step ->
-           list |> :lists.reverse() |> slice_exact(start, amount, 1, count)
+         fn start, amount, step ->
+           list |> :lists.reverse() |> slice_exact(start, amount, step, count)
          end}
     end
   end
