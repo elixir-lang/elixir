@@ -536,14 +536,14 @@ resolve_super(Meta, Arity, E) ->
 
 expand_fn_capture(Meta, Arg, S, E) ->
   case elixir_fn:capture(Meta, Arg, S, E) of
-    {{remote, Remote, Fun, Arity}, SE, EE} ->
+    {{remote, Remote, Fun, Arity}, RemoteMeta, SE, EE} ->
       is_atom(Remote) andalso
-        elixir_env:trace({remote_function, Meta, Remote, Fun, Arity}, E),
+        elixir_env:trace({remote_function, RemoteMeta, Remote, Fun, Arity}, E),
       AttachedMeta = attach_context_module(Remote, Meta, E),
       {{'&', AttachedMeta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, SE, EE};
-    {{local, Fun, Arity}, _SE, #{function := nil}} ->
+    {{local, Fun, Arity}, _LocalMeta, _SE, #{function := nil}} ->
       form_error(Meta, E, ?MODULE, {undefined_local_capture, Fun, Arity});
-    {{local, Fun, Arity}, SE, EE} ->
+    {{local, Fun, Arity}, _LocalMeta, SE, EE} ->
       {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, SE, EE};
     {expand, Expr, SE, EE} ->
       expand(Expr, SE, EE)

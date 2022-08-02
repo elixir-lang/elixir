@@ -83,6 +83,26 @@ defmodule Kernel.TracersTest do
     assert meta[:column] == 11
   end
 
+  test "traces imports via capture" do
+    compile_string("""
+    import Integer, only: [is_odd: 1, parse: 1]
+    &is_odd/1
+    &parse/1
+    """)
+
+    assert_receive {{:import, meta, Integer, only: [is_odd: 1, parse: 1]}, _}
+    assert meta[:line] == 1
+    assert meta[:column] == 1
+
+    assert_receive {{:imported_macro, meta, Integer, :is_odd, 1}, _}
+    assert meta[:line] == 2
+    assert meta[:column] == 2
+
+    assert_receive {{:imported_function, meta, Integer, :parse, 1}, _}
+    assert meta[:line] == 3
+    assert meta[:column] == 2
+  end
+
   test "traces structs" do
     compile_string("""
     %URI{path: "/"}
@@ -118,11 +138,11 @@ defmodule Kernel.TracersTest do
 
     assert_receive {{:remote_macro, meta, Integer, :is_odd, 1}, _}
     assert meta[:line] == 2
-    assert meta[:column] == 1
+    assert meta[:column] == 10
 
     assert_receive {{:remote_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
-    assert meta[:column] == 1
+    assert meta[:column] == 10
   end
 
   test "traces locals" do
@@ -157,11 +177,11 @@ defmodule Kernel.TracersTest do
 
     assert_receive {{:local_macro, meta, :foo, 1}, _}
     assert meta[:line] == 4
-    assert meta[:column] == 20
+    assert meta[:column] == 21
 
     assert_receive {{:local_function, meta, :bar, 1}, _}
     assert meta[:line] == 4
-    assert meta[:column] == 28
+    assert meta[:column] == 29
   after
     :code.purge(Sample)
     :code.delete(Sample)
