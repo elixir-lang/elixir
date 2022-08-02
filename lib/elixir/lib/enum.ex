@@ -4436,7 +4436,10 @@ defmodule Enum do
           end
 
         entry, {start, amount, to_drop, list} ->
-          {:halt, {start, amount, to_drop, [entry | list]}}
+          case to_drop do
+            1 -> {:halt, {start, amount, to_drop, [entry | list]}}
+            _ -> {:halt, {start, amount, to_drop, list}}
+          end
       end)
 
     :lists.reverse(slice)
