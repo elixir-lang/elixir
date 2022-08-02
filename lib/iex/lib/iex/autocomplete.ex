@@ -1,6 +1,8 @@
 defmodule IEx.Autocomplete do
   @moduledoc false
 
+  require Logger
+
   @bitstring_modifiers [
     %{kind: :variable, name: "big"},
     %{kind: :variable, name: "binary"},
@@ -38,10 +40,19 @@ defmodule IEx.Autocomplete do
   environment, which is found via the broker.
   """
   def expand(code, shell \\ IEx.Broker.shell()) do
-    case path_fragment(code) do
-      [] -> expand_code(code, shell)
-      path -> expand_path(path)
-    end
+    path_fragment = IEx.Autocomplete.Path.expandable_fragment(code)
+
+    result =
+      case path_fragment do
+        [] -> expand_code(code, shell)
+        path -> IEx.Autocomplete.Path.expand(path, shell)
+      end
+
+    Logger.debug(
+      "Autocomplete Code='#{inspect(code)}', path_fragment='#{inspect(path_fragment)}', shell='#{inspect(shell)}'. Result: #{inspect(result)}"
+    )
+
+    result
   end
 
   defp expand_code(code, shell) do
@@ -440,18 +451,18 @@ defmodule IEx.Autocomplete do
 
   ## Formatting
 
-  defp format_expansion([], _) do
+  def format_expansion([], _) do
     no()
   end
 
-  defp format_expansion([uniq], hint) do
+  def format_expansion([uniq], hint) do
     case to_hint(uniq, hint) do
       "" -> yes("", to_entries(uniq))
       hint -> yes(hint, [])
     end
   end
 
-  defp format_expansion([first | _] = entries, hint) do
+  def format_expansion([first | _] = entries, hint) do
     binary = Enum.map(entries, & &1.name)
     length = byte_size(hint)
     prefix = :binary.longest_common_prefix(binary)
@@ -707,60 +718,6 @@ defmodule IEx.Autocomplete do
       IEx.Evaluator.value_from_binding(evaluator, server, var, path)
     else
       _ -> :error
-    end
-  end
-
-  ## Path helpers
-
-  defp path_fragment(expr), do: path_fragment(expr, [])
-  defp path_fragment([], _acc), do: []
-  defp path_fragment([?{, ?# | _rest], _acc), do: []
-  defp path_fragment([?", ?\\ | t], acc), do: path_fragment(t, [?\\, ?" | acc])
-
-  defp path_fragment([?/, ?:, x, ?" | _], acc) when x in ?a..?z or x in ?A..?Z,
-    do: [x, ?:, ?/ | acc]
-
-  defp path_fragment([?/, ?., ?" | _], acc), do: [?., ?/ | acc]
-  defp path_fragment([?/, ?" | _], acc), do: [?/ | acc]
-  defp path_fragment([?" | _], _acc), do: []
-  defp path_fragment([h | t], acc), do: path_fragment(t, [h | acc])
-
-  defp expand_path(path) do
-    path
-    |> List.to_string()
-    |> ls_prefix()
-    |> Enum.map(fn path ->
-      %{
-        kind: if(File.dir?(path), do: :dir, else: :file),
-        name: Path.basename(path)
-      }
-    end)
-    |> format_expansion(path_hint(path))
-  end
-
-  defp path_hint(path) do
-    if List.last(path) in [?/, ?\\] do
-      ""
-    else
-      Path.basename(path)
-    end
-  end
-
-  defp prefix_from_dir(".", <<c, _::binary>>) when c != ?., do: ""
-  defp prefix_from_dir(dir, _fragment), do: dir
-
-  defp ls_prefix(path) do
-    dir = Path.dirname(path)
-    prefix = prefix_from_dir(dir, path)
-
-    case File.ls(dir) do
-      {:ok, list} ->
-        list
-        |> Enum.map(&Path.join(prefix, &1))
-        |> Enum.filter(&String.starts_with?(&1, path))
-
-      _ ->
-        []
     end
   end
 end
