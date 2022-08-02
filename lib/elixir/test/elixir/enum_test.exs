@@ -1094,6 +1094,9 @@ defmodule EnumTest do
 
     assert [1, 2, 3] |> Stream.cycle() |> Stream.take(10) |> Enum.slice(-10..-6//2) ==
              [1, 3, 2]
+
+    assert [1, 2, 3] |> Stream.cycle() |> Stream.take(10) |> Enum.slice(-9..-5//2) ==
+             [2, 1, 3]
   end
 
   test "sort/1" do
