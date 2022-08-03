@@ -1806,6 +1806,7 @@ defmodule String do
 
   defp valid_utf8?(<<_::utf8, rest::bits>>), do: valid_utf8?(rest)
   defp valid_utf8?(<<>>), do: true
+  defp valid_utf8?(_), do: false
 
   @doc false
   @deprecated "Use String.valid?/1 instead"
