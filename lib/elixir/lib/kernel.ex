@@ -4649,29 +4649,22 @@ defmodule Kernel do
       when is_binary(binary) and step > 0 do
     total = byte_size(binary)
 
-    first =
-      case first < 0 do
-        true -> max(first + total, 0)
-        false -> first
+    first = if first < 0, do: max(first + total, 0), else: first
+    last = if last < 0, do: last + total, else: last
+
+    amount = last - first + 1
+
+    if first < total and amount > 0 do
+      part = binary_part(binary, first, min(amount, total - first))
+
+      if step == 1 do
+        part
+      else
+        <<first_byte, rest::binary>> = part
+        for <<_::size(step - 1)-bytes, byte <- rest>>, into: <<first_byte>>, do: <<byte>>
       end
-
-    last =
-      case last < 0 do
-        true -> last + total
-        false -> last
-      end
-
-    case first < total do
-      true ->
-        part = binary_part(binary, first, min(total - first, last - first + 1))
-
-        case step do
-          1 -> part
-          _ -> for <<byte, _::size(step - 1)-bytes <- part>>, into: "", do: <<byte>>
-        end
-
-      false ->
-        ""
+    else
+      ""
     end
   end
 
