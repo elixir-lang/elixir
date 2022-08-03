@@ -1424,6 +1424,13 @@ defmodule KernelTest do
     assert match?(x when ceil(x) == 1, 0.2)
   end
 
+  test "binary_slice/2" do
+    assert binary_slice("abc", -1..0) == ""
+    assert binary_slice("abc", -5..-5) == ""
+    assert binary_slice("x", 0..0//2) == "x"
+    assert binary_slice("abcde", 1..3//2) == "bd"
+  end
+
   test "sigil_U/2" do
     assert ~U[2015-01-13 13:00:07.123Z] == %DateTime{
              calendar: Calendar.ISO,
