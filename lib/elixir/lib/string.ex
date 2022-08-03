@@ -1795,12 +1795,14 @@ defmodule String do
       iex> String.valid?("asd" <> <<0xFFFF::16>>)
       false
 
+      iex> String.valid?(4)
+      ** (FunctionClauseError) no function clause matching in String.valid?/1
+
   """
   @spec valid?(t) :: boolean
   def valid?(string)
 
   def valid?(<<string::binary>>), do: valid_utf8?(string)
-  def valid?(_), do: false
 
   defp valid_utf8?(<<_::utf8, rest::bits>>), do: valid_utf8?(rest)
   defp valid_utf8?(<<>>), do: true
