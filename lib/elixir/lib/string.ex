@@ -1795,13 +1795,17 @@ defmodule String do
       iex> String.valid?("asd" <> <<0xFFFF::16>>)
       false
 
+      iex> String.valid?(4)
+      false
+
   """
-  @spec valid?(t) :: boolean
+  @spec valid?(any) :: boolean
   def valid?(string)
 
   def valid?(<<string::binary>>), do: valid_utf8?(string)
   def valid?(_), do: false
 
+  @spec valid_utf8?(t) :: boolean
   defp valid_utf8?(<<_::utf8, rest::bits>>), do: valid_utf8?(rest)
   defp valid_utf8?(<<>>), do: true
   defp valid_utf8?(_), do: false
