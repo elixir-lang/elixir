@@ -2286,6 +2286,7 @@ defmodule EnumTest.Range do
     assert Enum.take(1..3, -2) == [2, 3]
     assert Enum.take(1..3, -4) == [1, 2, 3]
     assert Enum.take(1..0, 3) == [1, 0]
+    assert Enum.take(1..0//1, -3) == []
   end
 
   test "take_every/2" do
