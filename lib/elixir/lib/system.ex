@@ -62,6 +62,15 @@ defmodule System do
   in the Erlang docs.
   """
 
+  defmodule EnvError do
+    defexception [:env]
+
+    @impl true
+    def message(%{env: env}) do
+      "could not fetch environment variable #{inspect(env)} because it is not set"
+    end
+  end
+
   @typedoc """
   The time unit to be passed to functions like `monotonic_time/1` and others.
 
@@ -684,9 +693,7 @@ defmodule System do
   @doc since: "1.9.0"
   @spec fetch_env!(String.t()) :: String.t()
   def fetch_env!(varname) when is_binary(varname) do
-    get_env(varname) ||
-      raise ArgumentError,
-            "could not fetch environment variable #{inspect(varname)} because it is not set"
+    get_env(varname) || raise(EnvError, env: varname)
   end
 
   @doc """
