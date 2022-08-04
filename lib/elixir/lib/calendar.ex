@@ -366,7 +366,7 @@ defmodule Calendar do
   """
   @doc since: "1.8.0"
   @spec put_time_zone_database(time_zone_database()) :: :ok
-  def put_time_zone_database(database) do
+  def put_time_zone_database(database) when is_atom(database) do
     Application.put_env(:elixir, :time_zone_database, database)
   end
 
