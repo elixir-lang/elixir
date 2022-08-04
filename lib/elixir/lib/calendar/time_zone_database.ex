@@ -7,12 +7,13 @@ defmodule Calendar.TimeZoneDatabase do
   """
 
   @typedoc """
-  A period where a certain combination of UTC offset, standard offset and zone
+  A period where a certain combination of UTC offset, standard offset, and zone
   abbreviation is in effect.
 
-  For instance one period could be the summer of 2018 in "Europe/London" where summer time /
-  daylight saving time is in effect and lasts from spring to autumn. At autumn the `std_offset`
-  changes along with the `zone_abbr` so a different period is needed during winter.
+  For example, one period could be the summer of 2018 in the `Europe/London` timezone,
+  where summer time/daylight saving time is in effect and lasts from spring to autumn.
+  In autumn, the `std_offset` changes along with the `zone_abbr` so a different
+  period is needed during winter.
   """
   @type time_zone_period :: %{
           optional(any) => any,
@@ -24,14 +25,14 @@ defmodule Calendar.TimeZoneDatabase do
   @typedoc """
   Limit for when a certain time zone period begins or ends.
 
-  A beginning is inclusive. An ending is exclusive. Eg. if a period is from
-  2015-03-29 01:00:00 and until 2015-10-25 01:00:00, the period includes and
-  begins from the beginning of 2015-03-29 01:00:00 and lasts until just before
-  2015-10-25 01:00:00.
+  A beginning is inclusive. An ending is exclusive. For example, if a period is from
+  `2015-03-29 01:00:00` and until `2015-10-25 01:00:00`, the period includes and
+  begins from the beginning of `2015-03-29 01:00:00` and lasts until just before
+  `2015-10-25 01:00:00`.
 
-  A beginning or end for certain periods are infinite. For instance the latest
-  period for time zones without DST or plans to change. However for the purpose
-  of this behaviour they are only used for gaps in wall time where the needed
+  A beginning or end for certain periods are infinite, such as the latest
+  period for time zones without DST or plans to change. However, for the purpose
+  of this behaviour, they are only used for gaps in wall time where the needed
   period limits are at a certain time.
   """
   @type time_zone_period_limit :: Calendar.naive_datetime()
@@ -50,17 +51,18 @@ defmodule Calendar.TimeZoneDatabase do
   @doc """
   Possible time zone periods for a certain time zone and wall clock date and time.
 
-  When the provided `datetime` is ambiguous a tuple with `:ambiguous` and two possible
-  periods. The periods in the list are sorted with the first element being the one that begins first.
+  When the provided naive datetime is ambiguous, return a tuple with `:ambiguous`
+  and the two possible periods. The periods in the tuple must be sorted with the
+  first element being the one that begins first.
 
-  When the provided `datetime` is in a gap - for instance during the "spring forward" when going
-  from winter time to summer time, a tuple with `:gap` and two periods with limits are returned
+  When the provided naive datetime is in a gap, such as during the "spring forward" when going
+  from winter time to summer time, return a tuple with `:gap` and two periods with limits
   in a nested tuple. The first nested two-tuple is the period before the gap and a naive datetime
   with a limit for when the period ends (wall time). The second nested two-tuple is the period
   just after the gap and a datetime (wall time) for when the period begins just after the gap.
 
-  If there is only a single possible period for the provided `datetime`, then a tuple with `:ok`
-  and the `time_zone_period` is returned.
+  If there is only a single possible period for the provided `datetime`, then return a tuple
+  with `:ok` and the `time_zone_period`.
   """
   @doc since: "1.8.0"
   @callback time_zone_periods_from_wall_datetime(Calendar.naive_datetime(), Calendar.time_zone()) ::
@@ -73,7 +75,7 @@ end
 
 defmodule Calendar.UTCOnlyTimeZoneDatabase do
   @moduledoc """
-  Built-in time zone database that works only in Etc/UTC.
+  Built-in time zone database that works only in the `Etc/UTC` timezone.
 
   For all other time zones, it returns `{:error, :utc_only_time_zone_database}`.
   """
