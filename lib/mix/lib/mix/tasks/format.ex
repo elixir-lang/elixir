@@ -305,7 +305,8 @@ defmodule Mix.Tasks.Format do
           do: {sigil, plugin}
 
     sigils =
-      Enum.group_by(sigils, &elem(&1, 0), &elem(&1, 1))
+      sigils
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
       |> Enum.map(fn {sigil, plugins} ->
         {sigil,
          fn input, opts ->
