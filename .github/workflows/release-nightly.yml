@@ -1,0 +1,46 @@
+name: Release Nightly
+
+on:
+  push: 
+    branches: 
+      - main
+      - v*.*
+
+env:
+  ELIXIR_OPTS: "--warnings-as-errors"
+  ERLC_OPTS: "warnings_as_errors"
+  LANG: C.UTF-8
+
+jobs:
+  publish_doc:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: "refs/heads/${{ matrix.branch }}"
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: 24.0
+          elixir-version: 1.13.4
+          version-type: strict
+      - name: Get latest stable ExDoc version
+        run: |
+          EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
+          echo "EX_DOC_LATEST_STABLE_VERSION=${EX_DOC_LATEST_STABLE_VERSION}" >> $GITHUB_ENV
+      - uses: actions/checkout@v3
+        with:
+          repository: elixir-lang/ex_doc
+          ref: v${{ env.EX_DOC_LATEST_STABLE_VERSION }}
+          path: ex_doc
+      - name: Build ex_doc
+        run: |
+          mv ex_doc ../ex_doc
+          cd ../ex_doc
+          mix do local.rebar --force, local.hex --force, deps.get, compile
+          cd ../elixir
+      - name: Build Docs
+        run: |
+          make Docs.zip
+      # TODO: make doc filename
+      # TODO: install aws-cli
+      # TODO: put docs to s3
