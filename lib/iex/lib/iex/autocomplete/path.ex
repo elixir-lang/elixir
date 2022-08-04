@@ -1,11 +1,20 @@
 defmodule IEx.Autocomplete.Path do
-  @moduledoc false
+  @moduledoc """
+  This module is used by IEx.Autocomplete to provide
+  automatic completion of filesystem paths inside strings.
+  """
 
   @behaviour IEx.Autocomplete.Behaviour
 
+  @impl true
   def expandable_fragment(code), do: path_fragment(code)
 
-  def expand(code, _shell), do: expand_path(code)
+  @impl true
+  def expand(code, _shell) do
+    code
+    |> expandable_fragment()
+    |> expand_path()
+  end
 
   defp path_fragment(expr), do: path_fragment(expr, [])
   defp path_fragment([], _acc), do: []

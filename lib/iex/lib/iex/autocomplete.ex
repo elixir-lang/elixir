@@ -45,7 +45,7 @@ defmodule IEx.Autocomplete do
     result =
       case path_fragment do
         [] -> expand_code(code, shell)
-        path -> IEx.Autocomplete.Path.expand(path, shell)
+        _path -> IEx.Autocomplete.Path.expand(code, shell)
       end
 
     Logger.debug(
@@ -111,7 +111,7 @@ defmodule IEx.Autocomplete do
         expand_sigil(shell)
 
       {:sigil, [_]} ->
-        {:yes, [], ~w|" """ ' ''' \( / < [ { \||c}
+        {:yes, '', ~w|" """ ' ''' ( / < [ { \||c}
 
       {:struct, struct} when is_list(struct) ->
         expand_structs(List.to_string(struct), shell)

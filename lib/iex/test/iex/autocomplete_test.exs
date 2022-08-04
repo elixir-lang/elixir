@@ -447,41 +447,4 @@ defmodule IEx.AutocompleteTest do
 
     assert {:yes, [], [_ | _]} = expand('NoDocs.sample(')
   end
-
-  @tag :tmp_dir
-  test "path completion inside strings", %{tmp_dir: dir} do
-    dir |> Path.join("single1") |> File.touch()
-    dir |> Path.join("file1") |> File.touch()
-    dir |> Path.join("file2") |> File.touch()
-    dir |> Path.join("dir") |> File.mkdir()
-    dir |> Path.join("dir/file3") |> File.touch()
-    dir |> Path.join("dir/file4") |> File.touch()
-
-    assert expand('"./') == path_autocompletion(".")
-    assert expand('"/') == path_autocompletion("/")
-    assert expand('"./#\{') == expand('{')
-    assert expand('"./#\{Str') == expand('{Str')
-    assert expand('Path.join("./", is_') == expand('is_')
-
-    assert expand('"#{dir}/') == path_autocompletion(dir)
-    assert expand('"#{dir}/sin') == {:yes, 'gle1', []}
-    assert expand('"#{dir}/single1') == {:yes, '"', []}
-    assert expand('"#{dir}/fi') == {:yes, 'le', []}
-    assert expand('"#{dir}/file') == path_autocompletion(dir, "file")
-    assert expand('"#{dir}/d') == {:yes, 'ir/', []}
-    assert expand('"#{dir}/dir') == {:yes, '/', []}
-    assert expand('"#{dir}/dir/') == {:yes, 'file', []}
-    assert expand('"#{dir}/dir/file') == dir |> Path.join("dir") |> path_autocompletion("file")
-  end
-
-  defp path_autocompletion(dir, hint \\ "") do
-    dir
-    |> File.ls!()
-    |> Stream.filter(&String.starts_with?(&1, hint))
-    |> Enum.map(&String.to_charlist/1)
-    |> case do
-      [] -> {:no, '', []}
-      list -> {:yes, '', list}
-    end
-  end
 end
