@@ -274,6 +274,37 @@ defmodule Mix.Tasks.FormatTest do
     end
   end
 
+  defmodule Elixir.NewlineToDotPlugin do
+    @behaviour Mix.Tasks.Format
+
+    def features(opts) do
+      assert opts[:from_formatter_exs] == :yes
+      [extensions: ~w(.w), sigils: [:W]]
+    end
+
+    def format(contents, opts) do
+      assert opts[:from_formatter_exs] == :yes
+
+      cond do
+        opts[:extension] ->
+          assert opts[:extension] == ".w"
+          assert opts[:file] =~ ~r/\/a\.w$/
+          assert [W: sigil_fun] = opts[:sigils]
+          assert is_function(sigil_fun, 2)
+
+        opts[:sigil] ->
+          assert opts[:sigil] == :W
+          assert opts[:inputs] == ["a.ex"]
+          assert opts[:modifiers] == 'abc'
+
+        true ->
+          flunk("Plugin not loading in correctly.")
+      end
+
+      contents |> String.replace("\n", ".")
+    end
+  end
+
   test "uses extension plugins from .formatter.exs", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
@@ -294,6 +325,100 @@ defmodule Mix.Tasks.FormatTest do
              foo
              bar
              baz
+             """
+    end)
+  end
+
+  test "uses multiple plugins from .formatter.exs targetting the same file extension", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.w"],
+        plugins: [ExtensionWPlugin, NewlineToDotPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.w", """
+      foo bar baz
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.w") == "foo.bar.baz."
+    end)
+  end
+
+  test "uses multiple plugins from .formatter.exs with the same file extension in declared order",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.w"],
+        plugins: [NewlineToDotPlugin, ExtensionWPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.w", """
+      foo bar baz
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.w") == "foo\nbar\nbaz."
+    end)
+  end
+
+  test "uses multiple plugins from .formatter.exs targetting the same sigil", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [NewlineToDotPlugin, SigilWPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def sigil_test(assigns) do
+        ~W"foo bar baz\n"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             def sigil_test(assigns) do
+               ~W"foo\nbar\nbaz."abc
+             end
+             """
+    end)
+  end
+
+  test "uses multiple plugins from .formatter.exs with the same sigil in declared order",
+       context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: ["a.ex"],
+        plugins: [SigilWPlugin, NewlineToDotPlugin],
+        from_formatter_exs: :yes
+      ]
+      """)
+
+      File.write!("a.ex", """
+      def sigil_test(assigns) do
+        ~W"foo bar baz"abc
+      end
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             def sigil_test(assigns) do
+               ~W"foo.bar.baz"abc
+             end
              """
     end)
   end
