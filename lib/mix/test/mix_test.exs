@@ -135,7 +135,7 @@ defmodule MixTest do
       refute Protocol.consolidated?(InstallTest.Protocol)
     end
 
-    test "config and system_env", %{tmp_dir: tmp_dir} do
+    test ":config and :system_env", %{tmp_dir: tmp_dir} do
       Mix.install(
         [
           {:install_test, path: Path.join(tmp_dir, "install_test")}
@@ -151,6 +151,59 @@ defmodule MixTest do
       System.delete_env("MIX_INSTALL_FOO")
       System.delete_env("MIX_INSTALL_BAZ")
       Application.delete_env(:unknown_app, :foo, persistent: true)
+    end
+
+    test ":config_path", %{tmp_dir: tmp_dir} do
+      config_path = Path.join(tmp_dir, "config.exs")
+
+      File.write!(config_path, """
+      import Config
+      config :myapp, :foo, 1
+      """)
+
+      Mix.install(
+        [
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ],
+        config_path: config_path
+      )
+
+      assert Application.fetch_env!(:myapp, :foo) == 1
+    after
+      Application.delete_env(:myapp, :foo)
+    end
+
+    test ":config_path and runtime config", %{tmp_dir: tmp_dir} do
+      config_path = Path.join(tmp_dir, "config.exs")
+
+      File.write!(config_path, """
+      import Config
+      config :myapp, :foo, 1
+      """)
+
+      File.write!(Path.join(tmp_dir, "runtime.exs"), """
+      import Config
+      config :myapp, :bar, 2
+      """)
+
+      Mix.install(
+        [
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ],
+        config_path: config_path
+      )
+
+      assert Application.fetch_env!(:myapp, :foo) == 1
+      assert Application.fetch_env!(:myapp, :bar) == 2
+    after
+      Application.delete_env(:myapp, :foo)
+      Application.delete_env(:myapp, :bar)
+    end
+
+    test ":config_path that does not exist" do
+      assert_raise File.Error, ~r/bad.exs": no such file or directory/, fn ->
+        Mix.install([], config_path: "bad.exs")
+      end
     end
 
     test "installed?", %{tmp_dir: tmp_dir} do
