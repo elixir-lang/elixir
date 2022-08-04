@@ -956,7 +956,8 @@ defmodule EnumTest do
         {4..8, 19},
         {4..8, 0},
         {4..8, 2},
-        {10..20, 0}
+        {10..20, 0},
+        {2..1//1, -20}
       ]
 
       for {slide_range, insertion_point} <- test_specs do

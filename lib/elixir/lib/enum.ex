@@ -2692,6 +2692,10 @@ defmodule Enum do
             "(tried to insert #{first}..#{last} at #{insertion_index})"
   end
 
+  def slide(enumerable, first..last, _insertion_index) when first > last do
+    Enum.to_list(enumerable)
+  end
+
   # Guarantees at this point: step size == 1 and first <= last and (insertion_index < first or insertion_index > last)
   def slide(enumerable, first..last, insertion_index) do
     impl = if is_list(enumerable), do: &slide_list_start/4, else: &slide_any/4
