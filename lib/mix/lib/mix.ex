@@ -561,18 +561,22 @@ defmodule Mix do
     * `:elixir` - if set, ensures the current Elixir version matches the given
       version requirement (Default: `nil`)
 
+    * `:system_env` (since v1.13.0) - a list or a map of system environment variable
+      names with respective values as binaries. The system environment is made part
+      of the `Mix.install/2` cache, so different configurations will lead to different apps
+
     * `:config` (since v1.13.0) - a keyword list of keyword lists with application
       configuration to be set before the apps loaded. The configuration is part of
       the `Mix.install/2` cache, so different configurations will lead to different
       apps
 
-    * `:system_env` (since v1.13.0) - a list or a map of system environment variable
-      names with respective values as binaries. The system environment is made part
-      of the `Mix.install/2` cache, so different configurations will lead to different apps
+    * `:config_path` (since v1.14.0)
+
+    * `:lockfile` (since v1.14.0)
 
   ## Examples
 
-  To install `:decimal` and `:jason`:
+  Installing `:decimal` and `:jason`:
 
       Mix.install([
         :decimal,
@@ -712,31 +716,35 @@ defmodule Mix do
         :ok = Mix.Local.append_archives()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
         build_dir = Path.join(dir, "_build")
-        merge_lockfile = opts[:merge_lockfile] && Path.expand(opts[:merge_lockfile])
+        external_lockfile = opts[:lockfile] && Path.expand(opts[:lockfile])
 
         try do
           first_build? = not File.dir?(build_dir)
           File.mkdir_p!(dir)
 
           File.cd!(dir, fn ->
+            if config_path do
+              Mix.Task.rerun("loadconfig")
+            end
+
             cond do
-              merge_lockfile ->
-                old_md5_path = Path.join(dir, "merge.lock.md5")
+              external_lockfile ->
+                md5_path = Path.join(dir, "merge.lock.md5")
 
                 old_md5 =
-                  case File.read(old_md5_path) do
+                  case File.read(md5_path) do
                     {:ok, data} -> Base.decode16!(data)
                     _ -> nil
                   end
 
-                old_lock = Mix.Dep.Lock.read(lockfile)
-                new_lock = Mix.Dep.Lock.read(merge_lockfile)
-                new_md5 = :erlang.md5(:erlang.term_to_binary(new_lock))
+                new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
 
+                old_lock = Mix.Dep.Lock.read(lockfile)
+                new_lock = Mix.Dep.Lock.read(external_lockfile)
                 Mix.Dep.Lock.write(lockfile, Map.merge(old_lock, new_lock))
 
                 if old_md5 != new_md5 do
-                  File.write!(old_md5_path, Base.encode16(new_md5))
+                  File.write!(md5_path, Base.encode16(new_md5))
                   Mix.Task.rerun("deps.get")
                 end
 
@@ -747,7 +755,6 @@ defmodule Mix do
                 :ok
             end
 
-            Mix.Task.rerun("loadconfig")
             Mix.Task.rerun("deps.loadpaths")
 
             # Hex and SSL can use a good amount of memory after the registry fetching,
@@ -755,7 +762,10 @@ defmodule Mix do
             stop_apps(Application.started_applications() -- started_apps)
 
             Mix.Task.rerun("compile")
-            Mix.Task.rerun("app.config")
+
+            if config_path do
+              Mix.Task.rerun("app.config")
+            end
           end)
 
           for %{app: app, opts: opts} <- Mix.Dep.cached(),
