@@ -659,6 +659,7 @@ defmodule Mix do
       end)
 
     config = Keyword.get(opts, :config, [])
+    config_path = opts[:config_path] && Path.expand(opts[:config_path])
     system_env = Keyword.get(opts, :system_env, [])
     consolidate_protocols? = Keyword.get(opts, :consolidate_protocols, true)
 
@@ -689,35 +690,64 @@ defmodule Mix do
           File.rm_rf!(dir)
         end
 
+        lockfile = Path.join(dir, "mix.lock")
+
         config = [
           version: "0.1.0",
           build_embedded: false,
           build_per_environment: true,
           build_path: "_build",
-          lockfile: "mix.lock",
+          lockfile: lockfile,
           deps_path: "deps",
           deps: deps,
           app: :mix_install,
           erlc_paths: ["src"],
           elixirc_paths: ["lib"],
           compilers: [],
-          consolidate_protocols: consolidate_protocols?
+          consolidate_protocols: consolidate_protocols?,
+          config_path: config_path
         ]
 
         started_apps = Application.started_applications()
         :ok = Mix.Local.append_archives()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
         build_dir = Path.join(dir, "_build")
+        merge_lockfile = opts[:merge_lockfile] && Path.expand(opts[:merge_lockfile])
 
         try do
-          run_deps? = not File.dir?(build_dir)
+          first_build? = not File.dir?(build_dir)
           File.mkdir_p!(dir)
 
           File.cd!(dir, fn ->
-            if run_deps? do
-              Mix.Task.rerun("deps.get")
+            cond do
+              merge_lockfile ->
+                old_md5_path = Path.join(dir, "merge.lock.md5")
+
+                old_md5 =
+                  case File.read(old_md5_path) do
+                    {:ok, data} -> Base.decode16!(data)
+                    _ -> nil
+                  end
+
+                old_lock = Mix.Dep.Lock.read(lockfile)
+                new_lock = Mix.Dep.Lock.read(merge_lockfile)
+                new_md5 = :erlang.md5(:erlang.term_to_binary(new_lock))
+
+                Mix.Dep.Lock.write(lockfile, Map.merge(old_lock, new_lock))
+
+                if old_md5 != new_md5 do
+                  File.write!(old_md5_path, Base.encode16(new_md5))
+                  Mix.Task.rerun("deps.get")
+                end
+
+              first_build? ->
+                Mix.Task.rerun("deps.get")
+
+              true ->
+                :ok
             end
 
+            Mix.Task.rerun("loadconfig")
             Mix.Task.rerun("deps.loadpaths")
 
             # Hex and SSL can use a good amount of memory after the registry fetching,
@@ -725,6 +755,7 @@ defmodule Mix do
             stop_apps(Application.started_applications() -- started_apps)
 
             Mix.Task.rerun("compile")
+            Mix.Task.rerun("app.config")
           end)
 
           for %{app: app, opts: opts} <- Mix.Dep.cached(),
