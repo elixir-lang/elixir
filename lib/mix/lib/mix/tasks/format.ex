@@ -117,10 +117,10 @@ defmodule Mix.Tasks.Format do
 
   Now any application can use your formatter as follows:
 
-      # .formatters.exs
+      # .formatter.exs
       [
         # Define the desired plugins
-        plugins: [MixMarkdownFormatter],
+        plugins: [MixMarkdownFormatter, AnotherMarkdownFormatter],
         # Remember to update the inputs list to include the new extensions
         inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}", "posts/*.{md,markdown}"]
       ]
@@ -128,6 +128,10 @@ defmodule Mix.Tasks.Format do
   Remember that, when running the formatter with plugins, you must make
   sure that your dependencies and your application have been compiled,
   so the relevant plugin code can be loaded. Otherwise a warning is logged.
+
+  In addition, the order by which you input your plugins is the format order.
+  So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
+  the markdown files and sigils before `AnotherMarkdownFormatter`.
 
   ## Importing dependencies configuration
 
@@ -298,7 +302,19 @@ defmodule Mix.Tasks.Format do
     sigils =
       for plugin <- plugins,
           sigil <- find_sigils_from_plugins(plugin, formatter_opts),
-          do: {sigil, &plugin.format(&1, &2 ++ formatter_opts)}
+          do: {sigil, plugin}
+
+    sigils =
+      sigils
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Enum.map(fn {sigil, plugins} ->
+        {sigil,
+         fn input, opts ->
+           Enum.reduce(plugins, input, fn plugin, input ->
+             plugin.format(input, opts ++ formatter_opts)
+           end)
+         end}
+      end)
 
     formatter_opts =
       formatter_opts
@@ -515,8 +531,12 @@ defmodule Mix.Tasks.Format do
     ext = Path.extname(file)
 
     cond do
-      plugin = find_plugin_for_extension(formatter_opts, ext) ->
-        &plugin.format(&1, [extension: ext, file: file] ++ formatter_opts)
+      plugins = find_plugins_for_extension(formatter_opts, ext) ->
+        fn input ->
+          Enum.reduce(plugins, input, fn plugin, input ->
+            plugin.format(input, [extension: ext, file: file] ++ formatter_opts)
+          end)
+        end
 
       ext in ~w(.ex .exs) ->
         &elixir_format(&1, [file: file] ++ formatter_opts)
@@ -526,13 +546,16 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  defp find_plugin_for_extension(formatter_opts, ext) do
+  defp find_plugins_for_extension(formatter_opts, ext) do
     plugins = Keyword.get(formatter_opts, :plugins, [])
 
-    Enum.find(plugins, fn plugin ->
-      Code.ensure_loaded?(plugin) and function_exported?(plugin, :features, 1) and
-        ext in List.wrap(plugin.features(formatter_opts)[:extensions])
-    end)
+    plugins =
+      Enum.filter(plugins, fn plugin ->
+        Code.ensure_loaded?(plugin) and function_exported?(plugin, :features, 1) and
+          ext in List.wrap(plugin.features(formatter_opts)[:extensions])
+      end)
+
+    if plugins != [], do: plugins, else: nil
   end
 
   defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
