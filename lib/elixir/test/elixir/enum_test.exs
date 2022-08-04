@@ -821,6 +821,7 @@ defmodule EnumTest do
     test "on an empty enum produces an empty list" do
       for enum <- [[], %{}, 0..-1//1, MapSet.new()] do
         assert Enum.slide(enum, 0..0, 0) == []
+        assert Enum.slide(enum, 1..1, 2) == []
       end
     end
 

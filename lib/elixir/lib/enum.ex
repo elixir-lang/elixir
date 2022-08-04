@@ -2740,6 +2740,7 @@ defmodule Enum do
   end
 
   defp slide_list_start(list, 0, middle, last), do: slide_list_middle(list, middle, last, [])
+  defp slide_list_start([], _start, _middle, _last), do: []
 
   defp slide_list_middle([h | t], middle, last, acc) when middle > 0 do
     slide_list_middle(t, middle - 1, last - 1, [h | acc])
