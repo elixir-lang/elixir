@@ -3,17 +3,18 @@ defmodule Calendar do
   This module defines the responsibilities for working with
   calendars, dates, times and datetimes in Elixir.
 
-  Currently it defines types and the minimal implementation
-  for a calendar behaviour in Elixir. The goal of the Calendar
+  It defines types and the minimal implementation
+  for a calendar behaviour in Elixir. The goal of the calendar
   features in Elixir is to provide a base for interoperability
-  instead of full-featured datetime API.
+  rather than a full-featured datetime API.
 
-  For the actual date, time and datetime structures, see `Date`,
-  `Time`, `NaiveDateTime` and `DateTime`.
+  For the actual date, time and datetime structs, see `Date`,
+  `Time`, `NaiveDateTime`, and `DateTime`.
 
-  Note designations for year, month, day, and the like, are overspecified
-  (i.e. an integer instead of `1..12` for months) because different
-  calendars may have a different number of days per month, months per year and so on.
+  Types for year, month, day, and more are *overspecified*.
+  For example, the `t:month/0` type is specified as an integer
+  instead of `1..12`. This is because different calendars may
+  have a different number of days per month.
   """
 
   @type year :: integer
@@ -37,7 +38,7 @@ defmodule Calendar do
 
   It represents time as a fraction of a day (starting from midnight).
   `parts_in_day` specifies how much of the day is already passed,
-  while `parts_per_day` signifies how many parts there fit in a day.
+  while `parts_per_day` signifies how many parts are there in a day.
   """
   @type day_fraction :: {parts_in_day :: non_neg_integer, parts_per_day :: pos_integer}
 
@@ -45,8 +46,8 @@ defmodule Calendar do
   The internal date format that is used when converting between calendars.
 
   This is the number of days including the fractional part that has passed of
-  the last day since 0000-01-01+00:00T00:00.000000 in ISO 8601 notation (also
-  known as midnight 1 January BC 1 of the proleptic Gregorian calendar).
+  the last day since `0000-01-01+00:00T00:00.000000` in ISO 8601 notation (also
+  known as *midnight 1 January BC 1* of the proleptic Gregorian calendar).
   """
   @type iso_days :: {days :: integer, day_fraction}
 
@@ -54,18 +55,18 @@ defmodule Calendar do
   Microseconds with stored precision.
 
   The precision represents the number of digits that must be used when
-  representing the microseconds to external format. If the precision is 0,
+  representing the microseconds to external format. If the precision is `0`,
   it means microseconds must be skipped.
   """
   @type microsecond :: {value :: non_neg_integer, precision :: non_neg_integer}
 
-  @typedoc "A calendar implementation"
+  @typedoc "A calendar implementation."
   @type calendar :: module
 
-  @typedoc "The time zone ID according to the IANA tz database (for example, Europe/Zurich)"
+  @typedoc "The time zone ID according to the IANA tz database (for example, `Europe/Zurich`)."
   @type time_zone :: String.t()
 
-  @typedoc "The time zone abbreviation (for example, CET or CEST or BST, and such)"
+  @typedoc "The time zone abbreviation (for example, `CET` or `CEST` or `BST`)."
   @type zone_abbr :: String.t()
 
   @typedoc """
@@ -82,10 +83,10 @@ defmodule Calendar do
   """
   @type std_offset :: integer
 
-  @typedoc "Any map/struct that contains the date fields"
+  @typedoc "Any map or struct that contains the date fields."
   @type date :: %{optional(any) => any, calendar: calendar, year: year, month: month, day: day}
 
-  @typedoc "Any map/struct that contains the time fields"
+  @typedoc "Any map or struct that contains the time fields."
   @type time :: %{
           optional(any) => any,
           hour: hour,
@@ -94,7 +95,7 @@ defmodule Calendar do
           microsecond: microsecond
         }
 
-  @typedoc "Any map/struct that contains the naive_datetime fields"
+  @typedoc "Any map or struct that contains the naive datetime fields."
   @type naive_datetime :: %{
           optional(any) => any,
           calendar: calendar,
@@ -107,7 +108,7 @@ defmodule Calendar do
           microsecond: microsecond
         }
 
-  @typedoc "Any map/struct that contains the datetime fields"
+  @typedoc "Any map or struct that contains the datetime fields."
   @type datetime :: %{
           optional(any) => any,
           calendar: calendar,
@@ -128,9 +129,9 @@ defmodule Calendar do
   Specifies the time zone database for calendar operations.
 
   Many functions in the `DateTime` module require a time zone database.
-  By default, it uses the default time zone database returned by
+  By default, this module uses the default time zone database returned by
   `Calendar.get_time_zone_database/0`, which defaults to
-  `Calendar.UTCOnlyTimeZoneDatabase` which only handles "Etc/UTC"
+  `Calendar.UTCOnlyTimeZoneDatabase`. This database only handles `Etc/UTC`
   datetimes and returns `{:error, :utc_only_time_zone_database}`
   for any other time zone.
 
@@ -147,7 +148,7 @@ defmodule Calendar do
   @type time_zone_database :: module()
 
   @doc """
-  Returns how many days there are in the given year-month.
+  Returns how many days there are in the given month of the given year.
   """
   @callback days_in_month(year, month) :: day
 
@@ -168,7 +169,7 @@ defmodule Calendar do
   @doc """
   Calculates the day of the week from the given `year`, `month`, and `day`.
 
-  The `starting_on` represents the starting day of the week. All
+  `starting_on` represents the starting day of the week. All
   calendars must support at least the `:default` value. They may
   also support other values representing their days of the week.
   """
@@ -202,7 +203,7 @@ defmodule Calendar do
   @callback date_to_string(year, month, day) :: String.t()
 
   @doc """
-  Converts the datetime (without time zone) into a string according to the calendar.
+  Converts the naive datetime (without time zone) into a string according to the calendar.
   """
   @callback naive_datetime_to_string(year, month, day, hour, minute, second, microsecond) ::
               String.t()
@@ -230,13 +231,13 @@ defmodule Calendar do
   @callback time_to_string(hour, minute, second, microsecond) :: String.t()
 
   @doc """
-  Converts the given datetime (without time zone) into the `t:iso_days/0` format.
+  Converts the datetime (without time zone) into the `t:iso_days/0` format.
   """
   @callback naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond) ::
               iso_days
 
   @doc """
-  Converts `t:iso_days/0` to the Calendar's datetime format.
+  Converts `t:iso_days/0` to the calendar's datetime format.
   """
   @callback naive_datetime_from_iso_days(iso_days) ::
               {year, month, day, hour, minute, second, microsecond}
@@ -247,17 +248,17 @@ defmodule Calendar do
   @callback time_to_day_fraction(hour, minute, second, microsecond) :: day_fraction
 
   @doc """
-  Converts `t:day_fraction/0` to the Calendar's time format.
+  Converts `t:day_fraction/0` to the calendar's time format.
   """
   @callback time_from_day_fraction(day_fraction) :: {hour, minute, second, microsecond}
 
   @doc """
-  Define the rollover moment for the given calendar.
+  Define the rollover moment for the calendar.
 
   This is the moment, in your calendar, when the current day ends
   and the next day starts.
 
-  The result of this function is used to check if two calendars rollover at
+  The result of this function is used to check if two calendars roll over at
   the same time of day. If they do not, we can only convert datetimes and times
   between them. If they do, this means that we can also convert dates as well
   as naive datetimes between them.
@@ -266,10 +267,10 @@ defmodule Calendar do
 
   ## Examples
 
-    * If, in your Calendar, a new day starts at midnight, return {0, 1}.
-    * If, in your Calendar, a new day starts at sunrise, return {1, 4}.
-    * If, in your Calendar, a new day starts at noon, return {1, 2}.
-    * If, in your Calendar, a new day starts at sunset, return {3, 4}.
+    * If in your calendar a new day starts at midnight, return `{0, 1}`.
+    * If in your calendar a new day starts at sunrise, return `{1, 4}`.
+    * If in your calendar a new day starts at noon, return `{1, 2}`.
+    * If in your calendar a new day starts at sunset, return `{3, 4}`.
 
   """
   @callback day_rollover_relative_to_midnight_utc() :: day_fraction
@@ -286,7 +287,7 @@ defmodule Calendar do
 
   @doc """
   Parses the string representation for a time returned by `c:time_to_string/4`
-  into a time-tuple.
+  into a time tuple.
   """
   @doc since: "1.10.0"
   @callback parse_time(String.t()) ::
@@ -295,7 +296,7 @@ defmodule Calendar do
 
   @doc """
   Parses the string representation for a date returned by `c:date_to_string/3`
-  into a date-tuple.
+  into a date tuple.
   """
   @doc since: "1.10.0"
   @callback parse_date(String.t()) ::
@@ -304,7 +305,7 @@ defmodule Calendar do
 
   @doc """
   Parses the string representation for a naive datetime returned by
-  `c:naive_datetime_to_string/7` into a naive-datetime-tuple.
+  `c:naive_datetime_to_string/7` into a naive datetime tuple.
 
   The given string may contain a timezone offset but it is ignored.
   """
@@ -315,7 +316,7 @@ defmodule Calendar do
 
   @doc """
   Parses the string representation for a datetime returned by
-  `c:datetime_to_string/11` into a datetime-tuple.
+  `c:datetime_to_string/11` into a datetime tuple.
 
   The returned datetime must be in UTC. The original `utc_offset`
   it was written in must be returned in the result.
@@ -346,7 +347,7 @@ defmodule Calendar do
 
   @doc """
   Returns a microsecond tuple truncated to a given precision (`:microsecond`,
-  `:millisecond` or `:second`).
+  `:millisecond`, or `:second`).
   """
   @doc since: "1.6.0"
   @spec truncate(Calendar.microsecond(), :microsecond | :millisecond | :second) ::
@@ -379,9 +380,9 @@ defmodule Calendar do
   end
 
   @doc """
-  Formats received datetime into a string.
+  Formats the given date, time, or datetime into a string.
 
-  The datetime can be any of the Calendar types (`Time`, `Date`,
+  The datetime can be any of the `Calendar` types (`Time`, `Date`,
   `NaiveDateTime`, and `DateTime`) or any map, as long as they
   contain all of the relevant fields necessary for formatting.
   For example, if you use `%Y` to format the year, the datetime
@@ -473,7 +474,7 @@ defmodule Calendar do
   Z      | Time zone abbreviation (empty string if naive)                          | CET, BRST
   %      | Literal "%" character                                                   | %
 
-  Any other character will be interpreted as an invalid format and raise an error
+  Any other character will be interpreted as an invalid format and raise an error.
 
   ## Examples
 
@@ -517,6 +518,7 @@ defmodule Calendar do
       ...>  end
       ...>)
       "август"
+
   """
   @doc since: "1.11.0"
   @spec strftime(map(), String.t(), keyword()) :: String.t()
