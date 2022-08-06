@@ -566,7 +566,7 @@ extract_bit_type({'-', _, [L, R]}, Acc) ->
   extract_bit_type(L, extract_bit_type(R, Acc));
 extract_bit_type({unit, _, [Arg]}, Acc) ->
   [{unit, Arg} | Acc];
-extract_bit_type({Other, _, []}, Acc) ->
+extract_bit_type({Other, _, nil}, Acc) ->
   [Other | Acc].
 
 %% Optimizations that are specific to Erlang and change
