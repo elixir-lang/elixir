@@ -730,11 +730,12 @@ defmodule Kernel.ExpansionTest do
 
       after_expansion =
         quote do
-          for(<<(<<a::integer()>> <- b())>>, do: c = 1)
+          for(<<(<<a::integer>> <- b())>>, do: c = 1)
           c()
         end
 
-      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) ==
+               clean_bit_modifiers(after_expansion)
     end
 
     test "variables inside generator args do not leak" do
@@ -2182,13 +2183,16 @@ defmodule Kernel.ExpansionTest do
   describe "bitstrings" do
     test "parallel match" do
       assert expand(quote(do: <<foo>> = <<bar>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<foo::integer()>> = <<bar()::integer()>>)
+               quote(do: <<foo::integer>> = <<bar()::integer>>)
+               |> clean_bit_modifiers()
 
       assert expand(quote(do: <<foo>> = baz = <<bar>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<foo::integer()>> = baz = <<bar()::integer()>>)
+               quote(do: <<foo::integer>> = baz = <<bar()::integer>>)
+               |> clean_bit_modifiers()
 
       assert expand(quote(do: <<foo>> = {<<baz>>} = bar())) |> clean_meta([:alignment]) ==
-               quote(do: <<foo::integer()>> = {<<baz::integer()>>} = bar())
+               quote(do: <<foo::integer>> = {<<baz::integer>>} = bar())
+               |> clean_bit_modifiers()
 
       message = ~r"binary patterns cannot be matched in parallel using \"=\""
 
@@ -2265,11 +2269,12 @@ defmodule Kernel.ExpansionTest do
 
     test "nested match" do
       assert expand(quote(do: <<foo = bar>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<foo = bar()::integer()>>)
+               quote(do: <<foo = bar()::integer>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<?-, <<_, _::binary>> = rest()::binary>>))
              |> clean_meta([:alignment]) ==
-               quote(do: <<45::integer(), <<_::integer(), _::binary()>> = rest()::binary()>>)
+               quote(do: <<45::integer, <<_::integer, _::binary>> = rest()::binary>>)
+               |> clean_bit_modifiers()
 
       message = ~r"cannot pattern match inside a bitstring that is already in match"
 
@@ -2287,14 +2292,15 @@ defmodule Kernel.ExpansionTest do
 
       # Check expansion happens only once
       assert expand(quote(do: "foo#{message_hello("bar")}")) |> clean_meta([:alignment]) ==
-               quote(do: <<"foo"::binary(), "bar"::binary()>>)
+               quote(do: <<"foo"::binary, "bar"::binary>>) |> clean_bit_modifiers()
 
       assert_received :hello
       refute_received :hello
 
       # And it also works in match
       assert expand(quote(do: "foo#{bar()}" = "foobar")) |> clean_meta([:alignment]) ==
-               quote(do: <<"foo"::binary(), "bar"::binary()>> = "foobar")
+               quote(do: <<"foo"::binary, "bar"::binary>> = "foobar")
+               |> clean_bit_modifiers()
     end
 
     test "inlines binaries inside interpolation is isomorphic after manual expansion" do
@@ -2303,7 +2309,8 @@ defmodule Kernel.ExpansionTest do
       quoted = Macro.prewalk(quote(do: "foo#{bar()}" = "foobar"), &Macro.expand(&1, __ENV__))
 
       assert expand(quoted) |> clean_meta([:alignment]) ==
-               quote(do: <<"foo"::binary(), "bar"::binary()>> = "foobar")
+               quote(do: <<"foo"::binary, "bar"::binary>> = "foobar")
+               |> clean_bit_modifiers()
     end
 
     test "expands size * unit" do
@@ -2311,50 +2318,50 @@ defmodule Kernel.ExpansionTest do
       import Kernel.ExpansionTarget
 
       assert expand(quote(do: <<x::13>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-size(13)>>)
+               quote(do: <<x()::integer-size(13)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::13*6>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-unit(6)-size(13)>>)
+               quote(do: <<x()::integer-unit(6)-size(13)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::_*6-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary()-unit(6)>>)
+               quote(do: <<x()::binary-unit(6)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::13*6-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary()-unit(6)-size(13)>>)
+               quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::binary-(13 * 6)-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary()-unit(6)-size(13)>>)
+               quote(do: <<x()::binary-unit(6)-size(13)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::seventeen()>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-size(17)>>)
+               quote(do: <<x()::integer-size(17)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::seventeen()*2>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-unit(2)-size(17)>>)
+               quote(do: <<x()::integer-unit(2)-size(17)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::seventeen()*seventeen()>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-unit(17)-size(17)>>)
+               quote(do: <<x()::integer-unit(17)-size(17)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::_*seventeen()-binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary()-unit(17)>>)
+               quote(do: <<x()::binary-unit(17)>>) |> clean_bit_modifiers()
     end
 
     test "expands binary/bitstring specifiers" do
       import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<x::binary>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary()>>)
+               quote(do: <<x()::binary>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::bytes>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary()>>)
+               quote(do: <<x()::binary>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::bitstring>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::bitstring()>>)
+               quote(do: <<x()::bitstring>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::bits>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::bitstring()>>)
+               quote(do: <<x()::bitstring>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::binary-little>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::binary()>>)
+               quote(do: <<x()::binary>>) |> clean_bit_modifiers()
 
       message = ~r"signed and unsigned specifiers are supported only on integer and float type"
 
@@ -2367,13 +2374,13 @@ defmodule Kernel.ExpansionTest do
       import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<x::utf8>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::utf8()>>)
+               quote(do: <<x()::utf8>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::utf16>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::utf16()>>)
+               quote(do: <<x()::utf16>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::utf32-little>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::utf32()-little()>>)
+               quote(do: <<x()::utf32-little>>) |> clean_bit_modifiers()
 
       message = ~r"signed and unsigned specifiers are supported only on integer and float type"
 
@@ -2390,19 +2397,19 @@ defmodule Kernel.ExpansionTest do
       import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<x::integer>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()>>)
+               quote(do: <<x()::integer>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::little>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-little()>>)
+               quote(do: <<x()::integer-little>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::signed>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-signed()>>)
+               quote(do: <<x()::integer-signed>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::signed-native>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-native()-signed()>>)
+               quote(do: <<x()::integer-native-signed>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x::float-signed-native>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::float()-native()-signed()>>)
+               quote(do: <<x()::float-native-signed>>) |> clean_bit_modifiers()
 
       message =
         ~r"integer and float types require a size specifier if the unit specifier is given"
@@ -2417,11 +2424,12 @@ defmodule Kernel.ExpansionTest do
       import Kernel.ExpansionTarget
 
       assert expand(quote(do: <<x::seventeen>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer()-size(17)>>)
+               quote(do: <<x()::integer-size(17)>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: <<seventeen::seventeen, x::size(seventeen)>> = 1))
              |> clean_meta([:alignment]) ==
-               quote(do: <<seventeen::integer()-size(17), x::integer()-size(seventeen)>> = 1)
+               quote(do: <<seventeen::integer-size(17), x::integer-size(seventeen)>> = 1)
+               |> clean_bit_modifiers()
     end
 
     test "expands macro in args" do
@@ -2436,10 +2444,11 @@ defmodule Kernel.ExpansionTest do
       after_expansion =
         quote do
           :"Elixir.Kernel.ExpansionTarget"
-          <<x()::integer()-size(17)>>
+          <<x()::integer-size(17)>>
         end
 
-      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) ==
+               clean_bit_modifiers(after_expansion)
     end
 
     test "supports dynamic size" do
@@ -2454,10 +2463,11 @@ defmodule Kernel.ExpansionTest do
       after_expansion =
         quote do
           var = 1
-          <<x()::integer()-unit(8)-size(var)>>
+          <<x()::integer-unit(8)-size(var)>>
         end
 
-      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) ==
+               clean_bit_modifiers(after_expansion)
     end
 
     defmacro offset(size, binary) do
@@ -2475,25 +2485,29 @@ defmodule Kernel.ExpansionTest do
       import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<x, <<y::signed-native>>, z>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer(), y()::integer()-native()-signed(), z()::integer()>>)
+               quote(do: <<x()::integer, y()::integer-native-signed, z()::integer>>)
+               |> clean_bit_modifiers()
 
       assert expand(quote(do: <<x, <<y::signed-native>>::bitstring, z>>))
              |> clean_meta([:alignment]) ==
-               quote(do: <<x()::integer(), y()::integer()-native()-signed(), z()::integer()>>)
+               quote(do: <<x()::integer, y()::integer-native-signed, z()::integer>>)
+               |> clean_bit_modifiers()
     end
 
     test "merges binaries" do
       import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: "foo" <> x)) |> clean_meta([:alignment]) ==
-               quote(do: <<"foo"::binary(), x()::binary()>>)
+               quote(do: <<"foo"::binary, x()::binary>>) |> clean_bit_modifiers()
 
       assert expand(quote(do: "foo" <> <<x::size(4), y::size(4)>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
+               quote(do: <<"foo"::binary, x()::integer-size(4), y()::integer-size(4)>>)
+               |> clean_bit_modifiers()
 
       assert expand(quote(do: <<"foo", <<x::size(4), y::size(4)>>::binary>>))
              |> clean_meta([:alignment]) ==
-               quote(do: <<"foo"::binary(), x()::integer()-size(4), y()::integer()-size(4)>>)
+               quote(do: <<"foo"::binary, x()::integer-size(4), y()::integer-size(4)>>)
+               |> clean_bit_modifiers()
     end
 
     test "guard expressions on size" do
@@ -2511,17 +2525,19 @@ defmodule Kernel.ExpansionTest do
       after_expansion =
         quote do
           var = 1
-          <<x()::integer()-size(:erlang.+(var, 3))>>
+          <<x()::integer-size(:erlang.+(var, 3))>>
         end
 
-      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) ==
+               clean_bit_modifiers(after_expansion)
 
       # Other valid guard expressions are also legal for bitstring size in OTP 23+
 
       before_expansion = quote(do: <<x::size(length('test'))>>)
-      after_expansion = quote(do: <<x()::integer()-size(:erlang.length('test'))>>)
+      after_expansion = quote(do: <<x()::integer-size(:erlang.length('test'))>>)
 
-      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) ==
+               clean_bit_modifiers(after_expansion)
     end
 
     test "map lookup on size" do
@@ -2536,10 +2552,11 @@ defmodule Kernel.ExpansionTest do
       after_expansion =
         quote do
           var = %{foo: 3}
-          <<x()::integer()-size(var.foo)>>
+          <<x()::integer-size(var.foo)>>
         end
 
-      assert expand(before_expansion) |> clean_meta([:alignment]) == after_expansion
+      assert expand(before_expansion) |> clean_meta([:alignment]) ==
+               clean_bit_modifiers(after_expansion)
     end
 
     test "raises on unaligned binaries in match" do
@@ -2574,7 +2591,7 @@ defmodule Kernel.ExpansionTest do
       import Kernel, except: [-: 1, -: 2]
 
       assert expand(quote(do: <<12.3::float-16>>)) |> clean_meta([:alignment]) ==
-               quote(do: <<12.3::float()-size(16)>>)
+               quote(do: <<12.3::float-size(16)>>) |> clean_bit_modifiers()
     end
 
     test "raises for invalid size * unit for floats" do
@@ -2859,6 +2876,29 @@ defmodule Kernel.ExpansionTest do
   defp clean_meta(expr, vars) do
     cleaner = &Keyword.drop(&1, vars)
     Macro.prewalk(expr, &Macro.update_meta(&1, cleaner))
+  end
+
+  @bitstring_modifiers [
+    :integer,
+    :float,
+    :binary,
+    :utf8,
+    :utf16,
+    :utf32,
+    :native,
+    :signed,
+    :bitstring,
+    :little
+  ]
+
+  defp clean_bit_modifiers(expr) do
+    Macro.prewalk(expr, fn
+      {expr, meta, atom} when expr in @bitstring_modifiers and is_atom(atom) ->
+        {expr, meta, nil}
+
+      other ->
+        other
+    end)
   end
 
   defp expand(expr) do

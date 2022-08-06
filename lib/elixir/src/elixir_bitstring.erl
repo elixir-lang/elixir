@@ -65,11 +65,11 @@ expr_type(Binary) when is_binary(Binary) -> binary;
 expr_type({'<<>>', _, _}) -> bitstring;
 expr_type(_) -> default.
 
-infer_spec(bitstring, Meta) -> {bitstring, Meta, []};
-infer_spec(binary, Meta) -> {binary, Meta, []};
-infer_spec(float, Meta) -> {float, Meta, []};
-infer_spec(integer, Meta) -> {integer, Meta, []};
-infer_spec(default, Meta) -> {integer, Meta, []}.
+infer_spec(bitstring, Meta) -> {bitstring, Meta, nil};
+infer_spec(binary, Meta) -> {binary, Meta, nil};
+infer_spec(float, Meta) -> {float, Meta, nil};
+infer_spec(integer, Meta) -> {integer, Meta, nil};
+infer_spec(default, Meta) -> {integer, Meta, nil}.
 
 concat_or_prepend_bitstring(_Meta, {'<<>>', _, []}, _ERight, Acc, _E, _RequireSize) ->
   Acc;
@@ -77,10 +77,10 @@ concat_or_prepend_bitstring(Meta, {'<<>>', PartsMeta, Parts} = ELeft, ERight, Ac
   case E of
     #{context := match} when RequireSize ->
       case lists:last(Parts) of
-        {'::', SpecMeta, [Bin, {binary, _, []}]} when not is_binary(Bin) ->
+        {'::', SpecMeta, [Bin, {binary, _, nil}]} when not is_binary(Bin) ->
           form_error(SpecMeta, E, ?MODULE, unsized_binary);
 
-        {'::', SpecMeta, [_, {bitstring, _, []}]} ->
+        {'::', SpecMeta, [_, {bitstring, _, nil}]} ->
           form_error(SpecMeta, E, ?MODULE, unsized_binary);
 
         _ ->
@@ -91,7 +91,7 @@ concat_or_prepend_bitstring(Meta, {'<<>>', PartsMeta, Parts} = ELeft, ERight, Ac
   end,
 
   case ERight of
-    {binary, _, []} ->
+    {binary, _, nil} ->
       {alignment, Alignment} = lists:keyfind(alignment, 1, PartsMeta),
 
       if
@@ -104,7 +104,7 @@ concat_or_prepend_bitstring(Meta, {'<<>>', PartsMeta, Parts} = ELeft, ERight, Ac
         true ->
           [{'::', Meta, [ELeft, ERight]} | Acc]
       end;
-    {bitstring, _, []} ->
+    {bitstring, _, nil} ->
       lists:reverse(Parts, Acc)
   end;
 concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, _E, _RequireSize) ->
@@ -335,7 +335,7 @@ valid_float_size(64) -> true;
 valid_float_size(_) -> false.
 
 add_spec(default, Spec) -> Spec;
-add_spec(Key, Spec) -> [{Key, [], []} | Spec].
+add_spec(Key, Spec) -> [{Key, [], nil} | Spec].
 
 find_match([{'=', _, [_Left, _Right]} = Expr | _Rest]) ->
   Expr;
