@@ -150,15 +150,12 @@ defmodule Mix.Compilers.Elixir do
       {pending_tracer, tracer_opts} = Mix.Compilers.ApplicationTracer.prepare(app_tracer, opts)
       previous_opts = set_compiler_opts(tracer_opts)
 
-      # Stores state for keeping track which files were compiled
-      # and the dependencies between them.
-      put_compiler_info({[], exports, sources, modules, removed_modules})
-
       try do
-        compile_path(stale, dest, timestamp, opts)
+        state = {[], exports, sources, modules, removed_modules}
+        compiler_loop(stale, dest, timestamp, opts, state)
       else
-        {:ok, _, warnings} ->
-          {modules, _exports, sources, pending_modules, _pending_exports} = get_compiler_info()
+        {:ok, warnings, state} ->
+          {modules, _exports, sources, pending_modules, _pending_exports} = state
 
           # We only collect the warnings if --all-warnings is given.
           # In this case, we print them too. Then we apply the new warnings.
@@ -182,10 +179,10 @@ defmodule Mix.Compilers.Elixir do
           all_warnings = previous_warnings ++ Enum.map(warnings, &diagnostic(&1, :warning))
           unless_previous_warnings_as_errors(previous_warnings, opts, {:ok, all_warnings})
 
-        {:error, errors, warnings} ->
+        {:error, errors, warnings, state} ->
           # In case of errors, we show all previous warnings and all new ones.
           # Print the new ones if --all-warnings was given.
-          {_, _, sources, _, _} = get_compiler_info()
+          {_, _, sources, _, _} = state
           errors = Enum.map(errors, &diagnostic(&1, :error))
           warnings = Enum.map(warnings, &diagnostic(&1, :warning))
           {:error, previous_warnings(sources, opts[:all_warnings]) ++ warnings ++ errors}
@@ -193,7 +190,6 @@ defmodule Mix.Compilers.Elixir do
         Code.compiler_options(previous_opts)
         Mix.Compilers.ApplicationTracer.stop(pending_tracer)
         Code.purge_compiler_modules()
-        delete_compiler_info()
       end
     else
       # We need to return ok if deps_changed? or stale_modules changed,
@@ -409,28 +405,6 @@ defmodule Mix.Compilers.Elixir do
     |> :erlang.md5()
   end
 
-  defp compile_path(stale, dest, timestamp, opts) do
-    cwd = File.cwd!()
-    long_compilation_threshold = opts[:long_compilation_threshold] || 10
-    verbose = opts[:verbose] || false
-
-    compile_opts = [
-      each_cycle: fn -> each_cycle(dest, timestamp) end,
-      each_file: &each_file(&1, &2, cwd, verbose),
-      each_module: &each_module(&1, &2, &3, cwd),
-      each_long_compilation: &each_long_compilation(&1, cwd, long_compilation_threshold),
-      long_compilation_threshold: long_compilation_threshold,
-      profile: opts[:profile],
-      beam_timestamp: timestamp
-    ]
-
-    Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)
-  end
-
-  defp get_compiler_info(), do: Process.get(__MODULE__)
-  defp put_compiler_info(value), do: Process.put(__MODULE__, value)
-  defp delete_compiler_info(), do: Process.delete(__MODULE__)
-
   defp set_compiler_opts(opts) do
     opts
     |> Keyword.take(Code.available_compiler_options())
@@ -444,168 +418,6 @@ defmodule Mix.Compilers.Elixir do
       end)
 
     Mix.ProjectStack.compile_env(all_compile_env)
-  end
-
-  defp each_cycle(compile_path, timestamp) do
-    {modules, _exports, sources, pending_modules, pending_exports} = get_compiler_info()
-
-    {pending_modules, exports, changed} =
-      update_stale_entries(pending_modules, sources, [], %{}, pending_exports, compile_path)
-
-    # For each changed file, mark it as changed.
-    # If compilation fails mid-cycle, they will
-    # be picked next time around.
-    for file <- changed do
-      File.touch!(file, timestamp)
-    end
-
-    if changed == [] do
-      modules = Enum.map(modules, &module(&1, :module))
-      warnings = Mix.Compilers.ApplicationTracer.warnings(modules)
-
-      modules_set = Map.from_keys(modules, true)
-      {_, runtime_modules} = fixpoint_runtime_modules(sources, modules_set)
-      {:runtime, runtime_modules, warnings}
-    else
-      Mix.Utils.compiling_n(length(changed), :ex)
-
-      # If we have a compile time dependency to a module, as soon as its file
-      # change, we will detect the compile time dependency and recompile. However,
-      # the whole goal of pending exports is to delay this decision, so we need to
-      # track which modules were removed and start them as our pending exports and
-      # remove the pending exports as we notice they have not gone stale.
-      {sources, removed_modules} = update_stale_sources(sources, changed)
-      put_compiler_info({modules, exports, sources, pending_modules, removed_modules})
-      {:compile, changed, []}
-    end
-  end
-
-  defp each_module(file, module, _binary, cwd) do
-    {modules, exports, sources, pending_modules, pending_exports} = get_compiler_info()
-
-    kind = detect_kind(module)
-    file = Path.relative_to(file, cwd)
-    external = get_external_resources(module, cwd)
-
-    old_export = Map.get(exports, module)
-    new_export = exports_md5(module, true)
-
-    pending_exports =
-      if old_export && old_export != new_export do
-        pending_exports
-      else
-        Map.delete(pending_exports, module)
-      end
-
-    {module_sources, existing_module?} =
-      case List.keyfind(modules, module, module(:module)) do
-        module(sources: old_sources) -> {[file | List.delete(old_sources, file)], true}
-        nil -> {[file], false}
-      end
-
-    {source, sources} =
-      List.keytake(sources, file, source(:source)) ||
-        Mix.raise(
-          "Could not find source for #{inspect(file)}. Make sure the :elixirc_paths configuration " <>
-            "is a list of relative paths to the current project or absolute paths to external directories"
-        )
-
-    source =
-      source(
-        source,
-        external: external ++ source(source, :external),
-        modules: [module | source(source, :modules)]
-      )
-
-    module =
-      module(
-        module: module,
-        kind: kind,
-        sources: module_sources,
-        export: new_export,
-        recompile?: function_exported?(module, :__mix_recompile__?, 0)
-      )
-
-    modules = prepend_or_merge(modules, module, module(:module), module, existing_module?)
-    put_compiler_info({modules, exports, [source | sources], pending_modules, pending_exports})
-    :ok
-  end
-
-  defp recompile_module?(module, recompile?) do
-    recompile? and Code.ensure_loaded?(module) and
-      function_exported?(module, :__mix_recompile__?, 0) and
-      module.__mix_recompile__?()
-  end
-
-  defp prepend_or_merge(collection, key, pos, value, true) do
-    List.keystore(collection, key, pos, value)
-  end
-
-  defp prepend_or_merge(collection, _key, _pos, value, false) do
-    [value | collection]
-  end
-
-  defp detect_kind(module) do
-    protocol_metadata = Module.get_attribute(module, :__impl__)
-
-    cond do
-      is_list(protocol_metadata) and protocol_metadata[:protocol] ->
-        {:impl, protocol_metadata[:protocol]}
-
-      is_list(Module.get_attribute(module, :__protocol__)) ->
-        :protocol
-
-      true ->
-        :module
-    end
-  end
-
-  defp get_external_resources(module, cwd) do
-    for file <- Module.get_attribute(module, :external_resource) do
-      {Path.relative_to(file, cwd), File.exists?(file)}
-    end
-  end
-
-  defp each_file(file, lexical, cwd, verbose) do
-    file = Path.relative_to(file, cwd)
-
-    if verbose do
-      Mix.shell().info("Compiled #{file}")
-    end
-
-    {modules, exports, sources, pending_modules, pending_exports} = get_compiler_info()
-    {source, sources} = List.keytake(sources, file, source(:source))
-
-    {compile_references, export_references, runtime_references, compile_env} =
-      Kernel.LexicalTracker.references(lexical)
-
-    compile_references =
-      Enum.reject(compile_references, &match?("elixir_" <> _, Atom.to_string(&1)))
-
-    source(modules: source_modules) = source
-    compile_references = compile_references -- source_modules
-    export_references = export_references -- source_modules
-    runtime_references = runtime_references -- source_modules
-
-    source =
-      source(
-        source,
-        # We preserve the digest if the file is recompiled but not changed
-        digest: source(source, :digest) || digest(file),
-        compile_references: compile_references,
-        export_references: export_references,
-        runtime_references: runtime_references,
-        compile_env: compile_env
-      )
-
-    put_compiler_info({modules, exports, [source | sources], pending_modules, pending_exports})
-    :ok
-  end
-
-  defp each_long_compilation(file, cwd, threshold) do
-    Mix.shell().info(
-      "Compiling #{Path.relative_to(file, cwd)} (it's taking more than #{threshold}s)"
-    )
   end
 
   ## Resolution
@@ -634,18 +446,6 @@ defmodule Mix.Compilers.Elixir do
 
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
       {[source(source: file, size: size) | acc_sources], acc_modules}
-    end)
-  end
-
-  # Define empty records for the sources that needs
-  # to be recompiled (but were not changed on disk)
-  defp update_stale_sources(sources, changed) do
-    Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
-      {source(size: size, digest: digest, modules: modules), acc_sources} =
-        List.keytake(acc_sources, file, source(:source))
-
-      acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-      {[source(source: file, size: size, digest: digest) | acc_sources], acc_modules}
     end)
   end
 
@@ -1031,6 +831,246 @@ defmodule Mix.Compilers.Elixir do
       {:error, all_warnings}
     else
       {status, all_warnings}
+    end
+  end
+
+  ## Compiler loop
+  # The compiler is invoked in a separate process so we avoid blocking its main loop.
+
+  defp compiler_loop(stale, dest, timestamp, opts, state) do
+    ref = make_ref()
+    parent = self()
+    threshold = opts[:long_compilation_threshold] || 10
+    profile = opts[:profile]
+    verbose = opts[:verbose] || false
+
+    pid =
+      spawn_link(fn ->
+        compile_opts = [
+          each_cycle: fn -> compiler_call(parent, ref, {:each_cycle, dest, timestamp}) end,
+          each_file: fn file, lexical ->
+            compiler_call(parent, ref, {:each_file, file, lexical, verbose})
+          end,
+          each_module: fn file, module, _binary ->
+            compiler_call(parent, ref, {:each_module, file, module})
+          end,
+          each_long_compilation: fn file ->
+            Mix.shell().info(
+              "Compiling #{Path.relative_to(file, File.cwd!())} (it's taking more than #{threshold}s)"
+            )
+          end,
+          long_compilation_threshold: threshold,
+          profile: profile,
+          beam_timestamp: timestamp
+        ]
+
+        response = Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)
+        send(parent, {ref, response})
+      end)
+
+    compiler_loop(ref, pid, state, File.cwd!())
+  end
+
+  defp compiler_call(parent, ref, info) do
+    send(parent, {ref, info})
+
+    receive do
+      {^ref, response} -> response
+    end
+  end
+
+  defp compiler_loop(ref, pid, state, cwd) do
+    receive do
+      {^ref, {:each_cycle, dest, timestamp}} ->
+        {response, state} = each_cycle(dest, timestamp, state)
+        send(pid, {ref, response})
+        compiler_loop(ref, pid, state, cwd)
+
+      {^ref, {:each_file, file, lexical, verbose}} ->
+        # Read the relevant file information and unblock the compiler
+        references = Kernel.LexicalTracker.references(lexical)
+        send(pid, {ref, :ok})
+        state = each_file(file, references, verbose, cwd, state)
+        compiler_loop(ref, pid, state, cwd)
+
+      {^ref, {:each_module, file, module}} ->
+        # Read the relevant module information and unblock the compiler
+        kind = detect_kind(module)
+        external = Module.get_attribute(module, :external_resource)
+        new_export = exports_md5(module, true)
+        send(pid, {ref, :ok})
+        state = each_module(file, module, cwd, kind, external, new_export, state)
+        compiler_loop(ref, pid, state, cwd)
+
+      {^ref, {:ok, _modules, warnings}} ->
+        {:ok, warnings, state}
+
+      {^ref, {:error, errors, warnings}} ->
+        {:error, errors, warnings, state}
+    end
+  end
+
+  defp each_cycle(compile_path, timestamp, state) do
+    {modules, _exports, sources, pending_modules, pending_exports} = state
+
+    {pending_modules, exports, changed} =
+      update_stale_entries(pending_modules, sources, [], %{}, pending_exports, compile_path)
+
+    # For each changed file, mark it as changed.
+    # If compilation fails mid-cycle, they will be picked next time around.
+    for file <- changed do
+      File.touch!(file, timestamp)
+    end
+
+    if changed == [] do
+      warnings = Mix.Compilers.ApplicationTracer.warnings(modules)
+
+      modules_set =
+        modules
+        |> Enum.map(&module(&1, :module))
+        |> Map.from_keys(true)
+
+      {_, runtime_modules} = fixpoint_runtime_modules(sources, modules_set)
+      {{:runtime, runtime_modules, warnings}, state}
+    else
+      Mix.Utils.compiling_n(length(changed), :ex)
+
+      # If we have a compile time dependency to a module, as soon as its file
+      # change, we will detect the compile time dependency and recompile. However,
+      # the whole goal of pending exports is to delay this decision, so we need to
+      # track which modules were removed and start them as our pending exports and
+      # remove the pending exports as we notice they have not gone stale.
+      {sources, removed_modules} =
+        Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
+          {source(size: size, digest: digest, modules: modules), acc_sources} =
+            List.keytake(acc_sources, file, source(:source))
+
+          acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
+
+          # Define empty records for the sources that needs
+          # to be recompiled (but were not changed on disk)
+          {[source(source: file, size: size, digest: digest) | acc_sources], acc_modules}
+        end)
+
+      state = {modules, exports, sources, pending_modules, removed_modules}
+      {{:compile, changed, []}, state}
+    end
+  end
+
+  defp each_file(file, references, verbose, cwd, state) do
+    {compile_references, export_references, runtime_references, compile_env} = references
+    {modules, exports, sources, pending_modules, pending_exports} = state
+
+    file = Path.relative_to(file, cwd)
+
+    if verbose do
+      Mix.shell().info("Compiled #{file}")
+    end
+
+    {source, sources} = List.keytake(sources, file, source(:source))
+
+    compile_references =
+      Enum.reject(compile_references, &match?("elixir_" <> _, Atom.to_string(&1)))
+
+    source(modules: source_modules) = source
+    compile_references = compile_references -- source_modules
+    export_references = export_references -- source_modules
+    runtime_references = runtime_references -- source_modules
+
+    source =
+      source(
+        source,
+        # We preserve the digest if the file is recompiled but not changed
+        digest: source(source, :digest) || digest(file),
+        compile_references: compile_references,
+        export_references: export_references,
+        runtime_references: runtime_references,
+        compile_env: compile_env
+      )
+
+    {modules, exports, [source | sources], pending_modules, pending_exports}
+  end
+
+  defp each_module(file, module, cwd, kind, external, new_export, state) do
+    {modules, exports, sources, pending_modules, pending_exports} = state
+
+    file = Path.relative_to(file, cwd)
+    external = process_external_resources(external, cwd)
+
+    old_export = Map.get(exports, module)
+
+    pending_exports =
+      if old_export && old_export != new_export do
+        pending_exports
+      else
+        Map.delete(pending_exports, module)
+      end
+
+    {module_sources, existing_module?} =
+      case List.keyfind(modules, module, module(:module)) do
+        module(sources: old_sources) -> {[file | List.delete(old_sources, file)], true}
+        nil -> {[file], false}
+      end
+
+    {source, sources} =
+      List.keytake(sources, file, source(:source)) ||
+        Mix.raise(
+          "Could not find source for #{inspect(file)}. Make sure the :elixirc_paths configuration " <>
+            "is a list of relative paths to the current project or absolute paths to external directories"
+        )
+
+    source =
+      source(
+        source,
+        external: external ++ source(source, :external),
+        modules: [module | source(source, :modules)]
+      )
+
+    module =
+      module(
+        module: module,
+        kind: kind,
+        sources: module_sources,
+        export: new_export,
+        recompile?: function_exported?(module, :__mix_recompile__?, 0)
+      )
+
+    modules = prepend_or_merge(modules, module, module(:module), module, existing_module?)
+    {modules, exports, [source | sources], pending_modules, pending_exports}
+  end
+
+  defp recompile_module?(module, recompile?) do
+    recompile? and Code.ensure_loaded?(module) and
+      function_exported?(module, :__mix_recompile__?, 0) and
+      module.__mix_recompile__?()
+  end
+
+  defp prepend_or_merge(collection, key, pos, value, true) do
+    List.keystore(collection, key, pos, value)
+  end
+
+  defp prepend_or_merge(collection, _key, _pos, value, false) do
+    [value | collection]
+  end
+
+  defp detect_kind(module) do
+    protocol_metadata = Module.get_attribute(module, :__impl__)
+
+    cond do
+      is_list(protocol_metadata) and protocol_metadata[:protocol] ->
+        {:impl, protocol_metadata[:protocol]}
+
+      is_list(Module.get_attribute(module, :__protocol__)) ->
+        :protocol
+
+      true ->
+        :module
+    end
+  end
+
+  defp process_external_resources(external, cwd) do
+    for file <- external do
+      {Path.relative_to(file, cwd), File.exists?(file)}
     end
   end
 end
