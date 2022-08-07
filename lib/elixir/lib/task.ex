@@ -79,7 +79,7 @@ defmodule Task do
 
   We encourage developers to rely on supervised tasks as much as possible.
   Supervised tasks improve the visibility of how many tasks are running
-  at a given moment and enable a huge variety of patterns that gives you
+  at a given moment and enable a huge variety of patterns that give you
   explicit control on how to handle the results, errors, and timeouts.
   Here is a summary:
 
