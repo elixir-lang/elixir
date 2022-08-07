@@ -2012,7 +2012,7 @@ defmodule Kernel do
       end
 
     erlang_error =
-      case :erlang.system_info(:otp_release) >= '24' do
+      case :erlang.system_info(:otp_release) >= [?2, ?4] do
         true ->
           fn x ->
             quote do
