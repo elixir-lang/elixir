@@ -84,7 +84,7 @@ defmodule Task do
   Here is a summary:
 
     * Using `Task.Supervisor.start_child/2` allows you to start a fire-and-forget
-      task that you don't care about its results or if it completes successfully or not.
+      task when you don't care about its results or if it completes successfully or not.
 
     * Using `Task.Supervisor.async/2` + `Task.await/2` allows you to execute
       tasks concurrently and retrieve its result. If the task fails,
@@ -96,8 +96,8 @@ defmodule Task do
       the caller won't fail. You will receive the error reason either on
       `yield` or `shutdown`.
 
-  Furthermore, the supervisor guarantee all tasks first terminate, within a
-  configurable shutdown period, when your application shuts down. See the
+  Furthermore, the supervisor guarantees all tasks terminate within a
+  configurable shutdown period when your application shuts down. See the
   `Task.Supervisor` module for details on the supported operations.
 
   ### Distributed tasks
