@@ -1,11 +1,11 @@
 defmodule IEx.Autocomplete.Behaviour do
   @moduledoc """
-  New IEx autocomplete modes need to expose
+  New IEx autocomplete mechanisms need to expose
   two functions:
 
   - `expandable_fragment/1`, which receives a *reversed* charlist of the current IEx statement, and returns a charlist
-  of what can be expanded by the current autocomplete mode.
-  If the charlist is empty, it means the current autocomplete mode can't expand the current IEx statement.
+  of what can be expanded by the current autocomplete mechanism.
+  If the charlist is empty, it means the current autocomplete mechanism can't expand the current IEx statement.
 
   - `expand/2`, which receives a *reversed* charlist of the current IEx statement,
   and yields a `{:yes, hint, available_options}` or `{:no, '', []}`.
