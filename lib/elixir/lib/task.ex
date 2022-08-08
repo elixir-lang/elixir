@@ -212,7 +212,7 @@ defmodule Task do
 
   The list of callers of the current process can be retrieved from the Process
   dictionary with `Process.get(:"$callers")`. This will return either `nil` or
-  a list `[pid_n, ..., pid2, pid1]` with at least one entry Where `pid_n` is
+  a list `[pid_n, ..., pid2, pid1]` with at least one entry where `pid_n` is
   the PID that called the current process, `pid2` called `pid_n`, and `pid2` was
   called by `pid1`.
 
