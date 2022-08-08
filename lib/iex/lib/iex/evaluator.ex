@@ -1,8 +1,6 @@
 defmodule IEx.Evaluator do
   @moduledoc false
 
-  require Logger
-
   @doc """
   Eval loop for an IEx session. Its responsibilities include:
 
@@ -329,8 +327,6 @@ defmodule IEx.Evaluator do
     %{env: env, binding: binding} = state
     forms = add_if_undefined_apply_to_vars(forms, env)
     {result, binding, env} = eval_expr_by_expr(forms, binding, env)
-
-    Logger.debug("!!! '#{inspect(forms)}' '#{inspect(state)}'. Result: #{inspect(result)}")
 
     unless result == IEx.dont_display_result() do
       io_inspect(result)

@@ -1,8 +1,6 @@
 defmodule IEx.Autocomplete do
   @moduledoc false
 
-  require Logger
-
   @doc """
   Provides one helper function that is injected into connecting
   remote nodes to properly handle autocompletion.
@@ -23,19 +21,19 @@ defmodule IEx.Autocomplete do
   environment, which is found via the broker.
   """
   def expand(code, shell \\ IEx.Broker.shell()) do
-    path_fragment = IEx.Autocomplete.Path.expandable_fragment(code)
+    autocomplete_modes = IEx.Config.autocompletion()
 
-    result =
-      case path_fragment do
-        [] -> IEx.Autocomplete.Code.expand(code, shell)
-        _path -> IEx.Autocomplete.Path.expand(code, shell)
+    Enum.reduce_while(autocomplete_modes, nil, fn autocomplete, _acc ->
+      case autocomplete.expandable_fragment(code) do
+        [] ->
+          {:cont, nil}
+
+        _ ->
+          result = autocomplete.expand(code, shell)
+
+          {:halt, result}
       end
-
-    # Logger.debug(
-    #   "Autocomplete Code='#{inspect(code)}', path_fragment='#{inspect(path_fragment)}', shell='#{inspect(shell)}'. Result: #{inspect(result)}"
-    # )
-
-    result
+    end)
   end
 
   @doc false
@@ -73,10 +71,12 @@ defmodule IEx.Autocomplete do
     end
   end
 
+  @doc false
   def yes(hint, entries) do
     {:yes, String.to_charlist(hint), Enum.map(entries, &String.to_charlist/1)}
   end
 
+  @doc false
   def no do
     {:no, '', []}
   end
