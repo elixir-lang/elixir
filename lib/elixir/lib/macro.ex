@@ -1971,7 +1971,7 @@ defmodule Macro do
   def quoted_literal?(term), do: is_atom(term) or is_number(term) or is_binary(term)
 
   @doc """
-  Expands a `quoted_literal` with the given `
+  Expands the `ast` representing a quoted literal within the given `env`.
 
   This function checks if the given AST represents a quoted literal
   (using `quoted_literal?/1`) and then expands all relevant nodes.
