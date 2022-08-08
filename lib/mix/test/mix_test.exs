@@ -206,6 +206,79 @@ defmodule MixTest do
       end
     end
 
+    defmodule GitApp do
+      def project do
+        [
+          app: :git_app,
+          version: "0.1.0",
+          deps: [
+            {:git_repo, "0.1.0", [git: fixture_path("git_repo")]}
+          ]
+        ]
+      end
+    end
+
+    test ":lockfile with first build", %{tmp_dir: tmp_dir} do
+      install_dir = Path.join(tmp_dir, "install_dir")
+
+      Mix.Project.push(GitApp)
+      [_latest_rev, rev | _] = get_git_repo_revs("git_repo")
+      lockfile = Path.join(tmp_dir, "lock")
+      Mix.Dep.Lock.write(lockfile, %{git_repo: {:git, fixture_path("git_repo"), rev, []}})
+      Mix.ProjectStack.pop()
+
+      Mix.install(
+        [
+          {:git_repo, git: fixture_path("git_repo")}
+        ],
+        __install_dir__: install_dir,
+        lockfile: lockfile
+      )
+
+      assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
+      assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
+    after
+      purge([GitRepo, GitRepo.MixProject])
+    end
+
+    test ":lockfile merging", %{tmp_dir: tmp_dir} do
+      install_dir = Path.join(tmp_dir, "install_dir")
+      [rev1, rev2 | _] = get_git_repo_revs("git_repo")
+
+      Mix.install(
+        [
+          {:git_repo, git: fixture_path("git_repo")}
+        ],
+        __install_dir__: install_dir
+      )
+
+      assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
+      assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev1
+
+      Mix.Project.push(GitApp)
+      lockfile = Path.join(tmp_dir, "lock")
+      Mix.Dep.Lock.write(lockfile, %{git_repo: {:git, fixture_path("git_repo"), rev2, []}})
+      Mix.ProjectStack.pop()
+
+      Mix.install(
+        [
+          {:git_repo, git: fixture_path("git_repo")}
+        ],
+        __install_dir__: install_dir,
+        lockfile: lockfile
+      )
+
+      assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev1
+    after
+      purge([GitRepo, GitRepo.MixProject])
+    end
+
+    test ":lockfile that does not exist" do
+      assert_raise File.Error, ~r/bad": no such file or directory/, fn ->
+        Mix.install([], lockfile: "bad")
+      end
+    end
+
     test "installed?", %{tmp_dir: tmp_dir} do
       refute Mix.installed?()
 
