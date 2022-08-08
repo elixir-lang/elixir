@@ -30,6 +30,11 @@ defmodule IEx do
   (or `iex.bat --werl` if using PowerShell). `--werl` may be permanently
   enabled by setting the `IEX_WITH_WERL` environment variable to `1`.
 
+  By default, the IEx shell will autocomplete filesystem paths inside
+  strings and various code snippets (e.g. function names, sigils, etc.).
+  It's also possible to customize how autocompletion works by adding custom
+  autocomplete modes.
+
   ## Encoding and coloring
 
   IEx expects inputs and outputs to be in UTF-8 encoding. This is the
@@ -397,6 +402,7 @@ defmodule IEx do
     * `:alive_prompt`
     * `:alive_continuation_prompt`
     * `:parser`
+    * `:autocompletion`
 
   They are discussed individually in the sections below.
 
@@ -502,6 +508,18 @@ defmodule IEx do
   or `{:incomplete, buffer}`.
 
   If the parser raises, the buffer is reset to an empty string.
+
+  ## Autocompletion
+
+  This is an option used to add custom IEx autocompletion mechanisms.
+
+  It should be a module or a list of modules that implement the
+  IEx.Autocomplete.Behaviour.
+
+      IEx.configure(autocompletion: My.New.Autocomplete)
+
+      IEx.configure(autocompletion: [My.Number.Autocomplete, My.DataStructure.Autocomplete])
+
   """
   @spec configure(keyword()) :: :ok
   def configure(options) do

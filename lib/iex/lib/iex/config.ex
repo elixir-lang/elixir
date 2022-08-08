@@ -13,7 +13,8 @@ defmodule IEx.Config do
     :alive_prompt,
     :alive_continuation_prompt,
     :width,
-    :parser
+    :parser,
+    :autocompletion
   ]
 
   # Read API
@@ -53,6 +54,10 @@ defmodule IEx.Config do
 
   def alive_prompt() do
     Application.fetch_env!(:iex, :alive_prompt)
+  end
+
+  def autocompletion() do
+    Application.fetch_env!(:iex, :autocompletion)
   end
 
   def alive_continuation_prompt() do
@@ -182,6 +187,8 @@ defmodule IEx.Config do
 
   defp merge_option(:colors, old, new) when is_list(new), do: Keyword.merge(old, new)
   defp merge_option(:inspect, old, new) when is_list(new), do: Keyword.merge(old, new)
+  defp merge_option(:autocompletion, old, new) when is_atom(new), do: [new | old]
+  defp merge_option(:autocompletion, old, new) when is_list(new), do: new ++ old
   defp merge_option(_key, _old, new), do: new
 
   defp validate_option({:colors, new}) when is_list(new), do: :ok
@@ -193,6 +200,7 @@ defmodule IEx.Config do
   defp validate_option({:alive_continuation_prompt, new}) when is_binary(new), do: :ok
   defp validate_option({:width, new}) when is_integer(new), do: :ok
   defp validate_option({:parser, tuple}) when tuple_size(tuple) == 3, do: :ok
+  defp validate_option({:autocompletion, value}) when is_atom(value) or is_list(value), do: :ok
 
   defp validate_option(option) do
     raise ArgumentError, "invalid configuration #{inspect(option)}"
