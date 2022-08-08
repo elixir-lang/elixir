@@ -1,8 +1,9 @@
 name: Release Nightly
 
 on:
-  push: 
-    branches: 
+  push:
+    branches:
+      - iss-12038
       - main
       - v*.*
 
@@ -12,17 +13,55 @@ env:
   LANG: C.UTF-8
 
 jobs:
-  publish_doc:
+  publish_elixir:
+    strategy:
+      # TODO: fail-fast false?
+      fail-fast: true
+      matrix:
+        include:
+          - otp: 24
+            otp_version: 24.3
+          - otp: 25
+            otp_version: 25.0
     runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: "refs/heads/${{ matrix.branch }}"
+        
       - uses: erlef/setup-beam@v1
         with:
           otp-version: 24.0
-          elixir-version: 1.13.4
           version-type: strict
+      - name: Build Elixir Release
+        run: |
+          make Precompiled.zip
+          mv Precompiled.zip elixir-otp-${{ matrix.otp }}.zip
+          shasum -a 1 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha1sum
+          shasum -a 256 elixir-otp-${{ matrix.otp }}.zip > elixir-otp-${{ matrix.otp }}.zip.sha256sum
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: elixir-otp-${{ matrix.otp }}.zip
+          path: elixir-otp-${{ matrix.otp }}.zip
+
+  publish_doc:
+    needs: publish_elixir
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v3
+        
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: 25.0
+          version-type: strict
+      - name: Download latest Elixir
+        uses: actions/download-artifact@v3
+        with:
+          name: elixir-otp-25.zip
+      - name: Setup Elixir
+        run: |
+          unzip elixir-otp-25.zip -d elixir-otp-25
+          ls -lah
+          echo "$PWD/elixir-otp-25/bin" >> $GITHUB_PATH
       - name: Get latest stable ExDoc version
         run: |
           EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
