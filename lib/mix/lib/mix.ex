@@ -709,14 +709,12 @@ defmodule Mix do
           File.rm_rf!(install_dir)
         end
 
-        lockfile = Path.join(install_dir, "mix.lock")
-
         config = [
           version: "0.1.0",
           build_embedded: false,
           build_per_environment: true,
           build_path: "_build",
-          lockfile: lockfile,
+          lockfile: "mix.lock",
           deps_path: "deps",
           deps: deps,
           app: :mix_install,
@@ -748,17 +746,18 @@ defmodule Mix do
 
                 old_md5 =
                   case File.read(md5_path) do
-                    {:ok, data} -> Base.decode16!(data)
+                    {:ok, data} -> Base.decode64!(data)
                     _ -> nil
                   end
 
                 new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
 
                 if old_md5 != new_md5 do
+                  lockfile = Path.join(install_dir, "mix.lock")
                   old_lock = Mix.Dep.Lock.read(lockfile)
                   new_lock = Mix.Dep.Lock.read(external_lockfile)
                   Mix.Dep.Lock.write(lockfile, Map.merge(old_lock, new_lock))
-                  File.write!(md5_path, Base.encode16(new_md5))
+                  File.write!(md5_path, Base.encode64(new_md5))
                   Mix.Task.rerun("deps.get")
                 end
 
