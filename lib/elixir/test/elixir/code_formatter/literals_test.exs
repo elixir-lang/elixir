@@ -6,6 +6,7 @@ defmodule Code.Formatter.LiteralsTest do
   import CodeFormatterHelpers
 
   @short_length [line_length: 10]
+  @keep_charlists [charlists_as_sigils: false]
 
   describe "integers" do
     test "in decimal base" do
@@ -197,45 +198,76 @@ defmodule Code.Formatter.LiteralsTest do
 
   describe "charlists" do
     test "without escapes" do
-      assert_same ~S['']
-      assert_same ~S[' ']
-      assert_same ~S['foo']
+      assert_format ~S[''], ~S[~c""]
+      assert_format ~S[' '], ~S[~c" "]
+      assert_format ~S['foo'], ~S[~c"foo"]
+
+      assert_same ~S[''], @keep_charlists
+      assert_same ~S[' '], @keep_charlists
+      assert_same ~S['foo'], @keep_charlists
     end
 
     test "with escapes" do
-      assert_same ~S['f\a\b\ro']
-      assert_same ~S['single \' quote']
+      assert_format ~S['f\a\b\ro'], ~S[~c"f\a\b\ro"]
+      assert_format ~S['single \' quote'], ~S[~c"single ' quote"]
+      assert_format ~S['double " quote'], ~S[~c"double \" quote"]
+
+      assert_same ~S['f\a\b\ro'], @keep_charlists
+      assert_same ~S['single \' quote'], @keep_charlists
     end
 
     test "keeps literal new lines" do
+      assert_format """
+                    'fo
+                    o'
+                    """,
+                    """
+                    ~c"fo
+                    o"
+                    """
+
       assert_same """
-      'fo
-      o'
-      """
+                  'fo
+                  o'
+                  """,
+                  @keep_charlists
     end
 
     test "with interpolation" do
-      assert_same ~S['one #{2} three']
+      assert_format ~S['one #{2} three'], ~S[~c"one #{2} three"]
+
+      assert_same ~S['one #{2} three'], @keep_charlists
     end
 
     test "with escape and interpolation" do
-      assert_same ~S['one\n\'#{2}\'\nthree']
+      assert_format ~S['one\n\'#{2}\'\nthree'], ~S[~c"one\n'#{2}'\nthree"]
+      assert_format ~S['one\n"#{2}"\nthree'], ~S[~c"one\n\"#{2}\"\nthree"]
+
+      assert_same ~S['one\n\'#{2}\'\nthree'], @keep_charlists
     end
 
     test "with interpolation on line limit" do
-      assert_same ~S"""
-                  'one #{"two"} three'
-                  """,
-                  @short_length
+      assert_format ~S"""
+                    'one #{"two"} three'
+                    """,
+                    ~S"""
+                    ~c"one #{"two"} three"
+                    """,
+                    @short_length
     end
 
     test "literal new lines don't count towards line limit" do
-      assert_same ~S"""
-                  'one
-                  #{"two"}
-                  three'
-                  """,
-                  @short_length
+      assert_format ~S"""
+                    'one
+                    #{"two"}
+                    three'
+                    """,
+                    ~S"""
+                    ~c"one
+                    #{"two"}
+                    three"
+                    """,
+                    @short_length
     end
   end
 
@@ -356,65 +388,149 @@ defmodule Code.Formatter.LiteralsTest do
 
   describe "charlist heredocs" do
     test "without escapes" do
+      assert_format ~S"""
+                    '''
+                    hello
+                    '''
+                    """,
+                    ~S'''
+                    ~c"""
+                    hello
+                    """
+                    '''
+
       assert_same ~S"""
-      '''
-      hello
-      '''
-      """
+                  '''
+                  hello
+                  '''
+                  """,
+                  @keep_charlists
     end
 
     test "with escapes" do
-      assert_same ~S"""
-      '''
-      f\a\b\ro
-      '''
-      """
+      assert_format ~S"""
+                    '''
+                    f\a\b\ro
+                    '''
+                    """,
+                    ~S'''
+                    ~c"""
+                    f\a\b\ro
+                    """
+                    '''
+
+      assert_format ~S"""
+                    '''
+                    multiple "\"" quotes
+                    '''
+                    """,
+                    ~S'''
+                    ~c"""
+                    multiple "\"" quotes
+                    """
+                    '''
 
       assert_same ~S"""
-      '''
-      multiple "\"" quotes
-      '''
-      """
+                  '''
+                  f\a\b\ro
+                  '''
+                  """,
+                  @keep_charlists
+
+      assert_same ~S"""
+                  '''
+                  multiple "\"" quotes
+                  '''
+                  """,
+                  @keep_charlists
     end
 
     test "with interpolation" do
-      assert_same ~S"""
-      '''
-      one
-      #{2}
-      three
-      '''
-      """
+      assert_format ~S"""
+                    '''
+                    one
+                    #{2}
+                    three
+                    '''
+                    """,
+                    ~S'''
+                    ~c"""
+                    one
+                    #{2}
+                    three
+                    """
+                    '''
 
-      assert_same ~S"""
-      '''
-      one
-      "
-      #{2}
-      "
-      three
-      '''
-      """
-    end
+      assert_format ~S"""
+                    '''
+                    one
+                    "
+                    #{2}
+                    "
+                    three
+                    '''
+                    """,
+                    ~S'''
+                    ~c"""
+                    one
+                    "
+                    #{2}
+                    "
+                    three
+                    """
+                    '''
 
-    test "with interpolation on line limit" do
-      assert_same ~S"""
-                  '''
-                  one #{"two two"} three
-                  '''
-                  """,
-                  @short_length
-    end
-
-    test "literal new lines don't count towards line limit" do
       assert_same ~S"""
                   '''
                   one
-                  #{"two"}
+                  #{2}
                   three
                   '''
                   """,
-                  @short_length
+                  @keep_charlists
+
+      assert_same ~S"""
+                  '''
+                  one
+                  "
+                  #{2}
+                  "
+                  three
+                  '''
+                  """,
+                  @keep_charlists
+    end
+
+    test "with interpolation on line limit" do
+      assert_format ~S"""
+                    '''
+                    one #{"two two"} three
+                    '''
+                    """,
+                    ~S'''
+                    ~c"""
+                    one #{"two two"} three
+                    """
+                    ''',
+                    @short_length
+    end
+
+    test "literal new lines don't count towards line limit" do
+      assert_format ~S"""
+                    '''
+                    one
+                    #{"two"}
+                    three
+                    '''
+                    """,
+                    ~S'''
+                    ~c"""
+                    one
+                    #{"two"}
+                    three
+                    """
+                    ''',
+                    @short_length
     end
   end
 end

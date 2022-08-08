@@ -35,7 +35,7 @@ defmodule Code.Formatter.GeneralTest do
     test "starting with expression" do
       assert_same "__MODULE__.Foo.Bar"
       # Syntactically valid, semantically invalid
-      assert_same "'Foo'.Bar.Baz"
+      assert_same ~S[~c"Foo".Bar.Baz]
     end
 
     test "wraps the head in parens if it has an operator" do
@@ -344,19 +344,19 @@ defmodule Code.Formatter.GeneralTest do
     end
 
     test "with heredocs" do
-      assert_same """
+      assert_same ~S'''
       fn
         arg1 ->
-          '''
+          """
           foo
-          '''
+          """
 
         arg2 ->
-          '''
+          """
           bar
-          '''
+          """
       end
-      """
+      '''
     end
 
     test "with multiple empty clauses" do
@@ -559,19 +559,19 @@ defmodule Code.Formatter.GeneralTest do
     end
 
     test "with heredocs" do
-      assert_same """
+      assert_same ~S'''
       (
         arg1 ->
-          '''
+          """
           foo
-          '''
+          """
 
         arg2 ->
-          '''
+          """
           bar
-          '''
+          """
       )
-      """
+      '''
     end
 
     test "with multiple empty clauses" do
@@ -711,17 +711,17 @@ defmodule Code.Formatter.GeneralTest do
     end
 
     test "with heredoc" do
-      assert_same """
+      assert_same ~S'''
       block do
-        '''
+        """
         a
 
         b
 
         c
-        '''
+        """
       end
-      """
+      '''
     end
 
     test "keeps user newlines" do
@@ -830,14 +830,14 @@ defmodule Code.Formatter.GeneralTest do
     end
 
     test "with module attributes" do
-      assert_same """
+      assert_same ~S'''
       defmodule Foo do
         @constant 1
         @constant 2
 
-        @doc '''
+        @doc """
         foo
-        '''
+        """
         def foo do
           :ok
         end
@@ -851,9 +851,9 @@ defmodule Code.Formatter.GeneralTest do
         @other_constant 3
 
         @spec baz :: 4
-        @doc '''
+        @doc """
         baz
-        '''
+        """
         def baz do
           :ok
         end
@@ -861,15 +861,15 @@ defmodule Code.Formatter.GeneralTest do
         @another_constant 5
         @another_constant 5
 
-        @doc '''
+        @doc """
         baz
-        '''
+        """
         @spec baz :: 6
         def baz do
           :ok
         end
       end
-      """
+      '''
     end
 
     test "as function arguments" do

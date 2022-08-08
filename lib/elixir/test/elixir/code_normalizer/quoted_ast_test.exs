@@ -514,7 +514,7 @@ defmodule Code.Normalizer.QuotedASTTest do
 
     test "charlist" do
       assert quoted_to_string(quote(do: [])) == "[]"
-      assert quoted_to_string(quote(do: 'abc')) == "'abc'"
+      assert quoted_to_string(quote(do: 'abc')) == ~S/~c"abc"/
     end
 
     test "string" do
@@ -586,16 +586,16 @@ defmodule Code.Normalizer.QuotedASTTest do
 
     test "charlists with slash escapes" do
       assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v'), escape: false) ==
-               ~s/'\a\b\e\n\r\t\v'/
+               ~s/~c"\a\b\e\n\r\t\v"/
 
       assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v')) ==
-               ~s/'\\a\\b\\e\\n\\r\\t\\v'/
+               ~s/~c"\\a\\b\\e\\n\\r\\t\\v"/
 
       assert quoted_to_string({:__block__, [], ['\a\b\e\n\r\t\v']}, escape: false) ==
-               ~s/'\a\b\e\n\r\t\v'/
+               ~s/~c"\a\b\e\n\r\t\v"/
 
       assert quoted_to_string({:__block__, [], ['\a\b\e\n\r\t\v']}) ==
-               ~s/'\\a\\b\\e\\n\\r\\t\\v'/
+               ~s/~c"\\a\\b\\e\\n\\r\\t\\v"/
     end
 
     test "charlists with non printable characters" do
@@ -604,13 +604,19 @@ defmodule Code.Normalizer.QuotedASTTest do
     end
 
     test "charlists with interpolations" do
-      assert quoted_to_string(quote(do: 'one #{2} three'), escape: false) == ~S/'one #{2} three'/
-      assert quoted_to_string(quote(do: 'one #{2} three')) == ~S/'one #{2} three'/
+      assert quoted_to_string(quote(do: 'one #{2} three'), escape: false) ==
+               ~S/~c"one #{2} three"/
+
+      assert quoted_to_string(quote(do: 'one #{2} three')) == ~S/~c"one #{2} three"/
 
       assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree'), escape: false) ==
-               ~s['one\n\\'\#{2}\\'\nthree']
+               ~s[~c"one\n'\#{2}'\nthree"]
 
-      assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree')) == ~S['one\n\'#{2}\'\nthree']
+      assert quoted_to_string(quote(do: 'one\n"#{2}"\nthree'), escape: false) ==
+               ~s[~c"one\n\\"\#{2}\\"\nthree"]
+
+      assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree')) == ~S[~c"one\n'#{2}'\nthree"]
+      assert quoted_to_string(quote(do: 'one\n"#{2}"\nthree')) == ~S[~c"one\n\"#{2}\"\nthree"]
     end
 
     test "atoms" do

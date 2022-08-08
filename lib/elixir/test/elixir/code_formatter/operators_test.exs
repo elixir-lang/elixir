@@ -709,19 +709,19 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with heredoc" do
-      heredoc = ~S"""
-      var = '''
+      heredoc = ~S'''
+      var = """
       one
-      '''
       """
+      '''
 
       assert_same heredoc, @short_length
 
-      heredoc = ~S"""
-      var = '''
+      heredoc = ~S'''
+      var = """
       #{one}
-      '''
       """
+      '''
 
       assert_same heredoc, @short_length
     end
@@ -807,19 +807,19 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with next break fits" do
-      attribute = """
-      @doc '''
+      attribute = ~S'''
+      @doc """
       foo
-      '''
       """
+      '''
 
       assert_same attribute
 
-      attribute = """
-      @doc foo: '''
+      attribute = ~S'''
+      @doc foo: """
            bar
-           '''
-      """
+           """
+      '''
 
       assert_same attribute
     end

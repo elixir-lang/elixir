@@ -547,7 +547,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         'foo' = error.left
         'bar' = error.right
-        "assert 'foo' in 'bar'" = Macro.to_string(error.expr)
+        ~S(assert ~c"foo" in ~c"bar") = Macro.to_string(error.expr)
     end
   end
 
@@ -562,7 +562,7 @@ defmodule ExUnit.AssertionsTest do
       error in [ExUnit.AssertionError] ->
         'foo' = error.left
         ['foo', 'bar'] = error.right
-        "refute 'foo' in ['foo', 'bar']" = Macro.to_string(error.expr)
+        ~S(refute ~c"foo" in [~c"foo", ~c"bar"]) = Macro.to_string(error.expr)
     end
   end
 

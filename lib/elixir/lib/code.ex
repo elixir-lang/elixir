@@ -468,6 +468,11 @@ defmodule Code do
       modifiers, where `<<foo::custom_type>>` becomes `<<foo::custom_type()>>`.
       Defaults to `true`. This option changes the AST.
 
+    * `:charlists_as_sigils` (since v1.15.0) - when `true`,
+      formats charlists as [`~c`](`Kernel.sigil_c/2`) sigils, for example
+      `'foo'` becomes `~c"foo"`.
+      Defaults to `true`. This option changes the AST.
+
   ## Design principles
 
   The formatter was designed under three principles.
