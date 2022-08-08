@@ -44,7 +44,7 @@ defmodule Code.Fragment do
 
     * `{:alias, inside_alias, charlist}` - the context is an alias, potentially
       a nested one, where `inside_alias` is an expression `{:module_attribute, charlist}`
-      or {:local_or_var, charlist}` and `charlist` is a static part
+      or `{:local_or_var, charlist}` and `charlist` is a static part
       Examples are `__MODULE__.Submodule` or `@hello.Submodule`
 
     * `{:dot, inside_dot, charlist}` - the context is a dot
