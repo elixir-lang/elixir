@@ -1108,6 +1108,6 @@ defmodule DynamicSupervisor do
         label: {__MODULE__, :unexpected_msg},
         report: %{msg: msg}
       }) do
-    {'DynamicSupervisor received unexpected message: ~p~n', [msg]}
+    {~c"DynamicSupervisor received unexpected message: ~p~n", [msg]}
   end
 end

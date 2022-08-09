@@ -388,7 +388,7 @@ defmodule MacroTest do
     end
 
     test "forwards options to the underlying inspect calls" do
-      value = 'hello'
+      value = ~c"hello"
       assert {^value, formatted} = dbg_format(value, syntax_colors: [], charlists: :as_lists)
       assert formatted =~ "value #=> [104, 101, 108, 108, 111]\n"
     end
@@ -856,7 +856,7 @@ defmodule MacroTest do
 
     test "charlist" do
       assert macro_to_string(quote(do: [])) == "[]"
-      assert macro_to_string(quote(do: 'abc')) == "'abc'"
+      assert macro_to_string(quote(do: ~c"abc")) == "'abc'"
     end
 
     test "string" do
@@ -942,15 +942,18 @@ defmodule MacroTest do
       env = %{__ENV__ | file: "foo", line: 12}
 
       assert Macro.Env.stacktrace(env) ==
-               [{__MODULE__, :"test env stacktrace", 1, [file: 'foo', line: 12]}]
+               [{__MODULE__, :"test env stacktrace", 1, [file: ~c"foo", line: 12]}]
 
       env = %{env | function: nil}
-      assert Macro.Env.stacktrace(env) == [{__MODULE__, :__MODULE__, 0, [file: 'foo', line: 12]}]
+
+      assert Macro.Env.stacktrace(env) == [
+               {__MODULE__, :__MODULE__, 0, [file: ~c"foo", line: 12]}
+             ]
 
       env = %{env | module: nil}
 
       assert Macro.Env.stacktrace(env) ==
-               [{:elixir_compiler, :__FILE__, 1, [file: 'foo', line: 12]}]
+               [{:elixir_compiler, :__FILE__, 1, [file: ~c"foo", line: 12]}]
     end
 
     test "context modules" do

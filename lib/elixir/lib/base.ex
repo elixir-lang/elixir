@@ -95,11 +95,11 @@ defmodule Base do
   @type encode_case :: :upper | :lower
   @type decode_case :: :upper | :lower | :mixed
 
-  b16_alphabet = '0123456789ABCDEF'
-  b64_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-  b64url_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
-  b32_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
-  b32hex_alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUV'
+  b16_alphabet = ~c"0123456789ABCDEF"
+  b64_alphabet = ~c"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  b64url_alphabet = ~c"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+  b32_alphabet = ~c"ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+  b32hex_alphabet = ~c"0123456789ABCDEFGHIJKLMNOPQRSTUV"
 
   to_lower_enc = &Enum.map(&1, fn c -> if c in ?A..?Z, do: c - ?A + ?a, else: c end)
 
@@ -148,7 +148,7 @@ defmodule Base do
   defp remove_ignored(string, nil), do: string
 
   defp remove_ignored(string, :whitespace) do
-    for <<char::8 <- string>>, char not in '\s\t\r\n', into: <<>>, do: <<char::8>>
+    for <<char::8 <- string>>, char not in ~c"\s\t\r\n", into: <<>>, do: <<char::8>>
   end
 
   @doc """

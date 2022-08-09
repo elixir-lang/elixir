@@ -1075,7 +1075,7 @@ defmodule Application do
     "bad application start specs: #{inspect(spec)}"
   end
 
-  defp do_format_error({'no such file or directory', file}) do
+  defp do_format_error({~c"no such file or directory", file}) do
     "could not find application file: #{file}"
   end
 

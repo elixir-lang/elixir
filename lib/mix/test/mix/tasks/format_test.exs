@@ -217,7 +217,7 @@ defmodule Mix.Tasks.FormatTest do
     def format(contents, opts) do
       assert opts[:from_formatter_exs] == :yes
       assert opts[:sigil] == :W
-      assert opts[:modifiers] == 'abc'
+      assert opts[:modifiers] == ~c"abc"
       assert opts[:line] == 2
       assert opts[:file] =~ ~r/\/a\.ex$/
       contents |> String.split(~r/\s/) |> Enum.join("\n")
@@ -295,7 +295,7 @@ defmodule Mix.Tasks.FormatTest do
         opts[:sigil] ->
           assert opts[:sigil] == :W
           assert opts[:inputs] == ["a.ex"]
-          assert opts[:modifiers] == 'abc'
+          assert opts[:modifiers] == ~c"abc"
 
         true ->
           flunk("Plugin not loading in correctly.")

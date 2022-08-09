@@ -26,14 +26,14 @@ defmodule Logger.UtilsTest do
     assert truncate("𠜎𠜱𠝹𠱓", 15) == ["𠜎𠜱𠝹", " (truncated)"]
 
     # Charlists
-    assert truncate('olá', 2) == ['olá', " (truncated)"]
-    assert truncate('olá', 3) == ['olá', " (truncated)"]
-    assert truncate('olá', 4) == 'olá'
+    assert truncate(~c"olá", 2) == [~c"olá", " (truncated)"]
+    assert truncate(~c"olá", 3) == [~c"olá", " (truncated)"]
+    assert truncate(~c"olá", 4) == ~c"olá"
 
     # Chardata
-    assert truncate('ol' ++ "á", 2) == ['ol' ++ "", " (truncated)"]
-    assert truncate('ol' ++ "á", 3) == ['ol' ++ "", " (truncated)"]
-    assert truncate('ol' ++ "á", 4) == 'ol' ++ "á"
+    assert truncate(~c"ol" ++ "á", 2) == [~c"ol" ++ "", " (truncated)"]
+    assert truncate(~c"ol" ++ "á", 3) == [~c"ol" ++ "", " (truncated)"]
+    assert truncate(~c"ol" ++ "á", 4) == ~c"ol" ++ "á"
 
     # :infinity
     long_string = String.duplicate("foo", 10000)
@@ -41,54 +41,58 @@ defmodule Logger.UtilsTest do
   end
 
   test "scan_inspect/3 formats" do
-    assert inspect('~p', [1]) == {'~ts', [["1"]]}
-    assert inspect("~p", [1]) == {'~ts', [["1"]]}
-    assert inspect(:"~p", [1]) == {'~ts', [["1"]]}
+    assert inspect(~c"~p", [1]) == {~c"~ts", [["1"]]}
+    assert inspect("~p", [1]) == {~c"~ts", [["1"]]}
+    assert inspect(:"~p", [1]) == {~c"~ts", [["1"]]}
   end
 
   test "scan_inspect/3 sigils" do
-    assert inspect('~10.10tp', [1]) == {'~ts', [["1"]]}
-    assert inspect('~-10.10tp', [1]) == {'~ts', [["1"]]}
+    assert inspect(~c"~10.10tp", [1]) == {~c"~ts", [["1"]]}
+    assert inspect(~c"~-10.10tp", [1]) == {~c"~ts", [["1"]]}
 
-    assert inspect('~10.10lp', [1]) == {'~ts', [["1"]]}
-    assert inspect('~10.10x~p~n', [1, 2, 3]) == {'~10.10x~ts~n', [1, 2, ["3"]]}
+    assert inspect(~c"~10.10lp", [1]) == {~c"~ts", [["1"]]}
+    assert inspect(~c"~10.10x~p~n", [1, 2, 3]) == {~c"~10.10x~ts~n", [1, 2, ["3"]]}
   end
 
   test "scan_inspect/3 with modifier t has no effect (as it is the default)" do
-    assert inspect('~tp', [1]) == {'~ts', [["1"]]}
-    assert inspect('~tw', [1]) == {'~ts', [["1"]]}
+    assert inspect(~c"~tp", [1]) == {~c"~ts", [["1"]]}
+    assert inspect(~c"~tw", [1]) == {~c"~ts", [["1"]]}
   end
 
   test "scan_inspect/3 with modifier l always prints lists" do
-    assert inspect('~lp', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
-    assert inspect('~lw', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
+    assert inspect(~c"~lp", [~c"abc"]) ==
+             {~c"~ts", [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
+
+    assert inspect(~c"~lw", [~c"abc"]) ==
+             {~c"~ts", [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
   end
 
   test "scan_inspect/3 with modifier for width" do
-    assert inspect('~5lp', ['abc']) ==
-             {'~ts', [["[", "97", ",", "\n ", "98", ",", "\n ", "99", "]"]]}
+    assert inspect(~c"~5lp", [~c"abc"]) ==
+             {~c"~ts", [["[", "97", ",", "\n ", "98", ",", "\n ", "99", "]"]]}
 
-    assert inspect('~5lw', ['abc']) == {'~ts', [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
+    assert inspect(~c"~5lw", [~c"abc"]) ==
+             {~c"~ts", [["[", "97", ",", " ", "98", ",", " ", "99", "]"]]}
   end
 
   test "scan_inspect/3 with modifier for limit" do
-    assert inspect('~5lP', ['abc', 2]) ==
-             {'~ts', [["[", "97", ",", "\n ", "98", ",", "\n ", "...", "]"]]}
+    assert inspect(~c"~5lP", [~c"abc", 2]) ==
+             {~c"~ts", [["[", "97", ",", "\n ", "98", ",", "\n ", "...", "]"]]}
 
-    assert inspect('~5lW', ['abc', 2]) ==
-             {'~ts', [["[", "97", ",", " ", "98", ",", " ", "...", "]"]]}
+    assert inspect(~c"~5lW", [~c"abc", 2]) ==
+             {~c"~ts", [["[", "97", ",", " ", "98", ",", " ", "...", "]"]]}
   end
 
   test "scan_inspect/3 truncates binaries" do
-    assert inspect('~ts', ["abcdeabcdeabcdeabcde"]) == {'~ts', ["abcdeabcde"]}
+    assert inspect(~c"~ts", ["abcdeabcdeabcdeabcde"]) == {~c"~ts", ["abcdeabcde"]}
 
-    assert inspect('~ts~ts~ts', ["abcdeabcde", "abcde", "abcde"]) ==
-             {'~ts~ts~ts', ["abcdeabcde", "", ""]}
+    assert inspect(~c"~ts~ts~ts", ["abcdeabcde", "abcde", "abcde"]) ==
+             {~c"~ts~ts~ts", ["abcdeabcde", "", ""]}
   end
 
   test "scan_inspect/3 with :infinity truncate" do
     long_string = String.duplicate("foo", 10000)
-    assert inspect('~ts', [long_string], :infinity) == {'~ts', [long_string]}
+    assert inspect(~c"~ts", [long_string], :infinity) == {~c"~ts", [long_string]}
   end
 
   test "timestamp/1" do

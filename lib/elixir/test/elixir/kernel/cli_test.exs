@@ -62,44 +62,44 @@ defmodule Kernel.CLITest do
   end
 
   stderr_test "--help smoke test" do
-    output = elixir('--help')
+    output = elixir(~c"--help")
     assert output =~ "Usage: elixir"
   end
 
   test "--version smoke test" do
-    output = elixir('--version')
+    output = elixir(~c"--version")
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
 
-    output = iex('--version')
+    output = iex(~c"--version")
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "IEx #{System.version()}"
 
-    output = elixir('--version -e "IO.puts(:test_output)"')
+    output = elixir(~c"--version -e \"IO.puts(:test_output)\"")
     assert output =~ "Erlang/OTP #{System.otp_release()}"
     assert output =~ "Elixir #{System.version()}"
     assert output =~ "Standalone options can't be combined with other options"
   end
 
   test "--short-version smoke test" do
-    output = elixir('--short-version')
+    output = elixir(~c"--short-version")
     assert output =~ System.version()
     refute output =~ "Erlang"
   end
 
   stderr_test "combining --help results in error" do
-    output = elixir('-e 1 --help')
+    output = elixir(~c"-e 1 --help")
     assert output =~ "--help : Standalone options can't be combined with other options"
 
-    output = elixir('--help -e 1')
+    output = elixir(~c"--help -e 1")
     assert output =~ "--help : Standalone options can't be combined with other options"
   end
 
   stderr_test "combining --short-version results in error" do
-    output = elixir('--short-version -e 1')
+    output = elixir(~c"--short-version -e 1")
     assert output =~ "--short-version : Standalone options can't be combined with other options"
 
-    output = elixir('-e 1 --short-version')
+    output = elixir(~c"-e 1 --short-version")
     assert output =~ "--short-version : Standalone options can't be combined with other options"
   end
 
@@ -107,34 +107,39 @@ defmodule Kernel.CLITest do
     root = fixture_path("../../..") |> to_charlist
 
     args =
-      '-pa "#{root}/*" -pz "#{root}/lib/*" -e "IO.inspect(:code.get_path(), limit: :infinity)"'
+      ~c"-pa \"#{root}/*\" -pz \"#{root}/lib/*\" -e \"IO.inspect(:code.get_path(), limit: :infinity)\""
 
     list = elixir(args)
     {path, _} = Code.eval_string(list, [])
 
     # pa
-    assert to_charlist(Path.expand('ebin', root)) in path
-    assert to_charlist(Path.expand('lib', root)) in path
-    assert to_charlist(Path.expand('src', root)) in path
+    assert to_charlist(Path.expand(~c"ebin", root)) in path
+    assert to_charlist(Path.expand(~c"lib", root)) in path
+    assert to_charlist(Path.expand(~c"src", root)) in path
 
     # pz
-    assert to_charlist(Path.expand('lib/list', root)) in path
+    assert to_charlist(Path.expand(~c"lib/list", root)) in path
   end
 
   stderr_test "properly formats errors" do
-    assert String.starts_with?(elixir('-e ":erlang.throw 1"'), "** (throw) 1")
-    assert String.starts_with?(elixir('-e ":erlang.error 1"'), "** (ErlangError) Erlang error: 1")
-    assert String.starts_with?(elixir('-e "1 +"'), "** (TokenMissingError)")
+    assert String.starts_with?(elixir(~c"-e \":erlang.throw 1\""), "** (throw) 1")
 
-    assert elixir('-e "Task.async(fn -> raise ArgumentError end) |> Task.await"') =~
+    assert String.starts_with?(
+             elixir(~c"-e \":erlang.error 1\""),
+             "** (ErlangError) Erlang error: 1"
+           )
+
+    assert String.starts_with?(elixir(~c"-e \"1 +\""), "** (TokenMissingError)")
+
+    assert elixir(~c"-e \"Task.async(fn -> raise ArgumentError end) |> Task.await\"") =~
              "an exception was raised:\n    ** (ArgumentError) argument error"
 
-    assert elixir('-e "IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})"') ==
+    assert elixir(~c"-e \"IO.puts(Process.flag(:trap_exit, false)); exit({:shutdown, 1})\"") ==
              "false\n"
   end
 
   stderr_test "blames exceptions" do
-    error = elixir('-e "Access.fetch :foo, :bar"')
+    error = elixir(~c"-e \"Access.fetch :foo, :bar\"")
     assert error =~ "** (FunctionClauseError) no function clause matching in Access.fetch/2"
     assert error =~ "The following arguments were given to Access.fetch/2"
     assert error =~ ":foo"
@@ -150,7 +155,7 @@ defmodule Kernel.CLI.RPCTest do
 
   defp rpc_eval(command) do
     node = "cli-rpc#{System.unique_integer()}@127.0.0.1"
-    elixir('--name #{node} --rpc-eval #{node} "#{command}"')
+    elixir(~c"--name #{node} --rpc-eval #{node} \"#{command}\"")
   end
 
   test "invokes command on remote node" do
@@ -159,14 +164,14 @@ defmodule Kernel.CLI.RPCTest do
 
   test "invokes command on remote node without host and --name after --rpc-eval" do
     node = "cli-rpc#{System.unique_integer()}"
-    assert elixir('--rpc-eval #{node} "IO.puts :ok" --name #{node}@127.0.0.1 ') == "ok\n"
+    assert elixir(~c"--rpc-eval #{node} \"IO.puts :ok\" --name #{node}@127.0.0.1 ") == "ok\n"
   end
 
   test "can be invoked multiple times" do
     node = "cli-rpc#{System.unique_integer()}"
 
     assert elixir(
-             '--name #{node}@127.0.0.1 --rpc-eval #{node} "IO.puts :foo" --rpc-eval #{node} "IO.puts :bar"'
+             ~c"--name #{node}@127.0.0.1 --rpc-eval #{node} \"IO.puts :foo\" --rpc-eval #{node} \"IO.puts :bar\""
            ) == "foo\nbar\n"
   end
 
@@ -175,10 +180,10 @@ defmodule Kernel.CLI.RPCTest do
   test "fails on wrong arguments" do
     node = "cli-rpc#{System.unique_integer()}"
 
-    assert elixir('--name #{node}@127.0.0.1 --rpc-eval') ==
+    assert elixir(~c"--name #{node}@127.0.0.1 --rpc-eval") ==
              "--rpc-eval : wrong number of arguments\n"
 
-    assert elixir('--name #{node}@127.0.0.1 --rpc-eval #{node}') ==
+    assert elixir(~c"--name #{node}@127.0.0.1 --rpc-eval #{node}") ==
              "--rpc-eval : wrong number of arguments\n"
   end
 
@@ -217,7 +222,7 @@ defmodule Kernel.CLI.CompileTest do
   end
 
   test "compiles code", context do
-    assert elixirc('#{context.fixture} -o #{context.tmp_dir}') == ""
+    assert elixirc(~c"#{context.fixture} -o #{context.tmp_dir}") == ""
     assert File.regular?(context.beam_file_path)
 
     # Assert that the module is loaded into memory with the proper destination for the BEAM file.
@@ -234,7 +239,7 @@ defmodule Kernel.CLI.CompileTest do
     try do
       fixture = String.replace(context.fixture, "/", "\\")
       tmp_dir_path = String.replace(context.tmp_dir, "/", "\\")
-      assert elixirc('#{fixture} -o #{tmp_dir_path}') == ""
+      assert elixirc(~c"#{fixture} -o #{tmp_dir_path}") == ""
       assert File.regular?(context[:beam_file_path])
 
       # Assert that the module is loaded into memory with the proper destination for the BEAM file.
@@ -250,14 +255,14 @@ defmodule Kernel.CLI.CompileTest do
   end
 
   stderr_test "fails on missing patterns", context do
-    output = elixirc('#{context.fixture} non_existing.ex -o #{context.tmp_dir}')
+    output = elixirc(~c"#{context.fixture} non_existing.ex -o #{context.tmp_dir}")
     assert output =~ "non_existing.ex"
     refute output =~ "compile_sample.ex"
     refute File.exists?(context.beam_file_path)
   end
 
   stderr_test "fails on missing write access to .beam file", context do
-    compilation_args = '#{context.fixture} -o #{context.tmp_dir}'
+    compilation_args = ~c"#{context.fixture} -o #{context.tmp_dir}"
 
     assert elixirc(compilation_args) == ""
     assert File.regular?(context.beam_file_path)

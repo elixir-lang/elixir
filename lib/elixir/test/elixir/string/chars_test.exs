@@ -60,7 +60,7 @@ defmodule String.Chars.ListTest do
   end
 
   test "printable" do
-    assert to_string('abc') == "abc"
+    assert to_string(~c"abc") == "abc"
   end
 
   test "charlist" do

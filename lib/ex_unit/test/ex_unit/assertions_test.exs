@@ -537,31 +537,31 @@ defmodule ExUnit.AssertionsTest do
   end
 
   test "assert in when member" do
-    true = assert 'foo' in ['foo', 'bar']
+    true = assert ~c"foo" in [~c"foo", ~c"bar"]
   end
 
   test "assert in when is not member" do
     try do
-      "This should never be tested" = assert 'foo' in 'bar'
+      "This should never be tested" = assert ~c"foo" in ~c"bar"
     rescue
       error in [ExUnit.AssertionError] ->
-        'foo' = error.left
-        'bar' = error.right
+        ~c"foo" = error.left
+        ~c"bar" = error.right
         ~S(assert ~c"foo" in ~c"bar") = Macro.to_string(error.expr)
     end
   end
 
   test "refute in when is not member" do
-    false = refute 'baz' in ['foo', 'bar']
+    false = refute ~c"baz" in [~c"foo", ~c"bar"]
   end
 
   test "refute in when is member" do
     try do
-      "This should never be tested" = refute 'foo' in ['foo', 'bar']
+      "This should never be tested" = refute ~c"foo" in [~c"foo", ~c"bar"]
     rescue
       error in [ExUnit.AssertionError] ->
-        'foo' = error.left
-        ['foo', 'bar'] = error.right
+        ~c"foo" = error.left
+        [~c"foo", ~c"bar"] = error.right
         ~S(refute ~c"foo" in [~c"foo", ~c"bar"]) = Macro.to_string(error.expr)
     end
   end

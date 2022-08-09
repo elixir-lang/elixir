@@ -24,7 +24,7 @@ defprotocol List.Chars do
 end
 
 defimpl List.Chars, for: Atom do
-  def to_charlist(nil), do: ''
+  def to_charlist(nil), do: ~c""
 
   def to_charlist(atom), do: Atom.to_charlist(atom)
 end

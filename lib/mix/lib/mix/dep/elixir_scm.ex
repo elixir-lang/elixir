@@ -26,7 +26,7 @@ defmodule Mix.Dep.ElixirSCM do
           {@manifest_vsn, vsn, scm} = :erlang.binary_to_term(contents)
           {:ok, vsn, scm}
         rescue
-          _ -> {:ok, {"1.0.0", '17'}, nil}
+          _ -> {:ok, {"1.0.0", ~c"17"}, nil}
         end
 
       _ ->

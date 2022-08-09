@@ -79,7 +79,7 @@ defmodule IEx.CLI do
   # to do it just once.
   defp tty_works? do
     try do
-      port = Port.open({:spawn, 'tty_sl -c -e'}, [:eof])
+      port = Port.open({:spawn, ~c"tty_sl -c -e"}, [:eof])
       Port.close(port)
     catch
       _, _ -> false
@@ -157,11 +157,11 @@ defmodule IEx.CLI do
     {:erlang, :apply, [function, []]}
   end
 
-  defp find_dot_iex(['--dot-iex', h | _]), do: List.to_string(h)
+  defp find_dot_iex([~c"--dot-iex", h | _]), do: List.to_string(h)
   defp find_dot_iex([_ | t]), do: find_dot_iex(t)
   defp find_dot_iex([]), do: nil
 
-  defp get_remsh(['--remsh', h | _]), do: List.to_atom(append_hostname(h))
+  defp get_remsh([~c"--remsh", h | _]), do: List.to_atom(append_hostname(h))
   defp get_remsh([_ | t]), do: get_remsh(t)
   defp get_remsh([]), do: nil
 

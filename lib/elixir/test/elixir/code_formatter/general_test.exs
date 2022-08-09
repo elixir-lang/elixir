@@ -155,7 +155,7 @@ defmodule Code.Formatter.GeneralTest do
       """
 
       formatter = fn content, opts ->
-        assert opts == [file: nil, line: 1, sigil: :W, modifiers: 'abc', opening_delimiter: "<"]
+        assert opts == [file: nil, line: 1, sigil: :W, modifiers: ~c"abc", opening_delimiter: "<"]
         content |> String.split(~r/ +/) |> Enum.intersperse(" ")
       end
 
@@ -207,7 +207,7 @@ defmodule Code.Formatter.GeneralTest do
                  file: nil,
                  line: 2,
                  sigil: :W,
-                 modifiers: 'abc',
+                 modifiers: ~c"abc",
                  opening_delimiter: ~S/"""/
                ]
 

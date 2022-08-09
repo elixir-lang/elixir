@@ -16,7 +16,7 @@ defmodule Mix.Tasks.LoadconfigTest do
       assert Application.fetch_env(:my_app, :key) == {:ok, :project}
 
       # App configuration should have lower precedence
-      :ok = :application.load({:application, :my_app, [vsn: '1.0.0', env: [key: :app]]})
+      :ok = :application.load({:application, :my_app, [vsn: ~c"1.0.0", env: [key: :app]]})
       assert Application.fetch_env(:my_app, :key) == {:ok, :project}
 
       # loadconfig can be called multiple times

@@ -293,12 +293,12 @@ defmodule StringIOTest do
       {:more, continuation ++ content}
     end
 
-    def until_eof_then_try_more('magic-stop-prefix' ++ continuation, :eof) do
+    def until_eof_then_try_more(~c"magic-stop-prefix" ++ continuation, :eof) do
       {:done, continuation, :eof}
     end
 
     def until_eof_then_try_more(continuation, :eof) do
-      {:more, 'magic-stop-prefix' ++ continuation}
+      {:more, ~c"magic-stop-prefix" ++ continuation}
     end
 
     def until_eof_then_try_more(continuation, content) do
@@ -381,14 +381,14 @@ defmodule StringIOTest do
 
   test ":io.erl_scan_form/2" do
     {:ok, pid} = StringIO.open("1.")
-    result = :io.scan_erl_form(pid, 'p>')
+    result = :io.scan_erl_form(pid, ~c"p>")
     assert result == {:ok, [{:integer, 1, 1}, {:dot, 1}], 1}
     assert StringIO.contents(pid) == {"", ""}
   end
 
   test ":io.erl_scan_form/2 with capture_prompt" do
     {:ok, pid} = StringIO.open("1.", capture_prompt: true)
-    result = :io.scan_erl_form(pid, 'p>')
+    result = :io.scan_erl_form(pid, ~c"p>")
     assert result == {:ok, [{:integer, 1, 1}, {:dot, 1}], 1}
     assert StringIO.contents(pid) == {"", "p>p>"}
   end

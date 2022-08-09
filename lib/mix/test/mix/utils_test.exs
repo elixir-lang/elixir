@@ -100,13 +100,13 @@ defmodule Mix.UtilsTest do
     assert Mix.Utils.proxy_config("http://example.com") == []
 
     System.put_env("http_proxy", "http://nopass@example.com")
-    assert Mix.Utils.proxy_config("http://example.com") == [proxy_auth: {'nopass', ''}]
+    assert Mix.Utils.proxy_config("http://example.com") == [proxy_auth: {~c"nopass", ~c""}]
 
     System.put_env("HTTP_PROXY", "http://my:proxy@example.com")
-    assert Mix.Utils.proxy_config("http://example.com") == [proxy_auth: {'my', 'proxy'}]
+    assert Mix.Utils.proxy_config("http://example.com") == [proxy_auth: {~c"my", ~c"proxy"}]
 
     System.put_env("https_proxy", "https://another:proxy@example.com")
-    assert Mix.Utils.proxy_config("https://example.com") == [proxy_auth: {'another', 'proxy'}]
+    assert Mix.Utils.proxy_config("https://example.com") == [proxy_auth: {~c"another", ~c"proxy"}]
 
     System.put_env("HTTPS_PROXY", "https://example.com")
     assert Mix.Utils.proxy_config("https://example.com") == []
@@ -185,7 +185,7 @@ defmodule Mix.UtilsTest do
               "ebin" |> Path.expand() |> String.to_charlist()
 
             _ ->
-              '../../ebin'
+              ~c"../../ebin"
           end
 
         {:ok, actual_link} = :file.read_link("_build/archive/ebin")

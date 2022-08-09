@@ -36,11 +36,11 @@ defmodule URITest do
              "foo%5B%5D=%2B%3D%2F%3F%26%23+%C3%91"
 
     assert_raise ArgumentError, fn ->
-      URI.encode_query([{"foo", 'bar'}])
+      URI.encode_query([{"foo", ~c"bar"}])
     end
 
     assert_raise ArgumentError, fn ->
-      URI.encode_query([{'foo', "bar"}])
+      URI.encode_query([{~c"foo", "bar"}])
     end
   end
 

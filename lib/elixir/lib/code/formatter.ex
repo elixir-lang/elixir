@@ -1599,7 +1599,7 @@ defmodule Code.Formatter do
         |> String.to_charlist()
         |> Enum.reverse()
         |> Enum.chunk_every(3)
-        |> Enum.intersperse('_')
+        |> Enum.intersperse(~c"_")
         |> List.flatten()
         |> Enum.reverse()
         |> List.to_string()

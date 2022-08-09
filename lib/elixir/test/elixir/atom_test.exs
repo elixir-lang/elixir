@@ -10,6 +10,6 @@ defmodule AtomTest do
   end
 
   test "to_charlist/1" do
-    assert "héllo" |> String.to_atom() |> Atom.to_charlist() == 'héllo'
+    assert "héllo" |> String.to_atom() |> Atom.to_charlist() == ~c"héllo"
   end
 end

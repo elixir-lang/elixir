@@ -134,14 +134,14 @@ defmodule Mix.Tasks.App.TreeTest do
   end
 
   defp load_apps(optional_apps \\ []) do
-    :ok = :application.load({:application, :app_deps4_sample, [vsn: '1.0.0', env: []]})
-    :ok = :application.load({:application, :app_deps3_sample, [vsn: '1.0.0', env: []]})
+    :ok = :application.load({:application, :app_deps4_sample, [vsn: ~c"1.0.0", env: []]})
+    :ok = :application.load({:application, :app_deps3_sample, [vsn: ~c"1.0.0", env: []]})
 
-    opts = [vsn: '1.0.0', env: [], included_applications: [:app_deps4_sample]]
+    opts = [vsn: ~c"1.0.0", env: [], included_applications: [:app_deps4_sample]]
     :ok = :application.load({:application, :app_deps2_sample, opts})
 
     opts = [
-      vsn: '1.0.0',
+      vsn: ~c"1.0.0",
       env: [],
       applications: [:app_deps2_sample, :app_deps3_sample],
       optional_applications: optional_apps

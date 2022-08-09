@@ -46,8 +46,8 @@ defmodule Kernel.FnTest do
   end
 
   test "capture remote" do
-    assert (&:erlang.atom_to_list/1).(:a) == 'a'
-    assert (&Atom.to_charlist/1).(:a) == 'a'
+    assert (&:erlang.atom_to_list/1).(:a) == ~c"a"
+    assert (&Atom.to_charlist/1).(:a) == ~c"a"
 
     assert (&List.flatten/1).([[0]]) == [0]
     assert (&List.flatten/1).([[0]]) == [0]
@@ -56,9 +56,9 @@ defmodule Kernel.FnTest do
   end
 
   test "capture local" do
-    assert (&atl/1).(:a) == 'a'
-    assert (&atl/1).(:a) == 'a'
-    assert (&atl(&1)).(:a) == 'a'
+    assert (&atl/1).(:a) == ~c"a"
+    assert (&atl/1).(:a) == ~c"a"
+    assert (&atl(&1)).(:a) == ~c"a"
   end
 
   test "capture local with question mark" do
@@ -101,7 +101,7 @@ defmodule Kernel.FnTest do
 
   test "local partial application" do
     assert (&atb(&1, :utf8)).(:a) == "a"
-    assert (&atb(List.to_atom(&1), :utf8)).('a') == "a"
+    assert (&atb(List.to_atom(&1), :utf8)).(~c"a") == "a"
   end
 
   test "imported partial application" do

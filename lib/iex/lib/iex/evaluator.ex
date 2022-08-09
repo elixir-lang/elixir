@@ -76,7 +76,7 @@ defmodule IEx.Evaluator do
       opts[:file],
       "incomplete expression",
       "",
-      {'', Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
+      {~c"", Keyword.get(opts, :line, 1), Keyword.get(opts, :column, 1)}
     )
   end
 
@@ -128,7 +128,7 @@ defmodule IEx.Evaluator do
 
   defp adjust_operator([{op_type, _, _} | _] = tokens, line, column, file, opts, _last_op)
        when op_type in @op_tokens do
-    {:ok, prefix} = :elixir.string_to_tokens('v(-1)', line, column, file, opts)
+    {:ok, prefix} = :elixir.string_to_tokens(~c"v(-1)", line, column, file, opts)
     {:ok, prefix ++ tokens}
   end
 

@@ -51,7 +51,7 @@ defmodule Logger.FormatterTest do
     format = format(compiled, :error, nil, nil, meta: :data)
     assert IO.chardata_to_string(format) == "meta=data "
 
-    pid = :erlang.list_to_pid('<0.123.4>')
+    pid = :erlang.list_to_pid(~c"<0.123.4>")
     format = format(compiled, :error, nil, nil, meta: :data, pid: pid)
     assert IO.chardata_to_string(format) == "meta=data pid=<0.123.4> "
 

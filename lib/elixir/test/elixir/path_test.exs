@@ -84,11 +84,11 @@ defmodule PathTest do
 
     test "type/1" do
       assert Path.type("C:/usr/local/bin") == :absolute
-      assert Path.type('C:\\usr\\local\\bin') == :absolute
+      assert Path.type(~c"C:\\usr\\local\\bin") == :absolute
       assert Path.type("C:usr\\local\\bin") == :volumerelative
 
       assert Path.type("/usr/local/bin") == :volumerelative
-      assert Path.type('usr/local/bin') == :relative
+      assert Path.type(~c"usr/local/bin") == :relative
       assert Path.type("../usr/local/bin") == :relative
 
       assert Path.type("//host/path") == :absolute
@@ -126,8 +126,8 @@ defmodule PathTest do
       assert Path.relative("usr/local/bin") == "usr/local/bin"
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
       assert Path.relative("/") == "."
-      assert Path.relative('/') == "."
-      assert Path.relative(['/usr', ?/, "local/bin"]) == "usr/local/bin"
+      assert Path.relative(~c"/") == "."
+      assert Path.relative([~c"/usr", ?/, "local/bin"]) == "usr/local/bin"
     end
 
     test "type/1" do
@@ -135,13 +135,13 @@ defmodule PathTest do
       assert Path.type("usr/local/bin") == :relative
       assert Path.type("../usr/local/bin") == :relative
 
-      assert Path.type('/usr/local/bin') == :absolute
-      assert Path.type('usr/local/bin') == :relative
-      assert Path.type('../usr/local/bin') == :relative
+      assert Path.type(~c"/usr/local/bin") == :absolute
+      assert Path.type(~c"usr/local/bin") == :relative
+      assert Path.type(~c"../usr/local/bin") == :relative
 
-      assert Path.type(['/usr/', 'local/bin']) == :absolute
-      assert Path.type(['usr/', 'local/bin']) == :relative
-      assert Path.type(['../usr', '/local/bin']) == :relative
+      assert Path.type([~c"/usr/", ~c"local/bin"]) == :absolute
+      assert Path.type([~c"usr/", ~c"local/bin"]) == :relative
+      assert Path.type([~c"../usr", ~c"/local/bin"]) == :relative
     end
   end
 
@@ -172,9 +172,9 @@ defmodule PathTest do
     home = System.user_home!() |> Path.absname()
 
     assert home == Path.expand("~")
-    assert home == Path.expand('~')
+    assert home == Path.expand(~c"~")
     assert is_binary(Path.expand("~/foo"))
-    assert is_binary(Path.expand('~/foo'))
+    assert is_binary(Path.expand(~c"~/foo"))
 
     assert Path.expand("~/file") == Path.join(home, "file")
     assert Path.expand("~/file", "whatever") == Path.join(home, "file")
@@ -205,7 +205,8 @@ defmodule PathTest do
     assert drive_letter == "/bar"
 
     drive_letter =
-      Path.expand(['..', ?/, "bar/../bar"], '/foo/../foo/../foo') |> strip_drive_letter_if_windows
+      Path.expand([~c"..", ?/, "bar/../bar"], ~c"/foo/../foo/../foo")
+      |> strip_drive_letter_if_windows
 
     assert "/bar" == drive_letter
 
@@ -224,10 +225,10 @@ defmodule PathTest do
 
     assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
     assert Path.relative_to("usr/local/foo", "etc") == "usr/local/foo"
-    assert Path.relative_to('usr/local/foo', "etc") == "usr/local/foo"
+    assert Path.relative_to(~c"usr/local/foo", "etc") == "usr/local/foo"
 
     assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
-    assert Path.relative_to(["usr", ?/, 'local/foo'], 'usr/local') == "foo"
+    assert Path.relative_to(["usr", ?/, ~c"local/foo"], ~c"usr/local") == "foo"
   end
 
   test "safe_relative/1" do
@@ -250,15 +251,15 @@ defmodule PathTest do
     assert Path.rootname("~/foo/bar.ex", ".ex") == "~/foo/bar"
     assert Path.rootname("~/foo/bar.exs", ".ex") == "~/foo/bar.exs"
     assert Path.rootname("~/foo/bar.old.ex", ".ex") == "~/foo/bar.old"
-    assert Path.rootname([?~, '/foo/bar', ".old.ex"], '.ex') == "~/foo/bar.old"
+    assert Path.rootname([?~, ~c"/foo/bar", ".old.ex"], ~c".ex") == "~/foo/bar.old"
   end
 
   test "extname/1" do
     assert Path.extname("foo.erl") == ".erl"
     assert Path.extname("~/foo/bar") == ""
 
-    assert Path.extname('foo.erl') == ".erl"
-    assert Path.extname('~/foo/bar') == ""
+    assert Path.extname(~c"foo.erl") == ".erl"
+    assert Path.extname(~c"~/foo/bar") == ""
   end
 
   test "dirname/1" do
@@ -268,7 +269,7 @@ defmodule PathTest do
     assert Path.dirname("~/foo/bar.ex") == "~/foo"
     assert Path.dirname("/foo/bar/baz/") == "/foo/bar/baz"
 
-    assert Path.dirname([?~, "/foo", '/bar.ex']) == "~/foo"
+    assert Path.dirname([?~, "/foo", ~c"/bar.ex"]) == "~/foo"
   end
 
   test "basename/1,2" do
@@ -280,7 +281,7 @@ defmodule PathTest do
     assert Path.basename("~/foo/bar.exs", ".ex") == "bar.exs"
     assert Path.basename("~/for/bar.old.ex", ".ex") == "bar.old"
 
-    assert Path.basename([?~, "/for/bar", '.old.ex'], ".ex") == "bar.old"
+    assert Path.basename([?~, "/for/bar", ~c".old.ex"], ".ex") == "bar.old"
   end
 
   test "join/1" do
@@ -289,11 +290,11 @@ defmodule PathTest do
     assert Path.join(["/", "foo", "bar"]) == "/foo/bar"
     assert Path.join(["/", "foo", "bar", "/"]) == "/foo/bar"
     assert Path.join(["~", "foo", "bar"]) == "~/foo/bar"
-    assert Path.join(['/foo/', "/bar/"]) == "/foo/bar"
+    assert Path.join([~c"/foo/", "/bar/"]) == "/foo/bar"
     assert Path.join(["/", ""]) == "/"
     assert Path.join(["/", "", "bar"]) == "/bar"
-    assert Path.join(['foo', [?b, "a", ?r]]) == "foo/bar"
-    assert Path.join([[?f, 'o', "o"]]) == "foo"
+    assert Path.join([~c"foo", [?b, "a", ?r]]) == "foo/bar"
+    assert Path.join([[?f, ~c"o", "o"]]) == "foo"
   end
 
   test "join/2" do

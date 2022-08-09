@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile.AppTest do
       assert Mix.Tasks.Compile.App.run([]) == {:ok, []}
 
       properties = parse_resource_file(:sample)
-      assert properties[:vsn] == '0.1.0'
+      assert properties[:vsn] == ~c"0.1.0"
       assert properties[:modules] == [A, B]
       assert properties[:applications] == [:kernel, :stdlib, :elixir]
       refute Keyword.has_key?(properties, :compile_env)
@@ -114,10 +114,10 @@ defmodule Mix.Tasks.Compile.AppTest do
       Mix.Tasks.Compile.App.run([])
 
       properties = parse_resource_file(:custom_project)
-      assert properties[:vsn] == '0.2.0'
+      assert properties[:vsn] == ~c"0.2.0"
       assert properties[:maxT] == :infinity
       assert properties[:optional_applications] == [:ex_unit, :mix]
-      assert properties[:description] == 'Some UTF-8 dëscriptión'
+      assert properties[:description] == ~c"Some UTF-8 dëscriptión"
 
       assert properties[:applications] ==
                [:kernel, :stdlib, :elixir, :logger, :ex_unit, :example_app, :mix]
@@ -248,7 +248,7 @@ defmodule Mix.Tasks.Compile.AppTest do
 
       properties = parse_resource_file(:sample)
       assert properties[:registered] == []
-      assert properties[:description] == 'sample'
+      assert properties[:description] == ~c"sample"
       assert properties[:applications] == [:kernel, :stdlib, :elixir]
 
       assert Mix.Tasks.Compile.App.run([]) == {:noop, []}

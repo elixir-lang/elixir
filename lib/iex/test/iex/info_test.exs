@@ -62,7 +62,7 @@ defmodule IEx.InfoTest do
 
   describe "lists" do
     test "charlists" do
-      info = Info.info('foo')
+      info = Info.info(~c"foo")
       assert get_key(info, "Description") =~ "This is a list of integers that is printed"
       assert get_key(info, "Raw representation") == "[102, 111, 111]"
     end

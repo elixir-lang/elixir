@@ -253,7 +253,7 @@ defmodule Mix.Release do
 
   defp erts_data(true) do
     version = :erlang.system_info(:version)
-    {:filename.join(:code.root_dir(), 'erts-#{version}'), :code.lib_dir(), version}
+    {:filename.join(:code.root_dir(), ~c"erts-#{version}"), :code.lib_dir(), version}
   end
 
   defp erts_data(erts_source) when is_binary(erts_source) do
@@ -605,7 +605,7 @@ defmodule Mix.Release do
 
       case :systools.make_script(sys_path, sys_options) do
         {:ok, _module, _warnings} ->
-          script_path = sys_path ++ '.script'
+          script_path = sys_path ++ ~c".script"
           {:ok, [{:script, rel_info, instructions}]} = :file.consult(script_path)
 
           instructions =
@@ -628,7 +628,7 @@ defmodule Mix.Release do
     for {_, properties} <- release.applications,
         not Keyword.fetch!(properties, :otp_app?),
         uniq: true,
-        do: {'RELEASE_LIB', properties |> Keyword.fetch!(:path) |> :filename.dirname()}
+        do: {~c"RELEASE_LIB", properties |> Keyword.fetch!(:path) |> :filename.dirname()}
   end
 
   defp build_paths(release) do
@@ -735,7 +735,7 @@ defmodule Mix.Release do
 
     Enum.map(instructions, fn
       {:path, paths} ->
-        if Enum.any?(paths, &List.starts_with?(&1, '$RELEASE_LIB')) do
+        if Enum.any?(paths, &List.starts_with?(&1, ~c"$RELEASE_LIB")) do
           {:path, prepend_paths ++ paths}
         else
           {:path, paths}

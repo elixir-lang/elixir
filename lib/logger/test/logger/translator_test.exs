@@ -993,7 +993,7 @@ defmodule Logger.TranslatorTest do
                :error,
                :error,
                :format,
-               {'Error in process ~p on node ~p with exit value:~n~p~n',
+               {~c"Error in process ~p on node ~p with exit value:~n~p~n",
                 [self(), :"name@127.0.0.1", {:badarith, [{:erlang, :/, [1, 0], []}]}]}
              )
 
