@@ -818,30 +818,7 @@ defmodule Regex do
     |> IO.iodata_to_binary()
   end
 
-  @escapable [
-    ?.,
-    ?^,
-    ?$,
-    ?*,
-    ?+,
-    ??,
-    ?(,
-    ?),
-    ?[,
-    ?],
-    ?{,
-    ?},
-    ?|,
-    ?#,
-    ?-,
-    ?\\,
-    ?\t,
-    ?\n,
-    ?\v,
-    ?\f,
-    ?\r,
-    ?\s
-  ]
+  @escapable :binary.bin_to_list(".^$*+?()[]{}|#-\\\t\n\v\f\r\s")
 
   defp escape(<<char, rest::binary>>, length, original) when char in @escapable do
     escape_char(rest, length, original, char)
