@@ -514,7 +514,7 @@ defmodule Code.Normalizer.QuotedASTTest do
 
     test "charlist" do
       assert quoted_to_string(quote(do: [])) == "[]"
-      assert quoted_to_string(quote(do: 'abc')) == ~S/~c"abc"/
+      assert quoted_to_string(quote(do: ~c"abc")) == ~S/~c"abc"/
     end
 
     test "string" do
@@ -585,38 +585,44 @@ defmodule Code.Normalizer.QuotedASTTest do
     end
 
     test "charlists with slash escapes" do
-      assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v'), escape: false) ==
+      assert quoted_to_string(~c"\a\b\e\n\r\t\v", escape: false) ==
                ~s/~c"\a\b\e\n\r\t\v"/
 
-      assert quoted_to_string(quote(do: '\a\b\e\n\r\t\v')) ==
+      assert quoted_to_string(~c"\a\b\e\n\r\t\v") ==
                ~s/~c"\\a\\b\\e\\n\\r\\t\\v"/
 
-      assert quoted_to_string({:__block__, [], ['\a\b\e\n\r\t\v']}, escape: false) ==
+      assert quoted_to_string({:__block__, [], [~c"\a\b\e\n\r\t\v"]}, escape: false) ==
                ~s/~c"\a\b\e\n\r\t\v"/
 
-      assert quoted_to_string({:__block__, [], ['\a\b\e\n\r\t\v']}) ==
+      assert quoted_to_string({:__block__, [], [~c"\a\b\e\n\r\t\v"]}) ==
                ~s/~c"\\a\\b\\e\\n\\r\\t\\v"/
     end
 
     test "charlists with non printable characters" do
-      assert quoted_to_string(quote(do: '\x00\x01\x10'), escape: false) == ~S/[0, 1, 16]/
-      assert quoted_to_string(quote(do: '\x00\x01\x10')) == ~S/[0, 1, 16]/
+      assert quoted_to_string(~c"\x00\x01\x10", escape: false) == ~S/[0, 1, 16]/
+      assert quoted_to_string(~c"\x00\x01\x10") == ~S/[0, 1, 16]/
     end
 
     test "charlists with interpolations" do
-      assert quoted_to_string(quote(do: 'one #{2} three'), escape: false) ==
+      # using string_to_quoted to avoid the formatter fixing the charlists
+
+      assert Code.string_to_quoted!(~S/'one #{2} three'/) |> quoted_to_string(escape: false) ==
                ~S/~c"one #{2} three"/
 
-      assert quoted_to_string(quote(do: 'one #{2} three')) == ~S/~c"one #{2} three"/
+      assert Code.string_to_quoted!(~S/'one #{2} three'/) |> quoted_to_string() ==
+               ~S/~c"one #{2} three"/
 
-      assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree'), escape: false) ==
+      assert Code.string_to_quoted!(~S/'one\n\'#{2}\'\nthree'/) |> quoted_to_string(escape: false) ==
                ~s[~c"one\n'\#{2}'\nthree"]
 
-      assert quoted_to_string(quote(do: 'one\n"#{2}"\nthree'), escape: false) ==
+      assert Code.string_to_quoted!(~S/'one\n\'#{2}\'\nthree'/) |> quoted_to_string() ==
+               ~S[~c"one\n'#{2}'\nthree"]
+
+      assert Code.string_to_quoted!(~S/'one\n"#{2}"\nthree'/) |> quoted_to_string(escape: false) ==
                ~s[~c"one\n\\"\#{2}\\"\nthree"]
 
-      assert quoted_to_string(quote(do: 'one\n\'#{2}\'\nthree')) == ~S[~c"one\n'#{2}'\nthree"]
-      assert quoted_to_string(quote(do: 'one\n"#{2}"\nthree')) == ~S[~c"one\n\"#{2}\"\nthree"]
+      assert Code.string_to_quoted!(~S/'one\n"#{2}"\nthree'/) |> quoted_to_string() ==
+               ~S[~c"one\n\"#{2}\"\nthree"]
     end
 
     test "atoms" do

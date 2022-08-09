@@ -1010,16 +1010,22 @@ defmodule ExUnit.DiffTest do
   end
 
   test "charlists" do
+    # TODO fix these diffs
     refute_diff(
-      'fox hops over \'the dog' = 'fox jumps over the lazy cat',
-      "'fox -ho-ps over -\\'-the -dog-'",
+      ~c"fox hops over 'the dog" = ~c"fox jumps over the lazy cat",
+      "-~c\"fox hops over 'the dog\"-",
       "'fox +jum+ps over the +lazy cat+'"
     )
 
     refute_diff({[], :ok} = {[], [], :ok}, "{[], -:ok-}", "{[], +[]+, +:ok+}")
-    refute_diff({[], :ok} = {'foo', [], :ok}, "{'--', -:ok-}", "{'+foo+', +[]+, +:ok+}")
-    refute_diff({'foo', :ok} = {[], [], :ok}, "{'-foo-', -:ok-}", "{'++', +[]+, +:ok+}")
-    refute_diff({'foo', :ok} = {'bar', [], :ok}, "{'-foo-', -:ok-}", "{'+bar+', +[]+, +:ok+}")
+    refute_diff({[], :ok} = {~c"foo", [], :ok}, "{'--', -:ok-}", "{'+foo+', +[]+, +:ok+}")
+    refute_diff({~c"foo", :ok} = {[], [], :ok}, "{-~c\"foo\"-, -:ok-}", "{'++', +[]+, +:ok+}")
+
+    refute_diff(
+      {~c"foo", :ok} = {~c"bar", [], :ok},
+      "{-~c\"foo\"-, -:ok-}",
+      "{'+bar+', +[]+, +:ok+}"
+    )
   end
 
   test "refs" do
