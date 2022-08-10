@@ -484,12 +484,12 @@ defmodule Code.Formatter.IntegrationTest do
   test "newline after stab" do
     assert_same """
     capture_io(":erl. mof*,,l", fn ->
-      assert :io.scan_erl_form('>') == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
+      assert :io.scan_erl_form(~c">") == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
 
       expected_tokens = [{:atom, 1, :mof}, {:*, 1}, {:",", 1}, {:",", 1}, {:atom, 1, :l}]
-      assert :io.scan_erl_form('>') == {:ok, expected_tokens, 1}
+      assert :io.scan_erl_form(~c">") == {:ok, expected_tokens, 1}
 
-      assert :io.scan_erl_form('>') == {:eof, 1}
+      assert :io.scan_erl_form(~c">") == {:eof, 1}
     end)
     """
   end

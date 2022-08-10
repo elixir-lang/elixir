@@ -465,13 +465,13 @@ defmodule String.Tokenizer do
                 |> then(&(" {" <> Enum.join(&1, ",") <> "}"))
             end
 
-          hex = :io_lib.format('~4.16.0B', [codepoint])
+          hex = :io_lib.format(~c"~4.16.0B", [codepoint])
           "  \\u#{hex} #{[codepoint]}#{scriptsets}\n"
         end
 
-      prefix = 'invalid mixed-script identifier found: '
+      prefix = ~c"invalid mixed-script identifier found: "
 
-      suffix = '''
+      suffix = ~c"""
 
 
       Mixed-script identifiers are not supported for security reasons. \
@@ -479,7 +479,7 @@ defmodule String.Tokenizer do
       #{breakdown}
       All characters in the identifier should resolve to a single script, \
       or use a highly restrictive set of scripts.
-      '''
+      """
 
       {:error, {:not_highly_restrictive, acc, {prefix, suffix}}}
     end

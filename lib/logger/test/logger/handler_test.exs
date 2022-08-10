@@ -3,11 +3,11 @@ defmodule Logger.HandlerTest do
   @moduletag :logger
 
   defmodule CustomTranslator do
-    def t(:debug, :info, :format, {'hello: ~p', [:ok]}) do
+    def t(:debug, :info, :format, {~c"hello: ~p", [:ok]}) do
       :skip
     end
 
-    def t(:debug, :info, :format, {'world: ~p', [:ok]}) do
+    def t(:debug, :info, :format, {~c"world: ~p", [:ok]}) do
       {:ok, "rewritten"}
     end
 
@@ -32,11 +32,11 @@ defmodule Logger.HandlerTest do
     assert Logger.add_translator({CustomTranslator, :t})
 
     assert capture_log(fn ->
-             :error_logger.info_msg('hello: ~p', [:ok])
+             :error_logger.info_msg(~c"hello: ~p", [:ok])
            end) == ""
 
     assert capture_log(fn ->
-             :error_logger.info_msg('world: ~p', [:ok])
+             :error_logger.info_msg(~c"world: ~p", [:ok])
            end) =~ "[notice] rewritten"
   after
     assert Logger.remove_translator({CustomTranslator, :t})
@@ -46,11 +46,11 @@ defmodule Logger.HandlerTest do
     assert Logger.add_translator({CustomTranslator, :t})
 
     assert capture_log(fn ->
-             :logger.info('hello: ~p', [:ok])
+             :logger.info(~c"hello: ~p", [:ok])
            end) == ""
 
     assert capture_log(fn ->
-             :logger.info('world: ~p', [:ok])
+             :logger.info(~c"world: ~p", [:ok])
            end) =~ "[info] rewritten"
 
     assert capture_log(fn ->
@@ -79,7 +79,7 @@ defmodule Logger.HandlerTest do
 
     message =
       capture_log(fn ->
-        :logger.info("ok", %{file: 'file.erl', line: 13, mfa: {Foo, :bar, 3}})
+        :logger.info("ok", %{file: ~c"file.erl", line: 13, mfa: {Foo, :bar, 3}})
       end)
 
     assert message =~ "module=Foo"
@@ -98,30 +98,30 @@ defmodule Logger.HandlerTest do
   end
 
   test "uses Erlang log levels" do
-    assert capture_log(fn -> :logger.emergency('ok') end) =~ "[emergency] ok"
-    assert capture_log(fn -> :logger.alert('ok') end) =~ "[alert] ok"
-    assert capture_log(fn -> :logger.critical('ok') end) =~ "[critical] ok"
-    assert capture_log(fn -> :logger.error('ok') end) =~ "[error] ok"
-    assert capture_log(fn -> :logger.warning('ok') end) =~ "[warning] ok"
-    assert capture_log(fn -> :logger.notice('ok') end) =~ "[notice] ok"
-    assert capture_log(fn -> :logger.info('ok') end) =~ "[info] ok"
-    assert capture_log(fn -> :logger.debug('ok') end) =~ "[debug] ok"
+    assert capture_log(fn -> :logger.emergency(~c"ok") end) =~ "[emergency] ok"
+    assert capture_log(fn -> :logger.alert(~c"ok") end) =~ "[alert] ok"
+    assert capture_log(fn -> :logger.critical(~c"ok") end) =~ "[critical] ok"
+    assert capture_log(fn -> :logger.error(~c"ok") end) =~ "[error] ok"
+    assert capture_log(fn -> :logger.warning(~c"ok") end) =~ "[warning] ok"
+    assert capture_log(fn -> :logger.notice(~c"ok") end) =~ "[notice] ok"
+    assert capture_log(fn -> :logger.info(~c"ok") end) =~ "[info] ok"
+    assert capture_log(fn -> :logger.debug(~c"ok") end) =~ "[debug] ok"
   end
 
   test "include Erlang severity level information" do
     Logger.configure_backend(:console, metadata: [:erl_level])
 
-    assert capture_log(fn -> :logger.emergency('ok') end) =~ "erl_level=emergency"
-    assert capture_log(fn -> :logger.alert('ok') end) =~ "erl_level=alert"
-    assert capture_log(fn -> :logger.critical('ok') end) =~ "erl_level=critical"
-    assert capture_log(fn -> :logger.error('ok') end) =~ "erl_level=error"
-    assert capture_log(fn -> :logger.warning('ok') end) =~ "erl_level=warning"
-    assert capture_log(fn -> :logger.info('ok') end) =~ "erl_level=info"
-    assert capture_log(fn -> :logger.debug('ok') end) =~ "erl_level=debug"
+    assert capture_log(fn -> :logger.emergency(~c"ok") end) =~ "erl_level=emergency"
+    assert capture_log(fn -> :logger.alert(~c"ok") end) =~ "erl_level=alert"
+    assert capture_log(fn -> :logger.critical(~c"ok") end) =~ "erl_level=critical"
+    assert capture_log(fn -> :logger.error(~c"ok") end) =~ "erl_level=error"
+    assert capture_log(fn -> :logger.warning(~c"ok") end) =~ "erl_level=warning"
+    assert capture_log(fn -> :logger.info(~c"ok") end) =~ "erl_level=info"
+    assert capture_log(fn -> :logger.debug(~c"ok") end) =~ "erl_level=debug"
 
     [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
     |> Enum.each(fn level ->
-      assert capture_log(fn -> :logger.log(level, 'ok') end) =~ "erl_level=#{level}"
+      assert capture_log(fn -> :logger.log(level, ~c"ok") end) =~ "erl_level=#{level}"
     end)
   after
     Logger.configure_backend(:console, metadata: [])
@@ -182,7 +182,7 @@ defmodule Logger.HandlerTest do
   defp format_report(report) do
     send(self(), {:format, report})
 
-    {'~p', [report]}
+    {~c"~p", [report]}
   end
 
   defp format_report(report, opts) do

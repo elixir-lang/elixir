@@ -294,13 +294,13 @@ defmodule Inspect.ListTest do
   end
 
   test "printable" do
-    assert inspect('abc') == "'abc'"
+    assert inspect(~c"abc") == "'abc'"
   end
 
   test "printable limit" do
-    assert inspect('hello world', printable_limit: 4) == ~s('hell' ++ ...)
+    assert inspect(~c"hello world", printable_limit: 4) == ~s('hell' ++ ...)
     # Non printable characters after the limit don't matter
-    assert inspect('hello world' ++ [0], printable_limit: 4) == ~s('hell' ++ ...)
+    assert inspect(~c"hello world" ++ [0], printable_limit: 4) == ~s('hell' ++ ...)
     # Non printable strings aren't affected by printable limit
     assert inspect([0, 1, 2, 3, 4], printable_limit: 3) == ~s([0, 1, 2, 3, 4])
   end
@@ -320,24 +320,24 @@ defmodule Inspect.ListTest do
   end
 
   test "opt infer" do
-    assert inspect('john' ++ [0] ++ 'doe', charlists: :infer) ==
+    assert inspect(~c"john" ++ [0] ++ ~c"doe", charlists: :infer) ==
              "[106, 111, 104, 110, 0, 100, 111, 101]"
 
-    assert inspect('john', charlists: :infer) == "'john'"
+    assert inspect(~c"john", charlists: :infer) == "'john'"
     assert inspect([0], charlists: :infer) == "[0]"
   end
 
   test "opt as strings" do
-    assert inspect('john' ++ [0] ++ 'doe', charlists: :as_charlists) == "'john\\0doe'"
-    assert inspect('john', charlists: :as_charlists) == "'john'"
+    assert inspect(~c"john" ++ [0] ++ ~c"doe", charlists: :as_charlists) == "'john\\0doe'"
+    assert inspect(~c"john", charlists: :as_charlists) == "'john'"
     assert inspect([0], charlists: :as_charlists) == "'\\0'"
   end
 
   test "opt as lists" do
-    assert inspect('john' ++ [0] ++ 'doe', charlists: :as_lists) ==
+    assert inspect(~c"john" ++ [0] ++ ~c"doe", charlists: :as_lists) ==
              "[106, 111, 104, 110, 0, 100, 111, 101]"
 
-    assert inspect('john', charlists: :as_lists) == "[106, 111, 104, 110]"
+    assert inspect(~c"john", charlists: :as_lists) == "[106, 111, 104, 110]"
     assert inspect([0], charlists: :as_lists) == "[0]"
   end
 
@@ -361,7 +361,7 @@ defmodule Inspect.ListTest do
   end
 
   test "codepoints" do
-    assert inspect('é') == "[233]"
+    assert inspect(~c"é") == "[233]"
   end
 
   test "empty" do

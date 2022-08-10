@@ -263,7 +263,7 @@ defmodule Kernel.ComprehensionTest do
         acc -> Map.update(acc, x, [y], &[y | &1])
       end
 
-    assert acc == %{1 => 'olleh', 3 => 'olleh'}
+    assert acc == %{1 => ~c"olleh", 3 => ~c"olleh"}
   end
 
   test "for comprehensions with matched reduce" do
@@ -371,7 +371,7 @@ defmodule Kernel.ComprehensionTest do
         acc -> Map.update(acc, x, [y], &[y | &1])
       end
 
-    assert acc == %{1 => 'olleh', 3 => 'olleh'}
+    assert acc == %{1 => ~c"olleh", 3 => ~c"olleh"}
   end
 
   ## Binary generators (inlined by the compiler)
@@ -496,6 +496,6 @@ defmodule Kernel.ComprehensionTest do
         acc -> Map.update(acc, x, [y], &[y | &1])
       end
 
-    assert acc == %{1 => 'olleh', 3 => 'olleh'}
+    assert acc == %{1 => ~c"olleh", 3 => ~c"olleh"}
   end
 end

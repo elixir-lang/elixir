@@ -853,12 +853,12 @@ defmodule FileTest do
     end
 
     test "read with list" do
-      assert {:ok, "FOO\n"} = File.read(Path.expand('fixtures/file.txt', __DIR__))
-      assert {:error, :enoent} = File.read(Path.expand('fixtures/missing.txt', __DIR__))
+      assert {:ok, "FOO\n"} = File.read(Path.expand(~c"fixtures/file.txt", __DIR__))
+      assert {:error, :enoent} = File.read(Path.expand(~c"fixtures/missing.txt", __DIR__))
     end
 
     test "read with UTF-8" do
-      assert {:ok, "Русский\n日\n"} = File.read(Path.expand('fixtures/utf8.txt', __DIR__))
+      assert {:ok, "Русский\n日\n"} = File.read(Path.expand(~c"fixtures/utf8.txt", __DIR__))
     end
 
     test "read!" do
@@ -875,7 +875,7 @@ defmodule FileTest do
 
       try do
         refute File.exists?(fixture)
-        assert File.write(fixture, 'test text') == :ok
+        assert File.write(fixture, ~c"test text") == :ok
         assert File.read(fixture) == {:ok, "test text"}
       after
         File.rm(fixture)
@@ -915,7 +915,7 @@ defmodule FileTest do
 
     test "open file with charlist" do
       {:ok, file} = File.open(fixture_path("file.txt"), [:charlist])
-      assert IO.gets(file, "") == 'FOO\n'
+      assert IO.gets(file, "") == ~c"FOO\n"
       assert File.close(file) == :ok
     end
 
@@ -975,7 +975,7 @@ defmodule FileTest do
     end
 
     test "open a missing file" do
-      assert File.open('missing.txt') == {:error, :enoent}
+      assert File.open(~c"missing.txt") == {:error, :enoent}
     end
 
     test "open a file with function" do
@@ -987,7 +987,7 @@ defmodule FileTest do
       message = "could not open \"missing.txt\": no such file or directory"
 
       assert_raise File.Error, message, fn ->
-        File.open!('missing.txt')
+        File.open!(~c"missing.txt")
       end
     end
 
@@ -1166,7 +1166,7 @@ defmodule FileTest do
     end
 
     test "rm nonexistent file" do
-      assert File.rm('missing.txt') == {:error, :enoent}
+      assert File.rm(~c"missing.txt") == {:error, :enoent}
     end
 
     test "rm!" do

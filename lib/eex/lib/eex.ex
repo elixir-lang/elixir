@@ -103,7 +103,7 @@ defmodule EEx do
 
   @type line :: non_neg_integer
   @type column :: non_neg_integer
-  @type marker :: '=' | '/' | '|' | ''
+  @type marker :: [?=] | [?/] | [?|] | []
   @type metadata :: %{column: column, line: line}
   @type token ::
           {:comment, charlist, metadata}

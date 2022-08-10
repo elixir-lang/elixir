@@ -28,11 +28,11 @@ defmodule EEx.Compiler do
     tokenize(contents, line, column, state, [{line, column}], [])
   end
 
-  defp tokenize('<%%' ++ t, line, column, state, buffer, acc) do
+  defp tokenize(~c"<%%" ++ t, line, column, state, buffer, acc) do
     tokenize(t, line, column + 3, state, [?%, ?< | buffer], acc)
   end
 
-  defp tokenize('<%!--' ++ t, line, column, state, buffer, acc) do
+  defp tokenize(~c"<%!--" ++ t, line, column, state, buffer, acc) do
     case comment(t, line, column + 5, state, []) do
       {:error, line, column, message} ->
         {:error, message, %{line: line, column: column}}
@@ -44,7 +44,7 @@ defmodule EEx.Compiler do
   end
 
   # TODO: Deprecate this on Elixir v1.18
-  defp tokenize('<%#' ++ t, line, column, state, buffer, acc) do
+  defp tokenize(~c"<%#" ++ t, line, column, state, buffer, acc) do
     case expr(t, line, column + 3, state, []) do
       {:error, line, column, message} ->
         {:error, message, %{line: line, column: column}}
@@ -54,7 +54,7 @@ defmodule EEx.Compiler do
     end
   end
 
-  defp tokenize('<%' ++ t, line, column, state, buffer, acc) do
+  defp tokenize(~c"<%" ++ t, line, column, state, buffer, acc) do
     {marker, t} = retrieve_marker(t)
 
     case expr(t, line, column + 2 + length(marker), state, []) do
@@ -76,13 +76,13 @@ defmodule EEx.Compiler do
           end
 
         marker =
-          if key in [:middle_expr, :end_expr] and marker != '' do
+          if key in [:middle_expr, :end_expr] and marker != ~c"" do
             message =
               "unexpected beginning of EEx tag \"<%#{marker}\" on \"<%#{marker}#{expr}%>\", " <>
                 "please remove \"#{marker}\""
 
             :elixir_errors.erl_warn({line, column}, state.file, message)
-            ''
+            ~c""
           else
             marker
           end
@@ -92,7 +92,7 @@ defmodule EEx.Compiler do
     end
   end
 
-  defp tokenize('\n' ++ t, line, _column, state, buffer, acc) do
+  defp tokenize(~c"\n" ++ t, line, _column, state, buffer, acc) do
     tokenize(t, line + 1, state.indentation + 1, state, [?\n | buffer], acc)
   end
 
@@ -119,7 +119,7 @@ defmodule EEx.Compiler do
   end
 
   defp retrieve_marker(t) do
-    {'', t}
+    {~c"", t}
   end
 
   # Tokenize a multi-line comment until we find --%>
@@ -128,8 +128,8 @@ defmodule EEx.Compiler do
     {:ok, line, column + 4, t, buffer}
   end
 
-  defp comment('\n' ++ t, line, _column, state, buffer) do
-    comment(t, line + 1, state.indentation + 1, state, '\n' ++ buffer)
+  defp comment(~c"\n" ++ t, line, _column, state, buffer) do
+    comment(t, line + 1, state.indentation + 1, state, ~c"\n" ++ buffer)
   end
 
   defp comment([head | t], line, column, state, buffer) do
@@ -146,7 +146,7 @@ defmodule EEx.Compiler do
     {:ok, Enum.reverse(buffer), line, column + 2, t}
   end
 
-  defp expr('\n' ++ t, line, _column, state, buffer) do
+  defp expr(~c"\n" ++ t, line, _column, state, buffer) do
     expr(t, line + 1, state.indentation + 1, state, [?\n | buffer])
   end
 
@@ -334,7 +334,7 @@ defmodule EEx.Compiler do
          scope,
          state
        ) do
-    if mark == '' do
+    if mark == ~c"" do
       message =
         "the contents of this expression won't be output unless the EEx block starts with \"<%=\""
 
@@ -362,7 +362,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:middle_expr, '', chars, meta} | rest],
+         [{:middle_expr, ~c"", chars, meta} | rest],
          buffer,
          [current | scope],
          state
@@ -381,7 +381,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer(
-         [{:end_expr, '', chars, meta} | rest],
+         [{:end_expr, ~c"", chars, meta} | rest],
          buffer,
          [current | _],
          state
@@ -419,7 +419,7 @@ defmodule EEx.Compiler do
   defp wrap_expr(current, line, buffer, chars, state) do
     new_lines = List.duplicate(?\n, line - state.line)
     key = length(state.quoted)
-    placeholder = '__EEX__(' ++ Integer.to_charlist(key) ++ ');'
+    placeholder = ~c"__EEX__(" ++ Integer.to_charlist(key) ++ ~c");"
     count = current ++ placeholder ++ new_lines ++ chars
     new_state = %{state | quoted: [{key, state.engine.handle_end(buffer)} | state.quoted]}
 

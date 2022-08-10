@@ -582,12 +582,12 @@ defmodule Calendar do
     format_options.am_pm_names.(:am)
   end
 
-  defp default_pad(format) when format in 'aAbBpPZ', do: ?\s
+  defp default_pad(format) when format in ~c"aAbBpPZ", do: ?\s
   defp default_pad(_format), do: ?0
 
-  defp default_width(format) when format in 'dHImMSy', do: 2
+  defp default_width(format) when format in ~c"dHImMSy", do: 2
   defp default_width(?j), do: 3
-  defp default_width(format) when format in 'Yz', do: 4
+  defp default_width(format) when format in ~c"Yz", do: 4
   defp default_width(_format), do: 0
 
   # Literally just %

@@ -55,7 +55,7 @@ defmodule PathHelpers do
   end
 
   defp run_cmd(executable, args) do
-    '#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win()}'
+    ~c"#{executable} #{IO.chardata_to_string(args)}#{redirect_std_err_on_win()}"
     |> :os.cmd()
     |> :binary.list_to_bin()
   end

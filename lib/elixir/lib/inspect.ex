@@ -281,7 +281,7 @@ defimpl Inspect, for: List do
   @doc false
   def keyword?([{key, _value} | rest]) when is_atom(key) do
     case Atom.to_charlist(key) do
-      'Elixir.' ++ _ -> false
+      [?E, ?l, ?i, ?x, ?i, ?r, ?.] ++ _ -> false
       _ -> keyword?(rest)
     end
   end
@@ -397,7 +397,7 @@ defimpl Inspect, for: Regex do
       |> normalize(<<>>)
       |> Identifier.escape(?/, :infinity, &escape_map/1)
 
-    source = IO.iodata_to_binary(['~r/', escaped, ?/, regex.opts])
+    source = IO.iodata_to_binary([?~, ?r, ?/, escaped, ?/, regex.opts])
     color(source, :regex, opts)
   end
 
@@ -406,16 +406,18 @@ defimpl Inspect, for: Regex do
   defp normalize(<<char, rest::binary>>, acc), do: normalize(rest, <<acc::binary, char>>)
   defp normalize(<<>>, acc), do: acc
 
-  defp escape_map(?\a), do: '\\a'
-  defp escape_map(?\f), do: '\\f'
-  defp escape_map(?\n), do: '\\n'
-  defp escape_map(?\r), do: '\\r'
-  defp escape_map(?\t), do: '\\t'
-  defp escape_map(?\v), do: '\\v'
+  defp escape_map(?\a), do: [?\\, ?a]
+  defp escape_map(?\f), do: [?\\, ?f]
+  defp escape_map(?\n), do: [?\\, ?n]
+  defp escape_map(?\r), do: [?\\, ?r]
+  defp escape_map(?\t), do: [?\\, ?t]
+  defp escape_map(?\v), do: [?\\, ?v]
   defp escape_map(_), do: false
 end
 
 defimpl Inspect, for: Function do
+  @elixir_compiler :binary.bin_to_list("elixir_compiler_")
+
   def inspect(function, _opts) do
     fun_info = Function.info(function)
     mod = fun_info[:module]
@@ -430,7 +432,7 @@ defimpl Inspect, for: Function do
         inspected_as_function = Macro.inspect_atom(:remote_call, name)
         "&#{inspected_as_atom}.#{inspected_as_function}/#{fun_info[:arity]}"
 
-      match?('elixir_compiler_' ++ _, Atom.to_charlist(mod)) ->
+      match?(@elixir_compiler ++ _, Atom.to_charlist(mod)) ->
         if function_exported?(mod, :__RELATIVE__, 0) do
           "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
         else
@@ -511,7 +513,7 @@ end
 
 defimpl Inspect, for: Reference do
   def inspect(ref, _opts) do
-    '#Ref' ++ rest = :erlang.ref_to_list(ref)
+    [?#, ?R, ?e, ?f] ++ rest = :erlang.ref_to_list(ref)
     "#Reference" <> IO.iodata_to_binary(rest)
   end
 end

@@ -168,7 +168,7 @@ defmodule Mix.ReleaseTest do
         Mix.Project.in_project(:mix, project_path, app_config, fn _ ->
           Code.prepend_path(ebin_dir)
           release = from_config!(nil, app_config, [])
-          assert release.applications.cowboy[:vsn] == '1.1.2'
+          assert release.applications.cowboy[:vsn] == ~c"1.1.2"
         end)
       end)
     end
@@ -334,9 +334,9 @@ defmodule Mix.ReleaseTest do
         app =
           {:application, :my_sample_mode,
            applications: [:kernel, :stdlib, :elixir, :runtime_tools, :compiler],
-           description: 'my_sample_mode',
+           description: ~c"my_sample_mode",
            modules: [],
-           vsn: '1.0.0'}
+           vsn: ~c"1.0.0"}
 
         File.mkdir_p!("my_sample_mode/ebin")
         Code.prepend_path("my_sample_mode/ebin")
@@ -429,7 +429,7 @@ defmodule Mix.ReleaseTest do
 
       assert {:ok,
               [
-                {:release, {'demo', '0.1.0'}, {:erts, @erts_version},
+                {:release, {~c"demo", ~c"0.1.0"}, {:erts, @erts_version},
                  [
                    {:kernel, _, :permanent},
                    {:stdlib, _, :permanent},
@@ -441,14 +441,14 @@ defmodule Mix.ReleaseTest do
                  ]}
               ]} = :file.consult(@boot_script_path <> ".rel")
 
-      assert {:ok, [{:script, {'demo', '0.1.0'}, instructions}]} =
+      assert {:ok, [{:script, {~c"demo", ~c"0.1.0"}, instructions}]} =
                :file.consult(@boot_script_path <> ".script")
 
-      assert {:path, ['$ROOT/lib/kernel-#{@kernel_version}/ebin']} in instructions
-      assert {:path, ['$RELEASE_LIB/elixir-#{@elixir_version}/ebin']} in instructions
+      assert {:path, [~c"$ROOT/lib/kernel-#{@kernel_version}/ebin"]} in instructions
+      assert {:path, [~c"$RELEASE_LIB/elixir-#{@elixir_version}/ebin"]} in instructions
 
       assert File.read!(@boot_script_path <> ".boot") |> :erlang.binary_to_term() ==
-               {:script, {'demo', '0.1.0'}, instructions}
+               {:script, {~c"demo", ~c"0.1.0"}, instructions}
     end
 
     test "prepends relevant paths" do
@@ -461,16 +461,16 @@ defmodule Mix.ReleaseTest do
                ["$RELEASE_LIB/sample"]
              ) == :ok
 
-      assert {:ok, [{:script, {'demo', '0.1.0'}, instructions}]} =
+      assert {:ok, [{:script, {~c"demo", ~c"0.1.0"}, instructions}]} =
                :file.consult(@boot_script_path <> ".script")
 
-      assert {:path, ['$ROOT/lib/kernel-#{@kernel_version}/ebin']} in instructions
-      refute {:path, ['$RELEASE_LIB/elixir-#{@elixir_version}/ebin']} in instructions
+      assert {:path, [~c"$ROOT/lib/kernel-#{@kernel_version}/ebin"]} in instructions
+      refute {:path, [~c"$RELEASE_LIB/elixir-#{@elixir_version}/ebin"]} in instructions
 
-      assert {:path, ['$RELEASE_LIB/sample', '$RELEASE_LIB/elixir-#{@elixir_version}/ebin']} in instructions
+      assert {:path, [~c"$RELEASE_LIB/sample", ~c"$RELEASE_LIB/elixir-#{@elixir_version}/ebin"]} in instructions
 
       assert File.read!(@boot_script_path <> ".boot") |> :erlang.binary_to_term() ==
-               {:script, {'demo', '0.1.0'}, instructions}
+               {:script, {~c"demo", ~c"0.1.0"}, instructions}
     end
 
     test "works when :load/:none is set at the leaf" do
@@ -586,13 +586,13 @@ defmodule Mix.ReleaseTest do
     test "writes sys_config with encoding" do
       assert make_sys_config(
                release([]),
-               [encoding: {:_μ, :"£", "£", '£'}],
+               [encoding: {:_μ, :"£", "£", ~c"£"}],
                "unused/runtime/path"
              ) ==
                :ok
 
       {:ok, contents} = :file.consult(@sys_config)
-      assert contents == [[encoding: {:_μ, :"£", "£", '£'}]]
+      assert contents == [[encoding: {:_μ, :"£", "£", ~c"£"}]]
     end
 
     test "writes the given sys_config with config providers" do
@@ -766,8 +766,11 @@ defmodule Mix.ReleaseTest do
         |> File.read!()
         |> strip_beam()
 
-      assert {:error, :beam_lib, {:missing_chunk, _, 'Dbgi'}} = :beam_lib.chunks(beam, ['Dbgi'])
-      assert {:error, :beam_lib, {:missing_chunk, _, 'Docs'}} = :beam_lib.chunks(beam, ['Docs'])
+      assert {:error, :beam_lib, {:missing_chunk, _, ~c"Dbgi"}} =
+               :beam_lib.chunks(beam, [~c"Dbgi"])
+
+      assert {:error, :beam_lib, {:missing_chunk, _, ~c"Docs"}} =
+               :beam_lib.chunks(beam, [~c"Docs"])
     end
 
     test "can keep docs and debug info, if requested" do
@@ -776,8 +779,8 @@ defmodule Mix.ReleaseTest do
         |> File.read!()
         |> strip_beam(keep: ["Docs", "Dbgi"])
 
-      assert {:ok, {EEx, [{'Dbgi', _}]}} = :beam_lib.chunks(beam, ['Dbgi'])
-      assert {:ok, {EEx, [{'Docs', _}]}} = :beam_lib.chunks(beam, ['Docs'])
+      assert {:ok, {EEx, [{~c"Dbgi", _}]}} = :beam_lib.chunks(beam, [~c"Dbgi"])
+      assert {:ok, {EEx, [{~c"Docs", _}]}} = :beam_lib.chunks(beam, [~c"Docs"])
     end
 
     test "strip beams without compression" do
@@ -796,9 +799,9 @@ defmodule Mix.ReleaseTest do
         app =
           {:application, :my_sample1,
            applications: [:kernel, :stdlib, :elixir],
-           description: 'my_sample1',
+           description: ~c"my_sample1",
            modules: [],
-           vsn: '1.0.0',
+           vsn: ~c"1.0.0",
            included_applications: [:runtime_tools]}
 
         File.mkdir_p!("my_sample1/ebin")
@@ -819,9 +822,9 @@ defmodule Mix.ReleaseTest do
         app =
           {:application, :my_sample2,
            applications: [:kernel, :stdlib, :elixir, :runtime_tools],
-           description: 'my_sample',
+           description: ~c"my_sample",
            modules: [],
-           vsn: '1.0.0',
+           vsn: ~c"1.0.0",
            included_applications: [:runtime_tools]}
 
         File.mkdir_p!("my_sample2/ebin")
@@ -843,9 +846,9 @@ defmodule Mix.ReleaseTest do
           {:application, :my_sample1,
            applications: [:kernel, :stdlib, :elixir, :unknown],
            optional_applications: [:unknown],
-           description: 'my_sample1',
+           description: ~c"my_sample1",
            modules: [],
-           vsn: '1.0.0'}
+           vsn: ~c"1.0.0"}
 
         File.mkdir_p!("my_sample1/ebin")
         Code.prepend_path("my_sample1/ebin")

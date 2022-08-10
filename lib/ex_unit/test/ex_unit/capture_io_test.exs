@@ -180,58 +180,58 @@ defmodule ExUnit.CaptureIOTest do
 
     test "with get until" do
       assert capture_io(fn ->
-               :io.scan_erl_form('>')
+               :io.scan_erl_form(~c">")
              end) == ">"
 
       assert capture_io("1.\n", fn ->
-               :io.scan_erl_form('>')
+               :io.scan_erl_form(~c">")
              end) == ">"
 
       assert capture_io("1\n.\n", fn ->
-               :io.scan_erl_form('>')
+               :io.scan_erl_form(~c">")
              end) == ">>"
 
       assert capture_io([capture_prompt: false], fn ->
-               :io.scan_erl_form('>')
+               :io.scan_erl_form(~c">")
              end) == ""
 
       capture_io(fn ->
-        assert :io.scan_erl_form('>') == {:eof, 1}
+        assert :io.scan_erl_form(~c">") == {:eof, 1}
       end)
 
       capture_io("1", fn ->
-        assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}], 1}
-        assert :io.scan_erl_form('>') == {:eof, 1}
+        assert :io.scan_erl_form(~c">") == {:ok, [{:integer, 1, 1}], 1}
+        assert :io.scan_erl_form(~c">") == {:eof, 1}
       end)
 
       capture_io("1\n.", fn ->
-        assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}, {:dot, 2}], 2}
-        assert :io.scan_erl_form('>') == {:eof, 1}
+        assert :io.scan_erl_form(~c">") == {:ok, [{:integer, 1, 1}, {:dot, 2}], 2}
+        assert :io.scan_erl_form(~c">") == {:eof, 1}
       end)
 
       capture_io("1.\n.", fn ->
-        assert :io.scan_erl_form('>') == {:ok, [{:integer, 1, 1}, {:dot, 1}], 2}
-        assert :io.scan_erl_form('>') == {:ok, [dot: 1], 1}
-        assert :io.scan_erl_form('>') == {:eof, 1}
+        assert :io.scan_erl_form(~c">") == {:ok, [{:integer, 1, 1}, {:dot, 1}], 2}
+        assert :io.scan_erl_form(~c">") == {:ok, [dot: 1], 1}
+        assert :io.scan_erl_form(~c">") == {:eof, 1}
       end)
 
       capture_io("\"a", fn ->
-        assert :io.scan_erl_form('>') == {:error, {1, :erl_scan, {:string, 34, 'a'}}, 1}
-        assert :io.scan_erl_form('>') == {:eof, 1}
+        assert :io.scan_erl_form(~c">") == {:error, {1, :erl_scan, {:string, 34, ~c"a"}}, 1}
+        assert :io.scan_erl_form(~c">") == {:eof, 1}
       end)
 
       capture_io("\"a\n\"", fn ->
-        assert :io.scan_erl_form('>') == {:ok, [{:string, 1, 'a\n'}], 2}
-        assert :io.scan_erl_form('>') == {:eof, 1}
+        assert :io.scan_erl_form(~c">") == {:ok, [{:string, 1, ~c"a\n"}], 2}
+        assert :io.scan_erl_form(~c">") == {:eof, 1}
       end)
 
       capture_io(":erl. mof*,,l", fn ->
-        assert :io.scan_erl_form('>') == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
+        assert :io.scan_erl_form(~c">") == {:ok, [{:":", 1}, {:atom, 1, :erl}, {:dot, 1}], 1}
 
         expected_tokens = [{:atom, 1, :mof}, {:*, 1}, {:",", 1}, {:",", 1}, {:atom, 1, :l}]
-        assert :io.scan_erl_form('>') == {:ok, expected_tokens, 1}
+        assert :io.scan_erl_form(~c">") == {:ok, expected_tokens, 1}
 
-        assert :io.scan_erl_form('>') == {:eof, 1}
+        assert :io.scan_erl_form(~c">") == {:eof, 1}
       end)
 
       capture_io("a\nb\nc", fn ->

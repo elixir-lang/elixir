@@ -104,35 +104,37 @@ defmodule ExceptionTest do
   end
 
   test "format_stacktrace_entry/1 with file and line" do
-    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 10]}) ==
+    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: ~c"file.ex", line: 10]}) ==
              "file.ex:10: Foo.bar()"
 
-    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: 'file.ex', line: 10]}) ==
+    assert Exception.format_stacktrace_entry(
+             {Foo, :bar, [1, 2, 3], [file: ~c"file.ex", line: 10]}
+           ) ==
              "file.ex:10: Foo.bar(1, 2, 3)"
 
-    assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex', line: 10]}) ==
+    assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: ~c"file.ex", line: 10]}) ==
              "file.ex:10: Foo.bar/1"
   end
 
   test "format_stacktrace_entry/1 with file no line" do
-    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex']}) ==
+    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: ~c"file.ex"]}) ==
              "file.ex: Foo.bar()"
 
-    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: 'file.ex', line: 0]}) ==
+    assert Exception.format_stacktrace_entry({Foo, :bar, [], [file: ~c"file.ex", line: 0]}) ==
              "file.ex: Foo.bar()"
 
-    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: 'file.ex']}) ==
+    assert Exception.format_stacktrace_entry({Foo, :bar, [1, 2, 3], [file: ~c"file.ex"]}) ==
              "file.ex: Foo.bar(1, 2, 3)"
 
-    assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: 'file.ex']}) ==
+    assert Exception.format_stacktrace_entry({Foo, :bar, 1, [file: ~c"file.ex"]}) ==
              "file.ex: Foo.bar/1"
   end
 
   test "format_stacktrace_entry/1 with application" do
-    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex']}) ==
+    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: ~c"file.ex"]}) ==
              "(elixir #{System.version()}) file.ex: Exception.bar()"
 
-    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: 'file.ex', line: 10]}) ==
+    assert Exception.format_stacktrace_entry({Exception, :bar, [], [file: ~c"file.ex", line: 10]}) ==
              "(elixir #{System.version()}) file.ex:10: Exception.bar()"
   end
 

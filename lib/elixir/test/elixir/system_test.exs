@@ -43,7 +43,7 @@ defmodule SystemTest do
   end
 
   test "argv/0" do
-    list = elixir('-e "IO.inspect System.argv()" -- -o opt arg1 arg2 --long-opt 10')
+    list = elixir(~c"-e \"IO.inspect System.argv()\" -- -o opt arg1 arg2 --long-opt 10")
     {args, _} = Code.eval_string(list, [])
     assert args == ["-o", "opt", "arg1", "arg2", "--long-opt", "10"]
   end
@@ -92,7 +92,7 @@ defmodule SystemTest do
 
   test "cmd/3 raises with non-binary arguments" do
     assert_raise ArgumentError, ~r"all arguments for System.cmd/3 must be binaries", fn ->
-      System.cmd("ls", ['/usr'])
+      System.cmd("ls", [~c"/usr"])
     end
   end
 

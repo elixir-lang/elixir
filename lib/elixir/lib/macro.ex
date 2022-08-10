@@ -2383,7 +2383,7 @@ defmodule Macro do
     end
   end
 
-  defp valid_alias?('Elixir' ++ rest), do: valid_alias_piece?(rest)
+  defp valid_alias?([?E, ?l, ?i, ?x, ?i, ?r] ++ rest), do: valid_alias_piece?(rest)
   defp valid_alias?(_other), do: false
 
   defp valid_alias_piece?([?., char | rest]) when char >= ?A and char <= ?Z,

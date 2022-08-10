@@ -75,8 +75,8 @@ defmodule KernelTest do
       [1, 2] ++ var = [1, 2, 3]
       assert var == [3]
 
-      'ab' ++ var = 'abc'
-      assert var == 'c'
+      ~c"ab" ++ var = ~c"abc"
+      assert var == ~c"c"
 
       [:a, :b] ++ var = [:a, :b, :c]
       assert var == [:c]

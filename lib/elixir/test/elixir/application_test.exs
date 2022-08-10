@@ -142,15 +142,15 @@ defmodule ApplicationTest do
   test "loaded and started applications" do
     started = Application.started_applications()
     assert is_list(started)
-    assert {:elixir, 'elixir', _} = List.keyfind(started, :elixir, 0)
+    assert {:elixir, ~c"elixir", _} = List.keyfind(started, :elixir, 0)
 
     started_timeout = Application.started_applications(7000)
     assert is_list(started_timeout)
-    assert {:elixir, 'elixir', _} = List.keyfind(started_timeout, :elixir, 0)
+    assert {:elixir, ~c"elixir", _} = List.keyfind(started_timeout, :elixir, 0)
 
     loaded = Application.loaded_applications()
     assert is_list(loaded)
-    assert {:elixir, 'elixir', _} = List.keyfind(loaded, :elixir, 0)
+    assert {:elixir, ~c"elixir", _} = List.keyfind(loaded, :elixir, 0)
   end
 
   test "application specification" do
@@ -158,7 +158,7 @@ defmodule ApplicationTest do
     assert Application.spec(:unknown) == nil
     assert Application.spec(:unknown, :description) == nil
 
-    assert Application.spec(:elixir, :description) == 'elixir'
+    assert Application.spec(:elixir, :description) == ~c"elixir"
     assert_raise FunctionClauseError, fn -> Application.spec(:elixir, :unknown) end
   end
 

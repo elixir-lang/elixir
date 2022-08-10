@@ -165,11 +165,11 @@ defmodule Float do
     do: parse_unsigned(rest, true, false, <<acc::binary, ?., digit>>)
 
   defp parse_unsigned(<<exp_marker, digit, rest::binary>>, dot?, false, acc)
-       when exp_marker in 'eE' and digit in ?0..?9,
+       when exp_marker in ~c"eE" and digit in ?0..?9,
        do: parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, digit>>)
 
   defp parse_unsigned(<<exp_marker, sign, digit, rest::binary>>, dot?, false, acc)
-       when exp_marker in 'eE' and sign in '-+' and digit in ?0..?9,
+       when exp_marker in ~c"eE" and sign in ~c"-+" and digit in ?0..?9,
        do: parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, sign, digit>>)
 
   defp parse_unsigned(rest, dot?, _e?, acc),

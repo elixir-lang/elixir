@@ -263,7 +263,7 @@ defmodule Logger.Formatter do
   end
 
   defp metadata(_, ref) when is_reference(ref) do
-    '#Ref' ++ rest = :erlang.ref_to_list(ref)
+    ~c"#Ref" ++ rest = :erlang.ref_to_list(ref)
     rest
   end
 

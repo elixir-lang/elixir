@@ -562,25 +562,25 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
 
   defmacrop get_list_length do
     quote do
-      length('hello')
+      length(~c"hello")
     end
   end
 
   defmacrop get_list_length_with_pipe do
     quote do
-      'hello' |> length()
+      ~c"hello" |> length()
     end
   end
 
   defmacrop get_list_length_with_partial do
     quote do
-      (&length(&1)).('hello')
+      (&length(&1)).(~c"hello")
     end
   end
 
   defmacrop get_list_length_with_function do
     quote do
-      (&length/1).('hello')
+      (&length/1).(~c"hello")
     end
   end
 
@@ -619,7 +619,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
     quote do
       import Kernel, except: [length: 1]
       import String, only: [length: 1]
-      length('hello')
+      length(~c"hello")
     end
   end
 

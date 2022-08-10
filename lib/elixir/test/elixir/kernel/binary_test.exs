@@ -202,7 +202,7 @@ defmodule Kernel.BinaryTest do
       Code.eval_string(~s[<<"foo"::float>>])
     end
 
-    message = ~r"invalid literal 'foo'"
+    message = ~r"invalid literal ~c\"foo\""
 
     assert_raise CompileError, message, fn ->
       Code.eval_string(~s[<<'foo'::binary>>])
@@ -250,7 +250,7 @@ defmodule Kernel.BinaryTest do
 
     foo = %{bar: 5}
     assert <<1::size(foo.bar)>>
-    assert <<1::size(length('abcd'))>>
+    assert <<1::size(length(~c"abcd"))>>
     assert <<255::size(hd(List.flatten([3])))>>
   end
 
@@ -258,7 +258,7 @@ defmodule Kernel.BinaryTest do
     x = 8
     assert <<1::size(x - 5)>> = <<1::3>>
     assert <<1::size(x - 5)-unit(8)>> = <<1::3*8>>
-    assert <<1::size(length('abcd'))>> = <<1::4>>
+    assert <<1::size(length(~c"abcd"))>> = <<1::4>>
 
     foo = %{bar: 5}
     assert <<1::size(foo.bar)>> = <<1::5>>

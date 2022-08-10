@@ -449,7 +449,7 @@ defmodule Protocol do
   """
   @spec extract_protocols([charlist | String.t()]) :: [atom]
   def extract_protocols(paths) do
-    extract_matching_by_attribute(paths, 'Elixir.', fn module, attributes ->
+    extract_matching_by_attribute(paths, [?E, ?l, ?i, ?x, ?i, ?r, ?.], fn module, attributes ->
       case attributes[:__protocol__] do
         [fallback_to_any: _] -> module
         _ -> nil
@@ -478,7 +478,7 @@ defmodule Protocol do
   """
   @spec extract_impls(module, [charlist | String.t()]) :: [atom]
   def extract_impls(protocol, paths) when is_atom(protocol) do
-    prefix = Atom.to_charlist(protocol) ++ '.'
+    prefix = Atom.to_charlist(protocol) ++ [?.]
 
     extract_matching_by_attribute(paths, prefix, fn _mod, attributes ->
       case attributes[:__impl__] do
@@ -504,7 +504,7 @@ defmodule Protocol do
   end
 
   defp extract_from_file(path, file, prefix, callback) do
-    if :lists.prefix(prefix, file) and :filename.extension(file) == '.beam' do
+    if :lists.prefix(prefix, file) and :filename.extension(file) == [?., ?b, ?e, ?a, ?m] do
       extract_from_beam(:filename.join(path, file), callback)
     end
   end
@@ -565,7 +565,7 @@ defmodule Protocol do
   end
 
   defp beam_protocol(protocol) do
-    chunk_ids = [:debug_info, 'Docs', 'ExCk']
+    chunk_ids = [:debug_info, [?D, ?o, ?c, ?s], [?E, ?x, ?C, ?k]]
     opts = [:allow_missing_chunks]
 
     case :beam_lib.chunks(beam_file(protocol), chunk_ids, opts) do

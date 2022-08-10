@@ -1449,7 +1449,7 @@ defmodule IEx.HelpersTest do
       defstruct []
 
       defimpl IEx.Info do
-        def info(_), do: [{"A", "it's A"}, {:b, "it's :b"}, {'c', "it's 'c'"}]
+        def info(_), do: [{"A", "it's A"}, {:b, "it's :b"}, {~c"c", "it's 'c'"}]
       end
     end
 

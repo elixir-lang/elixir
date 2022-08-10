@@ -104,7 +104,7 @@ defmodule Mix.Tasks.App.ConfigTest do
     in_tmp(context.test, fn ->
       Mix.Project.push(MixTest.Case.Sample)
 
-      :ok = :application.load({:application, :loaded_sample, [vsn: '1.0.0', env: []]})
+      :ok = :application.load({:application, :loaded_sample, [vsn: ~c"1.0.0", env: []]})
       Mix.ProjectStack.loaded_config([:sample, :unknown_sample, :loaded_sample], [])
       Mix.Tasks.App.Config.run([])
 

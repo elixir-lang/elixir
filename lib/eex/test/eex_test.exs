@@ -673,7 +673,7 @@ defmodule EExTest do
                {21, {EExTest.Compiled, :after_compile, 0, [file: file, line: 21]}}
 
       assert EExTest.Compiled.unknown() ==
-               {26, {EExTest.Compiled, :unknown, 0, [file: 'unknown', line: 26]}}
+               {26, {EExTest.Compiled, :unknown, 0, [file: ~c"unknown", line: 26]}}
     end
   end
 

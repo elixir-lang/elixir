@@ -287,7 +287,7 @@ defmodule Integer do
     end
   end
 
-  defp count_digits(<<sign, rest::bits>>, base) when sign in '+-' do
+  defp count_digits(<<sign, rest::bits>>, base) when sign in ~c"+-" do
     case count_digits_nosign(rest, base, 1) do
       1 -> 0
       count -> count

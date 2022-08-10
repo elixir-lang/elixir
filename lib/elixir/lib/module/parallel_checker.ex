@@ -318,7 +318,7 @@ defmodule Module.ParallelChecker do
   defp cache_from_chunk(ets, module) do
     with {^module, binary, _filename} <- :code.get_object_code(module),
          {:ok, ^module} <- binary |> :beam_lib.info() |> Keyword.fetch(:module),
-         {:ok, {_, [{'ExCk', chunk}]}} <- :beam_lib.chunks(binary, ['ExCk']),
+         {:ok, {_, [{~c"ExCk", chunk}]}} <- :beam_lib.chunks(binary, [~c"ExCk"]),
          {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
       cache_chunk(ets, module, contents.exports)
       true

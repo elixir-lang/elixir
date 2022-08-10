@@ -121,7 +121,7 @@ defmodule ModuleTest do
   end
 
   test "in memory modules are tagged as so" do
-    assert :code.which(__MODULE__) == ''
+    assert :code.which(__MODULE__) == ~c""
   end
 
   ## Eval

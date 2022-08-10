@@ -25,7 +25,7 @@ defmodule IEx.Autocomplete do
   def remsh(node) do
     fn e ->
       case :rpc.call(node, IEx.Autocomplete, :expand, [e, IEx.Broker.shell()]) do
-        {:badrpc, _} -> {:no, '', []}
+        {:badrpc, _} -> {:no, ~c"", []}
         r -> r
       end
     end
@@ -105,8 +105,8 @@ defmodule IEx.Autocomplete do
       {:struct, struct} when is_list(struct) ->
         expand_structs(List.to_string(struct), shell)
 
-      {:struct, {:dot, {:alias, struct}, ''}} when is_list(struct) ->
-        expand_structs(List.to_string(struct ++ '.'), shell)
+      {:struct, {:dot, {:alias, struct}, ~c""}} when is_list(struct) ->
+        expand_structs(List.to_string(struct ++ ~c"."), shell)
 
       # {:module_attribute, charlist}
       # :none
@@ -116,18 +116,18 @@ defmodule IEx.Autocomplete do
   end
 
   defp get_helper(expr) do
-    with [helper | rest] when helper in 'bt' <- expr,
+    with [helper | rest] when helper in ~c"bt" <- expr,
          [space_or_paren, char | _] <- squeeze_spaces(rest),
          true <-
-           space_or_paren in ' (' and
-             (char in ?A..?Z or char in ?a..?z or char in ?0..?9 or char in '_:') do
+           space_or_paren in ~c" (" and
+             (char in ?A..?Z or char in ?a..?z or char in ?0..?9 or char in ~c"_:") do
       helper
     else
       _ -> nil
     end
   end
 
-  defp squeeze_spaces('  ' ++ rest), do: squeeze_spaces([?\s | rest])
+  defp squeeze_spaces(~c"  " ++ rest), do: squeeze_spaces([?\s | rest])
   defp squeeze_spaces(rest), do: rest
 
   @doc false
@@ -470,7 +470,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp no do
-    {:no, '', []}
+    {:no, ~c"", []}
   end
 
   ## Helpers

@@ -141,11 +141,11 @@ defmodule System do
   defmacrop get_revision do
     null =
       case :os.type() do
-        {:win32, _} -> 'NUL'
-        _ -> '/dev/null'
+        {:win32, _} -> ~c"NUL"
+        _ -> ~c"/dev/null"
       end
 
-    'git rev-parse --short=7 HEAD 2> '
+    ~c"git rev-parse --short=7 HEAD 2> "
     |> Kernel.++(null)
     |> :os.cmd()
     |> strip
@@ -157,7 +157,7 @@ defmodule System do
   # Follows https://reproducible-builds.org/specs/source-date-epoch/
   defmacrop get_date do
     unix_epoch =
-      if source_date_epoch = :os.getenv('SOURCE_DATE_EPOCH') do
+      if source_date_epoch = :os.getenv(~c"SOURCE_DATE_EPOCH") do
         try do
           List.to_integer(source_date_epoch)
         rescue
@@ -374,8 +374,8 @@ defmodule System do
   """
   @spec tmp_dir() :: String.t() | nil
   def tmp_dir do
-    write_env_tmp_dir('TMPDIR') || write_env_tmp_dir('TEMP') || write_env_tmp_dir('TMP') ||
-      write_tmp_dir('/tmp') || write_cwd_tmp_dir()
+    write_env_tmp_dir(~c"TMPDIR") || write_env_tmp_dir(~c"TEMP") || write_env_tmp_dir(~c"TMP") ||
+      write_tmp_dir(~c"/tmp") || write_cwd_tmp_dir()
   end
 
   defp write_cwd_tmp_dir do
@@ -921,7 +921,7 @@ defmodule System do
     # https://github.com/erlang/otp/blob/8deb96fb1d017307e22d2ab88968b9ef9f1b71d0/lib/kernel/src/os.erl#L184
     case :os.type() do
       {:unix, _} ->
-        shell_path = :os.find_executable('sh') || :erlang.error(:enoent, [command, opts])
+        shell_path = :os.find_executable(~c"sh") || :erlang.error(:enoent, [command, opts])
         command = "(#{command}\n) </dev/null"
         do_cmd({:spawn_executable, shell_path}, [args: ["-c", command]], opts)
 
@@ -930,9 +930,9 @@ defmodule System do
 
         command =
           case {System.get_env("COMSPEC"), osname} do
-            {nil, :windows} -> 'command.com /s /c ' ++ command
-            {nil, _} -> 'cmd /s /c ' ++ command
-            {cmd, _} -> '#{cmd} /s /c ' ++ command
+            {nil, :windows} -> ~c"command.com /s /c " ++ command
+            {nil, _} -> ~c"cmd /s /c " ++ command
+            {cmd, _} -> ~c"#{cmd} /s /c " ++ command
           end
 
         do_cmd({:spawn, command}, [], opts)
