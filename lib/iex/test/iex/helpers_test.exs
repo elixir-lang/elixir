@@ -382,6 +382,10 @@ defmodule IEx.HelpersTest do
       assert capture_io(fn -> h(def) end) =~ def_h
     end
 
+    test "prints sigil documentation" do
+      assert capture_io(fn -> h(~w//) end) =~ "Handles the sigil `~w` for list of words"
+    end
+
     test "prints __info__ documentation" do
       h_output_module = capture_io(fn -> h(Module.__info__()) end)
       assert capture_io(fn -> h(Module.UnlikelyTo.Exist.__info__()) end) == h_output_module

@@ -35,6 +35,15 @@ defmodule IEx.Introspection do
       {mod, fun, []} ->
         {mod, fun}
 
+      {maybe_sigil, [_, _]} ->
+        case Atom.to_string(maybe_sigil) do
+          "sigil_" <> _ ->
+            {:{}, [], [find_decompose_fun_arity(maybe_sigil, 2, context), maybe_sigil, 2]}
+
+          _ ->
+            call
+        end
+
       {fun, []} ->
         {find_decompose_fun(fun, context), fun}
 
