@@ -184,7 +184,7 @@ defmodule RecordTest do
     call: MapSet.new(),
     string: "abc",
     binary: <<1, 2, 3>>,
-    charlist: 'abc'
+    charlist: ~c"abc"
   )
 
   test "records with literal defaults and on-the-fly record" do
@@ -199,7 +199,7 @@ defmodule RecordTest do
              call: MapSet.new(),
              string: "abc",
              binary: <<1, 2, 3>>,
-             charlist: 'abc'
+             charlist: ~c"abc"
            ]
 
     assert defaults(defaults(), :struct) == ~D[2016-01-01]
@@ -212,7 +212,7 @@ defmodule RecordTest do
     assert defaults(defaults(), :call) == MapSet.new()
     assert defaults(defaults(), :string) == "abc"
     assert defaults(defaults(), :binary) == <<1, 2, 3>>
-    assert defaults(defaults(), :charlist) == 'abc'
+    assert defaults(defaults(), :charlist) == ~c"abc"
   end
 
   test "records with literal defaults and record in a variable" do
@@ -229,7 +229,7 @@ defmodule RecordTest do
              call: MapSet.new(),
              string: "abc",
              binary: <<1, 2, 3>>,
-             charlist: 'abc'
+             charlist: ~c"abc"
            ]
 
     assert defaults(defaults, :struct) == ~D[2016-01-01]
@@ -242,7 +242,7 @@ defmodule RecordTest do
     assert defaults(defaults, :call) == MapSet.new()
     assert defaults(defaults, :string) == "abc"
     assert defaults(defaults, :binary) == <<1, 2, 3>>
-    assert defaults(defaults, :charlist) == 'abc'
+    assert defaults(defaults, :charlist) == ~c"abc"
   end
 
   test "records with dynamic arguments" do

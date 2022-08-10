@@ -111,7 +111,7 @@ defmodule Mix.Tasks.Compile do
     sorted = Enum.sort(docs)
 
     Enum.each(sorted, fn {task, doc} ->
-      shell.info(format('mix ~-#{max}s # ~ts', [task, doc]))
+      shell.info(format(~c"mix ~-#{max}s # ~ts", [task, doc]))
     end)
 
     consolidate_protocols? = Mix.Project.config()[:consolidate_protocols]

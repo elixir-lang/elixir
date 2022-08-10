@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
     :ok
   end
 
-  @tag erlc_options: [{:d, 'foo', 'bar'}]
+  @tag erlc_options: [{:d, ~c"foo", ~c"bar"}]
   test "raises on invalid erlc_options" do
     in_fixture("compile_erlang", fn ->
       assert_raise Mix.Error, ~r"Compiling Erlang file '.*' failed", fn ->

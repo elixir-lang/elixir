@@ -137,7 +137,7 @@ defmodule Logger.Utils do
     width: :none
   }
 
-  defp handle_format_spec(%{control_char: char} = spec, opts) when char in 'wWpP' do
+  defp handle_format_spec(%{control_char: char} = spec, opts) when char in ~c"wWpP" do
     %{args: args, width: width, strings: strings?} = spec
 
     opts = %{
@@ -155,10 +155,10 @@ defmodule Logger.Utils do
   defp inspect_charlists(false, _), do: :as_lists
   defp inspect_charlists(_, opts), do: opts.charlists
 
-  defp inspect_limit(char, [_, limit], _) when char in 'WP', do: limit
+  defp inspect_limit(char, [_, limit], _) when char in ~c"WP", do: limit
   defp inspect_limit(_, _, opts), do: opts.limit
 
-  defp inspect_width(char, _) when char in 'wW', do: :infinity
+  defp inspect_width(char, _) when char in ~c"wW", do: :infinity
   defp inspect_width(_, width), do: width
 
   defp inspect_data([data | _], opts) do

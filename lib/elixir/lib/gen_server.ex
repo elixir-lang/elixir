@@ -1226,6 +1226,6 @@ defmodule GenServer do
         label: {GenServer, :no_handle_info},
         report: %{module: mod, message: msg, name: proc}
       }) do
-    {'~p ~p received unexpected message in handle_info/2: ~p~n', [mod, proc, msg]}
+    {~c"~p ~p received unexpected message in handle_info/2: ~p~n", [mod, proc, msg]}
   end
 end

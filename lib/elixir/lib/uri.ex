@@ -48,7 +48,7 @@ defmodule URI do
 
   import Bitwise
 
-  @reserved_characters ':/?#[]@!$&\'()*+,;='
+  @reserved_characters ~c":/?#[]@!$&'()*+,;="
   @formatted_reserved_characters Enum.map_join(@reserved_characters, ", ", &<<?`, &1, ?`>>)
 
   @doc """
@@ -334,7 +334,7 @@ defmodule URI do
   """
   @spec char_unreserved?(byte) :: boolean
   def char_unreserved?(character) do
-    character in ?0..?9 or character in ?a..?z or character in ?A..?Z or character in '~_-.'
+    character in ?0..?9 or character in ?a..?z or character in ?A..?Z or character in ~c"~_-."
   end
 
   @doc """

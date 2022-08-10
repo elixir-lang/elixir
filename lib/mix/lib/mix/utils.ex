@@ -651,7 +651,7 @@ defmodule Mix.Utils do
     # the effects of using an HTTP proxy to this function
     {:ok, _pid} = :inets.start(:httpc, profile: :mix)
 
-    headers = [{'user-agent', 'Mix/#{System.version()}'}]
+    headers = [{~c"user-agent", ~c"Mix/#{System.version()}"}]
     request = {:binary.bin_to_list(path), headers}
 
     # We are using relaxed: true because some servers is returning a Location

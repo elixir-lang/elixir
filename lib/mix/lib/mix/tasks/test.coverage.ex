@@ -254,7 +254,7 @@ defmodule Mix.Tasks.Test.Coverage do
     output = Keyword.get(opts, :output, "cover")
     File.mkdir_p!(output)
 
-    case :cover.export('#{output}/#{name}.coverdata') do
+    case :cover.export(~c"#{output}/#{name}.coverdata") do
       :ok ->
         Mix.shell().info("Run \"mix test.coverage\" once all exports complete")
 
@@ -287,7 +287,7 @@ defmodule Mix.Tasks.Test.Coverage do
     File.mkdir_p!(output)
 
     for mod <- modules do
-      {:ok, _} = :cover.analyse_to_file(mod, '#{output}/#{mod}.html', [:html])
+      {:ok, _} = :cover.analyse_to_file(mod, ~c"#{output}/#{mod}.html", [:html])
     end
 
     Mix.shell().info("Generated HTML coverage results in #{inspect(output)} directory")

@@ -67,8 +67,8 @@ defmodule Difference do
     end
 
     test "charlists" do
-      charlist1 = 'fox hops over \'the dog'
-      charlist2 = 'fox jumps over the lazy cat'
+      charlist1 = ~c"fox hops over 'the dog"
+      charlist2 = ~c"fox jumps over the lazy cat"
       assert charlist1 == charlist2
     end
 

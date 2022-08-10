@@ -155,8 +155,8 @@ defmodule Mix.Tasks.ReleaseTest do
           beam =
             File.read!(Path.join(root, "lib/release_test-0.1.0/ebin/Elixir.ReleaseTest.beam"))
 
-          assert {:ok, {_, [{'Docs', _}]}} = :beam_lib.chunks(beam, ['Docs'])
-          assert {:error, _, _} = :beam_lib.chunks(beam, ['Dbgi'])
+          assert {:ok, {_, [{~c"Docs", _}]}} = :beam_lib.chunks(beam, [~c"Docs"])
+          assert {:error, _, _} = :beam_lib.chunks(beam, [~c"Dbgi"])
 
           refute root |> Path.join("bin/start") |> File.exists?()
           refute root |> Path.join("bin/start.bat") |> File.exists?()
@@ -325,12 +325,12 @@ defmodule Mix.Tasks.ReleaseTest do
         cookie = File.read!(Path.join(root, "releases/COOKIE"))
 
         # Assert runtime
-        open_port(Path.join(root, "bin/release_test"), ['start'])
+        open_port(Path.join(root, "bin/release_test"), [~c"start"])
 
         assert %{
                  app_dir: app_dir,
                  cookie_env: ^cookie,
-                 encoding: {:_μ, :"£", "£", '£'},
+                 encoding: {:_μ, :"£", "£", ~c"£"},
                  mode: :embedded,
                  node: release_node("release_test"),
                  protocols_consolidated?: true,
@@ -411,10 +411,10 @@ defmodule Mix.Tasks.ReleaseTest do
                |> File.chmod(0o555) == :ok
 
         # Assert runtime
-        open_port(Path.join(root, "bin/runtime_config"), ['start'])
+        open_port(Path.join(root, "bin/runtime_config"), [~c"start"])
 
         assert %{
-                 encoding: {:runtime, :_μ, :"£", "£", '£'},
+                 encoding: {:runtime, :_μ, :"£", "£", ~c"£"},
                  mode: :embedded,
                  node: release_node("runtime_config"),
                  protocols_consolidated?: true,
@@ -451,7 +451,10 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         root = Path.absname("_build/dev/rel/no_dist")
         Mix.Task.run("release", ["no_dist"])
-        open_port(Path.join(root, "bin/no_dist"), ['start'], [{'RELEASE_DISTRIBUTION', 'none'}])
+
+        open_port(Path.join(root, "bin/no_dist"), [~c"start"], [
+          {~c"RELEASE_DISTRIBUTION", ~c"none"}
+        ])
 
         assert %{
                  mode: :embedded,
@@ -489,7 +492,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert root |> Path.join("releases/0.2.0/remote.vm.args") |> File.exists?()
 
         # Assert runtime
-        open_port(Path.join(root, "bin/demo"), ['start'])
+        open_port(Path.join(root, "bin/demo"), [~c"start"])
 
         assert %{
                  app_dir: app_dir,
@@ -556,8 +559,8 @@ defmodule Mix.Tasks.ReleaseTest do
                  "ERROR! the application :release_test has a different value set for key :static during runtime compared to compile time"
 
         # But now it does
-        env = [{'RELEASE_STATIC', 'was_set'}]
-        open_port(Path.join(root, "bin/compile_env_config"), ['start'], env)
+        env = [{~c"RELEASE_STATIC", ~c"was_set"}]
+        open_port(Path.join(root, "bin/compile_env_config"), [~c"start"], env)
         assert %{} = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
@@ -584,8 +587,8 @@ defmodule Mix.Tasks.ReleaseTest do
         Mix.Task.run("release", ["no_compile_env_config"])
 
         # It boots with mismatched config
-        env = [{'RELEASE_STATIC', 'runtime'}]
-        open_port(Path.join(root, "bin/no_compile_env_config"), ['start'], env)
+        env = [{~c"RELEASE_STATIC", ~c"runtime"}]
+        open_port(Path.join(root, "bin/no_compile_env_config"), [~c"start"], env)
         assert %{} = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
@@ -615,7 +618,7 @@ defmodule Mix.Tasks.ReleaseTest do
         script = Path.join(root, "bin/permanent1")
 
         env = [{"RELEASE_DISTRIBUTION", "name"}, {"RELEASE_NODE", "permanent1@127.0.0.1"}]
-        open_port(script, ['start'], env)
+        open_port(script, [~c"start"], env)
         wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
 
         assert System.cmd(script, ["rpc", "ReleaseTest.hello_world()"], env: env) ==
@@ -655,7 +658,7 @@ defmodule Mix.Tasks.ReleaseTest do
         assert String.trim_trailing(hello_world) == "hello_world"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
-        open_port(script, ['eval', 'Application.ensure_all_started(:release_test)'])
+        open_port(script, [~c"eval", ~c"Application.ensure_all_started(:release_test)"])
 
         assert %{
                  cookie_env: "abcdefghij",
@@ -693,7 +696,7 @@ defmodule Mix.Tasks.ReleaseTest do
 
         script = Path.join(root, "bin/permanent2")
         env = [{"RELEASE_DISTRIBUTION", "name"}, {"RELEASE_NODE", "permanent2@127.0.0.1"}]
-        open_port(script, ['daemon_iex'], env)
+        open_port(script, [~c"daemon_iex"], env)
 
         assert %{
                  app_dir: app_dir,

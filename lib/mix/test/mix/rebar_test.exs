@@ -55,7 +55,7 @@ defmodule Mix.RebarTest do
       path = MixTest.Case.fixture_path("rebar_dep")
       config = Mix.Rebar.load_config(path)
       assert config[:erl_opts] == [:warnings_as_errors]
-      assert config[:SCRIPT] == 'rebar.config.script'
+      assert config[:SCRIPT] == ~c"rebar.config.script"
     end
 
     test "loads rebar.config.script on dependency directory" do
@@ -65,7 +65,7 @@ defmodule Mix.RebarTest do
     end
   end
 
-  @git_rebar_charlist '../../test/fixtures/git_rebar'
+  @git_rebar_charlist ~c"../../test/fixtures/git_rebar"
   @git_rebar_string "../../test/fixtures/git_rebar"
 
   describe "deps/1" do
@@ -74,24 +74,24 @@ defmodule Mix.RebarTest do
     end
 
     test "parses Rebar dependencies" do
-      assert parse_dep({:git_rebar, '~> 1.0'}) == {:git_rebar, "~> 1.0", override: true}
+      assert parse_dep({:git_rebar, ~c"~> 1.0"}) == {:git_rebar, "~> 1.0", override: true}
 
-      assert parse_dep({:git_rebar, '~> 1.0', {:pkg, :rebar_fork}}) ==
+      assert parse_dep({:git_rebar, ~c"~> 1.0", {:pkg, :rebar_fork}}) ==
                {:git_rebar, "~> 1.0", override: true, hex: :rebar_fork}
 
       assert parse_dep({:git_rebar, {:pkg, :rebar_fork}}) ==
                {:git_rebar, override: true, hex: :rebar_fork}
 
-      assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist, :main}}) ==
+      assert parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist, :main}}) ==
                {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, ref: "main"}
 
       assert parse_dep({:git_rebar, {:git, @git_rebar_charlist, :main}}) ==
                {:git_rebar, override: true, git: @git_rebar_string, ref: "main"}
 
-      assert parse_dep({:git_rebar, '0.1..*', {:git, @git_rebar_charlist}, [:raw]}) ==
+      assert parse_dep({:git_rebar, ~c"0.1..*", {:git, @git_rebar_charlist}, [:raw]}) ==
                {:git_rebar, ~r"0.1..*", override: true, git: @git_rebar_string, compile: false}
 
-      assert parse_dep({:git_rebar, '', {:git, @git_rebar_charlist, {:ref, '64691eb'}}}) ==
+      assert parse_dep({:git_rebar, ~c"", {:git, @git_rebar_charlist, {:ref, ~c"64691eb"}}}) ==
                {:git_rebar, ~r"", override: true, git: @git_rebar_string, ref: "64691eb"}
 
       assert parse_dep(:git_rebar) == {:git_rebar, override: true}
@@ -100,37 +100,37 @@ defmodule Mix.RebarTest do
 
   describe "apply_overrides/3" do
     test "applies overrides" do
-      config = [deps: {:git_rebar, '~> 2.0'}]
-      overrides = [{:override, [deps: [{:git_rebar, '~> 1.0'}]]}]
+      config = [deps: {:git_rebar, ~c"~> 2.0"}]
+      overrides = [{:override, [deps: [{:git_rebar, ~c"~> 1.0"}]]}]
 
       assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar, '~> 1.0'}], overrides: overrides]
+               [deps: [{:git_rebar, ~c"~> 1.0"}], overrides: overrides]
 
-      config = [deps: [{:git_rebar, '~> 2.0'}]]
-      overrides = [{:override, :bar, [deps: [{:git_rebar, '~> 1.0'}]]}]
-
-      assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar, '~> 2.0'}], overrides: overrides]
-
-      config = [deps: [{:git_rebar, '~> 2.0'}]]
-      overrides = [{:override, :foo, [deps: [{:git_rebar, '~> 1.0'}]]}]
+      config = [deps: [{:git_rebar, ~c"~> 2.0"}]]
+      overrides = [{:override, :bar, [deps: [{:git_rebar, ~c"~> 1.0"}]]}]
 
       assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar, '~> 1.0'}], overrides: overrides]
+               [deps: [{:git_rebar, ~c"~> 2.0"}], overrides: overrides]
 
-      config = [deps: [{:git_rebar, '~> 1.0'}]]
-      overrides = [{:add, :foo, [deps: [{:git_rebar2, '~> 2.0'}]]}]
+      config = [deps: [{:git_rebar, ~c"~> 2.0"}]]
+      overrides = [{:override, :foo, [deps: [{:git_rebar, ~c"~> 1.0"}]]}]
 
       assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar2, '~> 2.0'}, {:git_rebar, '~> 1.0'}], overrides: overrides]
+               [deps: [{:git_rebar, ~c"~> 1.0"}], overrides: overrides]
+
+      config = [deps: [{:git_rebar, ~c"~> 1.0"}]]
+      overrides = [{:add, :foo, [deps: [{:git_rebar2, ~c"~> 2.0"}]]}]
+
+      assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
+               [deps: [{:git_rebar2, ~c"~> 2.0"}, {:git_rebar, ~c"~> 1.0"}], overrides: overrides]
     end
 
     test "concatenates overrides" do
-      config = [deps: {:git_rebar, '~> 2.0'}, overrides: [{:add, :bar, []}]]
-      overrides = [{:override, [deps: [{:git_rebar, '~> 1.0'}]]}]
+      config = [deps: {:git_rebar, ~c"~> 2.0"}, overrides: [{:add, :bar, []}]]
+      overrides = [{:override, [deps: [{:git_rebar, ~c"~> 1.0"}]]}]
 
       assert Mix.Rebar.apply_overrides(:foo, config, overrides) ==
-               [deps: [{:git_rebar, '~> 1.0'}], overrides: overrides ++ [{:add, :bar, []}]]
+               [deps: [{:git_rebar, ~c"~> 1.0"}], overrides: overrides ++ [{:add, :bar, []}]]
     end
   end
 

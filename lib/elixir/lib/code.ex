@@ -468,6 +468,11 @@ defmodule Code do
       modifiers, where `<<foo::custom_type>>` becomes `<<foo::custom_type()>>`.
       Defaults to `true`. This option changes the AST.
 
+    * `:charlists_as_sigils` (since v1.15.0) - when `true`,
+      formats charlists as [`~c`](`Kernel.sigil_c/2`) sigils, for example
+      `'foo'` becomes `~c"foo"`.
+      Defaults to `true`. This option changes the AST.
+
   ## Design principles
 
   The formatter was designed under three principles.
@@ -1095,10 +1100,10 @@ defmodule Code do
     Process.put(:code_formatter_comments, [comment | comments])
   end
 
-  defp next_eol_count('\s' ++ rest, count), do: next_eol_count(rest, count)
-  defp next_eol_count('\t' ++ rest, count), do: next_eol_count(rest, count)
-  defp next_eol_count('\n' ++ rest, count), do: next_eol_count(rest, count + 1)
-  defp next_eol_count('\r\n' ++ rest, count), do: next_eol_count(rest, count + 1)
+  defp next_eol_count([?\s | rest], count), do: next_eol_count(rest, count)
+  defp next_eol_count([?\t | rest], count), do: next_eol_count(rest, count)
+  defp next_eol_count([?\n | rest], count), do: next_eol_count(rest, count + 1)
+  defp next_eol_count([?\r, ?\n | rest], count), do: next_eol_count(rest, count + 1)
   defp next_eol_count(_, count), do: count
 
   defp previous_eol_count([{token, {_, _, count}} | _])
@@ -1751,7 +1756,7 @@ defmodule Code do
     end
   end
 
-  @docs_chunk 'Docs'
+  @docs_chunk [?D, ?o, ?c, ?s]
 
   defp fetch_docs_from_beam(bin_or_path) do
     case :beam_lib.chunks(bin_or_path, [@docs_chunk]) do

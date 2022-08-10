@@ -56,20 +56,20 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
   end
 
   test "sigil c" do
-    assert ~c(foo) == 'foo'
-    assert ~c(f#{:o}o) == 'foo'
-    assert ~c(f\no) == 'f\no'
+    assert ~c(foo) == ~c"foo"
+    assert ~c(f#{:o}o) == ~c"foo"
+    assert ~c(f\no) == ~c"f\no"
   end
 
   test "sigil C" do
-    assert ~C(foo) == 'foo'
-    assert ~C[foo] == 'foo'
-    assert ~C{foo} == 'foo'
-    assert ~C'foo' == 'foo'
-    assert ~C"foo" == 'foo'
-    assert ~C|foo| == 'foo'
-    assert ~C(f#{o}o) == 'f\#{o}o'
-    assert ~C(f\no) == 'f\\no'
+    assert ~C(foo) == ~c"foo"
+    assert ~C[foo] == ~c"foo"
+    assert ~C{foo} == ~c"foo"
+    assert ~C'foo' == ~c"foo"
+    assert ~C"foo" == ~c"foo"
+    assert ~C|foo| == ~c"foo"
+    assert ~C(f#{o}o) == ~c"f\#{o}o"
+    assert ~C(f\no) == ~c"f\\no"
   end
 
   test "sigil w" do
@@ -93,7 +93,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
 
     assert ~w(foo bar baz)s == ["foo", "bar", "baz"]
     assert ~w(foo bar baz)a == [:foo, :bar, :baz]
-    assert ~w(foo bar baz)c == ['foo', 'bar', 'baz']
+    assert ~w(foo bar baz)c == [~c"foo", ~c"bar", ~c"baz"]
 
     bad_modifier = quote(do: ~w(foo bar baz)x)
     assert %ArgumentError{} = catch_error(Code.eval_quoted(bad_modifier))
@@ -101,7 +101,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
     assert ~w(Foo Bar)a == [:Foo, :Bar]
     assert ~w(Foo.#{Bar}.Baz)a == [:"Foo.Elixir.Bar.Baz"]
     assert ~w(Foo.Bar)s == ["Foo.Bar"]
-    assert ~w(Foo.#{Bar})c == ['Foo.Elixir.Bar']
+    assert ~w(Foo.#{Bar})c == [~c"Foo.Elixir.Bar"]
 
     # Ensure it is fully expanded at compile time
     assert Macro.expand(quote(do: ~w(a b c)a), __ENV__) == [:a, :b, :c]
@@ -122,7 +122,7 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
 
     assert ~W(foo bar baz)s == ["foo", "bar", "baz"]
     assert ~W(foo bar baz)a == [:foo, :bar, :baz]
-    assert ~W(foo bar baz)c == ['foo', 'bar', 'baz']
+    assert ~W(foo bar baz)c == [~c"foo", ~c"bar", ~c"baz"]
 
     bad_modifier = quote(do: ~W(foo bar baz)x)
     assert %ArgumentError{} = catch_error(Code.eval_quoted(bad_modifier))

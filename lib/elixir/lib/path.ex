@@ -120,7 +120,7 @@ defmodule Path do
 
   defp do_absname_join(<<c1, c2, rest::binary>>, relativename, [], :win32)
        when c1 in @slash and c2 in @slash,
-       do: do_absname_join(rest, relativename, '//', :win32)
+       do: do_absname_join(rest, relativename, ~c"//", :win32)
 
   defp do_absname_join(<<?\\, rest::binary>>, relativename, result, :win32),
     do: do_absname_join(<<?/, rest::binary>>, relativename, result, :win32)
@@ -260,7 +260,7 @@ defmodule Path do
     end
   end
 
-  defp unix_pathtype(path) when path in ["/", '/'], do: {:absolute, "."}
+  defp unix_pathtype(path) when path in ["/", ~c"/"], do: {:absolute, "."}
   defp unix_pathtype(<<?/, relative::binary>>), do: {:absolute, relative}
   defp unix_pathtype([?/ | relative]), do: {:absolute, relative}
   defp unix_pathtype([list | rest]) when is_list(list), do: unix_pathtype(list ++ rest)

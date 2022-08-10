@@ -312,9 +312,9 @@ defmodule ListTest do
   end
 
   test "to_charlist/1" do
-    assert List.to_charlist([0x00E6, 0x00DF]) == 'æß'
-    assert List.to_charlist([0x0061, "bc"]) == 'abc'
-    assert List.to_charlist([0x0064, "ee", ['p']]) == 'deep'
+    assert List.to_charlist([0x00E6, 0x00DF]) == ~c"æß"
+    assert List.to_charlist([0x0061, "bc"]) == ~c"abc"
+    assert List.to_charlist([0x0064, "ee", [~c"p"]]) == ~c"deep"
 
     assert_raise UnicodeConversionError, "invalid code point 57343", fn ->
       List.to_charlist([0xDFFF])
@@ -373,12 +373,12 @@ defmodule ListTest do
   describe "ascii_printable?/2" do
     test "proper lists without limit" do
       assert List.ascii_printable?([])
-      assert List.ascii_printable?('abc')
-      refute(List.ascii_printable?('abc' ++ [0]))
-      refute List.ascii_printable?('mañana')
+      assert List.ascii_printable?(~c"abc")
+      refute(List.ascii_printable?(~c"abc" ++ [0]))
+      refute List.ascii_printable?(~c"mañana")
 
-      printable_chars = '\a\b\t\n\v\f\r\e' ++ Enum.to_list(32..126)
-      non_printable_chars = '🌢áéíóúźç©¢🂭'
+      printable_chars = ~c"\a\b\t\n\v\f\r\e" ++ Enum.to_list(32..126)
+      non_printable_chars = ~c"🌢áéíóúźç©¢🂭"
 
       assert List.ascii_printable?(printable_chars)
 
@@ -395,12 +395,12 @@ defmodule ListTest do
 
     test "proper lists with limit" do
       assert List.ascii_printable?([], 100)
-      assert List.ascii_printable?('abc' ++ [0], 2)
+      assert List.ascii_printable?(~c"abc" ++ [0], 2)
     end
 
     test "improper lists" do
-      refute List.ascii_printable?('abc' ++ ?d)
-      assert List.ascii_printable?('abc' ++ ?d, 3)
+      refute List.ascii_printable?(~c"abc" ++ ?d)
+      assert List.ascii_printable?(~c"abc" ++ ?d, 3)
     end
   end
 end

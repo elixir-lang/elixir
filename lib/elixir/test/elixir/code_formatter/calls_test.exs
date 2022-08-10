@@ -75,16 +75,16 @@ defmodule Code.Formatter.CallsTest do
 
     test "for heredocs" do
       assert_same """
-      foo('''
+      foo(~c'''
       bar
       ''')
       """
 
-      assert_same to_string('''
-                  foo("""
-                  bar
-                  """)
-                  ''')
+      assert_same ~S'''
+      foo("""
+      bar
+      """)
+      '''
 
       assert_same """
       foo(~S'''

@@ -135,10 +135,10 @@ defmodule Task.Supervised do
         }
       }) do
     message =
-      '** Task ~p terminating~n' ++
-        '** Started from ~p~n' ++
-        '** When function  == ~p~n' ++
-        '**      arguments == ~p~n' ++ '** Reason for termination == ~n' ++ '** ~p~n'
+      ~c"** Task ~p terminating~n" ++
+        ~c"** Started from ~p~n" ++
+        ~c"** When function  == ~p~n" ++
+        ~c"**      arguments == ~p~n" ++ ~c"** Reason for termination == ~n" ++ ~c"** ~p~n"
 
     {message, [starter, name, fun, args, get_reason(reason)]}
   end

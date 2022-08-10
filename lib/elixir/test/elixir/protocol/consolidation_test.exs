@@ -45,7 +45,7 @@ defmodule Protocol.ConsolidationTest do
   :code.purge(Sample)
   :code.delete(Sample)
   {:ok, binary} = Protocol.consolidate(Sample, [Any, ImplStruct])
-  :code.load_binary(Sample, 'protocol_test.exs', binary)
+  :code.load_binary(Sample, ~c"protocol_test.exs", binary)
 
   @sample_binary binary
 
@@ -53,7 +53,7 @@ defmodule Protocol.ConsolidationTest do
   :code.purge(WithAny)
   :code.delete(WithAny)
   {:ok, binary} = Protocol.consolidate(WithAny, [Any, ImplStruct, Map])
-  :code.load_binary(WithAny, 'protocol_test.exs', binary)
+  :code.load_binary(WithAny, ~c"protocol_test.exs", binary)
 
   test "consolidated?/1" do
     assert Protocol.consolidated?(WithAny)
@@ -116,7 +116,7 @@ defmodule Protocol.ConsolidationTest do
   end
 
   test "consolidation keeps docs" do
-    {:ok, {Sample, [{'Docs', docs_bin}]}} = :beam_lib.chunks(@sample_binary, ['Docs'])
+    {:ok, {Sample, [{~c"Docs", docs_bin}]}} = :beam_lib.chunks(@sample_binary, [~c"Docs"])
     {:docs_v1, _, _, _, _, _, docs} = :erlang.binary_to_term(docs_bin)
     ok_doc = List.keyfind(docs, {:function, :ok, 1}, 0)
 
@@ -127,7 +127,7 @@ defmodule Protocol.ConsolidationTest do
     deprecated = [{{:ok, 1}, "Reason"}]
     assert deprecated == Sample.__info__(:deprecated)
 
-    {:ok, {Sample, [{'ExCk', check_bin}]}} = :beam_lib.chunks(@sample_binary, ['ExCk'])
+    {:ok, {Sample, [{~c"ExCk", check_bin}]}} = :beam_lib.chunks(@sample_binary, [~c"ExCk"])
     assert {:elixir_checker_v1, contents} = :erlang.binary_to_term(check_bin)
     export_info = %{deprecated_reason: "Reason", kind: :def}
     assert {{:ok, 1}, export_info} in contents.exports

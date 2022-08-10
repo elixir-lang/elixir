@@ -124,7 +124,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
       compile_elixir_and_protocols()
 
       # Load consolidated
-      :code.add_patha('_build/dev/lib/sample/consolidated')
+      :code.add_patha(~c"_build/dev/lib/sample/consolidated")
       :code.purge(Enumerable)
       :code.delete(Enumerable)
 
@@ -132,7 +132,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
         Enumerable.impl_for!(:oops)
       rescue
         Protocol.UndefinedError ->
-          assert [{_, _, _, [file: 'lib/enum.ex'] ++ _} | _] = __STACKTRACE__
+          assert [{_, _, _, [file: ~c"lib/enum.ex"] ++ _} | _] = __STACKTRACE__
       else
         _ ->
           flunk("Enumerable.impl_for!/1 should have failed")
@@ -158,7 +158,7 @@ defmodule Mix.Tasks.Compile.ProtocolsTest do
   end
 
   defp purge_protocol(module) do
-    :code.del_path(:filename.absname('_build/dev/lib/sample/consolidated'))
+    :code.del_path(:filename.absname(~c"_build/dev/lib/sample/consolidated"))
     :code.purge(module)
     :code.delete(module)
   end

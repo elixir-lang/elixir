@@ -166,12 +166,12 @@ defmodule Code.Fragment do
     cursor_context(to_charlist(other), opts)
   end
 
-  @operators '\\<>+-*/:=|&~^%!'
-  @starter_punctuation ',([{;'
-  @non_starter_punctuation ')]}"\'.$'
-  @space '\t\s'
-  @trailing_identifier '?!'
-  @tilde_op_prefix '<=~'
+  @operators ~c"\\<>+-*/:=|&~^%!"
+  @starter_punctuation ~c",([{;"
+  @non_starter_punctuation ~c")]}\"'.$"
+  @space ~c"\t\s"
+  @trailing_identifier ~c"?!"
+  @tilde_op_prefix ~c"<=~"
 
   @non_identifier @trailing_identifier ++
                     @operators ++ @starter_punctuation ++ @non_starter_punctuation ++ @space
@@ -186,9 +186,9 @@ defmodule Code.Fragment do
       # It is empty
       [] -> {:expr, 0}
       # Structs
-      [?%, ?:, ?: | _] -> {{:struct, ''}, 1}
-      [?%, ?: | _] -> {{:unquoted_atom, '%'}, 2}
-      [?% | _] -> {{:struct, ''}, 1}
+      [?%, ?:, ?: | _] -> {{:struct, ~c""}, 1}
+      [?%, ?: | _] -> {{:unquoted_atom, ~c"%"}, 2}
+      [?% | _] -> {{:struct, ~c""}, 1}
       # Token/AST only operators
       [?>, ?= | rest] when rest == [] or hd(rest) != ?: -> {:expr, 0}
       [?>, ?- | rest] when rest == [] or hd(rest) != ?: -> {:expr, 0}
@@ -198,7 +198,7 @@ defmodule Code.Fragment do
       [?: | rest] when rest == [] or hd(rest) != ?: -> unquoted_atom_or_expr(spaces)
       # Dots
       [?.] -> {:none, 0}
-      [?. | rest] when hd(rest) not in '.:' -> dot(rest, spaces + 1, '')
+      [?. | rest] when hd(rest) not in ~c".:" -> dot(rest, spaces + 1, ~c"")
       # It is a local or remote call with parens
       [?( | rest] -> call_to_cursor_context(strip_spaces(rest, spaces + 1))
       # A local arity definition
@@ -215,7 +215,7 @@ defmodule Code.Fragment do
   defp strip_spaces([h | rest], count) when h in @space, do: strip_spaces(rest, count + 1)
   defp strip_spaces(rest, count), do: {rest, count}
 
-  defp unquoted_atom_or_expr(0), do: {{:unquoted_atom, ''}, 1}
+  defp unquoted_atom_or_expr(0), do: {{:unquoted_atom, ~c""}, 1}
   defp unquoted_atom_or_expr(_), do: {:expr, 0}
 
   defp arity_to_cursor_context({reverse, spaces}) do
@@ -236,10 +236,10 @@ defmodule Code.Fragment do
     end
   end
 
-  defp identifier_to_cursor_context([?., ?., ?: | _], n, _), do: {{:unquoted_atom, '..'}, n + 3}
-  defp identifier_to_cursor_context([?., ?., ?. | _], n, _), do: {{:local_or_var, '...'}, n + 3}
-  defp identifier_to_cursor_context([?., ?: | _], n, _), do: {{:unquoted_atom, '.'}, n + 2}
-  defp identifier_to_cursor_context([?., ?. | _], n, _), do: {{:operator, '..'}, n + 2}
+  defp identifier_to_cursor_context([?., ?., ?: | _], n, _), do: {{:unquoted_atom, ~c".."}, n + 3}
+  defp identifier_to_cursor_context([?., ?., ?. | _], n, _), do: {{:local_or_var, ~c"..."}, n + 3}
+  defp identifier_to_cursor_context([?., ?: | _], n, _), do: {{:unquoted_atom, ~c"."}, n + 2}
+  defp identifier_to_cursor_context([?., ?. | _], n, _), do: {{:operator, ~c".."}, n + 2}
 
   defp identifier_to_cursor_context(reverse, count, call_op?) do
     case identifier(reverse, count) do
@@ -263,10 +263,10 @@ defmodule Code.Fragment do
 
       {:alias, rest, acc, count} ->
         case strip_spaces(rest, count) do
-          {'.' ++ rest, count} when rest == [] or hd(rest) != ?. ->
+          {~c"." ++ rest, count} when rest == [] or hd(rest) != ?. ->
             nested_alias(rest, count + 1, acc)
 
-          {'%' ++ _, count} ->
+          {~c"%" ++ _, count} ->
             {{:struct, acc}, count + 1}
 
           _ ->
@@ -284,7 +284,7 @@ defmodule Code.Fragment do
 
       {:identifier, rest, acc, count} ->
         case strip_spaces(rest, count) do
-          {'.' ++ rest, count} when rest == [] or hd(rest) != ?. ->
+          {~c"." ++ rest, count} when rest == [] or hd(rest) != ?. ->
             dot(rest, count + 1, acc)
 
           _ ->
@@ -310,7 +310,7 @@ defmodule Code.Fragment do
     case tokenize_identifier(rest, count, acc) do
       {:identifier, [?% | _rest], acc, count} -> {:struct, {:module_attribute, acc}, count}
       {:identifier, _rest, acc, count} -> {:module_attribute, acc, count}
-      :none when acc == [] -> {:module_attribute, '', count}
+      :none when acc == [] -> {:module_attribute, ~c"", count}
       _ -> :none
     end
   end
@@ -363,19 +363,19 @@ defmodule Code.Fragment do
 
     case identifier_to_cursor_context(rest, count, true) do
       {{:struct, prev}, count} when is_list(prev) ->
-        {{:struct, prev ++ '.' ++ acc}, count}
+        {{:struct, prev ++ ~c"." ++ acc}, count}
 
       {{:struct, {:alias, parent, prev}}, count} ->
-        {{:struct, {:alias, parent, prev ++ '.' ++ acc}}, count}
+        {{:struct, {:alias, parent, prev ++ ~c"." ++ acc}}, count}
 
       {{:struct, prev}, count} ->
         {{:struct, {:alias, prev, acc}}, count}
 
       {{:alias, prev}, count} ->
-        {{:alias, prev ++ '.' ++ acc}, count}
+        {{:alias, prev ++ ~c"." ++ acc}, count}
 
       {{:alias, parent, prev}, count} ->
-        {{:alias, parent, prev ++ '.' ++ acc}, count}
+        {{:alias, parent, prev ++ ~c"." ++ acc}, count}
 
       {{:local_or_var, prev}, count} ->
         {{:alias, {:local_or_var, prev}, acc}, count}
@@ -427,18 +427,18 @@ defmodule Code.Fragment do
 
   # If we are opening a sigil, ignore the operator.
   defp operator([letter, ?~ | rest], _count, [op], _call_op?)
-       when op in '<|/' and (letter in ?A..?Z or letter in ?a..?z) and
+       when op in ~c"<|/" and (letter in ?A..?Z or letter in ?a..?z) and
               (rest == [] or hd(rest) not in @tilde_op_prefix) do
     {:none, 0}
   end
 
-  defp operator(rest, count, '~', call_op?) do
+  defp operator(rest, count, ~c"~", call_op?) do
     {rest, _} = strip_spaces(rest, count)
 
     if call_op? or match?([?. | rest] when rest == [] or hd(rest) != ?., rest) do
       {:none, 0}
     else
-      {{:sigil, ''}, count}
+      {{:sigil, ~c""}, count}
     end
   end
 
@@ -630,8 +630,8 @@ defmodule Code.Fragment do
           {{:local_or_var, acc}, offset} ->
             build_surround({:local_or_var, acc}, reversed, line, offset)
 
-          {{:module_attribute, ''}, offset} ->
-            build_surround({:operator, '@'}, reversed, line, offset)
+          {{:module_attribute, ~c""}, offset} ->
+            build_surround({:operator, ~c"@"}, reversed, line, offset)
 
           {{:module_attribute, acc}, offset} ->
             build_surround({:module_attribute, acc}, reversed, line, offset)
@@ -674,7 +674,7 @@ defmodule Code.Fragment do
           {{:operator, acc}, offset} ->
             build_surround({:operator, acc}, reversed, line, offset)
 
-          {{:sigil, ''}, offset} when hd(rest) in ?A..?Z or hd(rest) in ?a..?z ->
+          {{:sigil, ~c""}, offset} when hd(rest) in ?A..?Z or hd(rest) in ?a..?z ->
             build_surround({:sigil, [hd(rest)]}, [hd(rest) | reversed], line, offset + 1)
 
           {{:dot, _, [_ | _]} = dot, offset} ->
@@ -750,7 +750,7 @@ defmodule Code.Fragment do
       _ ->
         case strip_spaces(reversed_pre, 0) do
           # If there is a dot to our left, make sure to move to the first character
-          {[?. | rest], _} when rest == [] or hd(rest) not in '.:' ->
+          {[?. | rest], _} when rest == [] or hd(rest) not in ~c".:" ->
             {post, reversed_pre} = move_spaces(post, reversed_pre)
             {reversed_pre, post}
 
@@ -798,9 +798,9 @@ defmodule Code.Fragment do
   defp last_line(charlist) when is_list(charlist) do
     [last_line | lines_reverse] =
       charlist
-      |> :string.replace('\r\n', '\n', :all)
-      |> :string.join('')
-      |> :string.split('\n', :all)
+      |> :string.replace(~c"\r\n", ~c"\n", :all)
+      |> :string.join(~c"")
+      |> :string.split(~c"\n", :all)
       |> Enum.reverse()
 
     prepend_cursor_lines(lines_reverse, last_line)
@@ -844,9 +844,9 @@ defmodule Code.Fragment do
 
   defp surround_line(charlist, line, column) when is_list(charlist) do
     charlist
-    |> :string.replace('\r\n', '\n', :all)
-    |> :string.join('')
-    |> :string.split('\n', :all)
+    |> :string.replace(~c"\r\n", ~c"\n", :all)
+    |> :string.join(~c"")
+    |> :string.split(~c"\n", :all)
     |> surround_lines(line, column)
   end
 

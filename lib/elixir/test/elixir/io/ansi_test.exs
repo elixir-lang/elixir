@@ -37,8 +37,8 @@ defmodule IO.ANSITest do
   end
 
   test "format charlist" do
-    assert IO.chardata_to_string(IO.ANSI.format('Hello, world!', true)) == "Hello, world!"
-    assert IO.chardata_to_string(IO.ANSI.format('Hello, world!', false)) == "Hello, world!"
+    assert IO.chardata_to_string(IO.ANSI.format(~c"Hello, world!", true)) == "Hello, world!"
+    assert IO.chardata_to_string(IO.ANSI.format(~c"Hello, world!", false)) == "Hello, world!"
   end
 
   test "format mixed list" do

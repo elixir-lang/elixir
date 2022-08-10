@@ -58,7 +58,7 @@ defmodule Config.ProviderTest do
       assert Provider.validate_config_path!({:system, "foo", "bar"}) == :ok
 
       assert_raise ArgumentError, fn -> Provider.validate_config_path!({:system, 1, 2}) end
-      assert_raise ArgumentError, fn -> Provider.validate_config_path!('baz') end
+      assert_raise ArgumentError, fn -> Provider.validate_config_path!(~c"baz") end
     end
 
     test "resolve!" do
@@ -82,11 +82,11 @@ defmodule Config.ProviderTest do
       assert config[:elixir] == [config_provider_booted: {:booted, nil}]
     end
 
-    @tag sys_config: [my_app: [encoding: {:_μ, :"£", "£", '£'}]]
+    @tag sys_config: [my_app: [encoding: {:_μ, :"£", "£", ~c"£"}]]
     test "writes sys_config with encoding" do
       init_and_assert_boot()
       config = consult(@sys_config)
-      assert config[:my_app][:encoding] == {:_μ, :"£", "£", '£'}
+      assert config[:my_app][:encoding] == {:_μ, :"£", "£", ~c"£"}
     end
 
     @tag sys_config: [my_app: [key: :old_value, sys_key: :sys_value, extra_config: :old_value]]

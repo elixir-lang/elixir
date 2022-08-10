@@ -595,7 +595,7 @@ defmodule Mix.Task do
   """
   @spec task?(task_module) :: boolean
   def task?(module) when is_atom(module) do
-    match?('Elixir.Mix.Tasks.' ++ _, Atom.to_charlist(module)) and ensure_task?(module)
+    match?(~c"Elixir.Mix.Tasks." ++ _, Atom.to_charlist(module)) and ensure_task?(module)
   end
 
   defp ensure_task?(module) do

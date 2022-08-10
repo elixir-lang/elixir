@@ -1423,7 +1423,7 @@ defmodule Module do
   defp normalize_macro_or_function_callback({function_name, arity}) do
     case :erlang.atom_to_list(function_name) do
       # Macros are always provided one extra argument in behaviour_info/1
-      'MACRO-' ++ tail ->
+      [?M, ?A, ?C, ?R, ?O, ?-] ++ tail ->
         {{:erlang.list_to_atom(tail), arity - 1}, :defmacro}
 
       _ ->

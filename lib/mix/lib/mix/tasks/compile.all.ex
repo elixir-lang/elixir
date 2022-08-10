@@ -167,7 +167,7 @@ defmodule Mix.Tasks.Compile.All do
 
   # The app didn't come from a dep, go through the slow path (code/erl_prim_loader)
   defp read_app(app, nil) do
-    name = Atom.to_charlist(app) ++ '.app'
+    name = Atom.to_charlist(app) ++ ~c".app"
 
     with [_ | _] = path <- :code.where_is_file(name),
          {:ok, bin, _full_name} <- :erl_prim_loader.get_file(path),

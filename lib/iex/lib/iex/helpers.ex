@@ -1246,7 +1246,7 @@ defmodule IEx.Helpers do
 
   """
   def pid(string) when is_binary(string) do
-    :erlang.list_to_pid('<#{string}>')
+    :erlang.list_to_pid(~c"<#{string}>")
   end
 
   def pid(name) when is_atom(name) do
@@ -1271,9 +1271,9 @@ defmodule IEx.Helpers do
   def pid(x, y, z)
       when is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and is_integer(z) and z >= 0 do
     :erlang.list_to_pid(
-      '<' ++
+      ~c"<" ++
         Integer.to_charlist(x) ++
-        '.' ++ Integer.to_charlist(y) ++ '.' ++ Integer.to_charlist(z) ++ '>'
+        ~c"." ++ Integer.to_charlist(y) ++ ~c"." ++ Integer.to_charlist(z) ++ ~c">"
     )
   end
 
@@ -1288,7 +1288,7 @@ defmodule IEx.Helpers do
   """
   @doc since: "1.8.0"
   def port(string) when is_binary(string) do
-    :erlang.list_to_port('#Port<#{string}>')
+    :erlang.list_to_port(~c"#Port<#{string}>")
   end
 
   @doc """
@@ -1306,7 +1306,7 @@ defmodule IEx.Helpers do
   def port(major, minor)
       when is_integer(major) and major >= 0 and is_integer(minor) and minor >= 0 do
     :erlang.list_to_port(
-      '#Port<' ++ Integer.to_charlist(major) ++ '.' ++ Integer.to_charlist(minor) ++ '>'
+      ~c"#Port<" ++ Integer.to_charlist(major) ++ ~c"." ++ Integer.to_charlist(minor) ++ ~c">"
     )
   end
 
@@ -1321,7 +1321,7 @@ defmodule IEx.Helpers do
   """
   @doc since: "1.6.0"
   def ref(string) when is_binary(string) do
-    :erlang.list_to_ref('#Ref<#{string}>')
+    :erlang.list_to_ref(~c"#Ref<#{string}>")
   end
 
   @doc """
@@ -1338,11 +1338,11 @@ defmodule IEx.Helpers do
       when is_integer(w) and w >= 0 and is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and
              is_integer(z) and z >= 0 do
     :erlang.list_to_ref(
-      '#Ref<' ++
+      ~c"#Ref<" ++
         Integer.to_charlist(w) ++
-        '.' ++
+        ~c"." ++
         Integer.to_charlist(x) ++
-        '.' ++ Integer.to_charlist(y) ++ '.' ++ Integer.to_charlist(z) ++ '>'
+        ~c"." ++ Integer.to_charlist(y) ++ ~c"." ++ Integer.to_charlist(z) ++ ~c">"
     )
   end
 

@@ -331,7 +331,7 @@ defmodule String do
     end
   end
 
-  for char <- '\n\r\t\v\b\f\e\d\a' do
+  for char <- [?\n, ?\r, ?\t, ?\v, ?\b, ?\f, ?\e, ?\d, ?\a] do
     defp recur_printable?(<<unquote(char), rest::binary>>, character_limit) do
       recur_printable?(rest, decrement(character_limit))
     end

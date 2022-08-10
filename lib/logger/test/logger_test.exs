@@ -318,7 +318,7 @@ defmodule LoggerTest do
 
   describe "log with function" do
     test "supports iolist" do
-      fun = fn -> ["ok", ?:, 'example'] end
+      fun = fn -> ["ok", ?:, ~c"example"] end
 
       assert capture_log(fn ->
                assert Logger.bare_log(:info, fun, application: nil, module: FunctionTest) == :ok

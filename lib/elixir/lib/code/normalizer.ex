@@ -575,7 +575,7 @@ defmodule Code.Normalizer do
 
   defp keyword?([{key, _value} | rest]) when is_atom(key) do
     case Atom.to_charlist(key) do
-      'Elixir.' ++ _ -> false
+      ~c"Elixir." ++ _ -> false
       _ -> keyword?(rest)
     end
   end

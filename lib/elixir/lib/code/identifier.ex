@@ -88,7 +88,7 @@ defmodule Code.Identifier do
   end
 
   defp escape(<<?#, ?{, t::binary>>, char, count, acc, fun) do
-    escape(t, char, decrement(count), [acc | '\\\#{'], fun)
+    escape(t, char, decrement(count), [acc | [?\\, ?#, ?{]], fun)
   end
 
   defp escape(<<h::utf8, t::binary>>, char, count, acc, fun) do
@@ -97,16 +97,17 @@ defmodule Code.Identifier do
   end
 
   defp escape(<<a::4, b::4, t::binary>>, char, count, acc, fun) do
-    escape(t, char, decrement(count), [acc | ['\\x', to_hex(a), to_hex(b)]], fun)
+    escape(t, char, decrement(count), [acc | [?\\, ?x, to_hex(a), to_hex(b)]], fun)
   end
 
   defp escape(<<>>, _char, _count, acc, _fun) do
     {acc, <<>>}
   end
 
-  defp escape_char(0), do: '\\0'
+  defp escape_char(0), do: [?\\, ?0]
 
-  defp escape_char(65279), do: '\\uFEFF'
+  @escaped_bom :binary.bin_to_list("\\uFEFF")
+  defp escape_char(65279), do: @escaped_bom
 
   defp escape_char(char)
        when char in 0x20..0x7E
@@ -118,29 +119,29 @@ defmodule Code.Identifier do
 
   defp escape_char(char) when char < 0x100 do
     <<a::4, b::4>> = <<char::8>>
-    ['\\x', to_hex(a), to_hex(b)]
+    [?\\, ?x, to_hex(a), to_hex(b)]
   end
 
   defp escape_char(char) when char < 0x10000 do
     <<a::4, b::4, c::4, d::4>> = <<char::16>>
-    ['\\x{', to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}]
+    [?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), ?}]
   end
 
   defp escape_char(char) when char < 0x1000000 do
     <<a::4, b::4, c::4, d::4, e::4, f::4>> = <<char::24>>
-    ['\\x{', to_hex(a), to_hex(b), to_hex(c), to_hex(d), to_hex(e), to_hex(f), ?}]
+    [?\\, ?x, ?{, to_hex(a), to_hex(b), to_hex(c), to_hex(d), to_hex(e), to_hex(f), ?}]
   end
 
-  defp escape_map(?\a), do: '\\a'
-  defp escape_map(?\b), do: '\\b'
-  defp escape_map(?\d), do: '\\d'
-  defp escape_map(?\e), do: '\\e'
-  defp escape_map(?\f), do: '\\f'
-  defp escape_map(?\n), do: '\\n'
-  defp escape_map(?\r), do: '\\r'
-  defp escape_map(?\t), do: '\\t'
-  defp escape_map(?\v), do: '\\v'
-  defp escape_map(?\\), do: '\\\\'
+  defp escape_map(?\a), do: [?\\, ?a]
+  defp escape_map(?\b), do: [?\\, ?b]
+  defp escape_map(?\d), do: [?\\, ?d]
+  defp escape_map(?\e), do: [?\\, ?e]
+  defp escape_map(?\f), do: [?\\, ?f]
+  defp escape_map(?\n), do: [?\\, ?n]
+  defp escape_map(?\r), do: [?\\, ?r]
+  defp escape_map(?\t), do: [?\\, ?t]
+  defp escape_map(?\v), do: [?\\, ?v]
+  defp escape_map(?\\), do: [?\\, ?\\]
   defp escape_map(_), do: false
 
   @compile {:inline, to_hex: 1, decrement: 1}

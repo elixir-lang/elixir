@@ -6,6 +6,8 @@ defmodule Code.Formatter do
   @double_heredoc "\"\"\""
   @single_quote "'"
   @single_heredoc "'''"
+  @sigil_c "~c\""
+  @sigil_c_heredoc "~c\"\"\""
   @newlines 2
   @min_line 0
   @max_line 9_999_999
@@ -198,6 +200,7 @@ defmodule Code.Formatter do
     file = Keyword.get(opts, :file, nil)
     sigils = Keyword.get(opts, :sigils, [])
     normalize_bitstring_modifiers = Keyword.get(opts, :normalize_bitstring_modifiers, true)
+    charlists_as_sigils = Keyword.get(opts, :charlists_as_sigils, true)
 
     sigils =
       Map.new(sigils, fn {key, value} ->
@@ -221,7 +224,8 @@ defmodule Code.Formatter do
       comments: comments,
       sigils: sigils,
       file: file,
-      normalize_bitstring_modifiers: normalize_bitstring_modifiers
+      normalize_bitstring_modifiers: normalize_bitstring_modifiers,
+      charlists_as_sigils: charlists_as_sigils
     }
   end
 
@@ -311,15 +315,18 @@ defmodule Code.Formatter do
         remote_to_algebra(quoted, context, state)
 
       meta[:delimiter] == ~s['''] ->
+        {opener, quotes} = get_charlist_quotes(true, state)
+
         {doc, state} =
           entries
           |> prepend_heredoc_line()
-          |> list_interpolation_to_algebra(~s['''], state, @single_heredoc, @single_heredoc)
+          |> list_interpolation_to_algebra(quotes, state, opener, quotes)
 
         {force_unfit(doc), state}
 
       true ->
-        list_interpolation_to_algebra(entries, @single_quote, state, @single_quote, @single_quote)
+        {opener, quotes} = get_charlist_quotes(false, state)
+        list_interpolation_to_algebra(entries, quotes, state, opener, quotes)
     end
   end
 
@@ -377,12 +384,14 @@ defmodule Code.Formatter do
   defp quoted_to_algebra({:__block__, meta, [list]}, _context, state) when is_list(list) do
     case meta[:delimiter] do
       ~s['''] ->
-        string = list |> List.to_string() |> escape_heredoc(~s['''])
-        {@single_heredoc |> concat(string) |> concat(@single_heredoc) |> force_unfit(), state}
+        {opener, quotes} = get_charlist_quotes(true, state)
+        string = list |> List.to_string() |> escape_heredoc(quotes)
+        {opener |> concat(string) |> concat(quotes) |> force_unfit(), state}
 
       ~s['] ->
-        string = list |> List.to_string() |> escape_string(@single_quote)
-        {@single_quote |> concat(string) |> concat(@single_quote), state}
+        {opener, quotes} = get_charlist_quotes(false, state)
+        string = list |> List.to_string() |> escape_string(quotes)
+        {opener |> concat(string) |> concat(quotes), state}
 
       _other ->
         list_to_algebra(meta, list, state)
@@ -1590,7 +1599,7 @@ defmodule Code.Formatter do
         |> String.to_charlist()
         |> Enum.reverse()
         |> Enum.chunk_every(3)
-        |> Enum.intersperse('_')
+        |> Enum.intersperse(~c"_")
         |> List.flatten()
         |> Enum.reverse()
         |> List.to_string()
@@ -2345,5 +2354,21 @@ defmodule Code.Formatter do
   defp split_last(list) do
     {left, [right]} = Enum.split(list, -1)
     {left, right}
+  end
+
+  defp get_charlist_quotes(_heredoc = false, state) do
+    if state.charlists_as_sigils do
+      {@sigil_c, @double_quote}
+    else
+      {@single_quote, @single_quote}
+    end
+  end
+
+  defp get_charlist_quotes(_heredoc = true, state) do
+    if state.charlists_as_sigils do
+      {@sigil_c_heredoc, @double_heredoc}
+    else
+      {@single_heredoc, @single_heredoc}
+    end
   end
 end

@@ -150,7 +150,7 @@ defmodule IO do
     with :eof <- read(device, :eof) do
       with [_ | _] = opts <- :io.getopts(device),
            false <- Keyword.get(opts, :binary, true) do
-        ''
+        ~c""
       else
         _ -> ""
       end
@@ -158,15 +158,15 @@ defmodule IO do
   end
 
   def read(device, :eof) do
-    getn(device, '', :eof)
+    getn(device, ~c"", :eof)
   end
 
   def read(device, :line) do
-    :io.get_line(map_dev(device), '')
+    :io.get_line(map_dev(device), ~c"")
   end
 
   def read(device, count) when is_integer(count) and count >= 0 do
-    :io.get_chars(map_dev(device), '', count)
+    :io.get_chars(map_dev(device), ~c"", count)
   end
 
   @doc """
@@ -525,7 +525,7 @@ defmodule IO do
 
   defp getn_eof(device, prompt, acc) do
     case :io.get_line(device, prompt) do
-      line when is_binary(line) or is_list(line) -> getn_eof(device, '', [line | acc])
+      line when is_binary(line) or is_list(line) -> getn_eof(device, ~c"", [line | acc])
       :eof -> wrap_eof(:lists.reverse(acc))
       other -> other
     end
