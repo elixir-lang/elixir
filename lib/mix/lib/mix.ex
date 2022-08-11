@@ -801,7 +801,6 @@ defmodule Mix do
   end
 
   defp install_dir(cache_id) do
-    # TODO: rename MIX_INSTALL_DIR to MIX_INSTALL_ROOT?
     install_root =
       System.get_env("MIX_INSTALL_DIR") ||
         Path.join(Mix.Utils.mix_cache(), "installs")
