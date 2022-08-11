@@ -60,6 +60,8 @@ defmodule ExUnit.CaptureLog do
   capture, for instance, if the log level is set to `:error`, then
   any message with the lower level will be ignored.
   The default level is `nil`, which will capture all messages.
+  Note that messages are filtered by the general `:level` configuration
+  for the `:logger` application first.
   The behaviour is undetermined if async tests change Logger level.
 
   The format, metadata and colors can be configured with `:format`,
