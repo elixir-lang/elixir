@@ -200,10 +200,6 @@ defmodule Mix.Tasks.Format do
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(dot_formatter, [], formatter_opts, [dot_formatter])
 
-    # In case plugins are given, we need to reenable those tasks
-    Mix.Task.reenable("loadpaths")
-    Mix.Task.reenable("deps.loadpaths")
-
     args
     |> expand_args(dot_formatter, formatter_opts_and_subs, opts)
     |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: 30000)
@@ -252,8 +248,6 @@ defmodule Mix.Tasks.Format do
     end
   end
 
-  @loadpath_args ["--no-elixir-version-check", "--no-deps-check", "--no-archives-check"]
-
   # This function reads exported configuration from the imported
   # dependencies and subdirectories and deals with caching the result
   # of reading such configuration in a manifest file.
@@ -275,11 +269,11 @@ defmodule Mix.Tasks.Format do
     end
 
     if plugins != [] do
-      Mix.Task.run("loadpaths", @loadpath_args)
+      Mix.Task.run("loadpaths", [])
     end
 
     if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
-      Mix.Task.run("compile", @loadpath_args)
+      Mix.Task.run("compile", [])
     end
 
     for plugin <- plugins do
