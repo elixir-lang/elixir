@@ -204,6 +204,12 @@ defmodule MixTest.Case do
     tmp = tmp_path() |> String.to_charlist()
     for path <- :code.get_path(), :string.str(path, tmp) != 0, do: :code.del_path(path)
   end
+
+  def get_git_repo_revs(repo) do
+    File.cd!(fixture_path(repo), fn ->
+      Regex.split(~r/\r?\n/, System.cmd("git", ["log", "--format=%H"]) |> elem(0), trim: true)
+    end)
+  end
 end
 
 ## Set up globals
