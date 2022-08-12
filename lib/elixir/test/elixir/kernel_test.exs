@@ -1233,6 +1233,10 @@ defmodule KernelTest do
       assert [1] |> (&hd(&1)).() == 1
     end
 
+    test "reverse associativity" do
+      assert [1, [2], 3] |> (List.flatten() |> Enum.map(&(&1 * 2))) == [2, 4, 6]
+    end
+
     defp twice(a), do: a * 2
 
     defp local(list) do
