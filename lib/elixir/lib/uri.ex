@@ -966,7 +966,11 @@ defmodule URI do
   end
 
   def append_query(%URI{} = uri, query) when is_binary(query) do
-    %{uri | query: uri.query <> "&" <> query}
+    if String.ends_with?(uri.query, "&") do
+      %{uri | query: uri.query <> query}
+    else
+      %{uri | query: uri.query <> "&" <> query}
+    end
   end
 end
 
