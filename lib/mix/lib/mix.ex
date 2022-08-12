@@ -561,25 +561,31 @@ defmodule Mix do
     * `:elixir` - if set, ensures the current Elixir version matches the given
       version requirement (Default: `nil`)
 
+    * `:system_env` (since v1.13.0) - a list or a map of system environment variable
+      names with respective values as binaries. The system environment is made part
+      of the `Mix.install/2` cache, so different configurations will lead to different apps
+
     * `:config` (since v1.13.0) - a keyword list of keyword lists with application
       configuration to be set before the apps loaded. The configuration is part of
       the `Mix.install/2` cache, so different configurations will lead to different
       apps
 
-    * `:system_env` (since v1.13.0) - a list or a map of system environment variable
-      names with respective values as binaries. The system environment is made part
-      of the `Mix.install/2` cache, so different configurations will lead to different apps
+    * `:config_path` (since v1.14.0) - path to a configuration file. If a `runtime.exs`
+      file exists in the same directory as the given path, it is loaded too.
+
+    * `:lockfile` (since v1.14.0) - path to a lockfile to be used as a basis of
+      dependency resolution.
 
   ## Examples
 
-  To install `:decimal` and `:jason`:
+  Installing `:decimal` and `:jason`:
 
       Mix.install([
         :decimal,
         {:jason, "~> 1.0"}
       ])
 
-  Using `:nx`, `:exla`, and configure the underlying applications
+  Installing `:nx` & `:exla`, and configuring the underlying applications
   and environment variables:
 
       Mix.install(
@@ -591,6 +597,23 @@ defmodule Mix do
           XLA_TARGET: "cuda111"
         ]
       )
+
+  Installing a Mix project as a path dependency along with its configuration
+  and deps:
+
+      # $ git clone https://github.com/hexpm/hexpm /tmp/hexpm
+      # $ cd /tmp/hexpm && mix setup
+
+      Mix.install(
+        [
+          {:hexpm, path: "/tmp/hexpm", env: :dev},
+        ],
+        config_path: "/tmp/hexpm/config/config.exs",
+        lockfile: "/tmp/hexpm/mix.lock"
+      )
+
+      Hexpm.Repo.query!("SELECT COUNT(1) from packages")
+      #=> ...
 
   ## Limitations
 
@@ -659,6 +682,7 @@ defmodule Mix do
       end)
 
     config = Keyword.get(opts, :config, [])
+    config_path = opts[:config_path] && Path.expand(opts[:config_path])
     system_env = Keyword.get(opts, :system_env, [])
     consolidate_protocols? = Keyword.get(opts, :consolidate_protocols, true)
 
@@ -675,18 +699,14 @@ defmodule Mix do
         Application.put_all_env(config, persistent: true)
         System.put_env(system_env)
 
-        installs_root =
-          System.get_env("MIX_INSTALL_DIR") || Path.join(Mix.Utils.mix_cache(), "installs")
-
-        version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
-        dir = Path.join([installs_root, version, id])
+        install_dir = install_dir(id)
 
         if opts[:verbose] do
-          Mix.shell().info("Mix.install/2 using #{dir}")
+          Mix.shell().info("Mix.install/2 using #{install_dir}")
         end
 
         if force? do
-          File.rm_rf!(dir)
+          File.rm_rf!(install_dir)
         end
 
         config = [
@@ -701,21 +721,51 @@ defmodule Mix do
           erlc_paths: ["src"],
           elixirc_paths: ["lib"],
           compilers: [],
-          consolidate_protocols: consolidate_protocols?
+          consolidate_protocols: consolidate_protocols?,
+          config_path: config_path
         ]
 
         started_apps = Application.started_applications()
         :ok = Mix.Local.append_archives()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
-        build_dir = Path.join(dir, "_build")
+        build_dir = Path.join(install_dir, "_build")
+        external_lockfile = opts[:lockfile] && Path.expand(opts[:lockfile])
 
         try do
-          run_deps? = not File.dir?(build_dir)
-          File.mkdir_p!(dir)
+          first_build? = not File.dir?(build_dir)
+          File.mkdir_p!(install_dir)
 
-          File.cd!(dir, fn ->
-            if run_deps? do
-              Mix.Task.rerun("deps.get")
+          File.cd!(install_dir, fn ->
+            if config_path do
+              Mix.Task.rerun("loadconfig")
+            end
+
+            cond do
+              external_lockfile ->
+                md5_path = Path.join(install_dir, "merge.lock.md5")
+
+                old_md5 =
+                  case File.read(md5_path) do
+                    {:ok, data} -> Base.decode64!(data)
+                    _ -> nil
+                  end
+
+                new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
+
+                if old_md5 != new_md5 do
+                  lockfile = Path.join(install_dir, "mix.lock")
+                  old_lock = Mix.Dep.Lock.read(lockfile)
+                  new_lock = Mix.Dep.Lock.read(external_lockfile)
+                  Mix.Dep.Lock.write(lockfile, Map.merge(old_lock, new_lock))
+                  File.write!(md5_path, Base.encode64(new_md5))
+                  Mix.Task.rerun("deps.get")
+                end
+
+              first_build? ->
+                Mix.Task.rerun("deps.get")
+
+              true ->
+                :ok
             end
 
             Mix.Task.rerun("deps.loadpaths")
@@ -725,6 +775,10 @@ defmodule Mix do
             stop_apps(Application.started_applications() -- started_apps)
 
             Mix.Task.rerun("compile")
+
+            if config_path do
+              Mix.Task.rerun("app.config")
+            end
           end)
 
           for %{app: app, opts: opts} <- Mix.Dep.cached(),
@@ -744,6 +798,15 @@ defmodule Mix do
       _ ->
         Mix.raise("Mix.install/2 can only be called with the same dependencies in the given VM")
     end
+  end
+
+  defp install_dir(cache_id) do
+    install_root =
+      System.get_env("MIX_INSTALL_DIR") ||
+        Path.join(Mix.Utils.mix_cache(), "installs")
+
+    version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
+    Path.join([install_root, version, cache_id])
   end
 
   @doc """
