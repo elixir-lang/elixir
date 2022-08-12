@@ -354,7 +354,7 @@ format_error({unaligned_binary, Expr}) ->
   io_lib:format(Message, ['Elixir.Macro':to_string(Expr)]);
 format_error(unsized_binary) ->
   "a binary field without size is only allowed at the end of a binary pattern, "
-  "at the right side of binary concatenation and and never allowed in binary generators. "
+  "at the right side of binary concatenation and never allowed in binary generators. "
   "The following examples are invalid:\n\n"
   "    rest <> \"foo\"\n"
   "    <<rest::binary, \"foo\">>\n\n"
