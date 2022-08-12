@@ -219,8 +219,6 @@ defmodule MixTest do
     end
 
     test ":lockfile with first build", %{tmp_dir: tmp_dir} do
-      install_dir = Path.join(tmp_dir, "install_dir")
-
       Mix.Project.push(GitApp)
       [_latest_rev, rev | _] = get_git_repo_revs("git_repo")
       lockfile = Path.join(tmp_dir, "lock")
@@ -231,28 +229,29 @@ defmodule MixTest do
         [
           {:git_repo, git: fixture_path("git_repo")}
         ],
-        __install_dir__: install_dir,
-        lockfile: lockfile
+        lockfile: lockfile,
+        verbose: true
       )
 
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
+      assert_received {:mix_shell, :info, ["Mix.install/2 using " <> install_dir]}
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
     after
       purge([GitRepo, GitRepo.MixProject])
     end
 
     test ":lockfile merging", %{tmp_dir: tmp_dir} do
-      install_dir = Path.join(tmp_dir, "install_dir")
       [rev1, rev2 | _] = get_git_repo_revs("git_repo")
 
       Mix.install(
         [
           {:git_repo, git: fixture_path("git_repo")}
         ],
-        __install_dir__: install_dir
+        verbose: true
       )
 
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
+      assert_received {:mix_shell, :info, ["Mix.install/2 using " <> install_dir]}
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev1
 
       Mix.Project.push(GitApp)
@@ -264,7 +263,6 @@ defmodule MixTest do
         [
           {:git_repo, git: fixture_path("git_repo")}
         ],
-        __install_dir__: install_dir,
         lockfile: lockfile
       )
 
