@@ -400,6 +400,11 @@ defmodule URITest do
              "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
   end
 
+  test "append_query/2" do
+    assert URI.append_query(URI.parse("http://example.com/?x=1"), "x=2").query == "x=1&x=2"
+    assert URI.append_query(URI.parse("http://example.com/?x=1&"), "x=2").query == "x=1&x=2"
+  end
+
   ## Deprecate API
 
   describe "authority" do
