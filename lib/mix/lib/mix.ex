@@ -699,7 +699,7 @@ defmodule Mix do
         Application.put_all_env(config, persistent: true)
         System.put_env(system_env)
 
-        install_dir = opts[:__install_dir__] || install_dir(id)
+        install_dir = install_dir(id)
 
         if opts[:verbose] do
           Mix.shell().info("Mix.install/2 using #{install_dir}")
