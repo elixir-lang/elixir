@@ -475,7 +475,7 @@ defmodule EEx.Compiler do
   end
 
   defp column(column, mark) do
-    # length('<%') == 2
+    # length(~c"<%") == 2
     column + 2 + length(mark)
   end
 end

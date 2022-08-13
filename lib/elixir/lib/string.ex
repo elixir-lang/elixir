@@ -2521,8 +2521,8 @@ defmodule String do
 
   ## Examples
 
-      iex> String.to_charlist("æß")
-      'æß'
+      iex> String.to_charlist("foo")
+      ~c"foo"
 
   """
   @spec to_charlist(t) :: charlist

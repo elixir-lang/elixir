@@ -1444,8 +1444,8 @@ defmodule Kernel do
       iex> [1] ++ [2, 3]
       [1, 2, 3]
 
-      iex> 'foo' ++ 'bar'
-      'foobar'
+      iex> ~c"foo" ++ ~c"bar"
+      ~c"foobar"
 
       # returns an improper list
       iex> [1] ++ 2
@@ -2217,10 +2217,10 @@ defmodule Kernel do
       iex> inspect("olá", binaries: :as_binaries)
       "<<111, 108, 195, 161>>"
 
-      iex> inspect('bar')
-      "'bar'"
+      iex> inspect(~c"bar")
+      "~c\"bar\""
 
-      iex> inspect([0 | 'bar'])
+      iex> inspect([0 | ~c"bar"])
       "[0, 98, 97, 114]"
 
       iex> inspect(100, base: :octal)
@@ -3190,7 +3190,7 @@ defmodule Kernel do
   ## Examples
 
       iex> to_charlist(:foo)
-      'foo'
+      ~c"foo"
 
   """
   defmacro to_charlist(term) do
@@ -5924,10 +5924,10 @@ defmodule Kernel do
   ## Examples
 
       iex> ~C(foo)
-      'foo'
+      ~c"foo"
 
       iex> ~C(f#{o}o)
-      'f\#{o}o'
+      ~c"f\#{o}o"
 
   """
   defmacro sigil_C(term, modifiers)
@@ -5945,13 +5945,13 @@ defmodule Kernel do
   ## Examples
 
       iex> ~c(foo)
-      'foo'
+      ~c"foo"
 
       iex> ~c(f#{:o}o)
-      'foo'
+      ~c"foo"
 
       iex> ~c(f\#{:o}o)
-      'f\#{:o}o'
+      ~c"f\#{:o}o"
 
   """
   defmacro sigil_c(term, modifiers)
@@ -6288,7 +6288,7 @@ defmodule Kernel do
       [:foo, :bar, :baz]
 
       iex> ~w(foo bar baz)c
-      ['foo', 'bar', 'baz']
+      [~c"foo", ~c"bar", ~c"baz"]
 
   """
   defmacro sigil_w(term, modifiers)
