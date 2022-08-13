@@ -130,10 +130,15 @@ defmodule Module.Types.Unify do
 
       %{^var => {:var, new_var} = var_type} ->
         unify_result =
-          if var_source? do
-            unify(var_type, type, stack, context)
-          else
-            unify(type, var_type, stack, context)
+          cond do
+            recursive_type?(var_type, [], context) ->
+              {:ok, var_type, put_in(context.types[var], var_type)}
+
+            var_source? ->
+              unify(var_type, type, stack, context)
+
+            true ->
+              unify(type, var_type, stack, context)
           end
 
         case unify_result do
