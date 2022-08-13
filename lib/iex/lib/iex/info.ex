@@ -181,10 +181,11 @@ defimpl IEx.Info, for: List do
 
   defp info_printable_charlist(charlist) do
     description = """
-    This is a list of integers that is printed as a sequence of characters
-    delimited by single quotes because all the integers in it represent printable
-    ASCII characters. Conventionally, a list of Unicode code points is known as a
-    charlist and a list of ASCII characters is a subset of it.
+    This is a list of integers that is printed using the `~c` sigil syntax,
+    defined by the `Kernel.sigil_c/2` macro, because all the integers in it
+    represent printable ASCII characters. Conventionally, a list of Unicode
+    code points is known as a charlist and a list of ASCII characters is a
+    subset of it.
     """
 
     [
