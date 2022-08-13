@@ -88,12 +88,13 @@ defmodule Mix.Tasks.Compile.Erlang do
       :code.purge(module)
       :code.delete(module)
 
-      file = Erlang.to_erl_file(Path.rootname(input, ".erl"))
+      path = Path.rootname(input, ".erl")
+      file = Erlang.to_erl_file(path)
 
       case :compile.file(file, erlc_options) do
         :error ->
           message =
-            "Compiling Erlang file #{inspect(file)} failed, probably because of invalid :erlc_options"
+            "Compiling Erlang file #{inspect(path)} failed, probably because of invalid :erlc_options"
 
           Mix.raise(message)
 

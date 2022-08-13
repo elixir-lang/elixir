@@ -1338,8 +1338,8 @@ defmodule Macro do
           "[]"
 
         :io_lib.printable_list(list) ->
-          {escaped, _} = Identifier.escape(IO.chardata_to_string(list), ?')
-          IO.iodata_to_binary([?', escaped, ?'])
+          {escaped, _} = Identifier.escape(IO.chardata_to_string(list), ?")
+          IO.iodata_to_binary([?~, ?c, ?", escaped, ?"])
 
         Inspect.List.keyword?(list) ->
           "[" <> kw_list_to_string(list, fun) <> "]"

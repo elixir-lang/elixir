@@ -857,7 +857,7 @@ defmodule MacroTest do
     test "charlist" do
       assert macro_to_string(quote(do: [])) == "[]"
       assert macro_to_string(quote(do: ~c"abc")) == ~S/~c"abc"/
-      assert macro_to_string(quote(do: [?a, ?b, ?c])) == "'abc'"
+      assert macro_to_string(quote(do: [?a, ?b, ?c])) == ~S/~c"abc"/
     end
 
     test "string" do

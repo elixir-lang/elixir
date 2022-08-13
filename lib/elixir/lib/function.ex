@@ -192,11 +192,11 @@ defmodule Function do
       iex> Function.identity("Hello world!")
       "Hello world!"
 
-      iex> 'abcdaabccc' |> Enum.sort() |> Enum.chunk_by(&Function.identity/1)
-      ['aaa', 'bb', 'cccc', 'd']
+      iex> ~c"abcdaabccc" |> Enum.sort() |> Enum.chunk_by(&Function.identity/1)
+      [~c"aaa", ~c"bb", ~c"cccc", ~c"d"]
 
-      iex> Enum.group_by('abracadabra', &Function.identity/1)
-      %{97 => 'aaaaa', 98 => 'bb', 99 => 'c', 100 => 'd', 114 => 'rr'}
+      iex> Enum.group_by(~c"abracadabra", &Function.identity/1)
+      %{97 => ~c"aaaaa", 98 => ~c"bb", 99 => ~c"c", 100 => ~c"d", 114 => ~c"rr"}
 
       iex> Enum.map([1, 2, 3, 4], &Function.identity/1)
       [1, 2, 3, 4]
