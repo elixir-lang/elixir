@@ -744,5 +744,17 @@ defmodule Module.Types.TypesTest do
                )
              ) == :none
     end
+
+    test "nested map updates" do
+      assert warning(
+               [state],
+               (
+                 _foo = state.key.user_id
+                 _bar = state.key.user_id
+                 state = %{state | key: %{state.key | other_id: 1}}
+                 _baz = state.key.user_id
+               )
+             ) == :none
+    end
   end
 end
