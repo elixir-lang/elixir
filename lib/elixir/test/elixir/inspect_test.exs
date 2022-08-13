@@ -294,13 +294,13 @@ defmodule Inspect.ListTest do
   end
 
   test "printable" do
-    assert inspect(~c"abc") == "'abc'"
+    assert inspect(~c"abc") == ~s(~c"abc")
   end
 
   test "printable limit" do
-    assert inspect(~c"hello world", printable_limit: 4) == ~s('hell' ++ ...)
+    assert inspect(~c"hello world", printable_limit: 4) == ~s(~c"hell" ++ ...)
     # Non printable characters after the limit don't matter
-    assert inspect(~c"hello world" ++ [0], printable_limit: 4) == ~s('hell' ++ ...)
+    assert inspect(~c"hello world" ++ [0], printable_limit: 4) == ~s(~c"hell" ++ ...)
     # Non printable strings aren't affected by printable limit
     assert inspect([0, 1, 2, 3, 4], printable_limit: 3) == ~s([0, 1, 2, 3, 4])
   end
@@ -323,14 +323,14 @@ defmodule Inspect.ListTest do
     assert inspect(~c"john" ++ [0] ++ ~c"doe", charlists: :infer) ==
              "[106, 111, 104, 110, 0, 100, 111, 101]"
 
-    assert inspect(~c"john", charlists: :infer) == "'john'"
+    assert inspect(~c"john", charlists: :infer) == ~s(~c"john")
     assert inspect([0], charlists: :infer) == "[0]"
   end
 
   test "opt as strings" do
-    assert inspect(~c"john" ++ [0] ++ ~c"doe", charlists: :as_charlists) == "'john\\0doe'"
-    assert inspect(~c"john", charlists: :as_charlists) == "'john'"
-    assert inspect([0], charlists: :as_charlists) == "'\\0'"
+    assert inspect(~c"john" ++ [0] ++ ~c"doe", charlists: :as_charlists) == ~s(~c"john\\0doe")
+    assert inspect(~c"john", charlists: :as_charlists) == ~s(~c"john")
+    assert inspect([0], charlists: :as_charlists) == ~s(~c"\\0")
   end
 
   test "opt as lists" do

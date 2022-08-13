@@ -257,9 +257,9 @@ defimpl Inspect, for: List do
     cond do
       lists == :as_charlists or (lists == :infer and List.ascii_printable?(term, printable_limit)) ->
         inspected =
-          case Identifier.escape(IO.chardata_to_string(term), ?', printable_limit) do
-            {escaped, ""} -> [?', escaped, ?']
-            {escaped, _} -> [?', escaped, ?', " ++ ..."]
+          case Identifier.escape(IO.chardata_to_string(term), ?", printable_limit) do
+            {escaped, ""} -> [?~, ?c, ?", escaped, ?"]
+            {escaped, _} -> [?~, ?c, ?", escaped, ?", " ++ ..."]
           end
 
         color(IO.iodata_to_binary(inspected), :charlist, opts)
