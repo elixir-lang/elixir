@@ -241,6 +241,36 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
+## v1.14.0-rc.1 (2022-08-13)
+
+### 1. Enhancements
+
+#### IEx
+
+  * [IEx.Helpers] Support sigils in `h/1`
+
+#### Mix
+
+  * [Mix] Add `:config_path` and `:lockfile` options to `Mix.install/2`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Enum] Fix usage of range with `steps != 1` in a few functions (regression)
+  * [Kernel] Fix usage of range with `steps != 1` on `binary_slice/2` (regression)
+  * [Kernel] Recursively expand pipelines on right-hand side of `|>` (regression)
+  * [Module] Fix loop while unifying type variables
+  * [System] Raise non-generic exception on missing env in `System.fetch_env!/1` to mirror map operations
+
+#### IEx
+
+  * [IEx] Continue parsing after `--no-pry` (regression)
+
+#### Mix
+
+  * [Mix] Properly compile-dependencies on `mix format`
+
 ## v1.14.0-rc.0 (2022-08-01)
 
 ### 1. Enhancements
