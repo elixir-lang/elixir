@@ -35,7 +35,7 @@ defmodule RangeTest do
     assert Range.new(3, 1, -2) == 3..1//-2
   end
 
-  test "op" do
+  test "fields" do
     assert (1..3).first == 1
     assert (1..3).last == 3
     assert (1..3).step == 1
@@ -55,6 +55,12 @@ defmodule RangeTest do
     assert Range.shift(0..10//2, 2) == 4..14//2
     assert Range.shift(10..0//-2, 2) == 6..-4//-2
     assert Range.shift(10..0//-2, -2) == 14..4//-2
+  end
+
+  test "in guard equality" do
+    case {1, 1..1} do
+      {n, range} when range == n..n -> true
+    end
   end
 
   test "limits are integer only" do
