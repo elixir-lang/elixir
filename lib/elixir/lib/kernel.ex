@@ -3862,8 +3862,18 @@ defmodule Kernel do
   end
 
   defp range(:guard, first, last) do
+    # We need to compute the step using guards. We don't have conditionals,
+    # but we can emulate them using a map access.
+    step =
+      quote do
+        :erlang.map_get(
+          :erlang.>(unquote(first), unquote(last)),
+          %{false: unquote(1), true: unquote(-1)}
+        )
+      end
+
     # TODO: Deprecate me inside guard when sides are not integers on Elixir v1.17
-    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: nil]}
+    {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
   end
 
   defp range(:match, first, last) do
@@ -4354,18 +4364,6 @@ defmodule Kernel do
   end
 
   defp small_literal_list?(_list), do: false
-
-  defp in_range(left, first, last, nil) do
-    # TODO: nil steps are only supported due to x..y in guards. Remove me on Elixir 2.0.
-    quote do
-      :erlang.is_integer(unquote(left)) and :erlang.is_integer(unquote(first)) and
-        :erlang.is_integer(unquote(last)) and
-        ((:erlang."=<"(unquote(first), unquote(last)) and
-            unquote(increasing_compare(left, first, last))) or
-           (:erlang.<(unquote(last), unquote(first)) and
-              unquote(decreasing_compare(left, first, last))))
-    end
-  end
 
   defp in_range(left, first, last, step) when is_integer(step) do
     in_range_literal(left, first, last, step)
