@@ -106,11 +106,11 @@ defmodule SupervisorTest do
   end
 
   test "init/2" do
-    flags = %{intensity: 3, period: 5, strategy: :one_for_one}
+    flags = %{intensity: 3, period: 5, strategy: :one_for_one, auto_shutdown: :never}
     children = [%{id: Task, restart: :temporary, start: {Task, :start_link, [[]]}}]
     assert Supervisor.init([Task], strategy: :one_for_one) == {:ok, {flags, children}}
 
-    flags = %{intensity: 1, period: 2, strategy: :one_for_all}
+    flags = %{intensity: 1, period: 2, strategy: :one_for_all, auto_shutdown: :never}
     children = [%{id: Task, restart: :temporary, start: {Task, :start_link, [:foo]}}]
 
     assert Supervisor.init(
@@ -126,7 +126,7 @@ defmodule SupervisorTest do
   end
 
   test "init/2 with old and new child specs" do
-    flags = %{intensity: 3, period: 5, strategy: :one_for_one}
+    flags = %{intensity: 3, period: 5, strategy: :one_for_one, auto_shutdown: :never}
 
     children = [
       %{id: Task, restart: :temporary, start: {Task, :start_link, [[]]}},
