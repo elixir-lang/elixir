@@ -910,6 +910,11 @@ build_identifier({'.', Meta, _} = Dot, Args) ->
 build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
   {Identifier, [{ambiguous_op, nil} | meta_from_location(Location)], [Arg]};
 
+%% TODO: Either remove ... or make it an operator on v2.0
+build_identifier({_, {Line, Column, _} = Location, '...'}, Args) when is_list(Args) ->
+  warn({Line, Column}, "... is no longer supported as a function call and it must receive no arguments"),
+  {'...', meta_from_location(Location), Args};
+
 build_identifier({_, Location, Identifier}, Args) ->
   {Identifier, meta_from_location(Location), Args}.
 
