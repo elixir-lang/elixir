@@ -25,4 +25,4 @@ jobs:
           ELIXIR_FORUM_TOKEN: ${{ secrets.ELIXIR_FORUM_TOKEN }}
           ELIXIR_LANG_ANN_TOKEN: ${{ secrets.ELIXIR_LANG_ANN_TOKEN }}
         run: |
-          elixir .github./workflows/notify.exs ${{ github.ref_name }}
+          elixir .github/workflows/notify.exs ${{ github.ref_name }}
