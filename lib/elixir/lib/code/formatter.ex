@@ -217,6 +217,7 @@ defmodule Code.Formatter do
       end)
 
     %{
+      in_definition: nil,
       force_do_end_blocks: force_do_end_blocks,
       locals_without_parens: locals_without_parens ++ locals_without_parens(),
       operand_nesting: 2,
@@ -492,6 +493,12 @@ defmodule Code.Formatter do
     anon_fun_to_algebra(clauses, line(meta), closing_line(meta), state, eol?(meta, state))
   end
 
+  @definitions [:def, :defp, :defmacro, :defmacrop]
+  defp quoted_to_algebra({def_fun, meta, args}, context, state)
+       when def_fun in @definitions and is_list(args) do
+    local_to_algebra(def_fun, meta, args, context, %{state | in_definition: :opened})
+  end
+
   defp quoted_to_algebra({fun, meta, args}, context, state) when is_atom(fun) and is_list(args) do
     with :error <- maybe_sigil_to_algebra(fun, meta, args, state),
          :error <- maybe_unary_op_to_algebra(fun, meta, args, context, state),
@@ -702,10 +709,10 @@ defmodule Code.Formatter do
     right_context = right_op_context(context)
     max_line = line(meta)
 
-    right_arg = add_parenthesis_in_pipe(op, right_arg)
+    right_arg = add_parenthesis_in_pipe(op, state, right_arg)
 
     {pipes, min_line} =
-      unwrap_pipes(left_arg, meta, left_context, [{{op, right_context}, right_arg}])
+      unwrap_pipes(left_arg, meta, left_context, state, [{{op, right_context}, right_arg}])
 
     fun = fn
       {{:root, context}, arg}, _args, state ->
@@ -819,15 +826,15 @@ defmodule Code.Formatter do
     end
   end
 
-  defp unwrap_pipes({op, meta, [left, right]}, _meta, context, acc)
+  defp unwrap_pipes({op, meta, [left, right]}, _meta, context, state, acc)
        when op in @pipeline_operators do
     left_context = left_op_context(context)
     right_context = right_op_context(context)
-    right = add_parenthesis_in_pipe(op, right)
-    unwrap_pipes(left, meta, left_context, [{{op, right_context}, right} | acc])
+    right = add_parenthesis_in_pipe(op, state, right)
+    unwrap_pipes(left, meta, left_context, state, [{{op, right_context}, right} | acc])
   end
 
-  defp unwrap_pipes(left, meta, context, acc) do
+  defp unwrap_pipes(left, meta, context, _state, acc) do
     min_line =
       case left do
         {_, meta, _} -> line(meta)
@@ -837,12 +844,14 @@ defmodule Code.Formatter do
     {[{{:root, context}, left} | acc], min_line}
   end
 
-  # Transforms `|> foo` into `|> foo()`; other cases are left as is
-  defp add_parenthesis_in_pipe(:|>, {fun, [line: line], nil}) when is_atom(fun) do
+  # Transforms `|> foo` into `|> foo()`, unless inside a `def`; other cases are left as is
+  defp add_parenthesis_in_pipe(_op, %{in_definition: :first_arg}, right), do: right
+
+  defp add_parenthesis_in_pipe(:|>, _state, {fun, [line: line], nil}) when is_atom(fun) do
     {fun, [closing: [line: line], line: line], []}
   end
 
-  defp add_parenthesis_in_pipe(_op, right), do: right
+  defp add_parenthesis_in_pipe(_op, _state, right), do: right
 
   defp unwrap_right({op, meta, [left, right]}, op, _meta, context, acc) do
     left_context = left_op_context(context)
@@ -1681,12 +1690,15 @@ defmodule Code.Formatter do
     {args, acc, state} =
       case args do
         [head | tail] when skip_parens? ->
-          {doc_triplet, state} = arg_to_algebra.(head, tail, state)
+          defstate = if state.in_definition == :opened, do: :first_arg, else: nil
+          {doc_triplet, state} = arg_to_algebra.(head, tail, %{state | in_definition: defstate})
           {tail, [doc_triplet], state}
 
         _ ->
           {args, [], state}
       end
+
+    state = %{state | in_definition: nil}
 
     {args_docs, comments?, state} =
       quoted_to_algebra_with_comments(args, acc, min_line, max_line, state, arg_to_algebra)

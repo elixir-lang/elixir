@@ -1227,5 +1227,31 @@ defmodule Code.Formatter.CallsTest do
       assert_format "foo |> bar 42", "foo |> bar(42)"
       assert_format "foo |> bar |> baz <|> qux |> fin", "foo |> bar() |> baz() <|> qux |> fin()"
     end
+
+    test "definitions" do
+      assert_format(
+        "def foo |> bar, do: foo |> bar",
+        "def foo |> bar, do: foo |> bar()"
+      )
+
+      assert_format(
+        """
+        def foo |> bar do
+          foo |> bar
+        end
+        """,
+        """
+        def foo |> bar do
+          foo |> bar()
+        end
+        """
+      )
+
+      # Known defect: pipes in guard don't have parenthesis added
+      assert_format(
+        "def foo when foo |> bar, do: foo |> bar",
+        "def foo when foo |> bar, do: foo |> bar()"
+      )
+    end
   end
 end
