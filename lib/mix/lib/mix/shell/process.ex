@@ -19,15 +19,20 @@ defmodule Mix.Shell.Process do
 
   ## Examples
 
+      # These examples can be run from within the test files
+
+      # we can send "hello" into the the shell
       Mix.shell().info("hello")
 
+      # then receive the message sent by pattern matching it
       receive do
         {:mix_shell, :info, [msg]} -> msg
       end
       #=> "hello"
 
+      # we can as well respond to prompts in our tests by doing the following
       send(self(), {:mix_shell_input, :prompt, "Pretty cool"})
-      Mix.shell().prompt?("How cool was that?!")
+      Mix.shell().prompt("How cool was that?!")
       #=> "Pretty cool"
 
   """
