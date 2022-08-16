@@ -12,25 +12,28 @@ defmodule Mix.Shell.Process do
 
   This is mainly useful in tests, allowing us to assert
   if given messages were received or not instead of performing
-  checks on some captured IO. Since we need to guarantee a clean
-  slate between tests, there is also a `flush/1` function
+  checks on some captured IO. There is also a `flush/1` function
   responsible for flushing all `:mix_shell` related messages
   from the process inbox.
 
   ## Examples
 
-      # These examples can be run from within the test files
+  The first step is to set the Mix shell to this module:
 
-      # we can send "hello" into the the shell
+      Mix.shell(Mix.Shell.Process)
+
+  Then if your Mix task calls:
+
       Mix.shell().info("hello")
 
-      # then receive the message sent by pattern matching it
-      receive do
-        {:mix_shell, :info, [msg]} -> msg
-      end
-      #=> "hello"
+  You should be able to receive it in your tests as long as
+  they run in the same process:
 
-      # we can as well respond to prompts in our tests by doing the following
+      assert_receive {:mix_shell, :info, [msg]}
+      assert msg == "hello"
+
+  You can respond to prompts in tests as well:
+
       send(self(), {:mix_shell_input, :prompt, "Pretty cool"})
       Mix.shell().prompt("How cool was that?!")
       #=> "Pretty cool"
