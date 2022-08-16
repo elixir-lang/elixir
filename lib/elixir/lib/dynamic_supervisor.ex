@@ -411,6 +411,7 @@ defmodule DynamicSupervisor do
     restart = Map.get(child, :restart, :permanent)
     type = Map.get(child, :type, :worker)
     modules = Map.get(child, :modules, [mod])
+    significant = Map.get(child, :significant, false)
 
     shutdown =
       case type do
@@ -418,23 +419,24 @@ defmodule DynamicSupervisor do
         :supervisor -> Map.get(child, :shutdown, :infinity)
       end
 
-    validate_child(start, restart, shutdown, type, modules)
+    validate_child(start, restart, shutdown, type, modules, significant)
   end
 
   defp validate_child({_, start, restart, shutdown, type, modules}) do
-    validate_child(start, restart, shutdown, type, modules)
+    validate_child(start, restart, shutdown, type, modules, false)
   end
 
   defp validate_child(other) do
     {:invalid_child_spec, other}
   end
 
-  defp validate_child(start, restart, shutdown, type, modules) do
+  defp validate_child(start, restart, shutdown, type, modules, significant) do
     with :ok <- validate_start(start),
          :ok <- validate_restart(restart),
          :ok <- validate_shutdown(shutdown),
          :ok <- validate_type(type),
-         :ok <- validate_modules(modules) do
+         :ok <- validate_modules(modules),
+         :ok <- validate_significant(significant) do
       {:ok, {start, restart, shutdown, type, modules}}
     end
   end
@@ -451,6 +453,9 @@ defmodule DynamicSupervisor do
   defp validate_shutdown(shutdown) when is_integer(shutdown) and shutdown >= 0, do: :ok
   defp validate_shutdown(shutdown) when shutdown in [:infinity, :brutal_kill], do: :ok
   defp validate_shutdown(shutdown), do: {:invalid_shutdown, shutdown}
+
+  defp validate_significant(false), do: :ok
+  defp validate_significant(significant), do: {:invalid_significant, significant}
 
   defp validate_modules(:dynamic), do: :ok
 
@@ -621,12 +626,14 @@ defmodule DynamicSupervisor do
     max_restarts = Map.get(flags, :intensity, 1)
     max_seconds = Map.get(flags, :period, 5)
     strategy = Map.get(flags, :strategy, :one_for_one)
+    auto_shutdown = Map.get(flags, :auto_shutdown, :never)
 
     with :ok <- validate_strategy(strategy),
          :ok <- validate_restarts(max_restarts),
          :ok <- validate_seconds(max_seconds),
          :ok <- validate_dynamic(max_children),
-         :ok <- validate_extra_arguments(extra_arguments) do
+         :ok <- validate_extra_arguments(extra_arguments),
+         :ok <- validate_auto_shutdown(auto_shutdown) do
       {:ok,
        %{
          state
@@ -654,6 +661,11 @@ defmodule DynamicSupervisor do
 
   defp validate_extra_arguments(list) when is_list(list), do: :ok
   defp validate_extra_arguments(extra), do: {:error, {:invalid_extra_arguments, extra}}
+
+  defp validate_auto_shutdown(auto_shutdown) when auto_shutdown in [:never], do: :ok
+
+  defp validate_auto_shutdown(auto_shutdown),
+    do: {:error, {:invalid_auto_shutdown, auto_shutdown}}
 
   @impl true
   def handle_call(:which_children, _from, state) do

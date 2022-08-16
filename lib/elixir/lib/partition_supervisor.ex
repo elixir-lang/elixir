@@ -200,7 +200,16 @@ defmodule PartitionSupervisor do
         Map.merge(map, %{id: partition, start: start, modules: modules})
       end
 
-    {init_opts, start_opts} = Keyword.split(opts, [:strategy, :max_seconds, :max_restarts])
+    auto_shutdown = Keyword.get(opts, :auto_shutdown, :never)
+
+    unless auto_shutdown == :never do
+      raise ArgumentError,
+            "the :auto_shutdown option must be :never, got: #{inspect(auto_shutdown)}"
+    end
+
+    {init_opts, start_opts} =
+      Keyword.split(opts, [:strategy, :max_seconds, :max_restarts, :auto_shutdown])
+
     Supervisor.start_link(__MODULE__, {name, partitions, children, init_opts}, start_opts)
   end
 
