@@ -99,6 +99,9 @@ defmodule DynamicSupervisorTest do
       assert DynamicSupervisor.start_link(Simple, {:ok, %{extra_arguments: -1}}) ==
                {:error, {:supervisor_data, {:invalid_extra_arguments, -1}}}
 
+      assert DynamicSupervisor.start_link(Simple, {:ok, %{auto_shutdown: :any_significant}}) ==
+               {:error, {:supervisor_data, {:invalid_auto_shutdown, :any_significant}}}
+
       assert DynamicSupervisor.start_link(Simple, :unknown) ==
                {:error, {:bad_return, {Simple, :init, :unknown}}}
 
@@ -236,6 +239,13 @@ defmodule DynamicSupervisorTest do
                shutdown: -1
              }) ==
                {:error, {:invalid_shutdown, -1}}
+
+      assert DynamicSupervisor.start_child(:not_used, %{
+               id: 1,
+               start: {Task, :foo, [:bar]},
+               significant: true
+             }) ==
+               {:error, {:invalid_significant, true}}
     end
 
     test "with different returns" do
