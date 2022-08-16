@@ -34,7 +34,7 @@ defmodule Mix.Task do
   For example, if the `args` in the above `echo` task were
   inspected, you might see something like this:
 
-      mix echo 'A and B' C --test
+      $ mix echo 'A and B' C --test
       ["A and B", "C", "--test"]
 
   Define the `@shortdoc` attribute if you wish to make the task
@@ -332,7 +332,7 @@ defmodule Mix.Task do
   If there exists a task matching the given task name and it has not yet been
   invoked, this will run the task with the given `args` and return the result.
 
-  If there is an [alias](https://hexdocs.pm/mix/Mix.html#module-aliases) defined
+  If there is an [alias](Mix.html#module-aliases) defined
   for the given task name, the alias will be invoked instead of the original
   task.
 
