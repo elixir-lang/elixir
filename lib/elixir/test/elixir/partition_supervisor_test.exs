@@ -119,6 +119,18 @@ defmodule PartitionSupervisorTest do
                      )
                    end
     end
+
+    test "raises with bad auto_shutdown" do
+      assert_raise ArgumentError,
+                   "the :auto_shutdown option must be :never, got: :any_significant",
+                   fn ->
+                     PartitionSupervisor.start_link(
+                       child_spec: DynamicSupervisor,
+                       name: Foo,
+                       auto_shutdown: :any_significant
+                     )
+                   end
+    end
   end
 
   describe "stop/1" do

@@ -145,6 +145,12 @@ defmodule Supervisor do
       and such. It is set automatically based on the `:start` value and it is rarely
       changed in practice.
 
+    * `:significant` - a boolean indicating if the child process should be
+      considered significant with regard to automatic shutdown.  Only `:transient`
+      and `:temporary` child processes can be marked as significant. This key is
+      optional and defaults to `false`. See section "Automatic shutdown" below
+      for more details.
+
   Let's understand what the `:shutdown` and `:restart` options control.
 
   ### Shutdown values (:shutdown)
@@ -302,6 +308,10 @@ defmodule Supervisor do
     * `:max_seconds` - the time frame in which `:max_restarts` applies.
       Defaults to `5`.
 
+    * `:auto_shutdown` - the automatic shutdown option. It can be
+      `:never`, `:any_significant`, or `:all_significant`. Optional.
+      See the "Automatic shutdown" section.
+
     * `:name` - a name to register the supervisor process. Supported values are
       explained in the "Name registration" section in the documentation for
       `GenServer`. Optional.
@@ -326,6 +336,27 @@ defmodule Supervisor do
   is determined by the `:restart` option.
 
   To efficiently supervise children started dynamically, see `DynamicSupervisor`.
+
+  ### Automatic shutdown
+
+  Supervisors have the ability to automatically shut themselves down when child
+  processes marked as `:significant` exit.
+
+  Supervisors support different automatic shutdown options (through
+  the `:auto_shutdown` option, as seen above):
+
+    * `:never` - this is the default, automatic shutdown is disabled.
+
+    * `:any_significant` - if any significant child process exits, the supervisor
+    will automatically shut down its children, then itself.
+
+    * `:all_significant` - when all significant child processes have exited,
+    the supervisor will automatically shut down its children, then itself.
+
+  Only `:transient` and `:temporary` child processes can be marked as significant,
+  and this configuration affects the behavior. Significant `:transient` child
+  processes must exit normally for automatic shutdown to be considered, where
+  `:temporary` child processes may exit for any reason.
 
   ### Name registration
 
@@ -521,7 +552,8 @@ defmodule Supervisor do
   @type sup_flags() :: %{
           strategy: strategy(),
           intensity: non_neg_integer(),
-          period: pos_integer()
+          period: pos_integer(),
+          auto_shutdown: auto_shutdown()
         }
 
   @typedoc "The supervisor reference"
@@ -532,6 +564,7 @@ defmodule Supervisor do
           {:strategy, strategy}
           | {:max_restarts, non_neg_integer}
           | {:max_seconds, pos_integer}
+          | {:auto_shutdown, auto_shutdown}
 
   @typedoc "Supported restart options"
   @type restart :: :permanent | :transient | :temporary
@@ -541,6 +574,9 @@ defmodule Supervisor do
 
   @typedoc "Supported strategies"
   @type strategy :: :one_for_one | :one_for_all | :rest_for_one
+
+  @typedoc "Supported automatic shutdown options"
+  @type auto_shutdown :: :never | :any_significant | :all_significant
 
   @typedoc """
   Supervisor type.
@@ -561,7 +597,8 @@ defmodule Supervisor do
           optional(:restart) => restart(),
           optional(:shutdown) => shutdown(),
           optional(:type) => type(),
-          optional(:modules) => [module()] | :dynamic
+          optional(:modules) => [module()] | :dynamic,
+          optional(:significant) => boolean()
         }
 
   @doc """
@@ -611,7 +648,9 @@ defmodule Supervisor do
           [option | init_option]
         ) :: {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
   def start_link(children, options) when is_list(children) do
-    {sup_opts, start_opts} = Keyword.split(options, [:strategy, :max_seconds, :max_restarts])
+    {sup_opts, start_opts} =
+      Keyword.split(options, [:strategy, :max_seconds, :max_restarts, :auto_shutdown])
+
     start_link(Supervisor.Default, init(children, sup_opts), start_opts)
   end
 
@@ -645,6 +684,9 @@ defmodule Supervisor do
 
     * `:max_seconds` - the time frame in seconds in which `:max_restarts`
       applies. Defaults to `5`.
+
+    * `:auto_shutdown` - the automatic shutdown option. It can be either
+      `:never`, `:any_significant`, or `:all_significant`
 
   The `:strategy` option is required and by default a maximum of 3 restarts
   is allowed within 5 seconds. Check the `Supervisor` module for a detailed
@@ -681,7 +723,15 @@ defmodule Supervisor do
 
     intensity = Keyword.get(options, :max_restarts, 3)
     period = Keyword.get(options, :max_seconds, 5)
-    flags = %{strategy: strategy, intensity: intensity, period: period}
+    auto_shutdown = Keyword.get(options, :auto_shutdown, :never)
+
+    flags = %{
+      strategy: strategy,
+      intensity: intensity,
+      period: period,
+      auto_shutdown: auto_shutdown
+    }
+
     {:ok, {flags, Enum.map(children, &init_child/1)}}
   end
 
@@ -805,7 +855,8 @@ defmodule Supervisor do
 
   def child_spec(module_or_map, overrides) do
     Enum.reduce(overrides, init_child(module_or_map), fn
-      {key, value}, acc when key in [:id, :start, :restart, :shutdown, :type, :modules] ->
+      {key, value}, acc
+      when key in [:id, :start, :restart, :shutdown, :type, :modules, :significant] ->
         Map.put(acc, key, value)
 
       {key, _value}, _acc ->
