@@ -3970,6 +3970,7 @@ defmodule Kernel do
       "Hello world!"
 
   """
+  @doc since: "1.14.0"
   defmacro (..) do
     range(__CALLER__.context, 0, -1, 1)
   end
