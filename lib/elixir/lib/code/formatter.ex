@@ -702,6 +702,8 @@ defmodule Code.Formatter do
     right_context = right_op_context(context)
     max_line = line(meta)
 
+    right_arg = add_parenthesis_in_pipe(op, right_arg)
+
     {pipes, min_line} =
       unwrap_pipes(left_arg, meta, left_context, [{{op, right_context}, right_arg}])
 
@@ -821,6 +823,7 @@ defmodule Code.Formatter do
        when op in @pipeline_operators do
     left_context = left_op_context(context)
     right_context = right_op_context(context)
+    right = add_parenthesis_in_pipe(op, right)
     unwrap_pipes(left, meta, left_context, [{{op, right_context}, right} | acc])
   end
 
@@ -833,6 +836,13 @@ defmodule Code.Formatter do
 
     {[{{:root, context}, left} | acc], min_line}
   end
+
+  # Transforms `|> foo` into `|> foo()`; other cases are left as is
+  defp add_parenthesis_in_pipe(:|>, {fun, [line: line], nil}) when is_atom(fun) do
+    {fun, [closing: [line: line], line: line], []}
+  end
+
+  defp add_parenthesis_in_pipe(_op, right), do: right
 
   defp unwrap_right({op, meta, [left, right]}, op, _meta, context, acc) do
     left_context = left_op_context(context)

@@ -1220,4 +1220,12 @@ defmodule Code.Formatter.CallsTest do
       assert_format "expr[[foo: bar, baz: bat]]", "expr[[foo: bar, baz: bat]]"
     end
   end
+
+  describe "pipe" do
+    test "to local functions" do
+      assert_format "foo |> bar", "foo |> bar()", locals_without_parens: [bar: :*]
+      assert_format "foo |> bar 42", "foo |> bar(42)"
+      assert_format "foo |> bar |> baz <|> qux |> fin", "foo |> bar() |> baz() <|> qux |> fin()"
+    end
+  end
 end
