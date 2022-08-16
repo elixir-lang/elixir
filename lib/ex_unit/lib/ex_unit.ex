@@ -361,7 +361,7 @@ defmodule ExUnit do
   Returns a map containing the total number of tests, the number
   of failures, the number of excluded tests and the number of skipped tests.
   """
-  @spec run(list(atom)) :: suite_result()
+  @spec run([module()]) :: suite_result()
   def run(additional_modules \\ []) do
     for module <- additional_modules do
       module_attributes = module.__info__(:attributes)
