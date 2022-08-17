@@ -197,7 +197,7 @@ Enum.slice(letters, 0..5//2)
 
 ```elixir
 binary_slice("Elixir", 1..5//2)
-#=> "lx"
+#=> "lxr"
 ```
 
 ## Expression-based inspection and `Inspect` improvements
