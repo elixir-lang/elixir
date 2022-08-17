@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Archive.Uninstall do
   @moduledoc """
   Uninstalls local archives.
 
-      mix archive.uninstall archive.ez
+      $ mix archive.uninstall archive.ez
 
   ## Command line options
     * `--force` - forces uninstallation without a shell prompt; primarily

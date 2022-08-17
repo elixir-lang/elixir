@@ -28,7 +28,7 @@ defmodule ExUnit do
   command line. Assuming you named the file `assertion_test.exs`,
   you can run it as:
 
-      elixir assertion_test.exs
+      $ elixir assertion_test.exs
 
   ## Case, Callbacks and Assertions
 

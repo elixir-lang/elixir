@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Archive.Build do
   option can be used to archive any directory. For example,
   `mix archive.build` with no options translates to:
 
-      mix archive.build -i _build/ENV/lib/APP -o APP-VERSION.ez
+      $ mix archive.build -i _build/ENV/lib/APP -o APP-VERSION.ez
 
   ## Command line options
 

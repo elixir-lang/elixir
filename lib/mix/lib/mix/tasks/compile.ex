@@ -37,12 +37,12 @@ defmodule Mix.Tasks.Compile do
   To see documentation for each specific compiler, you must
   invoke `help` directly for the compiler command:
 
-      mix help compile.elixir
-      mix help compile.erlang
+      $ mix help compile.elixir
+      $ mix help compile.erlang
 
   You can get a list of all compilers by running:
 
-      mix compile --list
+      $ mix compile --list
 
   ## Command line options
 

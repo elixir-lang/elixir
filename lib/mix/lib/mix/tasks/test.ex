@@ -18,18 +18,18 @@ defmodule Mix.Tasks.Test do
   A list of files and/or directories can be given after the task
   name in order to select the files to run:
 
-      mix test test/some/particular/file_test.exs
-      mix test test/some/particular/dir
+      $ mix test test/some/particular/file_test.exs
+      $ mix test test/some/particular/dir
 
   Tests in umbrella projects can be run from the root by specifying
   the full suite path, including `apps/my_app/test`, in which case
   recursive tests for other child apps will be skipped completely:
 
       # To run all tests for my_app from the umbrella root
-      mix test apps/my_app/test
+      $ mix test apps/my_app/test
 
       # To run a given test file on my_app from the umbrella root
-      mix test apps/my_app/test/some/particular/file_test.exs
+      $ mix test apps/my_app/test/some/particular/file_test.exs
 
   ## Understanding test results
 
@@ -88,7 +88,7 @@ defmodule Mix.Tasks.Test do
   If you want to re-run only this test, all you need to do is to
   copy the line above and paste it in front of `mix test`:
 
-      mix test test/foo_test.exs:5
+      $ mix test test/foo_test.exs:5
 
   Then we show the error message, code snippet, and general information
   about the failed test:
@@ -213,7 +213,7 @@ defmodule Mix.Tasks.Test do
   explicitly enabled for the current user in the registry by running
   the following command:
 
-      reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
+      $ reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
 
   After running the command above, you must restart your current console.
 
@@ -229,13 +229,13 @@ defmodule Mix.Tasks.Test do
   Then, whenever desired, those tests could be included in the run via the
   `--include` option:
 
-      mix test --include external:true
+      $ mix test --include external:true
 
   The example above will run all tests that have the external option set to
   `true`. It is also possible to include all examples that have a given tag,
   regardless of its value:
 
-      mix test --include external
+      $ mix test --include external
 
   Note that all tests are included by default, so unless they are excluded
   first (either in the test helper or via the `--exclude` option) the
@@ -244,30 +244,30 @@ defmodule Mix.Tasks.Test do
   For this reason, Mix also provides an `--only` option that excludes all
   tests and includes only the given ones:
 
-      mix test --only external
+      $ mix test --only external
 
   Which is similar to:
 
-      mix test --include external --exclude test
+      $ mix test --include external --exclude test
 
   It differs in that the test suite will fail if no tests are executed when the `--only` option is used.
 
   In case a single file is being tested, it is possible to pass one or more specific
   line numbers to run only those given tests:
 
-      mix test test/some/particular/file_test.exs:12
+      $ mix test test/some/particular/file_test.exs:12
 
   Which is equivalent to:
 
-      mix test --exclude test --include line:12 test/some/particular/file_test.exs
+      $ mix test --exclude test --include line:12 test/some/particular/file_test.exs
 
   Or:
 
-      mix test test/some/particular/file_test.exs:12:24
+      $ mix test test/some/particular/file_test.exs:12:24
 
   Which is equivalent to:
 
-      mix test --exclude test --include line:12 --include line:24 test/some/particular/file_test.exs
+      $ mix test --exclude test --include line:12 --include line:24 test/some/particular/file_test.exs
 
   If a given line starts a `describe` block, that line filter runs all tests in it.
   Otherwise, it runs the closest test on or before the given line number.
@@ -335,10 +335,10 @@ defmodule Mix.Tasks.Test do
   For example, to split a test suite into 4 partitions and run them, you would
   use the following commands:
 
-      MIX_TEST_PARTITION=1 mix test --partitions 4
-      MIX_TEST_PARTITION=2 mix test --partitions 4
-      MIX_TEST_PARTITION=3 mix test --partitions 4
-      MIX_TEST_PARTITION=4 mix test --partitions 4
+      $ MIX_TEST_PARTITION=1 mix test --partitions 4
+      $ MIX_TEST_PARTITION=2 mix test --partitions 4
+      $ MIX_TEST_PARTITION=3 mix test --partitions 4
+      $ MIX_TEST_PARTITION=4 mix test --partitions 4
 
   The test files are sorted upfront in a round-robin fashion. Note the partition
   itself is given as an environment variable so it can be accessed in config files
@@ -373,7 +373,7 @@ defmodule Mix.Tasks.Test do
   or similar to emit newlines whenever there is a change, which will cause your test
   suite to re-run:
 
-      fswatch lib test | mix test --listen-on-stdin
+      $ fswatch lib test | mix test --listen-on-stdin
 
   This can be combined with the `--stale` option to re-run only the test files that
   have changed as well as the tests that have gone stale due to changes in `lib`.

@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Eval do
   @moduledoc """
   Evaluates the given code within a configured application.
 
-      mix eval "IO.puts(1 + 2)"
+      $ mix eval "IO.puts(1 + 2)"
 
   The given code is evaluated after the current application
   has been configured, but without loading nor starting it.

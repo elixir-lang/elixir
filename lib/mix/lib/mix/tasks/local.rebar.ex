@@ -13,7 +13,7 @@ defmodule Mix.Tasks.Local.Rebar do
   However, a URL can be given as an argument, usually for an existing
   local copy of Rebar:
 
-      mix local.rebar rebar3 path/to/rebar
+      $ mix local.rebar rebar3 path/to/rebar
 
   The local copy is stored in your `MIX_HOME` (defaults to `~/.mix`)
   according to the current Elixir. The installed version of Rebar will

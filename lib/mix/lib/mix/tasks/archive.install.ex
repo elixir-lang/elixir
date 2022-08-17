@@ -10,28 +10,28 @@ defmodule Mix.Tasks.Archive.Install do
   root directory (created with `mix archive.build`), then the archive
   will be installed locally. For example:
 
-      mix do archive.build + archive.install
+      $ mix do archive.build + archive.install
 
   If an argument is provided, it should be a local path to a
   prebuilt archive, a Git repository, a GitHub repository, or a Hex
   package.
 
-      mix archive.install archive.ez
-      mix archive.install path/to/archive.ez
-      mix archive.install git https://path/to/git/repo
-      mix archive.install git https://path/to/git/repo branch git_branch
-      mix archive.install git https://path/to/git/repo tag git_tag
-      mix archive.install git https://path/to/git/repo ref git_ref
-      mix archive.install github user/project
-      mix archive.install github user/project branch git_branch
-      mix archive.install github user/project tag git_tag
-      mix archive.install github user/project ref git_ref
-      mix archive.install hex hex_package
-      mix archive.install hex hex_package 1.2.3
+      $ mix archive.install archive.ez
+      $ mix archive.install path/to/archive.ez
+      $ mix archive.install git https://path/to/git/repo
+      $ mix archive.install git https://path/to/git/repo branch git_branch
+      $ mix archive.install git https://path/to/git/repo tag git_tag
+      $ mix archive.install git https://path/to/git/repo ref git_ref
+      $ mix archive.install github user/project
+      $ mix archive.install github user/project branch git_branch
+      $ mix archive.install github user/project tag git_tag
+      $ mix archive.install github user/project ref git_ref
+      $ mix archive.install hex hex_package
+      $ mix archive.install hex hex_package 1.2.3
 
   After installation, the tasks in the archive are available locally:
 
-      mix some_task
+      $ mix some_task
 
   Note that installing via Git, GitHub, or Hex fetches the source
   of the archive and builds it, while using local path uses a pre-built archive.

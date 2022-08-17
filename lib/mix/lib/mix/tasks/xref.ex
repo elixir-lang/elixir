@@ -135,19 +135,19 @@ defmodule Mix.Tasks.Xref do
   property, for example:
 
       # To show all compile-time relationships
-      mix xref graph --label compile
+      $ mix xref graph --label compile
 
       # To get the tree that depend on lib/foo.ex at compile time
-      mix xref graph --label compile --sink lib/foo.ex
+      $ mix xref graph --label compile --sink lib/foo.ex
 
       # To get all files that depend on lib/foo.ex at compile time
-      mix xref graph --label compile --sink lib/foo.ex --only-nodes
+      $ mix xref graph --label compile --sink lib/foo.ex --only-nodes
 
       # To get all paths between two files
-      mix xref graph --source lib/foo.ex --sink lib/bar.ex
+      $ mix xref graph --source lib/foo.ex --sink lib/bar.ex
 
       # To show general statistics about the graph
-      mix xref graph --format stats
+      $ mix xref graph --format stats
 
   ### Understanding the printed graph
 

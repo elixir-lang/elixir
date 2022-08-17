@@ -10,27 +10,27 @@ defmodule Mix.Tasks.Escript.Install do
   (created with `mix escript.build`), then the escript will be installed
   locally. For example:
 
-      mix do escript.build + escript.install
+      $ mix do escript.build + escript.install
 
   If an argument is provided, it should be a local path to a prebuilt escript,
   a Git repository, a GitHub repository, or a Hex package.
 
-      mix escript.install escript
-      mix escript.install path/to/escript
-      mix escript.install git https://path/to/git/repo
-      mix escript.install git https://path/to/git/repo branch git_branch
-      mix escript.install git https://path/to/git/repo tag git_tag
-      mix escript.install git https://path/to/git/repo ref git_ref
-      mix escript.install github user/project
-      mix escript.install github user/project branch git_branch
-      mix escript.install github user/project tag git_tag
-      mix escript.install github user/project ref git_ref
-      mix escript.install hex hex_package
-      mix escript.install hex hex_package 1.2.3
+      $ mix escript.install escript
+      $ mix escript.install path/to/escript
+      $ mix escript.install git https://path/to/git/repo
+      $ mix escript.install git https://path/to/git/repo branch git_branch
+      $ mix escript.install git https://path/to/git/repo tag git_tag
+      $ mix escript.install git https://path/to/git/repo ref git_ref
+      $ mix escript.install github user/project
+      $ mix escript.install github user/project branch git_branch
+      $ mix escript.install github user/project tag git_tag
+      $ mix escript.install github user/project ref git_ref
+      $ mix escript.install hex hex_package
+      $ mix escript.install hex hex_package 1.2.3
 
   After installation, the escript can be invoked as
 
-      ~/.mix/escripts/foo
+      $ ~/.mix/escripts/foo
 
   For convenience, consider adding `~/.mix/escripts` directory to your
   `PATH` environment variable. For more information, check the wikipedia
