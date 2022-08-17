@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Loadconfig do
   @moduledoc """
   Loads and persists the given configuration.
 
-      mix loadconfig path/to/config.exs
+      $ mix loadconfig path/to/config.exs
 
   Any configuration file loaded with `loadconfig` is treated
   as a compile-time configuration.

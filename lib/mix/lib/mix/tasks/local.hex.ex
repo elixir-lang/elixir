@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Local.Hex do
   @moduledoc """
   Installs Hex locally.
 
-      mix local.hex [VERSION]
+      $ mix local.hex [VERSION]
 
   By default the latest compatible version of Hex will be installed, unless
   `VERSION` is specified.
@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Local.Hex do
   If installing a precompiled Hex does not work, you can compile and install
   Hex directly with this command:
 
-      mix archive.install github hexpm/hex branch latest
+      $ mix archive.install github hexpm/hex branch latest
 
   ## Command line options
 

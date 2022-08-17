@@ -9,22 +9,22 @@ defmodule Mix.Tasks.Cmd do
 
   For example, you can invoke an external command such as make:
 
-      mix cmd make
+      $ mix cmd make
 
   By passing the `--cd` flag before the command, you can also force
   the command to run in a specific directory:
 
-      mix cmd --cd "third-party" make
+      $ mix cmd --cd "third-party" make
 
   This task is also useful in umbrella applications to execute a command
   on each child app:
 
-      mix cmd pwd
+      $ mix cmd pwd
 
   You can limit which apps the cmd runs in by using `mix do` with the `--app`
   option:
 
-      mix do --app app1 --app app2 cmd pwd
+      $ mix do --app app1 --app app2 cmd pwd
 
   The tasks aborts whenenever a command exits with a non-zero status.
 

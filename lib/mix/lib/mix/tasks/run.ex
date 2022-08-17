@@ -14,11 +14,11 @@ defmodule Mix.Tasks.Run do
   additional options. For example, to run a script within the
   current application, you may pass a filename as argument:
 
-      mix run my_app_script.exs arg1 arg2 arg3
+      $ mix run my_app_script.exs arg1 arg2 arg3
 
   Code to be executed can also be passed inline with the `-e` option:
 
-      mix run -e "DbUtils.delete_old_records()" -- arg1 arg2 arg3
+      $ mix run -e "DbUtils.delete_old_records()" -- arg1 arg2 arg3
 
   In both cases, the command-line arguments for the script or expression
   are available in `System.argv/0`. This mirror the command line interface
@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Run do
   For starting long running systems, one typically passes the `--no-halt`
   option:
 
-      mix run --no-halt
+      $ mix run --no-halt
 
   The `--no-start` option can also be given and the current application,
   nor its dependencies will be started. Alternatively, you may use
@@ -37,7 +37,7 @@ defmodule Mix.Tasks.Run do
   If you need to pass options to the Elixir executable at the same time
   you use `mix run`, it can be done as follows:
 
-      elixir --sname hello -S mix run --no-halt
+      $ elixir --sname hello -S mix run --no-halt
 
   This task is automatically re-enabled, so it can be called multiple times
   with different arguments.

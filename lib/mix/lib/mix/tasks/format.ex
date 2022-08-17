@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Format do
   @moduledoc """
   Formats the given files and patterns.
 
-      mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
+      $ mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
   If any of the files is `-`, then the output is read from stdin
   and written to stdout.
@@ -78,7 +78,7 @@ defmodule Mix.Tasks.Format do
   such option is not available in your editor of choice, adding the required
   integration is usually a matter of invoking:
 
-      cd $project && mix format $file
+      $ cd $project && mix format $file
 
   where `$file` refers to the current file and `$project` is the root of your
   project.

@@ -7,7 +7,7 @@ defmodule Mix.Tasks.App.Tree do
   @moduledoc """
   Prints the application tree.
 
-      mix app.tree --exclude logger --exclude elixir
+      $ mix app.tree --exclude logger --exclude elixir
 
   If no application is given, it uses the current application defined
   in the `mix.exs` file.
