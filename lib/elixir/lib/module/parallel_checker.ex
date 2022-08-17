@@ -53,11 +53,12 @@ defmodule Module.ParallelChecker do
 
     spawned =
       spawn(fn ->
-        Process.link(pid)
         mon_ref = Process.monitor(pid)
 
         receive do
           {^ref, :cache, ets} ->
+            Process.link(pid)
+
             module_map =
               if is_map(info) do
                 info
