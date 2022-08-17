@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Escript.Uninstall do
   @moduledoc """
   Uninstalls local escripts:
 
-      mix escript.uninstall escript_name
+      $ mix escript.uninstall escript_name
 
   ## Command line options
     * `--force` - forces uninstallation without a shell prompt; primarily

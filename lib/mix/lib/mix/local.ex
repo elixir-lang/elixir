@@ -188,7 +188,7 @@ defmodule Mix.Local do
 
     Alternatively, you can compile and install Hex directly with this command:
 
-        mix archive.install github hexpm/hex branch latest
+        $ mix archive.install github hexpm/hex branch latest
     """
   end
 

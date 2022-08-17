@@ -17,9 +17,9 @@ defmodule Mix.Tasks.Profile.Cprof do
 
   To profile the code, you can use syntax similar to the `mix run` task:
 
-      mix profile.cprof -e Hello.world
-      mix profile.cprof -e "[1, 2, 3] |> Enum.reverse |> Enum.map(&Integer.to_string/1)"
-      mix profile.cprof my_script.exs arg1 arg2 arg3
+      $ mix profile.cprof -e Hello.world
+      $ mix profile.cprof -e "[1, 2, 3] |> Enum.reverse |> Enum.map(&Integer.to_string/1)"
+      $ mix profile.cprof my_script.exs arg1 arg2 arg3
 
   This task is automatically re-enabled, so you can profile multiple times
   in the same Mix invocation.

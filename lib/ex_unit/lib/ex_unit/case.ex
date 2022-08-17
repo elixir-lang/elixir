@@ -184,7 +184,7 @@ defmodule ExUnit.Case do
   set to `true`. This behaviour can be reversed with the `:include` option
   which is usually passed through the command line:
 
-      mix test --include external:true
+      $ mix test --include external:true
 
   Run `mix help test` for more information on how to run filters via Mix.
 
@@ -421,11 +421,11 @@ defmodule ExUnit.Case do
 
   When using Mix, you can run all tests in a describe block by name:
 
-      mix test --only describe:"String.capitalize/1"
+      $ mix test --only describe:"String.capitalize/1"
 
   or by passing the exact line the describe block starts on:
 
-      mix test path/to/file:123
+      $ mix test path/to/file:123
 
   Note describe blocks cannot be nested. Instead of relying on hierarchy
   for composition, developers should build on top of named setups. For

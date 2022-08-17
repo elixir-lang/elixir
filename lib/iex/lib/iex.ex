@@ -44,7 +44,7 @@ defmodule IEx do
   it must be explicitly enabled for the current user in the registry by
   running the following command:
 
-      reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
+      $ reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1
 
   After running the command above, you must restart your current console.
 
@@ -53,7 +53,7 @@ defmodule IEx do
   It is possible to get shell history by passing some options that enable it
   in the VM. This can be done on a per-need basis when starting IEx:
 
-      iex --erl "-kernel shell_history enabled"
+      $ iex --erl "-kernel shell_history enabled"
 
   If you would rather enable it on your system as a whole, you can use
   the `ERL_AFLAGS` environment variable and make sure that it is set
@@ -61,15 +61,15 @@ defmodule IEx do
 
   On Unix-like / Bash:
 
-      export ERL_AFLAGS="-kernel shell_history enabled"
+      $ export ERL_AFLAGS="-kernel shell_history enabled"
 
   On Windows:
 
-      set ERL_AFLAGS "-kernel shell_history enabled"
+      $ set ERL_AFLAGS "-kernel shell_history enabled"
 
   On Windows 10 / PowerShell:
 
-      $env:ERL_AFLAGS = "-kernel shell_history enabled"
+      $ $env:ERL_AFLAGS = "-kernel shell_history enabled"
 
   ## Expressions in IEx
 
@@ -208,8 +208,8 @@ defmodule IEx do
   When using `dbg` or breakpoints with tests, remember to pass the
   `--trace` to `mix test` to avoid running into timeouts:
 
-      iex -S mix test --trace
-      iex -S mix test path/to/file:line --trace
+      $ iex -S mix test --trace
+      $ iex -S mix test path/to/file:line --trace
 
   ## The User switch command
 
@@ -661,8 +661,8 @@ defmodule IEx do
   the `iex` command and pass the `--trace` to `mix test` to avoid running
   into timeouts:
 
-      iex -S mix test --trace
-      iex -S mix test path/to/file:line --trace
+      $ iex -S mix test --trace
+      $ iex -S mix test path/to/file:line --trace
 
   """
   defmacro pry() do
@@ -838,8 +838,8 @@ defmodule IEx do
   the `iex` command and pass the `--trace` to `mix test` to avoid running
   into timeouts:
 
-      iex -S mix test --trace
-      iex -S mix test path/to/file:line --trace
+      $ iex -S mix test --trace
+      $ iex -S mix test path/to/file:line --trace
 
   """
   @doc since: "1.5.0"

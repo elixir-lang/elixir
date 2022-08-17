@@ -8,7 +8,7 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      mix new PATH [--app APP] [--module MODULE] [--sup] [--umbrella]
+      $ mix new PATH [--app APP] [--module MODULE] [--sup] [--umbrella]
 
   A project at the given PATH will be created. The
   application name and module name will be retrieved
@@ -29,21 +29,21 @@ defmodule Mix.Tasks.New do
 
   ## Examples
 
-      mix new hello_world
+      $ mix new hello_world
 
   Is equivalent to:
 
-      mix new hello_world --module HelloWorld
+      $ mix new hello_world --module HelloWorld
 
   To generate an app with a supervision tree and an application callback:
 
-      mix new hello_world --sup
+      $ mix new hello_world --sup
 
   To generate an umbrella application with sub applications:
 
-      mix new hello_world --umbrella
-      cd hello_world/apps
-      mix new child_app
+      $ mix new hello_world --umbrella
+      $ cd hello_world/apps
+      $ mix new child_app
 
   """
 

@@ -7,7 +7,7 @@ defmodule Mix.Tasks.Deps.Tree do
   @moduledoc """
   Prints the dependency tree.
 
-      mix deps.tree
+      $ mix deps.tree
 
   If no dependency is given, it uses the tree defined in the `mix.exs` file.
 
