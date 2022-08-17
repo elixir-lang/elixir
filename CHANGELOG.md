@@ -2,6 +2,9 @@
 
 ## v1.15.0-dev
 
+    iex> 1 + 2
+    4
+
 ### 1. Enhancements
 
 ### 2. Bug fixes
