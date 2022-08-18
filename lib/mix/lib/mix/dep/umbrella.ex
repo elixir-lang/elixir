@@ -59,7 +59,7 @@ defmodule Mix.Dep.Umbrella do
     apps = Enum.map(deps, & &1.app)
 
     Enum.map(deps, fn umbrella_dep ->
-      umbrella_dep = Mix.Dep.Loader.load(umbrella_dep, nil)
+      umbrella_dep = Mix.Dep.Loader.load(umbrella_dep, nil, false)
 
       deps =
         Enum.filter(umbrella_dep.deps, fn dep ->

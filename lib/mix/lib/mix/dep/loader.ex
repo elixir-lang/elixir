@@ -14,8 +14,8 @@ defmodule Mix.Dep.Loader do
   By default, it will filter all dependencies that does not match
   current environment, behaviour can be overridden via options.
   """
-  def children() do
-    mix_children(Mix.Project.config(), []) ++ Mix.Dep.Umbrella.unloaded()
+  def children(locked?) do
+    mix_children(Mix.Project.config(), locked?, []) ++ Mix.Dep.Umbrella.unloaded()
   end
 
   @doc """
@@ -77,7 +77,7 @@ defmodule Mix.Dep.Loader do
   Loads the given dependency information, including its
   latest status and children.
   """
-  def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children) do
+  def load(%Mix.Dep{manager: manager, scm: scm, opts: opts} = dep, children, locked?) do
     # The manager for a child dependency is set based on the following rules:
     #   1. Set in dependency definition
     #   2. From SCM, so that Hex dependencies of a rebar project can be compiled with mix
@@ -92,12 +92,12 @@ defmodule Mix.Dep.Loader do
           {dep, []}
 
         mix?(dep) ->
-          mix_dep(dep, children)
+          mix_dep(dep, children, locked?)
 
         # If not an explicit Rebar or Mix dependency
         # but came from Rebar, assume to be a Rebar dep.
         rebar?(dep) ->
-          rebar_dep(dep, children, manager)
+          rebar_dep(dep, children, manager, locked?)
 
         make?(dep) ->
           make_dep(dep)
@@ -137,35 +137,36 @@ defmodule Mix.Dep.Loader do
 
   ## Helpers
 
-  defp to_dep(tuple, from, manager) do
-    %{with_scm_and_app(tuple) | from: from, manager: manager}
+  defp to_dep(tuple, from, manager, locked?) do
+    %{with_scm_and_app(tuple, locked?) | from: from, manager: manager}
   end
 
-  defp with_scm_and_app({app, opts} = original) when is_atom(app) and is_list(opts) do
-    with_scm_and_app(app, nil, opts, original)
+  defp with_scm_and_app({app, opts} = original, locked?) when is_atom(app) and is_list(opts) do
+    with_scm_and_app(app, nil, opts, original, locked?)
   end
 
-  defp with_scm_and_app({app, req} = original) when is_atom(app) do
+  defp with_scm_and_app({app, req} = original, locked?) when is_atom(app) do
     if is_binary(req) or is_struct(req, Regex) do
-      with_scm_and_app(app, req, [], original)
+      with_scm_and_app(app, req, [], original, locked?)
     else
       invalid_dep_format(original)
     end
   end
 
-  defp with_scm_and_app({app, req, opts} = original) when is_atom(app) and is_list(opts) do
+  defp with_scm_and_app({app, req, opts} = original, locked?)
+       when is_atom(app) and is_list(opts) do
     if is_binary(req) or is_struct(req, Regex) do
-      with_scm_and_app(app, req, opts, original)
+      with_scm_and_app(app, req, opts, original, locked?)
     else
       invalid_dep_format(original)
     end
   end
 
-  defp with_scm_and_app(original) do
+  defp with_scm_and_app(original, _locked?) do
     invalid_dep_format(original)
   end
 
-  defp with_scm_and_app(app, req, opts, original) do
+  defp with_scm_and_app(app, req, opts, original, locked?) do
     unless Keyword.keyword?(opts) do
       invalid_dep_format(original)
     end
@@ -184,7 +185,7 @@ defmodule Mix.Dep.Loader do
     {scm, opts} = get_scm(app, opts)
 
     {scm, opts} =
-      if !scm && Mix.Hex.ensure_installed?(app) do
+      if is_nil(scm) and Mix.Hex.ensure_installed?(locked?) do
         _ = Mix.Hex.start()
         get_scm(app, opts)
       else
@@ -286,7 +287,7 @@ defmodule Mix.Dep.Loader do
     end
   end
 
-  defp mix_dep(%Mix.Dep{app: app, opts: opts} = dep, nil) do
+  defp mix_dep(%Mix.Dep{app: app, opts: opts} = dep, nil, locked?) do
     Mix.Dep.in_dependency(dep, fn _ ->
       config = Mix.Project.config()
 
@@ -313,7 +314,7 @@ defmodule Mix.Dep.Loader do
           [env: Keyword.fetch!(opts, :env)]
         end
 
-      deps = mix_children(config, child_opts) ++ Mix.Dep.Umbrella.unloaded()
+      deps = mix_children(config, locked?, child_opts) ++ Mix.Dep.Umbrella.unloaded()
       {%{dep | opts: opts}, deps}
     end)
   end
@@ -322,15 +323,20 @@ defmodule Mix.Dep.Loader do
   # we just use the dependencies given by the remote converger,
   # we don't need to load the mix.exs at all. We can only do this
   # because umbrella projects are not supported in remotes.
-  defp mix_dep(%Mix.Dep{opts: opts} = dep, children) do
+  defp mix_dep(%Mix.Dep{opts: opts} = dep, children, locked?) do
     from = Path.join(opts[:dest], "mix.exs")
-    deps = Enum.map(children, &to_dep(&1, from, _manager = nil))
+    deps = Enum.map(children, &to_dep(&1, from, _manager = nil, locked?))
     {dep, deps}
   end
 
-  defp rebar_dep(%Mix.Dep{app: app, opts: opts, extra: overrides} = dep, children, manager) do
-    config = File.cd!(opts[:dest], fn -> Mix.Rebar.load_config(".") end)
+  defp rebar_dep(dep, children, manager, locked?) do
+    %Mix.Dep{app: app, opts: opts, extra: overrides} = dep
 
+    if locked? and is_nil(Mix.Rebar.rebar_cmd(manager)) do
+      Mix.Tasks.Local.Rebar.run(["--force"])
+    end
+
+    config = File.cd!(opts[:dest], fn -> Mix.Rebar.load_config(".") end)
     config = Mix.Rebar.apply_overrides(app, config, overrides)
 
     deps =
@@ -339,9 +345,9 @@ defmodule Mix.Dep.Loader do
         # Pass the manager because deps of a Rebar project need
         # to default to Rebar if we cannot chose a manager from
         # files in the dependency
-        Enum.map(children, &to_dep(&1, from, manager))
+        Enum.map(children, &to_dep(&1, from, manager, locked?))
       else
-        rebar_children(config, manager, opts[:dest])
+        rebar_children(config, manager, opts[:dest], locked?)
       end
 
     {%{dep | extra: config}, deps}
@@ -351,22 +357,22 @@ defmodule Mix.Dep.Loader do
     {dep, []}
   end
 
-  defp mix_children(config, opts) do
+  defp mix_children(config, locked?, opts) do
     from = Path.absname("mix.exs")
 
     (config[:deps] || [])
-    |> Enum.map(&to_dep(&1, from, _manager = nil))
+    |> Enum.map(&to_dep(&1, from, _manager = nil, locked?))
     |> split_by_env_and_target({opts[:env], nil})
     |> elem(0)
   end
 
-  defp rebar_children(config, manager, dest) do
+  defp rebar_children(config, manager, dest, locked?) do
     from = Path.absname(Path.join(dest, "rebar.config"))
     overrides = overrides(manager, config)
 
     config
     |> Mix.Rebar.deps()
-    |> Enum.map(fn dep -> %{to_dep(dep, from, manager) | extra: overrides} end)
+    |> Enum.map(fn dep -> %{to_dep(dep, from, manager, locked?) | extra: overrides} end)
   end
 
   defp overrides(:rebar3, config), do: config[:overrides] || []
