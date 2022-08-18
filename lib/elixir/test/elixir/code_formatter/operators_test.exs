@@ -283,7 +283,7 @@ defmodule Code.Formatter.OperatorsTest do
     test "preserves user choice even when it fits" do
       assert_same """
       foo
-      |> bar
+      |> bar()
       """
 
       assert_same """
@@ -300,7 +300,7 @@ defmodule Code.Formatter.OperatorsTest do
 
       good = """
       foo
-      |> bar
+      |> bar()
       """
 
       assert_format bad, good
@@ -518,10 +518,10 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with required parens" do
-      assert_same "(a |> b) ++ (c |> d)"
+      assert_same "(a |> b()) ++ (c |> d())"
       assert_format "a + b |> c + d", "(a + b) |> (c + d)"
       assert_format "a ++ b |> c ++ d", "(a ++ b) |> (c ++ d)"
-      assert_format "a |> b ++ c |> d", "a |> (b ++ c) |> d"
+      assert_format "a |> b ++ c |> d", "a |> (b ++ c) |> d()"
     end
 
     test "with required parens skips on no parens" do

@@ -87,7 +87,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         |> Enum.map(& &1.app)
         |> Mix.Dep.filter_by_name(Mix.Dep.load_and_cache())
         |> Enum.filter(&(not Mix.Dep.ok?(&1)))
-        |> show_not_ok!
+        |> show_not_ok!()
     end
   end
 

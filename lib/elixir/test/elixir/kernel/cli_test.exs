@@ -104,7 +104,7 @@ defmodule Kernel.CLITest do
   end
 
   test "properly parses paths" do
-    root = fixture_path("../../..") |> to_charlist
+    root = fixture_path("../../..") |> to_charlist()
 
     args =
       ~c"-pa \"#{root}/*\" -pz \"#{root}/lib/*\" -e \"IO.inspect(:code.get_path(), limit: :infinity)\""
@@ -204,7 +204,7 @@ defmodule Kernel.CLI.AtExitTest do
   use ExUnit.Case, async: true
 
   test "invokes at_exit callbacks" do
-    assert elixir(fixture_path("at_exit.exs") |> to_charlist) ==
+    assert elixir(fixture_path("at_exit.exs") |> to_charlist()) ==
              "goodbye cruel world with status 1\n"
   end
 end
