@@ -247,8 +247,6 @@ defmodule Mix.Tasks.Deps.Compile do
       "Could not find \"#{manager}\", which is needed to build dependency #{inspect(app)}"
     )
 
-    shell.info("I can install a local copy which is just used by Mix")
-
     install_question =
       "Shall I install #{manager}? (if running non-interactively, " <>
         "use \"mix local.rebar --force\")"
@@ -261,8 +259,8 @@ defmodule Mix.Tasks.Deps.Compile do
       Mix.raise(error_message)
     end
 
-    (Mix.Tasks.Local.Rebar.run([]) && Mix.Rebar.local_rebar_cmd(manager)) ||
-      Mix.raise("\"#{manager}\" installation failed")
+    Mix.Tasks.Local.Rebar.run(["--force"])
+    Mix.Rebar.local_rebar_cmd(manager) || Mix.raise("\"#{manager}\" installation failed")
   end
 
   defp do_make(dep, config) do
