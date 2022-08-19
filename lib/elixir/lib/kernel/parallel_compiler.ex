@@ -241,7 +241,7 @@ defmodule Kernel.ParallelCompiler do
 
   defp write_module_binaries(result, {:compile, path}, timestamp) do
     Enum.flat_map(result, fn
-      {{:module, module}, binary} ->
+      {{:module, module}, binary} when is_binary(binary) ->
         full_path = Path.join(path, Atom.to_string(module) <> ".beam")
         File.write!(full_path, binary)
         if timestamp, do: File.touch!(full_path, timestamp)
@@ -253,7 +253,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp write_module_binaries(result, _output, _timestamp) do
-    for {{:module, module}, _} <- result, do: module
+    for {{:module, module}, binary} when is_binary(binary) <- result, do: module
   end
 
   ## Verification
@@ -268,7 +268,7 @@ defmodule Kernel.ParallelCompiler do
     %{profile: profile, checker: checker} = state
 
     compiled_modules =
-      for {{:module, module}, _} <- result,
+      for {{:module, module}, binary} when is_binary(binary) <- result,
           do: module
 
     runtime_modules =
@@ -471,7 +471,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp count_modules(result) do
-    Enum.count(result, &match?({{:module, _}, _}, &1))
+    Enum.count(result, &match?({{:module, _}, binary} when is_binary(binary), &1))
   end
 
   defp each_cycle_return({kind, modules, warnings}), do: {kind, modules, warnings}
@@ -525,11 +525,7 @@ defmodule Kernel.ParallelCompiler do
         wait_for_messages(queue, new_spawned, waiting, files, result, warnings, state)
 
       {:available, kind, module} ->
-        available =
-          for {pid, {^kind, _, _, ^module, _defining, _deadlock}} <- waiting,
-              do: {pid, :found}
-
-        result = Map.put(result, {kind, module}, true)
+        {available, result} = update_result(result, kind, module, true)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
       {:module_available, child, ref, file, module, binary} ->
@@ -538,11 +534,7 @@ defmodule Kernel.ParallelCompiler do
         # Release the module loader which is waiting for an ack
         send(child, {ref, :ack})
 
-        available =
-          for {pid, {:module, _, _, ^module, _defining, _deadlock}} <- waiting,
-              do: {pid, :found}
-
-        result = Map.put(result, {:module, module}, binary)
+        {available, result} = update_result(result, :module, module, binary)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
 
       # If we are simply requiring files, we do not add to waiting.
@@ -554,13 +546,17 @@ defmodule Kernel.ParallelCompiler do
         # If we already got what we were waiting for, do not put it on waiting.
         # If we're waiting on ourselves, send :found so that we can crash with
         # a better error.
-        {files, waiting} =
-          if Map.has_key?(result, {kind, on}) or on in defining do
+        available_or_pending = Map.get(result, {kind, on}, [])
+
+        {waiting, files, result} =
+          if not is_list(available_or_pending) or on in defining do
             send(child_pid, {ref, :found})
-            {files, waiting}
+            {waiting, files, result}
           else
+            waiting = Map.put(waiting, child_pid, {kind, ref, file_pid, on, defining, deadlock?})
             files = update_timing(files, file_pid, :compiling)
-            {files, Map.put(waiting, child_pid, {kind, ref, file_pid, on, defining, deadlock?})}
+            result = Map.put(result, {kind, on}, [child_pid | available_or_pending])
+            {waiting, files, result}
           end
 
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
@@ -623,6 +619,16 @@ defmodule Kernel.ParallelCompiler do
           wait_for_messages(queue, new_spawned, waiting, new_files, result, warnings, state)
         end
     end
+  end
+
+  defp update_result(result, kind, module, value) do
+    available =
+      case Map.get(result, {kind, module}) do
+        [_ | _] = pids -> Enum.map(pids, &{&1, :found})
+        _ -> []
+      end
+
+    {available, Map.put(result, {kind, module}, value)}
   end
 
   defp delete_waiting(waiting, pid) do
