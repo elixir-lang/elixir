@@ -177,6 +177,24 @@ defmodule Kernel.ParallelCompilerTest do
              end) =~ expected_msg
     end
 
+    test "does not crash with pending monitor message" do
+      {pid, ref} = spawn_monitor(fn -> :ok end)
+
+      [fixture] =
+        write_tmp(
+          "quick_example",
+          quick_example: """
+          defmodule QuickExample do
+          end
+          """
+        )
+
+      assert {:ok, [QuickExample], []} = Kernel.ParallelCompiler.compile([fixture])
+      assert_received {:DOWN, ^ref, _, ^pid, :normal}
+    after
+      purge([QuickExample])
+    end
+
     test "does not hang on missing dependencies" do
       [fixture] =
         write_tmp(
