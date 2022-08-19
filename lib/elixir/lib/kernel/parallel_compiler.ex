@@ -201,7 +201,7 @@ defmodule Kernel.ParallelCompiler do
     timer_ref = Process.send_after(self(), :threshold_check, threshold)
 
     {outcome, state} =
-      spawn_workers(files, 0, [], [], %{}, [], %{
+      spawn_workers(files, %{}, [], [], %{}, [], %{
         dest: Keyword.get(options, :dest),
         each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, [], []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
@@ -309,7 +309,7 @@ defmodule Kernel.ParallelCompiler do
          warnings,
          %{schedulers: schedulers} = state
        )
-       when spawned - length(waiting) >= schedulers do
+       when map_size(spawned) - length(waiting) >= schedulers do
     wait_for_messages(queue, spawned, waiting, files, result, warnings, state)
   end
 
@@ -366,11 +366,12 @@ defmodule Kernel.ParallelCompiler do
     }
 
     files = [file_data | files]
-    spawn_workers(queue, spawned + 1, waiting, files, result, warnings, state)
+    spawned = Map.put(spawned, ref, pid)
+    spawn_workers(queue, spawned, waiting, files, result, warnings, state)
   end
 
   # No more queue, nothing waiting, this cycle is done
-  defp spawn_workers([], 0, [], [], result, warnings, state) do
+  defp spawn_workers([], spawned, [], [], result, warnings, state) when map_size(spawned) == 0 do
     cycle_return = each_cycle_return(state.each_cycle.())
     state = cycle_timing(result, state)
 
@@ -382,7 +383,7 @@ defmodule Kernel.ParallelCompiler do
         verify_modules(result, extra_warnings ++ warnings, [], state)
 
       {:compile, more, extra_warnings} ->
-        spawn_workers(more, 0, [], [], result, extra_warnings ++ warnings, state)
+        spawn_workers(more, %{}, [], [], result, extra_warnings ++ warnings, state)
     end
   end
 
@@ -391,19 +392,20 @@ defmodule Kernel.ParallelCompiler do
   # Single entry, just release it.
   defp spawn_workers(
          [],
-         1,
+         spawned,
          [{_, pid, ref, _, _, _, _}] = waiting,
          [%{pid: pid}] = files,
          result,
          warnings,
          state
-       ) do
-    spawn_workers([{ref, :not_found}], 1, waiting, files, result, warnings, state)
+       )
+       when map_size(spawned) == 1 do
+    spawn_workers([{ref, :not_found}], spawned, waiting, files, result, warnings, state)
   end
 
   # Multiple entries, try to release modules.
   defp spawn_workers([], spawned, waiting, files, result, warnings, state)
-       when length(waiting) == spawned do
+       when length(waiting) == map_size(spawned) do
     # There is potentially a deadlock. We will release modules with
     # the following order:
     #
@@ -524,9 +526,10 @@ defmodule Kernel.ParallelCompiler do
     %{output: output} = state
 
     receive do
-      {:async, process} ->
-        Process.monitor(process)
-        wait_for_messages(queue, spawned + 1, waiting, files, result, warnings, state)
+      {:async, pid} ->
+        ref = Process.monitor(pid)
+        new_spawned = Map.put(spawned, ref, pid)
+        wait_for_messages(queue, new_spawned, waiting, files, result, warnings, state)
 
       {:available, kind, module} ->
         available =
@@ -595,31 +598,36 @@ defmodule Kernel.ParallelCompiler do
         state.each_file.(file, lexical)
         send(child_pid, ref)
 
-        discard_down(child_pid)
-        new_files = discard_and_maybe_log_file(files, child_pid, state)
+        {file, new_spawned, new_files} = discard_file_pid(spawned, files, child_pid)
+        file && maybe_log_file_profile(file, state)
 
-        # Sometimes we may have spurious entries in the waiting list
-        # because someone invoked try/rescue UndefinedFunctionError
+        # We may have spurious entries in the waiting list
+        # if someone invoked try/rescue UndefinedFunctionError
         new_waiting = List.keydelete(waiting, child_pid, 1)
-        spawn_workers(queue, spawned - 1, new_waiting, new_files, result, warnings, state)
+        spawn_workers(queue, new_spawned, new_waiting, new_files, result, warnings, state)
 
       {:file_cancel, child_pid} ->
-        discard_down(child_pid)
-        new_files = Enum.reject(files, &(&1.pid == child_pid))
-        spawn_workers(queue, spawned - 1, waiting, new_files, result, warnings, state)
+        {_file, new_spawned, new_files} = discard_file_pid(spawned, files, child_pid)
+        spawn_workers(queue, new_spawned, waiting, new_files, result, warnings, state)
 
       {:file_error, child_pid, file, {kind, reason, stack}} ->
         print_error(file, kind, reason, stack)
-        discard_down(child_pid)
-        files |> Enum.reject(&(&1.pid == child_pid)) |> terminate()
+        {_file, _new_spawned, new_files} = discard_file_pid(spawned, files, child_pid)
+        terminate(new_files)
         {{:error, [to_error(file, kind, reason, stack)], warnings}, state}
 
-      {:DOWN, ref, :process, pid, reason} ->
+      {:DOWN, ref, :process, pid, reason} when is_map_key(spawned, ref) ->
+        # async spawned processes have no file, so we always have to delete the ref directly
+        spawned = Map.delete(spawned, ref)
         waiting = List.keydelete(waiting, pid, 1)
+        {file, new_spawned, new_files} = discard_file_pid(spawned, files, pid)
 
-        case handle_down(files, ref, reason) do
-          :ok -> wait_for_messages(queue, spawned - 1, waiting, files, result, warnings, state)
-          {:error, errors} -> {{:error, errors, warnings}, state}
+        if file do
+          print_error(file.file, :exit, reason, [])
+          terminate(new_files)
+          {{:error, [to_error(file.file, :exit, reason, [])], warnings}, state}
+        else
+          wait_for_messages(queue, new_spawned, waiting, new_files, result, warnings, state)
         end
     end
   end
@@ -651,28 +659,31 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  defp discard_and_maybe_log_file(files, pid, state) do
-    Enum.reject(files, fn data ->
-      if data.pid == pid do
-        data = update_timing(data, :compiling)
-        data = maybe_warn_long_compilation(data, state)
+  defp discard_file_pid(spawned, files, pid) do
+    case Enum.split_with(files, &(&1.pid == pid)) do
+      {[file], files} ->
+        Process.demonitor(file.ref, [:flush])
+        {file, Map.delete(spawned, file.ref), files}
 
-        if state.profile != :none do
-          compiling = to_padded_ms(data.compiling)
-          waiting = to_padded_ms(data.waiting)
-          relative = Path.relative_to_cwd(data.file)
+      {[], files} ->
+        {nil, spawned, files}
+    end
+  end
 
-          IO.puts(
-            :stderr,
-            "[profile] #{compiling}ms compiling + #{waiting}ms waiting for #{relative}"
-          )
-        end
+  defp maybe_log_file_profile(data, state) do
+    data = update_timing(data, :compiling)
+    data = maybe_warn_long_compilation(data, state)
 
-        true
-      else
-        false
-      end
-    end)
+    if state.profile != :none do
+      compiling = to_padded_ms(data.compiling)
+      waiting = to_padded_ms(data.waiting)
+      relative = Path.relative_to_cwd(data.file)
+
+      IO.puts(
+        :stderr,
+        "[profile] #{compiling}ms compiling + #{waiting}ms waiting for #{relative}"
+      )
+    end
   end
 
   defp to_padded_ms(time) do
@@ -680,28 +691,6 @@ defmodule Kernel.ParallelCompiler do
     |> System.convert_time_unit(:native, :millisecond)
     |> Integer.to_string()
     |> String.pad_leading(6, " ")
-  end
-
-  defp discard_down(pid) do
-    receive do
-      {:DOWN, _, :process, ^pid, _} -> :ok
-    end
-  end
-
-  defp handle_down(_files, _ref, :normal) do
-    :ok
-  end
-
-  defp handle_down(files, ref, reason) do
-    case Enum.find(files, &(&1.ref == ref)) do
-      %{pid: pid, file: file} ->
-        print_error(file, :exit, reason, [])
-        files |> Enum.reject(&(&1.pid == pid)) |> terminate()
-        {:error, [to_error(file, :exit, reason, [])]}
-
-      nil ->
-        :ok
-    end
   end
 
   defp handle_deadlock(waiting, files) do
@@ -742,7 +731,13 @@ defmodule Kernel.ParallelCompiler do
 
   defp terminate(files) do
     for %{pid: pid} <- files, do: Process.exit(pid, :kill)
-    for %{pid: pid} <- files, do: discard_down(pid)
+
+    for %{pid: pid} <- files do
+      receive do
+        {:DOWN, _, :process, ^pid, _} -> :ok
+      end
+    end
+
     :ok
   end
 
