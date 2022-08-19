@@ -201,7 +201,7 @@ defmodule Kernel.ParallelCompiler do
     timer_ref = Process.send_after(self(), :threshold_check, threshold)
 
     {outcome, state} =
-      spawn_workers(files, %{}, [], [], %{}, [], %{
+      spawn_workers(files, %{}, %{}, [], %{}, [], %{
         dest: Keyword.get(options, :dest),
         each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, [], []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
@@ -309,19 +309,19 @@ defmodule Kernel.ParallelCompiler do
          warnings,
          %{schedulers: schedulers} = state
        )
-       when map_size(spawned) - length(waiting) >= schedulers do
+       when map_size(spawned) - map_size(waiting) >= schedulers do
     wait_for_messages(queue, spawned, waiting, files, result, warnings, state)
   end
 
   # Release waiting processes
-  defp spawn_workers([{ref, found} | t], spawned, waiting, files, result, warnings, state) do
+  defp spawn_workers([{pid, found} | t], spawned, waiting, files, result, warnings, state) do
     {files, waiting} =
-      case List.keytake(waiting, ref, 2) do
-        {{_kind, pid, ^ref, file_pid, _on, _defining, _deadlock}, waiting} ->
+      case Map.pop(waiting, pid) do
+        {{_kind, ref, file_pid, _on, _defining, _deadlock}, waiting} ->
           send(pid, {ref, found})
           {update_timing(files, file_pid, :waiting), waiting}
 
-        nil ->
+        {nil, waiting} ->
           # In case the waiting process died (for example, it was an async process),
           # it will no longer be on the list. So we need to take it into account here.
           {files, waiting}
@@ -371,7 +371,8 @@ defmodule Kernel.ParallelCompiler do
   end
 
   # No more queue, nothing waiting, this cycle is done
-  defp spawn_workers([], spawned, [], [], result, warnings, state) when map_size(spawned) == 0 do
+  defp spawn_workers([], spawned, waiting, [], result, warnings, state)
+       when map_size(spawned) == 0 and map_size(waiting) == 0 do
     cycle_return = each_cycle_return(state.each_cycle.())
     state = cycle_timing(result, state)
 
@@ -383,57 +384,49 @@ defmodule Kernel.ParallelCompiler do
         verify_modules(result, extra_warnings ++ warnings, [], state)
 
       {:compile, more, extra_warnings} ->
-        spawn_workers(more, %{}, [], [], result, extra_warnings ++ warnings, state)
+        spawn_workers(more, %{}, %{}, [], result, extra_warnings ++ warnings, state)
     end
   end
 
   # files x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
 
-  # Single entry, just release it.
-  defp spawn_workers(
-         [],
-         spawned,
-         [{_, pid, ref, _, _, _, _}] = waiting,
-         [%{pid: pid}] = files,
-         result,
-         warnings,
-         state
-       )
-       when map_size(spawned) == 1 do
-    spawn_workers([{ref, :not_found}], spawned, waiting, files, result, warnings, state)
-  end
-
-  # Multiple entries, try to release modules.
   defp spawn_workers([], spawned, waiting, files, result, warnings, state)
-       when length(waiting) == map_size(spawned) do
-    # There is potentially a deadlock. We will release modules with
-    # the following order:
-    #
-    #   1. Code.ensure_compiled/1 checks without a known definition (deadlock = soft)
-    #   2. Code.ensure_compiled/1 checks with a known definition (deadlock = soft)
-    #   3. Struct/import/require/ensure_compiled! checks without a known definition (deadlock = hard)
-    #   4. Modules without a known definition
-    #   5. Code invocation (deadlock = raise)
-    #
-    # The reason for step 3 and 4 is to not treat typos as deadlocks and
-    # help developers handle those sooner. However, this can have false
-    # positives in case multiple modules are defined in the same file
-    # and the module we are waiting for is defined later on.
-    #
-    # Finally, note there is no difference between hard and raise, the
-    # difference is where the raise is happening, inside the compiler
-    # or in the caller.
-
-    deadlocked =
-      deadlocked(waiting, :soft, false) ||
-        deadlocked(waiting, :soft, true) || deadlocked(waiting, :hard, false) ||
-        without_definition(waiting, files)
-
-    if deadlocked do
-      spawn_workers(deadlocked, spawned, waiting, files, result, warnings, state)
+       when map_size(waiting) == map_size(spawned) do
+    # Single entry, just release it.
+    with 1 <- map_size(waiting), [%{pid: pid}] <- files, %{^pid => _} <- waiting do
+      spawn_workers([{pid, :not_found}], spawned, waiting, files, result, warnings, state)
     else
-      errors = handle_deadlock(waiting, files)
-      {{:error, errors, warnings}, state}
+      _ ->
+        # There is potentially a deadlock. We will release modules with
+        # the following order:
+        #
+        #   1. Code.ensure_compiled/1 checks without a known definition (deadlock = soft)
+        #   2. Code.ensure_compiled/1 checks with a known definition (deadlock = soft)
+        #   3. Struct/import/require/ensure_compiled! checks without a known definition (deadlock = hard)
+        #   4. Modules without a known definition
+        #   5. Code invocation (deadlock = raise)
+        #
+        # The reason for step 3 and 4 is to not treat typos as deadlocks and
+        # help developers handle those sooner. However, this can have false
+        # positives in case multiple modules are defined in the same file
+        # and the module we are waiting for is defined later on.
+        #
+        # Finally, note there is no difference between hard and raise, the
+        # difference is where the raise is happening, inside the compiler
+        # or in the caller.
+        waiting_list = Map.to_list(waiting)
+
+        deadlocked =
+          deadlocked(waiting_list, :soft, false) ||
+            deadlocked(waiting_list, :soft, true) || deadlocked(waiting_list, :hard, false) ||
+            without_definition(waiting_list, files)
+
+        if deadlocked do
+          spawn_workers(deadlocked, spawned, waiting, files, result, warnings, state)
+        else
+          errors = handle_deadlock(waiting, files)
+          {{:error, errors, warnings}, state}
+        end
     end
   end
 
@@ -497,29 +490,29 @@ defmodule Kernel.ParallelCompiler do
   # The goal of this function is to find leaves in the dependency graph,
   # i.e. to find code that depends on code that we know is not being defined.
   # Note that not all files have been compiled yet, so they may not be in waiting.
-  defp without_definition(waiting, files) do
-    nilify_empty(
-      for %{pid: pid} <- files,
-          {_, _, ref, ^pid, on, _, _} <- waiting,
-          not defining?(on, waiting),
-          do: {ref, :not_found}
+  defp without_definition(waiting_list, files) do
+    nilify_empty_or_sort(
+      for %{pid: file_pid} <- files,
+          {pid, {_, _, ^file_pid, on, _, _}} <- waiting_list,
+          not defining?(on, waiting_list),
+          do: {pid, :not_found}
     )
   end
 
-  defp deadlocked(waiting, type, defining?) do
-    nilify_empty(
-      for {_, _, ref, _, on, _, ^type} <- waiting,
-          defining?(on, waiting) == defining?,
-          do: {ref, :deadlock}
+  defp deadlocked(waiting_list, type, defining?) do
+    nilify_empty_or_sort(
+      for {pid, {_, _, _, on, _, ^type}} <- waiting_list,
+          defining?(on, waiting_list) == defining?,
+          do: {pid, :deadlock}
     )
   end
 
-  defp defining?(on, waiting) do
-    Enum.any?(waiting, fn {_, _, _, _, _, defining, _} -> on in defining end)
+  defp defining?(on, waiting_list) do
+    Enum.any?(waiting_list, fn {_, {_, _, _, _, defining, _}} -> on in defining end)
   end
 
-  defp nilify_empty([]), do: nil
-  defp nilify_empty([_ | _] = list), do: list
+  defp nilify_empty_or_sort([]), do: nil
+  defp nilify_empty_or_sort([_ | _] = list), do: Enum.sort(list)
 
   # Wait for messages from child processes
   defp wait_for_messages(queue, spawned, waiting, files, result, warnings, state) do
@@ -533,8 +526,8 @@ defmodule Kernel.ParallelCompiler do
 
       {:available, kind, module} ->
         available =
-          for {^kind, _, ref, _, ^module, _defining, _deadlock} <- waiting,
-              do: {ref, :found}
+          for {pid, {^kind, _, _, ^module, _defining, _deadlock}} <- waiting,
+              do: {pid, :found}
 
         result = Map.put(result, {kind, module}, true)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
@@ -546,8 +539,8 @@ defmodule Kernel.ParallelCompiler do
         send(child, {ref, :ack})
 
         available =
-          for {:module, _, ref, _, ^module, _defining, _deadlock} <- waiting,
-              do: {ref, :found}
+          for {pid, {:module, _, _, ^module, _defining, _deadlock}} <- waiting,
+              do: {pid, :found}
 
         result = Map.put(result, {:module, module}, binary)
         spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
@@ -567,7 +560,7 @@ defmodule Kernel.ParallelCompiler do
             {files, waiting}
           else
             files = update_timing(files, file_pid, :compiling)
-            {files, [{kind, child_pid, ref, file_pid, on, defining, deadlock?} | waiting]}
+            {files, Map.put(waiting, child_pid, {kind, ref, file_pid, on, defining, deadlock?})}
           end
 
         spawn_workers(queue, spawned, waiting, files, result, warnings, state)
@@ -575,7 +568,7 @@ defmodule Kernel.ParallelCompiler do
       :threshold_check ->
         files =
           for data <- files do
-            if data.warned or List.keymember?(waiting, data.pid, 1) do
+            if data.warned or Map.has_key?(waiting, data.pid) do
               data
             else
               data = update_timing(data, :compiling)
@@ -603,7 +596,7 @@ defmodule Kernel.ParallelCompiler do
 
         # We may have spurious entries in the waiting list
         # if someone invoked try/rescue UndefinedFunctionError
-        new_waiting = List.keydelete(waiting, child_pid, 1)
+        new_waiting = delete_waiting(waiting, child_pid)
         spawn_workers(queue, new_spawned, new_waiting, new_files, result, warnings, state)
 
       {:file_cancel, child_pid} ->
@@ -619,7 +612,7 @@ defmodule Kernel.ParallelCompiler do
       {:DOWN, ref, :process, pid, reason} when is_map_key(spawned, ref) ->
         # async spawned processes have no file, so we always have to delete the ref directly
         spawned = Map.delete(spawned, ref)
-        waiting = List.keydelete(waiting, pid, 1)
+        waiting = delete_waiting(waiting, pid)
         {file, new_spawned, new_files} = discard_file_pid(spawned, files, pid)
 
         if file do
@@ -630,6 +623,10 @@ defmodule Kernel.ParallelCompiler do
           wait_for_messages(queue, new_spawned, waiting, new_files, result, warnings, state)
         end
     end
+  end
+
+  defp delete_waiting(waiting, pid) do
+    Map.delete(waiting, pid)
   end
 
   defp update_timing(files, pid, key) do
@@ -699,7 +696,7 @@ defmodule Kernel.ParallelCompiler do
         {:current_stacktrace, stacktrace} = Process.info(pid, :current_stacktrace)
         Process.exit(pid, :kill)
 
-        {kind, ^pid, _, _, on, _, _} = List.keyfind(waiting, pid, 1)
+        {kind, _, _, on, _, _} = Map.fetch!(waiting, pid)
         description = "deadlocked waiting on #{kind} #{inspect(on)}"
         error = CompileError.exception(description: description, file: nil, line: nil)
         print_error(file, :error, error, stacktrace)
