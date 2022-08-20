@@ -96,7 +96,7 @@ defmodule List do
       ~c"abc"
 
   Even though the representation changed, the raw data does remain a list of
-  numbers, which can be handled as such:
+  integers, which can be handled as such:
 
       iex> inspect(~c"abc", charlists: :as_list)
       "[97, 98, 99]"

@@ -5920,6 +5920,16 @@ defmodule Kernel do
   characters, except for the escaping of the closing sigil character
   itself.
 
+  A charlist is a list of integers where all the integers are valid code points.
+  The three expressions below are equivalent:
+
+      ~C"foo\n"
+      [?f, ?o, ?o, ?\\, ?n]
+      [102, 111, 111, 92, 110]
+
+  In practice, charlists are mostly used in specific scenarios such as
+  interfacing with older Erlang libraries that do not accept binaries as arguments.
+
   ## Examples
 
       iex> ~C(foo)
@@ -5927,6 +5937,9 @@ defmodule Kernel do
 
       iex> ~C(f#{o}o)
       ~c"f\#{o}o"
+
+      iex> ~C(foo\n)
+      ~c"foo\\n"
 
   """
   defmacro sigil_C(term, modifiers)
@@ -5938,8 +5951,17 @@ defmodule Kernel do
   @doc ~S"""
   Handles the sigil `~c` for charlists.
 
-  It returns a charlist as if it was a single quoted string, unescaping
-  characters and replacing interpolations.
+  It returns a charlist, unescaping characters and replacing interpolations.
+
+  A charlist is a list of integers where all the integers are valid code points.
+  The three expressions below are equivalent:
+
+      ~c"foo"
+      [?f, ?o, ?o]
+      [102, 111, 111]
+
+  In practice, charlists are mostly used in specific scenarios such as
+  interfacing with older Erlang libraries that do not accept binaries as arguments.
 
   ## Examples
 
@@ -5952,6 +5974,16 @@ defmodule Kernel do
       iex> ~c(f\#{:o}o)
       ~c"f\#{:o}o"
 
+  The list is only printed as a ~c sigil if all code points are within the
+  ASCII range:
+
+      iex> ~c"hełło"
+      [104, 101, 322, 322, 111]
+
+      iex> [104, 101, 108, 108, 111]
+      ~c"hello"
+
+  See `Inspect.Opts` for more information.
   """
   defmacro sigil_c(term, modifiers)
 
