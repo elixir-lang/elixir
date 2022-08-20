@@ -5921,8 +5921,11 @@ defmodule Kernel do
   itself.
 
   A charlist is a list of integers where all the integers are valid code points.
+  The three expressions below are equivalent:
 
-      ~C"foo\n" = [?f, ?o, ?o, ?\\, ?n] = [102, 111, 111, 92, 110]
+      ~C"foo\n"
+      [?f, ?o, ?o, ?\\, ?n]
+      [102, 111, 111, 92, 110]
 
   In practice, charlists are mostly used in specific scenarios such as
   interfacing with older Erlang libraries that do not accept binaries as arguments.
@@ -5951,8 +5954,11 @@ defmodule Kernel do
   It returns a charlist, unescaping characters and replacing interpolations.
 
   A charlist is a list of integers where all the integers are valid code points.
+  The three expressions below are equivalent:
 
-      ~c"foo" = [?f, ?o, ?o] = [102, 111, 111]
+      ~c"foo"
+      [?f, ?o, ?o]
+      [102, 111, 111]
 
   In practice, charlists are mostly used in specific scenarios such as
   interfacing with older Erlang libraries that do not accept binaries as arguments.
