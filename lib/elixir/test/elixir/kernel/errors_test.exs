@@ -645,7 +645,7 @@ defmodule Kernel.ErrorsTest do
 
   test "module imported from the same module" do
     assert_eval_raise CompileError,
-                      ~r"nofile:3: you are trying to use the module Kernel.ErrorsTest.ScheduledModule.Hygiene which is currently being defined",
+                      ~r"nofile:3: you are trying to use/import/require the module Kernel.ErrorsTest.ScheduledModule.Hygiene which is currently being defined",
                       ~c"""
                       defmodule Kernel.ErrorsTest.ScheduledModule do
                         defmodule Hygiene do
