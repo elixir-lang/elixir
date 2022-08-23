@@ -5853,6 +5853,7 @@ defmodule Kernel do
   """
   @doc since: "1.14.0"
   defmacro dbg(code \\ quote(do: binding()), options \\ []) do
+    assert_no_match_or_guard_scope(__CALLER__.context, "dbg")
     {mod, fun, args} = Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
     apply(mod, fun, [code, options, __CALLER__ | args])
   end
