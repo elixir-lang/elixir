@@ -2418,10 +2418,27 @@ defmodule Macro do
 
   You can call this function directly to build `Kernel.dbg/2` backends that fall back
   to this function.
+
+  This function raises if the context of the given `env` is `:match` or `:guard`.
   """
   @doc since: "1.14.0"
   @spec dbg(t, t, Macro.Env.t()) :: t
   def dbg(code, options, %Macro.Env{} = env) do
+    case env.context do
+      :match ->
+        raise ArgumentError,
+              "invalid expression in match, dbg is not allowed in patterns " <>
+                "such as function clauses, case clauses or on the left side of the = operator"
+
+      :guard ->
+        raise ArgumentError,
+              "invalid expression in guard, dbg is not allowed in guards. " <>
+                "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html"
+
+      _ ->
+        :ok
+    end
+
     header = dbg_format_header(env)
 
     quote do
