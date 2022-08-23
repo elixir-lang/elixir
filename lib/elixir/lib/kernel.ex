@@ -5324,9 +5324,9 @@ defmodule Kernel do
       # reproducible builds; otherwise, this macro will generate ASTs
       # with different metadata (:import, :context) depending on if
       # it is the bootstrapped version or not.
-      # TODO: Change the implementation on v2.0 to simply call Kernel.struct!/2
       Elixir.Kernel.@(impl(true))
 
+      # TODO: Change the implementation on v2.0 to simply call Kernel.struct!/2
       def exception(args) when Kernel.is_list(args) do
         struct = __struct__()
         {valid, invalid} = Enum.split_with(args, fn {k, _} -> Map.has_key?(struct, k) end)

@@ -278,6 +278,7 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
 tokenize("\"\"\"" ++ T, Line, Column, Scope, Tokens) ->
   handle_heredocs(T, Line, Column, $", Scope, Tokens);
 
+%% TODO: Deprecate single-quoted in Elixir v1.17
 tokenize("'''" ++ T, Line, Column, Scope, Tokens) ->
   handle_heredocs(T, Line, Column, $', Scope, Tokens);
 
@@ -285,6 +286,8 @@ tokenize("'''" ++ T, Line, Column, Scope, Tokens) ->
 
 tokenize([$" | T], Line, Column, Scope, Tokens) ->
   handle_strings(T, Line, Column + 1, $", Scope, Tokens);
+
+%% TODO: Deprecate single-quoted in Elixir v1.17
 tokenize([$' | T], Line, Column, Scope, Tokens) ->
   handle_strings(T, Line, Column + 1, $', Scope, Tokens);
 
