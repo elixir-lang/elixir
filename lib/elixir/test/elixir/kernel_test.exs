@@ -1502,5 +1502,23 @@ defmodule KernelTest do
       assert output =~ "my_var:"
       assert output =~ "my_other_var:"
     end
+
+    test "is not allowed in guards" do
+      message = "invalid expression in guard, dbg is not allowed in guards"
+
+      assert_raise ArgumentError, Regex.compile!(message), fn ->
+        defmodule DbgGuard do
+          def dbg_guard() when dbg(1), do: true
+        end
+      end
+    end
+
+    test "is not allowed in pattern matches" do
+      message = "invalid expression in match, dbg is not allowed in patterns"
+
+      assert_eval_raise(ArgumentError, Regex.compile!(message), """
+      {:ok, dbg()} = make_ref()
+      """)
+    end
   end
 end
