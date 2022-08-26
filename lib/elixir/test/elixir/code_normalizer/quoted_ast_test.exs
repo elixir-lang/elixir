@@ -546,6 +546,12 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "list in module attribute" do
       assert quoted_to_string(
                quote do
+                 @foo []
+               end
+             ) == "@foo []"
+
+      assert quoted_to_string(
+               quote do
                  @foo [1]
                end
              ) == "@foo [1]"

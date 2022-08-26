@@ -201,7 +201,7 @@ defmodule Code.Normalizer do
   defp do_normalize({:@, meta, [{name, name_meta, [value]}]}, state) do
     value =
       cond do
-        keyword?(value) ->
+        keyword?(value) and value != [] ->
           normalize_kw_args(value, state, true)
 
         is_list(value) ->
