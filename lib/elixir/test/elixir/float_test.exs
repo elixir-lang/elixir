@@ -24,6 +24,7 @@ defmodule FloatTest do
     assert Float.parse("-12.32453e-10") === {-1.232453e-9, ""}
     assert Float.parse("0.32453e-10") === {3.2453e-11, ""}
     assert Float.parse("1.32453e-10") === {1.32453e-10, ""}
+    assert Float.parse("1.7976931348623159e-99999foo") === {0.0, "foo"}
     assert Float.parse("1.32.45") === {1.32, ".45"}
     assert Float.parse("1.o") === {1.0, ".o"}
     assert Float.parse("+12.3E+4") === {1.23e5, ""}
@@ -35,10 +36,12 @@ defmodule FloatTest do
     assert Float.parse("++1.2") === :error
     assert Float.parse("pi") === :error
     assert Float.parse("1.7976931348623157e308") === {1.7976931348623157e308, ""}
-
-    assert_raise ArgumentError, fn ->
-      Float.parse("1.7976931348623159e308")
-    end
+    assert Float.parse("1.7976931348623157e308foo") === {1.7976931348623157e308, "foo"}
+    assert Float.parse("1.7976931348623157e+308foo") === {1.7976931348623157e308, "foo"}
+    assert Float.parse("1.7976931348623157e-308foo") === {1.7976931348623155e-308, "foo"}
+    assert Float.parse("1.7976931348623159e308") === :error
+    assert Float.parse("1.7976931348623159e+308") === :error
+    assert Float.parse("9e8363") === :error
   end
 
   test "floor/1" do
