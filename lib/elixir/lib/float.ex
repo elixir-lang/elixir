@@ -119,7 +119,8 @@ defmodule Float do
   returned.
 
   If the size of float exceeds the maximum size of `1.7976931348623157e+308`,
-  the `ArgumentError` exception is raised.
+  `:error` is returned even though the textual representation itself might be
+  well formed.
 
   If you want to convert a string-formatted float directly to a float,
   `String.to_float/1` can be used instead.
@@ -134,6 +135,8 @@ defmodule Float do
       {56.5, "xyz"}
 
       iex> Float.parse("pi")
+      :error
+      iex> Float.parse("1.7976931348623159e+308")
       :error
 
   """
@@ -172,7 +175,18 @@ defmodule Float do
        when exp_marker in ~c"eE" and sign in ~c"-+" and digit in ?0..?9,
        do: parse_unsigned(rest, true, true, <<add_dot(acc, dot?)::binary, ?e, sign, digit>>)
 
-  defp parse_unsigned(rest, dot?, _e?, acc),
+  # When floats are expressed in scientific notation, :erlang.binary_to_float/1 can raise an
+  # ArgumentError if the e exponent is too big. For example, "1.0e400". Because of this, we
+  # rescue the ArgumentError here and return an error.
+  defp parse_unsigned(rest, dot?, true = _e?, acc) do
+    :erlang.binary_to_float(add_dot(acc, dot?))
+  rescue
+    ArgumentError -> :error
+  else
+    float -> {float, rest}
+  end
+
+  defp parse_unsigned(rest, dot?, false = _e?, acc),
     do: {:erlang.binary_to_float(add_dot(acc, dot?)), rest}
 
   defp add_dot(acc, true), do: acc
