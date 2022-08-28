@@ -235,6 +235,7 @@ defmodule Mix.Tasks.XrefTest do
           defstruct [:foo, :bar]
           defmacro macro, do: :ok
           def fun, do: :ok
+          @callback foo() :: integer
         end
         """,
         "lib/b.ex" => ~S"""
@@ -247,6 +248,9 @@ defmodule Mix.Tasks.XrefTest do
           def calls_macro, do: A.macro()
           def calls_fun, do: A.fun()
           def calls_struct, do: %A{}
+          @behaviour A
+          @impl true
+          def foo, do: 42
         end
         """
       }
@@ -254,6 +258,7 @@ defmodule Mix.Tasks.XrefTest do
       output = """
       Compiling 2 files (.ex)
       Generated sample app
+      lib/b.ex:1: require A (compile)
       lib/b.ex:2: require A (export)
       lib/b.ex:3: call A.macro/0 (compile)
       lib/b.ex:4: import A.macro/0 (compile)
