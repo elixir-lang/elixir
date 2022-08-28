@@ -778,8 +778,8 @@ defmodule Mix.Tasks.XrefTest do
     test "with mixed cyclic dependencies" do
       in_fixture("no_mixfile", fn ->
         File.write!("lib/a.ex", """
-        defmodule A.Behaviour do
-          @callback foo :: :foo
+        defmodule A.Using do
+          defmacro __using__(_), do: 42
         end
 
         defmodule A do
@@ -794,7 +794,7 @@ defmodule Mix.Tasks.XrefTest do
         File.write!("lib/b.ex", """
         defmodule B do
           # Let's also test that we track literal atom behaviours
-          @behaviour :"Elixir.A.Behaviour"
+          use :"Elixir.A.Using"
 
           def foo do
             A.foo()
