@@ -286,7 +286,7 @@ defmodule IEx.HelpersTest do
     end
 
     test "errors when given {file, line} is not available" do
-      assert capture_iex("open({~s[foo], 3})") ==
+      assert capture_iex("open({~s[foo], 3})") =~
                "Could not open: \"foo\". File is not available."
     end
 
