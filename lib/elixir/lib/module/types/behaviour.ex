@@ -11,8 +11,8 @@ defmodule Module.Types.Behaviour do
   end
 
   @doc false
-  def check_behaviours_and_impls(env, behaviours, impls, all_definitions) do
-    context = check_behaviours(context(env), behaviours)
+  def check_behaviours_and_impls(module, file, line, behaviours, impls, all_definitions) do
+    context = check_behaviours(context(module, file, line), behaviours)
 
     context =
       if impls != [] do
@@ -25,20 +25,14 @@ defmodule Module.Types.Behaviour do
 
     context = check_callbacks(context, all_definitions)
 
-    for warning <- context.warnings do
-      {__MODULE__, message, {file, line, _module}} = warning
-
-      message
-      |> format_warning()
-      |> Enum.join()
-      |> IO.warn(%{context.env | file: file, line: line})
-    end
+    context.warnings
   end
 
-  defp context(env) do
+  defp context(module, file, line) do
     %{
-      # Macro.Env
-      env: env,
+      module: module,
+      file: file,
+      line: line,
       # Map containing the callbacks to be implemented
       callbacks: %{},
       # list of warnings {message, env}
@@ -47,8 +41,7 @@ defmodule Module.Types.Behaviour do
   end
 
   defp warn(context, warning, meta \\ []) do
-    location =
-      {meta[:file] || context.env.file, meta[:line] || context.env.line, context.env.module}
+    location = {meta[:file] || context.file, meta[:line] || context.line, context.module}
 
     update_in(context.warnings, &[{__MODULE__, warning, location} | &1])
   end
@@ -57,13 +50,12 @@ defmodule Module.Types.Behaviour do
     Enum.reduce(behaviours, context, fn behaviour, context ->
       cond do
         not Code.ensure_loaded?(behaviour) ->
-          warn(context, {:undefined_behaviour, context.env.module, behaviour})
+          warn(context, {:undefined_behaviour, context.module, behaviour})
 
         not function_exported?(behaviour, :behaviour_info, 1) ->
-          warn(context, {:module_does_not_define_behaviour, context.env.module, behaviour})
+          warn(context, {:module_does_not_define_behaviour, context.module, behaviour})
 
         true ->
-          :elixir_env.trace({:require, [from_macro: true], behaviour, []}, context.env)
           optional_callbacks = behaviour_info(behaviour, :optional_callbacks)
           callbacks = behaviour_info(behaviour, :callbacks)
           Enum.reduce(callbacks, context, &add_callback(&2, &1, behaviour, optional_callbacks))
@@ -79,7 +71,7 @@ defmodule Module.Types.Behaviour do
         %{^callback => {_kind, conflict, _optional?}} ->
           warn(
             context,
-            {:duplicate_behaviour, context.env.module, behaviour, conflict, kind, callback}
+            {:duplicate_behaviour, context.module, behaviour, conflict, kind, callback}
           )
 
         %{} ->
@@ -95,12 +87,12 @@ defmodule Module.Types.Behaviour do
       context ->
         case :lists.keyfind(callback, 1, all_definitions) do
           false when not optional? ->
-            warn(context, {:missing_callback, context.env.module, callback, kind, behaviour})
+            warn(context, {:missing_callback, context.module, callback, kind, behaviour})
 
           {_, wrong_kind, _, _} when kind != wrong_kind ->
             warn(
               context,
-              {:callback_mismatch, context.env.module, callback, kind, wrong_kind, behaviour}
+              {:callback_mismatch, context.module, callback, kind, wrong_kind, behaviour}
             )
 
           _ ->

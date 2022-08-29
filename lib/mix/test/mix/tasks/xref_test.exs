@@ -297,6 +297,30 @@ defmodule Mix.Tasks.XrefTest do
       assert_trace("lib/a.ex", files, output)
     end
 
+    test "shows module with `@behaviour` calling `behaviour_info/1`" do
+      files = %{
+        "lib/a.ex" => ~S"""
+        defmodule A do
+          @callback fun() :: integer
+        end
+        """,
+        "lib/b.ex" => ~S"""
+        defmodule B do
+          @behaviour :"Elixir.A"
+          def fun, do: 42
+        end
+        """
+      }
+
+      output = """
+      Compiling 2 files (.ex)
+      Generated sample app
+      lib/b.ex:1: call A.behaviour_info/1 (runtime)
+      """
+
+      assert_trace("lib/b.ex", files, output)
+    end
+
     test "filters per label" do
       files = %{
         "lib/a.ex" => ~S"""

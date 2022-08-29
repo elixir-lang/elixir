@@ -1802,11 +1802,11 @@ defmodule Module do
   defp args_count([], total, defaults), do: {total, defaults}
 
   @doc false
-  def check_derive_behaviours_and_impls(env, set, bag, all_definitions) do
+  def __check_attributes__(env, set, bag) do
     check_derive(env, set, bag)
+
     behaviours = bag_lookup_element(bag, {:accumulate, :behaviour}, 2)
-    impls = bag_lookup_element(bag, :impls, 2)
-    Module.Types.Behaviour.check_behaviours_and_impls(env, behaviours, impls, all_definitions)
+    force_behaviour_dependencies(behaviours, env)
 
     :ok
   end
@@ -1828,6 +1828,19 @@ defmodule Module do
 
         IO.warn(message, env)
     end
+  end
+
+  # While `@behaviour MyBehaviour` will naturally introduce a runtime dependency,
+  # `@behaviour :"Elixir.MyBehaviour"` or similar would not.
+  # We force this dependency by adding the call to `MyBehaviour.behaviour_info/1`
+  defp force_behaviour_dependencies(behaviours, env) do
+    info_env = %{env | function: {:__info__, 1}}
+
+    for behaviour <- behaviours do
+      :elixir_env.trace({:remote_function, [], behaviour, :behaviour_info, 1}, info_env)
+    end
+
+    :ok
   end
 
   @doc false
