@@ -131,7 +131,10 @@ compile(Line, Module, Block, Vars, E) ->
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
+
         AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
+        [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, E) ||
+         {VerifyMod, VerifyFun} <- AfterVerify],
 
         ModuleMap = #{
           struct => get_struct(DataSet),
@@ -159,7 +162,9 @@ compile(Line, Module, Block, Vars, E) ->
     elixir_env:trace({on_module, Binary, none}, E),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     make_module_available(Module, Binary),
-    (CheckerInfo == undefined) andalso eval_callbacks(Line, DataBag, after_verify, [Module], NE),
+    (CheckerInfo == undefined) andalso
+      [VerifyMod:VerifyFun(Module) ||
+       {VerifyMod, VerifyFun} <- bag_lookup_element(DataBag, {accumulate, after_verify}, 2)],
     {module, Module, Binary, Result}
   catch
     error:undef:Stacktrace ->

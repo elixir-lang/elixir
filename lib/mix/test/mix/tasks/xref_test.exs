@@ -268,6 +268,35 @@ defmodule Mix.Tasks.XrefTest do
       assert_trace("lib/b.ex", files, output)
     end
 
+    test "shows traces for module callbacks" do
+      files = %{
+        "lib/a.ex" => ~S"""
+        defmodule A do
+          @before_compile :"Elixir.B"
+          @after_compile :"Elixir.B"
+          @after_verify :"Elixir.B"
+        end
+        """,
+        "lib/b.ex" => ~S"""
+        defmodule B do
+          defmacro __before_compile__(_env), do: :ok
+          defmacro __after_compile__(_env, _binary), do: :ok
+          def __after_verify__(_module), do: :ok
+        end
+        """
+      }
+
+      output = """
+      Compiling 2 files (.ex)
+      Generated sample app
+      lib/a.ex:1: call B.__after_compile__/2 (compile)
+      lib/a.ex:1: call B.__after_verify__/1 (compile)
+      lib/a.ex:1: call B.__before_compile__/1 (compile)
+      """
+
+      assert_trace("lib/a.ex", files, output)
+    end
+
     test "filters per label" do
       files = %{
         "lib/a.ex" => ~S"""
