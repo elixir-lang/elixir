@@ -3587,6 +3587,7 @@ defmodule Kernel do
   # Those are always compile-time dependencies, so we can skip the trace.
   defp collect_traces(:before_compile, arg, _env), do: {arg, []}
   defp collect_traces(:after_compile, arg, _env), do: {arg, []}
+  defp collect_traces(:after_verify, arg, _env), do: {arg, []}
   defp collect_traces(:on_definition, arg, _env), do: {arg, []}
 
   defp collect_traces(_name, arg, env) do
