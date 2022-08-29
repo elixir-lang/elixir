@@ -5815,18 +5815,22 @@ defmodule Kernel do
   ## Configuring the debug function
 
   One of the benefits of `dbg/2` is that its debugging logic is configurable,
-  allowing tools to extend `dbg` with enhanced behaviour. The debug function
-  can be configured at compile time through the `:dbg_callback` key of the `:elixir`
-  application. The debug function must be a `{module, function, args}` tuple.
-  The `function` function in `module` will be invoked with three arguments
-  *prepended* to `args`:
+  allowing tools to extend `dbg` with enhanced behaviour. This is done, for
+  example, by `IEx` which extends `dbg` with an interactive shell where you
+  can directly inspect and access values.
+
+  The debug function can be configured at compile time through the `:dbg_callback`
+  key of the `:elixir` application. The debug function must be a
+  `{module, function, args}` tuple. The `function` function in `module` will be
+  invoked with three arguments *prepended* to `args`:
 
     1. The AST of `code`
     2. The AST of `options`
     3. The `Macro.Env` environment of where `dbg/2` is invoked
 
-  Whatever is returned by the debug function is then the return value of `dbg/2`. The
-  debug function is invoked at compile time.
+  The debug function is invoked at compile time and it must also return an AST.
+  The AST is expected to ultimately return the result of evaluating the debugged
+  expression.
 
   Here's a simple example:
 
