@@ -214,17 +214,35 @@ defmodule Module.ParallelChecker do
   ## Module checking
 
   defp check_module(module_map, cache) do
-    %{module: module, file: file, compile_opts: compile_opts, definitions: definitions} =
-      module_map
+    %{
+      module: module,
+      file: file,
+      line: line,
+      compile_opts: compile_opts,
+      definitions: definitions,
+      uses_behaviours: uses_behaviours,
+      impls: impls
+    } = module_map
 
     no_warn_undefined =
       compile_opts
       |> extract_no_warn_undefined()
       |> merge_compiler_no_warn_undefined()
 
+    behaviour_warnings =
+      Module.Types.Behaviour.check_behaviours_and_impls(
+        module,
+        file,
+        line,
+        uses_behaviours,
+        impls,
+        definitions
+      )
+
     warnings =
       module
       |> Module.Types.warnings(file, definitions, no_warn_undefined, cache)
+      |> Kernel.++(behaviour_warnings)
       |> group_warnings()
       |> emit_warnings()
 
@@ -396,8 +414,8 @@ defmodule Module.ParallelChecker do
     :ets.insert(ets, {{:cached, module}, :elixir})
   end
 
-  defp behaviour_exports(%{is_behaviour: true}), do: [{{:behaviour_info, 1}, :def}]
-  defp behaviour_exports(%{is_behaviour: false}), do: []
+  defp behaviour_exports(%{defines_behaviour: true}), do: [{{:behaviour_info, 1}, :def}]
+  defp behaviour_exports(%{defines_behaviour: false}), do: []
 
   defp behaviour_exports(module) when is_atom(module) do
     if function_exported?(module, :behaviour_info, 1) do
