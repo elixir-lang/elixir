@@ -127,10 +127,12 @@ compile(Line, Module, Block, Vars, E) ->
         make_readonly(Module),
 
         (not elixir_config:is_bootstrap()) andalso
-         'Elixir.Module':check_derive_behaviours_and_impls(E, DataSet, DataBag, AllDefinitions),
+         'Elixir.Module':'__check_attributes__'(E, DataSet, DataBag),
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
         CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
+        UsesBehaviours = bag_lookup_element(DataBag, {accumulate, behaviour}, 2),
+        Impls = bag_lookup_element(DataBag, impls, 2),
 
         AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
         [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, E) ||
@@ -148,7 +150,9 @@ compile(Line, Module, Block, Vars, E) ->
           after_verify => AfterVerify,
           compile_opts => CompileOpts,
           deprecated => get_deprecated(DataBag),
-          is_behaviour => is_behaviour(DataBag)
+          defines_behaviour => defines_behaviour(DataBag),
+          uses_behaviours => UsesBehaviours,
+          impls => Impls
         },
 
         Binary = elixir_erl:compile(ModuleMap),
@@ -233,7 +237,7 @@ validate_dialyzer_attribute({dialyzer, Dialyzer}, Defs, File, Line) ->
 validate_dialyzer_attribute(false, _Defs, _File, _Line) ->
   ok.
 
-is_behaviour(DataBag) ->
+defines_behaviour(DataBag) ->
   ets:member(DataBag, {accumulate, callback}) orelse ets:member(DataBag, {accumulate, macrocallback}).
 
 %% An undef error for a function in the module being compiled might result in an
