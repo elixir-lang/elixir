@@ -2441,21 +2441,23 @@ defmodule Macro do
 
     header = dbg_format_header(env)
 
+    options_var = var(:options, __MODULE__)
+
     quote do
-      to_debug = unquote(dbg_ast_to_debuggable(code))
-      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
+      syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
+      unquote(options_var) = Keyword.merge([syntax_colors: syntax_colors], unquote(options))
+      to_debug = unquote(dbg_ast_to_debuggable(code, options_var))
+      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options_var))
     end
   end
 
   # Pipelines.
-  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
+  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast, options_var) do
     value_var = Macro.unique_var(:value, __MODULE__)
     values_acc_var = Macro.unique_var(:values, __MODULE__)
 
     [start_ast | rest_asts] = asts = for {ast, 0} <- unpipe(pipe_ast), do: ast
     rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
-
-    string_asts = Enum.map(asts, &to_string/1)
 
     initial_acc =
       quote do
@@ -2475,13 +2477,31 @@ defmodule Macro do
 
     quote do
       unquote(values_ast)
-      {:pipe, unquote(string_asts), Enum.reverse(unquote(values_acc_var))}
+
+      {:pipe,
+       Enum.map(
+         unquote(Macro.escape(asts)),
+         &Macro.to_string_with_colors(&1, unquote(options_var))
+       ), Enum.reverse(unquote(values_acc_var))}
     end
   end
 
   # Any other AST.
-  defp dbg_ast_to_debuggable(ast) do
-    quote do: {:value, unquote(to_string(ast)), unquote(ast)}
+  defp dbg_ast_to_debuggable(ast, options_var) do
+    quote do:
+            {:value,
+             Macro.to_string_with_colors(unquote(Macro.escape(ast)), unquote(options_var)),
+             unquote(ast)}
+  end
+
+  @doc false
+  def to_string_with_colors(ast, options) do
+    options = Keyword.take(options, [:syntax_colors])
+
+    ast
+    |> Code.quoted_to_algebra(options)
+    |> Inspect.Algebra.format(98)
+    |> IO.iodata_to_binary()
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2489,8 +2509,7 @@ defmodule Macro do
   @doc false
   def __dbg__(header_string, to_debug, options) do
     {print_location?, options} = Keyword.pop(options, :print_location, true)
-    syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
-    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
+    options = Keyword.merge([width: 80, pretty: true], options)
 
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
 

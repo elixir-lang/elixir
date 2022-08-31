@@ -201,6 +201,7 @@ defmodule Code.Formatter do
     sigils = Keyword.get(opts, :sigils, [])
     normalize_bitstring_modifiers = Keyword.get(opts, :normalize_bitstring_modifiers, true)
     charlists_as_sigils = Keyword.get(opts, :charlists_as_sigils, true)
+    syntax_colors = Keyword.get(opts, :syntax_colors, [])
 
     sigils =
       Map.new(sigils, fn {key, value} ->
@@ -225,7 +226,8 @@ defmodule Code.Formatter do
       sigils: sigils,
       file: file,
       normalize_bitstring_modifiers: normalize_bitstring_modifiers,
-      charlists_as_sigils: charlists_as_sigils
+      charlists_as_sigils: charlists_as_sigils,
+      inspect_opts: %Inspect.Opts{syntax_colors: syntax_colors}
     }
   end
 
@@ -414,7 +416,7 @@ defmodule Code.Formatter do
 
   defp quoted_to_algebra({:__block__, meta, [integer]}, _context, state)
        when is_integer(integer) do
-    {integer_to_algebra(Keyword.fetch!(meta, :token)), state}
+    {integer_to_algebra(Keyword.fetch!(meta, :token), state.inspect_opts), state}
   end
 
   defp quoted_to_algebra({:__block__, meta, [float]}, _context, state) when is_float(float) do
@@ -1567,7 +1569,7 @@ defmodule Code.Formatter do
     iodata |> IO.iodata_to_binary() |> string()
   end
 
-  defp integer_to_algebra(text) do
+  defp integer_to_algebra(text, inspect_otps) do
     case text do
       <<?0, ?x, rest::binary>> ->
         "0x" <> String.upcase(rest)
@@ -1581,6 +1583,7 @@ defmodule Code.Formatter do
       decimal ->
         insert_underscores(decimal)
     end
+    |> color(:number, inspect_otps)
   end
 
   defp float_to_algebra(text) do
