@@ -8,8 +8,8 @@ defmodule Mix.Tasks.Format do
 
       mix format mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
-  If any of the files is `-`, then the output is read from stdin
-  and written to stdout.
+  If any of the files is `-`, then the input is read from stdin and the output
+  is written to stdout.
 
   ## Formatting options
 
