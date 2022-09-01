@@ -728,7 +728,7 @@ defmodule Mix.Project do
     File.mkdir_p!(target)
 
     target_ebin = Path.join(target, "ebin")
-    hard_copy? = config[:build_embedded]
+    hard_copy? = false
 
     _ =
       cond do

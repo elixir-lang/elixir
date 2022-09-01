@@ -21,9 +21,6 @@ defmodule Mix.Tasks.Compile do
       consolidation via the `mix compile.protocols` task. The default
       value is `true`.
 
-    * `:build_embedded` - when `true`, embeds all code and priv
-      content in the `_build` directory instead of using symlinks.
-
     * `:build_path` - the directory where build artifacts
       should be written to. This option is intended only for
       child apps within a larger umbrella application so that
