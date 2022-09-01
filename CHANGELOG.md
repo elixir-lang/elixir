@@ -241,38 +241,7 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
-## v1.14.0-rc.1 (2022-08-15)
-
-### 1. Enhancements
-
-#### IEx
-
-  * [IEx.Helpers] Support sigils in `h/1`
-
-#### Mix
-
-  * [Mix] Add `:config_path` and `:lockfile` options to `Mix.install/2`
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Enum] Fix usage of range with `steps != 1` in a few functions (regression)
-  * [Kernel] Fix usage of range with `steps != 1` on `binary_slice/2` (regression)
-  * [Kernel] Recursively expand pipelines on right-hand side of `|>` (regression)
-  * [Kernel] Fix equality in guards for dynamic ranges without steps
-  * [Module] Fix loop while unifying type variables
-  * [System] Raise non-generic exception on missing env in `System.fetch_env!/1` to mirror map operations
-
-#### IEx
-
-  * [IEx] Continue parsing after `--no-pry` (regression)
-
-#### Mix
-
-  * [Mix] Properly compile-dependencies on `mix format`
-
-## v1.14.0-rc.0 (2022-08-01)
+## v1.14.0 (2022-08-31)
 
 ### 1. Enhancements
 
@@ -349,6 +318,7 @@ the approaches and options available.
   * [IEx] Add line-by-line evaluation of IEx breakpoints
   * [IEx.Autocomplete] Autocomplete bitstrings modifiers (after `::` inside `<<...>>`)
   * [IEx.Helpers] Allow an atom to be given to `pid/1`
+  * [IEx.Helpers] Support sigils in `h/1`
 
 #### Logger
 
@@ -356,6 +326,7 @@ the approaches and options available.
 
 #### Mix
 
+  * [Mix] Add `:config_path` and `:lockfile` options to `Mix.install/2`
   * [mix compile] Add `--no-optional-deps` to skip optional dependencies to test compilation works without optional dependencies
   * [mix compile] Include column information on error diagnostics when possible
   * [mix deps] `Mix.Dep.Converger` now tells which deps formed a cycle
@@ -386,9 +357,12 @@ the approaches and options available.
   * [Kernel] Warn on underived `@derive` attributes
   * [Kernel] Remove compile-time dependency from `defimpl :for`
   * [Kernel] Track all arities on imported functions
+  * [Kernel] Fix equality in guards for dynamic ranges without steps
+  * [Module] Fix loop while unifying type variables
   * [Protocol] Warn if a protocol has no definitions
   * [Regex] Show list options when inspecting a Regex manually defined with `Regex.compile/2`
-  * [String] Allow slices to overflow on both starting and ending positions
+  * [String] Allow slices to overflow on both starting and ending positions  
+  * [System] Raise non-generic exception on missing env in `System.fetch_env!/1` to mirror map operations
 
 #### ExUnit
 
@@ -410,6 +384,7 @@ the approaches and options available.
   * [mix compile.elixir] Ensure semantic recompilation cascades to path dependencies
   * [mix compile.elixir] Lock the compiler to avoid concurrent usage
   * [mix format] Do not add new lines if the formatted file is empty
+  * [mix format] Properly compile dependencies on `mix format`
   * [mix release] Only set `RELEASE_MODE` after `env.{sh,bat}` are executed
   * [mix release] Allow application mode configuration to cascade to dependencies
   * [mix xref] Do not emit already consolidated warnings during `mix xref trace`
