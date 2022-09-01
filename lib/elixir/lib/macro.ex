@@ -2441,18 +2441,14 @@ defmodule Macro do
 
     header = dbg_format_header(env)
 
-    options_var = var(:options, __MODULE__)
-
     quote do
-      syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
-      unquote(options_var) = Keyword.merge([syntax_colors: syntax_colors], unquote(options))
-      to_debug = unquote(dbg_ast_to_debuggable(code, options_var))
-      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options_var))
+      to_debug = unquote(dbg_ast_to_debuggable(code))
+      unquote(__MODULE__).__dbg__(unquote(header), to_debug, unquote(options))
     end
   end
 
   # Pipelines.
-  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast, options_var) do
+  defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
     value_var = Macro.unique_var(:value, __MODULE__)
     values_acc_var = Macro.unique_var(:values, __MODULE__)
 
@@ -2478,30 +2474,13 @@ defmodule Macro do
     quote do
       unquote(values_ast)
 
-      {:pipe,
-       Enum.map(
-         unquote(Macro.escape(asts)),
-         &Macro.to_string_with_colors(&1, unquote(options_var))
-       ), Enum.reverse(unquote(values_acc_var))}
+      {:pipe, unquote(Macro.escape(asts)), Enum.reverse(unquote(values_acc_var))}
     end
   end
 
   # Any other AST.
-  defp dbg_ast_to_debuggable(ast, options_var) do
-    quote do:
-            {:value,
-             Macro.to_string_with_colors(unquote(Macro.escape(ast)), unquote(options_var)),
-             unquote(ast)}
-  end
-
-  @doc false
-  def to_string_with_colors(ast, options) do
-    options = Keyword.take(options, [:syntax_colors])
-
-    ast
-    |> Code.quoted_to_algebra(options)
-    |> Inspect.Algebra.format(98)
-    |> IO.iodata_to_binary()
+  defp dbg_ast_to_debuggable(ast) do
+    quote do: {:value, unquote(Macro.escape(ast)), unquote(ast)}
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2509,7 +2488,8 @@ defmodule Macro do
   @doc false
   def __dbg__(header_string, to_debug, options) do
     {print_location?, options} = Keyword.pop(options, :print_location, true)
-    options = Keyword.merge([width: 80, pretty: true], options)
+    syntax_colors = if IO.ANSI.enabled?(), do: IO.ANSI.syntax_colors(), else: []
+    options = Keyword.merge([width: 80, pretty: true, syntax_colors: syntax_colors], options)
 
     {formatted, result} = dbg_format_ast_to_debug(to_debug, options)
 
@@ -2528,7 +2508,9 @@ defmodule Macro do
 
   defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
     result = List.last(values)
-    [{first_ast, first_value} | asts_with_values] = Enum.zip(code_asts, values)
+
+    [{first_ast, first_value} | asts_with_values] =
+      code_asts |> Enum.map(&to_string_with_colors(&1, options)) |> Enum.zip(values)
 
     first_formatted = [dbg_format_ast(first_ast), " ", inspect(first_value, options), ?\n]
 
@@ -2541,7 +2523,17 @@ defmodule Macro do
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
-    {[dbg_format_ast(code_ast), " ", inspect(value, options), ?\n], value}
+    code = to_string_with_colors(code_ast, options)
+    {[dbg_format_ast(code), " ", inspect(value, options), ?\n], value}
+  end
+
+  defp to_string_with_colors(ast, options) do
+    options = Keyword.take(options, [:syntax_colors])
+
+    ast
+    |> Code.quoted_to_algebra(options)
+    |> Inspect.Algebra.format(98)
+    |> IO.iodata_to_binary()
   end
 
   defp dbg_format_header(env) do
