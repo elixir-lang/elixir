@@ -599,7 +599,7 @@ defmodule Mix.Tasks.Format do
 
     cond do
       check_formatted? ->
-        if input == output, do: :ok, else: {:not_formatted, file}
+        if input == output, do: :ok, else: {:not_formatted, {file, input, output}}
 
       dry_run? ->
         :ok
@@ -651,11 +651,23 @@ defmodule Mix.Tasks.Format do
     mix format failed due to --check-formatted.
     The following files are not formatted:
 
-    #{to_bullet_list(not_formatted)}
+    #{to_diffs(not_formatted)}
     """)
   end
 
-  defp to_bullet_list(files) do
-    Enum.map_join(files, "\n", &"  * #{&1 |> to_string() |> Path.relative_to_cwd()}")
+  defp to_diffs(files) do
+    Enum.map_join(files, "\n", fn
+      {:stdin, unfomatted, fomatted} ->
+        IO.iodata_to_binary([IO.ANSI.reset(), Mix.TextDiff.format(unfomatted, fomatted)])
+
+      {file, unfomatted, fomatted} ->
+        IO.iodata_to_binary([
+          IO.ANSI.red(),
+          file,
+          IO.ANSI.reset(),
+          "\n",
+          Mix.TextDiff.format(unfomatted, fomatted)
+        ])
+    end)
   end
 end
