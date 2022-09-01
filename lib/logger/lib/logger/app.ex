@@ -86,6 +86,15 @@ defmodule Logger.App do
 
     primary_config = :logger.get_primary_config()
     level = Application.get_env(:logger, :level, :debug)
+
+    level =
+      if level == :warn do
+        IO.warn(":logger has be set to :warn in config files, please use :warning instead")
+        :warning
+      else
+        level
+      end
+
     level = Logger.Handler.elixir_level_to_erlang_level(level)
 
     :ok = :logger.set_primary_config(:level, level)
