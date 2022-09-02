@@ -343,7 +343,7 @@ defmodule Keyword do
               do: if(is_atom(value), do: value, else: elem(value, 0))
 
         message =
-          case Enum.split_with(invalid_keys, &(&1 in keys)) do
+          case split_with(invalid_keys, &(&1 in keys)) do
             {_, [_ | _] = unknown} ->
               "unknown keys #{inspect(unknown)} in #{inspect(keyword)}, " <>
                 "the allowed keys are: #{inspect(keys)}"
@@ -1211,14 +1211,14 @@ defmodule Keyword do
       {[], []}
 
   """
-  @doc since: "1.14.0"
+  @doc since: "1.15.0"
   @spec split_with(t, ({key, value} -> as_boolean(term))) :: {t, t}
   def split_with(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
-    fun = fn key_vaue_pair, {while_true, while_false} ->
-      if fun.(key_vaue_pair) do
-        {[key_vaue_pair | while_true], while_false}
+    fun = fn key_value_pair, {while_true, while_false} ->
+      if fun.(key_value_pair) do
+        {[key_value_pair | while_true], while_false}
       else
-        {while_true, [key_vaue_pair | while_false]}
+        {while_true, [key_value_pair | while_false]}
       end
     end
 

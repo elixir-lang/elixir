@@ -879,7 +879,7 @@ defmodule Map do
       {%{}, %{}}
 
   """
-  @doc since: "1.14.0"
+  @doc since: "1.15.0"
   @spec split_with(map, ({key, value} -> as_boolean(term))) :: {map, map}
   def split_with(map, fun) when is_map(map) and is_function(fun, 1) do
     iter = :maps.iterator(map)
