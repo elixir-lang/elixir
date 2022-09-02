@@ -244,7 +244,7 @@ User
 
 ### Binaries
 
-Binaries may appear in patterns using the double less-than/greater-than syntax ([`<<>>`](`<<>>/1`)). A binary in a pattern can match multiple segments at the same, each with different type, size, and unit:
+Binaries may appear in patterns using the double less-than/greater-than syntax ([`<<>>`](`<<>>/1`)). A binary in a pattern can match multiple segments at the same time, each with different type, size, and unit:
 
 ```iex
 iex> <<val::unit(8)-size(2)-integer>> = <<123, 56>>
