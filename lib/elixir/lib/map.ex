@@ -856,6 +856,50 @@ defmodule Map do
   end
 
   @doc """
+  Splits the `map` into two maps according to the given function `fun`.
+
+  `fun` receives each `{key, value}` pair in the `map` as its only argument. Returns
+  a tuple with the first map containing all the elements in `map` for which
+  applying `fun` returned a truthy value, and a second map with all the elements
+  for which applying `fun` returned a falsy value (`false` or `nil`).
+
+  ## Examples
+
+      iex> Map.split_with(%{a: 1, b: 2, c: 3, d: 4}, fn {_k, v} -> rem(v, 2) == 0 end)
+      {%{b: 2, d: 4}, %{a: 1, c: 3}}
+
+      iex> Map.split_with(%{a: 1, b: -2, c: 1, d: -3}, fn {k, _v} -> k in [:b, :d] end)
+      {%{b: -2, d: -3}, %{a: 1, c: 1}}
+
+      iex> Map.split_with(%{a: 1, b: -2, c: 1, d: -3}, fn {_k, v} -> v > 50 end)
+      {%{}, %{a: 1, b: -2, c: 1, d: -3}}
+
+      iex> Map.split_with(%{}, fn {_k, v} -> v > 50 end)
+      {%{}, %{}}
+
+  """
+  @doc since: "1.15.0"
+  @spec split_with(map, ({key, value} -> as_boolean(term))) :: {map, map}
+  def split_with(map, fun) when is_map(map) and is_function(fun, 1) do
+    iter = :maps.iterator(map)
+    next = :maps.next(iter)
+
+    do_split_with(next, [], [], fun)
+  end
+
+  defp do_split_with(:none, while_true, while_false, _fun) do
+    {:maps.from_list(while_true), :maps.from_list(while_false)}
+  end
+
+  defp do_split_with({key, value, iter}, while_true, while_false, fun) do
+    if fun.({key, value}) do
+      do_split_with(:maps.next(iter), [{key, value} | while_true], while_false, fun)
+    else
+      do_split_with(:maps.next(iter), while_true, [{key, value} | while_false], fun)
+    end
+  end
+
+  @doc """
   Updates `key` with the given function.
 
   If `key` is present in `map` then the existing value is passed to `fun` and its result is

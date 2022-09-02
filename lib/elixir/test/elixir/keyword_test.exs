@@ -215,4 +215,17 @@ defmodule KeywordTest do
                  "expected the second argument to be a list of atoms or tuples, got: 3",
                  fn -> Keyword.validate([three: 3], [:three, 3, :two]) end
   end
+
+  test "split_with/2" do
+    assert Keyword.split_with([], fn {_k, v} -> rem(v, 2) == 0 end) == {[], []}
+
+    assert Keyword.split_with([a: "1", a: 1, b: 2], fn {k, _v} -> k in [:a, :b] end) ==
+             {[a: "1", a: 1, b: 2], []}
+
+    assert Keyword.split_with([a: "1", a: 1, b: 2], fn {_k, v} -> v == 5 end) ==
+             {[], [a: "1", a: 1, b: 2]}
+
+    assert Keyword.split_with([a: "1", a: 1, b: 2], fn {k, v} -> k in [:a] and is_integer(v) end) ==
+             {[a: 1], [a: "1", b: 2]}
+  end
 end

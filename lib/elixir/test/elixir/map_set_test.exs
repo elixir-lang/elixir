@@ -148,6 +148,17 @@ defmodule MapSetTest do
     assert MapSet.equal?(result, MapSet.new([1, 3]))
   end
 
+  test "split_with" do
+    assert MapSet.split_with(MapSet.new(), fn v -> rem(v, 2) == 0 end) ==
+             {MapSet.new(), MapSet.new()}
+
+    assert MapSet.split_with(MapSet.new([1, 2, 3]), fn v -> rem(v, 2) == 0 end) ==
+             {MapSet.new([2]), MapSet.new([1, 3])}
+
+    assert MapSet.split_with(MapSet.new([2, 4, 6]), fn v -> rem(v, 2) == 0 end) ==
+             {MapSet.new([2, 4, 6]), MapSet.new([])}
+  end
+
   test "inspect" do
     assert inspect(MapSet.new([?a])) == "MapSet.new([97])"
   end

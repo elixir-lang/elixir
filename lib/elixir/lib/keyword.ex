@@ -343,7 +343,7 @@ defmodule Keyword do
               do: if(is_atom(value), do: value, else: elem(value, 0))
 
         message =
-          case Enum.split_with(invalid_keys, &(&1 in keys)) do
+          case split_with(invalid_keys, &(&1 in keys)) do
             {_, [_ | _] = unknown} ->
               "unknown keys #{inspect(unknown)} in #{inspect(keyword)}, " <>
                 "the allowed keys are: #{inspect(keys)}"
@@ -1183,6 +1183,45 @@ defmodule Keyword do
     acc = {[], []}
     {take, drop} = :lists.foldl(fun, acc, keywords)
     {:lists.reverse(take), :lists.reverse(drop)}
+  end
+
+  @doc """
+  Splits the `keywords` into two keyword lists according to the given function
+  `fun`.
+
+  The provided `fun` receives each `{key, value}` pair in the `keywords` as its only
+  argument. Returns a tuple with the first keyword list containing all the
+  elements in `keywords` for which applying `fun` returned a truthy value, and
+  a second keyword list with all the elements for which applying `fun` returned
+  a falsy value (`false` or `nil`).
+
+  ## Examples
+
+      iex> Keyword.split_with([a: 1, b: 2, c: 3], fn {_k, v} -> rem(v, 2) == 0 end)
+      {[b: 2], [a: 1, c: 3]}
+
+      iex> Keyword.split_with([a: 1, b: 2, c: 3, b: 4], fn {_k, v} -> rem(v, 2) == 0 end)
+      {[b: 2, b: 4], [a: 1, c: 3]}
+
+      iex> Keyword.split_with([a: 1, b: 2, c: 3, b: 4], fn {k, v} -> k in [:a, :c] and rem(v, 2) == 0 end)
+      {[], [a: 1, b: 2, c: 3, b: 4]}
+
+      iex> Keyword.split_with([], fn {_k, v} -> rem(v, 2) == 0 end)
+      {[], []}
+
+  """
+  @doc since: "1.15.0"
+  @spec split_with(t, ({key, value} -> as_boolean(term))) :: {t, t}
+  def split_with(keywords, fun) when is_list(keywords) and is_function(fun, 1) do
+    fun = fn key_value_pair, {while_true, while_false} ->
+      if fun.(key_value_pair) do
+        {[key_value_pair | while_true], while_false}
+      else
+        {while_true, [key_value_pair | while_false]}
+      end
+    end
+
+    :lists.foldr(fun, {[], []}, keywords)
   end
 
   @doc """
