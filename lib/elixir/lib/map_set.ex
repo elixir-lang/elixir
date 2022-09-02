@@ -375,6 +375,37 @@ defmodule MapSet do
     %{map_set | map: :sets.filter(pred, set)}
   end
 
+  @doc """
+  Splits the `MapSet` into two `MapSet`s according to the given function `fun`.
+
+  Splits the given `MapSet` into two maps by calling the provided `fun` which
+  receives each element in the `MapSet` as its only argument. Returns
+  a tuple with the first `MapSet` containing all the elements in `MapSet` for which
+  applying `fun` returned a truthy value, and a second `MapSet` with all the elements
+  for which applying `fun` returned a falsy value (`false` or `nil`).
+
+  ## Examples
+
+      iex> {while_true, while_false} = MapSet.split_with(MapSet.new([1, 2, 3, 4]), fn v -> rem(v, 2) == 0 end)
+      iex> while_true
+      #MapSet<[2, 4]>
+      iex> while_false
+      #MapSet<[1, 3]>
+
+      iex> {while_true, while_false} = MapSet.split_with(MapSet.new(), fn {_k, v} -> v > 50 end)
+      iex> while_true
+      #MapSet<[]>
+      iex> while_false
+      #MapSet<[]>
+
+  """
+  @doc since: "1.15.0"
+  @spec split_with(MapSet.t(), (any() -> as_boolean(term))) :: {MapSet.t(), MapSet.t()}
+  def split_with(%MapSet{map: map}, fun) when is_function(fun, 1) do
+    {while_true, while_false} = Map.split_with(map, fn {key, _} -> fun.(key) end)
+    {%MapSet{map: while_true}, %MapSet{map: while_false}}
+  end
+
   defimpl Enumerable do
     def count(map_set) do
       {:ok, MapSet.size(map_set)}
