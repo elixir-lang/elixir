@@ -378,8 +378,7 @@ defmodule MapSet do
   @doc """
   Splits the `MapSet` into two `MapSet`s according to the given function `fun`.
 
-  Splits the given `MapSet` into two maps by calling the provided `fun` which
-  receives each element in the `MapSet` as its only argument. Returns
+  `fun` receives each element in the `MapSet` as its only argument. Returns
   a tuple with the first `MapSet` containing all the elements in `MapSet` for which
   applying `fun` returned a truthy value, and a second `MapSet` with all the elements
   for which applying `fun` returned a falsy value (`false` or `nil`).
@@ -388,15 +387,15 @@ defmodule MapSet do
 
       iex> {while_true, while_false} = MapSet.split_with(MapSet.new([1, 2, 3, 4]), fn v -> rem(v, 2) == 0 end)
       iex> while_true
-      #MapSet<[2, 4]>
+      MapSet.new([2, 4])
       iex> while_false
-      #MapSet<[1, 3]>
+      MapSet.new([1, 3])
 
       iex> {while_true, while_false} = MapSet.split_with(MapSet.new(), fn {_k, v} -> v > 50 end)
       iex> while_true
-      #MapSet<[]>
+      MapSet.new([])
       iex> while_false
-      #MapSet<[]>
+      MapSet.new([])
 
   """
   @doc since: "1.15.0"

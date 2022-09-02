@@ -1189,8 +1189,7 @@ defmodule Keyword do
   Splits the `keywords` into two keyword lists according to the given function
   `fun`.
 
-  Splits the given `keywords` into two keyword lists by calling the provided
-  `fun` which receives each `{key, value}` pair in the `keywords` as its only
+  The provided `fun` receives each `{key, value}` pair in the `keywords` as its only
   argument. Returns a tuple with the first keyword list containing all the
   elements in `keywords` for which applying `fun` returned a truthy value, and
   a second keyword list with all the elements for which applying `fun` returned

@@ -858,8 +858,7 @@ defmodule Map do
   @doc """
   Splits the `map` into two maps according to the given function `fun`.
 
-  Splits the given `map` into two maps by calling the provided `fun` which
-  receives each `{key, value}` pair in the `map` as its only argument. Returns
+  `fun` receives each `{key, value}` pair in the `map` as its only argument. Returns
   a tuple with the first map containing all the elements in `map` for which
   applying `fun` returned a truthy value, and a second map with all the elements
   for which applying `fun` returned a falsy value (`false` or `nil`).
