@@ -656,19 +656,19 @@ defmodule Mix.Tasks.Format do
   end
 
   defp to_diffs(files) do
-    Enum.map_join(files, "\n", fn
+    Enum.map_intersperse(files, "\n", fn
       {:stdin, unfomatted, fomatted} ->
-        IO.iodata_to_binary([IO.ANSI.reset(), Mix.TextDiff.format(unfomatted, fomatted)])
+        [IO.ANSI.reset(), Mix.TextDiff.format(unfomatted, fomatted)]
 
       {file, unfomatted, fomatted} ->
-        IO.iodata_to_binary([
+        [
           IO.ANSI.red(),
           file,
           "\n",
           IO.ANSI.reset(),
           "\n",
           Mix.TextDiff.format(unfomatted, fomatted)
-        ])
+        ]
     end)
   end
 end
