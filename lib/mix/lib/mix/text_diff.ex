@@ -312,9 +312,9 @@ defmodule Mix.TextDiff do
 
           true ->
             str
-            |> String.split(~r/\s+/, include_captures: true)
+            |> String.split(~r/[\t\s]+/, include_captures: true)
             |> Enum.map(fn
-              " " <> _rest = str ->
+              <<start::binary-size(1), _::binary>> = str when start in ["\t", "\s"] ->
                 IO.ANSI.format([color[:space], str])
 
               str ->

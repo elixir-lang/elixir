@@ -298,6 +298,14 @@ defmodule Mix.TextDiffTest do
 
       assert to_binary(old, new, color: false, before: 1, after: 1) == exp
     end
+
+    test "colorized added tab" do
+      assert to_binary("ab", "a\tb") =~ "\e[42m\t"
+    end
+
+    test "colorized deleted tab" do
+      assert to_binary("a\tb", "ab") =~ "\e[41m\t"
+    end
   end
 
   defp to_binary(old, new, opts \\ []) do
