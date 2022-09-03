@@ -306,6 +306,102 @@ defmodule Mix.TextDiffTest do
     test "colorized deleted tab" do
       assert to_binary("a\tb", "ab") =~ "\e[41m\t"
     end
+
+    test "shows added CR" do
+      old = """
+      aaa
+      bbb
+      """
+
+      new = """
+      aaa\r
+      bbb
+      """
+
+      exp = """
+      1   - |aaa
+        1 + |aaa↵
+      2 2   |bbb
+         ...|
+      """
+
+      assert TextDiff.format(old, new)
+
+      assert to_binary(old, new, color: false, before: 1, after: 1) == exp
+    end
+
+    test "shows multiple added CRs" do
+      old = """
+      aaa
+      bbb
+      """
+
+      new = """
+      aaa\r
+      bbb\r
+      ccc\r
+      """
+
+      exp = """
+      1   - |aaa
+      2   - |bbb
+        1 + |aaa↵
+        2 + |bbb↵
+        3 + |ccc\r
+      """
+
+      assert TextDiff.format(old, new)
+
+      assert to_binary(old, new, color: false, before: 1, after: 1) == exp
+    end
+
+    test "shows deleted CR" do
+      old = """
+      aaa\r
+      bbb
+      """
+
+      new = """
+      aaa
+      bbb
+      """
+
+      exp = """
+      1   - |aaa↵
+        1 + |aaa
+      2 2   |bbb
+         ...|
+      """
+
+      assert TextDiff.format(old, new)
+
+      assert to_binary(old, new, color: false, before: 1, after: 1) == exp
+    end
+
+    test "shows multiple deleted CRs" do
+      old = """
+      aaa\r
+      bbb\r
+      """
+
+      new = """
+      aaa
+      bbb
+      ccc
+      """
+
+      exp = """
+      1   - |aaa↵
+      2   - |bbb↵
+        1 + |aaa
+        2 + |bbb
+        3 + |ccc
+      """
+
+      assert TextDiff.format(old, new)
+
+      assert to_binary(old, new, color: false) == exp
+    end
   end
 
   defp to_binary(old, new, opts \\ []) do

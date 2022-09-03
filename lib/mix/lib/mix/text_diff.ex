@@ -46,6 +46,7 @@ defmodule Mix.TextDiff do
   @blank " "
 
   @separator "|"
+  @cr "↵"
   @line_num_pad @blank
 
   @gutter [
@@ -132,6 +133,8 @@ defmodule Mix.TextDiff do
   def format(old, new, opts) do
     opts = Keyword.merge(@default_opts, opts)
 
+    crs? = String.contains?(old, "\r") || String.contains?(new, "\r")
+
     old = String.split(old, "\n")
     new = String.split(new, "\n")
 
@@ -143,6 +146,7 @@ defmodule Mix.TextDiff do
 
     old
     |> List.myers_difference(new)
+    |> insert_cr_symbols(crs?)
     |> diff_to_iodata({line, line}, opts)
   end
 
@@ -329,6 +333,45 @@ defmodule Mix.TextDiff do
       :eq -> {line_num_old + lines, line_num_new + lines}
       :ins -> {line_num_old, line_num_new + lines}
       :del -> {line_num_old + lines, line_num_new}
+    end
+  end
+
+  defp insert_cr_symbols(diffs, false), do: diffs
+  defp insert_cr_symbols(diffs, true), do: do_insert_cr_symbols(diffs, [])
+
+  defp do_insert_cr_symbols([], acc), do: Enum.reverse(acc)
+
+  defp do_insert_cr_symbols([{:del, del}, {:ins, ins} | rest], acc) do
+    {del, ins} = do_insert_cr_symbols(del, ins, {[], []})
+    do_insert_cr_symbols(rest, [{:ins, ins}, {:del, del} | acc])
+  end
+
+  defp do_insert_cr_symbols([diff | rest], acc) do
+    do_insert_cr_symbols(rest, [diff | acc])
+  end
+
+  defp do_insert_cr_symbols([left | left_rest], [right | right_rest], {left_acc, right_acc}) do
+    {left, right} = insert_cr_symbol(left, right)
+    do_insert_cr_symbols(left_rest, right_rest, {[left | left_acc], [right | right_acc]})
+  end
+
+  defp do_insert_cr_symbols([], right, {left_acc, right_acc}) do
+    left = Enum.reverse(left_acc)
+    right = right_acc |> Enum.reverse() |> Enum.concat(right)
+    {left, right}
+  end
+
+  defp do_insert_cr_symbols(left, [], {left_acc, right_acc}) do
+    left = left_acc |> Enum.reverse() |> Enum.concat(left)
+    right = Enum.reverse(right_acc)
+    {left, right}
+  end
+
+  defp insert_cr_symbol(left, right) do
+    case {String.ends_with?(left, "\r"), String.ends_with?(right, "\r")} do
+      {bool, bool} -> {left, right}
+      {true, false} -> {String.replace(left, "\r", @cr), right}
+      {false, true} -> {left, String.replace(right, "\r", @cr)}
     end
   end
 end
