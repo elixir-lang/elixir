@@ -1166,6 +1166,9 @@ defmodule Code do
       The arity may be the atom `:*`, which implies all arities of
       that name. The formatter already includes a list of functions
       and this option augments this list.
+
+    * `:syntax_colors` - a keyword list of colors the output is colorized.
+      See `Inspect.Opts` for more information.
   """
   @doc since: "1.13.0"
   @spec quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
