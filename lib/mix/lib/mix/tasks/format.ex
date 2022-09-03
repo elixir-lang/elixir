@@ -664,6 +664,7 @@ defmodule Mix.Tasks.Format do
         IO.iodata_to_binary([
           IO.ANSI.red(),
           file,
+          "\n",
           IO.ANSI.reset(),
           "\n",
           Mix.TextDiff.format(unfomatted, fomatted)
