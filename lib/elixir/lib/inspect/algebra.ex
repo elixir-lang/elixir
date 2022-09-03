@@ -63,7 +63,7 @@ defmodule Inspect.Opts do
       each type (for example, `[number: :red, atom: :blue]`). Types can include
       `:atom`, `:binary`, `:boolean`, `:list`, `:map`, `:number`, `:regex`,
       `:string`, `:tuple`, or some types to represent AST like `:variable`,
-      `:function` and `:operator`.
+      `:call`, and `:operator`.
       Custom data types may provide their own options.
       Colors can be any `t:IO.ANSI.ansidata/0` as accepted by `IO.ANSI.format/1`.
       A default list of colors can be retrieved from `IO.ANSI.syntax_colors/0`.

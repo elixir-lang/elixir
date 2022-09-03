@@ -31,7 +31,7 @@ defmodule Code.Normalizer.QuotedASTTest do
     end
 
     test "local call with colors" do
-      opts = [syntax_colors: [function: :blue, number: :yellow, variable: :red]]
+      opts = [syntax_colors: [call: :blue, number: :yellow, variable: :red]]
 
       assert quoted_to_string(quote(do: foo(1, a)), opts) ==
                "\e[34mfoo\e[0m(\e[33m1\e[0m, \e[31ma\e[0m)"
@@ -90,7 +90,7 @@ defmodule Code.Normalizer.QuotedASTTest do
     end
 
     test "remote call with colors" do
-      opts = [syntax_colors: [function: :blue, number: :yellow, variable: :red, atom: :green]]
+      opts = [syntax_colors: [call: :blue, number: :yellow, variable: :red, atom: :green]]
 
       assert quoted_to_string(quote(do: foo.bar(1, 2)), opts) ==
                "\e[31mfoo\e[0m.\e[34mbar\e[0m(\e[33m1\e[0m, \e[33m2\e[0m)"

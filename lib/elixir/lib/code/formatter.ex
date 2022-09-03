@@ -1008,7 +1008,7 @@ defmodule Code.Formatter do
     {target_doc, state} = remote_target_to_algebra(target, state)
 
     fun_doc =
-      Macro.inspect_atom(:remote_call, fun) |> string() |> color(:function, state.inspect_opts)
+      Macro.inspect_atom(:remote_call, fun) |> string() |> color(:call, state.inspect_opts)
 
     remote_doc = target_doc |> concat(".") |> concat(fun_doc)
 
@@ -1076,7 +1076,7 @@ defmodule Code.Formatter do
       fun
       |> Atom.to_string()
       |> string()
-      |> color(:function, state.inspect_opts)
+      |> color(:call, state.inspect_opts)
       |> concat(call_doc)
 
     doc = if wrap_in_parens?, do: wrap_in_parens(doc), else: doc
