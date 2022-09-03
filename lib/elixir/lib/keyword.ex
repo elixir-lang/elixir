@@ -343,7 +343,7 @@ defmodule Keyword do
               do: if(is_atom(value), do: value, else: elem(value, 0))
 
         message =
-          case split_with(invalid_keys, &(&1 in keys)) do
+          case Enum.split_with(invalid_keys, &(&1 in keys)) do
             {_, [_ | _] = unknown} ->
               "unknown keys #{inspect(unknown)} in #{inspect(keyword)}, " <>
                 "the allowed keys are: #{inspect(keys)}"
