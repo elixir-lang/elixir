@@ -2508,10 +2508,8 @@ defmodule Macro do
 
   defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
     result = List.last(values)
-
-    [{first_ast, first_value} | asts_with_values] =
-      code_asts |> Enum.map(&to_string_with_colors(&1, options)) |> Enum.zip(values)
-
+    code_strings = Enum.map(code_asts, &to_string_with_colors(&1, options))
+    [{first_ast, first_value} | asts_with_values] = Enum.zip(code_strings, values)
     first_formatted = [dbg_format_ast(first_ast), " ", inspect(first_value, options), ?\n]
 
     rest_formatted =
@@ -2530,10 +2528,8 @@ defmodule Macro do
   defp to_string_with_colors(ast, options) do
     options = Keyword.take(options, [:syntax_colors])
 
-    ast
-    |> Code.quoted_to_algebra(options)
-    |> Inspect.Algebra.format(98)
-    |> IO.iodata_to_binary()
+    algebra = Code.quoted_to_algebra(ast, options)
+    IO.iodata_to_binary(Inspect.Algebra.format(algebra, 98))
   end
 
   defp dbg_format_header(env) do
