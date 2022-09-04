@@ -9,6 +9,11 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string({:{}, [], nil}) == "{}"
     end
 
+    test "variable with colors" do
+      opts = [syntax_colors: [variable: :blue]]
+      assert quoted_to_string(quote(do: foo), opts) == "\e[34mfoo\e[0m"
+    end
+
     test "local call" do
       assert quoted_to_string(quote(do: foo(1, 2, 3))) == "foo(1, 2, 3)"
       assert quoted_to_string(quote(do: foo([1, 2, 3]))) == "foo([1, 2, 3])"
@@ -23,6 +28,13 @@ defmodule Code.Normalizer.QuotedASTTest do
       # Mixing literals and non-literals with line
       assert quoted_to_string(quote(line: __ENV__.line, do: foo(a, 2))) == "foo(a, 2)"
       assert quoted_to_string(quote(line: __ENV__.line, do: foo(1, b))) == "foo(1, b)"
+    end
+
+    test "local call with colors" do
+      opts = [syntax_colors: [call: :blue, number: :yellow, variable: :red]]
+
+      assert quoted_to_string(quote(do: foo(1, a)), opts) ==
+               "\e[34mfoo\e[0m(\e[33m1\e[0m, \e[31ma\e[0m)"
     end
 
     test "local call no parens" do
@@ -75,6 +87,19 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: Foo.Bar.baz([1, 2, 3]))) == "Foo.Bar.baz([1, 2, 3])"
       assert quoted_to_string(quote(do: ?0.Bar.baz([1, 2, 3]))) == "48.Bar.baz([1, 2, 3])"
       assert quoted_to_string(quote(do: Foo.bar(<<>>, []))) == "Foo.bar(<<>>, [])"
+    end
+
+    test "remote call with colors" do
+      opts = [syntax_colors: [call: :blue, number: :yellow, variable: :red, atom: :green]]
+
+      assert quoted_to_string(quote(do: foo.bar(1, 2)), opts) ==
+               "\e[31mfoo\e[0m.\e[34mbar\e[0m(\e[33m1\e[0m, \e[33m2\e[0m)"
+
+      assert quoted_to_string(quote(do: :foo.bar(1, 2)), opts) ==
+               "\e[32m:foo\e[0m.\e[34mbar\e[0m(\e[33m1\e[0m, \e[33m2\e[0m)"
+
+      assert quoted_to_string(quote(do: Foo.Bar.bar(1, 2)), opts) ==
+               "\e[32mFoo.Bar\e[0m.\e[34mbar\e[0m(\e[33m1\e[0m, \e[33m2\e[0m)"
     end
 
     test "keyword call" do
@@ -152,6 +177,13 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote do: {1}) == "{1}"
       assert quoted_to_string(quote do: {1, 2, 3}) == "{1, 2, 3}"
       assert quoted_to_string(quote do: {1, 2, 3, foo: :bar}) == "{1, 2, 3, foo: :bar}"
+    end
+
+    test "tuple with colors" do
+      opts = [syntax_colors: [tuple: :blue, number: :yellow]]
+
+      assert quoted_to_string(quote(do: {1, 2, 3}), opts) ==
+               "\e[34m{\e[0m\e[33m1\e[0m, \e[33m2\e[0m, \e[33m3\e[0m\e[34m}\e[0m"
     end
 
     test "tuple call" do
@@ -463,6 +495,12 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: identity(&1))) == "identity(&1)"
     end
 
+    test "operators with colors" do
+      opts = [syntax_colors: [operator: :blue, number: :yellow]]
+      assert quoted_to_string(quote(do: !!1), opts) == "\e[34m!\e[0m\e[34m!\e[0m\e[33m1\e[0m"
+      assert quoted_to_string(quote(do: 1 + 2), opts) == "\e[33m1\e[0m\e[34m +\e[0m \e[33m2\e[0m"
+    end
+
     test "access" do
       assert quoted_to_string(quote(do: a[b])) == "a[b]"
       assert quoted_to_string(quote(do: a[1 + 2])) == "a[1 + 2]"
@@ -481,6 +519,13 @@ defmodule Code.Normalizer.QuotedASTTest do
 
       # Not keyword lists
       assert quoted_to_string(quote(do: [{binary(), integer()}])) == "[{binary(), integer()}]"
+    end
+
+    test "keyword list with colors" do
+      opts = [syntax_colors: [list: :blue, atom: :green, number: :yellow]]
+
+      assert quoted_to_string(quote(do: [a: 1, b: 2]), opts) ==
+               "\e[34m[\e[0m\e[32ma:\e[0m \e[33m1\e[0m, \e[32mb:\e[0m \e[33m2\e[0m\e[34m]\e[0m"
     end
 
     test "interpolation" do
@@ -510,6 +555,13 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "integer/float" do
       assert quoted_to_string(1) == "1"
       assert quoted_to_string({:__block__, [], [1]}) == "1"
+      assert quoted_to_string(1.23) == "1.23"
+    end
+
+    test "integer/float with colors" do
+      opts = [syntax_colors: [number: :yellow]]
+      assert quoted_to_string(1, opts) == "\e[33m1\e[0m"
+      assert quoted_to_string(1.23, opts) == "\e[33m1.23\e[0m"
     end
 
     test "charlist" do
@@ -521,6 +573,11 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(quote(do: "")) == ~S/""/
       assert quoted_to_string(quote(do: "abc")) == ~S/"abc"/
       assert quoted_to_string(quote(do: "#{"abc"}")) == ~S/"#{"abc"}"/
+    end
+
+    test "string with colors" do
+      opts = [syntax_colors: [string: :green]]
+      assert quoted_to_string(quote(do: "abc"), opts) == "\e[32m\"abc\"\e[0m"
     end
 
     test "catch-all" do

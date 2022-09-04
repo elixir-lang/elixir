@@ -1475,8 +1475,10 @@ defmodule KernelTest do
       output = capture_io(fn -> assert dbg(List.duplicate(:foo, 3)) == [:foo, :foo, :foo] end)
       assert output =~ "kernel_test.exs"
       assert output =~ "KernelTest"
-      assert output =~ "List.duplicate(:foo, 3)"
+      assert output =~ "List"
+      assert output =~ "duplicate"
       assert output =~ ":foo"
+      assert output =~ "3"
     end
 
     test "doesn't print any colors if :syntax_colors is []" do
