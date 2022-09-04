@@ -2455,8 +2455,6 @@ defmodule Macro do
     [start_ast | rest_asts] = asts = for {ast, 0} <- unpipe(pipe_ast), do: ast
     rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
 
-    string_asts = Enum.map(asts, &to_string/1)
-
     initial_acc =
       quote do
         unquote(value_var) = unquote(start_ast)
@@ -2475,13 +2473,14 @@ defmodule Macro do
 
     quote do
       unquote(values_ast)
-      {:pipe, unquote(string_asts), Enum.reverse(unquote(values_acc_var))}
+
+      {:pipe, unquote(Macro.escape(asts)), Enum.reverse(unquote(values_acc_var))}
     end
   end
 
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
-    quote do: {:value, unquote(to_string(ast)), unquote(ast)}
+    quote do: {:value, unquote(Macro.escape(ast)), unquote(ast)}
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2509,8 +2508,8 @@ defmodule Macro do
 
   defp dbg_format_ast_to_debug({:pipe, code_asts, values}, options) do
     result = List.last(values)
-    [{first_ast, first_value} | asts_with_values] = Enum.zip(code_asts, values)
-
+    code_strings = Enum.map(code_asts, &to_string_with_colors(&1, options))
+    [{first_ast, first_value} | asts_with_values] = Enum.zip(code_strings, values)
     first_formatted = [dbg_format_ast(first_ast), " ", inspect(first_value, options), ?\n]
 
     rest_formatted =
@@ -2522,7 +2521,15 @@ defmodule Macro do
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
-    {[dbg_format_ast(code_ast), " ", inspect(value, options), ?\n], value}
+    code = to_string_with_colors(code_ast, options)
+    {[dbg_format_ast(code), " ", inspect(value, options), ?\n], value}
+  end
+
+  defp to_string_with_colors(ast, options) do
+    options = Keyword.take(options, [:syntax_colors])
+
+    algebra = Code.quoted_to_algebra(ast, options)
+    IO.iodata_to_binary(Inspect.Algebra.format(algebra, 98))
   end
 
   defp dbg_format_header(env) do
