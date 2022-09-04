@@ -773,24 +773,17 @@ defmodule Mix.Tasks.FormatTest do
 
   describe "Mix.Tasks.Format.text_diff_format/3" do
     test "with unchanged texts" do
-      assert Mix.Tasks.Format.text_diff_format("abc", "abc") == []
-      assert text_diff_to_binary("abc", "abc") == ""
+      assert Mix.Tasks.Format.text_diff_format("abc", "abc") == ""
     end
 
     test "with one deleted line" do
       old = "del"
       new = ""
 
-      assert Mix.Tasks.Format.text_diff_format(old, new) == [
-               [
-                 [["1", " ", " "], [[[[] | "\e[31m"], " - "] | "\e[0m"], "|"],
-                 [[], [[[[] | "\e[31m"], "del"] | "\e[0m"]],
-                 "\n"
-               ],
-               [[[" ", " ", "1"], [[[[] | "\e[32m"], " + "] | "\e[0m"], "|"], [], "\n"]
-             ]
+      assert Mix.Tasks.Format.text_diff_format(old, new) ==
+               "1  \e[31m - \e[0m|\e[31mdel\e[0m\n  1\e[32m + \e[0m|\n"
 
-      assert text_diff_to_binary(old, new, color: false) == """
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == """
              1   - |del
                1 + |
              """
@@ -800,33 +793,13 @@ defmodule Mix.Tasks.FormatTest do
       old = "one three two"
       new = "one two three"
 
-      assert Mix.Tasks.Format.text_diff_format(old, new) == [
-               [
-                 [["1", " ", " "], [[[[] | "\e[31m"], " - "] | "\e[0m"], "|"],
-                 [
-                   [[[] | "one t"] | "hree"],
-                   [[[[] | "\e[31m"], ""] | "\e[0m"],
-                   [[[[] | "\e[41m"], " "] | "\e[0m"],
-                   [[[[] | "\e[31m"], "two"] | "\e[0m"]
-                 ],
-                 "\n"
-               ],
-               [
-                 [[" ", " ", "1"], [[[[] | "\e[32m"], " + "] | "\e[0m"], "|"],
-                 [
-                   [
-                     [[] | "one t"],
-                     [[[[] | "\e[32m"], "wo"] | "\e[0m"],
-                     [[[[] | "\e[42m"], " "] | "\e[0m"],
-                     [[[[] | "\e[32m"], "t"] | "\e[0m"]
-                   ]
-                   | "hree"
-                 ],
-                 "\n"
-               ]
-             ]
+      assert Mix.Tasks.Format.text_diff_format(old, new) ==
+               """
+               1  \e[31m - \e[0m|one three\e[31m\e[0m\e[41m \e[0m\e[31mtwo\e[0m
+                 1\e[32m + \e[0m|one t\e[32mwo\e[0m\e[42m \e[0m\e[32mt\e[0mhree
+               """
 
-      assert text_diff_to_binary(old, new, color: false) == """
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == """
              1   - |one three two
                1 + |one two three
              """
@@ -863,8 +836,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
     end
 
     test "with multiple deleted lines" do
@@ -894,8 +866,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
     end
 
     test "with one added line in the middle" do
@@ -929,8 +900,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
     end
 
     test "with changed first line" do
@@ -957,8 +927,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
     end
 
     test "with changed last line" do
@@ -985,8 +954,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
     end
 
     test "with changed first and last line" do
@@ -1017,8 +985,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false, before: 1, after: 1) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "with changed second and second last line" do
@@ -1059,16 +1026,15 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false, before: 1, after: 1) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "colorized added tab" do
-      assert text_diff_to_binary("ab", "a\tb") =~ "\e[42m\t"
+      assert Mix.Tasks.Format.text_diff_format("ab", "a\tb") =~ "\e[42m\t"
     end
 
     test "colorized deleted tab" do
-      assert text_diff_to_binary("a\tb", "ab") =~ "\e[41m\t"
+      assert Mix.Tasks.Format.text_diff_format("a\tb", "ab") =~ "\e[41m\t"
     end
 
     test "shows added CR" do
@@ -1090,8 +1056,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false, before: 1, after: 1) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "shows multiple added CRs" do
@@ -1115,8 +1080,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false, before: 1, after: 1) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "shows deleted CR" do
@@ -1138,8 +1102,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false, before: 1, after: 1) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "shows multiple deleted CRs" do
@@ -1163,14 +1126,7 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       assert Mix.Tasks.Format.text_diff_format(old, new)
-
-      assert text_diff_to_binary(old, new, color: false) == exp
+      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
     end
-  end
-
-  defp text_diff_to_binary(old, new, opts \\ []) do
-    old
-    |> Mix.Tasks.Format.text_diff_format(new, opts)
-    |> IO.iodata_to_binary()
   end
 end
