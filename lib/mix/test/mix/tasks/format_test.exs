@@ -780,8 +780,11 @@ defmodule Mix.Tasks.FormatTest do
       old = "del"
       new = ""
 
-      assert Mix.Tasks.Format.text_diff_format(old, new) ==
-               "1  \e[31m - \e[0m|\e[31mdel\e[0m\n  1\e[32m + \e[0m|\n"
+      assert output = Mix.Tasks.Format.text_diff_format(old, new)
+
+      if IO.ANSI.enabled?() do
+        assert output == "1  \e[31m - \e[0m|\e[31mdel\e[0m\n  1\e[32m + \e[0m|\n"
+      end
 
       assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == """
              1   - |del
@@ -793,11 +796,15 @@ defmodule Mix.Tasks.FormatTest do
       old = "one three two"
       new = "one two three"
 
-      assert Mix.Tasks.Format.text_diff_format(old, new) ==
-               """
-               1  \e[31m - \e[0m|one three\e[31m\e[0m\e[41m \e[0m\e[31mtwo\e[0m
-                 1\e[32m + \e[0m|one t\e[32mwo\e[0m\e[42m \e[0m\e[32mt\e[0mhree
-               """
+      assert output = Mix.Tasks.Format.text_diff_format(old, new)
+
+      if IO.ANSI.enabled?() do
+        assert output ==
+                 """
+                 1  \e[31m - \e[0m|one three\e[31m\e[0m\e[41m \e[0m\e[31mtwo\e[0m
+                   1\e[32m + \e[0m|one t\e[32mwo\e[0m\e[42m \e[0m\e[32mt\e[0mhree
+                 """
+      end
 
       assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == """
              1   - |one three two
@@ -1030,11 +1037,19 @@ defmodule Mix.Tasks.FormatTest do
     end
 
     test "colorized added tab" do
-      assert Mix.Tasks.Format.text_diff_format("ab", "a\tb") =~ "\e[42m\t"
+      assert output = Mix.Tasks.Format.text_diff_format("ab", "a\tb")
+
+      if IO.ANSI.enabled?() do
+        assert output =~ "\e[42m\t"
+      end
     end
 
     test "colorized deleted tab" do
-      assert Mix.Tasks.Format.text_diff_format("a\tb", "ab") =~ "\e[41m\t"
+      assert output = Mix.Tasks.Format.text_diff_format("a\tb", "ab")
+
+      if IO.ANSI.enabled?() do
+        assert output =~ "\e[41m\t"
+      end
     end
 
     test "shows added CR" do
