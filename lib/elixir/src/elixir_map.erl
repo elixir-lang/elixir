@@ -138,13 +138,19 @@ load_struct(Meta, Name, Args, Keys, E) ->
 wrapped_load_struct(Meta, Name, Args, Keys, E) ->
   %% We also include the current module because it won't be present
   %% in context module in case the module name is defined dynamically.
-  InContext = lists:member(Name, [?key(E, module) | ?key(E, context_modules)]),
+  Module = ?key(E, module),
+  InContext = lists:member(Name, [Module | ?key(E, context_modules)]),
 
   Arity = length(Args),
   External = InContext orelse (not(ensure_loaded(Name)) andalso wait_for_struct(Name)),
 
   try
     case External andalso elixir_def:external_for(Meta, Name, '__struct__', Arity, [def]) of
+      %% If I am accessing myself and there is no __struct__ function,
+      %% don't invoke the fallback to avoid calling loaded code.
+      false when Module == Name ->
+        error(undef);
+
       false ->
         apply(Name, '__struct__', Args);
 

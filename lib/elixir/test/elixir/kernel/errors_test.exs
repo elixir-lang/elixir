@@ -204,6 +204,23 @@ defmodule Kernel.ErrorsTest do
       end
     end
 
+    test "bad struct on module conflict" do
+      Code.put_compiler_option(:ignore_module_conflict, true)
+
+      assert_eval_raise CompileError, ~r'MissingStructOnReload\.__struct__/1 is undefined', ~c'''
+      defmodule MissingStructOnReload do
+        defstruct [:title]
+        def d(), do: %MissingStructOnReload{}
+      end
+
+      defmodule MissingStructOnReload do
+        def d(), do: %MissingStructOnReload{}
+      end
+      '''
+    after
+      Code.put_compiler_option(:ignore_module_conflict, false)
+    end
+
     test "missing struct key" do
       missing_struct_key_error =
         ~r"expected Kernel.ErrorsTest.MissingStructKey.__struct__/(0|1) to return a map.*, got: %\{\}"
