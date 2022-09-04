@@ -657,17 +657,17 @@ defmodule Mix.Tasks.Format do
 
   defp to_diffs(files) do
     Enum.map_intersperse(files, "\n", fn
-      {:stdin, unfomatted, fomatted} ->
-        [IO.ANSI.reset(), Mix.TextDiff.format(unfomatted, fomatted)]
+      {:stdin, unformatted, formatted} ->
+        [IO.ANSI.reset(), Mix.TextDiff.format(unformatted, formatted)]
 
-      {file, unfomatted, fomatted} ->
+      {file, unformatted, formatted} ->
         [
           IO.ANSI.red(),
           file,
           "\n",
           IO.ANSI.reset(),
           "\n",
-          Mix.TextDiff.format(unfomatted, fomatted)
+          Mix.TextDiff.format(unformatted, formatted)
         ]
     end)
   end
