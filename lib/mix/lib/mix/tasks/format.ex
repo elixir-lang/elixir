@@ -182,6 +182,32 @@ defmodule Mix.Tasks.Format do
   @manifest "cached_dot_formatter"
   @manifest_vsn 2
 
+  @newline "\n"
+  @blank " "
+
+  @separator "|"
+  @cr "↵"
+  @line_num_pad @blank
+
+  @gutter [
+    del: " - ",
+    eq: "   ",
+    ins: " + ",
+    skip: "..."
+  ]
+
+  @colors [
+    del: [text: :red, space: :red_background],
+    ins: [text: :green, space: :green_background]
+  ]
+
+  @default_opts [
+    after: 2,
+    before: 2,
+    color: true,
+    line: 1
+  ]
+
   @doc """
   Returns which features this plugin should plug into.
   """
@@ -602,7 +628,7 @@ defmodule Mix.Tasks.Format do
 
     cond do
       check_formatted? ->
-        if input == output, do: :ok, else: {:not_formatted, file}
+        if input == output, do: :ok, else: {:not_formatted, {file, input, output}}
 
       dry_run? ->
         :ok
@@ -654,11 +680,277 @@ defmodule Mix.Tasks.Format do
     mix format failed due to --check-formatted.
     The following files are not formatted:
 
-    #{to_bullet_list(not_formatted)}
+    #{to_diffs(not_formatted)}
     """)
   end
 
-  defp to_bullet_list(files) do
-    Enum.map_join(files, "\n", &"  * #{&1 |> to_string() |> Path.relative_to_cwd()}")
+  defp to_diffs(files) do
+    Enum.map_intersperse(files, "\n", fn
+      {:stdin, unformatted, formatted} ->
+        [IO.ANSI.reset(), text_diff_format(unformatted, formatted)]
+
+      {file, unformatted, formatted} ->
+        [
+          IO.ANSI.red(),
+          file,
+          "\n",
+          IO.ANSI.reset(),
+          "\n",
+          text_diff_format(unformatted, formatted)
+        ]
+    end)
+  end
+
+  @doc false
+  @spec text_diff_format(String.t(), String.t(), keyword()) :: String.t()
+  def text_diff_format(code, code, opts \\ default_opts())
+
+  def text_diff_format(code, code, _opts), do: ""
+
+  def text_diff_format(old, new, opts) do
+    opts = Keyword.merge(@default_opts, opts)
+
+    crs? = String.contains?(old, "\r") || String.contains?(new, "\r")
+
+    old = String.split(old, "\n")
+    new = String.split(new, "\n")
+
+    max = max(length(new), length(old))
+    line_num_digits = max |> Integer.digits() |> length()
+    opts = Keyword.put(opts, :line_num_digits, line_num_digits)
+
+    {line, opts} = Keyword.pop!(opts, :line)
+
+    old
+    |> List.myers_difference(new)
+    |> insert_cr_symbols(crs?)
+    |> diff_to_iodata({line, line}, opts)
+    |> IO.iodata_to_binary()
+  end
+
+  @doc false
+  @spec default_opts() :: keyword()
+  def default_opts, do: @default_opts
+
+  defp diff_to_iodata(diff, line_nums, opts, iodata \\ [])
+
+  defp diff_to_iodata([], _line_nums, _opts, iodata), do: Enum.reverse(iodata)
+
+  defp diff_to_iodata([{:eq, [""]}], _line_nums, _opts, iodata), do: Enum.reverse(iodata)
+
+  defp diff_to_iodata([{:eq, lines}], line_nums, opts, iodata) do
+    lines_after = Enum.take(lines, opts[:after])
+    iodata = lines(iodata, {:eq, lines_after}, line_nums, opts)
+
+    iodata =
+      case length(lines) > opts[:after] do
+        false -> iodata
+        true -> lines(iodata, :skip, opts)
+      end
+
+    Enum.reverse(iodata)
+  end
+
+  defp diff_to_iodata([{:eq, lines} | diff], {line, line}, opts, [] = iodata) do
+    {start, lines_before} = Enum.split(lines, opts[:before] * -1)
+
+    iodata =
+      case length(lines) > opts[:before] do
+        false -> iodata
+        true -> lines(iodata, :skip, opts)
+      end
+
+    line = line + length(start)
+    iodata = lines(iodata, {:eq, lines_before}, {line, line}, opts)
+
+    line = line + length(lines_before)
+    diff_to_iodata(diff, {line, line}, opts, iodata)
+  end
+
+  defp diff_to_iodata([{:eq, lines} | diff], line_nums, opts, iodata) do
+    case length(lines) > opts[:after] + opts[:before] do
+      true ->
+        {lines1, lines2, lines3} = split(lines, opts[:after], opts[:before] * -1)
+
+        iodata =
+          iodata
+          |> lines({:eq, lines1}, line_nums, opts)
+          |> lines(:skip, opts)
+          |> lines({:eq, lines3}, add_line_nums(line_nums, length(lines1) + length(lines2)), opts)
+
+        line_nums = add_line_nums(line_nums, length(lines))
+
+        diff_to_iodata(diff, line_nums, opts, iodata)
+
+      false ->
+        iodata = lines(iodata, {:eq, lines}, line_nums, opts)
+        line_nums = add_line_nums(line_nums, length(lines))
+
+        diff_to_iodata(diff, line_nums, opts, iodata)
+    end
+  end
+
+  defp diff_to_iodata([{:del, [del]}, {:ins, [ins]} | diff], line_nums, opts, iodata) do
+    iodata = lines(iodata, {:chg, del, ins}, line_nums, opts)
+    diff_to_iodata(diff, add_line_nums(line_nums, 1), opts, iodata)
+  end
+
+  defp diff_to_iodata([{kind, lines} | diff], line_nums, opts, iodata) do
+    iodata = lines(iodata, {kind, lines}, line_nums, opts)
+    line_nums = add_line_nums(line_nums, length(lines), kind)
+
+    diff_to_iodata(diff, line_nums, opts, iodata)
+  end
+
+  defp split(list, count1, count2) do
+    {split1, split2} = Enum.split(list, count1)
+    {split2, split3} = Enum.split(split2, count2)
+    {split1, split2, split3}
+  end
+
+  defp lines(iodata, :skip, opts) do
+    line_num = String.duplicate(@blank, opts[:line_num_digits] * 2 + 1)
+    [[line_num, @gutter[:skip], @separator, @newline] | iodata]
+  end
+
+  defp lines(iodata, {:chg, del, ins}, line_nums, opts) do
+    {del, ins} = line_diff(del, ins, opts)
+
+    [
+      [gutter(line_nums, :ins, opts), ins, @newline],
+      [gutter(line_nums, :del, opts), del, @newline]
+      | iodata
+    ]
+  end
+
+  defp lines(iodata, {kind, lines}, line_nums, opts) do
+    lines
+    |> Enum.with_index()
+    |> Enum.reduce(iodata, fn {line, offset}, iodata ->
+      line_nums = add_line_nums(line_nums, offset, kind)
+      [[gutter(line_nums, kind, opts), colorize(line, kind, false, opts), @newline] | iodata]
+    end)
+  end
+
+  defp gutter(line_nums, kind, opts) do
+    [line_num(line_nums, kind, opts), colorize(@gutter[kind], kind, false, opts), @separator]
+  end
+
+  defp line_num({line_num_old, line_num_new}, :eq, opts) do
+    old =
+      line_num_old
+      |> to_string()
+      |> String.pad_leading(opts[:line_num_digits], @line_num_pad)
+
+    new =
+      line_num_new
+      |> to_string()
+      |> String.pad_leading(opts[:line_num_digits], @line_num_pad)
+
+    [old, @blank, new]
+  end
+
+  defp line_num({line_num_old, _line_num_new}, :del, opts) do
+    old =
+      line_num_old
+      |> to_string()
+      |> String.pad_leading(opts[:line_num_digits], @line_num_pad)
+
+    new = String.duplicate(@blank, opts[:line_num_digits])
+    [old, @blank, new]
+  end
+
+  defp line_num({_line_num_old, line_num_new}, :ins, opts) do
+    old = String.duplicate(@blank, opts[:line_num_digits])
+
+    new =
+      line_num_new
+      |> to_string()
+      |> String.pad_leading(opts[:line_num_digits], @line_num_pad)
+
+    [old, @blank, new]
+  end
+
+  defp line_diff(del, ins, opts) do
+    diff = String.myers_difference(del, ins)
+
+    Enum.reduce(diff, {[], []}, fn
+      {:eq, str}, {del, ins} -> {[del | str], [ins | str]}
+      {:del, str}, {del, ins} -> {[del | colorize(str, :del, true, opts)], ins}
+      {:ins, str}, {del, ins} -> {del, [ins | colorize(str, :ins, true, opts)]}
+    end)
+  end
+
+  defp colorize(str, kind, space, opts) do
+    case Keyword.fetch!(opts, :color) && Keyword.has_key?(@colors, kind) do
+      false ->
+        str
+
+      true ->
+        color = Keyword.fetch!(@colors, kind)
+
+        case space do
+          false ->
+            IO.ANSI.format([color[:text], str])
+
+          true ->
+            str
+            |> String.split(~r/[\t\s]+/, include_captures: true)
+            |> Enum.map(fn
+              <<start::binary-size(1), _::binary>> = str when start in ["\t", "\s"] ->
+                IO.ANSI.format([color[:space], str])
+
+              str ->
+                IO.ANSI.format([color[:text], str])
+            end)
+        end
+    end
+  end
+
+  defp add_line_nums({line_num_old, line_num_new}, lines, kind \\ :eq) do
+    case kind do
+      :eq -> {line_num_old + lines, line_num_new + lines}
+      :ins -> {line_num_old, line_num_new + lines}
+      :del -> {line_num_old + lines, line_num_new}
+    end
+  end
+
+  defp insert_cr_symbols(diffs, false), do: diffs
+  defp insert_cr_symbols(diffs, true), do: do_insert_cr_symbols(diffs, [])
+
+  defp do_insert_cr_symbols([], acc), do: Enum.reverse(acc)
+
+  defp do_insert_cr_symbols([{:del, del}, {:ins, ins} | rest], acc) do
+    {del, ins} = do_insert_cr_symbols(del, ins, {[], []})
+    do_insert_cr_symbols(rest, [{:ins, ins}, {:del, del} | acc])
+  end
+
+  defp do_insert_cr_symbols([diff | rest], acc) do
+    do_insert_cr_symbols(rest, [diff | acc])
+  end
+
+  defp do_insert_cr_symbols([left | left_rest], [right | right_rest], {left_acc, right_acc}) do
+    {left, right} = insert_cr_symbol(left, right)
+    do_insert_cr_symbols(left_rest, right_rest, {[left | left_acc], [right | right_acc]})
+  end
+
+  defp do_insert_cr_symbols([], right, {left_acc, right_acc}) do
+    left = Enum.reverse(left_acc)
+    right = right_acc |> Enum.reverse() |> Enum.concat(right)
+    {left, right}
+  end
+
+  defp do_insert_cr_symbols(left, [], {left_acc, right_acc}) do
+    left = left_acc |> Enum.reverse() |> Enum.concat(left)
+    right = Enum.reverse(right_acc)
+    {left, right}
+  end
+
+  defp insert_cr_symbol(left, right) do
+    case {String.ends_with?(left, "\r"), String.ends_with?(right, "\r")} do
+      {bool, bool} -> {left, right}
+      {true, false} -> {String.replace(left, "\r", @cr), right}
+      {false, true} -> {left, String.replace(right, "\r", @cr)}
+    end
   end
 end
