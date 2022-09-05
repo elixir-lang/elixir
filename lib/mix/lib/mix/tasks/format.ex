@@ -705,7 +705,7 @@ defmodule Mix.Tasks.Format do
   @spec text_diff_format(String.t(), String.t(), keyword()) :: String.t()
   def text_diff_format(code, code, opts \\ default_opts())
 
-  def text_diff_format(code, code, _opts), do: ""
+  def text_diff_format(code, code, _opts), do: []
 
   def text_diff_format(old, new, opts) do
     opts = Keyword.merge(@default_opts, opts)
@@ -725,7 +725,6 @@ defmodule Mix.Tasks.Format do
     |> List.myers_difference(new)
     |> insert_cr_symbols(crs?)
     |> diff_to_iodata({line, line}, opts)
-    |> IO.iodata_to_binary()
   end
 
   @doc false
