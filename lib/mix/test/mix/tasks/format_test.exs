@@ -178,6 +178,37 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "does not cache inputs from .formatter.exs", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        inputs: Path.wildcard("{a,b}.ex"),
+        locals_without_parens: [foo: 1]
+      ]
+      """)
+
+      File.write!("a.ex", """
+      foo bar baz
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             foo bar(baz)
+             """
+
+      File.write!("b.ex", """
+      bar baz bat
+      """)
+
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("b.ex") == """
+             bar(baz(bat))
+             """
+    end)
+  end
+
   test "expands patterns in inputs from .formatter.exs", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
@@ -343,7 +374,7 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  test "can read exported configuration from subdirectories", context do
+  test "reads exported configuration from subdirectories", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
       [subdirectories: ["lib"]]
@@ -396,7 +427,7 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  test "can read exported configuration from dependencies", context do
+  test "reads exported configuration from dependencies", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(__MODULE__.FormatWithDepsApp)
 
@@ -434,7 +465,7 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  test "can read exported configuration from dependencies and subdirectories", context do
+  test "reads exported configuration from dependencies and subdirectories", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(__MODULE__.FormatWithDepsApp)
 
