@@ -802,22 +802,26 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
-  describe "Mix.Tasks.Format.text_diff_format/3" do
+  describe "text_diff_format/3" do
+    defp text_diff_format(old, new, opts \\ []) do
+      Mix.Tasks.Format.text_diff_format(old, new, opts) |> IO.iodata_to_binary()
+    end
+
     test "with unchanged texts" do
-      assert Mix.Tasks.Format.text_diff_format("abc", "abc") == ""
+      assert text_diff_format("abc", "abc") == ""
     end
 
     test "with one deleted line" do
       old = "del"
       new = ""
 
-      assert output = Mix.Tasks.Format.text_diff_format(old, new)
+      assert output = text_diff_format(old, new)
 
       if IO.ANSI.enabled?() do
         assert output == "1  \e[31m - \e[0m|\e[31mdel\e[0m\n  1\e[32m + \e[0m|\n"
       end
 
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == """
+      assert text_diff_format(old, new, color: false) == """
              1   - |del
                1 + |
              """
@@ -827,7 +831,7 @@ defmodule Mix.Tasks.FormatTest do
       old = "one three two"
       new = "one two three"
 
-      assert output = Mix.Tasks.Format.text_diff_format(old, new)
+      assert output = text_diff_format(old, new)
 
       if IO.ANSI.enabled?() do
         assert output ==
@@ -837,7 +841,7 @@ defmodule Mix.Tasks.FormatTest do
                  """
       end
 
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == """
+      assert text_diff_format(old, new, color: false) == """
              1   - |one three two
                1 + |one two three
              """
@@ -873,8 +877,8 @@ defmodule Mix.Tasks.FormatTest do
          ...|
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false) == exp
     end
 
     test "with multiple deleted lines" do
@@ -903,8 +907,8 @@ defmodule Mix.Tasks.FormatTest do
       7 2   |ggg
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false) == exp
     end
 
     test "with one added line in the middle" do
@@ -937,8 +941,8 @@ defmodule Mix.Tasks.FormatTest do
          ...|
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false) == exp
     end
 
     test "with changed first line" do
@@ -964,8 +968,8 @@ defmodule Mix.Tasks.FormatTest do
          ...|
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false) == exp
     end
 
     test "with changed last line" do
@@ -991,8 +995,8 @@ defmodule Mix.Tasks.FormatTest do
         4 + |dxd
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false) == exp
     end
 
     test "with changed first and last line" do
@@ -1022,8 +1026,8 @@ defmodule Mix.Tasks.FormatTest do
         5 + |exe
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "with changed second and second last line" do
@@ -1063,12 +1067,12 @@ defmodule Mix.Tasks.FormatTest do
       9 9   |iii
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "colorized added tab" do
-      assert output = Mix.Tasks.Format.text_diff_format("ab", "a\tb")
+      assert output = text_diff_format("ab", "a\tb")
 
       if IO.ANSI.enabled?() do
         assert output =~ "\e[42m\t"
@@ -1076,7 +1080,7 @@ defmodule Mix.Tasks.FormatTest do
     end
 
     test "colorized deleted tab" do
-      assert output = Mix.Tasks.Format.text_diff_format("a\tb", "ab")
+      assert output = text_diff_format("a\tb", "ab")
 
       if IO.ANSI.enabled?() do
         assert output =~ "\e[41m\t"
@@ -1101,8 +1105,8 @@ defmodule Mix.Tasks.FormatTest do
          ...|
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "shows multiple added CRs" do
@@ -1125,8 +1129,8 @@ defmodule Mix.Tasks.FormatTest do
         3 + |ccc\r
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "shows deleted CR" do
@@ -1147,8 +1151,8 @@ defmodule Mix.Tasks.FormatTest do
          ...|
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false, before: 1, after: 1) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false, before: 1, after: 1) == exp
     end
 
     test "shows multiple deleted CRs" do
@@ -1171,8 +1175,8 @@ defmodule Mix.Tasks.FormatTest do
         3 + |ccc
       """
 
-      assert Mix.Tasks.Format.text_diff_format(old, new)
-      assert Mix.Tasks.Format.text_diff_format(old, new, color: false) == exp
+      assert text_diff_format(old, new)
+      assert text_diff_format(old, new, color: false) == exp
     end
   end
 end
