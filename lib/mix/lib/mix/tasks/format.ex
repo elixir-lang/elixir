@@ -180,7 +180,7 @@ defmodule Mix.Tasks.Format do
   ]
 
   @manifest "cached_dot_formatter"
-  @manifest_vsn 1
+  @manifest_vsn 2
 
   @doc """
   Returns which features this plugin should plug into.
@@ -320,10 +320,21 @@ defmodule Mix.Tasks.Format do
     else
       manifest = Path.join(Mix.Project.manifest_path(), @manifest)
 
-      maybe_cache_in_manifest(dot_formatter, manifest, fn ->
-        {subdirectories, sources} = eval_subs_opts(subs, prefix, sources)
-        {{eval_deps_opts(formatter_opts, deps), subdirectories}, sources}
-      end)
+      {{locals_without_parens, subdirectories}, sources} =
+        maybe_cache_in_manifest(dot_formatter, manifest, fn ->
+          {subdirectories, sources} = eval_subs_opts(subs, prefix, sources)
+          {{eval_deps_opts(deps), subdirectories}, sources}
+        end)
+
+      formatter_opts =
+        Keyword.update(
+          formatter_opts,
+          :locals_without_parens,
+          locals_without_parens,
+          &(locals_without_parens ++ &1)
+        )
+
+      {{formatter_opts, subdirectories}, sources}
     end
   end
 
@@ -358,29 +369,21 @@ defmodule Mix.Tasks.Format do
     {entry, sources}
   end
 
-  defp eval_deps_opts(formatter_opts, []) do
-    formatter_opts
+  defp eval_deps_opts([]) do
+    []
   end
 
-  defp eval_deps_opts(formatter_opts, deps) do
+  defp eval_deps_opts(deps) do
     deps_paths = Mix.Project.deps_paths()
 
-    parenless_calls =
-      for dep <- deps,
-          dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
-          dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
-          File.regular?(dep_dot_formatter),
-          dep_opts = eval_file_with_keyword_list(dep_dot_formatter),
-          parenless_call <- dep_opts[:export][:locals_without_parens] || [],
-          uniq: true,
-          do: parenless_call
-
-    Keyword.update(
-      formatter_opts,
-      :locals_without_parens,
-      parenless_calls,
-      &(&1 ++ parenless_calls)
-    )
+    for dep <- deps,
+        dep_path = assert_valid_dep_and_fetch_path(dep, deps_paths),
+        dep_dot_formatter = Path.join(dep_path, ".formatter.exs"),
+        File.regular?(dep_dot_formatter),
+        dep_opts = eval_file_with_keyword_list(dep_dot_formatter),
+        parenless_call <- dep_opts[:export][:locals_without_parens] || [],
+        uniq: true,
+        do: parenless_call
   end
 
   defp eval_subs_opts(subs, prefix, sources) do
