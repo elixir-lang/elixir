@@ -702,7 +702,7 @@ defmodule Mix.Tasks.Format do
   end
 
   @doc false
-  @spec text_diff_format(String.t(), String.t(), keyword()) :: String.t()
+  @spec text_diff_format(String.t(), String.t(), keyword()) :: iolist()
   def text_diff_format(code, code, opts \\ default_opts())
 
   def text_diff_format(code, code, _opts), do: []
