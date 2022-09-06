@@ -10,24 +10,26 @@ defmodule IEx.Broker do
   ## Shell API
 
   @doc """
-  Finds the IEx server running inside `:user_drv`, on this node exclusively.
+  Finds the IEx server.
   """
   @spec shell :: shell()
+  # TODO: Use shell:whereis_shell() from Erlang/OTP 26+.
   def shell() do
-    # Locate top group leader when using the "new shell".
     if user = Process.whereis(:user) do
-      case :group.interfaces(user) do
-        # Old or no shell
-        [] ->
-          nil
-
-        # Get current group from user_drv
-        [user_drv: user_drv] ->
-          case :user_drv.interfaces(user_drv) do
-            [] -> nil
-            [current_group: group] -> :group.interfaces(group)[:shell]
-          end
+      if user_drv = get_from_dict(user, :user_drv) do
+        if group = get_from_dict(user_drv, :current_group) do
+          get_from_dict(group, :shell)
+        end
       end
+    end
+  end
+
+  defp get_from_dict(pid, key) do
+    with {:dictionary, dictionary} <- Process.info(pid, :dictionary),
+         {^key, value} <- List.keyfind(dictionary, key, 0) do
+      value
+    else
+      _ -> nil
     end
   end
 
