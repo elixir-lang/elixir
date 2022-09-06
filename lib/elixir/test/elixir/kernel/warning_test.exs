@@ -1950,6 +1950,15 @@ defmodule Kernel.WarningTest do
              "extra parentheses on a remote function capture &System.pid()/0 have been deprecated. Please remove the parentheses: &System.pid/0"
   end
 
+  test "warns if for result is not used and :uniq is true" do
+    assert capture_err(fn ->
+             Code.eval_string(~s"""
+             for x <- [1, 2, 1, 3], uniq: true, do: IO.puts(x)
+             nil
+             """)
+           end) =~ "the option :uniq has no effect"
+  end
+
   defp purge(list) when is_list(list) do
     Enum.each(list, &purge/1)
   end

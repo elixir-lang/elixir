@@ -212,6 +212,17 @@ defmodule Kernel.ComprehensionTest do
            end) == "1\n2\n3\n"
   end
 
+  test "for comprehensions with uniq where value is not used" do
+    assert capture_io(:stderr, fn ->
+             assert capture_io(fn ->
+                      Code.eval_string(~S"""
+                      for x <- [1, 2, 1, 3], uniq: true, do: IO.puts(x)
+                      nil
+                      """)
+                    end) == "1\n2\n1\n3\n"
+           end) =~ "warning: the option :uniq has no effect"
+  end
+
   test "for comprehensions with into" do
     Process.put(:into_cont, [])
     Process.put(:into_done, false)

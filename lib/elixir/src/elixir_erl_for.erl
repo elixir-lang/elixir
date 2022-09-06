@@ -33,7 +33,7 @@ translate_into(Meta, Cases, Expr, Opts, Return, S) ->
       false -> {false, S}
     end,
 
-  TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
+  TUniq = validate_uniq(Opts, TInto, Meta),
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
   {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr_if_unused(Expr, TInto), Ann, SC),
@@ -42,6 +42,18 @@ translate_into(Meta, Cases, Expr, Opts, Return, S) ->
     inline -> build_inline(Ann, TCases, TExpr, TInto, TUniq, SE);
     into -> build_into(Ann, TCases, TExpr, TInto, TUniq, SE)
   end.
+
+validate_uniq(Opts, TInto, _Meta) ->
+  case {lists:keyfind(uniq, 1, Opts), TInto} of
+    {{uniq, true}, false} ->
+      % TODO format this warning properly with Meta
+      io:format(standard_error, "warning: the option :uniq has no effect because the result is not used~n", []),
+      false;
+    {{uniq, true}, _} ->
+      true;
+    _ ->
+      false
+    end.
 
 %% In case we have no return, we wrap the expression
 %% in a block that returns nil.
