@@ -491,7 +491,7 @@ defmodule ExceptionTest do
                  "module.function(), make sure the left-hand side of the dot is a module atom"
 
       assert blame_message([], &apply(Kernel, &1, [1, 2])) ==
-               "you attempted to apply a function named [] on module Kernel. However [] is not a valid function name. " <>
+               "you attempted to apply a function named [] on module Kernel. However, [] is not a valid function name. " <>
                  "Function names (the second argument of apply) must always be an atom"
 
       assert blame_message(123, &apply(Kernel, :+, &1)) ==
@@ -546,7 +546,7 @@ defmodule ExceptionTest do
 
     test "annotates undefined function clause error with macro hints" do
       assert blame_message(Integer, & &1.is_odd(1)) ==
-               "function Integer.is_odd/1 is undefined or private. However there is " <>
+               "function Integer.is_odd/1 is undefined or private. However, there is " <>
                  "a macro with the same name and arity. Be sure to require Integer if " <>
                  "you intend to invoke this macro"
     end

@@ -73,7 +73,7 @@ allows creating a node which can be connected to another node, escaping redundan
 .Pp
 The function
 .Sy Node.list/0
-allows getting the list of nodes connected to the target node, however the list won't include hidden nodes. Depending on the input parameter, the function
+allows getting the list of nodes connected to the target node; however, the list won't include hidden nodes. Depending on the input parameter, the function
 .Sy Node.list/1
 allows getting the list which contains only hidden nodes
 .Pq the parameter Ar :hidden
