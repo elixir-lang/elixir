@@ -1,0 +1,52 @@
+name: Publish Precompiled
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  ELIXIR_OPTS: "--warnings-as-errors"
+  ERLC_OPTS: "warnings_as_errors"
+  LANG: C.UTF-8
+
+jobs:
+  publish_pre_built:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - otp: 24
+            otp_version: 24.3
+          - otp: 25
+            otp_version: 25.0
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 50
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp_version }}
+          version-type: strict
+      - name: Build Elixir Release
+        run: |
+          version=$(cat VERSION)
+          make Precompiled.zip
+          mv Precompiled.zip elixir-${version}-otp-${{ matrix.otp }}.zip
+          shasum -a 1 elixir-${version}-otp-${{ matrix.otp }}.zip > elixir-${version}-otp-${{ matrix.otp }}.zip.sha1sum
+          shasum -a 256 elixir-${version}-otp-${{ matrix.otp }}.zip > elixir-${version}-otp-${{ matrix.otp }}.zip.sha256sum
+
+      - name: Upload to S3
+        run: |
+          version=$(cat VERSION)
+          for file in elixir-${version}-otp-${{ matrix.otp }}.zip elixir-${version}-otp-${{ matrix.otp }}.zip.sha1sum elixir-${version}-otp-${{ matrix.otp }}.zip.sha256sum
+          do
+            aws s3 cp "${file}" s3://s3.hex.pm/builds/elixir/ \
+              --cache-control 'public,max-age=3600' \
+              --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
+          done
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
