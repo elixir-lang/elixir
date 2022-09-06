@@ -71,6 +71,21 @@ defmodule MixTest do
       ])
     end
 
+    test "works with same deps twice regardless of order", %{tmp_dir: tmp_dir} do
+      test_project(InstallTest1, tmp_dir)
+      test_project(InstallTest2, tmp_dir)
+
+      Mix.install([
+        {:install_test1, path: Path.join(tmp_dir, "install_test1")},
+        {:install_test2, path: Path.join(tmp_dir, "install_test2")}
+      ])
+
+      Mix.install([
+        {:install_test2, path: Path.join(tmp_dir, "install_test2")},
+        {:install_test1, path: Path.join(tmp_dir, "install_test1")}
+      ])
+    end
+
     test "errors on Elixir version mismatch", %{tmp_dir: tmp_dir} do
       assert_raise Mix.Error, ~r"Mix.install/2 declared it supports only Elixir ~> 2.0", fn ->
         Mix.install(
@@ -288,40 +303,45 @@ defmodule MixTest do
     end
 
     defp test_project(%{tmp_dir: tmp_dir}) do
+      test_project(InstallTest, tmp_dir)
+    end
+
+    defp test_project(module, tmp_dir) do
+      name = module |> Macro.underscore() |> String.to_atom()
       path = :code.get_path()
 
       on_exit(fn ->
         :code.set_path(path)
-        purge([InstallTest, InstallTest.MixProject, InstallTest.Protocol])
-        Application.stop(:install_test)
-        Application.unload(:install_test)
+        purge([module, Module.concat(module, MixProject), Module.concat(module, Protocol)])
+        Application.stop(name)
+        Application.unload(name)
       end)
 
       Mix.State.put(:installed, nil)
 
-      File.mkdir_p!("#{tmp_dir}/install_test/lib")
+      File.mkdir_p!("#{tmp_dir}/#{name}/lib")
 
-      File.write!("#{tmp_dir}/install_test/mix.exs", """
-      defmodule InstallTest.MixProject do
+      File.write!("#{tmp_dir}/#{name}/mix.exs", """
+      defmodule #{inspect(module)}.MixProject do
         use Mix.Project
 
         def project do
           [
-            app: :install_test,
+            app: :#{name},
             version: "0.1.0"
           ]
         end
       end
       """)
 
-      File.write!("#{tmp_dir}/install_test/lib/install_test.ex", """
-      defmodule InstallTest do
+      File.write!("#{tmp_dir}/#{name}/lib/#{name}.ex", """
+      defmodule #{inspect(module)} do
         def hello do
           :world
         end
       end
 
-      defprotocol InstallTest.Protocol do
+      defprotocol #{inspect(module)}.Protocol do
         def foo(x)
       end
       """)
