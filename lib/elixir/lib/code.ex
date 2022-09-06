@@ -615,8 +615,8 @@ defmodule Code do
   The formatter respects the input format in some cases. Those are
   listed below:
 
-    * Insignificant digits in numbers are kept as is. The formatter
-      however always inserts underscores for decimal numbers with more
+    * Insignificant digits in numbers are kept as is. The formatter,
+      however, always inserts underscores for decimal numbers with more
       than 5 digits and converts hexadecimal digits to uppercase
 
     * Strings, charlists, atoms and sigils are kept as is. No character

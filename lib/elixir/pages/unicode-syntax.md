@@ -149,7 +149,7 @@ As of Elixir 1.14, some codepoints in `\p{Identifier_Status=Restricted}` are *no
 
 Initially this is only done to translate MICRO SIGN `µ` to Greek lowercase mu, `μ`.
 
-This is not a modification of UTS39 clauses C1 (General Security Profile) or C2 (Confusability Detection); however it is a documented modification of C3, 'Mixed-Script detection'.
+This is not a modification of UTS39 clauses C1 (General Security Profile) or C2 (Confusability Detection); however, it is a documented modification of C3, 'Mixed-Script detection'.
 
 Mixed-script detection is modified by these normalizations to the extent that the normalized codepoint is given the union of scriptsets from both characters.
 

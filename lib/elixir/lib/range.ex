@@ -26,7 +26,7 @@ defmodule Range do
   defined based on the first and last position of the
   range, If `first >= last`, it will be an increasing range
   with a step of 1. Otherwise, it is a decreasing range.
-  Note however implicit decreasing ranges are deprecated.
+  Note, however, implicit decreasing ranges are deprecated.
   Therefore, if you need a decreasing range from `3` to `1`,
   prefer to write `3..1//-1` instead.
 

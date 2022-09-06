@@ -20,7 +20,7 @@ defmodule Mix.Tasks.Compile.Elixir do
   A module may export a `__mix_recompile__?/0` function that can
   cause the module to be recompiled using custom rules. For example,
   `@external_resource` already adds a compile-time dependency on an
-  external file, however to depend on a _dynamic_ list of files we
+  external file, however, to depend on a _dynamic_ list of files we
   can do:
 
       defmodule MyModule do

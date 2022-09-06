@@ -226,7 +226,7 @@ defmodule Inspect.Algebra do
 
   This implementation provides two types of breaks: `:strict` and `:flex`.
   When a group does not fit, all strict breaks are treated as newlines.
-  Flex breaks however are re-evaluated on every occurrence and may still
+  Flex breaks, however, are re-evaluated on every occurrence and may still
   be rendered flat. See `break/1` and `flex_break/1` for more information.
 
   This implementation also adds `force_unfit/1` and `next_break_fits/2` which
