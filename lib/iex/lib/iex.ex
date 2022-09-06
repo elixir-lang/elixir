@@ -146,7 +146,7 @@ defmodule IEx do
         2 | |> IO.puts()
           | ^
 
-  Note however the above does not work for `+/2` and `-/2`, as they
+  Note, however, the above does not work for `+/2` and `-/2`, as they
   are ambiguous with the unary `+/1` and `-/1`:
 
       iex(1)> 1

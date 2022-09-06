@@ -830,7 +830,7 @@ defmodule ArgumentError do
 
         not is_atom(function) ->
           "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)}. " <>
-            "However #{inspect(function)} is not a valid function name. Function names (the second argument " <>
+            "However, #{inspect(function)} is not a valid function name. Function names (the second argument " <>
             "of apply) must always be an atom"
       end
 
@@ -1128,7 +1128,7 @@ defmodule UndefinedFunctionError do
   def hint_for_loaded_module(module, function, arity, exports) do
     cond do
       macro_exported?(module, function, arity) ->
-        ". However there is a macro with the same name and arity. " <>
+        ". However, there is a macro with the same name and arity. " <>
           "Be sure to require #{inspect(module)} if you intend to invoke this macro"
 
       message = otp_obsolete(module, function, arity) ->

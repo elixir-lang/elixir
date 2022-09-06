@@ -55,7 +55,7 @@ extract_meta({_, Meta, _}, _) -> Meta;
 extract_meta(_, Meta) -> Meta.
 
 %% Variables defined outside the binary can be accounted
-%% on subparts, however we can't assign new variables.
+%% on subparts; however, we can't assign new variables.
 is_match_size([_ | _], #{context := match}) -> true;
 is_match_size(_, _) -> false.
 

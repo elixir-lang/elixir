@@ -548,7 +548,7 @@ defmodule Protocol do
 
   This function does not load the protocol at any point
   nor loads the new bytecode for the compiled module.
-  However each implementation must be available and
+  However, each implementation must be available and
   it will be loaded.
   """
   @spec consolidate(module, [module]) ::

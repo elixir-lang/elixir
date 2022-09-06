@@ -119,7 +119,7 @@ defprotocol Inspect do
   Elixir will raise an `ArgumentError` error and will automatically fall back
   to a raw representation for printing the structure.
 
-  You can however access the underlying error by invoking the `Inspect`
+  You can, however, access the underlying error by invoking the `Inspect`
   implementation directly. For example, to test `Inspect.MapSet` above,
   you can invoke it as:
 
