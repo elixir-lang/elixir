@@ -50,22 +50,28 @@ defmodule IEx.CLI do
   a dumb terminal version is started instead.
   """
   def start do
-    if tty_works?() do
-      :user_drv.start([:"tty_sl -c -e", tty_args()])
-    else
-      if get_remsh(:init.get_plain_arguments()) do
-        IO.puts(
-          :stderr,
-          "warning: the --remsh option will be ignored because IEx is running on limited shell"
-        )
-      end
+    # TODO: We can remove the -user callback on Erlang/OTP 26+ in favor of eval
+    cond do
+      Code.ensure_loaded?(:prim_tty) ->
+        :user_drv.start(%{initial_shell: tty_args()})
 
-      :user.start()
+      tty_works?() ->
+        :user_drv.start([:"tty_sl -c -e", tty_args()])
 
-      # IEx.Broker is capable of considering all groups under user_drv but
-      # when we use :user.start(), we need to explicitly register it instead.
-      # If we don't register, pry doesn't work.
-      IEx.start([register: true] ++ options(), {:elixir, :start_cli, []})
+      true ->
+        if get_remsh(:init.get_plain_arguments()) do
+          IO.puts(
+            :stderr,
+            "warning: the --remsh option will be ignored because IEx is running on limited shell"
+          )
+        end
+
+        :user.start()
+
+        # IEx.Broker is capable of considering all groups under user_drv but
+        # when we use :user.start(), we need to explicitly register it instead.
+        # If we don't register, pry doesn't work.
+        IEx.start([register: true] ++ options(), {:elixir, :start_cli, []})
     end
   end
 
