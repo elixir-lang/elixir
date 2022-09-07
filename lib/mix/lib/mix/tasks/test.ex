@@ -107,6 +107,8 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
+    * `--all-warnings` - prints warnings even from files that do not need to be recompiled
+
     * `--color` - enables color in the output
 
     * `--cover` - runs coverage tool. See "Coverage" section below
@@ -389,6 +391,7 @@ defmodule Mix.Tasks.Test do
   """
 
   @switches [
+    all_warnings: :boolean,
     force: :boolean,
     color: :boolean,
     cover: :boolean,
