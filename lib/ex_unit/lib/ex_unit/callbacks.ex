@@ -551,8 +551,11 @@ defmodule ExUnit.Callbacks do
   @doc """
   Same as `start_supervised!/2` but links the started process to the test process.
 
-  This means that if the process that was started crashes that crash is propagated to
-  the test process, failing the test and printing the cause of the crash.
+  If the process that was started crashes, the crash is propagated to the test process,
+  failing the test and printing the cause of the crash.
+
+  Note that if the started terminates before it is linked to the test process,
+  this function will exit with reason `:noproc`.
   """
   @doc since: "1.14.0"
   @spec start_link_supervised!(Supervisor.child_spec() | module | {module, term}, keyword) ::
