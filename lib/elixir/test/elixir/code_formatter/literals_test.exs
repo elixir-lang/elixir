@@ -6,7 +6,7 @@ defmodule Code.Formatter.LiteralsTest do
   import CodeFormatterHelpers
 
   @short_length [line_length: 10]
-  @keep_charlists [charlists_as_sigils: false]
+  @keep_charlists [normalize_charlists_as_sigils: false]
 
   describe "integers" do
     test "in decimal base" do

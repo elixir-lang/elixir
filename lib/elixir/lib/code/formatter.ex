@@ -200,7 +200,7 @@ defmodule Code.Formatter do
     file = Keyword.get(opts, :file, nil)
     sigils = Keyword.get(opts, :sigils, [])
     normalize_bitstring_modifiers = Keyword.get(opts, :normalize_bitstring_modifiers, true)
-    charlists_as_sigils = Keyword.get(opts, :charlists_as_sigils, true)
+    normalize_charlists_as_sigils = Keyword.get(opts, :normalize_charlists_as_sigils, true)
     syntax_colors = Keyword.get(opts, :syntax_colors, [])
 
     sigils =
@@ -226,7 +226,7 @@ defmodule Code.Formatter do
       sigils: sigils,
       file: file,
       normalize_bitstring_modifiers: normalize_bitstring_modifiers,
-      charlists_as_sigils: charlists_as_sigils,
+      normalize_charlists_as_sigils: normalize_charlists_as_sigils,
       inspect_opts: %Inspect.Opts{syntax_colors: syntax_colors}
     }
   end
@@ -2390,7 +2390,7 @@ defmodule Code.Formatter do
   end
 
   defp get_charlist_quotes(_heredoc = false, state) do
-    if state.charlists_as_sigils do
+    if state.normalize_charlists_as_sigils do
       {@sigil_c, @double_quote}
     else
       {@single_quote, @single_quote}
@@ -2398,7 +2398,7 @@ defmodule Code.Formatter do
   end
 
   defp get_charlist_quotes(_heredoc = true, state) do
-    if state.charlists_as_sigils do
+    if state.normalize_charlists_as_sigils do
       {@sigil_c_heredoc, @double_heredoc}
     else
       {@single_heredoc, @single_heredoc}
