@@ -246,7 +246,7 @@ defmodule Module.Types.IntegrationTest do
       assert_warnings(files, warning)
     end
 
-    test "doesn't report missing funcs at compile time" do
+    test "doesn't report missing functions at compile time" do
       files = %{
         "a.ex" => """
         Enum.map([], fn _ -> BadReferencer.no_func4() end)
@@ -559,6 +559,24 @@ defmodule Module.Types.IntegrationTest do
       after
         Code.compiler_options(no_warn_undefined: no_warn_undefined)
       end
+    end
+  end
+
+  describe "validation" do
+    test "does not validate binary segments as variables" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          def decode(byte) do
+            case byte do
+              enc when enc in [<<0x00>>, <<0x01>>] -> :ok
+            end
+          end
+        end
+        """
+      }
+
+      assert_no_warnings(files)
     end
   end
 
