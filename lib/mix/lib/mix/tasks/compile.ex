@@ -46,6 +46,7 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
+    * `--all-warnings` - prints warnings even from files that do not need to be recompiled
     * `--erl-config` - path to an Erlang term file that will be loaded as Mix config
     * `--force` - forces compilation
     * `--list` - lists all enabled compilers
