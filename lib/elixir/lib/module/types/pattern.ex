@@ -366,6 +366,10 @@ defmodule Module.Types.Pattern do
   defp collect_var_indexes_from_expr(expr, context) do
     {_, vars} =
       Macro.prewalk(expr, %{}, fn
+        {:"::", _, [left, right]}, acc ->
+          # Do not mistake binary modifiers as variables
+          {collect_exprs_from_modifiers(right, [left]), acc}
+
         var, acc when is_var(var) ->
           var_name = var_name(var)
           %{^var_name => type} = context.vars
@@ -377,6 +381,18 @@ defmodule Module.Types.Pattern do
 
     Map.keys(vars)
   end
+
+  defp collect_exprs_from_modifiers({:-, _, [left, right]}, acc) do
+    collect_exprs_from_modifiers(left, collect_expr_from_modifier(right, acc))
+  end
+
+  defp collect_exprs_from_modifiers(modifier, acc) do
+    collect_expr_from_modifier(modifier, acc)
+  end
+
+  defp collect_expr_from_modifier({:unit, _, [arg]}, acc), do: [arg | acc]
+  defp collect_expr_from_modifier({:size, _, [arg]}, acc), do: [arg | acc]
+  defp collect_expr_from_modifier({var, _, ctx}, acc) when is_atom(var) and is_atom(ctx), do: acc
 
   defp unify_call(args, clauses, _expected, _mfa, _signature, stack, context, true = _type_guard?) do
     unify_type_guard_call(args, clauses, stack, context)
