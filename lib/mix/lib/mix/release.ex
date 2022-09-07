@@ -655,7 +655,8 @@ defmodule Mix.Release do
       for {app, mode} <- modes do
         properties = Map.get(apps, app) || throw({:error, "Unknown application #{inspect(app)}"})
         children = Keyword.get(properties, :applications, [])
-        app in skip_mode_validation_for || validate_mode!(app, mode, modes, children)
+        optional = Keyword.get(properties, :optional_applications, [])
+        app in skip_mode_validation_for || validate_mode!(app, mode, modes, children, optional)
         build_app_for_release(app, mode, properties)
       end
 
@@ -664,7 +665,7 @@ defmodule Mix.Release do
     {:error, message} -> {:error, message}
   end
 
-  defp validate_mode!(app, mode, modes, children) do
+  defp validate_mode!(app, mode, modes, children, optional) do
     safe_mode? = mode in @safe_modes
 
     if not safe_mode? and mode not in @unsafe_modes do
@@ -679,7 +680,7 @@ defmodule Mix.Release do
       child_mode = Keyword.get(modes, child)
 
       cond do
-        is_nil(child_mode) ->
+        is_nil(child_mode) and child not in optional ->
           throw(
             {:error,
              "Application #{inspect(app)} is listed in the release boot, " <>
