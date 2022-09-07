@@ -264,7 +264,7 @@ defmodule ExUnit.DocTest do
         {tests, fun_arities} -> {[test | tests], [test.fun_arity | fun_arities]}
       end
 
-    case only -- fun_arities do
+    case only -- [:moduledoc | fun_arities] do
       [] ->
         filtered_tests
 
