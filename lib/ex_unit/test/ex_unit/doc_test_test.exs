@@ -462,7 +462,10 @@ defmodule ExUnit.DocTestTest do
   # doctest ExUnit.DocTest
 
   doctest ExUnit.DocTestTest.GoodModule, import: true
-  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly, only: [one: 0], import: true
+
+  doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly,
+    only: [:moduledoc, one: 0],
+    import: true
 
   doctest ExUnit.DocTestTest.SomewhatGoodModuleWithExcept,
     except: [:moduledoc, two: 0],
