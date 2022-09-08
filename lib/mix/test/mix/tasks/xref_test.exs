@@ -908,7 +908,7 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     test "group with directly dependent files and cycle" do
-      assert_graph(~w[--group lib/a.ex,lib/b.ex], """
+      assert_graph(~w[--group lib/a.ex,lib/b.ex,], """
       lib/a.ex+
       |-- lib/c.ex
       `-- lib/e.ex (compile)

@@ -601,7 +601,7 @@ defmodule Mix.Tasks.Xref do
         reduce: {file_references, %{}} do
       {file_references, aliases} ->
         group_paths
-        |> String.split(",")
+        |> String.split(",", trim: true)
         |> check_files(file_references, :group)
         |> group(file_references, aliases)
     end
