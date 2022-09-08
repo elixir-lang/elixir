@@ -477,7 +477,7 @@ defmodule DynamicSupervisorTest do
         assert {:ok, child_pid} =
                  DynamicSupervisor.start_child(pid, %{
                    id: n,
-                   start: {Task, :start_link, [fn -> :ok end]},
+                   start: {Task, :start_link, [fn -> Process.sleep(:infinity) end]},
                    shutdown: n
                  })
 
