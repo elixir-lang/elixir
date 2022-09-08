@@ -71,6 +71,7 @@ defmodule Mix.Tasks.Deps.Compile do
   def compile(deps, options \\ []) do
     shell = Mix.shell()
     config = Mix.Project.deps_config()
+
     Mix.Task.run("deps.precompile")
 
     compiled =
@@ -154,6 +155,8 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp do_mix(dep, _config) do
+    app_elixir_req = Mix.Project.config()[:elixir]
+
     Mix.Dep.in_dependency(dep, fn _ ->
       config = Mix.Project.config()
 
@@ -161,6 +164,13 @@ defmodule Mix.Tasks.Deps.Compile do
         Mix.shell().error(
           "warning: the dependency #{inspect(dep.app)} requires Elixir #{inspect(req)} " <>
             "but you are running on v#{System.version()}"
+        )
+      end
+
+      if req = mismatched_elixir_req(config, app_elixir_req) do
+        Mix.shell().error(
+          "warning: the dependency #{inspect(dep.app)} required Elixir #{inspect(req)} " <>
+            "but your app only requires #{inspect(app_elixir_req)}"
         )
       end
 
@@ -327,6 +337,14 @@ defmodule Mix.Tasks.Deps.Compile do
     req = config[:elixir]
 
     if req && not Version.match?(System.version(), req) do
+      req
+    end
+  end
+
+  defp mismatched_elixir_req(config, app_req) do
+    req = config[:elixir]
+
+    if req && app_req && Version.parse_requirement!(req) > Version.parse_requirement!(app_req) do
       req
     end
   end
