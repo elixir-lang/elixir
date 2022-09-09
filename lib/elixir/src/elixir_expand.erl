@@ -1197,7 +1197,7 @@ format_error({invalid_arg_for_pin, Arg}) ->
 format_error({pin_outside_of_match, Arg}) ->
   io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
 format_error(unbound_underscore) ->
-  "invalid use of _. \"_\" represents a value to be ignored in a pattern and cannot be used in expressions";
+  "invalid use of _. _ can only be used inside patterns to ignore values and cannot be used in expressions. Make sure you are inside a pattern or change it accordingly";
 format_error({undefined_var, Name, Kind}) ->
   io_lib:format("undefined variable \"~ts\"~ts", [Name, context_info(Kind)]);
 format_error({undefined_var_pin, Name, Kind}) ->
