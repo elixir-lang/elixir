@@ -46,13 +46,13 @@ defmodule Kernel.ParserTest do
     end
 
     test "with no parens" do
-      assert parse!("1..foo do end//bar bat, baz") == {
+      assert parse!("1..foo do end//bar bat") == {
                :"..//",
                [line: 1],
                [
                  1,
                  {:foo, [line: 1], [[do: {:__block__, [], []}]]},
-                 {:bar, [line: 1], [{:bat, [line: 1], nil}, {:baz, [line: 1], nil}]}
+                 {:bar, [line: 1], [{:bat, [line: 1], nil}]}
                ]
              }
     end
