@@ -152,10 +152,6 @@ matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2').
 unmatched_expr -> matched_expr unmatched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr matched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr unmatched_op_expr : build_op('$1', '$2').
-%% TODO: this rule should not be here as it allows [foo do end + foo 1, 2]
-%% while it should raise. But the parser raises ambiguity errors if we move
-%% it to no_parens_op_expr
-unmatched_expr -> unmatched_expr no_parens_op_expr : build_op('$1', '$2').
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
