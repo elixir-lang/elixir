@@ -393,6 +393,10 @@ defmodule MapTest do
       defmodule TestMod do
         @enforce_keys :foo
         defstruct [:foo]
+
+        # Verify it remain set afterwards
+        :foo = @enforce_keys
+
         def foo do
           %TestMod{}
         end
