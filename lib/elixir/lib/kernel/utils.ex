@@ -138,10 +138,17 @@ defmodule Kernel.Utils do
     fields = :lists.map(mapper, fields)
 
     enforce_keys =
-      case Module.get_attribute(module, :enforce_keys) do
-        nil -> []
-        enforce_keys when is_list(enforce_keys) -> enforce_keys
-        enforce_key -> [enforce_key]
+      case :ets.lookup(set, :enforce_keys) do
+        [{_, enforce_keys, _, _}] when is_list(enforce_keys) ->
+          :ets.update_element(set, :enforce_keys, {3, :used})
+          enforce_keys
+
+        [{_, enforce_key, _, _}] ->
+          :ets.update_element(set, :enforce_keys, {3, :used})
+          [enforce_key]
+
+        [] ->
+          []
       end
 
     # TODO: Make it raise on v2.0
