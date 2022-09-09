@@ -3274,7 +3274,7 @@ defmodule Kernel do
 
       pattern = [_ | _]
       match?(pattern, [1, 2, 3])
-      ** (CompileError) invalid use of _. "_" represents a value to be ignored in a pattern and cannot be used in expressions
+      ** (CompileError) invalid use of _. _ can only be used inside patterns to ignore values and cannot be used in expressions. Make sure you are inside a pattern or change it accordingly
 
   Another example is that a map as a pattern performs a subset match, but not
   once assigned to a variable:
