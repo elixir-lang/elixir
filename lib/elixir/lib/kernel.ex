@@ -545,7 +545,7 @@ defmodule Kernel do
   Giving it an empty list raises:
 
       hd([])
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @doc guard: true
@@ -790,6 +790,14 @@ defmodule Kernel do
   It raises `BadMapError` if the first element is not a map.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_map_key(%{a: "foo", b: "bar"}, :a)
+      true
+
+      iex> is_map_key(%{a: "foo", b: "bar"}, :c)
+      false
   """
   @doc guard: true, since: "1.10.0"
   @spec is_map_key(map, term) :: boolean
@@ -1246,7 +1254,7 @@ defmodule Kernel do
   Giving it an empty list raises:
 
       tl([])
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @doc guard: true
@@ -1458,6 +1466,16 @@ defmodule Kernel do
       # improper list on the right will return an improper list
       iex> [1] ++ [2 | 3]
       [1, 2 | 3]
+
+  The `++/2` operator is right associative, meaning:
+
+      iex> [1, 2, 3] -- [1] ++ [2]
+      [3]
+
+  As it is equivalent to:
+
+      iex> [1, 2, 3] -- ([1] ++ [2])
+      [3]
 
   """
   @spec list ++ term :: maybe_improper_list
