@@ -545,7 +545,7 @@ defmodule Kernel do
   Giving it an empty list raises:
 
       hd([])
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @doc guard: true
@@ -1254,7 +1254,7 @@ defmodule Kernel do
   Giving it an empty list raises:
 
       tl([])
-      #=> ** (ArgumentError) argument error
+      ** (ArgumentError) argument error
 
   """
   @doc guard: true
