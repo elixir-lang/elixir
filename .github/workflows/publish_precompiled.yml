@@ -23,7 +23,7 @@ jobs:
             otp_version: 24.3
           - otp: 25
             otp_version: 25.0
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -46,8 +46,7 @@ jobs:
           date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
           build_sha256=$(cut -d ' ' -f 1 main-otp-${{ matrix.otp }}.zip.sha256sum)
 
-          aws s3 cp s3://${{ env.S3_BUCKET }}/builds/elixir/builds.txt builds.txt || true
-          touch builds.txt
+          aws s3 cp s3://${{ env.S3_BUCKET }}/builds/elixir/builds.txt builds.txt || touch builds.txt
           sed -i '/^main-otp-${{ matrix.otp }} /d' builds.txt
           echo -e -n "main-otp-${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256}\n$(cat builds.txt)" > builds.txt
           sort -u -k1,1 -o builds.txt builds.txt
