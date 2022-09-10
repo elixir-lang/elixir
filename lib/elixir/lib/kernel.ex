@@ -790,6 +790,14 @@ defmodule Kernel do
   It raises `BadMapError` if the first element is not a map.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> is_map_key(%{a: "foo", b: "bar"}, :a)
+      true
+
+      iex> is_map_key(%{a: "foo", b: "bar"}, :c)
+      false
   """
   @doc guard: true, since: "1.10.0"
   @spec is_map_key(map, term) :: boolean
