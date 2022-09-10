@@ -3,7 +3,7 @@ name: Publish Precompiled
 on:
   push:
     branches:
-      - main
+      - iss-12038-2
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
@@ -33,16 +33,16 @@ jobs:
         run: |
           version=$(cat VERSION)
           make Precompiled.zip
-          mv Precompiled.zip elixir-${version}-otp-${{ matrix.otp }}.zip
-          shasum -a 1 elixir-${version}-otp-${{ matrix.otp }}.zip > elixir-${version}-otp-${{ matrix.otp }}.zip.sha1sum
-          shasum -a 256 elixir-${version}-otp-${{ matrix.otp }}.zip > elixir-${version}-otp-${{ matrix.otp }}.zip.sha256sum
+          mv Precompiled.zip main-otp-${{ matrix.otp }}.zip
+          shasum -a 1 main-otp-${{ matrix.otp }}.zip > main-otp-${{ matrix.otp }}.zip.sha1sum
+          shasum -a 256 main-otp-${{ matrix.otp }}.zip > main-otp-${{ matrix.otp }}.zip.sha256sum
 
       - name: Upload to S3
         run: |
           version=$(cat VERSION)
-          for file in elixir-${version}-otp-${{ matrix.otp }}.zip elixir-${version}-otp-${{ matrix.otp }}.zip.sha1sum elixir-${version}-otp-${{ matrix.otp }}.zip.sha256sum
+          for file in main-otp-${{ matrix.otp }}.zip main-otp-${{ matrix.otp }}.zip.sha1sum main-otp-${{ matrix.otp }}.zip.sha256sum
           do
-            aws s3 cp "${file}" s3://s3.hex.pm/builds/elixir/ \
+            aws s3 cp "${file}" s3://test-elixir-nightly/builds/elixir/ \
               --cache-control 'public,max-age=3600' \
               --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
           done
