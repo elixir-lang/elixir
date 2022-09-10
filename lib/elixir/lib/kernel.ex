@@ -1467,6 +1467,16 @@ defmodule Kernel do
       iex> [1] ++ [2 | 3]
       [1, 2 | 3]
 
+      The `++/2` operator is right associative, meaning:
+
+          iex> [1, 2, 3] -- [1] ++ [2]
+          [3]
+
+      As it is equivalent to:
+
+          iex> [1, 2, 3] -- ([1] ++ [2])
+          [3]
+
   """
   @spec list ++ term :: maybe_improper_list
   def left ++ right do
