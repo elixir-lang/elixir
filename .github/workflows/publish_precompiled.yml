@@ -3,17 +3,20 @@ name: Publish Precompiled
 on:
   push:
     branches:
-      - iss-12038-2
+      - main
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
   ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
+  S3_BUCKET: s3.hex.pm
 
 jobs:
-  publish_pre_built:
+  publish_precompiled:
     strategy:
       fail-fast: true
+      # Prevent each job edit builds.txt concurrently.
+      max-parallel: 1
       matrix:
         include:
           - otp: 24
@@ -25,24 +28,39 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 50
+
       - uses: erlef/setup-beam@v1
         with:
           otp-version: ${{ matrix.otp_version }}
           version-type: strict
+
       - name: Build Elixir Release
         run: |
-          version=$(cat VERSION)
           make Precompiled.zip
           mv Precompiled.zip main-otp-${{ matrix.otp }}.zip
           shasum -a 1 main-otp-${{ matrix.otp }}.zip > main-otp-${{ matrix.otp }}.zip.sha1sum
           shasum -a 256 main-otp-${{ matrix.otp }}.zip > main-otp-${{ matrix.otp }}.zip.sha256sum
 
+      - name: Update builds.txt
+        run: |
+          date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          build_sha256=$(cut -d ' ' -f 1 main-otp-${{ matrix.otp }}.zip.sha256sum)
+
+          aws s3 cp s3://${{ env.S3_BUCKET }}/builds/elixir/builds.txt builds.txt || true
+          touch builds.txt
+          sed -i '/^main-otp-${{ matrix.otp }} /d' builds.txt
+          echo -e -n "main-otp-${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256}\n$(cat builds.txt)" > builds.txt
+          sort -u -k1,1 -o builds.txt builds.txt
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+
       - name: Upload to S3
         run: |
-          version=$(cat VERSION)
-          for file in main-otp-${{ matrix.otp }}.zip main-otp-${{ matrix.otp }}.zip.sha1sum main-otp-${{ matrix.otp }}.zip.sha256sum
+          for file in main-otp-${{ matrix.otp }}.zip main-otp-${{ matrix.otp }}.zip.sha1sum main-otp-${{ matrix.otp }}.zip.sha256sum builds.txt
           do
-            aws s3 cp "${file}" s3://test-elixir-nightly/builds/elixir/ \
+            aws s3 cp "${file}" s3://${{ env.S3_BUCKET }}/builds/elixir/ \
               --cache-control 'public,max-age=3600' \
               --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
           done
