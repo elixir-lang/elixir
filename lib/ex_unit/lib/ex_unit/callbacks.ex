@@ -193,7 +193,7 @@ defmodule ExUnit.Callbacks do
 
   ## Examples
 
-      def clean_up_tmp_directory(context) do
+      defp clean_up_tmp_directory(context) do
         # perform setup
         :ok
       end
@@ -288,7 +288,7 @@ defmodule ExUnit.Callbacks do
       # One-arity function name
       setup_all :clean_up_tmp_directory
 
-      def clean_up_tmp_directory(_context) do
+      defp clean_up_tmp_directory(_context) do
         # perform setup
         :ok
       end
