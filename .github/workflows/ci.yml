@@ -13,32 +13,27 @@ permissions:
 
 jobs:
   test_linux:
-    name: Linux, ${{ matrix.otp_release }}, Ubuntu 20.04
+    name: Ubuntu 20.04, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - otp_release: OTP-25.0
+          - otp_version: 25.0
             otp_latest: true
-          - otp_release: OTP-24.3
-          - otp_release: OTP-24.0
-          - otp_release: master
+          - otp_version: 24.3
+          - otp_version: 24.0
+          - otp_version: master
             development: true
-          - otp_release: maint
+          - otp_version: maint
             development: true
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 50
-      - name: Install Erlang/OTP
-        run: |
-          cd $RUNNER_TEMP
-          wget -O otp.tar.gz https://repo.hex.pm/builds/otp/ubuntu-20.04/${{ matrix.otp_release }}.tar.gz
-          mkdir -p otp
-          tar zxf otp.tar.gz -C otp --strip-components=1
-          otp/Install -minimal $(pwd)/otp
-          echo "$(pwd)/otp/bin" >> $GITHUB_PATH
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp_version }}
       - name: Compile Elixir
         run: |
           rm -rf .git
@@ -76,10 +71,10 @@ jobs:
           done
 
   test_windows:
-    name: Windows, OTP-${{ matrix.otp_release }}, Windows Server 2019
+    name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
       matrix:
-        otp_release: ['24', '25']
+        otp_version: ['24', '25']
     runs-on: windows-2019
     steps:
       - name: Configure Git
@@ -89,7 +84,7 @@ jobs:
           fetch-depth: 50
       - uses: erlef/setup-beam@v1
         with:
-          otp-version: ${{ matrix.otp_release }}
+          otp-version: ${{ matrix.otp_version }}
       - name: Compile Elixir
         run: |
           Remove-Item -Recurse -Force '.git'
