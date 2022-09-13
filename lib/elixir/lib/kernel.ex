@@ -3592,7 +3592,7 @@ defmodule Kernel do
     expected 0 or 1 argument for @#{name}, got 2.
 
     It seems you are trying to use the do-syntax with @module attributes \
-    but the do-block is binding to the attribute name. You probably want \
+    but the do-block binds to the attribute name. You probably want \
     to wrap the argument value in parentheses, like this:
     #{String.replace(code, "\n", "\n    ")}
     """
