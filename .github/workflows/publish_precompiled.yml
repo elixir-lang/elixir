@@ -79,7 +79,7 @@ jobs:
             -H "Fastly-Key: ${BOB_FASTLY_KEY}" \
             -H "Accept: application/json" \
             -H "Content-Length: 0" \
-            "https://api.fastly.com/service/${BOB_FASTLY_SERVICE}/purge/${BOB_FASTLY_KEY}"
+            "https://api.fastly.com/service/${BOB_FASTLY_SERVICE}/purge/${BOB_FASTLY_PURGE_KEY}"
         env:
           BOB_FASTLY_KEY: ${{ secrets.BOB_FASTLY_KEY }}
           BOB_FASTLY_SERVICE: changeme
