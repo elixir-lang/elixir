@@ -12,6 +12,7 @@ env:
   S3_BUCKET: test-elixir-nightly
   # S3_BUCKET: s3.hex.pm
 
+
 jobs:
   publish_precompiled:
     strategy:
@@ -66,3 +67,21 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.HEXPM_ELIXIR_BUILDS_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.HEXPM_ELIXIR_BUILDS_AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
+
+  fastly_purge:
+    needs: publish_precompiled
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Purge Fastly cache
+        run: |
+          curl \
+            --fail \
+            -X POST \
+            -H "Fastly-Key: ${BOB_FASTLY_KEY}" \
+            -H "Accept: application/json" \
+            -H "Content-Length: 0" \
+            "https://api.fastly.com/service/${BOB_FASTLY_SERVICE}/purge/${BOB_FASTLY_KEY}"
+        env:
+          BOB_FASTLY_KEY: ${{ secrets.BOB_FASTLY_KEY }}
+          BOB_FASTLY_SERVICE: changeme
+          BOB_FASTLY_PURGE_KEY: builds
