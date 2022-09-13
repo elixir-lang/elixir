@@ -42,8 +42,8 @@
 
 1. Update the table in Compatibility and Deprecations
 
-2. Update `otp_release` checks in /Makefile and `/lib/elixir/src/elixir.erl`
+2. Update `otp_release` checks in `/Makefile` and `/lib/elixir/src/elixir.erl`
 
-3. Update CI workflows in `/.cirrus.yml`, `/.github/workflows/ci.yml`, and `/.github/workflows/releases.yml`
+3. Update relevant CI workflows in `/.github/workflows/*.yml`
 
 4. Remove `otp_release` version checks that are no longer needed
