@@ -45,7 +45,7 @@ jobs:
           date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
           build_sha256=$(sha256sum main-otp-${{ matrix.otp }}.zip | cut -d ' ' -f 1)
 
-          aws s3 cp s3://${{ env.S3_BUCKET }}/builds/elixir/builds.txt builds.txt || touch builds.txt
+          aws s3 cp s3://${{ env.S3_BUCKET }}/builds/elixir/builds.txt builds.txt
           sed -i '/^main-otp-${{ matrix.otp }} /d' builds.txt
           echo -e -n "main-otp-${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256}\n$(cat builds.txt)" > builds.txt
           sort -u -k1,1 -o builds.txt builds.txt
