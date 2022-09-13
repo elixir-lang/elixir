@@ -3,14 +3,13 @@ name: Publish Precompiled
 on:
   push:
     branches:
-      - iss-12038-2
+      - main
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
   ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
-  S3_BUCKET: test-elixir-nightly
-  # S3_BUCKET: s3.hex.pm
+  S3_BUCKET: s3.hex.pm
 
 
 jobs:
