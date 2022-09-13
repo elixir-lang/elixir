@@ -51,8 +51,8 @@ jobs:
           echo -e -n "main-otp-${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256}\n$(cat builds.txt)" > builds.txt
           sort -u -k1,1 -o builds.txt builds.txt
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.HEXPM_ELIXIR_BUILDS_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HEXPM_ELIXIR_BUILDS_AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: us-east-1
 
       - name: Upload to S3
