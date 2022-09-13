@@ -76,11 +76,11 @@ jobs:
           curl \
             --fail \
             -X POST \
-            -H "Fastly-Key: ${BOB_FASTLY_KEY}" \
+            -H "Fastly-Key: ${FASTLY_KEY}" \
             -H "Accept: application/json" \
             -H "Content-Length: 0" \
-            "https://api.fastly.com/service/${BOB_FASTLY_SERVICE}/purge/${BOB_FASTLY_PURGE_KEY}"
+            "https://api.fastly.com/service/${FASTLY_SERVICE}/purge/${FASTLY_PURGE_KEY}"
         env:
-          BOB_FASTLY_KEY: ${{ secrets.BOB_FASTLY_KEY }}
-          BOB_FASTLY_SERVICE: changeme
-          BOB_FASTLY_PURGE_KEY: builds
+          FASTLY_KEY: ${{ secrets.HEXPM_REPO_FASTLY_KEY }}
+          FASTLY_SERVICE: ${{ secrets.HEXPM_REPO_FASTLY_SERVICE }}
+          FASTLY_PURGE_KEY: builds
