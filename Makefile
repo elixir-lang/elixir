@@ -233,7 +233,6 @@ Precompiled.zip: build_man compile
 
 #==> Test tasks
 
-# If you modify this task, please update .cirrus.yml accordingly
 test: test_formatted test_erlang test_elixir
 
 test_windows: test test_taskkill
