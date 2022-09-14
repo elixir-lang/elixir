@@ -203,7 +203,7 @@ defmodule SystemTest do
 
     @tag timeout: 1_000
     test "shell/1 returns when command awaits input" do
-      assert {"", 0} = System.shell("cat")
+      assert {"", 0} = System.shell("cat", close_stdin: true)
     end
 
     test "shell/1 with comment" do
