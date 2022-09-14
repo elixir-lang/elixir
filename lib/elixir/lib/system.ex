@@ -920,19 +920,26 @@ defmodule System do
 
   ## Options
 
-  It accepts the same options as `cmd/3`, except for `arg0`.
+  It accepts the same options as `cmd/3` (except for `arg0`).
+  It also accepts the following exclusive options:
+
+    * `:close_stdin` (since v1.14.1) - if the stdin should be closed
+      on Unix systems, forcing any command that waits on stdin to
+      immediately terminate. Defaults to false.
   """
   @doc since: "1.12.0"
   @spec shell(binary, keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
   def shell(command, opts \\ []) when is_binary(command) do
     assert_no_null_byte!(command, "System.shell/2")
+    {close_stdin?, opts} = Keyword.pop(opts, :close_stdin, false)
 
     # Finding shell command logic from :os.cmd in OTP
     # https://github.com/erlang/otp/blob/8deb96fb1d017307e22d2ab88968b9ef9f1b71d0/lib/kernel/src/os.erl#L184
     case :os.type() do
       {:unix, _} ->
-        shell_path = :os.find_executable('sh') || :erlang.error(:enoent, [command, opts])
-        command = "(#{command}\n) </dev/null"
+        shell_path = :os.find_executable(~c"sh") || :erlang.error(:enoent, [command, opts])
+        close_stdin = if close_stdin?, do: " </dev/null", else: ""
+        command = IO.iodata_to_binary(["(", command, "\n)", close_stdin])
         do_cmd({:spawn_executable, shell_path}, [args: ["-c", command]], opts)
 
       {:win32, osname} ->
