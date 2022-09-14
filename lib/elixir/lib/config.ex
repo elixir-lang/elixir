@@ -1,3 +1,4 @@
+
 defmodule Config do
   @moduledoc ~S"""
   A simple keyword-based configuration API.
@@ -25,7 +26,7 @@ defmodule Config do
   into `:some_app`'s application environment, which can be accessed in
   as follows:
 
-      "value1" = Application.fetch_env!(:some_app, :key1)
+      "value1" = Application.compile_env!(:some_app, :key1)
 
   Finally, the line `import_config "#{config_env()}.exs"` will import
   other config files based on the current configuration environment,
