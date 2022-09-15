@@ -379,8 +379,19 @@ defmodule Module.ParallelChecker do
   defp fetch_module_map!(binary, module) when is_binary(binary) do
     {:ok, {_, [debug_info: chunk]}} = :beam_lib.chunks(binary, [:debug_info])
     {:debug_info_v1, backend, data} = chunk
-    {:ok, module_map} = backend.debug_info(:elixir_v1, module, data, [])
-    module_map
+
+    case backend.debug_info(:elixir_v1, module, data, []) do
+      {:ok, module_map} ->
+        module_map
+
+      {:error, error} ->
+        raise """
+        could not load Elixir metadata for module #{inspect(module)}, \
+        written in backend #{inspect(backend)}, due to reason: #{inspect(error)}
+
+        Please report this bug: https://github.com/elixir-lang/elixir/issues
+        """
+    end
   end
 
   defp cache_from_module_map(ets, map) do
