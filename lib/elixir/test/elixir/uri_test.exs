@@ -279,6 +279,31 @@ defmodule URITest do
     end
   end
 
+  test "http://http://http://@http://http://?http://#http://" do
+    assert URI.parse("http://http://http://@http://http://?http://#http://") ==
+             %URI{
+               scheme: "http",
+               authority: "http:",
+               userinfo: nil,
+               host: "http",
+               port: 80,
+               path: "//http://@http://http://",
+               query: "http://",
+               fragment: "http://"
+             }
+
+    assert URI.new!("http://http://http://@http://http://?http://#http://") ==
+             %URI{
+               scheme: "http",
+               userinfo: nil,
+               host: "http",
+               port: 80,
+               path: "//http://@http://http://",
+               query: "http://",
+               fragment: "http://"
+             }
+  end
+
   test "default_port/1,2" do
     assert URI.default_port("http") == 80
 

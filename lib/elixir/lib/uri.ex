@@ -648,7 +648,7 @@ defmodule URI do
         scheme = String.downcase(scheme, :ascii)
 
         case map do
-          %{port: _} ->
+          %{port: port} when port != :undefined ->
             %{uri | scheme: scheme}
 
           %{} ->
