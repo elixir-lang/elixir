@@ -997,7 +997,7 @@ defmodule IEx.HelpersTest do
       assert capture_iex("v(0)") =~ "** (RuntimeError) v(0) is out of bounds"
       assert capture_iex("v(1)") =~ "** (RuntimeError) v(1) is out of bounds"
       assert capture_iex("v(-1)") =~ "** (RuntimeError) v(-1) is out of bounds"
-      assert capture_iex("1\n2\nv(2)") =~ "1\n2\n2"
+      assert capture_iex("1\n2\nv(2)") =~ "iex(1)> 1\niex(2)> 2\niex(3)> 2"
       assert capture_iex("1\n2\nv(2)") =~ capture_iex("1\n2\nv(-1)")
       assert capture_iex("1\n2\nv(2)") =~ capture_iex("1\n2\nv()")
     end
@@ -1056,15 +1056,14 @@ defmodule IEx.HelpersTest do
     test "imports a file" do
       with_file("dot-iex", "variable = :hello\nimport IO", fn ->
         capture_io(:stderr, fn ->
-          assert capture_iex("variable") =~ "** (CompileError) iex:1: undefined function variable/0"
-
+          assert capture_iex("variable") =~
+                   "** (CompileError) iex:1: undefined function variable/0"
         end)
 
         assert capture_iex("puts \"hi\"") =~ "** (CompileError) iex:1: undefined function puts/1"
 
-
         assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"") =~
-                 "IO\n:hello\nhi\n:ok"
+                 "iex(1)> IO\niex(2)> :hello\niex(3)> hi\n:ok"
       end)
     end
 
@@ -1075,14 +1074,12 @@ defmodule IEx.HelpersTest do
       with_file(["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
         capture_io(:stderr, fn ->
           assert capture_iex("parent") =~ "** (CompileError) iex:1: undefined function parent/0"
-
         end)
 
         assert capture_iex("puts \"hi\"") =~ "** (CompileError) iex:1: undefined function puts/1"
 
-
         assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent") =~
-                ~r/IO\n:hello\nhi\n:ok\ntrue/
+                 "iex(1)> IO\niex(2)> :hello\niex(3)> hi\n:ok\niex(4)> true"
       end)
     end
 
@@ -1113,8 +1110,8 @@ defmodule IEx.HelpersTest do
       assert capture_iex("import_if_available NoSuchModule") =~ ~r/nil/
       assert capture_iex("import_if_available Integer; digits 123") =~ ~r/\[1, 2, 3\]/
 
-      assert capture_iex("import_if_available Integer, only: [digits: 1]; digits 123") =~ ~r/\[1, 2, 3\]/
-
+      assert capture_iex("import_if_available Integer, only: [digits: 1]; digits 123") =~
+               ~r/\[1, 2, 3\]/
     end
   end
 
