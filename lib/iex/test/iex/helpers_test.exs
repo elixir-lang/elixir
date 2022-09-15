@@ -149,82 +149,82 @@ defmodule IEx.HelpersTest do
     test "opens __FILE__ and __LINE__" do
       System.put_env("ELIXIR_EDITOR", "echo __LINE__:__FILE__")
 
-      assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() ==
+      assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() =~
                "3:#{__ENV__.file}"
     after
       System.put_env("ELIXIR_EDITOR", @editor)
     end
 
     test "opens Elixir module" do
-      assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:1$/
+      assert capture_iex("open(IEx.Helpers)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:1/
     end
 
     test "opens function" do
-      assert capture_iex("open(h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+/
     end
 
     test "opens function/arity" do
-      assert capture_iex("open(b/1)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
-      assert capture_iex("open(h/0)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(b/1)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+/
+      assert capture_iex("open(h/0)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+/
     end
 
     test "opens module.function" do
-      assert capture_iex("open(IEx.Helpers.b)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
-      assert capture_iex("open(IEx.Helpers.h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+$/
+      assert capture_iex("open(IEx.Helpers.b)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+/
+      assert capture_iex("open(IEx.Helpers.h)") |> maybe_trim_quotes() =~ ~r/#{@iex_helpers}:\d+/
     end
 
     test "opens module.function/arity" do
       assert capture_iex("open(IEx.Helpers.b/1)") |> maybe_trim_quotes() =~
-               ~r/#{@iex_helpers}:\d+$/
+               ~r/#{@iex_helpers}:\d+/
 
       assert capture_iex("open(IEx.Helpers.h/0)") |> maybe_trim_quotes() =~
-               ~r/#{@iex_helpers}:\d+$/
+               ~r/#{@iex_helpers}:\d+/
     end
 
     test "opens Erlang module" do
-      assert capture_iex("open(:elixir)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+$/
+      assert capture_iex("open(:elixir)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+/
     end
 
     test "opens Erlang module.function" do
-      assert capture_iex("open(:elixir.start)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+$/
+      assert capture_iex("open(:elixir.start)") |> maybe_trim_quotes() =~ ~r/#{@elixir_erl}:\d+/
     end
 
     test "opens Erlang module.function/arity" do
       assert capture_iex("open(:elixir.start/2)") |> maybe_trim_quotes() =~
-               ~r/#{@elixir_erl}:\d+$/
+               ~r/#{@elixir_erl}:\d+/
     end
 
     # Some installations remove the source file once Erlang is compiled. See #7348.
     if File.regular?(@lists_erl) do
       test "opens OTP lists module" do
-        assert capture_iex("open(:lists)") |> maybe_trim_quotes() =~ ~r/#{@lists_erl}:\d+$/
+        assert capture_iex("open(:lists)") |> maybe_trim_quotes() =~ ~r/#{@lists_erl}:\d+/
       end
 
       test "opens OTP lists module.function" do
         assert capture_iex("open(:lists.reverse)") |> maybe_trim_quotes() =~
-                 ~r/#{@lists_erl}:\d+$/
+                 ~r/#{@lists_erl}:\d+/
       end
 
       test "opens OTP lists module.function/arity" do
         assert capture_iex("open(:lists.reverse/1)") |> maybe_trim_quotes() =~
-                 ~r/#{@lists_erl}:\d+$/
+                 ~r/#{@lists_erl}:\d+/
       end
     end
 
     # Some installations remove the source file once Erlang is compiled. See #7348.
     if File.regular?(@httpc_erl) do
       test "opens OTP httpc module" do
-        assert capture_iex("open(:httpc)") |> maybe_trim_quotes() =~ ~r/#{@httpc_erl}:\d+$/
+        assert capture_iex("open(:httpc)") |> maybe_trim_quotes() =~ ~r/#{@httpc_erl}:\d+/
       end
 
       test "opens OTP httpc module.function" do
         assert capture_iex("open(:httpc.request)") |> maybe_trim_quotes() =~
-                 ~r/#{@httpc_erl}:\d+$/
+                 ~r/#{@httpc_erl}:\d+/
       end
 
       test "opens OTP httpc module.function/arity" do
         assert capture_iex("open(:httpc.request/1)") |> maybe_trim_quotes() =~
-                 ~r/#{@httpc_erl}:\d+$/
+                 ~r/#{@httpc_erl}:\d+/
       end
     end
 
@@ -233,34 +233,34 @@ defmodule IEx.HelpersTest do
     end
 
     test "errors if module is not available" do
-      assert capture_iex("open(:unknown)") == "Could not open: :unknown. Module is not available."
+      assert capture_iex("open(:unknown)") =~ "Could not open: :unknown. Module is not available."
     end
 
     test "errors if module.function is not available" do
-      assert capture_iex("open(:unknown.unknown)") ==
+      assert capture_iex("open(:unknown.unknown)") =~
                "Could not open: :unknown.unknown. Module is not available."
 
-      assert capture_iex("open(:elixir.unknown)") ==
+      assert capture_iex("open(:elixir.unknown)") =~
                "Could not open: :elixir.unknown. Function/macro is not available."
 
-      assert capture_iex("open(:lists.unknown)") ==
+      assert capture_iex("open(:lists.unknown)") =~
                "Could not open: :lists.unknown. Function/macro is not available."
 
-      assert capture_iex("open(:httpc.unknown)") ==
+      assert capture_iex("open(:httpc.unknown)") =~
                "Could not open: :httpc.unknown. Function/macro is not available."
     end
 
     test "errors if module.function/arity is not available" do
-      assert capture_iex("open(:unknown.start/10)") ==
+      assert capture_iex("open(:unknown.start/10)") =~
                "Could not open: :unknown.start/10. Module is not available."
 
-      assert capture_iex("open(:elixir.start/10)") ==
+      assert capture_iex("open(:elixir.start/10)") =~
                "Could not open: :elixir.start/10. Function/macro is not available."
 
-      assert capture_iex("open(:lists.reverse/10)") ==
+      assert capture_iex("open(:lists.reverse/10)") =~
                "Could not open: :lists.reverse/10. Function/macro is not available."
 
-      assert capture_iex("open(:httpc.request/10)") ==
+      assert capture_iex("open(:httpc.request/10)") =~
                "Could not open: :httpc.request/10. Function/macro is not available."
     end
 
@@ -272,16 +272,16 @@ defmodule IEx.HelpersTest do
     end
 
     test "opens the current pry location" do
-      assert capture_iex("open()", [], env: %{__ENV__ | line: 3}) |> maybe_trim_quotes() ==
+      assert capture_iex("open()", [], env: %{__ENV__ | line: 3}) |> maybe_trim_quotes() =~
                "#{__ENV__.file}:3"
     end
 
     test "errors if prying is not available" do
-      assert capture_iex("open()") == "Pry session is not currently enabled"
+      assert capture_iex("open()") =~ ~r/Pry session is not currently enabled/
     end
 
     test "opens given {file, line}" do
-      assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() ==
+      assert capture_iex("open({#{inspect(__ENV__.file)}, 3})") |> maybe_trim_quotes() =~
                "#{__ENV__.file}:3"
     end
 
@@ -301,7 +301,7 @@ defmodule IEx.HelpersTest do
   describe "clear" do
     test "clear the screen with ansi" do
       Application.put_env(:elixir, :ansi_enabled, true)
-      assert capture_iex("clear()") == "\e[H\e[2J"
+      assert capture_iex("clear()") =~ ~r/\e\[H\e\[2J/
 
       Application.put_env(:elixir, :ansi_enabled, false)
 
@@ -994,12 +994,12 @@ defmodule IEx.HelpersTest do
 
   describe "v" do
     test "returns history" do
-      assert "** (RuntimeError) v(0) is out of bounds" <> _ = capture_iex("v(0)")
-      assert "** (RuntimeError) v(1) is out of bounds" <> _ = capture_iex("v(1)")
-      assert "** (RuntimeError) v(-1) is out of bounds" <> _ = capture_iex("v(-1)")
-      assert capture_iex("1\n2\nv(2)") == "1\n2\n2"
-      assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv(-1)")
-      assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv()")
+      assert capture_iex("v(0)") =~ "** (RuntimeError) v(0) is out of bounds"
+      assert capture_iex("v(1)") =~ "** (RuntimeError) v(1) is out of bounds"
+      assert capture_iex("v(-1)") =~ "** (RuntimeError) v(-1) is out of bounds"
+      assert capture_iex("1\n2\nv(2)") =~ "iex(1)> 1\niex(2)> 2\niex(3)> 2"
+      assert capture_iex("1\n2\nv(2)") =~ capture_iex("1\n2\nv(-1)")
+      assert capture_iex("1\n2\nv(2)") =~ capture_iex("1\n2\nv()")
     end
   end
 
@@ -1056,15 +1056,14 @@ defmodule IEx.HelpersTest do
     test "imports a file" do
       with_file("dot-iex", "variable = :hello\nimport IO", fn ->
         capture_io(:stderr, fn ->
-          assert "** (CompileError) iex:1: undefined function variable/0" <> _ =
-                   capture_iex("variable")
+          assert capture_iex("variable") =~
+                   "** (CompileError) iex:1: undefined function variable/0"
         end)
 
-        assert "** (CompileError) iex:1: undefined function puts/1" <> _ =
-                 capture_iex("puts \"hi\"")
+        assert capture_iex("puts \"hi\"") =~ "** (CompileError) iex:1: undefined function puts/1"
 
-        assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"") ==
-                 "IO\n:hello\nhi\n:ok"
+        assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"") =~
+                 "iex(1)> IO\niex(2)> :hello\niex(3)> hi\n:ok"
       end)
     end
 
@@ -1074,26 +1073,24 @@ defmodule IEx.HelpersTest do
 
       with_file(["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
         capture_io(:stderr, fn ->
-          assert "** (CompileError) iex:1: undefined function parent/0" <> _ =
-                   capture_iex("parent")
+          assert capture_iex("parent") =~ "** (CompileError) iex:1: undefined function parent/0"
         end)
 
-        assert "** (CompileError) iex:1: undefined function puts/1" <> _ =
-                 capture_iex("puts \"hi\"")
+        assert capture_iex("puts \"hi\"") =~ "** (CompileError) iex:1: undefined function puts/1"
 
-        assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent") ==
-                 "IO\n:hello\nhi\n:ok\ntrue"
+        assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent") =~
+                 "iex(1)> IO\niex(2)> :hello\niex(3)> hi\n:ok\niex(4)> true"
       end)
     end
 
     test "raises if file is missing" do
       failing = capture_iex("import_file \"nonexistent\"")
-      assert "** (File.Error) could not read file" <> _ = failing
+      assert failing =~ "** (File.Error) could not read file"
       assert failing =~ "no such file or directory"
     end
 
     test "does not raise if file is missing and using import_file_if_available" do
-      assert "nil" == capture_iex("import_file_if_available \"nonexistent\"")
+      assert capture_iex("import_file_if_available \"nonexistent\"") =~ ~r/nil/
     end
 
     test "circular imports" do
@@ -1102,7 +1099,7 @@ defmodule IEx.HelpersTest do
 
       with_file(["dot-iex-1", "dot-iex-2"], [dot_1, dot_2], fn ->
         assert capture_io(:stderr, fn ->
-                 assert capture_iex(":ok", [], dot_iex_path: "dot-iex-1") == ":ok"
+                 assert capture_iex(":ok", [], dot_iex_path: "dot-iex-1") =~ ":ok"
                end) =~ "dot-iex-2 was already imported, skipping circular file imports"
       end)
     end
@@ -1110,17 +1107,17 @@ defmodule IEx.HelpersTest do
 
   describe "import_if_available" do
     test "imports a module only if available" do
-      assert "nil" == capture_iex("import_if_available NoSuchModule")
-      assert "[1, 2, 3]" == capture_iex("import_if_available Integer; digits 123")
+      assert capture_iex("import_if_available NoSuchModule") =~ ~r/nil/
+      assert capture_iex("import_if_available Integer; digits 123") =~ ~r/\[1, 2, 3\]/
 
-      assert "[1, 2, 3]" ==
-               capture_iex("import_if_available Integer, only: [digits: 1]; digits 123")
+      assert capture_iex("import_if_available Integer, only: [digits: 1]; digits 123") =~
+               ~r/\[1, 2, 3\]/
     end
   end
 
   describe "use_if_available" do
     test "uses a module only if available" do
-      assert "nil" == capture_iex("use_if_available NoSuchModule")
+      assert capture_iex("use_if_available NoSuchModule") =~ ~r/nil/
     end
   end
 

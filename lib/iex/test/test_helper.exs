@@ -67,10 +67,10 @@ defmodule IEx.Case do
   If you provide server options, it will be passed to
   IEx.Server.run to be used in the normal .iex loading process.
   """
-  def capture_iex(input, options \\ [], server_options \\ [], capture_prompt \\ false) do
+  def capture_iex(input, options \\ [], server_options \\ []) do
     IEx.configure(options)
 
-    ExUnit.CaptureIO.capture_io([input: input, capture_prompt: capture_prompt], fn ->
+    ExUnit.CaptureIO.capture_io([input: input], fn ->
       server_options = Keyword.put_new(server_options, :dot_iex_path, "")
       IEx.Server.run(server_options)
     end)
