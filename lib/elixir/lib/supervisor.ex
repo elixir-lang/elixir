@@ -463,8 +463,11 @@ defmodule Supervisor do
   restart the child in case it exits with reason `:normal`, `:shutdown` or
   `{:shutdown, term}`.
 
-  So one may ask: which exit reason should I choose when exiting? There are
-  three options:
+  Those exits also impact logging. By default, behaviours such as GenServers
+  do not emit error logs when the exit reason is `:normal`, `:shutdown` or
+  `{:shutdown, term}`.
+
+  So one may ask: which exit reason should I choose? There are three options:
 
     * `:normal` - in such cases, the exit won't be logged, there is no restart
       in transient mode, and linked processes do not exit
@@ -476,6 +479,9 @@ defmodule Supervisor do
     * any other term - in such cases, the exit will be logged, there are
       restarts in transient mode, and linked processes exit with the same
       reason unless they're trapping exits
+
+  Generally speaking, if you are exiting for expected reasons, you want to use
+  `:shutdown` or `{:shutdown, term}`.
 
   Note that the supervisor that reaches maximum restart intensity will exit with
   `:shutdown` reason. In this case the supervisor will only be restarted if its
