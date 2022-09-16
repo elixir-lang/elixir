@@ -532,7 +532,11 @@ defmodule Module do
       corresponding setting in `Code.get_compiler_option/1`
 
     * `@compile {:debug_info, false}` - disables `:debug_info` regardless
-      of the corresponding setting in `Code.get_compiler_option/1`
+      of the corresponding setting in `Code.get_compiler_option/1`. Note
+      disabling `:debug_info` is not recommended as it removes the ability
+      of the Elixir compiler and other tools to static analyse the code.
+      If you want to remove the `:debug_info` while deploying, tools like
+      `mix release` already do such by default.
 
     * `@compile {:inline, some_fun: 2, other_fun: 3}` - inlines the given
       name/arity pairs. Inlining is applied locally, calls from another

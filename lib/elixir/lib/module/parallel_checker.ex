@@ -62,17 +62,24 @@ defmodule Module.ParallelChecker do
               if is_map(info) do
                 info
               else
-                info |> File.read!() |> fetch_module_map!(module)
+                info |> File.read!() |> maybe_module_map(module)
               end
 
-            cache_from_module_map(ets, module_map)
+            module_map && cache_from_module_map(ets, module_map)
             send(checker, {ref, :cached})
 
             receive do
               {^ref, :check} ->
                 # Set the compiler info so we can collect warnings
                 :erlang.put(:elixir_compiler_info, {pid, self()})
-                warnings = check_module(module_map, {checker, ets})
+
+                warnings =
+                  if module_map do
+                    check_module(module_map, {checker, ets})
+                  else
+                    []
+                  end
+
                 send(pid, {__MODULE__, module, warnings})
                 send(checker, {__MODULE__, :done})
             end
@@ -357,21 +364,15 @@ defmodule Module.ParallelChecker do
     _ -> %{}
   end
 
-  defp fetch_module_map!(binary, module) when is_binary(binary) do
-    {:ok, {_, [debug_info: chunk]}} = :beam_lib.chunks(binary, [:debug_info])
-    {:debug_info_v1, backend, data} = chunk
-
-    case backend.debug_info(:elixir_v1, module, data, []) do
-      {:ok, module_map} ->
-        module_map
-
-      {:error, error} ->
-        raise """
-        could not load Elixir metadata for module #{inspect(module)}, \
-        written in backend #{inspect(backend)}, due to reason: #{inspect(error)}
-
-        Please report this bug: https://github.com/elixir-lang/elixir/issues
-        """
+  defp maybe_module_map(binary, module) when is_binary(binary) do
+    # If a module was compiled without debug_info,
+    # then there is no module_map for further verification.
+    with {:ok, {_, [debug_info: chunk]}} <- :beam_lib.chunks(binary, [:debug_info]),
+         {:debug_info_v1, backend, data} = chunk,
+         {:ok, module_map} <- backend.debug_info(:elixir_v1, module, data, []) do
+      module_map
+    else
+      _ -> nil
     end
   end
 
