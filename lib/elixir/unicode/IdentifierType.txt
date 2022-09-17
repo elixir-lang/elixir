@@ -1,20 +1,18 @@
 # IdentifierType.txt
-# Date: 2021-08-12, 01:13:33 GMT
-# © 2021 Unicode®, Inc.
+# Date: 2022-08-26, 16:49:09 GMT
+# © 2022 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
-# For terms of use, see http://www.unicode.org/terms_of_use.html
+# For terms of use, see https://www.unicode.org/terms_of_use.html
 #
 # Unicode Security Mechanisms for UTS #39
-# Version: 14.0.0
+# Version: 15.0.0
 #
-# For documentation and usage, see http://www.unicode.org/reports/tr39
+# For documentation and usage, see https://www.unicode.org/reports/tr39
 #
 # Format
 #
 # Field 0: code point
 # Field 1: set of Identifier_Type values (see Table 1 of http://www.unicode.org/reports/tr39)
-#
-# Any missing code points have the Identifier_Type value Not_Character
 #
 # For the purpose of regular expressions, the property Identifier_Type is defined as
 # mapping each code point to a set of enumerated values.
@@ -23,8 +21,12 @@
 #   Not_Character, Deprecated, Default_Ignorable, Not_NFKC, Not_XID,
 #   Exclusion, Obsolete, Technical, Uncommon_Use, Limited_Use, Inclusion, Recommended
 # The short name of each value is the same as its long name.
-# The default property value for all Unicode code points U+0000..U+10FFFF
-# not mentioned in this data file is Not_Character.
+
+# All code points not explicitly listed for Identifier_Type
+# have the value Not_Character.
+
+# @missing: 0000..10FFFF; Not_Character
+
 # As usual, sets are unordered, with no duplicate values.
 
 
@@ -281,6 +283,7 @@
 0CE2..0CE3    ; Recommended                    # 5.0    [2] KANNADA VOWEL SIGN VOCALIC L..KANNADA VOWEL SIGN VOCALIC LL
 0CE6..0CEF    ; Recommended                    # 1.1   [10] KANNADA DIGIT ZERO..KANNADA DIGIT NINE
 0CF1..0CF2    ; Recommended                    # 5.0    [2] KANNADA SIGN JIHVAMULIYA..KANNADA SIGN UPADHMANIYA
+0CF3          ; Recommended                    # 15.0       KANNADA SIGN COMBINING ANUSVARA ABOVE RIGHT
 0D00          ; Recommended                    # 10.0       MALAYALAM SIGN COMBINING ANUSVARA ABOVE
 0D02..0D03    ; Recommended                    # 1.1    [2] MALAYALAM SIGN ANUSVARA..MALAYALAM SIGN VISARGA
 0D05..0D0C    ; Recommended                    # 1.1    [8] MALAYALAM LETTER A..MALAYALAM LETTER VOCALIC L
@@ -342,6 +345,7 @@
 0EC0..0EC4    ; Recommended                    # 1.1    [5] LAO VOWEL SIGN E..LAO VOWEL SIGN AI
 0EC6          ; Recommended                    # 1.1        LAO KO LA
 0EC8..0ECD    ; Recommended                    # 1.1    [6] LAO TONE MAI EK..LAO NIGGAHITA
+0ECE          ; Recommended                    # 15.0       LAO YAMAKKAN
 0ED0..0ED9    ; Recommended                    # 1.1   [10] LAO DIGIT ZERO..LAO DIGIT NINE
 0EDE..0EDF    ; Recommended                    # 6.1    [2] LAO LETTER KHMU GO..LAO LETTER KHMU NYO
 0F00          ; Recommended                    # 2.0        TIBETAN SYLLABLE OM
@@ -522,8 +526,6 @@ A788          ; Recommended                    # 5.1        MODIFIER LETTER LOW 
 A78D          ; Recommended                    # 6.0        LATIN CAPITAL LETTER TURNED H
 A792..A793    ; Recommended                    # 6.1    [2] LATIN CAPITAL LETTER C WITH BAR..LATIN SMALL LETTER C WITH BAR
 A7AA          ; Recommended                    # 6.1        LATIN CAPITAL LETTER H WITH HOOK
-A7AE          ; Recommended                    # 9.0        LATIN CAPITAL LETTER SMALL CAPITAL I
-A7B8..A7B9    ; Recommended                    # 11.0   [2] LATIN CAPITAL LETTER U WITH STROKE..LATIN SMALL LETTER U WITH STROKE
 A7C0..A7C1    ; Recommended                    # 14.0   [2] LATIN CAPITAL LETTER OLD POLISH O..LATIN SMALL LETTER OLD POLISH O
 A7C2..A7C6    ; Recommended                    # 12.0   [5] LATIN CAPITAL LETTER ANGLICANA W..LATIN CAPITAL LETTER Z WITH PALATAL HOOK
 A7C7..A7CA    ; Recommended                    # 13.0   [4] LATIN CAPITAL LETTER D WITH SHORT STROKE OVERLAY..LATIN SMALL LETTER S WITH SHORT STROKE OVERLAY
@@ -554,9 +556,13 @@ FA27..FA29    ; Recommended                    # 1.1    [3] CJK COMPATIBILITY ID
 1133C         ; Recommended                    # 7.0        GRANTHA SIGN NUKTA
 16FF0..16FF1  ; Recommended                    # 13.0   [2] VIETNAMESE ALTERNATE READING MARK CA..VIETNAMESE ALTERNATE READING MARK NHAY
 1B11F..1B122  ; Recommended                    # 14.0   [4] HIRAGANA LETTER ARCHAIC WU..KATAKANA LETTER ARCHAIC WU
+1B132         ; Recommended                    # 15.0       HIRAGANA LETTER SMALL KO
 1B150..1B152  ; Recommended                    # 12.0   [3] HIRAGANA LETTER SMALL WI..HIRAGANA LETTER SMALL WO
+1B155         ; Recommended                    # 15.0       KATAKANA LETTER SMALL KO
 1B164..1B167  ; Recommended                    # 12.0   [4] KATAKANA LETTER SMALL WI..KATAKANA LETTER SMALL N
 1DF00..1DF1E  ; Recommended                    # 14.0  [31] LATIN SMALL LETTER FENG DIGRAPH WITH TRILL..LATIN SMALL LETTER S WITH CURL
+1DF25..1DF2A  ; Recommended                    # 15.0   [6] LATIN SMALL LETTER D WITH MID-HEIGHT LEFT HOOK..LATIN SMALL LETTER T WITH MID-HEIGHT LEFT HOOK
+1E08F         ; Recommended                    # 15.0       COMBINING CYRILLIC SMALL LETTER BYELORUSSIAN-UKRAINIAN I
 1E7E0..1E7E6  ; Recommended                    # 14.0   [7] ETHIOPIC SYLLABLE HHYA..ETHIOPIC SYLLABLE HHYO
 1E7E8..1E7EB  ; Recommended                    # 14.0   [4] ETHIOPIC SYLLABLE GURAGE HHWA..ETHIOPIC SYLLABLE HHWE
 1E7ED..1E7EE  ; Recommended                    # 14.0   [2] ETHIOPIC SYLLABLE GURAGE MWI..ETHIOPIC SYLLABLE GURAGE MWEE
@@ -566,12 +572,14 @@ FA27..FA29    ; Recommended                    # 1.1    [3] CJK COMPATIBILITY ID
 2A6DE..2A6DF  ; Recommended                    # 14.0   [2] CJK UNIFIED IDEOGRAPH-2A6DE..CJK UNIFIED IDEOGRAPH-2A6DF
 2A700..2B734  ; Recommended                    # 5.2 [4149] CJK UNIFIED IDEOGRAPH-2A700..CJK UNIFIED IDEOGRAPH-2B734
 2B735..2B738  ; Recommended                    # 14.0   [4] CJK UNIFIED IDEOGRAPH-2B735..CJK UNIFIED IDEOGRAPH-2B738
+2B739         ; Recommended                    # 15.0       CJK UNIFIED IDEOGRAPH-2B739
 2B740..2B81D  ; Recommended                    # 6.0  [222] CJK UNIFIED IDEOGRAPH-2B740..CJK UNIFIED IDEOGRAPH-2B81D
 2B820..2CEA1  ; Recommended                    # 8.0 [5762] CJK UNIFIED IDEOGRAPH-2B820..CJK UNIFIED IDEOGRAPH-2CEA1
 2CEB0..2EBE0  ; Recommended                    # 10.0 [7473] CJK UNIFIED IDEOGRAPH-2CEB0..CJK UNIFIED IDEOGRAPH-2EBE0
 30000..3134A  ; Recommended                    # 13.0 [4939] CJK UNIFIED IDEOGRAPH-30000..CJK UNIFIED IDEOGRAPH-3134A
+31350..323AF  ; Recommended                    # 15.0 [4192] CJK UNIFIED IDEOGRAPH-31350..CJK UNIFIED IDEOGRAPH-323AF
 
-# Total code points: 107938
+# Total code points: 112139
 
 #	Identifier_Type:	Inclusion
 
@@ -584,14 +592,13 @@ FA27..FA29    ; Recommended                    # 1.1    [3] CJK COMPATIBILITY ID
 05F3..05F4    ; Inclusion                      # 1.1    [2] HEBREW PUNCTUATION GERESH..HEBREW PUNCTUATION GERSHAYIM
 06FD..06FE    ; Inclusion                      # 3.0    [2] ARABIC SIGN SINDHI AMPERSAND..ARABIC SIGN SINDHI POSTPOSITION MEN
 0F0B          ; Inclusion                      # 2.0        TIBETAN MARK INTERSYLLABIC TSHEG
-200C..200D    ; Inclusion                      # 1.1    [2] ZERO WIDTH NON-JOINER..ZERO WIDTH JOINER
 2010          ; Inclusion                      # 1.1        HYPHEN
 2019          ; Inclusion                      # 1.1        RIGHT SINGLE QUOTATION MARK
 2027          ; Inclusion                      # 1.1        HYPHENATION POINT
 30A0          ; Inclusion                      # 3.2        KATAKANA-HIRAGANA DOUBLE HYPHEN
 30FB          ; Inclusion                      # 1.1        KATAKANA MIDDLE DOT
 
-# Total code points: 19
+# Total code points: 17
 
 #	Identifier_Type:	Limited_Use
 
@@ -851,13 +858,15 @@ A67C..A67D    ; Uncommon_Use                   # 5.1    [2] COMBINING CYRILLIC K
 A78B..A78C    ; Uncommon_Use                   # 5.1    [2] LATIN CAPITAL LETTER SALTILLO..LATIN SMALL LETTER SALTILLO
 A78F          ; Uncommon_Use                   # 8.0        LATIN LETTER SINOLOGICAL DOT
 A7B2..A7B7    ; Uncommon_Use                   # 8.0    [6] LATIN CAPITAL LETTER J WITH CROSSED-TAIL..LATIN SMALL LETTER OMEGA
+A7B8..A7B9    ; Uncommon_Use                   # 11.0   [2] LATIN CAPITAL LETTER U WITH STROKE..LATIN SMALL LETTER U WITH STROKE
 AB60..AB63    ; Uncommon_Use                   # 8.0    [4] LATIN SMALL LETTER SAKHA YAT..LATIN SMALL LETTER UO
 10780         ; Uncommon_Use                   # 14.0       MODIFIER LETTER SMALL CAPITAL AA
+10EFD..10EFF  ; Uncommon_Use                   # 15.0   [3] ARABIC SMALL LOW WORD SAKTA..ARABIC SMALL LOW WORD MADDA
 1AFF0..1AFF3  ; Uncommon_Use                   # 14.0   [4] KATAKANA LETTER MINNAN TONE-2..KATAKANA LETTER MINNAN TONE-5
 1AFF5..1AFFB  ; Uncommon_Use                   # 14.0   [7] KATAKANA LETTER MINNAN TONE-7..KATAKANA LETTER MINNAN NASALIZED TONE-5
 1AFFD..1AFFE  ; Uncommon_Use                   # 14.0   [2] KATAKANA LETTER MINNAN NASALIZED TONE-7..KATAKANA LETTER MINNAN NASALIZED TONE-8
 
-# Total code points: 308
+# Total code points: 313
 
 #	Identifier_Type:	Uncommon_Use Technical
 
@@ -1000,6 +1009,7 @@ A8FC          ; Uncommon_Use Obsolete Not_XID  # 8.0        DEVANAGARI SIGN SIDD
 3031..3035    ; Technical                      # 1.1    [5] VERTICAL KANA REPEAT MARK..VERTICAL KANA REPEAT MARK LOWER HALF
 303B..303C    ; Technical                      # 3.2    [2] VERTICAL IDEOGRAPHIC ITERATION MARK..MASU MARK
 A78E          ; Technical                      # 6.0        LATIN SMALL LETTER L WITH RETROFLEX HOOK AND BELT
+A7AE          ; Technical                      # 9.0        LATIN CAPITAL LETTER SMALL CAPITAL I
 A7AF          ; Technical                      # 11.0       LATIN LETTER SMALL CAPITAL Q
 A7BA..A7BF    ; Technical                      # 12.0   [6] LATIN CAPITAL LETTER GLOTTAL A..LATIN SMALL LETTER GLOTTAL U
 A7FA          ; Technical                      # 6.0        LATIN LETTER SMALL CAPITAL TURNED M
@@ -1016,7 +1026,7 @@ FE73          ; Technical                      # 3.2        ARABIC TAIL FRAGMENT
 1D185..1D18B  ; Technical                      # 3.1    [7] MUSICAL SYMBOL COMBINING DOIT..MUSICAL SYMBOL COMBINING TRIPLE TONGUE
 1D1AA..1D1AD  ; Technical                      # 3.1    [4] MUSICAL SYMBOL COMBINING DOWN BOW..MUSICAL SYMBOL COMBINING SNAP PIZZICATO
 
-# Total code points: 500
+# Total code points: 501
 
 #	Identifier_Type:	Technical Exclusion
 
@@ -1222,6 +1232,7 @@ A930..A953    ; Exclusion                      # 5.1   [36] REJANG LETTER KA..RE
 11200..11211  ; Exclusion                      # 7.0   [18] KHOJKI LETTER A..KHOJKI LETTER JJA
 11213..11237  ; Exclusion                      # 7.0   [37] KHOJKI LETTER NYA..KHOJKI SIGN SHADDA
 1123E         ; Exclusion                      # 9.0        KHOJKI SIGN SUKUN
+1123F..11241  ; Exclusion                      # 15.0   [3] KHOJKI LETTER QA..KHOJKI VOWEL SIGN VOCALIC R
 11280..11286  ; Exclusion                      # 8.0    [7] MULTANI LETTER A..MULTANI LETTER GA
 11288         ; Exclusion                      # 8.0        MULTANI LETTER GHA
 1128A..1128D  ; Exclusion                      # 8.0    [4] MULTANI LETTER CA..MULTANI LETTER JJA
@@ -1299,6 +1310,10 @@ A930..A953    ; Exclusion                      # 5.1   [36] REJANG LETTER KA..RE
 11D3F..11D47  ; Exclusion                      # 10.0   [9] MASARAM GONDI VOWEL SIGN AU..MASARAM GONDI RA-KARA
 11D50..11D59  ; Exclusion                      # 10.0  [10] MASARAM GONDI DIGIT ZERO..MASARAM GONDI DIGIT NINE
 11EE0..11EF6  ; Exclusion                      # 11.0  [23] MAKASAR LETTER KA..MAKASAR VOWEL SIGN O
+11F00..11F10  ; Exclusion                      # 15.0  [17] KAWI SIGN CANDRABINDU..KAWI LETTER O
+11F12..11F3A  ; Exclusion                      # 15.0  [41] KAWI LETTER KA..KAWI VOWEL SIGN VOCALIC R
+11F3E..11F42  ; Exclusion                      # 15.0   [5] KAWI VOWEL SIGN E..KAWI CONJOINER
+11F50..11F59  ; Exclusion                      # 15.0  [10] KAWI DIGIT ZERO..KAWI DIGIT NINE
 12000..1236E  ; Exclusion                      # 5.0  [879] CUNEIFORM SIGN A..CUNEIFORM SIGN ZUM
 1236F..12398  ; Exclusion                      # 7.0   [42] CUNEIFORM SIGN KAP ELAMITE..CUNEIFORM SIGN UM TIMES ME
 12399         ; Exclusion                      # 8.0        CUNEIFORM SIGN U U
@@ -1307,6 +1322,8 @@ A930..A953    ; Exclusion                      # 5.1   [36] REJANG LETTER KA..RE
 12480..12543  ; Exclusion                      # 8.0  [196] CUNEIFORM SIGN AB TIMES NUN TENU..CUNEIFORM SIGN ZU5 TIMES THREE DISH TENU
 12F90..12FF0  ; Exclusion                      # 14.0  [97] CYPRO-MINOAN SIGN CM001..CYPRO-MINOAN SIGN CM114
 13000..1342E  ; Exclusion                      # 5.2 [1071] EGYPTIAN HIEROGLYPH A001..EGYPTIAN HIEROGLYPH AA032
+1342F         ; Exclusion                      # 15.0       EGYPTIAN HIEROGLYPH V011D
+13440..13455  ; Exclusion                      # 15.0  [22] EGYPTIAN HIEROGLYPH MIRROR HORIZONTALLY..EGYPTIAN HIEROGLYPH MODIFIER DAMAGED
 14400..14646  ; Exclusion                      # 8.0  [583] ANATOLIAN HIEROGLYPH A001..ANATOLIAN HIEROGLYPH A530
 16A70..16ABE  ; Exclusion                      # 14.0  [79] TANGSA LETTER OZ..TANGSA LETTER ZA
 16AC0..16AC9  ; Exclusion                      # 14.0  [10] TANGSA DIGIT ZERO..TANGSA DIGIT NINE
@@ -1345,10 +1362,11 @@ A930..A953    ; Exclusion                      # 5.1   [36] REJANG LETTER KA..RE
 1E023..1E024  ; Exclusion                      # 9.0    [2] COMBINING GLAGOLITIC LETTER YU..COMBINING GLAGOLITIC LETTER SMALL YUS
 1E026..1E02A  ; Exclusion                      # 9.0    [5] COMBINING GLAGOLITIC LETTER YO..COMBINING GLAGOLITIC LETTER FITA
 1E290..1E2AE  ; Exclusion                      # 14.0  [31] TOTO LETTER PA..TOTO SIGN RISING TONE
+1E4D0..1E4F9  ; Exclusion                      # 15.0  [42] NAG MUNDARI LETTER O..NAG MUNDARI DIGIT NINE
 1E800..1E8C4  ; Exclusion                      # 7.0  [197] MENDE KIKAKUI SYLLABLE M001 KI..MENDE KIKAKUI SYLLABLE M060 NYON
 1E8D0..1E8D6  ; Exclusion                      # 7.0    [7] MENDE KIKAKUI COMBINING NUMBER TEENS..MENDE KIKAKUI COMBINING NUMBER MILLIONS
 
-# Total code points: 15930
+# Total code points: 16071
 
 #	Identifier_Type:	Exclusion Not_XID
 
@@ -1429,10 +1447,12 @@ A95F          ; Exclusion Not_XID              # 5.1        REJANG SECTION MARK
 11C5A..11C6C  ; Exclusion Not_XID              # 9.0   [19] BHAIKSUKI NUMBER ONE..BHAIKSUKI HUNDREDS UNIT MARK
 11C70..11C71  ; Exclusion Not_XID              # 9.0    [2] MARCHEN HEAD MARK..MARCHEN MARK SHAD
 11EF7..11EF8  ; Exclusion Not_XID              # 11.0   [2] MAKASAR PASSIMBANG..MAKASAR END OF SECTION
+11F43..11F4F  ; Exclusion Not_XID              # 15.0  [13] KAWI DANDA..KAWI PUNCTUATION CLOSING SPIRAL
 12470..12473  ; Exclusion Not_XID              # 5.0    [4] CUNEIFORM PUNCTUATION SIGN OLD ASSYRIAN WORD DIVIDER..CUNEIFORM PUNCTUATION SIGN DIAGONAL TRICOLON
 12474         ; Exclusion Not_XID              # 7.0        CUNEIFORM PUNCTUATION SIGN DIAGONAL QUADCOLON
 12FF1..12FF2  ; Exclusion Not_XID              # 14.0   [2] CYPRO-MINOAN SIGN CM301..CYPRO-MINOAN SIGN CM302
 13430..13438  ; Exclusion Not_XID              # 12.0   [9] EGYPTIAN HIEROGLYPH VERTICAL JOINER..EGYPTIAN HIEROGLYPH END SEGMENT
+13439..1343F  ; Exclusion Not_XID              # 15.0   [7] EGYPTIAN HIEROGLYPH INSERT AT MIDDLE..EGYPTIAN HIEROGLYPH END WALLED ENCLOSURE
 16A6E..16A6F  ; Exclusion Not_XID              # 7.0    [2] MRO DANDA..MRO DOUBLE DANDA
 16AF5         ; Exclusion Not_XID              # 7.0        BASSA VAH FULL STOP
 16B37..16B3F  ; Exclusion Not_XID              # 7.0    [9] PAHAWH HMONG SIGN VOS THOM..PAHAWH HMONG SIGN XYEEM FAIB
@@ -1448,7 +1468,7 @@ A95F          ; Exclusion Not_XID              # 5.1        REJANG SECTION MARK
 1DA85..1DA8B  ; Exclusion Not_XID              # 8.0    [7] SIGNWRITING LOCATION TORSO..SIGNWRITING PARENTHESIS
 1E8C7..1E8CF  ; Exclusion Not_XID              # 7.0    [9] MENDE KIKAKUI DIGIT ONE..MENDE KIKAKUI DIGIT NINE
 
-# Total code points: 1105
+# Total code points: 1125
 
 #	Identifier_Type:	Obsolete
 
@@ -1903,9 +1923,11 @@ FFFD          ; Not_XID                        # 1.1        REPLACEMENT CHARACTE
 101A0         ; Not_XID                        # 7.0        GREEK SYMBOL TAU RHO
 10E60..10E7E  ; Not_XID                        # 5.2   [31] RUMI DIGIT ONE..RUMI FRACTION TWO THIRDS
 111E1..111F4  ; Not_XID                        # 7.0   [20] SINHALA ARCHAIC DIGIT ONE..SINHALA ARCHAIC NUMBER ONE THOUSAND
+11B00..11B09  ; Not_XID                        # 15.0  [10] DEVANAGARI HEAD MARK..DEVANAGARI SIGN MINDU
 11FC0..11FF1  ; Not_XID                        # 12.0  [50] TAMIL FRACTION ONE THREE-HUNDRED-AND-TWENTIETH..TAMIL SIGN VAKAIYARAA
 11FFF         ; Not_XID                        # 12.0       TAMIL PUNCTUATION END OF TEXT
 16FE2         ; Not_XID                        # 12.0       OLD CHINESE HOOK MARK
+1D2C0..1D2D3  ; Not_XID                        # 15.0  [20] KAKTOVIK NUMERAL ZERO..KAKTOVIK NUMERAL NINETEEN
 1D2E0..1D2F3  ; Not_XID                        # 11.0  [20] MAYAN NUMERAL ZERO..MAYAN NUMERAL NINETEEN
 1D360..1D371  ; Not_XID                        # 5.0   [18] COUNTING ROD UNIT DIGIT ONE..COUNTING ROD TENS DIGIT NINE
 1D372..1D378  ; Not_XID                        # 11.0   [7] IDEOGRAPHIC TALLY MARK ONE..TALLY MARK FIVE
@@ -2016,6 +2038,7 @@ FFFD          ; Not_XID                        # 1.1        REPLACEMENT CHARACTE
 1F6D3..1F6D4  ; Not_XID                        # 10.0   [2] STUPA..PAGODA
 1F6D5         ; Not_XID                        # 12.0       HINDU TEMPLE
 1F6D6..1F6D7  ; Not_XID                        # 13.0   [2] HUT..ELEVATOR
+1F6DC         ; Not_XID                        # 15.0       WIRELESS
 1F6DD..1F6DF  ; Not_XID                        # 14.0   [3] PLAYGROUND SLIDE..RING BUOY
 1F6E0..1F6EC  ; Not_XID                        # 7.0   [13] HAMMER AND WRENCH..AIRPLANE ARRIVING
 1F6F0..1F6F3  ; Not_XID                        # 7.0    [4] SATELLITE..PASSENGER SHIP
@@ -2025,8 +2048,11 @@ FFFD          ; Not_XID                        # 1.1        REPLACEMENT CHARACTE
 1F6FA         ; Not_XID                        # 12.0       AUTO RICKSHAW
 1F6FB..1F6FC  ; Not_XID                        # 13.0   [2] PICKUP TRUCK..ROLLER SKATE
 1F700..1F773  ; Not_XID                        # 6.0  [116] ALCHEMICAL SYMBOL FOR QUINTESSENCE..ALCHEMICAL SYMBOL FOR HALF OUNCE
+1F774..1F776  ; Not_XID                        # 15.0   [3] LOT OF FORTUNE..LUNAR ECLIPSE
+1F77B..1F77F  ; Not_XID                        # 15.0   [5] HAUMEA..ORCUS
 1F780..1F7D4  ; Not_XID                        # 7.0   [85] BLACK LEFT-POINTING ISOSCELES RIGHT TRIANGLE..HEAVY TWELVE POINTED PINWHEEL STAR
 1F7D5..1F7D8  ; Not_XID                        # 11.0   [4] CIRCLED TRIANGLE..NEGATIVE CIRCLED SQUARE
+1F7D9         ; Not_XID                        # 15.0       NINE POINTED WHITE STAR
 1F7E0..1F7EB  ; Not_XID                        # 12.0  [12] LARGE ORANGE CIRCLE..LARGE BROWN SQUARE
 1F7F0         ; Not_XID                        # 14.0       HEAVY EQUALS SIGN
 1F800..1F80B  ; Not_XID                        # 7.0   [12] LEFTWARDS ARROW WITH SMALL TRIANGLE ARROWHEAD..DOWNWARDS ARROW WITH LARGE TRIANGLE ARROWHEAD
@@ -2083,25 +2109,34 @@ FFFD          ; Not_XID                        # 1.1        REPLACEMENT CHARACTE
 1FA60..1FA6D  ; Not_XID                        # 11.0  [14] XIANGQI RED GENERAL..XIANGQI BLACK SOLDIER
 1FA70..1FA73  ; Not_XID                        # 12.0   [4] BALLET SHOES..SHORTS
 1FA74         ; Not_XID                        # 13.0       THONG SANDAL
+1FA75..1FA77  ; Not_XID                        # 15.0   [3] LIGHT BLUE HEART..PINK HEART
 1FA78..1FA7A  ; Not_XID                        # 12.0   [3] DROP OF BLOOD..STETHOSCOPE
 1FA7B..1FA7C  ; Not_XID                        # 14.0   [2] X-RAY..CRUTCH
 1FA80..1FA82  ; Not_XID                        # 12.0   [3] YO-YO..PARACHUTE
 1FA83..1FA86  ; Not_XID                        # 13.0   [4] BOOMERANG..NESTING DOLLS
+1FA87..1FA88  ; Not_XID                        # 15.0   [2] MARACAS..FLUTE
 1FA90..1FA95  ; Not_XID                        # 12.0   [6] RINGED PLANET..BANJO
 1FA96..1FAA8  ; Not_XID                        # 13.0  [19] MILITARY HELMET..ROCK
 1FAA9..1FAAC  ; Not_XID                        # 14.0   [4] MIRROR BALL..HAMSA
+1FAAD..1FAAF  ; Not_XID                        # 15.0   [3] FOLDING HAND FAN..KHANDA
 1FAB0..1FAB6  ; Not_XID                        # 13.0   [7] FLY..FEATHER
 1FAB7..1FABA  ; Not_XID                        # 14.0   [4] LOTUS..NEST WITH EGGS
+1FABB..1FABD  ; Not_XID                        # 15.0   [3] HYACINTH..WING
+1FABF         ; Not_XID                        # 15.0       GOOSE
 1FAC0..1FAC2  ; Not_XID                        # 13.0   [3] ANATOMICAL HEART..PEOPLE HUGGING
 1FAC3..1FAC5  ; Not_XID                        # 14.0   [3] PREGNANT MAN..PERSON WITH CROWN
+1FACE..1FACF  ; Not_XID                        # 15.0   [2] MOOSE..DONKEY
 1FAD0..1FAD6  ; Not_XID                        # 13.0   [7] BLUEBERRIES..TEAPOT
 1FAD7..1FAD9  ; Not_XID                        # 14.0   [3] POURING LIQUID..JAR
+1FADA..1FADB  ; Not_XID                        # 15.0   [2] GINGER ROOT..PEA POD
 1FAE0..1FAE7  ; Not_XID                        # 14.0   [8] MELTING FACE..BUBBLES
+1FAE8         ; Not_XID                        # 15.0       SHAKING FACE
 1FAF0..1FAF6  ; Not_XID                        # 14.0   [7] HAND WITH INDEX FINGER AND THUMB CROSSED..HEART HANDS
+1FAF7..1FAF8  ; Not_XID                        # 15.0   [2] LEFTWARDS PUSHING HAND..RIGHTWARDS PUSHING HAND
 1FB00..1FB92  ; Not_XID                        # 13.0 [147] BLOCK SEXTANT-1..UPPER HALF INVERSE MEDIUM SHADE AND LOWER HALF BLOCK
 1FB94..1FBCA  ; Not_XID                        # 13.0  [55] LEFT HALF INVERSE MEDIUM SHADE AND RIGHT HALF BLOCK..WHITE UP-POINTING CHEVRON
 
-# Total code points: 5640
+# Total code points: 5699
 
 #	Identifier_Type:	Not_NFKC
 
@@ -2352,6 +2387,7 @@ FFE8..FFEE    ; Not_NFKC                       # 1.1    [7] HALFWIDTH FORMS LIGH
 1D6A8..1D7C9  ; Not_NFKC                       # 3.1  [290] MATHEMATICAL BOLD CAPITAL ALPHA..MATHEMATICAL SANS-SERIF BOLD ITALIC PI SYMBOL
 1D7CA..1D7CB  ; Not_NFKC                       # 5.0    [2] MATHEMATICAL BOLD CAPITAL DIGAMMA..MATHEMATICAL BOLD SMALL DIGAMMA
 1D7CE..1D7FF  ; Not_NFKC                       # 3.1   [50] MATHEMATICAL BOLD DIGIT ZERO..MATHEMATICAL MONOSPACE DIGIT NINE
+1E030..1E06D  ; Not_NFKC                       # 15.0  [62] MODIFIER LETTER CYRILLIC SMALL A..MODIFIER LETTER CYRILLIC SMALL STRAIGHT U WITH STROKE
 1EE00..1EE03  ; Not_NFKC                       # 6.1    [4] ARABIC MATHEMATICAL ALEF..ARABIC MATHEMATICAL DAL
 1EE05..1EE1F  ; Not_NFKC                       # 6.1   [27] ARABIC MATHEMATICAL WAW..ARABIC MATHEMATICAL DOTLESS QAF
 1EE21..1EE22  ; Not_NFKC                       # 6.1    [2] ARABIC MATHEMATICAL INITIAL BEH..ARABIC MATHEMATICAL INITIAL JEEM
@@ -2413,7 +2449,7 @@ FFE8..FFEE    ; Not_NFKC                       # 1.1    [7] HALFWIDTH FORMS LIGH
 1FBF0..1FBF9  ; Not_NFKC                       # 13.0  [10] SEGMENTED DIGIT ZERO..SEGMENTED DIGIT NINE
 2F800..2FA1D  ; Not_NFKC                       # 3.1  [542] CJK COMPATIBILITY IDEOGRAPH-2F800..CJK COMPATIBILITY IDEOGRAPH-2FA1D
 
-# Total code points: 4859
+# Total code points: 4921
 
 #	Identifier_Type:	Default_Ignorable
 
@@ -2425,8 +2461,7 @@ FFE8..FFEE    ; Not_NFKC                       # 1.1    [7] HALFWIDTH FORMS LIGH
 180B..180D    ; Default_Ignorable              # 3.0    [3] MONGOLIAN FREE VARIATION SELECTOR ONE..MONGOLIAN FREE VARIATION SELECTOR THREE
 180E          ; Default_Ignorable              # 3.0        MONGOLIAN VOWEL SEPARATOR
 180F          ; Default_Ignorable              # 14.0       MONGOLIAN FREE VARIATION SELECTOR FOUR
-200B          ; Default_Ignorable              # 1.1        ZERO WIDTH SPACE
-200E..200F    ; Default_Ignorable              # 1.1    [2] LEFT-TO-RIGHT MARK..RIGHT-TO-LEFT MARK
+200B..200F    ; Default_Ignorable              # 1.1    [5] ZERO WIDTH SPACE..RIGHT-TO-LEFT MARK
 202A..202E    ; Default_Ignorable              # 1.1    [5] LEFT-TO-RIGHT EMBEDDING..RIGHT-TO-LEFT OVERRIDE
 2060..2063    ; Default_Ignorable              # 3.2    [4] WORD JOINER..INVISIBLE SEPARATOR
 2064          ; Default_Ignorable              # 5.1        INVISIBLE PLUS
@@ -2440,7 +2475,7 @@ FFA0          ; Default_Ignorable              # 1.1        HALFWIDTH HANGUL FIL
 E0020..E007F  ; Default_Ignorable              # 3.1   [96] TAG SPACE..CANCEL TAG
 E0100..E01EF  ; Default_Ignorable              # 4.0  [240] VARIATION SELECTOR-17..VARIATION SELECTOR-256
 
-# Total code points: 396
+# Total code points: 398
 
 #	Identifier_Type:	Deprecated
 
