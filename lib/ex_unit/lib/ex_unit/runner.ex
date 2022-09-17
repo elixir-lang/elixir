@@ -351,7 +351,6 @@ defmodule ExUnit.Runner do
   defp run_test(config, %{tags: tags} = test, context) do
     EM.test_started(config.manager, test)
 
-    context = maybe_create_tmp_dir(test, context, tags)
     capture_log = Map.get(tags, :capture_log, config.capture_log)
     test = run_test_with_capture_log(capture_log, config, test, context)
 
@@ -461,6 +460,8 @@ defmodule ExUnit.Runner do
 
       {time, test} =
         :timer.tc(fn ->
+          context = maybe_create_tmp_dir(test, context, test.tags)
+
           case exec_test_setup(test, Map.merge(test.tags, context)) do
             {:ok, context} -> exec_test(test, context)
             {:error, test} -> test
