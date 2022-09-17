@@ -353,7 +353,7 @@ defmodule ExUnit.Runner do
 
     context = maybe_create_tmp_dir(test, context, tags)
     capture_log = Map.get(tags, :capture_log, config.capture_log)
-    test = run_test_with_capture_log(capture_log, config, test, Map.merge(tags, context))
+    test = run_test_with_capture_log(capture_log, config, test, context)
 
     case process_max_failures(config, test) do
       :no ->
@@ -461,8 +461,8 @@ defmodule ExUnit.Runner do
 
       {time, test} =
         :timer.tc(fn ->
-          case exec_test_setup(test, context) do
-            {:ok, test} -> exec_test(test)
+          case exec_test_setup(test, Map.merge(test.tags, context)) do
+            {:ok, context} -> exec_test(test, context)
             {:error, test} -> test
           end
         end)
@@ -502,13 +502,13 @@ defmodule ExUnit.Runner do
   end
 
   defp exec_test_setup(%ExUnit.Test{module: module} = test, context) do
-    {:ok, %{test | tags: module.__ex_unit__(:setup, context)}}
+    {:ok, module.__ex_unit__(:setup, context)}
   catch
     kind, error ->
       {:error, %{test | state: failed(kind, error, prune_stacktrace(__STACKTRACE__))}}
   end
 
-  defp exec_test(%ExUnit.Test{module: module, name: name, tags: context} = test) do
+  defp exec_test(%ExUnit.Test{module: module, name: name} = test, context) do
     apply(module, name, [context])
     test
   catch
