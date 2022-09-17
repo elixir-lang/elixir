@@ -47,7 +47,7 @@ For the technical details, see the next sections that cover the technical Unicod
 
 ## Unicode Annex #31
 
-Elixir implements the requirements outlined in the [Unicode Annex #31](https://unicode.org/reports/tr31/).
+Elixir implements the requirements outlined in the [Unicode Annex #31](https://unicode.org/reports/tr31/), version 15.0.
 
 ### R1. Default Identifiers
 
@@ -55,13 +55,13 @@ The general Elixir identifier rule is specified as:
 
     <Identifier> := <Start> <Continue>* <Ending>?
 
-where `<Start>` uses the same categories as the spec but restricts them to the NFC form (see R6):
+where `<Start>` uses the same categories as the spec but normalizes them to the NFC form (see R4):
 
 > characters derived from the Unicode General Category of uppercase letters, lowercase letters, titlecase letters, modifier letters, other letters, letter numbers, plus `Other_ID_Start`, minus `Pattern_Syntax` and `Pattern_White_Space` code points
 >
 > In set notation: `[\p{L}\p{Nl}\p{Other_ID_Start}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`.
 
-and `<Continue>` uses the same categories as the spec but restricts them to the NFC form (see R6):
+and `<Continue>` uses the same categories as the spec but normalizes them to the NFC form (see R4):
 
 > ID_Start characters, plus characters having the Unicode General Category of nonspacing marks, spacing combining marks, decimal number, connector punctuation, plus `Other_ID_Continue`, minus `Pattern_Syntax` and `Pattern_White_Space` code points.
 >
@@ -71,7 +71,7 @@ and `<Continue>` uses the same categories as the spec but restricts them to the 
 
 The spec also provides a `<Medial>` set, but Elixir does not include any character on this set. Therefore, the identifier rule has been simplified to consider this.
 
-Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. R1b is guaranteed for backwards compatibility purposes.
+Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. Bidirectional control charactes are also not supported. R1b is guaranteed for backwards compatibility purposes.
 
 #### Atoms
 
@@ -91,23 +91,27 @@ Variables in Elixir follow the identifier rule above with the following modifica
 
 In set notation: `[\u{005F}\p{Ll}\p{Lm}\p{Lo}\p{Nl}\p{Other_ID_Start}-\p{Pattern_Syntax}-\p{Pattern_White_Space}]`.
 
+#### Aliases
+
+Aliases in Elixir only allow ASCII characters, starting in uppercase, and no punctuation characters.
+
 ### R3. Pattern_White_Space and Pattern_Syntax Characters
 
 Elixir supports only code points `\t` (0009), `\n` (000A), `\r` (000D) and `\s` (0020) as whitespace and therefore does not follow requirement R3. R3 requires a wider variety of whitespace and syntax characters to be supported.
 
-### R6. Filtered Normalized Identifiers
+### R4. Equivalent Normalized Identifiers
 
 Identifiers in Elixir are case sensitive.
 
-Elixir requires all atoms and variables to be in NFC form. If another form is given, NFC is automatically applied. Quoted-atoms and strings can, however, be in any form and are not verified by the parser.
+Elixir normalizes all atoms and variables to NFC form. Quoted-atoms and strings can, however, be in any form and are not verified by the parser.
 
 In other words, the atom `:josé` can only be written with the code points `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301`, but Elixir will rewrite it to the former (from Elixir 1.14). On the other hand, `:"josé"` may be written as `006A 006F 0073 00E9` or `006A 006F 0073 0065 0301` and its form will be retained, since it is written between quotes.
 
-Choosing requirement R6 automatically excludes requirements R4, R5 and R7.
+Choosing requirement R4 automatically excludes requirements R5, R6, and R7.
 
 ## Unicode Technical Standard #39
 
-Elixir conforms to the clauses outlined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security.
+Elixir conforms to the clauses outlined in the [Unicode Technical Standard #39](https://unicode.org/reports/tr39/) on Security, version 15.0.
 
 ### C1. General Security Profile for Identifiers
 
