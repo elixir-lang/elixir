@@ -47,6 +47,8 @@ echo   --name NAME                  Makes and assigns a name to the distributed 
 echo   --rpc-eval NODE "COMMAND"    Evaluates the given command on the given remote node (*)
 echo   --sname NAME                 Makes and assigns a short name to the distributed node
 echo.
+echo --name and --sname may be set to undefined so one is automatically generated.
+echo.
 echo ## Release options
 echo.
 echo The following options are generally used under releases.
