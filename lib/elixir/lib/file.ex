@@ -1002,23 +1002,36 @@ defmodule File do
     acc
   end
 
-  defp copy_file_mode!(src, dest) do
-    write_stat!(dest, %{stat!(dest) | mode: stat!(src).mode})
+  defp copy_file_mode(src, dest) do
+    with {:ok, dest_fileinfo} <- stat(dest),
+         {:ok, src_fileinfo} <- stat(src) do
+      write_stat(dest, %{dest_fileinfo | mode: src_fileinfo.mode})
+    end
   end
 
   # Both src and dest are files.
   defp do_cp_file(src, dest, on_conflict, acc) do
     case :file.copy(src, {dest, [:exclusive]}) do
       {:ok, _} ->
-        copy_file_mode!(src, dest)
-        [dest | acc]
+        case copy_file_mode(src, dest) do
+          :ok ->
+            [dest | acc]
+
+          {:error, reason} ->
+            {:error, reason, src}
+        end
 
       {:error, :eexist} ->
         if path_differs?(src, dest) and on_conflict.(src, dest) do
           case copy(src, dest) do
             {:ok, _} ->
-              copy_file_mode!(src, dest)
-              [dest | acc]
+              case copy_file_mode(src, dest) do
+                :ok ->
+                  [dest | acc]
+
+                {:error, reason} ->
+                  {:error, reason, src}
+              end
 
             {:error, reason} ->
               {:error, reason, src}
