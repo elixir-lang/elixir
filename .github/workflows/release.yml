@@ -10,10 +10,11 @@ env:
   ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
 
+permissions:
+  contents: write
+
 jobs:
   create_draft_release:
-    permissions:
-      contents: write
     runs-on: ubuntu-20.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
