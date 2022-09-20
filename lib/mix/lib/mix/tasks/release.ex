@@ -624,9 +624,7 @@ defmodule Mix.Tasks.Release do
 
   If a `config/runtime.exs` exists, it will be copied to your release
   and executed early in the boot process, when only Elixir and Erlang's
-  main applications have been started. Once the configuration is loaded,
-  the Erlang system will be restarted (within the same Operating System
-  process) and the new configuration will take place.
+  main applications have been started.
 
   You can change the path to the runtime configuration file by setting
   `:runtime_config_path` inside each release configuration. This path is
@@ -641,14 +639,6 @@ defmodule Mix.Tasks.Release do
 
   By setting `:runtime_config_path` to `false` it can be used to prevent
   a runtime configuration file to be included in the release.
-
-  Finally, in order for runtime configuration to work properly (as well
-  as any other "Config provider" as defined next), it needs to be able
-  to persist the newly computed configuration to disk. The computed config
-  file will be written to "tmp" directory inside the release every time
-  the system boots. You can configure the "tmp" directory by setting the
-  `RELEASE_TMP` environment variable, either explicitly or inside your
-  `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
 
   ### Config providers
 
@@ -667,6 +657,10 @@ defmodule Mix.Tasks.Release do
       You can set this option to `false` to disable the rebooting for applications
       that are sensitive to boot time but, in doing so, note you won't be able
       to configure system applications, such as `:kernel` and `:stdlib`.
+      When set to `true` the computed config file will be written to the "tmp"
+      directory inside the release every time the system boots. You can configure
+      the "tmp" directory by setting the `RELEASE_TMP` environment variable, either
+      explicitly or inside your `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
       Defaults to `true` if using the deprecated `config/releases.exs`,
       `false` otherwise.
 
