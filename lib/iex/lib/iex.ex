@@ -783,7 +783,7 @@ defmodule IEx do
   a breakpoint directly from your IEx shell. But you can set up a break
   from anywhere by using the fully qualified name `IEx.break!`.
 
-  The following sets up a breakpoint on `URI.parse/2`:
+  The following sets up a breakpoint on `URI.parse/1`:
 
       break! URI, :parse, 1
 
