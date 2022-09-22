@@ -166,12 +166,12 @@ defmodule ExUnit.DocTest do
   end
 
   @doc """
-  This macro is used to generate ExUnit test cases for doctests.
+  Generate test cases from module documentation.
 
   Calling `doctest(Module)` will generate tests for all doctests found
   in the `module`.
 
-  Options can also be given:
+  ## Options
 
     * `:except` - generates tests for all functions except those listed
       (list of `{function, arity}` tuples, and/or `:moduledoc`).
@@ -188,7 +188,10 @@ defmodule ExUnit.DocTest do
 
   ## Examples
 
-      doctest MyModule, except: [:moduledoc, trick_fun: 1]
+      defmodule MyModuleTest do
+        use ExUnit.Case
+        doctest MyModule, except: [:moduledoc, trick_fun: 1]
+      end
 
   This macro is auto-imported with every `ExUnit.Case`.
   """
@@ -219,6 +222,65 @@ defmodule ExUnit.DocTest do
     [require, tests]
   end
 
+  @doc """
+  Generate test cases from a markdown file.
+
+  ## Options
+
+    * `:tags` - a list of tags to apply to all generated doctests.
+
+  ## Examples
+
+      defmodule ReadmeTest do
+        use ExUnit.Case
+        doctest_file "README.md"
+      end
+
+  This macro is auto-imported with every `ExUnit.Case`.
+  """
+  @doc since: "1.15.0"
+  defmacro doctest_file(file, opts \\ []) do
+    tests =
+      quote bind_quoted: [file: file, opts: opts] do
+        env = __ENV__
+
+        if tags = Keyword.get(opts, :tags) do
+          @tag tags
+        end
+
+        for {name, test} <- ExUnit.DocTest.__doctest_file__(file, env.module) do
+          doc =
+            ExUnit.Case.register_test(
+              env.module,
+              env.file,
+              env.line,
+              :doctest,
+              name,
+              []
+            )
+
+          def unquote(doc)(_), do: unquote(test)
+        end
+      end
+
+    tests
+  end
+
+  @doc false
+  def __doctest_file__(file, module) do
+    doc = File.read!(file)
+    file = Path.relative_to_cwd(file)
+
+    for test <- extract_tests(1, doc, module) do
+      normalize_test(test, :moduledoc)
+    end
+    |> Stream.with_index()
+    |> Enum.map(fn {test, acc} ->
+      test = Map.put(test, :doctest_file, file)
+      compile_test(test, module, false, acc + 1, file)
+    end)
+  end
+
   @doc false
   def __file__(module) do
     source =
@@ -231,12 +293,13 @@ defmodule ExUnit.DocTest do
   @doc false
   def __doctests__(module, opts) do
     do_import = Keyword.get(opts, :import, false)
+    file = module.module_info(:compile)[:source] |> Path.relative_to_cwd()
 
     extract(module)
     |> filter_by_opts(module, opts)
     |> Stream.with_index()
     |> Enum.map(fn {test, acc} ->
-      compile_test(test, module, do_import, acc + 1)
+      compile_test(test, module, do_import, acc + 1, file)
     end)
   end
 
@@ -287,8 +350,12 @@ defmodule ExUnit.DocTest do
 
   ## Compilation of extracted tests
 
-  defp compile_test(test, module, do_import, n) do
-    {test_name(test, module, n), test_content(test, module, do_import)}
+  defp compile_test(test, module, do_import, n, file) do
+    {test_name(test, module, n), test_content(test, module, do_import, file)}
+  end
+
+  defp test_name(%{doctest_file: file}, _, n) do
+    "#{file} (#{n})"
   end
 
   defp test_name(%{fun_arity: :moduledoc}, m, n) do
@@ -299,9 +366,8 @@ defmodule ExUnit.DocTest do
     "#{inspect(m)}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(%{exprs: exprs, line: line}, module, do_import) do
-    file = module.module_info(:compile)[:source] |> Path.relative_to_cwd()
-    location = [line: line, file: file]
+  defp test_content(%{exprs: exprs, line: line}, module, do_import, file) do
+    location = [line: line, file: Path.relative_to_cwd(file)]
     stack = Macro.escape([{module, :__MODULE__, 0, location}])
 
     if multiple_exceptions?(exprs) do
