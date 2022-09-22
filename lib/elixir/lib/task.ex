@@ -840,6 +840,7 @@ defmodule Task do
   results, use `Task.Supervisor.start_child/2` instead.
   """
   @doc since: "1.13.0"
+  @spec ignore(t) :: {:ok, term} | {:exit, term} | nil
   def ignore(%Task{ref: ref, pid: pid, owner: owner} = task) do
     if owner != self() do
       raise ArgumentError, invalid_owner_error(task)
@@ -908,15 +909,13 @@ defmodule Task do
   @spec await_many([t], timeout) :: [term]
   def await_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
     awaiting =
-      for task <- tasks, into: %{} do
-        %Task{ref: ref, owner: owner} = task
-
+      Map.new(tasks, fn %Task{ref: ref, owner: owner} = task ->
         if owner != self() do
           raise ArgumentError, invalid_owner_error(task)
         end
 
         {ref, true}
-      end
+      end)
 
     timeout_ref = make_ref()
 
@@ -949,7 +948,7 @@ defmodule Task do
         exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
 
       {ref, reply} when is_map_key(awaiting, ref) ->
-        Process.demonitor(ref, [:flush])
+        demonitor(ref)
 
         await_many(
           tasks,
@@ -1083,9 +1082,6 @@ defmodule Task do
     * `{:exit, reason}` if the task has died
     * `nil` if the task keeps running past the timeout
 
-  A timeout, in milliseconds or `:infinity`, can be given with a default value
-  of `5000`.
-
   Check `yield/2` for more information.
 
   ## Example
@@ -1106,7 +1102,7 @@ defmodule Task do
           end)
         end
 
-      tasks_with_results = Task.yield_many(tasks, 5000)
+      tasks_with_results = Task.yield_many(tasks, timeout: 5000)
 
       results =
         Enum.map(tasks_with_results, fn {task, res} ->
@@ -1126,9 +1122,49 @@ defmodule Task do
   printed, as those were the tasks that have replied in the
   given time. All other tasks will have been shut down using
   the `Task.shutdown/2` call.
+
+  As a convenience, you can achieve a similar behaviour to above
+  by specifying the `:on_timeout` option to be `:kill_task` (or
+  `:ignore`). See `Task.await_many/2` if you would rather exit
+  the caller process on timeout.
+
+  ## Options
+
+  The second argument is either a timeout or options, which defaults
+  to this:
+
+    * `:timeout` - the maximum amount of time (in milliseconds or `:infinity`)
+      each task is allowed to execute for. Defaults to `5000`.
+
+    * `:on_timeout` - what to do when a task times out. The possible
+      values are:
+      * `:nothing` - do nothing (default). The tasks can still be
+        awaited on, yielded on, ignored, or shut down later.
+      * `:ignore` - the results of the task will be ignored.
+      * `:kill_task` - the task that timed out is killed.
   """
   @spec yield_many([t], timeout) :: [{t, {:ok, term} | {:exit, term} | nil}]
-  def yield_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
+  @spec yield_many([t], timeout: timeout, on_timeout: :nothing | :ignore | :kill_task) ::
+          [{t, {:ok, term} | {:exit, term} | nil}]
+  def yield_many(tasks, opts \\ [])
+
+  def yield_many(tasks, timeout) when is_timeout(timeout) do
+    yield_many(tasks, timeout: timeout)
+  end
+
+  def yield_many(tasks, opts) when is_list(opts) do
+    on_timeout = Keyword.get(opts, :on_timeout, :nothing)
+    timeout = Keyword.get(opts, :timeout, 5_000)
+
+    refs =
+      Map.new(tasks, fn %Task{ref: ref, owner: owner} = task ->
+        if owner != self() do
+          raise ArgumentError, invalid_owner_error(task)
+        end
+
+        {ref, nil}
+      end)
+
     timeout_ref = make_ref()
 
     timer_ref =
@@ -1137,42 +1173,49 @@ defmodule Task do
       end
 
     try do
-      yield_many(tasks, timeout_ref, :infinity)
+      yield_many(map_size(refs), refs, timeout_ref, timer_ref)
     catch
       {:noconnection, reason} ->
         exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
-    after
-      timer_ref && Process.cancel_timer(timer_ref)
-      receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
+    else
+      refs ->
+        for task <- tasks do
+          value =
+            with nil <- Map.fetch!(refs, task.ref) do
+              case on_timeout do
+                :nothing -> nil
+                :kill_task -> shutdown(task, :brutal_kill)
+                :ignore -> ignore(task)
+              end
+            end
+
+          {task, value}
+        end
     end
   end
 
-  defp yield_many([%Task{ref: ref, owner: owner} = task | rest], timeout_ref, timeout) do
-    if owner != self() do
-      raise ArgumentError, invalid_owner_error(task)
-    end
+  defp yield_many(0, refs, timeout_ref, timer_ref) do
+    timer_ref && Process.cancel_timer(timer_ref)
+    receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
+    refs
+  end
 
+  defp yield_many(limit, refs, timeout_ref, timer_ref) do
     receive do
-      {^ref, reply} ->
+      {ref, reply} when is_map_key(refs, ref) ->
         demonitor(ref)
-        [{task, {:ok, reply}} | yield_many(rest, timeout_ref, timeout)]
+        yield_many(limit - 1, %{refs | ref => {:ok, reply}}, timeout_ref, timer_ref)
 
-      {:DOWN, ^ref, _, proc, :noconnection} ->
-        throw({:noconnection, reason(:noconnection, proc)})
-
-      {:DOWN, ^ref, _, _, reason} ->
-        [{task, {:exit, reason}} | yield_many(rest, timeout_ref, timeout)]
+      {:DOWN, ref, _, proc, reason} when is_map_key(refs, ref) ->
+        if reason == :noconnection do
+          throw({:noconnection, reason(:noconnection, proc)})
+        else
+          yield_many(limit - 1, %{refs | ref => {:exit, reason}}, timeout_ref, timer_ref)
+        end
 
       ^timeout_ref ->
-        [{task, nil} | yield_many(rest, timeout_ref, 0)]
-    after
-      timeout ->
-        [{task, nil} | yield_many(rest, timeout_ref, 0)]
+        refs
     end
-  end
-
-  defp yield_many([], _timeout_ref, _timeout) do
-    []
   end
 
   @doc """
