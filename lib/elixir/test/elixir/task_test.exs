@@ -537,9 +537,34 @@ defmodule TaskTest do
       refute_received {:DOWN, _, _, _, _}
     end
 
-    test "returns nil on timeout" do
+    test "returns nil on timeout by default" do
       task = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       assert Task.yield_many([task], 0) == [{task, nil}]
+    end
+
+    test "shuts down on timeout when configured" do
+      Process.flag(:trap_exit, true)
+      task = Task.async(fn -> Process.sleep(:infinity) end)
+      assert Task.yield_many([task], timeout: 0, on_timeout: :kill_task) == [{task, nil}]
+      refute Process.alive?(task.pid)
+    end
+
+    test "ignores on timeout when configured" do
+      task =
+        Task.async(fn ->
+          receive do
+            :done -> :ok
+          end
+        end)
+
+      assert Task.yield_many([task], timeout: 0, on_timeout: :ignore) == [{task, nil}]
+      assert Process.alive?(task.pid)
+
+      ref = Process.monitor(task.pid)
+      send(task.pid, :done)
+      assert_receive {:DOWN, ^ref, _, _, _}
+
+      assert Task.yield(task, 0) == nil
     end
 
     test "return exit on normal exit" do
