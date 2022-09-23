@@ -357,6 +357,25 @@ defmodule Module.Types.TypesTest do
                  foo - :bar
              """
     end
+
+    test "rewrite call" do
+      string = warning([foo], [is_map_key(1, foo)], foo)
+
+      assert string == """
+             expected Kernel.is_map_key/2 to have signature:
+
+                 integer(), var1 -> dynamic()
+
+             but it has signature:
+
+                 %{optional(dynamic()) => dynamic()}, dynamic() -> dynamic()
+
+             in expression:
+
+                 # types_test.ex:1
+                 is_map_key(1, foo)
+             """
+    end
   end
 
   describe "map warnings" do

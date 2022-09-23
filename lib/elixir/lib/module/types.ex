@@ -211,17 +211,21 @@ defmodule Module.Types do
   ## FORMAT WARNINGS
 
   def format_warning({:unable_apply, mfa, args, expected, signature, {location, expr, traces}}) do
-    {module, function, arity} = mfa
-    mfa_args = Macro.generate_arguments(arity, __MODULE__)
-    {module, function, ^arity} = call_to_mfa(erl_to_ex(module, function, mfa_args, []))
+    {original_module, original_function, arity} = mfa
+    {_, _, args} = mfa_or_fa = erl_to_ex(original_module, original_function, args, [])
+    {module, function, ^arity} = call_to_mfa(mfa_or_fa)
     format_mfa = Exception.format_mfa(module, function, arity)
     {traces, [] = _hints} = format_traces(traces, [], false)
 
     clauses =
-      Enum.map(
-        signature,
-        &String.slice(IO.iodata_to_binary(Unify.format_type({:fun, [&1]}, false)), 1..-2)
-      )
+      Enum.map(signature, fn {ins, out} ->
+        {_, _, ins} = erl_to_ex(original_module, original_function, ins, [])
+
+        {:fun, [{ins, out}]}
+        |> Unify.format_type(false)
+        |> IO.iodata_to_binary()
+        |> binary_slice(1..-2//1)
+      end)
 
     [
       "expected #{format_mfa} to have signature:\n\n    ",
