@@ -226,7 +226,6 @@ defmodule Module.Types.PatternTest do
 
       assert quoted_pattern(x = y = 123) == {:ok, :integer}
       assert quoted_pattern(x = 123 = y) == {:ok, :integer}
-      assert quoted_pattern(123 = x = y) == {:ok, :integer}
 
       assert {:error, {:unable_unify, {{:tuple, 1, [var: 0]}, {:var, 0}, _}}} =
                quoted_pattern({x} = x)
@@ -300,15 +299,6 @@ defmodule Module.Types.PatternTest do
 
       assert quoted_head([x], [is_atom(x) > :foo]) == {:ok, [var: 0]}
 
-      assert quoted_head([x, x = y, y = z], [is_atom(x)]) ==
-               {:ok, [:atom, :atom, :atom]}
-
-      assert quoted_head([x = y, y, y = z], [is_atom(y)]) ==
-               {:ok, [:atom, :atom, :atom]}
-
-      assert quoted_head([x = y, y = z, z], [is_atom(z)]) ==
-               {:ok, [:atom, :atom, :atom]}
-
       assert quoted_head([x, y], [is_atom(x) or is_integer(y)]) ==
                {:ok, [{:var, 0}, {:var, 1}]}
 
@@ -323,15 +313,6 @@ defmodule Module.Types.PatternTest do
 
       assert quoted_head([x, y], [is_atom(y) or is_integer(y)]) ==
                {:ok, [{:var, 0}, {:union, [:atom, :integer]}]}
-
-      assert quoted_head([x = y], [is_atom(y) or is_integer(y)]) ==
-               {:ok, [{:union, [:atom, :integer]}]}
-
-      assert quoted_head([x = y], [is_atom(x) or is_integer(x)]) ==
-               {:ok, [{:union, [:atom, :integer]}]}
-
-      assert quoted_head([x = y], [is_atom(x) or is_integer(x)]) ==
-               {:ok, [{:union, [:atom, :integer]}]}
 
       assert quoted_head([x], [true == false or is_integer(x)]) ==
                {:ok, [var: 0]}
