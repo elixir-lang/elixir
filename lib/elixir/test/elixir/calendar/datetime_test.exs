@@ -958,6 +958,15 @@ defmodule DateTimeTest do
   end
 
   describe "add" do
+    test "add with invalid time unit" do
+      dt = DateTime.utc_now()
+
+      message =
+        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
+
+      assert_raise ArgumentError, message, fn -> DateTime.add(dt, 1, "day") end
+    end
+
     test "add with non-struct map that conforms to Calendar.datetime" do
       dt_map = DateTime.from_naive!(~N[2018-08-28 00:00:00], "Etc/UTC") |> Map.from_struct()
 
