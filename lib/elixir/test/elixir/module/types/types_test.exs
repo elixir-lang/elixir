@@ -187,36 +187,6 @@ defmodule Module.Types.TypesTest do
              """
     end
 
-    test "warns on guards with multiple variables" do
-      string = warning([x = y], [is_integer(x) and is_binary(y)], {x, y})
-
-      assert string == """
-             incompatible types:
-
-                 integer() !~ binary()
-
-             in expression:
-
-                 # types_test.ex:1
-                 is_binary(y)
-
-             where "x" was given the same type as "y" in:
-
-                 # types_test.ex:1
-                 x = y
-
-             where "y" was given the type integer() in:
-
-                 # types_test.ex:1
-                 is_integer(x)
-
-             where "y" was given the type binary() in:
-
-                 # types_test.ex:1
-                 is_binary(y)
-             """
-    end
-
     test "warns on guards from cases unless generated" do
       string =
         warning(
@@ -241,36 +211,6 @@ defmodule Module.Types.TypesTest do
         )
 
       assert string == :none
-    end
-
-    test "only show relevant traces in warning" do
-      string = warning([x = y, z], [is_integer(x) and is_binary(y) and is_boolean(z)], {x, y, z})
-
-      assert string == """
-             incompatible types:
-
-                 integer() !~ binary()
-
-             in expression:
-
-                 # types_test.ex:1
-                 is_binary(y)
-
-             where "x" was given the same type as "y" in:
-
-                 # types_test.ex:1
-                 x = y
-
-             where "y" was given the type integer() in:
-
-                 # types_test.ex:1
-                 is_integer(x)
-
-             where "y" was given the type binary() in:
-
-                 # types_test.ex:1
-                 is_binary(y)
-             """
     end
 
     test "check body" do
