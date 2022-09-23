@@ -1530,7 +1530,7 @@ defmodule DateTime do
     } = datetime
 
     if not is_integer(unit) and
-         unit not in ~w(day hour minute second millisecond microsecond nanosecond)a do
+         unit not in ~w(second millisecond microsecond nanosecond)a do
       raise ArgumentError,
             "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
