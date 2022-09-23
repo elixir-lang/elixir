@@ -1529,6 +1529,12 @@ defmodule DateTime do
       microsecond: {_, precision}
     } = datetime
 
+    if not is_integer(unit) and
+         unit not in ~w(day hour minute second millisecond microsecond nanosecond)a do
+      raise ArgumentError,
+            "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
+    end
+
     ppd = System.convert_time_unit(86400, :second, unit)
     total_offset = System.convert_time_unit(utc_offset + std_offset, :second, unit)
 
