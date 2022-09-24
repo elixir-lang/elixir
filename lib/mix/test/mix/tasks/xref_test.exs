@@ -504,9 +504,9 @@ defmodule Mix.Tasks.XrefTest do
     end
 
     @abc_linear_files %{
-      "lib/a.ex" => "defmodule A, do: def a, do: B.b()",
-      "lib/b.ex" => "defmodule B, do: def b, do: C.c()",
-      "lib/c.ex" => "defmodule C, do: def c, do: true"
+      "lib/a.ex" => "defmodule A, do: def(a, do: B.b())",
+      "lib/b.ex" => "defmodule B, do: def(b, do: C.c())",
+      "lib/c.ex" => "defmodule C, do: def(c, do: true)"
     }
 
     test "exclude one from linear case" do
