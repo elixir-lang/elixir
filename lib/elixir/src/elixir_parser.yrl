@@ -497,6 +497,9 @@ call_args_no_parens_all -> call_args_no_parens_many : '$1'.
 call_args_no_parens_one -> call_args_no_parens_kw : ['$1'].
 call_args_no_parens_one -> matched_expr : ['$1'].
 
+%% This is the only no parens ambiguity where we don't
+%% raise nor warn: "parent_call nested_call 1, 2, 3"
+%% always assumes that all arguments are nested.
 call_args_no_parens_ambig -> no_parens_expr : ['$1'].
 
 call_args_no_parens_many -> matched_expr ',' call_args_no_parens_kw : ['$1', '$3'].
@@ -564,7 +567,7 @@ kw_data -> kw_base ',' : reverse('$1').
 kw_data -> kw_base ',' matched_expr : maybe_bad_keyword_data_follow_up('$2', '$1', '$3').
 
 call_args_no_parens_kw_expr -> kw_eol matched_expr : {'$1', '$2'}.
-call_args_no_parens_kw_expr -> kw_eol no_parens_expr : {'$1', '$2'}.
+call_args_no_parens_kw_expr -> kw_eol no_parens_expr : warn_nested_no_parens_keyword('$1', '$2'), {'$1', '$2'}.
 
 call_args_no_parens_kw -> call_args_no_parens_kw_expr : ['$1'].
 call_args_no_parens_kw -> call_args_no_parens_kw_expr ',' call_args_no_parens_kw : ['$1' | '$3'].
@@ -1145,13 +1148,13 @@ error_no_parens_many_strict(Node) ->
     "unexpected comma. Parentheses are required to solve ambiguity in nested calls.\n\n"
     "This error happens when you have nested function calls without parentheses. "
     "For example:\n\n"
-    "    one a, two b, c, d\n\n"
+    "    parent_call a, nested_call b, c, d\n\n"
     "In the example above, we don't know if the parameters \"c\" and \"d\" apply "
-    "to the function \"one\" or \"two\". You can solve this by explicitly adding "
-    "parentheses:\n\n"
-    "    one a, two(b, c, d)\n\n"
+    "to the function \"parent_call\" or \"nested_call\". You can solve this by "
+    "explicitly adding parentheses:\n\n"
+    "    parent_call a, nested_call(b, c, d)\n\n"
     "Or by adding commas (in case a nested call is not intended):\n\n"
-    "    one, a, two, b, c, d\n\n"
+    "    parent_call a, nested_call, b, c, d\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
 error_no_parens_container_strict(Node) ->
@@ -1160,11 +1163,11 @@ error_no_parens_container_strict(Node) ->
     "This error may happen when you forget a comma in a list or other container:\n\n"
     "    [a, b c, d]\n\n"
     "Or when you have ambiguous calls:\n\n"
-    "    [one, two three, four, five]\n\n"
-    "In the example above, we don't know if the parameters \"four\" and \"five\" "
-    "belongs to the list or the function \"two\". You can solve this by explicitly "
+    "    [function a, b, c]\n\n"
+    "In the example above, we don't know if the values \"b\" and \"c\" "
+    "belongs to the list or the function \"function\". You can solve this by explicitly "
     "adding parentheses:\n\n"
-    "    [one, two(three, four), five]\n\n"
+    "    [one, function(a, b, c)]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
 
 error_invalid_kw_identifier({_, Location, do}) ->
@@ -1175,16 +1178,6 @@ error_invalid_kw_identifier({_, Location, KW}) ->
 %% TODO: Make this an error on v2.0
 warn_trailing_comma({',', {Line, Column, _}}) ->
   warn({Line, Column}, "trailing commas are not allowed inside function/macro call arguments").
-
-%% TODO: Make this an error on v2.0
-warn_empty_paren({_, {Line, Column, _}}) ->
-  warn(
-    {Line, Column},
-    "invalid expression (). "
-    "If you want to invoke or define a function, make sure there are "
-    "no spaces between the function name and its arguments. If you wanted "
-    "to pass an empty block or code, pass a value instead, such as a nil or an atom"
-  ).
 
 %% TODO: Make this an error on v2.0
 warn_pipe({arrow_op, {Line, Column, _}, Op}, {_, [_ | _], [_ | _]}) ->
@@ -1201,6 +1194,35 @@ warn_pipe({arrow_op, {Line, Column, _}, Op}, {_, [_ | _], [_ | _]}) ->
   );
 warn_pipe(_Token, _) ->
   ok.
+
+%% TODO: Make this an error on v2.0
+warn_nested_no_parens_keyword(Key, Value) ->
+  {line, Line} = lists:keyfind(line, 1, ?meta(Value)),
+  warn(
+    Line,
+    "missing parentheses for expression following \"" ++ atom_to_list(Key) ++ ":\" keyword. "
+    "Parentheses are required to solve ambiguity inside keywords.\n\n"
+    "This error happens when you have function calls without parentheses inside keywords. "
+    "For example:\n\n"
+    "    function(arg, one: nested_call a, b, c)\n"
+    "    function(arg, one: if expr, do: :this, else: :that)\n\n"
+    "In the examples above, we don't know if the arguments \"b\" and \"c\" apply "
+    "to the function \"function\" or \"nested_call\". Or if the keywords \"do\" and "
+    "\"else\" apply to the function \"function\" or \"if\". You can solve this by "
+    "explicitly adding parentheses:\n\n"
+    "    function(arg, one: if(expr, do: :this, else: :that))\n"
+    "    function(arg, one: nested_call(a, b, c))\n\n"
+    "Ambiguity found at:"
+  ).
+
+warn_empty_paren({_, {Line, Column, _}}) ->
+  warn(
+    {Line, Column},
+    "invalid expression (). "
+    "If you want to invoke or define a function, make sure there are "
+    "no spaces between the function name and its arguments. If you wanted "
+    "to pass an empty block or code, pass a value instead, such as a nil or an atom"
+  ).
 
 warn_empty_stab_clause({stab_op, {Line, Column, _}, '->'}) ->
   warn(

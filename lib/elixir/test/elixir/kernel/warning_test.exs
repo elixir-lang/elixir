@@ -981,7 +981,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "the @foo() notation (with parenthesis) is deprecated, please use @foo (without parenthesis) instead"
+             "the @foo() notation (with parentheses) is deprecated, please use @foo (without parentheses) instead"
   after
     purge(Sample)
   end
@@ -1634,6 +1634,16 @@ defmodule Kernel.WarningTest do
              |> String.to_integer
              """)
            end) =~ "parentheses are required when piping into a function call"
+  end
+
+  test "keywords without explicit parentheses" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             quote do
+               IO.inspect arg, label: if true, do: "foo", else: "baz"
+             end
+             """)
+           end) =~ "missing parentheses for expression following \"label:\" keyword. "
   end
 
   test "variable is being expanded to function call" do
