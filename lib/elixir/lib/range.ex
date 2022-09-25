@@ -267,12 +267,126 @@ defmodule Range do
 
       iex> Range.shift(0..10//2, 2)
       4..14//2
+      iex> Range.shift(10..0//-2, 2)
+      6..-4//-2
+
   """
   @doc since: "1.14.0"
   def shift(first..last//step, steps_to_shift)
-      when is_integer(first) and is_integer(last) and is_integer(step) and
-             is_integer(steps_to_shift) do
+      when is_integer(steps_to_shift) do
     new(first + steps_to_shift * step, last + steps_to_shift * step, step)
+  end
+
+  @doc """
+  Splits a range in two.
+
+  It returns a tuple of two elements.
+
+  If `split` is less than the number of elements in the range, the first
+  element in the range will have `split` entries and the second will have
+  all remaining entries.
+
+  If `split` is more than the number of elements in the range, the second
+  range in the tuple will emit zero elements.
+
+  ## Examples
+
+  Increasing ranges:
+
+      iex> Range.split(1..5, 2)
+      {1..2, 3..5}
+
+      iex> Range.split(1..5//2, 2)
+      {1..3//2, 5..5//2}
+
+      iex> Range.split(1..5//2, 0)
+      {1..-1//2, 1..5//2}
+
+      iex> Range.split(1..5//2, 10)
+      {1..5//2, 7..5//2}
+
+  Decreasing ranges can also be split:
+
+      iex> Range.split(5..1//-1, 2)
+      {5..4//-1, 3..1//-1}
+
+      iex> Range.split(5..1//-2, 2)
+      {5..3//-2, 1..1//-2}
+
+      iex> Range.split(5..1//-2, 0)
+      {5..7//-2, 5..1//-2}
+
+      iex> Range.split(5..1//-2, 10)
+      {5..1//-2, -1..1//-2}
+
+  Empty ranges preserve their property but still return empty ranges:
+
+      iex> Range.split(2..5//-1, 2)
+      {2..3//-1, 4..5//-1}
+
+      iex> Range.split(2..5//-1, 10)
+      {2..3//-1, 4..5//-1}
+
+      iex> Range.split(5..2//1, 2)
+      {5..4//1, 3..2//1}
+
+      iex> Range.split(5..2//1, 10)
+      {5..4//1, 3..2//1}
+
+  If the number to split is negative, it splits from the back:
+
+      iex> Range.split(1..5, -2)
+      {1..3, 4..5}
+
+      iex> Range.split(5..1//-1, -2)
+      {5..3//-1, 2..1//-1}
+
+  If it is negative and greater than the elements in the range,
+  the first element of the tuple will be an empty range:
+
+      iex> Range.split(1..5, -10)
+      {1..0//1, 1..5}
+
+      iex> Range.split(5..1//-1, -10)
+      {5..6//-1, 5..1//-1}
+
+  ## Properties
+
+  When a range is split, the following properties are observed.
+  Given `split(input)` returns `{left, right}`, we have:
+
+      assert input.first == left.first
+      assert input.last == right.last
+      assert input.step == left.step
+      assert input.step == right.step
+      assert Range.size(input) == Range.size(left) + Range.size(right)
+
+  """
+  @doc since: "1.15.0"
+  def split(first..last//step = range, split) when is_integer(split) do
+    if split >= 0 do
+      split(first, last, step, split)
+    else
+      split(first, last, step, size(range) + split)
+    end
+  end
+
+  defp split(first, last, step, split) when first < last or (first == last and step > 0) do
+    if step > 0 do
+      mid = max(min(first + step * (split - 1), last), first - step)
+      {first..mid//step, (mid + step)..last//step}
+    else
+      {first..(first - step)//step, (last + step)..last//step}
+    end
+  end
+
+  defp split(last, first, step, split) do
+    if step < 0 do
+      mid = min(max(last + step * (split - 1), first), last - step)
+      {last..mid//step, (mid + step)..first//step}
+    else
+      {last..(last - step)//step, (first + step)..first//step}
+    end
   end
 
   @doc """
