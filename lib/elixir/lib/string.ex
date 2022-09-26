@@ -2010,7 +2010,39 @@ defmodule String do
 
       iex> String.length("եոգլի")
       5
-
+  
+  
+  ## Couting graphemes vs size
+  
+  Some graphemes may have multiple encondings, especially accented characters in the Unicode Latin-1 script.
+  For instance, these two words have the exact same amount of graphemes, but use different encodings:
+  
+      iex> String.graphemes("sintético")
+      ["s", "i", "n", "t", "é", "t", "i", "c", "o"]
+      iex> String.to_charlist("sintético")
+      [115, 105, 110, 116, 101, 769, 116, 105, 99, 111]
+      iex> String.length("sintético")
+      9
+      
+      iex> String.graphemes("sintético")
+      ["s", "i", "n", "t", "é", "t", "i", "c", "o"]
+      iex> String.to_charlist("sintético")
+      [115, 105, 110, 116, 233, 116, 105, 99, 111]
+      iex> String.length("sintético")
+      9
+  
+  In the previous example, the char `é` is represented with the codepoints `[101, 769]` and the char `é` with the codepoint `[233]`.
+  So, counting graphemes is a better solution for UTF-8 strings because a character is counted regardless of it's representation.
+  
+  If you need to store the previous string in a database, you might be tempted to use `String.length` to check for its size.
+  This is a naive approach, because it does not take into consideration the actual size of the encoded string, which may be slightly different:  
+  
+      iex> byte_size("sintético")
+      10
+      iex> byte_size("sintético")
+      11
+  
+  For those cases, you might want to normalize the string first with `String.normalize/2` so you always get the expected amount of bytes per grapheme.  
   """
   @spec length(t) :: non_neg_integer
   def length(string) when is_binary(string), do: length(string, 0)
