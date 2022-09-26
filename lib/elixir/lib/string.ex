@@ -173,6 +173,26 @@ defmodule String do
   For converting a binary to a different encoding and for Unicode
   normalization mechanisms, see Erlang's `:unicode` module.
 
+  ### A note on graphemes and actual string size
+
+  Like we've seen before, some graphemes may have multiple code points.
+  If you call the function `String.to_charlist/1`, you'll see that the
+  character `é` is represented by two codepoints: `[101, 769]` while the
+  character `é` is represented by a single codepoint: `[233]`.
+
+  If you need to store a string somewhere, you might be tempted to use
+  something like `String.length/1` or `String.slice/2` for validation.
+  For example, let's imagine that we want to store a very long text into
+  a `varchar(255)` column in a sql database:
+
+      iex> String.slice(very_long_text, 0..254)
+
+  This is a naive approach, because it does not take the actual size of
+  the encoded string into consideration, which may be slightly different.
+
+  For those cases, you might want to normalize the string first using something
+  like `String.normalize/2` so you always get the expected amount of bytes per grapheme.
+
   ## String and binary operations
 
   To act according to the Unicode Standard, many functions
