@@ -74,13 +74,9 @@ defmodule ExUnit.CaptureIO do
 
   ## Examples
 
+  To capture the standard io:
+
       iex> capture_io(fn -> IO.write("john") end) == "john"
-      true
-
-      iex> capture_io(:stderr, fn -> IO.write(:stderr, "john") end) == "john"
-      true
-
-      iex> capture_io(:standard_error, fn -> IO.write(:stderr, "john") end) == "john"
       true
 
       iex> capture_io("this is input", fn ->
@@ -94,6 +90,25 @@ defmodule ExUnit.CaptureIO do
       ...>   IO.write(input)
       ...> end) == "this is input"
       true
+
+  Note it is fine to use `==` with standard IO, because the content is captured
+  per test process. However, `:stderr` is shared across all tests, so you will
+  want to use `=~` instead of `==` for assertions on `:stderr` if your tests
+  are async:
+
+      iex> capture_io(:stderr, fn -> IO.write(:stderr, "john") end) =~ "john"
+      true
+
+      iex> capture_io(:standard_error, fn -> IO.write(:stderr, "john") end) =~ "john"
+      true
+
+  In particular, avoid empty captures on `:stderr` with async tests:
+
+      iex> capture_io(:stderr, fn -> :nothing end) == ""
+      true
+
+  Otherwise, if the standard error of any other test is captured, the test will
+  fail.
 
   ## Returning values
 
