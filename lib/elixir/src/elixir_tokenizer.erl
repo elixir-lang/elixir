@@ -416,6 +416,14 @@ tokenize([$>, $> | Rest], Line, Column, Scope, Tokens) ->
   Token = {'>>', {Line, Column, previous_was_eol(Tokens)}},
   handle_terminator(Rest, Line, Column + 2, Scope, Token, Tokens);
 
+tokenize([${ | Rest], Line, Column, Scope, [{'%', _} | _] = Tokens) ->
+  Message =
+    "unexpected space between % and {\n\n"
+    "If you want to define a map, write %{...}, with no spaces.\n"
+    "If you want to define a struct, write %StructName{...}.\n\n"
+    "Syntax error before: ",
+  error({Line, Column, Message, [${]}, Rest, Scope, Tokens);
+
 tokenize([T | Rest], Line, Column, Scope, Tokens) when T =:= $(; T =:= ${; T =:= $[ ->
   Token = {list_to_atom([T]), {Line, Column, nil}},
   handle_terminator(Rest, Line, Column + 1, Scope, Token, Tokens);

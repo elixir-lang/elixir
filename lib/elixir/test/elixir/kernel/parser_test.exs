@@ -728,6 +728,11 @@ defmodule Kernel.ParserTest do
         ~r/nofile:1:7: expected %{ to define a map, got: %\[/,
         "{:ok, %[], %{}}"
       )
+
+      assert_syntax_error(
+        ~r/nofile:1:3: unexpected space between % and \{/,
+        "% {1, 2, 3}"
+      )
     end
 
     test "invalid access" do
