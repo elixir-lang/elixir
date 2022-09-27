@@ -990,6 +990,41 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
+  test "doctest file passing" do
+    defmodule FilePassing do
+      use ExUnit.Case
+      doctest_file(Path.expand("../fixtures/passing.md", __DIR__))
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+    assert output =~ "2 doctests, 0 failures"
+  end
+
+  test "doctest file failing" do
+    defmodule FileFailing do
+      use ExUnit.Case
+      doctest_file(Path.expand("../fixtures/failing.md", __DIR__))
+    end
+
+    doctest_line = __ENV__.line - 3
+    ExUnit.configure(seed: 0, colors: [enabled: false])
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~ """
+             1) doctest test/fixtures/failing.md (1) (ExUnit.DocTestTest.FileFailing)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest failed
+                doctest:
+                  iex> 1 + 2
+                  4
+                code:  1 + 2 === 4
+                left:  3
+                right: 4
+                stacktrace:
+                  test/fixtures/failing.md:4: ExUnit.DocTestTest.FileFailing (module)
+           """
+  end
+
   defp line_placeholder(line_number) do
     digits =
       line_number
