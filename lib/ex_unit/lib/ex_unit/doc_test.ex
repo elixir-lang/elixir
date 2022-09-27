@@ -271,9 +271,8 @@ defmodule ExUnit.DocTest do
     doc = File.read!(file)
     file = Path.relative_to_cwd(file)
 
-    for test <- extract_tests(1, doc, module) do
-      normalize_test(test, :moduledoc)
-    end
+    extract_tests(1, doc, module)
+    |> Stream.map(&normalize_test(&1, :moduledoc))
     |> Stream.with_index()
     |> Enum.map(fn {test, acc} ->
       test = Map.put(test, :doctest_file, file)
