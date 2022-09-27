@@ -730,6 +730,13 @@ defmodule Kernel.ParserTest do
       )
     end
 
+    test "invalid access" do
+      msg = ~r/nofile:1:6: too many arguments when accessing a value/
+      assert_syntax_error(msg, "foo[1, 2]")
+      assert_syntax_error(msg, "foo[1, 2, 3]")
+      assert_syntax_error(msg, "foo[1, 2, 3,]")
+    end
+
     test "unexpected end" do
       assert_syntax_error("nofile:1:3: unexpected reserved word: end", ~c"1 end")
 

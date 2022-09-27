@@ -288,6 +288,7 @@ parens_call -> dot_call_identifier call_args_parens call_args_parens : build_nes
 bracket_arg -> open_bracket kw_data close_bracket : build_access_arg('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr close_bracket : build_access_arg('$1', '$2', '$3').
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_access_arg('$1', '$2', '$4').
+bracket_arg -> open_bracket container_expr ',' container_args close_bracket : error_too_many_access_syntax('$3').
 
 bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_no_parens('$1', nil), '$2').
 bracket_expr -> access_expr bracket_arg : build_access('$1', '$2').
@@ -1169,6 +1170,18 @@ error_no_parens_container_strict(Node) ->
     "adding parentheses:\n\n"
     "    [one, function(a, b, c)]\n\n"
     "Elixir cannot compile otherwise. Syntax error before: ", "','").
+
+error_too_many_access_syntax(Comma) ->
+  return_error(?location(Comma), "too many arguments when accessing a value. "
+    "The value[key] notation in Elixir expects either a single argument or a keyword list. "
+    "The following examples are allowed:\n\n"
+    "    value[one]\n"
+    "    value[one: 1, two: 2]\n"
+    "    value[[one, two, three]]\n\n"
+    "These are invalid:\n\n"
+    "    value[1, 2, 3]\n"
+    "    value[one, two, three]\n\n"
+    "Syntax error after: ", "','").
 
 error_invalid_kw_identifier({_, Location, do}) ->
   return_error(Location, elixir_tokenizer:invalid_do_error("unexpected keyword: "), "do:");
