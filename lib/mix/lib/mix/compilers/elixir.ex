@@ -479,15 +479,14 @@ defmodule Mix.Compilers.Elixir do
     module(module: module, sources: source_files, export: export) = entry
     {rest, exports, changed, stale} = acc
 
-    {compile_references, export_references, runtime_references} =
-      Enum.reduce(source_files, {[], [], []}, fn file, {compile_acc, export_acc, runtime_acc} ->
+    {compile_references, export_references} =
+      Enum.reduce(source_files, {[], []}, fn file, {compile_acc, export_acc} ->
         source(
           compile_references: compile_refs,
-          export_references: export_refs,
-          runtime_references: runtime_refs
+          export_references: export_refs
         ) = List.keyfind(sources, file, source(:source))
 
-        {compile_acc ++ compile_refs, export_acc ++ export_refs, runtime_acc ++ runtime_refs}
+        {compile_acc ++ compile_refs, export_acc ++ export_refs}
       end)
 
     cond do
@@ -499,11 +498,6 @@ defmodule Mix.Compilers.Elixir do
         remove_and_purge(beam_path(compile_path, module), module)
         changed = Enum.reduce(source_files, changed, &Map.put(&2, &1, true))
         {rest, Map.put(exports, module, export), changed, Map.put(stale, module, true)}
-
-      # If I have a runtime references to something stale,
-      # I am stale too.
-      has_any_key?(stale, runtime_references) ->
-        {[entry | rest], exports, changed, Map.put(stale, module, true)}
 
       # Otherwise, we don't store it anywhere
       true ->
