@@ -588,6 +588,7 @@ defmodule StringTest do
 
     for _ <- 1..10 do
       bin = :crypto.strong_rand_bytes(100)
+
       assert bin |> Stream.unfold(&String.next_grapheme/1) |> Enum.all?(&is_binary/1),
              "cannot build graphemes for #{inspect(bin)}"
     end
