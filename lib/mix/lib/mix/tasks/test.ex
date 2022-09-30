@@ -470,7 +470,7 @@ defmodule Mix.Tasks.Test do
       end)
     end
 
-    unless System.get_env("MIX_ENV") || Mix.env() == :test do
+    unless System.get_env("MIX_ENV") || Mix.env() == @preferred_cli_env do
       Mix.raise("""
       "mix test" is running in the \"#{Mix.env()}\" environment. If you are \
       running tests from within another command, you can either:
