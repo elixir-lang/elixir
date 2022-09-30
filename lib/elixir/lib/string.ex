@@ -1930,6 +1930,7 @@ defmodule String do
   def next_grapheme(string) when is_binary(string) do
     case :unicode_util.gc(string) do
       [gc] -> {grapheme_to_binary(gc), <<>>}
+      [gc, rest] -> {grapheme_to_binary(gc), rest}
       [gc | rest] -> {grapheme_to_binary(gc), rest}
       [] -> nil
       {:error, <<byte, rest::bits>>} -> {<<byte>>, rest}
