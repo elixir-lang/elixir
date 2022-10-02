@@ -725,6 +725,13 @@ defmodule Code.Normalizer.QuotedASTTest do
 
       assert quoted_to_string(quote(do: :"one\n\"#{2}\"\nthree")) == ~S[:"one\n\"#{2}\"\nthree"]
     end
+
+    test ":erlang.binary_to_atom/2 edge cases" do
+      assert quoted_to_string(quote(do: :erlang.binary_to_atom(<<>>, :utf8))) == ~S[:""]
+
+      assert quoted_to_string(quote(do: :erlang.binary_to_atom(<<1>>, :utf8))) ==
+               ~S":erlang.binary_to_atom(<<1>>, :utf8)"
+    end
   end
 
   describe "quoted_to_algebra/2 does not escape" do
