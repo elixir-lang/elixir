@@ -8,7 +8,7 @@ defmodule Mix.Tasks.New do
   Creates a new Elixir project.
   It expects the path of the project as argument.
 
-      $ mix new PATH [--app APP] [--module MODULE] [--sup] [--umbrella]
+      mix new PATH [--app APP] [--module MODULE] [--sup] [--umbrella] [--scm]
 
   A project at the given PATH will be created. The
   application name and module name will be retrieved
@@ -27,31 +27,39 @@ defmodule Mix.Tasks.New do
   An `--umbrella` option can be given to generate an
   umbrella project.
 
+  A `--scm` option can be given to initialize the project with an SCM.
+  The SCM can be defined on an environment variable called `EX_SCM_INIT`.
+  If the variable is not defined, Mix will default to using Git.
+
   ## Examples
 
-      $ mix new hello_world
+      mix new hello_world
 
   Is equivalent to:
 
-      $ mix new hello_world --module HelloWorld
+      mix new hello_world --module HelloWorld
 
   To generate an app with a supervision tree and an application callback:
 
-      $ mix new hello_world --sup
+      mix new hello_world --sup
 
   To generate an umbrella application with sub applications:
 
-      $ mix new hello_world --umbrella
-      $ cd hello_world/apps
-      $ mix new child_app
+      mix new hello_world --umbrella
+      cd hello_world/apps
+      mix new child_app
 
+  To create a project with an SCM repository initialized:
+
+     mix new hello_world --scm
   """
 
   @switches [
     app: :string,
     module: :string,
     sup: :boolean,
-    umbrella: :boolean
+    umbrella: :boolean,
+    scm: :boolean
   ]
 
   @impl true
@@ -81,6 +89,8 @@ defmodule Mix.Tasks.New do
             generate(app, mod, path, opts)
           end
         end)
+
+        if opts[:scm], do: scm_init()
     end
   end
 
@@ -253,6 +263,29 @@ defmodule Mix.Tasks.New do
       end)
     catch
       _, _ -> false
+    end
+  end
+
+  defp scm_init() do
+    scm_backend =
+      System.get_env("EX_SCM_INIT") ||
+        "git"
+        |> String.downcase()
+
+    case System.cmd(scm_backend, ["init"]) do
+      {_, 0} ->
+        """
+        Initialized #{String.upcase(scm_backend)} repository
+        """
+        |> String.trim_trailing()
+        |> Mix.shell().info()
+
+      {error, 1} ->
+        """
+        Unable to initialize #{String.upcase(scm_backend)} repository due to `#{error}`
+        """
+        |> String.trim_trailing()
+        |> Mix.shell().info()
     end
   end
 

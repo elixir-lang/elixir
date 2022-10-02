@@ -151,6 +151,13 @@ defmodule Mix.Tasks.NewTest do
     end)
   end
 
+  test "new with --scm" do
+    in_tmp("new with scm", fn ->
+      Mix.Tasks.New.run(["--scm", "hello_world"])
+      assert_dir(".git")
+    end)
+  end
+
   test "new with invalid args" do
     in_tmp("new with an invalid application name", fn ->
       assert_raise Mix.Error,
@@ -233,5 +240,9 @@ defmodule Mix.Tasks.NewTest do
         assert_file(file)
         match.(File.read!(file))
     end
+  end
+
+  defp assert_dir(dir) do
+    assert File.dir?(dir), "Expected #{dir} to exist, but does not"
   end
 end
