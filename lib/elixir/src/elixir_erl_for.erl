@@ -1,13 +1,13 @@
 -module(elixir_erl_for).
--export([translate/4]).
+-export([translate/3]).
 -include("elixir.hrl").
 
-translate(Meta, Args, Return, S) ->
+translate(Meta, Args, S) ->
   {Cases, [{do, Expr} | Opts]} = elixir_utils:split_last(Args),
 
   case lists:keyfind(reduce, 1, Opts) of
     {reduce, Reduce} -> translate_reduce(Meta, Cases, Expr, Reduce, S);
-    false -> translate_into(Meta, Cases, Expr, Opts, Return, S)
+    false -> translate_into(Meta, Cases, Expr, Opts, S)
   end.
 
 translate_reduce(Meta, Cases, Expr, Reduce, S) ->
@@ -23,17 +23,16 @@ translate_reduce(Meta, Cases, Expr, Reduce, S) ->
 
   build_reduce(Ann, TCases, InnerFun, TExpr, TReduce, false, SE).
 
-translate_into(Meta, Cases, Expr, Opts, Return, S) ->
+translate_into(Meta, Cases, Expr, Opts, S) ->
   Ann = ?ann(Meta),
 
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of
       {into, Into} -> elixir_erl_pass:translate(Into, Ann, S);
-      false when Return -> {{nil, Ann}, S};
-      false -> {false, S}
+      false -> {{nil, Ann}, S}
     end,
 
-  TUniq = validate_uniq(Opts, TInto, Meta),
+  TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
 
   {TCases, SC} = translate_gen(Meta, Cases, [], SI),
   {TExpr, SE}  = elixir_erl_pass:translate(wrap_expr_if_unused(Expr, TInto), Ann, SC),
@@ -42,18 +41,6 @@ translate_into(Meta, Cases, Expr, Opts, Return, S) ->
     inline -> build_inline(Ann, TCases, TExpr, TInto, TUniq, SE);
     into -> build_into(Ann, TCases, TExpr, TInto, TUniq, SE)
   end.
-
-validate_uniq(Opts, TInto, _Meta) ->
-  case {lists:keyfind(uniq, 1, Opts), TInto} of
-    {{uniq, true}, false} ->
-      % TODO format this warning properly with Meta
-      io:format(standard_error, "warning: the option :uniq has no effect because the result is not used~n", []),
-      false;
-    {{uniq, true}, _} ->
-      true;
-    _ ->
-      false
-    end.
 
 %% In case we have no return, we wrap the expression
 %% in a block that returns nil.
