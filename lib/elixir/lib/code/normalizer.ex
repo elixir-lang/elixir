@@ -77,6 +77,14 @@ defmodule Code.Normalizer do
     dot_meta = patch_meta_line(dot_meta, state.parent_meta)
     call_meta = patch_meta_line(call_meta, dot_meta)
 
+    utf8 =
+      if args == [] or interpolated?(string) do
+        # a non-normalized :utf8 atom signals an atom interpolation
+        :utf8
+      else
+        normalize_literal(:utf8, [], state)
+      end
+
     string =
       if state.escape do
         normalize_bitstring(string, state, true)
@@ -84,7 +92,7 @@ defmodule Code.Normalizer do
         normalize_bitstring(string, state)
       end
 
-    {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta, [string, :utf8]}
+    {{:., dot_meta, [:erlang, :binary_to_atom]}, call_meta, [string, utf8]}
   end
 
   # Charlists with interpolations
