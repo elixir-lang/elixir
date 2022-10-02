@@ -153,7 +153,7 @@ defmodule Mix.Tasks.NewTest do
 
   test "new with --scm" do
     in_tmp("new with scm", fn ->
-      Mix.Tasks.New.run(["--scm", "hello_world"])
+      Mix.Tasks.New.run(["hello_world", "--scm"])
       assert_dir(".git")
     end)
   end
