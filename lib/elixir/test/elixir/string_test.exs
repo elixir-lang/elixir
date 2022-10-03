@@ -107,6 +107,17 @@ defmodule StringTest do
     assert String.split("x-x-", pattern, parts: 3, trim: true) == ["x", "x"]
   end
 
+  test "split/2,3 with malformed" do
+    assert String.split(<<225, 158, 128, 225, 158, 185, 225>>, "", parts: 1) ==
+             [<<225, 158, 128, 225, 158, 185, 225>>]
+
+    assert String.split(<<225, 158, 128, 225, 158, 185, 225>>, "", parts: 2) ==
+             ["", <<225, 158, 128, 225, 158, 185, 225>>]
+
+    assert String.split(<<225, 158, 128, 225, 158, 185, 225>>, "", parts: 3) ==
+             ["", "កឹ", <<225>>, ""]
+  end
+
   test "splitter/2,3" do
     assert String.splitter("a,b,c", ",") |> Enum.to_list() == ["a", "b", "c"]
     assert String.splitter("a,b", ".") |> Enum.to_list() == ["a,b"]
@@ -155,9 +166,18 @@ defmodule StringTest do
     end
   end
 
-  test "split_at/2 with invalid guard" do
+  test "split_at/2 with malformed" do
     assert String.split_at(<<?a, 195, 10, ?a>>, 2) == {<<?a, 195>>, <<10, ?a>>}
     assert String.split_at(<<107, 205, 135, 184>>, 1) == {<<107, 205, 135>>, <<184>>}
+
+    assert String.split_at(<<225, 158, 128, 225, 158, 185, 225>>, 0) ==
+             {"", <<225, 158, 128, 225, 158, 185, 225>>}
+
+    assert String.split_at(<<225, 158, 128, 225, 158, 185, 225>>, 1) ==
+             {"កឹ", <<225>>}
+
+    assert String.split_at(<<225, 158, 128, 225, 158, 185, 225>>, 2) ==
+             {<<225, 158, 128, 225, 158, 185, 225>>, ""}
   end
 
   test "upcase/1" do
@@ -457,6 +477,10 @@ defmodule StringTest do
       end
     end
 
+    test "with empty string and string replacement with malformed" do
+      assert String.replace(<<225, 158, 128, 225, 158, 185, 225>>, "", ".") == ".កឹ.\xE1."
+    end
+
     test "with empty pattern list" do
       assert String.replace("elixir", [], "anything") == "elixir"
     end
@@ -585,16 +609,58 @@ defmodule StringTest do
   test "next_grapheme/1" do
     assert String.next_grapheme("Ā̀stute") == {"Ā̀", "stute"}
     assert String.next_grapheme("") == nil
+  end
 
-    for _ <- 1..10 do
-      try do
+  describe "randomized" do
+    test "next_grapheme" do
+      for _ <- 1..10 do
         bin = :crypto.strong_rand_bytes(20)
 
-        assert bin |> Stream.unfold(&String.next_grapheme/1) |> Enum.all?(&is_binary/1),
-               "cannot build graphemes for #{inspect(bin)}"
-      rescue
-        # Ignore malformed pictographic sequences
-        _ -> :ok
+        try do
+          bin |> Stream.unfold(&String.next_grapheme/1) |> Enum.to_list()
+        rescue
+          # Ignore malformed pictographic sequences
+          _ -> :ok
+        else
+          list ->
+            assert Enum.all?(list, &is_binary/1), "cannot build graphemes for #{inspect(bin)}"
+        end
+      end
+    end
+
+    test "split empty" do
+      for _ <- 1..10 do
+        bin = :crypto.strong_rand_bytes(20)
+
+        try do
+          String.split(bin, "")
+        rescue
+          # Ignore malformed pictographic sequences
+          _ -> :ok
+        else
+          split ->
+            assert Enum.all?(split, &is_binary/1), "cannot split #{inspect(bin)}"
+            assert IO.iodata_to_binary(split) == bin
+        end
+      end
+    end
+
+    test "graphemes" do
+      for _ <- 1..10 do
+        bin = :crypto.strong_rand_bytes(20)
+
+        try do
+          String.graphemes(bin)
+        rescue
+          # Ignore malformed pictographic sequences
+          _ -> :ok
+        else
+          graphemes ->
+            assert Enum.all?(graphemes, &is_binary/1),
+                   "cannot build graphemes for #{inspect(bin)}"
+
+            assert IO.iodata_to_binary(graphemes) == bin
+        end
       end
     end
   end

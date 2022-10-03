@@ -524,11 +524,10 @@ defmodule String do
   defp parts_to_index(n) when is_integer(n) and n > 0, do: n
 
   defp split_empty("", true, 1), do: []
-  defp split_empty(string, _, 1), do: [string]
+  defp split_empty(string, _, 1) when is_binary(string), do: [IO.iodata_to_binary(string)]
 
   defp split_empty(string, trim, count) do
     case :unicode_util.gc(string) do
-      [gc] -> [grapheme_to_binary(gc) | split_empty(<<>>, trim, count - 1)]
       [gc | rest] -> [grapheme_to_binary(gc) | split_empty(rest, trim, count - 1)]
       [] -> split_empty("", trim, 1)
       {:error, <<byte, rest::bits>>} -> [<<byte>> | split_empty(rest, trim, count - 1)]
