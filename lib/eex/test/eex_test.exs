@@ -294,9 +294,18 @@ defmodule EExTest do
     end
 
     test "when start expression is found without an end expression" do
-      msg = "nofile:2:18: unexpected end of string, expected a closing '<% end %>'"
+      message = """
+      nofile:2:18: unexpected end of string, expected a closing '<% end %>'.
 
-      assert_raise EEx.SyntaxError, msg, fn ->
+      Looks like there isn't an <% end %> for the expression `if true do`. This is
+      how it should be:
+
+        <%= if true do %>
+          ...
+        <% end %>
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo\n<%= if true do %>")
       end
     end

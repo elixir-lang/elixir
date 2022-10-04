@@ -406,9 +406,22 @@ defmodule EEx.Compiler do
     state.engine.handle_body(buffer)
   end
 
-  defp generate_buffer([{:eof, meta}], _buffer, _scope, state) do
+  defp generate_buffer([{:eof, meta}], _buffer, scope, state) do
+    scope = scope |> to_string() |> String.trim()
+
+    message = """
+    unexpected end of string, expected a closing '<% end %>'.
+
+    Looks like there isn't an <% end %> for the expression `#{scope}`. This is
+    how it should be:
+
+      <%= #{scope} %>
+        ...
+      <% end %>
+    """
+
     raise EEx.SyntaxError,
-      message: "unexpected end of string, expected a closing '<% end %>'",
+      message: message,
       file: state.file,
       line: meta.line,
       column: meta.column
