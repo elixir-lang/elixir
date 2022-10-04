@@ -373,8 +373,18 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _], _buffer, [], state) do
+    message = """
+    unexpected middle of expression <%#{chars}%>.
+
+    Make sure the starting expression ends with the keyword `do`, for example:
+
+      <%= if true do %>
+        ...
+      <% end %>
+    """
+
     raise EEx.SyntaxError,
-      message: "unexpected middle of expression <%#{chars}%>",
+      message: message,
       file: state.file,
       line: meta.line,
       column: meta.column
