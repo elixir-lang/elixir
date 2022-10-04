@@ -25,14 +25,14 @@ defmodule Mix.GeneratorTest do
 
   describe "overwrite?/1" do
     test "without conflict" do
-      in_tmp("ovewrite", fn ->
+      in_tmp("overwrite", fn ->
         assert overwrite?("foo")
         refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
       end)
     end
 
     test "with conflict returning true" do
-      in_tmp("ovewrite", fn ->
+      in_tmp("overwrite", fn ->
         File.write!("foo", "HELLO")
         send(self(), {:mix_shell_input, :yes?, true})
 
@@ -42,7 +42,7 @@ defmodule Mix.GeneratorTest do
     end
 
     test "with conflict returning false" do
-      in_tmp("ovewrite", fn ->
+      in_tmp("overwrite", fn ->
         File.write!("foo", "HELLO")
         send(self(), {:mix_shell_input, :yes?, false})
 
@@ -54,14 +54,14 @@ defmodule Mix.GeneratorTest do
 
   describe "overwrite?/2" do
     test "without conflict" do
-      in_tmp("ovewrite", fn ->
+      in_tmp("overwrite", fn ->
         assert overwrite?("foo", "HELLO")
         refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
       end)
     end
 
     test "with same contents" do
-      in_tmp("ovewrite", fn ->
+      in_tmp("overwrite", fn ->
         File.write!("foo", "HELLO")
         refute overwrite?("foo", "HELLO")
         refute_received {:mix_shell, :yes?, ["foo already exists, overwrite?"]}
@@ -69,7 +69,7 @@ defmodule Mix.GeneratorTest do
     end
 
     test "with conflict returning true" do
-      in_tmp("ovewrite", fn ->
+      in_tmp("overwrite", fn ->
         File.write!("foo", "HELLO")
         send(self(), {:mix_shell_input, :yes?, true})
 
@@ -79,7 +79,7 @@ defmodule Mix.GeneratorTest do
     end
 
     test "with conflict returning false" do
-      in_tmp("ovewrite", fn ->
+      in_tmp("overwrite", fn ->
         File.write!("foo", "HELLO")
         send(self(), {:mix_shell_input, :yes?, false})
 
