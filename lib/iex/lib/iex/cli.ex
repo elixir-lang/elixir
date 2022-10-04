@@ -37,6 +37,8 @@
 defmodule IEx.CLI do
   @moduledoc false
 
+  @compile {:no_warn_undefined, {:user, :start, 0}}
+
   @doc """
   In order to work properly, IEx needs to be set as the
   proper `-user` when starting the Erlang VM and we do so
