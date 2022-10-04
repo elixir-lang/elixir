@@ -103,8 +103,8 @@ defmodule ApplicationTest do
       assert compile_env(:elixir, [:unknown, :unknown, :key], :default) == :default
       assert_received {:compile_env, :elixir, [:unknown, :unknown, :key], :error}
 
-      assert compile_env(:elixir, [:unknown, :nested, :unkown], :default) == :default
-      assert_received {:compile_env, :elixir, [:unknown, :nested, :unkown], :error}
+      assert compile_env(:elixir, [:unknown, :nested, :unknown], :default) == :default
+      assert_received {:compile_env, :elixir, [:unknown, :nested, :unknown], :error}
     after
       Application.delete_env(:elixir, :unknown)
     end
