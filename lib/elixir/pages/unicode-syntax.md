@@ -71,7 +71,7 @@ and `<Continue>` uses the same categories as the spec but normalizes them to the
 
 The spec also provides a `<Medial>` set, but Elixir does not include any character on this set. Therefore, the identifier rule has been simplified to consider this.
 
-Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. Bidirectional control charactes are also not supported. R1b is guaranteed for backwards compatibility purposes.
+Elixir does not allow the use of ZWJ or ZWNJ in identifiers and therefore does not implement R1a. Bidirectional control characters are also not supported. R1b is guaranteed for backwards compatibility purposes.
 
 #### Atoms
 
