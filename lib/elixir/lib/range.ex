@@ -24,7 +24,7 @@ defmodule Range do
 
   When defining a range without a step, the step will be
   defined based on the first and last position of the
-  range, If `first >= last`, it will be an increasing range
+  range, If `last >= first`, it will be an increasing range
   with a step of 1. Otherwise, it is a decreasing range.
   Note, however, implicit decreasing ranges are deprecated.
   Therefore, if you need a decreasing range from `3` to `1`,
