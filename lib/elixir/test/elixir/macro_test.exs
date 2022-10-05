@@ -343,7 +343,7 @@ defmodule MacroTest do
       assert formatted =~ """
              \n[:a, :b, :c] #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
-             |> tl #=> [:c]
+             |> tl() #=> [:c]
              |> Kernel.hd() #=> :c
              """
 
@@ -368,7 +368,7 @@ defmodule MacroTest do
       assert formatted =~ """
              \n[:a, :b, :c] #=> [:a, :b, :c]
              |> tl() #=> [:b, :c]
-             |> tl #=> [:c]
+             |> tl() #=> [:c]
              |> Kernel.hd() #=> :c
              """
 
@@ -1035,10 +1035,10 @@ defmodule MacroTest do
 
   test "unpipe/1" do
     assert Macro.unpipe(quote(do: foo)) == quote(do: [{foo, 0}])
-    assert Macro.unpipe(quote(do: foo |> bar())) == quote(do: [{foo, 0}, {bar, 0}])
+    assert Macro.unpipe(quote(do: foo |> bar())) == quote(do: [{foo, 0}, {bar(), 0}])
 
     assert Macro.unpipe(quote(do: foo |> bar() |> baz())) ==
-             quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
+             quote(do: [{foo, 0}, {bar(), 0}, {baz(), 0}])
   end
 
   ## traverse/pre/postwalk

@@ -904,16 +904,16 @@ defmodule Code.Formatter.CommentsTest do
     test "with comment before, during and after uniform pipelines" do
       assert_same """
       foo
-      # |> bar
-      # |> baz
-      |> bat
+      # |> bar()
+      # |> baz()
+      |> bat()
       """
 
       bad = """
       # before
       foo    # this is foo
-      |> bar # this is bar
-      |> baz # this is baz
+      |> bar() # this is bar
+      |> baz() # this is baz
       # after
       """
 
@@ -922,9 +922,9 @@ defmodule Code.Formatter.CommentsTest do
       # this is foo
       foo
       # this is bar
-      |> bar
+      |> bar()
       # this is baz
-      |> baz
+      |> baz()
 
       # after
       """
