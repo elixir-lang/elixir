@@ -316,10 +316,31 @@ defmodule Mix.Compilers.Elixir do
          stale_exports,
          dest
        ) do
+    {modules_to_recompile, modules_to_mix_check} =
+      for module(module: module, recompile?: recompile?) <- all_modules, reduce: {[], []} do
+        {modules_to_recompile, modules_to_mix_check} ->
+          cond do
+            Map.has_key?(stale_modules, module) ->
+              {[module | modules_to_recompile], modules_to_mix_check}
+
+            recompile? and Code.ensure_loaded?(module) and
+                function_exported?(module, :__mix_recompile__?, 0) ->
+              {modules_to_recompile, [module | modules_to_mix_check]}
+
+            true ->
+              {modules_to_recompile, modules_to_mix_check}
+          end
+      end
+
     modules_to_recompile =
-      for module(module: module, recompile?: recompile?) <- all_modules,
-          recompile_module?(module, recompile?) or Map.has_key?(stale_modules, module),
-          do: module
+      modules_to_recompile ++
+        for {:ok, {module, true}} <-
+              Task.async_stream(modules_to_mix_check, &{&1, &1.__mix_recompile__?()},
+                ordered: false,
+                timeout: :infinity
+              ) do
+          module
+        end
 
     {checkpoint_stale_modules, checkpoint_stale_exports, checkpoint_modules} =
       parse_checkpoint(manifest)
@@ -1037,12 +1058,6 @@ defmodule Mix.Compilers.Elixir do
 
     modules = prepend_or_merge(modules, module, module(:module), module, existing_module?)
     {modules, exports, [source | sources], pending_modules, pending_exports}
-  end
-
-  defp recompile_module?(module, recompile?) do
-    recompile? and Code.ensure_loaded?(module) and
-      function_exported?(module, :__mix_recompile__?, 0) and
-      module.__mix_recompile__?()
   end
 
   defp prepend_or_merge(collection, key, pos, value, true) do
