@@ -423,7 +423,7 @@ defmodule Mix.Compilers.Elixir do
   defp digest(file) do
     contents = File.read!(file)
 
-    case :erlang.system_info(:word_size) do
+    case :erlang.system_info(:wordsize) do
       8 -> :crypto.hash(:blake2b, contents)
       _ -> :crypto.hash(:blake2s, contents)
     end
