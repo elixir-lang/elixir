@@ -421,9 +421,12 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp digest(file) do
-    file
-    |> File.read!()
-    |> :erlang.md5()
+    contents = File.read!(file)
+
+    case :erlang.system_info(:word_size) do
+      8 -> :crypto.hash(:blake2b, contents)
+      _ -> :crypto.hash(:blake2s, contents)
+    end
   end
 
   defp set_compiler_opts(opts) do
