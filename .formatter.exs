@@ -15,5 +15,6 @@
     # Errors tests
     assert_eval_raise: 3
   ],
-  normalize_bitstring_modifiers: false
+  normalize_bitstring_modifiers: false,
+  normalize_calls_on_pipe_operators: []
 ]

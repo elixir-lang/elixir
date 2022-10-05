@@ -554,7 +554,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
 
   # We are redefining |> and using it inside the quote
   # and only inside the quote. This code should still compile.
-  defmacro x |> f() do
+  defmacro x |> f do
     quote do
       unquote(x) |> unquote(f)
     end
