@@ -277,14 +277,14 @@ defmodule Kernel.QuoteTest do
 
   test "pipe precedence" do
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
-             quote(do: foo |> bar |> baz)
+             quote(do: foo |> bar() |> baz())
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
              (quote do
                 foo do
                 end
-                |> bar
-                |> baz
+                |> bar()
+                |> baz()
               end)
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
@@ -292,13 +292,13 @@ defmodule Kernel.QuoteTest do
                 foo
                 |> bar do
                 end
-                |> baz
+                |> baz()
               end)
 
     assert {:|>, _, [{:|>, _, [{:foo, _, _}, {:bar, _, _}]}, {:baz, _, _}]} =
              (quote do
                 foo
-                |> bar
+                |> bar()
                 |> baz do
                 end
               end)
@@ -307,7 +307,7 @@ defmodule Kernel.QuoteTest do
              (quote do
                 foo do
                 end
-                |> bar
+                |> bar()
                 |> baz do
                 end
               end)
@@ -554,7 +554,7 @@ defmodule Kernel.QuoteTest.ImportsHygieneTest do
 
   # We are redefining |> and using it inside the quote
   # and only inside the quote. This code should still compile.
-  defmacro x |> f do
+  defmacro x |> f() do
     quote do
       unquote(x) |> unquote(f)
     end

@@ -4144,7 +4144,7 @@ defmodule Kernel do
       "Hello" |> then(&Regex.replace(~r/l/, &1, "L"))
 
   """
-  defmacro left |> right do
+  defmacro left |> right() do
     fun = fn {x, pos}, acc ->
       Macro.pipe(acc, x, pos)
     end

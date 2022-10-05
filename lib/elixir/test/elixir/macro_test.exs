@@ -335,7 +335,7 @@ defmodule MacroTest do
     end
 
     test "with a pipeline on a single line" do
-      {result, formatted} = dbg_format([:a, :b, :c] |> tl() |> tl |> Kernel.hd())
+      {result, formatted} = dbg_format([:a, :b, :c] |> tl() |> tl() |> Kernel.hd())
       assert result == :c
 
       assert formatted =~ "macro_test.exs"
@@ -357,7 +357,7 @@ defmodule MacroTest do
         dbg_format(
           [:a, :b, :c]
           |> tl()
-          |> tl
+          |> tl()
           |> Kernel.hd()
         )
 
@@ -1035,8 +1035,10 @@ defmodule MacroTest do
 
   test "unpipe/1" do
     assert Macro.unpipe(quote(do: foo)) == quote(do: [{foo, 0}])
-    assert Macro.unpipe(quote(do: foo |> bar)) == quote(do: [{foo, 0}, {bar, 0}])
-    assert Macro.unpipe(quote(do: foo |> bar |> baz)) == quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
+    assert Macro.unpipe(quote(do: foo |> bar())) == quote(do: [{foo, 0}, {bar, 0}])
+
+    assert Macro.unpipe(quote(do: foo |> bar() |> baz())) ==
+             quote(do: [{foo, 0}, {bar, 0}, {baz, 0}])
   end
 
   ## traverse/pre/postwalk
@@ -1139,7 +1141,7 @@ defmodule MacroTest do
   test "generate_arguments/2" do
     assert Macro.generate_arguments(0, __MODULE__) == []
     assert Macro.generate_arguments(1, __MODULE__) == [{:arg1, [], __MODULE__}]
-    assert Macro.generate_arguments(4, __MODULE__) |> length == 4
+    assert Macro.generate_arguments(4, __MODULE__) |> length() == 4
   end
 
   defp postwalk(ast) do
