@@ -283,7 +283,7 @@ defmodule Code.Formatter.OperatorsTest do
     test "preserves user choice even when it fits" do
       assert_same """
       foo
-      |> bar
+      |> bar()
       """
 
       assert_same """
@@ -295,15 +295,42 @@ defmodule Code.Formatter.OperatorsTest do
 
       bad = """
       foo |>
-        bar
+        bar()
       """
 
       good = """
       foo
-      |> bar
+      |> bar()
       """
 
       assert_format bad, good
+    end
+  end
+
+  describe "pipeline operators call normalization" do
+    test "wraps identifier operands with parentheses" do
+      assert_format "foo |> bar", "foo |> bar()"
+      assert_format "foo |> bar |> baz", "foo |> bar() |> baz()"
+    end
+
+    test "wraps dot operands with parentheses" do
+      assert_format "foo |> bar.baz", "foo |> bar.baz()"
+      assert_format "foo |> bar.baz.bat", "foo |> bar.baz.bat()"
+      assert_format "foo |> Bar.baz", "foo |> Bar.baz()"
+      assert_format "foo |> Bar.Baz.bat", "foo |> Bar.Baz.bat()"
+    end
+
+    test "can be disabled with normalize_calls_on_pipe_operators" do
+      opts = [normalize_calls_on_pipe_operators: []]
+      assert_same "foo |> bar", opts
+      assert_same "foo |> bar.baz", opts
+    end
+
+    test "can be extended for other pipe operators" do
+      opts = [normalize_calls_on_pipe_operators: [:~>, :~>>]]
+      assert_format "foo ~> bar", "foo ~> bar()", opts
+      assert_format "foo ~> bar ~>> baz", "foo ~> bar() ~>> baz()", opts
+      assert_format "foo ~>> bar.baz", "foo ~>> bar.baz()", opts
     end
   end
 
@@ -518,10 +545,10 @@ defmodule Code.Formatter.OperatorsTest do
     end
 
     test "with required parens" do
-      assert_same "(a |> b) ++ (c |> d)"
+      assert_same "(a |> b()) ++ (c |> d())"
       assert_format "a + b |> c + d", "(a + b) |> (c + d)"
       assert_format "a ++ b |> c ++ d", "(a ++ b) |> (c ++ d)"
-      assert_format "a |> b ++ c |> d", "a |> (b ++ c) |> d"
+      assert_format "a |> b ++ c |> d", "a |> (b ++ c) |> d()"
     end
 
     test "with required parens skips on no parens" do

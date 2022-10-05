@@ -473,6 +473,13 @@ defmodule Code do
       `'foo'` becomes `~c"foo"`.
       Defaults to `true`. This option changes the AST.
 
+    * `:normalize_calls_on_pipe_operators` (since v1.15.0) - a list of operators
+      for which parentheses will be ensured on the right operand. For example,
+      when set to `[:|>]`, `foo |> bar` becomes `foo |> bar()` and
+      `foo |> bar.baz` becomes `foo |> bar.baz()`.
+      Defaults to `[:|>]`. This option changes the AST. Can be set to `[]`
+      to disable it.
+
   ## Design principles
 
   The formatter was designed under three principles.

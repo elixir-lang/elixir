@@ -201,6 +201,10 @@ defmodule Code.Formatter do
     sigils = Keyword.get(opts, :sigils, [])
     normalize_bitstring_modifiers = Keyword.get(opts, :normalize_bitstring_modifiers, true)
     normalize_charlists_as_sigils = Keyword.get(opts, :normalize_charlists_as_sigils, true)
+
+    normalize_calls_on_pipe_operators =
+      Keyword.get(opts, :normalize_calls_on_pipe_operators, [:|>])
+
     syntax_colors = Keyword.get(opts, :syntax_colors, [])
 
     sigils =
@@ -227,6 +231,7 @@ defmodule Code.Formatter do
       file: file,
       normalize_bitstring_modifiers: normalize_bitstring_modifiers,
       normalize_charlists_as_sigils: normalize_charlists_as_sigils,
+      normalize_calls_on_pipe_operators: Map.from_keys(normalize_calls_on_pipe_operators, []),
       inspect_opts: %Inspect.Opts{syntax_colors: syntax_colors}
     }
   end
@@ -789,6 +794,27 @@ defmodule Code.Formatter do
   end
 
   defp binary_operand_to_algebra(operand, context, state, parent_op, parent_info, side, nesting) do
+    operand =
+      if is_map_key(state.normalize_calls_on_pipe_operators, parent_op) and side == :right do
+        case operand do
+          {identifier, meta, atom} when is_atom(identifier) and is_atom(atom) ->
+            {identifier, meta, []}
+
+          {{:., _, [_, identifier]} = dot, meta, []} when is_atom(identifier) ->
+            meta =
+              meta
+              |> Keyword.delete(:no_parens)
+              |> Keyword.put_new(:closing, line: meta[:line])
+
+            {dot, meta, []}
+
+          _ ->
+            operand
+        end
+      else
+        operand
+      end
+
     {parent_assoc, parent_prec} = parent_info
 
     with {op, meta, [left, right]} <- operand,
