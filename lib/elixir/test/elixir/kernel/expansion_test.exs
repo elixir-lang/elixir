@@ -799,7 +799,8 @@ defmodule Kernel.ExpansionTest do
                 c = 3
                 [4]
               ),
-            do: {a(), b, c(), d}
+            do: {a(), b, c(), d},
+            into: []
           )
         end
 
@@ -808,7 +809,7 @@ defmodule Kernel.ExpansionTest do
 
     test "variables inside filters are available in blocks" do
       assert expand(quote(do: for(a <- b, c = a, do: c))) ==
-               quote(do: for(a <- b(), c = a, do: c))
+               quote(do: for(a <- b(), c = a, do: c, into: []))
     end
 
     test "variables inside options do not leak" do
