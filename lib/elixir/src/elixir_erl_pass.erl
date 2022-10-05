@@ -182,7 +182,7 @@ translate({'receive', Meta, [Opts]}, _Ann, S) ->
 %% Comprehensions and with
 
 translate({for, Meta, [_ | _] = Args}, _Ann, S) ->
-  elixir_erl_for:translate(Meta, Args, true, S);
+  elixir_erl_for:translate(Meta, Args, S);
 
 translate({with, Meta, [_ | _] = Args}, _Ann, S) ->
   {Exprs, [{do, Do} | Opts]} = elixir_utils:split_last(Args),
@@ -348,12 +348,6 @@ translate_block([H], Ann, Acc, S) ->
 translate_block([{'__block__', Meta, Args} | T], Ann, Acc, S) when is_list(Args) ->
   {TAcc, SA} = translate_block(Args, ?ann(Meta), Acc, S),
   translate_block(T, Ann, TAcc, SA);
-translate_block([{for, Meta, [_ | _] = Args} | T], Ann, Acc, S) ->
-  {TH, TS} = elixir_erl_for:translate(Meta, Args, false, S),
-  translate_block(T, Ann, [TH | Acc], TS);
-translate_block([{'=', _, [{'_', _, Ctx}, {for, Meta, [_ | _] = Args}]} | T], Ann, Acc, S) when is_atom(Ctx) ->
-  {TH, TS} = elixir_erl_for:translate(Meta, Args, false, S),
-  translate_block(T, Ann, [TH | Acc], TS);
 translate_block([H | T], Ann, Acc, S) ->
   {TH, TS} = translate(H, Ann, S),
   translate_block(T, Ann, [TH | Acc], TS).

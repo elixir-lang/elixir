@@ -253,45 +253,8 @@ expand({'try', Meta, [Opts]}, S, E) ->
 
 %% Comprehensions
 
-expand({for, Meta, [_ | _] = Args}, S, E) ->
-  assert_no_match_or_guard_scope(Meta, "for", S, E),
-
-  {Cases, Block} =
-    case elixir_utils:split_last(Args) of
-      {OuterCases, OuterOpts} when is_list(OuterOpts) ->
-        case elixir_utils:split_last(OuterCases) of
-          {InnerCases, InnerOpts} when is_list(InnerOpts) ->
-            {InnerCases, InnerOpts ++ OuterOpts};
-          _ ->
-            {OuterCases, OuterOpts}
-        end;
-      _ ->
-        {Args, []}
-    end,
-
-  validate_opts(Meta, for, [do, into, uniq, reduce], Block, E),
-
-  {Expr, Opts} =
-    case lists:keytake(do, 1, Block) of
-      {value, {do, Do}, DoOpts} ->
-        {Do, DoOpts};
-      false ->
-        form_error(Meta, E, ?MODULE, {missing_option, for, [do]})
-    end,
-
-  {EOpts, SO, EO} = expand(Opts, elixir_env:reset_unused_vars(S), E),
-  {ECases, SC, EC} = mapfold(fun expand_for/3, SO, EO, Cases),
-  assert_generator_start(Meta, ECases, E),
-
-  {EExpr, SE, EE} =
-    case validate_for_options(EOpts, false, false, false) of
-      {ok, MaybeReduce} -> expand_for_do_block(Meta, Expr, SC, EC, MaybeReduce);
-      {error, Error} -> form_error(Meta, E, ?MODULE, Error)
-    end,
-
-  {{for, Meta, ECases ++ [[{do, EExpr} | EOpts]]},
-   elixir_env:merge_and_check_unused_vars(SE, S, EE),
-   E};
+expand({for, _, [_ | _] } = Expr, S, E) ->
+  expand_for(Expr, S, E, true);
 
 %% With
 
@@ -563,6 +526,12 @@ expand_block([], Acc, _Meta, S, E) ->
 expand_block([H], Acc, Meta, S, E) ->
   {EH, SE, EE} = expand(H, S, E),
   expand_block([], [EH | Acc], Meta, SE, EE);
+expand_block([{for, _, [_ | _]} = H | T], Acc, Meta, S, E) ->
+  {EH, SE, EE} = expand_for(H, S, E, false),
+  expand_block(T, [EH | Acc], Meta, SE, EE);
+expand_block([{'=', _, [{'_', _, Ctx}, {for, _, [_ | _]} = H]}  | T], Acc, Meta, S, E) when is_atom(Ctx) ->
+  {EH, SE, EE} = expand_for(H, S, E, false),
+  expand_block(T, [EH | Acc], Meta, SE, EE);
 expand_block([H | T], Acc, Meta, S, E) ->
   {EH, SE, EE} = expand(H, S, E),
 
@@ -741,18 +710,65 @@ generated_case_clauses([{do, Clauses}]) ->
 
 %% Comprehensions
 
-validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce) ->
-  validate_for_options(Opts, Pair, Uniq, Reduce);
-validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce) when is_boolean(Boolean) ->
-  validate_for_options(Opts, Into, Pair, Reduce);
-validate_for_options([{uniq, Value} | _], _, _, _) ->
+expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
+  assert_no_match_or_guard_scope(Meta, "for", S, E),
+
+  {Cases, Block} =
+    case elixir_utils:split_last(Args) of
+      {OuterCases, OuterOpts} when is_list(OuterOpts) ->
+        case elixir_utils:split_last(OuterCases) of
+          {InnerCases, InnerOpts} when is_list(InnerOpts) ->
+            {InnerCases, InnerOpts ++ OuterOpts};
+          _ ->
+            {OuterCases, OuterOpts}
+        end;
+      _ ->
+        {Args, []}
+    end,
+
+  validate_opts(Meta, for, [do, into, uniq, reduce], Block, E),
+
+  {Expr, Opts} =
+    case lists:keytake(do, 1, Block) of
+      {value, {do, Do}, DoOpts} ->
+        {Do, DoOpts};
+      false ->
+        form_error(Meta, E, ?MODULE, {missing_option, for, [do]})
+    end,
+
+  {EOpts, SO, EO} = expand(Opts, elixir_env:reset_unused_vars(S), E),
+  {ECases, SC, EC} = mapfold(fun expand_for_generator/3, SO, EO, Cases),
+  assert_generator_start(Meta, ECases, E),
+
+  {{EExpr, SE, EE}, NormalizedOpts} =
+    case validate_for_options(EOpts, false, false, false, Return, Meta, E, []) of
+      {ok, MaybeReduce, NOpts} -> {expand_for_do_block(Meta, Expr, SC, EC, MaybeReduce), NOpts};
+      {error, Error} -> {form_error(Meta, E, ?MODULE, Error), EOpts}
+    end,
+
+  {{for, Meta, ECases ++ [[{do, EExpr} | NormalizedOpts]]},
+   elixir_env:merge_and_check_unused_vars(SE, S, EE),
+   E}.
+
+validate_for_options([{into, _} = Pair | Opts], _Into, Uniq, Reduce, Return, Meta, E, Acc) ->
+  validate_for_options(Opts, Pair, Uniq, Reduce, Return, Meta, E, [Pair | Acc]);
+validate_for_options([{uniq, Boolean} = Pair | Opts], Into, _Uniq, Reduce, Return, Meta, E, Acc) when is_boolean(Boolean) ->
+  validate_for_options(Opts, Into, Pair, Reduce, Return, Meta, E, [Pair | Acc]);
+validate_for_options([{uniq, Value} | _], _, _, _, _, _, _, _) ->
   {error, {for_invalid_uniq, Value}};
-validate_for_options([{reduce, _} = Pair | Opts], Into, Uniq, _Reduce) ->
-  validate_for_options(Opts, Into, Uniq, Pair);
-validate_for_options([], Into, Uniq, {reduce, _}) when Into /= false; Uniq /= false ->
+validate_for_options([{reduce, _} = Pair | Opts], Into, Uniq, _Reduce, Return, Meta, E, Acc) ->
+  validate_for_options(Opts, Into, Uniq, Pair, Return, Meta, E, [Pair | Acc]);
+validate_for_options([], Into, Uniq, {reduce, _}, _Return, _Meta, _E, _Acc) when Into /= false; Uniq /= false ->
   {error, for_conflicting_reduce_into_uniq};
-validate_for_options([], _Into, _Uniq, Reduce) ->
-  {ok, Reduce}.
+validate_for_options([], _Into = false, Uniq, Reduce = false, Return = true, Meta, E, Acc) ->
+  Pair = {into, []},
+  validate_for_options([Pair], Pair, Uniq, Reduce, Return, Meta, E, Acc);
+validate_for_options([], Into = false, {uniq, true}, Reduce = false, Return = false, Meta, E, Acc) ->
+  elixir_errors:form_warn(Meta, E, ?MODULE, for_with_unused_uniq),
+  AccWithoutUniq = lists:keydelete(uniq, 1, Acc),
+  validate_for_options([], Into, false, Reduce, Return, Meta, E, AccWithoutUniq);
+validate_for_options([], _Into, _Uniq, Reduce, _Return, _Meta, _E, Acc) ->
+  {ok, Reduce, lists:reverse(Acc)}.
 
 expand_for_do_block(Meta, [{'->', _, _} | _], _S, E, false) ->
   form_error(Meta, E, ?MODULE, for_without_reduce_bad_block);
@@ -1031,12 +1047,12 @@ expand_aliases({'__aliases__', Meta, _} = Alias, S, E, Report) ->
 
 %% Comprehensions
 
-expand_for({'<-', Meta, [Left, Right]}, S, E) ->
+expand_for_generator({'<-', Meta, [Left, Right]}, S, E) ->
   {ERight, SR, ER} = expand(Right, S, E),
   SM = elixir_env:reset_read(SR, S),
   {[ELeft], SL, EL} = elixir_clauses:head([Left], SM, ER),
   {{'<-', Meta, [ELeft, ERight]}, SL, EL};
-expand_for({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
+expand_for_generator({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
   case elixir_utils:split_last(Args) of
     {LeftStart, {'<-', OpMeta, [LeftEnd, Right]}} ->
       {ERight, SR, ER} = expand(Right, S, E),
@@ -1048,7 +1064,7 @@ expand_for({'<<>>', Meta, Args} = X, S, E) when is_list(Args) ->
     _ ->
       expand(X, S, E)
   end;
-expand_for(X, S, E) ->
+expand_for_generator(X, S, E) ->
   expand(X, S, E).
 
 assert_generator_start(_, [{'<-', _, [_, _]} | _], _) ->
@@ -1170,6 +1186,8 @@ format_error(for_without_reduce_bad_block) ->
   "the do block was written using acc -> expr clauses but the :reduce option was not given";
 format_error(for_generator_start) ->
   "for comprehensions must start with a generator";
+format_error(for_with_unused_uniq) ->
+  "the :uniq option has no effect since the result of the for comprehension is not used";
 format_error(unhandled_arrow_op) ->
   "unhandled operator ->";
 format_error(as_in_multi_alias_call) ->

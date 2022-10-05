@@ -1,13 +1,13 @@
 -module(elixir_erl_for).
--export([translate/4]).
+-export([translate/3]).
 -include("elixir.hrl").
 
-translate(Meta, Args, Return, S) ->
+translate(Meta, Args, S) ->
   {Cases, [{do, Expr} | Opts]} = elixir_utils:split_last(Args),
 
   case lists:keyfind(reduce, 1, Opts) of
     {reduce, Reduce} -> translate_reduce(Meta, Cases, Expr, Reduce, S);
-    false -> translate_into(Meta, Cases, Expr, Opts, Return, S)
+    false -> translate_into(Meta, Cases, Expr, Opts, S)
   end.
 
 translate_reduce(Meta, Cases, Expr, Reduce, S) ->
@@ -23,14 +23,13 @@ translate_reduce(Meta, Cases, Expr, Reduce, S) ->
 
   build_reduce(Ann, TCases, InnerFun, TExpr, TReduce, false, SE).
 
-translate_into(Meta, Cases, Expr, Opts, Return, S) ->
+translate_into(Meta, Cases, Expr, Opts, S) ->
   Ann = ?ann(Meta),
 
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of
       {into, Into} -> elixir_erl_pass:translate(Into, Ann, S);
-      false when Return -> {{nil, Ann}, S};
-      false -> {false, S}
+      false -> {{nil, Ann}, S}
     end,
 
   TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
