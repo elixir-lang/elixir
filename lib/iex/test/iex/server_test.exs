@@ -76,9 +76,11 @@ defmodule IEx.ServerTest do
         reply2 = Task.await(server2)
 
         {accepted, refused} =
-          if reply1 =~ "pry(1)> :inside_pry", do: {reply1, reply2}, else: {reply2, reply1}
+          if reply1 =~ "pry(1)>", do: {reply1, reply2}, else: {reply2, reply1}
 
-        assert accepted =~ "pry(1)> :inside_pry"
+        assert accepted =~ "pry(1)>"
+        assert accepted =~ ":inside_pry"
+        refute refused =~ "pry(1)>"
         assert refused =~ "** session was already accepted elsewhere"
         assert refused =~ "undefined function iex_context"
 
