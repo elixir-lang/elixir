@@ -29,16 +29,18 @@ defmodule Logger.Translator do
   and the default messages translated by Logger.
   """
 
-  @type result ::
-          {:ok, iodata, keyword}
-          | {:ok, iodata}
-          | :skip
-          | :none
+  @doc """
+  Callback for translating a logger message.
+  """
+  @callback translate(Logger.level(), Logger.level(), :format | :report, :logger.report()) ::
+              {:ok, iodata, keyword}
+              | {:ok, iodata}
+              | :skip
+              | :none
 
   @doc """
   Built-in translation function.
   """
-  @spec translate(Logger.level(), Logger.level(), :format | :report, :logger.report()) :: result
   def translate(min_level, level, kind, message)
 
   def translate(min_level, _level, :report, {:logger, %{label: label} = report}) do
