@@ -403,6 +403,18 @@ defmodule Kernel do
   use `Float.ceil/2` instead.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> ceil(10)
+      10
+
+      iex> ceil(10.1)
+      11
+
+      iex> ceil(-10.1)
+      -10
+
   """
   @doc since: "1.8.0", guard: true
   @spec ceil(number) :: integer
@@ -518,6 +530,18 @@ defmodule Kernel do
   use `Float.floor/2` instead.
 
   Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> floor(10)
+      10
+
+      iex> floor(9.7)
+      9
+
+      iex> floor(-9.7)
+      -10
+
   """
   @doc since: "1.8.0", guard: true
   @spec floor(number) :: integer
