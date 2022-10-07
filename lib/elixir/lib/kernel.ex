@@ -5795,7 +5795,7 @@ defmodule Kernel do
   """
   defmacro defdelegate(funs, opts) do
     funs = Macro.escape(funs, unquote: true)
-    opts = Macro.expand_literal(opts, %{__CALLER__ | function: {:__info__, 1}})
+    opts = Macro.expand_literals(opts, %{__CALLER__ | function: {:__info__, 1}})
 
     quote bind_quoted: [funs: funs, opts: opts] do
       target = Kernel.Utils.defdelegate_all(funs, opts, __ENV__)

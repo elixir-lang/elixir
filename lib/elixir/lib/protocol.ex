@@ -931,7 +931,7 @@ defmodule Protocol do
           raise ArgumentError, "defimpl/3 expects a :for option when declared outside a module"
       end)
 
-    for = Macro.expand_literal(for, %{env | module: Kernel, function: {:defimpl, 3}})
+    for = Macro.expand_literals(for, %{env | module: Kernel, function: {:defimpl, 3}})
 
     case opts do
       [] -> raise ArgumentError, "defimpl expects a do-end block"
