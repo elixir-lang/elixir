@@ -107,6 +107,18 @@ defmodule Mix.Dep.Converger do
     diverged? = Enum.any?(deps, &Mix.Dep.diverged?/1)
     use_remote? = !!remote and Enum.any?(deps, &remote.remote?/1)
 
+    # Add dependencies of git dependencies to lockfile
+    lock =
+      Enum.into(lock, %{})
+      |> Map.merge(
+        Enum.into(
+          for %Mix.Dep{scm: Mix.SCM.Git, deps: nested} = dep when nested != [] <- deps do
+            Mix.SCM.Git.to_lock(dep)
+          end,
+          %{}
+        )
+      )
+
     if not diverged? and use_remote? do
       # Make sure there are no cycles before calling remote converge
       topological_sort(deps)

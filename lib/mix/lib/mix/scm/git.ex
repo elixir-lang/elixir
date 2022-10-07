@@ -118,6 +118,26 @@ defmodule Mix.SCM.Git do
     File.cd!(path, fn -> checkout(path, opts) end)
   end
 
+  def fetch(opts) do
+    if checked_out?(opts) do
+      Mix.shell().info("* Updating #{opts[:git]}")
+      update(opts)
+    else
+      Mix.shell().info("* Getting #{opts[:git]}")
+      checkout(opts)
+    end
+  end
+
+  def locked(opts) do
+    if checked_out?(opts) do
+      path = opts[:checkout]
+      File.cd!(path, fn -> get_lock(opts) end)
+    else
+      Mix.shell().info("* Getting #{opts[:git]}")
+      checkout(opts)
+    end
+  end
+
   defp checkout(_path, opts) do
     Mix.shell().print_app()
 
@@ -352,4 +372,31 @@ defmodule Mix.SCM.Git do
     {int, _} = Integer.parse(string)
     int
   end
+
+  @doc """
+  Takes a Dep struct (or list of them) and returns them as a
+  lock of Git packages.
+  """
+  def to_lock(%Mix.Dep{scm: Mix.SCM.Git, app: app, deps: nested, opts: opts}) do
+    with {:git, git, rev, lock_opts} <- locked(opts) do
+      {app, {:git, git, rev, lock_opts, nested_locks(nested)}}
+    end
+  end
+
+  defp nested_locks(%Mix.Dep{scm: Mix.SCM.Git, app: app, opts: opts}) do
+    with {:git, git, _, lock_opts} <- locked(opts) do
+      {app, git, lock_opts ++ maybe_optional(opts[:optional])}
+    end
+  end
+
+  defp nested_locks(%Mix.Dep{scm: Hex.SCM, app: app, requirement: version, opts: opts}) do
+    {app, version, [hex: app, repo: opts[:repo]] ++ maybe_optional(opts[:optional])}
+  end
+
+  defp nested_locks(deps) when is_list(deps) do
+    Enum.map(deps, &nested_locks/1)
+  end
+
+  defp maybe_optional(true), do: [optional: true]
+  defp maybe_optional(_), do: []
 end
