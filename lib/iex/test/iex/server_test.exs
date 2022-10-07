@@ -75,8 +75,7 @@ defmodule IEx.ServerTest do
         reply1 = Task.await(server1)
         reply2 = Task.await(server2)
 
-        {accepted, refused} =
-          if reply1 =~ "pry(1)>", do: {reply1, reply2}, else: {reply2, reply1}
+        {accepted, refused} = if reply1 =~ "pry(1)>", do: {reply1, reply2}, else: {reply2, reply1}
 
         assert accepted =~ "pry(1)>"
         assert accepted =~ ":inside_pry"
