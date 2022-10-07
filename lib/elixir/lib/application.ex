@@ -532,7 +532,7 @@ defmodule Application do
       raise "Application.compile_env/3 cannot be called inside functions, only in the module body"
     end
 
-    key_or_path = Macro.expand_literal(key_or_path, %{__CALLER__ | function: {:__info__, 1}})
+    key_or_path = Macro.expand_literals(key_or_path, %{__CALLER__ | function: {:__info__, 1}})
 
     quote do
       Application.compile_env(__ENV__, unquote(app), unquote(key_or_path), unquote(default))
@@ -572,7 +572,7 @@ defmodule Application do
       raise "Application.compile_env!/2 cannot be called inside functions, only in the module body"
     end
 
-    key_or_path = Macro.expand_literal(key_or_path, %{__CALLER__ | function: {:__info__, 1}})
+    key_or_path = Macro.expand_literals(key_or_path, %{__CALLER__ | function: {:__info__, 1}})
 
     quote do
       Application.compile_env!(__ENV__, unquote(app), unquote(key_or_path))
