@@ -3590,31 +3590,29 @@ defmodule Kernel do
   defp collect_traces(:after_verify, arg, _env), do: {arg, []}
   defp collect_traces(:on_definition, arg, _env), do: {arg, []}
 
-  defp collect_traces(_name, arg, env) do
-    case is_pid(env.lexical_tracker) and Macro.quoted_literal?(arg) do
-      true ->
-        env = %{env | function: {:__info__, 1}}
+  defp collect_traces(_name, arg, %{lexical_tracker: pid} = env) when is_pid(pid) do
+    env = %{env | function: {:__info__, 1}}
 
-        {arg, aliases} =
-          Macro.prewalk(arg, %{}, fn
-            {:__aliases__, _, _} = alias, acc ->
-              case Macro.expand(alias, env) do
-                atom when is_atom(atom) -> {atom, Map.put(acc, atom, [])}
-                _ -> {alias, acc}
-              end
+    {arg, aliases} =
+      Macro.expand_literals(arg, %{}, fn
+        {:__aliases__, _, _} = alias, acc ->
+          case Macro.expand(alias, env) do
+            atom when is_atom(atom) -> {atom, Map.put(acc, atom, [])}
+            _ -> {alias, acc}
+          end
 
-            node, acc ->
-              {node, acc}
-          end)
+        node, acc ->
+          {Macro.expand(node, env), acc}
+      end)
 
-        case map_size(aliases) do
-          0 -> {arg, []}
-          _ -> {arg, [{env.line, env.lexical_tracker, env.tracers, :maps.keys(aliases)}]}
-        end
-
-      false ->
-        {arg, []}
+    case map_size(aliases) do
+      0 -> {arg, []}
+      _ -> {arg, [{env.line, env.lexical_tracker, env.tracers, :maps.keys(aliases)}]}
     end
+  end
+
+  defp collect_traces(_name, arg, _env) do
+    {arg, []}
   end
 
   defp typespec?(:type), do: true

@@ -269,9 +269,26 @@ defmodule MacroTest do
     assert expand_and_clean(quote(do: oror(1, false)), __ENV__) == quoted
   end
 
-  test "expand_literal" do
-    assert Macro.expand_literal(quote(do: Foo), __ENV__) == Foo
-    assert Macro.expand_literal(quote(do: Foo + Bar), __ENV__) == quote(do: Foo + Bar)
+  test "expand_literals/2" do
+    assert Macro.expand_literals(quote(do: Foo), __ENV__) == Foo
+    assert Macro.expand_literals(quote(do: Foo + Bar), __ENV__) == quote(do: Foo + Bar)
+    assert Macro.expand_literals(quote(do: __MODULE__), __ENV__) == __MODULE__
+    assert Macro.expand_literals(quote(do: __MODULE__.Foo), __ENV__) == __MODULE__.Foo
+    assert Macro.expand_literals(quote(do: [Foo, 1 + 2]), __ENV__) == [Foo, quote(do: 1 + 2)]
+  end
+
+  test "expand_literals/3" do
+    fun = fn node, acc ->
+      expanded = Macro.expand(node, __ENV__)
+      {expanded, [expanded | acc]}
+    end
+
+    assert Macro.expand_literals(quote(do: Foo), [], fun) == {Foo, [Foo]}
+    assert Macro.expand_literals(quote(do: Foo + Bar), [], fun) == {quote(do: Foo + Bar), []}
+    assert Macro.expand_literals(quote(do: __MODULE__), [], fun) == {__MODULE__, [__MODULE__]}
+
+    assert Macro.expand_literals(quote(do: __MODULE__.Foo), [], fun) ==
+             {__MODULE__.Foo, [__MODULE__.Foo, __MODULE__]}
   end
 
   test "var/2" do
