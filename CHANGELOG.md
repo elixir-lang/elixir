@@ -241,6 +241,45 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
+## v1.14.1
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Perform partial expansion of literals in module attributes
+  * [Macro] Add `Macro.expand_literals/2` and `Macro.expand_literals/3`
+  * [System] Add `:close_stdin` to `System.shell/2`
+
+#### Mix
+
+  * [mix test] Accept `--all-warnings` option
+
+## 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Fix misleading warning when `:uniq` is given in `for` comprehensions and the result is unused
+  * [Kernel] Improve error message for when there is a conflicting struct and ignoring module conflict
+  * [Kernel] Do not delete `@enforce_keys` attribute after `defstruct` declaration
+  * [Kernel] Do not crash the checker on modules with missing `:debug_info` chunk
+  * [Macro] Fix error in `Macro.to_string/2` when converting an AST with `:erlang.binary_to_atom/2`
+  * [String] Fix `String.split/3` and `String.next_grapheme/1` returning invalid results on invalid UTF-8 encoding
+  * [System] Do not close stdin by default in `System.shell/2`
+  * [URI] Do not return `uri.port` as `:undefined` in certain cases in `URI.new/1`
+
+#### ExUnit
+
+  * [ExUnit.DocTest] Do not crash when both `:moduledoc` and functions are specified in `:only`
+
+#### IEx
+
+  * [CLI] Fix invalid argument handling when `--no-pry` is given
+
+#### Mix
+
+  * [mix format] Do not cache inputs from `.formatter.exs` so they are properly re-evaluted on every call
+
 ## v1.14.0 (2022-09-01)
 
 ### 1. Enhancements
@@ -287,7 +326,7 @@ the approaches and options available.
   * [Keyword] Add `Keyword.from_keys/2` and `Keyword.replace_lazy/3`
   * [List] Add `List.keysort/3` with support for a `sorter` function
   * [Macro] Add `Macro.classify_atom/1` and `Macro.inspect_atom/2`
-  * [Macro] Add `Macro.expand_literal/2` and `Macro.path/2`
+  * [Macro] Add `Macro.path/2`
   * [Macro.Env] Add `Macro.Env.prune_compile_info/1`
   * [Map] Add `Map.from_keys/2` and `Map.replace_lazy/3`
   * [MapSet] Add `MapSet.filter/2`, `MapSet.reject/2`, and `MapSet.symmetric_difference/2`
