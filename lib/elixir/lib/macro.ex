@@ -1966,41 +1966,94 @@ defmodule Macro do
 
   def quoted_literal?({:%{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({:{}, _, args}), do: quoted_literal?(args)
+  def quoted_literal?({:__MODULE__, _, ctx}) when is_atom(ctx), do: true
   def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
   def quoted_literal?(list) when is_list(list), do: :lists.all(&quoted_literal?/1, list)
   def quoted_literal?(term), do: is_atom(term) or is_number(term) or is_binary(term)
 
-  @doc """
-  Expands the `ast` representing a quoted literal within the given `env`.
+  @doc false
+  @deprecated "Use Macro.expand_literals/2 instead"
+  def expand_literal(ast, env) do
+    expand_literals(ast, env)
+  end
 
-  This function checks if the given AST represents a quoted literal
-  (using `quoted_literal?/1`) and then expands all relevant nodes.
-  If a literal node is not given, then it returns the AST as is.
-  At the moment, the only expandable literal nodes in an AST are
-  aliases, so this function only expands aliases.
+  @doc """
+  Expands all literals in `ast` with the given `env`.
 
   This function is mostly used to remove compile-time dependencies
   from AST nodes. In such cases, the given environment is usually
-  manipulate to represent a function:
+  manipulated to represent a function:
 
-      Macro.expand_literal(ast, %{env | function: {:my_code, 1}})
+      Macro.expand_literals(ast, %{env | function: {:my_code, 1}})
+
+  At the moment, the only expandable literal nodes in an AST are
+  aliases, so this function only expands aliases.
 
   However, be careful when removing compile-time dependencies between
   modules. If you remove them but you still invoke the module at
-  compile-time, you may end-up with broken behaviour.
+  compile-time, Elixir will be unable to properly recompile modules
+  when they change.
   """
-  @doc since: "1.14.0"
-  @spec expand_literal(t(), Macro.Env.t()) :: t()
-  def expand_literal(ast, env) do
-    if quoted_literal?(ast) do
-      prewalk(ast, fn
-        {:__aliases__, _, _} = alias -> expand(alias, env)
-        other -> other
-      end)
+  @doc since: "1.14.1"
+  @spec expand_literals(t(), Macro.Env.t()) :: t()
+  def expand_literals(ast, env) do
+    {ast, :ok} = expand_literals(ast, :ok, fn node, :ok -> {expand(node, env), :ok} end)
+    ast
+  end
+
+  @doc """
+  Expands all literals in `ast` with the given `acc` and `fun`.
+
+  `fun` will be invoked with an expandable AST node and `acc` and
+  must return a new node with `acc`. This is a general version of
+  `expand_literals/2` which supports a custom expansion function.
+  Please check `expand_literals/2` for use cases and pitfalls.
+  """
+  @doc since: "1.14.1"
+  @spec expand_literals(t(), acc, (t(), acc -> {t(), acc})) :: t() when acc: term()
+  def expand_literals(ast, acc, fun)
+
+  def expand_literals({:__aliases__, meta, args}, acc, fun) do
+    {args, acc} = expand_literals(args, acc, fun)
+
+    if :lists.all(&is_atom/1, args) do
+      fun.({:__aliases__, meta, args}, acc)
     else
-      ast
+      {{:__aliases__, meta, args}, acc}
     end
   end
+
+  def expand_literals({:__MODULE__, _meta, ctx} = node, acc, fun) when is_atom(ctx) do
+    fun.(node, acc)
+  end
+
+  def expand_literals({:%, meta, [left, right]}, acc, fun) do
+    {left, acc} = expand_literals(left, acc, fun)
+    {right, acc} = expand_literals(right, acc, fun)
+    {{:%, meta, [left, right]}, acc}
+  end
+
+  def expand_literals({:%{}, meta, args}, acc, fun) do
+    {args, acc} = expand_literals(args, acc, fun)
+    {{:%{}, meta, args}, acc}
+  end
+
+  def expand_literals({:{}, meta, args}, acc, fun) do
+    {args, acc} = expand_literals(args, acc, fun)
+    {{:{}, meta, args}, acc}
+  end
+
+  def expand_literals({left, right}, acc, fun) do
+    {left, acc} = expand_literals(left, acc, fun)
+    {right, acc} = expand_literals(right, acc, fun)
+    {{left, right}, acc}
+  end
+
+  def expand_literals(list, acc, fun) when is_list(list) do
+    :lists.mapfoldl(&expand_literals(&1, &2, fun), acc, list)
+  end
+
+  def expand_literals(term, acc, _fun), do: {term, acc}
 
   @doc """
   Receives an AST node and expands it until it can no longer

@@ -162,7 +162,7 @@ defmodule Kernel.LexicalTrackerTest do
       {{compile, _, _, _}, _binding} =
         Code.eval_string("""
         defmodule Kernel.LexicalTrackerTest.Attribute1 do
-          @example [String, Enum]
+          @example [String, Enum, 3 + 10]
           def foo(atom) when atom in @example, do: atom
           Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
         end |> elem(3)
