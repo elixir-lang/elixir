@@ -30,6 +30,15 @@ defmodule Logger.Translator do
   """
 
   @doc """
+  Callback for translating a logger message.
+  """
+  @callback translate(Logger.level(), Logger.level(), :format | :report, :logger.report()) ::
+              {:ok, iodata, keyword}
+              | {:ok, iodata}
+              | :skip
+              | :none
+
+  @doc """
   Built-in translation function.
   """
   def translate(min_level, level, kind, message)
