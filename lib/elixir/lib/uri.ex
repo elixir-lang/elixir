@@ -942,7 +942,7 @@ defmodule URI do
 
   defp join_reversed_segments(segments) do
     case Enum.reverse(segments) do
-      [:/, head | tail] -> ["", head | tail]
+      [:/ | tail] -> ["" | tail]
       list -> list
     end
     |> Enum.join("/")
