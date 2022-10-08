@@ -473,9 +473,12 @@ tokenize([T1, T2 | Rest], Line, Column, Scope, Tokens) when ?stab_op(T1, T2) ->
 
 % ## Single Token Operators
 
-tokenize([T | Rest], Line, Column, Scope, Tokens) when ?capture_op(T) ->
+tokenize([$& | Rest], Line, Column, Scope, Tokens) ->
   Kind =
     case strip_horizontal_space(Rest, 0) of
+      {[Int | _], 0} when ?is_digit(Int) ->
+        capture_int;
+
       {[$/ | NewRest], _} ->
         case strip_horizontal_space(NewRest, 0) of
           {[$/ | _], _} -> capture_op;

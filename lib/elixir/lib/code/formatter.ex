@@ -947,10 +947,10 @@ defmodule Code.Formatter do
   defp capture_to_algebra(arg, context, state) do
     {doc, state} = capture_target_to_algebra(arg, context, state)
 
-    if doc |> format_to_string() |> String.starts_with?("&") do
-      {concat("& ", doc), state}
-    else
-      {concat("&", doc), state}
+    case format_to_string(doc) do
+      <<"&", _::binary>> -> {concat("& ", doc), state}
+      <<int, _::binary>> when int in ?0..?9 -> {concat("& ", doc), state}
+      _ -> {concat("&", doc), state}
     end
   end
 
