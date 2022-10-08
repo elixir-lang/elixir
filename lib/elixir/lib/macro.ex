@@ -2054,13 +2054,13 @@ defmodule Macro do
   end
 
   def expand_literals(
-        {{:., _, [{:__aliases__, _, [:Application]}, :compile_env]}, _, [app, key, default]} =
-          node,
+        {{:., _, [{:__aliases__, _, [:Application]}, :compile_env]} = node, meta,
+         [app, key, default]},
         acc,
         fun
       ) do
     {default, acc} = expand_literals(default, acc, fun)
-    {put_elem(node, 2, [app, key, default]), acc}
+    {{node, meta, [app, key, default]}, acc}
   end
 
   def expand_literals(term, acc, _fun), do: {term, acc}
