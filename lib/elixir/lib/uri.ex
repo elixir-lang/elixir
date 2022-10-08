@@ -910,37 +910,42 @@ defmodule URI do
   defp merge_paths(_, "/" <> _ = rel_path), do: remove_dot_segments_from_path(rel_path)
 
   defp merge_paths(base_path, rel_path) do
-    [_ | base_segments] = path_to_segments(base_path)
-
-    path_to_segments(rel_path)
-    |> Kernel.++(base_segments)
+    (path_to_segments(base_path) ++ [:+] ++ path_to_segments(rel_path))
     |> remove_dot_segments([])
-    |> Enum.join("/")
+    |> join_reversed_segments()
   end
 
-  defp remove_dot_segments_from_path(nil) do
-    nil
-  end
+  defp remove_dot_segments_from_path(nil), do: nil
 
   defp remove_dot_segments_from_path(path) do
-    path
-    |> path_to_segments()
+    path_to_segments(path)
     |> remove_dot_segments([])
-    |> Enum.join("/")
+    |> join_reversed_segments()
   end
 
-  defp remove_dot_segments([], [head, ".." | acc]), do: remove_dot_segments([], [head | acc])
+  defp path_to_segments(path) do
+    case String.split(path, "/") do
+      ["" | tail] -> [:/ | tail]
+      segments -> segments
+    end
+  end
+
   defp remove_dot_segments([], acc), do: acc
+  defp remove_dot_segments([:/ | tail], acc), do: remove_dot_segments(tail, [:/ | acc])
+  defp remove_dot_segments(["."], acc), do: remove_dot_segments([], ["" | acc])
   defp remove_dot_segments(["." | tail], acc), do: remove_dot_segments(tail, acc)
-
-  defp remove_dot_segments([head | tail], ["..", ".." | _] = acc),
-    do: remove_dot_segments(tail, [head | acc])
-
-  defp remove_dot_segments(segments, [_, ".." | acc]), do: remove_dot_segments(segments, acc)
+  defp remove_dot_segments([".." | tail], [:/]), do: remove_dot_segments(tail, [:/])
+  defp remove_dot_segments([".."], [_ | acc]), do: remove_dot_segments([], ["" | acc])
+  defp remove_dot_segments([".." | tail], [_ | acc]), do: remove_dot_segments(tail, acc)
+  defp remove_dot_segments([_, :+ | tail], acc), do: remove_dot_segments(tail, acc)
   defp remove_dot_segments([head | tail], acc), do: remove_dot_segments(tail, [head | acc])
 
-  defp path_to_segments(path) do
-    path |> String.split("/") |> Enum.reverse()
+  defp join_reversed_segments(segments) do
+    case Enum.reverse(segments) do
+      [:/, head | tail] -> ["", head | tail]
+      list -> list
+    end
+    |> Enum.join("/")
   end
 
   @doc """
