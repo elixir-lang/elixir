@@ -871,6 +871,7 @@ defmodule Code.Formatter.OperatorsTest do
 
     test "with operators inside" do
       assert_format "& +1", "&(+1)"
+      assert_format "& 1[:foo]", "& 1[:foo]"
       assert_format "& not &1", "&(not &1)"
       assert_format "& a ++ b", "&(a ++ b)"
       assert_format "& &1 && &2", "&(&1 && &2)"

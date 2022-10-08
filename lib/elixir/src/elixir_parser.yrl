@@ -34,7 +34,7 @@ Terminals
   bin_heredoc list_heredoc
   comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
   type_op dual_op mult_op power_op concat_op range_op xor_op pipe_op stab_op when_op
-  assoc_op capture_op rel_op ternary_op dot_call_op
+  capture_int capture_op assoc_op rel_op ternary_op dot_call_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
   '(' ')' '[' ']' '{' '}' '<<' '>>' '%{}' '%'
   int flt char
@@ -250,7 +250,7 @@ no_parens_zero_expr -> dot_identifier : build_no_parens('$1', nil).
 %% marks identifiers followed by brackets as bracket_identifier.
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
-access_expr -> capture_op_eol int : build_unary_op('$1', number_value('$2')).
+access_expr -> capture_int int : build_unary_op('$1', number_value('$2')).
 access_expr -> fn_eoe stab end_eoe : build_fn('$1', '$2', '$3').
 access_expr -> open_paren stab close_paren : build_stab('$1', '$2', '$3').
 access_expr -> open_paren stab ';' close_paren : build_stab('$1', '$2', '$4').

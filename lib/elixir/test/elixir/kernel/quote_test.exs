@@ -322,9 +322,14 @@ defmodule Kernel.QuoteTest do
                 end
               end)
   end
+
+  test "capture" do
+    assert Code.string_to_quoted!("&1[:foo]") == Code.string_to_quoted!("(&1)[:foo]")
+    assert Code.string_to_quoted!("&1 [:foo]") == Code.string_to_quoted!("(&1)[:foo]")
+    assert Code.string_to_quoted!("& 1[:foo]") == Code.string_to_quoted!("&(1[:foo])")
+  end
 end
 
-# DO NOT MOVE THIS LINE
 defmodule Kernel.QuoteTest.Errors do
   def line, do: __ENV__.line + 4
 
