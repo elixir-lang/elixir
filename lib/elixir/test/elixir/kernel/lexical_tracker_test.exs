@@ -226,6 +226,17 @@ defmodule Kernel.LexicalTrackerTest do
 
       assert String in compile
       assert Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute6 do
+          @example Application.compile_env(:elixir, __MODULE__, String)
+          def foo(atom) when atom == @example, do: atom
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute String in compile
     end
 
     test "@compile adds a runtime dependency" do
