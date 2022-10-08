@@ -259,6 +259,7 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
+    @tag :unix
     test "does not exit on compilation failure" do
       in_fixture("test_stale", fn ->
         File.write!("lib/b.ex", """
