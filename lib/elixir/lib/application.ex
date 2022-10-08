@@ -533,7 +533,6 @@ defmodule Application do
     end
 
     key_or_path = Macro.expand_literals(key_or_path, %{__CALLER__ | function: {:__info__, 1}})
-    default = Macro.expand_literals(default, %{__CALLER__ | function: {:__info__, 1}})
 
     quote do
       Application.compile_env(__ENV__, unquote(app), unquote(key_or_path), unquote(default))
