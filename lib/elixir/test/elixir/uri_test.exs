@@ -425,6 +425,88 @@ defmodule URITest do
              "https://images.example.com/t/1600x/https://images.example.com/foo.jpg"
   end
 
+  test "merge/2 (with RFC examples)" do
+    # These are examples from:
+    #
+    # https://www.rfc-editor.org/rfc/rfc3986#section-5.4.1
+    # https://www.rfc-editor.org/rfc/rfc3986#section-5.4.2
+    #
+    # They are taken verbatim from the above document for easy comparison
+
+    base = "http://a/b/c/d;p?q"
+
+    rel_and_result_list =
+      ~S{
+      "g:h"           =  "g:h"
+      "g"             =  "http://a/b/c/g"
+      "./g"           =  "http://a/b/c/g"
+      "g/"            =  "http://a/b/c/g/"
+      "/g"            =  "http://a/g"
+      "//g"           =  "http://g"
+      "?y"            =  "http://a/b/c/d;p?y"
+      "g?y"           =  "http://a/b/c/g?y"
+      "#s"            =  "http://a/b/c/d;p?q#s"
+      "g#s"           =  "http://a/b/c/g#s"
+      "g?y#s"         =  "http://a/b/c/g?y#s"
+      ";x"            =  "http://a/b/c/;x"
+      "g;x"           =  "http://a/b/c/g;x"
+      "g;x?y#s"       =  "http://a/b/c/g;x?y#s"
+      ""              =  "http://a/b/c/d;p?q"
+      "."             =  "http://a/b/c/"
+      "./"            =  "http://a/b/c/"
+      ".."            =  "http://a/b/"
+      "../"           =  "http://a/b/"
+      "../g"          =  "http://a/b/g"
+      "../.."         =  "http://a/"
+      "../../"        =  "http://a/"
+      "../../g"       =  "http://a/g"
+      "../../../g"    =  "http://a/g"
+      "../../../../g" =  "http://a/g"
+      "../../../g"    =  "http://a/g"
+      "../../../../g" =  "http://a/g"
+      "/./g"          =  "http://a/g"
+      "/../g"         =  "http://a/g"
+      "g."            =  "http://a/b/c/g."
+      ".g"            =  "http://a/b/c/.g"
+      "g.."           =  "http://a/b/c/g.."
+      "..g"           =  "http://a/b/c/..g"
+      "./../g"        =  "http://a/b/g"
+      "./g/."         =  "http://a/b/c/g/"
+      "g/./h"         =  "http://a/b/c/g/h"
+      "g/../h"        =  "http://a/b/c/h"
+      "g;x=1/./y"     =  "http://a/b/c/g;x=1/y"
+      "g;x=1/../y"    =  "http://a/b/c/y"
+      "g?y/./x"       =  "http://a/b/c/g?y/./x"
+      "g?y/../x"      =  "http://a/b/c/g?y/../x"
+      "g#s/./x"       =  "http://a/b/c/g#s/./x"
+      "g#s/../x"      =  "http://a/b/c/g#s/../x"
+      "http:g"        =  "http:g"
+      }
+      |> String.split("\n")
+      |> Enum.map(&String.trim/1)
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.map(fn line ->
+        String.split(line, ~r{\s=\s})
+        |> Enum.map(&String.trim/1)
+        |> Enum.map(&String.trim_leading(&1, ~s{"}))
+        |> Enum.map(&String.trim_trailing(&1, ~s{"}))
+      end)
+
+    rel_and_result_list
+    |> Enum.map(fn [rel, expected] ->
+      actual = to_string(URI.merge(base, rel))
+
+      {rel, expected, actual}
+    end)
+    |> Enum.filter(fn
+      {_, x, x} -> false
+      _else -> true
+    end)
+    |> then(fn failed ->
+      assert failed == []
+    end)
+  end
+
   test "append_query/2" do
     assert URI.append_query(URI.parse("http://example.com/?x=1"), "x=2").query == "x=1&x=2"
     assert URI.append_query(URI.parse("http://example.com/?x=1&"), "x=2").query == "x=1&x=2"
