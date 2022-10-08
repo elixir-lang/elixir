@@ -2053,6 +2053,16 @@ defmodule Macro do
     :lists.mapfoldl(&expand_literals(&1, &2, fun), acc, list)
   end
 
+  def expand_literals(
+        {{:., _, [{:__aliases__, _, [:Application]}, :compile_env]}, _, [app, key, default]} =
+          node,
+        acc,
+        fun
+      ) do
+    {default, acc} = expand_literals(default, acc, fun)
+    {put_elem(node, 2, [app, key, default]), acc}
+  end
+
   def expand_literals(term, acc, _fun), do: {term, acc}
 
   @doc """

@@ -3635,16 +3635,6 @@ defmodule Kernel do
   defp collect_traces(_name, arg, %{lexical_tracker: pid} = env) when is_pid(pid) do
     env = %{env | function: {:__info__, 1}}
 
-    arg =
-      case arg do
-        {{:., _, [{:__aliases__, _, [:Application]}, :compile_env]}, _, [app, key, default]} ->
-          default = Macro.expand_literals(default, env)
-          put_elem(arg, 2, [app, key, default])
-
-        arg ->
-          arg
-      end
-
     {arg, aliases} =
       Macro.expand_literals(arg, %{}, fn
         {:__aliases__, _, _} = alias, acc ->
