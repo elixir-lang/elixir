@@ -12,19 +12,27 @@ This release requires Erlang/OTP 24 and later.
   * [Inspect] `Inspect` now renders `'charlists'` as `~c"charlists"` by default
   * [Kernel] Add `t:nonempty_binary/0` and `t:nonempty_bitstring/0`
   * [Kernel] Treat `@behaviour`s as runtime dependencies
+  * [Kernel] Warn for nested calls without parens inside keywords
   * [Kernel.CLI] Support `--sname undefined`/`--name undefined` so a name is automatically generated
   * [Keyword] Add `Keyword.split_with/2`
   * [Map] Add `Map.split_with/2`
   * [MapSet] Add `MapSet.split_with/2`
   * [Process] Add `Process.alias/0,1` and `Process.unalias/1`
+  * [Range] Add `Range.split/2`
   * [Sets] Optimize many functions in `MapSet`
   * [String] Update Unicode to version 15.0.0
   * [Supervisor] Add support for automatic shutdown in `Supervisor`
+  * [Task] Remove head blocking on `Task.yield_many/2`
+
+#### ExUnit
+
+  * [ExUnit.Doctest] Add `ExUnit.DocTest.doctest_file/2`
 
 #### Mix
 
   * [mix compile.app] Write `optional_applications` to .app file
   * [mix deps.get] Automatically install Hex and Rebar on `mix deps.get`/`mix deps.update`
+  * [mix deps.get] Support `--check-locked` which raises if changes to the lockfile are required
   * [mix format] Allow multiple formatters per file extension and sigil
   * [mix format] Show diffs whenever `--check-formatted` fails
 
@@ -32,7 +40,9 @@ This release requires Erlang/OTP 24 and later.
 
 #### Elixir
 
+  * [File] Do not raise if there are file system race conditions in `File.cp/2`
   * [Kernel.ParallelCompiler] Make sure compiler doesn't crash when there are stray messages in the inbox
+  * [URI] Make sure `URI.merge/2` works accordingly with relative paths
 
 #### ExUnit
 
