@@ -9,9 +9,9 @@ defmodule Mix.Tasks.Deps.Get do
 
   ## Command line options
 
-    * `--only` - only fetches dependencies for given environment
+    * `--check-locked` - raises if there are pending changes to the lockfile
     * `--no-archives-check` - does not check archives before fetching deps
-    * `--check-locked` - does not update lockfile. Exits non-zero if there are going to be changes in the lockfile
+    * `--only` - only fetches dependencies for given environment
 
   """
 
