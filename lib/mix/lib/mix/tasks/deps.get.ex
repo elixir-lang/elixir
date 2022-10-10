@@ -9,8 +9,9 @@ defmodule Mix.Tasks.Deps.Get do
 
   ## Command line options
 
-    * `--only` - only fetches dependencies for given environment
+    * `--check-locked` - raises if there are pending changes to the lockfile
     * `--no-archives-check` - does not check archives before fetching deps
+    * `--only` - only fetches dependencies for given environment
 
   """
 
@@ -21,10 +22,12 @@ defmodule Mix.Tasks.Deps.Get do
     end
 
     Mix.Project.get!()
-    {opts, _, _} = OptionParser.parse(args, switches: [only: :string, target: :string])
+
+    {opts, _, _} =
+      OptionParser.parse(args, switches: [only: :string, target: :string, check_locked: :boolean])
 
     fetch_opts =
-      for {switch, key} <- [only: :env, target: :target],
+      for {switch, key} <- [only: :env, target: :target, check_locked: :check_locked],
           value = opts[switch],
           do: {key, :"#{value}"}
 
