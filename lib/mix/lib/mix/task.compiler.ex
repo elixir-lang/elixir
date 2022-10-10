@@ -106,6 +106,10 @@ defmodule Mix.Task.Compiler do
   it receives a tuple with current status and the list
   of diagnostic. It must return the updated status and
   diagnostics.
+
+  If the given compiler does not run (for instance,
+  because an earlier compiler in the stack has aborted),
+  the callback will not be executed.
   """
   @doc since: "1.10.0"
   @spec after_compiler(atom, ({status, [Diagnostic.t()]} -> {status, [Diagnostic.t()]})) :: :ok
