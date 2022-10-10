@@ -19,6 +19,20 @@ defmodule Mix.CLITest do
     end)
   end
 
+  test "custom default task" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("mix.exs", """
+      defmodule P do
+        use Mix.Project
+        def cli, do: [default_task: "oops"]
+        def project, do: [app: :p, version: "0.1.0"]
+      end
+      """)
+
+      assert mix(~w[]) =~ "The task \"oops\" could not be found"
+    end)
+  end
+
   test "Mix.raise/2 can set exit status", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
       File.mkdir_p!("lib")
@@ -102,7 +116,7 @@ defmodule Mix.CLITest do
     end)
   end
 
-  test "tasks with slashes in them raise a NoTaskError right away", %{tmp_dir: tmp_dir} do
+  test "tasks with slashes raise NoTaskError", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
       contents = mix(~w[my/task])
       assert contents =~ "** (Mix) The task \"my/task\" could not be found"
@@ -124,7 +138,7 @@ defmodule Mix.CLITest do
     end)
   end
 
-  test "env config", %{tmp_dir: tmp_dir} do
+  test "env var config", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
       File.write!("custom.exs", """
       defmodule P do
@@ -134,56 +148,62 @@ defmodule Mix.CLITest do
       """)
 
       System.put_env("MIX_ENV", "prod")
+      System.put_env("MIX_TARGET", "rpi")
       System.put_env("MIX_EXS", "custom.exs")
 
-      output = mix(["run", "-e", "IO.inspect {Mix.env(), System.argv()}", "--", "1", "2", "3"])
-      assert output =~ ~s({:prod, ["1", "2", "3"]})
+      inspect = "IO.inspect {Mix.env(), Mix.target(), System.argv()}"
+      output = mix(["run", "-e", inspect, "--", "1", "2", "3"])
+      assert output =~ ~s({:prod, :rpi, ["1", "2", "3"]})
     end)
   after
     System.delete_env("MIX_ENV")
+    System.delete_env("MIX_TARGET")
     System.delete_env("MIX_EXS")
   end
 
-  test "env config defaults to the tasks's preferred cli environment", %{tmp_dir: tmp_dir} do
+  test "cli config", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
       File.write!("custom.exs", """
       defmodule P do
         use Mix.Project
         def project, do: [app: :p, version: "0.1.0"]
-      end
-
-      defmodule Mix.Tasks.TestTask do
-        use Mix.Task
-        @preferred_cli_env :prod
-
-        def run(args) do
-          IO.inspect {Mix.env(), args}
-        end
+        def cli, do: [default_env: :prod, default_target: :rpi]
       end
       """)
 
       System.put_env("MIX_EXS", "custom.exs")
 
-      output = mix(["test_task", "a", "b", "c"])
-      assert output =~ ~s({:prod, ["a", "b", "c"]})
+      inspect = "IO.inspect {Mix.env(), Mix.target(), System.argv()}"
+      output = mix(["run", "-e", inspect, "--", "1", "2", "3"])
+      assert output =~ ~s({:prod, :rpi, ["1", "2", "3"]})
     end)
   after
     System.delete_env("MIX_EXS")
   end
 
-  test "target config defaults to the user's preferred cli target", %{tmp_dir: tmp_dir} do
+  test "preferred cli config", %{tmp_dir: tmp_dir} do
     File.cd!(tmp_dir, fn ->
       File.write!("custom.exs", """
       defmodule P do
         use Mix.Project
-        def project, do: [app: :p, version: "0.1.0", preferred_cli_target: [test_task: :other]]
+
+        def cli do
+          [
+            default_env: :not_prod,
+            default_target: :not_rpi,
+            preferred_envs: [test_task: :prod],
+            preferred_targets: [test_task: :rpi]
+          ]
+        end
+
+        def project, do: [app: :p, version: "0.1.0"]
       end
 
       defmodule Mix.Tasks.TestTask do
         use Mix.Task
 
         def run(args) do
-          IO.inspect {Mix.target, args}
+          IO.inspect {Mix.env(), Mix.target(), args}
         end
       end
       """)
@@ -191,7 +211,7 @@ defmodule Mix.CLITest do
       System.put_env("MIX_EXS", "custom.exs")
 
       output = mix(["test_task", "a", "b", "c"])
-      assert output =~ ~s({:other, ["a", "b", "c"]})
+      assert output =~ ~s({:prod, :rpi, ["a", "b", "c"]})
     end)
   after
     System.delete_env("MIX_EXS")
@@ -210,9 +230,8 @@ defmodule Mix.CLITest do
       System.put_env("MIX_TARGET", "")
       System.put_env("MIX_EXS", "custom.exs")
 
-      output =
-        mix(["run", "-e", "IO.inspect {Mix.env(), Mix.target(), System.argv()}", "--", "a", "b"])
-
+      inspect = "IO.inspect {Mix.env(), Mix.target(), System.argv()}"
+      output = mix(["run", "-e", inspect, "--", "a", "b"])
       assert output =~ ~s({:dev, :host, ["a", "b"]})
     end)
   after
