@@ -32,7 +32,7 @@ defmodule Mix.Dep.Lock do
 
     unless map == read() do
       if Keyword.get(opts, :check_locked, false) do
-        Mix.raise("Your #{lockfile} needs to be updated")
+        Mix.raise("Your #{lockfile} is out of date and must be updated without the --check-locked flag")
       end
 
       lines =
