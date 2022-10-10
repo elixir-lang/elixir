@@ -241,13 +241,14 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
-## v1.14.1
+## v1.14.1 (2022-10-10)
 
 ### 1. Enhancements
 
 #### Elixir
 
   * [Kernel] Perform partial expansion of literals in module attributes
+  * [Kernel] Do not add compile-time dependencies for literals as defaults in `Application.compile_env/3` inside module attributes
   * [Macro] Add `Macro.expand_literals/2` and `Macro.expand_literals/3`
   * [System] Add `:close_stdin` to `System.shell/2`
 
