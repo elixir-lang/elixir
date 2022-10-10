@@ -42,6 +42,20 @@ defmodule Mix.Dep.LockTest do
     end)
   end
 
+  test "raises a proper error if check_locked opt is true and there are changes", context do
+    in_tmp(context.test, fn ->
+      Mix.Dep.Lock.write(%{foo: :bar})
+
+      Mix.Dep.Lock.write(%{foo: :bar}, check_locked: true)
+
+      assert_raise Mix.Error,
+                   ~r/Your mix\.lock is out of date and must be updated without the --check-locked flag/,
+                   fn ->
+                     Mix.Dep.Lock.write(%{foo: :bar, bar: :bat}, check_locked: true)
+                   end
+    end)
+  end
+
   test "raises a proper error for merge conflicts", context do
     in_tmp(context.test, fn ->
       File.write("mix.lock", ~S"""

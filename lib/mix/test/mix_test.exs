@@ -222,7 +222,7 @@ defmodule MixTest do
       Mix.Project.push(GitApp)
       [_latest_rev, rev | _] = get_git_repo_revs("git_repo")
       lockfile = Path.join(tmp_dir, "lock")
-      Mix.Dep.Lock.write(lockfile, %{git_repo: {:git, fixture_path("git_repo"), rev, []}})
+      Mix.Dep.Lock.write(%{git_repo: {:git, fixture_path("git_repo"), rev, []}}, file: lockfile)
       Mix.ProjectStack.pop()
 
       Mix.install(
@@ -256,7 +256,7 @@ defmodule MixTest do
 
       Mix.Project.push(GitApp)
       lockfile = Path.join(tmp_dir, "lock")
-      Mix.Dep.Lock.write(lockfile, %{git_repo: {:git, fixture_path("git_repo"), rev2, []}})
+      Mix.Dep.Lock.write(%{git_repo: {:git, fixture_path("git_repo"), rev2, []}}, file: lockfile)
       Mix.ProjectStack.pop()
 
       Mix.install(
