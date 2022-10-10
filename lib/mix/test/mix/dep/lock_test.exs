@@ -42,14 +42,14 @@ defmodule Mix.Dep.LockTest do
     end)
   end
 
-  test "raises a proper error if allow_updates opt is false and there are changes", context do
+  test "raises a proper error if check_locked opt is true and there are changes", context do
     in_tmp(context.test, fn ->
       Mix.Dep.Lock.write(%{foo: :bar})
 
-      Mix.Dep.Lock.write(%{foo: :bar}, allow_updates: false)
+      Mix.Dep.Lock.write(%{foo: :bar}, check_locked: true)
 
       assert_raise Mix.Error, ~r/Your mix\.lock needs to be updated/, fn ->
-        Mix.Dep.Lock.write(%{foo: :bar, bar: :bat}, allow_updates: false)
+        Mix.Dep.Lock.write(%{foo: :bar, bar: :bat}, check_locked: true)
       end
     end)
   end

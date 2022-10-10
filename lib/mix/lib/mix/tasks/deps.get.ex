@@ -11,7 +11,7 @@ defmodule Mix.Tasks.Deps.Get do
 
     * `--only` - only fetches dependencies for given environment
     * `--no-archives-check` - does not check archives before fetching deps
-    * `--no-lockfile-update` - does not update lockfile. Exits non-zero if there are going to be changes in the lockfile
+    * `--check-locked` - does not update lockfile. Exits non-zero if there are going to be changes in the lockfile
 
   """
 
@@ -22,10 +22,10 @@ defmodule Mix.Tasks.Deps.Get do
     end
 
     Mix.Project.get!()
-    {opts, _, _} = OptionParser.parse(args, switches: [only: :string, target: :string, lockfile_update: :boolean])
+    {opts, _, _} = OptionParser.parse(args, switches: [only: :string, target: :string, check_locked: :boolean])
 
     fetch_opts =
-      for {switch, key} <- [only: :env, target: :target, lockfile_update: :allow_updates],
+      for {switch, key} <- [only: :env, target: :target, check_locked: :check_locked],
           value = opts[switch],
           do: {key, :"#{value}"}
 

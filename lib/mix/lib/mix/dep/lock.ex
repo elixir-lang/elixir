@@ -31,7 +31,7 @@ defmodule Mix.Dep.Lock do
     lockfile = opts[:file] || lockfile()
 
     unless map == read() do
-      unless Keyword.get(opts, :allow_updates, true) do
+      if Keyword.get(opts, :check_locked, false) do
         Mix.raise("Your #{lockfile} needs to be updated")
       end
 
