@@ -28,7 +28,7 @@ defmodule Mix.Dep.Lock do
   """
   @spec write(map(), keyword) :: :ok
   def write(map, opts \\ []) do
-    lockfile = Keyword.get(opts, :file, lockfile())
+    lockfile = opts[:file] || lockfile()
 
     unless map == read() do
       unless Keyword.get(opts, :allow_updates, true) do
