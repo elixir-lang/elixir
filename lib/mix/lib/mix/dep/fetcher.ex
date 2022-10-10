@@ -113,7 +113,7 @@ defmodule Mix.Dep.Fetcher do
     # Merge the new lock on top of the old to guarantee we don't
     # leave out things that could not be fetched and save it.
     lock = Map.merge(old_lock, new_lock)
-    Mix.Dep.Lock.write(lock)
+    Mix.Dep.Lock.write(lock, opts)
     mark_as_fetched(parent_deps)
 
     # See if any of the deps diverged and abort.

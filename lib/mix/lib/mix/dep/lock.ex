@@ -26,9 +26,15 @@ defmodule Mix.Dep.Lock do
   @doc """
   Receives a map and writes it as the latest lock.
   """
-  @spec write(Path.t(), map()) :: :ok
-  def write(lockfile \\ lockfile(), map) do
+  @spec write(map(), keyword) :: :ok
+  def write(map, opts \\ []) do
+    lockfile = Keyword.get(opts, :file, lockfile())
+
     unless map == read() do
+      unless Keyword.get(opts, :allow_updates, true) do
+        Mix.raise("Your #{lockfile} needs to be updated")
+      end
+
       lines =
         for {app, rev} <- Enum.sort(map), rev != nil do
           ~s(  "#{app}": #{inspect(rev, limit: :infinity)},\n)

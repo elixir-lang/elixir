@@ -756,7 +756,7 @@ defmodule Mix do
                   lockfile = Path.join(install_dir, "mix.lock")
                   old_lock = Mix.Dep.Lock.read(lockfile)
                   new_lock = Mix.Dep.Lock.read(external_lockfile)
-                  Mix.Dep.Lock.write(lockfile, Map.merge(old_lock, new_lock))
+                  Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
                   File.write!(md5_path, Base.encode64(new_md5))
                   Mix.Task.rerun("deps.get")
                 end
