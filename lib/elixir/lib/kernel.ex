@@ -5150,7 +5150,7 @@ defmodule Kernel do
   about structs, please check `Kernel.SpecialForms.%/2`.
 
   It is only possible to define a struct per module, as the
-  struct it tied to the module itself. Calling `defstruct/1`
+  struct is tied to the module itself. Calling `defstruct/1`
   also defines a `__struct__/0` function that returns the
   struct itself.
 
@@ -5179,8 +5179,7 @@ defmodule Kernel do
         defstruct [:title, :content, :author]
       end
 
-  Documentation can be added to a struct the same way as to a function, using
-  the `@doc` attribute.
+  Add documentation to a struct with the `@doc` attribute, like a function.
 
       defmodule Post do
         @doc "A post. The content should be valid Markdown."
@@ -5226,12 +5225,12 @@ defmodule Kernel do
   ## Enforcing keys
 
   When building a struct, Elixir will automatically guarantee all keys
-  belongs to the struct:
+  belong to the struct:
 
       %User{name: "john", unknown: :key}
       ** (KeyError) key :unknown not found in: %User{age: 21, name: nil}
 
-  Elixir also allows developers to enforce certain keys must always be
+  Elixir also allows developers to enforce that certain keys must always be
   given when building the struct:
 
       defmodule User do
@@ -5250,7 +5249,7 @@ defmodule Kernel do
 
   ## Types
 
-  It is recommended to define types for structs. By convention such type
+  It is recommended to define types for structs. By convention, such a type
   is called `t`. To define a struct inside a type, the struct literal syntax
   is used:
 
@@ -5260,7 +5259,7 @@ defmodule Kernel do
       end
 
   It is recommended to only use the struct syntax when defining the struct's
-  type. When referring to another struct it's better to use `User.t()` instead of
+  type. When referring to another struct, it's better to use `User.t()` instead of
   `%User{}`.
 
   The types of the struct fields that are not included in `%User{}` default to
