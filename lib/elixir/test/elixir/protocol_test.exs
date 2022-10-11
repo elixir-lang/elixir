@@ -74,6 +74,14 @@ defmodule ProtocolTest do
     end
   end
 
+  defmodule ImplStructExplicitFor do
+    defstruct a: 0, b: 0
+
+    defimpl Sample, for: __MODULE__ do
+      def ok(_struct), do: true
+    end
+  end
+
   test "protocol implementations without any" do
     assert is_nil(Sample.impl_for(:foo))
     assert is_nil(Sample.impl_for(fn x -> x end))
@@ -91,6 +99,7 @@ defmodule ProtocolTest do
     assert is_nil(Sample.impl_for(make_ref()))
 
     assert Sample.impl_for(%ImplStruct{}) == Sample.ProtocolTest.ImplStruct
+    assert Sample.impl_for(%ImplStructExplicitFor{}) == Sample.ProtocolTest.ImplStructExplicitFor
     assert Sample.impl_for(%NoImplStruct{}) == nil
   end
 
