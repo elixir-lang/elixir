@@ -1381,7 +1381,7 @@ interpolation_format({_, _, _, _} = Reason, _Extension, _Args) ->
 
 %% Terminators
 
-handle_terminator(Rest, Line, Column, Scope, {'(', _}, [{alias, _, Alias} | Tokens]) ->
+handle_terminator(Rest, _, _, Scope, {'(', {Line, Column, _}}, [{alias, _, Alias} | Tokens]) ->
   Reason =
     io_lib:format(
       "unexpected ( after alias ~ts. Function names and identifiers in Elixir "
