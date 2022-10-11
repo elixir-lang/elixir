@@ -576,7 +576,7 @@ defmodule Kernel.ParserTest do
     end
 
     test "invalid alias terminator" do
-      assert_syntax_error(~r/nofile:1:5: unexpected \( after alias Foo/, ~c"Foo()")
+      assert_syntax_error(~r/nofile:1:4: unexpected \( after alias Foo/, ~c"Foo()")
     end
 
     test "invalid quoted token" do
