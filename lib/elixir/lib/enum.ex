@@ -2500,12 +2500,12 @@ defmodule Enum do
   ## Examples
 
       iex> Enum.reduce_while(1..100, 0, fn x, acc ->
-      ...>   if x < 5, do: {:cont, acc + x}, else: {:halt, acc}
-      ...> end)
+      ...>   if x < 5 do {:cont, acc + x} else {:halt, acc}
+      ...> end end)
       10
       iex> Enum.reduce_while(1..100, 0, fn x, acc ->
-      ...>   if x > 0, do: {:cont, acc + x}, else: {:halt, acc}
-      ...> end)
+      ...>   if x > 0 do {:cont, acc + x} else {:halt, acc}
+      ...> end end)
       5050
 
   """
