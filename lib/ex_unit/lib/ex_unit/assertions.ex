@@ -755,6 +755,10 @@ defmodule ExUnit.Assertions do
         1 + "test"
       end
 
+      assert_raise RuntimeError, fn ->
+        raise "assertion will pass due to this raise"
+      end
+
   """
   def assert_raise(exception, function) when is_function(function) do
     try do
