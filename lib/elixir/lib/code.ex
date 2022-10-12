@@ -1346,12 +1346,16 @@ defmodule Code do
       Defaults to `true`.
 
     * `:debug_info` - when `true`, retains debug information in the compiled
-      module. This enables static analysis tools as it allows developers to
+      module. Defaults to `true`.
+      This enables static analysis tools as it allows developers to
       partially reconstruct the original source code. Therefore, disabling
       `:debug_info` is not recommended as it removes the ability of the
       Elixir compiler and other tools to provide feedback. If you want to
       remove the `:debug_info` while deploying, tools like `mix release`
       already do such by default.
+      Additionally, `mix test` disables it via the `:test_elixirc_options`
+      project configuration option.
+      This option can also be overriden per module using the `@compile` directive.
 
     * `:ignore_already_consolidated` - when `true`, does not warn when a protocol
       has already been consolidated and a new implementation is added. Defaults
