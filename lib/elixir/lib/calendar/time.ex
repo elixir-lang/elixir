@@ -456,7 +456,7 @@ defmodule Time do
   @doc """
   Adds the `amount_to_add` of `unit`s to the given `time`.
 
-  Accepts an `amount_to_add` in any `unit`. `unit` can be `:day`,
+  Accepts an `amount_to_add` in any `unit`. `unit` can be
   `:hour`, `:minute`, `:second` or any subsecond precision from
   `t:System.time_unit/0`. It defaults to `:second`. Negative values
   will move backwards in time.
