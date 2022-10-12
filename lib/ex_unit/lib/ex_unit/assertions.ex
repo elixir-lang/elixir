@@ -755,6 +755,12 @@ defmodule ExUnit.Assertions do
         1 + "test"
       end
 
+  To pass arguments to `function`, wrap it:
+
+      assert_raise ArithmeticError, fn ->
+        my_add(1, "test")
+      end
+
   """
   def assert_raise(exception, function) when is_function(function) do
     try do
