@@ -755,7 +755,7 @@ defmodule ExUnit.Assertions do
         1 + "test"
       end
 
-  To test a fuction that requires arguements, wrap it:
+  To test a function that requires arguments, wrap it:
 
       assert_raise ArithmeticError, fn ->
         my_add(1, "test")
