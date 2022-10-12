@@ -755,10 +755,8 @@ defmodule ExUnit.Assertions do
         1 + "test"
       end
 
-  To test a function that requires arguments, wrap it:
-
-      assert_raise ArithmeticError, fn ->
-        my_add(1, "test")
+      assert_raise RuntimeError, fn ->
+        raise "assertion will pass due to this raise"
       end
 
   """
