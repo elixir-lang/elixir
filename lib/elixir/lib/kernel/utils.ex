@@ -348,16 +348,19 @@ defmodule Kernel.Utils do
 
   # Finds every reference to `refs` in `guard` and wraps them in an unquote.
   defp unquote_every_ref(guard, refs) do
-    Macro.postwalk(guard, fn
-      {ref, meta, context} = var when is_atom(ref) and is_atom(context) ->
-        case {ref, var_context(meta, context)} in refs do
-          true -> literal_unquote(var)
-          false -> var
-        end
+    Macro.update_meta(
+      Macro.postwalk(guard, fn
+        {ref, meta, context} = var when is_atom(ref) and is_atom(context) ->
+          case {ref, var_context(meta, context)} in refs do
+            true -> literal_unquote(var)
+            false -> var
+          end
 
-      node ->
-        node
-    end)
+        node ->
+          node
+      end),
+      &([generated: true] ++ &1)
+    )
   end
 
   # Prefaces `guard` with unquoted versions of `refs`.

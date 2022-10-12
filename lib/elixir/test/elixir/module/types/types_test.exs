@@ -213,6 +213,21 @@ defmodule Module.Types.TypesTest do
       assert string == :none
     end
 
+    defguard tuple_or_nil(term) when is_tuple(term) or is_nil(term)
+
+    test "does not warn on guards defined with defguard" do
+      string =
+        warning(
+          [var],
+          [is_atom(var)],
+          case var do
+            _ when tuple_or_nil(var) -> :ok
+          end
+        )
+
+      assert string == :none
+    end
+
     test "check body" do
       string = warning([x], [is_integer(x)], :foo = x)
 

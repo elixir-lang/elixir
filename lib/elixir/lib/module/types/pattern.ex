@@ -183,12 +183,29 @@ defmodule Module.Types.Pattern do
   Refines the type variables in the typing context using type check guards
   such as `is_integer/1`.
   """
-  def of_guard(expr, expected, %{context: stack_context} = stack, context)
-      when stack_context != :pattern do
+  def of_guard({_, meta, _} = expr, expected, stack, context) do
+    if meta[:generated] do
+      {:ok, :dynamic, context}
+    else
+      do_of_guard(expr, expected, stack, context)
+    end
+  end
+
+  def of_guard(expr, expected, stack, context) do
+    do_of_guard(expr, expected, stack, context)
+  end
+
+  defp do_of_guard(expr, expected, %{context: stack_context} = stack, context)
+       when stack_context != :pattern do
     of_guard(expr, expected, %{stack | context: :pattern}, context)
   end
 
-  def of_guard({{:., _, [:erlang, :andalso]}, _, [left, right]} = expr, _expected, stack, context) do
+  defp do_of_guard(
+         {{:., _, [:erlang, :andalso]}, _, [left, right]} = expr,
+         _expected,
+         stack,
+         context
+       ) do
     stack = push_expr_stack(expr, stack)
 
     with {:ok, left_type, context} <- of_guard(left, @boolean, stack, context),
@@ -197,7 +214,12 @@ defmodule Module.Types.Pattern do
          do: {:ok, to_union([@boolean, right_type], context), context}
   end
 
-  def of_guard({{:., _, [:erlang, :orelse]}, _, [left, right]} = expr, _expected, stack, context) do
+  defp do_of_guard(
+         {{:., _, [:erlang, :orelse]}, _, [left, right]} = expr,
+         _expected,
+         stack,
+         context
+       ) do
     stack = push_expr_stack(expr, stack)
     left_indexes = collect_var_indexes_from_expr(left, context)
     right_indexes = collect_var_indexes_from_expr(right, context)
@@ -220,41 +242,41 @@ defmodule Module.Types.Pattern do
   # The unary operators + and - are special cased to avoid common warnings until
   # we add support for intersection types for the guard functions
   # -integer / +integer
-  def of_guard({{:., _, [:erlang, guard]}, _, [integer]}, _expected, _stack, context)
-      when guard in [:+, :-] and is_integer(integer) do
+  defp do_of_guard({{:., _, [:erlang, guard]}, _, [integer]}, _expected, _stack, context)
+       when guard in [:+, :-] and is_integer(integer) do
     {:ok, :integer, context}
   end
 
   # -float / +float
-  def of_guard({{:., _, [:erlang, guard]}, _, [float]}, _expected, _stack, context)
-      when guard in [:+, :-] and is_float(float) do
+  defp do_of_guard({{:., _, [:erlang, guard]}, _, [float]}, _expected, _stack, context)
+       when guard in [:+, :-] and is_float(float) do
     {:ok, :float, context}
   end
 
   # tuple_size(arg) == integer
-  def of_guard(
-        {{:., _, [:erlang, :==]}, _, [{{:., _, [:erlang, :tuple_size]}, _, [var]}, size]} = expr,
-        expected,
-        stack,
-        context
-      )
-      when is_var(var) and is_integer(size) do
+  defp do_of_guard(
+         {{:., _, [:erlang, :==]}, _, [{{:., _, [:erlang, :tuple_size]}, _, [var]}, size]} = expr,
+         expected,
+         stack,
+         context
+       )
+       when is_var(var) and is_integer(size) do
     of_tuple_size(var, size, expr, expected, stack, context)
   end
 
   # integer == tuple_size(arg)
-  def of_guard(
-        {{:., _, [:erlang, :==]}, _, [size, {{:., _, [:erlang, :tuple_size]}, _, [var]}]} = expr,
-        expected,
-        stack,
-        context
-      )
-      when is_var(var) and is_integer(size) do
+  defp do_of_guard(
+         {{:., _, [:erlang, :==]}, _, [size, {{:., _, [:erlang, :tuple_size]}, _, [var]}]} = expr,
+         expected,
+         stack,
+         context
+       )
+       when is_var(var) and is_integer(size) do
     of_tuple_size(var, size, expr, expected, stack, context)
   end
 
   # fun(args)
-  def of_guard({{:., _, [:erlang, guard]}, _, args} = expr, expected, stack, context) do
+  defp do_of_guard({{:., _, [:erlang, guard]}, _, args} = expr, expected, stack, context) do
     type_guard? = type_guard?(guard)
     {consider_type_guards?, keep_guarded?} = stack.type_guards
     signature = guard_signature(guard, length(args))
@@ -296,16 +318,16 @@ defmodule Module.Types.Pattern do
   end
 
   # map.field
-  def of_guard({{:., meta1, [map, field]}, meta2, []}, expected, stack, context) do
+  defp do_of_guard({{:., meta1, [map, field]}, meta2, []}, expected, stack, context) do
     of_guard({{:., meta1, [:erlang, :map_get]}, meta2, [field, map]}, expected, stack, context)
   end
 
   # var
-  def of_guard(var, _expected, _stack, context) when is_var(var) do
+  defp do_of_guard(var, _expected, _stack, context) when is_var(var) do
     {:ok, get_var!(var, context), context}
   end
 
-  def of_guard(expr, _expected, stack, context) do
+  defp do_of_guard(expr, _expected, stack, context) do
     of_shared(expr, stack, context, &of_guard(&1, :dynamic, &2, &3))
   end
 
