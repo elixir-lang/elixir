@@ -705,8 +705,7 @@ defmodule Mix.Tasks.FormatTest do
       """)
 
       message =
-        "Unavailable dependency :my_dep given to :import_deps in the formatter configuration. " <>
-          "The dependency cannot be found in the file system, please run \"mix deps.get\" and try again"
+        ~r"Unknown dependency :my_dep given to :import_deps in the formatter configuration"
 
       assert_raise Mix.Error, message, fn -> Mix.Tasks.Format.run([]) end
 
@@ -715,8 +714,7 @@ defmodule Mix.Tasks.FormatTest do
       """)
 
       message =
-        "Unknown dependency :nonexistent_dep given to :import_deps in the formatter configuration. " <>
-          "The dependency is not listed in your mix.exs for environment :dev"
+        ~r"Unknown dependency :nonexistent_dep given to :import_deps in the formatter configuration"
 
       assert_raise Mix.Error, message, fn -> Mix.Tasks.Format.run([]) end
     end)
