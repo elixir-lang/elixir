@@ -627,17 +627,19 @@ defmodule Regex do
   Receives a regex, a binary and a replacement, returns a new
   binary where all matches are replaced by the replacement.
 
-  The replacement can be either a string or a function. The string
-  is used as a replacement for every match and it allows specific
-  captures to be accessed via `\N` or `\g{N}`, where `N` is the
-  capture. In case `\0` is used, the whole match is inserted. Note
-  that in regexes the backslash needs to be escaped, hence in practice
-  you'll need to use `\\N` and `\\g{N}`.
+  The replacement can be either a string or a function that returns a string.
+  The resulting string is used as a replacement for every match.
 
-  When the replacement is a function, the function may have arity
-  N where each argument maps to a capture, with the first argument
-  being the whole match. If the function expects more arguments
-  than captures found, the remaining arguments will receive `""`.
+  When the replacement is a string, it allows specific captures of the match
+  using brackets at the regex expression and accessing them in the replacement
+  via `\N` or `\g{N}`, where `N` is the number of the capture. In case `\0` is
+  used, the whole match is inserted. Note that in regexes the backslash needs
+  to be escaped, hence in practice you'll need to use `\\N` and `\\g{N}`.
+
+  When the replacement is a function, it allows specific captures too.
+  The function may have arity N where each argument maps to a capture,
+  with the first argument being the whole match. If the function expects more
+  arguments than captures found, the remaining arguments will receive `""`.
 
   ## Options
 
@@ -663,6 +665,9 @@ defmodule Regex do
 
       iex> Regex.replace(~r/a(b|d)c/, "abcadc", fn _, x -> "[#{x}]" end)
       "[b][d]"
+
+      iex> Regex.replace(~r/(\w+)@(\w+).(\w+)/, "abc@def.com", fn _full, _c1, _c2, c3 -> "TLD: #{c3}" end)
+      "TLD: com"
 
       iex> Regex.replace(~r/a/, "abcadc", "A", global: false)
       "Abcadc"
