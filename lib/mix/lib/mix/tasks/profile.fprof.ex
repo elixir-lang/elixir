@@ -175,7 +175,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `:sort` - sorts the output by given key: `:acc` (default) or `:own`
 
   """
-  @spec profile((() -> any()), keyword()) :: any()
+  @spec profile((-> any()), keyword()) :: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     {return_value, analysis_output} = profile_and_analyse(fun, opts)
 

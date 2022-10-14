@@ -55,6 +55,11 @@ Expect 3.
 %% Note though the operator => in practice has lower precedence
 %% than all others, its entry in the table is only to support the
 %% %{user | foo => bar} syntax.
+
+%% TODO: Assuming we change the typing syntax to use "or"
+%% instead "|", we should then change "::" to come after
+%% & and before = and have left associativity (for binaries).
+
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
@@ -65,7 +70,7 @@ Right     70 pipe_op_eol.     %% |
 Right     80 assoc_op_eol.    %% =>
 Nonassoc  90 capture_op_eol.  %% &
 Right    100 match_op_eol.    %% =
-Left     110 or_op_eol.       %% ||, |||, or
+Left     120 or_op_eol.       %% ||, |||, or
 Left     130 and_op_eol.      %% &&, &&&, and
 Left     140 comp_op_eol.     %% ==, !=, =~, ===, !==
 Left     150 rel_op_eol.      %% <, >, <=, >=
@@ -331,8 +336,6 @@ stab -> stab eoe stab_expr : ['$3' | annotate_eoe('$2', '$1')].
 stab_eoe -> stab : '$1'.
 stab_eoe -> stab eoe : '$1'.
 
-%% Here, `element(1, Token)` is the stab operator,
-%% while `element(2, Token)` is the expression.
 stab_expr -> expr :
                '$1'.
 stab_expr -> stab_op_eol_and_expr :

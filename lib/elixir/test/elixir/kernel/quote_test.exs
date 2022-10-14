@@ -227,7 +227,7 @@ defmodule Kernel.QuoteTest do
                 () -> 1
               end)
 
-    assert [{:->, _, [[], 1]}] = quote(do: (() -> 1))
+    assert [{:->, _, [[], 1]}] = quote(do: (-> 1))
   end
 
   test "empty block" do

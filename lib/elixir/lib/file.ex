@@ -1611,7 +1611,7 @@ defmodule File do
   Raises an error if retrieving or changing the current
   directory fails.
   """
-  @spec cd!(Path.t(), (() -> res)) :: res when res: var
+  @spec cd!(Path.t(), (-> res)) :: res when res: var
   def cd!(path, function) do
     old = cwd!()
     cd!(path)

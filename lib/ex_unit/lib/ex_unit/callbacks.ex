@@ -448,7 +448,7 @@ defmodule ExUnit.Callbacks do
   indirection. However, it can be useful in some cases or for library
   authors, for example.
   """
-  @spec on_exit(term, (() -> term)) :: :ok
+  @spec on_exit(term, (-> term)) :: :ok
   def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) do
     case ExUnit.OnExitHandler.add(self(), name_or_ref, callback) do
       :ok ->

@@ -278,7 +278,7 @@ defmodule Dict do
   end
 
   @deprecated message
-  @spec get_lazy(t, key, (() -> value)) :: value
+  @spec get_lazy(t, key, (-> value)) :: value
   def get_lazy(dict, key, fun) do
     target(dict).get_lazy(dict, key, fun)
   end
@@ -314,7 +314,7 @@ defmodule Dict do
   end
 
   @deprecated message
-  @spec put_new_lazy(t, key, (() -> value)) :: t
+  @spec put_new_lazy(t, key, (-> value)) :: t
   def put_new_lazy(dict, key, fun) do
     target(dict).put_new_lazy(dict, key, fun)
   end
@@ -365,7 +365,7 @@ defmodule Dict do
   end
 
   @deprecated message
-  @spec pop_lazy(t, key, (() -> value)) :: {value, t}
+  @spec pop_lazy(t, key, (-> value)) :: {value, t}
   def pop_lazy(dict, key, fun) do
     target(dict).pop_lazy(dict, key, fun)
   end

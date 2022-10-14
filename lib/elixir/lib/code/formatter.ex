@@ -517,7 +517,7 @@ defmodule Code.Formatter do
 
   # (left -> right)
   defp quoted_to_algebra([{:->, _, _} | _] = clauses, _context, state) do
-    type_fun_to_algebra(clauses, @max_line, @min_line, state)
+    paren_fun_to_algebra(clauses, @max_line, @min_line, state)
   end
 
   # [keyword: :list] (inner part)
@@ -575,8 +575,8 @@ defmodule Code.Formatter do
 
   ## Blocks
 
-  defp block_to_algebra([{:->, _, _} | _] = type_fun, min_line, max_line, state) do
-    type_fun_to_algebra(type_fun, min_line, max_line, state)
+  defp block_to_algebra([{:->, _, _} | _] = paren_fun, min_line, max_line, state) do
+    paren_fun_to_algebra(paren_fun, min_line, max_line, state)
   end
 
   defp block_to_algebra({:__block__, _, []}, min_line, max_line, state) do
@@ -1807,13 +1807,13 @@ defmodule Code.Formatter do
 
   ## Type functions
 
-  # (() -> block)
-  defp type_fun_to_algebra([{:->, meta, [[], body]}] = clauses, _min_line, max_line, state) do
+  # (-> block)
+  defp paren_fun_to_algebra([{:->, meta, [[], body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
 
     doc =
-      "(() -> "
+      "(-> "
       |> concat(nest(body_doc, :cursor))
       |> concat(")")
       |> maybe_force_clauses(clauses, state)
@@ -1825,7 +1825,7 @@ defmodule Code.Formatter do
   # (x -> y)
   # (x ->
   #    y)
-  defp type_fun_to_algebra([{:->, meta, [args, body]}] = clauses, _min_line, max_line, state) do
+  defp paren_fun_to_algebra([{:->, meta, [args, body]}] = clauses, _min_line, max_line, state) do
     min_line = line(meta)
     {args_doc, state} = clause_args_to_algebra(args, min_line, state)
     {body_doc, state} = block_to_algebra(body, min_line, max_line, state)
@@ -1850,7 +1850,7 @@ defmodule Code.Formatter do
   #   args2 ->
   #     block2
   # )
-  defp type_fun_to_algebra(clauses, min_line, max_line, state) do
+  defp paren_fun_to_algebra(clauses, min_line, max_line, state) do
     {clauses_doc, state} = clauses_to_algebra(clauses, min_line, max_line, state)
     {"(" |> line(clauses_doc) |> nest(2) |> line(")") |> force_unfit(), state}
   end

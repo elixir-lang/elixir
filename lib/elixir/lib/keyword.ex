@@ -416,7 +416,7 @@ defmodule Keyword do
       13
 
   """
-  @spec get_lazy(t, key, (() -> value)) :: value
+  @spec get_lazy(t, key, (-> value)) :: value
   def get_lazy(keywords, key, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
     case :lists.keyfind(key, 1, keywords) do
@@ -794,7 +794,7 @@ defmodule Keyword do
       [b: 13, a: 1]
 
   """
-  @spec put_new_lazy(t, key, (() -> value)) :: t
+  @spec put_new_lazy(t, key, (-> value)) :: t
   def put_new_lazy(keywords, key, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
     case :lists.keyfind(key, 1, keywords) do
@@ -1375,7 +1375,7 @@ defmodule Keyword do
       {13, [a: 1]}
 
   """
-  @spec pop_lazy(t, key, (() -> value)) :: {value, t}
+  @spec pop_lazy(t, key, (-> value)) :: {value, t}
   def pop_lazy(keywords, key, fun)
       when is_list(keywords) and is_atom(key) and is_function(fun, 0) do
     case fetch(keywords, key) do

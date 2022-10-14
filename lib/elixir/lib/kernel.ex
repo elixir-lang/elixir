@@ -1077,7 +1077,7 @@ defmodule Kernel do
       end
 
   """
-  @spec spawn((() -> any)) :: pid
+  @spec spawn((-> any)) :: pid
   def spawn(fun) do
     :erlang.spawn(fun)
   end
@@ -1130,7 +1130,7 @@ defmodule Kernel do
       end
 
   """
-  @spec spawn_link((() -> any)) :: pid
+  @spec spawn_link((-> any)) :: pid
   def spawn_link(fun) do
     :erlang.spawn_link(fun)
   end
@@ -1180,7 +1180,7 @@ defmodule Kernel do
       spawn_monitor(fn -> send(current, {self(), 1 + 2}) end)
 
   """
-  @spec spawn_monitor((() -> any)) :: {pid, reference}
+  @spec spawn_monitor((-> any)) :: {pid, reference}
   def spawn_monitor(fun) do
     :erlang.spawn_monitor(fun)
   end

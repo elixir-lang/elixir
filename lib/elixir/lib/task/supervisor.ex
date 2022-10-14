@@ -164,7 +164,7 @@ defmodule Task.Supervisor do
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
 
   """
-  @spec async(Supervisor.supervisor(), (() -> any), Keyword.t()) :: Task.t()
+  @spec async(Supervisor.supervisor(), (-> any), Keyword.t()) :: Task.t()
   def async(supervisor, fun, options \\ []) do
     async(supervisor, :erlang, :apply, [fun, []], options)
   end
@@ -267,7 +267,7 @@ defmodule Task.Supervisor do
       end
 
   """
-  @spec async_nolink(Supervisor.supervisor(), (() -> any), Keyword.t()) :: Task.t()
+  @spec async_nolink(Supervisor.supervisor(), (-> any), Keyword.t()) :: Task.t()
   def async_nolink(supervisor, fun, options \\ []) do
     async_nolink(supervisor, :erlang, :apply, [fun, []], options)
   end
@@ -453,7 +453,7 @@ defmodule Task.Supervisor do
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
 
   """
-  @spec start_child(Supervisor.supervisor(), (() -> any), keyword) ::
+  @spec start_child(Supervisor.supervisor(), (-> any), keyword) ::
           DynamicSupervisor.on_start_child()
   def start_child(supervisor, fun, options \\ []) do
     restart = options[:restart]
