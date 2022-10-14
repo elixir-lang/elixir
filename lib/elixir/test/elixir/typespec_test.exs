@@ -703,7 +703,7 @@ defmodule TypespecTest do
     test "@type with a fun with no arguments and return type" do
       bytecode =
         test_module do
-          @type my_type :: (() -> integer)
+          @type my_type :: (-> integer)
         end
 
       assert [type: {:my_type, type, []}] = types(bytecode)
@@ -1140,7 +1140,7 @@ defmodule TypespecTest do
     test "block handling" do
       bytecode =
         test_module do
-          @spec foo((() -> [integer])) :: integer
+          @spec foo((-> [integer])) :: integer
           def foo(_), do: 1
         end
 
@@ -1171,9 +1171,7 @@ defmodule TypespecTest do
           quote(do: @type(binary_type2() :: <<_::3>>)),
           quote(do: @type(binary_type3() :: <<_::3, _::_*8>>)),
           quote(do: @type(tuple_type() :: {integer()})),
-          quote(
-            do: @type(ftype() :: (() -> any()) | (() -> integer()) | (integer() -> integer()))
-          ),
+          quote(do: @type(ftype() :: (-> any()) | (-> integer()) | (integer() -> integer()))),
           quote(do: @type(cl() :: charlist())),
           quote(do: @type(st() :: struct())),
           quote(do: @type(ab() :: as_boolean(term()))),
@@ -1402,7 +1400,7 @@ defmodule TypespecTest do
           quote(do: @type(literal_unit_1() :: <<_::_*1>>)),
           quote(do: @type(literal_size_1_unit_8() :: <<_::100, _::_*256>>)),
           quote(do: @type(literal_function_arity_any() :: (... -> integer()))),
-          quote(do: @type(literal_function_arity_0() :: (() -> integer()))),
+          quote(do: @type(literal_function_arity_0() :: (-> integer()))),
           quote(do: @type(literal_function_arity_2() :: (integer(), atom() -> integer()))),
           quote(do: @type(literal_list_type() :: [integer()])),
           quote(do: @type(literal_empty_list() :: [])),

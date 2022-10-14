@@ -528,8 +528,8 @@ defmodule System do
   it may disable Elixir traps (or Elixir may override your configuration).
   """
   @doc since: "1.12.0"
-  @spec trap_signal(signal, (() -> :ok)) :: {:ok, reference()} | {:error, :not_sup}
-  @spec trap_signal(signal, id, (() -> :ok)) ::
+  @spec trap_signal(signal, (-> :ok)) :: {:ok, reference()} | {:error, :not_sup}
+  @spec trap_signal(signal, id, (-> :ok)) ::
           {:ok, id} | {:error, :already_registered} | {:error, :not_sup}
         when id: term()
   def trap_signal(signal, id \\ make_ref(), fun)

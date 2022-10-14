@@ -435,7 +435,7 @@ defmodule Map do
       %{a: 1, b: 3}
 
   """
-  @spec put_new_lazy(map, key, (() -> value)) :: map
+  @spec put_new_lazy(map, key, (-> value)) :: map
   def put_new_lazy(map, key, fun) when is_function(fun, 0) do
     case map do
       %{^key => _value} ->
@@ -551,7 +551,7 @@ defmodule Map do
       13
 
   """
-  @spec get_lazy(map, key, (() -> value)) :: value
+  @spec get_lazy(map, key, (-> value)) :: value
   def get_lazy(map, key, fun) when is_function(fun, 0) do
     case map do
       %{^key => value} ->
@@ -762,7 +762,7 @@ defmodule Map do
       {13, %{a: 1}}
 
   """
-  @spec pop_lazy(map, key, (() -> value)) :: {value, map}
+  @spec pop_lazy(map, key, (-> value)) :: {value, map}
   def pop_lazy(map, key, fun) when is_function(fun, 0) do
     case :maps.take(key, map) do
       {_, _} = tuple -> tuple

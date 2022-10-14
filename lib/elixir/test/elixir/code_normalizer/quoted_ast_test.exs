@@ -400,7 +400,7 @@ defmodule Code.Normalizer.QuotedASTTest do
     end
 
     test "when" do
-      assert quoted_to_string(quote(do: (() -> x))) == "(() -> x)"
+      assert quoted_to_string(quote(do: (-> x))) == "(-> x)"
       assert quoted_to_string(quote(do: (x when y -> z))) == "(x when y -> z)"
       assert quoted_to_string(quote(do: (x, y when z -> w))) == "(x, y when z -> w)"
       assert quoted_to_string(quote(do: (x, y when z -> w))) == "(x, y when z -> w)"

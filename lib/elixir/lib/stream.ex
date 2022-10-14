@@ -879,7 +879,7 @@ defmodule Stream do
   `Stream.transform/3`.
   """
   @spec transform(Enumerable.t(), start_fun, reducer, after_fun) :: Enumerable.t()
-        when start_fun: (() -> acc),
+        when start_fun: (-> acc),
              reducer: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
              after_fun: (acc -> term),
              acc: any
@@ -905,7 +905,7 @@ defmodule Stream do
   one used for closing resources.
   """
   @spec transform(Enumerable.t(), start_fun, reducer, last_fun, after_fun) :: Enumerable.t()
-        when start_fun: (() -> acc),
+        when start_fun: (-> acc),
              reducer: (element, acc -> {Enumerable.t(), acc} | {:halt, acc}),
              last_fun: (acc -> {Enumerable.t(), acc} | {:halt, acc}),
              after_fun: (acc -> term),
@@ -1540,7 +1540,7 @@ defmodule Stream do
       [0.5455598952593053, 0.6039309974353404, 0.6684893034823949]
 
   """
-  @spec repeatedly((() -> element)) :: Enumerable.t()
+  @spec repeatedly((-> element)) :: Enumerable.t()
   def repeatedly(generator_fun) when is_function(generator_fun, 0) do
     &do_repeatedly(generator_fun, &1, &2)
   end
@@ -1602,7 +1602,7 @@ defmodule Stream do
       ["s", "t", "r", "i", "n", "g"]
 
   """
-  @spec resource((() -> acc), (acc -> {[element], acc} | {:halt, acc}), (acc -> term)) ::
+  @spec resource((-> acc), (acc -> {[element], acc} | {:halt, acc}), (acc -> term)) ::
           Enumerable.t()
   def resource(start_fun, next_fun, after_fun)
       when is_function(start_fun, 0) and is_function(next_fun, 1) and is_function(after_fun, 1) do

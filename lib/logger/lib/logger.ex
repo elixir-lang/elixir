@@ -851,7 +851,7 @@ defmodule Logger do
   anonymous functions to `bare_log/3` and they will only be evaluated
   if there is something to be logged.
   """
-  @spec bare_log(level, message | (() -> message | {message, keyword}), keyword) :: :ok
+  @spec bare_log(level, message | (-> message | {message, keyword}), keyword) :: :ok
   def bare_log(level, message_or_fun, metadata \\ []) do
     case __should_log__(level, nil) do
       nil -> :ok

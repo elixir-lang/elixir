@@ -466,7 +466,7 @@ defmodule Process do
       #=> #PID<0.95.0>
 
   """
-  @spec spawn((() -> any), spawn_opts) :: pid | {pid, reference}
+  @spec spawn((-> any), spawn_opts) :: pid | {pid, reference}
   defdelegate spawn(fun, opts), to: :erlang, as: :spawn_opt
 
   @doc """

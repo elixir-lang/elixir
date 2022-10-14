@@ -21,7 +21,7 @@ defmodule ExUnit.OnExitHandler do
     :ok
   end
 
-  @spec add(pid, term, (() -> term)) :: :ok | :error
+  @spec add(pid, term, (-> term)) :: :ok | :error
   def add(pid, name_or_ref, callback) when is_pid(pid) and is_function(callback, 0) do
     try do
       :ets.lookup_element(@name, pid, @on_exit)

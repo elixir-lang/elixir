@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Profile.Eprof do
     * `:sort` - sort the results by `:time` or `:calls` (default: `:time`)
 
   """
-  @spec profile((() -> any()), keyword()) :: any()
+  @spec profile((-> any()), keyword()) :: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     {return_value, results} = profile_and_analyse(fun, opts)
 

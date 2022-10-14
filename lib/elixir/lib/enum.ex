@@ -1799,7 +1799,7 @@ defmodule Enum do
   end
 
   @doc false
-  @spec max(t, (() -> empty_result)) :: element | empty_result when empty_result: any
+  @spec max(t, (-> empty_result)) :: element | empty_result when empty_result: any
   def max(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     max(enumerable, &>=/2, empty_fallback)
   end
@@ -1849,7 +1849,7 @@ defmodule Enum do
   @spec max(t, (element, element -> boolean) | module()) ::
           element | empty_result
         when empty_result: any
-  @spec max(t, (element, element -> boolean) | module(), (() -> empty_result)) ::
+  @spec max(t, (element, element -> boolean) | module(), (-> empty_result)) ::
           element | empty_result
         when empty_result: any
   def max(enumerable, sorter \\ &>=/2, empty_fallback \\ fn -> raise Enum.EmptyError end) do
@@ -1863,7 +1863,7 @@ defmodule Enum do
   @spec max_by(
           t,
           (element -> any),
-          (() -> empty_result) | (element, element -> boolean) | module()
+          (-> empty_result) | (element, element -> boolean) | module()
         ) :: element | empty_result
         when empty_result: any
   def max_by(enumerable, fun, empty_fallback)
@@ -1919,7 +1919,7 @@ defmodule Enum do
           t,
           (element -> any),
           (element, element -> boolean) | module(),
-          (() -> empty_result)
+          (-> empty_result)
         ) :: element | empty_result
         when empty_result: any
   def max_by(enumerable, fun, sorter \\ &>=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)
@@ -1979,7 +1979,7 @@ defmodule Enum do
   end
 
   @doc false
-  @spec min(t, (() -> empty_result)) :: element | empty_result when empty_result: any
+  @spec min(t, (-> empty_result)) :: element | empty_result when empty_result: any
   def min(enumerable, empty_fallback) when is_function(empty_fallback, 0) do
     min(enumerable, &<=/2, empty_fallback)
   end
@@ -2029,7 +2029,7 @@ defmodule Enum do
   @spec min(t, (element, element -> boolean) | module()) ::
           element | empty_result
         when empty_result: any
-  @spec min(t, (element, element -> boolean) | module(), (() -> empty_result)) ::
+  @spec min(t, (element, element -> boolean) | module(), (-> empty_result)) ::
           element | empty_result
         when empty_result: any
   def min(enumerable, sorter \\ &<=/2, empty_fallback \\ fn -> raise Enum.EmptyError end) do
@@ -2043,7 +2043,7 @@ defmodule Enum do
   @spec min_by(
           t,
           (element -> any),
-          (() -> empty_result) | (element, element -> boolean) | module()
+          (-> empty_result) | (element, element -> boolean) | module()
         ) :: element | empty_result
         when empty_result: any
   def min_by(enumerable, fun, empty_fallback)
@@ -2099,7 +2099,7 @@ defmodule Enum do
           t,
           (element -> any),
           (element, element -> boolean) | module(),
-          (() -> empty_result)
+          (-> empty_result)
         ) :: element | empty_result
         when empty_result: any
   def min_by(enumerable, fun, sorter \\ &<=/2, empty_fallback \\ fn -> raise Enum.EmptyError end)
@@ -2126,7 +2126,7 @@ defmodule Enum do
       {nil, nil}
 
   """
-  @spec min_max(t, (() -> empty_result)) :: {element, element} | empty_result
+  @spec min_max(t, (-> empty_result)) :: {element, element} | empty_result
         when empty_result: any
   def min_max(enumerable, empty_fallback \\ fn -> raise Enum.EmptyError end)
 
@@ -2155,7 +2155,7 @@ defmodule Enum do
   end
 
   @doc false
-  @spec min_max_by(t, (element -> any), (() -> empty_result)) :: {element, element} | empty_result
+  @spec min_max_by(t, (element -> any), (-> empty_result)) :: {element, element} | empty_result
         when empty_result: any
   def min_max_by(enumerable, fun, empty_fallback)
       when is_function(fun, 1) and is_function(empty_fallback, 0) do
@@ -2213,7 +2213,7 @@ defmodule Enum do
           t,
           (element -> any),
           (element, element -> boolean) | module(),
-          (() -> empty_result)
+          (-> empty_result)
         ) :: {element, element} | empty_result
         when empty_result: any
   def min_max_by(

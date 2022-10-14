@@ -314,7 +314,7 @@ defmodule Task do
 
   This is used to start a statically supervised task under a supervision tree.
   """
-  @spec start_link((() -> any)) :: {:ok, pid}
+  @spec start_link((-> any)) :: {:ok, pid}
   def start_link(fun) when is_function(fun, 0) do
     start_link(:erlang, :apply, [fun, []])
   end
@@ -346,7 +346,7 @@ defmodule Task do
   to use `Task.Supervisor.start_child/2` instead, which allows
   you to control the shutdown time via the `:shutdown` option.
   """
-  @spec start((() -> any)) :: {:ok, pid}
+  @spec start((-> any)) :: {:ok, pid}
   def start(fun) when is_function(fun, 0) do
     start(:erlang, :apply, [fun, []])
   end
@@ -436,7 +436,7 @@ defmodule Task do
   the anonymous function. Use `async/3` if you want another function
   to be used as metadata.
   """
-  @spec async((() -> any)) :: t
+  @spec async((-> any)) :: t
   def async(fun) when is_function(fun, 0) do
     async(:erlang, :apply, [fun, []])
   end

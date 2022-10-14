@@ -178,7 +178,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
-  @spec spawn(t, (() -> any)) :: pid
+  @spec spawn(t, (-> any)) :: pid
   def spawn(node, fun) do
     :erlang.spawn(node, fun)
   end
@@ -193,7 +193,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
-  @spec spawn(t, (() -> any), Process.spawn_opts()) :: pid | {pid, reference}
+  @spec spawn(t, (-> any), Process.spawn_opts()) :: pid | {pid, reference}
   def spawn(node, fun, opts) do
     :erlang.spawn_opt(node, fun, opts)
   end
@@ -237,7 +237,7 @@ defmodule Node do
 
   Inlined by the compiler.
   """
-  @spec spawn_link(t, (() -> any)) :: pid
+  @spec spawn_link(t, (-> any)) :: pid
   def spawn_link(node, fun) do
     :erlang.spawn_link(node, fun)
   end
@@ -264,7 +264,7 @@ defmodule Node do
   Inlined by the compiler.
   """
   @doc since: "1.14.0"
-  @spec spawn_monitor(t, (() -> any)) :: {pid, reference}
+  @spec spawn_monitor(t, (-> any)) :: {pid, reference}
   def spawn_monitor(node, fun) do
     :erlang.spawn_monitor(node, fun)
   end

@@ -18,7 +18,7 @@ defmodule Mix.ProjectStack do
     GenServer.start_link(__MODULE__, :ok, name: @name)
   end
 
-  @spec on_clean_slate((() -> result)) :: result when result: var
+  @spec on_clean_slate((-> result)) :: result when result: var
   def on_clean_slate(callback) do
     previous_state = update_state(fn state -> {state, initial_state()} end)
 
@@ -57,7 +57,7 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  @spec on_recursing_root((() -> result)) :: result when result: var
+  @spec on_recursing_root((-> result)) :: result when result: var
   def on_recursing_root(fun) do
     {top, file} =
       update_stack(fn stack ->
@@ -221,7 +221,7 @@ defmodule Mix.ProjectStack do
     end)
   end
 
-  @spec recur((() -> result)) :: result when result: var
+  @spec recur((-> result)) :: result when result: var
   def recur(fun) do
     update_stack(fn [h | t] -> {:ok, [%{h | recursing?: true} | t]} end)
 

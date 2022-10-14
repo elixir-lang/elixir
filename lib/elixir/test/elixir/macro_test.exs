@@ -751,7 +751,7 @@ defmodule MacroTest do
     end
 
     test "when" do
-      assert macro_to_string(quote(do: (() -> x))) == "(() -> x)"
+      assert macro_to_string(quote(do: (-> x))) == "(() -> x)"
       assert macro_to_string(quote(do: (x when y -> z))) == "(x when y -> z)"
       assert macro_to_string(quote(do: (x, y when z -> w))) == "((x, y) when z -> w)"
       assert macro_to_string(quote(do: (x, y when z -> w))) == "((x, y) when z -> w)"
