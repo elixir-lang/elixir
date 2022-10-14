@@ -108,6 +108,17 @@ defmodule Mix do
 
       {:some_test_dependency, "~> 1.0", only: :test}
 
+  When running Mix via the command line, you can configure the default
+  environment or the preferred environment per task via the `def cli`
+  function in your `mix.exs`. For example:
+
+      def cli do
+        [
+          default_env: :local,
+          preferred_envs: [docs: :docs]
+        ]
+      end
+
   The environment can be read via `Mix.env/0`.
 
   ## Targets
@@ -116,6 +127,18 @@ defmodule Mix do
   project needs to compile to different architectures and some of the
   dependencies are only available to some of them. By default, the target
   is `:host` but it can be set via the `MIX_TARGET` environment variable.
+
+  When running Mix via the command line, you can configure the default
+  target or the preferred target per task via the `def cli` function
+  in your `mix.exs`. For example:
+
+      def cli do
+        [
+          default_target: :local,
+          preferred_targets: [docs: :docs]
+        ]
+      end
+
   The target can be read via `Mix.target/0`.
 
   ## Configuration
@@ -585,7 +608,7 @@ defmodule Mix do
         {:jason, "~> 1.0"}
       ])
 
-  Installing `:nx` & `:exla`, and configuring the underlying applications
+  Installing `:nx` and `:exla`, and configuring the underlying applications
   and environment variables:
 
       Mix.install(

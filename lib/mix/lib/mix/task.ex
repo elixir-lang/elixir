@@ -67,11 +67,6 @@ defmodule Mix.Task do
       on `mix help`
     * `@recursive` - runs the task recursively in umbrella projects
     * `@requirements` - list of required tasks to be run before the task
-    * `@preferred_cli_env` - recommends an environment in which to run the task.
-      It is used only if `MIX_ENV` is not yet set. Note `@preferred_cli_env` is
-      not loaded from dependencies as we need to know the environment in order to
-      load the dependencies themselves. In those cases, you can set the
-      `preferred_cli_env` configuration under `def project` in your `mix.exs`
 
   ## Documentation
 
@@ -213,24 +208,8 @@ defmodule Mix.Task do
     Mix.ProjectStack.recursing() != nil
   end
 
-  @doc """
-  Gets preferred CLI environment for the task.
-
-  Returns environment (for example, `:test`, or `:prod`), or `nil`.
-  """
-  @spec preferred_cli_env(task_name) :: atom | nil
-  def preferred_cli_env(task) when is_atom(task) or is_binary(task) do
-    case get(task) do
-      nil ->
-        nil
-
-      module ->
-        case List.keyfind(module.__info__(:attributes), :preferred_cli_env, 0) do
-          {:preferred_cli_env, [setting]} -> setting
-          _ -> nil
-        end
-    end
-  end
+  @deprecated "Configure the environment in your mix.exs"
+  defdelegate preferred_cli_env(task), to: Mix.CLI
 
   @doc """
   Gets the list of requirements for the given task.

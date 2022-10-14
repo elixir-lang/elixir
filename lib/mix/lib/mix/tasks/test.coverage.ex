@@ -136,7 +136,6 @@ defmodule Mix.Tasks.Test.Coverage do
   """
 
   @shortdoc "Build report from exported test coverage"
-  @preferred_cli_env :test
   @default_threshold 90
 
   @doc false

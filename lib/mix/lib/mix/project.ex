@@ -51,9 +51,6 @@ defmodule Mix.Project do
       file. See `config_files/0` for more information. Defaults to
       `"config/config.exs"`.
 
-    * `:default_task` - a string representing the default task to be run by
-      `mix` when no task is specified. Defaults to `"run"`.
-
     * `:deps` - a list of dependencies of this project. Refer to the
       documentation for the `Mix.Tasks.Deps` task for more information. Defaults
       to `[]`.
@@ -64,25 +61,48 @@ defmodule Mix.Project do
     * `:lockfile` - the name of the lockfile used by the `mix deps.*` family of
       tasks. Defaults to `"mix.lock"`.
 
-    * `:preferred_cli_env` - a keyword list of `{task, env}` tuples where `task`
-      is the task name as an atom (for example, `:"deps.get"`) and `env` is the
-      preferred environment (for example, `:test`). This option overrides what
-      is specified by the tasks with the `@preferred_cli_env` attribute (see the
-      docs for `Mix.Task`). Defaults to `[]`.
-
-    * `:preferred_cli_target` - a keyword list of `{task, target}` tuples where
-      `task` is the task name as an atom (for example, `:test`) and `target`
-      is the preferred target (for example, `:host`). Defaults to `[]`.
-
-  For more options, keep an eye on the documentation for single Mix tasks; good
-  examples are the `Mix.Tasks.Compile` task and all the specific compiler tasks
+  Mix tasks may require their own configuration inside `def project`. For example,
+  check the `Mix.Tasks.Compile` task and all the specific compiler tasks
   (such as `Mix.Tasks.Compile.Elixir` or `Mix.Tasks.Compile.Erlang`).
 
-  Note that sometimes the same configuration option is mentioned in the
-  documentation for different tasks; this is just because it's common for many
-  tasks to read and use the same configuration option (for example,
-  `:erlc_paths` is used by `mix compile.erlang`, `mix compile.yecc`, and other
-  tasks).
+  Note that different tasks may share the same configuration option. For example,
+  the `:erlc_paths` configuration is used by `mix compile.erlang`, `mix compile.yecc`,
+  and other tasks.
+
+  ## CLI configuration
+
+  Mix is most often invoked from the command line. For this purpose, you may define
+  a specific `cli/0` function which customizes default values when executed from
+  the CLI. For example:
+
+      def cli do
+        [
+          default_task: "phx.server",
+          default_envs: [docs: :docs]
+        ]
+      end
+
+  The example above sets the default task (used by `iex -S mix` and `mix`) to
+  `phx.server`. It also sets the default environment for the "mix docs" task to
+  be "docs".
+
+  The following CLI configuration are available:
+
+    * `:default_env` - the default environment to use when none is given
+      and `MIX_ENV` is not set
+
+    * `:default_target` - the default target to use when none is given
+      and `MIX_TARGET` is not set
+
+    * `:default_task` - the default task to invoke when none is given
+
+    * `:preferred_envs` - a keyword list of `{task, env}` tuples where `task`
+      is the task name as an atom (for example, `:"deps.get"`) and `env` is the
+      preferred environment (for example, `:test`)
+
+    * `:preferred_targets` - a keyword list of `{task, target}` tuples where
+      `task` is the task name as an atom (for example, `:test`) and `target`
+      is the preferred target (for example, `:host`)
 
   ## Erlang projects
 
@@ -138,9 +158,8 @@ defmodule Mix.Project do
   @doc false
   def push(module, file \\ nil, app \\ nil) when is_atom(module) do
     file = file || (module && List.to_string(module.__info__(:compile)[:source]))
-    config = Keyword.merge([app: app] ++ default_config(), get_project_config(module))
 
-    case Mix.ProjectStack.push(module, config, file) do
+    case Mix.ProjectStack.push(module, push_config(module, app), file) do
       :ok ->
         :ok
 
@@ -150,6 +169,34 @@ defmodule Mix.Project do
             " but another project with the same name was already defined at #{inspect(other)}"
         )
     end
+  end
+
+  @preferred_envs [test: :test, "test.coverage": :test]
+
+  defp push_config(module, app) do
+    with {state_loader, task} <- Mix.ProjectStack.pop_post_config(:state_loader) do
+      config =
+        if function_exported?(module, state_loader, 0),
+          do: apply(module, state_loader, []),
+          else: []
+
+      task = String.to_atom(task || config[:default_task] || "run")
+
+      unless System.get_env("MIX_ENV") do
+        if env = config[:preferred_envs][task] || @preferred_envs[task] || config[:default_env] do
+          Mix.env(env)
+        end
+      end
+
+      unless System.get_env("MIX_TARGET") do
+        if target = config[:preferred_targets][task] || config[:default_target] do
+          Mix.target(target)
+        end
+      end
+    end
+
+    ([app: app] ++ default_config())
+    |> Keyword.merge(get_project_config(module))
   end
 
   # Pops a project from the stack.
@@ -820,7 +867,6 @@ defmodule Mix.Project do
       build_scm: Mix.SCM.Path,
       config_path: "config/config.exs",
       consolidate_protocols: true,
-      default_task: "run",
       deps: [],
       deps_path: "deps",
       elixirc_paths: ["lib"],
@@ -828,7 +874,6 @@ defmodule Mix.Project do
       erlc_include_path: "include",
       erlc_options: [],
       lockfile: "mix.lock",
-      preferred_cli_env: [],
       start_permanent: false
     ]
   end

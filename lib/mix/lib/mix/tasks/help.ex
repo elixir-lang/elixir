@@ -153,7 +153,16 @@ defmodule Mix.Tasks.Help do
   end
 
   defp display_default_task_doc(max) do
-    message = "Runs the default task (current: \"mix #{Mix.Project.config()[:default_task]}\")"
+    project = Mix.Project.get()
+
+    default =
+      if function_exported?(project, :cli, 0) do
+        project.cli()[:default_task] || "run"
+      else
+        "run"
+      end
+
+    message = "Runs the default task (current: \"mix #{default}\")"
     Mix.shell().info(format_task("mix", max, message))
   end
 

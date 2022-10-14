@@ -41,6 +41,14 @@ defmodule Mix.ProjectStack do
     end)
   end
 
+  @spec pop_post_config(atom) :: term
+  def pop_post_config(key) do
+    update_state(fn {stack, post_config} ->
+      {value, post_config} = Keyword.pop(post_config, key)
+      {value, {stack, post_config}}
+    end)
+  end
+
   @spec merge_config(config) :: :ok
   def merge_config(config) do
     update_stack(fn

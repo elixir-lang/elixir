@@ -6,7 +6,6 @@ defmodule Mix.Tasks.Test do
   @compile {:no_warn_undefined, [ExUnit, ExUnit.Filters]}
   @shortdoc "Runs a project's tests"
   @recursive true
-  @preferred_cli_env :test
 
   @moduledoc ~S"""
   Runs the tests for a project.
@@ -470,7 +469,7 @@ defmodule Mix.Tasks.Test do
       end)
     end
 
-    unless System.get_env("MIX_ENV") || Mix.env() == @preferred_cli_env do
+    unless System.get_env("MIX_ENV") || Mix.env() == :test do
       Mix.raise("""
       "mix test" is running in the \"#{Mix.env()}\" environment. If you are \
       running tests from within another command, you can either:
@@ -479,9 +478,11 @@ defmodule Mix.Tasks.Test do
 
             MIX_ENV=test mix test.another
 
-        2. set the :preferred_cli_env for a command inside "def project" in your mix.exs:
+        2. set the :preferred_envs for "def cli" in your mix.exs:
 
-            preferred_cli_env: ["test.another": :test]
+            def cli do
+              [preferred_envs: ["test.another": :test]]
+            end
       """)
     end
 

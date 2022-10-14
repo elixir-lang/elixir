@@ -103,10 +103,6 @@ defmodule Mix.ProjectTest do
     assert is_nil(Mix.Project.config()[:app_path])
   end
 
-  test "retrieves configuration even when a project is not set" do
-    assert Mix.Project.config()[:default_task] == "run"
-  end
-
   test "raises an error when trying to retrieve the current project but none is set" do
     assert_raise Mix.NoProjectError, fn ->
       Mix.Project.get!()
