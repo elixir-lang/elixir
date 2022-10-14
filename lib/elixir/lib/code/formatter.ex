@@ -1456,6 +1456,15 @@ defmodule Code.Formatter do
     {bitstring_wrap_parens(doc, i, last), state}
   end
 
+  defp bitstring_spec_to_algebra(
+         spec = {:*, _, _},
+         state = %{normalize_bitstring_modifiers: true}
+       ) do
+    state = Map.delete(state, :normalize_bitstring_modifiers)
+    {algebra, state} = bitstring_spec_to_algebra(spec, state)
+    {algebra, Map.put(state, :normalize_bitstring_modifiers, true)}
+  end
+
   defp bitstring_spec_to_algebra({op, _, [left, right]}, state) when op in [:-, :*] do
     {left, state} = bitstring_spec_to_algebra(left, state)
     {right, state} = bitstring_spec_element_to_algebra(right, state)
