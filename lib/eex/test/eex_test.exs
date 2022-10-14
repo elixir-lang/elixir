@@ -295,6 +295,20 @@ defmodule EExTest do
       end
     end
 
+    test "when it is missing a `do` in case expr" do
+      message = """
+      nofile:1:17: unexpected middle of expression <% :something -> %>. Looks like it is missing `do`.
+
+      |
+      | <%= case true %>
+      |              ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("<%= case true %><% :something -> %>bar<% end %>")
+      end
+    end
+
     test "when end expression is found without a start expression" do
       assert_raise EEx.SyntaxError, "nofile:1:5: unexpected end of expression <% end %>", fn ->
         EEx.compile_string("foo <% end %>")

@@ -289,7 +289,8 @@ defmodule EEx.Compiler do
       quoted: [],
       start_line: nil,
       start_column: nil,
-      parser_options: parser_options
+      parser_options: parser_options,
+      last_chars: nil
     }
 
     init = state.engine.init(opts)
@@ -325,7 +326,7 @@ defmodule EEx.Compiler do
 
     expr = Code.string_to_quoted!(chars, options)
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
-    generate_buffer(rest, buffer, scope, state)
+    generate_buffer(rest, buffer, scope, %{state | last_chars: chars})
   end
 
   defp generate_buffer(
@@ -372,15 +373,16 @@ defmodule EEx.Compiler do
     generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], state)
   end
 
-  defp generate_buffer([{:middle_expr, _, chars, meta} | _], _buffer, [], state) do
+  defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
+    snippet = state.last_chars |> to_string() |> String.trim()
+    indicator = String.pad_leading("^", String.length(snippet) + 5)
+
     message = """
-    unexpected middle of expression <%#{chars}%>.
+    unexpected middle of expression <%#{chars}%>. Looks like it is missing `do`.
 
-    Make sure the starting expression ends with the keyword `do`, for example:
-
-      <%= if true do %>
-        ...
-      <% end %>
+    |
+    | <%= #{snippet} %>
+    | #{indicator}
     """
 
     raise EEx.SyntaxError,
