@@ -1411,7 +1411,7 @@ defmodule Code.Formatter do
 
   defp bitstring_segment_to_algebra({{:"::", _, [segment, spec]}, i}, state, last) do
     {doc, state} = quoted_to_algebra(segment, :parens_arg, state)
-    {spec, state} = bitstring_spec_to_algebra(spec, state)
+    {spec, state} = bitstring_spec_to_algebra(spec, state, state.normalize_bitstring_modifiers)
 
     spec = wrap_in_parens_if_inspected_atom(spec)
     spec = if i == last, do: bitstring_wrap_parens(spec, i, last), else: spec
@@ -1430,26 +1430,29 @@ defmodule Code.Formatter do
     {bitstring_wrap_parens(doc, i, last), state}
   end
 
-  defp bitstring_spec_to_algebra({op, _, [left, right]}, state) when op in [:-, :*] do
-    {left, state} = bitstring_spec_to_algebra(left, state)
-    {right, state} = bitstring_spec_element_to_algebra(right, state)
+  defp bitstring_spec_to_algebra({op, _, [left, right]}, state, normalize_modifiers)
+       when op in [:-, :*] do
+    normalize_modifiers = normalize_modifiers && op != :*
+    {left, state} = bitstring_spec_to_algebra(left, state, normalize_modifiers)
+    {right, state} = bitstring_spec_element_to_algebra(right, state, normalize_modifiers)
     {concat(concat(left, Atom.to_string(op)), right), state}
   end
 
-  defp bitstring_spec_to_algebra(spec, state) do
-    bitstring_spec_element_to_algebra(spec, state)
+  defp bitstring_spec_to_algebra(spec, state, normalize_modifiers) do
+    bitstring_spec_element_to_algebra(spec, state, normalize_modifiers)
   end
 
   defp bitstring_spec_element_to_algebra(
          {atom, meta, empty_args},
-         state = %{normalize_bitstring_modifiers: true}
+         state,
+         _normalize_modifiers = true
        )
        when is_atom(atom) and empty_args in [nil, []] do
     empty_args = bitstring_spec_normalize_empty_args(atom)
     quoted_to_algebra_with_parens_if_operator({atom, meta, empty_args}, :parens_arg, state)
   end
 
-  defp bitstring_spec_element_to_algebra(spec_element, state) do
+  defp bitstring_spec_element_to_algebra(spec_element, state, _normalize_modifiers) do
     quoted_to_algebra_with_parens_if_operator(spec_element, :parens_arg, state)
   end
 

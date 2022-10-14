@@ -299,6 +299,8 @@ defmodule Code.Formatter.ContainersTest do
 
       assert_format "<<x::binary()-(13 * 6)-custom>>", "<<x::binary-(13 * 6)-custom()>>"
       assert_same "<<x::binary-(13 * 6)-custom()>>"
+      assert_same "<<0::size*unit, bytes::binary>>"
+      assert_format "<<0::size*unit, bytes::custom>>", "<<0::size*unit, bytes::custom()>>"
 
       assert_format "<<0, 1::2-integer() <- x>>", "<<0, 1::2-integer <- x>>"
       assert_same "<<0, 1::2-integer <- x>>"
