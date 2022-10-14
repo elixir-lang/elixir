@@ -15,7 +15,7 @@ defmodule DynamicSupervisor do
   A dynamic supervisor is started with no children and often a name:
 
       children = [
-        {DynamicSupervisor, name: MyApp.DynamicSupervisor}
+        {DynamicSupervisor, name: MyApp.DynamicSupervisor, strategy: :one_for_one}
       ]
 
       Supervisor.start_link(children, strategy: :one_for_one)
