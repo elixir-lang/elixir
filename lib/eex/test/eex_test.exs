@@ -281,31 +281,47 @@ defmodule EExTest do
 
     test "when middle expression is found without a start expression" do
       message = """
-      nofile:1:18: unexpected middle of expression <% else %>.
+      nofile:5:1: unexpected middle of expression <% else %>.
 
-      Make sure the starting expression ends with the keyword `do`, for example:
-
-        <%= if true do %>
-          ...
-        <% end %>
+        |
+      2 | <%= "content" %>
+      3 | <%= if true %>
+      4 |   <%= "foo" %>
+      5 | <% else %>
+        |
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
-        EEx.compile_string("<%= if true %>foo<% else %>bar<% end %>")
+        EEx.compile_string(
+          ~s(<h1>Hi!</h1>\n<%= "content" %>\n<%= if true %>\n  <%= "foo" %>\n<% else %>\n  bar<% end %>)
+        )
+      end
+    end
+
+    test "when there is only middle expression" do
+      message = """
+      nofile:3:1: unexpected middle of expression <% else %>.
+
+        |
+      1 | <% else %>
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string(~s(<% else %>))
       end
     end
 
     test "when it is missing a `do` in case expr" do
       message = """
-      nofile:1:17: unexpected middle of expression <% :something -> %>. Looks like it is missing `do`.
+      nofile:1:17: unexpected middle of expression <% :something -> %>.
 
-      |
-      | <%= case true %>
-      |              ^
+        |
+      2 | <%= case @var %>
+      3 |   <% :something -> %>
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
-        EEx.compile_string("<%= case true %><% :something -> %>bar<% end %>")
+        EEx.compile_string("content\n<%= case @var %>\n  <% :something -> %>\n    bar<% end %>")
       end
     end
 

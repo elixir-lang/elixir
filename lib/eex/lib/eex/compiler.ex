@@ -279,18 +279,20 @@ defmodule EEx.Compiler do
   def compile(tokens, opts) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
+    source = opts[:source] || "nosource"
     parser_options = opts[:parser_options] || Code.get_compiler_option(:parser_options)
     engine = opts[:engine] || @default_engine
 
     state = %{
       engine: engine,
       file: file,
+      source: source,
       line: line,
       quoted: [],
       start_line: nil,
       start_column: nil,
       parser_options: parser_options,
-      last_chars: nil
+      tokens: []
     }
 
     init = state.engine.init(opts)
@@ -319,14 +321,14 @@ defmodule EEx.Compiler do
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:expr, mark, chars, meta} | rest], buffer, scope, state) do
+  defp generate_buffer([{:expr, mark, chars, meta} = token | rest], buffer, scope, state) do
     options =
       [file: state.file, line: meta.line, column: column(meta.column, mark)] ++
         state.parser_options
 
     expr = Code.string_to_quoted!(chars, options)
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
-    generate_buffer(rest, buffer, scope, %{state | last_chars: chars})
+    generate_buffer(rest, buffer, scope, %{state | tokens: [token | state.tokens]})
   end
 
   defp generate_buffer(
@@ -374,15 +376,12 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
-    snippet = state.last_chars |> to_string() |> String.trim()
-    indicator = String.pad_leading("^", String.length(snippet) + 5)
+    snippet = build_snippet(state, meta.line)
 
     message = """
-    unexpected middle of expression <%#{chars}%>. Looks like it is missing `do`.
+    unexpected middle of expression <%#{chars}%>.
 
-    |
-    | <%= #{snippet} %>
-    | #{indicator}
+      |\n#{snippet}
     """
 
     raise EEx.SyntaxError,
@@ -502,5 +501,40 @@ defmodule EEx.Compiler do
   defp column(column, mark) do
     # length(~c"<%") == 2
     column + 2 + length(mark)
+  end
+
+  defp build_snippet(state, line_end) do
+    [{:expr, _, _, %{column: _c, line: line_start}} | _rest] = Enum.reverse(state.tokens)
+
+    lines =
+      state.source
+      |> String.split(["\r\n", "\n"])
+      |> Enum.with_index()
+
+    {offset_start, offset_end} =
+      Enum.reduce(lines, {0, 0}, fn
+        {line, index}, {offset_start, offset_end} when index < line_start - 1 ->
+          {String.length(line) + offset_start + 1, offset_end}
+
+        {line, index}, {offset_start, offset_end} when index < line_end ->
+          {offset_start, String.length(line) + offset_end + 1}
+
+        {_line, _index}, acc ->
+          acc
+      end)
+
+    {snippet, _acc} =
+      state.source
+      |> binary_part(offset_start, offset_end)
+      |> String.split(["\r\n", "\n"])
+      |> Enum.map_reduce(line_start, fn
+        _string, line_number when line_number > line_end ->
+          {"  |", line_number}
+
+        string, line_number ->
+          {"#{line_number} | #{string}", line_number + 1}
+      end)
+
+    Enum.map_join(snippet, "\n", & &1)
   end
 end
