@@ -835,7 +835,7 @@ defmodule Mix do
   end
 
   defp expand_path(_path = nil, _deps, _key), do: nil
-  defp expand_path(path, _deps, _key) when is_binary(path), do: path
+  defp expand_path(path, _deps, _key) when is_binary(path), do: Path.expand(path)
 
   defp expand_path(app_name, deps, key) when is_atom(app_name) do
     app_dir =
