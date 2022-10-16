@@ -638,6 +638,17 @@ defmodule Mix do
       Hexpm.Repo.query!("SELECT COUNT(1) from packages")
       #=> ...
 
+  The example above can be simplified by passing the application
+  name as an atom for `:config_path` and `:lockfile`:
+
+      Mix.install(
+        [
+          {:hexpm, path: "/tmp/hexpm", env: :dev},
+        ],
+        config_path: :hexpm,
+        lockfile: :hexpm
+      )
+
   ## Limitations
 
   There is one limitation to `Mix.install/2`, which is actually an Elixir
@@ -705,7 +716,7 @@ defmodule Mix do
       end)
 
     config = Keyword.get(opts, :config, [])
-    config_path = opts[:config_path] && Path.expand(opts[:config_path])
+    config_path = expand_path(opts[:config_path], deps, "config/config.exs")
     system_env = Keyword.get(opts, :system_env, [])
     consolidate_protocols? = Keyword.get(opts, :consolidate_protocols, true)
 
@@ -752,7 +763,7 @@ defmodule Mix do
         :ok = Mix.Local.append_archives()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
         build_dir = Path.join(install_dir, "_build")
-        external_lockfile = opts[:lockfile] && Path.expand(opts[:lockfile])
+        external_lockfile = expand_path(opts[:lockfile], deps, "mix.lock")
 
         try do
           first_build? = not File.dir?(build_dir)
@@ -821,6 +832,13 @@ defmodule Mix do
       _ ->
         Mix.raise("Mix.install/2 can only be called with the same dependencies in the given VM")
     end
+  end
+
+  defp expand_path(_path = nil, _deps, _relative_path), do: nil
+  defp expand_path(path, _deps, _relative_path) when is_binary(path), do: path
+
+  defp expand_path(app_name, deps, relative_path) when is_atom(app_name) do
+    deps |> Keyword.fetch!(app_name) |> Keyword.fetch!(:path) |> Path.join(relative_path)
   end
 
   defp install_dir(cache_id) do
