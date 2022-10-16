@@ -716,7 +716,7 @@ defmodule Mix do
       end)
 
     config = Keyword.get(opts, :config, [])
-    config_path = expand_path(opts[:config_path], deps, :config_path)
+    config_path = expand_path(opts[:config_path], deps, :config_path, "config/config.exs")
     system_env = Keyword.get(opts, :system_env, [])
     consolidate_protocols? = Keyword.get(opts, :consolidate_protocols, true)
 
@@ -763,7 +763,7 @@ defmodule Mix do
         :ok = Mix.Local.append_archives()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
         build_dir = Path.join(install_dir, "_build")
-        external_lockfile = expand_path(opts[:lockfile], deps, :lockfile)
+        external_lockfile = expand_path(opts[:lockfile], deps, :lockfile, "mix.lock")
 
         try do
           first_build? = not File.dir?(build_dir)
@@ -834,10 +834,10 @@ defmodule Mix do
     end
   end
 
-  defp expand_path(_path = nil, _deps, _key), do: nil
-  defp expand_path(path, _deps, _key) when is_binary(path), do: Path.expand(path)
+  defp expand_path(_path = nil, _deps, _key, _), do: nil
+  defp expand_path(path, _deps, _key, _) when is_binary(path), do: Path.expand(path)
 
-  defp expand_path(app_name, deps, key) when is_atom(app_name) do
+  defp expand_path(app_name, deps, key, relative_path) when is_atom(app_name) do
     app_dir =
       case List.keyfind(deps, app_name, 0) do
         {_, _, opts} when is_list(opts) -> opts[:path]
@@ -848,12 +848,6 @@ defmodule Mix do
     unless app_dir do
       Mix.raise("#{inspect(app_name)} given to #{inspect(key)} must be a path dependency")
     end
-
-    relative_path =
-      case key do
-        :config_path -> "config/config.exs"
-        :lockfile -> "mix.lock"
-      end
 
     Path.join(app_dir, relative_path)
   end
