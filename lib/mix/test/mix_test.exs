@@ -153,6 +153,27 @@ defmodule MixTest do
       Application.delete_env(:unknown_app, :foo, persistent: true)
     end
 
+    test ":config_path with application name", %{tmp_dir: tmp_dir} do
+      config_path = Path.join(tmp_dir, "install_test/config/config.exs")
+      config_path |> Path.dirname() |> File.mkdir_p!()
+
+      File.write!(config_path, """
+      import Config
+      config :myapp, :foo, 1
+      """)
+
+      Mix.install(
+        [
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ],
+        config_path: :install_test
+      )
+
+      assert Application.fetch_env!(:myapp, :foo) == 1
+    after
+      Application.delete_env(:myapp, :foo)
+    end
+
     test ":config_path", %{tmp_dir: tmp_dir} do
       config_path = Path.join(tmp_dir, "config.exs")
 
@@ -267,6 +288,30 @@ defmodule MixTest do
       )
 
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev1
+    after
+      purge([GitRepo, GitRepo.MixProject])
+    end
+
+    test ":lockfile with application name", %{tmp_dir: tmp_dir} do
+      lockfile = Path.join(tmp_dir, "install_test/mix.lock")
+      lockfile |> Path.dirname() |> File.mkdir_p!()
+      Mix.Project.push(GitApp)
+      [_latest_rev, rev | _] = get_git_repo_revs("git_repo")
+      Mix.Dep.Lock.write(%{git_repo: {:git, fixture_path("git_repo"), rev, []}}, file: lockfile)
+      Mix.ProjectStack.pop()
+
+      Mix.install(
+        [
+          {:install_test, path: Path.join(tmp_dir, "install_test")},
+          {:git_repo, git: fixture_path("git_repo")}
+        ],
+        lockfile: :install_test,
+        verbose: true
+      )
+
+      assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
+      assert_received {:mix_shell, :info, ["Mix.install/2 using " <> install_dir]}
+      assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
     after
       purge([GitRepo, GitRepo.MixProject])
     end
