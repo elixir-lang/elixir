@@ -288,7 +288,7 @@ defmodule EExTest do
       3 | <%= if true %>
       4 |   <%= "foo" %>
       5 | <% else %>
-        |
+        |    ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->

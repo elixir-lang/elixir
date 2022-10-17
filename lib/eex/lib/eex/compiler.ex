@@ -381,7 +381,7 @@ defmodule EEx.Compiler do
     message = """
     unexpected middle of expression <%#{chars}%>.
 
-      |\n#{snippet}
+    #{snippet}
     """
 
     raise EEx.SyntaxError,
@@ -504,24 +504,12 @@ defmodule EEx.Compiler do
   end
 
   defp build_snippet(state, line_end) do
-    [{:expr, _, _, %{column: _c, line: line_start}} | _rest] = Enum.reverse(state.tokens)
+    arrow = String.pad_leading("^", 4)
 
-    lines =
-      state.source
-      |> String.split(["\r\n", "\n"])
-      |> Enum.with_index()
+    [{:expr, _, _, %{column: _c, line: line_start}} | _rest] =
+      state.tokens |> Enum.take(3) |> Enum.reverse()
 
-    {offset_start, offset_end} =
-      Enum.reduce(lines, {0, 0}, fn
-        {line, index}, {offset_start, offset_end} when index < line_start - 1 ->
-          {String.length(line) + offset_start + 1, offset_end}
-
-        {line, index}, {offset_start, offset_end} when index < line_end ->
-          {offset_start, String.length(line) + offset_end + 1}
-
-        {_line, _index}, acc ->
-          acc
-      end)
+    {offset_start, offset_end} = snippet_offsets(state.source, line_start, line_end)
 
     {snippet, _acc} =
       state.source
@@ -529,12 +517,27 @@ defmodule EEx.Compiler do
       |> String.split(["\r\n", "\n"])
       |> Enum.map_reduce(line_start, fn
         _string, line_number when line_number > line_end ->
-          {"  |", line_number}
+          {"  | #{arrow}", line_number}
 
         string, line_number ->
           {"#{line_number} | #{string}", line_number + 1}
       end)
 
-    Enum.map_join(snippet, "\n", & &1)
+    "  |\n#{Enum.map_join(snippet, "\n", & &1)}"
+  end
+
+  defp snippet_offsets(source, line_start, line_end) do
+    lines = source |> String.split(["\r\n", "\n"]) |> Enum.with_index()
+
+    Enum.reduce(lines, {0, 0}, fn
+      {line, index}, {offset_start, offset_end} when index < line_start - 1 ->
+        {String.length(line) + offset_start + 1, offset_end}
+
+      {line, index}, {offset_start, offset_end} when index < line_end ->
+        {offset_start, String.length(line) + offset_end + 1}
+
+      {_line, _index}, acc ->
+        acc
+    end)
   end
 end
