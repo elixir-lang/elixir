@@ -300,10 +300,11 @@ defmodule EExTest do
 
     test "when there is only middle expression" do
       message = """
-      nofile:3:1: unexpected middle of expression <% else %>.
+      nofile:1:1: unexpected middle of expression <% else %>.
 
         |
       1 | <% else %>
+        |    ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -313,11 +314,12 @@ defmodule EExTest do
 
     test "when it is missing a `do` in case expr" do
       message = """
-      nofile:1:17: unexpected middle of expression <% :something -> %>.
+      nofile:3:3: unexpected middle of expression <% :something -> %>.
 
         |
       2 | <%= case @var %>
       3 |   <% :something -> %>
+        |      ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->

@@ -376,7 +376,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
-    snippet = build_snippet(state, meta.line)
+    snippet = code_snippet(state, meta.line)
 
     message = """
     unexpected middle of expression <%#{chars}%>.
@@ -503,37 +503,54 @@ defmodule EEx.Compiler do
     column + 2 + length(mark)
   end
 
-  defp build_snippet(state, line_end) do
-    arrow = String.pad_leading("^", 4)
+  defp code_snippet(state, line_end) do
+    state.tokens
+    |> Enum.take(3)
+    |> Enum.reverse()
+    |> case do
+      [{:expr, _, _, %{column: _c, line: line_start}} | _rest] ->
+        build_code_snippet(state.source, {line_start, line_end})
 
-    [{:expr, _, _, %{column: _c, line: line_start}} | _rest] =
-      state.tokens |> Enum.take(3) |> Enum.reverse()
+      [] ->
+        build_code_snippet(state.source, {1, line_end})
+    end
+  end
 
-    {offset_start, offset_end} = snippet_offsets(state.source, line_start, line_end)
+  defp build_code_snippet(source, {line_start, line_end}) do
+    {offset_start, offset_end} = snippet_offsets(source, line_start, line_end)
 
     {snippet, _acc} =
-      state.source
-      |> binary_part(offset_start, offset_end)
+      source
+      |> binary_part(offset_start, offset_end - 1)
       |> String.split(["\r\n", "\n"])
       |> Enum.map_reduce(line_start, fn
-        _string, line_number when line_number > line_end ->
-          {"  | #{arrow}", line_number}
+        expr, line_number when line_number == line_end ->
+          spaces = count_until_expr(expr, 0)
+          arrow = String.pad_leading("^", spaces + 4)
+          expr = "#{line_number} | #{expr}\n  | #{arrow}"
+          {expr, line_number + 1}
 
-        string, line_number ->
-          {"#{line_number} | #{string}", line_number + 1}
+        expr, line_number ->
+          {"#{line_number} | #{expr}", line_number + 1}
       end)
 
     "  |\n#{Enum.map_join(snippet, "\n", & &1)}"
   end
 
-  defp snippet_offsets(source, line_start, line_end) do
-    lines = source |> String.split(["\r\n", "\n"]) |> Enum.with_index()
+  defp count_until_expr(<<char, rest::binary>>, count) when char in [?\s, ?\t],
+    do: count_until_expr(rest, count + 1)
 
-    Enum.reduce(lines, {0, 0}, fn
-      {line, index}, {offset_start, offset_end} when index < line_start - 1 ->
+  defp count_until_expr(<<"<", _rest::binary>>, count), do: count
+
+  defp snippet_offsets(source, line_start, line_end) do
+    source
+    |> String.split(["\r\n", "\n"])
+    |> Enum.with_index()
+    |> Enum.reduce({0, 0}, fn
+      {line, index}, {offset_start, offset_end} when index + 1 < line_start ->
         {String.length(line) + offset_start + 1, offset_end}
 
-      {line, index}, {offset_start, offset_end} when index < line_end ->
+      {line, index}, {offset_start, offset_end} when index + 1 <= line_end ->
         {offset_start, String.length(line) + offset_end + 1}
 
       {_line, _index}, acc ->
