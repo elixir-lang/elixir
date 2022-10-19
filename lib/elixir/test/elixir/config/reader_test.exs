@@ -59,7 +59,9 @@ defmodule Config.ReaderTest do
     assert_raise RuntimeError,
                  ~r"import_config/1 is not enabled for this configuration file",
                  fn ->
-                   Config.Reader.read!(fixture_path("configs/good_import.exs"), imports: :disabled)
+                   Config.Reader.read!(fixture_path("configs/good_import.exs"),
+                     imports: :disabled
+                   )
                  end
   end
 
