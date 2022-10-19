@@ -1177,6 +1177,7 @@ defmodule Code.Formatter do
               right_doc
               |> nest(2, :break)
               |> concat(break(""))
+              |> concat(")")
               |> group(:inherit)
               |> next_break_fits(:enabled)
 
@@ -1208,7 +1209,7 @@ defmodule Code.Formatter do
           if skip_parens? do
             nest(args_doc, :cursor, :break)
           else
-            nest(args_doc, 2, :break) |> concat(break(""))
+            nest(args_doc, 2, :break) |> concat(break("")) |> concat(")")
           end
 
         {args_doc, next_break_fits?, state}
@@ -1234,7 +1235,6 @@ defmodule Code.Formatter do
           |> concat(break(""))
           |> nest(2, :break)
           |> concat(args_doc)
-          |> concat(")")
           |> concat(extra)
           |> group()
       end

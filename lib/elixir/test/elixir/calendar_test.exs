@@ -243,31 +243,49 @@ defmodule CalendarTest do
         |> elem(month - 1)
       end
 
-      assert Calendar.strftime(%{month: 1}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 1}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "янв"
 
-      assert Calendar.strftime(%{month: 2}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 2}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "февр"
 
-      assert Calendar.strftime(%{month: 3}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 3}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "март"
 
-      assert Calendar.strftime(%{month: 4}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 4}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "апр"
 
-      assert Calendar.strftime(%{month: 5}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 5}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "май"
 
-      assert Calendar.strftime(%{month: 6}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 6}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "июнь"
 
-      assert Calendar.strftime(%{month: 7}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 7}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "июль"
 
-      assert Calendar.strftime(%{month: 8}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 8}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "авг"
 
-      assert Calendar.strftime(%{month: 9}, "%b", abbreviated_month_names: abbreviated_month_names) ==
+      assert Calendar.strftime(%{month: 9}, "%b",
+               abbreviated_month_names: abbreviated_month_names
+             ) ==
                "сент"
 
       assert Calendar.strftime(%{month: 10}, "%b",

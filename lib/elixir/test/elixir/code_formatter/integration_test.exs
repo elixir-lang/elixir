@@ -383,6 +383,26 @@ defmodule Code.Formatter.IntegrationTest do
     """
   end
 
+  test "keyword list at line limit" do
+    bad = """
+    pre()
+    config(arg, foo: bar)
+    post()
+    """
+
+    good = """
+    pre()
+
+    config(arg,
+      foo: bar
+    )
+
+    post()
+    """
+
+    assert_format bad, good, line_length: 20
+  end
+
   test "do at the end of the line with single argument" do
     bad = """
     defmodule Location do
