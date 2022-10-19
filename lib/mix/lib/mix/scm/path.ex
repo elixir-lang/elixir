@@ -24,6 +24,13 @@ defmodule Mix.SCM.Path do
         Keyword.put(opts, :dest, Path.expand(raw))
 
       opts[:in_umbrella] ->
+        if opts[:override] do
+          Mix.shell().error("""
+          warning: in-umbrella application #{inspect(app)} has the flag :override \
+          set to true, but the flag has no effect when running from the umbrella root
+          """)
+        end
+
         path = "../#{app}"
 
         opts
