@@ -201,13 +201,6 @@ defmodule Mix.Tasks.Format do
     ins: [text: :green, space: :green_background]
   ]
 
-  @default_opts [
-    after: 2,
-    before: 2,
-    color: true,
-    line: 1
-  ]
-
   @doc """
   Returns which features this plugin should plug into.
   """
@@ -684,6 +677,7 @@ defmodule Mix.Tasks.Format do
 
       {file, unformatted, formatted} ->
         [
+          IO.ANSI.bright(),
           IO.ANSI.red(),
           file,
           "\n",
@@ -695,14 +689,13 @@ defmodule Mix.Tasks.Format do
   end
 
   @doc false
-  @spec text_diff_format(String.t(), String.t(), keyword()) :: iolist()
-  def text_diff_format(code, code, opts \\ default_opts())
+  @spec text_diff_format(String.t(), String.t()) :: iolist()
+  def text_diff_format(old, new, opts \\ [])
 
   def text_diff_format(code, code, _opts), do: []
 
   def text_diff_format(old, new, opts) do
-    opts = Keyword.merge(@default_opts, opts)
-
+    opts = Keyword.validate!(opts, after: 2, before: 2, color: IO.ANSI.enabled?(), line: 1)
     crs? = String.contains?(old, "\r") || String.contains?(new, "\r")
 
     old = String.split(old, "\n")
@@ -719,10 +712,6 @@ defmodule Mix.Tasks.Format do
     |> insert_cr_symbols(crs?)
     |> diff_to_iodata({line, line}, opts)
   end
-
-  @doc false
-  @spec default_opts() :: keyword()
-  def default_opts, do: @default_opts
 
   defp diff_to_iodata(diff, line_nums, opts, iodata \\ [])
 
@@ -873,29 +862,25 @@ defmodule Mix.Tasks.Format do
     end)
   end
 
-  defp colorize(str, kind, space, opts) do
-    case Keyword.fetch!(opts, :color) && Keyword.has_key?(@colors, kind) do
-      false ->
+  defp colorize(str, kind, space?, opts) do
+    if Keyword.fetch!(opts, :color) && Keyword.has_key?(@colors, kind) do
+      color = Keyword.fetch!(@colors, kind)
+
+      if space? do
         str
+        |> String.split(~r/[\t\s]+/, include_captures: true)
+        |> Enum.map(fn
+          <<start::binary-size(1), _::binary>> = str when start in ["\t", "\s"] ->
+            IO.ANSI.format([color[:space], str])
 
-      true ->
-        color = Keyword.fetch!(@colors, kind)
-
-        case space do
-          false ->
+          str ->
             IO.ANSI.format([color[:text], str])
-
-          true ->
-            str
-            |> String.split(~r/[\t\s]+/, include_captures: true)
-            |> Enum.map(fn
-              <<start::binary-size(1), _::binary>> = str when start in ["\t", "\s"] ->
-                IO.ANSI.format([color[:space], str])
-
-              str ->
-                IO.ANSI.format([color[:text], str])
-            end)
-        end
+        end)
+      else
+        IO.ANSI.format([color[:text], str])
+      end
+    else
+      str
     end
   end
 
