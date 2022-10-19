@@ -1,25 +1,3 @@
-defmodule IEx.State do
-  @moduledoc false
-  # This state is exchanged between IEx.Server and
-  # IEx.Evaluator which is why it is a struct.
-  defstruct parser_state: "",
-            counter: 1,
-            prefix: "iex",
-            on_eof: :stop_evaluator,
-            evaluator_options: [],
-            previous_state: nil
-
-  @type t :: %{
-          __struct__: __MODULE__,
-          parser_state: binary(),
-          counter: pos_integer(),
-          prefix: binary(),
-          on_eof: :stop_evaluator | :halt,
-          evaluator_options: keyword(),
-          previous_state: nil | t()
-        }
-end
-
 defmodule IEx.Server do
   @moduledoc """
   The IEx.Server.
@@ -31,6 +9,15 @@ defmodule IEx.Server do
     * taking over the evaluator process when using `IEx.pry/0` or setting up breakpoints
 
   """
+
+  @doc false
+  defstruct parser_state: "",
+            counter: 1,
+            prefix: "iex",
+            on_eof: :stop_evaluator,
+            evaluator_options: [],
+            expand_fun: nil,
+            previous_state: nil
 
   @doc """
   Starts a new IEx server session.
@@ -137,6 +124,7 @@ defmodule IEx.Server do
       write_prompt(:prompt, state.prefix, counter)
     end
 
+    :io.setopts(expand_fun: state.expand_fun)
     input = input || io_get()
     wait_input(state, evaluator, evaluator_ref, input)
   end
@@ -144,7 +132,8 @@ defmodule IEx.Server do
   defp wait_input(state, evaluator, evaluator_ref, input) do
     receive do
       {:io_reply, ^input, code} when is_binary(code) ->
-        send(evaluator, {:eval, self(), code, state})
+        :io.setopts(expand_fun: fn _ -> {:yes, [], []} end)
+        send(evaluator, {:eval, self(), code, state.counter, state.parser_state})
         wait_eval(state, evaluator, evaluator_ref)
 
       {:io_reply, ^input, :eof} ->
@@ -176,8 +165,10 @@ defmodule IEx.Server do
 
   defp wait_eval(state, evaluator, evaluator_ref) do
     receive do
-      {:evaled, ^evaluator, status, new_state} ->
-        loop(new_state, status, evaluator, evaluator_ref, nil)
+      {:evaled, ^evaluator, status, parser_state} ->
+        counter = if(status == :ok, do: state.counter + 1, else: state.counter)
+        state = %{state | counter: counter, parser_state: parser_state}
+        loop(state, status, evaluator, evaluator_ref, nil)
 
       msg ->
         handle_take_over(msg, state, evaluator, evaluator_ref, nil, fn state ->
@@ -358,9 +349,19 @@ defmodule IEx.Server do
     prefix = Keyword.get(opts, :prefix, "iex")
     on_eof = Keyword.get(opts, :on_eof, :stop_evaluator)
 
-    %IEx.State{
+    gl = Process.group_leader()
+
+    expand_fun =
+      if node(gl) != node() do
+        IEx.Autocomplete.remsh(node())
+      else
+        &IEx.Autocomplete.expand/1
+      end
+
+    %IEx.Server{
       prefix: prefix,
       on_eof: on_eof,
+      expand_fun: expand_fun,
       previous_state: Keyword.get(opts, :previous_state),
       evaluator_options: Keyword.take(opts, [:dot_iex_path])
     }

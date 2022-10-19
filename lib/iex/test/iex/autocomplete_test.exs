@@ -13,7 +13,7 @@ defmodule IEx.AutocompleteTest do
     ExUnit.CaptureIO.capture_io(fn ->
       evaluator = Process.get(:evaluator)
       Process.group_leader(evaluator, Process.group_leader())
-      send(evaluator, {:eval, self(), line <> "\n", %IEx.State{}})
+      send(evaluator, {:eval, self(), line <> "\n", 1, ""})
       assert_receive {:evaled, _, _, _}
     end)
   end
@@ -391,11 +391,11 @@ defmodule IEx.AutocompleteTest do
     assert {:yes, ~c"", entries} = expand(~c"%")
     assert ~c"URI" in entries
     assert ~c"IEx.History" in entries
-    assert ~c"IEx.State" in entries
+    assert ~c"IEx.Server" in entries
 
     assert {:yes, ~c"", entries} = expand(~c"%IEx.")
     assert ~c"IEx.History" in entries
-    assert ~c"IEx.State" in entries
+    assert ~c"IEx.Server" in entries
 
     assert expand(~c"%IEx.AutocompleteTe") == {:yes, ~c"st.MyStruct{", []}
     assert expand(~c"%IEx.AutocompleteTest.MyStr") == {:yes, ~c"uct{", []}

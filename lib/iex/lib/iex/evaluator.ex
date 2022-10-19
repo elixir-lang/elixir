@@ -183,9 +183,9 @@ defmodule IEx.Evaluator do
 
   defp loop(%{server: server, ref: ref} = state) do
     receive do
-      {:eval, ^server, code, iex_state} ->
-        {result, status, state} = parse_eval_inspect(code, iex_state, state)
-        send(server, {:evaled, self(), status, result})
+      {:eval, ^server, code, counter, parser_state} ->
+        {status, parser_state, state} = parse_eval_inspect(code, counter, parser_state, state)
+        send(server, {:evaled, self(), status, parser_state})
         loop(state)
 
       {:fields_from_env, ^server, ref, receiver, fields} ->
@@ -285,30 +285,30 @@ defmodule IEx.Evaluator do
     end
   end
 
-  defp parse_eval_inspect(code, iex_state, state) do
+  defp parse_eval_inspect(code, counter, parser_state, state) do
     try do
       {parser_module, parser_fun, args} = IEx.Config.parser()
-      args = [code, [line: iex_state.counter, file: "iex"], iex_state.parser_state | args]
-      eval_and_inspect_parsed(apply(parser_module, parser_fun, args), iex_state, state)
+      args = [code, [line: counter, file: "iex"], parser_state | args]
+      eval_and_inspect_parsed(apply(parser_module, parser_fun, args), counter, state)
     catch
       kind, error ->
         print_error(kind, error, __STACKTRACE__)
-        {%{iex_state | parser_state: ""}, :ok, state}
+        {:error, "", state}
     end
   end
 
-  defp eval_and_inspect_parsed({:ok, forms, parser_state}, iex_state, state) do
+  defp eval_and_inspect_parsed({:ok, forms, parser_state}, counter, state) do
     put_history(state)
     put_whereami(state)
-    state = eval_and_inspect(forms, iex_state.counter, state)
-    {%{iex_state | parser_state: parser_state, counter: iex_state.counter + 1}, :ok, state}
+    state = eval_and_inspect(forms, counter, state)
+    {:ok, parser_state, state}
   after
     Process.delete(:iex_history)
     Process.delete(:iex_whereami)
   end
 
-  defp eval_and_inspect_parsed({:incomplete, parser_state}, iex_state, state) do
-    {%{iex_state | parser_state: parser_state}, :incomplete, state}
+  defp eval_and_inspect_parsed({:incomplete, parser_state}, _counter, state) do
+    {:incomplete, parser_state, state}
   end
 
   defp put_history(%{history: history}) do
