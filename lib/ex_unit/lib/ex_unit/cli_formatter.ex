@@ -353,7 +353,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp colorize(escape, string, %{colors: colors}) do
     if colors[:enabled] do
-      [escape, string, :reset]
+      [Keyword.get(colors, escape, escape), string, :reset]
       |> IO.ANSI.format_fragment(true)
       |> IO.iodata_to_binary()
     else
@@ -370,28 +370,28 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp success(msg, config) do
-    colorize(:green, msg, config)
+    colorize(:success, msg, config)
   end
 
   defp invalid(msg, config) do
-    colorize(:yellow, msg, config)
+    colorize(:invalid, msg, config)
   end
 
   defp skipped(msg, config) do
-    colorize(:yellow, msg, config)
+    colorize(:skipped, msg, config)
   end
 
   defp failure(msg, config) do
-    colorize(:red, msg, config)
+    colorize(:failure, msg, config)
   end
 
   defp formatter(:diff_enabled?, _, %{colors: colors}), do: colors[:enabled]
 
-  defp formatter(:error_info, msg, config), do: colorize(:red, msg, config)
+  defp formatter(:error_info, msg, config), do: colorize(:error_info, msg, config)
 
-  defp formatter(:extra_info, msg, config), do: colorize(:cyan, msg, config)
+  defp formatter(:extra_info, msg, config), do: colorize(:extra_info, msg, config)
 
-  defp formatter(:location_info, msg, config), do: colorize([:bright, :black], msg, config)
+  defp formatter(:location_info, msg, config), do: colorize(:location_info, msg, config)
 
   defp formatter(:diff_delete, doc, config), do: colorize_doc(:diff_delete, doc, config)
 
@@ -405,7 +405,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp formatter(:blame_diff, msg, %{colors: colors} = config) do
     if colors[:enabled] do
-      colorize(:red, msg, config)
+      colorize(:diff_delete, msg, config)
     else
       "-" <> msg <> "-"
     end
@@ -427,7 +427,16 @@ defmodule ExUnit.CLIFormatter do
     diff_delete: :red,
     diff_delete_whitespace: IO.ANSI.color_background(2, 0, 0),
     diff_insert: :green,
-    diff_insert_whitespace: IO.ANSI.color_background(0, 2, 0)
+    diff_insert_whitespace: IO.ANSI.color_background(0, 2, 0),
+
+    # CLI formatter
+    success: :green,
+    invalid: :yellow,
+    skipped: :yellow,
+    failure: :red,
+    error_info: :red,
+    extra_info: :cyan,
+    location_info: [:bright, :black]
   ]
 
   defp colors(opts) do
