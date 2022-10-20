@@ -243,7 +243,6 @@ defmodule ExUnit do
       * `:error_info` - display of actual error (defaults to :red)
       * `:extra_info` - additional information (defaults to :cyan)
       * `:location_info` - filename and tags (defaults to :bright, :black)
-      * `:blame_diff` - highlight differences leading to error (defaults to :red)
       * `:diff_insert` - color of the insertions on diffs, defaults to `:green`;
       * `:diff_insert_whitespace` - color of the whitespace insertions on diffs,
         defaults to `IO.ANSI.color_background(2, 0, 0)`;

@@ -353,7 +353,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp colorize(escape, string, %{colors: colors}) do
     if colors[:enabled] do
-      [ Keyword.get(colors, escape, escape), string, :reset]
+      [Keyword.get(colors, escape, escape), string, :reset]
       |> IO.ANSI.format_fragment(true)
       |> IO.iodata_to_binary()
     else
@@ -405,7 +405,7 @@ defmodule ExUnit.CLIFormatter do
 
   defp formatter(:blame_diff, msg, %{colors: colors} = config) do
     if colors[:enabled] do
-      colorize(:blame_diff, msg, config)
+      colorize(:diff_delete, msg, config)
     else
       "-" <> msg <> "-"
     end
@@ -434,11 +434,10 @@ defmodule ExUnit.CLIFormatter do
     invalid: :yellow,
     skipped: :yellow,
     failure: :red,
-
     error_info: :red,
     extra_info: :cyan,
-    location_info: [ :bright, :black ],
-    blame_diff: :red,
+    location_info: [:bright, :black],
+    blame_diff: :red
   ]
 
   defp colors(opts) do
