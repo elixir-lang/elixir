@@ -429,15 +429,14 @@ defmodule ExUnit.CLIFormatter do
     diff_insert: :green,
     diff_insert_whitespace: IO.ANSI.color_background(0, 2, 0),
 
-    # ex_unit messages
+    # CLI formatter
     success: :green,
     invalid: :yellow,
     skipped: :yellow,
     failure: :red,
     error_info: :red,
     extra_info: :cyan,
-    location_info: [:bright, :black],
-    blame_diff: :red
+    location_info: [:bright, :black]
   ]
 
   defp colors(opts) do
