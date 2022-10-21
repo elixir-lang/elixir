@@ -646,9 +646,6 @@ defmodule ExUnit.Assertions do
       {:_, _, context}, acc when is_atom(context) ->
         {:ok, acc}
 
-      {_, [{:expanded, expanded} | _], _}, acc ->
-        {[expanded], acc}
-
       {name, meta, context}, acc when is_atom(name) and is_atom(context) ->
         {:ok, [{name, meta, context} | acc]}
 
@@ -700,13 +697,16 @@ defmodule ExUnit.Assertions do
   end
 
   defp expand_pattern({left, meta, right} = expr, caller) do
-    meta =
-      case Macro.expand(expr, caller) do
-        ^expr -> meta
-        other -> [expanded: other] ++ meta
-      end
+    case Macro.expand(expr, caller) do
+      ^expr ->
+        {expand_pattern(left, caller), meta, expand_pattern(right, caller)}
 
-    {expand_pattern(left, caller), meta, expand_pattern(right, caller)}
+      {left, meta, right} ->
+        {expand_pattern(left, caller), [original: expr] ++ meta, expand_pattern(right, caller)}
+
+      other ->
+        other
+    end
   end
 
   defp expand_pattern({left, right}, caller) do

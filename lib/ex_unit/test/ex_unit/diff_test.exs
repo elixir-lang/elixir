@@ -148,7 +148,7 @@ defmodule ExUnit.DiffTest do
 
   test "pseudo vars" do
     assert_diff(__MODULE__ = ExUnit.DiffTest, [])
-    refute_diff(__MODULE__ = SomethingElse, "-__MODULE__-", "+SomethingElse+")
+    refute_diff(__MODULE__ = SomethingElse, "-ExUnit.DiffTest-", "+SomethingElse+")
   end
 
   test "integers" do
@@ -880,8 +880,15 @@ defmodule ExUnit.DiffTest do
   end
 
   test "concat binaries" do
+    assert_diff("fox hops" <> _ = "fox hops over the dog", [])
     assert_diff("fox hops" <> " over the dog" = "fox hops over the dog", [])
     assert_diff("fox hops " <> "over " <> "the dog" = "fox hops over the dog", [])
+
+    refute_diff(
+      "fox hops" <> _ = "dog hops over the fox",
+      ~s/"-f-o-x- hops" <> _/,
+      ~s/+d+o+g+ hops over the fox/
+    )
 
     refute_diff(
       "fox hops" <> " under the dog" = "fox hops over the dog",
@@ -958,8 +965,8 @@ defmodule ExUnit.DiffTest do
     assert_diff(one() = 1, [])
     assert_diff(tuple(x, x) = {1, 1}, x: 1)
 
-    refute_diff(one() = 2, "-one()-", "+2+")
-    refute_diff(tuple(x, x) = {1, 2}, "-tuple(x, x)-", "{1, +2+}")
+    refute_diff(one() = 2, "-1-", "+2+")
+    refute_diff(tuple(x, x) = {1, 2}, "{x, -x-}", "{1, +2+}")
 
     pins = %{{:x, nil} => 1}
     assert_diff(pin_x() = 1, [], pins)
