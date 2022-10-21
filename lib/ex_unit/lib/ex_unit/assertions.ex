@@ -595,6 +595,12 @@ defmodule ExUnit.Assertions do
   defp collect_pins_from_pattern(expr, vars) do
     {_, pins} =
       Macro.prewalk(expr, %{}, fn
+        {:quote, _, [_]}, acc ->
+          {:ok, acc}
+
+        {:quote, _, [_, _]}, acc ->
+          {:ok, acc}
+
         {:^, _, [var]}, acc ->
           identifier = var_context(var)
 
@@ -631,7 +637,10 @@ defmodule ExUnit.Assertions do
       {:"::", _, [left, right]}, acc ->
         {[left], collect_vars_from_binary(right, acc)}
 
-      {skip, _, [_]}, acc when skip in [:^, :@] ->
+      {skip, _, [_]}, acc when skip in [:^, :@, :quote] ->
+        {:ok, acc}
+
+      {skip, _, [_, _]}, acc when skip in [:quote] ->
         {:ok, acc}
 
       {:_, _, context}, acc when is_atom(context) ->
@@ -673,33 +682,42 @@ defmodule ExUnit.Assertions do
 
   @doc false
   def __expand_pattern__({:when, meta, [left, right]}, caller) do
-    left = prewalk_expand_pattern(left, Macro.Env.to_match(caller))
-    right = prewalk_expand_pattern(right, %{caller | context: :guard})
+    left = expand_pattern(left, Macro.Env.to_match(caller))
+    right = expand_pattern(right, %{caller | context: :guard})
     {:when, meta, [left, right]}
   end
 
   def __expand_pattern__(expr, caller) do
-    prewalk_expand_pattern(expr, Macro.Env.to_match(caller))
+    expand_pattern(expr, Macro.Env.to_match(caller))
   end
 
-  defp prewalk_expand_pattern(expr, caller) do
-    Macro.prewalk(expr, fn
-      {:__aliases__, _, _} = expr ->
-        Macro.expand(expr, caller)
+  defp expand_pattern({:quote, _, [_]} = expr, _caller), do: expr
+  defp expand_pattern({:quote, _, [_, _]} = expr, _caller), do: expr
+  defp expand_pattern({:__aliases__, _, _} = expr, caller), do: Macro.expand(expr, caller)
 
-      {:@, _, [{attribute, _, _}]} ->
-        caller.module |> Module.get_attribute(attribute) |> Macro.escape()
-
-      {left, meta, right} = expr ->
-        case Macro.expand(expr, caller) do
-          ^expr -> expr
-          other -> {left, [expanded: other] ++ meta, right}
-        end
-
-      other ->
-        Macro.expand(other, caller)
-    end)
+  defp expand_pattern({:@, _, [{attribute, _, _}]}, caller) do
+    caller.module |> Module.get_attribute(attribute) |> Macro.escape()
   end
+
+  defp expand_pattern({left, meta, right} = expr, caller) do
+    meta =
+      case Macro.expand(expr, caller) do
+        ^expr -> meta
+        other -> [expanded: other] ++ meta
+      end
+
+    {expand_pattern(left, caller), meta, expand_pattern(right, caller)}
+  end
+
+  defp expand_pattern({left, right}, caller) do
+    {expand_pattern(left, caller), expand_pattern(right, caller)}
+  end
+
+  defp expand_pattern([_ | _] = list, caller) do
+    Enum.map(list, &expand_pattern(&1, caller))
+  end
+
+  defp expand_pattern(other, _caller), do: other
 
   defp suppress_warning({name, meta, [expr, [do: clauses]]}) do
     clauses =

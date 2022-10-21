@@ -203,6 +203,10 @@ defmodule ExUnit.AssertionsTest do
     :code.purge(ExSample)
   end
 
+  test "assert match with quote on left-side" do
+    assert quote(do: x in Alias) = quote(do: x in Alias)
+  end
+
   test "assert match expands argument in match context" do
     {x, y, z} = {1, 2, 3}
     assert vec(x: ^x, y: ^y) = vec(x: x, y: y, z: z)
