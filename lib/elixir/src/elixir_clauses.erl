@@ -271,7 +271,7 @@ expand_rescue(Meta, [Arg], S, E) ->
     {EArg, SA, EA} ->
       {[EArg], SA, EA};
     false ->
-      form_error(Meta, E, ?MODULE, invalid_rescue_clause)
+      form_error(Meta, E, ?MODULE, {invalid_rescue_clause, Arg})
   end;
 expand_rescue(Meta, _, _, E) ->
   Error = {wrong_number_of_args_for_clause, "one argument", origin(Meta, 'try'), 'rescue'},
@@ -281,12 +281,16 @@ expand_rescue(Meta, _, _, E) ->
 expand_rescue({Name, _, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
   match(fun elixir_expand:expand/3, Var, S, S, E);
 
-%% rescue var in _ => rescue var
+%% rescue Alias => _ in [Alias]
+expand_rescue({'__aliases__', _, [_ | _]} = Alias, S, E) ->
+  expand_rescue({in, [], [{'_', [], ?key(E, module)}, Alias]}, S, E);
+
+%% rescue var in _
 expand_rescue({in, _, [{Name, _, VarContext} = Var, {'_', _, UnderscoreContext}]}, S, E)
     when is_atom(Name), is_atom(VarContext), is_atom(UnderscoreContext) ->
-  expand_rescue(Var, S, E);
+  match(fun elixir_expand:expand/3, Var, S, S, E);
 
-%% rescue var in [Exprs]
+%% rescue var in (list() or atom())
 expand_rescue({in, Meta, [Left, Right]}, S, E) ->
   {ELeft, SL, EL}  = match(fun elixir_expand:expand/3, Left, S, S, E),
   {ERight, SR, ER} = elixir_expand:expand(Right, SL, EL),
@@ -301,12 +305,19 @@ expand_rescue({in, Meta, [Left, Right]}, S, E) ->
       false
   end;
 
-%% rescue Error => _ in [Error]
+%% rescue expr() => rescue expanded_expr()
+expand_rescue({_, Meta, _} = Arg, S, E) ->
+  case 'Elixir.Macro':expand_once(Arg, E#{line := ?line(Meta)}) of
+    Arg -> false;
+    NewArg -> expand_rescue(NewArg, S, E)
+  end;
+
+%% rescue list() or atom() => _ in (list() or atom())
 expand_rescue(Arg, S, E) ->
   expand_rescue({in, [], [{'_', [], ?key(E, module)}, Arg]}, S, E).
 
-normalize_rescue({'_', _, Atom} = N) when is_atom(Atom) -> N;
-normalize_rescue(Atom) when is_atom(Atom) -> [Atom];
+normalize_rescue(Atom) when is_atom(Atom) ->
+  [Atom];
 normalize_rescue(Other) ->
   is_list(Other) andalso lists:all(fun is_atom/1, Other) andalso Other.
 
@@ -389,9 +400,12 @@ format_error({wrong_number_of_args_for_clause, Expected, Kind, Key}) ->
 format_error(multiple_after_clauses_in_receive) ->
   "expected a single -> clause for :after in \"receive\"";
 
-format_error(invalid_rescue_clause) ->
-  "invalid \"rescue\" clause. The clause should match on an alias, a variable "
-    "or be in the \"var in [alias]\" format";
+format_error({invalid_rescue_clause, Arg}) ->
+  io_lib:format(
+    "invalid \"rescue\" clause. The clause should match on an alias, a variable "
+    "or be in the \"var in [alias]\" format. Got: ~ts",
+    ['Elixir.Macro':to_string(Arg)]
+  );
 
 format_error({catch_before_rescue, Origin}) ->
   io_lib:format("\"catch\" should always come after \"rescue\" in ~ts", [Origin]);

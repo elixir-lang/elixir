@@ -303,6 +303,21 @@ defmodule Kernel.RaiseTest do
 
       assert result == "an exception"
     end
+
+    defmacrop argerr(e) do
+      quote(do: unquote(e) in ArgumentError)
+    end
+
+    test "with rescue macro" do
+      result =
+        try do
+          raise ArgumentError, "oops, badarg"
+        rescue
+          argerr(e) -> Exception.message(e)
+        end
+
+      assert result == "oops, badarg"
+    end
   end
 
   describe "normalize" do
