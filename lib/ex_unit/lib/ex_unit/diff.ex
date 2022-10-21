@@ -95,7 +95,8 @@ defmodule ExUnit.Diff do
     diff_tuple(Tuple.to_list(left), Tuple.to_list(right), env)
   end
 
-  defp diff_quoted({:%, _, [struct, {:%{}, _, kw}]}, %{} = right, _expanded, env) when is_list(kw) do
+  defp diff_quoted({:%, _, [struct, {:%{}, _, kw}]}, %{} = right, _expanded, env)
+       when is_list(kw) do
     diff_quoted_struct([__struct__: struct] ++ kw, right, env)
   end
 
