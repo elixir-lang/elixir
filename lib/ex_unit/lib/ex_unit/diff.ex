@@ -44,91 +44,92 @@ defmodule ExUnit.Diff do
 
   # Main entry point for recursive diff
 
-  defp diff(left, right, %{context: :match} = env), do: diff_quoted(left, right, env)
+  defp diff(left, right, %{context: :match} = env) do
+    case left do
+      {_, [original: original] ++ _, _} ->
+        diff_quoted(original, right, left, env)
+
+      _ ->
+        diff_quoted(left, right, nil, env)
+    end
+  end
+
   defp diff(left, right, env), do: diff_value(left, right, env)
 
   # diff quoted
 
-  defp diff_quoted({:_, _, context} = left, right, env) when is_atom(context) do
+  defp diff_quoted({:_, _, context} = left, right, _expanded, env) when is_atom(context) do
     diff_right = escape(right)
     diff = %__MODULE__{equivalent?: true, left: left, right: diff_right}
     {diff, env}
   end
 
-  defp diff_quoted({:^, _, [{name, _, context}]} = left, right, env)
+  defp diff_quoted({:^, _, [{name, _, context}]} = left, right, _expanded, env)
        when is_atom(name) and is_atom(context) do
     diff_pin(left, right, env)
   end
 
-  defp diff_quoted({name, _, context} = left, right, env)
+  defp diff_quoted({name, _, context} = left, right, _expanded, env)
        when is_atom(name) and is_atom(context) and
               name not in [:__MODULE__, :__DIR__, :__STACKTRACE__, :__ENV__, :__CALLER__] do
     diff_var(left, right, env)
   end
 
-  defp diff_quoted({:-, _, [number]}, right, env) when is_number(number) do
-    diff_quoted(-number, right, env)
+  defp diff_quoted({:-, _, [number]}, right, _expanded, env) when is_number(number) do
+    diff_quoted(-number, right, nil, env)
   end
 
-  defp diff_quoted({:+, _, [number]}, right, env) when is_number(number) do
-    diff_quoted(number, right, env)
+  defp diff_quoted({:+, _, [number]}, right, _expanded, env) when is_number(number) do
+    diff_quoted(number, right, nil, env)
   end
 
-  defp diff_quoted({:++, meta, [prefix, suffix]}, right, env) when is_list(right) do
-    case prefix do
-      {_, [expanded: expanded] ++ _, _} ->
-        diff_maybe_improper_list({:++, meta, [expanded, suffix]}, right, env)
-
-      _ ->
-        diff_maybe_improper_list({:++, meta, [prefix, suffix]}, right, env)
-    end
+  defp diff_quoted({:++, meta, [prefix, suffix]}, right, _expanded, env) when is_list(right) do
+    diff_maybe_improper_list({:++, meta, [prefix, suffix]}, right, env)
   end
 
-  defp diff_quoted({:{}, _, left}, right, env) when is_tuple(right) do
+  defp diff_quoted({:{}, _, left}, right, _expanded, env) when is_tuple(right) do
     diff_tuple(left, Tuple.to_list(right), env)
   end
 
-  defp diff_quoted({_, _} = left, right, env) when is_tuple(right) do
+  defp diff_quoted({_, _} = left, right, _expanded, env) when is_tuple(right) do
     diff_tuple(Tuple.to_list(left), Tuple.to_list(right), env)
   end
 
-  defp diff_quoted({:%, _, [struct, {:%{}, _, kw}]}, %{} = right, env) when is_list(kw) do
+  defp diff_quoted({:%, _, [struct, {:%{}, _, kw}]}, %{} = right, _expanded, env) when is_list(kw) do
     diff_quoted_struct([__struct__: struct] ++ kw, right, env)
   end
 
-  defp diff_quoted({:%{}, _, kw}, %{} = right, env) when is_list(kw) do
+  defp diff_quoted({:%{}, _, kw}, %{} = right, _expanded, env) when is_list(kw) do
     diff_quoted_struct(kw, right, env)
   end
 
-  defp diff_quoted({:<>, _, [literal, _]} = left, right, env)
+  defp diff_quoted({:<>, _, [literal, _]} = left, right, _expanded, env)
        when is_binary(literal) and is_binary(right) do
     diff_string_concat(left, right, env)
   end
 
-  defp diff_quoted({:when, _, [_, _]} = left, right, env) do
+  defp diff_quoted({:when, _, [_, _]} = left, right, _expanded, env) do
     diff_guard(left, right, env)
   end
 
-  defp diff_quoted({:sigil_c, [{:expanded, expanded} | _], _}, right, env) do
-    diff_value(expanded, right, env)
+  defp diff_quoted({_, _, _} = left, right, expanded, env) when expanded != nil do
+    expanded = Macro.update_meta(expanded, &Keyword.delete(&1, :original))
+    {diff, post_env} = diff(expanded, right, env)
+    diff_left = update_diff_meta(left, !diff.equivalent?)
+    {%{diff | left: diff_left}, post_env}
   end
 
-  defp diff_quoted({_, [{:expanded, expanded} | _], _} = left, right, env) do
-    macro = Macro.update_meta(left, &Keyword.delete(&1, :expanded))
-    diff_macro(macro, expanded, right, env)
-  end
-
-  defp diff_quoted(left, right, env) when is_list(left) and is_list(right) do
+  defp diff_quoted(left, right, _expanded, env) when is_list(left) and is_list(right) do
     diff_maybe_list(left, right, env)
   end
 
-  defp diff_quoted(left, right, env)
+  defp diff_quoted(left, right, _expanded, env)
        when is_atom(left) or is_number(left) or is_reference(left) or
               is_pid(left) or is_function(left) or is_binary(left) do
     diff_value(left, right, env)
   end
 
-  defp diff_quoted(left, right, %{context: :match} = env) do
+  defp diff_quoted(left, right, _expanded, %{context: :match} = env) do
     diff_left = update_diff_meta(left, true)
     diff_right = escape(right) |> update_diff_meta(true)
     diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
@@ -186,19 +187,10 @@ defmodule ExUnit.Diff do
     {diff, env}
   end
 
-  # Macros
-
-  defp diff_macro(macro, expanded, right, env) do
-    {diff, post_env} = diff(expanded, right, env)
-    diff_left = update_diff_meta(macro, !diff.equivalent?)
-
-    {%{diff | left: diff_left}, post_env}
-  end
-
   # Guards
 
   defp diff_guard({:when, _, [expression, clause]}, right, env) do
-    {diff_expression, post_env} = diff_quoted(expression, right, env)
+    {diff_expression, post_env} = diff_quoted(expression, right, nil, env)
 
     {guard_clause, guard_equivalent?} =
       if diff_expression.equivalent? do
@@ -217,42 +209,49 @@ defmodule ExUnit.Diff do
     {diff, post_env}
   end
 
-  defp diff_guard_clause({op, _, [clause1, clause2]}, bindings) when op in [:when, :or, :and] do
-    {diff_clause1, clause1_equivalent?} = diff_guard_clause(clause1, bindings)
-    {diff_clause2, clause2_equivalent?} = diff_guard_clause(clause2, bindings)
-
-    equivalent? =
-      case op do
-        :and -> clause1_equivalent? and clause2_equivalent?
-        _other -> clause1_equivalent? or clause2_equivalent?
-      end
-
-    diff = {op, [], [diff_clause1, diff_clause2]}
-    {diff, equivalent?}
-  end
-
   defp diff_guard_clause(quoted, bindings) do
-    expanded =
-      Macro.prewalk(quoted, fn
-        {_, [{:expanded, expanded} | _], _} ->
-          expanded
+    case original_or_current(quoted) do
+      {op, _, [clause1, clause2]} when op in [:and, :or, :when] ->
+        {diff_clause1, clause1_equivalent?} = diff_guard_clause(clause1, bindings)
+        {diff_clause2, clause2_equivalent?} = diff_guard_clause(clause2, bindings)
 
-        {var, _, context} = expr when is_atom(var) and is_atom(context) ->
-          if Map.has_key?(bindings, var_context(expr)) do
-            expr
-          else
-            throw(:abort)
+        equivalent? =
+          case op do
+            :and -> clause1_equivalent? and clause2_equivalent?
+            _other -> clause1_equivalent? or clause2_equivalent?
           end
 
-        other ->
-          other
-      end)
+        diff = {op, [], [diff_clause1, diff_clause2]}
+        {diff, equivalent?}
 
-    {equivalent?, _bindings} = Code.eval_quoted(expanded, Map.to_list(bindings))
-    {update_diff_meta(quoted, !equivalent?), equivalent?}
-  catch
-    :abort -> {quoted, false}
+      _ ->
+        {original, valid?} =
+          Macro.postwalk(quoted, true, fn
+            {_, [original: original] ++ _, _}, valid? ->
+              {original, valid?}
+
+            {var, _, context} = expr, valid? when is_atom(var) and is_atom(context) ->
+              if Map.has_key?(bindings, var_context(expr)) do
+                {expr, valid?}
+              else
+                {expr, false}
+              end
+
+            other, valid? ->
+              {other, valid?}
+          end)
+
+        if valid? do
+          {equivalent?, _bindings} = Code.eval_quoted(quoted, Map.to_list(bindings))
+          {update_diff_meta(original, equivalent? != true), equivalent? == true}
+        else
+          {original, false}
+        end
+    end
   end
+
+  defp original_or_current({_, [original: original] ++ _, _}), do: original
+  defp original_or_current(current), do: current
 
   # Pins
 

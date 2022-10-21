@@ -389,14 +389,7 @@ defmodule ExUnit.Formatter do
     formatted_mailbox =
       for message <- mailbox do
         {pattern, value, _warnings} =
-          format_sides(
-            left,
-            message,
-            {:match, pins},
-            formatter,
-            padding_size + 5,
-            width
-          )
+          format_sides(left, message, {:match, pins}, formatter, padding_size + 5, width)
 
         [
           "\n",
@@ -447,6 +440,12 @@ defmodule ExUnit.Formatter do
         {if_value(left, inspect), if_value(right, inspect), []}
 
       nil ->
+        left =
+          Macro.prewalk(left, fn
+            {_, [original: original], _} -> original
+            other -> other
+          end)
+
         {if_value(left, &code_multiline(&1, padding_size)), if_value(right, inspect), []}
     end
   end
