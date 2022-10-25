@@ -743,7 +743,7 @@ defmodule Kernel.ParserTest do
     end
 
     test "unexpected end" do
-      assert_syntax_error("nofile:1:3: unexpected reserved word: end", ~c"1 end")
+      assert_syntax_error(~r"nofile:1:3: unexpected reserved word: end", ~c"1 end")
 
       assert_syntax_error(
         ~r" HINT: it looks like the \"end\" on line 2 does not have a matching \"do\" defined before it",
@@ -810,7 +810,7 @@ defmodule Kernel.ParserTest do
     end
 
     test "before sigil" do
-      msg = fn x -> "nofile:1:9: syntax error before: sigil ~s starting with content '#{x}'" end
+      msg = fn x -> ~r"nofile:1:9: syntax error before: sigil ~s starting with content '#{x}'" end
 
       assert_syntax_error(msg.("bar baz"), ~c"~s(foo) ~s(bar baz)")
       assert_syntax_error(msg.(""), ~c"~s(foo) ~s()")
@@ -915,22 +915,36 @@ defmodule Kernel.ParserTest do
 
     test "invalid new line" do
       assert_syntax_error(
-        "nofile:3:6: unexpectedly reached end of line. The current expression is invalid or incomplete",
+        """
+        nofile:3:6: unexpectedly reached end of line. The current expression is invalid or incomplete
+            |
+          3 |   baz
+            |      ^\
+        """,
         ~c"if true do\n  foo = [],\n  baz\nend"
       )
     end
 
     test "invalid \"fn do expr end\"" do
       assert_syntax_error(
-        "nofile:1:4: unexpected reserved word: do. Anonymous functions are written as:\n\n    fn pattern -> expression end",
+        """
+        nofile:1:4: unexpected reserved word: do. Anonymous functions are written as:
+
+            fn pattern -> expression end
+
+        Please remove the "do" keyword
+            |
+          1 | fn do :ok end
+            |    ^\
+        """,
         ~c"fn do :ok end"
       )
     end
 
     test "characters literal are printed correctly in syntax errors" do
-      assert_syntax_error("nofile:1:5: syntax error before: ?a", ~c":ok ?a")
-      assert_syntax_error("nofile:1:5: syntax error before: ?\\s", ~c":ok ?\\s")
-      assert_syntax_error("nofile:1:5: syntax error before: ?す", ~c":ok ?す")
+      assert_syntax_error(~r"nofile:1:5: syntax error before: \?a", ~c":ok ?a")
+      assert_syntax_error(~r"nofile:1:5: syntax error before: \?\\s", ~c":ok ?\\s")
+      assert_syntax_error(~r"nofile:1:5: syntax error before: \?す", ~c":ok ?す")
     end
 
     test "numbers are printed correctly in syntax errors" do
