@@ -125,7 +125,7 @@ defmodule Mix.Compilers.ApplicationTracer do
                 env_module
               end
 
-            warning = {:undefined_app, module_app, module, function, arity}
+            warning = {:undefined_app, String.to_atom(module_app), module, function, arity}
             [{__MODULE__, warning, {env_file, env_line, env_mfa}} | acc]
           else
             _ -> acc
@@ -176,16 +176,43 @@ defmodule Mix.Compilers.ApplicationTracer do
     is used by the current application but the current application does not depend \
     on :#{app}. To fix this, you must do one of:
 
-      1. If :#{app} is part of Erlang/Elixir, you must include it under \
-    :extra_applications inside "def application" in your mix.exs
+      1. #{mix_exs_undefined_app_fix(app)}
 
-      2. If :#{app} is a dependency, make sure it is listed under "def deps" \
-    in your mix.exs
-
-      3. In case you don't want to add a requirement to :#{app}, you may \
+      2. In case you don't want to add a requirement to :#{app}, you may \
     optionally skip this warning by adding [xref: [exclude: [#{inspect(module)}]]] \
     to your "def project" in mix.exs
     """
+  end
+
+  defp mix_exs_undefined_app_fix(app) do
+    application_key = application_key()
+
+    if elixir_app?(app) or erlang_app?(app) or application_key == :applications do
+      "You must include :#{app} under :#{application_key} inside \"def application\" in your mix.exs"
+    else
+      "Make sure :#{app} is listed as a dependency in \"def deps\" in your mix.exs"
+    end
+  end
+
+  defp application_key do
+    project = Mix.Project.get()
+
+    with true <- function_exported?(project, :application, 0),
+         [_ | _] = properties <- project.application(),
+         Keyword.has_key?(properties, :applications) do
+      :applications
+    else
+      _ -> :extra_applications
+    end
+  end
+
+  defp elixir_app?(app), do: app in [:logger, :mix, :ex_unit, :iex, :eex]
+
+  defp erlang_app?(app) do
+    case :code.lib_dir(app) do
+      [_ | _] = path -> List.starts_with?(path, :code.root_dir())
+      _ -> false
+    end
   end
 
   ## Helpers
