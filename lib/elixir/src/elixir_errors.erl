@@ -100,22 +100,20 @@ snippet(InputString, Location, StartLine, StartColumn) ->
 
 -spec parse_error(elixir:keyword(), binary() | {binary(), binary()},
                   binary(), binary(), {unicode:charlist(), integer(), integer()}) -> no_return().
-parse_error(Location, File, Error, <<>>, {InputString, StartLine, StartColumn}) when is_list(InputString) ->
+parse_error(Location, File, Error, <<>>, Input) ->
   Message = case Error of
     <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
     _ -> <<Error/binary>>
   end,
-  Snippet = snippet(InputString, Location, StartLine, StartColumn),
-  raise(Location, File, 'Elixir.TokenMissingError', Message, Snippet);
+  raise_snippet(Location, File, Input, 'Elixir.TokenMissingError', Message);
 
 %% Show a nicer message for end of line
-parse_error(Location, File, <<"syntax error before: ">>, <<"eol">>, _Input) ->
-  raise(Location, File, 'Elixir.SyntaxError',
+parse_error(Location, File, <<"syntax error before: ">>, <<"eol">>, Input) ->
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError',
         <<"unexpectedly reached end of line. The current expression is invalid or incomplete">>);
 
-
 %% Show a nicer message for keywords pt1 (Erlang keywords show up wrapped in single quotes)
-parse_error(Location, File, <<"syntax error before: ">>, Keyword, _Input)
+parse_error(Location, File, <<"syntax error before: ">>, Keyword, Input)
     when Keyword == <<"'not'">>;
          Keyword == <<"'and'">>;
          Keyword == <<"'or'">>;
@@ -123,10 +121,10 @@ parse_error(Location, File, <<"syntax error before: ">>, Keyword, _Input)
          Keyword == <<"'after'">>;
          Keyword == <<"'catch'">>;
          Keyword == <<"'end'">> ->
-  raise_reserved(Location, File, binary_part(Keyword, 1, byte_size(Keyword) - 2));
+  raise_reserved(Location, File, Input, binary_part(Keyword, 1, byte_size(Keyword) - 2));
 
 %% Show a nicer message for keywords pt2 (Elixir keywords show up as is)
-parse_error(Location, File, <<"syntax error before: ">>, Keyword, _Input)
+parse_error(Location, File, <<"syntax error before: ">>, Keyword, Input)
     when Keyword == <<"fn">>;
          Keyword == <<"else">>;
          Keyword == <<"rescue">>;
@@ -134,56 +132,60 @@ parse_error(Location, File, <<"syntax error before: ">>, Keyword, _Input)
          Keyword == <<"false">>;
          Keyword == <<"nil">>;
          Keyword == <<"in">> ->
-  raise_reserved(Location, File, Keyword);
+  raise_reserved(Location, File, Input, Keyword);
 
 %% Produce a human-readable message for errors before a sigil
-parse_error(Location, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full, _Input) ->
+parse_error(Location, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full, Input) ->
   {sigil, _, Sigil, [Content | _], _, _, _} = parse_erl_term(Full),
   Content2 = case is_binary(Content) of
     true -> Content;
     false -> <<>>
   end,
   Message = <<"syntax error before: sigil \~", Sigil, " starting with content '", Content2/binary, "'">>,
-  raise(Location, File, 'Elixir.SyntaxError', Message);
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message);
 
 %% Binaries (and interpolation) are wrapped in [<<...>>]
-parse_error(Location, File, Error, <<"[", _/binary>> = Full, _Input) when is_binary(Error) ->
+parse_error(Location, File, Error, <<"[", _/binary>> = Full, Input) when is_binary(Error) ->
   Term = case parse_erl_term(Full) of
     [H | _] when is_binary(H) -> <<$", H/binary, $">>;
     _ -> <<$">>
   end,
-  raise(Location, File, 'Elixir.SyntaxError', <<Error/binary, Term/binary>>);
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', <<Error/binary, Term/binary>>);
 
 %% Given a string prefix and suffix to insert the token inside the error message rather than append it
-parse_error(Location, File, {ErrorPrefix, ErrorSuffix}, Token, _Input) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
+parse_error(Location, File, {ErrorPrefix, ErrorSuffix}, Token, Input) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
   Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary >>,
-  raise(Location, File, 'Elixir.SyntaxError', Message);
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message);
 
 %% Misplaced char tokens (for example, {char, _, 97}) are translated by Erlang into
 %% the char literal (i.e., the token in the previous example becomes $a),
 %% because {char, _, _} is a valid Erlang token for an Erlang char literal. We
 %% want to represent that token as ?a in the error, according to the Elixir
 %% syntax.
-parse_error(Location, File, <<"syntax error before: ">>, <<$$, Char/binary>>, _Input) ->
+parse_error(Location, File, <<"syntax error before: ">>, <<$$, Char/binary>>, Input) ->
   Message = <<"syntax error before: ?", Char/binary>>,
-  raise(Location, File, 'Elixir.SyntaxError', Message);
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message);
 
 %% Everything else is fine as is
-parse_error(Location, File, Error, Token, {InputString, StartLine, StartColumn}) when is_binary(Error), is_binary(Token) ->
+parse_error(Location, File, Error, Token, Input) when is_binary(Error), is_binary(Token) ->
   Message = <<Error/binary, Token/binary>>,
-  Snippet = snippet(InputString, Location, StartLine, StartColumn),
-  raise(Location, File, 'Elixir.SyntaxError', Message, Snippet).
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message).
 
 parse_erl_term(Term) ->
   {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
 
-raise_reserved(Location, File, Keyword) ->
-  raise(Location, File, 'Elixir.SyntaxError',
+raise_reserved(Location, File, Input, Keyword) ->
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError',
         <<"syntax error before: ", Keyword/binary, ". \"", Keyword/binary, "\" is a "
           "reserved word in Elixir and therefore its usage is limited. For instance, "
           "it can't be used as a variable or be defined nor invoked as a regular function">>).
+
+raise_snippet(Location, File, Input, Kind, Message) when is_binary(File) ->
+  {InputString, StartLine, StartColumn} = Input,
+  Snippet = snippet(InputString, Location, StartLine, StartColumn),
+  raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
 
 %% Helpers
 
@@ -212,12 +214,6 @@ meta_location(Meta, File) ->
     {F, L} -> [{file, F}, {line, L}];
     nil    -> [{file, File}, {line, ?line(Meta)}]
   end.
-
-raise(Location, File, Kind, Message, Snippet) when is_binary(File) ->
-  raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
-
-raise(Location, File, Kind, Message) when is_binary(File) ->
-  raise(Kind, Message, [{file, File} | Location]).
 
 raise(Kind, Message, Opts) when is_binary(Message) ->
   Stacktrace = try throw(ok) catch _:_:Stack -> Stack end,

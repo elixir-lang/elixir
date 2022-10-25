@@ -1616,7 +1616,7 @@ invalid_do_error(Prefix) ->
 
 invalid_do_with_fn_error(Prefix) ->
   {Prefix, ". Anonymous functions are written as:\n\n"
-  "    fn pattern -> expression end"}.
+  "    fn pattern -> expression end\n\nPlease remove the \"do\" keyword"}.
 
 % TODO: Turn into an error on v2.0
 maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Column, Scope) ->
