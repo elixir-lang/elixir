@@ -382,7 +382,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
-    snippet = code_snippet(state, meta.line)
+    snippet = code_snippet_with_previous_lines(state, meta.line)
 
     message = """
     unexpected middle of expression <%#{chars}%>.
@@ -423,16 +423,13 @@ defmodule EEx.Compiler do
     state.engine.handle_body(buffer)
   end
 
-  defp generate_buffer([{:eof, meta}], _buffer, [{content, content_meta} | _scope], state) do
-    content = content |> to_string() |> String.trim()
-    indicator = String.pad_leading("^", String.length(content) + 3)
+  defp generate_buffer([{:eof, meta}], _buffer, [{_content, content_meta} | _scope], state) do
+    snippet = code_snippet(state.source, {content_meta.line, content_meta.line}, arrow_padding: 1)
 
     message = """
     unexpected end of string, expected a closing '<% end %>'.
 
-      |
-    #{content_meta.line} | <%= #{content} %>
-      | #{indicator}
+    #{snippet}
     """
 
     raise EEx.SyntaxError,
@@ -507,20 +504,21 @@ defmodule EEx.Compiler do
     column + 2 + length(mark)
   end
 
-  defp code_snippet(state, line_end) do
+  defp code_snippet_with_previous_lines(state, line_end) do
     state.tokens
     |> Enum.take(3)
     |> Enum.reverse()
     |> case do
       [{:expr, _, _, %{column: _c, line: line_start}} | _rest] ->
-        build_code_snippet(state.source, {line_start, line_end})
+        code_snippet(state.source, {line_start, line_end})
 
       [] ->
-        build_code_snippet(state.source, {1, line_end})
+        code_snippet(state.source, {1, line_end})
     end
   end
 
-  defp build_code_snippet(source, {line_start, line_end}) do
+  defp code_snippet(source, {line_start, line_end}, opts \\ []) do
+    arrow_padding = Keyword.get(opts, :arrow_padding, 0)
     {offset_start, offset_end} = source_offset(source, line_start, line_end)
 
     {snippet, _acc} =
@@ -530,7 +528,7 @@ defmodule EEx.Compiler do
       |> Enum.map_reduce(line_start, fn
         expr, line_number when line_number == line_end ->
           spaces = count_until_expr(expr, 0)
-          arrow = String.pad_leading("^", spaces + 4)
+          arrow = String.pad_leading("^", spaces + 4 + arrow_padding)
           expr = "#{line_number} | #{expr}\n  | #{arrow}"
           {expr, line_number + 1}
 

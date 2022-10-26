@@ -354,11 +354,25 @@ defmodule EExTest do
 
         |
       2 | <%= if true do %>
-        |             ^
+        |     ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo\n<%= if true do %>\nfoo\n")
+      end
+    end
+
+    test "when start expression with middle expression is found without an end expression" do
+      message = """
+      nofile:5:1: unexpected end of string, expected a closing '<% end %>'.
+
+        |
+      2 | <%= if true do %>
+        |     ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo\n<%= if true do %>\nfoo\n<% else %>\n")
       end
     end
 
@@ -368,7 +382,7 @@ defmodule EExTest do
 
         |
       4 | <%= if @var do %>
-        |             ^
+        |     ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
