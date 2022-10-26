@@ -350,7 +350,7 @@ defmodule EExTest do
 
     test "when start expression is found without an end expression" do
       message = """
-      nofile:4:1: unexpected end of string, expected a closing '<% end %>'.
+      nofile:2:1: unexpected end of string, expected a closing '<% end %>'.
 
         |
       2 | <%= if true do %>
@@ -364,7 +364,7 @@ defmodule EExTest do
 
     test "when start expression with middle expression is found without an end expression" do
       message = """
-      nofile:5:1: unexpected end of string, expected a closing '<% end %>'.
+      nofile:2:1: unexpected end of string, expected a closing '<% end %>'.
 
         |
       2 | <%= if true do %>
@@ -378,7 +378,7 @@ defmodule EExTest do
 
     test "when multiple start expressions is found without an end expression" do
       message = """
-      nofile:6:1: unexpected end of string, expected a closing '<% end %>'.
+      nofile:4:1: unexpected end of string, expected a closing '<% end %>'.
 
         |
       4 | <%= if @var do %>

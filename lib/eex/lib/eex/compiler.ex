@@ -435,7 +435,7 @@ defmodule EEx.Compiler do
     raise EEx.SyntaxError,
       message: message,
       file: state.file,
-      line: meta.line,
+      line: content_meta.line,
       column: meta.column
   end
 
