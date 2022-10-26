@@ -327,6 +327,21 @@ defmodule EExTest do
       end
     end
 
+    test "when it is a `do` in cond expr" do
+      message = """
+      nofile:3:3: unexpected middle of expression <% true -> %>.
+
+        |
+      2 | <%= cond %>
+      3 |   <% true -> %>
+        |      ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("content\n<%= cond %>\n  <% true -> %>\n    bar<% end %>")
+      end
+    end
+
     test "when end expression is found without a start expression" do
       assert_raise EEx.SyntaxError, "nofile:1:5: unexpected end of expression <% end %>", fn ->
         EEx.compile_string("foo <% end %>")
@@ -335,18 +350,29 @@ defmodule EExTest do
 
     test "when start expression is found without an end expression" do
       message = """
-      nofile:2:18: unexpected end of string, expected a closing '<% end %>'.
+      nofile:4:1: unexpected end of string, expected a closing '<% end %>'.
 
-      Looks like there isn't an <% end %> for the expression `if true do`. This is
-      how it should be:
-
-        <%= if true do %>
-          ...
-        <% end %>
+        |
+      2 | <%= if true do %>
+        |             ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
-        EEx.compile_string("foo\n<%= if true do %>")
+        EEx.compile_string("foo\n<%= if true do %>\nfoo\n")
+      end
+    end
+
+    test "when multiple start expressions is found without an end expression" do
+      message = """
+      nofile:6:1: unexpected end of string, expected a closing '<% end %>'.
+
+        |
+      4 | <%= if @var do %>
+        |             ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo\n<%= if true do %>\n<%= @something %>\n<%= if @var do %>\nfoo\n")
       end
     end
 

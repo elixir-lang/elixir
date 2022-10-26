@@ -350,7 +350,7 @@ defmodule EEx.Compiler do
       generate_buffer(
         rest,
         state.engine.handle_begin(buffer),
-        [contents | scope],
+        [{contents, meta} | scope],
         %{
           state
           | quoted: [],
@@ -367,12 +367,18 @@ defmodule EEx.Compiler do
   defp generate_buffer(
          [{:middle_expr, ~c"", chars, meta} | rest],
          buffer,
-         [current | scope],
+         [{current, scope_meta} | scope],
          state
        ) do
     {wrapped, state} = wrap_expr(current, meta.line, buffer, chars, state)
     state = %{state | line: meta.line}
-    generate_buffer(rest, state.engine.handle_begin(buffer), [wrapped | scope], state)
+
+    generate_buffer(
+      rest,
+      state.engine.handle_begin(buffer),
+      [{wrapped, scope_meta} | scope],
+      state
+    )
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
@@ -394,7 +400,7 @@ defmodule EEx.Compiler do
   defp generate_buffer(
          [{:end_expr, ~c"", chars, meta} | rest],
          buffer,
-         [current | _],
+         [{current, _meta} | _],
          state
        ) do
     {wrapped, state} = wrap_expr(current, meta.line, buffer, chars, state)
@@ -417,18 +423,16 @@ defmodule EEx.Compiler do
     state.engine.handle_body(buffer)
   end
 
-  defp generate_buffer([{:eof, meta}], _buffer, scope, state) do
-    scope = scope |> to_string() |> String.trim()
+  defp generate_buffer([{:eof, meta}], _buffer, [{content, content_meta} | _scope], state) do
+    content = content |> to_string() |> String.trim()
+    indicator = String.pad_leading("^", String.length(content) + 3)
 
     message = """
     unexpected end of string, expected a closing '<% end %>'.
 
-    Looks like there isn't an <% end %> for the expression `#{scope}`. This is
-    how it should be:
-
-      <%= #{scope} %>
-        ...
-      <% end %>
+      |
+    #{content_meta.line} | <%= #{content} %>
+      | #{indicator}
     """
 
     raise EEx.SyntaxError,
@@ -517,7 +521,7 @@ defmodule EEx.Compiler do
   end
 
   defp build_code_snippet(source, {line_start, line_end}) do
-    {offset_start, offset_end} = snippet_offsets(source, line_start, line_end)
+    {offset_start, offset_end} = source_offset(source, line_start, line_end)
 
     {snippet, _acc} =
       source
@@ -542,7 +546,7 @@ defmodule EEx.Compiler do
 
   defp count_until_expr(<<"<", _rest::binary>>, count), do: count
 
-  defp snippet_offsets(source, line_start, line_end) do
+  defp source_offset(source, line_start, line_end) do
     source
     |> String.split(["\r\n", "\n"])
     |> Enum.with_index()
