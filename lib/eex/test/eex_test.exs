@@ -317,6 +317,7 @@ defmodule EExTest do
       nofile:3:3: unexpected middle of expression <% :something -> %>
 
         |
+      1 | content
       2 | <%= case @var %>
       3 |   <% :something -> %>
         |      ^
@@ -332,6 +333,7 @@ defmodule EExTest do
       nofile:3:3: unexpected middle of expression <% true -> %>
 
         |
+      1 | content
       2 | <%= cond %>
       3 |   <% true -> %>
         |      ^
@@ -353,6 +355,7 @@ defmodule EExTest do
       nofile:2:1: expected a closing '<% end %>' for block expression in EEx
 
         |
+      1 | foo
       2 | <%= if true do %>
         |     ^
       """
@@ -367,6 +370,7 @@ defmodule EExTest do
       nofile:2:1: expected a closing '<% end %>' for block expression in EEx
 
         |
+      1 | foo
       2 | <%= if true do %>
         |     ^
       """
@@ -378,15 +382,20 @@ defmodule EExTest do
 
     test "when multiple start expressions is found without an end expression" do
       message = """
-      nofile:4:1: expected a closing '<% end %>' for block expression in EEx
+      nofile:5:1: expected a closing '<% end %>' for block expression in EEx
 
         |
-      4 | <%= if @var do %>
+      2 | <%= if true do %>
+      3 |   <%= @something %>
+      4 |\s
+      5 | <%= if @var do %>
         |     ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
-        EEx.compile_string("foo\n<%= if true do %>\n<%= @something %>\n<%= if @var do %>\nfoo\n")
+        EEx.compile_string(
+          "foo\n<%= if true do %>\n  <%= @something %>\n\n<%= if @var do %>\nfoo\n"
+        )
       end
     end
 

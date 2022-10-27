@@ -291,8 +291,7 @@ defmodule EEx.Compiler do
       quoted: [],
       start_line: nil,
       start_column: nil,
-      parser_options: parser_options,
-      tokens: []
+      parser_options: parser_options
     }
 
     init = state.engine.init(opts)
@@ -321,14 +320,14 @@ defmodule EEx.Compiler do
     generate_buffer(rest, buffer, scope, state)
   end
 
-  defp generate_buffer([{:expr, mark, chars, meta} = token | rest], buffer, scope, state) do
+  defp generate_buffer([{:expr, mark, chars, meta} | rest], buffer, scope, state) do
     options =
       [file: state.file, line: meta.line, column: column(meta.column, mark)] ++
         state.parser_options
 
     expr = Code.string_to_quoted!(chars, options)
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), expr)
-    generate_buffer(rest, buffer, scope, %{state | tokens: [token | state.tokens]})
+    generate_buffer(rest, buffer, scope, state)
   end
 
   defp generate_buffer(
@@ -382,7 +381,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
-    snippet = code_snippet_with_previous_lines(state, meta)
+    snippet = code_snippet(state.source, meta, 0)
 
     message = """
     unexpected middle of expression <%#{chars}%>
@@ -424,7 +423,7 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:eof, meta}], _buffer, [{_content, content_meta} | _scope], state) do
-    snippet = code_snippet(state.source, content_meta, arrow_padding: 1)
+    snippet = code_snippet(state.source, content_meta, 1)
 
     message = """
     expected a closing '<% end %>' for block expression in EEx
@@ -504,23 +503,9 @@ defmodule EEx.Compiler do
     column + 2 + length(mark)
   end
 
-  defp code_snippet_with_previous_lines(state, meta) do
-    state.tokens
-    |> Enum.take(3)
-    |> Enum.reverse()
-    |> case do
-      [{:expr, _, _, %{column: _c, line: line_start}} | _rest] ->
-        code_snippet(state.source, meta, line_start: line_start)
-
-      [] ->
-        code_snippet(state.source, meta, line_start: 1)
-    end
-  end
-
-  defp code_snippet(source, meta, opts) do
-    line_start = Keyword.get(opts, :line_start, meta.line)
+  defp code_snippet(source, meta, arrow_padding) do
+    line_start = max(meta.line - 3, 1)
     line_end = meta.line
-    arrow_padding = Keyword.get(opts, :arrow_padding, 0)
     {offset_start, offset_end} = source_offset(source, line_start, line_end)
 
     {snippet, _acc} =
