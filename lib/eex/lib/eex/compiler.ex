@@ -60,22 +60,8 @@ defmodule EEx.Compiler do
 
     case expr(t, line, column + 2 + marker_length, state, []) do
       {:error, _line, _column, message} ->
-        code_snippet = code_snippet(state.source, %{line: line, column: column}, marker_length)
-
-        message =
-          case code_snippet do
-            "" ->
-              message
-
-            code_snippet ->
-              """
-              #{message}
-
-              #{code_snippet}
-              """
-          end
-
-        {:error, message, %{line: line, column: column}}
+        meta = %{line: line, column: column}
+        {:error, message <> code_snippet(state.source, meta, marker_length), meta}
 
       {:ok, expr, new_line, new_column, rest} ->
         {key, expr} =
@@ -397,16 +383,10 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
-    snippet = code_snippet(state.source, meta, 0)
-
-    message = """
-    unexpected middle of expression <%#{chars}%>
-
-    #{snippet}
-    """
+    message = "unexpected middle of expression <%#{chars}%>"
 
     raise EEx.SyntaxError,
-      message: message,
+      message: message <> code_snippet(state.source, meta, 0),
       file: state.file,
       line: meta.line,
       column: meta.column
@@ -427,14 +407,10 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:end_expr, _, chars, meta} | _], _buffer, [], state) do
-    message = """
-    unexpected end of expression <%#{chars}%>
-
-    #{code_snippet(state.source, meta, 0)}
-    """
+    message = "unexpected end of expression <%#{chars}%>"
 
     raise EEx.SyntaxError,
-      message: message,
+      message: message <> code_snippet(state.source, meta, 0),
       file: state.file,
       line: meta.line,
       column: meta.column
@@ -445,16 +421,10 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:eof, meta}], _buffer, [{_content, content_meta} | _scope], state) do
-    snippet = code_snippet(state.source, content_meta, 1)
-
-    message = """
-    expected a closing '<% end %>' for block expression in EEx
-
-    #{snippet}
-    """
+    message = "expected a closing '<% end %>' for block expression in EEx"
 
     raise EEx.SyntaxError,
-      message: message,
+      message: message <> code_snippet(state.source, content_meta, 1),
       file: state.file,
       line: content_meta.line,
       column: meta.column
@@ -529,42 +499,20 @@ defmodule EEx.Compiler do
     line_start = max(meta.line - 3, 1)
     line_end = meta.line
 
-    case String.split(source, ["\r\n", "\n"]) do
-      lines when length(lines) < line_start ->
-        ""
+    source
+    |> String.split(["\r\n", "\n"])
+    |> Enum.slice(line_start-1..line_end-1)
+    |> Enum.map_reduce(line_start, fn
+      expr, line_number when line_number == line_end ->
+        arrow = String.duplicate(" ", meta.column + 2 + arrow_padding) <> "^"
+        {"#{line_number} | #{expr}\n  | #{arrow}", line_number + 1}
 
-      lines ->
-        {offset_start, offset_end} = source_offset(lines, line_start, line_end)
-
-        {snippet, _acc} =
-          source
-          |> binary_part(offset_start, offset_end - 1)
-          |> String.split(["\r\n", "\n"])
-          |> Enum.map_reduce(line_start, fn
-            expr, line_number when line_number == line_end ->
-              arrow = String.duplicate(" ", meta.column + 2 + arrow_padding) <> "^"
-              {"#{line_number} | #{expr}\n  | #{arrow}", line_number + 1}
-
-            expr, line_number ->
-              {"#{line_number} | #{expr}", line_number + 1}
-          end)
-
-        Enum.join(["  |" | snippet], "\n")
-    end
-  end
-
-  defp source_offset(lines, line_start, line_end) do
-    lines
-    |> Enum.with_index(1)
-    |> Enum.reduce({0, 0}, fn
-      {line, index}, {offset_start, offset_end} when index < line_start ->
-        {String.length(line) + offset_start + 1, offset_end}
-
-      {line, index}, {offset_start, offset_end} when index <= line_end ->
-        {offset_start, String.length(line) + offset_end + 1}
-
-      {_line, _index}, acc ->
-        acc
+      expr, line_number ->
+        {"#{line_number} | #{expr}", line_number + 1}
     end)
+    |> case do
+      {[], _} -> ""
+      {snippet, _} -> Enum.join(["\n  |" | snippet], "\n")
+    end
   end
 end

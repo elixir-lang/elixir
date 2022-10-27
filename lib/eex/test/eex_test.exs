@@ -276,10 +276,9 @@ defmodule EExTest do
     test "when the token is invalid" do
       message = """
       nofile:1:5: expected closing '%>' for EEx expression
-
         |
       1 | foo <%= bar
-        |         ^
+        |         ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -290,13 +289,12 @@ defmodule EExTest do
     test "when middle expression is found without a start expression" do
       message = """
       nofile:5:1: unexpected middle of expression <% else %>
-
         |
       2 | <%= "content" %>
       3 | <%= if true %>
       4 |   <%= "foo" %>
       5 | <% else %>
-        |    ^
+        |    ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -309,10 +307,9 @@ defmodule EExTest do
     test "when there is only middle expression" do
       message = """
       nofile:1:1: unexpected middle of expression <% else %>
-
         |
       1 | <% else %>
-        |    ^
+        |    ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -323,12 +320,11 @@ defmodule EExTest do
     test "when it is missing a `do` in case expr" do
       message = """
       nofile:3:3: unexpected middle of expression <% :something -> %>
-
         |
       1 | content
       2 | <%= case @var %>
       3 |   <% :something -> %>
-        |      ^
+        |      ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -339,12 +335,11 @@ defmodule EExTest do
     test "when it is a `do` in cond expr" do
       message = """
       nofile:3:3: unexpected middle of expression <% true -> %>
-
         |
       1 | content
       2 | <%= cond %>
       3 |   <% true -> %>
-        |      ^
+        |      ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -355,10 +350,9 @@ defmodule EExTest do
     test "when end expression is found without a start expression" do
       message = """
       nofile:1:5: unexpected end of expression <% end %>
-
         |
       1 | foo <% end %>
-        |        ^
+        |        ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -369,11 +363,10 @@ defmodule EExTest do
     test "when start expression is found without an end expression" do
       message = """
       nofile:2:1: expected a closing '<% end %>' for block expression in EEx
-
         |
       1 | foo
       2 | <%= if true do %>
-        |     ^
+        |     ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -384,11 +377,10 @@ defmodule EExTest do
     test "when start expression with middle expression is found without an end expression" do
       message = """
       nofile:2:1: expected a closing '<% end %>' for block expression in EEx
-
         |
       1 | foo
       2 | <%= if true do %>
-        |     ^
+        |     ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -399,13 +391,12 @@ defmodule EExTest do
     test "when multiple start expressions is found without an end expression" do
       message = """
       nofile:5:1: expected a closing '<% end %>' for block expression in EEx
-
         |
       2 | <%= if true do %>
       3 |   <%= @something %>
       4 |\s
       5 | <%= if @var do %>
-        |     ^
+        |     ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -418,10 +409,9 @@ defmodule EExTest do
     test "when nested end expression is found without a start expression" do
       message = """
       nofile:1:31: unexpected end of expression <% end %>
-
         |
       1 | foo <%= if true do %><% end %><% end %>
-        |                                  ^
+        |                                  ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -473,10 +463,9 @@ defmodule EExTest do
     test "honor file names" do
       message = """
       my_file.eex:1:5: expected closing '%>' for EEx expression
-
         |
       1 | foo <%= bar
-        |         ^
+        |         ^\
       """
 
       assert_raise EEx.SyntaxError, message, fn ->

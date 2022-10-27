@@ -376,10 +376,9 @@ defmodule EEx.TokenizerTest do
   test "returns error when there is start mark and no end mark" do
     message = """
     expected closing '%>' for EEx expression
-
       |
     1 | foo <% :bar
-      |        ^
+      |        ^\
     """
 
     assert EEx.tokenize(~c"foo <% :bar", @opts) ==
