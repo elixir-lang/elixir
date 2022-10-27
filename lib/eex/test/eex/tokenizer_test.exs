@@ -375,7 +375,7 @@ defmodule EEx.TokenizerTest do
 
   test "returns error when there is start mark and no end mark" do
     message = """
-    missing token '%>'
+    expected closing '%>' for EEx expression
 
       |
     1 | foo <% :bar
@@ -386,7 +386,7 @@ defmodule EEx.TokenizerTest do
              {:error, message, %{column: 5, line: 1}}
 
     assert EEx.tokenize(~c"<%# true ", @opts) ==
-             {:error, "missing token '%>'", %{column: 10, line: 1}}
+             {:error, "expected closing '%>' for EEx expression", %{column: 10, line: 1}}
 
     assert EEx.tokenize(~c"<%!-- foo ", @opts) ==
              {:error, "missing token '--%>'", %{column: 11, line: 1}}

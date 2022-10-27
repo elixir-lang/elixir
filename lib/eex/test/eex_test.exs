@@ -275,11 +275,11 @@ defmodule EExTest do
   describe "raises syntax errors" do
     test "when the token is invalid" do
       message = """
-      nofile:1:5: missing token '%>'
+      nofile:1:5: expected closing '%>' for EEx expression
 
         |
       1 | foo <%= bar
-        |        ^
+        |         ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -463,18 +463,20 @@ defmodule EExTest do
 
   describe "error messages" do
     test "honor line numbers" do
-      assert_raise EEx.SyntaxError, "nofile:100:6: missing token '%>'", fn ->
-        EEx.compile_string("foo\n bar <%= baz", line: 99)
-      end
+      assert_raise EEx.SyntaxError,
+                   "nofile:100:6: expected closing '%>' for EEx expression",
+                   fn ->
+                     EEx.compile_string("foo\n bar <%= baz", line: 99)
+                   end
     end
 
     test "honor file names" do
       message = """
-      my_file.eex:1:5: missing token '%>'
+      my_file.eex:1:5: expected closing '%>' for EEx expression
 
         |
       1 | foo <%= bar
-        |        ^
+        |         ^
       """
 
       assert_raise EEx.SyntaxError, message, fn ->
@@ -773,9 +775,11 @@ defmodule EExTest do
     test "supports overriding file and line through options" do
       filename = Path.join(__DIR__, "fixtures/eex_template_with_syntax_error.eex")
 
-      assert_raise EEx.SyntaxError, "my_file.eex:10:5: missing token '%>'", fn ->
-        EEx.eval_file(filename, _bindings = [], file: "my_file.eex", line: 10)
-      end
+      assert_raise EEx.SyntaxError,
+                   "my_file.eex:10:5: expected closing '%>' for EEx expression",
+                   fn ->
+                     EEx.eval_file(filename, _bindings = [], file: "my_file.eex", line: 10)
+                   end
     end
   end
 

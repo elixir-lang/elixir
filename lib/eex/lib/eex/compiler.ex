@@ -5,6 +5,7 @@ defmodule EEx.Compiler do
   @default_engine EEx.SmartEngine
   @h_spaces [?\s, ?\t]
   @all_spaces [?\s, ?\t, ?\n, ?\r]
+
   @doc """
   Tokenize EEx contents.
   """
@@ -55,10 +56,11 @@ defmodule EEx.Compiler do
 
   defp tokenize(~c"<%" ++ t, line, column, state, buffer, acc) do
     {marker, t} = retrieve_marker(t)
+    marker_length = length(marker)
 
-    case expr(t, line, column + 2 + length(marker), state, []) do
+    case expr(t, line, column + 2 + marker_length, state, []) do
       {:error, _line, _column, message} ->
-        code_snippet = code_snippet(state.source, %{line: line, column: column}, 0)
+        code_snippet = code_snippet(state.source, %{line: line, column: column}, marker_length)
 
         message =
           case code_snippet do
@@ -169,7 +171,7 @@ defmodule EEx.Compiler do
   end
 
   defp expr([], line, column, _state, _buffer) do
-    {:error, line, column, "missing token '%>'"}
+    {:error, line, column, "expected closing '%>' for EEx expression"}
   end
 
   # Receives tokens and check if it is a start, middle or an end token.
