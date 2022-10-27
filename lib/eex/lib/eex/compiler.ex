@@ -279,7 +279,7 @@ defmodule EEx.Compiler do
   def compile(tokens, opts) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
-    source = opts[:source] || "nosource"
+    source = Keyword.fetch!(opts, :source)
     parser_options = opts[:parser_options] || Code.get_compiler_option(:parser_options)
     engine = opts[:engine] || @default_engine
 
