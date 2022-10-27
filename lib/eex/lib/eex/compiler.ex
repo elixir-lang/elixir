@@ -530,8 +530,7 @@ defmodule EEx.Compiler do
       |> Enum.map_reduce(line_start, fn
         expr, line_number when line_number == line_end ->
           arrow = String.pad_leading("^", meta.column + 3 + arrow_padding)
-          expr = "#{line_number} | #{expr}\n  | #{arrow}"
-          {expr, line_number + 1}
+          {"#{line_number} | #{expr}\n  | #{arrow}", line_number + 1}
 
         expr, line_number ->
           {"#{line_number} | #{expr}", line_number + 1}
@@ -543,12 +542,12 @@ defmodule EEx.Compiler do
   defp source_offset(source, line_start, line_end) do
     source
     |> String.split(["\r\n", "\n"])
-    |> Enum.with_index()
+    |> Enum.with_index(1)
     |> Enum.reduce({0, 0}, fn
-      {line, index}, {offset_start, offset_end} when index + 1 < line_start ->
+      {line, index}, {offset_start, offset_end} when index < line_start ->
         {String.length(line) + offset_start + 1, offset_end}
 
-      {line, index}, {offset_start, offset_end} when index + 1 <= line_end ->
+      {line, index}, {offset_start, offset_end} when index <= line_end ->
         {offset_start, String.length(line) + offset_end + 1}
 
       {_line, _index}, acc ->
