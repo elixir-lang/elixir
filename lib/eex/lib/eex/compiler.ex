@@ -20,7 +20,7 @@ defmodule EEx.Compiler do
     indentation = opts[:indentation] || 0
     column = indentation + (opts[:column] || 1)
 
-    state = %{trim: trim, indentation: indentation, file: file}
+    state = %{trim: trim, indentation: indentation, file: file, source: to_string(contents)}
 
     {contents, line, column} =
       (trim && trim_init(contents, line, column, state)) || {contents, line, column}
@@ -58,7 +58,22 @@ defmodule EEx.Compiler do
     {marker, t} = retrieve_marker(t)
 
     case expr(t, line, column + 2 + length(marker), state, []) do
-      {:error, line, column, message} ->
+      {:error, _line, _column, message} ->
+        code_snippet = code_snippet(state.source, %{line: line, column: column}, 0)
+
+        message =
+          case code_snippet do
+            "" ->
+              message
+
+            code_snippet ->
+              """
+              #{message}
+
+              #{code_snippet}
+              """
+          end
+
         {:error, message, %{line: line, column: column}}
 
       {:ok, expr, new_line, new_column, rest} ->
@@ -506,27 +521,33 @@ defmodule EEx.Compiler do
   defp code_snippet(source, meta, arrow_padding) do
     line_start = max(meta.line - 3, 1)
     line_end = meta.line
-    {offset_start, offset_end} = source_offset(source, line_start, line_end)
 
-    {snippet, _acc} =
-      source
-      |> binary_part(offset_start, offset_end - 1)
-      |> String.split(["\r\n", "\n"])
-      |> Enum.map_reduce(line_start, fn
-        expr, line_number when line_number == line_end ->
-          arrow = String.duplicate(" ", meta.column + 2 + arrow_padding) <> "^"
-          {"#{line_number} | #{expr}\n  | #{arrow}", line_number + 1}
+    case String.split(source, ["\r\n", "\n"]) do
+      lines when length(lines) < line_start ->
+        ""
 
-        expr, line_number ->
-          {"#{line_number} | #{expr}", line_number + 1}
-      end)
+      lines ->
+        {offset_start, offset_end} = source_offset(lines, line_start, line_end)
 
-    Enum.join(["  |" | snippet], "\n")
+        {snippet, _acc} =
+          source
+          |> binary_part(offset_start, offset_end - 1)
+          |> String.split(["\r\n", "\n"])
+          |> Enum.map_reduce(line_start, fn
+            expr, line_number when line_number == line_end ->
+              arrow = String.duplicate(" ", meta.column + 2 + arrow_padding) <> "^"
+              {"#{line_number} | #{expr}\n  | #{arrow}", line_number + 1}
+
+            expr, line_number ->
+              {"#{line_number} | #{expr}", line_number + 1}
+          end)
+
+        Enum.join(["  |" | snippet], "\n")
+    end
   end
 
-  defp source_offset(source, line_start, line_end) do
-    source
-    |> String.split(["\r\n", "\n"])
+  defp source_offset(lines, line_start, line_end) do
+    lines
     |> Enum.with_index(1)
     |> Enum.reduce({0, 0}, fn
       {line, index}, {offset_start, offset_end} when index < line_start ->

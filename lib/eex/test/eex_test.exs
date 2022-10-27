@@ -274,7 +274,15 @@ defmodule EExTest do
 
   describe "raises syntax errors" do
     test "when the token is invalid" do
-      assert_raise EEx.SyntaxError, "nofile:1:12: missing token '%>'", fn ->
+      message = """
+      nofile:1:5: missing token '%>'
+
+        |
+      1 | foo <%= bar
+        |        ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <%= bar")
       end
     end
@@ -439,13 +447,21 @@ defmodule EExTest do
 
   describe "error messages" do
     test "honor line numbers" do
-      assert_raise EEx.SyntaxError, "nofile:99:12: missing token '%>'", fn ->
-        EEx.compile_string("foo <%= bar", line: 99)
+      assert_raise EEx.SyntaxError, "nofile:100:6: missing token '%>'", fn ->
+        EEx.compile_string("foo\n bar <%= baz", line: 99)
       end
     end
 
     test "honor file names" do
-      assert_raise EEx.SyntaxError, "my_file.eex:1:12: missing token '%>'", fn ->
+      message = """
+      my_file.eex:1:5: missing token '%>'
+
+        |
+      1 | foo <%= bar
+        |        ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <%= bar", file: "my_file.eex")
       end
     end
@@ -738,14 +754,10 @@ defmodule EExTest do
       assert_normalized_newline_equal("foo 1\n", result)
     end
 
-    assert_raise EEx.SyntaxError, "my_file.eex:1:12: missing token '%>'", fn ->
-      EEx.compile_string("foo <%= bar", file: "my_file.eex")
-    end
-
     test "supports overriding file and line through options" do
       filename = Path.join(__DIR__, "fixtures/eex_template_with_syntax_error.eex")
 
-      assert_raise EEx.SyntaxError, "my_file.eex:11:1: missing token '%>'", fn ->
+      assert_raise EEx.SyntaxError, "my_file.eex:10:5: missing token '%>'", fn ->
         EEx.eval_file(filename, _bindings = [], file: "my_file.eex", line: 10)
       end
     end
