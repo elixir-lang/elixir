@@ -336,10 +336,10 @@ join_filter(Ann, {nil, Filter}, True, False) ->
     {clause, Ann, [{atom, Ann, false}], [], [False]}
   ]};
 join_filter(Ann, {Var, Filter}, True, False) ->
-  Guards = [
-    [{op, Ann, '==', Var, {atom, Ann, false}}],
-    [{op, Ann, '==', Var, {atom, Ann, nil}}]
-  ],
+  Guards = [[{op, Ann, 'orelse',
+    {op, Ann, '==', Var, {atom, Ann, false}},
+    {op, Ann, '==', Var, {atom, Ann, nil}}
+  }]],
 
   {'case', Ann, Filter, [
     {clause, Ann, [Var], Guards, [False]},
