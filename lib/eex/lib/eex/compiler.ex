@@ -277,9 +277,9 @@ defmodule EEx.Compiler do
   """
   @spec compile([EEx.token()], keyword) :: Macro.t()
   def compile(tokens, opts) do
+    source = Keyword.fetch!(opts, :source)
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
-    source = Keyword.fetch!(opts, :source)
     parser_options = opts[:parser_options] || Code.get_compiler_option(:parser_options)
     engine = opts[:engine] || @default_engine
 
@@ -514,14 +514,14 @@ defmodule EEx.Compiler do
       |> String.split(["\r\n", "\n"])
       |> Enum.map_reduce(line_start, fn
         expr, line_number when line_number == line_end ->
-          arrow = String.pad_leading("^", meta.column + 3 + arrow_padding)
+          arrow = String.duplicate(" ", meta.column + 2 + arrow_padding) <> "^"
           {"#{line_number} | #{expr}\n  | #{arrow}", line_number + 1}
 
         expr, line_number ->
           {"#{line_number} | #{expr}", line_number + 1}
       end)
 
-    "  |\n#{Enum.map_join(snippet, "\n", & &1)}"
+    Enum.join(["  |" | snippet], "\n")
   end
 
   defp source_offset(source, line_start, line_end) do
