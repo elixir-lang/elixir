@@ -501,7 +501,7 @@ defmodule EEx.Compiler do
 
     source
     |> String.split(["\r\n", "\n"])
-    |> Enum.slice(line_start-1..line_end-1)
+    |> Enum.slice((line_start - 1)..(line_end - 1))
     |> Enum.map_reduce(line_start, fn
       expr, line_number when line_number == line_end ->
         arrow = String.duplicate(" ", meta.column + 2 + arrow_padding) <> "^"
