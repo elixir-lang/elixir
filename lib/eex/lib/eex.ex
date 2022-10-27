@@ -217,6 +217,7 @@ defmodule EEx do
   def compile_string(source, options \\ []) when is_binary(source) and is_list(options) do
     case tokenize(source, options) do
       {:ok, tokens} ->
+        options = [source: source] ++ options
         EEx.Compiler.compile(tokens, options)
 
       {:error, message, %{column: column, line: line}} ->

@@ -274,35 +274,157 @@ defmodule EExTest do
 
   describe "raises syntax errors" do
     test "when the token is invalid" do
-      assert_raise EEx.SyntaxError, "nofile:1:12: missing token '%>'", fn ->
+      message = """
+      nofile:1:5: expected closing '%>' for EEx expression
+
+        |
+      1 | foo <%= bar
+        |         ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <%= bar")
       end
     end
 
     test "when middle expression is found without a start expression" do
-      assert_raise EEx.SyntaxError,
-                   "nofile:1:18: unexpected middle of expression <% else %>",
-                   fn ->
-                     EEx.compile_string("<%= if true %>foo<% else %>bar<% end %>")
-                   end
+      message = """
+      nofile:5:1: unexpected middle of expression <% else %>
+
+        |
+      2 | <%= "content" %>
+      3 | <%= if true %>
+      4 |   <%= "foo" %>
+      5 | <% else %>
+        |    ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string(
+          ~s(<h1>Hi!</h1>\n<%= "content" %>\n<%= if true %>\n  <%= "foo" %>\n<% else %>\n  bar<% end %>)
+        )
+      end
+    end
+
+    test "when there is only middle expression" do
+      message = """
+      nofile:1:1: unexpected middle of expression <% else %>
+
+        |
+      1 | <% else %>
+        |    ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string(~s(<% else %>))
+      end
+    end
+
+    test "when it is missing a `do` in case expr" do
+      message = """
+      nofile:3:3: unexpected middle of expression <% :something -> %>
+
+        |
+      1 | content
+      2 | <%= case @var %>
+      3 |   <% :something -> %>
+        |      ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("content\n<%= case @var %>\n  <% :something -> %>\n    bar<% end %>")
+      end
+    end
+
+    test "when it is a `do` in cond expr" do
+      message = """
+      nofile:3:3: unexpected middle of expression <% true -> %>
+
+        |
+      1 | content
+      2 | <%= cond %>
+      3 |   <% true -> %>
+        |      ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("content\n<%= cond %>\n  <% true -> %>\n    bar<% end %>")
+      end
     end
 
     test "when end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1:5: unexpected end of expression <% end %>", fn ->
+      message = """
+      nofile:1:5: unexpected end of expression <% end %>
+
+        |
+      1 | foo <% end %>
+        |        ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <% end %>")
       end
     end
 
     test "when start expression is found without an end expression" do
-      msg = "nofile:2:18: unexpected end of string, expected a closing '<% end %>'"
+      message = """
+      nofile:2:1: expected a closing '<% end %>' for block expression in EEx
 
-      assert_raise EEx.SyntaxError, msg, fn ->
-        EEx.compile_string("foo\n<%= if true do %>")
+        |
+      1 | foo
+      2 | <%= if true do %>
+        |     ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo\n<%= if true do %>\nfoo\n")
+      end
+    end
+
+    test "when start expression with middle expression is found without an end expression" do
+      message = """
+      nofile:2:1: expected a closing '<% end %>' for block expression in EEx
+
+        |
+      1 | foo
+      2 | <%= if true do %>
+        |     ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo\n<%= if true do %>\nfoo\n<% else %>\n")
+      end
+    end
+
+    test "when multiple start expressions is found without an end expression" do
+      message = """
+      nofile:5:1: expected a closing '<% end %>' for block expression in EEx
+
+        |
+      2 | <%= if true do %>
+      3 |   <%= @something %>
+      4 |\s
+      5 | <%= if @var do %>
+        |     ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string(
+          "foo\n<%= if true do %>\n  <%= @something %>\n\n<%= if @var do %>\nfoo\n"
+        )
       end
     end
 
     test "when nested end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1:31: unexpected end of expression <% end %>", fn ->
+      message = """
+      nofile:1:31: unexpected end of expression <% end %>
+
+        |
+      1 | foo <%= if true do %><% end %><% end %>
+        |                                  ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <%= if true do %><% end %><% end %>")
       end
     end
@@ -341,13 +463,23 @@ defmodule EExTest do
 
   describe "error messages" do
     test "honor line numbers" do
-      assert_raise EEx.SyntaxError, "nofile:99:12: missing token '%>'", fn ->
-        EEx.compile_string("foo <%= bar", line: 99)
-      end
+      assert_raise EEx.SyntaxError,
+                   "nofile:100:6: expected closing '%>' for EEx expression",
+                   fn ->
+                     EEx.compile_string("foo\n bar <%= baz", line: 99)
+                   end
     end
 
     test "honor file names" do
-      assert_raise EEx.SyntaxError, "my_file.eex:1:12: missing token '%>'", fn ->
+      message = """
+      my_file.eex:1:5: expected closing '%>' for EEx expression
+
+        |
+      1 | foo <%= bar
+        |         ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <%= bar", file: "my_file.eex")
       end
     end
@@ -640,16 +772,14 @@ defmodule EExTest do
       assert_normalized_newline_equal("foo 1\n", result)
     end
 
-    assert_raise EEx.SyntaxError, "my_file.eex:1:12: missing token '%>'", fn ->
-      EEx.compile_string("foo <%= bar", file: "my_file.eex")
-    end
-
     test "supports overriding file and line through options" do
       filename = Path.join(__DIR__, "fixtures/eex_template_with_syntax_error.eex")
 
-      assert_raise EEx.SyntaxError, "my_file.eex:11:1: missing token '%>'", fn ->
-        EEx.eval_file(filename, _bindings = [], file: "my_file.eex", line: 10)
-      end
+      assert_raise EEx.SyntaxError,
+                   "my_file.eex:10:5: expected closing '%>' for EEx expression",
+                   fn ->
+                     EEx.eval_file(filename, _bindings = [], file: "my_file.eex", line: 10)
+                   end
     end
   end
 
