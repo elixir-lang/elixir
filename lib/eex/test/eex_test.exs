@@ -281,7 +281,7 @@ defmodule EExTest do
 
     test "when middle expression is found without a start expression" do
       message = """
-      nofile:5:1: unexpected middle of expression <% else %>.
+      nofile:5:1: unexpected middle of expression <% else %>
 
         |
       2 | <%= "content" %>
@@ -300,7 +300,7 @@ defmodule EExTest do
 
     test "when there is only middle expression" do
       message = """
-      nofile:1:1: unexpected middle of expression <% else %>.
+      nofile:1:1: unexpected middle of expression <% else %>
 
         |
       1 | <% else %>
@@ -314,7 +314,7 @@ defmodule EExTest do
 
     test "when it is missing a `do` in case expr" do
       message = """
-      nofile:3:3: unexpected middle of expression <% :something -> %>.
+      nofile:3:3: unexpected middle of expression <% :something -> %>
 
         |
       2 | <%= case @var %>
@@ -329,7 +329,7 @@ defmodule EExTest do
 
     test "when it is a `do` in cond expr" do
       message = """
-      nofile:3:3: unexpected middle of expression <% true -> %>.
+      nofile:3:3: unexpected middle of expression <% true -> %>
 
         |
       2 | <%= cond %>
@@ -350,7 +350,7 @@ defmodule EExTest do
 
     test "when start expression is found without an end expression" do
       message = """
-      nofile:2:1: unexpected end of string, expected a closing '<% end %>'.
+      nofile:2:1: expected a closing '<% end %>' for block expression in EEx
 
         |
       2 | <%= if true do %>
@@ -364,7 +364,7 @@ defmodule EExTest do
 
     test "when start expression with middle expression is found without an end expression" do
       message = """
-      nofile:2:1: unexpected end of string, expected a closing '<% end %>'.
+      nofile:2:1: expected a closing '<% end %>' for block expression in EEx
 
         |
       2 | <%= if true do %>
@@ -378,7 +378,7 @@ defmodule EExTest do
 
     test "when multiple start expressions is found without an end expression" do
       message = """
-      nofile:4:1: unexpected end of string, expected a closing '<% end %>'.
+      nofile:4:1: expected a closing '<% end %>' for block expression in EEx
 
         |
       4 | <%= if @var do %>

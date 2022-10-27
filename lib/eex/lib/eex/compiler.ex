@@ -382,10 +382,10 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
-    snippet = code_snippet_with_previous_lines(state, meta.line)
+    snippet = code_snippet_with_previous_lines(state, meta)
 
     message = """
-    unexpected middle of expression <%#{chars}%>.
+    unexpected middle of expression <%#{chars}%>
 
     #{snippet}
     """
@@ -424,10 +424,10 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:eof, meta}], _buffer, [{_content, content_meta} | _scope], state) do
-    snippet = code_snippet(state.source, {content_meta.line, content_meta.line}, arrow_padding: 1)
+    snippet = code_snippet(state.source, content_meta, arrow_padding: 1)
 
     message = """
-    unexpected end of string, expected a closing '<% end %>'.
+    expected a closing '<% end %>' for block expression in EEx
 
     #{snippet}
     """
@@ -504,20 +504,22 @@ defmodule EEx.Compiler do
     column + 2 + length(mark)
   end
 
-  defp code_snippet_with_previous_lines(state, line_end) do
+  defp code_snippet_with_previous_lines(state, meta) do
     state.tokens
     |> Enum.take(3)
     |> Enum.reverse()
     |> case do
       [{:expr, _, _, %{column: _c, line: line_start}} | _rest] ->
-        code_snippet(state.source, {line_start, line_end})
+        code_snippet(state.source, meta, line_start: line_start)
 
       [] ->
-        code_snippet(state.source, {1, line_end})
+        code_snippet(state.source, meta, line_start: 1)
     end
   end
 
-  defp code_snippet(source, {line_start, line_end}, opts \\ []) do
+  defp code_snippet(source, meta, opts) do
+    line_start = Keyword.get(opts, :line_start, meta.line)
+    line_end = meta.line
     arrow_padding = Keyword.get(opts, :arrow_padding, 0)
     {offset_start, offset_end} = source_offset(source, line_start, line_end)
 
@@ -527,8 +529,7 @@ defmodule EEx.Compiler do
       |> String.split(["\r\n", "\n"])
       |> Enum.map_reduce(line_start, fn
         expr, line_number when line_number == line_end ->
-          spaces = count_until_expr(expr, 0)
-          arrow = String.pad_leading("^", spaces + 4 + arrow_padding)
+          arrow = String.pad_leading("^", meta.column + 3 + arrow_padding)
           expr = "#{line_number} | #{expr}\n  | #{arrow}"
           {expr, line_number + 1}
 
@@ -538,11 +539,6 @@ defmodule EEx.Compiler do
 
     "  |\n#{Enum.map_join(snippet, "\n", & &1)}"
   end
-
-  defp count_until_expr(<<char, rest::binary>>, count) when char in [?\s, ?\t],
-    do: count_until_expr(rest, count + 1)
-
-  defp count_until_expr(<<"<", _rest::binary>>, count), do: count
 
   defp source_offset(source, line_start, line_end) do
     source
