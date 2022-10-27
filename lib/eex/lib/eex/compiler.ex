@@ -5,7 +5,6 @@ defmodule EEx.Compiler do
   @default_engine EEx.SmartEngine
   @h_spaces [?\s, ?\t]
   @all_spaces [?\s, ?\t, ?\n, ?\r]
-
   @doc """
   Tokenize EEx contents.
   """
@@ -426,8 +425,14 @@ defmodule EEx.Compiler do
   end
 
   defp generate_buffer([{:end_expr, _, chars, meta} | _], _buffer, [], state) do
+    message = """
+    unexpected end of expression <%#{chars}%>
+
+    #{code_snippet(state.source, meta, 0)}
+    """
+
     raise EEx.SyntaxError,
-      message: "unexpected end of expression <%#{chars}%>",
+      message: message,
       file: state.file,
       line: meta.line,
       column: meta.column

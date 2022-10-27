@@ -353,7 +353,15 @@ defmodule EExTest do
     end
 
     test "when end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1:5: unexpected end of expression <% end %>", fn ->
+      message = """
+      nofile:1:5: unexpected end of expression <% end %>
+
+        |
+      1 | foo <% end %>
+        |        ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <% end %>")
       end
     end
@@ -408,7 +416,15 @@ defmodule EExTest do
     end
 
     test "when nested end expression is found without a start expression" do
-      assert_raise EEx.SyntaxError, "nofile:1:31: unexpected end of expression <% end %>", fn ->
+      message = """
+      nofile:1:31: unexpected end of expression <% end %>
+
+        |
+      1 | foo <%= if true do %><% end %><% end %>
+        |                                  ^
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo <%= if true do %><% end %><% end %>")
       end
     end
