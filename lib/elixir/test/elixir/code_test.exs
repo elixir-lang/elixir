@@ -48,6 +48,16 @@ defmodule CodeTest do
       assert Code.eval_string("var!(a, Sample) = 1") == {1, [{{:a, Sample}, 1}]}
     end
 
+    defmacro hygiene_var do
+      quote do
+        a = 1
+      end
+    end
+
+    test "does not return bindings from macro hygiene" do
+      assert Code.eval_string("require CodeTest; CodeTest.hygiene_var()") == {1, []}
+    end
+
     test "does not raise on duplicate bindings" do
       # The order of which values win is not guaranteed, but it should evaluate successfully.
       assert Code.eval_string("b = String.Chars.to_string(a)", a: 0, a: 1) ==
