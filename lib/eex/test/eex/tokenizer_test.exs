@@ -387,8 +387,14 @@ defmodule EEx.TokenizerTest do
     assert EEx.tokenize(~c"<%# true ", @opts) ==
              {:error, "expected closing '%>' for EEx expression", %{column: 10, line: 1}}
 
-    assert EEx.tokenize(~c"<%!-- foo ", @opts) ==
-             {:error, "missing token '--%>'", %{column: 11, line: 1}}
+    message = """
+    expected closing '--%>' for EEx expression
+      |
+    1 | <%!-- foo
+      |       ^\
+    """
+
+    assert EEx.tokenize(~c"<%!-- foo", @opts) == {:error, message, %{column: 1, line: 1}}
   end
 
   test "marks invalid expressions as regular expressions" do
