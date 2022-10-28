@@ -34,8 +34,9 @@ defmodule EEx.Compiler do
 
   defp tokenize(~c"<%!--" ++ t, line, column, state, buffer, acc) do
     case comment(t, line, column + 5, state, []) do
-      {:error, line, column, message} ->
-        {:error, message, %{line: line, column: column}}
+      {:error, _line, _column, message} ->
+        meta = %{line: line, column: column}
+        {:error, message <> code_snippet(state.source, meta, 3), meta}
 
       {:ok, new_line, new_column, rest, comments} ->
         token = {:comment, Enum.reverse(comments), %{line: line, column: column}}
@@ -139,7 +140,7 @@ defmodule EEx.Compiler do
   end
 
   defp comment([], line, column, _state, _buffer) do
-    {:error, line, column, "missing token '--%>'"}
+    {:error, line, column, "expected closing '--%>' for EEx expression"}
   end
 
   # Tokenize an expression until we find %>
