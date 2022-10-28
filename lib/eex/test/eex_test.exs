@@ -472,6 +472,19 @@ defmodule EExTest do
         EEx.compile_string("foo <%= bar", file: "my_file.eex")
       end
     end
+
+    test "when <%!-- is not closed" do
+      message = """
+      my_file.eex:1:5: expected closing '--%>' for EEx expression
+        |
+      1 | foo <%!-- bar
+        |           ^\
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo <%!-- bar", file: "my_file.eex")
+      end
+    end
   end
 
   describe "environment" do
