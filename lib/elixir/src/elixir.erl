@@ -4,7 +4,8 @@
 -behaviour(application).
 -export([start_cli/0,
   string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
-  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3]).
+  env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3,
+  eval_quoted/4]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
 
@@ -273,18 +274,20 @@ env_for_eval(Opts) when is_list(Opts) ->
 
 %% Quoted evaluation
 
-eval_quoted(Tree, Binding, Opts) when is_list(Opts) ->
-  eval_quoted(Tree, Binding, env_for_eval(Opts));
-eval_quoted(Tree, Binding, #{line := Line} = E) ->
-  eval_forms(elixir_quote:linify(Line, line, Tree), Binding, E).
+eval_quoted(Tree, Binding, E) ->
+  eval_quoted(Tree, Binding, E, []).
+eval_quoted(Tree, Binding, #{line := Line} = E, Opts) ->
+  eval_forms(elixir_quote:linify(Line, line, Tree), Binding, E, Opts).
 
-eval_forms(Tree, Binding, Opts) when is_list(Opts) ->
-  eval_forms(Tree, Binding, env_for_eval(Opts));
 eval_forms(Tree, Binding, OrigE) ->
+  eval_forms(Tree, Binding, OrigE, []).
+eval_forms(Tree, Binding, OrigE, Opts) ->
+  Prune = proplists:get_value(prune_binding, Opts, false),
   {ExVars, ErlVars, ErlBinding} = elixir_erl_var:load_binding(Binding),
   E = elixir_env:with_vars(OrigE, ExVars),
-  S = elixir_erl_var:from_env(E, ErlVars),
-  {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, E, S),
+  ExS = elixir_env:env_to_ex(E, Prune),
+  ErlS = elixir_erl_var:from_env(E, ErlVars),
+  {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, ErlS, ExS, E),
 
   case Erl of
     {atom, _, Atom} ->
@@ -299,7 +302,8 @@ eval_forms(Tree, Binding, OrigE) ->
 
       ExternalHandler = eval_external_handler(NewE),
       {value, Value, NewBinding} = erl_eval:exprs(Exprs, ErlBinding, none, ExternalHandler),
-      {Value, elixir_erl_var:dump_binding(NewBinding, NewExS, NewErlS), NewE}
+      PruneBefore = if Prune -> length(Binding); true -> 0 end,
+      {Value, elixir_erl_var:dump_binding(NewBinding, NewErlS, NewExS, PruneBefore), NewE}
   end.
 
 %% TODO: Remove conditional once we require Erlang/OTP 25+.
@@ -369,13 +373,14 @@ eval_external_handler(_Env) ->
 %% Converts a quoted expression to Erlang abstract format
 
 quoted_to_erl(Quoted, E) ->
-  {_, S} = elixir_erl_var:from_env(E),
-  quoted_to_erl(Quoted, E, S).
+  {_, ErlS} = elixir_erl_var:from_env(E),
+  ExS = elixir_env:env_to_ex(E),
+  quoted_to_erl(Quoted, ErlS, ExS, E).
 
-quoted_to_erl(Quoted, Env, Scope) ->
+quoted_to_erl(Quoted, ErlS, ExS, Env) ->
   {Expanded, #elixir_ex{vars={ReadVars, _}} = NewExS, NewEnv} =
-    elixir_expand:expand(Quoted, elixir_env:env_to_ex(Env), Env),
-  {Erl, NewErlS} = elixir_erl_pass:translate(Expanded, erl_anno:new(?key(Env, line)), Scope),
+    elixir_expand:expand(Quoted, ExS, Env),
+  {Erl, NewErlS} = elixir_erl_pass:translate(Expanded, erl_anno:new(?key(Env, line)), ErlS),
   {Erl, NewErlS, NewExS, NewEnv#{versioned_vars := ReadVars}}.
 
 %% Converts a given string (charlist) into quote expression
