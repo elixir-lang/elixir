@@ -82,7 +82,7 @@ defmodule IEx.Pry do
 
   def pry(binding, opts) when is_list(opts) do
     vars = for {k, _} when is_atom(k) <- binding, do: {k, nil}
-    pry(binding, opts |> :elixir.env_for_eval() |> :elixir_env.with_vars(vars))
+    pry(binding, opts |> Code.env_for_eval() |> :elixir_env.with_vars(vars))
   end
 
   @doc false

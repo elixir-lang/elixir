@@ -181,7 +181,7 @@ defmodule Code do
   """
 
   @typedoc """
-  A list with all variable bindings.
+  A list with all variables and their values.
 
   The binding keys are usually atoms, but they may be a tuple for variables
   defined in a different context.
@@ -344,7 +344,7 @@ defmodule Code do
   @doc """
   Evaluates the contents given by `string`.
 
-  The `binding` argument is a list of variable bindings.
+  The `binding` argument is a list of all variables and their values.
   The `opts` argument is a keyword list of environment options.
 
   **Warning**: `string` can be any Elixir code and will be executed with
@@ -362,17 +362,15 @@ defmodule Code do
     * `:line` - the line on which the script starts
 
   Additionally, you may also pass an environment as second argument,
-  so the evaluation happens within that environment. However, if the evaluated
-  code requires or compiles another file, the environment given to this function
-  will not apply to said files.
+  so the evaluation happens within that environment.
 
   Returns a tuple of the form `{value, binding}`, where `value` is the value
   returned from evaluating `string`. If an error occurs while evaluating
-  `string` an exception will be raised.
+  `string`, an exception will be raised.
 
-  `binding` is a list with all variable bindings after evaluating `string`.
-  The binding keys are usually atoms, but they may be a tuple for variables
-  defined in a different context.
+  `binding` is a list with all variable names and their values after evaluating
+  `string`. The binding keys are usually atoms, but they may be a tuple for variables
+  defined in a different context. The names are in no particular order.
 
   ## Examples
 
@@ -419,13 +417,13 @@ defmodule Code do
   defp validated_eval_string(string, binding, opts_or_env) do
     %{line: line, file: file} = env = env_for_eval(opts_or_env)
     forms = :elixir.string_to_quoted!(to_charlist(string), line, 1, file, [])
-    {value, binding, _env} = eval_verify(:eval_forms, forms, binding, env)
+    {value, binding, _env} = eval_verify(:eval_forms, [forms, binding, env])
     {value, binding}
   end
 
-  defp eval_verify(fun, forms, binding, env) do
+  defp eval_verify(fun, args) do
     Module.ParallelChecker.verify(fn ->
-      apply(:elixir, fun, [forms, binding, env])
+      apply(:elixir, fun, args)
     end)
   end
 
@@ -822,7 +820,9 @@ defmodule Code do
   """
   @spec eval_quoted(Macro.t(), binding, Macro.Env.t() | keyword) :: {term, binding}
   def eval_quoted(quoted, binding \\ [], env_or_opts \\ []) do
-    {value, binding, _env} = eval_verify(:eval_quoted, quoted, binding, env_for_eval(env_or_opts))
+    {value, binding, _env} =
+      eval_verify(:eval_quoted, [quoted, binding, env_for_eval(env_or_opts)])
+
     {value, binding}
   end
 
@@ -859,10 +859,17 @@ defmodule Code do
   Therefore, the first time you call this function, you must compute
   the initial environment with `env_for_eval/1`. The remaining calls
   must pass the environment that was returned by this function.
+
+  ## Options
+
+    * `:prune_binding` - (since v1.14.2) prune binding to keep only
+      variables read or written by the evaluated code
+
   """
   @doc since: "1.14.0"
-  def eval_quoted_with_env(quoted, binding, %Macro.Env{} = env) when is_list(binding) do
-    eval_verify(:eval_forms, quoted, binding, env)
+  def eval_quoted_with_env(quoted, binding, %Macro.Env{} = env, opts \\ [])
+      when is_list(binding) do
+    eval_verify(:eval_quoted, [quoted, binding, env, opts])
   end
 
   @doc ~S"""

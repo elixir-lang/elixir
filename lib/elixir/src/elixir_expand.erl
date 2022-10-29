@@ -607,16 +607,16 @@ mapfold(_Fun, S, E, [], Acc) ->
 
 %% Match/var helpers
 
-var_unused({Name, Kind}, Meta, Version, Unused, Override) ->
+var_unused({_, Kind} = Pair, Meta, Version, Unused, Override) ->
   case (Kind == nil) andalso should_warn(Meta) of
-    true -> Unused#{{Name, Version} => {?line(Meta), Override}};
+    true -> Unused#{{Pair, Version} => {?line(Meta), Override}};
     false -> Unused
   end.
 
-var_used({Name, Kind}, Version, Unused) ->
-  case Kind of
-    nil -> Unused#{{Name, Version} => false};
-    _ -> Unused
+var_used({_, Kind} = Pair, Version, Unused) ->
+  if
+    is_atom(Kind) -> Unused#{{Pair, Version} => false};
+    true -> Unused
   end.
 
 maybe_warn_underscored_var_repeat(Meta, Name, Kind, E) ->
