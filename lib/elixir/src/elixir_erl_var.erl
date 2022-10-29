@@ -2,7 +2,7 @@
 -module(elixir_erl_var).
 -export([
   translate/4, assign/2, build/2,
-  load_binding/1, dump_binding/3,
+  load_binding/1, dump_binding/4,
   from_env/1, from_env/2
 ]).
 -include("elixir.hrl").
@@ -93,9 +93,16 @@ load_binding([], ExVars, ErlVars, Normalized, _Counter) ->
 load_pair({Key, Value}) when is_atom(Key) -> {{Key, nil}, Value};
 load_pair({Pair, Value}) -> {Pair, Value}.
 
-dump_binding(Binding, #elixir_ex{vars={ExVars, _}}, #elixir_erl{var_names=ErlVars}) ->
+dump_binding(Binding, ErlS, ExS, PruneBefore) ->
+  #elixir_erl{var_names=ErlVars} = ErlS,
+  #elixir_ex{vars={ExVars, _}, unused={Unused, _}} = ExS,
+
   maps:fold(fun
-    ({Var, Kind} = Pair, Version, Acc) when is_atom(Kind) ->
+    ({Var, Kind} = Pair, Version, Acc)
+    % The variable has to have an atom context
+    % and it must be versioned after the original
+    % binding or be a used part of the original binding
+    when is_atom(Kind), (Version >= PruneBefore orelse map_get({Pair, Version}, Unused) == false) ->
       Key = case Kind of
         nil -> Var;
         _ -> Pair
