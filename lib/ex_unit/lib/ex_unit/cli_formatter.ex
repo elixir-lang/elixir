@@ -351,9 +351,9 @@ defmodule ExUnit.CLIFormatter do
 
   # Color styles
 
-  defp colorize(escape, string, %{colors: colors}) do
-    if colors[:enabled] do
-      [Keyword.get(colors, escape, escape), string, :reset]
+  defp colorize(key, string, %{colors: colors}) do
+    if escape = colors[:enabled] && colors[key] do
+      [escape, string, :reset]
       |> IO.ANSI.format_fragment(true)
       |> IO.iodata_to_binary()
     else
@@ -385,20 +385,19 @@ defmodule ExUnit.CLIFormatter do
     colorize(:failure, msg, config)
   end
 
-  defp formatter(:diff_enabled?, _, %{colors: colors}), do: colors[:enabled]
+  # Diff formatting
 
-  defp formatter(:error_info, msg, config), do: colorize(:error_info, msg, config)
+  defp formatter(:diff_enabled?, _, %{colors: colors}),
+    do: colors[:enabled]
 
-  defp formatter(:extra_info, msg, config), do: colorize(:extra_info, msg, config)
-
-  defp formatter(:location_info, msg, config), do: colorize(:location_info, msg, config)
-
-  defp formatter(:diff_delete, doc, config), do: colorize_doc(:diff_delete, doc, config)
+  defp formatter(:diff_delete, doc, config),
+    do: colorize_doc(:diff_delete, doc, config)
 
   defp formatter(:diff_delete_whitespace, doc, config),
     do: colorize_doc(:diff_delete_whitespace, doc, config)
 
-  defp formatter(:diff_insert, doc, config), do: colorize_doc(:diff_insert, doc, config)
+  defp formatter(:diff_insert, doc, config),
+    do: colorize_doc(:diff_insert, doc, config)
 
   defp formatter(:diff_insert_whitespace, doc, config),
     do: colorize_doc(:diff_insert_whitespace, doc, config)
@@ -411,7 +410,7 @@ defmodule ExUnit.CLIFormatter do
     end
   end
 
-  defp formatter(_, msg, _config), do: msg
+  defp formatter(key, msg, config), do: colorize(key, msg, config)
 
   defp pluralize(1, singular, _plural), do: singular
   defp pluralize(_, _singular, plural), do: plural
