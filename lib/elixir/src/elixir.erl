@@ -142,7 +142,8 @@ check_file_encoding(Encoding) ->
       io:format(standard_error,
         "warning: the VM is running with native name encoding of latin1 which may cause "
         "Elixir to malfunction as it expects utf8. Please ensure your locale is set to UTF-8 "
-        "(which can be verified by running \"locale\" in your shell)~n", []);
+        "(which can be verified by running \"locale\" in your shell) or set the "
+        "ELIXIR_ERL_OPTIONS=\"+fnu\" environment variable~n", []);
     _ ->
       ok
   end.
