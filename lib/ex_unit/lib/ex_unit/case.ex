@@ -284,7 +284,7 @@ defmodule ExUnit.Case do
         raise "you must set @tag, @describetag, and @moduletag after the call to \"use ExUnit.Case\""
       end
 
-      attributes = [
+      accumulate_attributes = [
         :ex_unit_tests,
         :tag,
         :describetag,
@@ -294,24 +294,23 @@ defmodule ExUnit.Case do
         :ex_unit_registered_module_attributes
       ]
 
-      Enum.each(attributes, &Module.register_attribute(module, &1, accumulate: true))
+      Enum.each(accumulate_attributes, &Module.register_attribute(module, &1, accumulate: true))
 
       persisted_attributes = [:ex_unit_async]
+
       Enum.each(persisted_attributes, &Module.register_attribute(module, &1, persist: true))
 
-      attributes = [
-        before_compile: ExUnit.Case,
-        after_compile: ExUnit.Case,
-        ex_unit_async: false
-      ]
+      if Keyword.get(opts, :register, true) do
+        Module.put_attribute(module, :after_compile, ExUnit.Case)
+      end
 
-      Enum.each(attributes, fn {k, v} -> Module.put_attribute(module, k, v) end)
+      Module.put_attribute(module, :before_compile, ExUnit.Case)
     end
 
     async? = opts[:async]
 
-    if is_boolean(async?) do
-      Module.put_attribute(module, :ex_unit_async, async?)
+    if is_boolean(async?) or not registered? do
+      Module.put_attribute(module, :ex_unit_async, async? || false)
     end
 
     registered?

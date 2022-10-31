@@ -201,7 +201,7 @@ defmodule ExUnit do
 
       System.at_exit(fn
         0 ->
-          time = ExUnit.Server.modules_loaded()
+          time = ExUnit.Server.modules_loaded(false)
           options = persist_defaults(configuration())
           %{failures: failures} = ExUnit.Runner.run(options, time)
 
@@ -373,7 +373,7 @@ defmodule ExUnit do
       end
     end
 
-    _ = ExUnit.Server.modules_loaded()
+    _ = ExUnit.Server.modules_loaded(additional_modules != [])
     options = persist_defaults(configuration())
     ExUnit.Runner.run(options, nil)
   end
@@ -399,7 +399,7 @@ defmodule ExUnit do
   @doc since: "1.12.0"
   @spec await_run(Task.t()) :: suite_result()
   def await_run(task) do
-    ExUnit.Server.modules_loaded()
+    ExUnit.Server.modules_loaded(false)
     Task.await(task, :infinity)
   end
 
