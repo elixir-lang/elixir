@@ -260,19 +260,21 @@ defmodule ExUnit.Assertions do
     quote do
       left = unquote(left)
       right = unquote(right)
+      expr = unquote(expr)
+      message = unquote(message)
 
       if ExUnit.Assertions.__equal__?(left, right) do
         ExUnit.Assertions.assert(false,
           left: left,
-          expr: unquote(expr),
-          message: unquote(message <> ", both sides are exactly equal")
+          expr: expr,
+          message: message <> ", both sides are exactly equal"
         )
       else
         ExUnit.Assertions.assert(unquote(call),
           left: left,
           right: right,
-          expr: unquote(expr),
-          message: unquote(message),
+          expr: expr,
+          message: message,
           context: unquote(context)
         )
       end

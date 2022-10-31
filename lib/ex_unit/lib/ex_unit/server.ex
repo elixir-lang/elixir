@@ -22,8 +22,8 @@ defmodule ExUnit.Server do
     end
   end
 
-  def modules_loaded do
-    GenServer.call(@name, :modules_loaded, @timeout)
+  def modules_loaded(uniq?) do
+    GenServer.call(@name, {:modules_loaded, uniq?}, @timeout)
   end
 
   def take_async_modules(count) do
@@ -58,11 +58,23 @@ defmodule ExUnit.Server do
     {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
   end
 
-  def handle_call(:modules_loaded, _from, %{loaded: :done} = state) do
+  def handle_call({:modules_loaded, _}, _from, %{loaded: :done} = state) do
     {:reply, 0, state}
   end
 
-  def handle_call(:modules_loaded, _from, %{loaded: loaded} = state) when is_integer(loaded) do
+  def handle_call({:modules_loaded, uniq?}, _from, %{loaded: loaded} = state)
+      when is_integer(loaded) do
+    state =
+      if uniq? do
+        %{
+          state
+          | async_modules: Enum.uniq(state.async_modules),
+            sync_modules: Enum.uniq(state.sync_modules)
+        }
+      else
+        state
+      end
+
     diff = System.convert_time_unit(System.monotonic_time() - loaded, :native, :microsecond)
     {:reply, diff, take_modules(%{state | loaded: :done})}
   end

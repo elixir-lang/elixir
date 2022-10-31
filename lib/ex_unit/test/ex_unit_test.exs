@@ -24,7 +24,7 @@ defmodule ExUnitTest do
              assert ExUnit.run() == %{failures: 2, skipped: 0, total: 2, excluded: 0}
            end) =~ "\n2 tests, 2 failures\n"
 
-    ExUnit.Server.modules_loaded()
+    ExUnit.Server.modules_loaded(false)
 
     assert capture_io(fn ->
              assert ExUnit.async_run() |> ExUnit.await_run() ==
@@ -34,7 +34,7 @@ defmodule ExUnitTest do
 
   test "supports rerunning given modules" do
     defmodule SampleAsyncTest do
-      use ExUnit.Case, async: true
+      use ExUnit.Case, async: true, register: false
 
       test "true" do
         assert false
@@ -42,7 +42,7 @@ defmodule ExUnitTest do
     end
 
     defmodule SampleSyncTest do
-      use ExUnit.Case
+      use ExUnit.Case, register: false
 
       test "true" do
         assert false
@@ -61,15 +61,26 @@ defmodule ExUnitTest do
 
     assert capture_io(fn ->
              assert ExUnit.run() == %{
-                      failures: 3,
+                      failures: 1,
                       skipped: 0,
-                      total: 3,
+                      total: 1,
                       excluded: 0
                     }
-           end) =~ "\n3 tests, 3 failures\n"
+           end) =~ "\n1 test, 1 failure\n"
+
+    sample = [SampleSyncTest, SampleAsyncTest]
 
     assert capture_io(fn ->
-             assert ExUnit.run([SampleSyncTest, SampleAsyncTest]) == %{
+             assert ExUnit.run(sample) == %{
+                      failures: 2,
+                      skipped: 0,
+                      total: 2,
+                      excluded: 0
+                    }
+           end) =~ "\n2 tests, 2 failures\n"
+
+    assert capture_io(fn ->
+             assert ExUnit.run(sample ++ sample) == %{
                       failures: 2,
                       skipped: 0,
                       total: 2,
@@ -899,7 +910,7 @@ defmodule ExUnitTest do
 
   defp run_with_filter(filters, cases) do
     Enum.each(cases, &ExUnit.Server.add_sync_module/1)
-    ExUnit.Server.modules_loaded()
+    ExUnit.Server.modules_loaded(false)
 
     opts =
       ExUnit.configuration()

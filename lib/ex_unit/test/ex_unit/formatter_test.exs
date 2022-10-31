@@ -33,6 +33,8 @@ defmodule ExUnit.FormatterTest do
   defp diff_formatter(:diff_enabled?, _default), do: true
   defp diff_formatter(_key, value), do: value
 
+  defp kw_to_string(kw), do: for({k, v} <- kw, do: {k, IO.iodata_to_binary(v)})
+
   test "formats test case filters" do
     filters = [run: true, slow: false]
     assert format_filters(filters, :exclude) =~ "Excluding tags: [run: true, slow: false]"
@@ -242,7 +244,8 @@ defmodule ExUnit.FormatterTest do
   end
 
   test "formats assertions" do
-    failure = [{:error, catch_assertion(assert ExUnit.FormatterTest.falsy()), []}]
+    assertion_error = catch_assertion(assert ExUnit.FormatterTest.falsy())
+    failure = [{:error, assertion_error, []}]
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
              1) world (Hello)
@@ -250,10 +253,13 @@ defmodule ExUnit.FormatterTest do
                 Expected truthy, got false
                 code: assert ExUnit.FormatterTest.falsy()
            """
+
+    assert format_assertion_diff(assertion_error, 0, :infinity, &formatter/2) == []
   end
 
   test "formats assertions with patterns and values" do
-    failure = [{:error, catch_assertion(assert {1, 2, 3} > {1, 2, 3}), []}]
+    assertion_error = catch_assertion(assert {1, 2, 3} > {1, 2, 3})
+    failure = [{:error, assertion_error, []}]
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
              1) world (Hello)
@@ -263,7 +269,12 @@ defmodule ExUnit.FormatterTest do
                 left: {1, 2, 3}
            """
 
-    failure = [{:error, catch_assertion(assert {3, 2, 1} = {1, 2, 3}), []}]
+    assert format_assertion_diff(assertion_error, 0, :infinity, &diff_formatter/2)
+           |> kw_to_string() ==
+             [left: "{1, 2, 3}"]
+
+    assertion_error = catch_assertion(assert {3, 2, 1} = {1, 2, 3})
+    failure = [{:error, assertion_error, []}]
 
     assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
              1) world (Hello)
@@ -273,13 +284,18 @@ defmodule ExUnit.FormatterTest do
                 left:  {3, 2, 1}
                 right: {1, 2, 3}
            """
+
+    assert format_assertion_diff(assertion_error, 0, :infinity, &diff_formatter/2)
+           |> kw_to_string() ==
+             [{:left, "{3, 2, 1}"}, {:right, "{1, 2, 3}"}]
   end
 
   nfc_hello = String.normalize("héllo", :nfc)
   nfd_hello = String.normalize("héllo", :nfd)
 
   test "formats assertions with hints" do
-    failure = [{:error, catch_assertion(assert unquote(nfc_hello) == unquote(nfd_hello)), []}]
+    assertion_error = catch_assertion(assert unquote(nfc_hello) == unquote(nfd_hello))
+    failure = [{:error, assertion_error, []}]
 
     assert format_test_failure(test(), failure, 1, 80, &diff_formatter/2) =~ """
              1) world (Hello)
@@ -290,6 +306,15 @@ defmodule ExUnit.FormatterTest do
                 right: "#{unquote(nfd_hello)}"
                 hint:  you are comparing strings that have the same visual representation but are made of different Unicode codepoints
            """
+
+    assert format_assertion_diff(assertion_error, 0, :infinity, &diff_formatter/2)
+           |> kw_to_string() ==
+             [
+               left: inspect(unquote(nfc_hello)),
+               right: inspect(unquote(nfd_hello)),
+               hint:
+                 "you are comparing strings that have the same visual representation but are made of different Unicode codepoints"
+             ]
   end
 
   test "formats match error between pinned struct type and a non-struct" do
