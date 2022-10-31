@@ -39,9 +39,9 @@ defmodule ExUnit.Formatter do
     * `{:case_finished, test_module}` -
       a test module has finished. See `ExUnit.TestModule` for details.
 
-  The full ExUnit configuration is passed as the argument to `c:GenServer.init/1` callback when the
-  formatters are started. If you need to do runtime configuration of a
-  formatter, you can add any configuration needed by using `ExUnit.configure/1`
+  The full ExUnit configuration is passed as the argument to `c:GenServer.init/1`
+  callback when the formatters are started. If you need to do runtime configuration
+  of a formatter, you can add any configuration needed by using `ExUnit.configure/1`
   or `ExUnit.start/1`, and this will then be included in the options passed to
   the `c:GenServer.init/1` callback.
   """
@@ -126,7 +126,7 @@ defmodule ExUnit.Formatter do
     end
   end
 
-  # Deprecate me on Elixir v1.16
+  # TODO: Deprecate me on Elixir v1.16
   @doc false
   def format_time(run, load) do
     format_times(%{run: run, load: load, async: nil})
@@ -166,43 +166,6 @@ defmodule ExUnit.Formatter do
   end
 
   @doc false
-  def format_assertion_error(%ExUnit.AssertionError{} = struct) do
-    format_exception(%{}, struct, [], :infinity, fn _, msg -> msg end, "") |> elem(0)
-  end
-
-  defp format_exception(test, %ExUnit.AssertionError{} = struct, stack, width, formatter, pad) do
-    label_padding_size = if has_value?(struct.right), do: 7, else: 6
-    padding_size = label_padding_size + byte_size(@counter_padding)
-
-    code_multiline =
-      if struct.doctest != @no_value,
-        do: &pad_multiline(&1, padding_size),
-        else: &code_multiline(&1, padding_size)
-
-    formatted =
-      [
-        note: if_value(struct.message, &format_message(&1, formatter)),
-        doctest: if_value(struct.doctest, &pad_multiline(&1, 2 + byte_size(@counter_padding))),
-        code: if_value(struct.expr, code_multiline),
-        code: unless_value(struct.expr, fn -> get_code(test, stack) || @no_value end),
-        arguments: if_value(struct.args, &format_args(&1, width))
-      ]
-      |> Kernel.++(format_context(struct, formatter, padding_size, width))
-      |> format_meta(formatter, pad, label_padding_size)
-      |> IO.iodata_to_binary()
-
-    {formatted, stack}
-  end
-
-  defp format_exception(test, %FunctionClauseError{} = struct, stack, _width, formatter, _pad) do
-    {blamed, stack} = Exception.blame(:error, struct, stack)
-    banner = Exception.format_banner(:error, struct)
-    blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, formatter))
-    message = error_info(banner, formatter) <> "\n" <> pad(String.trim_leading(blamed, "\n"))
-    {message <> format_code(test, stack, formatter), stack}
-  end
-
-  @doc false
   @deprecated "Use ExUnit.Formatter.format_test_all_failure/5 instead"
   def format_test_case_failure(test_case, failures, counter, width, formatter) do
     format_test_all_failure(test_case, failures, counter, width, formatter)
@@ -220,6 +183,8 @@ defmodule ExUnit.Formatter do
         failure_header(failures, index) <> text <> format_stacktrace(stack, name, nil, formatter)
       end)
   end
+
+  ## kind/reason formatting
 
   defp format_kind_reason(test, :error, %mod{} = struct, stack, width, formatter)
        when mod in @formatter_exceptions do
@@ -263,129 +228,67 @@ defmodule ExUnit.Formatter do
 
   defp linked_or_trapped_exit(_kind, _reason), do: :error
 
-  defp format_code(test, stack, formatter) do
-    if snippet = get_code(test, stack) do
-      "     " <> formatter.(:extra_info, "code: ") <> snippet <> "\n"
-    else
-      ""
-    end
+  defp format_exception(test, %ExUnit.AssertionError{} = struct, stack, width, formatter, pad) do
+    label_padding_size = if has_value?(struct.right), do: 7, else: 6
+    padding_size = label_padding_size + byte_size(@counter_padding)
+
+    code_multiline =
+      if struct.doctest != @no_value,
+        do: &pad_multiline(&1, padding_size),
+        else: &code_multiline(&1, padding_size)
+
+    formatted =
+      [
+        message: if_value(struct.message, &format_message(&1, formatter)),
+        doctest: if_value(struct.doctest, &pad_multiline(&1, 2 + byte_size(@counter_padding))),
+        code: if_value(struct.expr, code_multiline, fn -> get_code(test, stack) || @no_value end),
+        arguments: if_value(struct.args, &format_args(&1, width))
+      ]
+      |> Kernel.++(format_assertion_diff(struct, padding_size, width, formatter))
+      |> format_meta(formatter, pad, label_padding_size)
+      |> IO.iodata_to_binary()
+
+    {formatted, stack}
   end
 
-  defp get_code(%{module: module, name: name}, stack) do
-    info =
-      Enum.find_value(stack, fn
-        {^module, ^name, _, info} -> info
-        _ -> nil
-      end)
-
-    file = info[:file]
-    line = info[:line]
-
-    if line > 0 && file && File.exists?(file) do
-      file |> File.stream!() |> Enum.at(line - 1) |> String.trim()
-    end
-  rescue
-    _ -> nil
+  defp format_exception(test, %FunctionClauseError{} = struct, stack, _width, formatter, _pad) do
+    {blamed, stack} = Exception.blame(:error, struct, stack)
+    banner = Exception.format_banner(:error, struct)
+    blamed = FunctionClauseError.blame(blamed, &inspect/1, &blame_match(&1, formatter))
+    message = error_info(banner, formatter) <> "\n" <> pad(String.trim_leading(blamed, "\n"))
+    {message <> format_code(test, stack, formatter), stack}
   end
 
-  defp get_code(%{}, _) do
-    nil
+  ## Assertion error and diffing
+
+  @doc false
+  def format_assertion_error(%ExUnit.AssertionError{} = struct) do
+    format_exception(%{}, struct, [], :infinity, fn _, msg -> msg end, "") |> elem(0)
   end
 
-  defp blame_match(%{match?: true, node: node}, _formatter),
-    do: Macro.to_string(node)
+  @doc """
+  Formats `ExUnit.AssertionError` diff.
 
-  defp blame_match(%{match?: false, node: node}, formatter),
-    do: formatter.(:blame_diff, Macro.to_string(node))
+  It returns a keyword list with diffing information
+  from the left and right side of the assertion, if
+  any exists.
 
-  defp format_meta(fields, formatter, padding, padding_size) do
-    for {label, value} <- fields, has_value?(value) do
-      [padding, format_label(label, formatter, padding_size), value, "\n"]
-    end
-  end
+  It expects the assertion error, the `padding_size`
+  for formatted content, the width (may be `:infinity`),
+  and the formatter callback function.
+  """
+  def format_assertion_diff(assert_error, padding_size, width, formatter)
 
-  defp if_value(value, fun) do
-    if has_value?(value) do
-      fun.(value)
-    else
-      value
-    end
-  end
-
-  defp unless_value(value, fun) do
-    if has_value?(value) do
-      @no_value
-    else
-      fun.()
-    end
-  end
-
-  defp has_value?(value) do
-    value != @no_value
-  end
-
-  defp format_label(:note, _formatter, _padding_size), do: ""
-
-  defp format_label(label, formatter, padding_size) do
-    formatter.(:extra_info, String.pad_trailing("#{label}:", padding_size))
-  end
-
-  defp format_message(value, formatter) do
-    value = String.replace(value, "\n", "\n" <> @counter_padding)
-    formatter.(:error_info, value)
-  end
-
-  defp format_args(args, width) do
-    entries =
-      for {arg, i} <- Enum.with_index(args, 1) do
-        """
-
-                 # #{i}
-                 #{inspect_multiline(arg, 9, width)}
-        """
-      end
-
-    ["\n" | entries]
-  end
-
-  @assertions [
-    :assert,
-    :assert_raise,
-    :assert_receive,
-    :assert_received,
-    :refute,
-    :refute_receive,
-    :refute_received
-  ]
-
-  defp code_multiline({fun, _, [expr]}, padding_size) when fun in @assertions do
-    pad_multiline(Atom.to_string(fun) <> " " <> Macro.to_string(expr), padding_size)
-  end
-
-  defp code_multiline(expr, padding_size) do
-    pad_multiline(Macro.to_string(expr), padding_size)
-  end
-
-  defp inspect_multiline(expr, padding_size, width) do
-    width = if width == :infinity, do: width, else: width - padding_size
-
-    expr
-    |> Algebra.to_doc(%Inspect.Opts{width: width})
-    |> Algebra.group()
-    |> Algebra.nest(padding_size)
-    |> Algebra.format(width)
-  end
-
-  defp format_context(%{context: {:mailbox, _pins, []}}, _, _, _) do
+  def format_assertion_diff(%ExUnit.AssertionError{context: {:mailbox, _pins, []}}, _, _, _) do
     []
   end
 
-  defp format_context(
-         %{left: left, context: {:mailbox, pins, mailbox}},
-         formatter,
-         padding_size,
-         width
-       ) do
+  def format_assertion_diff(
+        %ExUnit.AssertionError{left: left, context: {:mailbox, pins, mailbox}},
+        padding_size,
+        width,
+        formatter
+      ) do
     formatted_mailbox =
       for message <- mailbox do
         {pattern, value, _warnings} =
@@ -406,14 +309,14 @@ defmodule ExUnit.Formatter do
     [mailbox: Enum.join(formatted_mailbox, "\n")]
   end
 
-  defp format_context(
-         %{left: left, right: right, context: context},
-         formatter,
-         padding_size,
-         width
-       ) do
+  def format_assertion_diff(
+        %ExUnit.AssertionError{left: left, right: right, context: context},
+        padding_size,
+        width,
+        formatter
+      ) do
     {left, right, extras} = format_sides(left, right, context, formatter, padding_size, width)
-    [left: left, right: right] ++ extras
+    for {k, v} <- [left: left, right: right] ++ extras, has_value?(v), do: {k, v}
   end
 
   defp format_sides(left, right, context, formatter, padding_size, width) do
@@ -485,6 +388,121 @@ defmodule ExUnit.Formatter do
       {:ok, diff} -> diff
       nil -> nil
     end
+  end
+
+  ## Helpers
+
+  defp format_code(test, stack, formatter) do
+    if snippet = get_code(test, stack) do
+      "     " <> formatter.(:extra_info, "code: ") <> snippet <> "\n"
+    else
+      ""
+    end
+  end
+
+  defp get_code(%{module: module, name: name}, stack) do
+    info =
+      Enum.find_value(stack, fn
+        {^module, ^name, _, info} -> info
+        _ -> nil
+      end)
+
+    file = info[:file]
+    line = info[:line]
+
+    if line > 0 && file && File.exists?(file) do
+      file |> File.stream!() |> Enum.at(line - 1) |> String.trim()
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp get_code(%{}, _) do
+    nil
+  end
+
+  defp blame_match(%{match?: true, node: node}, _formatter),
+    do: Macro.to_string(node)
+
+  defp blame_match(%{match?: false, node: node}, formatter),
+    do: formatter.(:blame_diff, Macro.to_string(node))
+
+  defp format_meta(fields, formatter, padding, padding_size) do
+    for {label, value} <- fields, has_value?(value) do
+      [padding, format_label(label, formatter, padding_size), value, "\n"]
+    end
+  end
+
+  defp if_value(value, fun) do
+    if has_value?(value) do
+      fun.(value)
+    else
+      value
+    end
+  end
+
+  defp if_value(value, do_fun, else_fun) do
+    if has_value?(value) do
+      do_fun.(value)
+    else
+      else_fun.()
+    end
+  end
+
+  defp has_value?(value) do
+    value != @no_value
+  end
+
+  defp format_label(:message, _formatter, _padding_size), do: ""
+
+  defp format_label(label, formatter, padding_size) do
+    formatter.(:extra_info, String.pad_trailing("#{label}:", padding_size))
+  end
+
+  defp format_message(value, formatter) do
+    value = String.replace(value, "\n", "\n" <> @counter_padding)
+    formatter.(:error_info, value)
+  end
+
+  defp format_args(args, width) do
+    entries =
+      for {arg, i} <- Enum.with_index(args, 1) do
+        """
+
+                 # #{i}
+                 #{inspect_multiline(arg, 9, width)}
+        """
+      end
+
+    ["\n" | entries]
+  end
+
+  @assertions [
+    :assert,
+    :assert_raise,
+    :assert_receive,
+    :assert_received,
+    :refute,
+    :refute_receive,
+    :refute_received
+  ]
+
+  defp code_multiline({fun, _, [expr]}, padding_size) when fun in @assertions do
+    pad_multiline(Atom.to_string(fun) <> " " <> Macro.to_string(expr), padding_size)
+  end
+
+  defp code_multiline(expr, padding_size) do
+    pad_multiline(Macro.to_string(expr), padding_size)
+  end
+
+  defp inspect_multiline(expr, padding_size, width) do
+    width = if width == :infinity, do: width, else: width - padding_size
+
+    expr
+    |> Algebra.to_doc(%Inspect.Opts{width: width})
+    |> Algebra.group()
+    |> Algebra.nest(padding_size)
+    |> Algebra.format(width)
   end
 
   defp format_stacktrace([], _case, _test, _color) do
