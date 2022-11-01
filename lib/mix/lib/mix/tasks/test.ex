@@ -460,14 +460,7 @@ defmodule Mix.Tasks.Test do
   end
 
   defp do_run(opts, args, files) do
-    if opts[:listen_on_stdin] do
-      System.at_exit(fn _ ->
-        IO.gets(:stdio, "")
-        Mix.shell().info("Restarting...")
-        :init.restart()
-        Process.sleep(:infinity)
-      end)
-    end
+    _ = Mix.Project.get!()
 
     unless System.get_env("MIX_ENV") || Mix.env() == :test do
       Mix.raise("""
@@ -484,6 +477,15 @@ defmodule Mix.Tasks.Test do
               [preferred_envs: ["test.another": :test]]
             end
       """)
+    end
+
+    if opts[:listen_on_stdin] do
+      System.at_exit(fn _ ->
+        IO.gets(:stdio, "")
+        Mix.shell().info("Restarting...")
+        System.restart()
+        Process.sleep(:infinity)
+      end)
     end
 
     # Load ExUnit before we compile anything in case we are compiling
