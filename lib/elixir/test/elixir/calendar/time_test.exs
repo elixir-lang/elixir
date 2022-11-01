@@ -63,6 +63,17 @@ defmodule TimeTest do
     assert Time.compare(time3, time2) == :gt
   end
 
+  test "before?/2 and after?/2" do
+    time1 = ~T[05:02:01.234]
+    time2 = ~T[10:00:04.123]
+
+    assert Time.before?(time1, time2)
+    assert not Time.before?(time2, time1)
+
+    assert Time.after?(time2, time1)
+    assert not Time.after?(time1, time2)
+  end
+
   test "truncate/2" do
     assert Time.truncate(~T[01:01:01.123456], :microsecond) == ~T[01:01:01.123456]
 
