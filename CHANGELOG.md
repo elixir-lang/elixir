@@ -9,6 +9,8 @@ This release requires Erlang/OTP 24 and later.
 #### Elixir
 
   * [Code] `Code.format_string/2` now converts `'charlists'` into `~c"charlists"` by default
+  * [Date] Add `Date.before?/2` and `Date.after?/2`
+  * [DateTime] Add `DateTime.before?/2` and `DateTime.after?/2`
   * [Inspect] `Inspect` now renders `'charlists'` as `~c"charlists"` by default
   * [Kernel] Add `t:nonempty_binary/0` and `t:nonempty_bitstring/0`
   * [Kernel] Treat `@behaviour`s as runtime dependencies
@@ -17,12 +19,14 @@ This release requires Erlang/OTP 24 and later.
   * [Keyword] Add `Keyword.split_with/2`
   * [Map] Add `Map.split_with/2`
   * [MapSet] Add `MapSet.split_with/2`
+  * [NaiveDateTime] Add `NaiveDateTime.before?/2` and `NaiveDateTime.after?/2`
   * [Process] Add `Process.alias/0,1` and `Process.unalias/1`
   * [Range] Add `Range.split/2`
   * [Sets] Optimize many functions in `MapSet`
   * [String] Update Unicode to version 15.0.0
   * [Supervisor] Add support for automatic shutdown in `Supervisor`
   * [Task] Remove head blocking on `Task.yield_many/2`
+  * [Time] Add `Time.before?/2` and `Time.after?/2`
 
 #### ExUnit
 

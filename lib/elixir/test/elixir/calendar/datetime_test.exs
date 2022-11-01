@@ -538,6 +538,17 @@ defmodule DateTimeTest do
     assert DateTime.compare(Map.from_struct(datetime3), Map.from_struct(datetime1)) == :lt
   end
 
+  test "before?/2 and after?/2" do
+    datetime1 = ~U[2015-01-02T12:34:56Z]
+    datetime2 = ~U[2015-01-02T12:55:55Z]
+
+    assert DateTime.before?(datetime1, datetime2)
+    assert not DateTime.before?(datetime2, datetime1)
+
+    assert DateTime.after?(datetime2, datetime1)
+    assert not DateTime.after?(datetime1, datetime2)
+  end
+
   test "convert/2" do
     datetime_iso = %DateTime{
       year: 2000,
