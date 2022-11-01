@@ -119,6 +119,17 @@ defmodule NaiveDateTimeTest do
     assert NaiveDateTime.compare(ndt4, ndt3) == :lt
   end
 
+  test "before?/2 and after?/2" do
+    ndt1 = ~N[2022-01-12 10:10:11.0019]
+    ndt2 = ~N[2022-02-16 13:20:15.0019]
+
+    assert NaiveDateTime.before?(ndt1, ndt2)
+    assert not NaiveDateTime.before?(ndt2, ndt1)
+
+    assert NaiveDateTime.after?(ndt2, ndt1)
+    assert not NaiveDateTime.after?(ndt1, ndt2)
+  end
+
   test "to_iso8601/1" do
     ndt = ~N[2000-04-16 12:34:15.1234]
     ndt = put_in(ndt.calendar, FakeCalendar)

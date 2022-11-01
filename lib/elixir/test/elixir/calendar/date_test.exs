@@ -64,6 +64,17 @@ defmodule DateTest do
     assert Date.compare(date3, date2) == :gt
   end
 
+  test "before?/2 and after?/2" do
+    date1 = ~D[2022-11-01]
+    date2 = ~D[2022-11-02]
+
+    assert Date.before?(date1, date2)
+    assert not Date.before?(date2, date1)
+
+    assert Date.after?(date2, date1)
+    assert not Date.after?(date1, date2)
+  end
+
   test "compare/2 across calendars" do
     date1 = ~D[2000-01-01]
     date2 = Calendar.Holocene.date(12000, 01, 01)

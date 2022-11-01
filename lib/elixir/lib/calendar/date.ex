@@ -567,6 +567,24 @@ defmodule Date do
   end
 
   @doc """
+  Returns true if the first date is strictly earlier than the second.
+  """
+  @doc since: "1.15.0"
+  @spec before?(Calendar.date(), Calendar.date()) :: boolean()
+  def before?(date1, date2) do
+    compare(date1, date2) == :lt
+  end
+
+  @doc """
+  Returns true if the first date is strictly later than the second.
+  """
+  @doc since: "1.15.0"
+  @spec after?(Calendar.date(), Calendar.date()) :: boolean()
+  def after?(date1, date2) do
+    compare(date1, date2) == :gt
+  end
+
+  @doc """
   Converts the given `date` from its calendar to the given `calendar`.
 
   Returns `{:ok, date}` if the calendars are compatible,

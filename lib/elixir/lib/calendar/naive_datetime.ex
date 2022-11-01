@@ -1040,6 +1040,24 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Returns true if the first `NaiveDateTime` is strictly earlier than the second.
+  """
+  @doc since: "1.15.0"
+  @spec before?(Calendar.naive_datetime(), Calendar.naive_datetime()) :: boolean()
+  def before?(naive_datetime1, naive_datetime2) do
+    compare(naive_datetime1, naive_datetime2) == :lt
+  end
+
+  @doc """
+  Returns true if the first `NaiveDateTime` is strictly later than the second.
+  """
+  @doc since: "1.15.0"
+  @spec after?(Calendar.naive_datetime(), Calendar.naive_datetime()) :: boolean()
+  def after?(naive_datetime1, naive_datetime2) do
+    compare(naive_datetime1, naive_datetime2) == :gt
+  end
+
+  @doc """
   Converts the given `naive_datetime` from one calendar to another.
 
   If it is not possible to convert unambiguously between the calendars

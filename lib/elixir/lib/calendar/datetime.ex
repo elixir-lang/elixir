@@ -1387,6 +1387,24 @@ defmodule DateTime do
   end
 
   @doc """
+  Returns true if the first datetime is strictly earlier than the second.
+  """
+  @doc since: "1.15.0"
+  @spec before?(Calendar.datetime(), Calendar.datetime()) :: boolean()
+  def before?(datetime1, datetime2) do
+    compare(datetime1, datetime2) == :lt
+  end
+
+  @doc """
+  Returns true if the first datetime is strictly later than the second.
+  """
+  @doc since: "1.15.0"
+  @spec after?(Calendar.datetime(), Calendar.datetime()) :: boolean()
+  def after?(datetime1, datetime2) do
+    compare(datetime1, datetime2) == :gt
+  end
+
+  @doc """
   Subtracts `datetime2` from `datetime1`.
 
   The answer can be returned in any `:day`, `:hour`, `:minute`, or any `unit`

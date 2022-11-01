@@ -591,6 +591,24 @@ defmodule Time do
   end
 
   @doc """
+  Returns true if the first time is strictly earlier than the second.
+  """
+  @doc since: "1.15.0"
+  @spec before?(Calendar.time(), Calendar.time()) :: boolean()
+  def before?(time1, time2) do
+    compare(time1, time2) == :lt
+  end
+
+  @doc """
+  Returns true if the first time is strictly later than the second.
+  """
+  @doc since: "1.15.0"
+  @spec after?(Calendar.time(), Calendar.time()) :: boolean()
+  def after?(time1, time2) do
+    compare(time1, time2) == :gt
+  end
+
+  @doc """
   Converts given `time` to a different calendar.
 
   Returns `{:ok, time}` if the conversion was successful,
