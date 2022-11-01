@@ -43,6 +43,8 @@ defmodule Mix.Compilers.Test do
         {matched_test_files, nil, []}
       end
 
+    Application.ensure_all_started(:ex_unit)
+
     cond do
       test_files == [] ->
         # Make sure we run the after_suite callbacks but with no feedback

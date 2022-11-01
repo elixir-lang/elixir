@@ -411,9 +411,10 @@ defmodule Mix.Tasks.TestTest do
     test "logs test absence for a project with no test paths" do
       in_fixture("test_stale", fn ->
         File.rm_rf!("test")
+        assert_run_output("There are no tests to run")
+
         File.mkdir_p!("test")
         File.write!("test/test_helper.exs", "ExUnit.start()")
-
         assert_run_output("There are no tests to run")
       end)
     end
