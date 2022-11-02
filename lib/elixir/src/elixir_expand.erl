@@ -712,20 +712,7 @@ generated_case_clauses([{do, Clauses}]) ->
 
 expand_for({for, Meta, [_ | _] = Args}, S, E, Return) ->
   assert_no_match_or_guard_scope(Meta, "for", S, E),
-
-  {Cases, Block} =
-    case elixir_utils:split_last(Args) of
-      {OuterCases, OuterOpts} when is_list(OuterOpts) ->
-        case elixir_utils:split_last(OuterCases) of
-          {InnerCases, InnerOpts} when is_list(InnerOpts) ->
-            {InnerCases, InnerOpts ++ OuterOpts};
-          _ ->
-            {OuterCases, OuterOpts}
-        end;
-      _ ->
-        {Args, []}
-    end,
-
+  {Cases, Block} = elixir_utils:split_opts(Args),
   validate_opts(Meta, for, [do, into, uniq, reduce], Block, E),
 
   {Expr, Opts} =
