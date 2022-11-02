@@ -1041,6 +1041,16 @@ defmodule NaiveDateTime do
 
   @doc """
   Returns true if the first `NaiveDateTime` is strictly earlier than the second.
+
+  ## Examples
+
+      iex> NaiveDateTime.before?(~N[2021-01-01 11:00:00], ~N[2022-02-02 11:00:00])
+      true
+      iex> NaiveDateTime.before?(~N[2021-01-01 11:00:00], ~N[2021-01-01 11:00:00])
+      false
+      iex> NaiveDateTime.before?(~N[2022-02-02 11:00:00], ~N[2021-01-01 11:00:00])
+      false
+
   """
   @doc since: "1.15.0"
   @spec before?(Calendar.naive_datetime(), Calendar.naive_datetime()) :: boolean()
@@ -1050,6 +1060,16 @@ defmodule NaiveDateTime do
 
   @doc """
   Returns true if the first `NaiveDateTime` is strictly later than the second.
+
+  ## Examples
+
+      iex> NaiveDateTime.after?(~N[2022-02-02 11:00:00], ~N[2021-01-01 11:00:00])
+      true
+      iex> NaiveDateTime.after?(~N[2021-01-01 11:00:00], ~N[2021-01-01 11:00:00])
+      false
+      iex> NaiveDateTime.after?(~N[2021-01-01 11:00:00], ~N[2022-02-02 11:00:00])
+      false
+
   """
   @doc since: "1.15.0"
   @spec after?(Calendar.naive_datetime(), Calendar.naive_datetime()) :: boolean()

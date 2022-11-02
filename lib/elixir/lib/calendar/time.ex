@@ -592,6 +592,16 @@ defmodule Time do
 
   @doc """
   Returns true if the first time is strictly earlier than the second.
+
+  ## Examples
+
+      iex> Time.before?(~T[16:04:16], ~T[16:04:28])
+      true
+      iex> Time.before?(~T[16:04:16], ~T[16:04:16])
+      false
+      iex> Time.before?(~T[16:04:16.01], ~T[16:04:16.001])
+      false
+
   """
   @doc since: "1.15.0"
   @spec before?(Calendar.time(), Calendar.time()) :: boolean()
@@ -601,6 +611,16 @@ defmodule Time do
 
   @doc """
   Returns true if the first time is strictly later than the second.
+
+  ## Examples
+
+      iex> Time.after?(~T[16:04:28], ~T[16:04:16])
+      true
+      iex> Time.after?(~T[16:04:16], ~T[16:04:16])
+      false
+      iex> Time.after?(~T[16:04:16.001], ~T[16:04:16.01])
+      false
+
   """
   @doc since: "1.15.0"
   @spec after?(Calendar.time(), Calendar.time()) :: boolean()

@@ -568,6 +568,16 @@ defmodule Date do
 
   @doc """
   Returns true if the first date is strictly earlier than the second.
+
+  ## Examples
+
+      iex> Date.before?(~D[2021-01-01], ~D[2022-02-02])
+      true
+      iex> Date.before?(~D[2021-01-01], ~D[2021-01-01])
+      false
+      iex> Date.before?(~D[2022-02-02], ~D[2021-01-01])
+      false
+
   """
   @doc since: "1.15.0"
   @spec before?(Calendar.date(), Calendar.date()) :: boolean()
@@ -577,6 +587,16 @@ defmodule Date do
 
   @doc """
   Returns true if the first date is strictly later than the second.
+
+  ## Examples
+
+      iex> Date.after?(~D[2022-02-02], ~D[2021-01-01])
+      true
+      iex> Date.after?(~D[2021-01-01], ~D[2021-01-01])
+      false
+      iex> Date.after?(~D[2021-01-01], ~D[2022-02-02])
+      false
+
   """
   @doc since: "1.15.0"
   @spec after?(Calendar.date(), Calendar.date()) :: boolean()
