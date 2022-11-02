@@ -1388,6 +1388,16 @@ defmodule DateTime do
 
   @doc """
   Returns true if the first datetime is strictly earlier than the second.
+
+  ## Examples
+
+      iex> DateTime.before?(~U[2021-01-01 11:00:00Z], ~U[2022-02-02 11:00:00Z])
+      true
+      iex> DateTime.before?(~U[2021-01-01 11:00:00Z], ~U[2021-01-01 11:00:00Z])
+      false
+      iex> DateTime.before?(~U[2022-02-02 11:00:00Z], ~U[2021-01-01 11:00:00Z])
+      false
+
   """
   @doc since: "1.15.0"
   @spec before?(Calendar.datetime(), Calendar.datetime()) :: boolean()
@@ -1397,6 +1407,16 @@ defmodule DateTime do
 
   @doc """
   Returns true if the first datetime is strictly later than the second.
+
+  ## Examples
+
+      iex> DateTime.after?(~U[2022-02-02 11:00:00Z], ~U[2021-01-01 11:00:00Z])
+      true
+      iex> DateTime.after?(~U[2021-01-01 11:00:00Z], ~U[2021-01-01 11:00:00Z])
+      false
+      iex> DateTime.after?(~U[2021-01-01 11:00:00Z], ~U[2022-02-02 11:00:00Z])
+      false
+
   """
   @doc since: "1.15.0"
   @spec after?(Calendar.datetime(), Calendar.datetime()) :: boolean()
