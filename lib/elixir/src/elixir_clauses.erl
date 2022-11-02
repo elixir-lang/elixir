@@ -154,14 +154,7 @@ expand_receive(Meta, {Key, _}, _S, E) ->
 %% With
 
 with(Meta, Args, S, E) ->
-  {Exprs, Opts0} =
-    case elixir_utils:split_last(Args) of
-      {_, LastArg} = SplitResult when is_list(LastArg) ->
-        SplitResult;
-      _ ->
-        {Args, []}
-    end,
-
+  {Exprs, Opts0} = elixir_utils:split_opts(Args),
   S0 = elixir_env:reset_unused_vars(S),
   {EExprs, {S1, E1, HasMatch}} = lists:mapfoldl(fun expand_with/2, {S0, E, false}, Exprs),
   {EDo, Opts1, S2} = expand_with_do(Meta, Opts0, S, S1, E1),

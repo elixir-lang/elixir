@@ -1052,6 +1052,16 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError, ~r"unexpected option :foo in \"with\"", fn ->
         expand(quote(do: with(_ <- true, do: :ok, else: (_ -> :ok), foo: :bar)))
       end
+
+      assert_raise CompileError, ~r"unexpected option :foo in \"with\"", fn ->
+        expand(
+          quote do
+            with _ <- true, foo: :bar do
+              :ok
+            end
+          end
+        )
+      end
     end
   end
 
