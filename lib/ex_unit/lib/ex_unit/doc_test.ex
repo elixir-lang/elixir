@@ -196,25 +196,27 @@ defmodule ExUnit.DocTest do
   This macro is auto-imported with every `ExUnit.Case`.
   """
   defmacro doctest(module, opts \\ []) do
+    caller = __CALLER__
+
     require =
-      if is_atom(Macro.expand(module, __CALLER__)) do
+      if is_atom(Macro.expand(module, caller)) do
         quote do
           require unquote(module)
         end
       end
 
     tests =
-      quote bind_quoted: [module: module, opts: opts] do
-        env = __ENV__
+      quote bind_quoted: [
+              module: module,
+              opts: opts,
+              env_line: caller.line,
+              env_file: caller.file
+            ] do
         file = ExUnit.DocTest.__file__(module)
 
-        for {name, test} <- ExUnit.DocTest.__doctests__(module, opts) do
-          if tags = Keyword.get(opts, :tags) do
-            @tag tags
-          end
-
+        for {name, test, tags} <- ExUnit.DocTest.__doctests__(module, opts) do
           @file file
-          doc = ExUnit.Case.register_test(env, :doctest, name, [])
+          doc = ExUnit.Case.register_test(__MODULE__, env_file, env_line, :doctest, name, tags)
           def unquote(doc)(_), do: unquote(test)
         end
       end
@@ -240,25 +242,12 @@ defmodule ExUnit.DocTest do
   """
   @doc since: "1.15.0"
   defmacro doctest_file(file, opts \\ []) do
+    caller = __CALLER__
+
     tests =
-      quote bind_quoted: [file: file, opts: opts] do
-        env = __ENV__
-
-        if tags = Keyword.get(opts, :tags) do
-          @tag tags
-        end
-
-        for {name, test} <- ExUnit.DocTest.__doctest_file__(file, env.module) do
-          doc =
-            ExUnit.Case.register_test(
-              env.module,
-              env.file,
-              env.line,
-              :doctest,
-              name,
-              []
-            )
-
+      quote bind_quoted: [file: file, opts: opts, env_line: caller.line, env_file: caller.file] do
+        for {name, test, tags} <- ExUnit.DocTest.__doctest_file__(file, __MODULE__, opts) do
+          doc = ExUnit.Case.register_test(__MODULE__, env_file, env_line, :doctest, name, tags)
           def unquote(doc)(_), do: unquote(test)
         end
       end
@@ -267,16 +256,17 @@ defmodule ExUnit.DocTest do
   end
 
   @doc false
-  def __doctest_file__(file, module) do
+  def __doctest_file__(file, module, opts) do
     doc = File.read!(file)
     file = Path.relative_to_cwd(file)
+    tags = [doctest: file] ++ Keyword.get(opts, :tags, [])
 
     extract_tests(1, doc, module)
     |> Stream.map(&normalize_test(&1, :moduledoc))
-    |> Stream.with_index()
+    |> Stream.with_index(1)
     |> Enum.map(fn {test, acc} ->
-      test = Map.put(test, :doctest_file, file)
-      compile_test(test, module, false, acc + 1, file)
+      tags = [doctest_line: test.line] ++ tags
+      {"#{file} (#{acc})", test_content(test, module, false, file), tags}
     end)
   end
 
@@ -291,14 +281,15 @@ defmodule ExUnit.DocTest do
 
   @doc false
   def __doctests__(module, opts) do
-    do_import = Keyword.get(opts, :import, false)
+    tags = [doctest: module] ++ Keyword.get(opts, :tags, [])
+    import = Keyword.get(opts, :import, false)
     file = module.module_info(:compile)[:source] |> Path.relative_to_cwd()
 
     extract(module)
     |> filter_by_opts(module, opts)
-    |> Stream.with_index()
+    |> Stream.with_index(1)
     |> Enum.map(fn {test, acc} ->
-      compile_test(test, module, do_import, acc + 1, file)
+      compile_test(test, module, import, acc, file, tags)
     end)
   end
 
@@ -306,14 +297,9 @@ defmodule ExUnit.DocTest do
     except = Keyword.get(opts, :except, [])
 
     case Keyword.fetch(opts, :only) do
-      {:ok, []} ->
-        []
-
-      {:ok, only} ->
-        filter_tests(module, tests, except, only)
-
-      :error ->
-        Stream.reject(tests, &(&1.fun_arity in except))
+      {:ok, []} -> []
+      {:ok, only} -> filter_tests(module, tests, except, only)
+      :error -> Stream.reject(tests, &(&1.fun_arity in except))
     end
   end
 
@@ -349,12 +335,9 @@ defmodule ExUnit.DocTest do
 
   ## Compilation of extracted tests
 
-  defp compile_test(test, module, do_import, n, file) do
-    {test_name(test, module, n), test_content(test, module, do_import, file)}
-  end
-
-  defp test_name(%{doctest_file: file}, _, n) do
-    "#{file} (#{n})"
+  defp compile_test(test, module, do_import, n, file, tags) do
+    tags = [doctest_line: test.line] ++ tags
+    {test_name(test, module, n), test_content(test, module, do_import, file), tags}
   end
 
   defp test_name(%{fun_arity: :moduledoc}, m, n) do

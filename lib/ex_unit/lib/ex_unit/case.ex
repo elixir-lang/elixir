@@ -156,6 +156,10 @@ defmodule ExUnit.Case do
 
     * `:describe_line` - the line the describe block begins on
 
+    * `:doctest` - the module or the file being doctested (if a doctest)
+
+    * `:doctest_line` - the line the doctest was defined (if a doctest)
+
   The following tags customize how tests behave:
 
     * `:capture_log` - see the "Log Capture" section below
@@ -167,8 +171,8 @@ defmodule ExUnit.Case do
 
     * `:tmp_dir` - (since v1.11.0) see the "Tmp Dir" section below
 
-  The `:test_type` tag is automatically set by ExUnit, but is **not** reserved.
-  This tag is available for users to customize if they desire.
+    * `:test_type` - the test type used when printing test results.
+      It is set by ExUnit to `:test`, `:doctest` and so on, but is customizable.
 
   ## Filters
 
@@ -476,10 +480,16 @@ defmodule ExUnit.Case do
   end
 
   @doc false
-  defmacro __before_compile__(_) do
+  defmacro __before_compile__(env) do
+    tests =
+      env.module
+      |> Module.get_attribute(:ex_unit_tests)
+      |> Enum.reverse()
+      |> Macro.escape()
+
     quote do
       def __ex_unit__ do
-        %ExUnit.TestModule{file: __ENV__.file, name: __MODULE__, tests: @ex_unit_tests}
+        %ExUnit.TestModule{file: __ENV__.file, name: __MODULE__, tests: unquote(tests)}
       end
     end
   end
@@ -581,6 +591,7 @@ defmodule ExUnit.Case do
   This function is deprecated in favor of `register_test/6` which performs
   better under tight loops by avoiding `__ENV__`.
   """
+  # TODO: Deprecate on Elixir v1.17
   @doc deprecated: "Use register_test/6 instead"
   def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
     register_test(mod, file, line, test_type, name, tags)
@@ -758,8 +769,9 @@ defmodule ExUnit.Case do
 
   defp normalize_tags(tags) do
     Enum.reduce(Enum.reverse(tags), %{}, fn
+      {key, value}, acc -> Map.put(acc, key, value)
       tag, acc when is_atom(tag) -> Map.put(acc, tag, true)
-      tag, acc when is_list(tag) -> tag |> Enum.into(acc)
+      tag, acc when is_list(tag) -> Enum.into(tag, acc)
     end)
   end
 end
