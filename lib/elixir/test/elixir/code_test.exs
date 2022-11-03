@@ -181,29 +181,29 @@ defmodule CodeTest do
     env = Code.env_for_eval(__ENV__)
 
     fun = fn quoted, binding ->
-      {_, binding, _} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-      binding
+      {_, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+      {binding, Macro.Env.vars(env)}
     end
 
-    assert fun.(quote(do: 123), []) == []
-    assert fun.(quote(do: 123), x: 2, y: 3) == []
+    assert fun.(quote(do: 123), []) == {[], []}
+    assert fun.(quote(do: 123), x: 2, y: 3) == {[], []}
 
-    assert fun.(quote(do: var!(x) = 1), []) == [x: 1]
-    assert fun.(quote(do: var!(x) = 1), x: 2, y: 3) == [x: 1]
+    assert fun.(quote(do: var!(x) = 1), []) == {[x: 1], [x: nil]}
+    assert fun.(quote(do: var!(x) = 1), x: 2, y: 3) == {[x: 1], [x: nil]}
 
-    assert fun.(quote(do: var!(x, :foo) = 1), []) == [{{:x, :foo}, 1}]
-    assert fun.(quote(do: var!(x, :foo) = 1), x: 2, y: 3) == [{{:x, :foo}, 1}]
+    assert fun.(quote(do: var!(x, :foo) = 1), []) == {[{{:x, :foo}, 1}], [x: :foo]}
+    assert fun.(quote(do: var!(x, :foo) = 1), x: 2, y: 3) == {[{{:x, :foo}, 1}], [x: :foo]}
 
     assert fun.(quote(do: var!(x, :foo) = 1), [{{:x, :foo}, 2}, {{:y, :foo}, 3}]) ==
-             [{{:x, :foo}, 1}]
+             {[{{:x, :foo}, 1}], [x: :foo]}
 
-    assert fun.(quote(do: fn -> var!(x, :foo) = 1 end), []) == []
-    assert fun.(quote(do: fn -> var!(x, :foo) = 1 end), x: 1, y: 2) == []
+    assert fun.(quote(do: fn -> var!(x, :foo) = 1 end), []) == {[], []}
+    assert fun.(quote(do: fn -> var!(x, :foo) = 1 end), x: 1, y: 2) == {[], []}
 
-    assert fun.(quote(do: fn -> var!(x) end), x: 2, y: 3) == [x: 2]
+    assert fun.(quote(do: fn -> var!(x) end), x: 2, y: 3) == {[x: 2], [x: nil]}
 
     assert fun.(quote(do: fn -> var!(x, :foo) end), [{{:x, :foo}, 2}, {{:y, :foo}, 3}]) ==
-             [{{:x, :foo}, 2}]
+             {[{{:x, :foo}, 2}], [x: :foo]}
   end
 
   test "compile_file/1" do
