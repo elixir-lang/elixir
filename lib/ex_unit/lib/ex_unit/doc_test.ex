@@ -193,25 +193,27 @@ defmodule ExUnit.DocTest do
   This macro is auto-imported with every `ExUnit.Case`.
   """
   defmacro doctest(module, opts \\ []) do
+    caller = __CALLER__
+
     require =
-      if is_atom(Macro.expand(module, __CALLER__)) do
+      if is_atom(Macro.expand(module, caller)) do
         quote do
           require unquote(module)
         end
       end
 
     tests =
-      quote bind_quoted: [module: module, opts: opts] do
-        env = __ENV__
+      quote bind_quoted: [
+              module: module,
+              opts: opts,
+              env_line: caller.line,
+              env_file: caller.file
+            ] do
         file = ExUnit.DocTest.__file__(module)
 
-        for {name, test} <- ExUnit.DocTest.__doctests__(module, opts) do
-          if tags = Keyword.get(opts, :tags) do
-            @tag tags
-          end
-
+        for {name, test, tags} <- ExUnit.DocTest.__doctests__(module, opts) do
           @file file
-          doc = ExUnit.Case.register_test(env, :doctest, name, [])
+          doc = ExUnit.Case.register_test(__MODULE__, env_file, env_line, :doctest, name, tags)
           def unquote(doc)(_), do: unquote(test)
         end
       end
@@ -230,13 +232,15 @@ defmodule ExUnit.DocTest do
 
   @doc false
   def __doctests__(module, opts) do
-    do_import = Keyword.get(opts, :import, false)
+    tags = [doctest: module] ++ Keyword.get(opts, :tags, [])
+    import = Keyword.get(opts, :import, false)
+    file = module.module_info(:compile)[:source] |> Path.relative_to_cwd()
 
     extract(module)
     |> filter_by_opts(module, opts)
-    |> Stream.with_index()
+    |> Stream.with_index(1)
     |> Enum.map(fn {test, acc} ->
-      compile_test(test, module, do_import, acc + 1)
+      compile_test(test, module, import, acc, file, tags)
     end)
   end
 
@@ -244,14 +248,9 @@ defmodule ExUnit.DocTest do
     except = Keyword.get(opts, :except, [])
 
     case Keyword.fetch(opts, :only) do
-      {:ok, []} ->
-        []
-
-      {:ok, only} ->
-        filter_tests(module, tests, except, only)
-
-      :error ->
-        Stream.reject(tests, &(&1.fun_arity in except))
+      {:ok, []} -> []
+      {:ok, only} -> filter_tests(module, tests, except, only)
+      :error -> Stream.reject(tests, &(&1.fun_arity in except))
     end
   end
 
@@ -287,8 +286,9 @@ defmodule ExUnit.DocTest do
 
   ## Compilation of extracted tests
 
-  defp compile_test(test, module, do_import, n) do
-    {test_name(test, module, n), test_content(test, module, do_import)}
+  defp compile_test(test, module, do_import, n, file, tags) do
+    tags = [doctest_line: test.line] ++ tags
+    {test_name(test, module, n), test_content(test, module, do_import, file), tags}
   end
 
   defp test_name(%{fun_arity: :moduledoc}, m, n) do
@@ -299,8 +299,7 @@ defmodule ExUnit.DocTest do
     "#{inspect(m)}.#{f}/#{a} (#{n})"
   end
 
-  defp test_content(%{exprs: exprs, line: line}, module, do_import) do
-    file = module.module_info(:compile)[:source] |> Path.relative_to_cwd()
+  defp test_content(%{exprs: exprs, line: line}, module, do_import, file) do
     location = [line: line, file: file]
     stack = Macro.escape([{module, :__MODULE__, 0, location}])
 

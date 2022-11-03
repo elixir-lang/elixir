@@ -865,18 +865,16 @@ defmodule ExUnit.DocTestTest do
     end
   end
 
-  test "doctests type" do
-    defmodule DoctestType do
-      use ExUnit.Case
-      doctest ExUnit.DocTestTest.NoImport
-
-      setup test do
-        assert test.test_type == :doctest
-        :ok
-      end
+  test "doctests built-in tags" do
+    alias ExUnit.DocTestTest.NoImport
+    defmodule DoctestTags do
+      use ExUnit.Case, register: false
+      doctest NoImport
     end
 
-    assert capture_io(fn -> ExUnit.run() end) =~ "2 doctests, 0 failures"
+    assert %ExUnit.TestModule{tests: [test1, test2]} = DoctestTags.__ex_unit__()
+    assert %{test_type: :doctest, doctest: NoImport, doctest_line: 129} = test1.tags
+    assert %{test_type: :doctest, doctest: NoImport, doctest_line: 132} = test2.tags
   end
 
   test "multiple exceptions in one test case is not supported" do

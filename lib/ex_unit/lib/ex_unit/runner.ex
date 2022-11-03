@@ -571,7 +571,7 @@ defmodule ExUnit.Runner do
   end
 
   defp shuffle(%{seed: 0}, list) do
-    Enum.reverse(list)
+    list
   end
 
   defp shuffle(%{seed: seed}, list) do
