@@ -867,6 +867,7 @@ defmodule ExUnit.DocTestTest do
 
   test "doctests built-in tags" do
     alias ExUnit.DocTestTest.NoImport
+
     defmodule DoctestTags do
       use ExUnit.Case, register: false
       doctest NoImport
