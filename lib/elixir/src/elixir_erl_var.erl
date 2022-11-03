@@ -98,11 +98,13 @@ dump_binding(Binding, ErlS, ExS, PruneBefore) ->
   #elixir_ex{vars={ExVars, _}, unused={Unused, _}} = ExS,
 
   maps:fold(fun
-    ({Var, Kind} = Pair, Version, Acc)
-    % The variable has to have an atom context
-    % and it must be versioned after the original
-    % binding or be a used part of the original binding
-    when is_atom(Kind), (Version >= PruneBefore orelse map_get({Pair, Version}, Unused) == false) ->
+    %% If the variable is part of the pruning (usually the input binding)
+    %% and is unused, we removed it from vars.
+    (Pair, Version, {B, V})
+    when Version < PruneBefore, map_get({Pair, Version}, Unused) /= false ->
+      {B, maps:remove(Pair, V)};
+
+    ({Var, Kind} = Pair, Version, {B, V}) when is_atom(Kind) ->
       Key = case Kind of
         nil -> Var;
         _ -> Pair
@@ -110,8 +112,8 @@ dump_binding(Binding, ErlS, ExS, PruneBefore) ->
 
       ErlName = maps:get(Version, ErlVars),
       Value = maps:get(ErlName, Binding, nil),
-      [{Key, Value} | Acc];
+      {[{Key, Value} | B], V};
 
     (_, _, Acc) ->
       Acc
-  end, [], ExVars).
+  end, {[], ExVars}, ExVars).
