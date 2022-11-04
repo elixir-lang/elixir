@@ -270,7 +270,7 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  test "does not load deps with --no-load-deps" do
+  test "does not load deps with --no-deps-loading" do
     in_fixture("deps_status", fn ->
       Mix.Project.push(SuccessfulDepsApp)
 
@@ -293,7 +293,7 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Project.push(SuccessfulDepsApp)
       Code.delete_path("_build/dev/lib/ok/ebin")
 
-      Mix.Tasks.Deps.Loadpaths.run(["--no-load-deps"])
+      Mix.Tasks.Deps.Loadpaths.run(["--no-deps-loading"])
       refute to_charlist(Path.expand("_build/dev/lib/ok/ebin/")) in :code.get_path()
       assert File.exists?("_build/dev/lib/ok/ebin/ok.app")
       assert File.exists?("_build/dev/lib/sample/ebin/sample.app")

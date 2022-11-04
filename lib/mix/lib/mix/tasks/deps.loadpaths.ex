@@ -16,8 +16,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
     * `--no-compile` - does not compile dependencies
     * `--no-deps-check` - does not check or compile deps, only load available ones
+    * `--no-deps-loading` - does not add deps loadpaths to the code path
     * `--no-elixir-version-check` - does not check Elixir version
-    * `--no-load-deps` - does not add deps loadpaths to the code path
     * `--no-optional-deps` - does not compile or load optional deps
 
   """
@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       deps_check(all, "--no-compile" in args)
     end
 
-    unless "--no-load-deps" in args do
+    unless "--no-deps-loading" in args do
       for dep <- all,
           path <- Mix.Dep.load_paths(dep) do
         _ = Code.prepend_path(path)
