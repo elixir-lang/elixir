@@ -642,6 +642,10 @@ defmodule Path do
   You may call `Path.expand/1` to normalize the path before invoking
   this function.
 
+  A character preceded by \ loses its special meaning.
+  Note that \ must be written as \\ in a string literal.
+  For example, "\\?*" will match any filename starting with ?.
+
   By default, the patterns `*` and `?` do not match files starting
   with a dot `.`. See the `:match_dot` option in the "Options" section
   below.
