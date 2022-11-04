@@ -88,6 +88,8 @@ expand_or_concat(Aliases, E) ->
 %% Skip Kernel verification for bootstrap purposes.
 ensure_loaded(_Meta, 'Elixir.Kernel', _E) ->
   ok;
+ensure_loaded(Meta, Module, #{module := Module} = E) ->
+  elixir_errors:form_error(Meta, E, ?MODULE, {circular_module, Module});
 ensure_loaded(Meta, Module, E) ->
   case code:ensure_loaded(Module) of
     {module, Module} ->
@@ -100,15 +102,9 @@ ensure_loaded(Meta, Module, E) ->
 
         Wait ->
           Kind = case lists:member(Module, ?key(E, context_modules)) of
-            true ->
-              case ?key(E, module) of
-                Module -> circular_module;
-                _ -> scheduled_module
-              end;
-            false when Wait == deadlock ->
-              deadlock_module;
-            false ->
-              unloaded_module
+            true -> scheduled_module;
+            false when Wait == deadlock -> deadlock_module;
+            false -> unloaded_module
           end,
 
           elixir_errors:form_error(Meta, E, ?MODULE, {Kind, Module})
