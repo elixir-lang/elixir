@@ -365,14 +365,15 @@ defmodule Kernel.ParallelCompiler do
       warned: false
     }
 
-    files = [file_data | files]
-    spawned = Map.put(spawned, ref, pid)
-    spawn_workers(queue, spawned, waiting, files, result, warnings, state)
+    new_files = [file_data | files]
+    new_spawned = Map.put(spawned, ref, pid)
+    spawn_workers(queue, new_spawned, waiting, new_files, result, warnings, state)
   end
 
   # No more queue, nothing waiting, this cycle is done
-  defp spawn_workers([], spawned, waiting, [], result, warnings, state)
+  defp spawn_workers([], spawned, waiting, files, result, warnings, state)
        when map_size(spawned) == 0 and map_size(waiting) == 0 do
+    [] = files
     cycle_return = each_cycle_return(state.each_cycle.())
     state = cycle_timing(result, state)
 
@@ -388,49 +389,50 @@ defmodule Kernel.ParallelCompiler do
     end
   end
 
-  # files x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
+  # spawned 1, waiting for 1: Release it!
+  defp spawn_workers([], spawned, waiting, files, result, warnings, state)
+       when map_size(waiting) == map_size(spawned) and map_size(waiting) == 1 do
+    {pid, _, _iterator} = :maps.next(:maps.iterator(waiting))
+    spawn_workers([{pid, :not_found}], spawned, waiting, files, result, warnings, state)
+  end
 
+  # spawned x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
   defp spawn_workers([], spawned, waiting, files, result, warnings, state)
        when map_size(waiting) == map_size(spawned) do
-    # Single entry, just release it.
-    with 1 <- map_size(waiting), [%{pid: pid}] <- files, %{^pid => _} <- waiting do
-      spawn_workers([{pid, :not_found}], spawned, waiting, files, result, warnings, state)
+    # There is potentially a deadlock. We will release modules with
+    # the following order:
+    #
+    #   1. Code.ensure_compiled/1 checks without a known definition (deadlock = soft)
+    #   2. Code.ensure_compiled/1 checks with a known definition (deadlock = soft)
+    #   3. Struct/import/require/ensure_compiled! checks without a known definition (deadlock = hard)
+    #   4. Modules without a known definition
+    #   5. Code invocation (deadlock = raise)
+    #
+    # The reason for step 3 and 4 is to not treat typos as deadlocks and
+    # help developers handle those sooner. However, this can have false
+    # positives in case multiple modules are defined in the same file
+    # and the module we are waiting for is defined later on.
+    #
+    # Finally, note there is no difference between hard and raise, the
+    # difference is where the raise is happening, inside the compiler
+    # or in the caller.
+    waiting_list = Map.to_list(waiting)
+
+    deadlocked =
+      deadlocked(waiting_list, :soft, false) ||
+        deadlocked(waiting_list, :soft, true) ||
+        deadlocked(waiting_list, :hard, false) ||
+        without_definition(waiting_list, files)
+
+    if deadlocked do
+      spawn_workers(deadlocked, spawned, waiting, files, result, warnings, state)
     else
-      _ ->
-        # There is potentially a deadlock. We will release modules with
-        # the following order:
-        #
-        #   1. Code.ensure_compiled/1 checks without a known definition (deadlock = soft)
-        #   2. Code.ensure_compiled/1 checks with a known definition (deadlock = soft)
-        #   3. Struct/import/require/ensure_compiled! checks without a known definition (deadlock = hard)
-        #   4. Modules without a known definition
-        #   5. Code invocation (deadlock = raise)
-        #
-        # The reason for step 3 and 4 is to not treat typos as deadlocks and
-        # help developers handle those sooner. However, this can have false
-        # positives in case multiple modules are defined in the same file
-        # and the module we are waiting for is defined later on.
-        #
-        # Finally, note there is no difference between hard and raise, the
-        # difference is where the raise is happening, inside the compiler
-        # or in the caller.
-        waiting_list = Map.to_list(waiting)
-
-        deadlocked =
-          deadlocked(waiting_list, :soft, false) ||
-            deadlocked(waiting_list, :soft, true) || deadlocked(waiting_list, :hard, false) ||
-            without_definition(waiting_list, files)
-
-        if deadlocked do
-          spawn_workers(deadlocked, spawned, waiting, files, result, warnings, state)
-        else
-          errors = handle_deadlock(waiting, files)
-          {{:error, errors, warnings}, state}
-        end
+      errors = handle_deadlock(waiting, files)
+      {{:error, errors, warnings}, state}
     end
   end
 
-  # No more queue, but spawned and length(waiting) do not match
+  # No more queue, but spawned and map_size(waiting) do not match
   defp spawn_workers([], spawned, waiting, files, result, warnings, state) do
     wait_for_messages([], spawned, waiting, files, result, warnings, state)
   end
@@ -592,7 +594,7 @@ defmodule Kernel.ParallelCompiler do
 
         # We may have spurious entries in the waiting list
         # if someone invoked try/rescue UndefinedFunctionError
-        new_waiting = delete_waiting(waiting, child_pid)
+        new_waiting = Map.delete(waiting, child_pid)
         spawn_workers(queue, new_spawned, new_waiting, new_files, result, warnings, state)
 
       {:file_cancel, child_pid} ->
@@ -608,7 +610,7 @@ defmodule Kernel.ParallelCompiler do
       {:DOWN, ref, :process, pid, reason} when is_map_key(spawned, ref) ->
         # async spawned processes have no file, so we always have to delete the ref directly
         spawned = Map.delete(spawned, ref)
-        waiting = delete_waiting(waiting, pid)
+        waiting = Map.delete(waiting, pid)
         {file, new_spawned, new_files} = discard_file_pid(spawned, files, pid)
 
         if file do
@@ -629,10 +631,6 @@ defmodule Kernel.ParallelCompiler do
       end
 
     {available, Map.put(result, {kind, module}, value)}
-  end
-
-  defp delete_waiting(waiting, pid) do
-    Map.delete(waiting, pid)
   end
 
   defp update_timing(files, pid, key) do
