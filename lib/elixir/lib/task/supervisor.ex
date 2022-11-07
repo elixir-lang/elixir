@@ -35,7 +35,7 @@ defmodule Task.Supervisor do
   Instead of:
 
       children = [
-        {Task.Supervisor, name: Task.Supervisor}
+        {Task.Supervisor, name: MyApp.TaskSupervisor}
       ]
 
   and:
