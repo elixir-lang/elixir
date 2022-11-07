@@ -285,6 +285,15 @@ defmodule SystemTest do
     assert abs(System.system_time(:microsecond)) < abs(System.system_time(:nanosecond))
   end
 
+  test "perf_counter/0" do
+    assert is_integer(System.perf_counter())
+  end
+
+  test "perf_counter/1" do
+    assert is_integer(System.perf_counter(:nanosecond))
+    assert abs(System.perf_counter(:microsecond)) < abs(System.perf_counter(:nanosecond))
+  end
+
   test "time_offset/0 and time_offset/1" do
     assert is_integer(System.time_offset())
     assert is_integer(System.time_offset(:second))

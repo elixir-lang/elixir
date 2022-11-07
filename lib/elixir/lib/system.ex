@@ -34,6 +34,20 @@ defmodule System do
       next = System.monotonic_time()
       diff = next - prev
 
+  Both of these options are concerned primarily with returning a
+  value with a specific and meaningful defintion in terms of 
+  'time'. In contrast, the `System.perf_counter/0` function returns a 
+  value which is purpose-built for computing durations as in the
+  examples above. It is a high performance counter value which is
+  typically sourced directly from hardware and has very little overhead,
+  though at the expense of weaker monotonicity guarantees. Its use is similar:
+
+      ## OR MAYBE THIS
+      prev = System.perf_counter()
+      # ... execute some code ...
+      next = System.perf_counter()
+      diff = next - prev
+
   Generally speaking, the VM provides three time measurements:
 
     * `os_time/0` - the time reported by the operating system (OS). This time may be
@@ -47,6 +61,12 @@ defmodule System do
 
     * `monotonic_time/0` - a monotonically increasing time provided
       by the Erlang VM.
+
+  The VM also provides a counter specifically designed for use in measuring time durations for
+  performance measurement:
+
+    * `perf_counter/0` - a very high performance time source sourced directly from hardware, 
+      which is not guaranteed to be monotonic.
 
   The time functions in this module work in the `:native` unit
   (unless specified otherwise), which is operating system dependent. Most of
@@ -1169,23 +1189,66 @@ defmodule System do
   end
 
   @doc """
+  Returns the current performance counter value in the `:perf_counter` time unit.
+
+  This function is purpose-built to provide timestamps for use in metrics
+  or telemetry data, where the overhead of measurement is more important 
+  than iron-clad guarantees of monotonicity. It is a high performance 
+  counter value which is typically sourced directly from hardware and has 
+  very little overhead, but does not have any guarantess on monotonicity.
+
+  Inlined by the compiler.
+  """
+  @spec perf_counter() :: integer
+  def perf_counter do
+    :os.perf_counter()
+  end
+
+  @doc """
+  Returns the current performance counter value in the given time unit.
+
+  This function is purpose-built to provide timestamps for use in metrics
+  or telemetry data, where the overhead of measurement is more important 
+  than iron-clad guarantees of monotonicity. It is a high performance 
+  counter value which is typically sourced directly from hardware and has 
+  very little overhead, but does not have any guarantess on monotonicity.
+  """
+  @spec perf_counter(time_unit) :: integer
+  def perf_counter(unit) do
+    :os.perf_counter(normalize_time_unit(unit))
+  end
+
+  @doc """
   Converts `time` from time unit `from_unit` to time unit `to_unit`.
 
   The result is rounded via the floor function.
 
-  `convert_time_unit/3` accepts an additional time unit (other than the
-  ones in the `t:time_unit/0` type) called `:native`. `:native` is the time
-  unit used by the Erlang runtime system. It's determined when the runtime
-  starts and stays the same until the runtime is stopped, but could differ
-  the next time the runtime is started on the same machine. For this reason,
-  you should use this function to convert `:native` time units to a predictable
-  unit before you display them to humans.
+  `convert_time_unit/3` accepts two additional time units (other than the
+  ones in the `t:time_unit/0` type), `:native` and `:perf_counter`:
 
-  To determine how many seconds the `:native` unit represents in your current
-  runtime, you can call this function to convert 1 second to the `:native`
-  time unit: `System.convert_time_unit(1, :second, :native)`.
+  * `:native` is the time unit used by the Erlang runtime system. It's determined
+    when the runtime starts and stays the same until the runtime is stopped, but
+    could differ the next time the runtime is started on the same machine. For 
+    this reason, you should use this function to convert `:native` time units to 
+    a predictable unit before you display them to humans.
+
+    To determine how many seconds the `:native` unit represents in your current
+    runtime, you can call this function to convert 1 second to the `:native`
+    time unit: `System.convert_time_unit(1, :second, :native)`.
+
+  * `:perf_counter` is the time unit returned by the `System.perf_counter/0`
+    function. It is intended for use in a performance measurement capacity, 
+    where the difference between subsequent calls to `System.perf_counter/0` is
+    used to derive a duration value (perhaps to determine how long a block of
+    code took to execute or a similar purpose). Similar to `:native`, the value
+    of this time unit may differ between runtime invocations.
   """
-  @spec convert_time_unit(integer, time_unit | :native, time_unit | :native) :: integer
+  @spec convert_time_unit(
+          integer,
+          time_unit | :native | :perf_counter,
+          time_unit | :native | :perf_counter
+        ) ::
+          integer
   def convert_time_unit(time, from_unit, to_unit) do
     :erlang.convert_time_unit(time, normalize_time_unit(from_unit), normalize_time_unit(to_unit))
   end
@@ -1314,6 +1377,7 @@ defmodule System do
   end
 
   defp normalize_time_unit(:native), do: :native
+  defp normalize_time_unit(:perf_counter), do: :perf_counter
 
   defp normalize_time_unit(:second), do: :second
   defp normalize_time_unit(:millisecond), do: :millisecond
