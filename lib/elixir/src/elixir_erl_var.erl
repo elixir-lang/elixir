@@ -109,7 +109,7 @@ dump_binding(Binding, ErlS, ExS, PruneBefore) ->
     %% If the variable is part of the pruning (usually the input binding)
     %% and is unused, we removed it from vars.
     (Pair, Version, {B, V})
-    when Version < PruneBefore, map_get({Pair, Version}, Unused) /= false ->
+    when Version < PruneBefore, not is_map_key({Pair, Version}, Unused) ->
       {B, maps:remove(Pair, V)};
 
     ({Var, Kind} = Pair, Version, {B, V}) when is_atom(Kind) ->

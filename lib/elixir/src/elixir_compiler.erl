@@ -37,7 +37,8 @@ eval_or_compile(Forms, Args, E) ->
         (not elixir_config:is_bootstrap()) of
     true  -> fast_compile(Forms, E);
     false -> compile(Forms, Args, E)
-  end.
+  end,
+  ok.
 
 compile(Quoted, ArgsList, E) ->
   {Expanded, SE, EE} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(E), E),

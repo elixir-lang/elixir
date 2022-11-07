@@ -272,15 +272,15 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
   Prune = proplists:get_value(prune_binding, Opts, false),
   {ExVars, ErlVars, ErlBinding} = elixir_erl_var:load_binding(Binding),
   E = elixir_env:with_vars(OrigE, ExVars),
-  ExS = elixir_env:env_to_ex(E, Prune),
+  ExS = elixir_env:env_to_ex(E),
   ErlS = elixir_erl_var:from_env(E, ErlVars),
   {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, ErlS, ExS, E),
 
   case Erl of
-    {Literal, _, Literal} when Literal == atom; Literal == float; Literal == integer ->
+    {Literal, _, Value} when Literal == atom; Literal == float; Literal == integer ->
       if
-        Prune -> {Literal, [], NewE};
-        true -> {Literal, Binding, NewE}
+        Prune -> {Value, [], NewE#{versioned_vars := #{}}};
+        true -> {Value, Binding, NewE}
       end;
 
     _  ->
