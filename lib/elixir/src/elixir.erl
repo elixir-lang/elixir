@@ -284,17 +284,17 @@ eval_forms(Tree, Binding, OrigE) ->
   eval_forms(Tree, Binding, OrigE, []).
 eval_forms(Tree, Binding, OrigE, Opts) ->
   Prune = proplists:get_value(prune_binding, Opts, false),
-  {ExVars, ErlVars, ErlBinding} = elixir_erl_var:load_binding(Binding),
+  {ExVars, ErlVars, ErlBinding} = elixir_erl_var:load_binding(Binding, Prune),
   E = elixir_env:with_vars(OrigE, ExVars),
-  ExS = elixir_env:env_to_ex(E, Prune),
+  ExS = elixir_env:env_to_ex(E),
   ErlS = elixir_erl_var:from_env(E, ErlVars),
   {Erl, NewErlS, NewExS, NewE} = quoted_to_erl(Tree, ErlS, ExS, E),
 
   case Erl of
-    {Literal, _, Literal} when Literal == atom; Literal == float; Literal == integer ->
+    {Literal, _, Value} when Literal == atom; Literal == float; Literal == integer ->
       if
-        Prune -> {Literal, [], NewE};
-        true -> {Literal, Binding, NewE}
+        Prune -> {Value, [], NewE#{versioned_vars := #{}}};
+        true -> {Value, Binding, NewE}
       end;
 
     _  ->
@@ -306,8 +306,8 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
 
       ExternalHandler = eval_external_handler(NewE),
       {value, Value, NewBinding} = erl_eval:exprs(Exprs, ErlBinding, none, ExternalHandler),
+      PruneBefore = if Prune -> length(Binding) + 1; true -> 0 end,
 
-      PruneBefore = if Prune -> length(Binding); true -> 0 end,
       {DumpedBinding, DumpedVars} =
         elixir_erl_var:dump_binding(NewBinding, NewErlS, NewExS, PruneBefore),
 

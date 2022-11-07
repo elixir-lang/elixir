@@ -37,7 +37,8 @@ eval_or_compile(Forms, Args, E) ->
         (not elixir_config:is_bootstrap()) of
     true  -> fast_compile(Forms, E);
     false -> compile(Forms, Args, E)
-  end.
+  end,
+  ok.
 
 compile(Quoted, ArgsList, E) ->
   {Expanded, SE, EE} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(E), E),
@@ -47,7 +48,7 @@ compile(Quoted, ArgsList, E) ->
     elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, E) end),
 
   Args = list_to_tuple(ArgsList),
-  {dispatch(Module, Fun, Args, Purgeable), EE}.
+  {dispatch(Module, Fun, Args, Purgeable), SE, EE}.
 
 spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
   {Vars, S} = elixir_erl_var:from_env(E),
