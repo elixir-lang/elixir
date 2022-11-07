@@ -48,7 +48,7 @@ compile(Quoted, ArgsList, E) ->
     elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, E) end),
 
   Args = list_to_tuple(ArgsList),
-  {dispatch(Module, Fun, Args, Purgeable), SE, EE}.
+  {dispatch(Module, Fun, Args, Purgeable), EE}.
 
 spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
   {Vars, S} = elixir_erl_var:from_env(E),

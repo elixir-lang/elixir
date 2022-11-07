@@ -2,7 +2,7 @@
 -module(elixir_erl_var).
 -export([
   translate/4, assign/2, build/2,
-  load_binding/2, dump_binding/4,
+  load_binding/1, dump_binding/4,
   from_env/1, from_env/2
 ]).
 -include("elixir.hrl").
@@ -65,10 +65,8 @@ to_erl_vars([], _Counter) ->
 to_erl_var(Counter) ->
   list_to_atom("_@" ++ integer_to_list(Counter)).
 
-load_binding(Binding, false) ->
-  load_binding(Binding, #{}, [], [], 0);
-load_binding(Binding, true) ->
-  load_binding([{{elixir, prune_binding}, true} | Binding], false).
+load_binding(Binding) ->
+  load_binding(Binding, #{}, [], [], 0).
 
 load_binding([Binding | NextBindings], ExVars, ErlVars, Normalized, Counter) ->
   {Pair, Value} = load_pair(Binding),

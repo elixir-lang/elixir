@@ -66,7 +66,6 @@ next_counter(Module) ->
 
 compile(Module, Block, Vars, Env) when is_atom(Module) ->
   #{line := Line, function := Function, versioned_vars := OldVerVars} = Env,
-  Prune = is_map_key({elixir, prune_binding}, OldVerVars),
 
   {VerVars, _} =
     lists:mapfoldl(fun({Var, _}, I) -> {{Var, I}, I + 1} end, 0, maps:to_list(OldVerVars)),
@@ -83,16 +82,16 @@ compile(Module, Block, Vars, Env) when is_atom(Module) ->
     #{lexical_tracker := nil} ->
       elixir_lexical:run(
         MaybeLexEnv,
-        fun(LexEnv) -> compile(Line, Module, Block, Vars, Prune, LexEnv) end,
+        fun(LexEnv) -> compile(Line, Module, Block, Vars, LexEnv) end,
         fun(_LexEnv) -> ok end
       );
     _ ->
-      compile(Line, Module, Block, Vars, Prune, MaybeLexEnv)
+      compile(Line, Module, Block, Vars, MaybeLexEnv)
   end;
 compile(Module, _Block, _Vars, #{line := Line, file := File}) ->
   elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module}).
 
-compile(Line, Module, Block, Vars, Prune, E) ->
+compile(Line, Module, Block, Vars, E) ->
   File = ?key(E, file),
   check_module_availability(Line, File, Module),
   ModuleAsCharlist = validate_module_name(Line, File, Module),
@@ -103,7 +102,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
 
   try
     put_compiler_modules([Module | CompilerModules]),
-    {Result, ModuleE, CallbackE} = eval_form(Line, Module, DataBag, Block, Vars, Prune, E),
+    {Result, NE} = eval_form(Line, Module, DataBag, Block, Vars, E),
     CheckerInfo = checker_info(),
 
     {Binary, PersistedAttributes, Autoload} =
@@ -136,7 +135,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
         Impls = bag_lookup_element(DataBag, impls, 2),
 
         AfterVerify = bag_lookup_element(DataBag, {accumulate, after_verify}, 2),
-        [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, CallbackE) ||
+        [elixir_env:trace({remote_function, [], VerifyMod, VerifyFun, 1}, E) ||
          {VerifyMod, VerifyFun} <- AfterVerify],
 
         ModuleMap = #{
@@ -163,8 +162,8 @@ compile(Line, Module, Block, Vars, Prune, E) ->
       end),
 
     Autoload andalso code:load_binary(Module, beam_location(ModuleAsCharlist), Binary),
-    eval_callbacks(Line, DataBag, after_compile, [CallbackE, Binary], CallbackE),
-    elixir_env:trace({on_module, Binary, none}, ModuleE),
+    eval_callbacks(Line, DataBag, after_compile, [NE, Binary], NE),
+    elixir_env:trace({on_module, Binary, none}, E),
     warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
     make_module_available(Module, Binary),
     (CheckerInfo == undefined) andalso
@@ -380,27 +379,13 @@ build(Line, File, Module) ->
 
 %% Handles module and callback evaluations.
 
-eval_form(Line, Module, DataBag, Block, Vars, Prune, E) ->
-  {Value, ExS, EE} = elixir_compiler:compile(Block, Vars, E),
+eval_form(Line, Module, DataBag, Block, Vars, E) ->
+  {Value, EE} = elixir_compiler:compile(Block, Vars, E),
   elixir_overridable:store_not_overridden(Module),
   EV = (elixir_env:reset_vars(EE))#{line := Line},
   EC = eval_callbacks(Line, DataBag, before_compile, [EV], EV),
   elixir_overridable:store_not_overridden(Module),
-  {Value, maybe_prune_versioned_vars(Prune, Vars, ExS, E), EC}.
-
-maybe_prune_versioned_vars(false, _Vars, _Exs, E) ->
-  E;
-maybe_prune_versioned_vars(true, Vars, ExS, E) ->
-  PruneBefore = length(Vars),
-  #elixir_ex{vars={ExVars, _}, unused={Unused, _}} = ExS,
-
-  VersionedVars =
-    maps:filter(fun
-      (Pair, Version) when Version < PruneBefore, not is_map_key({Pair, Version}, Unused) -> false;
-      (_, _) -> true
-    end, ExVars),
-
-  E#{versioned_vars := VersionedVars}.
+  {Value, EC}.
 
 eval_callbacks(Line, DataBag, Name, Args, E) ->
   Callbacks = bag_lookup_element(DataBag, {accumulate, Name}, 2),
