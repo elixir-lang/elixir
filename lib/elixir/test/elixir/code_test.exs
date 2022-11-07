@@ -190,40 +190,6 @@ defmodule CodeTest do
              {[{{:x, :foo}, 2}], [x: :foo]}
   end
 
-  defmodule Tracer do
-    def trace(event, env) do
-      send(self(), {:trace, event, env})
-      :ok
-    end
-  end
-
-  test "eval_quoted_with_env/3 with tracing and pruning" do
-    env = %{Code.env_for_eval(__ENV__) | tracers: [Tracer], function: nil}
-    binding = [x: 1, y: 2, z: 3]
-
-    quoted =
-      quote do
-        defmodule Elixir.CodeTest.TracingPruning do
-          var!(y) = :updated
-          var!(y)
-          var!(x)
-        end
-      end
-
-    {_, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-    assert Enum.sort(binding) == [{:x, 1}, {:y, 2}, {:z, 3}, {{:elixir, :prune_binding}, true}]
-
-    assert env.versioned_vars == %{
-             {:elixir, :prune_binding} => 0,
-             {:x, nil} => 1,
-             {:y, nil} => 2,
-             {:z, nil} => 3
-           }
-
-    assert_receive {:trace, {:on_module, _, _}, %{module: CodeTest.TracingPruning} = trace_env}
-    assert trace_env.versioned_vars == %{{:result, Kernel} => 5, {:x, nil} => 1, {:y, nil} => 4}
-  end
-
   test "compile_file/1" do
     assert Code.compile_file(fixture_path("code_sample.exs")) == []
     refute fixture_path("code_sample.exs") in Code.required_files()
