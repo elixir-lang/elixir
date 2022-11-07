@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([
-  new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1, env_to_ex/2,
+  new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1,
   reset_unused_vars/1, check_unused_vars/2, merge_and_check_unused_vars/3,
   trace/2, format_error/1,
   reset_read/2, prepare_write/1, close_write/2
@@ -47,19 +47,11 @@ reset_vars(Env) ->
 
 %% CONVERSIONS
 
-env_to_ex(Env) ->
-  env_to_ex(Env, false).
-
-env_to_ex(#{context := match, versioned_vars := Vars}, Prune) ->
+env_to_ex(#{context := match, versioned_vars := Vars}) ->
   Counter = map_size(Vars),
-  Unused = unused(Vars, Prune),
-  #elixir_ex{prematch={Vars, Counter}, vars={Vars, false}, unused={Unused, Counter}};
-env_to_ex(#{versioned_vars := Vars}, Prune) ->
-  Unused = unused(Vars, Prune),
-  #elixir_ex{vars={Vars, false}, unused={Unused, map_size(Vars)}}.
-
-unused(_Vars, false) -> #{};
-unused(Vars, true) -> maps:from_keys(maps:to_list(Vars), {0, false}).
+  #elixir_ex{prematch={Vars, Counter}, vars={Vars, false}, unused={#{}, Counter}};
+env_to_ex(#{versioned_vars := Vars}) ->
+  #elixir_ex{vars={Vars, false}, unused={#{}, map_size(Vars)}}.
 
 %% VAR HANDLING
 
