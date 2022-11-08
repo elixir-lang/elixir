@@ -2060,8 +2060,8 @@ defmodule Code.Formatter do
   defp adjust_trailing_newlines(doc_triplet, _, _), do: doc_triplet
 
   defp traverse_line({expr, meta, args}, {min, max}) do
+    # This is a hot path, so use :lists.keyfind/3 instead Keyword.fetch!/2
     acc =
-      # This is a hot path, so use :lists.keyfind/3 instead Keyword.fetch!/2
       case :lists.keyfind(:line, 1, meta) do
         {:line, line} -> {min(line, min), max(line, max)}
         false -> {min, max}
