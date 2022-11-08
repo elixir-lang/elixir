@@ -55,7 +55,7 @@ jobs:
           gh release upload --clobber "${{ github.ref_name }}" \
             elixir-otp-${{ matrix.otp }}.zip \
             elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum
-      - name: Upload Docs to github
+      - name: Upload Docs to GitHub
         if: ${{ matrix.build_docs }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
