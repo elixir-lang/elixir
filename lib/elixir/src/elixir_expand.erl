@@ -368,7 +368,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
         %% TODO: Remove this clause on v2.0
         _ when Error == warn ->
           elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
-          expand({Name, Meta, []}, S, E);
+          expand({Name, [{if_undefined, warn} | Meta], []}, S, E);
 
         _ when Error == pin ->
           form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind});

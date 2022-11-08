@@ -13,76 +13,6 @@ end
 defmodule Kernel.ExpansionTest do
   use ExUnit.Case, async: true
 
-  defmacrop var_ver(var, version) do
-    quote do
-      {unquote(var), [version: unquote(version)], __MODULE__}
-    end
-  end
-
-  test "tracks variable version" do
-    assert {:__block__, _, [{:=, _, [var_ver(:x, 0), 0]}, {:=, _, [_, var_ver(:x, 0)]}]} =
-             expand_with_version(
-               quote do
-                 x = 0
-                 _ = x
-               end
-             )
-
-    assert {:__block__, _,
-            [
-              {:=, _, [var_ver(:x, 0), 0]},
-              {:=, _, [_, var_ver(:x, 0)]},
-              {:=, _, [var_ver(:x, 1), 1]},
-              {:=, _, [_, var_ver(:x, 1)]}
-            ]} =
-             expand_with_version(
-               quote do
-                 x = 0
-                 _ = x
-                 x = 1
-                 _ = x
-               end
-             )
-
-    assert {:__block__, _,
-            [
-              {:=, _, [var_ver(:x, 0), 0]},
-              {:fn, _, [{:->, _, [[var_ver(:x, 1)], {:=, _, [var_ver(:x, 2), 2]}]}]},
-              {:=, _, [_, var_ver(:x, 0)]},
-              {:=, _, [var_ver(:x, 3), 3]}
-            ]} =
-             expand_with_version(
-               quote do
-                 x = 0
-                 fn x -> x = 2 end
-                 _ = x
-                 x = 3
-               end
-             )
-
-    assert {:__block__, _,
-            [
-              {:=, _, [var_ver(:x, 0), 0]},
-              {:case, _, [:foo, [do: [{:->, _, [[var_ver(:x, 1)], var_ver(:x, 1)]}]]]},
-              {:=, _, [_, var_ver(:x, 0)]},
-              {:=, _, [var_ver(:x, 2), 2]}
-            ]} =
-             expand_with_version(
-               quote do
-                 x = 0
-                 case(:foo, do: (x -> x))
-                 _ = x
-                 x = 2
-               end
-             )
-  end
-
-  defp expand_with_version(expr) do
-    env = :elixir_env.reset_vars(__ENV__)
-    {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
-    expr
-  end
-
   describe "__block__" do
     test "expands to nil when empty" do
       assert expand(quote(do: unquote(:__block__)())) == nil
@@ -328,10 +258,28 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "vars" do
-    test "expand to local call" do
-      {output, env} = expand_env(quote(do: a), __ENV__)
-      assert output == quote(do: a())
+    test "expands vars to local call" do
+      {output, env} = expand_env({:a, [], nil}, __ENV__, [])
+      assert output == {:a, [if_undefined: :warn], []}
       assert Macro.Env.vars(env) == []
+    end
+
+    test "expands vars to local call without warning" do
+      env = __ENV__
+
+      {output, _, env} =
+        :elixir_expand.expand({:a, [if_undefined: :apply], nil}, :elixir_env.env_to_ex(env), env)
+
+      assert output == {:a, [if_undefined: :apply], []}
+      assert Macro.Env.vars(env) == []
+    end
+
+    test "raises when expanding var to local call" do
+      env = __ENV__
+
+      assert_raise CompileError, ~r"undefined variable \"a\"", fn ->
+        :elixir_expand.expand({:a, [if_undefined: :raise], nil}, :elixir_env.env_to_ex(env), env)
+      end
     end
 
     test "forces variable to exist" do
@@ -360,6 +308,76 @@ defmodule Kernel.ExpansionTest do
       assert_raise CompileError, ~r"invalid use of _", fn ->
         expand(quote(do: {1, 2, _}))
       end
+    end
+
+    defmacrop var_ver(var, version) do
+      quote do
+        {unquote(var), [version: unquote(version)], __MODULE__}
+      end
+    end
+
+    defp expand_with_version(expr) do
+      env = :elixir_env.reset_vars(__ENV__)
+      {expr, _, _} = :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
+      expr
+    end
+
+    test "tracks variable version" do
+      assert {:__block__, _, [{:=, _, [var_ver(:x, 0), 0]}, {:=, _, [_, var_ver(:x, 0)]}]} =
+               expand_with_version(
+                 quote do
+                   x = 0
+                   _ = x
+                 end
+               )
+
+      assert {:__block__, _,
+              [
+                {:=, _, [var_ver(:x, 0), 0]},
+                {:=, _, [_, var_ver(:x, 0)]},
+                {:=, _, [var_ver(:x, 1), 1]},
+                {:=, _, [_, var_ver(:x, 1)]}
+              ]} =
+               expand_with_version(
+                 quote do
+                   x = 0
+                   _ = x
+                   x = 1
+                   _ = x
+                 end
+               )
+
+      assert {:__block__, _,
+              [
+                {:=, _, [var_ver(:x, 0), 0]},
+                {:fn, _, [{:->, _, [[var_ver(:x, 1)], {:=, _, [var_ver(:x, 2), 2]}]}]},
+                {:=, _, [_, var_ver(:x, 0)]},
+                {:=, _, [var_ver(:x, 3), 3]}
+              ]} =
+               expand_with_version(
+                 quote do
+                   x = 0
+                   fn x -> x = 2 end
+                   _ = x
+                   x = 3
+                 end
+               )
+
+      assert {:__block__, _,
+              [
+                {:=, _, [var_ver(:x, 0), 0]},
+                {:case, _, [:foo, [do: [{:->, _, [[var_ver(:x, 1)], var_ver(:x, 1)]}]]]},
+                {:=, _, [_, var_ver(:x, 0)]},
+                {:=, _, [var_ver(:x, 2), 2]}
+              ]} =
+               expand_with_version(
+                 quote do
+                   x = 0
+                   case(:foo, do: (x -> x))
+                   _ = x
+                   x = 2
+                 end
+               )
     end
   end
 
@@ -2891,15 +2909,13 @@ defmodule Kernel.ExpansionTest do
     expand_env(expr, __ENV__) |> elem(0)
   end
 
-  defp expand_env(expr, env) do
-    ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      send(self(), {:expand_env, :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)})
-    end)
+  defp expand_env(expr, env, to_clean \\ [:version, :inferred_bitstring_spec, :if_undefined]) do
+    {{expr, scope, env}, _capture} =
+      ExUnit.CaptureIO.with_io(:stderr, fn ->
+        :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
+      end)
 
-    receive do
-      {:expand_env, {expr, scope, env}} ->
-        env = :elixir_env.to_caller({env.line, scope, env})
-        {clean_meta(expr, [:version, :inferred_bitstring_spec]), env}
-    end
+    env = :elixir_env.to_caller({env.line, scope, env})
+    {clean_meta(expr, to_clean), env}
   end
 end
