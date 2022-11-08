@@ -398,11 +398,12 @@ defimpl IEx.Info, for: Reference do
   end
 end
 
-defimpl IEx.Info, for: [Date, Time, NaiveDateTime] do
+defimpl IEx.Info, for: [Date, Time, DateTime, NaiveDateTime] do
   {sigil, repr} =
     case @for do
       Date -> {"D", "date"}
       Time -> {"T", "time"}
+      DateTime -> {"U", "datetime"}
       NaiveDateTime -> {"N", ~S{"naive" datetime (that is, a datetime without a time zone)}}
     end
 
