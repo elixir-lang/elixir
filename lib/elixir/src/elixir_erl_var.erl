@@ -2,7 +2,7 @@
 -module(elixir_erl_var).
 -export([
   translate/4, assign/2, build/2,
-  load_binding/1, dump_binding/4,
+  load_binding/2, dump_binding/4,
   from_env/1, from_env/2
 ]).
 -include("elixir.hrl").
@@ -65,16 +65,16 @@ to_erl_vars([], _Counter) ->
 to_erl_var(Counter) ->
   list_to_atom("_@" ++ integer_to_list(Counter)).
 
-load_binding(Binding) ->
-  load_binding(Binding, #{}, [], [], 0).
+load_binding(Binding, Prune) ->
+  load_binding(Binding, #{}, [], [], 0, Prune).
 
-load_binding([Binding | NextBindings], ExVars, ErlVars, Normalized, Counter) ->
+load_binding([Binding | NextBindings], ExVars, ErlVars, Normalized, Counter, Prune) ->
   {Pair, Value} = load_pair(Binding),
 
   case ExVars of
     #{Pair := VarCounter} ->
       ErlVar = to_erl_var(VarCounter),
-      load_binding(NextBindings, ExVars, ErlVars, [{ErlVar, Value} | Normalized], Counter);
+      load_binding(NextBindings, ExVars, ErlVars, [{ErlVar, Value} | Normalized], Counter, Prune);
 
     #{} ->
       ErlVar = to_erl_var(Counter),
@@ -84,10 +84,13 @@ load_binding([Binding | NextBindings], ExVars, ErlVars, Normalized, Counter) ->
         ExVars#{Pair => Counter},
         [{Counter, ErlVar} | ErlVars],
         [{ErlVar, Value} | Normalized],
-        Counter + 1
+        Counter + 1,
+        Prune
       )
   end;
-load_binding([], ExVars, ErlVars, Normalized, _Counter) ->
+load_binding([], ExVars, ErlVars, Normalized, Counter, true) ->
+  load_binding([{{elixir, prune_binding}, true}], ExVars, ErlVars, Normalized, Counter, false);
+load_binding([], ExVars, ErlVars, Normalized, _Counter, false) ->
   {ExVars, maps:from_list(ErlVars), maps:from_list(lists:reverse(Normalized))}.
 
 load_pair({Key, Value}) when is_atom(Key) -> {{Key, nil}, Value};
@@ -101,7 +104,7 @@ dump_binding(Binding, ErlS, ExS, PruneBefore) ->
     %% If the variable is part of the pruning (usually the input binding)
     %% and is unused, we removed it from vars.
     (Pair, Version, {B, V})
-    when Version < PruneBefore, not is_map_key({Pair, Version}, Unused) ->
+    when Version =< PruneBefore, not is_map_key({Pair, Version}, Unused) ->
       {B, maps:remove(Pair, V)};
 
     ({Var, Kind} = Pair, Version, {B, V}) when is_atom(Kind) ->

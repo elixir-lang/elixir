@@ -20,7 +20,7 @@
 
 'MACRO-defmodule'(_Caller, Alias, [{do, Block}]) ->
   Escaped = elixir_quote:escape(Block, none, false),
-  Args = [Alias, Escaped, [], env()],
+  Args = [Alias, Escaped, [], false, env()],
   {{'.', [], [elixir_module, compile]}, [], Args}.
 
 '__info__'(functions) ->
