@@ -863,7 +863,10 @@ defmodule Code do
   ## Options
 
     * `:prune_binding` - (since v1.14.2) prune binding to keep only
-      variables read or written by the evaluated code
+      variables read or written by the evaluated code. Note that
+      variables used by modules are always pruned, even if later used
+      by the modules. You can submit to the `:on_module` tracer event
+      and access the variables used by the module from its environment.
 
   """
   @doc since: "1.14.0"

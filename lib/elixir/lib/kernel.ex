@@ -4800,11 +4800,27 @@ defmodule Kernel do
           :elixir_quote.escape(block, :none, false)
       end
 
-    module_vars = :lists.map(&module_var/1, :maps.keys(env.versioned_vars))
+    versioned_vars = env.versioned_vars
+    prune = :erlang.is_map_key({:elixir, :prune_binding}, versioned_vars)
+
+    var_meta =
+      case prune do
+        true -> [generated: true, keep_unused: true]
+        false -> [generated: false]
+      end
+
+    module_vars = :lists.map(&module_var(&1, var_meta), :maps.keys(versioned_vars))
 
     quote do
       unquote(with_alias)
-      :elixir_module.compile(unquote(expanded), unquote(escaped), unquote(module_vars), __ENV__)
+
+      :elixir_module.compile(
+        unquote(expanded),
+        unquote(escaped),
+        unquote(module_vars),
+        unquote(prune),
+        __ENV__
+      )
     end
   end
 
@@ -4853,8 +4869,8 @@ defmodule Kernel do
     {module, module, nil}
   end
 
-  defp module_var({name, kind}) when is_atom(kind), do: {name, [generated: true], kind}
-  defp module_var({name, kind}), do: {name, [counter: kind, generated: true], nil}
+  defp module_var({name, kind}, meta) when is_atom(kind), do: {name, meta, kind}
+  defp module_var({name, kind}, meta), do: {name, [counter: kind] ++ meta, nil}
 
   @doc ~S"""
   Defines a public function with the given name and body.

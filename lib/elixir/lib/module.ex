@@ -822,7 +822,7 @@ defmodule Module do
     next = :elixir_module.next_counter(nil)
     meta = Keyword.take(opts, [:line, :generated])
     quoted = :elixir_quote.linify_with_context_counter(meta, {module, next}, quoted)
-    :elixir_module.compile(module, quoted, [], :elixir.env_for_eval(opts))
+    :elixir_module.compile(module, quoted, [], false, :elixir.env_for_eval(opts))
   end
 
   @doc """

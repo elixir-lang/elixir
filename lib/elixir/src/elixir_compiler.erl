@@ -48,7 +48,7 @@ compile(Quoted, ArgsList, E) ->
     elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, E) end),
 
   Args = list_to_tuple(ArgsList),
-  {dispatch(Module, Fun, Args, Purgeable), EE}.
+  {dispatch(Module, Fun, Args, Purgeable), SE, EE}.
 
 spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
   {Vars, S} = elixir_erl_var:from_env(E),
@@ -127,7 +127,7 @@ fast_compile({defmodule, Meta, [Mod, [{do, TailBlock}]]}, NoLineE) ->
   end,
 
   ContextModules = [Expanded | ?key(E, context_modules)],
-  elixir_module:compile(Expanded, Block, [], E#{context_modules := ContextModules}).
+  elixir_module:compile(Expanded, Block, [], false, E#{context_modules := ContextModules}).
 
 %% Bootstrapper
 
