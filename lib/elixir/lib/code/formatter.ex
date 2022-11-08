@@ -1976,16 +1976,30 @@ defmodule Code.Formatter do
         Enum.split_while(comments, fn %{line: line} -> line <= min_line end)
       end)
 
-    {docs, comments?, state} =
-      each_quoted_to_algebra_with_comments(args, acc, max_line, state, false, fun)
+    {reverse_docs, comments?, state} =
+      if state.comments == [] do
+        each_quoted_to_algebra_without_comments(args, acc, state, fun)
+      else
+        each_quoted_to_algebra_with_comments(args, acc, max_line, state, false, fun)
+      end
 
+    docs = merge_algebra_with_comments(Enum.reverse(reverse_docs), @empty)
     {docs, comments?, update_in(state.comments, &(pre_comments ++ &1))}
+  end
+
+  defp each_quoted_to_algebra_without_comments([], acc, state, _fun) do
+    {acc, false, state}
+  end
+
+  defp each_quoted_to_algebra_without_comments([arg | args], acc, state, fun) do
+    {doc_triplet, state} = fun.(arg, args, state)
+    acc = [doc_triplet | acc]
+    each_quoted_to_algebra_without_comments(args, acc, state, fun)
   end
 
   defp each_quoted_to_algebra_with_comments([], acc, max_line, state, comments?, _fun) do
     {acc, comments, comments?} = extract_comments_before(max_line, acc, state.comments, comments?)
-    args_docs = merge_algebra_with_comments(Enum.reverse(acc), @empty)
-    {args_docs, comments?, %{state | comments: comments}}
+    {acc, comments?, %{state | comments: comments}}
   end
 
   defp each_quoted_to_algebra_with_comments([arg | args], acc, max_line, state, comments?, fun) do
