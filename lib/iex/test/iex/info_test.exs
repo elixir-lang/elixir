@@ -190,6 +190,21 @@ defmodule IEx.InfoTest do
       assert get_key(info, "Description") =~ "`~T`"
     end
 
+    test "datetime" do
+      {:ok, date} = Date.new(2017, 1, 1)
+      {:ok, time} = Time.new(23, 59, 59)
+      {:ok, date_time} = DateTime.new(date, time)
+      info = Info.info(date_time)
+      assert get_key(info, "Data type") == "DateTime"
+
+      assert get_key(info, "Raw representation") ==
+               "%DateTime{year: 2017, month: 1, day: 1, hour: 23, minute: 59, second: 59, time_zone: \"Etc/UTC\", zone_abbr: \"UTC\", utc_offset: 0, std_offset: 0, microsecond: {0, 0}, calendar: Calendar.ISO}"
+
+      assert get_key(info, "Reference modules") == "DateTime, Calendar, Map"
+      assert get_key(info, "Description") =~ "a datetime"
+      assert get_key(info, "Description") =~ "`~U`"
+    end
+
     test "naive datetime" do
       {:ok, time} = NaiveDateTime.new(2017, 1, 1, 23, 59, 59)
       info = Info.info(time)
