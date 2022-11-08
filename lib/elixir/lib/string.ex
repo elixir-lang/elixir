@@ -2016,6 +2016,12 @@ defmodule String do
   @spec length(t) :: non_neg_integer
   def length(string) when is_binary(string), do: length(string, 0)
 
+  defp length(<<byte1, byte2, rest::binary>> = binary, acc)
+       when byte1 <= 127 and byte1 != ?\r and byte2 <= 127 and byte2 != ?\r do
+    skip = skip_length(rest, 1)
+    length(binary_part(binary, skip, byte_size(binary) - skip), acc + skip)
+  end
+
   defp length(gcs, acc) do
     case :unicode_util.gc(gcs) do
       [_ | rest] -> length(rest, acc + 1)
@@ -2023,6 +2029,13 @@ defmodule String do
       {:error, <<_, rest::bits>>} -> length(rest, acc + 1)
     end
   end
+
+  defp skip_length(<<byte, rest::binary>>, acc)
+       when byte <= 127 and byte != ?\r,
+       do: skip_length(rest, acc + 1)
+
+  defp skip_length(_binary, acc),
+    do: acc
 
   @doc """
   Returns the grapheme at the `position` of the given UTF-8 `string`.
