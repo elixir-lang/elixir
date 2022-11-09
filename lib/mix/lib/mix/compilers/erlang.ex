@@ -105,7 +105,7 @@ defmodule Mix.Compilers.Erlang do
         dest in removed || Enum.any?(stale, fn {_, stale_dest} -> dest == stale_dest end)
       end)
 
-    if opts[:all_warnings], do: show_warnings(entries)
+    if Keyword.get(opts, :all_warnings, true), do: show_warnings(entries)
 
     if stale == [] and removed == [] do
       {:noop, manifest_warnings(entries)}
