@@ -106,8 +106,6 @@ defmodule Mix.Tasks.Test do
 
   ## Command line options
 
-    * `--all-warnings` - prints warnings even from files that do not need to be recompiled
-
     * `--color` - enables color in the output
 
     * `--cover` - runs coverage tool. See "Coverage" section below
@@ -138,6 +136,8 @@ defmodule Mix.Tasks.Test do
 
     * `--max-failures` - the suite stops evaluating tests when this number of test
       failures is reached. It runs all tests if omitted
+
+    * `--no-all-warnings` - prints only warnings from files currently compiled (instead of all)
 
     * `--no-archives-check` - does not check archives
 

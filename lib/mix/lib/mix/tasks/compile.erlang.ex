@@ -18,8 +18,7 @@ defmodule Mix.Tasks.Compile.Erlang do
 
     * `--force` - forces compilation regardless of modification times
 
-    * `--all-warnings` - prints warnings even from files that do not need to be
-      recompiled
+    * `--no-all-warnings` - prints only warnings from files currently compiled (instead of all)
 
   ## Configuration
 

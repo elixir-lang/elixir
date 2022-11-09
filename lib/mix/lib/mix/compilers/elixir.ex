@@ -157,10 +157,10 @@ defmodule Mix.Compilers.Elixir do
         {:ok, warnings, state} ->
           {modules, _exports, sources, pending_modules, _pending_exports} = state
 
-          # We only collect the warnings if --all-warnings is given.
-          # In this case, we print them too. Then we apply the new warnings.
           previous_warnings =
-            if opts[:all_warnings], do: previous_warnings(sources, true), else: []
+            if Keyword.get(opts, :all_warnings, true),
+              do: previous_warnings(sources, true),
+              else: []
 
           sources = apply_warnings(sources, warnings)
 
@@ -181,11 +181,11 @@ defmodule Mix.Compilers.Elixir do
 
         {:error, errors, warnings, state} ->
           # In case of errors, we show all previous warnings and all new ones.
-          # Print the new ones if --all-warnings was given.
           {_, _, sources, _, _} = state
           errors = Enum.map(errors, &diagnostic(&1, :error))
           warnings = Enum.map(warnings, &diagnostic(&1, :warning))
-          {:error, previous_warnings(sources, opts[:all_warnings]) ++ warnings ++ errors}
+          all_warnings = Keyword.get(opts, :all_warnings, true)
+          {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
       after
         Code.compiler_options(previous_opts)
         Mix.Compilers.ApplicationTracer.stop(pending_tracer)
@@ -221,7 +221,8 @@ defmodule Mix.Compilers.Elixir do
         )
       end
 
-      previous_warnings = previous_warnings(sources, opts[:all_warnings])
+      all_warnings = Keyword.get(opts, :all_warnings, true)
+      previous_warnings = previous_warnings(sources, all_warnings)
       unless_previous_warnings_as_errors(previous_warnings, opts, {status, previous_warnings})
     end
   after
