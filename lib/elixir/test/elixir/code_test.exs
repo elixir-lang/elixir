@@ -234,6 +234,15 @@ defmodule CodeTest do
     assert trace_env.versioned_vars == %{{:result, Kernel} => 5, {:x, nil} => 1, {:y, nil} => 4}
   end
 
+  test "eval_quoted_with_env/3 with defguard" do
+    require Integer
+    env = Code.env_for_eval(__ENV__)
+    quoted = quote do: Integer.is_even(1)
+    {false, binding, env} = Code.eval_quoted_with_env(quoted, [], env, prune_binding: true)
+    assert binding == []
+    assert Macro.Env.vars(env) == []
+  end
+
   test "compile_file/1" do
     assert Code.compile_file(fixture_path("code_sample.exs")) == []
     refute fixture_path("code_sample.exs") in Code.required_files()
