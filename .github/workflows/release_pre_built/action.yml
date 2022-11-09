@@ -4,7 +4,7 @@ inputs:
   otp:
     description: "The major OTP version"
   otp_version:
-    description: "The minor OTP version"
+    description: "The exact OTP version (major.minor[.patch])"
   build_docs:
     description: "If docs have to be built or not"
 runs:
