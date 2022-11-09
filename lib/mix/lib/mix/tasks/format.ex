@@ -190,10 +190,10 @@ defmodule Mix.Tasks.Format do
   @line_num_pad @blank
 
   @gutter [
-    del: " - ",
-    eq: "   ",
-    ins: " + ",
-    skip: "..."
+    del: " -",
+    eq: "  ",
+    ins: " +",
+    skip: "  "
   ]
 
   @colors [
