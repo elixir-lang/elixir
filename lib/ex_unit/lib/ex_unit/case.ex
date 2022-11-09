@@ -20,6 +20,9 @@ defmodule ExUnit.Case do
       It should be enabled only if tests do not change any global state.
       Defaults to `false`.
 
+    * `:register` - when `false`, does not register this module within
+      ExUnit server. This means the module won't run when ExUnit suite runs.
+
   This module automatically includes all callbacks defined in
   `ExUnit.Callbacks`. See that module for more information on `setup`,
   `start_supervised`, `on_exit` and the test process life cycle.
