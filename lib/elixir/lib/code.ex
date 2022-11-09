@@ -100,10 +100,15 @@ defmodule Code do
   following events are available to tracers:
 
     * `:start` - (since v1.11.0) invoked whenever the compiler starts to trace
-      a new lexical context, such as a new file. Keep in mind the compiler runs
-      in parallel, so multiple files may invoke `:start` and run at the same
-      time. The value of the `lexical_tracker` of the macro environment, albeit
-      opaque, can be used to uniquely identify the environment.
+      a new lexical context. A lexical context is started when compiling a new
+      file or when defining a module within a function. Note evaluated code
+      does not start a new lexical context (because they don't track unused
+      aliases, imports, etc) but defining a module inside evaluated code will.
+
+      Note this event may be emitted in parallel, where multiple files/modules
+      invoke `:start` and run at the same time. The value of the `lexical_tracker`
+      of the macro environment, albeit opaque, can be used to uniquely identify
+      the environment.
 
     * `:stop` - (since v1.11.0) invoked whenever the compiler stops tracing a
       new lexical context, such as a new file.
