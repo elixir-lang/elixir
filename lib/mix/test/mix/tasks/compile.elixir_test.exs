@@ -1344,8 +1344,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
              end) =~ "variable \"unused\" is unused"
 
       assert capture_io(:stderr, fn ->
-               Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
+               Mix.Tasks.Compile.Elixir.run([])
              end) =~ "variable \"unused\" is unused"
+
+      assert capture_io(:stderr, fn ->
+               Mix.Tasks.Compile.Elixir.run(["--no-all-warnings"])
+             end) == ""
 
       # Should not print warning once fixed
       File.write!("lib/a.ex", """
@@ -1420,7 +1424,9 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       # Recompiling should return :noop status because nothing is stale,
       # but also include previous warning diagnostics
-      assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+      capture_io(:stderr, fn ->
+        assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+      end)
     end)
   end
 

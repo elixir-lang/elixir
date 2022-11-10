@@ -816,12 +816,12 @@ defmodule Mix.Tasks.FormatTest do
       assert output = text_diff_format(old, new)
 
       if IO.ANSI.enabled?() do
-        assert output == "1  \e[31m - \e[0m|\e[31mdel\e[0m\n  1\e[32m + \e[0m|\n"
+        assert output == "1  \e[31m -\e[0m|\e[31mdel\e[0m\n  1\e[32m +\e[0m|\n"
       end
 
       assert text_diff_format(old, new, color: false) == """
-             1   - |del
-               1 + |
+             1   -|del
+               1 +|
              """
     end
 
@@ -834,14 +834,14 @@ defmodule Mix.Tasks.FormatTest do
       if IO.ANSI.enabled?() do
         assert output ==
                  """
-                 1  \e[31m - \e[0m|one three\e[31m\e[0m\e[41m \e[0m\e[31mtwo\e[0m
-                   1\e[32m + \e[0m|one t\e[32mwo\e[0m\e[42m \e[0m\e[32mt\e[0mhree
+                 1  \e[31m -\e[0m|one three\e[31m\e[0m\e[41m \e[0m\e[31mtwo\e[0m
+                   1\e[32m +\e[0m|one t\e[32mwo\e[0m\e[42m \e[0m\e[32mt\e[0mhree
                  """
       end
 
       assert text_diff_format(old, new, color: false) == """
-             1   - |one three two
-               1 + |one two three
+             1   -|one three two
+               1 +|one two three
              """
     end
 
@@ -866,13 +866,13 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-         ...|
-      2 2   |bbb
-      3 3   |ccc
-      4   - |ddd
-      5 4   |eee
-      6 5   |fff
-         ...|
+           |
+      2 2  |bbb
+      3 3  |ccc
+      4   -|ddd
+      5 4  |eee
+      6 5  |fff
+           |
       """
 
       assert text_diff_format(old, new)
@@ -896,13 +896,13 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-      1 1   |aaa
-      2   - |bbb
-      3   - |ccc
-      4   - |ddd
-      5   - |eee
-      6   - |fff
-      7 2   |ggg
+      1 1  |aaa
+      2   -|bbb
+      3   -|ccc
+      4   -|ddd
+      5   -|eee
+      6   -|fff
+      7 2  |ggg
       """
 
       assert text_diff_format(old, new)
@@ -930,13 +930,13 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-         ...|
-      2 2   |bbb
-      3 3   |ccc
-        4 + |ddd
-      4 5   |eee
-      5 6   |fff
-         ...|
+           |
+      2 2  |bbb
+      3 3  |ccc
+        4 +|ddd
+      4 5  |eee
+      5 6  |fff
+           |
       """
 
       assert text_diff_format(old, new)
@@ -959,11 +959,11 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-      1   - |aaa
-        1 + |axa
-      2 2   |bbb
-      3 3   |ccc
-         ...|
+      1   -|aaa
+        1 +|axa
+      2 2  |bbb
+      3 3  |ccc
+           |
       """
 
       assert text_diff_format(old, new)
@@ -986,11 +986,11 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-         ...|
-      2 2   |bbb
-      3 3   |ccc
-      4   - |ddd
-        4 + |dxd
+           |
+      2 2  |bbb
+      3 3  |ccc
+      4   -|ddd
+        4 +|dxd
       """
 
       assert text_diff_format(old, new)
@@ -1015,13 +1015,13 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-      1   - |aaa
-        1 + |axa
-      2 2   |bbb
-         ...|
-      4 4   |ddd
-      5   - |eee
-        5 + |exe
+      1   -|aaa
+        1 +|axa
+      2 2  |bbb
+           |
+      4 4  |ddd
+      5   -|eee
+        5 +|exe
       """
 
       assert text_diff_format(old, new)
@@ -1054,15 +1054,15 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-      1 1   |aaa
-      2   - |bbb
-        2 + |bXb
-      3 3   |ccc
-         ...|
-      7 7   |ggg
-      8   - |hhh
-        8 + |hXh
-      9 9   |iii
+      1 1  |aaa
+      2   -|bbb
+        2 +|bXb
+      3 3  |ccc
+           |
+      7 7  |ggg
+      8   -|hhh
+        8 +|hXh
+      9 9  |iii
       """
 
       assert text_diff_format(old, new)
@@ -1097,10 +1097,10 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-      1   - |aaa
-        1 + |aaa↵
-      2 2   |bbb
-         ...|
+      1   -|aaa
+        1 +|aaa↵
+      2 2  |bbb
+           |
       """
 
       assert text_diff_format(old, new)
@@ -1120,11 +1120,11 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-      1   - |aaa
-      2   - |bbb
-        1 + |aaa↵
-        2 + |bbb↵
-        3 + |ccc\r
+      1   -|aaa
+      2   -|bbb
+        1 +|aaa↵
+        2 +|bbb↵
+        3 +|ccc\r
       """
 
       assert text_diff_format(old, new)
@@ -1143,10 +1143,10 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-      1   - |aaa↵
-        1 + |aaa
-      2 2   |bbb
-         ...|
+      1   -|aaa↵
+        1 +|aaa
+      2 2  |bbb
+           |
       """
 
       assert text_diff_format(old, new)
@@ -1166,11 +1166,11 @@ defmodule Mix.Tasks.FormatTest do
       """
 
       exp = """
-      1   - |aaa↵
-      2   - |bbb↵
-        1 + |aaa
-        2 + |bbb
-        3 + |ccc
+      1   -|aaa↵
+      2   -|bbb↵
+        1 +|aaa
+        2 +|bbb
+        3 +|ccc
       """
 
       assert text_diff_format(old, new)
