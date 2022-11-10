@@ -39,6 +39,7 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          HEX_FASTLY_KEY: ${{ secrets.HEX_FASTLY_KEY }}
         run: |
           version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
           for f in doc/*; do
@@ -50,7 +51,7 @@ jobs:
                       --metadata "{\"surrogate-key\":\"docs/${app}-${version}\",\"surrogate-control\":\"public,max-age=604800\"}"
                   curl \
                       -X POST \
-                      -H "Fastly-Key: ${BOB_FASTLY_KEY}" \
+                      -H "Fastly-Key: ${HEX_FASTLY_KEY}" \
                       -H "Accept: application/json" \
                       -H "Content-Length: 0" \
                       "https://api.fastly.com/service/${app}/purge/${version}"
