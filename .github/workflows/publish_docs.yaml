@@ -33,8 +33,6 @@ jobs:
           otp_version: ${{ matrix.otp_version }}
           otp: ${{ matrix.otp }}
           build_docs: ${{ matrix.build_docs }}
-      - uses: gilacost/branch-tag-action@v1.3
-        id: extract
       - name: Upload Docs to S3
         if: ${{ matrix.build_docs }}
         env:
