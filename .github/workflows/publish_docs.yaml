@@ -48,5 +48,11 @@ jobs:
                   aws s3 cp "${app}-${version}.tar.gz" "s3://${{ env.AWS_S3_BUCKET }}/docs/${app}-${version}.tar.gz" \
                       --cache-control "public,max-age=3600" \
                       --metadata "{\"surrogate-key\":\"docs/${app}-${version}\",\"surrogate-control\":\"public,max-age=604800\"}"
+                  curl \
+                      -X POST \
+                      -H "Fastly-Key: ${BOB_FASTLY_KEY}" \
+                      -H "Accept: application/json" \
+                      -H "Content-Length: 0" \
+                      "https://api.fastly.com/service/${app}/purge/${version}"
               fi
           done
