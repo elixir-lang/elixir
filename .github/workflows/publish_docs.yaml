@@ -42,7 +42,7 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          version=$(echo ${{ env.BRANCH_TAG }} | sed -e 's/^v//g' | sed -e 's/\//-/g')
+          version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
           for f in doc/*; do
               if [ -d "$f" ]; then
                   app=`echo $f | sed s/"doc\/"//`
