@@ -442,7 +442,7 @@ defimpl IEx.Info, for: Range do
       {"Data type", inspect(@for)},
       {"Description", description},
       {"Raw representation", raw_inspect(value)},
-      {"Reference modules", inspect(@for) <> ", Map"}
+      {"Reference modules", inspect(@for)}
     ]
   end
 
