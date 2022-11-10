@@ -434,7 +434,7 @@ defimpl IEx.Info, for: Range do
   def info(value) do
     description = """
     This is a struct representing a range of numbers. It is commonly
-    represented using the `first..last//step` syntax. The step is not
+    defined using the `first..last//step` syntax. The step is not
     required and defaults to 1.
     """
 
