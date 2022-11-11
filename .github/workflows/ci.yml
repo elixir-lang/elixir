@@ -54,7 +54,7 @@ jobs:
         if: ${{ matrix.otp_latest }}
         run: |
           cd ..
-          git clone https://github.com/elixir-lang/ex_doc.git --branch ${branch} --depth 1
+          git clone https://github.com/elixir-lang/ex_doc.git --depth 1
           cd ex_doc
           ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
           cd ../elixir/
