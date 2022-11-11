@@ -35,8 +35,8 @@ jobs:
       - name: Upload Docs to S3
         if: ${{ matrix.build_docs }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
           AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
           FASTLY_SERVICE_ID: ${{ secrets.HEX_FASTLY_SERVICE_ID }}
