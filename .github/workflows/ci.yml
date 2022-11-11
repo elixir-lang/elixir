@@ -36,7 +36,6 @@ jobs:
           otp-version: ${{ matrix.otp_version }}
       - name: Compile Elixir
         run: |
-          rm -rf .git
           make compile
           echo "$PWD/bin" >> $GITHUB_PATH
       - name: Build info
@@ -51,9 +50,6 @@ jobs:
       - name: Elixir test suite
         run: make test_elixir
         continue-on-error: ${{ matrix.development }}
-      - name: Check reproducible builds
-        run: taskset 1 make check_reproducible
-        if: ${{ matrix.otp_latest }}
       - name: Build docs
         if: ${{ matrix.otp_latest }}
         run: |
@@ -69,6 +65,11 @@ jobs:
             make docs
             rm -rf ../ex_doc/
           done
+      - name: Check reproducible builds
+        run: |
+          rm -rf .git
+          taskset 1 make check_reproducible
+        if: ${{ matrix.otp_latest }}
 
   test_windows:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
