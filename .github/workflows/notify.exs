@@ -29,18 +29,24 @@ line_items =
     "  * #{root} - #{type} - #{checksum}\n"
   end
 
+body = "https://github.com/elixir-lang/elixir/releases/tag/#{tag}\n\n#{line_items}"
+
+IO.puts([
+  "========================================\n",
+  body,
+  "\n========================================"
+])
+
 mail = %{
+  # The email must have access to post
   "From" => "jose.valim@dashbit.co",
   "To" => "elixir-lang-ann@googlegroups.com",
   "Subject" => "Elixir #{tag} released",
-  "HtmlBody" => "https://github.com/elixir-lang/elixir/releases/tag/#{tag}\n\n#{line_items}",
+  "HtmlBody" => body,
   "MessageStream" => "outbound"
 }
 
-if System.get_env("DRYRUN") do
-  IO.puts("MAIL")
-  IO.inspect(mail)
-else
+unless System.get_env("DRYRUN") do
   headers = %{
     "X-Postmark-Server-Token" => System.fetch_env!("ELIXIR_LANG_ANN_TOKEN")
   }
@@ -58,10 +64,7 @@ post = %{
   "category" => 28
 }
 
-if System.get_env("DRYRUN") do
-  IO.puts("POST")
-  IO.inspect(post)
-else
+unless System.get_env("DRYRUN") do
   headers = %{
     "api-key" => System.fetch_env!("ELIXIR_FORUM_TOKEN"),
     "api-username" => "Elixir"
