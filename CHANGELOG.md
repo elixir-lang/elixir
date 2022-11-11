@@ -241,6 +241,40 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
+## v1.14.2 (2022-11-11)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Code] Add `Code.eval_quoted_with_env/4` with support for the `:prune_binding` option
+
+#### ExUnit
+
+  * [ExUnit.Case] Allow test cases to not be registered on use
+  * [ExUnit.DocTest] Include `:doctest` and `:doctest_line` as meta tags
+  * [ExUnit.Formatter] Expose `ExUnit.Formatter.format_assertion_diff/4`
+
+#### Mix
+
+  * [Mix] `Mix.install/2` accepts atoms as paths
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code.Formatter] Fix `size*unit` shortcut in bitstring
+  * [Kernel] Generate unique variables for macro expansion of `defguard`
+  * [Protocol] Expand `:for` in protocols with the appropriate env
+
+#### ExUnit
+
+  * [ExUnit] Do not run duplicate cases on `ExUnit.run/1`
+
+#### Mix
+
+  * [mix test] Ensure proper error message when there is no test directory
+
 ## v1.14.1 (2022-10-10)
 
 ### 1. Enhancements
