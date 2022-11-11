@@ -69,7 +69,7 @@ jobs:
         run: |
           rm -rf .git
           # Recompile System without .git
-          bin/elixirc -o lib/elixir/ebin lib/elixir/lib/system.ex
+          cd lib/elixir && ../../bin/elixirc -o ebin lib/system.ex && cd -
           taskset 1 make check_reproducible
         if: ${{ matrix.otp_latest }}
 
