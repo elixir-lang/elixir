@@ -61,10 +61,10 @@ jobs:
                   aws s3 cp "${tarball}" "s3://${{ env.AWS_S3_BUCKET }}/docs/${tarball}" \
                       --cache-control "public,max-age=3600" \
                       --metadata "{\"surrogate-key\":\"${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
-                  purge "${surrogate_key}"
+                  purge_key "${surrogate_key}"
                   sleep 2
-                  purge "${surrogate_key}"
+                  purge_key "${surrogate_key}"
                   sleep 2
-                  purge "${surrogate_key}"
+                  purge_key "${surrogate_key}"
               fi
           done
