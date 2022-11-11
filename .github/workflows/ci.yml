@@ -68,6 +68,8 @@ jobs:
       - name: Check reproducible builds
         run: |
           rm -rf .git
+          # Recompile System without .git
+          bin/elixirc -o lib/elixir/ebin lib/elixir/lib/system.ex
           taskset 1 make check_reproducible
         if: ${{ matrix.otp_latest }}
 
