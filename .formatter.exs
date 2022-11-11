@@ -1,6 +1,6 @@
 [
   inputs: [
-    "lib/*/{lib,unicode,test}/**/*.{ex,exs}",
+    "lib/*/{lib,scripts,unicode,test}/**/*.{ex,exs}",
     "lib/*/*.exs",
     "lib/ex_unit/examples/*.exs",
     ".formatter.exs"

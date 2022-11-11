@@ -1,5 +1,4 @@
-# Returns config for Elixir docs
-
+# Returns config for Elixir docs (exclusively)
 canonical = System.fetch_env!("CANONICAL")
 
 [

@@ -1,3 +1,4 @@
+# Returns config for other apps except Elixir
 canonical = System.fetch_env!("CANONICAL")
 
 [

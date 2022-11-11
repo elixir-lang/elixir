@@ -8,7 +8,7 @@ This release requires Erlang/OTP 24 and later.
 
 #### Elixir
 
-  * [Code] `Code.format_string/2` now converts `'charlists'` into `~c"charlists"` by default
+  * [Code] `Code.format_string!/2` now converts `'charlists'` into `~c"charlists"` by default
   * [Date] Add `Date.before?/2` and `Date.after?/2`
   * [DateTime] Add `DateTime.before?/2` and `DateTime.after?/2`
   * [Inspect] `Inspect` now renders `'charlists'` as `~c"charlists"` by default

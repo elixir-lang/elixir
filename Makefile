@@ -9,7 +9,7 @@ ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
 ERL_MAKE := if [ -n "$(ERLC_OPTS)" ]; then ERL_COMPILER_OPTIONS=$(ERLC_OPTS) erl -make; else erl -make; fi
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
-GENERATE_APP := $(CURDIR)/lib/elixir/generate_app.escript
+GENERATE_APP := $(CURDIR)/lib/elixir/scripts/generate_app.escript
 VERSION := $(strip $(shell cat VERSION))
 Q := @
 LIBDIR := lib
@@ -148,12 +148,12 @@ check_reproducible: compile
 	$(Q) mv lib/mix/ebin/* lib/mix/tmp/ebin_reproducible/
 	SOURCE_DATE_EPOCH=$(call READ_SOURCE_DATE_EPOCH) "$(MAKE)" compile
 	$(Q) echo "Diffing..."
-	$(Q) bin/elixir lib/elixir/diff.exs lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/ex_unit/ebin/ lib/ex_unit/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/iex/ebin/ lib/iex/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/logger/ebin/ lib/logger/tmp/ebin_reproducible/
-	$(Q) bin/elixir lib/elixir/diff.exs lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
+	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/elixir/ebin/ lib/elixir/tmp/ebin_reproducible/
+	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/eex/ebin/ lib/eex/tmp/ebin_reproducible/
+	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/ex_unit/ebin/ lib/ex_unit/tmp/ebin_reproducible/
+	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/iex/ebin/ lib/iex/tmp/ebin_reproducible/
+	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/logger/ebin/ lib/logger/tmp/ebin_reproducible/
+	$(Q) bin/elixir lib/elixir/scripts/diff.exs lib/mix/ebin/ lib/mix/tmp/ebin_reproducible/
 	$(Q) echo "Builds are reproducible"
 
 clean:
@@ -181,39 +181,46 @@ clean_residual_files:
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}")
-COMPILE_DOCS = CANONICAL=$(CANONICAL) bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" --formatter "$(DOCS_FORMAT)" $(4)
+DOCS_COMPILE = CANONICAL=$(CANONICAL) bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" --formatter "$(DOCS_FORMAT)" $(4)
+DOCS_CONFIG = bin/elixir lib/elixir/scripts/docs_config.exs "$(1)"
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
 
 docs_elixir: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (elixir)"
 	$(Q) rm -rf doc/elixir
-	$(call COMPILE_DOCS,Elixir,elixir,Kernel,--config "lib/elixir/docs.exs")
+	$(call DOCS_COMPILE,Elixir,elixir,Kernel,--config "lib/elixir/scripts/elixir_docs.exs")
+	$(call DOCS_CONFIG,elixir)
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
 	$(Q) rm -rf doc/eex
-	$(call COMPILE_DOCS,EEx,eex,EEx,--config "lib/mix/docs.exs")
+	$(call DOCS_COMPILE,EEx,eex,EEx,--config "lib/elixir/scripts/mix_docs.exs")
+	$(call DOCS_CONFIG,eex)
 
 docs_mix: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (mix)"
 	$(Q) rm -rf doc/mix
-	$(call COMPILE_DOCS,Mix,mix,Mix,--config "lib/mix/docs.exs")
+	$(call DOCS_COMPILE,Mix,mix,Mix,--config "lib/elixir/scripts/mix_docs.exs")
+	$(call DOCS_CONFIG,mix)
 
 docs_iex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (iex)"
 	$(Q) rm -rf doc/iex
-	$(call COMPILE_DOCS,IEx,iex,IEx,--config "lib/mix/docs.exs")
+	$(call DOCS_COMPILE,IEx,iex,IEx,--config "lib/elixir/scripts/mix_docs.exs")
+	$(call DOCS_CONFIG,iex)
 
 docs_ex_unit: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (ex_unit)"
 	$(Q) rm -rf doc/ex_unit
-	$(call COMPILE_DOCS,ExUnit,ex_unit,ExUnit,--config "lib/mix/docs.exs")
+	$(call DOCS_COMPILE,ExUnit,ex_unit,ExUnit,--config "lib/elixir/scripts/mix_docs.exs")
+	$(call DOCS_CONFIG,ex_unit)
 
 docs_logger: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (logger)"
 	$(Q) rm -rf doc/logger
-	$(call COMPILE_DOCS,Logger,logger,Logger,--config "lib/mix/docs.exs")
+	$(call DOCS_COMPILE,Logger,logger,Logger,--config "lib/elixir/scripts/mix_docs.exs")
+	$(call DOCS_CONFIG,logger)
 
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."

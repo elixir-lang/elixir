@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Escript do
   @moduledoc ~S"""
   Lists all installed escripts.
 
-  Escripts are installed at `~/.mix/escripts`. Add that path to your `PATH` environment variable
+  Escripts are installed at `~/.mix/escripts`. Add that path to your `$PATH` environment variable
   to be able to run installed escripts from any directory.
   """
 
