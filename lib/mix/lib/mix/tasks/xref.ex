@@ -22,7 +22,7 @@ defmodule Mix.Tasks.Xref do
 
   ## mix xref callers MODULE
 
-  Prints all callers of the given `MODULE`. Example:
+  Prints all callers of the given module. Example:
 
       $ mix xref callers MyMod
 
