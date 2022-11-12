@@ -37,6 +37,7 @@ defmodule DateTime do
   Other time zone databases can also be configured. Here are some
   available options and libraries:
 
+    * [`time_zone_info`](https://github.com/hrzndhrn/time_zone_info)
     * [`tz`](https://github.com/mathieuprog/tz)
     * [`tzdata`](https://github.com/lau/tzdata)
     * [`zoneinfo`](https://github.com/smartrent/zoneinfo) -
