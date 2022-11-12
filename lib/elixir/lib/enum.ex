@@ -1366,6 +1366,9 @@ defmodule Enum do
       iex> Enum.group_by(~w{ant buffalo cat dingo}, &String.length/1, &String.first/1)
       %{3 => ["a", "c"], 5 => ["d"], 7 => ["b"]}
 
+  The key can be any Elixir value. For example, you may use a tuple
+  to group by multiple keys:
+
       iex> collection = [
       ...>   %{id: 1, lang: "Elixir", seq: 1},
       ...>   %{id: 1, lang: "Java", seq: 1},
