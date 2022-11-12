@@ -1374,7 +1374,6 @@ defmodule Enum do
       ...>   %{id: 2, lang: "C#", seq: 2},
       ...>   %{id: 2, lang: "Haskell", seq: 2},
       ...> ]
-
       iex> Enum.group_by(collection, &{&1.id, &1.seq})
       %{
         {1, 1} => [%{id: 1, lang: "Elixir", seq: 1}, %{id: 1, lang: "Java", seq: 1}],
@@ -1382,7 +1381,6 @@ defmodule Enum do
         {2, 1} => [%{id: 2, lang: "Python", seq: 1}],
         {2, 2} => [%{id: 2, lang: "C#", seq: 2}, %{id: 2, lang: "Haskell", seq: 2}]
       }
-
       iex> Enum.group_by(collection, &{&1.id, &1.seq}, &{&1.id, &1.lang})
       %{
         {1, 1} => [{1, "Elixir"}, {1, "Java"}],
