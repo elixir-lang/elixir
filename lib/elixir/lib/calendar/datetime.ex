@@ -38,6 +38,7 @@ defmodule DateTime do
   available options and libraries:
 
     * [`tz`](https://github.com/mathieuprog/tz)
+    * [`time_zone_info`](https://github.com/hrzndhrn/time_zone_info)
     * [`tzdata`](https://github.com/lau/tzdata)
     * [`zoneinfo`](https://github.com/smartrent/zoneinfo) -
       recommended for embedded devices
