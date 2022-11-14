@@ -703,11 +703,14 @@ defmodule GenServer do
   @callback format_status(reason, pdict_and_state :: list) :: term
             when reason: :normal | :terminate
 
+  @callback format_status(status) :: status
+
   @optional_callbacks code_change: 3,
                       terminate: 2,
                       handle_info: 2,
                       handle_cast: 2,
                       handle_call: 3,
+                      format_status: 1,
                       format_status: 2,
                       handle_continue: 2
 
@@ -746,6 +749,13 @@ defmodule GenServer do
   call.
   """
   @type from :: {pid, tag :: term}
+
+  @type status :: %{
+          required(:state) => term(),
+          required(:log) => list(:sys.system_event()),
+          optional(:message) => list(),
+          optional(:reason) => term()
+        }
 
   @doc false
   defmacro __using__(opts) do
