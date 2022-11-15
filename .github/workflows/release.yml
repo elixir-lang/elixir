@@ -63,3 +63,13 @@ jobs:
           gh release upload --clobber "${{ github.ref_name }}" \
             Docs.zip \
             Docs.zip.sha{1,256}sum
+      - name: Upload Precompiled to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
+          AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
+        run: |
+          mv elixir-otp-${{ matrix.otp }}.zip elixir.zip
+          version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
+          aws s3 cp elixir.zip "s3://s3.hex.pm/builds/elixir/${version}${{matrix.otp}}.zip" --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
