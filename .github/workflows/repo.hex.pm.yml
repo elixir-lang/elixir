@@ -5,6 +5,8 @@ on:
     branches:
       - main
       - v*.*
+    tags:
+      - v*
 
 env:
   ELIXIR_OPTS: "--warnings-as-errors"
@@ -68,3 +70,29 @@ jobs:
                   purge_key "${surrogate_key}"
               fi
           done
+      - name: Upload Precompiled to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
+          AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
+        run: |
+          mv elixir-otp-${{ matrix.otp }}.zip elixir.zip
+          version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
+          aws s3 cp elixir.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${version}${{matrix.otp}}.zip" --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
+      - name: Update builds txt
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
+          AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
+        run: |
+          date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          build_sha256=$(sha256sum elixir.zip | cut -d ' ' -f 1)
+          ref_name=${{ github.ref_name }}
+          aws s3 cp s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/builds.txt builds.txt || true
+          touch builds.txt
+          sed -i "/^${ref_name}${{ matrix.otp }} /d" builds.txt
+          echo -e "${ref_name}${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
+          sort -u -k1,1 -o builds.txt builds.txt
+          aws s3 cp builds.txt s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/builds.txt --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
