@@ -24,7 +24,7 @@ SOURCE_DATE_EPOCH_PATH = lib/elixir/tmp/ebin_reproducible
 SOURCE_DATE_EPOCH_FILE = $(SOURCE_DATE_EPOCH_PATH)/SOURCE_DATE_EPOCH
 
 .PHONY: install compile erlang elixir unicode app build_plt clean_plt dialyze test check_reproducible clean clean_residual_files format install_man clean_man docs Docs.zip Precompiled.zip zips
-.NOTPARALLEL: compile
+.NOTPARALLEL:
 
 #==> Functions
 
