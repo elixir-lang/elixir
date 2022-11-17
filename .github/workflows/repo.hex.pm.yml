@@ -45,6 +45,13 @@ jobs:
                 -H "Content-Length: 0" \
                 "https://api.fastly.com/service/${FASTLY_SERVICE_ID}/purge/$1"
           }
+          function purge() {
+            purge_key $1
+            sleep 2
+            purge_key $1
+            sleep 2
+            purge_key $1
+          }
           EOF
           chmod +x utils.sh
       - name: Upload Docs to S3
@@ -68,11 +75,7 @@ jobs:
                   aws s3 cp "${tarball}" "s3://${{ env.AWS_S3_BUCKET }}/docs/${tarball}" \
                       --cache-control "public,max-age=3600" \
                       --metadata "{\"surrogate-key\":\"${surrogate_key}\",\"surrogate-control\":\"public,max-age=604800\"}"
-                  purge_key "${surrogate_key}"
-                  sleep 2
-                  purge_key "${surrogate_key}"
-                  sleep 2
-                  purge_key "${surrogate_key}"
+                  purge "${surrogate_key}"
               fi
           done
       - name: Upload Precompiled to S3
@@ -105,8 +108,4 @@ jobs:
           echo -e "${ref_name}${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
           sort -u -k1,1 -o builds.txt builds.txt
           aws s3 cp builds.txt s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/builds.txt --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
-          purge_key builds
-          sleep 2
-          purge_key builds
-          sleep 2
-          purge_key builds
+          purge builds
