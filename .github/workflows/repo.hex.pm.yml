@@ -86,6 +86,7 @@ jobs:
           version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
           aws s3 cp elixir.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${version}${{matrix.otp}}.zip" --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
       - name: Update builds txt
+        concurrency: builds_txt
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
@@ -104,4 +105,8 @@ jobs:
           echo -e "${ref_name}${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
           sort -u -k1,1 -o builds.txt builds.txt
           aws s3 cp builds.txt s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/builds.txt --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
+          purge_key builds
+          sleep 2
+          purge_key builds
+          sleep 2
           purge_key builds
