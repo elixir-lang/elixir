@@ -428,6 +428,8 @@ defmodule ExceptionTest do
               when is_binary(url) or (is_struct(url) and is_struct(url, url_module) and false) do
             url
           end
+
+          def sub_get!(url) when is_struct(url.sub, URI), do: url.sub
         end
       )
 
@@ -476,6 +478,19 @@ defmodule ExceptionTest do
              Attempted function clauses (showing 1 out of 1):
 
                  def get!(url) when -is_binary(url)- or is_struct(url) and is_struct(url, URI) and -false-
+             """
+
+      assert blame_message(Req, & &1.sub_get!(%{})) =~ """
+             no function clause matching in ExceptionTest.Req.sub_get!/1
+
+             The following arguments were given to ExceptionTest.Req.sub_get!/1:
+
+                 # 1
+                 %{}
+
+             Attempted function clauses (showing 1 out of 1):
+
+                 def sub_get!(url) when -is_struct(url.sub, URI)-
              """
     end
 
