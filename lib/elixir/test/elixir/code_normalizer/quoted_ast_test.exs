@@ -515,6 +515,17 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "charlist" do
       assert quoted_to_string(quote(do: [])) == "[]"
       assert quoted_to_string(quote(do: 'abc')) == "'abc'"
+
+      # False positive
+      assert quoted_to_string(
+               quote do
+                 :"Elixir.List".to_charlist([
+                   case var do
+                     var -> var
+                   end
+                 ])
+               end
+             ) =~ "List.to_charlist([\n  case var do\n    var -> var\n  end\n])"
     end
 
     test "string" do
