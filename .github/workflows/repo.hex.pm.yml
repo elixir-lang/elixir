@@ -98,7 +98,7 @@ jobs:
         run: |
           source utils.sh
           date=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-          build_sha256=$(sha256sum elixir.zip | cut -d ' ' -f 1)
+          build_sha256=$(sha256sum elixir-otp-${{ matrix.otp }}.zip | cut -d ' ' -f 1)
           ref_name=${{ github.ref_name }}
           aws s3 cp s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/builds.txt builds.txt || true
           touch builds.txt
