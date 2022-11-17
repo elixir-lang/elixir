@@ -85,7 +85,6 @@ jobs:
           AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
           AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
         run: |
-          version=$(echo ${{ github.ref_name }} | sed -e 's/^v//g')
           aws s3 cp elixir-otp-${{ matrix.otp }}.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${{github.ref_name}}-otp-${{matrix.otp}}.zip" --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
       - name: Update builds txt
         concurrency: builds_txt
