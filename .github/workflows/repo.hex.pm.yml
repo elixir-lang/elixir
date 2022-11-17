@@ -21,10 +21,12 @@ jobs:
         include:
           - otp: 24
             otp_version: 24.3
+            upload_generic_version: upload_generic_version
           - otp: 25
             otp_version: 25.0
             build_docs: build_docs
     runs-on: ubuntu-20.04
+    concurrency: builds_txt
     steps:
       - uses: actions/checkout@v3
         with:
@@ -86,8 +88,10 @@ jobs:
           AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
         run: |
           aws s3 cp elixir-otp-${{ matrix.otp }}.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${{github.ref_name}}-otp-${{matrix.otp}}.zip" --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
+          if [ "${{matrix.upload_generic_version}}" == "upload_generic_version" ]; then
+            aws s3 cp elixir-otp-${{ matrix.otp }}.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${{github.ref_name}}.zip" --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
+          fi
       - name: Update builds txt
-        concurrency: builds_txt
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.HEX_AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
@@ -104,6 +108,10 @@ jobs:
           touch builds.txt
           sed -i "/^${ref_name}-otp-${{ matrix.otp }} /d" builds.txt
           echo -e "${ref_name}-otp-${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
+          if [ "${{matrix.upload_generic_version}}" == "upload_generic_version" ]; then
+            sed -i "/^${ref_name}-otp-${{ matrix.otp }} /d" builds.txt
+            echo -e "${ref_name}-otp-${{ matrix.otp }} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
+          fi
           sort -u -k1,1 -o builds.txt builds.txt
           aws s3 cp builds.txt s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/builds.txt --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
           purge builds
