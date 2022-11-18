@@ -612,18 +612,28 @@ defmodule GenServer do
   `reason` is exit reason and `state` is the current state of the `GenServer`.
   The return value is ignored.
 
-  `c:terminate/2` is called if the `GenServer` traps exits (using `Process.flag/2`)
-  *and* the parent process sends an exit signal, or a callback (except `c:init/1`)
-  does one of the following:
+  `c:terminate/2` is useful for cleanup that requires access to the
+  `GenServer`'s state. However, it is **not guaranteed** that `c:terminate/2`
+  is called when a `GenServer` exits. Therefore, important clean-up should be
+  done using process links and/or monitors.
 
-    * returns a `:stop` tuple
-    * raises (via `raise/2`) or exits (via `exit/1`)
-    * returns an invalid value
+  `c:terminate/2` is called if:
 
-  If part of a supervision tree, a `GenServer` will receive an exit
-  signal when the tree is shutting down. The exit signal is based on
-  the shutdown strategy in the child's specification, where this
-  value can be:
+    * the `GenServer` traps exits (using `Process.flag/2`) *and* the parent
+    process (the one which called `start_link/1`) sends an exit signal
+
+    * a callback (except `c:init/1`) does one of the following:
+
+      * returns a `:stop` tuple
+
+      * raises (via `raise/2`) or exits (via `exit/1`)
+
+      * returns an invalid value
+
+  If part of a supervision tree, a `GenServer` will receive an exit signal from
+  its parent process (its supervisor) when the tree is shutting down. The exit
+  signal is based on the shutdown strategy in the child's specification, where
+  this value can be:
 
     * `:brutal_kill`: the `GenServer` is killed and so `c:terminate/2` is not called.
 
@@ -641,10 +651,7 @@ defmodule GenServer do
   exits by default and an exit signal is sent when a linked process exits or its
   node is disconnected.
 
-  Therefore it is not guaranteed that `c:terminate/2` is called when a `GenServer`
-  exits. For such reasons, we usually recommend important clean-up rules to
-  happen in separated processes either by use of monitoring or by links
-  themselves. There is no cleanup needed when the `GenServer` controls a `port` (for example,
+  There is no cleanup needed when the `GenServer` controls a `port` (for example,
   `:gen_tcp.socket`) or `t:File.io_device/0`, because these will be closed on
   receiving a `GenServer`'s exit signal and do not need to be closed manually
   in `c:terminate/2`.
