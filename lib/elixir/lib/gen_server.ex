@@ -615,7 +615,8 @@ defmodule GenServer do
   `c:terminate/2` is useful for cleanup that requires access to the
   `GenServer`'s state. However, it is **not guaranteed** that `c:terminate/2`
   is called when a `GenServer` exits. Therefore, important clean-up should be
-  done using process links and/or monitors.
+  done using process links and/or monitors. A monitoring process will receive the
+  same exit `reason` that would be passed to `c:terminate/2`.
 
   `c:terminate/2` is called if:
 
