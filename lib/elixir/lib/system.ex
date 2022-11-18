@@ -687,7 +687,7 @@ defmodule System do
       "4000"
 
       iex> System.fetch_env!("NOT_SET")
-      ** (ArgumentError) could not fetch environment variable "NOT_SET" because it is not set
+      ** (EnvError) could not fetch environment variable "NOT_SET" because it is not set
 
   """
   @doc since: "1.9.0"
