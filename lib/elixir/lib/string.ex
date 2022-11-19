@@ -2861,6 +2861,36 @@ defmodule String do
     |> Enum.map(fn {kind, chars} -> {kind, IO.iodata_to_binary(chars)} end)
   end
 
+  @doc """
+  Turncates the given string to specfied length and append trailing string.
+
+  ## Examples
+
+      # iex> String.limit("elixir", 3)
+      # "eli..."
+
+      # iex> String.limit("elixir", 7)
+      # "elixir"
+
+      # iex> String.limit("elixir", 3, "***")
+      # "eli***"
+
+  """
+  @spec limit(t, non_neg_integer, t) :: t
+  def limit(string, length, trailing_string \\ "...")
+      when is_binary(string) and is_integer(length),
+      do: do_string_limit(string, length - 1, trailing_string)
+
+  defp do_string_limit(string, limit, trailing_string) do
+    case length(string) > limit do
+      true ->
+        slice(string, 0..limit) <> trailing_string
+
+      false ->
+        string
+    end
+  end
+
   @doc false
   @deprecated "Use String.to_charlist/1 instead"
   @spec to_char_list(t) :: charlist

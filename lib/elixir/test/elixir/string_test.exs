@@ -1051,4 +1051,16 @@ defmodule StringTest do
     assert String.bag_distance("\r\t\xFF\v", "\xFF\r\n\xFF") == 0.25
     assert String.split("\r\t\v", "") == ["", "\r", "\t", "\v", ""]
   end
+
+  test "limit string" do
+    assert String.limit("", 4) == ""
+    assert String.limit("elixir", 4) == "elix..."
+    assert String.limit("elixir", 7) == "elixir"
+    assert String.limit("elixir", -1) == "elixi..."
+    assert String.limit("elixir", -5) == "e..."
+
+    assert String.limit("elixir", 2, "???") == "el???"
+    assert String.limit("elixir", 3, " ??? ??? ???") == "eli ??? ??? ???"
+    assert String.limit("elixir", 4, " length exceed") == "elix length exceed"
+  end
 end
