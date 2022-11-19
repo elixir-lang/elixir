@@ -29,7 +29,7 @@ translate_into(Meta, Cases, Expr, Opts, S) ->
   {TInto, SI} =
     case lists:keyfind(into, 1, Opts) of
       {into, Into} -> elixir_erl_pass:translate(Into, Ann, S);
-      false -> {{nil, Ann}, S}
+      false -> {false, S}
     end,
 
   TUniq = lists:keyfind(uniq, 1, Opts) == {uniq, true},
