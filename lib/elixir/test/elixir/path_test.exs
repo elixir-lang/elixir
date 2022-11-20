@@ -38,6 +38,21 @@ defmodule PathTest do
     File.rm_rf(Path.join(config.tmp_dir, "wildcard"))
   end
 
+  @tag :tmp_dir
+  test "wildcard/2 follows ..", config do
+    hello = Path.join(config.tmp_dir, "wildcard/hello")
+    world = Path.join(config.tmp_dir, "wildcard/world")
+    File.mkdir_p(hello)
+    File.touch(world)
+
+    assert Path.wildcard(Path.join(config.tmp_dir, "wildcard/w*/../h*")) == []
+
+    assert Path.wildcard(Path.join(config.tmp_dir, "wildcard/h*/../w*")) ==
+             [Path.join(config.tmp_dir, "wildcard/hello/../world")]
+  after
+    File.rm_rf(Path.join(config.tmp_dir, "wildcard"))
+  end
+
   test "wildcard/2 raises on null byte" do
     assert_raise ArgumentError, ~r/null byte/, fn -> Path.wildcard("foo\0bar") end
   end
