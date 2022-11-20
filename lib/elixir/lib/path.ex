@@ -602,6 +602,10 @@ defmodule Path do
       :file.read_link_info(file)
     end
 
+    def read_file_info(file) do
+      :file.read_file_info(file)
+    end
+
     def list_dir(dir) do
       case :file.list_dir(dir) do
         {:ok, files} -> {:ok, for(file <- files, hd(file) != ?., do: file)}
