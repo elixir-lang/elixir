@@ -110,7 +110,7 @@ defmodule TypespecTest do
 
     test "redefined type" do
       assert_raise CompileError,
-                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:110",
+                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:116",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -119,7 +119,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise CompileError,
-                   ~r"type foo/2 is already defined in test/elixir/typespec_test.exs:120",
+                   ~r"type foo/2 is already defined in test/elixir/typespec_test.exs:126",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -129,7 +129,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise CompileError,
-                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:129",
+                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:135",
                    fn ->
                      test_module do
                        @type foo :: atom
