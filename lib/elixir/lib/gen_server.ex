@@ -652,6 +652,12 @@ defmodule GenServer do
   exits by default and an exit signal is sent when a linked process exits or its
   node is disconnected.
 
+  `c:terminate/2` is only called after the `GenServer` finishes processing all
+  messages which arrived in its mailbox prior to the exit signal; if it
+  receives a `:kill` signal before it finishes processing those,
+  `c:terminate/2` will not be called. If `c:terminate/2` is called, any
+  messages received after the exit signal will still be in the mailbox.
+
   There is no cleanup needed when the `GenServer` controls a `port` (for example,
   `:gen_tcp.socket`) or `t:File.io_device/0`, because these will be closed on
   receiving a `GenServer`'s exit signal and do not need to be closed manually
