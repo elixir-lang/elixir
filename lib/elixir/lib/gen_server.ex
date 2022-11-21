@@ -653,7 +653,7 @@ defmodule GenServer do
   node is disconnected.
 
   `c:terminate/2` is only called after the `GenServer` finishes processing all
-  messages which arrived in its mailbox prior to the exit signal; if it
+  messages which arrived in its mailbox prior to the exit signal. If it
   receives a `:kill` signal before it finishes processing those,
   `c:terminate/2` will not be called. If `c:terminate/2` is called, any
   messages received after the exit signal will still be in the mailbox.
