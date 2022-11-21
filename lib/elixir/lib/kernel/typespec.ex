@@ -841,7 +841,7 @@ defmodule Kernel.Typespec do
     {{:type, line(meta), :fun, args}, state}
   end
 
-  defp typespec({name, meta, args}, vars, caller, state) do
+  defp typespec({name, meta, args}, vars, caller, state) when is_atom(name) do
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
     arity = length(args)
 

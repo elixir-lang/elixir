@@ -59,6 +59,12 @@ defmodule TypespecTest do
           @type my_type :: "foobar"
         end
       end
+
+      assert_raise CompileError, ~r"unexpected expression in typespec: integer()()", fn ->
+        test_module do
+          @type my_type :: integer()()
+        end
+      end
     end
 
     test "invalid function specification" do
