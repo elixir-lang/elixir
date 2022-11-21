@@ -200,6 +200,10 @@ defmodule Task.Supervisor do
   Raises an error if `supervisor` has reached the maximum number of
   children.
 
+  Note this function requires the task supervisor to have `:temporary`
+  as the `:restart` option (the default), as `async_nolink/3` keeps a
+  direct reference to the task which is lost if the task is restarted.
+
   ## Options
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
