@@ -201,7 +201,8 @@ defmodule Task.Supervisor do
   children.
 
   Note this function requires the task supervisor to have `:temporary`
-  as the `:restart` option (the default). See `async_nolink/5` for more details.
+  as the `:restart` option (the default), as `async_nolink/3` keeps a
+  direct reference to the task which is lost if the task is restarted.
 
   ## Options
 
