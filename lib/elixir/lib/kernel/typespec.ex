@@ -552,39 +552,46 @@ defmodule Kernel.Typespec do
     {{:type, line(meta), :map, fields}, state}
   end
 
-  defp typespec({:%, _, [name, {:%{}, meta, fields}]}, vars, caller, state) do
-    module = Macro.expand(name, %{caller | function: {:__info__, 1}})
+  defp typespec({:%, _, [name, {:%{}, meta, fields}]} = node, vars, caller, state) do
+    case Macro.expand(name, %{caller | function: {:__info__, 1}}) do
+      module when is_atom(module) ->
+        struct =
+          module
+          |> Macro.struct!(caller)
+          |> Map.delete(:__struct__)
+          |> Map.to_list()
 
-    struct =
-      module
-      |> Macro.struct!(caller)
-      |> Map.delete(:__struct__)
-      |> Map.to_list()
+        unless Keyword.keyword?(fields) do
+          compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
+        end
 
-    unless Keyword.keyword?(fields) do
-      compile_error(caller, "expected key-value pairs in struct #{Macro.to_string(name)}")
-    end
+        types =
+          :lists.map(
+            fn
+              {:__exception__ = field, true} -> {field, Keyword.get(fields, field, true)}
+              {field, _} -> {field, Keyword.get(fields, field, quote(do: term()))}
+            end,
+            :lists.sort(struct)
+          )
 
-    types =
-      :lists.map(
-        fn
-          {:__exception__ = field, true} -> {field, Keyword.get(fields, field, true)}
-          {field, _} -> {field, Keyword.get(fields, field, quote(do: term()))}
-        end,
-        :lists.sort(struct)
-      )
+        fun = fn {field, _} ->
+          unless Keyword.has_key?(struct, field) do
+            compile_error(
+              caller,
+              "undefined field #{inspect(field)} on struct #{inspect(module)}"
+            )
+          end
+        end
 
-    fun = fn {field, _} ->
-      unless Keyword.has_key?(struct, field) do
+        :lists.foreach(fun, fields)
+        typespec({:%{}, meta, [__struct__: module] ++ types}, vars, caller, state)
+
+      _ ->
         compile_error(
           caller,
-          "undefined field #{inspect(field)} on struct #{inspect(module)}"
+          "unexpected expression in typespec: #{Macro.to_string(node)}"
         )
-      end
     end
-
-    :lists.foreach(fun, fields)
-    typespec({:%{}, meta, [__struct__: module] ++ types}, vars, caller, state)
   end
 
   # Handle records
