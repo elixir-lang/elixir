@@ -60,9 +60,15 @@ defmodule TypespecTest do
         end
       end
 
-      assert_raise CompileError, ~r"unexpected expression in typespec: integer()()", fn ->
+      assert_raise CompileError, ~r"unexpected expression in typespec: integer\(\)\(\)", fn ->
         test_module do
           @type my_type :: integer()()
+        end
+      end
+
+      assert_raise CompileError, ~r"unexpected expression in typespec: %URI\.t\(\)\{\}", fn ->
+        test_module do
+          @type my_type :: %URI.t(){}
         end
       end
     end
@@ -110,7 +116,7 @@ defmodule TypespecTest do
 
     test "redefined type" do
       assert_raise CompileError,
-                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:116",
+                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:122",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -119,7 +125,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise CompileError,
-                   ~r"type foo/2 is already defined in test/elixir/typespec_test.exs:126",
+                   ~r"type foo/2 is already defined in test/elixir/typespec_test.exs:132",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -129,7 +135,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise CompileError,
-                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:135",
+                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:141",
                    fn ->
                      test_module do
                        @type foo :: atom
