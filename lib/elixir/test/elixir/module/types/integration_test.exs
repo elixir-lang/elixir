@@ -562,6 +562,22 @@ defmodule Module.Types.IntegrationTest do
     end
   end
 
+  describe "regressions" do
+    test "handle missing location info from quoted" do
+      assert capture_io(:stderr, fn ->
+               quote do
+                 defmodule X do
+                   def f() do
+                     x = %{}
+                     %{x | key: :value}
+                   end
+                 end
+               end
+               |> Code.compile_quoted()
+             end) =~ "warning:"
+    end
+  end
+
   describe "after_verify" do
     test "reports functions" do
       files = %{
