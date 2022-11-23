@@ -4806,7 +4806,7 @@ defmodule Kernel do
     var_meta =
       case prune do
         true -> [generated: true, keep_unused: true]
-        false -> [generated: false]
+        false -> [generated: true]
       end
 
     module_vars = :lists.map(&module_var(&1, var_meta), :maps.keys(versioned_vars))
