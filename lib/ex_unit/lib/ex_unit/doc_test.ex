@@ -362,8 +362,8 @@ defmodule ExUnit.DocTest do
     end
 
     tests =
-      Enum.map(exprs, fn {expr, expected, formatted} ->
-        test_case_content(expr, expected, location, stack, formatted)
+      Enum.map(exprs, fn {expr, expected, doctest} ->
+        test_case_content(expr, expected, location, stack, doctest)
       end)
 
     {:__block__, [], test_import(module, do_import) ++ tests}
@@ -376,12 +376,11 @@ defmodule ExUnit.DocTest do
     end) > 1
   end
 
-  defp test_case_content(expr, :test, location, stack, formatted) do
-    string_to_quoted(location, stack, expr, "\n" <> formatted) |> insert_assertions()
+  defp test_case_content(expr, :test, location, stack, doctest) do
+    string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
   end
 
-  defp test_case_content(expr, {:test, expected}, location, stack, formatted) do
-    doctest = "\n" <> formatted <> "\n" <> expected
+  defp test_case_content(expr, {:test, expected}, location, stack, doctest) do
     expr_ast = string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
     expected_ast = string_to_quoted(location, stack, expected, doctest)
     last_expr = Macro.to_string(last_expr(expr_ast))
@@ -389,48 +388,45 @@ defmodule ExUnit.DocTest do
     quote do
       value = unquote(expr_ast)
       expected = unquote(expected_ast)
-      formatted = unquote(formatted)
+      doctest = unquote(doctest)
       last_expr = unquote(last_expr)
       expected_expr = unquote(expected)
       stack = unquote(stack)
 
-      ExUnit.DocTest.__test__(value, expected, formatted, last_expr, expected_expr, stack)
+      ExUnit.DocTest.__test__(value, expected, doctest, last_expr, expected_expr, stack)
     end
   end
 
-  defp test_case_content(expr, {:inspect, expected}, location, stack, formatted) do
-    doctest = "\n" <> formatted <> "\n" <> expected
+  defp test_case_content(expr, {:inspect, expected}, location, stack, doctest) do
     expr_ast = string_to_quoted(location, stack, expr, doctest) |> insert_assertions()
-    expected_ast = string_to_quoted(location, stack, expected, doctest)
     last_expr = Macro.to_string(last_expr(expr_ast))
 
     quote do
       value = unquote(expr_ast)
-      expected = unquote(expected_ast)
-      formatted = unquote(formatted)
+      expected = unquote(expected)
+      doctest = unquote(doctest)
       last_expr = unquote(last_expr)
-      expected_expr = unquote(expected)
+      expected_expr = unquote(inspect(expected))
       stack = unquote(stack)
 
-      ExUnit.DocTest.__inspect__(value, expected, formatted, last_expr, expected_expr, stack)
+      ExUnit.DocTest.__inspect__(value, expected, doctest, last_expr, expected_expr, stack)
     end
   end
 
-  defp test_case_content(expr, {:error, exception, message}, location, stack, formatted) do
-    doctest = "\n" <> formatted <> "\n** (#{inspect(exception)}) #{inspect(message)}"
+  defp test_case_content(expr, {:error, exception, message}, location, stack, doctest) do
     expr_ast = string_to_quoted(location, stack, expr, doctest)
 
     quote do
       stack = unquote(stack)
       message = unquote(message)
-      formatted = unquote(formatted)
+      doctest = unquote(doctest)
       exception = unquote(exception)
-      ExUnit.DocTest.__error__(fn -> unquote(expr_ast) end, message, exception, formatted, stack)
+      ExUnit.DocTest.__error__(fn -> unquote(expr_ast) end, message, exception, doctest, stack)
     end
   end
 
   @doc false
-  def __test__(value, expected, formatted, last_expr, expected_expr, stack) do
+  def __test__(value, expected, doctest, last_expr, expected_expr, stack) do
     case value do
       ^expected ->
         :ok
@@ -438,7 +434,7 @@ defmodule ExUnit.DocTest do
       _ ->
         error = [
           message: "Doctest failed",
-          doctest: "\n" <> formatted <> "\n" <> expected_expr,
+          doctest: doctest,
           expr: "#{last_expr} === #{String.trim(expected_expr)}",
           left: value,
           right: expected
@@ -449,7 +445,7 @@ defmodule ExUnit.DocTest do
   end
 
   @doc false
-  def __inspect__(value, expected, formatted, last_expr, expected_expr, parent_stack) do
+  def __inspect__(value, expected, doctest, last_expr, expected_expr, parent_stack) do
     result =
       try do
         inspect(value, safe: false)
@@ -467,7 +463,6 @@ defmodule ExUnit.DocTest do
         :ok
 
       {extra, stack} ->
-        doctest = "\n" <> formatted <> "\n" <> expected_expr
         expr = "inspect(#{last_expr}) === #{String.trim(expected_expr)}"
         error = [doctest: doctest, expr: expr] ++ extra
         reraise ExUnit.AssertionError, error, stack ++ parent_stack
@@ -475,7 +470,7 @@ defmodule ExUnit.DocTest do
   end
 
   @doc false
-  def __error__(fun, message, exception, formatted, stack) do
+  def __error__(fun, message, exception, doctest, stack) do
     try do
       fun.()
     rescue
@@ -500,12 +495,10 @@ defmodule ExUnit.DocTest do
           end
 
         if failed do
-          doctest = "\n" <> formatted <> "\n** (#{inspect(exception)}) #{inspect(message)}"
           reraise ExUnit.AssertionError, [message: failed, doctest: doctest], stack
         end
     else
       _ ->
-        doctest = "\n" <> formatted <> "\n** (#{inspect(exception)}) #{inspect(message)}"
         failed = "Doctest failed: expected exception #{inspect(exception)} but nothing was raised"
         error = [message: failed, doctest: doctest]
         reraise ExUnit.AssertionError, error, stack
@@ -911,7 +904,8 @@ defmodule ExUnit.DocTest do
   end
 
   defp add_expr(%{exprs: exprs} = test, expr, expected, formatted) do
-    %{test | exprs: [{expr, tag_expected(expected), formatted} | exprs]}
+    doctest = "\n" <> formatted <> "\n" <> expected
+    %{test | exprs: [{expr, tag_expected(expected), doctest} | exprs]}
   end
 
   defp tag_expected(string) do
@@ -925,7 +919,7 @@ defmodule ExUnit.DocTest do
 
       _ ->
         if inspectable?(string) do
-          {:inspect, inspect(string)}
+          {:inspect, string}
         else
           {:test, string}
         end
