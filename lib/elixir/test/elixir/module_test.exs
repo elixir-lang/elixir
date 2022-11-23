@@ -332,6 +332,13 @@ defmodule ModuleTest do
     assert Elixir.ModuleTest.NonAtomAlias.hello() == :world
   end
 
+  test "does not warn on captured underscored vars" do
+    _unused = 123
+
+    defmodule __MODULE__.NoVarWarning do
+    end
+  end
+
   @compile {:no_warn_undefined, ModuleCreateSample}
 
   test "create" do
