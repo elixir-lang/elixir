@@ -562,8 +562,22 @@ defmodule Module.Types.IntegrationTest do
     end
   end
 
-  describe "validation" do
-    test "does not validate binary segments as variables" do
+  describe "regressions" do
+    test "handle missing location info from quoted" do
+      assert capture_io(:stderr, fn ->
+               quote do
+                 defmodule X do
+                   def f() do
+                     x = %{}
+                     %{x | key: :value}
+                   end
+                 end
+               end
+               |> Code.compile_quoted()
+             end) =~ "warning:"
+    end
+
+    test "do not parse binary segments as variables" do
       files = %{
         "a.ex" => """
         defmodule A do
