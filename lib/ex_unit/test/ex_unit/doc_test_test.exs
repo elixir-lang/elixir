@@ -577,7 +577,7 @@ defmodule ExUnit.DocTestTest do
                 Doctest failed
                 doctest:
                   iex> :oops
-                  "#Inspect<[]>"
+                  #Inspect<[]>
                 code:  inspect(:oops) === "#Inspect<[]>"
                 left:  ":oops"
                 right: "#Inspect<[]>"
@@ -600,7 +600,7 @@ defmodule ExUnit.DocTestTest do
                 Doctest failed: expected exception WhatIsThis but got RuntimeError with message "oops"
                 doctest:
                   iex> raise "oops"
-                  ** (WhatIsThis) "oops"
+                  ** (WhatIsThis) oops
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:#{starting_line + 18}: ExUnit.DocTestTest.Invalid (module)
            """
@@ -615,7 +615,7 @@ defmodule ExUnit.DocTestTest do
                   "oops"
                 doctest:
                   iex> raise "oops"
-                  ** (RuntimeError) "hello"
+                  ** (RuntimeError) hello
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:#{starting_line + 21}: ExUnit.DocTestTest.Invalid (module)
            """
