@@ -995,7 +995,7 @@ defmodule Map do
       {1, %{}}
 
   """
-  @spec get_and_update!(map, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+  @spec get_and_update!(map, key, (value -> {current_value, new_value :: value} | :pop)) ::
           {current_value, map}
         when current_value: value
   def get_and_update!(map, key, fun) when is_function(fun, 1) do
