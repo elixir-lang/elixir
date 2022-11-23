@@ -526,7 +526,7 @@ defmodule Keyword do
       {1, []}
 
   """
-  @spec get_and_update!(t, key, (value | nil -> {current_value, new_value :: value} | :pop)) ::
+  @spec get_and_update!(t, key, (value -> {current_value, new_value :: value} | :pop)) ::
           {current_value, new_keywords :: t}
         when current_value: value
   def get_and_update!(keywords, key, fun) do
