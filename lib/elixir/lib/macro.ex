@@ -1996,9 +1996,10 @@ defmodule Macro do
     :little,
     :native
   ]
+  # cannot use in/2 guard in Macro module for bootstrapping issues
   defp quoted_bitstring_modifier?({modifier, _, ctx})
-       when modifier in @bitstring_modifiers and (is_atom(ctx) or ctx == []),
-       do: true
+       when is_atom(ctx) or ctx == [],
+       do: Enum.member?(@bitstring_modifiers, modifier)
 
   defp quoted_bitstring_modifier?({:-, _, [left, right]}),
     do: quoted_bitstring_modifier?(left) and quoted_bitstring_modifier?(right)
