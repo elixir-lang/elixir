@@ -124,7 +124,7 @@ check_endianness() ->
     {module, ?system} ->
       Endianness = ?system:endianness(),
       case ?system:compiled_endianness() of
-        Endianness ->
+        _Endianness ->
           ok;
         _ ->
           io:format(standard_error,
