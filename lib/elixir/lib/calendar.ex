@@ -793,7 +793,14 @@ defmodule Calendar do
 
   # Year
   defp format_modifiers("Y" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime.year |> Integer.to_string() |> pad_leading(width, pad)
+    {sign, year} =
+      if datetime.year < 0 do
+        {?-, -datetime.year}
+      else
+        {[], datetime.year}
+      end
+
+    result = [sign | year |> Integer.to_string() |> pad_leading(width, pad)]
     parse(rest, datetime, format_options, [result | acc])
   end
 

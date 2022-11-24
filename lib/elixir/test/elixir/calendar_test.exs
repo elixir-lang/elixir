@@ -382,5 +382,12 @@ defmodule CalendarTest do
         Calendar.strftime(~D[2019-08-15], "%D", unknown: "option")
       end
     end
+
+    test "zero padding for negative year" do
+      assert Calendar.strftime(Date.new!(-1, 1, 1), "%Y") == "-0001"
+      assert Calendar.strftime(Date.new!(-11, 1, 1), "%Y") == "-0011"
+      assert Calendar.strftime(Date.new!(-111, 1, 1), "%Y") == "-0111"
+      assert Calendar.strftime(Date.new!(-1111, 1, 1), "%Y") == "-1111"
+    end
   end
 end
