@@ -25,7 +25,7 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  _ = parse_otp_release(),
+  true = 'minimum_otp_release_required!'(),
   preload_common_modules(),
   set_stdio_and_stderr_to_binary_and_maybe_utf8(),
   check_file_encoding(file:native_name_encoding()),
@@ -109,11 +109,11 @@ preload_common_modules() ->
   _ = code:ensure_loaded('Elixir.Macro.Env'),
   ok.
 
-parse_otp_release() ->
+'minimum_otp_release_required!'() ->
   %% Whenever we change this check, we should also change Makefile.
   case string:to_integer(erlang:system_info(otp_release)) of
     {Num, _} when Num >= 24 ->
-      Num;
+      true;
     _ ->
       io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 24+~n", []),
       erlang:halt(1)
