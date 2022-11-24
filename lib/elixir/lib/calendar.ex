@@ -795,9 +795,9 @@ defmodule Calendar do
   defp format_modifiers("Y" <> rest, width, pad, datetime, format_options, acc) do
     {sign, year} =
       if datetime.year < 0 do
-        {"-", datetime.year * -1}
+        {?-, -datetime.year}
       else
-        {"", datetime.year}
+        {[], datetime.year}
       end
 
     result = [sign | year |> Integer.to_string() |> pad_leading(width, pad)]
