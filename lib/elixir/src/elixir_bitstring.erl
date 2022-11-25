@@ -1,5 +1,5 @@
 -module(elixir_bitstring).
--export([expand/5, format_error/1]).
+-export([expand/5, format_error/1, validate_spec/2]).
 -import(elixir_errors, [form_error/4]).
 -include("elixir.hrl").
 
