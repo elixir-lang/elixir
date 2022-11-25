@@ -143,24 +143,6 @@ defmodule Code.Formatter do
 
   @do_end_keywords [:rescue, :catch, :else, :after]
 
-  @bitstring_modifiers [
-    :integer,
-    :float,
-    :bits,
-    :bitstring,
-    :binary,
-    :bytes,
-    :utf8,
-    :utf16,
-    :utf32,
-    :signed,
-    :unsigned,
-    :little,
-    :big,
-    :native,
-    :_
-  ]
-
   @doc """
   Converts the quoted expression into an algebra document.
   """
@@ -1482,8 +1464,14 @@ defmodule Code.Formatter do
     quoted_to_algebra_with_parens_if_operator(spec_element, :parens_arg, state)
   end
 
-  defp bitstring_spec_normalize_empty_args(atom) when atom in @bitstring_modifiers, do: nil
-  defp bitstring_spec_normalize_empty_args(_atom), do: []
+  defp bitstring_spec_normalize_empty_args(:_), do: nil
+
+  defp bitstring_spec_normalize_empty_args(atom) do
+    case :elixir_bitstring.validate_spec(atom, nil) do
+      :none -> []
+      _ -> nil
+    end
+  end
 
   defp bitstring_wrap_parens(doc, i, last) when i == 0 or i == last do
     string = format_to_string(doc)

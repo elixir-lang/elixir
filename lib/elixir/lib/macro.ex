@@ -1992,26 +1992,9 @@ defmodule Macro do
        do: true
 
   defp quoted_bitstring_modifier?({modifier, _, ctx}) when is_atom(ctx) or ctx == [],
-    do: bitstring_literal_type?(modifier)
+    do: :elixir_bitstring.validate_spec(modifier, nil) != :none
 
   defp quoted_bitstring_modifier?(_other), do: false
-
-  # cannot use in/2 guard in Macro module for bootstrapping issues
-  defp bitstring_literal_type?(:integer), do: true
-  defp bitstring_literal_type?(:float), do: true
-  defp bitstring_literal_type?(:bits), do: true
-  defp bitstring_literal_type?(:bitstring), do: true
-  defp bitstring_literal_type?(:binary), do: true
-  defp bitstring_literal_type?(:bytes), do: true
-  defp bitstring_literal_type?(:utf8), do: true
-  defp bitstring_literal_type?(:utf16), do: true
-  defp bitstring_literal_type?(:utf32), do: true
-  defp bitstring_literal_type?(:signed), do: true
-  defp bitstring_literal_type?(:unsigned), do: true
-  defp bitstring_literal_type?(:big), do: true
-  defp bitstring_literal_type?(:little), do: true
-  defp bitstring_literal_type?(:native), do: true
-  defp bitstring_literal_type?(_other), do: false
 
   @doc false
   @deprecated "Use Macro.expand_literals/2 instead"
