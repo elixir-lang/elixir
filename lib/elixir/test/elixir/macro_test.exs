@@ -1246,12 +1246,15 @@ defmodule MacroTest do
     assert Macro.quoted_literal?(quote(do: {"foo", 1}))
     assert Macro.quoted_literal?(quote(do: %{foo: "bar"}))
     assert Macro.quoted_literal?(quote(do: %URI{path: "/"}))
+    assert Macro.quoted_literal?(quote(do: <<>>))
     assert Macro.quoted_literal?(quote(do: <<1, "foo", "bar"::utf16>>))
     assert Macro.quoted_literal?(quote(do: <<1000::size(8)-unit(4)>>))
     assert Macro.quoted_literal?(quote(do: <<1000::8*4>>))
     assert Macro.quoted_literal?(quote(do: <<102::unsigned-big-integer-size(8)>>))
     refute Macro.quoted_literal?(quote(do: {"foo", var}))
+    refute Macro.quoted_literal?(quote(do: <<"foo"::size(name_size)>>))
     refute Macro.quoted_literal?(quote(do: <<"foo"::binary-size(name_size)>>))
+    refute Macro.quoted_literal?(quote(do: <<"foo"::custom_modifier()>>))
     refute Macro.quoted_literal?(quote(do: <<102, rest::binary>>))
   end
 
