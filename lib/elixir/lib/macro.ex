@@ -1967,9 +1967,51 @@ defmodule Macro do
   def quoted_literal?({:%{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({:{}, _, args}), do: quoted_literal?(args)
   def quoted_literal?({:__MODULE__, _, ctx}) when is_atom(ctx), do: true
+  def quoted_literal?({:<<>>, _, segments}), do: Enum.all?(segments, &quoted_bitstring_segment?/1)
   def quoted_literal?({left, right}), do: quoted_literal?(left) and quoted_literal?(right)
   def quoted_literal?(list) when is_list(list), do: :lists.all(&quoted_literal?/1, list)
   def quoted_literal?(term), do: is_atom(term) or is_number(term) or is_binary(term)
+
+  defp quoted_bitstring_segment?(term) when is_integer(term) or is_binary(term), do: true
+
+  defp quoted_bitstring_segment?({:"::", _, [term, modifier]})
+       when is_integer(term) or is_binary(term),
+       do: quoted_bitstring_modifier?(modifier)
+
+  defp quoted_bitstring_segment?(_other), do: false
+
+  defp quoted_bitstring_modifier?({:-, _, [left, right]}),
+    do: quoted_bitstring_modifier?(left) and quoted_bitstring_modifier?(right)
+
+  defp quoted_bitstring_modifier?({atom, _, [size]})
+       when atom in [:size, :unit] and is_integer(size),
+       do: true
+
+  defp quoted_bitstring_modifier?({:*, _, [left, right]})
+       when is_integer(left) and is_integer(right),
+       do: true
+
+  defp quoted_bitstring_modifier?({modifier, _, ctx}) when is_atom(ctx) or ctx == [],
+    do: bitstring_literal_type?(modifier)
+
+  defp quoted_bitstring_modifier?(_other), do: false
+
+  # cannot use in/2 guard in Macro module for bootstrapping issues
+  defp bitstring_literal_type?(:integer), do: true
+  defp bitstring_literal_type?(:float), do: true
+  defp bitstring_literal_type?(:bits), do: true
+  defp bitstring_literal_type?(:bitstring), do: true
+  defp bitstring_literal_type?(:binary), do: true
+  defp bitstring_literal_type?(:bytes), do: true
+  defp bitstring_literal_type?(:utf8), do: true
+  defp bitstring_literal_type?(:utf16), do: true
+  defp bitstring_literal_type?(:utf32), do: true
+  defp bitstring_literal_type?(:signed), do: true
+  defp bitstring_literal_type?(:unsigned), do: true
+  defp bitstring_literal_type?(:big), do: true
+  defp bitstring_literal_type?(:little), do: true
+  defp bitstring_literal_type?(:native), do: true
+  defp bitstring_literal_type?(_other), do: false
 
   @doc false
   @deprecated "Use Macro.expand_literals/2 instead"
