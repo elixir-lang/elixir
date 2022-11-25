@@ -260,7 +260,7 @@ defmodule Kernel.ExpansionTest do
   describe "vars" do
     test "expands vars to local call" do
       {output, env} = expand_env({:a, [], nil}, __ENV__, [])
-      assert output == {:a, [if_undefined: :warn], []}
+      assert output == {:a, [var_as_call: nil], []}
       assert Macro.Env.vars(env) == []
     end
 
@@ -2934,7 +2934,11 @@ defmodule Kernel.ExpansionTest do
     expand_env(expr, __ENV__) |> elem(0)
   end
 
-  defp expand_env(expr, env, to_clean \\ [:version, :inferred_bitstring_spec, :if_undefined]) do
+  defp expand_env(
+         expr,
+         env,
+         to_clean \\ [:version, :inferred_bitstring_spec, :if_undefined, :var_as_call]
+       ) do
     {{expr, scope, env}, _capture} =
       ExUnit.CaptureIO.with_io(:stderr, fn ->
         :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)

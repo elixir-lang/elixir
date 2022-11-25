@@ -201,7 +201,7 @@ defmodule IEx.InteractionTest do
     test "no .iex" do
       capture_io(:stderr, fn ->
         assert capture_iex("my_variable") =~
-                 "** (CompileError) iex:1: undefined function my_variable/0"
+                 "** (CompileError) iex:1: undefined variable \"my_variable\""
       end)
     end
 

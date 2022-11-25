@@ -367,8 +367,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 
         %% TODO: Remove this clause on v2.0
         _ when Error == warn ->
-          elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
-          expand({Name, [{if_undefined, warn} | Meta], []}, S, E);
+          expand({Name, [{var_as_call, Kind} | Meta], []}, S, E);
 
         _ when Error == pin ->
           form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind});
@@ -383,9 +382,16 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, S, E),
 
-  elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun() ->
+  Result = elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun() ->
     expand_local(Meta, Atom, Args, S, E)
-  end);
+  end),
+
+  % Only warn if local expansion didn't throw an error
+  case lists:keyfind(var_as_call, 1, Meta) of
+    {var_as_call,  _Kind} -> elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Atom});
+    _ -> nil
+  end,
+  Result;
 
 %% Remote calls
 
@@ -827,7 +833,12 @@ expand_local(Meta, Name, Args, S, #{module := Module, function := Function, cont
 expand_local(Meta, Name, Args, _S, E) when Name == '|'; Name == '::' ->
   form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
 expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
-  form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
+  case lists:keyfind(var_as_call, 1, Meta) of
+    {var_as_call, Kind} ->
+      form_error(Meta, E, ?MODULE, {undefined_var, Name, Kind});
+    _ ->
+      form_error(Meta, E, ?MODULE, {undefined_function, Name, Args})
+  end;
 expand_local(Meta, Name, Args, _S, #{context := match} = E) ->
   form_error(Meta, E, ?MODULE, {invalid_local_invocation, match, {Name, Meta, Args}});
 expand_local(Meta, Name, Args, S, #{context := guard} = E) ->

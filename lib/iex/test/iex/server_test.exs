@@ -48,7 +48,7 @@ defmodule IEx.ServerTest do
         send(evaluator, :run)
 
         assert Task.await(client) == {:error, :refused}
-        assert Task.await(server) =~ "undefined function iex_context"
+        assert Task.await(server) =~ "undefined variable \"iex_context\""
       end)
     end
 
@@ -81,7 +81,7 @@ defmodule IEx.ServerTest do
         assert accepted =~ ":inside_pry"
         refute refused =~ "pry(1)>"
         assert refused =~ "** session was already accepted elsewhere"
-        assert refused =~ "undefined function iex_context"
+        assert refused =~ "undefined variable \"iex_context\""
 
         assert Task.await(client) == {:ok, false}
       end)
@@ -100,8 +100,8 @@ defmodule IEx.ServerTest do
         reply1 = Task.await(server1)
         reply2 = Task.await(server2)
 
-        assert reply1 =~ "undefined function iex_context"
-        assert reply2 =~ "undefined function iex_context"
+        assert reply1 =~ "undefined variable \"iex_context\""
+        assert reply2 =~ "undefined variable \"iex_context\""
 
         assert Task.await(client) == {:error, :refused}
       end)
@@ -118,7 +118,7 @@ defmodule IEx.ServerTest do
         send(evaluator1, :run)
         send(evaluator2, :run)
         assert Task.await(server1) =~ ":inside_pry"
-        assert Task.await(server2) =~ "undefined function iex_context"
+        assert Task.await(server2) =~ "undefined variable \"iex_context\""
 
         assert Task.await(client) == {:ok, false}
       end)
@@ -134,7 +134,7 @@ defmodule IEx.ServerTest do
 
         send(evaluator1, :run)
         send(evaluator2, :run)
-        assert Task.await(server1) =~ "undefined function iex_context"
+        assert Task.await(server1) =~ "undefined variable \"iex_context\""
         assert Task.await(server2) =~ ":inside_pry"
 
         assert Task.await(client) == {:ok, false}
