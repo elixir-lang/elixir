@@ -1217,9 +1217,13 @@ warn_pipe(_Token, _) ->
 %% TODO: Make this an error on v2.0
 warn_nested_no_parens_keyword(Key, Value) ->
   {line, Line} = lists:keyfind(line, 1, ?meta(Value)),
+  MaybeKeyword = case Key of
+    Atom when is_atom(Atom) ->  "\"" ++ atom_to_list(Key) ++ ":\" ";
+    _ -> ""
+  end,
   warn(
     Line,
-    "missing parentheses for expression following \"" ++ atom_to_list(Key) ++ ":\" keyword. "
+    "missing parentheses for expression following " ++ MaybeKeyword ++ "keyword. "
     "Parentheses are required to solve ambiguity inside keywords.\n\n"
     "This error happens when you have function calls without parentheses inside keywords. "
     "For example:\n\n"
