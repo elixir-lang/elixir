@@ -260,7 +260,7 @@ defmodule Kernel.ExpansionTest do
   describe "vars" do
     test "expands vars to local call" do
       {output, env} = expand_env({:a, [], nil}, __ENV__, [])
-      assert output == {:a, [var_as_call: nil], []}
+      assert output == {:a, [if_undefined: :warn, var_as_call: nil], []}
       assert Macro.Env.vars(env) == []
     end
 

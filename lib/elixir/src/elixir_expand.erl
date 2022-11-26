@@ -367,7 +367,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 
         %% TODO: Remove this clause on v2.0
         _ when Error == warn ->
-          expand({Name, [{var_as_call, Kind} | Meta], []}, S, E);
+          expand({Name, [{if_undefined, warn}, {var_as_call, Kind} | Meta], []}, S, E);
 
         _ when Error == pin ->
           form_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind});
