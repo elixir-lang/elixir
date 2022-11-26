@@ -102,6 +102,25 @@ defmodule Kernel.ErrorsTest do
                       ~c"call foo, do: :foo"
   end
 
+  test "undefined variable" do
+    stderr =
+      capture_io(:stderr, fn ->
+        assert_eval_raise CompileError,
+                          "nofile:3: undefined variable \"bar\"",
+                          ~c"""
+                          defmodule Sample do
+                            def foo do
+                              bar
+                              baz
+                            end
+                          end
+                          """
+      end)
+
+    assert stderr =~ "variable \"bar\" does not exist and is being expanded to \"bar()\""
+    assert stderr =~ "variable \"baz\" does not exist and is being expanded to \"baz()\""
+  end
+
   test "function without definition" do
     assert_eval_raise CompileError,
                       "nofile:2: implementation not provided for predefined def foo/0",

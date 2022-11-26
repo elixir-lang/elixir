@@ -44,7 +44,7 @@ defmodule Kernel.DefaultsTest do
     message = "variable \"default\" does not exist"
 
     assert capture_io(:stderr, fn ->
-             assert_raise CompileError, ~r/undefined function default\/0/, fn ->
+             assert_raise CompileError, ~r/undefined variable \"default\"/, fn ->
                defmodule VarDefaultScope do
                  def test(_ \\ default = 1),
                    do: default
@@ -85,7 +85,7 @@ defmodule Kernel.DefaultsTest do
     end
 
     assert capture_io(:stderr, fn ->
-             assert_raise CompileError, ~r"undefined function foo/0", fn ->
+             assert_raise CompileError, ~r"undefined variable \"foo\"", fn ->
                defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
                  def hello(foo, bar \\ foo)
                  def hello(foo, bar), do: foo + bar

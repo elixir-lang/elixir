@@ -22,7 +22,7 @@ defmodule Module.LocalsTracker do
   """
   def add_defaults({_set, bag}, kind, {name, arity} = pair, defaults, meta) do
     for i <- :lists.seq(arity - defaults, arity - 1) do
-      put_edge(bag, {:local, {name, i}}, {pair, get_line(meta), kind in @defmacros})
+      put_edge(bag, {:local, {name, i}}, {pair, get_line(meta), kind in @defmacros, false})
     end
 
     :ok
@@ -33,7 +33,8 @@ defmodule Module.LocalsTracker do
   """
   def add_local({_set, bag}, from, to, meta, macro_dispatch?)
       when is_tuple(from) and is_tuple(to) and is_boolean(macro_dispatch?) do
-    put_edge(bag, {:local, from}, {to, get_line(meta), macro_dispatch?})
+    var_as_call? = Keyword.has_key?(meta, :var_as_call)
+    put_edge(bag, {:local, from}, {to, get_line(meta), macro_dispatch?, var_as_call?})
     :ok
   end
 
@@ -63,7 +64,7 @@ defmodule Module.LocalsTracker do
 
     # Make a call from the old function to the new one
     if function != tuple do
-      put_edge(bag, {:local, function}, {tuple, get_line(meta), kind in @defmacros})
+      put_edge(bag, {:local, function}, {tuple, get_line(meta), kind in @defmacros, false})
     end
 
     # Finally marked the new one as reattached
@@ -105,21 +106,21 @@ defmodule Module.LocalsTracker do
   def collect_undefined_locals({set, bag}, all_defined) do
     undefined =
       for {pair, _, meta, _} <- all_defined,
-          {local, line, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
-          error = undefined_local_error(set, local, macro_dispatch?),
+          {local, line, macro_dispatch?, var_as_call?} <- out_neighbours(bag, {:local, pair}),
+          error = undefined_local_error(set, local, macro_dispatch?, var_as_call?),
           do: {build_meta(line, meta), local, error}
 
     :lists.usort(undefined)
   end
 
-  defp undefined_local_error(set, local, true) do
+  defp undefined_local_error(set, local, true, var_as_call?) do
     case :ets.member(set, {:def, local}) do
       true -> false
-      false -> :undefined_function
+      false -> undefined_function_or_variable(var_as_call?)
     end
   end
 
-  defp undefined_local_error(set, local, false) do
+  defp undefined_local_error(set, local, false, var_as_call?) do
     try do
       if :ets.lookup_element(set, {:def, local}, 2) in @defmacros do
         :incorrect_dispatch
@@ -127,9 +128,12 @@ defmodule Module.LocalsTracker do
         false
       end
     catch
-      _, _ -> :undefined_function
+      _, _ -> undefined_function_or_variable(var_as_call?)
     end
   end
+
+  defp undefined_function_or_variable(false), do: :undefined_function
+  defp undefined_function_or_variable(true), do: :undefined_variable
 
   defp unreachable(reachable, reattached, private) do
     for {tuple, kind, _, _} <- private,
@@ -203,7 +207,7 @@ defmodule Module.LocalsTracker do
   defp reachable_from(bag, local, vertices) do
     vertices = Map.put(vertices, local, true)
 
-    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {local, _line, _}, acc ->
+    Enum.reduce(out_neighbours(bag, {:local, local}), vertices, fn {local, _line, _, _}, acc ->
       case acc do
         %{^local => true} -> acc
         _ -> reachable_from(bag, local, acc)

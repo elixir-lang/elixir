@@ -148,5 +148,8 @@ format_error({undefined_function, {F, A}, Module}) ->
   io_lib:format("undefined function ~ts/~B (expected ~ts to define such a function or "
                 "for it to be imported, but none are available)", [F, A, elixir_aliases:inspect(Module)]);
 
+format_error({undefined_variable, {F, 0}, _Module}) ->
+  io_lib:format("undefined variable \"~ts\"", [F]);
+
 format_error({incorrect_dispatch, {F, A}, _Module}) ->
   io_lib:format("cannot invoke macro ~ts/~B before its definition", [F, A]).
