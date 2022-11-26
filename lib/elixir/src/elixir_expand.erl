@@ -367,6 +367,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 
         %% TODO: Remove this clause on v2.0
         _ when Error == warn ->
+          elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
           expand({Name, [{if_undefined, warn}, {var_as_call, Kind} | Meta], []}, S, E);
 
         _ when Error == pin ->
@@ -382,16 +383,9 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args) ->
   assert_no_ambiguous_op(Atom, Meta, Args, S, E),
 
-  Result = elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun() ->
+  elixir_dispatch:dispatch_import(Meta, Atom, Args, S, E, fun() ->
     expand_local(Meta, Atom, Args, S, E)
-  end),
-
-  % Only warn if local expansion didn't throw an error
-  case lists:keyfind(var_as_call, 1, Meta) of
-    {var_as_call,  _Kind} -> elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_variable, Atom});
-    _ -> nil
-  end,
-  Result;
+  end);
 
 %% Remote calls
 
