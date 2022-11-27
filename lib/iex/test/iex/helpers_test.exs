@@ -79,9 +79,11 @@ defmodule IEx.HelpersTest do
     end
 
     test "errors when setting up a breakpoint with invalid guard" do
-      assert_raise CompileError, ~r"cannot find or invoke local is_whatever/1", fn ->
-        break!(URI.decode_query(_, map) when is_whatever(map))
-      end
+      assert capture_io(:stderr, fn ->
+               assert_raise CompileError, fn ->
+                 break!(URI.decode_query(_, map) when is_whatever(map))
+               end
+             end) =~ "cannot find or invoke local is_whatever/1"
     end
 
     test "errors when setting up a break with no beam" do

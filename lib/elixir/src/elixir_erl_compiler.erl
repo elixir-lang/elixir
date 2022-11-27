@@ -111,9 +111,8 @@ handle_file_warning(_, File, {Line, Module, Desc}) ->
 
 %% Handle warnings
 
-handle_file_error(File, {beam_validator, Rest}) ->
-  Message = custom_format(Module, Desc),
-  elixir_errors:compile_error([{line, 0}], File, Message);
+handle_file_error(File, {beam_validator, Desc}) ->
+  elixir_errors:compile_error([{line, 0}], File, beam_validator:format_error(Desc));
 handle_file_error(File, {Line, Module, Desc}) ->
   Message = custom_format(Module, Desc),
   elixir_errors:compile_error([{line, Line}], File, Message).
