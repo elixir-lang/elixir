@@ -290,7 +290,7 @@ defmodule Module.ParallelChecker do
   def emit_warnings(warnings) do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
-      print_warning([message, ?\n, format_locations(locations)])
+      :elixir_errors.print_warning_no_log([message, ?\n, format_locations(locations)])
 
       Enum.map(locations, fn {file, line, _mfa} ->
         {file, line, message}
@@ -326,10 +326,6 @@ defmodule Module.ParallelChecker do
     file = Path.relative_to_cwd(file)
     line = if line > 0, do: [?: | Integer.to_string(line)], else: []
     ["  ", file, line]
-  end
-
-  defp print_warning(message) do
-    IO.puts(:stderr, [:elixir_errors.warning_prefix(), message])
   end
 
   ## Cache

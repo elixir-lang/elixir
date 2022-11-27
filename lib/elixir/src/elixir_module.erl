@@ -1,7 +1,7 @@
 -module(elixir_module).
 -export([file/1, data_tables/1, is_open/1, mode/1, delete_definition_attributes/6,
          compile/5, expand_callback/6, format_error/1, compiler_modules/0,
-         write_cache/3, read_cache/2, next_counter/1]).
+         write_cache/3, read_cache/2, next_counter/1, taint/1]).
 -include("elixir.hrl").
 -define(counter_attr, {elixir, counter}).
 
@@ -62,6 +62,10 @@ next_counter(Module) ->
     _:_ -> erlang:unique_integer()
   end.
 
+taint(Module) ->
+  {DataSet, _} = data_tables(Module),
+  ets:insert(DataSet, [{{elixir, taint}}]).
+
 %% Compilation hook
 
 compile(Module, Block, Vars, Prune, Env) when is_atom(Module) ->
@@ -117,9 +121,9 @@ compile(Line, Module, Block, Vars, Prune, E) ->
         DialyzerAttribute = lists:keyfind(dialyzer, 1, Attributes),
         validate_dialyzer_attribute(DialyzerAttribute, AllDefinitions, File, Line),
 
-        Unreachable = elixir_locals:warn_unused_local(File, Module, AllDefinitions, NewPrivate),
-        elixir_locals:ensure_no_undefined_local(File, Module, AllDefinitions),
-        elixir_locals:ensure_no_import_conflict(File, Module, AllDefinitions),
+        Unreachable = elixir_locals:warn_unused_local(E, Module, AllDefinitions, NewPrivate),
+        elixir_locals:ensure_no_undefined_local(E, Module, AllDefinitions),
+        elixir_locals:ensure_no_import_conflict(E, Module, AllDefinitions),
 
         %% We stop tracking locals here to avoid race conditions in case after_load
         %% evaluates code in a separate process that may write to locals table.
@@ -154,6 +158,11 @@ compile(Line, Module, Block, Vars, Prune, E) ->
           uses_behaviours => UsesBehaviours,
           impls => Impls
         },
+
+        case ets:member(DataSet, {elixir, taint}) of
+          true -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {tainted_module, Module});
+          false -> ok
+        end,
 
         Binary = elixir_erl:compile(ModuleMap),
         Autoload = proplists:get_value(autoload, CompileOpts, true),
@@ -198,7 +207,7 @@ validate_compile_opt({inline, Inlines}, Defs, Unreachable, File, Line) ->
   case validate_inlines(Inlines, Defs, Unreachable, []) of
     {ok, []} -> [];
     {ok, FilteredInlines} -> [{inline, FilteredInlines}];
-    {error, Def} -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {bad_inline, Def})
+    {error, Def} -> elixir_errors:module_error([{line, Line}], File, ?MODULE, {bad_inline, Def})
   end;
 validate_compile_opt(Opt, Defs, Unreachable, File, Line) when is_list(Opt) ->
   validate_compile_opts(Opt, Defs, Unreachable, File, Line);
@@ -219,18 +228,18 @@ validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
 validate_on_load_attribute({on_load, Def}, Defs, Private, File, Line) ->
   case lists:keyfind(Def, 1, Defs) of
     false ->
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, {undefined_on_load, Def});
+      elixir_errors:module_error([{line, Line}], File, ?MODULE, {undefined_on_load, Def});
     {_, Kind, _, _} when Kind == def; Kind == defp ->
       lists:keydelete(Def, 1, Private);
     {_, WrongKind, _, _} ->
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, {wrong_kind_on_load, Def, WrongKind})
+      elixir_errors:module_error([{line, Line}], File, ?MODULE, {wrong_kind_on_load, Def, WrongKind})
   end;
 validate_on_load_attribute(false, _Module, Private, _File, _Line) -> Private.
 
 validate_dialyzer_attribute({dialyzer, Dialyzer}, Defs, File, Line) ->
   [case lists:keyfind(Fun, 1, Defs) of
     false ->
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, {bad_dialyzer, Key, Fun});
+      elixir_errors:module_error([{line, Line}], File, ?MODULE, {bad_dialyzer, Key, Fun});
     _ ->
       ok
    end || {Key, Funs} <- lists:flatten([Dialyzer]), Fun <- lists:flatten([Funs])];
@@ -533,6 +542,8 @@ format_error({unused_attribute, deprecated}) ->
   "module attribute @deprecated was set but no definition follows it";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
+format_error({tainted_module, Module}) ->
+  io_lib:format("cannot compile module ~ts (errors have been logged)", [elixir_aliases:inspect(Module)]);
 format_error({invalid_module, Module}) ->
   io_lib:format("invalid module name: ~ts", ['Elixir.Kernel':inspect(Module)]);
 format_error({module_defined, Module}) ->

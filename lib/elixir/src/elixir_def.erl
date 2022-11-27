@@ -108,7 +108,7 @@ fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
       fetch_definition(T, File, Module, Set, Bag, NewAll, NewPrivate)
   catch
     error:badarg ->
-      elixir_errors:form_error(Meta, File, ?MODULE, {function_head, Kind, Tuple}),
+      elixir_errors:module_error(Meta, File, ?MODULE, {function_head, Kind, Tuple}),
       fetch_definition(T, File, Module, Set, Bag, All, Private)
   end;
 
@@ -357,7 +357,7 @@ check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, C
 % Clause with defaults after clause with defaults
 check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _, _)
     when Defaults > 0, StoredDefaults > 0 ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {duplicate_defaults, {Kind, Name, Arity}});
+  elixir_errors:module_error(Meta, File, ?MODULE, {duplicate_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause without defaults
 check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, _, _, _) when Defaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
@@ -370,7 +370,7 @@ check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredDefaults, _La
 
 check_args_for_function_head(Meta, Args, E) ->
   [begin
-     elixir_errors:form_error(Meta, E, ?MODULE, invalid_args_for_function_head)
+     elixir_errors:module_error(Meta, E, ?MODULE, invalid_args_for_function_head)
    end || Arg <- Args, invalid_arg(Arg)].
 
 invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
@@ -380,7 +380,7 @@ check_previous_defaults(Meta, Module, Name, Arity, Kind, Defaults, E) ->
   {_Set, Bag} = elixir_module:data_tables(Module),
   Matches = ets:lookup(Bag, {default, Name}),
   [begin
-     elixir_errors:form_error(Meta, E, ?MODULE,
+     elixir_errors:module_error(Meta, E, ?MODULE,
        {defs_with_defaults, Kind, Name, Arity, A})
    end || {_, A, D} <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 

@@ -147,7 +147,7 @@ defmodule Kernel.ParallelCompiler do
   @doc since: "1.13.0"
   @spec print_warning(warning) :: :ok
   def print_warning({file, location, warning}) do
-    :elixir_errors.print_warning(location, file, warning)
+    :elixir_errors.print_warning_no_log(location, file, warning)
   end
 
   @doc false

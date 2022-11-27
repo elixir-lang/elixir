@@ -4,8 +4,9 @@
 %% Note that this is also called by the Erlang backend, so we also support
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
--export([compile_error/3, compile_error/4,  form_error/4, parse_error/5]).
--export([warning_prefix/0, erl_warn/3, print_warning/3, log_and_print_warning/4, form_warn/4]).
+-export([module_error/4, compile_error/3, compile_error/4,  form_error/4, parse_error/5]).
+-export([erl_warn/3, form_warn/4]).
+-export([print_warning/4, print_warning_no_log/1, print_warning_no_log/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
 
@@ -15,25 +16,33 @@ erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
 erl_warn(Location, File, Warning) when is_binary(File) ->
   send_warning(Location, File, Warning),
-  print_warning(Location, File, Warning).
+  print_warning_no_log(Location, File, Warning).
 
--spec print_warning(location(), unicode:chardata(), unicode:chardata()) -> ok.
-print_warning(Location, File, Warning) ->
-  print_warning([Warning, "\n  ", file_format(Location, File), $\n]).
+-spec print_warning_no_log(location(), unicode:chardata(), unicode:chardata()) -> ok.
+print_warning_no_log(Location, File, Warning) ->
+  print_warning_no_log([Warning, "\n  ", file_format(Location, File), $\n]).
 
--spec log_and_print_warning(location(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
-log_and_print_warning(Location, File, LogMessage, PrintMessage) when is_binary(File) or (File == nil) ->
+-spec print_warning_no_log(unicode:chardata()) -> ok.
+print_warning_no_log(Message) ->
+  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
+  ok.
+
+-spec print_warning(location(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
+print_warning(Location, File, LogMessage, PrintMessage) when is_binary(File) or (File == nil) ->
   send_warning(Location, File, LogMessage),
-  print_warning(PrintMessage).
-
--spec warning_prefix() -> binary().
-warning_prefix() ->
-  case application:get_env(elixir, ansi_enabled) of
-    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
-    _ -> <<"warning: ">>
-  end.
+  print_warning_no_log(PrintMessage).
 
 %% General forms handling.
+
+-spec module_error(list(), #{file := binary(), module := module(), _ => _}, module(), any()) -> no_return().
+module_error(Meta, #{module := EnvModule} = Env, Module, Desc) when EnvModule /= nil ->
+  elixir_module:taint(EnvModule),
+  {_Line, _File, Location} = env_format(Meta, Env),
+
+  io:put_chars(
+    standard_error,
+    [error_prefix(), Module:format_error(Desc), "\n  ", Location, $\n, $\n]
+  ).
 
 -spec form_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
 form_error(Meta, #{file := File}, Module, Desc) ->
@@ -48,23 +57,11 @@ form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
   % Skip warnings during bootstrap, they will be reported during recompilation
   case elixir_config:is_bootstrap() of
     true -> ok;
-    false -> do_form_warn(Meta, File, E, Module:format_error(Desc))
+    false ->
+      {Line, File, Location} = env_format(Meta, E),
+      Warning = Module:format_error(Desc),
+      print_warning(Line, File, Warning, [Warning, "\n  ", Location, $\n])
   end.
-
-do_form_warn(Meta, GivenFile, E, Warning) ->
-  [{file, File}, {line, Line}] = meta_location(Meta, GivenFile),
-
-  Location =
-    case E of
-      #{function := {Name, Arity}, module := Module} ->
-        [file_format(Line, File), ": ", 'Elixir.Exception':format_mfa(Module, Name, Arity)];
-      #{module := Module} when Module /= nil ->
-        [file_format(Line, File), ": ", elixir_aliases:inspect(Module)];
-      #{} ->
-        file_format(Line, File)
-    end,
-
-  log_and_print_warning(Line, File, Warning, [Warning, "\n  ", Location, $\n]).
 
 %% Compilation error.
 
@@ -188,11 +185,6 @@ raise_snippet(Location, File, Input, Kind, Message) when is_binary(File) ->
   raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
 
 %% Helpers
-
-print_warning(Message) ->
-  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
-  ok.
-
 send_warning(Line, File, Message) ->
   case get(elixir_compiler_info) of
     undefined -> ok;
@@ -200,12 +192,39 @@ send_warning(Line, File, Message) ->
   end,
   ok.
 
+warning_prefix() ->
+  case application:get_env(elixir, ansi_enabled) of
+    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
+    _ -> <<"warning: ">>
+  end.
+
+error_prefix() ->
+  case application:get_env(elixir, ansi_enabled) of
+    {ok, true} -> <<"\e[31merror: \e[0m">>;
+    _ -> <<"error: ">>
+  end.
+
+env_format(Meta, #{file := File} = E) ->
+  [{file, File}, {line, Line}] = meta_location(Meta, File),
+
+  Location =
+    case E of
+      #{function := {Name, Arity}, module := Module} ->
+        [file_format(Line, File), ": ", 'Elixir.Exception':format_mfa(Module, Name, Arity)];
+      #{module := Module} when Module /= nil ->
+        [file_format(Line, File), ": ", elixir_aliases:inspect(Module)];
+      #{} ->
+        file_format(Line, File)
+    end,
+
+  {Line, File, Location}.
+
 file_format({0, _Column}, File) ->
-  io_lib:format("~ts", [elixir_utils:relative_to_cwd(File)]);
+  elixir_utils:relative_to_cwd(File);
 file_format({Line, Column}, File) ->
   io_lib:format("~ts:~w:~w", [elixir_utils:relative_to_cwd(File), Line, Column]);
 file_format(0, File) ->
-  io_lib:format("~ts", [elixir_utils:relative_to_cwd(File)]);
+  elixir_utils:relative_to_cwd(File);
 file_format(Line, File) ->
   io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
 
