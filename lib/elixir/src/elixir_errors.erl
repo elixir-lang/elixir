@@ -82,8 +82,7 @@ compile_error(#{module := Module, file := File}) when Module /= nil ->
   Message = io_lib:format("cannot compile module ~ts (errors have been logged)", [Inspected]),
   compile_error([], File, Message);
 compile_error(#{file := File}) ->
-  Message = io_lib:format("cannot compile file ~ts (errors have been logged)", [File]),
-  compile_error([], File, Message).
+  compile_error([], File, "cannot compile file (errors have been logged)").
 
 -spec compile_error(list(), binary(), binary() | unicode:charlist()) -> no_return().
 compile_error(Meta, File, Message) when is_binary(Message) ->

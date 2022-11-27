@@ -173,11 +173,11 @@ defmodule TypespecTest do
     end
 
     test "spec for undefined function" do
-      assert_raise CompileError, ~r"spec for undefined function omg/0", fn ->
+      assert_compile_error(~r"spec for undefined function omg/0", fn ->
         test_module do
           @spec omg :: atom
         end
-      end
+      end)
     end
 
     test "spec variable used only once (singleton type variable)" do
@@ -190,50 +190,50 @@ defmodule TypespecTest do
     end
 
     test "invalid optional callback" do
-      assert_raise CompileError, ~r"invalid optional callback :foo", fn ->
+      assert_compile_error(~r"invalid optional callback :foo", fn ->
         test_module do
           @optional_callbacks :foo
         end
-      end
+      end)
     end
 
     test "unknown optional callback" do
-      assert_raise CompileError, ~r"unknown callback foo/1 given as optional callback", fn ->
+      assert_compile_error(~r"unknown callback foo/1 given as optional callback", fn ->
         test_module do
           @optional_callbacks foo: 1
         end
-      end
+      end)
     end
 
     test "repeated optional callback" do
       message = ~r"foo/1 has been specified as optional callback more than once"
 
-      assert_raise CompileError, message, fn ->
+      assert_compile_error(message, fn ->
         test_module do
           @callback foo(:ok) :: :ok
           @optional_callbacks foo: 1, foo: 1
         end
-      end
+      end)
     end
 
     test "behaviour_info/1 explicitly defined alongside @callback/@macrocallback" do
       message = ~r"cannot define @callback attribute for foo/1 when behaviour_info/1"
 
-      assert_raise CompileError, message, fn ->
+      assert_compile_error(message, fn ->
         test_module do
           @callback foo(:ok) :: :ok
           def behaviour_info(_), do: []
         end
-      end
+      end)
 
       message = ~r"cannot define @macrocallback attribute for foo/1 when behaviour_info/1"
 
-      assert_raise CompileError, message, fn ->
+      assert_compile_error(message, fn ->
         test_module do
           @macrocallback foo(:ok) :: :ok
           def behaviour_info(_), do: []
         end
-      end
+      end)
     end
 
     test "default is not supported" do
@@ -534,17 +534,17 @@ defmodule TypespecTest do
     end
 
     test "@type with undefined struct" do
-      assert_raise CompileError, ~r"ThisModuleDoesNotExist.__struct__/0 is undefined", fn ->
+      assert_compile_error(~r"ThisModuleDoesNotExist.__struct__/0 is undefined", fn ->
         test_module do
           @type my_type :: %ThisModuleDoesNotExist{}
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"cannot access struct TypespecTest.TypespecSample", fn ->
+      assert_compile_error(~r"cannot access struct TypespecTest.TypespecSample", fn ->
         test_module do
           @type my_type :: %TypespecSample{}
         end
-      end
+      end)
     end
 
     test "@type with a struct with undefined field" do
@@ -1612,5 +1612,11 @@ defmodule TypespecTest do
     end)
 
     :ok
+  end
+
+  defp assert_compile_error(message, fun) do
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             assert_raise CompileError, fun
+           end) =~ message
   end
 end
