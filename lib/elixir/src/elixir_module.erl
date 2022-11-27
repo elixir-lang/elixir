@@ -164,7 +164,6 @@ compile(Line, Module, Block, Vars, Prune, E) ->
           impls => Impls
         },
 
-        %% TODO: Raise a compile error if form_error will print
         case ets:member(DataSet, {elixir, taint}) of
           true -> elixir_errors:module_abort([{line, Line}], E);
           false -> ok
@@ -179,7 +178,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
     Autoload andalso code:load_binary(Module, beam_location(ModuleAsCharlist), Binary),
     eval_callbacks(Line, DataBag, after_compile, [CallbackE, Binary], CallbackE),
     elixir_env:trace({on_module, Binary, none}, ModuleE),
-    warn_unused_attributes(E, DataSet, DataBag, PersistedAttributes),
+    warn_unused_attributes(DataSet, DataBag, PersistedAttributes, E),
     make_module_available(Module, Binary),
     (CheckerInfo == undefined) andalso
       [VerifyMod:VerifyFun(Module) ||
@@ -466,7 +465,7 @@ lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
     [] -> []
   end.
 
-warn_unused_attributes(E, DataSet, DataBag, PersistedAttrs) ->
+warn_unused_attributes(DataSet, DataBag, PersistedAttrs, E) ->
   StoredAttrs = bag_lookup_element(DataBag, warn_attributes, 2),
   %% This is the same list as in Module.put_attribute
   %% without moduledoc which are never warned on.

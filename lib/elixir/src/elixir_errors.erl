@@ -4,7 +4,7 @@
 %% Note that this is also called by the Erlang backend, so we also support
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
--export([compile_error/3, compile_error/4,  form_error/4, parse_error/5]).
+-export([compile_error/3, compile_error/4, form_error/4, parse_error/5]).
 -export([module_error/4, module_abort/2]).
 -export([erl_warn/3, form_warn/4]).
 -export([print_warning/4, print_warning_no_log/1, print_warning_no_log/3]).
