@@ -49,9 +49,10 @@ form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
 
 -spec form_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
 form_error(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
-  compile_error(Meta, File, Module:format_error(Desc));
+  form_error(Meta, #{file => File}, Module, Desc);
 form_error(Meta, Env, Module, Desc) when is_list(Meta) ->
-  compile_error(Meta, ?key(Env, file), Module:format_error(Desc)).
+  print_error(Meta, Env, Module, Desc),
+  compile_error(Env).
 
 %% A module error is one where it can continue if there is a module
 %% being compiled. If there is no such module, it is a regular form_error.
