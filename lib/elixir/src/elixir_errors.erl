@@ -4,7 +4,8 @@
 %% Note that this is also called by the Erlang backend, so we also support
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
--export([module_error/4, compile_error/3, compile_error/4,  form_error/4, parse_error/5]).
+-export([compile_error/3, compile_error/4,  form_error/4, parse_error/5]).
+-export([module_error/4, module_abort/2]).
 -export([erl_warn/3, form_warn/4]).
 -export([print_warning/4, print_warning_no_log/1, print_warning_no_log/3]).
 -include("elixir.hrl").
@@ -32,17 +33,29 @@ print_warning(Location, File, LogMessage, PrintMessage) when is_binary(File) or 
   send_warning(Location, File, LogMessage),
   print_warning_no_log(PrintMessage).
 
-%% General forms handling.
+%% Module error handling.
 
--spec module_error(list(), #{file := binary(), module := module(), _ => _}, module(), any()) -> no_return().
+-spec module_abort(list(), #{file := binary(), module := module(), _ => _}) -> no_return().
+module_abort(Meta, #{module := Module, file := File}) ->
+  Inspected = elixir_aliases:inspect(Module),
+  Message = io_lib:format("cannot compile module ~ts (errors have been logged)", [Inspected]),
+  compile_error(Meta, File, Message).
+
+-spec module_error(list(), #{file := binary(), module := module(), _ => _}, module(), any()) -> ok.
 module_error(Meta, #{module := EnvModule} = Env, Module, Desc) when EnvModule /= nil ->
-  elixir_module:taint(EnvModule),
   {_Line, _File, Location} = env_format(Meta, Env),
 
   io:put_chars(
     standard_error,
     [error_prefix(), Module:format_error(Desc), "\n  ", Location, $\n, $\n]
-  ).
+  ),
+
+  case elixir_module:taint(EnvModule) of
+    true -> ok;
+    false -> module_abort(Meta, Env)
+  end.
+
+%% Compilation error/warn handling.
 
 -spec form_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
 form_error(Meta, #{file := File}, Module, Desc) ->

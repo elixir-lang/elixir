@@ -1,6 +1,6 @@
 -module(elixir_expand).
 -export([expand/3, expand_args/3, expand_arg/3, format_error/1]).
--import(elixir_errors, [form_error/4]).
+-import(elixir_errors, [form_error/4, module_error/4]).
 -include("elixir.hrl").
 
 %% =
@@ -816,22 +816,31 @@ assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Ke
 assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
   ok.
 
-expand_local(Meta, Name, Args, S, #{module := Module, function := Function, context := nil} = E)
-    when Function /= nil ->
-  assert_no_clauses(Name, Meta, Args, E),
-  Arity = length(Args),
-  elixir_env:trace({local_function, Meta, Name, Arity}, E),
-  elixir_locals:record_local({Name, Arity}, Module, Function, Meta, false),
-  {EArgs, SA, EA} = expand_args(Args, S, E),
-  {{Name, Meta, EArgs}, SA, EA};
 expand_local(Meta, Name, Args, _S, E) when Name == '|'; Name == '::' ->
   form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
+expand_local(Meta, Name, Args, S, #{module := Module, function := Function, context := Context} = E)
+    when Function /= nil ->
+  assert_no_clauses(Name, Meta, Args, E),
+
+  %% In case we have the wrong context, we log a module error
+  %% so we can print multiple entries at the same time.
+  case Context of
+    match ->
+      module_error(Meta, E, ?MODULE, {invalid_local_invocation, match, {Name, Meta, Args}});
+
+    guard ->
+      module_error(Meta, E, ?MODULE, {invalid_local_invocation, guard_context(S), {Name, Meta, Args}});
+
+    nil ->
+      Arity = length(Args),
+      elixir_env:trace({local_function, Meta, Name, Arity}, E),
+      elixir_locals:record_local({Name, Arity}, Module, Function, Meta, false)
+  end,
+
+  {EArgs, SA, EA} = expand_args(Args, S, E),
+  {{Name, Meta, EArgs}, SA, EA};
 expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
-  form_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
-expand_local(Meta, Name, Args, _S, #{context := match} = E) ->
-  form_error(Meta, E, ?MODULE, {invalid_local_invocation, match, {Name, Meta, Args}});
-expand_local(Meta, Name, Args, S, #{context := guard} = E) ->
-  form_error(Meta, E, ?MODULE, {invalid_local_invocation, guard_context(S), {Name, Meta, Args}}).
+  form_error(Meta, E, ?MODULE, {undefined_function, Name, Args}).
 
 %% Remote
 

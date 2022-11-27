@@ -41,16 +41,14 @@ defmodule Kernel.DefaultsTest do
   end
 
   test "errors on accessing variable from default block" do
-    message = "variable \"default\" does not exist"
-
     assert capture_io(:stderr, fn ->
-             assert_raise CompileError, ~r/undefined function default\/0/, fn ->
+             assert_raise CompileError, fn ->
                defmodule VarDefaultScope do
                  def test(_ \\ default = 1),
                    do: default
                end
              end
-           end) =~ message
+           end) =~ ~r/undefined function default\/0/
   end
 
   test "errors on multiple defaults" do
@@ -85,15 +83,13 @@ defmodule Kernel.DefaultsTest do
     end
 
     assert capture_io(:stderr, fn ->
-             assert_raise CompileError, ~r"undefined function foo/0", fn ->
+             assert_raise CompileError, fn ->
                defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
                  def hello(foo, bar \\ foo)
                  def hello(foo, bar), do: foo + bar
                end
              end
-           end) =~
-             "variable \"foo\" does not exist and is being expanded to \"foo()\", " <>
-               "please use parentheses to remove the ambiguity or change the variable name"
+           end) =~ ~r"undefined function foo/0"
   end
 
   test "errors on conflicting defaults" do

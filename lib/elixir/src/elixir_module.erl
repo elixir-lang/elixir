@@ -63,8 +63,13 @@ next_counter(Module) ->
   end.
 
 taint(Module) ->
-  {DataSet, _} = data_tables(Module),
-  ets:insert(DataSet, [{{elixir, taint}}]).
+  try
+    {DataSet, _} = data_tables(Module),
+    ets:insert(DataSet, [{{elixir, taint}}]),
+    true
+  catch
+    _:_ -> false
+  end.
 
 %% Compilation hook
 
@@ -161,7 +166,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
 
         %% TODO: Raise a compile error if form_error will print
         case ets:member(DataSet, {elixir, taint}) of
-          true -> elixir_errors:form_error([{line, Line}], E, ?MODULE, {tainted_module, Module});
+          true -> elixir_errors:module_abort([{line, Line}], E);
           false -> ok
         end,
 
@@ -549,8 +554,6 @@ format_error({unused_attribute, deprecated}) ->
   "module attribute @deprecated was set but no definition follows it";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
-format_error({tainted_module, Module}) ->
-  io_lib:format("cannot compile module ~ts (errors have been logged)", [elixir_aliases:inspect(Module)]);
 format_error({invalid_module, Module}) ->
   io_lib:format("invalid module name: ~ts", ['Elixir.Kernel':inspect(Module)]);
 format_error({module_defined, Module}) ->

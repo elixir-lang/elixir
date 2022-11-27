@@ -380,7 +380,7 @@ check_previous_defaults(Meta, Module, Name, Arity, Kind, Defaults, E) ->
   {_Set, Bag} = elixir_module:data_tables(Module),
   Matches = ets:lookup(Bag, {default, Name}),
   [begin
-     elixir_errors:module_error(Meta, E, ?MODULE,
+     elixir_errors:form_error(Meta, E, ?MODULE,
        {defs_with_defaults, Kind, Name, Arity, A})
    end || {_, A, D} <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 

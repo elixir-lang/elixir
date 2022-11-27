@@ -3,6 +3,8 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.GuardTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   describe "defguard(p) usage" do
     defmodule GuardsInMacros do
       defguard is_foo(atom) when atom == :foo
@@ -152,26 +154,28 @@ defmodule Kernel.GuardTest do
       refute IntegerPrivateGuards.is_even_and_small?(102)
       refute IntegerPrivateGuards.is_even_and_small?(103)
 
-      assert_raise CompileError, ~r"cannot find or invoke local is_even/1", fn ->
-        defmodule IntegerPrivateGuardUtils do
-          import IntegerPrivateGuards
+      assert capture_io(:stderr, fn ->
+               assert_raise CompileError, fn ->
+                 defmodule IntegerPrivateGuardUtils do
+                   import IntegerPrivateGuards
 
-          def is_even_and_large?(value) when is_even(value) and value > 100, do: true
-          def is_even_and_large?(_), do: false
-        end
-      end
+                   def is_even_and_large?(value) when is_even(value) and value > 100, do: true
+                   def is_even_and_large?(_), do: false
+                 end
+               end
+             end) =~ ~r"cannot find or invoke local is_even/1"
 
-      assert_raise CompileError,
-                   ~r"undefined function is_even/1",
-                   fn ->
-                     defmodule IntegerPrivateFunctionUtils do
-                       import IntegerPrivateGuards
+      assert capture_io(:stderr, fn ->
+               assert_raise CompileError, fn ->
+                 defmodule IntegerPrivateFunctionUtils do
+                   import IntegerPrivateGuards
 
-                       def is_even_and_small?(value) do
-                         if is_even(value) and value <= 100, do: true, else: false
-                       end
-                     end
+                   def is_even_and_small?(value) do
+                     if is_even(value) and value <= 100, do: true, else: false
                    end
+                 end
+               end
+             end) =~ ~r"undefined function is_even/1"
     end
 
     test "requires a proper macro name" do
@@ -262,11 +266,13 @@ defmodule Kernel.GuardTest do
 
   describe "defguard(p) compilation" do
     test "refuses to compile nonsensical code" do
-      assert_raise CompileError, ~r"cannot find or invoke local undefined/1", fn ->
-        defmodule UndefinedUsage do
-          defguard foo(function) when undefined(function)
-        end
-      end
+      assert capture_io(:stderr, fn ->
+               assert_raise CompileError, fn ->
+                 defmodule UndefinedUsage do
+                   defguard foo(function) when undefined(function)
+                 end
+               end
+             end) =~ "cannot find or invoke local undefined/1"
     end
 
     test "fails on expressions not allowed in guards" do

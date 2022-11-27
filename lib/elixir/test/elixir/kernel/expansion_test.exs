@@ -13,6 +13,8 @@ end
 defmodule Kernel.ExpansionTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   describe "__block__" do
     test "expands to nil when empty" do
       assert expand(quote(do: unquote(:__block__)())) == nil
@@ -426,11 +428,11 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "in matches" do
-      message = ~r"cannot find or invoke local foo/1 inside match. .+ Called as: foo\(:bar\)"
-
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: foo(:bar) = :bar))
-      end
+      assert capture_io(:stderr, fn ->
+               assert_raise CompileError, fn ->
+                 expand(quote(do: foo(:bar) = :bar))
+               end
+             end) =~ ~r"cannot find or invoke local foo/1 inside match. .+ Called as: foo\(:bar\)"
     end
 
     test "in guards" do
@@ -438,11 +440,11 @@ defmodule Kernel.ExpansionTest do
       expanded_code = quote(do: fn pid when :erlang.==(pid, :erlang.self()) -> pid end)
       assert clean_meta(expand(code), [:imports, :context]) == expanded_code
 
-      message = ~r"cannot find or invoke local foo/1"
-
-      assert_raise CompileError, message, fn ->
-        expand(quote(do: fn arg when foo(arg) -> arg end))
-      end
+      assert capture_io(:stderr, fn ->
+               assert_raise CompileError, fn ->
+                 expand(quote(do: fn arg when foo(arg) -> arg end))
+               end
+             end) =~ ~r"cannot find or invoke local foo/1"
     end
 
     test "custom imports" do
@@ -2452,10 +2454,10 @@ defmodule Kernel.ExpansionTest do
       import Kernel, except: [-: 1, -: 2]
       import Kernel.ExpansionTarget
 
-      assert expand(quote(do: <<x::seventeen>>)) |> clean_meta([:alignment]) ==
+      assert expand(quote(do: <<x::seventeen()>>)) |> clean_meta([:alignment]) ==
                quote(do: <<x()::integer-size(17)>>) |> clean_bit_modifiers()
 
-      assert expand(quote(do: <<seventeen::seventeen, x::size(seventeen)>> = 1))
+      assert expand(quote(do: <<seventeen::seventeen(), x::size(seventeen)>> = 1))
              |> clean_meta([:alignment]) ==
                quote(do: <<seventeen::integer-size(17), x::integer-size(seventeen)>> = 1)
                |> clean_bit_modifiers()
@@ -2674,16 +2676,16 @@ defmodule Kernel.ExpansionTest do
         expand(code)
       end
 
-      message = ~r"cannot find or invoke local foo/0 inside bitstring size specifier"
+      assert capture_io(:stderr, fn ->
+               assert_raise CompileError, fn ->
+                 code =
+                   quote do
+                     fn <<_::size(foo())>> -> :ok end
+                   end
 
-      assert_raise CompileError, message, fn ->
-        code =
-          quote do
-            fn <<_::size(foo())>> -> :ok end
-          end
-
-        expand(code)
-      end
+                 expand(code)
+               end
+             end) =~ ~r"cannot find or invoke local foo/0 inside bitstring size specifier"
 
       message = ~r"anonymous call is not allowed in bitstring size specifier"
 
@@ -2730,7 +2732,7 @@ defmodule Kernel.ExpansionTest do
 
     test "raises for unknown specifier" do
       assert_raise CompileError, ~r"unknown bitstring specifier: unknown()", fn ->
-        expand(quote(do: <<1::unknown>>))
+        expand(quote(do: <<1::unknown()>>))
       end
     end
 
@@ -2936,7 +2938,7 @@ defmodule Kernel.ExpansionTest do
 
   defp expand_env(expr, env, to_clean \\ [:version, :inferred_bitstring_spec, :if_undefined]) do
     {{expr, scope, env}, _capture} =
-      ExUnit.CaptureIO.with_io(:stderr, fn ->
+      with_io(:stderr, fn ->
         :elixir_expand.expand(expr, :elixir_env.env_to_ex(env), env)
       end)
 
