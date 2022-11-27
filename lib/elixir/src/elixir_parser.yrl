@@ -1215,15 +1215,11 @@ warn_pipe(_Token, _) ->
   ok.
 
 %% TODO: Make this an error on v2.0
-warn_nested_no_parens_keyword(Key, Value) ->
+warn_nested_no_parens_keyword(Key, Value) when is_atom(Key) ->
   {line, Line} = lists:keyfind(line, 1, ?meta(Value)),
-  MaybeKeyword = case Key of
-    Atom when is_atom(Atom) ->  "\"" ++ atom_to_list(Key) ++ ":\" ";
-    _ -> ""
-  end,
   warn(
     Line,
-    "missing parentheses for expression following " ++ MaybeKeyword ++ "keyword. "
+    "missing parentheses for expression following \"" ++ atom_to_list(Key) ++ ":\" keyword. "
     "Parentheses are required to solve ambiguity inside keywords.\n\n"
     "This error happens when you have function calls without parentheses inside keywords. "
     "For example:\n\n"
@@ -1236,7 +1232,11 @@ warn_nested_no_parens_keyword(Key, Value) ->
     "    function(arg, one: if(expr, do: :this, else: :that))\n"
     "    function(arg, one: nested_call(a, b, c))\n\n"
     "Ambiguity found at:"
-  ).
+  );
+
+% Key might not be an atom when using literal_encoder, we just skip the warning
+warn_nested_no_parens_keyword(_Key, _Value) ->
+  nil.
 
 warn_empty_paren({_, {Line, Column, _}}) ->
   warn(
