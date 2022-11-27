@@ -107,6 +107,7 @@ handle_file_warning(_, File, {Line, Module, Desc}) ->
 handle_file_error(File, {beam_validator, Rest}) ->
   elixir_errors:form_error([{line, 0}], File, beam_validator, Rest);
 handle_file_error(File, {Line, Module, Desc}) ->
+  %% TODO: This should print an error and then exit with compile error for a given file/module
   Message = custom_format(Module, Desc),
   elixir_errors:compile_error([{line, Line}], File, Message).
 

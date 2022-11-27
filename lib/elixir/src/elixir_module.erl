@@ -159,6 +159,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
           impls => Impls
         },
 
+        %% TODO: Raise a compile error if form_error will print
         case ets:member(DataSet, {elixir, taint}) of
           true -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {tainted_module, Module});
           false -> ok
