@@ -1236,7 +1236,7 @@ warn_nested_no_parens_keyword(Key, Value) when is_atom(Key) ->
 
 % Key might not be an atom when using literal_encoder, we just skip the warning
 warn_nested_no_parens_keyword(_Key, _Value) ->
-  nil.
+  ok.
 
 warn_empty_paren({_, {Line, Column, _}}) ->
   warn(
