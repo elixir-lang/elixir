@@ -1215,7 +1215,7 @@ warn_pipe(_Token, _) ->
   ok.
 
 %% TODO: Make this an error on v2.0
-warn_nested_no_parens_keyword(Key, Value) ->
+warn_nested_no_parens_keyword(Key, Value) when is_atom(Key) ->
   {line, Line} = lists:keyfind(line, 1, ?meta(Value)),
   warn(
     Line,
@@ -1232,7 +1232,11 @@ warn_nested_no_parens_keyword(Key, Value) ->
     "    function(arg, one: if(expr, do: :this, else: :that))\n"
     "    function(arg, one: nested_call(a, b, c))\n\n"
     "Ambiguity found at:"
-  ).
+  );
+
+% Key might not be an atom when using literal_encoder, we just skip the warning
+warn_nested_no_parens_keyword(_Key, _Value) ->
+  ok.
 
 warn_empty_paren({_, {Line, Column, _}}) ->
   warn(
