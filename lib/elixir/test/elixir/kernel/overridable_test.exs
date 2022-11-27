@@ -291,11 +291,13 @@ defmodule Kernel.OverridableTest do
   end
 
   test "invalid super call" do
-    message =
-      "nofile:4: no super defined for foo/0 in module Kernel.OverridableOrder.Forwarding. " <>
+    messages = [
+      "nofile:4",
+      "no super defined for foo/0 in module Kernel.OverridableOrder.Forwarding. " <>
         "Overridable functions available are: bar/0"
+    ]
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableOrder.Forwarding do
         def bar(), do: 1
@@ -303,16 +305,18 @@ defmodule Kernel.OverridableTest do
         def foo(), do: super()
       end
       """)
-    end
+    end)
 
     purge(Kernel.OverridableOrder.Forwarding)
   end
 
   test "invalid super call with different arity" do
-    message =
-      "nofile:4: super must be called with the same number of arguments as the current definition"
+    messages = [
+      "nofile:4",
+      "super must be called with the same number of arguments as the current definition"
+    ]
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableSuper.DifferentArities do
         def bar(a), do: a
@@ -320,14 +324,16 @@ defmodule Kernel.OverridableTest do
         def bar(_), do: super()
       end
       """)
-    end
+    end)
   end
 
   test "invalid super capture with different arity" do
-    message =
-      "nofile:4: super must be called with the same number of arguments as the current definition"
+    messages = [
+      "nofile:4",
+      "super must be called with the same number of arguments as the current definition"
+    ]
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableSuperCapture.DifferentArities do
         def bar(a), do: a
@@ -335,15 +341,17 @@ defmodule Kernel.OverridableTest do
         def bar(_), do: (&super/0).()
       end
       """)
-    end
+    end)
   end
 
   test "does not allow to override a macro as a function" do
-    message =
-      "nofile:4: cannot override macro (defmacro, defmacrop) foo/0 in module " <>
+    messages = [
+      "nofile:4",
+      "cannot override macro (defmacro, defmacrop) foo/0 in module " <>
         "Kernel.OverridableMacro.FunctionOverride as a function (def, defp)"
+    ]
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableMacro.FunctionOverride do
         defmacro foo(), do: :ok
@@ -351,11 +359,11 @@ defmodule Kernel.OverridableTest do
         def foo(), do: :invalid
       end
       """)
-    end
+    end)
 
     purge(Kernel.OverridableMacro.FunctionOverride)
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableMacro.FunctionOverride do
         defmacro foo(), do: :ok
@@ -365,11 +373,11 @@ defmodule Kernel.OverridableTest do
         def foo(), do: :invalid
       end
       """)
-    end
+    end)
 
     purge(Kernel.OverridableMacro.FunctionOverride)
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableMacro.FunctionOverride do
         defmacro foo(), do: :ok
@@ -377,17 +385,19 @@ defmodule Kernel.OverridableTest do
         def foo(), do: super()
       end
       """)
-    end
+    end)
 
     purge(Kernel.OverridableMacro.FunctionOverride)
   end
 
   test "does not allow to override a function as a macro" do
-    message =
-      "nofile:4: cannot override function (def, defp) foo/0 in module " <>
+    messages = [
+      "nofile:4",
+      "cannot override function (def, defp) foo/0 in module " <>
         "Kernel.OverridableFunction.MacroOverride as a macro (defmacro, defmacrop)"
+    ]
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableFunction.MacroOverride do
         def foo(), do: :ok
@@ -395,11 +405,11 @@ defmodule Kernel.OverridableTest do
         defmacro foo(), do: :invalid
       end
       """)
-    end
+    end)
 
     purge(Kernel.OverridableFunction.MacroOverride)
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableFunction.MacroOverride do
         def foo(), do: :ok
@@ -409,11 +419,11 @@ defmodule Kernel.OverridableTest do
         defmacro foo(), do: :invalid
       end
       """)
-    end
+    end)
 
     purge(Kernel.OverridableFunction.MacroOverride)
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(messages, fn ->
       Code.eval_string("""
       defmodule Kernel.OverridableFunction.MacroOverride do
         def foo(), do: :ok
@@ -421,7 +431,7 @@ defmodule Kernel.OverridableTest do
         defmacro foo(), do: super()
       end
       """)
-    end
+    end)
 
     purge(Kernel.OverridableFunction.MacroOverride)
   end
@@ -533,5 +543,16 @@ defmodule Kernel.OverridableTest do
     end
 
     purge(Kernel.OverridableTest.Foo)
+  end
+
+  defp assert_compile_error(messages, fun) do
+    captured =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        assert_raise CompileError, fun
+      end)
+
+    for message <- List.wrap(messages) do
+      assert captured =~ message
+    end
   end
 end
