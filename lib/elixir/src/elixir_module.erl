@@ -165,7 +165,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
         },
 
         case ets:member(DataSet, {elixir, taint}) of
-          true -> elixir_errors:module_abort([{line, Line}], E);
+          true -> elixir_errors:compile_error(E);
           false -> ok
         end,
 
