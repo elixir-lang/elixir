@@ -53,6 +53,8 @@ form_error(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
 form_error(Meta, Env, Module, Desc) when is_list(Meta) ->
   compile_error(Meta, ?key(Env, file), Module:format_error(Desc)).
 
+%% A module error is one where it can continue if there is a module
+%% being compiled. If there is no such module, it is a regular form_error.
 -spec module_error(list(), #{file := binary(), module := module() | nil, _ => _}, module(), any()) -> ok.
 module_error(Meta, #{module := EnvModule} = Env, Module, Desc) when EnvModule /= nil ->
   print_error(Meta, Env, Module, Desc),
@@ -73,13 +75,13 @@ print_error(Meta, Env, Module, Desc) ->
 
 %% Compilation error.
 
--spec compile_error(#{file := binary(), module := module(), _ => _}) -> no_return().
-compile_error(#{module := nil, file := File}) ->
-  Message = io_lib:format("cannot compile file ~ts (errors have been logged)", [File]),
-  compile_error([], File, Message);
-compile_error(#{module := Module, file := File}) ->
+-spec compile_error(#{file := binary(), _ => _}) -> no_return().
+compile_error(#{module := Module, file := File}) when Module /= nil ->
   Inspected = elixir_aliases:inspect(Module),
   Message = io_lib:format("cannot compile module ~ts (errors have been logged)", [Inspected]),
+  compile_error([], File, Message);
+compile_error(#{file := File}) ->
+  Message = io_lib:format("cannot compile file ~ts (errors have been logged)", [File]),
   compile_error([], File, Message).
 
 -spec compile_error(list(), binary(), binary() | unicode:charlist()) -> no_return().
