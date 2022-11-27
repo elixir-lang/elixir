@@ -698,4 +698,9 @@ defmodule Code.Formatter.IntegrationTest do
                 """,
                 line_length: :infinity
   end
+
+  test "functions without parentheses within do: keyword" do
+    assert_format ~S"defmodule Foo, do: foo bar, baz",
+                  ~S"defmodule Foo, do: foo(bar, baz)"
+  end
 end
