@@ -79,7 +79,7 @@ take_definition(Module, {Name, Arity} = Tuple) ->
 
 %% Fetch all available definitions
 
-fetch_definitions(File, Module) ->
+fetch_definitions(Module, E) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   Entries = try
@@ -88,9 +88,9 @@ fetch_definitions(File, Module) ->
     error:badarg -> []
   end,
 
-  fetch_definition(Entries, File, Module, Set, Bag, [], []).
+  fetch_definition(Entries, E, Module, Set, Bag, [], []).
 
-fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
+fetch_definition([Tuple | T], E, Module, Set, Bag, All, Private) ->
   [{_, Kind, Meta, _, Check, {MaxDefaults, _, Defaults}}] = ets:lookup(Set, {def, Tuple}),
 
   try ets:lookup_element(Bag, {clauses, Tuple}, 2) of
@@ -105,14 +105,14 @@ fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
           false ->
             Private
         end,
-      fetch_definition(T, File, Module, Set, Bag, NewAll, NewPrivate)
+      fetch_definition(T, E, Module, Set, Bag, NewAll, NewPrivate)
   catch
     error:badarg ->
-      elixir_errors:module_error(Meta, File, ?MODULE, {function_head, Kind, Tuple}),
-      fetch_definition(T, File, Module, Set, Bag, All, Private)
+      elixir_errors:module_error(Meta, E, ?MODULE, {function_head, Kind, Tuple}),
+      fetch_definition(T, E, Module, Set, Bag, All, Private)
   end;
 
-fetch_definition([], _File, _Module, _Set, _Bag, All, Private) ->
+fetch_definition([], _E, _Module, _Set, _Bag, All, Private) ->
   {All, Private}.
 
 add_defaults_to_meta(0, Meta) -> Meta;
@@ -357,7 +357,7 @@ check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, C
 % Clause with defaults after clause with defaults
 check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _, _)
     when Defaults > 0, StoredDefaults > 0 ->
-  elixir_errors:module_error(Meta, File, ?MODULE, {duplicate_defaults, {Kind, Name, Arity}});
+  elixir_errors:form_error(Meta, File, ?MODULE, {duplicate_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause without defaults
 check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, _, _, _) when Defaults > 0 ->
   elixir_errors:form_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});

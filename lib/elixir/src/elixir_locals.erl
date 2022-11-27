@@ -88,23 +88,23 @@ get_cached_env(Env) ->
 
 %% ERROR HANDLING
 
-ensure_no_import_conflict(_E, 'Elixir.Kernel', _All) ->
+ensure_no_import_conflict('Elixir.Kernel', _All, _E) ->
   ok;
-ensure_no_import_conflict(E, Module, All) ->
+ensure_no_import_conflict(Module, All, E) ->
   if_tracker(Module, ok, fun(Tracker) ->
     [elixir_errors:module_error(Meta, E, ?MODULE, {function_conflict, Error})
      || {Meta, Error} <- ?tracker:collect_imports_conflicts(Tracker, All)],
     ok
   end).
 
-ensure_no_undefined_local(E, Module, All) ->
+ensure_no_undefined_local(Module, All, E) ->
   if_tracker(Module, [], fun(Tracker) ->
     [elixir_errors:module_error(Meta, E#{function := Function}, ?MODULE, {Error, Tuple, Module})
      || {Function, Meta, Tuple, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
     ok
   end).
 
-warn_unused_local(E, Module, All, Private) ->
+warn_unused_local(Module, All, Private, E) ->
   if_tracker(Module, [], fun(Tracker) ->
     {Unreachable, Warnings} = ?tracker:collect_unused_locals(Tracker, All, Private),
     [elixir_errors:form_warn(Meta, E, ?MODULE, Error) || {Meta, Error} <- Warnings],

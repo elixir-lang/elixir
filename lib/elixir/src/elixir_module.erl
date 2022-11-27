@@ -92,16 +92,16 @@ compile(Module, Block, Vars, Prune, Env) when is_atom(Module) ->
     _ ->
       compile(Line, Module, Block, Vars, Prune, MaybeLexEnv)
   end;
-compile(Module, _Block, _Vars, _Prune, #{line := Line, file := File}) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module}).
+compile(Module, _Block, _Vars, _Prune, #{line := Line} = E) ->
+  elixir_errors:form_error([{line, Line}], E, ?MODULE, {invalid_module, Module}).
 
 compile(Line, Module, Block, Vars, Prune, E) ->
   File = ?key(E, file),
-  check_module_availability(Line, File, Module),
-  ModuleAsCharlist = validate_module_name(Line, File, Module),
+  check_module_availability(Module, Line, E),
+  ModuleAsCharlist = validate_module_name(Module, Line, E),
 
   CompilerModules = compiler_modules(),
-  {Tables, Ref} = build(Line, File, Module),
+  {Tables, Ref} = build(Module, Line, File, E),
   {DataSet, DataBag} = Tables,
 
   try
@@ -113,17 +113,17 @@ compile(Line, Module, Block, Vars, Prune, E) ->
       elixir_erl_compiler:spawn(fun() ->
         PersistedAttributes = ets:lookup_element(DataBag, persisted_attributes, 2),
         Attributes = attributes(DataSet, DataBag, PersistedAttributes),
-        {AllDefinitions, Private} = elixir_def:fetch_definitions(File, Module),
+        {AllDefinitions, Private} = elixir_def:fetch_definitions(Module, E),
 
         OnLoadAttribute = lists:keyfind(on_load, 1, Attributes),
-        NewPrivate = validate_on_load_attribute(OnLoadAttribute, AllDefinitions, Private, File, Line),
+        NewPrivate = validate_on_load_attribute(OnLoadAttribute, AllDefinitions, Private, Line, E),
 
         DialyzerAttribute = lists:keyfind(dialyzer, 1, Attributes),
-        validate_dialyzer_attribute(DialyzerAttribute, AllDefinitions, File, Line),
+        validate_dialyzer_attribute(DialyzerAttribute, AllDefinitions, Line, E),
 
-        Unreachable = elixir_locals:warn_unused_local(E, Module, AllDefinitions, NewPrivate),
-        elixir_locals:ensure_no_undefined_local(E, Module, AllDefinitions),
-        elixir_locals:ensure_no_import_conflict(E, Module, AllDefinitions),
+        Unreachable = elixir_locals:warn_unused_local(Module, AllDefinitions, NewPrivate, E),
+        elixir_locals:ensure_no_undefined_local(Module, AllDefinitions, E),
+        elixir_locals:ensure_no_import_conflict(Module, AllDefinitions, E),
 
         %% We stop tracking locals here to avoid race conditions in case after_load
         %% evaluates code in a separate process that may write to locals table.
@@ -134,7 +134,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
          'Elixir.Module':'__check_attributes__'(E, DataSet, DataBag),
 
         RawCompileOpts = bag_lookup_element(DataBag, {accumulate, compile}, 2),
-        CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, File, Line),
+        CompileOpts = validate_compile_opts(RawCompileOpts, AllDefinitions, Unreachable, Line, E),
         UsesBehaviours = bag_lookup_element(DataBag, {accumulate, behaviour}, 2),
         Impls = bag_lookup_element(DataBag, impls, 2),
 
@@ -161,7 +161,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
 
         %% TODO: Raise a compile error if form_error will print
         case ets:member(DataSet, {elixir, taint}) of
-          true -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {tainted_module, Module});
+          true -> elixir_errors:form_error([{line, Line}], E, ?MODULE, {tainted_module, Module});
           false -> ok
         end,
 
@@ -174,7 +174,7 @@ compile(Line, Module, Block, Vars, Prune, E) ->
     Autoload andalso code:load_binary(Module, beam_location(ModuleAsCharlist), Binary),
     eval_callbacks(Line, DataBag, after_compile, [CallbackE, Binary], CallbackE),
     elixir_env:trace({on_module, Binary, none}, ModuleE),
-    warn_unused_attributes(File, DataSet, DataBag, PersistedAttributes),
+    warn_unused_attributes(E, DataSet, DataBag, PersistedAttributes),
     make_module_available(Module, Binary),
     (CheckerInfo == undefined) andalso
       [VerifyMod:VerifyFun(Module) ||
@@ -197,22 +197,26 @@ compile(Line, Module, Block, Vars, Prune, E) ->
     elixir_code_server:call({undefmodule, Ref})
   end.
 
-validate_compile_opts(Opts, Defs, Unreachable, File, Line) ->
-  lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Unreachable, File, Line) end, Opts).
+validate_compile_opts(Opts, Defs, Unreachable, Line, E) ->
+  lists:flatmap(fun (Opt) -> validate_compile_opt(Opt, Defs, Unreachable, Line, E) end, Opts).
 
 %% TODO: Make this an error on v2.0
-validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, File, Line) ->
-  elixir_errors:form_warn([{line, Line}], File, ?MODULE, {parse_transform, Module}),
+validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, Line, E) ->
+  elixir_errors:form_warn([{line, Line}], E, ?MODULE, {parse_transform, Module}),
   [Opt];
-validate_compile_opt({inline, Inlines}, Defs, Unreachable, File, Line) ->
+validate_compile_opt({inline, Inlines}, Defs, Unreachable, Line, E) ->
   case validate_inlines(Inlines, Defs, Unreachable, []) of
-    {ok, []} -> [];
-    {ok, FilteredInlines} -> [{inline, FilteredInlines}];
-    {error, Def} -> elixir_errors:module_error([{line, Line}], File, ?MODULE, {bad_inline, Def})
+    {ok, []} ->
+      [];
+    {ok, FilteredInlines} ->
+      [{inline, FilteredInlines}];
+    {error, Def} ->
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_inline, Def}),
+      []
   end;
-validate_compile_opt(Opt, Defs, Unreachable, File, Line) when is_list(Opt) ->
-  validate_compile_opts(Opt, Defs, Unreachable, File, Line);
-validate_compile_opt(Opt, _Defs, _Unreachable, _File, _Line) ->
+validate_compile_opt(Opt, Defs, Unreachable, Line, E) when is_list(Opt) ->
+  validate_compile_opts(Opt, Defs, Unreachable, Line, E);
+validate_compile_opt(Opt, _Defs, _Unreachable, _Line, _E) ->
   [Opt].
 
 validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
@@ -226,25 +230,27 @@ validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
   end;
 validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
 
-validate_on_load_attribute({on_load, Def}, Defs, Private, File, Line) ->
+validate_on_load_attribute({on_load, Def}, Defs, Private, Line, E) ->
   case lists:keyfind(Def, 1, Defs) of
     false ->
-      elixir_errors:module_error([{line, Line}], File, ?MODULE, {undefined_on_load, Def});
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {undefined_on_load, Def}),
+      Private;
     {_, Kind, _, _} when Kind == def; Kind == defp ->
       lists:keydelete(Def, 1, Private);
     {_, WrongKind, _, _} ->
-      elixir_errors:module_error([{line, Line}], File, ?MODULE, {wrong_kind_on_load, Def, WrongKind})
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {wrong_kind_on_load, Def, WrongKind}),
+      Private
   end;
-validate_on_load_attribute(false, _Module, Private, _File, _Line) -> Private.
+validate_on_load_attribute(false, _Defs, Private, _Line, _E) -> Private.
 
-validate_dialyzer_attribute({dialyzer, Dialyzer}, Defs, File, Line) ->
+validate_dialyzer_attribute({dialyzer, Dialyzer}, Defs, Line, E) ->
   [case lists:keyfind(Fun, 1, Defs) of
     false ->
-      elixir_errors:module_error([{line, Line}], File, ?MODULE, {bad_dialyzer, Key, Fun});
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_dialyzer, Key, Fun});
     _ ->
       ok
    end || {Key, Funs} <- lists:flatten([Dialyzer]), Fun <- lists:flatten([Funs])];
-validate_dialyzer_attribute(false, _Defs, _File, _Line) ->
+validate_dialyzer_attribute(false, _Defs, _Line, _E) ->
   ok.
 
 defines_behaviour(DataBag) ->
@@ -266,13 +272,13 @@ compile_undef(Module, Fun, Arity, Stack) ->
 
 %% Handle reserved modules and duplicates.
 
-check_module_availability(Line, File, Module) ->
+check_module_availability(Module, Line, E) ->
   Reserved = ['Elixir.True', 'Elixir.False', 'Elixir.Nil',
               'Elixir.Any', 'Elixir.BitString', 'Elixir.PID',
               'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
 
   case lists:member(Module, Reserved) of
-    true  -> elixir_errors:form_error([{line, Line}], File, ?MODULE, {module_reserved, Module});
+    true  -> elixir_errors:form_error([{line, Line}], E, ?MODULE, {module_reserved, Module});
     false -> ok
   end,
 
@@ -280,7 +286,7 @@ check_module_availability(Line, File, Module) ->
     false ->
       case code:ensure_loaded(Module) of
         {module, _} ->
-          elixir_errors:form_warn([{line, Line}], File, ?MODULE, {module_defined, Module});
+          elixir_errors:form_warn([{line, Line}], E, ?MODULE, {module_defined, Module});
         {error, _}  ->
           ok
       end;
@@ -288,20 +294,20 @@ check_module_availability(Line, File, Module) ->
       ok
   end.
 
-validate_module_name(Line, File, Module) when Module == nil; is_boolean(Module) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
-validate_module_name(Line, File, Module) ->
+validate_module_name(Module, Line, E) when Module == nil; is_boolean(Module) ->
+  elixir_errors:form_error([{line, Line}], E, ?MODULE, {invalid_module, Module});
+validate_module_name(Module, Line, E) ->
   Charlist = atom_to_list(Module),
   case lists:any(fun(Char) -> (Char =:= $/) or (Char =:= $\\) end, Charlist) of
     true ->
-      elixir_errors:form_error([{line, Line}], File, ?MODULE, {invalid_module, Module});
+      elixir_errors:form_error([{line, Line}], E, ?MODULE, {invalid_module, Module});
     false ->
       Charlist
   end.
 
 %% Hook that builds both attribute and functions and set up common hooks.
 
-build(Line, File, Module) ->
+build(Module, Line, File, E) ->
   %% In the set table we store:
   %%
   %% * {Attribute, Value, AccumulateOrUnsetOrReadOrUnreadline, TraceLineOrNil}
@@ -382,7 +388,7 @@ build(Line, File, Module) ->
         ets:delete(DataSet),
         ets:delete(DataBag),
         Error = {module_in_definition, Module, OldFile, OldLine},
-        elixir_errors:form_error([{line, Line}], File, ?MODULE, Error)
+        elixir_errors:form_error([{line, Line}], E, ?MODULE, Error)
     end,
 
   {Tables, Ref}.
@@ -455,13 +461,13 @@ lookup_attribute(DataSet, DataBag, Key) when is_atom(Key) ->
     [] -> []
   end.
 
-warn_unused_attributes(File, DataSet, DataBag, PersistedAttrs) ->
+warn_unused_attributes(E, DataSet, DataBag, PersistedAttrs) ->
   StoredAttrs = bag_lookup_element(DataBag, warn_attributes, 2),
   %% This is the same list as in Module.put_attribute
   %% without moduledoc which are never warned on.
   Attrs = [doc, typedoc, impl, deprecated | StoredAttrs -- PersistedAttrs],
   Query = [{{Attr, '_', '$1', '_'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
-  [elixir_errors:form_warn([{line, Line}], File, ?MODULE, {unused_attribute, Key})
+  [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_attribute, Key})
    || [Key, Line] <- ets:select(DataSet, Query)].
 
 get_struct(Set) ->

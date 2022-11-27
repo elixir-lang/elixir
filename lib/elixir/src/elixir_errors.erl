@@ -204,8 +204,8 @@ error_prefix() ->
     _ -> <<"error: ">>
   end.
 
-env_format(Meta, #{file := File} = E) ->
-  [{file, File}, {line, Line}] = meta_location(Meta, File),
+env_format(Meta, #{file := EnvFile} = E) ->
+  [{file, File}, {line, Line}] = meta_location(Meta, EnvFile),
 
   Location =
     case E of
