@@ -2860,7 +2860,7 @@ defmodule Kernel.ExpansionTest do
       expand(quote(do: __ENV__.line.foo))
     end)
 
-    assert_compile_error(~r"unhandled operator ->", fn ->
+    assert_compile_error(~r"misplaced operator ->", fn ->
       expand(quote(do: (foo -> bar)))
     end)
 
