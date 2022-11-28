@@ -7,7 +7,7 @@
 -export([compile_error/1, compile_error/3, parse_error/5]).
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
--export([print_warning/4, print_warning_no_log/1, print_warning_no_log/3]).
+-export([print_warning/4, print_warning_no_diagnostic/1, print_warning_no_diagnostic/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
 
@@ -16,22 +16,22 @@
 erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
 erl_warn(Location, File, Warning) when is_binary(File) ->
-  send_warning(Location, File, Warning),
-  print_warning_no_log(Location, File, Warning).
+  send_diagnostic(warning, Location, File, Warning),
+  print_warning_no_diagnostic(Location, File, Warning).
 
--spec print_warning_no_log(location(), unicode:chardata(), unicode:chardata()) -> ok.
-print_warning_no_log(Location, File, Warning) ->
-  print_warning_no_log([Warning, "\n  ", file_format(Location, File), $\n]).
+-spec print_warning_no_diagnostic(location(), unicode:chardata(), unicode:chardata()) -> ok.
+print_warning_no_diagnostic(Location, File, Warning) ->
+  print_warning_no_diagnostic([Warning, "\n  ", file_format(Location, File), $\n]).
 
--spec print_warning_no_log(unicode:chardata()) -> ok.
-print_warning_no_log(Message) ->
+-spec print_warning_no_diagnostic(unicode:chardata()) -> ok.
+print_warning_no_diagnostic(Message) ->
   io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
   ok.
 
 -spec print_warning(location(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
-print_warning(Location, File, LogMessage, PrintMessage) when is_binary(File) or (File == nil) ->
-  send_warning(Location, File, LogMessage),
-  print_warning_no_log(PrintMessage).
+print_warning(Location, File, DiagMessage, PrintMessage) when is_binary(File) or (File == nil) ->
+  send_diagnostic(warning, Location, File, DiagMessage),
+  print_warning_no_diagnostic(PrintMessage).
 
 %% Compilation error/warn handling.
 
@@ -210,10 +210,10 @@ snippet(InputString, Location, StartLine, StartColumn) ->
 
 %% Helpers
 
-send_warning(Line, File, Message) ->
+send_diagnostic(Type, Line, File, Message) ->
   case get(elixir_compiler_info) of
     undefined -> ok;
-    {CompilerPid, _} -> CompilerPid ! {warning, File, Line, Message}
+    {CompilerPid, _} -> CompilerPid ! {Type, File, Line, Message}
   end,
   ok.
 

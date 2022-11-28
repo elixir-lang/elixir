@@ -290,7 +290,7 @@ defmodule Module.ParallelChecker do
   def emit_warnings(warnings) do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
-      :elixir_errors.print_warning_no_log([message, ?\n, format_locations(locations)])
+      :elixir_errors.print_warning_no_diagnostic([message, ?\n, format_locations(locations)])
 
       Enum.map(locations, fn {file, line, _mfa} ->
         {file, line, message}
