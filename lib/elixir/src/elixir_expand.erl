@@ -1,6 +1,6 @@
 -module(elixir_expand).
 -export([expand/3, expand_args/3, expand_arg/3, format_error/1]).
--import(elixir_errors, [file_error/4, module_error/4]).
+-import(elixir_errors, [file_error/4, module_error/4, function_error/4]).
 -include("elixir.hrl").
 
 %% =
@@ -118,16 +118,12 @@ expand({'__DIR__', _, Atom}, S, E) when is_atom(Atom) ->
   {filename:dirname(?key(E, file)), S, E};
 expand({'__CALLER__', Meta, Atom} = Caller, S, E) when is_atom(Atom) ->
   assert_no_match_scope(Meta, "__CALLER__", E),
-  case S#elixir_ex.caller of
-    true -> {Caller, S, E};
-    false -> file_error(Meta, E, ?MODULE, caller_not_allowed)
-  end;
+  (not S#elixir_ex.caller) andalso function_error(Meta, E, ?MODULE, caller_not_allowed),
+  {Caller, S, E};
 expand({'__STACKTRACE__', Meta, Atom} = Stacktrace, S, E) when is_atom(Atom) ->
   assert_no_match_scope(Meta, "__STACKTRACE__", E),
-  case S#elixir_ex.stacktrace of
-    true -> {Stacktrace, S, E};
-    false -> file_error(Meta, E, ?MODULE, stacktrace_not_allowed)
-  end;
+  (not S#elixir_ex.stacktrace) andalso function_error(Meta, E, ?MODULE, stacktrace_not_allowed),
+  {Stacktrace, S, E};
 expand({'__ENV__', Meta, Atom}, S, E) when is_atom(Atom) ->
   assert_no_match_scope(Meta, "__ENV__", E),
   {escape_map(escape_env_entries(Meta, S, E)), S, E};
@@ -284,15 +280,18 @@ expand({'^', Meta, [Arg]}, S, #{context := match} = E) ->
       {{'^', Meta, [Var]}, S#elixir_ex{unused=Unused}, E};
 
     _ ->
-      file_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg})
+      function_error(Meta, E, ?MODULE, {invalid_arg_for_pin, Arg}),
+      {{'^', Meta, [Arg]}, S, E}
   end;
-expand({'^', Meta, [Arg]}, _S, E) ->
-  file_error(Meta, E, ?MODULE, {pin_outside_of_match, Arg});
+expand({'^', Meta, [Arg]}, S, E) ->
+  function_error(Meta, E, ?MODULE, {pin_outside_of_match, Arg}),
+  {{'^', Meta, [Arg]}, S, E};
 
 expand({'_', _Meta, Kind} = Var, S, #{context := match} = E) when is_atom(Kind) ->
   {Var, S, E};
-expand({'_', Meta, Kind}, _S, E) when is_atom(Kind) ->
-  file_error(Meta, E, ?MODULE, unbound_underscore);
+expand({'_', Meta, Kind}, S, E) when is_atom(Kind) ->
+  function_error(Meta, E, ?MODULE, unbound_underscore),
+  {{'_', Meta, Kind}, S, E};
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #elixir_ex{
@@ -358,23 +357,26 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 
     Error ->
       case lists:keyfind(if_undefined, 1, Meta) of
-        %% TODO: Remove this clause on v2.0 as we will always raise by default
-        {if_undefined, raise} ->
-          file_error(Meta, E, ?MODULE, {undefined_var, Name, Kind});
-
         {if_undefined, apply} ->
           expand({Name, Meta, []}, S, E);
 
-        %% TODO: Remove this clause on v2.0
+        %% TODO: Remove this clause on v2.0 as we will raise by default
+        {if_undefined, raise} ->
+          function_error(Meta, E, ?MODULE, {undefined_var, Name, Kind}),
+          {{Name, Meta, Kind}, S, E};
+
+        %% TODO: Remove this clause on v2.0 as we will no longer support warn
         _ when Error == warn ->
           elixir_errors:file_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
           expand({Name, [{if_undefined, warn} | Meta], []}, S, E);
 
         _ when Error == pin ->
-          file_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind});
+          function_error(Meta, E, ?MODULE, {undefined_var_pin, Name, Kind}),
+          {{Name, Meta, Kind}, S, E};
 
         _ ->
-          file_error(Meta, E, ?MODULE, {undefined_var, Name, Kind})
+          function_error(Meta, E, ?MODULE, {undefined_var, Name, Kind}),
+          {{Name, Meta, Kind}, S, E}
       end
   end;
 
@@ -401,14 +403,9 @@ expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
 
 expand({{'.', DotMeta, [Expr]}, Meta, Args}, S, E) when is_list(Args) ->
   assert_no_match_or_guard_scope(Meta, "anonymous call", S, E),
-
-  case expand_args([Expr | Args], S, E) of
-    {[EExpr | _], _, _} when is_atom(EExpr) ->
-      file_error(Meta, E, ?MODULE, {invalid_function_call, EExpr});
-
-    {[EExpr | EArgs], SA, EA} ->
-      {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, SA, EA}
-  end;
+  {[EExpr | EArgs], SA, EA} = expand_args([Expr | Args], S, E),
+  is_atom(EExpr) andalso function_error(Meta, E, ?MODULE, {invalid_function_call, EExpr}),
+  {{{'.', DotMeta, [EExpr]}, Meta, EArgs}, SA, EA};
 
 %% Invalid calls
 
@@ -816,8 +813,10 @@ assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Ke
 assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
   ok.
 
-expand_local(Meta, Name, Args, _S, E) when Name == '|'; Name == '::' ->
-  file_error(Meta, E, ?MODULE, {undefined_function, Name, Args});
+expand_local(Meta, Name, Args, S, E) when Name == '|'; Name == '::' ->
+  function_error(Meta, E, ?MODULE, {undefined_function, Name, Args}),
+  {EArgs, SA, EA} = expand_args(Args, S, E),
+  {{Name, Meta, EArgs}, SA, EA};
 expand_local(Meta, Name, Args, S, #{module := Module, function := Function, context := Context} = E)
     when Function /= nil ->
   assert_no_clauses(Name, Meta, Args, E),
@@ -848,11 +847,11 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
   assert_no_clauses(Right, Meta, Args, E),
 
   case {Context, lists:keyfind(no_parens, 1, Meta)} of
-    {guard, {no_parens, true}} when is_tuple(Receiver) ->
-      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
+    {guard, NoParens} when is_tuple(Receiver) ->
+      (NoParens /= {no_parens, true}) andalso
+        function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, guard_context(S)}),
 
-    {guard, _} when is_tuple(Receiver) ->
-      file_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, guard_context(S)});
+      {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
     _ ->
       AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
@@ -866,6 +865,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
         {ok, Rewritten} ->
           maybe_warn_comparison(Rewritten, Args, E),
           {Rewritten, elixir_env:close_write(SA, S), EA};
+
         {error, Error} ->
           file_error(Meta, E, elixir_rewrite, Error)
       end
