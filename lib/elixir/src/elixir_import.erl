@@ -77,28 +77,28 @@ filter_sigils(Key) ->
 
 calculate(Meta, Key, Opts, Old, File, Existing) ->
   New = case keyfind(only, Opts) of
-    {only, Only} when is_list(Only) ->
-      ensure_keyword_list(Meta, File, Only, only),
-      ensure_no_duplicates(Meta, File, Only, only),
+    {only, DupOnly} when is_list(DupOnly) ->
+      ensure_keyword_list(Meta, File, DupOnly, only),
+      Only = ensure_no_duplicates(Meta, File, DupOnly, only),
+
       case keyfind(except, Opts) of
-        false ->
-          ok;
-        _ ->
-          elixir_errors:file_error(Meta, File, ?MODULE, only_and_except_given)
+        false -> ok;
+        _ -> elixir_errors:file_error(Meta, File, ?MODULE, only_and_except_given)
       end,
-      case Only -- get_exports(Key) of
-        [{Name, Arity} | _] ->
-          elixir_errors:file_error(Meta, File, ?MODULE, {invalid_import, {Key, Name, Arity}});
-        _ ->
-          intersection(Only, Existing())
-      end;
+
+      [elixir_errors:file_warn(Meta, File, ?MODULE, {invalid_import, {Key, Name, Arity}}) ||
+       {Name, Arity} <- Only -- get_exports(Key)],
+
+      intersection(Only, Existing());
+
     _ ->
       case keyfind(except, Opts) of
         false ->
           remove_underscored(Existing());
-        {except, Except} when is_list(Except) ->
-          ensure_keyword_list(Meta, File, Except, except),
-          ensure_no_duplicates(Meta, File, Except, except),
+
+        {except, DupExcept} when is_list(DupExcept) ->
+          ensure_keyword_list(Meta, File, DupExcept, except),
+          Except = ensure_no_duplicates(Meta, File, DupExcept, except),
           %% We are not checking existence of exports listed in :except option
           %% on purpose: to support backwards compatible code.
           %% For example, "import String, except: [trim: 1]"
@@ -107,6 +107,7 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
             false -> remove_underscored(Existing()) -- Except;
             {Key, OldImports} -> OldImports -- Except
           end;
+
         {except, Other} ->
           elixir_errors:file_error(Meta, File, ?MODULE, {invalid_option, except, Other})
       end

@@ -299,7 +299,7 @@ defmodule Kernel.ErrorsTest do
         def __struct__, do: %{__struct__: 1}
         def __struct__(_), do: %{__struct__: 1}
 
-        assert_raise CompileError, invalid_struct_key_error, fn ->
+        assert_raise ArgumentError, invalid_struct_key_error, fn ->
           Macro.struct!(__MODULE__, __ENV__)
         end
       end
