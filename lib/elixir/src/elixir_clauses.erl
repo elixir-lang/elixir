@@ -4,7 +4,7 @@
 -export([match/5, clause/6, def/3, head/3,
          'case'/4, 'receive'/4, 'try'/4, 'cond'/4, with/4,
          format_error/1]).
--import(elixir_errors, [form_error/4, form_warn/4]).
+-import(elixir_errors, [file_error/4, file_warn/4]).
 -include("elixir.hrl").
 
 match(Fun, Expr, AfterS, _BeforeS, #{context := match} = E) ->
@@ -45,7 +45,7 @@ clause(_Meta, _Kind, Fun, {'->', Meta, [Left, Right]}, S, E) ->
   {ERight, SR, ER} = elixir_expand:expand(Right, SL, EL),
   {{'->', Meta, [ELeft, ERight]}, SR, ER};
 clause(Meta, Kind, _Fun, _, _, E) ->
-  form_error(Meta, E, ?MODULE, {bad_or_missing_clauses, Kind}).
+  file_error(Meta, E, ?MODULE, {bad_or_missing_clauses, Kind}).
 
 head([{'when', Meta, [_ | _] = All}], S, E) ->
   {Args, Guard} = elixir_utils:split_last(All),
@@ -78,7 +78,7 @@ warn_zero_length_guard({{'.', _, [erlang, Op]}, Meta,
       '==' -> {zero_list_length_in_guard, Arg};
       '>' -> {positive_list_length_in_guard, Arg}
     end,
-  form_warn(Meta, ?key(E, file), ?MODULE, Warn);
+  file_warn(Meta, ?key(E, file), ?MODULE, Warn);
 warn_zero_length_guard({Op, _, [L, R]}, E) when Op == 'or'; Op == 'and' ->
   warn_zero_length_guard(L, E),
   warn_zero_length_guard(R, E);
@@ -88,12 +88,12 @@ warn_zero_length_guard(_, _) ->
 %% Case
 
 'case'(Meta, [], _S, E) ->
-  form_error(Meta, E, elixir_expand, {missing_option, 'case', [do]});
+  file_error(Meta, E, elixir_expand, {missing_option, 'case', [do]});
 'case'(Meta, Opts, _S, E) when not is_list(Opts) ->
-  form_error(Meta, E, elixir_expand, {invalid_args, 'case'});
+  file_error(Meta, E, elixir_expand, {invalid_args, 'case'});
 'case'(Meta, Opts, S, E) ->
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
-    form_error(Meta, E, ?MODULE, {duplicated_clauses, 'case', Key})
+    file_error(Meta, E, ?MODULE, {duplicated_clauses, 'case', Key})
   end),
   {Case, SA} = lists:mapfoldl(fun(X, SA) -> expand_case(Meta, X, SA, E) end, S, Opts),
   {Case, SA, E}.
@@ -102,17 +102,17 @@ expand_case(Meta, {'do', _} = Do, S, E) ->
   Fun = expand_head(Meta, 'case', 'do'),
   expand_clauses(Meta, 'case', Fun, Do, S, E);
 expand_case(Meta, {Key, _}, _S, E) ->
-  form_error(Meta, E, ?MODULE, {unexpected_option, 'case', Key}).
+  file_error(Meta, E, ?MODULE, {unexpected_option, 'case', Key}).
 
 %% Cond
 
 'cond'(Meta, [], _S, E) ->
-  form_error(Meta, E, elixir_expand, {missing_option, 'cond', [do]});
+  file_error(Meta, E, elixir_expand, {missing_option, 'cond', [do]});
 'cond'(Meta, Opts, _S, E) when not is_list(Opts) ->
-  form_error(Meta, E, elixir_expand, {invalid_args, 'cond'});
+  file_error(Meta, E, elixir_expand, {invalid_args, 'cond'});
 'cond'(Meta, Opts, S, E) ->
   ok = assert_at_most_once('do', Opts, 0, fun(Key) ->
-    form_error(Meta, E, ?MODULE, {duplicated_clauses, 'cond', Key})
+    file_error(Meta, E, ?MODULE, {duplicated_clauses, 'cond', Key})
   end),
   {Cond, SA} = lists:mapfoldl(fun(X, SA) -> expand_cond(Meta, X, SA, E) end, S, Opts),
   {Cond, SA, E}.
@@ -121,17 +121,17 @@ expand_cond(Meta, {'do', _} = Do, S, E) ->
   Fun = expand_one(Meta, 'cond', 'do', fun elixir_expand:expand_args/3),
   expand_clauses(Meta, 'cond', Fun, Do, S, E);
 expand_cond(Meta, {Key, _}, _S, E) ->
-  form_error(Meta, E, ?MODULE, {unexpected_option, 'cond', Key}).
+  file_error(Meta, E, ?MODULE, {unexpected_option, 'cond', Key}).
 
 %% Receive
 
 'receive'(Meta, [], _S, E) ->
-  form_error(Meta, E, elixir_expand, {missing_option, 'receive', [do, 'after']});
+  file_error(Meta, E, elixir_expand, {missing_option, 'receive', [do, 'after']});
 'receive'(Meta, Opts, _S, E) when not is_list(Opts) ->
-  form_error(Meta, E, elixir_expand, {invalid_args, 'receive'});
+  file_error(Meta, E, elixir_expand, {invalid_args, 'receive'});
 'receive'(Meta, Opts, S, E) ->
   RaiseError = fun(Key) ->
-    form_error(Meta, E, ?MODULE, {duplicated_clauses, 'receive', Key})
+    file_error(Meta, E, ?MODULE, {duplicated_clauses, 'receive', Key})
   end,
   ok = assert_at_most_once('do', Opts, 0, RaiseError),
   ok = assert_at_most_once('after', Opts, 0, RaiseError),
@@ -147,9 +147,9 @@ expand_receive(Meta, {'after', [_]} = After, S, E) ->
   Fun = expand_one(Meta, 'receive', 'after', fun elixir_expand:expand_args/3),
   expand_clauses(Meta, 'receive', Fun, After, S, E);
 expand_receive(Meta, {'after', _}, _S, E) ->
-  form_error(Meta, E, ?MODULE, multiple_after_clauses_in_receive);
+  file_error(Meta, E, ?MODULE, multiple_after_clauses_in_receive);
 expand_receive(Meta, {Key, _}, _S, E) ->
-  form_error(Meta, E, ?MODULE, {unexpected_option, 'receive', Key}).
+  file_error(Meta, E, ?MODULE, {unexpected_option, 'receive', Key}).
 
 %% With
 
@@ -162,7 +162,7 @@ with(Meta, Args, S, E) ->
 
   case Opts2 of
     [{Key, _} | _] ->
-      form_error(Meta, E, elixir_clauses, {unexpected_option, with, Key});
+      file_error(Meta, E, elixir_clauses, {unexpected_option, with, Key});
     [] ->
       ok
   end,
@@ -184,7 +184,7 @@ expand_with_do(Meta, Opts, S, Acc, E) ->
       {EExpr, SAcc, EAcc} = elixir_expand:expand(Expr, Acc, E),
       {EExpr, RestOpts, elixir_env:merge_and_check_unused_vars(SAcc, S, EAcc)};
     false ->
-      form_error(Meta, E, elixir_expand, {missing_option, 'with', [do]})
+      file_error(Meta, E, elixir_expand, {missing_option, 'with', [do]})
   end.
 
 expand_with_else(Meta, Opts, S, E, HasMatch) ->
@@ -192,7 +192,7 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
     {value, Pair, RestOpts} ->
       if
         HasMatch -> ok;
-        true -> form_warn(Meta, ?key(E, file), ?MODULE, unmatchable_else_in_with)
+        true -> file_warn(Meta, ?key(E, file), ?MODULE, unmatchable_else_in_with)
       end,
       Fun = expand_head(Meta, 'with', 'else'),
       {EPair, SE} = expand_clauses(Meta, 'with', Fun, Pair, S, E),
@@ -204,21 +204,21 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
 %% Try
 
 'try'(Meta, [], _S, E) ->
-  form_error(Meta, E, elixir_expand, {missing_option, 'try', [do]});
+  file_error(Meta, E, elixir_expand, {missing_option, 'try', [do]});
 'try'(Meta, [{do, _}], _S, E) ->
-  form_error(Meta, E, elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after']});
+  file_error(Meta, E, elixir_expand, {missing_option, 'try', ['catch', 'rescue', 'after']});
 'try'(Meta, Opts, _S, E) when not is_list(Opts) ->
-  form_error(Meta, E, elixir_expand, {invalid_args, 'try'});
+  file_error(Meta, E, elixir_expand, {invalid_args, 'try'});
 'try'(Meta, Opts, S, E) ->
   % TODO: Make this an error on v2.0
   case Opts of
     [{do, _}, {else, _}] ->
-      form_warn(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, origin(Meta, 'try')});
+      file_warn(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, origin(Meta, 'try')});
     _ ->
       ok
   end,
   RaiseError = fun(Key) ->
-    form_error(Meta, E, ?MODULE, {duplicated_clauses, 'try', Key})
+    file_error(Meta, E, ?MODULE, {duplicated_clauses, 'try', Key})
   end,
   ok = assert_at_most_once('do', Opts, 0, RaiseError),
   ok = assert_at_most_once('rescue', Opts, 0, RaiseError),
@@ -243,7 +243,7 @@ expand_try(Meta, {'catch', _} = Catch, S, E) ->
 expand_try(Meta, {'rescue', _} = Rescue, S, E) ->
   expand_clauses_with_stacktrace(Meta, fun expand_rescue/4, Rescue, S, E);
 expand_try(Meta, {Key, _}, _S, E) ->
-  form_error(Meta, E, ?MODULE, {unexpected_option, 'try', Key}).
+  file_error(Meta, E, ?MODULE, {unexpected_option, 'try', Key}).
 
 expand_clauses_with_stacktrace(Meta, Fun, Clauses, S, E) ->
   OldStacktrace = S#elixir_ex.stacktrace,
@@ -257,18 +257,18 @@ expand_catch(_Meta, [_, _] = Args, S, E) ->
   head(Args, S, E);
 expand_catch(Meta, _, _, E) ->
   Error = {wrong_number_of_args_for_clause, "one or two args", origin(Meta, 'try'), 'catch'},
-  form_error(Meta, E, ?MODULE, Error).
+  file_error(Meta, E, ?MODULE, Error).
 
 expand_rescue(Meta, [Arg], S, E) ->
   case expand_rescue(Arg, S, E) of
     {EArg, SA, EA} ->
       {[EArg], SA, EA};
     false ->
-      form_error(Meta, E, ?MODULE, {invalid_rescue_clause, Arg})
+      file_error(Meta, E, ?MODULE, {invalid_rescue_clause, Arg})
   end;
 expand_rescue(Meta, _, _, E) ->
   Error = {wrong_number_of_args_for_clause, "one argument", origin(Meta, 'try'), 'rescue'},
-  form_error(Meta, E, ?MODULE, Error).
+  file_error(Meta, E, ?MODULE, Error).
 
 %% rescue var
 expand_rescue({Name, _, Atom} = Var, S, E) when is_atom(Name), is_atom(Atom) ->
@@ -319,11 +319,11 @@ normalize_rescue(Other) ->
 expand_head(Meta, Kind, Key) ->
   fun
     ([{'when', _, [_, _, _ | _]}], _, E) ->
-      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key});
+      file_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key});
     ([_] = Args, S, E) ->
       head(Args, S, E);
     (_, _, E) ->
-      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key})
+      file_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key})
   end.
 
 %% Returns a function that expands arguments
@@ -333,7 +333,7 @@ expand_one(Meta, Kind, Key, Fun) ->
     ([_] = Args, S, E) ->
       Fun(Args, S, E);
     (_, _, E) ->
-      form_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key})
+      file_error(Meta, E, ?MODULE, {wrong_number_of_args_for_clause, "one argument", Kind, Key})
   end.
 
 %% Expands all -> pairs in a given key but do not keep the overall vars.
@@ -351,7 +351,7 @@ expand_clauses_origin(Meta, Kind, Fun, {Key, [_ | _] = Clauses}, S, E) ->
   {Values, SE} = lists:mapfoldl(Transformer, S, Clauses),
   {{Key, Values}, SE};
 expand_clauses_origin(Meta, Kind, _Fun, {Key, _}, _, E) ->
-  form_error(Meta, E, ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
+  file_error(Meta, E, ?MODULE, {bad_or_missing_clauses, {Kind, Key}}).
 
 assert_at_most_once(_Kind, [], _Count, _Fun) -> ok;
 assert_at_most_once(Kind, [{Kind, _} | _], 1, ErrorFun) ->
@@ -364,7 +364,7 @@ assert_at_most_once(Kind, [_ | Rest], Count, Fun) ->
 warn_catch_before_rescue([], _, _, _) ->
   ok;
 warn_catch_before_rescue([{'rescue', _} | _], Meta, E, true) ->
-  form_warn(Meta, ?key(E, file), ?MODULE, {catch_before_rescue, origin(Meta, 'try')});
+  file_warn(Meta, ?key(E, file), ?MODULE, {catch_before_rescue, origin(Meta, 'try')});
 warn_catch_before_rescue([{'catch', _} | Rest], Meta, E, _) ->
   warn_catch_before_rescue(Rest, Meta, E, true);
 warn_catch_before_rescue([_ | Rest], Meta, E, Found) ->

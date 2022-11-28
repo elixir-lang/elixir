@@ -4,8 +4,9 @@
 %% Note that this is also called by the Erlang backend, so we also support
 %% the line number to be none (as it may happen in some erlang errors).
 -module(elixir_errors).
--export([compile_error/1, compile_error/3, module_error/4, form_error/4, parse_error/5]).
--export([erl_warn/3, form_warn/4]).
+-export([compile_error/1, compile_error/3, parse_error/5]).
+-export([function_error/4, module_error/4, file_error/4]).
+-export([erl_warn/3, file_warn/4]).
 -export([print_warning/4, print_warning_no_log/1, print_warning_no_log/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -34,10 +35,10 @@ print_warning(Location, File, LogMessage, PrintMessage) when is_binary(File) or 
 
 %% Compilation error/warn handling.
 
--spec form_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
-form_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
-  form_warn(Meta, #{file => File}, Module, Desc);
-form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
+-spec file_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
+file_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
+  file_warn(Meta, #{file => File}, Module, Desc);
+file_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
   % Skip warnings during bootstrap, they will be reported during recompilation
   case elixir_config:is_bootstrap() of
     true -> ok;
@@ -47,16 +48,16 @@ form_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
       print_warning(Line, File, Warning, [Warning, "\n  ", Location, $\n])
   end.
 
--spec form_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
-form_error(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
-  form_error(Meta, #{file => File}, Module, Desc);
-form_error(Meta, Env, Module, Desc) when is_list(Meta) ->
+-spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
+file_error(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
+  file_error(Meta, #{file => File}, Module, Desc);
+file_error(Meta, Env, Module, Desc) when is_list(Meta) ->
   print_error(Meta, Env, Module, Desc),
   compile_error(Env).
 
 %% A module error is one where it can continue if there is a module
-%% being compiled. If there is no such module, it is a regular form_error.
--spec module_error(list(), #{file := binary(), module := module() | nil, _ => _}, module(), any()) -> ok.
+%% being compiled. If there is no module, it is a regular file_error.
+-spec module_error(list(), #{file := binary(), module => module() | nil, _ => _}, module(), any()) -> ok.
 module_error(Meta, #{module := EnvModule} = Env, Module, Desc) when EnvModule /= nil ->
   print_error(Meta, Env, Module, Desc),
   case elixir_module:taint(EnvModule) of
@@ -64,7 +65,15 @@ module_error(Meta, #{module := EnvModule} = Env, Module, Desc) when EnvModule /=
     false -> compile_error(Env)
   end;
 module_error(Meta, Env, Module, Desc) ->
-  form_error(Meta, Env, Module, Desc).
+  file_error(Meta, Env, Module, Desc).
+
+%% A function error is one where it can continue if there is a function
+%% being compiled. If there is no function, it is falls back to module_error.
+-spec function_error(list(), #{file := binary(), function => {term(), term()} | nil, _ => _}, module(), any()) -> ok.
+function_error(Meta, #{function := {_, _}} = Env, Module, Desc) ->
+  module_error(Meta, Env, Module, Desc);
+function_error(Meta, Env, Module, Desc) ->
+  file_error(Meta, Env, Module, Desc).
 
 print_error(Meta, Env, Module, Desc) ->
   {_Line, _File, Location} = env_format(Meta, Env),

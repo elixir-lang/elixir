@@ -23,7 +23,7 @@ import(Meta, Ref, Opts, E) ->
         {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
         {Funs, Macs, Added1 or Added2};
       {only, Other} ->
-        elixir_errors:form_error(Meta, E, ?MODULE, {invalid_option, only, Other});
+        elixir_errors:file_error(Meta, E, ?MODULE, {invalid_option, only, Other});
       false ->
         {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
@@ -44,7 +44,7 @@ import_macros(Force, Meta, Ref, Opts, E) ->
       {ok, Macros} ->
         Macros;
       error when Force ->
-        elixir_errors:form_error(Meta, E, ?MODULE, {no_macros, Ref});
+        elixir_errors:file_error(Meta, E, ?MODULE, {no_macros, Ref});
       error ->
         []
     end
@@ -84,11 +84,11 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
         false ->
           ok;
         _ ->
-          elixir_errors:form_error(Meta, File, ?MODULE, only_and_except_given)
+          elixir_errors:file_error(Meta, File, ?MODULE, only_and_except_given)
       end,
       case Only -- get_exports(Key) of
         [{Name, Arity} | _] ->
-          elixir_errors:form_error(Meta, File, ?MODULE, {invalid_import, {Key, Name, Arity}});
+          elixir_errors:file_error(Meta, File, ?MODULE, {invalid_import, {Key, Name, Arity}});
         _ ->
           intersection(Only, Existing())
       end;
@@ -108,7 +108,7 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
             {Key, OldImports} -> OldImports -- Except
           end;
         {except, Other} ->
-          elixir_errors:form_error(Meta, File, ?MODULE, {invalid_option, except, Other})
+          elixir_errors:file_error(Meta, File, ?MODULE, {invalid_option, except, Other})
       end
   end,
 
@@ -156,7 +156,7 @@ fetch_macros(Module) ->
 ensure_no_special_form_conflict(Meta, File, Key, [{Name, Arity} | T]) ->
   case special_form(Name, Arity) of
     true  ->
-      elixir_errors:form_error(Meta, File, ?MODULE, {special_form_conflict, {Key, Name, Arity}});
+      elixir_errors:file_error(Meta, File, ?MODULE, {special_form_conflict, {Key, Name, Arity}});
     false ->
       ensure_no_special_form_conflict(Meta, File, Key, T)
   end;
@@ -169,13 +169,13 @@ ensure_keyword_list(Meta, File, [{Key, Value} | Rest], Kind) when is_atom(Key), 
   ensure_keyword_list(Meta, File, Rest, Kind);
 
 ensure_keyword_list(Meta, File, _Other, Kind) ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {invalid_option, Kind}).
+  elixir_errors:file_error(Meta, File, ?MODULE, {invalid_option, Kind}).
 
 ensure_no_duplicates(Meta, File, Option, Kind) ->
   lists:foldl(fun({Name, Arity}, Acc) ->
     case lists:member({Name, Arity}, Acc) of
       true ->
-        elixir_errors:form_error(Meta, File, ?MODULE, {duplicated_import, {Kind, Name, Arity}});
+        elixir_errors:file_error(Meta, File, ?MODULE, {duplicated_import, {Kind, Name, Arity}});
       false ->
         [{Name, Arity} | Acc]
     end

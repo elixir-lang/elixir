@@ -98,7 +98,7 @@ compile(Module, Block, Vars, Prune, Env) when is_atom(Module) ->
       compile(Line, Module, Block, Vars, Prune, MaybeLexEnv)
   end;
 compile(Module, _Block, _Vars, _Prune, #{line := Line} = E) ->
-  elixir_errors:form_error([{line, Line}], E, ?MODULE, {invalid_module, Module}).
+  elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_module, Module}).
 
 compile(Line, Module, Block, Vars, Prune, E) ->
   File = ?key(E, file),
@@ -206,7 +206,7 @@ validate_compile_opts(Opts, Defs, Unreachable, Line, E) ->
 
 %% TODO: Make this an error on v2.0
 validate_compile_opt({parse_transform, Module} = Opt, _Defs, _Unreachable, Line, E) ->
-  elixir_errors:form_warn([{line, Line}], E, ?MODULE, {parse_transform, Module}),
+  elixir_errors:file_warn([{line, Line}], E, ?MODULE, {parse_transform, Module}),
   [Opt];
 validate_compile_opt({inline, Inlines}, Defs, Unreachable, Line, E) ->
   case validate_inlines(Inlines, Defs, Unreachable, []) of
@@ -282,7 +282,7 @@ check_module_availability(Module, Line, E) ->
               'Elixir.Reference', 'Elixir.Elixir', 'Elixir'],
 
   case lists:member(Module, Reserved) of
-    true  -> elixir_errors:form_error([{line, Line}], E, ?MODULE, {module_reserved, Module});
+    true  -> elixir_errors:file_error([{line, Line}], E, ?MODULE, {module_reserved, Module});
     false -> ok
   end,
 
@@ -290,7 +290,7 @@ check_module_availability(Module, Line, E) ->
     false ->
       case code:ensure_loaded(Module) of
         {module, _} ->
-          elixir_errors:form_warn([{line, Line}], E, ?MODULE, {module_defined, Module});
+          elixir_errors:file_warn([{line, Line}], E, ?MODULE, {module_defined, Module});
         {error, _}  ->
           ok
       end;
@@ -299,12 +299,12 @@ check_module_availability(Module, Line, E) ->
   end.
 
 validate_module_name(Module, Line, E) when Module == nil; is_boolean(Module) ->
-  elixir_errors:form_error([{line, Line}], E, ?MODULE, {invalid_module, Module});
+  elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_module, Module});
 validate_module_name(Module, Line, E) ->
   Charlist = atom_to_list(Module),
   case lists:any(fun(Char) -> (Char =:= $/) or (Char =:= $\\) end, Charlist) of
     true ->
-      elixir_errors:form_error([{line, Line}], E, ?MODULE, {invalid_module, Module});
+      elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_module, Module});
     false ->
       Charlist
   end.
@@ -392,7 +392,7 @@ build(Module, Line, File, E) ->
         ets:delete(DataSet),
         ets:delete(DataBag),
         Error = {module_in_definition, Module, OldFile, OldLine},
-        elixir_errors:form_error([{line, Line}], E, ?MODULE, Error)
+        elixir_errors:file_error([{line, Line}], E, ?MODULE, Error)
     end,
 
   {Tables, Ref}.
@@ -471,7 +471,7 @@ warn_unused_attributes(DataSet, DataBag, PersistedAttrs, E) ->
   %% without moduledoc which are never warned on.
   Attrs = [doc, typedoc, impl, deprecated | StoredAttrs -- PersistedAttrs],
   Query = [{{Attr, '_', '$1', '_'}, [{is_integer, '$1'}], [[Attr, '$1']]} || Attr <- Attrs],
-  [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_attribute, Key})
+  [elixir_errors:file_warn([{line, Line}], E, ?MODULE, {unused_attribute, Key})
    || [Key, Line] <- ets:select(DataSet, Query)].
 
 get_struct(Set) ->

@@ -1,6 +1,6 @@
 -module(elixir_map).
 -export([expand_map/4, expand_struct/5, format_error/1, load_struct/5]).
--import(elixir_errors, [form_error/4, form_warn/4]).
+-import(elixir_errors, [file_error/4, file_warn/4]).
 -include("elixir.hrl").
 
 expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], S, #{context := nil} = E) ->
@@ -8,7 +8,7 @@ expand_map(Meta, [{'|', UpdateMeta, [Left, Right]}], S, #{context := nil} = E) -
   validate_kv(Meta, ERight, Right, E),
   {{'%{}', Meta, [{'|', UpdateMeta, [ELeft, ERight]}]}, SE, EE};
 expand_map(Meta, [{'|', _, [_, _]}] = Args, _S, #{context := Context, file := File}) ->
-  form_error(Meta, File, ?MODULE, {update_syntax_in_wrong_context, Context, {'%{}', Meta, Args}});
+  file_error(Meta, File, ?MODULE, {update_syntax_in_wrong_context, Context, {'%{}', Meta, Args}});
 expand_map(Meta, Args, S, E) ->
   {EArgs, SE, EE} = elixir_expand:expand_args(Args, S, E),
   validate_kv(Meta, EArgs, Args, E),
@@ -38,13 +38,13 @@ expand_struct(Meta, Left, {'%{}', MapMeta, MapArgs}, S, #{context := Context} = 
       {{'%', Meta, [ELeft, ERight]}, SE, EE};
 
     false when Context == match ->
-      form_error(Meta, E, ?MODULE, {invalid_struct_name_in_match, ELeft});
+      file_error(Meta, E, ?MODULE, {invalid_struct_name_in_match, ELeft});
 
     false ->
-      form_error(Meta, E, ?MODULE, {invalid_struct_name, ELeft})
+      file_error(Meta, E, ?MODULE, {invalid_struct_name, ELeft})
   end;
 expand_struct(Meta, _Left, Right, _S, E) ->
-  form_error(Meta, E, ?MODULE, {non_map_after_struct, Right}).
+  file_error(Meta, E, ?MODULE, {non_map_after_struct, Right}).
 
 clean_struct_key_from_map_args(Meta, [{'|', PipeMeta, [Left, MapAssocs]}], E) ->
   [{'|', PipeMeta, [Left, clean_struct_key_from_map_assocs(Meta, MapAssocs, E)]}];
@@ -54,14 +54,14 @@ clean_struct_key_from_map_args(Meta, MapAssocs, E) ->
 clean_struct_key_from_map_assocs(Meta, Assocs, E) ->
   case lists:keytake('__struct__', 1, Assocs) of
     {value, _, CleanAssocs} ->
-      form_warn(Meta, ?key(E, file), ?MODULE, ignored_struct_key_in_struct),
+      file_warn(Meta, ?key(E, file), ?MODULE, ignored_struct_key_in_struct),
       CleanAssocs;
     false ->
       Assocs
   end.
 
 validate_match_key(Meta, {Name, _, Context}, E) when is_atom(Name), is_atom(Context) ->
-  form_error(Meta, E, ?MODULE, {invalid_variable_in_map_key_match, Name});
+  file_error(Meta, E, ?MODULE, {invalid_variable_in_map_key_match, Name});
 validate_match_key(_, {'^', _, [{Name, _, Context}]}, _) when is_atom(Name), is_atom(Context) ->
   ok;
 validate_match_key(_, {'%{}', _, [_ | _]}, _) ->
@@ -82,9 +82,9 @@ validate_not_repeated(Meta, Key, Used, E) ->
     #{Key := true} ->
       case E of
         #{context := match} ->
-          form_error(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
+          file_error(Meta, ?key(E, file), ?MODULE, {repeated_key, Key});
         _ ->
-          form_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key}),
+          file_warn(Meta, ?key(E, file), ?MODULE, {repeated_key, Key}),
           Used
       end;
 
@@ -107,7 +107,7 @@ validate_kv(Meta, KV, Original, #{context := Context} = E) ->
       NewUsed = validate_not_repeated(Meta, K, Used, E),
       {Index + 1, NewUsed};
     (_, {Index, _Used}) ->
-      form_error(Meta, E, ?MODULE, {not_kv_pair, lists:nth(Index, Original)})
+      file_error(Meta, E, ?MODULE, {not_kv_pair, lists:nth(Index, Original)})
   end, {1, #{}}, KV).
 
 extract_struct_assocs(_, {'%{}', Meta, [{'|', _, [_, Assocs]}]}, _) ->
@@ -115,7 +115,7 @@ extract_struct_assocs(_, {'%{}', Meta, [{'|', _, [_, Assocs]}]}, _) ->
 extract_struct_assocs(_, {'%{}', Meta, Assocs}, _) ->
   {expand, Meta, delete_struct_key(Assocs)};
 extract_struct_assocs(Meta, Other, E) ->
-  form_error(Meta, E, ?MODULE, {non_map_after_struct, Other}).
+  file_error(Meta, E, ?MODULE, {non_map_after_struct, Other}).
 
 delete_struct_key(Assocs) ->
   lists:keydelete('__struct__', 1, Assocs).
@@ -176,17 +176,17 @@ wrapped_load_struct(Meta, Name, Args, Keys, E) ->
       Struct;
 
     #{'__struct__' := StructName} when is_atom(StructName) ->
-      form_error(Meta, E, ?MODULE, {struct_name_mismatch, Name, Arity, StructName});
+      file_error(Meta, E, ?MODULE, {struct_name_mismatch, Name, Arity, StructName});
 
     Other ->
-      form_error(Meta, E, ?MODULE, {invalid_struct_return_value, Name, Arity, Other})
+      file_error(Meta, E, ?MODULE, {invalid_struct_return_value, Name, Arity, Other})
   catch
     error:undef ->
       case InContext andalso (?key(E, function) == nil) of
         true ->
-          form_error(Meta, E, ?MODULE, {inaccessible_struct, Name});
+          file_error(Meta, E, ?MODULE, {inaccessible_struct, Name});
         false ->
-          form_error(Meta, E, ?MODULE, {undefined_struct, Name, Arity})
+          file_error(Meta, E, ?MODULE, {undefined_struct, Name, Arity})
       end
   end.
 
@@ -199,7 +199,7 @@ wait_for_struct(Module) ->
 
 assert_struct_keys(Meta, Name, Struct, Keys, E) ->
   [begin
-     form_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key})
+     file_error(Meta, E, ?MODULE, {unknown_key_for_struct, Name, Key})
    end || Key <- Keys, not maps:is_key(Key, Struct)].
 
 format_error({update_syntax_in_wrong_context, Context, Expr}) ->

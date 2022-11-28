@@ -107,7 +107,7 @@ ensure_no_undefined_local(Module, All, E) ->
 warn_unused_local(Module, All, Private, E) ->
   if_tracker(Module, [], fun(Tracker) ->
     {Unreachable, Warnings} = ?tracker:collect_unused_locals(Tracker, All, Private),
-    [elixir_errors:form_warn(Meta, E, ?MODULE, Error) || {Meta, Error} <- Warnings],
+    [elixir_errors:file_warn(Meta, E, ?MODULE, Error) || {Meta, Error} <- Warnings],
     Unreachable
   end).
 

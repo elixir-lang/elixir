@@ -82,7 +82,7 @@ reset_unused_vars(#elixir_ex{unused={_Unused, Version}} = S) ->
   S#elixir_ex{unused={#{}, Version}}.
 
 check_unused_vars(#elixir_ex{unused={Unused, _Version}}, E) ->
-  [elixir_errors:form_warn([{line, Line}], E, ?MODULE, {unused_var, Name, Overridden}) ||
+  [elixir_errors:file_warn([{line, Line}], E, ?MODULE, {unused_var, Name, Overridden}) ||
     {{{Name, nil}, _}, {Line, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
   E.
 
@@ -107,7 +107,7 @@ merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
       case (Kind == nil) andalso is_unused_var(Name) of
         true ->
           Warn = {unused_var, Name, Overridden},
-          elixir_errors:form_warn([{line, Line}], E, ?MODULE, Warn);
+          elixir_errors:file_warn([{line, Line}], E, ?MODULE, Warn);
 
         false ->
           ok

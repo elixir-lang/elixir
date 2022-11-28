@@ -339,7 +339,7 @@ validate_behaviour_info_and_attributes(#{definitions := Defs} = Map, AllCallback
     {false, _} ->
       ok;
     {_, [{Kind, {Name, Arity}, _, _} | _]} when Kind == callback; Kind == macrocallback ->
-      form_error(Map, {callbacks_but_also_behaviour_info, {Kind, Name, Arity}});
+      file_error(Map, {callbacks_but_also_behaviour_info, {Kind, Name, Arity}});
     {_, _} ->
       ok
   end.
@@ -348,16 +348,16 @@ validate_optional_callbacks(Map, AllCallbacks, Optional) ->
   lists:foldl(fun(Callback, Acc) ->
     case Callback of
       {Name, Arity} when is_atom(Name) and is_integer(Arity) -> ok;
-      _ -> form_error(Map, {ill_defined_optional_callback, Callback})
+      _ -> file_error(Map, {ill_defined_optional_callback, Callback})
     end,
 
     case lists:keyfind(Callback, 2, AllCallbacks) of
-      false -> form_error(Map, {unknown_callback, Callback});
+      false -> file_error(Map, {unknown_callback, Callback});
       _ -> ok
     end,
 
     case Acc of
-      #{Callback := _} -> form_error(Map, {duplicate_optional_callback, Callback});
+      #{Callback := _} -> file_error(Map, {duplicate_optional_callback, Callback});
       _ -> ok
     end,
 
@@ -423,7 +423,7 @@ validate_spec_for_existing_function(ModuleMap, NameAndArity, Line) ->
 
   case lists:keymember(NameAndArity, 1, Defs) of
     true -> ok;
-    false -> form_error(#{line => Line, file => File}, {spec_for_undefined_function, NameAndArity})
+    false -> file_error(#{line => Line, file => File}, {spec_for_undefined_function, NameAndArity})
   end.
 
 % Attributes
@@ -580,8 +580,8 @@ behaviour_info_exports(false) -> [].
 
 %% Errors
 
-form_error(#{line := Line, file := File}, Error) ->
-  elixir_errors:form_error([{line, Line}], File, ?MODULE, Error).
+file_error(#{line := Line, file := File}, Error) ->
+  elixir_errors:file_error([{line, Line}], File, ?MODULE, Error).
 
 format_error({ill_defined_optional_callback, Callback}) ->
   io_lib:format("invalid optional callback ~ts. @optional_callbacks expects a "

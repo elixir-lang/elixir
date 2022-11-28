@@ -1,6 +1,6 @@
 -module(elixir_bitstring).
 -export([expand/5, format_error/1, validate_spec/2]).
--import(elixir_errors, [form_error/4]).
+-import(elixir_errors, [file_error/4]).
 -include("elixir.hrl").
 
 expand_match(Expr, {S, OriginalS}, E) ->
@@ -17,7 +17,7 @@ expand(Meta, Args, S, E, RequireSize) ->
         false ->
           {{'<<>>', [{alignment, Alignment} | Meta], EArgs}, SA, EA};
         Match ->
-          form_error(Meta, EA, ?MODULE, {nested_match, Match})
+          file_error(Meta, EA, ?MODULE, {nested_match, Match})
       end;
     _ ->
       PairS = {elixir_env:prepare_write(S), S},
@@ -78,10 +78,10 @@ concat_or_prepend_bitstring(Meta, {'<<>>', PartsMeta, Parts} = ELeft, ERight, Ac
     #{context := match} when RequireSize ->
       case lists:last(Parts) of
         {'::', SpecMeta, [Bin, {binary, _, nil}]} when not is_binary(Bin) ->
-          form_error(SpecMeta, E, ?MODULE, unsized_binary);
+          file_error(SpecMeta, E, ?MODULE, unsized_binary);
 
         {'::', SpecMeta, [_, {bitstring, _, nil}]} ->
-          form_error(SpecMeta, E, ?MODULE, unsized_binary);
+          file_error(SpecMeta, E, ?MODULE, unsized_binary);
 
         _ ->
           ok
@@ -99,7 +99,7 @@ concat_or_prepend_bitstring(Meta, {'<<>>', PartsMeta, Parts} = ELeft, ERight, Ac
           lists:reverse(Parts, Acc);
 
         is_integer(Alignment) ->
-          form_error(Meta, E, ?MODULE, {unaligned_binary, ELeft});
+          file_error(Meta, E, ?MODULE, {unaligned_binary, ELeft});
 
         true ->
           [{'::', Meta, [ELeft, ERight]} | Acc]
@@ -142,7 +142,7 @@ expand_expr(_Meta, {{'.', _, [Mod, to_string]}, _, [Arg]} = AST, Fun, S, #{conte
 expand_expr(Meta, Component, Fun, S, E) ->
   case Fun(Component, S, E) of
     {EComponent, _, ErrorE} when is_list(EComponent); is_atom(EComponent) ->
-      form_error(Meta, ErrorE, ?MODULE, {invalid_literal, EComponent});
+      file_error(Meta, ErrorE, ?MODULE, {invalid_literal, EComponent});
     {_, _, _} = Expanded ->
       Expanded
   end.
@@ -182,14 +182,14 @@ type(_, float, Type, _) when Type == float ->
 type(_, default, Type, _) ->
   Type;
 type(Meta, Other, Value, E) ->
-  form_error(Meta, E, ?MODULE, {bittype_mismatch, Value, Other, type}).
+  file_error(Meta, E, ?MODULE, {bittype_mismatch, Value, Other, type}).
 
 expand_each_spec(Meta, [{Expr, MetaE, Args} = H | T], Map, S, OriginalS, E) when is_atom(Expr) ->
   case validate_spec(Expr, Args) of
     {Key, Arg} ->
       case Args of
         [] ->
-          elixir_errors:form_warn(Meta, E, ?MODULE, {parens_bittype, Expr});
+          elixir_errors:file_warn(Meta, E, ?MODULE, {parens_bittype, Expr});
         _ -> ok
       end,
       {Value, SE, EE} = expand_spec_arg(Arg, S, OriginalS, E),
@@ -198,7 +198,7 @@ expand_each_spec(Meta, [{Expr, MetaE, Args} = H | T], Map, S, OriginalS, E) when
       case maps:get(Key, Map) of
         default -> ok;
         Value -> ok;
-        Other -> form_error(Meta, E, ?MODULE, {bittype_mismatch, Value, Other, Key})
+        Other -> file_error(Meta, E, ?MODULE, {bittype_mismatch, Value, Other, Key})
       end,
 
       expand_each_spec(Meta, T, maps:put(Key, Value, Map), SE, OriginalS, EE);
@@ -206,20 +206,20 @@ expand_each_spec(Meta, [{Expr, MetaE, Args} = H | T], Map, S, OriginalS, E) when
     none ->
       HA = case Args of
         nil ->
-          elixir_errors:form_warn(Meta, E, ?MODULE, {unknown_bittype, Expr}),
+          elixir_errors:file_warn(Meta, E, ?MODULE, {unknown_bittype, Expr}),
           {Expr, MetaE, []};
         _ -> H
       end,
       case 'Elixir.Macro':expand(HA, E#{line := ?line(Meta)}) of
         HA ->
-          form_error(Meta, E, ?MODULE, {undefined_bittype, H});
+          file_error(Meta, E, ?MODULE, {undefined_bittype, H});
 
         NewTypes ->
           expand_each_spec(Meta, unpack_specs(NewTypes, []) ++ T, Map, S, OriginalS, E)
       end
   end;
 expand_each_spec(Meta, [Expr | _], _Map, _S, _OriginalS, E) ->
-  form_error(Meta, E, ?MODULE, {undefined_bittype, Expr});
+  file_error(Meta, E, ?MODULE, {undefined_bittype, Expr});
 expand_each_spec(_Meta, [], Map, S, _OriginalS, E) ->
   {Map, S, E}.
 
@@ -269,19 +269,19 @@ expand_spec_arg(Expr, S, OriginalS, E) ->
   elixir_expand:expand(Expr, elixir_env:reset_read(S, OriginalS), E).
 
 validate_spec_arg(Meta, unit, Value, _S, _OriginalS, E) when not is_integer(Value) ->
-  form_error(Meta, E, ?MODULE, {bad_unit_argument, Value});
+  file_error(Meta, E, ?MODULE, {bad_unit_argument, Value});
 validate_spec_arg(_Meta, _Key, _Value, _S, _OriginalS, _E) ->
   ok.
 
 validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
-  form_error(Meta, E, ?MODULE, unsized_binary);
+  file_error(Meta, E, ?MODULE, unsized_binary);
 validate_size_required(_, _, _, _, _, _) ->
   ok.
 
 size_and_unit(Meta, bitstring, Size, Unit, E) when Size /= default; Unit /= default ->
-  form_error(Meta, E, ?MODULE, bittype_literal_bitstring);
+  file_error(Meta, E, ?MODULE, bittype_literal_bitstring);
 size_and_unit(Meta, binary, Size, Unit, E) when Size /= default; Unit /= default ->
-  form_error(Meta, E, ?MODULE, bittype_literal_string);
+  file_error(Meta, E, ?MODULE, bittype_literal_string);
 size_and_unit(_Meta, _ExprType, Size, Unit, _E) ->
   add_arg(unit, Unit, add_arg(size, Size, [])).
 
@@ -291,9 +291,9 @@ add_arg(Key, Arg, Spec) -> [{Key, [], [Arg]} | Spec].
 build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == utf8; Type == utf16; Type == utf32 ->
   if
     Size /= default; Unit /= default ->
-      form_error(Meta, E, ?MODULE, bittype_utf);
+      file_error(Meta, E, ?MODULE, bittype_utf);
     Sign /= default ->
-      form_error(Meta, E, ?MODULE, bittype_signed);
+      file_error(Meta, E, ?MODULE, bittype_signed);
     true ->
       add_spec(Type, add_spec(Endianness, Spec))
   end;
@@ -301,9 +301,9 @@ build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == utf8;
 build_spec(Meta, _Size, Unit, Type, _Endianness, Sign, Spec, E) when Type == binary; Type == bitstring ->
   if
     Type == bitstring, Unit /= default, Unit /= 1 ->
-      form_error(Meta, E, ?MODULE, {bittype_mismatch, Unit, 1, unit});
+      file_error(Meta, E, ?MODULE, {bittype_mismatch, Unit, 1, unit});
     Sign /= default ->
-      form_error(Meta, E, ?MODULE, bittype_signed);
+      file_error(Meta, E, ?MODULE, bittype_signed);
     true ->
       %% Endianness is supported but has no effect, so we just ignore it.
       add_spec(Type, Spec)
@@ -317,10 +317,10 @@ build_spec(Meta, Size, Unit, Type, Endianness, Sign, Spec, E) when Type == integ
         true ->
           add_spec(Type, add_spec(Endianness, add_spec(Sign, Spec)));
         false ->
-          form_error(Meta, E, ?MODULE, {bittype_float_size, NumberSize})
+          file_error(Meta, E, ?MODULE, {bittype_float_size, NumberSize})
       end;
     Size == default, Unit /= default ->
-      form_error(Meta, E, ?MODULE, bittype_unit);
+      file_error(Meta, E, ?MODULE, bittype_unit);
     true ->
       add_spec(Type, add_spec(Endianness, add_spec(Sign, Spec)))
   end.

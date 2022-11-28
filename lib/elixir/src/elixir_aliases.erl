@@ -89,7 +89,7 @@ expand_or_concat(Aliases, E) ->
 ensure_loaded(_Meta, 'Elixir.Kernel', _E) ->
   ok;
 ensure_loaded(Meta, Module, #{module := Module} = E) ->
-  elixir_errors:form_error(Meta, E, ?MODULE, {circular_module, Module});
+  elixir_errors:file_error(Meta, E, ?MODULE, {circular_module, Module});
 ensure_loaded(Meta, Module, E) ->
   case code:ensure_loaded(Module) of
     {module, Module} ->
@@ -107,7 +107,7 @@ ensure_loaded(Meta, Module, E) ->
             false -> unloaded_module
           end,
 
-          elixir_errors:form_error(Meta, E, ?MODULE, {Kind, Module})
+          elixir_errors:file_error(Meta, E, ?MODULE, {Kind, Module})
       end
   end.
 

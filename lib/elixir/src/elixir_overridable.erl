@@ -37,7 +37,7 @@ record_overridable(Module, Tuple, Def, Neighbours) ->
         true ->
           ets:insert(Set, {{overridable, Tuple}, Count + 1, Def, Neighbours, false});
         false ->
-          elixir_errors:form_error(Meta, File, ?MODULE, {bad_kind, Module, Tuple, Kind})
+          elixir_errors:file_error(Meta, File, ?MODULE, {bad_kind, Module, Tuple, Kind})
       end
   end,
 
@@ -50,7 +50,7 @@ super(Meta, Module, Tuple, E) ->
     [Overridable] ->
       store(Set, Module, Tuple, Overridable, true);
     [] ->
-      elixir_errors:form_error(Meta, E, ?MODULE, {no_super, Module, Tuple})
+      elixir_errors:file_error(Meta, E, ?MODULE, {no_super, Module, Tuple})
   end.
 
 store_not_overridden(Module) ->
@@ -67,7 +67,7 @@ store_not_overridden(Module) ->
 
         case is_valid_kind(Kind, OverridableKind) of
           true -> ok;
-          false -> elixir_errors:form_error(Meta, File, ?MODULE, {bad_kind, Module, Tuple, Kind})
+          false -> elixir_errors:file_error(Meta, File, ?MODULE, {bad_kind, Module, Tuple, Kind})
         end
     end
   end, ets:lookup(Bag, overridables)).
