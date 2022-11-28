@@ -27,8 +27,14 @@ expand({'%', Meta, [Left, Right]}, S, E) ->
 expand({'<<>>', Meta, Args}, S, E) ->
   elixir_bitstring:expand(Meta, Args, S, E, false);
 
-expand({'->', Meta, _Args}, _S, E) ->
+expand({'->', Meta, [_, _]}, _S, E) ->
   file_error(Meta, E, ?MODULE, unhandled_arrow_op);
+
+expand({'::', Meta, [_, _]}, _S, E) ->
+  file_error(Meta, E, ?MODULE, unhandled_type_op);
+
+expand({'|', Meta, [_, _]}, _S, E) ->
+  file_error(Meta, E, ?MODULE, unhandled_cons_op);
 
 %% __block__
 
@@ -53,12 +59,8 @@ expand({Kind, Meta, [{{'.', _, [Base, '{}']}, _, Refs} | Rest]}, S, E)
     [] ->
       expand_multi_alias_call(Kind, Meta, Base, Refs, [], S, E);
     [Opts] ->
-      case lists:keymember(as, 1, Opts) of
-        true ->
-          file_error(Meta, E, ?MODULE, as_in_multi_alias_call);
-        false ->
-          expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E)
-      end
+      lists:keymember(as, 1, Opts) andalso file_error(Meta, E, ?MODULE, as_in_multi_alias_call),
+      expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E)
   end;
 expand({alias, Meta, [Ref]}, S, E) ->
   expand({alias, Meta, [Ref, []]}, S, E);
@@ -287,11 +289,9 @@ expand({'^', Meta, [Arg]}, S, E) ->
   function_error(Meta, E, ?MODULE, {pin_outside_of_match, Arg}),
   {{'^', Meta, [Arg]}, S, E};
 
-expand({'_', _Meta, Kind} = Var, S, #{context := match} = E) when is_atom(Kind) ->
+expand({'_', Meta, Kind} = Var, S, #{context := Context} = E) when is_atom(Kind) ->
+  (Context /= match) andalso function_error(Meta, E, ?MODULE, unbound_underscore),
   {Var, S, E};
-expand({'_', Meta, Kind}, S, E) when is_atom(Kind) ->
-  function_error(Meta, E, ?MODULE, unbound_underscore),
-  {{'_', Meta, Kind}, S, E};
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #elixir_ex{
@@ -367,7 +367,7 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
 
         %% TODO: Remove this clause on v2.0 as we will no longer support warn
         _ when Error == warn ->
-          elixir_errors:file_warn(Meta, E, ?MODULE, {unknown_variable, Name}),
+          elixir_errors:file_warn(Meta, E, ?MODULE, {undefined_var_to_call, Name}),
           expand({Name, [{if_undefined, warn} | Meta], []}, S, E);
 
         _ when Error == pin ->
@@ -813,10 +813,6 @@ assert_arg_with_no_clauses(Name, Meta, [{Key, Value} | Rest], E) when is_atom(Ke
 assert_arg_with_no_clauses(_Name, _Meta, _Arg, _E) ->
   ok.
 
-expand_local(Meta, Name, Args, S, E) when Name == '|'; Name == '::' ->
-  function_error(Meta, E, ?MODULE, {undefined_function, Name, Args}),
-  {EArgs, SA, EA} = expand_args(Args, S, E),
-  {{Name, Meta, EArgs}, SA, EA};
 expand_local(Meta, Name, Args, S, #{module := Module, function := Function, context := Context} = E)
     when Function /= nil ->
   assert_no_clauses(Name, Meta, Args, E),
@@ -1127,7 +1123,7 @@ assert_no_match_or_guard_scope(Meta, Kind, S, E) ->
   assert_no_guard_scope(Meta, Kind, S, E).
 assert_no_match_scope(Meta, Kind, #{context := match, file := File}) ->
   file_error(Meta, File, ?MODULE, {invalid_pattern_in_match, Kind});
-assert_no_match_scope(_Meta, _Kind, _E) -> [].
+assert_no_match_scope(_Meta, _Kind, _E) -> ok.
 assert_no_guard_scope(Meta, Kind, S, #{context := guard, file := File}) ->
   Key =
     case S#elixir_ex.prematch of
@@ -1135,7 +1131,7 @@ assert_no_guard_scope(Meta, Kind, S, #{context := guard, file := File}) ->
       _ -> invalid_expr_in_guard
     end,
   file_error(Meta, File, ?MODULE, {Key, Kind});
-assert_no_guard_scope(_Meta, _Kind, _S, _E) -> [].
+assert_no_guard_scope(_Meta, _Kind, _S, _E) -> ok.
 
 %% Here we look into the Clauses "optimistically", that is, we don't check for
 %% multiple "do"s and similar stuff. After all, the error we're gonna give here
@@ -1188,7 +1184,21 @@ format_error(for_generator_start) ->
 format_error(for_with_unused_uniq) ->
   "the :uniq option has no effect since the result of the for comprehension is not used";
 format_error(unhandled_arrow_op) ->
-  "unhandled operator ->";
+  "misplaced operator ->\n\n"
+  "This typically means invalid syntax or a macro is not available in scope";
+format_error(unhandled_cons_op) ->
+  "misplaced operator |/2\n\n"
+  "The | operator is typically used between brackets as the cons operator:\n\n"
+  "    [head | tail]\n\n"
+  "where head is a sequence of elements separated by commas and the tail\n"
+  "is the remaining of a list.\n"
+  "It is also used to update maps and structs, via the %{map | key: value} notation,\n"
+  "and in typespecs, such as @type and @spec, to express the union of two types";
+format_error(unhandled_type_op) ->
+  "misplaced operator ::/2\n\n"
+  "The :: operator is typically used in bitstrings to specify types and sizes of segments:\n\n"
+  "    <<size::32-integer, letter::utf8, rest::binary>>\n\n"
+  "It is also used in typespecs, such as @type and @spec, to describe inputs and outputs";
 format_error(as_in_multi_alias_call) ->
   ":as option is not supported by multi-alias call";
 format_error({invalid_alias_module, Ref}) ->
@@ -1295,19 +1305,6 @@ format_error({unsupported_option, Kind, Key}) ->
 format_error({options_are_not_keyword, Kind, Opts}) ->
   io_lib:format("invalid options for ~s, expected a keyword list, got: ~ts",
                 [Kind, 'Elixir.Macro':to_string(Opts)]);
-format_error({undefined_function, '|', [_, _]}) ->
-  "misplaced operator |/2\n\n"
-  "The | operator is typically used between brackets as the cons operator:\n\n"
-  "    [head | tail]\n\n"
-  "where head is a sequence of elements separated by commas and the tail\n"
-  "is the remaining of a list.\n"
-  "It is also used to update maps and structs, via the %{map | key: value} notation,\n"
-  "and in typespecs, such as @type and @spec, to express the union of two types";
-format_error({undefined_function, '::', [_, _]}) ->
-  "misplaced operator ::/2\n\n"
-  "The :: operator is typically used in bitstrings to specify types and sizes of segments:\n\n"
-  "    <<size::32-integer, letter::utf8, rest::binary>>\n\n"
-  "It is also used in typespecs, such as @type and @spec, to describe inputs and outputs";
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Name, length(Args)]);
 format_error({underscored_var_repeat, Name, Kind}) ->
@@ -1344,7 +1341,7 @@ format_error(caller_not_allowed) ->
   "__CALLER__ is available only inside defmacro and defmacrop";
 format_error(stacktrace_not_allowed) ->
   "__STACKTRACE__ is available only inside catch and rescue clauses of try expressions";
-format_error({unknown_variable, Name}) ->
+format_error({undefined_var_to_call, Name}) ->
   io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                 " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]);
 format_error({parens_map_lookup, Map, Field, Context}) ->
