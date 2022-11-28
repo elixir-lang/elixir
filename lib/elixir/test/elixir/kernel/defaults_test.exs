@@ -41,74 +41,72 @@ defmodule Kernel.DefaultsTest do
   end
 
   test "errors on accessing variable from default block" do
-    message = "variable \"default\" does not exist"
-
-    assert capture_io(:stderr, fn ->
-             assert_raise CompileError, ~r/undefined function default\/0/, fn ->
-               defmodule VarDefaultScope do
-                 def test(_ \\ default = 1),
-                   do: default
-               end
-             end
-           end) =~ message
+    assert_compile_error(~r/undefined function default\/0/, fn ->
+      defmodule VarDefaultScope do
+        def test(_ \\ default = 1),
+          do: default
+      end
+    end)
   end
 
   test "errors on multiple defaults" do
     message = ~r"def hello/1 defines defaults multiple times"
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(message, fn ->
       defmodule Kernel.ErrorsTest.ClauseWithDefaults do
         def hello(_arg \\ 0)
         def hello(_arg \\ 1)
       end
-    end
+    end)
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(message, fn ->
       defmodule Kernel.ErrorsTest.ClauseWithDefaults do
         def hello(_arg \\ 0), do: nil
         def hello(_arg \\ 1), do: nil
       end
-    end
+    end)
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(message, fn ->
       defmodule Kernel.ErrorsTest.ClauseWithDefaults do
         def hello(_arg \\ 0)
         def hello(_arg \\ 1), do: nil
       end
-    end
+    end)
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(message, fn ->
       defmodule Kernel.ErrorsTest.ClauseWithDefaults do
         def hello(_arg \\ 0), do: nil
         def hello(_arg \\ 1)
       end
-    end
+    end)
 
-    assert capture_io(:stderr, fn ->
-             assert_raise CompileError, ~r"undefined function foo/0", fn ->
-               defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
-                 def hello(foo, bar \\ foo)
-                 def hello(foo, bar), do: foo + bar
-               end
-             end
-           end) =~
-             "variable \"foo\" does not exist and is being expanded to \"foo()\", " <>
-               "please use parentheses to remove the ambiguity or change the variable name"
+    assert_compile_error("undefined function foo/0", fn ->
+      defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
+        def hello(foo, bar \\ foo)
+        def hello(foo, bar), do: foo + bar
+      end
+    end)
   end
 
   test "errors on conflicting defaults" do
-    assert_raise CompileError, ~r"def hello/3 defaults conflicts with hello/2", fn ->
+    assert_compile_error(~r"def hello/3 defaults conflicts with hello/2", fn ->
       defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults1 do
         def hello(a, b \\ nil), do: a + b
         def hello(a, b \\ nil, c \\ nil), do: a + b + c
       end
-    end
+    end)
 
-    assert_raise CompileError, ~r"def hello/2 conflicts with defaults from hello/3", fn ->
+    assert_compile_error(~r"def hello/2 conflicts with defaults from hello/3", fn ->
       defmodule Kernel.ErrorsTest.DifferentDefsWithDefaults2 do
         def hello(a, b \\ nil, c \\ nil), do: a + b + c
         def hello(a, b \\ nil), do: a + b
       end
-    end
+    end)
+  end
+
+  defp assert_compile_error(message, fun) do
+    assert capture_io(:stderr, fn ->
+             assert_raise CompileError, fun
+           end) =~ message
   end
 end

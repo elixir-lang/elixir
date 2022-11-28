@@ -360,7 +360,7 @@ defmodule Mix.UmbrellaTest do
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         File.write!("apps/foo/lib/foo.ex", "raise ~s[oops]")
 
-        ExUnit.CaptureIO.capture_io(fn ->
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
           assert catch_exit(Mix.Task.run("compile", ["--verbose"]))
         end)
 

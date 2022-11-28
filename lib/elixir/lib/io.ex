@@ -327,7 +327,7 @@ defmodule IO do
 
   def warn(message, []) do
     message = [to_chardata(message), ?\n]
-    :elixir_errors.log_and_print_warning(0, nil, message, message)
+    :elixir_errors.print_warning(0, nil, message, message)
   end
 
   def warn(message, %Macro.Env{} = env) do
@@ -357,7 +357,7 @@ defmodule IO do
     line = opts[:line]
     file = opts[:file]
 
-    :elixir_errors.log_and_print_warning(
+    :elixir_errors.print_warning(
       line || 0,
       file && List.to_string(file),
       message,

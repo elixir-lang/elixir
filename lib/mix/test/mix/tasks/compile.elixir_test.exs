@@ -423,7 +423,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
-      ExUnit.CaptureIO.capture_io(fn -> assert {:error, _} = recompile.() end)
+      ExUnit.CaptureIO.capture_io(:stderr, fn -> assert {:error, _} = recompile.() end)
 
       # Revering the original config should recompile
       File.write!("config/config.exs", """
@@ -772,7 +772,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.mkdir_p!("lib")
       File.write!("lib/a.ex", "raise ~s(oops)")
 
-      capture_io(fn ->
+      capture_io(:stderr, fn ->
         assert {:error, [_]} = Mix.Tasks.Compile.Elixir.run([])
       end)
 
@@ -873,7 +873,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       original_content = File.read!("lib/b.ex")
       File.write!("lib/b.ex", "this will not compile")
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
              end) =~ "Compilation error in file lib/b.ex"
 
@@ -1109,7 +1109,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.write!("lib/a.ex", """
       """)
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
              end) =~ "A.__struct__/1 is undefined, cannot expand struct A"
 
@@ -1128,7 +1128,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # Removing the file should have the same effect as removing all code
       File.rm!("lib/a.ex")
 
-      assert capture_io(fn ->
+      assert capture_io(:stderr, fn ->
                {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
              end) =~ "A.__struct__/1 is undefined, cannot expand struct A"
     end)
@@ -1317,7 +1317,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       Agent.update(:mix_recompile_raise, fn _ -> true end)
 
-      ExUnit.CaptureIO.capture_io(fn ->
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
         assert {:error, _} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
       end)
 
@@ -1465,7 +1465,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       file = Path.absname("lib/a.ex")
 
-      capture_io(fn ->
+      capture_io(:stderr, fn ->
         assert {:error, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
 
         assert %Diagnostic{
@@ -1492,7 +1492,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       file = Path.absname("lib/a.ex")
 
-      capture_io(fn ->
+      capture_io(:stderr, fn ->
         assert {:error, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
 
         assert %Diagnostic{
@@ -1522,7 +1522,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      capture_io(fn ->
+      capture_io(:stderr, fn ->
         assert {:error, errors} = Mix.Tasks.Compile.Elixir.run([])
         errors = Enum.sort_by(errors, &Map.get(&1, :file))
 

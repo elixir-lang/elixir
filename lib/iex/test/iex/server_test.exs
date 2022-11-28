@@ -42,14 +42,14 @@ defmodule IEx.ServerTest do
     test "outside of the evaluator with refusal", config do
       Process.register(self(), config.test)
 
-      capture_io(:stderr, fn ->
-        {server, evaluator} = pry_session(config.test, "N\niex_context")
-        client = pry_request([server])
-        send(evaluator, :run)
+      assert capture_io(:stderr, fn ->
+               {server, evaluator} = pry_session(config.test, "N\niex_context")
+               client = pry_request([server])
+               send(evaluator, :run)
 
-        assert Task.await(client) == {:error, :refused}
-        assert Task.await(server) =~ "undefined function iex_context"
-      end)
+               assert Task.await(client) == {:error, :refused}
+               assert Task.await(server) =~ "cannot compile code"
+             end) =~ "undefined function iex_context"
     end
 
     test "outside of the evaluator with crash", config do
@@ -65,80 +65,80 @@ defmodule IEx.ServerTest do
     test "outside of the evaluator with double acceptance", config do
       Process.register(self(), config.test)
 
-      capture_io(:stderr, fn ->
-        {server1, evaluator1} = pry_session(config.test, "Y\niex_context")
-        {server2, evaluator2} = pry_session(config.test, "Y\niex_context")
-        client = pry_request([server1, server2])
+      assert capture_io(:stderr, fn ->
+               {server1, evaluator1} = pry_session(config.test, "Y\niex_context")
+               {server2, evaluator2} = pry_session(config.test, "Y\niex_context")
+               client = pry_request([server1, server2])
 
-        send(evaluator1, :run)
-        send(evaluator2, :run)
-        reply1 = Task.await(server1)
-        reply2 = Task.await(server2)
+               send(evaluator1, :run)
+               send(evaluator2, :run)
+               reply1 = Task.await(server1)
+               reply2 = Task.await(server2)
 
-        {accepted, refused} = if reply1 =~ "pry(1)>", do: {reply1, reply2}, else: {reply2, reply1}
+               {accepted, refused} =
+                 if reply1 =~ "pry(1)>", do: {reply1, reply2}, else: {reply2, reply1}
 
-        assert accepted =~ "pry(1)>"
-        assert accepted =~ ":inside_pry"
-        refute refused =~ "pry(1)>"
-        assert refused =~ "** session was already accepted elsewhere"
-        assert refused =~ "undefined function iex_context"
+               assert accepted =~ "pry(1)>"
+               assert accepted =~ ":inside_pry"
+               refute refused =~ "pry(1)>"
+               assert refused =~ "** session was already accepted elsewhere"
 
-        assert Task.await(client) == {:ok, false}
-      end)
+               assert Task.await(client) == {:ok, false}
+             end) =~ "undefined function iex_context"
     end
 
     test "outside of the evaluator with double refusal", config do
       Process.register(self(), config.test)
 
-      capture_io(:stderr, fn ->
-        {server1, evaluator1} = pry_session(config.test, "N\niex_context")
-        {server2, evaluator2} = pry_session(config.test, "N\niex_context")
-        client = pry_request([server1, server2])
+      assert capture_io(:stderr, fn ->
+               {server1, evaluator1} = pry_session(config.test, "N\niex_context")
+               {server2, evaluator2} = pry_session(config.test, "N\niex_context")
+               client = pry_request([server1, server2])
 
-        send(evaluator1, :run)
-        send(evaluator2, :run)
-        reply1 = Task.await(server1)
-        reply2 = Task.await(server2)
+               send(evaluator1, :run)
+               send(evaluator2, :run)
+               reply1 = Task.await(server1)
+               reply2 = Task.await(server2)
 
-        assert reply1 =~ "undefined function iex_context"
-        assert reply2 =~ "undefined function iex_context"
+               assert reply1 =~ "cannot compile code"
+               assert reply2 =~ "cannot compile code"
 
-        assert Task.await(client) == {:error, :refused}
-      end)
+               assert Task.await(client) == {:error, :refused}
+             end) =~ "undefined function iex_context"
     end
 
     test "outside of the evaluator with acceptance and then refusal", config do
       Process.register(self(), config.test)
 
-      capture_io(:stderr, fn ->
-        {server1, evaluator1} = pry_session(config.test, "Y\niex_context")
-        {server2, evaluator2} = pry_session(config.test, "N\niex_context")
-        client = pry_request([server1, server2])
+      assert capture_io(:stderr, fn ->
+               {server1, evaluator1} = pry_session(config.test, "Y\niex_context")
+               {server2, evaluator2} = pry_session(config.test, "N\niex_context")
+               client = pry_request([server1, server2])
 
-        send(evaluator1, :run)
-        send(evaluator2, :run)
-        assert Task.await(server1) =~ ":inside_pry"
-        assert Task.await(server2) =~ "undefined function iex_context"
+               send(evaluator1, :run)
+               send(evaluator2, :run)
+               assert Task.await(server1) =~ ":inside_pry"
+               assert Task.await(server2) =~ "cannot compile code"
 
-        assert Task.await(client) == {:ok, false}
-      end)
+               assert Task.await(client) == {:ok, false}
+             end) =~ "undefined function iex_context"
     end
 
     test "outside of the evaluator with refusal and then acceptance", config do
       Process.register(self(), config.test)
 
-      capture_io(:stderr, fn ->
-        {server1, evaluator1} = pry_session(config.test, "N\niex_context")
-        {server2, evaluator2} = pry_session(config.test, "Y\niex_context")
-        client = pry_request([server1, server2])
+      assert capture_io(:stderr, fn ->
+               {server1, evaluator1} = pry_session(config.test, "N\niex_context")
+               {server2, evaluator2} = pry_session(config.test, "Y\niex_context")
+               client = pry_request([server1, server2])
 
-        send(evaluator1, :run)
-        send(evaluator2, :run)
-        assert Task.await(server1) =~ "undefined function iex_context"
-        assert Task.await(server2) =~ ":inside_pry"
+               send(evaluator1, :run)
+               send(evaluator2, :run)
+               assert Task.await(server1) =~ "cannot compile code"
+               assert Task.await(server2) =~ ":inside_pry"
 
-        assert Task.await(client) == {:ok, false}
-      end)
+               assert Task.await(client) == {:ok, false}
+             end) =~ "undefined function iex_context"
     end
 
     @tag :tmp_dir

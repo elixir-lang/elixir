@@ -380,7 +380,14 @@ defmodule IEx.Evaluator do
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
-    {blamed, stacktrace} = Exception.blame(kind, reason, stacktrace)
+    {blamed, stacktrace} =
+      case reason do
+        %CompileError{description: "cannot compile file (errors have been logged)" <> _, line: 0} ->
+          {%CompileError{description: "cannot compile code (errors have been logged)"}, []}
+
+        _ ->
+          Exception.blame(kind, reason, stacktrace)
+      end
 
     ansidata =
       case blamed do

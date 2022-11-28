@@ -79,9 +79,11 @@ defmodule IEx.HelpersTest do
     end
 
     test "errors when setting up a breakpoint with invalid guard" do
-      assert_raise CompileError, ~r"cannot find or invoke local is_whatever/1", fn ->
-        break!(URI.decode_query(_, map) when is_whatever(map))
-      end
+      assert capture_io(:stderr, fn ->
+               assert_raise CompileError, fn ->
+                 break!(URI.decode_query(_, map) when is_whatever(map))
+               end
+             end) =~ "cannot find or invoke local is_whatever/1"
     end
 
     test "errors when setting up a break with no beam" do
@@ -1055,12 +1057,11 @@ defmodule IEx.HelpersTest do
   describe "import_file" do
     test "imports a file" do
       with_file("dot-iex", "variable = :hello\nimport IO", fn ->
-        capture_io(:stderr, fn ->
-          assert capture_iex("variable") =~
-                   "** (CompileError) iex:1: undefined function variable/0"
-        end)
+        assert capture_io(:stderr, fn -> capture_iex("variable") end) =~
+                 "undefined function variable/0"
 
-        assert capture_iex("puts \"hi\"") =~ "** (CompileError) iex:1: undefined function puts/1"
+        assert capture_io(:stderr, fn -> capture_iex("puts \"hi\"") end) =~
+                 "undefined function puts/1"
 
         assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"") =~
                  "iex(1)> IO\niex(2)> :hello\niex(3)> hi\n:ok"
@@ -1072,11 +1073,11 @@ defmodule IEx.HelpersTest do
       dot_1 = "variable = :hello\nimport IO"
 
       with_file(["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
-        capture_io(:stderr, fn ->
-          assert capture_iex("parent") =~ "** (CompileError) iex:1: undefined function parent/0"
-        end)
+        assert capture_io(:stderr, fn -> capture_iex("parent") end) =~
+                 "undefined function parent/0"
 
-        assert capture_iex("puts \"hi\"") =~ "** (CompileError) iex:1: undefined function puts/1"
+        assert capture_io(:stderr, fn -> capture_iex("puts \"hi\"") end) =~
+                 "undefined function puts/1"
 
         assert capture_iex("import_file \"dot-iex\"\nvariable\nputs \"hi\"\nparent") =~
                  "iex(1)> IO\niex(2)> :hello\niex(3)> hi\n:ok\niex(4)> true"
@@ -1124,7 +1125,8 @@ defmodule IEx.HelpersTest do
   describe "iex> |> (and other binary operators)" do
     test "passes previous result to the pipe" do
       Enum.each([:~>>, :<<~, :~>, :<~, :<~>], fn op ->
-        assert capture_iex("42\n  #{op} IO.puts()") =~ "undefined function #{op}/2"
+        assert capture_io(:stderr, fn -> capture_iex("42\n  #{op} IO.puts()") end) =~
+                 "undefined function #{op}/2"
       end)
 
       assert capture_iex("+42") =~ "42"
@@ -1164,7 +1166,7 @@ defmodule IEx.HelpersTest do
     end
 
     test "handles errors" do
-      ExUnit.CaptureIO.capture_io(fn ->
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
         with_file("sample.ex", "raise \"oops\"", fn ->
           assert_raise CompileError, fn -> c("sample.ex") end
         end)

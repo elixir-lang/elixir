@@ -97,6 +97,7 @@ defmodule Module.ParallelChecker do
   @doc """
   Verifies the given compilation function
   by starting a checker if one does not exist.
+
   See `verify/3`.
   """
   def verify(fun) do
@@ -153,7 +154,7 @@ defmodule Module.ParallelChecker do
 
   defp collect_results(modules, warnings) do
     receive do
-      {:warning, file, location, message} ->
+      {:diagnostic, _type, file, location, message} ->
         file = file && Path.absname(file)
         message = :unicode.characters_to_binary(message)
         warning = {file, location, message}
@@ -290,7 +291,7 @@ defmodule Module.ParallelChecker do
   def emit_warnings(warnings) do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
-      print_warning([message, ?\n, format_locations(locations)])
+      :elixir_errors.print_warning_no_diagnostic([message, ?\n, format_locations(locations)])
 
       Enum.map(locations, fn {file, line, _mfa} ->
         {file, line, message}
@@ -326,10 +327,6 @@ defmodule Module.ParallelChecker do
     file = Path.relative_to_cwd(file)
     line = if line > 0, do: [?: | Integer.to_string(line)], else: []
     ["  ", file, line]
-  end
-
-  defp print_warning(message) do
-    IO.puts(:stderr, [:elixir_errors.warning_prefix(), message])
   end
 
   ## Cache

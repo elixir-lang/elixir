@@ -160,7 +160,7 @@ expand_import(Meta, {Name, Arity} = Tuple, Args, S, E, Extra, External) ->
         %% the receiver is the same as module (happens on bootstrap).
         {_, Receiver} when Local /= false, Receiver /= Module ->
           Error = {macro_conflict, {Receiver, Name, Arity}},
-          elixir_errors:form_error(Meta, E, ?MODULE, Error);
+          elixir_errors:file_error(Meta, E, ?MODULE, Error);
 
         %% There is no local. Dispatch the import.
         _ when Local == false ->
@@ -267,7 +267,7 @@ find_imports_by_name(Name, [{Name, Arity} | Imports], Acc, Mod, Meta, E) ->
   case Acc of
     #{Arity := OtherMod} ->
       Error = {ambiguous_call, {Mod, OtherMod, Name, Arity}},
-      elixir_errors:form_error(Meta, E, ?MODULE, Error);
+      elixir_errors:file_error(Meta, E, ?MODULE, Error);
 
     #{} ->
       find_imports_by_name(Name, Imports, Acc#{Arity => Mod}, Mod, Meta, E)
@@ -295,7 +295,7 @@ find_import_by_name_arity(Meta, {_Name, Arity} = Tuple, Extra, E) ->
           {Name, Arity} = Tuple,
           [First, Second | _] = FunMatch ++ MacMatch,
           Error = {ambiguous_call, {First, Second, Name, Arity}},
-          elixir_errors:form_error(Meta, E, ?MODULE, Error)
+          elixir_errors:file_error(Meta, E, ?MODULE, Error)
       end
   end.
 
@@ -399,7 +399,7 @@ check_deprecated(Meta, Kind, ?application, Name, Arity, E) ->
   case E of
     #{module := Module, function := nil}
     when (Module /= nil) or (Kind == macro), (Name == get_env) orelse (Name == fetch_env) orelse (Name == 'fetch_env!') ->
-      elixir_errors:form_warn(Meta, E, ?MODULE, {compile_env, Name, Arity});
+      elixir_errors:file_warn(Meta, E, ?MODULE, {compile_env, Name, Arity});
 
     _ ->
       ok
@@ -410,7 +410,7 @@ check_deprecated(Meta, Kind, Receiver, Name, Arity, E) ->
     [_ | _] = Deprecations ->
       case lists:keyfind({Name, Arity}, 1, Deprecations) of
         {_, Message} ->
-          elixir_errors:form_warn(Meta, E, ?MODULE, {deprecated, Receiver, Name, Arity, Message});
+          elixir_errors:file_warn(Meta, E, ?MODULE, {deprecated, Receiver, Name, Arity, Message});
 
         false ->
           false

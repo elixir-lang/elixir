@@ -74,7 +74,7 @@ defmodule Module.LocalsTrackerTest do
     D.add_local(config[:ref], {:public, 1}, {:private, 1}, [line: 1], false)
 
     undefined = D.collect_undefined_locals(config[:ref], @used)
-    assert undefined == [{[line: 1], {:private, 1}, :undefined_function}]
+    assert undefined == [{{:public, 1}, [line: 1], {:private, 1}, :undefined_function}]
   end
 
   ### Incorrect dispatches
@@ -87,7 +87,7 @@ defmodule Module.LocalsTrackerTest do
     D.add_local(config[:ref], {:public, 1}, {:macro, 1}, [line: 5], false)
 
     undefined = D.collect_undefined_locals(config[:ref], definitions)
-    assert undefined == [{[line: 5], {:macro, 1}, :incorrect_dispatch}]
+    assert undefined == [{{:public, 1}, [line: 5], {:macro, 1}, :incorrect_dispatch}]
   end
 
   ## Defaults

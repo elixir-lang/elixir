@@ -79,7 +79,7 @@ take_definition(Module, {Name, Arity} = Tuple) ->
 
 %% Fetch all available definitions
 
-fetch_definitions(File, Module) ->
+fetch_definitions(Module, E) ->
   {Set, Bag} = elixir_module:data_tables(Module),
 
   Entries = try
@@ -88,9 +88,9 @@ fetch_definitions(File, Module) ->
     error:badarg -> []
   end,
 
-  fetch_definition(Entries, File, Module, Set, Bag, [], []).
+  fetch_definition(Entries, E, Module, Set, Bag, [], []).
 
-fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
+fetch_definition([Tuple | T], E, Module, Set, Bag, All, Private) ->
   [{_, Kind, Meta, _, Check, {MaxDefaults, _, Defaults}}] = ets:lookup(Set, {def, Tuple}),
 
   try ets:lookup_element(Bag, {clauses, Tuple}, 2) of
@@ -105,14 +105,14 @@ fetch_definition([Tuple | T], File, Module, Set, Bag, All, Private) ->
           false ->
             Private
         end,
-      fetch_definition(T, File, Module, Set, Bag, NewAll, NewPrivate)
+      fetch_definition(T, E, Module, Set, Bag, NewAll, NewPrivate)
   catch
     error:badarg ->
-      elixir_errors:form_error(Meta, File, ?MODULE, {function_head, Kind, Tuple}),
-      fetch_definition(T, File, Module, Set, Bag, All, Private)
+      elixir_errors:module_error(Meta, E, ?MODULE, {function_head, Kind, Tuple}),
+      fetch_definition(T, E, Module, Set, Bag, All, Private)
   end;
 
-fetch_definition([], _File, _Module, _Set, _Bag, All, Private) ->
+fetch_definition([], _E, _Module, _Set, _Bag, All, Private) ->
   {All, Private}.
 
 add_defaults_to_meta(0, Meta) -> Meta;
@@ -134,7 +134,7 @@ store_definition(Kind, CheckClauses, Call, Body, Pos) ->
   {Name, Args} = case NameAndArgs of
     {N, _, A} when is_atom(N), is_atom(A) -> {N, []};
     {N, _, A} when is_atom(N), is_list(A) -> {N, A};
-    _ -> elixir_errors:form_error([{line, Line}], E, ?MODULE, {invalid_def, Kind, NameAndArgs})
+    _ -> elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_def, Kind, NameAndArgs})
   end,
 
   %% Now that we have verified the call format,
@@ -248,7 +248,7 @@ def_to_clauses(Kind, Meta, Args, Guards, Body, E) ->
     {do, _} ->
       [{Meta, Args, Guards, {'try', [{origin,  Kind} | Meta], [Body]}}];
     false ->
-      elixir_errors:form_error(Meta, E, elixir_expand, {missing_option, Kind, [do]})
+      elixir_errors:file_error(Meta, E, elixir_expand, {missing_option, Kind, [do]})
   end.
 
 run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
@@ -332,7 +332,7 @@ default_var(Counter) ->
 
 check_valid_kind(_Meta, _File, _Name, _Arity, Kind, Kind, _StoredFile, _StoredMeta) -> ok;
 check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind, StoredFile, StoredMeta) ->
-  elixir_errors:form_error(Meta, File, ?MODULE,
+  elixir_errors:file_error(Meta, File, ?MODULE,
     {changed_kind, {Name, Arity, StoredKind, Kind, StoredFile, ?line(StoredMeta)}}).
 
 check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, Clauses) ->
@@ -340,37 +340,37 @@ check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, C
     none ->
       ok;
     {Name, Arity} when Clauses == [] ->
-      elixir_errors:form_warn(Meta, File, ?MODULE,
+      elixir_errors:file_warn(Meta, File, ?MODULE,
         {late_function_head, {Kind, Name, Arity}});
     {Name, Arity} ->
       ok;
     {Name, _} ->
       Relative = elixir_utils:relative_to_cwd(StoredFile),
-      elixir_errors:form_warn(Meta, File, ?MODULE,
+      elixir_errors:file_warn(Meta, File, ?MODULE,
         {ungrouped_name, {Kind, Name, Arity, ?line(StoredMeta), Relative}});
     _ ->
       Relative = elixir_utils:relative_to_cwd(StoredFile),
-      elixir_errors:form_warn(Meta, File, ?MODULE,
+      elixir_errors:file_warn(Meta, File, ?MODULE,
         {ungrouped_arity, {Kind, Name, Arity, ?line(StoredMeta), Relative}})
   end.
 
 % Clause with defaults after clause with defaults
 check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, _, _, _)
     when Defaults > 0, StoredDefaults > 0 ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {duplicate_defaults, {Kind, Name, Arity}});
+  elixir_errors:file_error(Meta, File, ?MODULE, {duplicate_defaults, {Kind, Name, Arity}});
 % Clause with defaults after clause without defaults
 check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, 0, _, _, _) when Defaults > 0 ->
-  elixir_errors:form_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
+  elixir_errors:file_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
 % Clause without defaults directly after clause with defaults (bodiless does not count)
 check_valid_defaults(Meta, File, Name, Arity, Kind, 0, _, LastDefaults, true, true) when LastDefaults > 0 ->
-  elixir_errors:form_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
+  elixir_errors:file_warn(Meta, File, ?MODULE, {mixed_defaults, {Kind, Name, Arity}});
 % Clause without defaults
 check_valid_defaults(_Meta, _File, _Name, _Arity, _Kind, 0, _StoredDefaults, _LastDefaults, _HasBody, _LastHasBody) ->
   ok.
 
 check_args_for_function_head(Meta, Args, E) ->
   [begin
-     elixir_errors:form_error(Meta, E, ?MODULE, invalid_args_for_function_head)
+     elixir_errors:module_error(Meta, E, ?MODULE, invalid_args_for_function_head)
    end || Arg <- Args, invalid_arg(Arg)].
 
 invalid_arg({Name, _, Kind}) when is_atom(Name), is_atom(Kind) -> false;
@@ -380,7 +380,7 @@ check_previous_defaults(Meta, Module, Name, Arity, Kind, Defaults, E) ->
   {_Set, Bag} = elixir_module:data_tables(Module),
   Matches = ets:lookup(Bag, {default, Name}),
   [begin
-     elixir_errors:form_error(Meta, E, ?MODULE,
+     elixir_errors:file_error(Meta, E, ?MODULE,
        {defs_with_defaults, Kind, Name, Arity, A})
    end || {_, A, D} <- Matches, A /= Arity, D /= 0, defaults_conflict(A, D, Arity, Defaults)].
 
@@ -389,18 +389,18 @@ defaults_conflict(A, D, Arity, Defaults) ->
     ((A >= (Arity - Defaults)) andalso (A < Arity)).
 
 assert_no_aliases_name(Meta, '__aliases__', [Atom], #{file := File}) when is_atom(Atom) ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {no_alias, Atom});
+  elixir_errors:file_error(Meta, File, ?MODULE, {no_alias, Atom});
 assert_no_aliases_name(_Meta, _Aliases, _Args, _S) ->
   ok.
 
 assert_valid_name(Meta, Kind, '__info__', [_], #{file := File}) ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {'__info__', Kind});
+  elixir_errors:file_error(Meta, File, ?MODULE, {'__info__', Kind});
 assert_valid_name(Meta, Kind, 'module_info', [], #{file := File}) ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {module_info, Kind, 0});
+  elixir_errors:file_error(Meta, File, ?MODULE, {module_info, Kind, 0});
 assert_valid_name(Meta, Kind, 'module_info', [_], #{file := File}) ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {module_info, Kind, 1});
+  elixir_errors:file_error(Meta, File, ?MODULE, {module_info, Kind, 1});
 assert_valid_name(Meta, Kind, is_record, [_, _], #{file := File}) when Kind == defp; Kind == def ->
-  elixir_errors:form_error(Meta, File, ?MODULE, {is_record, Kind});
+  elixir_errors:file_error(Meta, File, ?MODULE, {is_record, Kind});
 assert_valid_name(_Meta, _Kind, _Name, _Args, _S) ->
   ok.
 

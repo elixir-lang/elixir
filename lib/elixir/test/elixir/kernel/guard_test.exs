@@ -3,6 +3,8 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.GuardTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureIO
+
   describe "defguard(p) usage" do
     defmodule GuardsInMacros do
       defguard is_foo(atom) when atom == :foo
@@ -152,26 +154,24 @@ defmodule Kernel.GuardTest do
       refute IntegerPrivateGuards.is_even_and_small?(102)
       refute IntegerPrivateGuards.is_even_and_small?(103)
 
-      assert_raise CompileError, ~r"cannot find or invoke local is_even/1", fn ->
+      assert_compile_error(~r"cannot find or invoke local is_even/1", fn ->
         defmodule IntegerPrivateGuardUtils do
           import IntegerPrivateGuards
 
           def is_even_and_large?(value) when is_even(value) and value > 100, do: true
           def is_even_and_large?(_), do: false
         end
-      end
+      end)
 
-      assert_raise CompileError,
-                   ~r"undefined function is_even/1",
-                   fn ->
-                     defmodule IntegerPrivateFunctionUtils do
-                       import IntegerPrivateGuards
+      assert_compile_error(~r"undefined function is_even/1", fn ->
+        defmodule IntegerPrivateFunctionUtils do
+          import IntegerPrivateGuards
 
-                       def is_even_and_small?(value) do
-                         if is_even(value) and value <= 100, do: true, else: false
-                       end
-                     end
-                   end
+          def is_even_and_small?(value) do
+            if is_even(value) and value <= 100, do: true, else: false
+          end
+        end
+      end)
     end
 
     test "requires a proper macro name" do
@@ -185,47 +185,47 @@ defmodule Kernel.GuardTest do
     end
 
     test "handles overriding appropriately" do
-      assert_raise CompileError, ~r"defmacro (.*?) already defined as def", fn ->
+      assert_compile_error(~r"defmacro (.*?) already defined as def", fn ->
         defmodule OverriddenFunUsage do
           def foo(bar), do: bar
           defguard foo(bar) when bar
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"defmacro (.*?) already defined as defp", fn ->
+      assert_compile_error(~r"defmacro (.*?) already defined as defp", fn ->
         defmodule OverriddenPrivateFunUsage do
           defp foo(bar), do: bar
           defguard foo(bar) when bar
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"defmacro (.*?) already defined as defmacrop", fn ->
+      assert_compile_error(~r"defmacro (.*?) already defined as defmacrop", fn ->
         defmodule OverriddenPrivateFunUsage do
           defmacrop foo(bar), do: bar
           defguard foo(bar) when bar
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"defmacrop (.*?) already defined as def", fn ->
+      assert_compile_error(~r"defmacrop (.*?) already defined as def", fn ->
         defmodule OverriddenFunUsage do
           def foo(bar), do: bar
           defguardp foo(bar) when bar
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"defmacrop (.*?) already defined as defp", fn ->
+      assert_compile_error(~r"defmacrop (.*?) already defined as defp", fn ->
         defmodule OverriddenPrivateFunUsage do
           defp foo(bar), do: bar
           defguardp foo(bar) when bar
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"defmacrop (.*?) already defined as defmacro", fn ->
+      assert_compile_error(~r"defmacrop (.*?) already defined as defmacro", fn ->
         defmodule OverriddenPrivateFunUsage do
           defmacro foo(bar), do: bar
           defguardp foo(bar) when bar
         end
-      end
+      end)
     end
 
     test "does not allow multiple guard clauses" do
@@ -237,36 +237,36 @@ defmodule Kernel.GuardTest do
     end
 
     test "does not accept a block" do
-      assert_raise CompileError, ~r"undefined function defguard/2", fn ->
+      assert_compile_error(~r"undefined function defguard/2", fn ->
         defmodule OnelinerBlockUsage do
           defguard(foo(bar), do: one_liner)
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"undefined function defguard/2", fn ->
+      assert_compile_error(~r"undefined function defguard/2", fn ->
         defmodule MultilineBlockUsage do
           defguard foo(bar) do
             multi
             liner
           end
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"undefined function defguard/2", fn ->
+      assert_compile_error(~r"undefined function defguard/2", fn ->
         defmodule ImplAndBlockUsage do
           defguard(foo(bar) when both_given, do: error)
         end
-      end
+      end)
     end
   end
 
   describe "defguard(p) compilation" do
     test "refuses to compile nonsensical code" do
-      assert_raise CompileError, ~r"cannot find or invoke local undefined/1", fn ->
+      assert_compile_error("cannot find or invoke local undefined/1", fn ->
         defmodule UndefinedUsage do
           defguard foo(function) when undefined(function)
         end
-      end
+      end)
     end
 
     test "fails on expressions not allowed in guards" do
@@ -278,17 +278,17 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert_raise CompileError, ~r"cannot invoke remote function", fn ->
+      assert_compile_error("cannot invoke remote function", fn ->
         defmodule BadErlangFunctionUsage do
           defguard foo(bar) when :erlang.binary_to_atom("foo")
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"cannot invoke remote function", fn ->
+      assert_compile_error("cannot invoke remote function", fn ->
         defmodule SendUsage do
           defguard foo(bar) when send(self(), :baz)
         end
-      end
+      end)
 
       # Consistent errors
 
@@ -310,109 +310,129 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert_raise CompileError,
-                   ~r"cannot invoke remote function :erlang\.is_record/2 inside guards",
-                   fn ->
-                     defmodule IsRecord2Usage do
-                       defguard foo(rec) when :erlang.is_record(rec, :tag)
-                     end
-                   end
+      assert_compile_error(
+        "cannot invoke remote function :erlang\.is_record/2 inside guards",
+        fn ->
+          defmodule IsRecord2Usage do
+            defguard foo(rec) when :erlang.is_record(rec, :tag)
+          end
+        end
+      )
 
-      assert_raise CompileError,
-                   ~r"cannot invoke remote function :erlang\.is_record/3 inside guards",
-                   fn ->
-                     defmodule IsRecord3Usage do
-                       defguard foo(rec) when :erlang.is_record(rec, :tag, 7)
-                     end
-                   end
+      assert_compile_error(
+        "cannot invoke remote function :erlang\.is_record/3 inside guards",
+        fn ->
+          defmodule IsRecord3Usage do
+            defguard foo(rec) when :erlang.is_record(rec, :tag, 7)
+          end
+        end
+      )
 
-      assert_raise CompileError,
-                   ~r"cannot invoke remote function :erlang\.\+\+/2 inside guards",
-                   fn ->
-                     defmodule ListSubtractionUsage do
-                       defguard foo(list) when list ++ []
-                     end
-                   end
+      assert_compile_error(
+        ~r"cannot invoke remote function :erlang\.\+\+/2 inside guards",
+        fn ->
+          defmodule ListSubtractionUsage do
+            defguard foo(list) when list ++ []
+          end
+        end
+      )
 
-      assert_raise CompileError,
-                   ~r"cannot invoke remote function :erlang\.\-\-/2 inside guards",
-                   fn ->
-                     defmodule ListSubtractionUsage do
-                       defguard foo(list) when list -- []
-                     end
-                   end
+      assert_compile_error(
+        "cannot invoke remote function :erlang\.\-\-/2 inside guards",
+        fn ->
+          defmodule ListSubtractionUsage do
+            defguard foo(list) when list -- []
+          end
+        end
+      )
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule LocalCallUsage do
           defguard foo(local, call) when local.(call)
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule ComprehensionUsage do
           defguard foo(bar) when for(x <- [1, 2, 3], do: x * bar)
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule AliasUsage do
           defguard foo(bar) when alias(bar)
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule ImportUsage do
           defguard foo(bar) when import(bar)
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule RequireUsage do
           defguard foo(bar) when require(bar)
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule SuperUsage do
           defguard foo(bar) when super(bar)
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule SpawnUsage do
           defguard foo(bar) when spawn(& &1)
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule ReceiveUsage do
           defguard foo(bar) when receive(do: (baz -> baz))
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule CaseUsage do
           defguard foo(bar) when case(bar, do: (baz -> :baz))
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule CondUsage do
           defguard foo(bar) when cond(do: (bar -> :baz))
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule TryUsage do
           defguard foo(bar) when try(do: (baz -> baz))
         end
-      end
+      end)
 
-      assert_raise CompileError, ~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule WithUsage do
           defguard foo(bar) when with(do: (baz -> baz))
         end
-      end
+      end)
+
+      assert_compile_error(
+        "cannot invoke remote function in guards. " <>
+          "If you want to do a map lookup instead, please remove parens from map.field()",
+        fn ->
+          defmodule MapDot do
+            def map_dot(map) when map.field(), do: true
+          end
+        end
+      )
+
+      assert_compile_error("cannot invoke remote function Module.fun/0 inside guards", fn ->
+        defmodule MapDot do
+          def map_dot(map) when Module.fun(), do: true
+        end
+      end)
     end
   end
 
@@ -453,5 +473,11 @@ defmodule Kernel.GuardTest do
       |> Macro.to_string()
       |> Kernel.<>("\n")
     end
+  end
+
+  defp assert_compile_error(message, fun) do
+    assert capture_io(:stderr, fn ->
+             assert_raise CompileError, fun
+           end) =~ message
   end
 end
