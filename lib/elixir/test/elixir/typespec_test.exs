@@ -116,7 +116,7 @@ defmodule TypespecTest do
 
     test "redefined type" do
       assert_raise CompileError,
-                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:122",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:122",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -125,7 +125,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise CompileError,
-                   ~r"type foo/2 is already defined in test/elixir/typespec_test.exs:132",
+                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:132",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -135,7 +135,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise CompileError,
-                   ~r"type foo/0 is already defined in test/elixir/typespec_test.exs:141",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:141",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -534,17 +534,17 @@ defmodule TypespecTest do
     end
 
     test "@type with undefined struct" do
-      assert_compile_error(~r"ThisModuleDoesNotExist.__struct__/0 is undefined", fn ->
+      assert_raise ArgumentError, ~r"ThisModuleDoesNotExist.__struct__/0 is undefined", fn ->
         test_module do
           @type my_type :: %ThisModuleDoesNotExist{}
         end
-      end)
+      end
 
-      assert_compile_error(~r"cannot access struct TypespecTest.TypespecSample", fn ->
+      assert_raise ArgumentError, ~r"cannot access struct TypespecTest.TypespecSample", fn ->
         test_module do
           @type my_type :: %TypespecSample{}
         end
-      end)
+      end
     end
 
     test "@type with a struct with undefined field" do
