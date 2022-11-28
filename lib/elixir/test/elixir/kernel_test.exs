@@ -613,24 +613,6 @@ defmodule KernelTest do
       refute map_dot(%{})
       refute map_dot(%{field: false})
       assert map_dot(%{field: true})
-
-      message =
-        "cannot invoke remote function in guards. " <>
-          "If you want to do a map lookup instead, please remove parens from map.field()"
-
-      assert_raise CompileError, Regex.compile!(message), fn ->
-        defmodule MapDot do
-          def map_dot(map) when map.field(), do: true
-        end
-      end
-
-      message = ~r"cannot invoke remote function Module.fun/0 inside guards"
-
-      assert_raise CompileError, message, fn ->
-        defmodule MapDot do
-          def map_dot(map) when Module.fun(), do: true
-        end
-      end
     end
 
     test "performs all side-effects" do
@@ -935,7 +917,7 @@ defmodule KernelTest do
     test "expects atoms as module names" do
       msg = ~r"invalid module name: 3"
 
-      assert_raise CompileError, msg, fn ->
+      assert_raise ArgumentError, msg, fn ->
         defmodule 1 + 2, do: :ok
       end
     end
@@ -946,18 +928,18 @@ defmodule KernelTest do
       Enum.each(special_atoms, fn special_atom ->
         msg = ~r"invalid module name: #{inspect(special_atom)}"
 
-        assert_raise CompileError, msg, fn ->
+        assert_raise ArgumentError, msg, fn ->
           defmodule special_atom, do: :ok
         end
       end)
     end
 
     test "does not accept slashes in module names" do
-      assert_raise CompileError, ~r(invalid module name: :"foo/bar"), fn ->
+      assert_raise ArgumentError, ~r(invalid module name: :"foo/bar"), fn ->
         defmodule :"foo/bar", do: :ok
       end
 
-      assert_raise CompileError, ~r(invalid module name: :"foo\\\\bar"), fn ->
+      assert_raise ArgumentError, ~r(invalid module name: :"foo\\\\bar"), fn ->
         defmodule :"foo\\bar", do: :ok
       end
     end

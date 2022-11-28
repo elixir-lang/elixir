@@ -614,6 +614,14 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
+  test "unknown import" do
+    assert capture_err(fn ->
+             Code.compile_string("""
+             import(Kernel, only: [invalid: 1])
+             """)
+           end) =~ "cannot import Kernel.invalid/1 because it is undefined or private"
+  end
+
   test "unused import of one of the functions in :only" do
     output =
       capture_err(fn ->

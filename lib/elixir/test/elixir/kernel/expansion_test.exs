@@ -140,14 +140,6 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "import" do
-    test "raises on invalid macro" do
-      message = ~r"cannot import Kernel.invalid/1 because it is undefined or private"
-
-      assert_compile_error(message, fn ->
-        expand(quote(do: import(Kernel, only: [invalid: 1])))
-      end)
-    end
-
     test "raises on invalid options" do
       message = ~r"invalid :only option for import, expected a keyword list with integer values"
 

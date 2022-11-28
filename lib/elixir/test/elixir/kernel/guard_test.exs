@@ -278,13 +278,13 @@ defmodule Kernel.GuardTest do
         end
       end
 
-      assert_compile_error(~r"cannot invoke remote function", fn ->
+      assert_compile_error("cannot invoke remote function", fn ->
         defmodule BadErlangFunctionUsage do
           defguard foo(bar) when :erlang.binary_to_atom("foo")
         end
       end)
 
-      assert_compile_error(~r"cannot invoke remote function", fn ->
+      assert_compile_error("cannot invoke remote function", fn ->
         defmodule SendUsage do
           defguard foo(bar) when send(self(), :baz)
         end
@@ -311,7 +311,7 @@ defmodule Kernel.GuardTest do
       end
 
       assert_compile_error(
-        ~r"cannot invoke remote function :erlang\.is_record/2 inside guards",
+        "cannot invoke remote function :erlang\.is_record/2 inside guards",
         fn ->
           defmodule IsRecord2Usage do
             defguard foo(rec) when :erlang.is_record(rec, :tag)
@@ -320,7 +320,7 @@ defmodule Kernel.GuardTest do
       )
 
       assert_compile_error(
-        ~r"cannot invoke remote function :erlang\.is_record/3 inside guards",
+        "cannot invoke remote function :erlang\.is_record/3 inside guards",
         fn ->
           defmodule IsRecord3Usage do
             defguard foo(rec) when :erlang.is_record(rec, :tag, 7)
@@ -338,7 +338,7 @@ defmodule Kernel.GuardTest do
       )
 
       assert_compile_error(
-        ~r"cannot invoke remote function :erlang\.\-\-/2 inside guards",
+        "cannot invoke remote function :erlang\.\-\-/2 inside guards",
         fn ->
           defmodule ListSubtractionUsage do
             defguard foo(list) when list -- []
@@ -346,75 +346,91 @@ defmodule Kernel.GuardTest do
         end
       )
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule LocalCallUsage do
           defguard foo(local, call) when local.(call)
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule ComprehensionUsage do
           defguard foo(bar) when for(x <- [1, 2, 3], do: x * bar)
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule AliasUsage do
           defguard foo(bar) when alias(bar)
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule ImportUsage do
           defguard foo(bar) when import(bar)
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule RequireUsage do
           defguard foo(bar) when require(bar)
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule SuperUsage do
           defguard foo(bar) when super(bar)
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule SpawnUsage do
           defguard foo(bar) when spawn(& &1)
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule ReceiveUsage do
           defguard foo(bar) when receive(do: (baz -> baz))
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule CaseUsage do
           defguard foo(bar) when case(bar, do: (baz -> :baz))
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule CondUsage do
           defguard foo(bar) when cond(do: (bar -> :baz))
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule TryUsage do
           defguard foo(bar) when try(do: (baz -> baz))
         end
       end)
 
-      assert_compile_error(~r"invalid expression in guard", fn ->
+      assert_compile_error("invalid expression in guard", fn ->
         defmodule WithUsage do
           defguard foo(bar) when with(do: (baz -> baz))
+        end
+      end)
+
+      assert_compile_error(
+        "cannot invoke remote function in guards. " <>
+          "If you want to do a map lookup instead, please remove parens from map.field()",
+        fn ->
+          defmodule MapDot do
+            def map_dot(map) when map.field(), do: true
+          end
+        end
+      )
+
+      assert_compile_error("cannot invoke remote function Module.fun/0 inside guards", fn ->
+        defmodule MapDot do
+          def map_dot(map) when Module.fun(), do: true
         end
       end)
     end

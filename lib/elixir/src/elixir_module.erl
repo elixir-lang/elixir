@@ -73,7 +73,8 @@ taint(Module) ->
 
 %% Compilation hook
 
-compile(Module, Block, Vars, Prune, Env) when is_atom(Module) ->
+compile(Module, Block, Vars, Prune, Env) ->
+  ModuleAsCharlist = validate_module_name(Module),
   #{line := Line, function := Function, versioned_vars := OldVerVars} = Env,
 
   {VerVars, _} =
@@ -91,19 +92,32 @@ compile(Module, Block, Vars, Prune, Env) when is_atom(Module) ->
     #{lexical_tracker := nil} ->
       elixir_lexical:run(
         MaybeLexEnv,
-        fun(LexEnv) -> compile(Line, Module, Block, Vars, Prune, LexEnv) end,
+        fun(LexEnv) -> compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, LexEnv) end,
         fun(_LexEnv) -> ok end
       );
     _ ->
-      compile(Line, Module, Block, Vars, Prune, MaybeLexEnv)
-  end;
-compile(Module, _Block, _Vars, _Prune, #{line := Line} = E) ->
-  elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_module, Module}).
+      compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, MaybeLexEnv)
+  end.
 
-compile(Line, Module, Block, Vars, Prune, E) ->
+validate_module_name(Module) when Module == nil; is_boolean(Module); not is_atom(Module) ->
+  invalid_module_name(Module);
+validate_module_name(Module) ->
+  Charlist = atom_to_list(Module),
+  case lists:any(fun(Char) -> (Char =:= $/) or (Char =:= $\\) end, Charlist) of
+    true -> invalid_module_name(Module);
+    false -> Charlist
+  end.
+
+invalid_module_name(Module) ->
+  %% We raise an argument error to keep it close to Elixir errors before it starts.
+  erlang:error('Elixir.ArgumentError':exception(
+    <<"invalid module name: ",
+      ('Elixir.Kernel':inspect(Module))/binary>>
+  )).
+
+compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
   File = ?key(E, file),
   check_module_availability(Module, Line, E),
-  ModuleAsCharlist = validate_module_name(Module, Line, E),
 
   CompilerModules = compiler_modules(),
   {Tables, Ref} = build(Module, Line, File, E),
@@ -296,17 +310,6 @@ check_module_availability(Module, Line, E) ->
       end;
     true ->
       ok
-  end.
-
-validate_module_name(Module, Line, E) when Module == nil; is_boolean(Module) ->
-  elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_module, Module});
-validate_module_name(Module, Line, E) ->
-  Charlist = atom_to_list(Module),
-  case lists:any(fun(Char) -> (Char =:= $/) or (Char =:= $\\) end, Charlist) of
-    true ->
-      elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_module, Module});
-    false ->
-      Charlist
   end.
 
 %% Hook that builds both attribute and functions and set up common hooks.
@@ -553,8 +556,6 @@ format_error({unused_attribute, deprecated}) ->
   "module attribute @deprecated was set but no definition follows it";
 format_error({unused_attribute, Attr}) ->
   io_lib:format("module attribute @~ts was set but never used", [Attr]);
-format_error({invalid_module, Module}) ->
-  io_lib:format("invalid module name: ~ts", ['Elixir.Kernel':inspect(Module)]);
 format_error({module_defined, Module}) ->
   Extra =
     case code:which(Module) of
