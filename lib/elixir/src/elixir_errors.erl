@@ -76,11 +76,10 @@ function_error(Meta, Env, Module, Desc) ->
   file_error(Meta, Env, Module, Desc).
 
 print_error(Meta, Env, Module, Desc) ->
-  {_Line, _File, Location} = env_format(Meta, Env),
-  io:put_chars(
-    standard_error,
-    [error_prefix(), Module:format_error(Desc), "\n  ", Location, $\n, $\n]
-  ),
+  {Line, File, Location} = env_format(Meta, Env),
+  Message = Module:format_error(Desc),
+  send_diagnostic(error, Line, File, Message),
+  io:put_chars(standard_error, [error_prefix(), Message, "\n  ", Location, $\n, $\n]),
   ok.
 
 %% Compilation error.
@@ -213,7 +212,7 @@ snippet(InputString, Location, StartLine, StartColumn) ->
 send_diagnostic(Type, Line, File, Message) ->
   case get(elixir_compiler_info) of
     undefined -> ok;
-    {CompilerPid, _} -> CompilerPid ! {Type, File, Line, Message}
+    {CompilerPid, _} -> CompilerPid ! {diagnostic, Type, File, Line, Message}
   end,
   ok.
 

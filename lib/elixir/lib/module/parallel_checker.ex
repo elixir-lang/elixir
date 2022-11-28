@@ -153,7 +153,7 @@ defmodule Module.ParallelChecker do
 
   defp collect_results(modules, warnings) do
     receive do
-      {:warning, file, location, message} ->
+      {:diagnostic, _type, file, location, message} ->
         file = file && Path.absname(file)
         message = :unicode.characters_to_binary(message)
         warning = {file, location, message}
