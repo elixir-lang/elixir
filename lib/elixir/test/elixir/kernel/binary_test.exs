@@ -192,21 +192,21 @@ defmodule Kernel.BinaryTest do
   end
 
   test "literal errors" do
-    message = ~r"conflicting type specification for bit field"
+    message = "conflicting type specification for bit field"
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(message, fn ->
       Code.eval_string(~s[<<"foo"::integer>>])
-    end
+    end)
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(message, fn ->
       Code.eval_string(~s[<<"foo"::float>>])
-    end
+    end)
 
-    message = ~r"invalid literal ~c\"foo\""
+    message = "invalid literal ~c\"foo\""
 
-    assert_raise CompileError, message, fn ->
+    assert_compile_error(message, fn ->
       Code.eval_string(~s[<<'foo'::binary>>])
-    end
+    end)
   end
 
   @bitstring <<"foo", 16::4>>
@@ -289,24 +289,32 @@ defmodule Kernel.BinaryTest do
   end
 
   test "bitsyntax macro is expanded with a warning" do
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+    assert capture_err(fn ->
              Code.eval_string("<<1::refb_spec>>", [], __ENV__)
            end) =~
              "bitstring specifier \"refb_spec\" does not exist and is being expanded to \"refb_spec()\""
 
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+    assert capture_err(fn ->
              Code.eval_string("<<1::size(1)-signed_16>>", [], __ENV__)
            end) =~
              "bitstring specifier \"signed_16\" does not exist and is being expanded to \"signed_16()\""
   end
 
   test "bitsyntax with extra parentheses warns" do
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+    assert capture_err(fn ->
              Code.eval_string("<<1::big()>>")
            end) =~ "extra parentheses on a bitstring specifier \"big()\" have been deprecated"
 
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+    assert capture_err(fn ->
              Code.eval_string("<<1::size(8)-integer()>>")
            end) =~ "extra parentheses on a bitstring specifier \"integer()\" have been deprecated"
+  end
+
+  defp capture_err(fun) do
+    ExUnit.CaptureIO.capture_io(:stderr, fun)
+  end
+
+  defp assert_compile_error(message, fun) do
+    assert capture_err(fn -> assert_raise CompileError, fun end) =~ message
   end
 end

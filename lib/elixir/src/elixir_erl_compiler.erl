@@ -1,5 +1,5 @@
 -module(elixir_erl_compiler).
--export([spawn/1, forms/3, noenv_forms/3, erl_to_core/2, format_error/1]).
+-export([spawn/1, forms/3, noenv_forms/3, erl_to_core/2]).
 -include("elixir.hrl").
 
 spawn(Fun) ->
@@ -57,7 +57,14 @@ compile(Forms, File, Opts) when is_list(Forms), is_list(Opts), is_binary(File) -
           {Module, Binary};
 
         {ok, Module, _Binary, _Warnings} ->
-          elixir_errors:form_error([], File, ?MODULE, {invalid_compilation, Module});
+          Message = io_lib:format(
+            "could not compile module ~ts. We expected the compiler to return a .beam binary but "
+            "got something else. This usually happens because ERL_COMPILER_OPTIONS or @compile "
+            "was set to change the compilation outcome in a way that is incompatible with Elixir",
+            [elixir_aliases:inspect(Module)]
+          ),
+
+          elixir_errors:compile_error([], File, Message);
 
         {error, Errors, Warnings} ->
           format_warnings(Opts, Warnings),
@@ -104,8 +111,8 @@ handle_file_warning(_, File, {Line, Module, Desc}) ->
 
 %% Handle warnings
 
-handle_file_error(File, {beam_validator, Rest}) ->
-  elixir_errors:form_error([{line, 0}], File, beam_validator, Rest);
+handle_file_error(File, {beam_validator, Desc}) ->
+  elixir_errors:compile_error([{line, 0}], File, beam_validator:format_error(Desc));
 handle_file_error(File, {Line, Module, Desc}) ->
   Message = custom_format(Module, Desc),
   elixir_errors:compile_error([{line, Line}], File, Message).
@@ -154,13 +161,3 @@ custom_format([], Desc) ->
 
 custom_format(Module, Desc) ->
   Module:format_error(Desc).
-
-%% Error formatting
-
-format_error({invalid_compilation, Module}) ->
-  io_lib:format(
-    "could not compile module ~ts. We expected the compiler to return a .beam binary but "
-    "got something else. This usually happens because ERL_COMPILER_OPTIONS or @compile "
-    "was set to change the compilation outcome in a way that is incompatible with Elixir",
-    [elixir_aliases:inspect(Module)]
-  ).

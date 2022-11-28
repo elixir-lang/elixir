@@ -88,33 +88,27 @@ get_cached_env(Env) ->
 
 %% ERROR HANDLING
 
-ensure_no_import_conflict(_File, 'Elixir.Kernel', _All) ->
+ensure_no_import_conflict('Elixir.Kernel', _All, _E) ->
   ok;
-ensure_no_import_conflict(File, Module, All) ->
+ensure_no_import_conflict(Module, All, E) ->
   if_tracker(Module, ok, fun(Tracker) ->
-    [elixir_errors:form_error(Meta, File, ?MODULE, {function_conflict, Error})
+    [elixir_errors:module_error(Meta, E, ?MODULE, {function_conflict, Error})
      || {Meta, Error} <- ?tracker:collect_imports_conflicts(Tracker, All)],
     ok
   end).
 
-warn_unused_local(File, Module, All, Private) ->
+ensure_no_undefined_local(Module, All, E) ->
   if_tracker(Module, [], fun(Tracker) ->
-    {Unreachable, Warnings} = ?tracker:collect_unused_locals(Tracker, All, Private),
-    [elixir_errors:form_warn(Meta, File, ?MODULE, Error) || {Meta, Error} <- Warnings],
-    Unreachable
+    [elixir_errors:module_error(Meta, E#{function := Function}, ?MODULE, {Error, Tuple, Module})
+     || {Function, Meta, Tuple, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
+    ok
   end).
 
-ensure_no_undefined_local(File, Module, All) ->
+warn_unused_local(Module, All, Private, E) ->
   if_tracker(Module, [], fun(Tracker) ->
-    case ?tracker:collect_undefined_locals(Tracker, All) of
-      [] -> ok;
-
-      List ->
-        [{FirstMeta, FirstTuple, FirstError} | Rest] = lists:sort(List),
-        [elixir_errors:form_warn(Meta, File, ?MODULE, {Error, Tuple, Module}) || {Meta, Tuple, Error} <- lists:reverse(Rest)],
-        elixir_errors:form_error(FirstMeta, File, ?MODULE, {FirstError, FirstTuple, Module}),
-        ok
-    end
+    {Unreachable, Warnings} = ?tracker:collect_unused_locals(Tracker, All, Private),
+    [elixir_errors:file_warn(Meta, E, ?MODULE, Error) || {Meta, Error} <- Warnings],
+    Unreachable
   end).
 
 format_error({function_conflict, {Receiver, {Name, Arity}}}) ->

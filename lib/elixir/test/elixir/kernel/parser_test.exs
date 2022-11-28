@@ -746,7 +746,7 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(~r"nofile:1:3: unexpected reserved word: end", ~c"1 end")
 
       assert_syntax_error(
-        ~r" HINT: it looks like the \"end\" on line 2 does not have a matching \"do\" defined before it",
+        ~r" HINT: the \"end\" on line 2 may not have a matching \"do\" defined before it \(based on indentation\)",
         ~c"""
         defmodule MyApp do
           def one end
@@ -756,7 +756,7 @@ defmodule Kernel.ParserTest do
       )
 
       assert_syntax_error(
-        ~r" HINT: it looks like the \"end\" on line 3 does not have a matching \"do\" defined before it",
+        ~r" HINT: the \"end\" on line 3 may not have a matching \"do\" defined before it \(based on indentation\)",
         ~c"""
         defmodule MyApp do
           def one
@@ -769,7 +769,7 @@ defmodule Kernel.ParserTest do
       )
 
       assert_syntax_error(
-        ~r" HINT: it looks like the \"end\" on line 6 does not have a matching \"do\" defined before it",
+        ~r" HINT: the \"end\" on line 6 may not have a matching \"do\" defined before it \(based on indentation\)",
         ~c"""
         defmodule MyApp do
           def one do
@@ -777,21 +777,6 @@ defmodule Kernel.ParserTest do
 
           def two
           end
-        end
-        """
-      )
-
-      assert_syntax_error(
-        ~r"HINT: it looks like the \"do\" on line 3 does not have a matching \"end\"",
-        ~c"""
-        defmodule MyApp do
-          (
-            def one do
-            # end
-
-            def two do
-            end
-          )
         end
         """
       )
@@ -874,8 +859,23 @@ defmodule Kernel.ParserTest do
 
     test "invalid interpolation" do
       assert_syntax_error(
-        ~r/nofile:1:17: unexpected token: \). The \"do\" at line 1 is missing terminator \"end\"/,
+        ~r/nofile:1:17: unexpected token: \)\n\n    HINT: the \"do\" on line 1 is missing terminator \"end\"/,
         ~c"\"foo\#{case 1 do )}bar\""
+      )
+
+      assert_syntax_error(
+        ~r"nofile:8:3: unexpected token: \)\n\n    HINT: the \"do\" on line 3 is missing terminator \"end\"",
+        ~c"""
+        defmodule MyApp do
+          (
+            def one do
+            # end
+
+            def two do
+            end
+          )
+        end
+        """
       )
     end
 

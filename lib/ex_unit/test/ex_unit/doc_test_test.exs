@@ -890,14 +890,14 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "fails on invalid module" do
-    message = ~r"module ExUnit\.DocTestTest\.Unknown is not loaded and could not be found"
-
-    assert_raise CompileError, message, fn ->
-      defmodule NeverCompiled do
-        import ExUnit.DocTest
-        doctest ExUnit.DocTestTest.Unknown
-      end
-    end
+    assert capture_io(:stderr, fn ->
+             assert_raise CompileError, fn ->
+               defmodule NeverCompiled do
+                 import ExUnit.DocTest
+                 doctest ExUnit.DocTestTest.Unknown
+               end
+             end
+           end) =~ "module ExUnit.DocTestTest.Unknown is not loaded and could not be found"
   end
 
   test "fails when testing single function not found" do

@@ -137,7 +137,7 @@ defmodule Mix.Tasks.CompileTest do
 
       file = Path.absname("lib/a.ex")
 
-      ExUnit.CaptureIO.capture_io(fn ->
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
         assert {:error, [diagnostic]} = Mix.Task.run("compile", ["--return-errors"])
 
         assert %Mix.Task.Compiler.Diagnostic{
@@ -170,7 +170,7 @@ defmodule Mix.Tasks.CompileTest do
 
       file = Path.absname("lib/b.ex")
 
-      ExUnit.CaptureIO.capture_io(fn ->
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
         assert {:error, [diagnostic]} = Mix.Task.run("compile", ["--return-errors"])
 
         assert %Mix.Task.Compiler.Diagnostic{

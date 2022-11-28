@@ -21,7 +21,7 @@ defmodule IEx.InteractionTest do
 
   test "invalid input" do
     assert capture_iex("if true do ) false end") =~
-             "** (SyntaxError) iex:1:12: unexpected token: ). The \"do\" at line 1 is missing terminator \"end\""
+             "** (SyntaxError) iex:1:12: unexpected token: )"
   end
 
   test "multiple vars" do
@@ -143,7 +143,9 @@ defmodule IEx.InteractionTest do
   test "exception while invoking conflicting helpers" do
     import File, only: [open: 1], warn: false
 
-    assert capture_iex("open('README.md')", [], env: __ENV__) =~
+    assert capture_io(:stderr, fn ->
+             capture_iex("open('README.md')", [], env: __ENV__)
+           end) =~
              ~r"function open/1 imported from both File and IEx.Helpers"
   end
 
@@ -199,10 +201,8 @@ defmodule IEx.InteractionTest do
 
   describe ".iex" do
     test "no .iex" do
-      capture_io(:stderr, fn ->
-        assert capture_iex("my_variable") =~
-                 "** (CompileError) iex:1: undefined function my_variable/0"
-      end)
+      assert capture_io(:stderr, fn -> capture_iex("my_variable") end) =~
+               "undefined function my_variable/0"
     end
 
     @tag :tmp_dir

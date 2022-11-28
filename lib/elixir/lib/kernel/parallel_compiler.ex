@@ -147,7 +147,7 @@ defmodule Kernel.ParallelCompiler do
   @doc since: "1.13.0"
   @spec print_warning(warning) :: :ok
   def print_warning({file, location, warning}) do
-    :elixir_errors.print_warning(location, file, warning)
+    :elixir_errors.print_warning_no_diagnostic(location, file, warning)
   end
 
   @doc false
@@ -187,7 +187,7 @@ defmodule Kernel.ParallelCompiler do
         {:ok, write_module_binaries(outcome, output, beam_timestamp), warnings}
 
       {{:error, errors, warnings}, true} ->
-        {:error, errors ++ warnings, []}
+        {:error, warnings ++ errors, []}
 
       {{:error, errors, warnings}, _} ->
         {:error, errors, warnings}
@@ -201,7 +201,7 @@ defmodule Kernel.ParallelCompiler do
     timer_ref = Process.send_after(self(), :threshold_check, threshold)
 
     {outcome, state} =
-      spawn_workers(files, %{}, %{}, [], %{}, [], %{
+      spawn_workers(files, %{}, %{}, [], %{}, [], [], %{
         dest: Keyword.get(options, :dest),
         each_cycle: Keyword.get(options, :each_cycle, fn -> {:runtime, [], []} end),
         each_file: Keyword.get(options, :each_file, fn _, _ -> :ok end) |> each_file(),
@@ -307,14 +307,15 @@ defmodule Kernel.ParallelCompiler do
          files,
          result,
          warnings,
+         errors,
          %{schedulers: schedulers} = state
        )
        when map_size(spawned) - map_size(waiting) >= schedulers do
-    wait_for_messages(queue, spawned, waiting, files, result, warnings, state)
+    wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
   end
 
   # Release waiting processes
-  defp spawn_workers([{pid, found} | t], spawned, waiting, files, result, warnings, state) do
+  defp spawn_workers([{pid, found} | t], spawned, waiting, files, result, warnings, errors, state) do
     {files, waiting} =
       case Map.pop(waiting, pid) do
         {{_kind, ref, file_pid, _on, _defining, _deadlock}, waiting} ->
@@ -327,10 +328,10 @@ defmodule Kernel.ParallelCompiler do
           {files, waiting}
       end
 
-    spawn_workers(t, spawned, waiting, files, result, warnings, state)
+    spawn_workers(t, spawned, waiting, files, result, warnings, errors, state)
   end
 
-  defp spawn_workers([file | queue], spawned, waiting, files, result, warnings, state) do
+  defp spawn_workers([file | queue], spawned, waiting, files, result, warnings, errors, state) do
     %{output: output, dest: dest, checker: checker} = state
     parent = self()
     file = Path.expand(file)
@@ -367,12 +368,13 @@ defmodule Kernel.ParallelCompiler do
 
     new_files = [file_data | files]
     new_spawned = Map.put(spawned, ref, pid)
-    spawn_workers(queue, new_spawned, waiting, new_files, result, warnings, state)
+    spawn_workers(queue, new_spawned, waiting, new_files, result, warnings, errors, state)
   end
 
   # No more queue, nothing waiting, this cycle is done
-  defp spawn_workers([], spawned, waiting, files, result, warnings, state)
+  defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
        when map_size(spawned) == 0 and map_size(waiting) == 0 do
+    [] = errors
     [] = files
     cycle_return = each_cycle_return(state.each_cycle.())
     state = cycle_timing(result, state)
@@ -385,19 +387,19 @@ defmodule Kernel.ParallelCompiler do
         verify_modules(result, extra_warnings ++ warnings, [], state)
 
       {:compile, more, extra_warnings} ->
-        spawn_workers(more, %{}, %{}, [], result, extra_warnings ++ warnings, state)
+        spawn_workers(more, %{}, %{}, [], result, extra_warnings ++ warnings, errors, state)
     end
   end
 
   # spawned 1, waiting for 1: Release it!
-  defp spawn_workers([], spawned, waiting, files, result, warnings, state)
+  defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
        when map_size(waiting) == map_size(spawned) and map_size(waiting) == 1 do
     {pid, _, _iterator} = :maps.next(:maps.iterator(waiting))
-    spawn_workers([{pid, :not_found}], spawned, waiting, files, result, warnings, state)
+    spawn_workers([{pid, :not_found}], spawned, waiting, files, result, warnings, errors, state)
   end
 
   # spawned x, waiting for x: POSSIBLE ERROR! Release processes so we get the failures
-  defp spawn_workers([], spawned, waiting, files, result, warnings, state)
+  defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
        when map_size(waiting) == map_size(spawned) do
     # There is potentially a deadlock. We will release modules with
     # the following order:
@@ -425,16 +427,16 @@ defmodule Kernel.ParallelCompiler do
         without_definition(waiting_list, files)
 
     if deadlocked do
-      spawn_workers(deadlocked, spawned, waiting, files, result, warnings, state)
+      spawn_workers(deadlocked, spawned, waiting, files, result, warnings, errors, state)
     else
-      errors = handle_deadlock(waiting, files)
-      {{:error, errors, warnings}, state}
+      deadlock_errors = handle_deadlock(waiting, files)
+      {return_error(deadlock_errors ++ errors, warnings), state}
     end
   end
 
   # No more queue, but spawned and map_size(waiting) do not match
-  defp spawn_workers([], spawned, waiting, files, result, warnings, state) do
-    wait_for_messages([], spawned, waiting, files, result, warnings, state)
+  defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state) do
+    wait_for_messages([], spawned, waiting, files, result, warnings, errors, state)
   end
 
   defp compile_file(file, path, parent) do
@@ -517,18 +519,28 @@ defmodule Kernel.ParallelCompiler do
   defp nilify_empty_or_sort([_ | _] = list), do: Enum.sort(list)
 
   # Wait for messages from child processes
-  defp wait_for_messages(queue, spawned, waiting, files, result, warnings, state) do
+  defp wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state) do
     %{output: output} = state
 
     receive do
       {:async, pid} ->
         ref = Process.monitor(pid)
         new_spawned = Map.put(spawned, ref, pid)
-        wait_for_messages(queue, new_spawned, waiting, files, result, warnings, state)
+        wait_for_messages(queue, new_spawned, waiting, files, result, warnings, errors, state)
 
       {:available, kind, module} ->
         {available, result} = update_result(result, kind, module, true)
-        spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
+
+        spawn_workers(
+          available ++ queue,
+          spawned,
+          waiting,
+          files,
+          result,
+          warnings,
+          errors,
+          state
+        )
 
       {:module_available, child, ref, file, module, binary} ->
         state.each_module.(file, module, binary)
@@ -537,12 +549,22 @@ defmodule Kernel.ParallelCompiler do
         send(child, {ref, :ack})
 
         {available, result} = update_result(result, :module, module, binary)
-        spawn_workers(available ++ queue, spawned, waiting, files, result, warnings, state)
+
+        spawn_workers(
+          available ++ queue,
+          spawned,
+          waiting,
+          files,
+          result,
+          warnings,
+          errors,
+          state
+        )
 
       # If we are simply requiring files, we do not add to waiting.
       {:waiting, _kind, child, ref, _file_pid, _on, _defining, _deadlock} when output == :require ->
         send(child, {ref, :not_found})
-        spawn_workers(queue, spawned, waiting, files, result, warnings, state)
+        spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
       {:waiting, kind, child_pid, ref, file_pid, on, defining, deadlock?} ->
         # If we already got what we were waiting for, do not put it on waiting.
@@ -561,7 +583,7 @@ defmodule Kernel.ParallelCompiler do
             {waiting, files, result}
           end
 
-        spawn_workers(queue, spawned, waiting, files, result, warnings, state)
+        spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
       :threshold_check ->
         files =
@@ -577,13 +599,21 @@ defmodule Kernel.ParallelCompiler do
 
         timer_ref = Process.send_after(self(), :threshold_check, state.long_compilation_threshold)
         state = %{state | timer_ref: timer_ref}
-        spawn_workers(queue, spawned, waiting, files, result, warnings, state)
+        spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:warning, file, location, message} ->
+      {:diagnostic, type, file, location, message} ->
         file = file && Path.absname(file)
         message = :unicode.characters_to_binary(message)
-        warning = {file, location, message}
-        wait_for_messages(queue, spawned, waiting, files, result, [warning | warnings], state)
+
+        case type do
+          :warning ->
+            warnings = [{file, location, message} | warnings]
+            wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
+
+          :error ->
+            errors = [{file, location, message} | errors]
+            wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
+        end
 
       {:file_ok, child_pid, ref, file, lexical} ->
         state.each_file.(file, lexical)
@@ -595,32 +625,36 @@ defmodule Kernel.ParallelCompiler do
         # We may have spurious entries in the waiting list
         # if someone invoked try/rescue UndefinedFunctionError
         new_waiting = Map.delete(waiting, child_pid)
-        spawn_workers(queue, new_spawned, new_waiting, new_files, result, warnings, state)
+        spawn_workers(queue, new_spawned, new_waiting, new_files, result, warnings, errors, state)
 
       {:file_cancel, child_pid} ->
         {_file, new_spawned, new_files} = discard_file_pid(spawned, files, child_pid)
-        spawn_workers(queue, new_spawned, waiting, new_files, result, warnings, state)
+        spawn_workers(queue, new_spawned, waiting, new_files, result, warnings, errors, state)
 
       {:file_error, child_pid, file, {kind, reason, stack}} ->
         print_error(file, kind, reason, stack)
         {_file, _new_spawned, new_files} = discard_file_pid(spawned, files, child_pid)
         terminate(new_files)
-        {{:error, [to_error(file, kind, reason, stack)], warnings}, state}
+        {return_error([to_error(file, kind, reason, stack) | errors], warnings), state}
 
       {:DOWN, ref, :process, pid, reason} when is_map_key(spawned, ref) ->
         # async spawned processes have no file, so we always have to delete the ref directly
         spawned = Map.delete(spawned, ref)
         waiting = Map.delete(waiting, pid)
-        {file, new_spawned, new_files} = discard_file_pid(spawned, files, pid)
+        {file, spawned, files} = discard_file_pid(spawned, files, pid)
 
         if file do
           print_error(file.file, :exit, reason, [])
-          terminate(new_files)
-          {{:error, [to_error(file.file, :exit, reason, [])], warnings}, state}
+          terminate(files)
+          {return_error([to_error(file.file, :exit, reason, []) | errors], warnings), state}
         else
-          wait_for_messages(queue, new_spawned, waiting, new_files, result, warnings, state)
+          wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
         end
     end
+  end
+
+  defp return_error(errors, warnings) do
+    {:error, Enum.reverse(errors), Enum.reverse(warnings)}
   end
 
   defp update_result(result, kind, module, value) do
@@ -707,7 +741,7 @@ defmodule Kernel.ParallelCompiler do
         {Path.relative_to_cwd(file), on, description}
       end
 
-    IO.puts("""
+    IO.puts(:stderr, """
 
     Compilation failed because of a deadlock between files.
     The following files depended on the following modules:
@@ -719,10 +753,11 @@ defmodule Kernel.ParallelCompiler do
       |> Enum.max()
 
     for {file, mod, _} <- deadlock do
-      IO.puts(["  ", String.pad_leading(file, max), " => " | inspect(mod)])
+      IO.puts(:stderr, ["  ", String.pad_leading(file, max), " => " | inspect(mod)])
     end
 
     IO.puts(
+      :stderr,
       "\nEnsure there are no compile-time dependencies between those files " <>
         "and that the modules they reference exist and are correctly named\n"
     )
@@ -743,7 +778,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp print_error(file, kind, reason, stack) do
-    IO.write([
+    IO.write(:stderr, [
       "\n== Compilation error in file #{Path.relative_to_cwd(file)} ==\n",
       Kernel.CLI.format_error(kind, reason, stack)
     ])

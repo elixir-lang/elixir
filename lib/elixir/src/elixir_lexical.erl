@@ -104,7 +104,7 @@ with_file(File, #{lexical_tracker := Pid} = E, Callback) ->
 %% ERROR HANDLING
 
 warn_unused_imports(Pid, E) ->
-  [elixir_errors:form_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_import, ModOrMFA})
+  [elixir_errors:file_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_import, ModOrMFA})
    || {Module, Imports} <- ?tracker:collect_unused_imports(Pid),
       {ModOrMFA, Line} <- unused_imports_for_module(Module, Imports)],
   ok.
@@ -116,7 +116,7 @@ unused_imports_for_module(Module, Imports) ->
   end.
 
 warn_unused_aliases(Pid, E) ->
-  [elixir_errors:form_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_alias, Module})
+  [elixir_errors:file_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_alias, Module})
    || {Module, Line} <- ?tracker:collect_unused_aliases(Pid)],
   ok.
 

@@ -948,7 +948,10 @@ defmodule CompileError do
 
   @impl true
   def message(%{file: file, line: line, description: description}) do
-    Exception.format_file_line(file && Path.relative_to_cwd(file), line) <> " " <> description
+    case Exception.format_file_line(file && Path.relative_to_cwd(file), line) do
+      "" -> description
+      formatted -> formatted <> " " <> description
+    end
   end
 end
 

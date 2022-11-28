@@ -842,7 +842,11 @@ defmodule Macro do
   def struct!(module, env) when is_atom(module) do
     if module == env.module do
       Module.get_attribute(module, :__struct__)
-    end || :elixir_map.load_struct([line: env.line], module, [], [], env)
+    end ||
+      case :elixir_map.maybe_load_struct([line: env.line], module, [], [], env) do
+        {:ok, struct} -> struct
+        {:error, desc} -> raise ArgumentError, List.to_string(:elixir_map.format_error(desc))
+      end
   end
 
   @doc """
