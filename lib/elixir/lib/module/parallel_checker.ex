@@ -97,6 +97,7 @@ defmodule Module.ParallelChecker do
   @doc """
   Verifies the given compilation function
   by starting a checker if one does not exist.
+
   See `verify/3`.
   """
   def verify(fun) do
