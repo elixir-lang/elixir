@@ -434,7 +434,7 @@ defmodule Mix.Tasks.Test do
         files
         |> Enum.map(&Path.expand/1)
         |> Enum.map(&Path.relative_to_cwd/1)
-        |> Enum.split_with(&String.starts_with?(&1, "apps/"))
+        |> Enum.split_with(&String.contains?(&1, "apps/"))
 
       app = Mix.Project.config()[:app]
       current_app_path = "apps/#{app}/"
@@ -456,7 +456,7 @@ defmodule Mix.Tasks.Test do
 
   defp relative_app_file_exists?(file) do
     {file, _} = ExUnit.Filters.parse_path(file)
-    File.exists?(Path.join("../..", file))
+    File.exists?(Path.join("../..", file)) || File.exists?(file)
   end
 
   defp do_run(opts, args, files) do
