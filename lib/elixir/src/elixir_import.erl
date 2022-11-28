@@ -175,7 +175,8 @@ ensure_no_duplicates(Meta, File, Option, Kind) ->
   lists:foldl(fun({Name, Arity}, Acc) ->
     case lists:member({Name, Arity}, Acc) of
       true ->
-        elixir_errors:file_error(Meta, File, ?MODULE, {duplicated_import, {Kind, Name, Arity}});
+        elixir_errors:file_warn(Meta, File, ?MODULE, {duplicated_import, {Kind, Name, Arity}}),
+        Acc;
       false ->
         [{Name, Arity} | Acc]
     end

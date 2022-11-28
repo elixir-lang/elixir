@@ -220,7 +220,7 @@ defmodule Kernel.ErrorsTest do
         def __struct__, do: :invalid
         def __struct__(_), do: :invalid
 
-        assert_raise CompileError, bad_struct_type_error, fn ->
+        assert_raise ArgumentError, bad_struct_type_error, fn ->
           Macro.struct!(__MODULE__, __ENV__)
         end
       end
@@ -269,7 +269,7 @@ defmodule Kernel.ErrorsTest do
         def __struct__, do: %{}
         def __struct__(_), do: %{}
 
-        assert_raise CompileError, missing_struct_key_error, fn ->
+        assert_raise ArgumentError, missing_struct_key_error, fn ->
           Macro.struct!(__MODULE__, __ENV__)
         end
       end
@@ -331,7 +331,7 @@ defmodule Kernel.ErrorsTest do
         def __struct__, do: %{__struct__: InvalidName}
         def __struct__(_), do: %{__struct__: InvalidName}
 
-        assert_raise CompileError, fn ->
+        assert_raise ArgumentError, invalid_struct_name_error, fn ->
           Macro.struct!(__MODULE__, __ENV__)
         end
       end
@@ -604,26 +604,6 @@ defmodule Kernel.ErrorsTest do
       defmodule Kernel.ErrorsTest.FunctionImportConflict do
         import :erlang, only: [exit: 1], warn: false
         def foo, do: exit(:test)
-      end
-      """
-    )
-  end
-
-  test "duplicated function on import options" do
-    assert_compile_error(
-      ["nofile:2", "invalid :only option for import, flatten/1 is duplicated"],
-      ~c"""
-      defmodule Kernel.ErrorsTest.DuplicatedFunctionOnImportOnly do
-        import List, only: [flatten: 1, keyfind: 4, flatten: 1]
-      end
-      """
-    )
-
-    assert_compile_error(
-      ["nofile:2", "invalid :except option for import, flatten/1 is duplicated"],
-      ~c"""
-      defmodule Kernel.ErrorsTest.DuplicatedFunctionOnImportExcept do
-        import List, except: [flatten: 1, keyfind: 4, flatten: 1]
       end
       """
     )

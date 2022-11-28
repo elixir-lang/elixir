@@ -226,113 +226,73 @@ defmodule Kernel.WarningTest do
   end
 
   test "nested unused variable" do
-    message = "variable \"x\" is unused"
+    messages = ["undefined function x", "variable \"x\" is unused"]
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               case false do
-                 true -> x = 1
-                 _ -> 1
-               end
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    case false do
+      true -> x = 1
+      _ -> 1
+    end
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               false and (x = 1)
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    false and (x = 1)
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               true or (x = 1)
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    true or (x = 1)
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               if false do
-                 x = 1
-               end
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    if false do
+      x = 1
+    end
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               cond do
-                 false -> x = 1
-                 true -> 1
-               end
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    cond do
+      false -> x = 1
+      true -> 1
+    end
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               receive do
-                 :foo -> x = 1
-               after
-                 0 -> 1
-               end
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    receive do
+      :foo -> x = 1
+    after
+      0 -> 1
+    end
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               false && (x = 1)
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    false && (x = 1)
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               true || (x = 1)
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    true || (x = 1)
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               with true <- true do
-                 x = false
-               end
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    with true <- true do
+      x = false
+    end
+    x
+    """)
 
-    assert capture_err(fn ->
-             assert_raise CompileError, ~r/undefined function x/, fn ->
-               Code.eval_string("""
-               fn ->
-                 x = true
-               end
-               x
-               """)
-             end
-           end) =~ message
+    assert_compile_error(messages, """
+    fn ->
+      x = true
+    end
+    x
+    """)
   end
 
   test "unused variable in redefined function in different file" do
@@ -682,6 +642,24 @@ defmodule Kernel.WarningTest do
            end) =~ "unused import String\n"
   after
     purge(Sample)
+  end
+
+  test "duplicated function on import options" do
+    assert capture_err(fn ->
+             Code.compile_string("""
+             defmodule Kernel.WarningsTest.DuplicatedFunctionOnImportOnly do
+               import List, only: [wrap: 1, keyfind: 3, wrap: 1]
+             end
+             """)
+           end) =~ "invalid :only option for import, wrap/1 is duplicated\n"
+
+    assert capture_err(fn ->
+             Code.compile_string("""
+             defmodule Kernel.WarningsTest.DuplicatedFunctionOnImportExcept do
+               import List, except: [wrap: 1, keyfind: 3, wrap: 1]
+             end
+             """)
+           end) =~ "invalid :except option for import, wrap/1 is duplicated"
   end
 
   test "unused alias" do
@@ -1948,6 +1926,17 @@ defmodule Kernel.WarningTest do
              """)
            end) =~
              "extra parentheses on a remote function capture &System.pid()/0 have been deprecated. Please remove the parentheses: &System.pid/0"
+  end
+
+  defp assert_compile_error(messages, string) do
+    captured =
+      capture_err(fn ->
+        assert_raise CompileError, fn -> Code.eval_string(string) end
+      end)
+
+    for message <- List.wrap(messages) do
+      assert captured =~ message
+    end
   end
 
   defp purge(list) when is_list(list) do
