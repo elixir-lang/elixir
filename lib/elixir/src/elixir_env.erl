@@ -51,7 +51,7 @@ env_to_ex(#{context := match, versioned_vars := Vars}) ->
   Counter = map_size(Vars),
   #elixir_ex{prematch={Vars, Counter}, vars={Vars, false}, unused={#{}, Counter}};
 env_to_ex(#{versioned_vars := Vars}) ->
-  #elixir_ex{vars={Vars, false}, unused={#{}, map_size(Vars)}}.
+  #elixir_ex{prematch=warn, vars={Vars, false}, unused={#{}, map_size(Vars)}}.
 
 %% VAR HANDLING
 

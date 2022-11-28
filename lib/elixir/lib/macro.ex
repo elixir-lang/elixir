@@ -163,7 +163,8 @@ defmodule Macro do
       the compiler or not. This means the compiler and tools like Dialyzer may not
       emit certain warnings.
     * `:if_undefined` - How to expand a variable that is undefined. Set it to
-      `:apply` if you want a variable to become a nullary call without warning.
+      `:apply` if you want a variable to become a nullary call without warning
+      or `:raise`
     * `:keep` - Used by `quote/2` with the option `location: :keep` to annotate
       the file and the line number of the quoted source.
     * `:line` - The line number of the AST node.
