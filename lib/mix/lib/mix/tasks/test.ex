@@ -437,7 +437,6 @@ defmodule Mix.Tasks.Test do
         |> Enum.map(&Path.expand(&1, parent_umbrella))
         |> Enum.map(&Path.relative_to(&1, parent_umbrella))
         |> Enum.split_with(&String.starts_with?(&1, "apps/"))
-        |> dbg()
 
       app = Mix.Project.config()[:app]
       current_app_path = "apps/#{app}/"
