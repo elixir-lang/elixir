@@ -1222,7 +1222,12 @@ format_error({invalid_arg_for_pin, Arg}) ->
   io_lib:format("invalid argument for unary operator ^, expected an existing variable, got: ^~ts",
                 ['Elixir.Macro':to_string(Arg)]);
 format_error({pin_outside_of_match, Arg}) ->
-  io_lib:format("cannot use ^~ts outside of match clauses", ['Elixir.Macro':to_string(Arg)]);
+  io_lib:format(
+    "misplaced operator ^~ts\n\n"
+    "The pin operator ^ is supported only inside matches or inside custom macros. "
+    "Make sure you are inside a match or all necessary macros have been required",
+    ['Elixir.Macro':to_string(Arg)]
+  );
 format_error(unbound_underscore) ->
   "invalid use of _. _ can only be used inside patterns to ignore values and cannot be used in expressions. Make sure you are inside a pattern or change it accordingly";
 format_error({undefined_var, Name, Kind}) ->

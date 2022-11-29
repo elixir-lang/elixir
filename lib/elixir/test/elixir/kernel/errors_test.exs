@@ -825,7 +825,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid size in bitstrings" do
     assert_compile_error(
-      ["nofile:1", "cannot use ^x outside of match clauses"],
+      ["nofile:1", "misplaced operator ^x"],
       ~c"x = 8; <<a, b::size(^x)>> = <<?a, ?b>>"
     )
   end
