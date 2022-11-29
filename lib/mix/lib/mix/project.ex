@@ -263,6 +263,16 @@ defmodule Mix.Project do
   defdelegate project_file(), to: Mix.ProjectStack
 
   @doc """
+  Returns the path to the file that defines the parent umbrella project, if one.
+
+  The majority of the time, it will point to a `mix.exs` file.
+  Returns `nil` if not inside a project or not inside an umbrella.
+  """
+  @doc since: "1.15.0"
+  @spec parent_umbrella_project_file() :: binary | nil
+  defdelegate parent_umbrella_project_file(), to: Mix.ProjectStack
+
+  @doc """
   Returns the project configuration.
 
   If there is no project defined, it still returns a keyword
