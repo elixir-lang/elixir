@@ -244,16 +244,19 @@ defmodule Mix.Tasks.New do
   end
 
   defp in_umbrella? do
-    apps = Path.dirname(File.cwd!())
+    Mix.Project.umbrella?() or
+      (
+        apps = Path.dirname(File.cwd!())
 
-    try do
-      Mix.Project.in_project(:umbrella_check, "../..", fn _ ->
-        path = Mix.Project.config()[:apps_path]
-        path && Path.expand(path) == apps
-      end)
-    catch
-      _, _ -> false
-    end
+        try do
+          Mix.Project.in_project(:umbrella_check, "../..", fn _ ->
+            path = Mix.Project.config()[:apps_path]
+            path && Path.expand(path) == apps
+          end)
+        catch
+          _, _ -> false
+        end
+      )
   end
 
   embed_template(:readme, """
