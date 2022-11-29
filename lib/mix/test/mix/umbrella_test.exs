@@ -3,12 +3,14 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Mix.UmbrellaTest do
   use MixTest.Case
 
-  test "apps_paths" do
+  test "apps_paths and parent_umbrella_project_file" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       assert Mix.Project.apps_paths() == nil
+      assert Mix.Project.parent_umbrella_project_file() == nil
 
       Mix.Project.in_project(:umbrella, ".", fn _ ->
         assert Mix.Project.apps_paths() == %{bar: "apps/bar", foo: "apps/foo"}
+        assert Mix.Project.parent_umbrella_project_file() == nil
 
         assert_received {:mix_shell, :error,
                          ["warning: path \"apps/dont_error_on_missing_mixfile\"" <> _]}

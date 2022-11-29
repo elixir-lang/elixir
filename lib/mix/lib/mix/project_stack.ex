@@ -157,7 +157,7 @@ defmodule Mix.ProjectStack do
   def parent_umbrella_project_file() do
     get_stack(fn
       [_, h | _] -> if h.config[:apps_path], do: h.file, else: nil
-      [] -> nil
+      _ -> nil
     end)
   end
 
