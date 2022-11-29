@@ -137,7 +137,7 @@ bootstrap() ->
   elixir_config:put(docs, false),
   elixir_config:put(relative_paths, false),
   elixir_config:put(ignore_module_conflict, true),
-  elixir_config:put(undefined_variable_as_call, false),
+  elixir_config:put(on_undefined_variable, raise),
   elixir_config:put(tracers, []),
   elixir_config:put(parser_options, []),
   {Init, Main} = bootstrap_files(),

@@ -46,11 +46,7 @@ reset_vars(Env) ->
   Env#{versioned_vars := #{}}.
 
 set_prematch_from_config(#elixir_ex{} = S) ->
-  Prematch = case elixir_config:get(undefined_variable_as_call) of
-    true -> warn;
-    false -> raise
-  end,
-  S#elixir_ex{prematch=Prematch}.
+  S#elixir_ex{prematch=elixir_config:get(on_undefined_variable)}.
 
 %% CONVERSIONS
 

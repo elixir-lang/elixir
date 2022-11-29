@@ -199,8 +199,7 @@ defmodule Code do
     :ignore_already_consolidated,
     :ignore_module_conflict,
     :relative_paths,
-    :warnings_as_errors,
-    :undefined_variable_as_call
+    :warnings_as_errors
   ]
 
   @list_compiler_options [:no_warn_undefined, :tracers, :parser_options]
@@ -1371,7 +1370,7 @@ defmodule Code do
       already do such by default.
       Additionally, `mix test` disables it via the `:test_elixirc_options`
       project configuration option.
-      This option can also be overriden per module using the `@compile` directive.
+      This option can also be overridden per module using the `@compile` directive.
 
     * `:ignore_already_consolidated` - when `true`, does not warn when a protocol
       has already been consolidated and a new implementation is added. Defaults
@@ -1387,11 +1386,6 @@ defmodule Code do
     * `:warnings_as_errors` - causes compilation to fail when warnings are
       generated. Defaults to `false`.
 
-    * `:undefined_variable_as_call` (since v1.15.0) - when `true`, undefined
-      variables will emit a warning and be expanded as a local call to the zero-arity
-      function of the same name (`node` would be expanded as `node()`), when `false`
-      will just trigger a compile error. Defaults to `false`.
-
     * `:no_warn_undefined` (since v1.10.0) - list of modules and `{Mod, fun, arity}`
       tuples that will not emit warnings that the module or function does not exist
       at compilation time. Pass atom `:all` to skip warning for all undefined
@@ -1405,6 +1399,13 @@ defmodule Code do
       `string_to_quoted/2` (except by the options that change the AST itself).
       This can be used in combination with the tracer to retrieve localized
       information about events happening during compilation. Defaults to `[]`.
+
+    * `:on_undefined_variable` (since v1.15.0) - either `:warn` or `:raise`.
+      When `:warn`, undefined variables will emit a warning and be expanded as a
+      local call to the zero-arity function of the same name (`node` would be
+      expanded as `node()`).
+      When `:raise`, undefined variables will just trigger a compile error.
+      Defaults to `:raise`.
 
   It always returns `:ok`. Raises an error for invalid options.
 
@@ -1451,6 +1452,11 @@ defmodule Code do
     end
 
     :elixir_config.put(key, value)
+    :ok
+  end
+
+  def put_compiler_option(:on_undefined_variable, value) when value in [:raise, :warn] do
+    :elixir_config.put(:on_undefined_variable, value)
     :ok
   end
 
