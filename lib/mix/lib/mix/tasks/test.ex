@@ -458,7 +458,7 @@ defmodule Mix.Tasks.Test do
 
   defp relative_app_file_exists?(file) do
     {file, _} = ExUnit.Filters.parse_path(file)
-    File.exists?(Path.join("../..", file)) || File.exists?(file)
+    File.exists?(Path.join("../..", file))
   end
 
   defp do_run(opts, args, files) do
