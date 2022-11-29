@@ -68,7 +68,7 @@ module_error(Meta, Env, Module, Desc) ->
   file_error(Meta, Env, Module, Desc).
 
 %% A function error is one where it can continue if there is a function
-%% being compiled. If there is no function, it is falls back to module_error.
+%% being compiled. If there is no function, it is falls back to file_error.
 -spec function_error(list(), #{file := binary(), function => {term(), term()} | nil, _ => _}, module(), any()) -> ok.
 function_error(Meta, #{function := {_, _}} = Env, Module, Desc) ->
   module_error(Meta, Env, Module, Desc);
