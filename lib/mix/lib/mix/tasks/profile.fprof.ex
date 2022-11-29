@@ -190,9 +190,17 @@ defmodule Mix.Tasks.Profile.Fprof do
       fun.()
     end
 
-    {:ok, tracer} = :fprof.profile(:start)
-    return_value = :fprof.apply(fun, [], tracer: tracer)
+    trace_file_path =
+      [System.tmp_dir!(), "fprof_trace_#{System.unique_integer()}"]
+      |> Path.join()
 
+    trace_file_path_charlist =
+      trace_file_path
+      |> Path.expand()
+      |> String.to_charlist()
+
+    return_value = :fprof.apply(fun, [], file: trace_file_path_charlist)
+    :fprof.profile(file: trace_file_path_charlist)
     {:ok, analyse_dest} = StringIO.open("")
 
     try do
@@ -209,6 +217,7 @@ defmodule Mix.Tasks.Profile.Fprof do
         {return_value, String.to_charlist(analysis_output)}
     after
       StringIO.close(analyse_dest)
+      File.rm(trace_file_path)
     end
   end
 
