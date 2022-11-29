@@ -52,7 +52,6 @@ set_prematch_from_config(#elixir_ex{} = S) ->
   end,
   S#elixir_ex{prematch=Prematch}.
 
-
 %% CONVERSIONS
 
 env_to_ex(#{context := match, versioned_vars := Vars}) ->
