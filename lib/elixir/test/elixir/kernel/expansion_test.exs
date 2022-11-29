@@ -396,7 +396,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "raises outside match" do
-      assert_compile_error(~r"cannot use \^a outside of match clauses", fn ->
+      assert_compile_error(~r"misplaced operator \^a", fn ->
         expand(quote(do: ^a))
       end)
     end
