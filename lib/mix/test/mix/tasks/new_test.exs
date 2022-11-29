@@ -126,7 +126,23 @@ defmodule Mix.Tasks.NewTest do
     end)
   end
 
-  test "new inside umbrella" do
+  test "new inside umbrella root" do
+    in_fixture("umbrella_dep/deps/umbrella", fn ->
+      Mix.Tasks.New.run(["apps/hello_world"])
+
+      assert_file("apps/hello_world/mix.exs", fn file ->
+        assert file =~ "deps_path: \"../../deps\""
+        assert file =~ "lockfile: \"../../mix.lock\""
+      end)
+
+      # Ensure formatting is setup and consistent.
+      File.cd!("apps/hello_world", fn ->
+        Mix.Tasks.Format.run(["--check-formatted"])
+      end)
+    end)
+  end
+
+  test "new inside umbrella apps" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       File.cd!("apps", fn ->
         Mix.Tasks.New.run(["hello_world"])
