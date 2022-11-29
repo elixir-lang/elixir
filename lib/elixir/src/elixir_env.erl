@@ -1,7 +1,7 @@
 -module(elixir_env).
 -include("elixir.hrl").
 -export([
-  new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1,
+  new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1, set_prematch_from_config/1,
   reset_unused_vars/1, check_unused_vars/2, merge_and_check_unused_vars/3,
   trace/2, format_error/1,
   reset_read/2, prepare_write/1, close_write/2
@@ -45,13 +45,21 @@ with_vars(Env, #{} = Vars) ->
 reset_vars(Env) ->
   Env#{versioned_vars := #{}}.
 
+set_prematch_from_config(#elixir_ex{} = S) ->
+  Prematch = case elixir_config:get(undefined_variable_as_call) of
+    true -> warn;
+    false -> raise
+  end,
+  S#elixir_ex{prematch=Prematch}.
+
+
 %% CONVERSIONS
 
 env_to_ex(#{context := match, versioned_vars := Vars}) ->
   Counter = map_size(Vars),
   #elixir_ex{prematch={Vars, Counter}, vars={Vars, false}, unused={#{}, Counter}};
 env_to_ex(#{versioned_vars := Vars}) ->
-  #elixir_ex{prematch=warn, vars={Vars, false}, unused={#{}, map_size(Vars)}}.
+  set_prematch_from_config(#elixir_ex{vars={Vars, false}, unused={#{}, map_size(Vars)}}).
 
 %% VAR HANDLING
 

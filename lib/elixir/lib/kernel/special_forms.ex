@@ -960,7 +960,7 @@ defmodule Kernel.SpecialForms do
       import Math
       squared(5)
       x
-      ** (CompileError) undefined variable x or undefined function x/0
+      ** (CompileError) undefined variable "x"
 
   We can see that `x` did not leak to the user context. This happens
   because Elixir macros are hygienic, a topic we will discuss at length

@@ -1058,7 +1058,7 @@ defmodule IEx.HelpersTest do
     test "imports a file" do
       with_file("dot-iex", "variable = :hello\nimport IO", fn ->
         assert capture_io(:stderr, fn -> capture_iex("variable") end) =~
-                 "undefined function variable/0"
+                 "undefined variable \"variable\""
 
         assert capture_io(:stderr, fn -> capture_iex("puts \"hi\"") end) =~
                  "undefined function puts/1"
@@ -1074,7 +1074,7 @@ defmodule IEx.HelpersTest do
 
       with_file(["dot-iex", "dot-iex-1"], [dot, dot_1], fn ->
         assert capture_io(:stderr, fn -> capture_iex("parent") end) =~
-                 "undefined function parent/0"
+                 "undefined variable \"parent\""
 
         assert capture_io(:stderr, fn -> capture_iex("puts \"hi\"") end) =~
                  "undefined function puts/1"

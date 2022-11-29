@@ -226,7 +226,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "nested unused variable" do
-    messages = ["undefined function x", "variable \"x\" is unused"]
+    messages = ["undefined variable \"x\"", "variable \"x\" is unused"]
 
     assert_compile_error(messages, """
     case false do

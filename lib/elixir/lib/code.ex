@@ -199,7 +199,8 @@ defmodule Code do
     :ignore_already_consolidated,
     :ignore_module_conflict,
     :relative_paths,
-    :warnings_as_errors
+    :warnings_as_errors,
+    :undefined_variable_as_call
   ]
 
   @list_compiler_options [:no_warn_undefined, :tracers, :parser_options]
@@ -1385,6 +1386,11 @@ defmodule Code do
 
     * `:warnings_as_errors` - causes compilation to fail when warnings are
       generated. Defaults to `false`.
+
+    * `:undefined_variable_as_call` (since v1.15.0) - when `true`, undefined
+      variables will emit a warning and be expanded as a local call to the zero-arity
+      function of the same name (`node` would be expanded as `node()`), when `false`
+      will just trigger a compile error. Defaults to `false`.
 
     * `:no_warn_undefined` (since v1.10.0) - list of modules and `{Mod, fun, arity}`
       tuples that will not emit warnings that the module or function does not exist
