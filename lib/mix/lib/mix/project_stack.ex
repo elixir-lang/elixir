@@ -153,6 +153,14 @@ defmodule Mix.ProjectStack do
     end)
   end
 
+  @spec parent_umbrella_project_file() :: binary | nil
+  def parent_umbrella_project_file() do
+    get_stack(fn
+      [_, h | _] -> if h.config[:apps_path], do: h.file, else: nil
+      _ -> nil
+    end)
+  end
+
   @spec compile_env([term] | nil) :: [term] | nil
   def compile_env(compile_env) do
     update_stack(fn

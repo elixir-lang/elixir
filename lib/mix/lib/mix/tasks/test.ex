@@ -430,10 +430,12 @@ defmodule Mix.Tasks.Test do
     if not Mix.Task.recursing?() do
       do_run(opts, args, files)
     else
+      parent_umbrella = Path.dirname(Mix.Project.parent_umbrella_project_file())
+
       {files_in_apps_path, files_not_in_apps_path} =
         files
-        |> Enum.map(&Path.expand/1)
-        |> Enum.map(&Path.relative_to_cwd/1)
+        |> Enum.map(&Path.expand(&1, parent_umbrella))
+        |> Enum.map(&Path.relative_to(&1, parent_umbrella))
         |> Enum.split_with(&String.starts_with?(&1, "apps/"))
 
       app = Mix.Project.config()[:app]
