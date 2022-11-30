@@ -27,6 +27,8 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `--callers` - prints detailed information about immediate callers and called functions
     * `--details` - includes profile data for each profiled process
     * `--sort key` - sorts the output by given key: `acc` (default) or `own`
+    * `--trace-to-file` - uses a file to trace. Can improve performance and memory
+      usage for larger workloads
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
@@ -111,6 +113,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   @switches [
     parallel: :boolean,
     require: :keep,
+    trace_to_file: :boolean,
     eval: :keep,
     config: :keep,
     compile: :boolean,
@@ -173,6 +176,8 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `:callers` - prints detailed information about immediate callers and called functions
     * `:details` - includes profile data for each profiled process
     * `:sort` - sorts the output by given key: `:acc` (default) or `:own`
+    * `:trace_to_file` - uses a file to trace. Can improve performance and memory
+      usage for larger workloads.
 
   """
   @spec profile((-> any()), keyword()) :: any()
@@ -190,8 +195,22 @@ defmodule Mix.Tasks.Profile.Fprof do
       fun.()
     end
 
-    {:ok, tracer} = :fprof.profile(:start)
-    return_value = :fprof.apply(fun, [], tracer: tracer)
+    {return_value, file_to_remove} =
+      if Keyword.get(opts, :trace_to_file, false) do
+        trace_file = Path.join(System.tmp_dir!(), "fprof_trace_#{System.os_time()}")
+
+        filename =
+          trace_file
+          |> Path.expand()
+          |> String.to_charlist()
+
+        result = :fprof.apply(fun, [], file: filename)
+        :fprof.profile(file: filename)
+        {result, trace_file}
+      else
+        {:ok, tracer} = :fprof.profile([:start])
+        {:fprof.apply(fun, [], tracer: tracer), nil}
+      end
 
     {:ok, analyse_dest} = StringIO.open("")
 
@@ -209,6 +228,7 @@ defmodule Mix.Tasks.Profile.Fprof do
         {return_value, String.to_charlist(analysis_output)}
     after
       StringIO.close(analyse_dest)
+      if file_to_remove, do: File.rm(file_to_remove)
     end
   end
 

@@ -36,6 +36,15 @@ defmodule Mix.Tasks.Profile.FprofTest do
     end)
   end
 
+  test "writes traces to file", context do
+    in_tmp(context.test, fn ->
+      assert capture_io(fn ->
+               expr = "Enum.each(1..5, fn(_) -> MapSet.new() end)"
+               Fprof.run(["-e", expr, "--trace-to-file"])
+             end) =~ ~r(MapSet\.new/0 *5 *\d+\.\d{3} *\d+\.\d{3})
+    end)
+  end
+
   test "expands processes", context do
     in_tmp(context.test, fn ->
       expr =
