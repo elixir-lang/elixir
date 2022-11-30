@@ -177,7 +177,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `:details` - includes profile data for each profiled process
     * `:sort` - sorts the output by given key: `:acc` (default) or `:own`
     * `:trace_to_file` - uses a file to trace. Can improve performance and memory
-    usage for larger workloads.
+      usage for larger workloads.
 
   """
   @spec profile((-> any()), keyword()) :: any()
