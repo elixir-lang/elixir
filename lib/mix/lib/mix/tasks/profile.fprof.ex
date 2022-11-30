@@ -197,7 +197,7 @@ defmodule Mix.Tasks.Profile.Fprof do
 
     {return_value, file_to_remove} =
       if Keyword.get(opts, :trace_to_file, false) do
-        trace_file = Path.join([System.tmp_dir!(), "fprof_trace_#{System.unique_integer()}"])
+        trace_file = Path.join(System.tmp_dir!(), "fprof_trace_#{System.os_time()}")
 
         filename =
           trace_file
