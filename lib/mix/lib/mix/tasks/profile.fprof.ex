@@ -28,7 +28,7 @@ defmodule Mix.Tasks.Profile.Fprof do
     * `--details` - includes profile data for each profiled process
     * `--sort key` - sorts the output by given key: `acc` (default) or `own`
     * `--trace-to-file` - uses a file to trace. Can improve performance and memory
-    usage for larger workloads
+      usage for larger workloads
     * `--eval`, `-e` - evaluates the given code
     * `--require`, `-r` - requires pattern before running the command
     * `--parallel`, `-p` - makes all requires parallel
