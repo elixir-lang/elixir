@@ -238,9 +238,9 @@ defmodule ExUnit.DocTest do
 
     extract(module)
     |> filter_by_opts(module, opts)
-    |> Stream.with_index(1)
-    |> Enum.map(fn {test, acc} ->
-      compile_test(test, module, import, acc, file, tags)
+    |> Enum.sort_by(& &1.line)
+    |> Enum.with_index(fn test, index ->
+      compile_test(test, module, import, index + 1, file, tags)
     end)
   end
 
@@ -380,7 +380,7 @@ defmodule ExUnit.DocTest do
   def __test__(value, expected, doctest, last_expr, expected_expr, stack) do
     case value do
       ^expected ->
-        :ok
+        {:ok, value}
 
       _ ->
         error = [
@@ -411,7 +411,7 @@ defmodule ExUnit.DocTest do
 
     case result do
       :ok ->
-        :ok
+        {:ok, value}
 
       {extra, stack} ->
         expr = "inspect(#{last_expr}) === #{String.trim(expected_expr)}"
