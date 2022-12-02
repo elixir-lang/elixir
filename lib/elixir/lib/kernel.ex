@@ -866,6 +866,29 @@ defmodule Kernel do
   end
 
   @doc """
+  Returns the value of the given key of a map.
+
+  It raises `BadMapError` if the first element is not a map.
+
+  It raises `KeyError` if the given key is not present in the map.
+
+  Allowed in guard tests. Inlined by the compiler.
+
+  ## Examples
+
+      iex> map_get(%{a: "foo", b: "bar"}, :b)
+      "bar"
+
+  """
+  @doc guard: true, since: "1.14.3"
+  @spec map_get(map, term) :: term
+  defmacro map_get(map, key) do
+    quote do
+      :erlang.map_get(unquote(key), unquote(map))
+    end
+  end
+
+  @doc """
   Returns the size of a map.
 
   The size of a map is the number of key-value pairs that the map contains.

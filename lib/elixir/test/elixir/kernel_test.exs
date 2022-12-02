@@ -1505,4 +1505,21 @@ defmodule KernelTest do
       """)
     end
   end
+
+  test "map_get/2" do
+    assert map_get(Map.new(a: 1, b: 2, c: 3), :b) == 2
+
+    assert_raise BadMapError, fn ->
+      map_get(empty_list(), :a)
+    end
+
+    assert_raise KeyError, fn ->
+      map_get(Map.new(a: 1), :b)
+    end
+
+    case Map.new(a: 1) do
+      map when map_get(map, :a) == 1 -> map
+      _ -> flunk("invalid guard")
+    end
+  end
 end
