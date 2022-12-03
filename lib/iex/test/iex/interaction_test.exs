@@ -202,7 +202,7 @@ defmodule IEx.InteractionTest do
   describe ".iex" do
     test "no .iex" do
       assert capture_io(:stderr, fn -> capture_iex("my_variable") end) =~
-               "undefined function my_variable/0"
+               "undefined variable \"my_variable\""
     end
 
     @tag :tmp_dir

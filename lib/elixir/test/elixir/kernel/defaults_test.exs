@@ -41,7 +41,7 @@ defmodule Kernel.DefaultsTest do
   end
 
   test "errors on accessing variable from default block" do
-    assert_compile_error(~r/undefined function default\/0/, fn ->
+    assert_compile_error(~r/undefined variable \"default\"/, fn ->
       defmodule VarDefaultScope do
         def test(_ \\ default = 1),
           do: default
@@ -80,7 +80,7 @@ defmodule Kernel.DefaultsTest do
       end
     end)
 
-    assert_compile_error("undefined function foo/0", fn ->
+    assert_compile_error("undefined variable \"foo\"", fn ->
       defmodule Kernel.ErrorsTest.ClauseWithDefaults5 do
         def hello(foo, bar \\ foo)
         def hello(foo, bar), do: foo + bar

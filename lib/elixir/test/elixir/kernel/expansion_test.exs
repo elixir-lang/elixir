@@ -255,10 +255,20 @@ defmodule Kernel.ExpansionTest do
   end
 
   describe "vars" do
-    test "expands vars to local call" do
+    test "raises on undefined var by default" do
+      assert_compile_error(~r"undefined variable \"a\"", fn ->
+        expand_env({:a, [], nil}, __ENV__, [])
+      end)
+    end
+
+    test "expands vars to local call when :on_undefined_variable is :warn" do
+      Code.put_compiler_option(:on_undefined_variable, :warn)
+
       {output, env} = expand_env({:a, [], nil}, __ENV__, [])
       assert output == {:a, [if_undefined: :warn], []}
       assert Macro.Env.vars(env) == []
+    after
+      Code.put_compiler_option(:on_undefined_variable, :raise)
     end
 
     test "expands vars to local call without warning" do
@@ -412,7 +422,7 @@ defmodule Kernel.ExpansionTest do
 
     test "raises when the var is undefined" do
       assert_compile_error(~r"undefined variable \^foo", fn ->
-        expand(quote(do: ^foo = :foo))
+        expand(quote(do: ^foo = :foo), [])
       end)
     end
   end
@@ -502,7 +512,7 @@ defmodule Kernel.ExpansionTest do
       end)
 
       assert_compile_error(~r"undefined variable \^x", fn ->
-        expand(quote(do: {x, %{^x => 1}} = %{}))
+        expand(quote(do: {x, %{^x => 1}} = %{}), [])
       end)
     end
 
@@ -577,7 +587,7 @@ defmodule Kernel.ExpansionTest do
 
   describe "quote" do
     test "expanded to raw forms" do
-      assert expand(quote(do: quote(do: hello))) == {:{}, [], [:hello, [], __MODULE__]}
+      assert expand(quote(do: quote(do: hello)), []) == {:{}, [], [:hello, [], __MODULE__]}
     end
 
     test "raises if the :bind_quoted option is invalid" do
@@ -2649,7 +2659,7 @@ defmodule Kernel.ExpansionTest do
             fn <<_::size(foo)>> -> :ok end
           end
 
-        expand(code)
+        expand(code, [])
       end)
 
       assert_compile_error(~r/undefined variable "foo"/, fn ->
@@ -2658,7 +2668,7 @@ defmodule Kernel.ExpansionTest do
             fn <<_::size(foo), foo::size(8)>> -> :ok end
           end
 
-        expand(code)
+        expand(code, [])
       end)
 
       assert_compile_error(~r/undefined variable "foo"/, fn ->
@@ -2667,7 +2677,7 @@ defmodule Kernel.ExpansionTest do
             fn foo, <<_::size(foo)>> -> :ok end
           end
 
-        expand(code)
+        expand(code, [])
       end)
 
       assert_compile_error(~r/undefined variable "foo"/, fn ->
@@ -2676,7 +2686,7 @@ defmodule Kernel.ExpansionTest do
             fn foo, <<_::size(foo + 1)>> -> :ok end
           end
 
-        expand(code)
+        expand(code, [])
       end)
 
       assert_compile_error(
@@ -2687,7 +2697,7 @@ defmodule Kernel.ExpansionTest do
               fn <<_::size(foo())>> -> :ok end
             end
 
-          expand(code)
+          expand(code, [])
         end
       )
 
@@ -2699,7 +2709,7 @@ defmodule Kernel.ExpansionTest do
             fn <<_::size(foo.())>> -> :ok end
           end
 
-        expand(code)
+        expand(code, [])
       end)
 
       message = ~r"cannot invoke remote function in bitstring size specifier"
@@ -2711,7 +2721,7 @@ defmodule Kernel.ExpansionTest do
             fn <<_::size(foo.bar())>> -> :ok end
           end
 
-        expand(code)
+        expand(code, [])
       end)
 
       message = ~r"cannot invoke remote function Foo.bar/0 inside bitstring size specifier"
@@ -2722,7 +2732,7 @@ defmodule Kernel.ExpansionTest do
             fn <<_::size(Foo.bar())>> -> :ok end
           end
 
-        expand(code)
+        expand(code, [])
       end)
     end
 
@@ -2815,7 +2825,7 @@ defmodule Kernel.ExpansionTest do
 
   test "handles invalid expressions" do
     assert_compile_error(~r"invalid quoted expression: {1, 2, 3}", fn ->
-      expand(quote(do: unquote({1, 2, 3})))
+      expand_env(quote(do: unquote({1, 2, 3})), __ENV__)
     end)
 
     assert_compile_error(~r"invalid quoted expression: #Function\<", fn ->
@@ -2942,8 +2952,13 @@ defmodule Kernel.ExpansionTest do
     end)
   end
 
-  defp expand(expr) do
-    expand_env(expr, __ENV__) |> elem(0)
+  defp expand(expr, extra_meta \\ [if_undefined: :apply]) do
+    add_meta = &Keyword.merge(&1, extra_meta)
+
+    expr
+    |> Macro.postwalk(&Macro.update_meta(&1, add_meta))
+    |> expand_env(__ENV__)
+    |> elem(0)
   end
 
   defp expand_env(expr, env, to_clean \\ [:version, :inferred_bitstring_spec, :if_undefined]) do

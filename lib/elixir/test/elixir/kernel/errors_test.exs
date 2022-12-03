@@ -130,6 +130,20 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "undefined variables" do
+    assert_compile_error(
+      ["nofile:3", "undefined variable \"bar\"", "nofile:4", "undefined variable \"baz\""],
+      ~c"""
+      defmodule Sample do
+        def foo do
+          IO.puts bar
+          IO.puts baz
+        end
+      end
+      """
+    )
+  end
+
   test "function without definition" do
     assert_compile_error(
       ["nofile:2", "implementation not provided for predefined def foo/0"],

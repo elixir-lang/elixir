@@ -49,7 +49,7 @@ defmodule IEx.ServerTest do
 
                assert Task.await(client) == {:error, :refused}
                assert Task.await(server) =~ "cannot compile code"
-             end) =~ "undefined function iex_context"
+             end) =~ "undefined variable \"iex_context\""
     end
 
     test "outside of the evaluator with crash", config do
@@ -84,7 +84,7 @@ defmodule IEx.ServerTest do
                assert refused =~ "** session was already accepted elsewhere"
 
                assert Task.await(client) == {:ok, false}
-             end) =~ "undefined function iex_context"
+             end) =~ "undefined variable \"iex_context\""
     end
 
     test "outside of the evaluator with double refusal", config do
@@ -104,7 +104,7 @@ defmodule IEx.ServerTest do
                assert reply2 =~ "cannot compile code"
 
                assert Task.await(client) == {:error, :refused}
-             end) =~ "undefined function iex_context"
+             end) =~ "undefined variable \"iex_context\""
     end
 
     test "outside of the evaluator with acceptance and then refusal", config do
@@ -121,7 +121,7 @@ defmodule IEx.ServerTest do
                assert Task.await(server2) =~ "cannot compile code"
 
                assert Task.await(client) == {:ok, false}
-             end) =~ "undefined function iex_context"
+             end) =~ "undefined variable \"iex_context\""
     end
 
     test "outside of the evaluator with refusal and then acceptance", config do
@@ -138,7 +138,7 @@ defmodule IEx.ServerTest do
                assert Task.await(server2) =~ ":inside_pry"
 
                assert Task.await(client) == {:ok, false}
-             end) =~ "undefined function iex_context"
+             end) =~ "undefined variable \"iex_context\""
     end
 
     @tag :tmp_dir
@@ -147,16 +147,17 @@ defmodule IEx.ServerTest do
       path = Path.join(tmp_dir, "dot-iex")
       File.write!(path, "my_variable = 144")
 
-      capture_io(:stderr, fn ->
-        {server, evaluator} = pry_session(config.test, "Y\nmy_variable", dot_iex_path: path)
-        client = pry_request([server])
-        send(evaluator, :run)
+      assert capture_io(:stderr, fn ->
+               {server, evaluator} =
+                 pry_session(config.test, "Y\nmy_variable", dot_iex_path: path)
 
-        assert Task.await(server) =~
-                 "** (UndefinedFunctionError) function :erl_eval.my_variable/0 is undefined or private"
+               client = pry_request([server])
+               send(evaluator, :run)
 
-        assert Task.await(client) == {:ok, false}
-      end)
+               assert Task.await(server) =~ "** (CompileError)"
+
+               assert Task.await(client) == {:ok, false}
+             end) =~ "undefined variable \"my_variable\""
     end
 
     @tag :tmp_dir

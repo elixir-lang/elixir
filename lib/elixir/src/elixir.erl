@@ -61,6 +61,7 @@ start(_Type, _Args) ->
     {docs, true},
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
+    {on_undefined_variable, raise},
     {parser_options, []},
     {debug_info, true},
     {warnings_as_errors, false},
