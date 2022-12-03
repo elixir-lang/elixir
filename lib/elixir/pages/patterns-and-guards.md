@@ -28,7 +28,7 @@ Patterns are not bidirectional. If you have a variable `y` that was never assign
 
 ```iex
 iex> 1 = y
-** (CompileError) iex:2: undefined function y/0
+** (CompileError) iex:2: undefined variable "y"
 ```
 
 In other words, patterns are allowed only on the left side of `=`. The right side of `=` follows the regular evaluation semantics of the language.

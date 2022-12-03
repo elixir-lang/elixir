@@ -226,7 +226,7 @@ defmodule Kernel.WarningTest do
   end
 
   test "nested unused variable" do
-    messages = ["undefined function x", "variable \"x\" is unused"]
+    messages = ["undefined variable \"x\"", "variable \"x\" is unused"]
 
     assert_compile_error(messages, """
     case false do
@@ -1632,7 +1632,9 @@ defmodule Kernel.WarningTest do
            end) =~ "missing parentheses for expression following \"label:\" keyword. "
   end
 
-  test "variable is being expanded to function call" do
+  test "variable is being expanded to function call (on_undefined_variable: warn)" do
+    Code.put_compiler_option(:on_undefined_variable, :warn)
+
     output =
       capture_err(fn ->
         Code.eval_string("""
@@ -1646,6 +1648,7 @@ defmodule Kernel.WarningTest do
     assert output =~ "variable \"self\" does not exist and is being expanded to \"self()\""
     assert output =~ "variable \"node\" does not exist and is being expanded to \"node()\""
   after
+    Code.put_compiler_option(:on_undefined_variable, :raise)
     purge(Sample)
   end
 
