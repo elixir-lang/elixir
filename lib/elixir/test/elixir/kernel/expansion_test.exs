@@ -15,6 +15,14 @@ defmodule Kernel.ExpansionTest do
 
   import ExUnit.CaptureIO
 
+  setup_all do
+    Code.put_compiler_option(:on_undefined_variable, :warn)
+
+    on_exit(fn ->
+      Code.put_compiler_option(:on_undefined_variable, :raise)
+    end)
+  end
+
   describe "__block__" do
     test "expands to nil when empty" do
       assert expand(quote(do: unquote(:__block__)())) == nil
@@ -277,6 +285,22 @@ defmodule Kernel.ExpansionTest do
       assert_compile_error(~r"undefined variable \"a\"", fn ->
         :elixir_expand.expand({:a, [if_undefined: :raise], nil}, :elixir_env.env_to_ex(env), env)
       end)
+    end
+
+    test "expands vars to local call when :on_undefined_variable is :warn" do
+      assert capture_io(:stderr, fn ->
+               assert expand(quote do: foo) == expand(quote do: foo())
+             end) =~ "variable \"foo\" does not exist and is being expanded to \"foo()\""
+    end
+
+    test "raises when :on_undefined_variable is :raise" do
+      Code.put_compiler_option(:on_undefined_variable, :raise)
+
+      assert_compile_error(~r"undefined variable \"foo\"", fn ->
+        expand(quote do: foo)
+      end)
+    after
+      Code.put_compiler_option(:on_undefined_variable, :warn)
     end
 
     test "forces variable to exist" do
