@@ -505,11 +505,9 @@ defmodule Range do
   def contains?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
     {first1, last1, step1} = normalize(first1, last1, step1)
     {first2, last2, step2} = normalize(first2, last2, step2)
-    size1 = size(range1)
-    size2 = size(range2)
 
     cond do
-      size2 == 1 ->
+      size(range2) == 1 ->
         # this should work even when step1 and step2 are completely different
         # that's why it's a special case
         Enum.member?(range1, first2)
