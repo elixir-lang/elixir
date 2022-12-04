@@ -378,20 +378,20 @@ defmodule EEx.TokenizerTest do
     expected closing '%>' for EEx expression
       |
     1 | foo <% :bar
-      |        ^\
+      |     ^\
     """
 
     assert EEx.tokenize(~c"foo <% :bar", @opts) ==
              {:error, message, %{column: 5, line: 1}}
 
     assert EEx.tokenize(~c"<%# true ", @opts) ==
-             {:error, "expected closing '%>' for EEx expression", %{column: 10, line: 1}}
+             {:error, "expected closing '%>' for EEx expression", %{column: 1, line: 1}}
 
     message = """
     expected closing '--%>' for EEx expression
       |
     1 | <%!-- foo
-      |       ^\
+      | ^\
     """
 
     assert EEx.tokenize(~c"<%!-- foo", @opts) == {:error, message, %{column: 1, line: 1}}
