@@ -499,6 +499,8 @@ defmodule EEx.Compiler do
   defp code_snippet(source, meta, arrow_padding) do
     line_start = max(meta.line - 3, 1)
     line_end = meta.line
+    digits = line_end |> Integer.to_string() |> byte_size()
+    number_padding = String.duplicate(" ", digits)
 
     source
     |> String.split(["\r\n", "\n"])
@@ -506,14 +508,15 @@ defmodule EEx.Compiler do
     |> Enum.map_reduce(line_start, fn
       expr, line_number when line_number == line_end ->
         arrow = String.duplicate(" ", meta.column + 2 + arrow_padding) <> "^"
-        {"#{line_number} | #{expr}\n  | #{arrow}", line_number + 1}
+        {"#{line_number} | #{expr}\n #{number_padding}| #{arrow}", line_number + 1}
 
       expr, line_number ->
-        {"#{line_number} | #{expr}", line_number + 1}
+        line_number_padding = String.pad_leading("#{line_number}", digits)
+        {"#{line_number_padding} | #{expr}", line_number + 1}
     end)
     |> case do
       {[], _} -> ""
-      {snippet, _} -> Enum.join(["\n  |" | snippet], "\n")
+      {snippet, _} -> Enum.join(["\n #{number_padding}|" | snippet], "\n")
     end
   end
 end

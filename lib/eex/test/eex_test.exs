@@ -304,6 +304,24 @@ defmodule EExTest do
       end
     end
 
+    test "proper format line number of code snippet" do
+      message = """
+      nofile:11:1: unexpected middle of expression <% else %>
+         |
+       8 | <%= "content" %>
+       9 | <%= if true %>
+      10 |   <%= "foo" %>
+      11 | <% else %>
+         |    ^\
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string(
+          ~s(\n\n\n\n\n\n<h1>Hi!</h1>\n<%= "content" %>\n<%= if true %>\n  <%= "foo" %>\n<% else %>\n  bar<% end %>)
+        )
+      end
+    end
+
     test "when there is only middle expression" do
       message = """
       nofile:1:1: unexpected middle of expression <% else %>
