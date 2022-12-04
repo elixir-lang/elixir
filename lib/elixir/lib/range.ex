@@ -501,6 +501,17 @@ defimpl Enumerable, for: Range do
     {:done, acc}
   end
 
+  def member?(first..last//1, value) when first <= last and is_integer(value) do
+    {:ok, first <= value and value <= last}
+  end
+
+  def member?(first..last//-1, value) when last <= first and is_integer(value) do
+    {:ok, last <= value and value <= first}
+  end
+
+  def member?(first..last//1, _) when first > last, do: {:ok, false}
+  def member?(first..last//-1, _) when first < last, do: {:ok, false}
+
   def member?(first..last//step = range, value) when is_integer(value) do
     cond do
       Range.size(range) == 0 ->
