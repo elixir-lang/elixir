@@ -464,42 +464,39 @@ defmodule Range do
   @doc """
   Checks if all elements of range2 are members of range1.
 
-      iex> Range.subset?(1..10, 2..5)
+      iex> Range.contains?(1..10, 2..5)
       true
-      iex> Range.subset?(1..10, 11..12)
+      iex> Range.contains?(1..10, 11..12)
       false
-      iex> Range.subset?(8..20, 1..12)
+      iex> Range.contains?(8..20, 1..12)
       false
 
   Steps are also considered when checking if the second range is a subset of the first:
 
-      iex> Range.subset?(1..10, 2..4//2)
+      iex> Range.contains?(1..10, 2..4//2)
       true
-      iex> Range.subset?(2..8//2, 4..8//4)
+      iex> Range.contains?(2..8//2, 4..8//4)
       true
-      iex> Range.subset?(2..8//2, 3..7//4)
+      iex> Range.contains?(2..8//2, 3..7//4)
       false
-      iex> Range.subset?(2..11//3, 5..11//6)
+      iex> Range.contains?(2..11//3, 5..11//6)
       true
-      iex> Range.subset?(11..2//-3, 5..11//6)
+      iex> Range.contains?(11..2//-3, 5..11//6)
       true
-      iex> Range.subset?(1..10//2, 2..8//3)
+      iex> Range.contains?(1..10//2, 2..8//3)
       false
-      iex> Range.subset?(0..10//5, 0..4//2)
+      iex> Range.contains?(0..10//5, 0..4//2)
       false
-      iex> Range.subset?(0..10, 1..3//10)
+      iex> Range.contains?(0..10, 1..3//10)
   """
-  @spec subset?(t, t) :: boolean
-  def subset?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
+  @spec contains?(t, t) :: boolean
+  def contains?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
     {first1, last1, step1} = normalize(first1, last1, step1)
     {first2, last2, step2} = normalize(first2, last2, step2)
     size1 = size(range1)
     size2 = size(range2)
 
     cond do
-      size1 == 0 and size2 == 0 ->
-        true
-
       size2 == 1 ->
         # this should work even when step1 and step2 are completely different
         # that's why it's a special case
