@@ -462,7 +462,7 @@ defmodule Range do
   end
 
   @doc """
-  Checks if all elements of range2 are members of range1.
+  Checks if all points of range2 are inside range1.
 
       iex> Range.contains?(1..10, 2..5)
       true
@@ -471,7 +471,8 @@ defmodule Range do
       iex> Range.contains?(8..20, 1..12)
       false
 
-  Steps are also considered when checking if the second range is a subset of the first:
+  Steps are also considered when checking if the second range is contained by the
+  first:
 
       iex> Range.contains?(1..10, 2..4//2)
       true
