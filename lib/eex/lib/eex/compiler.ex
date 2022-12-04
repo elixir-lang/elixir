@@ -34,9 +34,9 @@ defmodule EEx.Compiler do
 
   defp tokenize(~c"<%!--" ++ t, line, column, state, buffer, acc) do
     case comment(t, line, column + 5, state, []) do
-      {:error, _line, _column, message} ->
+      {:error, message} ->
         meta = %{line: line, column: column}
-        {:error, message <> code_snippet(state.source, meta, 3), meta}
+        {:error, message <> code_snippet(state.source, meta), meta}
 
       {:ok, new_line, new_column, rest, comments} ->
         token = {:comment, Enum.reverse(comments), %{line: line, column: column}}
@@ -47,7 +47,7 @@ defmodule EEx.Compiler do
   # TODO: Deprecate this on Elixir v1.18
   defp tokenize(~c"<%#" ++ t, line, column, state, buffer, acc) do
     case expr(t, line, column + 3, state, []) do
-      {:error, line, column, message} ->
+      {:error, message} ->
         {:error, message, %{line: line, column: column}}
 
       {:ok, _, new_line, new_column, rest} ->
@@ -60,9 +60,9 @@ defmodule EEx.Compiler do
     marker_length = length(marker)
 
     case expr(t, line, column + 2 + marker_length, state, []) do
-      {:error, _line, _column, message} ->
+      {:error, message} ->
         meta = %{line: line, column: column}
-        {:error, message <> code_snippet(state.source, meta, marker_length), meta}
+        {:error, message <> code_snippet(state.source, meta), meta}
 
       {:ok, expr, new_line, new_column, rest} ->
         {key, expr} =
@@ -95,7 +95,7 @@ defmodule EEx.Compiler do
     end
   end
 
-  defp tokenize(~c"\n" ++ t, line, _column, state, buffer, acc) do
+  defp tokenize([?\n | t], line, _column, state, buffer, acc) do
     tokenize(t, line + 1, state.indentation + 1, state, [?\n | buffer], acc)
   end
 
@@ -131,16 +131,16 @@ defmodule EEx.Compiler do
     {:ok, line, column + 4, t, buffer}
   end
 
-  defp comment(~c"\n" ++ t, line, _column, state, buffer) do
-    comment(t, line + 1, state.indentation + 1, state, ~c"\n" ++ buffer)
+  defp comment([?\n | t], line, _column, state, buffer) do
+    comment(t, line + 1, state.indentation + 1, state, [?\n | buffer])
   end
 
   defp comment([head | t], line, column, state, buffer) do
     comment(t, line, column + 1, state, [head | buffer])
   end
 
-  defp comment([], line, column, _state, _buffer) do
-    {:error, line, column, "expected closing '--%>' for EEx expression"}
+  defp comment([], _line, _column, _state, _buffer) do
+    {:error, "expected closing '--%>' for EEx expression"}
   end
 
   # Tokenize an expression until we find %>
@@ -149,7 +149,7 @@ defmodule EEx.Compiler do
     {:ok, Enum.reverse(buffer), line, column + 2, t}
   end
 
-  defp expr(~c"\n" ++ t, line, _column, state, buffer) do
+  defp expr([?\n | t], line, _column, state, buffer) do
     expr(t, line + 1, state.indentation + 1, state, [?\n | buffer])
   end
 
@@ -157,8 +157,8 @@ defmodule EEx.Compiler do
     expr(t, line, column + 1, state, [h | buffer])
   end
 
-  defp expr([], line, column, _state, _buffer) do
-    {:error, line, column, "expected closing '%>' for EEx expression"}
+  defp expr([], _line, _column, _state, _buffer) do
+    {:error, "expected closing '%>' for EEx expression"}
   end
 
   # Receives tokens and check if it is a start, middle or an end token.
@@ -292,8 +292,6 @@ defmodule EEx.Compiler do
       source: source,
       line: line,
       quoted: [],
-      start_line: nil,
-      start_column: nil,
       parser_options: parser_options
     }
 
@@ -347,19 +345,15 @@ defmodule EEx.Compiler do
     end
 
     {rest, line, contents} = look_ahead_middle(rest, meta.line, chars) || {rest, meta.line, chars}
+    start_line = meta.line
+    start_column = column(meta.column, mark)
 
     {contents, rest} =
       generate_buffer(
         rest,
         state.engine.handle_begin(buffer),
-        [{contents, meta} | scope],
-        %{
-          state
-          | quoted: [],
-            line: line,
-            start_line: meta.line,
-            start_column: column(meta.column, mark)
-        }
+        [{contents, start_line, start_column} | scope],
+        %{state | quoted: [], line: line}
       )
 
     buffer = state.engine.handle_expr(buffer, IO.chardata_to_string(mark), contents)
@@ -369,7 +363,7 @@ defmodule EEx.Compiler do
   defp generate_buffer(
          [{:middle_expr, ~c"", chars, meta} | rest],
          buffer,
-         [{current, scope_meta} | scope],
+         [{current, current_line, current_column} | scope],
          state
        ) do
     {wrapped, state} = wrap_expr(current, meta.line, buffer, chars, state)
@@ -378,30 +372,24 @@ defmodule EEx.Compiler do
     generate_buffer(
       rest,
       state.engine.handle_begin(buffer),
-      [{wrapped, scope_meta} | scope],
+      [{wrapped, current_line, current_column} | scope],
       state
     )
   end
 
   defp generate_buffer([{:middle_expr, _, chars, meta} | _tokens], _buffer, [], state) do
     message = "unexpected middle of expression <%#{chars}%>"
-
-    raise EEx.SyntaxError,
-      message: message <> code_snippet(state.source, meta, 0),
-      file: state.file,
-      line: meta.line,
-      column: meta.column
+    syntax_error!(message, meta, state)
   end
 
   defp generate_buffer(
          [{:end_expr, ~c"", chars, meta} | rest],
          buffer,
-         [{current, _meta} | _],
+         [{current, line, column} | _],
          state
        ) do
     {wrapped, state} = wrap_expr(current, meta.line, buffer, chars, state)
-    column = state.start_column
-    options = [file: state.file, line: state.start_line, column: column] ++ state.parser_options
+    options = [file: state.file, line: line, column: column] ++ state.parser_options
     tuples = Code.string_to_quoted!(wrapped, options)
     buffer = insert_quoted(tuples, state.quoted)
     {buffer, rest}
@@ -409,27 +397,27 @@ defmodule EEx.Compiler do
 
   defp generate_buffer([{:end_expr, _, chars, meta} | _], _buffer, [], state) do
     message = "unexpected end of expression <%#{chars}%>"
-
-    raise EEx.SyntaxError,
-      message: message <> code_snippet(state.source, meta, 0),
-      file: state.file,
-      line: meta.line,
-      column: meta.column
+    syntax_error!(message, meta, state)
   end
 
   defp generate_buffer([{:eof, _meta}], buffer, [], state) do
     state.engine.handle_body(buffer)
   end
 
-  defp generate_buffer([{:eof, meta}], _buffer, [{_content, content_meta} | _scope], state) do
+  defp generate_buffer([{:eof, _meta}], _buffer, [{content, line, column} | _scope], state) do
     message = "expected a closing '<% end %>' for block expression in EEx"
-
-    raise EEx.SyntaxError,
-      message: message <> code_snippet(state.source, content_meta, 1),
-      file: state.file,
-      line: content_meta.line,
-      column: meta.column
+    expr_meta = non_whitespace_meta(content, line, column, state)
+    syntax_error!(message, expr_meta, state)
   end
+
+  defp non_whitespace_meta([space | rest], line, column, state) when space in @h_spaces,
+    do: non_whitespace_meta(rest, line, column + 1, state)
+
+  defp non_whitespace_meta([?\n | rest], line, _column, state),
+    do: non_whitespace_meta(rest, line + 1, state.indentation + 1, state)
+
+  defp non_whitespace_meta(_, line, column, _),
+    do: %{line: line, column: column}
 
   # Creates a placeholder and wrap it inside the expression block
 
@@ -496,7 +484,15 @@ defmodule EEx.Compiler do
     column + 2 + length(mark)
   end
 
-  defp code_snippet(source, meta, arrow_padding) do
+  defp syntax_error!(message, meta, state) do
+    raise EEx.SyntaxError,
+      message: message <> code_snippet(state.source, meta),
+      file: state.file,
+      line: meta.line,
+      column: meta.column
+  end
+
+  defp code_snippet(source, meta) do
     line_start = max(meta.line - 3, 1)
     line_end = meta.line
 
@@ -505,7 +501,7 @@ defmodule EEx.Compiler do
     |> Enum.slice((line_start - 1)..(line_end - 1))
     |> Enum.map_reduce(line_start, fn
       expr, line_number when line_number == line_end ->
-        arrow = String.duplicate(" ", meta.column + 2 + arrow_padding) <> "^"
+        arrow = String.duplicate(" ", meta.column - 1) <> "^"
         {"#{line_number} | #{expr}\n  | #{arrow}", line_number + 1}
 
       expr, line_number ->
