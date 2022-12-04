@@ -464,8 +464,17 @@ defmodule Range do
   @doc """
   Checks if all points of range2 are inside range1.
 
+  It returns true if all of the following conditions are met:
+
+   * the bounds of range2 are fully within range1
+   * the step size of range2 is a multiple of range1's step size
+   * The start of range2 is a member of range1
+
       iex> Range.contains?(1..10, 2..5)
       true
+
+      # the next 2 examples return false because the second range is not within
+      # the bounds of the first one
       iex> Range.contains?(1..10, 11..12)
       false
       iex> Range.contains?(8..20, 1..12)
@@ -478,17 +487,19 @@ defmodule Range do
       true
       iex> Range.contains?(2..8//2, 4..8//4)
       true
+      # false returned because the second range doesn't start (3) at a point
+      # contained by the first (2, 4, 6 and 8)
       iex> Range.contains?(2..8//2, 3..7//4)
       false
       iex> Range.contains?(2..11//3, 5..11//6)
       true
       iex> Range.contains?(11..2//-3, 5..11//6)
       true
+      # false returned because the step sizes are not multiples
       iex> Range.contains?(1..10//2, 2..8//3)
       false
-      iex> Range.contains?(0..10//5, 0..4//2)
+      iex> Range.contains?(0..10//4, 0..4//2)
       false
-      iex> Range.contains?(0..10, 1..3//10)
   """
   @spec contains?(t, t) :: boolean
   def contains?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
