@@ -271,6 +271,8 @@ defmodule Kernel.ParallelCompiler do
       for {{:module, module}, _} <- result,
           do: module
 
+    :code.ensure_modules_loaded(runtime_modules)
+
     runtime_modules =
       for module <- runtime_modules,
           path = :code.which(module),
