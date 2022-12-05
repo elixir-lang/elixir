@@ -14,13 +14,13 @@ defmodule PartitionSupervisor do
   for routing.
 
   ## Simple Example
-  
+
   Let's start with an example which is not useful per se, but shows how the
   partitions are started and how messages are routed to them.
-  
+
   Here's a toy GenServer that simply collects the messages it's given.
   It prints them for easy illustration.
-  
+
       defmodule Collector do
         use GenServer
 
@@ -51,7 +51,7 @@ defmodule PartitionSupervisor do
         child_spec: Collector.child_spec([some: :arg]),
         name: MyApp.PartitionSupervisor
       }
-  
+
   We can send messages to them using a "via tuple":
 
       # The key is used to route our message to a particular instance.
