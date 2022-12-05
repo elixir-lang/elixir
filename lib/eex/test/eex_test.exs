@@ -390,6 +390,32 @@ defmodule EExTest do
       assert_raise EEx.SyntaxError, message, fn ->
         EEx.compile_string("foo\n<%= if true do %>\nfoo\n")
       end
+
+      message = """
+      nofile:3:3: expected a closing '<% end %>' for block expression in EEx
+        |
+      1 | foo
+      2 | <%=
+      3 |   if true do %>
+        |   ^\
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo\n<%=\n  if true do %>\nfoo\n", indentation: 0)
+      end
+
+      message = """
+      nofile:3:6: expected a closing '<% end %>' for block expression in EEx
+        |
+      1 |    foo
+      2 |    <%=
+      3 |      if true do %>
+        |      ^\
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo\n<%=\n  if true do %>\nfoo\n", indentation: 3)
+      end
     end
 
     test "when start expression with middle expression is found without an end expression" do

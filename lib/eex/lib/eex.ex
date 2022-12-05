@@ -217,8 +217,7 @@ defmodule EEx do
   def compile_string(source, options \\ []) when is_binary(source) and is_list(options) do
     case tokenize(source, options) do
       {:ok, tokens} ->
-        options = [source: source] ++ options
-        EEx.Compiler.compile(tokens, options)
+        EEx.Compiler.compile(tokens, source, options)
 
       {:error, message, %{column: column, line: line}} ->
         file = options[:file] || "nofile"
@@ -333,7 +332,7 @@ defmodule EEx do
   Note new tokens may be added in the future.
   """
   @doc since: "1.14.0"
-  @spec tokenize(IO.chardata(), opts :: keyword) ::
+  @spec tokenize([char()] | String.t(), opts :: keyword) ::
           {:ok, [token()]} | {:error, String.t(), metadata()}
   def tokenize(contents, opts \\ []) do
     EEx.Compiler.tokenize(contents, opts)
