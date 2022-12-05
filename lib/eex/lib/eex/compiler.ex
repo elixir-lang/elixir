@@ -10,17 +10,21 @@ defmodule EEx.Compiler do
   Tokenize EEx contents.
   """
   def tokenize(contents, opts) when is_binary(contents) do
-    tokenize(String.to_charlist(contents), opts)
+    tokenize(String.to_charlist(contents), contents, opts)
   end
 
   def tokenize(contents, opts) when is_list(contents) do
+    tokenize(contents, List.to_string(contents), opts)
+  end
+
+  def tokenize(contents, source, opts) when is_list(contents) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
     trim = opts[:trim] || false
     indentation = opts[:indentation] || 0
     column = indentation + (opts[:column] || 1)
 
-    state = %{trim: trim, indentation: indentation, file: file, source: to_string(contents)}
+    state = %{trim: trim, indentation: indentation, file: file, source: source}
 
     {contents, line, column} =
       (trim && trim_init(contents, line, column, state)) || {contents, line, column}
@@ -36,7 +40,7 @@ defmodule EEx.Compiler do
     case comment(t, line, column + 5, state, []) do
       {:error, message} ->
         meta = %{line: line, column: column}
-        {:error, message <> code_snippet(state.source, meta), meta}
+        {:error, message <> code_snippet(state.source, state.indentation, meta), meta}
 
       {:ok, new_line, new_column, rest, comments} ->
         token = {:comment, Enum.reverse(comments), %{line: line, column: column}}
@@ -62,7 +66,7 @@ defmodule EEx.Compiler do
     case expr(t, line, column + 2 + marker_length, state, []) do
       {:error, message} ->
         meta = %{line: line, column: column}
-        {:error, message <> code_snippet(state.source, meta), meta}
+        {:error, message <> code_snippet(state.source, state.indentation, meta), meta}
 
       {:ok, expr, new_line, new_column, rest} ->
         {key, expr} =
@@ -278,11 +282,11 @@ defmodule EEx.Compiler do
   and the engine together by handling the tokens and invoking
   the engine every time a full expression or text is received.
   """
-  @spec compile([EEx.token()], keyword) :: Macro.t()
-  def compile(tokens, opts) do
-    source = Keyword.fetch!(opts, :source)
+  @spec compile([EEx.token()], String.t(), keyword) :: Macro.t()
+  def compile(tokens, source, opts) do
     file = opts[:file] || "nofile"
     line = opts[:line] || 1
+    indentation = opts[:indentation] || 0
     parser_options = opts[:parser_options] || Code.get_compiler_option(:parser_options)
     engine = opts[:engine] || @default_engine
 
@@ -292,7 +296,8 @@ defmodule EEx.Compiler do
       source: source,
       line: line,
       quoted: [],
-      parser_options: parser_options
+      parser_options: parser_options,
+      indentation: indentation
     }
 
     init = state.engine.init(opts)
@@ -486,17 +491,18 @@ defmodule EEx.Compiler do
 
   defp syntax_error!(message, meta, state) do
     raise EEx.SyntaxError,
-      message: message <> code_snippet(state.source, meta),
+      message: message <> code_snippet(state.source, state.indentation, meta),
       file: state.file,
       line: meta.line,
       column: meta.column
   end
 
-  defp code_snippet(source, meta) do
+  defp code_snippet(source, indentation, meta) do
     line_start = max(meta.line - 3, 1)
     line_end = meta.line
     digits = line_end |> Integer.to_string() |> byte_size()
     number_padding = String.duplicate(" ", digits)
+    indentation = String.duplicate(" ", indentation)
 
     source
     |> String.split(["\r\n", "\n"])
@@ -504,11 +510,11 @@ defmodule EEx.Compiler do
     |> Enum.map_reduce(line_start, fn
       expr, line_number when line_number == line_end ->
         arrow = String.duplicate(" ", meta.column - 1) <> "^"
-        {"#{line_number} | #{expr}\n #{number_padding}| #{arrow}", line_number + 1}
+        {"#{line_number} | #{indentation}#{expr}\n #{number_padding}| #{arrow}", line_number + 1}
 
       expr, line_number ->
         line_number_padding = String.pad_leading("#{line_number}", digits)
-        {"#{line_number_padding} | #{expr}", line_number + 1}
+        {"#{line_number_padding} | #{indentation}#{expr}", line_number + 1}
     end)
     |> case do
       {[], _} -> ""
