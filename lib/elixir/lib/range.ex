@@ -408,22 +408,24 @@ defmodule Range do
       iex> Range.disjoint?(1..10//2, 2..10//2)
       true
 
-      # First element in common in all below is 29
-      iex> Range.disjoint?(2..100//3, 9..100//5)
-      false
-      iex> Range.disjoint?(101..2//-3, 99..9//-5)
-      false
+      # First element in common is 29
       iex> Range.disjoint?(1..100//14, 8..100//21)
       false
       iex> Range.disjoint?(57..-1//-14, 8..100//21)
       false
-      iex> Range.disjoint?(1..100//14, 51..8//-21)
+      iex> Range.disjoint?(1..100//14, 50..8//-21)
       false
-
-      # If 29 is out of range
       iex> Range.disjoint?(1..28//14, 8..28//21)
       true
+
+      # First element in common is 14
       iex> Range.disjoint?(2..28//3, 9..28//5)
+      false
+      iex> Range.disjoint?(26..2//-3, 29..9//-5)
+      false
+
+      # Starting from the back without alignment
+      iex> Range.disjoint?(27..11//-3, 30..0//-7)
       true
 
   """
@@ -448,21 +450,28 @@ defmodule Range do
           # progressions and see if they belong within the ranges
           # https://math.stackexchange.com/questions/1656120/formula-to-find-the-first-intersection-of-two-arithmetic-progressions
           {gcd, u, v} = Integer.extended_gcd(-step1, step2)
-          c = first1 - first2 + step2 - step1
-          t1 = -c / step1 * u
-          t2 = -c / step2 * v
-          t = max(floor(t1) + 1, floor(t2) + 1)
-          x = div(c * u + t * step2, gcd) - 1
-          y = div(c * v + t * step1, gcd) - 1
 
-          x < 0 or first1 + x * step1 > last1 or
-            y < 0 or first2 + y * step2 > last2
+          if rem(first2 - first1, gcd) == 0 do
+            c = first1 - first2 + step2 - step1
+            t1 = -c / step2 * u
+            t2 = -c / step1 * v
+            t = max(floor(t1) + 1, floor(t2) + 1)
+            x = div(c * u + t * step2, gcd) - 1
+            y = div(c * v + t * step1, gcd) - 1
+
+            x < 0 or first1 + x * step1 > last1 or
+              y < 0 or first2 + y * step2 > last2
+          else
+            true
+          end
       end
     end
   end
 
   @compile inline: [normalize: 3]
-  defp normalize(first, last, step) when first > last, do: {last, first, -step}
+  defp normalize(first, last, step) when first > last,
+    do: {first - abs(div(first - last, step) * step), first, -step}
+
   defp normalize(first, last, step), do: {first, last, step}
 
   @doc false
