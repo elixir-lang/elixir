@@ -13,7 +13,68 @@ defmodule PartitionSupervisor do
   `name` is the name of the `PartitionSupervisor` and key is used
   for routing.
 
-  ## Example
+  ## Simple Example
+
+  Let's start with an example which is not useful per se, but shows how the
+  partitions are started and how messages are routed to them.
+
+  Here's a toy GenServer that simply collects the messages it's given.
+  It prints them for easy illustration.
+
+      defmodule Collector do
+        use GenServer
+
+        def start_link(args) do
+          GenServer.start_link(__MODULE__, args)
+        end
+
+        def init(args) do
+          IO.inspect [__MODULE__, " got args ", args, " in ", self()]
+          {:ok, _initial_state = []}
+        end
+
+        def collect(server, msg) do
+          GenServer.call(server, {:collect, msg})
+        end
+
+        def handle_call({:collect, msg}, _from, state) do
+          new_state = [msg | state]
+          IO.inspect ["current messages:", new_state, " in process", self()]
+          {:reply, :ok, new_state}
+        end
+      end
+
+  To run multiple of these, we can start them under a `PartitionSupervisor` by placing
+  this in our supervision tree:
+
+      {PartitionSupervisor,
+        child_spec: Collector.child_spec([some: :arg]),
+        name: MyApp.PartitionSupervisor
+      }
+
+  We can send messages to them using a "via tuple":
+
+      # The key is used to route our message to a particular instance.
+      key = 1
+      Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :hi)
+      # ["current messages:", [:hi], " in process", #PID<0.602.0>]
+      :ok
+      Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :ho)
+      # ["current messages:", [:ho, :hi], " in process", #PID<0.602.0>]
+      :ok
+
+      # With a different key, the messsage will be routed to a different instance.
+      key = 2
+      Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :a)
+      # ["current messages:", [:a], " in process", #PID<0.603.0>]
+      :ok
+      Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :b)
+      # ["current messages:", [:b, :a], " in process", #PID<0.603.0>]
+      :ok
+
+  Now let's move on to a useful example.
+
+  ## `DynamicSupervisor` Example
 
   The `DynamicSupervisor` is a single process responsible for starting
   other processes. In some applications, the `DynamicSupervisor` may
@@ -122,6 +183,8 @@ defmodule PartitionSupervisor do
     * `:name` - an atom or via tuple representing the name of the partition
       supervisor (see `t:name/0`).
 
+    * `:child_spec` - the child spec to be used when starting the partitions.
+
     * `:partitions` - a positive integer with the number of partitions.
       Defaults to `System.schedulers_online()` (typically the number of cores).
 
@@ -142,9 +205,9 @@ defmodule PartitionSupervisor do
 
   Sometimes you want each partition to know their partition assigned number.
   This can be done with the `:with_arguments` option. This function receives
-  the list of arguments of the child specification and the partition. It
-  must return a new list of arguments that will be passed to the child specification
-  of children.
+  the the value of the `:child_spec` option and an integer for the partition
+  number. It must return a new list of arguments that will be used to start the
+  partition process.
 
   For example, most processes are started by calling `start_link(opts)`,
   where `opts` is a keyword list. You could inject the partition into the
