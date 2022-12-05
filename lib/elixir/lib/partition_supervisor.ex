@@ -183,6 +183,8 @@ defmodule PartitionSupervisor do
     * `:name` - an atom or via tuple representing the name of the partition
       supervisor (see `t:name/0`).
 
+    * `:child_spec` - the child spec to be used when starting the partitions.
+
     * `:partitions` - a positive integer with the number of partitions.
       Defaults to `System.schedulers_online()` (typically the number of cores).
 
@@ -203,9 +205,9 @@ defmodule PartitionSupervisor do
 
   Sometimes you want each partition to know their partition assigned number.
   This can be done with the `:with_arguments` option. This function receives
-  the list of arguments of the child specification and the partition. It
-  must return a new list of arguments that will be passed to the child specification
-  of children.
+  the the value of the `:child_spec` option and an integer for the partition
+  number. It must return a new list of arguments that will be used to start the
+  partition process.
 
   For example, most processes are started by calling `start_link(opts)`,
   where `opts` is a keyword list. You could inject the partition into the
