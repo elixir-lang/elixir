@@ -515,8 +515,7 @@ defmodule Range do
         Enum.member?(range1, first2)
 
       true ->
-        first2 >= first1 and first2 <= last1 and
-          last2 >= first1 and last2 <= last1 and
+        contains_bounds?(range1, range2) and
           multiple?(step2, step1) and
           multiple?(first1 - first2, step1)
     end
