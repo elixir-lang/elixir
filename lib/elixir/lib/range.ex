@@ -502,8 +502,8 @@ defmodule Range do
   """
   @spec contains_members?(t, t) :: boolean
   def contains_members?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
-    {first1, last1, step1} = normalize(first1, last1, step1)
-    {first2, last2, step2} = normalize(first2, last2, step2)
+    {first1, _last1, step1} = normalize(first1, last1, step1)
+    {first2, _last2, step2} = normalize(first2, last2, step2)
 
     cond do
       size(range2) == 0 ->
@@ -542,7 +542,7 @@ defmodule Range do
       false
   """
   @spec contains_bounds?(t, t) :: boolean()
-  def contains_bounds?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
+  def contains_bounds?(first1..last1//step1, first2..last2//step2) do
     {first1, last1, _step1} = normalize(first1, last1, step1)
     {first2, last2, _step2} = normalize(first2, last2, step2)
     first2 >= first1 and first2 <= last1 and
