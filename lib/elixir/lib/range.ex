@@ -462,51 +462,53 @@ defmodule Range do
   end
 
   @doc """
-  Checks if all points of range2 are inside range1.
+  Checks if all members of `range2` are inside `range1`.
 
   It returns true if all of the following conditions are met:
 
-   * the bounds of range2 are fully within range1
-   * the step size of range2 is a multiple of range1's step size
-   * The start of range2 is a member of range1
+   * the bounds of `range2` are fully within `range1`
+   * all members of `range2` also exist in `range1`
 
-      iex> Range.contains?(1..10, 2..5)
+
+      iex> Range.contains_members?(1..10, 2..5)
       true
 
       # the next 2 examples return false because the second range is not within
       # the bounds of the first one
-      iex> Range.contains?(1..10, 11..12)
+      iex> Range.contains_members?(1..10, 11..12)
       false
-      iex> Range.contains?(8..20, 1..12)
+      iex> Range.contains_members?(8..20, 1..12)
       false
 
   Steps are also considered when checking if the second range is contained by the
   first:
 
-      iex> Range.contains?(1..10, 2..4//2)
+      iex> Range.contains_members?(1..10, 2..4//2)
       true
-      iex> Range.contains?(2..8//2, 4..8//4)
+      iex> Range.contains_members?(2..8//2, 4..8//4)
       true
       # false returned because the second range doesn't start (3) at a point
       # contained by the first (2, 4, 6 and 8)
-      iex> Range.contains?(2..8//2, 3..7//4)
+      iex> Range.contains_members?(2..8//2, 3..7//4)
       false
-      iex> Range.contains?(2..11//3, 5..11//6)
+      iex> Range.contains_members?(2..11//3, 5..11//6)
       true
-      iex> Range.contains?(11..2//-3, 5..11//6)
+      iex> Range.contains_members?(11..2//-3, 5..11//6)
       true
-      # false returned because the step sizes are not multiples
-      iex> Range.contains?(1..10//2, 2..8//3)
+      iex> Range.contains_members?(1..10//2, 2..8//3)
       false
-      iex> Range.contains?(0..10//4, 0..4//2)
+      iex> Range.contains_members?(0..10//4, 0..4//2)
       false
   """
-  @spec contains?(t, t) :: boolean
-  def contains?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
+  @spec contains_members?(t, t) :: boolean
+  def contains_members?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
     {first1, last1, step1} = normalize(first1, last1, step1)
     {first2, last2, step2} = normalize(first2, last2, step2)
 
     cond do
+      size(range2) == 0 ->
+        contains_bounds?(range1, range2)
+
       size(range2) == 1 ->
         # this should work even when step1 and step2 are completely different
         # that's why it's a special case
@@ -515,14 +517,42 @@ defmodule Range do
       true ->
         first2 >= first1 and first2 <= last1 and
           last2 >= first1 and last2 <= last1 and
-          is_multiple?(step2, step1) and
-          is_multiple?(first1 - first2, step1)
+          multiple?(step2, step1) and
+          multiple?(first1 - first2, step1)
     end
   end
 
-  @compile inline: [is_multiple?: 2]
+  @doc """
+  Checks if the bounds of `range2` are fully within the bounds of `range1`.
+
+  Step sizes are disregarded in this check.
+
+      iex> Range.contains_bounds?(1..10, 2..5)
+      true
+      iex> Range.contains_bounds?(1..10, 1..10)
+      true
+      iex> Range.contains_bounds?(1..10, 6..10)
+      true
+      iex> Range.contains_bounds?(5..15, 1..7)
+      false
+      iex> Range.contains_bounds?(5..15, 7..20)
+      false
+      iex> Range.contains_bounds?(5..15, 1..2)
+      false
+      iex> Range.contains_bounds?(5..15, 17..20)
+      false
+  """
+  @spec contains_bounds?(t, t) :: boolean()
+  def contains_bounds?(first1..last1//step1 = range1, first2..last2//step2 = range2) do
+    {first1, last1, _step1} = normalize(first1, last1, step1)
+    {first2, last2, _step2} = normalize(first2, last2, step2)
+    first2 >= first1 and first2 <= last1 and
+    last2 >= first1 and last2 <= last1
+  end
+
+  @compile inline: [multiple?: 2]
   # checks if a is a multiple of b
-  defp is_multiple?(a, b), do: rem(a, b) == 0
+  defp multiple?(a, b), do: rem(a, b) == 0
 
   @compile inline: [normalize: 3]
   defp normalize(first, last, step) when first > last, do: {last, first, -step}
