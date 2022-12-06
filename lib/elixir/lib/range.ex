@@ -545,8 +545,9 @@ defmodule Range do
   def contains_bounds?(first1..last1//step1, first2..last2//step2) do
     {first1, last1, _step1} = normalize(first1, last1, step1)
     {first2, last2, _step2} = normalize(first2, last2, step2)
+
     first2 >= first1 and first2 <= last1 and
-    last2 >= first1 and last2 <= last1
+      last2 >= first1 and last2 <= last1
   end
 
   @compile inline: [multiple?: 2]
