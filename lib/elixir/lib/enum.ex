@@ -769,7 +769,7 @@ defmodule Enum do
   @doc """
   Counts the elements in the enumerable for which `fun` returns a truthy value, stopping at `limit`.
 
-  See `count/2` and `count_until/3` for more information.
+  See `count/2` and `count_until/2` for more information.
 
   ## Examples
 
