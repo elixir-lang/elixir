@@ -376,8 +376,14 @@ defmodule Task do
   `fun` must be a zero-arity anonymous function. This function
   spawns a process that is linked to and monitored by the caller
   process. A `Task` struct is returned containing the relevant
-  information. Developers must eventually call `Task.await/2` or
-  `Task.yield/2` followed by `Task.shutdown/2` on the returned task.
+  information.
+
+  If you start an `async`, you **must await**. This is either done
+  by calling `Task.await/2` or `Task.yield/2` followed by
+  `Task.shutdown/2` on the returned task. Alternatively, if you
+  spawn a task inside a `GenServer`, then the `GenServer` will
+  automatically await for you and call `c:GenServer.handle_info/2`
+  with the task response and associated `:DOWN` message.
 
   Read the `Task` module documentation for more information about
   the general usage of async tasks.
