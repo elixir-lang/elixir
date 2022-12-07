@@ -956,7 +956,7 @@ defmodule CompileError do
 end
 
 defmodule Kernel.TypespecError do
-  defexception [:file, :line, description: "typespec error"]
+  defexception [:file, :line, :description]
 
   @impl true
   def message(%{file: file, line: line, description: description}) do
