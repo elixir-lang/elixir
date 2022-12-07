@@ -940,8 +940,7 @@ defmodule Kernel.Typespec do
   defp expand_remote(other, env), do: Macro.expand(other, env)
 
   defp compile_error(caller, desc) do
-    # TODO: Raise a specific typespec error
-    raise CompileError, file: caller.file, line: caller.line, description: desc
+    raise Kernel.TypespecError, file: caller.file, line: caller.line, description: desc
   end
 
   defp remote_type({remote, meta, name, args}, vars, caller, state) do
