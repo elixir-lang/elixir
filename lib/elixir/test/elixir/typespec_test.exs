@@ -60,17 +60,21 @@ defmodule TypespecTest do
         end
       end
 
-      assert_raise Kernel.TypespecError, ~r"unexpected expression in typespec: integer\(\)\(\)", fn ->
-        test_module do
-          @type my_type :: integer()()
-        end
-      end
+      assert_raise Kernel.TypespecError,
+                   ~r"unexpected expression in typespec: integer\(\)\(\)",
+                   fn ->
+                     test_module do
+                       @type my_type :: integer()()
+                     end
+                   end
 
-      assert_raise Kernel.TypespecError, ~r"unexpected expression in typespec: %URI\.t\(\)\{\}", fn ->
-        test_module do
-          @type my_type :: %URI.t(){}
-        end
-      end
+      assert_raise Kernel.TypespecError,
+                   ~r"unexpected expression in typespec: %URI\.t\(\)\{\}",
+                   fn ->
+                     test_module do
+                       @type my_type :: %URI.t(){}
+                     end
+                   end
     end
 
     test "invalid function specification" do
