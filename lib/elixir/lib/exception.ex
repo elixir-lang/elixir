@@ -955,6 +955,18 @@ defmodule CompileError do
   end
 end
 
+defmodule Kernel.TypespecError do
+  defexception [:file, :line, description: "typespec error"]
+
+  @impl true
+  def message(%{file: file, line: line, description: description}) do
+    case Exception.format_file_line(file && Path.relative_to_cwd(file), line) do
+      "" -> description
+      formatted -> formatted <> " " <> description
+    end
+  end
+end
+
 defmodule BadFunctionError do
   defexception [:term]
 
