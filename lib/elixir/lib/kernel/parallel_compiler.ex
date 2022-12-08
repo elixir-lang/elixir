@@ -271,8 +271,6 @@ defmodule Kernel.ParallelCompiler do
       for {{:module, module}, binary} when is_binary(binary) <- result,
           do: module
 
-    :code.ensure_modules_loaded(runtime_modules)
-
     runtime_modules =
       for module <- runtime_modules,
           path = :code.which(module),
