@@ -62,7 +62,10 @@ defmodule Module.ParallelChecker do
               if is_map(info) do
                 info
               else
-                info |> File.read!() |> maybe_module_map(module)
+                case File.read(info) do
+                  {:ok, binary} -> maybe_module_map(binary, module)
+                  {:error, _} -> nil
+                end
               end
 
             module_map && cache_from_module_map(ets, module_map)
@@ -136,7 +139,7 @@ defmodule Module.ParallelChecker do
   the modules and adds the ExCk chunk to the binaries. Returns the updated
   list of warnings from the verification.
   """
-  @spec verify(pid(), [{module(), binary()}]) :: [warning()]
+  @spec verify(pid(), [{module(), Path.t()}]) :: [warning()]
   def verify(checker, runtime_files) do
     for {module, file} <- runtime_files do
       spawn({self(), checker}, module, file)

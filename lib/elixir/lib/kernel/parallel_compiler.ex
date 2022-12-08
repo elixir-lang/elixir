@@ -271,12 +271,6 @@ defmodule Kernel.ParallelCompiler do
       for {{:module, module}, _} <- result,
           do: module
 
-    runtime_modules =
-      for module <- runtime_modules,
-          path = :code.which(module),
-          is_list(path) and path != [],
-          do: {module, path}
-
     profile_checker(profile, compiled_modules, runtime_modules, fn ->
       Module.ParallelChecker.verify(checker, runtime_modules)
     end)
