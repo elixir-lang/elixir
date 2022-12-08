@@ -956,7 +956,11 @@ defmodule Mix.Compilers.Elixir do
         |> Map.from_keys(true)
 
       {_, runtime_modules} = fixpoint_runtime_modules(sources, modules_set)
-      {{:runtime, runtime_modules, warnings}, state}
+
+      runtime_paths =
+        Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
+
+      {{:runtime, runtime_paths, warnings}, state}
     else
       Mix.Utils.compiling_n(length(changed), :ex)
 
