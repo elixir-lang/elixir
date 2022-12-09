@@ -62,6 +62,7 @@ defmodule String do
     * `\\` - Single backslash
     * `\xNN` - A byte represented by the hexadecimal `NN`
     * `\uNNNN` - A Unicode code point represented by `NNNN`
+    * `\u{NNNNNN}` - A Unicode code point represented by `NNNNNN`
 
   Note it is generally not advised to use `\xNN` in Elixir
   strings, as introducing an invalid byte sequence would
