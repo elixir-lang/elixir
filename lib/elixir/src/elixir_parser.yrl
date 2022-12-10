@@ -260,11 +260,11 @@ access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
 access_expr -> capture_int int : build_unary_op('$1', number_value('$2')).
 access_expr -> fn_eoe stab end_eoe : build_fn('$1', '$2', '$3').
-access_expr -> open_paren stab close_paren : build_stab('$1', '$2', '$3').
-access_expr -> open_paren stab ';' close_paren : build_stab('$1', '$2', '$4').
-access_expr -> open_paren ';' stab ';' close_paren : build_stab('$1', '$3', '$5').
-access_expr -> open_paren ';' stab close_paren : build_stab('$1', '$3', '$4').
-access_expr -> open_paren ';' close_paren : build_stab('$1', [], '$3').
+access_expr -> open_paren stab close_paren : build_paren_stab('$1', '$2', '$3').
+access_expr -> open_paren stab ';' close_paren : build_paren_stab('$1', '$2', '$4').
+access_expr -> open_paren ';' stab ';' close_paren : build_paren_stab('$1', '$3', '$5').
+access_expr -> open_paren ';' stab close_paren : build_paren_stab('$1', '$3', '$4').
+access_expr -> open_paren ';' close_paren : build_paren_stab('$1', [], '$3').
 access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', [], []}.
 access_expr -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
 access_expr -> flt : handle_number(number_value('$1'), '$1', ?exprs('$1')).
@@ -784,8 +784,6 @@ build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
 
 %% Blocks
 
-build_block([{Op, _, [_]}]=Exprs) when ?rearrange_uop(Op) ->
-  {'__block__', [], Exprs};
 build_block([{unquote_splicing, _, [_]}]=Exprs) ->
   {'__block__', [], Exprs};
 build_block([Expr]) ->
@@ -1065,7 +1063,9 @@ build_stab(Stab) ->
     stab -> collect_stab(Stab, [], [])
   end.
 
-build_stab(Before, Stab, After) ->
+build_paren_stab(_Before, [{Op, _, [_]}]=Exprs, _After) when ?rearrange_uop(Op) ->
+  {'__block__', [], Exprs};
+build_paren_stab(Before, Stab, After) ->
   case build_stab(Stab) of
     {'__block__', Meta, Block} ->
       {'__block__', Meta ++ meta_from_token_with_closing(Before, After), Block};
