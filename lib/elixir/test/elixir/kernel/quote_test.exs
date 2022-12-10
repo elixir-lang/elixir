@@ -328,6 +328,13 @@ defmodule Kernel.QuoteTest do
     assert Code.string_to_quoted!("&1 [:foo]") == Code.string_to_quoted!("(&1)[:foo]")
     assert Code.string_to_quoted!("& 1[:foo]") == Code.string_to_quoted!("&(1[:foo])")
   end
+
+  test "not and ! as rearrange ops" do
+    assert {:__block__, _, [{:not, [line: 1], [true]}]} = Code.string_to_quoted!("(not true)")
+
+    assert {:fn, _, [{:->, _, [[], {:not, _, [true]}]}]} =
+             Code.string_to_quoted!("fn -> not true end")
+  end
 end
 
 defmodule Kernel.QuoteTest.Errors do
