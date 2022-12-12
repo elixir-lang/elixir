@@ -1795,13 +1795,15 @@ defmodule Macro do
   defp do_expand_once({:__DIR__, _, atom}, env) when is_atom(atom),
     do: {:filename.dirname(env.file), true}
 
-  defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom),
-    do: {{:%{}, [], Map.to_list(env)}, true}
+  defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom) do
+    env = update_in(env.versioned_vars, &maybe_escape_map/1)
+    {maybe_escape_map(env), true}
+  end
 
   defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env)
        when is_atom(atom) and is_atom(field) do
     if Map.has_key?(env, field) do
-      {Map.get(env, field), true}
+      {maybe_escape_map(Map.get(env, field)), true}
     else
       {original, false}
     end
@@ -1883,6 +1885,9 @@ defmodule Macro do
 
   # Anything else is just returned
   defp do_expand_once(other, _env), do: {other, false}
+
+  defp maybe_escape_map(map) when is_map(map), do: {:%{}, [], Map.to_list(map)}
+  defp maybe_escape_map(other), do: other
 
   @doc """
   Returns `true` if the given name and arity is a special form.

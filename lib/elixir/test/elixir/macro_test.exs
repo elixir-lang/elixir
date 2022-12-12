@@ -173,9 +173,17 @@ defmodule MacroTest do
 
     test "env" do
       env = %{__ENV__ | line: 0}
-      assert Macro.expand_once(quote(do: __ENV__), env) == {:%{}, [], Map.to_list(env)}
+
+      expanded = Macro.expand_once(quote(do: __ENV__), env)
+      assert Macro.validate(expanded) == :ok
+      assert Code.eval_quoted(expanded) == {env, []}
+
       assert Macro.expand_once(quote(do: __ENV__.file), env) == env.file
       assert Macro.expand_once(quote(do: __ENV__.unknown), env) == quote(do: __ENV__.unknown)
+
+      expanded = Macro.expand_once(quote(do: __ENV__.versioned_vars), env)
+      assert Macro.validate(expanded) == :ok
+      assert Code.eval_quoted(expanded) == {env.versioned_vars, []}
     end
 
     defmacro local_macro(), do: raise("ignored")
