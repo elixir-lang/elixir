@@ -1116,6 +1116,24 @@ defmodule ExUnit.DiffTest do
     )
   end
 
+  defp closure(a), do: fn -> a end
+
+  test "functions with closure" do
+    closure1 = closure(1)
+    closure2 = closure(2)
+
+    fun_info = Function.info(closure1)
+    uniq = Integer.to_string(fun_info[:new_index]) <> "." <> Integer.to_string(fun_info[:uniq])
+
+    assert_diff(closure1 == closure1, [])
+
+    refute_diff(
+      closure1 == closure2,
+      "#Function<\n  #{uniq}/0 in ExUnit.DiffTest.closure/1\n  [-1-]\n>",
+      "#Function<\n  #{uniq}/0 in ExUnit.DiffTest.closure/1\n  [+2+]\n>"
+    )
+  end
+
   test "not supported" do
     refute_diff(
       <<147, 1, 2, 31>> = <<193, 1, 31>>,
