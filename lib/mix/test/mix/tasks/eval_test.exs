@@ -26,6 +26,30 @@ defmodule Mix.Tasks.EvalTest do
     end)
   end
 
+  test "accepts arguments", context do
+    in_tmp(context.test, fn ->
+      Mix.Tasks.Eval.run(["send self(), {:argv, System.argv()}", "bar", "baz"])
+      assert_received {:argv, ~w[bar baz]}
+    end)
+  end
+
+  test "resets argv to previous value", context do
+    argv = System.argv()
+
+    try do
+      in_tmp(context.test, fn ->
+        System.argv(["foo"])
+
+        Mix.Tasks.Eval.run(["send self(), {:argv, System.argv()}", "bar", "baz"])
+        assert_received {:argv, ~w[bar baz]}
+
+        assert ["foo"] == System.argv()
+      end)
+    after
+      System.argv(argv)
+    end
+  end
+
   test "runs without mix.exs" do
     Mix.Project.pop()
 
