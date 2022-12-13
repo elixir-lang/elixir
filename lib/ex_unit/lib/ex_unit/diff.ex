@@ -180,6 +180,30 @@ defmodule ExUnit.Diff do
     diff_string(left, right, ?", env)
   end
 
+  defp diff_value(left, right, env) when is_function(left) and is_function(right) do
+    # If they are local functions in the same module and same name,
+    # then they have different environment, which we compare.
+    if Function.info(left, :type) == {:type, :local} and
+         Function.info(right, :type) == {:type, :local} and
+         Function.info(left, :module) == Function.info(right, :module) and
+         Function.info(left, :new_uniq) == Function.info(right, :new_uniq) and
+         Function.info(left, :new_index) == Function.info(right, :new_index) do
+      {:env, left_env} = Function.info(left, :env)
+      {:env, right_env} = Function.info(right, :env)
+      {diff, env} = diff_maybe_improper_list(left_env, right_env, env)
+
+      diff = %{
+        diff
+        | left: %{custom: &function_env_to_algebra(left, diff.left, &1)},
+          right: %{custom: &function_env_to_algebra(right, diff.right, &1)}
+      }
+
+      {diff, env}
+    else
+      diff_value(left, right, env)
+    end
+  end
+
   defp diff_value(left, right, env) do
     diff_left = escape(left) |> update_diff_meta(true)
     diff_right = escape(right) |> update_diff_meta(true)
@@ -1076,6 +1100,25 @@ defmodule ExUnit.Diff do
     Algebra.concat(["~c\"", Algebra.concat(content_doc), "\""])
   end
 
+  defp function_env_to_algebra(function, ast, diff_wrapper) do
+    "#Function<" <> contents = inspect(function)
+
+    Algebra.concat([
+      "#Function<",
+      Algebra.nest(
+        Algebra.concat([
+          Algebra.line(),
+          binary_slice(contents, 0..-2//1),
+          Algebra.line(),
+          to_algebra(ast, diff_wrapper)
+        ]),
+        2
+      ),
+      Algebra.line(),
+      ">"
+    ])
+  end
+
   # Diff helpers
 
   defp add_hint(%{hints: hints} = env, hint) do
@@ -1088,7 +1131,6 @@ defmodule ExUnit.Diff do
   # We escape container types to make a distinction between AST
   # and values that should be inspected. All other values have no
   # special AST representation, so we can keep them as is.
-  # Note functions is a special notation for custom rendering.
   defp escape(other) when is_list(other) or is_tuple(other), do: {other}
   defp escape(other), do: other
 
