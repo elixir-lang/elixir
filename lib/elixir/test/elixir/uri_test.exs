@@ -490,6 +490,44 @@ defmodule URITest do
     assert URI.append_query(URI.parse("http://example.com/?x=1&"), "x=2").query == "x=1&x=2"
   end
 
+  test "join_path/2" do
+    examples = [
+      {"http://example.com", "", "http://example.com"},
+      {"http://example.com", "/", "http://example.com/"},
+      {"http://example.com/", "", "http://example.com/"},
+      {"http://example.com", "foo", "http://example.com/foo"},
+      {"http://example.com/", "foo", "http://example.com/foo"},
+      {"http://example.com/", "foo/", "http://example.com/foo"},
+      {"http://example.com/", "/foo", "http://example.com/foo"},
+      {"http://example.com/foo", "bar", "http://example.com/foo/bar"},
+      {"http://example.com/foo", "/bar", "http://example.com/foo/bar"},
+      {"http://example.com/foo", "/bar/", "http://example.com/foo/bar"},
+      {"http://example.com/foo", "/bar/baz", "http://example.com/foo/bar/baz"},
+      {"http://example.com/foo/bar", "baz", "http://example.com/foo/bar/baz"},
+      {"http://example.com/foo?var=1", "/bar/", "http://example.com/foo/bar?var=1"},
+      {"http://example.com/foo", "/bar?foo", "http://example.com/foo/bar"},
+      {"http://example.com", "?foo", "http://example.com"}
+    ]
+
+    for {base_url, path, expected_result} <- examples do
+      result =
+        base_url
+        |> URI.parse()
+        |> URI.join_path(path)
+        |> URI.to_string()
+
+      assert result == expected_result, """
+      Path did not join as expected
+
+        base_url: #{inspect(base_url)}
+        path: #{inspect(path)}
+
+        result:          #{inspect(result)}
+        expected_result: #{inspect(expected_result)}
+      """
+    end
+  end
+
   ## Deprecate API
 
   describe "authority" do

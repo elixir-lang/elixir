@@ -977,6 +977,35 @@ defmodule URI do
       %{uri | query: uri.query <> "&" <> query}
     end
   end
+
+  @doc """
+  Joins `path` to the given `uri`.
+
+  Any additional url components in `path` (like query strings) will be removed.
+
+  ## Examples
+
+      iex> URI.join_path(URI.parse("http://example.com"), "my-path") |> URI.to_string()
+      "http://example.com/my-path"
+
+      iex> URI.join_path(URI.parse("http://example.com/foo/?x=1"), "/my-path") |> URI.to_string()
+      "http://example.com/foo/my-path?x=1"
+
+      iex> URI.join_path(URI.parse("http://example.com"), "/my-path?x=1") |> URI.to_string()
+      "http://example.com/my-path"
+  """
+  @doc since: "1.15.0"
+  @spec join_path(t(), binary()) :: t()
+  def join_path(%URI{} = uri, path) when is_binary(path) do
+    current_path = uri.path || ""
+    to_join = URI.parse(path).path
+
+    if to_join do
+      %{uri | path: Path.join(["/", current_path, to_join])}
+    else
+      uri
+    end
+  end
 end
 
 defimpl String.Chars, for: URI do
