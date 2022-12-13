@@ -65,7 +65,7 @@ defmodule Mix.Tasks.Eval do
       )
 
     case head do
-      [to_eval] ->
+      [to_eval | argv] ->
         cond do
           Mix.Project.get() ->
             Mix.Task.run("app.config", ["--no-app-loading" | args])
@@ -81,8 +81,16 @@ defmodule Mix.Tasks.Eval do
             )
         end
 
-        Code.eval_string(to_eval)
-        Mix.Task.reenable("eval")
+        old_argv = System.argv()
+
+        try do
+          System.argv(argv)
+
+          Code.eval_string(to_eval)
+          Mix.Task.reenable("eval")
+        after
+          System.argv(old_argv)
+        end
 
       _ ->
         Mix.raise("\"mix eval\" expects a single string to evaluate as argument")

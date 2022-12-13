@@ -201,14 +201,15 @@ defmodule Mix.Tasks.Release.Init do
           echo "ERROR: EVAL expects an expression as argument" >&2
           exit 1
         fi
-
+        script="$2"
+        shift 2
         export_release_sys_config
         exec "$REL_VSN_DIR/elixir" \
            --cookie "$RELEASE_COOKIE" \
            --erl-config "$RELEASE_SYS_CONFIG" \
            --boot "$REL_VSN_DIR/$RELEASE_BOOT_SCRIPT_CLEAN" \
            --boot-var RELEASE_LIB "$RELEASE_ROOT/lib" \
-           --vm-args "$RELEASE_VM_ARGS" --eval "$2"
+           --vm-args "$RELEASE_VM_ARGS" --eval "$script" -- "$@"
         ;;
 
       remote)
@@ -385,13 +386,21 @@ defmodule Mix.Tasks.Release.Init do
     goto end
 
     :eval
+    set EVAL=%~2
+    shift
+    :loop
+    shift
+    if not "%1"=="" (
+      set args=%args% %1
+      goto :loop
+    )
     "!REL_VSN_DIR!\elixir.bat" ^
-      --eval "%~2" ^
+      --eval "!EVAL!" ^
       --cookie "!RELEASE_COOKIE!" ^
       --erl-config "!RELEASE_SYS_CONFIG!" ^
       --boot "!REL_VSN_DIR!\!RELEASE_BOOT_SCRIPT_CLEAN!" ^
       --boot-var RELEASE_LIB "!RELEASE_ROOT!\lib" ^
-      --vm-args "!RELEASE_VM_ARGS!"
+      --vm-args "!RELEASE_VM_ARGS!" -- %args%
     goto end
 
     :remote
