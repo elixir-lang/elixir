@@ -26,14 +26,14 @@ defmodule Mix.Tasks.EvalTest do
     end)
   end
 
-  test "can accept arguments", context do
+  test "accepts arguments", context do
     in_tmp(context.test, fn ->
       Mix.Tasks.Eval.run(["send self(), {:argv, System.argv()}", "bar", "baz"])
       assert_received {:argv, ~w[bar baz]}
     end)
   end
 
-  test "reset argv to previous value", context do
+  test "resets argv to previous value", context do
     argv = System.argv()
 
     try do
