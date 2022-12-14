@@ -677,11 +677,12 @@ defmodule Code.Formatter.OperatorsTest do
       """
 
       good = """
-      var = [
-        one,
-        two,
-        three
-      ]
+      var =
+        [
+          one,
+          two,
+          three
+        ]
       """
 
       assert_format bad, good, @short_length

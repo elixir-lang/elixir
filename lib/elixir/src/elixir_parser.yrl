@@ -405,7 +405,7 @@ at_op_eol -> at_op : '$1'.
 at_op_eol -> at_op eol : '$1'.
 
 match_op_eol -> match_op : '$1'.
-match_op_eol -> match_op eol : '$1'.
+match_op_eol -> match_op eol : next_is_eol('$1', '$2').
 
 dual_op_eol -> dual_op : '$1'.
 dual_op_eol -> dual_op eol : next_is_eol('$1', '$2').
