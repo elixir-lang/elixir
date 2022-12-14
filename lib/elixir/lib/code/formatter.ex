@@ -32,7 +32,7 @@ defmodule Code.Formatter do
   # Operators that are logical cannot be mixed without parens
   @required_parens_logical_binary_operands [:||, :|||, :or, :&&, :&&&, :and]
 
-  # Operators with next break fits. = and :: do not consider new lines though
+  # Operators with next break fits
   @next_break_fits_operators [:<-, :==, :!=, :=~, :===, :!==, :<, :>, :<=, :>=, :=, :"::"]
 
   # Operators that always require parens on operands when they are the parent
