@@ -979,29 +979,36 @@ defmodule URI do
   end
 
   @doc """
-  Joins `path` to the given `uri`.
+  Appends `path` to the given `uri`.
 
   Any additional url components in `path` (like query strings) will be removed.
 
   ## Examples
 
-      iex> URI.join_path(URI.parse("http://example.com"), "my-path") |> URI.to_string()
+      iex> URI.append_path(URI.parse("http://example.com"), "my-path") |> URI.to_string()
       "http://example.com/my-path"
 
-      iex> URI.join_path(URI.parse("http://example.com/foo/?x=1"), "/my-path") |> URI.to_string()
+      iex> URI.append_path(URI.parse("http://example.com/foo/?x=1"), "/my-path") |> URI.to_string()
       "http://example.com/foo/my-path?x=1"
 
-      iex> URI.join_path(URI.parse("http://example.com"), "/my-path?x=1") |> URI.to_string()
+      iex> URI.append_path(URI.parse("http://example.com"), "/my-path?x=1") |> URI.to_string()
       "http://example.com/my-path"
   """
   @doc since: "1.15.0"
-  @spec join_path(t(), binary()) :: t()
-  def join_path(%URI{} = uri, path) when is_binary(path) do
+  @spec append_path(t(), binary()) :: t()
+  def append_path(%URI{} = uri, path) when is_binary(path) do
     current_path = uri.path || ""
-    to_join = URI.parse(path).path
+    to_append = parse(path).path
 
-    if to_join do
-      %{uri | path: Path.join(["/", current_path, to_join])}
+    if to_append do
+      updated_path =
+        IO.chardata_to_string([
+          String.trim_trailing(current_path, "/"),
+          "/",
+          String.trim_leading(to_append, "/")
+        ])
+
+      %{uri | path: updated_path}
     else
       uri
     end
