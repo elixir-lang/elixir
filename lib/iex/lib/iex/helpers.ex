@@ -1240,11 +1240,24 @@ defmodule IEx.Helpers do
 
       iex> pid("0.21.32")
       #PID<0.21.32>
+      
+      iex> pid("#PID<0.21.32>")
+      #PID<0.21.32>
 
       iex> pid(:init)
       #PID<0.0.0>
 
   """
+  def pid("#PID<" <> _rest = string) do
+    case Regex.named_captures(~r/#PID<(?<triplet>\d+.\d+.\d+)>/, string) do
+      %{"triplet" => triplet} ->
+        pid(triplet)
+
+      _ ->
+        raise ArgumentError, "invalid pid format: #{inspect(string)}"
+    end
+  end
+
   def pid(string) when is_binary(string) do
     :erlang.list_to_pid(~c"<#{string}>")
   end
