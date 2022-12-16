@@ -981,37 +981,55 @@ defmodule URI do
   @doc """
   Appends `path` to the given `uri`.
 
-  Any additional url components in `path` (like query strings) will be removed.
+  Path must start with "/" and cannot contain additional url components like
+  fragments or query strings.
 
   ## Examples
-
-      iex> URI.append_path(URI.parse("http://example.com"), "my-path") |> URI.to_string()
-      "http://example.com/my-path"
 
       iex> URI.append_path(URI.parse("http://example.com/foo/?x=1"), "/my-path") |> URI.to_string()
       "http://example.com/foo/my-path?x=1"
 
-      iex> URI.append_path(URI.parse("http://example.com"), "/my-path?x=1") |> URI.to_string()
-      "http://example.com/my-path"
+      iex> URI.append_path(URI.parse("http://example.com"), "my-path")
+      ** (ArgumentError) path must start with "/", got: "my-path"
   """
   @doc since: "1.15.0"
   @spec append_path(t(), binary()) :: t()
-  def append_path(%URI{} = uri, path) when is_binary(path) do
-    current_path = uri.path || ""
-    to_append = parse(path).path
+  def append_path(%URI{}, "//" <> _ = path) do
+    raise ArgumentError, ~s|path cannot start with "//", got: #{inspect(path)}|
+  end
 
-    if to_append do
-      updated_path =
-        IO.chardata_to_string([
-          String.trim_trailing(current_path, "/"),
-          "/",
-          String.trim_leading(to_append, "/")
-        ])
+  def append_path(%URI{} = uri, "/" <> _ = path) do
+    current_path = String.trim_trailing(uri.path || "", "/")
 
-      %{uri | path: updated_path}
-    else
-      uri
+    case new(path) do
+      {:ok, %URI{fragment: nil, path: parsed_path, query: nil}}
+      when is_binary(parsed_path) ->
+        %{uri | path: current_path <> path}
+
+      {:ok, uri} ->
+        non_path_segment_message =
+          uri
+          |> Map.take([:query, :fragment])
+          |> Enum.reject(&match?({_, nil}, &1))
+          |> Enum.map(fn {k, v} -> "    #{k}: #{inspect(v)}" end)
+          |> Enum.join("\n")
+
+        raise ArgumentError, """
+        path cannot contain non-path segments, got: #{inspect(path)}
+
+          Non-path segments:
+
+        #{non_path_segment_message}
+        """
+
+      {:error, invalid_character} ->
+        raise ArgumentError,
+              "path cannot contain invalid characters, got: #{inspect(invalid_character)}"
     end
+  end
+
+  def append_path(%URI{}, path) when is_binary(path) do
+    raise ArgumentError, ~s|path must start with "/", got: #{inspect(path)}|
   end
 end
 
