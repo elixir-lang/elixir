@@ -981,7 +981,7 @@ defmodule URI do
   @doc """
   Appends `path` to the given `uri`.
 
-  Path must start with "/" and cannot contain additional url components like
+  Path must start with `/` and cannot contain additional URL components like
   fragments or query strings.
 
   ## Examples
@@ -991,9 +991,10 @@ defmodule URI do
 
       iex> URI.append_path(URI.parse("http://example.com"), "my-path")
       ** (ArgumentError) path must start with "/", got: "my-path"
+
   """
   @doc since: "1.15.0"
-  @spec append_path(t(), binary()) :: t()
+  @spec append_path(t(), String.t()) :: t()
   def append_path(%URI{}, "//" <> _ = path) do
     raise ArgumentError, ~s|path cannot start with "//", got: #{inspect(path)}|
   end
@@ -1011,8 +1012,7 @@ defmodule URI do
           uri
           |> Map.take([:query, :fragment])
           |> Enum.reject(&match?({_, nil}, &1))
-          |> Enum.map(fn {k, v} -> "    #{k}: #{inspect(v)}" end)
-          |> Enum.join("\n")
+          |> Enum.map_join("\n", fn {k, v} -> "    #{k}: #{inspect(v)}" end)
 
         raise ArgumentError, """
         path cannot contain non-path segments, got: #{inspect(path)}
