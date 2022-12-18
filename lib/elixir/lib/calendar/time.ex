@@ -493,6 +493,13 @@ defmodule Time do
       iex> Time.add(~T[17:10:05], 30, :minute)
       ~T[17:40:05]
 
+  This operation merges the precision of the time with the given unit:
+
+      iex> result = Time.add(~T[00:29:10], 21, :millisecond)
+      ~T[00:29:10.021]
+      iex> result.microsecond
+      {21000, 3}
+
   """
   @doc since: "1.6.0"
   @spec add(Calendar.time(), integer, :hour | :minute | System.time_unit()) :: t
@@ -511,6 +518,7 @@ defmodule Time do
     amount_to_add = System.convert_time_unit(amount_to_add, unit, :microsecond)
     total = time_to_microseconds(time) + amount_to_add
     parts = Integer.mod(total, @parts_per_day)
+    precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
     {hour, minute, second, {microsecond, _}} =
       calendar.time_from_day_fraction({parts, @parts_per_day})
@@ -774,14 +782,14 @@ defmodule Time do
           hour: hour1,
           minute: minute1,
           second: second1,
-          microsecond: {microsecond1, @parts_per_day}
+          microsecond: {microsecond1, _}
         },
         %{
           calendar: Calendar.ISO,
           hour: hour2,
           minute: minute2,
           second: second2,
-          microsecond: {microsecond2, @parts_per_day}
+          microsecond: {microsecond2, _}
         },
         unit
       ) do
