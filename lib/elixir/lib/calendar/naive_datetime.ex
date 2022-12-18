@@ -379,7 +379,7 @@ defmodule NaiveDateTime do
   It can also work with subsecond precisions:
 
       iex> NaiveDateTime.add(~N[2014-10-02 00:29:10], 2_000, :millisecond)
-      ~N[2014-10-02 00:29:12]
+      ~N[2014-10-02 00:29:12.000]
 
   As well as days/hours/minutes:
 
@@ -390,16 +390,12 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.add(~N[2015-02-28 00:29:10], 60, :minute)
       ~N[2015-02-28 01:29:10]
 
-  This operation keeps the precision of the naive date time:
+  This operation merges the precision of the naive date time with the given unit:
 
-      iex> NaiveDateTime.add(~N[2014-10-02 00:29:10.021], 21, :second)
-      ~N[2014-10-02 00:29:31.021]
-
-  And ignores any changes below the precision:
-
-      iex> hidden = NaiveDateTime.add(~N[2014-10-02 00:29:10], 21, :millisecond)
-      iex> hidden.microsecond # ~N[2014-10-02 00:29:10]
-      {21000, 0}
+      iex> result = NaiveDateTime.add(~N[2014-10-02 00:29:10], 21, :millisecond)
+      ~N[2014-10-02 00:29:10.021]
+      iex> result.microsecond
+      {21000, 3}
 
   Operations on top of gregorian seconds or the Unix epoch are optimized:
 
@@ -440,6 +436,7 @@ defmodule NaiveDateTime do
       )
       when is_integer(amount_to_add) do
     ppd = System.convert_time_unit(86400, :second, unit)
+    precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
     naive_datetime
     |> to_iso_days()

@@ -248,6 +248,17 @@ defmodule Calendar.ISO do
   defguardp is_std_offset(offset) when is_integer(offset)
 
   @doc """
+  Converts a `t:System.time_unit/0` to precision.
+
+  Integer-based time units always get maximum precision.
+  """
+  def time_unit_to_precision(:nanosecond), do: 6
+  def time_unit_to_precision(:microsecond), do: 6
+  def time_unit_to_precision(:millisecond), do: 3
+  def time_unit_to_precision(:second), do: 0
+  def time_unit_to_precision(_), do: 6
+
+  @doc """
   Parses a time `string` in the `:extended` format.
 
   For more information on supported strings, see how this

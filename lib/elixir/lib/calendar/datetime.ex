@@ -1493,6 +1493,13 @@ defmodule DateTime do
       iex> dt |> DateTime.add(1, :day, FakeTimeZoneDatabase)
       #DateTime<2019-04-01 02:00:00+02:00 CEST Europe/Copenhagen>
 
+  This operation merges the precision of the naive date time with the given unit:
+
+      iex> result = DateTime.add(~U[2014-10-02 00:29:10Z], 21, :millisecond)
+      ~U[2014-10-02 00:29:10.021Z]
+      iex> result.microsecond
+      {21000, 3}
+
   """
   @doc since: "1.8.0"
   @spec add(
@@ -1537,6 +1544,7 @@ defmodule DateTime do
 
     ppd = System.convert_time_unit(86400, :second, unit)
     total_offset = System.convert_time_unit(utc_offset + std_offset, :second, unit)
+    precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
     result =
       datetime
