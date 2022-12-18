@@ -538,22 +538,9 @@ defmodule URITest do
                    end
 
       assert_raise ArgumentError,
-                   """
-                   path cannot contain non-path segments, got: "/foo?var=1#tag"
-
-                     Non-path segments:
-
-                       fragment: "tag"
-                       query: "var=1"
-                   """,
+                   ~S|path cannot contain a query or fragment, got: "/foo?var=1#tag"|,
                    fn ->
                      URI.append_path(base_uri, "/foo?var=1#tag")
-                   end
-
-      assert_raise ArgumentError,
-                   ~S|path cannot contain invalid characters, got: ">"|,
-                   fn ->
-                     URI.append_path(base_uri, "/>")
                    end
     end
   end

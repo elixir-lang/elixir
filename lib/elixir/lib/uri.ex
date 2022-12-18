@@ -1000,32 +1000,12 @@ defmodule URI do
   end
 
   def append_path(%URI{} = uri, "/" <> _ = path) do
-    current_path = String.trim_trailing(uri.path || "", "/")
-
-    case new(path) do
-      {:ok, %URI{fragment: nil, path: parsed_path, query: nil}}
-      when is_binary(parsed_path) ->
-        %{uri | path: current_path <> path}
-
-      {:ok, uri} ->
-        non_path_segment_message =
-          uri
-          |> Map.take([:query, :fragment])
-          |> Enum.reject(&match?({_, nil}, &1))
-          |> Enum.map_join("\n", fn {k, v} -> "    #{k}: #{inspect(v)}" end)
-
-        raise ArgumentError, """
-        path cannot contain non-path segments, got: #{inspect(path)}
-
-          Non-path segments:
-
-        #{non_path_segment_message}
-        """
-
-      {:error, invalid_character} ->
-        raise ArgumentError,
-              "path cannot contain invalid characters, got: #{inspect(invalid_character)}"
+    if String.contains?(path, ["?", "#"]) do
+      raise ArgumentError,
+            "path cannot contain a query or fragment, got: #{inspect(path)}"
     end
+
+    %{uri | path: String.trim_trailing(uri.path || "", "/") <> path}
   end
 
   def append_path(%URI{}, path) when is_binary(path) do
