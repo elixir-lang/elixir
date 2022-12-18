@@ -1001,8 +1001,7 @@ defmodule URI do
 
   def append_path(%URI{} = uri, "/" <> _ = path) do
     if String.contains?(path, ["?", "#"]) do
-      raise ArgumentError,
-            "path cannot contain a query or fragment, got: #{inspect(path)}"
+      raise ArgumentError, "path cannot contain a query or fragment, got: #{inspect(path)}"
     end
 
     %{uri | path: String.trim_trailing(uri.path || "", "/") <> path}
