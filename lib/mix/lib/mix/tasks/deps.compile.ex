@@ -199,7 +199,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     # Now establish symlinks to the remaining sources
     for dir <- ~w(include priv src) do
-      Mix.Utils.symlink_or_copy(false, Path.join(dep_path, dir), Path.join(build_path, dir))
+      Mix.Utils.symlink_or_copy(Path.join(dep_path, dir), Path.join(build_path, dir))
     end
 
     # Build the rebar config and setup the command line
@@ -221,7 +221,7 @@ defmodule Mix.Tasks.Deps.Compile do
     # Check if we have any new symlinks after compilation
     for dir <- ~w(include priv src),
         File.exists?(Path.join(dep_path, dir)) and not File.exists?(Path.join(build_path, dir)) do
-      Mix.Utils.symlink_or_copy(false, Path.join(dep_path, dir), Path.join(build_path, dir))
+      Mix.Utils.symlink_or_copy(Path.join(dep_path, dir), Path.join(build_path, dir))
     end
 
     Code.prepend_path(Path.join(build_path, "ebin"))

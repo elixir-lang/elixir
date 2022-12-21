@@ -435,10 +435,7 @@ defmodule Mix.Utils do
     |> Enum.map_join(".", &Macro.camelize/1)
   end
 
-  @doc """
-  Symlinks or copy with the option to force a hard copy.
-  See `symlink_or_copy/2`.
-  """
+  @deprecated "Use symlink_or_copy/2"
   def symlink_or_copy(hard_copy?, source, target) do
     if hard_copy? do
       if File.exists?(source) do
