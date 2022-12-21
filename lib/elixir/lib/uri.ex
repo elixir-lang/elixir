@@ -1000,8 +1000,12 @@ defmodule URI do
     raise ArgumentError, ~s|path cannot start with "//", got: #{inspect(path)}|
   end
 
-  def append_path(%URI{} = uri, "/" <> _ = path) do
-    %{uri | path: String.trim_trailing(uri.path || "", "/") <> path}
+  def append_path(%URI{path: path} = uri, "/" <> rest = all) do
+    cond do
+      path == nil -> %{uri | path: all}
+      path != "" and :binary.last(path) == ?/ -> %{uri | path: path <> rest}
+      true -> %{uri | path: path <> all}
+    end
   end
 
   def append_path(%URI{}, path) when is_binary(path) do
