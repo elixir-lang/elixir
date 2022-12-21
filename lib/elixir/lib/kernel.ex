@@ -5868,6 +5868,26 @@ defmodule Kernel do
 
   With no arguments, `dbg()` debugs information about the current binding. See `binding/1`.
 
+  ## `dbg` inside IEx
+
+  IEx integrates with `dbg` to provide additional features:
+
+    * If you have IEx running and you call `dbg`, it will start a `pry`
+      session where you can interact with the imports, aliases, and
+      variables of the current environment at the location of the `dbg` call
+
+    * If you call `dbg` at the end of a pipeline (using `|>`) within IEx,
+      you are able to go through each step of the pipeline one by one by
+      entering "next" (or "n")
+
+    * You can disable this behaviour by calling `iex --no-pry`
+
+  Note `dbg` only supports stepping for pipelines (in other words, it can only
+  step through the code it sees). For general stepping, you can set breakpoints
+  using `IEx.break!/4`.
+
+  For more information, [see IEx documentation](https://hexdocs.pm/iex/IEx.html#module-dbg-and-breakpoints).
+
   ## Configuring the debug function
 
   One of the benefits of `dbg/2` is that its debugging logic is configurable,
