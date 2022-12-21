@@ -783,14 +783,12 @@ defmodule Mix.Project do
     source = opts[:source] || File.cwd!()
     target = app_path(config)
     File.mkdir_p!(target)
-
     target_ebin = Path.join(target, "ebin")
-    hard_copy? = false
 
     _ =
       cond do
         opts[:symlink_ebin] ->
-          _ = Mix.Utils.symlink_or_copy(hard_copy?, Path.join(source, "ebin"), target_ebin)
+          _ = Mix.Utils.symlink_or_copy(Path.join(source, "ebin"), target_ebin)
 
         match?({:ok, _}, :file.read_link(target_ebin)) ->
           _ = File.rm_rf!(target_ebin)
@@ -801,7 +799,7 @@ defmodule Mix.Project do
       end
 
     for dir <- ~w(include priv) do
-      Mix.Utils.symlink_or_copy(hard_copy?, Path.join(source, dir), Path.join(target, dir))
+      Mix.Utils.symlink_or_copy(Path.join(source, dir), Path.join(target, dir))
     end
 
     :ok
