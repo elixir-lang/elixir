@@ -982,7 +982,8 @@ defmodule URI do
   Appends `path` to the given `uri`.
 
   Path must start with `/` and cannot contain additional URL components like
-  fragments or query strings.
+  fragments or query strings. This function further assumes the path is valid and
+  it does not contain a query string or fragment parts.
 
   ## Examples
 
@@ -1000,10 +1001,6 @@ defmodule URI do
   end
 
   def append_path(%URI{} = uri, "/" <> _ = path) do
-    if String.contains?(path, ["?", "#"]) do
-      raise ArgumentError, "path cannot contain a query or fragment, got: #{inspect(path)}"
-    end
-
     %{uri | path: String.trim_trailing(uri.path || "", "/") <> path}
   end
 

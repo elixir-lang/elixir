@@ -536,12 +536,6 @@ defmodule URITest do
                    fn ->
                      URI.append_path(base_uri, "//foo")
                    end
-
-      assert_raise ArgumentError,
-                   ~S|path cannot contain a query or fragment, got: "/foo?var=1#tag"|,
-                   fn ->
-                     URI.append_path(base_uri, "/foo?var=1#tag")
-                   end
     end
   end
 
