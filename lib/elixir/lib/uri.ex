@@ -977,6 +977,40 @@ defmodule URI do
       %{uri | query: uri.query <> "&" <> query}
     end
   end
+
+  @doc """
+  Appends `path` to the given `uri`.
+
+  Path must start with `/` and cannot contain additional URL components like
+  fragments or query strings. This function further assumes the path is valid and
+  it does not contain a query string or fragment parts.
+
+  ## Examples
+
+      iex> URI.append_path(URI.parse("http://example.com/foo/?x=1"), "/my-path") |> URI.to_string()
+      "http://example.com/foo/my-path?x=1"
+
+      iex> URI.append_path(URI.parse("http://example.com"), "my-path")
+      ** (ArgumentError) path must start with "/", got: "my-path"
+
+  """
+  @doc since: "1.15.0"
+  @spec append_path(t(), String.t()) :: t()
+  def append_path(%URI{}, "//" <> _ = path) do
+    raise ArgumentError, ~s|path cannot start with "//", got: #{inspect(path)}|
+  end
+
+  def append_path(%URI{path: path} = uri, "/" <> rest = all) do
+    cond do
+      path == nil -> %{uri | path: all}
+      path != "" and :binary.last(path) == ?/ -> %{uri | path: path <> rest}
+      true -> %{uri | path: path <> all}
+    end
+  end
+
+  def append_path(%URI{}, path) when is_binary(path) do
+    raise ArgumentError, ~s|path must start with "/", got: #{inspect(path)}|
+  end
 end
 
 defimpl String.Chars, for: URI do
