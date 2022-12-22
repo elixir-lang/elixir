@@ -1070,6 +1070,12 @@ defmodule System do
 
   defp do_port(port, acc, fun) do
     receive do
+      {^port, {:data, {:noeol, data}}} ->
+        do_port(port, fun.(acc, {:cont, data}), fun)
+
+      {^port, {:data, {:eol, data}}} ->
+        do_port(port, fun.(acc, {:cont, data}), fun)
+
       {^port, {:data, data}} ->
         do_port(port, fun.(acc, {:cont, data}), fun)
 
@@ -1098,6 +1104,20 @@ defmodule System do
 
   defp cmd_opts([{:env, enum} | t], opts, into),
     do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into)
+
+  defp cmd_opts([{:lines, max_line_length} | t], opts, "")
+       when is_integer(max_line_length) and max_line_length > 0,
+       do: cmd_opts(t, [{:line, max_line_length} | opts], [])
+
+  defp cmd_opts([{:lines, max_line_length} | t], opts, into)
+       when is_integer(max_line_length) and max_line_length > 0,
+       do: cmd_opts(t, [{:line, max_line_length} | opts], into)
+
+  defp cmd_opts([:lines | t], opts, ""),
+    do: cmd_opts(t, [{:line, 1024} | opts], [])
+
+  defp cmd_opts([:lines | t], opts, into),
+    do: cmd_opts(t, [{:line, 1024} | opts], into)
 
   defp cmd_opts([{key, val} | _], _opts, _into),
     do: raise(ArgumentError, "invalid option #{inspect(key)} with value #{inspect(val)}")
