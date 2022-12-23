@@ -33,6 +33,17 @@ defmodule Kernel.ParallelCompilerTest do
           bar: """
           defmodule HelloWorld do
           end
+          """,
+          has_compile_dep: """
+          defmodule HasCompileDep do
+            @foo IsCompileDep.run()
+            def foo, do: @foo
+          end
+          """,
+          is_compile_dep: """
+          defmodule IsCompileDep do
+           def run, do: :ok
+          end
           """
         )
 
@@ -44,10 +55,19 @@ defmodule Kernel.ParallelCompilerTest do
         end)
 
       assert profile =~
-               ~r"\[profile\] [\s\d]{6}ms compiling \+      0ms waiting for .*tmp/profile_time/bar.ex"
+               ~r"\[profile\] [\s\d]{6}ms compiling \+      0ms total waiting for .*tmp/profile_time/bar.ex"
 
-      assert profile =~ ~r"\[profile\] Finished compilation cycle of 1 modules in \d+ms"
-      assert profile =~ ~r"\[profile\] Finished group pass check of 1 modules in \d+ms"
+      assert profile =~
+               ~r"\[profile\] [\s\d]{6}ms compiling \+      0ms total waiting for .*tmp/profile_time/is_compile_dep.ex"
+
+      assert profile =~
+               ~r"\[profile\] [\s\d]{6}ms compiling \+ [\s\d]{6}ms total waiting for .*tmp/profile_time/has_compile_dep.ex"
+
+      assert profile =~
+               ~r"\[profile\]                    | [\s\d]{6}ms waiting for IsCompileDep"
+
+      assert profile =~ ~r"\[profile\] Finished compilation cycle of 3 modules in \d+ms"
+      assert profile =~ ~r"\[profile\] Finished group pass check of 3 modules in \d+ms"
     after
       purge([HelloWorld])
     end
