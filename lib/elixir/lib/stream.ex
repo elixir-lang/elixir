@@ -1722,6 +1722,21 @@ defmodule Stream do
       ...> end) |> Enum.to_list()
       [5, 4, 3, 2, 1]
 
+      iex> Stream.unfold(0, fn
+      ...>   n -> {n, n + 1}
+      ...> end) |> Enum.take(10)
+      [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+      iex> Stream.unfold(0, fn
+      ...>   n -> {2 * n, n + 1}
+      ...> end) |> Enum.take(10)
+      [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
+
+      iex> Stream.unfold(1, fn
+      ...>   n -> {n, n * 2}
+      ...> end) |> Enum.take(10)
+      [1, 2, 4, 8, 16, 32, 64, 128, 256, 512]
+
   """
   @spec unfold(acc, (acc -> {element, acc} | nil)) :: Enumerable.t()
   def unfold(next_acc, next_fun) when is_function(next_fun, 1) do
