@@ -1732,6 +1732,8 @@ defmodule Stream do
       ...> end) |> Enum.take(10)
       [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
 
+If `next_fun` never returns `nil`, the returned stream is an *infinite* stream:
+
       iex> Stream.unfold(1, fn
       ...>   n -> {n, n * 2}
       ...> end) |> Enum.take(10)
