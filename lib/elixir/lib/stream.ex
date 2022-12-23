@@ -1716,23 +1716,20 @@ defmodule Stream do
 
   ## Examples
 
+  To create a stream that counts down and stops before zero:
+
       iex> Stream.unfold(5, fn
       ...>   0 -> nil
       ...>   n -> {n, n - 1}
       ...> end) |> Enum.to_list()
       [5, 4, 3, 2, 1]
 
+  If `next_fun` never returns `nil`, the returned stream is *infinite*:
+
       iex> Stream.unfold(0, fn
       ...>   n -> {n, n + 1}
       ...> end) |> Enum.take(10)
       [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-      iex> Stream.unfold(0, fn
-      ...>   n -> {2 * n, n + 1}
-      ...> end) |> Enum.take(10)
-      [0, 2, 4, 6, 8, 10, 12, 14, 16, 18]
-
-If `next_fun` never returns `nil`, the returned stream is an *infinite* stream:
 
       iex> Stream.unfold(1, fn
       ...>   n -> {n, n * 2}
