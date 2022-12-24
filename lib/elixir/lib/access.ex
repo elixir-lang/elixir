@@ -309,6 +309,14 @@ defmodule Access do
     end
   end
 
+  def get(list, index, _default) when is_list(list) and is_integer(index) do
+    Enum.at(list, index)
+  end
+
+  def get(tuple, index, _default) when is_tuple(tuple) and is_integer(index) do
+    elem(tuple, index)
+  end
+
   def get(list, key, _default) when is_list(list) do
     raise ArgumentError,
           "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)

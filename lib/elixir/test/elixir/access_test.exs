@@ -99,6 +99,24 @@ defmodule AccessTest do
     end
   end
 
+  test "for list" do
+    assert Access.get([], 0) == nil
+    assert Access.get([1, 2, 3], 0) == 1
+    assert Access.get([1, 2, 3], 1) == 2
+    assert Access.get([1, 2, 3], 2) == 3
+  end
+
+  test "for tuple" do
+    assert Access.get({1, 2}, 0) == 1
+    assert Access.get({1, 2}, 1) == 2
+
+    msg = "errors were found at the given arguments:\n\n  * 1st argument: out of range\n"
+
+    assert_raise ArgumentError, msg, fn ->
+      Access.get({}, 1)
+    end
+  end
+
   describe "fetch!/2" do
     assert Access.fetch!(%{foo: :bar}, :foo) == :bar
 
