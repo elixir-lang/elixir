@@ -629,6 +629,10 @@ defmodule Access do
   @doc ~S"""
   Returns a function that accesses the element at `index` (zero based) of a list.
 
+  Keep in mind that index lookups in lists take linear time: the larger the list,
+  the longer it will take to access its index. Therefore index-based operations
+  are generally avoided in favor of other functions in the `Enum` module.
+
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
