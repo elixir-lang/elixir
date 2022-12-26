@@ -358,6 +358,11 @@ defmodule CodeTest do
     end
   end
 
+  test "loaded?/1" do
+    assert Code.loaded?(__MODULE__)
+    refute Code.loaded?(Code.NoFile)
+  end
+
   test "put_compiler_option/2 validates options" do
     message = "unknown compiler option: :not_a_valid_option"
 
