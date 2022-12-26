@@ -1688,7 +1688,7 @@ defmodule Code do
   end
 
   @doc """
-  Returns true if the module is loaded.
+  Returns `true` if the module is loaded.
 
   This function doesn't attempt to load the module. For such behaviour,
   `ensure_loaded?/1` can be used.
