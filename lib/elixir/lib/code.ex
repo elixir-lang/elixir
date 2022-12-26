@@ -1688,6 +1688,27 @@ defmodule Code do
   end
 
   @doc """
+  Returns `true` if the module is loaded.
+
+  This function doesn't attempt to load the module. For such behaviour,
+  `ensure_loaded?/1` can be used.
+
+  ## Examples
+
+      iex> Code.loaded?(Atom)
+      true
+
+      iex> Code.loaded?(NotYetLoaded)
+      false
+
+  """
+  @doc since: "1.15.0"
+  @spec loaded?(module) :: boolean
+  def loaded?(module) do
+    :erlang.module_loaded(module)
+  end
+
+  @doc """
   Returns true if the current process can await for module compilation.
 
   When compiling Elixir code via `Kernel.ParallelCompiler`, which is
