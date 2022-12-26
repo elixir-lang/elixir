@@ -1703,6 +1703,7 @@ defmodule Code do
 
   """
   @doc since: "1.15.0"
+  @spec loaded?(module) :: boolean
   def loaded?(module) do
     :erlang.module_loaded(module)
   end
