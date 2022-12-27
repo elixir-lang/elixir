@@ -7,7 +7,7 @@ defmodule System.LineBuffer do
   end
 end
 
-defimpl Elixir.Collectable, for: System.LineBuffer do
+defimpl Collectable, for: System.LineBuffer do
   def into(line_buffer) do
     collector_fun = fn
       acc, {:cont, {:noeol, elem}} ->
