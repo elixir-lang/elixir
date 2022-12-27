@@ -81,7 +81,7 @@ defmodule Mix.Tasks.App.ConfigTest do
       Mix.Project.push(MixTest.Case.Sample)
 
       Mix.Task.run("app.config", ["--no-compile"])
-      refute :code.is_loaded(A)
+      refute Code.loaded?(A)
       refute File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       refute File.regular?("_build/dev/lib/sample/ebin/sample.app")
 
@@ -89,14 +89,14 @@ defmodule Mix.Tasks.App.ConfigTest do
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/sample.app")
 
-      assert :code.is_loaded(A)
+      assert Code.loaded?(A)
       purge([A])
 
       Mix.Task.rerun("app.config", [])
-      refute :code.is_loaded(A)
+      refute Code.loaded?(A)
 
       Mix.Task.rerun("app.config", ["--preload-modules"])
-      assert :code.is_loaded(A)
+      assert Code.loaded?(A)
     end)
   end
 

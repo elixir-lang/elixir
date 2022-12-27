@@ -81,7 +81,7 @@ defmodule ExUnit.FailuresManifest do
         # The file does not exist, so the test has been deleted.
         find_deleted_tests(rest, file_existence, [id | acc])
 
-      :code.is_loaded(mod) != false and not function_exported?(mod, name, 1) ->
+      Code.loaded?(mod) and not function_exported?(mod, name, 1) ->
         # The test module has been loaded, but the test no longer exists.
         find_deleted_tests(rest, file_existence, [id | acc])
 

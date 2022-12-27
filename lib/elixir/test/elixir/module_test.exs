@@ -231,7 +231,7 @@ defmodule ModuleTest do
       @compile {:autoload, false}
     end
 
-    refute :code.is_loaded(NoAutoload)
+    refute Code.loaded?(NoAutoload)
   end
 
   ## Naming
