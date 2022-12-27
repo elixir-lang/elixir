@@ -153,7 +153,7 @@ defmodule Task.Supervised do
   defp get_reason({:undef, [{mod, fun, args, _info} | _] = stacktrace} = reason)
        when is_atom(mod) and is_atom(fun) do
     cond do
-      :code.is_loaded(mod) === false ->
+      not Code.loaded?(mod) ->
         {:"module could not be loaded", stacktrace}
 
       is_list(args) and not function_exported?(mod, fun, length(args)) ->
