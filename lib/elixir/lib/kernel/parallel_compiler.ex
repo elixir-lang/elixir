@@ -312,9 +312,9 @@ defmodule Kernel.ParallelCompiler do
   defp spawn_workers([{pid, found} | t], spawned, waiting, files, result, warnings, errors, state) do
     {files, waiting} =
       case Map.pop(waiting, pid) do
-        {{_kind, ref, file_pid, on, _defining, _deadlock}, waiting} ->
+        {{kind, ref, file_pid, on, _defining, _deadlock}, waiting} ->
           send(pid, {ref, found})
-          {update_timing(files, file_pid, {:waiting, on}), waiting}
+          {update_timing(files, file_pid, {:waiting, kind, on}), waiting}
 
         {nil, waiting} ->
           # In case the waiting process died (for example, it was an async process),
@@ -672,9 +672,9 @@ defmodule Kernel.ParallelCompiler do
     %{data | compiling: data.compiling + time - data.timestamp, timestamp: time}
   end
 
-  defp update_timing(data, {:waiting, on}) do
+  defp update_timing(data, {:waiting, kind, on}) do
     time = System.monotonic_time()
-    %{data | waiting: [{on, time - data.timestamp} | data.waiting], timestamp: time}
+    %{data | waiting: [{kind, on, time - data.timestamp} | data.waiting], timestamp: time}
   end
 
   defp maybe_warn_long_compilation(data, state) do
@@ -707,26 +707,34 @@ defmodule Kernel.ParallelCompiler do
       compiling = to_padded_ms(data.compiling)
       relative = Path.relative_to_cwd(data.file)
 
-      waiting_total =
-        data.waiting
-        |> Enum.reduce(0, fn {_on, time}, acc -> acc + time end)
-        |> to_padded_ms()
+      messages =
+        case List.pop_at(data.waiting, 0) do
+          {nil, []} ->
+            "[profile] #{compiling}ms compiling +      0ms waiting while compiling #{relative}"
 
-      waiting_details =
-        Enum.map(data.waiting, fn {on, time} ->
-          "\n[profile]                    | #{to_padded_ms(time)}ms waiting for #{inspect(on)}"
-        end)
+          {{kind, on, time}, rest} ->
+            initial_message = [
+              "[profile] #{compiling}ms compiling + ",
+              format_waiting_message(time, kind, on, relative)
+            ]
 
-      message =
-        "[profile] #{compiling}ms compiling + #{waiting_total}ms total waiting for #{relative}"
+            waiting_details =
+              Enum.map(rest, fn {kind, on, time} ->
+                [
+                  "\n[profile]                    | ",
+                  format_waiting_message(time, kind, on, relative)
+                ]
+              end)
 
-      if waiting_details == [] do
-        IO.puts(:stderr, message)
-      else
-        IO.puts(:stderr, [message | waiting_details])
-      end
+            [initial_message | waiting_details]
+        end
+
+      IO.puts(:stderr, messages)
     end
   end
+
+  defp format_waiting_message(time, kind, on, relative),
+    do: "#{to_padded_ms(time)}ms waiting for #{kind} #{inspect(on)} while compiling #{relative}"
 
   defp to_padded_ms(time) do
     time
