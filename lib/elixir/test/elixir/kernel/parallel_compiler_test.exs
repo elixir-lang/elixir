@@ -44,7 +44,7 @@ defmodule Kernel.ParallelCompilerTest do
         end)
 
       assert profile =~
-               ~r"\[profile\] [\s\d]{6}ms compiling \+      0ms waiting for .*tmp/profile_time/bar.ex"
+               ~r"\[profile\] [\s\d]{6}ms compiling \+      0ms waiting while compiling .*tmp/profile_time/bar.ex"
 
       assert profile =~ ~r"\[profile\] Finished compilation cycle of 1 modules in \d+ms"
       assert profile =~ ~r"\[profile\] Finished group pass check of 1 modules in \d+ms"
