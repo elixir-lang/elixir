@@ -25,7 +25,7 @@ defmodule Logger.Filter do
   end
 
   @doc """
-  A filter that waits until Logger exits and then removes itself.
+  Filter Logger exits and then removes itself.
   """
   def silence_logger_exit(
         %{

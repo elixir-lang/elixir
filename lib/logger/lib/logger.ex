@@ -470,6 +470,10 @@ defmodule Logger do
   This function will merge the given keyword list into the existing metadata,
   with the exception of setting a key to `nil`, which will remove that key
   from the metadata.
+
+  Note not all keys can be set as metadata. The metadata automatically added
+  by Logger, as declared in the module documentation, will always override
+  custom one.
   """
   @spec metadata(metadata) :: :ok
   def metadata(keyword) do
