@@ -1409,7 +1409,7 @@ defmodule KeyError do
     message = "key #{inspect(key)} not found"
 
     if term != nil do
-      message <> " in: #{inspect(term)}"
+      message <> " in: #{inspect(term, pretty: true, limit: :infinity)}"
     else
       message
     end
