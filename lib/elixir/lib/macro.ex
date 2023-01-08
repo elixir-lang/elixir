@@ -1801,16 +1801,27 @@ defmodule Macro do
     do: {:filename.dirname(env.file), true}
 
   defp do_expand_once({:__ENV__, _, atom}, env) when is_atom(atom) do
-    env = update_in(env.versioned_vars, &maybe_escape_map/1)
-    {maybe_escape_map(env), true}
+    env =
+      Map.new(env, fn
+        # TODO handle unescapable values which are deeper in the structure
+        {key, value} when is_reference(x) or is_pid(x) or is_port(x) -> {key, nil}
+        {key, value} -> {key, value}
+      end)
+
+    {escape(env), true}
   end
 
-  defp do_expand_once({{:., _, [{:__ENV__, _, atom}, field]}, _, []} = original, env)
+  defp do_expand_once({{:., _, [{:__ENV__, _, atom} = the_env, field]}, _, []} = original, env)
        when is_atom(atom) and is_atom(field) do
-    if Map.has_key?(env, field) do
-      {maybe_escape_map(Map.get(env, field)), true}
-    else
-      {original, false}
+    case env do
+      %{^field => value} when is_reference(x) or is_pid(x) or is_port(x) ->
+        {nil, true}
+
+      %{^field => value} ->
+        {escape(value), true}
+
+      _ ->
+        {original, false}
     end
   end
 
