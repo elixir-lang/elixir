@@ -173,6 +173,14 @@ defmodule SystemTest do
       assert {["hello\n"], 0} = System.cmd("echo", ["hello"], opts)
     end
 
+    test "cmd/3 by line" do
+      assert {["hello", "world"], 0} =
+               System.cmd("echo", ["hello\nworld"], into: [], lines: 1024)
+
+      assert {["hello", "world"], 0} =
+               System.cmd("echo", ["-n", "hello\nworld"], into: [], lines: 3)
+    end
+
     @echo "echo-elixir-test"
     @tag :tmp_dir
     test "cmd/3 with absolute and relative paths", config do
