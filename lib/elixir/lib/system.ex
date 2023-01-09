@@ -993,10 +993,10 @@ defmodule System do
 
     * `:into` - injects the result into the given collectable, defaults to `""`
 
-    * `:lines` - reads the output by lines instead of in bytes. It expects a
+    * `:lines` - (since v1.15.0) reads the output by lines instead of in bytes. It expects a
       number of maximum bytes to buffer internally (1024 is a reasonable default).
       The collectable will be called with each finished line (regardless of buffer
-      size) and without the eol character
+      size) and without the EOL character
 
     * `:cd` - the directory to run the command in
 
