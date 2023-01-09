@@ -1613,6 +1613,10 @@ defmodule Code.Formatter do
     color(string, :number, inspect_otps)
   end
 
+  defp insert_underscores("-" <> digits) do
+    "-" <> insert_underscores(digits)
+  end
+
   defp insert_underscores(digits) do
     cond do
       digits =~ "_" ->
