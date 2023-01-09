@@ -984,23 +984,38 @@ defmodule System do
       hello
       {%IO.Stream{}, 0}
 
+  If you want to read lines:
+
+      iex> System.cmd("echo", ["hello\nworld"], into: [], lines: 1024)
+      {["hello", "world"], 0}
+
   ## Options
 
     * `:into` - injects the result into the given collectable, defaults to `""`
+
+    * `:lines` - (since v1.15.0) reads the output by lines instead of in bytes. It expects a
+      number of maximum bytes to buffer internally (1024 is a reasonable default).
+      The collectable will be called with each finished line (regardless of buffer
+      size) and without the EOL character
+
     * `:cd` - the directory to run the command in
+
     * `:env` - an enumerable of tuples containing environment key-value as
       binary. The child process inherits all environment variables from its
       parent process, the Elixir application, except those overwritten or
       cleared using this option. Specify a value of `nil` to clear (unset) an
       environment variable, which is useful for preventing credentials passed
-      to the application from leaking into child processes.
+      to the application from leaking into child processes
+
     * `:arg0` - sets the command arg0
+
     * `:stderr_to_stdout` - redirects stderr to stdout when `true`
+
     * `:parallelism` - when `true`, the VM will schedule port tasks to improve
       parallelism in the system. If set to `false`, the VM will try to perform
       commands immediately, improving latency at the expense of parallelism.
       The default can be set on system startup by passing the "+spp" argument
-      to `--erl`.
+      to `--erl`
 
   ## Error reasons
 
@@ -1054,11 +1069,16 @@ defmodule System do
   end
 
   defp do_cmd(port_init, base_opts, opts) do
-    {into, opts} = cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide] ++ base_opts, "")
+    {into, line, opts} =
+      cmd_opts(opts, [:use_stdio, :exit_status, :binary, :hide] ++ base_opts, "", false)
+
     {initial, fun} = Collectable.into(into)
 
     try do
-      do_port(Port.open(port_init, opts), initial, fun)
+      case line do
+        true -> do_port_line(Port.open(port_init, opts), initial, fun, [])
+        false -> do_port_byte(Port.open(port_init, opts), initial, fun)
+      end
     catch
       kind, reason ->
         fun.(initial, :halt)
@@ -1068,42 +1088,67 @@ defmodule System do
     end
   end
 
-  defp do_port(port, acc, fun) do
+  defp do_port_byte(port, acc, fun) do
     receive do
       {^port, {:data, data}} ->
-        do_port(port, fun.(acc, {:cont, data}), fun)
+        do_port_byte(port, fun.(acc, {:cont, data}), fun)
 
       {^port, {:exit_status, status}} ->
         {acc, status}
     end
   end
 
-  defp cmd_opts([{:into, any} | t], opts, _into),
-    do: cmd_opts(t, opts, any)
+  defp do_port_line(port, acc, fun, buffer) do
+    receive do
+      {^port, {:data, {:noeol, data}}} ->
+        do_port_line(port, acc, fun, [data | buffer])
 
-  defp cmd_opts([{:cd, bin} | t], opts, into) when is_binary(bin),
-    do: cmd_opts(t, [{:cd, bin} | opts], into)
+      {^port, {:data, {:eol, data}}} ->
+        data = [data | buffer] |> Enum.reverse() |> IO.iodata_to_binary()
+        do_port_line(port, fun.(acc, {:cont, data}), fun, [])
 
-  defp cmd_opts([{:arg0, bin} | t], opts, into) when is_binary(bin),
-    do: cmd_opts(t, [{:arg0, bin} | opts], into)
+      {^port, {:exit_status, status}} ->
+        # Data may arrive after exit status on line mode
+        receive do
+          {^port, {:data, {_, data}}} ->
+            data = [data | buffer] |> Enum.reverse() |> IO.iodata_to_binary()
+            {fun.(acc, {:cont, data}), status}
+        after
+          0 -> {acc, status}
+        end
+    end
+  end
 
-  defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into),
-    do: cmd_opts(t, [:stderr_to_stdout | opts], into)
+  defp cmd_opts([{:into, any} | t], opts, _into, line),
+    do: cmd_opts(t, opts, any, line)
 
-  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into),
-    do: cmd_opts(t, opts, into)
+  defp cmd_opts([{:cd, bin} | t], opts, into, line) when is_binary(bin),
+    do: cmd_opts(t, [{:cd, bin} | opts], into, line)
 
-  defp cmd_opts([{:parallelism, bool} | t], opts, into) when is_boolean(bool),
-    do: cmd_opts(t, [{:parallelism, bool} | opts], into)
+  defp cmd_opts([{:arg0, bin} | t], opts, into, line) when is_binary(bin),
+    do: cmd_opts(t, [{:arg0, bin} | opts], into, line)
 
-  defp cmd_opts([{:env, enum} | t], opts, into),
-    do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into)
+  defp cmd_opts([{:stderr_to_stdout, true} | t], opts, into, line),
+    do: cmd_opts(t, [:stderr_to_stdout | opts], into, line)
 
-  defp cmd_opts([{key, val} | _], _opts, _into),
+  defp cmd_opts([{:stderr_to_stdout, false} | t], opts, into, line),
+    do: cmd_opts(t, opts, into, line)
+
+  defp cmd_opts([{:parallelism, bool} | t], opts, into, line) when is_boolean(bool),
+    do: cmd_opts(t, [{:parallelism, bool} | opts], into, line)
+
+  defp cmd_opts([{:env, enum} | t], opts, into, line),
+    do: cmd_opts(t, [{:env, validate_env(enum)} | opts], into, line)
+
+  defp cmd_opts([{:lines, max_line_length} | t], opts, into, _line)
+       when is_integer(max_line_length) and max_line_length > 0,
+       do: cmd_opts(t, [{:line, max_line_length} | opts], into, true)
+
+  defp cmd_opts([{key, val} | _], _opts, _into, _line),
     do: raise(ArgumentError, "invalid option #{inspect(key)} with value #{inspect(val)}")
 
-  defp cmd_opts([], opts, into),
-    do: {into, opts}
+  defp cmd_opts([], opts, into, line),
+    do: {into, line, opts}
 
   defp validate_env(enum) do
     Enum.map(enum, fn
