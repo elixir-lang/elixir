@@ -429,6 +429,16 @@ defmodule MacroTest do
     test "converts quoted to string" do
       assert Macro.to_string(quote do: hello(world)) == "hello(world)"
     end
+
+    test "large number literals" do
+      # with quote
+      assert Macro.to_string(quote do: 576_460_752_303_423_455) == "576_460_752_303_423_455"
+      assert Macro.to_string(quote do: -576_460_752_303_423_455) == "-576_460_752_303_423_455"
+
+      # without quote
+      assert Macro.to_string(576_460_752_303_423_455) == "576_460_752_303_423_455"
+      assert Macro.to_string(-576_460_752_303_423_455) == "-576_460_752_303_423_455"
+    end
   end
 
   describe "to_string/2" do

@@ -1583,6 +1583,10 @@ defmodule Code.Formatter do
     insert_underscores(int_part) <> "." <> decimal_part
   end
 
+  defp insert_underscores("-" <> digits) do
+    "-" <> insert_underscores(digits)
+  end
+
   defp insert_underscores(digits) do
     cond do
       digits =~ "_" ->
