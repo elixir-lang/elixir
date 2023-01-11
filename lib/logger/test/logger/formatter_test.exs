@@ -68,6 +68,10 @@ defmodule Logger.FormatterTest do
     assert IO.chardata_to_string(format(compiled, :error, nil, nil, meta: :data, ref: ref)) ==
              "meta=data ref=<0.0.0.80> "
 
+    port = :erlang.list_to_port(~c"#Port<0.1234>")
+    format = format(compiled, :error, nil, nil, meta: :data, port: port)
+    assert IO.chardata_to_string(format) == "meta=data port=<0.1234> "
+
     # Also works with to_string
     format = format(compiled, :error, nil, nil, date: ~D[2020-10-01])
     assert IO.chardata_to_string(format) == "date=2020-10-01 "
