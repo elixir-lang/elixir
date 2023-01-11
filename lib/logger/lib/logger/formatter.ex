@@ -266,6 +266,11 @@ defmodule Logger.Formatter do
     rest
   end
 
+  defp metadata(_, port) when is_port(port) do
+    ~c"#Port" ++ rest = :erlang.port_to_list(port)
+    rest
+  end
+
   defp metadata(:file, file) when is_list(file), do: file
 
   defp metadata(:domain, [head | tail]) when is_atom(head) do
