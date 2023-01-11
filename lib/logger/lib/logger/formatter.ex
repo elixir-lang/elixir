@@ -257,7 +257,6 @@ defmodule Logger.Formatter do
   defp metadata(_, atom) when is_atom(atom) do
     case Atom.to_string(atom) do
       "Elixir." <> rest -> rest
-      "nil" -> ""
       binary -> binary
     end
   end
