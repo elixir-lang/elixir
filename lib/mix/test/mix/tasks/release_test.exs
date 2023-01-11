@@ -633,9 +633,8 @@ defmodule Mix.Tasks.ReleaseTest do
   end
 
   test "runs eval and version commands" do
-    # In some Windows setups (mostly with Docker), `System.cmd/3` fails because
-    # the path to the command/executable and one or more arguments contain spaces.
-    tmp_dir = Path.join(inspect(__MODULE__), "runs_eval_and_version_commands")
+    # Mangle the path a bit to test spaces and brackets
+    tmp_dir = Path.join(inspect(__MODULE__), "runs eval and version (commands)")
 
     in_fixture("release_test", tmp_dir, fn ->
       config = [releases: [eval: [include_erts: false, cookie: "abcdefghij"]]]
