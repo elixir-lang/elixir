@@ -36,7 +36,7 @@ defmodule Mix.Tasks.Do do
   Elixir versions prior to v1.14 used the comma exclusively
   to separate commands:
 
-      $ mix do compile --list + deps
+      $ mix do compile --list, deps
 
   Since then, the `+` operator has been introduced as a
   separator for better support on Windows terminals.
