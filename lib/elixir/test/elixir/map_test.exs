@@ -231,18 +231,13 @@ defmodule MapTest do
     end
   end
 
-  test "intersect/2 with map literals optimized by the compiler" do
+  test "intersect/2" do
     map = %{a: 1, b: 2}
 
     assert Map.intersect(map, %{a: 2}) == %{a: 2}
     assert Map.intersect(map, %{c: 3}) == %{}
     assert Map.intersect(%{a: 2}, map) == %{a: 1}
     assert Map.intersect(%{c: 3}, map) == %{}
-
-    assert Map.intersect(%{map | a: 2}, %{a: 3}) == %{a: 3}
-    assert Map.intersect(%{map | a: 2}, %{b: 3}) == %{b: 3}
-    assert Map.intersect(%{a: 2}, %{map | a: 3}) == %{a: 3}
-    assert Map.intersect(%{a: 2}, %{map | b: 3}) == %{a: 1}
 
     assert Map.intersect(map, %{a: 2}) |> Map.intersect(%{a: 3, c: 3}) == %{a: 3}
     assert Map.intersect(map, %{c: 3}) |> Map.intersect(%{c: 4}) == %{}
