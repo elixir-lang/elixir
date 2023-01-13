@@ -1150,9 +1150,9 @@ defmodule Map do
   end
 
   @doc """
-  Intersects two maps into one.
+  Intersects two maps, returning a map with the common keys.
 
-  If a key exists in both maps, the value in `map2` will be used.
+  The values in the returned map are the values of the intersected keys in `map2`.
 
   Inlined by the compiler.
 
@@ -1167,7 +1167,7 @@ defmodule Map do
   defdelegate intersect(map1, map2), to: :maps
 
   @doc """
-  Intersects two maps into one, resolving conflicts through the given `fun`.
+  Intersects two maps, returning a map with the common keys and resolving conflicts through a function.
 
   The given function will be invoked when there are duplicate keys; its
   arguments are `key` (the duplicate key), `value1` (the value of `key` in
