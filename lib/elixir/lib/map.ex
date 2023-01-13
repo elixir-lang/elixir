@@ -1182,7 +1182,7 @@ defmodule Map do
       %{b: 4}
   """
   @doc since: "1.15.0"
-  @spec merge(map, map, (key, value, value -> value)) :: map
+  @spec intersect(map, map, (key, value, value -> value)) :: map
   def intersect(map1, map2, fun) when is_function(fun, 3) do
     :maps.intersect_with(fun, map1, map2)
   end
