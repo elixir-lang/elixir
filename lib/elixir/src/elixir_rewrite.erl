@@ -145,6 +145,7 @@ inline(Mod, Fun, Arity) -> inner_inline(ex_to_erl, Mod, Fun, Arity).
 ?inline(?list, to_integer, 2, erlang, list_to_integer);
 ?inline(?list, to_tuple, 1, erlang, list_to_tuple);
 
+?inline(?map, intersect, 2, maps, intersect);
 ?inline(?map, keys, 1, maps, keys);
 ?inline(?map, merge, 2, maps, merge);
 ?inline(?map, to_list, 1, maps, to_list);
