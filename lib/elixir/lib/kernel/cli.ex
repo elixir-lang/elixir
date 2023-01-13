@@ -326,7 +326,7 @@ defmodule Kernel.CLI do
   end
 
   defp parse_argv(["+iex" | t], config) do
-    parse_iex(t, %{config | pry: true})
+    parse_iex(t, config)
   end
 
   defp parse_argv(["-S", h | t], config) do
@@ -416,10 +416,16 @@ defmodule Kernel.CLI do
   end
 
   # These clauses are here so that Kernel.CLI does not error out with "unknown option"
+  defp parse_iex(["--dbg", backend | t], config) do
+    case backend do
+      "pry" -> parse_iex(t, %{config | pry: true})
+      "kernel" -> parse_iex(t, %{config | pry: false})
+      _ -> {:error, "--dbg : Unknown dbg backend #{inspect(backend)}"}
+    end
+  end
+
   defp parse_iex(["--dot-iex", _ | t], config), do: parse_iex(t, config)
   defp parse_iex(["--remsh", _ | t], config), do: parse_iex(t, config)
-
-  defp parse_iex(["--no-pry" | t], config), do: parse_iex(t, %{config | pry: false})
 
   defp parse_iex([h | t] = list, config) do
     case h do

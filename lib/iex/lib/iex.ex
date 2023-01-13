@@ -173,7 +173,11 @@ defmodule IEx do
   ## `dbg` and breakpoints
 
   IEx integrates with `Kernel.dbg/2` and introduces a backend that
-  can pause code execution:
+  can pause code execution. To enable it, you must pass `--dbg pry`:
+
+      $ iex --dbg pry
+
+  For example, take the following function:
 
       def my_fun(arg1, arg2) do
         dbg(arg1 + arg2)
@@ -181,8 +185,8 @@ defmodule IEx do
       end
 
   When the code is executed with `iex` (most often by calling
-  `iex -S mix`), it will ask you permission to use "pry". If you
-  agree, it will start an IEx shell in the context of the function
+  `iex --dbg pry -S mix`), it will ask you permission to use "pry".
+  If you agree, it will start an IEx shell in the context of the function
   above, with access to its variables, imports, and aliases. However,
   you can only access existing values, it is not possible to access
   private functions nor change the execution itself (hence the name
@@ -194,7 +198,6 @@ defmodule IEx do
   of the steps but stay within the pried process. Type `respawn` when
   you want to leave the pried process and start a new shell.
 
-  You can disable "pry" as the `dbg/2` backend by calling `iex --no-pry`.
   Alternatively, you can start a pry session directly, without `dbg/2`
   by calling `IEx.pry/0`.
 
