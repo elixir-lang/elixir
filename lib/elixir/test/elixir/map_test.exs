@@ -231,6 +231,29 @@ defmodule MapTest do
     end
   end
 
+  test "intersect/2" do
+    map = %{a: 1, b: 2}
+
+    assert Map.intersect(map, %{a: 2}) == %{a: 2}
+    assert Map.intersect(map, %{c: 3}) == %{}
+    assert Map.intersect(%{a: 2}, map) == %{a: 1}
+    assert Map.intersect(%{c: 3}, map) == %{}
+
+    assert Map.intersect(map, %{a: 2}) |> Map.intersect(%{a: 3, c: 3}) == %{a: 3}
+    assert Map.intersect(map, %{c: 3}) |> Map.intersect(%{c: 4}) == %{}
+    assert Map.intersect(map, %{a: 3, c: 3}) |> Map.intersect(%{a: 2}) == %{a: 2}
+  end
+
+  test "intersect/3" do
+    # When first map is bigger
+    assert Map.intersect(%{a: 1, b: 2, c: 3}, %{c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
+             %{c: :x}
+
+    # When second map is bigger
+    assert Map.intersect(%{b: 2, c: 3}, %{a: 1, c: 4, d: 5}, fn :c, 3, 4 -> :x end) ==
+             %{c: :x}
+  end
+
   test "implements (almost) all functions in Keyword" do
     assert Keyword.__info__(:functions) -- Map.__info__(:functions) == [
              delete: 3,
