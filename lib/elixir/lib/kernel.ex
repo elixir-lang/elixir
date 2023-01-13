@@ -5870,17 +5870,16 @@ defmodule Kernel do
 
   ## `dbg` inside IEx
 
-  IEx integrates with `dbg` to provide additional features:
+  You can enable IEx to replace `dbg` with its `IEx.pry/0` backend by calling:
 
-    * If you have IEx running and you call `dbg`, it will start a `pry`
-      session where you can interact with the imports, aliases, and
-      variables of the current environment at the location of the `dbg` call
+      $ iex --dbg pry
 
-    * If you call `dbg` at the end of a pipeline (using `|>`) within IEx,
-      you are able to go through each step of the pipeline one by one by
-      entering "next" (or "n")
+  In such cases, `dbg` will start a `pry` session where you can interact with
+  the imports, aliases, and variables of the current environment at the location
+  of the `dbg` call.
 
-    * You can disable this behaviour by calling `iex --no-pry`
+  If you call `dbg` at the end of a pipeline (using `|>`) within IEx, you are able
+  to go through each step of the pipeline one by one by entering "next" (or "n").
 
   Note `dbg` only supports stepping for pipelines (in other words, it can only
   step through the code it sees). For general stepping, you can set breakpoints

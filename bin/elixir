@@ -114,7 +114,7 @@ while [ $I -le $LENGTH ]; do
         C=1
         MODE="elixirc"
         ;;
-    -v|--no-halt|--no-pry)
+    -v|--no-halt|--dbg)
         C=1
         ;;
     -e|-r|-pr|-pa|-pz|--app|--eval|--remsh|--dot-iex)
