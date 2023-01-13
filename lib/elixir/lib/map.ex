@@ -1149,6 +1149,44 @@ defmodule Map do
     end
   end
 
+  @doc """
+  Intersects two maps, returning a map with the common keys.
+
+  The values in the returned map are the values of the intersected keys in `map2`.
+
+  Inlined by the compiler.
+
+  ## Examples
+
+      iex> Map.intersect(%{a: 1, b: 2}, %{b: "b", c: "c"})
+      %{b: "b"}
+
+  """
+  @doc since: "1.15.0"
+  @spec intersect(map, map) :: map
+  defdelegate intersect(map1, map2), to: :maps
+
+  @doc """
+  Intersects two maps, returning a map with the common keys and resolving conflicts through a function.
+
+  The given function will be invoked when there are duplicate keys; its
+  arguments are `key` (the duplicate key), `value1` (the value of `key` in
+  `map1`), and `value2` (the value of `key` in `map2`). The value returned by
+  `fun` is used as the value under `key` in the resulting map.
+
+  ## Examples
+
+      iex> Map.intersect(%{a: 1, b: 2}, %{b: 2, c: 3}, fn _k, v1, v2 ->
+      ...>   v1 + v2
+      ...> end)
+      %{b: 4}
+  """
+  @doc since: "1.15.0"
+  @spec intersect(map, map, (key, value, value -> value)) :: map
+  def intersect(map1, map2, fun) when is_function(fun, 3) do
+    :maps.intersect_with(fun, map1, map2)
+  end
+
   @doc false
   @deprecated "Use Map.new/2 instead (invoke Map.from_struct/1 before if you have a struct)"
   def map(map, fun) when is_map(map) do
