@@ -1174,8 +1174,6 @@ defmodule Map do
   `map1`), and `value2` (the value of `key` in `map2`). The value returned by
   `fun` is used as the value under `key` in the resulting map.
 
-  Inlined by the compiler.
-
   ## Examples
 
       iex> Map.intersect(%{a: 1, b: 2}, %{b: 2, c: 3}, fn _k, v1, v2 ->
