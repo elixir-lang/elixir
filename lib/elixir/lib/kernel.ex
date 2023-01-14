@@ -4231,9 +4231,9 @@ defmodule Kernel do
   @doc """
   Power operator.
 
-  It expects two numbers are input. If the left-hand side is an integer
-  and the right-hand side is more than or equal to 0, then the result is
-  integer. Otherwise it returns a float.
+  It takes two numbers for input. If both are integers and the right-hand
+  side (the `exponent`) is also greater than or equal to 0, then the result
+  will also be an integer. Otherwise it returns a float.
 
   ## Examples
 
@@ -4252,6 +4252,8 @@ defmodule Kernel do
   @spec integer ** non_neg_integer :: integer
   @spec integer ** neg_integer :: float
   @spec float ** float :: float
+  @spec integer ** float :: float
+  @spec float ** integer :: float
   def base ** exponent when is_integer(base) and is_integer(exponent) and exponent >= 0 do
     integer_pow(base, 1, exponent)
   end
