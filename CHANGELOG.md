@@ -241,6 +241,37 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
+## v1.14.3 (2023-01-14)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Speed up loading of runtime modules in the parallel compiler
+  * [Range] Optimize range membership implementation
+
+#### ExUnit
+
+  * [ExUnit] Return values from running doctests and make their order consistent
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Calendar] Fix handling of negative years in `Calendar.strftime/2`
+  * [Exception] Improve blaming of FunctionClauseError with `is_struct/2` guards
+  * [Kernel] Fix invalid variable scoping in `defguard` expansion
+  * [Kernel] Do not warn on captured underscored vars from `defmodule`
+  * [Kernel] Do not crash for missing line info on type warnings
+  * [Macro] Fix `Macro.to_string/1` for large negative integers
+  * [Macro] Properly type and escape expansion of `__ENV__` in macros
+  * [Path] Make sure `Path.wildcard/2` expands `..` symlinks accordingly
+  * [Range] Address corner cases in `Range.disjoint?/2` implementation
+
+#### ExUnit
+
+  * [ExUnit.DocTest] Remove unnecessary literal quotes from error message on reports
+
 ## v1.14.2 (2022-11-11)
 
 ### 1. Enhancements
