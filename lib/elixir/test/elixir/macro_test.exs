@@ -172,7 +172,7 @@ defmodule MacroTest do
     end
 
     test "env" do
-      env = %{__ENV__ | line: 0}
+      env = %{__ENV__ | line: 0, lexical_tracker: self()}
 
       expanded = Macro.expand_once(quote(do: __ENV__), env)
       assert Macro.validate(expanded) == :ok

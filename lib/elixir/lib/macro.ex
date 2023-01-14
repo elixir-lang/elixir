@@ -1763,7 +1763,7 @@ defmodule Macro do
       end
 
   """
-  @spec expand_once(t(), Macro.Env.t()) :: t()
+  @spec expand_once(input(), Macro.Env.t()) :: output()
   def expand_once(ast, env) do
     elem(do_expand_once(ast, env), 0)
   end
@@ -2000,7 +2000,7 @@ defmodule Macro do
   when they change.
   """
   @doc since: "1.14.1"
-  @spec expand_literals(t(), Macro.Env.t()) :: t()
+  @spec expand_literals(input(), Macro.Env.t()) :: output()
   def expand_literals(ast, env) do
     {ast, :ok} = expand_literals(ast, :ok, fn node, :ok -> {expand(node, env), :ok} end)
     ast
@@ -2080,7 +2080,7 @@ defmodule Macro do
   This function uses `expand_once/2` under the hood. Check
   it out for more information and examples.
   """
-  @spec expand(t(), Macro.Env.t()) :: t()
+  @spec expand(input(), Macro.Env.t()) :: output()
   def expand(ast, env) do
     expand_until({ast, true}, env)
   end
