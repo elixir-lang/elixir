@@ -38,14 +38,14 @@ print_warning(Location, File, DiagMessage, PrintMessage) when is_binary(File) or
 -spec file_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
 file_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
   file_warn(Meta, #{file => File}, Module, Desc);
-file_warn(Meta, #{file := File} = E, Module, Desc) when is_list(Meta) ->
+file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
   % Skip warnings during bootstrap, they will be reported during recompilation
   case elixir_config:is_bootstrap() of
     true -> ok;
     false ->
-      {Line, File, Location} = env_format(Meta, E),
+      {EnvLine, EnvFile, EnvLocation} = env_format(Meta, E),
       Warning = Module:format_error(Desc),
-      print_warning(Line, File, Warning, [Warning, "\n  ", Location, $\n])
+      print_warning(EnvLine, EnvFile, Warning, [Warning, "\n  ", EnvLocation, $\n])
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -76,10 +76,10 @@ function_error(Meta, Env, Module, Desc) ->
   file_error(Meta, Env, Module, Desc).
 
 print_error(Meta, Env, Module, Desc) ->
-  {Line, File, Location} = env_format(Meta, Env),
+  {EnvLine, EnvFile, EnvLocation} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  send_diagnostic(error, Line, File, Message),
-  io:put_chars(standard_error, [error_prefix(), Message, "\n  ", Location, $\n, $\n]),
+  send_diagnostic(error, EnvLine, EnvFile, Message),
+  io:put_chars(standard_error, [error_prefix(), Message, "\n  ", EnvLocation, $\n, $\n]),
   ok.
 
 %% Compilation error.
