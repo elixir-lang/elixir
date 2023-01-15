@@ -8,6 +8,21 @@ defmodule Kernel.WarningTest do
     capture_io(:stderr, fun)
   end
 
+  defmacro will_warn do
+    quote file: "demo" do
+      %{dup: 1, dup: 2}
+    end
+  end
+
+  test "warnings from macro" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             import Kernel.WarningTest
+             will_warn()
+             """)
+           end) =~ "key :dup will be overridden in map\n  demo:13"
+  end
+
   test "outdented heredoc" do
     output =
       capture_err(fn ->
