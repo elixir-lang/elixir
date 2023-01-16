@@ -215,7 +215,7 @@ defmodule Mix.Tasks.Xref do
       lib/a.ex
       └── lib/b.ex (compile)
 
-  ### Dependencies types
+  ### Dependency types
 
   Elixir tracks three types of dependencies between modules: compile,
   exports, and runtime. If a module has a compile time dependency on
