@@ -232,7 +232,7 @@ defmodule Inspect.Algebra do
   This implementation also adds `force_unfit/1` and `next_break_fits/2` which
   give more control over the document fitting.
 
-    [0]: https://citeseerx.ist.psu.edu/doc_view/pid/c73ca9cc74351fe7f8f3dddc69d2e82326af82c0
+    [0]: https://lindig.github.io/papers/strictly-pretty-2000.pdf
 
   """
 
