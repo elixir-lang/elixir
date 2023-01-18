@@ -5,6 +5,7 @@ defmodule Mix.CLI do
   Runs Mix according to the command line arguments.
   """
   def main(args \\ System.argv()) do
+    Mix.start()
     Mix.Local.append_archives()
     Mix.Local.append_paths()
 
