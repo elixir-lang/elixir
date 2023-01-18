@@ -39,9 +39,9 @@ defmodule Kernel.CLITest do
   import Retry
 
   defp run(argv) do
-    {config, argv} = Kernel.CLI.parse_argv(argv)
+    {config, argv} = Kernel.CLI.parse_argv(Enum.map(argv, &String.to_charlist/1))
     assert Kernel.CLI.process_commands(config) == []
-    argv
+    Enum.map(argv, &IO.chardata_to_string/1)
   end
 
   test "argv handling" do
