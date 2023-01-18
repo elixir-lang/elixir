@@ -20,10 +20,12 @@ defmodule Mix.Tasks.Deps.Precompile do
   def run(_) do
     config = Mix.Project.config()
 
-    Mix.Project.build_path(config)
-    |> Path.join("lib/*/ebin")
-    |> Path.wildcard()
-    |> List.delete(config[:app] && Mix.Project.compile_path(config))
-    |> Enum.each(&Code.prepend_path/1)
+    paths =
+      Mix.Project.build_path(config)
+      |> Path.join("lib/*/ebin")
+      |> Path.wildcard()
+      |> List.delete(config[:app] && Mix.Project.compile_path(config))
+
+    Code.prepend_paths(paths)
   end
 end
