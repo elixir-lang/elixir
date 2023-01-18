@@ -696,6 +696,23 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(msg, "foo:+1")
     end
 
+    test "invalid keyword list in tuple/binary" do
+      assert_syntax_error(
+        ~r"unexpected keyword list inside tuple",
+        ~c"{foo: :bar}"
+      )
+
+      assert_syntax_error(
+        ~r"unexpected keyword list inside tuple",
+        ~c"{foo: :bar, baz: :bar}"
+      )
+
+      assert_syntax_error(
+        ~r"unexpected keyword list inside bitstring",
+        ~c"<<foo: :bar, baz: :bar>>"
+      )
+    end
+
     test "expression after keyword lists" do
       assert_syntax_error(
         ~r"unexpected expression after keyword list",
