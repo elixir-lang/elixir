@@ -11,7 +11,7 @@ Nonterminals
   open_paren close_paren empty_paren eoe
   list list_args open_bracket close_bracket
   tuple open_curly close_curly
-  bit_string open_bit close_bit
+  bitstring open_bit close_bit
   map map_op map_close map_args struct_expr struct_op
   assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
   container_args_base container_args
@@ -279,7 +279,7 @@ access_expr -> bin_string : build_bin_string('$1', delimiter(<<$">>)).
 access_expr -> list_string : build_list_string('$1', delimiter(<<$'>>)).
 access_expr -> bin_heredoc : build_bin_heredoc('$1').
 access_expr -> list_heredoc : build_list_heredoc('$1').
-access_expr -> bit_string : '$1'.
+access_expr -> bitstring : '$1'.
 access_expr -> sigil : build_sigil('$1').
 access_expr -> atom : handle_literal(?exprs('$1'), '$1').
 access_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', delimiter(<<$">>)).
@@ -593,12 +593,14 @@ list -> open_bracket list_args close_bracket : build_list('$1', '$2', '$3').
 % Tuple
 
 tuple -> open_curly '}' : build_tuple('$1', [], '$2').
+tuple -> open_curly kw_data '}' : bad_keyword('$1', tuple).
 tuple -> open_curly container_args close_curly :  build_tuple('$1', '$2', '$3').
 
 % Bitstrings
 
-bit_string -> open_bit '>>' : build_bit('$1', [], '$2').
-bit_string -> open_bit container_args close_bit : build_bit('$1', '$2', '$3').
+bitstring -> open_bit '>>' : build_bit('$1', [], '$2').
+bitstring -> open_bit kw_data '>>' : bad_keyword('$1', bitstring).
+bitstring -> open_bit container_args close_bit : build_bit('$1', '$2', '$3').
 
 % Map and structs
 
@@ -1122,6 +1124,12 @@ error_bad_atom(Token) ->
   return_error(?location(Token), "atom cannot be followed by an alias. "
     "If the '.' was meant to be part of the atom's name, "
     "the atom name must be quoted. Syntax error before: ", "'.'").
+
+bad_keyword(Token, Context) ->
+  return_error(?location(Token),
+    "unexpected keyword list inside " ++ atom_to_list(Context) ++ ". "
+    "Did you mean to write a map (using %{...}) or a list (using [...]) instead? "
+    "Syntax error after: ", "'{'").
 
 maybe_bad_keyword_call_follow_up(_Token, KW, {'__cursor__', _, []} = Expr) ->
   reverse([Expr | KW]);
