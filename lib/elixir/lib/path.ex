@@ -297,7 +297,7 @@ defmodule Path do
   defp win32_pathtype(relative), do: {:relative, relative}
 
   @doc """
-  Returns the given `path` relative to the given `from` path.
+  Returns the direct relative path from `path` in relation to `from`.
 
   In other words, this function tries to strip the `from` prefix from `path`.
 
