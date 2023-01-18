@@ -389,9 +389,36 @@ defmodule Code.SyncTest do
 
   import PathHelpers
 
-  test "path manipulation" do
+  test "prepend_path" do
     path = Path.join(__DIR__, "fixtures")
-    Code.prepend_path(path)
+    true = Code.prepend_path(path)
+    assert to_charlist(path) in :code.get_path()
+
+    Code.delete_path(path)
+    refute to_charlist(path) in :code.get_path()
+  end
+
+  test "append_path" do
+    path = Path.join(__DIR__, "fixtures")
+    true = Code.append_path(path)
+    assert to_charlist(path) in :code.get_path()
+
+    Code.delete_path(path)
+    refute to_charlist(path) in :code.get_path()
+  end
+
+  test "prepend_paths" do
+    path = Path.join(__DIR__, "fixtures")
+    :ok = Code.prepend_paths([path])
+    assert to_charlist(path) in :code.get_path()
+
+    Code.delete_path(path)
+    refute to_charlist(path) in :code.get_path()
+  end
+
+  test "append_paths" do
+    path = Path.join(__DIR__, "fixtures")
+    :ok = Code.append_paths([path])
     assert to_charlist(path) in :code.get_path()
 
     Code.delete_path(path)

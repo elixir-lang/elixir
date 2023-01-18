@@ -269,14 +269,15 @@ defmodule Code do
   end
 
   @doc """
-  Appends a path to the end of the Erlang VM code path list.
+  Appends a path to the Erlang VM code path list.
 
   This is the list of directories the Erlang VM uses for
   finding module code. The list of files is managed per Erlang
   VM node.
 
   The path is expanded with `Path.expand/1` before being appended.
-  If this path does not exist, an error is returned.
+  It requires the path to exist. Returns a boolean indicating if
+  the path was successfully added.
 
   ## Examples
 
@@ -284,22 +285,24 @@ defmodule Code do
       #=> true
 
       Code.append_path("/does_not_exist")
-      #=> {:error, :bad_directory}
+      #=> false
 
   """
-  @spec append_path(Path.t()) :: true | {:error, :bad_directory}
+  @spec append_path(Path.t()) :: true | false
   def append_path(path) do
-    :code.add_pathz(to_charlist(Path.expand(path)))
+    :code.add_pathz(to_charlist(Path.expand(path))) == true
   end
 
   @doc """
-  Prepends a path to the beginning of the Erlang VM code path list.
+  Prepends a path to the Erlang VM code path list.
 
-  This is the list of directories the Erlang VM uses for finding
-  module code. The list of files is managed per Erlang VM node.
+  This is the list of directories the Erlang VM uses for
+  finding module code. The list of files is managed per Erlang
+  VM node.
 
   The path is expanded with `Path.expand/1` before being prepended.
-  If this path does not exist, an error is returned.
+  It requires the path to exist. Returns a boolean indicating if
+  the path was successfully added.
 
   ## Examples
 
@@ -307,12 +310,58 @@ defmodule Code do
       #=> true
 
       Code.prepend_path("/does_not_exist")
-      #=> {:error, :bad_directory}
+      #=> false
 
   """
-  @spec prepend_path(Path.t()) :: true | {:error, :bad_directory}
+  @spec prepend_path(Path.t()) :: boolean()
   def prepend_path(path) do
-    :code.add_patha(to_charlist(Path.expand(path)))
+    :code.add_patha(to_charlist(Path.expand(path))) == true
+  end
+
+  @doc """
+  Prepends a list of `paths` to the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for
+  finding module code. The list of files is managed per Erlang
+  VM node.
+
+  All paths are expanded with `Path.expand/1` before being prepended.
+  Only existing paths are prepended. This function always returns `:ok`,
+  regardless of how many paths were prepended. Use `prepend_path/1`
+  if you need more control.
+
+  ## Examples
+
+      Code.prepend_paths([".", "/does_not_exist"])
+      #=> :ok
+  """
+  @doc since: "1.15.0"
+  @spec prepend_paths([Path.t()]) :: :ok
+  def prepend_paths(paths) when is_list(paths) do
+    :code.add_pathsa(Enum.map(paths, &to_charlist(Path.expand(&1))))
+  end
+
+  @doc """
+  Appends a list of `paths` to the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for
+  finding module code. The list of files is managed per Erlang
+  VM node.
+
+  All paths are expanded with `Path.expand/1` before being appended.
+  Only existing paths are appended. This function always returns `:ok`,
+  regardless of how many paths were appended. Use `append_path/1`
+  if you need more control.
+
+  ## Examples
+
+      Code.append_paths([".", "/does_not_exist"])
+      #=> :ok
+  """
+  @doc since: "1.15.0"
+  @spec append_paths([Path.t()]) :: :ok
+  def append_paths(paths) when is_list(paths) do
+    :code.add_pathsz(Enum.map(paths, &to_charlist(Path.expand(&1))))
   end
 
   @doc """
