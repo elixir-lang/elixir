@@ -277,7 +277,8 @@ get_module_info(Module) ->
 exports_md5_info(Struct, Def, Defmacro) ->
   %% Deprecations do not need to be part of exports_md5 because it is always
   %% checked by the runtime pass, so it is not really part of compilation.
-  Md5 = erlang:md5(erlang:term_to_binary({Def, Defmacro, Struct})),
+  Options = lists:filter(fun(Opt) -> Opt == deterministic end, compile:env_compiler_options()),
+  Md5 = erlang:md5(erlang:term_to_binary({Def, Defmacro, Struct}, Options)),
   {clause, 0, [{atom, 0, exports_md5}], [], [elixir_to_erl(Md5)]}.
 
 functions_info(Def) ->

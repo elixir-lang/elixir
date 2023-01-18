@@ -641,7 +641,10 @@ defmodule Mix.Compilers.Elixir do
             _ -> nil
           end
 
-        {defs, defmacros, struct} |> :erlang.term_to_binary() |> :erlang.md5()
+        term_to_binary_opts =
+          :compile.env_compiler_options() |> Enum.filter(&(&1 == :deterministic))
+
+        {defs, defmacros, struct} |> :erlang.term_to_binary(term_to_binary_opts) |> :erlang.md5()
 
       true ->
         nil
