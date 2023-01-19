@@ -1805,6 +1805,7 @@ defmodule String do
 
   def valid?(<<string::binary>>), do: valid_utf8?(string)
 
+  @compile {:inline, valid_utf8?: 1}
   defp valid_utf8?(<<_::utf8, rest::bits>>), do: valid_utf8?(rest)
   defp valid_utf8?(<<>>), do: true
   defp valid_utf8?(_), do: false
