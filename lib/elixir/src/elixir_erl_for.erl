@@ -119,6 +119,11 @@ build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}], Ex
   Clauses = [{clause, Ann, [Left], [], [Expr]}],
   Args = [Right, {'fun', Ann, {clauses, Clauses}}],
   {?remote(Ann, 'Elixir.Enum', map, Args), S};
+build_inline_each(Ann, [{enum, _, Left = {var, _, _}, Right, [] = _Filters}], Expr, {map, _, []} = _Into, false, S) ->
+  Clauses = [{clause, Ann, [Left], [], [Expr]}],
+  Args = [Right, {'fun', Ann, {clauses, Clauses}}],
+  List = ?remote(Ann, 'Elixir.Enum', map, Args),
+  {?remote(Ann, maps, from_list, [List]), S};
 build_inline_each(Ann, Clauses, Expr, {nil, _} = Into, Uniq, S) ->
   InnerFun = fun(InnerExpr, InnerAcc) -> {cons, Ann, InnerExpr, InnerAcc} end,
   {ReduceExpr, SR} = build_reduce(Ann, Clauses, InnerFun, Expr, Into, Uniq, S),
