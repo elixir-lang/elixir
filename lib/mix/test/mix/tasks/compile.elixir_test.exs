@@ -795,6 +795,38 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "purges consolidation path if asked" do
+    in_fixture("no_mixfile", fn ->
+      File.write!("lib/a.ex", """
+      defmodule A do
+        defstruct []
+      end
+
+      defimpl Inspect, for: A do
+        def inspect(_, _), do: "sample"
+      end
+      """)
+
+      Mix.Project.push(MixTest.Case.Sample)
+      assert Mix.Tasks.Compile.run([]) == {:ok, []}
+      assert inspect(struct(A, [])) == "sample"
+
+      purge([A, B, Inspect.A])
+      Mix.Task.clear()
+
+      assert capture_io(:stderr, fn ->
+               {:ok, [_]} = Mix.Tasks.Compile.run(["--force"])
+             end) =~
+               "the Inspect protocol has already been consolidated"
+
+      purge([A, B, Inspect.A])
+      Mix.Task.clear()
+      consolidation = Mix.Project.consolidation_path()
+      args = ["--force", "--purge-consolidation-path-if-stale", consolidation]
+      assert Mix.Tasks.Compile.run(args) == {:ok, []}
+    end)
+  end
+
   test "compiles mtime changed files if content changed but not length" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
