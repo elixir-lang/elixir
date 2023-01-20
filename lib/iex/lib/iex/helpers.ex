@@ -1241,10 +1241,17 @@ defmodule IEx.Helpers do
       iex> pid("0.21.32")
       #PID<0.21.32>
 
+      iex> pid("#PID<0.21.32>")
+      #PID<0.21.32>
+
       iex> pid(:init)
       #PID<0.0.0>
 
   """
+  def pid("#PID<" <> string) do
+    :erlang.list_to_pid(~c"<#{string}")
+  end
+
   def pid(string) when is_binary(string) do
     :erlang.list_to_pid(~c"<#{string}>")
   end
