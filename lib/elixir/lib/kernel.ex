@@ -5868,6 +5868,24 @@ defmodule Kernel do
       |> String.split() #=> ["Elixir", "is", "cool"]
       |> List.first() #=> "Elixir"
 
+  `dbg()` can be can be decorated with a label, similarly to `IO.inspect/2`, by providing the `:label` option to easily distinguish it from other `dbg/2` calls. The label will be printed before the inspected `code`
+
+  With a label option:
+
+      "Elixir is cool!"
+      |> String.trim_trailing("!")
+      |> String.split()
+      |> List.first()
+      |> dbg(label: "Trim Output")
+
+  The above code prints:
+
+      Trim Output: [dbg.exs:8: (file)]
+      "Elixir is cool!" #=> "Elixir is cool!"
+      |> String.trim_trailing("!") #=> "Elixir is cool"
+      |> String.split() #=> ["Elixir", "is", "cool"]
+      |> List.first() #=> "Elixir"
+
   With no arguments, `dbg()` debugs information about the current binding. See `binding/1`.
 
   ## `dbg` inside IEx

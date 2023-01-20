@@ -2598,8 +2598,9 @@ defmodule Macro do
         [formatted, "\n"]
       end
 
+    label = if label = options[:label], do: [label, ": "], else: []
     ansi_enabled? = options[:syntax_colors] != []
-    :ok = IO.write(IO.ANSI.format(formatted, ansi_enabled?))
+    :ok = IO.write([label, IO.ANSI.format(formatted, ansi_enabled?)])
 
     result
   end
