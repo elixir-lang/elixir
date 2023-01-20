@@ -98,19 +98,11 @@ defmodule IEx.Helpers do
       consolidation = Mix.Project.consolidation_path(config)
       reenable_tasks(config)
 
-      # No longer allow consolidations to be accessed.
-      Code.delete_path(consolidation)
-      purge_protocols(consolidation)
-
       force? = Keyword.get(options, :force, false)
-      arguments = if force?, do: ["--force"], else: []
+      args = ["--purge-consolidation-path-if-stale", consolidation]
+      args = if force?, do: ["--force" | args], else: args
 
-      {result, _} = Mix.Task.run("compile", arguments)
-
-      # Re-enable consolidation and allow them to be loaded.
-      Code.prepend_path(consolidation)
-      purge_protocols(consolidation)
-
+      {result, _} = Mix.Task.run("compile", args)
       result
     else
       IO.puts(IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix"))
@@ -128,20 +120,6 @@ defmodule IEx.Helpers do
     Mix.Task.reenable("compile.protocols")
     compilers = config[:compilers] || Mix.compilers()
     Enum.each(compilers, &Mix.Task.reenable("compile.#{&1}"))
-  end
-
-  defp purge_protocols(path) do
-    case File.ls(path) do
-      {:ok, beams} ->
-        Enum.each(beams, fn beam ->
-          module = beam |> Path.rootname() |> String.to_atom()
-          :code.purge(module)
-          :code.delete(module)
-        end)
-
-      {:error, _} ->
-        :ok
-    end
   end
 
   @doc """

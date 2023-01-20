@@ -143,6 +143,12 @@ defmodule Mix.Compilers.Elixir do
       update_stale_sources(sources, stale, removed_modules, sources_stats)
 
     if stale != [] do
+      path = opts[:purge_consolidation_path_if_stale]
+
+      if is_binary(path) and Code.delete_path(path) do
+        purge_modules_in_path(path)
+      end
+
       Mix.Utils.compiling_n(length(stale), :ex)
       Mix.Project.ensure_structure()
       true = Code.prepend_path(dest)
@@ -650,8 +656,18 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_and_purge(beam, module) do
     _ = File.rm(beam)
-    _ = :code.purge(module)
-    _ = :code.delete(module)
+    :code.purge(module)
+    :code.delete(module)
+  end
+
+  defp purge_modules_in_path(path) do
+    with {:ok, beams} <- File.ls(path) do
+      Enum.each(beams, fn beam ->
+        module = beam |> Path.rootname() |> String.to_atom()
+        :code.purge(module)
+        :code.delete(module)
+      end)
+    end
   end
 
   defp previous_warnings(sources, print?) do

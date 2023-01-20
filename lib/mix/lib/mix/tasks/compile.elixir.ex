@@ -46,17 +46,19 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## Command line options
 
-    * `--verbose` - prints each file being compiled
-    * `--force` - forces compilation regardless of modification times
     * `--docs` (`--no-docs`) - attaches (or not) documentation to compiled modules
     * `--debug-info` (`--no-debug-info`) - attaches (or not) debug info to compiled modules
+    * `--force` - forces compilation regardless of modification times
     * `--ignore-module-conflict` - does not emit warnings if a module was previously defined
-    * `--warnings-as-errors` - treats warnings in the current project as errors and
-      return a non-zero exit status
     * `--long-compilation-threshold N` - sets the "long compilation" threshold
       (in seconds) to `N` (see the docs for `Kernel.ParallelCompiler.compile/2`)
+    * `--purge-consolidation-path-if-stale PATH` - deletes and purges modules in the
+      given protocol consolidation path if compilation is required
     * `--profile` - if set to `time`, outputs timing information of compilation steps
     * `--tracer` - adds a compiler tracer in addition to any specified in the `mix.exs` file
+    * `--verbose` - prints each file being compiled
+    * `--warnings-as-errors` - treats warnings in the current project as errors and
+      return a non-zero exit status
 
   ## Configuration
 
@@ -82,6 +84,7 @@ defmodule Mix.Tasks.Compile.Elixir do
     debug_info: :boolean,
     verbose: :boolean,
     long_compilation_threshold: :integer,
+    purge_consolidation_path_if_stale: :string,
     profile: :string,
     all_warnings: :boolean,
     tracer: :keep
