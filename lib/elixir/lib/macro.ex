@@ -2545,8 +2545,6 @@ defmodule Macro do
     end
   end
 
-  @dbg_boolean_ops [:&&, :||, :and, :or]
-
   # Pipelines.
   defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
     value_var = Macro.unique_var(:value, __MODULE__)
@@ -2579,7 +2577,8 @@ defmodule Macro do
   end
 
   # Boolean operators.
-  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast) when op in @dbg_boolean_ops do
+  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast)
+       when op in [:&&, :||, :and, :or] do
     quote do: {:boolean_op, unquote(Macro.escape(ast)), unquote(dbg_boolean_tree(ast))}
   end
 
@@ -2588,7 +2587,7 @@ defmodule Macro do
     quote do: {:value, unquote(Macro.escape(ast)), unquote(ast)}
   end
 
-  defp dbg_boolean_tree({op, _meta, [left, right]}) when op in @dbg_boolean_ops do
+  defp dbg_boolean_tree({op, _meta, [left, right]}) when op in [:&&, :||, :and, :or] do
     lv = Macro.unique_var(:left_value, __MODULE__)
     rv = Macro.unique_var(:right_value, __MODULE__)
     lt = Macro.unique_var(:left_tree, __MODULE__)
