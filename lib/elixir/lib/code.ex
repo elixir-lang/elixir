@@ -58,7 +58,7 @@ defmodule Code do
   it can't even be loaded.
 
   When invoked, `ensure_compiled/1` and `ensure_compiled!/1` halt the
-  compilation of the caller until the module becomes available. Note
+  compilation of the caller until the module becomes available. Note that
   the distinction between `ensure_compiled/1` and `ensure_compiled!/1`
   is important: if you are using `ensure_compiled!/1`, you are
   indicating to the compiler that you can only continue if said module
@@ -88,7 +88,7 @@ defmodule Code do
 
   ## Compilation tracers
 
-  Elixir supports compilation tracers, which allows modules to observe constructs
+  Elixir supports compilation tracers, which allow modules to observe constructs
   handled by the Elixir compiler when compiling files. A tracer is a module
   that implements the `trace/2` function. The function receives the event name
   as first argument and `Macro.Env` as second and it must return `:ok`. It is
