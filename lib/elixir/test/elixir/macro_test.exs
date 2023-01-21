@@ -402,6 +402,41 @@ defmodule MacroTest do
       assert formatted =~ ~r/[^\n]\n\n$/
     end
 
+    test "with simple boolean expressions" do
+      {result, formatted} = dbg_format(:rand.uniform() >= 0.0 and length([]) == 0)
+      assert result == true
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             [Boolean expression] :rand.uniform() >= 0.0 and length([]) == 0
+             Result: true
+             Components:
+             :rand.uniform() >= 0.0 #=> true
+             length([]) == 0 #=> true
+             """
+    end
+
+    test "with composite boolean expressions" do
+      f = abs(System.unique_integer()) < 0
+      t = :rand.uniform() >= 0.0
+      {result, formatted} = dbg_format((f and (1 && t)) or (nil || t))
+      assert result == true
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             [Boolean expression] (f and (1 && t)) or (nil || t)
+             Result: true
+             Components:
+             f #=> false
+             1 #=> 1
+             t #=> true
+             nil #=> nil
+             t #=> true
+             """
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["

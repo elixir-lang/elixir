@@ -2545,6 +2545,8 @@ defmodule Macro do
     end
   end
 
+  @dbg_boolean_ops [:&&, :||, :and, :or]
+
   # Pipelines.
   defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
     value_var = Macro.unique_var(:value, __MODULE__)
@@ -2577,11 +2579,8 @@ defmodule Macro do
   end
 
   # Boolean operators.
-  defp dbg_ast_to_debuggable({op, _meta, [left, right]} = ast)
-       when op in [:&&, :||, :and, :or] do
-    quote do
-      {:boolean_op, unquote(Macro.escape(ast)), unquote(dbg_boolean_tree(ast))}
-    end
+  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast) when op in @dbg_boolean_ops do
+    quote do: {:boolean_op, unquote(Macro.escape(ast)), unquote(dbg_boolean_tree(ast))}
   end
 
   # Any other AST.
@@ -2589,13 +2588,16 @@ defmodule Macro do
     quote do: {:value, unquote(Macro.escape(ast)), unquote(ast)}
   end
 
-  defp dbg_boolean_tree({op, _meta, [left, right]}) when op in [:&&, :||, :and, :or] do
-    quote do
-      {_left_ast, left_val} = left_tree = unquote(dbg_boolean_tree(left))
-      {_right_ast, right_val} = right_tree = unquote(dbg_boolean_tree(right))
-      value = unquote(op)(left_val, right_val)
+  defp dbg_boolean_tree({op, _meta, [left, right]}) when op in @dbg_boolean_ops do
+    lv = Macro.unique_var(:left_value, __MODULE__)
+    rv = Macro.unique_var(:right_value, __MODULE__)
+    lt = Macro.unique_var(:left_tree, __MODULE__)
+    rt = Macro.unique_var(:right_tree, __MODULE__)
 
-      {{unquote(op), left_tree, right_tree}, value}
+    quote do
+      {_left_ast, unquote(lv)} = unquote(lt) = unquote(dbg_boolean_tree(left))
+      {_right_ast, unquote(rv)} = unquote(rt) = unquote(dbg_boolean_tree(right))
+      {{unquote(op), unquote(lt), unquote(rt)}, unquote(op)(unquote(lv), unquote(rv))}
     end
   end
 
@@ -2642,17 +2644,16 @@ defmodule Macro do
     {[first_formatted | rest_formatted], result}
   end
 
-  defp dbg_format_ast_to_debug(
-         {:boolean_op, whole_ast, {_ast, final_value} = boolean_tree},
-         options
-       ) do
+  defp dbg_format_ast_to_debug({:boolean_op, whole_ast, boolean_tree}, options) do
+    {_ast, final_value} = boolean_tree
     whole_expr_code = to_string_with_colors(whole_ast, options)
 
     formatted = [
-      [:bright, "[Boolean expression] ", :reset],
-      [dbg_format_ast(whole_expr_code), inspect(final_value), ?\n],
+      [:bright, "[Boolean expression] ", :reset, whole_expr_code, ?\n],
+      [:faint, "Result: ", :reset, inspect(final_value), ?\n],
       [:faint, "Components:", :reset, ?\n],
-      dbg_flatten_and_format_boolean_tree(boolean_tree, options)
+      dbg_flatten_and_format_boolean_tree(boolean_tree, options),
+      ?\n
     ]
 
     {formatted, final_value}
