@@ -2576,9 +2576,33 @@ defmodule Macro do
     end
   end
 
+  # Boolean operators.
+  defp dbg_ast_to_debuggable({op, _meta, [left, right]} = ast)
+       when op in [:&&, :||, :and, :or] do
+    quote do
+      {:boolean_op, unquote(Macro.escape(ast)), unquote(dbg_boolean_tree(ast))}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(Macro.escape(ast)), unquote(ast)}
+  end
+
+  defp dbg_boolean_tree({op, _meta, [left, right]}) when op in [:&&, :||, :and, :or] do
+    quote do
+      {_left_ast, left_val} = left_tree = unquote(dbg_boolean_tree(left))
+      {_right_ast, right_val} = right_tree = unquote(dbg_boolean_tree(right))
+      value = unquote(op)(left_val, right_val)
+
+      {{unquote(op), left_tree, right_tree}, value}
+    end
+  end
+
+  defp dbg_boolean_tree(ast) do
+    quote do
+      {unquote(Macro.escape(ast)), unquote(ast)}
+    end
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2618,9 +2642,37 @@ defmodule Macro do
     {[first_formatted | rest_formatted], result}
   end
 
+  defp dbg_format_ast_to_debug(
+         {:boolean_op, whole_ast, {_ast, final_value} = boolean_tree},
+         options
+       ) do
+    whole_expr_code = to_string_with_colors(whole_ast, options)
+
+    formatted = [
+      [:bright, "[Boolean expression] ", :reset],
+      [dbg_format_ast(whole_expr_code), inspect(final_value), ?\n],
+      [:faint, "Components:", :reset, ?\n],
+      dbg_flatten_and_format_boolean_tree(boolean_tree, options)
+    ]
+
+    {formatted, final_value}
+  end
+
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
     code = to_string_with_colors(code_ast, options)
     {[dbg_format_ast(code), " ", inspect(value, options), ?\n], value}
+  end
+
+  defp dbg_flatten_and_format_boolean_tree({ast, value}, options) do
+    case ast do
+      {op, left_tree, right_tree} when op in [:&&, :||, :and, :or] ->
+        left = dbg_flatten_and_format_boolean_tree(left_tree, options)
+        right = dbg_flatten_and_format_boolean_tree(right_tree, options)
+        [left, ?\n, right]
+
+      _other ->
+        [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value)]
+    end
   end
 
   defp to_string_with_colors(ast, options) do
