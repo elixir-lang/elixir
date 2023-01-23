@@ -2547,8 +2547,8 @@ defmodule Macro do
 
   # Pipelines.
   defp dbg_ast_to_debuggable({:|>, _meta, _args} = pipe_ast) do
-    value_var = Macro.unique_var(:value, __MODULE__)
-    values_acc_var = Macro.unique_var(:values, __MODULE__)
+    value_var = unique_var(:value, __MODULE__)
+    values_acc_var = unique_var(:values, __MODULE__)
 
     [start_ast | rest_asts] = asts = for {ast, 0} <- unpipe(pipe_ast), do: ast
     rest_asts = Enum.map(rest_asts, &pipe(value_var, &1, 0))
@@ -2572,7 +2572,7 @@ defmodule Macro do
     quote do
       unquote(values_ast)
 
-      {:pipe, unquote(Macro.escape(asts)), Enum.reverse(unquote(values_acc_var))}
+      {:pipe, unquote(escape(asts)), Enum.reverse(unquote(values_acc_var))}
     end
   end
 
@@ -2581,8 +2581,8 @@ defmodule Macro do
   # Logic operators.
   defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast)
        when op in unquote(dbg_decomposed_binary_operators) do
-    acc_var = Macro.unique_var(:acc, __MODULE__)
-    result_var = Macro.unique_var(:result, __MODULE__)
+    acc_var = unique_var(:acc, __MODULE__)
+    result_var = unique_var(:result, __MODULE__)
 
     quote do
       unquote(acc_var) = []
@@ -2593,7 +2593,7 @@ defmodule Macro do
 
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
-    quote do: {:value, unquote(Macro.escape(ast)), unquote(ast)}
+    quote do: {:value, unquote(escape(ast)), unquote(ast)}
   end
 
   # This is a binary operator. We replace the left side with a recursive call to
@@ -2606,7 +2606,7 @@ defmodule Macro do
       unquote(result_var) = unquote(op)(unquote(replaced_left), unquote(right))
 
       unquote(acc_var) = [
-        {unquote(Macro.escape(ast)), unquote(result_var)} | unquote(acc_var)
+        {unquote(escape(ast)), unquote(result_var)} | unquote(acc_var)
       ]
 
       unquote(result_var)
@@ -2618,7 +2618,7 @@ defmodule Macro do
   defp dbg_boolean_tree(ast, acc_var, result_var) do
     quote do
       unquote(result_var) = unquote(ast)
-      unquote(acc_var) = [{unquote(Macro.escape(ast)), unquote(result_var)} | unquote(acc_var)]
+      unquote(acc_var) = [{unquote(escape(ast)), unquote(result_var)} | unquote(acc_var)]
       unquote(result_var)
     end
   end
