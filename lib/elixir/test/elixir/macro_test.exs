@@ -1066,6 +1066,12 @@ defmodule MacroTest do
     assert_raise ArgumentError, message, fn ->
       Macro.pipe(:foo, quote(do: fn x -> x end), 0)
     end
+
+    message = ~r"cannot pipe into expression ending in a bracket-based Access.get/3"
+
+    assert_raise ArgumentError, message, fn ->
+      Macro.pipe(:foo, quote(do: %{foo: bar}[:foo]), 0)
+    end
   end
 
   test "unpipe/1" do
