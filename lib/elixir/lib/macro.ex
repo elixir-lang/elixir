@@ -315,9 +315,11 @@ defmodule Macro do
             "Kernel.#{op}(#{to_string(arg)}), instead of #{op}#{to_string(arg)}"
   end
 
+  # Piping to an Access.get/2,3 call in the form of brackets
+  # (foo |> bar[]) raises a nice error.
   def pipe(
         expr,
-        {{_, meta, [Access, :get] = op}, _line, args} = _op_args,
+        {{_, meta, [Access, :get] = op}, _meta, args} = _op_args,
         integer
       )
       when is_list(args) do
