@@ -319,16 +319,23 @@ defmodule Macro do
   # (foo |> bar[]) raises a nice error.
   def pipe(
         expr,
-        {{_, meta, [Access, :get] = op}, _meta, args} = _op_args,
+        {{_, meta, [Access, :get] = op}, _meta, [first, second]} = _op_args,
         integer
-      )
-      when is_list(args) do
+      ) do
     if {:from_brackets, true} in meta do
-      raise ArgumentError,
-            "cannot pipe into expression ending in a bracket-based Access.get/3. It is likely you intended to pipe " <>
-              "#{to_string(expr)} into #{to_string(List.first(args))}. Please call Access.get/3 directly rather than using brackets."
+      raise ArgumentError, """
+      wrong operator precedence when piping into bracket-based access
+
+       Instead of:
+
+           #{to_string(expr)} |> #{to_string(first)}[#{to_string(second)}]
+
+       You should write:
+
+           (#{to_string(expr)} |> #{to_string(first)})[#{to_string(second)}]
+      """
     else
-      {op, meta, List.insert_at(args, integer, expr)}
+      {op, meta, List.insert_at([first, second], integer, expr)}
     end
   end
 

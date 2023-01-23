@@ -1029,6 +1029,9 @@ defmodule MacroTest do
     assert Macro.pipe(1, quote(do: foo), -1) == quote(do: foo(1))
     assert Macro.pipe(2, quote(do: foo(1)), -1) == quote(do: foo(1, 2))
 
+    assert Macro.pipe(quote(do: %{foo: "bar"}), quote(do: Access.get(:foo)), 0) ==
+             quote(do: Access.get(%{foo: "bar"}, :foo))
+
     assert_raise ArgumentError, ~r"cannot pipe 1 into 2", fn ->
       Macro.pipe(1, 2, 0)
     end
@@ -1067,7 +1070,7 @@ defmodule MacroTest do
       Macro.pipe(:foo, quote(do: fn x -> x end), 0)
     end
 
-    message = ~r"cannot pipe into expression ending in a bracket-based Access.get/3"
+    message = ~r"wrong operator precedence when piping into bracket-based access"
 
     assert_raise ArgumentError, message, fn ->
       Macro.pipe(:foo, quote(do: %{foo: bar}[:foo]), 0)
