@@ -958,7 +958,7 @@ meta_with_indentation(Meta, nil) ->
 meta_with_indentation(Meta, Indentation) ->
   [{indentation, Indentation} | Meta].
 
-meta_with_from_brackets({List ,Meta}) ->
+meta_with_from_brackets({List, Meta}) ->
   {List, [{from_brackets, true} | Meta]}.
 
 build_bin_heredoc({bin_heredoc, Location, Indentation, Args}) ->
