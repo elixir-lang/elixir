@@ -168,6 +168,8 @@ defmodule Macro do
     * `:keep` - Used by `quote/2` with the option `location: :keep` to annotate
       the file and the line number of the quoted source.
     * `:line` - The line number of the AST node.
+    * `:from_brackets` - Used to determine whether a call to `Access.get/3` is from
+      bracket syntax or a function call.
 
   The following metadata keys are enabled by `Code.string_to_quoted/2`:
 
@@ -311,6 +313,30 @@ defmodule Macro do
     raise ArgumentError,
           "piping into a unary operator is not supported, please use the qualified name: " <>
             "Kernel.#{op}(#{to_string(arg)}), instead of #{op}#{to_string(arg)}"
+  end
+
+  # Piping to an Access.get/2,3 call in the form of brackets
+  # (foo |> bar[]) raises a nice error.
+  def pipe(
+        expr,
+        {{_, meta, [Access, :get] = op}, _meta, [first, second]} = _op_args,
+        integer
+      ) do
+    if {:from_brackets, true} in meta do
+      raise ArgumentError, """
+      wrong operator precedence when piping into bracket-based access
+
+       Instead of:
+
+           #{to_string(expr)} |> #{to_string(first)}[#{to_string(second)}]
+
+       You should write:
+
+           (#{to_string(expr)} |> #{to_string(first)})[#{to_string(second)}]
+      """
+    else
+      {op, meta, List.insert_at([first, second], integer, expr)}
+    end
   end
 
   def pipe(expr, {op, line, args} = op_args, integer) when is_list(args) do
