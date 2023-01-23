@@ -428,19 +428,18 @@ defmodule MacroTest do
     end
 
     test "with composite boolean expressions" do
-      true_ = :rand.uniform() >= 0.0
-      one = 1
-
-      {result, formatted} = dbg_format((true_ and (one && true_)) or (List.first([]) || true_))
+      true1 = length([]) == 0
+      true2 = length([]) == 0
+      {result, formatted} = dbg_format((true1 and true2) or (List.first([]) || true1))
 
       assert result == true
 
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             true_ #=> true
-             true_ and (one && true_) #=> true
-             (true_ and (one && true_)) or (List.first([]) || true_) #=> true
+             true1 #=> true
+             true1 and true2 #=> true
+             (true1 and true2) or (List.first([]) || true1) #=> true
              """
     end
 
