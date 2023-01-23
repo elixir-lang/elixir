@@ -2576,9 +2576,51 @@ defmodule Macro do
     end
   end
 
+  dbg_decomposed_binary_operators = [:&&, :||, :and, :or]
+
+  # Logic operators.
+  defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast)
+       when op in unquote(dbg_decomposed_binary_operators) do
+    acc_var = Macro.unique_var(:acc, __MODULE__)
+    result_var = Macro.unique_var(:result, __MODULE__)
+
+    quote do
+      unquote(acc_var) = []
+      unquote(dbg_boolean_tree(ast, acc_var, result_var))
+      {:logic_op, Enum.reverse(unquote(acc_var))}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(Macro.escape(ast)), unquote(ast)}
+  end
+
+  # This is a binary operator. We replace the left side with a recursive call to
+  # this function to decompose it, and then execute the operation and add it to the acc.
+  defp dbg_boolean_tree({op, _meta, [left, right]} = ast, acc_var, result_var)
+       when op in unquote(dbg_decomposed_binary_operators) do
+    replaced_left = dbg_boolean_tree(left, acc_var, result_var)
+
+    quote do
+      unquote(result_var) = unquote(op)(unquote(replaced_left), unquote(right))
+
+      unquote(acc_var) = [
+        {unquote(Macro.escape(ast)), unquote(result_var)} | unquote(acc_var)
+      ]
+
+      unquote(result_var)
+    end
+  end
+
+  # This is finally an expression, so we assign "result = expr", add it to the acc, and
+  # return the result.
+  defp dbg_boolean_tree(ast, acc_var, result_var) do
+    quote do
+      unquote(result_var) = unquote(ast)
+      unquote(acc_var) = [{unquote(Macro.escape(ast)), unquote(result_var)} | unquote(acc_var)]
+      unquote(result_var)
+    end
   end
 
   # Made public to be called from Macro.dbg/3, so that we generate as little code
@@ -2616,6 +2658,17 @@ defmodule Macro do
       end)
 
     {[first_formatted | rest_formatted], result}
+  end
+
+  defp dbg_format_ast_to_debug({:logic_op, components}, options) do
+    {_ast, final_value} = List.last(components)
+
+    formatted =
+      Enum.map(components, fn {ast, value} ->
+        [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
+      end)
+
+    {formatted, final_value}
   end
 
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do

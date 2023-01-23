@@ -402,6 +402,48 @@ defmodule MacroTest do
       assert formatted =~ ~r/[^\n]\n\n$/
     end
 
+    test "with simple boolean expressions" do
+      {result, formatted} = dbg_format(:rand.uniform() < 0.0 and length([]) == 0)
+      assert result == false
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             :rand.uniform() < 0.0 #=> false
+             :rand.uniform() < 0.0 and length([]) == 0 #=> false
+             """
+    end
+
+    test "with left-associative operators" do
+      {result, formatted} = dbg_format(List.first([]) || "yes" || raise("foo"))
+      assert result == "yes"
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             List.first([]) #=> nil
+             List.first([]) || "yes" #=> "yes"
+             List.first([]) || "yes" || raise "foo" #=> "yes"
+             """
+    end
+
+    test "with composite boolean expressions" do
+      true_ = :rand.uniform() >= 0.0
+      one = 1
+
+      {result, formatted} = dbg_format((true_ and (one && true_)) or (List.first([]) || true_))
+
+      assert result == true
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             true_ #=> true
+             true_ and (one && true_) #=> true
+             (true_ and (one && true_)) or (List.first([]) || true_) #=> true
+             """
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["
