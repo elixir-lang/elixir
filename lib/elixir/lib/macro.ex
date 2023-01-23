@@ -2576,10 +2576,19 @@ defmodule Macro do
     end
   end
 
-  # Boolean operators.
+  dbg_decomposed_binary_operators = [:&&, :||, :and, :or]
+
+  # Logic operators.
   defp dbg_ast_to_debuggable({op, _meta, [_left, _right]} = ast)
-       when op in [:&&, :||, :and, :or] do
-    quote do: {:boolean_op, unquote(Macro.escape(ast)), unquote(dbg_boolean_tree(ast))}
+       when op in unquote(dbg_decomposed_binary_operators) do
+    acc_var = Macro.unique_var(:acc, __MODULE__)
+    result_var = Macro.unique_var(:result, __MODULE__)
+
+    quote do
+      unquote(acc_var) = []
+      unquote(dbg_boolean_tree(ast, acc_var, result_var))
+      {:logic_op, Enum.reverse(unquote(acc_var))}
+    end
   end
 
   # Any other AST.
@@ -2587,22 +2596,30 @@ defmodule Macro do
     quote do: {:value, unquote(Macro.escape(ast)), unquote(ast)}
   end
 
-  defp dbg_boolean_tree({op, _meta, [left, right]}) when op in [:&&, :||, :and, :or] do
-    lv = Macro.unique_var(:left_value, __MODULE__)
-    rv = Macro.unique_var(:right_value, __MODULE__)
-    lt = Macro.unique_var(:left_tree, __MODULE__)
-    rt = Macro.unique_var(:right_tree, __MODULE__)
+  # This is a binary operator. We replace the left side with a recursive call to
+  # this function to decompose it, and then execute the operation and add it to the acc.
+  defp dbg_boolean_tree({op, _meta, [left, right]} = ast, acc_var, result_var)
+       when op in unquote(dbg_decomposed_binary_operators) do
+    replaced_left = dbg_boolean_tree(left, acc_var, result_var)
 
     quote do
-      {_left_ast, unquote(lv)} = unquote(lt) = unquote(dbg_boolean_tree(left))
-      {_right_ast, unquote(rv)} = unquote(rt) = unquote(dbg_boolean_tree(right))
-      {{unquote(op), unquote(lt), unquote(rt)}, unquote(op)(unquote(lv), unquote(rv))}
+      unquote(result_var) = unquote(op)(unquote(replaced_left), unquote(right))
+
+      unquote(acc_var) = [
+        {unquote(Macro.escape(ast)), unquote(result_var)} | unquote(acc_var)
+      ]
+
+      unquote(result_var)
     end
   end
 
-  defp dbg_boolean_tree(ast) do
+  # This is finally an expression, so we assign "result = expr", add it to the acc, and
+  # return the result.
+  defp dbg_boolean_tree(ast, acc_var, result_var) do
     quote do
-      {unquote(Macro.escape(ast)), unquote(ast)}
+      unquote(result_var) = unquote(ast)
+      unquote(acc_var) = [{unquote(Macro.escape(ast)), unquote(result_var)} | unquote(acc_var)]
+      unquote(result_var)
     end
   end
 
@@ -2643,17 +2660,13 @@ defmodule Macro do
     {[first_formatted | rest_formatted], result}
   end
 
-  defp dbg_format_ast_to_debug({:boolean_op, whole_ast, boolean_tree}, options) do
-    {_ast, final_value} = boolean_tree
-    whole_expr_code = to_string_with_colors(whole_ast, options)
+  defp dbg_format_ast_to_debug({:logic_op, components}, options) do
+    {_ast, final_value} = List.last(components)
 
-    formatted = [
-      [:bright, "[Boolean expression] ", :reset, whole_expr_code, ?\n],
-      [:faint, "Result: ", :reset, inspect(final_value), ?\n],
-      [:faint, "Components:", :reset, ?\n],
-      dbg_flatten_and_format_boolean_tree(boolean_tree, options),
-      ?\n
-    ]
+    formatted =
+      Enum.map(components, fn {ast, value} ->
+        [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
+      end)
 
     {formatted, final_value}
   end
@@ -2661,18 +2674,6 @@ defmodule Macro do
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
     code = to_string_with_colors(code_ast, options)
     {[dbg_format_ast(code), " ", inspect(value, options), ?\n], value}
-  end
-
-  defp dbg_flatten_and_format_boolean_tree({ast, value}, options) do
-    case ast do
-      {op, left_tree, right_tree} when op in [:&&, :||, :and, :or] ->
-        left = dbg_flatten_and_format_boolean_tree(left_tree, options)
-        right = dbg_flatten_and_format_boolean_tree(right_tree, options)
-        [left, ?\n, right]
-
-      _other ->
-        [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value)]
-    end
   end
 
   defp to_string_with_colors(ast, options) do

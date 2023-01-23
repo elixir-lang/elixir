@@ -403,37 +403,44 @@ defmodule MacroTest do
     end
 
     test "with simple boolean expressions" do
-      {result, formatted} = dbg_format(:rand.uniform() >= 0.0 and length([]) == 0)
-      assert result == true
+      {result, formatted} = dbg_format(:rand.uniform() < 0.0 and length([]) == 0)
+      assert result == false
 
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             [Boolean expression] :rand.uniform() >= 0.0 and length([]) == 0
-             Result: true
-             Components:
-             :rand.uniform() >= 0.0 #=> true
-             length([]) == 0 #=> true
+             :rand.uniform() < 0.0 #=> false
+             :rand.uniform() < 0.0 and length([]) == 0 #=> false
+             """
+    end
+
+    test "with left-associative operators" do
+      {result, formatted} = dbg_format(List.first([]) || "yes" || raise("foo"))
+      assert result == "yes"
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             List.first([]) #=> nil
+             List.first([]) || "yes" #=> "yes"
+             List.first([]) || "yes" || raise "foo" #=> "yes"
              """
     end
 
     test "with composite boolean expressions" do
-      f = abs(System.unique_integer()) < 0
-      t = :rand.uniform() >= 0.0
-      {result, formatted} = dbg_format((f and (1 && t)) or (nil || t))
+      true_ = :rand.uniform() >= 0.0
+      one = 1
+
+      {result, formatted} = dbg_format((true_ and (one && true_)) or (List.first([]) || true_))
+
       assert result == true
 
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             [Boolean expression] (f and (1 && t)) or (nil || t)
-             Result: true
-             Components:
-             f #=> false
-             1 #=> 1
-             t #=> true
-             nil #=> nil
-             t #=> true
+             true_ #=> true
+             true_ and (one && true_) #=> true
+             (true_ and (one && true_)) or (List.first([]) || true_) #=> true
              """
     end
 
