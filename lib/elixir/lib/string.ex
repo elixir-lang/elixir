@@ -1779,6 +1779,22 @@ defmodule String do
   @doc ~S"""
   Checks whether `string` contains only valid characters.
 
+  `mode` may be `:default` or `:fast_ascii`. Both modes are equivalent from a validation
+  perspective (they will always produce the same output), but `:fast_ascii` can yield signifcant 
+  performance benefits in specific scenarios.
+
+  If all of the following conditions are true, you may want to experiment with the `:fast_ascii`
+  mode to see if it yields performance benefits in your specific scenario:
+
+  * You are running OTP 26 or newer on a 64 bit platform
+  * You expect most of your strings to be longer than ~64 bytes
+  * You expect most of your strings to contain mostly ASCII codepoints
+
+  Note that the `:fast_ascii` mode does not affect correctness; you can expect the output of
+  `String.valid?/2` to be the same in all modes. The only difference to be expected is one of
+  performance, which can be expected to improve roughly quadratically in string length compared
+  to the `:default` mode.
+
   ## Examples
 
       iex> String.valid?("a")
@@ -1796,18 +1812,31 @@ defmodule String do
       iex> String.valid?("asd" <> <<0xFFFF::16>>)
       false
 
+      iex> String.valid?("a", :fast_ascii)
+      true
+
       iex> String.valid?(4)
-      ** (FunctionClauseError) no function clause matching in String.valid?/1
+      ** (FunctionClauseError) no function clause matching in String.valid?/2
 
   """
   @spec valid?(t) :: boolean
-  def valid?(string)
+  def valid?(string, mode \\ :default)
 
-  def valid?(<<string::binary>>), do: valid_utf8?(string)
+  def valid?(<<string::binary>>, :default), do: valid_utf8?(string)
+  def valid?(<<string::binary>>, :fast_ascii), do: valid_utf8_fast_ascii?(string)
 
   defp valid_utf8?(<<_::utf8, rest::bits>>), do: valid_utf8?(rest)
   defp valid_utf8?(<<>>), do: true
   defp valid_utf8?(_), do: false
+
+  defp valid_utf8_fast_ascii?(<<a::56, rest::bits>>)
+       when Bitwise.band(0x80808080808080, a) == 0 do
+    valid_utf8_fast_ascii?(rest)
+  end
+
+  defp valid_utf8_fast_ascii?(<<_::utf8, rest::bits>>), do: valid_utf8_fast_ascii?(rest)
+  defp valid_utf8_fast_ascii?(<<>>), do: true
+  defp valid_utf8_fast_ascii?(_), do: false
 
   @doc false
   @deprecated "Use String.valid?/1 instead"

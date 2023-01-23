@@ -812,6 +812,14 @@ defmodule StringTest do
 
     refute String.valid?(<<0xFFFF::16>>)
     refute String.valid?("asd" <> <<0xFFFF::16>>)
+
+    assert String.valid?("afdsafdsafds", :fast_ascii)
+    assert String.valid?("øsdfhøsdfh", :fast_ascii)
+    assert String.valid?("dskfjあskadskfjあska", :fast_ascii)
+    assert String.valid?(<<0xEF, 0xB7, 0x90, 0xEF, 0xB7, 0x90, 0xEF, 0xB7, 0x90>>, :fast_ascii)
+
+    refute String.valid?(<<0xFFFF::16>>, :fast_ascii)
+    refute String.valid?("asdasdasd" <> <<0xFFFF::16>>, :fast_ascii)
   end
 
   test "chunk/2 with :valid trait" do
