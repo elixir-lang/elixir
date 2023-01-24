@@ -217,6 +217,16 @@ defmodule Registry do
           | {:listeners, [atom]}
           | {:meta, [{meta_key, meta_value}]}
 
+  @typedoc """
+  The message that the registry sends to listeners when a process registers or unregisters.
+
+  See the `:listeners` option in `start_link/1`.
+  """
+  @typedoc since: "1.15.0"
+  @type listener_message ::
+          {:register, registry, key, registry_partition :: pid, value}
+          | {:unregister, registry, key, registry_partition :: pid}
+
   ## Via callbacks
 
   @doc false
@@ -309,10 +319,10 @@ defmodule Registry do
   The following keys are optional:
 
     * `:partitions` - the number of partitions in the registry. Defaults to `1`.
-    * `:listeners` - a list of named processes which are notified of `:register`
-      and `:unregister` events. The registered process must be monitored by the
+    * `:listeners` - a list of named processes which are notified of register
+      and unregister events. The registered process must be monitored by the
       listener if the listener wants to be notified if the registered process
-      crashes.
+      crashes. Messages sent to listeners are of type `t:listener_message/0`.
     * `:meta` - a keyword list of metadata to be attached to the registry.
 
   """
@@ -801,6 +811,10 @@ defmodule Registry do
   the owner if there are no more keys associated to the current process. See
   also `register/3` to read more about the "owner".
 
+  If the registry has listeners specified via the `:listeners` option in `start_link/1`,
+  those listeners will be notified of the unregistration and will receive a
+  message of type `t:listener_message/0`.
+
   ## Examples
 
   For unique registries:
@@ -961,6 +975,10 @@ defmodule Registry do
 
   If the registry has duplicate keys, multiple registrations from the
   current process under the same key are allowed.
+
+  If the registry has listeners specified via the `:listeners` option in `start_link/1`,
+  those listeners will be notified of the registration and will receive a
+  message of type `t:listener_message/0`.
 
   ## Examples
 
