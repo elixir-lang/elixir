@@ -1657,6 +1657,53 @@ defmodule Code do
   end
 
   @doc """
+  Ensures the given modules are loaded.
+
+  Similar to `ensure_loaded/1`, but accepts a list of modules instead of a single
+  module, and loads all of them.
+
+  If all modules load successfully, returns `:ok`. Otherwise, returns `{:error, errors}`
+  where `errors` is a list of tuples made of the module and the reason it failed to load.
+
+  ## Examples
+
+      iex> Code.ensure_all_loaded([Atom, String])
+      :ok
+
+      iex> Code.ensure_all_loaded([Atom, DoesNotExist])
+      {:error, [{DoesNotExist, :nofile}]}
+
+  """
+  @doc since: "1.15.0"
+  @spec ensure_all_loaded([module]) :: :ok | {:error, [{module, reason}]}
+        when reason: :badfile | :nofile | :on_load_failure
+  def ensure_all_loaded(modules) when is_list(modules) do
+    :code.ensure_modules_loaded(modules)
+  end
+
+  @doc """
+  Same as `ensure_all_loaded/1` but raises if any of the modules cannot be loaded.
+  """
+  @doc since: "1.15.0"
+  @spec ensure_all_loaded!([module]) :: :ok
+  def ensure_all_loaded!(modules) do
+    case ensure_all_loaded(modules) do
+      :ok ->
+        :ok
+
+      {:error, errors} ->
+        formatted_errors =
+          errors
+          |> Enum.sort_by(fn {module, _} -> module end)
+          |> Enum.map_join("\n", fn {module, reason} ->
+            "  * #{inspect(module)} due to reason #{inspect(reason)}"
+          end)
+
+        raise ArgumentError, "could not load the following modules:\n\n" <> formatted_errors
+    end
+  end
+
+  @doc """
   Similar to `ensure_compiled!/1` but indicates you can continue without said module.
 
   While `ensure_compiled!/1` indicates to the Elixir compiler you can
