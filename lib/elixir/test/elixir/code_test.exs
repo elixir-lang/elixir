@@ -345,6 +345,30 @@ defmodule CodeTest do
     end
   end
 
+  test "ensure_all_loaded/1" do
+    assert Code.ensure_all_loaded([__MODULE__]) == :ok
+    assert Code.ensure_all_loaded([__MODULE__, Kernel]) == :ok
+
+    assert {:error, [error]} = Code.ensure_all_loaded([__MODULE__, Code.NoFile, __MODULE__])
+    assert error == {Code.NoFile, :nofile}
+  end
+
+  test "ensure_all_loaded!/1" do
+    assert Code.ensure_all_loaded!([__MODULE__]) == :ok
+    assert Code.ensure_all_loaded!([__MODULE__, Kernel]) == :ok
+
+    message = """
+    could not load the following modules:
+
+      * Code.NoFile due to reason :nofile
+      * Code.OtherNoFile due to reason :nofile\
+    """
+
+    assert_raise ArgumentError, message, fn ->
+      Code.ensure_all_loaded!([__MODULE__, Code.NoFile, Code.OtherNoFile])
+    end
+  end
+
   test "ensure_compiled/1" do
     assert Code.ensure_compiled(__MODULE__) == {:module, __MODULE__}
     assert Code.ensure_compiled(Code.NoFile) == {:error, :nofile}
