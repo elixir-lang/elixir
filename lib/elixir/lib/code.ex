@@ -1694,7 +1694,7 @@ defmodule Code do
       {:error, errors} ->
         formatted_errors =
           errors
-          |> Enum.sort_by(fn {module, _} -> module end)
+          |> Enum.sort()
           |> Enum.map_join("\n", fn {module, reason} ->
             "  * #{inspect(module)} due to reason #{inspect(reason)}"
           end)
