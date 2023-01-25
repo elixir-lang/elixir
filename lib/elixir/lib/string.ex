@@ -1779,21 +1779,21 @@ defmodule String do
   @doc ~S"""
   Checks whether `string` contains only valid characters.
 
-  `mode` may be `:default` or `:fast_ascii`. Both modes are equivalent from a validation
+  `algorithm` may be `:default` or `:fast_ascii`. Both algorithms are equivalent from a validation
   perspective (they will always produce the same output), but `:fast_ascii` can yield signifcant 
   performance benefits in specific scenarios.
 
   If all of the following conditions are true, you may want to experiment with the `:fast_ascii`
-  mode to see if it yields performance benefits in your specific scenario:
+  algorithm to see if it yields performance benefits in your specific scenario:
 
   * You are running Erlang/OTP 26 or newer on a 64 bit platform
   * You expect most of your strings to be longer than ~64 bytes
   * You expect most of your strings to contain mostly ASCII codepoints
 
-  Note that the `:fast_ascii` mode does not affect correctness, you can expect the output of
-  `String.valid?/2` to be the same in all modes. The only difference to be expected is one of
-  performance, which can be expected to improve roughly quadratically in string length compared
-  to the `:default` mode.
+  Note that the `:fast_ascii` algorithm does not affect correctness, you can expect the output of
+  `String.valid?/2` to be the same regardless of algorithm. The only difference to be expected is
+  one of performance, which can be expected to improve roughly quadratically in string length
+  compared to the `:default` algorithm.
 
   ## Examples
 
@@ -1820,7 +1820,7 @@ defmodule String do
 
   """
   @spec valid?(t) :: boolean
-  def valid?(string, mode \\ :default)
+  def valid?(string, algorithm \\ :default)
 
   def valid?(<<string::binary>>, :default), do: valid_utf8?(string)
   def valid?(<<string::binary>>, :fast_ascii), do: valid_utf8_fast_ascii?(string)
