@@ -1779,21 +1779,23 @@ defmodule String do
   @doc ~S"""
   Checks whether `string` contains only valid characters.
 
-  `algorithm` may be `:default` or `:fast_ascii`. Both algorithms are equivalent from a validation
-  perspective (they will always produce the same output), but `:fast_ascii` can yield signifcant 
-  performance benefits in specific scenarios.
+  `algorithm` may be `:default` or `:fast_ascii`. Both algorithms are equivalent
+  from a validation perspective (they will always produce the same output), but
+  `:fast_ascii` can yield signifcant performance benefits in specific scenarios.
 
-  If all of the following conditions are true, you may want to experiment with the `:fast_ascii`
-  algorithm to see if it yields performance benefits in your specific scenario:
+  If all of the following conditions are true, you may want to experiment with
+  the `:fast_ascii` algorithm to see if it yields performance benefits in your
+  specific scenario:
 
   * You are running Erlang/OTP 26 or newer on a 64 bit platform
   * You expect most of your strings to be longer than ~64 bytes
   * You expect most of your strings to contain mostly ASCII codepoints
 
-  Note that the `:fast_ascii` algorithm does not affect correctness, you can expect the output of
-  `String.valid?/2` to be the same regardless of algorithm. The only difference to be expected is
-  one of performance, which can be expected to improve roughly quadratically in string length
-  compared to the `:default` algorithm.
+  Note that the `:fast_ascii` algorithm does not affect correctness, you can
+  expect the output of `String.valid?/2` to be the same regardless of algorithm.
+  The only difference to be expected is one of performance, which can be
+  expected to improve roughly linearly in string length compared to the
+  `:default` algorithm.
 
   ## Examples
 
