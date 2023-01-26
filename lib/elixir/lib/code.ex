@@ -1448,6 +1448,9 @@ defmodule Code do
       `string_to_quoted/2` (except by the options that change the AST itself).
       This can be used in combination with the tracer to retrieve localized
       information about events happening during compilation. Defaults to `[]`.
+      This option only affects code compilation functions, such as `compile_string/2`
+      and `compile_file/2` but not `string_to_quoted/2` and friends, as the
+      latter is used for other purposes beyond compilation.
 
     * `:on_undefined_variable` (since v1.15.0) - either `:warn` or `:raise`.
       When `:warn`, undefined variables will emit a warning and be expanded as a
