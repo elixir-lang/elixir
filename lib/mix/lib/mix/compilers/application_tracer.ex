@@ -107,17 +107,18 @@ defmodule Mix.Compilers.ApplicationTracer do
       :ets.delete(table, module)
     end
 
-    warnings =
+    {warnings, _} =
       :ets.foldl(
-        fn {module, function, arity, env_module, env_function, env_file, env_line}, acc ->
+        fn {module, function, arity, env_module, env_function, env_file, env_line},
+           {acc, cache} ->
           # If the module is preloaded, it is always available, so we skip it.
           # If the module is non existing, the compiler will warn, so we skip it.
           # If the module belongs to this application (from another compiler), we skip it.
           # If the module is excluded, we skip it.
-          with path when is_list(path) <- :code.which(module),
-               {:ok, module_app} <- app(path),
-               true <- module_app != app,
-               false <- module in excludes or {module, function, arity} in excludes do
+          {module_app, cache} = app_for_module(module, cache)
+
+          if module_app != nil and module_app != app and module not in excludes and
+               {module, function, arity} not in excludes do
             env_mfa =
               if env_function do
                 {env_module, elem(env_function, 0), elem(env_function, 1)}
@@ -126,12 +127,12 @@ defmodule Mix.Compilers.ApplicationTracer do
               end
 
             warning = {:undefined_app, String.to_atom(module_app), module, function, arity}
-            [{__MODULE__, warning, {env_file, env_line, env_mfa}} | acc]
+            {[{__MODULE__, warning, {env_file, env_line, env_mfa}} | acc], cache}
           else
-            _ -> acc
+            {acc, cache}
           end
         end,
-        [],
+        {[], %{}},
         table
       )
 
@@ -140,14 +141,43 @@ defmodule Mix.Compilers.ApplicationTracer do
     |> Module.ParallelChecker.emit_warnings()
   end
 
-  # ../elixir/ebin/elixir.beam -> elixir
-  # ../ssl-9.6/ebin/ssl.beam -> ssl
-  defp app(path) do
-    case path |> Path.split() |> Enum.take(-3) do
-      [dir, "ebin", _beam] -> {:ok, dir |> String.split("-") |> hd()}
-      _ -> :error
+  defp app_for_module(module, cache) do
+    case cache do
+      %{^module => maybe_app} ->
+        {maybe_app, cache}
+
+      %{} ->
+        maybe_app = app_for_module(module)
+        {maybe_app, Map.put(cache, module, maybe_app)}
     end
   end
+
+  # ../elixir/ebin/elixir.beam -> elixir
+  # ../ssl-9.6/ebin/ssl.beam -> ssl
+  defp app_for_module(module) do
+    with [_ | _] = path when is_list(path) <- :code.which(module),
+         [_ | _] = app <-
+           path |> Enum.reverse() |> discard_dir() |> discard_ebin() |> collect_dir([]) do
+      List.to_string(app)
+    else
+      _ -> nil
+    end
+  end
+
+  defp discard_dir([?\\ | path]), do: path
+  defp discard_dir([?/ | path]), do: path
+  defp discard_dir([_ | path]), do: discard_dir(path)
+  defp discard_dir([]), do: []
+
+  defp discard_ebin(~c"nibe/" ++ path), do: path
+  defp discard_ebin(~c"nibe\\" ++ path), do: path
+  defp discard_ebin(_), do: []
+
+  defp collect_dir([?\\ | _], acc), do: acc
+  defp collect_dir([?/ | _], acc), do: acc
+  defp collect_dir([?- | path], _acc), do: collect_dir(path, [])
+  defp collect_dir([head | path], acc), do: collect_dir(path, [head | acc])
+  defp collect_dir([], acc), do: acc
 
   def stop(pending_save_manifest \\ nil) do
     try do
