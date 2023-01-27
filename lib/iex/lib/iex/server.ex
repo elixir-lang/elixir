@@ -57,7 +57,7 @@ defmodule IEx.Server do
   defp shell_loop(opts, pid, ref) do
     receive do
       {:take_over, take_pid, take_ref, take_location, take_whereami, take_opts} ->
-        if take_over?(take_pid, take_ref, take_location, take_whereami, 1, take_opts) do
+        if take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, 1) do
           run_without_registration(init_state(opts), take_opts, nil)
         else
           shell_loop(opts, pid, ref)
