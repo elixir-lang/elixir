@@ -8,7 +8,7 @@ defmodule IEx.History do
   @doc """
   Initializes IEx history state.
   """
-  def init(), do: %History{}
+  def init(start), do: %History{start: start}
 
   @doc """
   Appends one entry to the history.

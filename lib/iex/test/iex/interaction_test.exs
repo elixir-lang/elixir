@@ -12,11 +12,11 @@ defmodule IEx.InteractionTest do
   end
 
   test "empty input" do
-    assert String.match?(capture_iex("\n"), ~r/nil/)
+    assert capture_iex("\n") == "nil"
   end
 
   test "normal input" do
-    assert String.match?(capture_iex("1 + 2"), ~r/3/)
+    assert capture_iex("1 + 2") == "3"
   end
 
   test "invalid input" do
@@ -50,7 +50,7 @@ defmodule IEx.InteractionTest do
       c
     """
 
-    assert String.match?(capture_iex(input), ~r/^[iex.1()\ >]+$/)
+    assert capture_iex(input) == ""
   end
 
   test "break" do
@@ -104,38 +104,37 @@ defmodule IEx.InteractionTest do
 
   test "prompt" do
     opts = [default_prompt: "prompt(%counter)>"]
-    assert capture_iex("1\n", opts, []) == "prompt(1)> 1\nprompt(2)>"
+    assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
   end
 
   test "continuation prompt" do
     opts = [default_prompt: "%prefix(%counter)>", continuation_prompt: "%prefix(%counter)>>>"]
-    assert capture_iex("[\n1\n]\n", opts, []) == "iex(1)> ...(1)>>> ...(1)>>> [1]\niex(2)>"
+    assert capture_iex("[\n1\n]\n", opts, [], true) == "iex(1)> ...(1)>>> ...(1)>>> [1]\niex(2)>"
   end
 
   if IO.ANSI.enabled?() do
     test "color" do
       opts = [colors: [enabled: true, eval_result: [:red]]]
-      assert capture_iex("1 + 2", opts) =~ ~r/\e\[31m\e\[33m3\e\[0m\e\[31m\e\[0m/
+      assert capture_iex("1 + 2", opts) == "\e[31m\e[33m3\e[0m\e[31m\e[0m"
+      assert capture_iex("IO.ANSI.blue()", opts) == "\e[31m\e[32m\"\\e[34m\"\e[0m\e[31m\e[0m"
 
-      assert capture_iex("IO.ANSI.blue()", opts) =~
-               ~r/\e\[31m\e\[32m\"\\e\[34m\"\e\[0m\e\[31m\e\[0m/
-
-      assert capture_iex("{:ok}", opts) =~
-               ~r/\e\[31m\e\[39m{\e\[0m\e\[31m\e\[36m:ok\e\[0m\e\[31m\e\[39m}\e\[0m\e\[31m\e\[0m/
+      assert capture_iex("{:ok}", opts) ==
+               "\e[31m\e[39m{\e[0m\e[31m\e[36m:ok\e[0m\e[31m\e[39m}\e[0m\e[31m\e[0m"
     end
   end
 
   test "inspect opts" do
     opts = [inspect: [binaries: :as_binaries, charlists: :as_lists, structs: false, limit: 4]]
 
-    assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) =~
-             "iex(1)> <<45, 46, 47>>\niex(2)> [45, 46, 47]\niex(3)> %{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
+    assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) ==
+             "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
   end
 
   test "exception" do
-    output = capture_iex("1 + :atom\n:this_is_still_working")
-    assert output =~ "** (ArithmeticError) bad argument in arithmetic expression"
-    assert output =~ "iex(1)> :this_is_still_working"
+    exception = Regex.escape("** (ArithmeticError) bad argument in arithmetic expression")
+
+    assert capture_iex("1 + :atom\n:this_is_still_working") =~
+             ~r/^#{exception}.+\n:this_is_still_working$/s
 
     refute capture_iex("1 + :atom\n:this_is_still_working") =~ ~r/erl_eval/s
   end
@@ -192,7 +191,7 @@ defmodule IEx.InteractionTest do
       end
     end
 
-    assert capture_iex("foo", parser: {EchoParser, :parse, []}) =~ "iex(1)> \"foo\"\niex(2)>"
+    assert capture_iex("foo", parser: {EchoParser, :parse, []}) == "\"foo\""
   after
     IEx.configure(parser: {IEx.Evaluator, :parse, []})
   end
@@ -216,7 +215,7 @@ defmodule IEx.InteractionTest do
         my_variable = 42
         """)
 
-      assert capture_iex("{my_fun_single(), my_variable}", [], dot_iex_path: path) =~
+      assert capture_iex("{my_fun_single(), my_variable}", [], dot_iex_path: path) ==
                "{:single, 42}"
     end
 
@@ -234,8 +233,7 @@ defmodule IEx.InteractionTest do
         write_dot_iex!(tmp_dir, "dot-iex", "import_file \"#{tmp_dir}/dot-iex-1\"\nmy_variable=13")
 
       input = "nested_var\nmy_variable\nmy_fun_nested()"
-
-      assert capture_iex(input, [], dot_iex_path: path) =~ ~r/42\n.*13\n.*:nested/
+      assert capture_iex(input, [], dot_iex_path: path) == "42\n13\n:nested"
     end
   end
 

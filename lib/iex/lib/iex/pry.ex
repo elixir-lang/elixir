@@ -39,7 +39,6 @@ defmodule IEx.Pry do
       # Remove all tracers because the tracer code is most
       # likely stale by the time we are prying the code.
       env: %{env | tracers: [], lexical_tracker: nil},
-      prefix: "pry",
       stacktrace: prune_stacktrace(stacktrace)
     ]
 
@@ -60,8 +59,8 @@ defmodule IEx.Pry do
 
     # We cannot use colors because IEx may be off
     case IEx.Broker.take_over(location, whereami, [evaluator: self()] ++ opts) do
-      {:ok, server, group_leader} ->
-        IEx.Evaluator.init(:no_ack, server, group_leader, opts)
+      {:ok, server, group_leader, start} ->
+        IEx.Evaluator.init(:no_ack, server, group_leader, start, opts)
 
       {:error, :no_iex} ->
         extra =

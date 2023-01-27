@@ -65,12 +65,12 @@ defmodule IEx.Broker do
 
   The broker's PID is needed to support remote shells.
   """
-  @spec respond(pid, take_ref, boolean()) :: :ok | {:error, :refused | :already_accepted}
-  def respond(broker_pid, take_ref, true) do
-    GenServer.call(broker_pid, {:accept, take_ref, Process.group_leader()})
+  @spec respond(pid, take_ref, integer(), boolean()) :: :ok | {:error, :refused | :already_accepted}
+  def respond(broker_pid, take_ref, counter, true) do
+    GenServer.call(broker_pid, {:accept, take_ref, Process.group_leader(), counter})
   end
 
-  def respond(broker_pid, take_ref, false) do
+  def respond(broker_pid, take_ref, _counter, false) do
     GenServer.call(broker_pid, {:refuse, take_ref})
   end
 
@@ -125,13 +125,13 @@ defmodule IEx.Broker do
     {:reply, :ok, state}
   end
 
-  def handle_call({:accept, {ref, _server_ref}, group_leader}, {server, _}, state) do
+  def handle_call({:accept, {ref, _server_ref}, group_leader, counter}, {server, _}, state) do
     case pop_in(state.takeovers[ref]) do
       {nil, state} ->
         {:reply, {:error, :already_accepted}, state}
 
       {{from, _}, state} ->
-        GenServer.reply(from, {:ok, server, group_leader})
+        GenServer.reply(from, {:ok, server, group_leader, counter})
         {:reply, :ok, state}
     end
   end
