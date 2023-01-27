@@ -964,13 +964,9 @@ defmodule Mix.Compilers.Elixir do
     end
 
     if changed == [] do
-      warnings = Mix.Compilers.ApplicationTracer.warnings(modules)
-
-      modules_set =
-        modules
-        |> Enum.map(&module(&1, :module))
-        |> Map.from_keys(true)
-
+      modules_names = Enum.map(modules, &module(&1, :module))
+      modules_set = Map.from_keys(modules_names, true)
+      warnings = Mix.Compilers.ApplicationTracer.warnings(modules_names)
       {_, runtime_modules} = fixpoint_runtime_modules(sources, modules_set)
 
       runtime_paths =
