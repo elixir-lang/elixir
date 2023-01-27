@@ -16,8 +16,7 @@ defmodule IEx.Server do
             prefix: "iex",
             on_eof: :stop_evaluator,
             evaluator_options: [],
-            expand_fun: nil,
-            previous_state: nil
+            expand_fun: nil
 
   @doc """
   Starts a new IEx server session.
@@ -34,7 +33,7 @@ defmodule IEx.Server do
   @spec run(keyword) :: :ok
   def run(opts) when is_list(opts) do
     IEx.Broker.register(self())
-    run_without_registration(opts, nil)
+    run_without_registration(init_state(opts), opts, nil)
   end
 
   ## Private APIs
@@ -58,15 +57,14 @@ defmodule IEx.Server do
   defp shell_loop(opts, pid, ref) do
     receive do
       {:take_over, take_pid, take_ref, take_location, take_whereami, take_opts} ->
-        if take_over?(take_pid, take_ref, take_location, take_whereami, take_opts) do
-          take_opts = Keyword.put(take_opts, :previous_state, iex_state(opts))
-          run_without_registration(take_opts, nil)
+        if take_over?(take_pid, take_ref, take_location, take_whereami, 1, take_opts) do
+          run_without_registration(init_state(opts), take_opts, nil)
         else
           shell_loop(opts, pid, ref)
         end
 
       {:DOWN, ^ref, :process, ^pid, :normal} ->
-        run_without_registration(opts, nil)
+        run_without_registration(init_state(opts), opts, nil)
 
       {:DOWN, ^ref, :process, ^pid, _reason} ->
         :ok
@@ -75,7 +73,7 @@ defmodule IEx.Server do
 
   # Since we want to register only once, this function is the
   # reentrant point for starting a new shell (instead of run/run_from_shell).
-  defp run_without_registration(opts, input) do
+  defp run_without_registration(state, opts, input) do
     Process.flag(:trap_exit, true)
     Process.link(Process.group_leader())
 
@@ -83,19 +81,16 @@ defmodule IEx.Server do
       "Interactive Elixir (#{System.version()}) - press Ctrl+C to exit (type h() ENTER for help)"
     )
 
-    evaluator = start_evaluator(opts)
-    loop(iex_state(opts), :ok, evaluator, Process.monitor(evaluator), input)
+    evaluator = start_evaluator(state.counter, Keyword.merge(state.evaluator_options, opts))
+    loop(state, :ok, evaluator, Process.monitor(evaluator), input)
   end
 
   # Starts an evaluator using the provided options.
   # Made public but undocumented for testing.
   @doc false
-  @spec start_evaluator(keyword) :: pid
-  def start_evaluator(opts) do
-    evaluator =
-      opts[:evaluator] ||
-        :proc_lib.start(IEx.Evaluator, :init, [:ack, self(), Process.group_leader(), opts])
-
+  def start_evaluator(counter, opts) do
+    args = [:ack, self(), Process.group_leader(), counter, opts]
+    evaluator = opts[:evaluator] || :proc_lib.start(IEx.Evaluator, :init, args)
     Process.put(:evaluator, evaluator)
     evaluator
   end
@@ -109,16 +104,16 @@ defmodule IEx.Server do
     :ok
   end
 
-  defp rerun(opts, evaluator, evaluator_ref, input) do
+  defp rerun(state, opts, evaluator, evaluator_ref, input) do
     IO.puts("")
     stop_evaluator(evaluator, evaluator_ref)
-    run_without_registration(opts, input)
+    state = reset_state(state)
+    run_without_registration(state, opts, input)
   end
 
   defp loop(state, status, evaluator, evaluator_ref, input) do
-    write_prompt(status, state.prefix, state.counter)
     :io.setopts(expand_fun: state.expand_fun)
-    input = input || io_get()
+    input = input || io_get(prompt(status, state.prefix, state.counter))
     wait_input(state, evaluator, evaluator_ref, input)
   end
 
@@ -195,16 +190,16 @@ defmodule IEx.Server do
       evaluator == take_opts[:evaluator] ->
         IO.puts(IEx.color(:eval_interrupt, "Break reached: #{take_location}#{take_whereami}"))
 
-        if take_over?(take_pid, take_ref, true) do
-          take_opts = Keyword.put(take_opts, :previous_state, state)
-          loop(iex_state(take_opts), :ok, evaluator, evaluator_ref, input)
+        if take_over?(take_pid, take_ref, state.counter + 1, true) do
+          # Since we are in process, also bump the counter
+          state = reset_state(bump_counter(state))
+          loop(state, :ok, evaluator, evaluator_ref, input)
         else
           callback.(state)
         end
 
-      take_over?(take_pid, take_ref, take_location, take_whereami, take_opts) ->
-        take_opts = Keyword.put(take_opts, :previous_state, state)
-        rerun(take_opts, evaluator, evaluator_ref, input)
+      take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, state.counter) ->
+        rerun(state, take_opts, evaluator, evaluator_ref, input)
 
       true ->
         callback.(state)
@@ -221,11 +216,8 @@ defmodule IEx.Server do
          _callback
        ) do
     io_error("** (EXIT) interrupted")
-    Process.delete(:evaluator)
     Process.exit(evaluator, :kill)
-    Process.demonitor(evaluator_ref, [:flush])
-    evaluator = start_evaluator(state.evaluator_options)
-    loop(%{state | parser_state: ""}, :ok, evaluator, Process.monitor(evaluator), input)
+    rerun(state, [], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(
@@ -245,12 +237,7 @@ defmodule IEx.Server do
   end
 
   defp handle_take_over({:respawn, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
-    opts =
-      if state.previous_state,
-        do: state.previous_state.evaluator_options,
-        else: state.evaluator_options
-
-    rerun(opts, evaluator, evaluator_ref, input)
+    rerun(bump_counter(state), [], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(
@@ -273,12 +260,7 @@ defmodule IEx.Server do
          input,
          _callback
        ) do
-    opts =
-      if state.previous_state,
-        do: state.previous_state.evaluator_options,
-        else: state.evaluator_options
-
-    rerun(opts, evaluator, evaluator_ref, input)
+    rerun(state, [], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(
@@ -299,27 +281,22 @@ defmodule IEx.Server do
         io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
     end
 
-    opts =
-      if state.previous_state,
-        do: state.previous_state.evaluator_options,
-        else: state.evaluator_options
-
-    rerun(opts, evaluator, evaluator_ref, input)
+    rerun(state, [], evaluator, evaluator_ref, input)
   end
 
   defp handle_take_over(_, state, _evaluator, _evaluator_ref, _input, callback) do
     callback.(state)
   end
 
-  defp take_over?(take_pid, take_ref, take_location, take_whereami, take_opts) do
+  defp take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, counter) do
     evaluator = take_opts[:evaluator]
     message = "Request to pry #{inspect(evaluator)} at #{take_location}#{take_whereami}"
     interrupt = IEx.color(:eval_interrupt, "#{message}\nAllow? [Yn] ")
-    take_over?(take_pid, take_ref, yes?(IO.gets(:stdio, interrupt)))
+    take_over?(take_pid, take_ref, counter, yes?(IO.gets(:stdio, interrupt)))
   end
 
-  defp take_over?(take_pid, take_ref, take_response) when is_boolean(take_response) do
-    case IEx.Broker.respond(take_pid, take_ref, take_response) do
+  defp take_over?(take_pid, take_ref, counter, response) when is_boolean(response) do
+    case IEx.Broker.respond(take_pid, take_ref, counter, response) do
       :ok ->
         true
 
@@ -338,10 +315,9 @@ defmodule IEx.Server do
 
   ## State
 
-  defp iex_state(opts) do
+  defp init_state(opts) do
     prefix = Keyword.get(opts, :prefix, "iex")
     on_eof = Keyword.get(opts, :on_eof, :stop_evaluator)
-
     gl = Process.group_leader()
 
     expand_fun =
@@ -355,26 +331,39 @@ defmodule IEx.Server do
       prefix: prefix,
       on_eof: on_eof,
       expand_fun: expand_fun,
-      previous_state: Keyword.get(opts, :previous_state),
       evaluator_options: Keyword.take(opts, [:dot_iex_path])
     }
   end
 
+  # For the state, reset only reset the parser state.
+  # The counter will continue going up as the input process is shared.
+  # The opts can also set "dot_iex_path" and the "evaluator" itself,
+  # but those are not stored: they are temporary to whatever is rerunning.
+  # Once the rerunning session restarts, we keep the same evaluator_options
+  # and rollback to a new evaluator.
+  defp reset_state(state) do
+    %{state | parser_state: ""}
+  end
+
+  defp bump_counter(state) do
+    update_in(state.counter, & &1 + 1)
+  end
+
   ## IO
 
-  defp io_get() do
+  defp io_get(prompt) do
     gl = Process.group_leader()
     ref = Process.monitor(gl)
-    send(gl, {:io_request, self(), ref, {:get_line, :unicode, ""}})
+    send(gl, {:io_request, self(), ref, {:get_line, :unicode, prompt}})
     ref
   end
 
-  defp write_prompt(status, prefix, counter) do
+  defp prompt(status, prefix, counter) do
     {mode, prefix} =
       if Node.alive?() do
-        {prompt_mode(status, :alive), default_prefix(status, prefix) || remote_prefix()}
+        {prompt_mode(status, :alive), default_prefix(status, prefix)}
       else
-        {prompt_mode(status, :default), default_prefix(status, prefix) || "iex"}
+        {prompt_mode(status, :default), default_prefix(status, prefix)}
       end
 
     prompt =
@@ -383,7 +372,7 @@ defmodule IEx.Server do
       |> String.replace("%prefix", to_string(prefix))
       |> String.replace("%node", to_string(node()))
 
-    IO.write([prompt, " "])
+    [prompt, " "]
   end
 
   defp default_prefix(:incomplete, _prefix), do: "..."
@@ -396,9 +385,5 @@ defmodule IEx.Server do
 
   defp io_error(result) do
     IO.puts(:stdio, IEx.color(:eval_error, result))
-  end
-
-  defp remote_prefix do
-    if node() == node(Process.group_leader()), do: "iex", else: "rem"
   end
 end

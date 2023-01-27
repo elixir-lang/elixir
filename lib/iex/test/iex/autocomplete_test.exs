@@ -4,7 +4,7 @@ defmodule IEx.AutocompleteTest do
   use ExUnit.Case, async: true
 
   setup do
-    evaluator = IEx.Server.start_evaluator([])
+    evaluator = IEx.Server.start_evaluator(1, [])
     Process.put(:evaluator, evaluator)
     :ok
   end

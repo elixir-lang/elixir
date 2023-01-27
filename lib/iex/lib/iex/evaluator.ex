@@ -10,7 +10,7 @@ defmodule IEx.Evaluator do
     * keeping expression history
 
   """
-  def init(command, server, leader, opts) do
+  def init(command, server, leader, start, opts) do
     ref = make_ref()
     old_leader = Process.group_leader()
     Process.group_leader(self(), leader)
@@ -25,7 +25,7 @@ defmodule IEx.Evaluator do
       send(self(), {:done, old_evaluator, false})
     end
 
-    state = loop_state(ref, server, IEx.History.init(), opts)
+    state = loop_state(ref, server, IEx.History.init(start), opts)
     command == :ack && :proc_lib.init_ack(self())
 
     try do

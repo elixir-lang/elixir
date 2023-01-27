@@ -620,7 +620,7 @@ defmodule IEx do
   the shell will be reset and you gain access to all variables
   and the lexical scope from above:
 
-      pry(1)> map([a, b, c], &IO.inspect(&1))
+      iex(1)> map([a, b, c], &IO.inspect(&1))
       1
       2
       3
@@ -630,7 +630,7 @@ defmodule IEx do
   process can be freed by calling [`respawn/0`](`IEx.Helpers.respawn/0`), which starts a
   new IEx evaluation cycle, letting this one go:
 
-      pry(2)> respawn()
+      iex(2)> respawn()
       true
 
       Interactive Elixir - press Ctrl+C to exit (type h() ENTER for help)
