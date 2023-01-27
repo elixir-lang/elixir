@@ -115,15 +115,8 @@ defmodule IEx.Server do
     run_without_registration(opts, input)
   end
 
-  defp loop(state, prompt, evaluator, evaluator_ref, input) do
-    counter = state.counter
-
-    if prompt == :incomplete do
-      write_prompt(:continuation_prompt, "...", counter)
-    else
-      write_prompt(:prompt, state.prefix, counter)
-    end
-
+  defp loop(state, status, evaluator, evaluator_ref, input) do
+    write_prompt(status, state.prefix, state.counter)
     :io.setopts(expand_fun: state.expand_fun)
     input = input || io_get()
     wait_input(state, evaluator, evaluator_ref, input)
@@ -145,12 +138,12 @@ defmodule IEx.Server do
       # Triggered by pressing "i" as the job control switch
       {:io_reply, ^input, {:error, :interrupted}} ->
         io_error("** (EXIT) interrupted")
-        loop(%{state | parser_state: ""}, :new, evaluator, evaluator_ref, nil)
+        loop(%{state | parser_state: ""}, :ok, evaluator, evaluator_ref, nil)
 
       # Unknown IO message
       {:io_reply, ^input, msg} ->
         io_error("** (EXIT) unknown IO message: #{inspect(msg)}")
-        loop(%{state | parser_state: ""}, :new, evaluator, evaluator_ref, nil)
+        loop(%{state | parser_state: ""}, :ok, evaluator, evaluator_ref, nil)
 
       # Triggered when IO dies while waiting for input
       {:DOWN, ^input, _, _, _} ->
@@ -376,12 +369,12 @@ defmodule IEx.Server do
     ref
   end
 
-  defp write_prompt(prompt_type, prefix, counter) do
+  defp write_prompt(status, prefix, counter) do
     {mode, prefix} =
       if Node.alive?() do
-        {prompt_mode(prompt_type, :alive), prefix || remote_prefix()}
+        {prompt_mode(status, :alive), default_prefix(status, prefix) || remote_prefix()}
       else
-        {prompt_mode(prompt_type, :default), prefix || "iex"}
+        {prompt_mode(status, :default), default_prefix(status, prefix) || "iex"}
       end
 
     prompt =
@@ -393,10 +386,13 @@ defmodule IEx.Server do
     IO.write([prompt, " "])
   end
 
-  defp prompt_mode(:prompt, :default), do: :default_prompt
-  defp prompt_mode(:prompt, :alive), do: :alive_prompt
-  defp prompt_mode(:continuation_prompt, :default), do: :continuation_prompt
-  defp prompt_mode(:continuation_prompt, :alive), do: :alive_continuation_prompt
+  defp default_prefix(:incomplete, _prefix), do: "..."
+  defp default_prefix(_ok_or_error, prefix), do: prefix
+
+  defp prompt_mode(:incomplete, :default), do: :continuation_prompt
+  defp prompt_mode(:incomplete, :alive), do: :alive_continuation_prompt
+  defp prompt_mode(_ok_or_error, :default), do: :default_prompt
+  defp prompt_mode(_ok_or_error, :alive), do: :alive_prompt
 
   defp io_error(result) do
     IO.puts(:stdio, IEx.color(:eval_error, result))
