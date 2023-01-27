@@ -346,7 +346,7 @@ defmodule IEx.Server do
   end
 
   defp bump_counter(state) do
-    update_in(state.counter, & &1 + 1)
+    update_in(state.counter, &(&1 + 1))
   end
 
   ## IO
