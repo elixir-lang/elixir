@@ -58,7 +58,7 @@ defmodule StringIO do
   @spec open(binary, keyword, (pid -> res)) :: {:ok, res} when res: var
   def open(string, options, function)
       when is_binary(string) and is_list(options) and is_function(function, 1) do
-    {:ok, pid} = GenServer.start_link(__MODULE__, {string, options}, [])
+    {:ok, pid} = GenServer.start(__MODULE__, {self(), string, options}, [])
 
     try do
       {:ok, function.(pid)}
@@ -112,7 +112,7 @@ defmodule StringIO do
   def open(string, options_or_function \\ [])
 
   def open(string, options_or_function) when is_binary(string) and is_list(options_or_function) do
-    GenServer.start_link(__MODULE__, {string, options_or_function}, [])
+    GenServer.start(__MODULE__, {self(), string, options_or_function}, [])
   end
 
   def open(string, options_or_function)
@@ -175,7 +175,8 @@ defmodule StringIO do
   ## callbacks
 
   @impl true
-  def init({string, options}) do
+  def init({pid, string, options}) do
+    _ = Process.monitor(pid)
     capture_prompt = options[:capture_prompt] || false
     encoding = options[:encoding] || :unicode
     {:ok, %{encoding: encoding, input: string, output: "", capture_prompt: capture_prompt}}
@@ -185,6 +186,10 @@ defmodule StringIO do
   def handle_info({:io_request, from, reply_as, req}, state) do
     state = io_request(from, reply_as, req, state)
     {:noreply, state}
+  end
+
+  def handle_info({:DOWN, _, _, _, _}, state) do
+    {:stop, :shutdown, state}
   end
 
   def handle_info(_message, state) do
