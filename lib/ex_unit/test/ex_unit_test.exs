@@ -163,6 +163,24 @@ defmodule ExUnitTest do
            end) =~ "\n1 test, 1 failure\n"
   end
 
+  test "reports capture log crashes" do
+    defmodule CaptureLogTest do
+      use ExUnit.Case
+
+      test "capture log crash because logger stopped" do
+        Logger.App.stop()
+        Logger.App.start()
+        flunk("this should fail")
+      end
+    end
+
+    configure_and_reload_on_exit([])
+
+    assert capture_io(fn ->
+             assert ExUnit.run() == %{failures: 1, skipped: 0, total: 1, excluded: 0}
+           end) =~ "\n1 test, 1 failure\n"
+  end
+
   test "supports timeouts" do
     defmodule TimeoutTest do
       use ExUnit.Case

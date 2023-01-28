@@ -348,11 +348,9 @@ defmodule ExUnit.Runner do
     end)
   end
 
-  defp run_test(config, %{tags: tags} = test, context) do
+  defp run_test(config, test, context) do
     EM.test_started(config.manager, test)
-
-    capture_log = Map.get(tags, :capture_log, config.capture_log)
-    test = run_test_with_capture_log(capture_log, config, test, context)
+    test = spawn_test(config, test, context)
 
     case process_max_failures(config, test) do
       :no ->
@@ -368,83 +366,6 @@ defmodule ExUnit.Runner do
     end
   end
 
-  defp maybe_create_tmp_dir(test, context, %{tmp_dir: true}) do
-    create_tmp_dir!(test, "", context)
-  end
-
-  defp maybe_create_tmp_dir(test, context, %{tmp_dir: path}) when is_binary(path) do
-    create_tmp_dir!(test, path, context)
-  end
-
-  defp maybe_create_tmp_dir(_, context, %{tmp_dir: false}) do
-    context
-  end
-
-  defp maybe_create_tmp_dir(_, _, %{tmp_dir: other}) do
-    raise ArgumentError, "expected :tmp_dir to be a boolean or a string, got: #{inspect(other)}"
-  end
-
-  defp maybe_create_tmp_dir(_, context, _) do
-    context
-  end
-
-  defp short_hash(module, test_name) do
-    (module <> "/" <> test_name)
-    |> :erlang.md5()
-    |> Base.encode16(case: :lower)
-    |> binary_slice(0..7)
-  end
-
-  defp create_tmp_dir!(test, extra_path, context) do
-    module_string = inspect(test.module)
-    name_string = to_string(test.name)
-
-    module = escape_path(module_string)
-    name = escape_path(name_string)
-    short_hash = short_hash(module_string, name_string)
-
-    path = ["tmp", module, "#{name}-#{short_hash}", extra_path] |> Path.join() |> Path.expand()
-    File.rm_rf!(path)
-    File.mkdir_p!(path)
-    Map.put(context, :tmp_dir, path)
-  end
-
-  @escape Enum.map(~c" [~#%&*{}\\:<>?/+|\"]", &<<&1::utf8>>)
-
-  defp escape_path(path) do
-    String.replace(path, @escape, "-")
-  end
-
-  defp run_test_with_capture_log(true, config, test, context) do
-    run_test_with_capture_log([], config, test, context)
-  end
-
-  defp run_test_with_capture_log(false, config, test, context) do
-    spawn_test(config, test, context)
-  end
-
-  defp run_test_with_capture_log(capture_log_opts, config, test, context) do
-    ref = make_ref()
-
-    try do
-      ExUnit.CaptureLog.capture_log(capture_log_opts, fn ->
-        send(self(), {ref, spawn_test(config, test, context)})
-      end)
-    catch
-      :exit, :noproc ->
-        message =
-          "could not run test, it uses @tag :capture_log" <>
-            " but the :logger application is not running"
-
-        %{test | state: failed(:error, RuntimeError.exception(message), [])}
-    else
-      logged ->
-        receive do
-          {^ref, test} -> %{test | logs: logged}
-        end
-    end
-  end
-
   defp spawn_test(config, test, context) do
     parent_pid = self()
     timeout = get_timeout(config, test.tags)
@@ -453,24 +374,54 @@ defmodule ExUnit.Runner do
     exec_on_exit(test, test_pid, timeout)
   end
 
-  defp spawn_test_monitor(%{seed: seed}, test, parent_pid, context) do
+  defp spawn_test_monitor(%{seed: seed, capture_log: capture_log}, test, parent_pid, context) do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
       generate_test_seed(seed, test)
 
-      {time, test} =
-        :timer.tc(fn ->
-          context = maybe_create_tmp_dir(test, context, test.tags)
+      tags = test.tags
+      capture_log = Map.get(tags, :capture_log, capture_log)
 
-          case exec_test_setup(test, Map.merge(test.tags, context)) do
-            {:ok, context} -> exec_test(test, context)
-            {:error, test} -> test
-          end
-        end)
+      {time, test} =
+        :timer.tc(
+          maybe_capture_log(capture_log, test, fn ->
+            context = maybe_create_tmp_dir(test, context, tags)
+
+            case exec_test_setup(test, Map.merge(test.tags, context)) do
+              {:ok, context} -> exec_test(test, context)
+              {:error, test} -> test
+            end
+          end)
+        )
 
       send(parent_pid, {self(), :test_finished, %{test | time: time}})
       exit(:shutdown)
     end)
+  end
+
+  defp maybe_capture_log(true, test, fun) do
+    maybe_capture_log([], test, fun)
+  end
+
+  defp maybe_capture_log(false, _test, fun) do
+    fun
+  end
+
+  defp maybe_capture_log(capture_log_opts, test, fun) do
+    fn ->
+      try do
+        ExUnit.CaptureLog.with_log(capture_log_opts, fun)
+      catch
+        :exit, :noproc ->
+          message =
+            "could not run test, it uses @tag :capture_log" <>
+              " but the :logger application is not running"
+
+          %{test | state: failed(:error, RuntimeError.exception(message), [])}
+      else
+        {test, logs} -> %{test | logs: logs}
+      end
+    end
   end
 
   defp receive_test_reply(test, test_pid, test_ref, timeout) do
@@ -591,5 +542,54 @@ defmodule ExUnit.Runner do
 
   defp failed(kind, reason, stack) do
     {:failed, [{kind, Exception.normalize(kind, reason, stack), stack}]}
+  end
+
+  ## Tmp dir handling
+
+  defp maybe_create_tmp_dir(test, context, %{tmp_dir: true}) do
+    create_tmp_dir!(test, "", context)
+  end
+
+  defp maybe_create_tmp_dir(test, context, %{tmp_dir: path}) when is_binary(path) do
+    create_tmp_dir!(test, path, context)
+  end
+
+  defp maybe_create_tmp_dir(_, context, %{tmp_dir: false}) do
+    context
+  end
+
+  defp maybe_create_tmp_dir(_, _, %{tmp_dir: other}) do
+    raise ArgumentError, "expected :tmp_dir to be a boolean or a string, got: #{inspect(other)}"
+  end
+
+  defp maybe_create_tmp_dir(_, context, _) do
+    context
+  end
+
+  defp short_hash(module, test_name) do
+    (module <> "/" <> test_name)
+    |> :erlang.md5()
+    |> Base.encode16(case: :lower)
+    |> binary_slice(0..7)
+  end
+
+  defp create_tmp_dir!(test, extra_path, context) do
+    module_string = inspect(test.module)
+    name_string = to_string(test.name)
+
+    module = escape_path(module_string)
+    name = escape_path(name_string)
+    short_hash = short_hash(module_string, name_string)
+
+    path = ["tmp", module, "#{name}-#{short_hash}", extra_path] |> Path.join() |> Path.expand()
+    File.rm_rf!(path)
+    File.mkdir_p!(path)
+    Map.put(context, :tmp_dir, path)
+  end
+
+  @escape Enum.map(~c" [~#%&*{}\\:<>?/+|\"]", &<<&1::utf8>>)
+
+  defp escape_path(path) do
+    String.replace(path, @escape, "-")
   end
 end
