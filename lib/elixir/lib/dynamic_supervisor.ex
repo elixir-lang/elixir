@@ -225,12 +225,14 @@ defmodule DynamicSupervisor do
   @doc """
   Returns a specification to start a dynamic supervisor under a supervisor.
 
-  See `Supervisor`.
+  It accepts the same options as `start_link/1`.
+
+  See `Supervisor` for more information about child specifications.
   """
   @doc since: "1.6.1"
-  def child_spec(opts) when is_list(opts) do
+  def child_spec(options) when is_list(options) do
     id =
-      case Keyword.get(opts, :name, DynamicSupervisor) do
+      case Keyword.get(options, :name, DynamicSupervisor) do
         name when is_atom(name) -> name
         {:global, name} -> name
         {:via, _module, name} -> name
@@ -238,7 +240,7 @@ defmodule DynamicSupervisor do
 
     %{
       id: id,
-      start: {DynamicSupervisor, :start_link, [opts]},
+      start: {DynamicSupervisor, :start_link, [options]},
       type: :supervisor
     }
   end
