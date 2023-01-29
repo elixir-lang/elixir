@@ -141,8 +141,13 @@ defmodule Mix.Tasks.Compile do
 
     # If we are in an umbrella project, now load paths from all children.
     if Mix.Project.umbrella?(config) do
-      apps = Mix.Project.apps_paths(config) |> Map.keys()
-      loaded_paths = Mix.AppLoader.load_apps(apps, Mix.Dep.cached(), config, false)
+      loaded_paths =
+        Mix.Project.apps_paths(config)
+        |> Map.keys()
+        |> Mix.AppLoader.load_apps(Mix.Dep.cached(), config, false, [], fn
+          {_app, path}, acc -> if path, do: [path | acc], else: path
+        end)
+
       Code.prepend_paths(loaded_paths -- :code.get_path())
     end
 

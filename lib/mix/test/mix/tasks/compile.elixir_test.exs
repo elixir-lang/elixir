@@ -69,18 +69,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Code.put_compiler_option(:tracers, [])
   end
 
-  test "recompiles module-application manifest if manifest changes" do
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-      Mix.Tasks.Compile.Elixir.run(["--force"])
-      purge([A, B])
-
-      File.rm!("_build/dev/lib/sample/.mix/compile.app_tracer")
-      Mix.Tasks.Compile.Elixir.run(["--force"])
-      assert File.exists?("_build/dev/lib/sample/.mix/compile.app_tracer")
-    end)
-  end
-
   test "recompiles project if elixirc_options changed" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
@@ -512,7 +500,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       """)
 
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
-      File.touch!("_build/dev/lib/sample/.mix/compile.app_tracer", @old_time)
+      File.touch!("_build/dev/lib/sample/.mix/compile.app_cache", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}

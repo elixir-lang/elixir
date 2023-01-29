@@ -75,9 +75,6 @@ defmodule Mix.Compilers.Elixir do
     # dbg callback.
     compile_env_apps = deps_config_compile_env_apps(old_deps_config)
 
-    # The app tracer will return information about apps before this compilation.
-    app_tracer = Mix.Compilers.ApplicationTracer.init()
-
     {force?, stale, new_deps_config} =
       cond do
         !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key ->
@@ -91,13 +88,15 @@ defmodule Mix.Compilers.Elixir do
           if Mix.Project.config()[:app] in apps do
             {true, stale, new_deps_config}
           else
+            app_modules = Mix.AppLoader.read_cache()
+
             apps_stale =
               apps
               |> deps_on()
               |> Enum.flat_map(fn {app, _} ->
                 new_modules = Application.spec(app, :modules) || []
 
-                if old_modules = Mix.Compilers.ApplicationTracer.app_modules(app_tracer, app) do
+                if old_modules = app_modules[app] do
                   :ordsets.union(old_modules, :ordsets.from_list(new_modules))
                 else
                   new_modules
@@ -161,7 +160,6 @@ defmodule Mix.Compilers.Elixir do
       Mix.Project.ensure_structure()
       true = Code.prepend_path(dest)
 
-      pending_tracer = Mix.Compilers.ApplicationTracer.prepare(app_tracer)
       previous_opts = set_compiler_opts(opts)
 
       try do
@@ -202,7 +200,6 @@ defmodule Mix.Compilers.Elixir do
           {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
       after
         Code.compiler_options(previous_opts)
-        Mix.Compilers.ApplicationTracer.stop(pending_tracer)
         Code.purge_compiler_modules()
       end
     else
@@ -239,8 +236,6 @@ defmodule Mix.Compilers.Elixir do
       previous_warnings = previous_warnings(sources, all_warnings)
       unless_previous_warnings_as_errors(previous_warnings, opts, {status, previous_warnings})
     end
-  after
-    Mix.Compilers.ApplicationTracer.stop()
   end
 
   defp deps_config do

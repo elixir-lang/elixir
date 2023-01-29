@@ -1,6 +1,56 @@
 defmodule Mix.AppLoader do
   @moduledoc false
 
+  @manifest_vsn 1
+  @manifest "compile.app_cache"
+
+  @doc """
+  Reads the app cache.
+  """
+  def read_cache(config \\ Mix.Project.config()) do
+    try do
+      manifest(config) |> File.read!() |> :erlang.binary_to_term()
+    rescue
+      _ -> []
+    else
+      {@manifest_vsn, app_to_modules} -> app_to_modules
+    end
+  end
+
+  @doc """
+  Writes to the cache.
+  """
+  def write_cache(manifest, contents) when is_map(contents) do
+    term = {@manifest_vsn, contents}
+    File.mkdir_p!(Path.dirname(manifest))
+    File.write!(manifest, :erlang.term_to_binary(term, [:compressed]))
+  end
+
+  @doc """
+  Returns the path to the cache only if it is stale.
+  """
+  def stale_cache(config \\ Mix.Project.config()) do
+    manifest = manifest(config)
+    modified = Mix.Utils.last_modified(manifest)
+
+    if Mix.Utils.stale?([Mix.Project.config_mtime(), Mix.Project.project_file()], [modified]) do
+      manifest
+    else
+      List.first(
+        for %{app: app, scm: scm, opts: opts} <- Mix.Dep.cached(),
+            not scm.fetchable?,
+            Mix.Utils.last_modified(Path.join([opts[:build], "ebin", "#{app}.app"])) >
+              modified do
+          manifest
+        end
+      )
+    end
+  end
+
+  defp manifest(config) do
+    Path.join(Mix.Project.manifest_path(config), @manifest)
+  end
+
   @doc """
   Loads the given application from `ebin_path`.
 
@@ -30,7 +80,7 @@ defmodule Mix.AppLoader do
   @doc """
   Loads the given applications.
   """
-  def load_apps(apps, deps, config, validate_compile_env?) do
+  def load_apps(apps, deps, config, validate_compile_env?, acc, fun) do
     lib_path = to_charlist(Path.join(Mix.Project.build_path(config), "lib"))
     deps_paths = for dep <- deps, into: %{}, do: {dep.app, {:lib, lib_path}}
     builtin_paths = Mix.State.builtin_apps()
@@ -45,22 +95,31 @@ defmodule Mix.AppLoader do
       |> stream_apps(paths, ref)
       |> Task.async_stream(&load_stream_app(&1, ref, parent, validate_compile_env?), opts)
 
-    # We keep Mix, ExUnit, and IEx always loaded to avoid warnings
-    included_paths =
-      for app <- [:mix, :ex_unit, :iex] do
+    acc =
+      Enum.reduce(extra_apps(config), acc, fn app, acc ->
         {:ebin, path} = builtin_paths[app]
-        path
-      end
+        fun.({app, path}, acc)
+      end)
 
-    for {:ok, path} <- stream, path != nil, reduce: included_paths do
-      paths -> [path | paths]
+    Enum.reduce(stream, acc, fn {:ok, res}, acc -> fun.(res, acc) end)
+  end
+
+  defp extra_apps(config) do
+    case Keyword.get(config, :language, :elixir) do
+      :elixir ->
+        Application.ensure_loaded(:ex_unit)
+        Application.ensure_loaded(:iex)
+        [:ex_unit, :iex, :mix]
+
+      :erlang ->
+        []
     end
   end
 
   defp load_stream_app({app, app_path}, ref, parent, validate_compile_env?) do
     ebin_path = app_path_to_ebin_path(app, app_path)
     send(parent, {ref, app, load_app(app, ebin_path, validate_compile_env?)})
-    ebin_path
+    {app, ebin_path}
   end
 
   defp stream_apps(initial, paths, ref) do

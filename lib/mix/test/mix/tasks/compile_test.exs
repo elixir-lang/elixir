@@ -50,29 +50,6 @@ defmodule Mix.Tasks.CompileTest do
     assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == ["compile.elixir"]
   end
 
-  test "compiles a project with cached deps information" do
-    Mix.Project.pop()
-
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(DepsApp)
-
-      File.mkdir_p!("lib")
-
-      File.write!("lib/a.ex", """
-      root = File.cwd!()
-      File.cd!("lib", fn ->
-        %{ok: path} = Mix.Project.deps_paths()
-
-        if Path.relative_to(path, root) != "deps/ok" do
-          raise "non cached path"
-        end
-      end)
-      """)
-
-      assert Mix.Task.run("compile", ["--force", "--from-mix-deps-compile"]) == {:ok, []}
-    end)
-  end
-
   test "compiles a project with mixfile" do
     in_fixture("no_mixfile", fn ->
       assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
@@ -98,6 +75,42 @@ defmodule Mix.Tasks.CompileTest do
       purge([Enumerable])
       assert Mix.Tasks.App.Start.run(["--verbose"]) == :ok
       assert Protocol.consolidated?(Enumerable)
+    end)
+  end
+
+  test "compiles a project with cached deps information" do
+    Mix.Project.pop()
+
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(DepsApp)
+
+      File.mkdir_p!("lib")
+
+      File.write!("lib/a.ex", """
+      root = File.cwd!()
+      File.cd!("lib", fn ->
+        %{ok: path} = Mix.Project.deps_paths()
+
+        if Path.relative_to(path, root) != "deps/ok" do
+          raise "non cached path"
+        end
+      end)
+      """)
+
+      assert Mix.Task.run("compile", ["--force", "--from-mix-deps-compile"]) == {:ok, []}
+    end)
+  end
+
+  test "recompiles app cache if manifest changes" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Tasks.Compile.run(["--force"])
+      purge([A, B])
+
+      File.rm!("_build/dev/lib/sample/.mix/compile.app_cache")
+      Mix.Task.clear()
+
+      Mix.Tasks.Compile.run(["--force"])
+      assert File.exists?("_build/dev/lib/sample/.mix/compile.app_cache")
     end)
   end
 

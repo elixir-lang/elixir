@@ -488,7 +488,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "reloads app in app tracer if .app changes" do
+  test "reloads app in app cache if .app changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       deps = [{:foo, in_umbrella: true}]
 
@@ -509,7 +509,7 @@ defmodule Mix.UmbrellaTest do
 
         Mix.Task.clear()
         Application.unload(:foo)
-        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.app_tracer")
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.app_cache")
 
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
