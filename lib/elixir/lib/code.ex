@@ -1471,12 +1471,13 @@ defmodule Code do
       and `compile_file/2` but not `string_to_quoted/2` and friends, as the
       latter is used for other purposes beyond compilation.
 
-    * `:on_undefined_variable` (since v1.15.0) - either `:warn` or `:raise`.
-      When `:warn`, undefined variables will emit a warning and be expanded as a
-      local call to the zero-arity function of the same name (`node` would be
-      expanded as `node()`).
-      When `:raise`, undefined variables will just trigger a compile error.
-      Defaults to `:raise`.
+    * `:on_undefined_variable` (since v1.15.0) - either `:raise` or `:warn`.
+      When `:raise` (the default), undefined variables will trigger a compilation
+      error. You may be set it to `:warn` if you want undefined variables to
+      emit a warning and expand as to a local call to the zero-arity function
+      of the same name (for example, `node` would be expanded as `node()`).
+      This `:warn` behaviour only exists for compatibility reasons when working
+      with old dependencies.
 
   It always returns `:ok`. Raises an error for invalid options.
 
@@ -1526,6 +1527,7 @@ defmodule Code do
     :ok
   end
 
+  # TODO: Make this option have no effect on Elixir v2.0
   def put_compiler_option(:on_undefined_variable, value) when value in [:raise, :warn] do
     :elixir_config.put(:on_undefined_variable, value)
     :ok
