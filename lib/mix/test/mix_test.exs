@@ -43,6 +43,7 @@ defmodule MixTest do
       assert_received {:mix_shell, :info, ["Generated install_test app"]}
       refute_received _
 
+      assert Application.app_dir(:crypto) =~ "crypto"
       assert List.keyfind(Application.started_applications(), :install_test, 0)
       assert apply(InstallTest, :hello, []) == :world
     end
