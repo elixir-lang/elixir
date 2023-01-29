@@ -91,28 +91,17 @@ defmodule Mix.AppLoader do
     opts = [ordered: false, timeout: :infinity]
 
     stream =
-      apps
+      (extra_apps(config) ++ apps)
       |> stream_apps(paths, ref)
       |> Task.async_stream(&load_stream_app(&1, ref, parent, validate_compile_env?), opts)
-
-    acc =
-      Enum.reduce(extra_apps(config), acc, fn app, acc ->
-        {:ebin, path} = builtin_paths[app]
-        fun.({app, path}, acc)
-      end)
 
     Enum.reduce(stream, acc, fn {:ok, res}, acc -> fun.(res, acc) end)
   end
 
   defp extra_apps(config) do
     case Keyword.get(config, :language, :elixir) do
-      :elixir ->
-        Application.ensure_loaded(:ex_unit)
-        Application.ensure_loaded(:iex)
-        [:ex_unit, :iex, :mix]
-
-      :erlang ->
-        []
+      :elixir -> [:ex_unit, :iex, :mix, :elixir]
+      :erlang -> [:compiler]
     end
   end
 
