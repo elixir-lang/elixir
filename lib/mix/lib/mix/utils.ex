@@ -641,6 +641,9 @@ defmodule Mix.Utils do
   end
 
   defp read_httpc(path) do
+    Mix.ensure_application!(:ssl)
+    Mix.ensure_application!(:inets)
+
     {:ok, _} = Application.ensure_all_started(:ssl)
     {:ok, _} = Application.ensure_all_started(:inets)
 
