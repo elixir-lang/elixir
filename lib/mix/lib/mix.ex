@@ -773,8 +773,8 @@ defmodule Mix do
           deps_path: "deps",
           deps: deps,
           app: :mix_install,
-          erlc_paths: ["src"],
-          elixirc_paths: ["lib"],
+          erlc_paths: [],
+          elixirc_paths: [],
           compilers: [],
           consolidate_protocols: consolidate_protocols?,
           config_path: config_path
@@ -840,6 +840,11 @@ defmodule Mix do
               Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) do
             Application.ensure_all_started(app)
           end
+
+          # Since Mix.install/2 cannot declare Erlang/OTP and Elixir dependencies,
+          # we load all of them back after compilation.
+          paths = Enum.map(Mix.State.builtin_apps(), fn {_app, {:ebin, path}} -> path end)
+          Code.append_paths(paths)
 
           Mix.State.put(:installed, id)
           :ok
