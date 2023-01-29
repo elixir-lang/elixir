@@ -173,7 +173,7 @@ defmodule Mix.Local do
         |> parse_csv()
         |> find_latest_eligible_version(version)
 
-      result || Mix.raise("Could not find a matching version of #{name}")
+      result || Mix.raise("Could not find a version of #{name} matching: #{version}")
     else
       Mix.raise(
         "Could not install #{name} because Mix could not verify authenticity " <>
