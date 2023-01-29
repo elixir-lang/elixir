@@ -70,9 +70,9 @@ defmodule Mix.LocalTest do
   _ = @private_key
 
   setup_all do
-    File.mkdir_p!(Mix.PublicKey.public_keys_path())
+    File.mkdir_p!(Mix.Local.public_keys_path())
 
-    Mix.PublicKey.public_keys_path()
+    Mix.Local.public_keys_path()
     |> Path.join("test_key.pub")
     |> File.write!(@public_key)
   end

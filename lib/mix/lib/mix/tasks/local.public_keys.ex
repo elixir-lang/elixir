@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Local.PublicKeys do
   end
 
   defp show(opts) do
-    for {id, key} <- Mix.PublicKey.public_keys() do
+    for {id, key} <- Mix.Local.public_keys() do
       Mix.shell().info("* #{id}")
 
       if opts[:detailed] do
@@ -54,20 +54,20 @@ defmodule Mix.Tasks.Local.PublicKeys do
     end
 
     Mix.shell().info(
-      "Public keys (except in-memory ones) installed at: #{Mix.PublicKey.public_keys_path()}"
+      "Public keys (except in-memory ones) installed at: #{Mix.Local.public_keys_path()}"
     )
   end
 
   defp install(source, opts) do
     key = File.read!(source)
     base = Path.basename(source)
-    dest = Path.join(Mix.PublicKey.public_keys_path(), base)
+    dest = Path.join(Mix.Local.public_keys_path(), base)
 
     # Validate the key is good
-    _ = Mix.PublicKey.decode!(source, key)
+    _ = Mix.Local.decode_pk!(source, key)
 
     if opts[:force] || should_install?(source, dest) do
-      File.mkdir_p!(Mix.PublicKey.public_keys_path())
+      File.mkdir_p!(Mix.Local.public_keys_path())
       File.write!(dest, key)
       Mix.shell().info([:green, "* creating ", :reset, Path.relative_to_cwd(dest)])
     end
