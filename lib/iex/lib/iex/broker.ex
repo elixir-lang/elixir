@@ -79,7 +79,8 @@ defmodule IEx.Broker do
   Client requests a takeover.
   """
   @spec take_over(binary, iodata, keyword) ::
-          {:ok, server :: pid, group_leader :: pid} | {:error, :no_iex | :refused}
+          {:ok, server :: pid, group_leader :: pid, counter :: integer}
+          | {:error, :no_iex | :refused}
   def take_over(location, whereami, opts) do
     case GenServer.whereis(@name) do
       nil ->
