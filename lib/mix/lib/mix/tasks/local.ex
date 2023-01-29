@@ -1,10 +1,10 @@
 defmodule Mix.Tasks.Local do
   use Mix.Task
 
-  @shortdoc "Lists local tasks"
+  @shortdoc "Lists tasks installed locally via archives"
 
   @moduledoc """
-  Lists local tasks.
+  Lists tasks installed locally via archives.
   """
 
   @impl true

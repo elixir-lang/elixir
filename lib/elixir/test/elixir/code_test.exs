@@ -436,7 +436,7 @@ defmodule Code.SyncTest do
     :ok = Code.prepend_paths([path])
     assert to_charlist(path) in :code.get_path()
 
-    Code.delete_path(path)
+    Code.delete_paths([path])
     refute to_charlist(path) in :code.get_path()
   end
 
@@ -445,7 +445,7 @@ defmodule Code.SyncTest do
     :ok = Code.append_paths([path])
     assert to_charlist(path) in :code.get_path()
 
-    Code.delete_path(path)
+    Code.delete_paths([path])
     refute to_charlist(path) in :code.get_path()
   end
 

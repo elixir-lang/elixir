@@ -396,6 +396,25 @@ defmodule Code do
   end
 
   @doc """
+  Deletes a list of paths from the Erlang VM code path list.
+
+  This is the list of directories the Erlang VM uses for finding
+  module code. The list of files is managed per Erlang VM node.
+
+  The path is expanded with `Path.expand/1` before being deleted. If the
+  path does not exist, this function returns `false`.
+  """
+  @doc since: "1.15.0"
+  @spec delete_paths([Path.t()]) :: :ok
+  def delete_paths(paths) when is_list(paths) do
+    for path <- paths do
+      _ = :code.del_path(to_charlist(Path.expand(path)))
+    end
+
+    :ok
+  end
+
+  @doc """
   Evaluates the contents given by `string`.
 
   The `binding` argument is a list of all variables and their values.

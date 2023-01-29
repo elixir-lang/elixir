@@ -113,9 +113,9 @@ defmodule Mix.Tasks.Compile.Elixir do
       |> tracers_opts(tracers)
       |> profile_opts()
 
-    # The Elixir compiler relies on global state in the application tracer.
-    # However, even without it, having compilations racing with other is most
-    # likely undesired, so we wrap the compiler in a lock.
+    # Having compilations racing with other is most undesired,
+    # so we wrap the compiler in a lock. Ideally we would use
+    # flock in the future.
     Mix.State.lock(__MODULE__, fn ->
       Mix.Compilers.Elixir.compile(
         manifest,

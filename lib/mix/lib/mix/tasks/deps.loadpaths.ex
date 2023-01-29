@@ -44,12 +44,10 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     end
 
     unless "--no-deps-loading" in args do
-      for dep <- all,
-          path <- Mix.Dep.load_paths(dep) do
-        _ = Code.prepend_path(path)
-        path
-      end
+      Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1))
     end
+
+    :ok
   end
 
   defp check_elixir_version(config) do
@@ -87,7 +85,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
         |> Enum.map(& &1.app)
         |> Mix.Dep.filter_by_name(Mix.Dep.load_and_cache())
         |> Enum.filter(&(not Mix.Dep.ok?(&1)))
-        |> show_not_ok!
+        |> show_not_ok!()
     end
   end
 

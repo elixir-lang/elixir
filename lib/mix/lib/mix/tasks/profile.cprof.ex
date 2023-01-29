@@ -170,12 +170,10 @@ defmodule Mix.Tasks.Profile.Cprof do
   """
   @spec profile((-> any()), keyword()) :: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
+    Mix.ensure_application!(:tools)
     {return_value, num_matched_functions, analysis_result} = profile_and_analyse(fun, opts)
-
     print_output(num_matched_functions, analysis_result)
-
     :cprof.stop()
-
     return_value
   end
 

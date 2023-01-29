@@ -1,8 +1,8 @@
 defmodule Mix.Compilers.ApplicationTracer do
+  # TODO: Move this to app loader
   @moduledoc false
   @manifest "compile.app_tracer"
   @table __MODULE__
-  @warnings_key 0
 
   def init do
     config = Mix.Project.config()
@@ -27,7 +27,7 @@ defmodule Mix.Compilers.ApplicationTracer do
     end
   end
 
-  def prepare(table, opts) do
+  def prepare(table) do
     config = Mix.Project.config()
     manifest = manifest(config)
     modified = Mix.Utils.last_modified(manifest)
@@ -64,130 +64,11 @@ defmodule Mix.Compilers.ApplicationTracer do
           if stale_local_deps != [], do: manifest
       end
 
-    setup_warnings_table(config)
-    {pending_save, Keyword.update(opts, :tracers, [__MODULE__], &[__MODULE__ | &1])}
+    pending_save
   end
-
-  # :erlang and other preloaded apps are not part of any module.
-  # :code.which/1 will rule them out but, since :erlang is very
-  # common, we rule it out upfront.
-  def trace({_, _, :erlang, _, _}, _env) do
-    :ok
-  end
-
-  # Skip protocol implementations too as the goal of protocols
-  # is to invert the dependency graph. Perhaps it would be best
-  # to skip tracing altogether if env.module is a protocol but
-  # currently there is no cheap way to track this information.
-  def trace({_, _, _, :__impl__, _}, _env) do
-    :ok
-  end
-
-  def trace({type, meta, module, function, arity}, env)
-      when type in [:remote_function, :remote_macro, :imported_function, :imported_macro] do
-    # Unknown modules need to be looked up and filtered later
-    unless :ets.member(@table, module) do
-      :ets.insert(
-        warnings_table(),
-        {module, function, arity, env.module, env.function, env.file, meta[:line] || env.line}
-      )
-    end
-
-    :ok
-  end
-
-  def trace(_, _) do
-    :ok
-  end
-
-  def warnings(modules) do
-    [{_, table, app, excludes}] = :ets.lookup(@table, @warnings_key)
-
-    for module <- modules do
-      :ets.delete(table, module)
-    end
-
-    {warnings, _} =
-      :ets.foldl(
-        fn {module, function, arity, env_module, env_function, env_file, env_line},
-           {acc, cache} ->
-          # If the module is preloaded, it is always available, so we skip it.
-          # If the module is non existing, the compiler will warn, so we skip it.
-          # If the module belongs to this application (from another compiler), we skip it.
-          # If the module is excluded, we skip it.
-          {module_app, cache} = app_for_module(module, cache)
-
-          if module_app != nil and module_app != app and module not in excludes and
-               {module, function, arity} not in excludes do
-            env_mfa =
-              if env_function do
-                {env_module, elem(env_function, 0), elem(env_function, 1)}
-              else
-                env_module
-              end
-
-            warning = {:undefined_app, String.to_atom(module_app), module, function, arity}
-            {[{__MODULE__, warning, {env_file, env_line, env_mfa}} | acc], cache}
-          else
-            {acc, cache}
-          end
-        end,
-        {[], %{}},
-        table
-      )
-
-    warnings
-    |> Module.ParallelChecker.group_warnings()
-    |> Module.ParallelChecker.emit_warnings()
-  end
-
-  defp app_for_module(module, cache) do
-    case cache do
-      %{^module => maybe_app} ->
-        {maybe_app, cache}
-
-      %{} ->
-        maybe_app = app_for_module(module)
-        {maybe_app, Map.put(cache, module, maybe_app)}
-    end
-  end
-
-  # ../elixir/ebin/elixir.beam -> elixir
-  # ../ssl-9.6/ebin/ssl.beam -> ssl
-  defp app_for_module(module) do
-    with [_ | _] = path when is_list(path) <- :code.which(module),
-         [_ | _] = app <-
-           path |> Enum.reverse() |> discard_dir() |> discard_ebin() |> collect_dir([]) do
-      List.to_string(app)
-    else
-      _ -> nil
-    end
-  end
-
-  defp discard_dir([?\\ | path]), do: path
-  defp discard_dir([?/ | path]), do: path
-  defp discard_dir([_ | path]), do: discard_dir(path)
-  defp discard_dir([]), do: []
-
-  defp discard_ebin(~c"nibe/" ++ path), do: path
-  defp discard_ebin(~c"nibe\\" ++ path), do: path
-  defp discard_ebin(_), do: []
-
-  defp collect_dir([?\\ | _], acc), do: acc
-  defp collect_dir([?/ | _], acc), do: acc
-  defp collect_dir([?- | path], _acc), do: collect_dir(path, [])
-  defp collect_dir([head | path], acc), do: collect_dir(path, [head | acc])
-  defp collect_dir([], acc), do: acc
 
   def stop(pending_save_manifest \\ nil) do
-    try do
-      :ets.delete(warnings_table())
-    rescue
-      _ -> false
-    end
-
     if pending_save_manifest do
-      :ets.delete(@table, @warnings_key)
       write_manifest(pending_save_manifest)
     end
 
@@ -200,62 +81,7 @@ defmodule Mix.Compilers.ApplicationTracer do
     :ok
   end
 
-  def format_warning({:undefined_app, app, module, function, arity}) do
-    """
-    #{Exception.format_mfa(module, function, arity)} defined in application :#{app} \
-    is used by the current application but the current application does not depend \
-    on :#{app}. To fix this, you must do one of:
-
-      1. #{mix_exs_undefined_app_fix(app)}
-
-      2. In case you don't want to add a requirement to :#{app}, you may \
-    optionally skip this warning by adding [xref: [exclude: [#{inspect(module)}]]] \
-    to your "def project" in mix.exs
-    """
-  end
-
-  defp mix_exs_undefined_app_fix(app) do
-    application_key = application_key()
-
-    if elixir_app?(app) or erlang_app?(app) or application_key == :applications do
-      "You must include :#{app} under :#{application_key} inside \"def application\" in your mix.exs"
-    else
-      "Make sure :#{app} is listed as a dependency in \"def deps\" in your mix.exs"
-    end
-  end
-
-  defp application_key do
-    project = Mix.Project.get()
-
-    with true <- function_exported?(project, :application, 0),
-         [_ | _] = properties <- project.application(),
-         Keyword.has_key?(properties, :applications) do
-      :applications
-    else
-      _ -> :extra_applications
-    end
-  end
-
-  defp elixir_app?(app), do: app in [:logger, :mix, :ex_unit, :iex, :eex]
-
-  defp erlang_app?(app) do
-    case :code.lib_dir(app) do
-      [_ | _] = path -> List.starts_with?(path, :code.root_dir())
-      _ -> false
-    end
-  end
-
   ## Helpers
-
-  def setup_warnings_table(config) do
-    table = :ets.new(:app_tracer_warnings, [:public, :duplicate_bag, write_concurrency: true])
-    excludes = List.wrap(config[:xref][:exclude])
-    :ets.insert(@table, [{@warnings_key, table, Atom.to_string(config[:app]), excludes}])
-  end
-
-  defp warnings_table() do
-    :ets.lookup_element(@table, @warnings_key, 2)
-  end
 
   defp manifest(config) do
     Path.join(Mix.Project.manifest_path(config), @manifest)
@@ -263,7 +89,7 @@ defmodule Mix.Compilers.ApplicationTracer do
 
   defp build_manifest(config) do
     table = :ets.new(@table, [:public, :named_table, :set, read_concurrency: true])
-    {all, _optional} = Mix.Tasks.Compile.App.project_apps(config)
+    {all, _optional} = project_apps(config)
 
     %{}
     |> store_apps(table, all)
@@ -321,5 +147,20 @@ defmodule Mix.Compilers.ApplicationTracer do
     else
       false
     end
+  end
+
+  defp project_apps(config) do
+    project = Mix.Project.get!()
+
+    properties =
+      if function_exported?(project, :application, 0), do: project.application(), else: []
+
+    extra =
+      Keyword.get(properties, :included_applications, []) ++
+        Keyword.get(properties, :extra_applications, [])
+
+    Mix.Tasks.Compile.App.project_apps(properties, config, extra, fn ->
+      Enum.map(config[:deps], &elem(&1, 0))
+    end)
   end
 end

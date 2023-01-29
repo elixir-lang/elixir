@@ -141,6 +141,7 @@ defmodule Mix.Tasks.Test.Coverage do
   @doc false
   def run(_args) do
     Mix.Task.run("compile")
+    Mix.ensure_application!(:tools)
     config = Mix.Project.config()
     test_coverage = config[:test_coverage] || []
     {cover_paths, compile_paths} = apps_paths(config, test_coverage)
@@ -187,6 +188,7 @@ defmodule Mix.Tasks.Test.Coverage do
   @doc false
   def start(compile_path, opts) do
     Mix.shell().info("Cover compiling modules ...")
+    Mix.ensure_application!(:tools)
 
     if Keyword.get(opts, :local_only, true) do
       :cover.local_only()

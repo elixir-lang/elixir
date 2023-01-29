@@ -6,8 +6,8 @@ defmodule Mix.ReleaseTest do
   import Mix.Release
   doctest Mix.Release
 
-  _ = Application.ensure_started(:eex)
-  _ = Application.ensure_started(:runtime_tools)
+  Application.ensure_loaded(:eex)
+  Application.ensure_loaded(:runtime_tools)
 
   @erts_version :erlang.system_info(:version)
   @erts_source Path.join(:code.root_dir(), "erts-#{@erts_version}")
@@ -15,6 +15,11 @@ defmodule Mix.ReleaseTest do
   @kernel_version Application.spec(:kernel, :vsn)
   @runtime_tools_version Application.spec(:runtime_tools, :vsn)
   @eex_ebin Application.app_dir(:eex, "ebin")
+
+  setup_all do
+    Mix.ensure_application!(:sasl)
+    :ok
+  end
 
   setup do
     File.rm_rf!(tmp_path("mix_release"))

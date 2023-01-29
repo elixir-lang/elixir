@@ -69,49 +69,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     Code.put_compiler_option(:tracers, [])
   end
 
-  test "warns when Logger is used but not depended on" do
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-
-      File.write!("lib/a.ex", """
-      defmodule A do
-        require Logger
-        def info, do: Logger.info("hello")
-      end
-      """)
-
-      message =
-        "Logger.info/1 defined in application :logger is used by the current application but the current application does not depend on :logger"
-
-      assert capture_io(:stderr, fn ->
-               Mix.Task.run("compile", [])
-             end) =~ message
-
-      Mix.Task.clear()
-
-      assert capture_io(:stderr, fn ->
-               assert catch_exit(Mix.Task.run("compile", ["--warnings-as-errors", "--force"]))
-             end) =~ message
-    end)
-  end
-
-  test "does not warn when __info__ is used but not depended on" do
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-
-      File.write!("lib/a.ex", """
-      defmodule A do
-        require Logger
-        def info, do: Logger.__impl__("hello")
-      end
-      """)
-
-      assert capture_io(:stderr, fn ->
-               Mix.Task.run("compile", [])
-             end) == ""
-    end)
-  end
-
   test "recompiles module-application manifest if manifest changes" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)

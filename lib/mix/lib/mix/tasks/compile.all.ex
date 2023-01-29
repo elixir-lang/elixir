@@ -13,14 +13,20 @@ defmodule Mix.Tasks.Compile.All do
   def run(args) do
     Mix.Project.get!()
     config = Mix.Project.config()
-    validate_compile_env? = "--no-validate-compile-env" not in args
-    lib_path = Path.join(Mix.Project.build_path(config), "lib")
 
     # Make sure Mix.Dep is cached to avoid loading dependencies
     # during compilation. It is likely this will be invoked anyway,
     # as both Elixir and app compilers rely on it.
-    Mix.Dep.cached()
-    load_apps(config, lib_path, validate_compile_env?)
+    deps = Mix.Dep.cached()
+    apps = project_apps(config)
+    validate_compile_env? = "--no-validate-compile-env" not in args
+    loaded_paths = Mix.AppLoader.load_apps(apps, deps, config, validate_compile_env?)
+
+    # We compute the diff as that will be more effcient
+    # than re-adding common paths several times
+    current_paths = :code.get_path()
+    Code.delete_paths(current_paths -- loaded_paths)
+    Code.prepend_paths(loaded_paths -- current_paths)
 
     result =
       if "--no-compile" in args do
@@ -37,10 +43,14 @@ defmodule Mix.Tasks.Compile.All do
         end)
       end
 
-    _ = Code.prepend_path(Mix.Project.compile_path())
+    compile_path = to_charlist(Mix.Project.compile_path())
+    _ = Code.prepend_path(compile_path)
 
     unless "--no-app-loading" in args do
-      load_app(config[:app], lib_path, validate_compile_env?)
+      with {:error, message} <-
+             Mix.AppLoader.load_app(config[:app], compile_path, validate_compile_env?) do
+        Mix.raise(message)
+      end
     end
 
     result
@@ -93,95 +103,22 @@ defmodule Mix.Tasks.Compile.All do
     Enum.reduce(Mix.ProjectStack.pop_after_compiler(compiler), result, & &1.(&2))
   end
 
-  ## App loading helpers
+  defp project_apps(config) do
+    project = Mix.Project.get!()
 
-  defp load_apps(config, lib_path, validate_compile_env?) do
-    {all, _optional} = Mix.Tasks.Compile.App.project_apps(config)
-    parent = self()
-    opts = [ordered: false, timeout: :infinity]
-    deps = for dep <- Mix.Dep.cached(), into: %{}, do: {dep.app, lib_path}
+    properties =
+      if function_exported?(project, :application, 0), do: project.application(), else: []
 
-    stream_apps(all, deps)
-    |> Task.async_stream(&load_stream_app(&1, parent, validate_compile_env?), opts)
-    |> Stream.run()
-  end
+    extra =
+      Keyword.get(properties, :included_applications, []) ++
+        Keyword.get(properties, :extra_applications, [])
 
-  defp load_stream_app({app, lib_path}, parent, validate_compile_env?) do
-    children =
-      case load_app(app, lib_path, validate_compile_env?) do
-        :ok ->
-          Application.spec(app, :applications) ++ Application.spec(app, :included_applications)
+    {all, _optional} =
+      Mix.Tasks.Compile.App.project_apps(properties, config, extra, fn ->
+        # Include all deps by design
+        Enum.map(config[:deps], &elem(&1, 0))
+      end)
 
-        :error ->
-          []
-      end
-
-    send(parent, {:done, app, children})
-    :ok
-  end
-
-  defp stream_apps(initial, deps) do
-    Stream.unfold({initial, %{}, %{}, deps}, &stream_app/1)
-  end
-
-  # We already processed this app, skip it.
-  defp stream_app({[app | apps], seen, done, deps}) when is_map_key(seen, app) do
-    stream_app({apps, seen, done, deps})
-  end
-
-  # We haven't processed this app, emit it.
-  defp stream_app({[app | apps], seen, done, deps}) do
-    {{app, deps[app]}, {apps, Map.put(seen, app, true), done, deps}}
-  end
-
-  # We have processed all apps and all seen have been done.
-  defp stream_app({[], seen, done, _deps}) when map_size(seen) == map_size(done) do
-    nil
-  end
-
-  # We have processed all apps but there is work being done.
-  defp stream_app({[], seen, done, deps}) do
-    receive do
-      {:done, app, children} -> stream_app({children, seen, Map.put(done, app, true), deps})
-    end
-  end
-
-  defp load_app(app, lib_path, validate_compile_env?) do
-    if Application.spec(app, :vsn) do
-      :ok
-    else
-      with {:ok, bin} <- read_app(app, lib_path),
-           {:ok, {:application, _, properties} = application_data} <- consult_app_file(bin),
-           :ok <- :application.load(application_data) do
-        if compile_env = validate_compile_env? && properties[:compile_env] do
-          Config.Provider.validate_compile_env(compile_env, false)
-        end
-
-        :ok
-      else
-        # Optional applications won't be available
-        _ -> :error
-      end
-    end
-  end
-
-  # The app didn't come from a dep, go through the slow path (code/erl_prim_loader)
-  defp read_app(app, nil) do
-    name = Atom.to_charlist(app) ++ ~c".app"
-
-    with [_ | _] = path <- :code.where_is_file(name),
-         {:ok, bin, _full_name} <- :erl_prim_loader.get_file(path),
-         do: {:ok, bin}
-  end
-
-  defp read_app(app, lib_path) do
-    File.read("#{lib_path}/#{app}/ebin/#{app}.app")
-  end
-
-  defp consult_app_file(bin) do
-    # The path could be located in an .ez archive, so we use the prim loader.
-    with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(bin)) do
-      :erl_parse.parse_term(tokens)
-    end
+    all
   end
 end
