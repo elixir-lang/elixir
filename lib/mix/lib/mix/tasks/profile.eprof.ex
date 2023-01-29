@@ -185,10 +185,9 @@ defmodule Mix.Tasks.Profile.Eprof do
   """
   @spec profile((-> any()), keyword()) :: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
+    Mix.ensure_application!(:tools)
     {return_value, results} = profile_and_analyse(fun, opts)
-
     print_output(results)
-
     return_value
   end
 

@@ -1038,6 +1038,7 @@ defmodule Mix.Tasks.Release do
   def run(args) do
     Mix.Project.get!()
     Mix.Task.run("compile", args)
+    Mix.ensure_application!(:sasl)
 
     config = Mix.Project.config()
 

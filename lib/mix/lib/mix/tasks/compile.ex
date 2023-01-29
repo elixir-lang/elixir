@@ -121,13 +121,14 @@ defmodule Mix.Tasks.Compile do
   @impl true
   def run(args) do
     Mix.Project.get!()
-    Mix.Task.run("loadpaths", args)
+
+    # Don't bother setting up the load paths because compile.all
+    # will load applications and set them up anyway.
+    Mix.Task.run("loadpaths", ["--no-deps-loading" | args])
 
     {opts, _, _} = OptionParser.parse(args, switches: [erl_config: :string])
     load_erl_config(opts)
 
-    # We invoke compile.all even on --no-compile because compile.all
-    # loads the apps, and we still want to do that.
     {res, diagnostics} =
       Mix.Task.run("compile.all", args)
       |> List.wrap()
@@ -135,6 +136,13 @@ defmodule Mix.Tasks.Compile do
       |> Enum.reduce({:noop, []}, &merge_diagnostics/2)
 
     config = Mix.Project.config()
+
+    # If we are in an umbrella project, now load paths from all children.
+    if Mix.Project.umbrella?(config) do
+      apps = Mix.Project.apps_paths(config) |> Map.keys()
+      loaded_paths = Mix.AppLoader.load_apps(apps, Mix.Dep.cached(), config, false)
+      Code.prepend_paths(loaded_paths -- :code.get_path())
+    end
 
     consolidate_protocols? =
       config[:consolidate_protocols] and "--no-protocol-consolidation" not in args

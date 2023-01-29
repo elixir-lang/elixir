@@ -25,28 +25,43 @@ defmodule Config.ProviderTest do
   end
 
   test "validate_compile_env" do
-    Config.Provider.validate_compile_env([{:elixir, [:unknown], :error}])
+    assert Config.Provider.validate_compile_env([{:elixir, [:unknown], :error}]) == :ok
 
     Application.put_env(:elixir, :unknown, nested: [key: :value])
-    Config.Provider.validate_compile_env([{:elixir, [:unknown], {:ok, [nested: [key: :value]]}}])
-    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested], {:ok, [key: :value]}}])
-    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :key], {:ok, :value}}])
-    Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :unknown], :error}])
 
-    assert capture_abort(fn ->
+    assert Config.Provider.validate_compile_env([
+             {:elixir, [:unknown], {:ok, [nested: [key: :value]]}}
+           ]) == :ok
+
+    assert Config.Provider.validate_compile_env([
+             {:elixir, [:unknown, :nested], {:ok, [key: :value]}}
+           ]) == :ok
+
+    assert Config.Provider.validate_compile_env([
+             {:elixir, [:unknown, :nested, :key], {:ok, :value}}
+           ]) == :ok
+
+    assert Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested, :unknown], :error}]) ==
+             :ok
+
+    assert {:error, msg} =
              Config.Provider.validate_compile_env([{:elixir, [:unknown, :nested], :error}])
-           end) =~ "Compile time value was not set"
 
-    assert capture_abort(fn ->
+    assert msg =~ "Compile time value was not set"
+
+    assert {:error, msg} =
              Config.Provider.validate_compile_env([
                {:elixir, [:unknown, :nested], {:ok, :another}}
              ])
-           end) =~ "Compile time value was set to: :another"
 
-    assert capture_abort(fn ->
-             keys = [:unknown, :nested, :key, :too_deep]
+    assert msg =~ "Compile time value was set to: :another"
+
+    keys = [:unknown, :nested, :key, :too_deep]
+
+    assert {:error, msg} =
              Config.Provider.validate_compile_env([{:elixir, keys, :error}])
-           end) =~
+
+    assert msg =~
              "application :elixir failed reading its compile environment for path [:nested, :key, :too_deep] inside key :unknown"
   after
     Application.delete_env(:elixir, :unknown)

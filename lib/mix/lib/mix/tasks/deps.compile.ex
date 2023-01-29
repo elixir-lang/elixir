@@ -168,7 +168,8 @@ defmodule Mix.Tasks.Deps.Compile do
         options = [
           "--from-mix-deps-compile",
           "--no-archives-check",
-          "--no-warnings-as-errors"
+          "--no-warnings-as-errors",
+          "--no-code-path-pruning"
         ]
 
         res = Mix.Task.run("compile", options)

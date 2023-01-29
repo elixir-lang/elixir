@@ -158,19 +158,9 @@ defmodule Mix.Compilers.Erlang do
   @doc """
   Ensures the native OTP application is available.
   """
-  def ensure_application!(app, input) do
-    case Application.ensure_all_started(app) do
-      {:ok, _} ->
-        :ok
-
-      {:error, _} ->
-        Mix.raise(
-          "Could not compile #{inspect(Path.relative_to_cwd(input))} because " <>
-            "the application \"#{app}\" could not be found. This may happen if " <>
-            "your package manager broke Erlang into multiple packages and may " <>
-            "be fixed by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages"
-        )
-    end
+  def ensure_application!(app, _input) do
+    Mix.ensure_application!(app)
+    {:ok, _} = Application.ensure_all_started(app)
   end
 
   @doc """

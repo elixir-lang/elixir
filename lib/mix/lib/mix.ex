@@ -550,6 +550,27 @@ defmodule Mix do
   end
 
   @doc """
+  Ensures the given application from Erlang/OTP or Elixir is available in the path.
+
+  This is mostly used for Mix internal needs. In your own tasks, you should
+  list the Erlang application dependencies under the `:extra_applications`
+  section of your `mix.exs`.
+  """
+  def ensure_application!(app) when is_atom(app) do
+    case Mix.State.builtin_apps() do
+      %{^app => {:ebin, path}} ->
+        Code.prepend_path(path)
+
+      %{} ->
+        Mix.raise(
+          "The application \"#{app}\" could not be found. This may happen if your " <>
+            "Operating System broke Erlang into multiple packages and may be fixed " <>
+            "by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages"
+        )
+    end
+  end
+
+  @doc """
   Installs and starts dependencies.
 
   The given `deps` should be in the same format as defined in a regular Mix

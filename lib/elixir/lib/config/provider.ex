@@ -267,46 +267,54 @@ defmodule Config.Provider do
   end
 
   defp maybe_validate_compile_env(provider) do
-    with [_ | _] = compile_env <- provider.validate_compile_env do
-      validate_compile_env(compile_env)
+    with [_ | _] = compile_env <- provider.validate_compile_env,
+         {:error, message} <- validate_compile_env(compile_env) do
+      abort(message)
     end
   end
 
   @doc false
-  def validate_compile_env(compile_env, ensure_loaded? \\ true) do
-    for {app, [key | path], compile_return} <- compile_env,
-        ensure_app_loaded?(app, ensure_loaded?) do
+  def validate_compile_env(compile_env, ensure_loaded? \\ true)
+
+  def validate_compile_env([{app, [key | path], compile_return} | compile_env], ensure_loaded?) do
+    if ensure_app_loaded?(app, ensure_loaded?) do
       try do
         traverse_env(Application.fetch_env(app, key), path)
       rescue
         e ->
-          abort("""
-          application #{inspect(app)} failed reading its compile environment #{path(key, path)}:
+          {:error,
+           """
+           application #{inspect(app)} failed reading its compile environment #{path(key, path)}:
 
-          #{Exception.format(:error, e, __STACKTRACE__)}
+           #{Exception.format(:error, e, __STACKTRACE__)}
 
-          Expected it to match the compile time value of #{return_to_text(compile_return)}.
+           Expected it to match the compile time value of #{return_to_text(compile_return)}.
 
-          #{compile_env_tips(app)}
-          """)
+           #{compile_env_tips(app)}
+           """}
       else
         ^compile_return ->
-          :ok
+          validate_compile_env(compile_env, ensure_loaded?)
 
         runtime_return ->
-          abort("""
-          the application #{inspect(app)} has a different value set #{path(key, path)} \
-          during runtime compared to compile time. Since this application environment entry was \
-          marked as compile time, this difference can lead to different behaviour than expected:
+          {:error,
+           """
+           the application #{inspect(app)} has a different value set #{path(key, path)} \
+           during runtime compared to compile time. Since this application environment entry was \
+           marked as compile time, this difference can lead to different behaviour than expected:
 
-            * Compile time value #{return_to_text(compile_return)}
-            * Runtime value #{return_to_text(runtime_return)}
+             * Compile time value #{return_to_text(compile_return)}
+             * Runtime value #{return_to_text(runtime_return)}
 
-          #{compile_env_tips(app)}
-          """)
+           #{compile_env_tips(app)}
+           """}
       end
+    else
+      validate_compile_env(compile_env, ensure_loaded?)
     end
+  end
 
+  def validate_compile_env([], _ensure_loaded?) do
     :ok
   end
 

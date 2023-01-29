@@ -392,23 +392,7 @@ defmodule Mix.Tasks.Compile.App do
   ## Helpers for loading and manipulating apps
 
   @doc false
-  # Entry point function used by app tracer, app loader, and others.
-  def project_apps(config) do
-    project = Mix.Project.get!()
-
-    properties =
-      if function_exported?(project, :application, 0), do: project.application(), else: []
-
-    extra =
-      Keyword.get(properties, :included_applications, []) ++
-        Keyword.get(properties, :extra_applications, [])
-
-    project_apps(properties, config, extra, fn ->
-      config |> deps_opts() |> Keyword.keys()
-    end)
-  end
-
-  defp project_apps(properties, config, extra, deps_loader) do
+  def project_apps(properties, config, extra, deps_loader) do
     apps = Keyword.get(properties, :applications) || deps_loader.()
     {all, required, optional} = split_by_type(extra ++ apps)
     all = Enum.uniq(language_apps(config) ++ Enum.reverse(all))
