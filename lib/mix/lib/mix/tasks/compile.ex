@@ -145,7 +145,7 @@ defmodule Mix.Tasks.Compile do
         Mix.Project.apps_paths(config)
         |> Map.keys()
         |> Mix.AppLoader.load_apps(Mix.Dep.cached(), config, false, [], fn
-          {_app, path}, acc -> if path, do: [path | acc], else: path
+          {_app, path}, acc -> if path, do: [path | acc], else: acc
         end)
 
       Code.prepend_paths(loaded_paths -- :code.get_path())
