@@ -15,14 +15,15 @@ defmodule Mix.Tasks.Compile.All do
     config = Mix.Project.config()
 
     # Make sure Mix.Dep is cached to avoid loading dependencies
-    # during compilation. It is likely this will be invoked anyway,
-    # as both Elixir and app compilers rely on it.
+    # during compilation. This is also important because we prune
+    # the load paths before compiling, which means any SCM coming
+    # from archives will be removed from the code path.
     deps = Mix.Dep.cached()
     apps = project_apps(config)
     validate_compile_env? = "--no-validate-compile-env" not in args
     loaded_paths = Mix.AppLoader.load_apps(apps, deps, config, validate_compile_env?)
 
-    # We compute the diff as that will be more effcient
+    # We compute the diff as that will be more efficient
     # than re-adding common paths several times
     current_paths = :code.get_path()
     Code.delete_paths(current_paths -- loaded_paths)

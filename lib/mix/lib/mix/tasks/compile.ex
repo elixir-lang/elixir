@@ -9,8 +9,10 @@ defmodule Mix.Tasks.Compile do
   It simply runs the compilers registered in your project and returns
   a tuple with the compilation status and a list of diagnostics.
 
-  Before compiling code, it loads the code in all dependencies and
-  perform a series of checks to ensure the project is up to date.
+  Before compiling code, it performs a series of checks to ensure all
+  dependencies are compiled and the project is up to date. Then the
+  code path of your Elixir system is pruned to only contain the dependencies
+  and applications that you have explicitly listed in your `mix.exs`.
 
   ## Configuration
 
