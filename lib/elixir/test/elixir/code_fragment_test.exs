@@ -200,6 +200,19 @@ defmodule CodeFragmentTest do
                {:dot_call, {:alias, {:module_attribute, ~c"foo"}, ~c"Foo"}, ~c"hello"}
     end
 
+    test "nested expressions" do
+      assert CF.cursor_context("Hello.world()") == :none
+      assert CF.cursor_context("hello().") == {:dot, :expr, ~c""}
+      assert CF.cursor_context("Foo.hello ('(').") == {:dot, :expr, ~c""}
+      assert CF.cursor_context("Foo.hello('(', ?), ?().bar") == {:dot, :expr, ~c"bar"}
+      assert CF.cursor_context("Hello.bar(World.call(42), ?), ?().foo") == {:dot, :expr, ~c"foo"}
+      assert CF.cursor_context("Foo.hello( ).world") == {:dot, :expr, ~c"world"}
+      assert CF.cursor_context("hello.dyn_impl().call(42).bar") == {:dot, :expr, ~c"bar"}
+
+      assert CF.cursor_context("Foo.dyn_impl().call(") == {:dot_call, :expr, ~c"call"}
+      assert CF.cursor_context("hello().call(") == {:dot_call, :expr, ~c"call"}
+    end
+
     test "alias" do
       assert CF.cursor_context("HelloWor") == {:alias, ~c"HelloWor"}
       assert CF.cursor_context("Hello.Wor") == {:alias, ~c"Hello.Wor"}

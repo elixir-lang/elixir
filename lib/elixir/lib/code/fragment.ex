@@ -141,7 +141,8 @@ defmodule Code.Fragment do
                | {:dot, inside_dot, charlist}
                | {:module_attribute, charlist}
                | {:unquoted_atom, charlist}
-               | {:var, charlist},
+               | {:var, charlist}
+               | :expr,
              inside_alias:
                {:local_or_var, charlist}
                | {:module_attribute, charlist},
@@ -278,7 +279,7 @@ defmodule Code.Fragment do
 
       {:identifier, [?%], acc, count} ->
         case identifier_to_cursor_context(acc |> Enum.reverse(), count, true) do
-          {{:local_or_var, _} = idenifier, _} -> {{:struct, idenifier}, count + 1}
+          {{:local_or_var, _} = identifier, _} -> {{:struct, identifier}, count + 1}
           _ -> {:none, 0}
         end
 
@@ -416,6 +417,9 @@ defmodule Code.Fragment do
       {{:module_attribute, _} = prev, count} ->
         {{:dot, prev, acc}, count}
 
+      {:expr, count} ->
+        {{:dot, :expr, acc}, count}
+
       {_, _} ->
         {:none, 0}
     end
@@ -440,6 +444,10 @@ defmodule Code.Fragment do
     else
       {{:sigil, ~c""}, count}
     end
+  end
+
+  defp operator([?) | rest], _, [], true) when hd(rest) != ?? do
+    {:expr, 0}
   end
 
   defp operator(rest, count, acc, _call_op?) do
