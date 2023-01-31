@@ -852,7 +852,7 @@ defmodule System do
   defdelegate restart(), to: :init
 
   @doc """
-  Carefully stops the Erlang runtime system.
+  Asynchronously and carefully stops the Erlang runtime system.
 
   All applications are taken down smoothly, all code is unloaded, and all ports
   are closed before the system terminates by calling `halt/1`.
@@ -860,13 +860,16 @@ defmodule System do
   `status` must be a non-negative integer or a binary.
 
     * If an integer, the runtime system exits with the integer value which is
-      returned to the operating system.
+      returned to the operating system. On many platforms, only the status codes
+      0-255 are supported by the operating system.
 
     * If a binary, an Erlang crash dump is produced with status as slogan, and
       then the runtime system exits with status code 1.
 
-  Note that on many platforms, only the status codes 0-255 are supported
-  by the operating system.
+  Note this function is asynchronous and the current process will continue
+  executing after this function is invoked. In case you want to block the
+  current process until the system effectively shuts down, you can invoke
+  `Process.sleep(:infinity)`.
 
   ## Examples
 
