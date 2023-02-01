@@ -878,7 +878,7 @@ defmodule System do
 
   """
   @doc since: "1.5.0"
-  @spec stop(non_neg_integer | binary) :: no_return
+  @spec stop(non_neg_integer | binary) :: :ok
   def stop(status \\ 0)
 
   def stop(status) when is_integer(status) do
