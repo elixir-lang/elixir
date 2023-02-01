@@ -818,6 +818,10 @@ defmodule Task do
       raise ArgumentError, invalid_owner_error(task)
     end
 
+    await_receive(ref, task, timeout)
+  end
+
+  defp await_receive(ref, task, timeout) do
     receive do
       {^ref, reply} ->
         demonitor(ref)
@@ -852,6 +856,10 @@ defmodule Task do
       raise ArgumentError, invalid_owner_error(task)
     end
 
+    ignore_receive(ref, pid, task)
+  end
+
+  defp ignore_receive(ref, pid, task) do
     receive do
       {^ref, reply} ->
         pid && Process.unlink(pid)
@@ -1055,6 +1063,10 @@ defmodule Task do
       raise ArgumentError, invalid_owner_error(task)
     end
 
+    yield_receive(ref, task, timeout)
+  end
+
+  defp yield_receive(ref, task, timeout) do
     receive do
       {^ref, reply} ->
         demonitor(ref)
@@ -1263,11 +1275,11 @@ defmodule Task do
     raise ArgumentError, invalid_owner_error(task)
   end
 
-  def shutdown(%Task{pid: pid} = task, :brutal_kill) do
+  def shutdown(%Task{pid: pid, ref: ref} = task, :brutal_kill) do
     mon = Process.monitor(pid)
     shutdown_send(pid, :kill)
 
-    case shutdown_receive(task, mon, :brutal_kill, :infinity) do
+    case shutdown_receive(ref, mon, task, :brutal_kill, :infinity) do
       {:down, proc, :noconnection} ->
         exit({reason(:noconnection, proc), {__MODULE__, :shutdown, [task, :brutal_kill]}})
 
@@ -1279,11 +1291,11 @@ defmodule Task do
     end
   end
 
-  def shutdown(%Task{pid: pid} = task, timeout) when is_timeout(timeout) do
+  def shutdown(%Task{pid: pid, ref: ref} = task, timeout) when is_timeout(timeout) do
     mon = Process.monitor(pid)
     shutdown_send(pid, :shutdown)
 
-    case shutdown_receive(task, mon, :shutdown, timeout) do
+    case shutdown_receive(ref, mon, task, :shutdown, timeout) do
       {:down, proc, :noconnection} ->
         exit({reason(:noconnection, proc), {__MODULE__, :shutdown, [task, timeout]}})
 
@@ -1316,7 +1328,7 @@ defmodule Task do
     end
   end
 
-  defp shutdown_receive(%{ref: ref} = task, mon, type, timeout) do
+  defp shutdown_receive(ref, mon, task, type, timeout) do
     receive do
       {:DOWN, ^mon, _, _, :shutdown} when type in [:shutdown, :timeout_kill] ->
         demonitor(ref)
@@ -1336,7 +1348,7 @@ defmodule Task do
     after
       timeout ->
         Process.exit(task.pid, :kill)
-        shutdown_receive(task, mon, :timeout_kill, :infinity)
+        shutdown_receive(ref, mon, task, :timeout_kill, :infinity)
     end
   end
 
@@ -1363,6 +1375,29 @@ defmodule Task do
         demonitor(ref)
         {:down, proc, :noproc}
     end
+  end
+
+  ## Optimizations
+
+  @doc false
+  # This instructs the Erlang compiler to apply selective
+  # receive optimizations to several functions in this module.
+  # This function is never invoked directly, it is only here
+  # for compiler optimization purposes.
+  #
+  # To verify which functions have been optimized, run the
+  # following command after Elixir is compiled from the project
+  # root:
+  #
+  #     ERL_COMPILER_OPTIONS=recv_opt_info elixir lib/elixir/lib/task.ex
+  #
+  def __recv_opt_info__ do
+    ref = make_ref()
+    task = %Task{mfa: {__MODULE__, :__recv_opt_info__, 0}, owner: self(), pid: self(), ref: ref}
+    await_receive(ref, task, :infinity)
+    shutdown_receive(ref, make_ref(), task, :shutdown, :infinity)
+    yield_receive(ref, task, :infinity)
+    ignore_receive(ref, self(), task)
   end
 
   ## Helpers
