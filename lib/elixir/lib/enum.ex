@@ -2377,6 +2377,15 @@ defmodule Enum do
     end
   end
 
+  def random(a..a//_), do: a
+
+  def random(a..b//step = range) do
+    case Range.size(range) do
+      0 -> raise Enum.EmptyError
+      size -> a + random_integer(0, size - 1) * step
+    end
+  end
+
   def random(enumerable) do
     result =
       case Enumerable.slice(enumerable) do

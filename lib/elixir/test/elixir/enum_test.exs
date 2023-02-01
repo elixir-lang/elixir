@@ -2005,6 +2005,8 @@ defmodule EnumTest.Range do
 
     assert Enum.random(1..10//2) == 7
     assert Enum.random(1..10//2) == 5
+
+    assert_raise Enum.EmptyError, fn -> Enum.random(2..1//1) end
   end
 
   test "reduce/2" do
