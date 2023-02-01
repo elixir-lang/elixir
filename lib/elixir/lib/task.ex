@@ -462,7 +462,7 @@ defmodule Task do
     owner = self()
     {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor)
 
-    alias = :erlang.monitor(:process, pid, alias: :demonitor)
+    alias = build_alias(pid)
     send(pid, {owner, alias, alias, get_callers(owner), mfargs})
     %Task{pid: pid, ref: alias, owner: owner, mfa: {module, function_name, length(args)}}
   end
@@ -1276,7 +1276,7 @@ defmodule Task do
   end
 
   def shutdown(%Task{pid: pid, ref: ref} = task, :brutal_kill) do
-    mon = Process.monitor(pid)
+    mon = build_monitor(pid)
     shutdown_send(pid, :kill)
 
     case shutdown_receive(ref, mon, task, :brutal_kill, :infinity) do
@@ -1292,7 +1292,7 @@ defmodule Task do
   end
 
   def shutdown(%Task{pid: pid, ref: ref} = task, timeout) when is_timeout(timeout) do
-    mon = Process.monitor(pid)
+    mon = build_monitor(pid)
     shutdown_send(pid, :shutdown)
 
     case shutdown_receive(ref, mon, task, :shutdown, timeout) do
@@ -1379,6 +1379,14 @@ defmodule Task do
 
   ## Optimizations
 
+  defp build_monitor(pid) do
+    :erlang.monitor(:process, pid)
+  end
+
+  defp build_alias(pid) do
+    :erlang.monitor(:process, pid, alias: :demonitor)
+  end
+
   @doc false
   # This instructs the Erlang compiler to apply selective
   # receive optimizations to several functions in this module.
@@ -1391,13 +1399,13 @@ defmodule Task do
   #
   #     ERL_COMPILER_OPTIONS=recv_opt_info elixir lib/elixir/lib/task.ex
   #
-  def __recv_opt_info__ do
-    ref = make_ref()
-    task = %Task{mfa: {__MODULE__, :__recv_opt_info__, 0}, owner: self(), pid: self(), ref: ref}
+  def __recv_opt_info__(pid) do
+    ref = build_alias(pid)
+    task = %Task{mfa: {__MODULE__, :__recv_opt_info__, 0}, owner: self(), pid: pid, ref: ref}
     await_receive(ref, task, :infinity)
-    shutdown_receive(ref, make_ref(), task, :shutdown, :infinity)
+    shutdown_receive(ref, build_monitor(pid), task, :shutdown, :infinity)
     yield_receive(ref, task, :infinity)
-    ignore_receive(ref, self(), task)
+    ignore_receive(ref, pid, task)
   end
 
   ## Helpers
