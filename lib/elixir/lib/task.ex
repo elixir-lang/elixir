@@ -1399,13 +1399,11 @@ defmodule Task do
   #
   #     ERL_COMPILER_OPTIONS=recv_opt_info elixir lib/elixir/lib/task.ex
   #
-  def __recv_opt_info__(pid) do
-    ref = build_alias(pid)
-    task = %Task{mfa: {__MODULE__, :__recv_opt_info__, 0}, owner: self(), pid: pid, ref: ref}
-    await_receive(ref, task, :infinity)
-    shutdown_receive(ref, build_monitor(pid), task, :shutdown, :infinity)
-    yield_receive(ref, task, :infinity)
-    ignore_receive(ref, pid, task)
+  def __recv_opt_info__(pid, task) do
+    await_receive(build_alias(pid), task, :infinity)
+    shutdown_receive(build_alias(pid), build_monitor(pid), task, :shutdown, :infinity)
+    yield_receive(build_alias(pid), task, :infinity)
+    ignore_receive(build_alias(pid), pid, task)
   end
 
   ## Helpers
