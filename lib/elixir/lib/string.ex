@@ -1781,7 +1781,7 @@ defmodule String do
 
   `algorithm` may be `:default` or `:fast_ascii`. Both algorithms are equivalent
   from a validation perspective (they will always produce the same output), but
-  `:fast_ascii` can yield signifcant performance benefits in specific scenarios.
+  `:fast_ascii` can yield significant performance benefits in specific scenarios.
 
   If all of the following conditions are true, you may want to experiment with
   the `:fast_ascii` algorithm to see if it yields performance benefits in your
