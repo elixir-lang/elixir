@@ -255,10 +255,6 @@ defmodule Kernel.CLI do
     parse_shared(t, config)
   end
 
-  defp parse_shared([~c"--app", h | t], config) do
-    parse_shared(t, %{config | commands: [{:app, h} | config.commands]})
-  end
-
   defp parse_shared([~c"--no-halt" | t], config) do
     parse_shared(t, %{config | no_halt: true})
   end
@@ -463,17 +459,6 @@ defmodule Kernel.CLI do
 
       {kind, error, stack} ->
         :erlang.raise(kind, error, stack)
-    end
-  end
-
-  defp process_command({:app, app}, _config) when is_list(app) do
-    case Application.ensure_all_started(List.to_atom(app)) do
-      {:error, {app, reason}} ->
-        msg = "--app : Could not start application #{app}: " <> Application.format_error(reason)
-        {:error, msg}
-
-      {:ok, _} ->
-        :ok
     end
   end
 

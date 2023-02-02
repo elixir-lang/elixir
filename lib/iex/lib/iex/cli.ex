@@ -39,21 +39,10 @@ defmodule IEx.CLI do
 
   @compile {:no_warn_undefined, {:user, :start, 0}}
 
-  @doc """
-  In order to work properly, IEx needs to be set as the
-  proper `-user` when starting the Erlang VM and we do so
-  by pointing exactly to this function.
-
-  If possible, Elixir will start a tty (smart terminal)
-  which makes all control commands available in tty
-  available to the developer.
-
-  In case `tty` is not available (for example, Windows),
-  a dumb terminal version is started instead.
-  """
-  def start do
-    # TODO: We can remove the -user callback on Erlang/OTP 26+
-    # in favor of using -eval and :shell.start_interactive()
+  def main do
+    # TODO: Keep only the first branch and remove the usage
+    # of -user callback altogether on Erlang/OTP 26+ by using
+    # --eval and :shell.start_interactive(new_tty_args())
     cond do
       Code.ensure_loaded?(:prim_tty) ->
         :user_drv.start(%{initial_shell: new_tty_args()})
@@ -74,7 +63,7 @@ defmodule IEx.CLI do
         # IEx.Broker is capable of considering all groups under user_drv but
         # when we use :user.start(), we need to explicitly register it instead.
         # If we don't register, pry doesn't work.
-        IEx.start([register: true] ++ options(), {:elixir, :start_cli, []})
+        IEx.start([register: true] ++ options())
     end
   end
 
@@ -138,13 +127,13 @@ defmodule IEx.CLI do
     end
   end
 
+  defp local_start_mfa do
+    {IEx, :start, [options()]}
+  end
+
   def remote_start(parent, ref) do
     send(parent, {:begin, ref, self()})
     receive do: ({:done, ^ref} -> :ok)
-  end
-
-  defp local_start_mfa do
-    {IEx, :start, [options(), {:elixir, :start_cli, []}]}
   end
 
   defp remote_start_mfa do
@@ -155,7 +144,8 @@ defmodule IEx.CLI do
       spawn_link(fn ->
         receive do
           {:begin, ^ref, other} ->
-            :elixir.start_cli()
+            {:ok, _} = Application.ensure_all_started(:elixir)
+            System.wait_until_booted()
             send(other, {:done, ref})
         end
       end)
