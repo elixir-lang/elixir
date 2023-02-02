@@ -165,7 +165,7 @@ if %errorlevel% == 0 (
   set beforeExtra=-elixir ansi_enabled true !beforeExtra!
 )
 
-set beforeExtra=-noshell -env ELIXIR_ROOT !SCRIPT_PATH!..\lib -pa !SCRIPT_PATH!..\lib\elixir\ebin -s elixir start_cli !beforeExtra!
+set beforeExtra=-noshell -elixir_root !SCRIPT_PATH!..\lib -pa !SCRIPT_PATH!..\lib\elixir\ebin -s elixir start_cli !beforeExtra!
 
 if defined ELIXIR_CLI_DRY_RUN (
    if defined useWerl (
