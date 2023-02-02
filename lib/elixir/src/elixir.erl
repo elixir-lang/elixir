@@ -33,13 +33,14 @@ start(_Type, _Args) ->
 
   case init:get_argument(elixir_root) of
     {ok, [[Root]]} ->
-      Sep =
-        case os:type() of
-          {win32, _} -> $\\;
-          _ -> $/
-        end,
-      Apps = ["eex", "ex_unit", "iex", "mix", "logger", "elixir"],
-      code:add_pathsa([Root ++ [Sep] ++ App ++ [Sep] ++ "ebin" || App <- Apps]);
+      code:add_pathsa([
+        Root ++ "/eex/ebin",
+        Root ++ "/ex_unit/ebin",
+        Root ++ "/iex/ebin",
+        Root ++ "/logger/ebin",
+        Root ++ "/mix/ebin",
+        Root ++ "/elixir/ebin"
+      ]);
     _ ->
       ok
   end,
