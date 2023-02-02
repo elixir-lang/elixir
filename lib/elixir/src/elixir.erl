@@ -31,10 +31,8 @@ start(_Type, _Args) ->
   set_stdio_and_stderr_to_binary_and_maybe_utf8(),
   check_file_encoding(file:native_name_encoding()),
 
-  case os:getenv("ELIXIR_ROOT") of
-    false ->
-      ok;
-    Root ->
+  case init:get_argument(elixir_root) of
+    {ok, [[Root]]} ->
       code:add_pathsa([
         Root ++ "/eex/ebin",
         Root ++ "/ex_unit/ebin",
@@ -42,7 +40,9 @@ start(_Type, _Args) ->
         Root ++ "/logger/ebin",
         Root ++ "/mix/ebin",
         Root ++ "/elixir/ebin"
-      ])
+      ]);
+    _ ->
+      ok
   end,
 
   case application:get_env(elixir, check_endianness, true) of
@@ -173,9 +173,9 @@ start_cli() ->
   elixir_config:booted().
 
 start() ->
-  case os:getenv("ELIXIR_ROOT") of
-    false -> ok;
-    Root -> code:add_patha(Root ++ "/iex/ebin")
+  case init:get_argument(elixir_root) of
+    {ok, [[Root]]} -> code:add_patha(Root ++ "/iex/ebin");
+    _ -> ok
   end,
   'Elixir.IEx.CLI':main().
 

@@ -223,7 +223,7 @@ fi
 ERTS_BIN=
 ERTS_BIN="$ERTS_BIN"
 
-set -- "$ERTS_BIN$ERL_EXEC" -noshell -env ELIXIR_ROOT "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin $ELIXIR_ERL_OPTIONS -s elixir start_cli $ERL "$@"
+set -- "$ERTS_BIN$ERL_EXEC" -noshell -elixir_root "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin $ELIXIR_ERL_OPTIONS -s elixir start_cli $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""
