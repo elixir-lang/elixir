@@ -12,7 +12,8 @@ defmodule Kernel.CLI do
     errors: [],
     verbose_compile: false,
     profile: nil,
-    pry: false
+    pry: false,
+    mode: :elixir
   }
 
   @standalone_opts [~c"-h", ~c"--help", ~c"--short-version"]
@@ -76,7 +77,16 @@ defmodule Kernel.CLI do
   Process CLI commands. Made public for testing.
   """
   def process_commands(config) do
-    results = Enum.map(Enum.reverse(config.commands), &process_command(&1, config))
+    commands =
+      case config do
+        %{mode: :elixirc, compile: compile, commands: commands} ->
+          [{:compile, compile} | commands]
+
+        %{commands: commands} ->
+          commands
+      end
+
+    results = Enum.map(Enum.reverse(commands), &process_command(&1, config))
     errors = for {:error, msg} <- results, do: msg
     Enum.reverse(config.errors, errors)
   end
@@ -162,17 +172,6 @@ defmodule Kernel.CLI do
   defp to_exit(:error, reason, stack), do: {reason, stack}
   defp to_exit(:exit, reason, _stack), do: reason
 
-  defp shared_option?(list, config, callback) do
-    case parse_shared(list, config) do
-      {[h | hs], _} when h == hd(list) ->
-        new_config = %{config | errors: ["#{h} : Unknown option" | config.errors]}
-        callback.(hs, new_config)
-
-      {new_list, new_config} ->
-        callback.(new_list, new_config)
-    end
-  end
-
   ## Error handling
 
   defp print_error(kind, reason, stacktrace) do
@@ -217,19 +216,30 @@ defmodule Kernel.CLI do
     []
   end
 
-  # Parse shared options
+  # Process init options
 
-  defp halt_standalone(opt) do
-    IO.puts(:stderr, "#{opt} : Standalone options can't be combined with other options")
-    System.halt(1)
+  defp parse_argv([~c"--" | t], config) do
+    {config, t}
   end
 
-  defp parse_shared([opt | _], _config) when opt in @standalone_opts do
+  defp parse_argv([~c"+elixirc" | t], config) do
+    parse_argv(t, %{config | mode: :elixirc})
+  end
+
+  defp parse_argv([~c"+iex" | t], config) do
+    parse_argv(t, %{config | mode: :iex})
+  end
+
+  defp parse_argv([~c"-S", h | t], config) do
+    {%{config | commands: [{:script, h} | config.commands]}, t}
+  end
+
+  defp parse_argv([opt | _], _config) when opt in @standalone_opts do
     halt_standalone(opt)
   end
 
-  defp parse_shared([opt | t], _config) when opt in [~c"-v", ~c"--version"] do
-    if function_exported?(IEx, :started?, 0) and IEx.started?() do
+  defp parse_argv([opt | t], config) when opt in [~c"-v", ~c"--version"] do
+    if config.mode == :iex do
       IO.puts("IEx " <> System.build_info()[:build])
     else
       IO.puts(:erlang.system_info(:system_version))
@@ -243,50 +253,122 @@ defmodule Kernel.CLI do
     end
   end
 
-  defp parse_shared([~c"-pa", h | t], config) do
+  defp parse_argv([~c"-pa", h | t], config) do
     paths = expand_code_path(h)
     Code.prepend_paths(paths)
-    parse_shared(t, config)
+    parse_argv(t, config)
   end
 
-  defp parse_shared([~c"-pz", h | t], config) do
+  defp parse_argv([~c"-pz", h | t], config) do
     paths = expand_code_path(h)
     Code.append_paths(paths)
-    parse_shared(t, config)
+    parse_argv(t, config)
   end
 
-  defp parse_shared([~c"--no-halt" | t], config) do
-    parse_shared(t, %{config | no_halt: true})
+  defp parse_argv([~c"--no-halt" | t], config) do
+    parse_argv(t, %{config | no_halt: true})
   end
 
-  defp parse_shared([~c"-e", h | t], config) do
-    parse_shared(t, %{config | commands: [{:eval, h} | config.commands]})
+  defp parse_argv([~c"-e", h | t], config) do
+    parse_argv(t, %{config | commands: [{:eval, h} | config.commands]})
   end
 
-  defp parse_shared([~c"--eval", h | t], config) do
-    parse_shared(t, %{config | commands: [{:eval, h} | config.commands]})
+  defp parse_argv([~c"--eval", h | t], config) do
+    parse_argv(t, %{config | commands: [{:eval, h} | config.commands]})
   end
 
-  defp parse_shared([~c"--rpc-eval", node, h | t], config) do
+  defp parse_argv([~c"--rpc-eval", node, h | t], config) do
     node = append_hostname(node)
-    parse_shared(t, %{config | commands: [{:rpc_eval, node, h} | config.commands]})
+    parse_argv(t, %{config | commands: [{:rpc_eval, node, h} | config.commands]})
   end
 
-  defp parse_shared([~c"--rpc-eval" | _], config) do
+  defp parse_argv([~c"--rpc-eval" | _], config) do
     new_config = %{config | errors: ["--rpc-eval : wrong number of arguments" | config.errors]}
-    {[], new_config}
+    {new_config, []}
   end
 
-  defp parse_shared([~c"-r", h | t], config) do
-    parse_shared(t, %{config | commands: [{:require, h} | config.commands]})
+  defp parse_argv([~c"-r", h | t], config) do
+    parse_argv(t, %{config | commands: [{:require, h} | config.commands]})
   end
 
-  defp parse_shared([~c"-pr", h | t], config) do
-    parse_shared(t, %{config | commands: [{:parallel_require, h} | config.commands]})
+  defp parse_argv([~c"-pr", h | t], config) do
+    parse_argv(t, %{config | commands: [{:parallel_require, h} | config.commands]})
   end
 
-  defp parse_shared(list, config) do
-    {list, config}
+  ## Compiler
+
+  defp parse_argv([~c"-o", h | t], %{mode: :elixirc} = config) do
+    parse_argv(t, %{config | output: h})
+  end
+
+  defp parse_argv([~c"--no-docs" | t], %{mode: :elixirc} = config) do
+    parse_argv(t, %{config | compiler_options: [{:docs, false} | config.compiler_options]})
+  end
+
+  defp parse_argv([~c"--no-debug-info" | t], %{mode: :elixirc} = config) do
+    compiler_options = [{:debug_info, false} | config.compiler_options]
+    parse_argv(t, %{config | compiler_options: compiler_options})
+  end
+
+  defp parse_argv([~c"--ignore-module-conflict" | t], %{mode: :elixirc} = config) do
+    compiler_options = [{:ignore_module_conflict, true} | config.compiler_options]
+    parse_argv(t, %{config | compiler_options: compiler_options})
+  end
+
+  defp parse_argv([~c"--warnings-as-errors" | t], %{mode: :elixirc} = config) do
+    compiler_options = [{:warnings_as_errors, true} | config.compiler_options]
+    parse_argv(t, %{config | compiler_options: compiler_options})
+  end
+
+  defp parse_argv([~c"--verbose" | t], %{mode: :elixirc} = config) do
+    parse_argv(t, %{config | verbose_compile: true})
+  end
+
+  defp parse_argv([~c"--profile", "time" | t], %{mode: :elixirc} = config) do
+    parse_argv(t, %{config | profile: :time})
+  end
+
+  defp parse_argv([~c"--dbg", backend | t], %{mode: :iex} = config) do
+    case backend do
+      ~c"pry" ->
+        parse_argv(t, %{config | pry: true})
+
+      ~c"kernel" ->
+        parse_argv(t, %{config | pry: false})
+
+      _ ->
+        error = "--dbg : Unknown dbg backend #{inspect(backend)}"
+        parse_argv(t, %{config | errors: [error | config.errors]})
+    end
+  end
+
+  defp parse_argv([~c"--dot-iex", _ | t], %{mode: :iex} = config), do: parse_argv(t, config)
+  defp parse_argv([~c"--remsh", _ | t], %{mode: :iex} = config), do: parse_argv(t, config)
+
+  ## Fallback
+
+  defp parse_argv([h | t], %{mode: :elixirc} = config) do
+    pattern = if File.dir?(h), do: "#{h}/**/*.ex", else: h
+    parse_argv(t, %{config | compile: [pattern | config.compile]})
+  end
+
+  defp parse_argv([h | t], config) do
+    if List.keymember?(config.commands, :eval, 0) do
+      {config, [h | t]}
+    else
+      {%{config | commands: [{:file, h} | config.commands]}, t}
+    end
+  end
+
+  defp parse_argv([], config) do
+    {config, []}
+  end
+
+  # Parse helpers
+
+  defp halt_standalone(opt) do
+    IO.puts(:stderr, "#{opt} : Standalone options can't be combined with other options")
+    System.halt(1)
   end
 
   defp append_hostname(node) do
@@ -305,129 +387,6 @@ defmodule Kernel.CLI do
       [] -> [to_charlist(path)]
       list -> Enum.map(list, &to_charlist/1)
     end
-  end
-
-  # Process init options
-
-  defp parse_argv([~c"--" | t], config) do
-    {config, t}
-  end
-
-  defp parse_argv([~c"+elixirc" | t], config) do
-    parse_compiler(t, config)
-  end
-
-  defp parse_argv([~c"+iex" | t], config) do
-    parse_iex(t, config)
-  end
-
-  defp parse_argv([~c"-S", h | t], config) do
-    {%{config | commands: [{:script, h} | config.commands]}, t}
-  end
-
-  defp parse_argv([h | t] = list, config) do
-    case h do
-      [?- | _] ->
-        shared_option?(list, config, &parse_argv(&1, &2))
-
-      _ ->
-        if List.keymember?(config.commands, :eval, 0) do
-          {config, list}
-        else
-          {%{config | commands: [{:file, h} | config.commands]}, t}
-        end
-    end
-  end
-
-  defp parse_argv([], config) do
-    {config, []}
-  end
-
-  # Parse compiler options
-
-  defp parse_compiler([~c"--" | t], config) do
-    {config, t}
-  end
-
-  defp parse_compiler([~c"-o", h | t], config) do
-    parse_compiler(t, %{config | output: h})
-  end
-
-  defp parse_compiler([~c"--no-docs" | t], config) do
-    parse_compiler(t, %{config | compiler_options: [{:docs, false} | config.compiler_options]})
-  end
-
-  defp parse_compiler([~c"--no-debug-info" | t], config) do
-    compiler_options = [{:debug_info, false} | config.compiler_options]
-    parse_compiler(t, %{config | compiler_options: compiler_options})
-  end
-
-  defp parse_compiler([~c"--ignore-module-conflict" | t], config) do
-    compiler_options = [{:ignore_module_conflict, true} | config.compiler_options]
-    parse_compiler(t, %{config | compiler_options: compiler_options})
-  end
-
-  defp parse_compiler([~c"--warnings-as-errors" | t], config) do
-    compiler_options = [{:warnings_as_errors, true} | config.compiler_options]
-    parse_compiler(t, %{config | compiler_options: compiler_options})
-  end
-
-  defp parse_compiler([~c"--verbose" | t], config) do
-    parse_compiler(t, %{config | verbose_compile: true})
-  end
-
-  # Private compiler options
-
-  defp parse_compiler([~c"--profile", "time" | t], config) do
-    parse_compiler(t, %{config | profile: :time})
-  end
-
-  defp parse_compiler([h | t] = list, config) do
-    case h do
-      [?- | _] ->
-        shared_option?(list, config, &parse_compiler(&1, &2))
-
-      _ ->
-        pattern = if File.dir?(h), do: "#{h}/**/*.ex", else: h
-        parse_compiler(t, %{config | compile: [pattern | config.compile]})
-    end
-  end
-
-  defp parse_compiler([], config) do
-    {%{config | commands: [{:compile, config.compile} | config.commands]}, []}
-  end
-
-  # Parse IEx options
-
-  defp parse_iex([~c"--" | t], config) do
-    {config, t}
-  end
-
-  defp parse_iex([~c"-S", h | t], config) do
-    {%{config | commands: [{:script, h} | config.commands]}, t}
-  end
-
-  # These clauses are here so that Kernel.CLI does not error out with "unknown option"
-  defp parse_iex([~c"--dbg", backend | t], config) do
-    case backend do
-      ~c"pry" -> parse_iex(t, %{config | pry: true})
-      ~c"kernel" -> parse_iex(t, %{config | pry: false})
-      _ -> {:error, "--dbg : Unknown dbg backend #{inspect(backend)}"}
-    end
-  end
-
-  defp parse_iex([~c"--dot-iex", _ | t], config), do: parse_iex(t, config)
-  defp parse_iex([~c"--remsh", _ | t], config), do: parse_iex(t, config)
-
-  defp parse_iex([h | t] = list, config) do
-    case h do
-      [?- | _] -> shared_option?(list, config, &parse_iex(&1, &2))
-      _ -> {%{config | commands: [{:file, h} | config.commands]}, t}
-    end
-  end
-
-  defp parse_iex([], config) do
-    {config, []}
   end
 
   # Process commands
