@@ -2,10 +2,13 @@
 %% private to the Elixir compiler and reserved to be used by Elixir only.
 -module(elixir).
 -behaviour(application).
--export([start_cli/0,
+-export([start_cli/0, start/0]).
+-export([start/2, stop/1, config_change/3]).
+-export([
   string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
   env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3,
-  eval_quoted/4]).
+  eval_quoted/4
+]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
 
@@ -22,13 +25,25 @@
 
 %% OTP Application API
 
--export([start/2, stop/1, config_change/3]).
-
 start(_Type, _Args) ->
   _ = parse_otp_release(),
   preload_common_modules(),
   set_stdio_and_stderr_to_binary_and_maybe_utf8(),
   check_file_encoding(file:native_name_encoding()),
+
+  case init:get_argument(elixir_root) of
+    {ok, [[Root]]} ->
+      code:add_pathsa([
+        Root ++ "/eex/ebin",
+        Root ++ "/ex_unit/ebin",
+        Root ++ "/iex/ebin",
+        Root ++ "/logger/ebin",
+        Root ++ "/mix/ebin",
+        Root ++ "/elixir/ebin"
+      ]);
+    _ ->
+      ok
+  end,
 
   case application:get_env(elixir, check_endianness, true) of
     true  -> check_endianness();
@@ -72,8 +87,8 @@ start(_Type, _Args) ->
   ],
 
   elixir_config:static(#{bootstrap => false, identifier_tokenizer => Tokenizer}),
-
   Tab = elixir_config:new(Config),
+
   case elixir_sup:start_link() of
     {ok, Sup} ->
       {ok, Sup, Tab};
@@ -89,17 +104,7 @@ config_change(_Changed, _New, _Remove) ->
   ok.
 
 set_stdio_and_stderr_to_binary_and_maybe_utf8() ->
-  %% In case there is a shell, we can't really change its
-  %% encoding, so we just set binary to true. Otherwise
-  %% we must set the encoding as the user with no shell
-  %% has encoding set to latin1.
-  Opts =
-    case init:get_argument(noshell) of
-      {ok, _} -> [binary, {encoding, utf8}];
-      error   -> [binary]
-    end,
-
-  ok = io:setopts(standard_io, Opts),
+  ok = io:setopts(standard_io, [binary, {encoding, utf8}]),
   ok = io:setopts(standard_error, [{encoding, utf8}]),
   ok.
 
@@ -152,7 +157,7 @@ check_file_encoding(Encoding) ->
 %% Boot and process given options. Invoked by Elixir's script.
 
 start_cli() ->
-  {ok, _} = application:ensure_all_started(?MODULE),
+  {ok, _} = application:ensure_all_started(elixir),
 
   %% We start the Logger so tools that depend on Elixir
   %% always have the Logger directly accessible. However
@@ -164,7 +169,15 @@ start_cli() ->
     {error, _}  -> ok
   end,
 
-  'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
+  'Elixir.Kernel.CLI':main(init:get_plain_arguments()),
+  elixir_config:booted().
+
+start() ->
+  case init:get_argument(elixir_root) of
+    {ok, [[Root]]} -> code:add_patha(Root ++ "/iex/ebin");
+    _ -> ok
+  end,
+  'Elixir.IEx.CLI':main().
 
 %% EVAL HOOKS
 

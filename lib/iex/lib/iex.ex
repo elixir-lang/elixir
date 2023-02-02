@@ -519,18 +519,14 @@ defmodule IEx do
     IEx.Config.configuration()
   end
 
-  @doc """
-  Registers a function to be invoked after the IEx process is spawned.
-  """
-  @spec after_spawn(fun()) :: :ok
+  @doc false
+  @deprecated "The functionality is no longer supported"
   def after_spawn(fun) when is_function(fun) do
     IEx.Config.after_spawn(fun)
   end
 
-  @doc """
-  Returns registered `after_spawn` callbacks.
-  """
-  @spec after_spawn() :: [fun()]
+  @doc false
+  @deprecated "The functionality is no longer supported"
   def after_spawn do
     IEx.Config.after_spawn()
   end
@@ -856,30 +852,15 @@ defmodule IEx do
   @doc false
   def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
     spawn(fn ->
-      case :init.notify_when_started(self()) do
-        :started -> :ok
-        _ -> :init.wait_until_started()
-      end
-
+      {:ok, _} = Application.ensure_all_started(:elixir)
+      System.wait_until_booted()
       :ok = :io.setopts(binary: true, encoding: :unicode)
-      :ok = start_iex()
-      :ok = run_after_spawn()
+      {:ok, _} = Application.ensure_all_started(:iex)
+      _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
       IEx.Server.run_from_shell(opts, mfa)
     end)
   end
 
   @doc false
   def dont_display_result, do: :"do not show this result in output"
-
-  ## Helpers
-
-  defp start_iex() do
-    {:ok, _} = Application.ensure_all_started(:iex)
-    :ok
-  end
-
-  defp run_after_spawn do
-    _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
-    :ok
-  end
 end
