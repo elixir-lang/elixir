@@ -1432,7 +1432,10 @@ defmodule Mix.Tasks.Release do
       {"elixir",
        &(&1
          |> File.read!()
-         |> String.replace(~s[ -env ELIXIR_ROOT "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin ], " ")
+         |> String.replace(
+           ~s[ -env ELIXIR_ROOT "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin ],
+           " "
+         )
          |> replace_erts_bin(release, ~s["$SCRIPT_PATH"/../../erts-#{release.erts_version}/bin/]))},
       {"iex", &File.read!/1}
     ]
@@ -1443,7 +1446,10 @@ defmodule Mix.Tasks.Release do
       {"elixir.bat",
        &(&1
          |> File.read!()
-         |> String.replace(~s[ -env ELIXIR_ROOT !SCRIPT_PATH!..\\lib -pa !SCRIPT_PATH!..\\lib\\elixir\\ebin ], " ")
+         |> String.replace(
+           ~s[ -env ELIXIR_ROOT !SCRIPT_PATH!..\\lib -pa !SCRIPT_PATH!..\\lib\\elixir\\ebin ],
+           " "
+         )
          |> replace_erts_bin(release, ~s[%~dp0\\..\\..\\erts-#{release.erts_version}\\bin\\]))},
       {"iex.bat", &File.read!/1}
     ]
