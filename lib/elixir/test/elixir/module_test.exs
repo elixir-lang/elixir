@@ -442,6 +442,13 @@ defmodule ModuleTest do
     assert backend.debug_info(:elixir_v1, ModuleCreateNoDebugInfo, data, []) == {:error, :missing}
   end
 
+  test "compiles to core" do
+    {:ok, {Atom, [{'Dbgi', dbgi}]}} = Atom |> :code.which() |> :beam_lib.chunks(['Dbgi'])
+    {:debug_info_v1, backend, data} = :erlang.binary_to_term(dbgi)
+    {:ok, core} = backend.debug_info(:core_v1, Atom, data, [])
+    assert is_tuple(core)
+  end
+
   test "no function in module body" do
     in_module do
       assert __ENV__.function == nil
