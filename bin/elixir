@@ -18,7 +18,6 @@ Usage: $(basename "$0") [options] [.exs file] [data]
   -pz "PATH"                   Appends the given path to Erlang code path (*)
   -v, --version                Prints Erlang/OTP and Elixir versions (standalone)
 
-  --app APP                    Starts the given app and its dependencies (*)
   --erl "SWITCHES"             Switches to be passed down to Erlang (*)
   --eval "COMMAND"             Evaluates the given command, same as -e (*)
   --logger-otp-reports BOOL    Enables or disables OTP reporting
@@ -95,7 +94,6 @@ starts_with () {
 }
 
 ERL_EXEC="erl"
-MODE="elixir"
 I=1
 E=0
 LENGTH=$#
@@ -106,18 +104,13 @@ while [ $I -le $LENGTH ]; do
   S=0
   C=0
   case "$1" in
-    +iex)
+    +elixirc|+iex)
         C=1
-        MODE="iex"
-        ;;
-    +elixirc)
-        C=1
-        MODE="elixirc"
         ;;
     -v|--no-halt|--dbg)
         C=1
         ;;
-    -e|-r|-pr|-pa|-pz|--app|--eval|--remsh|--dot-iex)
+    -e|-r|-pr|-pa|-pz|--eval|--remsh|--dot-iex)
         C=2
         ;;
     --rpc-eval)
@@ -220,7 +213,6 @@ SELF=$(readlink_f "$0")
 SCRIPT_PATH=$(dirname "$SELF")
 
 if [ "$OSTYPE" = "cygwin" ]; then SCRIPT_PATH=$(cygpath -m "$SCRIPT_PATH"); fi
-if [ "$MODE" != "iex" ]; then ERL="-noshell -s elixir start_cli $ERL"; fi
 
 if [ "$OS" != "Windows_NT" ] && [ -z "$NO_COLOR" ]; then
   if test -t 1 -a -t 2; then ERL="-elixir ansi_enabled true $ERL"; fi
@@ -231,7 +223,7 @@ fi
 ERTS_BIN=
 ERTS_BIN="$ERTS_BIN"
 
-set -- "$ERTS_BIN$ERL_EXEC" -pa "$SCRIPT_PATH"/../lib/*/ebin $ELIXIR_ERL_OPTIONS $ERL "$@"
+set -- "$ERTS_BIN$ERL_EXEC" -noshell -elixir_root "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin $ELIXIR_ERL_OPTIONS -s elixir start_cli $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""
