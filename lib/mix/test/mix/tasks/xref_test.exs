@@ -268,6 +268,29 @@ defmodule Mix.Tasks.XrefTest do
       assert_trace("lib/b.ex", files, output)
     end
 
+    test "ignores dependencies from patterns and guards" do
+      files = %{
+        "lib/a.ex" => ~S"""
+        defmodule A do
+          defstruct [:foo, :bar]
+        end
+        """,
+        "lib/b.ex" => ~S"""
+        defmodule B do
+          def pattern(A), do: true
+          def guard(a) when is_struct(a, A), do: true
+        end
+        """
+      }
+
+      output = """
+      Compiling 2 files (.ex)
+      Generated sample app
+      """
+
+      assert_trace("lib/b.ex", files, output)
+    end
+
     test "shows traces for module callbacks" do
       files = %{
         "lib/a.ex" => ~S"""

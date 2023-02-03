@@ -390,6 +390,44 @@ defmodule Kernel.LexicalTrackerTest do
       refute URI in runtime
     end
 
+    test "aliases in patterns and guards inside functions do not add runtime dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.PatternGuardsRuntime do
+          def is_uri_atom(URI), do: true
+          def is_range_struct(range) when is_struct(range, Range), do: true
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute URI in compile
+      refute URI in exports
+      refute URI in runtime
+      refute Range in compile
+      refute Range in exports
+      refute Range in runtime
+    end
+
+    test "aliases in patterns and guards outside functions do add compile dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.PatternGuardsCompile do
+          %URI{} = URI.parse("/")
+          case 1..3 do
+            range when is_struct(range, Range) -> :ok
+          end
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert URI in compile
+      assert URI in exports
+      refute URI in runtime
+      assert Range in compile
+      refute Range in exports
+      refute Range in runtime
+    end
+
     test "compile_env! does not add a compile dependency" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""
