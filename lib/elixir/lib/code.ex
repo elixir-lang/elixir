@@ -135,7 +135,7 @@ defmodule Code do
 
     * `{:require, meta, module, opts}` - traced whenever `module` is required.
       `meta` is the require AST metadata and `opts` are the require options.
-      If the `meta` option contains the `:from_macro`, then `require` was called
+      If the `meta` option contains the `:from_macro`, then module was called
       from within a macro and therefore must be treated as a compile-time dependency.
 
     * `{:struct_expansion, meta, module, keys}` - traced whenever `module`'s struct

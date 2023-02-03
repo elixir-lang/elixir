@@ -517,14 +517,19 @@ defmodule Mix.Tasks.Xref do
   ## Trace
 
   @doc false
+  def trace({:alias_reference, meta, module}, env) when env.module != module do
+    case env do
+      %{function: nil} -> add_trace(:compile, :alias, module, module, meta, env)
+      %{context: nil} -> add_trace(:runtime, :alias, module, module, meta, env)
+      %{} -> :ok
+    end
+  end
+
   def trace({:require, meta, module, _opts}, env),
     do: add_trace(require_mode(meta), :require, module, module, meta, env)
 
   def trace({:struct_expansion, meta, module, _keys}, env),
     do: add_trace(:export, :struct, module, module, meta, env)
-
-  def trace({:alias_reference, meta, module}, env) when env.module != module,
-    do: add_trace(mode(env), :alias, module, module, meta, env)
 
   def trace({:remote_function, meta, module, function, arity}, env),
     do: add_trace(mode(env), :call, module, {module, function, arity}, meta, env)

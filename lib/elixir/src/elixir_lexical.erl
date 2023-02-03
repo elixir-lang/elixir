@@ -56,7 +56,13 @@ trace({struct_expansion, _Meta, Module, _Keys}, #{lexical_tracker := Pid}) ->
   ?tracker:add_export(Pid, Module),
   ok;
 trace({alias_reference, _Meta, Module}, #{lexical_tracker := Pid} = E) ->
-  ?tracker:remote_dispatch(Pid, Module, mode(E)),
+  case E of
+    %% Alias references inside patterns and guards in functions are not
+    %% compile time dependencies.
+    #{function := nil} -> ?tracker:remote_dispatch(Pid, Module, compile);
+    #{context := nil} -> ?tracker:remote_dispatch(Pid, Module, runtime);
+    #{} -> ok
+  end,
   ok;
 trace({remote_function, _Meta, Module, _Function, _Arity}, #{lexical_tracker := Pid} = E) ->
   ?tracker:remote_dispatch(Pid, Module, mode(E)),
