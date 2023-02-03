@@ -357,6 +357,18 @@ defmodule Kernel.LexicalTrackerTest do
       assert URI in compile
       assert URI in exports
       refute URI in runtime
+
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.StructPattern do
+          def is_uri(%URI{}), do: true
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute URI in compile
+      assert URI in exports
+      assert URI in runtime
     end
 
     test "Macro.struct! adds an export dependency" do
