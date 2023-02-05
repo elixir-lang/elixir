@@ -271,8 +271,8 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Accepts a block, an atom naming a local function, a {module, function} tuple,
-  or a list of atoms/tuples.
+  Accepts a block, an atom naming a local function, a `{module, function}`
+  tuple, or a list of atoms/tuples.
 
   Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
