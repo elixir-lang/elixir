@@ -65,6 +65,27 @@ defmodule ExUnit.CallbacksTest do
     assert capture_io(fn -> ExUnit.run() end) =~ "1 test, 0 failures"
   end
 
+  test "named callbacks support {module, function} tuples" do
+    defmodule NamedCallbacksTupleTest do
+      use ExUnit.Case
+
+      setup_all {__MODULE__, :setup_1}
+      setup [{__MODULE__, :setup_2}, {__MODULE__, :setup_3}]
+
+      test "callbacks", context do
+        assert context[:setup_1]
+        assert context[:setup_2]
+        assert context[:setup_3]
+      end
+
+      def setup_1(_), do: [setup_1: true]
+      def setup_2(_), do: [setup_2: true]
+      def setup_3(_), do: [setup_3: true]
+    end
+
+    assert capture_io(fn -> ExUnit.run() end) =~ "1 test, 0 failures"
+  end
+
   test "doesn't choke on setup errors" do
     defmodule SetupTest do
       use ExUnit.Case

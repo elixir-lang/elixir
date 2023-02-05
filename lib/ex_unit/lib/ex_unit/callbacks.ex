@@ -245,7 +245,12 @@ defmodule ExUnit.Callbacks do
   @doc false
   def __setup__(module, callbacks) do
     setup = Module.get_attribute(module, :ex_unit_setup)
-    Module.put_attribute(module, :ex_unit_setup, Enum.reverse(callbacks(callbacks), setup))
+
+    Module.put_attribute(
+      module,
+      :ex_unit_setup,
+      Enum.reverse(validate_callbacks!(callbacks), setup)
+    )
   end
 
   @doc false
@@ -365,7 +370,7 @@ defmodule ExUnit.Callbacks do
     Module.put_attribute(
       module,
       :ex_unit_setup_all,
-      Enum.reverse(callbacks(callbacks), setup_all)
+      Enum.reverse(validate_callbacks!(callbacks), setup_all)
     )
   end
 
@@ -385,15 +390,21 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  defp callbacks(callbacks) do
+  defp validate_callbacks!(callbacks) do
     for k <- List.wrap(callbacks) do
-      if not is_atom(k) do
-        raise ArgumentError,
-              "setup/setup_all expect a callback name as an atom or " <>
-                "a list of callback names, got: #{inspect(k)}"
-      end
+      case k do
+        {mod, fun} when is_atom(mod) and is_atom(fun) ->
+          {mod, fun}
 
-      k
+        name when is_atom(name) ->
+          name
+
+        invalid ->
+          raise ArgumentError,
+                "setup/setup_all expect a callback as an atom, " <>
+                  "a {module, function} tuple or a list of callbacks, got: " <>
+                  inspect(invalid)
+      end
     end
   end
 
@@ -801,9 +812,19 @@ defmodule ExUnit.Callbacks do
     end)
   end
 
-  defp compile_setup_call(callback) do
+  defp compile_setup_call(callback) when is_atom(callback) do
     quote do
       unquote(__MODULE__).__merge__(__MODULE__, var!(context), unquote(callback)(var!(context)))
+    end
+  end
+
+  defp compile_setup_call({module, callback}) do
+    quote do
+      unquote(__MODULE__).__merge__(
+        __MODULE__,
+        var!(context),
+        unquote(module).unquote(callback)(var!(context))
+      )
     end
   end
 end
