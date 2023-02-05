@@ -18,7 +18,7 @@ defmodule ExUnit.Callbacks do
   is run if the test case has no tests or all tests have been filtered out.
 
   `setup` and `setup_all` callbacks can be defined by either a block, an atom
-  naming a local function, a {module, function} tuple, or a list of atoms/tuples.
+  naming a local function, a `{module, function}` tuple, or a list of atoms/tuples.
 
   Both can opt to receive the current context by specifying it
   as parameter if defined by a block. Functions used to define a test
@@ -184,7 +184,7 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block, an atom naming a local function, a {module, function} tuple,
+  Accepts a block, an atom naming a local function, a `{module, function}` tuple,
   or a list of atoms/tuples.
 
   Can return values to be merged into the context, to set up the state for
@@ -219,7 +219,7 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block, an atom naming a local function, a {module, function} tuple,
+  Accepts a block, an atom naming a local function, a `{module, function}` tuple,
   or a list of atoms/tuples.
 
   Can return values to be merged into the `context`, to set up the state for
