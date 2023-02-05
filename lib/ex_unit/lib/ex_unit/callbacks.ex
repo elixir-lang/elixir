@@ -402,8 +402,8 @@ defmodule ExUnit.Callbacks do
 
         invalid ->
           raise ArgumentError,
-                "setup/setup_all expect a callback as an atom, a " <>
-                  "{module, function} tuple or a list of callbacks, got: " <>
+                "setup/setup_all expect a callback as an atom, " <>
+                  "a {module, function} tuple or a list of callbacks, got: " <>
                   inspect(invalid)
       end
     end
