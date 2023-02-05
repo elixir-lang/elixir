@@ -17,9 +17,10 @@ defmodule ExUnit.Callbacks do
   test is run. All `setup` callbacks are run before each test. No callback
   is run if the test case has no tests or all tests have been filtered out.
 
-  `setup` and `setup_all` callbacks can be defined by a block, by passing
-  an atom naming a one-arity function, or by passing a list of such
-  atoms. Both can opt to receive the current context by specifying it
+  `setup` and `setup_all` callbacks can be defined by either a block, an atom
+  naming a local function, a {module, function} tuple, or a list of atoms/tuples.
+
+  Both can opt to receive the current context by specifying it
   as parameter if defined by a block. Functions used to define a test
   setup must accept the context as single argument.
 
@@ -124,13 +125,13 @@ defmodule ExUnit.Callbacks do
 
   It is also common to define your setup as a series of functions,
   which are put together by calling `setup` or `setup_all` with a
-  list of atoms. Each of these functions receive the context and can
+  list of function names. Each of these functions receive the context and can
   return any of the values allowed in `setup` blocks:
 
       defmodule ExampleContextTest do
         use ExUnit.Case
 
-        setup [:step1, :step2, :step3]
+        setup [:step1, :step2, :step3, {OtherModule, :step4}]
 
         defp step1(_context), do: [step_one: true]
         defp step2(_context), do: {:ok, step_two: true} # return values with shape of {:ok, keyword() | map()} allowed
@@ -183,8 +184,8 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block or the name of a one-arity function in the form of an atom,
-  or a list of such atoms.
+  Accepts a block, an atom naming a local function, a {module, function} tuple,
+  or a list of atoms/tuples.
 
   Can return values to be merged into the context, to set up the state for
   tests. For more details, see the "Context" section shown above.
@@ -218,8 +219,8 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block or the name of a one-arity function in the form of an atom,
-  or a list of such atoms.
+  Accepts a block, an atom naming a local function, a {module, function} tuple,
+  or a list of atoms/tuples.
 
   Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
@@ -270,8 +271,8 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Accepts a block or the name of a one-arity function in the form of an atom,
-  or a list of such atoms.
+  Accepts a block, an atom naming a local function, a {module, function} tuple,
+  or a list of atoms/tuples.
 
   Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
