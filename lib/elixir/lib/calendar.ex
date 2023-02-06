@@ -465,6 +465,7 @@ defmodule Calendar do
   P      | "am" or "pm" (noon is "pm", midnight as "am")                           | am, pm
   q      | Quarter                                                                 | 1, 2, 3, 4
   S      | Second                                                                  | 00, 59, 60
+  s      | The number of seconds since the Epoch, 1970-01-01 00:00:00              | 1565888877                                                     | 00, 59, 60
   u      | Day of the week                                                         | 1 (Monday), 7 (Sunday)
   x      | Preferred date (without time) representation                            | 2018-10-17
   X      | Preferred time (without date) representation                            | 12:34:56
@@ -801,6 +802,16 @@ defmodule Calendar do
       end
 
     result = [sign | year |> Integer.to_string() |> pad_leading(width, pad)]
+    parse(rest, datetime, format_options, [result | acc])
+  end
+
+  # Epoch time
+  defp format_modifiers("s" <> rest, width, pad, datetime, format_options, acc) do
+    result = datetime
+    |> NaiveDateTime.to_erl()
+    |> :calendar.datetime_to_gregorian_seconds
+    |> Kernel.-(62167219200)
+    |> Integer.to_string()
     parse(rest, datetime, format_options, [result | acc])
   end
 

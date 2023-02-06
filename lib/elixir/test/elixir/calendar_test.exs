@@ -336,6 +336,10 @@ defmodule CalendarTest do
       assert Calendar.strftime(~N[2019-08-15 17:07:57], "%010A") == "00Thursday"
     end
 
+    test "formats Epoch time with %s" do
+      assert Calendar.strftime(~N[2019-08-15 17:07:57], "%s") == "1565888877"
+    end
+
     test "formats datetime with all options and modifiers" do
       assert Calendar.strftime(
                ~U[2019-08-15 17:07:57.001Z],
