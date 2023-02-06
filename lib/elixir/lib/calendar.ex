@@ -465,7 +465,7 @@ defmodule Calendar do
   P      | "am" or "pm" (noon is "pm", midnight as "am")                           | am, pm
   q      | Quarter                                                                 | 1, 2, 3, 4
   S      | Second                                                                  | 00, 59, 60
-  s      | The number of seconds since the Epoch, 1970-01-01 00:00:00              | 1565888877
+  s      | The number of seconds since the Epoch, 1970-01-01 00:00:00+0000 (UTC)   | 1565888877
   u      | Day of the week                                                         | 1 (Monday), 7 (Sunday)
   x      | Preferred date (without time) representation                            | 2018-10-17
   X      | Preferred time (without date) representation                            | 12:34:56
