@@ -808,9 +808,7 @@ defmodule Calendar do
   # Epoch time
   defp format_modifiers("s" <> rest, width, pad, datetime, format_options, acc) do
     result = datetime
-    |> NaiveDateTime.to_erl()
-    |> :calendar.datetime_to_gregorian_seconds
-    |> Kernel.-(62167219200)
+    |> NaiveDateTime.diff(~N[1970-01-01 00:00:00])
     |> Integer.to_string()
     parse(rest, datetime, format_options, [result | acc])
   end
