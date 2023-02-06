@@ -193,6 +193,15 @@ defmodule TypespecTest do
       end
     end
 
+    test "spec with ... outside of fn and lists" do
+      assert_raise Kernel.TypespecError, ~r"... in typespecs is only allowed inside lists", fn ->
+        test_module do
+          @spec foo(...) :: :ok
+          def foo(x), do: x
+        end
+      end
+    end
+
     test "invalid optional callback" do
       assert_compile_error(~r"invalid optional callback :foo", fn ->
         test_module do

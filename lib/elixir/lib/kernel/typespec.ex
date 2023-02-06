@@ -387,8 +387,10 @@ defmodule Kernel.Typespec do
 
     line = line(meta)
     vars = Keyword.keys(guard)
-    {fun_args, state} = fn_args(meta, args, return, vars, caller, state)
-    spec = {:type, line, :fun, fun_args}
+
+    {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
+    {return, state} = typespec(return, vars, caller, state)
+    spec = {:type, line, :fun, [{:type, line, :product, args}, return]}
 
     {spec, state} =
       case guard_to_constraints(guard, vars, meta, caller, state) do
@@ -657,8 +659,16 @@ defmodule Kernel.Typespec do
   # Handle funs
   defp typespec([{:->, meta, [args, return]}], vars, caller, state)
        when is_list(args) do
-    {args, state} = fn_args(meta, args, return, vars, caller, state)
-    {{:type, line(meta), :fun, args}, state}
+    {args, state} = fn_args(meta, args, vars, caller, state)
+    {spec, state} = typespec(return, vars, caller, state)
+
+    fun_args =
+      case [args, spec] do
+        [{:type, _, :any}, {:type, _, :any, []}] -> []
+        pair -> pair
+      end
+
+    {{:type, line(meta), :fun, fun_args}, state}
   end
 
   # Handle type operator
@@ -848,6 +858,14 @@ defmodule Kernel.Typespec do
     {{:type, line(meta), :fun, args}, state}
   end
 
+  defp typespec({:..., _meta, _args}, _vars, caller, _state) do
+    compile_error(
+      caller,
+      "... in typespecs is only allowed inside lists, as in [term(), ...], " <>
+        "or inside functions, as in (... -> term())"
+    )
+  end
+
   defp typespec({name, meta, args}, vars, caller, state) when is_atom(name) do
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
     arity = length(args)
@@ -975,16 +993,6 @@ defmodule Kernel.Typespec do
         "with the left side lower than the right side"
 
     compile_error(caller, message)
-  end
-
-  defp fn_args(meta, args, return, vars, caller, state) do
-    {fun_args, state} = fn_args(meta, args, vars, caller, state)
-    {spec, state} = typespec(return, vars, caller, state)
-
-    case [fun_args, spec] do
-      [{:type, _, :any}, {:type, _, :any, []}] -> {[], state}
-      x -> {x, state}
-    end
   end
 
   defp fn_args(meta, [{:..., _, _}], _vars, _caller, state) do
