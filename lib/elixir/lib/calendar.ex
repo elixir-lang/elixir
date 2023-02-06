@@ -805,11 +805,31 @@ defmodule Calendar do
     parse(rest, datetime, format_options, [result | acc])
   end
 
+  # Epoch time for DateTime with time zones
+  defp format_modifiers(
+         "s" <> rest,
+         _width,
+         _pad,
+         datetime = %{utc_offset: _utc_offset, std_offset: _std_offset},
+         format_options,
+         acc
+       ) do
+    result =
+      datetime
+      |> DateTime.shift_zone!("Etc/UTC")
+      |> NaiveDateTime.diff(~N[1970-01-01 00:00:00])
+      |> Integer.to_string()
+
+    parse(rest, datetime, format_options, [result | acc])
+  end
+
   # Epoch time
-  defp format_modifiers("s" <> rest, width, pad, datetime, format_options, acc) do
-    result = datetime
-    |> NaiveDateTime.diff(~N[1970-01-01 00:00:00])
-    |> Integer.to_string()
+  defp format_modifiers("s" <> rest, _width, _pad, datetime, format_options, acc) do
+    result =
+      datetime
+      |> NaiveDateTime.diff(~N[1970-01-01 00:00:00])
+      |> Integer.to_string()
+
     parse(rest, datetime, format_options, [result | acc])
   end
 

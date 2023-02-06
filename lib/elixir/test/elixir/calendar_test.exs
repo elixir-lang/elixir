@@ -347,12 +347,13 @@ defmodule CalendarTest do
         minute: 7,
         second: 57,
         microsecond: {0, 0},
-        time_zone: "Etc/UTC",
-        zone_abbr: "UTC",
-        utc_offset: 0,
+        time_zone: "Europe/Berlin",
+        zone_abbr: "CET",
+        utc_offset: 3600,
         std_offset: 0
       }
-      assert Calendar.strftime(datetime, "%s") == "1565888877"
+
+      assert Calendar.strftime(datetime, "%s") == "1565885277"
     end
 
     test "formats datetime with all options and modifiers" do
