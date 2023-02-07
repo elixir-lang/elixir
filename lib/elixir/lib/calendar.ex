@@ -464,6 +464,7 @@ defmodule Calendar do
   p      | "AM" or "PM" (noon is "PM", midnight as "AM")                           | AM, PM
   P      | "am" or "pm" (noon is "pm", midnight as "am")                           | am, pm
   q      | Quarter                                                                 | 1, 2, 3, 4
+  s      | Number of seconds since the Epoch, 1970-01-01 00:00:00+0000 (UTC)       | 1565888877
   S      | Second                                                                  | 00, 59, 60
   u      | Day of the week                                                         | 1 (Monday), 7 (Sunday)
   x      | Preferred date (without time) representation                            | 2018-10-17
@@ -801,6 +802,34 @@ defmodule Calendar do
       end
 
     result = [sign | year |> Integer.to_string() |> pad_leading(width, pad)]
+    parse(rest, datetime, format_options, [result | acc])
+  end
+
+  # Epoch time for DateTime with time zones
+  defp format_modifiers(
+         "s" <> rest,
+         _width,
+         _pad,
+         datetime = %{utc_offset: _utc_offset, std_offset: _std_offset},
+         format_options,
+         acc
+       ) do
+    result =
+      datetime
+      |> DateTime.shift_zone!("Etc/UTC")
+      |> NaiveDateTime.diff(~N[1970-01-01 00:00:00])
+      |> Integer.to_string()
+
+    parse(rest, datetime, format_options, [result | acc])
+  end
+
+  # Epoch time
+  defp format_modifiers("s" <> rest, _width, _pad, datetime, format_options, acc) do
+    result =
+      datetime
+      |> NaiveDateTime.diff(~N[1970-01-01 00:00:00])
+      |> Integer.to_string()
+
     parse(rest, datetime, format_options, [result | acc])
   end
 

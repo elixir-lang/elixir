@@ -336,6 +336,26 @@ defmodule CalendarTest do
       assert Calendar.strftime(~N[2019-08-15 17:07:57], "%010A") == "00Thursday"
     end
 
+    test "formats Epoch time with %s" do
+      assert Calendar.strftime(~N[2019-08-15 17:07:57], "%s") == "1565888877"
+
+      datetime = %DateTime{
+        year: 2019,
+        month: 8,
+        day: 15,
+        hour: 17,
+        minute: 7,
+        second: 57,
+        microsecond: {0, 0},
+        time_zone: "Europe/Berlin",
+        zone_abbr: "CET",
+        utc_offset: 3600,
+        std_offset: 0
+      }
+
+      assert Calendar.strftime(datetime, "%s") == "1565885277"
+    end
+
     test "formats datetime with all options and modifiers" do
       assert Calendar.strftime(
                ~U[2019-08-15 17:07:57.001Z],
