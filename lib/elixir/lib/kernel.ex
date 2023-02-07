@@ -5135,31 +5135,22 @@ defmodule Kernel do
 
     unquoted_call = :elixir_quote.has_unquotes(call)
     unquoted_expr = :elixir_quote.has_unquotes(expr)
-    escaped_call = :elixir_quote.escape(call, :none, true)
 
-    escaped_expr =
-      case unquoted_expr do
+    store =
+      case unquoted_expr or unquoted_call do
         true ->
-          :elixir_quote.escape(expr, :none, true)
+          :elixir_quote.escape({call, expr}, :none, true)
 
         false ->
           key = :erlang.unique_integer()
-          :elixir_module.write_cache(module, key, expr)
-          quote(do: :elixir_module.read_cache(unquote(module), unquote(key)))
+          :elixir_module.write_cache(module, key, {call, expr})
+          key
       end
 
-    # Do not check clauses if any expression was unquoted
-    check_clauses = not (unquoted_expr or unquoted_call)
     pos = :elixir_locals.cache_env(env)
 
     quote do
-      :elixir_def.store_definition(
-        unquote(kind),
-        unquote(check_clauses),
-        unquote(escaped_call),
-        unquote(escaped_expr),
-        unquote(pos)
-      )
+      :elixir_def.store_definition(unquote(kind), unquote(store), unquote(pos))
     end
   end
 
