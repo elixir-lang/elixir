@@ -35,12 +35,22 @@
    {defmodule, 2},
    {defp, 2}].
 
-define({Line, _S, E}, Kind, Call, Expr) ->
+define({Line, _S, #{module := Module} = E}, Kind, Call, Expr) ->
   UC = elixir_quote:has_unquotes(Call),
   UE = elixir_quote:has_unquotes(Expr),
-  EscapedCall = elixir_quote:escape(Call, none, true),
-  EscapedExpr = elixir_quote:escape(Expr, none, true),
-  Args = [Kind, not(UC or UE), EscapedCall, EscapedExpr, elixir_locals:cache_env(E#{line := Line})],
+
+  Store =
+    case UC or UE of
+      true ->
+        elixir_quote:escape({Call, Expr}, none, true);
+
+      false ->
+        Key = erlang:unique_integer(),
+        elixir_module:write_cache(Module, Key, {Call, Expr}),
+        Key
+    end,
+
+  Args = [Kind, Store, elixir_locals:cache_env(E#{line := Line})],
   {{'.', [], [elixir_def, store_definition]}, [], Args}.
 
 unless_loaded(Fun, Args, Callback) ->
