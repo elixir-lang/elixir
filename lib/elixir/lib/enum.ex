@@ -3675,6 +3675,7 @@ defmodule Enum do
   """
   @spec to_list(t) :: [element]
   def to_list(enumerable) when is_list(enumerable), do: enumerable
+  def to_list(%{__struct__: Range} = range), do: Range.to_list(range)
   def to_list(%_{} = enumerable), do: reverse(enumerable) |> :lists.reverse()
   def to_list(%{} = enumerable), do: Map.to_list(enumerable)
   def to_list(enumerable), do: reverse(enumerable) |> :lists.reverse()
