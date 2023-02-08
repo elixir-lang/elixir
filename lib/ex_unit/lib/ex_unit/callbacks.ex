@@ -184,8 +184,12 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block, an atom naming a local function, a `{module, function}` tuple,
-  or a list of atoms/tuples.
+  Accepts one of these:
+
+    * a block
+    * an atom naming a local function
+    * a `{module, function}` tuple
+    * a list of atoms and `{module, function}` tuples
 
   Can return values to be merged into the context, to set up the state for
   tests. For more details, see the "Context" section shown above.
@@ -201,17 +205,25 @@ defmodule ExUnit.Callbacks do
 
       setup :clean_up_tmp_directory
 
+      setup [:clean_up_tmp_directory, :another_setup]
+
       setup do
         [conn: Plug.Conn.build_conn()]
       end
 
+      setup {MyModule, :my_setup_function}
+
   """
-  defmacro setup(block) do
-    if Keyword.keyword?(block) do
-      do_setup(quote(do: _), block)
+  defmacro setup(block_or_functions) do
+    if Keyword.keyword?(block_or_functions) do
+      do_setup(quote(do: _), block_or_functions, __CALLER__)
     else
       quote do
-        ExUnit.Callbacks.__setup__(__MODULE__, unquote(block))
+        ExUnit.Callbacks.__setup__(
+          __MODULE__,
+          unquote(block_or_functions),
+          unquote(Macro.escape(__CALLER__))
+        )
       end
     end
   end
@@ -219,11 +231,10 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block, an atom naming a local function, a `{module, function}` tuple,
-  or a list of atoms/tuples.
+  This is similar to `setup/1`, but the first argument is the context.
+  The `block` argument can only be a block.
 
-  Can return values to be merged into the `context`, to set up the state for
-  tests. For more details, see the "Context" section shown above.
+  For more details, see the "Context" section shown above.
 
   ## Examples
 
@@ -233,29 +244,40 @@ defmodule ExUnit.Callbacks do
 
   """
   defmacro setup(context, block) do
-    do_setup(context, block)
+    unless Keyword.keyword?(block) and Keyword.has_key?(block, :do) do
+      raise ArgumentError,
+            "setup/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
+    end
+
+    do_setup(context, block, __CALLER__)
   end
 
-  defp do_setup(context, block) do
-    quote bind_quoted: [context: escape(context), block: escape(block)] do
-      name = ExUnit.Callbacks.__setup__(__MODULE__)
+  defp do_setup(context, block, caller) do
+    quote bind_quoted: [
+            context: escape(context),
+            block: escape(block),
+            caller: Macro.escape(caller)
+          ] do
+      name = ExUnit.Callbacks.__setup__(__MODULE__, caller)
       defp unquote(name)(unquote(context)), unquote(block)
     end
   end
 
   @doc false
-  def __setup__(module, callbacks) do
+  def __setup__(module, callbacks, %Macro.Env{} = caller) do
     setup = Module.get_attribute(module, :ex_unit_setup)
 
-    Module.put_attribute(
-      module,
-      :ex_unit_setup,
-      Enum.reverse(validate_callbacks!(callbacks), setup)
-    )
+    callbacks =
+      callbacks
+      |> validate_callbacks!()
+      |> Enum.map(fn cb -> {cb, format_callback(:setup, cb, caller)} end)
+      |> Enum.reverse(setup)
+
+    Module.put_attribute(module, :ex_unit_setup, callbacks)
   end
 
   @doc false
-  def __setup__(module) do
+  def __setup__(module, %Macro.Env{} = caller) do
     setup = Module.get_attribute(module, :ex_unit_setup)
 
     name =
@@ -264,15 +286,21 @@ defmodule ExUnit.Callbacks do
         nil -> :"__ex_unit_setup_#{length(setup)}"
       end
 
-    Module.put_attribute(module, :ex_unit_setup, [name | setup])
+    new_callback = {name, {"setup callback", Path.relative_to_cwd(caller.file), caller.line}}
+
+    Module.put_attribute(module, :ex_unit_setup, [new_callback | setup])
     name
   end
 
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Accepts a block, an atom naming a local function, a `{module, function}`
-  tuple, or a list of atoms/tuples.
+  Accepts one of these:
+
+    * a block
+    * an atom naming a local function
+    * a `{module, function}` tuple
+    * a list of atoms and `{module, function}` tuples
 
   Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
@@ -294,12 +322,18 @@ defmodule ExUnit.Callbacks do
       # One-arity function name
       setup_all :clean_up_tmp_directory
 
+      # A module and function
+      setup_all {MyModule, :my_setup_function}
+
+      # A list of one-arity functions and module/function tuples
+      setup_all [:clean_up_tmp_directory, {MyModule, :my_setup_function}]
+
       defp clean_up_tmp_directory(_context) do
         # perform setup
         :ok
       end
 
-      # Block
+      # A block
       setup_all do
         [conn: Plug.Conn.build_conn()]
       end
@@ -331,10 +365,14 @@ defmodule ExUnit.Callbacks do
   """
   defmacro setup_all(block) do
     if Keyword.keyword?(block) do
-      do_setup_all(quote(do: _), block)
+      do_setup_all(quote(do: _), block, __CALLER__)
     else
       quote do
-        ExUnit.Callbacks.__setup_all__(__MODULE__, unquote(block))
+        ExUnit.Callbacks.__setup_all__(
+          __MODULE__,
+          unquote(block),
+          unquote(Macro.escape(__CALLER__))
+        )
       end
     end
   end
@@ -342,8 +380,8 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Same as `setup_all/1` but also takes a context. See
-  the "Context" section in the module documentation.
+  Similar as `setup_all/1` but also takes a context. The second argument
+  must be a block. See the "Context" section in the module documentation.
 
   ## Examples
 
@@ -353,34 +391,46 @@ defmodule ExUnit.Callbacks do
 
   """
   defmacro setup_all(context, block) do
-    do_setup_all(context, block)
+    unless Keyword.keyword?(block) and Keyword.has_key?(block, :do) do
+      raise ArgumentError,
+            "setup_all/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
+    end
+
+    do_setup_all(context, block, __CALLER__)
   end
 
-  defp do_setup_all(context, block) do
-    quote bind_quoted: [context: escape(context), block: escape(block)] do
-      name = ExUnit.Callbacks.__setup_all__(__MODULE__)
+  defp do_setup_all(context, block, caller) do
+    quote bind_quoted: [
+            context: escape(context),
+            block: escape(block),
+            caller: Macro.escape(caller)
+          ] do
+      name = ExUnit.Callbacks.__setup_all__(__MODULE__, caller)
       defp unquote(name)(unquote(context)), unquote(block)
     end
   end
 
   @doc false
-  def __setup_all__(module, callbacks) do
+  def __setup_all__(module, callbacks, %Macro.Env{} = caller) do
     no_describe!(module)
     setup_all = Module.get_attribute(module, :ex_unit_setup_all)
 
-    Module.put_attribute(
-      module,
-      :ex_unit_setup_all,
-      Enum.reverse(validate_callbacks!(callbacks), setup_all)
-    )
+    callbacks =
+      callbacks
+      |> validate_callbacks!()
+      |> Enum.map(fn cb -> {cb, format_callback(:setup_all, cb, caller)} end)
+      |> Enum.reverse(setup_all)
+
+    Module.put_attribute(module, :ex_unit_setup_all, callbacks)
   end
 
   @doc false
-  def __setup_all__(module) do
+  def __setup_all__(module, %Macro.Env{} = caller) do
     no_describe!(module)
     setup_all = Module.get_attribute(module, :ex_unit_setup_all)
     name = :"__ex_unit_setup_all_#{length(setup_all)}"
-    Module.put_attribute(module, :ex_unit_setup_all, [name | setup_all])
+    new_callback = {name, {"setup_all callback", Path.relative_to_cwd(caller.file), caller.line}}
+    Module.put_attribute(module, :ex_unit_setup_all, [new_callback | setup_all])
     name
   end
 
@@ -658,32 +708,32 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc false
-  def __merge__(_mod, context, :ok) do
+  def __merge__(_mod, context, :ok, _info) do
     context
   end
 
-  def __merge__(mod, context, {:ok, value}) do
-    unwrapped_merge(mod, context, value, {:ok, value})
+  def __merge__(mod, context, {:ok, value}, info) do
+    unwrapped_merge(mod, context, value, {:ok, value}, info)
   end
 
-  def __merge__(mod, context, value) do
-    unwrapped_merge(mod, context, value, value)
+  def __merge__(mod, context, value, info) do
+    unwrapped_merge(mod, context, value, value, info)
   end
 
-  defp unwrapped_merge(mod, _context, %_{}, original_value) do
-    raise_merge_failed!(mod, original_value)
+  defp unwrapped_merge(mod, _context, %_{}, original_value, info) do
+    raise_merge_failed!(mod, original_value, info)
   end
 
-  defp unwrapped_merge(mod, context, data, _original_value) when is_list(data) do
+  defp unwrapped_merge(mod, context, data, _original_value, _info) when is_list(data) do
     context_merge(mod, context, Map.new(data))
   end
 
-  defp unwrapped_merge(mod, context, data, _original_value) when is_map(data) do
+  defp unwrapped_merge(mod, context, data, _original_value, _info) when is_map(data) do
     context_merge(mod, context, data)
   end
 
-  defp unwrapped_merge(mod, _, _return_value, original_value) do
-    raise_merge_failed!(mod, original_value)
+  defp unwrapped_merge(mod, _, _return_value, original_value, info) do
+    raise_merge_failed!(mod, original_value, info)
   end
 
   defp context_merge(mod, context, data) do
@@ -696,9 +746,9 @@ defmodule ExUnit.Callbacks do
     end)
   end
 
-  defp raise_merge_failed!(mod, return_value) do
-    raise "expected ExUnit callback in #{inspect(mod)} to return :ok | keyword | map, " <>
-            "got #{inspect(return_value)} instead"
+  defp raise_merge_failed!(mod, return_value, {formatted, file, line}) do
+    raise "expected #{formatted} in #{inspect(mod)} (at #{file}:#{line}) to " <>
+            "return :ok | keyword | map, got #{inspect(return_value)} instead"
   end
 
   defp raise_merge_reserved!(mod, key, value) do
@@ -813,19 +863,35 @@ defmodule ExUnit.Callbacks do
     end)
   end
 
-  defp compile_setup_call(callback) when is_atom(callback) do
-    quote do
-      unquote(__MODULE__).__merge__(__MODULE__, var!(context), unquote(callback)(var!(context)))
-    end
-  end
-
-  defp compile_setup_call({module, callback}) do
+  defp compile_setup_call({callback, {_formatted, _file, _line} = info}) when is_atom(callback) do
     quote do
       unquote(__MODULE__).__merge__(
         __MODULE__,
         var!(context),
-        unquote(module).unquote(callback)(var!(context))
+        unquote(callback)(var!(context)),
+        unquote(Macro.escape(info))
       )
     end
+  end
+
+  defp compile_setup_call({{module, callback}, {_formatted, _file, _line} = info}) do
+    quote do
+      unquote(__MODULE__).__merge__(
+        __MODULE__,
+        var!(context),
+        unquote(module).unquote(callback)(var!(context)),
+        unquote(Macro.escape(info))
+      )
+    end
+  end
+
+  defp format_callback(type, callback, %Macro.Env{} = caller) when type in [:setup, :setup_all] do
+    name =
+      case callback do
+        atom when is_atom(atom) -> "#{inspect(atom)}"
+        {mod, fun} -> "#{Exception.format_mfa(mod, fun, 1)}"
+      end
+
+    {"#{name} #{type} callback", Path.relative_to_cwd(caller.file), caller.line}
   end
 end
