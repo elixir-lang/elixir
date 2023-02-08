@@ -390,6 +390,26 @@ defmodule Range do
   end
 
   @doc """
+  Converts a range to a list.
+  """
+  @doc since: "1.15.0"
+  def to_list(first..last//step)
+      when step > 0 and first <= last
+      when step < 0 and first >= last do
+    :lists.seq(first, last, step)
+  end
+
+  def to_list(_first.._last//_step) do
+    []
+  end
+
+  # TODO: Remove me on v2.0
+  def to_list(%{__struct__: Range, first: first, last: last}) do
+    step = if first <= last, do: 1, else: -1
+    :lists.seq(first, last, step)
+  end
+
+  @doc """
   Checks if two ranges are disjoint.
 
   ## Examples
