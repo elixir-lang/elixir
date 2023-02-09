@@ -25,13 +25,16 @@ In this release, we will now prune the code paths to only the ones
 listed as dependencies. Previously if you attempted to use an Erlang/OTP
 or Elixir module without adding its dependency, we would warn. Now
 the module won't be found altogether, which is also the behaviour you see
-if you ran your application as a `mix release`.
+if you ran your application as a `mix release`. If you are using an
+application that does not correctly lists its dependencies, they will
+have to be updated to correctly list all dependencies and avoid
+fault behaviour in both development and production.
 
 Furthermore, Erlang/OTP 26 allows us to start applications concurrently
-and cache the code path lookups, considerably decreasing the cost of
-booting applications. The combination of Elixir v1.15 and Erlang/OTP 26
-should reduce the boot time of applications, such as when starting
-`iex -S mix` or running a single test with `mix test`, from 10% to 30%.
+and cache the code path lookups, decreasing the cost of booting applications.
+The combination of Elixir v1.15 and Erlang/OTP 26 should reduce the boot
+time of applications, such as when starting `iex -S mix` or running a single
+test with `mix test`, from 5% to 15%.
 
 ## v1.15.0-dev
 
@@ -43,15 +46,18 @@ should reduce the boot time of applications, such as when starting
 
 #### Elixir
 
+  * [Calendar] Add support for epoch time (%s) to `Calendar.strftime/2`
   * [Code] `Code.format_string!/2` now converts `'charlists'` into `~c"charlists"` by default
   * [Code] Add `:on_undefined_variable` to the compiler options to preserve the warning behaviour which was deprecated back in Elixir v1.4
   * [Code] Add `Code.loaded?/1` and `Code.ensure_all_loaded(!)/1`
   * [Code] Add `Code.prepend_paths/1`, `Code.append_paths/1`, and `Code.delete_paths/1`
+  * [Code] Support nested expressions in `Code.cursor_context/1`
   * [Date] Add `Date.before?/2` and `Date.after?/2`
   * [DateTime] Add `DateTime.before?/2` and `DateTime.after?/2`
   * [Inspect] `Inspect` now renders `'charlists'` as `~c"charlists"` by default
   * [Kernel] Add `t:nonempty_binary/0` and `t:nonempty_bitstring/0`
   * [Kernel] Treat `@behaviour`s as runtime dependencies
+  * [Kernel] Do not add runtime dependencies for alias references in patterns and guards
   * [Kernel] Warn for nested calls without parens inside keywords
   * [Kernel] Introduce mechanism to collect several errors in a module. Previously, as soon as there was a compilation error, compilation would fail. Now the compiler became a bit smarter and will report multiple errors whenever possible as multiple `error: ...` messages, similar to `warning: ...`
   * [Kernel.CLI] Support `--sname undefined`/`--name undefined` so a name is automatically generated
@@ -68,12 +74,14 @@ should reduce the boot time of applications, such as when starting
   * [Supervisor] Add support for automatic shutdown in `Supervisor`
   * [System] Support `:lines` in `System.cmd/3` to capture output line by line
   * [Task] Remove head of line blocking on `Task.yield_many/2`
+  * [Task] Enable selective receive optimizations in Erlang/OTP 26+
   * [Time] Add `Time.before?/2` and `Time.after?/2`
   * [URI] Add `URI.append_path/2`
 
 #### ExUnit
 
   * [ExUnit] Add more color configuration to ExUnit CLI formatter
+  * [ExUnit.Callbacks] Accept `{module, function}` tuples in ExUnit `setup` callbacks
   * [ExUnit.Doctest] Add `ExUnit.DocTest.doctest_file/2`
   * [ExUnit.Formatter] When comparing to anonymous functions, defined at the same place but capturing a different enviroment, we will now also diff the environments
 
@@ -108,6 +116,7 @@ should reduce the boot time of applications, such as when starting
   * [Code.Formatter] Remove unecessary parens in nullary type funs
   * [File] Do not raise if there are file system race conditions in `File.cp/2`
   * [Kernel] Expand macros on the left side of -> in `try/rescue`
+  * [Kernel] Raise on misplaced `...` inside typespecs
   * [Kernel.ParallelCompiler] Make sure compiler doesn't crash when there are stray messages in the inbox
   * [URI] Make sure `URI.merge/2` works accordingly with relative paths
 
