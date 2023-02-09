@@ -380,10 +380,15 @@ defmodule ExUnit.CallbacksTest do
     end
 
     output = capture_io(fn -> ExUnit.run() end)
-    assert output =~ "** (RuntimeError)"
-    assert output =~ "expected setup callback in ExUnit.CallbacksTest.SetupErrorTest"
-    assert output =~ ~r/at .*callbacks_test\.exs:\d+/
-    assert output =~ "to return :ok | keyword | map, got {:ok, \"foo\"} instead"
+
+    assert output =~
+             "** (RuntimeError) expected ExUnit setup or setup_all callback in " <>
+               "ExUnit.CallbacksTest.SetupErrorTest to return :ok | keyword | map, " <>
+               "got {:ok, \"foo\"} instead"
+
+    # Make sure that at least the right file where the setup/setup_all call is defined is included
+    # in the stacktrace.
+    assert output =~ ~r/.*callbacks_test\.exs:\d+/
   end
 
   test "raises an error when overriding a reserved callback key in setup" do

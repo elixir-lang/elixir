@@ -216,14 +216,10 @@ defmodule ExUnit.Callbacks do
   """
   defmacro setup(block_or_functions) do
     if Keyword.keyword?(block_or_functions) do
-      do_setup(quote(do: _), block_or_functions, __CALLER__)
+      do_setup(quote(do: _), block_or_functions)
     else
       quote do
-        ExUnit.Callbacks.__setup__(
-          __MODULE__,
-          unquote(block_or_functions),
-          unquote(Macro.escape(__CALLER__))
-        )
+        ExUnit.Callbacks.__setup__(__MODULE__, unquote(block_or_functions))
       end
     end
   end
@@ -249,35 +245,29 @@ defmodule ExUnit.Callbacks do
             "setup/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
     end
 
-    do_setup(context, block, __CALLER__)
+    do_setup(context, block)
   end
 
-  defp do_setup(context, block, caller) do
-    quote bind_quoted: [
-            context: escape(context),
-            block: escape(block),
-            caller: Macro.escape(caller)
-          ] do
-      name = ExUnit.Callbacks.__setup__(__MODULE__, caller)
+  defp do_setup(context, block) do
+    quote bind_quoted: [context: escape(context), block: escape(block)] do
+      name = ExUnit.Callbacks.__setup__(__MODULE__)
       defp unquote(name)(unquote(context)), unquote(block)
     end
   end
 
   @doc false
-  def __setup__(module, callbacks, %Macro.Env{} = caller) do
+  def __setup__(module, callbacks) do
     setup = Module.get_attribute(module, :ex_unit_setup)
 
-    callbacks =
-      callbacks
-      |> validate_callbacks!()
-      |> Enum.map(fn cb -> {cb, format_callback(:setup, cb, caller)} end)
-      |> Enum.reverse(setup)
-
-    Module.put_attribute(module, :ex_unit_setup, callbacks)
+    Module.put_attribute(
+      module,
+      :ex_unit_setup,
+      Enum.reverse(validate_callbacks!(callbacks), setup)
+    )
   end
 
   @doc false
-  def __setup__(module, %Macro.Env{} = caller) do
+  def __setup__(module) do
     setup = Module.get_attribute(module, :ex_unit_setup)
 
     name =
@@ -286,9 +276,7 @@ defmodule ExUnit.Callbacks do
         nil -> :"__ex_unit_setup_#{length(setup)}"
       end
 
-    new_callback = {name, {"setup callback", Path.relative_to_cwd(caller.file), caller.line}}
-
-    Module.put_attribute(module, :ex_unit_setup, [new_callback | setup])
+    Module.put_attribute(module, :ex_unit_setup, [name | setup])
     name
   end
 
@@ -365,14 +353,10 @@ defmodule ExUnit.Callbacks do
   """
   defmacro setup_all(block) do
     if Keyword.keyword?(block) do
-      do_setup_all(quote(do: _), block, __CALLER__)
+      do_setup_all(quote(do: _), block)
     else
       quote do
-        ExUnit.Callbacks.__setup_all__(
-          __MODULE__,
-          unquote(block),
-          unquote(Macro.escape(__CALLER__))
-        )
+        ExUnit.Callbacks.__setup_all__(__MODULE__, unquote(block))
       end
     end
   end
@@ -396,41 +380,34 @@ defmodule ExUnit.Callbacks do
             "setup_all/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
     end
 
-    do_setup_all(context, block, __CALLER__)
+    do_setup_all(context, block)
   end
 
-  defp do_setup_all(context, block, caller) do
-    quote bind_quoted: [
-            context: escape(context),
-            block: escape(block),
-            caller: Macro.escape(caller)
-          ] do
-      name = ExUnit.Callbacks.__setup_all__(__MODULE__, caller)
+  defp do_setup_all(context, block) do
+    quote bind_quoted: [context: escape(context), block: escape(block)] do
+      name = ExUnit.Callbacks.__setup_all__(__MODULE__)
       defp unquote(name)(unquote(context)), unquote(block)
     end
   end
 
   @doc false
-  def __setup_all__(module, callbacks, %Macro.Env{} = caller) do
+  def __setup_all__(module, callbacks) do
     no_describe!(module)
     setup_all = Module.get_attribute(module, :ex_unit_setup_all)
 
-    callbacks =
-      callbacks
-      |> validate_callbacks!()
-      |> Enum.map(fn cb -> {cb, format_callback(:setup_all, cb, caller)} end)
-      |> Enum.reverse(setup_all)
-
-    Module.put_attribute(module, :ex_unit_setup_all, callbacks)
+    Module.put_attribute(
+      module,
+      :ex_unit_setup_all,
+      Enum.reverse(validate_callbacks!(callbacks), setup_all)
+    )
   end
 
   @doc false
-  def __setup_all__(module, %Macro.Env{} = caller) do
+  def __setup_all__(module) do
     no_describe!(module)
     setup_all = Module.get_attribute(module, :ex_unit_setup_all)
     name = :"__ex_unit_setup_all_#{length(setup_all)}"
-    new_callback = {name, {"setup_all callback", Path.relative_to_cwd(caller.file), caller.line}}
-    Module.put_attribute(module, :ex_unit_setup_all, [new_callback | setup_all])
+    Module.put_attribute(module, :ex_unit_setup_all, [name | setup_all])
     name
   end
 
@@ -708,32 +685,32 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc false
-  def __merge__(_mod, context, :ok, _info) do
+  def __merge__(_mod, context, :ok) do
     context
   end
 
-  def __merge__(mod, context, {:ok, value}, info) do
-    unwrapped_merge(mod, context, value, {:ok, value}, info)
+  def __merge__(mod, context, {:ok, value}) do
+    unwrapped_merge(mod, context, value, {:ok, value})
   end
 
-  def __merge__(mod, context, value, info) do
-    unwrapped_merge(mod, context, value, value, info)
+  def __merge__(mod, context, value) do
+    unwrapped_merge(mod, context, value, value)
   end
 
-  defp unwrapped_merge(mod, _context, %_{}, original_value, info) do
-    raise_merge_failed!(mod, original_value, info)
+  defp unwrapped_merge(mod, _context, %_{}, original_value) do
+    raise_merge_failed!(mod, original_value)
   end
 
-  defp unwrapped_merge(mod, context, data, _original_value, _info) when is_list(data) do
+  defp unwrapped_merge(mod, context, data, _original_value) when is_list(data) do
     context_merge(mod, context, Map.new(data))
   end
 
-  defp unwrapped_merge(mod, context, data, _original_value, _info) when is_map(data) do
+  defp unwrapped_merge(mod, context, data, _original_value) when is_map(data) do
     context_merge(mod, context, data)
   end
 
-  defp unwrapped_merge(mod, _, _return_value, original_value, info) do
-    raise_merge_failed!(mod, original_value, info)
+  defp unwrapped_merge(mod, _, _return_value, original_value) do
+    raise_merge_failed!(mod, original_value)
   end
 
   defp context_merge(mod, context, data) do
@@ -746,8 +723,8 @@ defmodule ExUnit.Callbacks do
     end)
   end
 
-  defp raise_merge_failed!(mod, return_value, {formatted, file, line}) do
-    raise "expected #{formatted} in #{inspect(mod)} (at #{file}:#{line}) to " <>
+  defp raise_merge_failed!(mod, return_value) do
+    raise "expected ExUnit setup or setup_all callback in #{inspect(mod)} to " <>
             "return :ok | keyword | map, got #{inspect(return_value)} instead"
   end
 
@@ -863,35 +840,32 @@ defmodule ExUnit.Callbacks do
     end)
   end
 
-  defp compile_setup_call({callback, {_formatted, _file, _line} = info}) when is_atom(callback) do
+  defp compile_setup_call(callback) when is_atom(callback) do
     quote do
-      unquote(__MODULE__).__merge__(
-        __MODULE__,
-        var!(context),
-        unquote(callback)(var!(context)),
-        unquote(Macro.escape(info))
-      )
+      result =
+        unquote(__MODULE__).__merge__(__MODULE__, var!(context), unquote(callback)(var!(context)))
+
+      ExUnit.Callbacks.__noop__()
+      result
     end
   end
 
-  defp compile_setup_call({{module, callback}, {_formatted, _file, _line} = info}) do
+  defp compile_setup_call({module, callback}) do
     quote do
-      unquote(__MODULE__).__merge__(
-        __MODULE__,
-        var!(context),
-        unquote(module).unquote(callback)(var!(context)),
-        unquote(Macro.escape(info))
-      )
+      result =
+        unquote(__MODULE__).__merge__(
+          __MODULE__,
+          var!(context),
+          unquote(module).unquote(callback)(var!(context))
+        )
+
+      ExUnit.Callbacks.__noop__()
+      result
     end
   end
 
-  defp format_callback(type, callback, %Macro.Env{} = caller) when type in [:setup, :setup_all] do
-    name =
-      case callback do
-        atom when is_atom(atom) -> "#{inspect(atom)}"
-        {mod, fun} -> "#{Exception.format_mfa(mod, fun, 1)}"
-      end
-
-    {"#{name} #{type} callback", Path.relative_to_cwd(caller.file), caller.line}
-  end
+  # We inject this into compiled setup/setup_all calls, to avoid tail-call optimization and get
+  # better stacktraces. See the comments in https://github.com/elixir-lang/elixir/pull/12382.
+  @doc false
+  def __noop__, do: :noop
 end
