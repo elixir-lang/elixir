@@ -65,7 +65,7 @@ defmodule Module do
   For detailed documentation, see the
   [behaviour typespec documentation](typespecs.md#behaviours).
 
-  ### `@impl`
+  ### `@impl` (since v1.5.0)
 
   To aid in the correct implementation of behaviours, you may optionally declare
   `@impl` for implemented callbacks of a behaviour. This makes callbacks
