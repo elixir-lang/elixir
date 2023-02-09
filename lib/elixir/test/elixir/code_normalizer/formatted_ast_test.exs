@@ -507,6 +507,28 @@ defmodule Code.Normalizer.FormatterASTTest do
                   # after
                   """,
                   literal_encoder: fn literal, _ -> {:ok, literal} end
+
+      assert_same """
+                  block do
+                    # before 1
+                    1 + 1
+
+                    # before 2
+                    2 + 2
+                  end
+                  """,
+                  literal_encoder: fn literal, _ -> {:ok, literal} end
+
+      assert_same """
+                  block do
+                    # before 1
+                    Mix.install([1 + 1])
+
+                    # before 2
+                    Mix.install([2 + 2])
+                  end
+                  """,
+                  literal_encoder: fn literal, _ -> {:ok, literal} end
     end
 
     test "before and after expressions with newlines" do

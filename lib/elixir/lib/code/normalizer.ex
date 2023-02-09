@@ -362,7 +362,7 @@ defmodule Code.Normalizer do
         normalize_kw_blocks(form, meta, args, state)
 
       allow_keyword?(form, arity) ->
-        args = normalize_args(args, %{state | parent_meta: state.parent_meta})
+        args = normalize_args(args, %{state | parent_meta: meta})
         {last_arg, leading_args} = List.pop_at(args, -1, [])
 
         last_args =
@@ -384,7 +384,7 @@ defmodule Code.Normalizer do
         {form, meta, leading_args ++ last_args}
 
       true ->
-        args = normalize_args(args, %{state | parent_meta: state.parent_meta})
+        args = normalize_args(args, %{state | parent_meta: meta})
         {form, meta, args}
     end
   end
