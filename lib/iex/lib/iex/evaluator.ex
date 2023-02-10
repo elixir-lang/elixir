@@ -253,7 +253,7 @@ defmodule IEx.Evaluator do
       if path do
         [path]
       else
-        Enum.map([".iex.exs", "~/.iex.exs"], &Path.expand/1)
+        Enum.map([".iex.exs", System.get_env("IEX_HOME", "~/.iex.exs")], &Path.expand/1)
       end
 
     path = Enum.find(candidates, &File.regular?/1)
