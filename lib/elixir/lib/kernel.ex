@@ -4814,6 +4814,7 @@ defmodule Kernel do
 
   defmacro defmodule(alias, do: block) do
     env = __CALLER__
+    assert_no_match_or_guard_scope(env.context, "defmodule/2")
     expanded = expand_module_alias(alias, env)
 
     {expanded, with_alias} =
@@ -5052,6 +5053,7 @@ defmodule Kernel do
 
   """
   defmacro def(call, expr \\ nil) do
+    assert_no_match_or_guard_scope(__CALLER__.context, "def/2")
     define(:def, call, expr, __CALLER__)
   end
 
@@ -5082,6 +5084,7 @@ defmodule Kernel do
 
   """
   defmacro defp(call, expr \\ nil) do
+    assert_no_match_or_guard_scope(__CALLER__.context, "defp/2")
     define(:defp, call, expr, __CALLER__)
   end
 
@@ -5110,6 +5113,7 @@ defmodule Kernel do
 
   """
   defmacro defmacro(call, expr \\ nil) do
+    assert_no_match_or_guard_scope(__CALLER__.context, "defmacro/2")
     define(:defmacro, call, expr, __CALLER__)
   end
 
@@ -5126,6 +5130,7 @@ defmodule Kernel do
 
   """
   defmacro defmacrop(call, expr \\ nil) do
+    assert_no_match_or_guard_scope(__CALLER__.context, "defmacrop/2")
     define(:defmacrop, call, expr, __CALLER__)
   end
 
