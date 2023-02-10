@@ -685,51 +685,51 @@ defmodule ExUnit.Callbacks do
   end
 
   @doc false
-  def __merge__(_mod, context, :ok) do
+  def __merge__(_mod, _kind, context, :ok) do
     context
   end
 
-  def __merge__(mod, context, {:ok, value}) do
-    unwrapped_merge(mod, context, value, {:ok, value})
+  def __merge__(mod, kind, context, {:ok, value}) do
+    unwrapped_merge(mod, kind, context, value, {:ok, value})
   end
 
-  def __merge__(mod, context, value) do
-    unwrapped_merge(mod, context, value, value)
+  def __merge__(mod, kind, context, value) do
+    unwrapped_merge(mod, kind, context, value, value)
   end
 
-  defp unwrapped_merge(mod, _context, %_{}, original_value) do
-    raise_merge_failed!(mod, original_value)
+  defp unwrapped_merge(mod, kind, _context, %_{}, original_value) do
+    raise_merge_failed!(mod, kind, original_value)
   end
 
-  defp unwrapped_merge(mod, context, data, _original_value) when is_list(data) do
-    context_merge(mod, context, Map.new(data))
+  defp unwrapped_merge(mod, kind, context, data, _original_value) when is_list(data) do
+    context_merge(mod, kind, context, Map.new(data))
   end
 
-  defp unwrapped_merge(mod, context, data, _original_value) when is_map(data) do
-    context_merge(mod, context, data)
+  defp unwrapped_merge(mod, kind, context, data, _original_value) when is_map(data) do
+    context_merge(mod, kind, context, data)
   end
 
-  defp unwrapped_merge(mod, _, _return_value, original_value) do
-    raise_merge_failed!(mod, original_value)
+  defp unwrapped_merge(mod, kind, _, _return_value, original_value) do
+    raise_merge_failed!(mod, kind, original_value)
   end
 
-  defp context_merge(mod, context, data) do
+  defp context_merge(mod, kind, context, data) do
     Map.merge(context, data, fn
       k, v1, v2 when k in @reserved ->
-        if v1 == v2, do: v1, else: raise_merge_reserved!(mod, k, v2)
+        if v1 == v2, do: v1, else: raise_merge_reserved!(mod, kind, k, v2)
 
       _, _, v ->
         v
     end)
   end
 
-  defp raise_merge_failed!(mod, return_value) do
-    raise "expected ExUnit setup or setup_all callback in #{inspect(mod)} to " <>
+  defp raise_merge_failed!(mod, kind, return_value) do
+    raise "expected ExUnit #{kind} callback in #{inspect(mod)} to " <>
             "return :ok | keyword | map, got #{inspect(return_value)} instead"
   end
 
-  defp raise_merge_reserved!(mod, key, value) do
-    raise "ExUnit callback in #{inspect(mod)} is trying to set " <>
+  defp raise_merge_reserved!(mod, kind, key, value) do
+    raise "ExUnit #{kind} callback in #{inspect(mod)} is trying to set " <>
             "reserved field #{inspect(key)} to #{inspect(value)}"
   end
 
@@ -783,8 +783,11 @@ defmodule ExUnit.Callbacks do
   def __describe__(module, message, used_describes) do
     {name, body} =
       case Module.get_attribute(module, :ex_unit_setup) do
-        [] -> {nil, nil}
-        callbacks -> {:"__ex_unit_describe_#{map_size(used_describes)}", compile_setup(callbacks)}
+        [] ->
+          {nil, nil}
+
+        callbacks ->
+          {:"__ex_unit_describe_#{map_size(used_describes)}", compile_setup(callbacks, :setup)}
       end
 
     used_describes = Map.put(used_describes, message, name)
@@ -796,7 +799,7 @@ defmodule ExUnit.Callbacks do
     calls =
       env.module
       |> Module.get_attribute(:"ex_unit_#{kind}")
-      |> compile_setup()
+      |> compile_setup(kind)
 
     describe_clauses =
       for {describe, callback} <- describes,
@@ -825,36 +828,42 @@ defmodule ExUnit.Callbacks do
     end
   end
 
-  defp compile_setup([]) do
+  defp compile_setup([], _kind) do
     quote(do: var!(context))
   end
 
-  defp compile_setup(callbacks) do
+  defp compile_setup(callbacks, kind) do
     [h | t] = Enum.reverse(callbacks)
 
-    Enum.reduce(t, compile_setup_call(h), fn callback, acc ->
+    Enum.reduce(t, compile_setup_call(h, kind), fn callback, acc ->
       quote do
         var!(context) = unquote(acc)
-        unquote(compile_setup_call(callback))
+        unquote(compile_setup_call(callback, kind))
       end
     end)
   end
 
-  defp compile_setup_call(callback) when is_atom(callback) do
+  defp compile_setup_call(callback, kind) when is_atom(callback) do
     quote do
       result =
-        unquote(__MODULE__).__merge__(__MODULE__, var!(context), unquote(callback)(var!(context)))
+        unquote(__MODULE__).__merge__(
+          __MODULE__,
+          unquote(kind),
+          var!(context),
+          unquote(callback)(var!(context))
+        )
 
       ExUnit.Callbacks.__noop__()
       result
     end
   end
 
-  defp compile_setup_call({module, callback}) do
+  defp compile_setup_call({module, callback}, kind) do
     quote do
       result =
         unquote(__MODULE__).__merge__(
           __MODULE__,
+          unquote(kind),
           var!(context),
           unquote(module).unquote(callback)(var!(context))
         )
