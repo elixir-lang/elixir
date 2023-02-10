@@ -117,7 +117,8 @@ defmodule Mix.AppLoader do
   end
 
   # We already processed this app, skip it.
-  defp stream_app({[app | apps], seen, done, deps_children, paths, ref}) when is_map_key(seen, app) do
+  defp stream_app({[app | apps], seen, done, deps_children, paths, ref})
+       when is_map_key(seen, app) do
     stream_app({apps, seen, done, deps_children, paths, ref})
   end
 
@@ -127,7 +128,8 @@ defmodule Mix.AppLoader do
   end
 
   # We have processed all apps and all seen have been done.
-  defp stream_app({[], seen, done, _deps_children, _paths, _ref}) when map_size(seen) == map_size(done) do
+  defp stream_app({[], seen, done, _deps_children, _paths, _ref})
+       when map_size(seen) == map_size(done) do
     nil
   end
 
