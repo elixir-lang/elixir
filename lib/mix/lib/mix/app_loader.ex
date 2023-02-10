@@ -82,6 +82,7 @@ defmodule Mix.AppLoader do
   """
   def load_apps(apps, deps, config, validate_compile_env?, acc, fun) do
     lib_path = to_charlist(Path.join(Mix.Project.build_path(config), "lib"))
+    deps_children = for dep <- deps, into: %{}, do: {dep.app, Enum.map(dep.deps, & &1.app)}
     deps_paths = for dep <- deps, into: %{}, do: {dep.app, {:lib, lib_path}}
     builtin_paths = Mix.State.builtin_apps()
     paths = Map.merge(builtin_paths, deps_paths)
@@ -92,7 +93,7 @@ defmodule Mix.AppLoader do
 
     stream =
       (extra_apps(config) ++ apps)
-      |> stream_apps(paths, ref)
+      |> stream_apps(deps_children, paths, ref)
       |> Task.async_stream(&load_stream_app(&1, ref, parent, validate_compile_env?), opts)
 
     Enum.reduce(stream, acc, fn {:ok, res}, acc -> fun.(res, acc) end)
@@ -111,30 +112,32 @@ defmodule Mix.AppLoader do
     {app, ebin_path}
   end
 
-  defp stream_apps(initial, paths, ref) do
-    Stream.unfold({initial, %{}, %{}, paths, ref}, &stream_app/1)
+  defp stream_apps(initial, deps_children, paths, ref) do
+    Stream.unfold({initial, %{}, %{}, deps_children, paths, ref}, &stream_app/1)
   end
 
   # We already processed this app, skip it.
-  defp stream_app({[app | apps], seen, done, paths, ref}) when is_map_key(seen, app) do
-    stream_app({apps, seen, done, paths, ref})
+  defp stream_app({[app | apps], seen, done, deps_children, paths, ref}) when is_map_key(seen, app) do
+    stream_app({apps, seen, done, deps_children, paths, ref})
   end
 
   # We haven't processed this app, emit it.
-  defp stream_app({[app | apps], seen, done, paths, ref}) do
-    {{app, paths[app]}, {apps, Map.put(seen, app, true), done, paths, ref}}
+  defp stream_app({[app | apps], seen, done, deps_children, paths, ref}) do
+    {{app, paths[app]}, {apps, Map.put(seen, app, true), done, deps_children, paths, ref}}
   end
 
   # We have processed all apps and all seen have been done.
-  defp stream_app({[], seen, done, _paths, _ref}) when map_size(seen) == map_size(done) do
+  defp stream_app({[], seen, done, _deps_children, _paths, _ref}) when map_size(seen) == map_size(done) do
     nil
   end
 
   # We have processed all apps but there is work being done.
-  defp stream_app({[], seen, done, paths, ref}) do
+  defp stream_app({[], seen, done, deps_children, paths, ref}) do
     receive do
       {^ref, app, {:ok, children}} ->
-        stream_app({children, seen, Map.put(done, app, true), paths, ref})
+        dep_children = Map.get(deps_children, app, [])
+        children = (dep_children -- children) ++ children
+        stream_app({children, seen, Map.put(done, app, true), deps_children, paths, ref})
 
       {^ref, _app, {:error, message}} ->
         Mix.raise(message)
