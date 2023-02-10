@@ -184,8 +184,12 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block, an atom naming a local function, a `{module, function}` tuple,
-  or a list of atoms/tuples.
+  Accepts one of these:
+
+    * a block
+    * an atom naming a local function
+    * a `{module, function}` tuple
+    * a list of atoms and `{module, function}` tuples
 
   Can return values to be merged into the context, to set up the state for
   tests. For more details, see the "Context" section shown above.
@@ -201,17 +205,21 @@ defmodule ExUnit.Callbacks do
 
       setup :clean_up_tmp_directory
 
+      setup [:clean_up_tmp_directory, :another_setup]
+
       setup do
         [conn: Plug.Conn.build_conn()]
       end
 
+      setup {MyModule, :my_setup_function}
+
   """
-  defmacro setup(block) do
-    if Keyword.keyword?(block) do
-      do_setup(quote(do: _), block)
+  defmacro setup(block_or_functions) do
+    if Keyword.keyword?(block_or_functions) do
+      do_setup(quote(do: _), block_or_functions)
     else
       quote do
-        ExUnit.Callbacks.__setup__(__MODULE__, unquote(block))
+        ExUnit.Callbacks.__setup__(__MODULE__, unquote(block_or_functions))
       end
     end
   end
@@ -219,11 +227,10 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before each test in a case.
 
-  Accepts a block, an atom naming a local function, a `{module, function}` tuple,
-  or a list of atoms/tuples.
+  This is similar to `setup/1`, but the first argument is the context.
+  The `block` argument can only be a block.
 
-  Can return values to be merged into the `context`, to set up the state for
-  tests. For more details, see the "Context" section shown above.
+  For more details, see the "Context" section shown above.
 
   ## Examples
 
@@ -233,6 +240,11 @@ defmodule ExUnit.Callbacks do
 
   """
   defmacro setup(context, block) do
+    unless Keyword.keyword?(block) and Keyword.has_key?(block, :do) do
+      raise ArgumentError,
+            "setup/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
+    end
+
     do_setup(context, block)
   end
 
@@ -271,8 +283,12 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Accepts a block, an atom naming a local function, a `{module, function}`
-  tuple, or a list of atoms/tuples.
+  Accepts one of these:
+
+    * a block
+    * an atom naming a local function
+    * a `{module, function}` tuple
+    * a list of atoms and `{module, function}` tuples
 
   Can return values to be merged into the `context`, to set up the state for
   tests. For more details, see the "Context" section shown above.
@@ -294,12 +310,18 @@ defmodule ExUnit.Callbacks do
       # One-arity function name
       setup_all :clean_up_tmp_directory
 
+      # A module and function
+      setup_all {MyModule, :my_setup_function}
+
+      # A list of one-arity functions and module/function tuples
+      setup_all [:clean_up_tmp_directory, {MyModule, :my_setup_function}]
+
       defp clean_up_tmp_directory(_context) do
         # perform setup
         :ok
       end
 
-      # Block
+      # A block
       setup_all do
         [conn: Plug.Conn.build_conn()]
       end
@@ -342,8 +364,8 @@ defmodule ExUnit.Callbacks do
   @doc """
   Defines a callback to be run before all tests in a case.
 
-  Same as `setup_all/1` but also takes a context. See
-  the "Context" section in the module documentation.
+  Similar as `setup_all/1` but also takes a context. The second argument
+  must be a block. See the "Context" section in the module documentation.
 
   ## Examples
 
@@ -353,6 +375,11 @@ defmodule ExUnit.Callbacks do
 
   """
   defmacro setup_all(context, block) do
+    unless Keyword.keyword?(block) and Keyword.has_key?(block, :do) do
+      raise ArgumentError,
+            "setup_all/2 requires a block as the second argument after the context, got: #{Macro.to_string(block)}"
+    end
+
     do_setup_all(context, block)
   end
 
@@ -697,8 +724,8 @@ defmodule ExUnit.Callbacks do
   end
 
   defp raise_merge_failed!(mod, return_value) do
-    raise "expected ExUnit callback in #{inspect(mod)} to return :ok | keyword | map, " <>
-            "got #{inspect(return_value)} instead"
+    raise "expected ExUnit setup or setup_all callback in #{inspect(mod)} to " <>
+            "return :ok | keyword | map, got #{inspect(return_value)} instead"
   end
 
   defp raise_merge_reserved!(mod, key, value) do
@@ -815,17 +842,30 @@ defmodule ExUnit.Callbacks do
 
   defp compile_setup_call(callback) when is_atom(callback) do
     quote do
-      unquote(__MODULE__).__merge__(__MODULE__, var!(context), unquote(callback)(var!(context)))
+      result =
+        unquote(__MODULE__).__merge__(__MODULE__, var!(context), unquote(callback)(var!(context)))
+
+      ExUnit.Callbacks.__noop__()
+      result
     end
   end
 
   defp compile_setup_call({module, callback}) do
     quote do
-      unquote(__MODULE__).__merge__(
-        __MODULE__,
-        var!(context),
-        unquote(module).unquote(callback)(var!(context))
-      )
+      result =
+        unquote(__MODULE__).__merge__(
+          __MODULE__,
+          var!(context),
+          unquote(module).unquote(callback)(var!(context))
+        )
+
+      ExUnit.Callbacks.__noop__()
+      result
     end
   end
+
+  # We inject this into compiled setup/setup_all calls, to avoid tail-call optimization and get
+  # better stacktraces. See the comments in https://github.com/elixir-lang/elixir/pull/12382.
+  @doc false
+  def __noop__, do: :noop
 end

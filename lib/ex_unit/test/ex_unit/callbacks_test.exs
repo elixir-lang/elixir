@@ -334,6 +334,38 @@ defmodule ExUnit.CallbacksTest do
            """
   end
 
+  test "raises an error when using setup/2 with something other than a block" do
+    message =
+      "setup/2 requires a block as the second argument after the context, got: :start_counter"
+
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_quoted(
+        quote do
+          defmodule SetupWithoutBlockTest do
+            use ExUnit.Case
+            setup context, :start_counter
+          end
+        end
+      )
+    end
+  end
+
+  test "raises an error when using setup_all/2 with something other than a block" do
+    message =
+      "setup_all/2 requires a block as the second argument after the context, got: :start_counter"
+
+    assert_raise ArgumentError, message, fn ->
+      Code.eval_quoted(
+        quote do
+          defmodule SetupWithoutBlockTest do
+            use ExUnit.Case
+            setup_all context, :start_counter
+          end
+        end
+      )
+    end
+  end
+
   test "raises an error when setting an invalid callback in setup" do
     defmodule SetupErrorTest do
       use ExUnit.Case
@@ -347,10 +379,16 @@ defmodule ExUnit.CallbacksTest do
       end
     end
 
-    assert capture_io(fn -> ExUnit.run() end) =~
-             "** (RuntimeError) expected ExUnit callback in " <>
-               "ExUnit.CallbacksTest.SetupErrorTest to return " <>
-               ":ok | keyword | map, got {:ok, \"foo\"} instead"
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~
+             "** (RuntimeError) expected ExUnit setup or setup_all callback in " <>
+               "ExUnit.CallbacksTest.SetupErrorTest to return :ok | keyword | map, " <>
+               "got {:ok, \"foo\"} instead"
+
+    # Make sure that at least the right file where the setup/setup_all call is defined is included
+    # in the stacktrace.
+    assert output =~ ~r/.*callbacks_test\.exs:\d+/
   end
 
   test "raises an error when overriding a reserved callback key in setup" do
