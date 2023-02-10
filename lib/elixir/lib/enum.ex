@@ -3156,7 +3156,11 @@ defmodule Enum do
           (element, element -> boolean) | :asc | :desc | module() | {:asc | :desc, module()}
         ) :: list
   def sort(enumerable, sorter) when is_list(enumerable) do
-    :lists.sort(to_sort_fun(sorter), enumerable)
+    case sorter do
+      :asc -> :lists.sort(enumerable)
+      :desc -> :lists.sort(enumerable) |> :lists.reverse()
+      _ -> :lists.sort(to_sort_fun(sorter), enumerable)
+    end
   end
 
   def sort(enumerable, sorter) do
