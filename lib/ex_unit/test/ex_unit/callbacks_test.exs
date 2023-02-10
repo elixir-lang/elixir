@@ -370,20 +370,35 @@ defmodule ExUnit.CallbacksTest do
     defmodule SetupErrorTest do
       use ExUnit.Case
 
-      setup do
-        {:ok, "foo"}
-      end
-
-      test "ok" do
-        :ok
-      end
+      setup do: {:ok, "foo"}
+      test "ok", do: :ok
     end
 
     output = capture_io(fn -> ExUnit.run() end)
 
     assert output =~
-             "** (RuntimeError) expected ExUnit setup or setup_all callback in " <>
+             "** (RuntimeError) expected ExUnit setup callback in " <>
                "ExUnit.CallbacksTest.SetupErrorTest to return :ok | keyword | map, " <>
+               "got {:ok, \"foo\"} instead"
+
+    # Make sure that at least the right file where the setup/setup_all call is defined is included
+    # in the stacktrace.
+    assert output =~ ~r/.*callbacks_test\.exs:\d+/
+  end
+
+  test "raises an error when setting an invalid callback in setup_all" do
+    defmodule SetupAllErrorTest do
+      use ExUnit.Case
+
+      setup_all do: {:ok, "foo"}
+      test "ok", do: :ok
+    end
+
+    output = capture_io(fn -> ExUnit.run() end)
+
+    assert output =~
+             "** (RuntimeError) expected ExUnit setup_all callback in " <>
+               "ExUnit.CallbacksTest.SetupAllErrorTest to return :ok | keyword | map, " <>
                "got {:ok, \"foo\"} instead"
 
     # Make sure that at least the right file where the setup/setup_all call is defined is included
@@ -405,7 +420,7 @@ defmodule ExUnit.CallbacksTest do
     end
 
     assert capture_io(fn -> ExUnit.run() end) =~
-             "** (RuntimeError) ExUnit callback in " <>
+             "** (RuntimeError) ExUnit setup callback in " <>
                "ExUnit.CallbacksTest.SetupReservedTest is " <>
                "trying to set reserved field :file to \"foo\""
   end
