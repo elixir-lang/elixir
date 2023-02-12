@@ -70,8 +70,8 @@ linify_with_context_counter(ContextMeta, Var, Exprs) when is_list(ContextMeta) -
 
   Fun =
     case lists:keyfind(generated, 1, ContextMeta) of
-      {generated, true} when Line =:= 0 -> fun(Meta) -> [{generated, true} | Meta] end;
-      {generated, true} -> fun(Meta) -> [{generated, true} | keynew(line, Meta, Line)] end;
+      {generated, true} when Line =:= 0 -> fun elixir_utils:generated/1;
+      {generated, true} -> fun(Meta) -> elixir_utils:generated(keynew(line, Meta, Line)) end;
       _ when Line =:= 0 -> fun(Meta) -> Meta end;
       _ -> fun(Meta) -> keynew(line, Meta, Line) end
     end,
@@ -509,7 +509,7 @@ argument_error(Message) ->
 meta(Meta, Q) ->
   generated(keep(Meta, Q), Q).
 
-generated(Meta, #elixir_quote{generated=true}) -> [{generated, true} | Meta];
+generated(Meta, #elixir_quote{generated=true}) -> elixir_utils:generated(Meta);
 generated(Meta, #elixir_quote{generated=false}) -> Meta.
 
 keep(Meta, #elixir_quote{file=nil, line=Line}) ->

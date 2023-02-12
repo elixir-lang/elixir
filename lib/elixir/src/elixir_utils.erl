@@ -1,7 +1,8 @@
 %% Convenience functions used throughout elixir source code
 %% for ast manipulation and querying.
 -module(elixir_utils).
--export([get_line/1, split_last/1, split_opts/1, noop/0, var_context/2,
+-export([get_line/1, generated/1,
+  split_last/1, split_opts/1, noop/0, var_context/2,
   characters_to_list/1, characters_to_binary/1, relative_to_cwd/1,
   macro_name/1, returns_boolean/1, caller/4, meta_keep/1,
   read_file_type/1, read_file_type/2, read_link_type/1, read_posix_mtime_and_size/1,
@@ -162,6 +163,9 @@ get_line(Opts) when is_list(Opts) ->
     {line, Line} when is_integer(Line) -> Line;
     _ -> 0
   end.
+
+generated([{generated, true} | _] = Meta) -> Meta;
+generated(Meta) -> [{generated, true} | Meta].
 
 %% Meta location.
 %%
