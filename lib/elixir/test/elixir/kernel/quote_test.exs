@@ -21,7 +21,7 @@ defmodule Kernel.QuoteTest do
     line = __ENV__.line + 2
 
     assert quote(location: :keep, do: bar(1, 2, 3)) ==
-             {:bar, [keep: {Path.relative_to_cwd(__ENV__.file), line}], [1, 2, 3]}
+             {:bar, [keep: {__ENV__.file, line}], [1, 2, 3]}
   end
 
   test "fixed line" do
