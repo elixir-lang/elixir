@@ -173,7 +173,7 @@ expand({quote, Meta, [Opts, Do]}, S, E) when is_list(Do) ->
 
   {File, Line} = case lists:keyfind(location, 1, EOpts) of
     {location, keep} ->
-      {elixir_utils:relative_to_cwd(?key(E, file)), false};
+      {?key(E, file), false};
     false ->
       {proplists:get_value(file, EOpts, nil), proplists:get_value(line, EOpts, false)}
   end,
