@@ -62,7 +62,7 @@ defmodule Kernel.ParallelCompiler do
 
   It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
   by default but we recommend using `return_maps: true` so it returns
-  a map as third element instead of a list of warnigns. The map has the
+  a map as third element instead of a list of warnings. The map has the
   shape of:
 
       %{
@@ -139,7 +139,7 @@ defmodule Kernel.ParallelCompiler do
 
   It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
   by default but we recommend using `return_maps: true` so it returns
-  a map as third element instead of a list of warnigns. The map has the
+  a map as third element instead of a list of warnings. The map has the
   shape of:
 
       %{

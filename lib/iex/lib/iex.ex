@@ -819,7 +819,7 @@ defmodule IEx do
   ## Macros
 
   While it is possible to set breakpoint in macros, remember that macros
-  are generally expanded at compilation time, and therfore they may never
+  are generally expanded at compilation time, and therefore they may never
   be invoked during runtime. Similarly, while patterns may be given to
   macros, macros receive ASTs as arguments, and not values. For example,
   if you try to break on a macro with the following pattern:
