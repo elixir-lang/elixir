@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 14
+  @manifest_vsn 15
   @checkpoint_vsn 2
 
   import Record
@@ -17,7 +17,8 @@ defmodule Mix.Compilers.Elixir do
     runtime_references: [],
     compile_env: [],
     external: [],
-    warnings: [],
+    compile_warnings: [],
+    runtime_warnings: [],
     modules: []
 
   @doc """
@@ -166,7 +167,7 @@ defmodule Mix.Compilers.Elixir do
         state = {[], exports, sources, modules, removed_modules}
         compiler_loop(stale, dest, timestamp, opts, state, digester)
       else
-        {:ok, warnings, state} ->
+        {:ok, info, state} ->
           {modules, _exports, sources, pending_modules, _pending_exports} = state
 
           previous_warnings =
@@ -174,7 +175,7 @@ defmodule Mix.Compilers.Elixir do
               do: previous_warnings(sources, true),
               else: []
 
-          sources = apply_warnings(sources, warnings)
+          sources = apply_warnings(sources, info)
 
           write_manifest(
             manifest,
@@ -188,14 +189,15 @@ defmodule Mix.Compilers.Elixir do
           )
 
           put_compile_env(sources)
-          all_warnings = previous_warnings ++ Enum.map(warnings, &diagnostic(&1, :warning))
+          info_warnings = info.runtime_warnings ++ info.compile_warnings
+          all_warnings = previous_warnings ++ Enum.map(info_warnings, &diagnostic(&1, :warning))
           unless_previous_warnings_as_errors(previous_warnings, opts, {:ok, all_warnings})
 
-        {:error, errors, warnings, state} ->
+        {:error, errors, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}, state} ->
           # In case of errors, we show all previous warnings and all new ones.
           {_, _, sources, _, _} = state
           errors = Enum.map(errors, &diagnostic(&1, :error))
-          warnings = Enum.map(warnings, &diagnostic(&1, :warning))
+          warnings = Enum.map(r_warnings ++ c_warnings, &diagnostic(&1, :warning))
           all_warnings = Keyword.get(opts, :all_warnings, true)
           {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
       after
@@ -576,10 +578,11 @@ defmodule Mix.Compilers.Elixir do
               do: beam |> Path.basename() |> Path.rootname() |> String.to_atom()
 
         # If any module has a compile time dependency on a changed module
-        # within the dependnecy, they will be recompiled. However, export
+        # within the dependency, they will be recompiled. However, export
         # and runtime dependencies won't have recompiled so we need to
         # propagate them to the parent app.
-        {dep_modules, _} = fixpoint_runtime_modules(dep_sources, Map.from_keys(dep_modules, true))
+        {dep_modules, _, _} =
+          fixpoint_runtime_modules(dep_sources, Map.from_keys(dep_modules, true))
 
         # Update exports
         {exports, new_exports} =
@@ -612,14 +615,21 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp fixpoint_runtime_modules(sources, modules) when modules != %{} do
-    fixpoint_runtime_modules(sources, modules, false, [], [])
+    fixpoint_runtime_modules(sources, modules, false, [], [], [])
   end
 
-  defp fixpoint_runtime_modules(_sources, modules) do
-    {modules, []}
+  defp fixpoint_runtime_modules(sources, modules) do
+    {modules, [], sources}
   end
 
-  defp fixpoint_runtime_modules([source | sources], modules, new?, acc_modules, acc_sources) do
+  defp fixpoint_runtime_modules(
+         [source | sources],
+         modules,
+         new?,
+         pending_sources,
+         acc_modules,
+         acc_sources
+       ) do
     source(export_references: export_refs, runtime_references: runtime_refs) = source
 
     if has_any_key?(modules, export_refs) or has_any_key?(modules, runtime_refs) do
@@ -627,18 +637,20 @@ defmodule Mix.Compilers.Elixir do
       modules = Enum.reduce(new_modules, modules, &Map.put(&2, &1, true))
       new? = new? or new_modules != []
       acc_modules = new_modules ++ acc_modules
-      fixpoint_runtime_modules(sources, modules, new?, acc_modules, acc_sources)
+      acc_sources = [source(source, runtime_warnings: []) | acc_sources]
+      fixpoint_runtime_modules(sources, modules, new?, pending_sources, acc_modules, acc_sources)
     else
-      fixpoint_runtime_modules(sources, modules, new?, acc_modules, [source | acc_sources])
+      pending_sources = [source | pending_sources]
+      fixpoint_runtime_modules(sources, modules, new?, pending_sources, acc_modules, acc_sources)
     end
   end
 
-  defp fixpoint_runtime_modules([], modules, new?, acc_modules, acc_sources)
-       when new? == false or acc_sources == [],
-       do: {modules, acc_modules}
+  defp fixpoint_runtime_modules([], modules, new?, pending_sources, acc_modules, acc_sources)
+       when new? == false or pending_sources == [],
+       do: {modules, acc_modules, acc_sources ++ pending_sources}
 
-  defp fixpoint_runtime_modules([], modules, true, acc_modules, acc_sources),
-    do: fixpoint_runtime_modules(acc_sources, modules, false, acc_modules, [])
+  defp fixpoint_runtime_modules([], modules, true, pending_sources, acc_modules, acc_sources),
+    do: fixpoint_runtime_modules(pending_sources, modules, false, [], acc_modules, acc_sources)
 
   defp exports_md5(module, use_attributes?) do
     cond do
@@ -679,9 +691,13 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp previous_warnings(sources, print?) do
-    for source(source: source, warnings: warnings) <- sources,
+    for source(
+          source: source,
+          compile_warnings: compile_warnings,
+          runtime_warnings: runtime_warnings
+        ) <- sources,
         file = Path.absname(source),
-        {location, message} <- warnings do
+        {location, message} <- compile_warnings ++ runtime_warnings do
       warning = {file, location, message}
 
       if print? do
@@ -693,11 +709,21 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp apply_warnings(sources, warnings) do
-    warnings = Enum.group_by(warnings, &elem(&1, 0), &{elem(&1, 1), elem(&1, 2)})
+  defp apply_warnings(sources, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}) do
+    runtime_group = Enum.group_by(r_warnings, &elem(&1, 0), &{elem(&1, 1), elem(&1, 2)})
+    compile_group = Enum.group_by(c_warnings, &elem(&1, 0), &{elem(&1, 1), elem(&1, 2)})
 
-    for source(source: source_path, warnings: source_warnings) = s <- sources do
-      source(s, warnings: Map.get(warnings, Path.absname(source_path), source_warnings))
+    for source(
+          source: source_path,
+          runtime_warnings: runtime_warnings,
+          compile_warnings: compile_warnings
+        ) = s <- sources do
+      key = Path.absname(source_path)
+
+      source(s,
+        runtime_warnings: Map.get(runtime_group, key, runtime_warnings),
+        compile_warnings: Map.get(compile_group, key, compile_warnings)
+      )
     end
   end
 
@@ -776,8 +802,7 @@ defmodule Mix.Compilers.Elixir do
       {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config} ->
         {modules, sources, local_exports, parent, cache_key, deps_config}
 
-      # {vsn, modules, sources} v5-v7 (v1.10)
-      # {vsn, modules, sources, local_exports} v8-v10 (v1.11)
+      # {vsn, modules, sources, ...} v5-v14
       manifest when is_tuple(manifest) and is_integer(elem(manifest, 0)) ->
         purge_old_manifest(compile_path, elem(manifest, 1))
 
@@ -915,7 +940,8 @@ defmodule Mix.Compilers.Elixir do
           end,
           long_compilation_threshold: threshold,
           profile: profile,
-          beam_timestamp: timestamp
+          beam_timestamp: timestamp,
+          return_maps: true
         ]
 
         response = Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)
@@ -956,11 +982,11 @@ defmodule Mix.Compilers.Elixir do
         state = each_module(file, module, kind, external, new_export, state, cwd)
         compiler_loop(ref, pid, state, digester, cwd)
 
-      {^ref, {:ok, _modules, warnings}} ->
-        {:ok, warnings, state}
+      {^ref, {:ok, _modules, info}} ->
+        {:ok, info, state}
 
-      {^ref, {:error, errors, warnings}} ->
-        {:error, errors, warnings, state}
+      {^ref, {:error, errors, info}} ->
+        {:error, errors, info, state}
     end
   end
 
@@ -977,13 +1003,13 @@ defmodule Mix.Compilers.Elixir do
     end
 
     if changed == [] do
-      modules_names = Enum.map(modules, &module(&1, :module))
-      modules_set = Map.from_keys(modules_names, true)
-      {_, runtime_modules} = fixpoint_runtime_modules(sources, modules_set)
+      modules_set = modules |> Enum.map(&module(&1, :module)) |> Map.from_keys(true)
+      {_, runtime_modules, sources} = fixpoint_runtime_modules(sources, modules_set)
 
       runtime_paths =
         Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
 
+      state = {modules, exports, sources, pending_modules, pending_exports}
       {{:runtime, runtime_paths, []}, state}
     else
       Mix.Utils.compiling_n(length(changed), :ex)
