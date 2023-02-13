@@ -83,7 +83,7 @@ test with `mix test`, from 5% to 15%.
   * [ExUnit] Add more color configuration to ExUnit CLI formatter
   * [ExUnit.Callbacks] Accept `{module, function}` tuples in ExUnit `setup` callbacks
   * [ExUnit.Doctest] Add `ExUnit.DocTest.doctest_file/2`
-  * [ExUnit.Formatter] When comparing to anonymous functions, defined at the same place but capturing a different enviroment, we will now also diff the environments
+  * [ExUnit.Formatter] When comparing to anonymous functions, defined at the same place but capturing a different environment, we will now also diff the environments
 
 #### IEx
 
@@ -113,7 +113,7 @@ test with `mix test`, from 5% to 15%.
 #### Elixir
 
   * [Code.Formatter] Fix a scenario where a keyword followed by parenthesis could go above the maximum line length
-  * [Code.Formatter] Remove unecessary parens in nullary type funs
+  * [Code.Formatter] Remove unnecessary parens in nullary type funs
   * [File] Do not raise if there are file system race conditions in `File.cp/2`
   * [Kernel] Expand macros on the left side of -> in `try/rescue`
   * [Kernel] Raise on misplaced `...` inside typespecs
