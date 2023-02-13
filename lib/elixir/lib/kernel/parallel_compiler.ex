@@ -9,6 +9,11 @@ defmodule Kernel.ParallelCompiler do
   @type warning() :: {file :: Path.t(), location(), message :: String.t()}
   @type error() :: {file :: Path.t(), location(), message :: String.t()}
 
+  @type info :: %{
+          runtime_warnings: [warning],
+          compile_warnings: [warning]
+        }
+
   @doc """
   Starts a task for parallel compilation.
 
@@ -55,7 +60,15 @@ defmodule Kernel.ParallelCompiler do
   the current file stops being compiled until the dependency is
   resolved.
 
-  It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`.
+  It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
+  by default but we recommend using `return_maps: true` so it returns
+  a map as third element instead of a list of warnigns. The map has the
+  shape of:
+
+      %{
+        runtime_warnings: [warning],
+        compile_warnings: [warning]
+      }
 
   Both errors and warnings are a list of three-element tuples containing
   the file, line and the formatted error/warning.
@@ -95,9 +108,13 @@ defmodule Kernel.ParallelCompiler do
 
     * `:beam_timestamp` - the modification timestamp to give all BEAM files
 
+    * `:return_maps` (since v1.15.0) - returns maps with information instead of
+      a list of warnings
+
   """
   @doc since: "1.6.0"
-  @spec compile([Path.t()], keyword()) :: {:ok, [atom], [warning]} | {:error, [error], [warning]}
+  @spec compile([Path.t()], keyword()) ::
+          {:ok, [atom], [warning] | info()} | {:error, [error], [warning] | info()}
   def compile(files, options \\ []) when is_list(options) do
     spawn_workers(files, :compile, options)
   end
@@ -109,7 +126,7 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.6.0"
   @spec compile_to_path([Path.t()], Path.t(), keyword()) ::
-          {:ok, [atom], [warning]} | {:error, [error], [warning]}
+          {:ok, [atom], [warning] | info()} | {:error, [error], [warning] | info()}
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
     spawn_workers(files, {:compile, path}, options)
   end
@@ -120,7 +137,15 @@ defmodule Kernel.ParallelCompiler do
   Opposite to compile, dependencies are not attempted to be
   automatically solved between files.
 
-  It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`.
+  It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
+  by default but we recommend using `return_maps: true` so it returns
+  a map as third element instead of a list of warnigns. The map has the
+  shape of:
+
+      %{
+        runtime_warnings: [warning],
+        compile_warnings: [warning]
+      }
 
   Both errors and warnings are a list of three-element tuples containing
   the file, line and the formatted error/warning.
@@ -136,7 +161,7 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.6.0"
   @spec require([Path.t()], keyword()) ::
-          {:ok, [atom], [warning]} | {:error, [error], [warning]}
+          {:ok, [atom], [warning] | info()} | {:error, [error], [warning] | info()}
   def require(files, options \\ []) when is_list(options) do
     spawn_workers(files, :require, options)
   end
@@ -173,26 +198,39 @@ defmodule Kernel.ParallelCompiler do
     schedulers = max(:erlang.system_info(:schedulers_online), 2)
     {:ok, checker} = Module.ParallelChecker.start_link(schedulers)
 
-    try do
-      outcome = spawn_workers(schedulers, checker, files, output, options)
-      {outcome, Code.get_compiler_option(:warnings_as_errors)}
+    {status, modules_or_errors, info} =
+      try do
+        outcome = spawn_workers(schedulers, checker, files, output, options)
+        {outcome, Code.get_compiler_option(:warnings_as_errors)}
+      else
+        {{:ok, _, %{runtime_warnings: r_warnings, compile_warnings: c_warnings} = info}, true}
+        when r_warnings != [] or c_warnings != [] ->
+          message =
+            "Compilation failed due to warnings while using the --warnings-as-errors option"
+
+          IO.puts(:stderr, message)
+          {:error, r_warnings ++ c_warnings, %{info | runtime_warnings: [], compile_warnings: []}}
+
+        {{:ok, outcome, info}, _} ->
+          beam_timestamp = Keyword.get(options, :beam_timestamp)
+          {:ok, write_module_binaries(outcome, output, beam_timestamp), info}
+
+        {{:error, errors, info}, true} ->
+          %{runtime_warnings: r_warnings, compile_warnings: c_warnings} = info
+          info = %{info | runtime_warnings: [], compile_warnings: []}
+          {:error, c_warnings ++ r_warnings ++ errors, info}
+
+        {{:error, errors, info}, _} ->
+          {:error, errors, info}
+      after
+        Module.ParallelChecker.stop(checker)
+      end
+
+    # TODO: Require this to be set from Elixir v1.19
+    if Keyword.get(options, :return_maps, false) do
+      {status, modules_or_errors, info}
     else
-      {{:ok, _, [_ | _] = warnings}, true} ->
-        message = "Compilation failed due to warnings while using the --warnings-as-errors option"
-        IO.puts(:stderr, message)
-        {:error, warnings, []}
-
-      {{:ok, outcome, warnings}, _} ->
-        beam_timestamp = Keyword.get(options, :beam_timestamp)
-        {:ok, write_module_binaries(outcome, output, beam_timestamp), warnings}
-
-      {{:error, errors, warnings}, true} ->
-        {:error, warnings ++ errors, []}
-
-      {{:error, errors, warnings}, _} ->
-        {:error, errors, warnings}
-    after
-      Module.ParallelChecker.stop(checker)
+      {status, modules_or_errors, info.runtime_warnings ++ info.compile_warnings}
     end
   end
 
@@ -258,10 +296,10 @@ defmodule Kernel.ParallelCompiler do
 
   ## Verification
 
-  defp verify_modules(result, warnings, dependent_modules, state) do
-    checker_warnings = maybe_check_modules(result, dependent_modules, state)
-    warnings = Enum.reverse(warnings, checker_warnings)
-    {{:ok, result, warnings}, state}
+  defp verify_modules(result, compile_warnings, dependent_modules, state) do
+    runtime_warnings = maybe_check_modules(result, dependent_modules, state)
+    info = %{compile_warnings: Enum.reverse(compile_warnings), runtime_warnings: runtime_warnings}
+    {{:ok, result, info}, state}
   end
 
   defp maybe_check_modules(result, runtime_modules, state) do
@@ -648,7 +686,8 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp return_error(errors, warnings) do
-    {:error, Enum.reverse(errors), Enum.reverse(warnings)}
+    info = %{compile_warnings: Enum.reverse(warnings), runtime_warnings: []}
+    {:error, Enum.reverse(errors), info}
   end
 
   defp update_result(result, kind, module, value) do
