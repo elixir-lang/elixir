@@ -318,6 +318,12 @@ defmodule AccessTest do
       assert [1, 2, 3] = [one, two, three]
     end
 
+    test "succeeds with get_in/2 on a nested keyword list" do
+      input = [one: [two: [three: 3]]]
+      three = get_in(input, [Access.key(:one), Access.key(:two), Access.key(:three)])
+      assert 3 = three
+    end
+
     test "succeeds with put_in/2 on a map" do
       input = %{one: 1, two: 2, three: 3}
       one = put_in(input, [Access.key(:one)], "one")
