@@ -235,7 +235,7 @@ defmodule ExUnit do
 
     * `:colors` - a keyword list of color options to be used by some formatters:
       * `:enabled` - boolean option to enable colors, defaults to `IO.ANSI.enabled?/0`;
-      
+
       * `:success` - success message (defaults to `:green`)
       * `:invalid` - invalid test message (defaults to `:yellow`)
       * `:skipped` - skipped test message (defaults to `:yellow`)
