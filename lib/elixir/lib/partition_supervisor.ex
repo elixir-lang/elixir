@@ -63,7 +63,7 @@ defmodule PartitionSupervisor do
       # ["current messages:", [:ho, :hi], " in process", #PID<0.602.0>]
       :ok
 
-      # With a different key, the messsage will be routed to a different instance.
+      # With a different key, the message will be routed to a different instance.
       key = 2
       Collector.collect({:via, PartitionSupervisor, {MyApp.PartitionSupervisor, key}}, :a)
       # ["current messages:", [:a], " in process", #PID<0.603.0>]
