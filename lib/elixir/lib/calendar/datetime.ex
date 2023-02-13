@@ -1500,11 +1500,11 @@ defmodule DateTime do
   ignoring the wall time and timezone changes. For example, if you add
   one day when there are summer time/daylight saving time changes,
   it will also change the time forward or backward by one hour,
-  so the ellapsed time is precisely 24 hours. Similarly, adding just
+  so the elapsed time is precisely 24 hours. Similarly, adding just
   a few seconds to a datetime just before "spring forward" can cause
   wall time to increase by more than an hour.
 
-  While this means this function is precise in terms of ellapsed time,
+  While this means this function is precise in terms of elapsed time,
   its result may be misleading in certain use cases. For example, if a
   user requests a meeting to happen every day at 15:00 and you use this
   function to compute all future meetings by adding day after day, this
