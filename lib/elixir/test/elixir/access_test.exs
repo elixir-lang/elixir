@@ -288,4 +288,127 @@ defmodule AccessTest do
       assert get_in(input, [:list, Access.at!(0), :greeting]) == "hi"
     end
   end
+
+  describe "key/2" do
+    test "succeeds with get_in/2 on a map" do
+      input = %{one: 1, two: 2, three: 3}
+      one = get_in(input, [Access.key(:one)])
+      two = get_in(input, [Access.key(:two)])
+      three = get_in(input, [Access.key(:three)])
+      assert [1, 2, 3] = [one, two, three]
+    end
+
+    defmodule KeyStruct do
+      defstruct one: nil, two: nil, three: nil
+    end
+
+    test "succeeds with get_in/2 on a struct" do
+      input = %AccessTest.KeyStruct{one: 1, two: 2, three: 3}
+      one = get_in(input, [Access.key(:one)])
+      two = get_in(input, [Access.key(:two)])
+      three = get_in(input, [Access.key(:three)])
+      assert [1, 2, 3] = [one, two, three]
+    end
+
+    test "succeeds with get_in/2 on a keyword list" do
+      input = [one: 1, two: 2, three: 3]
+      one = get_in(input, [Access.key(:one)])
+      two = get_in(input, [Access.key(:two)])
+      three = get_in(input, [Access.key(:three)])
+      assert [1, 2, 3] = [one, two, three]
+    end
+
+    test "succeeds with put_in/2 on a map" do
+      input = %{one: 1, two: 2, three: 3}
+      one = put_in(input, [Access.key(:one)], "one")
+      two = put_in(input, [Access.key(:two)], "two")
+      three = put_in(input, [Access.key(:three)], "three")
+      assert %{one: "one"} = one
+      assert %{two: "two"} = two
+      assert %{three: "three"} = three
+    end
+
+    test "succeeds with put_in/2 on a struct" do
+      input = %AccessTest.KeyStruct{one: 1, two: 2, three: 3}
+      one = put_in(input, [Access.key(:one)], "one")
+      two = put_in(input, [Access.key(:two)], "two")
+      three = put_in(input, [Access.key(:three)], "three")
+      assert %AccessTest.KeyStruct{one: "one"} = one
+      assert %AccessTest.KeyStruct{two: "two"} = two
+      assert %AccessTest.KeyStruct{three: "three"} = three
+    end
+
+    test "succeeds with put_in/2 on a keyword list" do
+      input = [one: 1, two: 2, three: 3]
+      one = put_in(input, [Access.key(:one)], "one")
+      two = put_in(input, [Access.key(:two)], "two")
+      three = put_in(input, [Access.key(:three)], "three")
+      assert "one" = Keyword.get(one, :one)
+      assert "two" = Keyword.get(two, :two)
+      assert "three" = Keyword.get(three, :three)
+    end
+
+    test "succeeds with pop_in/2 on a map" do
+      input = %{one: 1, two: 2, three: 3}
+      {1, one} = pop_in(input, [Access.key(:one)])
+      {2, two} = pop_in(input, [Access.key(:two)])
+      {3, three} = pop_in(input, [Access.key(:three)])
+      assert !Map.has_key?(one, :one)
+      assert !Map.has_key?(two, :two)
+      assert !Map.has_key?(three, :three)
+    end
+
+    test "succeeds with pop_in/2 on a struct" do
+      input = %AccessTest.KeyStruct{one: 1, two: 2, three: 3}
+      {1, one} = pop_in(input, [Access.key(:one)])
+      {2, two} = pop_in(input, [Access.key(:two)])
+      {3, three} = pop_in(input, [Access.key(:three)])
+      assert !Map.has_key?(one, :one)
+      assert !Map.has_key?(two, :two)
+      assert !Map.has_key?(three, :three)
+    end
+
+    test "succeeds with pop_in/2 on a keyword list" do
+      input = [one: 1, two: 2, three: 3]
+      {1, one} = pop_in(input, [Access.key(:one)])
+      {2, two} = pop_in(input, [Access.key(:two)])
+      {3, three} = pop_in(input, [Access.key(:three)])
+      assert !Keyword.has_key?(one, :one)
+      assert !Keyword.has_key?(two, :two)
+      assert !Keyword.has_key?(three, :three)
+    end
+
+    test "succeeds with get_and_update_in/2 on a map" do
+      input = %{one: 1, two: 2, three: 3}
+      mult = &{&1, &1 * 2}
+      {1, one} = get_and_update_in(input, [Access.key(:one)], mult)
+      {2, two} = get_and_update_in(input, [Access.key(:two)], mult)
+      {3, three} = get_and_update_in(input, [Access.key(:three)], mult)
+      assert %{one: 2} = one
+      assert %{two: 4} = two
+      assert %{three: 6} = three
+    end
+
+    test "succeeds with get_and_update_in/2 on a struct" do
+      input = %AccessTest.KeyStruct{one: 1, two: 2, three: 3}
+      mult = &{&1, &1 * 2}
+      {1, one} = get_and_update_in(input, [Access.key(:one)], mult)
+      {2, two} = get_and_update_in(input, [Access.key(:two)], mult)
+      {3, three} = get_and_update_in(input, [Access.key(:three)], mult)
+      assert %AccessTest.KeyStruct{one: 2} = one
+      assert %AccessTest.KeyStruct{two: 4} = two
+      assert %AccessTest.KeyStruct{three: 6} = three
+    end
+
+    test "succeeds with get_and_update_in/2 on a keyword list" do
+      input = [one: 1, two: 2, three: 3]
+      mult = &{&1, &1 * 2}
+      {1, one} = get_and_update_in(input, [Access.key(:one)], mult)
+      {2, two} = get_and_update_in(input, [Access.key(:two)], mult)
+      {3, three} = get_and_update_in(input, [Access.key(:three)], mult)
+      assert 2 = Keyword.get(one, :one)
+      assert 4 = Keyword.get(two, :two)
+      assert 6 = Keyword.get(three, :three)
+    end
+  end
 end

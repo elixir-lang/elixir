@@ -445,18 +445,35 @@ defmodule Access do
       {"john", %{user: %{name: "JOHN"}}}
       iex> pop_in(map, [Access.key(:user), Access.key(:name)])
       {"john", %{user: %{}}}
+      iex> get_in([name: "john"], [Access.key(:user, "none")])
+      "none"
+      iex> get_in([name: "john"], [Access.key(:user)])
+      nil
+      iex> get_in([name: "john"], [Access.key(:name, "none")])
+      "john"
 
-  An error is raised if the accessed structure is not a map or a struct:
+  An error is raised if the accessed structure is not a map a struct or a list:
 
-      iex> get_in([], [Access.key(:foo)])
-      ** (BadMapError) expected a map, got: []
+      iex> get_in({:foo}, [Access.key(:foo)])
+      ** (BadMapError) expected a map, got: {:foo}
 
   """
   @spec key(key, term) :: access_fun(data :: struct | map, current_value :: term)
   def key(key, default \\ nil) do
     fn
+      :get, data, next when is_list(data) ->
+        next.(Keyword.get(data, key, default))
+
       :get, data, next ->
         next.(Map.get(data, key, default))
+
+      :get_and_update, data, next when is_list(data) ->
+        value = Keyword.get(data, key, default)
+
+        case next.(value) do
+          {get, update} -> {get, Keyword.put(data, key, update)}
+          :pop -> {value, Keyword.delete(data, key)}
+        end
 
       :get_and_update, data, next ->
         value = Map.get(data, key, default)
@@ -490,15 +507,21 @@ defmodule Access do
       iex> get_in(map, [Access.key!(:user), Access.key!(:unknown)])
       ** (KeyError) key :unknown not found in: %{name: \"john\"}
 
-  An error is raised if the accessed structure is not a map/struct:
-
       iex> get_in([], [Access.key!(:foo)])
-      ** (RuntimeError) Access.key!/1 expected a map/struct, got: []
+      ** (KeyError) key :foo not found in: []
+
+  An error is raised if the accessed structure is not a map a struct or a keyword list:
+
+      iex> get_in({:foo}, [Access.key!(:foo)])
+      ** (RuntimeError) Access.key!/1 expected a map/struct/list, got: {:foo}
 
   """
   @spec key!(key) :: access_fun(data :: struct | map, current_value :: term)
   def key!(key) do
     fn
+      :get, data, next when is_list(data) ->
+        next.(Keyword.fetch!(data, key))
+
       :get, %{} = data, next ->
         next.(Map.fetch!(data, key))
 
@@ -511,7 +534,7 @@ defmodule Access do
         end
 
       _op, data, _next ->
-        raise "Access.key!/1 expected a map/struct, got: #{inspect(data)}"
+        raise "Access.key!/1 expected a map/struct/list, got: #{inspect(data)}"
     end
   end
 
