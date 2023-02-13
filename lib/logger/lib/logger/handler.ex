@@ -34,11 +34,6 @@ defmodule Logger.Handler do
     {:ok, update_in(config.config, &Map.merge(&1, default_config()))}
   end
 
-  def changing_config(:update, config, %{config: {:translators, translators}}) do
-    Application.put_env(:logger, :translators, translators)
-    {:ok, put_in(config.config.translators, translators)}
-  end
-
   def filter_config(%{config: data} = config) do
     %{config | config: Map.drop(data, @internal_keys)}
   end
@@ -46,21 +41,15 @@ defmodule Logger.Handler do
   defp default_config do
     sync_threshold = Application.fetch_env!(:logger, :sync_threshold)
     discard_threshold = Application.fetch_env!(:logger, :discard_threshold)
-    sasl_reports? = Application.fetch_env!(:logger, :handle_sasl_reports)
 
     %{
       utc_log: Application.fetch_env!(:logger, :utc_log),
       truncate: Application.fetch_env!(:logger, :truncate),
-      translators: Application.fetch_env!(:logger, :translators),
-      thresholds: {sync_threshold, discard_threshold},
-      sasl: sasl_reports?
+      thresholds: {sync_threshold, discard_threshold}
     }
   end
 
   ## Main logging API
-
-  def log(%{meta: %{domain: [:otp, :sasl | _]}}, %{config: %{sasl: false}}), do: :ok
-  def log(%{meta: %{domain: [:supervisor_report | _]}}, %{config: %{sasl: false}}), do: :ok
 
   def log(%{level: erl_level, msg: msg, meta: metadata}, %{config: config}) do
     case threshold(config) do
@@ -69,67 +58,26 @@ defmodule Logger.Handler do
 
       mode ->
         level = erlang_level_to_elixir_level(erl_level)
+        message = format_message(msg, metadata, config)
 
-        case do_log(level, msg, metadata, config) do
-          :skip ->
-            :ok
+        %{gl: gl} = metadata
+        timestamp = Map.get_lazy(metadata, :time, fn -> :os.system_time(:microsecond) end)
+        metadata = [erl_level: erl_level] ++ erlang_metadata_to_elixir_metadata(metadata)
+        %{truncate: truncate, utc_log: utc_log?} = config
 
-          {message, %{gl: gl} = metadata} ->
-            timestamp = Map.get_lazy(metadata, :time, fn -> :os.system_time(:microsecond) end)
-            metadata = [erl_level: erl_level] ++ erlang_metadata_to_elixir_metadata(metadata)
+        event = {
+          level,
+          gl,
+          {Logger, truncate(message, truncate), Logger.Utils.timestamp(timestamp, utc_log?),
+           metadata}
+        }
 
-            %{truncate: truncate, utc_log: utc_log?} = config
-
-            event = {
-              level,
-              gl,
-              {Logger, truncate(message, truncate), Logger.Utils.timestamp(timestamp, utc_log?),
-               metadata}
-            }
-
-            notify(mode, event)
-        end
+        notify(mode, event)
     end
   rescue
     ArgumentError -> {:error, :noproc}
   catch
     :exit, reason -> {:error, reason}
-  end
-
-  defp do_log(_level, {:string, message}, metadata, _config) do
-    {message, metadata}
-  end
-
-  defp do_log(level, msg, metadata, config) do
-    %{level: erl_min_level} = :logger.get_primary_config()
-    min_level = erlang_level_to_elixir_level(erl_min_level)
-    %{truncate: truncate} = config
-
-    try do
-      case msg do
-        {:report, %{label: label, report: report} = complete}
-        when map_size(complete) == 2 ->
-          translate(level, :report, {label, report}, metadata, config, min_level)
-
-        {:report, %{label: {:error_logger, _}, format: format, args: args}} ->
-          translate(level, :format, {format, args}, metadata, config, min_level)
-
-        {:report, report} ->
-          translate(level, :report, {:logger, report}, metadata, config, min_level)
-
-        {format, args} ->
-          translate(level, :format, {format, args}, metadata, config, min_level)
-      end
-    rescue
-      e ->
-        {[
-           "Failure while translating Erlang's logger event\n",
-           Exception.format(:error, e, __STACKTRACE__)
-         ], metadata}
-    else
-      :none -> {translate_fallback(msg, metadata, truncate), metadata}
-      other -> other
-    end
   end
 
   defp notify(:sync, msg) do
@@ -172,6 +120,48 @@ defmodule Logger.Handler do
     end
   end
 
+  ## Message formatting
+
+  defp format_message({:string, message}, _metadata, _config) do
+    message
+  end
+
+  defp format_message({:report, data}, %{report_cb: callback} = meta, config)
+       when is_function(callback, 1) do
+    format_message(callback.(data), meta, config)
+  end
+
+  defp format_message({:report, data}, %{report_cb: callback}, _config)
+       when is_function(callback, 2) do
+    translator_opts = Inspect.Opts.new(translator_inspect_opts())
+
+    opts = %{
+      depth: translator_opts.limit,
+      chars_limit: translator_opts.printable_limit,
+      single_line: false
+    }
+
+    callback.(data, opts)
+  end
+
+  defp format_message({:report, %{} = data}, _meta, _config) do
+    Kernel.inspect(Map.to_list(data), translator_inspect_opts())
+  end
+
+  defp format_message({:report, data}, _meta, _config) do
+    Kernel.inspect(data, translator_inspect_opts())
+  end
+
+  defp format_message({format, args}, _meta, %{truncate: truncate}) do
+    format
+    |> Logger.Utils.scan_inspect(args, truncate)
+    |> :io_lib.build_text()
+  end
+
+  defp translator_inspect_opts() do
+    Application.fetch_env!(:logger, :translator_inspect_opts)
+  end
+
   ## Metadata helpers
 
   # TODO: We should only do this for legacy handlers.
@@ -202,62 +192,5 @@ defmodule Logger.Handler do
 
   defp form_fa(fun, arity) do
     Atom.to_string(fun) <> "/" <> Integer.to_string(arity)
-  end
-
-  ## Translating helpers
-
-  defp translate(level, kind, data, meta, config, min_level) do
-    %{translators: translators} = config
-
-    do_translate(translators, min_level, level, kind, data, meta)
-  end
-
-  defp do_translate([{mod, fun} | t], min_level, level, kind, data, meta) do
-    case apply(mod, fun, [min_level, level, kind, data]) do
-      {:ok, chardata, transdata} -> {chardata, Enum.into(transdata, meta)}
-      {:ok, chardata} -> {chardata, meta}
-      :skip -> :skip
-      :none -> do_translate(t, min_level, level, kind, data, meta)
-    end
-  end
-
-  defp do_translate([], _min_level, _level, _kind, _data, _meta) do
-    :none
-  end
-
-  defp translate_fallback({:report, data}, %{report_cb: callback} = meta, truncate)
-       when is_function(callback, 1) do
-    translate_fallback(callback.(data), meta, truncate)
-  end
-
-  defp translate_fallback({:report, data}, %{report_cb: callback}, _truncate)
-       when is_function(callback, 2) do
-    translator_opts = Inspect.Opts.new(translator_inspect_opts())
-
-    opts = %{
-      depth: translator_opts.limit,
-      chars_limit: translator_opts.printable_limit,
-      single_line: false
-    }
-
-    callback.(data, opts)
-  end
-
-  defp translate_fallback({:report, %{} = data}, _meta, _truncate) do
-    Kernel.inspect(Map.to_list(data), translator_inspect_opts())
-  end
-
-  defp translate_fallback({:report, data}, _meta, _truncate) do
-    Kernel.inspect(data, translator_inspect_opts())
-  end
-
-  defp translate_fallback({format, args}, _meta, truncate) do
-    format
-    |> Logger.Utils.scan_inspect(args, truncate)
-    |> :io_lib.build_text()
-  end
-
-  defp translator_inspect_opts() do
-    Application.fetch_env!(:logger, :translator_inspect_opts)
   end
 end

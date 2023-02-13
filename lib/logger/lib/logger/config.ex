@@ -9,14 +9,6 @@ defmodule Logger.Config do
     :gen_event.call(Logger, @name, {:configure, options})
   end
 
-  def add_translator(translator) do
-    :gen_event.call(Logger, @name, {:add_translator, translator})
-  end
-
-  def remove_translator(translator) do
-    :gen_event.call(Logger, @name, {:remove_translator, translator})
-  end
-
   ## Callbacks
 
   def init(counter) do
@@ -45,16 +37,6 @@ defmodule Logger.Config do
     end)
 
     {:ok, :ok, load_state(counter)}
-  end
-
-  def handle_call({:add_translator, translator}, state) do
-    update_translators(fn t -> [translator | List.delete(t, translator)] end)
-    {:ok, :ok, state}
-  end
-
-  def handle_call({:remove_translator, translator}, state) do
-    update_translators(&List.delete(&1, translator))
-    {:ok, :ok, state}
   end
 
   def handle_info(@update_counter_message, state) do
@@ -121,13 +103,5 @@ defmodule Logger.Config do
 
   defp schedule_update_counter({_, _, _, discard_period}) do
     Process.send_after(self(), @update_counter_message, discard_period)
-  end
-
-  ## Data helpers
-
-  defp update_translators(fun) do
-    {:ok, %{config: data}} = :logger.get_handler_config(Logger)
-    translators = fun.(data.translators)
-    :ok = :logger.update_handler_config(Logger, :config, {:translators, translators})
   end
 end

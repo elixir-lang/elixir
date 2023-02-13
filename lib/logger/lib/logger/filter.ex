@@ -2,13 +2,55 @@ defmodule Logger.Filter do
   @moduledoc false
 
   @doc """
-  Filter messages logged via `Logger` module when not logging OTP reports.
+  Implement the default translation and handling of reports.
   """
-  def filter_elixir_domain(%{meta: meta}, _extra) do
-    case meta do
-      %{domain: [:elixir | _]} -> :ignore
-      _ -> :stop
+  def translator(%{domain: [:elixir | _]}, %{otp: false}), do: :stop
+  def translator(%{meta: %{domain: [:otp, :sasl | _]}}, %{sasl: false}), do: :stop
+  def translator(%{meta: %{domain: [:supervisor_report | _]}}, %{sasl: false}), do: :stop
+  def translator(%{msg: {:string, _}}, _config), do: :ignore
+
+  def translator(%{msg: msg, level: level} = event, %{translators: translators}) do
+    %{level: min_level} = :logger.get_primary_config()
+
+    try do
+      case msg do
+        {:report, %{label: label, report: report} = complete}
+        when map_size(complete) == 2 ->
+          translate(translators, min_level, level, :report, {label, report})
+
+        {:report, %{label: {:error_logger, _}, format: format, args: args}} ->
+          translate(translators, min_level, level, :format, {format, args})
+
+        {:report, report} ->
+          translate(translators, min_level, level, :report, {:logger, report})
+
+        {format, args} ->
+          translate(translators, min_level, level, :format, {format, args})
+      end
+    rescue
+      e ->
+        chardata = [
+          "Failure while translating Erlang's logger event\n",
+          Exception.format(:error, e, __STACKTRACE__)
+        ]
+
+        %{event | msg: {:string, chardata}}
+    else
+      :none -> :ignore
+      :skip -> :stop
+      {:ok, chardata} -> %{event | msg: {:string, chardata}}
+      {:ok, char, meta} -> %{event | msg: {:string, char}, meta: Enum.into(meta, event.meta)}
     end
+  end
+
+  defp translate([{mod, fun} | t], min_level, level, kind, data) do
+    with :none <- apply(mod, fun, [min_level, level, kind, data]) do
+      translate(t, min_level, level, kind, data)
+    end
+  end
+
+  defp translate([], _min_level, _level, _kind, _data) do
+    :none
   end
 
   @doc """
