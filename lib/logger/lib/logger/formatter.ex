@@ -1,6 +1,8 @@
 import Kernel, except: [inspect: 2]
 
 defmodule Logger.Formatter do
+  # TODO: Rewrite docs
+
   @moduledoc ~S"""
   Conveniences for formatting data for logs.
 
@@ -92,11 +94,230 @@ defmodule Logger.Formatter do
   value.
   """
 
-  @type time :: {{1970..10000, 1..12, 1..31}, {0..23, 0..59, 0..59, 0..999}}
+  @type date :: {1970..10000, 1..12, 1..31}
+  @type time_ms :: {0..23, 0..59, 0..59, 0..999}
+  @type date_time_ms :: {date, time_ms}
+
   @type pattern :: :date | :level | :levelpad | :message | :metadata | :node | :time
   @valid_patterns [:time, :date, :message, :level, :node, :metadata, :levelpad]
   @default_pattern "\n$time $metadata[$level] $message\n"
   @replacement "�"
+
+  @doc """
+  Formats the `:msg` key of a log event.
+
+  It also requires its `:meta` key and a truncate value.
+  """
+  def format_message(msg, meta, truncate)
+
+  def format_message({:string, message}, _metadata, truncate) do
+    wrapped_truncate(message, truncate)
+  end
+
+  def format_message({:report, data}, %{report_cb: callback} = meta, truncate)
+      when is_function(callback, 1) do
+    format_message(callback.(data), meta, truncate)
+  end
+
+  def format_message({:report, data}, %{report_cb: callback}, truncate)
+      when is_function(callback, 2) do
+    callback.(data, %{depth: :unlimited, chars_limit: truncate, single_line: false})
+  end
+
+  def format_message({:report, %{} = data}, _meta, truncate) do
+    wrapped_truncate(Kernel.inspect(Map.to_list(data), translator_inspect_opts()), truncate)
+  end
+
+  def format_message({:report, data}, _meta, truncate) do
+    wrapped_truncate(Kernel.inspect(data, translator_inspect_opts()), truncate)
+  end
+
+  def format_message({format, args}, _meta, truncate) do
+    format
+    |> scan_inspect(args, truncate)
+    |> :io_lib.build_text()
+    |> wrapped_truncate(truncate)
+  end
+
+  defp translator_inspect_opts() do
+    Application.fetch_env!(:logger, :translator_inspect_opts)
+  end
+
+  defp wrapped_truncate(data, n) when is_binary(data), do: truncate(data, n)
+
+  defp wrapped_truncate(data, n) when is_list(data) do
+    truncate(data, n)
+  rescue
+    msg in ArgumentError -> Exception.message(msg)
+  end
+
+  @doc """
+  Truncates a `chardata` into `n` bytes.
+
+  There is a chance we truncate in the middle of a grapheme
+  cluster but we never truncate in the middle of a binary
+  code point. For this reason, truncation is not exact.
+  """
+  @spec truncate(IO.chardata(), non_neg_integer) :: IO.chardata()
+  def truncate(chardata, :infinity) when is_binary(chardata) or is_list(chardata) do
+    chardata
+  end
+
+  def truncate(chardata, n) when n >= 0 do
+    {chardata, n} = truncate_n(chardata, n)
+    if n >= 0, do: chardata, else: [chardata, " (truncated)"]
+  end
+
+  defp truncate_n(_, n) when n < 0 do
+    {"", n}
+  end
+
+  defp truncate_n(binary, n) when is_binary(binary) do
+    remaining = n - byte_size(binary)
+
+    if remaining < 0 do
+      # There is a chance we are cutting at the wrong
+      # place so we need to fix the binary.
+      {fix_binary(binary_part(binary, 0, n)), remaining}
+    else
+      {binary, remaining}
+    end
+  end
+
+  defp truncate_n(int, n) when int in 0..127, do: {int, n - 1}
+  defp truncate_n(int, n) when int in 127..0x07FF, do: {int, n - 2}
+  defp truncate_n(int, n) when int in 0x800..0xFFFF, do: {int, n - 3}
+  defp truncate_n(int, n) when int >= 0x10000 and is_integer(int), do: {int, n - 4}
+
+  defp truncate_n(list, n) when is_list(list) do
+    truncate_n_list(list, n, [])
+  end
+
+  defp truncate_n(other, _n) do
+    raise ArgumentError,
+          "cannot truncate chardata because it contains something that is not " <>
+            "valid chardata: #{inspect(other)}"
+  end
+
+  defp truncate_n_list(_, n, acc) when n < 0 do
+    {:lists.reverse(acc), n}
+  end
+
+  defp truncate_n_list([h | t], n, acc) do
+    {h, n} = truncate_n(h, n)
+    truncate_n_list(t, n, [h | acc])
+  end
+
+  defp truncate_n_list([], n, acc) do
+    {:lists.reverse(acc), n}
+  end
+
+  defp truncate_n_list(t, n, acc) do
+    {t, n} = truncate_n(t, n)
+    {:lists.reverse(acc, t), n}
+  end
+
+  defp fix_binary(binary) do
+    # Use a thirteen-bytes offset to look back in the binary.
+    # This should allow at least two code points of 6 bytes.
+    suffix_size = min(byte_size(binary), 13)
+    prefix_size = byte_size(binary) - suffix_size
+    <<prefix::binary-size(prefix_size), suffix::binary-size(suffix_size)>> = binary
+    prefix <> fix_binary(suffix, "")
+  end
+
+  defp fix_binary(<<h::utf8, t::binary>>, acc) do
+    acc <> <<h::utf8>> <> fix_binary(t, "")
+  end
+
+  defp fix_binary(<<h, t::binary>>, acc) do
+    fix_binary(t, <<acc::binary, h>>)
+  end
+
+  defp fix_binary(<<>>, _acc) do
+    <<>>
+  end
+
+  @doc """
+  Receives a format string and arguments, scans them, and then replace `~p`,
+  `~P`, `~w` and `~W` by its inspected variants.
+
+  For information about format scanning and how to consume them,
+  check `:io_lib.scan_format/2`.
+  """
+  def scan_inspect(format, args, truncate, opts \\ %Inspect.Opts{})
+
+  def scan_inspect(format, args, truncate, opts) when is_atom(format) do
+    scan_inspect(Atom.to_charlist(format), args, truncate, opts)
+  end
+
+  def scan_inspect(format, args, truncate, opts) when is_binary(format) do
+    scan_inspect(:binary.bin_to_list(format), args, truncate, opts)
+  end
+
+  def scan_inspect(format, [], _truncate, _opts) when is_list(format) do
+    :io_lib.scan_format(format, [])
+  end
+
+  def scan_inspect(format, args, truncate, opts) when is_list(format) do
+    # A pre-pass that removes binaries from
+    # arguments according to the truncate limit.
+    {args, _} =
+      Enum.map_reduce(args, truncate, fn arg, acc ->
+        if is_binary(arg) and acc != :infinity do
+          truncate_n(arg, acc)
+        else
+          {arg, acc}
+        end
+      end)
+
+    format
+    |> :io_lib.scan_format(args)
+    |> Enum.map(&handle_format_spec(&1, opts))
+  end
+
+  @inspected_format_spec %{
+    adjust: :right,
+    args: [],
+    control_char: ?s,
+    encoding: :unicode,
+    pad_char: ?\s,
+    precision: :none,
+    strings: true,
+    width: :none
+  }
+
+  defp handle_format_spec(%{control_char: char} = spec, opts) when char in ~c"wWpP" do
+    %{args: args, width: width, strings: strings?} = spec
+
+    opts = %{
+      opts
+      | charlists: inspect_charlists(strings?, opts),
+        limit: inspect_limit(char, args, opts),
+        width: inspect_width(char, width)
+    }
+
+    %{@inspected_format_spec | args: [inspect_data(args, opts)]}
+  end
+
+  defp handle_format_spec(spec, _opts), do: spec
+
+  defp inspect_charlists(false, _), do: :as_lists
+  defp inspect_charlists(_, opts), do: opts.charlists
+
+  defp inspect_limit(char, [_, limit], _) when char in ~c"WP", do: limit
+  defp inspect_limit(_, _, opts), do: opts.limit
+
+  defp inspect_width(char, _) when char in ~c"wW", do: :infinity
+  defp inspect_width(_, width), do: width
+
+  defp inspect_data([data | _], opts) do
+    width = if opts.width == :none, do: 80, else: opts.width
+
+    data
+    |> Inspect.Algebra.to_doc(opts)
+    |> Inspect.Algebra.format(width)
+  end
 
   @doc """
   Prunes invalid Unicode code points from lists and invalid UTF-8 bytes.
@@ -113,6 +334,47 @@ defmodule Logger.Formatter do
   defp prune_binary(<<h::utf8, t::binary>>, acc), do: prune_binary(t, <<acc::binary, h::utf8>>)
   defp prune_binary(<<_, t::binary>>, acc), do: prune_binary(t, <<acc::binary, @replacement>>)
   defp prune_binary(<<>>, acc), do: acc
+
+  @doc """
+  Formats time as chardata.
+  """
+  @spec format_time(time_ms) :: IO.chardata()
+  def format_time({hh, mi, ss, ms}) do
+    [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., pad3(ms)]
+  end
+
+  @doc """
+  Formats date as chardata.
+  """
+  @spec format_date(date) :: IO.chardata()
+  def format_date({yy, mm, dd}) do
+    [Integer.to_string(yy), ?-, pad2(mm), ?-, pad2(dd)]
+  end
+
+  defp pad3(int) when int < 10, do: [?0, ?0, Integer.to_string(int)]
+  defp pad3(int) when int < 100, do: [?0, Integer.to_string(int)]
+  defp pad3(int), do: Integer.to_string(int)
+
+  defp pad2(int) when int < 10, do: [?0, Integer.to_string(int)]
+  defp pad2(int), do: Integer.to_string(int)
+
+  @doc """
+  Converts the system time (in microseconds) from metadata into a `date_time_ms` tuple.
+  """
+  @spec system_time_to_date_time_ms(integer(), boolean()) :: date_time_ms()
+  def system_time_to_date_time_ms(system_time, utc_log? \\ false) do
+    micro = rem(system_time, 1_000_000)
+
+    {date, {hours, minutes, seconds}} =
+      case utc_log? do
+        true -> :calendar.system_time_to_universal_time(system_time, :microsecond)
+        false -> :calendar.system_time_to_local_time(system_time, :microsecond)
+      end
+
+    {date, {hours, minutes, seconds, div(micro, 1000)}}
+  end
+
+  ## OLD API.
 
   @doc """
   Compiles a format string into a data structure that `format/5` can handle.
@@ -163,29 +425,6 @@ defmodule Logger.Formatter do
   end
 
   @doc """
-  Formats time as chardata.
-  """
-  @spec format_time({0..23, 0..59, 0..59, 0..999}) :: IO.chardata()
-  def format_time({hh, mi, ss, ms}) do
-    [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., pad3(ms)]
-  end
-
-  @doc """
-  Formats date as chardata.
-  """
-  @spec format_date({1970..10000, 1..12, 1..31}) :: IO.chardata()
-  def format_date({yy, mm, dd}) do
-    [Integer.to_string(yy), ?-, pad2(mm), ?-, pad2(dd)]
-  end
-
-  defp pad3(int) when int < 10, do: [?0, ?0, Integer.to_string(int)]
-  defp pad3(int) when int < 100, do: [?0, Integer.to_string(int)]
-  defp pad3(int), do: Integer.to_string(int)
-
-  defp pad2(int) when int < 10, do: [?0, Integer.to_string(int)]
-  defp pad2(int), do: Integer.to_string(int)
-
-  @doc """
   Takes a compiled format and injects the level, timestamp, message, and
   metadata keyword list and returns a properly formatted string.
 
@@ -203,7 +442,13 @@ defmodule Logger.Formatter do
       "[info] hello"
 
   """
-  @spec format(mod_and_fun | [pattern | binary], Logger.level(), Logger.message(), time, keyword) ::
+  @spec format(
+          mod_and_fun | [pattern | binary],
+          Logger.level(),
+          Logger.message(),
+          date_time_ms(),
+          keyword
+        ) ::
           IO.chardata()
         when mod_and_fun: {atom, atom}
   def format(pattern_or_function, level, message, timestamp, metadata)

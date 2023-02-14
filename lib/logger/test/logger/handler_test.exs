@@ -147,26 +147,11 @@ defmodule Logger.HandlerTest do
 
   test "calls report_cb/2 when supplied" do
     report = %{foo: "bar"}
-
     assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/2}) end) =~
              ~S([error] %{foo: "bar"})
 
     assert_received {:format, ^report, opts} when is_map(opts)
-    assert %{chars_limit: _} = opts
-    assert %{depth: _} = opts
-    assert %{single_line: false} = opts
-
-    Application.put_env(:logger, :translator_inspect_opts, limit: 10, printable_limit: 1000)
-
-    assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/2}) end) =~
-             ~S([error] %{foo: "bar"})
-
-    assert_received {:format, ^report, opts} when is_map(opts)
-    assert %{chars_limit: 1000} = opts
-    assert %{depth: 10} = opts
-    assert %{single_line: false} = opts
-  after
-    Application.put_env(:logger, :translator_inspect_opts, [])
+    assert %{chars_limit: 8096, depth: :unlimited, single_line: false} = opts
   end
 
   test "calls report_cb/2 when passed %{label: term(), report: term()}" do

@@ -57,25 +57,19 @@ defmodule Logger.Handler do
         :ok
 
       mode ->
-        level = erlang_level_to_elixir_level(erl_level)
-        message = format_message(msg, metadata, config)
-
         %{gl: gl} = metadata
-        timestamp = Map.get_lazy(metadata, :time, fn -> :os.system_time(:microsecond) end)
-        metadata = [erl_level: erl_level] ++ erlang_metadata_to_elixir_metadata(metadata)
         %{truncate: truncate, utc_log: utc_log?} = config
-
-        event = {
-          level,
-          gl,
-          {Logger, truncate(message, truncate), Logger.Utils.timestamp(timestamp, utc_log?),
-           metadata}
-        }
-
+        level = erlang_level_to_elixir_level(erl_level)
+        message = Logger.Formatter.format_message(msg, metadata, truncate)
+        timestamp = Map.get_lazy(metadata, :time, fn -> :os.system_time(:microsecond) end)
+        date_time_ms = Logger.Formatter.system_time_to_date_time_ms(timestamp, utc_log?)
+        metadata = [erl_level: erl_level] ++ erlang_metadata_to_elixir_metadata(metadata)
+        event = {level, gl, {Logger, message, date_time_ms, metadata}}
         notify(mode, event)
     end
   rescue
     ArgumentError -> {:error, :noproc}
+    e -> IO.inspect e
   catch
     :exit, reason -> {:error, reason}
   end
@@ -91,16 +85,6 @@ defmodule Logger.Handler do
   defp notify(:async, msg) do
     :gen_event.notify(Logger, msg)
   end
-
-  defp truncate(data, n) when is_list(data) do
-    Logger.Utils.truncate(data, n)
-  rescue
-    msg in ArgumentError ->
-      Exception.message(msg)
-  end
-
-  defp truncate(data, n) when is_binary(data), do: Logger.Utils.truncate(data, n)
-  defp truncate(data, n), do: Logger.Utils.truncate(to_string(data), n)
 
   @counter_pos 1
 
@@ -118,48 +102,6 @@ defmodule Logger.Handler do
       value >= sync -> :sync
       true -> :async
     end
-  end
-
-  ## Message formatting
-
-  defp format_message({:string, message}, _metadata, _config) do
-    message
-  end
-
-  defp format_message({:report, data}, %{report_cb: callback} = meta, config)
-       when is_function(callback, 1) do
-    format_message(callback.(data), meta, config)
-  end
-
-  defp format_message({:report, data}, %{report_cb: callback}, _config)
-       when is_function(callback, 2) do
-    translator_opts = Inspect.Opts.new(translator_inspect_opts())
-
-    opts = %{
-      depth: translator_opts.limit,
-      chars_limit: translator_opts.printable_limit,
-      single_line: false
-    }
-
-    callback.(data, opts)
-  end
-
-  defp format_message({:report, %{} = data}, _meta, _config) do
-    Kernel.inspect(Map.to_list(data), translator_inspect_opts())
-  end
-
-  defp format_message({:report, data}, _meta, _config) do
-    Kernel.inspect(data, translator_inspect_opts())
-  end
-
-  defp format_message({format, args}, _meta, %{truncate: truncate}) do
-    format
-    |> Logger.Utils.scan_inspect(args, truncate)
-    |> :io_lib.build_text()
-  end
-
-  defp translator_inspect_opts() do
-    Application.fetch_env!(:logger, :translator_inspect_opts)
   end
 
   ## Metadata helpers
