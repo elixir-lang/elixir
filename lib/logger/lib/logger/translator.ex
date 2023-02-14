@@ -182,6 +182,20 @@ defmodule Logger.Translator do
     {:ok, ["Application ", Atom.to_string(app), " started at " | inspect(node)]}
   end
 
+  def translate(_min_level, :debug, :report, {:logger, [formatter_error: formatter] ++ data}) do
+    case data[:caught] do
+      {:throw, {:error, good, bad}, stacktrace} ->
+        message =
+          "bad return value from Logger formatter #{inspect(formatter)}, " <>
+            "got #{inspect(bad)} after #{inspect(good)}"
+
+        {:ok, Exception.format(:error, RuntimeError.exception(message), stacktrace)}
+
+      _ ->
+        :none
+    end
+  end
+
   ## Helpers
 
   def translate(_min_level, _level, _kind, _message) do

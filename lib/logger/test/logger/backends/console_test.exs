@@ -64,7 +64,11 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "configures metadata" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$metadata$message", metadata: [:user_id])
+    Logger.configure_backend(Logger.Backends.Console,
+      format: "$metadata$message",
+      metadata: [:user_id]
+    )
+
     assert capture_log(fn -> Logger.debug("hello") end) =~ "hello"
 
     Logger.metadata(user_id: 11)
@@ -73,21 +77,31 @@ defmodule Logger.Backends.ConsoleTest do
   end
 
   test "logs initial_call as metadata" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$metadata$message", metadata: [:initial_call])
+    Logger.configure_backend(Logger.Backends.Console,
+      format: "$metadata$message",
+      metadata: [:initial_call]
+    )
 
     assert capture_log(fn -> Logger.debug("hello", initial_call: {Foo, :bar, 3}) end) =~
              "initial_call=Foo.bar/3 hello"
   end
 
   test "logs domain as metadata" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$metadata$message", metadata: [:domain])
+    Logger.configure_backend(Logger.Backends.Console,
+      format: "$metadata$message",
+      metadata: [:domain]
+    )
 
     assert capture_log(fn -> Logger.debug("hello", domain: [:foobar]) end) =~
              "domain=elixir.foobar hello"
   end
 
   test "logs mfa as metadata" do
-    Logger.configure_backend(Logger.Backends.Console, format: "$metadata$message", metadata: [:mfa])
+    Logger.configure_backend(Logger.Backends.Console,
+      format: "$metadata$message",
+      metadata: [:mfa]
+    )
+
     {function, arity} = __ENV__.function
     mfa = Exception.format_mfa(__MODULE__, function, arity)
 

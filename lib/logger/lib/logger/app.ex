@@ -125,7 +125,7 @@ defmodule Logger.App do
     new_config =
       default
       |> Keyword.put_new_lazy(:formatter, &Logger.Formatter.new/0)
-      |> Keyword.put_new(:filters, [remote_gl: {&:logger_filters.remote_gl/2, :stop}])
+      |> Keyword.put_new(:filters, remote_gl: {&:logger_filters.remote_gl/2, :stop})
       |> Keyword.put_new(:filter_default, :log)
       |> Map.new()
 

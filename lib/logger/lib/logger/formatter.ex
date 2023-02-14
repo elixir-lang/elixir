@@ -212,7 +212,7 @@ defmodule Logger.Formatter do
 
   def format_message({:report, data}, %{report_cb: callback} = meta, truncate) do
     cond do
-      is_function(callback, 1) and callback != &:logger.format_otp_report/1 ->
+      is_function(callback, 1) and callback != (&:logger.format_otp_report/1) ->
         format_message(callback.(data), meta, truncate)
 
       is_function(callback, 2) ->

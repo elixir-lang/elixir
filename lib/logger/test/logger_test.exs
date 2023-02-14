@@ -2,9 +2,12 @@ defmodule LoggerTest do
   use Logger.Case
   require Logger
 
-  setup_all do
-    Logger.configure_backend(:console, metadata: [:application, :module])
-    on_exit(fn -> Logger.configure_backend(:console, metadata: []) end)
+  @moduletag formatter: [metadata: [:application, :module]]
+
+  setup tags do
+    {:ok, config} = :logger.get_handler_config(:default)
+    :logger.update_handler_config(:default, %{formatter: Logger.Formatter.new(tags.formatter)})
+    on_exit(fn -> :logger.set_handler_config(:default, config) end)
   end
 
   defp msg_with_meta(text) do
@@ -202,7 +205,8 @@ defmodule LoggerTest do
     assert Logger.metadata(mfa: {Sample, :foo, 1}) == :ok
 
     assert capture_log(fn ->
-             assert Logger.bare_log(:info, "ok", application: nil, mfa: {CustomTest, :bar, 2}) == :ok
+             assert Logger.bare_log(:info, "ok", application: nil, mfa: {CustomTest, :bar, 2}) ==
+                      :ok
            end) =~ msg("module=CustomTest [info] ok")
   end
 
@@ -505,17 +509,20 @@ defmodule LoggerTest do
     Logger.configure(compile_time_application: nil)
   end
 
+  @tag formatter: [truncate: 4]
   test "log/2 truncates messages" do
-    Logger.configure_backend(:console, truncate: 4)
     assert capture_log(fn -> Logger.log(:debug, "hello") end) =~ "hell (truncated)"
-  after
-    Logger.configure_backend(:console, truncate: 8096)
   end
 
-  test "log/2 prunes bad Unicode chars" do
-    assert capture_log(fn ->
-             assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
-           end) =~ "he�lo"
+  test "log/2 handles bad Unicode chars" do
+    output =
+      capture_log(fn ->
+        assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
+        Process.sleep(100)
+      end)
+
+    assert output =~ "FORMATTER ERROR: bad return value"
+    assert output =~ "** (RuntimeError) bad return value from Logger formatter Logger.Formatter"
   end
 
   test "stops the application silently" do
@@ -568,6 +575,41 @@ defmodule LoggerTest do
     Logger.configure(utc_log: false)
     Logger.configure(discard_threshold: 500)
     Logger.configure(translator_inspect_opts: [])
+  end
+
+  describe "colors" do
+    @tag formatter: [format: "$message", colors: [enabled: true]]
+    test "default" do
+      assert capture_log(fn -> Logger.debug("hello") end) ==
+               IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.info("hello") end) ==
+               IO.ANSI.normal() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.warning("hello") end) ==
+               IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.error("hello") end) ==
+               IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
+    end
+
+    @tag formatter: [
+           format: "$message",
+           colors: [enabled: true, debug: :magenta, info: :cyan, warning: :magenta, error: :cyan]
+         ]
+    test "custom" do
+      assert capture_log(fn -> Logger.debug("hello") end) ==
+               IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.info("hello") end) ==
+               IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.warning("hello") end) ==
+               IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.error("hello") end) ==
+               IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+    end
   end
 
   describe "OTP integration" do

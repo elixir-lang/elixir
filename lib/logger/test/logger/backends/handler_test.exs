@@ -89,7 +89,9 @@ defmodule Logger.Backends.HandlerTest do
   end
 
   test "converts Erlang metadata" do
-    Logger.configure_backend(Logger.Backends.Console, metadata: [:file, :line, :module, :function])
+    Logger.configure_backend(Logger.Backends.Console,
+      metadata: [:file, :line, :module, :function]
+    )
 
     message =
       capture_log(fn ->
