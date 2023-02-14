@@ -43,15 +43,32 @@ defmodule Access do
       iex> put_in(users["john"][:age], 28)
       %{"john" => %{age: 28}, "meg" => %{age: 23}}
 
-  > Attention! While the access syntax is allowed in maps via
-  > `map[key]`, if your map is made of predefined atom keys,
-  > you should prefer to access those atom keys with `map.key`
-  > instead of `map[key]`, as `map.key` will raise if the key
-  > is missing (which is not supposed to happen if the keys are
-  > predefined). Similarly, since structs are maps and structs
-  > have predefined keys, they only allow the `struct.key`
-  > syntax and they do not allow the `struct[key]` access syntax.
-  > See the `Map` module for more information.
+  ## Maps and structs
+
+  While the access syntax is allowed in maps via `map[key]`,
+  if your map is made of predefined atom keys, you should prefer
+  to access those atom keys with `map.key` instead of `map[key]`,
+  as `map.key` will raise if the key is missing (which is not
+  supposed to happen if the keys are predefined).
+
+  Similarly, since structs are maps and structs have predefined
+  keys, they only allow the `struct.key` syntax and they do not
+  allow the `struct[key]` access syntax. `Access.key/1` can also
+  be used to construct dynamic access to structs and maps.
+
+  In a nutshell, when using `put_in/2` and friends:
+
+      put_in(struct_or_map.key, :value)
+      put_in(keyword_or_map[:key], :value)
+
+  When using `put_in/3` and friends:
+
+      put_in(struct_or_map, [Access.key(:key)], :value)
+      put_in(keyword_or_map, [:key], :value)
+
+  This covers the dual nature of maps in Elixir, as they can be
+  either for structured data or as a key-value store. See the `Map`
+  module for more information.
 
   ## Nested data structures
 
