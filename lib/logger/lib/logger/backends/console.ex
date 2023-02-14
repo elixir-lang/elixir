@@ -46,10 +46,10 @@ defmodule Logger.Backends.Console do
 
   See the `IO.ANSI` module for a list of colors and attributes.
 
-  Here is an example of how to configure the `:console` backend in a
+  Here is an example of how to configure this backend in a
   `config/config.exs` file:
 
-      config :logger, :console,
+      config :logger, Logger.Backends.Console,
         format: "\n$time $metadata[$level] $message\n",
         metadata: [:user_id]
 
@@ -69,8 +69,8 @@ defmodule Logger.Backends.Console do
             ref: nil
 
   @impl true
-  def init(:console) do
-    config = Application.get_env(:logger, :console)
+  def init(atom) when is_atom(atom) do
+    config = read_env()
     device = Keyword.get(config, :device, :user)
 
     if Process.whereis(device) do
@@ -81,7 +81,7 @@ defmodule Logger.Backends.Console do
   end
 
   def init({__MODULE__, opts}) when is_list(opts) do
-    config = configure_merge(Application.get_env(:logger, :console), opts)
+    config = configure_merge(read_env(), opts)
     {:ok, init(config, %__MODULE__{})}
   end
 
@@ -152,8 +152,8 @@ defmodule Logger.Backends.Console do
   end
 
   defp configure(options, state) do
-    config = configure_merge(Application.get_env(:logger, :console), options)
-    Application.put_env(:logger, :console, config)
+    config = configure_merge(read_env(), options)
+    Application.put_env(:logger, __MODULE__, config)
     init(config, state)
   end
 
@@ -337,5 +337,9 @@ defmodule Logger.Backends.Console do
     state
     |> await_io()
     |> flush()
+  end
+
+  defp read_env do
+    Application.get_env(:logger, __MODULE__, Application.get_env(:logger, :console, []))
   end
 end

@@ -80,6 +80,7 @@ defmodule Logger.Filter do
         },
         _extra
       ) do
+    :logger.remove_primary_filter(:silence_logger_exit)
     :stop
   end
 

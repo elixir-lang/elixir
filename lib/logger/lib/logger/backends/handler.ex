@@ -2,18 +2,9 @@ defmodule Logger.Backends.Handler do
   @moduledoc false
   @internal_keys [:counter]
 
-  ## Conversions
-
-  defp erlang_level_to_elixir_level(:none), do: :error
-  defp erlang_level_to_elixir_level(:emergency), do: :error
-  defp erlang_level_to_elixir_level(:alert), do: :error
-  defp erlang_level_to_elixir_level(:critical), do: :error
-  defp erlang_level_to_elixir_level(:error), do: :error
-  defp erlang_level_to_elixir_level(:warning), do: :warn
-  defp erlang_level_to_elixir_level(:notice), do: :info
-  defp erlang_level_to_elixir_level(:info), do: :info
-  defp erlang_level_to_elixir_level(:debug), do: :debug
-  defp erlang_level_to_elixir_level(:all), do: :debug
+  def filesync(id) do
+    :gen_event.sync_notify(id, :flush)
+  end
 
   ## Config management
 
@@ -96,11 +87,6 @@ defmodule Logger.Backends.Handler do
 
   ## Metadata helpers
 
-  # TODO: We should only do this for legacy handlers.
-  # The new handlers should accept all metadata as is
-  # and receive the system time unit rather than tuples.
-  # The new handlers should also receive structured
-  # logging events as is.
   defp erlang_metadata_to_elixir_metadata(metadata) do
     metadata =
       case metadata do
@@ -125,4 +111,15 @@ defmodule Logger.Backends.Handler do
   defp form_fa(fun, arity) do
     Atom.to_string(fun) <> "/" <> Integer.to_string(arity)
   end
+
+  defp erlang_level_to_elixir_level(:none), do: :error
+  defp erlang_level_to_elixir_level(:emergency), do: :error
+  defp erlang_level_to_elixir_level(:alert), do: :error
+  defp erlang_level_to_elixir_level(:critical), do: :error
+  defp erlang_level_to_elixir_level(:error), do: :error
+  defp erlang_level_to_elixir_level(:warning), do: :warn
+  defp erlang_level_to_elixir_level(:notice), do: :info
+  defp erlang_level_to_elixir_level(:info), do: :info
+  defp erlang_level_to_elixir_level(:debug), do: :debug
+  defp erlang_level_to_elixir_level(:all), do: :debug
 end

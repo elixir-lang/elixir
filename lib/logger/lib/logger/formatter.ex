@@ -110,21 +110,22 @@ defmodule Logger.Formatter do
 
   TODO options
   """
-  def init(options \\ []) do
+  def new(options \\ []) do
     # TODO: deprecate passing a two-element tuple
     template = compile(options[:format])
     colors = colors(options[:colors] || [])
     truncate = options[:truncate] || Application.fetch_env!(:logger, :truncate)
-    metadata = options[:metadata] || :all
+    metadata = options[:metadata] || []
     utc_log? = Keyword.get(options, :utc_log, Application.fetch_env!(:logger, :utc_log))
 
-    %__MODULE__{
-      template: template,
-      truncate: truncate,
-      metadata: metadata,
-      colors: colors,
-      utc_log?: utc_log?
-    }
+    {__MODULE__,
+     %__MODULE__{
+       template: template,
+       truncate: truncate,
+       metadata: metadata,
+       colors: colors,
+       utc_log?: utc_log?
+     }}
   end
 
   defp colors(colors) do
@@ -166,7 +167,7 @@ defmodule Logger.Formatter do
     meta_list =
       case metadata_keys do
         :all -> Map.to_list(meta)
-        keys -> for key <- keys, value = meta[key], do: {key, value}
+        keys -> for key <- keys, value = compute_meta(key, meta), do: {key, value}
       end
 
     msg = format_message(msg, meta, truncate)
@@ -184,6 +185,12 @@ defmodule Logger.Formatter do
     raise "invalid configuration for Logger.Formatter. " <>
             "Use Logger.Formatter.init/1 to define a formatter"
   end
+
+  defp compute_meta(:module, %{mfa: {mod, _, _}}), do: mod
+  defp compute_meta(:function, %{mfa: {_, fun, arity}}), do: format_fa(fun, arity)
+  defp compute_meta(key, meta), do: meta[key]
+
+  defp format_fa(fun, arity), do: [Atom.to_string(fun), "/", Integer.to_string(arity)]
 
   defp color_event(data, _level, %{enabled: false}, _md), do: data
 
@@ -203,22 +210,21 @@ defmodule Logger.Formatter do
     wrapped_truncate(message, truncate)
   end
 
-  def format_message({:report, data}, %{report_cb: callback} = meta, truncate)
-      when is_function(callback, 1) do
-    format_message(callback.(data), meta, truncate)
-  end
+  def format_message({:report, data}, %{report_cb: callback} = meta, truncate) do
+    cond do
+      is_function(callback, 1) and callback != &:logger.format_otp_report/1 ->
+        format_message(callback.(data), meta, truncate)
 
-  def format_message({:report, data}, %{report_cb: callback}, truncate)
-      when is_function(callback, 2) do
-    callback.(data, %{depth: :unlimited, chars_limit: truncate, single_line: false})
-  end
+      is_function(callback, 2) ->
+        callback.(data, %{depth: :unlimited, chars_limit: truncate, single_line: false})
 
-  def format_message({:report, %{} = data}, _meta, truncate) do
-    wrapped_truncate(Kernel.inspect(Map.to_list(data), translator_inspect_opts()), truncate)
+      true ->
+        format_report(data, truncate)
+    end
   end
 
   def format_message({:report, data}, _meta, truncate) do
-    wrapped_truncate(Kernel.inspect(data, translator_inspect_opts()), truncate)
+    format_report(data, truncate)
   end
 
   def format_message({format, args}, _meta, truncate) do
@@ -226,6 +232,14 @@ defmodule Logger.Formatter do
     |> scan_inspect(args, truncate)
     |> :io_lib.build_text()
     |> wrapped_truncate(truncate)
+  end
+
+  defp format_report(%{} = data, truncate) do
+    wrapped_truncate(Kernel.inspect(Map.to_list(data), translator_inspect_opts()), truncate)
+  end
+
+  defp format_report(data, truncate) do
+    wrapped_truncate(Kernel.inspect(data, translator_inspect_opts()), truncate)
   end
 
   defp translator_inspect_opts() do

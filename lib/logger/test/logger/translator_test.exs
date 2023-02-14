@@ -69,13 +69,7 @@ defmodule Logger.TranslatorTest do
   end
 
   setup_all do
-    backends = Application.get_env(:logger, :backends)
     sasl_reports? = Application.get_env(:logger, :handle_sasl_reports, false)
-
-    # Configure backend specific for tests to assert on metadata
-    # We could rely exclusively on this backend and skip the console one
-    # but using capture_log+console is desired as an integration test
-    Application.put_env(:logger, :backends, [Logger.TestBackend | backends])
     Application.put_env(:logger, :handle_sasl_reports, true)
 
     # Shutdown the application
@@ -88,7 +82,6 @@ defmodule Logger.TranslatorTest do
     Logger.configure(level: :debug)
 
     on_exit(fn ->
-      Application.put_env(:logger, :backends, backends)
       Application.put_env(:logger, :handle_sasl_reports, sasl_reports?)
       Logger.App.stop()
       Application.start(:logger)
@@ -96,7 +89,13 @@ defmodule Logger.TranslatorTest do
   end
 
   setup do
-    Logger.configure_backend(Logger.TestBackend, callback_pid: self())
+    fun = fn event, parent ->
+      send(parent, {:event, event.msg, event.meta})
+      :ignore
+    end
+
+    :logger.add_handler_filter(:default, :forwarder, {fun, self()})
+    on_exit(fn -> :logger.remove_handler_filter(:default, :forwarder) end)
   end
 
   test "translates GenServer crashes" do
@@ -109,25 +108,25 @@ defmodule Logger.TranslatorTest do
            ** (RuntimeError) oops
            """
 
-    assert_receive {:error, _pid, {Logger, ["GenServer " <> _ | _], _ts, gen_server_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["GenServer " <> _ | _]}, gen_server_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
 
     assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_server_metadata[:crash_reason]
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
 
-    refute Keyword.has_key?(gen_server_metadata, :initial_call)
+    refute Map.has_key?(gen_server_metadata, :initial_call)
     assert process_metadata[:initial_call] == {Logger.TranslatorTest.MyGenServer, :init, 1}
 
-    refute Keyword.has_key?(gen_server_metadata, :registered_name)
-    refute Keyword.has_key?(process_metadata, :registered_name)
+    refute Map.has_key?(gen_server_metadata, :registered_name)
+    refute Map.has_key?(process_metadata, :registered_name)
   end
 
   test "translates GenServer crashes with local name", config do
     {:ok, pid} = GenServer.start(MyGenServer, :ok, name: config.test)
     capture_log(:info, fn -> catch_exit(GenServer.call(pid, :error)) end)
 
-    assert_receive {:error, _pid, {Logger, ["GenServer " <> _ | _], _ts, gen_server_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["GenServer " <> _ | _]}, gen_server_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
 
     assert gen_server_metadata[:registered_name] == config.test
     assert process_metadata[:registered_name] == config.test
@@ -137,11 +136,11 @@ defmodule Logger.TranslatorTest do
     {:ok, pid} = GenServer.start(MyGenServer, :ok, name: {:global, config.test})
     capture_log(:info, fn -> catch_exit(GenServer.call(pid, :error)) end)
 
-    assert_receive {:error, _pid, {Logger, ["GenServer " <> _ | _], _ts, gen_server_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["GenServer " <> _ | _]}, gen_server_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
 
     assert gen_server_metadata[:registered_name] == config.test
-    refute Keyword.has_key?(process_metadata, :registered_name)
+    refute Map.has_key?(process_metadata, :registered_name)
   end
 
   test "translates GenServer crashes with custom inspect options" do
@@ -172,13 +171,10 @@ defmodule Logger.TranslatorTest do
            .*
            """s
 
-    assert_receive {:error, _pid,
-                    {Logger, [["GenServer " <> _ | _] | _], _ts, gen_server_metadata}}
-
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, [["GenServer " <> _ | _] | _]}, gen_server_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
 
     assert {%RuntimeError{message: "oops"}, [_ | _]} = gen_server_metadata[:crash_reason]
-
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -245,10 +241,8 @@ defmodule Logger.TranslatorTest do
              assert_receive {:DOWN, ^mon, _, _, _}
            end) =~ "Client"
 
-    assert_receive {:error, _pid,
-                    {Logger, [["GenServer " <> _ | _] | _], _ts, _gen_server_metadata}}
-
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, _process_metadata}}
+    assert_receive {:event, {:string, [["GenServer " <> _ | _] | _]}, _gen_server_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, _process_metadata}
   end
 
   test "translates :gen_event crashes" do
@@ -263,10 +257,10 @@ defmodule Logger.TranslatorTest do
            ** (RuntimeError) oops
            """
 
-    assert_receive {:error, _pid, {Logger, [":gen_event handler " <> _ | _], _ts, metadata}}
+    assert_receive {:event, {:string, [":gen_event handler " <> _ | _]}, metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
-    refute Keyword.has_key?(metadata, :initial_call)
-    refute Keyword.has_key?(metadata, :registered_name)
+    refute Map.has_key?(metadata, :initial_call)
+    refute Map.has_key?(metadata, :registered_name)
   end
 
   test "translates :gen_event crashes with name", config do
@@ -281,7 +275,7 @@ defmodule Logger.TranslatorTest do
            ** (RuntimeError) oops
            """
 
-    assert_receive {:error, _pid, {Logger, [":gen_event handler " <> _ | _], _ts, metadata}}
+    assert_receive {:event, {:string, [":gen_event handler " <> _ | _]}, metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
     assert metadata[:registered_name] == config.test
   end
@@ -300,7 +294,7 @@ defmodule Logger.TranslatorTest do
            State: :ok
            """s
 
-    assert_receive {:error, _pid, {Logger, [[":gen_event handler " <> _ | _] | _], _ts, metadata}}
+    assert_receive {:event, {:string, [[":gen_event handler " <> _ | _] | _]}, metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = metadata[:crash_reason]
   end
 
@@ -320,14 +314,14 @@ defmodule Logger.TranslatorTest do
                Args: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
 
     assert {%RuntimeError{message: "oops"}, [_ | _]} = task_metadata[:crash_reason]
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
     assert [parent] == task_metadata[:callers]
 
-    refute Keyword.has_key?(task_metadata, :initial_call)
+    refute Map.has_key?(task_metadata, :initial_call)
     assert process_metadata[:initial_call] == {Logger.TranslatorTest, :task, 1}
   end
 
@@ -346,8 +340,8 @@ defmodule Logger.TranslatorTest do
                    Initial Call: Logger\.TranslatorTest\.task/2
            """
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert [pid, parent] == task_metadata[:callers]
 
     assert {:oops, [_ | _]} = task_metadata[:crash_reason]
@@ -369,8 +363,8 @@ defmodule Logger.TranslatorTest do
                Args: \[\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert [parent] == task_metadata[:callers]
 
     assert {%UndefinedFunctionError{function: :undef}, [_ | _]} = task_metadata[:crash_reason]
@@ -392,8 +386,8 @@ defmodule Logger.TranslatorTest do
                Args: \[\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert [parent] == task_metadata[:callers]
 
     assert {%UndefinedFunctionError{function: :undef}, [_ | _]} = task_metadata[:crash_reason]
@@ -423,8 +417,8 @@ defmodule Logger.TranslatorTest do
                Args: \[%ErlangError{.*}\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert [parent] == task_metadata[:callers]
 
     assert {%ErlangError{original: :foo}, [_ | _]} = task_metadata[:crash_reason]
@@ -446,8 +440,8 @@ defmodule Logger.TranslatorTest do
                Args: \[:badarg\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert [parent] == task_metadata[:callers]
 
     assert {%ArgumentError{message: "argument error"}, [_ | _]} = task_metadata[:crash_reason]
@@ -469,8 +463,8 @@ defmodule Logger.TranslatorTest do
                Args: \[:abnormal\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert [parent] == task_metadata[:callers]
 
     assert {:abnormal, [_ | _]} = task_metadata[:crash_reason]
@@ -507,7 +501,7 @@ defmodule Logger.TranslatorTest do
            \*\* \(RuntimeError\) oops
            """
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -531,7 +525,7 @@ defmodule Logger.TranslatorTest do
            Ancestors: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
 
     assert is_pid(process_metadata[:pid])
     assert is_list(process_metadata[:ancestors])
@@ -575,7 +569,7 @@ defmodule Logger.TranslatorTest do
            Ancestors: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -599,7 +593,7 @@ defmodule Logger.TranslatorTest do
            Ancestors: \[#PID<\d+\.\d+\.\d+>\]
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -666,8 +660,8 @@ defmodule Logger.TranslatorTest do
            Reductions: \d+
            """
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
 
     assert process_metadata[:pid] == task_metadata[:pid]
     assert is_list(process_metadata[:callers])
@@ -700,7 +694,7 @@ defmodule Logger.TranslatorTest do
                        (lib/logger/)?test/logger/translator_test.exs:\d+: Logger.TranslatorTest.sleep/1
            """
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
     assert [parent] == task_metadata[:callers]
   end
 
@@ -800,7 +794,7 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.undef\(\)
            """s
 
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
   end
 
   test "translates Supervisor reports terminated" do
@@ -817,10 +811,10 @@ defmodule Logger.TranslatorTest do
            Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
            """
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child ", "Task" | _], _ts, _child_task_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:string, ["Child ", "Task" | _]}, _child_task_metadata}
 
     assert {:stop, [_ | _]} = task_metadata[:crash_reason]
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
@@ -839,10 +833,10 @@ defmodule Logger.TranslatorTest do
            Start Call: Task.start_link\(Kernel, :exit, \[:stop\]\)
            """
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child ", "Task" | _], _ts, _child_task_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
+    assert_receive {:event, {:string, ["Child ", "Task" | _]}, _child_task_metadata}
 
     assert {:stop, [_ | _]} = task_metadata[:crash_reason]
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
@@ -860,8 +854,8 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(\)
            """
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -882,8 +876,8 @@ defmodule Logger.TranslatorTest do
            Type: :worker
            """
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -903,8 +897,8 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(\)
            """
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -927,8 +921,8 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(:extra, :args\)
            """
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -948,8 +942,8 @@ defmodule Logger.TranslatorTest do
            Start Call: Logger.TranslatorTest.abnormal\(\)
            """
 
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
   end
 
@@ -979,9 +973,9 @@ defmodule Logger.TranslatorTest do
            Start Module: Logger.TranslatorTest.MyBridge
            """
 
-    assert_receive {:error, _pid, {Logger, ["Task " <> _ | _], _ts, task_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child of Supervisor " | _], _ts, _child_metadata}}
+    assert_receive {:event, {:string, ["Task " <> _ | _]}, task_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child of Supervisor " | _]}, _child_metadata}
 
     assert {:stop, [_ | _]} = task_metadata[:crash_reason]
     assert {:stop, [_ | _]} = process_metadata[:crash_reason]
@@ -997,7 +991,7 @@ defmodule Logger.TranslatorTest do
                 [self(), :"name@127.0.0.1", {:badarith, [{:erlang, :/, [1, 0], []}]}]}
              )
 
-    assert Keyword.get(meta, :crash_reason)
+    assert meta[:crash_reason]
   end
 
   test "reports :undefined MFA properly" do
@@ -1021,9 +1015,9 @@ defmodule Logger.TranslatorTest do
       end)
 
     assert log =~ ~s(Start Call: Logger.TranslatorTest.WeirdFunctionNamesGenServer."start link"/?)
-    assert_receive {:error, _pid, {Logger, ["GenServer " <> _ | _], _ts, server_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Process " | _], _ts, process_metadata}}
-    assert_receive {:error, _pid, {Logger, ["Child " | _], _ts, _child_metadata}}
+    assert_receive {:event, {:string, ["GenServer " <> _ | _]}, server_metadata}
+    assert_receive {:event, {:string, ["Process " | _]}, process_metadata}
+    assert_receive {:event, {:string, ["Child " | _]}, _child_metadata}
 
     assert {%RuntimeError{message: "oops"}, [_ | _]} = server_metadata[:crash_reason]
     assert {%RuntimeError{message: "oops"}, [_ | _]} = process_metadata[:crash_reason]

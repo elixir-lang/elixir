@@ -28,6 +28,20 @@ defmodule Logger.Backends.HandlerTest do
     end
   end
 
+  setup_all do
+    Application.put_env(:logger, :default, false)
+    Application.put_env(:logger, :backends, [Logger.Backends.Console])
+    Logger.App.stop()
+    Application.start(:logger)
+
+    on_exit(fn ->
+      Application.delete_env(:logger, :default)
+      Application.delete_env(:logger, :backends)
+      Logger.App.stop()
+      Application.start(:logger)
+    end)
+  end
+
   test "add_translator/1 and remove_translator/1 for error_logger" do
     assert Logger.add_translator({CustomTranslator, :t})
 
@@ -75,7 +89,7 @@ defmodule Logger.Backends.HandlerTest do
   end
 
   test "converts Erlang metadata" do
-    Logger.configure_backend(:console, metadata: [:file, :line, :module, :function])
+    Logger.configure_backend(Logger.Backends.Console, metadata: [:file, :line, :module, :function])
 
     message =
       capture_log(fn ->
@@ -87,7 +101,7 @@ defmodule Logger.Backends.HandlerTest do
     assert message =~ "file=file.erl"
     assert message =~ "line=13"
   after
-    Logger.configure_backend(:console, metadata: [])
+    Logger.configure_backend(Logger.Backends.Console, metadata: [])
   end
 
   test "uses reporting callback with Elixir inspection" do
@@ -109,7 +123,7 @@ defmodule Logger.Backends.HandlerTest do
   end
 
   test "include Erlang severity level information" do
-    Logger.configure_backend(:console, metadata: [:erl_level])
+    Logger.configure_backend(Logger.Backends.Console, metadata: [:erl_level])
 
     assert capture_log(fn -> :logger.emergency(~c"ok") end) =~ "erl_level=emergency"
     assert capture_log(fn -> :logger.alert(~c"ok") end) =~ "erl_level=alert"
@@ -124,16 +138,7 @@ defmodule Logger.Backends.HandlerTest do
       assert capture_log(fn -> :logger.log(level, ~c"ok") end) =~ "erl_level=#{level}"
     end)
   after
-    Logger.configure_backend(:console, metadata: [])
-  end
-
-  test "calls report_cb/1 when supplied" do
-    report = %{foo: "bar"}
-
-    assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/1}) end) =~
-             ~S([error] %{foo: "bar"})
-
-    assert_received {:format, ^report}
+    Logger.configure_backend(Logger.Backends.Console, metadata: [])
   end
 
   test "respects translator_inspect_opts for reports" do
@@ -143,6 +148,15 @@ defmodule Logger.Backends.HandlerTest do
              ~S([error] [foo: "b" <> ...])
   after
     Application.put_env(:logger, :translator_inspect_opts, [])
+  end
+
+  test "calls report_cb/1 when supplied" do
+    report = %{foo: "bar"}
+
+    assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/1}) end) =~
+             ~S([error] %{foo: "bar"})
+
+    assert_received {:format, ^report}
   end
 
   test "calls report_cb/2 when supplied" do

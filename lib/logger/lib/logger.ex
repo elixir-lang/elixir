@@ -636,14 +636,21 @@ defmodule Logger do
   @doc """
   Flushes the logger.
 
-  This guarantees all messages sent to `Logger` prior to this call will
-  be processed. This is useful for testing and it should not be called
-  in production code.
+  This guarantees all log handlers are flushed. This is useful
+  for testing and it should not be called in production code.
   """
   @spec flush :: :ok
-  # TODO: move gen_event call elsewhere
   def flush do
-    :gen_event.sync_notify(Logger, :flush)
+    for %{id: id, module: module} <- :logger.get_handler_config(),
+        function_exported?(module, :filesync, 1) do
+      try do
+        module.filesync(id)
+      catch
+        _, _ -> :ok
+      end
+    end
+
+    :ok
   end
 
   @doc """
@@ -860,10 +867,16 @@ defmodule Logger do
   The backend needs to be started and running in order to
   be configured at runtime.
   """
-  # TODO: Add an API to configure the console formatter
   @spec configure_backend(backend, keyword) :: term
+  def configure_backend(:console, options) when is_list(options) do
+    options = Keyword.merge(Application.get_env(:logger, :console, []), options)
+    Application.put_env(:logger, :console, options)
+    {with_level, without_level} = Keyword.split(options, [:level])
+    config = Map.new(with_level ++ [formatter: Logger.Formatter.new(without_level)])
+    :logger.update_handler_config(:default, config)
+  end
+
   def configure_backend(backend, options) when is_list(options) do
-    backend = Logger.Backends.translate_backend(backend)
     :gen_event.call(Logger, backend, {:configure, options})
   end
 

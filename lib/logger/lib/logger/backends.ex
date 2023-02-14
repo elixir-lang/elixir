@@ -17,11 +17,9 @@ defmodule Logger.Backends do
   Removes the given `backend`.
   """
   def unwatch(backend) do
-    handler = translate_backend(backend)
-
-    case Supervisor.terminate_child(@name, handler) do
+    case Supervisor.terminate_child(@name, backend) do
       :ok ->
-        _ = Supervisor.delete_child(@name, handler)
+        _ = Supervisor.delete_child(@name, backend)
         :ok
 
       {:error, _} = error ->
@@ -33,29 +31,21 @@ defmodule Logger.Backends do
   Watches the given `backend`.
   """
   def watch(backend) do
-    handler = translate_backend(backend)
-
     spec = %{
-      id: handler,
-      start: {Logger.Backends.Watcher, :start_link, [{handler, backend}]},
+      id: backend,
+      start: {Logger.Backends.Watcher, :start_link, [{backend, backend}]},
       restart: :transient
     }
 
     case Supervisor.start_child(@name, spec) do
       {:error, :already_present} ->
-        _ = Supervisor.delete_child(@name, handler)
+        _ = Supervisor.delete_child(@name, backend)
         watch(backend)
 
       other ->
         other
     end
   end
-
-  @doc """
-  Translates the shortcut backend name into its handler.
-  """
-  def translate_backend(:console), do: Logger.Backends.Console
-  def translate_backend(other), do: other
 
   ## Supervisor callbacks
 
