@@ -504,6 +504,8 @@ defmodule Access do
       {"john", %{user: %{name: "JOHN"}}}
       iex> pop_in(map, [Access.key!(:user), Access.key!(:name)])
       {"john", %{user: %{}}}
+      iex> pop_in([user: [name: "john"]], [Access.key!(:user), Access.key!(:name)])
+      {"john", [user: []]}
       iex> get_in(map, [Access.key!(:user), Access.key!(:unknown)])
       ** (KeyError) key :unknown not found in: %{name: \"john\"}
 
