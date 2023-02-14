@@ -641,6 +641,7 @@ defmodule Logger do
   in production code.
   """
   @spec flush :: :ok
+  # TODO: move gen_event call elsewhere
   def flush do
     :gen_event.sync_notify(Logger, :flush)
   end

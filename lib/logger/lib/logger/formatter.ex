@@ -103,6 +103,95 @@ defmodule Logger.Formatter do
   @default_pattern "\n$time $metadata[$level] $message\n"
   @replacement "�"
 
+  defstruct [:template, :truncate, :metadata, :colors, :utc_log?]
+
+  @doc """
+  Initializes a formatter.
+
+  TODO options
+  """
+  def init(options \\ []) do
+    # TODO: deprecate passing a two-element tuple
+    template = compile(options[:format])
+    colors = colors(options[:colors] || [])
+    truncate = options[:truncate] || Application.fetch_env!(:logger, :truncate)
+    metadata = options[:metadata] || :all
+    utc_log? = Keyword.get(options, :utc_log, Application.fetch_env!(:logger, :utc_log))
+
+    %__MODULE__{
+      template: template,
+      truncate: truncate,
+      metadata: metadata,
+      colors: colors,
+      utc_log?: utc_log?
+    }
+  end
+
+  defp colors(colors) do
+    warning =
+      Keyword.get_lazy(colors, :warning, fn ->
+        # TODO: Deprecate :warn option on Elixir v1.19
+        if warn = Keyword.get(colors, :warn) do
+          warn
+        else
+          :yellow
+        end
+      end)
+
+    %{
+      emergency: Keyword.get(colors, :error, :red),
+      alert: Keyword.get(colors, :error, :red),
+      critical: Keyword.get(colors, :error, :red),
+      error: Keyword.get(colors, :error, :red),
+      warning: warning,
+      notice: Keyword.get(colors, :info, :normal),
+      info: Keyword.get(colors, :info, :normal),
+      debug: Keyword.get(colors, :debug, :cyan),
+      enabled: Keyword.get(colors, :enabled, IO.ANSI.enabled?())
+    }
+  end
+
+  def format(%{level: level, msg: msg, meta: meta}, %__MODULE__{} = config) do
+    %{
+      utc_log?: utc_log?,
+      metadata: metadata_keys,
+      template: template,
+      colors: colors,
+      truncate: truncate
+    } = config
+
+    system_time = Map.get_lazy(meta, :time, fn -> :os.system_time(:microsecond) end)
+    date_time_ms = system_time_to_date_time_ms(system_time, utc_log?)
+
+    meta_list =
+      case metadata_keys do
+        :all -> Map.to_list(meta)
+        keys -> for key <- keys, value = meta[key], do: {key, value}
+      end
+
+    msg = format_message(msg, meta, truncate)
+
+    template
+    # TODO: Move format/5 and compile/1 to Logger.Backends and,
+    # in this function, check specifically for pairs and delegate
+    # there.
+    # TODO: Introduce format_metadata and format_template as building blocs here
+    |> format(level, msg, date_time_ms, meta_list)
+    |> color_event(level, colors, meta)
+  end
+
+  def format(_event, _config) do
+    raise "invalid configuration for Logger.Formatter. " <>
+            "Use Logger.Formatter.init/1 to define a formatter"
+  end
+
+  defp color_event(data, _level, %{enabled: false}, _md), do: data
+
+  defp color_event(data, level, %{enabled: true} = colors, md) do
+    color = md[:ansi_color] || Map.fetch!(colors, level)
+    [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset()]
+  end
+
   @doc """
   Formats the `:msg` key of a log event.
 
