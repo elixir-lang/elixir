@@ -3,11 +3,11 @@ defmodule Logger.HandlerTest do
   @moduletag :logger
 
   defmodule CustomTranslator do
-    def t(:debug, :info, :format, {~c"hello: ~p", [:ok]}) do
+    def t(:debug, _level, :format, {~c"hello: ~p", [:ok]}) do
       :skip
     end
 
-    def t(:debug, :info, :format, {~c"world: ~p", [:ok]}) do
+    def t(:debug, _level, :format, {~c"world: ~p", [:ok]}) do
       {:ok, "rewritten"}
     end
 

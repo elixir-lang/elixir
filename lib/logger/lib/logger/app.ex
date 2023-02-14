@@ -9,6 +9,8 @@ defmodule Logger.App do
   def start(_type, _args) do
     start_options = Application.get_env(:logger, :start_options)
     otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
+    sasl_reports? = Application.fetch_env!(:logger, :handle_sasl_reports)
+    translators = Application.fetch_env!(:logger, :translators)
     counter = :counters.new(1, [:atomics])
 
     children = [
@@ -23,16 +25,18 @@ defmodule Logger.App do
 
     case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        primary_config = add_elixir_handler(otp_reports?, counter)
+        primary_config = :logger.get_primary_config()
+        :ok = :logger.set_primary_config(:level, default_level())
 
-        default_handlers =
-          if otp_reports? do
-            delete_erlang_handler()
-          else
-            []
-          end
+        process_level_filter = {&Logger.Filter.process_level/2, []}
+        :ok = :logger.add_primary_filter(:logger_process_level, process_level_filter)
 
-        handlers = [{:primary, primary_config} | default_handlers]
+        config = %{translators: translators, otp: otp_reports?, sasl: sasl_reports?}
+        translator_filter = {&Logger.Filter.translator/2, config}
+        :ok = :logger.add_primary_filter(:logger_translator, translator_filter)
+
+        add_elixir_handler(counter)
+        handlers = [{:primary, primary_config} | delete_erlang_handler()]
         {:ok, sup, handlers}
 
       {:error, _} = error ->
@@ -48,7 +52,8 @@ defmodule Logger.App do
   @doc false
   def stop(handlers) do
     _ = :logger.remove_handler(Logger)
-    _ = :logger.remove_primary_filter(:process_level)
+    _ = :logger.remove_primary_filter(:logger_process_level)
+    _ = :logger.remove_primary_filter(:logger_translator)
     add_handlers(handlers)
 
     :logger.add_primary_filter(
@@ -71,43 +76,33 @@ defmodule Logger.App do
     Application.stop(:logger)
   end
 
-  defp add_elixir_handler(otp_reports?, counter) do
-    config = %{
-      level: :all,
-      config: %{counter: counter},
-      filter_default: :log,
-      filters:
-        if not otp_reports? do
-          [filter_elixir_domain: {&Logger.Filter.filter_elixir_domain/2, []}]
-        else
-          []
-        end
-    }
+  ## Helpers
 
-    primary_config = :logger.get_primary_config()
-    level = Application.get_env(:logger, :level, :debug)
-
-    level =
-      if level == :warn do
+  defp default_level() do
+    case Application.get_env(:logger, :level, :debug) do
+      :warn ->
         IO.warn(":logger has be set to :warn in config files, please use :warning instead")
         :warning
-      else
+
+      level ->
         level
-      end
+    end
+  end
 
-    level = Logger.Handler.elixir_level_to_erlang_level(level)
-
-    :ok = :logger.set_primary_config(:level, level)
-    :ok = :logger.add_primary_filter(:process_level, {&Logger.Filter.process_level/2, []})
-    :ok = :logger.add_handler(Logger, Logger.Handler, config)
-    primary_config
+  defp add_elixir_handler(counter) do
+    :ok =
+      :logger.add_handler(Logger, Logger.Handler, %{
+        level: :all,
+        config: %{counter: counter},
+        filter_default: :log,
+        filters: []
+      })
   end
 
   defp delete_erlang_handler() do
     with {:ok, %{module: module} = config} <- :logger.get_handler_config(:default),
          :ok <- :logger.remove_handler(:default) do
       handler_config = {:default, module, config}
-
       [handler_config]
     else
       _ -> []

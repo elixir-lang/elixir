@@ -824,7 +824,7 @@ defmodule Logger do
   """
   @spec add_translator({module, function :: atom}) :: :ok
   def add_translator({mod, fun} = translator) when is_atom(mod) and is_atom(fun) do
-    Logger.Config.add_translator(translator)
+    update_translators(&[translator | List.delete(&1, translator)])
   end
 
   @doc """
@@ -832,7 +832,19 @@ defmodule Logger do
   """
   @spec remove_translator({module, function :: atom}) :: :ok
   def remove_translator({mod, fun} = translator) when is_atom(mod) and is_atom(fun) do
-    Logger.Config.remove_translator(translator)
+    update_translators(&List.delete(&1, translator))
+  end
+
+  defp update_translators(updater) do
+    :elixir_config.serial(fn ->
+      with %{filters: filters} <- :logger.get_primary_config(),
+           {{_, {fun, config}}, filters} <- List.keytake(filters, :logger_translator, 0) do
+        config = update_in(config.translators, updater)
+        :ok = :logger.set_primary_config(:filters, filters ++ [logger_translator: {fun, config}])
+      end
+    end)
+
+    :ok
   end
 
   @doc """
