@@ -525,6 +525,14 @@ defmodule Access do
       :get, %{} = data, next ->
         next.(Map.fetch!(data, key))
 
+      :get_and_update, data, next when is_list(data) ->
+        value = Keyword.fetch!(data, key)
+
+        case next.(value) do
+          {get, update} -> {get, Keyword.put(data, key, update)}
+          :pop -> {value, Keyword.delete(data, key)}
+        end
+
       :get_and_update, %{} = data, next ->
         value = Map.fetch!(data, key)
 
