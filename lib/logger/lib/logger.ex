@@ -592,8 +592,8 @@ defmodule Logger do
   @spec compare_levels(level, level) :: :lt | :eq | :gt
   def compare_levels(left, right) do
     :logger.compare_levels(
-      Logger.Handler.elixir_level_to_erlang_level(left),
-      Logger.Handler.elixir_level_to_erlang_level(right)
+      elixir_level_to_erlang_level(left),
+      elixir_level_to_erlang_level(right)
     )
   end
 
@@ -609,22 +609,28 @@ defmodule Logger do
     :compile_time_application,
     :compile_time_purge_level,
     :compile_time_purge_matching,
-    :sync_threshold,
     :truncate,
-    :level,
     :utc_log,
-    :discard_threshold,
     :translator_inspect_opts
   ]
+  @backend_options [:sync_threshold, :discard_threshold, :truncate, :utc_log]
   @spec configure(keyword) :: :ok
   def configure(options) do
-    options = Keyword.take(options, @valid_options)
+    for {k, v} <- options do
+      cond do
+        k == :level -> :logger.set_primary_config(:level, elixir_level_to_erlang_level(v))
+        k in @valid_options -> Application.put_env(:logger, k, v)
+        true -> :ok
+      end
+    end
 
-    # We serialize the writes
-    Logger.Config.configure(options)
+    # TODO: Deprecate passing backend options to configure
+    case Keyword.take(options, @backend_options) do
+      [] -> :ok
+      backend_options -> Logger.Backends.configure(backend_options)
+    end
 
-    # Then we can read from the writes
-    :ok = :logger.update_handler_config(Logger, :config, :refresh)
+    :ok
   end
 
   @doc """
@@ -725,7 +731,7 @@ defmodule Logger do
   """
   @spec put_process_level(pid(), level() | :all | :none) :: :ok
   def put_process_level(pid, level) when pid == self() do
-    Process.put(@metadata, Logger.Handler.elixir_level_to_erlang_level(level))
+    Process.put(@metadata, elixir_level_to_erlang_level(level))
     :ok
   end
 
@@ -792,7 +798,7 @@ defmodule Logger do
   def add_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
 
-    case Logger.BackendSupervisor.watch(backend) do
+    case Logger.Backends.watch(backend) do
       {:ok, _} = ok ->
         ok
 
@@ -816,7 +822,7 @@ defmodule Logger do
   @spec remove_backend(backend, keyword) :: :ok | {:error, term}
   def remove_backend(backend, opts \\ []) do
     _ = if opts[:flush], do: flush()
-    Logger.BackendSupervisor.unwatch(backend)
+    Logger.Backends.unwatch(backend)
   end
 
   @doc """
@@ -853,9 +859,10 @@ defmodule Logger do
   The backend needs to be started and running in order to
   be configured at runtime.
   """
+  # TODO: Add an API to configure the console formatter
   @spec configure_backend(backend, keyword) :: term
   def configure_backend(backend, options) when is_list(options) do
-    backend = Logger.BackendSupervisor.translate_backend(backend)
+    backend = Logger.Backends.translate_backend(backend)
     :gen_event.call(Logger, backend, {:configure, options})
   end
 
@@ -877,7 +884,7 @@ defmodule Logger do
 
   @doc false
   def __should_log__(level, module) do
-    level = Logger.Handler.elixir_level_to_erlang_level(level)
+    level = elixir_level_to_erlang_level(level)
 
     if :logger.allow(level, module) do
       level
@@ -1116,4 +1123,11 @@ defmodule Logger do
       :ok
     end
   end
+
+  def elixir_level_to_erlang_level(:warn) do
+    IO.warn("the log level :warn is deprecated, use :warning instead")
+    :warning
+  end
+
+  def elixir_level_to_erlang_level(other), do: other
 end

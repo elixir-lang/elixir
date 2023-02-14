@@ -96,7 +96,7 @@ defmodule ExUnit.CaptureLogTest do
 
   defp wait_capture_removal() do
     case :gen_event.which_handlers(Logger) do
-      [Logger.Config] ->
+      [Logger.Backends.Config] ->
         :ok
 
       _otherwise ->

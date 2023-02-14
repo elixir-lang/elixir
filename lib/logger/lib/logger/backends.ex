@@ -1,35 +1,16 @@
-defmodule Logger.BackendSupervisor do
+defmodule Logger.Backends do
+  # TODO: Make this public
   @moduledoc false
-
   use Supervisor
-  @name Logger.BackendSupervisor
+
+  @name Logger.Backends
 
   @doc """
-  Starts the backend supervisor.
+  Configures all backends.
   """
-  def start_link(_) do
-    case Supervisor.start_link(__MODULE__, [], name: @name) do
-      {:ok, _} = ok ->
-        for backend <- Application.get_env(:logger, :backends) do
-          case watch(backend) do
-            {:ok, _} ->
-              :ok
-
-            {:error, {{:EXIT, exit}, _spec}} ->
-              raise "EXIT when installing backend #{inspect(backend)}: " <>
-                      Exception.format_exit(exit)
-
-            {:error, error} ->
-              raise "ERROR when installing backend #{inspect(backend)}: " <>
-                      Exception.format_exit(error)
-          end
-        end
-
-        ok
-
-      {:error, _} = error ->
-        error
-    end
+  def configure(options) do
+    Logger.Backends.Config.configure(options)
+    :ok = :logger.update_handler_config(Logger, :config, :refresh)
   end
 
   @doc """
@@ -56,7 +37,7 @@ defmodule Logger.BackendSupervisor do
 
     spec = %{
       id: handler,
-      start: {Logger.Watcher, :start_link, [{handler, backend}]},
+      start: {Logger.Backends.Watcher, :start_link, [{handler, backend}]},
       restart: :transient
     }
 
@@ -75,6 +56,34 @@ defmodule Logger.BackendSupervisor do
   """
   def translate_backend(:console), do: Logger.Backends.Console
   def translate_backend(other), do: other
+
+  ## Supervisor callbacks
+
+  @doc false
+  def start_link(backends) do
+    case Supervisor.start_link(__MODULE__, [], name: @name) do
+      {:ok, _} = ok ->
+        for backend <- backends do
+          case watch(backend) do
+            {:ok, _} ->
+              :ok
+
+            {:error, {{:EXIT, exit}, _spec}} ->
+              raise "EXIT when installing backend #{inspect(backend)}: " <>
+                      Exception.format_exit(exit)
+
+            {:error, error} ->
+              raise "ERROR when installing backend #{inspect(backend)}: " <>
+                      Exception.format_exit(error)
+          end
+        end
+
+        ok
+
+      {:error, _} = error ->
+        error
+    end
+  end
 
   @impl true
   def init(children) do

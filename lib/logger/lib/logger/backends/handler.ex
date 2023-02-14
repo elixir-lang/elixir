@@ -1,11 +1,9 @@
-defmodule Logger.Handler do
+defmodule Logger.Backends.Handler do
   @moduledoc false
-
   @internal_keys [:counter]
 
   ## Conversions
 
-  # TODO: Remove this mapping once we remove old Logger Backends (v2.0)
   defp erlang_level_to_elixir_level(:none), do: :error
   defp erlang_level_to_elixir_level(:emergency), do: :error
   defp erlang_level_to_elixir_level(:alert), do: :error
@@ -16,13 +14,6 @@ defmodule Logger.Handler do
   defp erlang_level_to_elixir_level(:info), do: :info
   defp erlang_level_to_elixir_level(:debug), do: :debug
   defp erlang_level_to_elixir_level(:all), do: :debug
-
-  def elixir_level_to_erlang_level(:warn) do
-    IO.warn("the log level :warn is deprecated, use :warning instead")
-    :warning
-  end
-
-  def elixir_level_to_erlang_level(other), do: other
 
   ## Config management
 
@@ -69,7 +60,6 @@ defmodule Logger.Handler do
     end
   rescue
     ArgumentError -> {:error, :noproc}
-    e -> IO.inspect e
   catch
     :exit, reason -> {:error, reason}
   end

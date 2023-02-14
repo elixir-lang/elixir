@@ -1,4 +1,4 @@
-defmodule Logger.HandlerTest do
+defmodule Logger.Backends.HandlerTest do
   use Logger.Case
   @moduletag :logger
 
@@ -147,6 +147,7 @@ defmodule Logger.HandlerTest do
 
   test "calls report_cb/2 when supplied" do
     report = %{foo: "bar"}
+
     assert capture_log(fn -> :logger.error(report, %{report_cb: &format_report/2}) end) =~
              ~S([error] %{foo: "bar"})
 

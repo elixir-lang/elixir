@@ -1,4 +1,4 @@
-defmodule Logger.Config do
+defmodule Logger.Backends.Config do
   @moduledoc false
 
   @behaviour :gen_event
@@ -28,12 +28,8 @@ defmodule Logger.Config do
   end
 
   def handle_call({:configure, options}, {counter, _, _, _}) do
-    Enum.each(options, fn
-      {:level, level} ->
-        :logger.set_primary_config(:level, Logger.Handler.elixir_level_to_erlang_level(level))
-
-      {key, value} ->
-        Application.put_env(:logger, key, value)
+    Enum.each(options, fn {key, value} ->
+      Application.put_env(:logger, key, value)
     end)
 
     {:ok, :ok, load_state(counter)}

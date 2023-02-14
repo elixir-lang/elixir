@@ -7,23 +7,16 @@ defmodule Logger.App do
 
   @doc false
   def start(_type, _args) do
-    start_options = Application.get_env(:logger, :start_options)
     otp_reports? = Application.fetch_env!(:logger, :handle_otp_reports)
     sasl_reports? = Application.fetch_env!(:logger, :handle_sasl_reports)
     translators = Application.fetch_env!(:logger, :translators)
-    counter = :counters.new(1, [:atomics])
+    backends = Application.fetch_env!(:logger, :backends)
 
     children = [
-      %{
-        id: :gen_event,
-        start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
-        modules: :dynamic
-      },
-      {Logger.Watcher, {Logger.Config, counter}},
-      Logger.BackendSupervisor
+      {Logger.Backends.RootSupervisor, backends}
     ]
 
-    case Supervisor.start_link(children, strategy: :rest_for_one, name: Logger.Supervisor) do
+    case Supervisor.start_link(children, strategy: :one_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
         primary_config = :logger.get_primary_config()
         :ok = :logger.set_primary_config(:level, default_level())
@@ -35,7 +28,6 @@ defmodule Logger.App do
         translator_filter = {&Logger.Filter.translator/2, config}
         :ok = :logger.add_primary_filter(:logger_translator, translator_filter)
 
-        add_elixir_handler(counter)
         handlers = [{:primary, primary_config} | delete_erlang_handler()]
         {:ok, sup, handlers}
 
@@ -51,6 +43,7 @@ defmodule Logger.App do
 
   @doc false
   def stop(handlers) do
+    # TODO: Rename this handler
     _ = :logger.remove_handler(Logger)
     _ = :logger.remove_primary_filter(:logger_process_level)
     _ = :logger.remove_primary_filter(:logger_translator)
@@ -87,16 +80,6 @@ defmodule Logger.App do
       level ->
         level
     end
-  end
-
-  defp add_elixir_handler(counter) do
-    :ok =
-      :logger.add_handler(Logger, Logger.Handler, %{
-        level: :all,
-        config: %{counter: counter},
-        filter_default: :log,
-        filters: []
-      })
   end
 
   defp delete_erlang_handler() do

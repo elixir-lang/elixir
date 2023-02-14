@@ -1,4 +1,4 @@
-defmodule Logger.Watcher do
+defmodule Logger.Backends.Watcher do
   @moduledoc false
 
   require Logger
@@ -74,7 +74,7 @@ defmodule Logger.Watcher do
 
   defp logger_has_backends?() do
     try do
-      :gen_event.which_handlers(Logger) != [Logger.Config]
+      :gen_event.which_handlers(Logger) != [Logger.Backends.Config]
     catch
       _, _ -> false
     end

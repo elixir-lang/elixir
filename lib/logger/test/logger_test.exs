@@ -721,7 +721,7 @@ defmodule LoggerTest do
         Logger.flush()
 
         # This is a private message but the simplest way to test this functionality
-        send(Logger, {Logger.Config, :update_counter})
+        send(Logger, {Logger.Backends.Config, :update_counter})
 
         # We need to flush twice. Once for the send and another for the log in send
         Logger.flush()
@@ -735,10 +735,10 @@ defmodule LoggerTest do
     assert :ok = Logger.configure(discard_threshold: 500)
   end
 
-  test "restarts Logger.Config on Logger exits" do
+  test "restarts Logger.Backends.Config on Logger exits" do
     Process.whereis(Logger) |> Process.exit(:kill)
     wait_for_logger()
-    wait_for_handler(Logger, Logger.Config)
+    wait_for_handler(Logger, Logger.Backends.Config)
   end
 
   test "updates config on config_change/3" do
