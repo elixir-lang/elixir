@@ -1,5 +1,7 @@
 defmodule Logger.Backends do
   # TODO: Make this public
+  # TODO: Make category on sidebar
+  # TODO: make this lazy
   @moduledoc false
   use Supervisor
 

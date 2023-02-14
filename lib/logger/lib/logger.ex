@@ -1138,10 +1138,10 @@ defmodule Logger do
     end
   end
 
-  def elixir_level_to_erlang_level(:warn) do
+  defp elixir_level_to_erlang_level(:warn) do
     IO.warn("the log level :warn is deprecated, use :warning instead")
     :warning
   end
 
-  def elixir_level_to_erlang_level(other), do: other
+  defp elixir_level_to_erlang_level(other), do: other
 end

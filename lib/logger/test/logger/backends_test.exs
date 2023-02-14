@@ -49,19 +49,21 @@ defmodule Logger.BackendsTest do
              Logger.add_backend({UnknownBackend, self()})
   end
 
-  # test "logs or writes to stderr on failed call on async mode" do
-  #   assert {:ok, _} = Logger.add_backend({MyBackend, self()})
+  test "logs or writes to stderr on failed call on async mode" do
+    assert {:ok, _} = Logger.add_backend({MyBackend, self()})
 
-  #   assert capture_log(fn ->
-  #            :gen_event.call(Logger, {MyBackend, self()}, :error)
-  #            wait_for_handler(Logger, {MyBackend, self()})
-  #          end) =~
-  #            ~r":gen_event handler {Logger.BackendsTest.MyBackend, #PID<.*>} installed in Logger terminating"
+    assert capture_log(fn ->
+             ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               :gen_event.call(Logger, {MyBackend, self()}, :error)
+               wait_for_handler(Logger, {MyBackend, self()})
+             end)
+           end) =~
+             ~r":gen_event handler {Logger.BackendsTest.MyBackend, #PID<.*>} installed in Logger terminating"
 
-  #   Logger.flush()
-  # after
-  #   Logger.remove_backend({MyBackend, self()})
-  # end
+    Logger.flush()
+  after
+    Logger.remove_backend({MyBackend, self()})
+  end
 
   test "logs or writes to stderr on failed call on sync mode" do
     Logger.configure(sync_threshold: 0)

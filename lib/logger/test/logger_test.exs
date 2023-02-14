@@ -580,6 +580,9 @@ defmodule LoggerTest do
   describe "colors" do
     @tag formatter: [format: "$message", colors: [enabled: true]]
     test "default" do
+      assert capture_log(fn -> Logger.debug("hello", ansi_color: :yellow) end) ==
+               IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()
+
       assert capture_log(fn -> Logger.debug("hello") end) ==
                IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
 

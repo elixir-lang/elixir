@@ -4,13 +4,7 @@ defmodule ExUnit.CaptureLogTest do
   use ExUnit.Case
 
   require Logger
-
   import ExUnit.CaptureLog
-
-  setup_all do
-    :ok = Logger.remove_backend(:console)
-    on_exit(fn -> Logger.add_backend(:console, flush: true) end)
-  end
 
   test "no output" do
     assert capture_log(fn -> nil end) == ""
