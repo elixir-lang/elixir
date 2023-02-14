@@ -63,7 +63,7 @@ defmodule Access do
 
   When using `put_in/3` and friends:
 
-      put_in(struct_or_map, [Access.key(:key)], :value)
+      put_in(struct_or_map, [Access.key!(:key)], :value)
       put_in(keyword_or_map, [:key], :value)
 
   This covers the dual nature of maps in Elixir, as they can be
