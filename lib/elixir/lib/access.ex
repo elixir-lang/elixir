@@ -496,15 +496,20 @@ defmodule Access do
   ## Examples
 
       iex> map = %{user: %{name: "john"}}
+      iex> keyword_list = [user: [name: "john"]]
       iex> get_in(map, [Access.key!(:user), Access.key!(:name)])
       "john"
       iex> get_and_update_in(map, [Access.key!(:user), Access.key!(:name)], fn prev ->
       ...>   {prev, String.upcase(prev)}
       ...> end)
       {"john", %{user: %{name: "JOHN"}}}
+      iex> get_and_update_in(keyword_list, [Access.key!(:user), Access.key!(:name)], fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {"john", [user: [name: "JOHN"]]}
       iex> pop_in(map, [Access.key!(:user), Access.key!(:name)])
       {"john", %{user: %{}}}
-      iex> pop_in([user: [name: "john"]], [Access.key!(:user), Access.key!(:name)])
+      iex> pop_in(keyword_list, [Access.key!(:user), Access.key!(:name)])
       {"john", [user: []]}
       iex> get_in(map, [Access.key!(:user), Access.key!(:unknown)])
       ** (KeyError) key :unknown not found in: %{name: \"john\"}
