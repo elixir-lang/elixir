@@ -316,13 +316,7 @@ defmodule ExUnitTest do
   test "log capturing" do
     defmodule LogCapturingTest do
       use ExUnit.Case
-
       require Logger
-
-      setup_all do
-        :ok = Logger.remove_backend(:console)
-        on_exit(fn -> Logger.add_backend(:console, flush: true) end)
-      end
 
       @tag :capture_log
       test "one" do
@@ -341,18 +335,12 @@ defmodule ExUnitTest do
         Logger.debug("three")
         assert 1 == 2
       end
-
-      test "four" do
-        Logger.debug("four")
-        assert 1 == 2
-      end
     end
 
     output = capture_io(&ExUnit.run/0)
-    assert output =~ "[debug] two\n"
     refute output =~ "[debug] one\n"
+    assert output =~ "[debug] two\n"
     assert output =~ "[debug] three\n"
-    refute output =~ "[debug] four\n"
   end
 
   test "supports multi errors" do

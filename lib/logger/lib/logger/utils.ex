@@ -2,90 +2,90 @@ defmodule Logger.Utils do
   @moduledoc false
 
   @doc """
-  Truncates a `chardata` into `n` bytes.
-
-  There is a chance we truncate in the middle of a grapheme
-  cluster but we never truncate in the middle of a binary
-  code point. For this reason, truncation is not exact.
+  A filter for default translation and handling of reports.
   """
-  @spec truncate(IO.chardata(), non_neg_integer) :: IO.chardata()
-  def truncate(chardata, :infinity) when is_binary(chardata) or is_list(chardata) do
-    chardata
-  end
+  def translator(%{domain: [:elixir | _]}, %{otp: false}), do: :stop
+  def translator(%{meta: %{domain: [:otp, :sasl | _]}}, %{sasl: false}), do: :stop
+  def translator(%{meta: %{domain: [:supervisor_report | _]}}, %{sasl: false}), do: :stop
+  def translator(%{msg: {:string, _}}, _config), do: :ignore
 
-  def truncate(chardata, n) when n >= 0 do
-    {chardata, n} = truncate_n(chardata, n)
-    if n >= 0, do: chardata, else: [chardata, " (truncated)"]
-  end
+  def translator(%{msg: msg, level: level} = event, %{translators: translators}) do
+    %{level: min_level} = :logger.get_primary_config()
 
-  defp truncate_n(_, n) when n < 0 do
-    {"", n}
-  end
+    try do
+      case msg do
+        {:report, %{label: label, report: report} = complete}
+        when map_size(complete) == 2 ->
+          translate(translators, min_level, level, :report, {label, report})
 
-  defp truncate_n(binary, n) when is_binary(binary) do
-    remaining = n - byte_size(binary)
+        {:report, %{label: {:error_logger, _}, format: format, args: args}} ->
+          translate(translators, min_level, level, :format, {format, args})
 
-    if remaining < 0 do
-      # There is a chance we are cutting at the wrong
-      # place so we need to fix the binary.
-      {fix_binary(binary_part(binary, 0, n)), remaining}
+        {:report, report} ->
+          translate(translators, min_level, level, :report, {:logger, report})
+
+        {format, args} ->
+          translate(translators, min_level, level, :format, {format, args})
+      end
+    rescue
+      e ->
+        chardata = [
+          "Failure while translating Erlang's logger event\n",
+          Exception.format(:error, e, __STACKTRACE__)
+        ]
+
+        %{event | msg: {:string, chardata}}
     else
-      {binary, remaining}
+      :none -> :ignore
+      :skip -> :stop
+      {:ok, chardata} -> %{event | msg: {:string, chardata}}
+      {:ok, char, meta} -> %{event | msg: {:string, char}, meta: Enum.into(meta, event.meta)}
     end
   end
 
-  defp truncate_n(int, n) when int in 0..127, do: {int, n - 1}
-  defp truncate_n(int, n) when int in 127..0x07FF, do: {int, n - 2}
-  defp truncate_n(int, n) when int in 0x800..0xFFFF, do: {int, n - 3}
-  defp truncate_n(int, n) when int >= 0x10000 and is_integer(int), do: {int, n - 4}
-
-  defp truncate_n(list, n) when is_list(list) do
-    truncate_n_list(list, n, [])
+  defp translate([{mod, fun} | t], min_level, level, kind, data) do
+    with :none <- apply(mod, fun, [min_level, level, kind, data]) do
+      translate(t, min_level, level, kind, data)
+    end
   end
 
-  defp truncate_n(other, _n) do
-    raise ArgumentError,
-          "cannot truncate chardata because it contains something that is not " <>
-            "valid chardata: #{inspect(other)}"
+  defp translate([], _min_level, _level, _kind, _data) do
+    :none
   end
 
-  defp truncate_n_list(_, n, acc) when n < 0 do
-    {:lists.reverse(acc), n}
+  @doc """
+  A filter for removing logs if current process opted out of certain levels.
+  """
+  def process_level(%{level: level}, _extra) do
+    process_level = Logger.get_process_level(self())
+
+    if process_level != nil and :logger.compare_levels(level, process_level) == :lt do
+      :stop
+    else
+      :ignore
+    end
   end
 
-  defp truncate_n_list([h | t], n, acc) do
-    {h, n} = truncate_n(h, n)
-    truncate_n_list(t, n, [h | acc])
+  @doc """
+  A filter for logger exits which then removes itself.
+  """
+  def silence_logger_exit(
+        %{
+          msg:
+            {:report,
+             %{
+               label: {:application_controller, :exit},
+               report: [application: :logger, exited: :stopped] ++ _
+             }}
+        },
+        _extra
+      ) do
+    :logger.remove_primary_filter(:silence_logger_exit)
+    :stop
   end
 
-  defp truncate_n_list([], n, acc) do
-    {:lists.reverse(acc), n}
-  end
-
-  defp truncate_n_list(t, n, acc) do
-    {t, n} = truncate_n(t, n)
-    {:lists.reverse(acc, t), n}
-  end
-
-  defp fix_binary(binary) do
-    # Use a thirteen-bytes offset to look back in the binary.
-    # This should allow at least two code points of 6 bytes.
-    suffix_size = min(byte_size(binary), 13)
-    prefix_size = byte_size(binary) - suffix_size
-    <<prefix::binary-size(prefix_size), suffix::binary-size(suffix_size)>> = binary
-    prefix <> fix_binary(suffix, "")
-  end
-
-  defp fix_binary(<<h::utf8, t::binary>>, acc) do
-    acc <> <<h::utf8>> <> fix_binary(t, "")
-  end
-
-  defp fix_binary(<<h, t::binary>>, acc) do
-    fix_binary(t, <<acc::binary, h>>)
-  end
-
-  defp fix_binary(<<>>, _acc) do
-    <<>>
+  def silence_logger_exit(_message, _extra) do
+    :ignore
   end
 
   @doc """
@@ -93,7 +93,7 @@ defmodule Logger.Utils do
   `~P`, `~w` and `~W` by its inspected variants.
 
   For information about format scanning and how to consume them,
-  check `:io_lib.scan_format/2`
+  check `:io_lib.scan_format/2`.
   """
   def scan_inspect(format, args, truncate, opts \\ %Inspect.Opts{})
 
@@ -170,17 +170,75 @@ defmodule Logger.Utils do
   end
 
   @doc """
-  Returns a timestamp that includes milliseconds.
+  Truncates `n` elements from chartdata.
   """
-  def timestamp(timestamp \\ :os.system_time(:microsecond), utc_log?) do
-    micro = rem(timestamp, 1_000_000)
+  def truncate_n(_, n) when n < 0 do
+    {"", n}
+  end
 
-    {date, {hours, minutes, seconds}} =
-      case utc_log? do
-        true -> :calendar.system_time_to_universal_time(timestamp, :microsecond)
-        false -> :calendar.system_time_to_local_time(timestamp, :microsecond)
-      end
+  def truncate_n(binary, n) when is_binary(binary) do
+    remaining = n - byte_size(binary)
 
-    {date, {hours, minutes, seconds, div(micro, 1000)}}
+    if remaining < 0 do
+      # There is a chance we are cutting at the wrong
+      # place so we need to fix the binary.
+      {fix_binary(binary_part(binary, 0, n)), remaining}
+    else
+      {binary, remaining}
+    end
+  end
+
+  def truncate_n(int, n) when int in 0..127, do: {int, n - 1}
+  def truncate_n(int, n) when int in 127..0x07FF, do: {int, n - 2}
+  def truncate_n(int, n) when int in 0x800..0xFFFF, do: {int, n - 3}
+  def truncate_n(int, n) when int >= 0x10000 and is_integer(int), do: {int, n - 4}
+
+  def truncate_n(list, n) when is_list(list) do
+    truncate_n_list(list, n, [])
+  end
+
+  def truncate_n(other, _n) do
+    raise ArgumentError,
+          "cannot truncate chardata because it contains something that is not " <>
+            "valid chardata: #{inspect(other)}"
+  end
+
+  defp truncate_n_list(_, n, acc) when n < 0 do
+    {:lists.reverse(acc), n}
+  end
+
+  defp truncate_n_list([h | t], n, acc) do
+    {h, n} = truncate_n(h, n)
+    truncate_n_list(t, n, [h | acc])
+  end
+
+  defp truncate_n_list([], n, acc) do
+    {:lists.reverse(acc), n}
+  end
+
+  defp truncate_n_list(t, n, acc) do
+    {t, n} = truncate_n(t, n)
+    {:lists.reverse(acc, t), n}
+  end
+
+  defp fix_binary(binary) do
+    # Use a thirteen-bytes offset to look back in the binary.
+    # This should allow at least two code points of 6 bytes.
+    suffix_size = min(byte_size(binary), 13)
+    prefix_size = byte_size(binary) - suffix_size
+    <<prefix::binary-size(prefix_size), suffix::binary-size(suffix_size)>> = binary
+    prefix <> fix_binary(suffix, "")
+  end
+
+  defp fix_binary(<<h::utf8, t::binary>>, acc) do
+    acc <> <<h::utf8>> <> fix_binary(t, "")
+  end
+
+  defp fix_binary(<<h, t::binary>>, acc) do
+    fix_binary(t, <<acc::binary, h>>)
+  end
+
+  defp fix_binary(<<>>, _acc) do
+    <<>>
   end
 end

@@ -2,114 +2,18 @@ defmodule LoggerTest do
   use Logger.Case
   require Logger
 
-  setup_all do
-    Logger.configure_backend(:console, metadata: [:application, :module])
-    on_exit(fn -> Logger.configure_backend(:console, metadata: []) end)
-  end
+  @moduletag formatter: [metadata: [:application, :module]]
 
-  defmodule MyBackend do
-    @behaviour :gen_event
+  setup tags do
+    :logger.update_handler_config(:default, :formatter, Logger.default_formatter(tags.formatter))
 
-    def init({MyBackend, :hello}) do
-      {:ok, :hello}
-    end
-
-    def handle_event(_event, state) do
-      {:ok, state}
-    end
-
-    def handle_call(:error, _) do
-      raise "oops"
-    end
-
-    def handle_info(_msg, state) do
-      {:ok, state}
-    end
-
-    def code_change(_old_vsn, state, _extra) do
-      {:ok, state}
-    end
-
-    def terminate(_reason, _state) do
-      :ok
-    end
+    on_exit(fn ->
+      :logger.update_handler_config(:default, :formatter, Logger.default_formatter())
+    end)
   end
 
   defp msg_with_meta(text) do
     msg("module=LoggerTest #{text}")
-  end
-
-  test "add_backend/1 and remove_backend/1" do
-    assert :ok = Logger.remove_backend(:console)
-    assert Logger.remove_backend(:console) == {:error, :not_found}
-
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
-
-    assert {:ok, _pid} = Logger.add_backend(:console)
-    assert Logger.add_backend(:console) == {:error, :already_present}
-  end
-
-  test "add_backend/1 with {module, id}" do
-    assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
-    assert {:error, :already_present} = Logger.add_backend({MyBackend, :hello})
-    assert :ok = Logger.remove_backend({MyBackend, :hello})
-  end
-
-  test "add_backend/1 with unknown backend" do
-    assert {:error, {{:EXIT, {:undef, [_ | _]}}, _}} =
-             Logger.add_backend({UnknownBackend, :hello})
-  end
-
-  test "logs or writes to stderr on failed call on async mode" do
-    assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
-
-    assert capture_log(fn ->
-             :gen_event.call(Logger, {MyBackend, :hello}, :error)
-             wait_for_handler(Logger, {MyBackend, :hello})
-           end) =~
-             ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
-
-    assert :ok = Logger.remove_backend(:console)
-
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             :gen_event.call(Logger, {MyBackend, :hello}, :error)
-             wait_for_handler(Logger, {MyBackend, :hello})
-           end) =~
-             ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
-
-    # Flush logs before reattaching to avoid OTP reports
-    Logger.flush()
-  after
-    Logger.remove_backend({MyBackend, :hello})
-    Logger.add_backend(:console)
-  end
-
-  test "logs or writes to stderr on failed call on sync mode" do
-    Logger.configure(sync_threshold: 0)
-    assert {:ok, _} = Logger.add_backend({MyBackend, :hello})
-
-    assert capture_log(fn ->
-             :gen_event.call(Logger, {MyBackend, :hello}, :error)
-             wait_for_handler(Logger, {MyBackend, :hello})
-           end) =~
-             ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
-
-    assert :ok = Logger.remove_backend(:console)
-
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             :gen_event.call(Logger, {MyBackend, :hello}, :error)
-             wait_for_handler(Logger, {MyBackend, :hello})
-           end) =~
-             ":gen_event handler {LoggerTest.MyBackend, :hello} installed in Logger terminating"
-
-    # Flush logs before reattaching to avoid OTP reports
-    Logger.flush()
-  after
-    Logger.configure(sync_threshold: 20)
-    Logger.remove_backend({MyBackend, :hello})
-    Logger.add_backend(:console)
   end
 
   test "level/0" do
@@ -234,6 +138,7 @@ defmodule LoggerTest do
   end
 
   test "per-application levels" do
+    Application.load(:eex)
     assert Logger.get_module_level(EEx) == []
     Logger.put_application_level(:eex, :notice)
     assert Logger.get_module_level(EEx) == [{EEx, :notice}]
@@ -299,10 +204,11 @@ defmodule LoggerTest do
   end
 
   test "metadata compile-time merge" do
-    assert Logger.metadata(module: Sample) == :ok
+    assert Logger.metadata(mfa: {Sample, :foo, 1}) == :ok
 
     assert capture_log(fn ->
-             assert Logger.log(:info, "ok", application: nil, module: CustomTest) == :ok
+             assert Logger.bare_log(:info, "ok", application: nil, mfa: {CustomTest, :bar, 2}) ==
+                      :ok
            end) =~ msg("module=CustomTest [info] ok")
   end
 
@@ -362,7 +268,16 @@ defmodule LoggerTest do
              end) =~ msg("[info] Foo is 20")
     end
 
-    test "support function that return report" do
+    test "supports translator_inspect_opts for reports" do
+      Application.put_env(:logger, :translator_inspect_opts, printable_limit: 1)
+
+      assert capture_log(fn -> :logger.error(%{foo: "bar"}) end) =~
+               ~S([error] [foo: "b" <> ...])
+    after
+      Application.put_env(:logger, :translator_inspect_opts, [])
+    end
+
+    test "supports function that return report" do
       assert capture_log(fn ->
                assert Logger.bare_log(:info, fn -> %{foo: 10} end) == :ok
              end) =~ msg("[info] [foo: 10]")
@@ -375,32 +290,6 @@ defmodule LoggerTest do
                assert Logger.bare_log(:info, fn -> {[foo: 10], []} end) == :ok
              end) =~ msg("[info] [foo: 10]")
     end
-  end
-
-  test "enable/1 and disable/1" do
-    assert Logger.metadata([]) == :ok
-
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) =~ msg_with_meta("[debug] hello")
-
-    assert Logger.disable(self()) == :ok
-
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
-
-    assert Logger.metadata([]) == :ok
-
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
-
-    assert Logger.enable(self()) == :ok
-
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) =~ msg_with_meta("[debug] hello")
   end
 
   test "compare_levels/2" do
@@ -622,54 +511,23 @@ defmodule LoggerTest do
     Logger.configure(compile_time_application: nil)
   end
 
+  @tag formatter: [truncate: 4]
   test "log/2 truncates messages" do
-    Logger.configure(truncate: 4)
     assert capture_log(fn -> Logger.log(:debug, "hello") end) =~ "hell (truncated)"
-  after
-    Logger.configure(truncate: 8096)
   end
 
-  test "log/2 does not fails when the logger is off" do
-    logger = Process.whereis(Logger)
-    Process.unregister(Logger)
+  test "log/2 handles bad Unicode chars" do
+    output =
+      capture_log(fn ->
+        assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
+        Process.sleep(100)
+      end)
 
-    try do
-      assert Logger.log(:debug, "hello") == :ok
-    after
-      Process.register(logger, Logger)
-    end
-  end
-
-  test "log/2 prunes bad Unicode chars" do
-    assert capture_log(fn ->
-             assert Logger.log(:debug, "he" <> <<185>> <> "lo") == :ok
-           end) =~ "he�lo"
+    assert output =~ "FORMATTER ERROR: bad return value"
+    assert output =~ "** (RuntimeError) bad return value from Logger formatter Logger.Formatter"
   end
 
   test "stops the application silently" do
-    Application.put_env(:logger, :backends, [])
-    Logger.App.stop()
-    Application.start(:logger)
-
-    assert capture_log(fn ->
-             assert Logger.debug("hello", []) == :ok
-           end) == ""
-
-    assert {:ok, _} = Logger.add_backend(:console)
-    assert Logger.add_backend(:console) == {:error, :already_present}
-  after
-    Application.put_env(:logger, :backends, [:console])
-    Logger.App.stop()
-    Application.start(:logger)
-  end
-
-  test "starts the application with custom options" do
-    Logger.App.stop()
-    Application.put_env(:logger, :start_options, spawn_opt: [priority: :high])
-    Application.start(:logger)
-    assert Process.info(Process.whereis(Logger), :priority) == {:priority, :high}
-  after
-    Application.put_env(:logger, :start_options, [])
     Logger.App.stop()
     Application.start(:logger)
   end
@@ -682,6 +540,72 @@ defmodule LoggerTest do
     assert %{level: :warning} = :logger.get_primary_config()
   after
     Application.delete_env(:logger, :level)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "starts the application without a handler" do
+    Application.put_env(:logger, :default_handler, false)
+    Logger.App.stop()
+    Application.start(:logger)
+    assert :logger.get_handler_config() == []
+  after
+    Application.delete_env(:logger, :default_handler)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "starts the application with custom formatter" do
+    Application.put_env(:logger, :default_formatter, format: "yes--$message--yes")
+    Logger.App.stop()
+    Application.start(:logger)
+    assert capture_log(fn -> Logger.log(:debug, "hello") end) =~ "yes--hello--yes"
+  after
+    Application.delete_env(:logger, :default_formatter)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "starts the application with custom handler" do
+    Application.put_env(:logger, :default_handler,
+      level: :error,
+      formatter: Logger.Formatter.new(format: "no--$message--no")
+    )
+
+    Logger.App.stop()
+    Application.start(:logger)
+    assert capture_log(fn -> Logger.log(:debug, "hello") end) == ""
+    assert capture_log(fn -> Logger.log(:error, "hello") end) =~ "no--hello--no"
+  after
+    Application.delete_env(:logger, :default_handler)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "writes to stderr on bad default handler config" do
+    Application.put_env(:logger, :default_handler, config: %{file: 123})
+    Logger.App.stop()
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Application.start(:logger)
+           end) =~
+             "Could not attach default Logger handler: {:handler_not_added, {:callback_crashed,"
+  after
+    Application.delete_env(:logger, :default_handler)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "writes to stderr on bad default handler module" do
+    Application.put_env(:logger, :default_handler, module: :who_knows)
+    Logger.App.stop()
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Application.start(:logger)
+           end) =~
+             "Could not attach default Logger handler: {:invalid_handler, {:function_not_exported"
+  after
+    Application.delete_env(:logger, :default_handler)
     Logger.App.stop()
     Application.start(:logger)
   end
@@ -710,44 +634,42 @@ defmodule LoggerTest do
     Logger.configure(translator_inspect_opts: [])
   end
 
-  test "logs when discarding messages" do
-    assert :ok = Logger.configure(discard_threshold: 5)
+  describe "colors" do
+    @tag formatter: [format: "$message", colors: [enabled: true]]
+    test "default" do
+      assert capture_log(fn -> Logger.debug("hello", ansi_color: :yellow) end) ==
+               IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()
 
-    log =
-      capture_log(fn ->
-        :sys.suspend(Logger)
-        for _ <- 1..10, do: Logger.warning("warning!")
-        :sys.resume(Logger)
-        Logger.flush()
+      assert capture_log(fn -> Logger.debug("hello") end) ==
+               IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
 
-        # This is a private message but the simplest way to test this functionality
-        send(Logger, {Logger.Config, :update_counter})
+      assert capture_log(fn -> Logger.info("hello") end) ==
+               IO.ANSI.normal() <> "hello" <> IO.ANSI.reset()
 
-        # We need to flush twice. Once for the send and another for the log in send
-        Logger.flush()
-        Logger.flush()
-      end)
+      assert capture_log(fn -> Logger.warning("hello") end) ==
+               IO.ANSI.yellow() <> "hello" <> IO.ANSI.reset()
 
-    assert log =~ ~r"\[warning\] Attempted to log \d+ messages, which is above :discard_threshold"
-    assert log =~ ~r"\[warning\] Attempted to log \d+ messages, which is below :discard_threshold"
-  after
-    :sys.resume(Logger)
-    assert :ok = Logger.configure(discard_threshold: 500)
-  end
+      assert capture_log(fn -> Logger.error("hello") end) ==
+               IO.ANSI.red() <> "hello" <> IO.ANSI.reset()
+    end
 
-  test "restarts Logger.Config on Logger exits" do
-    Process.whereis(Logger) |> Process.exit(:kill)
-    wait_for_logger()
-    wait_for_handler(Logger, Logger.Config)
-  end
+    @tag formatter: [
+           format: "$message",
+           colors: [enabled: true, debug: :magenta, info: :cyan, warning: :magenta, error: :cyan]
+         ]
+    test "custom" do
+      assert capture_log(fn -> Logger.debug("hello") end) ==
+               IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
 
-  test "updates config on config_change/3" do
-    assert Application.put_env(:logger, :level, :error) == :ok
-    assert :application_controller.config_change(logger: [level: :debug]) == :ok
-    assert Logger.level() == :error
-  after
-    Application.put_env(:logger, :level, :debug)
-    Logger.configure(level: :debug)
+      assert capture_log(fn -> Logger.info("hello") end) ==
+               IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.warning("hello") end) ==
+               IO.ANSI.magenta() <> "hello" <> IO.ANSI.reset()
+
+      assert capture_log(fn -> Logger.error("hello") end) ==
+               IO.ANSI.cyan() <> "hello" <> IO.ANSI.reset()
+    end
   end
 
   describe "OTP integration" do
