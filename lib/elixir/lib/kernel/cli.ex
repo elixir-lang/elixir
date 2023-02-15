@@ -57,9 +57,8 @@ defmodule Kernel.CLI do
       {_, status} = at_exit({ok_or_shutdown, status})
 
       # Ensure Logger messages are flushed before halting
-      case :erlang.whereis(Logger) do
-        pid when is_pid(pid) -> Logger.flush()
-        _ -> :ok
+      if Code.loaded?(Logger) do
+        Logger.flush()
       end
 
       System.halt(status)

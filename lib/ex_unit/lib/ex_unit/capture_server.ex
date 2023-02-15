@@ -36,7 +36,7 @@ defmodule ExUnit.CaptureServer do
     state = %{
       devices: %{},
       log_captures: %{},
-      log_status: nil
+      log_status: :error
     }
 
     {:ok, state}
@@ -64,7 +64,14 @@ defmodule ExUnit.CaptureServer do
     refs = Map.put(config.log_captures, ref, true)
 
     if map_size(refs) == 1 do
-      status = Logger.remove_backend(:console)
+      status =
+        with {:ok, config} <- :logger.get_handler_config(:default),
+             :ok <- :logger.remove_handler(:default) do
+          {:ok, config}
+        else
+          _ -> :error
+        end
+
       {:reply, ref, %{config | log_captures: refs, log_status: status}}
     else
       {:reply, ref, %{config | log_captures: refs}}
@@ -189,9 +196,11 @@ defmodule ExUnit.CaptureServer do
     end
   end
 
-  defp maybe_add_console(refs, status) do
-    if status == :ok and map_size(refs) == 0 do
-      Logger.add_backend(:console, flush: true)
-    end
+  defp maybe_add_console(refs, {:ok, %{module: module} = config}) when map_size(refs) == 0 do
+    :logger.add_handler(:default, module, config)
+  end
+
+  defp maybe_add_console(_refs, _config) do
+    :ok
   end
 end

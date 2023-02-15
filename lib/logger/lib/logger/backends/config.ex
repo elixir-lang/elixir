@@ -1,4 +1,4 @@
-defmodule Logger.Config do
+defmodule Logger.Backends.Config do
   @moduledoc false
 
   @behaviour :gen_event
@@ -28,12 +28,8 @@ defmodule Logger.Config do
   end
 
   def handle_call({:configure, options}, {counter, _, _, _}) do
-    Enum.each(options, fn
-      {:level, level} ->
-        :logger.set_primary_config(:level, Logger.Handler.elixir_level_to_erlang_level(level))
-
-      {key, value} ->
-        Application.put_env(:logger, key, value)
+    Enum.each(options, fn {key, value} ->
+      Application.put_env(:logger, key, value)
     end)
 
     {:ok, :ok, load_state(counter)}
@@ -96,8 +92,10 @@ defmodule Logger.Config do
   end
 
   defp warn(message) do
+    system_time = :os.system_time(:microsecond)
     utc_log = Application.fetch_env!(:logger, :utc_log)
-    event = {Logger, message, Logger.Utils.timestamp(utc_log), pid: self()}
+    date_time_ms = Logger.Formatter.system_time_to_date_time_ms(system_time, utc_log)
+    event = {Logger, message, date_time_ms, pid: self()}
     :gen_event.notify(self(), {:warning, Process.group_leader(), event})
   end
 
