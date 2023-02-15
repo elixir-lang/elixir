@@ -39,7 +39,7 @@ defmodule ExUnit.CaptureLog do
 
   alias Logger.Backends.Console
 
-  @compile {:no_warn_undefined, Logger}
+  @compile {:no_warn_undefined, [Logger, Logger.Backends.Internal]}
 
   @doc """
   Captures Logger messages generated when evaluating `fun`.
