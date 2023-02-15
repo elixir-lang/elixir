@@ -1,9 +1,9 @@
-defmodule Logger.Backends do
-  # TODO: Make this public
+defmodule Logger.Backends.Internal do
+  # TODO: Move the docs to a separate package
   @moduledoc false
   use Supervisor
 
-  @name Logger.Backends
+  @name __MODULE__
   @type backend :: :gen_event.handler()
 
   @doc """
@@ -98,7 +98,7 @@ defmodule Logger.Backends do
     ensure_started()
     _ = if opts[:flush], do: Logger.flush()
 
-    case watch(backend) do
+    case Logger.Backends.Supervisor.add(backend) do
       {:ok, _} = ok ->
         ok
 
@@ -107,23 +107,6 @@ defmodule Logger.Backends do
 
       {:error, _} = error ->
         error
-    end
-  end
-
-  defp watch(backend) do
-    spec = %{
-      id: backend,
-      start: {Logger.Backends.Watcher, :start_link, [{backend, backend}]},
-      restart: :transient
-    }
-
-    case Supervisor.start_child(@name, spec) do
-      {:error, :already_present} ->
-        _ = Supervisor.delete_child(@name, backend)
-        watch(backend)
-
-      other ->
-        other
     end
   end
 
@@ -140,57 +123,47 @@ defmodule Logger.Backends do
   def remove(backend, opts \\ []) do
     ensure_started()
     _ = if opts[:flush], do: Logger.flush()
-
-    case Supervisor.terminate_child(@name, backend) do
-      :ok ->
-        _ = Supervisor.delete_child(@name, backend)
-        :ok
-
-      {:error, _} = error ->
-        error
-    end
+    Logger.Backends.Supervisor.remove(backend)
   end
 
   ## Supervisor callbacks
 
   defp ensure_started() do
     unless Process.whereis(@name) do
-      # TODO: Warn if :console is set on Elixir v1.19+
       backends = Application.get_env(:logger, :backends, []) -- [:console]
-      Supervisor.start_child(Logger.Supervisor, {Logger.Backends.RootSupervisor, backends})
+      Supervisor.start_child(Logger.Supervisor, {__MODULE__, backends})
     end
 
     :ok
   end
 
-  @doc false
   def start_link(backends) do
-    case Supervisor.start_link(__MODULE__, [], name: @name) do
-      {:ok, _} = ok ->
-        for backend <- backends do
-          case watch(backend) do
-            {:ok, _} ->
-              :ok
-
-            {:error, {{:EXIT, exit}, _spec}} ->
-              raise "EXIT when installing backend #{inspect(backend)}: " <>
-                      Exception.format_exit(exit)
-
-            {:error, error} ->
-              raise "ERROR when installing backend #{inspect(backend)}: " <>
-                      Exception.format_exit(error)
-          end
-        end
-
-        ok
-
-      {:error, _} = error ->
-        error
-    end
+    Supervisor.start_link(__MODULE__, backends, name: @name)
   end
 
   @impl true
-  def init(children) do
-    Supervisor.init(children, strategy: :one_for_one, max_restarts: 30, max_seconds: 3)
+  def init(backends) do
+    start_options = Application.fetch_env!(:logger, :start_options)
+    counter = :counters.new(1, [:atomics])
+
+    children = [
+      %{
+        id: :gen_event,
+        start: {:gen_event, :start_link, [{:local, Logger}, start_options]},
+        modules: :dynamic
+      },
+      {Logger.Backends.Watcher, {Logger.Backends.Config, counter}},
+      {Logger.Backends.Supervisor, backends}
+    ]
+
+    :ok =
+      :logger.add_handler(Logger, Logger.Backends.Handler, %{
+        level: :all,
+        config: %{counter: counter},
+        filter_default: :log,
+        filters: []
+      })
+
+    Supervisor.init(children, strategy: :rest_for_one)
   end
 end

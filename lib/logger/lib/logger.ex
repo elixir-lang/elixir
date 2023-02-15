@@ -634,7 +634,7 @@ defmodule Logger do
     # TODO: Deprecate passing backend options to configure on Elixir v1.19
     case Keyword.take(options, @backend_options) do
       [] -> :ok
-      backend_options -> Logger.Backends.configure(backend_options)
+      backend_options -> Logger.Backends.Internal.configure(backend_options)
     end
 
     :ok
@@ -778,25 +778,25 @@ defmodule Logger do
   Adds a new backend.
   """
   # TODO: Deprecate this on Elixir v1.19
-  @doc deprecated: "Use Logger.Backends.add/2 instead"
+  @doc deprecated: "Use :logger_backends dependency"
   def add_backend(backend, opts \\ []) do
-    Logger.Backends.add(backend, opts)
+    Logger.Backends.Internal.add(backend, opts)
   end
 
   @doc """
   Removes a backend.
   """
   # TODO: Deprecate this on Elixir v1.19
-  @doc deprecated: "Use Logger.Backends.remove/2 instead"
+  @doc deprecated: "Use :logger_backends dependency"
   def remove_backend(backend, opts \\ []) do
-    Logger.Backends.remove(backend, opts)
+    Logger.Backends.Internal.remove(backend, opts)
   end
 
   @doc """
   Configures the given backend.
   """
   # TODO: Deprecate this on Elixir v1.19
-  @doc deprecated: "Use Logger.Backends.configure/2 instead"
+  @doc deprecated: "Use :logger_backends dependency"
   def configure_backend(:console, options) when is_list(options) do
     options = Keyword.merge(Application.get_env(:logger, :console, []), options)
     Application.put_env(:logger, :console, options)
@@ -806,7 +806,7 @@ defmodule Logger do
   end
 
   def configure_backend(backend, options) do
-    Logger.Backends.configure(backend, options)
+    Logger.Backends.Internal.configure(backend, options)
   end
 
   @doc """

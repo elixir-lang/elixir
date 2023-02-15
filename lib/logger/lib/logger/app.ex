@@ -48,7 +48,7 @@ defmodule Logger.App do
 
     children =
       if backends != [] do
-        [{Logger.Backends.RootSupervisor, backends}]
+        [{Logger.Backends.Internal, backends}]
       else
         []
       end

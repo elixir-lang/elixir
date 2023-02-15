@@ -34,7 +34,7 @@ defmodule Logger.Backends.HandlerTest do
 
     # Explicitly use add to make sure that root is dynamically started
     Application.start(:logger)
-    Logger.Backends.add(Logger.Backends.Console)
+    Logger.Backends.Internal.add(Logger.Backends.Console)
 
     on_exit(fn ->
       Application.delete_env(:logger, :default_handler)
