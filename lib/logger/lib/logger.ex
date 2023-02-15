@@ -221,36 +221,6 @@ defmodule Logger do
           `:debug`
         - `:none` - no messages will be logged at all
 
-    * `:utc_log` - when `true`, uses UTC in logs. By default it uses
-      local time (i.e., it defaults to `false`).
-
-    * `:truncate` - the maximum message size to be logged (in bytes).
-      Defaults to 8192 bytes. Note this configuration is approximate.
-      Truncated messages will have `" (truncated)"` at the end.
-      The atom `:infinity` can be passed to disable this behavior.
-
-    * `:sync_threshold` - if the `Logger` manager has more than
-      `:sync_threshold` messages in its queue, `Logger` will change
-      to *sync mode*, to apply backpressure to the clients.
-      `Logger` will return to *async mode* once the number of messages
-      in the queue is reduced to one below the `sync_threshold`.
-      Defaults to 20 messages. `:sync_threshold` can be set to `0` to
-      force *sync mode*.
-
-    * `:discard_threshold` - if the `Logger` manager has more than
-      `:discard_threshold` messages in its queue, `Logger` will change
-      to *discard mode* and messages will be discarded directly in the
-      clients. `Logger` will return to *sync mode* once the number of
-      messages in the queue is reduced to one below the `discard_threshold`.
-      Defaults to 500 messages.
-
-    * `:discard_threshold_periodic_check` - a periodic check that
-      checks and reports if logger is discarding messages. It logs a warning
-      message whenever the system is (or continues) in discard mode and
-      it logs a warning message whenever if the system was discarding messages
-      but stopped doing so after the previous check. By default it runs
-      every `30_000` milliseconds.
-
     * `:translator_inspect_opts` - when translating OTP reports and
       errors, the last message and state must be inspected in the
       error reports. This configuration allow developers to change
@@ -455,7 +425,6 @@ defmodule Logger do
 
   @type level ::
           :emergency | :alert | :critical | :error | :warning | :warn | :notice | :info | :debug
-  @type backend :: :gen_event.handler()
   @type report :: map() | keyword()
   @type message :: :unicode.chardata() | String.Chars.t() | report()
   @type metadata :: keyword()
@@ -493,6 +462,7 @@ defmodule Logger do
   To start a brand new handler with this formatter, use `Logger.Formatter.new/1`
   instead.
   """
+  @doc since: "1.15.0"
   def default_formatter(overrides \\ []) do
     case Application.get_env(:logger, :default_formatter, []) do
       list when is_list(list) -> Logger.Formatter.new(Keyword.merge(list, overrides))
@@ -805,68 +775,37 @@ defmodule Logger do
 
   @doc """
   Adds a new backend.
-
-  Adding a backend calls the `init/1` function in that backend
-  with the name of the backend as its argument. For example,
-  calling
-
-      Logger.add_backend(MyBackend)
-
-  will call `MyBackend.init(MyBackend)` to initialize the new
-  backend. If the backend's `init/1` callback returns `{:ok, _}`,
-  then this function returns `{:ok, pid}`. If the handler returns
-  `{:error, :ignore}` from `init/1`, this function still returns
-  `{:ok, pid}` but the handler is not started. If the handler
-  returns `{:error, reason}` from `init/1`, this function returns
-  `{:error, {reason, info}}` where `info` is more information on
-  the backend that failed to start.
-
-  Backends added by this function are not persisted. Therefore
-  if the Logger application or supervision tree is restarted,
-  the backend won't be available. If you need this guarantee,
-  then configure the backend via the application environment:
-
-      config :logger, :backends, [MyBackend]
-
-  ## Options
-
-    * `:flush` - when `true`, guarantees all messages currently sent
-      to `Logger` are processed before the backend is added
-
-  ## Examples
-
-      {:ok, _pid} = Logger.add_backend(MyBackend, flush: true)
-
   """
-  @spec add_backend(backend, keyword) :: Supervisor.on_start_child()
+  # TODO: Deprecate this on Elixir v1.19
+  @doc deprecated: "Use Logger.Backends.add/2 instead"
   def add_backend(backend, opts \\ []) do
-    _ = if opts[:flush], do: flush()
-
-    case Logger.Backends.watch(backend) do
-      {:ok, _} = ok ->
-        ok
-
-      {:error, {:already_started, _pid}} ->
-        {:error, :already_present}
-
-      {:error, _} = error ->
-        error
-    end
+    Logger.Backends.add(backend, opts)
   end
 
   @doc """
   Removes a backend.
-
-  ## Options
-
-    * `:flush` - when `true`, guarantees all messages currently sent
-      to `Logger` are processed before the backend is removed
-
   """
-  @spec remove_backend(backend, keyword) :: :ok | {:error, term}
+  # TODO: Deprecate this on Elixir v1.19
+  @doc deprecated: "Use Logger.Backends.remove/2 instead"
   def remove_backend(backend, opts \\ []) do
-    _ = if opts[:flush], do: flush()
-    Logger.Backends.unwatch(backend)
+    Logger.Backends.remove(backend, opts)
+  end
+
+  @doc """
+  Configures the given backend.
+  """
+  # TODO: Deprecate this on Elixir v1.19
+  @doc deprecated: "Use Logger.Backends.configure/2 instead"
+  def configure_backend(:console, options) when is_list(options) do
+    options = Keyword.merge(Application.get_env(:logger, :console, []), options)
+    Application.put_env(:logger, :console, options)
+    {with_level, without_level} = Keyword.split(options, [:level])
+    config = Map.new(with_level ++ [formatter: Logger.Formatter.new(without_level)])
+    :logger.update_handler_config(:default, config)
+  end
+
+  def configure_backend(backend, options) do
+    Logger.Backends.configure(backend, options)
   end
 
   @doc """
@@ -895,25 +834,6 @@ defmodule Logger do
     end)
 
     :ok
-  end
-
-  @doc """
-  Configures the given backend.
-
-  The backend needs to be started and running in order to
-  be configured at runtime.
-  """
-  @spec configure_backend(backend, keyword) :: term
-  def configure_backend(:console, options) when is_list(options) do
-    options = Keyword.merge(Application.get_env(:logger, :console, []), options)
-    Application.put_env(:logger, :console, options)
-    {with_level, without_level} = Keyword.split(options, [:level])
-    config = Map.new(with_level ++ [formatter: Logger.Formatter.new(without_level)])
-    :logger.update_handler_config(:default, config)
-  end
-
-  def configure_backend(backend, options) when is_list(options) do
-    :gen_event.call(Logger, backend, {:configure, options})
   end
 
   @doc """
