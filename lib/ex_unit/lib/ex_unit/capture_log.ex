@@ -138,24 +138,27 @@ defmodule ExUnit.CaptureLog do
 
   @doc false
   def init_proxy(pid, opts, parent) do
-    case :gen_event.add_sup_handler(Logger, {Console, pid}, {Console, [device: pid] ++ opts}) do
-      :ok ->
-        ref = Process.monitor(parent)
-        :proc_lib.init_ack(:ok)
-
-        receive do
-          {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
-          {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
-        end
-
-      {:EXIT, reason} ->
-        :proc_lib.init_ack({:error, reason})
-
-      {:error, reason} ->
-        :proc_lib.init_ack({:error, reason})
-    end
+    Logger.Backends.Internal.configure([])
   catch
-    :exit, :noproc -> :proc_lib.init_ack(:noproc)
+    _, _ -> :proc_lib.init_ack(:noproc)
+  else
+    _ ->
+      case :gen_event.add_sup_handler(Logger, {Console, pid}, {Console, [device: pid] ++ opts}) do
+        :ok ->
+          ref = Process.monitor(parent)
+          :proc_lib.init_ack(:ok)
+
+          receive do
+            {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
+            {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
+          end
+
+        {:EXIT, reason} ->
+          :proc_lib.init_ack({:error, reason})
+
+        {:error, reason} ->
+          :proc_lib.init_ack({:error, reason})
+      end
   end
 
   defp remove_capture(pid) do
