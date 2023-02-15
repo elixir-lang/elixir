@@ -532,17 +532,6 @@ defmodule LoggerTest do
     Application.start(:logger)
   end
 
-  test "starts the application with custom options" do
-    Logger.App.stop()
-    Application.put_env(:logger, :start_options, spawn_opt: [priority: :high])
-    Application.start(:logger)
-    assert Process.info(Process.whereis(Logger), :priority) == {:priority, :high}
-  after
-    Application.put_env(:logger, :start_options, [])
-    Logger.App.stop()
-    Application.start(:logger)
-  end
-
   test "starts the application with warning level" do
     Logger.App.stop()
     assert %{level: :notice} = :logger.get_primary_config()

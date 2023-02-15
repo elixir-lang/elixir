@@ -2,7 +2,6 @@ defmodule Logger.App do
   @moduledoc false
 
   require Logger
-
   use Application
 
   @doc false
@@ -17,7 +16,8 @@ defmodule Logger.App do
         :error -> {[], true}
       end
 
-    # TODO: Warn if console is set
+    # TODO: Warn if backends: [:console] is set on Elixir v1.19
+    # TODO: Warn if :logger, :console is set on Elixir v1.19
     default_handler =
       if console = Application.get_env(:logger, :console) do
         {handler, formatter} = Keyword.split(console, [:level])
@@ -46,7 +46,12 @@ defmodule Logger.App do
       | update_default_handler(console? && default_handler)
     ]
 
-    children = [{Logger.Backends.RootSupervisor, backends}]
+    children =
+      if backends != [] do
+        [{Logger.Backends.RootSupervisor, backends}]
+      else
+        []
+      end
 
     case Supervisor.start_link(children, strategy: :one_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->

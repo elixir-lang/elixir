@@ -1,7 +1,5 @@
 defmodule Logger.Backends do
   # TODO: Make this public
-  # TODO: Make category on sidebar
-  # TODO: make this lazy
   @moduledoc false
   use Supervisor
 
@@ -46,6 +44,7 @@ defmodule Logger.Backends do
   """
   @spec configure(keyword) :: :ok
   def configure(options) do
+    ensure_started()
     Logger.Backends.Config.configure(options)
     :ok = :logger.update_handler_config(Logger, :config, :refresh)
   end
@@ -55,6 +54,7 @@ defmodule Logger.Backends do
   """
   @spec configure(backend, keyword) :: term
   def configure(backend, options) when is_list(options) do
+    ensure_started()
     :gen_event.call(Logger, backend, {:configure, options})
   end
 
@@ -95,6 +95,7 @@ defmodule Logger.Backends do
   """
   @spec add(backend, keyword) :: Supervisor.on_start_child()
   def add(backend, opts \\ []) do
+    ensure_started()
     _ = if opts[:flush], do: Logger.flush()
 
     case watch(backend) do
@@ -137,6 +138,7 @@ defmodule Logger.Backends do
   """
   @spec remove(backend, keyword) :: :ok | {:error, term}
   def remove(backend, opts \\ []) do
+    ensure_started()
     _ = if opts[:flush], do: Logger.flush()
 
     case Supervisor.terminate_child(@name, backend) do
@@ -150,6 +152,16 @@ defmodule Logger.Backends do
   end
 
   ## Supervisor callbacks
+
+  defp ensure_started() do
+    unless Process.whereis(@name) do
+      # TODO: Warn if :console is set on Elixir v1.19+
+      backends = Application.get_env(:logger, :backends, []) -- [:console]
+      Supervisor.start_child(Logger.Supervisor, {Logger.Backends.RootSupervisor, backends})
+    end
+
+    :ok
+  end
 
   @doc false
   def start_link(backends) do

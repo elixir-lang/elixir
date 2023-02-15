@@ -77,19 +77,13 @@ defmodule Mix.Tasks.Compile.All do
 
   defp with_logger_app(config, fun) do
     app = Keyword.fetch!(config, :app)
-    logger? = Process.whereis(Logger)
     logger_config_app = Application.get_env(:logger, :compile_time_application)
 
     try do
-      if logger? do
-        Logger.configure(compile_time_application: app)
-      end
-
+      Logger.configure(compile_time_application: app)
       fun.()
     after
-      if logger? do
-        Logger.configure(compile_time_application: logger_config_app)
-      end
+      Logger.configure(compile_time_application: logger_config_app)
     end
   end
 

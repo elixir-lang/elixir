@@ -29,14 +29,15 @@ defmodule Logger.Backends.HandlerTest do
   end
 
   setup_all do
-    Application.put_env(:logger, :default, false)
-    Application.put_env(:logger, :backends, [Logger.Backends.Console])
+    Application.put_env(:logger, :default_handler, false)
     Logger.App.stop()
+
+    # Explicitly use add to make sure that root is dynamically started
     Application.start(:logger)
+    Logger.Backends.add(Logger.Backends.Console)
 
     on_exit(fn ->
-      Application.delete_env(:logger, :default)
-      Application.delete_env(:logger, :backends)
+      Application.delete_env(:logger, :default_handler)
       Logger.App.stop()
       Application.start(:logger)
     end)

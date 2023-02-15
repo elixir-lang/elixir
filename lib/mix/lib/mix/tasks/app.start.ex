@@ -53,10 +53,7 @@ defmodule Mix.Tasks.App.Start do
       # application to decide if it should be restarted or not.
       #
       # Mix should not depend directly on Logger so check that it's loaded.
-      if Process.whereis(Logger) do
-        Logger.App.stop()
-      end
-
+      Logger.App.stop()
       config = Mix.Project.config()
       start(apps(config), type(config, opts))
     end
