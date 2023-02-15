@@ -5,9 +5,11 @@ defmodule LoggerTest do
   @moduletag formatter: [metadata: [:application, :module]]
 
   setup tags do
-    {:ok, config} = :logger.get_handler_config(:default)
-    :logger.update_handler_config(:default, %{formatter: Logger.Formatter.new(tags.formatter)})
-    on_exit(fn -> :logger.set_handler_config(:default, config) end)
+    :logger.update_handler_config(:default, :formatter, Logger.default_formatter(tags.formatter))
+
+    on_exit(fn ->
+      :logger.update_handler_config(:default, :formatter, Logger.default_formatter())
+    end)
   end
 
   defp msg_with_meta(text) do

@@ -460,9 +460,45 @@ defmodule Logger do
   @type message :: :unicode.chardata() | String.Chars.t() | report()
   @type metadata :: keyword()
   @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
-
   @metadata :logger_level
-  @compile {:inline, enabled?: 1}
+
+  @doc """
+  Returns the default formatter used by Logger.
+
+  It returns the configuration based on `config :logger, :default_formatter`.
+  The `:default_formatter` can either be a keyword list of formatter options,
+  which is then converted into a `Logger.Formatter` instance, or a tuple,
+  which is [any other `:logger` formatter](https://www.erlang.org/doc/apps/kernel/logger_chapter.html#formatters).
+
+  In case of a list, a set of `overrides` can be given to merge into the list.
+
+  ## Examples
+
+  `Logger` will automatically load a default formatter into the default handler at
+  boot time. However, you can use this function if you wish to programatically replace
+  a handler formatter. For example, inside tests, you might want to change the formatter
+  settings:
+
+      setup tags do
+        formatter = Logger.default_formatter(colors: [enabled: false])
+        :logger.update_handler_config(:default, :formatter, formatter)
+
+        on_exit(fn ->
+          :logger.update_handler_config(:default, :formatter, Logger.default_formatter())
+        end)
+      end
+
+  However, note you should note invoke this function inside `config` files,
+  as this function expects `Logger` to already be configured and started.
+  To start a brand new handler with this formatter, use `Logger.Formatter.new/1`
+  instead.
+  """
+  def default_formatter(overrides \\ []) do
+    case Application.get_env(:logger, :default_formatter, []) do
+      list when is_list(list) -> Logger.Formatter.new(Keyword.merge(list, overrides))
+      {_, _} = tuple -> tuple
+    end
+  end
 
   @doc """
   Alters the current process metadata according to the given keyword list.

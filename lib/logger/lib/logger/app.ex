@@ -17,6 +17,20 @@ defmodule Logger.App do
         :error -> {[], true}
       end
 
+    # TODO: Warn if console is set
+    default_handler =
+      if console = Application.get_env(:logger, :console) do
+        {handler, formatter} = Keyword.split(console, [:level])
+
+        with :error <- Application.fetch_env(:logger, :default_formatter) do
+          Application.put_env(:logger, :default_formatter, formatter)
+        end
+
+        handler
+      else
+        []
+      end
+
     primary_config = :logger.get_primary_config()
     :ok = :logger.set_primary_config(:level, default_level())
 
@@ -27,7 +41,11 @@ defmodule Logger.App do
     translator_filter = {&Logger.Filter.translator/2, config}
     :ok = :logger.add_primary_filter(:logger_translator, translator_filter)
 
-    revert = [{:set_primary_config, [primary_config]} | update_default_handler(console?)]
+    revert = [
+      {:set_primary_config, [primary_config]}
+      | update_default_handler(console? && default_handler)
+    ]
+
     children = [{Logger.Backends.RootSupervisor, backends}]
 
     case Supervisor.start_link(children, strategy: :one_for_one, name: Logger.Supervisor) do
@@ -86,52 +104,30 @@ defmodule Logger.App do
     end
   end
 
-  defp update_default_handler(console?) do
+  defp update_default_handler(default_handler) do
     case :logger.get_handler_config(:default) do
       {:ok, %{module: module} = config} ->
-        case Application.fetch_env(:logger, :default) do
-          # If default was explicitly disabled or backends was listed
-          # without console, we won't add any handler.
-          result when result == {:ok, false} or console? == false ->
-            case :logger.remove_handler(:default) do
-              :ok -> [{:add_handler, [:default, module, config]}]
-              _ -> []
-            end
+        if handler = Application.get_env(:logger, :default_handler, default_handler) do
+          new_config =
+            handler
+            |> Keyword.put_new(:filters, remote_gl: {&:logger_filters.remote_gl/2, :stop})
+            |> Keyword.put_new(:filter_default, :log)
+            |> Keyword.put_new_lazy(:formatter, &Logger.default_formatter/0)
+            |> Map.new()
 
-          # Otherwise use the default configuration if provided
-          {:ok, default} when is_list(default) ->
-            update_default_handler(default, config)
-
-          # Otherwise translate console to the new configuration
-          # TODO: Deprecate if config(:logger, :console) is set
-          :error ->
-            default =
-              if console = Application.get_env(:logger, :console) do
-                {with_level, without_level} = Keyword.split(console, [:level])
-                with_level ++ [formatter: Logger.Formatter.new(without_level)]
-              else
-                []
-              end
-
-            update_default_handler(default, config)
+          case :logger.update_handler_config(:default, new_config) do
+            :ok -> [{:update_handler_config, [:default, config]}]
+            _ -> []
+          end
+        else
+          case :logger.remove_handler(:default) do
+            :ok -> [{:add_handler, [:default, module, config]}]
+            _ -> []
+          end
         end
 
       _ ->
         []
-    end
-  end
-
-  defp update_default_handler(default, config) do
-    new_config =
-      default
-      |> Keyword.put_new_lazy(:formatter, &Logger.Formatter.new/0)
-      |> Keyword.put_new(:filters, remote_gl: {&:logger_filters.remote_gl/2, :stop})
-      |> Keyword.put_new(:filter_default, :log)
-      |> Map.new()
-
-    case :logger.update_handler_config(:default, new_config) do
-      :ok -> [{:update_handler_config, [:default, config]}]
-      _ -> []
     end
   end
 
