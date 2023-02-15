@@ -57,8 +57,7 @@ defmodule Mix.Tasks.Release do
       the VM will find the `Enum` module and load it. There's a downside:
       when you start a new server in production, it may need to load
       many other modules, causing the first requests to have an unusual
-      spike in response time. With releases, the system is configured in
-      interactive mode and then it swaps to embedded mode, which preloads
+      spike in response time. With releases, the system preloads
       all modules and guarantees your system is ready to handle requests
       after booting.
 
@@ -652,17 +651,16 @@ defmodule Mix.Tasks.Release do
   The following options can be set inside your releases key in your `mix.exs`
   to control how config providers work:
 
-    * `:reboot_system_after_config` - every time your release is configured,
-      the system is rebooted to allow the new configuration to take place.
-      You can set this option to `false` to disable the rebooting for applications
-      that are sensitive to boot time but, in doing so, note you won't be able
-      to configure system applications, such as `:kernel` and `:stdlib`.
-      When set to `true` the computed config file will be written to the "tmp"
-      directory inside the release every time the system boots. You can configure
-      the "tmp" directory by setting the `RELEASE_TMP` environment variable, either
-      explicitly or inside your `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows).
-      Defaults to `true` if using the deprecated `config/releases.exs`,
-      `false` otherwise.
+    * `:reboot_system_after_config` - reboot the system after configuration
+      so you can configure system applications, such as `:kernel` and `:stdlib`,
+      in your `config/runtime.exs`. Generally speaking, it is best to configure
+      `:kernel` and `:stdlib` using the `vm.args` file but this option is available
+      for those who need more complex configuration. When set to `true` the computed
+      config file will be written to the "tmp" directory inside the release every time
+      the system boots. You can configure the "tmp" directory by setting the
+      `RELEASE_TMP` environment variable, either explicitly or inside your
+      `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows). Defaults to `true`
+      if using the deprecated `config/releases.exs`, `false` otherwise.
 
     * `:prune_runtime_sys_config_after_boot` - if `:reboot_system_after_config`
       is set, every time your system boots, the release will write a config file
