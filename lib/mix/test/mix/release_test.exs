@@ -18,6 +18,7 @@ defmodule Mix.ReleaseTest do
 
   setup_all do
     Mix.ensure_application!(:sasl)
+    Mix.ensure_application!(:crypto)
     :ok
   end
 

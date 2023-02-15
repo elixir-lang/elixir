@@ -655,12 +655,13 @@ defmodule Mix.Tasks.Release do
       so you can configure system applications, such as `:kernel` and `:stdlib`,
       in your `config/runtime.exs`. Generally speaking, it is best to configure
       `:kernel` and `:stdlib` using the `vm.args` file but this option is available
-      for those who need more complex configuration. When set to `true` the computed
-      config file will be written to the "tmp" directory inside the release every time
-      the system boots. You can configure the "tmp" directory by setting the
-      `RELEASE_TMP` environment variable, either explicitly or inside your
-      `releases/RELEASE_VSN/env.sh` (or `env.bat` on Windows). Defaults to `true`
-      if using the deprecated `config/releases.exs`, `false` otherwise.
+      for those who need more complex configuration. When set to `true`, the
+      release will first boot in interactive mode to compute a config file and
+      write it to the "tmp" directory. Then it reboots in the configured `RELEASE_MODE`.
+      You can configure the "tmp" directory by setting the `RELEASE_TMP` environment
+      variable, either explicitly or inside your `releases/RELEASE_VSN/env.sh`
+      (or `env.bat` on Windows). Defaults to `true` if using the deprecated
+      `config/releases.exs`, `false` otherwise.
 
     * `:prune_runtime_sys_config_after_boot` - if `:reboot_system_after_config`
       is set, every time your system boots, the release will write a config file
@@ -1037,6 +1038,7 @@ defmodule Mix.Tasks.Release do
     Mix.Project.get!()
     Mix.Task.run("compile", args)
     Mix.ensure_application!(:sasl)
+    Mix.ensure_application!(:crypto)
 
     config = Mix.Project.config()
 
@@ -1098,7 +1100,7 @@ defmodule Mix.Tasks.Release do
     # releases/
     #   COOKIE
     #   start_erl.data
-    consolidation_path = build_rel(release, config)
+    {consolidation_path, release} = build_rel(release, config)
 
     [
       # erts-VSN/
@@ -1203,7 +1205,7 @@ defmodule Mix.Tasks.Release do
          :ok <- Mix.Release.make_sys_config(release, sys_config, config_provider_path),
          :ok <- Mix.Release.make_cookie(release, cookie_path),
          :ok <- Mix.Release.make_start_erl(release, start_erl_path) do
-      consolidation_path
+      {consolidation_path, release}
     else
       {:error, message} ->
         File.rm_rf!(version_path)
@@ -1471,7 +1473,7 @@ defmodule Mix.Tasks.Release do
     reboot? = Keyword.get(release.options, :reboot_system_after_config, false)
 
     if reboot? and release.config_providers != [] do
-      "-elixir -config_provider_reboot_mode #{env_var}"
+      "-elixir config_provider_reboot_mode #{env_var}"
     else
       "-mode #{env_var}"
     end
