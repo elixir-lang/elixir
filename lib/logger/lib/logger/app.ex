@@ -37,20 +37,16 @@ defmodule Logger.App do
     process_level_filter = {&Logger.Utils.process_level/2, []}
     :ok = :logger.add_primary_filter(:logger_process_level, process_level_filter)
 
-    config = %{translators: translators, otp: otp_reports?, sasl: sasl_reports?}
-    translator_filter = {&Logger.Utils.translator/2, config}
+    translator_config = %{translators: translators, otp: otp_reports?, sasl: sasl_reports?}
+    translator_filter = {&Logger.Utils.translator/2, translator_config}
     :ok = :logger.add_primary_filter(:logger_translator, translator_filter)
 
-    revert = [
-      {:set_primary_config, [primary_config]}
-      | update_default_handler(console? && default_handler)
-    ]
-
+    revert = [{:set_primary_config, [primary_config]} | remove_erlang_handler()]
     children = if backends != [], do: [Logger.Backends.Internal], else: []
 
     case Supervisor.start_link(children, strategy: :one_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->
-        {:ok, sup, revert}
+        {:ok, sup, [add_elixir_handler(console? && default_handler) | revert]}
 
       {:error, _} = error ->
         redo(revert)
@@ -104,30 +100,34 @@ defmodule Logger.App do
     end
   end
 
-  defp update_default_handler(default_handler) do
-    case :logger.get_handler_config(:default) do
-      {:ok, %{module: module} = config} ->
-        if handler = Application.get_env(:logger, :default_handler, default_handler) do
-          new_config =
-            handler
-            |> Keyword.put_new(:filters, remote_gl: {&:logger_filters.remote_gl/2, :stop})
-            |> Keyword.put_new(:filter_default, :log)
-            |> Keyword.put_new_lazy(:formatter, &Logger.default_formatter/0)
-            |> Map.new()
+  defp remove_erlang_handler() do
+    with {:ok, %{module: module} = config} <- :logger.get_handler_config(:default),
+         :ok <- :logger.remove_handler(:default) do
+      [{:add_handler, [:default, module, config]}]
+    else
+      _ -> []
+    end
+  end
 
-          case :logger.update_handler_config(:default, new_config) do
-            :ok -> [{:update_handler_config, [:default, config]}]
-            _ -> []
-          end
-        else
-          case :logger.remove_handler(:default) do
-            :ok -> [{:add_handler, [:default, module, config]}]
-            _ -> []
-          end
-        end
+  defp add_elixir_handler(default_handler) do
+    if handler = Application.get_env(:logger, :default_handler, default_handler) do
+      config =
+        handler
+        |> Keyword.put_new(:filters, remote_gl: {&:logger_filters.remote_gl/2, :stop})
+        |> Keyword.put_new(:filter_default, :log)
+        |> Keyword.put_new(:module, :logger_std_h)
+        |> Keyword.put_new_lazy(:formatter, &Logger.default_formatter/0)
+        |> Map.new()
 
-      _ ->
-        []
+      case :logger.add_handler(:default, config.module, config) do
+        :ok ->
+          [{:remove_handler, [:default]}]
+
+        {:error, error} ->
+          IO.puts(:stderr, "Could not attach default Logger handler: #{inspect(error)}")
+      end
+    else
+      []
     end
   end
 

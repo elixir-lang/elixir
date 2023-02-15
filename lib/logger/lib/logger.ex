@@ -205,7 +205,17 @@ defmodule Logger do
         format: "[$level] $message $metadata\n",
         metadata: [:error_code, :file]
 
-  Or to configure default handler, for instance, to log into a file:
+  Or to configure default handler, for instance, to log into a file with
+  built-in support for log rotation:
+
+      config :logger, :default_handler,
+        config: %{
+          file: 'system.log',
+          filesync_repeat_interval: 5000,
+          file_check: 5000,
+          max_no_bytes: 10_000_000,
+          max_no_files: 5
+        }
 
   See [`:logger_std_h`](`:logger_std_h`) for all relevant configuration,
   including overload protection. Or set `:default_handler` to false to
@@ -289,25 +299,36 @@ defmodule Logger do
 
   Erlang/OTP logger provides handlers. Handlers represent ability to integrate
   into the logging system to handle each logged message/event. Elixir automatically
-  configures the default handler, but you can use `Erlang/OTP` APIs to add your own
-  handlers too. See the [`:logger`](`:logger`) documentation to get started.
+  configures the default handler, but you can use Erlang's [`:logger`](`:logger)
+  module to add other handlers too.
 
-  Erlang/OTP handlers must be listed under your own application:
+  Erlang/OTP handlers must be listed under your own application. For example,
+  to setup an additional handler that writes to disk:
 
       config :my_app, :logger, [
-        {:handler, :name_of_the_handler, ACustomHandler, configuration = %{}}
+        {:handler, :disk_log, :logger_disk_log_h, %{
+           config: %{
+             file: 'system.log',
+             filesync_repeat_interval: 5000,
+             max_no_bytes: 10_000_000,
+             max_no_files: 5
+           },
+           formatter: Logger.Formatter.new()
+         }}
       ]
 
-  And then, explicitly attached in your `c:Application.start/2` callback:
+  Each handler has the shape `{:handler, name, handler_module, config_map}`.
+  Once defined, a handler can be explicitly attached in your
+  `c:Application.start/2` callback:
 
       :logger.add_handlers(:my_app)
 
-  Erlang handlers run in the same process as the process logging the
-  message/event. This gives developers flexibility but they should avoid
-  performing any long running action in such handlers, as it may slow down
-  the action being executed considerably. At the moment, there is no built-in
-  overload protection for Erlang handlers, so it is your responsibility to
-  implement it. Alternatively, you can use the
+  You can also developer your own handlers. Erlang handlers run in the same
+  process as the process logging the message/event. This gives developers
+  flexibility but they should avoid performing any long running action in
+  such handlers, as it may slow down the action being executed considerably.
+  At the moment, there is no built-in overload protection for Erlang handlers,
+  so it is your responsibility to implement it. Alternatively, you can use the
   [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
   project.
 

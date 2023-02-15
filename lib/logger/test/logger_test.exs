@@ -544,6 +544,72 @@ defmodule LoggerTest do
     Application.start(:logger)
   end
 
+  test "starts the application without a handler" do
+    Application.put_env(:logger, :default_handler, false)
+    Logger.App.stop()
+    Application.start(:logger)
+    assert :logger.get_handler_config() == []
+  after
+    Application.delete_env(:logger, :default_handler)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "starts the application with custom formatter" do
+    Application.put_env(:logger, :default_formatter, format: "yes--$message--yes")
+    Logger.App.stop()
+    Application.start(:logger)
+    assert capture_log(fn -> Logger.log(:debug, "hello") end) =~ "yes--hello--yes"
+  after
+    Application.delete_env(:logger, :default_formatter)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "starts the application with custom handler" do
+    Application.put_env(:logger, :default_handler,
+      level: :error,
+      formatter: Logger.Formatter.new(format: "no--$message--no")
+    )
+
+    Logger.App.stop()
+    Application.start(:logger)
+    assert capture_log(fn -> Logger.log(:debug, "hello") end) == ""
+    assert capture_log(fn -> Logger.log(:error, "hello") end) =~ "no--hello--no"
+  after
+    Application.delete_env(:logger, :default_handler)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "writes to stderr on bad default handler config" do
+    Application.put_env(:logger, :default_handler, config: %{file: 123})
+    Logger.App.stop()
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Application.start(:logger)
+           end) =~
+             "Could not attach default Logger handler: {:handler_not_added, {:callback_crashed,"
+  after
+    Application.delete_env(:logger, :default_handler)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
+  test "writes to stderr on bad default handler module" do
+    Application.put_env(:logger, :default_handler, module: :who_knows)
+    Logger.App.stop()
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Application.start(:logger)
+           end) =~
+             "Could not attach default Logger handler: {:invalid_handler, {:function_not_exported"
+  after
+    Application.delete_env(:logger, :default_handler)
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
   test "configure/1 sets options" do
     Logger.configure(sync_threshold: 10)
     Logger.configure(truncate: 4048)

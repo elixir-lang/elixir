@@ -106,6 +106,8 @@ defmodule Logger.BackendsTest do
   end
 
   test "restarts Logger.Backends.Config on Logger exits" do
+    Logger.Backends.Internal.configure([])
+
     capture_log(fn ->
       Process.whereis(Logger) |> Process.exit(:kill)
       wait_for_logger()
