@@ -1,24 +1,36 @@
 import Kernel, except: [inspect: 2]
 
 defmodule Logger.Formatter do
-  # TODO: Rewrite docs
-
   @moduledoc ~S"""
-  Conveniences for formatting data for logs.
+  Conveniences and built-in formatter for logs.
 
-  This module allows developers to specify a `{module, function}`
-  or a string that serves as template for log messages.
+  This modules defines a suitable `:logger` formatter which formats
+  messages and reports as Elixir terms and also provides additional
+  functionality, such as timezone conversion, truncation, and coloring.
+  This formatter is used by default by `Logger` and you can configure it
+  using:
 
-  ## Formatting string
+      config :logger, :default_formatter,
+        format: "\n$time $metadata[$level] $message\n",
+        metadata: [:user_id]
 
-  The log messages can be controlled by a formatting string.
-  Here is an example of how to configure the `:console` backend
-  in a `config/config.exs` file:
+  See `Logger.Formatter.new/1` for all configuration options.
 
-  For example:
+  You can also build your own instances of this formatter by calling
+  `new/1` and setting at the formatter of any `:logger` handler by
+  settings its `:formatter` key to `Logger.Formatter.new(options)`.
 
-      config :logger, :console,
-        format: "$time $metadata[$level] $message\n"
+  This module also provides several conveniences for those who wish
+  to [write their custom logger formatters](https://www.erlang.org/doc/apps/kernel/logger_chapter.html#formatters).
+
+  ## Formatting
+
+  The log messages can be controlled by a formatting string. Here is
+  an example:
+
+      config :logger, :default_formatter,
+        format: "\n$time $metadata[$level] $message\n",
+        metadata: [:user_id]
 
   The above will print error messages as:
 
@@ -33,58 +45,28 @@ defmodule Logger.Formatter do
     * `$node`     - the node that prints the message
     * `$metadata` - user controlled data presented in `"key=val key2=val2 "` format
 
-  Backends typically allow developers to supply such control
-  strings via configuration files. This module provides `compile/1`,
-  which compiles the string into a format for fast operations at
-  runtime and `format/5` to format the compiled pattern into an
-  actual IO data.
+  ### Formatting function
 
-  ## Formatting function
+  You can also customize the format of your log messages with
+  a `{module, function_name}` tuple if you wish to change how messages
+  are formatted but keep all other features provided by `Logger.Formatter`
+  such as truncation and coloring. However, if you want to get full
+  control of formatting, consider writing a custom
+  [`:logger` formatter](https://www.erlang.org/doc/apps/kernel/logger_chapter.html#formatters)
+  instead, which has complete access to all events and metadata.
 
-  You can also customize the format of your log messages to a
-  `{module, function}` tuple if you wish to provide your own
-  format function. Here is an example of how to configure the
-  `:console` backend in a `config/config.exs` file:
-
-      config :logger, :console,
-        format: {MyConsoleLogger, :format}
-
-  And here is an example of how you can define `MyConsoleLogger.format/4`
-  from the above configuration:
+  When using a `{module, function_name}`, the function will be invoked
+  with the level, the message, the timestamp, and metadata, like this:
 
       defmodule MyConsoleLogger do
-        @spec format(atom, term, Logger.Formatter.time(), keyword()) :: IO.chardata()
+        @spec format(atom, chardata, Logger.Formatter.date_time_ms(), keyword()) :: IO.chardata()
         def format(level, message, timestamp, metadata) do
           # Custom formatting logic that must return chardata.
           # ...
         end
       end
 
-  **The `format/4` function must not fail**. If it does, it will bring
-  that particular logger instance down, causing your system to temporarily
-  lose log messages. If necessary, wrap the function in a `rescue` and
-  log a default message instead:
-
-      defmodule MyConsoleLogger do
-        def format(level, message, timestamp, metadata) do
-          # Custom formatting logic
-        rescue
-          _ -> "could not format: #{inspect({level, message, metadata})}"
-        end
-      end
-
-  The `{module, function}` will be invoked with four arguments:
-
-    * the log level: an atom (`t:atom/0`)
-    * the message: this is usually `t:IO.chardata/0`, but in some cases it
-      may contain invalid data. Since the formatting function must
-      *never* fail, you need to prepare for the message being anything
-    * the current timestamp: a term of type `t:Logger.Formatter.time/0`
-    * the metadata: a keyword list (`t:keyword/0`)
-
-  The `{module, function}` must return a term of type `t:IO.chardata/0`.
-
-  ## Metadata
+  ### Metadata
 
   Metadata to be sent to the logger can be read and written with
   the `Logger.metadata/0` and `Logger.metadata/1` functions. For example,
@@ -103,15 +85,54 @@ defmodule Logger.Formatter do
   @default_pattern "\n$time $metadata[$level] $message\n"
   @replacement "�"
 
+  ## Formatter API
+
   defstruct [:template, :truncate, :metadata, :colors, :utc_log?]
 
-  @doc """
-  Initializes a formatter.
+  @doc ~S"""
+  Initializes a formatter for `:logger` handlers.
 
-  TODO options
+  The supported options are:
+
+    * `:colors` - a keyword list of coloring options.
+
+    * `:format` - the format message used to print logs.
+      Defaults to: `"\n$time $metadata[$level] $message\n"`.
+      It may also be a `{module, function_name}` tuple that is invoked
+      with the log level, the message, the current timestamp and
+      the metadata and must return `t:IO.chardata/0`.
+      See the module docs for more information on `:format`.
+
+    * `:metadata` - the metadata to be printed by `$metadata`.
+      Defaults to an empty list (no metadata).
+      Setting `:metadata` to `:all` prints all metadata. See
+      the "Metadata" section in the `Logger` documentation for
+      more information.
+
+    * `:truncate` - the maximum message size to be logged (in bytes).
+      Defaults to 8192 bytes. Note this configuration is approximate.
+      Truncated messages will have `" (truncated)"` at the end.
+      The atom `:infinity` can be passed to disable this behavior.
+
+    * `:utc_log` - when `true`, uses UTC in logs. By default it uses
+      local time (as it defaults to `false`).
+
+  The supported keys in the `:colors` keyword list are:
+
+    * `:enabled` - boolean value that allows for switching the
+      coloring on and off. Defaults to: `IO.ANSI.enabled?/0`
+
+    * `:debug` - color for debug messages. Defaults to: `:cyan`
+
+    * `:info` - color for info and notice messages. Defaults to: `:normal`
+
+    * `:warning` - color for warning messages. Defaults to: `:yellow`
+
+    * `:error` - color for error and higher messages. Defaults to: `:red`
+
+  See the `IO.ANSI` module for a list of colors and attributes.
   """
   def new(options \\ []) do
-    # TODO: deprecate passing a two-element tuple
     template = compile(options[:format])
     colors = colors(options[:colors] || [])
     truncate = options[:truncate] || Application.fetch_env!(:logger, :truncate)
@@ -152,7 +173,8 @@ defmodule Logger.Formatter do
     }
   end
 
-  def format(%{level: level, msg: msg, meta: meta}, %__MODULE__{} = config) do
+  @doc false
+  def format(%{level: level, meta: meta} = event, %__MODULE__{} = config) do
     %{
       utc_log?: utc_log?,
       metadata: metadata_keys,
@@ -170,15 +192,11 @@ defmodule Logger.Formatter do
         keys -> for key <- keys, value = compute_meta(key, meta), do: {key, value}
       end
 
-    msg = format_message(msg, meta, truncate)
+    chardata = format_event(event, truncate)
 
     template
-    # TODO: Move format/5 and compile/1 to Logger.Backends and,
-    # in this function, check specifically for pairs and delegate
-    # there.
-    # TODO: Introduce format_metadata and format_template as building blocs here
-    |> format(level, msg, date_time_ms, meta_list)
-    |> color_event(level, colors, meta)
+    |> format(level, chardata, date_time_ms, meta_list)
+    |> colorize(level, colors, meta)
   end
 
   def format(_event, _config) do
@@ -192,25 +210,26 @@ defmodule Logger.Formatter do
 
   defp format_fa(fun, arity), do: [Atom.to_string(fun), "/", Integer.to_string(arity)]
 
-  defp color_event(data, _level, %{enabled: false}, _md), do: data
+  defp colorize(data, _level, %{enabled: false}, _md), do: data
 
-  defp color_event(data, level, %{enabled: true} = colors, md) do
+  defp colorize(data, level, %{enabled: true} = colors, md) do
     color = md[:ansi_color] || Map.fetch!(colors, level)
     [IO.ANSI.format_fragment(color, true), data | IO.ANSI.reset()]
   end
 
   @doc """
-  Formats the `:msg` key of a log event.
-
-  It also requires its `:meta` key and a truncate value.
+  Formats the message of a log event.
   """
-  def format_message(msg, meta, truncate)
+  @spec format_event(:logger.log_event(), pos_integer | :infinity) :: IO.chardata()
+  def format_event(%{msg: msg, meta: meta} = _log_event, truncate) do
+    format_message(msg, meta, truncate)
+  end
 
-  def format_message({:string, message}, _metadata, truncate) do
+  defp format_message({:string, message}, _metadata, truncate) do
     wrapped_truncate(message, truncate)
   end
 
-  def format_message({:report, data}, %{report_cb: callback} = meta, truncate) do
+  defp format_message({:report, data}, %{report_cb: callback} = meta, truncate) do
     cond do
       is_function(callback, 1) and callback != (&:logger.format_otp_report/1) ->
         format_message(callback.(data), meta, truncate)
@@ -223,13 +242,13 @@ defmodule Logger.Formatter do
     end
   end
 
-  def format_message({:report, data}, _meta, truncate) do
+  defp format_message({:report, data}, _meta, truncate) do
     format_report(data, truncate)
   end
 
-  def format_message({format, args}, _meta, truncate) do
+  defp format_message({format, args}, _meta, truncate) do
     format
-    |> scan_inspect(args, truncate)
+    |> Logger.Utils.scan_inspect(args, truncate)
     |> :io_lib.build_text()
     |> wrapped_truncate(truncate)
   end
@@ -261,165 +280,14 @@ defmodule Logger.Formatter do
   cluster but we never truncate in the middle of a binary
   code point. For this reason, truncation is not exact.
   """
-  @spec truncate(IO.chardata(), non_neg_integer) :: IO.chardata()
+  @spec truncate(IO.chardata(), non_neg_integer | :infinity) :: IO.chardata()
   def truncate(chardata, :infinity) when is_binary(chardata) or is_list(chardata) do
     chardata
   end
 
   def truncate(chardata, n) when n >= 0 do
-    {chardata, n} = truncate_n(chardata, n)
+    {chardata, n} = Logger.Utils.truncate_n(chardata, n)
     if n >= 0, do: chardata, else: [chardata, " (truncated)"]
-  end
-
-  defp truncate_n(_, n) when n < 0 do
-    {"", n}
-  end
-
-  defp truncate_n(binary, n) when is_binary(binary) do
-    remaining = n - byte_size(binary)
-
-    if remaining < 0 do
-      # There is a chance we are cutting at the wrong
-      # place so we need to fix the binary.
-      {fix_binary(binary_part(binary, 0, n)), remaining}
-    else
-      {binary, remaining}
-    end
-  end
-
-  defp truncate_n(int, n) when int in 0..127, do: {int, n - 1}
-  defp truncate_n(int, n) when int in 127..0x07FF, do: {int, n - 2}
-  defp truncate_n(int, n) when int in 0x800..0xFFFF, do: {int, n - 3}
-  defp truncate_n(int, n) when int >= 0x10000 and is_integer(int), do: {int, n - 4}
-
-  defp truncate_n(list, n) when is_list(list) do
-    truncate_n_list(list, n, [])
-  end
-
-  defp truncate_n(other, _n) do
-    raise ArgumentError,
-          "cannot truncate chardata because it contains something that is not " <>
-            "valid chardata: #{inspect(other)}"
-  end
-
-  defp truncate_n_list(_, n, acc) when n < 0 do
-    {:lists.reverse(acc), n}
-  end
-
-  defp truncate_n_list([h | t], n, acc) do
-    {h, n} = truncate_n(h, n)
-    truncate_n_list(t, n, [h | acc])
-  end
-
-  defp truncate_n_list([], n, acc) do
-    {:lists.reverse(acc), n}
-  end
-
-  defp truncate_n_list(t, n, acc) do
-    {t, n} = truncate_n(t, n)
-    {:lists.reverse(acc, t), n}
-  end
-
-  defp fix_binary(binary) do
-    # Use a thirteen-bytes offset to look back in the binary.
-    # This should allow at least two code points of 6 bytes.
-    suffix_size = min(byte_size(binary), 13)
-    prefix_size = byte_size(binary) - suffix_size
-    <<prefix::binary-size(prefix_size), suffix::binary-size(suffix_size)>> = binary
-    prefix <> fix_binary(suffix, "")
-  end
-
-  defp fix_binary(<<h::utf8, t::binary>>, acc) do
-    acc <> <<h::utf8>> <> fix_binary(t, "")
-  end
-
-  defp fix_binary(<<h, t::binary>>, acc) do
-    fix_binary(t, <<acc::binary, h>>)
-  end
-
-  defp fix_binary(<<>>, _acc) do
-    <<>>
-  end
-
-  @doc """
-  Receives a format string and arguments, scans them, and then replace `~p`,
-  `~P`, `~w` and `~W` by its inspected variants.
-
-  For information about format scanning and how to consume them,
-  check `:io_lib.scan_format/2`.
-  """
-  def scan_inspect(format, args, truncate, opts \\ %Inspect.Opts{})
-
-  def scan_inspect(format, args, truncate, opts) when is_atom(format) do
-    scan_inspect(Atom.to_charlist(format), args, truncate, opts)
-  end
-
-  def scan_inspect(format, args, truncate, opts) when is_binary(format) do
-    scan_inspect(:binary.bin_to_list(format), args, truncate, opts)
-  end
-
-  def scan_inspect(format, [], _truncate, _opts) when is_list(format) do
-    :io_lib.scan_format(format, [])
-  end
-
-  def scan_inspect(format, args, truncate, opts) when is_list(format) do
-    # A pre-pass that removes binaries from
-    # arguments according to the truncate limit.
-    {args, _} =
-      Enum.map_reduce(args, truncate, fn arg, acc ->
-        if is_binary(arg) and acc != :infinity do
-          truncate_n(arg, acc)
-        else
-          {arg, acc}
-        end
-      end)
-
-    format
-    |> :io_lib.scan_format(args)
-    |> Enum.map(&handle_format_spec(&1, opts))
-  end
-
-  @inspected_format_spec %{
-    adjust: :right,
-    args: [],
-    control_char: ?s,
-    encoding: :unicode,
-    pad_char: ?\s,
-    precision: :none,
-    strings: true,
-    width: :none
-  }
-
-  defp handle_format_spec(%{control_char: char} = spec, opts) when char in ~c"wWpP" do
-    %{args: args, width: width, strings: strings?} = spec
-
-    opts = %{
-      opts
-      | charlists: inspect_charlists(strings?, opts),
-        limit: inspect_limit(char, args, opts),
-        width: inspect_width(char, width)
-    }
-
-    %{@inspected_format_spec | args: [inspect_data(args, opts)]}
-  end
-
-  defp handle_format_spec(spec, _opts), do: spec
-
-  defp inspect_charlists(false, _), do: :as_lists
-  defp inspect_charlists(_, opts), do: opts.charlists
-
-  defp inspect_limit(char, [_, limit], _) when char in ~c"WP", do: limit
-  defp inspect_limit(_, _, opts), do: opts.limit
-
-  defp inspect_width(char, _) when char in ~c"wW", do: :infinity
-  defp inspect_width(_, width), do: width
-
-  defp inspect_data([data | _], opts) do
-    width = if opts.width == :none, do: 80, else: opts.width
-
-    data
-    |> Inspect.Algebra.to_doc(opts)
-    |> Inspect.Algebra.format(width)
   end
 
   @doc """
@@ -442,7 +310,7 @@ defmodule Logger.Formatter do
   Formats time as chardata.
   """
   @spec format_time(time_ms) :: IO.chardata()
-  def format_time({hh, mi, ss, ms}) do
+  def format_time({hh, mi, ss, ms} = _time_ms_tuple) do
     [pad2(hh), ?:, pad2(mi), ?:, pad2(ss), ?., pad3(ms)]
   end
 
@@ -450,7 +318,7 @@ defmodule Logger.Formatter do
   Formats date as chardata.
   """
   @spec format_date(date) :: IO.chardata()
-  def format_date({yy, mm, dd}) do
+  def format_date({yy, mm, dd} = _date_tuple) do
     [Integer.to_string(yy), ?-, pad2(mm), ?-, pad2(dd)]
   end
 
@@ -477,10 +345,8 @@ defmodule Logger.Formatter do
     {date, {hours, minutes, seconds, div(micro, 1000)}}
   end
 
-  ## OLD API.
-
   @doc """
-  Compiles a format string into a data structure that `format/5` can handle.
+  Compiles a pattern or function into a data structure that `format/5` can handle.
 
   Check the module doc for documentation on the valid parameters that
   will be interpolated in the pattern. If you pass `nil` as the pattern,
@@ -488,8 +354,14 @@ defmodule Logger.Formatter do
 
       #{inspect(@default_pattern)}
 
-  If you want to customize formatting through a custom formatter, you can
-  pass a `{module, function}` tuple as the `pattern`.
+  If you want to customize formatting with a custom function, you can
+  pass a `{module, function_name}` tuple.
+
+  This function, alongside `format/5`, is the main building block used
+  by `Logger.Formatter.new/1` for formatting messages. It can also be used
+  by those interested in building custom formatters.
+
+  ## Examples
 
       iex> Logger.Formatter.compile("$time $metadata [$level] $message\\n")
       [:time, " ", :metadata, " [", :level, "] ", :message, "\\n"]
@@ -500,7 +372,7 @@ defmodule Logger.Formatter do
   """
   @spec compile(binary | nil) :: [pattern | binary]
   @spec compile(pattern) :: pattern when pattern: {module, function :: atom}
-  def compile(pattern)
+  def compile(pattern_or_function)
 
   def compile(nil), do: compile(@default_pattern)
   def compile({mod, fun}) when is_atom(mod) and is_atom(fun), do: {mod, fun}
@@ -528,13 +400,18 @@ defmodule Logger.Formatter do
   end
 
   @doc """
-  Takes a compiled format and injects the level, timestamp, message, and
-  metadata keyword list and returns a properly formatted string.
+  Formats a `pattern_or_function` returned by `compile/1`.
+
+  It takes a compiled format and injects the level, timestamp, message,
+  and metadata keyword list and returns a properly formatted string.
 
   If `pattern_or_function` is a `{module, function_name}` tuple,
   then `module.function_name(level, message, timestamp, metadata)` is
-  invoked to get the message. See `Logger.Backends.Console` for more
-  information on this.
+  invoked to get the message.
+
+  This function, alongside `compile/1`, is the main building block used
+  by `Logger.Formatter.new/1` for formatting messages. It can also be used
+  by those interested in building custom formatters.
 
   ## Examples
 

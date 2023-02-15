@@ -431,20 +431,22 @@ defmodule Logger do
   @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
   @metadata :logger_level
 
-  @doc """
+  @doc ~S"""
   Returns the default formatter used by Logger.
 
-  It returns the configuration based on `config :logger, :default_formatter`.
-  The `:default_formatter` can either be a keyword list of formatter options,
-  which is then converted into a `Logger.Formatter` instance, or a tuple,
-  which is [any other `:logger` formatter](https://www.erlang.org/doc/apps/kernel/logger_chapter.html#formatters).
+  It returns a `Logger.Formatter` built on the `:default_formatter` configuration:
+
+      config :logger, :default_formatter,
+        format: "\n$time $metadata[$level] $message\n",
+        metadata: [:user_id]
 
   In case of a list, a set of `overrides` can be given to merge into the list.
+  See `Logger.Formatter.new/1` for all options.
 
   ## Examples
 
-  `Logger` will automatically load a default formatter into the default handler at
-  boot time. However, you can use this function if you wish to programatically replace
+  `Logger` will automatically load a default formatter into the default handler
+  on boot. However, you can use this function if you wish to programatically replace
   a handler formatter. For example, inside tests, you might want to change the formatter
   settings:
 
@@ -457,17 +459,16 @@ defmodule Logger do
         end)
       end
 
-  However, note you should note invoke this function inside `config` files,
+  However, note you should not invoke this function inside `config` files,
   as this function expects `Logger` to already be configured and started.
   To start a brand new handler with this formatter, use `Logger.Formatter.new/1`
   instead.
   """
   @doc since: "1.15.0"
   def default_formatter(overrides \\ []) do
-    case Application.get_env(:logger, :default_formatter, []) do
-      list when is_list(list) -> Logger.Formatter.new(Keyword.merge(list, overrides))
-      {_, _} = tuple -> tuple
-    end
+    Application.get_env(:logger, :default_formatter, [])
+    |> Keyword.merge(overrides)
+    |> Logger.Formatter.new()
   end
 
   @doc """
@@ -630,7 +631,7 @@ defmodule Logger do
       end
     end
 
-    # TODO: Deprecate passing backend options to configure
+    # TODO: Deprecate passing backend options to configure on Elixir v1.19
     case Keyword.take(options, @backend_options) do
       [] -> :ok
       backend_options -> Logger.Backends.configure(backend_options)

@@ -34,11 +34,11 @@ defmodule Logger.App do
     primary_config = :logger.get_primary_config()
     :ok = :logger.set_primary_config(:level, default_level())
 
-    process_level_filter = {&Logger.Filter.process_level/2, []}
+    process_level_filter = {&Logger.Utils.process_level/2, []}
     :ok = :logger.add_primary_filter(:logger_process_level, process_level_filter)
 
     config = %{translators: translators, otp: otp_reports?, sasl: sasl_reports?}
-    translator_filter = {&Logger.Filter.translator/2, config}
+    translator_filter = {&Logger.Utils.translator/2, config}
     :ok = :logger.add_primary_filter(:logger_translator, translator_filter)
 
     revert = [
@@ -73,7 +73,7 @@ defmodule Logger.App do
 
     :logger.add_primary_filter(
       :silence_logger_exit,
-      {&Logger.Filter.silence_logger_exit/2, []}
+      {&Logger.Utils.silence_logger_exit/2, []}
     )
   end
 
