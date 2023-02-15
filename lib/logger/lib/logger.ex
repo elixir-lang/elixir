@@ -210,7 +210,7 @@ defmodule Logger do
 
       config :logger, :default_handler,
         config: %{
-          file: 'system.log',
+          file: ~c"system.log",
           filesync_repeat_interval: 5000,
           file_check: 5000,
           max_no_bytes: 10_000_000,
