@@ -1,15 +1,65 @@
 defmodule Logger.Backends.Internal do
   # TODO: Move the docs to a separate package
-  @moduledoc false
-  use Supervisor
 
-  @name __MODULE__
-  @type backend :: :gen_event.handler()
+  @moduledoc """
+  `:gen_event`-based backends with overload protection.
 
-  @doc """
-  Configures all backends.
+  This module provides backends for Elixir's Logger with
+  built-in overload protection. This was the default
+  mechanism for hooking into Elixir's Logger until Elixir v1.15.
 
-  The supported options are:
+  Elixir backends run in a separate process which comes with overload
+  protection. All backends run in this same process as a unified front
+  for handling log events.
+
+  The available backends by default are:
+
+    * `Logger.Backends.Console` - logs messages to the console
+      (see its documentation for more information)
+
+  Developers may also implement their own backends, an option that
+  is explored in more detail later.
+
+  The initial backends are loaded via the `:backends` configuration.
+  However, by the time this application starts, the code for your
+  own and third-party backends may not yet be available. For this reason,
+  it is preferred to add and remove backends via `add/2` and
+  `remove/2` functions. This is often done in your `c:Application.start/2`
+  callback:
+
+      @impl true
+      def start(_type, _args) do
+        Logger.Backends.add(MyCustomBackend)
+
+  The backend can be configured either on the `add_backend/2` call:
+
+      @impl true
+      def start(_type, _args) do
+        Logger.Backends.add(MyCustomBackend, some_config: ...)
+
+  Or in your config files:
+
+      config :logger, MyCustomBackend,
+        some_config: ...
+
+  ## Application configuration
+
+  Application configuration goes under the `:logger` application for
+  backwards compatibility. The following keys must be set before
+  the `:logger` application (and this application) are started.
+
+    * `:backends` - the backends to be used. Defaults to `[]`.
+      See the "Backends" section for more information.
+
+    * `:start_options` - passes start options to Logger's main process, such
+      as `:spawn_opt` and `:hibernate_after`. All options in `t:GenServer.option/0`
+      are accepted, except `:name`.
+
+  ## Runtime configuration
+
+  The following keys can be set at runtime via the `configure/1` function.
+  In your config files, they also go under the `:logger` application
+  for backwards compatibility.
 
     * `:utc_log` - when `true`, uses UTC in logs. By default it uses
       local time (i.e., it defaults to `false`).
@@ -41,6 +91,93 @@ defmodule Logger.Backends.Internal do
       but stopped doing so after the previous check. By default it runs
       every `30_000` milliseconds.
 
+  ## Custom backends
+
+  Any developer can create their own backend. Since `Logger` is an
+  event manager powered by `:gen_event`, writing a new backend
+  is a matter of creating an event handler, as described in the
+  [`:gen_event`](`:gen_event`) documentation.
+
+  From now on, we will be using the term "event handler" to refer
+  to your custom backend, as we head into implementation details.
+
+  Once Logger starts, it installs all event handlers listed under
+  the `:backends` configuration into the `Logger` event manager.
+  The event manager and all added event handlers are automatically
+  supervised by `Logger`.
+
+  Note that if a backend fails to start by returning `{:error, :ignore}`
+  from its `init/1` callback, then it's not added to the backends but
+  nothing fails. If a backend fails to start by returning `{:error, reason}`
+  from its `init/1` callback, the system will fail to start.
+
+  Once initialized, the handler should be designed to handle the
+  following events:
+
+    * `{level, group_leader, {Logger, message, timestamp, metadata}}` where:
+      * `level` is one of `:debug`, `:info`, `:warn`, or `:error`, as previously
+        described (for compatibility with pre 1.10 backends the `:notice` will
+        be translated to `:info` and all messages above `:error` will be translated
+        to `:error`)
+      * `group_leader` is the group leader of the process which logged the message
+      * `{Logger, message, timestamp, metadata}` is a tuple containing information
+        about the logged message:
+        * the first element is always the atom `Logger`
+        * `message` is the actual message (as chardata)
+        * `timestamp` is the timestamp for when the message was logged, as a
+          `{{year, month, day}, {hour, minute, second, millisecond}}` tuple
+        * `metadata` is a keyword list of metadata used when logging the message
+
+    * `:flush`
+
+  It is recommended that handlers ignore messages where the group
+  leader is in a different node than the one where the handler is
+  installed. For example:
+
+      def handle_event({_level, gl, {Logger, _, _, _}}, state)
+          when node(gl) != node() do
+        {:ok, state}
+      end
+
+  In the case of the event `:flush` handlers should flush any pending
+  data. This event is triggered by `Logger.flush/0`.
+
+  Furthermore, backends can be configured via the `configure_backend/2`
+  function which requires event handlers to handle calls of the
+  following format:
+
+      {:configure, options}
+
+  where `options` is a keyword list. The result of the call is the result
+  returned by `configure_backend/2`. The recommended return value for
+  successful configuration is `:ok`. For example:
+
+      def handle_call({:configure, options}, state) do
+        new_state = reconfigure_state(state, options)
+        {:ok, :ok, new_state}
+      end
+
+  It is recommended that backends support at least the following configuration
+  options:
+
+    * `:level` - the logging level for that backend
+    * `:format` - the logging format for that backend
+    * `:metadata` - the metadata to include in that backend
+
+  Check the `Logger.Backends.Console` implementation in Elixir's codebase
+  for examples on how to handle the recommendations in this section and
+  how to process the existing options.
+  """
+
+  use Supervisor
+
+  @name __MODULE__
+  @type backend :: :gen_event.handler()
+
+  @doc """
+  Apply runtime configuration to all backends.
+
+  See the module doc for more information.
   """
   @spec configure(keyword) :: :ok
   def configure(options) do
@@ -130,19 +267,20 @@ defmodule Logger.Backends.Internal do
 
   defp ensure_started() do
     unless Process.whereis(@name) do
-      backends = Application.get_env(:logger, :backends, []) -- [:console]
-      Supervisor.start_child(Logger.Supervisor, {__MODULE__, backends})
+      Supervisor.start_child(Logger.Supervisor, __MODULE__)
     end
 
     :ok
   end
 
-  def start_link(backends) do
-    Supervisor.start_link(__MODULE__, backends, name: @name)
+  @doc false
+  def start_link(_opts) do
+    Supervisor.start_link(__MODULE__, :ok, name: @name)
   end
 
   @impl true
-  def init(backends) do
+  def init(:ok) do
+    backends = Application.get_env(:logger, :backends, []) -- [:console]
     start_options = Application.fetch_env!(:logger, :start_options)
     counter = :counters.new(1, [:atomics])
 

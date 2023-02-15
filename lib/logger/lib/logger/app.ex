@@ -46,12 +46,7 @@ defmodule Logger.App do
       | update_default_handler(console? && default_handler)
     ]
 
-    children =
-      if backends != [] do
-        [{Logger.Backends.Internal, backends}]
-      else
-        []
-      end
+    children = if backends != [], do: [Logger.Backends.Internal], else: []
 
     case Supervisor.start_link(children, strategy: :one_for_one, name: Logger.Supervisor) do
       {:ok, sup} ->

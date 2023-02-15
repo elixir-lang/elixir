@@ -2,12 +2,16 @@ defmodule Logger do
   @moduledoc ~S"""
   A logger for Elixir applications.
 
-  It includes many features:
+  This application is mostly a wrapper around Erlang's
+  [`:logger`](`:logger`) functionality, to provide message
+  translation and formatting to Elixir terms.
 
-    * Provides debug, info, warn, and error levels.
+  Overall, you will find that `Logger`:
 
-    * Supports multiple backends which are automatically
-      supervised when plugged into `Logger`.
+    * Provides all 7 syslog levels
+      (although debug, info, warning, and error are the most commonly used).
+
+    * Supports both message-based and structural logging.
 
     * Formats and truncates messages on the client
       to avoid clogging `Logger` backends.
@@ -16,8 +20,8 @@ defmodule Logger do
       performant when required but also apply backpressure
       when under stress.
 
-    * Integrates with Erlang's [`:logger`](`:logger`)
-      to convert terms to Elixir syntax.
+    * Support for custom filters and handlers as provided by
+      Erlang's `:logger`.
 
     * Allows overriding the logging level for a specific module,
       application or process.
@@ -126,6 +130,9 @@ defmodule Logger do
       but it can be useful to other backends, such as the ones that report
       errors to third-party services
 
+  There are two special metadata keys, `:module` and `:function`, which
+  extract the relevant bits from `:mfa`.
+
   Note that all metadata is optional and may not always be available.
   The `:mfa`, `:file`, `:line`, and similar metadata are automatically
   included when using `Logger` macros. `Logger.bare_log/3` does not include
@@ -138,9 +145,8 @@ defmodule Logger do
 
       Logger.error("We have a problem", [error_code: :pc_load_letter])
 
-  You might need to configure your logger backends to handle those metadata
-  values. For the default `:console` backend there's an example in
-  `Logger.Backends.Console`.
+  By default, no metadata is logged. We will learn how to enable that
+  over the next sections.
 
   ## Configuration
 
@@ -148,22 +154,70 @@ defmodule Logger do
 
   This configuration is split in three categories:
 
-    * Application configuration - must be set before the `:logger`
-      application is started
+    * Boot configuration - this configuration is read when logger
+      starts and configures how Elixir hooks into Erlang's own logger
+
+    * Compile configuration - this must be set before your code
+      is compiled
 
     * Runtime configuration - can be set before the `:logger`
       application is started, but may be changed during runtime
 
-    * Erlang configuration - options that handle integration with
-      Erlang's logging facilities
+  ### Boot configuration
 
-  ### Application configuration
+  When `Logger` starts, it configures the `:default` log handler from
+  Erlang to translate and format Elixir terms. As a developer, you
+  are able to customize the default handler, the default formatter,
+  and many other options.
 
   The following configuration must be set via config files (such as
-  `config/config.exs`) before the `:logger` application is started.
+  `config/config.exs`), under the `:logger` key, before your application
+  is started:
 
-    * `:backends` - the backends to be used. Defaults to `[:console]`.
-      See the "Backends" section for more information.
+    * `:default_formatter` - a keyword lists which configures the
+      default formatter used by the default handler. See `Logger.Formatter`
+      for the full list of configuration.
+
+    * `:default_handler` - this option configures the default handler
+      used for logging. The default handler is a [`:logger_std_h`](`:logger_std_h`)
+      instance which also supports file logging and log rotation.
+      You can set it to `false` to disable the default logging altogether.
+      See the examples below for more information.
+
+    * `:handle_otp_reports` - if Erlang/OTP message should be logged.
+      Defaults to `true`.
+
+    * `:handle_sasl_reports` - if supervisor, crash, and progress reports
+      should be logged. Defaults to `false`. This option only has an effect
+      if `:handle_otp_reports` is true.
+
+  For example, to configure `Logger` to redirect all Erlang messages using a
+  `config/config.exs` file:
+
+      config :logger,
+        handle_otp_reports: true,
+        handle_sasl_reports: true
+
+  To configure the default formatter, for example, to use a different format
+  and include some metadata:
+
+      config :logger, :default_formatter,
+        format: "[$level] $message $metadata\n",
+        metadata: [:error_code, :file]
+
+  Or to configure default handler, for instance, to log into a file:
+
+  See [`:logger_std_h`](`:logger_std_h`) for all relevant configuration,
+  including overload protection. Or set `:default_handler` to false to
+  disable the default logging altogether:
+
+      config :logger, :default_handler, false
+
+  ### Compile configuration
+
+  The following configuration must be set via config files (such as
+  `config/config.exs`) under the `:logger` application before your code
+  is compiled:
 
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
@@ -183,15 +237,10 @@ defmodule Logger do
       Remember that if you want to purge log calls from a dependency, the
       dependency must be recompiled.
 
-    * `:start_options` - passes start options to Logger's main process, such
-      as `:spawn_opt` and `:hibernate_after`. All options in `t:GenServer.option/0`
-      are accepted, except `:name`.
-
   For example, to configure the `:backends` and purge all calls that happen
   at compile time with level lower than `:info` in a `config/config.exs` file:
 
       config :logger,
-        backends: [:console],
         compile_time_purge_matching: [
           [level_lower_than: :info]
         ]
@@ -226,182 +275,22 @@ defmodule Logger do
       error reports. This configuration allow developers to change
       how much and how the data should be inspected.
 
-  For example, to configure the `:level` and `:truncate` options in a
-  `config/config.exs` file:
+  For example, to configure the `:level` options in a `config/config.exs`
+  file:
 
-      config :logger,
-        level: :warning,
-        truncate: 4096
-
-  ### Erlang/OTP integration
-
-  From Elixir v1.10, Elixir's Logger is fully integrated with Erlang's
-  logger. They share the same `Logger.level/0`, any metadata set with
-  `Logger.metadata/1` applies to both, and so on.
-
-  Elixir also supports formatting Erlang reports using Elixir syntax.
-  This can be controlled with two configurations:
-
-    * `:handle_otp_reports` - redirects OTP reports to `Logger` so
-      they are formatted in Elixir terms. This effectively disables
-      Erlang standard logger. Defaults to `true`.
-
-    * `:handle_sasl_reports` - redirects supervisor, crash and
-      progress reports to `Logger` so they are formatted in Elixir
-      terms. Your application must guarantee `:sasl` is started before
-      `:logger`. This means you may see some initial reports written
-      in Erlang syntax until the Logger application kicks in.
-      Defaults to `false`. This option only has an effect if
-      `:handle_otp_reports` is true.
-
-  For example, to configure `Logger` to redirect all Erlang messages using a
-  `config/config.exs` file:
-
-      config :logger,
-        handle_otp_reports: true,
-        handle_sasl_reports: true
+      config :logger, level: :warning
 
   Furthermore, `Logger` allows messages sent by Erlang to be translated
   into an Elixir format via translators. Translators can be added at any
   time with the `add_translator/1` and `remove_translator/1` APIs. Check
   `Logger.Translator` for more information.
 
-  ## Backends
+  ## Erlang/OTP handlers
 
-  `Logger` supports different backends where log messages are written to.
-
-  The available backends by default are:
-
-    * `:console` - logs messages to the console (enabled by default).
-      `:console` is simply a shortcut for `Logger.Backends.Console`
-      (see its documentation for more information)
-
-  Developers may also implement their own backends, an option that
-  is explored in more detail below.
-
-  The initial backends are loaded via the `:backends` configuration,
-  which must be set before the `:logger` application is started.
-  However, by the time the Logger application starts, the code for your
-  own and third-party backends may not yet be available. For this reason,
-  it is preferred to add and remove backends via `add_backend/2` and
-  `remove_backend/2` functions. This is often done in your
-  `c:Application.start/2` callback:
-
-      @impl true
-      def start(_type, _args) do
-        Logger.add_backend(MyCustomBackend)
-
-  The backend can be configured either on the `add_backend/2` call:
-
-      @impl true
-      def start(_type, _args) do
-        Logger.add_backend(MyCustomBackend, some_config: ...)
-
-  Or in your config files:
-
-      config :logger, MyCustomBackend,
-        some_config: ...
-
-  ### Elixir custom backends
-
-  Any developer can create their own `Logger` backend. Since `Logger`
-  is an event manager powered by `:gen_event`, writing a new backend
-  is a matter of creating an event handler, as described in the
-  [`:gen_event`](`:gen_event`) documentation.
-
-  From now on, we will be using the term "event handler" to refer
-  to your custom backend, as we head into implementation details.
-
-  Once the `:logger` application starts, it installs all event handlers
-  listed under the `:backends` configuration into the `Logger` event
-  manager. The event manager and all added event handlers are automatically
-  supervised by `Logger`.
-
-  Note that if a backend fails to start by returning `{:error, :ignore}`
-  from its `init/1` callback, then it's not added to the backends but
-  nothing fails. If a backend fails to start by returning `{:error, reason}`
-  from its `init/1` callback, the `:logger` application will fail to start.
-
-  Once initialized, the handler should be designed to handle the
-  following events:
-
-    * `{level, group_leader, {Logger, message, timestamp, metadata}}` where:
-      * `level` is one of `:debug`, `:info`, `:warn`, or `:error`, as previously
-        described (for compatibility with pre 1.10 backends the `:notice` will
-        be translated to `:info` and all messages above `:error` will be translated
-        to `:error`)
-      * `group_leader` is the group leader of the process which logged the message
-      * `{Logger, message, timestamp, metadata}` is a tuple containing information
-        about the logged message:
-        * the first element is always the atom `Logger`
-        * `message` is the actual message (as chardata)
-        * `timestamp` is the timestamp for when the message was logged, as a
-          `{{year, month, day}, {hour, minute, second, millisecond}}` tuple
-        * `metadata` is a keyword list of metadata used when logging the message
-
-    * `:flush`
-
-  It is recommended that handlers ignore messages where the group
-  leader is in a different node than the one where the handler is
-  installed. For example:
-
-      def handle_event({_level, gl, {Logger, _, _, _}}, state)
-          when node(gl) != node() do
-        {:ok, state}
-      end
-
-  In the case of the event `:flush` handlers should flush any pending
-  data. This event is triggered by `Logger.flush/0`.
-
-  Furthermore, backends can be configured via the `configure_backend/2`
-  function which requires event handlers to handle calls of the
-  following format:
-
-      {:configure, options}
-
-  where `options` is a keyword list. The result of the call is the result
-  returned by `configure_backend/2`. The recommended return value for
-  successful configuration is `:ok`. For example:
-
-      def handle_call({:configure, options}, state) do
-        new_state = reconfigure_state(state, options)
-        {:ok, :ok, new_state}
-      end
-
-  It is recommended that backends support at least the following configuration
-  options:
-
-    * `:level` - the logging level for that backend
-    * `:format` - the logging format for that backend
-    * `:metadata` - the metadata to include in that backend
-
-  Check the `Logger.Backends.Console` implementation in Elixir's codebase
-  for examples on how to handle the recommendations in this section and
-  how to process the existing options.
-
-  ### Erlang/OTP handlers
-
-  While Elixir Logger provides backends, Erlang/OTP logger provides handlers.
-  They represent the same concept: the ability to integrate into the logging
-  system to handle each logged message/event.
-
-  However, implementation-wise, they have the following differences:
-
-    * Elixir backends run in a separate process which comes with overload
-      protection. However, because this process is a single GenEvent, any
-      long running action should be avoided, as it can lead to bottlenecks
-      in the system
-
-    * Erlang handlers run in the same process as the process logging the
-      message/event. This gives developers more flexibility but they should
-      avoid performing any long running action in such handlers, as it may
-      slow down the action being executed considerably. At the moment, there
-      is no built-in overload protection for Erlang handlers, so it is your
-      responsibility to implement it
-
-  The good news is that developers can use third-party implementations of
-  both Elixir backends and Erlang handlers. We have already covered Elixir
-  backends, so let's see how to add Erlang/OTP handlers.
+  Erlang/OTP logger provides handlers. Handlers represent ability to integrate
+  into the logging system to handle each logged message/event. Elixir automatically
+  configures the default handler, but you can use `Erlang/OTP` APIs to add your own
+  handlers too. See the [`:logger`](`:logger`) documentation to get started.
 
   Erlang/OTP handlers must be listed under your own application:
 
@@ -413,14 +302,51 @@ defmodule Logger do
 
       :logger.add_handlers(:my_app)
 
-  Note we do not recommend configuring Erlang/OTP's logger directly under
-  the `:kernel` application in your `config/config.exs`, like this:
+  Erlang handlers run in the same process as the process logging the
+  message/event. This gives developers flexibility but they should avoid
+  performing any long running action in such handlers, as it may slow down
+  the action being executed considerably. At the moment, there is no built-in
+  overload protection for Erlang handlers, so it is your responsibility to
+  implement it. Alternatively, you can use the
+  [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
+  project.
 
-      # Not recommended:
-      config :kernel, :logger, ...
+  ## Backends and backwards compatibility
 
-  This is because by the time Elixir starts, Erlang's kernel has already
-  been started, which means the configuration above would have no effect.
+  Prior to Elixir v1.15, custom logging could be achieved with Logger
+  backends. The main API for writing Logger backends have been moved to
+  the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
+  project. However, the backends are still part of Elixir for backwards
+  compatibility.
+
+  Important remarks:
+
+    * If the `:backends` key is set and it doesn't have the `:console` entry,
+      we assume that you want to disable the built-in logging. You can force
+      logging by setting `config :logger, :default_handler, []`
+
+    * The `:console` backend configuration is automatically maped to the default
+      handler and default formatter. Previously, you would set:
+
+          config :logger, :console,
+            level: :error,
+            format: "$time $message $metadata"
+
+      This is now equivalent to:
+
+          config :logger, :default_handler,
+            level: :error
+
+          config :logger, :default_formatter,
+            format: "$time $message $metadata"
+
+      All previous console configuration, except for `:level`, now go under
+      `:default_formatter`.
+
+    * If you want to use the previous `:console` implementation,
+      based on `Logger.Backends`, you can set `backends: [Logger.Backends.Console]`
+      and place the configuration under `config :logger, Logger.Backends.Console`
+
   """
 
   @type level ::
