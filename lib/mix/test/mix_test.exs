@@ -339,8 +339,14 @@ defmodule MixTest do
       on_exit(fn ->
         :code.set_path(path)
         purge([InstallTest, InstallTest.MixProject, InstallTest.Protocol])
-        Application.stop(:install_test)
-        Application.unload(:install_test)
+
+        ExUnit.CaptureLog.capture_log(fn ->
+          Application.stop(:git_repo)
+          Application.unload(:git_repo)
+
+          Application.stop(:install_test)
+          Application.unload(:install_test)
+        end)
       end)
 
       Mix.State.put(:installed, nil)

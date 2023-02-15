@@ -386,7 +386,8 @@ defmodule Mix.Tasks.ReleaseTest do
         config :release_test, :runtime,
           override: :runtime,
           config_env: config_env(),
-          config_target: config_target()
+          config_target: config_target(),
+          mode: :code.get_mode()
 
         config :release_test, :encoding, {:runtime, :_μ, :"£", "£", '£'}
         """)
@@ -425,7 +426,13 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_vsn: "0.1.0",
                  runtime_config:
                    {:ok,
-                    [keep: :static, override: :runtime, config_env: :dev, config_target: :host]},
+                    [
+                      keep: :static,
+                      override: :runtime,
+                      config_env: :dev,
+                      config_target: :host,
+                      mode: :interactive
+                    ]},
                  static_config: {:ok, :was_set},
                  sys_config_env: sys_config_env,
                  sys_config_init: sys_config_init
@@ -581,6 +588,7 @@ defmodule Mix.Tasks.ReleaseTest do
         File.write!("config/runtime.exs", """
         import Config
         config :release_test, :static, String.to_atom(System.get_env("RELEASE_STATIC"))
+        config :release_test, :runtime, mode: :code.get_mode()
         """)
 
         root = Path.absname("_build/dev/rel/no_compile_env_config")
@@ -589,7 +597,13 @@ defmodule Mix.Tasks.ReleaseTest do
         # It boots with mismatched config
         env = [{~c"RELEASE_STATIC", ~c"runtime"}]
         open_port(Path.join(root, "bin/no_compile_env_config"), [~c"start"], env)
-        assert %{} = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
+
+        assert %{
+                 mode: :embedded,
+                 runtime_config: {:ok, [mode: :embedded]},
+                 static_config: {:ok, :runtime}
+               } =
+                 wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
       end)
     end)
   end
@@ -643,7 +657,7 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         File.write!("config/runtime.exs", """
         import Config
-        config :release_test, :runtime, :was_set
+        config :release_test, :runtime, [mode: :code.get_mode()]
         """)
 
         root = Path.absname("_build/dev/rel/eval")
@@ -676,7 +690,7 @@ defmodule Mix.Tasks.ReleaseTest do
                  release_prog: "eval" <> ext,
                  release_root: release_root,
                  release_vsn: "0.1.0",
-                 runtime_config: {:ok, :was_set},
+                 runtime_config: {:ok, [mode: :interactive]},
                  static_config: {:ok, :was_set}
                } = wait_until_decoded(Path.join(root, "RELEASE_BOOTED"))
 
