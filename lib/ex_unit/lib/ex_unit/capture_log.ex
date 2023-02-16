@@ -93,16 +93,17 @@ defmodule ExUnit.CaptureLog do
 
       assert result == 4
       assert log =~ "log msg"
+
   """
   @doc since: "1.13.0"
-  @spec with_log(keyword, (-> any)) :: {any, String.t()}
-  def with_log(opts \\ [], fun) do
+  @spec with_log(keyword, (-> result)) :: {result, String.t()} when result: any
+  def with_log(opts \\ [], fun) when is_list(opts) do
     opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")
 
     try do
       :ok = add_capture(string_io, opts)
-      ref = ExUnit.CaptureServer.log_capture_on(self())
+      ref = ExUnit.CaptureServer.log_capture_on(self(), string_io)
 
       try do
         fun.()
@@ -117,8 +118,8 @@ defmodule ExUnit.CaptureLog do
         :erlang.raise(kind, reason, __STACKTRACE__)
     else
       result ->
-        {:ok, content} = StringIO.close(string_io)
-        {result, elem(content, 1)}
+        {:ok, {_input, output}} = StringIO.close(string_io)
+        {result, output}
     end
   end
 

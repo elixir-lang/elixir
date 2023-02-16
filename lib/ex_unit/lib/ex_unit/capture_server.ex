@@ -3,6 +3,7 @@ defmodule ExUnit.CaptureServer do
   @compile {:no_warn_undefined, Logger}
   @timeout :infinity
   @name __MODULE__
+  @ets __MODULE__
 
   use GenServer
 
@@ -22,8 +23,8 @@ defmodule ExUnit.CaptureServer do
     GenServer.call(@name, {:device_capture_off, ref}, @timeout)
   end
 
-  def log_capture_on(pid) do
-    GenServer.call(@name, {:log_capture_on, pid}, @timeout)
+  def log_capture_on(pid, string_io) do
+    GenServer.call(@name, {:log_capture_on, pid, string_io}, @timeout)
   end
 
   def log_capture_off(ref) do
@@ -32,7 +33,10 @@ defmodule ExUnit.CaptureServer do
 
   ## Callbacks
 
+  @impl true
   def init(:ok) do
+    :ets.new(@name, [:named_table, :public, :set])
+
     state = %{
       devices: %{},
       log_captures: %{},
@@ -41,6 +45,9 @@ defmodule ExUnit.CaptureServer do
 
     {:ok, state}
   end
+
+  @impl true
+  def handle_call(call, from, state)
 
   def handle_call({:device_capture_on, name, encoding, input}, {caller, _}, config) do
     capture_device(name, encoding, input, config, caller)
@@ -59,14 +66,18 @@ defmodule ExUnit.CaptureServer do
     {:reply, :ok, release_device(ref, config)}
   end
 
-  def handle_call({:log_capture_on, pid}, _from, config) do
+  def handle_call({:log_capture_on, pid, string_io}, _from, config) do
     ref = Process.monitor(pid)
     refs = Map.put(config.log_captures, ref, true)
+    true = :ets.insert(@ets, {ref, string_io})
 
     if map_size(refs) == 1 do
+      handler_cfg = %{formatter: Logger.default_formatter()}
+
       status =
         with {:ok, config} <- :logger.get_handler_config(:default),
-             :ok <- :logger.remove_handler(:default) do
+             :ok <- :logger.remove_handler(:default),
+             :ok <- :logger.add_handler(CaptureLoggerHandler, CaptureLoggerHandler, handler_cfg) do
           {:ok, config}
         else
           _ -> :error
@@ -84,6 +95,7 @@ defmodule ExUnit.CaptureServer do
     {:reply, :ok, config}
   end
 
+  @impl true
   def handle_info({:DOWN, ref, _, _, _}, config) do
     config = remove_log_capture(ref, config)
     config = release_device(ref, config)
@@ -186,6 +198,8 @@ defmodule ExUnit.CaptureServer do
   end
 
   defp remove_log_capture(ref, %{log_captures: refs} = config) do
+    true = :ets.delete(@ets, ref)
+
     case Map.pop(refs, ref, false) do
       {true, refs} ->
         maybe_add_console(refs, config.log_status)
@@ -202,5 +216,18 @@ defmodule ExUnit.CaptureServer do
 
   defp maybe_add_console(_refs, _config) do
     :ok
+  end
+
+  ## :logger handler callback.
+
+  def log(event, %{} = config) do
+    %{formatter: {formatter_mod, formatter_config}} = config
+    chardata = formatter_mod.format(event, formatter_config)
+
+    @ets
+    |> :ets.match({:_, :"$1"})
+    |> Enum.each(fn [string_io] ->
+      :ok = IO.write(string_io, chardata)
+    end)
   end
 end
