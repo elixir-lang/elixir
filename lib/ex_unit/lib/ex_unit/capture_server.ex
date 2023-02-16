@@ -77,7 +77,7 @@ defmodule ExUnit.CaptureServer do
       status =
         with {:ok, config} <- :logger.get_handler_config(:default),
              :ok <- :logger.remove_handler(:default),
-             :ok <- :logger.add_handler(CaptureLoggerHandler, CaptureLoggerHandler, handler_cfg) do
+             :ok <- :logger.add_handler(@name, __MODULE__, handler_cfg) do
           {:ok, config}
         else
           _ -> :error
