@@ -204,7 +204,7 @@ defmodule ExUnit.CaptureServer do
 
     case Map.pop(refs, ref, false) do
       {true, refs} ->
-        maybe_add_console(refs, config.log_status)
+        maybe_revert_to_default_handler(refs, config.log_status)
         %{config | log_captures: refs}
 
       {false, _refs} ->
@@ -212,12 +212,13 @@ defmodule ExUnit.CaptureServer do
     end
   end
 
-  defp maybe_add_console(refs, {:ok, %{module: module} = config}) when map_size(refs) == 0 do
+  defp maybe_revert_to_default_handler(refs, {:ok, %{module: module} = config})
+       when map_size(refs) == 0 do
     :logger.remove_handler(@name)
     :logger.add_handler(:default, module, config)
   end
 
-  defp maybe_add_console(_refs, _config) do
+  defp maybe_revert_to_default_handler(_refs, _config) do
     :ok
   end
 
