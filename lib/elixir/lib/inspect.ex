@@ -302,7 +302,12 @@ end
 
 defimpl Inspect, for: Map do
   def inspect(map, opts) do
-    list = Map.to_list(map)
+    list =
+      if Keyword.get(opts.custom_options, :sort_maps) do
+        map |> Map.to_list() |> :lists.sort()
+      else
+        Map.to_list(map)
+      end
 
     fun =
       if Inspect.List.keyword?(list) do
