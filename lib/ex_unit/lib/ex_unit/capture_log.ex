@@ -95,8 +95,8 @@ defmodule ExUnit.CaptureLog do
       assert log =~ "log msg"
   """
   @doc since: "1.13.0"
-  @spec with_log(keyword, (-> any)) :: {any, String.t()}
-  def with_log(opts \\ [], fun) do
+  @spec with_log(keyword, (-> result)) :: {result, String.t()} when result: any
+  def with_log(opts \\ [], fun) when is_list(opts) do
     opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")
 
