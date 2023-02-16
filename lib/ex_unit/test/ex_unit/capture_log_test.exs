@@ -104,7 +104,7 @@ defmodule ExUnit.CaptureLogTest do
   end
 
   defp wait_capture_removal() do
-    case Enum.map(:logger.get_config().handlers, & &1.id) do
+    case Enum.map(:logger.get_handler_config(), & &1.id) do
       [ExUnit.CaptureServer] ->
         Process.sleep(20)
         wait_capture_removal()
