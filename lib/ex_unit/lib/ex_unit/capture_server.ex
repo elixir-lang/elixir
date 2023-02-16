@@ -23,8 +23,8 @@ defmodule ExUnit.CaptureServer do
     GenServer.call(@name, {:device_capture_off, ref}, @timeout)
   end
 
-  def log_capture_on(pid, string_io) do
-    GenServer.call(@name, {:log_capture_on, pid, string_io}, @timeout)
+  def log_capture_on(pid, string_io, opts) do
+    GenServer.call(@name, {:log_capture_on, pid, string_io, opts}, @timeout)
   end
 
   def log_capture_off(ref) do
@@ -66,18 +66,20 @@ defmodule ExUnit.CaptureServer do
     {:reply, :ok, release_device(ref, config)}
   end
 
-  def handle_call({:log_capture_on, pid, string_io}, _from, config) do
+  def handle_call({:log_capture_on, pid, string_io, opts}, _from, config) do
     ref = Process.monitor(pid)
     refs = Map.put(config.log_captures, ref, true)
-    true = :ets.insert(@ets, {ref, string_io})
+
+    {level, opts} = Keyword.pop(opts, :level)
+    true = :ets.insert(@ets, {ref, string_io, level || :all})
 
     if map_size(refs) == 1 do
-      handler_cfg = %{formatter: Logger.default_formatter()}
+      formatter = Logger.default_formatter(opts)
+      :ok = :logger.add_handler(@name, __MODULE__, %{formatter: formatter})
 
       status =
         with {:ok, config} <- :logger.get_handler_config(:default),
-             :ok <- :logger.remove_handler(:default),
-             :ok <- :logger.add_handler(@name, __MODULE__, handler_cfg) do
+             :ok <- :logger.remove_handler(:default) do
           {:ok, config}
         else
           _ -> :error
@@ -211,6 +213,7 @@ defmodule ExUnit.CaptureServer do
   end
 
   defp maybe_add_console(refs, {:ok, %{module: module} = config}) when map_size(refs) == 0 do
+    :logger.remove_handler(@name)
     :logger.add_handler(:default, module, config)
   end
 
@@ -224,10 +227,9 @@ defmodule ExUnit.CaptureServer do
     %{formatter: {formatter_mod, formatter_config}} = config
     chardata = formatter_mod.format(event, formatter_config)
 
-    @ets
-    |> :ets.match({:_, :"$1"})
-    |> Enum.each(fn [string_io] ->
+    for [string_io, level] <- :ets.match(@ets, {:_, :"$1", :"$2"}),
+        :logger.compare_levels(event.level, level) in [:gt, :eq] do
       :ok = IO.write(string_io, chardata)
-    end)
+    end
   end
 end

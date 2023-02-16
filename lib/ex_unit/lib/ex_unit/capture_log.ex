@@ -37,10 +37,6 @@ defmodule ExUnit.CaptureLog do
 
   """
 
-  alias Logger.Backends.Console
-
-  @compile {:no_warn_undefined, [Logger, Logger.Backends.Internal]}
-
   @doc """
   Captures Logger messages generated when evaluating `fun`.
 
@@ -72,7 +68,7 @@ defmodule ExUnit.CaptureLog do
   To get the result of the evaluation along with the captured log,
   use `with_log/2`.
   """
-  @spec capture_log(keyword, (-> any)) :: String.t()
+  @spec capture_log(keyword, (() -> any)) :: String.t()
   def capture_log(opts \\ [], fun) do
     {_, log} = with_log(opts, fun)
     log
@@ -96,21 +92,19 @@ defmodule ExUnit.CaptureLog do
 
   """
   @doc since: "1.13.0"
-  @spec with_log(keyword, (-> result)) :: {result, String.t()} when result: any
+  @spec with_log(keyword, (() -> result)) :: {result, String.t()} when result: any
   def with_log(opts \\ [], fun) when is_list(opts) do
     opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")
 
     try do
-      :ok = add_capture(string_io, opts)
-      ref = ExUnit.CaptureServer.log_capture_on(self(), string_io)
+      ref = ExUnit.CaptureServer.log_capture_on(self(), string_io, opts)
 
       try do
         fun.()
       after
         :ok = Logger.flush()
         :ok = ExUnit.CaptureServer.log_capture_off(ref)
-        :ok = remove_capture(string_io)
       end
     catch
       kind, reason ->
@@ -120,56 +114,6 @@ defmodule ExUnit.CaptureLog do
       result ->
         {:ok, {_input, output}} = StringIO.close(string_io)
         {result, output}
-    end
-  end
-
-  defp add_capture(pid, opts) do
-    case :proc_lib.start(__MODULE__, :init_proxy, [pid, opts, self()]) do
-      :ok ->
-        :ok
-
-      :noproc ->
-        raise "cannot capture_log/2 because the :logger application was not started"
-
-      {:error, reason} ->
-        mfa = {ExUnit.CaptureLog, :add_capture, [pid, opts]}
-        exit({reason, mfa})
-    end
-  end
-
-  @doc false
-  def init_proxy(pid, opts, parent) do
-    Logger.Backends.Internal.configure([])
-  catch
-    _, _ -> :proc_lib.init_ack(:noproc)
-  else
-    _ ->
-      case :gen_event.add_sup_handler(Logger, {Console, pid}, {Console, [device: pid] ++ opts}) do
-        :ok ->
-          ref = Process.monitor(parent)
-          :proc_lib.init_ack(:ok)
-
-          receive do
-            {:DOWN, ^ref, :process, ^parent, _reason} -> :ok
-            {:gen_event_EXIT, {Console, ^pid}, _reason} -> :ok
-          end
-
-        {:EXIT, reason} ->
-          :proc_lib.init_ack({:error, reason})
-
-        {:error, reason} ->
-          :proc_lib.init_ack({:error, reason})
-      end
-  end
-
-  defp remove_capture(pid) do
-    case :gen_event.delete_handler(Logger, {Console, pid}, :ok) do
-      :ok ->
-        :ok
-
-      {:error, :module_not_found} = error ->
-        mfa = {ExUnit.CaptureLog, :remove_capture, [pid]}
-        exit({error, mfa})
     end
   end
 end

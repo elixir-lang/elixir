@@ -78,24 +78,39 @@ defmodule ExUnit.CaptureLogTest do
     end
   end
 
-  test "with_log" do
-    {4, log} =
-      with_log(fn ->
-        Logger.error("calculating...")
-        2 + 2
-      end)
+  describe "with_log/2" do
+    test "returns the result and the log" do
+      {result, log} =
+        with_log(fn ->
+          Logger.error("calculating...")
+          2 + 2
+        end)
 
-    assert log =~ "calculating..."
+      assert result == 4
+      assert log =~ "calculating..."
+    end
+
+    test "respects the :format, :metadata, and :colors options" do
+      options = [format: "$metadata| $message", metadata: [:id], colors: [enabled: false]]
+
+      assert {4, log} =
+               with_log(options, fn ->
+                 Logger.info("hello", id: 123)
+                 2 + 2
+               end)
+
+      assert log == "id=123 | hello"
+    end
   end
 
   defp wait_capture_removal() do
-    case :gen_event.which_handlers(Logger) do
-      [Logger.Backends.Config] ->
-        :ok
-
-      _otherwise ->
+    case Enum.map(:logger.get_config().handlers, & &1.id) do
+      [ExUnit.CaptureServer] ->
         Process.sleep(20)
         wait_capture_removal()
+
+      [:default] ->
+        :ok
     end
   end
 end
