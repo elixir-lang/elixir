@@ -31,8 +31,8 @@ defmodule Inspect.Opts do
       options. Useful when implementing the `Inspect` protocol for nested structs
       to pass the custom options through.
 
-      It supports some pre-existing keys:
-      - `:sort_maps` (since v1.15.0) - if set to `true`, sorts key-values in maps.
+      It supports some pre-defined keys:
+      - `:sort_maps` (since v1.15.0) - if set to `true`, sorts key-value pairs in maps.
         This can be helpful to make map inspection deterministic for testing,
         especially since key order is random since OTP 26.
 
