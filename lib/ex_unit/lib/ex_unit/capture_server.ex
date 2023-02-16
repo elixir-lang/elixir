@@ -212,10 +212,12 @@ defmodule ExUnit.CaptureServer do
     end
   end
 
-  defp maybe_revert_to_default_handler(refs, {:ok, %{module: module} = config})
-       when map_size(refs) == 0 do
+  defp maybe_revert_to_default_handler(refs, status) when map_size(refs) == 0 do
     :logger.remove_handler(@name)
-    :logger.add_handler(:default, module, config)
+
+    with {:ok, %{module: module} = config} <- status do
+      :logger.add_handler(:default, module, config)
+    end
   end
 
   defp maybe_revert_to_default_handler(_refs, _config) do
