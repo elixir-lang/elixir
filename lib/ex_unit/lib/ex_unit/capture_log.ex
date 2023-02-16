@@ -68,7 +68,7 @@ defmodule ExUnit.CaptureLog do
   To get the result of the evaluation along with the captured log,
   use `with_log/2`.
   """
-  @spec capture_log(keyword, (() -> any)) :: String.t()
+  @spec capture_log(keyword, (-> any)) :: String.t()
   def capture_log(opts \\ [], fun) do
     {_, log} = with_log(opts, fun)
     log
@@ -92,7 +92,7 @@ defmodule ExUnit.CaptureLog do
 
   """
   @doc since: "1.13.0"
-  @spec with_log(keyword, (() -> result)) :: {result, String.t()} when result: any
+  @spec with_log(keyword, (-> result)) :: {result, String.t()} when result: any
   def with_log(opts \\ [], fun) when is_list(opts) do
     opts = Keyword.put_new(opts, :level, nil)
     {:ok, string_io} = StringIO.open("")
