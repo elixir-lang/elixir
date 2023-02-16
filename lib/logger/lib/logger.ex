@@ -415,7 +415,8 @@ defmodule Logger do
   instead.
   """
   @doc since: "1.15.0"
-  def default_formatter(overrides \\ []) do
+  @spec default_formatter(keyword) :: {module, :logger.formatter_config()}
+  def default_formatter(overrides \\ []) when is_list(overrides) do
     Application.get_env(:logger, :default_formatter, [])
     |> Keyword.merge(overrides)
     |> Logger.Formatter.new()
