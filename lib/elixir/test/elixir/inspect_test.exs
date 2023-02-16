@@ -417,14 +417,20 @@ defmodule Inspect.MapTest do
   test "basic" do
     assert inspect(%{1 => "b"}) == "%{1 => \"b\"}"
 
-    assert inspect(%{1 => "b", 2 => "c"}, pretty: true, width: 1) ==
+    assert inspect(%{1 => "b", 2 => "c"},
+             pretty: true,
+             width: 1,
+             custom_options: [sort_maps: true]
+           ) ==
              "%{\n  1 => \"b\",\n  2 => \"c\"\n}"
   end
 
   test "keyword" do
     assert inspect(%{a: 1}) == "%{a: 1}"
-    assert inspect(%{a: 1, b: 2}) == "%{a: 1, b: 2}"
-    assert inspect(%{a: 1, b: 2, c: 3}) == "%{a: 1, b: 2, c: 3}"
+    assert inspect(%{a: 1, b: 2}, custom_options: [sort_maps: true]) == "%{a: 1, b: 2}"
+
+    assert inspect(%{a: 1, b: 2, c: 3}, custom_options: [sort_maps: true]) ==
+             "%{a: 1, b: 2, c: 3}"
   end
 
   test "with limit" do
@@ -446,12 +452,12 @@ defmodule Inspect.MapTest do
   test "public modified struct" do
     public = %Public{key: 1}
 
-    assert inspect(Map.put(public, :foo, :bar)) ==
+    assert inspect(Map.put(public, :foo, :bar), custom_options: [sort_maps: true]) ==
              "%{__struct__: Inspect.MapTest.Public, foo: :bar, key: 1}"
   end
 
   test "private struct" do
-    assert inspect(%{__struct__: Private, key: 1}) ==
+    assert inspect(%{__struct__: Private, key: 1}, custom_options: [sort_maps: true]) ==
              "%{__struct__: Inspect.MapTest.Private, key: 1}"
   end
 
@@ -486,7 +492,7 @@ defmodule Inspect.MapTest do
           %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
     '''
 
-    assert inspect(%Failing{name: "Foo"}) =~ message
+    assert inspect(%Failing{name: "Foo"}, custom_options: [sort_maps: true]) =~ message
   end
 
   test "safely inspect bad implementation disables colors" do
@@ -505,7 +511,10 @@ defmodule Inspect.MapTest do
           %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
     '''
 
-    assert inspect(%Failing{name: "Foo"}, syntax_colors: [atom: [:green]]) =~ message
+    assert inspect(%Failing{name: "Foo"},
+             syntax_colors: [atom: [:green]],
+             custom_options: [sort_maps: true]
+           ) =~ message
   end
 
   test "unsafely inspect bad implementation" do
@@ -524,7 +533,7 @@ defmodule Inspect.MapTest do
     '''
 
     try do
-      inspect(%Failing{name: "Foo"}, safe: false)
+      inspect(%Failing{name: "Foo"}, safe: false, custom_options: [sort_maps: true])
     rescue
       exception in Inspect.Error ->
         assert Exception.message(exception) =~ exception_message
@@ -552,14 +561,16 @@ defmodule Inspect.MapTest do
 
       while inspecting:
 
-          %{__struct__: Inspect.MapTest.Failing, name: "Foo"}
     '''
 
     try do
       Enum.to_list(%Failing{name: "Foo"})
     rescue
       exception in Protocol.UndefinedError ->
-        assert Exception.message(exception) =~ exception_message
+        message = Exception.message(exception)
+        assert message =~ exception_message
+        assert message =~ "__struct__: Inspect.MapTest.Failing"
+        assert message =~ "name: \"Foo\""
 
         assert [
                  {Enumerable, :impl_for!, 1, _} | _
@@ -617,7 +628,7 @@ defmodule Inspect.MapTest do
         )
       )
 
-    assert inspect(%Failing{name: "Foo"}) =~ message
+    assert inspect(%Failing{name: "Foo"}, custom_options: [sort_maps: true]) =~ message
     assert inspected =~ message
   end
 
