@@ -304,16 +304,14 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_command(dep, config, command, print_app?, env \\ []) do
     %Mix.Dep{app: app, system_env: system_env, opts: opts} = dep
 
-    File.cd!(opts[:dest], fn ->
-      env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")} | system_env] ++ env
+    env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")} | system_env] ++ env
 
-      if Mix.shell().cmd(command, env: env, print_app: print_app?) != 0 do
-        Mix.raise(
-          "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
-            deps_compile_feedback(app)
-        )
-      end
-    end)
+    if Mix.shell().cmd(command, env: env, print_app: print_app?, cd: opts[:dest]) != 0 do
+      Mix.raise(
+        "Could not compile dependency #{inspect(app)}, \"#{command}\" command failed. " <>
+          deps_compile_feedback(app)
+      )
+    end
 
     true
   end
