@@ -1,22 +1,14 @@
 defmodule Logger.Backends.Watcher do
   @moduledoc false
-
   require Logger
   use GenServer
 
-  @doc """
-  Starts a watcher server.
-
-  This is useful when there is a need to start a handler
-  outside of the handler supervision tree.
-  """
+  @doc false
   def start_link(tuple) do
     GenServer.start_link(__MODULE__, tuple)
   end
 
-  ## Callbacks
-
-  @doc false
+  @impl true
   def init({handler, args}) do
     Process.flag(:trap_exit, true)
 
@@ -45,7 +37,7 @@ defmodule Logger.Backends.Watcher do
     end
   end
 
-  @doc false
+  @impl true
   def handle_info({:gen_event_EXIT, handler, reason}, handler)
       when reason in [:normal, :shutdown] do
     {:stop, reason, handler}
@@ -80,6 +72,7 @@ defmodule Logger.Backends.Watcher do
     end
   end
 
+  @impl true
   def terminate(_reason, handler) do
     # On terminate we remove the handler, this makes the
     # process sync, allowing existing messages to be flushed

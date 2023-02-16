@@ -299,7 +299,7 @@ defmodule Logger do
 
   Erlang/OTP logger provides handlers. Handlers represent ability to integrate
   into the logging system to handle each logged message/event. Elixir automatically
-  configures the default handler, but you can use Erlang's [`:logger`](`:logger)
+  configures the default handler, but you can use Erlang's [`:logger`](`:logger`)
   module to add other handlers too.
 
   Erlang/OTP handlers must be listed under your own application. For example,
@@ -364,9 +364,12 @@ defmodule Logger do
       All previous console configuration, except for `:level`, now go under
       `:default_formatter`.
 
-    * If you want to use the previous `:console` implementation,
-      based on `Logger.Backends`, you can set `backends: [Logger.Backends.Console]`
-      and place the configuration under `config :logger, Logger.Backends.Console`
+    * If you want to use the previous `:console` implementation based on Logger
+      Backends, you can still set `backends: [Logger.Backends.Console]` and place
+      the configuration under `config :logger, Logger.Backends.Console`. Although
+      consider using the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
+      project in such case, as `Logger.Backends.Console` itself will be deprecated
+      in future releases
 
   """
 
@@ -725,7 +728,7 @@ defmodule Logger do
   Adds a new backend.
   """
   # TODO: Deprecate this on Elixir v1.19
-  @doc deprecated: "Use Logger.Backends.add/2 from :logger_backends dependency"
+  @doc deprecated: "Use LoggerBackends.add/2 from :logger_backends dependency"
   def add_backend(backend, opts \\ []) do
     Logger.Backends.Internal.add(backend, opts)
   end
@@ -734,7 +737,7 @@ defmodule Logger do
   Removes a backend.
   """
   # TODO: Deprecate this on Elixir v1.19
-  @doc deprecated: "Use Logger.Backends.remove/2 from :logger_backends dependency"
+  @doc deprecated: "Use LoggerBackends.remove/2 from :logger_backends dependency"
   def remove_backend(backend, opts \\ []) do
     Logger.Backends.Internal.remove(backend, opts)
   end
@@ -743,7 +746,7 @@ defmodule Logger do
   Configures the given backend.
   """
   # TODO: Deprecate this on Elixir v1.19
-  @doc deprecated: "Use Logger.Backends.configure/2 from :logger_backends dependency"
+  @doc deprecated: "Use LoggerBackends.configure/2 from :logger_backends dependency"
   def configure_backend(:console, options) when is_list(options) do
     options = Keyword.merge(Application.get_env(:logger, :console, []), options)
     Application.put_env(:logger, :console, options)

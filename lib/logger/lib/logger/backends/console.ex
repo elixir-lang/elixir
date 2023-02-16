@@ -2,59 +2,19 @@ defmodule Logger.Backends.Console do
   @moduledoc ~S"""
   A logger backend that logs messages by printing them to the console.
 
-  ## Options
+  This backend was typically configured as `config :logger, :console`,
+  but it has been deprecated in favor of `:default_handler` and
+  `:default_formatter`. However, for backwards compatibility, you can
+  still add it as:
 
-    * `:level` - the level to be logged by this backend.
-      Note that messages are filtered by the general
-      `:level` configuration for the `:logger` application first.
+      config :logger, :backends, [Logger.Backends.Console]
 
-    * `:format` - the format message used to print logs.
-      Defaults to: `"\n$time $metadata[$level] $message\n"`.
-      It may also be a `{module, function}` tuple that is invoked
-      with the log level, the message, the current timestamp and
-      the metadata and must return `t:IO.chardata/0`. See
-      `Logger.Formatter`.
-
-    * `:metadata` - the metadata to be printed by `$metadata`.
-      Defaults to an empty list (no metadata).
-      Setting `:metadata` to `:all` prints all metadata. See
-      the "Metadata" section in the `Logger` documentation for
-      more information.
-
-    * `:colors` - a keyword list of coloring options.
-
-    * `:device` - the device to log error messages to. Defaults to
-      `:user` but can be changed to something else such as `:standard_error`.
-
-    * `:max_buffer` - maximum events to buffer while waiting
-      for a confirmation from the IO device (default: 32).
-      Once the buffer is full, the backend will block until
-      a confirmation is received.
-
-  The supported keys in the `:colors` keyword list are:
-
-    * `:enabled` - boolean value that allows for switching the
-      coloring on and off. Defaults to: `IO.ANSI.enabled?/0`
-
-    * `:debug` - color for debug messages. Defaults to: `:cyan`
-
-    * `:info` - color for info and notice messages. Defaults to: `:normal`
-
-    * `:warning` - color for warning messages. Defaults to: `:yellow`
-
-    * `:error` - color for error and higher messages. Defaults to: `:red`
-
-  See the `IO.ANSI` module for a list of colors and attributes.
-
-  Here is an example of how to configure this backend in a
-  `config/config.exs` file:
-
-      config :logger, Logger.Backends.Console,
-        format: "\n$time $metadata[$level] $message\n",
-        metadata: [:user_id]
-
+  However, if you plan to continue using Logger backends in the long
+  term, consider using the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
+  project.
   """
 
+  @moduledoc deprecated: "Use LoggerBackends.Console from :logger_backends dependency"
   @behaviour :gen_event
 
   defstruct buffer: [],
@@ -68,6 +28,7 @@ defmodule Logger.Backends.Console do
             output: nil,
             ref: nil
 
+  # TODO: Deprecate me on Elixir v1.19
   @impl true
   def init(atom) when is_atom(atom) do
     config = read_env()

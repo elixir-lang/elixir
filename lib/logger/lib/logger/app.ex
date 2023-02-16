@@ -16,8 +16,8 @@ defmodule Logger.App do
         :error -> {[], true}
       end
 
-    # TODO: Warn if backends: [:console] is set on Elixir v1.19
-    # TODO: Warn if :logger, :console is set on Elixir v1.19
+    # TODO: Warn if :backends is set on Elixir v1.19
+    # TODO: Warn if :console is set on Elixir v1.19
     default_handler =
       if console = Application.get_env(:logger, :console) do
         {handler, formatter} = Keyword.split(console, [:level])
@@ -61,6 +61,7 @@ defmodule Logger.App do
 
   @doc false
   def stop(revert) do
+    # TODO: Remove this line and all of Logger.Backends.* on Elixir v2.0+
     _ = :logger.remove_handler(Logger)
     _ = :logger.remove_primary_filter(:logger_process_level)
     _ = :logger.remove_primary_filter(:logger_translator)
