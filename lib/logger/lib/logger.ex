@@ -726,10 +726,12 @@ defmodule Logger do
   end
 
   @doc """
-  Reads the application configuration parameter `:logger` and calls
-  `:logger.add_handlers/1` with its contents.
+  Adds the handlers configured in the `:logger` application parameter
+  of the given `app`.
 
-  See the module documentation for more information.
+  This is used to register new handlers into the logging system.
+  See [the module documentation](#module-erlang-otp-handlers) for
+  more information.
   """
   @doc since: "1.15.0"
   @spec add_handlers(atom()) :: :ok | {:error, term}
