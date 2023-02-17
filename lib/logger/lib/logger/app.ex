@@ -34,6 +34,12 @@ defmodule Logger.App do
     primary_config = :logger.get_primary_config()
     :ok = :logger.set_primary_config(:level, default_level())
 
+    # If there is additional metadata in the :logger config, we merge it into
+    # the primary :logger metadata.
+    with [_ | _] = metadata <- Application.fetch_env!(:logger, :metadata) do
+      :ok = :logger.set_primary_config(:metadata, Enum.into(metadata, primary_config.metadata))
+    end
+
     process_level_filter = {&Logger.Utils.process_level/2, []}
     :ok = :logger.add_primary_filter(:logger_process_level, process_level_filter)
 
