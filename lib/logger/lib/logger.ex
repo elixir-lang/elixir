@@ -323,7 +323,7 @@ defmodule Logger do
 
       Logger.add_handlers(:my_app)
 
-  You can also developer your own handlers. Erlang handlers run in the same
+  You can also develop your own handlers. Handlers run in the same
   process as the process logging the message/event. This gives developers
   flexibility but they should avoid performing any long running action in
   such handlers, as it may slow down the action being executed considerably.
