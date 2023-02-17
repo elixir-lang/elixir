@@ -46,7 +46,8 @@ defmodule System do
       mode](https://www.erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
 
     * `monotonic_time/0` - a monotonically increasing time provided
-      by the Erlang VM.
+      by the Erlang VM. This is not strictly monotonically increasing. Multiple
+      sequential calls of the function may return the same value.
 
   The time functions in this module work in the `:native` unit
   (unless specified otherwise), which is operating system dependent. Most of
@@ -1186,7 +1187,8 @@ defmodule System do
   Returns the current monotonic time in the `:native` time unit.
 
   This time is monotonically increasing and starts in an unspecified
-  point in time.
+  point in time. This is not strictly monotonically increasing. Multiple
+  sequential calls of the function may return the same value.
 
   Inlined by the compiler.
   """
