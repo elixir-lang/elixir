@@ -319,11 +319,11 @@ defmodule Logger do
 
   Each handler has the shape `{:handler, name, handler_module, config_map}`.
   Once defined, a handler can be explicitly attached in your
-  `c:Application.start/2` callback:
+  `c:Application.start/2` callback with `add_handlers/1`:
 
-      :logger.add_handlers(:my_app)
+      Logger.add_handlers(:my_app)
 
-  You can also developer your own handlers. Erlang handlers run in the same
+  You can also develop your own handlers. Handlers run in the same
   process as the process logging the message/event. This gives developers
   flexibility but they should avoid performing any long running action in
   such handlers, as it may slow down the action being executed considerably.
@@ -723,6 +723,20 @@ defmodule Logger do
   def delete_process_level(pid) when pid == self() do
     Process.delete(@metadata)
     :ok
+  end
+
+  @doc """
+  Adds the handlers configured in the `:logger` application parameter
+  of the given `app`.
+
+  This is used to register new handlers into the logging system.
+  See [the module documentation](#module-erlang-otp-handlers) for
+  more information.
+  """
+  @doc since: "1.15.0"
+  @spec add_handlers(atom()) :: :ok | {:error, term}
+  def add_handlers(app) when is_atom(app) do
+    :logger.add_handlers(app)
   end
 
   @doc """
