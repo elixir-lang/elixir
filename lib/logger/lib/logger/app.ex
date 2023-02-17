@@ -34,6 +34,12 @@ defmodule Logger.App do
     primary_config = :logger.get_primary_config()
     :ok = :logger.set_primary_config(:level, default_level())
 
+    :ok =
+      Application.get_env(:logger, :metadata, [])
+      |> Map.new()
+      |> then(&Map.merge(primary_config.metadata, &1))
+      |> then(&:logger.set_primary_config(:metadata, &1))
+
     process_level_filter = {&Logger.Utils.process_level/2, []}
     :ok = :logger.add_primary_filter(:logger_process_level, process_level_filter)
 
