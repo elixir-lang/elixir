@@ -26,13 +26,15 @@ defmodule Module.Types do
 
             error =
               Error.exception("""
-              found error while checking types for #{Exception.format_mfa(module, fun, arity)}
+              found error while checking types for #{Exception.format_mfa(module, fun, arity)}:
+
+              #{Exception.format_banner(:error, e, __STACKTRACE__)}\
+
+              The exception happened while checking this code:
 
               #{Macro.to_string(def_expr)}
 
-              Please report this bug: https://github.com/elixir-lang/elixir/issues
-
-              #{Exception.format_banner(:error, e, __STACKTRACE__)}\
+              In case it is a bug, please report it at: https://github.com/elixir-lang/elixir/issues
               """)
 
             reraise error, __STACKTRACE__
