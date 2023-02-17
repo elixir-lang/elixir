@@ -582,6 +582,17 @@ defmodule LoggerTest do
     Application.start(:logger)
   end
 
+  test "starts the application with global metadata" do
+    Application.put_env(:logger, :metadata, global_meta: :yes)
+    Logger.App.stop()
+    Application.start(:logger)
+    assert :logger.get_primary_config()[:metadata] == %{global_meta: :yes}
+  after
+    Application.put_env(:logger, :metadata, [])
+    Logger.App.stop()
+    Application.start(:logger)
+  end
+
   test "writes to stderr on bad default handler config" do
     Application.put_env(:logger, :default_handler, config: %{file: 123})
     Logger.App.stop()
