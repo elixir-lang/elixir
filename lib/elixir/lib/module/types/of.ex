@@ -128,7 +128,7 @@ defmodule Module.Types.Of do
     context = remote(struct, :__struct__, 0, meta, context)
 
     entries =
-      for key <- Map.keys(struct.__struct__()), key != :__struct__ do
+      for key <- Map.keys(struct.__struct__()) |> :lists.sort(), key != :__struct__ do
         {:required, {:atom, key}, :dynamic}
       end
 
