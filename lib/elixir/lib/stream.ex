@@ -162,7 +162,8 @@ defmodule Stream do
   where each new chunk starts `step` elements into the enumerable.
 
   `step` is optional and, if not passed, defaults to `count`, i.e.
-  chunks do not overlap.
+  chunks do not overlap. Chunking will stop as soon as the collection
+  ends or when we emit an incomplete chunk.
 
   If the last chunk does not have `count` elements to fill the chunk,
   elements are taken from `leftover` to fill in the chunk. If `leftover`
