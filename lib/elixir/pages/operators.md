@@ -41,7 +41,7 @@ Elixir provides the following built-in operators:
   * [`not`](`not/1`) and [`!`](`!/1`) - strict and relaxed boolean "not"
   * [`in`](`in/2`) and [`not in`](`in/2`) - membership
   * [`@`](`@/1`) - module attribute
-  * [`..`](`../2`) - range creation
+  * [`..`](`../0`), [`..`](`../2`), and [`..//`](`..///3`) - range creation
   * [`<>`](`<>/2`) - binary concatenation
   * [`|>`](`|>/2`) - pipeline
   * [`=~`](`=~/2`) - text-based match
@@ -89,31 +89,6 @@ false
 ```
 
 [`!=`](`!=/2`) and [`!==`](`!==/2`) act as the negation of [`==`](`==/2`) and [`===`](`===/2`), respectively.
-
-### Term ordering
-
-In Elixir, different data types can be compared using comparison operators:
-
-```elixir
-iex> 1 < :an_atom
-true
-```
-
-The reason we can compare different data types is pragmatism. Sorting algorithms don't need to worry about different data types in order to sort. For reference, the overall sorting order is defined below:
-
-```
-number < atom < reference < function < port < pid < tuple < map < list < bitstring
-```
-
-When comparing two numbers of different types (a number being either an integer or a float), a conversion to the type with greater precision will always occur, unless the comparison operator used is either [`===`](`===/2`) or [`!==`](`!==/2`). A float will be considered more precise than an integer, unless the float is greater/less than +/-9007199254740992.0 respectively, at which point all the significant figures of the float are to the left of the decimal point. This behavior exists so that the comparison of large numbers remains transitive.
-
-The collection types are compared using the following rules:
-
-* Tuples are compared by size, then element by element.
-* Maps are compared by size, then by keys in ascending term order, then by values in key order. In the specific case of maps' key ordering, integers are always considered to be less than floats.
-* Lists are compared element by element.
-* Bitstrings are compared byte by byte, incomplete bytes are compared bit by bit.
-* Atoms are compared using their string value, codepoint by codepoint.
 
 ## Custom and overridden operators
 
