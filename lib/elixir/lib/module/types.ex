@@ -254,7 +254,7 @@ defmodule Module.Types do
         "undefined field \"#{atom}\" ",
         format_expr(expr, location),
         "expected one of the following fields: ",
-        Enum.map_join(Enum.sort(known_atoms), ", ", & &1),
+        Enum.join(Enum.sort(known_atoms), ", "),
         "\n\n",
         traces,
         format_message_hints(hints),
