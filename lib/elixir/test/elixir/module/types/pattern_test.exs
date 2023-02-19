@@ -140,25 +140,25 @@ defmodule Module.Types.PatternTest do
     end
 
     test "struct" do
-      assert quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{}) ==
-               {:ok,
-                {:map,
-                 [
-                   {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
-                   {:required, {:atom, :bar}, :dynamic},
-                   {:required, {:atom, :baz}, :dynamic},
-                   {:required, {:atom, :foo}, :dynamic}
-                 ]}}
+      assert {:ok, {:map, fields}} = quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{})
 
-      assert quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{foo: 123, bar: :atom}) ==
-               {:ok,
-                {:map,
-                 [
-                   {:required, {:atom, :foo}, :integer},
-                   {:required, {:atom, :bar}, {:atom, :atom}},
-                   {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
-                   {:required, {:atom, :baz}, :dynamic}
-                 ]}}
+      assert Enum.sort(fields) == [
+               {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
+               {:required, {:atom, :bar}, :dynamic},
+               {:required, {:atom, :baz}, :dynamic},
+               {:required, {:atom, :foo}, :dynamic}
+             ]
+
+      assert {:ok, {:map, fields}} =
+               quoted_pattern(%:"Elixir.Module.Types.PatternTest.Struct"{foo: 123, bar: :atom})
+
+      assert Enum.sort(fields) ==
+               [
+                 {:required, {:atom, :__struct__}, {:atom, Module.Types.PatternTest.Struct}},
+                 {:required, {:atom, :bar}, {:atom, :atom}},
+                 {:required, {:atom, :baz}, :dynamic},
+                 {:required, {:atom, :foo}, :integer}
+               ]
     end
 
     test "struct var" do
