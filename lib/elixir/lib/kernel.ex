@@ -193,12 +193,15 @@ defmodule Kernel do
 
   One example that shows the differences between structural and semantic
   comparisons are strings: "alien" sorts less than "office" (`"alien" < "office"`)
-  but "álien" is greater than "office". If you were doing alphabetical listing,
-  you may want "álien" to also appear before "office". This means **comparisons
-  in Elixir are structural**, as it has the goal of comparing data types as
-  efficiently as possible to create flexible and perform data structures.
-  This distinction is important for functions that provide ordering, such as
-  `>/2`, `</2`, `>=/2`, `<=/2`, `min/2`, and `max/2`. For example:
+  but "álien" is greater than "office". This happens because `<` compares the
+  underlying bytes that form the string. If you were doing alphabetical listing,
+  you may want "álien" to also appear before "office".
+
+  This means **comparisons in Elixir are structural**, as it has the goal
+  of comparing data types as efficiently as possible to create flexible
+  and perform data structures. This distinction is specially important
+  for functions that provide ordering, such as `>/2`, `</2`, `>=/2`,
+  `<=/2`, `min/2`, and `max/2`. For example:
 
       ~D[2017-03-31] > ~D[2017-04-01]
 
@@ -219,7 +222,9 @@ defmodule Kernel do
       ~D[2017-04-01]
 
   The second argument is precisely the module to be used for semantic
-  comparison.
+  comparison. Keeping this distinction is important, because if semantic
+  comparison was used by default for implementing data structures and
+  algorithms, they could become orders of magnitude slower!
 
   Finally, note there is an overall structural sorting order, called
   "Term Ordering", defined below. This order is provided for reference
