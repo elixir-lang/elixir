@@ -92,9 +92,9 @@ Variables in Elixir must start with an underscore or a Unicode letter that is no
 
 ### Non-qualified calls (local calls)
 
-Non-qualified calls, such as `add(1, 2)`, must start with an underscore or a Unicode letter that is not in uppercase or titlecase. The call may continue using a sequence of Unicode letters, numbers, and underscore. Calls may end in `?` or `!`. To learn more about all Unicode characters allowed in calls, see the [Unicode syntax](unicode-syntax.md) document.
+Non-qualified calls, such as `add(1, 2)`, must start with characters and then follow the same rules as as variables, which are optionally followed by parentheses, and then arguments.
 
-Parentheses for non-qualified calls are optional, except for zero-arity calls, which would then be ambiguous with variables. If parentheses are used, they must immediately follow the function name *without spaces*. For example, `add (1, 2)` is a syntax error, since `(1, 2)` is treated as an invalid block which is attempted to be given as a single argument to `add`.
+Parentheses are required for zero-arity calls (i.e. calls without arguments), to avoid ambiguity with variables. If parentheses are used, they must immediately follow the function name *without spaces*. For example, `add (1, 2)` is a syntax error, since `(1, 2)` is treated as an invalid block which is attempted to be given as a single argument to `add`.
 
 [Elixir's naming conventions](naming-conventions.md) recommend calls to be in `snake_case` format.
 
@@ -104,19 +104,23 @@ As many programming languages, Elixir also support operators as non-qualified ca
 
 ### Qualified calls (remote calls)
 
-Qualified calls, such as `Math.add(1, 2)`, must start with an underscore or a Unicode letter that is not in uppercase or titlecase. The call may continue using a sequence of Unicode letters, numbers, and underscores. Calls may end in `?` or `!`. To learn more about all Unicode characters allowed in calls, see the [Unicode syntax](unicode-syntax.md) document.
+Qualified calls, such as `Math.add(1, 2)`, must start with characters and then follow the same rules as as variables, which are optionally followed by parentheses, and then arguments. Qualified calls also support operators, such as `Kernel.+(1, 2)`. Elixir also allows the function name to be written between double- or single-quotes, allowing any character in between the quotes, such as `Math."++add++"(1, 2)`.
+
+Similar to non-qualified calls, parentheses have different meaning for zero-arity calls (i.e. calls without arguments). If parentheses are used, such as `mod.fun()`, it means a function call. If parenthesis are skipped, such as `map.field`, it means accessing a field of a map.
 
 [Elixir's naming conventions](naming-conventions.md) recommend calls to be in `snake_case` format.
-
-For qualified calls, Elixir also allows the function name to be written between double- or single-quotes, allowing calls such as `Math."++add++"(1, 2)`. Operators can be used as qualified calls without a need for quote, such as `Kernel.+(1, 2)`.
-
-Parentheses for qualified calls are optional. If parentheses are used, they must immediately follow the function name *without spaces*.
 
 ### Aliases
 
 Aliases are constructs that expand to atoms at compile-time. The alias `String` expands to the atom `:"Elixir.String"`. Aliases must start with an ASCII uppercase character which may be followed by any ASCII letter, number, or underscore. Non-ASCII characters are not supported in aliases.
 
+Multiple aliases can be joined with `.`, such as `MyApp.String`, and it expands to the atom `:"Elixir.MyApp.String"`. The dot is effectively part of the name but it can also be used for composition. If you define `alias MyApp.Example, as: Example` in your code, then `Example` will always expand to `:"Elixir.MyApp.Example"` and `Example.String` will expand to `:"Elixir.MyApp.Example.String"`.
+
 [Elixir's naming conventions](naming-conventions.md) recommend aliases to be in `CamelCase` format.
+
+### Module attributes
+
+Module attributes are module-specific storage and are written as the composition of the unary operator `@` with variables and local calls. For example, to write to a module attribute named `foo`, use `@foo "value"`, and use `@foo` to read from it. Given module attributes are written using existing constructs, they follow the same rules above defined for operators, variables, and local calls.
 
 ### Blocks
 
@@ -387,9 +391,11 @@ end
 #=> {{:., [], [{:__aliases__, [], [:Foo]}, :{}]}, [], [{:__aliases__, [], [:Bar]}, {:__aliases__, [], [:Baz]}]}
 ```
 
-## Syntactic sugar
+## Optional syntax
 
-All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that "desugar" to one of the constructs explored above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence.
+All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that are alternative representations of the constructs above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence. We call this "Optional Syntax".
+
+For a lightweight introduction to Elixir's Optional Syntax, [see this document](https://elixir-lang.org/getting-started/optional-syntax.html). Below we continue with a more complete reference.
 
 ### Integers in other bases and Unicode code points
 
@@ -530,27 +536,3 @@ Inside `do`-`end` blocks you may introduce other keywords, such as `else` used i
   * `rescue`
 
 You can see them being used in constructs such as `receive`, `try`, and others.
-
-## Summary
-
-This document provides a reference to Elixir syntax, exploring its constructs and their AST equivalents.
-
-We have also discussed a handful of syntax conveniences provided by Elixir. Those conveniences are what allow us to write
-
-```elixir
-defmodule Math do
-  def add(a, b) do
-    a + b
-  end
-end
-```
-
-instead of
-
-```elixir
-defmodule(Math, [
-  {:do, def(add(a, b), [{:do, a + b}])}
-])
-```
-
-The mapping between code and data (the underlying AST) is what allows Elixir to implement `defmodule`, `def`, `if`, and others in Elixir itself. Elixir makes the constructs available for building the language accessible to developers who want to extend the language to new domains.

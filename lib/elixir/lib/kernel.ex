@@ -158,20 +158,54 @@ defmodule Kernel do
   evaluate to `true`. A more complete introduction to guards is available
   in the [Patterns and guards](patterns-and-guards.md) page.
 
+  ## Truthy and falsy values
+
+  Besides the booleans `true` and `false`, Elixir has the
+  concept of a "truthy" or "falsy" value.
+
+    *  a value is truthy when it is neither `false` nor `nil`
+    *  a value is falsy when it is either `false` or `nil`
+
+  Elixir has functions, like `and/2`, that *only* work with
+  booleans, but also functions that work with these
+  truthy/falsy values, like `&&/2` and `!/1`.
+
   ## Structural comparison
 
-  The comparison functions in this module perform structural comparison.
-  This means structures are compared based on their representation and
-  not on their semantic value. This is specially important for functions
-  that are meant to provide ordering, such as `>/2`, `</2`, `>=/2`,
-  `<=/2`, `min/2`, and `max/2`. For example:
+  The function in this module perform structural comparison. This allows
+  different data types to be compared using comparison operators:
+
+  ```elixir
+  iex> 1 < :an_atom
+  true
+  ```
+
+  This is possible so Elixir developers can create collections, such as
+  dictionaries and ordered sets, that store a mixture of data types in them.
+  To understand why this matters, let's discuss the two types of comparisons
+  we find in software: _structural_ and _semantic_.
+
+  Structural means we are comparing the underlying data structures and we often
+  want those operations to be as fast as possible, because it is used to power
+  several algorithms and data structures in the language. A semantic comparison
+  worries about what each data type represents. For example, semantically
+  speaking, it doesn't make sense to compare `Time` with `Date`.
+
+  One example that shows the differences between structural and semantic
+  comparisons are strings: "alien" sorts less than "office" (`"alien" < "office"`)
+  but "álien" is greater than "office". If you were doing alphabetical listing,
+  you may want "álien" to also appear before "office". This means **comparisons
+  in Elixir are structural**, as it has the goal of comparing data types as
+  efficiently as possible to create flexible and perform data structures.
+  This distinction is important for functions that provide ordering, such as
+  `>/2`, `</2`, `>=/2`, `<=/2`, `min/2`, and `max/2`. For example:
 
       ~D[2017-03-31] > ~D[2017-04-01]
 
   will return `true` because structural comparison compares the `:day`
-  field before `:month` or `:year`. Therefore, when comparing structs,
-  you often use the `compare/2` function made available by the structs
-  modules themselves:
+  field before `:month` or `:year`. In order to perform semantic comparisons,
+  the relevant data-types provide a `compare/2` function, such as
+  `Date.compare/2`:
 
       iex> Date.compare(~D[2017-03-31], ~D[2017-04-01])
       :lt
@@ -184,17 +218,37 @@ defmodule Kernel do
       iex> Enum.max([~D[2017-03-31], ~D[2017-04-01]], Date)
       ~D[2017-04-01]
 
-  ## Truthy and falsy values
+  The second argument is precisely the module to be used for semantic
+  comparison.
 
-  Besides the booleans `true` and `false`, Elixir has the
-  concept of a "truthy" or "falsy" value.
+  Finally, note there is an overall structural sorting order, called
+  "Term Ordering", defined below. This order is provided for reference
+  purposes, it is not required by Elixir developers to know it by heart.
 
-    *  a value is truthy when it is neither `false` nor `nil`
-    *  a value is falsy when it is either `false` or `nil`
+  ### Term ordering
 
-  Elixir has functions, like `and/2`, that *only* work with
-  booleans, but also functions that work with these
-  truthy/falsy values, like `&&/2` and `!/1`.
+  ```
+  number < atom < reference < function < port < pid < tuple < map < list < bitstring
+  ```
+
+  When comparing two numbers of different types (a number being either
+  an integer or a float), a conversion to the type with greater precision
+  will always occur, unless the comparison operator used is either `===/2`
+  or `!==`. A float will be considered more precise than an integer, unless
+  the float is greater/less than +/-9007199254740992.0 respectively,
+  at which point all the significant figures of the float are to the left
+  of the decimal point. This behavior exists so that the comparison of large
+  numbers remains transitive.
+
+  The collection types are compared using the following rules:
+
+  * Tuples are compared by size, then element by element.
+  * Maps are compared by size, then by keys in ascending term order,
+    then by values in key order. In the specific case of maps' key
+    ordering, integers are always considered to be less than floats.
+  * Lists are compared element by element.
+  * Bitstrings are compared byte by byte, incomplete bytes are compared bit by bit.
+  * Atoms are compared using their string value, codepoint by codepoint.
 
   ### Examples
 
@@ -1663,7 +1717,10 @@ defmodule Kernel do
   This operator considers 1 and 1.0 to be equal. For stricter
   semantics, use `===/2` instead.
 
-  All terms in Elixir can be compared with each other.
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1690,7 +1747,10 @@ defmodule Kernel do
   This operator considers 1 and 1.0 to be equal. For match
   comparison, use `!==/2` instead.
 
-  All terms in Elixir can be compared with each other.
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1719,7 +1779,10 @@ defmodule Kernel do
   `1 == 1.0` returns `true`, but since they are of different
   types, `1 === 1.0` returns `false`.
 
-  All terms in Elixir can be compared with each other.
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Allowed in guard tests. Inlined by the compiler.
 
@@ -1744,7 +1807,10 @@ defmodule Kernel do
   Returns `true` if the two terms are not exactly equal.
   See `===/2` for a definition of what is considered "exactly equal".
 
-  All terms in Elixir can be compared with each other.
+  This performs a structural comparison where all Elixir
+  terms can be compared with each other. See the ["Structural
+  comparison" section](#module-structural-comparison) section
+  for more information.
 
   Allowed in guard tests. Inlined by the compiler.
 
