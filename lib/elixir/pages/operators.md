@@ -1,6 +1,6 @@
 # Operators
 
-This document covers operators in Elixir, how they are parsed, how they can be defined, and how they can be overridden.
+This document is a complete reference of operators in Elixir, how they are parsed, how they can be defined, and how they can be overridden.
 
 ## Operator precedence and associativity
 
