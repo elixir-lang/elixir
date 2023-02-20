@@ -501,7 +501,10 @@ defmodule IEx.Helpers do
     :code.get_path()
     |> Protocol.extract_protocols()
     |> Enum.uniq()
-    |> Enum.reject(fn protocol -> is_nil(protocol.impl_for(term)) end)
+    |> Enum.filter(fn protocol ->
+      Code.ensure_loaded?(protocol) and function_exported?(protocol, :impl_for, 1) and
+        protocol.impl_for(term) != nil
+    end)
     |> Enum.sort()
     |> Enum.map_join(", ", &inspect/1)
   end
