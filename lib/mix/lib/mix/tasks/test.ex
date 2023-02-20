@@ -275,8 +275,26 @@ defmodule Mix.Tasks.Test do
 
   ## Coverage
 
-  The `:test_coverage` configures the coverage tool and reports generated
-  by the `--cover` flag. It accepts the following options:
+  Elixir provides built-in line-based test coverage via the `--cover` flag.
+  The test coverages shows which lines of code and in which files were executed
+  during the test run.
+
+  ### Limitations
+
+  Coverage in Elixir has the following limitations:
+
+    * Literals, such as atoms, strings, and numbers, are not traced by coverage.
+      For example, if a function simply returns `:ok`, the atom `:ok` itself is
+      never taken into account by coverage;
+
+    * Macros, such as the ones defined by `defmacro/2` and `defguard/2`, and code
+      invoked only by macros are never considered as covered, unless they are also
+      invoked during the tests themselves. That's because macros are invoked at
+      compilation time, before the test coverage instrumentation begins;
+
+  ### Configuratiuon
+
+  The `:test_coverage` configures the coverage tool and accepts the following options:
 
     * `:output` - the output directory for cover results. Defaults to `"cover"`.
 

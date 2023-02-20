@@ -5604,10 +5604,10 @@ defmodule Kernel do
   allowed in guards, and otherwise creates a macro that can be used both inside
   or outside guards.
 
-  Note the convention in Elixir is to name functions/macros allowed in
-  guards with the `is_` prefix, such as `is_list/1`. If, however, the
-  function/macro returns a boolean and is not allowed in guards, it should
-  have no prefix and end with a question mark, such as `Keyword.keyword?/1`.
+  Note the convention in Elixir is to prefix all guards that return a boolean
+  with the `is_` prefix, such as `is_list/1`. If, however, the function/macro
+  returns a boolean and is not allowed in guards, it should have no prefix and
+  end with a question mark, such as `Keyword.keyword?/1`.
 
   ## Example
 
