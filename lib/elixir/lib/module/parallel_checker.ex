@@ -145,7 +145,7 @@ defmodule Module.ParallelChecker do
       spawn({self(), checker}, module, file)
     end
 
-    modules = :gen_server.call(checker, :start)
+    modules = :gen_server.call(checker, :start, :infinity)
     collect_results(modules, [])
   end
 
@@ -171,7 +171,7 @@ defmodule Module.ParallelChecker do
   """
   def test_cache do
     {:ok, checker} = start_link()
-    {checker, :gen_server.call(checker, :ets)}
+    {checker, :gen_server.call(checker, :ets, :infinity)}
   end
 
   @doc """
