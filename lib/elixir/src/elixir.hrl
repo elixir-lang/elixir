@@ -22,7 +22,7 @@
   extra_guards=[],         %% extra guards from args expansion
   counter=#{},             %% a map counting the variables defined
   expand_captures=false,   %% a boolean to control if captures should be expanded
-  stacktrace=nil           %% holds information about the stacktrace variable
+  stacktrace=nil          %% holds information about the stacktrace variable
 }).
 
 -record(elixir_tokenizer, {

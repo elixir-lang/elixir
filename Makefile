@@ -7,7 +7,7 @@ CANONICAL ?= main/
 DOCS_FORMAT ?= html
 ELIXIRC := bin/elixirc --ignore-module-conflict $(ELIXIRC_OPTS)
 ERLC := erlc -I lib/elixir/include
-ERL_MAKE := if [ -n "$(ERLC_OPTS)" ]; then ERL_COMPILER_OPTIONS=$(ERLC_OPTS) erl -make; else erl -make; fi
+ERL_MAKE := ERL_COMPILER_OPTIONS="$(ERLC_OPTS) {feature, maybe_expr, enable}" erl -make
 ERL := erl -I lib/elixir/include -noshell -pa lib/elixir/ebin
 GENERATE_APP := $(CURDIR)/lib/elixir/scripts/generate_app.escript
 VERSION := $(strip $(shell cat VERSION))

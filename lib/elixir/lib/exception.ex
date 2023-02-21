@@ -1662,7 +1662,7 @@ defmodule ErlangError do
     %CaseClauseError{term: term}
   end
 
-  def normalize({:with_clause, term}, _stacktrace) do
+  def normalize({error, term}, _stacktrace) when error in [:with_clause, :else_clause] do
     %WithClauseError{term: term}
   end
 

@@ -158,7 +158,7 @@ translate({'try', Meta, [Opts]}, _Ann, S) ->
       {[], SC}
   end,
 
-  Else = elixir_erl_clauses:get_clauses(else, Opts, match),
+  Else = elixir_erl_clauses:get_clauses('else', Opts, match),
   {TElse, SE} = elixir_erl_clauses:clauses(Else, SA),
   {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, SE};
 
@@ -185,9 +185,7 @@ translate({for, Meta, [_ | _] = Args}, _Ann, S) ->
   elixir_erl_for:translate(Meta, Args, S);
 
 translate({with, Meta, [_ | _] = Args}, _Ann, S) ->
-  {Exprs, [{do, Do} | Opts]} = elixir_utils:split_last(Args),
-  {ElseClause, SE} = translate_with_else(Meta, Opts, S),
-  translate_with_do(Exprs, ?ann(Meta), Do, ElseClause, SE);
+  translate_with(Meta, Args, S, elixir_config:get(with_as_maybe));
 
 %% Variables
 
@@ -401,18 +399,59 @@ returns_boolean(Condition, Body) ->
 
 %% with
 
+translate_with(Meta, Args, S, false) ->
+  {Exprs, [{do, Do} | Opts]} = elixir_utils:split_last(Args),
+  {ElseClause, SE} = translate_with_else(Meta, Opts, S),
+  translate_with_do(Exprs, ?ann(Meta), Do, ElseClause, SE);
+translate_with(Meta, Args, S, true) ->
+  {Exprs, [{do, Do} | Opts]} = elixir_utils:split_last(Args),
+  case lists:any(fun is_clause_with_guard/1, Exprs) of
+    % we need to give up if has a guard
+    true -> translate_with(Meta, Args, S, false);
+    false -> translate_with_as_maybe(Exprs ++ [Do], ?ann(Meta), Opts, S)
+  end.
+
+% - `when` cannot be transpiled as maybe as far as I know (not supported)
+% - `=` can actually be, there's just a scope issue to figure out so temporarily excluding it (FIXME)
+is_clause_with_guard({'<-', _Meta, [{Name, _, _}, _Expr]}) when Name == 'when' orelse Name == '=' ->
+  true;
+
+is_clause_with_guard(_) -> false.
+
+translate_with_as_maybe(Exprs, Ann, Opts, S) ->
+  {MaybeClauses, SC} = translate_with_exprs(Exprs, Ann, S, []),
+  Maybe = {'maybe', Ann, MaybeClauses},
+  translate_with_maybe_else(Opts, Ann, Maybe,SC).
+
+translate_with_exprs([], _Ann, S, Acc) -> {lists:reverse(Acc), S};
+translate_with_exprs([{'<-', Meta, [Left, Expr]} | Rest], _Ann, S, Acc) ->
+  Ann = ?ann(Meta),
+  {Args, []} = elixir_utils:extract_guards(Left),
+  {TExpr, SR} = translate(Expr, Ann, S),
+  {TArgs, SA} = elixir_erl_clauses:match(Ann, fun translate/3, Args, SR),
+  translate_with_exprs(Rest, Ann, SA, [{maybe_match, ?ann(Meta), TArgs, TExpr} | Acc]);
+translate_with_exprs([Expr | Rest], Ann, S, Acc) ->
+  {TExpr, SR} = translate(Expr, Ann, S),
+  translate_with_exprs(Rest, Ann, SR, [TExpr | Acc]).
+
+translate_with_maybe_else([], _Ann, Maybe, S) -> {Maybe, S};
+translate_with_maybe_else(Opts, Ann, Maybe, S) ->
+  Clauses = elixir_erl_clauses:get_clauses('else', Opts, match),
+  {TClauses, SE} = elixir_erl_clauses:clauses(Clauses, S),
+  {erlang:append_element(Maybe, {'else', Ann, TClauses}), SE}.
+
 translate_with_else(Meta, [], S) ->
   Generated = ?ann(?generated(Meta)),
   {VarName, SC} = elixir_erl_var:build('_', S),
   Var = {var, Generated, VarName},
   {{clause, Generated, [Var], [], [Var]}, SC};
-translate_with_else(Meta, [{else, [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
+translate_with_else(Meta, [{'else', [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
   Ann = ?ann(Meta),
   Generated = erl_anno:set_generated(true, Ann),
   {ElseVarErl, SV} = elixir_erl_var:translate(VarMeta, Var, Kind, S#elixir_erl{context=match}),
   {TranslatedClause, SC} = translate(Clause, Ann, SV#elixir_erl{context=nil}),
   {{clause, Generated, [ElseVarErl], [], [TranslatedClause]}, SC};
-translate_with_else(Meta, [{else, Else}], S) ->
+translate_with_else(Meta, [{'else', Else}], S) ->
   Generated = ?generated(Meta),
   {ElseVarEx, ElseVarErl, SE} = elixir_erl_var:assign(Generated, S),
   {RaiseVar, _, SV} = elixir_erl_var:assign(Generated, SE),

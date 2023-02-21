@@ -82,7 +82,8 @@ start(_Type, _Args) ->
     {warnings_as_errors, false},
     {relative_paths, true},
     {no_warn_undefined, []},
-    {tracers, []}
+    {tracers, []},
+    {with_as_maybe, with_as_maybe()}
     | URIConfig
   ],
 
@@ -487,3 +488,6 @@ handle_parsing_opts(File, Opts) ->
   put(elixir_parser_columns, Columns),
   put(elixir_token_metadata, TokenMetadata),
   put(elixir_literal_encoder, LiteralEncoder).
+
+with_as_maybe() ->
+  lists:member(maybe_expr, erl_features:enabled()).
