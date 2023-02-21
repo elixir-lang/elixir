@@ -56,13 +56,6 @@ Expect 3.
 %% than all others, its entry in the table is only to support the
 %% %{user | foo => bar} syntax.
 
-%% TODO: Assuming we change the typing syntax to use "or"
-%% instead "|", we should then change "::" to come after =>.
-%% We may also want to consider addressing the precedence of
-%% [foo: bar | baz], but that may be a breaking change for
-%% custom DSLs. We should also consider removing support for
-%% keywords after when (therefore brackets will be required).
-
 Left       5 do.
 Right     10 stab_op_eol.     %% ->
 Left      20 ','.
