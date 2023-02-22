@@ -1191,7 +1191,7 @@ format_error(unhandled_cons_op) ->
   "The | operator is typically used between brackets as the cons operator:\n\n"
   "    [head | tail]\n\n"
   "where head is a sequence of elements separated by commas and the tail\n"
-  "is the remaining of a list.\n"
+  "is the remaining of a list.\n\n"
   "It is also used to update maps and structs, via the %{map | key: value} notation,\n"
   "and in typespecs, such as @type and @spec, to express the union of two types";
 format_error(unhandled_type_op) ->
