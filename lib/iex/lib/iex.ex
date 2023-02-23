@@ -482,13 +482,7 @@ defmodule IEx do
 
     * `:default_prompt` - used when `Node.alive?/0` returns `false`
 
-    * `:continuation_prompt` - used when `Node.alive?/0` returns `false`
-      and more input is expected
-
     * `:alive_prompt` - used when `Node.alive?/0` returns `true`
-
-    * `:alive_continuation_prompt` - used when `Node.alive?/0` returns
-      `true` and more input is expected
 
   The following values in the prompt string will be replaced appropriately:
 
@@ -503,11 +497,17 @@ defmodule IEx do
   The parser is a "mfargs", which is a tuple with three elements:
   the module name, the function name, and extra arguments to
   be appended. The parser receives at least three arguments, the
-  current input as a string, the parsing options as a keyword list,
-  and the buffer as a string. It must return `{:ok, expr, buffer}`
-  or `{:incomplete, buffer}`.
+  current input as a charlist, the parsing options as a keyword list,
+  and the state. The initial state is an empty charlist. It must
+  return `{:ok, expr, state}` or `{:incomplete, state}`.
 
-  If the parser raises, the buffer is reset to an empty string.
+  If the parser raises, the state is reset to an empty charlist.
+
+  > In earlier Elixir versions, the parser would receive the input
+  > and the initial buffer as strings. However, this behaviour
+  > changed when Erlang/OTP introduced multiline editing. If you
+  > support earlier Elixir versions, you can normalize the inputs
+  > by calling `to_charlist/1`.
   """
   @spec configure(keyword()) :: :ok
   def configure(options) do

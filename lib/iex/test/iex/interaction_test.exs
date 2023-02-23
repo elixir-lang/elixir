@@ -93,7 +93,7 @@ defmodule IEx.InteractionTest do
     output = capture_iex(input)
 
     assert output =~ "** (TokenMissingError) token missing on iex:1:"
-    assert output =~ "error: incomplete expression\n"
+    assert output =~ "incomplete expression"
     assert output =~ "iex:1"
   end
 
@@ -138,11 +138,6 @@ defmodule IEx.InteractionTest do
   test "prompt" do
     opts = [default_prompt: "prompt(%counter)>"]
     assert capture_iex("1\n", opts, [], true) == "prompt(1)> 1\nprompt(2)>"
-  end
-
-  test "continuation prompt" do
-    opts = [default_prompt: "%prefix(%counter)>", continuation_prompt: "%prefix(%counter)>>>"]
-    assert capture_iex("[\n1\n]\n", opts, [], true) == "iex(1)> ...(1)>>> ...(1)>>> [1]\niex(2)>"
   end
 
   if IO.ANSI.enabled?() do
@@ -232,7 +227,7 @@ defmodule IEx.InteractionTest do
       end
     end
 
-    assert capture_iex("foo", parser: {EchoParser, :parse, []}) == "\"foo\""
+    assert capture_iex("foo", parser: {EchoParser, :parse, []}) == "~c\"foo\""
   after
     IEx.configure(parser: {IEx.Evaluator, :parse, []})
   end
