@@ -354,9 +354,14 @@ defmodule IEx.Server do
   defp io_get(prompt) do
     gl = Process.group_leader()
     ref = Process.monitor(gl)
-    send(gl, {:io_request, self(), ref, {:get_line, :unicode, prompt}})
+    command = {:get_until, :unicode, prompt, __MODULE__, :__parse__, []}
+    send(gl, {:io_request, self(), ref, command})
     ref
   end
+
+  @doc false
+  def __parse__([], :eof), do: {:done, :eof, []}
+  def __parse__([], chars), do: {:done, List.to_string(chars), []}
 
   defp prompt(status, prefix, counter) do
     {mode, prefix} =
