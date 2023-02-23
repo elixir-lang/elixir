@@ -374,8 +374,28 @@ defmodule IEx.Server do
 
   defp io_get(pid, prompt_type, prefix, counter) do
     prompt = prompt(prompt_type, prefix, counter)
-    send(pid, {:input, self(), IO.gets(:stdio, prompt)})
+    send(pid, {:input, self(), io_get(prompt)})
   end
+
+  defp io_get(prompt) do
+    pid = Process.group_leader()
+    ref = Process.monitor(pid)
+    command = {:get_until, :unicode, prompt, __MODULE__, :__io_get__, []}
+    send(pid, {:io_request, self(), ref, command})
+
+    receive do
+      {:io_reply, ^ref, reply} ->
+        Process.demonitor(ref, [:flush])
+        reply
+
+      {:DOWN, ^ref, _, _, _} ->
+        {:error, :terminated}
+    end
+  end
+
+  @doc false
+  def __io_get__([], :eof), do: {:done, :eof, []}
+  def __io_get__([], chars), do: {:done, List.to_string(chars), []}
 
   defp prompt(prompt_type, prefix, counter) do
     {mode, prefix} =
