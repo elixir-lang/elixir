@@ -371,6 +371,7 @@ defmodule StringIO do
   defp get_until(encoding, prompt, mod, fun, args, %{input: input} = state) do
     case get_until(input, encoding, mod, fun, args, [], 0) do
       {result, input, count} ->
+        # Convert :eof to "" as they are both treated the same
         input =
           case input do
             :eof -> ""
@@ -397,7 +398,7 @@ defmodule StringIO do
   defp get_until(chars, encoding, mod, fun, args, continuation, count) do
     case bytes_until_eol(chars, encoding, 0) do
       {kind, size} when kind in [:split, :replace_split] ->
-        {line, rest} = :erlang.split_binary(chars, size)
+        <<line::binary-size(size), rest::binary>> = chars
 
         case apply(mod, fun, [continuation, binary_to_list(line, encoding) | args]) do
           {:done, result, :eof} ->
