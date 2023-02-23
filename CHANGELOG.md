@@ -241,6 +241,38 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
+## v1.14.4-dev
+
+This release adds basic support for Erlang/OTP 26. When migrating
+to Erlang/OTP 26, keep it mind it changes how maps are stored
+internally (note maps never provided a guarantee of their order).
+This release adds `:sort_maps` to `inspect` custom options,
+in case you want to sort them before inspection:
+
+    inspect(map, custom_options: [sort_maps: true])
+
+### Enhancements
+
+#### Elixir
+
+  * [Inspect] Add `:sort_maps` to `Inspect.Opts.custom_options`
+
+#### IEx
+
+  * [IEx] Support shell history in Erlang/OTP 26+
+
+#### Mix
+
+  * [mix compile.elixir] Optimize application tracer
+
+### Bug fixes
+
+#### Elixir
+
+  * [Code] Properly handle blocks with comments in all cases in `Code.quoted_to_string_with_comments/2`
+  * [Kernel] Fix `debug_info/4` when returning core_v1
+  * [Kernel]  Store complete path on `quote keep: true` to avoid invalid stacktraces
+
 ## v1.14.3 (2023-01-14)
 
 ### 1. Enhancements
