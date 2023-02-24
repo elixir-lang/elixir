@@ -6126,7 +6126,7 @@ defmodule Kernel do
       iex> ~c(f\#{:o}o)
       ~c"f\#{:o}o"
 
-  The list is only printed as a ~c sigil if all code points are within the
+  The list is only printed as a `~c` sigil if all code points are within the
   ASCII range:
 
       iex> ~c"hełło"
