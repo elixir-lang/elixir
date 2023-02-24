@@ -2173,18 +2173,18 @@ defmodule Macro do
       "foo/bar"
 
   In general, `underscore` can be thought of as the reverse of
-  `camelize`, however, in some cases formatting may be lost:
+  `pascalize`, however, in some cases formatting may be lost:
 
       iex> Macro.underscore("SAPExample")
       "sap_example"
 
-      iex> Macro.camelize("sap_example")
+      iex> Macro.pascalize("sap_example")
       "SapExample"
 
-      iex> Macro.camelize("hello_10")
+      iex> Macro.pascalize("hello_10")
       "Hello10"
 
-      iex> Macro.camelize("foo/bar")
+      iex> Macro.pascalize("foo/bar")
       "Foo.Bar"
 
   """
@@ -2228,47 +2228,47 @@ defmodule Macro do
   end
 
   @doc """
-  Converts the given string to CamelCase format.
+  Converts the given string to PascalCase format.
 
-  This function was designed to camelize language identifiers/tokens,
+  This function was designed to pascalize language identifiers/tokens,
   that's why it belongs to the `Macro` module. Do not use it as a general
-  mechanism for camelizing strings as it does not support Unicode or
+  mechanism for pascalizing strings as it does not support Unicode or
   characters that are not valid in Elixir identifiers.
 
   ## Examples
 
-      iex> Macro.camelize("foo_bar")
+      iex> Macro.pascalize("foo_bar")
       "FooBar"
 
-      iex> Macro.camelize("foo/bar")
+      iex> Macro.pascalize("foo/bar")
       "Foo.Bar"
 
   If uppercase characters are present, they are not modified in any way
   as a mechanism to preserve acronyms:
 
-      iex> Macro.camelize("API.V1")
+      iex> Macro.pascalize("API.V1")
       "API.V1"
-      iex> Macro.camelize("API_SPEC")
+      iex> Macro.pascalize("API_SPEC")
       "API_SPEC"
 
   """
-  @spec camelize(String.t()) :: String.t()
-  def camelize(string)
+  @spec pascalize(String.t()) :: String.t()
+  def pascalize(string)
 
-  def camelize(""), do: ""
-  def camelize(<<?_, t::binary>>), do: camelize(t)
-  def camelize(<<h, t::binary>>), do: <<to_upper_char(h)>> <> do_camelize(t)
+  def pascalize(""), do: ""
+  def pascalize(<<?_, t::binary>>), do: pascalize(t)
+  def pascalize(<<h, t::binary>>), do: <<to_upper_char(h)>> <> do_pascalize(t)
 
-  defp do_camelize(<<?_, ?_, t::binary>>), do: do_camelize(<<?_, t::binary>>)
+  defp do_pascalize(<<?_, ?_, t::binary>>), do: do_pascalize(<<?_, t::binary>>)
 
-  defp do_camelize(<<?_, h, t::binary>>) when h >= ?a and h <= ?z,
-    do: <<to_upper_char(h)>> <> do_camelize(t)
+  defp do_pascalize(<<?_, h, t::binary>>) when h >= ?a and h <= ?z,
+    do: <<to_upper_char(h)>> <> do_pascalize(t)
 
-  defp do_camelize(<<?_, h, t::binary>>) when h >= ?0 and h <= ?9, do: <<h>> <> do_camelize(t)
-  defp do_camelize(<<?_>>), do: <<>>
-  defp do_camelize(<<?/, t::binary>>), do: <<?.>> <> camelize(t)
-  defp do_camelize(<<h, t::binary>>), do: <<h>> <> do_camelize(t)
-  defp do_camelize(<<>>), do: <<>>
+  defp do_pascalize(<<?_, h, t::binary>>) when h >= ?0 and h <= ?9, do: <<h>> <> do_pascalize(t)
+  defp do_pascalize(<<?_>>), do: <<>>
+  defp do_pascalize(<<?/, t::binary>>), do: <<?.>> <> pascalize(t)
+  defp do_pascalize(<<h, t::binary>>), do: <<h>> <> do_pascalize(t)
+  defp do_pascalize(<<>>), do: <<>>
 
   defp to_upper_char(char) when char >= ?a and char <= ?z, do: char - 32
   defp to_upper_char(char), do: char

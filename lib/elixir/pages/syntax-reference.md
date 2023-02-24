@@ -116,7 +116,7 @@ Aliases are constructs that expand to atoms at compile-time. The alias `String` 
 
 Multiple aliases can be joined with `.`, such as `MyApp.String`, and it expands to the atom `:"Elixir.MyApp.String"`. The dot is effectively part of the name but it can also be used for composition. If you define `alias MyApp.Example, as: Example` in your code, then `Example` will always expand to `:"Elixir.MyApp.Example"` and `Example.String` will expand to `:"Elixir.MyApp.Example.String"`.
 
-[Elixir's naming conventions](naming-conventions.md) recommend aliases to be in `CamelCase` format.
+[Elixir's naming conventions](naming-conventions.md) recommend aliases to be in `PascalCase` format.
 
 ### Module attributes
 
