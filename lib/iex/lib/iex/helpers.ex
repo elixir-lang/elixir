@@ -516,7 +516,7 @@ defmodule IEx.Helpers do
   [Recon](https://github.com/ferd/recon) project.
   """
   @doc since: "1.5.0"
-  def runtime_info(), do: runtime_info([:system, :memory, :limits, :allocators])
+  def runtime_info(), do: runtime_info([:system, :memory, :limits])
 
   @doc """
   Just like `runtime_info/0`, except accepts topic or a list of topics.
@@ -607,29 +607,33 @@ defmodule IEx.Helpers do
   defp print_runtime_info_topic(:allocators) do
     allocator_sizes_map = get_allocator_sizes()
 
-    print_pane("Memory allocators")
-    print_sub_pane("Total")
-    print_allocator_sizes(allocator_sizes_map.total)
-    print_sub_pane("Temporary allocations")
-    print_allocator_sizes(allocator_sizes_map.temp_alloc)
-    print_sub_pane("Short-lived allocations")
-    print_allocator_sizes(allocator_sizes_map.sl_alloc)
-    print_sub_pane("STD allocations")
-    print_allocator_sizes(allocator_sizes_map.std_alloc)
-    print_sub_pane("Long-lived allocations")
-    print_allocator_sizes(allocator_sizes_map.ll_alloc)
-    print_sub_pane("Erlang heap allocations")
-    print_allocator_sizes(allocator_sizes_map.eheap_alloc)
-    print_sub_pane("ETS allocations")
-    print_allocator_sizes(allocator_sizes_map.ets_alloc)
-    print_sub_pane("Fix allocations")
-    print_allocator_sizes(allocator_sizes_map.fix_alloc)
-    print_sub_pane("Literal allocations")
-    print_allocator_sizes(allocator_sizes_map.literal_alloc)
-    print_sub_pane("Binary allocations")
-    print_allocator_sizes(allocator_sizes_map.binary_alloc)
-    print_sub_pane("Driver allocations")
-    print_allocator_sizes(allocator_sizes_map.driver_alloc)
+    if Enum.empty?(allocator_sizes_map) do
+      IO.puts(IEx.color(:eval_error, "Could not get allocator sizes."))
+    else
+      print_pane("Memory allocators")
+      print_sub_pane("Total")
+      print_allocator_sizes(allocator_sizes_map.total)
+      print_sub_pane("Temporary allocations")
+      print_allocator_sizes(allocator_sizes_map.temp_alloc)
+      print_sub_pane("Short-lived allocations")
+      print_allocator_sizes(allocator_sizes_map.sl_alloc)
+      print_sub_pane("STD allocations")
+      print_allocator_sizes(allocator_sizes_map.std_alloc)
+      print_sub_pane("Long-lived allocations")
+      print_allocator_sizes(allocator_sizes_map.ll_alloc)
+      print_sub_pane("Erlang heap allocations")
+      print_allocator_sizes(allocator_sizes_map.eheap_alloc)
+      print_sub_pane("ETS allocations")
+      print_allocator_sizes(allocator_sizes_map.ets_alloc)
+      print_sub_pane("Fix allocations")
+      print_allocator_sizes(allocator_sizes_map.fix_alloc)
+      print_sub_pane("Literal allocations")
+      print_allocator_sizes(allocator_sizes_map.literal_alloc)
+      print_sub_pane("Binary allocations")
+      print_allocator_sizes(allocator_sizes_map.binary_alloc)
+      print_sub_pane("Driver allocations")
+      print_allocator_sizes(allocator_sizes_map.driver_alloc)
+    end
   end
 
   defp print_pane(msg) do
@@ -700,28 +704,28 @@ defmodule IEx.Helpers do
             block_size: block_size,
             carrier_size: carrier_size,
             max_carrier_size: max_carrier_size
-          } = Map.get(acc, allocator)
+          } = Map.fetch!(acc, allocator)
 
           %{
             block_size: total_block_size,
             carrier_size: total_carrier_size,
             max_carrier_size: total_max_carrier_size
-          } = Map.get(acc, :total)
+          } = Map.fetch!(acc, :total)
 
           acc
-          |> Map.replace(allocator, %{
+          |> Map.replace!(allocator, %{
             block_size: block_size + cbs,
             carrier_size: carrier_size + ccs,
             max_carrier_size: max_carrier_size + mcs
           })
-          |> Map.replace(:total, %{
+          |> Map.replace!(:total, %{
             block_size: total_block_size + cbs,
             carrier_size: total_carrier_size + ccs,
             max_carrier_size: total_max_carrier_size + mcs
           })
       end
     rescue
-      _ -> allocators_map
+      _ -> %{}
     end
   end
 
