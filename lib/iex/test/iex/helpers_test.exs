@@ -317,9 +317,7 @@ defmodule IEx.HelpersTest do
   describe "runtime_info" do
     test "shows VM information" do
       assert "\n## System and architecture" <> _ = capture_io(fn -> runtime_info() end)
-    end
 
-    test "shows applications & allocators information" do
       assert "\n## Loaded OTP Applications" <> _ =
                capture_io(fn -> runtime_info([:applications, :allocators]) end)
     end
