@@ -42,6 +42,15 @@ defmodule Mix.Tasks.Archive.Build do
 
     * `--include-dot-files` - adds dot files from priv directory to the archive.
 
+  ## Configuration
+
+  The following option may be specified in your `mix.exs` under the
+  `:project` key:
+
+    * `:archive_forbidden` - if set, mix returns an error if the user runs
+      `mix archive.build`.  The value is a reason to let the user know why
+      or what to do instead.
+
   """
   @switches [
     force: :boolean,
@@ -64,6 +73,12 @@ defmodule Mix.Tasks.Archive.Build do
       Mix.Task.run(:compile, args)
     end
 
+    project_config = Mix.Project.config()
+
+    if project_config[:archive_forbidden] do
+      Mix.raise("Cannot create archive: #{project_config[:archive_forbidden]}")
+    end
+
     source =
       cond do
         input = opts[:input] ->
@@ -83,8 +98,6 @@ defmodule Mix.Tasks.Archive.Build do
         true ->
           Mix.raise("Cannot create archive without input directory, please pass -i as an option")
       end
-
-    project_config = Mix.Project.config()
 
     target =
       cond do

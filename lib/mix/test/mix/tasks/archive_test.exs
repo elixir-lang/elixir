@@ -15,6 +15,12 @@ defmodule Mix.Tasks.ArchiveTest do
     end
   end
 
+  defmodule ForbiddenArchiveProject do
+    def project do
+      [app: :archive, version: "0.1.0", archive_forbidden: "Install xyz instead"]
+    end
+  end
+
   setup do
     File.rm_rf!(tmp_path("userhome"))
     System.put_env("MIX_ARCHIVES", tmp_path("userhome/.mix/archives/"))
@@ -61,6 +67,17 @@ defmodule Mix.Tasks.ArchiveTest do
            )
 
     assert has_in_zip_file?(~c"archive-0.1.0.ez", ~c"archive-0.1.0/ebin/archive.app")
+  end
+
+  test "archive build fails when archive_forbidden" do
+    in_fixture("archive", fn ->
+      Mix.Project.pop()
+      Mix.Project.push(ForbiddenArchiveProject)
+
+      assert_raise Mix.Error, "Cannot create archive: Install xyz instead", fn ->
+        Mix.Tasks.Archive.Build.run(["--no-elixir-version-check"])
+      end
+    end)
   end
 
   test "archive install" do
