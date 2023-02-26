@@ -82,7 +82,7 @@ defmodule Supervisor do
       GenServer.call(Counter, :get)
       #=> 0
 
-      GenServer.cast(Counter, {:bump, 3})
+      GenServer.call(Counter, {:bump, 3})
       #=> 0
 
       GenServer.call(Counter, :get)
