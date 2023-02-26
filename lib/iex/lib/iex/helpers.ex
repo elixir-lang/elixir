@@ -548,9 +548,9 @@ defmodule IEx.Helpers do
   end
 
   defp print_topic_info(topics) when is_list(topics) do
-    IO.write(pad_key("Showing topics"))
+    IO.write(pad_key("Showing topics:"))
     IO.puts(inspect(topics))
-    IO.write(pad_key("Additional topics"))
+    IO.write(pad_key("Additional topics:"))
     IO.puts(inspect(@runtime_info_topics -- topics))
     IO.puts("")
     IO.puts("To view a specific topic call runtime_info(topic)")
@@ -569,12 +569,12 @@ defmodule IEx.Helpers do
 
   defp print_runtime_info_topic(:memory) do
     print_pane("Memory")
-    print_memory("Total", :total)
     print_memory("Atoms", :atom)
     print_memory("Binaries", :binary)
     print_memory("Code", :code)
     print_memory("ETS", :ets)
     print_memory("Processes", :processes)
+    print_memory("Total", :total)
   end
 
   defp print_runtime_info_topic(:limits) do
@@ -589,12 +589,12 @@ defmodule IEx.Helpers do
   end
 
   defp print_runtime_info_topic(:applications) do
-    print_pane("Loaded OTP Applications")
+    print_pane("Loaded OTP applications")
     started = Application.started_applications()
     loaded = Application.loaded_applications()
 
     for {app, _, version} = entry <- Enum.sort(loaded) do
-      IO.write(pad_key(app))
+      IO.write(pad_key(Atom.to_string(app)))
       IO.write(String.pad_trailing("#{version}", 20))
 
       if entry in started do
@@ -607,6 +607,9 @@ defmodule IEx.Helpers do
     :ok
   end
 
+  @allocator_column_padding 12
+  @allocator_size_padding 19
+
   defp print_runtime_info_topic(:allocators) do
     allocator_sizes_map = get_allocator_sizes()
 
@@ -614,37 +617,30 @@ defmodule IEx.Helpers do
       IO.puts(IEx.color(:eval_error, "Could not get allocator sizes."))
     else
       print_pane("Memory allocators")
-      print_sub_pane("Total")
-      print_allocator_sizes(allocator_sizes_map.total)
-      print_sub_pane("Temporary allocations")
-      print_allocator_sizes(allocator_sizes_map.temp_alloc)
-      print_sub_pane("Short-lived allocations")
-      print_allocator_sizes(allocator_sizes_map.sl_alloc)
-      print_sub_pane("STD allocations")
-      print_allocator_sizes(allocator_sizes_map.std_alloc)
-      print_sub_pane("Long-lived allocations")
-      print_allocator_sizes(allocator_sizes_map.ll_alloc)
-      print_sub_pane("Erlang heap allocations")
-      print_allocator_sizes(allocator_sizes_map.eheap_alloc)
-      print_sub_pane("ETS allocations")
-      print_allocator_sizes(allocator_sizes_map.ets_alloc)
-      print_sub_pane("Fix allocations")
-      print_allocator_sizes(allocator_sizes_map.fix_alloc)
-      print_sub_pane("Literal allocations")
-      print_allocator_sizes(allocator_sizes_map.literal_alloc)
-      print_sub_pane("Binary allocations")
-      print_allocator_sizes(allocator_sizes_map.binary_alloc)
-      print_sub_pane("Driver allocations")
-      print_allocator_sizes(allocator_sizes_map.driver_alloc)
+
+      IO.puts([
+        String.duplicate(" ", @allocator_column_padding),
+        String.pad_leading("Block size", @allocator_size_padding),
+        String.pad_leading("Carrier size", @allocator_size_padding),
+        String.pad_leading("Max carrier size", @allocator_size_padding)
+      ])
+
+      print_allocator("Temporary", allocator_sizes_map.temp_alloc)
+      print_allocator("Short-lived", allocator_sizes_map.sl_alloc)
+      print_allocator("STD", allocator_sizes_map.std_alloc)
+      print_allocator("Long-lived", allocator_sizes_map.ll_alloc)
+      print_allocator("Erlang heap", allocator_sizes_map.eheap_alloc)
+      print_allocator("ETS", allocator_sizes_map.ets_alloc)
+      print_allocator("Fix", allocator_sizes_map.fix_alloc)
+      print_allocator("Literal", allocator_sizes_map.literal_alloc)
+      print_allocator("Binary", allocator_sizes_map.binary_alloc)
+      print_allocator("Driver", allocator_sizes_map.driver_alloc)
+      print_allocator("Total", allocator_sizes_map.total)
     end
   end
 
   defp print_pane(msg) do
     IO.puts(IEx.color(:eval_result, ["\n## ", msg, " \n"]))
-  end
-
-  defp print_sub_pane(msg) do
-    IO.puts(IEx.color(:eval_result, ["\n### ", msg, " \n"]))
   end
 
   defp print_entry(_key, nil), do: :ok
@@ -670,14 +666,17 @@ defmodule IEx.Helpers do
     IO.puts("#{pad_key(key)}#{format_bytes(value)}")
   end
 
-  defp print_allocator_sizes(%{
+  defp print_allocator(title, %{
          block_size: block_size,
          carrier_size: carriers_size,
          max_carrier_size: max_carriers_size
        }) do
-    IO.puts("#{pad_key("Block size")}#{format_bytes(block_size, :KB)}")
-    IO.puts("#{pad_key("Carrier size")}#{format_bytes(carriers_size, :KB)}")
-    IO.puts("#{pad_key("Max Carrier size")}#{format_bytes(max_carriers_size, :KB)}")
+    IO.puts([
+      String.pad_trailing(title, @allocator_column_padding),
+      block_size |> format_bytes(:KB) |> String.pad_leading(@allocator_size_padding),
+      carriers_size |> format_bytes(:KB) |> String.pad_leading(@allocator_size_padding),
+      max_carriers_size |> format_bytes(:KB) |> String.pad_leading(@allocator_size_padding)
+    ])
   end
 
   defp get_allocator_sizes() do
@@ -756,7 +755,7 @@ defmodule IEx.Helpers do
   defp memory_unit(:MB), do: 1024 * 1024
   defp memory_unit(:KB), do: 1024
 
-  defp pad_key(key), do: String.pad_trailing("#{key}:", 20, " ")
+  defp pad_key(key), do: String.pad_trailing(key, 21, " ")
 
   @doc """
   Clears out all messages sent to the shell's inbox and prints them out.
