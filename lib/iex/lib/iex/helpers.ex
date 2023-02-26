@@ -509,7 +509,7 @@ defmodule IEx.Helpers do
     |> Enum.map_join(", ", &inspect/1)
   end
 
-  @runtime_info_topics [:system, :memory, :limits, :applications]
+  @runtime_info_topics [:system, :memory, :limits, :applications, :allocators]
   @doc """
   Prints VM/runtime information such as versions, memory usage and statistics.
 
@@ -607,8 +607,44 @@ defmodule IEx.Helpers do
     :ok
   end
 
+  defp print_runtime_info_topic(:allocators) do
+    allocator_sizes_map = get_allocator_sizes()
+
+    if Enum.empty?(allocator_sizes_map) do
+      IO.puts(IEx.color(:eval_error, "Could not get allocator sizes."))
+    else
+      print_pane("Memory allocators")
+      print_sub_pane("Total")
+      print_allocator_sizes(allocator_sizes_map.total)
+      print_sub_pane("Temporary allocations")
+      print_allocator_sizes(allocator_sizes_map.temp_alloc)
+      print_sub_pane("Short-lived allocations")
+      print_allocator_sizes(allocator_sizes_map.sl_alloc)
+      print_sub_pane("STD allocations")
+      print_allocator_sizes(allocator_sizes_map.std_alloc)
+      print_sub_pane("Long-lived allocations")
+      print_allocator_sizes(allocator_sizes_map.ll_alloc)
+      print_sub_pane("Erlang heap allocations")
+      print_allocator_sizes(allocator_sizes_map.eheap_alloc)
+      print_sub_pane("ETS allocations")
+      print_allocator_sizes(allocator_sizes_map.ets_alloc)
+      print_sub_pane("Fix allocations")
+      print_allocator_sizes(allocator_sizes_map.fix_alloc)
+      print_sub_pane("Literal allocations")
+      print_allocator_sizes(allocator_sizes_map.literal_alloc)
+      print_sub_pane("Binary allocations")
+      print_allocator_sizes(allocator_sizes_map.binary_alloc)
+      print_sub_pane("Driver allocations")
+      print_allocator_sizes(allocator_sizes_map.driver_alloc)
+    end
+  end
+
   defp print_pane(msg) do
     IO.puts(IEx.color(:eval_result, ["\n## ", msg, " \n"]))
+  end
+
+  defp print_sub_pane(msg) do
+    IO.puts(IEx.color(:eval_result, ["\n### ", msg, " \n"]))
   end
 
   defp print_entry(_key, nil), do: :ok
@@ -632,6 +668,68 @@ defmodule IEx.Helpers do
   defp print_memory(key, memory) do
     value = :erlang.memory(memory)
     IO.puts("#{pad_key(key)}#{format_bytes(value)}")
+  end
+
+  defp print_allocator_sizes(%{
+         block_size: block_size,
+         carrier_size: carriers_size,
+         max_carrier_size: max_carriers_size
+       }) do
+    IO.puts("#{pad_key("Block size")}#{format_bytes(block_size, :KB)}")
+    IO.puts("#{pad_key("Carrier size")}#{format_bytes(carriers_size, :KB)}")
+    IO.puts("#{pad_key("Max Carrier size")}#{format_bytes(max_carriers_size, :KB)}")
+  end
+
+  defp get_allocator_sizes() do
+    alloc_util_allocators = :erlang.system_info(:alloc_util_allocators)
+
+    allocators_map =
+      Map.new(
+        [:total | alloc_util_allocators],
+        &{&1, %{block_size: 0, carrier_size: 0, max_carrier_size: 0}}
+      )
+
+    try do
+      for {allocator, allocator_instances} <-
+            :erlang.system_info({:allocator_sizes, alloc_util_allocators}),
+          {:instance, _, instance_info} <- allocator_instances,
+          {_, [{:blocks, blocks}, {:carriers_size, ccs, mcs, _}]} <-
+            instance_info,
+          reduce: allocators_map do
+        acc ->
+          cbs =
+            case blocks do
+              [{_, [{:size, bs, _, _}]}] -> bs
+              _ -> 0
+            end
+
+          %{
+            block_size: block_size,
+            carrier_size: carrier_size,
+            max_carrier_size: max_carrier_size
+          } = Map.fetch!(acc, allocator)
+
+          %{
+            block_size: total_block_size,
+            carrier_size: total_carrier_size,
+            max_carrier_size: total_max_carrier_size
+          } = Map.fetch!(acc, :total)
+
+          acc
+          |> Map.replace!(allocator, %{
+            block_size: block_size + cbs,
+            carrier_size: carrier_size + ccs,
+            max_carrier_size: max_carrier_size + mcs
+          })
+          |> Map.replace!(:total, %{
+            block_size: total_block_size + cbs,
+            carrier_size: total_carrier_size + ccs,
+            max_carrier_size: total_max_carrier_size + mcs
+          })
+      end
+    rescue
+      _ -> %{}
+    end
   end
 
   defp format_bytes(bytes) when is_integer(bytes) do
