@@ -43,6 +43,13 @@ defmodule Protocol do
         def size(tuple), do: tuple_size(tuple)
       end
 
+  Finally, we can use the `Size` protocol to call the correct implementation:
+
+    Size.size({1,2})
+    # => 2
+    Size.size(%{key: :value})
+    # => 1
+
   Note that we didn't implement it for lists as we don't have the
   `size` information on lists, rather its value needs to be
   computed with `length`.
