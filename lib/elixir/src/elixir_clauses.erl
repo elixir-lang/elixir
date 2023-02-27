@@ -188,7 +188,7 @@ expand_with_do(Meta, Opts, S, Acc, E) ->
   end.
 
 expand_with_else(Meta, Opts, S, E, HasMatch) ->
-  case lists:keytake(else, 1, Opts) of
+  case lists:keytake('else', 1, Opts) of
     {value, Pair, RestOpts} ->
       if
         HasMatch -> ok;
@@ -212,7 +212,7 @@ expand_with_else(Meta, Opts, S, E, HasMatch) ->
 'try'(Meta, Opts, S, E) ->
   % TODO: Make this an error on v2.0
   case Opts of
-    [{do, _}, {else, _}] ->
+    [{do, _}, {'else', _}] ->
       file_warn(Meta, ?key(E, file), ?MODULE, {try_with_only_else_clause, origin(Meta, 'try')});
     _ ->
       ok

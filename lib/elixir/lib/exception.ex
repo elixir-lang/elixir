@@ -1662,7 +1662,8 @@ defmodule ErlangError do
     %CaseClauseError{term: term}
   end
 
-  def normalize({:with_clause, term}, _stacktrace) do
+  # :else_clause is aligned on what Erlang returns for `maybe`
+  def normalize({:else_clause, term}, _stacktrace) do
     %WithClauseError{term: term}
   end
 
