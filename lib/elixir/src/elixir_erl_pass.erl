@@ -417,7 +417,7 @@ translate_with_else(Meta, [{'else', Else}], S) ->
   {ElseVarEx, ElseVarErl, SE} = elixir_erl_var:assign(Generated, S),
   {RaiseVar, _, SV} = elixir_erl_var:assign(Generated, SE),
 
-  RaiseExpr = {{'.', Generated, [erlang, error]}, Generated, [{with_clause, RaiseVar}]},
+  RaiseExpr = {{'.', Generated, [erlang, error]}, Generated, [{else_clause, RaiseVar}]},
   RaiseClause = {'->', Generated, [[RaiseVar], RaiseExpr]},
   GeneratedElse = [build_generated_clause(Generated, ElseClause) || ElseClause <- Else],
 
