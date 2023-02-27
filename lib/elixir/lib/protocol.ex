@@ -45,7 +45,7 @@ defmodule Protocol do
 
   Finally, we can use the `Size` protocol to call the correct implementation:
 
-    Size.size({1,2})
+    Size.size({1, 2})
     # => 2
     Size.size(%{key: :value})
     # => 1
