@@ -382,7 +382,8 @@ defmodule Logger do
   @type report :: map() | keyword()
   @type message :: :unicode.chardata() | String.Chars.t() | report()
   @type metadata :: keyword()
-  @levels [:emergency, :alert, :critical, :error, :warning, :notice, :info, :debug]
+  @new_erlang_levels [:emergency, :alert, :critical, :warning, :notice]
+  @levels [:error, :info, :debug] ++ @new_erlang_levels
   @metadata :logger_level
 
   @doc ~S"""
@@ -909,7 +910,13 @@ defmodule Logger do
         Logger.#{level}(#{inspect(Map.new(report))})
 
     """
-    @doc since: "1.11.0"
+
+    # Only macros generated for the "new" Erlang levels are available since 1.11.0. Other
+    # ones, such as :info or :debug, are available since the early days of Elixir.
+    if level in @new_erlang_levels do
+      @doc since: "1.11.0"
+    end
+
     defmacro unquote(level)(message_or_fun, metadata \\ []) do
       maybe_log(unquote(level), message_or_fun, metadata, __CALLER__)
     end
