@@ -158,7 +158,7 @@ translate({'try', Meta, [Opts]}, _Ann, S) ->
       {[], SC}
   end,
 
-  Else = elixir_erl_clauses:get_clauses(else, Opts, match),
+  Else = elixir_erl_clauses:get_clauses('else', Opts, match),
   {TElse, SE} = elixir_erl_clauses:clauses(Else, SA),
   {{'try', ?ann(Meta), unblock(TDo), TElse, TCatch, TAfter}, SE};
 
@@ -406,13 +406,13 @@ translate_with_else(Meta, [], S) ->
   {VarName, SC} = elixir_erl_var:build('_', S),
   Var = {var, Generated, VarName},
   {{clause, Generated, [Var], [], [Var]}, SC};
-translate_with_else(Meta, [{else, [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
+translate_with_else(Meta, [{'else', [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
   Ann = ?ann(Meta),
   Generated = erl_anno:set_generated(true, Ann),
   {ElseVarErl, SV} = elixir_erl_var:translate(VarMeta, Var, Kind, S#elixir_erl{context=match}),
   {TranslatedClause, SC} = translate(Clause, Ann, SV#elixir_erl{context=nil}),
   {{clause, Generated, [ElseVarErl], [], [TranslatedClause]}, SC};
-translate_with_else(Meta, [{else, Else}], S) ->
+translate_with_else(Meta, [{'else', Else}], S) ->
   Generated = ?generated(Meta),
   {ElseVarEx, ElseVarErl, SE} = elixir_erl_var:assign(Generated, S),
   {RaiseVar, _, SV} = elixir_erl_var:assign(Generated, SE),
