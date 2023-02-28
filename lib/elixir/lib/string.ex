@@ -2616,7 +2616,7 @@ defmodule String do
   the atom does not exist.
 
   The maximum atom size is of 255 Unicode code points.
-  Raises `ArgumentError` if the atom does not exist.
+  Raises an `ArgumentError` if the atom does not exist.
 
   Inlined by the compiler.
 
