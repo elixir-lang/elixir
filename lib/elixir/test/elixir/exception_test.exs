@@ -18,13 +18,20 @@ defmodule ExceptionTest do
       end
     end
 
-    assert Exception.message(%{__struct__: BadException, __exception__: true, raise: true}) =~
-             "got RuntimeError with message \"oops\" while retrieving Exception.message/1 " <>
-               "for %{__exception__: true, __struct__: ExceptionTest.BadException, raise: true}"
+    assert "got RuntimeError with message \"oops\" while retrieving Exception.message/1 for %{" <>
+             inspected =
+             Exception.message(%{__struct__: BadException, __exception__: true, raise: true})
 
-    assert Exception.message(%{__struct__: BadException, __exception__: true, raise: false}) =~
-             "got nil while retrieving Exception.message/1 " <>
-               "for %{__exception__: true, __struct__: ExceptionTest.BadException, raise: false}"
+    assert inspected =~ "raise: true"
+    assert inspected =~ "__exception__: true"
+    assert inspected =~ "__struct__: ExceptionTest.BadException"
+
+    assert "got nil while retrieving Exception.message/1 for %{" <> inspected =
+             Exception.message(%{__struct__: BadException, __exception__: true, raise: false})
+
+    assert inspected =~ "raise: false"
+    assert inspected =~ "__exception__: true"
+    assert inspected =~ "__struct__: ExceptionTest.BadException"
   end
 
   test "normalize/2" do
