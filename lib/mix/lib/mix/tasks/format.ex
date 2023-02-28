@@ -211,6 +211,19 @@ defmodule Mix.Tasks.Format do
   """
   @callback format(String.t(), Keyword.t()) :: String.t()
 
+  @doc """
+  Converts a quoted expression to an algebra document using the plugin formatter
+  rules.
+
+  This callback is optional for plugins that are able to format Elixir's quoted
+  expressions.
+
+  See `Code.quoted_to_algebra/2` for more information.
+  """
+  @callback quoted_to_algebra(Macro.t(), keyword) :: Inspect.Algebra.t()
+
+  @optional_callbacks quoted_to_algebra: 2
+
   @impl true
   def run(args) do
     {opts, args} = OptionParser.parse!(args, strict: @switches)
