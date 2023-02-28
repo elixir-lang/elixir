@@ -2586,7 +2586,7 @@ defmodule String do
   end
 
   @doc """
-  Converts a string to an atom.
+  Converts a string to an existing atom or creates a new one.
 
   Warning: this function creates atoms dynamically and atoms are
   not garbage-collected. Therefore, `string` should not be an
@@ -2612,10 +2612,10 @@ defmodule String do
   end
 
   @doc """
-  Converts a string to an existing atom.
+  Converts a string to an existing atom or raises an `ArgumentError` if
+  the atom does not exist.
 
   The maximum atom size is of 255 Unicode code points.
-  Raises an `ArgumentError` if the atom does not exist.
 
   Inlined by the compiler.
 
