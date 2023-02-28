@@ -2612,10 +2612,11 @@ defmodule String do
   end
 
   @doc """
-  Converts a string to an existing atom or raises an `ArgumentError` if
+  Converts a string to an existing atom or raises if
   the atom does not exist.
 
   The maximum atom size is of 255 Unicode code points.
+  Raises `ArgumentError` if the atom does not exist.
 
   Inlined by the compiler.
 
