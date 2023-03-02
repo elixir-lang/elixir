@@ -173,6 +173,7 @@ defmodule Mix.Tasks.Test.Coverage do
 
     if apps_paths = Mix.Project.apps_paths(config) do
       build_path = Mix.Project.build_path(config)
+      apps_paths = Enum.sort(apps_paths)
 
       compile_paths =
         Enum.map(apps_paths, fn {app, _} ->
