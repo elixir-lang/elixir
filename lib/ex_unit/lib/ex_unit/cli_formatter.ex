@@ -337,7 +337,9 @@ defmodule ExUnit.CLIFormatter do
   end
 
   defp format_test_type_counts(%{test_counter: test_counter} = _config) do
-    Enum.map(test_counter, fn {test_type, count} ->
+    test_counter
+    |> Enum.sort()
+    |> Enum.map(fn {test_type, count} ->
       type_pluralized = pluralize(count, test_type, ExUnit.plural_rule(test_type |> to_string()))
       "#{count} #{type_pluralized}, "
     end)
