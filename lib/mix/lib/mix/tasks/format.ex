@@ -202,7 +202,7 @@ defmodule Mix.Tasks.Format do
 
     args
     |> expand_args(dot_formatter, formatter_opts_and_subs, opts)
-    |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: 30000)
+    |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: :infinity)
     |> Enum.reduce({[], []}, &collect_status/2)
     |> check!()
   end
