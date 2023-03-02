@@ -78,7 +78,9 @@ defmodule IO.ANSI.Docs do
   @metadata_filter [:deprecated, :guard, :since]
 
   defp print_each_metadata(metadata, options) do
-    Enum.reduce(metadata, false, fn
+    metadata
+    |> Enum.sort()
+    |> Enum.reduce(false, fn
       {key, value}, _printed when is_binary(value) and key in @metadata_filter ->
         label = metadata_label(key, options)
         indent = String.duplicate(" ", length_without_escape(label, 0) + 1)
