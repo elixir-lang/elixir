@@ -395,8 +395,9 @@ defmodule ExUnit do
   @doc since: "1.12.0"
   @spec async_run() :: Task.t()
   def async_run() do
+    options = persist_defaults(configuration())
+
     Task.async(fn ->
-      options = persist_defaults(configuration())
       ExUnit.Runner.run(options, nil)
     end)
   end
