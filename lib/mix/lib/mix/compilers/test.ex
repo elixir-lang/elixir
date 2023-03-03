@@ -15,6 +15,7 @@ defmodule Mix.Compilers.Test do
   @compile {:no_warn_undefined, ExUnit}
   @stale_manifest "compile.test_stale"
   @manifest_vsn 1
+  @rand_algorithm :exs1024
 
   @doc """
   Requires and runs test files.
@@ -65,6 +66,8 @@ defmodule Mix.Compilers.Test do
       true ->
         task = ExUnit.async_run()
         warnings_as_errors? = Keyword.get(opts, :warnings_as_errors, false)
+        seed = Application.fetch_env!(:ex_unit, :seed)
+        test_files = shuffle(seed, test_files)
 
         try do
           failed? =
@@ -314,5 +317,14 @@ defmodule Mix.Compilers.Test do
 
   defp get_external_resources(module, cwd) do
     for file <- Module.get_attribute(module, :external_resource), do: Path.relative_to(file, cwd)
+  end
+
+  defp shuffle(_seed = 0, list) do
+    list
+  end
+
+  defp shuffle(seed, list) do
+    _ = :rand.seed(@rand_algorithm, {seed, seed, seed})
+    Enum.shuffle(list)
   end
 end
