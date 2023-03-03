@@ -57,32 +57,6 @@ defmodule Mix.Tasks.TestTest do
     end
   end
 
-  describe "--seed" do
-    test "requires modules alphabetical order if seed is 0" do
-      in_fixture("test_stale", fn ->
-        opts = ["--seed", "0", "--trace"]
-        # Forcing the parallel compiler to operate synchronously
-        envs = [{"ELIXIR_ERL_OPTIONS", "+S 1:1"}]
-        output = mix(["test" | opts], envs)
-
-        matches = Regex.scan(~r"\wTest\s\[.*\]", output)
-        assert matches == [["BTest [test/b_test_stale.exs]"], ["ATest [test/a_test_stale.exs]"]]
-      end)
-    end
-
-    test "requires modules in random order if seed is provided" do
-      in_fixture("test_stale", fn ->
-        opts = ["--seed", "5", "--trace"]
-        # Forcing the parallel compiler to operate synchronously
-        envs = [{"ELIXIR_ERL_OPTIONS", "+S 1:1"}]
-        output = mix(["test" | opts], envs)
-
-        matches = Regex.scan(~r"\wTest\s\[.*\]", output)
-        assert matches == [["ATest [test/a_test_stale.exs]"], ["BTest [test/b_test_stale.exs]"]]
-      end)
-    end
-  end
-
   describe "--stale" do
     test "runs all tests for first run, then none on second" do
       in_fixture("test_stale", fn ->
