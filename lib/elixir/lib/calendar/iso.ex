@@ -1401,6 +1401,46 @@ defmodule Calendar.ISO do
     "-" <> zero_pad(-val, count)
   end
 
+  @doc """
+  Converts the `Calendar.iso_days/1` to the first moment of the day.
+
+  ## Examples
+
+      iex> Calendar.ISO.iso_days_to_beginning_of_day({0, {0, 86400000000}})
+      {0, {0, 86400000000}}
+      iex> Calendar.ISO.iso_days_to_beginning_of_day({730485, {43200000000, 86400000000}})
+      {730485, {0, 86400000000}}
+      iex> Calendar.ISO.iso_days_to_beginning_of_day({730485, {46800000000, 86400000000}})
+      {730485, {0, 86400000000}}
+
+  """
+  @doc since: "1.15.0"
+  @impl true
+  @spec iso_days_to_beginning_of_day(Calendar.iso_days()) :: Calendar.iso_days()
+  def iso_days_to_beginning_of_day({days, _day_fraction}) do
+    {days, {0, @parts_per_day}}
+  end
+
+  @doc """
+  Converts the `Calendar.iso_days/1` to the last moment of the day.
+
+  ## Examples
+
+      iex> Calendar.ISO.iso_days_to_end_of_day({0, {0, 86400000000}})
+      {0, {86399999999, 86400000000}}
+      iex> Calendar.ISO.iso_days_to_end_of_day({730485, {43200000000, 86400000000}})
+      {730485, {86399999999, 86400000000}}
+      iex> Calendar.ISO.iso_days_to_end_of_day({730485, {46800000000, 86400000000}})
+      {730485, {86399999999, 86400000000}}
+
+  """
+  @doc since: "1.15.0"
+  @impl true
+  @spec iso_days_to_end_of_day(Calendar.iso_days()) :: Calendar.iso_days()
+  def iso_days_to_end_of_day({days, _day_fraction}) do
+    {days, {@parts_per_day - 1, @parts_per_day}}
+  end
+
   ## Helpers
 
   @doc false

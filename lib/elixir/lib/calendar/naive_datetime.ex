@@ -1169,6 +1169,42 @@ defmodule NaiveDateTime do
     end
   end
 
+  @doc """
+  Calculates a `NaiveDateTime` that is the first moment for the given `NaiveDateTime`.
+
+  ## Examples
+
+      iex> NaiveDateTime.beginning_of_day(~N[2000-01-01 23:00:07.123456])
+      ~N[2000-01-01 00:00:00.000000]
+
+  """
+  @doc since: "1.15.0"
+  @spec end_of_day(Calendar.naive_datetime()) :: t
+  def beginning_of_day(%{calendar: calendar, microsecond: {_, precision}} = naive_datetime) do
+    naive_datetime
+    |> to_iso_days()
+    |> calendar.iso_days_to_beginning_of_day()
+    |> from_iso_days(calendar, precision)
+  end
+
+  @doc """
+  Calculates a `NaiveDateTime` that is the last moment for the given `NaiveDateTime`.
+
+  ## Examples
+
+      iex> NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07.123456])
+      ~N[2000-01-01 23:59:59.999999]
+
+  """
+  @doc since: "1.15.0"
+  @spec end_of_day(Calendar.naive_datetime()) :: t
+  def end_of_day(%{calendar: calendar, microsecond: {_, precision}} = naive_datetime) do
+    naive_datetime
+    |> to_iso_days()
+    |> calendar.iso_days_to_end_of_day()
+    |> from_iso_days(calendar, precision)
+  end
+
   ## Helpers
 
   defp seconds_from_day_fraction({parts_in_day, @seconds_per_day}),

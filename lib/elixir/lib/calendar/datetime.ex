@@ -1728,6 +1728,42 @@ defmodule DateTime do
     end
   end
 
+  @doc """
+  Calculates a `DateTime` that is the first moment for the given `DateTime`.
+
+  ## Examples
+
+      iex> DateTime.beginning_of_day(~U[2000-01-01 23:00:07.123456Z])
+      ~U[2000-01-01 00:00:00.000000Z]
+
+  """
+  @doc since: "1.15.0"
+  @spec end_of_day(Calendar.datetime()) :: t
+  def beginning_of_day(%{calendar: calendar, microsecond: {_, precision}} = datetime) do
+    datetime
+    |> to_iso_days()
+    |> calendar.iso_days_to_beginning_of_day()
+    |> from_iso_days(datetime, calendar, precision)
+  end
+
+  @doc """
+  Calculates a `DateTime` that is the last moment for the given `DateTime`.
+
+  ## Examples
+
+      iex> DateTime.end_of_day(~U[2000-01-01 23:00:07.123456Z])
+      ~U[2000-01-01 23:59:59.999999Z]
+
+  """
+  @doc since: "1.15.0"
+  @spec end_of_day(Calendar.datetime()) :: t
+  def end_of_day(%{calendar: calendar, microsecond: {_, precision}} = datetime) do
+    datetime
+    |> to_iso_days()
+    |> calendar.iso_days_to_end_of_day()
+    |> from_iso_days(datetime, calendar, precision)
+  end
+
   # Keep it multiline for proper function clause errors.
   defp to_iso_days(%{
          calendar: calendar,
