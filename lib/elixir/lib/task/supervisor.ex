@@ -517,7 +517,7 @@ defmodule Task.Supervisor do
         if link_type == :link, do: Process.link(pid)
         alias = :erlang.monitor(:process, pid, alias: :demonitor)
         send(pid, {owner, alias, alias, get_callers(owner), {module, fun, args}})
-        %Task{pid: pid, ref: alias, owner: owner, mfa: {module, fun, length(args)}}
+        %Task{pid: pid, ref: alias, owner: owner, mfa: {module, fun, length(args)}, tag: alias}
 
       {:error, :max_children} ->
         raise """

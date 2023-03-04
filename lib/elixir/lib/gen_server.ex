@@ -1033,6 +1033,11 @@ defmodule GenServer do
   queue. The caller must in this case be prepared for this and discard any such
   garbage messages that are two-element tuples with a reference as the first
   element.
+
+  ## Asynchronous Calls
+
+  If you want to "break down" a call into sending the call and receiving the response,
+  see `async/2`.
   """
   @spec call(server, term, timeout) :: term
   def call(server, request, timeout \\ 5000)
@@ -1234,6 +1239,52 @@ defmodule GenServer do
 
   def whereis({name, node} = server) when is_atom(name) and is_atom(node) do
     server
+  end
+
+  @doc """
+  Sends an async request to a GenServer using a `Task`.
+
+  This function lets you essentially *break down* a synchronous call (like the ones you'd
+  do with `call/3`).
+
+  The returned value is a `Task`, so you can use functions from the `Task` module to await for
+  the response to the call (`Task.await/2`), check for a response within a time window
+  (`Task.yield/2`), and more. However, *this function spawns no additional process*. The reason
+  it returns a `Task` is so that you can use all the functions in the `Task` module to work
+  with async GenServer requests.
+
+  `server` can be any of the values described in the "Name registration"
+  section of the documentation for this module. `request` is the term that will be passed
+  to `c:handle_call/3` in the server.
+
+  ## Examples
+
+      task = GenServer.async(Stack, :slow_pop)
+
+      # Using Task.yield/2 to check if there's a response after 10ms
+      Task.yield(task, 10)
+      #=> nil
+
+      Task.await(task)
+      #=> :popped_value
+
+  """
+  @doc since: "1.15.0"
+  @spec async(server, term) :: Task.t()
+  def async(server, request) do
+    case whereis(server) do
+      nil ->
+        exit({:noproc, {__MODULE__, :async, [server, request]}})
+
+      pid when pid == self() ->
+        exit({:calling_self, {__MODULE__, :async, [server, request]}})
+
+      pid ->
+        request_id = :erlang.monitor(:process, pid, alias: :reply_demonitor)
+        tag = [:alias | request_id]
+        Process.send(pid, {:"$gen_call", {self(), tag}, request}, [:noconnect])
+        %Task{pid: nil, ref: request_id, owner: self(), tag: tag, mfa: {GenServer, :async, 2}}
+    end
   end
 
   @doc false
