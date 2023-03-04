@@ -332,7 +332,7 @@ defmodule MapSet do
   Also see `reject/2` which discards all elements where the function returns
   a truthy value.
 
-  > #### Performance Considerations {: .tip}
+  > #### Performance considerations {: .tip}
   >
   > If you find yourself doing multiple calls to `MapSet.filter/2`
   > and `MapSet.reject/2` in a pipeline, it is likely more efficient

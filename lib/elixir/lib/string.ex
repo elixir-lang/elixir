@@ -2484,7 +2484,7 @@ defmodule String do
   function will search if any of the strings in `contents`
   are part of `string`.
 
-  > #### Searching For a String In a List {: .tip}
+  > #### Searching for a string in a list {: .tip}
   >
   > If you want to check if `string` is listed in `contents`,
   > where `contents` is a list, use `Enum.member?(contents, string)`

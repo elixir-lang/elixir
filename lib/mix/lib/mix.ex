@@ -148,7 +148,7 @@ defmodule Mix do
   the application environment. On this section, we will focus on how to configure
   it at two distinct moments: build-time and runtime.
 
-  > #### Avoiding the Application Environment {: .warning}
+  > #### Avoiding the application environment {: .warning}
   >
   > The application environment is discouraged for libraries. See Elixir's
   > [Library Guidelines](https://hexdocs.pm/elixir/library-guidelines.html) for

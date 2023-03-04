@@ -5724,7 +5724,7 @@ defmodule Kernel do
   the usual macro rules apply, and its return value should be quoted code
   that is then inserted where `use/2` is called.
 
-  > #### Code Injection {: .warning}
+  > #### Code injection {: .warning}
   >
   > `use MyModule` works as a **code-injection point** in the caller.
   > Given the caller of `use MyModule` has little control over how the

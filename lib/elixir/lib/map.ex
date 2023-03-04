@@ -52,7 +52,7 @@ defmodule Map do
       map.non_existing_key
       ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
 
-  > #### Avoid Parentheses {: .warning}
+  > #### Avoid parentheses {: .warning}
   >
   > Do not add parentheses when accessing fields, such as in `data.key()`.
   > If parentheses are used, Elixir will expect `data` to be an atom representing
@@ -1080,7 +1080,7 @@ defmodule Map do
   See also `reject/2` which discards all elements where the
   function returns a truthy value.
 
-  > #### Performance Considerations {: .tip}
+  > #### Performance considerations {: .tip}
   >
   > If you find yourself doing multiple calls to `Map.filter/2`
   > and `Map.reject/2` in a pipeline, it is likely more efficient

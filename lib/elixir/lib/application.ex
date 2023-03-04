@@ -54,14 +54,14 @@ defmodule Application do
   You can also change the application environment dynamically by using functions
   such as `put_env/3` and `delete_env/2`.
 
-  > #### Environment in Libraries {: .tip}
+  > #### Environment in libraries {: .tip}
   >
   > The config files `config/config.exs` and `config/runtime.exs`
   > are rarely used by libraries. Libraries typically define their environment
   > in the `application/0` function of their `mix.exs`. Configuration files
   > are rather used by applications to configure their libraries.
 
-  > #### Reading the Environment of Other Applications {: .warning}
+  > #### Reading the environment of other applications {: .warning}
   >
   > Each application is responsible for its own environment. Do not
   > use the functions in this module for directly accessing or modifying
