@@ -56,7 +56,9 @@ defmodule Macro do
   To learn more about Elixir's AST and how to build them programmatically,
   see `quote/2`.
 
-  > Note: the functions in this module do not evaluate code. In fact,
+  > #### Evaluating Code {: .tip}
+  >
+  > The functions in this module do not evaluate code. In fact,
   > evaluating code from macros is often an anti-pattern. For code
   > evaluation, see the `Code` module.
 

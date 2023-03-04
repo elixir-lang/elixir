@@ -680,8 +680,10 @@ defmodule URI do
   If a `%URI{}` struct is given to this function, this function returns it
   unmodified.
 
-  > Note: this function sets the field :authority for backwards
-  > compatibility reasons but it is deprecated.
+  > #### `:authority` Field {: .info}
+  >
+  > This function sets the field `:authority` for backwards-compatibility reasons
+  > but it is deprecated.
 
   ## Examples
 
