@@ -796,32 +796,28 @@ defmodule Task do
           task = Task.Supervisor.async_nolink(MyApp.TaskSupervisor, fn -> fetch_url(url) end)
 
           # After we start the task, we store its reference and the URL it is fetching
-          state = put_in(state.task_refs[task.ref], url)
+          state = put_in(state.task_refs[task.ref], {url, task.tag})
           # We also store its tag and map it to the reference
-          state = put_in(state.task_tags[task.tag], task.ref)
+          state = put_in(state.task_tags[task.tag], {url, task.ref})
 
           {:reply, :ok, state}
         end
 
         # If the task succeeds...
-        def handle_info({tag, result}, state) do
-          ref = Map.fetch!(state.task_tags, tag)
+        def handle_info({tag, result}, state) when is_map_key(state.task_tags, tag) do
+          # We don't need to demonitor the task's monitor here since Task uses
+          # aliases extensively (see Process.alias/0).
 
-          # The task succeeded so we can demonitor its reference.
-          Process.demonitor(ref, [:flush])
-
-          {url, state} = pop_in(state.task_refs[ref])
-          IO.puts("Got #{inspect(result)} for URL #{inspect url}")
+          {{url, ref}, state} = pop_in(state.task_tags[tag])
+          {_, state} = pop_in(state.task_refs[ref])
+          IO.puts("Got #{inspect(result)} for URL #{inspect(url)}")
           {:noreply, state}
         end
 
         # If the task fails...
-        def handle_info({:DOWN, ref, _, _, reason}, state) do
-          {url, state} = pop_in(state.tasks[ref])
-
-          # We also clean up the tag for this task.
-          state =
-            update_in(state.task_tags, fn tags -> Map.filter(tags, &match?({_tag, ^ref}, &1)) end)
+        def handle_info({:DOWN, ref, _, _, reason}, state) when is_map_key(state.task_refs, ref) do
+          {{url, tag}, state} = pop_in(state.task_refs[ref])
+          {_, state} = pop_in(state.task_tags[tag])
 
           IO.puts("URL #{inspect url} failed with reason #{inspect(reason)}")
           {:noreply, state}
