@@ -1033,6 +1033,11 @@ defmodule GenServer do
   queue. The caller must in this case be prepared for this and discard any such
   garbage messages that are two-element tuples with a reference as the first
   element.
+
+  ## Asynchronous Calls
+
+  If you want to "break down" a call into sending the call and receiving the response,
+  see `async/2`.
   """
   @spec call(server, term, timeout) :: term
   def call(server, request, timeout \\ 5000)
