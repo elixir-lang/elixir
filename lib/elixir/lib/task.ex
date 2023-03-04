@@ -764,14 +764,13 @@ defmodule Task do
 
   A GenServer will receive two messages on `handle_info/2`:
 
-    * `{ref, result}` - the reply message where `ref` is the monitor
-      reference returned by the `task.ref` and `result` is the task
-      result
+    * `{tag, result}` - the reply message where `tag` is the response tag
+      returned by `task.tag` and `result` is the task result
 
     * `{:DOWN, ref, :process, pid, reason}` - since all tasks are also
       monitored, you will also receive the `:DOWN` message delivered by
       `Process.monitor/1`. If you receive the `:DOWN` message without a
-      a reply, it means the task crashed
+      a reply, it means the task crashed. `ref` is equal to `task.ref`.
 
   Another consideration to have in mind is that tasks started by `Task.async/1`
   are always linked to their callers and you may not want the GenServer to
@@ -787,35 +786,44 @@ defmodule Task do
         end
 
         def init(_opts) do
-          # We will keep all running tasks in a map
-          {:ok, %{tasks: %{}}}
+          # We will keep the refs and tags for each task in maps.
+          {:ok, %{task_refs: %{}, task_tags: %{}}}
         end
 
         # Imagine we invoke a task from the GenServer to access a URL...
         def handle_call(:some_message, _from, state) do
-          url = ...
+          url = "..."
           task = Task.Supervisor.async_nolink(MyApp.TaskSupervisor, fn -> fetch_url(url) end)
 
-          # After we start the task, we store its reference and the url it is fetching
-          state = put_in(state.tasks[task.ref], url)
+          # After we start the task, we store its reference and the URL it is fetching
+          state = put_in(state.task_refs[task.ref], url)
+          # We also store its tag and map it to the reference
+          state = put_in(state.task_tags[task.tag], task.ref)
 
           {:reply, :ok, state}
         end
 
         # If the task succeeds...
-        def handle_info({ref, result}, state) do
-          # The task succeed so we can demonitor its reference
+        def handle_info({tag, result}, state) do
+          ref = Map.fetch!(state.task_tags, tag)
+
+          # The task succeeded so we can demonitor its reference.
           Process.demonitor(ref, [:flush])
 
-          {url, state} = pop_in(state.tasks[ref])
-          IO.puts "Got #{inspect(result)} for URL #{inspect url}"
+          {url, state} = pop_in(state.task_refs[ref])
+          IO.puts("Got #{inspect(result)} for URL #{inspect url}")
           {:noreply, state}
         end
 
         # If the task fails...
         def handle_info({:DOWN, ref, _, _, reason}, state) do
           {url, state} = pop_in(state.tasks[ref])
-          IO.puts "URL #{inspect url} failed with reason #{inspect(reason)}"
+
+          # We also clean up the tag for this task.
+          state =
+            update_in(state.task_tags, fn tags -> Map.filter(tags, &match?({_tag, ^ref}, &1)) end)
+
+          IO.puts("URL #{inspect url} failed with reason #{inspect(reason)}")
           {:noreply, state}
         end
       end
