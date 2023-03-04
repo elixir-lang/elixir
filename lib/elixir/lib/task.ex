@@ -221,7 +221,7 @@ defmodule Task do
   """
 
   @doc """
-  The Task struct.
+  The `Task` struct.
 
   It contains these fields:
 
@@ -235,7 +235,10 @@ defmodule Task do
 
     * `:ref` - an opaque term used as the task monitor reference
 
-    * `:tag` an opaque term used for `GenServer.async/2` specifically
+    * `:tag` - (since v1.15.0) an opaque term used for tagging task responses. The
+      value of `:tag` is equal to the value of `ref` for tasks returned by all of the
+      functions in this module, but other functions (such as `GenServer.async/2`) might
+      use a different value for `:tag` and `:ref`.
 
   """
   @enforce_keys [:mfa, :owner, :pid, :ref, :tag]
@@ -251,13 +254,19 @@ defmodule Task do
           owner: pid(),
           pid: pid() | nil,
           ref: ref(),
-          tag: ref() | nil
+          tag: tag()
         }
 
   @typedoc """
   The task opaque reference.
   """
   @opaque ref :: reference()
+
+  @typedoc """
+  The opaque type for the `tag` field of a task.
+  """
+  @typedoc since: "1.15.0"
+  @opaque tag :: reference() | nonempty_improper_list(:alias, reference())
 
   defguardp is_timeout(timeout)
             when timeout == :infinity or (is_integer(timeout) and timeout >= 0)
@@ -473,7 +482,7 @@ defmodule Task do
       ref: alias,
       owner: owner,
       mfa: {module, function_name, length(args)},
-      tag: nil
+      tag: alias
     }
   end
 
@@ -517,7 +526,7 @@ defmodule Task do
     # "complete" the task immediately
     send(owner, {ref, result})
 
-    %Task{pid: nil, ref: ref, owner: owner, mfa: {Task, :completed, 1}, tag: nil}
+    %Task{pid: nil, ref: ref, owner: owner, mfa: {Task, :completed, 1}, tag: ref}
   end
 
   @doc """
