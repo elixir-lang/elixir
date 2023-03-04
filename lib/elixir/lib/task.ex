@@ -235,8 +235,10 @@ defmodule Task do
 
     * `:ref` - an opaque term used as the task monitor reference
 
+    * `:tag` an opaque term used for `GenServer.async/2` specifically
+
   """
-  @enforce_keys [:mfa, :owner, :pid, :ref]
+  @enforce_keys [:mfa, :owner, :pid, :ref, :tag]
   defstruct @enforce_keys
 
   @typedoc """
@@ -248,7 +250,8 @@ defmodule Task do
           mfa: mfa(),
           owner: pid(),
           pid: pid() | nil,
-          ref: ref()
+          ref: ref(),
+          tag: ref() | nil
         }
 
   @typedoc """
@@ -464,7 +467,14 @@ defmodule Task do
 
     alias = build_alias(pid)
     send(pid, {owner, alias, alias, get_callers(owner), mfargs})
-    %Task{pid: pid, ref: alias, owner: owner, mfa: {module, function_name, length(args)}}
+
+    %Task{
+      pid: pid,
+      ref: alias,
+      owner: owner,
+      mfa: {module, function_name, length(args)},
+      tag: nil
+    }
   end
 
   @doc """
@@ -507,7 +517,7 @@ defmodule Task do
     # "complete" the task immediately
     send(owner, {ref, result})
 
-    %Task{pid: nil, ref: ref, owner: owner, mfa: {Task, :completed, 1}}
+    %Task{pid: nil, ref: ref, owner: owner, mfa: {Task, :completed, 1}, tag: nil}
   end
 
   @doc """
@@ -813,7 +823,8 @@ defmodule Task do
 
   """
   @spec await(t, timeout) :: term
-  def await(%Task{ref: ref, owner: owner} = task, timeout \\ 5000) when is_timeout(timeout) do
+  def await(%Task{ref: ref, owner: owner} = task, timeout \\ 5000)
+      when is_timeout(timeout) do
     if owner != self() do
       raise ArgumentError, invalid_owner_error(task)
     end
@@ -821,9 +832,9 @@ defmodule Task do
     await_receive(ref, task, timeout)
   end
 
-  defp await_receive(ref, task, timeout) do
+  defp await_receive(ref, %Task{tag: tag} = task, timeout) do
     receive do
-      {^ref, reply} ->
+      {^tag, reply} ->
         demonitor(ref)
         reply
 
@@ -859,9 +870,9 @@ defmodule Task do
     ignore_receive(ref, pid, task)
   end
 
-  defp ignore_receive(ref, pid, task) do
+  defp ignore_receive(ref, pid, %Task{tag: tag} = task) do
     receive do
-      {^ref, reply} ->
+      {^tag, reply} ->
         pid && Process.unlink(pid)
         demonitor(ref)
         {:ok, reply}
@@ -922,14 +933,16 @@ defmodule Task do
   @doc since: "1.11.0"
   @spec await_many([t], timeout) :: [term]
   def await_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
-    awaiting =
-      Map.new(tasks, fn %Task{ref: ref, owner: owner} = task ->
-        if owner != self() do
-          raise ArgumentError, invalid_owner_error(task)
-        end
+    {awaiting, tags} =
+      for %Task{ref: ref, tag: tag, owner: owner} = task <- tasks,
+          reduce: {%{}, %{}} do
+        {awaiting, tags} ->
+          if owner != self() do
+            raise ArgumentError, invalid_owner_error(task)
+          end
 
-        {ref, true}
-      end)
+          {Map.put(awaiting, ref, true), Map.put(tags, tag, ref)}
+      end
 
     timeout_ref = make_ref()
 
@@ -939,19 +952,19 @@ defmodule Task do
       end
 
     try do
-      await_many(tasks, timeout, awaiting, %{}, timeout_ref)
+      await_many(tasks, timeout, awaiting, tags, %{}, timeout_ref)
     after
       timer_ref && Process.cancel_timer(timer_ref)
       receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
     end
   end
 
-  defp await_many(tasks, _timeout, awaiting, replies, _timeout_ref)
+  defp await_many(tasks, _timeout, awaiting, _tags, replies, _timeout_ref)
        when map_size(awaiting) == 0 do
-    for %{ref: ref} <- tasks, do: Map.fetch!(replies, ref)
+    for %{tag: tag} <- tasks, do: Map.fetch!(replies, tag)
   end
 
-  defp await_many(tasks, timeout, awaiting, replies, timeout_ref) do
+  defp await_many(tasks, timeout, awaiting, tags, replies, timeout_ref) do
     receive do
       ^timeout_ref ->
         demonitor_pending_tasks(awaiting)
@@ -961,14 +974,16 @@ defmodule Task do
         demonitor_pending_tasks(awaiting)
         exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
 
-      {ref, reply} when is_map_key(awaiting, ref) ->
+      {tag, reply} when is_map_key(tags, tag) ->
+        ref = Map.fetch!(tags, tag)
         demonitor(ref)
 
         await_many(
           tasks,
           timeout,
           Map.delete(awaiting, ref),
-          Map.put(replies, ref, reply),
+          Map.delete(tags, tag),
+          Map.put(replies, tag, reply),
           timeout_ref
         )
     end
@@ -1066,9 +1081,9 @@ defmodule Task do
     yield_receive(ref, task, timeout)
   end
 
-  defp yield_receive(ref, task, timeout) do
+  defp yield_receive(ref, %Task{tag: tag} = task, timeout) do
     receive do
-      {^ref, reply} ->
+      {^tag, reply} ->
         demonitor(ref)
         {:ok, reply}
 
@@ -1174,14 +1189,16 @@ defmodule Task do
     on_timeout = Keyword.get(opts, :on_timeout, :nothing)
     timeout = Keyword.get(opts, :timeout, 5_000)
 
-    refs =
-      Map.new(tasks, fn %Task{ref: ref, owner: owner} = task ->
-        if owner != self() do
-          raise ArgumentError, invalid_owner_error(task)
-        end
+    {refs, tags, task_count} =
+      for %Task{ref: ref, tag: tag, owner: owner} = task <- tasks,
+          reduce: {%{}, %{}, 0} do
+        {refs_acc, tags_acc, count} ->
+          if owner != self() do
+            raise ArgumentError, invalid_owner_error(task)
+          end
 
-        {ref, nil}
-      end)
+          {Map.put(refs_acc, ref, nil), Map.put(tags_acc, tag, ref), count + 1}
+      end
 
     timeout_ref = make_ref()
 
@@ -1191,7 +1208,7 @@ defmodule Task do
       end
 
     try do
-      yield_many(map_size(refs), refs, timeout_ref, timer_ref)
+      yield_many(task_count, refs, tags, timeout_ref, timer_ref)
     catch
       {:noconnection, reason} ->
         exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
@@ -1212,23 +1229,24 @@ defmodule Task do
     end
   end
 
-  defp yield_many(0, refs, timeout_ref, timer_ref) do
+  defp yield_many(0, refs, _tags, timeout_ref, timer_ref) do
     timer_ref && Process.cancel_timer(timer_ref)
     receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
     refs
   end
 
-  defp yield_many(limit, refs, timeout_ref, timer_ref) do
+  defp yield_many(limit, refs, tags, timeout_ref, timer_ref) do
     receive do
-      {ref, reply} when is_map_key(refs, ref) ->
+      {tag, reply} when is_map_key(tags, tag) ->
+        ref = Map.fetch!(tags, tag)
         demonitor(ref)
-        yield_many(limit - 1, %{refs | ref => {:ok, reply}}, timeout_ref, timer_ref)
+        yield_many(limit - 1, %{refs | ref => {:ok, reply}}, tags, timeout_ref, timer_ref)
 
       {:DOWN, ref, _, proc, reason} when is_map_key(refs, ref) ->
         if reason == :noconnection do
           throw({:noconnection, reason(:noconnection, proc)})
         else
-          yield_many(limit - 1, %{refs | ref => {:exit, reason}}, timeout_ref, timer_ref)
+          yield_many(limit - 1, %{refs | ref => {:exit, reason}}, tags, timeout_ref, timer_ref)
         end
 
       ^timeout_ref ->
