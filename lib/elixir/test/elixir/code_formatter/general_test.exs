@@ -51,6 +51,8 @@ defmodule Code.Formatter.GeneralTest do
       assert_same ~S[~r/Bar Baz/]
       assert_same ~S[~w<>]
       assert_same ~S[~W()]
+      assert_same ~S[~MAT()]
+      assert_same ~S[~MAT{1,2,3}]
     end
 
     test "with escapes" do
@@ -160,6 +162,28 @@ defmodule Code.Formatter.GeneralTest do
       end
 
       assert_format bad, good, sigils: [W: formatter]
+
+      bad = """
+      var = ~MAT{foo  bar  baz}abc
+      """
+
+      good = """
+      var = ~MAT{foo bar baz}abc
+      """
+
+      formatter = fn content, opts ->
+        assert opts == [
+                 file: nil,
+                 line: 1,
+                 sigil: :MAT,
+                 modifiers: ~c"abc",
+                 opening_delimiter: "{"
+               ]
+
+        content |> String.split(~r/ +/) |> Enum.intersperse(" ")
+      end
+
+      assert_format bad, good, sigils: [MAT: formatter]
     end
 
     test "with custom formatting on heredocs" do
