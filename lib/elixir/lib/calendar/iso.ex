@@ -1402,7 +1402,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Converts the `Calendar.iso_days/1` to the first moment of the day.
+  Converts the `t:Calendar.iso_days/0` to the first moment of the day.
 
   ## Examples
 
@@ -1422,7 +1422,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Converts the `Calendar.iso_days/1` to the last moment of the day.
+  Converts the `t:Calendar.iso_days/0` to the last moment of the day.
 
   ## Examples
 
