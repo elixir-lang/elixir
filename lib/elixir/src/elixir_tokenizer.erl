@@ -193,40 +193,8 @@ tokenize([$# | String], Line, Column, Scope, Tokens) ->
 
 % Sigils
 
-tokenize([$~, S, H, H, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H), ?is_upcase(S) orelse ?is_downcase(S) ->
-  case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
-    {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
-      {Final, Modifiers} = collect_modifiers(Rest, []),
-      Indentation = NewColumn - 4,
-      Token = {sigil, {Line, Column, nil}, S, Parts, Modifiers, Indentation, <<H, H, H>>},
-      NewColumnWithModifiers = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
-
-    {error, Reason} ->
-      error(Reason, Original, Scope, Tokens)
-  end;
-
-tokenize([$~, S, H | T] = Original, Line, Column, Scope, Tokens) when ?is_sigil(H), ?is_upcase(S) orelse ?is_downcase(S) ->
-  case elixir_interpolation:extract(Line, Column + 3, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
-    {NewLine, NewColumn, Parts, Rest, NewScope} ->
-      {Final, Modifiers} = collect_modifiers(Rest, []),
-      Indentation = nil,
-      Token = {sigil, {Line, Column, nil}, S, tokens_to_binary(Parts), Modifiers, Indentation, <<H>>},
-      NewColumnWithModifiers = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
-
-    {error, Reason} ->
-      Sigil = [$~, S, H],
-      Message = " (for sigil ~ts starting at line ~B)",
-      interpolation_error(Reason, Original, Scope, Tokens, Message, [Sigil, Line])
-  end;
-
-tokenize([$~, S, H | _] = Original, Line, Column, Scope, Tokens) when ?is_upcase(S) orelse ?is_downcase(S) ->
-  MessageString =
-    "\"~ts\" (column ~p, code point U+~4.16.0B). The available delimiters are: "
-    "//, ||, \"\", '', (), [], {}, <>",
-  Message = io_lib:format(MessageString, [[H], Column + 2, H]),
-  error({Line, Column, "invalid sigil delimiter: ", Message}, Original, Scope, Tokens);
+tokenize([$~, H | _T] = Original, Line, Column, Scope, Tokens) when ?is_upcase(H) orelse ?is_downcase(H) ->
+  tokenize_sigil(Original, Line, Column, Scope, Tokens);
 
 % Char tokens
 
@@ -1563,6 +1531,75 @@ tokenize_keyword(Kind, Rest, Line, Column, Atom, Length, Scope, Tokens) ->
     end,
 
   tokenize(Rest, Line, Column + Length, Scope, NewTokens).
+
+tokenize_sigil([$~ | T], Line, Column, Scope, Tokens) ->
+  case tokenize_sigil_name(T, [], Line, Column + 1, Scope, Tokens) of
+    {ok, Name, Rest, NewLine, NewColumn, NewScope, NewTokens} ->
+      tokenize_sigil_contents(Rest, Name, NewLine, NewColumn, NewScope, NewTokens);
+    
+    {error, Message, Token} ->
+      Reason = {Line, Column, Message, Token},
+      error(Reason, T, Scope, Tokens)
+  end.
+
+% A one-letter sigil is ok both as upcase as well as downcase.
+tokenize_sigil_name([S | T], [], Line, Column, Scope, Tokens) when ?is_upcase(S) orelse ?is_downcase(S) ->
+  tokenize_sigil_name(T, [S], Line, Column + 1, Scope, Tokens);
+% If we have an uppercase letter, we keep tokenizing the name.
+tokenize_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upcase(S) ->
+  tokenize_sigil_name(T, [S | NameAcc], Line, Column + 1, Scope, Tokens);
+% With a lowercase letter and a non-empty NameAcc we return an error.
+tokenize_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
+  Message = "invalid sigil name, it should be either a one-letter lowercase letter or a" ++ 
+            " sequence of uppercase letters only",
+  {error, Message, [$~] ++ lists:reverse(NameAcc) ++ Original};
+% We finished the letters, so the name is over.
+tokenize_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
+  {ok, lists:reverse(NameAcc), T, Line, Column, Scope, Tokens}.
+
+tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
+    when ?is_quote(H) ->
+  case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
+    {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
+      {Final, Modifiers} = collect_modifiers(Rest, []),
+      Indentation = NewColumn - 4,
+      TokenColumn = Column - 1 - length(SigilName),
+      Token = {sigil, {Line, TokenColumn, nil}, SigilName, Parts, Modifiers, Indentation, <<H, H, H>>},
+      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
+
+    {error, Reason} ->
+      error(Reason, [$~] ++ SigilName ++ Original, Scope, Tokens)
+  end;
+
+tokenize_sigil_contents([H | T] = Original, [S | _] = SigilName, Line, Column, Scope, Tokens)
+    when ?is_sigil(H) ->
+  case elixir_interpolation:extract(Line, Column + 1, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
+    {NewLine, NewColumn, Parts, Rest, NewScope} ->
+      {Final, Modifiers} = collect_modifiers(Rest, []),
+      Indentation = nil,
+      TokenColumn = Column - 1 - length(SigilName),
+      Token = {sigil, {Line, TokenColumn, nil}, SigilName, tokens_to_binary(Parts), Modifiers, Indentation, <<H>>},
+      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
+
+    {error, Reason} ->
+      Sigil = [$~, S, H],
+      Message = " (for sigil ~ts starting at line ~B)",
+      interpolation_error(Reason, [$~] ++ SigilName ++ Original, Scope, Tokens, Message, [Sigil, Line])
+  end;
+
+tokenize_sigil_contents([H | _] = Original, SigilName, Line, Column, Scope, Tokens) ->
+  MessageString =
+    "\"~ts\" (column ~p, code point U+~4.16.0B). The available delimiters are: "
+    "//, ||, \"\", '', (), [], {}, <>",
+  Message = io_lib:format(MessageString, [[H], Column, H]),
+  ErrorColumn = Column - 1 - length(SigilName),
+  error({Line, ErrorColumn, "invalid sigil delimiter: ", Message}, [$~] ++ SigilName ++ Original, Scope, Tokens);
+
+% Incomplete sigil.
+tokenize_sigil_contents([], _SigilName, Line, Column, Scope, Tokens) ->
+  tokenize([], Line, Column, Scope, Tokens).
 
 %% Fail early on invalid do syntax. For example, after
 %% most keywords, after comma and so on.

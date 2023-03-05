@@ -145,7 +145,8 @@ parse_error(Location, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/bina
     true -> Content;
     false -> <<>>
   end,
-  Message = <<"syntax error before: sigil \~", Sigil, " starting with content '", Content2/binary, "'">>,
+  SigilName = list_to_binary(Sigil),
+  Message = <<"syntax error before: sigil \~", SigilName/binary, " starting with content '", Content2/binary, "'">>,
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message);
 
 %% Binaries (and interpolation) are wrapped in [<<...>>]
