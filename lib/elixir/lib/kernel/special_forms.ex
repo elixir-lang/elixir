@@ -1048,6 +1048,17 @@ defmodule Kernel.SpecialForms do
       ContextHygiene.read()
       #=> 1
 
+  The contexts of a variable is identified by the third element of the tuple.
+  The default context is `nil` and `quote` assigns another context to all
+  variables within:
+
+      iex> quote do: var
+      {:var, [], Elixir}
+
+  In case of variables returned by macros, there may also be a `:counter` key
+  in the metadata, which is used to further refine its contexts and guarantee
+  isolation between macro invocations as seen in the previous example.
+
   ## Hygiene in aliases
 
   Aliases inside quote are hygienic by default.
@@ -1212,7 +1223,7 @@ defmodule Kernel.SpecialForms do
   reported to where `defadd` was invoked. `location: :keep` affects
   only definitions inside the quote.
 
-  > **Important:** do not use location: :keep if the function definition
+  > **Important:** do not use `location: :keep` if the function definition
   > also `unquote`s some of the macro arguments. If you do so, Elixir
   > will store the file definition of the current location but the
   > unquoted arguments may contain line information of the macro caller,
