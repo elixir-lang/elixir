@@ -1052,8 +1052,8 @@ defmodule Kernel.SpecialForms do
   The default context is `nil` and `quote` assigns another context to all
   variables within:
 
-      iex> quote do: var
-      {:var, [], Elixir}
+      quote(do: var)
+      #=> {:var, [], Elixir}
 
   In case of variables returned by macros, there may also be a `:counter` key
   in the metadata, which is used to further refine its contexts and guarantee
