@@ -221,7 +221,7 @@ defmodule Task do
   """
 
   @doc """
-  The `Task` struct.
+  The Task struct.
 
   It contains these fields:
 
@@ -235,13 +235,8 @@ defmodule Task do
 
     * `:ref` - an opaque term used as the task monitor reference
 
-    * `:tag` - (since v1.15.0) an opaque term used for tagging task responses. The
-      value of `:tag` is equal to the value of `ref` for tasks returned by all of the
-      functions in this module, but other functions (such as `GenServer.async/2`) might
-      use a different value for `:tag` and `:ref`.
-
   """
-  @enforce_keys [:mfa, :owner, :pid, :ref, :tag]
+  @enforce_keys [:mfa, :owner, :pid, :ref]
   defstruct @enforce_keys
 
   @typedoc """
@@ -253,20 +248,13 @@ defmodule Task do
           mfa: mfa(),
           owner: pid(),
           pid: pid() | nil,
-          ref: ref(),
-          tag: tag()
+          ref: ref()
         }
 
   @typedoc """
   The task opaque reference.
   """
   @opaque ref :: reference()
-
-  @typedoc """
-  The opaque type for the `tag` field of a task.
-  """
-  @typedoc since: "1.15.0"
-  @opaque tag :: reference() | nonempty_improper_list(:alias, reference())
 
   defguardp is_timeout(timeout)
             when timeout == :infinity or (is_integer(timeout) and timeout >= 0)
@@ -476,14 +464,7 @@ defmodule Task do
 
     alias = build_alias(pid)
     send(pid, {owner, alias, alias, get_callers(owner), mfargs})
-
-    %Task{
-      pid: pid,
-      ref: alias,
-      owner: owner,
-      mfa: {module, function_name, length(args)},
-      tag: alias
-    }
+    %Task{pid: pid, ref: alias, owner: owner, mfa: {module, function_name, length(args)}}
   end
 
   @doc """
@@ -526,7 +507,7 @@ defmodule Task do
     # "complete" the task immediately
     send(owner, {ref, result})
 
-    %Task{pid: nil, ref: ref, owner: owner, mfa: {Task, :completed, 1}, tag: ref}
+    %Task{pid: nil, ref: ref, owner: owner, mfa: {Task, :completed, 1}}
   end
 
   @doc """
@@ -764,13 +745,14 @@ defmodule Task do
 
   A GenServer will receive two messages on `handle_info/2`:
 
-    * `{tag, result}` - the reply message where `tag` is the response tag
-      returned by `task.tag` and `result` is the task result
+    * `{ref, result}` - the reply message where `ref` is the monitor
+      reference returned by the `task.ref` and `result` is the task
+      result
 
     * `{:DOWN, ref, :process, pid, reason}` - since all tasks are also
       monitored, you will also receive the `:DOWN` message delivered by
       `Process.monitor/1`. If you receive the `:DOWN` message without a
-      a reply, it means the task crashed. `ref` is equal to `task.ref`.
+      a reply, it means the task crashed
 
   Another consideration to have in mind is that tasks started by `Task.async/1`
   are always linked to their callers and you may not want the GenServer to
@@ -786,40 +768,35 @@ defmodule Task do
         end
 
         def init(_opts) do
-          # We will keep the refs and tags for each task in maps.
-          {:ok, %{task_refs: %{}, task_tags: %{}}}
+          # We will keep all running tasks in a map
+          {:ok, %{tasks: %{}}}
         end
 
         # Imagine we invoke a task from the GenServer to access a URL...
         def handle_call(:some_message, _from, state) do
-          url = "..."
+          url = ...
           task = Task.Supervisor.async_nolink(MyApp.TaskSupervisor, fn -> fetch_url(url) end)
 
-          # After we start the task, we store its reference and the URL it is fetching
-          state = put_in(state.task_refs[task.ref], {url, task.tag})
-          # We also store its tag and map it to the reference
-          state = put_in(state.task_tags[task.tag], {url, task.ref})
+          # After we start the task, we store its reference and the url it is fetching
+          state = put_in(state.tasks[task.ref], url)
 
           {:reply, :ok, state}
         end
 
         # If the task succeeds...
-        def handle_info({tag, result}, state) when is_map_key(state.task_tags, tag) do
-          # We don't need to demonitor the task's monitor here since Task uses
-          # aliases extensively (see Process.alias/0).
+        def handle_info({ref, result}, state) do
+          # The task succeed so we can demonitor its reference
+          Process.demonitor(ref, [:flush])
 
-          {{url, ref}, state} = pop_in(state.task_tags[tag])
-          {_, state} = pop_in(state.task_refs[ref])
-          IO.puts("Got #{inspect(result)} for URL #{inspect(url)}")
+          {url, state} = pop_in(state.tasks[ref])
+          IO.puts "Got #{inspect(result)} for URL #{inspect url}"
           {:noreply, state}
         end
 
         # If the task fails...
-        def handle_info({:DOWN, ref, _, _, reason}, state) when is_map_key(state.task_refs, ref) do
-          {{url, tag}, state} = pop_in(state.task_refs[ref])
-          {_, state} = pop_in(state.task_tags[tag])
-
-          IO.puts("URL #{inspect url} failed with reason #{inspect(reason)}")
+        def handle_info({:DOWN, ref, _, _, reason}, state) do
+          {url, state} = pop_in(state.tasks[ref])
+          IO.puts "URL #{inspect url} failed with reason #{inspect(reason)}"
           {:noreply, state}
         end
       end
@@ -836,8 +813,7 @@ defmodule Task do
 
   """
   @spec await(t, timeout) :: term
-  def await(%Task{ref: ref, owner: owner} = task, timeout \\ 5000)
-      when is_timeout(timeout) do
+  def await(%Task{ref: ref, owner: owner} = task, timeout \\ 5000) when is_timeout(timeout) do
     if owner != self() do
       raise ArgumentError, invalid_owner_error(task)
     end
@@ -845,9 +821,9 @@ defmodule Task do
     await_receive(ref, task, timeout)
   end
 
-  defp await_receive(ref, %Task{tag: tag} = task, timeout) do
+  defp await_receive(ref, task, timeout) do
     receive do
-      {^tag, reply} ->
+      {^ref, reply} ->
         demonitor(ref)
         reply
 
@@ -883,9 +859,9 @@ defmodule Task do
     ignore_receive(ref, pid, task)
   end
 
-  defp ignore_receive(ref, pid, %Task{tag: tag} = task) do
+  defp ignore_receive(ref, pid, task) do
     receive do
-      {^tag, reply} ->
+      {^ref, reply} ->
         pid && Process.unlink(pid)
         demonitor(ref)
         {:ok, reply}
@@ -946,16 +922,14 @@ defmodule Task do
   @doc since: "1.11.0"
   @spec await_many([t], timeout) :: [term]
   def await_many(tasks, timeout \\ 5000) when is_timeout(timeout) do
-    {awaiting, tags} =
-      for %Task{ref: ref, tag: tag, owner: owner} = task <- tasks,
-          reduce: {%{}, %{}} do
-        {awaiting, tags} ->
-          if owner != self() do
-            raise ArgumentError, invalid_owner_error(task)
-          end
+    awaiting =
+      Map.new(tasks, fn %Task{ref: ref, owner: owner} = task ->
+        if owner != self() do
+          raise ArgumentError, invalid_owner_error(task)
+        end
 
-          {Map.put(awaiting, ref, true), Map.put(tags, tag, ref)}
-      end
+        {ref, true}
+      end)
 
     timeout_ref = make_ref()
 
@@ -965,19 +939,19 @@ defmodule Task do
       end
 
     try do
-      await_many(tasks, timeout, awaiting, tags, %{}, timeout_ref)
+      await_many(tasks, timeout, awaiting, %{}, timeout_ref)
     after
       timer_ref && Process.cancel_timer(timer_ref)
       receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
     end
   end
 
-  defp await_many(tasks, _timeout, awaiting, _tags, replies, _timeout_ref)
+  defp await_many(tasks, _timeout, awaiting, replies, _timeout_ref)
        when map_size(awaiting) == 0 do
-    for %{tag: tag} <- tasks, do: Map.fetch!(replies, tag)
+    for %{ref: ref} <- tasks, do: Map.fetch!(replies, ref)
   end
 
-  defp await_many(tasks, timeout, awaiting, tags, replies, timeout_ref) do
+  defp await_many(tasks, timeout, awaiting, replies, timeout_ref) do
     receive do
       ^timeout_ref ->
         demonitor_pending_tasks(awaiting)
@@ -987,16 +961,14 @@ defmodule Task do
         demonitor_pending_tasks(awaiting)
         exit({reason(reason, proc), {__MODULE__, :await_many, [tasks, timeout]}})
 
-      {tag, reply} when is_map_key(tags, tag) ->
-        ref = Map.fetch!(tags, tag)
+      {ref, reply} when is_map_key(awaiting, ref) ->
         demonitor(ref)
 
         await_many(
           tasks,
           timeout,
           Map.delete(awaiting, ref),
-          Map.delete(tags, tag),
-          Map.put(replies, tag, reply),
+          Map.put(replies, ref, reply),
           timeout_ref
         )
     end
@@ -1094,9 +1066,9 @@ defmodule Task do
     yield_receive(ref, task, timeout)
   end
 
-  defp yield_receive(ref, %Task{tag: tag} = task, timeout) do
+  defp yield_receive(ref, task, timeout) do
     receive do
-      {^tag, reply} ->
+      {^ref, reply} ->
         demonitor(ref)
         {:ok, reply}
 
@@ -1202,16 +1174,14 @@ defmodule Task do
     on_timeout = Keyword.get(opts, :on_timeout, :nothing)
     timeout = Keyword.get(opts, :timeout, 5_000)
 
-    {refs, tags, task_count} =
-      for %Task{ref: ref, tag: tag, owner: owner} = task <- tasks,
-          reduce: {%{}, %{}, 0} do
-        {refs_acc, tags_acc, count} ->
-          if owner != self() do
-            raise ArgumentError, invalid_owner_error(task)
-          end
+    refs =
+      Map.new(tasks, fn %Task{ref: ref, owner: owner} = task ->
+        if owner != self() do
+          raise ArgumentError, invalid_owner_error(task)
+        end
 
-          {Map.put(refs_acc, ref, nil), Map.put(tags_acc, tag, ref), count + 1}
-      end
+        {ref, nil}
+      end)
 
     timeout_ref = make_ref()
 
@@ -1221,7 +1191,7 @@ defmodule Task do
       end
 
     try do
-      yield_many(task_count, refs, tags, timeout_ref, timer_ref)
+      yield_many(map_size(refs), refs, timeout_ref, timer_ref)
     catch
       {:noconnection, reason} ->
         exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
@@ -1242,24 +1212,23 @@ defmodule Task do
     end
   end
 
-  defp yield_many(0, refs, _tags, timeout_ref, timer_ref) do
+  defp yield_many(0, refs, timeout_ref, timer_ref) do
     timer_ref && Process.cancel_timer(timer_ref)
     receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
     refs
   end
 
-  defp yield_many(limit, refs, tags, timeout_ref, timer_ref) do
+  defp yield_many(limit, refs, timeout_ref, timer_ref) do
     receive do
-      {tag, reply} when is_map_key(tags, tag) ->
-        ref = Map.fetch!(tags, tag)
+      {ref, reply} when is_map_key(refs, ref) ->
         demonitor(ref)
-        yield_many(limit - 1, %{refs | ref => {:ok, reply}}, tags, timeout_ref, timer_ref)
+        yield_many(limit - 1, %{refs | ref => {:ok, reply}}, timeout_ref, timer_ref)
 
       {:DOWN, ref, _, proc, reason} when is_map_key(refs, ref) ->
         if reason == :noconnection do
           throw({:noconnection, reason(:noconnection, proc)})
         else
-          yield_many(limit - 1, %{refs | ref => {:exit, reason}}, tags, timeout_ref, timer_ref)
+          yield_many(limit - 1, %{refs | ref => {:exit, reason}}, timeout_ref, timer_ref)
         end
 
       ^timeout_ref ->

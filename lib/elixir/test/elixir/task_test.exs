@@ -22,13 +22,7 @@ defmodule TaskTest do
 
     receive do
       {:DOWN, ^ref, _, _, _} ->
-        %Task{
-          ref: ref,
-          tag: ref,
-          pid: pid,
-          owner: self(),
-          mfa: {__MODULE__, :create_dummy_task, 1}
-        }
+        %Task{ref: ref, pid: pid, owner: self(), mfa: {__MODULE__, :create_dummy_task, 1}}
     end
   end
 
@@ -251,7 +245,7 @@ defmodule TaskTest do
 
     test "exits on :noconnection" do
       ref = make_ref()
-      task = %Task{ref: ref, tag: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, self(), self(), :noconnection})
       assert catch_exit(Task.ignore(task)) |> elem(0) == {:nodedown, :nonode@nohost}
     end
@@ -279,8 +273,7 @@ defmodule TaskTest do
     end
 
     test "exits on timeout" do
-      ref = make_ref()
-      task = %Task{ref: ref, tag: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       assert catch_exit(Task.await(task, 0)) == {:timeout, {Task, :await, [task, 0]}}
     end
 
@@ -332,14 +325,14 @@ defmodule TaskTest do
 
     test "exits on :noconnection" do
       ref = make_ref()
-      task = %Task{ref: ref, tag: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, :process, self(), :noconnection})
       assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :nonode@nohost}
     end
 
     test "exits on :noconnection from named monitor" do
       ref = make_ref()
-      task = %Task{ref: ref, tag: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, :process, {:name, :node}, :noconnection})
       assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :node}
     end
@@ -366,7 +359,7 @@ defmodule TaskTest do
 
       tasks =
         Enum.map(refs, fn ref ->
-          %Task{ref: ref, tag: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+          %Task{ref: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
         end)
 
       send(self(), {ref_2, 3})
@@ -396,7 +389,7 @@ defmodule TaskTest do
 
       tasks =
         Enum.map(refs, fn ref ->
-          %Task{ref: ref, tag: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+          %Task{ref: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
         end)
 
       send(self(), {ref_2, :b})
@@ -465,11 +458,9 @@ defmodule TaskTest do
     end
 
     test "exits immediately on :noconnection" do
-      ref = make_ref()
-
       tasks = [
         Task.async(fn -> Process.sleep(:infinity) end),
-        %Task{ref: ref, tag: ref, owner: self(), pid: self(), mfa: {__MODULE__, :test, 1}}
+        %Task{ref: ref = make_ref(), owner: self(), pid: self(), mfa: {__MODULE__, :test, 1}}
       ]
 
       send(self(), {:DOWN, ref, :process, self(), :noconnection})
@@ -477,11 +468,9 @@ defmodule TaskTest do
     end
 
     test "exits immediately on :noconnection from named monitor" do
-      ref = make_ref()
-
       tasks = [
         Task.async(fn -> Process.sleep(:infinity) end),
-        %Task{ref: ref, tag: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+        %Task{ref: ref = make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       ]
 
       send(self(), {:DOWN, ref, :process, {:name, :node}, :noconnection})
@@ -504,8 +493,7 @@ defmodule TaskTest do
 
   describe "yield/2" do
     test "returns {:ok, result} when reply and :DOWN in message queue" do
-      ref = make_ref()
-      task = %Task{ref: ref, tag: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       send(self(), {task.ref, :result})
       send(self(), {:DOWN, task.ref, :process, self(), :abnormal})
       assert Task.yield(task, 0) == {:ok, :result}
@@ -513,8 +501,7 @@ defmodule TaskTest do
     end
 
     test "returns nil on timeout" do
-      ref = make_ref()
-      task = %Task{ref: ref, tag: ref, pid: nil, owner: self(), mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: make_ref(), pid: nil, owner: self(), mfa: {__MODULE__, :test, 1}}
       assert Task.yield(task, 0) == nil
     end
 
@@ -525,7 +512,7 @@ defmodule TaskTest do
 
     test "exits on :noconnection" do
       ref = make_ref()
-      task = %Task{ref: ref, tag: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, self(), self(), :noconnection})
       assert catch_exit(Task.yield(task)) |> elem(0) == {:nodedown, :nonode@nohost}
     end
@@ -543,8 +530,7 @@ defmodule TaskTest do
 
   describe "yield_many/2" do
     test "returns {:ok, result} when reply and :DOWN in message queue" do
-      ref = make_ref()
-      task = %Task{ref: ref, tag: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       send(self(), {task.ref, :result})
       send(self(), {:DOWN, task.ref, :process, self(), :abnormal})
       assert Task.yield_many([task], 0) == [{task, {:ok, :result}}]
@@ -552,8 +538,7 @@ defmodule TaskTest do
     end
 
     test "returns nil on timeout by default" do
-      ref = make_ref()
-      task = %Task{ref: ref, tag: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       assert Task.yield_many([task], 0) == [{task, nil}]
     end
 
@@ -589,7 +574,7 @@ defmodule TaskTest do
 
     test "exits on :noconnection" do
       ref = make_ref()
-      task = %Task{ref: ref, tag: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
+      task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, :process, self(), :noconnection})
       assert catch_exit(Task.yield_many([task])) |> elem(0) == {:nodedown, :nonode@nohost}
     end
@@ -605,13 +590,9 @@ defmodule TaskTest do
     end
 
     test "returns results from multiple tasks" do
-      ref1 = make_ref()
-      ref2 = make_ref()
-      ref3 = make_ref()
-
-      task1 = %Task{ref: ref1, tag: ref1, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
-      task2 = %Task{ref: ref2, tag: ref2, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
-      task3 = %Task{ref: ref3, tag: ref3, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task1 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task2 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task3 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
 
       send(self(), {task1.ref, :result})
       send(self(), {:DOWN, task3.ref, :process, self(), :normal})
@@ -621,12 +602,9 @@ defmodule TaskTest do
     end
 
     test "returns results on infinity timeout" do
-      ref1 = make_ref()
-      ref2 = make_ref()
-      ref3 = make_ref()
-      task1 = %Task{ref: ref1, tag: ref1, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
-      task2 = %Task{ref: ref2, tag: ref2, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
-      task3 = %Task{ref: ref3, tag: ref3, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task1 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task2 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task3 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
 
       send(self(), {task1.ref, :result})
       send(self(), {task2.ref, :result})
@@ -703,25 +681,13 @@ defmodule TaskTest do
       ref = make_ref()
       send(self(), {ref, :done})
 
-      assert Task.shutdown(%Task{
-               ref: ref,
-               tag: ref,
-               owner: self(),
-               pid: nil,
-               mfa: {__MODULE__, :test, 1}
-             }) ==
+      assert Task.shutdown(%Task{ref: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}) ==
                {:ok, :done}
 
       ref = make_ref()
       send(self(), {:DOWN, ref, :process, self(), :done})
 
-      assert Task.shutdown(%Task{
-               ref: ref,
-               tag: ref,
-               owner: self(),
-               pid: nil,
-               mfa: {__MODULE__, :test, 1}
-             }) ==
+      assert Task.shutdown(%Task{ref: ref, owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}) ==
                {:exit, :done}
     end
 
