@@ -64,18 +64,26 @@ defmodule Macro do
 
   ## Custom Sigils
 
-  Macros are also commonly used to implement custom sigils. To create a custom
-  sigil, define a macro with the name `sigil_{identifier}` that takes two
-  arguments. The first argument will be the string, the second will be a charlist
-  containing any modifiers. If the sigil is lower case (such as `sigil_x`) then
-  the string argument will allow interpolation. If the sigil is upper case
-  (such as `sigil_X`) then the string will not be interpolated.
+  Macros are also commonly used to implement custom sigils.
 
-  The sigil identifier can contain multiple letters, as long as they are **all uppercase**,
-  such as in `sigil_FOO`.
+  Sigils start with `~` and are followed by one lowercase letter or by one
+  or more uppercase letters, and then a separator
+  (see the [Syntax Reference](syntax-reference.md)). One example is
+  `~D[2020-10-13]` to define a date.
 
-  Valid modifiers include only lower and upper case letters. Other characters
-  will cause a syntax error.
+  To create a custom sigil, define a macro with the name `sigil_{identifier}`
+  that takes two arguments. The first argument will be the string, the second
+  will be a charlist containing any modifiers. If the sigil is lower case
+  (such as `sigil_x`) then the string argument will allow interpolation.
+  If the sigil is one or more upper case letters (such as `sigil_X` and
+  `sigil_EXAMPLE`) then the string will not be interpolated.
+
+  Valid modifiers are ASCII letters and digits. Any other character will
+  cause a syntax error.
+
+  Single-letter sigils are typically reserved to the language. Multi-letter
+  sigils are uppercased and extensively used by the community to embed
+  alternative markups and data-types within Elixir source code.
 
   The module containing the custom sigil must be imported before the sigil
   syntax can be used.
