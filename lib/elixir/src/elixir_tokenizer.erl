@@ -1563,7 +1563,8 @@ tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Col
     {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
       Indentation = NewColumn - 4,
-      Token = {sigil, {Line, Column, nil}, SigilName, Parts, Modifiers, Indentation, <<H, H, H>>},
+      TokenColumn = Column - 1 - length(SigilName),
+      Token = {sigil, {Line, TokenColumn, nil}, SigilName, Parts, Modifiers, Indentation, <<H, H, H>>},
       NewColumnWithModifiers = NewColumn + length(Modifiers),
       tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
 
@@ -1592,8 +1593,9 @@ tokenize_sigil_contents([H | _] = Original, SigilName, Line, Column, Scope, Toke
   MessageString =
     "\"~ts\" (column ~p, code point U+~4.16.0B). The available delimiters are: "
     "//, ||, \"\", '', (), [], {}, <>",
-  Message = io_lib:format(MessageString, [[H], Column + 1 + length(SigilName), H]),
-  error({Line, Column, "invalid sigil delimiter: ", Message}, [$~] ++ SigilName ++ Original, Scope, Tokens);
+  Message = io_lib:format(MessageString, [[H], Column, H]),
+  ErrorColumn = Column - 1 - length(SigilName),
+  error({Line, ErrorColumn, "invalid sigil delimiter: ", Message}, [$~] ++ SigilName ++ Original, Scope, Tokens);
 
 % Incomplete sigil.
 tokenize_sigil_contents([], _SigilName, Line, Column, Scope, Tokens) ->
