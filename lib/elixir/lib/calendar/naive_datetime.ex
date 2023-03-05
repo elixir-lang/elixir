@@ -1178,6 +1178,9 @@ defmodule NaiveDateTime do
       |> NaiveDateTime.beginning_of_day()
       |> DateTime.from_naive(datetime.timezone)
 
+  Note that the beginning of the day may not exist or be ambiguous
+  in a given timezone, so you must handle those cases accordingly.
+
   ## Examples
 
       iex> NaiveDateTime.beginning_of_day(~N[2000-01-01 23:00:07.123456])
@@ -1201,6 +1204,9 @@ defmodule NaiveDateTime do
       datetime
       |> NaiveDateTime.beginning_of_day()
       |> DateTime.from_naive(datetime.timezone)
+
+  Note that the end of the day may not exist or be ambiguous
+  in a given timezone, so you must handle those cases accordingly.
 
   ## Examples
 
