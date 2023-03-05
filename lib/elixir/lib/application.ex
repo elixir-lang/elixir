@@ -636,10 +636,14 @@ defmodule Application do
   If the configuration parameter does not exist, the function returns the
   `default` value.
 
-  > **Important:** you must use this function to read only your own application
+  > #### Warning {: .warning}
+  >
+  > You must use this function to read only your own application
   > environment. Do not read the environment of other applications.
 
-  > **Important:** if you are writing a library to be used by other developers,
+  > #### Application environment in libraries {: .info}
+  >
+  > If you are writing a library to be used by other developers,
   > it is generally recommended to avoid the application environment, as the
   > application environment is effectively a global storage. For more information,
   > read our [library guidelines](library-guidelines.md).
@@ -693,10 +697,14 @@ defmodule Application do
 
   If the configuration parameter does not exist, the function returns `:error`.
 
-  > **Important:** you must use this function to read only your own application
+  > #### Warning {: .warning}
+  >
+  > You must use this function to read only your own application
   > environment. Do not read the environment of other applications.
 
-  > **Important:** if you are writing a library to be used by other developers,
+  > #### Application environment in info
+  >
+  > If you are writing a library to be used by other developers,
   > it is generally recommended to avoid the application environment, as the
   > application environment is effectively a global storage. For more information,
   > read our [library guidelines](library-guidelines.md).
@@ -716,10 +724,14 @@ defmodule Application do
 
   If the configuration parameter does not exist, raises `ArgumentError`.
 
-  > **Important:** you must use this function to read only your own application
+  > #### Warning {: .warning}
+  >
+  > You must use this function to read only your own application
   > environment. Do not read the environment of other applications.
 
-  > **Important:** if you are writing a library to be used by other developers,
+  > #### Application environment in info
+  >
+  > If you are writing a library to be used by other developers,
   > it is generally recommended to avoid the application environment, as the
   > application environment is effectively a global storage. For more information,
   > read our [library guidelines](library-guidelines.md).

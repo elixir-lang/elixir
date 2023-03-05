@@ -34,7 +34,9 @@ defmodule Config do
   `Config` also provides a low-level API for evaluating and reading
   configuration, under the `Config.Reader` module.
 
-  > **Important:** if you are writing a library to be used by other developers,
+  > #### Avoid application environment in libraries {: .info}
+  >
+  > If you are writing a library to be used by other developers,
   > it is generally recommended to avoid the application environment, as the
   > application environment is effectively a global storage. Also note that
   > the `config/config.exs` of a library is not evaluated when the library is

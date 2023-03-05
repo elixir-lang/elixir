@@ -489,8 +489,10 @@ defmodule System do
   @doc """
   Traps the given `signal` to execute the `fun`.
 
-  > **Important**: Trapping signals may have strong implications
-  > on how a system shuts down and behave in production and
+  > #### Avoid setting traps in libraries {: .warning}
+  >
+  > Trapping signals may have strong implications
+  > on how a system shuts down and behaves in production and
   > therefore it is extremely discouraged for libraries to
   > set their own traps. Instead, they should redirect users
   > to configure them themselves. The only cases where it is
@@ -911,7 +913,9 @@ defmodule System do
 
   It uses `sh` for Unix-like systems and `cmd` for Windows.
 
-  > **Important:**: Use this function with care. In particular, **never
+  > #### Watch out {: .warning}
+  >
+  > Use this function with care. In particular, **never
   > pass untrusted user input to this function**, as the user would be
   > able to perform "command injection attacks" by executing any code
   > directly on the machine. Generally speaking, prefer to use `cmd/3`
