@@ -20,7 +20,9 @@ defmodule Supervisor do
   a generic server, that keeps a counter. Other processes can then send
   messages to this process to read the counter and bump its value.
 
-  > Note: in practice you would not define a counter as a GenServer. Instead,
+  > #### Disclaimer {: .neutral}
+  >
+  > In practice you would not define a counter as a GenServer. Instead,
   > if you need a counter, you would pass it around as inputs and outputs to
   > the functions that need it. The reason we picked a counter in this example
   > is due to its simplicity, as it allows us to focus on how supervisors work.

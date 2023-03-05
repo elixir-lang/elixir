@@ -52,8 +52,10 @@ defmodule Map do
       map.non_existing_key
       ** (KeyError) key :non_existing_key not found in: %{baz: "bong", foo: "bar"}
 
-  > Note: do not add parens when accessing fields, such as in `data.key()`.
-  > If parenthesis are used, Elixir will expect `data` to be an atom representing
+  > #### Avoid parentheses {: .warning}
+  >
+  > Do not add parentheses when accessing fields, such as in `data.key()`.
+  > If parentheses are used, Elixir will expect `data` to be an atom representing
   > a module and attempt to call the *function* `key/0` in it.
 
   The two syntaxes for accessing keys reveal the dual nature of maps. The `map[key]`
@@ -1078,7 +1080,9 @@ defmodule Map do
   See also `reject/2` which discards all elements where the
   function returns a truthy value.
 
-  > Note: if you find yourself doing multiple calls to `Map.filter/2`
+  > #### Performance considerations {: .tip}
+  >
+  > If you find yourself doing multiple calls to `Map.filter/2`
   > and `Map.reject/2` in a pipeline, it is likely more efficient
   > to use `Enum.map/2` and `Enum.filter/2` instead and convert to
   > a map at the end using `Map.new/1`.
