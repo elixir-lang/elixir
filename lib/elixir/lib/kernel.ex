@@ -5540,7 +5540,9 @@ defmodule Kernel do
   As seen as in the example above, `super` can be used to call the default
   implementation.
 
-  > Note: use `defoverridable` with care. If you need to define multiple modules
+  > #### Disclaimer {: .tip}
+  >
+  > Use `defoverridable` with care. If you need to define multiple modules
   > with the same behaviour, it may be best to move the default implementation
   > to the caller, and check if a callback exists via `Code.ensure_loaded?/1` and
   > `function_exported?/3`.
@@ -5722,7 +5724,9 @@ defmodule Kernel do
   the usual macro rules apply, and its return value should be quoted code
   that is then inserted where `use/2` is called.
 
-  > Note: `use MyModule` works as a code injection point in the caller.
+  > #### Code injection {: .warning}
+  >
+  > `use MyModule` works as a **code-injection point** in the caller.
   > Given the caller of `use MyModule` has little control over how the
   > code is injected, `use/2` should be used with care. If you can,
   > avoid use in favor of `import/2` or `alias/2` whenever possible.

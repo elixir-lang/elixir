@@ -36,7 +36,9 @@ defmodule Mix.Tasks.Escript.Build do
   the compiled `.beam` files to reduce the size of the escript.
   If this is not desired, check the `:strip_beams` option.
 
-  > Note: escripts do not support projects and dependencies
+  > #### `priv` directory support {: .warning}
+  >
+  > escripts do not support projects and dependencies
   > that need to store or read artifacts from the priv directory.
 
   ## Command line options
