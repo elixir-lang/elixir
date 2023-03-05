@@ -1343,8 +1343,8 @@ defmodule Code.Formatter do
       doc = <<?~, name::binary, opening_delimiter::binary>>
 
       entries =
-        case state.sigils do
-          %{^name => callback} ->
+        case Map.fetch(state.sigils, String.to_charlist(name)) do
+          {:ok, callback} ->
             metadata = [
               file: state.file,
               line: meta[:line],
@@ -1362,7 +1362,7 @@ defmodule Code.Formatter do
                       "expected sigil callback to return iodata, got: #{inspect(other)}"
             end
 
-          %{} ->
+          :error ->
             entries
         end
 
