@@ -138,4 +138,16 @@ bar) in ["foo\\\nbar", "foo\\\r\nbar"]
     assert ~s(f[oo) == "f[oo"
     assert ~s(fo]o) == "fo]o"
   end
+
+  describe "multi-letter sigils" do
+    def sigil_MAT(string, modifiers) do
+      %{matrix: string, modifiers: modifiers}
+    end
+
+    test "sigil MAT" do
+      assert ~MAT"foo" == %{matrix: "foo", modifiers: []}
+      assert ~MAT[foo]i == %{matrix: "foo", modifiers: ~c"i"}
+      assert ~MAT("1")mod == %{matrix: "\"1\"", modifiers: ~c"mod"}
+    end
+  end
 end

@@ -188,13 +188,13 @@ defmodule Code.Formatter do
     sigils =
       Map.new(sigils, fn {key, value} ->
         with true <- is_atom(key) and is_function(value, 2),
-             [char] <- Atom.to_charlist(key),
-             true <- char in ?A..?Z do
-          {char, value}
+             name = Atom.to_string(key),
+             true <- String.match?(name, ~r/^[A-Z]+$/) do
+          {name, value}
         else
           _ ->
             raise ArgumentError,
-                  ":sigils must be a keyword list with a single uppercased letter as key and an " <>
+                  ":sigils must be a keyword list with uppercased atoms as keys and an " <>
                     "anonymous function expecting two arguments as value, got: #{inspect(sigils)}"
         end
       end)
@@ -1337,10 +1337,10 @@ defmodule Code.Formatter do
   ## Sigils
 
   defp maybe_sigil_to_algebra(fun, meta, args, state) do
-    with <<"sigil_", name>> <- Atom.to_string(fun),
+    with <<"sigil_", name::binary>> <- Atom.to_string(fun),
          [{:<<>>, _, entries}, modifiers] when is_list(modifiers) <- args,
          opening_delimiter when not is_nil(opening_delimiter) <- meta[:delimiter] do
-      doc = <<?~, name, opening_delimiter::binary>>
+      doc = <<?~, name::binary, opening_delimiter::binary>>
 
       entries =
         case state.sigils do
@@ -1348,7 +1348,7 @@ defmodule Code.Formatter do
             metadata = [
               file: state.file,
               line: meta[:line],
-              sigil: List.to_atom([name]),
+              sigil: String.to_atom(name),
               modifiers: modifiers,
               opening_delimiter: opening_delimiter
             ]

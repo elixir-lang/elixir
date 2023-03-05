@@ -1562,7 +1562,7 @@ tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Col
   case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
     {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      Indentation = NewColumn - 3 - length(SigilName),
+      Indentation = NewColumn - 4,
       Token = {sigil, {Line, Column, nil}, SigilName, Parts, Modifiers, Indentation, <<H, H, H>>},
       NewColumnWithModifiers = NewColumn + length(Modifiers),
       tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
