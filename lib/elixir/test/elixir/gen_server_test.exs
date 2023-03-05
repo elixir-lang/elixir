@@ -14,11 +14,6 @@ defmodule GenServerTest do
       {:reply, h, t}
     end
 
-    def handle_call({:delayed_pop, delay}, _from, [h | t]) do
-      Process.sleep(delay)
-      {:reply, h, t}
-    end
-
     def handle_call(:noreply, _from, h) do
       {:noreply, h}
     end
@@ -217,88 +212,5 @@ defmodule GenServerTest do
 
     {:ok, _} = GenServer.start(Stack, [], name: name)
     assert GenServer.stop(name, :normal) == :ok
-  end
-
-  describe "async/2" do
-    setup do
-      pid =
-        start_supervised!(%{
-          id: Stack,
-          type: :worker,
-          start: {GenServer, :start_link, [Stack, []]}
-        })
-
-      %{stack: pid}
-    end
-
-    test "with Task.await/2", %{stack: pid} do
-      GenServer.cast(pid, {:push, 1})
-      task = GenServer.async(pid, :pop)
-      assert Task.await(task, 100) == 1
-
-      # Assert no messages are leaked to this process.
-      assert {:messages, []} = :erlang.process_info(self(), :messages)
-    end
-
-    test "with Task.await_many/2", %{stack: pid} do
-      for n <- 1..5 do
-        GenServer.cast(pid, {:push, n})
-      end
-
-      tasks = for _ <- 1..5, do: GenServer.async(pid, {:delayed_pop, 10})
-
-      assert Task.yield_many(tasks, 0) == Enum.map(tasks, &{&1, nil})
-
-      expected = Enum.zip_with(tasks, 5..1, &{&1, {:ok, &2}})
-      assert Task.yield_many(tasks, 100) == expected
-
-      # Assert no messages are leaked to this process.
-      assert {:messages, []} = :erlang.process_info(self(), :messages)
-    end
-
-    test "with Task.yield/2", %{stack: pid} do
-      GenServer.cast(pid, {:push, 1})
-      task = GenServer.async(pid, {:delayed_pop, 100})
-      assert Task.yield(task, 50) == nil
-      assert Task.yield(task, 100) == {:ok, 1}
-
-      # Assert no messages are leaked to this process.
-      assert {:messages, []} = :erlang.process_info(self(), :messages)
-    end
-
-    test "with Task.yield_many/2", %{stack: pid} do
-      for n <- 1..5 do
-        GenServer.cast(pid, {:push, n})
-      end
-
-      tasks = for _ <- 1..5, do: GenServer.async(pid, {:delayed_pop, 10})
-
-      assert Task.await_many(tasks, 100) == Enum.to_list(5..1)
-
-      # Assert no messages are leaked to this process.
-      assert {:messages, []} = :erlang.process_info(self(), :messages)
-    end
-
-    test "with Task.ignore/1", %{stack: pid} do
-      GenServer.cast(pid, {:push, 1})
-      GenServer.cast(pid, {:push, 2})
-      task = GenServer.async(pid, :pop)
-      Process.sleep(10)
-      assert Task.ignore(task) == {:ok, 2}
-
-      task = GenServer.async(pid, {:delayed_pop, 50})
-      assert Task.ignore(task) == nil
-    end
-
-    test "with Task.shutdown/1", %{stack: pid} do
-      GenServer.cast(pid, {:push, 1})
-      GenServer.cast(pid, {:push, 2})
-      task = GenServer.async(pid, :pop)
-      Process.sleep(10)
-      assert Task.shutdown(task) == {:ok, 2}
-
-      task = GenServer.async(pid, {:delayed_pop, 50})
-      assert Task.shutdown(task) == nil
-    end
   end
 end
