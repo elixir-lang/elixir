@@ -159,7 +159,7 @@ end
 
 ### Sigils
 
-Sigils start with `~` and are followed by a letter and one of the following pairs:
+Sigils start with `~` and are followed by one lowercase letter or by one or more uppercase letters, immediatelly followed by one of the following pairs:
 
   * `(` and `)`
   * `{` and `}`
@@ -170,7 +170,7 @@ Sigils start with `~` and are followed by a letter and one of the following pair
   * `|` and `|`
   * `/` and `/`
 
-After closing the pair, zero or more ASCII letters can be given as a modifier. Sigils are expressed as non-qualified calls prefixed with `sigil_` where the first argument is the sigil contents as a string and the second argument is a list of integers as modifiers:
+After closing the pair, zero or more ASCII letters and digits can be given as a modifier. Sigils are expressed as non-qualified calls prefixed with `sigil_` where the first argument is the sigil contents as a string and the second argument is a list of integers as modifiers:
 
 If the sigil letter is in uppercase, no interpolation is allowed in the sigil, otherwise its contents may be dynamic. Compare the results of the sigils below for more information:
 
