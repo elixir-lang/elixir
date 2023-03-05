@@ -326,6 +326,18 @@ defmodule Calendar do
               {:ok, {year, month, day, hour, minute, second, microsecond}, utc_offset}
               | {:error, atom}
 
+  @doc """
+  Converts the given `t:iso_days/0` to the first moment of the day.
+  """
+  @doc since: "1.15.0"
+  @callback iso_days_to_beginning_of_day(iso_days) :: iso_days
+
+  @doc """
+  Converts the given `t:iso_days/0` to the last moment of the day.
+  """
+  @doc since: "1.15.0"
+  @callback iso_days_to_end_of_day(iso_days) :: iso_days
+
   # General Helpers
 
   @doc """
