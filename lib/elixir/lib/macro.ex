@@ -71,6 +71,9 @@ defmodule Macro do
   the string argument will allow interpolation. If the sigil is upper case
   (such as `sigil_X`) then the string will not be interpolated.
 
+  The sigil identifier can contain multiple letters, as long as they are **all uppercase**,
+  such as in `sigil_FOO`.
+
   Valid modifiers include only lower and upper case letters. Other characters
   will cause a syntax error.
 

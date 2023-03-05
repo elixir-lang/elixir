@@ -189,7 +189,7 @@ defmodule Code.Formatter do
       Map.new(sigils, fn {key, value} ->
         with true <- is_atom(key) and is_function(value, 2),
              name = Atom.to_charlist(key),
-             true <- Enum.all?(name, & &1 in ?A..?Z) do
+             true <- Enum.all?(name, &(&1 in ?A..?Z)) do
           {name, value}
         else
           _ ->
