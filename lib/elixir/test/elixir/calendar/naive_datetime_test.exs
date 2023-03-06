@@ -360,27 +360,13 @@ defmodule NaiveDateTimeTest do
 
   describe "end_of_day/1" do
     test "precision" do
-      assert NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07.123]) == %NaiveDateTime{
-               calendar: Calendar.ISO,
-               day: 1,
-               hour: 23,
-               microsecond: {999_999, 3},
-               minute: 59,
-               month: 1,
-               second: 59,
-               year: 2000
-             }
+      assert NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07.1]) == ~N[2000-01-01 23:59:59.9]
+      assert NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07.123]) == ~N[2000-01-01 23:59:59.999]
 
-      assert NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07]) == %NaiveDateTime{
-               calendar: Calendar.ISO,
-               day: 1,
-               hour: 23,
-               microsecond: {999_999, 0},
-               minute: 59,
-               month: 1,
-               second: 59,
-               year: 2000
-             }
+      assert NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07.12345]) ==
+               ~N[2000-01-01 23:59:59.99999]
+
+      assert NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07]) == ~N[2000-01-01 23:59:59]
     end
   end
 end
