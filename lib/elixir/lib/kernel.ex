@@ -4981,6 +4981,28 @@ defmodule Kernel do
     module = :elixir_aliases.concat([env.module, h])
     alias = String.to_atom("Elixir." <> Atom.to_string(h))
 
+    case :lists.keyfind(alias, 1, env.aliases) do
+      # If the alias is the same as the module being defined, it means we're redefining
+      # the same nested module. In that case, let's not warn specifically about "shadowed"
+      # aliases here.
+      {^alias, ^module} ->
+        :ok
+
+      {^alias, other_parent} ->
+        defmod_name = Enum.join([h | t], ".")
+
+        IO.warn(
+          "the nested call to \"defmodule #{defmod_name}\" will not implicitly alias " <>
+            "#{inspect(alias)} here because there is already an alias #{inspect(other_parent)} " <>
+            "that resolves to the same alias. To fix this, either remove the " <>
+            "#{inspect(other_parent)} alias, or define the nested module outside of the parent",
+          env
+        )
+
+      false ->
+        :ok
+    end
+
     case t do
       [] -> {module, module, alias}
       _ -> {String.to_atom(Enum.join([module | t], ".")), module, alias}

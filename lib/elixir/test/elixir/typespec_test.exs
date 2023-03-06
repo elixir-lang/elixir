@@ -3,7 +3,6 @@ Code.require_file("test_helper.exs", __DIR__)
 # Holds tests for both Kernel.Typespec and Code.Typespec
 defmodule TypespecTest do
   use ExUnit.Case, async: true
-  alias TypespecTest.TypespecSample
 
   defstruct [:hello]
 
@@ -120,7 +119,7 @@ defmodule TypespecTest do
 
     test "redefined type" do
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:126",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:125",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -129,7 +128,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:136",
+                   ~r"type foo/2 is already defined in .*test/elixir/typespec_test.exs:135",
                    fn ->
                      test_module do
                        @type foo :: atom
@@ -139,7 +138,7 @@ defmodule TypespecTest do
                    end
 
       assert_raise Kernel.TypespecError,
-                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:145",
+                   ~r"type foo/0 is already defined in .*test/elixir/typespec_test.exs:144",
                    fn ->
                      test_module do
                        @type foo :: atom

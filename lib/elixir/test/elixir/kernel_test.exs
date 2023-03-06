@@ -943,6 +943,48 @@ defmodule KernelTest do
         defmodule :"foo\\bar", do: :ok
       end
     end
+
+    test "warns when nested and there is an alias with the same name" do
+      output =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Code.eval_string("""
+          defmodule Parent do
+            alias OtherParent.Child
+
+            defmodule Child do
+            end
+          end
+          """)
+        end)
+
+      assert output =~ ~s(the nested call to "defmodule Child" will not implicitly alias)
+    after
+      purge(Parent)
+      purge(Child)
+    end
+
+    test "warns when nested with multiple name components and there is an alias with the same name" do
+      output =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Code.eval_string("""
+          defmodule Parent do
+            alias OtherParent.Child
+
+            defmodule Child.One do
+            end
+
+            defmodule Child.Two do
+            end
+          end
+          """)
+        end)
+
+      assert output =~
+               ~s(the nested call to "defmodule Child.One" will not implicitly alias Child)
+    after
+      purge(Parent)
+      purge(Child)
+    end
   end
 
   describe "access" do
