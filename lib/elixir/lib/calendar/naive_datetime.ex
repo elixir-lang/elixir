@@ -1217,10 +1217,17 @@ defmodule NaiveDateTime do
   @doc since: "1.15.0"
   @spec end_of_day(Calendar.naive_datetime()) :: t
   def end_of_day(%{calendar: calendar, microsecond: {_, precision}} = naive_datetime) do
-    naive_datetime
-    |> to_iso_days()
-    |> calendar.iso_days_to_end_of_day()
-    |> from_iso_days(calendar, precision)
+    end_of_day =
+      naive_datetime
+      |> to_iso_days()
+      |> calendar.iso_days_to_end_of_day()
+      |> from_iso_days(calendar, precision)
+
+    %{microsecond: {microsecond, precision}} = end_of_day
+
+    multiplier = 10 ** (6 - precision)
+
+    %{end_of_day | microsecond: {div(microsecond, multiplier) * multiplier, precision}}
   end
 
   ## Helpers
