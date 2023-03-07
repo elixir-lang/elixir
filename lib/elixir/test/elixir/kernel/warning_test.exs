@@ -1954,6 +1954,46 @@ defmodule Kernel.WarningTest do
              "extra parentheses on a remote function capture &System.pid()/0 have been deprecated. Please remove the parentheses: &System.pid/0"
   end
 
+  test "nested defmodule when there is an alias with the same name" do
+    output =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        Code.eval_string("""
+        defmodule Parent do
+          alias OtherParent.Child
+
+          defmodule Child do
+          end
+        end
+        """)
+      end)
+
+    assert output =~ ~s(the nested call to "defmodule Child" will not implicitly alias)
+  after
+    purge([Parent, Child])
+  end
+
+  test "nested defmodule with multiple name components when there is an alias with the same name" do
+    output =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        Code.eval_string("""
+        defmodule Parent do
+          alias OtherParent.Child
+
+          defmodule Child.One do
+          end
+
+          defmodule Child.Two do
+          end
+        end
+        """)
+      end)
+
+    assert output =~
+             ~s(the nested call to "defmodule Child.One" will not implicitly alias Child)
+  after
+    purge([Parent, Child])
+  end
+
   defp assert_compile_error(messages, string) do
     captured =
       capture_err(fn ->

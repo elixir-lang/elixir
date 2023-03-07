@@ -2,9 +2,13 @@ Code.require_file("../test_helper.exs", __DIR__)
 
 alias Kernel.AliasTest.Nested, as: Nested
 
-defmodule Nested do
-  def value, do: 1
-end
+Module.create(
+  Nested,
+  quote do
+    def value, do: 1
+  end,
+  file: __ENV__.file
+)
 
 defmodule Kernel.AliasTest do
   use ExUnit.Case, async: true
@@ -80,20 +84,24 @@ end
 defmodule Kernel.AliasNestingTest do
   use ExUnit.Case, async: true
 
-  require Kernel.AliasNestingGenerator
-  Kernel.AliasNestingGenerator.create()
-
-  test "aliases nesting" do
-    assert Parent.a() == :a
-    assert Parent.Child.b() == :a
-  end
-
-  defmodule Nested do
-    def value, do: 2
-  end
-
   test "aliases nesting with previous alias" do
-    assert Nested.value() == 2
+    Code.eval_string("""
+    defmodule Testing do
+      import ExUnit.Assertions
+
+      require Kernel.AliasNestingGenerator
+      Kernel.AliasNestingGenerator.create()
+
+      assert Parent.a() == :a
+      assert Parent.Child.b() == :a
+
+      defmodule Nested do
+        def value, do: 2
+      end
+
+      assert Nested.value() == 2
+    end
+    """)
   end
 end
 
@@ -129,14 +137,25 @@ defmodule Macro.AliasTest.Aliaser do
   end
 end
 
-defmodule Macro.AliasTest.User do
+defmodule Macro.AliasTest do
   use ExUnit.Case, async: true
 
-  use Macro.AliasTest.Definer
-  use Macro.AliasTest.Aliaser
-
   test "has a struct defined from after compile" do
-    assert is_map(struct(Macro.AliasTest.User.First, []))
-    assert is_map(struct(Macro.AliasTest.User.Second, []).baz)
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      Code.eval_string("""
+      defmodule Macro.AliasTest.User do
+        import ExUnit.Assertions
+        use Macro.AliasTest.Definer
+        use Macro.AliasTest.Aliaser
+
+        def run_test do
+          assert is_map(struct(Macro.AliasTest.User.First, []))
+          assert is_map(struct(Macro.AliasTest.User.Second, []).baz)
+        end
+      end
+      """)
+
+      apply(Macro.AliasTest.User, :run_test, [])
+    end)
   end
 end
