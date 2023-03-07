@@ -418,6 +418,38 @@ defmodule IEx.AutocompleteTest do
     assert {:no, [], []} = expand(~c"%Unkown{path: \"foo\", unkno")
   end
 
+  test "completion for struct keys in update syntax" do
+    assert {:yes, ~c"", entries} = expand(~c"%URI{var | ")
+    assert ~c"path:" in entries
+    assert ~c"query:" in entries
+
+    assert {:yes, ~c"", entries} = expand(~c"%URI{var | path: \"foo\",")
+    assert ~c"path:" not in entries
+    assert ~c"query:" in entries
+
+    assert {:yes, ~c"ry: ", []} = expand(~c"%URI{var | path: \"foo\", que")
+    assert {:no, [], []} = expand(~c"%URI{var | path: \"foo\", unkno")
+    assert {:no, [], []} = expand(~c"%Unkown{var | path: \"foo\", unkno")
+  end
+
+  test "completion for map keys in update syntax" do
+    eval("map = %{some: 1, other: :ok, another: \"qwe\"}")
+    # Code.Fragment.container_cursor_to_quoted returns
+    # {:%{}, [line: 1], [{:__cursor__, [line: 1], []}]}
+    # and `map` variable and map update AST is lost
+    # assert {:yes, ~c"", entries} = expand(~c"%{map | ")
+    # assert ~c"some:" in entries
+    # assert ~c"other:" in entries
+
+    assert {:yes, ~c"", entries} = expand(~c"%{map | some: \"foo\",")
+    assert ~c"some:" not in entries
+    assert ~c"other:" in entries
+
+    assert {:yes, ~c"er: ", []} = expand(~c"%{map | some: \"foo\", oth")
+    assert {:no, [], []} = expand(~c"%{map | some: \"foo\", unkno")
+    assert {:no, [], []} = expand(~c"%{unknown | some: \"foo\", unkno")
+  end
+
   test "completion for struct var keys" do
     eval("struct = %IEx.AutocompleteTest.MyStruct{}")
     assert expand(~c"struct.my") == {:yes, ~c"_val", []}
