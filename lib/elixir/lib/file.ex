@@ -1382,7 +1382,7 @@ defmodule File do
     * `:write` - the file is opened for writing. It is created if it does not
       exist.
 
-      If the file does exists, and if write is not combined with read, the file
+      If the file does exist, and if write is not combined with read, the file
       will be truncated.
 
     * `:append` - the file will be opened for writing, and it will be created
