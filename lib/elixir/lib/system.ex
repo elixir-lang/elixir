@@ -1038,8 +1038,10 @@ defmodule System do
     * `:parallelism` - when `true`, the VM will schedule port tasks to improve
       parallelism in the system. If set to `false`, the VM will try to perform
       commands immediately, improving latency at the expense of parallelism.
-      The default can be set on system startup by passing the "+spp" argument
-      to `--erl`
+      The default is `false, and can be set on system startup by passing the 
+      "[+spp](https://www.erlang.org/doc/man/erl.html#+spp)" argument to `--erl`. 
+      By default "+spp" argument is set to `false` and can be checked with,
+      `:erlang.system_info(:port_parallelism)`.
 
   ## Error reasons
 
