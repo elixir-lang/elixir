@@ -129,6 +129,14 @@ defmodule Mix.Tasks.Xref do
       * `dot` - produces a DOT graph description in `xref_graph.dot` in the
         current directory. Warning: this will override any previously generated file
 
+    * `--output` (since v1.15.0) - can be set to one of
+
+      * `-` - prints the output to standard output;
+
+      * a path - writes the output graph to the given path
+
+      Defaults to `xref_graph.dot` in the current directory.
+
   The `--source` and `--sink` options are particularly useful when trying to understand
   how the modules in a particular file interact with the whole system. You can combine
   those options with `--label` and `--only-nodes` to get all files that exhibit a certain
@@ -275,7 +283,8 @@ defmodule Mix.Tasks.Xref do
     only_direct: :boolean,
     sink: :keep,
     source: :keep,
-    min_cycle_size: :integer
+    min_cycle_size: :integer,
+    output: :string
   ]
 
   @impl true
@@ -816,23 +825,29 @@ defmodule Mix.Tasks.Xref do
     {found, count} =
       case opts[:format] do
         "dot" ->
+          path = Keyword.get(opts, :output, "xref_graph.dot")
+
           Mix.Utils.write_dot_graph!(
-            "xref_graph.dot",
+            path,
             "xref graph",
             Enum.sort(roots),
             callback,
             opts
           )
 
-          """
-          Generated "xref_graph.dot" in the current directory. To generate a PNG:
+          if path != "-" do
+            png_path = (path |> Path.rootname() |> Path.basename()) <> ".png"
 
-             dot -Tpng xref_graph.dot -o xref_graph.png
+            """
+            Generated #{inspect(path)} in the current directory. To generate a PNG:
 
-          For more options see http://www.graphviz.org/.
-          """
-          |> String.trim_trailing()
-          |> Mix.shell().info()
+               dot -Tpng #{inspect(path)} -o #{inspect(png_path)}
+
+            For more options see http://www.graphviz.org/.
+            """
+            |> String.trim_trailing()
+            |> Mix.shell().info()
+          end
 
           {:references, count_references(file_references)}
 
