@@ -326,7 +326,6 @@ defmodule IEx do
   When starting, IEx looks for a local `.iex.exs` file (located in the current
   working directory), then a global one defined by an environment variable `IEX_HOME` (defaults to `~/.iex.exs`) and loads the
   first one it finds (if any).
-  
   The code in the chosen `.iex.exs` file is evaluated line by line in the shell's
   context, as if each line were being typed in the shell. For instance, any modules
   that are loaded or variables that are bound in the `.iex.exs` file will be available
