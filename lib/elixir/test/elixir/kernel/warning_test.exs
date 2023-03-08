@@ -1967,7 +1967,13 @@ defmodule Kernel.WarningTest do
         """)
       end)
 
-    assert output =~ ~s(the nested call to "defmodule Child" will not implicitly alias)
+    assert output =~ """
+           you are defining a module named Child inside module Parent, which will result in the \
+           full module name Parent.Child. However, the implicit alias to Child will not be set \
+           up because there is already an existing "alias OtherParent.Child, as: Child". You \
+           must address this ambiguity either by removing the alias or by defining the nested \
+           module outside of the parent\
+           """
   after
     purge([Parent, Child])
   end
@@ -1988,8 +1994,13 @@ defmodule Kernel.WarningTest do
         """)
       end)
 
-    assert output =~
-             ~s(the nested call to "defmodule Child.One" will not implicitly alias Child)
+    assert output =~ """
+           you are defining a module named Child.One inside module Parent, which will result in \
+           the full module name Parent.Child.One. However, the implicit alias to Child will not \
+           be set up because there is already an existing \"alias OtherParent.Child, as: Child\". \
+           You must address this ambiguity either by removing the alias or by defining the \
+           nested module outside of the parent\
+           """
   after
     purge([Parent, Child])
   end

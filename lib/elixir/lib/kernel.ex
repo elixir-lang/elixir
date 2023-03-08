@@ -4977,7 +4977,7 @@ defmodule Kernel do
     do: {module, module, nil}
 
   # defmodule Alias nested
-  defp alias_defmodule({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
+  defp alias_defmodule({:__aliases__, _, [h | t] = parts}, _module, env) when is_atom(h) do
     module = :elixir_aliases.concat([env.module, h])
     alias = String.to_atom("Elixir." <> Atom.to_string(h))
 
@@ -4989,13 +4989,19 @@ defmodule Kernel do
         :ok
 
       {^alias, other_parent} ->
-        defmod_name = Enum.join([h | t], ".")
+        defmod_name = Enum.join(parts, ".")
+        nested_mod_name = :elixir_aliases.concat([env.module | parts])
+        actual_mod_name = :elixir_aliases.concat([other_parent | parts])
 
         IO.warn(
-          "the nested call to \"defmodule #{defmod_name}\" will not implicitly alias " <>
-            "#{inspect(alias)} here because there is already an alias #{inspect(other_parent)} " <>
-            "that resolves to the same alias. To fix this, either remove the " <>
-            "#{inspect(other_parent)} alias, or define the nested module outside of the parent",
+          """
+          you are defining a module named #{defmod_name} inside module #{inspect(env.module)}, \
+          which will result in the full module name #{inspect(nested_mod_name)}. However, \
+          the implicit alias to #{h} will not be set up because there is already an existing \
+          \"alias #{inspect(other_parent)}, as: #{inspect(alias)}\". You must address this \
+          ambiguity either by removing the alias or by defining the nested module outside \
+          of the parent\
+          """,
           env
         )
 
