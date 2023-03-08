@@ -327,6 +327,7 @@ defmodule IEx do
   working directory), then for a global `.iex.exs` file located inside the
   directory pointed by the `IEX_HOME` environment variable (which defaults
   to `~`) and loads the first one it finds (if any).
+
   The code in the chosen `.iex.exs` file is evaluated line by line in the shell's
   context, as if each line were being typed in the shell. For instance, any modules
   that are loaded or variables that are bound in the `.iex.exs` file will be available
