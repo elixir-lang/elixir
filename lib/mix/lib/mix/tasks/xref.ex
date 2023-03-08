@@ -135,6 +135,8 @@ defmodule Mix.Tasks.Xref do
 
       * a path - writes the output graph to the given path
 
+      Defaults to `xref_graph.dot` in the current directory.
+
   The `--source` and `--sink` options are particularly useful when trying to understand
   how the modules in a particular file interact with the whole system. You can combine
   those options with `--label` and `--only-nodes` to get all files that exhibit a certain
