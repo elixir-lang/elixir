@@ -4991,7 +4991,6 @@ defmodule Kernel do
       {^alias, other_parent} ->
         defmod_name = Enum.join(parts, ".")
         nested_mod_name = :elixir_aliases.concat([env.module | parts])
-        actual_mod_name = :elixir_aliases.concat([other_parent | parts])
 
         IO.warn(
           """
