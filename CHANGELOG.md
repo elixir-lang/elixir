@@ -2,12 +2,20 @@
 
 This release requires Erlang/OTP 24 and later.
 
+Elixir v1.15 is a smaller release, with further improvements
+to compilation and boot times. This release also completes
+our integration process with Erlang/OTP logger, bringing new
+features such as log rotation and compactation out of the box.
+
+Finally, you will also find additional convenience functions in
+`Map`, `Keyword`, all Calendar modules, and many more.
+
 ## Compile and boot-time improvements
 
 The last several releases brought improvements to compilation
 time and this version is no different. In particular, this version
 now caches and prunes load paths before compilation, ensuring your
-project (and dependencies!) compile faster and run in an environment
+project (and dependencies!) compile faster and in an environment
 closer to production.
 
 In a nutshell, the Erlang VM loads modules from code paths. Each
@@ -27,14 +35,25 @@ or Elixir module without adding its dependency, we would warn. Now
 the module won't be found altogether, which is also the behaviour you see
 if you ran your application as a `mix release`. If you are using an
 application that does not correctly lists its dependencies, they will
-have to be updated to correctly list all dependencies and avoid
-fault behaviour in both development and production.
+have to be updated accordingly (as previously warned).
 
 Furthermore, Erlang/OTP 26 allows us to start applications concurrently
 and cache the code path lookups, decreasing the cost of booting applications.
 The combination of Elixir v1.15 and Erlang/OTP 26 should reduce the boot
 time of applications, such as when starting `iex -S mix` or running a single
 test with `mix test`, from 5% to 15%.
+
+## Compiler warnings and errors
+
+TODO.
+
+## Integration with Erlang/OTP logger
+
+This provides additional features such as global logger metadata and
+file logging (with rotation and compactation) out-of-the-box! See
+the `Logger` documentation for more information.
+
+TODO: Mention :console vs Logger.Backends.Console
 
 ## v1.15.0-dev
 
@@ -59,6 +78,7 @@ test with `mix test`, from 5% to 15%.
   * [Kernel] Treat `@behaviour`s as runtime dependencies
   * [Kernel] Do not add runtime dependencies for alias references in patterns and guards
   * [Kernel] Warn for nested calls without parens inside keywords
+  * [Kernel] Support for multi-letter uppercase sigils
   * [Kernel] Introduce mechanism to collect several errors in a module. Previously, as soon as there was a compilation error, compilation would fail. Now the compiler became a bit smarter and will report multiple errors whenever possible as multiple `error: ...` messages, similar to `warning: ...`
   * [Kernel.CLI] Support `--sname undefined`/`--name undefined` so a name is automatically generated
   * [Keyword] Add `Keyword.split_with/2`
@@ -66,11 +86,13 @@ test with `mix test`, from 5% to 15%.
   * [Map] Add `Map.split_with/2`
   * [Map] Add `Map.intersect/2` and `Map.intersect/3`
   * [MapSet] Add `MapSet.split_with/2`
+  * [MapSet] Optimize most functions
+  * [NaiveDateTime] Add `NaiveDateTime.beginning_of_day/1` and `NaiveDateTime.end_of_day/1`
   * [NaiveDateTime] Add `NaiveDateTime.before?/2` and `NaiveDateTime.after?/2`
   * [Process] Add `Process.alias/0,1` and `Process.unalias/1`
   * [Range] Add `Range.split/2`
-  * [Sets] Optimize many functions in `MapSet`
   * [String] Update Unicode to version 15.0.0
+  * [String] Add `:fast_ascii` mode to `String.valid?/2`
   * [Supervisor] Add support for automatic shutdown in `Supervisor`
   * [System] Support `:lines` in `System.cmd/3` to capture output line by line
   * [Task] Remove head of line blocking on `Task.yield_many/2`
@@ -88,10 +110,15 @@ test with `mix test`, from 5% to 15%.
 #### IEx
 
   * [IEx] Make pry opt-in on dbg with `--dbg pry`
+  * [IEX] Support `IEX_HOME`
+  * [IEx.Helpers] Add `runtime_info(:allocators)`
   * [IEx.Info] Implement protocol for `Range` and `DateTime`
 
 #### Logger
 
+  * [Logger] Add `Logger.add_handlers/1` and `Logger.default_formatter/1`
+  * [Logger] Introduce `default_formatter` and `default_handler` configuration for Logger which configures Erlang/OTP logger
+  * [Logger.Formatter] Implement the Erlang Logger formatter API
   * [Logger.Formatter] Add support for ports in Logger metadata
 
 #### Mix
@@ -107,6 +134,7 @@ test with `mix test`, from 5% to 15%.
   * [mix format] Show diffs whenever `--check-formatted` fails
   * [mix profile.fprof] Support `--trace-to-file` to improve performance when working with large outputs
   * [mix release] Allow passing additional arguments to the `eval` command
+  * [mix xref graph] Support `--output` flag
 
 ### 2. Bug fixes
 
@@ -118,6 +146,7 @@ test with `mix test`, from 5% to 15%.
   * [Kernel] Expand macros on the left side of -> in `try/rescue`
   * [Kernel] Raise on misplaced `...` inside typespecs
   * [Kernel.ParallelCompiler] Make sure compiler doesn't crash when there are stray messages in the inbox
+  * [Kernel.ParallelCompiler] Track compile and runtime warnings separately
   * [URI] Make sure `URI.merge/2` works accordingly with relative paths
 
 #### ExUnit
@@ -131,6 +160,10 @@ test with `mix test`, from 5% to 15%.
   * [IEx] Do not spawn a process to read IO. This fixes a bug where multiline paste stopped working
     whenever the input reader was killed
   * [IEx] Do not perform completion for prompts triggered during code evaluation
+
+#### Mix
+
+  * [mix release] Fix Windows service when invoking `erlsrv.exe` in path with spaces
 
 ### 3. Soft deprecations (no warnings emitted)
 

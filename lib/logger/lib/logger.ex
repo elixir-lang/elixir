@@ -227,6 +227,8 @@ defmodule Logger do
 
       config :logger, :default_handler, false
 
+  How to add new handlers is covered in later sections.
+
   ### Compile configuration
 
   The following configuration must be set via config files (such as
@@ -301,10 +303,10 @@ defmodule Logger do
 
   ## Erlang/OTP handlers
 
-  Erlang/OTP logger provides handlers. Handlers represent ability to integrate
-  into the logging system to handle each logged message/event. Elixir automatically
-  configures the default handler, but you can use Erlang's [`:logger`](`:logger`)
-  module to add other handlers too.
+  Handlers represent the ability to integrate into the logging system to
+  handle each logged message/event. Elixir automatically configures the
+  default handler, but you can use Erlang's [`:logger`](`:logger`) module
+  to add other handlers too.
 
   Erlang/OTP handlers must be listed under your own application. For example,
   to setup an additional handler that writes to disk:
