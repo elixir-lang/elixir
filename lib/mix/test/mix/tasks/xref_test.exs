@@ -822,6 +822,59 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
+    test "with export to a custom file" do
+      in_fixture("no_mixfile", fn ->
+        File.write!("lib/a.ex", """
+        defmodule A do
+          def fun, do: :ok
+        end
+        """)
+
+        File.write!("lib/b.ex", """
+        defmodule B do
+          defstruct []
+        end
+        """)
+
+        assert Mix.Task.run("xref", ["graph", "--format", "dot", "--output", "custom.dot"]) == :ok
+
+        assert File.read!("custom.dot") === """
+               digraph "xref graph" {
+                 "lib/a.ex"
+                 "lib/b.ex"
+               }
+               """
+      end)
+    end
+
+    test "with export to stdout" do
+      in_fixture("no_mixfile", fn ->
+        File.write!("lib/a.ex", """
+        defmodule A do
+          def fun, do: :ok
+        end
+        """)
+
+        File.write!("lib/b.ex", """
+        defmodule B do
+          defstruct []
+        end
+        """)
+
+        output =
+          capture_io(fn ->
+            assert Mix.Task.run("xref", ["graph", "--format", "dot", "--output", "-"]) == :ok
+          end)
+
+        assert output === """
+               digraph "xref graph" {
+                 "lib/a.ex"
+                 "lib/b.ex"
+               }
+               """
+      end)
+    end
+
     test "with mixed cyclic dependencies" do
       in_fixture("no_mixfile", fn ->
         File.write!("lib/a.ex", """

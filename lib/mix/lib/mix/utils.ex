@@ -327,6 +327,8 @@ defmodule Mix.Utils do
 
   The callback will be invoked for each node and it
   must return a `{printed, children}` tuple.
+
+  If `path` is `-`, prints the output to standard output.
   """
   @spec write_dot_graph!(
           Path.t(),
@@ -338,7 +340,13 @@ defmodule Mix.Utils do
         when node: term()
   def write_dot_graph!(path, title, nodes, callback, _opts \\ []) do
     {dot, _} = build_dot_graph(make_ref(), nodes, MapSet.new(), callback)
-    File.write!(path, ["digraph ", quoted(title), " {\n", dot, "}\n"])
+    contents = ["digraph ", quoted(title), " {\n", dot, "}\n"]
+
+    if path == "-" do
+      IO.write(contents)
+    else
+      File.write!(path, contents)
+    end
   end
 
   defp build_dot_graph(_parent, [], seen, _callback), do: {[], seen}
