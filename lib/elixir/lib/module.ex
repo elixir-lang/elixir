@@ -579,7 +579,7 @@ defmodule Module do
 
     * `:module` - the module atom name
 
-    * `:struct` - if the module defines a struct and if so each field in order
+    * `:struct` - (since v1.14.0) if the module defines a struct and if so each field in order
 
   """
   @callback __info__(:attributes) :: keyword()
