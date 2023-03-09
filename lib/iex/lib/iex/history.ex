@@ -50,8 +50,13 @@ defmodule IEx.History do
     get_nth(:queue.reverse(q), abs(n) - 1)
   end
 
-  def nth(%History{}, n) do
-    raise "v(#{n}) is out of bounds"
+  def nth(%History{size: 0}, n) do
+    raise "v(#{n}) is out of bounds, no entries were stored in history so far"
+  end
+
+  def nth(%History{size: size, start: start}, n) do
+    raise "v(#{n}) is out of bounds, the currently preserved history ranges from #{start} to #{start + size} " <>
+            "(or use negative numbers to look from the end)"
   end
 
   defp get_nth(q, 0), do: :queue.head(q)
