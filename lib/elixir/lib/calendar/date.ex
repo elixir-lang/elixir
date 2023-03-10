@@ -92,6 +92,8 @@ defmodule Date do
       true
       iex> Enum.take(range, 3)
       [~D[2001-01-01], ~D[2001-01-02], ~D[2001-01-03]]
+      iex> for d <- Date.range(~D[2023-03-01], ~D[2023-04-01]), Date.day_of_week(d) == 7, do: d
+      [~D[2023-03-05], ~D[2023-03-12], ~D[2023-03-19], ~D[2023-03-26]]
 
   """
   @doc since: "1.5.0"
