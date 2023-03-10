@@ -1340,6 +1340,8 @@ defmodule StreamTest do
     assert Stream.chunk_every([0, 1, 2, 3], 2) |> Stream.zip() |> Enum.to_list() ==
              [{0, 2}, {1, 3}]
 
+    assert Stream.zip([]) |> Enum.to_list() == []
+
     stream = %HaltAcc{acc: 1..3}
     assert Stream.zip([1..3, stream]) |> Enum.to_list() == [{1, 1}, {2, 2}, {3, 3}]
 
