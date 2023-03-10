@@ -1315,6 +1315,8 @@ defmodule Stream do
     {:suspended, acc, &zip_list(enumerables, &1, fun, zip_fun)}
   end
 
+  defp zip_list([], {:cont, acc}, _fun, _zip_fun), do: {:done, acc}
+
   defp zip_list(enumerables, {:cont, acc}, fun, zip_fun) do
     case zip_list_heads_tails(enumerables, [], []) do
       {heads, tails} -> zip_list(tails, fun.(zip_fun.(heads), acc), fun, zip_fun)
