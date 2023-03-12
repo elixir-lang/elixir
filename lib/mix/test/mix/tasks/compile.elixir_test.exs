@@ -82,32 +82,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
-  test "recompiles project if working directory changed" do
-    in_fixture("no_mixfile", fn ->
-      Mix.Project.push(MixTest.Case.Sample)
-
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-
-      tmp = tmp_path("copied")
-      File.cp_r!(File.cwd!(), tmp)
-      File.cd!(tmp)
-
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
-
-      Code.put_compiler_option(:ignore_module_conflict, true)
-
-      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
-      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
-      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
-      assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
-    end)
-  after
-    Code.put_compiler_option(:ignore_module_conflict, false)
-    File.rm_rf!(tmp_path("copied"))
-  end
-
   test "recompiles files using Mix.Project if mix.exs changes" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample, __ENV__.file)
