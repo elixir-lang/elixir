@@ -402,7 +402,7 @@ defmodule Calendar do
   or a map without the `:year` field to a format that expects `%Y`,
   an error will be raised.
 
-  ## Options
+  ## User Options
 
     * `:preferred_datetime` - a string for the preferred format to show datetimes,
       it can't contain the `%c` format and defaults to `"%Y-%m-%d %H:%M:%S"`
@@ -438,7 +438,8 @@ defmodule Calendar do
 
   ## Formatting syntax
 
-  The formatting syntax for strftime is a sequence of characters in the following format:
+  The formatting syntax for the `string_format` argument is a sequence of characters in
+  the following format:
 
       %<padding><width><format>
 
@@ -455,9 +456,9 @@ defmodule Calendar do
     * `_`: pad with spaces
     * `0`: pad with zeroes
 
-  ### Accepted formats
+  ### Accepted string formats
 
-  The accepted formats are:
+  The accepted formats for `string_format` are:
 
   Format | Description                                                             | Examples (in ISO)
   :----- | :-----------------------------------------------------------------------| :------------------------
@@ -491,7 +492,7 @@ defmodule Calendar do
 
   ## Examples
 
-  Without options:
+  Without user options:
 
       iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%y-%m-%d %I:%M:%S %p")
       "19-08-26 01:52:06 PM"
@@ -505,7 +506,7 @@ defmodule Calendar do
       iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%c")
       "2019-08-26 13:52:06"
 
-  With options:
+  With user options:
 
       iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%c", preferred_datetime: "%H:%M:%S %d-%m-%y")
       "13:52:06 26-08-19"
