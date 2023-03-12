@@ -402,6 +402,14 @@ defmodule Calendar do
   or a map without the `:year` field to a format that expects `%Y`,
   an error will be raised.
 
+  Examples of common usage:
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%Y-%m-%d %I:%M:%S %p")
+      "19-08-26 01:52:06 PM"
+
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%a, %B %d %Y")
+      "Mon, August 26 2019"
+
   ## User Options
 
     * `:preferred_datetime` - a string for the preferred format to show datetimes,
