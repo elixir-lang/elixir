@@ -404,7 +404,7 @@ defmodule Calendar do
 
   Examples of common usage:
 
-      iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%Y-%m-%d %I:%M:%S %p")
+      iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%y-%m-%d %I:%M:%S %p")
       "19-08-26 01:52:06 PM"
 
       iex> Calendar.strftime(~U[2019-08-26 13:52:06.0Z], "%a, %B %d %Y")
