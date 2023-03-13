@@ -19,8 +19,8 @@
     {string, green},
     {tuple, default_color},
     {variable, light_cyan},
-    {call, light_white},
-    {operator, light_white}
+    {call, default_color},
+    {operator, default_color}
   ]},
   {check_endianness, true},
   {dbg_callback, {'Elixir.Macro', dbg, []}},
