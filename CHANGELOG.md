@@ -112,7 +112,7 @@ TODO: Mention :console vs Logger.Backends.Console
   * [IEx] Make pry opt-in on dbg with `--dbg pry`
   * [IEX] Support `IEX_HOME`
   * [IEx.Helpers] Add `runtime_info(:allocators)`
-  * [IEx.Info] Implement protocol for `Range` and `DateTime`
+  * [IEx.Info] Implement protocol for `Range`, `DateTime` and `Regex`
 
 #### Logger
 

@@ -222,6 +222,14 @@ defmodule IEx.InfoTest do
     end
   end
 
+  test "Regex" do
+    info = Info.info(~r/(ab)+c/)
+    assert get_key(info, "Data type") == "Regex"
+    assert get_key(info, "Description")
+    assert get_key(info, "Raw representation") =~ "%Regex{re_pattern: {:re_pattern, "
+    assert get_key(info, "Reference modules") == "Regex, :re"
+  end
+
   test "Range" do
     info = Info.info(1..10//2)
     assert get_key(info, "Data type") == "Range"
