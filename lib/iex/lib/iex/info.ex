@@ -398,13 +398,16 @@ defimpl IEx.Info, for: Reference do
   end
 end
 
-defimpl IEx.Info, for: [Date, Time, DateTime, NaiveDateTime] do
-  {sigil, repr} =
+defimpl IEx.Info, for: [Date, Time, DateTime, NaiveDateTime, Regex] do
+  naive_datetime_repr = ~S{"naive" datetime (that is, a datetime without a time zone)}
+
+  {sigil, repr, modules} =
     case @for do
-      Date -> {"D", "date"}
-      Time -> {"T", "time"}
-      DateTime -> {"U", "datetime"}
-      NaiveDateTime -> {"N", ~S{"naive" datetime (that is, a datetime without a time zone)}}
+      Date -> {"D", "date", [Calendar, Map]}
+      Time -> {"T", "time", [Calendar, Map]}
+      DateTime -> {"U", "datetime", [Calendar, Map]}
+      NaiveDateTime -> {"N", naive_datetime_repr, [Calendar, Map]}
+      Regex -> {"r", "regular expression", [:re]}
     end
 
   def info(value) do
@@ -418,7 +421,7 @@ defimpl IEx.Info, for: [Date, Time, DateTime, NaiveDateTime] do
       {"Data type", inspect(@for)},
       {"Description", description},
       {"Raw representation", raw_inspect(value)},
-      {"Reference modules", inspect(@for) <> ", Calendar, Map"}
+      {"Reference modules", unquote(Enum.map_join([@for | modules], ", ", &inspect/1))}
     ]
   end
 
