@@ -139,7 +139,7 @@ defmodule Macro do
           | number
           | binary
 
-  @typep input_expr :: {input_expr | atom, metadata, atom | [input]}
+  @type input_expr :: {input_expr | atom, metadata, atom | [input]}
 
   @typedoc "The output of a macro"
   @type output ::
@@ -152,7 +152,7 @@ defmodule Macro do
           | captured_remote_function
           | pid
 
-  @typep output_expr :: {output_expr | atom, metadata, atom | [output]}
+  @type output_expr :: {output_expr | atom, metadata, atom | [output]}
 
   @typedoc """
   A keyword list of AST metadata.
