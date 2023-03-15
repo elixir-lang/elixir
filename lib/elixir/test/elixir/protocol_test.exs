@@ -136,7 +136,7 @@ defmodule ProtocolTest do
     {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(SampleDocsProto)
 
     assert {{:type, :t, 0}, _, [], %{"en" => type_doc}, _} = List.keyfind(docs, {:type, :t, 0}, 0)
-    assert type_doc =~ "All terms that implement this protocol"
+    assert type_doc =~ "All the types that implement this protocol"
 
     assert {{:function, :ok, 1}, _, ["ok(term)"], %{"en" => "Ok"}, _} =
              List.keyfind(docs, {:function, :ok, 1}, 0)
