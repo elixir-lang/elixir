@@ -903,7 +903,9 @@ defmodule Protocol do
 
       unless Module.defines_type?(__MODULE__, {:t, 0}) do
         @typedoc """
-        Any term that implements the `#{inspect(__MODULE__)}` protocol.
+        All terms that implement this protocol.
+
+        This type is mostly useful for documentation.
         """
         @type t :: term
       end

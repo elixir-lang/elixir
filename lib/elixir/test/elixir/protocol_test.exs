@@ -126,7 +126,6 @@ defmodule ProtocolTest do
 
     write_beam(
       defprotocol SampleDocsProto do
-        @type t :: any
         @doc "Ok"
         @deprecated "Reason"
         @spec ok(t) :: boolean
@@ -135,6 +134,9 @@ defmodule ProtocolTest do
     )
 
     {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(SampleDocsProto)
+
+    assert {{:type, :t, 0}, _, [], %{"en" => type_doc}, _} = List.keyfind(docs, {:type, :t, 0}, 0)
+    assert type_doc =~ "Any term that implements this protocol"
 
     assert {{:function, :ok, 1}, _, ["ok(term)"], %{"en" => "Ok"}, _} =
              List.keyfind(docs, {:function, :ok, 1}, 0)
@@ -159,7 +161,7 @@ defmodule ProtocolTest do
     assert args == [{:type, 23, :product, [{:user_type, 23, :t, []}]}, {:type, 23, :term, []}]
   end
 
-  test "protocol defines t/0 type" do
+  test "protocol defines t/0 type with documentation" do
     assert {:type, {:t, {_, _, :any, []}, []}} = get_type(@sample_binary, :t, 0)
   end
 
