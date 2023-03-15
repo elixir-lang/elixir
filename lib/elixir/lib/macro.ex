@@ -2738,13 +2738,15 @@ defmodule Macro do
   end
 
   defp dbg_format_ast_to_debug({:case, ast, expr_value, clause_index, value}, options) do
-    {:case, _meta, [expr_ast, [do: clauses]]} = ast
-    {:->, _, [[pattern], _right]} = Enum.fetch!(clauses, clause_index)
+    {:case, _meta, [expr_ast, _]} = ast
 
     formatted = [
+      dbg_maybe_underline("Case argument", options),
+      ":\n",
       dbg_format_ast_with_value(expr_ast, expr_value, options),
-      dbg_format_ast(to_string_with_colors(pattern, options)),
-      " clause ##{clause_index + 1} matched\n",
+      ?\n,
+      dbg_maybe_underline("Case expression", options),
+      " (clause ##{clause_index + 1} matched):\n",
       dbg_format_ast_with_value(ast, value, options)
     ]
 
@@ -2770,6 +2772,14 @@ defmodule Macro do
     env = Map.update!(env, :file, &(&1 && Path.relative_to_cwd(&1)))
     [stacktrace_entry] = Macro.Env.stacktrace(env)
     "[" <> Exception.format_stacktrace_entry(stacktrace_entry) <> "]"
+  end
+
+  defp dbg_maybe_underline(string, options) do
+    if options[:syntax_colors] != [] do
+      IO.ANSI.format([:underline, string, :reset])
+    else
+      string
+    end
   end
 
   defp dbg_format_ast(ast) do

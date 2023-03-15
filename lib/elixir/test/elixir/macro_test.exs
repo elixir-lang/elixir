@@ -459,8 +459,10 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
+             Case argument:
              list #=> [1, 2, 3]
-             _ #=> clause #2 matched
+
+             Case expression (clause #2 matched):
              case list do
                [] -> nil
                _ -> Enum.sum(list)
@@ -486,8 +488,10 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
+             Case argument:
              0..100//5 #=> 0..100//5
-             %{first: first, last: last, step: step} when last > first #=> clause #1 matched
+
+             Case expression (clause #1 matched):
              case 0..100//5 do
                %{first: first, last: last, step: step} when last > first ->
                  count = div(last - first, step)
