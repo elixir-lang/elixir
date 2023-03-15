@@ -443,6 +443,62 @@ defmodule MacroTest do
              """
     end
 
+    test "with case" do
+      list = [1, 2, 3]
+
+      {result, formatted} =
+        dbg_format(
+          case list do
+            [] -> nil
+            _ -> Enum.sum(list)
+          end
+        )
+
+      assert result == 6
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             list #=> [1, 2, 3]
+             _ #=> clause #2 matched
+             case list do
+               [] -> nil
+               _ -> Enum.sum(list)
+             end #=> 6
+             """
+    end
+
+    test "with case - guard" do
+      {result, formatted} =
+        dbg_format(
+          case 0..100//5 do
+            %{first: first, last: last, step: step} when last > first ->
+              count = div(last - first, step)
+              {:ok, count}
+
+            _ ->
+              :error
+          end
+        )
+
+      assert result == {:ok, 20}
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             0..100//5 #=> 0..100//5
+             %{first: first, last: last, step: step} when last > first #=> clause #1 matched
+             case 0..100//5 do
+               %{first: first, last: last, step: step} when last > first ->
+                 count = div(last - first, step)
+                 {:ok, count}
+
+               _ ->
+                 :error
+             end #=> {:ok, 20}
+             """
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["

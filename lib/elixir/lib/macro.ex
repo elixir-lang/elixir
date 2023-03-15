@@ -2636,6 +2636,27 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast) do
+    clause_index_var = unique_var(:clause_index, __MODULE__)
+    result_var = unique_var(:result, __MODULE__)
+    expr_var = unique_var(:expr, __MODULE__)
+
+    quote do
+      unquote(expr_var) = unquote(expr)
+
+      {unquote(result_var), unquote(clause_index_var)} =
+        case unquote(expr_var) do
+          unquote(
+            Enum.with_index(clauses, fn {:->, meta, [left, right]}, i ->
+              {:->, meta, [left, {right, i}]}
+            end)
+          )
+        end
+
+      {:case, unquote_splicing([escape(ast), expr_var, clause_index_var, result_var])}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
@@ -2716,9 +2737,26 @@ defmodule Macro do
     {formatted, final_value}
   end
 
+  defp dbg_format_ast_to_debug({:case, ast, expr_value, clause_index, value}, options) do
+    {:case, _meta, [expr_ast, [do: clauses]]} = ast
+    {:->, _, [[pattern], _right]} = Enum.fetch!(clauses, clause_index)
+
+    formatted = [
+      dbg_format_ast_with_value(expr_ast, expr_value, options),
+      dbg_format_ast(to_string_with_colors(pattern, options)),
+      " clause ##{clause_index + 1} matched\n",
+      dbg_format_ast_with_value(ast, value, options)
+    ]
+
+    {formatted, value}
+  end
+
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
-    code = to_string_with_colors(code_ast, options)
-    {[dbg_format_ast(code), " ", inspect(value, options), ?\n], value}
+    {dbg_format_ast_with_value(code_ast, value, options), value}
+  end
+
+  defp dbg_format_ast_with_value(ast, value, options) do
+    [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
   end
 
   defp to_string_with_colors(ast, options) do
