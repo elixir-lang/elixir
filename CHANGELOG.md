@@ -291,14 +291,17 @@ in case you want to sort them before inspection:
 #### Elixir
 
   * [Calendar] Fix handling of negative years in `Calendar.strftime/2`
+  * [DateTime] Consistently merge precision of subsecond operations (the bug was that subsecond precision was lost in functions like `DateTime.add/3`)
   * [Exception] Improve blaming of FunctionClauseError with `is_struct/2` guards
   * [Kernel] Fix invalid variable scoping in `defguard` expansion
   * [Kernel] Do not warn on captured underscored vars from `defmodule`
   * [Kernel] Do not crash for missing line info on type warnings
+  * [NaiveDateTime] Consistently merge precision of subsecond operations (the bug was that subsecond precision was lost in functions like `NaiveDateTime.add/3`)
   * [Macro] Fix `Macro.to_string/1` for large negative integers
   * [Macro] Properly type and escape expansion of `__ENV__` in macros
   * [Path] Make sure `Path.wildcard/2` expands `..` symlinks accordingly
   * [Range] Address corner cases in `Range.disjoint?/2` implementation
+  * [Time] Consistently merge precision of subsecond operations (the bug was that subsecond precision was lost in functions like `Time.add/3`)
 
 #### ExUnit
 
@@ -498,7 +501,7 @@ in case you want to sort them before inspection:
   * [Module] Fix loop while unifying type variables
   * [Protocol] Warn if a protocol has no definitions
   * [Regex] Show list options when inspecting a Regex manually defined with `Regex.compile/2`
-  * [String] Allow slices to overflow on both starting and ending positions  
+  * [String] Allow slices to overflow on both starting and ending positions
   * [System] Raise non-generic exception on missing env in `System.fetch_env!/1` to mirror map operations
 
 #### ExUnit
