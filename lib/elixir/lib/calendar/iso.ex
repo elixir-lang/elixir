@@ -251,12 +251,26 @@ defmodule Calendar.ISO do
   Converts a `t:System.time_unit/0` to precision.
 
   Integer-based time units always get maximum precision.
+
+  ## Examples
+
+      iex> Calendar.ISO.time_unit_to_precision(:nanosecond)
+      6
+
+      iex> Calendar.ISO.time_unit_to_precision(:second)
+      0
+
+      iex> Calendar.ISO.time_unit_to_precision(1)
+      6
+
   """
+  @doc since: "1.15.0"
+  @spec time_unit_to_precision(System.time_unit()) :: 0..6
   def time_unit_to_precision(:nanosecond), do: 6
   def time_unit_to_precision(:microsecond), do: 6
   def time_unit_to_precision(:millisecond), do: 3
   def time_unit_to_precision(:second), do: 0
-  def time_unit_to_precision(_), do: 6
+  def time_unit_to_precision(int) when is_integer(int), do: 6
 
   @doc """
   Parses a time `string` in the `:extended` format.
