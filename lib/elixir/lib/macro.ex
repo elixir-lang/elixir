@@ -2637,25 +2637,20 @@ defmodule Macro do
   end
 
   defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast) do
-    clause_index_var = unique_var(:clause_index, __MODULE__)
-    result_var = unique_var(:result, __MODULE__)
-    expr_var = unique_var(:expr, __MODULE__)
-
     clauses_returning_index =
       Enum.with_index(clauses, fn {:->, meta, [left, right]}, index ->
         {:->, meta, [left, {right, index}]}
       end)
 
     quote do
-      unquote(expr_var) = unquote(expr)
+      expr = unquote(expr)
 
-      {unquote(result_var), unquote(clause_index_var)} =
-        case unquote(expr_var) do
+      {result, clause_index} =
+        case expr do
           unquote(clauses_returning_index)
         end
 
-      {:case, unquote(escape(ast)), unquote(expr_var), unquote(clause_index_var),
-       unquote(result_var)}
+      {:case, unquote(escape(ast)), expr, clause_index, result}
     end
   end
 
