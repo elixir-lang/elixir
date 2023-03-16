@@ -40,7 +40,11 @@ defmodule Mix.Tasks.Compile.All do
     # We compute the diff as that will be more efficient
     # than re-adding common paths several times
     current_paths = :code.get_path()
-    Code.delete_paths(current_paths -- loaded_paths)
+
+    if Keyword.get(config, :prune_code_paths, true) do
+      Code.delete_paths(current_paths -- loaded_paths)
+    end
+
     Code.prepend_paths(loaded_paths -- current_paths)
 
     result =
