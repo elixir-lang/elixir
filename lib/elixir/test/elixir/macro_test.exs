@@ -532,6 +532,33 @@ defmodule MacroTest do
              """
     end
 
+    test "with cond - last matching" do
+      {result, formatted} =
+        dbg_format(
+          cond do
+            1 > 2 -> :not_happening
+            is_number(:NaN) -> :nope
+            true -> :default
+          end
+        )
+
+      assert result == :default
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Cond clause (clause #3 matched):
+             true #=> true
+
+             Cond expression:
+             cond do
+               1 > 2 -> :not_happening
+               is_number(:NaN) -> :nope
+               true -> :default
+             end #=> :default
+             """
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["
