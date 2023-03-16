@@ -2636,6 +2636,24 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:case, _meta, [expr, [do: clauses]]} = ast) do
+    clauses_returning_index =
+      Enum.with_index(clauses, fn {:->, meta, [left, right]}, index ->
+        {:->, meta, [left, {right, index}]}
+      end)
+
+    quote do
+      expr = unquote(expr)
+
+      {result, clause_index} =
+        case expr do
+          unquote(clauses_returning_index)
+        end
+
+      {:case, unquote(escape(ast)), expr, clause_index, result}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
@@ -2716,9 +2734,28 @@ defmodule Macro do
     {formatted, final_value}
   end
 
+  defp dbg_format_ast_to_debug({:case, ast, expr_value, clause_index, value}, options) do
+    {:case, _meta, [expr_ast, _]} = ast
+
+    formatted = [
+      dbg_maybe_underline("Case argument", options),
+      ":\n",
+      dbg_format_ast_with_value(expr_ast, expr_value, options),
+      ?\n,
+      dbg_maybe_underline("Case expression", options),
+      " (clause ##{clause_index + 1} matched):\n",
+      dbg_format_ast_with_value(ast, value, options)
+    ]
+
+    {formatted, value}
+  end
+
   defp dbg_format_ast_to_debug({:value, code_ast, value}, options) do
-    code = to_string_with_colors(code_ast, options)
-    {[dbg_format_ast(code), " ", inspect(value, options), ?\n], value}
+    {dbg_format_ast_with_value(code_ast, value, options), value}
+  end
+
+  defp dbg_format_ast_with_value(ast, value, options) do
+    [dbg_format_ast(to_string_with_colors(ast, options)), " ", inspect(value, options), ?\n]
   end
 
   defp to_string_with_colors(ast, options) do
@@ -2732,6 +2769,14 @@ defmodule Macro do
     env = Map.update!(env, :file, &(&1 && Path.relative_to_cwd(&1)))
     [stacktrace_entry] = Macro.Env.stacktrace(env)
     "[" <> Exception.format_stacktrace_entry(stacktrace_entry) <> "]"
+  end
+
+  defp dbg_maybe_underline(string, options) do
+    if options[:syntax_colors] != [] do
+      IO.ANSI.format([:underline, string, :reset])
+    else
+      string
+    end
   end
 
   defp dbg_format_ast(ast) do
