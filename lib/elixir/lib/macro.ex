@@ -2654,6 +2654,17 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast) do
+    acc_var = unique_var(:acc, __MODULE__)
+    cond_tree_ast = dbg_cond_tree(clauses, acc_var)
+
+    quote do
+      unquote(acc_var) = []
+      {unquote(acc_var), value} = unquote(cond_tree_ast)
+      {:cond, unquote(escape(ast)), unquote(acc_var), value}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
@@ -2683,6 +2694,34 @@ defmodule Macro do
       unquote(result_var) = unquote(ast)
       unquote(acc_var) = [{unquote(escape(ast)), unquote(result_var)} | unquote(acc_var)]
       unquote(result_var)
+    end
+  end
+
+  # This is the last clause of a cond
+  defp dbg_cond_tree([{:->, _meta, [[left], right]}], acc_var) do
+    quote do
+      # Keeping a cond here so to respect the CondClauseError behavior.
+      cond do
+        clause_value = unquote(left) ->
+          unquote(acc_var) = [{unquote(escape(left)), clause_value} | unquote(acc_var)]
+          {unquote(acc_var), unquote(right)}
+      end
+    end
+  end
+
+  # Handling a clause of a cond, adding the result of the current clause to the acc
+  defp dbg_cond_tree([{:->, _meta, [[left], right]} | rest], acc_var) do
+    cond_tree_ast = dbg_cond_tree(rest, acc_var)
+
+    quote do
+      clause_value = unquote(left)
+      unquote(acc_var) = [{unquote(escape(left)), clause_value} | unquote(acc_var)]
+
+      if clause_value do
+        {unquote(acc_var), unquote(right)}
+      else
+        unquote(cond_tree_ast)
+      end
     end
   end
 
@@ -2744,6 +2783,25 @@ defmodule Macro do
       ?\n,
       dbg_maybe_underline("Case expression", options),
       " (clause ##{clause_index + 1} matched):\n",
+      dbg_format_ast_with_value(ast, value, options)
+    ]
+
+    {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug({:cond, ast, clauses, value}, options) do
+    clause_info =
+      Enum.map(clauses, fn {clause_ast, clause_value} ->
+        dbg_format_ast_with_value(clause_ast, clause_value, options)
+      end)
+
+    formatted = [
+      dbg_maybe_underline("Cond clauses", options),
+      " (clause ##{length(clauses)} matched):\n",
+      Enum.reverse(clause_info),
+      ?\n,
+      dbg_maybe_underline("Cond expression", options),
+      ":\n",
       dbg_format_ast_with_value(ast, value, options)
     ]
 
