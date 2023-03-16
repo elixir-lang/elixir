@@ -2641,19 +2641,21 @@ defmodule Macro do
     result_var = unique_var(:result, __MODULE__)
     expr_var = unique_var(:expr, __MODULE__)
 
+    clauses_returning_index =
+      Enum.with_index(clauses, fn {:->, meta, [left, right]}, index ->
+        {:->, meta, [left, {right, index}]}
+      end)
+
     quote do
       unquote(expr_var) = unquote(expr)
 
       {unquote(result_var), unquote(clause_index_var)} =
         case unquote(expr_var) do
-          unquote(
-            Enum.with_index(clauses, fn {:->, meta, [left, right]}, i ->
-              {:->, meta, [left, {right, i}]}
-            end)
-          )
+          unquote(clauses_returning_index)
         end
 
-      {:case, unquote_splicing([escape(ast), expr_var, clause_index_var, result_var])}
+      {:case, unquote(escape(ast)), unquote(expr_var), unquote(clause_index_var),
+       unquote(result_var)}
     end
   end
 
