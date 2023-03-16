@@ -126,7 +126,6 @@ defmodule ProtocolTest do
 
     write_beam(
       defprotocol SampleDocsProto do
-        @type t :: any
         @doc "Ok"
         @deprecated "Reason"
         @spec ok(t) :: boolean
@@ -135,6 +134,9 @@ defmodule ProtocolTest do
     )
 
     {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(SampleDocsProto)
+
+    assert {{:type, :t, 0}, _, [], %{"en" => type_doc}, _} = List.keyfind(docs, {:type, :t, 0}, 0)
+    assert type_doc =~ "All the types that implement this protocol"
 
     assert {{:function, :ok, 1}, _, ["ok(term)"], %{"en" => "Ok"}, _} =
              List.keyfind(docs, {:function, :ok, 1}, 0)
@@ -157,6 +159,10 @@ defmodule ProtocolTest do
 
     assert [{:type, 23, :fun, args}] = get_callbacks(@with_any_binary, :ok, 1)
     assert args == [{:type, 23, :product, [{:user_type, 23, :t, []}]}, {:type, 23, :term, []}]
+  end
+
+  test "protocol defines t/0 type with documentation" do
+    assert {:type, {:t, {_, _, :any, []}, []}} = get_type(@sample_binary, :t, 0)
   end
 
   test "protocol defines functions and attributes" do
@@ -228,6 +234,15 @@ defmodule ProtocolTest do
   defp get_callbacks(beam, name, arity) do
     {:ok, callbacks} = Code.Typespec.fetch_callbacks(beam)
     List.keyfind(callbacks, {name, arity}, 0) |> elem(1)
+  end
+
+  defp get_type(beam, name, arity) do
+    {:ok, types} = Code.Typespec.fetch_types(beam)
+
+    assert {:value, value} =
+             :lists.search(&match?({_, {^name, _, args}} when length(args) == arity, &1), types)
+
+    value
   end
 
   test "derives protocol implicitly" do

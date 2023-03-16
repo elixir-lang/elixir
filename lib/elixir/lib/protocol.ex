@@ -902,6 +902,9 @@ defmodule Protocol do
       @compile {:inline, struct_impl_for: 1}
 
       unless Module.defines_type?(__MODULE__, {:t, 0}) do
+        @typedoc """
+        All the types that implement this protocol.
+        """
         @type t :: term
       end
 
