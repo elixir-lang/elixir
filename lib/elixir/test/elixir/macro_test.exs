@@ -520,8 +520,7 @@ defmodule MacroTest do
       assert formatted =~ "macro_test.exs"
 
       assert formatted =~ """
-             Cond clauses (clause #2 matched):
-             a = map[:a] #=> nil
+             Cond clause (clause #2 matched):
              b = map[:b] #=> 5
 
              Cond expression:

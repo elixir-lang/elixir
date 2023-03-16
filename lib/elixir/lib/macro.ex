@@ -2655,13 +2655,11 @@ defmodule Macro do
   end
 
   defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast) do
-    acc_var = unique_var(:acc, __MODULE__)
-    cond_tree_ast = dbg_cond_tree(clauses, acc_var)
+    cond_tree_ast = dbg_cond_tree(clauses, 0)
 
     quote do
-      unquote(acc_var) = []
-      {unquote(acc_var), value} = unquote(cond_tree_ast)
-      {:cond, unquote(escape(ast)), unquote(acc_var), value}
+      {clause_ast, clause_value, clause_index, value} = unquote(cond_tree_ast)
+      {:cond, unquote(escape(ast)), clause_ast, clause_value, clause_index, value}
     end
   end
 
@@ -2698,27 +2696,22 @@ defmodule Macro do
   end
 
   # This is the last clause of a cond
-  defp dbg_cond_tree([{:->, _meta, [[left], right]}], acc_var) do
+  defp dbg_cond_tree([{:->, _meta, [[left], right]}], index) do
     quote do
       # Keeping a cond here so to respect the CondClauseError behavior.
       cond do
         clause_value = unquote(left) ->
-          unquote(acc_var) = [{unquote(escape(left)), clause_value} | unquote(acc_var)]
-          {unquote(acc_var), unquote(right)}
+          {unquote(escape(left)), clause_value, unquote(index), unquote(right)}
       end
     end
   end
 
-  # Handling a clause of a cond, adding the result of the current clause to the acc
-  defp dbg_cond_tree([{:->, _meta, [[left], right]} | rest], acc_var) do
-    cond_tree_ast = dbg_cond_tree(rest, acc_var)
+  defp dbg_cond_tree([{:->, _meta, [[left], right]} | rest], index) do
+    cond_tree_ast = dbg_cond_tree(rest, index + 1)
 
     quote do
-      clause_value = unquote(left)
-      unquote(acc_var) = [{unquote(escape(left)), clause_value} | unquote(acc_var)]
-
-      if clause_value do
-        {unquote(acc_var), unquote(right)}
+      if clause_value = unquote(left) do
+        {unquote(escape(left)), clause_value, unquote(index), unquote(right)}
       else
         unquote(cond_tree_ast)
       end
@@ -2789,16 +2782,14 @@ defmodule Macro do
     {formatted, value}
   end
 
-  defp dbg_format_ast_to_debug({:cond, ast, clauses, value}, options) do
-    clause_info =
-      Enum.map(clauses, fn {clause_ast, clause_value} ->
-        dbg_format_ast_with_value(clause_ast, clause_value, options)
-      end)
-
+  defp dbg_format_ast_to_debug(
+         {:cond, ast, clause_ast, clause_value, clause_index, value},
+         options
+       ) do
     formatted = [
-      dbg_maybe_underline("Cond clauses", options),
-      " (clause ##{length(clauses)} matched):\n",
-      Enum.reverse(clause_info),
+      dbg_maybe_underline("Cond clause", options),
+      " (clause ##{clause_index + 1} matched):\n",
+      dbg_format_ast_with_value(clause_ast, clause_value, options),
       ?\n,
       dbg_maybe_underline("Cond expression", options),
       ":\n",
