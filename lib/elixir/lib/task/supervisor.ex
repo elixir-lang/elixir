@@ -478,16 +478,37 @@ defmodule Task.Supervisor do
       when is_atom(fun) and is_list(args) do
     restart = options[:restart]
     shutdown = options[:shutdown]
-    args = [get_owner(self()), get_callers(self()), {module, fun, args}]
-    start_child_with_spec(supervisor, args, restart, shutdown)
+    mfa = {module, fun, args}
+    owner = get_owner(self())
+    callers = get_callers(self())
+
+    if restart == :temporary or restart == nil do
+      start_child_maybe_temporary(supervisor, owner, callers, restart, shutdown, mfa)
+    else
+      start_child_with_spec(supervisor, [owner, callers, mfa], restart, shutdown)
+    end
+  end
+
+  defp start_child_maybe_temporary(supervisor, owner, callers, restart, shutdown, mfa) do
+    case start_child_with_spec(supervisor, [owner, :monitor], restart, shutdown) do
+      # TODO: This only exists because we need to support reading restart/shutdown
+      # from two different places. Remove this, the init function and the associated
+      # clause in DynamicSupervisor on Elixir v2.0
+      {:restart, restart} ->
+        start_child_with_spec(supervisor, [owner, callers, mfa], restart, shutdown)
+
+      {:ok, pid} ->
+        # We mimic async but there is nothing to reply to
+        alias = make_ref()
+        send(pid, {self(), alias, alias, callers, mfa})
+        {:ok, pid}
+
+      {:error, _} = error ->
+        error
+    end
   end
 
   defp start_child_with_spec(supervisor, args, restart, shutdown) do
-    # TODO: This only exists because we need to support reading restart/shutdown
-    # from two different places. Remove this, the init function and the associated
-    # clause in DynamicSupervisor on Elixir v2.0
-    # TODO: Once we do this, we can also make it so the task arguments are never
-    # sent to the supervisor if the restart is temporary
     GenServer.call(supervisor, {:start_task, args, restart, shutdown}, :infinity)
   end
 

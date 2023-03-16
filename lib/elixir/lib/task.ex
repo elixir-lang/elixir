@@ -460,6 +460,7 @@ defmodule Task do
       when is_atom(module) and is_atom(function_name) and is_list(args) do
     mfargs = {module, function_name, args}
     owner = self()
+    # No need to monitor because the processes are linked
     {:ok, pid} = Task.Supervised.start_link(get_owner(owner), :nomonitor)
 
     alias = build_alias(pid)
@@ -683,6 +684,7 @@ defmodule Task do
       owner = get_owner(self())
 
       Task.Supervised.stream(enumerable, acc, acc_fun, get_callers(self()), fun, options, fn ->
+        # No need to monitor because the processes are linked
         {:ok, pid} = Task.Supervised.start_link(owner, :nomonitor)
         {:ok, :link, pid}
       end)
