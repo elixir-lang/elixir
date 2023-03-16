@@ -30,7 +30,7 @@ defmodule Task.Supervised do
       {^owner_pid, ref, reply_to, callers, mfa} ->
         initial_call(mfa)
         put_callers(callers)
-        _ = mref && Process.demonitor(mref, [:flush])
+        _ = is_reference(mref) && Process.demonitor(mref, [:flush])
         send(reply_to, {ref, invoke_mfa(owner, mfa)})
 
       {:DOWN, ^mref, _, _, reason} ->
