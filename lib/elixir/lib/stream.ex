@@ -1573,7 +1573,7 @@ defmodule Stream do
   of elements to be emitted and the next accumulator. The enumeration
   finishes if it returns `{:halt, acc}`.
 
-  As the name says, this function is useful to stream values from
+  As the function name suggests, this function is useful to stream values from
   resources.
 
   ## Examples
