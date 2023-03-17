@@ -503,6 +503,35 @@ defmodule MacroTest do
              """
     end
 
+    test "with cond" do
+      map = %{b: 5}
+
+      {result, formatted} =
+        dbg_format(
+          cond do
+            a = map[:a] -> a + 1
+            b = map[:b] -> b * 2
+            true -> nil
+          end
+        )
+
+      assert result == 10
+
+      assert formatted =~ "macro_test.exs"
+
+      assert formatted =~ """
+             Cond clause (clause #2 matched):
+             b = map[:b] #=> 5
+
+             Cond expression:
+             cond do
+               a = map[:a] -> a + 1
+               b = map[:b] -> b * 2
+               true -> nil
+             end #=> 10
+             """
+    end
+
     test "with \"syntax_colors: []\" it doesn't print any color sequences" do
       {_result, formatted} = dbg_format("hello")
       refute formatted =~ "\e["
