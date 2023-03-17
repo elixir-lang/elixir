@@ -2655,10 +2655,22 @@ defmodule Macro do
   end
 
   defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast) do
-    cond_tree_ast = dbg_cond_tree(clauses, 0)
+    modified_clauses =
+      Enum.with_index(clauses, fn {:->, _meta, [[left], right]}, index ->
+        hd(
+          quote do
+            clause_value = unquote(left) ->
+              {unquote(escape(left)), clause_value, unquote(index), unquote(right)}
+          end
+        )
+      end)
 
     quote do
-      {clause_ast, clause_value, clause_index, value} = unquote(cond_tree_ast)
+      {clause_ast, clause_value, clause_index, value} =
+        cond do
+          unquote(modified_clauses)
+        end
+
       {:cond, unquote(escape(ast)), clause_ast, clause_value, clause_index, value}
     end
   end
@@ -2692,29 +2704,6 @@ defmodule Macro do
       unquote(result_var) = unquote(ast)
       unquote(acc_var) = [{unquote(escape(ast)), unquote(result_var)} | unquote(acc_var)]
       unquote(result_var)
-    end
-  end
-
-  # This is the last clause of a cond
-  defp dbg_cond_tree([{:->, _meta, [[left], right]}], index) do
-    quote do
-      # Keeping a cond here so to respect the CondClauseError behavior.
-      cond do
-        clause_value = unquote(left) ->
-          {unquote(escape(left)), clause_value, unquote(index), unquote(right)}
-      end
-    end
-  end
-
-  defp dbg_cond_tree([{:->, _meta, [[left], right]} | rest], index) do
-    cond_tree_ast = dbg_cond_tree(rest, index + 1)
-
-    quote do
-      if clause_value = unquote(left) do
-        {unquote(escape(left)), clause_value, unquote(index), unquote(right)}
-      else
-        unquote(cond_tree_ast)
-      end
     end
   end
 
