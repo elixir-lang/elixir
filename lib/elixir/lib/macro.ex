@@ -2654,6 +2654,27 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:cond, _meta, [[do: clauses]]} = ast) do
+    modified_clauses =
+      Enum.with_index(clauses, fn {:->, _meta, [[left], right]}, index ->
+        hd(
+          quote do
+            clause_value = unquote(left) ->
+              {unquote(escape(left)), clause_value, unquote(index), unquote(right)}
+          end
+        )
+      end)
+
+    quote do
+      {clause_ast, clause_value, clause_index, value} =
+        cond do
+          unquote(modified_clauses)
+        end
+
+      {:cond, unquote(escape(ast)), clause_ast, clause_value, clause_index, value}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
@@ -2744,6 +2765,23 @@ defmodule Macro do
       ?\n,
       dbg_maybe_underline("Case expression", options),
       " (clause ##{clause_index + 1} matched):\n",
+      dbg_format_ast_with_value(ast, value, options)
+    ]
+
+    {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug(
+         {:cond, ast, clause_ast, clause_value, clause_index, value},
+         options
+       ) do
+    formatted = [
+      dbg_maybe_underline("Cond clause", options),
+      " (clause ##{clause_index + 1} matched):\n",
+      dbg_format_ast_with_value(clause_ast, clause_value, options),
+      ?\n,
+      dbg_maybe_underline("Cond expression", options),
+      ":\n",
       dbg_format_ast_with_value(ast, value, options)
     ]
 
