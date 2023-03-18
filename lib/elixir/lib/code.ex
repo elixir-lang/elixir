@@ -120,7 +120,8 @@ defmodule Code do
       `{:imported_macro, meta, module, name, arity}` - traced whenever an
       imported function or macro is invoked. `meta` is the call AST metadata,
       `module` is the module the import is from, followed by the `name` and `arity`
-      of the imported function/macro.
+      of the imported function/macro. A :remote_function/:remote_macro event
+      may still be emitted for the imported module/name/arity.
 
     * `{:alias, meta, alias, as, opts}` - traced whenever `alias` is aliased
       to `as`. `meta` is the alias AST metadata and `opts` are the alias options.
