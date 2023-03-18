@@ -2675,6 +2675,48 @@ defmodule Macro do
     end
   end
 
+  defp dbg_ast_to_debuggable({:with, meta, args} = ast) do
+    {opts, clauses} = List.pop_at(args, -1)
+
+    # Ref variable used as a key to store the acc in the process dict.
+    # We use the process dict because we want to keep the acc even if
+    # a clause does not match.
+    acc_ref_var = unique_var(:acc_ref, __MODULE__)
+
+    modified_clauses =
+      Enum.flat_map(clauses, fn
+        # We only detail assignments and pattern-matching clauses that
+        # can be helpful to understand how the result is constructed.
+        {symbol, _meta, [left, right]} when symbol in [:<-, :=] ->
+          quote do
+            [
+              value = unquote(right),
+              Process.put(unquote(acc_ref_var), [
+                {unquote(escape(right)), value} | Process.get(unquote(acc_ref_var))
+              ]),
+              unquote(symbol)(unquote(left), value)
+            ]
+          end
+
+        # Other expressions like side effects are omitted.
+        expr ->
+          [expr]
+      end)
+
+    modified_with_ast = {:with, meta, modified_clauses ++ [opts]}
+
+    quote do
+      unquote(acc_ref_var) = make_ref()
+      Process.put(unquote(acc_ref_var), [])
+
+      value = unquote(modified_with_ast)
+
+      acc = Process.get(unquote(acc_ref_var))
+      Process.delete(unquote(acc_ref_var))
+      {:with, unquote(escape(ast)), Enum.reverse(acc), value}
+    end
+  end
+
   # Any other AST.
   defp dbg_ast_to_debuggable(ast) do
     quote do: {:value, unquote(escape(ast)), unquote(ast)}
@@ -2781,6 +2823,25 @@ defmodule Macro do
       dbg_format_ast_with_value(clause_ast, clause_value, options),
       ?\n,
       dbg_maybe_underline("Cond expression", options),
+      ":\n",
+      dbg_format_ast_with_value(ast, value, options)
+    ]
+
+    {formatted, value}
+  end
+
+  defp dbg_format_ast_to_debug({:with, ast, clauses, value}, options) do
+    formatted_clauses =
+      Enum.map(clauses, fn {clause_ast, clause_value} ->
+        dbg_format_ast_with_value(clause_ast, clause_value, options)
+      end)
+
+    formatted = [
+      dbg_maybe_underline("With clauses", options),
+      ":\n",
+      formatted_clauses,
+      ?\n,
+      dbg_maybe_underline("With expression", options),
       ":\n",
       dbg_format_ast_with_value(ast, value, options)
     ]
