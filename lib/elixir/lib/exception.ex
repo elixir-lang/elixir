@@ -1299,7 +1299,7 @@ defmodule FunctionClauseError do
     format_clause_fun = fn {args, guards} ->
       args = Enum.map_join(args, ", ", fun)
       base = "    #{kind} #{function}(#{args})"
-      Enum.reduce(guards, base, &"#{&2} when #{clause_to_string(&1, fun)}") <> "\n"
+      Enum.reduce(guards, base, &"#{&2} when #{clause_to_string(&1, fun, 0)}") <> "\n"
     end
 
     "\n\nThe following arguments were given to #{mfa}:\n" <>
@@ -1307,10 +1307,24 @@ defmodule FunctionClauseError do
       "#{format_clauses(clauses, format_clause_fun, @clause_limit)}"
   end
 
-  defp clause_to_string({op, _, [left, right]}, fun),
-    do: clause_to_string(left, fun) <> " #{op} " <> clause_to_string(right, fun)
+  defp clause_to_string({op, _, [left, right]} = node, fun, parent) do
+    case Code.Identifier.binary_op(op) do
+      {_side, precedence} ->
+        left = clause_to_string(left, fun, precedence)
+        right = clause_to_string(right, fun, precedence)
 
-  defp clause_to_string(node, fun), do: fun.(node)
+        if parent > precedence do
+          "(" <> left <> " #{op} " <> right <> ")"
+        else
+          left <> " #{op} " <> right
+        end
+
+      _ ->
+        fun.(node)
+    end
+  end
+
+  defp clause_to_string(node, fun, _precedence), do: fun.(node)
 
   defp format_args(args, inspect_fun) do
     args

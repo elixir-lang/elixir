@@ -421,6 +421,35 @@ defmodule ExceptionTest do
       assert Exception.blame(:exit, :function_clause, stack) == {:function_clause, stack}
     end
 
+    test "handles operators precedence" do
+      import PathHelpers
+
+      write_beam(
+        defmodule OperatorPrecedence do
+          def test!(x, y) when x in [1, 2, 3] and y >= 4, do: :ok
+        end
+      )
+
+      :code.delete(OperatorPrecedence)
+      :code.purge(OperatorPrecedence)
+
+      assert blame_message(OperatorPrecedence, & &1.test!(1, 2)) =~ """
+             no function clause matching in ExceptionTest.OperatorPrecedence.test!/2
+
+             The following arguments were given to ExceptionTest.OperatorPrecedence.test!/2:
+
+                 # 1
+                 1
+
+                 # 2
+                 2
+
+             Attempted function clauses (showing 1 out of 1):
+
+                 def test!(x, y) when (x === 1 or -x === 2- or -x === 3-) and -y >= 4-
+             """
+    end
+
     test "reverts is_struct macro on guards for blaming" do
       import PathHelpers
 
