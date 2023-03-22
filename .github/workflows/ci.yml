@@ -3,12 +3,10 @@ name: CI
 on:
   push:
     paths-ignore:
-      - '**/*.md'
-      -!CHANGELOG.md
+      - 'lib/**/*.md'
   pull_request:
     paths-ignore:
-      - '**/*.md'
-      -!CHANGELOG.md
+      - 'lib/**/*.md'
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
