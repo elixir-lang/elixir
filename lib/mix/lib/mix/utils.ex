@@ -662,13 +662,22 @@ defmodule Mix.Utils do
     headers = [{~c"user-agent", ~c"Mix/#{System.version()}"}]
     request = {:binary.bin_to_list(path), headers}
 
+    # Use the system certificates if available, otherwise skip peer verification
+    # TODO: Always use system certificates when OTP >= 25 is required
+    ssl_options =
+      if function_exported?(:public_key, :cacerts_get, 0) do
+        [cacerts: apply(:public_key, :cacerts_get, [])]
+      else
+        [verify: :verify_none]
+      end
+
     # We are using relaxed: true because some servers is returning a Location
     # header with relative paths, which does not follow the spec. This would
     # cause the request to fail with {:error, :no_scheme} unless :relaxed
     # is given.
     #
     # If a proxy environment variable was supplied add a proxy to httpc.
-    http_options = [relaxed: true, ssl: [verify: :verify_none]] ++ proxy_config(path)
+    http_options = [relaxed: true, ssl: ssl_options] ++ proxy_config(path)
 
     # Silence the warning from OTP as we verify the contents
     level = Logger.level()
