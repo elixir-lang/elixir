@@ -1,6 +1,12 @@
 name: CI
 
-on: [pull_request, push]
+on:
+  push:
+    paths-ignore:
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      - '**/*.md'
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
