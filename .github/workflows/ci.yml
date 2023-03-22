@@ -4,9 +4,11 @@ on:
   push:
     paths-ignore:
       - '**/*.md'
+      -!CHANGELOG.md
   pull_request:
     paths-ignore:
       - '**/*.md'
+      -!CHANGELOG.md
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
