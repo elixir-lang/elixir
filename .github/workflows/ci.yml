@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     paths-ignore:
-      - '**/*.md'
+      - 'lib/**/*.md'
   pull_request:
     paths-ignore:
-      - '**/*.md'
+      - 'lib/**/*.md'
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
