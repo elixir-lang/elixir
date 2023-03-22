@@ -172,6 +172,32 @@ it is common to end a map type with `optional(any) => any`.
 
 Note that the syntactic representation of `map()` is `%{optional(any) => any}`, not `%{}`. The notation `%{}` specifies the singleton type for the empty map.
 
+### Keyword Lists
+
+Beyond `keyword()` and `keyword(t)`, it can be helpful to compose a spec for an expected keyword list.
+For example:
+
+
+```elixir
+@type option :: {:name, String.t} | {:max, pos_integer} | {:min, pos_integer}
+@type options :: [option()]
+```
+
+This makes it clear that only these options are allowed, none are required, and order does not matter.
+
+It also allows composition with existing types.
+For example:
+
+```elixir
+type option :: {:my_option, String.t()} | GenServer.option()
+
+@spec start_link([option()]) :: GenServer.on_start()
+def start_link(opts) do
+  {my_opts, gen_server_opts} = Keyword.split(opts, [:my_option])
+  GenServer.start_link(__MODULE__, my_opts, gen_server_opts)
+end
+```
+
 ### User-defined types
 
 The `@type`, `@typep`, and `@opaque` module attributes can be used to define new types:
