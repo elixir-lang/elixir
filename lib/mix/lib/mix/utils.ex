@@ -668,7 +668,7 @@ defmodule Mix.Utils do
     # is given.
     #
     # If a proxy environment variable was supplied add a proxy to httpc.
-    http_options = [relaxed: true] ++ proxy_config(path)
+    http_options = [relaxed: true, ssl: [verify: :verify_none]] ++ proxy_config(path)
 
     # Silence the warning from OTP as we verify the contents
     level = Logger.level()
