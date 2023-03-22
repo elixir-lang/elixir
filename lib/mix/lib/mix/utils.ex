@@ -649,6 +649,7 @@ defmodule Mix.Utils do
   end
 
   defp read_httpc(path) do
+    Mix.ensure_application!(:public_key)
     Mix.ensure_application!(:ssl)
     Mix.ensure_application!(:inets)
 
@@ -665,7 +666,7 @@ defmodule Mix.Utils do
     # Use the system certificates if available, otherwise skip peer verification
     # TODO: Always use system certificates when OTP >= 25 is required
     ssl_options =
-      if function_exported?(:public_key, :cacerts_get, 0) do
+      if Code.ensure_loaded?(:public_key) and function_exported?(:public_key, :cacerts_get, 0) do
         [cacerts: apply(:public_key, :cacerts_get, [])]
       else
         [verify: :verify_none]
