@@ -45,6 +45,7 @@ defmodule Mix.StateTest do
       assert Task.await(task) == :it_works!
     end
 
+    @tag :capture_log
     test "blocks until released on error" do
       parent = self()
 
