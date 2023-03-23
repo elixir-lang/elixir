@@ -586,7 +586,9 @@ defmodule Mix.Tasks.Format do
   end
 
   defp stdin_or_wildcard("-"), do: [:stdin]
-  defp stdin_or_wildcard(path), do: path |> Path.expand() |> Path.wildcard(match_dot: true)
+
+  defp stdin_or_wildcard(path),
+    do: path |> Path.expand() |> Path.wildcard(match_dot: true) |> Enum.filter(&File.regular?/1)
 
   defp elixir_format(content, formatter_opts) do
     case Code.format_string!(content, formatter_opts) do
