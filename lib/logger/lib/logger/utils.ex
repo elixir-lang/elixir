@@ -134,7 +134,8 @@ defmodule Logger.Utils do
     pad_char: ?\s,
     precision: :none,
     strings: true,
-    width: :none
+    width: :none,
+    maps_order: :undefined
   }
 
   defp handle_format_spec(%{control_char: char} = spec, opts) when char in ~c"wWpP" do
