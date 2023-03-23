@@ -654,13 +654,31 @@ defmodule Mix.Utils do
     headers = [{'user-agent', 'Mix/#{System.version()}'}]
     request = {:binary.bin_to_list(path), headers}
 
+    # Use the system certificates if available, otherwise skip peer verification
+    # TODO: Always use system certificates when OTP >= 25 is required
+    ssl_options =
+      if Code.ensure_loaded?(:public_key) and function_exported?(:public_key, :cacerts_get, 0) do
+        try do
+          [cacerts: apply(:public_key, :cacerts_get, [])]
+        rescue
+          _ ->
+            msg =
+              "warning: Failed to load system certificates. Falling back to skip SSL peer verification."
+
+            Mix.shell().error(msg)
+            [verify: :verify_none]
+        end
+      else
+        [verify: :verify_none]
+      end
+
     # We are using relaxed: true because some servers is returning a Location
     # header with relative paths, which does not follow the spec. This would
     # cause the request to fail with {:error, :no_scheme} unless :relaxed
     # is given.
     #
     # If a proxy environment variable was supplied add a proxy to httpc.
-    http_options = [relaxed: true] ++ proxy_config(path)
+    http_options = [relaxed: true, ssl: ssl_options] ++ proxy_config(path)
 
     # Silence the warning from OTP as we verify the contents
     level = Logger.level()
