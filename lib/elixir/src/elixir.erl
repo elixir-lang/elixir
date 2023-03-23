@@ -50,6 +50,14 @@ start(_Type, _Args) ->
     false -> ok
   end,
 
+  case application:get_env(elixir, ansi_enabled) of
+    {ok, _} -> ok;
+    undefined ->
+      %% Remove prim_tty module check as well as checks from scripts on Erlang/OTP 26
+      ANSIEnabled = erlang:module_loaded(prim_tty) andalso prim_tty:isatty(stdout),
+      application:set_env(elixir, ansi_enabled, ANSIEnabled)
+  end,
+
   Tokenizer = case code:ensure_loaded('Elixir.String.Tokenizer') of
     {module, Mod} -> Mod;
     _ -> elixir_tokenizer

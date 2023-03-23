@@ -6,7 +6,6 @@
  {applications, [kernel,stdlib,compiler]},
  {mod, {elixir,[]}},
  {env, [
-  {ansi_enabled, false},
   {ansi_syntax_colors, [
     {atom, cyan},
     {binary, default_color},
