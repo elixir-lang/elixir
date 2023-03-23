@@ -662,10 +662,10 @@ defmodule Mix.Utils do
           [cacerts: apply(:public_key, :cacerts_get, [])]
         rescue
           _ ->
-            msg =
-              "warning: Failed to load system certificates. Falling back to skip SSL peer verification."
+            Mix.shell().error(
+              "warning: failed to load system certificates. SSL peer verification will be skipped but downloads are still verified with a checksum"
+            )
 
-            Mix.shell().error(msg)
             [verify: :verify_none]
         end
       else
