@@ -81,6 +81,16 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "does not try to format a directory that matches a given pattern", context do
+    in_tmp(context.test, fn ->
+      File.mkdir_p!("a.ex")
+
+      assert_raise Mix.Error, ~r"Could not find a file to format", fn ->
+        Mix.Tasks.Format.run(["*.ex"])
+      end
+    end)
+  end
+
   test "reads file from stdin and prints to stdout", context do
     in_tmp(context.test, fn ->
       File.write!("a.ex", """
