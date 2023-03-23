@@ -131,6 +131,8 @@ defmodule Logger.Formatter do
     * `:error` - color for error and higher messages. Defaults to: `:red`
 
   See the `IO.ANSI` module for a list of colors and attributes.
+  The color of the message can also be configured per message via
+  the `:ansi_color` metadata.
   """
   def new(options \\ []) do
     template = compile(options[:format])
