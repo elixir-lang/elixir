@@ -50,6 +50,9 @@ defmodule Mix.Tasks.Release.Init do
 
     ## Tweak GC to run more often
     ##-env ERL_FULLSWEEP_AFTER 10
+    
+    ## Make sure that debug symbol are logged to /tmp to use with perf
+    +JPperf map
     """
 
   @doc false
