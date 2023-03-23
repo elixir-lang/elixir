@@ -22,7 +22,26 @@ defmodule Kernel.DialyzerTest do
     end
 
     # Add a few key Elixir modules for types and macro functions
-    mods = [:elixir, :elixir_env, Atom, Enum, Exception, Kernel, Macro, Macro.Env, String]
+    mods = [
+      :elixir,
+      :elixir_env,
+      ArgumentError,
+      Atom,
+      Enum,
+      Exception,
+      ExUnit.AssertionError,
+      ExUnit.Assertions,
+      IO,
+      Kernel,
+      Kernel.Utils,
+      List,
+      Macro,
+      Macro.Env,
+      Module,
+      String,
+      String.Chars
+    ]
+
     files = Enum.map(mods, &:code.which/1)
     dialyzer_run(analysis_type: :plt_build, output_plt: plt, apps: [:erts], files: files)
 
@@ -102,6 +121,7 @@ defmodule Kernel.DialyzerTest do
 
     copy_beam!(context, ProtocolOpaque)
     copy_beam!(context, ProtocolOpaque.Entity)
+    copy_beam!(context, ProtocolOpaque.Entity.Any)
     copy_beam!(context, ProtocolOpaque.Duck)
     assert_dialyze_no_warnings!(context)
 
