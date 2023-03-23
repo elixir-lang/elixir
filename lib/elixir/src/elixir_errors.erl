@@ -218,15 +218,15 @@ send_diagnostic(Type, Line, File, Message) ->
   ok.
 
 warning_prefix() ->
-  case application:get_env(elixir, ansi_enabled) of
-    {ok, true} -> <<"\e[33mwarning: \e[0m">>;
-    _ -> <<"warning: ">>
+  case application:get_env(elixir, ansi_enabled, false) of
+    true -> <<"\e[33mwarning: \e[0m">>;
+    false -> <<"warning: ">>
   end.
 
 error_prefix() ->
-  case application:get_env(elixir, ansi_enabled) of
-    {ok, true} -> <<"\e[31merror: \e[0m">>;
-    _ -> <<"error: ">>
+  case application:get_env(elixir, ansi_enabled, false) of
+    true -> <<"\e[31merror: \e[0m">>;
+    false -> <<"error: ">>
   end.
 
 env_format(Meta, #{file := EnvFile} = E) ->
