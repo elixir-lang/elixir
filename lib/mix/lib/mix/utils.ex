@@ -667,7 +667,16 @@ defmodule Mix.Utils do
     # TODO: Always use system certificates when OTP >= 25 is required
     ssl_options =
       if Code.ensure_loaded?(:public_key) and function_exported?(:public_key, :cacerts_get, 0) do
-        [cacerts: apply(:public_key, :cacerts_get, [])]
+        try do
+          [cacerts: apply(:public_key, :cacerts_get, [])]
+        rescue
+          _ ->
+            msg =
+              "warning: Failed to load system certificates. Falling back to skip SSL peer verification."
+
+            Mix.shell().error(msg)
+            [verify: :verify_none]
+        end
       else
         [verify: :verify_none]
       end
