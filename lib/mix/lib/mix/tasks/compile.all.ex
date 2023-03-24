@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Compile.All do
     # than re-adding common paths several times
     current_paths = :code.get_path()
 
-    if Keyword.get(config, :prune_code_paths, true) do
+    if Keyword.get(config, :prune_code_paths, true) and "--no-prune-code-paths" not in args do
       Code.delete_paths(current_paths -- loaded_paths)
     end
 
