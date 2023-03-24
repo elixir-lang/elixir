@@ -766,14 +766,13 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports start error" do
+    Process.flag(:trap_exit, true)
+
     assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
              children = [worker(__MODULE__, [], function: :error)]
 
              assert {:error, {:shutdown, {:failed_to_start_child, __MODULE__, :stop}}} =
                       Supervisor.start_link(children, strategy: :one_for_one)
-
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
            \*\* \(exit\) :stop
@@ -782,14 +781,13 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports start error with raise" do
+    Process.flag(:trap_exit, true)
+
     assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
              children = [worker(__MODULE__, [], function: :undef)]
 
              assert {:error, {:shutdown, {:failed_to_start_child, __MODULE__, {:EXIT, _}}}} =
                       Supervisor.start_link(children, strategy: :one_for_one)
-
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[error\] Child Logger.TranslatorTest of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) failed to start
            \*\* \(exit\) an exception was raised:
@@ -802,12 +800,12 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports terminated" do
+    Process.flag(:trap_exit, true)
+
     assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
              children = [worker(Task, [Kernel, :exit, [:stop]])]
              {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, max_restarts: 0)
              receive do: ({:EXIT, ^pid, _} -> :ok)
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[error\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) terminated
            \*\* \(exit\) :stop
@@ -825,12 +823,12 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates Supervisor reports max restarts shutdown" do
+    Process.flag(:trap_exit, true)
+
     assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
              children = [worker(Task, [Kernel, :exit, [:stop]])]
              {:ok, pid} = Supervisor.start_link(children, strategy: :one_for_one, max_restarts: 0)
              receive do: ({:EXIT, ^pid, _} -> :ok)
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[error\] Child Task of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) caused shutdown
            \*\* \(exit\) :reached_max_restart_intensity
@@ -886,14 +884,14 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates DynamicSupervisor reports abnormal shutdown" do
+    Process.flag(:trap_exit, true)
+
     assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
              child = %{id: __MODULE__, start: {__MODULE__, :abnormal, []}}
              {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one)
              {:ok, _pid2} = DynamicSupervisor.start_child(pid, child)
              Process.exit(pid, :normal)
              receive do: ({:EXIT, ^pid, _} -> :ok)
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
@@ -907,9 +905,9 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates DynamicSupervisor reports abnormal shutdown including extra_arguments" do
-    assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
+    Process.flag(:trap_exit, true)
 
+    assert capture_log(:info, fn ->
              {:ok, pid} =
                DynamicSupervisor.start_link(strategy: :one_for_one, extra_arguments: [:extra])
 
@@ -917,7 +915,6 @@ defmodule Logger.TranslatorTest do
              {:ok, _pid2} = DynamicSupervisor.start_child(pid, child)
              Process.exit(pid, :normal)
              receive do: ({:EXIT, ^pid, _} -> :ok)
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[error\] Child :undefined of Supervisor #PID<\d+\.\d+\.\d+> \(Supervisor\.Default\) shut down abnormally
            \*\* \(exit\) :stop
@@ -931,14 +928,14 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates named DynamicSupervisor reports abnormal shutdown" do
+    Process.flag(:trap_exit, true)
+
     assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
              child = %{id: __MODULE__, start: {__MODULE__, :abnormal, []}}
              {:ok, pid} = DynamicSupervisor.start_link(strategy: :one_for_one, name: __MODULE__)
              {:ok, _pid2} = DynamicSupervisor.start_child(pid, child)
              Process.exit(pid, :normal)
              receive do: ({:EXIT, ^pid, _} -> :ok)
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[error\] Child :undefined of Supervisor Logger.TranslatorTest shut down abnormally
            \*\* \(exit\) :stop
@@ -952,11 +949,11 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :supervisor_bridge progress" do
+    Process.flag(:trap_exit, true)
+
     assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
              {:ok, pid} = :supervisor_bridge.start_link(MyBridge, :normal)
              receive do: ({:EXIT, ^pid, _} -> :ok)
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[info\] Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) started
            Pid: #PID<\d+\.\d+\.\d+>
@@ -965,11 +962,11 @@ defmodule Logger.TranslatorTest do
   end
 
   test "translates :supervisor_bridge reports" do
+    Process.flag(:trap_exit, true)
+
     assert capture_log(:info, fn ->
-             trap = Process.flag(:trap_exit, true)
              {:ok, pid} = :supervisor_bridge.start_link(MyBridge, :stop)
              receive do: ({:EXIT, ^pid, _} -> :ok)
-             Process.flag(:trap_exit, trap)
            end) =~ ~r"""
            \[error\] Child of Supervisor #PID<\d+\.\d+\.\d+> \(Logger\.TranslatorTest\.MyBridge\) terminated
            \*\* \(exit\) :stop
