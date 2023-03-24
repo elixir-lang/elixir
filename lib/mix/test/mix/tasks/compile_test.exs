@@ -332,14 +332,14 @@ defmodule Mix.Tasks.CompileTest do
   test "code path prunning" do
     in_fixture("no_mixfile", fn ->
       assert Mix.Task.run("compile", []) == {:ok, []}
-      assert :code.which(:edoc) == :non_existing
+      assert :code.which(:reltool) == :non_existing
     end)
   end
 
   test "code path prunning disabled" do
     in_fixture("no_mixfile", fn ->
       assert Mix.Task.run("compile", ["--no-prune-code-paths"]) == {:ok, []}
-      assert is_list(:code.which(:edoc))
+      assert is_list(:code.which(:reltool))
     end)
   end
 end
