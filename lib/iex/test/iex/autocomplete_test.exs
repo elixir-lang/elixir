@@ -31,9 +31,9 @@ defmodule IEx.AutocompleteTest do
   end
 
   test "Erlang module multiple values completion" do
-    {:yes, '', list} = expand(':user')
-    assert 'user' in list
-    assert 'user_drv' in list
+    {:yes, '', list} = expand(':logger')
+    assert 'logger' in list
+    assert 'logger_proxy' in list
   end
 
   test "Erlang root completion" do

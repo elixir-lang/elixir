@@ -126,8 +126,13 @@ defmodule IEx.InteractionTest do
   test "inspect opts" do
     opts = [inspect: [binaries: :as_binaries, charlists: :as_lists, structs: false, limit: 4]]
 
-    assert capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts) ==
-             "<<45, 46, 47>>\n[45, 46, 47]\n%{__struct__: IO.Stream, device: nil, line_or_bytes: :line, raw: true}"
+    assert "<<45, 46, 47>>\n[45, 46, 47]\n%{" <> map =
+             capture_iex("<<45, 46, 47>>\n[45, 46, 47]\n%IO.Stream{}", opts)
+
+    assert map =~ "__struct__: IO.Stream"
+    assert map =~ "device: nil"
+    assert map =~ "line_or_bytes: :line"
+    assert map =~ "raw: true"
   end
 
   test "exception" do
