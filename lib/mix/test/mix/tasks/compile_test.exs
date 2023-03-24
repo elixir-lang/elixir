@@ -328,4 +328,18 @@ defmodule Mix.Tasks.CompileTest do
     System.delete_env("MIX_SAMPLE_HELLO")
     Application.delete_env(:sample, :hello, persistent: true)
   end
+
+  test "code path prunning" do
+    in_fixture("no_mixfile", fn ->
+      assert Mix.Task.run("compile", []) == {:ok, []}
+      assert :code.which(:edoc) == :non_existing
+    end)
+  end
+
+  test "code path prunning disabled" do
+    in_fixture("no_mixfile", fn ->
+      assert Mix.Task.run("compile", ["--no-prune-code-paths"]) == {:ok, []}
+      assert is_list(:code.which(:edoc))
+    end)
+  end
 end
