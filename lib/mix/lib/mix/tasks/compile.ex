@@ -57,6 +57,8 @@ defmodule Mix.Tasks.Compile do
     * `--no-optional-deps` - does not compile or load optional deps. Useful for testing
       if a library still successfully compiles without optional dependencies (which is the
       default case with dependencies)
+    * `--no-prune-code-paths` - do not prune code paths before compilation, this keeps
+      the entirety of Erlang/OTP available on the project starts
     * `--no-protocol-consolidation` - skips protocol consolidation
     * `--no-validate-compile-env` - does not validate the application compile environment
     * `--return-errors` - returns error status and diagnostics instead of exiting on error
