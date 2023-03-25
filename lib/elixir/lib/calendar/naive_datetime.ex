@@ -361,8 +361,7 @@ defmodule NaiveDateTime do
   `t:System.time_unit/0`. It defaults to `:second`. Negative values
   will move backwards in time.
 
-  This function always consider the unit to be computed according
-  to the `Calendar.ISO`.
+  This function always considers the unit to be computed according to the `Calendar.ISO`.
 
   ## Examples
 
