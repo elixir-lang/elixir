@@ -26,6 +26,7 @@ defmodule Logger.MixProject do
         sync_threshold: 20,
         discard_threshold: 500,
         discard_threshold_periodic_check: 30_000,
+        always_evaluate_messages: false,
         metadata: []
       ]
     ]

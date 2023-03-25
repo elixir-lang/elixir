@@ -253,6 +253,17 @@ defmodule Logger do
       Remember that if you want to purge log calls from a dependency, the
       dependency must be recompiled.
 
+    * `:always_evaluate_messages` - if messages should be *evaluated* even if
+      the log level is higher than the configured level. Defaults to `false`.
+      This is useful for cases where the log level in your *test environment* is high
+      (such as `:error`), which is common in order to avoid logs mixes with the test
+      output. In such, cases, you might discover log messages that contain runtime errors
+      only when your code is deployed to production, where the log level is lower
+      (such as `:info`). These runtime errors could be caused by, for example,
+      interpolating something that doesn't implement the `String.Chars` protocol
+      in the log message, such as `"PID: #{self()}"` (since PIDs cannot
+      be converted to strings with `String.Chars`).
+
   For example, to configure the `:backends` and purge all calls that happen
   at compile time with level lower than `:info` in a `config/config.exs` file:
 
@@ -970,12 +981,14 @@ defmodule Logger do
     compile_level = if is_atom(level), do: level, else: :error
 
     if compile_time_purge_matching?(compile_level, compile_metadata) do
-      no_log(data, quoted_metadata)
+      quote do
+        unquote(no_log_and_maybe_eval_data(data, quoted_metadata))
+      end
     else
       quote do
         case Logger.__should_log__(unquote(level), __MODULE__) do
           nil ->
-            :ok
+            unquote(no_log_and_maybe_eval_data(data, quoted_metadata))
 
           level ->
             Logger.__do_log__(
@@ -1063,16 +1076,24 @@ defmodule Logger do
     if compare_levels(level, min_level) != :lt do
       macro_log(level, data, metadata, caller)
     else
-      no_log(data, metadata)
+      no_log_and_maybe_eval_data(data, metadata)
     end
   end
 
-  defp no_log(data, metadata) do
-    # We wrap the contents in an anonymous function
+  defp no_log_and_maybe_eval_data(data, metadata) do
+    # Either way, we wrap the contents in an anonymous function
     # to avoid unused variable warnings.
-    quote do
-      _ = fn -> {unquote(data), unquote(metadata)} end
-      :ok
+    if Application.fetch_env!(:logger, :always_evaluate_messages) do
+      quote do
+        _ = fn -> unquote(metadata) end
+        _ = unquote(data)
+        :ok
+      end
+    else
+      quote do
+        _ = fn -> {unquote(data), unquote(metadata)} end
+        :ok
+      end
     end
   end
 
