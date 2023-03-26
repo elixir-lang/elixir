@@ -1549,6 +1549,13 @@ defmodule Kernel do
       # improper list on the right will return an improper list
       iex> [1] ++ [2 | 3]
       [1, 2 | 3]
+      
+      # a non-list on the right will return an improper list
+      # with said element at the end
+      iex> [1, 2] ++ 3
+      [1, 2 | 3]
+      iex> [1, 2] ++ {3, 4}
+      [1, 2 | {3, 4}]
 
   The `++/2` operator is right associative, meaning:
 
