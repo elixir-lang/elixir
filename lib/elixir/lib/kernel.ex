@@ -1538,24 +1538,16 @@ defmodule Kernel do
       iex> ~c"foo" ++ ~c"bar"
       ~c"foobar"
 
-      # returns an improper list
-      iex> [1] ++ 2
-      [1 | 2]
-
-      # returns a proper list
-      iex> [1] ++ [2]
-      [1, 2]
-
-      # improper list on the right will return an improper list
-      iex> [1] ++ [2 | 3]
-      [1, 2 | 3]
-      
       # a non-list on the right will return an improper list
       # with said element at the end
       iex> [1, 2] ++ 3
       [1, 2 | 3]
       iex> [1, 2] ++ {3, 4}
       [1, 2 | {3, 4}]
+
+      # improper list on the right will return an improper list
+      iex> [1] ++ [2 | 3]
+      [1, 2 | 3]
 
   The `++/2` operator is right associative, meaning:
 
