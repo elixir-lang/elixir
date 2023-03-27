@@ -85,6 +85,10 @@ defmodule Mix.Tasks.RunTest do
       assert_received {:argv, ["foo", "--", "bar"]}
 
       unload_file.()
+      Mix.Tasks.Run.run([file, "--no-start", "foo", "--", "bar"])
+      assert_received {:argv, ["--no-start", "foo", "--", "bar"]}
+
+      unload_file.()
       Mix.Tasks.Run.run(["-e", expr, file, "foo", "-x", "bar"])
       assert_received {:argv, [^file, "foo", "-x", "bar"]}
 
@@ -132,7 +136,7 @@ defmodule Mix.Tasks.RunTest do
 
     test "with opts" do
       in_fixture("no_mixfile", fn ->
-        Mix.Tasks.Run.run(["--no-halt", "--", "foo", "bar"])
+        Mix.Tasks.Run.run(["--no-start", "--", "foo", "bar"])
         assert_received {:argv, ["foo", "bar"]}
       end)
     end
