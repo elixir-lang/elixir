@@ -111,10 +111,11 @@ defmodule Mix.Tasks.Run do
       end)
 
     {file, argv} =
-      case {Keyword.has_key?(opts, :eval), head} do
-        {true, _} -> {nil, head}
-        {_, [head | tail]} -> {head, tail}
-        {_, []} -> {nil, []}
+      case {Keyword.has_key?(opts, :eval), args, head} do
+        {true, _, _} -> {nil, head}
+        {_, ["--" | _], head} -> {nil, head}
+        {_, _, [head | tail]} -> {head, tail}
+        {_, _, []} -> {nil, []}
       end
 
     System.argv(argv)
