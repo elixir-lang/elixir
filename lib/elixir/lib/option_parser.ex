@@ -33,7 +33,8 @@ defmodule OptionParser do
           switches: keyword,
           strict: keyword,
           aliases: keyword,
-          allow_nonexistent_atoms: boolean
+          allow_nonexistent_atoms: boolean,
+          return_separator: boolean
         ]
 
   defmodule ParseError do
@@ -83,6 +84,7 @@ defmodule OptionParser do
     * `:switches` or `:strict` - see the "Switch definitions" section below
     * `:allow_nonexistent_atoms` - see the "Parsing unknown switches" section below
     * `:aliases` - see the "Aliases" section below
+    * `:return_separator` - see the "Return Separator" section below
 
   ## Switch definitions
 
@@ -230,6 +232,21 @@ defmodule OptionParser do
       ...> )
       {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
 
+  ## Return Separator
+
+  The separator `--` can be parsed and returned as part of the arguments. Defaults to `false`.
+
+  ## Examples
+
+      iex> OptionParser.parse(["--", "lib"], return_separator: true, strict: [])
+      {[], ["--", "lib"], []}
+
+      iex> OptionParser.parse(["--no-halt", "--", "lib"], return_separator: true, switches: [halt: :boolean])
+      {[halt: false], ["--", "lib"], []}
+
+      iex> OptionParser.parse(["script.exs", "--no-halt", "--", "foo"], return_separator: true, switches: [halt: :boolean])
+      {[{:halt, false}], ["script.exs", "--", "foo"], []}
+
   """
   @spec parse(argv, options) :: {parsed, argv, errors}
   def parse(argv, opts \\ []) when is_list(argv) and is_list(opts) do
@@ -363,8 +380,15 @@ defmodule OptionParser do
         invalid = if config.strict?, do: [{option, nil} | invalid], else: invalid
         do_parse(rest, config, opts, args, invalid, all?)
 
-      {:error, ["--" | rest]} ->
-        {Enum.reverse(opts), Enum.reverse(args, rest), Enum.reverse(invalid)}
+      {:error, ["--" | rest] = remaining_args} ->
+        args =
+          if config.return_separator? do
+            Enum.reverse(args, remaining_args)
+          else
+            Enum.reverse(args, rest)
+          end
+
+        {Enum.reverse(opts), args, Enum.reverse(invalid)}
 
       {:error, [arg | rest] = remaining_args} ->
         # there is no option
@@ -616,6 +640,7 @@ defmodule OptionParser do
     %{
       aliases: opts[:aliases] || [],
       allow_nonexistent_atoms?: opts[:allow_nonexistent_atoms] || false,
+      return_separator?: opts[:return_separator] || false,
       strict?: strict?,
       switches: switches
     }
