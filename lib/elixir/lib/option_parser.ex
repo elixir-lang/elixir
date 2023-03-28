@@ -84,7 +84,7 @@ defmodule OptionParser do
     * `:switches` or `:strict` - see the "Switch definitions" section below
     * `:allow_nonexistent_atoms` - see the "Parsing unknown switches" section below
     * `:aliases` - see the "Aliases" section below
-    * `:return_separator` - see the "Return Separator" section below
+    * `:return_separator` - see the "Return separator" section below
 
   ## Switch definitions
 
@@ -232,7 +232,7 @@ defmodule OptionParser do
       ...> )
       {[unlock: "path/to/file", unlock: "path/to/another/file"], [], []}
 
-  ## Return Separator
+  ## Return separator
 
   The separator `--` can be parsed and returned as part of the arguments. Defaults to `false`.
 
