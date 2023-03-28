@@ -78,7 +78,8 @@ defmodule Mix.Tasks.Run do
           elixir_version_check: :boolean,
           parallel_require: :keep,
           preload_modules: :boolean
-        ]
+        ],
+        return_separator: true
       )
 
     run(args, opts, head, &Code.eval_string/1, &Code.require_file/1)
@@ -112,6 +113,7 @@ defmodule Mix.Tasks.Run do
 
     {file, argv} =
       case {Keyword.has_key?(opts, :eval), head} do
+        {_, ["--" | rest]} -> {nil, rest}
         {true, _} -> {nil, head}
         {_, [head | tail]} -> {head, tail}
         {_, []} -> {nil, []}
