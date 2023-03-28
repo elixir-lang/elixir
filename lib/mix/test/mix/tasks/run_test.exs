@@ -85,8 +85,8 @@ defmodule Mix.Tasks.RunTest do
       assert_received {:argv, ["foo", "--", "bar"]}
 
       unload_file.()
-      Mix.Tasks.Run.run([file, "--no-start", "foo", "--", "bar"])
-      assert_received {:argv, ["--no-start", "foo", "--", "bar"]}
+      Mix.Tasks.Run.run([file, "--custom-opt", "foo", "--", "bar"])
+      assert_received {:argv, ["--custom-opt", "foo", "--", "bar"]}
 
       unload_file.()
       Mix.Tasks.Run.run(["-e", expr, file, "foo", "-x", "bar"])
