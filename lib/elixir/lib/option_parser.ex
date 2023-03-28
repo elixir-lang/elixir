@@ -234,9 +234,9 @@ defmodule OptionParser do
 
   ## Return separator
 
-  The separator `--` can be parsed and returned as part of the arguments. Defaults to `false`.
-
-  ## Examples
+  The separator `--` implies options should no longer be processed.
+  By default, the separator is not returned as parts of the arguments,
+  but that can be changed via the `:return_separator` option:
 
       iex> OptionParser.parse(["--", "lib"], return_separator: true, strict: [])
       {[], ["--", "lib"], []}
