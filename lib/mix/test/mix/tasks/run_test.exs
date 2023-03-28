@@ -81,6 +81,14 @@ defmodule Mix.Tasks.RunTest do
       assert_received {:argv, ["foo", "-e", "bar"]}
 
       unload_file.()
+      Mix.Tasks.Run.run([file, "foo", "--", "bar"])
+      assert_received {:argv, ["foo", "--", "bar"]}
+
+      unload_file.()
+      Mix.Tasks.Run.run([file, "--custom-opt", "foo", "--", "bar"])
+      assert_received {:argv, ["--custom-opt", "foo", "--", "bar"]}
+
+      unload_file.()
       Mix.Tasks.Run.run(["-e", expr, file, "foo", "-x", "bar"])
       assert_received {:argv, [^file, "foo", "-x", "bar"]}
 
@@ -92,5 +100,54 @@ defmodule Mix.Tasks.RunTest do
       assert_received :evaled
       assert_received {:argv, [^file, "-x", "bar"]}
     end)
+  end
+
+  defmodule AppArgvSample do
+    def project do
+      [app: :app_argv_sample, version: "0.1.0"]
+    end
+
+    def application do
+      send(self(), {:argv, System.argv()})
+      [extra_applications: [:logger]]
+    end
+  end
+
+  describe "rewrite System.argv without file arg" do
+    setup do
+      Mix.Project.pop()
+      Mix.Project.push(AppArgvSample)
+      :ok
+    end
+
+    test "no args" do
+      in_fixture("no_mixfile", fn ->
+        Mix.Tasks.Run.run(["--"])
+        assert_received {:argv, []}
+      end)
+    end
+
+    test "multiple args" do
+      in_fixture("no_mixfile", fn ->
+        Mix.Tasks.Run.run(["--", "foo", "bar"])
+        assert_received {:argv, ["foo", "bar"]}
+      end)
+    end
+
+    test "with opts" do
+      in_fixture("no_mixfile", fn ->
+        Mix.Tasks.Run.run(["--no-start", "--", "foo", "bar"])
+        assert_received {:argv, ["foo", "bar"]}
+      end)
+    end
+
+    test "with eval" do
+      in_fixture("no_mixfile", fn ->
+        expr = "send self(), {:test, :argv}"
+        Mix.Tasks.Run.run(["-e", expr, "--", "foo"])
+        assert_received {:argv, ["foo"]}
+        assert_received {:test, :argv}
+      end)
+    end
   end
 end

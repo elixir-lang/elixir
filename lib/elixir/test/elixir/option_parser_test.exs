@@ -148,6 +148,23 @@ defmodule OptionParserTest do
              ) == {[source: "foo"], ["bar", "--", "-x"], []}
     end
 
+    test "return separators" do
+      assert OptionParser.parse_head(["--", "foo"],
+               switches: [],
+               return_separator: true
+             ) == {[], ["--", "foo"], []}
+
+      assert OptionParser.parse_head(["--no-halt", "--", "foo"],
+               switches: [halt: :boolean],
+               return_separator: true
+             ) == {[halt: false], ["--", "foo"], []}
+
+      assert OptionParser.parse_head(["foo.exs", "--no-halt", "--", "foo"],
+               switches: [halt: :boolean],
+               return_separator: true
+             ) == {[], ["foo.exs", "--no-halt", "--", "foo"], []}
+    end
+
     test "parses - as argument" do
       argv = ["--foo", "-", "-b", "-"]
       opts = [strict: [foo: :boolean, boo: :string], aliases: [b: :boo]]
