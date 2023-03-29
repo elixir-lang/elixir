@@ -225,6 +225,7 @@ defmodule Mix.Utils do
   @doc """
   Prints n files are being compiled with the given extension.
   """
+  def compiling_n(0, _ext), do: :ok
   def compiling_n(1, ext), do: Mix.shell().info("Compiling 1 file (.#{ext})")
   def compiling_n(n, ext), do: Mix.shell().info("Compiling #{n} files (.#{ext})")
 
