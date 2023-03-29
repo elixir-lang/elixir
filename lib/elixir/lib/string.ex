@@ -2637,6 +2637,13 @@ defmodule String do
       iex> String.to_existing_atom("my_atom")
       :my_atom
 
+  This function can help you in converting a string to a module name, however it is necessary that you add the string `Elixir` first.
+  
+  ## Examples
+  
+      iex> module_name = String.to_existing_atom("Elixir.Enum")
+      Enum
+
   """
   @spec to_existing_atom(String.t()) :: atom
   def to_existing_atom(string) when is_binary(string) do
