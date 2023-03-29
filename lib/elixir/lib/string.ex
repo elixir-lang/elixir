@@ -2630,19 +2630,14 @@ defmodule String do
   > generally recommended to call `String.to_existing_atom/1` only to
   > convert atoms defined within the module making the function call
   > to `to_existing_atom/1`.
+  > It should be noted that to create a module name based on a string,
+  > it is recommended to use `Module.safe_concat/1`.
 
   ## Examples
 
       iex> _ = :my_atom
       iex> String.to_existing_atom("my_atom")
       :my_atom
-
-  This function can help you in converting a string to a module name, however it is necessary that you add the string `Elixir` first.
-  
-  ## Examples
-  
-      iex> module_name = String.to_existing_atom("Elixir.Enum")
-      Enum
 
   """
   @spec to_existing_atom(String.t()) :: atom
