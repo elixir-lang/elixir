@@ -205,7 +205,7 @@ defmodule PartitionSupervisor do
 
   Sometimes you want each partition to know their partition assigned number.
   This can be done with the `:with_arguments` option. This function receives
-  the the value of the `:child_spec` option and an integer for the partition
+  the value of the `:child_spec` option and an integer for the partition
   number. It must return a new list of arguments that will be used to start the
   partition process.
 
