@@ -2630,6 +2630,9 @@ defmodule String do
   > generally recommended to call `String.to_existing_atom/1` only to
   > convert atoms defined within the module making the function call
   > to `to_existing_atom/1`.
+  >
+  > To create a module name itself from a string safely,
+  > it is recommended to use `Module.safe_concat/1`.
 
   ## Examples
 
