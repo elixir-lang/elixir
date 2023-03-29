@@ -488,6 +488,32 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
+  test "reverifies when path dependency is added" do
+    in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
+      Mix.Project.in_project(:bar, "bar", [deps: []], fn _ ->
+        File.write!("lib/bar.ex", """
+        defmodule Bar do
+          def foo, do: Foo.foo()
+        end
+        """)
+
+        assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Mix.Task.run("compile", ["--verbose"])
+        end) =~ "Foo.foo/0 is undefined"
+
+        refute Code.ensure_loaded?(Foo)
+        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+      end)
+
+      Mix.Task.clear()
+
+      Mix.Project.in_project(:bar, "bar", fn _ ->
+        Mix.Task.run("deps.compile")
+        assert Mix.Task.run("compile", ["--verbose", "--all-warnings"]) == {:ok, []}
+      end)
+    end)
+  end
+
   test "reloads app in app cache if .app changes" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       deps = [{:foo, in_umbrella: true}]

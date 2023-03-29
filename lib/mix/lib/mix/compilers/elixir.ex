@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 15
+  @manifest_vsn 16
   @checkpoint_vsn 2
 
   import Record
@@ -62,14 +62,19 @@ defmodule Mix.Compilers.Elixir do
         []
       end
 
+    local_deps = Enum.reject(Mix.Dep.cached(), & &1.scm.fetchable?)
+
     # If mix.exs has changed, recompile anything that calls Mix.Project.
     stale =
       if Mix.Utils.stale?([Mix.Project.project_file()], [modified]),
         do: [Mix.Project | stale],
         else: stale
 
-    # If the dependencies have changed, we need to traverse lock/config files.
-    deps_changed? = Mix.Utils.stale?([Mix.Project.config_mtime()], [modified])
+    # If the lock has changed or a local dependency was added ore removed,
+    # we need to traverse lock/config files.
+    deps_changed? =
+      Mix.Utils.stale?([Mix.Project.config_mtime()], [modified]) or
+        local_deps_changed?(old_deps_config, local_deps)
 
     # If a configuration is only accessed at compile-time, we don't need to
     # track modules, only the compile env. So far this is only true for Elixir's
@@ -79,11 +84,12 @@ defmodule Mix.Compilers.Elixir do
     {force?, stale, new_deps_config} =
       cond do
         !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key ->
-          {true, stale, deps_config()}
+          {true, stale, deps_config(local_deps)}
 
         deps_changed? or compile_env_apps != [] ->
-          new_deps_config = deps_config()
-          config_apps = merge_appset(old_deps_config.config, new_deps_config.config, [])
+          new_deps_config = deps_config(local_deps)
+          local_apps = merge_appset(old_deps_config.local, new_deps_config.local, [])
+          config_apps = merge_appset(old_deps_config.config, new_deps_config.config, local_apps)
           apps = merge_appset(old_deps_config.lock, new_deps_config.lock, config_apps)
 
           if Mix.Project.config()[:app] in apps do
@@ -121,7 +127,7 @@ defmodule Mix.Compilers.Elixir do
       end
 
     {stale_modules, stale_exports, all_local_exports} =
-      stale_local_deps(manifest, stale, modified, all_local_exports)
+      stale_local_deps(local_deps, manifest, stale, modified, all_local_exports)
 
     prev_paths = for source(source: source) <- all_sources, do: source
     removed = prev_paths -- all_paths
@@ -150,7 +156,7 @@ defmodule Mix.Compilers.Elixir do
     {sources, removed_modules} =
       update_stale_sources(sources, stale, removed_modules, sources_stats)
 
-    if stale != [] do
+    if stale != [] or stale_modules != %{} do
       path = opts[:purge_consolidation_path_if_stale]
 
       if is_binary(path) and Code.delete_path(path) do
@@ -165,7 +171,7 @@ defmodule Mix.Compilers.Elixir do
 
       try do
         state = {[], exports, sources, modules, removed_modules}
-        compiler_loop(stale, dest, timestamp, opts, state, digester)
+        compiler_loop(stale, stale_modules, dest, timestamp, opts, state, digester)
       else
         {:ok, info, state} ->
           {modules, _exports, sources, pending_modules, _pending_exports} = state
@@ -240,13 +246,18 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp deps_config do
+  defp deps_config(local_deps) do
     # If you change this config, you need to bump @manifest_vsn
     %{
+      local: Enum.sort(Enum.map(local_deps, &{&1.app, true})),
       lock: Enum.sort(Mix.Dep.Lock.read()),
       config: Enum.sort(Mix.Tasks.Loadconfig.read_compile()),
       dbg: Application.fetch_env!(:elixir, :dbg_callback)
     }
+  end
+
+  defp local_deps_changed?(deps_config, local_deps) do
+    is_map(deps_config) and Enum.sort(Enum.map(local_deps, &{&1.app, true})) != deps_config.local
   end
 
   defp deps_config_compile_env_apps(deps_config) do
@@ -556,15 +567,14 @@ defmodule Mix.Compilers.Elixir do
     Enum.any?(enumerable, &Map.has_key?(map, &1))
   end
 
-  defp stale_local_deps(manifest, stale_modules, modified, old_exports) do
+  defp stale_local_deps(local_deps, manifest, stale_modules, modified, old_exports) do
     base = Path.basename(manifest)
 
     # The stale modules so far will become both stale_modules and stale_exports,
     # as any export from a dependency needs to be recompiled.
     stale_modules = Map.from_keys(stale_modules, true)
 
-    for %{scm: scm, opts: opts} = dep <- Mix.Dep.cached(),
-        not scm.fetchable?,
+    for %{opts: opts} = dep <- local_deps,
         manifest = Path.join([opts[:build], ".mix", base]),
         Mix.Utils.last_modified(manifest) > modified,
         reduce: {stale_modules, stale_modules, old_exports} do
@@ -802,7 +812,7 @@ defmodule Mix.Compilers.Elixir do
       {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config} ->
         {modules, sources, local_exports, parent, cache_key, deps_config}
 
-      # {vsn, modules, sources, ...} v5-v14
+      # {vsn, modules, sources, ...} v5-v15
       manifest when is_tuple(manifest) and is_integer(elem(manifest, 0)) ->
         purge_old_manifest(compile_path, elem(manifest, 1))
 
@@ -916,7 +926,7 @@ defmodule Mix.Compilers.Elixir do
   ## Compiler loop
   # The compiler is invoked in a separate process so we avoid blocking its main loop.
 
-  defp compiler_loop(stale, dest, timestamp, opts, state, digester) do
+  defp compiler_loop(stale, stale_modules, dest, timestamp, opts, state, digester) do
     ref = make_ref()
     parent = self()
     threshold = opts[:long_compilation_threshold] || 10
@@ -926,7 +936,9 @@ defmodule Mix.Compilers.Elixir do
     pid =
       spawn_link(fn ->
         compile_opts = [
-          each_cycle: fn -> compiler_call(parent, ref, {:each_cycle, dest, timestamp}) end,
+          each_cycle: fn ->
+            compiler_call(parent, ref, {:each_cycle, stale_modules, dest, timestamp})
+          end,
           each_file: fn file, lexical ->
             compiler_call(parent, ref, {:each_file, file, lexical, verbose})
           end,
@@ -961,8 +973,8 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_loop(ref, pid, state, digester, cwd) do
     receive do
-      {^ref, {:each_cycle, dest, timestamp}} ->
-        {response, state} = each_cycle(dest, timestamp, state)
+      {^ref, {:each_cycle, stale_modules, dest, timestamp}} ->
+        {response, state} = each_cycle(stale_modules, dest, timestamp, state)
         send(pid, {ref, response})
         compiler_loop(ref, pid, state, digester, cwd)
 
@@ -990,7 +1002,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp each_cycle(compile_path, timestamp, state) do
+  defp each_cycle(stale_modules, compile_path, timestamp, state) do
     {modules, _exports, sources, pending_modules, pending_exports} = state
 
     {pending_modules, exports, changed} =
@@ -1003,8 +1015,13 @@ defmodule Mix.Compilers.Elixir do
     end
 
     if changed == [] do
-      modules_set = modules |> Enum.map(&module(&1, :module)) |> Map.from_keys(true)
-      {_, runtime_modules, sources} = fixpoint_runtime_modules(sources, modules_set)
+      stale_modules =
+        modules
+        |> Enum.map(&module(&1, :module))
+        |> Map.from_keys(true)
+        |> Map.merge(stale_modules)
+
+      {_, runtime_modules, sources} = fixpoint_runtime_modules(sources, stale_modules)
 
       runtime_paths =
         Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
