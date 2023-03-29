@@ -1,12 +1,12 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 16
+  @manifest_vsn 17
   @checkpoint_vsn 2
 
   import Record
 
-  defrecord :module, [:module, :kind, :sources, :export, :recompile?]
+  defrecord :module, [:module, :kind, :sources, :export, :recompile?, :timestamp]
 
   defrecord :source,
     source: nil,
@@ -574,25 +574,24 @@ defmodule Mix.Compilers.Elixir do
     # as any export from a dependency needs to be recompiled.
     stale_modules = Map.from_keys(stale_modules, true)
 
-    for %{opts: opts} = dep <- local_deps,
+    for %{opts: opts} <- local_deps,
         manifest = Path.join([opts[:build], ".mix", base]),
         Mix.Utils.last_modified(manifest) > modified,
         reduce: {stale_modules, stale_modules, old_exports} do
       {modules, exports, new_exports} ->
-        {_manifest_modules, dep_sources} = read_manifest(manifest)
+        {manifest_modules, manifest_sources} = read_manifest(manifest)
 
         dep_modules =
-          for path <- Mix.Dep.load_paths(dep),
-              beam <- Path.wildcard(Path.join(path, "*.beam")),
-              Mix.Utils.last_modified(beam) > modified,
-              do: beam |> Path.basename() |> Path.rootname() |> String.to_atom()
+          for module(module: module, timestamp: timestamp) <- manifest_modules,
+              timestamp > modified,
+              do: module
 
         # If any module has a compile time dependency on a changed module
         # within the dependency, they will be recompiled. However, export
         # and runtime dependencies won't have recompiled so we need to
         # propagate them to the parent app.
         {dep_modules, _, _} =
-          fixpoint_runtime_modules(dep_sources, Map.from_keys(dep_modules, true))
+          fixpoint_runtime_modules(manifest_sources, Map.from_keys(dep_modules, true))
 
         # Update exports
         {exports, new_exports} =
@@ -812,7 +811,7 @@ defmodule Mix.Compilers.Elixir do
       {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config} ->
         {modules, sources, local_exports, parent, cache_key, deps_config}
 
-      # {vsn, modules, sources, ...} v5-v15
+      # {vsn, modules, sources, ...} v5-v16
       manifest when is_tuple(manifest) and is_integer(elem(manifest, 0)) ->
         purge_old_manifest(compile_path, elem(manifest, 1))
 
@@ -943,7 +942,7 @@ defmodule Mix.Compilers.Elixir do
             compiler_call(parent, ref, {:each_file, file, lexical, verbose})
           end,
           each_module: fn file, module, _binary ->
-            compiler_call(parent, ref, {:each_module, file, module})
+            compiler_call(parent, ref, {:each_module, file, module, System.os_time(:second)})
           end,
           each_long_compilation: fn file ->
             Mix.shell().info(
@@ -985,13 +984,13 @@ defmodule Mix.Compilers.Elixir do
         state = each_file(file, references, verbose, state, digester, cwd)
         compiler_loop(ref, pid, state, digester, cwd)
 
-      {^ref, {:each_module, file, module}} ->
+      {^ref, {:each_module, file, module, timestamp}} ->
         # Read the relevant module information and unblock the compiler
         kind = detect_kind(module)
         external = Module.get_attribute(module, :external_resource)
         new_export = exports_md5(module, true)
         send(pid, {ref, :ok})
-        state = each_module(file, module, kind, external, new_export, state, cwd)
+        state = each_module(file, module, kind, external, new_export, state, timestamp, cwd)
         compiler_loop(ref, pid, state, digester, cwd)
 
       {^ref, {:ok, _modules, info}} ->
@@ -1087,7 +1086,7 @@ defmodule Mix.Compilers.Elixir do
     {modules, exports, [source | sources], pending_modules, pending_exports}
   end
 
-  defp each_module(file, module, kind, external, new_export, state, cwd) do
+  defp each_module(file, module, kind, external, new_export, state, timestamp, cwd) do
     {modules, exports, sources, pending_modules, pending_exports} = state
 
     file = Path.relative_to(file, cwd)
@@ -1128,6 +1127,7 @@ defmodule Mix.Compilers.Elixir do
         kind: kind,
         sources: module_sources,
         export: new_export,
+        timestamp: timestamp,
         recompile?: function_exported?(module, :__mix_recompile__?, 0)
       )
 

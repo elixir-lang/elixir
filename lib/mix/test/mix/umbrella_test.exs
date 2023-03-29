@@ -381,29 +381,33 @@ defmodule Mix.UmbrellaTest do
         # Add compile time dependency
         File.write!("lib/bar.ex", "defmodule Bar, do: Foo.foo()")
 
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
-        # Touch to emulate local recompilation
+        # Emulate local recompilation
+        File.write!("../foo/lib/foo.ex", File.read!("../foo/lib/foo.ex") <> "\n")
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
-        ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
+        ensure_touched("../foo/lib/foo.ex", mtime)
 
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # But exports dependencies are not recompiled
         File.write!("lib/bar.ex", "defmodule Bar, do: (require Foo)")
 
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Touch to emulate local recompilation
+        File.write!("../foo/lib/foo.ex", File.read!("../foo/lib/foo.ex") <> "\n")
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
-        ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
+        ensure_touched("../foo/lib/foo.ex", mtime)
 
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        Mix.Task.clear()
+        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
         refute_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
 
@@ -447,11 +451,12 @@ defmodule Mix.UmbrellaTest do
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for struct dependencies
+        File.write!("../foo/lib/foo.ex", File.read!("../foo/lib/foo.ex") <> "\n")
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.beam", mtime)
-        ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
+        ensure_touched("../foo/lib/foo.ex", mtime)
 
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
     end)
@@ -478,11 +483,12 @@ defmodule Mix.UmbrellaTest do
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for due to compile dependency via runtime dependencies
+        File.write!("../foo/lib/foo.baz.ex", File.read!("../foo/lib/foo.baz.ex") <> "\n")
         mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("_build/dev/lib/foo/ebin/Elixir.Foo.Baz.beam", mtime)
-        ensure_touched("_build/dev/lib/foo/.mix/compile.elixir", mtime)
+        ensure_touched("../foo/lib/foo.ex", mtime)
 
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
     end)
@@ -498,8 +504,8 @@ defmodule Mix.UmbrellaTest do
         """)
 
         assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Mix.Task.run("compile", ["--verbose"])
-        end) =~ "Foo.foo/0 is undefined"
+                 Mix.Task.run("compile", ["--verbose"])
+               end) =~ "Foo.foo/0 is undefined"
 
         refute Code.ensure_loaded?(Foo)
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
