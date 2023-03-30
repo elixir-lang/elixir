@@ -22,7 +22,7 @@ extract_interpolations_without_interpolation_test() ->
 
 extract_interpolations_with_escaped_interpolation_test() ->
   ["f\\#{o}o"] = extract_interpolations("f\\#{o}o"),
-  {1, 8, ["f\\#{o}o"], [], _} =
+  {1, 10, ["f\\#{o}o"], [], _} =
     elixir_interpolation:extract(1, 2, #elixir_tokenizer{}, true, "f\\#{o}o\"", $").
 
 extract_interpolations_with_interpolation_test() ->
