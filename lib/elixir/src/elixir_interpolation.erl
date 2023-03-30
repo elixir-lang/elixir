@@ -39,7 +39,7 @@ extract([$\\, Last, Last, Last | Rest], Buffer, Output, Line, Column, Scope, Int
   extract(Rest, [Last, Last, Last | Buffer], Output, Line, Column+4, Scope, Interpol, All);
 
 extract([$\\, $#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
-  extract(Rest, [${, $#, $\\ | Buffer], Output, Line, Column+1, Scope, true, Last);
+  extract(Rest, [${, $#, $\\ | Buffer], Output, Line, Column+3, Scope, true, Last);
 
 extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
   Output1 = build_string(Buffer, Output),
