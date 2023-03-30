@@ -466,6 +466,10 @@ defmodule Mix.Utils do
   Expects source and target to be absolute paths as it generates
   a relative symlink.
   """
+  def symlink_or_copy(path, path) do
+    :ok
+  end
+
   def symlink_or_copy(source, target) do
     if File.exists?(source) do
       # Relative symbolic links on Windows are broken
