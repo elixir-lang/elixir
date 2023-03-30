@@ -199,6 +199,11 @@ interpolation_test() ->
    {concat_op, {1, 10, nil}, '<>'},
    {bin_string, {1, 13, nil}, [<<>>]}] = tokenize("\"f#{oo}\" <> \"\"").
 
+escaped_interpolation_test() ->
+  [{bin_string, {1, 1, nil}, [<<"f#{oo}">>]},
+   {concat_op, {1, 11, nil}, '<>'},
+   {bin_string, {1, 14, nil}, [<<>>]}] = tokenize("\"f\\#{oo}\" <> \"\"").
+
 capture_test() ->
   % Parens precedence
   [{capture_op, {1, 1, nil}, '&'},
