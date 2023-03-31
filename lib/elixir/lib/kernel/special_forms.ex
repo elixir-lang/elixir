@@ -1385,8 +1385,10 @@ defmodule Kernel.SpecialForms do
       iex> for n <- [1, 2, 3, 4], do: n * 2
       [2, 4, 6, 8]
 
-  A comprehension accepts many generators and filters. Enumerable
-  generators are defined using `<-`:
+  A comprehension accepts many generators and filters. `for` uses
+  the `<-` operator to extract values from the enumerable on its
+  right side and match them against the pattern on the left.
+  We call them generators:
 
       # A list generator:
       iex> for n <- [1, 2, 3, 4], do: n * 2
@@ -1530,9 +1532,48 @@ defmodule Kernel.SpecialForms do
   defmacro for(args), do: error!([args])
 
   @doc """
-  Used to combine matching clauses.
+  Combine matching clauses.
 
-  Let's start with an example:
+  One of the ways to understand with is to show which code
+  patterns it improves. Imagine you have a map where the fields
+  `width` and `height` are optional and you want to compute its
+  area, as `{:ok, area}` or return `:error`. We could implement
+  this function as:
+
+      def area(map) do
+        case Map.fetch(opts, :width) do
+          {:ok, width} ->
+            case Map.fetch(opts, :height) do
+              {:ok, height} -> {:ok, width * height}
+              :error -> :error
+            end
+
+          :error ->
+            :error
+        end
+      end
+
+  when called as `area(%{width: 10, height: 15})`, it should return
+  `{:ok, 150}`. If any of the fields are missing, it returns `:error`.
+
+  While the code above works, it is quite verbose. Using `with`,
+  we could rewrite it as:
+
+      def area(map) do
+        with {:ok, width} <- Map.fetch(opts, :width),
+             {:ok, height} <- Map.fetch(opts, :height) do
+          {:ok, width * height}
+        end
+      end
+
+  Instead of defining nested `case`s with clauses, we use `with`
+  alongside the `PATTERN <- EXPRESSION` operator to match
+  expressions on its right side against the pattern on the left.
+  Consider `<-` as a sibling to `=`, except that, while `=` raises
+  in case of not matches, `<-` will simply abort the `with` chain
+  and return the non-matched value.
+
+  Let's give it a try on IEx:
 
       iex> opts = %{width: 10, height: 15}
       iex> with {:ok, width} <- Map.fetch(opts, :width),
@@ -1559,7 +1600,9 @@ defmodule Kernel.SpecialForms do
       ...> end
       {:ok, "admin"}
 
-  As in `for/1`, variables bound inside `with/1` won't leak.
+  As in `for/1`, variables bound inside `with/1` won't be accessible
+  outside of `with/1`.
+
   Expressions without `<-` may also be used in clauses. For instance,
   you can perform regular matches with the `=` operator:
 
@@ -1642,7 +1685,8 @@ defmodule Kernel.SpecialForms do
 
   Note how we are having to reconstruct the result types of `Path.extname/1`
   and `File.exists?/1` to build error messages. In this case, it is better
-  to change the with clauses to already return the desired format, like this:
+  to refactor the code so each `<-` already return the desired format in case
+  of errors, like this:
 
       with :ok <- validate_extension(path),
            :ok <- validate_exists(path) do
@@ -1660,7 +1704,7 @@ defmodule Kernel.SpecialForms do
       end
 
   Note how the code above is better organized and clearer once we
-  make sure each clause in `with` returns a normalized format.
+  make sure each `<-` in `with` returns a normalized format.
   """
   defmacro with(args), do: error!([args])
 
