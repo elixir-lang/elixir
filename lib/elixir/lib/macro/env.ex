@@ -244,12 +244,12 @@ defmodule Macro.Env do
       iex> Bar
       Foo.Bar
       iex> Macro.Env.lookup_alias_as(__ENV__, Foo.Bar)
-      [:"Elixir.Bar"]
+      [Elixir.Bar]
       iex> alias Foo.Bar, as: Baz
       iex> Baz
       Foo.Bar
       iex> Macro.Env.lookup_alias_as(__ENV__, Foo.Bar)
-      [:"Elixir.Bar", :"Elixir.Baz"]
+      [Elixir.Bar, Elixir.Baz]
       iex> Macro.Env.lookup_alias_as(__ENV__, Unknown)
       []
 
