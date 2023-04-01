@@ -236,6 +236,31 @@ defmodule Macro.Env do
   end
 
   @doc """
+  Returns the names of any aliases for the given module or atom.
+
+  ## Examples
+
+      iex> alias Foo.Bar
+      iex> Bar
+      Foo.Bar
+      iex> Macro.Env.lookup_alias_as(__ENV__, Foo.Bar)
+      [:Bar]
+      iex> alias Foo.Bar, as: Baz
+      iex> Baz
+      Foo.Bar
+      iex> Macro.Env.lookup_alias_as(__ENV__, Foo.Bar)
+      [:Bar, :Baz]
+      iex> Macro.Env.lookup_alias_as(__ENV__, Unknown)
+      []
+
+  """
+  @doc since: "1.15.0"
+  @spec lookup_alias_as(t, atom) :: [atom]
+  def lookup_alias_as(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom) do
+    for {name, ^atom} <- aliases, do: String.to_atom(hd(Module.split(name)))
+  end
+
+  @doc """
   Returns true if the given module has been required.
 
   ## Examples
