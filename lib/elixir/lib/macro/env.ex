@@ -244,12 +244,12 @@ defmodule Macro.Env do
       iex> Bar
       Foo.Bar
       iex> Macro.Env.lookup_alias_as(__ENV__, Foo.Bar)
-      [:Bar]
+      [:"Elixir.Bar"]
       iex> alias Foo.Bar, as: Baz
       iex> Baz
       Foo.Bar
       iex> Macro.Env.lookup_alias_as(__ENV__, Foo.Bar)
-      [:Bar, :Baz]
+      [:"Elixir.Bar", :"Elixir.Baz"]
       iex> Macro.Env.lookup_alias_as(__ENV__, Unknown)
       []
 
@@ -257,7 +257,7 @@ defmodule Macro.Env do
   @doc since: "1.15.0"
   @spec lookup_alias_as(t, atom) :: [atom]
   def lookup_alias_as(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom) do
-    for {name, ^atom} <- aliases, do: String.to_atom(hd(Module.split(name)))
+    for {name, ^atom} <- aliases, do: name
   end
 
   @doc """
