@@ -241,7 +241,7 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
-## v1.14.4-dev
+## v1.14.4 (2023-04-03)
 
 This release adds basic support for Erlang/OTP 26. When migrating
 to Erlang/OTP 26, keep it mind it changes how maps are stored
