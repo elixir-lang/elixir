@@ -84,10 +84,10 @@ defmodule Mix.DepTest do
       assert paths[:ok] =~ "deps/ok"
       assert paths[:uncloned] =~ "deps/uncloned"
 
-      paths = Mix.Project.deps_scms()
-      assert map_size(paths) == 6
-      assert paths[:ok] == Mix.SCM.Path
-      assert paths[:uncloned] == Mix.SCM.Git
+      scms = Mix.Project.deps_scms()
+      assert map_size(scms) == 6
+      assert scms[:ok] == Mix.SCM.Path
+      assert scms[:uncloned] == Mix.SCM.Git
     end)
   end
 

@@ -549,7 +549,7 @@ defmodule Mix.Project do
       all_deps
       |> Enum.filter(parent_filter)
       |> traverse_deps_map(fun)
-      |> traverse_deps_depth(all_deps, 1, depth || :infinity)
+      |> traverse_deps_depth(all_deps, fun, 1, depth || :infinity)
     else
       traverse_deps_map(all_deps, fun)
     end
@@ -559,21 +559,21 @@ defmodule Mix.Project do
     for %{app: app} = dep <- deps, do: {app, fun.(dep)}, into: %{}
   end
 
-  defp traverse_deps_depth(deps, _all_deps, depth, depth) do
+  defp traverse_deps_depth(deps, _all_deps, _fun, depth, depth) do
     deps
   end
 
-  defp traverse_deps_depth(parents, all_deps, depth, target_depth) do
+  defp traverse_deps_depth(parents, all_deps, fun, depth, target_depth) do
     children =
       for parent_dep <- all_deps,
           Map.has_key?(parents, parent_dep.app),
-          %{app: app, opts: opts} <- parent_dep.deps,
-          do: {app, opts[:dest]},
+          %{app: app} = dep <- parent_dep.deps,
+          do: {app, fun.(dep)},
           into: %{}
 
     case Map.merge(parents, children) do
       ^parents -> parents
-      new_parents -> traverse_deps_depth(new_parents, all_deps, depth + 1, target_depth)
+      new_parents -> traverse_deps_depth(new_parents, all_deps, fun, depth + 1, target_depth)
     end
   end
 
