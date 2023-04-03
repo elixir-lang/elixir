@@ -547,6 +547,41 @@ defmodule Mix.DepTest do
     end)
   end
 
+  test "deps_tree" do
+    deps = [
+      {:abc_repo, "0.1.0", path: "custom/abc_repo"},
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        # Both orders below are valid after topological sort
+        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) in [
+                 [:git_repo, :abc_repo, :deps_repo],
+                 [:abc_repo, :git_repo, :deps_repo]
+               ]
+
+        assert %{abc_repo: [], deps_repo: [:git_repo]} = Mix.Project.deps_tree(depth: 1)
+
+        assert %{abc_repo: [], deps_repo: [:git_repo], git_repo: []} =
+                 Mix.Project.deps_tree(depth: 2)
+
+        assert %{abc_repo: [], deps_repo: [:git_repo], git_repo: []} =
+                 Mix.Project.deps_tree(depth: 3)
+
+        assert %{abc_repo: []} = Mix.Project.deps_tree(parents: [:abc_repo])
+
+        assert %{deps_repo: [:git_repo], git_repo: []} =
+                 Mix.Project.deps_tree(parents: [:deps_repo])
+
+        assert %{git_repo: []} = Mix.Project.deps_tree(parents: [:git_repo])
+
+        assert %{abc_repo: []} = Mix.Project.deps_tree(parents: [:abc_repo], depth: 1)
+        assert %{deps_repo: [:git_repo]} = Mix.Project.deps_tree(parents: [:deps_repo], depth: 1)
+      end)
+    end)
+  end
+
   describe "only handling" do
     test "extracts deps matching environment" do
       deps = [

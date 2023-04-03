@@ -538,6 +538,27 @@ defmodule Mix.Project do
     traverse_deps(opts, fn %{opts: opts} -> opts[:dest] end)
   end
 
+  @doc """
+  Returns the dependencies of all dependencies as a map.
+
+  ## Options
+
+    * `:depth` - only returns dependencies to the depth level,
+      a depth of `1` will only return top-level dependencies
+    * `:parents` - starts the dependency traversal from the
+      given parents instead of the application root
+
+  ## Examples
+
+      Mix.Project.deps_tree()
+      #=> %{foo: [:bar, :baz], bar: [], baz: []}
+
+  """
+  @spec deps_tree(keyword) :: %{optional(atom) => [atom]}
+  def deps_tree(opts \\ []) when is_list(opts) do
+    traverse_deps(opts, fn %{deps: deps} -> Enum.map(deps, & &1.app) end)
+  end
+
   defp traverse_deps(opts, fun) do
     all_deps = Mix.Dep.cached()
     parents = opts[:parents]
