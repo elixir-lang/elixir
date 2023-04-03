@@ -245,9 +245,10 @@ the approaches and options available.
 
 This release adds basic support for Erlang/OTP 26. When migrating
 to Erlang/OTP 26, keep it mind it changes how maps are stored
-internally (note maps never provided a guarantee of their order).
-This release adds `:sort_maps` to `inspect` custom options,
-in case you want to sort them before inspection:
+internally and they will be printed and traversed in a different
+order (note maps never provided a guarantee of their order).
+To aid migration, this release adds `:sort_maps` to `inspect`
+custom options, in case you want to sort them before inspection:
 
     inspect(map, custom_options: [sort_maps: true])
 
@@ -271,7 +272,13 @@ in case you want to sort them before inspection:
 
   * [Code] Properly handle blocks with comments in all cases in `Code.quoted_to_string_with_comments/2`
   * [Kernel] Fix `debug_info/4` when returning core_v1
-  * [Kernel]  Store complete path on `quote keep: true` to avoid invalid stacktraces
+  * [Kernel] Store complete path on `quote keep: true` to avoid invalid stacktraces
+  * [Kernel] Fix column count when tokenizing escaped interpolations
+  * [Stream] Fix `Stream.zip/1` hanging on empty list
+
+#### Mix
+
+  * [mix fomrat] Don't call formatter on directories
 
 ## v1.14.3 (2023-01-14)
 
