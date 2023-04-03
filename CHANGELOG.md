@@ -278,7 +278,7 @@ custom options, in case you want to sort them before inspection:
 
 #### Mix
 
-  * [mix fomrat] Don't call formatter on directories
+  * [mix format] Don't call formatter on directories
 
 ## v1.14.3 (2023-01-14)
 
