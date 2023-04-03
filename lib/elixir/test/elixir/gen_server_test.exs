@@ -213,4 +213,49 @@ defmodule GenServerTest do
     {:ok, _} = GenServer.start(Stack, [], name: name)
     assert GenServer.stop(name, :normal) == :ok
   end
+
+  describe "doctest async request responses" do
+    doctest GenServer, only: [wait_response: 2, receive_response: 2, check_response: 2]
+  end
+
+  test "send_request/2, receive_response/2, wait_response/2 and check_response/2" do
+    {:ok, pid} = GenServer.start_link(Stack, [:foo, :bar, :baz])
+
+    req_id = GenServer.send_request(pid, :pop)
+    assert GenServer.receive_response(req_id, 200) == {:reply, :foo}
+
+    req_id = GenServer.send_request(pid, :pop)
+    assert GenServer.wait_response(req_id, 200) == {:reply, :bar}
+
+    req_id = GenServer.send_request(pid, :pop)
+
+    assert receive_until_passes(fn message ->
+             GenServer.check_response(message, req_id) == {:reply, :baz}
+           end)
+  end
+
+  test "wait_response/2 doesn't abandon request when it times out" do
+    {:ok, pid} = GenServer.start_link(Stack, [:hello])
+
+    req_id = GenServer.send_request(pid, :pop)
+    assert GenServer.wait_response(req_id, 0) == :timeout
+    assert GenServer.wait_response(req_id, 200) == {:reply, :hello}
+  end
+
+  test "receive_response/2 abandons request when it times out" do
+    {:ok, pid} = GenServer.start_link(Stack, [:hello])
+
+    req_id = GenServer.send_request(pid, :pop)
+    assert GenServer.receive_response(req_id, 0) == :timeout
+    refute GenServer.receive_response(req_id, 200) == {:reply, :hello}
+  end
+
+  defp receive_until_passes(expectation) do
+    receive do
+      message ->
+        expectation.(message) || receive_until_passes(expectation)
+    after
+      200 -> flunk("Didn't receive a message in the mailbox that satisfies the expectation")
+    end
+  end
 end

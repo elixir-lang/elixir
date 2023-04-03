@@ -761,6 +761,13 @@ defmodule GenServer do
   """
   @type from :: {pid, tag :: term}
 
+  @typedoc """
+  An opaque request identifier.
+
+  Returned by `send_request/2`.
+  """
+  @type request_id :: :gen_server.request_id()
+
   @doc false
   defmacro __using__(opts) do
     quote location: :keep, bind_quoted: [opts: opts] do
@@ -1153,6 +1160,98 @@ defmodule GenServer do
   def multi_call(nodes \\ [node() | Node.list()], name, request, timeout \\ :infinity) do
     :gen_server.multi_call(nodes, name, request, timeout)
   end
+
+  @doc """
+  Sends an asynchronous call `request` to the `server` and returns a request identifier
+  `t:request_id`.
+
+  The return value `request_id` shall later be used with one of `receive_response/2`,
+  `wait_response/2`, or `check_response/2` to fetch the actual result of the request.
+
+  The `server` process calls `handle_call/3` to handle the request.
+  """
+  @spec send_request(server, term) :: request_id
+  defdelegate send_request(server, request), to: :gen_server
+
+  @doc """
+  Receives a response from the `server` corresponding to the request identifier `request_id`.
+  The request must have been made by `send_request/2`, and it must have been made by the
+  same process calling this function.
+
+  `timeout` specifies how long to wait for a response. If no response is received within the
+  specified time, the function returns `:timeout`. Assuming that the server executes on a
+  node supporting aliases (introduced in OTP 24) the request will also be abandoned. That is,
+  no response will be received after a timeout. Otherwise, a stray response might be received
+  at a later time.
+
+  The return value `reply` is passed from the return value of `handle_call/3`.
+
+  The function returns an error if the `server` died before a `reply` was sent.
+
+  ## Examples
+
+      iex> {:ok, pid} = GenServer.start_link(Stack, [:hello])
+      iex> request_id = GenServer.send_request(pid, :pop)
+      iex> GenServer.receive_response(request_id, 5000)
+      {:reply, :hello}
+
+  The difference between `wait_response/2` and `receive_response/2` is that
+  `receive_response/2` abandons the request at `timeout` so that a potential future
+  response is ignored, while `wait_response/2` does not.
+  """
+  @spec receive_response(request_id, timeout) :: {:reply, reply} | {:error, {reason, server}}
+        when reply: term, reason: term
+  defdelegate receive_response(request_id, timeout), to: :gen_server
+
+  @doc """
+  Waits for a response from the `server` corresponding to the request identifier.
+  The request must have been made by `send_request/2`, and it must have been made by the
+  same process calling this function
+
+  `timeout` specifies how long to wait for a reply. If no reply is received within the
+  specified time, the function returns timeout and no cleanup is done, and thus the function
+  can be invoked repeatedly until a reply is returned.
+
+  The return value `reply` is passed from the return value of `handle_call/3`.
+
+  The function returns an error if the `server` died before a `reply` was sent.
+
+  ## Examples
+
+      iex> {:ok, pid} = GenServer.start_link(Stack, [:hello])
+      iex> request_id = GenServer.send_request(pid, :pop)
+      iex> GenServer.wait_response(request_id, 5000)
+      {:reply, :hello}
+
+  The difference between `wait_response/2` and `receive_response/2` is that
+  `receive_response/2` abandons the request at `timeout` so that a potential future
+  response is ignored, while `wait_response/2` does not.
+  """
+  @spec wait_response(request_id, timeout) :: {:reply, reply} | {:error, {reason, server}}
+        when reply: term, reason: term
+  defdelegate wait_response(request_id, timeout), to: :gen_server
+
+  @doc """
+  Check if `message` is a response corresponding to the request identifier `request_id`.
+  The request must have been made by `send_request/2`, and it must have been made by the
+  same process calling this function.
+
+  If `message` is a response corresponding to `request_id` the response is returned;
+  otherwise, `:no_reply` is returned and no cleanup is done, and thus the function must be
+  invoked repeatedly until a response is returned.
+
+  ## Examples
+
+      iex> {:ok, pid} = GenServer.start_link(Stack, [:hello])
+      iex> request_id = GenServer.send_request(pid, :pop)
+      iex> receive do
+      ...>   message -> GenServer.check_response(message, request_id)
+      ...> end
+      {:reply, :hello}
+  """
+  @spec check_response(message, request_id) :: {:reply, reply} | {:error, {reason, server}} | :no_reply
+        when message: term, reply: term, reason: term
+  defdelegate check_response(message, request_id), to: :gen_server
 
   @doc """
   Replies to a client.
