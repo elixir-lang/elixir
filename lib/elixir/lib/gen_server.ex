@@ -1249,7 +1249,8 @@ defmodule GenServer do
       ...> end
       {:reply, :hello}
   """
-  @spec check_response(message, request_id) :: {:reply, reply} | {:error, {reason, server}} | :no_reply
+  @spec check_response(message, request_id) ::
+          {:reply, reply} | {:error, {reason, server}} | :no_reply
         when message: term, reply: term, reason: term
   defdelegate check_response(message, request_id), to: :gen_server
 
