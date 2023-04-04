@@ -2,13 +2,13 @@
 
 This release requires Erlang/OTP 24 and later.
 
-Elixir v1.15 is a smaller release, with further improvements
-to compilation and boot times. This release also completes
+Elixir v1.15 is a smaller release with focused improvements
+on compilation and boot times. This release also completes
 our integration process with Erlang/OTP logger, bringing new
 features such as log rotation and compactation out of the box.
 
 Finally, you will also find additional convenience functions in
-`Map`, `Keyword`, all Calendar modules, and many more.
+`Map`, `Keyword`, all Calendar modules, and others.
 
 ## Compile and boot-time improvements
 
@@ -18,24 +18,27 @@ now caches and prunes load paths before compilation, ensuring your
 project (and dependencies!) compile faster and in an environment
 closer to production.
 
-In a nutshell, the Erlang VM loads modules from code paths. Each
+In a nutshell the Erlang VM loads modules from code paths. Each
 application that ships with Erlang and Elixir plus each dependency
 end-up being an entry in your code path. The larger the code path,
 the more work Erlang has to do in order to find a module.
 
-In previous versions, Mix would only add to the load paths. Therefore,
-if you compiled 20 dependencies and you went to compile the 21st,
-the code path would have 21 entries (plus all Erlang and Elixir apps).
-This allowed modules from unrelated dependencies to be seen and made
-compilation slower the more dependencies you had.
+In previous versions, Mix would only add entries to the load paths.
+Therefore, if you compiled 20 dependencies and you went to compile
+the 21st, the code path would have 21 entries (plus all Erlang and
+Elixir apps). This allowed modules from unrelated dependencies to
+be seen and made compilation slower the more dependencies you had.
 
 In this release, we will now prune the code paths to only the ones
-listed as dependencies. Previously if you attempted to use an Erlang/OTP
-or Elixir module without adding its dependency, we would warn. Now
-the module won't be found altogether, which is also the behaviour you see
-if you ran your application as a `mix release`. If you are using an
-application that does not correctly lists its dependencies, they will
-have to be updated accordingly (as previously warned).
+listed as dependencies. Previously if you attempted to use an
+Erlang/OTP or Elixir module without adding its dependency, we would warn.
+Now the module won't be found altogether (instead of warning as in
+previous versions), which is also the behaviour you see if you ran
+your application as a `mix release`. If you are using an application
+that does not correctly lists its dependencies, they will have to
+be updated accordingly (as previously warned). You can temporarily
+disable this new behaviour by setting `prune_code_paths: false` in
+your `mix.exs`.
 
 Furthermore, Erlang/OTP 26 allows us to start applications concurrently
 and cache the code path lookups, decreasing the cost of booting applications.
@@ -74,6 +77,7 @@ TODO: Mention :console vs Logger.Backends.Console
   * [Date] Add `Date.before?/2` and `Date.after?/2`
   * [DateTime] Add `DateTime.before?/2` and `DateTime.after?/2`
   * [Inspect] `Inspect` now renders `'charlists'` as `~c"charlists"` by default
+  * [Kernel] Break down `case` and `cond` inside `dbg/2`
   * [Kernel] Add `t:nonempty_binary/0` and `t:nonempty_bitstring/0`
   * [Kernel] Treat `@behaviour`s as runtime dependencies
   * [Kernel] Do not add runtime dependencies for alias references in patterns and guards
@@ -83,12 +87,14 @@ TODO: Mention :console vs Logger.Backends.Console
   * [Kernel.CLI] Support `--sname undefined`/`--name undefined` so a name is automatically generated
   * [Keyword] Add `Keyword.split_with/2`
   * [Macro] Improve error message when piping into an expression ending in bracket-based access
+  * [Macro.Env] Add `Macro.Env.lookup_alias_as/2`
   * [Map] Add `Map.split_with/2`
   * [Map] Add `Map.intersect/2` and `Map.intersect/3`
   * [MapSet] Add `MapSet.split_with/2`
   * [MapSet] Optimize most functions
   * [NaiveDateTime] Add `NaiveDateTime.beginning_of_day/1` and `NaiveDateTime.end_of_day/1`
   * [NaiveDateTime] Add `NaiveDateTime.before?/2` and `NaiveDateTime.after?/2`
+  * [OptionParser] Support `:return_separator` option
   * [Process] Add `Process.alias/0,1` and `Process.unalias/1`
   * [Range] Add `Range.split/2`
   * [String] Update Unicode to version 15.0.0
@@ -97,6 +103,7 @@ TODO: Mention :console vs Logger.Backends.Console
   * [System] Support `:lines` in `System.cmd/3` to capture output line by line
   * [Task] Remove head of line blocking on `Task.yield_many/2`
   * [Task] Enable selective receive optimizations in Erlang/OTP 26+
+  * [Task.Supervisor] Do not copy args on temporary `Task.Supervisor.start_child/2`
   * [Time] Add `Time.before?/2` and `Time.after?/2`
   * [URI] Add `URI.append_path/2`
 
@@ -124,8 +131,10 @@ TODO: Mention :console vs Logger.Backends.Console
 #### Mix
 
   * [Mix.Project] Support `def cli` to unify all CLI defaults in a single place
+  * [Mix.Project] Add `Mix.Project.deps_tree/1`
   * [mix eval] Allow passing additional arguments
   * [mix compile] Set `--all-warnings` by default
+  * [mix compile] Reduce the amount of filesystem lookups for path dependencies by storing timestamps in manifests
   * [mix compile.app] Write `optional_applications` to `.app` file
   * [mix compile.elixir] Add `--purge-consolidation-path-if-stale` which will purge the given consolidation path if compilation is required
   * [mix deps.get] Automatically install Hex and Rebar on `mix deps.get`/`mix deps.update`
@@ -142,6 +151,7 @@ TODO: Mention :console vs Logger.Backends.Console
 
   * [Code.Formatter] Fix a scenario where a keyword followed by parenthesis could go above the maximum line length
   * [Code.Formatter] Remove unnecessary parens in nullary type funs
+  * [Exception] Fix operator precedence when printing guards in `Exception.blame/3`
   * [File] Do not raise if there are file system race conditions in `File.cp/2`
   * [Kernel] Expand macros on the left side of -> in `try/rescue`
   * [Kernel] Raise on misplaced `...` inside typespecs
@@ -163,6 +173,7 @@ TODO: Mention :console vs Logger.Backends.Console
 
 #### Mix
 
+  * [mix compile] Include `cwd` in compiler cache key
   * [mix release] Fix Windows service when invoking `erlsrv.exe` in path with spaces
 
 ### 3. Soft deprecations (no warnings emitted)
