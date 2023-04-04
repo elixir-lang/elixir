@@ -84,10 +84,10 @@ defmodule Mix.DepTest do
       assert paths[:ok] =~ "deps/ok"
       assert paths[:uncloned] =~ "deps/uncloned"
 
-      paths = Mix.Project.deps_scms()
-      assert map_size(paths) == 6
-      assert paths[:ok] == Mix.SCM.Path
-      assert paths[:uncloned] == Mix.SCM.Git
+      scms = Mix.Project.deps_scms()
+      assert map_size(scms) == 6
+      assert scms[:ok] == Mix.SCM.Path
+      assert scms[:uncloned] == Mix.SCM.Git
     end)
   end
 
@@ -543,6 +543,41 @@ defmodule Mix.DepTest do
 
         assert sorted_keys(Mix.Project.deps_paths(parents: [:abc_repo, :deps_repo], depth: 2)) ==
                  [:abc_repo, :deps_repo, :git_repo]
+      end)
+    end)
+  end
+
+  test "deps_tree" do
+    deps = [
+      {:abc_repo, "0.1.0", path: "custom/abc_repo"},
+      {:deps_repo, "0.1.0", path: "custom/deps_repo"}
+    ]
+
+    with_deps(deps, fn ->
+      in_fixture("deps_status", fn ->
+        # Both orders below are valid after topological sort
+        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) in [
+                 [:git_repo, :abc_repo, :deps_repo],
+                 [:abc_repo, :git_repo, :deps_repo]
+               ]
+
+        assert %{abc_repo: [], deps_repo: [:git_repo]} = Mix.Project.deps_tree(depth: 1)
+
+        assert %{abc_repo: [], deps_repo: [:git_repo], git_repo: []} =
+                 Mix.Project.deps_tree(depth: 2)
+
+        assert %{abc_repo: [], deps_repo: [:git_repo], git_repo: []} =
+                 Mix.Project.deps_tree(depth: 3)
+
+        assert %{abc_repo: []} = Mix.Project.deps_tree(parents: [:abc_repo])
+
+        assert %{deps_repo: [:git_repo], git_repo: []} =
+                 Mix.Project.deps_tree(parents: [:deps_repo])
+
+        assert %{git_repo: []} = Mix.Project.deps_tree(parents: [:git_repo])
+
+        assert %{abc_repo: []} = Mix.Project.deps_tree(parents: [:abc_repo], depth: 1)
+        assert %{deps_repo: [:git_repo]} = Mix.Project.deps_tree(parents: [:deps_repo], depth: 1)
       end)
     end)
   end
