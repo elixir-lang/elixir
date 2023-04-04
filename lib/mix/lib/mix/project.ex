@@ -554,6 +554,7 @@ defmodule Mix.Project do
       #=> %{foo: [:bar, :baz], bar: [], baz: []}
 
   """
+  @doc since: "1.15.0"
   @spec deps_tree(keyword) :: %{optional(atom) => [atom]}
   def deps_tree(opts \\ []) when is_list(opts) do
     traverse_deps(opts, fn %{deps: deps} -> Enum.map(deps, & &1.app) end)
