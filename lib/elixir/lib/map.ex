@@ -515,6 +515,8 @@ defmodule Map do
       nil
       iex> Map.get(%{a: 1}, :b, 3)
       3
+      iex> Map.get(%{a: nil}, :a, 1)
+      nil
 
   """
   @spec get(map, key, value) :: value
