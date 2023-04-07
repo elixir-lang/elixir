@@ -75,6 +75,7 @@ defmodule Mix.Tasks.App.Start do
           # we print a quick message, and then we block by calling `System.stop/1`.
           Mix.shell().error(["** (Mix) ", could_not_start(app, reason)])
           System.stop(1)
+          Process.sleep(:infinity)
 
         {:error, {app, reason}} ->
           Mix.raise(could_not_start(app, reason))
