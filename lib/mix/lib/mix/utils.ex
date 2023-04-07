@@ -655,11 +655,11 @@ defmodule Mix.Utils do
     request = {:binary.bin_to_list(path), headers}
 
     # Use the system certificates if available, otherwise skip peer verification
-    # TODO: Always use system certificates when OTP >= 25 is required
+    # TODO: Always use system certificates when OTP >= 25.1 is required
     ssl_options =
-      if Code.ensure_loaded?(:public_key) and function_exported?(:public_key, :cacerts_get, 0) do
+      if Code.ensure_loaded?(:httpc) and function_exported?(:httpc, :ssl_verify_host_options, 1) do
         try do
-          [cacerts: apply(:public_key, :cacerts_get, [])]
+          apply(:httpc, :ssl_verify_host_options, [true])
         rescue
           _ ->
             Mix.shell().error(
