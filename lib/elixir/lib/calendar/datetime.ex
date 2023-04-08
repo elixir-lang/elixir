@@ -836,7 +836,7 @@ defmodule DateTime do
       -17412508655
 
   """
-  @spec to_unix(Calendar.datetime(), System.time_unit()) :: integer
+  @spec to_unix(Calendar.datetime(), :native | System.time_unit()) :: integer
   def to_unix(datetime, unit \\ :second)
 
   def to_unix(%{utc_offset: utc_offset, std_offset: std_offset} = datetime, unit) do
@@ -1456,7 +1456,7 @@ defmodule DateTime do
   @spec diff(
           Calendar.datetime(),
           Calendar.datetime(),
-          :day | :hour | :minute | System.time_unit()
+          :day | :hour | :minute | :native | System.time_unit()
         ) :: integer()
   def diff(datetime1, datetime2, unit \\ :second)
 
@@ -1546,7 +1546,7 @@ defmodule DateTime do
   @spec add(
           Calendar.datetime(),
           integer,
-          :day | :hour | :minute | System.time_unit(),
+          :day | :hour | :minute | :native | System.time_unit(),
           Calendar.time_zone_database()
         ) ::
           t()
