@@ -1441,9 +1441,9 @@ defmodule Code do
       project configuration option.
       This option can also be overridden per module using the `@compile` directive.
 
-    * `:ignore_already_consolidated` - when `true`, does not warn when a protocol
-      has already been consolidated and a new implementation is added. Defaults
-      to `false`.
+    * `:ignore_already_consolidated` (since v1.10.0) - when `true`, does not warn
+      when a protocol has already been consolidated and a new implementation is added.
+      Defaults to `false`.
 
     * `:ignore_module_conflict` - when `true`, does not warn when a module has
       already been defined. Defaults to `false`.
