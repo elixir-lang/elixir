@@ -13,9 +13,6 @@ defmodule ExUnit.CaseTemplate do
       `use ExUnit.Case` is available (same as if `MyCase` called `use
       ExUnit.Case` directly)
 
-    * All the functions and macros defined in `MyCase` are imported into
-      the test case
-
     * The `setup` and `setup_all` callbacks that you define in `MyCase`
       get used in the test case module
 
