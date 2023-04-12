@@ -223,7 +223,7 @@ defmodule Mix.Dep.Converger do
 
         # Something that we previously ruled out as an optional dependency is
         # no longer a dependency. Add it back for traversal.
-        {no_longer_optional, optional} = Enum.split_with(optional, & &1.app == app)
+        {no_longer_optional, optional} = Enum.split_with(optional, &(&1.app == app))
 
         {acc, optional, rest, lock} =
           all(no_longer_optional ++ t, [dep | acc], upper, breadths, optional, rest, lock, state)
