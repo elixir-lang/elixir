@@ -19,6 +19,10 @@ defmodule Mix.Tasks.App.Start do
     * `:start_permanent` - the application and all of its children
       applications are started in permanent mode. Defaults to `false`.
 
+    * `:start_concurrent` - applications are started concurrently
+      whenever possible. This option only has an effect on Erlang/OTP 26+.
+      Defaults to `false`.
+
   ## Command line options
 
     * `--force` - forces compilation regardless of compilation times
@@ -55,31 +59,31 @@ defmodule Mix.Tasks.App.Start do
       # Mix should not depend directly on Logger so check that it's loaded.
       Logger.App.stop()
       config = Mix.Project.config()
-      start(apps(config), type(config, opts))
+      type = type(config, opts)
+      mode = if config[:start_concurrent], do: :concurrent, else: :serial
+      start(apps(config), type, mode)
     end
 
     :ok
   end
 
   @doc false
-  def start(apps, type) do
-    for app <- apps do
-      case Application.ensure_all_started(app, type) do
-        {:ok, _} ->
-          :ok
+  def start(apps, type, mode) do
+    case Application.ensure_all_started(apps, type: type, mode: mode) do
+      {:ok, _} ->
+        :ok
 
-        {:error, {app, reason}} when type == :permanent ->
-          # We need to stop immediately because application_controller is
-          # shutting down all applications. Since any work we do here is prone
-          # to race conditions as whatever process we call may no longer exist,
-          # we print a quick message, and then we block by calling `System.stop/1`.
-          Mix.shell().error(["** (Mix) ", could_not_start(app, reason)])
-          System.stop(1)
-          Process.sleep(:infinity)
+      {:error, {app, reason}} when type == :permanent ->
+        # We need to stop immediately because application_controller is
+        # shutting down all applications. Since any work we do here is prone
+        # to race conditions as whatever process we call may no longer exist,
+        # we print a quick message, and then we block by calling `System.stop/1`.
+        Mix.shell().error(["** (Mix) ", could_not_start(app, reason)])
+        System.stop(1)
+        Process.sleep(:infinity)
 
-        {:error, {app, reason}} ->
-          Mix.raise(could_not_start(app, reason))
-      end
+      {:error, {app, reason}} ->
+        Mix.raise(could_not_start(app, reason))
     end
 
     :ok

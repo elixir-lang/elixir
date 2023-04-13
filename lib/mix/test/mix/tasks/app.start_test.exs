@@ -46,7 +46,7 @@ defmodule Mix.Tasks.App.StartTest do
 
   describe "unit tests" do
     test "start does nothing if no apps are given" do
-      assert Mix.Tasks.App.Start.start([], :temporary) == :ok
+      assert Mix.Tasks.App.Start.start([], :temporary, :serial) == :ok
     end
 
     test "allows type to be configured" do
@@ -85,7 +85,7 @@ defmodule Mix.Tasks.App.StartTest do
             "returned an error: :bye"
 
         assert_raise Mix.Error, message, fn ->
-          Mix.Tasks.App.Start.start([:return_sample], :temporary)
+          Mix.Tasks.App.Start.start([:return_sample], :temporary, :serial)
         end
       end)
     end
@@ -106,7 +106,7 @@ defmodule Mix.Tasks.App.StartTest do
             "        Mix.Tasks.App.StartTest.ReturnApp.start/2"
 
         assert_raise Mix.Error, message, fn ->
-          Mix.Tasks.App.Start.start([:return_sample], :temporary)
+          Mix.Tasks.App.Start.start([:return_sample], :temporary, :serial)
         end
       end)
     end
@@ -124,7 +124,7 @@ defmodule Mix.Tasks.App.StartTest do
             "returned a bad value: :bad"
 
         assert_raise Mix.Error, message, fn ->
-          Mix.Tasks.App.Start.start([:return_sample], :temporary)
+          Mix.Tasks.App.Start.start([:return_sample], :temporary, :serial)
         end
       end)
     end
@@ -157,7 +157,7 @@ defmodule Mix.Tasks.App.StartTest do
             "Mix.Tasks.App.StartTest.ExitApp.start(:normal, :bye)\n" <> "    ** (EXIT) :bye"
 
         assert_raise Mix.Error, message, fn ->
-          Mix.Tasks.App.Start.start([:exit_sample], :temporary)
+          Mix.Tasks.App.Start.start([:exit_sample], :temporary, :serial)
         end
       end)
     end
@@ -174,7 +174,7 @@ defmodule Mix.Tasks.App.StartTest do
             "Mix.Tasks.App.StartTest.ExitApp.start(:normal, :normal)\n" <> "    ** (EXIT) normal"
 
         assert_raise Mix.Error, message, fn ->
-          Mix.Tasks.App.Start.start([:exit_sample], :temporary)
+          Mix.Tasks.App.Start.start([:exit_sample], :temporary, :serial)
         end
       end)
     end

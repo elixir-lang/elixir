@@ -12,8 +12,6 @@ defmodule Mix.Tasks.App.Config do
   ## Command line options
 
     * `--force` - forces compilation regardless of compilation times
-    * `--temporary` - starts the application as temporary
-    * `--permanent` - starts the application as permanent
     * `--preload-modules` - preloads all modules defined in applications
     * `--no-archives-check` - does not check archives
     * `--no-app-loading` - does not load .app resource file after compilation
