@@ -214,19 +214,35 @@ defmodule Mix do
         defp aliases do
           [
             c: "compile",
-            hello: &hello/1
+            hello: &hello/1,
+            paid_task: &paid_task/1
           ]
         end
 
         defp hello(_) do
           Mix.shell().info("Hello world")
         end
+
+        defp paid_task(_) do
+          Mix.Task.run("paid.task", [
+            "first_arg",
+            "second_arg",
+            "--license-key",
+            System.fetch_env!("SOME_LICENSE_KEY")
+          ])
+        end
       end
 
-  In the example above, we have defined two aliases. One is `mix c`
-  which is a shortcut for `mix compile`. The other is named
+  In the example above, we have defined three aliases. One is `mix c`
+  which is a shortcut for `mix compile`. Another is named
   `mix hello`, which is the equivalent to the `Mix.Tasks.Hello`
   we have defined in the [Mix.Task section](#module-mix-task).
+
+  The third is named `mix paid_task`, which runs the task `paid.task` with
+  several arguments, including one pulled from an environment variable.
+  Defining this as a function means that the environment variable is only
+  evaluated when this specific task is run, not when `mix.exs` is loaded
+  before each `mix` command.
 
   Aliases may also be lists, specifying multiple tasks to be run
   consecutively:

@@ -324,6 +324,12 @@ defmodule Mix.Task do
 
   `run/2` raises an exception if an alias or a task cannot be found or if the
   task is invalid. See `get!/1` for more information.
+
+  ## Examples
+
+      iex> Mix.Task.run("format", ["mix.exs"])
+      :ok
+
   """
   @spec run(task_name, [any]) :: any
   def run(task, args \\ []) do
