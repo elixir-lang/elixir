@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Escript.Install do
       $ ~/.mix/escripts/foo
 
   For convenience, consider adding `~/.mix/escripts` directory to your
-  `PATH` environment variable. For more information, check the wikipedia
+  `$PATH` environment variable. For more information, check the wikipedia
   article on PATH: https://en.wikipedia.org/wiki/PATH_(variable)
 
   ## Command line options

@@ -291,7 +291,7 @@ defmodule Mix.Tasks.Release do
   Alternatively, you can also bundle the compiled object files in the release,
   as long as they were compiled for the same target. If doing so, you need to
   update `LD_LIBRARY_PATH` environment variable with the paths containing the
-  bundled objects on Unix-like systems or the `PATH` environment variable on
+  bundled objects on Unix-like systems or the `$PATH` environment variable on
   Windows systems.
 
   Currently, there is no official way to cross-compile a release from one
