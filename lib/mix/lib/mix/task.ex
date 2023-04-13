@@ -328,6 +328,8 @@ defmodule Mix.Task do
   ## Examples
 
       iex> Mix.Task.run("format", ["mix.exs"])
+      :ok
+
   """
   @spec run(task_name, [any]) :: any
   def run(task, args \\ []) do
