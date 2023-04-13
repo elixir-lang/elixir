@@ -241,8 +241,8 @@ defmodule Mix do
   The third is named `mix paid_task`, which runs the task `paid.task` with
   several arguments, including one pulled from an environment variable.
   Defining this as a function means that the environment variable is only
-  evaluated when this specific task is run, not when `mix.exs` is compiled in
-  order to run unrelated tasks such as `mix format`.
+  evaluated when this specific task is run, not when `mix.exs` is loaded
+  before each `mix` command.
 
   Aliases may also be lists, specifying multiple tasks to be run
   consecutively:
