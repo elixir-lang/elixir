@@ -100,7 +100,7 @@ defmodule Mix.ProjectTest do
 
   test "removes private configuration" do
     Mix.Project.push(SampleProject)
-    assert is_nil(Mix.Project.config()[:app_path])
+    assert is_nil(Mix.Project.config()[:deps_app_path])
   end
 
   test "raises an error when trying to retrieve the current project but none is set" do
@@ -111,7 +111,7 @@ defmodule Mix.ProjectTest do
 
   test "builds the project structure" do
     in_fixture("archive", fn ->
-      config = [app_path: Path.expand("_build/archive")]
+      config = [deps_app_path: Path.expand("_build/archive")]
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
       assert_proj_dir_linked_or_copied("_build/archive/priv", "priv", ~c"../../priv")
@@ -120,7 +120,7 @@ defmodule Mix.ProjectTest do
 
   test "builds the project structure without symlinks" do
     in_fixture("archive", fn ->
-      config = [app_path: Path.expand("_build/archive"), build_embedded: true]
+      config = [deps_app_path: Path.expand("_build/archive"), build_embedded: true]
       assert Mix.Project.build_structure(config) == :ok
       assert File.dir?("_build/archive/ebin")
       assert {:error, _} = :file.read_link("_build/archive/ebin")
@@ -129,7 +129,7 @@ defmodule Mix.ProjectTest do
 
   test "builds the project structure with symlinks" do
     in_fixture("archive", fn ->
-      config = [app_path: Path.expand("_build/archive")]
+      config = [deps_app_path: Path.expand("_build/archive")]
       File.mkdir_p!("include")
 
       assert Mix.Project.build_structure(config, symlink_ebin: true) == :ok

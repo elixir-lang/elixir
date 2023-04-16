@@ -212,7 +212,7 @@ defmodule Mix.Project do
       consolidate_protocols: false,
       consolidation_path: consolidation_path(config),
       deps_path: deps_path(config),
-      env_path: build_path(config),
+      deps_build_path: build_path(config),
       lockfile: Path.expand(config[:lockfile])
     ] ++ Keyword.take(config, [:build_embedded, :build_per_environment, :prune_code_paths])
   end
@@ -665,10 +665,10 @@ defmodule Mix.Project do
   """
   @spec build_path(keyword) :: Path.t()
   def build_path(config \\ config()) do
-    System.get_env("MIX_BUILD_PATH") || config[:env_path] || env_path(config)
+    System.get_env("MIX_BUILD_PATH") || config[:deps_build_path] || do_build_path(config)
   end
 
-  defp env_path(config) do
+  defp do_build_path(config) do
     dir = System.get_env("MIX_BUILD_ROOT") || config[:build_path] || "_build"
     subdir = build_target() <> build_per_environment(config)
     Path.expand(dir <> "/" <> subdir)
@@ -715,7 +715,7 @@ defmodule Mix.Project do
   @spec manifest_path(keyword) :: Path.t()
   def manifest_path(config \\ config()) do
     app_path =
-      config[:app_path] ||
+      config[:deps_app_path] ||
         if app = config[:app] do
           Path.join([build_path(config), "lib", Atom.to_string(app)])
         else
@@ -740,7 +740,7 @@ defmodule Mix.Project do
   """
   @spec app_path(keyword) :: Path.t()
   def app_path(config \\ config()) do
-    config[:app_path] ||
+    config[:deps_app_path] ||
       cond do
         app = config[:app] ->
           Path.join([build_path(config), "lib", Atom.to_string(app)])
@@ -927,7 +927,7 @@ defmodule Mix.Project do
     ]
   end
 
-  @private_config [:app_path, :build_scm, :env_path]
+  @private_config [:build_scm, :deps_app_path, :deps_build_path]
   defp get_project_config(nil), do: []
   defp get_project_config(atom), do: atom.project |> Keyword.drop(@private_config)
 end
