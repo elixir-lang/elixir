@@ -249,15 +249,15 @@ defmodule Mix.Dep do
   def in_dependency(dep, post_config \\ [], fun)
 
   def in_dependency(%Mix.Dep{app: app, opts: opts, scm: scm}, config, fun) do
-    # Set the app_path to be the one stored in the dependency.
+    # Set the deps_app_path to be the one stored in the dependency.
     # This is important because the name of application in the
     # mix.exs file can be different than the actual name and we
     # choose to respect the one in the mix.exs
     config =
       Mix.Project.deps_config()
       |> Keyword.merge(config)
-      |> Keyword.put(:app_path, opts[:build])
       |> Keyword.put(:build_scm, scm)
+      |> Keyword.put(:deps_app_path, opts[:build])
 
     # If the dependency is not fetchable, then it is never compiled
     # from scratch and therefore it needs the parent configuration

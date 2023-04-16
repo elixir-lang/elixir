@@ -205,7 +205,7 @@ defmodule Mix.Tasks.Deps.Compile do
 
     # Build the rebar config and setup the command line
     config_path = Path.join(build_path, "mix.rebar.config")
-    lib_path = Path.join(config[:env_path], "lib/*/ebin")
+    lib_path = Path.join(config[:deps_build_path], "lib/*/ebin")
     File.write!(config_path, rebar_config(dep))
 
     env = [
@@ -304,7 +304,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp do_command(dep, config, command, print_app?, env \\ []) do
     %Mix.Dep{app: app, system_env: system_env, opts: opts} = dep
 
-    env = [{"ERL_LIBS", Path.join(config[:env_path], "lib")} | system_env] ++ env
+    env = [{"ERL_LIBS", Path.join(config[:deps_build_path], "lib")} | system_env] ++ env
 
     if Mix.shell().cmd(command, env: env, print_app: print_app?, cd: opts[:dest]) != 0 do
       Mix.raise(
@@ -317,7 +317,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp build_structure(%Mix.Dep{opts: opts}, config) do
-    config = Keyword.put(config, :app_path, opts[:build])
+    config = Keyword.put(config, :deps_app_path, opts[:build])
     Mix.Project.build_structure(config, symlink_ebin: true, source: opts[:dest])
     Code.prepend_path(Path.join(opts[:build], "ebin"))
   end
