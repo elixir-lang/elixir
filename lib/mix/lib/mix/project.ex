@@ -624,9 +624,30 @@ defmodule Mix.Project do
   @doc """
   Returns the build path for the given project.
 
-  If no configuration is given, the one for the current project is used.
+  The build path is built based on the `:build_path` configuration
+  (which defaults to `"_build"`) and a subdirectory. The subdirectory
+  is built based on two factors:
 
-  The returned path will be expanded.
+    * If `:build_per_environment` is set, the subdirectory is the value
+      of `Mix.env/0` (which can be set via `MIX_ENV`). Otherwise it is
+      set to "shared".
+
+    * If `Mix.target/0` is set (often via the `MIX_TARGET` environment
+      variable), it will be used as a prefix to the subdirectory.
+
+  Finally, the environment variables `MIX_BUILD_ROOT` and `MIX_BUILD_PATH`
+  can be used to change the result of this function. `MIX_BUILD_ROOT`
+  overwrites only the root `"_build"` directory while keeping the
+  subdirectory as is. It may be useful to change it for caching reasons,
+  typically during Continuous Integration (CI). `MIX_BUILD_PATH` overrides
+  the build path altogether and it typically used by other build tools
+  that invoke the `mix` CLI.
+
+  > #### Naming differences {: .info}
+  >
+  > Ideally the configuration option `:build_path` would be called
+  > `:build_root`, as it would fully mirror the environment variable.
+  > However, its name is preserved for backwards compatibility.
 
   ## Examples
 

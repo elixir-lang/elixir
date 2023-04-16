@@ -329,26 +329,43 @@ defmodule Mix do
 
     * `MIX_ARCHIVES` - specifies the directory into which the archives should be installed
       (default: `~/.mix/archives`)
-    * `MIX_BUILD_ROOT` - sets the root directory where build artifacts
-      should be written to. For example, "_build". If `MIX_BUILD_PATH` is set, this
-      option is ignored.
-    * `MIX_BUILD_PATH` - sets the project `Mix.Project.build_path/0` config. This option
-      must always point to a subdirectory inside a temporary directory. For instance,
-      never "/tmp" or "_build" but "_build/PROD" or "/tmp/PROD", as required by Mix
-    * `MIX_DEPS_PATH` - sets the project `Mix.Project.deps_path/0` config for the current project (default: `deps`)
+
+    * `MIX_BUILD_PATH` - sets the project `Mix.Project.build_path/0` config.
+      This option must always point to a subdirectory inside a temporary directory.
+      For instance, never "/tmp" or "_build" but "_build/PROD" or "/tmp/PROD", as
+      required by Mix. This environment variable is used mostly by external build
+      tools. For your CI servers, you likely want to use `MIX_BUILD_ROOT` below.
+
+    * `MIX_BUILD_ROOT` - sets the root directory where build artifacts should be
+      written to. For example, "_build". If `MIX_BUILD_PATH` is set, this option
+      is ignored.
+
     * `MIX_DEBUG` - outputs debug information about each task before running it
+
+    * `MIX_DEPS_PATH` - sets the project `Mix.Project.deps_path/0` config for the
+      current project (default: `deps`)
+
     * `MIX_ENV` - specifies which environment should be used. See [Environments](#module-environments)
-    * `MIX_TARGET` - specifies which target should be used. See [Targets](#module-targets)
+
     * `MIX_EXS` - changes the full path to the `mix.exs` file
+
     * `MIX_HOME` - path to Mix's home directory, stores configuration files and scripts used by Mix
       (default: `~/.mix`)
+
     * `MIX_INSTALL_DIR` - (since v1.12.0) specifies directory where `Mix.install/2` keeps
        install cache
+
     * `MIX_INSTALL_FORCE` - (since v1.13.0) runs `Mix.install/2` with empty install cache
+
     * `MIX_PATH` - appends extra code paths
+
     * `MIX_QUIET` - does not print information messages to the terminal
+
     * `MIX_REBAR3` - path to rebar3 command that overrides the one Mix installs
       (default: `~/.mix/rebar3`)
+
+    * `MIX_TARGET` - specifies which target should be used. See [Targets](#module-targets)
+
     * `MIX_XDG` - asks Mix to follow the [XDG Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
       for its home directory and configuration files. This behaviour needs to
       be opt-in due to backwards compatibility. `MIX_HOME` has higher preference
