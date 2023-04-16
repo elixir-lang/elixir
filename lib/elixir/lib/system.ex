@@ -886,7 +886,8 @@ defmodule System do
       then the runtime system exits with status code 1.
 
   Note this function is asynchronous and the current process will continue
-  executing after this function is invoked. In case you want to block the
+  executing after this function is invoked. This may lead to the runtime system
+  exiting with code different than `status`. In case you want to block the
   current process until the system effectively shuts down, you can invoke
   `Process.sleep(:infinity)`.
 
