@@ -16,9 +16,8 @@ defmodule GenServer do
 
   Let's start with a code example and then explore the available callbacks.
   Imagine we want to implement a service with a GenServer that works
-  like a stack, allowing us to push and pop elements. We will use three
-  callbacks. We'll customize a generic server with our own module by
-  implementing three callbacks.
+  like a stack, allowing us to push and pop elements. We'll customize a
+  generic GenServer with our own module by implementing three callbacks.
 
   `c:init/1` transforms our initial argument to the initial state for the
   GenServer. `c:handle_call/3` fires when the server receives a synchronous
@@ -51,8 +50,9 @@ defmodule GenServer do
       end
 
   We leave the process machinery of startup, message passing, and the message
-  loop to the GenServer behaviour and focus only on the generic stack
-  implementation. We can use the GenServer API to interact with the service:
+  loop to the GenServer behaviour and focus only on the stack
+  implementation. We can now use the GenServer API to interact with
+  the service by creating a process and sending it messages:
 
       # Start the server
       {:ok, pid} = GenServer.start_link(Stack, "hello,world")
@@ -78,8 +78,8 @@ defmodule GenServer do
 
   Each call to `GenServer.call/3` results in a message
   that must be handled by the `c:handle_call/3` callback in the GenServer.
-  A `cast/2` message must be handled by `c:handle_cast/2`. `GenServer` supports
-  8 callbacks, but only  `c:init/1` is required.
+  A `cast/2` message must be handled by `c:handle_cast/2`. `GenServer`
+  supports 8 callbacks, but only  `c:init/1` is required.
 
   ## Client / Server APIs
 
@@ -87,6 +87,7 @@ defmodule GenServer do
   friends to directly start and communicate with the server, most of the
   time we don't call the `GenServer` functions directly. Instead, we wrap
   the calls in new functions representing the public API of the server.
+  These thin wrappers are called the **client API**.
 
   Here is a better implementation of our Stack module:
 
@@ -138,7 +139,8 @@ defmodule GenServer do
   A `GenServer` is most commonly started under a supervision tree.
   When we invoke `use GenServer`, it automatically defines a `child_spec/1`
   function that allows us to start the `Stack` directly under a supervisor.
-  To start a default stack of `[:hello]` under a supervisor, one may do:
+  To start a default stack of `["hello", "world"]` under a supervisor,
+  we can do:
 
       children = [
         {Stack, "hello,world"}
