@@ -23,7 +23,8 @@ defmodule GenServer do
   `c:init/1` transforms our initial argument to the initial state for the
   GenServer. `c:handle_call/3` fires when the server receives a synchronous
   `pop` message, popping an element from the stack and returning it to the
-  user. `c:handle_cast/2` will fire when the server receives an asynchronous `push` message, pushing an element onto the stack:
+  user. `c:handle_cast/2` will fire when the server receives an asynchronous
+  `push` message, pushing an element onto the stack:
 
       defmodule Stack do
         use GenServer
@@ -50,7 +51,8 @@ defmodule GenServer do
       end
 
   We leave the process machinery of startup, message passing, and the message
-  loop to the GenServer behaviour and focus only on the generic stack implementation. We can use the GenServer API to interact with the service:
+  loop to the GenServer behaviour and focus only on the generic stack
+  implementation. We can use the GenServer API to interact with the service:
 
       # Start the server
       {:ok, pid} = GenServer.start_link(Stack, "hello,world")
@@ -76,9 +78,8 @@ defmodule GenServer do
 
   Each call to `GenServer.call/3` results in a message
   that must be handled by the `c:handle_call/3` callback in the GenServer.
-  A `cast/2` message must be handled by `c:handle_cast/2`. Check the
-  documentation for a full list of the eight possible callbacks. The only
-  required callback is `c:init/1`.
+  A `cast/2` message must be handled by `c:handle_cast/2`. `GenServer` supports
+  8 callbacks, but only  `c:init/1` is required.
 
   ## Client / Server APIs
 
