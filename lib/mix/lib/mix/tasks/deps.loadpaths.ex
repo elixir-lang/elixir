@@ -14,7 +14,8 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   ## Command line options
 
-    * `--no-compile` - does not compile dependencies
+    * `--no-archives-check` - does not check archives
+    * `--no-compile` - does not compile even if files require compilation
     * `--no-deps-check` - does not check or compile deps, only load available ones
     * `--no-deps-loading` - does not add deps loadpaths to the code path
     * `--no-elixir-version-check` - does not check Elixir version
@@ -24,6 +25,10 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
   @impl true
   def run(args) do
+    unless "--no-archives-check" in args do
+      Mix.Task.run("archive.check", args)
+    end
+
     all = Mix.Dep.load_and_cache()
 
     all =
@@ -44,7 +49,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     end
 
     unless "--no-deps-loading" in args do
-      Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1))
+      Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
     end
 
     :ok

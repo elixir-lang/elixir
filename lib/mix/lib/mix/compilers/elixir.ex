@@ -165,8 +165,9 @@ defmodule Mix.Compilers.Elixir do
 
       Mix.Utils.compiling_n(length(stale), :ex)
       Mix.Project.ensure_structure()
-      true = Code.prepend_path(dest)
 
+      # We don't want to cache this path as we will write to it
+      true = Code.prepend_path(dest)
       previous_opts = set_compiler_opts(opts)
 
       try do

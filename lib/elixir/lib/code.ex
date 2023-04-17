@@ -288,10 +288,16 @@ defmodule Code do
       Code.append_path("/does_not_exist")
       #=> false
 
+  ## Options
+
+    * `:cache` - (since v1.15.0) when true, the code path is cached
+      the first time it is traversed in order to reduce file system
+      operations. It requires Erlang/OTP 26, otherwise it is a no-op.
+
   """
-  @spec append_path(Path.t()) :: true | false
-  def append_path(path) do
-    :code.add_pathz(to_charlist(Path.expand(path))) == true
+  @spec append_path(Path.t(), cache: boolean()) :: true | false
+  def append_path(path, opts \\ []) do
+    apply(:code, :add_pathz, [to_charlist(Path.expand(path)) | cache(opts)]) == true
   end
 
   @doc """
@@ -313,10 +319,16 @@ defmodule Code do
       Code.prepend_path("/does_not_exist")
       #=> false
 
+  ## Options
+
+    * `:cache` - (since v1.15.0) when true, the code path is cached
+      the first time it is traversed in order to reduce file system
+      operations. It requires Erlang/OTP 26, otherwise it is a no-op.
+
   """
-  @spec prepend_path(Path.t()) :: boolean()
-  def prepend_path(path) do
-    :code.add_patha(to_charlist(Path.expand(path))) == true
+  @spec prepend_path(Path.t(), cache: boolean()) :: boolean()
+  def prepend_path(path, opts \\ []) do
+    apply(:code, :add_patha, [to_charlist(Path.expand(path)) | cache(opts)]) == true
   end
 
   @doc """
@@ -335,11 +347,17 @@ defmodule Code do
 
       Code.prepend_paths([".", "/does_not_exist"])
       #=> :ok
+
+  ## Options
+
+    * `:cache` - when true, the code path is cached the first time
+      it is traversed in order to reduce file system operations.
+      It requires Erlang/OTP 26, otherwise it is a no-op.
   """
   @doc since: "1.15.0"
-  @spec prepend_paths([Path.t()]) :: :ok
-  def prepend_paths(paths) when is_list(paths) do
-    :code.add_pathsa(Enum.map(paths, &to_charlist(Path.expand(&1))))
+  @spec prepend_paths([Path.t()], cache: boolean()) :: :ok
+  def prepend_paths(paths, opts \\ []) when is_list(paths) do
+    apply(:code, :add_pathsa, [Enum.map(paths, &to_charlist(Path.expand(&1))) | cache(opts)])
   end
 
   @doc """
@@ -358,11 +376,25 @@ defmodule Code do
 
       Code.append_paths([".", "/does_not_exist"])
       #=> :ok
+
+  ## Options
+
+    * `:cache` - when true, the code path is cached the first time
+      it is traversed in order to reduce file system operations.
+      It requires Erlang/OTP 26, otherwise it is a no-op.
   """
   @doc since: "1.15.0"
-  @spec append_paths([Path.t()]) :: :ok
-  def append_paths(paths) when is_list(paths) do
-    :code.add_pathsz(Enum.map(paths, &to_charlist(Path.expand(&1))))
+  @spec append_paths([Path.t()], cache: boolean()) :: :ok
+  def append_paths(paths, opts \\ []) when is_list(paths) do
+    apply(:code, :add_pathsz, [Enum.map(paths, &to_charlist(Path.expand(&1))) | cache(opts)])
+  end
+
+  defp cache(opts) do
+    if function_exported?(:code, :add_path, 2) do
+      if opts[:cache], do: [:cache], else: [:nocache]
+    else
+      []
+    end
   end
 
   @doc """

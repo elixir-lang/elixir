@@ -25,6 +25,12 @@
 
 %% OTP Application API
 
+-if(?OTP_RELEASE >= 26).
+load_paths(Paths) -> code:add_pathsa(Paths, cache).
+-else.
+load_paths(Paths) -> code:add_pathsa(Paths).
+-endif.
+
 start(_Type, _Args) ->
   _ = parse_otp_release(),
   preload_common_modules(),
@@ -33,7 +39,7 @@ start(_Type, _Args) ->
 
   case init:get_argument(elixir_root) of
     {ok, [[Root]]} ->
-      code:add_pathsa([
+      load_paths([
         Root ++ "/eex/ebin",
         Root ++ "/ex_unit/ebin",
         Root ++ "/iex/ebin",
