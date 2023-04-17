@@ -38,13 +38,13 @@ defmodule GenServer do
 
         @impl true
         def handle_call(:pop, _from, state) do
-          [to_caller|new_state] = state
+          [to_caller | new_state] = state
           {:reply, to_caller, new_state}
         end
 
         @impl true
         def handle_cast({:push, element}, state) do
-          new_state = [element|state]
+          new_state = [element | state]
           {:noreply, new_state}
         end
       end
@@ -79,7 +79,7 @@ defmodule GenServer do
   Each call to `GenServer.call/3` results in a message
   that must be handled by the `c:handle_call/3` callback in the GenServer.
   A `cast/2` message must be handled by `c:handle_cast/2`. `GenServer`
-  supports 8 callbacks, but only  `c:init/1` is required.
+  supports 8 callbacks, but only `c:init/1` is required.
 
   ## Client / Server APIs
 
@@ -118,13 +118,13 @@ defmodule GenServer do
 
         @impl true
         def handle_call(:pop, _from, state) do
-          [to_caller|new_state] = state
+          [to_caller | new_state] = state
           {:reply, to_caller, new_state}
         end
 
         @impl true
         def handle_cast({:push, element}, state) do
-          new_state = [element|state]
+          new_state = [element | state]
           {:noreply, new_state}
         end
       end
