@@ -126,8 +126,8 @@ defmodule Mix.Tasks.Compile do
   def run(args) do
     Mix.Project.get!()
 
-    # Don't bother setting up the load paths because compile.all
-    # will load applications and set them up anyway.
+    # We run loadpaths to perform checks but we don't bother setting
+    # up the load paths because compile.all will manage them anyway.
     Mix.Task.run("loadpaths", ["--no-deps-loading" | args])
 
     {opts, _, _} = OptionParser.parse(args, switches: [erl_config: :string])
@@ -150,6 +150,7 @@ defmodule Mix.Tasks.Compile do
           {_app, path}, acc -> if path, do: [path | acc], else: acc
         end)
 
+      # We don't cache umbrella paths as we may write to them
       Code.prepend_paths(loaded_paths -- :code.get_path())
     end
 
@@ -173,6 +174,7 @@ defmodule Mix.Tasks.Compile do
     with true <- consolidate_protocols?,
          path = Mix.Project.consolidation_path(config),
          {:ok, protocols} <- File.ls(path) do
+      # We don't cache consolidation path as we may write to it
       Code.prepend_path(path)
       Enum.each(protocols, &load_protocol/1)
     end

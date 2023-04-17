@@ -121,7 +121,7 @@ defmodule Mix.Tasks.Archive.Install do
 
     ebin = Mix.Local.archive_ebin(dir_dest)
     Mix.Local.check_elixir_version_in_ebin(ebin)
-    true = Code.append_path(ebin)
+    true = Code.append_path(ebin, cache: true)
     :ok
   end
 

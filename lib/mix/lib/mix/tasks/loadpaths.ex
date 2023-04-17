@@ -29,10 +29,6 @@ defmodule Mix.Tasks.Loadpaths do
   def run(args) do
     config = Mix.Project.config()
 
-    unless "--no-archives-check" in args do
-      Mix.Task.run("archive.check", args)
-    end
-
     # --from-mix-deps-compile is used only internally to avoid
     # recursively checking and loading dependencies that have
     # already been loaded. It has no purpose from Mix.CLI
@@ -62,6 +58,7 @@ defmodule Mix.Tasks.Loadpaths do
       _ -> :ok
     end
 
+    # We don't cache the current application as we may still write to it
     Code.prepend_path(Mix.Project.compile_path(config))
   end
 

@@ -413,10 +413,36 @@ defmodule Code.SyncTest do
 
   import PathHelpers
 
+  if :erlang.system_info(:otp_release) >= ~c"26" do
+    defp assert_cached(path) do
+      assert find_path(path) != :nocache
+    end
+
+    defp refute_cached(path) do
+      assert find_path(path) == :nocache
+    end
+
+    defp find_path(path) do
+      {:status, _, {:module, :code_server}, [_, :running, _, _, state]} =
+        :sys.get_status(:code_server)
+
+      [:state, _, _otp_root, paths | _] = Tuple.to_list(state)
+      {_, value} = List.keyfind(paths, to_charlist(path), 0)
+      value
+    end
+  else
+    defp assert_cached(_path), do: :ok
+    defp refute_cached(_path), do: :ok
+  end
+
   test "prepend_path" do
     path = Path.join(__DIR__, "fixtures")
     true = Code.prepend_path(path)
     assert to_charlist(path) in :code.get_path()
+    refute_cached(path)
+
+    true = Code.prepend_path(path, cache: true)
+    assert_cached(path)
 
     Code.delete_path(path)
     refute to_charlist(path) in :code.get_path()
@@ -426,6 +452,10 @@ defmodule Code.SyncTest do
     path = Path.join(__DIR__, "fixtures")
     true = Code.append_path(path)
     assert to_charlist(path) in :code.get_path()
+    refute_cached(path)
+
+    true = Code.append_path(path, cache: true)
+    assert_cached(path)
 
     Code.delete_path(path)
     refute to_charlist(path) in :code.get_path()
@@ -435,6 +465,10 @@ defmodule Code.SyncTest do
     path = Path.join(__DIR__, "fixtures")
     :ok = Code.prepend_paths([path])
     assert to_charlist(path) in :code.get_path()
+    refute_cached(path)
+
+    :ok = Code.prepend_paths([path], cache: true)
+    assert_cached(path)
 
     Code.delete_paths([path])
     refute to_charlist(path) in :code.get_path()
@@ -444,6 +478,10 @@ defmodule Code.SyncTest do
     path = Path.join(__DIR__, "fixtures")
     :ok = Code.append_paths([path])
     assert to_charlist(path) in :code.get_path()
+    refute_cached(path)
+
+    :ok = Code.append_paths([path], cache: true)
+    assert_cached(path)
 
     Code.delete_paths([path])
     refute to_charlist(path) in :code.get_path()

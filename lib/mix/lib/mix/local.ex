@@ -51,7 +51,7 @@ defmodule Mix.Local do
   def append_archives do
     for archive <- archives_ebins() do
       check_elixir_version_in_ebin(archive)
-      Code.append_path(archive)
+      Code.append_path(archive, cache: true)
     end
 
     :ok
@@ -70,9 +70,12 @@ defmodule Mix.Local do
 
   @doc """
   Appends Mix paths to the Erlang code path.
+
+  We don't cache them as they are rarely used and
+  they may be development paths.
   """
   def append_paths do
-    Enum.each(mix_paths(), &Code.append_path(&1))
+    Enum.each(mix_paths(), &Code.append_path/1)
   end
 
   defp mix_paths do

@@ -45,7 +45,7 @@ defmodule Mix.Tasks.Compile.All do
       Code.delete_paths(current_paths -- loaded_paths)
     end
 
-    Code.prepend_paths(loaded_paths -- current_paths)
+    Code.prepend_paths(loaded_paths -- current_paths, cache: true)
 
     result =
       if "--no-compile" in args do
@@ -66,6 +66,9 @@ defmodule Mix.Tasks.Compile.All do
       Mix.AppLoader.write_cache(app_cache, Map.new(loaded_modules))
     end
 
+    # Add the current compilation path. compile.elixir and compile.erlang
+    # will also add this path, but only if they run, so we always add it
+    # here too. Furthermore, we don't cache it as we may still write to it.
     compile_path = to_charlist(Mix.Project.compile_path())
     _ = Code.prepend_path(compile_path)
 

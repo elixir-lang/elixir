@@ -115,7 +115,8 @@ defmodule Mix.Compilers.Erlang do
 
       # Let's prepend the newly created path so compiled files
       # can be accessed still during compilation (for behaviours
-      # and what not).
+      # and what not). Note we don't want to cache this path as
+      # we will write to it.
       Code.prepend_path(Mix.Project.compile_path())
 
       {parallel, serial} =

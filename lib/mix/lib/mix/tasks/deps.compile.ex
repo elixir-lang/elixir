@@ -165,13 +165,7 @@ defmodule Mix.Tasks.Deps.Compile do
       end
 
       try do
-        options = [
-          "--from-mix-deps-compile",
-          "--no-archives-check",
-          "--no-warnings-as-errors",
-          "--no-code-path-pruning"
-        ]
-
+        options = ["--from-mix-deps-compile", "--no-warnings-as-errors", "--no-code-path-pruning"]
         res = Mix.Task.run("compile", options)
         match?({:ok, _}, res)
       catch
@@ -225,7 +219,7 @@ defmodule Mix.Tasks.Deps.Compile do
       Mix.Utils.symlink_or_copy(Path.join(dep_path, dir), Path.join(build_path, dir))
     end
 
-    Code.prepend_path(Path.join(build_path, "ebin"))
+    Code.prepend_path(Path.join(build_path, "ebin"), cache: true)
     true
   end
 
@@ -319,7 +313,7 @@ defmodule Mix.Tasks.Deps.Compile do
   defp build_structure(%Mix.Dep{opts: opts}, config) do
     config = Keyword.put(config, :deps_app_path, opts[:build])
     Mix.Project.build_structure(config, symlink_ebin: true, source: opts[:dest])
-    Code.prepend_path(Path.join(opts[:build], "ebin"))
+    Code.prepend_path(Path.join(opts[:build], "ebin"), cache: true)
   end
 
   defp old_elixir_req(config) do
