@@ -15,8 +15,15 @@ defmodule GenServer do
   they are interested in.
 
   Let's start with a code example and then explore the available callbacks.
-  Imagine we want a GenServer that works like a stack, allowing us to push
-  and pop elements:
+  Imagine we want to implement a service with a GenServer that works
+  like a stack, allowing us to push and pop elements. We'll customize a
+  generic GenServer with our own module by implementing three callbacks.
+
+  `c:init/1` transforms our initial argument to the initial state for the
+  GenServer. `c:handle_call/3` fires when the server receives a synchronous
+  `pop` message, popping an element from the stack and returning it to the
+  user. `c:handle_cast/2` will fire when the server receives an asynchronous
+  `push` message, pushing an element onto the stack:
 
       defmodule Stack do
         use GenServer
@@ -24,46 +31,55 @@ defmodule GenServer do
         # Callbacks
 
         @impl true
-        def init(stack) do
-          {:ok, stack}
+        def init(elements) do
+          initial_state = String.split(elements, ",", trim: true)
+          {:ok, initial_state}
         end
 
         @impl true
-        def handle_call(:pop, _from, [head | tail]) do
-          {:reply, head, tail}
+        def handle_call(:pop, _from, state) do
+          [to_caller | new_state] = state
+          {:reply, to_caller, new_state}
         end
 
         @impl true
         def handle_cast({:push, element}, state) do
-          {:noreply, [element | state]}
+          new_state = [element | state]
+          {:noreply, new_state}
         end
       end
 
+  We leave the process machinery of startup, message passing, and the message
+  loop to the GenServer behaviour and focus only on the stack
+  implementation. We can now use the GenServer API to interact with
+  the service by creating a process and sending it messages:
+
       # Start the server
-      {:ok, pid} = GenServer.start_link(Stack, [:hello])
+      {:ok, pid} = GenServer.start_link(Stack, "hello,world")
 
       # This is the client
       GenServer.call(pid, :pop)
-      #=> :hello
+      #=> "hello"
 
-      GenServer.cast(pid, {:push, :world})
+      GenServer.cast(pid, {:push, "elixir"})
       #=> :ok
 
       GenServer.call(pid, :pop)
-      #=> :world
+      #=> "elixir"
 
   We start our `Stack` by calling `start_link/2`, passing the module
-  with the server implementation and its initial argument (a list
-  representing the stack containing the element `:hello`). We can primarily
-  interact with the server by sending two types of messages. **call**
-  messages expect a reply from the server (and are therefore synchronous)
-  while **cast** messages do not.
+  with the server implementation and its initial argument with a
+  comma-separated list of elements. The GenServer behaviour calls the
+  `c:init/1` callback to establish the initial GenServer state. From
+  this point on, the GenServer has control so we interact with it by
+  sending two types of messages on the client. **call** messages expect
+  a reply from the server (and are therefore synchronous) while **cast**
+  messages do not.
 
-  Every time you do a `GenServer.call/3`, the client will send a message
+  Each call to `GenServer.call/3` results in a message
   that must be handled by the `c:handle_call/3` callback in the GenServer.
-  A `cast/2` message must be handled by `c:handle_cast/2`. There are 8 possible
-  callbacks to be implemented when you use a `GenServer`. The only required
-  callback is `c:init/1`.
+  A `cast/2` message must be handled by `c:handle_cast/2`. `GenServer`
+  supports 8 callbacks, but only `c:init/1` is required.
 
   ## Client / Server APIs
 
@@ -71,6 +87,7 @@ defmodule GenServer do
   friends to directly start and communicate with the server, most of the
   time we don't call the `GenServer` functions directly. Instead, we wrap
   the calls in new functions representing the public API of the server.
+  These thin wrappers are called the **client API**.
 
   Here is a better implementation of our Stack module:
 
@@ -79,7 +96,7 @@ defmodule GenServer do
 
         # Client
 
-        def start_link(default) when is_list(default) do
+        def start_link(default) when is_binary(default) do
           GenServer.start_link(__MODULE__, default)
         end
 
@@ -94,20 +111,24 @@ defmodule GenServer do
         # Server (callbacks)
 
         @impl true
-        def init(stack) do
-          {:ok, stack}
+        def init(elements) do
+          initial_state = String.split(elements, ",", trim: true)
+          {:ok, initial_state}
         end
 
         @impl true
-        def handle_call(:pop, _from, [head | tail]) do
-          {:reply, head, tail}
+        def handle_call(:pop, _from, state) do
+          [to_caller | new_state] = state
+          {:reply, to_caller, new_state}
         end
 
         @impl true
         def handle_cast({:push, element}, state) do
-          {:noreply, [element | state]}
+          new_state = [element | state]
+          {:noreply, new_state}
         end
       end
+
 
   In practice, it is common to have both server and client functions in
   the same module. If the server and/or client implementations are growing
@@ -118,24 +139,17 @@ defmodule GenServer do
   A `GenServer` is most commonly started under a supervision tree.
   When we invoke `use GenServer`, it automatically defines a `child_spec/1`
   function that allows us to start the `Stack` directly under a supervisor.
-  To start a default stack of `[:hello]` under a supervisor, one may do:
+  To start a default stack of `["hello", "world"]` under a supervisor,
+  we can do:
 
       children = [
-        {Stack, [:hello]}
+        {Stack, "hello,world"}
       ]
 
       Supervisor.start_link(children, strategy: :one_for_all)
 
-  Note you can also start it simply as `Stack`, which is the same as
-  `{Stack, []}`:
-
-      children = [
-        Stack # The same as {Stack, []}
-      ]
-
-      Supervisor.start_link(children, strategy: :one_for_all)
-
-  In both cases, `Stack.start_link/1` is always invoked.
+  Note that specifying a module `MyServer` would be the same as specifying
+  the  tuple `{MyServer, []}`.
 
   `use GenServer` also accepts a list of options which configures the
   child specification and therefore how it runs under a supervisor.
@@ -182,11 +196,11 @@ defmodule GenServer do
   For example, we could start and register our `Stack` server locally as follows:
 
       # Start the server and register it locally with name MyStack
-      {:ok, _} = GenServer.start_link(Stack, [:hello], name: MyStack)
+      {:ok, _} = GenServer.start_link(Stack, "hello", name: MyStack)
 
       # Now messages can be sent directly to MyStack
       GenServer.call(MyStack, :pop)
-      #=> :hello
+      #=> "hello"
 
   Once the server is started, the remaining functions in this module (`call/3`,
   `cast/2`, and friends) will also accept an atom, or any `{:global, ...}` or
