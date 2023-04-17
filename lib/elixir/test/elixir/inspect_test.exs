@@ -169,6 +169,7 @@ defmodule Inspect.BitStringTest do
     assert inspect(<<"john", 193, "doe">>, binaries: :as_strings) == ~s("john\\xC1doe")
     assert inspect(<<"john">>, binaries: :as_strings) == ~s("john")
     assert inspect(<<193>>, binaries: :as_strings) == ~s("\\xC1")
+    assert inspect(<<193>>, base: :hex, binaries: :as_strings) == ~s("\\xC1")
   end
 
   test "as binaries" do

@@ -4,9 +4,8 @@ defmodule Inspect.Opts do
 
   The following fields are available:
 
-    * `:base` - prints integers as `:binary`, `:octal`, `:decimal`, or `:hex`,
-      defaults to `:decimal`. When inspecting binaries any `:base` other than
-      `:decimal` implies `binaries: :as_binaries`.
+    * `:base` - prints integers and binaries as `:binary`, `:octal`, `:decimal`,
+      or `:hex`. Defaults to `:decimal`.
 
     * `:binaries` - when `:as_binaries` all binaries will be printed in bit
       syntax.
@@ -14,9 +13,9 @@ defmodule Inspect.Opts do
       When `:as_strings` all binaries will be printed as strings, non-printable
       bytes will be escaped.
 
-      When the default `:infer`, the binary will be printed as a string if it
-      is printable, otherwise in bit syntax. See `String.printable?/1` to learn
-      when a string is printable.
+      When the default `:infer`, the binary will be printed as a string if `:base`
+      is `:decimal` and if it is printable, otherwise in bit syntax. See
+      `String.printable?/1` to learn when a string is printable.
 
     * `:charlists` - when `:as_charlists` all lists will be printed as charlists,
       non-printable elements will be escaped.
@@ -32,9 +31,10 @@ defmodule Inspect.Opts do
       to pass the custom options through.
 
       It supports some pre-defined keys:
-      - `:sort_maps` (since v1.15.0) - if set to `true`, sorts key-value pairs in maps.
-        This can be helpful to make map inspection deterministic for testing,
-        especially since key order is random since OTP 26.
+
+      - `:sort_maps` (since v1.14.4) - if set to `true`, sorts key-value pairs
+        in maps. This can be helpful to make map inspection deterministic for
+        testing, given maps key order is random.
 
     * `:inspect_fun` (since v1.9.0) - a function to build algebra documents.
       Defaults to `Inspect.Opts.default_inspect_fun/0`.
