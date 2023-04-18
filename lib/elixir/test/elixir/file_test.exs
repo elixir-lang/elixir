@@ -1311,6 +1311,14 @@ defmodule FileTest do
       assert File.rm_rf(fixture) == {:ok, [fixture]}
     end
 
+    test "rm_rf with write-only subdir" do
+      dir = tmp_path("tmp")
+      subdir = Path.join(dir, "write-only")
+      File.mkdir_p!(subdir)
+      File.chmod!(subdir, 0o222)
+      assert File.rm_rf(dir) == {:ok, [dir, subdir]}
+    end
+
     test "rm_rf with unknown" do
       fixture = tmp_path("tmp.unknown")
       assert File.rm_rf(fixture) == {:ok, []}

@@ -1322,7 +1322,11 @@ defmodule File do
   defp safe_list_dir(path, major) do
     case :elixir_utils.read_link_type(path) do
       {:ok, :directory} ->
-        :file.list_dir_all(path)
+        # If we cannot read the files, try to delete it anyway
+        case :file.list_dir_all(path) do
+          {:ok, files} -> {:ok, files}
+          {:error, _} -> {:ok, :directory}
+        end
 
       {:ok, :symlink} when major == :win32 ->
         case :elixir_utils.read_file_type(path) do
