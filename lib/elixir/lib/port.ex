@@ -244,8 +244,7 @@ defmodule Port do
   end
 
   @doc """
-  Returns information about the `port`
-  (or `nil` if the port is closed).
+  Returns information about the `port` (or `nil` if the port is closed).
 
   For more information, see `:erlang.port_info/1`.
   """
