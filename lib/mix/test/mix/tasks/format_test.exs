@@ -175,6 +175,12 @@ defmodule Mix.Tasks.FormatTest do
     assert_received {:mix_shell, :info, ["The following files are not formatted" <> _]}
   end
 
+  test "raises an error if --no-exit is passed without --check-formatted" do
+    assert_raise Mix.Error, ~r"--no-exit can only be used together", fn ->
+      Mix.Tasks.Format.run(["--no-exit", "-"])
+    end
+  end
+
   test "uses inputs and configuration from .formatter.exs", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """

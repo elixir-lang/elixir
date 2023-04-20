@@ -225,6 +225,10 @@ defmodule Mix.Tasks.Format do
       IO.warn("--check-equivalent has been deprecated and has no effect")
     end
 
+    if opts[:no_exit] && !opts[:check_formatted] do
+      Mix.raise("--no-exit can only be used together with --check-formatted")
+    end
+
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(dot_formatter, [], formatter_opts, [dot_formatter])
 
