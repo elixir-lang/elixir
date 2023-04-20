@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Format do
       improvements and fixes are applied to the formatter.
 
     * `--no-exit` - only valid when used with `--check-formatted`.
-      If you don't want the mix task to fail and return a non-zero exit code,
+      Pass this if you don't want this Mix task to fail (and return a non-zero exit code),
       but still want to check for format errors and print them to the console.
 
     * `--dry-run` - does not save files after formatting.
