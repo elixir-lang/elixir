@@ -24,7 +24,7 @@ defmodule DynamicSupervisor do
 
   Once the dynamic supervisor is running, we can use it to start children
   on demand. Given the `Stack` example from the `GenServer` documentation,
-  you can use `start_child/2` with a child specification to start a `Stack`:
+  we can use `start_child/2` with a child specification to start a `Stack`:
 
       {:ok, stack1} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Stack, "hello,world})
       Stack.pop(stack1)
