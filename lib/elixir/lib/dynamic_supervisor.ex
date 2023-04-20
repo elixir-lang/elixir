@@ -22,17 +22,17 @@ defmodule DynamicSupervisor do
 
   The options given in the child specification are documented in `start_link/1`.
 
-  Once the dynamic supervisor is running, we can start children
-  with `start_child/2`, which receives a child specification:
+  Once the dynamic supervisor is running, we can use it to start children
+  on demand. Given the `Stack` example from the `GenServer` documentation,
+  you can use `start_child/2` with a child specification to start a `Stack`:
 
-      {:ok, agent1} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
-      Agent.update(agent1, &Map.put(&1, :key, "value"))
-      Agent.get(agent1, & &1)
-      #=> %{key: "value"}
+      {:ok, stack1} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Stack, "hello,world})
+      Stack.pop(stack1)
+      #=> "hello"
 
-      {:ok, agent2} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
-      Agent.get(agent2, & &1)
-      #=> %{}
+      {:ok, stack2} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Stack, "elixir,erlang"})
+      Stack.pop(stack2)
+      #=> "elixir"
 
       DynamicSupervisor.count_children(MyApp.DynamicSupervisor)
       #=> %{active: 2, specs: 2, supervisors: 0, workers: 2}
@@ -53,7 +53,7 @@ defmodule DynamicSupervisor do
 
   and:
 
-      DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
+      DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Stack, ""})
 
   You can do this:
 
@@ -67,7 +67,7 @@ defmodule DynamicSupervisor do
 
       DynamicSupervisor.start_child(
         {:via, PartitionSupervisor, {MyApp.DynamicSupervisors, self()}},
-        {Agent, fn -> %{} end}
+        {Stack, ""}
       )
 
   In the code above, we start a partition supervisor that will by default
