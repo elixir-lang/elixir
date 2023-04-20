@@ -167,6 +167,14 @@ defmodule Mix.Tasks.FormatTest do
     assert output == ""
   end
 
+  test "checks that no error is raised with --check-formatted and --no-exit" do
+    capture_io("foo( )", fn ->
+      Mix.Tasks.Format.run(["--check-formatted", "--no-exit", "-"])
+    end)
+
+    assert_received {:mix_shell, :info, ["The following files are not formatted" <> _]}
+  end
+
   test "uses inputs and configuration from .formatter.exs", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """

@@ -60,6 +60,10 @@ defmodule Mix.Tasks.Format do
       that the formatted output may differ between Elixir versions as
       improvements and fixes are applied to the formatter.
 
+    * `--no-exit` - only valid when used with `--check-formatted`.
+      If you don't want the mix task to fail and return a non-zero exit code,
+      but still want to check for format errors and print them to the console.
+
     * `--dry-run` - does not save files after formatting.
 
     * `--dot-formatter` - path to the file with formatter configuration.
@@ -174,6 +178,7 @@ defmodule Mix.Tasks.Format do
   @switches [
     check_equivalent: :boolean,
     check_formatted: :boolean,
+    no_exit: :boolean,
     dot_formatter: :string,
     dry_run: :boolean,
     stdin_filename: :string
@@ -227,7 +232,7 @@ defmodule Mix.Tasks.Format do
     |> expand_args(dot_formatter, formatter_opts_and_subs, opts)
     |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: :infinity)
     |> Enum.reduce({[], []}, &collect_status/2)
-    |> check!()
+    |> check!(opts)
   end
 
   @doc """
@@ -649,27 +654,37 @@ defmodule Mix.Tasks.Format do
     {exits, [file | not_formatted]}
   end
 
-  defp check!({[], []}) do
+  defp check!({[], []}, _task_opts) do
     :ok
   end
 
-  defp check!({[{:exit, :stdin, exception, stacktrace} | _], _not_formatted}) do
+  defp check!({[{:exit, :stdin, exception, stacktrace} | _], _not_formatted}, _task_opts) do
     Mix.shell().error("mix format failed for stdin")
     reraise exception, stacktrace
   end
 
-  defp check!({[{:exit, file, exception, stacktrace} | _], _not_formatted}) do
+  defp check!({[{:exit, file, exception, stacktrace} | _], _not_formatted}, _task_opts) do
     Mix.shell().error("mix format failed for file: #{Path.relative_to_cwd(file)}")
     reraise exception, stacktrace
   end
 
-  defp check!({_exits, [_ | _] = not_formatted}) do
-    Mix.raise("""
-    mix format failed due to --check-formatted.
+  defp check!({_exits, [_ | _] = not_formatted}, task_opts) do
+    no_exit? = Keyword.get(task_opts, :no_exit, false)
+
+    message = """
     The following files are not formatted:
 
     #{to_diffs(not_formatted)}
-    """)
+    """
+
+    if no_exit? do
+      Mix.shell().info(message)
+    else
+      Mix.raise("""
+      mix format failed due to --check-formatted.
+      #{message}
+      """)
+    end
   end
 
   defp to_diffs(files) do
