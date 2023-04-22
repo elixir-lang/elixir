@@ -983,7 +983,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.shell().flush
       purge([A, B])
 
-      # Update local existing resource
+      # Update local existing resource timestamp is not enough
+      File.touch!("lib/a.eex", {{2038, 1, 1}, {0, 0, 0}})
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+
+      File.write!("lib/a.eex", [File.read!("lib/a.eex"), ?\n])
       File.touch!("lib/a.eex", {{2038, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}

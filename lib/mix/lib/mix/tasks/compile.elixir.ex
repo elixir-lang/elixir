@@ -9,19 +9,27 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   Elixir is smart enough to recompile only files that have changed
   and their dependencies. This means if `lib/a.ex` is invoking
-  a function defined over `lib/b.ex`, whenever `lib/b.ex` changes,
-  `lib/a.ex` is also recompiled.
+  a function defined over `lib/b.ex` at compile time, whenever
+  `lib/b.ex` changes, `lib/a.ex` is also recompiled.
 
-  Note it is important to recompile a file's dependencies as
-  there are often compile time dependencies between them.
+  Note Elixir considers a file as changed if its source file has
+  changed on disk since the last compilation AND its contents are
+  no longer the same.
+
+  ## `@external_resource`
+
+  If a module depends on external files, those can be annotated
+  with the `@external_resource` module attribute. If these files
+  change, the Elixir module is automatically recompiled.
 
   ## `__mix_recompile__?/0`
 
   A module may export a `__mix_recompile__?/0` function that can
   cause the module to be recompiled using custom rules. For example,
-  `@external_resource` already adds a compile-time dependency on an
-  external file, however, to depend on a _dynamic_ list of files we
-  can do:
+  to recompile whenever a file is changed in a given directory, you
+  can use a combination of `@external_resource` for existing files
+  and a `__mix_recompile__?/0` check to verify when new entries are
+  added to the directory itself:
 
       defmodule MyModule do
         paths = Path.wildcard("*.txt")
