@@ -33,15 +33,9 @@ defmodule Mix.Compilers.Elixir do
   have changed at runtime.
   """
   def compile(manifest, srcs, dest, new_cache_key, new_parent_manifests, new_parents, opts) do
+    Mix.ensure_application!(:crypto)
     modified = Mix.Utils.last_modified(manifest)
     new_parents = :ordsets.from_list(new_parents)
-
-    digester =
-      if Code.ensure_loaded?(:crypto) do
-        &blake_digest/1
-      else
-        &md5_digest/1
-      end
 
     # We fetch the time from before we read files so any future
     # change to files are still picked up by the compiler. This
@@ -146,8 +140,7 @@ defmodule Mix.Compilers.Elixir do
           removed,
           Map.merge(stale_modules, removed_modules),
           Map.merge(stale_exports, removed_modules),
-          dest,
-          digester
+          dest
         )
       end
 
@@ -172,7 +165,7 @@ defmodule Mix.Compilers.Elixir do
 
       try do
         state = {[], exports, sources, modules, removed_modules}
-        compiler_loop(stale, stale_modules, dest, timestamp, opts, state, digester)
+        compiler_loop(stale, stale_modules, dest, timestamp, opts, state)
       else
         {:ok, info, state} ->
           {modules, _exports, sources, pending_modules, _pending_exports} = state
@@ -338,8 +331,7 @@ defmodule Mix.Compilers.Elixir do
          removed,
          stale_modules,
          stale_exports,
-         dest,
-         digester
+         dest
        ) do
     {modules_to_recompile, modules_to_mix_check} =
       for module(module: module, recompile?: recompile?) <- all_modules, reduce: {[], []} do
@@ -401,7 +393,7 @@ defmodule Mix.Compilers.Elixir do
             Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
             Enum.any?(external, &stale_external?(&1, modified, sources_stats)) or
             (last_mtime > modified and
-               (missing_beam_file?(dest, modules) or digest != digester.(source))),
+               (missing_beam_file?(dest, modules) or digest != digest(source))),
           do: source
 
     changed = new_paths ++ changed
@@ -445,17 +437,13 @@ defmodule Mix.Compilers.Elixir do
     end)
   end
 
-  defp blake_digest(file) do
+  defp digest(file) do
     contents = File.read!(file)
 
     case :erlang.system_info(:wordsize) do
       8 -> :crypto.hash(:blake2b, contents)
       _ -> :crypto.hash(:blake2s, contents)
     end
-  end
-
-  defp md5_digest(file) do
-    file |> File.read!() |> :erlang.md5()
   end
 
   defp set_compiler_opts(opts) do
@@ -926,7 +914,7 @@ defmodule Mix.Compilers.Elixir do
   ## Compiler loop
   # The compiler is invoked in a separate process so we avoid blocking its main loop.
 
-  defp compiler_loop(stale, stale_modules, dest, timestamp, opts, state, digester) do
+  defp compiler_loop(stale, stale_modules, dest, timestamp, opts, state) do
     ref = make_ref()
     parent = self()
     threshold = opts[:long_compilation_threshold] || 10
@@ -960,7 +948,7 @@ defmodule Mix.Compilers.Elixir do
         send(parent, {ref, response})
       end)
 
-    compiler_loop(ref, pid, state, digester, File.cwd!())
+    compiler_loop(ref, pid, state, File.cwd!())
   end
 
   defp compiler_call(parent, ref, info) do
@@ -971,19 +959,19 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp compiler_loop(ref, pid, state, digester, cwd) do
+  defp compiler_loop(ref, pid, state, cwd) do
     receive do
       {^ref, {:each_cycle, stale_modules, dest, timestamp}} ->
         {response, state} = each_cycle(stale_modules, dest, timestamp, state)
         send(pid, {ref, response})
-        compiler_loop(ref, pid, state, digester, cwd)
+        compiler_loop(ref, pid, state, cwd)
 
       {^ref, {:each_file, file, lexical, verbose}} ->
         # Read the relevant file information and unblock the compiler
         references = Kernel.LexicalTracker.references(lexical)
         send(pid, {ref, :ok})
-        state = each_file(file, references, verbose, state, digester, cwd)
-        compiler_loop(ref, pid, state, digester, cwd)
+        state = each_file(file, references, verbose, state, cwd)
+        compiler_loop(ref, pid, state, cwd)
 
       {^ref, {:each_module, file, module, timestamp}} ->
         # Read the relevant module information and unblock the compiler
@@ -992,7 +980,7 @@ defmodule Mix.Compilers.Elixir do
         new_export = exports_md5(module, true)
         send(pid, {ref, :ok})
         state = each_module(file, module, kind, external, new_export, state, timestamp, cwd)
-        compiler_loop(ref, pid, state, digester, cwd)
+        compiler_loop(ref, pid, state, cwd)
 
       {^ref, {:ok, _modules, info}} ->
         {:ok, info, state}
@@ -1053,7 +1041,7 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp each_file(file, references, verbose, state, digester, cwd) do
+  defp each_file(file, references, verbose, state, cwd) do
     {compile_references, export_references, runtime_references, compile_env} = references
     {modules, exports, sources, pending_modules, pending_exports} = state
 
@@ -1077,7 +1065,7 @@ defmodule Mix.Compilers.Elixir do
       source(
         source,
         # We preserve the digest if the file is recompiled but not changed
-        digest: source(source, :digest) || digester.(file),
+        digest: source(source, :digest) || digest(file),
         compile_references: compile_references,
         export_references: export_references,
         runtime_references: runtime_references,
