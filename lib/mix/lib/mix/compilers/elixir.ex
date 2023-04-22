@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 17
+  @manifest_vsn 18
   @checkpoint_vsn 2
 
   import Record
@@ -393,7 +393,7 @@ defmodule Mix.Compilers.Elixir do
             Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
             Enum.any?(external, &stale_external?(&1, modified, sources_stats)) or
             (last_mtime > modified and
-               (missing_beam_file?(dest, modules) or digest != digest(source))),
+               (missing_beam_file?(dest, modules) or digest != digest_file!(source))),
           do: source
 
     changed = new_paths ++ changed
@@ -420,10 +420,10 @@ defmodule Mix.Compilers.Elixir do
     {modules, exports, changed, sources_stats}
   end
 
-  defp stale_external?({external, existed?}, modified, sources_stats) do
+  defp stale_external?({external, digest}, modified, sources_stats) do
     case sources_stats do
-      %{^external => {0, 0}} -> existed?
-      %{^external => {mtime, _}} -> mtime > modified
+      %{^external => {0, 0}} -> digest != nil
+      %{^external => {mtime, _}} -> mtime > modified and digest != digest_file!(external)
     end
   end
 
@@ -437,9 +437,11 @@ defmodule Mix.Compilers.Elixir do
     end)
   end
 
-  defp digest(file) do
-    contents = File.read!(file)
+  defp digest_file!(file) do
+    file |> File.read!() |> digest_contents()
+  end
 
+  defp digest_contents(contents) do
     case :erlang.system_info(:wordsize) do
       8 -> :crypto.hash(:blake2b, contents)
       _ -> :crypto.hash(:blake2s, contents)
@@ -1065,7 +1067,7 @@ defmodule Mix.Compilers.Elixir do
       source(
         source,
         # We preserve the digest if the file is recompiled but not changed
-        digest: source(source, :digest) || digest(file),
+        digest: source(source, :digest) || digest_file!(file),
         compile_references: compile_references,
         export_references: export_references,
         runtime_references: runtime_references,
@@ -1149,7 +1151,10 @@ defmodule Mix.Compilers.Elixir do
 
   defp process_external_resources(external, cwd) do
     for file <- external do
-      {Path.relative_to(file, cwd), File.exists?(file)}
+      case File.read(file) do
+        {:ok, binary} -> {Path.relative_to(file, cwd), digest_contents(binary)}
+        {:error, _} -> {Path.relative_to(file, cwd), nil}
+      end
     end
   end
 end
