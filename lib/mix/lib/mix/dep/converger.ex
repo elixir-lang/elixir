@@ -108,7 +108,7 @@ defmodule Mix.Dep.Converger do
     use_remote? = !!remote and Enum.any?(deps, &remote.remote?/1)
 
     if not diverged? and use_remote? do
-      # Make sure there are no cycles before calling remote converge
+      # Make sure there are no cycles before calling the remote converger
       topological_sort(deps)
 
       # If there is a lock, it means we are doing a get/update

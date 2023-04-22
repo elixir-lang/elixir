@@ -146,7 +146,7 @@ defmodule Mix.Tasks.Compile do
       loaded_paths =
         Mix.Project.apps_paths(config)
         |> Map.keys()
-        |> Mix.AppLoader.load_apps(Mix.Dep.cached(), config, false, [], fn
+        |> Mix.AppLoader.load_apps(Mix.Dep.cached(), config, [], fn
           {_app, path}, acc -> if path, do: [path | acc], else: acc
         end)
 
