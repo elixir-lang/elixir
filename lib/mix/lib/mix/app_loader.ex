@@ -52,51 +52,43 @@ defmodule Mix.AppLoader do
   end
 
   @doc """
-  Loads the given application from `ebin_path`.
-
-  Returns either `{:ok, children}` or `{:error, message}`.
+  Loads the given app from path in an optimized format and returns its contents.
   """
-  def load_app(app, ebin_path, validate_compile_env?) do
-    if Application.spec(app, :vsn) do
-      {:ok, children(app)}
-    else
-      with true <- ebin_path != nil,
-           {:ok, bin} <- File.read(app_join(ebin_path, app, ~c".app")),
-           {:ok, {:application, _, properties} = application_data} <- consult_app_file(bin),
-           :ok <- :application.load(application_data) do
-        with [_ | _] = compile_env <- validate_compile_env? && properties[:compile_env],
-             {:error, message} <- Config.Provider.validate_compile_env(compile_env, false) do
-          {:error, message}
+  def load_app(app, app_path) do
+    case File.read(app_path) do
+      {:ok, bin} ->
+        with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(bin)),
+             {:ok, {:application, ^app, properties} = app_data} <- :erl_parse.parse_term(tokens),
+             :ok <- ensure_loaded(app_data) do
+          {:ok, properties}
         else
-          _ -> {:ok, children(app)}
+          _ -> :invalid
         end
-      else
-        # Optional applications won't be available
-        _ -> {:ok, []}
-      end
+
+      {:error, _} ->
+        :missing
+    end
+  end
+
+  defp ensure_loaded(app_data) do
+    case :application.load(app_data) do
+      :ok -> :ok
+      {:error, {:already_loaded, _}} -> :ok
+      {:error, error} -> {:error, error}
     end
   end
 
   @doc """
   Loads the given applications.
   """
-  def load_apps(apps, deps, config, validate_compile_env?, acc, fun) do
+  def load_apps(apps, deps, config, acc, fun) do
     lib_path = to_charlist(Path.join(Mix.Project.build_path(config), "lib"))
     deps_children = for dep <- deps, into: %{}, do: {dep.app, Enum.map(dep.deps, & &1.app)}
-    deps_paths = for dep <- deps, into: %{}, do: {dep.app, {:lib, lib_path}}
     builtin_paths = Mix.State.builtin_apps()
-    paths = Map.merge(builtin_paths, deps_paths)
 
-    ref = make_ref()
-    parent = self()
-    opts = [ordered: false, timeout: :infinity]
-
-    stream =
-      (extra_apps(config) ++ apps)
-      |> stream_apps(deps_children, paths, ref)
-      |> Task.async_stream(&load_stream_app(&1, ref, parent, validate_compile_env?), opts)
-
-    Enum.reduce(stream, acc, fn {:ok, res}, acc -> fun.(res, acc) end)
+    (extra_apps(config) ++ apps)
+    |> traverse_apps(%{}, deps_children, builtin_paths, lib_path)
+    |> Enum.reduce(acc, fun)
   end
 
   defp extra_apps(config) do
@@ -106,60 +98,47 @@ defmodule Mix.AppLoader do
     end
   end
 
-  defp load_stream_app({app, app_path}, ref, parent, validate_compile_env?) do
-    ebin_path = app_path_to_ebin_path(app, app_path)
-    send(parent, {ref, app, load_app(app, ebin_path, validate_compile_env?)})
-    {app, ebin_path}
-  end
-
-  defp stream_apps(initial, deps_children, paths, ref) do
-    Stream.unfold({initial, %{}, %{}, deps_children, paths, ref}, &stream_app/1)
-  end
-
   # We already processed this app, skip it.
-  defp stream_app({[app | apps], seen, done, deps_children, paths, ref})
+  defp traverse_apps([app | apps], seen, deps_children, builtin_paths, lib_path)
        when is_map_key(seen, app) do
-    stream_app({apps, seen, done, deps_children, paths, ref})
+    traverse_apps(apps, seen, deps_children, builtin_paths, lib_path)
   end
 
   # We haven't processed this app, emit it.
-  defp stream_app({[app | apps], seen, done, deps_children, paths, ref}) do
-    {{app, paths[app]}, {apps, Map.put(seen, app, true), done, deps_children, paths, ref}}
+  defp traverse_apps([app | apps], seen, deps_children, builtin_paths, lib_path) do
+    {ebin_path, dep_children} =
+      case deps_children do
+        %{^app => dep_children} -> {app_join(lib_path, app, ~c"/ebin"), dep_children}
+        _ -> {builtin_paths[app], []}
+      end
+
+    app_children =
+      if Application.spec(app, :vsn) do
+        app_children(app)
+      else
+        with true <- ebin_path != nil,
+             {:ok, _} <- load_app(app, app_join(ebin_path, app, ~c".app")) do
+          app_children(app)
+        else
+          # Optional applications won't be available
+          _ -> []
+        end
+      end
+
+    children = (dep_children -- app_children) ++ app_children
+    seen = Map.put(seen, app, true)
+    apps = children ++ apps
+    [{app, ebin_path} | traverse_apps(apps, seen, deps_children, builtin_paths, lib_path)]
   end
 
-  # We have processed all apps and all seen have been done.
-  defp stream_app({[], seen, done, _deps_children, _paths, _ref})
-       when map_size(seen) == map_size(done) do
-    nil
+  # We have processed all apps.
+  defp traverse_apps([], _seen, _deps_children, _builtin_paths, _lib_path) do
+    []
   end
 
-  # We have processed all apps but there is work being done.
-  defp stream_app({[], seen, done, deps_children, paths, ref}) do
-    receive do
-      {^ref, app, {:ok, children}} ->
-        dep_children = Map.get(deps_children, app, [])
-        children = (dep_children -- children) ++ children
-        stream_app({children, seen, Map.put(done, app, true), deps_children, paths, ref})
-
-      {^ref, _app, {:error, message}} ->
-        Mix.raise(message)
-    end
-  end
-
-  defp children(app) do
+  defp app_children(app) do
     Application.spec(app, :applications) ++ Application.spec(app, :included_applications)
   end
 
-  defp app_path_to_ebin_path(app, {:lib, lib_path}), do: app_join(lib_path, app, ~c"/ebin")
-  defp app_path_to_ebin_path(_app, {:ebin, ebin_path}), do: ebin_path
-  defp app_path_to_ebin_path(_app, nil), do: nil
-
   defp app_join(path, app, suffix), do: path ++ ~c"/" ++ Atom.to_charlist(app) ++ suffix
-
-  defp consult_app_file(bin) do
-    # The path could be located in an .ez archive, so we use the prim loader.
-    with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(bin)) do
-      :erl_parse.parse_term(tokens)
-    end
-  end
 end

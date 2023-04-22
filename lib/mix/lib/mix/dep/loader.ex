@@ -411,14 +411,14 @@ defmodule Mix.Dep.Loader do
   end
 
   defp app_status(app_path, app, req) do
-    case :file.consult(app_path) do
-      {:ok, [{:application, ^app, config}]} ->
-        case List.keyfind(config, :vsn, 0) do
+    case Mix.AppLoader.load_app(app, app_path) do
+      {:ok, properties} ->
+        case List.keyfind(properties, :vsn, 0) do
           {:vsn, actual} when is_list(actual) ->
             actual = IO.iodata_to_binary(actual)
 
             case vsn_match(req, actual, app) do
-              {:ok, true} -> {:ok, actual}
+              {:ok, true} -> compile_env_status(actual, properties)
               {:ok, false} -> {:nomatchvsn, actual}
               {:error, error} -> {error, actual}
             end
@@ -430,14 +430,23 @@ defmodule Mix.Dep.Loader do
             {:invalidvsn, nil}
         end
 
-      {:ok, _} ->
+      :invalid ->
         {:invalidapp, app_path}
 
-      {:error, _} ->
+      :missing ->
         case Path.wildcard(Path.join(Path.dirname(app_path), "*.app")) do
           [other_app_path] -> {:noappfile, {app_path, other_app_path}}
           _ -> {:noappfile, {app_path, nil}}
         end
+    end
+  end
+
+  defp compile_env_status(vsn, properties) do
+    with [_ | _] = compile_env <- properties[:compile_env],
+         false <- Config.Provider.valid_compile_env?(compile_env) do
+      :compile
+    else
+      _ -> {:ok, vsn}
     end
   end
 end

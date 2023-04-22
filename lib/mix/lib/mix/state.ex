@@ -107,7 +107,7 @@ defmodule Mix.State do
       builtin_apps =
         for path <- builtin_apps,
             app = app_from_code_path(path),
-            do: {app, {:ebin, path}},
+            do: {app, path},
             into: %{}
 
       {:reply, builtin_apps, %{state | builtin_apps: builtin_apps}}

@@ -274,6 +274,17 @@ defmodule Config.Provider do
   end
 
   @doc false
+  def valid_compile_env?(compile_env) do
+    Enum.all?(compile_env, fn {app, [key | path], compile_return} ->
+      try do
+        traverse_env(Application.fetch_env(app, key), path) == compile_return
+      rescue
+        _ -> false
+      end
+    end)
+  end
+
+  @doc false
   def validate_compile_env(compile_env, ensure_loaded? \\ true)
 
   def validate_compile_env([{app, [key | path], compile_return} | compile_env], ensure_loaded?) do
