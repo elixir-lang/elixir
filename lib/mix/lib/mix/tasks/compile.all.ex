@@ -27,14 +27,12 @@ defmodule Mix.Tasks.Compile.All do
     # from archives will be removed from the code path.
     deps = Mix.Dep.cached()
     apps = project_apps(config)
-    validate_compile_env? = "--no-validate-compile-env" not in args
 
     {loaded_paths, loaded_modules} =
-      Mix.AppLoader.load_apps(apps, deps, config, validate_compile_env?, {[], []}, fn
-        {app, path}, {paths, mods} ->
-          paths = if path, do: [path | paths], else: paths
-          mods = if app_cache, do: [{app, Application.spec(app, :modules)} | mods], else: mods
-          {paths, mods}
+      Mix.AppLoader.load_apps(apps, deps, config, {[], []}, fn {app, path}, {paths, mods} ->
+        paths = if path, do: [path | paths], else: paths
+        mods = if app_cache, do: [{app, Application.spec(app, :modules)} | mods], else: mods
+        {paths, mods}
       end)
 
     # We compute the diff as that will be more efficient
@@ -73,8 +71,12 @@ defmodule Mix.Tasks.Compile.All do
     _ = Code.prepend_path(compile_path)
 
     unless "--no-app-loading" in args do
-      with {:error, message} <-
-             Mix.AppLoader.load_app(config[:app], compile_path, validate_compile_env?) do
+      app = config[:app]
+
+      with {:ok, properties} <- Mix.AppLoader.load_app(app, "#{compile_path}/#{app}.app"),
+           false <- "--no-validate-compile-env" in args,
+           [_ | _] = compile_env <- properties[:compile_env],
+           {:error, message} <- Config.Provider.validate_compile_env(compile_env, false) do
         Mix.raise(message)
       end
     end

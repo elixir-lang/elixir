@@ -57,6 +57,18 @@ defmodule Mix.Tasks.DepsTest do
     end
   end
 
+  defmodule RawRepoDep do
+    def project do
+      [
+        app: :raw_sample,
+        version: "0.1.0",
+        deps: [
+          {:raw_repo, "0.1.0", path: "custom/raw_repo"}
+        ]
+      ]
+    end
+  end
+
   ## deps
 
   test "prints list of dependencies and their status" do
@@ -414,18 +426,6 @@ defmodule Mix.Tasks.DepsTest do
 
   ## Deps environment
 
-  defmodule DepsEnvApp do
-    def project do
-      [
-        app: :raw_sample,
-        version: "0.1.0",
-        deps: [
-          {:raw_repo, "0.1.0", path: "custom/raw_repo"}
-        ]
-      ]
-    end
-  end
-
   defmodule CustomDepsEnvApp do
     def project do
       [
@@ -440,7 +440,7 @@ defmodule Mix.Tasks.DepsTest do
 
   test "sets deps env to prod by default" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(DepsEnvApp)
+      Mix.Project.push(RawRepoDep)
 
       Mix.Tasks.Deps.Update.run(["--all"])
       assert_received {:mix_shell, :info, [":raw_repo env is prod"]}
@@ -773,6 +773,41 @@ defmodule Mix.Tasks.DepsTest do
       Mix.Tasks.Deps.run([])
       refute_received {:mix_shell, :info, [^msg]}
     end)
+  end
+
+  test "checks if compile env changed" do
+    in_fixture("deps_status", fn ->
+      Mix.Project.push(RawRepoDep)
+      Mix.Tasks.Deps.Loadpaths.run([])
+      assert_receive {:mix_shell, :info, ["Generated raw_repo app"]}
+      assert Application.spec(:raw_repo, :vsn)
+
+      File.mkdir_p!("config")
+
+      File.write!("config/config.exs", """
+      import Config
+      config :raw_repo, :compile_env, :new_value
+      """)
+
+      Application.unload(:raw_repo)
+      Mix.ProjectStack.pop()
+      Mix.Task.clear()
+      Mix.Project.push(RawRepoDep)
+      purge([RawRepo])
+      Mix.Tasks.Loadconfig.load_compile("config/config.exs")
+
+      Mix.Tasks.Deps.run([])
+
+      assert_receive {:mix_shell, :info,
+                      ["  the dependency build is outdated, please run \"mix deps.compile\""]}
+
+      Mix.Tasks.Deps.Loadpaths.run([])
+
+      assert_receive {:mix_shell, :info, ["Generated raw_repo app"]}
+      assert Application.spec(:raw_repo, :vsn)
+    end)
+  after
+    Application.delete_env(:raw_repo, :compile_env, persistent: true)
   end
 
   defmodule NonCompilingDeps do

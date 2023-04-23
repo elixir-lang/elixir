@@ -593,7 +593,7 @@ defmodule Mix do
   """
   def ensure_application!(app) when is_atom(app) do
     case Mix.State.builtin_apps() do
-      %{^app => {:ebin, path}} ->
+      %{^app => path} ->
         Code.prepend_path(path, cache: true)
 
       %{} ->
