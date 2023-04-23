@@ -23,16 +23,28 @@ defmodule DynamicSupervisor do
   The options given in the child specification are documented in `start_link/1`.
 
   Once the dynamic supervisor is running, we can use it to start children
-  on demand. Given the `Stack` example from the `GenServer` documentation,
-  we can use `start_child/2` with a child specification to start a `Stack`:
+  on demand. Given this `Counter` GenServer:
 
-      {:ok, stack1} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Stack, "hello,world})
-      Stack.pop(stack1)
-      #=> "hello"
+      defmodule Counter do
+        use GenServer
 
-      {:ok, stack2} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Stack, "elixir,erlang"})
-      Stack.pop(stack2)
-      #=> "elixir"
+        def start_link(initial), do: GenServer.start_link(__MODULE__, initial)
+        def inc(pid), do: GenServer.call(pid, :inc)
+
+        def init(initial), do: {:ok, initial}
+        def handle_call(:inc, _, count), do: {:reply, count, count + 1}
+      end
+
+  We can use `start_child/2` with a child specification to start a `Counter`
+  server:
+
+      {:ok, counter1} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Counter, 0})
+      Counter.inc(counter1)
+      #=> 0
+
+      {:ok, counter2} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Counter, 10})
+      Counter.inc(counter2)
+      #=> 10
 
       DynamicSupervisor.count_children(MyApp.DynamicSupervisor)
       #=> %{active: 2, specs: 2, supervisors: 0, workers: 2}
@@ -53,7 +65,7 @@ defmodule DynamicSupervisor do
 
   and:
 
-      DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Stack, ""})
+      DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Counter, 0})
 
   You can do this:
 
@@ -67,7 +79,7 @@ defmodule DynamicSupervisor do
 
       DynamicSupervisor.start_child(
         {:via, PartitionSupervisor, {MyApp.DynamicSupervisors, self()}},
-        {Stack, ""}
+        {Counter, 0}
       )
 
   In the code above, we start a partition supervisor that will by default
