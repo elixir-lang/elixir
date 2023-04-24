@@ -22,17 +22,39 @@ defmodule DynamicSupervisor do
 
   The options given in the child specification are documented in `start_link/1`.
 
-  Once the dynamic supervisor is running, we can start children
-  with `start_child/2`, which receives a child specification:
+  Once the dynamic supervisor is running, we can use it to start children
+  on demand. Given this sample `GenServer`:
 
-      {:ok, agent1} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
-      Agent.update(agent1, &Map.put(&1, :key, "value"))
-      Agent.get(agent1, & &1)
-      #=> %{key: "value"}
+      defmodule Counter do
+        use GenServer
 
-      {:ok, agent2} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
-      Agent.get(agent2, & &1)
-      #=> %{}
+        def start_link(initial) do
+          GenServer.start_link(__MODULE__, initial)
+        end
+
+        def inc(pid) do
+          GenServer.call(pid, :inc)
+        end
+
+        def init(initial) do
+          {:ok, initial}
+        end
+
+        def handle_call(:inc, _, count) do
+          {:reply, count, count + 1}
+        end
+      end
+
+  We can use `start_child/2` with a child specification to start a `Counter`
+  server:
+
+      {:ok, counter1} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Counter, 0})
+      Counter.inc(counter1)
+      #=> 0
+
+      {:ok, counter2} = DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Counter, 10})
+      Counter.inc(counter2)
+      #=> 10
 
       DynamicSupervisor.count_children(MyApp.DynamicSupervisor)
       #=> %{active: 2, specs: 2, supervisors: 0, workers: 2}
@@ -53,7 +75,7 @@ defmodule DynamicSupervisor do
 
   and:
 
-      DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Agent, fn -> %{} end})
+      DynamicSupervisor.start_child(MyApp.DynamicSupervisor, {Counter, 0})
 
   You can do this:
 
@@ -67,7 +89,7 @@ defmodule DynamicSupervisor do
 
       DynamicSupervisor.start_child(
         {:via, PartitionSupervisor, {MyApp.DynamicSupervisors, self()}},
-        {Agent, fn -> %{} end}
+        {Counter, 0}
       )
 
   In the code above, we start a partition supervisor that will by default
