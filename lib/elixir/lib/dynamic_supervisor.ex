@@ -23,7 +23,7 @@ defmodule DynamicSupervisor do
   The options given in the child specification are documented in `start_link/1`.
 
   Once the dynamic supervisor is running, we can use it to start children
-  on demand. Given this `Counter` GenServer:
+  on demand. Given this sample `GenServer`:
 
       defmodule Counter do
         use GenServer
