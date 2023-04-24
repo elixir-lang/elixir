@@ -237,7 +237,7 @@ defmodule Module do
   Accepts an atom, a tuple, or a list of atoms and tuples. For example:
 
       defmodule MyModule do
-        @dialyzer {:nowarn_function, my_fun: 1}
+        @dialyzer {:nowarn_function, [my_fun: 1]}
 
         def my_fun(arg) do
           M.not_a_function(arg)
