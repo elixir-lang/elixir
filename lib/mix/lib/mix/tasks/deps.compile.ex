@@ -360,7 +360,7 @@ defmodule Mix.Tasks.Deps.Compile do
         "change the arguments to Mix.install/2 to try another version"
     else
       "Errors may have been logged above. You can recompile this dependency with " <>
-        "\"mix deps.compile #{app}\", update it with \"mix deps.update #{app}\" or " <>
+        "\"mix deps.compile #{app} --force\", update it with \"mix deps.update #{app}\" or " <>
         "clean it with \"mix deps.clean #{app}\""
     end
   end
