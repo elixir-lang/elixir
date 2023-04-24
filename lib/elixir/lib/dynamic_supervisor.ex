@@ -23,16 +23,26 @@ defmodule DynamicSupervisor do
   The options given in the child specification are documented in `start_link/1`.
 
   Once the dynamic supervisor is running, we can use it to start children
-  on demand. Given this `Counter` GenServer:
+  on demand. Given this sample `GenServer`:
 
       defmodule Counter do
         use GenServer
 
-        def start_link(initial), do: GenServer.start_link(__MODULE__, initial)
-        def inc(pid), do: GenServer.call(pid, :inc)
+        def start_link(initial) do
+          GenServer.start_link(__MODULE__, initial)
+        end
 
-        def init(initial), do: {:ok, initial}
-        def handle_call(:inc, _, count), do: {:reply, count, count + 1}
+        def inc(pid) do
+          GenServer.call(pid, :inc)
+        end
+
+        def init(initial) do
+          {:ok, initial}
+        end
+
+        def handle_call(:inc, _, count) do
+          {:reply, count, count + 1}
+        end
       end
 
   We can use `start_child/2` with a child specification to start a `Counter`
