@@ -461,6 +461,7 @@ defmodule ExUnit.Case do
   for the developer to glance at each describe block and know exactly the
   setup steps involved.
   """
+  @doc since: "1.3.0"
   defmacro describe(message, do: block) do
     definition =
       quote unquote: false do
@@ -526,6 +527,7 @@ defmodule ExUnit.Case do
   display. You can use `ExUnit.plural_rule/2` to set a custom
   pluralization.
   """
+  @doc since: "1.10.0"
   def register_test(mod, file, line, test_type, name, tags) do
     unless Module.has_attribute?(mod, :ex_unit_tests) do
       raise "cannot define #{test_type}. Please make sure you have invoked " <>
@@ -596,6 +598,7 @@ defmodule ExUnit.Case do
   """
   # TODO: Deprecate on Elixir v1.17
   @doc deprecated: "Use register_test/6 instead"
+  @doc since: "1.3.0"
   def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
     register_test(mod, file, line, test_type, name, tags)
   end
@@ -628,6 +631,7 @@ defmodule ExUnit.Case do
       end
 
   """
+  @doc since: "1.3.0"
   @spec register_attribute(env, atom, keyword) :: :ok
   def register_attribute(env, name, opts \\ [])
   def register_attribute(%{module: mod}, name, opts), do: register_attribute(mod, name, opts)
