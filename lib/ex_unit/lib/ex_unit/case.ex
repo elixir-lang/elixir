@@ -337,7 +337,6 @@ defmodule ExUnit.Case do
       end
 
   """
-  @doc since: "1.0.4"
   defmacro test(message, var \\ quote(do: _), contents) do
     unless is_tuple(var) do
       IO.warn(
@@ -392,7 +391,6 @@ defmodule ExUnit.Case do
       test "this will be a test in future"
 
   """
-  @doc since: "1.1.0"
   defmacro test(message) do
     %{module: mod, file: file, line: line} = __CALLER__
 
