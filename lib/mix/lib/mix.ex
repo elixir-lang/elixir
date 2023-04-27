@@ -856,6 +856,9 @@ defmodule Mix do
                 Mix.Task.rerun("deps.get")
 
               true ->
+                # We already have a cache. If the user by any chance uninstalled Hex,
+                # we make sure it is installed back (which mix deps.get would do anyway)
+                Mix.Hex.ensure_installed?(true)
                 :ok
             end
 
