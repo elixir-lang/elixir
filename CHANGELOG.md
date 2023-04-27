@@ -5,7 +5,7 @@ This release requires Erlang/OTP 24 and later.
 Elixir v1.15 is a smaller release with focused improvements
 on compilation and boot times. This release also completes
 our integration process with Erlang/OTP logger, bringing new
-features such as log rotation and compactation out of the box.
+features such as log rotation and compaction out of the box.
 
 Finally, you will also find additional convenience functions in
 `Map`, `Keyword`, all Calendar modules, and others.
@@ -53,7 +53,7 @@ TODO.
 ## Integration with Erlang/OTP logger
 
 This provides additional features such as global logger metadata and
-file logging (with rotation and compactation) out-of-the-box! See
+file logging (with rotation and compaction) out-of-the-box! See
 the `Logger` documentation for more information.
 
 TODO: Mention :console vs Logger.Backends.Console
