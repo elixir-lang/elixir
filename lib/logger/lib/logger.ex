@@ -213,25 +213,6 @@ defmodule Logger do
   built-in support for log rotation:
 
       config :logger, :default_handler,
-        config: %{
-          file: ~c"system.log",
-          filesync_repeat_interval: 5000,
-          file_check: 5000,
-          max_no_bytes: 10_000_000,
-          max_no_files: 5
-        }
-
-  While the [`:logger_std_h`](`:logger_std_h`) handler only accepts `:config`
-  as a map, `Logger` allows you to define it in the `:default_handler`
-  in your boot configuration with a keyword list. This will ***not*** work when
-  configuring [`:logger_std_h`](`:logger_std_h`) directly through Erlang APIs
-  or as an [Erlang/OTP handler](module-erlang-otp-handlers), but it allows you
-  to use the keyword list "deep merge" feature of `Config.config/3` in your
-  `:default_handler`, to override its behaviour with repeated declarations.
-  For example, to use a modified configuration during development:
-
-      # config/config.exs
-      config :logger, :default_handler,
         config: [
           file: ~c"system.log",
           filesync_repeat_interval: 5000,
@@ -239,14 +220,16 @@ defmodule Logger do
           max_no_bytes: 10_000_000,
           max_no_files: 5
         ]
-      import_config "#{config_env()}.exs"
 
-      # config/dev.exs
-      config :logger, :default_handler,
-        config: [
-          file: ~c"dev.log",
-          max_no_files: 1
-        ]
+  > #### Keywords or maps {: .tip}
+  >
+  > While Erlang's logger expects `config` to be a map, Elixir's Logger
+  > allows the default handler configuration to be set with keyword lists.
+  > This allows your `config/*.exs` files, such as `config/dev.exs`,
+  > to override individual keys defined in config/config.exs.
+  >
+  > When reading the handler configuration using Erlang's APIs,
+  > the configuration will always be read (and written) as a map.
 
   See [`:logger_std_h`](`:logger_std_h`) for all relevant configuration,
   including overload protection. Or set `:default_handler` to false to
