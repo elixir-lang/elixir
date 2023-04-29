@@ -261,6 +261,10 @@ defmodule Module do
   in case any of the external resources change, see for example:
   [`mix compile.elixir`](https://hexdocs.pm/mix/Mix.Tasks.Compile.Elixir.html).
 
+  The specified file path provided is interpreted as relative to
+  the folder containing the project's `mix.exs`, not the file where
+  `@external_resource` is declared.
+
   If the external resource does not exist, the module still has
   a dependency on it, causing the module to be recompiled as soon
   as the file is added.
