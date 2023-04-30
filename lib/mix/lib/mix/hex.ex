@@ -2,7 +2,7 @@ defmodule Mix.Hex do
   @moduledoc false
   @compile {:no_warn_undefined, Hex}
   @hex_requirement ">= 0.19.0"
-  @hex_mirror "https://builds.hex.pm"
+  @hex_builds_url "https://builds.hex.pm"
 
   @doc """
   Returns `true` if `Hex` is loaded or installed.
@@ -70,9 +70,9 @@ defmodule Mix.Hex do
   end
 
   @doc """
-  Returns the URL to the Hex mirror.
+  Returns the URL to the Hex build assets.
   """
-  def mirror do
-    System.get_env("HEX_MIRROR") || @hex_mirror
+  def url do
+    System.get_env("HEX_BUILDS_URL") || System.get_env("HEX_MIRROR") || @hex_builds_url
   end
 end
