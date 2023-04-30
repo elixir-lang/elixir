@@ -174,7 +174,7 @@ defmodule Logger do
   `config/config.exs`), under the `:logger` key, before your application
   is started:
 
-    * `:default_formatter` - a keyword lists which configures the
+    * `:default_formatter` - a keyword list which configures the
       default formatter used by the default handler. See `Logger.Formatter`
       for the full list of configuration.
 
@@ -213,13 +213,23 @@ defmodule Logger do
   built-in support for log rotation:
 
       config :logger, :default_handler,
-        config: %{
+        config: [
           file: ~c"system.log",
           filesync_repeat_interval: 5000,
           file_check: 5000,
           max_no_bytes: 10_000_000,
           max_no_files: 5
-        }
+        ]
+
+  > #### Keywords or maps {: .tip}
+  >
+  > While Erlang's logger expects `:config` to be a map, Elixir's Logger
+  > allows the default handler configuration to be set with keyword lists.
+  > For example, this allows your `config/*.exs` files, such as `config/dev.exs`,
+  > to override individual keys defined in `config/config.exs`.
+  >
+  > When reading the handler configuration using Erlang's APIs,
+  > the configuration will always be read (and written) as a map.
 
   See [`:logger_std_h`](`:logger_std_h`) for all relevant configuration,
   including overload protection. Or set `:default_handler` to false to

@@ -124,6 +124,7 @@ defmodule Logger.App do
         |> Keyword.put_new(:filter_default, :log)
         |> Keyword.put_new(:module, :logger_std_h)
         |> Keyword.put_new_lazy(:formatter, &Logger.default_formatter/0)
+        |> Keyword.replace_lazy(:config, &Map.new/1)
         |> Map.new()
 
       case :logger.add_handler(:default, config.module, config) do
