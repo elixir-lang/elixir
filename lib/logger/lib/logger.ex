@@ -223,10 +223,10 @@ defmodule Logger do
 
   > #### Keywords or maps {: .tip}
   >
-  > While Erlang's logger expects `config` to be a map, Elixir's Logger
+  > While Erlang's logger expects `:config` to be a map, Elixir's Logger
   > allows the default handler configuration to be set with keyword lists.
-  > This allows your `config/*.exs` files, such as `config/dev.exs`,
-  > to override individual keys defined in config/config.exs.
+  > For example, this allows your `config/*.exs` files, such as `config/dev.exs`,
+  > to override individual keys defined in `config/config.exs`.
   >
   > When reading the handler configuration using Erlang's APIs,
   > the configuration will always be read (and written) as a map.
