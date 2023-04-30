@@ -523,6 +523,35 @@ defmodule Mix.Tasks.FormatTest do
     end)
   end
 
+  test "uses inputs and configuration from :root path", context do
+    in_tmp(context.test, fn ->
+      File.write!(".formatter.exs", """
+      [
+        locals_without_parens: [foo: 1]
+      ]
+      """)
+
+      File.mkdir_p!("lib")
+
+      File.write!("lib/a.ex", """
+      foo bar baz
+      """)
+
+      root = File.cwd!()
+
+      {formatter_function, _options} =
+        File.cd!("lib", fn ->
+          Mix.Tasks.Format.formatter_for_file("lib/a.ex", root: root)
+        end)
+
+      assert formatter_function.("""
+             foo bar baz
+             """) == """
+             foo bar(baz)
+             """
+    end)
+  end
+
   test "reads exported configuration from subdirectories", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """

@@ -251,10 +251,12 @@ defmodule Mix.Tasks.Format do
   def formatter_for_file(file, opts \\ []) do
     {dot_formatter, formatter_opts} = eval_dot_formatter(opts)
 
-    {formatter_opts_and_subs, _sources} =
-      eval_deps_and_subdirectories(dot_formatter, [], formatter_opts, [dot_formatter])
+    prefix = Keyword.get(opts, :root, [])
 
-    find_formatter_and_opts_for_file(file, formatter_opts_and_subs)
+    {formatter_opts_and_subs, _sources} =
+      eval_deps_and_subdirectories(dot_formatter, prefix, formatter_opts, [dot_formatter])
+
+    find_formatter_and_opts_for_file(file, prefix, formatter_opts_and_subs)
   end
 
   @doc """
@@ -274,6 +276,10 @@ defmodule Mix.Tasks.Format do
 
       File.regular?(".formatter.exs") ->
         {".formatter.exs", eval_file_with_keyword_list(".formatter.exs")}
+
+      opts[:root] && File.regular?(Path.join(opts[:root], ".formatter.exs")) ->
+        dot_formatter = Path.join(opts[:root], ".formatter.exs")
+        {dot_formatter, eval_file_with_keyword_list(dot_formatter)}
 
       true ->
         {".formatter.exs", []}
@@ -578,6 +584,12 @@ defmodule Mix.Tasks.Format do
 
   defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
     split = file |> Path.relative_to_cwd() |> Path.split()
+    formatter_opts = recur_formatter_opts_for_file(split, formatter_opts_and_subs)
+    {find_formatter_for_file(file, formatter_opts), formatter_opts}
+  end
+
+  defp find_formatter_and_opts_for_file(file, prefix, formatter_opts_and_subs) do
+    split = file |> Path.relative_to(prefix) |> Path.split()
     formatter_opts = recur_formatter_opts_for_file(split, formatter_opts_and_subs)
     {find_formatter_for_file(file, formatter_opts), formatter_opts}
   end
