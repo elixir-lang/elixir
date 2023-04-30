@@ -182,6 +182,7 @@ TODO: Mention :console vs Logger.Backends.Console
 
   * [Mix.Project] `:preferred_cli_env` is deprecated in favor of `:preferred_envs` in `def cli`
   * [Mix.Project] `:preferred_cli_target` is deprecated in favor of `:preferred_targets` in `def cli`
+  * [mix local] The environment variable `HEX_MIRROR` is deprecated in favor of `HEX_BUILDS_URL`
 
 ### 4. Hard deprecations
 

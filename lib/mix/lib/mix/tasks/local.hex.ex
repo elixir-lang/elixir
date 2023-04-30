@@ -33,8 +33,8 @@ defmodule Mix.Tasks.Local.Hex do
 
   ## Mirrors
 
-  If you want to change the [default mirror](https://repo.hex.pm)
-  used for fetching Hex, set the `HEX_MIRROR` environment variable.
+  If you want to change the [default mirror](https://builds.hex.pm)
+  used for fetching Hex, set the `HEX_BUILDS_URL` environment variable.
   """
   @switches [if_missing: :boolean, force: :boolean]
 
@@ -66,17 +66,17 @@ defmodule Mix.Tasks.Local.Hex do
   end
 
   defp run_install(version, argv) do
-    hex_mirror = Mix.Hex.mirror()
+    hex_url = Mix.Hex.url()
 
     {elixir_version, hex_version, sha512} =
       Mix.Local.find_matching_versions_from_signed_csv!(
         "Hex",
         version,
-        hex_mirror <> @hex_list_path
+        hex_url <> @hex_list_path
       )
 
     url =
-      (hex_mirror <> @hex_archive_path)
+      (hex_url <> @hex_archive_path)
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[HEX_VERSION]", hex_version)
 

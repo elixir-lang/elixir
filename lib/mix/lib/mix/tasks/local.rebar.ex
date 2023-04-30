@@ -34,8 +34,8 @@ defmodule Mix.Tasks.Local.Rebar do
 
   ## Mirrors
 
-  If you want to change the [default mirror](https://repo.hex.pm)
-  to use for fetching `rebar` please set the `HEX_MIRROR` environment variable.
+  If you want to change the [default mirror](https://builds.hex.pm)
+  to use for fetching `rebar` please set the `HEX_BUILDS_URL` environment variable.
   """
 
   @switches [force: :boolean, sha512: :string, if_missing: :boolean]
@@ -107,14 +107,14 @@ defmodule Mix.Tasks.Local.Rebar do
   end
 
   defp install_from_s3(manager, list_url, escript_url, opts) do
-    hex_mirror = Mix.Hex.mirror()
-    list_url = hex_mirror <> list_url
+    hex_url = Mix.Hex.url()
+    list_url = hex_url <> list_url
 
     {elixir_version, rebar_version, sha512} =
       Mix.Local.find_matching_versions_from_signed_csv!("Rebar", _version = nil, list_url)
 
     url =
-      (hex_mirror <> escript_url)
+      (hex_url <> escript_url)
       |> String.replace("[ELIXIR_VERSION]", elixir_version)
       |> String.replace("[REBAR_VERSION]", rebar_version)
 
