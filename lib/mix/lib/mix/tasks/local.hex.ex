@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Local.Hex do
 
   ## Mirrors
 
-  If you want to change the [default mirror](https://repo.hex.pm)
+  If you want to change the [default mirror](https://builds.hex.pm)
   used for fetching Hex, set the `HEX_MIRROR` environment variable.
   """
   @switches [if_missing: :boolean, force: :boolean]

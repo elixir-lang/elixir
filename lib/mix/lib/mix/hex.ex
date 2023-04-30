@@ -2,7 +2,7 @@ defmodule Mix.Hex do
   @moduledoc false
   @compile {:no_warn_undefined, Hex}
   @hex_requirement ">= 0.19.0"
-  @hex_mirror "https://repo.hex.pm"
+  @hex_mirror "https://builds.hex.pm"
 
   @doc """
   Returns `true` if `Hex` is loaded or installed.

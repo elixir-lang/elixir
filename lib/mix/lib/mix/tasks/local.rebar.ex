@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Local.Rebar do
 
   ## Mirrors
 
-  If you want to change the [default mirror](https://repo.hex.pm)
+  If you want to change the [default mirror](https://builds.hex.pm)
   to use for fetching `rebar` please set the `HEX_MIRROR` environment variable.
   """
 
