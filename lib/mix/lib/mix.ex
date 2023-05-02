@@ -179,6 +179,15 @@ defmodule Mix do
   missing environment variable. Luckily, Mix also provides runtime
   configuration, which should be preferred and we will see next.
 
+  > #### Avoiding system environment for build configuration {: .warning}
+  >
+  > Be careful if you can't use runtime configuration for values that change
+  > based on the environment. Once the code compiles with one value, Mix will
+  > recompile it only if the config files change because there's nothing that
+  > detects changes in the environment. Changes to the environment after a
+  > successful build directory can cause issues on further commands, as seen
+  > [here](https://github.com/elixir-lang/elixir/issues/12411)
+
   ### Runtime configuration
 
   To enable runtime configuration in your release, all you need to do is
