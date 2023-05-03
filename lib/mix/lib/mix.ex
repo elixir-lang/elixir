@@ -176,17 +176,11 @@ defmodule Mix do
   machine before your code compiles. This can be an issue if the machine
   compiling your code does not have access to all environment variables
   used to run your code, as loading the config above will fail due to the
-  missing environment variable. Luckily, Mix also provides runtime
-  configuration, which should be preferred and we will see next.
-
-  > #### Avoiding system environment for build configuration {: .warning}
-  >
-  > Be careful if you can't use runtime configuration for values that change
-  > based on the environment. Once the code compiles with one value, Mix will
-  > recompile it only if the config files change, because there's nothing that
-  > detects changes in the environment. Changes to the environment after a
-  > successful build directory can cause issues on further commands, as seen
-  > [in this issue](https://github.com/elixir-lang/elixir/issues/12411).
+  missing environment variable. Furthermore, even if the environment variable
+  is set, changing the environment variable will require a full recompilation
+  of your application by calling `mix compile --force` (otherwise your project
+  won't start). Luckily, Mix also provides runtime configuration, which is
+  preferred in such cases and we will see next.
 
   ### Runtime configuration
 
