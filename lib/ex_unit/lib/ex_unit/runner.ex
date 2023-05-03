@@ -309,7 +309,7 @@ defmodule ExUnit.Runner do
 
       result =
         try do
-          {:ok, module.__ex_unit__(:setup_all, %{module: module, case: module})}
+          {:ok, module.__ex_unit__(:setup_all, test_module.tags)}
         catch
           kind, error ->
             failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))

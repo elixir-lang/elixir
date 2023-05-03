@@ -42,8 +42,14 @@ defmodule ExUnit.CaseTest do
     assert is_nil(context[:world])
   end
 
+  # tags are passed to setup_all
+  setup_all context do
+    %{moduletag_from_setup_all: context[:moduletag]}
+  end
+
   test "module tags", context do
     assert context[:moduletag] == true
+    assert context[:moduletag_from_setup_all] == true
   end
 
   @tag moduletag: :overridden

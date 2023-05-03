@@ -491,9 +491,23 @@ defmodule ExUnit.Case do
       |> Enum.reverse()
       |> Macro.escape()
 
+    moduletag = Module.get_attribute(env.module, :moduletag)
+
+    tags =
+      moduletag
+      |> normalize_tags()
+      |> validate_tags()
+      |> Map.new()
+      |> Map.merge(%{module: env.module, case: env.module})
+
     quote do
       def __ex_unit__ do
-        %ExUnit.TestModule{file: __ENV__.file, name: __MODULE__, tests: unquote(tests)}
+        %ExUnit.TestModule{
+          file: __ENV__.file,
+          name: __MODULE__,
+          tags: unquote(Macro.escape(tags)),
+          tests: unquote(tests)
+        }
       end
     end
   end
