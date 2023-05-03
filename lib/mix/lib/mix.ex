@@ -176,8 +176,11 @@ defmodule Mix do
   machine before your code compiles. This can be an issue if the machine
   compiling your code does not have access to all environment variables
   used to run your code, as loading the config above will fail due to the
-  missing environment variable. Luckily, Mix also provides runtime
-  configuration, which should be preferred and we will see next.
+  missing environment variable. Furthermore, even if the environment variable
+  is set, changing the environment variable will require a full recompilation
+  of your application by calling `mix compile --force` (otherwise your project
+  won't start). Luckily, Mix also provides runtime configuration, which is
+  preferred in such cases and we will see next.
 
   ### Runtime configuration
 
