@@ -183,10 +183,10 @@ defmodule Mix do
   >
   > Be careful if you can't use runtime configuration for values that change
   > based on the environment. Once the code compiles with one value, Mix will
-  > recompile it only if the config files change because there's nothing that
+  > recompile it only if the config files change, because there's nothing that
   > detects changes in the environment. Changes to the environment after a
   > successful build directory can cause issues on further commands, as seen
-  > [here](https://github.com/elixir-lang/elixir/issues/12411)
+  > [in this issue](https://github.com/elixir-lang/elixir/issues/12411).
 
   ### Runtime configuration
 
