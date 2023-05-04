@@ -625,6 +625,21 @@ defmodule Module do
       behaviour: %{
         doc: "Specifies that the current module implements a given behaviour."
       },
+      enforce_keys: %{
+        doc:
+          "Ensures the given keys are always set when building the struct defined in the current module."
+      },
+      fallback_to_any: %{
+        doc:
+          "If set to `true` generates a default protocol implementation for all types (inside `defprotocol`)."
+      },
+      for: %{
+        doc:
+          "The current module/type a protocol implementation is being defined for (inside `defimpl`)."
+      },
+      protocol: %{
+        doc: "The current protocol being implemented (inside `defimpl`)."
+      },
       on_definition: %{
         doc:
           "A hook that will be invoked when each function or macro in the current module is defined."
