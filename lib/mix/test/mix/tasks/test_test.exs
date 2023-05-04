@@ -237,6 +237,11 @@ defmodule Mix.Tasks.TestTest do
         # Nothing should get run if we try it again since everything is passing.
         assert mix(["test", "--failed"]) =~ "There are no tests to run"
 
+        # When everything is passing and a file is passed, we return the proper message
+        output = mix(["test", "test/passing_and_failing_test_failed.exs", "--failed"])
+        assert output =~ "There are no tests to run"
+        refute output =~ "does not match"
+
         # `--failed` and `--stale` cannot be combined
         output = mix(["test", "--failed", "--stale"])
         assert output =~ "Combining --failed and --stale is not supported"

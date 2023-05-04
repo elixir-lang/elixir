@@ -558,13 +558,19 @@ defmodule Mix.Tasks.Test do
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
+    files_with_matched_path = Mix.Utils.extract_files(test_files, test_pattern)
+
     matched_test_files =
-      test_files
-      |> Mix.Utils.extract_files(test_pattern)
+      files_with_matched_path
       |> filter_to_allowed_files(allowed_files)
       |> filter_by_partition(shell, partitions)
 
-    display_warn_test_pattern(test_files, test_pattern, matched_test_files, warn_test_pattern)
+    display_warn_test_pattern(
+      test_files,
+      test_pattern,
+      files_with_matched_path,
+      warn_test_pattern
+    )
 
     case CT.require_and_run(matched_test_files, test_paths, test_elixirc_options, opts) do
       {:ok, %{excluded: excluded, failures: failures, total: total}} ->
@@ -593,7 +599,7 @@ defmodule Mix.Tasks.Test do
           opts[:stale] ->
             Mix.shell().info("No stale tests")
 
-          files == [] ->
+          opts[:failed] || files == [] ->
             Mix.shell().info("There are no tests to run")
 
           true ->
