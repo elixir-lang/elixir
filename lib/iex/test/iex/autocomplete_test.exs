@@ -434,12 +434,9 @@ defmodule IEx.AutocompleteTest do
 
   test "completion for map keys in update syntax" do
     eval("map = %{some: 1, other: :ok, another: \"qwe\"}")
-    # Code.Fragment.container_cursor_to_quoted returns
-    # {:%{}, [line: 1], [{:__cursor__, [line: 1], []}]}
-    # and `map` variable and map update AST is lost
-    # assert {:yes, ~c"", entries} = expand(~c"%{map | ")
-    # assert ~c"some:" in entries
-    # assert ~c"other:" in entries
+    assert {:yes, ~c"", entries} = expand(~c"%{map | ")
+    assert ~c"some:" in entries
+    assert ~c"other:" in entries
 
     assert {:yes, ~c"", entries} = expand(~c"%{map | some: \"foo\",")
     assert ~c"some:" not in entries
