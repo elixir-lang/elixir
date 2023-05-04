@@ -1783,6 +1783,8 @@ prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, [], Terminators) ->
 %%% we usually skip operators, except these contextual ones
 prune_tokens([{type_op, _, '::'} | _] = Tokens, [], [{'<<', _, _} | _] = Terminators) ->
   {Tokens, Terminators};
+prune_tokens([{pipe_op, _, '|'} | _] = Tokens, [], [{'{', _, _} | _] = Terminators) ->
+  {Tokens, Terminators};
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener, Terminators) ->
   prune_tokens(Tokens, Opener, Terminators);

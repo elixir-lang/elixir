@@ -1136,11 +1136,19 @@ defmodule CodeFragmentTest do
       assert cc2q("%{bar:") == s2q("%{__cursor__()}")
       assert cc2q("%{bar: ") == s2q("%{bar: __cursor__()}")
       assert cc2q("%{bar: baz,") == s2q("%{bar: baz, __cursor__()}")
+      assert cc2q("%{foo | ") == s2q("%{foo | __cursor__()}")
+      assert cc2q("%{foo | bar:") == s2q("%{foo | __cursor__()}")
+      assert cc2q("%{foo | bar: ") == s2q("%{foo | bar: __cursor__()}")
+      assert cc2q("%{foo | bar: baz,") == s2q("%{foo | bar: baz, __cursor__()}")
 
       assert cc2q("%Foo") == s2q("__cursor__()")
       assert cc2q("%Foo{") == s2q("%Foo{__cursor__()}")
       assert cc2q("%Foo{bar: ") == s2q("%Foo{bar: __cursor__()}")
       assert cc2q("%Foo{bar: baz,") == s2q("%Foo{bar: baz, __cursor__()}")
+      assert cc2q("%Foo{foo | ") == s2q("%Foo{foo | __cursor__()}")
+      assert cc2q("%Foo{foo | bar:") == s2q("%Foo{foo | __cursor__()}")
+      assert cc2q("%Foo{foo | bar: ") == s2q("%Foo{foo | bar: __cursor__()}")
+      assert cc2q("%Foo{foo | bar: baz,") == s2q("%Foo{foo | bar: baz, __cursor__()}")
     end
 
     test "binaries" do
