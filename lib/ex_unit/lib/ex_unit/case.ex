@@ -138,6 +138,8 @@ defmodule ExUnit.Case do
   If the same key is set via `@tag`, the `@tag` value has higher
   precedence.
 
+  The `setup_all` blocks only receive tags that are set using `@moduletag`.
+
   ### Known tags
 
   The following tags are set automatically by ExUnit and are
