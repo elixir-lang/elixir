@@ -93,6 +93,9 @@ defmodule IEx.Autocomplete do
       {:operator_arity, operator} ->
         expand_local(List.to_string(operator), true, shell)
 
+      {:operator_call, operator} when operator in ~w(|)c ->
+        expand_container_context(code, :expr, "", shell) || expand_local_or_var("", shell)
+
       {:operator_call, _operator} ->
         expand_local_or_var("", shell)
 
@@ -318,22 +321,12 @@ defmodule IEx.Autocomplete do
 
   defp expand_container_context(code, context, hint, shell) do
     case container_context(code, shell) do
+      {:map, map, pairs} when context == :expr ->
+        container_context_map_fields(pairs, map, hint)
+
       {:struct, alias, pairs} when context == :expr ->
-        pairs =
-          Enum.reduce(pairs, Map.from_struct(alias.__struct__), fn {key, _}, map ->
-            Map.delete(map, key)
-          end)
-
-        entries =
-          for {key, _value} <- pairs,
-              name = Atom.to_string(key),
-              if(hint == "",
-                do: not String.starts_with?(name, "_"),
-                else: String.starts_with?(name, hint)
-              ),
-              do: %{kind: :keyword, name: name}
-
-        format_expansion(entries, hint)
+        map = Map.from_struct(alias.__struct__)
+        container_context_map_fields(pairs, map, hint)
 
       :bitstring_modifier ->
         existing =
@@ -352,18 +345,42 @@ defmodule IEx.Autocomplete do
     end
   end
 
+  defp container_context_map_fields(pairs, map, hint) do
+    pairs =
+      Enum.reduce(pairs, map, fn {key, _}, map ->
+        Map.delete(map, key)
+      end)
+
+    entries =
+      for {key, _value} <- pairs,
+          name = Atom.to_string(key),
+          if(hint == "",
+            do: not String.starts_with?(name, "_"),
+            else: String.starts_with?(name, hint)
+          ),
+          do: %{kind: :keyword, name: name}
+
+    format_expansion(entries, hint)
+  end
+
   defp container_context(code, shell) do
     case Code.Fragment.container_cursor_to_quoted(code) do
       {:ok, quoted} ->
         case Macro.path(quoted, &match?({:__cursor__, _, []}, &1)) do
           [cursor, {:%{}, _, pairs}, {:%, _, [{:__aliases__, _, aliases}, _map]} | _] ->
-            with {pairs, [^cursor]} <- Enum.split(pairs, -1),
-                 alias = value_from_alias(aliases, shell),
-                 true <- Keyword.keyword?(pairs) and struct?(alias) do
-              {:struct, alias, pairs}
-            else
-              _ -> nil
-            end
+            container_context_struct(cursor, pairs, aliases, shell)
+
+          [
+            cursor,
+            pairs,
+            {:|, _, _},
+            {:%{}, _, _},
+            {:%, _, [{:__aliases__, _, aliases}, _map]} | _
+          ] ->
+            container_context_struct(cursor, pairs, aliases, shell)
+
+          [cursor, pairs, {:|, _, [{variable, _, nil} | _]}, {:%{}, _, _} | _] ->
+            container_context_map(cursor, pairs, variable, shell)
 
           [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] ->
             :bitstring_modifier
@@ -374,6 +391,26 @@ defmodule IEx.Autocomplete do
 
       {:error, _} ->
         nil
+    end
+  end
+
+  defp container_context_struct(cursor, pairs, aliases, shell) do
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         alias = value_from_alias(aliases, shell),
+         true <- Keyword.keyword?(pairs) and struct?(alias) do
+      {:struct, alias, pairs}
+    else
+      _ -> nil
+    end
+  end
+
+  defp container_context_map(cursor, pairs, variable, shell) do
+    with {pairs, [^cursor]} <- Enum.split(pairs, -1),
+         {:ok, map} when is_map(map) <- value_from_binding([variable], shell),
+         true <- Keyword.keyword?(pairs) do
+      {:map, map, pairs}
+    else
+      _ -> nil
     end
   end
 
