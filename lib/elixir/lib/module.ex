@@ -626,7 +626,8 @@ defmodule Module do
         doc: "Specifies that the current module implements a given behaviour."
       },
       enforce_keys: %{
-        doc: "Ensures the given keys are always set when building the struct defined in the current module."
+        doc:
+          "Ensures the given keys are always set when building the struct defined in the current module."
       },
       fallback_to_any: %{
         doc: "If set to `true` generates a default protocol implementation for all types."
