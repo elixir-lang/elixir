@@ -645,6 +645,58 @@ defmodule LoggerTest do
     Logger.configure(translator_inspect_opts: [])
   end
 
+  test "always evaluate messages" do
+    Logger.configure(
+      always_evaluate_messages: true,
+      compile_time_purge_matching: [[level_lower_than: :info]],
+      level: :error
+    )
+
+    defmodule AlwaysEvaluate do
+      def compile_purged do
+        Logger.debug(send(self(), "compile purged"))
+      end
+
+      def runtime_purged do
+        Logger.info(send(self(), "runtime purged"))
+      end
+
+      def not_purged do
+        Logger.error(send(self(), "not purged"))
+      end
+    end
+
+    assert capture_log(fn -> AlwaysEvaluate.not_purged() end) =~ "not purged"
+    assert_received "not purged"
+
+    assert capture_log(fn ->
+             Logger.configure(level: :error)
+             AlwaysEvaluate.runtime_purged()
+           end) == ""
+
+    assert_received "runtime purged"
+
+    assert capture_log(fn ->
+             Logger.configure(level: :debug)
+             AlwaysEvaluate.runtime_purged()
+           end) =~ "runtime purged"
+
+    assert_received "runtime purged"
+
+    assert capture_log(fn ->
+             Logger.configure(level: :error)
+             AlwaysEvaluate.compile_purged()
+           end) == ""
+
+    assert_received "compile purged"
+  after
+    Logger.configure(
+      level: :debug,
+      always_evaluate_messages: false,
+      compile_time_purge_matching: []
+    )
+  end
+
   describe "colors" do
     @tag formatter: [format: "$message", colors: [enabled: true]]
     test "default" do

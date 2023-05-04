@@ -19,6 +19,7 @@ defmodule Logger.MixProject do
         translators: [{Logger.Translator, :translate}],
         handle_otp_reports: true,
         handle_sasl_reports: false,
+        always_evaluate_messages: false,
         compile_time_purge_matching: [],
         compile_time_application: nil,
         translator_inspect_opts: [],
