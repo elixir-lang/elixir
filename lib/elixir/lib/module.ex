@@ -630,10 +630,12 @@ defmodule Module do
           "Ensures the given keys are always set when building the struct defined in the current module."
       },
       fallback_to_any: %{
-        doc: "If set to `true` generates a default protocol implementation for all types (inside `defprotocol`)."
+        doc:
+          "If set to `true` generates a default protocol implementation for all types (inside `defprotocol`)."
       },
       for: %{
-        doc: "The current module/type a protocol implementation is being defined for (inside `defimpl`)."
+        doc:
+          "The current module/type a protocol implementation is being defined for (inside `defimpl`)."
       },
       protocol: %{
         doc: "The current protocol being implemented (inside `defimpl`)."
