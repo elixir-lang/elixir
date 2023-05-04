@@ -452,7 +452,7 @@ defmodule System do
   The function must receive the exit status code as an argument.
 
   If the VM terminates programmatically, via `System.stop/1`, `System.halt/1`,
-  or exit signals, the `at_exit/1` callbacks are not executed.
+  or exit signals, the `at_exit/1` callbacks are not guaranteed to be executed.
   """
   @spec at_exit((non_neg_integer -> any)) :: :ok
   def at_exit(fun) when is_function(fun, 1) do
@@ -901,10 +901,12 @@ defmodule System do
   def stop(status \\ 0)
 
   def stop(status) when is_integer(status) do
+    at_exit(fn _ -> Process.sleep(:infinity) end)
     :init.stop(status)
   end
 
   def stop(status) when is_binary(status) do
+    at_exit(fn _ -> Process.sleep(:infinity) end)
     :init.stop(String.to_charlist(status))
   end
 
