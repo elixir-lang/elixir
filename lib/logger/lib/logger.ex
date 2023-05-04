@@ -245,6 +245,17 @@ defmodule Logger do
   `config/config.exs`) under the `:logger` application before your code
   is compiled:
 
+    * `:always_evaluate_messages` - if messages should be *evaluated* even if
+      the log level is lower than the minimum configured level. Defaults to `false`.
+      This is useful for cases where the log level in your *test environment*
+      is high (such as `:error`), which is common in order to avoid logs mixed
+      with the test output. In such, cases, you might discover log messages
+      that contain runtime errors only when your code is deployed to production,
+      where the log level is lower (such as `:info`). These runtime errors could
+      be caused by, for example, interpolating something that doesn't implement
+      the `String.Chars` protocol in the log message, such as `"PID: #{self()}"`
+      (since PIDs cannot be converted to strings with `String.Chars`).
+
     * `:compile_time_application` - sets the `:application` metadata value
       to the configured value at compilation time. This configuration is
       automatically set by Mix and made available as metadata when logging.
@@ -584,6 +595,7 @@ defmodule Logger do
   environment.
   """
   @valid_options [
+    :always_evaluate_messages,
     :compile_time_application,
     :compile_time_purge_level,
     :compile_time_purge_matching,
@@ -847,7 +859,14 @@ defmodule Logger do
     end
   end
 
-  defguardp is_msg(msg) when is_binary(msg) or is_list(msg) or is_map(msg)
+  @doc false
+  def __evaluate_log__(data) when is_function(data, 0) do
+    data.()
+  end
+
+  def __evaluate_log__(data) do
+    data
+  end
 
   @doc false
   def __do_log__(level, fun, location, metadata)
@@ -863,7 +882,7 @@ defmodule Logger do
 
   def __do_log__(level, msg, location, metadata)
       when level in @levels and is_map(location) and is_map(metadata) do
-    if is_msg(msg) do
+    if is_binary(msg) or is_list(msg) or is_map(msg) do
       :logger.macro_log(location, level, msg, add_elixir_domain(metadata))
     else
       IO.warn(
@@ -979,23 +998,36 @@ defmodule Logger do
 
     compile_level = if is_atom(level), do: level, else: :error
 
-    if compile_time_purge_matching?(compile_level, compile_metadata) do
-      no_log(data, quoted_metadata)
-    else
-      quote do
-        case Logger.__should_log__(unquote(level), __MODULE__) do
-          nil ->
-            :ok
+    cond do
+      compile_time_purge_matching?(compile_level, compile_metadata) ->
+        no_log(data, quoted_metadata)
 
-          level ->
-            Logger.__do_log__(
-              level,
-              unquote(data),
-              unquote(Macro.escape(location)),
-              unquote(quoted_metadata)
-            )
+      Application.fetch_env!(:logger, :always_evaluate_messages) ->
+        quote do
+          data = Logger.__evaluate_log__(unquote(data))
+          metadata = unquote(quoted_metadata)
+
+          case Logger.__should_log__(unquote(level), __MODULE__) do
+            nil -> :ok
+            level -> Logger.__do_log__(level, data, unquote(Macro.escape(location)), metadata)
+          end
         end
-      end
+
+      true ->
+        quote do
+          case Logger.__should_log__(unquote(level), __MODULE__) do
+            nil ->
+              :ok
+
+            level ->
+              Logger.__do_log__(
+                level,
+                unquote(data),
+                unquote(Macro.escape(location)),
+                unquote(quoted_metadata)
+              )
+          end
+        end
     end
   end
 
@@ -1078,11 +1110,19 @@ defmodule Logger do
   end
 
   defp no_log(data, metadata) do
-    # We wrap the contents in an anonymous function
-    # to avoid unused variable warnings.
-    quote do
-      _ = fn -> {unquote(data), unquote(metadata)} end
-      :ok
+    if Application.fetch_env!(:logger, :always_evaluate_messages) do
+      quote do
+        Logger.__evaluate_log__(unquote(data))
+        unquote(metadata)
+        :ok
+      end
+    else
+      # We wrap the contents in an anonymous function
+      # to avoid unused variable warnings.
+      quote do
+        _ = fn -> {unquote(data), unquote(metadata)} end
+        :ok
+      end
     end
   end
 
