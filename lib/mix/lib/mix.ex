@@ -588,16 +588,27 @@ defmodule Mix do
   end
 
   @doc """
-  Ensures the given application from Erlang/OTP or Elixir is available in the path.
+  Ensures the given application from Erlang/OTP or Elixir and its dependencies
+  are available in the path.
 
   This is mostly used for Mix internal needs. In your own tasks, you should
   list the Erlang application dependencies under the `:extra_applications`
   section of your `mix.exs`.
   """
   def ensure_application!(app) when is_atom(app) do
-    case Mix.State.builtin_apps() do
+    ensure_application!(app, Mix.State.builtin_apps())
+    :ok
+  end
+
+  defp ensure_application!(app, builtin_apps) do
+    case builtin_apps do
       %{^app => path} ->
         Code.prepend_path(path, cache: true)
+        Application.load(app)
+
+        Application.spec(app, :applications)
+        |> List.wrap()
+        |> Enum.each(&ensure_application!(&1, builtin_apps))
 
       %{} ->
         Mix.raise(
