@@ -366,8 +366,8 @@ defmodule IO.ANSI.Docs do
     process_fenced_code_block(rest, text, indent, options, _delimiter = "~~~")
   end
 
-  defp process(["<!--" <> _line | rest], text, indent, options) do
-    process(rest, text, indent, options)
+  defp process(["<!--" <> line | rest], text, indent, options) do
+    process(drop_comment([line | rest]), text, indent, options)
   end
 
   defp process(all = [line | rest], text, indent, options) do
@@ -806,6 +806,17 @@ defmodule IO.ANSI.Docs do
 
   defp remove_square_brackets_in_link(text) do
     Regex.replace(~r{\[([^\]]*?)\]\((.*?)\)}, text, "\\1 (\\2)")
+  end
+
+  defp drop_comment([line | rest]) do
+    case :binary.split(line, "-->") do
+      [_] -> drop_comment(rest)
+      [_, line] -> [line | rest]
+    end
+  end
+
+  defp drop_comment([]) do
+    []
   end
 
   # We have four entries: **, __, *, _ and `.
