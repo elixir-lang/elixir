@@ -1665,7 +1665,7 @@ defmodule ErlangError do
 
   def normalize({:badkey, key, term}, _stacktrace) do
     message =
-      "key #{inspect(key)} not found in: #{inspect(term)}. " <>
+      "key #{inspect(key)} not found in: #{inspect(term, pretty: true, limit: :infinity)}\n\n" <>
         "If you are using the dot syntax, such as map.field, " <>
         "make sure the left-hand side of the dot is a map"
 
