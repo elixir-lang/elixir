@@ -643,12 +643,12 @@ defmodule ExceptionTest do
 
     test "annotates undefined key error with nil hints" do
       assert blame_message(nil, & &1.foo) ==
-               "key :foo not found in: nil. If you are using the dot syntax, " <>
+               "key :foo not found in: nil\n\nIf you are using the dot syntax, " <>
                  "such as map.field, make sure the left-hand side of the dot is a map"
 
       # we use `Code.eval_string/1` to escape the formatter and warnings
       assert blame_message("nil.foo", &Code.eval_string/1) ==
-               "key :foo not found in: nil. If you are using the dot syntax, " <>
+               "key :foo not found in: nil\n\nIf you are using the dot syntax, " <>
                  "such as map.field, make sure the left-hand side of the dot is a map"
     end
 
