@@ -90,20 +90,27 @@ defmodule Macro do
 
   ### Examples
 
+  As an example, let's define a sigil `~x` and sigil `~X` which
+  return its contents as a string. However, if the `r` modifier
+  is given, it reverses the string instead:
+
       defmodule MySigils do
         defmacro sigil_x(term, [?r]) do
           quote do
             unquote(term) |> String.reverse()
           end
         end
+
         defmacro sigil_x(term, _modifiers) do
           term
         end
+
         defmacro sigil_X(term, [?r]) do
           quote do
             unquote(term) |> String.reverse()
           end
         end
+
         defmacro sigil_X(term, _modifiers) do
           term
         end
@@ -112,16 +119,16 @@ defmodule Macro do
       import MySigils
 
       ~x(with #{"inter" <> "polation"})
-      #=>"with interpolation"
+      #=> "with interpolation"
 
       ~x(with #{"inter" <> "polation"})r
-      #=>"noitalopretni htiw"
+      #=> "noitalopretni htiw"
 
       ~X(without #{"interpolation"})
-      #=>"without \#{"interpolation"}"
+      #=> "without \#{"interpolation"}"
 
       ~X(without #{"interpolation"})r
-      #=>"}\"noitalopretni\"{# tuohtiw"
+      #=> "}\"noitalopretni\"{# tuohtiw"
 
   """
 
