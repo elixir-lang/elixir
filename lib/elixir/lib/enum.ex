@@ -368,7 +368,11 @@ defmodule Enum do
   """
   @spec all?(t, (element -> as_boolean(term))) :: boolean
   def all?(enumerable, fun) when is_list(enumerable) do
-    all_list(enumerable, fun)
+    predicate_list(enumerable, true, fun)
+  end
+
+  def all?(%Range{first: first, last: last, step: step}, fun) do
+    predicate_range(first, last, step, true, fun)
   end
 
   def all?(enumerable, fun) do
@@ -429,7 +433,11 @@ defmodule Enum do
   """
   @spec any?(t, (element -> as_boolean(term))) :: boolean
   def any?(enumerable, fun) when is_list(enumerable) do
-    any_list(enumerable, fun)
+    predicate_list(enumerable, false, fun)
+  end
+
+  def any?(%Range{first: first, last: last, step: step}, fun) do
+    predicate_range(first, last, step, false, fun)
   end
 
   def any?(enumerable, fun) do
@@ -4132,7 +4140,7 @@ defmodule Enum do
 
   ## Implementations
 
-  ## all?
+  ## all?/1
 
   defp all_list([h | t]) do
     if h do
@@ -4146,19 +4154,7 @@ defmodule Enum do
     true
   end
 
-  defp all_list([h | t], fun) do
-    if fun.(h) do
-      all_list(t, fun)
-    else
-      false
-    end
-  end
-
-  defp all_list([], _) do
-    true
-  end
-
-  ## any?
+  ## any?/1
 
   defp any_list([h | t]) do
     if h do
@@ -4172,16 +4168,32 @@ defmodule Enum do
     false
   end
 
-  defp any_list([h | t], fun) do
-    if fun.(h) do
-      true
+  ## any?/2 all?/2
+
+  defp predicate_list([h | t], initial, fun) do
+    if !!fun.(h) == initial do
+      predicate_list(t, initial, fun)
     else
-      any_list(t, fun)
+      not initial
     end
   end
 
-  defp any_list([], _) do
-    false
+  defp predicate_list([], initial, _) do
+    initial
+  end
+
+  defp predicate_range(first, last, step, initial, fun)
+       when step > 0 and first <= last
+       when step < 0 and first >= last do
+    if !!fun.(first) == initial do
+      predicate_range(first + step, last, step, initial, fun)
+    else
+      not initial
+    end
+  end
+
+  defp predicate_range(_first, _last, _step, initial, _fun) do
+    initial
   end
 
   ## concat
