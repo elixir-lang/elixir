@@ -143,6 +143,18 @@ defmodule Kernel.ImportTest do
     assert flatten([1, [2], 3]) == [1, 2, 3]
   end
 
+  test "does not import *_info in Erlang" do
+    import :gen_server, warn: false
+    assert Macro.Env.lookup_import(__ENV__, {:module_info, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:behaviour_info, 1}) == []
+  end
+
+  test "does not import *_info in Elixir" do
+    import GenServer, warn: false
+    assert Macro.Env.lookup_import(__ENV__, {:module_info, 1}) == []
+    assert Macro.Env.lookup_import(__ENV__, {:behaviour_info, 1}) == []
+  end
+
   defmodule ModuleWithSigils do
     def sigil_i(string, []), do: String.to_integer(string)
 

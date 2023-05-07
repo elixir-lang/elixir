@@ -114,15 +114,12 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
   end,
 
   %% Normalize the data before storing it
-  Set   = ordsets:from_list(New),
-  Final = remove_internals(Set),
-
-  case Final of
+  case ordsets:from_list(New) of
     [] ->
       {false, keydelete(Key, Old)};
-    _  ->
-      ensure_no_special_form_conflict(Meta, File, Key, Final),
-      {true, [{Key, Final} | keydelete(Key, Old)]}
+    Set  ->
+      ensure_no_special_form_conflict(Meta, File, Key, Set),
+      {true, [{Key, Set} | keydelete(Key, Old)]}
   end.
 
 %% Retrieve functions and macros from modules
@@ -134,7 +131,7 @@ get_functions(Module) ->
   try
     Module:'__info__'(functions)
   catch
-    error:undef -> Module:module_info(exports)
+    error:undef -> remove_internals(Module:module_info(exports))
   end.
 
 get_macros(Module) ->
@@ -243,8 +240,7 @@ remove_underscored(List) ->
   end, List).
 
 remove_internals(Set) ->
-  ordsets:del_element({module_info, 1},
-    ordsets:del_element({module_info, 0}, Set)).
+  Set -- [{behaviour_info, 1}, {module_info, 1}, {module_info, 0}].
 
 %% Special forms
 
