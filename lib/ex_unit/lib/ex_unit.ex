@@ -128,12 +128,13 @@ defmodule ExUnit do
       * `:tests` - all tests in this module
 
     """
-    defstruct [:file, :name, :state, tests: []]
+    defstruct [:file, :name, :state, tags: %{}, tests: []]
 
     @type t :: %__MODULE__{
             file: binary(),
             name: module,
             state: ExUnit.state(),
+            tags: map,
             tests: [ExUnit.Test.t()]
           }
   end

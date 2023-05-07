@@ -309,7 +309,7 @@ defmodule ExUnit.Runner do
 
       result =
         try do
-          {:ok, module.__ex_unit__(:setup_all, %{module: module, case: module})}
+          {:ok, module.__ex_unit__(:setup_all, test_module.tags)}
         catch
           kind, error ->
             failed = failed(kind, error, prune_stacktrace(__STACKTRACE__))
@@ -387,7 +387,7 @@ defmodule ExUnit.Runner do
           maybe_capture_log(capture_log, test, fn ->
             context = maybe_create_tmp_dir(test, context, tags)
 
-            case exec_test_setup(test, Map.merge(test.tags, context)) do
+            case exec_test_setup(test, test_tags_context(test.tags, context)) do
               {:ok, context} -> exec_test(test, context)
               {:error, test} -> test
             end
@@ -396,6 +396,14 @@ defmodule ExUnit.Runner do
 
       send(parent_pid, {self(), :test_finished, %{test | time: time}})
       exit(:shutdown)
+    end)
+  end
+
+  defp test_tags_context(test_tags, parent_context) do
+    Map.merge(parent_context, test_tags, fn
+      :tmp_dir, _v0, false -> false
+      :tmp_dir, v0, _v1 -> v0
+      _k, _v0, v1 -> v1
     end)
   end
 
