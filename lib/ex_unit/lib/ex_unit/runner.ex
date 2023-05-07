@@ -378,16 +378,14 @@ defmodule ExUnit.Runner do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
       generate_test_seed(seed, test)
-
-      tags = test.tags
-      capture_log = Map.get(tags, :capture_log, capture_log)
+      capture_log = Map.get(test.tags, :capture_log, capture_log)
 
       {time, test} =
         :timer.tc(
           maybe_capture_log(capture_log, test, fn ->
-            context = maybe_create_tmp_dir(test, context, tags)
+            tags = maybe_create_tmp_dir(test.tags, test)
 
-            case exec_test_setup(test, test_tags_context(test.tags, context)) do
+            case exec_test_setup(test, Map.merge(context, tags)) do
               {:ok, context} -> exec_test(test, context)
               {:error, test} -> test
             end
@@ -396,14 +394,6 @@ defmodule ExUnit.Runner do
 
       send(parent_pid, {self(), :test_finished, %{test | time: time}})
       exit(:shutdown)
-    end)
-  end
-
-  defp test_tags_context(test_tags, parent_context) do
-    Map.merge(parent_context, test_tags, fn
-      :tmp_dir, _v0, false -> false
-      :tmp_dir, v0, _v1 -> v0
-      _k, _v0, v1 -> v1
     end)
   end
 
@@ -554,24 +544,20 @@ defmodule ExUnit.Runner do
 
   ## Tmp dir handling
 
-  defp maybe_create_tmp_dir(test, context, %{tmp_dir: true}) do
-    create_tmp_dir!(test, "", context)
+  defp maybe_create_tmp_dir(%{tmp_dir: true} = tags, test) do
+    create_tmp_dir!(test, "", tags)
   end
 
-  defp maybe_create_tmp_dir(test, context, %{tmp_dir: path}) when is_binary(path) do
-    create_tmp_dir!(test, path, context)
+  defp maybe_create_tmp_dir(%{tmp_dir: path} = tags, test) when is_binary(path) do
+    create_tmp_dir!(test, path, tags)
   end
 
-  defp maybe_create_tmp_dir(_, context, %{tmp_dir: false}) do
-    context
-  end
-
-  defp maybe_create_tmp_dir(_, _, %{tmp_dir: other}) do
+  defp maybe_create_tmp_dir(%{tmp_dir: other}, _test) when other != false do
     raise ArgumentError, "expected :tmp_dir to be a boolean or a string, got: #{inspect(other)}"
   end
 
-  defp maybe_create_tmp_dir(_, context, _) do
-    context
+  defp maybe_create_tmp_dir(tags, _test) do
+    tags
   end
 
   defp short_hash(module, test_name) do
@@ -581,7 +567,7 @@ defmodule ExUnit.Runner do
     |> binary_slice(0..7)
   end
 
-  defp create_tmp_dir!(test, extra_path, context) do
+  defp create_tmp_dir!(test, extra_path, tags) do
     module_string = inspect(test.module)
     name_string = to_string(test.name)
 
@@ -592,7 +578,7 @@ defmodule ExUnit.Runner do
     path = ["tmp", module, "#{name}-#{short_hash}", extra_path] |> Path.join() |> Path.expand()
     File.rm_rf!(path)
     File.mkdir_p!(path)
-    Map.put(context, :tmp_dir, path)
+    Map.put(tags, :tmp_dir, path)
   end
 
   @escape Enum.map(~c" [~#%&*{}\\:<>?/+|\"]", &<<&1::utf8>>)
