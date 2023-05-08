@@ -1693,6 +1693,10 @@ defmodule Enum do
     :lists.map(fun, enumerable)
   end
 
+  def map(first..last//step, fun) do
+    map_range(first, last, step, fun)
+  end
+
   def map(enumerable, fun) do
     reduce(enumerable, [], R.map(fun)) |> :lists.reverse()
   end
@@ -4033,7 +4037,13 @@ defmodule Enum do
 
   ## Helpers
 
-  @compile {:inline, entry_to_string: 1, reduce: 3, reduce_by: 3, reduce_enumerable: 3}
+  @compile {:inline,
+            entry_to_string: 1,
+            reduce: 3,
+            reduce_by: 3,
+            reduce_enumerable: 3,
+            reduce_range: 5,
+            map_range: 4}
 
   defp entry_to_string(entry) when is_binary(entry), do: entry
   defp entry_to_string(entry), do: String.Chars.to_string(entry)
@@ -4330,6 +4340,18 @@ defmodule Enum do
 
   defp join_non_empty_list([first | rest], joiner, acc) do
     join_non_empty_list(rest, joiner, [joiner, entry_to_string(first) | acc])
+  end
+
+  ## map
+
+  defp map_range(first, last, step, fun)
+       when step > 0 and first <= last
+       when step < 0 and first >= last do
+    [fun.(first) | map_range(first + step, last, step, fun)]
+  end
+
+  defp map_range(_first, _last, _step, _fun) do
+    []
   end
 
   ## map_intersperse
