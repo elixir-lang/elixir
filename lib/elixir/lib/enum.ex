@@ -371,7 +371,7 @@ defmodule Enum do
     predicate_list(enumerable, true, fun)
   end
 
-  def all?(%{__struct__: Range, first: first, last: last, step: step}, fun) do
+  def all?(first..last//step, fun) do
     predicate_range(first, last, step, true, fun)
   end
 
@@ -436,7 +436,7 @@ defmodule Enum do
     predicate_list(enumerable, false, fun)
   end
 
-  def any?(%{__struct__: Range, first: first, last: last, step: step}, fun) do
+  def any?(first..last//step, fun) do
     predicate_range(first, last, step, false, fun)
   end
 
