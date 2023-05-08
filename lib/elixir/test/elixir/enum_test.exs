@@ -1862,6 +1862,8 @@ defmodule EnumTest.Range do
     assert Enum.map(1..3, fn x -> x * 2 end) == [2, 4, 6]
     assert Enum.map(-1..-3, fn x -> x * 2 end) == [-2, -4, -6]
     assert Enum.map(1..10//2, fn x -> x * 2 end) == [2, 6, 10, 14, 18]
+    assert Enum.map(3..1//-2, fn x -> x * 2 end) == [6, 2]
+    assert Enum.map(0..1//-1, fn x -> x * 2 end) == []
   end
 
   test "map_every/3" do
