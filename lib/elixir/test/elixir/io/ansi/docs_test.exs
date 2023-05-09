@@ -598,6 +598,54 @@ defmodule IO.ANSI.DocsTest do
 
       assert format_markdown(table) == expected
     end
+
+    test "HTML comments are ignored" do
+      markdown = """
+      <!-- comment -->
+      hello
+      """
+
+      assert format_markdown(markdown) == "hello\n\e[0m"
+
+      markdown = """
+      <!-- comment -->
+
+      hello
+      """
+
+      assert format_markdown(markdown) == "hello\n\e[0m"
+
+      markdown = """
+      hello
+      <!-- comment -->
+      world
+      """
+
+      assert format_markdown(markdown) == "hello\n\e[0m\nworld\n\e[0m"
+
+      markdown = """
+      hello
+
+      <!-- comment -->
+
+      world
+      """
+
+      assert format_markdown(markdown) == "hello\n\e[0m\nworld\n\e[0m"
+
+      markdown = """
+      hello
+      <!-- comment --> world
+      """
+
+      assert format_markdown(markdown) == "hello world\n\e[0m"
+
+      markdown = """
+      hello <!-- comment --> world
+      """
+
+      assert format_markdown(markdown) == "hello  world\n\e[0m"
+    end
   end
 
   describe "erlang" do

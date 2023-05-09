@@ -366,6 +366,10 @@ defmodule IO.ANSI.Docs do
     process_fenced_code_block(rest, text, indent, options, _delimiter = "~~~")
   end
 
+  defp process(["<!--" <> line | rest], text, indent, options) do
+    process(drop_comment([line | rest]), text, indent, options)
+  end
+
   defp process(all = [line | rest], text, indent, options) do
     {stripped, count} = strip_spaces(line, 0, :infinity)
 
@@ -804,6 +808,22 @@ defmodule IO.ANSI.Docs do
     Regex.replace(~r{\[([^\]]*?)\]\((.*?)\)}, text, "\\1 (\\2)")
   end
 
+  defp drop_comment(line) when is_binary(line) do
+    [_comment, rest] = :binary.split(line, "-->")
+    rest
+  end
+
+  defp drop_comment([line | rest]) do
+    case :binary.split(line, "-->") do
+      [_] -> drop_comment(rest)
+      [_, line] -> [line | rest]
+    end
+  end
+
+  defp drop_comment([]) do
+    []
+  end
+
   # We have four entries: **, __, *, _ and `.
   #
   # The first four behave the same while the last one is simpler
@@ -838,6 +858,11 @@ defmodule IO.ANSI.Docs do
   end
 
   ### Inline delimiters
+
+  defp handle_inline("<!--" <> rest, nil, buffer, acc, options) do
+    rest = drop_comment(rest)
+    handle_inline(rest, [], buffer, acc, options)
+  end
 
   defp handle_inline(<<delimiter, mark, mark, rest::binary>>, nil, buffer, acc, options)
        when rest != "" and delimiter in @delimiters and mark in @single do
