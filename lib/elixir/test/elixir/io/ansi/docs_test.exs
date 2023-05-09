@@ -599,7 +599,7 @@ defmodule IO.ANSI.DocsTest do
       assert format_markdown(table) == expected
     end
 
-    test "HTML whole-line comments are ignored" do
+    test "HTML comments are ignored" do
       markdown = """
       <!-- comment -->
       hello
@@ -632,23 +632,19 @@ defmodule IO.ANSI.DocsTest do
       """
 
       assert format_markdown(markdown) == "hello\n\e[0m\nworld\n\e[0m"
-    end
 
-    test "HTML comments at beginning of line are ignored" do
       markdown = """
       hello
       <!-- comment --> world
       """
 
       assert format_markdown(markdown) == "hello world\n\e[0m"
-    end
 
-    test "HTML comments in the middle of line are preserved" do
       markdown = """
       hello <!-- comment --> world
       """
 
-      assert format_markdown(markdown) == "hello <!-- comment --> world\n\e[0m"
+      assert format_markdown(markdown) == "hello  world\n\e[0m"
     end
   end
 

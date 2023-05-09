@@ -808,6 +808,11 @@ defmodule IO.ANSI.Docs do
     Regex.replace(~r{\[([^\]]*?)\]\((.*?)\)}, text, "\\1 (\\2)")
   end
 
+  defp drop_comment(line) when is_binary(line) do
+    [_comment, rest] = :binary.split(line, "-->")
+    rest
+  end
+
   defp drop_comment([line | rest]) do
     case :binary.split(line, "-->") do
       [_] -> drop_comment(rest)
@@ -853,6 +858,11 @@ defmodule IO.ANSI.Docs do
   end
 
   ### Inline delimiters
+
+  defp handle_inline("<!--" <> rest, nil, buffer, acc, options) do
+    rest = drop_comment(rest)
+    handle_inline(rest, [], buffer, acc, options)
+  end
 
   defp handle_inline(<<delimiter, mark, mark, rest::binary>>, nil, buffer, acc, options)
        when rest != "" and delimiter in @delimiters and mark in @single do
