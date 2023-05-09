@@ -1551,7 +1551,7 @@ tokenize_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upca
 % With a lowercase letter and a non-empty NameAcc we return an error.
 tokenize_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
   Message = "invalid sigil name, it should be either a one-letter lowercase letter or a" ++ 
-            " sequence of uppercase letters only",
+            " sequence of uppercase letters only, got: ",
   {error, Message, [$~] ++ lists:reverse(NameAcc) ++ Original};
 % We finished the letters, so the name is over.
 tokenize_sigil_name(T, NameAcc, Line, Column, Scope, Tokens) ->
