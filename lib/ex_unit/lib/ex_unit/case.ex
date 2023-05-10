@@ -271,6 +271,7 @@ defmodule ExUnit.Case do
 
       import ExUnit.Callbacks
       import ExUnit.Assertions
+      import ExUnit.ProcessAssertions
       import ExUnit.Case, only: [describe: 2, test: 1, test: 2, test: 3]
       import ExUnit.DocTest
     end
