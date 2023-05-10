@@ -815,10 +815,10 @@ defmodule Supervisor do
             start: {#{inspect(module)}, :start_link, [arg1, arg2]}
           }
 
-      See the Supervisor documentation for more information.
+      See the Supervisor documentation for more information
       """
     else
-      "The module #{inspect(module)} was given as a child to a supervisor but it does not exist."
+      "The module #{inspect(module)} was given as a child to a supervisor but it does not exist"
     end
   end
 
