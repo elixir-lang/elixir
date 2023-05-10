@@ -147,24 +147,21 @@ defmodule Module.ParallelChecker do
       spawn({self(), checker}, module, file)
     end
 
-    modules = :gen_server.call(checker, :start, :infinity)
-    collect_results(modules, [])
+    count = :gen_server.call(checker, :start, :infinity)
+    collect_results(count, [])
   end
 
-  defp collect_results([], warnings) do
-    warnings
+  defp collect_results(0, diagnostics) do
+    diagnostics
   end
 
-  defp collect_results(modules, warnings) do
+  defp collect_results(count, diagnostics) do
     receive do
-      {:diagnostic, _type, file, location, message} ->
-        file = file && Path.absname(file)
-        message = :unicode.characters_to_binary(message)
-        warning = {file, location, message}
-        collect_results(modules, [warning | warnings])
+      {:diagnostic, diagnostic} ->
+        collect_results(count, [diagnostic | diagnostics])
 
-      {__MODULE__, _module, new_warnings} ->
-        collect_results(tl(modules), new_warnings ++ warnings)
+      {__MODULE__, _module, new_diagnostics} ->
+        collect_results(count - 1, new_diagnostics ++ diagnostics)
     end
   end
 
@@ -294,10 +291,14 @@ defmodule Module.ParallelChecker do
   def emit_warnings(warnings) do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
-      :elixir_errors.print_warning_no_diagnostic([message, ?\n, format_locations(locations)])
+
+      :elixir_errors.print_diagnostic_no_capture(
+        :warning,
+        [message, ?\n, format_locations(locations)]
+      )
 
       Enum.map(locations, fn {file, line, _mfa} ->
-        {file, line, message}
+        %{severity: :warning, file: file, position: line, message: message}
       end)
     end)
   end
@@ -485,7 +486,7 @@ defmodule Module.ParallelChecker do
       end
     end
 
-    {:reply, modules, run_checkers(state)}
+    {:reply, length(modules), run_checkers(state)}
   end
 
   def handle_call(:ets, _from, state) do

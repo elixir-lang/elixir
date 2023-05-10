@@ -7,7 +7,7 @@
 -export([compile_error/1, compile_error/3, parse_error/5]).
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
--export([print_warning/4, print_warning_no_diagnostic/1, print_warning_no_diagnostic/3]).
+-export([print_diagnostic/5, print_diagnostic_no_capture/2, print_diagnostic_no_capture/4]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
 
@@ -17,21 +17,22 @@ erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
 erl_warn(Location, File, Warning) when is_binary(File) ->
   send_diagnostic(warning, Location, File, Warning),
-  print_warning_no_diagnostic(Location, File, Warning).
+  print_diagnostic_no_capture(warning, Location, File, Warning).
 
--spec print_warning_no_diagnostic(location(), unicode:chardata(), unicode:chardata()) -> ok.
-print_warning_no_diagnostic(Location, File, Warning) ->
-  print_warning_no_diagnostic([Warning, "\n  ", file_format(Location, File), $\n]).
+-spec print_diagnostic_no_capture(warning | error, location(), unicode:chardata(), unicode:chardata()) -> ok.
+print_diagnostic_no_capture(Type, Location, File, Message) ->
+  print_diagnostic_no_capture(Type, [Message, "\n  ", file_format(Location, File), $\n]).
 
--spec print_warning_no_diagnostic(unicode:chardata()) -> ok.
-print_warning_no_diagnostic(Message) ->
-  io:put_chars(standard_error, [warning_prefix(), Message, $\n]),
+-spec print_diagnostic_no_capture(warning | error, unicode:chardata()) -> ok.
+print_diagnostic_no_capture(Type, Message) ->
+  io:put_chars(standard_error, [prefix(Type), Message, $\n]),
   ok.
 
--spec print_warning(location(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
-print_warning(Location, File, DiagMessage, PrintMessage) when is_binary(File) or (File == nil) ->
-  send_diagnostic(warning, Location, File, DiagMessage),
-  print_warning_no_diagnostic(PrintMessage).
+-spec print_diagnostic(warning | error, location(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
+print_diagnostic(Type, Location, File, DiagMessage, PrintMessage)
+    when is_binary(File) or (File == nil) ->
+  send_diagnostic(Type, Location, File, DiagMessage),
+  print_diagnostic_no_capture(Type, PrintMessage).
 
 %% Compilation error/warn handling.
 
@@ -44,8 +45,8 @@ file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
     true -> ok;
     false ->
       {EnvLine, EnvFile, EnvLocation} = env_format(Meta, E),
-      Warning = Module:format_error(Desc),
-      print_warning(EnvLine, EnvFile, Warning, [Warning, "\n  ", EnvLocation, $\n])
+      Message = Module:format_error(Desc),
+      print_diagnostic(warning, EnvLine, EnvFile, Message, [Message, "\n  ", EnvLocation, $\n])
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -78,8 +79,7 @@ function_error(Meta, Env, Module, Desc) ->
 print_error(Meta, Env, Module, Desc) ->
   {EnvLine, EnvFile, EnvLocation} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  send_diagnostic(error, EnvLine, EnvFile, Message),
-  io:put_chars(standard_error, [error_prefix(), Message, "\n  ", EnvLocation, $\n, $\n]),
+  print_diagnostic(error, EnvLine, EnvFile, Message, [Message, "\n  ", EnvLocation, $\n]),
   ok.
 
 %% Compilation error.
@@ -210,20 +210,27 @@ snippet(InputString, Location, StartLine, StartColumn) ->
 
 %% Helpers
 
-send_diagnostic(Type, Line, File, Message) ->
+send_diagnostic(Severity, Position, File, Message) ->
   case get(elixir_compiler_info) of
     undefined -> ok;
-    {CompilerPid, _} -> CompilerPid ! {diagnostic, Type, File, Line, Message}
+    {CompilerPid, _} ->
+      Diagnostic = #{
+        severity => Severity,
+        file => if File =:= nil -> nil; true -> filename:absname(File) end,
+        position => Position,
+        message => unicode:characters_to_binary(Message)
+      },
+
+      CompilerPid ! {diagnostic, Diagnostic}
   end,
   ok.
 
-warning_prefix() ->
+prefix(warning) ->
   case application:get_env(elixir, ansi_enabled, false) of
     true -> <<"\e[33mwarning: \e[0m">>;
     false -> <<"warning: ">>
-  end.
-
-error_prefix() ->
+  end;
+prefix(error) ->
   case application:get_env(elixir, ansi_enabled, false) of
     true -> <<"\e[31merror: \e[0m">>;
     false -> <<"error: ">>
