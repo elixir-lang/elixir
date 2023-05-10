@@ -92,15 +92,22 @@ defmodule NaiveDateTime do
   Prefer using `DateTime.utc_now/0` when possible as, opposite
   to `NaiveDateTime`, it will keep the time zone information.
 
+  You can also provide a time unit to automatically truncate
+  the naive datetime.
+
   ## Examples
 
       iex> naive_datetime = NaiveDateTime.utc_now()
       iex> naive_datetime.year >= 2016
       true
 
+      iex> naive_datetime = NaiveDateTime.utc_now(:second)
+      iex> naive_datetime.microsecond
+      {0, 0}
+
   """
   @doc since: "1.4.0"
-  @spec utc_now(Calendar.calendar()) :: t
+  @spec utc_now(Calendar.calendar() | :microsecond | :millisecond | :second) :: t
   def utc_now(calendar \\ Calendar.ISO)
 
   def utc_now(Calendar.ISO) do
@@ -119,10 +126,39 @@ defmodule NaiveDateTime do
     }
   end
 
+  def utc_now(time_unit) when time_unit in [:microsecond, :millisecond, :second] do
+    DateTime.utc_now()
+    |> DateTime.to_naive()
+    |> truncate(time_unit)
+  end
+
   def utc_now(calendar) do
     calendar
     |> DateTime.utc_now()
     |> DateTime.to_naive()
+  end
+
+  @doc """
+  Returns the current naive datetime in UTC, supporting a specific
+  calendar and precision.
+
+  Prefer using `DateTime.utc_now/2` when possible as, opposite
+  to `NaiveDateTime`, it will keep the time zone information.
+
+  ## Examples
+
+      iex> naive_datetime = NaiveDateTime.utc_now(:second, Calendar.ISO)
+      iex> naive_datetime.year >= 2016
+      true
+
+      iex> naive_datetime = NaiveDateTime.utc_now(:second, Calendar.ISO)
+      iex> naive_datetime.microsecond
+      {0, 0}
+
+  """
+  @spec utc_now(:microsecond | :millisecond | :second, Calendar.calendar()) :: t
+  def utc_now(time_unit, calendar) do
+    utc_now(calendar) |> truncate(time_unit)
   end
 
   @doc """
