@@ -5,14 +5,23 @@ defmodule Kernel.ParallelCompiler do
 
   @typedoc "The line. 0 indicates no line."
   @type line() :: non_neg_integer()
-  @type location() :: line() | {pos_integer(), column :: non_neg_integer}
-  @type warning() :: {file :: Path.t(), location(), message :: String.t()}
-  @type error() :: {file :: Path.t(), location(), message :: String.t()}
+  @type position() :: line() | {pos_integer(), column :: non_neg_integer}
+
+  @type diagnostic(severity) :: %{
+          file: Path.t(),
+          severity: severity,
+          message: String.t(),
+          position: position
+        }
 
   @type info :: %{
-          runtime_warnings: [warning],
-          compile_warnings: [warning]
+          runtime_warnings: [diagnostic(:warning)],
+          compile_warnings: [diagnostic(:warning)]
         }
+
+  # Deprecated types
+  @type warning() :: {file :: Path.t(), position(), message :: String.t()}
+  @type error() :: {file :: Path.t(), position(), message :: String.t()}
 
   @doc """
   Starts a task for parallel compilation.
@@ -62,16 +71,13 @@ defmodule Kernel.ParallelCompiler do
 
   It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
   by default but we recommend using `return_maps: true` so it returns
-  a map as third element instead of a list of warnings. The map has the
-  shape of:
+  diagnostics as maps as well as a map of compilation information.
+  The map has the shape of:
 
       %{
         runtime_warnings: [warning],
         compile_warnings: [warning]
       }
-
-  Both errors and warnings are a list of three-element tuples containing
-  the file, line and the formatted error/warning.
 
   ## Options
 
@@ -109,12 +115,13 @@ defmodule Kernel.ParallelCompiler do
     * `:beam_timestamp` - the modification timestamp to give all BEAM files
 
     * `:return_maps` (since v1.15.0) - returns maps with information instead of
-      a list of warnings
+      a list of warnings and returns diagnostics as maps instead of tuples
 
   """
   @doc since: "1.6.0"
   @spec compile([Path.t()], keyword()) ::
-          {:ok, [atom], [warning] | info()} | {:error, [error], [warning] | info()}
+          {:ok, [atom], [warning] | info()}
+          | {:error, [error] | [diagnostic(:error)], [warning] | info()}
   def compile(files, options \\ []) when is_list(options) do
     spawn_workers(files, :compile, options)
   end
@@ -126,7 +133,8 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.6.0"
   @spec compile_to_path([Path.t()], Path.t(), keyword()) ::
-          {:ok, [atom], [warning] | info()} | {:error, [error], [warning] | info()}
+          {:ok, [atom], [warning] | info()}
+          | {:error, [error] | [diagnostic(:error)], [warning] | info()}
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
     spawn_workers(files, {:compile, path}, options)
   end
@@ -139,16 +147,13 @@ defmodule Kernel.ParallelCompiler do
 
   It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
   by default but we recommend using `return_maps: true` so it returns
-  a map as third element instead of a list of warnings. The map has the
-  shape of:
+  diagnostics as maps as well as a map of compilation information.
+  The map has the shape of:
 
       %{
         runtime_warnings: [warning],
         compile_warnings: [warning]
       }
-
-  Both errors and warnings are a list of three-element tuples containing
-  the file, line and the formatted error/warning.
 
   ## Options
 
@@ -167,12 +172,17 @@ defmodule Kernel.ParallelCompiler do
   end
 
   @doc """
-  Prints a warning returned by the compiler.
+  Prints a diagnostic returned by the compiler into stderr.
   """
-  @doc since: "1.13.0"
-  @spec print_warning(warning) :: :ok
+  @doc since: "1.15.0"
+  def print_diagnostic(%{file: file, position: position, message: message, severity: severity}) do
+    :elixir_errors.print_diagnostic_no_capture(severity, position, file, message)
+  end
+
+  @doc false
+  # TODO: Deprecate me on Elixir v1.19
   def print_warning({file, location, warning}) do
-    :elixir_errors.print_warning_no_diagnostic(location, file, warning)
+    :elixir_errors.print_diagnostic_no_capture(:warning, location, file, warning)
   end
 
   @doc false
@@ -209,7 +219,8 @@ defmodule Kernel.ParallelCompiler do
             "Compilation failed due to warnings while using the --warnings-as-errors option"
 
           IO.puts(:stderr, message)
-          {:error, r_warnings ++ c_warnings, %{info | runtime_warnings: [], compile_warnings: []}}
+          errors = Enum.map(r_warnings ++ c_warnings, &Map.replace!(&1, :severity, :error))
+          {:error, errors, %{info | runtime_warnings: [], compile_warnings: []}}
 
         {{:ok, outcome, info}, _} ->
           beam_timestamp = Keyword.get(options, :beam_timestamp)
@@ -230,7 +241,12 @@ defmodule Kernel.ParallelCompiler do
     if Keyword.get(options, :return_maps, false) do
       {status, modules_or_errors, info}
     else
-      {status, modules_or_errors, info.runtime_warnings ++ info.compile_warnings}
+      to_tuples = &Enum.map(&1, fn diag -> {diag.file, diag.position, diag.message} end)
+
+      modules_or_errors =
+        if status == :ok, do: modules_or_errors, else: to_tuples.(modules_or_errors)
+
+      {status, modules_or_errors, to_tuples.(info.runtime_warnings ++ info.compile_warnings)}
     end
   end
 
@@ -633,19 +649,13 @@ defmodule Kernel.ParallelCompiler do
         state = %{state | timer_ref: timer_ref}
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:diagnostic, type, file, location, message} ->
-        file = file && Path.absname(file)
-        message = :unicode.characters_to_binary(message)
+      {:diagnostic, %{severity: :warning} = diagnostic} ->
+        warnings = [diagnostic | warnings]
+        wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
 
-        case type do
-          :warning ->
-            warnings = [{file, location, message} | warnings]
-            wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
-
-          :error ->
-            errors = [{file, location, message} | errors]
-            wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
-        end
+      {:diagnostic, %{severity: :error} = diagnostic} ->
+        errors = [diagnostic | errors]
+        wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
 
       {:file_ok, child_pid, ref, file, lexical} ->
         state.each_file.(file, lexical)
@@ -816,7 +826,9 @@ defmodule Kernel.ParallelCompiler do
         "and that the modules they reference exist and are correctly named\n"
     )
 
-    for {file, _, description} <- deadlock, do: {Path.absname(file), nil, description}
+    for {file, _, description} <- deadlock do
+      %{severity: :error, file: Path.absname(file), position: nil, message: description}
+    end
   end
 
   defp terminate(files) do
@@ -842,7 +854,7 @@ defmodule Kernel.ParallelCompiler do
     line = get_line(file, reason, stack)
     file = Path.absname(file)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
-    {file, line || 0, message}
+    %{file: file, position: line || 0, message: message, severity: :error}
   end
 
   defp get_line(_file, %{line: line, column: column}, _stack)
