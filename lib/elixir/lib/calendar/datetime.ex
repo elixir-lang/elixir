@@ -147,16 +147,55 @@ defmodule DateTime do
   If you want the current time in Unix seconds,
   use `System.os_time/1` instead.
 
+  You can also pass a time unit to automatically
+  truncate the resulting datetime. This is available
+  since v1.15.0.
+
   ## Examples
 
       iex> datetime = DateTime.utc_now()
       iex> datetime.time_zone
       "Etc/UTC"
 
+      iex> datetime = DateTime.utc_now(:second)
+      iex> datetime.microsecond
+      {0, 0}
+
   """
-  @spec utc_now(Calendar.calendar()) :: t
-  def utc_now(calendar \\ Calendar.ISO) do
-    System.os_time() |> from_unix!(:native, calendar)
+  @spec utc_now(Calendar.calendar() | :native | :microsecond | :millisecond | :second) :: t
+  def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
+    case calendar_or_time_unit do
+      unit when unit in [:microsecond, :millisecond, :second, :native] ->
+        utc_now(unit, Calendar.ISO)
+
+      calendar ->
+        utc_now(:native, calendar)
+    end
+  end
+
+  @doc """
+  Returns the current datetime in UTC, supporting 
+  a specific calendar and precision.
+
+  If you want the current time in Unix seconds,
+  use `System.os_time/1` instead.
+
+  ## Examples
+
+      iex> datetime = DateTime.utc_now(:microsecond, Calendar.ISO)
+      iex> datetime.time_zone
+      "Etc/UTC"
+
+      iex> datetime = DateTime.utc_now(:second, Calendar.ISO)
+      iex> datetime.microsecond
+      {0, 0}
+
+  """
+  @doc since: "1.15.0"
+  @spec utc_now(:native | :microsecond | :millisecond | :second, Calendar.calendar()) :: t
+  def utc_now(time_unit, calendar)
+      when time_unit in [:native, :microsecond, :millisecond, :second] do
+    System.os_time(time_unit) |> from_unix!(time_unit, calendar)
   end
 
   @doc """
