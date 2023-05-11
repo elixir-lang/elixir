@@ -194,7 +194,7 @@ defmodule DateTime do
   @doc since: "1.15.0"
   @spec utc_now(:microsecond | :millisecond | :second, Calendar.calendar()) :: t
   def utc_now(time_unit, calendar) when time_unit in [:microsecond, :millisecond, :second] do
-    utc_now(calendar) |> truncate(time_unit)
+    System.os_time(time_unit) |> from_unix!(time_unit, calendar)
   end
 
   @doc """
