@@ -160,7 +160,7 @@ defmodule NaiveDateTime do
   @doc since: "1.15.0"
   @spec utc_now(:microsecond | :millisecond | :second, Calendar.calendar()) :: t
   def utc_now(time_unit, calendar) when time_unit in [:microsecond, :millisecond, :second] do
-    utc_now(calendar) |> truncate(time_unit)
+    DateTime.utc_now(time_unit, calendar) |> DateTime.to_naive()
   end
 
   @doc """
