@@ -93,7 +93,7 @@ defmodule NaiveDateTime do
   to `NaiveDateTime`, it will keep the time zone information.
 
   You can also provide a time unit to automatically truncate
-  the naive datetime.
+  the naive datetime. This is available since v1.15.0.
 
   ## Examples
 
@@ -108,7 +108,7 @@ defmodule NaiveDateTime do
   """
   @doc since: "1.4.0"
   @spec utc_now(Calendar.calendar() | :microsecond | :millisecond | :second) :: t
-  def utc_now(calendar \\ Calendar.ISO)
+  def utc_now(calendar_or_time_unit \\ Calendar.ISO)
 
   def utc_now(Calendar.ISO) do
     {:ok, {year, month, day}, {hour, minute, second}, microsecond} =
@@ -156,8 +156,9 @@ defmodule NaiveDateTime do
       {0, 0}
 
   """
+  @doc since: "1.15.0"
   @spec utc_now(:microsecond | :millisecond | :second, Calendar.calendar()) :: t
-  def utc_now(time_unit, calendar) do
+  def utc_now(time_unit, calendar) when time_unit in [:microsecond, :millisecond, :second] do
     utc_now(calendar) |> truncate(time_unit)
   end
 

@@ -148,7 +148,8 @@ defmodule DateTime do
   use `System.os_time/1` instead.
 
   You can also pass a time unit to automatically
-  truncate the resulting datetime.
+  truncate the resulting datetime. This is available
+  since v1.15.0.
 
   ## Examples
 
@@ -162,9 +163,8 @@ defmodule DateTime do
 
   """
   @spec utc_now(Calendar.calendar() | :microsecond | :millisecond | :second) :: t
-
-  def utc_now(calendar_or_timeunit \\ Calendar.ISO) do
-    case calendar_or_timeunit do
+  def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
+    case calendar_or_time_unit do
       unit when unit in [:microsecond, :millisecond, :second] ->
         utc_now() |> truncate(unit)
 
@@ -191,6 +191,7 @@ defmodule DateTime do
       {0, 0}
 
   """
+  @doc since: "1.15.0"
   @spec utc_now(System.time_unit(), Calendar.calendar()) :: t
   def utc_now(time_unit, calendar) when time_unit in [:microsecond, :millisecond, :second] do
     utc_now(calendar) |> truncate(time_unit)
