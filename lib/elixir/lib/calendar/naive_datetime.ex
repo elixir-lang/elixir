@@ -126,7 +126,7 @@ defmodule NaiveDateTime do
     }
   end
 
-  def utc_now(time_unit) when time_unit in [:microsecond, :millisecond, :second] do
+  def utc_now(time_unit) when time_unit in [:microsecond, :millisecond, :second, :native] do
     utc_now(time_unit, Calendar.ISO)
   end
 
