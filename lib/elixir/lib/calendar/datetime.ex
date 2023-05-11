@@ -165,7 +165,7 @@ defmodule DateTime do
   @spec utc_now(Calendar.calendar() | :native | :microsecond | :millisecond | :second) :: t
   def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
     case calendar_or_time_unit do
-      unit when unit in [:microsecond, :millisecond, :second] ->
+      unit when unit in [:microsecond, :millisecond, :second, :native] ->
         utc_now(unit, Calendar.ISO)
 
       calendar ->
