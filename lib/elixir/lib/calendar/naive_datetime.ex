@@ -127,7 +127,8 @@ defmodule NaiveDateTime do
   end
 
   def utc_now(time_unit) when time_unit in [:microsecond, :millisecond, :second] do
-    DateTime.utc_now()
+    DateTime.utc_now(time_unit)
+    |> DateTime.to_naive()
     |> DateTime.to_naive()
     |> truncate(time_unit)
   end
