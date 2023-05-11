@@ -166,10 +166,10 @@ defmodule DateTime do
   def utc_now(calendar_or_time_unit \\ Calendar.ISO) do
     case calendar_or_time_unit do
       unit when unit in [:microsecond, :millisecond, :second] ->
-        utc_now() |> truncate(unit)
+        utc_now(unit, Calendar.ISO)
 
       calendar ->
-        System.os_time() |> from_unix!(:native, calendar)
+        utc_now(:native, calendar)
     end
   end
 
@@ -193,7 +193,7 @@ defmodule DateTime do
   """
   @doc since: "1.15.0"
   @spec utc_now(:microsecond | :millisecond | :second, Calendar.calendar()) :: t
-  def utc_now(time_unit, calendar) when time_unit in [:microsecond, :millisecond, :second] do
+  def utc_now(time_unit, calendar) when time_unit in [:native, :microsecond, :millisecond, :second] do
     System.os_time(time_unit) |> from_unix!(time_unit, calendar)
   end
 
