@@ -1314,7 +1314,7 @@ defmodule System do
   This time may be adjusted forwards or backwards in time
   with no limitation and is not monotonic.
   """
-  @spec os_time(time_unit) :: integer
+  @spec os_time(time_unit | :native) :: integer
   @doc since: "1.3.0"
   def os_time(unit) do
     :os.system_time(normalize_time_unit(unit))
