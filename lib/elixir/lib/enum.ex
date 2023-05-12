@@ -2478,8 +2478,8 @@ defmodule Enum do
       iex> Enum.reduce([1, 2, 3], 0, fn x, acc -> x + acc end)
       6
 
-      iex> Enum.reduce(%{a: 2, b: 3, c: 4}, %{}, fn {key, val}, acc -> Map.put(acc, key, val * 2) end)
-      %{a: 4, b: 6, c: 8}
+      iex> Enum.reduce(%{a: 2, b: 3, c: 4}, 0, fn {_key, val}, acc -> acc + val end)
+      9
 
   ## Reduce as a building block
 
