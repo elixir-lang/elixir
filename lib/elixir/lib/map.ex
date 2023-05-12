@@ -235,6 +235,9 @@ defmodule Map do
       iex> Map.new([:a, :b], fn x -> {x, x} end)
       %{a: :a, b: :b}
 
+      iex> Map.new(%{a: 2, b: 3, c: 4}, fn {key, val} -> {key, val * 2} end)
+      %{a: 4, b: 6, c: 8}
+
   """
   @spec new(Enumerable.t(), (term -> {key, value})) :: map
   def new(enumerable, transform)
