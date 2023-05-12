@@ -2478,6 +2478,9 @@ defmodule Enum do
       iex> Enum.reduce([1, 2, 3], 0, fn x, acc -> x + acc end)
       6
 
+      iex> Enum.reduce(%{a: 2, b: 3, c: 4}, 0, fn {_key, val}, acc -> acc + val end)
+      9
+
   ## Reduce as a building block
 
   Reduce (sometimes called `fold`) is a basic building block in functional
