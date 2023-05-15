@@ -78,7 +78,7 @@ defmodule Mix.Project do
       def cli do
         [
           default_task: "phx.server",
-          default_envs: [docs: :docs]
+          preferred_envs: [docs: :docs]
         ]
       end
 
