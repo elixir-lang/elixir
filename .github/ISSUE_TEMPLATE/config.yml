@@ -2,10 +2,10 @@
 blank_issues_enabled: true
 
 contact_links:
-  - name: Discuss proposals
-    url: https://groups.google.com/g/elixir-lang-core
-    about: Send proposals for new ideas to our mailing list
-
-  - name: Ask questions and support
+  - name: Ask questions, support, and general discussions
     url: https://elixirforum.com/
-    about: Ask questions, provide support and more on Elixir Forum
+    about: Ask questions, provide support, and more on Elixir Forum
+
+  - name: Propose new features
+    url: https://github.com/elixir-lang/elixir/#proposing-new-features
+    about: Propose new features in our mailing list

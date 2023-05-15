@@ -54,10 +54,17 @@ Keep the tone positive and be kind! For more information, see the
 ### Proposing new features
 
 For proposing new features, please start a discussion in the
-[Elixir Core mailing list][3]. Keep in mind that it is your responsibility
-to argue and explain why a feature is useful and how it will impact the
-codebase and the community. The [language development history and outline
-are described on our website](https://elixir-lang.org/development.html).
+[Elixir Core mailing list][3]. The [language development history and
+its focus are described on our website](https://elixir-lang.org/development.html).
+
+Keep in mind that it is your responsibility to argue and explain
+why a feature is useful and how it will impact the codebase and
+the community. A good proposal includes the problem description
+and how the proposed solution compares with existing alternatives
+in the Elixir ecosystem (as well as in other languages). To iron
+out a proposal before submission, consider using and gathering
+feedback from the community spaces [listed on the sidebar of the
+Elixir website](https://elixir-lang.org/).
 
 Once a proposal is accepted, it will be added to [the issue tracker][2].
 Features and bug fixes that have already been merged and will be included
