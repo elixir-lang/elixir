@@ -703,7 +703,8 @@ defmodule Mix.Compilers.Elixir do
         file: file,
         position: position,
         message: message,
-        compiler_name: "Elixir"
+        compiler_name: "Elixir",
+        stacktrace: []
       }
 
       if print? do
@@ -733,13 +734,20 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp diagnostic(%{file: file, position: position, message: message, severity: severity}) do
+  defp diagnostic(%{
+         file: file,
+         position: position,
+         message: message,
+         severity: severity,
+         stacktrace: stacktrace
+       }) do
     %Mix.Task.Compiler.Diagnostic{
       file: file,
       position: position,
       message: message,
       severity: severity,
-      compiler_name: "Elixir"
+      compiler_name: "Elixir",
+      stacktrace: stacktrace
     }
   end
 

@@ -169,7 +169,7 @@ defmodule DateTime do
         utc_now(unit, Calendar.ISO)
 
       calendar ->
-        utc_now(:native, calendar)
+        System.os_time() |> from_unix!(:native, calendar)
     end
   end
 

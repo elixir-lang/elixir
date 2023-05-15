@@ -291,46 +291,48 @@ defmodule Module.ParallelChecker do
   def emit_warnings(warnings) do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
-
-      :elixir_errors.print_diagnostic_no_capture(
-        :warning,
-        [message, ?\n, format_locations(locations)]
-      )
-
-      Enum.map(locations, fn {file, line, _mfa} ->
-        %{severity: :warning, file: file, position: line, message: message}
-      end)
+      diagnostics = Enum.map(locations, &to_diagnostic(message, &1))
+      :elixir_errors.print_warning([message, ?\n, format_stacktraces(diagnostics)])
+      diagnostics
     end)
   end
 
-  defp format_locations([location]) do
-    format_location(location)
+  defp format_stacktraces([diagnostic]) do
+    format_diagnostic_stacktrace(diagnostic)
   end
 
-  defp format_locations(locations) do
+  defp format_stacktraces(diagnostics) do
     [
-      "Invalid call found at #{length(locations)} locations:\n",
-      Enum.map(locations, &format_location/1)
+      "Invalid call found at #{length(diagnostics)} locations:\n",
+      Enum.map(diagnostics, &format_diagnostic_stacktrace/1)
     ]
   end
 
-  defp format_location({file, line, {module, fun, arity}}) do
-    mfa = Exception.format_mfa(module, fun, arity)
-    [format_file_line(file, line), ": ", mfa, ?\n]
+  defp format_diagnostic_stacktrace(%{stacktrace: [stacktrace]}) do
+    ["  ", Exception.format_stacktrace_entry(stacktrace), ?\n]
   end
 
-  defp format_location({file, line, nil}) do
-    [format_file_line(file, line), ?\n]
+  defp to_diagnostic(message, {file, line, mfa}) do
+    %{
+      severity: :warning,
+      file: file,
+      position: line,
+      message: message,
+      stacktrace: [to_stacktrace(file, line, mfa)]
+    }
   end
 
-  defp format_location({file, line, module}) do
-    [format_file_line(file, line), ": ", inspect(module), ?\n]
-  end
+  defp to_stacktrace(file, line, {module, fun, arity}),
+    do: {module, fun, arity, location(file, line)}
 
-  defp format_file_line(file, line) do
-    file = Path.relative_to_cwd(file)
-    line = if line > 0, do: [?: | Integer.to_string(line)], else: []
-    ["  ", file, line]
+  defp to_stacktrace(file, line, nil),
+    do: {:elixir_compiler, :__FILE__, 1, location(file, line)}
+
+  defp to_stacktrace(file, line, module),
+    do: {module, :__MODULE__, 0, location(file, line)}
+
+  defp location(file, line) do
+    [file: String.to_charlist(Path.relative_to_cwd(file)), line: line]
   end
 
   ## Cache

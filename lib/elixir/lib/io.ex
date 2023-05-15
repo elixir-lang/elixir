@@ -325,13 +325,12 @@ defmodule IO do
           :ok
   def warn(message, stacktrace_info)
 
-  def warn(message, []) do
-    message = [to_chardata(message), ?\n]
-    :elixir_errors.print_diagnostic(:warning, 0, nil, message, message)
-  end
-
   def warn(message, %Macro.Env{} = env) do
     warn(message, Macro.Env.stacktrace(env))
+  end
+
+  def warn(message, []) do
+    :elixir_errors.emit_diagnostic(:warning, 0, nil, to_chardata(message), [])
   end
 
   def warn(message, [{_, _} | _] = keyword) do
@@ -353,17 +352,10 @@ defmodule IO do
 
   def warn(message, [{_, _, _, opts} | _] = stacktrace) do
     message = to_chardata(message)
-    formatted_trace = Enum.map_join(stacktrace, "\n  ", &Exception.format_stacktrace_entry(&1))
     line = opts[:line]
     file = opts[:file]
-
-    :elixir_errors.print_diagnostic(
-      :warning,
-      line || 0,
-      file && List.to_string(file),
-      message,
-      [message, ?\n, "  ", formatted_trace, ?\n]
-    )
+    file = file && List.to_string(file)
+    :elixir_errors.emit_diagnostic(:warning, line || 0, file, message, stacktrace)
   end
 
   @doc false

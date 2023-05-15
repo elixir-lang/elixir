@@ -11,7 +11,8 @@ defmodule Kernel.ParallelCompiler do
           file: Path.t(),
           severity: severity,
           message: String.t(),
-          position: position
+          position: position,
+          stacktrace: Exception.stacktrace()
         }
 
   @type info :: %{
@@ -175,14 +176,14 @@ defmodule Kernel.ParallelCompiler do
   Prints a diagnostic returned by the compiler into stderr.
   """
   @doc since: "1.15.0"
-  def print_diagnostic(%{file: file, position: position, message: message, severity: severity}) do
-    :elixir_errors.print_diagnostic_no_capture(severity, position, file, message)
+  def print_diagnostic(diagnostic) do
+    :elixir_errors.print_diagnostic(diagnostic)
   end
 
   @doc false
   # TODO: Deprecate me on Elixir v1.19
   def print_warning({file, location, warning}) do
-    :elixir_errors.print_diagnostic_no_capture(:warning, location, file, warning)
+    :elixir_errors.print_warning(location, file, warning)
   end
 
   @doc false
@@ -802,7 +803,7 @@ defmodule Kernel.ParallelCompiler do
         description = "deadlocked waiting on #{kind} #{inspect(on)}"
         error = CompileError.exception(description: description, file: nil, line: nil)
         print_error(file, :error, error, stacktrace)
-        {Path.relative_to_cwd(file), on, description}
+        {Path.relative_to_cwd(file), on, description, stacktrace}
       end
 
     IO.puts(:stderr, """
@@ -816,7 +817,7 @@ defmodule Kernel.ParallelCompiler do
       |> Enum.map(&(&1 |> elem(0) |> String.length()))
       |> Enum.max()
 
-    for {file, mod, _} <- deadlock do
+    for {file, mod, _, _} <- deadlock do
       IO.puts(:stderr, ["  ", String.pad_leading(file, max), " => " | inspect(mod)])
     end
 
@@ -826,8 +827,14 @@ defmodule Kernel.ParallelCompiler do
         "and that the modules they reference exist and are correctly named\n"
     )
 
-    for {file, _, description} <- deadlock do
-      %{severity: :error, file: Path.absname(file), position: nil, message: description}
+    for {file, _, description, stacktrace} <- deadlock do
+      %{
+        severity: :error,
+        file: Path.absname(file),
+        position: nil,
+        message: description,
+        stacktrace: stacktrace
+      }
     end
   end
 
@@ -854,7 +861,7 @@ defmodule Kernel.ParallelCompiler do
     line = get_line(file, reason, stack)
     file = Path.absname(file)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
-    %{file: file, position: line || 0, message: message, severity: :error}
+    %{file: file, position: line || 0, message: message, severity: :error, stacktrace: stack}
   end
 
   defp get_line(_file, %{line: line, column: column}, _stack)

@@ -1390,23 +1390,35 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
-      diagnostic = %Diagnostic{
-        file: Path.absname("lib/a.ex"),
-        severity: :warning,
-        position: 2,
-        compiler_name: "Elixir",
-        message:
-          "variable \"unused\" is unused (if the variable is not meant to be used, prefix it with an underscore)"
-      }
+      file = Path.absname("lib/a.ex")
+
+      message =
+        "variable \"unused\" is unused (if the variable is not meant to be used, prefix it with an underscore)"
 
       capture_io(:stderr, fn ->
-        assert {:ok, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+        assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+
+        assert %Diagnostic{
+                 file: ^file,
+                 severity: :warning,
+                 position: 2,
+                 compiler_name: "Elixir",
+                 message: ^message
+               } = diagnostic
       end)
 
       # Recompiling should return :noop status because nothing is stale,
       # but also include previous warning diagnostics
       capture_io(:stderr, fn ->
-        assert {:noop, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+        assert {:noop, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+
+        assert %Diagnostic{
+                 file: ^file,
+                 severity: :warning,
+                 position: 2,
+                 compiler_name: "Elixir",
+                 message: ^message
+               } = diagnostic
       end)
     end)
   end
@@ -1419,16 +1431,18 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       IO.warn "warning", [{nil, nil, 0, file: 'lib/foo.txt', line: 3}]
       """)
 
-      diagnostic = %Diagnostic{
-        file: Path.absname("lib/foo.txt"),
-        severity: :warning,
-        position: 3,
-        compiler_name: "Elixir",
-        message: "warning"
-      }
+      file = Path.absname("lib/foo.txt")
 
       capture_io(:stderr, fn ->
-        assert {:ok, [^diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+        assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+
+        assert %Diagnostic{
+                 file: ^file,
+                 severity: :warning,
+                 position: 3,
+                 compiler_name: "Elixir",
+                 message: "warning"
+               } = diagnostic
       end)
     end)
   end

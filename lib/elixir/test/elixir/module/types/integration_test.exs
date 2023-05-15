@@ -717,7 +717,7 @@ defmodule Module.Types.IntegrationTest do
 
       warning = """
       warning: A.a/0 is deprecated. oops
-        b.ex:3: B
+        b.ex:3: B (module)
 
       """
 

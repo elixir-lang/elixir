@@ -7,34 +7,60 @@
 -export([compile_error/1, compile_error/3, parse_error/5]).
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
--export([print_diagnostic/5, print_diagnostic_no_capture/2, print_diagnostic_no_capture/4]).
+-export([print_diagnostic/1, emit_diagnostic/5]).
+-export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
+
+%% Diagnostic API
+
+%% TODO: Remove me on Elixir v2.0.
+print_warning(Location, File, Message) ->
+  print_warning([Message, file_format(Location, File), $\n]).
+
+%% Used by parallel checker as it groups warnings.
+print_warning(Message) ->
+  io:put_chars(standard_error, [prefix(warning), Message, $\n]).
+
+print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stacktrace} = Diagnostic) ->
+  Location =
+    case (Stacktrace =:= []) orelse elixir_config:is_bootstrap() of
+      true ->
+        #{position := Position, file := File} = Diagnostic,
+        file_format(Position, File);
+
+      false ->
+        [["\n  ", 'Elixir.Exception':format_stacktrace_entry(E)] || E <- Stacktrace]
+    end,
+  io:put_chars(standard_error, [prefix(Severity), Message, Location, "\n\n"]),
+  ok.
+
+emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
+  Diagnostic = #{
+    severity => Severity,
+    file => if File =:= nil -> nil; true -> filename:absname(File) end,
+    position => Position,
+    message => unicode:characters_to_binary(Message),
+    stacktrace => Stacktrace
+  },
+
+  print_diagnostic(Diagnostic),
+
+  case get(elixir_compiler_info) of
+    undefined -> ok;
+    {CompilerPid, _} -> CompilerPid ! {diagnostic, Diagnostic}
+  end,
+
+  ok.
+
+%% Compilation error/warn handling.
 
 %% Low-level warning, should be used only from Erlang passes.
 -spec erl_warn(location() | none, unicode:chardata(), unicode:chardata()) -> ok.
 erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
 erl_warn(Location, File, Warning) when is_binary(File) ->
-  send_diagnostic(warning, Location, File, Warning),
-  print_diagnostic_no_capture(warning, Location, File, Warning).
-
--spec print_diagnostic_no_capture(warning | error, location(), unicode:chardata(), unicode:chardata()) -> ok.
-print_diagnostic_no_capture(Type, Location, File, Message) ->
-  print_diagnostic_no_capture(Type, [Message, "\n  ", file_format(Location, File), $\n]).
-
--spec print_diagnostic_no_capture(warning | error, unicode:chardata()) -> ok.
-print_diagnostic_no_capture(Type, Message) ->
-  io:put_chars(standard_error, [prefix(Type), Message, $\n]),
-  ok.
-
--spec print_diagnostic(warning | error, location(), unicode:chardata() | nil, unicode:chardata(), unicode:chardata()) -> ok.
-print_diagnostic(Type, Location, File, DiagMessage, PrintMessage)
-    when is_binary(File) or (File == nil) ->
-  send_diagnostic(Type, Location, File, DiagMessage),
-  print_diagnostic_no_capture(Type, PrintMessage).
-
-%% Compilation error/warn handling.
+  emit_diagnostic(warning, Location, File, Warning, []).
 
 -spec file_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
 file_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
@@ -44,9 +70,9 @@ file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
   case elixir_config:is_bootstrap() of
     true -> ok;
     false ->
-      {EnvLine, EnvFile, EnvLocation} = env_format(Meta, E),
+      {EnvLine, EnvFile, EnvStacktrace} = env_format(Meta, E),
       Message = Module:format_error(Desc),
-      print_diagnostic(warning, EnvLine, EnvFile, Message, [Message, "\n  ", EnvLocation, $\n])
+      emit_diagnostic(warning, EnvLine, EnvFile, Message, EnvStacktrace)
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -77,9 +103,9 @@ function_error(Meta, Env, Module, Desc) ->
   file_error(Meta, Env, Module, Desc).
 
 print_error(Meta, Env, Module, Desc) ->
-  {EnvLine, EnvFile, EnvLocation} = env_format(Meta, Env),
+  {EnvLine, EnvFile, EnvStacktrace} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  print_diagnostic(error, EnvLine, EnvFile, Message, [Message, "\n  ", EnvLocation, $\n]),
+  emit_diagnostic(error, EnvLine, EnvFile, Message, EnvStacktrace),
   ok.
 
 %% Compilation error.
@@ -94,11 +120,11 @@ compile_error(#{file := File}) ->
 
 -spec compile_error(list(), binary(), binary() | unicode:charlist()) -> no_return().
 compile_error(Meta, File, Message) when is_binary(Message) ->
-  MetaLocation = meta_location(Meta, File),
-  raise('Elixir.CompileError', Message, MetaLocation);
+  {File, Line} = meta_location(Meta, File),
+  raise('Elixir.CompileError', Message, [{file, File}, {line, Line}]);
 compile_error(Meta, File, Message) when is_list(Message) ->
-  MetaLocation = meta_location(Meta, File),
-  raise('Elixir.CompileError', elixir_utils:characters_to_binary(Message), MetaLocation).
+  {File, Line} = meta_location(Meta, File),
+  raise('Elixir.CompileError', elixir_utils:characters_to_binary(Message), [{file, File}, {line, Line}]).
 
 %% Tokenization parsing/errors.
 
@@ -210,21 +236,6 @@ snippet(InputString, Location, StartLine, StartColumn) ->
 
 %% Helpers
 
-send_diagnostic(Severity, Position, File, Message) ->
-  case get(elixir_compiler_info) of
-    undefined -> ok;
-    {CompilerPid, _} ->
-      Diagnostic = #{
-        severity => Severity,
-        file => if File =:= nil -> nil; true -> filename:absname(File) end,
-        position => Position,
-        message => unicode:characters_to_binary(Message)
-      },
-
-      CompilerPid ! {diagnostic, Diagnostic}
-  end,
-  ok.
-
 prefix(warning) ->
   case application:get_env(elixir, ansi_enabled, false) of
     true -> <<"\e[33mwarning: \e[0m">>;
@@ -237,33 +248,35 @@ prefix(error) ->
   end.
 
 env_format(Meta, #{file := EnvFile} = E) ->
-  [{file, File}, {line, Line}] = meta_location(Meta, EnvFile),
+  {File, Line} = meta_location(Meta, EnvFile),
 
-  Location =
+  Stacktrace =
     case E of
       #{function := {Name, Arity}, module := Module} ->
-        [file_format(Line, File), ": ", 'Elixir.Exception':format_mfa(Module, Name, Arity)];
+        [{Module, Name, Arity, [{file, elixir_utils:relative_to_cwd(File)}, {line, Line}]}];
       #{module := Module} when Module /= nil ->
-        [file_format(Line, File), ": ", elixir_aliases:inspect(Module)];
+        [{Module, '__MODULE__', 0, [{file, elixir_utils:relative_to_cwd(File)}, {line, Line}]}];
       #{} ->
-        file_format(Line, File)
+        []
     end,
 
-  {Line, File, Location}.
+  {Line, File, Stacktrace}.
 
+file_format(_, nil) ->
+  "";
 file_format({0, _Column}, File) ->
-  elixir_utils:relative_to_cwd(File);
+  ["\n  ", elixir_utils:relative_to_cwd(File)];
 file_format({Line, Column}, File) ->
-  io_lib:format("~ts:~w:~w", [elixir_utils:relative_to_cwd(File), Line, Column]);
+  io_lib:format("\n  ~ts:~w:~w", [elixir_utils:relative_to_cwd(File), Line, Column]);
 file_format(0, File) ->
-  elixir_utils:relative_to_cwd(File);
+  ["\n  ", elixir_utils:relative_to_cwd(File)];
 file_format(Line, File) ->
-  io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
+  io_lib:format("\n  ~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
 
 meta_location(Meta, File) ->
   case elixir_utils:meta_keep(Meta) of
-    {F, L} -> [{file, F}, {line, L}];
-    nil    -> [{file, File}, {line, ?line(Meta)}]
+    {F, L} -> {F, L};
+    nil    -> {File, ?line(Meta)}
   end.
 
 raise(Kind, Message, Opts) when is_binary(Message) ->

@@ -39,7 +39,8 @@ defmodule Mix.Task.Compiler do
             message: IO.chardata(),
             position: position,
             compiler_name: String.t(),
-            details: any
+            details: any,
+            stacktrace: Exception.stacktrace()
           }
 
     @typedoc """
@@ -75,7 +76,15 @@ defmodule Mix.Task.Compiler do
             | {pos_integer, non_neg_integer, pos_integer, non_neg_integer}
 
     @enforce_keys [:file, :severity, :message, :position, :compiler_name]
-    defstruct [:file, :severity, :message, :position, :compiler_name, :details]
+    defstruct [
+      :file,
+      :severity,
+      :message,
+      :position,
+      :compiler_name,
+      details: nil,
+      stacktrace: []
+    ]
   end
 
   @type status :: :ok | :noop | :error
