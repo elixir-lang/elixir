@@ -180,7 +180,7 @@ defmodule Mix.Tasks.Profile.Fprof do
       usage for larger workloads.
 
   """
-  @spec profile((-> any()), keyword()) :: any()
+  @spec profile((-> result), keyword()) :: result when result: any()
   def profile(fun, opts \\ []) when is_function(fun, 0) do
     Mix.ensure_application!(:runtime_tools)
     Mix.ensure_application!(:tools)
