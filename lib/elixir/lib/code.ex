@@ -194,6 +194,21 @@ defmodule Code do
   """
   @type binding :: [{atom() | tuple(), any}]
 
+  @typedoc """
+  Diagnostics returned by the compiler and code evaluation.
+  """
+  @type diagnostic(severity) :: %{
+          file: Path.t(),
+          severity: severity,
+          message: String.t(),
+          position: position,
+          stacktrace: Exception.stacktrace()
+        }
+
+  @typedoc "The line. 0 indicates no line."
+  @type line() :: non_neg_integer()
+  @type position() :: line() | {pos_integer(), column :: non_neg_integer}
+
   @boolean_compiler_options [
     :docs,
     :debug_info,
@@ -531,6 +546,51 @@ defmodule Code do
     Module.ParallelChecker.verify(fn ->
       apply(:elixir, fun, args)
     end)
+  end
+
+  @doc """
+  Executes the given `fun` and capture all diagnostics.
+
+  Diagnostics are warnings and errors emitted by the compiler
+  and by functions such as `IO.warn/2`.
+
+  ## Options
+
+    * `:log` - if the diagnostics should be logged as they happen.
+      Defaults to `false`.
+
+  """
+  @spec with_diagnostics(keyword(), (-> result)) :: {result, [diagnostic(:warning | :error)]}
+        when result: term()
+  def with_diagnostics(opts \\ [], fun) do
+    value = :erlang.get(:elixir_code_diagnostics)
+    log = Keyword.get(opts, :log, false)
+    :erlang.put(:elixir_code_diagnostics, {[], log})
+
+    try do
+      result = fun.()
+      {diagnostics, _log?} = :erlang.get(:elixir_code_diagnostics)
+      {result, Enum.reverse(diagnostics)}
+    after
+      if value == :undefined do
+        :erlang.erase(:elixir_code_diagnostics)
+      else
+        :erlang.put(:elixir_code_diagnostics, value)
+      end
+    end
+  end
+
+  @doc """
+  Prints a diagnostic into the standard error.
+
+  A diagnostic is either returned by `Kernel.ParallelCompiler`
+  or by `Code.with_diagnostics/2`.
+  """
+  @doc since: "1.15.0"
+  @spec print_diagnostic(diagnostic(:warning | :error)) :: :ok
+  def print_diagnostic(diagnostic) do
+    :elixir_errors.print_diagnostic(diagnostic)
+    :ok
   end
 
   @doc ~S"""
@@ -876,7 +936,7 @@ defmodule Code do
         warn_on_unnecessary_quotes: false,
         literal_encoder: &{:ok, {:__block__, &2, [&1]}},
         token_metadata: true,
-        emit_warnings: false
+        warnings: false
       ] ++ opts
 
     {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
@@ -1688,7 +1748,7 @@ defmodule Code do
 
   ## Examples
 
-      iex> Code.ensure_loaded?(Atom)
+      iex> Code.ensure_loaded?(String)
       true
 
   """

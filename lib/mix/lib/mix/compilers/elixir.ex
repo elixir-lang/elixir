@@ -709,7 +709,7 @@ defmodule Mix.Compilers.Elixir do
 
       if print? do
         Mix.shell().print_app()
-        Kernel.ParallelCompiler.print_diagnostic(diagnostic)
+        Code.print_diagnostic(diagnostic)
       end
 
       diagnostic
@@ -957,7 +957,7 @@ defmodule Mix.Compilers.Elixir do
           long_compilation_threshold: threshold,
           profile: profile,
           beam_timestamp: timestamp,
-          return_maps: true
+          return_diagnostics: true
         ]
 
         response = Kernel.ParallelCompiler.compile_to_path(stale, dest, compile_opts)

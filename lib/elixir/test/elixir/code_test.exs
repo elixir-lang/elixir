@@ -21,6 +21,41 @@ defmodule CodeTest do
 
   Code.eval_quoted(contents, [], file: "sample.ex", line: 13)
 
+  describe "with_diagnostics/2" do
+    test "captures warnings" do
+      assert {:warn, [%{message: "hello"}]} =
+               Code.with_diagnostics(fn ->
+                 IO.warn("hello")
+                 :warn
+               end)
+    end
+
+    test "captures and logs warnings" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert {:warn, [%{message: "hello"}]} =
+                        Code.with_diagnostics([log: true], fn ->
+                          IO.warn("hello")
+                          :warn
+                        end)
+             end) =~ "hello"
+    end
+
+    test "can be nested" do
+      assert {:warn, [%{message: "hello"}]} =
+               Code.with_diagnostics(fn ->
+                 IO.warn("hello")
+
+                 assert {:nested, [%{message: "world"}]} =
+                          Code.with_diagnostics(fn ->
+                            IO.warn("world")
+                            :nested
+                          end)
+
+                 :warn
+               end)
+    end
+  end
+
   describe "eval_string/1,2,3" do
     test "correctly evaluates a string of code" do
       assert Code.eval_string("1 + 2") == {3, []}
@@ -111,28 +146,45 @@ defmodule CodeTest do
         end)
 
       assert output =~ "incompatible types"
+    after
+      :code.purge(CodeTest.CheckerWarning)
+      :code.delete(CodeTest.CheckerWarning)
+    end
+
+    test "captures checker diagnostics" do
+      {{{:module, _, _, _}, _}, diagnostics} =
+        Code.with_diagnostics(fn ->
+          Code.eval_string(File.read!(fixture_path("checker_warning.exs")), [])
+        end)
+
+      assert [%{message: "incompatible types:" <> _}] = diagnostics
+    after
+      :code.purge(CodeTest.CheckerWarning)
+      :code.delete(CodeTest.CheckerWarning)
     end
   end
 
-  test "eval_quoted/1" do
-    assert Code.eval_quoted(quote(do: 1 + 2)) == {3, []}
-    assert CodeTest.Sample.eval_quoted_info() == {CodeTest.Sample, "sample.ex", 13}
-  end
+  describe "eval_quoted/1" do
+    test "evaluates expression" do
+      assert Code.eval_quoted(quote(do: 1 + 2)) == {3, []}
+      assert CodeTest.Sample.eval_quoted_info() == {CodeTest.Sample, "sample.ex", 13}
+    end
 
-  test "eval_quoted/2 with %Macro.Env{} at runtime" do
-    alias :lists, as: MyList
-    quoted = quote(do: MyList.flatten([[1, 2, 3]]))
+    test "with %Macro.Env{} at runtime" do
+      alias :lists, as: MyList
+      quoted = quote(do: MyList.flatten([[1, 2, 3]]))
 
-    assert Code.eval_quoted(quoted, [], __ENV__) == {[1, 2, 3], []}
+      assert Code.eval_quoted(quoted, [], __ENV__) == {[1, 2, 3], []}
 
-    # Let's check it discards tracers since the lexical tracker is explicitly nil
-    assert Code.eval_quoted(quoted, [], %{__ENV__ | tracers: [:bad]}) == {[1, 2, 3], []}
-  end
+      # Let's check it discards tracers since the lexical tracker is explicitly nil
+      assert Code.eval_quoted(quoted, [], %{__ENV__ | tracers: [:bad]}) == {[1, 2, 3], []}
+    end
 
-  test "eval_quoted/2 with %Macro.Env{} at compile time" do
-    defmodule CompileTimeEnv do
-      alias String.Chars
-      {"foo", []} = Code.eval_string("Chars.to_string(:foo)", [], __ENV__)
+    test "with %Macro.Env{} at compile time" do
+      defmodule CompileTimeEnv do
+        alias String.Chars
+        {"foo", []} = Code.eval_string("Chars.to_string(:foo)", [], __ENV__)
+      end
     end
   end
 
@@ -144,101 +196,137 @@ defmodule CodeTest do
     end
   end
 
-  test "eval_quoted_with_env/3" do
-    alias :lists, as: MyList
-    quoted = quote(do: MyList.flatten([[1, 2, 3]]))
-    env = Code.env_for_eval(__ENV__)
-    assert Code.eval_quoted_with_env(quoted, [], env) == {[1, 2, 3], [], env}
+  describe "eval_quoted_with_env/3" do
+    test "returns results, bindings, and env" do
+      alias :lists, as: MyList
+      quoted = quote(do: MyList.flatten([[1, 2, 3]]))
+      env = Code.env_for_eval(__ENV__)
+      assert Code.eval_quoted_with_env(quoted, [], env) == {[1, 2, 3], [], env}
 
-    quoted = quote(do: alias(:dict, as: MyDict))
-    {:dict, [], env} = Code.eval_quoted_with_env(quoted, [], env)
-    assert Macro.Env.fetch_alias(env, :MyDict) == {:ok, :dict}
-  end
-
-  test "eval_quoted_with_env/3 with vars" do
-    env = Code.env_for_eval(__ENV__)
-    {1, [x: 1], env} = Code.eval_quoted_with_env(quote(do: var!(x) = 1), [], env)
-    assert Macro.Env.vars(env) == [{:x, nil}]
-  end
-
-  test "eval_quoted_with_env/3 with pruning" do
-    env = Code.env_for_eval(__ENV__)
-
-    fun = fn quoted, binding ->
-      {_, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-      {binding, Macro.Env.vars(env)}
+      quoted = quote(do: alias(:dict, as: MyDict))
+      {:dict, [], env} = Code.eval_quoted_with_env(quoted, [], env)
+      assert Macro.Env.fetch_alias(env, :MyDict) == {:ok, :dict}
     end
 
-    assert fun.(quote(do: 123), []) == {[], []}
-    assert fun.(quote(do: 123), x: 2, y: 3) == {[], []}
-
-    assert fun.(quote(do: var!(x) = 1), []) == {[x: 1], [x: nil]}
-    assert fun.(quote(do: var!(x) = 1), x: 2, y: 3) == {[x: 1], [x: nil]}
-
-    assert fun.(quote(do: var!(x, :foo) = 1), []) == {[{{:x, :foo}, 1}], [x: :foo]}
-    assert fun.(quote(do: var!(x, :foo) = 1), x: 2, y: 3) == {[{{:x, :foo}, 1}], [x: :foo]}
-
-    assert fun.(quote(do: var!(x, :foo) = 1), [{{:x, :foo}, 2}, {{:y, :foo}, 3}]) ==
-             {[{{:x, :foo}, 1}], [x: :foo]}
-
-    assert fun.(quote(do: fn -> var!(x, :foo) = 1 end), []) == {[], []}
-    assert fun.(quote(do: fn -> var!(x, :foo) = 1 end), x: 1, y: 2) == {[], []}
-
-    assert fun.(quote(do: fn -> var!(x) end), x: 2, y: 3) == {[x: 2], [x: nil]}
-
-    assert fun.(quote(do: fn -> var!(x, :foo) end), [{{:x, :foo}, 2}, {{:y, :foo}, 3}]) ==
-             {[{{:x, :foo}, 2}], [x: :foo]}
-  end
-
-  defmodule Tracer do
-    def trace(event, env) do
-      send(self(), {:trace, event, env})
-      :ok
+    test "manages env vars" do
+      env = Code.env_for_eval(__ENV__)
+      {1, [x: 1], env} = Code.eval_quoted_with_env(quote(do: var!(x) = 1), [], env)
+      assert Macro.Env.vars(env) == [{:x, nil}]
     end
-  end
 
-  test "eval_quoted_with_env/3 with tracing and pruning" do
-    env = %{Code.env_for_eval(__ENV__) | tracers: [Tracer], function: nil}
-    binding = [x: 1, y: 2, z: 3]
+    test "prunes vars" do
+      env = Code.env_for_eval(__ENV__)
 
-    quoted =
-      quote do
-        defmodule Elixir.CodeTest.TracingPruning do
-          var!(y) = :updated
-          var!(y)
-          var!(x)
-        end
+      fun = fn quoted, binding ->
+        {_, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+        {binding, Macro.Env.vars(env)}
       end
 
-    {_, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
-    assert Enum.sort(binding) == []
-    assert env.versioned_vars == %{}
+      assert fun.(quote(do: 123), []) == {[], []}
+      assert fun.(quote(do: 123), x: 2, y: 3) == {[], []}
 
-    assert_receive {:trace, {:on_module, _, _}, %{module: CodeTest.TracingPruning} = trace_env}
-    assert trace_env.versioned_vars == %{{:result, Kernel} => 5, {:x, nil} => 1, {:y, nil} => 4}
+      assert fun.(quote(do: var!(x) = 1), []) == {[x: 1], [x: nil]}
+      assert fun.(quote(do: var!(x) = 1), x: 2, y: 3) == {[x: 1], [x: nil]}
+
+      assert fun.(quote(do: var!(x, :foo) = 1), []) == {[{{:x, :foo}, 1}], [x: :foo]}
+      assert fun.(quote(do: var!(x, :foo) = 1), x: 2, y: 3) == {[{{:x, :foo}, 1}], [x: :foo]}
+
+      assert fun.(quote(do: var!(x, :foo) = 1), [{{:x, :foo}, 2}, {{:y, :foo}, 3}]) ==
+               {[{{:x, :foo}, 1}], [x: :foo]}
+
+      assert fun.(quote(do: fn -> var!(x, :foo) = 1 end), []) == {[], []}
+      assert fun.(quote(do: fn -> var!(x, :foo) = 1 end), x: 1, y: 2) == {[], []}
+
+      assert fun.(quote(do: fn -> var!(x) end), x: 2, y: 3) == {[x: 2], [x: nil]}
+
+      assert fun.(quote(do: fn -> var!(x, :foo) end), [{{:x, :foo}, 2}, {{:y, :foo}, 3}]) ==
+               {[{{:x, :foo}, 2}], [x: :foo]}
+    end
+
+    defmodule Tracer do
+      def trace(event, env) do
+        send(self(), {:trace, event, env})
+        :ok
+      end
+    end
+
+    test "with tracing and pruning" do
+      env = %{Code.env_for_eval(__ENV__) | tracers: [Tracer], function: nil}
+      binding = [x: 1, y: 2, z: 3]
+
+      quoted =
+        quote do
+          defmodule Elixir.CodeTest.TracingPruning do
+            var!(y) = :updated
+            var!(y)
+            var!(x)
+          end
+        end
+
+      {_, binding, env} = Code.eval_quoted_with_env(quoted, binding, env, prune_binding: true)
+      assert Enum.sort(binding) == []
+      assert env.versioned_vars == %{}
+
+      assert_receive {:trace, {:on_module, _, _}, %{module: CodeTest.TracingPruning} = trace_env}
+      assert trace_env.versioned_vars == %{{:result, Kernel} => 5, {:x, nil} => 1, {:y, nil} => 4}
+    end
+
+    test "with defguard" do
+      require Integer
+      env = Code.env_for_eval(__ENV__)
+      quoted = quote do: Integer.is_even(1)
+      {false, binding, env} = Code.eval_quoted_with_env(quoted, [], env, prune_binding: true)
+      assert binding == []
+      assert Macro.Env.vars(env) == []
+    end
   end
 
-  test "eval_quoted_with_env/3 with defguard" do
-    require Integer
-    env = Code.env_for_eval(__ENV__)
-    quoted = quote do: Integer.is_even(1)
-    {false, binding, env} = Code.eval_quoted_with_env(quoted, [], env, prune_binding: true)
-    assert binding == []
-    assert Macro.Env.vars(env) == []
-  end
+  describe "compile_file/1" do
+    test "compiles the given path" do
+      assert Code.compile_file(fixture_path("code_sample.exs")) == []
+      refute fixture_path("code_sample.exs") in Code.required_files()
+    end
 
-  test "compile_file/1" do
-    assert Code.compile_file(fixture_path("code_sample.exs")) == []
-    refute fixture_path("code_sample.exs") in Code.required_files()
-  end
+    test "emits checker warnings" do
+      output =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Code.compile_file(fixture_path("checker_warning.exs"))
+        end)
 
-  test "compile_file/1 also emits checker warnings" do
-    output =
-      ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        Code.compile_file(fixture_path("checker_warning.exs"))
-      end)
+      assert output =~ "incompatible types"
+    after
+      :code.purge(CodeTest.CheckerWarning)
+      :code.delete(CodeTest.CheckerWarning)
+    end
 
-    assert output =~ "incompatible types"
+    test "captures checker diagnostics" do
+      {[{CodeTest.CheckerWarning, _}], diagnostics} =
+        Code.with_diagnostics(fn ->
+          Code.compile_file(fixture_path("checker_warning.exs"))
+        end)
+
+      assert [%{message: "incompatible types:" <> _}] = diagnostics
+    after
+      :code.purge(CodeTest.CheckerWarning)
+      :code.delete(CodeTest.CheckerWarning)
+    end
+
+    test "captures checker diagnostics with logging" do
+      output =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          {[{CodeTest.CheckerWarning, _}], diagnostics} =
+            Code.with_diagnostics([log: true], fn ->
+              Code.compile_file(fixture_path("checker_warning.exs"))
+            end)
+
+          assert [%{message: "incompatible types:" <> _}] = diagnostics
+        end)
+
+      assert output =~ "incompatible types"
+    after
+      :code.purge(CodeTest.CheckerWarning)
+      :code.delete(CodeTest.CheckerWarning)
+    end
   end
 
   test "require_file/1" do
@@ -317,6 +405,9 @@ defmodule CodeTest do
         end)
 
       assert output =~ "incompatible types"
+    after
+      :code.purge(CodeTest.CheckerWarning)
+      :code.delete(CodeTest.CheckerWarning)
     end
 
     test "works across lexical scopes" do

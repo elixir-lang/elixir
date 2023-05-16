@@ -426,7 +426,7 @@ string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(Sta
     {ok, _Line, _Column, [], Tokens} ->
       {ok, Tokens};
     {ok, _Line, _Column, Warnings, Tokens} ->
-      (lists:keyfind(emit_warnings, 1, Opts) /= {emit_warnings, false}) andalso
+      (lists:keyfind(warnings, 1, Opts) /= {warnings, false}) andalso
         [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)],
       {ok, Tokens};
     {error, {Line, Column, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _Warnings, _SoFar} ->
@@ -486,8 +486,8 @@ to_binary(Atom) when is_atom(Atom) -> atom_to_binary(Atom).
 
 handle_parsing_opts(File, Opts) ->
   WarningFile =
-    case lists:keyfind(emit_warnings, 1, Opts) of
-      {emit_warnings, false} -> nil;
+    case lists:keyfind(warnings, 1, Opts) of
+      {warnings, false} -> nil;
       _ -> File
     end,
   LiteralEncoder =

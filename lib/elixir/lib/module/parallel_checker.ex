@@ -48,7 +48,7 @@ defmodule Module.ParallelChecker do
   @doc """
   Spawns a process that runs the parallel checker.
   """
-  def spawn({pid, checker}, module, info) do
+  def spawn({pid, checker}, module, info, log?) do
     ref = make_ref()
 
     spawned =
@@ -79,7 +79,7 @@ defmodule Module.ParallelChecker do
 
                 warnings =
                   if module_map do
-                    check_module(module_map, {checker, ets})
+                    check_module(module_map, {checker, ets}, log?)
                   else
                     []
                   end
@@ -143,12 +143,23 @@ defmodule Module.ParallelChecker do
   """
   @spec verify(pid(), [{module(), Path.t()}]) :: [warning()]
   def verify(checker, runtime_files) do
+    value = :erlang.get(:elixir_code_diagnostics)
+    log? = not match?({_, false}, value)
+
     for {module, file} <- runtime_files do
-      spawn({self(), checker}, module, file)
+      spawn({self(), checker}, module, file, log?)
     end
 
     count = :gen_server.call(checker, :start, :infinity)
-    collect_results(count, [])
+    diagnostics = collect_results(count, [])
+
+    case :erlang.get(:elixir_code_diagnostics) do
+      :undefined -> :ok
+      {tail, true} -> :erlang.put(:elixir_code_diagnostics, {diagnostics ++ tail, true})
+      {tail, false} -> :erlang.put(:elixir_code_diagnostics, {diagnostics ++ tail, false})
+    end
+
+    diagnostics
   end
 
   defp collect_results(0, diagnostics) do
@@ -221,7 +232,7 @@ defmodule Module.ParallelChecker do
 
   ## Module checking
 
-  defp check_module(module_map, cache) do
+  defp check_module(module_map, cache, log?) do
     %{
       module: module,
       file: file,
@@ -252,7 +263,7 @@ defmodule Module.ParallelChecker do
       |> Module.Types.warnings(file, definitions, no_warn_undefined, cache)
       |> Kernel.++(behaviour_warnings)
       |> group_warnings()
-      |> emit_warnings()
+      |> emit_warnings(log?)
 
     module_map
     |> Map.get(:after_verify, [])
@@ -278,7 +289,7 @@ defmodule Module.ParallelChecker do
 
   ## Warning helpers
 
-  def group_warnings(warnings) do
+  defp group_warnings(warnings) do
     warnings
     |> Enum.reduce(%{}, fn {module, warning, location}, acc ->
       locations = MapSet.new([location])
@@ -288,11 +299,11 @@ defmodule Module.ParallelChecker do
     |> Enum.sort()
   end
 
-  def emit_warnings(warnings) do
+  defp emit_warnings(warnings, log?) do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
       diagnostics = Enum.map(locations, &to_diagnostic(message, &1))
-      :elixir_errors.print_warning([message, ?\n, format_stacktraces(diagnostics)])
+      log? and :elixir_errors.print_warning([message, ?\n, format_stacktraces(diagnostics)])
       diagnostics
     end)
   end
@@ -317,7 +328,7 @@ defmodule Module.ParallelChecker do
       severity: :warning,
       file: file,
       position: line,
-      message: message,
+      message: IO.iodata_to_binary(message),
       stacktrace: [to_stacktrace(file, line, mfa)]
     }
   end

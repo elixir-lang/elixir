@@ -3,26 +3,14 @@ defmodule Kernel.ParallelCompiler do
   A module responsible for compiling and requiring files in parallel.
   """
 
-  @typedoc "The line. 0 indicates no line."
-  @type line() :: non_neg_integer()
-  @type position() :: line() | {pos_integer(), column :: non_neg_integer}
-
-  @type diagnostic(severity) :: %{
-          file: Path.t(),
-          severity: severity,
-          message: String.t(),
-          position: position,
-          stacktrace: Exception.stacktrace()
-        }
-
   @type info :: %{
-          runtime_warnings: [diagnostic(:warning)],
-          compile_warnings: [diagnostic(:warning)]
+          runtime_warnings: [Code.diagnostic(:warning)],
+          compile_warnings: [Code.diagnostic(:warning)]
         }
 
   # Deprecated types
-  @type warning() :: {file :: Path.t(), position(), message :: String.t()}
-  @type error() :: {file :: Path.t(), position(), message :: String.t()}
+  @type warning() :: {file :: Path.t(), Code.position(), message :: String.t()}
+  @type error() :: {file :: Path.t(), Code.position(), message :: String.t()}
 
   @doc """
   Starts a task for parallel compilation.
@@ -71,7 +59,7 @@ defmodule Kernel.ParallelCompiler do
   resolved.
 
   It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
-  by default but we recommend using `return_maps: true` so it returns
+  by default but we recommend using `return_diagnostics: true` so it returns
   diagnostics as maps as well as a map of compilation information.
   The map has the shape of:
 
@@ -115,14 +103,14 @@ defmodule Kernel.ParallelCompiler do
 
     * `:beam_timestamp` - the modification timestamp to give all BEAM files
 
-    * `:return_maps` (since v1.15.0) - returns maps with information instead of
+    * `:return_diagnostics` (since v1.15.0) - returns maps with information instead of
       a list of warnings and returns diagnostics as maps instead of tuples
 
   """
   @doc since: "1.6.0"
   @spec compile([Path.t()], keyword()) ::
           {:ok, [atom], [warning] | info()}
-          | {:error, [error] | [diagnostic(:error)], [warning] | info()}
+          | {:error, [error] | [Code.diagnostic(:error)], [warning] | info()}
   def compile(files, options \\ []) when is_list(options) do
     spawn_workers(files, :compile, options)
   end
@@ -135,7 +123,7 @@ defmodule Kernel.ParallelCompiler do
   @doc since: "1.6.0"
   @spec compile_to_path([Path.t()], Path.t(), keyword()) ::
           {:ok, [atom], [warning] | info()}
-          | {:error, [error] | [diagnostic(:error)], [warning] | info()}
+          | {:error, [error] | [Code.diagnostic(:error)], [warning] | info()}
   def compile_to_path(files, path, options \\ []) when is_binary(path) and is_list(options) do
     spawn_workers(files, {:compile, path}, options)
   end
@@ -147,7 +135,7 @@ defmodule Kernel.ParallelCompiler do
   automatically solved between files.
 
   It returns `{:ok, modules, warnings}` or `{:error, errors, warnings}`
-  by default but we recommend using `return_maps: true` so it returns
+  by default but we recommend using `return_diagnostics: true` so it returns
   diagnostics as maps as well as a map of compilation information.
   The map has the shape of:
 
@@ -170,14 +158,6 @@ defmodule Kernel.ParallelCompiler do
           {:ok, [atom], [warning] | info()} | {:error, [error], [warning] | info()}
   def require(files, options \\ []) when is_list(options) do
     spawn_workers(files, :require, options)
-  end
-
-  @doc """
-  Prints a diagnostic returned by the compiler into stderr.
-  """
-  @doc since: "1.15.0"
-  def print_diagnostic(diagnostic) do
-    :elixir_errors.print_diagnostic(diagnostic)
   end
 
   @doc false
@@ -239,7 +219,7 @@ defmodule Kernel.ParallelCompiler do
       end
 
     # TODO: Require this to be set from Elixir v1.19
-    if Keyword.get(options, :return_maps, false) do
+    if Keyword.get(options, :return_diagnostics, false) do
       {status, modules_or_errors, info}
     else
       to_tuples = &Enum.map(&1, fn diag -> {diag.file, diag.position, diag.message} end)

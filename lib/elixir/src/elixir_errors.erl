@@ -33,7 +33,7 @@ print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stack
         [["\n  ", 'Elixir.Exception':format_stacktrace_entry(E)] || E <- Stacktrace]
     end,
   io:put_chars(standard_error, [prefix(Severity), Message, Location, "\n\n"]),
-  ok.
+  Diagnostic.
 
 emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
   Diagnostic = #{
@@ -44,7 +44,11 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
     stacktrace => Stacktrace
   },
 
-  print_diagnostic(Diagnostic),
+  case get(elixir_code_diagnostics) of
+    undefined -> print_diagnostic(Diagnostic);
+    {Tail, true} -> put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic) | Tail], true});
+    {Tail, false} -> put(elixir_code_diagnostics, {[Diagnostic | Tail], false})
+  end,
 
   case get(elixir_compiler_info) of
     undefined -> ok;
