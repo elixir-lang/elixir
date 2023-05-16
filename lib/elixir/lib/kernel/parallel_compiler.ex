@@ -155,7 +155,8 @@ defmodule Kernel.ParallelCompiler do
   """
   @doc since: "1.6.0"
   @spec require([Path.t()], keyword()) ::
-          {:ok, [atom], [warning] | info()} | {:error, [error], [warning] | info()}
+          {:ok, [atom], [warning] | info()}
+          | {:error, [error] | [Code.diagnostic(:error)], [warning] | info()}
   def require(files, options \\ []) when is_list(options) do
     spawn_workers(files, :require, options)
   end

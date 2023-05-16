@@ -118,6 +118,7 @@ config_change(_Changed, _New, _Remove) ->
   ok.
 
 set_stdio_and_stderr_to_binary_and_maybe_utf8() ->
+  %% TODO: Remove me once we require Erlang/OTP 26+
   ok = io:setopts(standard_io, [binary, {encoding, utf8}]),
   ok = io:setopts(standard_error, [{encoding, utf8}]),
   ok.
