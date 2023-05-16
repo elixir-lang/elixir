@@ -8,6 +8,8 @@ defmodule Mix.UtilsTest do
   doctest Mix.Utils
 
   setup do
+    Mix.ensure_application!(:inets)
+
     # Store state before test
     mix_home = System.get_env("MIX_HOME")
 
