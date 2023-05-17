@@ -311,3 +311,9 @@ When using `iex`, the `IEx.Helpers.b/1` helper is also available.
 Elixir discourages the use of the `string()` type. The `string()` type refers to Erlang strings, which are known as "charlists" in Elixir. They do not refer to Elixir strings, which are UTF-8 encoded binaries. To avoid confusion, if you attempt to use the type `string()`, Elixir will emit a warning. You should use `charlist()`, `nonempty_charlist()`, `binary()` or `String.t()` accordingly, or any of the several literal representations for these types.
 
 Note that `String.t()` and `binary()` are equivalent to analysis tools. Although, for those reading the documentation, `String.t()` implies it is a UTF-8 encoded binary.
+
+## Functions which raise an error
+
+Typespecs do not need to indicate that a function can raise an error; any function can fail any time if given invalid input.
+
+In the past, the Elixir language codebase sometimes used `no_return()` to indicate this, but these usages have been removed.
