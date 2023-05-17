@@ -198,11 +198,12 @@ defmodule Code do
   Diagnostics returned by the compiler and code evaluation.
   """
   @type diagnostic(severity) :: %{
-          file: Path.t(),
-          severity: severity,
-          message: String.t(),
-          position: position,
-          stacktrace: Exception.stacktrace()
+          required(:file) => Path.t(),
+          required(:severity) => severity,
+          required(:message) => String.t(),
+          required(:position) => position,
+          required(:stacktrace) => Exception.stacktrace(),
+          optional(any()) => any()
         }
 
   @typedoc "The line. 0 indicates no line."
