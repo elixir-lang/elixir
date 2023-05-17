@@ -60,7 +60,7 @@ start(_Type, _Args) ->
     {ok, _} -> ok;
     undefined ->
       %% Remove prim_tty module check as well as checks from scripts on Erlang/OTP 26
-      ANSIEnabled = erlang:module_loaded(prim_tty) andalso prim_tty:isatty(stdout),
+      ANSIEnabled = erlang:module_loaded(prim_tty) andalso (prim_tty:isatty(stdout) == true),
       application:set_env(elixir, ansi_enabled, ANSIEnabled)
   end,
 
