@@ -7,56 +7,99 @@ on compilation and boot times. This release also completes
 our integration process with Erlang/OTP logger, bringing new
 features such as log rotation and compaction out of the box.
 
-Finally, you will also find additional convenience functions in
-`Map`, `Keyword`, all Calendar modules, and others.
+You will also find additional convenience functions in `Map`,
+`Keyword`, all Calendar modules, and others.
 
 ## Compile and boot-time improvements
 
 The last several releases brought improvements to compilation
-time and this version is no different. In particular, this version
+time and this version is no different. In particular, Elixir
 now caches and prunes load paths before compilation, ensuring your
 project (and dependencies!) compile faster and in an environment
 closer to production.
 
 In a nutshell the Erlang VM loads modules from code paths. Each
 application that ships with Erlang and Elixir plus each dependency
-end-up being an entry in your code path. The larger the code path,
-the more work Erlang has to do in order to find a module.
+become an entry in your code path. The larger the code path, the
+more work Erlang has to do in order to find a module.
 
 In previous versions, Mix would only add entries to the load paths.
 Therefore, if you compiled 20 dependencies and you went to compile
 the 21st, the code path would have 21 entries (plus all Erlang and
 Elixir apps). This allowed modules from unrelated dependencies to
 be seen and made compilation slower the more dependencies you had.
+With this release, we will now prune the code paths to only the ones
+listed as dependencies, bringing the behaviour closer to `mix release`.
 
-In this release, we will now prune the code paths to only the ones
-listed as dependencies. Previously if you attempted to use an
-Erlang/OTP or Elixir module without adding its dependency, we would warn.
-Now the module won't be found altogether (instead of warning as in
-previous versions), which is also the behaviour you see if you ran
-your application as a `mix release`. If you are using an application
-that does not correctly lists its dependencies, they will have to
-be updated accordingly (as previously warned). You can temporarily
-disable this new behaviour by setting `prune_code_paths: false` in
-your `mix.exs`.
+Furthermore, Erlang/OTP 26 allows us to start applications
+concurrently and cache the code path lookups, decreasing the cost of
+booting applications. The combination of Elixir v1.15 and Erlang/OTP 26
+should reduce the boot time of applications, such as when starting
+`iex -S mix` or running a single test with `mix test`, from 5% to 15%.
 
-Furthermore, Erlang/OTP 26 allows us to start applications concurrently
-and cache the code path lookups, decreasing the cost of booting applications.
-The combination of Elixir v1.15 and Erlang/OTP 26 should reduce the boot
-time of applications, such as when starting `iex -S mix` or running a single
-test with `mix test`, from 5% to 15%.
+### Potential incompatibilities
+
+Due to the code path pruning, if you have an application or dependency
+that does not specify its dependencies on Erlang and Elixir application,
+it may no longer compile successfully in Elixir v1.15. You can temporarily
+disable code path pruning by setting `prune_code_paths: false` in your
+`mix.exs`, although doing so may lead to runtime bugs that are only
+manifested inside a `mix release`.
 
 ## Compiler warnings and errors
 
-TODO.
+The Elixir compiler can now emit many errors for a single file, making
+sure more feedback is reported to developers before compilation is aborted.
+
+In Elixir v1.14, an undefined function would be reported as:
+
+    ** (CompileError) undefined function foo/0 (there is no such import)
+        my_file.exs:1
+
+In Elixir v1.15, the new reports will look like:
+
+    error: undefined function foo/0 (there is no such import)
+      my_file.exs:1
+
+    ** (CompileError) nofile: cannot compile file (errors have been logged)
+
+This information can also be leveraged by editors, allowing them to point
+to several errors at once.
 
 ## Integration with Erlang/OTP logger
 
-This provides additional features such as global logger metadata and
-file logging (with rotation and compaction) out-of-the-box! See
-the `Logger` documentation for more information.
+This release provides additional features such as global logger
+metadata and file logging (with rotation and compaction) out-of-the-box!
 
-TODO: Mention :console vs Logger.Backends.Console
+This release also soft-deprecates Elixir's Logger Backends in
+favor of Erlang's Logger handlers. Elixir will automatically
+convert your `:console` backend configuration into the new
+configuration. Previously, you would set:
+
+```elixir
+config :logger, :console,
+  level: :error,
+  format: "$time $message $metadata"
+```
+
+Which is now translated to the equivalent:
+
+```elixir
+config :logger, :default_handler,
+  level: :error
+
+config :logger, :default_formatter,
+  format: "$time $message $metadata"
+```
+
+If you use `Logger.Backends.Console` or other backends, they are
+still fully supported and functional. If you implement your own
+backends, you want to consider migrating to
+[`:logger_backends`](https://github.com/elixir-lang/logger_backends)
+in the long term.
+
+See the new `Logger` documentation for more information on the
+new features and on compatibility.
 
 ## v1.15.0-dev
 
