@@ -649,6 +649,7 @@ defmodule Mix.Tasks.ReleaseTest do
   test "runs eval and version commands" do
     # In some Windows setups (mostly with Docker), `System.cmd/3` fails because
     # the path to the command/executable and one or more arguments contain spaces.
+    # We write also write to stdout to avoid issues on Windows CI.
     tmp_dir = Path.join(inspect(__MODULE__), "runs_eval_and_version_commands")
 
     in_fixture("release_test", tmp_dir, fn ->
@@ -668,12 +669,16 @@ defmodule Mix.Tasks.ReleaseTest do
         assert String.trim_trailing(version) == "eval 0.1.0"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
-        {hello_world, 0} = System.cmd(script, ["eval", "IO.puts :hello_world"])
+        {hello_world, 0} =
+          System.cmd(script, ["eval", "IO.puts(:stderr, :hello_world)"], stderr_to_stdout: true)
+
         assert String.trim_trailing(hello_world) == "hello_world"
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
 
         {hello_world, 0} =
-          System.cmd(script, ["eval", "IO.inspect(System.argv( ))", "a", "b", "c"])
+          System.cmd(script, ["eval", "IO.inspect(:stderr, System.argv( ), [])", "a", "b", "c"],
+            stderr_to_stdout: true
+          )
 
         assert String.trim_trailing(hello_world) == ~S(["a", "b", "c"])
         refute File.exists?(Path.join(root, "RELEASE_BOOTED"))
