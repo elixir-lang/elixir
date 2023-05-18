@@ -837,8 +837,8 @@ defmodule Kernel.SpecialForms do
     * `:context` - sets the resolution context.
 
     * `:generated` - marks the given chunk as generated so it does not emit warnings.
-      Currently it only works on special forms (for example, you can annotate a `case`
-      but not an `if`).
+      It is also useful to avoid dialyzer reporting errors when macros generate
+      unused clauses.
 
     * `:file` - sets the quoted expressions to have the given file.
 
