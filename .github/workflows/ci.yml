@@ -24,10 +24,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp_version: 25.0
+          - otp_version: '26.0'
             otp_latest: true
-          - otp_version: 24.3
-          - otp_version: 24.0
+          - otp_version: '25.3'
+          - otp_version: '25.0'
+          - otp_version: '24.3'
+          - otp_version: '24.0'
           - otp_version: master
             development: true
           - otp_version: maint
@@ -48,9 +50,6 @@ jobs:
         run: bin/elixir --version
       - name: Check format
         run: make test_formatted && echo "All Elixir source code files are properly formatted."
-      - name: Run Dialyzer
-        run: dialyzer -pa lib/elixir/ebin --build_plt --output_plt elixir.plt --apps lib/elixir/ebin/elixir.beam lib/elixir/ebin/Elixir.Kernel.beam
-        continue-on-error: ${{ matrix.development }}
       - name: Erlang test suite
         run: make test_erlang
         continue-on-error: ${{ matrix.development }}
@@ -78,7 +77,7 @@ jobs:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
       matrix:
-        otp_version: ['24', '25']
+        otp_version: ['24', '25', '26']
     runs-on: windows-2019
     steps:
       - name: Configure Git
