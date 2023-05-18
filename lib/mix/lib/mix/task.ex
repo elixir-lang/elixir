@@ -367,12 +367,32 @@ defmodule Mix.Task do
       alias && Mix.TasksServer.run({:alias, task, proj}) ->
         run_alias(List.wrap(alias), args, proj, task, apps, :ok)
 
+      Mix.Project.umbrella?() && umbrella_child_alias?(task) ->
+        Mix.ProjectStack.recur(fn ->
+          recur(
+            fn _ -> Mix.Project.config()[:aliases][String.to_atom(task)] && run(task, args) end,
+            apps
+          )
+        end)
+
       !Mix.TasksServer.get({:task, task, proj}) ->
         run_task(proj, task, args, apps)
 
       true ->
         :noop
     end
+  end
+
+  defp umbrella_child_alias?(task) do
+    umbrella_deps =
+      Mix.Dep.Umbrella.cached()
+      |> Enum.filter(& &1.opts[:from_umbrella])
+
+    Enum.find(umbrella_deps, fn %Mix.Dep{app: app, opts: opts} ->
+      Mix.Project.in_project(app, opts[:path], [inherit_parent_config_files: true], fn _ ->
+        !!Mix.Project.config()[:aliases][String.to_atom(task)]
+      end)
+    end)
   end
 
   defp run_task(proj, task, args, apps) do
