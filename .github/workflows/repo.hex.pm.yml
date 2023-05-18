@@ -20,10 +20,12 @@ jobs:
       matrix:
         include:
           - otp: 24
-            otp_version: 24.3
+            otp_version: '24.3'
             upload_generic_version: upload_generic_version
           - otp: 25
-            otp_version: 25.0
+            otp_version: '25.3'
+          - otp: 26
+            otp_version: '26.0'
             build_docs: build_docs
     runs-on: ubuntu-20.04
     concurrency: builds_txt
