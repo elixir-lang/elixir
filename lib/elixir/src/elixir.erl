@@ -24,22 +24,20 @@
 -type struct() :: #{'__struct__' := atom(), atom() => any()}.
 
 %% OTP Application API
+%% TODO: Remove Erlang/OTP 26+ checks
 
--if(?OTP_RELEASE >= 26).
-load_paths(Paths) -> code:add_pathsa(Paths, cache).
--else.
-load_paths(Paths) -> code:add_pathsa(Paths).
--endif.
+load_paths(OTP, Paths) when OTP >= 26 -> code:add_pathsa(Paths, cache);
+load_paths(_OTP, Paths) -> code:add_pathsa(Paths).
 
 start(_Type, _Args) ->
-  _ = parse_otp_release(),
+  OTP = parse_otp_release(),
   preload_common_modules(),
-  set_stdio_and_stderr_to_binary_and_maybe_utf8(),
+  set_stdio_and_stderr_to_binary_and_maybe_utf8(OTP),
   check_file_encoding(file:native_name_encoding()),
 
   case init:get_argument(elixir_root) of
     {ok, [[Root]]} ->
-      load_paths([
+      load_paths(OTP, [
         Root ++ "/eex/ebin",
         Root ++ "/ex_unit/ebin",
         Root ++ "/iex/ebin",
@@ -117,9 +115,16 @@ stop(Tab) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-set_stdio_and_stderr_to_binary_and_maybe_utf8() ->
-  %% TODO: Remove me once we require Erlang/OTP 26+
-  ok = io:setopts(standard_io, [binary, {encoding, utf8}]),
+set_stdio_and_stderr_to_binary_and_maybe_utf8(OTP) when OTP >= 26 ->
+  ok = io:setopts(standard_io, [binary]),
+  ok;
+set_stdio_and_stderr_to_binary_and_maybe_utf8(_OTP) ->
+  Opts =
+    case init:get_argument(noshell) of
+      {ok, _} -> [binary, {encoding, utf8}];
+      error   -> [binary]
+    end,
+  ok = io:setopts(standard_io, Opts),
   ok = io:setopts(standard_error, [{encoding, utf8}]),
   ok.
 
@@ -349,27 +354,27 @@ eval_external_handler(Env) ->
   Fun = fun(Ann, FunOrModFun, Args) ->
     try
       case FunOrModFun of
-          {Mod, Fun} -> apply(Mod, Fun, Args);
-          Fun -> apply(Fun, Args)
+        {Mod, Fun} -> apply(Mod, Fun, Args);
+        Fun -> apply(Fun, Args)
       end
     catch
       Kind:Reason:Stacktrace ->
         %% Take everything up to the Elixir module
         Pruned =
-            lists:takewhile(fun
-              ({elixir,_,_,_}) -> false;
-              (_) -> true
-            end, Stacktrace),
+          lists:takewhile(fun
+            ({elixir,_,_,_}) -> false;
+            (_) -> true
+          end, Stacktrace),
 
         Caller =
-            lists:dropwhile(fun
-              ({elixir,_,_,_}) -> false;
-              (_) -> true
-            end, Stacktrace),
+          lists:dropwhile(fun
+            ({elixir,_,_,_}) -> false;
+            (_) -> true
+          end, Stacktrace),
 
         %% Now we prune any shared code path from erl_eval
         {current_stacktrace, Current} =
-            erlang:process_info(self(), current_stacktrace),
+          erlang:process_info(self(), current_stacktrace),
 
         %% We need to make sure that we don't generate more
         %% frames than supported. So we do our best to drop
