@@ -25,9 +25,9 @@
 -export([start/2, stop/1, config_change/3]).
 
 start(_Type, _Args) ->
-  _ = parse_otp_release(),
+  OTP = parse_otp_release(),
   preload_common_modules(),
-  set_stdio_and_stderr_to_binary_and_maybe_utf8(),
+  set_stdio_and_stderr_to_binary_and_maybe_utf8(OTP),
   check_file_encoding(file:native_name_encoding()),
 
   case application:get_env(elixir, check_endianness, true) of
@@ -87,7 +87,10 @@ stop(Tab) ->
 config_change(_Changed, _New, _Remove) ->
   ok.
 
-set_stdio_and_stderr_to_binary_and_maybe_utf8() ->
+set_stdio_and_stderr_to_binary_and_maybe_utf8(OTP) when OTP >= 26 ->
+   ok = io:setopts(standard_io, [binary]),
+   ok;
+set_stdio_and_stderr_to_binary_and_maybe_utf8(_OTP) ->
   %% In case there is a shell, we can't really change its
   %% encoding, so we just set binary to true. Otherwise
   %% we must set the encoding as the user with no shell
