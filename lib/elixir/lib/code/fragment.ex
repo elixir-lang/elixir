@@ -17,13 +17,13 @@ defmodule Code.Fragment do
 
   This function receives a string with an Elixir code fragment,
   representing a cursor position, and based on the string, it
-  provides contextual information about said position. The
-  return of this function can then be used to provide tips,
+  provides contextual information about the latest token.
+  The return of this function can then be used to provide tips,
   suggestions, and autocompletion functionality.
 
-  This function provides a best-effort detection and may not be
-  accurate under all circumstances. See the "Limitations"
-  section below.
+  This function performs its analyses on tokens. This means
+  it does not understand how constructs are nested within each
+  other. See the "Limitations" section below.
 
   Consider adding a catch-all clause when handling the return
   type of this function as new cursor information may be added
@@ -110,11 +110,28 @@ defmodule Code.Fragment do
     * `{:unquoted_atom, charlist}` - the context is an unquoted atom. This
       can be any atom or an atom representing a module
 
+  We recommend looking at the test suite of this function for a complete list
+  of examples and their return values.
+
   ## Limitations
 
-  The current algorithm only considers the last line of the input. This means
-  it will also show suggestions inside strings, heredocs, etc, which is
-  intentional as it helps with doctests, references, and more.
+  The analysis is based on the current token, by analysing the last line of
+  the input. For example, this code:
+
+      iex> Code.Fragment.cursor_context("%URI{")
+      :expr
+
+  returns `:expr`, which suggests any variable, local function or alias
+  could be used. However, given we are inside a struct, the best suggestion
+  would be a struct field. In such cases, you can use
+  `container_cursor_to_quoted`, which will return the container of the AST
+  the cursor is currently within. You can then analyse this AST to provide
+  completion of field names.
+
+  As a consequence of its token-based implementation, this function considers
+  only the last line of the input. This means it will show suggestions inside
+  strings, heredocs, etc, which is intentional as it helps with doctests,
+  references, and more.
   """
   @doc since: "1.13.0"
   @spec cursor_context(List.Chars.t(), keyword()) ::
@@ -480,7 +497,8 @@ defmodule Code.Fragment do
   This function receives a string with an Elixir code fragment
   and a `position`. It returns a map containing the beginning
   and ending of the identifier alongside its context, or `:none`
-  if there is nothing with a known context.
+  if there is nothing with a known context. This is useful to
+  provide mouse-over and highlight functionality in editors.
 
   The difference between `cursor_context/2` and `surround_context/3`
   is that the former assumes the expression in the code fragment
@@ -509,10 +527,10 @@ defmodule Code.Fragment do
   The returned map contains the column the expression starts and the
   first column after the expression ends.
 
-  Similar to `cursor_context/2`, this function also provides a best-effort
-  detection and may not be accurate under all circumstances. See the
-  "Return values" and "Limitations" section under `cursor_context/2` for
-  more information.
+  Similar to `cursor_context/2`, this function is also token-based
+  and may not be accurate under all circumstances. See the
+  "Return values" and "Limitations" section under `cursor_context/2`
+  for more information.
 
   ## Examples
 
@@ -521,8 +539,8 @@ defmodule Code.Fragment do
 
   ## Differences to `cursor_context/2`
 
-  Because `surround_context/3` deals with complete code, it has some
-  difference to `cursor_context/2`:
+  Because `surround_context/3` attempts to capture complex expressions,
+  it has some differences to `cursor_context/2`:
 
     * `dot_call`/`dot_arity` and `operator_call`/`operator_arity`
       are collapsed into `dot` and `operator` contexts respectively
@@ -542,6 +560,8 @@ defmodule Code.Fragment do
 
     * This function never returns `:expr`
 
+  We recommend looking at the test suite of this function for a complete list
+  of examples and their return values.
   """
   @doc since: "1.13.0"
   @spec surround_context(List.Chars.t(), position(), keyword()) ::
@@ -937,17 +957,15 @@ defmodule Code.Fragment do
 
   @doc """
   Receives a string and returns a quoted expression
-  with a cursor at the nearest argument position.
+  with the cursor AST position within its parent expression.
 
   This function receives a string with an Elixir code fragment,
   representing a cursor position, and converts such string to
-  AST with the inclusion of special `__cursor__()` node based
-  on the position of the cursor with a container.
+  AST with the inclusion of special `__cursor__()` node representing
+  the cursor position within its parent.
 
-  A container is any Elixir expression starting with `(`,
-  `{`, and `[`. This includes function calls, tuples, lists,
-  maps, and so on. For example, take this code, which would
-  be given as input:
+  The parent node is any function call, tuple, list, map, and so on.
+  For example, take this code, which would be given as input:
 
       max(some_value,
 
@@ -956,9 +974,9 @@ defmodule Code.Fragment do
       max(some_value, __cursor__())
 
   In other words, this function is capable of closing any open
-  brackets and insert the cursor position. Any content at the
-  cursor position that is after a comma or an opening bracket
-  is discarded. For example, if this is given as input:
+  brackets and insert the cursor position. Other content at the
+  cursor position which is not a parent is discarded.
+  For example, if this is given as input:
 
       max(some_value, another_val
 
@@ -1004,6 +1022,8 @@ defmodule Code.Fragment do
 
       if(some_value, do: __cursor__())
 
+  For multi-line blocks, all previous lines are preserved.
+
   The AST returned by this function is not safe to evaluate but
   it can be analyzed and expanded.
 
@@ -1019,7 +1039,25 @@ defmodule Code.Fragment do
       iex> Code.Fragment.container_cursor_to_quoted("[some, value")
       {:ok, [{:some, [line: 1], nil}, {:__cursor__, [line: 1], []}]}
 
-  For binaries, the `::` is exclusively kept as an operator:
+  If an expression is complete, then the whole expression is discarded
+  and only the parent is returned:
+
+      iex> Code.Fragment.container_cursor_to_quoted("if(is_atom(var)")
+      {:ok, {:if, [line: 1], [{:__cursor__, [line: 1], []}]}}
+
+  this means complete expressions themselves return only the cursor:
+
+      iex> Code.Fragment.container_cursor_to_quoted("if(is_atom(var))")
+      {:ok, {:__cursor__, [line: 1], []}}
+      iex> Code.Fragment.container_cursor_to_quoted("alias Foo.Bar")
+      {:ok, {:__cursor__, [line: 1], []}}
+
+  Operators are never considered containers:
+
+      iex> Code.Fragment.container_cursor_to_quoted("if(foo +")
+      {:ok, {:if, [line: 1], [{:__cursor__, [line: 1], []}]}}
+
+  with the exception of `::` inside binaries and `|` inside maps:
 
       iex> Code.Fragment.container_cursor_to_quoted("<<some::integer")
       {:ok, {:<<>>, [line: 1], [{:"::", [line: 1], [{:some, [line: 1], nil}, {:__cursor__, [line: 1], []}]}]}}

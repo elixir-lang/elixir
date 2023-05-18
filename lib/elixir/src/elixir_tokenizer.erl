@@ -1760,6 +1760,10 @@ prune_tokens(Tokens, [], [{'fn', _, _} | Terminators]) ->
 prune_tokens([{'(', _}, {capture_op, _, _} | Tokens], [], [{'(', _, _} | Terminators]) ->
   prune_tokens(Tokens, [], Terminators);
 %%% or it is time to stop...
+prune_tokens([{';', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{'eol', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
 prune_tokens([{',', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{'do', _} | _] = Tokens, [], Terminators) ->

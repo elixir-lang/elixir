@@ -1097,6 +1097,10 @@ defmodule CodeFragmentTest do
     end
 
     test "do-end blocks" do
+      assert cc2q("foo do baz") == s2q("foo do __cursor__() end")
+      assert cc2q("foo do bar; baz") == s2q("foo do bar; __cursor__() end")
+      assert cc2q("foo do bar\nbaz") == s2q("foo do bar\n__cursor__() end")
+
       assert cc2q("foo(bar do baz") == s2q("foo(bar do __cursor__() end)")
       assert cc2q("foo(bar do baz ") == s2q("foo(bar do baz(__cursor__()) end)")
       assert cc2q("foo(bar do baz(") == s2q("foo(bar do baz(__cursor__()) end)")
