@@ -470,6 +470,14 @@ defmodule IEx.AutocompleteTest do
     assert ~c"size/1" in entries
   end
 
+  test "completion for aliases in special forms" do
+    assert {:yes, ~c"", entries} = expand(~c"alias ")
+    assert ~c"Atom" in entries
+    refute ~c"is_atom" in entries
+
+    assert {:yes, ~c"Range", []} = expand(~c"alias Date.")
+  end
+
   test "ignore invalid Elixir module literals" do
     defmodule(:"Elixir.IEx.AutocompleteTest.Unicodé", do: nil)
     assert expand(~c"IEx.AutocompleteTest.Unicod") == {:no, ~c"", []}

@@ -18,6 +18,9 @@ defmodule IEx.Autocomplete do
     %{kind: :variable, name: "utf32"}
   ]
 
+  @alias_only_atoms ~w(alias import require)a
+  @alias_only_charlists ~w(alias import require)c
+
   @doc """
   Provides one helper function that is injected into connecting
   remote nodes to properly handle autocompletion.
@@ -62,7 +65,11 @@ defmodule IEx.Autocomplete do
         expand_typespecs(expansion, shell, &get_module_types/1)
 
       {:dot, path, hint} ->
-        expand_dot(path, List.to_string(hint), false, shell)
+        if alias = alias_only(path, hint, code, shell) do
+          expand_aliases(List.to_string(alias), shell)
+        else
+          expand_dot(path, List.to_string(hint), false, shell)
+        end
 
       {:dot_arity, path, hint} ->
         expand_dot(path, List.to_string(hint), true, shell)
@@ -79,6 +86,9 @@ defmodule IEx.Autocomplete do
 
       {:local_arity, local} ->
         expand_local(List.to_string(local), true, shell)
+
+      {:local_call, local} when local in @alias_only_charlists ->
+        expand_aliases("", shell)
 
       {:local_call, local} ->
         expand_local_call(List.to_atom(local), shell)
@@ -382,6 +392,9 @@ defmodule IEx.Autocomplete do
           [cursor, pairs, {:|, _, [{variable, _, nil} | _]}, {:%{}, _, _} | _] ->
             container_context_map(cursor, pairs, variable, shell)
 
+          [cursor, {special_form, _, [cursor]} | _] when special_form in @alias_only_atoms ->
+            :alias_only
+
           [cursor | tail] ->
             case remove_operators(tail, cursor) do
               [{:"::", _, [_, _]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
@@ -424,6 +437,16 @@ defmodule IEx.Autocomplete do
   end
 
   ## Aliases and modules
+
+  defp alias_only(path, hint, code, shell) do
+    with {:alias, alias} <- path,
+         [] <- hint,
+         :alias_only <- container_context(code, shell) do
+      alias ++ [?.]
+    else
+      _ -> nil
+    end
+  end
 
   defp expand_aliases(all, shell) do
     case String.split(all, ".") do
