@@ -65,7 +65,8 @@ elixir_to_erl([], Ann) ->
 elixir_to_erl(<<>>, Ann) ->
   {bin, Ann, []};
 elixir_to_erl(#{} = Map, Ann) ->
-  Assocs = [{map_field_assoc, Ann, elixir_to_erl(K, Ann), elixir_to_erl(V, Ann)} || {K, V} <- maps:to_list(Map)],
+  Assocs = [{map_field_assoc, Ann, elixir_to_erl(K, Ann), elixir_to_erl(V, Ann)}
+            || {K, V} <- lists:sort(maps:to_list(Map))],
   {map, Ann, Assocs};
 elixir_to_erl(Tree, Ann) when is_list(Tree) ->
   elixir_to_erl_cons(Tree, Ann);
