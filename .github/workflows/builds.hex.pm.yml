@@ -1,4 +1,4 @@
-name: repo.hex.pm
+name: builds.hex.pm
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
   release_pre_built:
     strategy:
       fail-fast: true
+      max-parallel: 1
       matrix:
         include:
           - otp: 24
