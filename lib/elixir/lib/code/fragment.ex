@@ -962,9 +962,8 @@ defmodule Code.Fragment do
   This function receives a string with an Elixir code fragment,
   representing a cursor position, and converts such string to
   AST with the inclusion of special `__cursor__()` node representing
-  the cursor position within its parent.
+  the cursor position within its container (i.e. its parent).
 
-  The parent node is any function call, tuple, list, map, and so on.
   For example, take this code, which would be given as input:
 
       max(some_value,
@@ -995,16 +994,7 @@ defmodule Code.Fragment do
   Calls without parenthesis are also supported, as we assume the
   brackets are implicit.
 
-  Operators and anonymous functions are not containers, and therefore
-  will be discarded. The following will all return the same AST:
-
-      max(some_value,
-      max(some_value, fn x -> x end
-      max(some_value, 1 + another_val
-      max(some_value, 1 |> some_fun() |> another_fun
-
-  On the other hand, tuples, lists, maps, and binaries all retain the
-  cursor position:
+  Tuples, lists, maps, and binaries all retain the cursor position:
 
       max(some_value, [1, 2,
 
@@ -1049,18 +1039,11 @@ defmodule Code.Fragment do
 
       iex> Code.Fragment.container_cursor_to_quoted("if(is_atom(var))")
       {:ok, {:__cursor__, [line: 1], []}}
-      iex> Code.Fragment.container_cursor_to_quoted("alias Foo.Bar")
-      {:ok, {:__cursor__, [line: 1], []}}
 
-  Operators are never considered containers:
+  Operators are also included from Elixir v1.15:
 
-      iex> Code.Fragment.container_cursor_to_quoted("if(foo +")
-      {:ok, {:if, [line: 1], [{:__cursor__, [line: 1], []}]}}
-
-  with the exception of `::` inside binaries and `|` inside maps:
-
-      iex> Code.Fragment.container_cursor_to_quoted("<<some::integer")
-      {:ok, {:<<>>, [line: 1], [{:"::", [line: 1], [{:some, [line: 1], nil}, {:__cursor__, [line: 1], []}]}]}}
+      iex> Code.Fragment.container_cursor_to_quoted("foo +")
+      {:ok, {:+, [line: 1], [{:foo, [line: 1], nil}, {:__cursor__, [line: 1], []}]}}
 
   ## Options
 

@@ -1096,6 +1096,17 @@ defmodule CodeFragmentTest do
       assert cc2q(~S|"foo #{"bar #{{|) == s2q(~S|"foo #{"bar #{{__cursor__()}}"}"|)
     end
 
+    test "keeps operators" do
+      assert cc2q("1 + 2") == s2q("1 + __cursor__()")
+    end
+
+    test "keeps function calls without parens" do
+      # assert cc2q("alias foo") == s2q("alias __cursor__()")
+      # assert cc2q("alias Foo.Bar") == s2q("alias __cursor__()")
+      assert cc2q("alias Foo.Bar,") == s2q("alias Foo.Bar, __cursor__()")
+      assert cc2q("alias Foo.Bar, as: ") == s2q("alias Foo.Bar, as: __cursor__()")
+    end
+
     test "do-end blocks" do
       assert cc2q("foo do baz") == s2q("foo do __cursor__() end")
       assert cc2q("foo do bar; baz") == s2q("foo do bar; __cursor__() end")
@@ -1166,7 +1177,6 @@ defmodule CodeFragmentTest do
       assert cc2q("(123") == s2q("(__cursor__())")
       assert cc2q("[foo") == s2q("[__cursor__()]")
       assert cc2q("{'foo'") == s2q("{__cursor__()}")
-      assert cc2q("<<1+2") == s2q("<<__cursor__()>>")
       assert cc2q("foo do :atom") == s2q("foo do __cursor__() end")
       assert cc2q("foo(:atom") == s2q("foo(__cursor__())")
     end
@@ -1174,12 +1184,12 @@ defmodule CodeFragmentTest do
     test "removes tokens until comma" do
       assert cc2q("[bar, 123") == s2q("[bar, __cursor__()]")
       assert cc2q("{bar, 'foo'") == s2q("{bar, __cursor__()}")
-      assert cc2q("<<bar, 1+2") == s2q("<<bar, __cursor__()>>")
+      assert cc2q("<<bar, \"sample\"") == s2q("<<bar, __cursor__()>>")
       assert cc2q("foo(bar, :atom") == s2q("foo(bar, __cursor__())")
       assert cc2q("foo bar, :atom") == s2q("foo(bar, __cursor__())")
     end
 
-    test "removes functions" do
+    test "removes anonymous functions" do
       assert cc2q("(fn") == s2q("(__cursor__())")
       assert cc2q("(fn x") == s2q("(__cursor__())")
       assert cc2q("(fn x ->") == s2q("(__cursor__())")
@@ -1194,20 +1204,20 @@ defmodule CodeFragmentTest do
     end
 
     test "removes closed terminators" do
-      assert cc2q("foo([1, 2, 3] |>") == s2q("foo(__cursor__())")
-      assert cc2q("foo({1, 2, 3} |>") == s2q("foo(__cursor__())")
-      assert cc2q("foo((1, 2, 3) |>") == s2q("foo(__cursor__())")
-      assert cc2q("foo(<<1, 2, 3>> |>") == s2q("foo(__cursor__())")
-      assert cc2q("foo(bar do :done end |>") == s2q("foo(__cursor__())")
+      assert cc2q("foo([1, 2, 3]") == s2q("foo(__cursor__())")
+      assert cc2q("foo({1, 2, 3}") == s2q("foo(__cursor__())")
+      assert cc2q("foo((1, 2, 3)") == s2q("foo(__cursor__())")
+      assert cc2q("foo(<<1, 2, 3>>") == s2q("foo(__cursor__())")
+      assert cc2q("foo(bar do :done end") == s2q("foo(__cursor__())")
     end
 
     test "incomplete expressions" do
-      # assert cc2q("foo(123, :") == s2q("foo(123, __cursor__())")
-      # assert cc2q("foo(123, %") == s2q("foo(123, __cursor__())")
-      # assert cc2q("foo(123, 0x") == s2q("foo(123, __cursor__())")
-      # assert cc2q("foo(123, ~") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, :") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, %") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, 0x") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, ~") == s2q("foo(123, __cursor__())")
       assert cc2q("foo(123, ~r") == s2q("foo(123, __cursor__())")
-      # assert cc2q("foo(123, ~r/") == s2q("foo(123, __cursor__())")
+      assert cc2q("foo(123, ~r/") == s2q("foo(123, __cursor__())")
     end
 
     test "no warnings" do

@@ -1784,10 +1784,13 @@ prune_tokens([{kw_identifier_safe, _, _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{kw_identifier_unsafe, _, _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
-%%% we usually skip operators, except these contextual ones
-prune_tokens([{type_op, _, '::'} | _] = Tokens, [], [{'<<', _, _} | _] = Terminators) ->
-  {Tokens, Terminators};
-prune_tokens([{pipe_op, _, '|'} | _] = Tokens, [], [{'{', _, _} | _] = Terminators) ->
+prune_tokens([{OpType, _, _} | _] = Tokens, [], Terminators)
+  when OpType =:= comp_op; OpType =:= at_op; OpType =:= unary_op; OpType =:= and_op;
+       OpType =:= or_op; OpType =:= arrow_op; OpType =:= match_op; OpType =:= in_op;
+       OpType =:= in_match_op; OpType =:= type_op; OpType =:= dual_op; OpType =:= mult_op;
+       OpType =:= power_op; OpType =:= concat_op; OpType =:= range_op; OpType =:= xor_op;
+       OpType =:= pipe_op; OpType =:= stab_op; OpType =:= when_op; OpType =:= assoc_op;
+       OpType =:= rel_op; OpType =:= ternary_op ->
   {Tokens, Terminators};
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener, Terminators) ->
