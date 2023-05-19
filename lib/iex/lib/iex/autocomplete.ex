@@ -382,8 +382,11 @@ defmodule IEx.Autocomplete do
           [cursor, pairs, {:|, _, [{variable, _, nil} | _]}, {:%{}, _, _} | _] ->
             container_context_map(cursor, pairs, variable, shell)
 
-          [cursor, {:"::", _, [_, cursor]}, {:<<>>, _, [_ | _]} | _] ->
-            :bitstring_modifier
+          [cursor | tail] ->
+            case remove_operators(tail, cursor) do
+              [{:"::", _, [_, _]}, {:<<>>, _, [_ | _]} | _] -> :bitstring_modifier
+              _ -> nil
+            end
 
           _ ->
             nil
@@ -393,6 +396,12 @@ defmodule IEx.Autocomplete do
         nil
     end
   end
+
+  defp remove_operators([{op, _, [_, previous]} = head | tail], previous) when op in [:-],
+    do: remove_operators(tail, head)
+
+  defp remove_operators(tail, _previous),
+    do: tail
 
   defp container_context_struct(cursor, pairs, aliases, shell) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),

@@ -461,6 +461,12 @@ defmodule IEx.AutocompleteTest do
 
     assert {:yes, ~c"", entries} = expand(~c"<<foo::integer-")
     refute ~c"integer" in entries
+    assert ~c"little" in entries
+    assert ~c"size/1" in entries
+
+    assert {:yes, ~c"", entries} = expand(~c"<<foo::integer-little-")
+    refute ~c"integer" in entries
+    refute ~c"little" in entries
     assert ~c"size/1" in entries
   end
 

@@ -1101,8 +1101,10 @@ defmodule CodeFragmentTest do
     end
 
     test "keeps function calls without parens" do
-      # assert cc2q("alias foo") == s2q("alias __cursor__()")
-      # assert cc2q("alias Foo.Bar") == s2q("alias __cursor__()")
+      assert cc2q("alias") == s2q("__cursor__()")
+      assert cc2q("alias ") == s2q("alias __cursor__()")
+      assert cc2q("alias foo") == s2q("alias __cursor__()")
+      assert cc2q("alias Foo.Bar") == s2q("alias __cursor__()")
       assert cc2q("alias Foo.Bar,") == s2q("alias Foo.Bar, __cursor__()")
       assert cc2q("alias Foo.Bar, as: ") == s2q("alias Foo.Bar, as: __cursor__()")
     end

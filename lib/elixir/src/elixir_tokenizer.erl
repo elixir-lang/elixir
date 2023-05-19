@@ -1721,7 +1721,8 @@ cursor_complete(Line, Column, Terminators, Tokens) ->
 add_cursor(_Line, Column, noprune, Terminators, Tokens) ->
   {Column, Terminators, Tokens};
 add_cursor(Line, Column, prune_and_cursor, Terminators, Tokens) ->
-  {PrunedTokens, PrunedTerminators} = prune_tokens(Tokens, [], Terminators),
+  PrePrunedTokens = prune_identifier(Tokens),
+  {PrunedTokens, PrunedTerminators} = prune_tokens(PrePrunedTokens, [], Terminators),
   CursorTokens = [
     {')', {Line, Column + 11, nil}},
     {'(', {Line, Column + 10, nil}},
@@ -1729,6 +1730,9 @@ add_cursor(Line, Column, prune_and_cursor, Terminators, Tokens) ->
     | PrunedTokens
   ],
   {Column + 12, PrunedTerminators, CursorTokens}.
+
+prune_identifier([{identifier, _, _} | Tokens]) -> Tokens;
+prune_identifier(Tokens) -> Tokens.
 
 %%% Any terminator needs to be closed
 prune_tokens([{'end', _} | Tokens], Opener, Terminators) ->
@@ -1775,6 +1779,8 @@ prune_tokens([{'[', _} | _] = Tokens, [], Terminators) ->
 prune_tokens([{'{', _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{'<<', _} | _] = Tokens, [], Terminators) ->
+  {Tokens, Terminators};
+prune_tokens([{identifier, _, _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
 prune_tokens([{block_identifier, _, _} | _] = Tokens, [], Terminators) ->
   {Tokens, Terminators};
