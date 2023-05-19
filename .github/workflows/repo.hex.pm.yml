@@ -13,6 +13,8 @@ env:
   ERLC_OPTS: "warnings_as_errors"
   LANG: C.UTF-8
 
+concurrency: builds_txt
+
 jobs:
   release_pre_built:
     strategy:
@@ -28,7 +30,6 @@ jobs:
             otp_version: '26.0'
             build_docs: build_docs
     runs-on: ubuntu-20.04
-    concurrency: builds_txt
     steps:
       - uses: actions/checkout@v3
         with:
