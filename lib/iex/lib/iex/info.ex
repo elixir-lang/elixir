@@ -346,7 +346,11 @@ defimpl IEx.Info, for: PID do
 
   def info(pid) do
     extra_info =
-      case :rpc.pinfo(pid, @keys) do
+      try do
+        :erpc.call(node(pid), :erlang, :process_info, [pid, @keys])
+      catch
+        _, _ -> [{"Alive", false}]
+      else
         [_ | _] = info ->
           [
             {"Alive", true},
@@ -382,11 +386,19 @@ end
 
 defimpl IEx.Info, for: Port do
   def info(port) do
-    connected = :rpc.call(node(port), :erlang, :port_info, [port, :connected])
+    open? =
+      try do
+        :erpc.call(node(port), :erlang, :port_info, [port, :connected])
+      catch
+        _, _ -> false
+      else
+        {:connected, _} -> true
+        _ -> false
+      end
 
     [
       {"Data type", "Port"},
-      {"Open", match?({:connected, _}, connected)},
+      {"Open", open?},
       {"Reference modules", "Port"}
     ]
   end

@@ -400,23 +400,22 @@ defmodule Kernel.CLI do
     # Explicitly connect the node in case the rpc node was started with --sname/--name undefined.
     _ = :net_kernel.connect_node(node)
 
-    case :rpc.call(node, __MODULE__, :rpc_eval, [expr]) do
-      :ok ->
-        :ok
-
-      {:badrpc, {:EXIT, exit}} ->
-        Process.exit(self(), exit)
-
-      {:badrpc, reason} ->
-        if reason == :nodedown and :net_kernel.nodename() == :ignored do
+    try do
+      :erpc.call(node, __MODULE__, :rpc_eval, [expr])
+    catch
+      :error, {:erpc, reason} ->
+        if reason == :noconnection and :net_kernel.nodename() == :ignored do
           {:error,
            "--rpc-eval : Cannot run --rpc-eval if the node is not alive (set --name or --sname)"}
         else
           {:error, "--rpc-eval : RPC failed with reason #{inspect(reason)}"}
         end
 
-      {kind, error, stack} ->
-        :erlang.raise(kind, error, stack)
+      :exit, {kind, exit} when kind in [:exception, :signal] ->
+        Process.exit(self(), exit)
+    else
+      :ok -> :ok
+      {kind, reason, stack} -> :erlang.raise(kind, reason, stack)
     end
   end
 

@@ -1458,15 +1458,14 @@ defmodule IEx.Helpers do
   def nl(nodes \\ Node.list(), module) when is_list(nodes) and is_atom(module) do
     case get_beam_and_path(module) do
       {bin, beam_path} ->
+        call = :erpc.multicall(nodes, :code, :load_binary, [module, beam_path, bin])
+
         results =
-          for node <- nodes do
-            case :rpc.call(node, :code, :load_binary, [module, beam_path, bin]) do
-              {:module, _} -> {node, :loaded, module}
-              {:badrpc, message} -> {node, :badrpc, message}
-              {:error, message} -> {node, :error, message}
-              unexpected -> {node, :error, unexpected}
-            end
-          end
+          Enum.zip_with(nodes, call, fn
+            node, {:ok, {:module, _}} -> {node, :loaded, module}
+            node, {:ok, {:error, reason}} -> {node, :error, reason}
+            node, {:error, {:erpc, reason}} -> {node, :badrpc, reason}
+          end)
 
         {:ok, results}
 

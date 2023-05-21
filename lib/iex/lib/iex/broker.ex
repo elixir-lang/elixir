@@ -180,8 +180,11 @@ defmodule IEx.Broker do
 
   defp local_or_remote_shell() do
     Enum.find_value([node() | Node.list()], fn node ->
-      server = :rpc.call(node, IEx.Broker, :shell, [])
-      if is_pid(server), do: server
+      try do
+        :erpc.call(node, IEx.Broker, :shell, [])
+      catch
+        _, _ -> nil
+      end
     end)
   end
 end

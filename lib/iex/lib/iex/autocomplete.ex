@@ -27,9 +27,10 @@ defmodule IEx.Autocomplete do
   """
   def remsh(node) do
     fn e ->
-      case :rpc.call(node, IEx.Autocomplete, :expand, [e, IEx.Broker.shell()]) do
-        {:badrpc, _} -> {:no, ~c"", []}
-        r -> r
+      try do
+        :erpc.call(node, IEx.Autocomplete, :expand, [e, IEx.Broker.shell()])
+      catch
+        _, _ -> {:no, ~c"", []}
       end
     end
   end
