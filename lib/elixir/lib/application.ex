@@ -429,6 +429,28 @@ defmodule Application do
   @type value :: term
   @type state :: term
   @type start_type :: :normal | {:takeover, node} | {:failover, node}
+
+  @typedoc """
+  Specifies the type of the application:
+
+    * `:permanent` - if `app` terminates, all other applications and the entire
+      node are also terminated.
+
+    * `:transient` - if `app` terminates with `:normal` reason, it is reported
+      but no other applications are terminated. If a transient application
+      terminates abnormally, all other applications and the entire node are
+      also terminated.
+
+    * `:temporary` - if `app` terminates, it is reported but no other
+      applications are terminated (the default).
+
+  Note that it is always possible to stop an application explicitly by calling
+  `stop/1`. Regardless of the type of the application, no other applications will
+  be affected.
+
+  Note also that the `:transient` type is of little practical use, since when a
+  supervision tree terminates, the reason is set to `:shutdown`, not `:normal`.
+  """
   @type restart_type :: :permanent | :transient | :temporary
 
   @doc """
@@ -823,28 +845,14 @@ defmodule Application do
   end
 
   @doc """
-  Ensures the given `app` is started.
+  Ensures the given `app` is started with `t:restart_type/0`.
 
   Same as `start/2` but returns `:ok` if the application was already
   started.
-
-  ## Options
-
-    * `:type` - if the application should be started in `:permanent`,
-      `:temporary`, or `:transient`. See `start/2` for more information.
-
   """
-  @spec ensure_started(app, type: restart_type()) :: :ok | {:error, term}
-  def ensure_started(app, opts \\ [])
-
-  def ensure_started(app, type) when is_atom(app) and is_atom(type) do
-    # TODO: Deprecate me on Elixir v1.19
+  @spec ensure_started(app, restart_type()) :: :ok | {:error, term}
+  def ensure_started(app, type \\ :temporary) when is_atom(app) and is_atom(type) do
     :application.ensure_started(app, type)
-  end
-
-  def ensure_started(app, opts) when is_atom(app) and is_list(opts) do
-    opts = Keyword.validate!(opts, type: :temporary)
-    :application.ensure_started(app, opts[:type])
   end
 
   @doc """
@@ -866,10 +874,13 @@ defmodule Application do
   @doc """
   Ensures the given `app` or `apps` and their child applications are started.
 
+  The second argument is either the `t:restart_type/1` (for consistency with
+  `start/2`) or a keyword list.
+
   ## Options
 
     * `:type` - if the application should be started in `:permanent`,
-      `:temporary`, or `:transient`. See `start/2` for more information.
+      `:temporary`, or `:transient`. See `t:restart_type/1` for more information.
 
     * `:mode` - (since v1.15.0) if the applications should be started serially
       or concurrently. This option requires Erlang/OTP 26+.
@@ -877,10 +888,11 @@ defmodule Application do
   """
   @spec ensure_all_started(app | [app], type: restart_type(), mode: :serial | :concurrent) ::
           {:ok, [app]} | {:error, term}
-  def ensure_all_started(app_or_apps, opts \\ [])
+  @spec ensure_all_started(app | [app], restart_type()) ::
+          {:ok, [app]} | {:error, term}
+  def ensure_all_started(app_or_apps, type_or_opts \\ [])
 
   def ensure_all_started(app, type) when is_atom(type) do
-    # TODO: Deprecate me on Elixir v1.19
     ensure_all_started(app, type: type)
   end
 
@@ -907,7 +919,7 @@ defmodule Application do
   end
 
   @doc """
-  Starts the given `app`.
+  Starts the given `app` with `t:restart_type/0`.
 
   If the `app` is not loaded, the application will first be loaded using `load/1`.
   Any included application, defined in the `:included_applications` key of the
@@ -919,40 +931,10 @@ defmodule Application do
 
   In case you want to automatically load **and start** all of `app`'s dependencies,
   see `ensure_all_started/2`.
-
-  ## Options
-
-    * `:type` - specifies the type of the application:
-
-      * `:permanent` - if `app` terminates, all other applications and the entire
-        node are also terminated.
-
-      * `:transient` - if `app` terminates with `:normal` reason, it is reported
-        but no other applications are terminated. If a transient application
-        terminates abnormally, all other applications and the entire node are
-        also terminated.
-
-      * `:temporary` - if `app` terminates, it is reported but no other
-        applications are terminated (the default).
-
-      Note that it is always possible to stop an application explicitly by calling
-      `stop/1`. Regardless of the type of the application, no other applications will
-      be affected.
-
-      Note also that the `:transient` type is of little practical use, since when a
-      supervision tree terminates, the reason is set to `:shutdown`, not `:normal`.
   """
-  @spec start(app, type: restart_type()) :: :ok | {:error, term}
-  def start(app, opts \\ [])
-
-  def start(app, type) when is_atom(app) and is_atom(type) do
-    # TODO: Deprecate me on Elixir v1.19
+  @spec start(app, restart_type()) :: :ok | {:error, term}
+  def start(app, type \\ :temporary) when is_atom(app) and is_atom(type) do
     :application.start(app, type)
-  end
-
-  def start(app, opts) when is_atom(app) and is_list(opts) do
-    opts = Keyword.validate!(opts, type: :temporary)
-    :application.start(app, opts[:type])
   end
 
   @doc """

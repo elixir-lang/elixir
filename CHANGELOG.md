@@ -247,13 +247,10 @@ new features and on compatibility.
 
 #### Elixir
 
-  * [Application] `Application.start/2`, `Application.ensure_started/2`,
-    `Application.ensure_all_started/2` with an atom as second argument is deprecated
-    in favor of a keyword list
   * [File] `File.cp/3` and `File.cp_r/3` with a function as third argument
     is deprecated in favor of a keyword list
-  * [Kernel.ParallelCompiler] `Kernel.ParallelCompile` now requires the `:return_diagnostics`
-    option to be set to true
+  * [Kernel.ParallelCompiler] Require the `:return_diagnostics` option to be
+    set to true when compiling or requiring code
 
 #### Logger
 
