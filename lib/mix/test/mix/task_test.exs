@@ -160,6 +160,40 @@ defmodule Mix.TaskTest do
     end)
   end
 
+  test "aliases considered for umbrella apps" do
+    in_fixture("umbrella_test", fn ->
+      Mix.Project.in_project(:umbrella, ".", fn _ ->
+        File.mkdir_p!("apps/baz/lib/")
+
+        File.write!("apps/baz/mix.exs", """
+        defmodule Baz.MixProject do
+          use Mix.Project
+
+          def project do
+            [
+              app: :baz,
+              version: "0.1.0"
+            ]
+          end
+        end
+        """)
+
+        File.write!("apps/baz/lib/baz.ex", """
+        defmodule Baz do
+          def hello do
+            :world
+          end
+        end
+        """)
+
+        assert [:ok, nil, :ok] = Mix.Task.run("mytask")
+
+        assert_received {:mix_shell, :run, ["foo_running" <> _]}
+        assert_received {:mix_shell, :run, ["bar_running" <> _]}
+      end)
+    end)
+  end
+
   test "reenable/1 for recursive inside umbrella child" do
     in_fixture("umbrella_dep/deps/umbrella", fn ->
       Mix.Project.in_project(:umbrella, ".", fn _ ->
