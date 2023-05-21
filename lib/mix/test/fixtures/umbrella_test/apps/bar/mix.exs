@@ -9,7 +9,7 @@ defmodule Bar.MixProject do
       # get accidentally swept up into the actual Mix test suite.
       test_pattern: "*_tests.exs",
       test_coverage: [ignore_modules: [Bar, ~r/Ignore/]],
-      aliases: [mytask: ["cmd echo bar_running"]]
+      aliases: [mytask: fn _ -> Mix.shell().info("bar_running") end]
     ]
   end
 end

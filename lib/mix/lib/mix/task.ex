@@ -367,43 +367,61 @@ defmodule Mix.Task do
       alias && Mix.TasksServer.run({:alias, task, proj}) ->
         run_alias(List.wrap(alias), args, proj, task, apps, :ok)
 
-      Mix.Project.umbrella?() && umbrella_child_alias?(task) ->
-        Mix.ProjectStack.recur(fn ->
-          recur(
-            fn _ -> Mix.Project.config()[:aliases][String.to_atom(task)] && run(task, args) end,
-            apps
-          )
-        end)
+      Mix.TasksServer.get({:task, task, proj}) ->
+        :noop
 
-      !Mix.TasksServer.get({:task, task, proj}) ->
-        run_task(proj, task, args, apps)
+      module = maybe_load_or_compile_task(proj, task) ->
+        run_task(proj, module, task, args, apps)
+
+      results = Mix.Project.umbrella?() && recur_umbrella_children_alias(task, args, apps) ->
+        results
 
       true ->
-        :noop
+        # We could not find the task, let's raise
+        get!(task)
     end
   end
 
-  defp umbrella_child_alias?(task) do
-    umbrella_deps =
-      Mix.Dep.Umbrella.cached()
-      |> Enum.filter(& &1.opts[:from_umbrella])
+  defp recur_umbrella_children_alias(task, args, apps) do
+    alias_key = String.to_atom(task)
 
-    Enum.find(umbrella_deps, fn %Mix.Dep{app: app, opts: opts} ->
-      Mix.Project.in_project(app, opts[:path], [inherit_parent_config_files: true], fn _ ->
-        !!Mix.Project.config()[:aliases][String.to_atom(task)]
+    entries =
+      Mix.ProjectStack.recur(fn ->
+        recur(
+          fn proj ->
+            alias = Mix.Project.config()[:aliases][alias_key]
+
+            cond do
+              is_nil(alias) ->
+                :error
+
+              Mix.TasksServer.run({:alias, task, proj}) ->
+                {:ok, run_alias(List.wrap(alias), args, proj, task, nil, :ok)}
+
+              true ->
+                {:ok, :noop}
+            end
+          end,
+          apps
+        )
       end)
-    end)
+
+    case for({:ok, res} <- entries, do: res) do
+      [] -> nil
+      result -> result
+    end
   end
 
-  defp run_task(proj, task, args, apps) do
+  defp maybe_load_or_compile_task(proj, task) do
     # 1. If the task is available, we run it.
     # 2. Otherwise we compile and load dependencies
     # 3. Finally, we compile the current project in hope it is available.
-    module =
-      get_task_or_run(proj, task, fn -> run("deps.loadpaths") end) ||
-        get_task_or_run(proj, task, fn -> run("compile", []) end) ||
-        get!(task)
+    get_task_or_run(proj, task, fn -> run("deps.loadpaths") end) ||
+      get_task_or_run(proj, task, fn -> run("compile", []) end) ||
+      get(task)
+  end
 
+  defp run_task(proj, module, task, args, apps) do
     recursive = recursive(module)
 
     cond do
@@ -477,7 +495,8 @@ defmodule Mix.Task do
   defp run_alias([h | t], alias_args, proj, original_task, apps, _res) when is_binary(h) do
     case OptionParser.split(h) do
       [^original_task | args] ->
-        res = run_task(proj, original_task, args ++ alias_args, apps)
+        module = maybe_load_or_compile_task(proj, original_task) || get!(original_task)
+        res = run_task(proj, module, original_task, args ++ alias_args, apps)
         run_alias(t, [], proj, original_task, apps, res)
 
       [task | args] ->

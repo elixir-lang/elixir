@@ -172,7 +172,8 @@ defmodule Mix.TaskTest do
           def project do
             [
               app: :baz,
-              version: "0.1.0"
+              version: "0.1.0",
+              aliases: [help: fn _ -> raise "oops" end]
             ]
           end
         end
@@ -186,10 +187,27 @@ defmodule Mix.TaskTest do
         end
         """)
 
-        assert [:ok, nil, :ok] = Mix.Task.run("mytask")
+        Mix.Task.run("compile")
+        assert_received {:mix_shell, :info, ["==> foo"]}
+        assert_received {:mix_shell, :info, ["==> bar"]}
+        assert_received {:mix_shell, :info, ["==> baz"]}
+        Mix.shell().flush()
 
-        assert_received {:mix_shell, :run, ["foo_running" <> _]}
-        assert_received {:mix_shell, :run, ["bar_running" <> _]}
+        # A child alias does not overlap an umbrella task
+        assert Mix.Task.run("help") == :ok
+
+        # A missing umbrella alias can be found in children
+        assert [:ok, :ok] = Mix.Task.run("mytask")
+        assert_received {:mix_shell, :info, ["==> foo"]}
+        assert_received {:mix_shell, :info, ["foo_running"]}
+        assert_received {:mix_shell, :info, ["==> bar"]}
+        assert_received {:mix_shell, :info, ["bar_running"]}
+        refute_received {:mix_shell, :info, ["==> baz"]}
+
+        # An unknown task or alias anywhere fails
+        assert_raise Mix.NoTaskError, fn ->
+          Mix.Task.run("completely_unknown")
+        end
       end)
     end)
   end

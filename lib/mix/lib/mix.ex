@@ -238,14 +238,10 @@ defmodule Mix do
 
   In the example above, we have defined three aliases. One is `mix c`
   which is a shortcut for `mix compile`. Another is named
-  `mix hello`, which is the equivalent to the `Mix.Tasks.Hello`
-  we have defined in the [Mix.Task section](#module-mix-task).
-
-  The third is named `mix paid_task`, which runs the task `paid.task` with
-  several arguments, including one pulled from an environment variable.
-  Defining this as a function means that the environment variable is only
-  evaluated when this specific task is run, not when `mix.exs` is loaded
-  before each `mix` command.
+  `mix hello` and the third is named `mix paid_task`, which executes
+  the code inside a custom function to invoke the `paid.task` task
+  with several arguments, including one pulled from an environment
+  variable.
 
   Aliases may also be lists, specifying multiple tasks to be run
   consecutively:
@@ -265,19 +261,13 @@ defmodule Mix do
   Where `&clean_extra/1` would be a function in your `mix.exs`
   with extra cleanup logic.
 
-  Arguments given to the alias will be appended to the arguments of
-  the last task in the list. Except when overriding an existing task.
-  In this case, the arguments will be given to the original task,
-  in order to preserve semantics. For example, in the `:clean` alias
-  above, the arguments given to the alias will be passed to "clean"
-  and not to `clean_extra/1`.
+  If the alias is overriding an existing task, the arguments given
+  to the alias will be forwarded to the original task in order to
+  preserve semantics. Otherwise arguments given to the alias are
+  appended to the arguments of the last task in the list.
 
-  Aliases defined in the current project do not affect its dependencies
-  and aliases defined in dependencies are not accessible from the
-  current project.
-
-  Aliases can be used very powerfully to also run Elixir scripts and
-  shell commands, for example:
+  Another use case of aliases is to run Elixir scripts and shell
+  commands, for example:
 
       # priv/hello1.exs
       IO.puts("Hello One")
@@ -301,10 +291,15 @@ defmodule Mix do
   then `mix cmd` to execute a command line shell script. This shows how
   powerful aliases mixed with Mix tasks can be.
 
-  Mix tasks are designed to run only once. This prevents the same task
-  from being executed multiple times. For example, if there are several tasks
-  depending on `mix compile`, the code will be compiled once. Tasks can
-  be executed again if they are explicitly reenabled using `Mix.Task.reenable/1`:
+  One commit pitfall of aliases comes when trying to invoke the same task
+  multiple times. Mix tasks are designed to run only once. This prevents
+  the same task from being executed multiple times. For example, if there
+  are several tasks depending on `mix compile`, the code will be compiled
+  only once.
+
+  Similary, `mix format` can only be invoked once. So if you have an alias
+  that attempts to invoke `mix format` multiple times, it won't work unless
+  it is explicitly reenabled using `Mix.Task.reenable/1`:
 
       another_alias: [
         "format --check-formatted priv/hello1.exs",
@@ -314,15 +309,14 @@ defmodule Mix do
       ]
 
   Some tasks are automatically reenabled though, as they are expected to
-  be invoked multiple times. They are: `mix cmd`, `mix do`, `mix loadconfig`,
-  `mix profile.cprof`, `mix profile.eprof`, `mix profile.fprof`, `mix run`,
-  and `mix xref`.
+  be invoked multiple times, such as: `mix cmd`, `mix do`, `mix xref`, etc.
 
-  It is worth mentioning that some tasks, such as in the case of the
-  `mix format` command in the example above, can accept multiple files so it
-  could be rewritten as:
-
-      another_alias: ["format --check-formatted priv/hello1.exs priv/hello2.exs"]
+  Finally, aliases defined in the current project do not affect its
+  dependencies and aliases defined in dependencies are not accessible
+  from the current project, with the exception of umbrella projects.
+  Umbrella projects will run the aliases of its children when the
+  umbrella project itself does not define said alias and there is no
+  task with said name.
 
   ## Environment variables
 
