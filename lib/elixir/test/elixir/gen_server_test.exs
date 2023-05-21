@@ -169,11 +169,10 @@ defmodule GenServerTest do
 
   test "multi_call/4", %{test: name} do
     {:ok, _} = GenServer.start_link(Stack, [:hello, :world], name: name)
+    node = node()
 
-    assert GenServer.multi_call(name, :pop) == {[{node(), :hello}], []}
-
-    assert GenServer.multi_call([node(), :foo@bar], name, :pop) ==
-             {[{node(), :world}], [:foo@bar]}
+    assert {[{^node, :hello}], _} = GenServer.multi_call(name, :pop)
+    assert {[{^node, :world}], [:foo@bar]} = GenServer.multi_call([node(), :foo@bar], name, :pop)
   end
 
   test "whereis/1" do

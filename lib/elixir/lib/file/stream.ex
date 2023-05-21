@@ -8,10 +8,11 @@ defmodule File.Stream do
     * `modes`         - the file modes
     * `raw`           - a boolean indicating if bin functions should be used
     * `line_or_bytes` - if reading should read lines or a given number of bytes
+    * `node`          - the node the file belongs to
 
   """
 
-  defstruct path: nil, modes: [], line_or_bytes: :line, raw: true
+  defstruct path: nil, modes: [], line_or_bytes: :line, raw: true, node: nil
 
   @type t :: %__MODULE__{}
 
@@ -32,19 +33,29 @@ defmodule File.Stream do
           modes
       end
 
-    %File.Stream{path: path, modes: modes, raw: raw, line_or_bytes: line_or_bytes}
+    %File.Stream{path: path, modes: modes, raw: raw, line_or_bytes: line_or_bytes, node: node()}
+  end
+
+  @doc false
+  def __open__(%File.Stream{path: path, node: node}, modes) when node == node() do
+    :file.open(path, modes)
+  end
+
+  @doc false
+  def __open__(%File.Stream{path: path, node: node}, modes) do
+    :erpc.call(node, :file_io_server, :start, [self(), path, List.delete(modes, :raw)])
   end
 
   defimpl Collectable do
-    def into(%{path: path, modes: modes, raw: raw} = stream) do
+    def into(%{modes: modes, raw: raw} = stream) do
       modes = for mode <- modes, mode not in [:read], do: mode
 
-      case :file.open(path, [:write | modes]) do
+      case File.Stream.__open__(stream, [:write | modes]) do
         {:ok, device} ->
           {:ok, into(device, stream, raw)}
 
         {:error, reason} ->
-          raise File.Error, reason: reason, action: "stream", path: path
+          raise File.Error, reason: reason, action: "stream", path: stream.path
       end
     end
 
@@ -73,14 +84,14 @@ defmodule File.Stream do
   defimpl Enumerable do
     @read_ahead_size 64 * 1024
 
-    def reduce(%{path: path, modes: modes, line_or_bytes: line_or_bytes, raw: raw}, acc, fun) do
+    def reduce(%{modes: modes, line_or_bytes: line_or_bytes, raw: raw} = stream, acc, fun) do
       start_fun = fn ->
-        case :file.open(path, read_modes(modes)) do
+        case File.Stream.__open__(stream, read_modes(modes)) do
           {:ok, device} ->
             if :trim_bom in modes, do: trim_bom(device, raw) |> elem(0), else: device
 
           {:error, reason} ->
-            raise File.Error, reason: reason, action: "stream", path: path
+            raise File.Error, reason: reason, action: "stream", path: stream.path
         end
       end
 
@@ -93,27 +104,20 @@ defmodule File.Stream do
       Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
     end
 
-    def count(%{path: path, modes: modes, line_or_bytes: :line} = stream) do
+    def count(%{modes: modes, line_or_bytes: :line, path: path} = stream) do
       pattern = :binary.compile_pattern("\n")
       counter = &count_lines(&1, path, pattern, read_function(stream), 0)
-
-      case File.open(path, read_modes(modes), counter) do
-        {:ok, count} ->
-          {:ok, count}
-
-        {:error, reason} ->
-          raise File.Error, reason: reason, action: "stream", path: path
-      end
+      {:ok, open!(stream, modes, counter)}
     end
 
-    def count(%{path: path, line_or_bytes: bytes, raw: true, modes: modes}) do
-      case File.stat(path) do
+    def count(%{path: path, line_or_bytes: bytes, raw: true, modes: modes, node: node} = stream) do
+      case :erpc.call(node, File, :stat, [path]) do
         {:ok, %{size: 0}} ->
           {:error, __MODULE__}
 
         {:ok, %{size: size}} ->
           remainder = if rem(size, bytes) == 0, do: 0, else: 1
-          {:ok, div(size, bytes) + remainder - count_raw_bom(path, modes)}
+          {:ok, div(size, bytes) + remainder - count_raw_bom(stream, modes)}
 
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
@@ -132,9 +136,20 @@ defmodule File.Stream do
       {:error, __MODULE__}
     end
 
-    defp count_raw_bom(path, modes) do
+    defp open!(stream, modes, fun) do
+      with {:ok, device} <- File.Stream.__open__(stream, read_modes(modes)),
+           res = fun.(device),
+           :ok <- :file.close(device) do
+        res
+      else
+        {:error, reason} ->
+          raise File.Error, reason: reason, action: "stream", path: stream.path
+      end
+    end
+
+    defp count_raw_bom(stream, modes) do
       if :trim_bom in modes do
-        File.open!(path, read_modes(modes), &(&1 |> trim_bom(true) |> elem(1)))
+        open!(stream, read_modes(modes), &(&1 |> trim_bom(true) |> elem(1)))
       else
         0
       end

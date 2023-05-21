@@ -1692,12 +1692,13 @@ defmodule File do
   Since Elixir controls when the streamed file is opened, the underlying
   device cannot be shared and as such it is convenient to open the file
   in raw mode for performance reasons. Therefore, Elixir **will** open
-  streams in `:raw` mode with the `:read_ahead` option unless an encoding
-  is specified. This means any data streamed into the file must be
-  converted to `t:iodata/0` type. If you pass, for example, `[encoding: :utf8]`
-  or `[encoding: {:utf16, :little}]` in the modes parameter,
-  the underlying stream will use `IO.write/2` and the `String.Chars` protocol
-  to convert the data. See `IO.binwrite/2` and `IO.write/2` .
+  streams in `:raw` mode with the `:read_ahead` option if the stream is
+  open in the same node as it is createad and not encoding has been specified.
+  This means any data streamed into the file must be converted to `t:iodata/0`
+  type. If you pass, for example, `[encoding: :utf8]` or
+  `[encoding: {:utf16, :little}]` in the modes parameter, the underlying stream
+  will use `IO.write/2` and the `String.Chars` protocol to convert the data.
+  See `IO.binwrite/2` and `IO.write/2` .
 
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
@@ -1707,8 +1708,8 @@ defmodule File do
   If you pass `:trim_bom` in the modes parameter, the stream will
   trim UTF-8, UTF-16 and UTF-32 byte order marks when reading from file.
 
-  Note that this function does not try to discover the file encoding basing
-  on BOM.
+  Note that this function does not try to discover the file encoding
+  based on BOM.
 
   ## Examples
 
