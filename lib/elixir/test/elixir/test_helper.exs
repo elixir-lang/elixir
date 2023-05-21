@@ -99,7 +99,7 @@ os_exclude = if PathHelpers.windows?(), do: [unix: true], else: [windows: true]
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
 
 distributed_exclude =
-  if Node.alive?() do
+  if Code.ensure_loaded?(:peer) and Node.alive?() do
     {:ok, _pid, node} = :peer.start(%{name: :secondary})
     true = :erpc.call(node, :code, :set_path, [:code.get_path()])
     {:ok, _} = :erpc.call(node, :application, :ensure_all_started, [:elixir])
