@@ -7,8 +7,8 @@ on compilation and boot times. This release also completes
 our integration process with Erlang/OTP logger, bringing new
 features such as log rotation and compaction out of the box.
 
-You will also find additional convenience functions in `Map`,
-`Keyword`, all Calendar modules, and others.
+You will also find additional convenience functions in `Code`,
+`Map`, `Keyword`, all Calendar modules, and others.
 
 ## Compile and boot-time improvements
 
@@ -35,7 +35,14 @@ Furthermore, Erlang/OTP 26 allows us to start applications
 concurrently and cache the code path lookups, decreasing the cost of
 booting applications. The combination of Elixir v1.15 and Erlang/OTP 26
 should reduce the boot time of applications, such as when starting
-`iex -S mix` or running a single test with `mix test`, from 5% to 15%.
+`iex -S mix` or running a single test with `mix test`, from 5% to 30%.
+
+The compiler is also smarter in several ways: `@behaviour` declarations
+no longer add compile-time dependencies and aliases in patterns and
+guards add no dependency whatsoever, as no dispatching happens. Furthermore,
+Mix now tracks the digests of `@external_resource` files, reducing the
+amount of recompilation when swapping branches. Finally, dependencies
+are automatically recompiled when their compile-time configuration changes.
 
 ### Potential incompatibilities
 
@@ -63,8 +70,9 @@ In Elixir v1.15, the new reports will look like:
 
     ** (CompileError) nofile: cannot compile file (errors have been logged)
 
-This information can also be leveraged by editors, allowing them to point
-to several errors at once.
+A new function, called `Code.with_diagnostics/2`, has been added so this
+information can be leveraged by editors, allowing them to point to several
+errors at once.
 
 ## Integration with Erlang/OTP logger
 
@@ -111,14 +119,17 @@ new features and on compatibility.
 
 #### Elixir
 
-  * [Calendar] Add support for epoch time (%s) to `Calendar.strftime/2`
+  * [Calendar] Add support for epoch time (`%s`) to `Calendar.strftime/2`
   * [Code] `Code.format_string!/2` now converts `'charlists'` into `~c"charlists"` by default
   * [Code] Add `:on_undefined_variable` to the compiler options to preserve the warning behaviour which was deprecated back in Elixir v1.4
   * [Code] Add `Code.loaded?/1` and `Code.ensure_all_loaded(!)/1`
   * [Code] Add `Code.prepend_paths/1`, `Code.append_paths/1`, and `Code.delete_paths/1`
-  * [Code] Support nested expressions in `Code.cursor_context/1`
+  * [Code] Add `Code.with_diagnostics/2` to return diagnostics when compiling and evaluating code
+  * [Code.Fragment] Support nested expressions in `Code.Fragment.cursor_context/1`
+  * [Code.Fragment] Keep operators and no paren calls in `Code.Fragment.container_cursor_to_quoted/1`
   * [Date] Add `Date.before?/2` and `Date.after?/2`
   * [DateTime] Add `DateTime.before?/2` and `DateTime.after?/2`
+  * [DateTime] Support precision in `DateTime.utc_now/2`
   * [Inspect] `Inspect` now renders `'charlists'` as `~c"charlists"` by default
   * [Kernel] Break down `case` and `cond` inside `dbg/2`
   * [Kernel] Add `t:nonempty_binary/0` and `t:nonempty_bitstring/0`
@@ -137,6 +148,7 @@ new features and on compatibility.
   * [MapSet] Optimize most functions
   * [NaiveDateTime] Add `NaiveDateTime.beginning_of_day/1` and `NaiveDateTime.end_of_day/1`
   * [NaiveDateTime] Add `NaiveDateTime.before?/2` and `NaiveDateTime.after?/2`
+  * [NaiveDateTime] Support precision in `NaiveDateTime.utc_now/2`
   * [OptionParser] Support `:return_separator` option
   * [Process] Add `Process.alias/0,1` and `Process.unalias/1`
   * [Range] Add `Range.split/2`
@@ -155,38 +167,47 @@ new features and on compatibility.
   * [ExUnit] Add more color configuration to ExUnit CLI formatter
   * [ExUnit.Callbacks] Accept `{module, function}` tuples in ExUnit `setup` callbacks
   * [ExUnit.Doctest] Add `ExUnit.DocTest.doctest_file/2`
-  * [ExUnit.Formatter] When comparing to anonymous functions, defined at the same place but capturing a different environment, we will now also diff the environments
+  * [ExUnit.Formatter] When comparing two anonymous functions, defined at the same place but capturing a different environment, we will now also diff the environments
 
 #### IEx
 
   * [IEx] Make pry opt-in on dbg with `--dbg pry`
   * [IEX] Support `IEX_HOME`
+  * [IEx.Autocomplete] Only provide aliases when autocompleting `alias`, `import`, and `require`
+  * [IEx.Autocomplete] Provide field completion on map and struct updates
   * [IEx.Helpers] Add `runtime_info(:allocators)`
-  * [IEx.Info] Implement protocol for `Range`, `DateTime` and `Regex`
+  * [IEx.Info] Implement protocol for `Range`, `DateTime`, and `Regex`
 
 #### Logger
 
   * [Logger] Add `Logger.add_handlers/1` and `Logger.default_formatter/1`
   * [Logger] Introduce `default_formatter` and `default_handler` configuration for Logger which configures Erlang/OTP logger
+  * [Logger] Add `:always_evaluate_messages` configuration to Logger
   * [Logger.Formatter] Implement the Erlang Logger formatter API
   * [Logger.Formatter] Add support for ports in Logger metadata
 
 #### Mix
 
-  * [Mix.Project] Support `def cli` to unify all CLI defaults in a single place
-  * [Mix.Project] Add `Mix.Project.deps_tree/1`
-  * [mix eval] Allow passing additional arguments
+  * [mix app.start] Allow applications to be started concurrently via the `:start_concurrently` configuration
   * [mix compile] Set `--all-warnings` by default
   * [mix compile] Reduce the amount of filesystem lookups for path dependencies by storing timestamps in manifests
+  * [mix compile] Track digests of `@external_resources`
   * [mix compile.app] Write `optional_applications` to `.app` file
   * [mix compile.elixir] Add `--purge-consolidation-path-if-stale` which will purge the given consolidation path if compilation is required
+  * [mix deps.compile] Automatically recompile dependencies if their compile env changes
   * [mix deps.get] Automatically install Hex and Rebar on `mix deps.get`/`mix deps.update`
   * [mix deps.get] Support `--check-locked` which raises if changes to the lockfile are required
+  * [mix eval] Allow passing additional arguments
+  * [mix format] Support `--no-exit` option
   * [mix format] Allow multiple formatters per file extension and sigil
   * [mix format] Show diffs whenever `--check-formatted` fails
+  * [mix format] Allow the formatting root to be configured
+  * [mix loadpaths] Cache deps and archive loadpaths in Erlang/OTP 26
   * [mix profile.fprof] Support `--trace-to-file` to improve performance when working with large outputs
   * [mix release] Allow passing additional arguments to the `eval` command
   * [mix xref graph] Support `--output` flag
+  * [Mix.Project] Support `def cli` to unify all CLI defaults in a single place
+  * [Mix.Project] Add `Mix.Project.deps_tree/1`
 
 ### 2. Bug fixes
 
@@ -196,10 +217,13 @@ new features and on compatibility.
   * [Code.Formatter] Remove unnecessary parens in nullary type funs
   * [Exception] Fix operator precedence when printing guards in `Exception.blame/3`
   * [File] Do not raise if there are file system race conditions in `File.cp/2`
+  * [File] Do not raise when deleting write-only empty directories on `File.rm_rf/1`
   * [Kernel] Expand macros on the left side of -> in `try/rescue`
   * [Kernel] Raise on misplaced `...` inside typespecs
+  * [Kernel] Do not import `behaviour_info` and `module_info` functions from Erlang modules
   * [Kernel.ParallelCompiler] Make sure compiler doesn't crash when there are stray messages in the inbox
   * [Kernel.ParallelCompiler] Track compile and runtime warnings separately
+  * [System] Fix race condition when a script would terminate before `System.stop/1` executes
   * [URI] Make sure `URI.merge/2` works accordingly with relative paths
 
 #### ExUnit
@@ -220,6 +244,23 @@ new features and on compatibility.
   * [mix release] Fix Windows service when invoking `erlsrv.exe` in path with spaces
 
 ### 3. Soft deprecations (no warnings emitted)
+
+#### Elixir
+
+  * [Application] `Application.start/2`, `Application.ensure_started/2`,
+    `Application.ensure_all_started/2` with an atom as second argument is deprecated
+    in favor of a keyword list
+  * [File] `File.cp/3` and `File.cp_r/3` with a function as third argument
+    is deprecated in favor of a keyword list
+  * [Kernel.ParallelCompiler] `Kernel.ParallelCompile` now requires the `:return_diagnostics`
+    option to be set to true
+
+#### Logger
+
+  * [Logger] `add_backend/2`, `remove_backend/2`, and `configure_backend/2` have been deprecated
+    in favor of the new `:logger_backends` dependency
+  * [Logger] The `:console` configuration has been deprecated in favor of `:default_formatter`
+  * [Logger] The `:backends` configuration has been deprecated in favor of `Logger.add_handlers/1`
 
 #### Mix
 

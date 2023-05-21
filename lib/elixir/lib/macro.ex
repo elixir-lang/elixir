@@ -2074,7 +2074,8 @@ defmodule Macro do
       Macro.expand_literals(ast, %{env | function: {:my_code, 1}})
 
   At the moment, the only expandable literal nodes in an AST are
-  aliases, so this function only expands aliases.
+  aliases, so this function only expands aliases (and it does so
+  anywhere in a literal).
 
   However, be careful when removing compile-time dependencies between
   modules. If you remove them but you still invoke the module at

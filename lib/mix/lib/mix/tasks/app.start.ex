@@ -19,7 +19,7 @@ defmodule Mix.Tasks.App.Start do
     * `:start_permanent` - the application and all of its children
       applications are started in permanent mode. Defaults to `false`.
 
-    * `:start_concurrent` - applications are started concurrently
+    * `:start_concurrently` - applications are started concurrently
       whenever possible. This option only has an effect on Erlang/OTP 26+.
       Defaults to `false`.
 
@@ -60,7 +60,7 @@ defmodule Mix.Tasks.App.Start do
       Logger.App.stop()
       config = Mix.Project.config()
       type = type(config, opts)
-      mode = if config[:start_concurrent], do: :concurrent, else: :serial
+      mode = if config[:start_concurrently], do: :concurrent, else: :serial
       start(apps(config), type, mode)
     end
 
