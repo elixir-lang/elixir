@@ -2,23 +2,21 @@
 
 ## Shipping a new version
 
-1. Ensure you are running on the oldest supported Erlang version
+1. Update version in /VERSION, bin/elixir and bin/elixir.bat
 
-2. Update version in /VERSION, bin/elixir and bin/elixir.bat
+2. Ensure /CHANGELOG.md is updated, versioned and add the current date
 
-3. Ensure /CHANGELOG.md is updated, versioned and add the current date
+3. Update "Compatibility and Deprecations" if a new OTP version is supported
 
-4. Update "Compatibility and Deprecations" if a new OTP version is supported
+4. Commit changes above with title "Release vVERSION", generate a new tag, and push it
 
-5. Commit changes above with title "Release vVERSION", generate a new tag, and push it
+5. Wait until GitHub Actions publish artifacts to the draft release and the CI is green
 
-6. Wait until GitHub Actions publish artifacts to the draft release and the CI is green
+6. Copy the relevant bits from /CHANGELOG.md to the GitHub release and publish it
 
-7. Copy the relevant bits from /CHANGELOG.md to the GitHub release and publish it
+7. Add the release to `elixir.csv` with the minimum supported OTP version (all releases), update `erlang.csv` to the latest supported OTP version, and `_data/elixir-versions.yml` (except for RCs) files in `elixir-lang/elixir-lang.github.com`
 
-8. Add the release to `elixir.csv` with the minimum supported OTP version (all releases), update `erlang.csv` to the latest supported OTP version, and `_data/elixir-versions.yml` (except for RCs) files in `elixir-lang/elixir-lang.github.com`
-
-## Creating a new vMAJOR.MINOR branch
+## Creating a new vMAJOR.MINOR branch (after first rc)
 
 ### In the new branch
 

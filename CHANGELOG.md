@@ -109,7 +109,7 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
-## v1.15.0-dev
+## v1.15.0-rc.0 (2022-05-22)
 
 ### 1. Enhancements
 
