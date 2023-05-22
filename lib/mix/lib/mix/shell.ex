@@ -110,7 +110,7 @@ defmodule Mix.Shell do
     * `:quiet` - overrides the callback to no-op
 
   """
-  @spec cmd(String.t, keyword, (binary -> term)) :: exit_status :: non_neg_integer
+  @spec cmd(String.t(), keyword, (binary -> term)) :: exit_status :: non_neg_integer
   def cmd(command, options \\ [], callback) when is_function(callback, 1) do
     callback =
       if options[:quiet] do
