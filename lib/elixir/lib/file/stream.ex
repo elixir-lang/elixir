@@ -137,11 +137,14 @@ defmodule File.Stream do
     end
 
     defp open!(stream, modes, fun) do
-      with {:ok, device} <- File.Stream.__open__(stream, read_modes(modes)),
-           res = fun.(device),
-           :ok <- :file.close(device) do
-        res
-      else
+      case File.Stream.__open__(stream, read_modes(modes)) do
+        {:ok, device} ->
+          try do
+            fun.(device)
+          after
+            :file.close(device)
+          end
+
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: stream.path
       end
