@@ -337,7 +337,12 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
         case Prematch of
           {bitsize, Pre, Original} ->
             if
-              is_map_key(Pair, Pre); not is_map_key(Pair, Original) -> {ok, CurrentVersion};
+              map_get(Pair, Pre) /= CurrentVersion ->
+                {ok, CurrentVersion};
+              is_map_key(Pair, Pre) ->
+                {ok, CurrentVersion};
+              not is_map_key(Pair, Original) ->
+                {ok, CurrentVersion};
               true -> raise
             end;
 
