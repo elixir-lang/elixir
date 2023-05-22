@@ -241,6 +241,20 @@ protocol, giving developers more control over the struct representation.
 See the updated documentation for `Inspect` for a general rundown on
 the approaches and options available.
 
+## v1.14.5 (2023-05-22)
+
+This release contains fixes for Erlang/OTP 26.
+
+### Bug fixes
+
+#### Elixir
+
+  * [CLI] Fix a bug where stdout would block when there was no attached terminal on Windows when running on Erlang/OTP 26
+
+#### Mix
+
+  * [Mix] Properly set SSL configuration for Mix downloads when running on Erlang/OTP 26
+
 ## v1.14.4 (2023-04-03)
 
 This release adds basic support for Erlang/OTP 26. When migrating
