@@ -62,6 +62,8 @@ clean_struct_key_from_map_assocs(Meta, Assocs, E) ->
 
 validate_match_key(Meta, {Name, _, Context}, E) when is_atom(Name), is_atom(Context) ->
   file_error(Meta, E, ?MODULE, {invalid_variable_in_map_key_match, Name});
+validate_match_key(Meta, {'::', _, [Left, _]}, E) ->
+  validate_match_key(Meta, Left, E);
 validate_match_key(_, {'^', _, [{Name, _, Context}]}, _) when is_atom(Name), is_atom(Context) ->
   ok;
 validate_match_key(_, {'%{}', _, [_ | _]}, _) ->

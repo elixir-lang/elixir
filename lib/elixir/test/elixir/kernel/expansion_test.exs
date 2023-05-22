@@ -483,7 +483,7 @@ defmodule Kernel.ExpansionTest do
                quote(do: %{a: after_expansion = 1, b: a()})
     end
 
-    test "with variables on keys" do
+    test "with variables on keys inside patterns" do
       ast =
         quote do
           %{(x = 1) => 1}
@@ -513,6 +513,34 @@ defmodule Kernel.ExpansionTest do
 
       assert_compile_error(~r"undefined variable \^x", fn ->
         expand(quote(do: {x, %{^x => 1}} = %{}), [])
+      end)
+    end
+
+    test "with binaries in keys inside patterns" do
+      before_ast =
+        quote do
+          %{<<0>> => nil} = %{<<0>> => nil}
+        end
+
+      after_ast =
+        quote do
+          %{<<0::integer>> => nil} = %{<<0::integer>> => nil}
+        end
+
+      assert expand(before_ast) |> clean_meta([:alignment]) == clean_bit_modifiers(after_ast)
+      assert expand(after_ast) |> clean_meta([:alignment]) == clean_bit_modifiers(after_ast)
+
+      ast =
+        quote do
+          x = 8
+          %{<<0::integer-size(x)>> => nil} = %{<<0::integer>> => nil}
+        end
+
+      assert expand(ast) |> clean_meta([:alignment]) ==
+               clean_bit_modifiers(ast) |> clean_meta([:context, :imports])
+
+      assert_compile_error(~r"cannot use variable x as map key inside a pattern", fn ->
+        expand(quote(do: %{<<x::integer>> => 1} = %{}), [])
       end)
     end
 
