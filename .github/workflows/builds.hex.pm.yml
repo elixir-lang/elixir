@@ -42,21 +42,24 @@ jobs:
           build_docs: ${{ matrix.build_docs }}
       - name: Utils.sh
         run: |
-          cat << EOF > utils.sh
+          cat << 'EOF' > utils.sh
           function purge_key() {
             curl \
                 -X POST \
                 -H "Fastly-Key: ${FASTLY_KEY}" \
                 -H "Accept: application/json" \
                 -H "Content-Length: 0" \
-                "https://api.fastly.com/service/${FASTLY_SERVICE_ID}/purge/$1"
+                "https://api.fastly.com/service/$1/purge/$2"
           }
           function purge() {
-            purge_key $1
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
             sleep 2
-            purge_key $1
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
             sleep 2
-            purge_key $1
+            purge_key ${FASTLY_REPO_SERVICE_ID} $1
+            purge_key ${FASTLY_BUILDS_SERVICE_ID} $1
           }
           EOF
           chmod +x utils.sh
@@ -67,7 +70,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
           AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
-          FASTLY_SERVICE_ID: ${{ secrets.HEX_FASTLY_SERVICE_ID }}
+          FASTLY_REPO_SERVICE_ID: ${{ secrets.HEX_FASTLY_REPO_SERVICE_ID }}
+          FASTLY_BUILDS_SERVICE_ID: ${{ secrets.HEX_FASTLY_BUILDS_SERVICE_ID }}
           FASTLY_KEY: ${{ secrets.HEX_FASTLY_KEY }}
         run: |
           source utils.sh
@@ -90,10 +94,16 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
           AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
+          FASTLY_REPO_SERVICE_ID: ${{ secrets.HEX_FASTLY_REPO_SERVICE_ID }}
+          FASTLY_BUILDS_SERVICE_ID: ${{ secrets.HEX_FASTLY_BUILDS_SERVICE_ID }}
+          FASTLY_KEY: ${{ secrets.HEX_FASTLY_KEY }}
         run: |
-          aws s3 cp elixir-otp-${{ matrix.otp }}.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${{github.ref_name}}-otp-${{matrix.otp}}.zip" --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
+          source utils.sh
+          aws s3 cp elixir-otp-${{ matrix.otp }}.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${{github.ref_name}}-otp-${{matrix.otp}}.zip" --cache-control "public,max-age=3600" --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${{github.ref_name}}-otp-${{matrix.otp}}\",\"surrogate-control\":\"public,max-age=604800\"}"
+          purge builds/elixir/${{github.ref_name}}-otp-${{matrix.otp}}
           if [ "${{matrix.upload_generic_version}}" == "upload_generic_version" ]; then
-            aws s3 cp elixir-otp-${{ matrix.otp }}.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${{github.ref_name}}.zip" --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
+            aws s3 cp elixir-otp-${{ matrix.otp }}.zip "s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/${{github.ref_name}}.zip" --cache-control "public,max-age=3600" --metadata "{\"surrogate-key\":\"builds builds/elixir builds/elixir/${{github.ref_name}}\",\"surrogate-control\":\"public,max-age=604800\"}"
+            purge builds/elixir/${{github.ref_name}}
           fi
       - name: Update builds txt
         env:
@@ -101,7 +111,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.HEX_AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ secrets.HEX_AWS_REGION }}
           AWS_S3_BUCKET: ${{ secrets.HEX_AWS_S3_BUCKET }}
-          FASTLY_SERVICE_ID: ${{ secrets.HEX_FASTLY_SERVICE_ID }}
+          FASTLY_REPO_SERVICE_ID: ${{ secrets.HEX_FASTLY_REPO_SERVICE_ID }}
+          FASTLY_BUILDS_SERVICE_ID: ${{ secrets.HEX_FASTLY_BUILDS_SERVICE_ID }}
           FASTLY_KEY: ${{ secrets.HEX_FASTLY_KEY }}
         run: |
           source utils.sh
@@ -117,5 +128,5 @@ jobs:
             echo -e "${ref_name} ${{ github.sha }} ${date} ${build_sha256} \n$(cat builds.txt)" > builds.txt
           fi
           sort -u -k1,1 -o builds.txt builds.txt
-          aws s3 cp builds.txt s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/builds.txt --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds","surrogate-control":"public,max-age=604800"}'
-          purge builds
+          aws s3 cp builds.txt s3://${{ env.AWS_S3_BUCKET }}/builds/elixir/builds.txt --cache-control "public,max-age=3600" --metadata '{"surrogate-key":"builds builds/elixir builds/elixir/txt","surrogate-control":"public,max-age=604800"}'
+          purge builds/elixir/txt

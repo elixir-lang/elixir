@@ -235,7 +235,7 @@ Docs.zip: docs
 
 Precompiled.zip: build_man compile
 	rm -f Precompiled.zip
-	zip -9 -r Precompiled.zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE man NOTICE README.md VERSION
+	zip -9 -r Precompiled.zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE Makefile man NOTICE README.md VERSION
 	@ echo "Precompiled file created $(CURDIR)/Precompiled.zip"
 
 #==> Test tasks
