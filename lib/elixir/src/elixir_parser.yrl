@@ -153,6 +153,7 @@ matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2').
 unmatched_expr -> matched_expr unmatched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr matched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr unmatched_op_expr : build_op('$1', '$2').
+unmatched_expr -> unmatched_expr no_parens_op_expr : warn_no_parens_after_do_op('$2'), build_op('$1', '$2').
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
@@ -1217,6 +1218,16 @@ warn_pipe({arrow_op, {Line, Column, _}, Op}, {_, [_ | _], [_ | _]}) ->
   );
 warn_pipe(_Token, _) ->
   ok.
+
+%% TODO: Make this an error on v2.0
+warn_no_parens_after_do_op({{_Type, Location, Op}, _}) ->
+  {Line, _, _} = Location,
+
+  warn(
+    Line,
+    "missing parentheses on expression following operator \"" ++ atom_to_list(Op) ++ "\", "
+    "you must add parentheses to avoid ambiguities"
+  ).
 
 %% TODO: Make this an error on v2.0
 warn_nested_no_parens_keyword(Key, Value) when is_atom(Key) ->

@@ -1647,6 +1647,17 @@ defmodule Kernel.WarningTest do
            end) =~ "missing parentheses for expression following \"label:\" keyword. "
   end
 
+  test "do+end with operator without explicit parentheses" do
+    assert capture_err(fn ->
+             Code.eval_string("""
+             quote do
+               case do
+               end || raise 1, 2
+             end
+             """)
+           end) =~ "missing parentheses on expression following operator \"||\""
+  end
+
   test "variable is being expanded to function call (on_undefined_variable: warn)" do
     Code.put_compiler_option(:on_undefined_variable, :warn)
 
