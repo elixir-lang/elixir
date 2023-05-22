@@ -19,7 +19,7 @@ defmodule Mix.Shell do
   @doc """
   Executes the given command and returns its exit status.
 
-  Shortcut for `cmd/2` with empty options.
+  Shortcut for `c:cmd/2` with empty options.
   """
   @callback cmd(command :: String.t()) :: integer
 
@@ -27,6 +27,8 @@ defmodule Mix.Shell do
   Executes the given command and returns its exit status.
 
   ## Options
+
+  This callback should support the following options:
 
     * `:print_app` - when `false`, does not print the app name
       when the command outputs something
@@ -38,6 +40,9 @@ defmodule Mix.Shell do
 
     * `:env` - environment options to the executed command
 
+    * `:cd` - (since v1.11.0) the directory to run the command in
+
+  All the built-in shells support these.
   """
   @callback cmd(command :: String.t(), options :: keyword) :: integer
 
@@ -79,6 +84,7 @@ defmodule Mix.Shell do
   goal is to avoid printing the application name
   multiple times.
   """
+  @spec printable_app_name() :: atom | nil
   def printable_app_name do
     Mix.ProjectStack.printable_app_name()
   end
@@ -89,6 +95,9 @@ defmodule Mix.Shell do
 
   This is most commonly used by shell implementations
   but can also be invoked directly.
+
+  `callback` takes the output data of the command. Its
+  return value is ignored.
 
   ## Options
 
@@ -101,6 +110,7 @@ defmodule Mix.Shell do
     * `:quiet` - overrides the callback to no-op
 
   """
+  @spec cmd(String.t, keyword, (binary -> term)) :: exit_status :: non_neg_integer
   def cmd(command, options \\ [], callback) when is_function(callback, 1) do
     callback =
       if options[:quiet] do
