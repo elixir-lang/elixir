@@ -1693,7 +1693,7 @@ defmodule File do
   device cannot be shared and as such it is convenient to open the file
   in raw mode for performance reasons. Therefore, Elixir **will** open
   streams in `:raw` mode with the `:read_ahead` option if the stream is
-  open in the same node as it is createad and not encoding has been specified.
+  open in the same node as it is createad and no encoding has been specified.
   This means any data streamed into the file must be converted to `t:iodata/0`
   type. If you pass, for example, `[encoding: :utf8]` or
   `[encoding: {:utf16, :little}]` in the modes parameter, the underlying stream
