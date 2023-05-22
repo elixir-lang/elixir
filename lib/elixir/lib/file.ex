@@ -1682,6 +1682,11 @@ defmodule File do
   using the `:line` option, CRLF line breaks (`"\r\n"`) are normalized
   to LF (`"\n"`).
 
+  Similar to other file operations, a stream can be created in one node
+  and forwarded to another node. Once the stream is opened in another node,
+  a request will be sent to the creator node to spawn a process for file
+  streaming.
+
   Operating the stream can fail on open for the same reasons as
   `File.open!/2`. Note that the file is automatically opened each time streaming
   begins. There is no need to pass `:read` and `:write` modes, as those are
