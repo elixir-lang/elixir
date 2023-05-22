@@ -247,7 +247,7 @@ defmodule TaskTest do
       ref = make_ref()
       task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, self(), self(), :noconnection})
-      assert catch_exit(Task.ignore(task)) |> elem(0) == {:nodedown, :nonode@nohost}
+      assert catch_exit(Task.ignore(task)) |> elem(0) == {:nodedown, node()}
     end
 
     test "can ignore completed tasks" do
@@ -327,7 +327,7 @@ defmodule TaskTest do
       ref = make_ref()
       task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, :process, self(), :noconnection})
-      assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, :nonode@nohost}
+      assert catch_exit(Task.await(task)) |> elem(0) == {:nodedown, node()}
     end
 
     test "exits on :noconnection from named monitor" do
@@ -464,7 +464,7 @@ defmodule TaskTest do
       ]
 
       send(self(), {:DOWN, ref, :process, self(), :noconnection})
-      assert catch_exit(Task.await_many(tasks)) |> elem(0) == {:nodedown, :nonode@nohost}
+      assert catch_exit(Task.await_many(tasks)) |> elem(0) == {:nodedown, node()}
     end
 
     test "exits immediately on :noconnection from named monitor" do
@@ -514,7 +514,7 @@ defmodule TaskTest do
       ref = make_ref()
       task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, self(), self(), :noconnection})
-      assert catch_exit(Task.yield(task)) |> elem(0) == {:nodedown, :nonode@nohost}
+      assert catch_exit(Task.yield(task)) |> elem(0) == {:nodedown, node()}
     end
 
     test "raises when invoked from a non-owner process" do
@@ -576,7 +576,7 @@ defmodule TaskTest do
       ref = make_ref()
       task = %Task{ref: ref, pid: self(), owner: self(), mfa: {__MODULE__, :test, 1}}
       send(self(), {:DOWN, ref, :process, self(), :noconnection})
-      assert catch_exit(Task.yield_many([task])) |> elem(0) == {:nodedown, :nonode@nohost}
+      assert catch_exit(Task.yield_many([task])) |> elem(0) == {:nodedown, node()}
     end
 
     test "raises when invoked from a non-owner process" do

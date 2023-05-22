@@ -98,9 +98,19 @@ os_exclude = if PathHelpers.windows?(), do: [unix: true], else: [windows: true]
 {line_exclude, line_include} =
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
 
+distributed_exclude =
+  if Code.ensure_loaded?(:peer) and Node.alive?() do
+    {:ok, _pid, node} = :peer.start(%{name: :secondary})
+    true = :erpc.call(node, :code, :set_path, [:code.get_path()])
+    {:ok, _} = :erpc.call(node, :application, :ensure_all_started, [:elixir])
+    []
+  else
+    [distributed: true]
+  end
+
 ExUnit.start(
   trace: !!System.get_env("TRACE"),
   assert_receive_timeout: assert_timeout,
-  exclude: epmd_exclude ++ os_exclude ++ line_exclude,
+  exclude: epmd_exclude ++ os_exclude ++ line_exclude ++ distributed_exclude,
   include: line_include
 )

@@ -1682,6 +1682,11 @@ defmodule File do
   using the `:line` option, CRLF line breaks (`"\r\n"`) are normalized
   to LF (`"\n"`).
 
+  Similar to other file operations, a stream can be created in one node
+  and forwarded to another node. Once the stream is opened in another node,
+  a request will be sent to the creator node to spawn a process for file
+  streaming.
+
   Operating the stream can fail on open for the same reasons as
   `File.open!/2`. Note that the file is automatically opened each time streaming
   begins. There is no need to pass `:read` and `:write` modes, as those are
@@ -1692,12 +1697,13 @@ defmodule File do
   Since Elixir controls when the streamed file is opened, the underlying
   device cannot be shared and as such it is convenient to open the file
   in raw mode for performance reasons. Therefore, Elixir **will** open
-  streams in `:raw` mode with the `:read_ahead` option unless an encoding
-  is specified. This means any data streamed into the file must be
-  converted to `t:iodata/0` type. If you pass, for example, `[encoding: :utf8]`
-  or `[encoding: {:utf16, :little}]` in the modes parameter,
-  the underlying stream will use `IO.write/2` and the `String.Chars` protocol
-  to convert the data. See `IO.binwrite/2` and `IO.write/2` .
+  streams in `:raw` mode with the `:read_ahead` option if the stream is
+  open in the same node as it is created and no encoding has been specified.
+  This means any data streamed into the file must be converted to `t:iodata/0`
+  type. If you pass, for example, `[encoding: :utf8]` or
+  `[encoding: {:utf16, :little}]` in the modes parameter, the underlying stream
+  will use `IO.write/2` and the `String.Chars` protocol to convert the data.
+  See `IO.binwrite/2` and `IO.write/2` .
 
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
@@ -1707,8 +1713,8 @@ defmodule File do
   If you pass `:trim_bom` in the modes parameter, the stream will
   trim UTF-8, UTF-16 and UTF-32 byte order marks when reading from file.
 
-  Note that this function does not try to discover the file encoding basing
-  on BOM.
+  Note that this function does not try to discover the file encoding
+  based on BOM.
 
   ## Examples
 

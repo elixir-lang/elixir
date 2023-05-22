@@ -281,9 +281,9 @@ test_stdlib: compile
 	@ echo "==> elixir (ex_unit)"
 	$(Q) exec epmd & exit
 	$(Q) if [ "$(OS)" = "Windows_NT" ]; then \
-		cd lib/elixir && cmd //C call ../../bin/elixir.bat -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
+		cd lib/elixir && cmd //C call ../../bin/elixir.bat --sname primary -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
 	else \
-		cd lib/elixir && ../../bin/elixir -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
+		cd lib/elixir && ../../bin/elixir --sname primary -r "test/elixir/test_helper.exs" -pr "test/elixir/**/$(TEST_FILES)"; \
 	fi
 
 #==> Dialyzer tasks
