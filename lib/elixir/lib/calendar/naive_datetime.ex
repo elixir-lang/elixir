@@ -1238,7 +1238,7 @@ defmodule NaiveDateTime do
   To calculate the end of day of a `DateTime`, call this function, then convert back to a `DateTime`:
 
       datetime
-      |> NaiveDateTime.beginning_of_day()
+      |> NaiveDateTime.end_of_day()
       |> DateTime.from_naive(datetime.timezone)
 
   Note that the end of the day may not exist or be ambiguous
