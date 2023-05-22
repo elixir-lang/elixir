@@ -144,7 +144,7 @@ do_escape(BitString, _, _) when is_bitstring(BitString) ->
   end;
 
 do_escape(Map, Q, E) when is_map(Map) ->
-  TT = do_quote(maps:to_list(Map), Q, E),
+  TT = do_quote(lists:sort(maps:to_list(Map)), Q, E),
   {'%{}', [], TT};
 
 do_escape([], _, _) -> [];

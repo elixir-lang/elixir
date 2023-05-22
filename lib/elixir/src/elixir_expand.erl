@@ -462,7 +462,7 @@ escape_env_entries(Meta, #elixir_ex{vars={Read, _}}, Env0) ->
 
   Env1#{versioned_vars := escape_map(Read), line := ?line(Meta)}.
 
-escape_map(Map) -> {'%{}', [], maps:to_list(Map)}.
+escape_map(Map) -> {'%{}', [], lists:sort(maps:to_list(Map))}.
 
 expand_multi_alias_call(Kind, Meta, Base, Refs, Opts, S, E) ->
   {BaseRef, SB, EB} = expand_without_aliases_report(Base, S, E),
