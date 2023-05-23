@@ -54,6 +54,14 @@ defmodule CodeTest do
                  :warn
                end)
     end
+
+    test "includes column information when possible" do
+      assert {_, [%{position: {1, 12}}]} =
+               Code.with_diagnostics(fn ->
+                 quoted = Code.string_to_quoted!("if true do var = :foo end", columns: true)
+                 Code.eval_quoted(quoted, [])
+               end)
+    end
   end
 
   describe "eval_string/1,2,3" do

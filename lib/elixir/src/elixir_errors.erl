@@ -74,9 +74,9 @@ file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
   case elixir_config:is_bootstrap() of
     true -> ok;
     false ->
-      {EnvLine, EnvFile, EnvStacktrace} = env_format(Meta, E),
+      {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, E),
       Message = Module:format_error(Desc),
-      emit_diagnostic(warning, EnvLine, EnvFile, Message, EnvStacktrace)
+      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace)
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -107,9 +107,9 @@ function_error(Meta, Env, Module, Desc) ->
   file_error(Meta, Env, Module, Desc).
 
 print_error(Meta, Env, Module, Desc) ->
-  {EnvLine, EnvFile, EnvStacktrace} = env_format(Meta, Env),
+  {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  emit_diagnostic(error, EnvLine, EnvFile, Message, EnvStacktrace),
+  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace),
   ok.
 
 %% Compilation error.
@@ -264,7 +264,10 @@ env_format(Meta, #{file := EnvFile} = E) ->
         []
     end,
 
-  {Line, File, Stacktrace}.
+  case lists:keyfind(column, 1, Meta) of
+    {column, Column} -> {{Line, Column}, File, Stacktrace};
+    _ -> {Line, File, Stacktrace}
+  end.
 
 file_format(_, nil) ->
   "";

@@ -611,7 +611,7 @@ mapfold(_Fun, S, E, [], Acc) ->
 
 var_unused({_, Kind} = Pair, Meta, Version, Unused, Override) ->
   case (Kind == nil) andalso should_warn(Meta) of
-    true -> Unused#{{Pair, Version} => {?line(Meta), Override}};
+    true -> Unused#{{Pair, Version} => {Meta, Override}};
     false -> Unused
   end.
 
