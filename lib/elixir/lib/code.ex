@@ -571,7 +571,7 @@ defmodule Code do
     try do
       result = fun.()
       {diagnostics, _log?} = :erlang.get(:elixir_code_diagnostics)
-      {result, post_process_diagnostics(diagnostics)}
+      {result, Enum.reverse(diagnostics)}
     after
       if value == :undefined do
         :erlang.erase(:elixir_code_diagnostics)
@@ -579,13 +579,6 @@ defmodule Code do
         :erlang.put(:elixir_code_diagnostics, value)
       end
     end
-  end
-
-  defp post_process_diagnostics(diagnostics) do
-    # reverse + map in one pass
-    Enum.reduce(diagnostics, [], fn diagnostic, acc ->
-      [%{diagnostic | file: Path.relative_to_cwd(diagnostic.file)} | acc]
-    end)
   end
 
   @doc """

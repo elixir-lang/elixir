@@ -38,7 +38,7 @@ print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stack
 emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
   Diagnostic = #{
     severity => Severity,
-    file => if File =:= nil -> nil; true -> filename:absname(File) end,
+    file => File,
     position => Position,
     message => unicode:characters_to_binary(Message),
     stacktrace => Stacktrace
