@@ -2,7 +2,7 @@
 %% private to the Elixir compiler and reserved to be used by Elixir only.
 -module(elixir).
 -behaviour(application).
--export([start_cli/0, start/0]).
+-export([start_cli/0, start/0, start_iex/0]).
 -export([start/2, stop/1, config_change/3]).
 -export([
   string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
@@ -192,12 +192,29 @@ start_cli() ->
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()),
   elixir_config:booted().
 
+%% TODO: Delete prim_tty branches and -user on Erlang/OTP 26.
 start() ->
-  case init:get_argument(elixir_root) of
-    {ok, [[Root]]} -> code:add_patha(Root ++ "/iex/ebin");
-    _ -> ok
-  end,
-  'Elixir.IEx.CLI':main().
+  case code:ensure_loaded(prim_tty) of
+    {module, _} ->
+      user_drv:start(#{initial_shell => noshell});
+    {error, _} ->
+      case init:get_argument(elixir_root) of
+        {ok, [[Root]]} -> code:add_patha(Root ++ "/iex/ebin");
+        _ -> ok
+      end,
+      'Elixir.IEx.CLI':deprecated()
+  end.
+start_iex() ->
+  case code:ensure_loaded(prim_tty) of
+    {module, _} ->
+      spawn(fun() ->
+        elixir_config:wait_until_booted(),
+        (shell:whereis() =:= undefined) andalso 'Elixir.IEx':cli()
+      end);
+
+    {error, _} ->
+      ok
+  end.
 
 %% EVAL HOOKS
 

@@ -27,12 +27,16 @@ defmodule IEx.Server do
     * `:env` - the `Macro.Env` used for the evaluator
     * `:binding` - an initial set of variables for the evaluator
     * `:on_eof` - if it should `:stop_evaluator` (default) or `:halt` the system
+    * `:register` - if this shell should be registered in the broker (default is `true`)
 
   """
   @doc since: "1.8.0"
   @spec run(keyword) :: :ok
   def run(opts) when is_list(opts) do
-    IEx.Broker.register(self())
+    if Keyword.get(opts, :register, true) do
+      IEx.Broker.register(self())
+    end
+
     run_without_registration(init_state(opts), opts, nil)
   end
 
@@ -289,10 +293,8 @@ defmodule IEx.Server do
   end
 
   defp take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, counter) do
-    evaluator = take_opts[:evaluator]
-    message = "Request to pry #{inspect(evaluator)} at #{take_location}#{take_whereami}"
-    interrupt = IEx.color(:eval_interrupt, "#{message}\nAllow? [Yn] ")
-    take_over?(take_pid, take_ref, counter, yes?(IO.gets(:stdio, interrupt)))
+    answer = IEx.Broker.take_over?(take_location, take_whereami, take_opts)
+    take_over?(take_pid, take_ref, counter, answer)
   end
 
   defp take_over?(take_pid, take_ref, counter, response) when is_boolean(response) do
@@ -307,10 +309,6 @@ defmodule IEx.Server do
         io_error("** session was already accepted elsewhere")
         false
     end
-  end
-
-  defp yes?(string) do
-    is_binary(string) and String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
   end
 
   ## State

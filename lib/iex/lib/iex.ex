@@ -848,22 +848,101 @@ defmodule IEx do
   @spec break!(module, atom, arity, non_neg_integer) :: IEx.Pry.id()
   defdelegate break!(module, function, arity, stops \\ 1), to: IEx.Pry
 
-  ## Callbacks
+  @doc false
+  def dont_display_result, do: :"do not show this result in output"
+
+  ## CLI
+
+  @compile {:no_warn_undefined, {:shell, :start_interactive, 1}}
 
   # This is a callback invoked by Erlang shell utilities
-  # when someone presses Ctrl+G and adds 's Elixir.IEx'.
+  # when someone presses Ctrl+G and adds `s 'Elixir.IEx'`.
   @doc false
   def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
-    spawn(fn ->
-      {:ok, _} = Application.ensure_all_started(:elixir)
-      System.wait_until_booted()
-      :ok = :io.setopts(binary: true, encoding: :unicode)
-      {:ok, _} = Application.ensure_all_started(:iex)
-      _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
-      IEx.Server.run_from_shell(opts, mfa)
-    end)
+    # TODO: Keep only this branch, delete optional args and mfa,
+    # and delete IEx.Server.run_from_shell/2 on Erlang/OTP 26+
+    if Code.ensure_loaded?(:prim_tty) do
+      spawn(fn ->
+        {:ok, _} = Application.ensure_all_started(:iex)
+        _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
+        IEx.Server.run([register: false] ++ opts)
+      end)
+    else
+      spawn(fn ->
+        {:ok, _} = Application.ensure_all_started(:elixir)
+        System.wait_until_booted()
+        :ok = :io.setopts(binary: true, encoding: :unicode)
+        {:ok, _} = Application.ensure_all_started(:iex)
+        _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
+        IEx.Server.run_from_shell(opts, mfa)
+      end)
+    end
+  end
+
+  # Manual tests for changing the CLI boot.
+  #
+  # 1. In some situations, we cannot read inputs as IEx boots:
+  #
+  #      $ iex -e ":io.get_line(:foo)"
+  #
+  # 2. In some situations, connecting to a remote node via --remsh
+  #    is not possible. This can be tested by starting two IEx nodes:
+  #
+  #      $ iex --sname foo
+  #      $ iex --sname bar --remsh foo
+  #
+  # 3. When still using --remsh, we need to guarantee the arguments
+  #    are processed on the local node and not the remote one. For such,
+  #    one can replace the last line above by:
+  #
+  #      $ iex --sname bar --remsh foo -e 'IO.inspect node()'
+  #
+  #    And verify that the local node name is printed.
+  #
+  # 4. Finally, in some other circumstances, printing messages may become
+  #    borked. This can be verified with:
+  #
+  #      $ iex -e ":logger.info('foo~nbar', [])"
+  #
+  # By the time those instructions have been written, all tests above pass.
+  @doc false
+  def cli(opts \\ []) do
+    args = :init.get_plain_arguments()
+    opts = opts ++ [dot_iex_path: find_dot_iex(args), on_eof: :halt]
+
+    ref = make_ref()
+    mfa = {__MODULE__, :__cli__, [self(), ref, opts]}
+
+    shell =
+      if remote = get_remsh(args) do
+        {:remote, remote, mfa}
+      else
+        mfa
+      end
+
+    :ok = :shell.start_interactive(shell)
+
+    receive do
+      {^ref, shell} -> shell
+    after
+      15_000 ->
+        IO.puts(:stderr, "Could not start the shell after 15 seconds, aborting...")
+        System.halt(1)
+    end
   end
 
   @doc false
-  def dont_display_result, do: :"do not show this result in output"
+  def __cli__(parent, ref, opts) do
+    pid = start(opts)
+    send(parent, {ref, pid})
+    pid
+  end
+
+  defp find_dot_iex([~c"--dot-iex", h | _]), do: List.to_string(h)
+  defp find_dot_iex([_ | t]), do: find_dot_iex(t)
+  defp find_dot_iex([]), do: nil
+
+  defp get_remsh([~c"--remsh", h | _]), do: h
+  defp get_remsh([_ | t]), do: get_remsh(t)
+  defp get_remsh([]), do: nil
 end

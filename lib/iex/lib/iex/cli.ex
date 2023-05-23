@@ -1,69 +1,26 @@
-# IEx sets the Erlang user to be IEx.CLI via the command line.
-# While this works most of the time, there are some problems
-# that may happen depending on how the booting process goes.
-# Those problems need to be manually tested in case changes are
-# done to this file.
-#
-# 1. In some situations, printing something before the shell
-#    starts becomes very slow. To verify this feature, just
-#    get an existing project and run:
-#
-#      $ mix clean
-#      $ iex -S mix
-#
-#    If the printing of data is slower than usual. This particular
-#    bug has arisen;
-#
-# 2. In some situations, connecting to a remote node via --remsh
-#    is not possible. This can be tested by starting two IEx nodes:
-#
-#      $ iex --sname foo
-#      $ iex --sname bar --remsh foo@localhost
-#
-# 3. When still using --remsh, we need to guarantee the arguments
-#    are processed on the local node and not the remote one. For such,
-#    one can replace the last line above by:
-#
-#      $ iex --sname bar --remsh foo@localhost -e 'IO.inspect node()'
-#
-#    And verify that the local node name is printed.
-#
-# 4. Finally, in some other circumstances, printing messages may become
-#    borked. This can be verified with:
-#
-#      $ iex -e ":logger.info('foo~nbar', [])"
-#
-# By the time those instructions have been written, all tests above pass.
+# Remove this whole module on Erlang/OTP 26+.
 defmodule IEx.CLI do
   @moduledoc false
 
   @compile {:no_warn_undefined, {:user, :start, 0}}
 
-  def main do
-    # TODO: Keep only the first branch and remove the usage
-    # of -user callback altogether on Erlang/OTP 26+ by using
-    # --eval and :shell.start_interactive(new_tty_args())
-    cond do
-      Code.ensure_loaded?(:prim_tty) ->
-        :user_drv.start(%{initial_shell: new_tty_args()})
+  def deprecated do
+    if tty_works?() do
+      :user_drv.start([:"tty_sl -c -e", old_tty_args()])
+    else
+      if get_remsh(:init.get_plain_arguments()) do
+        IO.puts(
+          :stderr,
+          "warning: the --remsh option will be ignored because IEx is running on limited shell"
+        )
+      end
 
-      tty_works?() ->
-        :user_drv.start([:"tty_sl -c -e", old_tty_args()])
+      :user.start()
 
-      true ->
-        if get_remsh(:init.get_plain_arguments()) do
-          IO.puts(
-            :stderr,
-            "warning: the --remsh option will be ignored because IEx is running on limited shell"
-          )
-        end
-
-        :user.start()
-
-        # IEx.Broker is capable of considering all groups under user_drv but
-        # when we use :user.start(), we need to explicitly register it instead.
-        # If we don't register, pry doesn't work.
-        IEx.start([register: true] ++ options())
+      # IEx.Broker is capable of considering all groups under user_drv but
+      # when we use :user.start(), we need to explicitly register it instead.
+      # If we don't register, pry doesn't work.
+      IEx.start([register: true] ++ options())
     end
   end
 
@@ -81,14 +38,6 @@ defmodule IEx.CLI do
       Port.close(port)
     catch
       _, _ -> false
-    end
-  end
-
-  defp new_tty_args do
-    if remote = get_remsh(:init.get_plain_arguments()) do
-      {:remote, remote, remote_start_mfa()}
-    else
-      local_start_mfa()
     end
   end
 

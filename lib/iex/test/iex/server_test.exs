@@ -18,12 +18,6 @@ defmodule IEx.ServerTest do
   end
 
   describe "pry" do
-    test "no sessions" do
-      assert capture_io(fn ->
-               assert IEx.pry() == {:error, :no_iex}
-             end) =~ "Is an IEx shell running?"
-    end
-
     test "inside evaluator itself" do
       assert capture_iex("require IEx; IEx.pry()") =~ "Break reached"
     end

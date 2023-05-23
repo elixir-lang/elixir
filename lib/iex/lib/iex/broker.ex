@@ -13,7 +13,7 @@ defmodule IEx.Broker do
   Finds the IEx server.
   """
   @spec shell :: shell()
-  # TODO: Use shell:whereis_shell() from Erlang/OTP 26+.
+  # TODO: Use shell:whereis() from Erlang/OTP 26+.
   def shell() do
     if user = Process.whereis(:user) do
       if user_drv = get_from_dict(user, :user_drv) do
@@ -76,18 +76,49 @@ defmodule IEx.Broker do
   end
 
   @doc """
+  Asks to IO if we want to take over.
+  """
+  def take_over?(location, whereami, opts) do
+    evaluator = opts[:evaluator] || self()
+    message = "Request to pry #{inspect(evaluator)} at #{location}#{whereami}"
+    interrupt = IEx.color(:eval_interrupt, "#{message}\nAllow? [Yn] ")
+    yes?(IO.gets(:stdio, interrupt))
+  end
+
+  defp yes?(string) do
+    is_binary(string) and String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
+  end
+
+  @doc """
   Client requests a takeover.
   """
   @spec take_over(binary, iodata, keyword) ::
           {:ok, server :: pid, group_leader :: pid, counter :: integer}
           | {:error, :no_iex | :refused}
   def take_over(location, whereami, opts) do
-    case GenServer.whereis(@name) do
-      nil ->
-        {:error, :no_iex}
+    case take_over_existing(location, whereami, opts) do
+      {:error, :no_iex} ->
+        cond do
+          # TODO: Remove this check on Erlang/OTP 26+ and {:error, :no_iex}
+          not Code.ensure_loaded?(:prim_tty) ->
+            {:error, :no_iex}
 
-      _pid ->
-        GenServer.call(@name, {:take_over, location, whereami, opts}, :infinity)
+          take_over?(location, whereami, opts) ->
+            {:ok, IEx.cli(opts), Process.group_leader(), 1}
+
+          true ->
+            {:error, :refused}
+        end
+
+      other ->
+        other
+    end
+  end
+
+  defp take_over_existing(location, whereami, opts) do
+    case GenServer.whereis(@name) do
+      nil -> {:error, :no_iex}
+      _pid -> GenServer.call(@name, {:take_over, location, whereami, opts}, :infinity)
     end
   end
 
