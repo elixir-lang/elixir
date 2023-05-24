@@ -911,7 +911,7 @@ defmodule String do
     String.Unicode.downcase(string, [], mode)
   end
 
-  defp downcase_ascii(<<char, rest::bits>>) when char >= ?A and char <= ?Z,
+  defp downcase_ascii(<<char, rest::bits>>) when is_integer(char) and char >= ?A and char <= ?Z,
     do: [char + 32 | downcase_ascii(rest)]
 
   defp downcase_ascii(<<char, rest::bits>>), do: [char | downcase_ascii(rest)]
