@@ -110,9 +110,9 @@ with_file(File, #{lexical_tracker := Pid} = E, Callback) ->
 %% ERROR HANDLING
 
 warn_unused_imports(Pid, E) ->
-  [elixir_errors:file_warn(Position, ?key(E, file), ?MODULE, {unused_import, ModOrMFA})
+  [elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_import, ModOrMFA})
    || {Module, Imports} <- ?tracker:collect_unused_imports(Pid),
-      {ModOrMFA, Position} <- unused_imports_for_module(Module, Imports)],
+      {ModOrMFA, Meta} <- unused_imports_for_module(Module, Imports)],
   ok.
 
 unused_imports_for_module(Module, Imports) ->
