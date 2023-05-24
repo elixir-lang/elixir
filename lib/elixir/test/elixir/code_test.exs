@@ -65,13 +65,10 @@ defmodule CodeTest do
 
     test "includes column information on unused aliases" do
       sample = """
-      defmodule FooAlias.Bar do end
-      defmodule FooAlias do 
-        alias FooAlias.Bar
-      end
+      alias URI
       """
 
-      assert {_, [%{position: {3, 3}}]} =
+      assert {_, [%{position: {1, 1}}]} =
                Code.with_diagnostics(fn ->
                  quoted = Code.string_to_quoted!(sample, columns: true)
                  Code.eval_quoted(quoted, [])
@@ -80,15 +77,10 @@ defmodule CodeTest do
 
     test "includes column information on unused imports" do
       sample = """
-      defmodule FooImport.Bar do
-        def x, do: 10
-      end
-      defmodule FooImport do 
-        import FooImport.Bar
-      end
+      import URI
       """
 
-      assert {_, [%{position: {5, 3}}]} =
+      assert {_, [%{position: {1, 1}}]} =
                Code.with_diagnostics(fn ->
                  quoted = Code.string_to_quoted!(sample, columns: true)
                  Code.eval_quoted(quoted, [])
