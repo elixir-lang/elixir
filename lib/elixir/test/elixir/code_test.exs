@@ -66,7 +66,7 @@ defmodule CodeTest do
     test "includes column information on unused aliases" do
       sample = """
       defmodule CodeTest.UnusedAlias do
-        alias URI
+        alias String.Chars
       end
       """
 
