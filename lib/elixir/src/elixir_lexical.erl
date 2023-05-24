@@ -38,10 +38,10 @@ trace({import, Meta, Module, Opts}, #{lexical_tracker := Pid}) ->
       _ -> []
     end,
 
-  ?tracker:add_import(Pid, Module, Only, ?line(Meta), Imported and should_warn(Meta, Opts)),
+  ?tracker:add_import(Pid, Module, Only, Meta, Imported and should_warn(Meta, Opts)),
   ok;
 trace({alias, Meta, _Old, New, Opts}, #{lexical_tracker := Pid}) ->
-  ?tracker:add_alias(Pid, New, ?line(Meta), should_warn(Meta, Opts)),
+  ?tracker:add_alias(Pid, New, Meta, should_warn(Meta, Opts)),
   ok;
 trace({alias_expansion, _Meta, Lookup, _Result}, #{lexical_tracker := Pid}) ->
   ?tracker:alias_dispatch(Pid, Lookup),
@@ -110,9 +110,9 @@ with_file(File, #{lexical_tracker := Pid} = E, Callback) ->
 %% ERROR HANDLING
 
 warn_unused_imports(Pid, E) ->
-  [elixir_errors:file_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_import, ModOrMFA})
+  [elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_import, ModOrMFA})
    || {Module, Imports} <- ?tracker:collect_unused_imports(Pid),
-      {ModOrMFA, Line} <- unused_imports_for_module(Module, Imports)],
+      {ModOrMFA, Meta} <- unused_imports_for_module(Module, Imports)],
   ok.
 
 unused_imports_for_module(Module, Imports) ->
@@ -122,8 +122,8 @@ unused_imports_for_module(Module, Imports) ->
   end.
 
 warn_unused_aliases(Pid, E) ->
-  [elixir_errors:file_warn([{line, Line}], ?key(E, file), ?MODULE, {unused_alias, Module})
-   || {Module, Line} <- ?tracker:collect_unused_aliases(Pid)],
+  [elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {unused_alias, Module})
+   || {Module, Meta} <- ?tracker:collect_unused_aliases(Pid)],
   ok.
 
 format_error({unused_alias, Module}) ->

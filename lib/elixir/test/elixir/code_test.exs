@@ -55,10 +55,38 @@ defmodule CodeTest do
                end)
     end
 
-    test "includes column information when possible" do
+    test "includes column information on unused variables" do
       assert {_, [%{position: {1, 12}}]} =
                Code.with_diagnostics(fn ->
                  quoted = Code.string_to_quoted!("if true do var = :foo end", columns: true)
+                 Code.eval_quoted(quoted, [])
+               end)
+    end
+
+    test "includes column information on unused aliases" do
+      sample = """
+      defmodule CodeTest.UnusedAlias do
+        alias String.Chars
+      end
+      """
+
+      assert {_, [%{position: {2, 3}}]} =
+               Code.with_diagnostics(fn ->
+                 quoted = Code.string_to_quoted!(sample, columns: true)
+                 Code.eval_quoted(quoted, [])
+               end)
+    end
+
+    test "includes column information on unused imports" do
+      sample = """
+      defmodule CodeTest.UnusedImport do
+        import URI
+      end
+      """
+
+      assert {_, [%{position: {2, 3}}]} =
+               Code.with_diagnostics(fn ->
+                 quoted = Code.string_to_quoted!(sample, columns: true)
                  Code.eval_quoted(quoted, [])
                end)
     end

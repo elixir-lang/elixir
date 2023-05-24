@@ -35,13 +35,13 @@ defmodule Kernel.LexicalTracker do
   end
 
   @doc false
-  def add_import(pid, module, fas, line, warn) when is_atom(module) do
-    :gen_server.cast(pid, {:add_import, module, fas, line, warn})
+  def add_import(pid, module, fas, meta, warn) when is_atom(module) do
+    :gen_server.cast(pid, {:add_import, module, fas, meta, warn})
   end
 
   @doc false
-  def add_alias(pid, module, line, warn) when is_atom(module) do
-    :gen_server.cast(pid, {:add_alias, module, line, warn})
+  def add_alias(pid, module, meta, warn) when is_atom(module) do
+    :gen_server.cast(pid, {:add_alias, module, meta, warn})
   end
 
   @doc false
@@ -209,18 +209,18 @@ defmodule Kernel.LexicalTracker do
     {:noreply, put_in(state.exports[module], true)}
   end
 
-  def handle_cast({:add_import, module, fas, line, warn}, state) do
+  def handle_cast({:add_import, module, fas, meta, warn}, state) do
     if warn do
-      imports = for module_or_fa <- [module | fas], do: {module_or_fa, line}, into: %{}
+      imports = for module_or_fa <- [module | fas], do: {module_or_fa, meta}, into: %{}
       {:noreply, put_in(state.imports[module], imports)}
     else
       {:noreply, state}
     end
   end
 
-  def handle_cast({:add_alias, module, line, warn}, state) do
+  def handle_cast({:add_alias, module, meta, warn}, state) do
     if warn do
-      {:noreply, put_in(state.aliases[module], line)}
+      {:noreply, put_in(state.aliases[module], meta)}
     else
       {:noreply, state}
     end
