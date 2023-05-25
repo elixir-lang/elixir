@@ -52,14 +52,13 @@ defmodule Mix.AppLoader do
   end
 
   @doc """
-  Loads the given app from path in an optimized format and returns its contents.
+  Reads the given app from path in an optimized format and returns its contents.
   """
-  def load_app(app, app_path) do
+  def read_app(app, app_path) do
     case File.read(app_path) do
       {:ok, bin} ->
         with {:ok, tokens, _} <- :erl_scan.string(String.to_charlist(bin)),
-             {:ok, {:application, ^app, properties} = app_data} <- :erl_parse.parse_term(tokens),
-             :ok <- ensure_loaded(app_data) do
+             {:ok, {:application, ^app, properties}} <- :erl_parse.parse_term(tokens) do
           {:ok, properties}
         else
           _ -> :invalid
@@ -70,11 +69,16 @@ defmodule Mix.AppLoader do
     end
   end
 
-  defp ensure_loaded(app_data) do
-    case :application.load(app_data) do
-      :ok -> :ok
-      {:error, {:already_loaded, _}} -> :ok
-      {:error, error} -> {:error, error}
+  @doc """
+  Loads the given app from path in an optimized format and returns its contents.
+  """
+  def load_app(app, app_path) do
+    with {:ok, properties} <- read_app(app, app_path) do
+      case :application.load({:application, app, properties}) do
+        :ok -> {:ok, properties}
+        {:error, {:already_loaded, _}} -> {:ok, properties}
+        {:error, _} -> :invalid
+      end
     end
   end
 

@@ -106,7 +106,7 @@ defmodule Mix.Dep.Loader do
           {dep, []}
       end
 
-    %{validate_app(dep) | deps: attach_only_and_targets(children, opts)}
+    validate_app(%{dep | deps: attach_only_and_targets(children, opts)})
   end
 
   @doc """
@@ -383,18 +383,22 @@ defmodule Mix.Dep.Loader do
 
     cond do
       not ok?(dep) ->
-        dep
+        {dep, nil}
 
       recently_fetched?(dep) ->
-        %{dep | status: :compile}
+        {%{dep | status: :compile}, nil}
 
       opts_app == false ->
-        dep
+        {dep, nil}
 
       true ->
         path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
         path = Path.expand(path, opts[:build])
-        %{dep | status: app_status(path, app, req)}
+
+        case app_status(path, app, req) do
+          {:ok, vsn, app} -> {%{dep | status: {:ok, vsn}}, app}
+          status -> {%{dep | status: status}, nil}
+        end
     end
   end
 
@@ -411,7 +415,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp app_status(app_path, app, req) do
-    case Mix.AppLoader.load_app(app, app_path) do
+    case Mix.AppLoader.read_app(app, app_path) do
       {:ok, properties} ->
         case List.keyfind(properties, :vsn, 0) do
           {:vsn, actual} when is_list(actual) ->
@@ -446,7 +450,7 @@ defmodule Mix.Dep.Loader do
          false <- Config.Provider.valid_compile_env?(compile_env) do
       :compile
     else
-      _ -> {:ok, vsn}
+      _ -> {:ok, vsn, properties}
     end
   end
 end

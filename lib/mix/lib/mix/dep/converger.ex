@@ -205,10 +205,10 @@ defmodule Mix.Dep.Converger do
         all(t, [dep | acc], upper, breadths, optional, rest, lock, state)
 
       :nomatch ->
-        {%{app: app, deps: deps, opts: opts} = dep, rest, lock} =
+        {%{app: app, deps: deps, opts: opts} = dep, app_properties, rest, lock} =
           case state.cache.(dep) do
             {:loaded, cached_dep} ->
-              {cached_dep, rest, lock}
+              {cached_dep, nil, rest, lock}
 
             {:unloaded, dep, children} ->
               {dep, rest, lock} = state.callback.(put_lock(dep, lock), rest, lock)
@@ -217,7 +217,8 @@ defmodule Mix.Dep.Converger do
                 # After we invoke the callback (which may actually check out the
                 # dependency), we load the dependency including its latest info
                 # and children information.
-                {Mix.Dep.Loader.load(dep, children, state.locked?), rest, lock}
+                {dep, app_properties} = Mix.Dep.Loader.load(dep, children, state.locked?)
+                {dep, app_properties, rest, lock}
               end)
           end
 
@@ -228,11 +229,29 @@ defmodule Mix.Dep.Converger do
         {acc, optional, rest, lock} =
           all(no_longer_optional ++ t, [dep | acc], upper, breadths, optional, rest, lock, state)
 
+        # Now traverse all parent dependencies and see if we have any optional dependency.
         {discarded, deps} =
           split_non_fulfilled_optional(deps, Enum.map(acc, & &1.app), opts[:from_umbrella])
 
         new_breadths = Enum.map(deps, & &1.app) ++ breadths
-        all(deps, acc, breadths, new_breadths, discarded ++ optional, rest, lock, state)
+        res = all(deps, acc, breadths, new_breadths, discarded ++ optional, rest, lock, state)
+
+        # After we traverse all of our children, we can load ourselves.
+        # This is important in case of included application.
+        if app_properties do
+          case :application.load({:application, app, app_properties}) do
+            :ok ->
+              :ok
+
+            {:error, {:already_loaded, _}} ->
+              :ok
+
+            {:error, error} ->
+              Mix.raise("Could not start application #{inspect(app)}: #{inspect(error)}")
+          end
+        end
+
+        res
     end
   end
 
