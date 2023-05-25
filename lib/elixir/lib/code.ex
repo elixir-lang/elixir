@@ -1463,13 +1463,15 @@ defmodule Code do
   options and for a description of all options, see
   `put_compiler_option/2`.
 
+  Returns a map with previous values.
+
   ## Examples
 
-      Code.compiler_options()
-      #=> %{debug_info: true, docs: true, ...}
+      Code.compiler_options(warnings_as_errors: true)
+      #=> %{warnings_as_errors: false}
 
   """
-  @spec compiler_options(Enumerable.t()) :: %{optional(atom) => boolean}
+  @spec compiler_options(Enumerable.t({atom, term})) :: %{optional(atom) => term}
   def compiler_options(opts) do
     for {key, value} <- opts, into: %{} do
       previous = get_compiler_option(key)
