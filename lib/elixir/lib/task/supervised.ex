@@ -3,18 +3,20 @@ defmodule Task.Supervised do
   @ref_timeout 5000
 
   def start(owner, callers, fun) do
-    {:ok, :proc_lib.spawn(__MODULE__, :noreply, [owner, callers, fun])}
+    {:ok, spawn(__MODULE__, :noreply, [owner, get_ancestors(), callers, fun])}
   end
 
   def start_link(owner, callers, fun) do
-    {:ok, :proc_lib.spawn_link(__MODULE__, :noreply, [owner, callers, fun])}
+    {:ok, spawn_link(__MODULE__, :noreply, [owner, get_ancestors(), callers, fun])}
   end
 
   def start_link(owner, monitor) do
-    {:ok, :proc_lib.spawn_link(__MODULE__, :reply, [owner, monitor])}
+    {:ok, spawn_link(__MODULE__, :reply, [owner, get_ancestors(), monitor])}
   end
 
-  def reply({_, _, owner_pid} = owner, monitor) do
+  def reply({_, _, owner_pid} = owner, ancestors, monitor) do
+    put_ancestors(ancestors)
+
     case monitor do
       :monitor ->
         mref = Process.monitor(owner_pid)
@@ -28,7 +30,7 @@ defmodule Task.Supervised do
   defp reply(owner, owner_pid, mref, timeout) do
     receive do
       {^owner_pid, ref, reply_to, callers, mfa} ->
-        initial_call(mfa)
+        put_initial_call(mfa)
         put_callers(callers)
         _ = is_reference(mref) && Process.demonitor(mref, [:flush])
         send(reply_to, {ref, invoke_mfa(owner, mfa)})
@@ -60,24 +62,36 @@ defmodule Task.Supervised do
     end
   end
 
-  def noreply(owner, callers, mfa) do
-    initial_call(mfa)
+  def noreply(owner, ancestors, callers, mfa) do
+    put_initial_call(mfa)
+    put_ancestors(ancestors)
     put_callers(callers)
     invoke_mfa(owner, mfa)
+  end
+
+  defp get_ancestors() do
+    with {:dictionary, dictionary} <- Process.info(self(), :dictionary),
+         {:"$ancestors", ancestors} <- :lists.keyfind(:"$ancestors", 1, dictionary) do
+      [self() | ancestors]
+    else
+      _ -> [self()]
+    end
+  end
+
+  defp put_ancestors(ancestors) do
+    Process.put(:"$ancestors", ancestors)
   end
 
   defp put_callers(callers) do
     Process.put(:"$callers", callers)
   end
 
-  defp initial_call(mfa) do
+  defp put_initial_call(mfa) do
     Process.put(:"$initial_call", get_initial_call(mfa))
   end
 
   defp get_initial_call({:erlang, :apply, [fun, []]}) when is_function(fun, 0) do
-    {:module, module} = Function.info(fun, :module)
-    {:name, name} = Function.info(fun, :name)
-    {module, name, 0}
+    :erlang.fun_info_mfa(fun)
   end
 
   defp get_initial_call({mod, fun, args}) do
@@ -116,9 +130,13 @@ defmodule Task.Supervised do
           }
         )
 
-        :erlang.raise(kind, value, __STACKTRACE__)
+        :erlang.raise(:exit, exit_reason(kind, value, __STACKTRACE__), __STACKTRACE__)
     end
   end
+
+  defp exit_reason(:error, reason, stacktrace), do: {reason, stacktrace}
+  defp exit_reason(:exit, reason, _stacktrace), do: reason
+  defp exit_reason(:throw, reason, stacktrace), do: {{:nocatch, reason}, stacktrace}
 
   defp log_value(:throw, value), do: {:nocatch, value}
   defp log_value(_, value), do: value

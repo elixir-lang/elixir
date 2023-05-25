@@ -17,6 +17,9 @@ defmodule Task do
   They are implemented by spawning a process that sends a message
   to the caller once the given computation is performed.
 
+  Compared to plain processes, started with `spawn/1`, tasks
+  include monitoring metadata and logging in case of errors.
+
   Besides `async/1` and `await/2`, tasks can also be
   started as part of a supervision tree and dynamically spawned
   on remote nodes. We will explore these scenarios next.
