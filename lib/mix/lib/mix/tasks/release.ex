@@ -38,12 +38,13 @@ defmodule Mix.Tasks.Release do
 
   If the given name does not exist, an error is raised.
 
-  If `mix release`, without a name, is invoked and there are multiple names,
-  an error will be raised unless you set `default_release: NAME` at the root
-  of your project configuration.
+  If `mix release` is invoked, without specifying a release name, and
+  there are multiple releases configured, an error will be raised
+  unless you set `default_release: NAME` at the root of your project
+  configuration.
 
-  If `mix release` is invoked and there are no names, a release using the
-  application name and default values is assembled.
+  If `mix release` is invoked and there are no releases configured, a
+  release is assembled using the application name and default values.
 
   ## Why releases?
 
