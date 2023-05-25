@@ -215,14 +215,13 @@ defmodule Code do
     :debug_info,
     :ignore_already_consolidated,
     :ignore_module_conflict,
-    :on_undefined_variable,
     :relative_paths,
     :warnings_as_errors
   ]
 
   @list_compiler_options [:no_warn_undefined, :tracers, :parser_options]
 
-  @available_compiler_options @boolean_compiler_options ++ @list_compiler_options
+  @available_compiler_options @boolean_compiler_options ++ @list_compiler_options ++ [:on_undefined_variable]
 
   @doc """
   Lists all required files.
