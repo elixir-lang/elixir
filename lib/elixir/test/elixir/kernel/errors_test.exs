@@ -770,6 +770,11 @@ defmodule Kernel.ErrorsTest do
     )
 
     assert_compile_error(
+      ["nofile:1", "macro foo/1 given to @dialyzer :nowarn_function"],
+      ~c"defmodule Test do @dialyzer {:nowarn_function, {:foo, 1}}; defmacro foo(_), do: :ok end"
+    )
+
+    assert_compile_error(
       ["nofile:1", "undefined function foo/1 given to @dialyzer :no_opaque"],
       ~c"defmodule Test do @dialyzer {:no_opaque, {:foo, 1}} end"
     )
