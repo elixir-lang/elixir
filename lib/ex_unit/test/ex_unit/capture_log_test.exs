@@ -33,6 +33,12 @@ defmodule ExUnit.CaptureLogTest do
            end) == ""
   end
 
+  test "still supports :warn level" do
+    assert capture_log([level: :warn], fn ->
+             Logger.warning("ABC")
+           end) =~ "ABC"
+  end
+
   @tag timeout: 2000
   test "capture removal on exit" do
     {_pid, ref} =

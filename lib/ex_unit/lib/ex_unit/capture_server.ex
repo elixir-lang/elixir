@@ -71,7 +71,15 @@ defmodule ExUnit.CaptureServer do
     refs = Map.put(config.log_captures, ref, true)
 
     {level, opts} = Keyword.pop(opts, :level)
-    true = :ets.insert(@ets, {ref, string_io, level || :all})
+
+    level =
+      case level do
+        :warn -> :warning
+        nil -> :all
+        _ -> level
+      end
+
+    true = :ets.insert(@ets, {ref, string_io, level})
 
     if map_size(refs) == 1 do
       formatter = Logger.default_formatter(opts)
