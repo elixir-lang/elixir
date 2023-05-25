@@ -221,7 +221,8 @@ defmodule Code do
 
   @list_compiler_options [:no_warn_undefined, :tracers, :parser_options]
 
-  @available_compiler_options @boolean_compiler_options ++ @list_compiler_options
+  @available_compiler_options @boolean_compiler_options ++
+                                @list_compiler_options ++ [:on_undefined_variable]
 
   @doc """
   Lists all required files.
