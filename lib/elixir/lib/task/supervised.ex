@@ -70,10 +70,8 @@ defmodule Task.Supervised do
   end
 
   defp get_ancestors() do
-    with {:dictionary, dictionary} <- Process.info(self(), :dictionary),
-         {:"$ancestors", ancestors} <- :lists.keyfind(:"$ancestors", 1, dictionary) do
-      [self() | ancestors]
-    else
+    case :erlang.get(:"$ancestors") do
+      ancestors when is_list(ancestors) -> [self() | ancestors]
       _ -> [self()]
     end
   end
