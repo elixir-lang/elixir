@@ -109,6 +109,25 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.0-rc.1
+
+### 1. Enhancements
+
+  * [File] Support distributed `File.Stream`
+  * [Task] Reduce footprint of tasks by avoiding unecessary work during spawning
+
+### 2. Bug fixes
+
+#### Elixir
+
+ * [Kernel] Raise when macros are given to dialyzer
+ * [Kernel] Support bitstring specifiers as map keys in pattern (regression)
+ * [Task] Do not double log Task failure reports
+
+#### IEx
+
+ * [IEx] Fix IO operations not returning when booting IEx
+
 ## v1.15.0-rc.0 (2022-05-22)
 
 ### 1. Enhancements
@@ -138,6 +157,7 @@ new features and on compatibility.
   * [Kernel] Warn for nested calls without parens inside keywords
   * [Kernel] Support for multi-letter uppercase sigils
   * [Kernel] Introduce mechanism to collect several errors in a module. Previously, as soon as there was a compilation error, compilation would fail. Now the compiler became a bit smarter and will report multiple errors whenever possible as multiple `error: ...` messages, similar to `warning: ...`
+  * [Kernel] Raise instead of warning on undefined variables. Previously, an undefined variable would attempt to invoke a function of the same name, which led to confusing error messages, especially to newcomers. To enable the previous behaviour, invoke `Code.compiler_options(on_undefined_variable: :warn)` at the top of your `mix.exs`
   * [Kernel.CLI] Support `--sname undefined`/`--name undefined` so a name is automatically generated
   * [Keyword] Add `Keyword.split_with/2`
   * [Macro] Improve error message when piping into an expression ending in bracket-based access
