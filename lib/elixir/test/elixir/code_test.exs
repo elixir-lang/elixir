@@ -198,6 +198,27 @@ defmodule CodeTest do
       :code.purge(CodeTest.CheckerWarning)
       :code.delete(CodeTest.CheckerWarning)
     end
+
+    test "formats diagnostic file paths as relatives" do
+      {_, diagnostics} =
+        Code.with_diagnostics(fn ->
+          try do
+            Code.eval_string("x", [])
+          rescue
+            e -> e
+          end
+        end)
+
+      assert [
+               %{
+                 message: "undefined variable \"x\"",
+                 position: 1,
+                 file: "nofile",
+                 stacktrace: [],
+                 severity: :error
+               }
+             ] = diagnostics
+    end
   end
 
   describe "eval_quoted/1" do
