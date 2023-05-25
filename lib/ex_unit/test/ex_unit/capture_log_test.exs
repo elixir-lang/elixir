@@ -78,6 +78,19 @@ defmodule ExUnit.CaptureLogTest do
     end
   end
 
+  test "deprecated log level" do
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      output =
+        capture_log([level: :warn], fn ->
+          Logger.log(:warn, "ABC")
+          Logger.log(:warning, "DEF")
+        end)
+
+      assert output =~ "ABC"
+      assert output =~ "DEF"
+    end)
+  end
+
   describe "with_log/2" do
     test "returns the result and the log" do
       {result, log} =

@@ -96,7 +96,14 @@ defmodule ExUnit.CaptureLog do
   @doc since: "1.13.0"
   @spec with_log(keyword, (-> result)) :: {result, String.t()} when result: any
   def with_log(opts \\ [], fun) when is_list(opts) do
-    opts = Keyword.put_new(opts, :level, nil)
+    opts =
+      if opts[:level] == :warn do
+        IO.warn("level: :warn is deprecated, please use :warning instead")
+        Keyword.put(opts, :level, :warning)
+      else
+        opts
+      end
+
     {:ok, string_io} = StringIO.open("")
 
     try do
