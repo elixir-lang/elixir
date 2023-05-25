@@ -99,7 +99,7 @@ defmodule Logger.App do
   defp default_level() do
     case Application.get_env(:logger, :level, :debug) do
       :warn ->
-        IO.warn(":logger has be set to :warn in config files, please use :warning instead")
+        IO.warn(":logger :level has been set to :warn in config files, please use :warning instead")
         :warning
 
       level ->
