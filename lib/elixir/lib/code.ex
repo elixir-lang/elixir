@@ -215,6 +215,7 @@ defmodule Code do
     :debug_info,
     :ignore_already_consolidated,
     :ignore_module_conflict,
+    :on_undefined_variable,
     :relative_paths,
     :warnings_as_errors
   ]
