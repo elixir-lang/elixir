@@ -232,6 +232,13 @@ defmodule ExUnit.DocTestTest.Invalid do
       1
   """
   @type t :: any()
+
+  @doc """
+      iex> :foo
+      iex> :bar
+      1 + * 1
+  """
+  def result, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -630,6 +637,8 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~
              "test/ex_unit/doc_test_test.exs:#{starting_line + 28}: ExUnit.DocTestTest.Failure (module)"
+
+    assert output =~ "8 doctests, 8 failures"
   end
 
   test "doctest invalid" do
@@ -678,10 +687,10 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              3) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (3) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 14}:1: unexpected token: "`" (column 1, code point U+0060)
-                 #{line_placeholder(starting_line + 14)} |
-                 #{starting_line + 14} | `
-                 #{line_placeholder(starting_line + 14)} | ^
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 15}:1: unexpected token: "`" (column 1, code point U+0060)
+                 #{line_placeholder(starting_line + 15)} |
+                 #{starting_line + 15} | `
+                 #{line_placeholder(starting_line + 15)} | ^
                 doctest:
                   iex> 1 + 2
                   3
@@ -693,10 +702,10 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              4) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (4) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 22}:3: unexpected token: "`" (column 3, code point U+0060)
-                 #{line_placeholder(starting_line + 22)} |
-                 #{starting_line + 22} |   ```
-                 #{line_placeholder(starting_line + 22)} |   ^
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 23}:3: unexpected token: "`" (column 3, code point U+0060)
+                 #{line_placeholder(starting_line + 23)} |
+                 #{starting_line + 23} |   ```
+                 #{line_placeholder(starting_line + 23)} |   ^
                 doctest:
                   iex> 1 + 2
                   3
@@ -708,10 +717,10 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              5) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (5) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 30}:5: unexpected token: "`" (column 5, code point U+0060)
-                 #{line_placeholder(starting_line + 30)} |
-                 #{starting_line + 30} |     ```
-                 #{line_placeholder(starting_line + 30)} |     ^
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 31}:5: unexpected token: "`" (column 5, code point U+0060)
+                 #{line_placeholder(starting_line + 31)} |
+                 #{starting_line + 31} |     ```
+                 #{line_placeholder(starting_line + 31)} |     ^
                 doctest:
                   iex> 1 + 2
                   3
@@ -731,10 +740,10 @@ defmodule ExUnit.DocTestTest do
     assert output =~ """
              7) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (7) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 42}:7: missing terminator: } (for "{" starting at line #{starting_line + 42})
-                 #{line_placeholder(starting_line + 42)} |
-                 #{starting_line + 42} | {:ok, #Inspect<[]>}
-                 #{line_placeholder(starting_line + 42)} |       ^
+                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 43}:7: missing terminator: } (for "{" starting at line #{starting_line + 43})
+                 #{line_placeholder(starting_line + 43)} |
+                 #{starting_line + 43} | {:ok, #Inspect<[]>}
+                 #{line_placeholder(starting_line + 43)} |       ^
                 If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, :oops}
@@ -756,6 +765,23 @@ defmodule ExUnit.DocTestTest do
                 stacktrace:
                   test/ex_unit/doc_test_test.exs:#{starting_line + 48}: ExUnit.DocTestTest.Invalid (module)
            """
+
+    assert output =~ """
+             9) doctest ExUnit.DocTestTest.Invalid.result/0 (9) (ExUnit.DocTestTest.InvalidCompiled)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest did not compile, got: (SyntaxError) test/ex_unit/doc_test_test.exs:#{starting_line + 56}:5: syntax error before: '*'
+                 #{line_placeholder(starting_line + 56)} |
+                 #{starting_line + 56} | 1 + * 1
+                 #{line_placeholder(starting_line + 56)} |     ^
+                doctest:
+                  iex> :foo
+                  iex> :bar
+                  1 + * 1
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 54}: ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ "9 doctests, 9 failures"
   end
 
   test "pattern matching assertions in doctests" do
