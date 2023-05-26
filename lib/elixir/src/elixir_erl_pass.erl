@@ -191,7 +191,7 @@ translate({with, Meta, [_ | _] = Args}, _Ann, S) ->
 
 %% Variables
 
-translate({'^', _, [{Name, VarMeta, Kind}]}, _Ann, #elixir_erl{context=match} = S) when is_atom(Name), is_atom(Kind) ->
+translate({'^', _, [{Name, VarMeta, Kind}]}, _Ann, S) when is_atom(Name), is_atom(Kind) ->
   {Var, VS} = elixir_erl_var:translate(VarMeta, Name, Kind, S),
 
   case S#elixir_erl.extra of
@@ -519,7 +519,7 @@ translate_bitstring(Meta, Args, S) ->
   build_bitstr(Args, ?ann(Meta), S, []).
 
 build_bitstr([{'::', Meta, [H, V]} | T], Ann, S, Acc) ->
-  {Size, Types} = extract_bit_info(V, Meta, S#elixir_erl{context=nil}),
+  {Size, Types} = extract_bit_info(V, Meta, S#elixir_erl{context=nil, extra=nil}),
   build_bitstr(T, Ann, S, Acc, H, Size, Types);
 build_bitstr([], Ann, S, Acc) ->
   {{bin, Ann, lists:reverse(Acc)}, S}.

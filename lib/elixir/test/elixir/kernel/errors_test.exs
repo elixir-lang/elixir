@@ -842,13 +842,6 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
-  test "invalid size in bitstrings" do
-    assert_compile_error(
-      ["nofile:1", "misplaced operator ^x"],
-      ~c"x = 8; <<a, b::size(^x)>> = <<?a, ?b>>"
-    )
-  end
-
   test "function head with guard" do
     assert_compile_error(["nofile:2", "missing :do option in \"def\""], ~c"""
     defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do

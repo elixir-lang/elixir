@@ -52,7 +52,7 @@ set_prematch_from_config(#elixir_ex{} = S) ->
 
 env_to_ex(#{context := match, versioned_vars := Vars}) ->
   Counter = map_size(Vars),
-  #elixir_ex{prematch={Vars, Counter}, vars={Vars, false}, unused={#{}, Counter}};
+  #elixir_ex{prematch={Vars, Counter, none}, vars={Vars, false}, unused={#{}, Counter}};
 env_to_ex(#{versioned_vars := Vars}) ->
   set_prematch_from_config(#elixir_ex{vars={Vars, false}, unused={#{}, map_size(Vars)}}).
 

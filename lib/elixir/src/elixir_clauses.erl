@@ -14,7 +14,7 @@ match(Fun, Expr, AfterS, BeforeS, E) ->
   #elixir_ex{vars={Read, _}, prematch=Prematch} = BeforeS,
 
   CallS = BeforeS#elixir_ex{
-    prematch={Read, Counter},
+    prematch={Read, Counter, none},
     unused=Unused,
     vars=Current
   },
@@ -32,7 +32,7 @@ match(Fun, Expr, AfterS, BeforeS, E) ->
   {EExpr, EndS, EndE}.
 
 def({Meta, Args, Guards, Body}, S, E) ->
-  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, 0}}, E#{context := match}),
+  {EArgs, SA, EA} = elixir_expand:expand_args(Args, S#elixir_ex{prematch={#{}, 0, none}}, E#{context := match}),
   {EGuards, SG, EG} = guard(Guards, SA#elixir_ex{prematch=raise}, EA#{context := guard}),
   {EBody, SB, EB} = elixir_expand:expand(Body, elixir_env:set_prematch_from_config(SG), EG#{context := nil}),
   elixir_env:check_unused_vars(SB, EB),

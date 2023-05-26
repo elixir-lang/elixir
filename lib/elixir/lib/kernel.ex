@@ -4783,7 +4783,7 @@ defmodule Kernel do
         part
       else
         <<first_byte, rest::binary>> = part
-        for <<_::size(step - 1)-bytes, byte <- rest>>, into: <<first_byte>>, do: <<byte>>
+        for <<_::size(^step - 1)-bytes, byte <- rest>>, into: <<first_byte>>, do: <<byte>>
       end
     else
       ""

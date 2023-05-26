@@ -83,8 +83,13 @@ defmodule Kernel.BinaryTest do
     assert x == "foo"
 
     size = 3
-    <<x::binary-size(size)>> <> _ = "foobar"
+    <<x::binary-size(^size)>> <> _ = "foobar"
     assert x == "foo"
+
+    size = 3
+    <<size, x::binary-size(^size)>> <> _ = <<10, "foobar">>
+    assert x == "foo"
+    assert size == 10
 
     <<x::6*4-binary>> <> _ = "foobar"
     assert x == "foo"
@@ -164,7 +169,7 @@ defmodule Kernel.BinaryTest do
 
   test "pattern match" do
     s = 16
-    assert <<_a, _b::size(s)>> = "foo"
+    assert <<_a, _b::size(^s)>> = "foo"
   end
 
   test "pattern match with splice" do
@@ -240,8 +245,8 @@ defmodule Kernel.BinaryTest do
 
   test "bitsyntax variable size" do
     x = 8
-    assert <<_, _::size(x)>> = <<?a, ?b>>
-    assert (fn <<_, _::size(x)>> -> true end).(<<?a, ?b>>)
+    assert <<_, _::size(^x)>> = <<?a, ?b>>
+    assert (fn <<_, _::size(^x)>> -> true end).(<<?a, ?b>>)
   end
 
   test "bitsyntax size using expressions" do
@@ -256,12 +261,12 @@ defmodule Kernel.BinaryTest do
 
   test "bitsyntax size using guard expressions in match context" do
     x = 8
-    assert <<1::size(x - 5)>> = <<1::3>>
-    assert <<1::size(x - 5)-unit(8)>> = <<1::3*8>>
+    assert <<1::size(^x - 5)>> = <<1::3>>
+    assert <<1::size(^x - 5)-unit(8)>> = <<1::3*8>>
     assert <<1::size(length(~c"abcd"))>> = <<1::4>>
 
     foo = %{bar: 5}
-    assert <<1::size(foo.bar)>> = <<1::5>>
+    assert <<1::size((^foo).bar)>> = <<1::5>>
   end
 
   defmacro signed_16 do

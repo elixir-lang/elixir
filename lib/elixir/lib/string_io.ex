@@ -322,13 +322,13 @@ defmodule StringIO do
   end
 
   defp get_chars(input, :latin1, count) do
-    <<chars::binary-size(count), rest::binary>> = input
+    <<chars::binary-size(^count), rest::binary>> = input
     {chars, rest}
   end
 
   defp get_chars(input, :unicode, count) do
     with {:ok, count} <- split_at(input, count, 0) do
-      <<chars::binary-size(count), rest::binary>> = input
+      <<chars::binary-size(^count), rest::binary>> = input
       {chars, rest}
     end
   end
@@ -398,7 +398,7 @@ defmodule StringIO do
   defp get_until(chars, encoding, mod, fun, args, continuation, count) do
     case bytes_until_eol(chars, encoding, 0) do
       {kind, size} when kind in [:split, :replace_split] ->
-        <<line::binary-size(size), rest::binary>> = chars
+        <<line::binary-size(^size), rest::binary>> = chars
 
         case apply(mod, fun, [continuation, binary_to_list(line, encoding) | args]) do
           {:done, result, :eof} ->

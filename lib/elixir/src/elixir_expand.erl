@@ -270,14 +270,10 @@ expand({super, Meta, Args}, S, E) when is_list(Args) ->
 
 %% Vars
 
-expand({'^', Meta, [Arg]}, S, #{context := match} = E) ->
-  #elixir_ex{prematch={Prematch, _}, vars={_Read, Write}} = S,
-
-  %% We need to rollback to a no match context
-  NoMatchE = E#{context := nil},
+expand({'^', Meta, [Arg]}, #elixir_ex{prematch={Prematch, _, _}, vars={_, Write}} = S, E) ->
   NoMatchS = S#elixir_ex{prematch=pin, vars={Prematch, Write}},
 
-  case expand(Arg, NoMatchS, NoMatchE) of
+  case expand(Arg, NoMatchS, E#{context := nil}) of
     {{Name, _, Kind} = Var, #elixir_ex{unused=Unused}, _} when is_atom(Name), is_atom(Kind) ->
       {{'^', Meta, [Var]}, S#elixir_ex{unused=Unused}, E};
 
@@ -295,7 +291,7 @@ expand({'_', Meta, Kind} = Var, S, #{context := Context} = E) when is_atom(Kind)
 
 expand({Name, Meta, Kind}, S, #{context := match} = E) when is_atom(Name), is_atom(Kind) ->
   #elixir_ex{
-    prematch={_, PrematchVersion},
+    prematch={_, PrematchVersion, _},
     unused={Unused, Version},
     vars={Read, Write}
   } = S,
@@ -335,15 +331,19 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
     case Read of
       #{Pair := CurrentVersion} ->
         case Prematch of
-          {bitsize, Pre, Original} ->
+          {Pre, _Counter, {bitsize, Original}} ->
             if
               map_get(Pair, Pre) /= CurrentVersion ->
                 {ok, CurrentVersion};
               is_map_key(Pair, Pre) ->
+                %% TODO: Enable this warning on Elixir v1.19
+                %% TODO: Remove me on Elixir 2.0
+                %% elixir_errors:file_warn(Meta, E, ?MODULE, {unpinned_bitsize_var, Name, Kind}),
                 {ok, CurrentVersion};
               not is_map_key(Pair, Original) ->
                 {ok, CurrentVersion};
-              true -> raise
+              true ->
+                raise
             end;
 
           _ ->
@@ -1132,7 +1132,7 @@ assert_no_match_scope(_Meta, _Kind, _E) -> ok.
 assert_no_guard_scope(Meta, Kind, S, #{context := guard, file := File}) ->
   Key =
     case S#elixir_ex.prematch of
-      {bitsize, _, _}  -> invalid_expr_in_bitsize;
+      {_, _, {bitsize, _}}  -> invalid_expr_in_bitsize;
       _ -> invalid_expr_in_guard
     end,
   file_error(Meta, File, ?MODULE, {Key, Kind});
@@ -1156,7 +1156,7 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
 
 %% Errors
 
-guard_context(#elixir_ex{prematch={bitsize, _, _}}) -> "bitstring size specifier";
+guard_context(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
 guard_context(_) -> "guards".
 
 format_error({useless_literal, Term}) ->
@@ -1317,6 +1317,10 @@ format_error({options_are_not_keyword, Kind, Opts}) ->
                 [Kind, 'Elixir.Macro':to_string(Opts)]);
 format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Name, length(Args)]);
+format_error({unpinned_bitsize_var, Name, Kind}) ->
+  io_lib:format("the variable \"~ts\"~ts is accessed inside size(...) of a bitstring "
+                "but it was defined outside of the match. You must preceed it with the "
+                "pin operator", [Name, context_info(Kind)]);
 format_error({underscored_var_repeat, Name, Kind}) ->
   io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "
                 "match. This means the pattern will only match if all \"~ts\" bind "

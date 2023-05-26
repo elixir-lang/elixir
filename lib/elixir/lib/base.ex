@@ -634,7 +634,7 @@ defmodule Base do
 
     defp unquote(name)(string, pad?) do
       segs = div(byte_size(string) + 7, 8) - 1
-      <<main::size(segs)-binary-unit(64), rest::binary>> = string
+      <<main::size(^segs)-binary-unit(64), rest::binary>> = string
 
       main =
         for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do
@@ -1107,7 +1107,7 @@ defmodule Base do
 
     defp unquote(name)(string, pad?) do
       segs = div(byte_size(string) + 7, 8) - 1
-      <<main::size(segs)-binary-unit(64), rest::binary>> = string
+      <<main::size(^segs)-binary-unit(64), rest::binary>> = string
 
       main =
         for <<c1::8, c2::8, c3::8, c4::8, c5::8, c6::8, c7::8, c8::8 <- main>>, into: <<>> do

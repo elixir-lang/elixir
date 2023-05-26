@@ -601,7 +601,7 @@ defmodule Regex do
     new_offset = pos + length
     keep = pos - offset
 
-    <<_::binary-size(offset), part::binary-size(keep), match::binary-size(length), _::binary>> =
+    <<_::binary-size(^offset), part::binary-size(^keep), match::binary-size(^length), _::binary>> =
       string
 
     if keep == 0 and trim do
@@ -618,7 +618,7 @@ defmodule Regex do
     if keep == 0 and trim do
       do_split([h | t], string, new_offset, counter, trim, false)
     else
-      <<_::binary-size(offset), part::binary-size(keep), _::binary>> = string
+      <<_::binary-size(^offset), part::binary-size(^keep), _::binary>> = string
       [part | do_split([h | t], string, new_offset, counter - 1, trim, false)]
     end
   end
@@ -748,12 +748,12 @@ defmodule Regex do
   defp apply_list(whole, string, pos, replacement, [[{mpos, _} | _] | _] = list)
        when mpos > pos do
     length = mpos - pos
-    <<untouched::binary-size(length), rest::binary>> = string
+    <<untouched::binary-size(^length), rest::binary>> = string
     [untouched | apply_list(whole, rest, mpos, replacement, list)]
   end
 
   defp apply_list(whole, string, pos, replacement, [[{pos, length} | _] = head | tail]) do
-    <<_::size(length)-binary, rest::binary>> = string
+    <<_::size(^length)-binary, rest::binary>> = string
     new_data = apply_replace(whole, replacement, head)
     [new_data | apply_list(whole, rest, pos + length, replacement, tail)]
   end
@@ -788,7 +788,7 @@ defmodule Regex do
   end
 
   defp get_index(string, {pos, length}) do
-    <<_::size(pos)-binary, res::size(length)-binary, _::binary>> = string
+    <<_::size(^pos)-binary, res::size(^length)-binary, _::binary>> = string
     res
   end
 

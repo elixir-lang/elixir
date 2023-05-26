@@ -192,7 +192,7 @@ defmodule String.Unicode do
     prefixes =
       Enum.reduce(key_values, %{}, fn {codepoint, result}, acc ->
         prefix_size = bit_size(codepoint) - 8
-        <<prefix::size(prefix_size)-bits, byte>> = codepoint
+        <<prefix::size(^prefix_size)-bits, byte>> = codepoint
         Map.update(acc, prefix, [{byte, result}], &[{byte, result} | &1])
       end)
 

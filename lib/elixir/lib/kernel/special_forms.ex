@@ -249,7 +249,7 @@ defmodule Kernel.SpecialForms do
   The size can be a variable or any valid guard expression:
 
       iex> name_size = 5
-      iex> <<name::binary-size(name_size), " the ", species::binary>> = <<"Frank the Walrus">>
+      iex> <<name::binary-size(^name_size), " the ", species::binary>> = <<"Frank the Walrus">>
       iex> {name, species}
       {"Frank", "Walrus"}
 

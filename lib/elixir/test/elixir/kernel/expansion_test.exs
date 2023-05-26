@@ -2545,7 +2545,7 @@ defmodule Kernel.ExpansionTest do
     defmacro offset(size, binary) do
       quote do
         offset = unquote(size)
-        <<_::size(offset)>> = unquote(binary)
+        <<_::size(^offset)>> = unquote(binary)
       end
     end
 

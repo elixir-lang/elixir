@@ -496,7 +496,11 @@ defmodule Kernel.ComprehensionTest do
   test "binary for comprehensions with variable size" do
     s = 16
     bin = <<1, 2, 3, 4, 5, 6>>
-    assert for(<<x::size(s) <- bin>>, into: "", do: to_bin(div(x, 2))) == <<129, 130, 131>>
+    assert for(<<x::size(^s) <- bin>>, into: "", do: to_bin(div(x, 2))) == <<129, 130, 131>>
+
+    s = 8
+    bin = <<1, 2, 3, 4, 5, 6>>
+    assert for(<<s, x::size(^s) <- bin>>, into: "", do: <<x * s>>) == <<2, 12, 30>>
 
     # Aligned
     bin = <<8, 1, 16, 2, 3>>

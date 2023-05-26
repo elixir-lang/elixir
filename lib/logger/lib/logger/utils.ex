@@ -227,7 +227,7 @@ defmodule Logger.Utils do
     # This should allow at least two code points of 6 bytes.
     suffix_size = min(byte_size(binary), 13)
     prefix_size = byte_size(binary) - suffix_size
-    <<prefix::binary-size(prefix_size), suffix::binary-size(suffix_size)>> = binary
+    <<prefix::binary-size(^prefix_size), suffix::binary-size(^suffix_size)>> = binary
     prefix <> fix_binary(suffix, "")
   end
 
