@@ -520,6 +520,51 @@ defmodule RegistryTest do
         assert Registry.keys(registry, self()) |> Enum.sort() == [1, 1.0]
       end
 
+      test "dispatches to correctly registered pid", %{registry: registry} do
+        Process.flag(:trap_exit, true)
+        parent = self()
+
+        pid1 =
+          spawn(fn ->
+            receive do
+              :foo ->
+                send(parent, {:dispatch, :bar})
+            end
+          end)
+
+        pid2 =
+          spawn(fn ->
+            receive do
+              :foo ->
+                send(parent, {:dispatch, :baz})
+            end
+          end)
+
+        pid3 =
+          spawn(fn ->
+            receive do
+              :baz ->
+                send(parent, {:dispatch, :qux})
+            end
+          end)
+
+        {:ok, _} = Registry.register(registry, "hello", :foo, pid1)
+        {:ok, _} = Registry.register(registry, "hello", :foo, pid2)
+        {:ok, _} = Registry.register(registry, "hello", :baz, pid3)
+
+        fun = fn entries ->
+          for {pid, value} <- entries, do: send(pid, value)
+        end
+
+        assert Registry.dispatch(registry, "hello", fun)
+
+        assert_receive {:dispatch, :bar}
+        assert_receive {:dispatch, :baz}
+        assert_receive {:dispatch, :qux}
+
+        refute_received {:EXIT, _, _}
+      end
+
       test "dispatches to multiple keys in serial", %{registry: registry} do
         Process.flag(:trap_exit, true)
         parent = self()

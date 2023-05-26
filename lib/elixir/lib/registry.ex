@@ -147,7 +147,7 @@ defmodule Registry do
   `"hello"`.
 
   The third argument given to `register/3` is a value associated to the
-  current process. While in the previous section we used it when dispatching,
+  process. While in the previous section we used it when dispatching,
   in this particular example we are not interested in it, so we have set it
   to an empty list. You could store a more meaningful value if necessary.
 
@@ -406,10 +406,13 @@ defmodule Registry do
   end
 
   @doc """
-  Updates the value for `key` for the current process in the unique `registry`.
+  Updates the value for `key` for a process in the unique `registry`.
+
+  By default, the value is updated for the current process, but this can be
+  overridden by an optional `pid` argument.
 
   Returns a `{new_value, old_value}` tuple or `:error` if there
-  is no such key assigned to the current process.
+  is no such key assigned to the process.
 
   If a non-unique registry is given, an error is raised.
 
@@ -426,9 +429,10 @@ defmodule Registry do
 
   """
   @doc since: "1.4.0"
-  @spec update_value(registry, key, (value -> value)) ::
+  @spec update_value(registry, key, (value -> value), pid) ::
           {new_value :: term, old_value :: term} | :error
-  def update_value(registry, key, callback) when is_atom(registry) and is_function(callback, 1) do
+  def update_value(registry, key, callback, pid \\ self())
+      when is_atom(registry) and is_function(callback, 1) do
     case key_info!(registry) do
       {:unique, partitions, key_ets} ->
         key_ets = key_ets || key_ets!(registry, key, partitions)
@@ -438,7 +442,7 @@ defmodule Registry do
         catch
           :error, :badarg -> :error
         else
-          {pid, old_value} when pid == self() ->
+          {existing_pid, old_value} when existing_pid == pid ->
             new_value = callback.(old_value)
             :ets.insert(key_ets, {key, {pid, new_value}})
             {new_value, old_value}
@@ -804,11 +808,13 @@ defmodule Registry do
   end
 
   @doc """
-  Unregisters all entries for the given `key` associated to the current
-  process in `registry`.
+  Unregisters all entries for the given `key` associated to a process in `registry`.
 
-  Always returns `:ok` and automatically unlinks the current process from
-  the owner if there are no more keys associated to the current process. See
+  By default, the current process is unregistered, but this can be overridden by
+  an optional `pid` argument.
+
+  Always returns `:ok` and automatically unlinks the process from
+  the owner if there are no more keys associated to the process. See
   also `register/3` to read more about the "owner".
 
   If the registry has listeners specified via the `:listeners` option in `start_link/1`,
@@ -842,24 +848,23 @@ defmodule Registry do
 
   """
   @doc since: "1.4.0"
-  @spec unregister(registry, key) :: :ok
-  def unregister(registry, key) when is_atom(registry) do
-    self = self()
+  @spec unregister(registry, key, pid) :: :ok
+  def unregister(registry, key, pid \\ self()) when is_atom(registry) do
     {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {key_partition, pid_partition} = partitions(kind, key, pid, partitions)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
     # Remove first from the key_ets because in case of crashes
     # the pid_ets will still be able to clean up. The last step is
     # to clean if we have no more entries.
-    true = __unregister__(key_ets, {key, {self, :_}}, 1)
-    true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
+    true = __unregister__(key_ets, {key, {pid, :_}}, 1)
+    true = __unregister__(pid_ets, {pid, key, key_ets, :_}, 2)
 
-    unlink_if_unregistered(pid_server, pid_ets, self)
+    unlink_if_unregistered(pid_server, pid_ets, pid)
 
     for listener <- listeners do
-      Kernel.send(listener, {:unregister, registry, key, self})
+      Kernel.send(listener, {:unregister, registry, key, pid})
     end
 
     :ok
@@ -904,12 +909,11 @@ defmodule Registry do
 
   """
   @doc since: "1.5.0"
-  @spec unregister_match(registry, key, match_pattern, guards) :: :ok
-  def unregister_match(registry, key, pattern, guards \\ []) when is_list(guards) do
-    self = self()
-
+  @spec unregister_match(registry, key, match_pattern, guards, pid) :: :ok
+  def unregister_match(registry, key, pattern, guards \\ [], pid \\ self())
+      when is_list(guards) do
     {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {key_partition, pid_partition} = partitions(kind, key, pid, partitions)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
@@ -919,20 +923,20 @@ defmodule Registry do
 
     # Here we want to count all entries for this pid under this key, regardless of pattern.
     underscore_guard = {:"=:=", {:element, 1, :"$_"}, {:const, key}}
-    total_spec = [{{:_, {self, :_}}, [underscore_guard], [true]}]
+    total_spec = [{{:_, {pid, :_}}, [underscore_guard], [true]}]
     total = :ets.select_count(key_ets, total_spec)
 
     # We only want to delete things that match the pattern
-    delete_spec = [{{:_, {self, pattern}}, [underscore_guard | guards], [true]}]
+    delete_spec = [{{:_, {pid, pattern}}, [underscore_guard | guards], [true]}]
 
     case :ets.select_delete(key_ets, delete_spec) do
       # We deleted everything, we can just delete the object
       ^total ->
-        true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
-        unlink_if_unregistered(pid_server, pid_ets, self)
+        true = __unregister__(pid_ets, {pid, key, key_ets, :_}, 2)
+        unlink_if_unregistered(pid_server, pid_ets, pid)
 
         for listener <- listeners do
-          Kernel.send(listener, {:unregister, registry, key, self})
+          Kernel.send(listener, {:unregister, registry, key, pid})
         end
 
       0 ->
@@ -945,10 +949,10 @@ defmodule Registry do
         # that indicates how many keys WILL be remaining after the delete operation.
         counter = System.unique_integer()
         remaining = total - deleted
-        temp_entry = {self, key, {key_ets, remaining}, counter}
+        temp_entry = {pid, key, {key_ets, remaining}, counter}
         true = :ets.insert(pid_ets, temp_entry)
-        true = __unregister__(pid_ets, {self, key, key_ets, :_}, 2)
-        real_keys = List.duplicate({self, key, key_ets, counter}, remaining)
+        true = __unregister__(pid_ets, {pid, key, key_ets, :_}, 2)
+        real_keys = List.duplicate({pid, key, key_ets, counter}, remaining)
         true = :ets.insert(pid_ets, real_keys)
         # We've recreated the real remaining key entries, so we can now delete
         # our temporary entry.
@@ -959,7 +963,9 @@ defmodule Registry do
   end
 
   @doc """
-  Registers the current process under the given `key` in `registry`.
+  Registers a process under the given `key` in `registry`. By default,
+  the current process is registered, but this can be overridden by
+  an optional `pid` argument.
 
   A value to be associated with this registration must also be given.
   This value will be retrieved whenever dispatching or doing a key
@@ -974,7 +980,7 @@ defmodule Registry do
   `{:error, {:already_registered, pid}}`.
 
   If the registry has duplicate keys, multiple registrations from the
-  current process under the same key are allowed.
+  same process under the same key are allowed.
 
   If the registry has listeners specified via the `:listeners` option in `start_link/1`,
   those listeners will be notified of the registration and will receive a
@@ -1001,11 +1007,10 @@ defmodule Registry do
 
   """
   @doc since: "1.4.0"
-  @spec register(registry, key, value) :: {:ok, pid} | {:error, {:already_registered, pid}}
-  def register(registry, key, value) when is_atom(registry) do
-    self = self()
+  @spec register(registry, key, value, pid) :: {:ok, pid} | {:error, {:already_registered, pid}}
+  def register(registry, key, value, pid \\ self()) when is_atom(registry) do
     {kind, partitions, key_ets, pid_ets, listeners} = info!(registry)
-    {key_partition, pid_partition} = partitions(kind, key, self, partitions)
+    {key_partition, pid_partition} = partitions(kind, key, pid, partitions)
     key_ets = key_ets || key_ets!(registry, key_partition)
     {pid_server, pid_ets} = pid_ets || pid_ets!(registry, pid_partition)
 
@@ -1015,23 +1020,23 @@ defmodule Registry do
     Process.link(pid_server)
 
     counter = System.unique_integer()
-    true = :ets.insert(pid_ets, {self, key, key_ets, counter})
+    true = :ets.insert(pid_ets, {pid, key, key_ets, counter})
 
-    case register_key(kind, key_ets, key, {key, {self, value}}) do
+    case register_key(kind, key_ets, key, {key, {pid, value}}) do
       :ok ->
         for listener <- listeners do
-          Kernel.send(listener, {:register, registry, key, self, value})
+          Kernel.send(listener, {:register, registry, key, pid, value})
         end
 
         {:ok, pid_server}
 
-      {:error, {:already_registered, ^self}} = error ->
-        true = :ets.delete_object(pid_ets, {self, key, key_ets, counter})
+      {:error, {:already_registered, ^pid}} = error ->
+        true = :ets.delete_object(pid_ets, {pid, key, key_ets, counter})
         error
 
       {:error, _} = error ->
-        true = :ets.delete_object(pid_ets, {self, key, key_ets, counter})
-        unlink_if_unregistered(pid_server, pid_ets, self)
+        true = :ets.delete_object(pid_ets, {pid, key, key_ets, counter})
+        unlink_if_unregistered(pid_server, pid_ets, pid)
         error
     end
   end
@@ -1434,8 +1439,8 @@ defmodule Registry do
     {partition, partition}
   end
 
-  defp unlink_if_unregistered(pid_server, pid_ets, self) do
-    unless :ets.member(pid_ets, self) do
+  defp unlink_if_unregistered(pid_server, pid_ets, pid) do
+    unless :ets.member(pid_ets, pid) do
       Process.unlink(pid_server)
     end
   end
