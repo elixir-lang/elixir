@@ -239,6 +239,12 @@ defmodule ExUnit.DocTestTest.Invalid do
       1 + * 1
   """
   def result, do: :ok
+
+  @doc """
+      iex> 123 +
+      :mixed
+  """
+  def mixed, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -781,7 +787,21 @@ defmodule ExUnit.DocTestTest do
                   test/ex_unit/doc_test_test.exs:#{starting_line + 54}: ExUnit.DocTestTest.Invalid (module)
            """
 
-    assert output =~ "9 doctests, 9 failures"
+    assert output =~ """
+            10) doctest ExUnit.DocTestTest.Invalid.mixed/0 (10) (ExUnit.DocTestTest.InvalidCompiled)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 61}:6: syntax error: expression is incomplete
+                 #{line_placeholder(starting_line + 61)} |
+                 #{starting_line + 61} |  123 +
+                 #{line_placeholder(starting_line + 61)} |      ^
+                doctest:
+                  iex> 123 +
+                  :mixed
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 61}: ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ "10 doctests, 10 failures"
   end
 
   test "pattern matching assertions in doctests" do

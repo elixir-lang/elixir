@@ -513,8 +513,10 @@ defmodule ExUnit.DocTest do
   defp test_import(mod, _), do: [quote(do: import(unquote(mod)))]
 
   defp string_to_quoted(location, stack, expr, doctest) do
+    expr = IO.iodata_to_binary(expr)
+
     try do
-      Code.string_to_quoted!(IO.iodata_to_binary(expr), location)
+      Code.string_to_quoted!(expr, location)
     rescue
       e ->
         ex_message = "(#{inspect(e.__struct__)}) #{Exception.message(e)}"
