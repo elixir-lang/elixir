@@ -426,7 +426,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp update_line(location, lines) do
-    Keyword.replace_lazy(location, :line, & &1 + length(lines))
+    Keyword.replace_lazy(location, :line, &(&1 + length(lines)))
   end
 
   @doc false
