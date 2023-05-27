@@ -566,12 +566,49 @@ defmodule ModuleTest do
         Module.put_attribute(__MODULE__, :attribute, 1)
         assert Module.get_attribute(__MODULE__, :attribute) == 1
         assert Module.get_attribute(__MODULE__, :attribute, :default) == 1
+        Module.put_attribute(__MODULE__, :attribute, nil)
+        assert Module.get_attribute(__MODULE__, :attribute, :default) == nil
       end
     end
 
     test "returns the passed default if the attribute does not exist" do
       in_module do
         assert Module.get_attribute(__MODULE__, :attribute, :default) == :default
+      end
+    end
+  end
+
+  describe "get_last_attribute/3" do
+    test "returns the last set value when the attribute is marked as `accumulate: true`" do
+      in_module do
+        Module.register_attribute(__MODULE__, :value, accumulate: true)
+        Module.put_attribute(__MODULE__, :value, 1)
+        assert Module.get_last_attribute(__MODULE__, :value) == 1
+        Module.put_attribute(__MODULE__, :value, 2)
+        assert Module.get_last_attribute(__MODULE__, :value) == 2
+      end
+    end
+
+    test "returns the value of the non-accumulate attribute if it exists" do
+      in_module do
+        Module.put_attribute(__MODULE__, :attribute, 1)
+        assert Module.get_last_attribute(__MODULE__, :attribute) == 1
+        Module.put_attribute(__MODULE__, :attribute, nil)
+        assert Module.get_last_attribute(__MODULE__, :attribute, :default) == nil
+      end
+    end
+
+    test "returns the passed default if the accumulate attribute has not yet been set" do
+      in_module do
+        Module.register_attribute(__MODULE__, :value, accumulate: true)
+        assert Module.get_last_attribute(__MODULE__, :value) == nil
+        assert Module.get_last_attribute(__MODULE__, :value, :default) == :default
+      end
+    end
+
+    test "returns the passed default if the non-accumulate attribute does not exist" do
+      in_module do
+        assert Module.get_last_attribute(__MODULE__, :value, :default) == :default
       end
     end
   end

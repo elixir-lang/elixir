@@ -1508,10 +1508,42 @@ defmodule Module do
   """
   @spec get_attribute(module, atom, term) :: term
   def get_attribute(module, key, default \\ nil) when is_atom(module) and is_atom(key) do
-    case __get_attribute__(module, key, nil, true) do
-      nil -> default
-      value -> value
-    end
+    get_attribute(module, key, nil, true, false, default, {:get_attribute, 2})
+  end
+
+  @doc """
+  Gets the last set value of a given attribute from a module.
+
+  If the attribute was marked with `accumulate` with
+  `Module.register_attribute/3`, the previous value to have been set will be
+  returned. If the attribute does not accumulate, this call is the same as
+  calling `Module.get_attribute/3`.
+
+  This function can only be used on modules that have not yet been compiled.
+  Use the `c:Module.__info__/1` callback to get all persisted attributes, or
+  `Code.fetch_docs/1` to retrieve all documentation related attributes in
+  compiled modules.
+
+  ## Examples
+
+      defmodule Foo do
+        Module.put_attribute(__MODULE__, :value, 1)
+        Module.get_last_attribute(__MODULE__, :value) #=> 1
+
+        Module.get_last_attribute(__MODULE__, :not_found, :default) #=> :default
+
+        Module.register_attribute(__MODULE__, :acc, accumulate: true)
+        Module.put_attribute(__MODULE__, :acc, 1)
+        Module.get_last_attribute(__MODULE__, :acc) #=> 1
+        Module.put_attribute(__MODULE__, :acc, 2)
+        Module.get_last_attribute(__MODULE__, :acc) #=> 2
+      end
+
+  """
+  @doc since: "1.15.0"
+  @spec get_last_attribute(module, atom, term) :: term
+  def get_last_attribute(module, key, default \\ nil) when is_atom(module) and is_atom(key) do
+    get_attribute(module, key, nil, true, true, default, {:get_last_attribute, 2})
   end
 
   @doc """
@@ -1871,8 +1903,20 @@ defmodule Module do
   # Used internally by Kernel's @.
   # This function is private and must be used only internally.
   def __get_attribute__(module, key, caller_line, trace?) when is_atom(key) do
+    get_attribute(module, key, caller_line, trace?, false, nil, {:get_attribute, 2})
+  end
+
+  defp get_attribute(
+         module,
+         key,
+         caller_line,
+         trace?,
+         last_accumulated?,
+         default,
+         function_name_arity
+       ) do
     assert_not_compiled!(
-      {:get_attribute, 2},
+      function_name_arity,
       module,
       "Use the Module.__info__/1 callback or Code.fetch_docs/1 instead"
     )
@@ -1882,7 +1926,7 @@ defmodule Module do
     case :ets.lookup(set, key) do
       [{_, _, :accumulate, traces}] ->
         trace_attribute(trace?, module, traces, set, key, [])
-        :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
+        lookup_accumulate_attribute(bag, key, default, last_accumulated?)
 
       [{_, value, warn_line, traces}] when is_integer(warn_line) ->
         trace_attribute(trace?, module, traces, set, key, [{3, :used}])
@@ -1899,10 +1943,21 @@ defmodule Module do
             "please remove access to @#{key} or explicitly set it before access"
 
         IO.warn(error_message, attribute_stack(module, caller_line))
-        nil
+        default
 
       [] ->
-        nil
+        default
+    end
+  end
+
+  defp lookup_accumulate_attribute(bag, key, _default, false) do
+    :lists.reverse(bag_lookup_element(bag, {:accumulate, key}, 2))
+  end
+
+  defp lookup_accumulate_attribute(bag, key, default, true) do
+    case :ets.select(bag, [{{{:accumulate, key}, :"$1"}, [], [:"$1"]}], 1) do
+      {[value], _} -> value
+      _ -> default
     end
   end
 
