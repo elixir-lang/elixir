@@ -5,9 +5,9 @@ defmodule Mix.CLI do
   Runs Mix according to the command line arguments.
   """
   def main(args \\ System.argv()) do
-    Mix.start()
     Mix.Local.append_archives()
     Mix.Local.append_paths()
+    Mix.start()
 
     if env_variable_activated?("MIX_QUIET"), do: Mix.shell(Mix.Shell.Quiet)
     if env_variable_activated?("MIX_DEBUG"), do: Mix.debug(true)
