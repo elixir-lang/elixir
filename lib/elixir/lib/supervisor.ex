@@ -397,6 +397,13 @@ defmodule Supervisor do
   `c:init/1` callback. `Supervisor.init/2` accepts the same `:strategy`,
   `:max_restarts`, and `:max_seconds` options as `start_link/2`.
 
+  > #### `use Supervisor` {: .info}
+  >
+  > When you `use Supervisor`, the Supervisor module will
+  > set `@behaviour Supervisor` and define a `child_spec/1`
+  > function, so your module can be used as a child
+  > in a supervision tree.
+
   `use Supervisor` also defines a `child_spec/1` function which allows
   us to run `MyApp.Supervisor` as a child of another supervisor or
   at the top of your supervision tree as:

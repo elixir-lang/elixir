@@ -16,6 +16,12 @@ defmodule Mix.Project do
         end
       end
 
+  > #### `use Mix.Project` {: .info}
+  >
+  > When you `use Mix.Project`, it notifies Mix that a new project
+  > has been defined, so all Mix tasks use your module as a starting
+  > point.
+
   ## Configuration
 
   In order to configure Mix, the module that `use`s `Mix.Project` should export

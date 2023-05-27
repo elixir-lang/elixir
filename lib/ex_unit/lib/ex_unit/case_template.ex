@@ -20,6 +20,11 @@ defmodule ExUnit.CaseTemplate do
   ExUnit.Case` under the hood. This means you can do things like `use
   MyCase, async: true`. You can also access this options in `using/2`.
 
+  > #### `use ExUnit.CaseTemplate` {: .info}
+  >
+  > When you `use ExUnit.CaseTemplate`, it will import the functionality
+  > from `ExUnit.Assertions`, `ExUnit.Callbacks`, and this module itself.
+
   ## Example
 
       defmodule MyCase do

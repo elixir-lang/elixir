@@ -81,6 +81,13 @@ defmodule GenServer do
   A `cast/2` message must be handled by `c:handle_cast/2`. `GenServer`
   supports 8 callbacks, but only `c:init/1` is required.
 
+  > #### `use GenServer` {: .info}
+  >
+  > When you `use GenServer`, the GenServer module will
+  > set `@behaviour GenServer` and define a `child_spec/1`
+  > function, so your module can be used as a child
+  > in a supervision tree.
+
   ## Client / Server APIs
 
   Although in the example above we have used `GenServer.start_link/3` and
