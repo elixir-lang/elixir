@@ -1508,10 +1508,7 @@ defmodule Module do
   """
   @spec get_attribute(module, atom, term) :: term
   def get_attribute(module, key, default \\ nil) when is_atom(module) and is_atom(key) do
-    case __get_attribute__(module, key, nil, true) do
-      nil -> default
-      value -> value
-    end
+    get_attribute(module, key, nil, true, false, default, {:get_attribute, 2})
   end
 
   @doc """

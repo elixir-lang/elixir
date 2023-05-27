@@ -566,6 +566,8 @@ defmodule ModuleTest do
         Module.put_attribute(__MODULE__, :attribute, 1)
         assert Module.get_attribute(__MODULE__, :attribute) == 1
         assert Module.get_attribute(__MODULE__, :attribute, :default) == 1
+        Module.put_attribute(__MODULE__, :attribute, nil)
+        assert Module.get_attribute(__MODULE__, :attribute, :default) == nil
       end
     end
 
