@@ -238,6 +238,22 @@ defmodule Kernel.LexicalTrackerTest do
 
       refute String in compile
       refute Enum in compile
+
+      {{compile, _, _, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Attribute7 do
+          Module.register_attribute(__MODULE__, :example, accumulate: true)
+          @example String
+          _ = Module.get_last_attribute(__MODULE__, :example)
+          @example Enum
+          _ = Module.get_last_attribute(__MODULE__, :example)
+
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert String in compile
+      assert Enum in compile
     end
 
     test "@compile adds a runtime dependency" do
