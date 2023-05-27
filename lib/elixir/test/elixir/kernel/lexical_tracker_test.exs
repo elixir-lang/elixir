@@ -244,7 +244,6 @@ defmodule Kernel.LexicalTrackerTest do
         defmodule Kernel.LexicalTrackerTest.Attribute7 do
           Module.register_attribute(__MODULE__, :example, accumulate: true)
           @example String
-          _ = Module.get_last_attribute(__MODULE__, :example)
           @example Enum
           _ = Module.get_last_attribute(__MODULE__, :example)
 
