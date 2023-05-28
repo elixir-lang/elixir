@@ -771,7 +771,7 @@ defmodule ExUnit.Case do
 
   This is used by third-party utilities to allow compile-time configuration
   using test tags without having to explicitly pass the test context at
-  run-time. It is indented to be invoked in macros before the test module
+  run-time. It is intended to be invoked in macros before the test module
   is compiled.
 
   Raises if called with a module that has already been compiled.

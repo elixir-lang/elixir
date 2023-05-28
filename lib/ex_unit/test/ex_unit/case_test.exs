@@ -275,11 +275,11 @@ defmodule ExUnit.CaseTest.MostRecentRegisteredTestTest do
 
   most_recent = ExUnit.Case.most_recent_registered_test(__MODULE__)
 
-  test "should return nil if called before any test has been registered" do
+  test "returns nil if called before any test has been registered" do
     assert unquote(most_recent) == nil
   end
 
-  test "should return the current test if call is within test body", %{test: name} do
+  test "returns the current test if call is within test body", %{test: name} do
     assert %ExUnit.Test{
              name: ^name,
              module: __MODULE__,
@@ -290,8 +290,8 @@ defmodule ExUnit.CaseTest.MostRecentRegisteredTestTest do
 
   most_recent = ExUnit.Case.most_recent_registered_test(__MODULE__)
 
-  test "should return the previous test if call is outside test body" do
-    assert %ExUnit.Test{name: :"test should return the current test if call is within test body"} =
+  test "returns the previous test if call is outside test body" do
+    assert %ExUnit.Test{name: :"test returns the current test if call is within test body"} =
              unquote(Macro.escape(most_recent))
   end
 
@@ -306,7 +306,7 @@ defmodule ExUnit.CaseTest.MostRecentRegisteredTestTest do
     @describetag tag2: :bar
 
     @tag tag3: :baz
-    test "should include data available in test context", context do
+    test "includes data available in test context", context do
       assert %ExUnit.Test{tags: %{tag1: :foo, tag2: :bar, tag3: :baz} = tags} =
                escaped_most_recent_registered_test()
 
