@@ -204,7 +204,7 @@ If the module you want to invoke a function on has a long name, such as `SomeLib
 
 In some situations, where you need to do more than importing and aliasing modules, allowing a developer to `use SomeModule` may be necessary. The benefit of `use SomeModule` is that it provides a common extension point for the Elixir ecosystem. However, given `use SomeModule` can execute any code, it may not be easy for developers to understand the impact of `use SomeModule`.
 
-For this reason, to provide guidance and clarity, we recommend library authors to include an admonition block in their `@moduledoc` that explains how `use SomeModule` impacts the developer code. As an example, the `GenServer` documentation outlines:
+For this reason, to provide guidance and clarity, we recommend library authors to include an admonition block in their `@moduledoc` that explains how `use SomeModule` impacts the developer's code. As an example, the `GenServer` documentation outlines:
 
 > #### `use GenServer` {: .info}
 >
