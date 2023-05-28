@@ -777,12 +777,12 @@ defmodule ExUnit.Case do
   Raises if called with a module that has already been compiled.
   """
   @doc since: "1.15.0"
-  @spec most_recent_registered_test(env) :: ExUnit.Test.t() | nil
-  def most_recent_registered_test(%{module: mod}) do
-    most_recent_registered_test(mod)
+  @spec get_last_registered_test(env) :: ExUnit.Test.t() | nil
+  def get_last_registered_test(%{module: mod}) do
+    get_last_registered_test(mod)
   end
 
-  def most_recent_registered_test(mod) when is_atom(mod) do
+  def get_last_registered_test(mod) when is_atom(mod) do
     Module.get_last_attribute(mod, :ex_unit_tests)
   end
 
