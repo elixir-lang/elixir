@@ -83,7 +83,7 @@ defmodule GenServer do
 
   > #### `use GenServer` {: .info}
   >
-  > When you `use GenServer`, the GenServer module will
+  > When you `use GenServer`, the `GenServer` module will
   > set `@behaviour GenServer` and define a `child_spec/1`
   > function, so your module can be used as a child
   > in a supervision tree.

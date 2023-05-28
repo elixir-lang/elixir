@@ -167,7 +167,7 @@ defmodule Application do
 
   > #### `use Application` {: .info}
   >
-  > When you `use Application`, the Application module will
+  > When you `use Application`, the `Application` module will
   > set `@behaviour Application` and define an overridable
   > definition for the `stop/1` function, which is required
   > by Erlang/OTP.

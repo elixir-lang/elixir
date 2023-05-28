@@ -125,7 +125,7 @@ defmodule DynamicSupervisor do
 
   > #### `use DynamicSupervisor` {: .info}
   >
-  > When you `use DynamicSupervisor`, the DynamicSupervisor module will
+  > When you `use DynamicSupervisor`, the `DynamicSupervisor` module will
   > set `@behaviour DynamicSupervisor` and define a `child_spec/1`
   > function, so your module can be used as a child in a supervision tree.
 
