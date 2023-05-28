@@ -24,6 +24,8 @@ defmodule ExUnit.CaseTemplate do
   >
   > When you `use ExUnit.CaseTemplate`, it will import the functionality
   > from `ExUnit.Assertions`, `ExUnit.Callbacks`, and this module itself.
+  > It will also define a `__using__` callback, so the module itself can
+  > be used as a template instead of `ExUnit.Case`.
 
   ## Example
 

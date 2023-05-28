@@ -204,7 +204,7 @@ If the module you want to invoke a function on has a long name, such as `SomeLib
 
 In some situations, where you need to do more than importing and aliasing modules, allowing a developer to `use SomeModule` may be necessary. The benefit of `use SomeModule` is that it provides a common extension point for the Elixir ecosystem. However, given `use SomeModule` can execute any code, it may not be easy for developers to understand the impact of `use SomeModule`.
 
-For this reason, to provide guidance and clarity, we recommend developers to include an admonition block in their `@moduledoc` that explains how `use SomeModule` impacts their code. As an example, the `GenServer` documentation outlines:
+For this reason, to provide guidance and clarity, we recommend library authors to include an admonition block in their `@moduledoc` that explains how `use SomeModule` impacts the developer code. As an example, the `GenServer` documentation outlines:
 
 > #### `use GenServer` {: .info}
 >
@@ -213,7 +213,7 @@ For this reason, to provide guidance and clarity, we recommend developers to inc
 > function, so your module can be used as a child
 > in a supervision tree.
 
-This provides a quick summary of how using a module impacts the user code. Think about it as a ["Nutrition facts"](https://en.wikipedia.org/wiki/Nutrition_facts_label) for code generation. Keep in mind to only list changes made to the public API of the module. For example, if `use SomeModule` sets an internal attribute called `@_some_module_info` and this attribute is never meant to be public, it must not be listed.
+Think of this summary as a ["Nutrition facts"](https://en.wikipedia.org/wiki/Nutrition_facts_label) for code generation. Keep in mind to only list changes made to the public API of the module. For example, if `use SomeModule` sets an internal attribute called `@_some_module_info` and this attribute is never meant to be public, it must not be listed.
 
 For convenience, the markup notation to generate the admonition block above is:
 

@@ -5808,7 +5808,7 @@ defmodule Kernel do
   without the indirection behind `use/2`. Developers must also avoid
   defining functions inside `__using__/1`.
 
-  Given `use MyModule` can execute any code, it may not be easy for
+  Given `use MyModule` can generate any code, it may not be easy for
   developers to understand the impact of `use MyModule`.
 
   For this reason, to provide guidance and clarity, we recommend developers
