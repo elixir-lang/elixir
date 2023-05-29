@@ -256,7 +256,7 @@ defmodule Mix.Tasks.Format do
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
 
-    find_formatter_and_opts_for_file(file, cwd, formatter_opts_and_subs)
+    find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
   end
 
   @doc """
@@ -498,14 +498,14 @@ defmodule Mix.Tasks.Format do
 
     for file <- files do
       if file == :stdin do
-        stdin_filename = Keyword.get(opts, :stdin_filename, "stdin.exs")
+        stdin_filename = Path.expand(Keyword.get(opts, :stdin_filename, "stdin.exs"), cwd)
 
         {formatter, _opts} =
-          find_formatter_and_opts_for_file(stdin_filename, cwd, {formatter_opts, subs})
+          find_formatter_and_opts_for_file(stdin_filename, {formatter_opts, subs})
 
         {file, formatter}
       else
-        {formatter, _opts} = find_formatter_and_opts_for_file(file, cwd, {formatter_opts, subs})
+        {formatter, _opts} = find_formatter_and_opts_for_file(file, {formatter_opts, subs})
         {file, formatter}
       end
     end
@@ -571,15 +571,15 @@ defmodule Mix.Tasks.Format do
     if plugins != [], do: plugins, else: nil
   end
 
-  defp find_formatter_and_opts_for_file(file, cwd, formatter_opts_and_subs) do
-    formatter_opts = recur_formatter_opts_for_file(cwd, formatter_opts_and_subs)
+  defp find_formatter_and_opts_for_file(file, formatter_opts_and_subs) do
+    formatter_opts = recur_formatter_opts_for_file(file, formatter_opts_and_subs)
     {find_formatter_for_file(file, formatter_opts), formatter_opts}
   end
 
-  defp recur_formatter_opts_for_file(cwd, {formatter_opts, subs}) do
+  defp recur_formatter_opts_for_file(file, {formatter_opts, subs}) do
     Enum.find_value(subs, formatter_opts, fn {sub, formatter_opts_and_subs} ->
-      if String.starts_with?(sub, cwd) do
-        recur_formatter_opts_for_file(sub, formatter_opts_and_subs)
+      if String.starts_with?(file, sub) do
+        recur_formatter_opts_for_file(file, formatter_opts_and_subs)
       end
     end)
   end

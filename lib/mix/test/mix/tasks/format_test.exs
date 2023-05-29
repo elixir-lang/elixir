@@ -564,9 +564,15 @@ defmodule Mix.Tasks.FormatTest do
       [inputs: "a.ex", locals_without_parens: [my_fun: 2]]
       """)
 
+      # Should hit the formatter
       {formatter, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")
       assert Keyword.get(formatter_opts, :locals_without_parens) == [my_fun: 2]
       assert formatter.("my_fun 1, 2") == "my_fun 1, 2\n"
+
+      # Another directory should not hit the formatter
+      {formatter, formatter_opts} = Mix.Tasks.Format.formatter_for_file("test/a.ex")
+      assert Keyword.get(formatter_opts, :locals_without_parens) == []
+      assert formatter.("my_fun 1, 2") == "my_fun(1, 2)\n"
 
       File.write!("lib/a.ex", """
       my_fun :foo, :bar
