@@ -765,6 +765,27 @@ defmodule ExUnit.Case do
     end
   end
 
+  @doc """
+  Returns the most recently registered test case as an `%ExUnit.Test{}`
+  struct.
+
+  This is used by third-party utilities to allow compile-time configuration
+  using test tags without having to explicitly pass the test context at
+  run-time. It is intended to be invoked in macros before the test module
+  is compiled.
+
+  Raises if called with a module that has already been compiled.
+  """
+  @doc since: "1.15.0"
+  @spec get_last_registered_test(env) :: ExUnit.Test.t() | nil
+  def get_last_registered_test(%{module: mod}) do
+    get_last_registered_test(mod)
+  end
+
+  def get_last_registered_test(mod) when is_atom(mod) do
+    Module.get_last_attribute(mod, :ex_unit_tests)
+  end
+
   defp validate_tags(tags) do
     for tag <- @reserved, Map.has_key?(tags, tag) do
       raise "cannot set tag #{inspect(tag)} because it is reserved by ExUnit"

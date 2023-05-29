@@ -262,3 +262,55 @@ defmodule ExUnit.BadOptsCase do
     end
   end
 end
+
+defmodule ExUnit.CaseTest.GetLastRegisteredTestHelper do
+  defmacro escaped_get_last_registered_test do
+    Macro.escape(ExUnit.Case.get_last_registered_test(__CALLER__))
+  end
+end
+
+defmodule ExUnit.CaseTest.GetLastRegisteredTestTest do
+  use ExUnit.Case, async: true
+  import ExUnit.CaseTest.GetLastRegisteredTestHelper
+
+  last = ExUnit.Case.get_last_registered_test(__MODULE__)
+
+  test "returns nil if called before any test has been registered" do
+    assert unquote(last) == nil
+  end
+
+  test "returns the current test if call is within test body", %{test: name} do
+    assert %ExUnit.Test{
+             name: ^name,
+             module: __MODULE__,
+             state: nil,
+             time: 0
+           } = escaped_get_last_registered_test()
+  end
+
+  last = ExUnit.Case.get_last_registered_test(__MODULE__)
+
+  test "returns the previous test if call is outside test body" do
+    assert %ExUnit.Test{name: :"test returns the current test if call is within test body"} =
+             unquote(Macro.escape(last))
+  end
+
+  test "raises if given module is already compiled" do
+    assert_raise ArgumentError, ~r/could not call Module\.get_last_attribute\/2/, fn ->
+      ExUnit.Case.get_last_registered_test(__MODULE__)
+    end
+  end
+
+  @moduletag tag1: :foo
+  describe "tags" do
+    @describetag tag2: :bar
+
+    @tag tag3: :baz
+    test "includes data available in test context", context do
+      assert %ExUnit.Test{tags: %{tag1: :foo, tag2: :bar, tag3: :baz} = tags} =
+               escaped_get_last_registered_test()
+
+      assert tags == Map.take(context, Map.keys(tags))
+    end
+  end
+end
