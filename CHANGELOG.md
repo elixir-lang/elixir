@@ -109,24 +109,49 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
-## v1.15.0-rc.1
+## v1.15.0-rc.1 (2022-05-29)
 
 ### 1. Enhancements
 
+#### Elixir
+
   * [File] Support distributed `File.Stream`
+  * [Module] Add `Module.get_last_attribute/3`
   * [Task] Reduce footprint of tasks by avoiding unecessary work during spawning
+
+#### ExUnit
+
+  * [ExUnit.Case] Add `ExUnit.Case.get_last_registered_test/1`
 
 ### 2. Bug fixes
 
 #### Elixir
 
- * [Kernel] Raise when macros are given to dialyzer
- * [Kernel] Support bitstring specifiers as map keys in pattern (regression)
- * [Task] Do not double log Task failure reports
+  * [Code] Ensure `:on_undefined_variable` option works as advertised (regression)
+  * [Code] Format paths in `Code.with_diagnostic/2` as relative paths (regression)
+  * [Kernel] Raise when macros are given to dialyzer
+  * [Kernel] Support bitstring specifiers as map keys in pattern (regression)
+  * [Task] Do not double log Task failure reports
+
+#### ExUnit
+
+  * [ExUnit.CaptureLog] Allow capturing deprecated log level (regression)
+  * [ExUnit.DocTest] Ensure proper line is returned when failing to parse doctest results
 
 #### IEx
 
- * [IEx] Fix IO operations not returning when booting IEx
+  * [IEx] Fix IO operations not returning when booting IEx (regression)
+
+#### Mix
+
+  * [mix deps] Ensure dependencies with `included_applications` can be loaded (regression)
+  * [mix format] Ensure proper formatter options are returned for files (regression)
+
+### 3. Soft deprecations
+
+#### Elixir
+
+  * [Kernel] Require pin variable when accessing variable inside binary size in match
 
 ## v1.15.0-rc.0 (2022-05-22)
 
