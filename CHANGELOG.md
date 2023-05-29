@@ -131,6 +131,7 @@ new features and on compatibility.
   * [Code] Format paths in `Code.with_diagnostic/2` as relative paths (regression)
   * [Kernel] Raise when macros are given to dialyzer
   * [Kernel] Support bitstring specifiers as map keys in pattern (regression)
+  * [Module] Ensure that `Module.get_attribute/3` returns `nil` and not the given default value when an attribute has been explicitly set as `nil`
   * [Task] Do not double log Task failure reports
 
 #### ExUnit
