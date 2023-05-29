@@ -399,7 +399,7 @@ defmodule Supervisor do
 
   > #### `use Supervisor` {: .info}
   >
-  > When you `use Supervisor`, the Supervisor module will
+  > When you `use Supervisor`, the `Supervisor` module will
   > set `@behaviour Supervisor` and define a `child_spec/1`
   > function, so your module can be used as a child
   > in a supervision tree.

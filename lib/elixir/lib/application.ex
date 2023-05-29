@@ -169,7 +169,7 @@ defmodule Application do
   >
   > When you `use Application`, the `Application` module will
   > set `@behaviour Application` and define an overridable
-  > definition for the `stop/1` function, which is required
+  > definition for the `c:stop/1` function, which is required
   > by Erlang/OTP.
 
   The `c:start/2` callback has to spawn and link a supervisor and return `{:ok,

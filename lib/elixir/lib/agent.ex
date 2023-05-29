@@ -51,7 +51,7 @@ defmodule Agent do
 
   > #### `use Agent` {: .info}
   >
-  > When you `use Agent`, the Agent module will define a
+  > When you `use Agent`, the `Agent` module will define a
   > `child_spec/1` function, so your module can be used
   > as a child in a supervision tree.
 

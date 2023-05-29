@@ -39,7 +39,7 @@ defmodule Mix.Task do
 
   > #### `use Mix.Task` {: .info}
   >
-  > When you `use Mix.Task`, the Mix.Task module will
+  > When you `use Mix.Task`, the `Mix.Task` module will
   > set `@behaviour Mix.Task` and define default values
   > for the module attributes documented in the section
   > below.
