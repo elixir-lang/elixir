@@ -23,11 +23,11 @@ defmodule ExUnit.Case do
     * `:register` - when `false`, does not register this module within
       ExUnit server. This means the module won't run when ExUnit suite runs.
 
-  This module automatically includes all callbacks defined in
-  `ExUnit.Callbacks`. See that module for more information on `setup`,
-  `start_supervised`, `on_exit` and the test process life cycle.
-
-  For grouping tests together, see `describe/2` in this module.
+  > #### `use ExUnit.Case` {: .info}
+  >
+  > When you `use ExUnit.Case`, it will import the functionality
+  > from `ExUnit.Assertions`, `ExUnit.Callbacks`, `ExUnit.DocTest`,
+  > and this module itself.
 
   ## Examples
 

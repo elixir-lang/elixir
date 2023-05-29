@@ -5805,13 +5805,41 @@ defmodule Kernel do
 
   In such cases, developers should instead import or alias the module
   directly, so that they can customize those as they wish,
-  without the indirection behind `use/2`.
+  without the indirection behind `use/2`. Developers must also avoid
+  defining functions inside `__using__/1`.
 
-  Finally, developers should also avoid defining functions inside
-  the `__using__/1` callback, unless those functions are the default
-  implementation of a previously defined `@callback` or are functions
-  meant to be overridden (see `defoverridable/1`). Even in these cases,
-  defining functions should be seen as a "last resort".
+  Given `use MyModule` can generate any code, it may not be easy for
+  developers to understand the impact of `use MyModule`.
+
+  For this reason, to provide guidance and clarity, we recommend developers
+  to include an admonition block in their `@moduledoc` that explains how
+  `use MyModule` impacts their code. As an example, the `GenServer` documentation
+  outlines:
+
+  > #### `use GenServer` {: .info}
+  >
+  > When you `use GenServer`, the `GenServer` module will
+  > set `@behaviour GenServer` and define a `child_spec/1`
+  > function, so your module can be used as a child
+  > in a supervision tree.
+
+  This provides a quick summary of how using a module impacts the user code.
+  Keep in mind to only list changes made to the public API of the module.
+  For example, if `use MyModule` sets an internal attribute called
+  `@_my_module_info` and this attribute is never meant to be public,
+  it must not be listed.
+
+  For convenience, the markup notation to generate the admonition block
+  above is:
+
+  ```
+  > #### `use GenServer` {: .info}
+  >
+  > When you `use GenServer`, the GenServer module will
+  > set `@behaviour GenServer` and define a `child_spec/1`
+  > function, so your module can be used as a child
+  > in a supervision tree.
+  ```
   """
   defmacro use(module, opts \\ []) do
     calls =

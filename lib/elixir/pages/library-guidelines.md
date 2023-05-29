@@ -65,7 +65,7 @@ you should prefer:
 ```elixir
 case File.read("some_path_that_may_or_may_not_exist") do
   {:ok, contents} -> {:it_worked, contents}
-  {:error, _} -> :it_failed
+  {:error, _} -> :it_failed
 end
 ```
 
@@ -200,7 +200,31 @@ The code above says we are only bringing in the functions from `MyLib` so we can
 
 If the module you want to invoke a function on has a long name, such as `SomeLibrary.Namespace.MyLib`, and you find it verbose, you can leverage the `alias/2` special form and still refer to the module as `MyLib`.
 
-While there are situations where `use SomeModule` is necessary, `use` should be skipped when all it does is to `import` or `alias` other modules. In a nutshell, `alias` should be preferred, as it is simpler and clearer than `import`, while `import` is simpler and clearer than `use`.
+### Avoid undocumented `use SomeModule`
+
+In some situations, where you need to do more than importing and aliasing modules, allowing a developer to `use SomeModule` may be necessary. The benefit of `use SomeModule` is that it provides a common extension point for the Elixir ecosystem. However, given `use SomeModule` can execute any code, it may not be easy for developers to understand the impact of `use SomeModule`.
+
+For this reason, to provide guidance and clarity, we recommend library authors to include an admonition block in their `@moduledoc` that explains how `use SomeModule` impacts the developer's code. As an example, the `GenServer` documentation outlines:
+
+> #### `use GenServer` {: .info}
+>
+> When you `use GenServer`, the `GenServer` module will
+> set `@behaviour GenServer` and define a `child_spec/1`
+> function, so your module can be used as a child
+> in a supervision tree.
+
+Think of this summary as a ["Nutrition facts"](https://en.wikipedia.org/wiki/Nutrition_facts_label) for code generation. Keep in mind to only list changes made to the public API of the module. For example, if `use SomeModule` sets an internal attribute called `@_some_module_info` and this attribute is never meant to be public, it must not be listed.
+
+For convenience, the markup notation to generate the admonition block above is:
+
+```
+> #### `use GenServer` {: .info}
+>
+> When you `use GenServer`, the `GenServer` module will
+> set `@behaviour GenServer` and define a `child_spec/1`
+> function, so your module can be used as a child
+> in a supervision tree.
+```
 
 ### Avoid macros
 

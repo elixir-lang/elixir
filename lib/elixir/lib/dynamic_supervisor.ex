@@ -123,6 +123,12 @@ defmodule DynamicSupervisor do
   `use DynamicSupervisor` will be attached to the generated `child_spec/1`
   function.
 
+  > #### `use DynamicSupervisor` {: .info}
+  >
+  > When you `use DynamicSupervisor`, the `DynamicSupervisor` module will
+  > set `@behaviour DynamicSupervisor` and define a `child_spec/1`
+  > function, so your module can be used as a child in a supervision tree.
+
   ## Name registration
 
   A supervisor is bound to the same name registration rules as a `GenServer`.

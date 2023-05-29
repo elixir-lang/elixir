@@ -49,6 +49,12 @@ defmodule Agent do
   Thanks to the agent server process, the counter can be safely incremented
   concurrently.
 
+  > #### `use Agent` {: .info}
+  >
+  > When you `use Agent`, the `Agent` module will define a
+  > `child_spec/1` function, so your module can be used
+  > as a child in a supervision tree.
+
   Agents provide a segregation between the client and server APIs (similar to
   `GenServer`s). In particular, the functions passed as arguments to the calls to
   `Agent` functions are invoked inside the agent (the server). This distinction

@@ -2,7 +2,7 @@ defmodule Mix.Task do
   @moduledoc """
   Provides conveniences for creating, loading, and manipulating Mix tasks.
 
-  A Mix task can be defined by using `Mix.Task` in a module whose name
+  A Mix task can be defined by `use Mix.Task` in a module whose name
   begins with `Mix.Tasks.` and which defines the `run/1` function.
   Typically, task modules live inside the `lib/mix/tasks/` directory,
   and their file names use dot separators instead of underscores
@@ -37,6 +37,15 @@ defmodule Mix.Task do
       $ mix echo 'A and B' C --test
       ["A and B", "C", "--test"]
 
+  > #### `use Mix.Task` {: .info}
+  >
+  > When you `use Mix.Task`, the `Mix.Task` module will
+  > set `@behaviour Mix.Task` and define default values
+  > for the module attributes documented in the section
+  > below.
+
+  ## Module attributes
+
   Define the `@shortdoc` attribute if you wish to make the task
   publicly visible on `mix help`. Omit this attribute if you do
   not want your task to be listed via `mix help`.
@@ -58,20 +67,14 @@ defmodule Mix.Task do
 
   You can also run tasks directly with `run/2`.
 
-  ## Attributes
-
-  There are a few attributes available in Mix tasks to
-  configure them in Mix:
-
-    * `@shortdoc`  - makes the task public with a short description that appears
-      on `mix help`
-    * `@recursive` - runs the task recursively in umbrella projects
-    * `@requirements` - list of required tasks to be run before the task
+  Finally, set `@recursive true` if you want the task to run
+  on each umbrella child in an umbrella project.
 
   ## Documentation
 
-  Users can read the documentation for public Mix tasks by running `mix help my_task`.
-  The documentation that will be shown is the `@moduledoc` of the task's module.
+  Users can read the documentation for public Mix tasks by
+  running `mix help my_task`. The documentation that will be
+  shown is the `@moduledoc` of the task's module.
   """
 
   @type task_name :: String.t() | atom
