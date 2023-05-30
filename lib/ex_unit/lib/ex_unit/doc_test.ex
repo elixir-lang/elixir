@@ -360,7 +360,7 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_tags(test, tags) do
-    [doctest_line: test.line] ++ tags
+    [doctest_line: test.line, doctest_data: %{end_line: test.end_line}] ++ tags
   end
 
   defp multiple_exceptions?(exprs) do
@@ -608,8 +608,8 @@ defmodule ExUnit.DocTest do
     adjust_indent(:text, lines, line_no, [], 0, module)
   end
 
-  defp adjust_indent(_kind, [], _line_no, adjusted_lines, _indent, _module) do
-    Enum.reverse(adjusted_lines)
+  defp adjust_indent(_kind, [], line_no, adjusted_lines, _indent, _module) do
+    {Enum.reverse(adjusted_lines), line_no - 1}
   end
 
   defp adjust_indent(:text, [line | rest], line_no, adjusted_lines, indent, module) do
@@ -720,14 +720,14 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp chunk_tests(lines, acc) do
+  defp chunk_tests(lines, acc, last_no) do
     case lines
          |> Enum.drop_while(&(not test_started?(&1)))
          |> Enum.split_while(&(not test_finished?(&1))) do
       {[], []} -> Enum.reverse(acc)
-      {test, []} -> Enum.reverse([test | acc])
-      {[], [_empty_line | lines]} -> chunk_tests(lines, acc)
-      {test, [_empty_line | lines]} -> chunk_tests(lines, [test | acc])
+      {chunk, []} -> Enum.reverse([{chunk, last_no} | acc])
+      {[], [_empty_line | lines]} -> chunk_tests(lines, acc, last_no)
+      {chunk, [{_, line_no} | lines]} -> chunk_tests(lines, [{chunk, line_no} | acc], last_no)
     end
   end
 
@@ -744,16 +744,19 @@ defmodule ExUnit.DocTest do
   end
 
   defp extract_tests(line_no, doc, module, fun_arity) do
-    doc
-    |> String.split(["\r\n", "\n"], trim: false)
-    |> adjust_indent(line_no + 1, module)
-    |> chunk_tests([])
+    {lines, last_line} =
+      doc
+      |> String.split(["\r\n", "\n"], trim: false)
+      |> adjust_indent(line_no + 1, module)
+
+    lines
+    |> chunk_tests([], last_line)
     |> Enum.map(&build_test(&1, fun_arity))
   end
 
-  defp build_test([{"iex>" <> string = line, line_no} | lines], fun_arity) do
+  defp build_test({[{"iex>" <> string = line, line_no} | lines], end_line_no}, fun_arity) do
     exprs = build_test(lines, [string], [], [line], [], line_no)
-    %{line: line_no, exprs: Enum.reverse(exprs), fun_arity: fun_arity}
+    %{line: line_no, end_line: end_line_no - 1, exprs: Enum.reverse(exprs), fun_arity: fun_arity}
   end
 
   # Started a new expression.

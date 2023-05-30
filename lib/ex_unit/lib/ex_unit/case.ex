@@ -165,6 +165,8 @@ defmodule ExUnit.Case do
 
     * `:doctest_line` - the line the doctest was defined (if a doctest)
 
+    * `:doctest_data` - additional metadata about doctests (if a doctest)
+
   The following tags customize how tests behave:
 
     * `:capture_log` - see the "Log Capture" section below

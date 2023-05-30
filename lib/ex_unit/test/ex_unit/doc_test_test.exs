@@ -34,9 +34,6 @@ defmodule ExUnit.DocTestTest.GoodModule do
   """
   def test_sigil, do: :ok
 
-  @doc "    iex>1 + 2\n    3"
-  def no_trailing_new_line, do: :ok
-
   @doc """
   iex> a = 1
   iex> b = a + 2
@@ -133,6 +130,12 @@ defmodule ExUnit.DocTestTest.NoImport do
   2
   """
   def max(a, b), do: {:ok, Kernel.max(a, b)}
+end
+|> ExUnit.BeamHelpers.write_beam()
+
+defmodule ExUnit.DocTestTest.NoTrailing do
+  @doc "    iex>1 + 2\n    3"
+  def no_trailing_new_line, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -490,6 +493,7 @@ defmodule ExUnit.DocTestTest do
   # doctest ExUnit.DocTest
 
   doctest ExUnit.DocTestTest.GoodModule, import: true
+  doctest ExUnit.DocTestTest.NoTrailing
 
   doctest ExUnit.DocTestTest.SomewhatGoodModuleWithOnly,
     only: [:moduledoc, one: 0],
@@ -957,16 +961,36 @@ defmodule ExUnit.DocTestTest do
   end
 
   test "doctests built-in tags" do
-    alias ExUnit.DocTestTest.NoImport
+    alias ExUnit.DocTestTest.{NoImport, NoTrailing}
 
     defmodule DoctestTags do
       use ExUnit.Case, register: false
       doctest NoImport
+      doctest NoTrailing
     end
 
-    assert %ExUnit.TestModule{tests: [test1, test2]} = DoctestTags.__ex_unit__()
-    assert %{test_type: :doctest, doctest: NoImport, doctest_line: 129} = test1.tags
-    assert %{test_type: :doctest, doctest: NoImport, doctest_line: 132} = test2.tags
+    assert %ExUnit.TestModule{tests: [test1, test2, test3]} = DoctestTags.__ex_unit__()
+
+    assert %{
+             test_type: :doctest,
+             doctest: NoImport,
+             doctest_line: 126,
+             doctest_data: %{end_line: 127}
+           } = test1.tags
+
+    assert %{
+             test_type: :doctest,
+             doctest: NoImport,
+             doctest_line: 129,
+             doctest_data: %{end_line: 130}
+           } = test2.tags
+
+    assert %{
+             test_type: :doctest,
+             doctest: NoTrailing,
+             doctest_line: 138,
+             doctest_data: %{end_line: 138}
+           } = test3.tags
   end
 
   describe "errors" do
