@@ -561,6 +561,7 @@ defmodule Code do
       Defaults to `false`.
 
   """
+  @doc since: "1.15.0"
   @spec with_diagnostics(keyword(), (-> result)) :: {result, [diagnostic(:warning | :error)]}
         when result: term()
   def with_diagnostics(opts \\ [], fun) do

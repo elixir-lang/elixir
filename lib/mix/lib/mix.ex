@@ -589,6 +589,7 @@ defmodule Mix do
   list the Erlang application dependencies under the `:extra_applications`
   section of your `mix.exs`.
   """
+  @doc since: "1.15.0"
   def ensure_application!(app) when is_atom(app) do
     ensure_application!(app, Mix.State.builtin_apps())
     :ok
