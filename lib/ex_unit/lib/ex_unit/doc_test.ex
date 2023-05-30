@@ -346,9 +346,6 @@ defmodule ExUnit.DocTest do
   end
 
   defp test_content(%{exprs: exprs, line: line}, module, do_import, file) do
-    location = [line: line, file: Path.relative_to_cwd(file)]
-    stack = Macro.escape([{module, :__MODULE__, 0, location}])
-
     if multiple_exceptions?(exprs) do
       raise Error,
         line: line,
@@ -358,11 +355,7 @@ defmodule ExUnit.DocTest do
             "please separate your iex> prompts by multiple newlines to start new examples"
     end
 
-    tests =
-      Enum.map(exprs, fn {expr, expected, doctest} ->
-        test_case_content(expr, expected, location, stack, doctest)
-      end)
-
+    tests = Enum.map(exprs, fn expr -> test_case_content(expr, module, file) end)
     {:__block__, [], test_import(module, do_import) ++ tests}
   end
 
@@ -372,66 +365,74 @@ defmodule ExUnit.DocTest do
 
   defp multiple_exceptions?(exprs) do
     Enum.count(exprs, fn
-      {_, {:error, _, _}, _} -> true
+      %{expected: {:error, _, _}} -> true
       _ -> false
     end) > 1
   end
 
-  defp test_case_content(expr_lines, :test, location, stack, doctest) do
-    string_to_quoted(location, stack, expr_lines, doctest) |> insert_assertions()
+  defp test_case_content(%{expected: :test} = data, module, file) do
+    %{expr: expr, expr_line: expr_line, doctest: doctest} = data
+    string_to_quoted(module, file, expr_line, expr, doctest) |> insert_assertions()
   end
 
-  defp test_case_content(expr_lines, {:test, expected}, location, stack, doctest) do
-    expr_ast = string_to_quoted(location, stack, expr_lines, doctest) |> insert_assertions()
-    expected_ast = string_to_quoted(update_line(location, expr_lines), stack, expected, doctest)
+  defp test_case_content(%{expected: {:test, expected}} = data, module, file) do
+    %{expr: expr, expr_line: expr_line, expected_line: expected_line, doctest: doctest} = data
+    expr_ast = string_to_quoted(module, file, expr_line, expr, doctest) |> insert_assertions()
+    expected_ast = string_to_quoted(module, file, expected_line, expected, doctest)
     last_expr = Macro.to_string(last_expr(expr_ast))
 
     quote do
-      value = unquote(expr_ast)
-      expected = unquote(expected_ast)
-      doctest = unquote(doctest)
-      last_expr = unquote(last_expr)
-      expected_expr = unquote(expected)
-      stack = unquote(stack)
-
-      ExUnit.DocTest.__test__(value, expected, doctest, last_expr, expected_expr, stack)
+      ExUnit.DocTest.__test__(
+        unquote(expr_ast),
+        unquote(expected_ast),
+        unquote(doctest),
+        unquote(last_expr),
+        unquote(expected),
+        unquote(module),
+        unquote(file),
+        unquote(expr_line)
+      )
     end
   end
 
-  defp test_case_content(expr_lines, {:inspect, expected}, location, stack, doctest) do
-    expr_ast = string_to_quoted(location, stack, expr_lines, doctest) |> insert_assertions()
+  defp test_case_content(%{expected: {:inspect, expected}} = data, module, file) do
+    %{expr: expr, expr_line: expr_line, doctest: doctest} = data
+    expr_ast = string_to_quoted(module, file, expr_line, expr, doctest) |> insert_assertions()
     last_expr = Macro.to_string(last_expr(expr_ast))
 
     quote do
-      value = unquote(expr_ast)
-      expected = unquote(expected)
-      doctest = unquote(doctest)
-      last_expr = unquote(last_expr)
-      expected_expr = unquote(inspect(expected))
-      stack = unquote(stack)
-
-      ExUnit.DocTest.__inspect__(value, expected, doctest, last_expr, expected_expr, stack)
+      ExUnit.DocTest.__inspect__(
+        unquote(expr_ast),
+        unquote(expected),
+        unquote(doctest),
+        unquote(last_expr),
+        unquote(inspect(expected)),
+        unquote(module),
+        unquote(file),
+        unquote(expr_line)
+      )
     end
   end
 
-  defp test_case_content(expr, {:error, exception, message}, location, stack, doctest) do
-    expr_ast = string_to_quoted(location, stack, expr, doctest)
+  defp test_case_content(%{expected: {:error, exception, message}} = data, module, file) do
+    %{expr: expr, expr_line: expr_line, doctest: doctest} = data
+    expr_ast = string_to_quoted(module, file, expr_line, expr, doctest)
 
     quote do
-      stack = unquote(stack)
-      message = unquote(message)
-      doctest = unquote(doctest)
-      exception = unquote(exception)
-      ExUnit.DocTest.__error__(fn -> unquote(expr_ast) end, message, exception, doctest, stack)
+      ExUnit.DocTest.__error__(
+        fn -> unquote(expr_ast) end,
+        unquote(message),
+        unquote(exception),
+        unquote(doctest),
+        unquote(module),
+        unquote(file),
+        unquote(expr_line)
+      )
     end
-  end
-
-  defp update_line(location, lines) do
-    Keyword.replace_lazy(location, :line, &(&1 + length(lines)))
   end
 
   @doc false
-  def __test__(value, expected, doctest, last_expr, expected_expr, stack) do
+  def __test__(value, expected, doctest, last_expr, expected_expr, module, file, line) do
     case value do
       ^expected ->
         {:ok, value}
@@ -445,12 +446,12 @@ defmodule ExUnit.DocTest do
           right: expected
         ]
 
-        reraise ExUnit.AssertionError, error, stack
+        reraise ExUnit.AssertionError, error, stack(module, file, line)
     end
   end
 
   @doc false
-  def __inspect__(value, expected, doctest, last_expr, expected_expr, parent_stack) do
+  def __inspect__(value, expected, doctest, last_expr, expected_expr, module, file, line) do
     result =
       try do
         inspect(value, safe: false)
@@ -470,12 +471,12 @@ defmodule ExUnit.DocTest do
       {extra, stack} ->
         expr = "inspect(#{last_expr}) === #{String.trim(expected_expr)}"
         error = [doctest: doctest, expr: expr] ++ extra
-        reraise ExUnit.AssertionError, error, stack ++ parent_stack
+        reraise ExUnit.AssertionError, error, stack ++ stack(module, file, line)
     end
   end
 
   @doc false
-  def __error__(fun, message, exception, doctest, stack) do
+  def __error__(fun, message, exception, doctest, module, file, line) do
     try do
       fun.()
     rescue
@@ -500,24 +501,24 @@ defmodule ExUnit.DocTest do
           end
 
         if failed do
-          reraise ExUnit.AssertionError, [message: failed, doctest: doctest], stack
+          reraise ExUnit.AssertionError,
+                  [message: failed, doctest: doctest],
+                  stack(module, file, line)
         end
     else
       _ ->
         failed = "Doctest failed: expected exception #{inspect(exception)} but nothing was raised"
         error = [message: failed, doctest: doctest]
-        reraise ExUnit.AssertionError, error, stack
+        reraise ExUnit.AssertionError, error, stack(module, file, line)
     end
   end
 
   defp test_import(_mod, false), do: []
   defp test_import(mod, _), do: [quote(do: import(unquote(mod)))]
 
-  defp string_to_quoted(location, stack, expr, doctest) do
-    expr = IO.iodata_to_binary(expr)
-
+  defp string_to_quoted(module, file, line, expr, doctest) when is_binary(expr) do
     try do
-      Code.string_to_quoted!(expr, location)
+      Code.string_to_quoted!(expr, file: file, line: line)
     rescue
       e ->
         ex_message = "(#{inspect(e.__struct__)}) #{Exception.message(e)}"
@@ -544,9 +545,16 @@ defmodule ExUnit.DocTest do
           end
 
         quote do
-          reraise ExUnit.AssertionError, unquote(opts), unquote(stack)
+          reraise ExUnit.AssertionError,
+                  unquote(opts),
+                  unquote(Macro.escape(stack(module, file, line)))
         end
     end
+  end
+
+  defp stack(module, file, line) do
+    location = [line: line, file: Path.relative_to_cwd(file)]
+    [{module, :__MODULE__, 0, location}]
   end
 
   ## Extraction of the tests
@@ -743,38 +751,36 @@ defmodule ExUnit.DocTest do
     |> Enum.map(&build_test(&1, fun_arity))
   end
 
-  defp build_test([{_, line_no} | _] = lines, fun_arity) do
-    exprs = build_test(lines, [], [], [], [])
+  defp build_test([{"iex>" <> string = line, line_no} | lines], fun_arity) do
+    exprs = build_test(lines, [string], [], [line], [], line_no)
     %{line: line_no, exprs: Enum.reverse(exprs), fun_arity: fun_arity}
   end
 
-  defp build_test([], [_ | _] = expr, expected, formatted, acc) do
-    add_expr(acc, expr, expected, formatted)
-  end
-
-  # Tidy up the previous expression before starting a new one.
+  # Started a new expression.
   defp build_test(
-         [{"iex>" <> _, _} | _] = list,
+         [{"iex>" <> _, new_line_no} | _] = list,
          [_ | _] = expr,
          [_ | _] = expected,
          formatted,
-         acc
+         acc,
+         line_no
        ) do
-    acc = add_expr(acc, expr, expected, formatted)
-    build_test(list, [], [], [], acc)
+    acc = add_expr(acc, expr, expected, formatted, line_no)
+    build_test(list, [], [], [], acc, new_line_no)
   end
 
-  # We start a new expression.
+  # Continuation of an expression.
   defp build_test(
          [{"iex>" <> string = line, _} | lines],
          expr,
          expected,
          formatted,
-         acc
+         acc,
+         line_no
        ) do
     expr = add_line(expr, string)
     formatted = add_line(formatted, line)
-    build_test(lines, expr, expected, formatted, acc)
+    build_test(lines, expr, expected, formatted, acc, line_no)
   end
 
   # Continuation of an expression.
@@ -783,25 +789,40 @@ defmodule ExUnit.DocTest do
          expr,
          expected,
          formatted,
-         acc
+         acc,
+         line_no
        ) do
     expr = add_line(expr, string)
     formatted = add_line(formatted, line)
-    build_test(lines, expr, expected, formatted, acc)
+    build_test(lines, expr, expected, formatted, acc, line_no)
   end
 
-  # Otherwise, it is expected lines.
-  defp build_test([{line, _} | lines], expr, expected, formatted, acc) do
-    build_test(lines, expr, add_line(expected, line), formatted, acc)
+  # Expected lines.
+  defp build_test([{line, _} | lines], expr, expected, formatted, acc, line_no) do
+    build_test(lines, expr, add_line(expected, line), formatted, acc, line_no)
+  end
+
+  # We are done.
+  defp build_test([], [_ | _] = expr, expected, formatted, acc, line_no) do
+    add_expr(acc, expr, expected, formatted, line_no)
   end
 
   defp add_line([], line), do: [line]
   defp add_line(acc, line), do: [acc, [?\n, line]]
 
-  defp add_expr(exprs, expr_lines, expected_lines, formatted_lines) do
+  defp add_expr(exprs, expr_lines, expected_lines, formatted_lines, line_no) do
     expected = IO.iodata_to_binary(expected_lines)
     doctest = IO.iodata_to_binary([?\n, formatted_lines, ?\n, expected])
-    [{expr_lines, tag_expected(expected), doctest} | exprs]
+
+    expr = %{
+      expr: IO.iodata_to_binary(expr_lines),
+      expr_line: line_no,
+      expected: tag_expected(expected),
+      expected_line: line_no + length(expr_lines),
+      doctest: doctest
+    }
+
+    [expr | exprs]
   end
 
   defp tag_expected(expected) do

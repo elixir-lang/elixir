@@ -245,6 +245,14 @@ defmodule ExUnit.DocTestTest.Invalid do
       :mixed
   """
   def mixed, do: :ok
+
+  @doc """
+      iex> 1 + 2
+      3
+      iex> 123 +
+      :mixed
+  """
+  def invalid_second, do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -704,7 +712,7 @@ defmodule ExUnit.DocTestTest do
                   3
                   `
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line + 13}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 14}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -719,7 +727,7 @@ defmodule ExUnit.DocTestTest do
                   3
                     ```
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line + 21}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 22}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -734,7 +742,7 @@ defmodule ExUnit.DocTestTest do
                   3
                       ```
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line + 29}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 30}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -757,7 +765,7 @@ defmodule ExUnit.DocTestTest do
                   iex> {:ok, :oops}
                   {:ok, #Inspect<[]>}
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line + 42}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 43}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -786,7 +794,7 @@ defmodule ExUnit.DocTestTest do
                   iex> :bar
                   1 + * 1
                 stacktrace:
-                  test/ex_unit/doc_test_test.exs:#{starting_line + 54}: ExUnit.DocTestTest.Invalid (module)
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 56}: ExUnit.DocTestTest.Invalid (module)
            """
 
     assert output =~ """
@@ -803,7 +811,21 @@ defmodule ExUnit.DocTestTest do
                   test/ex_unit/doc_test_test.exs:#{starting_line + 61}: ExUnit.DocTestTest.Invalid (module)
            """
 
-    assert output =~ "10 doctests, 10 failures"
+    assert output =~ """
+            11) doctest ExUnit.DocTestTest.Invalid.invalid_second/0 (11) (ExUnit.DocTestTest.InvalidCompiled)
+                test/ex_unit/doc_test_test.exs:#{doctest_line}
+                Doctest did not compile, got: (TokenMissingError) test/ex_unit/doc_test_test.exs:#{starting_line + 69}:6: syntax error: expression is incomplete
+                 #{line_placeholder(starting_line + 69)} |
+                 #{starting_line + 69} |  123 +
+                 #{line_placeholder(starting_line + 69)} |      ^
+                doctest:
+                  iex> 123 +
+                  :mixed
+                stacktrace:
+                  test/ex_unit/doc_test_test.exs:#{starting_line + 69}: ExUnit.DocTestTest.Invalid (module)
+           """
+
+    assert output =~ "11 doctests, 11 failures"
   end
 
   test "pattern matching assertions in doctests" do
