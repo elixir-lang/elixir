@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 50
+          fetch-depth: 0
       - uses: ./.github/workflows/release_pre_built
         with:
           otp_version: ${{ matrix.otp_version }}
