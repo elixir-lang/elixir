@@ -1,0 +1,51 @@
+name: "Release pre built"
+description: "Builds elixir release, ExDoc and generates docs"
+inputs:
+  otp:
+    description: "The major OTP version"
+  otp_version:
+    description: "The exact OTP version (major.minor[.patch])"
+  build_docs:
+    description: "If docs have to be built or not"
+runs:
+  using: "composite"
+  steps:
+    - uses: erlef/setup-beam@v1
+      with:
+        otp-version: ${{ inputs.otp_version }}
+        version-type: strict
+    - name: Build Elixir Release
+      shell: bash
+      run: |
+        make Precompiled.zip
+        mv Precompiled.zip elixir-otp-${{ inputs.otp }}.zip
+        shasum -a 1 elixir-otp-${{ inputs.otp }}.zip > elixir-otp-${{ inputs.otp }}.zip.sha1sum
+        shasum -a 256 elixir-otp-${{ inputs.otp }}.zip > elixir-otp-${{ inputs.otp }}.zip.sha256sum
+        echo "$PWD/bin" >> $GITHUB_PATH
+    - name: Get latest stable ExDoc version
+      if: ${{ inputs.build_docs }}
+      shell: bash
+      run: |
+        EX_DOC_LATEST_STABLE_VERSION=$(curl -s https://hex.pm/api/packages/ex_doc | jq --raw-output '.latest_stable_version')
+        echo "EX_DOC_LATEST_STABLE_VERSION=${EX_DOC_LATEST_STABLE_VERSION}" >> $GITHUB_ENV
+    - uses: actions/checkout@v3
+      if: ${{ inputs.build_docs }}
+      with:
+        repository: elixir-lang/ex_doc
+        ref: v${{ env.EX_DOC_LATEST_STABLE_VERSION }}
+        path: ex_doc
+    - name: Build ex_doc
+      if: ${{ inputs.build_docs }}
+      shell: bash
+      run: |
+        mv ex_doc ../ex_doc
+        cd ../ex_doc
+        ../elixir/bin/mix do local.rebar --force + local.hex --force + deps.get + compile
+        cd ../elixir
+    - name: Build Docs
+      if: ${{ inputs.build_docs }}
+      shell: bash
+      run: |
+        make Docs.zip
+        shasum -a 1 Docs.zip > Docs.zip.sha1sum
+        shasum -a 256 Docs.zip > Docs.zip.sha256sum
