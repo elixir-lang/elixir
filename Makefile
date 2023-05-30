@@ -177,48 +177,40 @@ clean_residual_files:
 
 LOGO_PATH = $(shell test -f ../docs/logo.png && echo "--logo ../docs/logo.png")
 SOURCE_REF = $(shell tag="$(call GIT_TAG)" revision="$(call GIT_REVISION)"; echo "$${tag:-$$revision}")
-
 DOCS_FORMAT = html
-DOCS_COMPILE = CANONICAL=$(CANONICAL) bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" --formatter "$(DOCS_FORMAT)" $(4)
-DOCS_CONFIG = bin/elixir lib/elixir/scripts/docs_config.exs "$(1)"
+COMPILE_DOCS = bin/elixir ../ex_doc/bin/ex_doc "$(1)" "$(VERSION)" "lib/$(2)/ebin" --main "$(3)" --source-url "https://github.com/elixir-lang/elixir" --source-ref "$(call SOURCE_REF)" $(call LOGO_PATH) --output doc/$(2) --canonical "https://hexdocs.pm/$(2)/$(CANONICAL)" --homepage-url "https://elixir-lang.org/docs.html" --formatter "$(DOCS_FORMAT)" $(4)
 
 docs: compile ../ex_doc/bin/ex_doc docs_elixir docs_eex docs_mix docs_iex docs_ex_unit docs_logger
 
 docs_elixir: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (elixir)"
 	$(Q) rm -rf doc/elixir
-	$(call DOCS_COMPILE,Elixir,elixir,Kernel,--config "lib/elixir/scripts/elixir_docs.exs")
-	$(call DOCS_CONFIG,elixir)
+	$(call COMPILE_DOCS,Elixir,elixir,Kernel,--config "lib/elixir/docs.exs")
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
 	$(Q) rm -rf doc/eex
-	$(call DOCS_COMPILE,EEx,eex,EEx,--config "lib/elixir/scripts/mix_docs.exs")
-	$(call DOCS_CONFIG,eex)
+	$(call COMPILE_DOCS,EEx,eex,EEx)
 
 docs_mix: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (mix)"
 	$(Q) rm -rf doc/mix
-	$(call DOCS_COMPILE,Mix,mix,Mix,--config "lib/elixir/scripts/mix_docs.exs")
-	$(call DOCS_CONFIG,mix)
+	$(call COMPILE_DOCS,Mix,mix,Mix)
 
 docs_iex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (iex)"
 	$(Q) rm -rf doc/iex
-	$(call DOCS_COMPILE,IEx,iex,IEx,--config "lib/elixir/scripts/mix_docs.exs")
-	$(call DOCS_CONFIG,iex)
+	$(call COMPILE_DOCS,IEx,iex,IEx)
 
 docs_ex_unit: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (ex_unit)"
 	$(Q) rm -rf doc/ex_unit
-	$(call DOCS_COMPILE,ExUnit,ex_unit,ExUnit,--config "lib/elixir/scripts/mix_docs.exs")
-	$(call DOCS_CONFIG,ex_unit)
+	$(call COMPILE_DOCS,ExUnit,ex_unit,ExUnit)
 
 docs_logger: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (logger)"
 	$(Q) rm -rf doc/logger
-	$(call DOCS_COMPILE,Logger,logger,Logger,--config "lib/elixir/scripts/mix_docs.exs")
-	$(call DOCS_CONFIG,logger)
+	$(call COMPILE_DOCS,Logger,logger,Logger)
 
 ../ex_doc/bin/ex_doc:
 	@ echo "ex_doc is not found in ../ex_doc as expected. See README for more information."
@@ -227,23 +219,23 @@ docs_logger: compile ../ex_doc/bin/ex_doc
 #==> Zip tasks
 
 Docs.zip: docs
-	rm -f Docs.zip
-	zip -9 -r Docs.zip CHANGELOG.md doc NOTICE LICENSE README.md
-	@ echo "Docs file created $(CURDIR)/Docs.zip"
+	rm -f Docs-v$(VERSION).zip
+	zip -9 -r Docs-v$(VERSION).zip CHANGELOG.md doc NOTICE LICENSE README.md
+	@ echo "Docs file created $(CURDIR)/Docs-v$(VERSION).zip"
 
 Precompiled.zip: build_man compile
-	rm -f Precompiled.zip
-	zip -9 -r Precompiled.zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE man NOTICE README.md VERSION
-	@ echo "Precompiled file created $(CURDIR)/Precompiled.zip"
+	rm -f Precompiled-v$(VERSION).zip
+	zip -9 -r Precompiled-v$(VERSION).zip bin CHANGELOG.md lib/*/ebin lib/*/lib LICENSE man NOTICE README.md VERSION
+	@ echo "Precompiled file created $(CURDIR)/Precompiled-v$(VERSION).zip"
 
 zips: Precompiled.zip Docs.zip
 	@ echo ""
 	@ echo "### Checksums"
 	@ echo ""
-	@ shasum -a 1 < Precompiled.zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA1:"
-	@ shasum -a 512 < Precompiled.zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA512:"
-	@ shasum -a 1 < Docs.zip | sed -e "s/-//" | xargs echo "  * Docs.zip SHA1:"
-	@ shasum -a 512 < Docs.zip | sed -e "s/-//" | xargs echo "  * Docs.zip SHA512:"
+	@ shasum -a 1 < Precompiled-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA1:"
+	@ shasum -a 512 < Precompiled-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Precompiled.zip SHA512:"
+	@ shasum -a 1 < Docs-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Docs.zip SHA1:"
+	@ shasum -a 512 < Docs-v$(VERSION).zip | sed -e "s/-//" | xargs echo "  * Docs.zip SHA512:"
 	@ echo ""
 
 #==> Test tasks
