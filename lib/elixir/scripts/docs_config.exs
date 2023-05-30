@@ -11,7 +11,7 @@ list_contents =
   |> Enum.filter(&(Version.compare(&1, skipped) == :gt))
   |> Enum.sort({:desc, Version})
   |> Enum.map_intersperse(", ", fn version ->
-    version_string = Version.to_string(version)
+    version_string = to_string(version)
     ~s[{"version":"v#{version_string}", "url":"https://hexdocs.pm/#{app}/#{version_string}"}]
   end)
 
