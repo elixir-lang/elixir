@@ -261,12 +261,9 @@ defmodule ExUnit.DocTest do
     file = Path.relative_to_cwd(file)
     tags = [doctest: file] ++ Keyword.get(opts, :tags, [])
 
-    extract_tests(1, doc, module)
-    |> Stream.map(&normalize_test(&1, :moduledoc))
-    |> Stream.with_index(1)
-    |> Enum.map(fn {test, acc} ->
-      tags = [doctest_line: test.line] ++ tags
-      {"#{file} (#{acc})", test_content(test, module, false, file), tags}
+    extract_tests(1, doc, module, :moduledoc)
+    |> Enum.with_index(fn test, acc ->
+      {"#{file} (#{acc + 1})", test_content(test, module, false, file), test_tags(test, tags)}
     end)
   end
 
@@ -336,8 +333,8 @@ defmodule ExUnit.DocTest do
   ## Compilation of extracted tests
 
   defp compile_test(test, module, do_import, n, file, tags) do
-    tags = [doctest_line: test.line] ++ tags
-    {test_name(test, module, n), test_content(test, module, do_import, file), tags}
+    {test_name(test, module, n), test_content(test, module, do_import, file),
+     test_tags(test, tags)}
   end
 
   defp test_name(%{fun_arity: :moduledoc}, m, n) do
@@ -367,6 +364,10 @@ defmodule ExUnit.DocTest do
       end)
 
     {:__block__, [], test_import(module, do_import) ++ tests}
+  end
+
+  defp test_tags(test, tags) do
+    [doctest_line: test.line] ++ tags
   end
 
   defp multiple_exceptions?(exprs) do
@@ -575,9 +576,7 @@ defmodule ExUnit.DocTest do
     do: "The documentation chunk in the module is invalid"
 
   defp extract_from_moduledoc(annotation, %{"en" => doc}, module) do
-    for test <- extract_tests(:erl_anno.line(annotation), doc, module) do
-      normalize_test(test, :moduledoc)
-    end
+    extract_tests(:erl_anno.line(annotation), doc, module, :moduledoc)
   end
 
   defp extract_from_moduledoc(_, _doc, _module), do: []
@@ -588,10 +587,7 @@ defmodule ExUnit.DocTest do
 
   defp extract_from_doc({{_, name, arity}, annotation, _, %{"en" => doc}, _}, module) do
     line = :erl_anno.line(annotation)
-
-    for test <- extract_tests(line, doc, module) do
-      normalize_test(test, {name, arity})
-    end
+    extract_tests(line, doc, module, {name, arity})
   end
 
   defp extract_from_doc(_doc, _module),
@@ -648,7 +644,7 @@ defmodule ExUnit.DocTest do
           """
     end
 
-    adjusted_lines = [{stripped_line, line_no} | adjusted_lines]
+    adjusted_lines = [{adjust_prompt(stripped_line, line_no, module), line_no} | adjusted_lines]
 
     next =
       cond do
@@ -694,210 +690,118 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  @fences ["```", "~~~"]
+  defp adjust_prompt("iex(" <> rest = line, line_no, module),
+    do: "iex>" <> skip_iex_number(rest, line_no, module, line)
 
-  defp extract_tests(line_no, doc, module) do
-    all_lines = String.split(doc, ["\r\n", "\n"], trim: false)
-    lines = adjust_indent(all_lines, line_no + 1, module)
-    extract_tests(lines, [], [], [], true, module, [])
+  defp adjust_prompt("...(" <> rest = line, line_no, module),
+    do: "...>" <> skip_iex_number(rest, line_no, module, line)
+
+  defp adjust_prompt(line, _line_no, _module),
+    do: line
+
+  defp skip_iex_number(string, line_no, module, line) do
+    case :binary.split(string, ")>") do
+      [_pre, post] ->
+        post
+
+      [_] ->
+        message =
+          "unknown IEx prompt: #{inspect(line)}.\nAccepted formats are: iex>, iex(1)>, ...>, ...(1)>}"
+
+        raise Error, line: line_no, module: module, message: message
+    end
   end
 
-  defp extract_tests(lines, expr_acc, expected_acc, acc, new_test, module, formatted)
-
-  defp extract_tests([], [], [], [], _, _, _) do
-    []
+  defp chunk_tests(lines, acc) do
+    case lines
+         |> Enum.drop_while(&(not test_started?(&1)))
+         |> Enum.split_while(&(not test_finished?(&1))) do
+      {[], []} -> Enum.reverse(acc)
+      {test, []} -> Enum.reverse([test | acc])
+      {[], [_empty_line | lines]} -> chunk_tests(lines, acc)
+      {test, [_empty_line | lines]} -> chunk_tests(lines, [test | acc])
+    end
   end
 
-  defp extract_tests([], [], [], acc, _, _, _) do
-    Enum.reverse(acc)
+  defp test_started?({"iex>" <> _, _}), do: true
+  defp test_started?(_), do: false
+
+  defp test_finished?({line, _}) do
+    case line do
+      "" -> true
+      "```" <> _ -> true
+      "~~~" <> _ -> true
+      _ -> false
+    end
   end
 
-  # End of input and we've still got a test pending.
-  defp extract_tests([], expr_acc, expected_acc, [test | rest], _, _, formatted) do
-    test = add_expr(test, expr_acc, expected_acc, formatted)
-    Enum.reverse([test | rest])
+  defp extract_tests(line_no, doc, module, fun_arity) do
+    doc
+    |> String.split(["\r\n", "\n"], trim: false)
+    |> adjust_indent(line_no + 1, module)
+    |> chunk_tests([])
+    |> Enum.map(&build_test(&1, fun_arity))
   end
 
-  # We've encountered the next test on an adjacent line. Put them into one group.
-  defp extract_tests(
+  defp build_test([{_, line_no} | _] = lines, fun_arity) do
+    exprs = build_test(lines, [], [], [], [])
+    %{line: line_no, exprs: Enum.reverse(exprs), fun_arity: fun_arity}
+  end
+
+  defp build_test([], [_ | _] = expr, expected, formatted, acc) do
+    add_expr(acc, expr, expected, formatted)
+  end
+
+  # Tidy up the previous expression before starting a new one.
+  defp build_test(
          [{"iex>" <> _, _} | _] = list,
-         expr_acc,
-         expected_acc,
-         [test | rest],
-         new_test,
-         module,
-         formatted
-       )
-       when expr_acc != [] and expected_acc != [] do
-    test = add_expr(test, expr_acc, expected_acc, formatted)
-    extract_tests(list, [], [], [test | rest], new_test, module, [])
-  end
-
-  # Store expr_acc and start a new test case.
-  defp extract_tests(
-         [{"iex>" <> string = line, line_no} | lines],
-         [],
-         expected_acc,
-         acc,
-         true,
-         module,
-         _
+         [_ | _] = expr,
+         [_ | _] = expected,
+         formatted,
+         acc
        ) do
-    test = %{line: line_no, fun_arity: nil, exprs: []}
-    extract_tests(lines, [string], expected_acc, [test | acc], false, module, line)
+    acc = add_expr(acc, expr, expected, formatted)
+    build_test(list, [], [], [], acc)
   end
 
-  # Store expr_acc.
-  defp extract_tests(
+  # We start a new expression.
+  defp build_test(
          [{"iex>" <> string = line, _} | lines],
-         [],
-         expected_acc,
-         acc,
-         false,
-         module,
-         _
+         expr,
+         expected,
+         formatted,
+         acc
        ) do
-    extract_tests(lines, [string], expected_acc, acc, false, module, line)
-  end
-
-  # Still gathering expr_acc. Synonym for the next clause.
-  defp extract_tests(
-         [{"iex>" <> string = line, _} | lines],
-         expr_acc,
-         expected_acc,
-         acc,
-         new_test,
-         module,
-         formatted
-       ) do
-    expr_acc = add_line(expr_acc, string)
+    expr = add_line(expr, string)
     formatted = add_line(formatted, line)
-    extract_tests(lines, expr_acc, expected_acc, acc, new_test, module, formatted)
+    build_test(lines, expr, expected, formatted, acc)
   end
 
-  # Still gathering expr_acc. Synonym for the previous clause.
-  defp extract_tests(
+  # Continuation of an expression.
+  defp build_test(
          [{"...>" <> string = line, _} | lines],
-         expr_acc,
-         expected_acc,
-         acc,
-         new_test,
-         module,
-         formatted
-       )
-       when expr_acc != [] do
-    expr_acc = add_line(expr_acc, string)
+         expr,
+         expected,
+         formatted,
+         acc
+       ) do
+    expr = add_line(expr, string)
     formatted = add_line(formatted, line)
-    extract_tests(lines, expr_acc, expected_acc, acc, new_test, module, formatted)
+    build_test(lines, expr, expected, formatted, acc)
   end
 
-  # Expression numbers are simply skipped.
-  defp extract_tests(
-         [{<<"iex(", _>> <> string = line, line_no} | lines],
-         expr_acc,
-         expected_acc,
-         acc,
-         new_test,
-         module,
-         formatted
-       ) do
-    new_line = {"iex" <> skip_iex_number(string, module, line_no, line), line_no}
-    extract_tests([new_line | lines], expr_acc, expected_acc, acc, new_test, module, formatted)
+  # Otherwise, it is expected lines.
+  defp build_test([{line, _} | lines], expr, expected, formatted, acc) do
+    build_test(lines, expr, add_line(expected, line), formatted, acc)
   end
 
-  # Expression numbers are simply skipped redux.
-  defp extract_tests(
-         [{<<"...(", _>> <> string, line_no} = line | lines],
-         expr_acc,
-         expected_acc,
-         acc,
-         new_test,
-         module,
-         formatted
-       ) do
-    new_line = {"..." <> skip_iex_number(string, module, line_no, line), line_no}
-    extract_tests([new_line | lines], expr_acc, expected_acc, acc, new_test, module, formatted)
-  end
+  defp add_line([], line), do: [line]
+  defp add_line(acc, line), do: [acc, [?\n, line]]
 
-  # Skip empty or documentation line.
-  defp extract_tests([_ | lines], [], [], acc, _, module, _formatted) do
-    extract_tests(lines, [], [], acc, true, module, [])
-  end
-
-  # Encountered end of fenced code block, store pending test
-  defp extract_tests(
-         [{<<fence::3-bytes>> <> _, _} | lines],
-         expr_acc,
-         expected_acc,
-         [test | rest],
-         _new_test,
-         module,
-         formatted
-       )
-       when fence in @fences and expr_acc != [] do
-    test = add_expr(test, expr_acc, expected_acc, formatted)
-    extract_tests(lines, [], [], [test | rest], true, module, [])
-  end
-
-  # Encountered an empty line, store pending test
-  defp extract_tests(
-         [{"", _} | lines],
-         expr_acc,
-         expected_acc,
-         [test | rest],
-         _new_test,
-         module,
-         formatted
-       ) do
-    test = add_expr(test, expr_acc, expected_acc, formatted)
-    extract_tests(lines, [], [], [test | rest], true, module, [])
-  end
-
-  # Finally, parse expected_acc.
-  defp extract_tests([{expected, _} | lines], expr_acc, [], acc, new_test, module, formatted) do
-    extract_tests(lines, expr_acc, expected, acc, new_test, module, formatted)
-  end
-
-  defp extract_tests(
-         [{expected, _} | lines],
-         expr_acc,
-         expected_acc,
-         acc,
-         new_test,
-         module,
-         formatted
-       ) do
-    expected_acc = add_line(expected_acc, expected)
-    extract_tests(lines, expr_acc, expected_acc, acc, new_test, module, formatted)
-  end
-
-  defp add_line(acc, line) do
-    [acc, [?\n, line]]
-  end
-
-  defp skip_iex_number(")>" <> string, _module, _line_no, _line) do
-    ">" <> string
-  end
-
-  defp skip_iex_number("", module, line_no, line) do
-    message =
-      "unknown IEx prompt: #{inspect(line)}.\nAccepted formats are: iex>, iex(1)>, ...>, ...(1)>}"
-
-    raise Error, line: line_no, module: module, message: message
-  end
-
-  defp skip_iex_number(<<_>> <> string, module, line_no, line) do
-    skip_iex_number(string, module, line_no, line)
-  end
-
-  defp normalize_test(%{exprs: exprs} = test, fa) do
-    %{test | fun_arity: fa, exprs: Enum.reverse(exprs)}
-  end
-
-  defp add_expr(%{exprs: exprs} = test, expr_lines, expected_lines, formatted_lines) do
+  defp add_expr(exprs, expr_lines, expected_lines, formatted_lines) do
     expected = IO.iodata_to_binary(expected_lines)
     doctest = IO.iodata_to_binary([?\n, formatted_lines, ?\n, expected])
-    %{test | exprs: [{expr_lines, tag_expected(expected), doctest} | exprs]}
+    [{expr_lines, tag_expected(expected), doctest} | exprs]
   end
 
   defp tag_expected(expected) do

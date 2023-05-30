@@ -456,7 +456,9 @@ defmodule ExUnit.DocTestTest.PatternMatching do
       iex> %{b: _, d: :e} = %{a: :c, d: :e}
 
       iex> %{year: 2001, day: 1} = ~D[2000-01-01]
+  """
 
+  @doc """
       iex> adder = fn int -> int + 1 end
       iex> num =
       ...>   adder.(0)
@@ -468,7 +470,7 @@ defmodule ExUnit.DocTestTest.PatternMatching do
       # false assertions do not accidentally raise
       iex> false = (List.flatten([]) != [])
   """
-  def doctest(), do: :ok
+  def passing(), do: :ok
 end
 |> ExUnit.BeamHelpers.write_beam()
 
