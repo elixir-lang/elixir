@@ -603,6 +603,7 @@ defmodule ExUnit.DocTest do
 
   @iex_prompt ["iex>", "iex("]
   @dot_prompt ["...>", "...("]
+  @fences ["```", "~~~"]
 
   defp adjust_indent(lines, line_no, module) do
     adjust_indent(:text, lines, line_no, [], 0, module)
@@ -668,11 +669,11 @@ defmodule ExUnit.DocTest do
     stripped_line = strip_indent(line, indent)
 
     cond do
-      stripped_line == "" ->
-        adjusted_lines = [{stripped_line, line_no} | adjusted_lines]
+      stripped_line == "" or String.starts_with?(stripped_line, @fences) ->
+        adjusted_lines = [{"", line_no} | adjusted_lines]
         adjust_indent(:text, rest, line_no + 1, adjusted_lines, 0, module)
 
-      String.starts_with?(String.trim_leading(line), @iex_prompt) ->
+      String.starts_with?(String.trim_leading(stripped_line), @iex_prompt) ->
         adjust_indent(:prompt, [line | rest], line_no, adjusted_lines, indent, module)
 
       true ->
@@ -734,14 +735,8 @@ defmodule ExUnit.DocTest do
   defp test_started?({"iex>" <> _, _}), do: true
   defp test_started?(_), do: false
 
-  defp test_finished?({line, _}) do
-    case line do
-      "" -> true
-      "```" <> _ -> true
-      "~~~" <> _ -> true
-      _ -> false
-    end
-  end
+  defp test_finished?({"", _}), do: true
+  defp test_finished?(_), do: false
 
   defp extract_tests(line_no, doc, module, fun_arity) do
     {lines, last_line} =
