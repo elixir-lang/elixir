@@ -78,6 +78,13 @@ defmodule Mix.Local do
     Enum.each(mix_paths(), &Code.append_path/1)
   end
 
+  @doc """
+  Removes Mix paths from the Erlang code path.
+  """
+  def remove_paths do
+    Enum.each(mix_paths(), &Code.delete_path/1)
+  end
+
   defp mix_paths do
     if path = System.get_env("MIX_PATH") do
       String.split(path, path_separator())

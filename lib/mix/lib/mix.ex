@@ -387,11 +387,20 @@ defmodule Mix do
     :ok
   end
 
-  @doc false
+  @impl true
   def start(_type, []) do
+    Mix.Local.append_archives()
+    Mix.Local.append_paths()
     children = [Mix.State, Mix.TasksServer, Mix.ProjectStack]
     opts = [strategy: :one_for_one, name: Mix.Supervisor, max_restarts: 0]
     Supervisor.start_link(children, opts)
+  end
+
+  @impl true
+  def stop(_data) do
+    Mix.Local.remove_archives()
+    Mix.Local.remove_paths()
+    :ok
   end
 
   @doc """
@@ -827,7 +836,6 @@ defmodule Mix do
         ]
 
         started_apps = Application.started_applications()
-        :ok = Mix.Local.append_archives()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
         build_dir = Path.join(install_dir, "_build")
         external_lockfile = expand_path(opts[:lockfile], deps, :lockfile, "mix.lock")
