@@ -326,7 +326,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Filters the set by returning only the elements from `set` for which invoking
+  Filters the set by returning only the elements from `map_set` for which invoking
   `fun` returns a truthy value.
 
   Also see `reject/2` which discards all elements where the function returns
@@ -356,7 +356,7 @@ defmodule MapSet do
   end
 
   @doc """
-  Returns a set by excluding the elements from `set` for which invoking `fun`
+  Returns a set by excluding the elements from `map_set` for which invoking `fun`
   returns a truthy value.
 
   See also `filter/2`.
@@ -378,10 +378,10 @@ defmodule MapSet do
   end
 
   @doc """
-  Splits the `MapSet` into two `MapSet`s according to the given function `fun`.
+  Splits the `map_set` into two `MapSet`s according to the given function `fun`.
 
-  `fun` receives each element in the `MapSet` as its only argument. Returns
-  a tuple with the first `MapSet` containing all the elements in `MapSet` for which
+  `fun` receives each element in the `map_set` as its only argument. Returns
+  a tuple with the first `MapSet` containing all the elements in `map_set` for which
   applying `fun` returned a truthy value, and a second `MapSet` with all the elements
   for which applying `fun` returned a falsy value (`false` or `nil`).
 
