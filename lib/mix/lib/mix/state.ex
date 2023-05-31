@@ -153,7 +153,8 @@ defmodule Mix.State do
           unlock(key_to_waiting, pid_to_key, key)
 
         %{^key => {locked, waiting}} ->
-          Map.put(key_to_waiting, key, {locked, List.keydelete(waiting, pid, 0)})
+          waiting = :queue.delete_with(fn {qpid, _qref} -> qpid == pid end, waiting)
+          Map.put(key_to_waiting, key, {locked, waiting})
       end
 
     {:noreply, %{state | key_to_waiting: key_to_waiting, pid_to_key: pid_to_key}}
