@@ -569,6 +569,32 @@ defmodule MacroTest do
       assert Macro.to_string(576_460_752_303_423_455) == "576_460_752_303_423_455"
       assert Macro.to_string(-576_460_752_303_423_455) == "-576_460_752_303_423_455"
     end
+
+    defmodule HTML do
+      defstruct [:string]
+
+      defimpl Inspect do
+        def inspect(%{string: string}, _) do
+          "~HTML[#{string}]"
+        end
+      end
+    end
+
+    defmacro sigil_HTML({:<<>>, _, [string]}, []) do
+      Macro.escape(%HTML{string: string})
+    end
+
+    test "sigils" do
+      assert Macro.to_string(quote(do: ~HTML[hi])) == ~S/~HTML[hi]/
+
+      assert Macro.to_string(
+               quote do
+                 ~HTML"""
+                 hi
+                 """
+               end
+             ) == ~s[~HTML"""\nhi\n"""]
+    end
   end
 
   describe "to_string/2" do
@@ -660,6 +686,8 @@ defmodule MacroTest do
       assert macro_to_string(quote(do: ~S["'(123)'"])) == ~S/~S["'(123)'"]/
       assert macro_to_string(quote(do: ~s"#{"foo"}")) == ~S/~s"#{"foo"}"/
 
+      assert macro_to_string(quote(do: ~HTML[hi])) == ~S/~HTML[hi]/
+
       assert macro_to_string(
                quote do
                  ~s"""
@@ -699,6 +727,14 @@ defmodule MacroTest do
                  """
                end
              ) == ~s[~S"""\n"123"\n"""]
+
+      assert macro_to_string(
+               quote do
+                 ~HTML"""
+                 "123"
+                 """
+               end
+             ) == ~s[~HTML"""\n"123"\n"""]
     end
 
     test "tuple call" do
