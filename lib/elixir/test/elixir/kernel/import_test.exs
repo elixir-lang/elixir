@@ -164,6 +164,12 @@ defmodule Kernel.ImportTest do
       end
     end
 
+    defmacro sigil_III(string, []) do
+      quote do
+        3 * String.to_integer(unquote(string))
+      end
+    end
+
     def sigil_w(_string, []), do: []
 
     def bnot(x), do: x
@@ -177,6 +183,7 @@ defmodule Kernel.ImportTest do
     # Ensure that both function and macro sigils are imported
     assert ~i'10' == 10
     assert ~I'10' == 10
+    assert ~III'10' == 30
     assert ~w(abc def) == []
 
     # Ensure that non-sigil functions and macros from ModuleWithSigils were not loaded
@@ -189,6 +196,7 @@ defmodule Kernel.ImportTest do
 
     assert ~i'10' == 10
     assert ~I'10' == 10
+    assert ~III'10' == 30
     assert ~w(abc def) == ["abc", "def"]
   end
 
