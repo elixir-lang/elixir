@@ -659,7 +659,7 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(
       ~HTML[hi] = ~HTML[bye],
-      "~HTML[-hi-]",
+      "-~HTML[hi]-",
       "~HTML[+bye+]"
     )
   end
