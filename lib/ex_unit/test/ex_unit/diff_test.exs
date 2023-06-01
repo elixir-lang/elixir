@@ -26,6 +26,20 @@ defmodule ExUnit.DiffTest do
     end
   end
 
+  defmodule HTML do
+    defstruct [:string]
+
+    defimpl Inspect do
+      def inspect(%{string: string}, _) do
+        "~HTML[#{string}]"
+      end
+    end
+  end
+
+  defmacro sigil_HTML({:<<>>, _, [string]}, []) do
+    Macro.escape(%HTML{string: string})
+  end
+
   defmacrop one, do: 1
 
   defmacrop tuple(a, b) do
@@ -642,6 +656,12 @@ defmodule ExUnit.DiffTest do
       ~s/-~D[2017-10-02]-/,
       ~s/+"2017-10-01"+/
     )
+
+    refute_diff(
+      ~HTML[hi] = ~HTML[bye],
+      "~HTML[-hi-]",
+      "~HTML[+bye+]"
+    )
   end
 
   test "structs with missing keys on match" do
@@ -681,6 +701,12 @@ defmodule ExUnit.DiffTest do
       ~D[2017-10-02] == "2017-10-01",
       ~s/-~D[2017-10-02]-/,
       ~s/+"2017-10-01"+/
+    )
+
+    refute_diff(
+      ~HTML[hi] == ~HTML[bye],
+      "~HTML[-hi-]",
+      "~HTML[+bye+]"
     )
   end
 

@@ -1536,7 +1536,7 @@ tokenize_sigil([$~ | T], Line, Column, Scope, Tokens) ->
   case tokenize_sigil_name(T, [], Line, Column + 1, Scope, Tokens) of
     {ok, Name, Rest, NewLine, NewColumn, NewScope, NewTokens} ->
       tokenize_sigil_contents(Rest, Name, NewLine, NewColumn, NewScope, NewTokens);
-    
+
     {error, Message, Token} ->
       Reason = {Line, Column, Message, Token},
       error(Reason, T, Scope, Tokens)

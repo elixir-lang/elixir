@@ -183,7 +183,7 @@ defmodule Code.Normalizer do
   defp do_normalize({sigil, meta, [{:<<>>, _, args} = string, modifiers]} = quoted, state)
        when is_list(args) and is_atom(sigil) do
     case Atom.to_string(sigil) do
-      <<"sigil_", _name>> ->
+      "sigil_" <> _ ->
         meta =
           meta
           |> patch_meta_line(state.parent_meta)

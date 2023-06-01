@@ -1560,11 +1560,18 @@ defmodule Macro do
     {left, right} = delimiter_pair(delimiter)
 
     case Atom.to_string(sigil) do
-      <<"sigil_", name>> when name >= ?A and name <= ?Z ->
-        args = sigil_args(args, fun)
-        {:<<>>, _, [binary]} = parts
-        formatted = <<?~, name, left::binary, binary::binary, right::binary, args::binary>>
-        {:ok, fun.(ast, formatted)}
+      <<"sigil_", first, rest::binary>> when first >= ?A and first <= ?Z ->
+        if upcase_letters?(rest) do
+          args = sigil_args(args, fun)
+          {:<<>>, _, [binary]} = parts
+
+          formatted =
+            <<?~, first, rest::binary, left::binary, binary::binary, right::binary, args::binary>>
+
+          {:ok, fun.(ast, formatted)}
+        else
+          :error
+        end
 
       <<"sigil_", name>> when name >= ?a and name <= ?z ->
         args = sigil_args(args, fun)
@@ -1579,6 +1586,15 @@ defmodule Macro do
   defp sigil_call(_other, _fun) do
     :error
   end
+
+  defp upcase_letters?(<<letter, rest::binary>>) when letter >= ?A and letter <= ?Z,
+    do: upcase_letters?(rest)
+
+  defp upcase_letters?(<<_>>),
+    do: false
+
+  defp upcase_letters?(<<>>),
+    do: true
 
   defp delimiter_pair("["), do: {"[", "]"}
   defp delimiter_pair("{"), do: {"{", "}"}
