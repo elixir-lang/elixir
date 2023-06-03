@@ -815,6 +815,43 @@ defmodule Mix.Tasks.XrefTest do
       end)
     end
 
+    test "generates reports from the umbrella root" do
+      Mix.Project.pop()
+
+      in_fixture("umbrella_dep/deps/umbrella", fn ->
+        Mix.Project.in_project(:umbrella, ".", fn _ ->
+          File.write!("apps/bar/lib/bar.ex", """
+          defmodule Bar do
+            def bar do
+              Foo.foo()
+            end
+          end
+          """)
+
+          Mix.Task.run("compile")
+          Mix.shell().flush()
+
+          Mix.Tasks.Xref.run(["graph", "--format", "stats", "--include-siblings"])
+
+          assert receive_until_no_messages([]) == """
+                 Tracked files: 2 (nodes)
+                 Compile dependencies: 0 (edges)
+                 Exports dependencies: 0 (edges)
+                 Runtime dependencies: 1 (edges)
+                 Cycles: 0
+
+                 Top 2 files with most outgoing dependencies:
+                   * lib/bar.ex (1)
+                   * lib/foo.ex (0)
+
+                 Top 2 files with most incoming dependencies:
+                   * lib/foo.ex (1)
+                   * lib/bar.ex (0)
+                 """
+        end)
+      end)
+    end
+
     test "generates reports considering siblings inside umbrellas" do
       Mix.Project.pop()
 
