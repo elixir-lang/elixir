@@ -172,7 +172,7 @@ defmodule Kernel do
 
   ## Structural comparison
 
-  The function in this module perform structural comparison. This allows
+  The functions in this module perform structural comparison. This allows
   different data types to be compared using comparison operators:
 
   ```elixir
