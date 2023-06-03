@@ -1,9 +1,24 @@
+home = Path.expand("../tmp/.home", __DIR__)
+File.mkdir_p!(home)
+System.put_env("HOME", home)
+
+mix = Path.expand("../tmp/.mix", __DIR__)
+File.mkdir_p!(mix)
+System.put_env("MIX_HOME", mix)
+
+System.delete_env("XDG_DATA_HOME")
+System.delete_env("XDG_CONFIG_HOME")
+
+## Setup Mix
+
 Mix.start()
 Mix.shell(Mix.Shell.Process)
 Application.put_env(:mix, :colors, enabled: false)
 
 Logger.remove_backend(:console)
 Application.put_env(:logger, :backends, [])
+
+## Setup ExUnit
 
 os_exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
@@ -212,26 +227,13 @@ defmodule MixTest.Case do
   end
 end
 
-## Set up globals
-
-home = MixTest.Case.tmp_path(".home")
-File.mkdir_p!(home)
-System.put_env("HOME", home)
-
-mix = MixTest.Case.tmp_path(".mix")
-File.mkdir_p!(mix)
-System.put_env("MIX_HOME", mix)
-
-System.delete_env("XDG_DATA_HOME")
-System.delete_env("XDG_CONFIG_HOME")
+## Set up Rebar fixtures
 
 rebar3_source = System.get_env("REBAR3") || Path.expand("fixtures/rebar3", __DIR__)
 [major, minor | _] = String.split(System.version(), ".")
 rebar3_target = Path.join([mix, "elixir", "#{major}-#{minor}", "rebar3"])
 File.mkdir_p!(Path.dirname(rebar3_target))
 File.cp!(rebar3_source, rebar3_target)
-
-## Copy fixtures to tmp
 
 fixtures = ~w(rebar_dep rebar_override)
 
@@ -242,12 +244,13 @@ Enum.each(fixtures, fn fixture ->
   File.cp_r!(source, dest)
 end)
 
-## Generate Git repo fixtures
+## Set up Git fixtures
+
 System.cmd("git", ~w[config --global user.email mix@example.com])
 System.cmd("git", ~w[config --global user.name mix-repo])
 System.cmd("git", ~w[config --global init.defaultBranch not-main])
 
-# Git repo
+### Git repo
 target = Path.expand("fixtures/git_repo", __DIR__)
 
 unless File.dir?(target) do
@@ -329,7 +332,7 @@ unless File.dir?(target) do
   end)
 end
 
-# Deps on Git repo
+### Deps on Git repo
 target = Path.expand("fixtures/deps_on_git_repo", __DIR__)
 
 unless File.dir?(target) do
@@ -423,7 +426,7 @@ Enum.each([:invalidapp, :invalidvsn, :noappfile, :nosemver, :ok], fn dep ->
   File.mkdir_p!(Path.expand("fixtures/deps_status/deps/#{dep}/.git", __DIR__))
 end)
 
-# Archive ebin
+### Archive ebin
 target = Path.expand("fixtures/archive", __DIR__)
 
 unless File.dir?(Path.join(target, "ebin")) do
