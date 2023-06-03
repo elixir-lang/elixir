@@ -6,7 +6,7 @@ defmodule Date.RangeTest do
 
   @asc_range Date.range(~D[2000-01-01], ~D[2001-01-01])
   @asc_range_2 Date.range(~D[2000-01-01], ~D[2001-01-01], 2)
-  @desc_range Date.range(~D[2001-01-01], ~D[2000-01-01])
+  @desc_range Date.range(~D[2001-01-01], ~D[2000-01-01], -1)
   @desc_range_2 Date.range(~D[2001-01-01], ~D[2000-01-01], -2)
   @empty_range Date.range(~D[2001-01-01], ~D[2000-01-01], 1)
 

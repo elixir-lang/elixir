@@ -71,8 +71,9 @@ defmodule Date do
   A range of dates represents a discrete number of dates where
   the first and last values are dates with matching calendars.
 
-  Ranges of dates can be either increasing (`first <= last`) or
-  decreasing (`first > last`). They are also always inclusive.
+  Ranges of dates can be increasing (`first <= last`) and are
+  always inclusive. For a decreasing range, use `range/3` with
+  a step of -1 as first argument.
 
   ## Examples
 
@@ -92,8 +93,6 @@ defmodule Date do
       true
       iex> Enum.take(range, 3)
       [~D[2001-01-01], ~D[2001-01-02], ~D[2001-01-03]]
-      iex> for d <- Date.range(~D[2023-03-01], ~D[2023-04-01]), Date.day_of_week(d) == 7, do: d
-      [~D[2023-03-05], ~D[2023-03-12], ~D[2023-03-19], ~D[2023-03-26]]
 
   """
   @doc since: "1.5.0"
@@ -101,8 +100,18 @@ defmodule Date do
   def range(%{calendar: calendar} = first, %{calendar: calendar} = last) do
     {first_days, _} = to_iso_days(first)
     {last_days, _} = to_iso_days(last)
-    # TODO: Deprecate inferring a range with a step of -1 on Elixir v1.16
-    step = if first_days <= last_days, do: 1, else: -1
+
+    step =
+      if first_days <= last_days do
+        1
+      else
+        IO.warn(
+          "a negative range was inferred for Date.range/2, call Date.range/3 instead with -1 as third argument"
+        )
+
+        -1
+      end
+
     range(first, first_days, last, last_days, calendar, step)
   end
 

@@ -2960,20 +2960,23 @@ defmodule Enum do
       []
 
       # first is greater than last
-      iex> Enum.slice([1, 2, 3, 4, 5], 6..5)
+      iex> Enum.slice([1, 2, 3, 4, 5], 6..5//1)
       []
 
   """
   @doc since: "1.6.0"
   @spec slice(t, Range.t()) :: list
   def slice(enumerable, first..last//step = index_range) do
-    # TODO: Deprecate negative steps on Elixir v1.16
     # TODO: Support negative steps as a reverse on Elixir v2.0.
     cond do
       step > 0 ->
         slice_range(enumerable, first, last, step)
 
       step == -1 and first > last ->
+        IO.warn(
+          "negative steps are not supported in Enum.slice/2, pass #{first}..#{last}//1 instead"
+        )
+
         slice_range(enumerable, first, last, 1)
 
       true ->

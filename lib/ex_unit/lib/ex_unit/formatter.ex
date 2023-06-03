@@ -126,8 +126,8 @@ defmodule ExUnit.Formatter do
     end
   end
 
-  # TODO: Deprecate me on Elixir v1.16
   @doc false
+  @deprecated "Use format_times/1 instead"
   def format_time(run, load) do
     format_times(%{run: run, load: load, async: nil})
   end

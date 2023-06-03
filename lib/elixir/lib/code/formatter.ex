@@ -515,7 +515,7 @@ defmodule Code.Formatter do
       if keyword_key?(left_arg) do
         {left, state} =
           case left_arg do
-            # TODO: Remove this clause in v1.16 when we no longer quote operator :..//
+            # TODO: Remove this clause in v1.18 when we no longer quote operator :..//
             {:__block__, _, [:"..//"]} ->
               {string(~S{"..//":}), state}
 
@@ -1557,7 +1557,7 @@ defmodule Code.Formatter do
     Atom.to_string(nil) |> color(nil, inspect_opts)
   end
 
-  # TODO: Remove this clause in v1.16 when we no longer quote operator :..//
+  # TODO: Remove this clause in v1.18 when we no longer quote operator :..//
   defp atom_to_algebra(:"..//", _, inspect_opts) do
     string(":\"..//\"") |> color(:atom, inspect_opts)
   end

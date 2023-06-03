@@ -2239,12 +2239,16 @@ defmodule String do
   """
   @spec slice(t, Range.t()) :: t
   def slice(string, first..last//step = range) when is_binary(string) do
-    # TODO: Deprecate negative steps on Elixir v1.16
+    # TODO: Support negative steps as a reverse on Elixir v2.0.
     cond do
       step > 0 ->
         slice_range(string, first, last, step)
 
       step == -1 and first > last ->
+        IO.warn(
+          "negative steps are not supported in String.slice/2, pass #{first}..#{last}//1 instead"
+        )
+
         slice_range(string, first, last, 1)
 
       true ->
