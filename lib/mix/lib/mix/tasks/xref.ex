@@ -5,7 +5,6 @@ defmodule Mix.Tasks.Xref do
     only: [read_manifest: 1, source: 0, source: 1, source: 2, module: 1]
 
   @shortdoc "Prints cross reference information"
-  @recursive true
   @manifest "compile.elixir"
 
   @moduledoc """
@@ -256,7 +255,8 @@ defmodule Mix.Tasks.Xref do
 
     * `--include-siblings` - includes dependencies that have `:in_umbrella` set
       to true in the current project in the reports. This can be used to find
-      callers or to analyze graphs between projects
+      callers or to analyze graphs between projects (it applies only to `trace`
+      subcommand)
 
     * `--no-compile` - does not compile even if files require compilation
 
@@ -289,6 +289,12 @@ defmodule Mix.Tasks.Xref do
 
   @impl true
   def run(args) do
+    if Mix.Project.umbrella?() do
+      Mix.raise(
+        "mix xref is not supported in the umbrella root. Please run it inside the umbrella applications instead"
+      )
+    end
+
     Mix.Task.run("compile", args)
     Mix.Task.reenable("xref")
 
