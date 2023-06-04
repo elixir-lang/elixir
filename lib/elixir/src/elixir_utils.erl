@@ -172,11 +172,11 @@ generated(Meta) -> [{generated, true} | Meta].
 %% Macros add a file pair on location keep which we
 %% should take into account for error reporting.
 %%
-%% Returns {binary, integer} on location keep or nil.
+%% Returns {binary, list} on location keep or nil.
 
 meta_keep(Meta) ->
   case lists:keyfind(keep, 1, Meta) of
-    {keep, {File, Line} = Pair} when is_binary(File), is_integer(Line) ->
+    {keep, {File, Position} = Pair} when is_binary(File), is_list(Position) ->
       Pair;
     _ ->
       nil

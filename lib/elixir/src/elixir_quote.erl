@@ -517,9 +517,9 @@ keep(Meta, #elixir_quote{file=nil, line=Line}) ->
 keep(Meta, #elixir_quote{file=File}) ->
   case lists:keytake(line, 1, Meta) of
     {value, {line, Line}, MetaNoLine} ->
-      [{keep, {File, Line}} | MetaNoLine];
+      [{keep, {File, [{line, Line}]}} | MetaNoLine];
     false ->
-      [{keep, {File, 0}} | Meta]
+      [{keep, {File, [{line, 0}]}} | Meta]
   end.
 
 line(Meta, true) ->
