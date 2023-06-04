@@ -163,7 +163,7 @@ defmodule Path do
   """
   @spec expand(t) :: binary
   def expand(path) do
-    expand_string_dot(absname(expand_home(path), File.cwd!()))
+    expand_dot(absname(expand_home(path), File.cwd!()))
   end
 
   @doc """
@@ -192,7 +192,7 @@ defmodule Path do
   """
   @spec expand(t, t) :: binary
   def expand(path, relative_to) do
-    expand_string_dot(absname(absname(expand_home(path), expand_home(relative_to)), File.cwd!()))
+    expand_dot(absname(absname(expand_home(path), expand_home(relative_to)), File.cwd!()))
   end
 
   @doc """
@@ -297,17 +297,23 @@ defmodule Path do
   defp win32_pathtype(relative), do: {:relative, relative}
 
   @doc """
-  Returns the direct relative path from `path` in relation to `from`.
+  Returns the direct relative path from `path` in relation to `cwd`.
 
-  In other words, this function tries to strip the `from` prefix from `path`.
+  In other words, this function tries to strip the `cwd` prefix
+  from `path`. For this reason, `cwd` must be an absolute path.
+
+  If `path` is already a relative path, any `..` or `.` are
+  expanded, but without computing its absolute path. If an absolute
+  path is given and no relative paths are found, it returns the
+  original path expanded.
 
   This function does not query the file system, so it assumes
-  no symlinks between the paths.
-
-  In case a direct relative path cannot be found, it returns
-  the original path.
+  no symlinks between the paths. See `safe_relative_to/2` for
+  a safer alternative.
 
   ## Examples
+
+  With absolute paths:
 
       iex> Path.relative_to("/usr/local/foo", "/usr/local")
       "foo"
@@ -321,29 +327,80 @@ defmodule Path do
       iex> Path.relative_to("/usr/local/foo", "/usr/local/foo")
       "."
 
+      iex> Path.relative_to("/usr/local/../foo", "/usr/foo")
+      "."
+
+      iex> Path.relative_to("/usr/local/../foo/bar", "/usr/foo")
+      "bar"
+
+  Relative paths have "." and ".." expanded but kept as relative:
+
+      iex> Path.relative_to(".", "/usr/local")
+      "."
+
+      iex> Path.relative_to("foo", "/usr/local")
+      "foo"
+
+      iex> Path.relative_to("foo/../bar", "/usr/local")
+      "bar"
+
+      iex> Path.relative_to("foo/..", "/usr/local")
+      "."
+
+      iex> Path.relative_to("../foo", "/usr/local")
+      "../foo"
+
   """
   @spec relative_to(t, t) :: binary
-  def relative_to(path, from) do
+  def relative_to(path, cwd) do
+    os_type = major_os_type()
     split_path = split(path)
-    split_from = split(from)
-    relative_to(split_path, split_from, path)
+    split_cwd = split(cwd)
+
+    cond do
+      # cwd must be an absolute path, if not, compute common path for backwards compatibility
+      # TODO: Raise on Elixir v2.0
+      not split_absolute?(split_cwd, os_type) ->
+        IO.warn("the second argument to Path.relative_to/2 must be an absolute path, got: #{inspect(cwd)}")
+        relative_to(split_path, split_cwd, split_path)
+
+      # If source is a relative path, expand ./.. as much as possible and return it
+      not split_absolute?(split_path, os_type) ->
+        expand_relative(split_path, [], [])
+
+      # Otherwise attempt to find a common path after expansion
+      true ->
+        split_path = expand_split(split_path)
+        split_cwd = expand_split(split_cwd)
+        relative_to(split_path, split_cwd, split_path)
+    end
   end
 
-  defp relative_to(path, path, _original) do
-    "."
-  end
+  defp relative_to(path, path, _original), do: "."
+  defp relative_to([h | t1], [h | t2], original), do: relative_to(t1, t2, original)
+  defp relative_to([_ | _] = l1, [], _original), do: join(l1)
+  defp relative_to(_, _, original), do: join(original)
 
-  defp relative_to([h | t1], [h | t2], original) do
-    relative_to(t1, t2, original)
-  end
+  defp expand_relative([".." | t], [_ | acc], up), do: expand_relative(t, acc, up)
+  defp expand_relative([".." | t], acc, up), do: expand_relative(t, acc, [".." | up])
+  defp expand_relative(["." | t], acc, up), do: expand_relative(t, acc, up)
+  defp expand_relative([h | t], acc, up), do: expand_relative(t, [h | acc], up)
+  defp expand_relative([], [], []), do: "."
+  defp expand_relative([], acc, up), do: join(up ++ :lists.reverse(acc))
 
-  defp relative_to([_ | _] = l1, [], _original) do
-    join(l1)
-  end
+  defp expand_split([head | tail]), do: expand_split(tail, [head])
+  defp expand_split([".." | t], [_, last | acc]), do: expand_split(t, [last | acc])
+  defp expand_split([".." | t], acc), do: expand_split(t, acc)
+  defp expand_split(["." | t], acc), do: expand_split(t, acc)
+  defp expand_split([h | t], acc), do: expand_split(t, [h | acc])
+  defp expand_split([], acc), do: :lists.reverse(acc)
 
-  defp relative_to(_, _, original) do
-    IO.chardata_to_string(original)
-  end
+  defp split_absolute?(split, :win32), do: win32_split_absolute?(split)
+  defp split_absolute?(split, _), do: match?(["/" | _], split)
+
+  defp win32_split_absolute?(["//" | _]), do: true
+  defp win32_split_absolute?([<<_, ":/">> | _]), do: true
+  defp win32_split_absolute?(_), do: false
 
   @doc """
   Convenience to get the path relative to the current working
@@ -720,12 +777,11 @@ defmodule Path do
   end
 
   # expands dots in an absolute path represented as a string
-  defp expand_string_dot(path) do
+  defp expand_dot(path) do
     [head | tail] = :binary.split(path, "/", [:global])
     IO.iodata_to_binary(expand_dot(tail, [head <> "/"]))
   end
 
-  # expands dots in an absolute split path
   defp expand_dot([".." | t], [_, _ | acc]), do: expand_dot(t, acc)
   defp expand_dot([".." | t], acc), do: expand_dot(t, acc)
   defp expand_dot(["." | t], acc), do: expand_dot(t, acc)
