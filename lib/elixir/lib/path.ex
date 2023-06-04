@@ -242,6 +242,12 @@ defmodule Path do
       Path.relative("/bar/foo.ex")      #=> "bar/foo.ex"
 
   """
+  # Note this function does not expand paths because the behaviour
+  # is ambiguous. If we expand it before converting to relative, then
+  # "/usr/../../foo" means "/foo". If we expand it after, it means "../foo".
+  # We could expand only relative paths but it is best to say it never
+  # expands and then provide a `Path.expand_relative` function (or an
+  # option) if desired.
   @spec relative(t) :: binary
   def relative(name) do
     relative(name, major_os_type())
@@ -361,7 +367,10 @@ defmodule Path do
       # cwd must be an absolute path, if not, compute common path for backwards compatibility
       # TODO: Raise on Elixir v2.0
       not split_absolute?(split_cwd, os_type) ->
-        IO.warn("the second argument to Path.relative_to/2 must be an absolute path, got: #{inspect(cwd)}")
+        IO.warn(
+          "the second argument to Path.relative_to/2 must be an absolute path, got: #{inspect(cwd)}"
+        )
+
         relative_to(split_path, split_cwd, split_path)
 
       # If source is a relative path, expand ./.. as much as possible and return it
