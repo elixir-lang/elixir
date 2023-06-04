@@ -329,27 +329,37 @@ defmodule Module.ParallelChecker do
     ["  ", Exception.format_stacktrace_entry(stacktrace), ?\n]
   end
 
-  defp to_diagnostic(message, {file, line, mfa}) do
+  defp to_diagnostic(message, {file, line, mfa}) when is_integer(line) do
+    to_diagnostic(message, {file, [line: line], mfa})
+  end
+
+  defp to_diagnostic(message, {file, meta, mfa}) when is_list(meta) do
+    position =
+      case Keyword.fetch(meta, :column) do
+        {:ok, col} -> [line: meta[:line], column: col]
+        :error -> [line: meta[:line]]
+      end
+
     %{
       severity: :warning,
       file: file,
-      position: line,
+      position: position,
       message: IO.iodata_to_binary(message),
-      stacktrace: [to_stacktrace(file, line, mfa)]
+      stacktrace: [to_stacktrace(file, position, mfa)]
     }
   end
 
-  defp to_stacktrace(file, line, {module, fun, arity}),
-    do: {module, fun, arity, location(file, line)}
+  defp to_stacktrace(file, position, {module, fun, arity}),
+    do: {module, fun, arity, location(file, position)}
 
-  defp to_stacktrace(file, line, nil),
-    do: {:elixir_compiler, :__FILE__, 1, location(file, line)}
+  defp to_stacktrace(file, position, nil),
+    do: {:elixir_compiler, :__FILE__, 1, location(file, position)}
 
-  defp to_stacktrace(file, line, module),
-    do: {module, :__MODULE__, 0, location(file, line)}
+  defp to_stacktrace(file, position, module),
+    do: {module, :__MODULE__, 0, location(file, position)}
 
-  defp location(file, line) do
-    [file: String.to_charlist(Path.relative_to_cwd(file)), line: line]
+  defp location(file, position) do
+    Keyword.put(position, :file, String.to_charlist(Path.relative_to_cwd(file)))
   end
 
   ## Cache

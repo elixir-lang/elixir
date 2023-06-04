@@ -33,7 +33,7 @@ defmodule Module.LocalsTracker do
   """
   def add_local({_set, bag}, from, to, meta, macro_dispatch?)
       when is_tuple(from) and is_tuple(to) and is_boolean(macro_dispatch?) do
-    put_edge(bag, {:local, from}, {to, get_line(meta), macro_dispatch?})
+    put_edge(bag, {:local, from}, {to, meta, macro_dispatch?})
     :ok
   end
 
@@ -221,7 +221,7 @@ defmodule Module.LocalsTracker do
   defp build_meta(line, meta) do
     case Keyword.get(meta, :file) do
       {file, _} -> [keep: {file, line}]
-      _ -> [line: line]
+      _ -> line
     end
   end
 
