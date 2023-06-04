@@ -615,7 +615,7 @@ defmodule Path do
     end
   end
 
-  @doc """
+  @doc ~S"""
   Traverses paths according to the given `glob` expression and returns a
   list of matches.
 
@@ -750,29 +750,29 @@ defmodule Path do
     * A `..` component would make it so that the path would travers up above
       the root of `relative_to`.
 
-    * A symbolic link in the path points to something above the root of `relative_to`.
+    * A symbolic link in the path points to something above the root of `cwd`.
 
   ## Examples
 
-      iex> Path.safe_relative_to("deps/my_dep/app.beam", "deps")
+      iex> Path.safe_relative_to("deps/my_dep/app.beam", File.cwd!())
       {:ok, "deps/my_dep/app.beam"}
 
-      iex> Path.safe_relative_to("deps/my_dep/./build/../app.beam", "deps")
+      iex> Path.safe_relative_to("deps/my_dep/./build/../app.beam", File.cwd!())
       {:ok, "deps/my_dep/app.beam"}
 
-      iex> Path.safe_relative_to("my_dep/../..", "deps")
+      iex> Path.safe_relative_to("my_dep/../..", File.cwd!())
       :error
 
-      iex> Path.safe_relative_to("/usr/local", ".")
+      iex> Path.safe_relative_to("/usr/local", File.cwd!())
       :error
 
   """
   @doc since: "1.14.0"
   @spec safe_relative_to(t, t) :: {:ok, binary} | :error
-  def safe_relative_to(path, relative_to) do
+  def safe_relative_to(path, cwd) do
     path = IO.chardata_to_string(path)
 
-    case :filelib.safe_relative_path(path, relative_to) do
+    case :filelib.safe_relative_path(path, cwd) do
       :unsafe -> :error
       relative_path -> {:ok, IO.chardata_to_string(relative_path)}
     end
