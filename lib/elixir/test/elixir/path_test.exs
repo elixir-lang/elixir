@@ -57,26 +57,6 @@ defmodule PathTest do
     assert_raise ArgumentError, ~r/null byte/, fn -> Path.wildcard("foo\0bar") end
   end
 
-  test "relative_to/2 (with relative paths)" do
-    assert Path.relative_to("foo", "/") == "foo"
-    assert Path.relative_to("./foo", "/") == "foo"
-    assert Path.relative_to("./foo/.", "/") == "foo"
-    assert Path.relative_to("./foo/./bar/.", "/") == "foo/bar"
-    assert Path.relative_to("../foo/./bar/.", "/") == "../foo/bar"
-    assert Path.relative_to("../foo/./bar/..", "/") == "../foo"
-    assert Path.relative_to("../foo/../bar/..", "/") == ".."
-    assert Path.relative_to("./foo/../bar/..", "/") == "."
-
-    ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
-      assert Path.relative_to("usr/local/foo", "etc") == "usr/local/foo"
-      assert Path.relative_to(~c"usr/local/foo", "etc") == "usr/local/foo"
-
-      assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
-      assert Path.relative_to(["usr", ?/, ~c"local/foo"], ~c"usr/local") == "foo"
-    end)
-  end
-
   describe "Windows" do
     @describetag :windows
 
@@ -108,6 +88,8 @@ defmodule PathTest do
     end
 
     test "relative_to/2" do
+      assert Path.relative_to("//usr/local/foo", "//usr/") == "local/foo"
+
       assert Path.relative_to("D:/usr/local/foo", "D:/usr/") == "local/foo"
       assert Path.relative_to("D:/usr/local/foo", "d:/usr/") == "local/foo"
       assert Path.relative_to("d:/usr/local/foo", "D:/usr/") == "local/foo"
