@@ -217,11 +217,11 @@ defmodule Module.LocalsTracker do
 
   # We need to transform any file annotation in the function
   # definition into a keep annotation that is used by the
-  # error handling system in order to respect line/file.
-  defp build_meta(line, meta) do
+  # error handling system in order to respect position/file.
+  defp build_meta(pos, meta) do
     case Keyword.get(meta, :file) do
-      {file, _} -> [keep: {file, line}]
-      _ -> line
+      {file, _} -> [keep: {file, pos}]
+      _ -> pos
     end
   end
 
