@@ -321,40 +321,20 @@ defmodule Path do
 
   With absolute paths:
 
-      iex> Path.relative_to("/usr/local/foo", "/usr/local")
-      "foo"
-
-      iex> Path.relative_to("/usr/local/foo", "/")
-      "usr/local/foo"
-
-      iex> Path.relative_to("/usr/local/foo", "/etc")
-      "/usr/local/foo"
-
-      iex> Path.relative_to("/usr/local/foo", "/usr/local/foo")
-      "."
-
-      iex> Path.relative_to("/usr/local/../foo", "/usr/foo")
-      "."
-
-      iex> Path.relative_to("/usr/local/../foo/bar", "/usr/foo")
-      "bar"
+      Path.relative_to("/usr/local/foo", "/usr/local")      #=> "foo"
+      Path.relative_to("/usr/local/foo", "/")               #=> "usr/local/foo"
+      Path.relative_to("/usr/local/foo", "/etc")            #=> "/usr/local/foo"
+      Path.relative_to("/usr/local/foo", "/usr/local/foo")  #=> "."
+      Path.relative_to("/usr/local/../foo", "/usr/foo")     #=> "."
+      Path.relative_to("/usr/local/../foo/bar", "/usr/foo") #=> "bar"
 
   Relative paths have "." and ".." expanded but kept as relative:
 
-      iex> Path.relative_to(".", "/usr/local")
-      "."
-
-      iex> Path.relative_to("foo", "/usr/local")
-      "foo"
-
-      iex> Path.relative_to("foo/../bar", "/usr/local")
-      "bar"
-
-      iex> Path.relative_to("foo/..", "/usr/local")
-      "."
-
-      iex> Path.relative_to("../foo", "/usr/local")
-      "../foo"
+      Path.relative_to(".", "/usr/local")          #=> "."
+      Path.relative_to("foo", "/usr/local")        #=> "foo"
+      Path.relative_to("foo/../bar", "/usr/local") #=> "bar"
+      Path.relative_to("foo/..", "/usr/local")     #=> "."
+      Path.relative_to("../foo", "/usr/local")     #=> "../foo"
 
   """
   @spec relative_to(t, t) :: binary
