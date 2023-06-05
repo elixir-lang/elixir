@@ -191,12 +191,12 @@ defmodule Kernel.SpecialForms do
   control how the string is encoded:
 
       iex> <<"foo"::utf16>>
-      <<0, 0, 102, 0, 111, 0, 111>>
+      <<0, 102, 0, 111, 0, 111>>
 
   Which is equivalent to writing:
 
       iex> <<?f::utf16, ?o::utf16, ?o::utf16>>
-      <<0, 0, 102, 0, 111, 0, 111>>
+      <<0, 102, 0, 111, 0, 111>>
 
   At runtime, binaries need to be explicitly tagged as `binary`:
 
