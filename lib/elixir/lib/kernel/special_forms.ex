@@ -187,19 +187,22 @@ defmodule Kernel.SpecialForms do
       iex> <<0, "foo">>
       <<0, 102, 111, 111>>
 
-  Binaries need to be explicitly tagged as `binary`:
+  You can use one of `utf8` (the default), `utf16`, and `utf32` to
+  control how the string is encoded:
+
+      iex> <<"foo"::utf16>>
+      <<0, 0, 102, 0, 111, 0, 111>>
+
+  Which is equivalent to writing:
+
+      iex> <<?f::utf16, ?o::utf16, ?o::utf16>>
+      <<0, 0, 102, 0, 111, 0, 111>>
+
+  At runtime, binaries need to be explicitly tagged as `binary`:
 
       iex> rest = "oo"
       iex> <<102, rest::binary>>
       "foo"
-
-  The `utf8`, `utf16`, and `utf32` types are for Unicode code points. They
-  can also be applied to literal strings and charlists:
-
-      iex> <<"foo"::utf16>>
-      <<0, 102, 0, 111, 0, 111>>
-      iex> <<"foo"::utf32>>
-      <<0, 0, 0, 102, 0, 0, 0, 111, 0, 0, 0, 111>>
 
   Otherwise we get an `ArgumentError` when constructing the binary:
 
