@@ -88,13 +88,24 @@ defmodule PathTest do
     end
 
     test "relative_to/2" do
+      assert Path.relative_to("//usr/local/foo", "//usr/") == "local/foo"
+
       assert Path.relative_to("D:/usr/local/foo", "D:/usr/") == "local/foo"
       assert Path.relative_to("D:/usr/local/foo", "d:/usr/") == "local/foo"
       assert Path.relative_to("d:/usr/local/foo", "D:/usr/") == "local/foo"
       assert Path.relative_to("D:/usr/local/foo", "d:/") == "usr/local/foo"
       assert Path.relative_to("D:/usr/local/foo", "D:/") == "usr/local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "d:") == "D:/usr/local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "D:") == "D:/usr/local/foo"
+
+      assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local") == "."
+      assert Path.relative_to("d:/usr/local/../foo", "d:/usr/local") == "d:/usr/foo"
+      assert Path.relative_to("d:/usr/local/../foo", "d:/usr/foo") == "."
+      assert Path.relative_to("d:/usr/local/../foo/bar", "d:/usr/foo") == "bar"
+      assert Path.relative_to("d:/usr/local/../foo/./bar", "d:/usr/foo") == "bar"
+      assert Path.relative_to("d:/usr/local/../foo/../bar", "d:/usr/foo") == "d:/usr/bar"
+      assert Path.relative_to("d:/usr/local/../foo/bar/..", "d:/usr/foo") == "."
+
+      assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local/..") == "local"
+      assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local/.") == "."
     end
 
     test "type/1" do
@@ -143,6 +154,26 @@ defmodule PathTest do
       assert Path.relative("/") == "."
       assert Path.relative(~c"/") == "."
       assert Path.relative([~c"/usr", ?/, "local/bin"]) == "usr/local/bin"
+    end
+
+    test "relative_to/2" do
+      assert Path.relative_to("/usr/local/foo", "/usr/local") == "foo"
+      assert Path.relative_to("/usr/local/foo", "/") == "usr/local/foo"
+      assert Path.relative_to("/usr/local/foo", "/etc") == "/usr/local/foo"
+      assert Path.relative_to("/usr/local/foo", "/usr/local/foo") == "."
+      assert Path.relative_to("/usr/local/foo/", "/usr/local/foo") == "."
+      assert Path.relative_to("/usr/local/foo", "/usr/local/foo/") == "."
+
+      assert Path.relative_to("/usr/local/foo/..", "/usr/local") == "."
+      assert Path.relative_to("/usr/local/../foo", "/usr/local") == "/usr/foo"
+      assert Path.relative_to("/usr/local/../foo", "/usr/foo") == "."
+      assert Path.relative_to("/usr/local/../foo/bar", "/usr/foo") == "bar"
+      assert Path.relative_to("/usr/local/../foo/./bar", "/usr/foo") == "bar"
+      assert Path.relative_to("/usr/local/../foo/../bar", "/usr/foo") == "/usr/bar"
+      assert Path.relative_to("/usr/local/../foo/bar/..", "/usr/foo") == "."
+
+      assert Path.relative_to("/usr/local/foo/..", "/usr/local/..") == "local"
+      assert Path.relative_to("/usr/local/foo/..", "/usr/local/.") == "."
     end
 
     test "type/1" do
@@ -230,20 +261,24 @@ defmodule PathTest do
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")
   end
 
-  test "relative_to/2" do
-    assert Path.relative_to("/usr/local/foo", "/usr/local") == "foo"
-    assert Path.relative_to("/usr/local/foo", "/") == "usr/local/foo"
-    assert Path.relative_to("/usr/local/foo", "/etc") == "/usr/local/foo"
-    assert Path.relative_to("/usr/local/foo", "/usr/local/foo") == "."
-    assert Path.relative_to("/usr/local/foo/", "/usr/local/foo") == "."
-    assert Path.relative_to("/usr/local/foo", "/usr/local/foo/") == "."
+  test "relative_to/2 (with relative paths)" do
+    assert Path.relative_to("foo", File.cwd!()) == "foo"
+    assert Path.relative_to("./foo", File.cwd!()) == "foo"
+    assert Path.relative_to("./foo/.", File.cwd!()) == "foo"
+    assert Path.relative_to("./foo/./bar/.", File.cwd!()) == "foo/bar"
+    assert Path.relative_to("../foo/./bar/.", File.cwd!()) == "../foo/bar"
+    assert Path.relative_to("../foo/./bar/..", File.cwd!()) == "../foo"
+    assert Path.relative_to("../foo/../bar/..", File.cwd!()) == ".."
+    assert Path.relative_to("./foo/../bar/..", File.cwd!()) == "."
 
-    assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
-    assert Path.relative_to("usr/local/foo", "etc") == "usr/local/foo"
-    assert Path.relative_to(~c"usr/local/foo", "etc") == "usr/local/foo"
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
+      assert Path.relative_to("usr/local/foo", "etc") == "usr/local/foo"
+      assert Path.relative_to(~c"usr/local/foo", "etc") == "usr/local/foo"
 
-    assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
-    assert Path.relative_to(["usr", ?/, ~c"local/foo"], ~c"usr/local") == "foo"
+      assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
+      assert Path.relative_to(["usr", ?/, ~c"local/foo"], ~c"usr/local") == "foo"
+    end)
   end
 
   test "safe_relative/1" do

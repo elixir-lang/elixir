@@ -1334,7 +1334,7 @@ defmodule IEx.HelpersTest do
                    Sample.run()
                  end
                end) =~
-                 "redefining module Sample (current version loaded from ./Elixir.Sample.beam)"
+                 "redefining module Sample (current version loaded from Elixir.Sample.beam)"
       end)
     after
       # Clean up old version produced by the r helper
