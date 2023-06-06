@@ -476,7 +476,9 @@ defmodule Mix.Utils do
       link =
         case :os.type() do
           {:win32, _} -> source
-          _ -> make_relative_path(source, target)
+          # We are needing the relative path to the parent dir since we are doing
+          # a symlink
+          _ -> Path.relative_to(source, Path.dirname(target), force: true)
         end
 
       case File.read_link(target) do
@@ -538,21 +540,6 @@ defmodule Mix.Utils do
 
         {:ok, files}
     end
-  end
-
-  # Make a relative path between the two given paths.
-  # Expects both paths to be fully expanded.
-  defp make_relative_path(source, target) do
-    do_make_relative_path(Path.split(source), Path.split(target))
-  end
-
-  defp do_make_relative_path([h | t1], [h | t2]) do
-    do_make_relative_path(t1, t2)
-  end
-
-  defp do_make_relative_path(source, target) do
-    base = List.duplicate("..", max(length(target) - 1, 0))
-    Path.join(base ++ source)
   end
 
   @doc """
