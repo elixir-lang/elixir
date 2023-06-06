@@ -532,6 +532,10 @@ defmodule Version do
       lexer(rest, "", maybe_prepend_buffer(buffer, acc))
     end
 
+    defp lexer("*", "", []) do
+      ["0.0.0", :>=]
+    end
+
     defp lexer(<<char::utf8, rest::binary>>, buffer, acc) do
       lexer(rest, <<buffer::binary, char::utf8>>, acc)
     end
@@ -574,7 +578,9 @@ defmodule Version do
 
     @spec parse_requirement(String.t()) :: {:ok, term} | :error
     def parse_requirement(source) do
-      revert_lexed(lexer(source), [])
+      source
+      |> lexer()
+      |> revert_lexed([])
     end
 
     def parse_version(string, approximate? \\ false) when is_binary(string) do

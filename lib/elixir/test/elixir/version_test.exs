@@ -329,10 +329,22 @@ defmodule VersionTest do
     assert Version.match?("1.2.3", req)
     refute Version.match?("1.2.4", req)
 
+    {:ok, wildcard} = Version.parse_requirement("*")
+    wildcard = Version.compile_requirement(wildcard)
+
+    assert Version.match?("0.0.0", wildcard)
+    assert Version.match?("1.2.4", wildcard)
+    assert Version.match?("2.1.2", wildcard)
+
     assert Version.parse_requirement("1 . 2 . 3") == :error
     assert Version.parse_requirement("== >= 1.2.3") == :error
     assert Version.parse_requirement("1.2.3 and or 4.5.6") == :error
     assert Version.parse_requirement(">= 1") == :error
     assert Version.parse_requirement("1.2.3 >=") == :error
+
+    assert Version.parse_requirement("1.*") == :error
+    assert Version.parse_requirement(">= *") == :error
+    assert Version.parse_requirement("* *") == :error
+    assert Version.parse_requirement("**") == :error
   end
 end
