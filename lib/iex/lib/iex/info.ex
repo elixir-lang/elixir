@@ -154,7 +154,7 @@ defimpl IEx.Info, for: Atom do
   end
 
   defp module_source_file(mod_info) do
-    default_or_apply(mod_info[:compile][:source], &Path.relative_to_cwd/1)
+    default_or_apply(mod_info[:compile][:source], &Path.relative_to_cwd(&1, []))
   end
 
   defp module_compile_options(mod_info) do
