@@ -51,7 +51,7 @@ defmodule Path do
   Builds a path from `relative_to` to `path`.
 
   If `path` is already an absolute path, `relative_to` is ignored. See also
-  `relative_to/2`.
+  `relative_to/3`.
 
   Unlike `expand/2`, no attempt is made to
   resolve `..`, `.` or `~`.
@@ -317,6 +317,12 @@ defmodule Path do
   no symlinks between the paths. See `safe_relative_to/2` for
   a safer alternative.
 
+  ## Options
+
+    * `:force` - (boolean since v1.16.0) if `true` forces a relative
+    path to be returned by traversing the path up. Except if the paths
+    are in different volumes on Windows. Defaults to `false`.
+
   ## Examples
 
   With absolute paths:
@@ -328,6 +334,12 @@ defmodule Path do
       Path.relative_to("/usr/local/../foo", "/usr/foo")     #=> "."
       Path.relative_to("/usr/local/../foo/bar", "/usr/foo") #=> "bar"
 
+  If `:force` is set to `true` paths are traversed up:
+
+      Path.relative_to("/usr", "/usr/local", force: true)          #=> ".."
+      Path.relative_to("/usr/foo", "/usr/local", force: true)      #=> "../foo"
+      Path.relative_to("/usr/../foo/bar", "/etc/foo", force: true) #=> "../../foo/bar"
+
   Relative paths have "." and ".." expanded but kept as relative:
 
       Path.relative_to(".", "/usr/local")          #=> "."
@@ -337,21 +349,22 @@ defmodule Path do
       Path.relative_to("../foo", "/usr/local")     #=> "../foo"
 
   """
-  @spec relative_to(t, t) :: binary
-  def relative_to(path, cwd) do
+  @spec relative_to(t, t, keyword) :: binary
+  def relative_to(path, cwd, opts \\ []) when is_list(opts) do
     os_type = major_os_type()
     split_path = split(path)
     split_cwd = split(cwd)
+    force = Keyword.get(opts, :force, false)
 
     cond do
       # cwd must be an absolute path, if not, compute common path for backwards compatibility
       # TODO: Raise on Elixir v2.0
       not split_absolute?(split_cwd, os_type) ->
         IO.warn(
-          "the second argument to Path.relative_to/2 must be an absolute path, got: #{inspect(cwd)}"
+          "the second argument to Path.relative_to/3 must be an absolute path, got: #{inspect(cwd)}"
         )
 
-        relative_to(split_path, split_cwd, split_path)
+        relative_to_unforced(split_path, split_cwd, split_path)
 
       # If source is a relative path, expand ./.. as much as possible and return it
       not split_absolute?(split_path, os_type) ->
@@ -361,14 +374,32 @@ defmodule Path do
       true ->
         split_path = expand_split(split_path)
         split_cwd = expand_split(split_cwd)
-        relative_to(split_path, split_cwd, split_path)
+
+        case force do
+          true -> relative_to_forced(split_path, split_cwd, split_path)
+          false -> relative_to_unforced(split_path, split_cwd, split_path)
+        end
     end
   end
 
-  defp relative_to(path, path, _original), do: "."
-  defp relative_to([h | t1], [h | t2], original), do: relative_to(t1, t2, original)
-  defp relative_to([_ | _] = l1, [], _original), do: join(l1)
-  defp relative_to(_, _, original), do: join(original)
+  defp relative_to_unforced(path, path, _original), do: "."
+
+  defp relative_to_unforced([h | t1], [h | t2], original),
+    do: relative_to_unforced(t1, t2, original)
+
+  defp relative_to_unforced([_ | _] = l1, [], _original), do: join(l1)
+  defp relative_to_unforced(_, _, original), do: join(original)
+
+  defp relative_to_forced(path, path, _original), do: "."
+  defp relative_to_forced([h | t1], [h | t2], original), do: relative_to_forced(t1, t2, original)
+
+  # this should only happen if we have two paths on different drives on windows
+  defp relative_to_forced(original, _, original), do: join(original)
+
+  defp relative_to_forced(l1, l2, _original) do
+    base = List.duplicate("..", length(l2))
+    join(base ++ l1)
+  end
 
   defp expand_relative([".." | t], [_ | acc], up), do: expand_relative(t, acc, up)
   defp expand_relative([".." | t], acc, up), do: expand_relative(t, acc, [".." | up])
@@ -397,11 +428,13 @@ defmodule Path do
 
   If, for some reason, the current working directory
   cannot be retrieved, this function returns the given `path`.
+
+  Check `relative_to/3` for the supported options.
   """
-  @spec relative_to_cwd(t) :: binary
-  def relative_to_cwd(path) do
+  @spec relative_to_cwd(t, keyword) :: binary
+  def relative_to_cwd(path, opts \\ []) when is_list(opts) do
     case :file.get_cwd() do
-      {:ok, base} -> relative_to(path, IO.chardata_to_string(base))
+      {:ok, base} -> relative_to(path, IO.chardata_to_string(base), opts)
       _ -> path
     end
   end

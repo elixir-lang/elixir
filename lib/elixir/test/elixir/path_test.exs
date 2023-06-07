@@ -87,25 +87,37 @@ defmodule PathTest do
       assert Path.relative("../usr/local/bin") == "../usr/local/bin"
     end
 
-    test "relative_to/2" do
-      assert Path.relative_to("//usr/local/foo", "//usr/") == "local/foo"
+    test "relative_to/3" do
+      # should give same relative paths for both force true and false
+      for force <- [true, false] do
+        assert Path.relative_to("//usr/local/foo", "//usr/", force: force) == "local/foo"
 
-      assert Path.relative_to("D:/usr/local/foo", "D:/usr/") == "local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "d:/usr/") == "local/foo"
-      assert Path.relative_to("d:/usr/local/foo", "D:/usr/") == "local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "d:/") == "usr/local/foo"
-      assert Path.relative_to("D:/usr/local/foo", "D:/") == "usr/local/foo"
+        assert Path.relative_to("D:/usr/local/foo", "D:/usr/", force: force) == "local/foo"
+        assert Path.relative_to("D:/usr/local/foo", "d:/usr/", force: force) == "local/foo"
+        assert Path.relative_to("d:/usr/local/foo", "D:/usr/", force: force) == "local/foo"
+        assert Path.relative_to("D:/usr/local/foo", "d:/", force: force) == "usr/local/foo"
+        assert Path.relative_to("D:/usr/local/foo", "D:/", force: force) == "usr/local/foo"
 
-      assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local") == "."
+        assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local", force: force) == "."
+        assert Path.relative_to("d:/usr/local/../foo", "d:/usr/foo", force: force) == "."
+        assert Path.relative_to("d:/usr/local/../foo/bar", "d:/usr/foo", force: force) == "bar"
+        assert Path.relative_to("d:/usr/local/../foo/./bar", "d:/usr/foo", force: force) == "bar"
+
+        assert Path.relative_to("d:/usr/local/../foo/bar/..", "d:/usr/foo", force: force) == "."
+        assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local/..", force: force) == "local"
+        assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local/.", force: force) == "."
+      end
+
+      # different results for force: true
       assert Path.relative_to("d:/usr/local/../foo", "d:/usr/local") == "d:/usr/foo"
-      assert Path.relative_to("d:/usr/local/../foo", "d:/usr/foo") == "."
-      assert Path.relative_to("d:/usr/local/../foo/bar", "d:/usr/foo") == "bar"
-      assert Path.relative_to("d:/usr/local/../foo/./bar", "d:/usr/foo") == "bar"
-      assert Path.relative_to("d:/usr/local/../foo/../bar", "d:/usr/foo") == "d:/usr/bar"
-      assert Path.relative_to("d:/usr/local/../foo/bar/..", "d:/usr/foo") == "."
+      assert Path.relative_to("d:/usr/local/../foo", "d:/usr/local", force: true) == "../foo"
 
-      assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local/..") == "local"
-      assert Path.relative_to("d:/usr/local/foo/..", "d:/usr/local/.") == "."
+      assert Path.relative_to("d:/usr/local/../foo/../bar", "d:/usr/foo") == "d:/usr/bar"
+      assert Path.relative_to("d:/usr/local/../foo/../bar", "d:/usr/foo", force: true) == "../bar"
+
+      # on different volumes with force: true it should return the original path
+      assert Path.relative_to("d:/usr/local", "c:/usr/local", force: true) == "d:/usr/local"
+      assert Path.relative_to("d:/usr/local", "c:/another/local", force: true) == "d:/usr/local"
     end
 
     test "type/1" do
@@ -156,24 +168,43 @@ defmodule PathTest do
       assert Path.relative([~c"/usr", ?/, "local/bin"]) == "usr/local/bin"
     end
 
-    test "relative_to/2" do
-      assert Path.relative_to("/usr/local/foo", "/usr/local") == "foo"
-      assert Path.relative_to("/usr/local/foo", "/") == "usr/local/foo"
+    test "relative_to/3" do
+      # subpaths of cwd, should give the same result for both force true and false
+      for force <- [false, true] do
+        assert Path.relative_to("/usr/local/foo", "/usr/local", force: force) == "foo"
+        assert Path.relative_to("/usr/local/foo", "/", force: force) == "usr/local/foo"
+        assert Path.relative_to("/usr/local/foo", "/usr/local/foo", force: force) == "."
+        assert Path.relative_to("/usr/local/foo/", "/usr/local/foo", force: force) == "."
+        assert Path.relative_to("/usr/local/foo", "/usr/local/foo/", force: force) == "."
+
+        assert Path.relative_to("/usr/local/foo/..", "/usr/local", force: force) == "."
+        assert Path.relative_to("/usr/local/../foo", "/usr/foo", force: force) == "."
+        assert Path.relative_to("/usr/local/../foo/bar", "/usr/foo", force: force) == "bar"
+        assert Path.relative_to("/usr/local/../foo/./bar", "/usr/foo", force: force) == "bar"
+        assert Path.relative_to("/usr/local/../foo/bar/..", "/usr/foo", force: force) == "."
+
+        assert Path.relative_to("/usr/local/foo/..", "/usr/local/..", force: force) == "local"
+        assert Path.relative_to("/usr/local/foo/..", "/usr/local/.", force: force) == "."
+      end
+
+      # Different relative paths for foce true/false
       assert Path.relative_to("/usr/local/foo", "/etc") == "/usr/local/foo"
-      assert Path.relative_to("/usr/local/foo", "/usr/local/foo") == "."
-      assert Path.relative_to("/usr/local/foo/", "/usr/local/foo") == "."
-      assert Path.relative_to("/usr/local/foo", "/usr/local/foo/") == "."
+      assert Path.relative_to("/usr/local/foo", "/etc", force: true) == "../usr/local/foo"
 
-      assert Path.relative_to("/usr/local/foo/..", "/usr/local") == "."
       assert Path.relative_to("/usr/local/../foo", "/usr/local") == "/usr/foo"
-      assert Path.relative_to("/usr/local/../foo", "/usr/foo") == "."
-      assert Path.relative_to("/usr/local/../foo/bar", "/usr/foo") == "bar"
-      assert Path.relative_to("/usr/local/../foo/./bar", "/usr/foo") == "bar"
-      assert Path.relative_to("/usr/local/../foo/../bar", "/usr/foo") == "/usr/bar"
-      assert Path.relative_to("/usr/local/../foo/bar/..", "/usr/foo") == "."
+      assert Path.relative_to("/usr/local/../foo", "/usr/local", force: true) == "../foo"
 
-      assert Path.relative_to("/usr/local/foo/..", "/usr/local/..") == "local"
-      assert Path.relative_to("/usr/local/foo/..", "/usr/local/.") == "."
+      assert Path.relative_to("/usr/local/../foo/../bar", "/usr/foo") == "/usr/bar"
+      assert Path.relative_to("/usr/local/../foo/../bar", "/usr/foo", force: true) == "../bar"
+
+      # More tests with force: true
+      assert Path.relative_to("/etc", "/usr/local/foo", force: true) == "../../../etc"
+      assert Path.relative_to(~c"/usr/local/foo", "/etc", force: true) == "../usr/local/foo"
+      assert Path.relative_to("/usr/local", "/usr/local/foo", force: true) == ".."
+      assert Path.relative_to("/usr/local/..", "/usr/local", force: true) == ".."
+
+      assert Path.relative_to("/usr/../etc/foo/../../bar", "/log/foo/../../usr/", force: true) ==
+               "../bar"
     end
 
     test "type/1" do
@@ -191,11 +222,19 @@ defmodule PathTest do
     end
   end
 
-  test "relative_to_cwd/1" do
+  test "relative_to_cwd/2" do
     assert Path.relative_to_cwd(__ENV__.file) == Path.relative_to(__ENV__.file, File.cwd!())
 
     assert Path.relative_to_cwd(to_charlist(__ENV__.file)) ==
              Path.relative_to(to_charlist(__ENV__.file), to_charlist(File.cwd!()))
+
+    assert Path.relative_to_cwd(Path.dirname(File.cwd!()), force: true) == ".."
+
+    [slash | splitted_cwd] = Path.split(File.cwd!())
+    relative_to_root = List.duplicate("..", length(splitted_cwd))
+
+    assert Path.relative_to_cwd(slash) == slash
+    assert Path.relative_to_cwd(slash, force: true) == Path.join(relative_to_root)
   end
 
   test "absname/1,2" do
@@ -261,7 +300,7 @@ defmodule PathTest do
     assert Path.expand("bar/../bar", "foo") == Path.expand("foo/bar")
   end
 
-  test "relative_to/2 (with relative paths)" do
+  test "relative_to/3 (with relative paths)" do
     assert Path.relative_to("foo", File.cwd!()) == "foo"
     assert Path.relative_to("./foo", File.cwd!()) == "foo"
     assert Path.relative_to("./foo/.", File.cwd!()) == "foo"
