@@ -60,6 +60,16 @@ defmodule Mix.SCM.GitTest do
     end
   end
 
+  test "replaces public hosting service shortcuts" do
+    assert opts = Mix.SCM.Git.accepts_options(nil, github: "foo/bar")
+    assert {:git, "https://github.com/foo/bar.git"} in opts
+    refute Keyword.has_key?(opts, :github)
+
+    assert opts = Mix.SCM.Git.accepts_options(nil, codeberg: "foo/bar")
+    assert {:git, "https://codeberg.org/foo/bar.git"} in opts
+    refute Keyword.has_key?(opts, :codeberg)
+  end
+
   defp lock(opts \\ []) do
     [lock: {:git, "/repo", "abcdef0123456789", opts}]
   end

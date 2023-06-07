@@ -40,20 +40,23 @@ defmodule Mix.SCM.Git do
       |> Keyword.put(:checkout, opts[:dest])
       |> sparse_opts()
       |> subdir_opts()
+      |> replace_hosting_service_shortcut(:github, &"https://github.com/#{&1}.git")
+      |> replace_hosting_service_shortcut(:codeberg, &"https://codeberg.org/#{&1}.git")
 
-    cond do
-      gh = opts[:github] ->
-        opts
-        |> Keyword.delete(:github)
-        |> Keyword.put(:git, "https://github.com/#{gh}.git")
-        |> validate_git_options()
+    if opts[:git] do
+      validate_git_options(opts)
+    else
+      nil
+    end
+  end
 
-      opts[:git] ->
-        opts
-        |> validate_git_options()
-
-      true ->
-        nil
+  defp replace_hosting_service_shortcut(opts, service, url_fun) do
+    if repo = opts[service] do
+      opts
+      |> Keyword.delete(service)
+      |> Keyword.put(:git, url_fun.(repo))
+    else
+      opts
     end
   end
 
