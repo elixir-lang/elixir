@@ -333,6 +333,7 @@ defmodule Path do
       Path.relative_to("/usr/local/foo", "/usr/local/foo")  #=> "."
       Path.relative_to("/usr/local/../foo", "/usr/foo")     #=> "."
       Path.relative_to("/usr/local/../foo/bar", "/usr/foo") #=> "bar"
+
   If `:force` is set to `true` paths are traversed up:
 
       Path.relative_to("/usr", "/usr/local", force: true)          #=> ".."
