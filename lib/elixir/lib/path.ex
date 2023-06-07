@@ -363,7 +363,7 @@ defmodule Path do
           "the second argument to Path.relative_to/3 must be an absolute path, got: #{inspect(cwd)}"
         )
 
-        relative_to(split_path, split_cwd, split_path, false)
+        relative_to_unforced(split_path, split_cwd, split_path)
 
       # If source is a relative path, expand ./.. as much as possible and return it
       not split_absolute?(split_path, os_type) ->
@@ -373,19 +373,29 @@ defmodule Path do
       true ->
         split_path = expand_split(split_path)
         split_cwd = expand_split(split_cwd)
-        relative_to(split_path, split_cwd, split_path, force)
+
+        case force do
+          true -> relative_to_forced(split_path, split_cwd, split_path)
+          false -> relative_to_unforced(split_path, split_cwd, split_path)
+        end
     end
   end
 
-  defp relative_to(path, path, _original, _force), do: "."
-  defp relative_to([h | t1], [h | t2], original, force), do: relative_to(t1, t2, original, force)
-  defp relative_to([_ | _] = l1, [], _original, _force), do: join(l1)
-  defp relative_to(_, _, original, false), do: join(original)
+  defp relative_to_unforced(path, path, _original), do: "."
+
+  defp relative_to_unforced([h | t1], [h | t2], original),
+    do: relative_to_unforced(t1, t2, original)
+
+  defp relative_to_unforced([_ | _] = l1, [], _original), do: join(l1)
+  defp relative_to_unforced(_, _, original), do: join(original)
+
+  defp relative_to_forced(path, path, _original), do: "."
+  defp relative_to_forced([h | t1], [h | t2], original), do: relative_to_forced(t1, t2, original)
 
   # this should only happen if we have two paths on different drives on windows
-  defp relative_to(original, _, original, true), do: join(original)
+  defp relative_to_forced(original, _, original), do: join(original)
 
-  defp relative_to(l1, l2, _original, true) do
+  defp relative_to_forced(l1, l2, _original) do
     base = List.duplicate("..", length(l2))
     join(base ++ l1)
   end

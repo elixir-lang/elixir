@@ -230,10 +230,11 @@ defmodule PathTest do
     assert Path.relative_to_cwd(Path.dirname(File.cwd!()), force: true) == ".."
 
     splitted_cwd = Path.split(File.cwd!())
+    [slash | _rest] = splitted_cwd
     relative_to_root = List.duplicate("..", length(splitted_cwd) - 1)
 
-    assert Path.relative_to_cwd("/") == "/"
-    assert Path.relative_to_cwd("/", force: true) == Path.join(relative_to_root)
+    assert Path.relative_to_cwd(slash) == slash
+    assert Path.relative_to_cwd(slash, force: true) == Path.join(relative_to_root)
   end
 
   test "absname/1,2" do
