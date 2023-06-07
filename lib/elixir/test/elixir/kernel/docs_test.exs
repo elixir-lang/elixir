@@ -381,4 +381,30 @@ defmodule Kernel.DocsTest do
              {{:fuz, 0}, :none}
            ] = Enum.sort(function_docs)
   end
+
+  test "generated functions are annotated as such" do
+    write_beam(
+      defmodule ToBeUsed do
+        defmacro __using__(_) do
+          quote do
+            @doc "Hello"
+            def foo, do: :bar
+          end
+        end
+      end
+    )
+
+    write_beam(
+      defmodule WillBeUsing do
+        use ToBeUsed
+      end
+    )
+
+    {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(WillBeUsing)
+
+    assert [
+             {{:function, :foo, 0}, [generated: true, location: 399], ["foo()"],
+              %{"en" => "Hello"}, %{}}
+           ] = docs
+  end
 end
