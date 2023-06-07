@@ -124,11 +124,11 @@ compile_error(#{file := File}) ->
 
 -spec compile_error(list(), binary(), binary() | unicode:charlist()) -> no_return().
 compile_error(Meta, File, Message) when is_binary(Message) ->
-  {File, Line} = meta_location(Meta, File),
-  raise('Elixir.CompileError', Message, [{file, File}, {line, Line}]);
+  {File, Position} = meta_location(Meta, File),
+  raise('Elixir.CompileError', Message, [{file, File} | Position]);
 compile_error(Meta, File, Message) when is_list(Message) ->
-  {File, Line} = meta_location(Meta, File),
-  raise('Elixir.CompileError', elixir_utils:characters_to_binary(Message), [{file, File}, {line, Line}]).
+  {File, Position} = meta_location(Meta, File),
+  raise('Elixir.CompileError', elixir_utils:characters_to_binary(Message), [{file, File} | Position]).
 
 %% Tokenization parsing/errors.
 
@@ -252,7 +252,8 @@ prefix(error) ->
   end.
 
 env_format(Meta, #{file := EnvFile} = E) ->
-  {File, Line} = meta_location(Meta, EnvFile),
+  {File, Position} = meta_location(Meta, EnvFile),
+  Line = ?line(Position),
 
   Stacktrace =
     case E of
@@ -264,7 +265,7 @@ env_format(Meta, #{file := EnvFile} = E) ->
         []
     end,
 
-  case lists:keyfind(column, 1, Meta) of
+  case lists:keyfind(column, 1, Position) of
     {column, Column} -> {{Line, Column}, File, Stacktrace};
     _ -> {Line, File, Stacktrace}
   end.
@@ -282,8 +283,14 @@ file_format(Line, File) ->
 
 meta_location(Meta, File) ->
   case elixir_utils:meta_keep(Meta) of
-    {F, L} -> {F, L};
-    nil    -> {File, ?line(Meta)}
+    {F, L} -> {F, [{line, L}]};
+    nil    -> {File, maybe_add_col([{line, ?line(Meta)}], Meta)}
+  end.
+
+maybe_add_col(Position, Meta) ->
+  case lists:keyfind(column, 1, Meta) of 
+    {column, Col} when is_integer(Col) -> [{column, Col} | Position];
+    false -> Position
   end.
 
 raise(Kind, Message, Opts) when is_binary(Message) ->
