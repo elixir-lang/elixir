@@ -38,8 +38,9 @@ defmodule Mix.Tasks.Xref do
       $ mix xref trace lib/my_app/router.ex --label compile
 
   If you have an umbrella application, we also recommend using the
-  `--include-siblings` flag to see the dependencies on other
-  umbrella applications.
+  `--include-siblings` flag to see the dependencies from sibling
+  applications. The `trace` command is not currently supported at the
+  umbrella root.
 
   ### Example
 
@@ -222,6 +223,12 @@ defmodule Mix.Tasks.Xref do
       lib/a.ex
       └── lib/b.ex (compile)
 
+  If you have an umbrella application, we also recommend using the
+  `--include-siblings` flag to see the dependencies from sibling
+  applications. When invoked at the umbrella root, the `graph`
+  command will list all files from all umbrella children, without
+  any namespacing.
+
   ### Dependency types
 
   Elixir tracks three types of dependencies between modules: compile,
@@ -289,12 +296,6 @@ defmodule Mix.Tasks.Xref do
 
   @impl true
   def run(args) do
-    if Mix.Project.umbrella?() do
-      Mix.raise(
-        "mix xref is not supported in the umbrella root. Please run it inside the umbrella applications instead"
-      )
-    end
-
     Mix.Task.run("compile", args)
     Mix.Task.reenable("xref")
 
@@ -302,9 +303,11 @@ defmodule Mix.Tasks.Xref do
 
     case args do
       ["callers", module] ->
+        no_umbrella!("callers")
         handle_callers(module, opts)
 
       ["trace", file] ->
+        no_umbrella!("trace")
         handle_trace(file, opts)
 
       ["graph"] ->
@@ -324,6 +327,14 @@ defmodule Mix.Tasks.Xref do
 
       _ ->
         Mix.raise("xref doesn't support this command. For more information run \"mix help xref\"")
+    end
+  end
+
+  defp no_umbrella!(task) do
+    if Mix.Project.umbrella?() do
+      Mix.raise(
+        "mix xref #{task} is not supported in the umbrella root. Please run it inside the umbrella applications instead"
+      )
     end
   end
 
@@ -1058,12 +1069,18 @@ defmodule Mix.Tasks.Xref do
 
   defp manifests(opts) do
     siblings =
-      if opts[:include_siblings] do
-        for %{scm: Mix.SCM.Path, opts: opts} <- Mix.Dep.cached(),
-            opts[:in_umbrella],
-            do: Path.join([opts[:build], ".mix", @manifest])
-      else
-        []
+      cond do
+        Mix.Project.umbrella?() ->
+          for %{opts: opts} <- Mix.Dep.Umbrella.cached(),
+              do: Path.join([opts[:build], ".mix", @manifest])
+
+        opts[:include_siblings] ->
+          for %{scm: Mix.SCM.Path, opts: opts} <- Mix.Dep.cached(),
+              opts[:in_umbrella],
+              do: Path.join([opts[:build], ".mix", @manifest])
+
+        true ->
+          []
       end
 
     [Path.join(Mix.Project.manifest_path(), @manifest) | siblings]
