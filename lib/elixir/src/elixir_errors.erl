@@ -258,9 +258,9 @@ env_format(Meta, #{file := EnvFile} = E) ->
   Stacktrace =
     case E of
       #{function := {Name, Arity}, module := Module} ->
-        [{Module, Name, Arity, [{file, elixir_utils:relative_to_cwd(File)}, {line, Line}]}];
+        [{Module, Name, Arity, [{file, elixir_utils:relative_to_cwd(File)} | Position ]}];
       #{module := Module} when Module /= nil ->
-        [{Module, '__MODULE__', 0, [{file, elixir_utils:relative_to_cwd(File)}, {line, Line}]}];
+        [{Module, '__MODULE__', 0, [{file, elixir_utils:relative_to_cwd(File)} | Position]}];
       #{} ->
         []
     end,
