@@ -117,6 +117,7 @@ defmodule PathTest do
 
       # on different volumes with force: true it should return the original path
       assert Path.relative_to("d:/usr/local", "c:/usr/local", force: true) == "d:/usr/local"
+      assert Path.relative_to("d:/usr/local", "c:/another/local", force: true) == "d:/usr/local"
     end
 
     test "type/1" do
