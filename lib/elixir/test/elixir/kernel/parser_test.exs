@@ -538,7 +538,7 @@ defmodule Kernel.ParserTest do
   describe "syntax errors" do
     test "invalid heredoc start" do
       assert_syntax_error(
-        ~r/nofile:1:1: heredoc allows only zero or more whitespace characters followed by a new line after \"\"\"/,
+        ~r/nofile:1:4: heredoc allows only whitespace characters followed by a new line after opening \"\"\"/,
         ~c"\"\"\"bar\n\"\"\""
       )
     end
