@@ -123,6 +123,13 @@ defmodule Kernel.ErrorsTest do
     )
   end
 
+  test "column error on undefined function call" do 
+    assert_compile_error_columns(
+      ["nofile:1:1", "undefined function foo/0 (there is no such import)"],
+      ~c"foo()"
+    )
+  end
+
   test "undefined non-local function" do
     assert_compile_error(
       ["nofile:1", "undefined function call/2 (there is no such import)"],
@@ -991,6 +998,18 @@ defmodule Kernel.ErrorsTest do
     captured =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->
         assert_raise CompileError, fn -> Code.eval_string(string) end
+      end)
+
+    for message <- List.wrap(messages) do
+      assert captured =~ message
+    end
+  end
+
+  defp assert_compile_error_columns(messages, string) do
+    captured =
+      ExUnit.CaptureIO.capture_io(:stderr, fn ->
+        ast = Code.string_to_quoted!(string, columns: true)
+        assert_raise CompileError, fn -> Code.eval_quoted(ast) end
       end)
 
     for message <- List.wrap(messages) do
