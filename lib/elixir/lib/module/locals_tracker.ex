@@ -230,7 +230,7 @@ defmodule Module.LocalsTracker do
   defp maybe_add_col(pos, meta) do
     case meta[:column] do
       nil -> pos
-      col -> Keyword.put(pos, :column, col)
+      col -> [column: col] ++ pos
     end
   end
 
