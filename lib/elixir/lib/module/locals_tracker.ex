@@ -213,7 +213,9 @@ defmodule Module.LocalsTracker do
 
   defp get_line(meta), do: Keyword.get(meta, :line)
 
-  defp get_position(meta), do: maybe_add_col([line: get_line(meta)], meta)
+  defp get_position(meta) do 
+    {get_line(meta), meta[:column]}
+  end
 
   defp build_meta(nil, _meta), do: []
 
@@ -221,16 +223,11 @@ defmodule Module.LocalsTracker do
   # definition into a keep annotation that is used by the
   # error handling system in order to respect line/file.
   defp build_meta(position, meta) do
-    case Keyword.get(meta, :file) do
-      {file, _} -> maybe_add_col([keep: {file, position[:line]}], meta)
-      _ -> maybe_add_col(position, meta)
-    end
-  end
-
-  defp maybe_add_col(pos, meta) do
-    case meta[:column] do
-      nil -> pos
-      col -> [column: col] ++ pos
+    case {position, Keyword.get(meta, :file)} do
+      {{line, nil}, {file, _}} -> [keep: {file, line}]
+      {{line, nil}, nil} -> [line: line]
+      {{line, col}, {file, _}} -> [keep: {file, line}, column: col]
+      {{line, col}, nil} -> [line: line, column: col]
     end
   end
 
