@@ -329,39 +329,27 @@ defmodule Module.ParallelChecker do
     ["  ", Exception.format_stacktrace_entry(stacktrace), ?\n]
   end
 
-  defp to_diagnostic(message, {file, line, mfa}) when is_integer(line) do
-    to_diagnostic(message, {file, [line: line], mfa})
-  end
-
-  defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do
+  defp to_diagnostic(message, {file, line, mfa}) do
     %{
       severity: :warning,
       file: file,
-      position: position_to_tuple(position),
+      position: line,
       message: IO.iodata_to_binary(message),
-      stacktrace: [to_stacktrace(file, position, mfa)]
+      stacktrace: [to_stacktrace(file, line, mfa)]
     }
   end
 
-  defp to_stacktrace(file, position, {module, fun, arity}),
-    do: {module, fun, arity, location(file, position)}
+  defp to_stacktrace(file, line, {module, fun, arity}),
+    do: {module, fun, arity, location(file, line)}
 
-  defp to_stacktrace(file, position, nil),
-    do: {:elixir_compiler, :__FILE__, 1, location(file, position)}
+  defp to_stacktrace(file, line, nil),
+    do: {:elixir_compiler, :__FILE__, 1, location(file, line)}
 
-  defp to_stacktrace(file, position, module),
-    do: {module, :__MODULE__, 0, location(file, position)}
+  defp to_stacktrace(file, line, module),
+    do: {module, :__MODULE__, 0, location(file, line)}
 
-  defp location(file, position) do
-    file = file |> Path.relative_to_cwd() |> String.to_charlist()
-    Keyword.put(position, :file, file)
-  end
-
-  defp position_to_tuple(position) when is_list(position) do
-    case position[:column] do
-      nil -> position[:line]
-      col -> {position[:line], col}
-    end
+  defp location(file, line) do
+    [file: String.to_charlist(Path.relative_to_cwd(file)), line: line]
   end
 
   ## Cache
