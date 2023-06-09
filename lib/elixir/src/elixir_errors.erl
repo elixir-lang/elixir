@@ -23,20 +23,11 @@ print_warning(Message) ->
   io:put_chars(standard_error, [prefix(warning), Message, $\n]).
 
 print_diagnostic(Diagnostic) ->
-  #{position := Position, file := File} = Diagnostic,
-  FancyErrorsEnabled = false,
-
-  Fancy = fun(D) -> fancy_diagnostic_formatter(D) end,
-  Standard = fun(D) -> standard_diagnostic_formatter(D) end,
-
-  Formatter = case Position of 
-                {_Line, _Col} -> 
-                  case filelib:is_regular(File) andalso FancyErrorsEnabled of 
-                    true -> Fancy;
-                    false -> Standard
-                  end;
-                _ -> Standard
-              end,
+  FancyErrorsEnabled = true,
+  Formatter =  case FancyErrorsEnabled of 
+                    true -> fun(D) -> fancy_diagnostic_formatter(D) end;
+                    false -> fun(D) -> standard_diagnostic_formatter(D) end
+                end,
 
   Output = Formatter(Diagnostic),
   io:put_chars(standard_error, Output),
@@ -60,31 +51,65 @@ standard_diagnostic_formatter(Diagnostic) ->
  
   [prefix(Severity), Message, Location, "\n\n"].
 
-fancy_diagnostic_formatter(Diagnostic) -> 
-  #{severity := Severity, position := Position, file := File, message := Message} = Diagnostic,
+fancy_diagnostic_formatter(#{position := Position} = Diagnostic) -> 
+  case Position of 
+    {_, _} -> line_column_diagnostic(Diagnostic);
+    _Line -> line_only_diagnostic(Diagnostic)
+  end.
+
+line_column_diagnostic(Diagnostic) ->
+  #{position := Position, file := File, severity := Severity, message := Message} = Diagnostic,
   {LineNumber, Column} = Position,
   {Line, TotalLeading} = get_file_line(File, LineNumber),
   LineDigits = get_line_number_digits(LineNumber),
-  Spacing = lists:duplicate(LineDigits + 1, " "),
-  Msg = io_lib:format(
+  Spacing = n_spaces(LineDigits + 1),
+
+  io_lib:format(
     " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
     " ~ts│ ~ts\n"
-    " ~ts│",
+    " ~ts│\n\n",
     [
+     Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
-     prefix(Severity),
-     file_format(Position, File),
-     Spacing,
-     LineNumber,
-     highlight_line(Line, Column - TotalLeading, Severity),
-     Spacing,
-     format_message(Position, Message, TotalLeading, LineDigits, Severity),
+     LineNumber, highlight_line(Line, Column - TotalLeading, Severity),
+     Spacing, format_message(Position, Message, TotalLeading, LineDigits, Severity),
      Spacing
     ]
-  ),
-  [Msg, "\n\n"].
+  ).
+
+line_only_diagnostic(Diagnostic) ->
+  #{position := LineNumber, file := File, severity := Severity, message := Message} = Diagnostic,
+  {Line, TotalLeading} = get_file_line(File, LineNumber),
+  LineDigits = get_line_number_digits(LineNumber),
+  Spacing = n_spaces(LineDigits + 1),
+
+  io_lib:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts│\n"
+    " ~p │ ~ts\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n\n",
+    [ 
+     Spacing, prefix(Severity), file_format(LineNumber, File),
+     Spacing, 
+     LineNumber, Line,
+     Spacing, highlight_below_line(Line, Severity),
+     Spacing,
+     Spacing, format_message_only_line(Message, TotalLeading, LineDigits),
+     Spacing
+    ]
+ ).
+
+highlight_below_line(Line, Severity) -> 
+  Length = string:length(Line),
+  case Severity of 
+    warning -> highlight(lists:duplicate(Length, "~"), warning);
+    error -> highlight(lists:duplicate(Length, "^"), error)
+  end.
 
 get_line_number_digits(Number) -> do_get_line_number_digits(Number, 1).
 
@@ -350,12 +375,21 @@ env_format(Meta, #{file := EnvFile} = E) ->
 format_message({_, Column}, Message, TotalLeading, NDigits, Severity) ->
   Arrow = "╰── ",
   ColoredArrow = highlight(Arrow, Severity),
-  Words = binary:split(Message, <<" ">>, [global]),
-  Spacing = lists:duplicate(Column - TotalLeading, " "),
-  Lines = wrap_lines(Words, 80 - Column - TotalLeading),
+  Spacing = n_spaces(Column - TotalLeading),
+  Lines =  wrap_message(Message, 80 - Column - TotalLeading),
   LineSeparator = io_lib:format("\n ~ts │ ~ts~ts",  [n_spaces(NDigits), Spacing, n_spaces(string:length(Arrow))]),
   Result = binary_join(Lines, unicode:characters_to_binary(LineSeparator)),
   io_lib:format("~ts~ts~ts", [Spacing, ColoredArrow, Result]).
+
+format_message_only_line(Message, TotalLeading, NDigits) ->
+  Lines = wrap_message(Message, 80 - TotalLeading),
+  LineSeparator = io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)]),
+  binary_join(Lines, unicode:characters_to_binary(LineSeparator)).
+
+wrap_message(Message, LineLength) ->
+  NoNewline = binary:replace(Message, <<"\n">>, <<"">>),
+  Words = binary:split(NoNewline, <<" ">>, [global]),
+  wrap_lines(Words, LineLength).
 
 n_spaces(N) -> lists:duplicate(N, " ").
 
