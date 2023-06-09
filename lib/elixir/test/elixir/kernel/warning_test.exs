@@ -4,8 +4,9 @@ defmodule Kernel.WarningTest do
   use ExUnit.Case
   import ExUnit.CaptureIO
 
-  defp capture_err(fun) do
-    capture_io(:stderr, fun)
+  defp capture_err(source) do
+    ast = Code.string_to_quoted!(source)
+    capture_io(:stderr, fn -> )
   end
 
   defmacro will_warn do
@@ -34,7 +35,7 @@ defmodule Kernel.WarningTest do
       end)
 
     assert output =~ "outdented heredoc line"
-    assert output =~ "nofile:2"
+    assert output =~ "nofile:2:3"
   end
 
   test "does not warn on incomplete tokenization" do
@@ -464,7 +465,7 @@ defmodule Kernel.WarningTest do
                defp hello, do: nil
              end
              """)
-           end) =~ "function hello/0 is unused\n  nofile:2"
+           end) =~ "function hello/0 is unused\n  nofile:2: "
 
     assert capture_err(fn ->
              Code.eval_string("""
@@ -473,7 +474,7 @@ defmodule Kernel.WarningTest do
                defp hello(1), do: :ok
              end
              """)
-           end) =~ "function hello/1 is unused\n  nofile:2"
+           end) =~ "function hello/1 is unused\n  nofile:2: "
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -484,7 +485,7 @@ defmodule Kernel.WarningTest do
                defp d(x), do: x
              end
              """)
-           end) =~ "function c/2 is unused\n  nofile:4"
+           end) =~ "function c/2 is unused\n  nofile:4: "
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -494,7 +495,7 @@ defmodule Kernel.WarningTest do
                defp b(x, y), do: [x, y]
              end
              """)
-           end) =~ "function b/2 is unused\n  nofile:3"
+           end) =~ "function b/2 is unused\n  nofile:3: "
   after
     purge([Sample1, Sample2, Sample3, Sample4])
   end
@@ -510,8 +511,8 @@ defmodule Kernel.WarningTest do
         """)
       end)
 
-    assert message =~ "function a/0 is unused\n  nofile:2"
-    assert message =~ "function b/0 is unused\n  nofile:3"
+    assert message =~ "function a/0 is unused\n  nofile:2: "
+    assert message =~ "function b/0 is unused\n  nofile:3: "
   after
     purge(Sample)
   end
@@ -553,7 +554,7 @@ defmodule Kernel.WarningTest do
                defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "default values for the optional arguments in b/3 are never used\n  nofile:3"
+           end) =~ "default values for the optional arguments in b/3 are never used\n  nofile:3: "
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -563,7 +564,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "the default values for the first 2 optional arguments in b/3 are never used\n  nofile:3"
+             "the default values for the first 2 optional arguments in b/3 are never used\n  nofile:3: "
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -573,7 +574,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "the default value for the first optional argument in b/3 is never used\n  nofile:3"
+             "the default value for the first optional argument in b/3 is never used\n  nofile:3: "
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -593,7 +594,7 @@ defmodule Kernel.WarningTest do
                defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
              end
              """)
-           end) =~ "default values for the optional arguments in b/3 are never used\n  nofile:3"
+           end) =~ "default values for the optional arguments in b/3 are never used\n  nofile:3: "
 
     assert capture_err(fn ->
              Code.eval_string(~S"""
@@ -605,7 +606,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "the default values for the first 2 optional arguments in b/3 are never used\n  nofile:3"
+             "the default values for the first 2 optional arguments in b/3 are never used\n  nofile:3: "
   after
     purge([Sample1, Sample2, Sample3, Sample4, Sample5, Sample6])
   end
@@ -1075,7 +1076,7 @@ defmodule Kernel.WarningTest do
                def foo, do: Atom.to_string "abc"
              end
              """)
-           end) =~ "the call to Atom.to_string/1 will fail with ArgumentError\n  nofile:2"
+           end) =~ "the call to Atom.to_string/1 will fail with ArgumentError\n  nofile:2\n"
 
     assert capture_err(fn ->
              Code.eval_string("""
@@ -1083,7 +1084,7 @@ defmodule Kernel.WarningTest do
                def foo, do: 1 + nil
              end
              """)
-           end) =~ "the call to +/2 will fail with ArithmeticError\n  nofile:2"
+           end) =~ "the call to +/2 will fail with ArithmeticError\n  nofile:2\n"
   after
     purge([Sample1, Sample2])
   end
@@ -1233,7 +1234,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "clauses with the same name should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
+             "clauses with the same name should be grouped together, \"def foo/2\" was previously defined (nofile:2)\n  nofile:4\n"
   after
     purge(Sample)
   end
@@ -1248,7 +1249,7 @@ defmodule Kernel.WarningTest do
              end
              """)
            end) =~
-             "clauses with the same name and arity (number of arguments) should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
+             "clauses with the same name and arity (number of arguments) should be grouped together, \"def foo/2\" was previously defined (nofile:2)\n  nofile:4\n"
   after
     purge(Sample)
   end
@@ -1308,7 +1309,7 @@ defmodule Kernel.WarningTest do
 
     assert output =~ "redefining @doc attribute previously set at line 2"
     assert output =~ "nofile:3: Sample (module)"
-    refute output =~ "nofile:7"
+    refute output =~ "nofile:7:a"
   after
     purge(Sample)
   end
@@ -1398,9 +1399,9 @@ defmodule Kernel.WarningTest do
           """)
         end)
 
-      assert output =~ "nofile:4"
+      assert output =~ "nofile:4: "
       assert output =~ "type priv/0 is unused"
-      assert output =~ "nofile:5"
+      assert output =~ "nofile:5: "
       assert output =~ "type priv_args/2 is unused"
       refute output =~ "type pub/0 is unused"
       refute output =~ "type op/0 is unused"
@@ -1422,11 +1423,11 @@ defmodule Kernel.WarningTest do
           """)
         end)
 
-      assert output =~ "nofile:2"
+      assert output =~ "nofile:2: "
       assert output =~ "@opaque type op1/0 is underspecified and therefore meaningless"
-      assert output =~ "nofile:3"
+      assert output =~ "nofile:3: "
       assert output =~ "@opaque type op2/0 is underspecified and therefore meaningless"
-      refute output =~ "nofile:4"
+      refute output =~ "nofile:4: "
       refute output =~ "op3"
     after
       purge(Sample)
@@ -1446,11 +1447,11 @@ defmodule Kernel.WarningTest do
           """)
         end)
 
-      assert output =~ "nofile:2"
+      assert output =~ "nofile:2: "
       assert output =~ ~r/the underscored type variable "_var1" is used more than once/
-      assert output =~ "nofile:3"
+      assert output =~ "nofile:3: "
       assert output =~ ~r/the underscored type variable "_var2" is used more than once/
-      assert output =~ "nofile:5"
+      assert output =~ "nofile:5: "
       assert output =~ ~r/the underscored type variable "_var3" is used more than once/
     after
       purge(Sample)
@@ -1581,7 +1582,7 @@ defmodule Kernel.WarningTest do
       end)
 
     assert content =~ "module attribute @at was set but never used"
-    assert content =~ "nofile:2"
+    assert content =~ "nofile:2: "
   after
     purge(Sample)
   end
@@ -1598,7 +1599,7 @@ defmodule Kernel.WarningTest do
       end)
 
     assert content =~ "module attribute @at was set but never used"
-    assert content =~ "nofile:3"
+    assert content =~ "nofile:3: "
   after
     purge(Sample)
   end
