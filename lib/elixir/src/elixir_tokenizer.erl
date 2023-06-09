@@ -1030,8 +1030,8 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
       end;
 
     error ->
-      Message = "heredoc allows only zero or more whitespace characters followed by a new line after ",
-      {error, {Line, Column, io_lib:format(Message, []), [H, H, H]}}
+      Message = "heredoc allows only whitespace characters followed by a new line after opening ",
+      {error, {Line, Column + 3, io_lib:format(Message, []), [H, H, H]}}
   end.
 
 extract_heredoc_header("\r\n" ++ Rest) ->

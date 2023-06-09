@@ -199,11 +199,11 @@ compile_error(#{file := File}) ->
 
 -spec compile_error(list(), binary(), binary() | unicode:charlist()) -> no_return().
 compile_error(Meta, File, Message) when is_binary(Message) ->
-  {File, Line} = meta_location(Meta, File),
-  raise('Elixir.CompileError', Message, [{file, File}, {line, Line}]);
+  {File, Position} = meta_location(Meta, File),
+  raise('Elixir.CompileError', Message, [{file, File} | Position]);
 compile_error(Meta, File, Message) when is_list(Message) ->
-  {File, Line} = meta_location(Meta, File),
-  raise('Elixir.CompileError', elixir_utils:characters_to_binary(Message), [{file, File}, {line, Line}]).
+  {File, Position} = meta_location(Meta, File),
+  raise('Elixir.CompileError', elixir_utils:characters_to_binary(Message), [{file, File} | Position]).
 
 %% Tokenization parsing/errors.
 
@@ -329,19 +329,20 @@ yellow(Msg) -> io_lib:format("\e[33m~ts\e[0m", [Msg]).
 red(Msg) -> io_lib:format("\e[31m~ts\e[0m", [Msg]).
 
 env_format(Meta, #{file := EnvFile} = E) ->
-  {File, Line} = meta_location(Meta, EnvFile),
+  {File, Position} = meta_location(Meta, EnvFile),
+  Line = ?line(Position),
 
   Stacktrace =
     case E of
       #{function := {Name, Arity}, module := Module} ->
-        [{Module, Name, Arity, [{file, elixir_utils:relative_to_cwd(File)}, {line, Line}]}];
+        [{Module, Name, Arity, [{file, elixir_utils:relative_to_cwd(File)} | Position ]}];
       #{module := Module} when Module /= nil ->
-        [{Module, '__MODULE__', 0, [{file, elixir_utils:relative_to_cwd(File)}, {line, Line}]}];
+        [{Module, '__MODULE__', 0, [{file, elixir_utils:relative_to_cwd(File)} | Position]}];
       #{} ->
         []
     end,
 
-  case lists:keyfind(column, 1, Meta) of
+  case lists:keyfind(column, 1, Position) of
     {column, Column} -> {{Line, Column}, File, Stacktrace};
     _ -> {Line, File, Stacktrace}
   end.
@@ -392,8 +393,14 @@ file_format(Line, File) ->
 
 meta_location(Meta, File) ->
   case elixir_utils:meta_keep(Meta) of
-    {F, L} -> {F, L};
-    nil    -> {File, ?line(Meta)}
+    {F, L} -> {F, [{line, L}]};
+    nil    -> {File, maybe_add_col([{line, ?line(Meta)}], Meta)}
+  end.
+
+maybe_add_col(Position, Meta) ->
+  case lists:keyfind(column, 1, Meta) of 
+    {column, Col} when is_integer(Col) -> [{column, Col} | Position];
+    false -> Position
   end.
 
 raise(Kind, Message, Opts) when is_binary(Message) ->
