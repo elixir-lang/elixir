@@ -90,6 +90,23 @@ defmodule CodeTest do
                  Code.eval_quoted(quoted, [])
                end)
     end
+
+    
+    test "includes column information on unknown remote function calls" do
+      sample = """
+      defmodule CodeTest.UnknownRemoteCall do
+        def perform do 
+          UnkownModule.foo()
+        end
+      end
+      """
+
+      assert {_, [%{position: {3, 17}}]} =
+               Code.with_diagnostics(fn ->
+                 quoted = Code.string_to_quoted!(sample, columns: true)
+                 Code.eval_quoted(quoted, [])
+               end)
+    end
   end
 
   describe "eval_string/1,2,3" do
