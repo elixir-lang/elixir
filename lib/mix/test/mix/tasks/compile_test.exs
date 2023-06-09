@@ -335,6 +335,9 @@ defmodule Mix.Tasks.CompileTest do
     in_fixture("no_mixfile", fn ->
       assert Mix.Task.run("compile", []) == {:ok, []}
       assert :code.where_is_file(~c"parsetools.app") == :non_existing
+
+      # Make sure erts is also kept
+      assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(:zlib)
     end)
   end
 
