@@ -213,7 +213,7 @@ defmodule Module.LocalsTracker do
 
   defp get_line(meta), do: Keyword.get(meta, :line)
 
-  defp get_position(meta) do 
+  defp get_position(meta) do
     {get_line(meta), meta[:column]}
   end
 
