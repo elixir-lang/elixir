@@ -97,8 +97,8 @@ defmodule Mix.AppLoader do
 
   defp extra_apps(config) do
     case Keyword.get(config, :language, :elixir) do
-      :elixir -> [:ex_unit, :iex, :mix, :elixir]
-      :erlang -> [:compiler]
+      :elixir -> [:ex_unit, :iex, :mix, :elixir, :erts]
+      :erlang -> [:compiler, :erts]
     end
   end
 
