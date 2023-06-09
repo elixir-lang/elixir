@@ -283,7 +283,7 @@ file_format(Line, File) ->
 
 meta_location(Meta, File) ->
   case elixir_utils:meta_keep(Meta) of
-    {F, L} -> {F, maybe_add_col([{line, L}], Meta)};
+    {F, L} -> {F, [{line, L}]};
     nil    -> {File, maybe_add_col([{line, ?line(Meta)}], Meta)}
   end.
 
