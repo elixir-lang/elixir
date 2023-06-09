@@ -5,11 +5,12 @@ defmodule Kernel.WarningTest do
   import ExUnit.CaptureIO
 
   defp capture_err(fun) when is_function(fun), do: capture_io(:stderr, fun)
+
   defp capture_err(source, op \\ :eval) when op in [:eval, :quote, :compile] do
-    capture_io(:stderr, fn -> 
+    capture_io(:stderr, fn ->
       quoted = Code.string_to_quoted!(source, columns: true)
 
-      case op do 
+      case op do
         :quote -> nil
         :eval -> Code.eval_quoted(quoted)
         :compile -> Code.compile_quoted(quoted)
@@ -29,15 +30,16 @@ defmodule Kernel.WarningTest do
              import Kernel.WarningTest
              will_warn()
              """)
-           end) =~ "key :dup will be overridden in map\n  demo:13"
+           end) =~ "key :dup will be overridden in map\n  demo:23\n"
   end
 
   test "outdented heredoc" do
-    output = capture_err("""
-          '''
-        outdented
-          '''
-        """)
+    output =
+      capture_err("""
+        '''
+      outdented
+        '''
+      """)
 
     assert output =~ "outdented heredoc line"
     assert output =~ "nofile:2:3"
@@ -176,9 +178,10 @@ defmodule Kernel.WarningTest do
   end
 
   test "unused variable" do
+    # Note we use compile_string because eval_string does not emit unused vars warning
     output =
-      # Note we use compile_string because eval_string does not emit unused vars warning
-      capture_err("""
+      capture_err(
+        """
         defmodule Sample do
           module = 1
           def hello(arg), do: nil
@@ -186,7 +189,9 @@ defmodule Kernel.WarningTest do
         file = 2
         file = 3
         file
-        """, :compile)
+        """,
+        :compile
+      )
 
     assert output =~ "variable \"arg\" is unused"
     assert output =~ "variable \"module\" is unused"
@@ -196,9 +201,10 @@ defmodule Kernel.WarningTest do
   end
 
   test "unused variable that could be pinned" do
+    # Note we use compile_string because eval_string does not emit unused vars warning
     output =
-      # Note we use compile_string because eval_string does not emit unused vars warning
-      capture_err("""
+      capture_err(
+        """
         defmodule Sample do
           def test do
             compare_local = "hello"
@@ -211,7 +217,9 @@ defmodule Kernel.WarningTest do
             end
           end
         end
-        """, :compile)
+        """,
+        :compile
+      )
 
     assert output =~
              "variable \"compare_local\" is unused (there is a variable with the same name in the context, use the pin operator (^) to match on it or prefix this variable with underscore if it is not meant to be used)"
@@ -225,11 +233,11 @@ defmodule Kernel.WarningTest do
   test "unused compiler variable" do
     output =
       capture_err("""
-        defmodule Sample do
-          def hello(__MODULE___), do: :ok
-          def world(_R), do: :ok
-        end
-        """)
+      defmodule Sample do
+        def hello(__MODULE___), do: :ok
+        def world(_R), do: :ok
+      end
+      """)
 
     assert output =~ "unknown compiler variable \"__MODULE___\""
     refute output =~ "unknown compiler variable \"_R\""
@@ -341,41 +349,41 @@ defmodule Kernel.WarningTest do
     message = "code block contains unused literal \"oops\""
 
     assert capture_err("""
+           "oops"
+           :ok
+           """) =~ message
+
+    assert capture_err("""
+           fn ->
              "oops"
              :ok
-             """) =~ message
+           end
+           """) =~ message
 
     assert capture_err("""
-             fn ->
-               "oops"
-               :ok
-             end
-             """) =~ message
-
-    assert capture_err("""
-             try do
-               "oops"
-               :ok
-             after
-               :ok
-             end
-             """) =~ message
+           try do
+             "oops"
+             :ok
+           after
+             :ok
+           end
+           """) =~ message
   end
 
   test "useless attr" do
     message =
       capture_err("""
-        defmodule Sample do
-          @foo 1
-          @bar 1
-          @foo
+      defmodule Sample do
+        @foo 1
+        @bar 1
+        @foo
 
-          def bar do
-            @bar
-            :ok
-          end
+        def bar do
+          @bar
+          :ok
         end
-        """)
+      end
+      """)
 
     assert message =~ "module attribute @foo in code block has no effect as it is never returned "
     assert message =~ "module attribute @bar in code block has no effect as it is never returned "
@@ -387,81 +395,81 @@ defmodule Kernel.WarningTest do
     message = "variable foo in code block has no effect as it is never returned "
 
     assert capture_err("""
+           foo = 1
+           foo
+           :ok
+           """) =~ message
+
+    assert capture_err("""
+           fn ->
              foo = 1
              foo
              :ok
-             """) =~ message
+           end
+           """) =~ message
 
     assert capture_err("""
-             fn ->
-               foo = 1
-               foo
-               :ok
-             end
-             """) =~ message
-
-    assert capture_err("""
-             try do
-               foo = 1
-               foo
-               :ok
-             after
-               :ok
-             end
-             """) =~ message
-
-    assert capture_err("""
-             node()
+           try do
+             foo = 1
+             foo
              :ok
-             """) == ""
+           after
+             :ok
+           end
+           """) =~ message
+
+    assert capture_err("""
+           node()
+           :ok
+           """) == ""
   end
 
   test "underscored variable on match" do
     assert capture_err("""
-             {_arg, _arg} = {1, 1}
-             """) =~ "the underscored variable \"_arg\" appears more than once in a match"
+           {_arg, _arg} = {1, 1}
+           """) =~ "the underscored variable \"_arg\" appears more than once in a match"
   end
 
   test "underscored variable on use" do
     assert capture_err("""
-             fn _var -> _var + 1 end
-             """) =~ "the underscored variable \"_var\" is used after being set"
+           fn _var -> _var + 1 end
+           """) =~ "the underscored variable \"_var\" is used after being set"
 
     assert capture_err("""
-             fn var!(_var, Foo) -> var!(_var, Foo) + 1 end
-             """) =~ ""
+           fn var!(_var, Foo) -> var!(_var, Foo) + 1 end
+           """) =~ ""
   end
 
   test "unused function" do
     assert capture_err("""
-             defmodule Sample1 do
-               defp hello, do: nil
-             end
-             """) =~ "function hello/0 is unused\n  nofile:2: "
+           defmodule Sample1 do
+             defp hello, do: nil
+           end
+           """) =~ "function hello/0 is unused\n  nofile:2: "
 
     assert capture_err("""
-             defmodule Sample2 do
-               defp hello(0), do: hello(1)
-               defp hello(1), do: :ok
-             end
-             """) =~ "function hello/1 is unused\n  nofile:2: "
+           defmodule Sample2 do
+             defp hello(0), do: hello(1)
+             defp hello(1), do: :ok
+           end
+           """) =~ "function hello/1 is unused\n  nofile:2: "
 
     assert capture_err(~S"""
-             defmodule Sample3 do
-               def a, do: nil
-               def b, do: d(10)
-               defp c(x, y \\ 1), do: [x, y]
-               defp d(x), do: x
-             end
-             """) =~ "function c/2 is unused\n  nofile:4: "
+           defmodule Sample3 do
+             def a, do: nil
+             def b, do: d(10)
+             defp c(x, y \\ 1), do: [x, y]
+             defp d(x), do: x
+           end
+           """) =~ "function c/2 is unused\n  nofile:4: "
 
     assert capture_err(~S"""
-             defmodule Sample4 do
-               def a, do: nil
-               defp b(x \\ 1, y \\ 1)
-               defp b(x, y), do: [x, y]
-             end
-             """) =~ "function b/2 is unused\n  nofile:3: "
+           defmodule Sample4 do
+             def a, do: nil
+             defp b(x \\ 1, y \\ 1)
+             defp b(x, y), do: [x, y]
+           end
+           """) =~ "function b/2 is unused\n  nofile:3: "
   after
     purge([Sample1, Sample2, Sample3, Sample4])
   end
@@ -469,11 +477,11 @@ defmodule Kernel.WarningTest do
   test "unused cyclic functions" do
     message =
       capture_err("""
-        defmodule Sample do
-          defp a, do: b()
-          defp b, do: a()
-        end
-        """)
+      defmodule Sample do
+        defp a, do: b()
+        defp b, do: a()
+      end
+      """)
 
     assert message =~ "function a/0 is unused\n  nofile:2: "
     assert message =~ "function b/0 is unused\n  nofile:3: "
@@ -483,111 +491,123 @@ defmodule Kernel.WarningTest do
 
   test "unused macro" do
     assert capture_err("""
-             defmodule Sample do
-               defmacrop hello, do: nil
-             end
-             """) =~ "macro hello/0 is unused"
+           defmodule Sample do
+             defmacrop hello, do: nil
+           end
+           """) =~ "macro hello/0 is unused"
   after
     purge(Sample)
   end
 
   test "shadowing" do
     assert capture_err("""
-             defmodule Sample do
-               def test(x) do
-                 case x do
-                   {:file, fid} -> fid
-                   {:path, _}   -> fn(fid) -> fid end
-                 end
+           defmodule Sample do
+             def test(x) do
+               case x do
+                 {:file, fid} -> fid
+                 {:path, _}   -> fn(fid) -> fid end
                end
              end
-             """) == ""
+           end
+           """) == ""
   after
     purge(Sample)
   end
 
   test "unused default args" do
     assert capture_err(~S"""
-             defmodule Sample1 do
-               def a, do: b(1, 2, 3)
-               defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
-             end
-             """) =~ "default values for the optional arguments in b/3 are never used\n  nofile:3: "
+           defmodule Sample1 do
+             def a, do: b(1, 2, 3)
+             defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
+           end
+           """) =~ "default values for the optional arguments in b/3 are never used\n  nofile:3: "
 
     assert capture_err(~S"""
-             defmodule Sample2 do
-               def a, do: b(1, 2)
-               defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
-             end
-             """) =~
+           defmodule Sample2 do
+             def a, do: b(1, 2)
+             defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
+           end
+           """) =~
              "the default values for the first 2 optional arguments in b/3 are never used\n  nofile:3: "
 
     assert capture_err(~S"""
-             defmodule Sample3 do
-               def a, do: b(1)
-               defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
-             end
-             """) =~
+           defmodule Sample3 do
+             def a, do: b(1)
+             defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
+           end
+           """) =~
              "the default value for the first optional argument in b/3 is never used\n  nofile:3: "
 
     assert capture_err(~S"""
-             defmodule Sample4 do
-               def a, do: b(1)
-               defp b(arg1 \\ 1, arg2, arg3 \\ 3), do: [arg1, arg2, arg3]
-             end
-             """) == ""
+           defmodule Sample4 do
+             def a, do: b(1)
+             defp b(arg1 \\ 1, arg2, arg3 \\ 3), do: [arg1, arg2, arg3]
+           end
+           """) == ""
 
     assert capture_err(~S"""
-             defmodule Sample5 do
-               def a, do: b(1, 2, 3)
-               defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
+           defmodule Sample5 do
+             def a, do: b(1, 2, 3)
+             defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
 
-               defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
-             end
-             """) =~ "default values for the optional arguments in b/3 are never used\n  nofile:3: "
+             defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
+           end
+           """) =~ "default values for the optional arguments in b/3 are never used\n  nofile:3: "
 
     assert capture_err(~S"""
-             defmodule Sample6 do
-               def a, do: b(1, 2)
-               defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
+           defmodule Sample6 do
+             def a, do: b(1, 2)
+             defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
 
-               defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
-             end
-             """) =~
+             defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
+           end
+           """) =~
              "the default values for the first 2 optional arguments in b/3 are never used\n  nofile:3: "
   after
     purge([Sample1, Sample2, Sample3, Sample4, Sample5, Sample6])
   end
 
   test "unused import" do
-    assert capture_err("""
+    assert capture_err(
+             """
              defmodule Sample do
                import :lists
                def a, do: nil
              end
-             """, :compile) =~ "unused import :lists\n"
+             """,
+             :compile
+           ) =~ "unused import :lists\n"
 
-    assert capture_err("""
+    assert capture_err(
+             """
              import :lists
-             """, :compile) =~ "unused import :lists\n"
+             """,
+             :compile
+           ) =~ "unused import :lists\n"
   after
     purge(Sample)
   end
 
   test "unknown import" do
-    assert capture_err("""
+    assert capture_err(
+             """
              import(Kernel, only: [invalid: 1])
-             """, :compile) =~ "cannot import Kernel.invalid/1 because it is undefined or private"
+             """,
+             :compile
+           ) =~ "cannot import Kernel.invalid/1 because it is undefined or private"
   end
 
   test "unused import of one of the functions in :only" do
     output =
-      capture_err("""
+      capture_err(
+        """
         defmodule Sample do
           import String, only: [upcase: 1, downcase: 1, trim: 1]
           def a, do: upcase("hello")
         end
-        """, :compile)
+        """,
+        :compile
+      )
 
     assert output =~ "unused import String.downcase/1"
     assert output =~ "unused import String.trim/1"
@@ -596,49 +616,64 @@ defmodule Kernel.WarningTest do
   end
 
   test "unused import of any of the functions in :only" do
-    assert capture_err("""
+    assert capture_err(
+             """
              defmodule Sample do
                import String, only: [upcase: 1, downcase: 1]
                def a, do: nil
              end
-             """, :compile) =~ "unused import String\n"
+             """,
+             :compile
+           ) =~ "unused import String\n"
   after
     purge(Sample)
   end
 
   test "duplicated function on import options" do
-    assert capture_err("""
+    assert capture_err(
+             """
              defmodule Kernel.WarningsTest.DuplicatedFunctionOnImportOnly do
                import List, only: [wrap: 1, keyfind: 3, wrap: 1]
              end
-             """, :compile) =~ "invalid :only option for import, wrap/1 is duplicated\n"
+             """,
+             :compile
+           ) =~ "invalid :only option for import, wrap/1 is duplicated\n"
 
-    assert capture_err("""
+    assert capture_err(
+             """
              defmodule Kernel.WarningsTest.DuplicatedFunctionOnImportExcept do
                import List, except: [wrap: 1, keyfind: 3, wrap: 1]
              end
-             """, :compile) =~ "invalid :except option for import, wrap/1 is duplicated"
+             """,
+             :compile
+           ) =~ "invalid :except option for import, wrap/1 is duplicated"
   end
 
   test "unused alias" do
-    assert capture_err("""
+    assert capture_err(
+             """
              defmodule Sample do
                alias :lists, as: List
                def a, do: nil
              end
-             """, :compile) =~ "unused alias List"
+             """,
+             :compile
+           ) =~ "unused alias List"
   after
     purge(Sample)
   end
 
   test "unused alias when also import" do
-    assert capture_err("""
+    assert capture_err(
+             """
              defmodule Sample do
                alias :lists, as: List
                import MapSet
                new()
              end
-             """, :compile) =~ "unused alias List"
+             """,
+             :compile
+           ) =~ "unused alias List"
   after
     purge(Sample)
   end
@@ -678,16 +713,16 @@ defmodule Kernel.WarningTest do
 
   test "unused guard" do
     assert capture_err("""
-             defmodule Sample do
-               def atom_case do
-                 v = "bc"
-                 case v do
-                   _ when is_atom(v) -> :ok
-                   _ -> :fail
-                 end
+           defmodule Sample do
+             def atom_case do
+               v = "bc"
+               case v do
+                 _ when is_atom(v) -> :ok
+                 _ -> :fail
                end
              end
-             """) =~ "this check/guard will always yield the same result"
+           end
+           """) =~ "this check/guard will always yield the same result"
   after
     purge(Sample)
   end
@@ -695,16 +730,16 @@ defmodule Kernel.WarningTest do
   test "length(list) == 0 in guard" do
     error_message =
       capture_err("""
-        defmodule Sample do
-          def list_case do
-            v = []
-            case v do
-              _ when length(v) == 0 -> :ok
-              _ -> :fail
-            end
+      defmodule Sample do
+        def list_case do
+          v = []
+          case v do
+            _ when length(v) == 0 -> :ok
+            _ -> :fail
           end
         end
-        """)
+      end
+      """)
 
     assert error_message =~ "do not use \"length(v) == 0\" to check if a list is empty"
 
@@ -717,16 +752,16 @@ defmodule Kernel.WarningTest do
   test "length(list) > 0 in guard" do
     error_message =
       capture_err("""
-        defmodule Sample do
-          def list_case do
-            v = []
-            case v do
-              _ when length(v) > 0 -> :ok
-              _ -> :fail
-            end
+      defmodule Sample do
+        def list_case do
+          v = []
+          case v do
+            _ when length(v) > 0 -> :ok
+            _ -> :fail
           end
         end
-        """)
+      end
+      """)
 
     assert error_message =~ "do not use \"length(v) > 0\" to check if a list is not empty"
 
@@ -738,58 +773,58 @@ defmodule Kernel.WarningTest do
 
   test "late function heads" do
     assert capture_err("""
-             defmodule Sample1 do
-               defmacro __using__(_) do
-                 quote do
-                   def add(a, b), do: a + b
-                 end
+           defmodule Sample1 do
+             defmacro __using__(_) do
+               quote do
+                 def add(a, b), do: a + b
                end
              end
+           end
 
-             defmodule Sample2 do
-               use Sample1
-               @doc "hello"
-               def add(a, b)
-             end
-             """) == ""
+           defmodule Sample2 do
+             use Sample1
+             @doc "hello"
+             def add(a, b)
+           end
+           """) == ""
 
     assert capture_err("""
-             defmodule Sample3 do
-               def add(a, b), do: a + b
-               @doc "hello"
-               def add(a, b)
-             end
-             """) =~ "function head for def add/2 must come at the top of its direct implementation"
+           defmodule Sample3 do
+             def add(a, b), do: a + b
+             @doc "hello"
+             def add(a, b)
+           end
+           """) =~ "function head for def add/2 must come at the top of its direct implementation"
   after
     purge([Sample1, Sample2, Sample3])
   end
 
   test "used import via alias" do
     assert capture_err("""
-             defmodule Sample1 do
-               import List, only: [flatten: 1]
+           defmodule Sample1 do
+             import List, only: [flatten: 1]
 
-               defmacro generate do
-                 List.duplicate(quote(do: flatten([1, 2, 3])), 100)
-               end
+             defmacro generate do
+               List.duplicate(quote(do: flatten([1, 2, 3])), 100)
              end
+           end
 
-             defmodule Sample2 do
-               import Sample1
-               generate()
-             end
-             """) == ""
+           defmodule Sample2 do
+             import Sample1
+             generate()
+           end
+           """) == ""
   after
     purge([Sample1, Sample2])
   end
 
   test "clause not match" do
     assert capture_err("""
-             defmodule Sample do
-               def hello, do: nil
-               def hello, do: nil
-             end
-             """) =~
+           defmodule Sample do
+             def hello, do: nil
+             def hello, do: nil
+           end
+           """) =~
              ~r"this clause( for hello/0)? cannot match because a previous clause at line 2 always matches"
   after
     purge(Sample)
@@ -797,18 +832,18 @@ defmodule Kernel.WarningTest do
 
   test "generated clause not match" do
     assert capture_err("""
-             defmodule Sample do
-               defmacro __using__(_) do
-                 quote do
-                   def hello, do: nil
-                   def hello, do: nil
-                 end
+           defmodule Sample do
+             defmacro __using__(_) do
+               quote do
+                 def hello, do: nil
+                 def hello, do: nil
                end
              end
-             defmodule UseSample do
-               use Sample
-             end
-             """) =~
+           end
+           defmodule UseSample do
+             use Sample
+           end
+           """) =~
              ~r"this clause( for hello/0)? cannot match because a previous clause at line 10 always matches"
   after
     purge(Sample)
@@ -823,18 +858,18 @@ defmodule Kernel.WarningTest do
     message = "def hello/1 has multiple clauses and also declares default values"
 
     assert capture_err(~S"""
-             defmodule Sample1 do
-               def hello(arg), do: arg
-               def hello(arg \\ 0), do: arg
-             end
-             """) =~ message
+           defmodule Sample1 do
+             def hello(arg), do: arg
+             def hello(arg \\ 0), do: arg
+           end
+           """) =~ message
 
     assert capture_err(~S"""
-             defmodule Sample2 do
-               def hello(_arg)
-               def hello(arg \\ 0), do: arg
-             end
-             """) =~ message
+           defmodule Sample2 do
+             def hello(_arg)
+             def hello(arg \\ 0), do: arg
+           end
+           """) =~ message
   after
     purge([Sample1, Sample2])
   end
@@ -843,34 +878,34 @@ defmodule Kernel.WarningTest do
     message = "def hello/1 has multiple clauses and also declares default values"
 
     assert capture_err(~S"""
-             defmodule Sample do
-               def hello(arg \\ 0), do: arg
-               def hello(arg), do: arg
-             end
-             """) =~ message
+           defmodule Sample do
+             def hello(arg \\ 0), do: arg
+             def hello(arg), do: arg
+           end
+           """) =~ message
   after
     purge(Sample)
   end
 
   test "unused with local with overridable" do
     assert capture_err("""
-             defmodule Sample do
-               def hello, do: world()
-               defp world, do: :ok
-               defoverridable [hello: 0]
-               def hello, do: :ok
-             end
-             """) =~ "function world/0 is unused"
+           defmodule Sample do
+             def hello, do: world()
+             defp world, do: :ok
+             defoverridable [hello: 0]
+             def hello, do: :ok
+           end
+           """) =~ "function world/0 is unused"
   after
     purge(Sample)
   end
 
   test "undefined module attribute" do
     assert capture_err("""
-             defmodule Sample do
-               @foo
-             end
-             """) =~
+           defmodule Sample do
+             @foo
+           end
+           """) =~
              "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge(Sample)
@@ -878,11 +913,11 @@ defmodule Kernel.WarningTest do
 
   test "parens with module attribute" do
     assert capture_err("""
-             defmodule Sample do
-               @foo 13
-               @foo()
-             end
-             """) =~
+           defmodule Sample do
+             @foo 13
+             @foo()
+           end
+           """) =~
              "the @foo() notation (with parentheses) is deprecated, please use @foo (without parentheses) instead"
   after
     purge(Sample)
@@ -890,182 +925,189 @@ defmodule Kernel.WarningTest do
 
   test "undefined module attribute in function" do
     assert capture_err("""
-             defmodule Sample do
-               def hello do
-                 @foo
-               end
+           defmodule Sample do
+             def hello do
+               @foo
              end
-             """) =~ "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
+           end
+           """) =~
+             "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge(Sample)
   end
 
   test "undefined module attribute with file" do
     assert capture_err("""
-             defmodule Sample do
-               @foo
-             end
-             """) =~ "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
+           defmodule Sample do
+             @foo
+           end
+           """) =~
+             "undefined module attribute @foo, please remove access to @foo or explicitly set it before access"
   after
     purge(Sample)
   end
 
   test "parse transform" do
     assert capture_err("""
-             defmodule Sample do
-               @compile {:parse_transform, :ms_transform}
-             end
-             """) =~ "@compile {:parse_transform, :ms_transform} is deprecated"
+           defmodule Sample do
+             @compile {:parse_transform, :ms_transform}
+           end
+           """) =~ "@compile {:parse_transform, :ms_transform} is deprecated"
   after
     purge(Sample)
   end
 
   test "@compile inline no warning for unreachable function" do
     refute capture_err("""
-             defmodule Sample do
-               @compile {:inline, foo: 1}
+           defmodule Sample do
+             @compile {:inline, foo: 1}
 
-               defp foo(_), do: :ok
-             end
-             """) =~ "inlined function foo/1 undefined"
+             defp foo(_), do: :ok
+           end
+           """) =~ "inlined function foo/1 undefined"
   after
     purge(Sample)
   end
 
   test "in guard empty list" do
     assert capture_err("""
-             defmodule Sample do
-               def a(x) when x in [], do: x
-             end
-             """) =~ "this check/guard will always yield the same result"
+           defmodule Sample do
+             def a(x) when x in [], do: x
+           end
+           """) =~ "this check/guard will always yield the same result"
   after
     purge(Sample)
   end
 
   test "no effect operator" do
     assert capture_err("""
-             defmodule Sample do
-               def a(x) do
-                 x != :foo
-                 :ok
-               end
+           defmodule Sample do
+             def a(x) do
+               x != :foo
+               :ok
              end
-             """) =~ "use of operator != has no effect"
+           end
+           """) =~ "use of operator != has no effect"
   after
     purge(Sample)
   end
 
   test "eval failure warning" do
     assert capture_err("""
-             defmodule Sample1 do
-               def foo, do: Atom.to_string "abc"
-             end
-             """) =~ "the call to Atom.to_string/1 will fail with ArgumentError\n  nofile:2\n"
+           defmodule Sample1 do
+             def foo, do: Atom.to_string "abc"
+           end
+           """) =~ "the call to Atom.to_string/1 will fail with ArgumentError\n  nofile:2\n"
 
     assert capture_err("""
-             defmodule Sample2 do
-               def foo, do: 1 + nil
-             end
-             """) =~ "the call to +/2 will fail with ArithmeticError\n  nofile:2\n"
+           defmodule Sample2 do
+             def foo, do: 1 + nil
+           end
+           """) =~ "the call to +/2 will fail with ArithmeticError\n  nofile:2\n"
   after
     purge([Sample1, Sample2])
   end
 
   test "undefined function for behaviour" do
     assert capture_err("""
-             defmodule Sample1 do
-               @callback foo :: term
-             end
+           defmodule Sample1 do
+             @callback foo :: term
+           end
 
-             defmodule Sample2 do
-               @behaviour Sample1
-             end
-             """) =~ "function foo/0 required by behaviour Sample1 is not implemented (in module Sample2)"
+           defmodule Sample2 do
+             @behaviour Sample1
+           end
+           """) =~
+             "function foo/0 required by behaviour Sample1 is not implemented (in module Sample2)"
   after
     purge([Sample1, Sample2])
   end
 
   test "undefined macro for behaviour" do
     assert capture_err("""
-             defmodule Sample1 do
-               @macrocallback foo :: Macro.t
-             end
+           defmodule Sample1 do
+             @macrocallback foo :: Macro.t
+           end
 
-             defmodule Sample2 do
-               @behaviour Sample1
-             end
-             """) =~ "macro foo/0 required by behaviour Sample1 is not implemented (in module Sample2)"
+           defmodule Sample2 do
+             @behaviour Sample1
+           end
+           """) =~
+             "macro foo/0 required by behaviour Sample1 is not implemented (in module Sample2)"
   after
     purge([Sample1, Sample2])
   end
 
   test "wrong kind for behaviour" do
     assert capture_err("""
-             defmodule Sample1 do
-               @callback foo :: term
-             end
+           defmodule Sample1 do
+             @callback foo :: term
+           end
 
-             defmodule Sample2 do
-               @behaviour Sample1
-               defmacro foo, do: :ok
-             end
-             """) =~ "function foo/0 required by behaviour Sample1 was implemented as \"defmacro\" but should have been \"def\""
+           defmodule Sample2 do
+             @behaviour Sample1
+             defmacro foo, do: :ok
+           end
+           """) =~
+             "function foo/0 required by behaviour Sample1 was implemented as \"defmacro\" but should have been \"def\""
   after
     purge([Sample1, Sample2])
   end
 
   test "conflicting behaviour" do
     assert capture_err("""
-             defmodule Sample1 do
-               @callback foo :: term
-             end
+           defmodule Sample1 do
+             @callback foo :: term
+           end
 
-             defmodule Sample2 do
-               @callback foo :: term
-             end
+           defmodule Sample2 do
+             @callback foo :: term
+           end
 
-             defmodule Sample3 do
-               @behaviour Sample1
-               @behaviour Sample2
-             end
-             """) =~ "conflicting behaviours found. function foo/0 is required by Sample1 and Sample2 (in module Sample3)"
+           defmodule Sample3 do
+             @behaviour Sample1
+             @behaviour Sample2
+           end
+           """) =~
+             "conflicting behaviours found. function foo/0 is required by Sample1 and Sample2 (in module Sample3)"
   after
     purge([Sample1, Sample2, Sample3])
   end
 
   test "duplicate behaviour" do
     assert capture_err("""
-             defmodule Sample1 do
-               @callback foo :: term
-             end
+           defmodule Sample1 do
+             @callback foo :: term
+           end
 
-             defmodule Sample2 do
-               @behaviour Sample1
-               @behaviour Sample1
-             end
-             """) =~ "the behavior Sample1 has been declared twice (conflict in function foo/0 in module Sample2)"
+           defmodule Sample2 do
+             @behaviour Sample1
+             @behaviour Sample1
+           end
+           """) =~
+             "the behavior Sample1 has been declared twice (conflict in function foo/0 in module Sample2)"
   after
     purge([Sample1, Sample2])
   end
 
   test "undefined behaviour" do
     assert capture_err("""
-             defmodule Sample do
-               @behaviour UndefinedBehaviour
-             end
-             """) =~ "@behaviour UndefinedBehaviour does not exist (in module Sample)"
+           defmodule Sample do
+             @behaviour UndefinedBehaviour
+           end
+           """) =~ "@behaviour UndefinedBehaviour does not exist (in module Sample)"
   after
     purge(Sample)
   end
 
   test "empty behaviours" do
     assert capture_err("""
-             defmodule EmptyBehaviour do
-             end
-             defmodule Sample do
-               @behaviour EmptyBehaviour
-             end
-             """) =~ "module EmptyBehaviour is not a behaviour (in module Sample)"
+           defmodule EmptyBehaviour do
+           end
+           defmodule Sample do
+             @behaviour EmptyBehaviour
+           end
+           """) =~ "module EmptyBehaviour is not a behaviour (in module Sample)"
   after
     purge(Sample)
     purge(EmptyBehaviour)
@@ -1073,37 +1115,40 @@ defmodule Kernel.WarningTest do
 
   test "undefined function for protocol" do
     assert capture_err("""
-             defprotocol Sample1 do
-               def foo(subject)
-             end
+           defprotocol Sample1 do
+             def foo(subject)
+           end
 
-             defimpl Sample1, for: Atom do
-             end
-             """) =~ "function foo/1 required by protocol Sample1 is not implemented (in module Sample1.Atom)"
+           defimpl Sample1, for: Atom do
+           end
+           """) =~
+             "function foo/1 required by protocol Sample1 is not implemented (in module Sample1.Atom)"
   after
     purge([Sample1, Sample1.Atom])
   end
 
   test "overridden def name" do
     assert capture_err("""
-             defmodule Sample do
-               def foo(x, 1), do: x + 1
-               def foo(), do: nil
-               def foo(x, 2), do: x * 2
-             end
-             """) =~ "clauses with the same name should be grouped together, \"def foo/2\" was previously defined (nofile:2)\n  nofile:4\n"
+           defmodule Sample do
+             def foo(x, 1), do: x + 1
+             def foo(), do: nil
+             def foo(x, 2), do: x * 2
+           end
+           """) =~
+             "clauses with the same name should be grouped together, \"def foo/2\" was previously defined (nofile:2)\n  nofile:4\n"
   after
     purge(Sample)
   end
 
   test "overridden def name and arity" do
     assert capture_err("""
-             defmodule Sample do
-               def foo(x, 1), do: x + 1
-               def bar(), do: nil
-               def foo(x, 2), do: x * 2
-             end
-             """) =~ "clauses with the same name and arity (number of arguments) should be grouped together, \"def foo/2\" was previously defined (nofile:2)\n  nofile:4\n"
+           defmodule Sample do
+             def foo(x, 1), do: x + 1
+             def bar(), do: nil
+             def foo(x, 2), do: x * 2
+           end
+           """) =~
+             "clauses with the same name and arity (number of arguments) should be grouped together, \"def foo/2\" was previously defined (nofile:2)\n  nofile:4\n"
   after
     purge(Sample)
   end
@@ -1111,11 +1156,11 @@ defmodule Kernel.WarningTest do
   test "warning with overridden file" do
     output =
       capture_err("""
-        defmodule Sample do
-          @file "sample"
-          def foo(x), do: :ok
-        end
-        """)
+      defmodule Sample do
+        @file "sample"
+        def foo(x), do: :ok
+      end
+      """)
 
     assert output =~ "variable \"x\" is unused"
     assert output =~ "sample:3"
@@ -1129,66 +1174,69 @@ defmodule Kernel.WarningTest do
   end
 
   test "warning on code point escape" do
-    assert capture_err("? ") =~ "found ? followed by code point 0x20 (space), please use ?\\s instead"
-    assert capture_err("?\\ ") =~ "found ?\\ followed by code point 0x20 (space), please use ?\\s instead"
+    assert capture_err("? ") =~
+             "found ? followed by code point 0x20 (space), please use ?\\s instead"
+
+    assert capture_err("?\\ ") =~
+             "found ?\\ followed by code point 0x20 (space), please use ?\\s instead"
   end
 
   test "duplicated docs in the same clause" do
     output =
       capture_err("""
-        defmodule Sample do
-          @doc "Something"
-          @doc "Another"
-          def foo, do: :ok
+      defmodule Sample do
+        @doc "Something"
+        @doc "Another"
+        def foo, do: :ok
 
-          Module.eval_quoted(__MODULE__, quote(do: @doc false))
-          @doc "Doc"
-          def bar, do: :ok
-        end
-        """)
+        Module.eval_quoted(__MODULE__, quote(do: @doc false))
+        @doc "Doc"
+        def bar, do: :ok
+      end
+      """)
 
     assert output =~ "redefining @doc attribute previously set at line 2"
     assert output =~ "nofile:3: Sample (module)"
-    refute output =~ "nofile:7:a"
+    refute output =~ "nofile:7: "
   after
     purge(Sample)
   end
 
   test "duplicate docs across clauses" do
     assert capture_err("""
-             defmodule Sample1 do
-               defmacro __using__(_) do
-                 quote do
-                   @doc "hello"
-                   def add(a, 1), do: a + 1
-                 end
+           defmodule Sample1 do
+             defmacro __using__(_) do
+               quote do
+                 @doc "hello"
+                 def add(a, 1), do: a + 1
                end
              end
+           end
 
-             defmodule Sample2 do
-               use Sample1
-               @doc "world"
-               def add(a, 2), do: a + 2
-             end
-             """) == ""
-
-    assert capture_err("""
-             defmodule Sample3 do
-               @doc "hello"
-               def add(a, 1), do: a + 1
-               @doc "world"
-               def add(a, b)
-             end
-             """) =~ ""
+           defmodule Sample2 do
+             use Sample1
+             @doc "world"
+             def add(a, 2), do: a + 2
+           end
+           """) == ""
 
     assert capture_err("""
-             defmodule Sample4 do
-               @doc "hello"
-               def add(a, 1), do: a + 1
-               @doc "world"
-               def add(a, 2), do: a + 2
-             end
-             """) =~ "redefining @doc attribute previously set at line "
+           defmodule Sample3 do
+             @doc "hello"
+             def add(a, 1), do: a + 1
+             @doc "world"
+             def add(a, b)
+           end
+           """) =~ ""
+
+    assert capture_err("""
+           defmodule Sample4 do
+             @doc "hello"
+             def add(a, 1), do: a + 1
+             @doc "world"
+             def add(a, 2), do: a + 2
+           end
+           """) =~ "redefining @doc attribute previously set at line "
   after
     purge([Sample1, Sample2, Sample3, Sample4])
   end
@@ -1196,14 +1244,14 @@ defmodule Kernel.WarningTest do
   test "reserved doc metadata keys" do
     output =
       capture_err("""
-        defmodule Sample do
-          @typedoc opaque: false
-          @type t :: binary
+      defmodule Sample do
+        @typedoc opaque: false
+        @type t :: binary
 
-          @doc defaults: 3, since: "1.2.3"
-          def foo(a), do: a
-        end
-        """)
+        @doc defaults: 3, since: "1.2.3"
+        def foo(a), do: a
+      end
+      """)
 
     assert output =~ "ignoring reserved documentation metadata key: :opaque"
     assert output =~ "ignoring reserved documentation metadata key: :defaults"
@@ -1216,18 +1264,18 @@ defmodule Kernel.WarningTest do
     test "unused types" do
       output =
         capture_err("""
-          defmodule Sample do
-            @type pub :: any
-            @opaque op :: any
-            @typep priv :: any
-            @typep priv_args(var1, var2) :: {var1, var2}
-            @typep priv2 :: any
-            @typep priv3 :: priv2 | atom
+        defmodule Sample do
+          @type pub :: any
+          @opaque op :: any
+          @typep priv :: any
+          @typep priv_args(var1, var2) :: {var1, var2}
+          @typep priv2 :: any
+          @typep priv3 :: priv2 | atom
 
-            @spec my_fun(priv3) :: pub
-            def my_fun(var), do: var
-          end
-          """)
+          @spec my_fun(priv3) :: pub
+          def my_fun(var), do: var
+        end
+        """)
 
       assert output =~ "nofile:4: "
       assert output =~ "type priv/0 is unused"
@@ -1244,12 +1292,12 @@ defmodule Kernel.WarningTest do
     test "underspecified opaque types" do
       output =
         capture_err("""
-          defmodule Sample do
-            @opaque op1 :: term
-            @opaque op2 :: any
-            @opaque op3 :: atom
-          end
-          """)
+        defmodule Sample do
+          @opaque op1 :: term
+          @opaque op2 :: any
+          @opaque op3 :: atom
+        end
+        """)
 
       assert output =~ "nofile:2: "
       assert output =~ "@opaque type op1/0 is underspecified and therefore meaningless"
@@ -1264,14 +1312,14 @@ defmodule Kernel.WarningTest do
     test "underscored types variables" do
       output =
         capture_err("""
-          defmodule Sample do
-            @type in_typespec_vars(_var1, _var1) :: atom
-            @type in_typespec(_var2) :: {atom, _var2}
+        defmodule Sample do
+          @type in_typespec_vars(_var1, _var1) :: atom
+          @type in_typespec(_var2) :: {atom, _var2}
 
-            @spec in_spec(_var3) :: {atom, _var3} when _var3: var
-            def in_spec(a), do: {:ok, a}
-          end
-          """)
+          @spec in_spec(_var3) :: {atom, _var3} when _var3: var
+          def in_spec(a), do: {:ok, a}
+        end
+        """)
 
       assert output =~ "nofile:2: "
       assert output =~ ~r/the underscored type variable "_var1" is used more than once/
@@ -1285,13 +1333,13 @@ defmodule Kernel.WarningTest do
 
     test "typedoc on typep" do
       assert capture_err("""
-               defmodule Sample do
-                 @typedoc "Something"
-                 @typep priv :: any
-                 @spec foo() :: priv
-                 def foo(), do: nil
-               end
-               """) =~ "type priv/0 is private, @typedoc's are always discarded for private types"
+             defmodule Sample do
+               @typedoc "Something"
+               @typep priv :: any
+               @spec foo() :: priv
+               def foo(), do: nil
+             end
+             """) =~ "type priv/0 is private, @typedoc's are always discarded for private types"
     after
       purge(Sample)
     end
@@ -1299,11 +1347,11 @@ defmodule Kernel.WarningTest do
     test "discouraged types" do
       message =
         capture_err("""
-          defmodule Sample do
-            @type foo :: string()
-            @type bar :: nonempty_string()
-          end
-          """)
+        defmodule Sample do
+          @type foo :: string()
+          @type bar :: nonempty_string()
+        end
+        """)
 
       string_discouraged =
         "string() type use is discouraged. " <>
@@ -1322,11 +1370,11 @@ defmodule Kernel.WarningTest do
     test "unreachable specs" do
       message =
         capture_err("""
-          defmodule Sample do
-            defp my_fun(x), do: x
-            @spec my_fun(integer) :: integer
-          end
-          """)
+        defmodule Sample do
+          defp my_fun(x), do: x
+          @spec my_fun(integer) :: integer
+        end
+        """)
 
       assert message != ""
     after
@@ -1337,43 +1385,43 @@ defmodule Kernel.WarningTest do
       message = "invalid type annotation. Type annotations cannot be nested"
 
       assert capture_err("""
-               defmodule Sample1 do
-                 @type my_type :: ann_type :: nested_ann_type :: atom
-               end
-               """) =~ message
+             defmodule Sample1 do
+               @type my_type :: ann_type :: nested_ann_type :: atom
+             end
+             """) =~ message
 
       purge(Sample1)
 
       assert capture_err("""
-               defmodule Sample2 do
-                 @type my_type :: ann_type :: nested_ann_type :: atom | port
-               end
-               """) =~ message
+             defmodule Sample2 do
+               @type my_type :: ann_type :: nested_ann_type :: atom | port
+             end
+             """) =~ message
 
       purge(Sample2)
 
       assert capture_err("""
-               defmodule Sample3 do
-                 @spec foo :: {pid, ann_type :: nested_ann_type :: atom}
-                 def foo, do: nil
-               end
-               """) =~ message
+             defmodule Sample3 do
+               @spec foo :: {pid, ann_type :: nested_ann_type :: atom}
+               def foo, do: nil
+             end
+             """) =~ message
     after
       purge([Sample1, Sample2, Sample3])
     end
 
     test "invalid type annotations" do
       assert capture_err("""
-               defmodule Sample1 do
-                 @type my_type :: (pid() :: atom)
-               end
-               """) =~ "invalid type annotation. The left side of :: must be a variable, got: pid()"
+             defmodule Sample1 do
+               @type my_type :: (pid() :: atom)
+             end
+             """) =~ "invalid type annotation. The left side of :: must be a variable, got: pid()"
 
       assert capture_err("""
-               defmodule Sample2 do
-                 @type my_type :: pid | ann_type :: atom
-               end
-               """) =~
+             defmodule Sample2 do
+               @type my_type :: pid | ann_type :: atom
+             end
+             """) =~
                "invalid type annotation. The left side of :: must be a variable, got: pid | ann_type. " <>
                  "Note \"left | right :: ann\" is the same as \"(left | right) :: ann\""
     after
@@ -1384,10 +1432,10 @@ defmodule Kernel.WarningTest do
   test "attribute with no use" do
     content =
       capture_err("""
-        defmodule Sample do
-          @at "Something"
-        end
-        """)
+      defmodule Sample do
+        @at "Something"
+      end
+      """)
 
     assert content =~ "module attribute @at was set but never used"
     assert content =~ "nofile:2: "
@@ -1398,11 +1446,11 @@ defmodule Kernel.WarningTest do
   test "registered attribute with no use" do
     content =
       capture_err("""
-        defmodule Sample do
-          Module.register_attribute(__MODULE__, :at, [])
-          @at "Something"
-        end
-        """)
+      defmodule Sample do
+        Module.register_attribute(__MODULE__, :at, [])
+        @at "Something"
+      end
+      """)
 
     assert content =~ "module attribute @at was set but never used"
     assert content =~ "nofile:3: "
@@ -1412,47 +1460,47 @@ defmodule Kernel.WarningTest do
 
   test "typedoc with no type" do
     assert capture_err("""
-             defmodule Sample do
-               @typedoc "Something"
-             end
-             """) =~ "module attribute @typedoc was set but no type follows it"
+           defmodule Sample do
+             @typedoc "Something"
+           end
+           """) =~ "module attribute @typedoc was set but no type follows it"
   after
     purge(Sample)
   end
 
   test "doc with no function" do
     assert capture_err("""
-             defmodule Sample do
-               @doc "Something"
-             end
-             """) =~ "module attribute @doc was set but no definition follows it"
+           defmodule Sample do
+             @doc "Something"
+           end
+           """) =~ "module attribute @doc was set but no definition follows it"
   after
     purge(Sample)
   end
 
   test "pipe without explicit parentheses" do
     assert capture_err("""
-             [5, 6, 7, 3]
-             |> Enum.map_join "", &(Integer.to_string(&1))
-             |> String.to_integer
-             """) =~ "parentheses are required when piping into a function call"
+           [5, 6, 7, 3]
+           |> Enum.map_join "", &(Integer.to_string(&1))
+           |> String.to_integer
+           """) =~ "parentheses are required when piping into a function call"
   end
 
   test "keywords without explicit parentheses" do
     assert capture_err("""
-             quote do
-               IO.inspect arg, label: if true, do: "foo", else: "baz"
-             end
-             """) =~ "missing parentheses for expression following \"label:\" keyword. "
+           quote do
+             IO.inspect arg, label: if true, do: "foo", else: "baz"
+           end
+           """) =~ "missing parentheses for expression following \"label:\" keyword. "
   end
 
   test "do+end with operator without explicit parentheses" do
     assert capture_err("""
-             quote do
-               case do
-               end || raise 1, 2
-             end
-             """) =~ "missing parentheses on expression following operator \"||\""
+           quote do
+             case do
+             end || raise 1, 2
+           end
+           """) =~ "missing parentheses on expression following operator \"||\""
   end
 
   test "variable is being expanded to function call (on_undefined_variable: warn)" do
@@ -1460,11 +1508,11 @@ defmodule Kernel.WarningTest do
 
     output =
       capture_err("""
-        self
-        defmodule Sample do
-          def my_node(), do: node
-        end
-        """)
+      self
+      defmodule Sample do
+        def my_node(), do: node
+      end
+      """)
 
     assert output =~ "variable \"self\" does not exist and is being expanded to \"self()\""
     assert output =~ "variable \"node\" does not exist and is being expanded to \"node()\""
@@ -1501,14 +1549,14 @@ defmodule Kernel.WarningTest do
   test "catch comes before rescue in try block" do
     output =
       capture_err("""
-        try do
-          :trying
-        catch
-          _ -> :caught
-        rescue
-          _ -> :error
-        end
-        """)
+      try do
+        :trying
+      catch
+        _ -> :caught
+      rescue
+        _ -> :error
+      end
+      """)
 
     assert output =~ ~s("catch" should always come after "rescue" in try)
   end
@@ -1516,16 +1564,16 @@ defmodule Kernel.WarningTest do
   test "catch comes before rescue in def" do
     output =
       capture_err("""
-        defmodule Sample do
-          def foo do
-            :trying
-          catch
-            _, _ -> :caught
-          rescue
-            _ -> :error
-          end
+      defmodule Sample do
+        def foo do
+          :trying
+        catch
+          _, _ -> :caught
+        rescue
+          _ -> :error
         end
-        """)
+      end
+      """)
 
     assert output =~ ~s("catch" should always come after "rescue" in def)
   after
@@ -1534,53 +1582,55 @@ defmodule Kernel.WarningTest do
 
   test "unused variable in defguard" do
     assert capture_err("""
-             defmodule Sample do
-               defguard foo(bar, baz) when bar
-             end
-             """) =~ "variable \"baz\" is unused"
+           defmodule Sample do
+             defguard foo(bar, baz) when bar
+           end
+           """) =~ "variable \"baz\" is unused"
   after
     purge(Sample)
   end
 
   test "unused import in defguard" do
     assert capture_err("""
-             defmodule Sample do
-               import Record
-               defguard is_record(baz) when baz
-             end
-             """) =~ "unused import Record\n"
+           defmodule Sample do
+             import Record
+             defguard is_record(baz) when baz
+           end
+           """) =~ "unused import Record\n"
   after
     purge(Sample)
   end
 
   test "unused private guard" do
     assert capture_err("""
-             defmodule Sample do
-               defguardp foo(bar, baz) when bar + baz
-             end
-             """) =~ "macro foo/2 is unused\n"
+           defmodule Sample do
+             defguardp foo(bar, baz) when bar + baz
+           end
+           """) =~ "macro foo/2 is unused\n"
   after
     purge(Sample)
   end
 
   test "defguard overriding defmacro" do
     assert capture_err("""
-             defmodule Sample do
-               defmacro foo(bar), do: bar == :bar
-               defguard foo(baz) when baz == :baz
-             end
-             """) =~ ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
+           defmodule Sample do
+             defmacro foo(bar), do: bar == :bar
+             defguard foo(baz) when baz == :baz
+           end
+           """) =~
+             ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
   after
     purge(Sample)
   end
 
   test "defmacro overriding defguard" do
     assert capture_err("""
-             defmodule Sample do
-               defguard foo(baz) when baz == :baz
-               defmacro foo(bar), do: bar == :bar
-             end
-             """) =~ ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
+           defmodule Sample do
+             defguard foo(baz) when baz == :baz
+             defmacro foo(bar), do: bar == :bar
+           end
+           """) =~
+             ~r"this clause( for foo/1)? cannot match because a previous clause at line 2 always matches"
   after
     purge(Sample)
   end
@@ -1607,47 +1657,53 @@ defmodule Kernel.WarningTest do
 
   test "deprecated GenServer super on callbacks" do
     assert capture_err("""
-             defmodule Sample do
-               use GenServer
+           defmodule Sample do
+             use GenServer
 
-               def handle_call(a, b, c) do
-                 super(a, b, c)
-               end
+             def handle_call(a, b, c) do
+               super(a, b, c)
              end
-             """) =~ "calling super for GenServer callback handle_call/3 is deprecated"
+           end
+           """) =~ "calling super for GenServer callback handle_call/3 is deprecated"
   after
     purge(Sample)
   end
 
   test "super is allowed on GenServer.child_spec/1" do
     refute capture_err("""
-             defmodule Sample do
-               use GenServer
+           defmodule Sample do
+             use GenServer
 
-               def child_spec(opts) do
-                 super(opts)
-               end
+             def child_spec(opts) do
+               super(opts)
              end
-             """) =~ "calling super for GenServer callback child_spec/1 is deprecated"
+           end
+           """) =~ "calling super for GenServer callback child_spec/1 is deprecated"
   after
     purge(Sample)
   end
 
   test "nested comparison operators" do
     message =
-      capture_err("""
+      capture_err(
+        """
          1 < 3 < 5
-        """, :compile)
+        """,
+        :compile
+      )
 
     assert message =~ "Elixir does not support nested comparisons"
     assert message =~ "1 < 3 < 5"
 
     message =
-      capture_err("""
+      capture_err(
+        """
           x = 5
           y = 7
           1 < x < y < 10
-        """, :compile)
+        """,
+        :compile
+      )
 
     assert message =~ "Elixir does not support nested comparisons"
     assert message =~ "1 < x < y < 10"
@@ -1655,7 +1711,8 @@ defmodule Kernel.WarningTest do
 
   test "def warns if only clause is else" do
     message =
-      capture_err("""
+      capture_err(
+        """
         defmodule Sample do
           def foo do
             :bar
@@ -1663,7 +1720,9 @@ defmodule Kernel.WarningTest do
             _other -> :ok
           end
         end
-        """, :compile)
+        """,
+        :compile
+      )
 
     assert message =~ "\"else\" shouldn't be used as the only clause in \"def\""
   after
@@ -1672,13 +1731,16 @@ defmodule Kernel.WarningTest do
 
   test "try warns if only clause is else" do
     message =
-      capture_err("""
+      capture_err(
+        """
           try do
             :ok
           else
             other -> other
           end
-        """, :compile)
+        """,
+        :compile
+      )
 
     assert message =~ "\"else\" shouldn't be used as the only clause in \"try\""
   end
@@ -1706,23 +1768,24 @@ defmodule Kernel.WarningTest do
 
   test "defstruct warns with duplicate keys" do
     assert capture_err("""
-             defmodule TestMod do
-               defstruct [:foo, :bar, foo: 1]
-             end
-             """) =~ "duplicate key :foo found in struct"
+           defmodule TestMod do
+             defstruct [:foo, :bar, foo: 1]
+           end
+           """) =~ "duplicate key :foo found in struct"
   after
     purge(TestMod)
   end
 
   test "deprecate nullary remote zero-arity capture with parens" do
     assert capture_err("""
-             import System, only: [pid: 0]
-             &pid/0
-             """) == ""
+           import System, only: [pid: 0]
+           &pid/0
+           """) == ""
 
     assert capture_err("""
-             &System.pid()/0
-             """) =~ "extra parentheses on a remote function capture &System.pid()/0 have been deprecated. Please remove the parentheses: &System.pid/0"
+           &System.pid()/0
+           """) =~
+             "extra parentheses on a remote function capture &System.pid()/0 have been deprecated. Please remove the parentheses: &System.pid/0"
   end
 
   defp assert_compile_error(messages, string) do
