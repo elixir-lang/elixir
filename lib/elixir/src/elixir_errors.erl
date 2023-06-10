@@ -23,13 +23,7 @@ print_warning(Message) ->
   io:put_chars(standard_error, [prefix(warning), Message, $\n]).
 
 print_diagnostic(Diagnostic) ->
-  FancyErrorsEnabled = true,
-  Formatter =  case FancyErrorsEnabled of 
-                    true -> fun(D) -> fancy_diagnostic_formatter(D) end;
-                    false -> fun(D) -> standard_diagnostic_formatter(D) end
-                end,
-
-  Output = Formatter(Diagnostic),
+  Output = fancy_diagnostic_formatter(Diagnostic),
   io:put_chars(standard_error, Output),
   Diagnostic.
 
@@ -60,7 +54,8 @@ fancy_diagnostic_formatter(#{position := Position} = Diagnostic) ->
 line_column_diagnostic(Diagnostic) ->
   #{position := Position, file := File, severity := Severity, message := Message} = Diagnostic,
   {LineNumber, Column} = Position,
-  {Line, TotalLeading} = get_file_line(File, LineNumber),
+  Line = get_file_line(File, LineNumber),
+  {TrimmedLine, TotalLeading} = trim_file_line(Line),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
@@ -69,19 +64,24 @@ line_column_diagnostic(Diagnostic) ->
     " ~ts│\n"
     " ~p │ ~ts\n"
     " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts│ ~ts\n"
     " ~ts│\n\n",
     [
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
-     LineNumber, highlight_line(Line, Column - TotalLeading, Severity),
-     Spacing, format_message(Position, Message, TotalLeading, LineDigits, Severity),
+     LineNumber, TrimmedLine, 
+     Spacing, highlight_below_line(TrimmedLine, Column - TotalLeading, Severity),
+     Spacing,
+     Spacing, format_message(Message, TotalLeading, LineDigits),
      Spacing
     ]
   ).
 
 line_only_diagnostic(Diagnostic) ->
   #{position := LineNumber, file := File, severity := Severity, message := Message} = Diagnostic,
-  {Line, TotalLeading} = get_file_line(File, LineNumber),
+  Line = get_file_line(File, LineNumber),
+  {TrimmedLine, TotalLeading} = trim_file_line(Line),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
@@ -96,15 +96,22 @@ line_only_diagnostic(Diagnostic) ->
     [ 
      Spacing, prefix(Severity), file_format(LineNumber, File),
      Spacing, 
-     LineNumber, Line,
-     Spacing, highlight_below_line(Line, Severity),
+     LineNumber, TrimmedLine,
+     Spacing, highlight_below_line(TrimmedLine, Severity),
      Spacing,
-     Spacing, format_message_only_line(Message, TotalLeading, LineDigits),
+     Spacing, format_message(Message, TotalLeading, LineDigits),
      Spacing
     ]
  ).
 
-highlight_below_line(Line, Severity) -> 
+highlight_below_line(Line, Column, Severity) ->
+  ErrorLength = match_line_error(Line, Column),
+  case Severity of
+    warning ->  highlight([n_spaces(Column), lists:duplicate(ErrorLength, "~")], warning);
+    error -> highlight([n_spaces(Column), lists:duplicate(ErrorLength, "^")], error)
+  end.
+
+highlight_below_line(Line, Severity) ->
   Length = string:length(Line),
   case Severity of 
     warning -> highlight(lists:duplicate(Length, "~"), warning);
@@ -117,21 +124,19 @@ do_get_line_number_digits(Number, Acc) when Number < 10 -> Acc;
 do_get_line_number_digits(Number, Acc) -> 
   do_get_line_number_digits(Number div 10, Acc + 1).
 
-highlight_line(Line, Column, Severity) ->
+match_line_error(Line, Column) ->
   TermRegex = "[A-Za-z_\.]*",
   {ok, Re} = re:compile(TermRegex),
-  Start = string:slice(Line, 0, Column),
-  End = string:slice(Line, Column),
-  {match, [MatchingTerm]} = re:run(End, Re, [{capture, all, binary}]),
-  HighlightedTerm = highlight(MatchingTerm, Severity),
-  HighlightedTermBinary = unicode:characters_to_binary(HighlightedTerm),
-  TailTail = string:slice(End, string:length(MatchingTerm)),
-  <<Start/binary, HighlightedTermBinary/binary, TailTail/binary>>.
+  Tail = string:slice(Line, Column),
+  {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
+  string:length(MatchingTerm).
 
 get_file_line(File, LineNumber) -> 
   {ok, Content} = file:read_file(File),
   Splitted = binary:split(Content, <<"\n">>, [global]),
-  Line = lists:nth(LineNumber, Splitted),
+  lists:nth(LineNumber, Splitted).
+
+trim_file_line(Line) -> 
   Trimmed = string:trim(Line, leading),
   {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
 
@@ -372,16 +377,7 @@ env_format(Meta, #{file := EnvFile} = E) ->
     _ -> {Line, File, Stacktrace}
   end.
 
-format_message({_, Column}, Message, TotalLeading, NDigits, Severity) ->
-  Arrow = "╰── ",
-  ColoredArrow = highlight(Arrow, Severity),
-  Spacing = n_spaces(Column - TotalLeading),
-  Lines =  wrap_message(Message, 80 - Column - TotalLeading),
-  LineSeparator = io_lib:format("\n ~ts │ ~ts~ts",  [n_spaces(NDigits), Spacing, n_spaces(string:length(Arrow))]),
-  Result = binary_join(Lines, unicode:characters_to_binary(LineSeparator)),
-  io_lib:format("~ts~ts~ts", [Spacing, ColoredArrow, Result]).
-
-format_message_only_line(Message, TotalLeading, NDigits) ->
+format_message(Message, TotalLeading, NDigits) ->
   Lines = wrap_message(Message, 80 - TotalLeading),
   LineSeparator = io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)]),
   binary_join(Lines, unicode:characters_to_binary(LineSeparator)).
