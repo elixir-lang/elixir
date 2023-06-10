@@ -224,9 +224,8 @@ defmodule Module.LocalsTracker do
   # error handling system in order to respect line/file.
   defp build_meta(position, meta) do
     case {position, Keyword.get(meta, :file)} do
-      {{line, nil}, {file, _}} -> [keep: {file, line}]
+      {{line, _col}, {file, _}} -> [keep: {file, line}]
       {{line, nil}, nil} -> [line: line]
-      {{line, col}, {file, _}} -> [keep: {file, line}, column: col]
       {{line, col}, nil} -> [line: line, column: col]
     end
   end
