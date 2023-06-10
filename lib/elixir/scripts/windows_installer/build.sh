@@ -15,13 +15,6 @@ otp_release=`echo "${OTP_VERSION}" | cut -d. -f1`
 
 mkdir -p tmp
 
-otp_installer="otp_win64_${OTP_VERSION}.exe"
-if [ ! -f "tmp/${otp_installer}" ]; then
-  url="https://github.com/erlang/otp/releases/download/OTP-${OTP_VERSION}/otp_win64_${OTP_VERSION}.exe"
-  echo "downloading ${url}"
-  curl --fail -L -o "tmp/${otp_installer}" "${url}"
-fi
-
 ELIXIR_VERSION="${ELIXIR_VERSION:-}"
 if [ -n "${ELIXIR_VERSION}" ]; then
   ELIXIR_ZIP="tmp/elixir-${ELIXIR_VERSION}-otp-${otp_release}.zip"
@@ -46,7 +39,7 @@ export PATH="/c/Program Files (x86)/NSIS:${PATH}"
 makensis \
   -X"OutFile tmp\\${basename}.exe" \
   -DOTP_VERSION=${OTP_VERSION} \
-  -DOTP_INSTALLER=tmp\\${otp_installer} \
+  -DOTP_RELEASE="${otp_release}" \
   -DELIXIR_DIR=tmp\\${basename} \
   installer.nsi
 

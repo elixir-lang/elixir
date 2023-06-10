@@ -12,12 +12,12 @@ InstallDir "$PROGRAMFILES64\Elixir"
 
 ; Install Page: Install Erlang/OTP
 
-Page custom InstallOTPPageShow InstallOTPPageLeave
+Page custom CheckOTPPageShow CheckOTPPageLeave
 
 var Dialog
-var InstallOTPCheckbox
-Function InstallOTPPageShow
-  !insertmacro MUI_HEADER_TEXT "Install Erlang/OTP" ""
+var DownloadOTPLink
+Function CheckOTPPageShow
+  !insertmacro MUI_HEADER_TEXT "Checking Erlang/OTP" ""
 
   nsDialogs::Create 1018
   Pop $Dialog
@@ -29,26 +29,45 @@ Function InstallOTPPageShow
   EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
   ReadRegStr $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
 
-  ${NSD_CreateCheckbox} 0 0 195u 10u "&Install included Erlang/OTP ${OTP_VERSION}"
-  Pop $InstallOTPCheckbox
-
   ${If} $0 == ""
-    SendMessage $InstallOTPCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
+    ${NSD_CreateLabel} 0 0   100% 20u "Couldn't find existing Erlang/OTP installation. Click the link below to download and install it before proceeding."
+    ${NSD_CreateLink}  0 25u 100% 20u "Download Erlang/OTP ${OTP_RELEASE}"
+    Pop $DownloadOTPLink
+    ${NSD_OnClick} $DownloadOTPLink OpenOTPDownloads
+  ${Else}
+    nsExec::ExecToStack `$0\bin\bad.exe -noinput -eval "\
+    io:put_chars(erlang:system_info(otp_release)),\
+    halt()."`
+    Pop $1
+    Pop $2
+
+    ${If} $1 == 0
+      ${If} $2 == ${OTP_RELEASE}
+        ${NSD_CreateLabel} 0 0 100% 20u "Found existing Erlang/OTP $2 installation at $0. Please proceed."
+      ${ElseIf} $2 < ${OTP_RELEASE}
+        ${NSD_CreateLabel} 0 0 100% 30u "Found existing Erlang/OTP $2 installation at $0 but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
+        We recommend checking if there is an Elixir version precompiled for Erlang/OTP $2. Otherwise, proceed."
+      ${Else}
+        SetErrorlevel 5
+        MessageBox MB_ICONSTOP "Found existing Erlang/OTP $2 installation at $0 but this Elixir version was precompiled for Erlang/OTP ${OTP_RELEASE}. \
+        Please upgrade your Erlang/OTP version or choose an Elixir installer matching your Erlang/OTP version"
+        Quit
+      ${EndIf}
+    ${Else}
+      SetErrorlevel 5
+      MessageBox MB_ICONSTOP "Found existing Erlang/OTP installation at $0 but checking it exited with $1"
+      Quit
+    ${EndIf}
   ${EndIf}
 
   nsDialogs::Show
 FunctionEnd
 
-Function InstallOTPPageLeave
-  ${NSD_GetState} $InstallOTPCheckbox $0
-  ${If} $0 <> ${BST_UNCHECKED}
-    CreateDirectory "$INSTDIR\tmp"
-    SetOutPath "$INSTDIR\tmp"
+Function OpenOTPDownloads
+  ExecShell "open" "https://www.erlang.org/downloads/${OTP_RELEASE}"
+FunctionEnd
 
-    File "${OTP_INSTALLER}"
-    ExecWait '"$INSTDIR\${OTP_INSTALLER}"'
-    Delete "$INSTDIR\${OTP_INSTALLER}"
-  ${EndIf}
+Function CheckOTPPageLeave
 FunctionEnd
 
 ; Install Page: Files
