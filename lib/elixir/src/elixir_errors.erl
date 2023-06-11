@@ -46,15 +46,18 @@ standard_diagnostic_formatter(Diagnostic) ->
   [prefix(Severity), Message, Location, "\n\n"].
 
 fancy_diagnostic_formatter(#{position := Position, file := File} = Diagnostic) -> 
-  case {Position, File} of 
-    {_, <<"nofile">>} -> no_line_diagnostic(Diagnostic);
-    {{_, _}, _} -> line_column_diagnostic(Diagnostic);
-    {_Line, _} -> line_only_diagnostic(Diagnostic)
+  case {Position, filelib:is_regular(File)} of 
+    {_, false} -> no_line_diagnostic(Diagnostic);
+    {{_, _}, true} -> line_column_diagnostic(Diagnostic);
+    {_Line, true} -> line_only_diagnostic(Diagnostic)
   end.
 
 no_line_diagnostic(Diagnostic) -> 
   #{position := Position, file := File, severity := Severity, message := Message} = Diagnostic,
-  {LineNumber, _} = Position,
+  LineNumber = case Position of 
+                 {L, _} -> L;
+                 L -> L
+               end,
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
   io_lib:format(
