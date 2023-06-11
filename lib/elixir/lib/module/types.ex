@@ -156,12 +156,7 @@ defmodule Module.Types do
   end
 
   defp get_position(stack) do
-    line =
-      stack.last_expr
-      |> get_meta()
-      |> Keyword.get(:line, 0)
-
-    [line: line]
+    get_meta(stack.last_expr)
   end
 
   # Collect relevant traces from context.traces using stack.unify_stack
