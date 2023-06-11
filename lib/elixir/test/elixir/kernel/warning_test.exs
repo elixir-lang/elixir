@@ -1063,6 +1063,16 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample2])
   end
 
+  test "unknown remote call" do
+    assert capture_compile("""
+           defmodule Sample do
+             def perform(), do: Unknown.call()
+           end
+           """) =~ "Unknown.call/0 is undefined (module Unknown is not available or is yet to be defined)"
+  after
+    purge(Sample)
+  end
+
   test "undefined behaviour" do
     assert capture_eval("""
            defmodule Sample do
