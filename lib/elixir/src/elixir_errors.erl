@@ -154,9 +154,18 @@ match_line_error(Line, Column) ->
   string:length(MatchingTerm).
 
 get_file_line(File, LineNumber) -> 
-  {ok, Content} = file:read_file(File),
-  Splitted = binary:split(Content, <<"\n">>, [global]),
-  lists:nth(LineNumber, Splitted).
+  {ok, IoDevice} = file:open(File, [read]),
+
+  LineCollector = fun 
+                    (I, nil) when I == LineNumber -> 
+                      {ok, Line} = file:read_line(IoDevice),
+                      string:trim(Line, trailing);
+                    (_, nil) -> 
+                      {ok, _} = file:read_line(IoDevice),
+                      nil
+                  end,
+
+  lists:foldl(LineCollector, nil, lists:seq(1, LineNumber)).
 
 trim_file_line(Line) -> 
   Trimmed = string:trim(Line, leading),
