@@ -1068,7 +1068,8 @@ defmodule Kernel.WarningTest do
            defmodule Sample do
              def perform(), do: Unknown.call()
            end
-           """) =~ "Unknown.call/0 is undefined (module Unknown is not available or is yet to be defined)"
+           """) =~
+             "Unknown.call/0 is undefined (module Unknown is not available or is yet to be defined)"
   after
     purge(Sample)
   end
