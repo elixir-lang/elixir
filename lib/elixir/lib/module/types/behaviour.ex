@@ -41,7 +41,8 @@ defmodule Module.Types.Behaviour do
   end
 
   defp warn(context, warning, meta \\ []) do
-    location = {meta[:file] || context.file, meta[:line] || context.line, context.module}
+    meta = Keyword.put_new(meta, :line, context.line)
+    location = {meta[:file] || context.file, meta, context.module}
 
     update_in(context.warnings, &[{__MODULE__, warning, location} | &1])
   end
@@ -132,7 +133,7 @@ defmodule Module.Types.Behaviour do
 
         {:error, message} ->
           warning = message |> Tuple.insert_at(1, kind) |> Tuple.insert_at(1, fa)
-          context = warn(context, warning, %{line: line, file: file})
+          context = warn(context, warning, line: line, file: file)
           {context, impl_contexts}
       end
     end)
@@ -215,9 +216,9 @@ defmodule Module.Types.Behaviour do
       context ->
         with {:ok, {_, behaviour, _}} <- Map.fetch(context.callbacks, pair),
              true <- missing_impl_in_context?(meta, behaviour, impl_contexts) do
-          warn(context, {:missing_impl, pair, kind, behaviour}, %{
+          warn(context, {:missing_impl, pair, kind, behaviour},
             line: :elixir_utils.get_line(meta)
-          })
+          )
         else
           _ -> context
         end

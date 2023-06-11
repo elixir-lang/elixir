@@ -329,27 +329,34 @@ defmodule Module.ParallelChecker do
     ["  ", Exception.format_stacktrace_entry(stacktrace), ?\n]
   end
 
-  defp to_diagnostic(message, {file, line, mfa}) do
+  defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do
     %{
       severity: :warning,
       file: file,
-      position: line,
+      position: position_to_tuple(position),
       message: IO.iodata_to_binary(message),
-      stacktrace: [to_stacktrace(file, line, mfa)]
+      stacktrace: [to_stacktrace(file, position, mfa)]
     }
   end
 
-  defp to_stacktrace(file, line, {module, fun, arity}),
-    do: {module, fun, arity, location(file, line)}
+  defp position_to_tuple(position) do
+    case position[:column] do
+      nil -> position[:line]
+      col -> {position[:line], col}
+    end
+  end
 
-  defp to_stacktrace(file, line, nil),
-    do: {:elixir_compiler, :__FILE__, 1, location(file, line)}
+  defp to_stacktrace(file, pos, {module, fun, arity}),
+    do: {module, fun, arity, location(file, pos)}
 
-  defp to_stacktrace(file, line, module),
-    do: {module, :__MODULE__, 0, location(file, line)}
+  defp to_stacktrace(file, pos, nil),
+    do: {:elixir_compiler, :__FILE__, 1, location(file, pos)}
 
-  defp location(file, line) do
-    [file: String.to_charlist(Path.relative_to_cwd(file)), line: line]
+  defp to_stacktrace(file, pos, module),
+    do: {module, :__MODULE__, 0, location(file, pos)}
+
+  defp location(file, position) do
+    [{:file, String.to_charlist(Path.relative_to_cwd(file))} | position]
   end
 
   ## Cache
