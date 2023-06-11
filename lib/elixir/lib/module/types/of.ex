@@ -323,7 +323,7 @@ defmodule Module.Types.Of do
 
   defp warn(meta, context, warning) do
     {fun, arity} = context.function
-    location = {context.file, meta[:line] || 0, {context.module, fun, arity}}
+    location = {context.file, meta, {context.module, fun, arity}}
     %{context | warnings: [{__MODULE__, warning, location} | context.warnings]}
   end
 

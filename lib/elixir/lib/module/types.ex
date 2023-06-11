@@ -155,7 +155,13 @@ defmodule Module.Types do
     {Module.Types, error, location}
   end
 
-  defp get_line(stack), do: stack.last_expr |> get_meta() |> Keyword.get(:line, 0)
+  defp get_line(stack) do
+    line = stack.last_expr 
+      |> get_meta()
+      |> Keyword.get(:line, 0) 
+
+    [line: line]
+  end
 
   # Collect relevant traces from context.traces using stack.unify_stack
   defp type_traces(stack, context) do
@@ -349,8 +355,8 @@ defmodule Module.Types do
     end)
   end
 
-  defp format_location({file, line, _mfa}) do
-    format_location({file, line})
+  defp format_location({file, position, _mfa}) do
+   format_location({file, position[:line]})
   end
 
   defp format_location({file, line}) do

@@ -329,18 +329,13 @@ defmodule Module.ParallelChecker do
     ["  ", Exception.format_stacktrace_entry(stacktrace), ?\n]
   end
 
-  # TODO: remove this 
-  # defp to_diagnostic(message, {file, line, mfa}) when is_integer(line) do 
-  #   to_diagnostic(message, {file, [line: line], mfa})
-  # end
-
-  defp to_diagnostic(message, {file, pos, mfa}) when is_list(pos) do
+  defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do
     %{
       severity: :warning,
       file: file,
-      position: position_to_tuple(pos),
+      position: position_to_tuple(position),
       message: IO.iodata_to_binary(message),
-      stacktrace: [to_stacktrace(file, pos, mfa)]
+      stacktrace: [to_stacktrace(file, position, mfa)]
     }
   end
 
