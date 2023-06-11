@@ -156,9 +156,10 @@ defmodule Module.Types do
   end
 
   defp get_line(stack) do
-    line = stack.last_expr 
+    line =
+      stack.last_expr
       |> get_meta()
-      |> Keyword.get(:line, 0) 
+      |> Keyword.get(:line, 0)
 
     [line: line]
   end
@@ -356,7 +357,7 @@ defmodule Module.Types do
   end
 
   defp format_location({file, position, _mfa}) do
-   format_location({file, position[:line]})
+    format_location({file, position[:line]})
   end
 
   defp format_location({file, line}) do

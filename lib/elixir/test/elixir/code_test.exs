@@ -91,7 +91,6 @@ defmodule CodeTest do
                end)
     end
 
-    
     test "includes column information on unknown remote function calls" do
       sample = """
       defmodule CodeTest.UnknownRemoteCall do
