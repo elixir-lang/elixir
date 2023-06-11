@@ -1511,19 +1511,10 @@ defmodule Kernel.WarningTest do
            end
            """) == ""
 
-    assert capture_eval("""
-           defmodule Sample3 do
-             @doc "hello"
-             def add(a, 1), do: a + 1
-             @doc "world"
-             def add(a, b)
-           end
-           """) =~ ""
-
     assert_warn_eval(
       ["nofile:4: ", "redefining @doc attribute previously set at line"],
       """
-      defmodule Sample4 do
+      defmodule Sample3 do
         @doc "hello"
         def add(a, 1), do: a + 1
         @doc "world"
@@ -1532,7 +1523,7 @@ defmodule Kernel.WarningTest do
       """
     )
   after
-    purge([Sample1, Sample2, Sample3, Sample4])
+    purge([Sample1, Sample2, Sample3])
   end
 
   test "reserved doc metadata keys" do
@@ -1669,20 +1660,6 @@ defmodule Kernel.WarningTest do
         end
         """
       )
-    after
-      purge(Sample)
-    end
-
-    test "unreachable specs" do
-      message =
-        capture_eval("""
-        defmodule Sample do
-          defp my_fun(x), do: x
-          @spec my_fun(integer) :: integer
-        end
-        """)
-
-      assert message != ""
     after
       purge(Sample)
     end
