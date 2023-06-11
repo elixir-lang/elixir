@@ -137,7 +137,7 @@ defmodule Module.Types do
   # Collect relevant information from context and traces to report error
   def error_to_warning(:unable_apply, {mfa, args, expected, signature, stack}, context) do
     {fun, arity} = context.function
-    location = {context.file, get_line(stack), {context.module, fun, arity}}
+    location = {context.file, get_position(stack), {context.module, fun, arity}}
 
     traces = type_traces(stack, context)
     {[signature | args], traces} = lift_all_types([signature | args], traces, context)
@@ -147,7 +147,7 @@ defmodule Module.Types do
 
   def error_to_warning(:unable_unify, {left, right, stack}, context) do
     {fun, arity} = context.function
-    location = {context.file, get_line(stack), {context.module, fun, arity}}
+    location = {context.file, get_position(stack), {context.module, fun, arity}}
 
     traces = type_traces(stack, context)
     {[left, right], traces} = lift_all_types([left, right], traces, context)
@@ -155,7 +155,7 @@ defmodule Module.Types do
     {Module.Types, error, location}
   end
 
-  defp get_line(stack) do
+  defp get_position(stack) do
     line =
       stack.last_expr
       |> get_meta()
