@@ -788,7 +788,10 @@ defmodule Exception do
   end
 
   defp format_location(opts) when is_list(opts) do
-    format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line), " ")
+    case opts[:column] do
+      nil -> format_file_line(Keyword.get(opts, :file), Keyword.get(opts, :line), " ")
+      col -> format_file_line_column(Keyword.get(opts, :file), Keyword.get(opts, :line), col, " ")
+    end
   end
 end
 

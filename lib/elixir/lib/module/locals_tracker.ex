@@ -33,7 +33,7 @@ defmodule Module.LocalsTracker do
   """
   def add_local({_set, bag}, from, to, meta, macro_dispatch?)
       when is_tuple(from) and is_tuple(to) and is_boolean(macro_dispatch?) do
-    put_edge(bag, {:local, from}, {to, get_line(meta), macro_dispatch?})
+    put_edge(bag, {:local, from}, {to, get_position(meta), macro_dispatch?})
     :ok
   end
 
@@ -105,9 +105,9 @@ defmodule Module.LocalsTracker do
   def collect_undefined_locals({set, bag}, all_defined) do
     undefined =
       for {pair, _, meta, _} <- all_defined,
-          {local, line, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
+          {local, position, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
           error = undefined_local_error(set, local, macro_dispatch?),
-          do: {pair, build_meta(line, meta), local, error}
+          do: {pair, build_meta(position, meta), local, error}
 
     :lists.usort(undefined)
   end
@@ -213,15 +213,20 @@ defmodule Module.LocalsTracker do
 
   defp get_line(meta), do: Keyword.get(meta, :line)
 
+  defp get_position(meta) do
+    {get_line(meta), meta[:column]}
+  end
+
   defp build_meta(nil, _meta), do: []
 
   # We need to transform any file annotation in the function
   # definition into a keep annotation that is used by the
   # error handling system in order to respect line/file.
-  defp build_meta(line, meta) do
-    case Keyword.get(meta, :file) do
-      {file, _} -> [keep: {file, line}]
-      _ -> [line: line]
+  defp build_meta(position, meta) do
+    case {position, Keyword.get(meta, :file)} do
+      {{line, _col}, {file, _}} -> [keep: {file, line}]
+      {{line, nil}, nil} -> [line: line]
+      {{line, col}, nil} -> [line: line, column: col]
     end
   end
 

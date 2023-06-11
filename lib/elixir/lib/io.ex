@@ -325,8 +325,9 @@ defmodule IO do
           :ok
   def warn(message, stacktrace_info)
 
-  def warn(message, %Macro.Env{} = env) do
-    warn(message, Macro.Env.stacktrace(env))
+  def warn(message, %Macro.Env{line: line, file: file} = env) do
+    message = to_chardata(message)
+    :elixir_errors.emit_diagnostic(:warning, line, file, message, Macro.Env.stacktrace(env))
   end
 
   def warn(message, []) do
