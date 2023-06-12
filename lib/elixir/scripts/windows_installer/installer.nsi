@@ -16,6 +16,9 @@ Page custom CheckOTPPageShow CheckOTPPageLeave
 
 var Dialog
 var DownloadOTPLink
+var InstalledERTSVersion
+var InstalledOTPRelease
+var OTPPath
 Function CheckOTPPageShow
   !insertmacro MUI_HEADER_TEXT "Checking Erlang/OTP" ""
 
@@ -27,35 +30,37 @@ Function CheckOTPPageShow
   ${EndIf}
 
   EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
-  ReadRegStr $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
+  ReadRegStr $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$1" ""
+  StrCpy $InstalledERTSVersion $0
+  StrCpy $OTPPath $1
 
-  ${If} $0 == ""
+  ${If} $1 == ""
     ${NSD_CreateLabel} 0 0   100% 20u "Couldn't find existing Erlang/OTP installation. Click the link below to download and install it before proceeding."
     ${NSD_CreateLink}  0 25u 100% 20u "Download Erlang/OTP ${OTP_RELEASE}"
     Pop $DownloadOTPLink
     ${NSD_OnClick} $DownloadOTPLink OpenOTPDownloads
   ${Else}
-    nsExec::ExecToStack `$0\bin\bad.exe -noinput -eval "\
+    nsExec::ExecToStack `$OTPPath\erts-$InstalledERTSVersion\bin\erl.exe -noinput -eval "\
     io:put_chars(erlang:system_info(otp_release)),\
     halt()."`
-    Pop $1
-    Pop $2
+    Pop $0
+    Pop $InstalledOTPRelease
 
-    ${If} $1 == 0
-      ${If} $2 == ${OTP_RELEASE}
-        ${NSD_CreateLabel} 0 0 100% 20u "Found existing Erlang/OTP $2 installation at $0. Please proceed."
+    ${If} $0 == 0
+      ${If} $InstalledOTPRelease == ${OTP_RELEASE}
+        ${NSD_CreateLabel} 0 0 100% 20u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath. Please proceed."
       ${ElseIf} $2 < ${OTP_RELEASE}
-        ${NSD_CreateLabel} 0 0 100% 30u "Found existing Erlang/OTP $2 installation at $0 but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
-        We recommend checking if there is an Elixir version precompiled for Erlang/OTP $2. Otherwise, proceed."
+        ${NSD_CreateLabel} 0 0 100% 30u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
+        We recommend checking if there is an Elixir version precompiled for Erlang/OTP $InstalledOTPRelease. Otherwise, proceed."
       ${Else}
         SetErrorlevel 5
-        MessageBox MB_ICONSTOP "Found existing Erlang/OTP $2 installation at $0 but this Elixir version was precompiled for Erlang/OTP ${OTP_RELEASE}. \
+        MessageBox MB_ICONSTOP "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir version was precompiled for Erlang/OTP ${OTP_RELEASE}. \
         Please upgrade your Erlang/OTP version or choose an Elixir installer matching your Erlang/OTP version"
         Quit
       ${EndIf}
     ${Else}
       SetErrorlevel 5
-      MessageBox MB_ICONSTOP "Found existing Erlang/OTP installation at $0 but checking it exited with $1"
+      MessageBox MB_ICONSTOP "Found existing Erlang/OTP installation at $OTPPath but checking it exited with $0"
       Quit
     ${EndIf}
   ${EndIf}
@@ -81,7 +86,6 @@ Page custom FinishPageShow FinishPageLeave
 
 var AddOTPToPathCheckbox
 var AddElixirToPathCheckbox
-var OTPPath
 Function FinishPageShow
   !insertmacro MUI_HEADER_TEXT "Finish Setup" ""
 
