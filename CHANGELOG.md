@@ -68,7 +68,7 @@ In Elixir v1.15, the new reports will look like:
     error: undefined function foo/0 (there is no such import)
       my_file.exs:1
 
-    ** (CompileError) nofile: cannot compile file (errors have been logged)
+    ** (CompileError) my_file.exs: cannot compile file (errors have been logged)
 
 A new function, called `Code.with_diagnostics/2`, has been added so this
 information can be leveraged by editors, allowing them to point to several
@@ -100,16 +100,46 @@ config :logger, :default_formatter,
   format: "$time $message $metadata"
 ```
 
-If you use `Logger.Backends.Console` or other backends, they are
-still fully supported and functional. If you implement your own
-backends, you want to consider migrating to
+If you use `Logger.Backends.Console` with a custom device or other
+backends, they are still fully supported and functional. If you
+implement your own backends, you want to consider migrating to
 [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
 in the long term.
 
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
-## v1.15.0-rc.1 (2022-05-29)
+## v1.15.0-rc.2 (2023-06-12)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Module] Mark functions as generated in "Docs" chunk
+
+#### ExUnit
+
+  * [ExUnit.Doctest] Include `doctest_data` in doctest tags
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Kernel] Fix `import m, only: :sigils` for multi-letter sigils (regression)
+  * [Macro] Fix `Macro.to_string/1` for multi-letter sigils (regression)
+
+#### ExUnit
+
+  * [ExUnit] Mark test cases as invalid when an exit occurs during `setup_all`
+  * [ExUnit] Fix ExUnit diffs for multi-letter sigils (regression)
+  * [ExUnit.Doctest] Fix line information when a doctest with multiple assertions fails
+
+#### Mix
+
+  * [mix compile] Keep erts when pruning load paths (regression)
+  * [mix xref] Raise early if `mix xref` is used at the umbrella root
+
+## v1.15.0-rc.1 (2023-05-29)
 
 ### 1. Enhancements
 
@@ -154,7 +184,7 @@ new features and on compatibility.
 
   * [Kernel] Require pin variable when accessing variable inside binary size in match
 
-## v1.15.0-rc.0 (2022-05-22)
+## v1.15.0-rc.0 (2023-05-22)
 
 ### 1. Enhancements
 
