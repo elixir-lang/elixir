@@ -8,7 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
--export([fancy_lexer_exception/4, fancy_lexer_exception/5]).
+-export([fancy_lexer_exception_snippet/5, fancy_lexer_exception/5]).
 -export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -46,21 +46,21 @@ standard_diagnostic_formatter(Diagnostic) ->
  
   [prefix(Severity), Message, Location, "\n\n"].
 
-fancy_lexer_exception(File, LineNumber, Column, Message) ->
-  io:format("file is ~p, location is ~p ~n", [File, LineNumber]),
-  case filelib:is_regular(File) of 
-    true -> line_column_diagnostic({LineNumber, Column}, File, Message, error);
-    false -> no_line_diagnostic(LineNumber, File, Message, error)
-  end.
+fancy_lexer_exception(File, LineNumber, Column, Message, ShowLine) ->
+  Result = case filelib:is_regular(File) andalso ShowLine of 
+             true -> line_column_diagnostic({LineNumber, Column}, File, Message, error);
+             false -> no_line_diagnostic(LineNumber, File, Message, error)
+           end,
+  unicode:characters_to_binary(io_lib:format("~ts", [Result])).
 
-fancy_lexer_exception(File, LineNumber, Column, Description, Snippet) ->
+fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
 
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
   Formatted = io_lib:format(
-    "\n ~ts┌─ ~ts~ts\n"
+    " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
     " ~ts│ ~ts\n"
@@ -82,11 +82,13 @@ fancy_lexer_exception(File, LineNumber, Column, Description, Snippet) ->
 fancy_diagnostic_formatter(Diagnostic) -> 
   #{position := Position, file := File, message := Message, severity := Severity} = Diagnostic,
 
-  case {Position, filelib:is_regular(File)} of 
+  Result = case {Position, filelib:is_regular(File)} of 
     {_, false} -> no_line_diagnostic(Position, File, Message, Severity);
     {{_, _}, true} -> line_column_diagnostic(Position, File, Message, Severity);
     {Line, true} -> line_only_diagnostic(Line, File, Message, Severity)
-  end.
+  end,
+
+  io_lib:format("~ts~n~n", [Result]).
 
 no_line_diagnostic(Position, File, Message, Severity) -> 
   LineNumber = case Position of 
@@ -99,7 +101,7 @@ no_line_diagnostic(Position, File, Message, Severity) ->
     " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
-    " ~ts│\n\n",
+    " ~ts│",
     [
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
@@ -122,7 +124,7 @@ line_column_diagnostic(Position, File, Message, Severity) ->
     " ~ts│ ~ts\n"
     " ~ts│\n"
     " ~ts│ ~ts\n"
-    " ~ts│\n\n",
+    " ~ts│",
     [
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
@@ -147,7 +149,7 @@ line_only_diagnostic(LineNumber, File, Message, Severity) ->
     " ~ts│ ~ts\n"
     " ~ts│\n"
     " ~ts│ ~ts\n"
-    " ~ts│\n\n",
+    " ~ts│",
     [ 
      Spacing, prefix(Severity), file_format(LineNumber, File),
      Spacing, 
@@ -183,22 +185,30 @@ match_line_error(Line, Column) ->
   TermRegex = "[A-Za-z_\.\{\}\(\)&]*",
   {ok, Re} = re:compile(TermRegex),
   Tail = string:slice(Line, Column),
-  {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
-  string:length(MatchingTerm).
+
+  % If the tail is empty, error points at \n or EOF
+  case Tail of 
+    <<>> -> 1;
+    _ -> 
+     {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
+     string:length(MatchingTerm)
+  end.
 
 get_file_line(File, LineNumber) -> 
   {ok, IoDevice} = file:open(File, [read]),
 
   LineCollector = fun 
-                    (I, nil) when I == LineNumber -> 
+                    (I, nil) when I == LineNumber - 1 -> 
                       {ok, Line} = file:read_line(IoDevice),
                       string:trim(Line, trailing);
                     (_, nil) -> 
                       {ok, _} = file:read_line(IoDevice),
-                      nil
+                      nil;
+                    (_, Line) -> 
+                      Line
                   end,
 
-  lists:foldl(LineCollector, nil, lists:seq(1, LineNumber)).
+  lists:foldl(LineCollector, nil, lists:seq(0, LineNumber)).
 
 trim_file_line(Line) -> 
   Trimmed = string:trim(Line, leading),
