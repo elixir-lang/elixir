@@ -897,15 +897,17 @@ defmodule SyntaxError do
         column: column,
         description: description,
         snippet: snippet
-      } = opts)
+      })
       when not is_nil(snippet) and not is_nil(column) do
-    :elixir_errors.fancy_lexer_exception(file, line, column, description, snippet)
-    # |> IO.inspect()
-    # |> :erlang.iolist_to_binary()
-    # |> IO.inspect()
+    # TODO: have this as an option
+    fancy_errors? = true
 
-      # "\n" <> Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-      # " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
+    if fancy_errors? do 
+      :elixir_errors.fancy_lexer_exception(file, line, column, description, snippet)
+    else 
+      "\n" <> Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+      " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
+    end
   end
 
   @impl true
@@ -915,10 +917,15 @@ defmodule SyntaxError do
         column: column,
         description: description
       }) do
-    # :elixir_errors.fancy_lexer_exception(file, line, column, description)
+    # TODO: have this as an option
+    fancy_errors? = true
 
-        # "\n" <> Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-        # " " <> description
+    if fancy_errors? do 
+      :elixir_errors.fancy_lexer_exception(file, line, column, description)
+    else 
+      "\n" <> Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+      " " <> description
+    end
   end
 end
 
@@ -934,8 +941,15 @@ defmodule TokenMissingError do
         snippet: snippet
       })
       when not is_nil(snippet) and not is_nil(column) do
-    Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-      " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
+    # TODO: have this as an option
+    fancy_errors? = true
+
+    if fancy_errors? do 
+      :elixir_errors.fancy_lexer_exception(file, line, column, description, snippet)
+    else 
+      Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+        " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
+    end
   end
 
   @impl true
@@ -945,15 +959,15 @@ defmodule TokenMissingError do
         column: column,
         description: description
       }) do
-    Exception.format_file_line_column(file && Path.relative_to_cwd(file), line, column) <>
-      " " <> description
-  end
+    # TODO: have this as an option
+    fancy_errors? = false
 
-  def exception(opts) do
-    IO.inspect(opts)
-    # file = Keyword.fetch!(opts, :file)
-    # message = "could not load #{file}. Reason: #{reason}"
-    # %Code.LoadError{message: message, file: file, reason: reason}
+    if fancy_errors? do 
+      :elixir_errors.fancy_lexer_exception(file, line, column, description)
+    else 
+      Exception.format_file_line_column(file && Path.relative_to_cwd(file), line, column) <>
+        " " <> description
+    end
   end
 end
 

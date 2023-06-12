@@ -46,10 +46,12 @@ standard_diagnostic_formatter(Diagnostic) ->
  
   [prefix(Severity), Message, Location, "\n\n"].
 
-fancy_lexer_exception(File, Line, Column, Description) ->
-  % TODO: if no snippet, try to read it from the file, otherwise show no-line
-  % styles
-  <<"hey there i am a fancy lexer expression wo snippet">>.
+fancy_lexer_exception(File, LineNumber, Column, Message) ->
+  io:format("file is ~p, location is ~p ~n", [File, LineNumber]),
+  case filelib:is_regular(File) of 
+    true -> line_column_diagnostic({LineNumber, Column}, File, Message, error);
+    false -> no_line_diagnostic(LineNumber, File, Message, error)
+  end.
 
 fancy_lexer_exception(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
@@ -58,13 +60,13 @@ fancy_lexer_exception(File, LineNumber, Column, Description, Snippet) ->
   Spacing = n_spaces(LineDigits + 1),
 
   Formatted = io_lib:format(
-    " ~ts┌─ ~ts~ts\n"
+    "\n ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
     " ~ts│ ~ts\n"
     " ~ts│\n"
     " ~ts│ ~ts\n"
-    " ~ts│\n\n",
+    " ~ts│",
     [
      Spacing, prefix(error), file_format({LineNumber, Column}, File),
      Spacing,
@@ -75,26 +77,18 @@ fancy_lexer_exception(File, LineNumber, Column, Description, Snippet) ->
      Spacing
     ]),
 
-  io:format("formatted is \n~ts~n", [Formatted]),
-  list_to_binary(Formatted).
+  unicode:characters_to_binary(Formatted).
 
-      % # TODO: fancy format for this:
-      % # - file, line, col
-      % # | 
-      % # | <snippet>
-      % # | <highlight at snippet offset>
-      % # |
-      % # | <message replace \n with fancy breaks (include |)>
+fancy_diagnostic_formatter(Diagnostic) -> 
+  #{position := Position, file := File, message := Message, severity := Severity} = Diagnostic,
 
-fancy_diagnostic_formatter(#{position := Position, file := File} = Diagnostic) -> 
   case {Position, filelib:is_regular(File)} of 
-    {_, false} -> no_line_diagnostic(Diagnostic);
-    {{_, _}, true} -> line_column_diagnostic(Diagnostic);
-    {_Line, true} -> line_only_diagnostic(Diagnostic)
+    {_, false} -> no_line_diagnostic(Position, File, Message, Severity);
+    {{_, _}, true} -> line_column_diagnostic(Position, File, Message, Severity);
+    {Line, true} -> line_only_diagnostic(Line, File, Message, Severity)
   end.
 
-no_line_diagnostic(Diagnostic) -> 
-  #{position := Position, file := File, severity := Severity, message := Message} = Diagnostic,
+no_line_diagnostic(Position, File, Message, Severity) -> 
   LineNumber = case Position of 
                  {L, _} -> L;
                  L -> L
@@ -114,8 +108,7 @@ no_line_diagnostic(Diagnostic) ->
     ]
    ).
 
-line_column_diagnostic(Diagnostic) ->
-  #{position := Position, file := File, severity := Severity, message := Message} = Diagnostic,
+line_column_diagnostic(Position, File, Message, Severity) ->
   {LineNumber, Column} = Position,
   Line = get_file_line(File, LineNumber),
   {TrimmedLine, TotalLeading} = trim_file_line(Line),
@@ -141,10 +134,9 @@ line_column_diagnostic(Diagnostic) ->
     ]
   ).
 
-line_only_diagnostic(Diagnostic) ->
-  #{position := LineNumber, file := File, severity := Severity, message := Message} = Diagnostic,
+line_only_diagnostic(LineNumber, File, Message, Severity) ->
   Line = get_file_line(File, LineNumber),
-  {TrimmedLine, TotalLeading} = trim_file_line(Line),
+  {TrimmedLine, _} = trim_file_line(Line),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
@@ -188,7 +180,7 @@ do_get_line_number_digits(Number, Acc) ->
   do_get_line_number_digits(Number div 10, Acc + 1).
 
 match_line_error(Line, Column) ->
-  TermRegex = "[A-Za-z_\.\{\}]*",
+  TermRegex = "[A-Za-z_\.\{\}\(\)&]*",
   {ok, Re} = re:compile(TermRegex),
   Tail = string:slice(Line, Column),
   {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
