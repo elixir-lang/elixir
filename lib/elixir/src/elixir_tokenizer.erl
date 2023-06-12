@@ -1796,7 +1796,7 @@ prune_tokens([{OpType, _, _} | _] = Tokens, [], Terminators)
        OpType =:= in_match_op; OpType =:= type_op; OpType =:= dual_op; OpType =:= mult_op;
        OpType =:= power_op; OpType =:= concat_op; OpType =:= range_op; OpType =:= xor_op;
        OpType =:= pipe_op; OpType =:= stab_op; OpType =:= when_op; OpType =:= assoc_op;
-       OpType =:= rel_op; OpType =:= ternary_op ->
+       OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op ->
   {Tokens, Terminators};
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener, Terminators) ->
