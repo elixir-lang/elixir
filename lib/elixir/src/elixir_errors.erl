@@ -9,6 +9,7 @@
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
 -export([fancy_lexer_exception_snippet/5, fancy_lexer_exception/5]).
+-export([fancy_warning_group/2]).
 -export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -89,6 +90,49 @@ fancy_diagnostic_formatter(Diagnostic) ->
   end,
 
   io_lib:format("~ts~n~n", [Result]).
+
+fancy_warning_group(Message, [FirstDiagnostic | Rest]) -> 
+  #{file := File, position := Position} = FirstDiagnostic,
+
+  LineNumber = case Position of 
+                 {L, _} -> L;
+                 L -> L
+               end,
+
+  Line = get_file_line(File, LineNumber),
+  {TrimmedLine, _} = trim_file_line(Line),
+
+  LineDigits = get_line_number_digits(LineNumber),
+  Spacing = n_spaces(LineDigits + 1),
+  Res = [["  ", 'Elixir.Exception':format_stacktrace_entry(H), "\n"] 
+         || #{stacktrace := [H]} <- Rest],
+
+  io:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts│\n"
+    " ~p │ ~ts\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts│ Invalid call also found at ~b other locations:~n"
+    " ~ts│ ~ts\n\n",
+    [
+     Spacing, prefix(warning), file_format(Position, File),
+     Spacing,
+     LineNumber, TrimmedLine,
+     Spacing, highlight_below_line(TrimmedLine, 0, warning),
+     Spacing,
+     Spacing, Message, 
+     Spacing,
+     Spacing, length(Res),
+     Spacing, fancify_newlines(list_to_binary(Res), LineDigits)
+    ]
+   ).
+
+fancify_newlines(Message, NDigits) -> 
+  LineSeparator = unicode:characters_to_binary(io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)])),
+  binary:replace(Message, [<<"\n">>], LineSeparator, [global]).
 
 no_line_diagnostic(Position, File, Message, Severity) -> 
   LineNumber = case Position of 

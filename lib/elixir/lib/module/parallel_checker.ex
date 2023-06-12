@@ -309,7 +309,18 @@ defmodule Module.ParallelChecker do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
       diagnostics = Enum.map(locations, &to_diagnostic(message, &1))
-      log? and :elixir_errors.print_warning([message, ?\n, format_stacktraces(diagnostics)])
+
+      # TODO: parametrize this value
+      fancy? = true
+
+      cond do 
+        log? and fancy? ->
+          :elixir_errors.fancy_warning_group(message, diagnostics)
+
+        log? ->
+          :elixir_errors.print_warning([message, ?\n, format_stacktraces(diagnostics)])
+      end
+
       diagnostics
     end)
   end
