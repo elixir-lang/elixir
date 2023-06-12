@@ -8,6 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
+-export([fancy_lexer_exception/4, fancy_lexer_exception/5]).
 -export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -45,6 +46,46 @@ standard_diagnostic_formatter(Diagnostic) ->
  
   [prefix(Severity), Message, Location, "\n\n"].
 
+fancy_lexer_exception(File, Line, Column, Description) ->
+  % TODO: if no snippet, try to read it from the file, otherwise show no-line
+  % styles
+  <<"hey there i am a fancy lexer expression wo snippet">>.
+
+fancy_lexer_exception(File, LineNumber, Column, Description, Snippet) ->
+  #{content := Content, offset := Offset} = Snippet,
+
+  LineDigits = get_line_number_digits(LineNumber),
+  Spacing = n_spaces(LineDigits + 1),
+
+  Formatted = io_lib:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts│\n"
+    " ~p │ ~ts\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n\n",
+    [
+     Spacing, prefix(error), file_format({LineNumber, Column}, File),
+     Spacing,
+     LineNumber, Content,
+     Spacing, highlight_below_line(Content, Offset, error),
+     Spacing,
+     Spacing, format_message(Description, LineDigits), 
+     Spacing
+    ]),
+
+  io:format("formatted is \n~ts~n", [Formatted]),
+  list_to_binary(Formatted).
+
+      % # TODO: fancy format for this:
+      % # - file, line, col
+      % # | 
+      % # | <snippet>
+      % # | <highlight at snippet offset>
+      % # |
+      % # | <message replace \n with fancy breaks (include |)>
+
 fancy_diagnostic_formatter(#{position := Position, file := File} = Diagnostic) -> 
   case {Position, filelib:is_regular(File)} of 
     {_, false} -> no_line_diagnostic(Diagnostic);
@@ -68,7 +109,7 @@ no_line_diagnostic(Diagnostic) ->
     [
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
-     LineNumber, format_message(Message, 0, LineDigits), 
+     LineNumber, format_message(Message, LineDigits), 
      Spacing
     ]
    ).
@@ -95,7 +136,7 @@ line_column_diagnostic(Diagnostic) ->
      LineNumber, TrimmedLine, 
      Spacing, highlight_below_line(TrimmedLine, Column - TotalLeading, Severity),
      Spacing,
-     Spacing, format_message(Message, TotalLeading, LineDigits),
+     Spacing, format_message(Message, LineDigits),
      Spacing
     ]
   ).
@@ -121,7 +162,7 @@ line_only_diagnostic(Diagnostic) ->
      LineNumber, TrimmedLine,
      Spacing, highlight_below_line(TrimmedLine, Severity),
      Spacing,
-     Spacing, format_message(Message, TotalLeading, LineDigits),
+     Spacing, format_message(Message, LineDigits),
      Spacing
     ]
  ).
@@ -147,7 +188,7 @@ do_get_line_number_digits(Number, Acc) ->
   do_get_line_number_digits(Number div 10, Acc + 1).
 
 match_line_error(Line, Column) ->
-  TermRegex = "[A-Za-z_\.]*",
+  TermRegex = "[A-Za-z_\.\{\}]*",
   {ok, Re} = re:compile(TermRegex),
   Tail = string:slice(Line, Column),
   {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
@@ -408,17 +449,16 @@ env_format(Meta, #{file := EnvFile} = E) ->
     _ -> {Line, File, Stacktrace}
   end.
 
-format_message(Message, TotalLeading, NDigits) ->
-  Lines = wrap_message(Message, 80 - TotalLeading),
-  LineSeparator = io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)]),
-  binary_join(Lines, unicode:characters_to_binary(LineSeparator)).
+% TODO: probably total leading is not required anymore here
+format_message(Message, NDigits) ->
+  Lines = wrap_message(Message, 80),
+  LineSeparator = unicode:characters_to_binary(io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)])),
+  Joined = binary_join(Lines, LineSeparator),
+  binary:replace(Joined, [<<"\n">>], LineSeparator).
 
 wrap_message(Message, LineLength) ->
-  NoNewline = binary:replace(Message, <<"\n">>, <<"">>),
-  Words = binary:split(NoNewline, <<" ">>, [global]),
+  Words = binary:split(Message, <<" ">>, [global]),
   wrap_lines(Words, LineLength).
-
-n_spaces(N) -> lists:duplicate(N, " ").
 
 wrap_lines(Words, Limit) -> do_wrap_lines(Words, Limit, 0, [], []).
 
@@ -440,6 +480,8 @@ binary_join([], _) ->
     <<>>;
 binary_join([H | T], Separator) ->
     lists:foldl(fun (Value, Acc) -> <<Acc/binary, Separator/binary, Value/binary>> end, H, T).
+
+n_spaces(N) -> lists:duplicate(N, " ").
 
 file_format(_, nil) ->
   "";
@@ -466,5 +508,13 @@ maybe_add_col(Position, Meta) ->
 
 raise(Kind, Message, Opts) when is_binary(Message) ->
   Stacktrace = try throw(ok) catch _:_:Stack -> Stack end,
+
+  case Kind of 
+    'Elixir.SyntaxError' = S -> 
+      erlang:raise(error, S:exception([{description, Message} | Opts]), Stacktrace);
+    'Elixir.TokenMissingError' = T ->
+      erlang:raise(error, T:exception([{description, Message} | Opts]), Stacktrace)
+  end,
+
   Exception = Kind:exception([{description, Message} | Opts]),
   erlang:raise(error, Exception, tl(Stacktrace)).

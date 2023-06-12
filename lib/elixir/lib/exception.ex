@@ -897,10 +897,15 @@ defmodule SyntaxError do
         column: column,
         description: description,
         snippet: snippet
-      })
+      } = opts)
       when not is_nil(snippet) and not is_nil(column) do
-    Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-      " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
+    :elixir_errors.fancy_lexer_exception(file, line, column, description, snippet)
+    # |> IO.inspect()
+    # |> :erlang.iolist_to_binary()
+    # |> IO.inspect()
+
+      # "\n" <> Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+      # " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
   end
 
   @impl true
@@ -910,8 +915,10 @@ defmodule SyntaxError do
         column: column,
         description: description
       }) do
-    Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
-      " " <> description
+    # :elixir_errors.fancy_lexer_exception(file, line, column, description)
+
+        # "\n" <> Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+        # " " <> description
   end
 end
 
@@ -940,6 +947,13 @@ defmodule TokenMissingError do
       }) do
     Exception.format_file_line_column(file && Path.relative_to_cwd(file), line, column) <>
       " " <> description
+  end
+
+  def exception(opts) do
+    IO.inspect(opts)
+    # file = Keyword.fetch!(opts, :file)
+    # message = "could not load #{file}. Reason: #{reason}"
+    # %Code.LoadError{message: message, file: file, reason: reason}
   end
 end
 
