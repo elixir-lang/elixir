@@ -1098,6 +1098,8 @@ defmodule CodeFragmentTest do
 
     test "keeps operators" do
       assert cc2q("1 + 2") == s2q("1 + __cursor__()")
+      assert cc2q("&foo") == s2q("&__cursor__()")
+      assert cc2q("&foo/") == s2q("&foo/__cursor__()")
     end
 
     test "keeps function calls without parens" do
@@ -1198,11 +1200,6 @@ defmodule CodeFragmentTest do
       assert cc2q("(fn x -> x") == s2q("(__cursor__())")
       assert cc2q("(fn x, y -> x + y") == s2q("(__cursor__())")
       assert cc2q("(fn x, y -> x + y end") == s2q("(__cursor__())")
-    end
-
-    test "removes captures" do
-      assert cc2q("[& &1") == s2q("[__cursor__()]")
-      assert cc2q("[&(&1") == s2q("[__cursor__()]")
     end
 
     test "removes closed terminators" do
