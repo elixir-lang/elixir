@@ -30,7 +30,7 @@ Function CheckOTPPageShow
   ${EndIf}
 
   EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
-  ReadRegStr $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$1" ""
+  ReadRegStr $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
   StrCpy $InstalledERTSVersion $0
   StrCpy $OTPPath $1
 
@@ -40,13 +40,14 @@ Function CheckOTPPageShow
     Pop $DownloadOTPLink
     ${NSD_OnClick} $DownloadOTPLink OpenOTPDownloads
   ${Else}
-    nsExec::ExecToStack `$OTPPath\erts-$InstalledERTSVersion\bin\erl.exe -noinput -eval "\
+    nsExec::ExecToStack `$OTPPath\bin\erl.exe -noinput -eval "\
     io:put_chars(erlang:system_info(otp_release)),\
     halt()."`
     Pop $0
-    Pop $InstalledOTPRelease
+    Pop $1
 
     ${If} $0 == 0
+      StrCpy $InstalledOTPRelease $1
       ${If} $InstalledOTPRelease == ${OTP_RELEASE}
         ${NSD_CreateLabel} 0 0 100% 20u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath. Please proceed."
       ${ElseIf} $2 < ${OTP_RELEASE}
@@ -60,7 +61,7 @@ Function CheckOTPPageShow
       ${EndIf}
     ${Else}
       SetErrorlevel 5
-      MessageBox MB_ICONSTOP "Found existing Erlang/OTP installation at $OTPPath but checking it exited with $0"
+      MessageBox MB_ICONSTOP "Found existing Erlang/OTP installation at $OTPPath but checking it exited with $0: $1"
       Quit
     ${EndIf}
   ${EndIf}
