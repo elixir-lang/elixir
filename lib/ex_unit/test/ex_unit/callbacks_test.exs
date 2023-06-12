@@ -124,6 +124,22 @@ defmodule ExUnit.CallbacksTest do
              "** (MatchError) no match of right hand side value: :error"
   end
 
+  test "doesn't choke on setup_all exits" do
+    defmodule SetupAllExitTest do
+      use ExUnit.Case
+
+      setup_all _ do
+        Process.exit(self(), :error)
+      end
+
+      test "ok" do
+        assert true
+      end
+    end
+
+    assert capture_io(fn -> ExUnit.run() end) =~ "1 test, 0 failures, 1 invalid"
+  end
+
   test "doesn't choke on dead supervisor" do
     defmodule StartSupervisedErrorTest do
       use ExUnit.Case
