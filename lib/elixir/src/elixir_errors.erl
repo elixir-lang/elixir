@@ -185,13 +185,12 @@ match_line_error(Line, Column) ->
   TermRegex = "[A-Za-z_\.\{\}\(\)&]*",
   {ok, Re} = re:compile(TermRegex),
   Tail = string:slice(Line, Column),
+ {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
 
-  % If the tail is empty, error points at \n or EOF
-  case Tail of 
+  case MatchingTerm of 
+    % If we cannot consume anything, return a single ^ at column position
     <<>> -> 1;
-    _ -> 
-     {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
-     string:length(MatchingTerm)
+    _ -> string:length(MatchingTerm)
   end.
 
 get_file_line(File, LineNumber) -> 
@@ -456,7 +455,7 @@ format_message(Message, NDigits) ->
   Lines = wrap_message(Message, 80),
   LineSeparator = unicode:characters_to_binary(io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)])),
   Joined = binary_join(Lines, LineSeparator),
-  binary:replace(Joined, [<<"\n">>], LineSeparator).
+  binary:replace(Joined, [<<"\n">>], LineSeparator, [global]).
 
 wrap_message(Message, LineLength) ->
   Words = binary:split(Message, <<" ">>, [global]),
