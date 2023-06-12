@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   create_draft_release:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -40,7 +40,7 @@ jobs:
           - otp: 26
             otp_version: '26.0'
             build_docs: build_docs
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -56,7 +56,9 @@ jobs:
         run: |
           gh release upload --clobber "${{ github.ref_name }}" \
             elixir-otp-${{ matrix.otp }}.zip \
-            elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum
+            elixir-otp-${{ matrix.otp }}.zip.sha{1,256}sum \
+            elixir-otp-${{ matrix.otp }}.exe \
+            elixir-otp-${{ matrix.otp }}.exe.sha{1,256}sum
       - name: Upload Docs to GitHub
         if: ${{ matrix.build_docs }}
         env:

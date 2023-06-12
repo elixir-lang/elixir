@@ -22,6 +22,20 @@ runs:
         shasum -a 1 elixir-otp-${{ inputs.otp }}.zip > elixir-otp-${{ inputs.otp }}.zip.sha1sum
         shasum -a 256 elixir-otp-${{ inputs.otp }}.zip > elixir-otp-${{ inputs.otp }}.zip.sha256sum
         echo "$PWD/bin" >> $GITHUB_PATH
+    - name: Install NSIS
+      shell: bash
+      run: |
+        sudo apt update
+        sudo apt install -y nsis
+    - name: Build Elixir Windows Installer
+      shell: bash
+      run: |
+        export OTP_VERSION=${{ inputs.otp_version }}
+        export ELIXIR_ZIP=$PWD/elixir-otp-${{ inputs.otp }}.zip
+        (cd lib/elixir/scripts/windows_installer && ./build.sh)
+        mv lib/elixir/scripts/windows_installer/tmp/elixir-otp-${{ inputs.otp }}.exe .
+        shasum -a 1   elixir-otp-${{ inputs.otp }}.exe > elixir-otp-${{ inputs.otp }}.exe.sha1sum
+        shasum -a 256 elixir-otp-${{ inputs.otp }}.exe > elixir-otp-${{ inputs.otp }}.exe.sha256sum
     - name: Get latest stable ExDoc version
       if: ${{ inputs.build_docs }}
       shell: bash
