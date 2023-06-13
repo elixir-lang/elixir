@@ -3555,10 +3555,12 @@ defmodule Kernel do
       not bootstrapped?(Macro) ->
         nil
 
-      not function? and __CALLER__.context == :match ->
+      not function? and (__CALLER__.context == :match or __CALLER__.context == :guard) ->
         raise ArgumentError,
               """
-              invalid write attribute syntax. If you want to define an attribute, don't do this:
+              invalid usage of module attributes. Module attributes cannot be used inside \
+              pattern matching (and guards) outside of a function. If you are trying to \
+              define an attribute, do not do this:
 
                   @foo = :value
 

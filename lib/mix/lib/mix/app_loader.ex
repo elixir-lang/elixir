@@ -97,8 +97,8 @@ defmodule Mix.AppLoader do
 
   defp extra_apps(config) do
     case Keyword.get(config, :language, :elixir) do
-      :elixir -> [:ex_unit, :iex, :mix, :elixir, :erts]
-      :erlang -> [:compiler, :erts]
+      :elixir -> [:ex_unit, :iex, :mix, :elixir]
+      :erlang -> [:compiler]
     end
   end
 
@@ -136,8 +136,12 @@ defmodule Mix.AppLoader do
   end
 
   # We have processed all apps.
-  defp traverse_apps([], _seen, _deps_children, _builtin_paths, _lib_path) do
-    []
+  defp traverse_apps([], seen, _deps_children, builtin_paths, _lib_path) do
+    # We want to keep erts in the load path but it doesn't require to be loaded.
+    case builtin_paths do
+      %{erts: path} when not is_map_key(seen, :erts) -> [{:erts, path}]
+      %{} -> []
+    end
   end
 
   defp app_children(app) do

@@ -31,7 +31,7 @@ defmodule Mix.Tasks.Compile.All do
     {loaded_paths, loaded_modules} =
       Mix.AppLoader.load_apps(apps, deps, config, {[], []}, fn {app, path}, {paths, mods} ->
         paths = if path, do: [path | paths], else: paths
-        mods = if app_cache, do: [{app, Application.spec(app, :modules)} | mods], else: mods
+        mods = if app_cache, do: [{app, Application.spec(app, :modules) || []} | mods], else: mods
         {paths, mods}
       end)
 

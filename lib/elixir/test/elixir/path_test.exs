@@ -147,12 +147,12 @@ defmodule PathTest do
       assert Path.safe_relative("foo/../..") == :error
     end
 
-    test "safe_relative_to/2" do
-      assert Path.safe_relative_to("local/foo/bar", "local") == {:ok, "local/foo/bar"}
-      assert Path.safe_relative_to("foo/..", "local") == {:ok, ""}
-      assert Path.safe_relative_to("..", "local/foo") == :error
-      assert Path.safe_relative_to("d:/usr/local/foo", "D:/") == :error
-      assert Path.safe_relative_to("D:/usr/local/foo", "d:/") == :error
+    test "safe_relative/2" do
+      assert Path.safe_relative("local/foo/bar", "local") == {:ok, "local/foo/bar"}
+      assert Path.safe_relative("foo/..", "local") == {:ok, ""}
+      assert Path.safe_relative("..", "local/foo") == :error
+      assert Path.safe_relative("d:/usr/local/foo", "D:/") == :error
+      assert Path.safe_relative("D:/usr/local/foo", "d:/") == :error
     end
   end
 
@@ -187,7 +187,11 @@ defmodule PathTest do
         assert Path.relative_to("/usr/local/foo/..", "/usr/local/.", force: force) == "."
       end
 
-      # Different relative paths for foce true/false
+      # With relative second argument
+      assert Path.relative_to("/usr/local/foo", "etc") == "/usr/local/foo"
+      assert Path.relative_to("/usr/local/foo", "etc", force: true) == "/usr/local/foo"
+
+      # Different relative paths for force true/false
       assert Path.relative_to("/usr/local/foo", "/etc") == "/usr/local/foo"
       assert Path.relative_to("/usr/local/foo", "/etc", force: true) == "../usr/local/foo"
 
@@ -301,6 +305,7 @@ defmodule PathTest do
   end
 
   test "relative_to/3 (with relative paths)" do
+    # on cwd
     assert Path.relative_to("foo", File.cwd!()) == "foo"
     assert Path.relative_to("./foo", File.cwd!()) == "foo"
     assert Path.relative_to("./foo/.", File.cwd!()) == "foo"
@@ -310,14 +315,12 @@ defmodule PathTest do
     assert Path.relative_to("../foo/../bar/..", File.cwd!()) == ".."
     assert Path.relative_to("./foo/../bar/..", File.cwd!()) == "."
 
-    ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
-      assert Path.relative_to("usr/local/foo", "etc") == "usr/local/foo"
-      assert Path.relative_to(~c"usr/local/foo", "etc") == "usr/local/foo"
-
-      assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
-      assert Path.relative_to(["usr", ?/, ~c"local/foo"], ~c"usr/local") == "foo"
-    end)
+    # both relative
+    assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
+    assert Path.relative_to("usr/local/foo", "etc") == "../usr/local/foo"
+    assert Path.relative_to(~c"usr/local/foo", "etc") == "../usr/local/foo"
+    assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
+    assert Path.relative_to(["usr", ?/, ~c"local/foo"], ~c"usr/local") == "foo"
   end
 
   test "safe_relative/1" do
@@ -329,11 +332,11 @@ defmodule PathTest do
     assert Path.safe_relative("foo/../..") == :error
   end
 
-  test "safe_relative_to/2" do
-    assert Path.safe_relative_to("/usr/local/foo", "/usr/local") == :error
-    assert Path.safe_relative_to("../../..", "foo/bar") == :error
-    assert Path.safe_relative_to("../../..", "foo/bar") == :error
-    assert Path.safe_relative_to("/usr/local/foo", "/") == :error
+  test "safe_relative/2" do
+    assert Path.safe_relative("/usr/local/foo", "/usr/local") == :error
+    assert Path.safe_relative("../../..", "foo/bar") == :error
+    assert Path.safe_relative("../../..", "foo/bar") == :error
+    assert Path.safe_relative("/usr/local/foo", "/") == :error
   end
 
   test "rootname/2" do

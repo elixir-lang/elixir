@@ -288,18 +288,22 @@ defmodule ExUnit.Runner do
           {test_module, [], finished_tests}
 
         {^module_pid, :setup_all, {:error, test_module}} ->
-          invalid_tests = Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
+          invalid_tests = mark_tests_invalid(tests, test_module)
           :ok = exit_setup_all(module_pid, module_ref)
           {test_module, invalid_tests, []}
 
         {:DOWN, ^module_ref, :process, ^module_pid, error} ->
-          invalid_tests = Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
+          invalid_tests = mark_tests_invalid(tests, test_module)
           test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
           {test_module, invalid_tests, []}
       end
 
     timeout = get_timeout(config, %{})
     {exec_on_exit(test_module, module_pid, timeout), invalid_tests, finished_tests}
+  end
+
+  defp mark_tests_invalid(tests, test_module) do
+    Enum.map(tests, &%{&1 | state: {:invalid, test_module}})
   end
 
   defp run_setup_all(%ExUnit.TestModule{name: module} = test_module, parent_pid) do

@@ -322,7 +322,7 @@ defmodule Kernel.WarningTest do
     messages = ["undefined variable \"x\"", "variable \"x\" is unused"]
 
     assert_compile_error(
-      ["nofile:5\n", "nofile:2\n" | messages],
+      ["nofile:5:1", "nofile:2:11" | messages],
       """
       case false do
         true -> x = 1
@@ -333,7 +333,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:1\n", "nofile:2\n" | messages],
+      ["nofile:1:12", "nofile:2:1" | messages],
       """
       false and (x = 1)
       x
@@ -341,7 +341,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:1\n", "nofile:2\n" | messages],
+      ["nofile:1:10", "nofile:2:1" | messages],
       """
       true or (x = 1)
       x
@@ -349,7 +349,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:2\n", "nofile:4\n" | messages],
+      ["nofile:2:3", "nofile:4:1" | messages],
       """
       if false do
         x = 1
@@ -359,7 +359,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:2\n", "nofile:5\n" | messages],
+      ["nofile:2:12", "nofile:5:1" | messages],
       """
       cond do
         false -> x = 1
@@ -370,7 +370,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:2\n", "nofile:6\n" | messages],
+      ["nofile:2:11", "nofile:6:1" | messages],
       """
       receive do
         :foo -> x = 1
@@ -382,7 +382,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:1\n", "nofile:2\n" | messages],
+      ["nofile:1:11", "nofile:2:1" | messages],
       """
       false && (x = 1)
       x
@@ -390,7 +390,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:1\n", "nofile:2\n" | messages],
+      ["nofile:1:10", "nofile:2:1" | messages],
       """
       true || (x = 1)
       x
@@ -398,7 +398,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:2\n", "nofile:4\n" | messages],
+      ["nofile:2:3", "nofile:4:1" | messages],
       """
       with true <- true do
         x = false
@@ -408,7 +408,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_compile_error(
-      ["nofile:2\n", "nofile:4\n" | messages],
+      ["nofile:2:3", "nofile:4:1" | messages],
       """
       fn ->
         x = true
@@ -2143,7 +2143,10 @@ defmodule Kernel.WarningTest do
   defp assert_compile_error(messages, string) do
     captured =
       capture_err(fn ->
-        assert_raise CompileError, fn -> Code.eval_string(string) end
+        assert_raise CompileError, fn ->
+          ast = Code.string_to_quoted!(string, columns: true)
+          Code.eval_quoted(ast)
+        end
       end)
 
     for message <- List.wrap(messages) do

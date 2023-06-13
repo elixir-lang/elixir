@@ -831,9 +831,23 @@ defmodule KernelTest do
     end
 
     test "matching attribute" do
-      assert_raise ArgumentError, ~r"invalid write attribute syntax", fn ->
+      assert_raise ArgumentError, ~r"invalid usage of module attributes", fn ->
         defmodule MatchAttributeInModule do
           @foo = 42
+        end
+      end
+
+      assert_raise ArgumentError, ~r"invalid usage of module attributes", fn ->
+        defmodule MatchAttributeInModule do
+          @foo 16
+          <<_::@foo>> = "ab"
+        end
+      end
+
+      assert_raise ArgumentError, ~r"invalid usage of module attributes", fn ->
+        defmodule MatchAttributeInModule do
+          @foo 16
+          <<_::size(@foo)>> = "ab"
         end
       end
     end
