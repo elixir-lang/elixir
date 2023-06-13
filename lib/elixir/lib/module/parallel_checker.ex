@@ -310,14 +310,14 @@ defmodule Module.ParallelChecker do
       message = module.format_warning(warning)
       diagnostics = Enum.map(locations, &to_diagnostic(message, &1))
 
-      cond do 
+      cond do
         log? and Code.get_compiler_option(:fancy_diagnostics) ->
           :elixir_errors.fancy_warning_group(message, diagnostics)
 
         log? ->
           :elixir_errors.print_warning([message, ?\n, format_stacktraces(diagnostics)])
 
-        true -> 
+        true ->
           nil
       end
 
