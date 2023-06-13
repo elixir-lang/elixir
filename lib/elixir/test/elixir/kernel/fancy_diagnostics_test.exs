@@ -22,28 +22,68 @@ defmodule Kernel.FancyDiagnosticsTest do
          │
          │ syntax error before: '*'
          │
-
-          (elixir 1.16.0-dev) src/elixir_errors.erl:584: :elixir_errors.raise/3
-          test.exs:5: (file)
       """
 
-      output = capture_raise("""
-      [1, 2, 3, 4, 5, *]
-      """, SyntaxError)
-      
-      refute ansi_error?(output)
-      assert strip_ansi(output) == expected 
+      output =
+        capture_raise(
+          """
+          [1, 2, 3, 4, 5, *]
+          """,
+          SyntaxError
+        )
+
+      assert ansi_error?(output)
+      assert strip_ansi(output) == expected
     end
 
-    test "SyntaxError (line only)" do
-      assert true
+    test "TokenMissingError (snippet)" do
+      expected = """
+      ** (TokenMissingError) token missing on nofile:1:4:
+
+         ┌─ error: nofile:1:4
+         │
+       1 │ 1 +
+         │    ^
+         │
+         │ syntax error: expression is incomplete
+         │
+      """
+
+      output =
+        capture_raise(
+          """
+          1 +
+          """,
+          TokenMissingError
+        )
+
+      assert ansi_error?(output)
+      assert strip_ansi(output) == expected
     end
 
-    test "MissingTokenError (snippet)" do
-      assert true
+    test "TokenMissingError (line only)" do
+      expected = """
+      ** (TokenMissingError) token missing on nofile:2:1:
+
+         ┌─ error: nofile:2
+         │
+       2 │ missing terminator: end (for "fn" starting at line 1)
+         │
+      """
+
+      output =
+        capture_raise(
+          """
+          fn a
+          """,
+          TokenMissingError
+        )
+
+      assert ansi_error?(output)
+      assert strip_ansi(output) == expected
     end
 
-    test "MissingTokenError (line only)" do
+    test "shows stacktrace if present" do
       assert true
     end
 
@@ -51,26 +91,30 @@ defmodule Kernel.FancyDiagnosticsTest do
       Application.put_env(:elixir, :ansi_enabled, false)
 
       expected = """
-      ** (SyntaxError) invalid syntax found on nofile:1:17:
+      ** (SyntaxError) invalid syntax found on nofile:1:8:
 
-         ┌─ error: nofile:1:17
+         ┌─ error: nofile:1:8
          │
-       1 │ [1, 2, 3, 4, 5, *]
-         │                 ^
+       1 │ [:a, :b}
+         │        ^
          │
-         │ syntax error before: '*'
+         │ unexpected token: }
+         │ 
+         │     HINT: the "[" on line 1 is missing terminator "]"
+         │ 
          │
-
-          (elixir 1.16.0-dev) src/elixir_errors.erl:584: :elixir_errors.raise/3
-          test.exs:5: (file)
       """
 
-      output = capture_raise("""
-      [1, 2, 3, 4, 5, *]
-      """, SyntaxError)
+      output =
+        capture_raise(
+          """
+          [:a, :b}
+          """,
+          SyntaxError
+        )
 
       refute ansi_error?(output)
-      assert output == expected 
+      assert output == expected
     after
       Application.put_env(:elixir, :ansi_enabled, true)
       purge(Sample)
@@ -94,19 +138,20 @@ defmodule Kernel.FancyDiagnosticsTest do
 
       """
 
-      output = capture_eval("""
-      defmodule Sample do
-        def a do 
-          A.bar()
-          A.bar()
-          A.bar()
-          A.bar()
+      output =
+        capture_eval("""
+        defmodule Sample do
+          def a do 
+            A.bar()
+            A.bar()
+            A.bar()
+            A.bar()
+          end
         end
-      end
-      """) 
-      
+        """)
+
       assert ansi_warning?(output)
-      assert strip_ansi(output) == expected 
+      assert strip_ansi(output) == expected
     after
       purge(Sample)
     end
@@ -120,14 +165,15 @@ defmodule Kernel.FancyDiagnosticsTest do
 
       """
 
-      output = capture_eval("""
-      defmodule Sample do
-        defp hello, do: nil
-      end
-      """) 
-      
+      output =
+        capture_eval("""
+        defmodule Sample do
+          defp hello, do: nil
+        end
+        """)
+
       assert ansi_warning?(output)
-      assert strip_ansi(output) == expected 
+      assert strip_ansi(output) == expected
     after
       purge(Sample)
     end
@@ -142,19 +188,20 @@ defmodule Kernel.FancyDiagnosticsTest do
 
       """
 
-      output = capture_eval("""
-      defmodule Sample do
-        @foo 1
+      output =
+        capture_eval("""
+        defmodule Sample do
+          @foo 1
 
-        def bar do
-          @foo
-          :ok
+          def bar do
+            @foo
+            :ok
+          end
         end
-      end
-      """) 
+        """)
 
       assert ansi_warning?(output)
-      assert strip_ansi(output) == expected 
+      assert strip_ansi(output) == expected
     after
       purge(Sample)
     end
@@ -168,26 +215,76 @@ defmodule Kernel.FancyDiagnosticsTest do
 
       """
 
-      output = capture_eval("""
-      defmodule Sample do
-        alias :lists, as: List
-        import MapSet
-        new()
-      end
-      """) 
+      output =
+        capture_eval("""
+        defmodule Sample do
+          alias :lists, as: List
+          import MapSet
+          new()
+        end
+        """)
 
       assert ansi_warning?(output)
-      assert strip_ansi(output) == expected 
+      assert strip_ansi(output) == expected
     after
       purge(Sample)
     end
 
     test "warning (long message)" do
-      assert true
+      expected = """
+         ┌─ warning: nofile:4:12
+         │
+       4 │ variable "compare_local" is unused (there is a variable with the same name in the
+         │ context, use the pin operator (^) to match on it or prefix this variable with
+         │ underscore if it is not meant to be used)
+         │
+
+         ┌─ warning: nofile:3:5
+         │
+       3 │ variable "compare_local" is unused (if the variable is not meant to be used, prefix
+         │ it with an underscore)
+         │
+
+      """
+
+      output =
+        capture_eval("""
+        defmodule Sample do
+          def test do
+            compare_local = "hello"
+            match?(compare_local, "hello")
+          end
+        end
+        """)
+
+      assert ansi_warning?(output)
+      assert strip_ansi(output) == expected
+    after
+      purge(Sample)
     end
 
     test "error (line only)" do
-      assert true
+      expected = """
+         ┌─ error: nofile:2
+         │
+       2 │ function names should start with lowercase characters or underscore, invalid name
+         │ CamelCase
+         │
+
+      """
+
+      output =
+        capture_compile("""
+        defmodule Sample do
+          def CamelCase do
+          end
+        end
+        """)
+
+      assert ansi_error?(output)
+      assert strip_ansi(output) == expected
+    after
+      purge(Sample)
     end
 
     test "error (line+column)" do
@@ -200,14 +297,15 @@ defmodule Kernel.FancyDiagnosticsTest do
 
       """
 
-      output = capture_raise("""
-      defmodule Sample do
-        def foo, do: module_info()
-      end
-      """, CompileError)
+      output =
+        capture_compile("""
+        defmodule Sample do
+          def foo, do: module_info()
+        end
+        """)
 
       assert ansi_error?(output)
-      assert strip_ansi(output) == expected 
+      assert strip_ansi(output) == expected
     after
       purge(Sample)
     end
@@ -227,12 +325,13 @@ defmodule Kernel.FancyDiagnosticsTest do
 
       """
 
-      output = capture_raise("""
-      foo
-      """, CompileError) 
+      output =
+        capture_compile("""
+        foo
+        """)
 
       refute ansi_error?(output)
-      assert output == expected 
+      assert output == expected
     after
       Application.put_env(:elixir, :ansi_enabled, true)
     end
@@ -245,13 +344,23 @@ defmodule Kernel.FancyDiagnosticsTest do
     end)
   end
 
-  defp capture_raise(source, exception) do 
+  defp capture_compile(source) do
     capture_io(:stderr, fn ->
-      assert_raise exception, fn ->
+      assert_raise CompileError, fn ->
         ast = Code.string_to_quoted!(source, columns: true)
-        Code.eval_quoted(ast) 
+        Code.eval_quoted(ast)
       end
     end)
+  end
+
+  defp capture_raise(source, exception) do
+    e =
+      assert_raise exception, fn ->
+        ast = Code.string_to_quoted!(source, columns: true)
+        Code.eval_quoted(ast)
+      end
+
+    Exception.format_banner(:error, e, [])
   end
 
   defp purge(module) when is_atom(module) do
