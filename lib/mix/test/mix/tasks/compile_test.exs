@@ -336,8 +336,9 @@ defmodule Mix.Tasks.CompileTest do
       assert Mix.Task.run("compile", []) == {:ok, []}
       assert :code.where_is_file(~c"parsetools.app") == :non_existing
 
-      # Make sure erts is also kept
+      # Make sure erts is also kept but not loaded
       assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(:zlib)
+      assert Application.spec(:erts, :vsn) == nil
     end)
   end
 
