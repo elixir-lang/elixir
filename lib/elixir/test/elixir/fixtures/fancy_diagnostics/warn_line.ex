@@ -1,5 +1,6 @@
 defmodule Sample do
   @file "test/elixir/fixtures/fancy_diagnostics/warn_line.ex"
 
-  defp hello, do: nil
+  @foo 1
+  @foo()
 end

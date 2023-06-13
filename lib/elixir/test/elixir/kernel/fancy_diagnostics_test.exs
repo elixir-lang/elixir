@@ -152,7 +152,31 @@ defmodule Kernel.FancyDiagnosticsTest do
   end
 
   describe "diagnostics" do
-    # TODO: check with readable `file`
+    test "grouped warnings (with file)" do
+      expected = """
+         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:5:6
+         │
+       5 │ A.bar()
+         │ ~~~~~~~
+         │
+         │ A.bar/0 is undefined or private
+         │
+         │ Invalid call also found at 3 other locations:
+         │   test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:6:6: Sample.a/0
+         │   test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:7:6: Sample.a/0
+         │   test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:8:6: Sample.a/0
+         │ 
+
+      """
+
+      source = read_fixture("grouped_warnings.ex")
+      output = capture_eval(source)
+
+      assert ansi_warning?(output)
+      assert strip_ansi(output) == expected
+    after
+      purge(Sample)
+    end
 
     test "grouped warnings (no file)" do
       expected = """
