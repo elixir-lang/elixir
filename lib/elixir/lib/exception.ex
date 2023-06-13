@@ -899,16 +899,13 @@ defmodule SyntaxError do
         snippet: snippet
       })
       when not is_nil(snippet) and not is_nil(column) do
-    # TODO: have this as an option
-    fancy_errors? = true
-
-    if fancy_errors? do 
+    if Code.get_compiler_option(:fancy_diagnostics) do 
       fancy = :elixir_errors.fancy_lexer_exception_snippet(file, line, column, description, snippet)
       file = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
 
       "invalid syntax found on " <> file <> "\n\n" <> fancy <> "\n"
     else 
-      "\n" <> Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+      Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
       " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
     end
   end
@@ -920,16 +917,13 @@ defmodule SyntaxError do
         column: column,
         description: description
       }) do
-    # TODO: have this as an option
-    fancy_errors? = true
-
-    if fancy_errors? do 
+    if Code.get_compiler_option(:fancy_diagnostics) do 
       fancy = :elixir_errors.fancy_lexer_exception(file, line, column, description, true)
       file = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
 
       "invalid syntax found on " <> file <> "\n\n" <> fancy <> "\n"
     else 
-      "\n" <> Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
+      Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
       " " <> description
     end
   end
@@ -947,10 +941,7 @@ defmodule TokenMissingError do
         snippet: snippet
       })
       when not is_nil(snippet) and not is_nil(column) do
-    # TODO: have this as an option
-    fancy_errors? = true
-
-    if fancy_errors? do 
+    if Code.get_compiler_option(:fancy_diagnostics) do 
       fancy = :elixir_errors.fancy_lexer_exception_snippet(file, line, column, description, snippet)
       file = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
 
@@ -968,10 +959,7 @@ defmodule TokenMissingError do
         column: column,
         description: description
       }) do
-    # TODO: have this as an option
-    fancy_errors? = true
-
-    if fancy_errors? do 
+    if Code.get_compiler_option(:fancy_diagnostics) do 
       fancy = :elixir_errors.fancy_lexer_exception(file, line, column, description, false)
       file = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
 

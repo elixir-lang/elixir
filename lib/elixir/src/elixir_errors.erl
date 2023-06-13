@@ -25,7 +25,11 @@ print_warning(Message) ->
   io:put_chars(standard_error, [prefix(warning), Message, $\n]).
 
 print_diagnostic(Diagnostic) ->
-  Output = fancy_diagnostic_formatter(Diagnostic),
+  Output = case elixir_config:get(fancy_diagnostics) of 
+    true -> fancy_diagnostic_formatter(Diagnostic);
+    false -> standard_diagnostic_formatter(Diagnostic)
+  end,
+  
   io:put_chars(standard_error, Output),
   Diagnostic.
 
@@ -91,6 +95,7 @@ fancy_diagnostic_formatter(Diagnostic) ->
 
   io_lib:format("~ts~n~n", [Result]).
 
+% TODO: check if file is readable
 fancy_warning_group(Message, [FirstDiagnostic | Rest]) -> 
   #{file := File, position := Position} = FirstDiagnostic,
 
@@ -99,36 +104,57 @@ fancy_warning_group(Message, [FirstDiagnostic | Rest]) ->
                  L -> L
                end,
 
-  Line = get_file_line(File, LineNumber),
-  {TrimmedLine, _} = trim_file_line(Line),
-
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
+
   Res = [["  ", 'Elixir.Exception':format_stacktrace_entry(H), "\n"] 
          || #{stacktrace := [H]} <- Rest],
 
-  io:format(
-    " ~ts┌─ ~ts~ts\n"
-    " ~ts│\n"
-    " ~p │ ~ts\n"
-    " ~ts│ ~ts\n"
-    " ~ts│\n"
-    " ~ts│ ~ts\n"
-    " ~ts│\n"
-    " ~ts│ Invalid call also found at ~b other locations:~n"
-    " ~ts│ ~ts\n\n",
-    [
-     Spacing, prefix(warning), file_format(Position, File),
-     Spacing,
-     LineNumber, TrimmedLine,
-     Spacing, highlight_below_line(TrimmedLine, 0, warning),
-     Spacing,
-     Spacing, Message, 
-     Spacing,
-     Spacing, length(Res),
-     Spacing, fancify_newlines(list_to_binary(Res), LineDigits)
-    ]
-   ).
+  case filelib:is_regular(File) of 
+    true -> 
+      Line = get_file_line(File, LineNumber),
+      {TrimmedLine, _} = trim_file_line(Line),
+
+      io:format(
+        " ~ts┌─ ~ts~ts\n"
+        " ~ts│\n"
+        " ~p │ ~ts\n"
+        " ~ts│ ~ts\n"
+        " ~ts│\n"
+        " ~ts│ ~ts\n"
+        " ~ts│\n"
+        " ~ts│ Invalid call also found at ~b other locations:~n"
+        " ~ts│ ~ts\n\n",
+        [
+         Spacing, prefix(warning), file_format(Position, File),
+         Spacing,
+         LineNumber, TrimmedLine,
+         Spacing, highlight_below_line(TrimmedLine, 0, warning),
+         Spacing,
+         Spacing, Message, 
+         Spacing,
+         Spacing, length(Res),
+         Spacing, fancify_newlines(list_to_binary(Res), LineDigits)
+        ]
+       );
+    false ->
+      io:format(
+        " ~ts┌─ ~ts~ts\n"
+        " ~ts│\n"
+        " ~ts│ ~ts\n"
+        " ~ts│\n"
+        " ~ts│ Invalid call also found at ~b other locations:~n"
+        " ~ts│ ~ts\n\n",
+        [
+         Spacing, prefix(warning), file_format(Position, File),
+         Spacing,
+         Spacing, Message, 
+         Spacing,
+         Spacing, length(Res),
+         Spacing, fancify_newlines(list_to_binary(Res), LineDigits)
+        ]
+       )
+  end.
 
 fancify_newlines(Message, NDigits) -> 
   LineSeparator = unicode:characters_to_binary(io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)])),
@@ -558,7 +584,9 @@ raise(Kind, Message, Opts) when is_binary(Message) ->
     'Elixir.SyntaxError' = S -> 
       erlang:raise(error, S:exception([{description, Message} | Opts]), Stacktrace);
     'Elixir.TokenMissingError' = T ->
-      erlang:raise(error, T:exception([{description, Message} | Opts]), Stacktrace)
+      erlang:raise(error, T:exception([{description, Message} | Opts]), Stacktrace);
+    _ -> 
+      nil
   end,
 
   Exception = Kind:exception([{description, Message} | Opts]),
