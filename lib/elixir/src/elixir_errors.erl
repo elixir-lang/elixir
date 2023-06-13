@@ -56,7 +56,18 @@ fancy_lexer_exception(File, LineNumber, Column, Message, ShowLine) ->
              true -> line_column_diagnostic({LineNumber, Column}, File, Message, error);
              false -> no_line_diagnostic(LineNumber, File, Message, error)
            end,
-  unicode:characters_to_binary(io_lib:format("~ts", [Result])).
+  unicode:characters_to_binary(Result).
+
+fancy_diagnostic_formatter(Diagnostic) -> 
+  #{position := Position, file := File, message := Message, severity := Severity} = Diagnostic,
+
+  Result = case {Position, filelib:is_regular(File)} of 
+    {_, false} -> no_line_diagnostic(Position, File, Message, Severity);
+    {{_, _}, true} -> line_column_diagnostic(Position, File, Message, Severity);
+    {Line, true} -> line_only_diagnostic(Line, File, Message, Severity)
+  end,
+
+  [Result, "\n\n"].
 
 fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
@@ -84,26 +95,10 @@ fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
 
   unicode:characters_to_binary(Formatted).
 
-fancy_diagnostic_formatter(Diagnostic) -> 
-  #{position := Position, file := File, message := Message, severity := Severity} = Diagnostic,
-
-  Result = case {Position, filelib:is_regular(File)} of 
-    {_, false} -> no_line_diagnostic(Position, File, Message, Severity);
-    {{_, _}, true} -> line_column_diagnostic(Position, File, Message, Severity);
-    {Line, true} -> line_only_diagnostic(Line, File, Message, Severity)
-  end,
-
-  io_lib:format("~ts~n~n", [Result]).
-
-% TODO: check if file is readable
 fancy_warning_group(Message, [FirstDiagnostic | Rest]) -> 
   #{file := File, position := Position} = FirstDiagnostic,
 
-  LineNumber = case Position of 
-                 {L, _} -> L;
-                 L -> L
-               end,
-
+  LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
@@ -158,14 +153,14 @@ fancy_warning_group(Message, [FirstDiagnostic | Rest]) ->
   io:put_chars(standard_error, Output).
 
 fancify_newlines(Message, NDigits) -> 
-  LineSeparator = unicode:characters_to_binary(io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)])),
+  LineSeparator = unicode:characters_to_binary(["\n ", n_spaces(NDigits), " │ "]),
   binary:replace(Message, [<<"\n">>], LineSeparator, [global]).
 
+extract_line({L, _}) -> L;
+extract_line(L) -> L.
+
 no_line_diagnostic(Position, File, Message, Severity) -> 
-  LineNumber = case Position of 
-                 {L, _} -> L;
-                 L -> L
-               end,
+  LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
   io_lib:format(
@@ -523,8 +518,8 @@ env_format(Meta, #{file := EnvFile} = E) ->
 
 format_message(Message, NDigits, ReplaceNewlines) ->
   Lines = wrap_message(Message, 80),
-  LineSeparator = unicode:characters_to_binary(io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)])),
-  Joined = binary_join(Lines, LineSeparator),
+  LineSeparator = unicode:characters_to_binary(["\n ", n_spaces(NDigits), " │ "]),
+  Joined = join_binary(Lines, LineSeparator),
   case ReplaceNewlines of
     true -> binary:replace(Joined, [<<"\n">>], LineSeparator, [global]);
     false -> Joined
@@ -548,11 +543,11 @@ do_wrap_lines([Word | Rest], Limit, Count, CurrentLine, Lines) ->
       do_wrap_lines(Rest, Limit, Count + Length + 1, [Word | CurrentLine], Lines)
   end.
 
-join_words(Lines) -> binary_join(Lines, <<" ">>).
+join_words(Lines) -> join_binary(Lines, <<" ">>).
 
-binary_join([], _) ->
+join_binary([], _) ->
     <<>>;
-binary_join([H | T], Separator) ->
+join_binary([H | T], Separator) ->
     lists:foldl(fun (Value, Acc) -> <<Acc/binary, Separator/binary, Value/binary>> end, H, T).
 
 n_spaces(N) -> lists:duplicate(N, " ").
@@ -582,15 +577,5 @@ maybe_add_col(Position, Meta) ->
 
 raise(Kind, Message, Opts) when is_binary(Message) ->
   Stacktrace = try throw(ok) catch _:_:Stack -> Stack end,
-
-  case Kind of 
-    'Elixir.SyntaxError' = S -> 
-      erlang:raise(error, S:exception([{description, Message} | Opts]), Stacktrace);
-    'Elixir.TokenMissingError' = T ->
-      erlang:raise(error, T:exception([{description, Message} | Opts]), Stacktrace);
-    _ -> 
-      nil
-  end,
-
   Exception = Kind:exception([{description, Message} | Opts]),
   erlang:raise(error, Exception, tl(Stacktrace)).
