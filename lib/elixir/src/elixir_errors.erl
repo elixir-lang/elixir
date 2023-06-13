@@ -78,7 +78,7 @@ fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
      LineNumber, Content,
      Spacing, highlight_below_line(Content, Offset, error),
      Spacing,
-     Spacing, format_message(Description, LineDigits), 
+     Spacing, format_message(Description, LineDigits, true), 
      Spacing
     ]),
 
@@ -107,15 +107,15 @@ fancy_warning_group(Message, [FirstDiagnostic | Rest]) ->
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
-  Res = [["  ", 'Elixir.Exception':format_stacktrace_entry(H), "\n"] 
-         || #{stacktrace := [H]} <- Rest],
+  Stack = [["  ", 'Elixir.Exception':format_stacktrace_entry(H), "\n"] 
+           || #{stacktrace := [H]} <- Rest],
 
-  case filelib:is_regular(File) of 
+  Output = case filelib:is_regular(File) of 
     true -> 
       Line = get_file_line(File, LineNumber),
       {TrimmedLine, _} = trim_file_line(Line),
 
-      io:format(
+      io_lib:format(
         " ~ts┌─ ~ts~ts\n"
         " ~ts│\n"
         " ~p │ ~ts\n"
@@ -133,12 +133,12 @@ fancy_warning_group(Message, [FirstDiagnostic | Rest]) ->
          Spacing,
          Spacing, Message, 
          Spacing,
-         Spacing, length(Res),
-         Spacing, fancify_newlines(list_to_binary(Res), LineDigits)
+         Spacing, length(Stack),
+         Spacing, fancify_newlines(list_to_binary(Stack), LineDigits)
         ]
        );
     false ->
-      io:format(
+      io_lib:format(
         " ~ts┌─ ~ts~ts\n"
         " ~ts│\n"
         " ~ts│ ~ts\n"
@@ -150,11 +150,12 @@ fancy_warning_group(Message, [FirstDiagnostic | Rest]) ->
          Spacing,
          Spacing, Message, 
          Spacing,
-         Spacing, length(Res),
-         Spacing, fancify_newlines(list_to_binary(Res), LineDigits)
+         Spacing, length(Stack),
+         Spacing, fancify_newlines(list_to_binary(Stack), LineDigits)
         ]
-       )
-  end.
+      )
+  end,
+  io:put_chars(standard_error, Output).
 
 fancify_newlines(Message, NDigits) -> 
   LineSeparator = unicode:characters_to_binary(io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)])),
@@ -175,7 +176,7 @@ no_line_diagnostic(Position, File, Message, Severity) ->
     [
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
-     LineNumber, format_message(Message, LineDigits), 
+     LineNumber, format_message(Message, LineDigits, false), 
      Spacing
     ]
    ).
@@ -201,7 +202,7 @@ line_column_diagnostic(Position, File, Message, Severity) ->
      LineNumber, TrimmedLine, 
      Spacing, highlight_below_line(TrimmedLine, Column - TotalLeading, Severity),
      Spacing,
-     Spacing, format_message(Message, LineDigits),
+     Spacing, format_message(Message, LineDigits, false),
      Spacing
     ]
   ).
@@ -226,7 +227,7 @@ line_only_diagnostic(LineNumber, File, Message, Severity) ->
      LineNumber, TrimmedLine,
      Spacing, highlight_below_line(TrimmedLine, Severity),
      Spacing,
-     Spacing, format_message(Message, LineDigits),
+     Spacing, format_message(Message, LineDigits, false),
      Spacing
     ]
  ).
@@ -520,12 +521,14 @@ env_format(Meta, #{file := EnvFile} = E) ->
     _ -> {Line, File, Stacktrace}
   end.
 
-% TODO: probably total leading is not required anymore here
-format_message(Message, NDigits) ->
+format_message(Message, NDigits, ReplaceNewlines) ->
   Lines = wrap_message(Message, 80),
   LineSeparator = unicode:characters_to_binary(io_lib:format("\n ~ts │ ",  [n_spaces(NDigits)])),
   Joined = binary_join(Lines, LineSeparator),
-  binary:replace(Joined, [<<"\n">>], LineSeparator, [global]).
+  case ReplaceNewlines of
+    true -> binary:replace(Joined, [<<"\n">>], LineSeparator, [global]);
+    false -> Joined
+  end.
 
 wrap_message(Message, LineLength) ->
   Words = binary:split(Message, <<" ">>, [global]),
@@ -540,9 +543,9 @@ do_wrap_lines([Word | Rest], Limit, Count, CurrentLine, Lines) ->
   case string:length(Word) of 
     Length when Length + Count > Limit -> 
       Line = [Word | CurrentLine],
-      do_wrap_lines(Rest, Limit, 0, [], [join_words(lists:reverse(Line)) | Lines]);
+      do_wrap_lines(Rest, Limit, Length + 1, [], [join_words(lists:reverse(Line)) | Lines]);
     Length -> 
-      do_wrap_lines(Rest, Limit, Count + Length, [Word | CurrentLine], Lines)
+      do_wrap_lines(Rest, Limit, Count + Length + 1, [Word | CurrentLine], Lines)
   end.
 
 join_words(Lines) -> binary_join(Lines, <<" ">>).
