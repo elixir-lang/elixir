@@ -226,6 +226,8 @@ defmodule Path do
   @doc """
   Forces the path to be a relative path.
 
+  If an absolute path is given, it is stripped from its root component.
+
   ## Examples
 
   ### Unix-like operating systems
@@ -305,17 +307,24 @@ defmodule Path do
   @doc """
   Returns the direct relative path from `path` in relation to `cwd`.
 
-  In other words, this function tries to strip the `cwd` prefix
-  from `path`. For this reason, `cwd` must be an absolute path.
+  In other words, this function attempts to return a path such that
+  `Path.expand(result, cwd)` points to `path`. This function aims
+  to return a relative path whenever possible, but that's not guaranteed:
 
-  If `path` is already a relative path, any `..` or `.` are
-  expanded, but without computing its absolute path. If an absolute
-  path is given and no relative paths are found, it returns the
-  original path expanded.
+    * If both paths are relative, a relative path is always returned
 
-  This function does not query the file system, so it assumes
-  no symlinks between the paths. See `safe_relative_to/2` for
-  a safer alternative.
+    * If both paths are absolute, a relative path may be returned if
+      they share a common prefix. You can pass the `:force` option to
+      force this function to traverse up, but even then a relative
+      path is not guaranteed (for examples, if the absolute paths
+      belong to different drives on Windows)
+
+    * If a mixture of paths are given, the result will always match
+      the given `path` (the first argument)
+
+  This function expands `.` and `..` entries without traversing the
+  file system, so it assumes no symlinks between the paths. See
+  `safe_relative_to/2` for a safer alternative.
 
   ## Options
 
@@ -325,7 +334,22 @@ defmodule Path do
 
   ## Examples
 
-  With absolute paths:
+  ### With relative `cwd`
+
+  If both paths are relative, a minimum path is computed:
+
+      Path.relative_to("tmp/foo/bar", "tmp")      #=> "foo/bar"
+      Path.relative_to("tmp/foo/bar", "tmp/foo")  #=> "bar"
+      Path.relative_to("tmp/foo/bar", "tmp/bat")  #=> "../foo/bar"
+
+  If an absolute path is given with relative `cwd`, it is returned as:
+
+      Path.relative_to("/usr/foo/bar", "tmp/bat")  #=> "/usr/foo/bar"
+
+  ### With absolute `cwd`
+
+  If both paths are absolute, a relative is computed if possible,
+  without traversing up:
 
       Path.relative_to("/usr/local/foo", "/usr/local")      #=> "foo"
       Path.relative_to("/usr/local/foo", "/")               #=> "usr/local/foo"
@@ -340,7 +364,8 @@ defmodule Path do
       Path.relative_to("/usr/foo", "/usr/local", force: true)      #=> "../foo"
       Path.relative_to("/usr/../foo/bar", "/etc/foo", force: true) #=> "../../foo/bar"
 
-  Relative paths have "." and ".." expanded but kept as relative:
+  If a relative path is given, it is assumed to be relative to the
+  given path, so the path is returned with "." and ".." expanded:
 
       Path.relative_to(".", "/usr/local")          #=> "."
       Path.relative_to("foo", "/usr/local")        #=> "foo"
@@ -356,22 +381,8 @@ defmodule Path do
     split_cwd = split(cwd)
     force = Keyword.get(opts, :force, false)
 
-    cond do
-      # cwd must be an absolute path, if not, compute common path for backwards compatibility
-      # TODO: Raise on Elixir v2.0
-      not split_absolute?(split_cwd, os_type) ->
-        IO.warn(
-          "the second argument to Path.relative_to/3 must be an absolute path, got: #{inspect(cwd)}"
-        )
-
-        relative_to_unforced(split_path, split_cwd, split_path)
-
-      # If source is a relative path, expand ./.. as much as possible and return it
-      not split_absolute?(split_path, os_type) ->
-        expand_relative(split_path, [], [])
-
-      # Otherwise attempt to find a common path after expansion
-      true ->
+    case {split_absolute?(split_path, os_type), split_absolute?(split_cwd, os_type)} do
+      {true, true} ->
         split_path = expand_split(split_path)
         split_cwd = expand_split(split_cwd)
 
@@ -379,6 +390,14 @@ defmodule Path do
           true -> relative_to_forced(split_path, split_cwd, split_path)
           false -> relative_to_unforced(split_path, split_cwd, split_path)
         end
+
+      {false, false} ->
+        split_path = expand_relative(split_path, [], [])
+        split_cwd = expand_relative(split_cwd, [], [])
+        relative_to_forced(split_path, split_cwd, [])
+
+      {_, _} ->
+        join(expand_relative(split_path, [], []))
     end
   end
 
@@ -405,8 +424,8 @@ defmodule Path do
   defp expand_relative([".." | t], acc, up), do: expand_relative(t, acc, [".." | up])
   defp expand_relative(["." | t], acc, up), do: expand_relative(t, acc, up)
   defp expand_relative([h | t], acc, up), do: expand_relative(t, [h | acc], up)
-  defp expand_relative([], [], []), do: "."
-  defp expand_relative([], acc, up), do: join(up ++ :lists.reverse(acc))
+  defp expand_relative([], [], []), do: ["."]
+  defp expand_relative([], acc, up), do: up ++ :lists.reverse(acc)
 
   defp expand_split([head | tail]), do: expand_split(tail, [head])
   defp expand_split([".." | t], [_, last | acc]), do: expand_split(t, [last | acc])
@@ -818,6 +837,18 @@ defmodule Path do
   @doc """
   Returns a relative path that is protected from directory-traversal attacks.
 
+  See `safe_relative/2` for a non-deprecated version of this API.
+  """
+  # TODO: Deprecate me on Elixir v1.19
+  @doc since: "1.14.0", deprecated: "Use safe_relative/2 instead"
+  @spec safe_relative_to(t, t) :: {:ok, binary} | :error
+  def safe_relative_to(path, cwd) do
+    safe_relative(path, cwd)
+  end
+
+  @doc """
+  Returns a relative path that is protected from directory-traversal attacks.
+
   The given relative path is sanitized by eliminating `..` and `.` components.
 
   This function checks that, after expanding those components, the path is still "safe".
@@ -832,56 +863,30 @@ defmodule Path do
 
   ## Examples
 
-      iex> Path.safe_relative_to("deps/my_dep/app.beam", File.cwd!())
+      iex> Path.safe_relative("foo")
+      {:ok, "foo"}
+
+      iex> Path.safe_relative("deps/my_dep/app.beam")
       {:ok, "deps/my_dep/app.beam"}
 
-      iex> Path.safe_relative_to("deps/my_dep/./build/../app.beam", File.cwd!())
+      iex> Path.safe_relative("deps/my_dep/./build/../app.beam", File.cwd!())
       {:ok, "deps/my_dep/app.beam"}
 
-      iex> Path.safe_relative_to("my_dep/../..", File.cwd!())
+      iex> Path.safe_relative("my_dep/../..")
       :error
 
-      iex> Path.safe_relative_to("/usr/local", File.cwd!())
+      iex> Path.safe_relative("/usr/local", File.cwd!())
       :error
 
   """
   @doc since: "1.14.0"
-  @spec safe_relative_to(t, t) :: {:ok, binary} | :error
-  def safe_relative_to(path, cwd) do
+  @spec safe_relative(t, t) :: {:ok, binary} | :error
+  def safe_relative(path, cwd \\ File.cwd!()) do
     path = IO.chardata_to_string(path)
 
     case :filelib.safe_relative_path(path, cwd) do
       :unsafe -> :error
       relative_path -> {:ok, IO.chardata_to_string(relative_path)}
     end
-  end
-
-  @doc """
-  Returns a path relative to the current working directory that is
-  protected from directory-traversal attacks.
-
-  Same as `safe_relative_to/2` with the current working directory as
-  the second argument. If there is an issue retrieving the current working
-  directory, this function raises an error.
-
-  ## Examples
-
-      iex> Path.safe_relative("foo")
-      {:ok, "foo"}
-
-      iex> Path.safe_relative("foo/../bar")
-      {:ok, "bar"}
-
-      iex> Path.safe_relative("foo/../..")
-      :error
-
-      iex> Path.safe_relative("/usr/local")
-      :error
-
-  """
-  @doc since: "1.14.0"
-  @spec safe_relative(t) :: {:ok, binary} | :error
-  def safe_relative(path) do
-    safe_relative_to(path, File.cwd!())
   end
 end
