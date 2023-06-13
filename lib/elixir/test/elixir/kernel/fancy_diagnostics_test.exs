@@ -84,7 +84,37 @@ defmodule Kernel.FancyDiagnosticsTest do
     end
 
     test "shows stacktrace if present" do
-      assert true
+      fake_stacktrace = [
+        {:fake, :fun, 3, [file: "nofile", line: 10]},
+        {:real, :fun, 2, [file: "nofile", line: 10]}
+      ]
+
+      expected = """
+      ** (TokenMissingError) token missing on nofile:1:4:
+
+         ┌─ error: nofile:1:4
+         │
+       1 │ 1 -
+         │    ^
+         │
+         │ syntax error: expression is incomplete
+         │
+
+          nofile:10: :fake.fun/3
+          nofile:10: :real.fun/2
+      """
+
+      output =
+        capture_raise(
+          """
+          1 -
+          """,
+          TokenMissingError,
+          fake_stacktrace
+        )
+
+      assert ansi_error?(output)
+      assert strip_ansi(output) == expected
     end
 
     test "respects disabled ansi" do
@@ -158,19 +188,15 @@ defmodule Kernel.FancyDiagnosticsTest do
 
     test "warning (line only)" do
       expected = """
-         ┌─ warning: nofile:2
+         ┌─ warning: nofile:4
          │
-       2 │ function hello/0 is unused
+       4 │ function hello/0 is unused
          │
 
       """
 
-      output =
-        capture_eval("""
-        defmodule Sample do
-          defp hello, do: nil
-        end
-        """)
+      source = read_fixture("warn_line.ex")
+      output = capture_eval(source)
 
       assert ansi_warning?(output)
       assert strip_ansi(output) == expected
@@ -180,25 +206,19 @@ defmodule Kernel.FancyDiagnosticsTest do
 
     test "warning (line+column)" do
       expected = """
-         ┌─ warning: nofile:5:5
+         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/warn_line_column.ex:6:5
          │
-       5 │ module attribute @foo in code block has no effect as it is never returned (remove
+       6 │ @foo
+         │ ~~~~
+         │
+         │ module attribute @foo in code block has no effect as it is never returned (remove
          │ the attribute or assign it to _ to avoid warnings)
          │
 
       """
 
-      output =
-        capture_eval("""
-        defmodule Sample do
-          @foo 1
-
-          def bar do
-            @foo
-            :ok
-          end
-        end
-        """)
+      source = read_fixture("warn_line_column.ex")
+      output = capture_eval(source)
 
       assert ansi_warning?(output)
       assert strip_ansi(output) == expected
@@ -263,23 +283,20 @@ defmodule Kernel.FancyDiagnosticsTest do
       purge(Sample)
     end
 
-    test "error (line only)" do
+    test "error (line+column)" do
       expected = """
-         ┌─ error: nofile:2
+         ┌─ error: test/elixir/fixtures/fancy_diagnostics/error_line_column.ex:5:13
          │
-       2 │ function names should start with lowercase characters or underscore, invalid name
-         │ CamelCase
+       5 │ IO.puts bar
+         │         ^^^
+         │
+         │ undefined variable "bar"
          │
 
       """
 
-      output =
-        capture_compile("""
-        defmodule Sample do
-          def CamelCase do
-          end
-        end
-        """)
+      source = read_fixture("error_line_column.ex")
+      output = capture_compile(source)
 
       assert ansi_error?(output)
       assert strip_ansi(output) == expected
@@ -287,7 +304,29 @@ defmodule Kernel.FancyDiagnosticsTest do
       purge(Sample)
     end
 
-    test "error (line+column)" do
+    test "error (line only)" do
+      expected = """
+         ┌─ error: test/elixir/fixtures/fancy_diagnostics/error_line.ex:4
+         │
+       4 │ def CamelCase do
+         │ ^^^^^^^^^^^^^^^^
+         │
+         │ function names should start with lowercase characters or underscore, invalid name
+         │ CamelCase
+         │
+
+      """
+
+      source = read_fixture("error_line.ex")
+      output = capture_compile(source)
+
+      assert ansi_error?(output)
+      assert strip_ansi(output) == expected
+    after
+      purge(Sample)
+    end
+
+    test "error (long message)" do
       expected = """
          ┌─ error: nofile:2:16
          │
@@ -308,10 +347,6 @@ defmodule Kernel.FancyDiagnosticsTest do
       assert strip_ansi(output) == expected
     after
       purge(Sample)
-    end
-
-    test "error (long message)" do
-      assert true
     end
 
     test "respects disabled ansi" do
@@ -353,14 +388,22 @@ defmodule Kernel.FancyDiagnosticsTest do
     end)
   end
 
-  defp capture_raise(source, exception) do
+  defp capture_raise(source, exception, mock_stacktrace \\ []) do
     e =
       assert_raise exception, fn ->
         ast = Code.string_to_quoted!(source, columns: true)
         Code.eval_quoted(ast)
       end
 
-    Exception.format_banner(:error, e, [])
+    Exception.format(:error, e, mock_stacktrace)
+  end
+
+  defp read_fixture(name) do 
+    fixture = "fancy_diagnostics/" <> name
+
+    fixture
+    |> PathHelpers.fixture_path()
+    |> File.read!()
   end
 
   defp purge(module) when is_atom(module) do

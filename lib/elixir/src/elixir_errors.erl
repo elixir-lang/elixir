@@ -248,7 +248,7 @@ do_get_line_number_digits(Number, Acc) ->
   do_get_line_number_digits(Number div 10, Acc + 1).
 
 match_line_error(Line, Column) ->
-  TermRegex = "[A-Za-z_\.\{\}\(\)&]*",
+  TermRegex = "[A-Za-z_\.\{\}\(\)&@]*",
   {ok, Re} = re:compile(TermRegex),
   Tail = string:slice(Line, Column),
  {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
