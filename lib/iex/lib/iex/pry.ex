@@ -689,6 +689,8 @@ defmodule IEx.Pry do
     [asts_string, :faint, " #=> ", :reset, inspect(value, options), "\n\n"]
     |> IO.ANSI.format()
     |> IO.write()
+
+    value
   end
 
   defp chunk_pipeline_asts_by_line(asts, %Macro.Env{line: env_line}) do
