@@ -187,7 +187,11 @@ defmodule PathTest do
         assert Path.relative_to("/usr/local/foo/..", "/usr/local/.", force: force) == "."
       end
 
-      # Different relative paths for foce true/false
+      # With relative second argument
+      assert Path.relative_to("/usr/local/foo", "etc") == "/usr/local/foo"
+      assert Path.relative_to("/usr/local/foo", "etc", force: true) == "/usr/local/foo"
+
+      # Different relative paths for force true/false
       assert Path.relative_to("/usr/local/foo", "/etc") == "/usr/local/foo"
       assert Path.relative_to("/usr/local/foo", "/etc", force: true) == "../usr/local/foo"
 
@@ -317,10 +321,6 @@ defmodule PathTest do
     assert Path.relative_to(~c"usr/local/foo", "etc") == "../usr/local/foo"
     assert Path.relative_to("usr/local/foo", "usr/local") == "foo"
     assert Path.relative_to(["usr", ?/, ~c"local/foo"], ~c"usr/local") == "foo"
-
-    # mixed paths
-    assert Path.relative_to("usr/local/foo", "/usr/local") == "usr/local/foo"
-    assert Path.relative_to("/usr/local/foo", "usr/local") == "/usr/local/foo"
   end
 
   test "safe_relative/1" do
