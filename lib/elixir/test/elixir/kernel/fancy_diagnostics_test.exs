@@ -108,8 +108,8 @@ defmodule Kernel.FancyDiagnosticsTest do
       assert strip_ansi(output) == expected
     end
 
-    test "handles utf-8" do
-      source = read_fixture("unicode_error.ex")
+    test "handles unicode" do
+      source = read_fixture("unicode_error._ex")
       output = capture_raise(source, SyntaxError)
 
       assert ansi_error?(output)
@@ -206,7 +206,7 @@ defmodule Kernel.FancyDiagnosticsTest do
       purge(Sample)
     end
 
-    test "handles utf-8" do
+    test "handles unicode" do
       source = read_fixture("unicode_warn.ex")
       output = capture_eval(source)
 
