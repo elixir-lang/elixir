@@ -60,7 +60,7 @@ fancy_diagnostic_formatter(Diagnostic) ->
     {Line, true} -> line_only_diagnostic(Line, File, Message, Severity)
   end,
 
-  [Result, "\n\n"].
+  unicode:characters_to_binary([Result, "\n\n"]).
 
 fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
@@ -79,7 +79,7 @@ fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
      Spacing,
      LineNumber, Content,
      Spacing, highlight_below_line(Content, Offset, error),
-     Spacing, format_message(Description, LineDigits, false)
+     Spacing, format_message(Description, LineDigits)
     ]),
 
   unicode:characters_to_binary(Formatted).
@@ -124,7 +124,7 @@ fancy_warning_group(Message, [FirstDiagnostic | Rest]) ->
          Spacing,
          LineNumber, TrimmedLine,
          Spacing, highlight_below_line(TrimmedLine, 0, warning),
-         Spacing, Message,
+         Spacing, format_message(Message, LineDigits),
          Spacing, length(Stack),
          Stack
         ]
@@ -176,7 +176,7 @@ line_column_diagnostic(Position, File, Message, Severity) ->
      Spacing,
      LineNumber, TrimmedLine, 
      Spacing, highlight_below_line(TrimmedLine, Column - TotalLeading, Severity),
-     Spacing, format_message(Message, LineDigits, false)
+     Spacing, format_message(Message, LineDigits)
     ]
   ).
 
@@ -197,7 +197,7 @@ line_only_diagnostic(LineNumber, File, Message, Severity) ->
      Spacing,
      LineNumber, TrimmedLine,
      Spacing, highlight_below_line(TrimmedLine, Severity),
-     Spacing, format_message(Message, LineDigits, false)
+     Spacing, format_message(Message, LineDigits)
     ]
  ).
 
@@ -490,15 +490,10 @@ env_format(Meta, #{file := EnvFile} = E) ->
     _ -> {Line, File, Stacktrace}
   end.
 
-format_message(Message, NDigits, ReplaceNewlines) ->
-  Lines = wrap_message(Message, 80),
-  % LineSeparator = unicode:characters_to_binary(["\n ", n_spaces(NDigits), " │ "]),
-  LineSeparator = list_to_binary(["\n  ", n_spaces(NDigits)]),
-  Joined = join_binary(Lines, LineSeparator),
-  case ReplaceNewlines of
-    true -> binary:replace(Joined, [<<"\n">>], LineSeparator, [global]);
-    false -> Joined
-  end.
+format_message(Message, NDigits) ->
+  Padding = list_to_binary(["\n  ", n_spaces(NDigits)]),
+  Bin = unicode:characters_to_binary(Message),
+  binary:replace(Bin, <<"\n">>, Padding, [global]).
 
 wrap_message(Message, LineLength) ->
   Words = binary:split(Message, <<" ">>, [global]),

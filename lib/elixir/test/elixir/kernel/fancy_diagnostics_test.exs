@@ -108,6 +108,16 @@ defmodule Kernel.FancyDiagnosticsTest do
       assert strip_ansi(output) == expected
     end
 
+    test "handles utf-8" do
+      source = read_fixture("unicode.ex")
+      output = capture_raise(source, SyntaxError)
+
+      assert ansi_warning?(output)
+      assert strip_ansi(output) =~ "😎"
+    after
+      purge(Sample)
+    end
+
     test "respects disabled ansi" do
       Application.put_env(:elixir, :ansi_enabled, false)
 
@@ -119,9 +129,9 @@ defmodule Kernel.FancyDiagnosticsTest do
          │        ^
 
          unexpected token: }
-
-          HINT: the "[" on line 1 is missing terminator "]"
-
+         
+             HINT: the "[" on line 1 is missing terminator "]"
+         
       """
 
       output =
@@ -196,6 +206,21 @@ defmodule Kernel.FancyDiagnosticsTest do
       purge(Sample)
     end
 
+    test "handles utf-8" do
+      source = """
+      defmodule Sample do 
+        defp a(a), do: "😎"
+      end
+      """
+
+      output = capture_eval(source)
+
+      assert ansi_warning?(output)
+      assert strip_ansi(output) =~ "😎"
+    after
+      purge(Sample)
+    end
+
     test "warning (line only)" do
       expected = """
          ┌─ warning: test/elixir/fixtures/fancy_diagnostics/warn_line.ex:4
@@ -203,8 +228,7 @@ defmodule Kernel.FancyDiagnosticsTest do
        4 │ def a(unused), do: 1
          │ ~~~~~~~~~~~~~~~~~~~~
 
-         variable "unused" is unused (if the variable is not meant to be used, prefix it with
-         an underscore)
+         variable "unused" is unused (if the variable is not meant to be used, prefix it with an underscore)
 
       """
 
@@ -229,8 +253,7 @@ defmodule Kernel.FancyDiagnosticsTest do
        6 │ @foo
          │ ~~~~
 
-         module attribute @foo in code block has no effect as it is never returned (remove
-         the attribute or assign it to _ to avoid warnings)
+         module attribute @foo in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)
 
       """
 
@@ -266,6 +289,54 @@ defmodule Kernel.FancyDiagnosticsTest do
     end
 
     test "warning (long message)" do
+      expected = """
+         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/long_warn.ex:7
+         │
+       7 │ _ when is_atom(v) -> :ok
+         │ ~~~~~~~~~~~~~~~~~~~~~~~~
+
+         this check/guard will always yield the same result
+
+         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/long_warn.ex:7:14
+         │
+       7 │ _ when is_atom(v) -> :ok
+         │ ~
+
+         incompatible types:
+         
+             binary() !~ atom()
+         
+         in expression:
+         
+             # test/elixir/fixtures/fancy_diagnostics/long_warn.ex:7
+             is_atom(v)
+         
+         where "v" was given the type binary() in:
+         
+             # test/elixir/fixtures/fancy_diagnostics/long_warn.ex:5
+             v = "bc"
+         
+         where "v" was given the type atom() in:
+         
+             # test/elixir/fixtures/fancy_diagnostics/long_warn.ex:7
+             is_atom(v)
+         
+         Conflict found at
+      
+         Invalid call also found at 0 other locations:
+      
+      """
+
+      source = read_fixture("long_warn.ex")
+      output = capture_eval(source)
+
+      assert ansi_warning?(output)
+      assert strip_ansi(output) == expected
+    after
+      purge(Sample)
+    end
+
+    test "warning (nofile + long message)" do
       expected = """
        ┌─ warning: nofile:4:12
        variable "compare_local" is unused (there is a variable with the same name in the context, use the pin operator (^) to match on it or prefix this variable with underscore if it is not meant to be used)
@@ -318,8 +389,7 @@ defmodule Kernel.FancyDiagnosticsTest do
        4 │ def CamelCase do
          │ ^^^^^^^^^^^^^^^^
 
-         function names should start with lowercase characters or underscore, invalid name
-         CamelCase
+         function names should start with lowercase characters or underscore, invalid name CamelCase
 
       """
 
