@@ -462,6 +462,19 @@ defmodule CodeTest do
     assert Keyword.get(compile, :source) != nil
   end
 
+  test "preserves module @file on unused locals warning" do
+    sample = """
+    defmodule PreservesModuleAtFile do
+      @file "foo-bar.ex"
+      defp bar, do: 1
+    end
+    """
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             Code.eval_string(sample)
+           end) =~ "foo-bar.ex:3: "
+  end
+
   describe "compile_string/1" do
     test "compiles the given string" do
       assert [{CompileStringSample, _}] =
