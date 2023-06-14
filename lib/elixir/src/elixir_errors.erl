@@ -234,20 +234,9 @@ match_line_error(Line, Column) ->
   end.
 
 get_file_line(File, LineNumber) -> 
-  {ok, IoDevice} = file:open(File, [read]),
-
-  LineCollector = fun 
-                    (I, nil) when I == LineNumber - 1 -> 
-                      {ok, Line} = file:read_line(IoDevice),
-                      string:trim(Line, trailing);
-                    (_, nil) -> 
-                      {ok, _} = file:read_line(IoDevice),
-                      nil;
-                    (_, Line) -> 
-                      Line
-                  end,
-
-  lists:foldl(LineCollector, nil, lists:seq(0, LineNumber)).
+  {ok, Data} = file:read_file(File),
+  Lines = binary:split(Data, <<"\n">>, [global]),
+  lists:nth(LineNumber, Lines).
 
 trim_file_line(Line) -> 
   Trimmed = string:trim(Line, leading),

@@ -109,10 +109,10 @@ defmodule Kernel.FancyDiagnosticsTest do
     end
 
     test "handles utf-8" do
-      source = read_fixture("unicode.ex")
+      source = read_fixture("unicode_error.ex")
       output = capture_raise(source, SyntaxError)
 
-      assert ansi_warning?(output)
+      assert ansi_error?(output)
       assert strip_ansi(output) =~ "😎"
     after
       purge(Sample)
@@ -207,12 +207,7 @@ defmodule Kernel.FancyDiagnosticsTest do
     end
 
     test "handles utf-8" do
-      source = """
-      defmodule Sample do 
-        defp a(a), do: "😎"
-      end
-      """
-
+      source = read_fixture("unicode_warn.ex")
       output = capture_eval(source)
 
       assert ansi_warning?(output)
@@ -290,16 +285,16 @@ defmodule Kernel.FancyDiagnosticsTest do
 
     test "warning (long message)" do
       expected = """
-         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/long_warn.ex:7
+         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/long_warn.ex:8
          │
-       7 │ _ when is_atom(v) -> :ok
+       8 │ _ when is_atom(v) -> :ok
          │ ~~~~~~~~~~~~~~~~~~~~~~~~
 
          this check/guard will always yield the same result
 
-         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/long_warn.ex:7:14
+         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/long_warn.ex:8:14
          │
-       7 │ _ when is_atom(v) -> :ok
+       8 │ _ when is_atom(v) -> :ok
          │ ~
 
          incompatible types:
@@ -308,7 +303,7 @@ defmodule Kernel.FancyDiagnosticsTest do
          
          in expression:
          
-             # test/elixir/fixtures/fancy_diagnostics/long_warn.ex:7
+             # test/elixir/fixtures/fancy_diagnostics/long_warn.ex:8
              is_atom(v)
          
          where "v" was given the type binary() in:
@@ -318,13 +313,13 @@ defmodule Kernel.FancyDiagnosticsTest do
          
          where "v" was given the type atom() in:
          
-             # test/elixir/fixtures/fancy_diagnostics/long_warn.ex:7
+             # test/elixir/fixtures/fancy_diagnostics/long_warn.ex:8
              is_atom(v)
          
          Conflict found at
-      
+
          Invalid call also found at 0 other locations:
-      
+
       """
 
       source = read_fixture("long_warn.ex")
