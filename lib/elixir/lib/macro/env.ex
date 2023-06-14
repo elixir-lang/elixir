@@ -182,6 +182,8 @@ defmodule Macro.Env do
   """
   @doc since: "1.13.0"
   @spec fetch_alias(t, atom) :: {:ok, atom} | :error
+  def fetch_alias(env, atom)
+
   def fetch_alias(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom),
     do: Keyword.fetch(aliases, :"Elixir.#{atom}")
 
@@ -196,6 +198,8 @@ defmodule Macro.Env do
   """
   @doc since: "1.13.0"
   @spec fetch_macro_alias(t, atom) :: {:ok, atom} | :error
+  def fetch_macro_alias(env, atom)
+
   def fetch_macro_alias(%{__struct__: Macro.Env, macro_aliases: aliases}, atom)
       when is_atom(atom),
       do: Keyword.fetch(aliases, :"Elixir.#{atom}")
@@ -225,6 +229,8 @@ defmodule Macro.Env do
   """
   @doc since: "1.13.0"
   @spec lookup_import(t, name_arity) :: [{:function | :macro, module}]
+  def lookup_import(env, name_arity)
+
   def lookup_import(
         %{__struct__: Macro.Env, functions: functions, macros: macros},
         {name, arity} = pair
@@ -256,6 +262,8 @@ defmodule Macro.Env do
   """
   @doc since: "1.15.0"
   @spec lookup_alias_as(t, atom) :: [atom]
+  def lookup_alias_as(env, atom)
+
   def lookup_alias_as(%{__struct__: Macro.Env, aliases: aliases}, atom) when is_atom(atom) do
     for {name, ^atom} <- aliases, do: name
   end
@@ -276,6 +284,8 @@ defmodule Macro.Env do
   """
   @doc since: "1.13.0"
   @spec required?(t, module) :: boolean
+  def required?(env, module)
+
   def required?(%{__struct__: Macro.Env, requires: requires}, mod) when is_atom(mod),
     do: mod in requires
 
