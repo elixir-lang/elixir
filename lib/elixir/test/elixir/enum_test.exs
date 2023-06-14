@@ -1102,7 +1102,7 @@ defmodule EnumTest do
              [2, 1, 3]
   end
 
-  test "slice on map_sets" do
+  test "slice on MapSets" do
     assert MapSet.new(1..10) |> Enum.slice(0, 2) |> Enum.count() == 2
     assert MapSet.new(1..3) |> Enum.slice(0, 10) |> Enum.count() == 3
     assert MapSet.new(1..10) |> Enum.slice(0..1) |> Enum.count() == 2
