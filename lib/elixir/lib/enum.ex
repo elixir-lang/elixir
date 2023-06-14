@@ -3009,12 +3009,15 @@ defmodule Enum do
 
     if first < count and amount > 0 do
       amount = Kernel.min(amount, count - first)
-      amount = if step == 1, do: amount, else: div(amount - 1, step) + 1
+      amount = amount_with_step(amount, step)
       fun.(first, amount, step)
     else
       []
     end
   end
+
+  defp amount_with_step(amount, 1), do: amount
+  defp amount_with_step(amount, step), do: div(amount - 1, step) + 1
 
   @doc """
   Returns a subset list of the given `enumerable`, from `start_index` (zero-based)
@@ -4440,7 +4443,7 @@ defmodule Enum do
 
     if start >= 0 do
       amount = Kernel.min(amount, count - start)
-      amount = if step == 1, do: amount, else: div(amount - 1, step) + 1
+      amount = amount_with_step(amount, step)
       fun.(start, amount, step)
     else
       []
@@ -4448,7 +4451,7 @@ defmodule Enum do
   end
 
   defp slice_forward(list, start, amount, step) when is_list(list) do
-    amount = if step == 1, do: amount, else: div(amount - 1, step) + 1
+    amount = amount_with_step(amount, step)
     slice_list(list, start, amount, step)
   end
 
@@ -4458,7 +4461,7 @@ defmodule Enum do
         []
 
       {:ok, count, fun} when is_function(fun, 1) ->
-        amount = Kernel.min(amount, count - start)
+        amount = Kernel.min(amount, count - start) |> amount_with_step(step)
         enumerable |> fun.() |> slice_exact(start, amount, step, count)
 
       # TODO: Deprecate me in Elixir v1.18.
@@ -4473,8 +4476,7 @@ defmodule Enum do
         end
 
       {:ok, count, fun} when is_function(fun, 3) ->
-        amount = Kernel.min(amount, count - start)
-        amount = if step == 1, do: amount, else: div(amount - 1, step) + 1
+        amount = Kernel.min(amount, count - start) |> amount_with_step(step)
         fun.(start, amount, step)
 
       {:error, module} ->
