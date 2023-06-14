@@ -51,6 +51,8 @@ standard_diagnostic_formatter(Diagnostic) ->
  
   [prefix(Severity), Message, Location, "\n\n"].
 
+% ------- Fancy Diagnostics ---
+
 fancy_diagnostic_formatter(Diagnostic) -> 
   #{position := Position, file := File, message := Message, severity := Severity} = Diagnostic,
 
@@ -241,6 +243,15 @@ get_file_line(File, LineNumber) ->
 trim_file_line(Line) -> 
   Trimmed = string:trim(Line, leading),
   {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
+
+format_message(Message, NDigits) ->
+  Padding = list_to_binary(["\n  ", n_spaces(NDigits)]),
+  Bin = unicode:characters_to_binary(Message),
+  binary:replace(Bin, <<"\n">>, Padding, [global]).
+
+n_spaces(N) -> lists:duplicate(N, " ").
+
+% ------- END Fancy Diagnostics ---
 
 emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
   Diagnostic = #{
@@ -478,38 +489,6 @@ env_format(Meta, #{file := EnvFile} = E) ->
     {column, Column} -> {{Line, Column}, File, Stacktrace};
     _ -> {Line, File, Stacktrace}
   end.
-
-format_message(Message, NDigits) ->
-  Padding = list_to_binary(["\n  ", n_spaces(NDigits)]),
-  Bin = unicode:characters_to_binary(Message),
-  binary:replace(Bin, <<"\n">>, Padding, [global]).
-
-wrap_message(Message, LineLength) ->
-  Words = binary:split(Message, <<" ">>, [global]),
-  wrap_lines(Words, LineLength).
-
-wrap_lines(Words, Limit) -> do_wrap_lines(Words, Limit, 0, [], []).
-
-do_wrap_lines([], _, Count, CurrentLine, Lines) when Count > 0 -> 
-  lists:reverse([join_words(lists:reverse(CurrentLine)) | Lines]);
-do_wrap_lines([], _, _, _, Lines) -> lists:reverse(Lines);
-do_wrap_lines([Word | Rest], Limit, Count, CurrentLine, Lines) -> 
-  case string:length(Word) of 
-    Length when Length + Count > Limit -> 
-      Line = [Word | CurrentLine],
-      do_wrap_lines(Rest, Limit, Length + 1, [], [join_words(lists:reverse(Line)) | Lines]);
-    Length -> 
-      do_wrap_lines(Rest, Limit, Count + Length + 1, [Word | CurrentLine], Lines)
-  end.
-
-join_words(Lines) -> join_binary(Lines, <<" ">>).
-
-join_binary([], _) ->
-    <<>>;
-join_binary([H | T], Separator) ->
-    lists:foldl(fun (Value, Acc) -> <<Acc/binary, Separator/binary, Value/binary>> end, H, T).
-
-n_spaces(N) -> lists:duplicate(N, " ").
 
 file_format(_, nil) ->
   "";
