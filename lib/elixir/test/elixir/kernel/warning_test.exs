@@ -1336,7 +1336,7 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:5: ",
-        "the behavior Sample1 has been declared twice (conflict in function foo/0 in module Sample2)"
+        "the behaviour Sample1 has been declared twice (conflict in function foo/0 in module Sample2)"
       ],
       """
       defmodule Sample1 do

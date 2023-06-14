@@ -290,7 +290,7 @@ defmodule Module.Types.Behaviour do
   def format_warning({:duplicate_behaviour, module, behaviour, conflict, kind, callback})
       when conflict == behaviour do
     [
-      "the behavior ",
+      "the behaviour ",
       inspect(behaviour),
       " has been declared twice (conflict in ",
       format_definition(kind, callback),
