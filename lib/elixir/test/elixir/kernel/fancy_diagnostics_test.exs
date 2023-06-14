@@ -214,16 +214,20 @@ defmodule Kernel.FancyDiagnosticsTest do
       expected = """
          ┌─ warning: test/elixir/fixtures/fancy_diagnostics/warn_line.ex:4
          │
-       4 │ defp a, do: 1
-         │ ~~~~~~~~~~~~~
+       4 │ def a(unused), do: 1
+         │ ~~~~~~~~~~~~~~~~~~~~
          │
-         │ function a/0 is unused
+         │ variable "unused" is unused (if the variable is not meant to be used, prefix it with
+         │ an underscore)
          │
 
       """
 
       source = read_fixture("warn_line.ex")
-      output = capture_eval(source)
+      output = capture_io(:stderr, fn ->
+        quoted = Code.string_to_quoted!(source, columns: false)
+        Code.eval_quoted(quoted)
+      end)
 
       assert ansi_warning?(output)
       assert strip_ansi(output) == expected
