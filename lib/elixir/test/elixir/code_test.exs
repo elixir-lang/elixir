@@ -471,8 +471,8 @@ defmodule CodeTest do
     """
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-      Code.eval_string(sample)
-    end) =~ "foo-bar.ex:3: "
+             Code.eval_string(sample)
+           end) =~ "foo-bar.ex:3: "
   end
 
   describe "compile_string/1" do
