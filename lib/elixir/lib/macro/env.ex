@@ -269,7 +269,7 @@ defmodule Macro.Env do
   end
 
   @doc """
-  Returns true if the given module has been required.
+  Returns `true` if the given module has been required.
 
   ## Examples
 

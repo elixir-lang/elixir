@@ -1073,7 +1073,7 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Returns true if the first `NaiveDateTime` is strictly earlier than the second.
+  Returns `true` if the first `NaiveDateTime` is strictly earlier than the second.
 
   ## Examples
 
@@ -1092,7 +1092,7 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Returns true if the first `NaiveDateTime` is strictly later than the second.
+  Returns `true` if the first `NaiveDateTime` is strictly later than the second.
 
   ## Examples
 

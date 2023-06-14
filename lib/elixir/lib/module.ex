@@ -283,7 +283,7 @@ defmodule Module do
         end
       end
 
-  Note that this is only valid for exceptions/diagnostics that come from the 
+  Note that this is only valid for exceptions/diagnostics that come from the
   definition inner scope (which includes its patterns and guards). For example:
 
       defmodule MyModule do # <---- module definition
@@ -296,9 +296,9 @@ defmodule Module do
         def unused(_), do: true
       end
 
-  If you run this code with the second "unused" definition commented, you will 
-  see that `hello.ex` is used as the stacktrace when reporting warnings, but if 
-  you uncomment it you'll see that the error will not mention `bye.ex`, because 
+  If you run this code with the second "unused" definition commented, you will
+  see that `hello.ex` is used as the stacktrace when reporting warnings, but if
+  you uncomment it you'll see that the error will not mention `bye.ex`, because
   it's a module-level error rather than an expression-level error.
 
   ### `@moduledoc`
@@ -1120,7 +1120,7 @@ defmodule Module do
   Use `Kernel.function_exported?/3` and `Kernel.macro_exported?/3` to check for
   public functions and macros respectively in compiled modules.
 
-  Note that `defines?` returns false for functions and macros that have
+  Note that `defines?` returns `false` for functions and macros that have
   been defined but then marked as overridable and no other implementation
   has been provided. You can check the overridable status by calling
   `overridable?/2`.
@@ -1355,8 +1355,8 @@ defmodule Module do
   @doc """
   Deletes a definition from a module.
 
-  It returns true if the definition exists and it was removed,
-  otherwise it returns false.
+  It returns `true` if the definition exists and it was removed,
+  otherwise it returns `false`.
   """
   @doc since: "1.12.0"
   @spec delete_definition(module, definition) :: boolean()
@@ -1462,7 +1462,7 @@ defmodule Module do
   Returns `true` if `tuple` in `module` was marked as overridable
   at some point.
 
-  Note `overridable?/2` returns true even if the definition was
+  Note `overridable?/2` returns `true` even if the definition was
   already overridden. You can use `defines?/2` to see if a definition
   exists or one is pending.
   """
