@@ -8,7 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
--export([fancy_lexer_exception_snippet/5, fancy_lexer_exception/5]).
+-export([fancy_exception_snippet/5, fancy_exception/5]).
 -export([fancy_warning_group/2]).
 -export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
@@ -64,7 +64,7 @@ fancy_diagnostic_formatter(Diagnostic) ->
 
   unicode:characters_to_binary([Result, "\n\n"]).
 
-fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
+fancy_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
 
   LineDigits = get_line_number_digits(LineNumber),
@@ -86,7 +86,7 @@ fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
 
   unicode:characters_to_binary(Formatted).
 
-fancy_lexer_exception(File, LineNumber, Column, Message, ShowLine) ->
+fancy_exception(File, LineNumber, Column, Message, ShowLine) ->
   Formatted = case filelib:is_regular(File) andalso ShowLine of 
              true -> 
                line_column_diagnostic({LineNumber, Column}, File, Message, error);
