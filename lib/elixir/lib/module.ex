@@ -284,12 +284,12 @@ defmodule Module do
       end
 
   Note that this is only valid for exceptions/diagnostics that come from the 
-  definition and its inner scope. For example:
+  definition inner scope (which includes its patterns and guards). For example:
 
-      defmodule MyModule do # <---- module level
+      defmodule MyModule do # <---- module definition
         @file "hello.ex"
-        defp unused(a) do # <---- expression block
-          "world" # <---- expression scope
+        defp unused(a) do # <---- function definition
+          "world" # <---- function scope
         end
 
         @file "bye.ex"
