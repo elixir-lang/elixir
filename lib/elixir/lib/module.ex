@@ -283,6 +283,24 @@ defmodule Module do
         end
       end
 
+  Note that this is only valid for exceptions/diagnostics that come from the 
+  definition inner scope (which includes its patterns and guards). For example:
+
+      defmodule MyModule do # <---- module definition
+        @file "hello.ex"
+        defp unused(a) do # <---- function definition
+          "world" # <---- function scope
+        end
+
+        @file "bye.ex"
+        def unused(_), do: true
+      end
+
+  If you run this code with the second "unused" definition commented, you will 
+  see that `hello.ex` is used as the stacktrace when reporting warnings, but if 
+  you uncomment it you'll see that the error will not mention `bye.ex`, because 
+  it's a module-level error rather than an expression-level error.
+
   ### `@moduledoc`
 
   Provides documentation for the current module.
