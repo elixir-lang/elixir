@@ -112,8 +112,8 @@ defmodule Mix.Generator do
   @doc """
   Prompts the user to overwrite the file if it exists.
 
-  Returns false if the file exists and the user forbade
-  to override it. Returns true otherwise.
+  Returns `false` if the file exists and the user forbade
+  to override it. Returns `true` otherwise.
   """
   @doc since: "1.9.0"
   @spec overwrite?(Path.t()) :: boolean
@@ -130,9 +130,9 @@ defmodule Mix.Generator do
   Prompts the user to overwrite the file if it exists.
 
   The contents are compared to avoid asking the user to
-  override if the contents did not change. Returns false
+  override if the contents did not change. Returns `false`
   if the file exists and the content is the same or the
-  user forbade to override it. Returns true otherwise.
+  user forbade to override it. Returns `true` otherwise.
   """
   @doc since: "1.9.0"
   @spec overwrite?(Path.t(), iodata) :: boolean

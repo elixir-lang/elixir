@@ -599,7 +599,7 @@ defmodule Time do
   end
 
   @doc """
-  Returns true if the first time is strictly earlier than the second.
+  Returns `true` if the first time is strictly earlier than the second.
 
   ## Examples
 
@@ -618,7 +618,7 @@ defmodule Time do
   end
 
   @doc """
-  Returns true if the first time is strictly later than the second.
+  Returns `true` if the first time is strictly later than the second.
 
   ## Examples
 

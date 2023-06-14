@@ -531,7 +531,7 @@ defmodule Module.Types.Unify do
   end
 
   @doc """
-  Returns true if it is a singleton type.
+  Returns `true` if it is a singleton type.
 
   Only atoms are singleton types. Unbound vars are not
   considered singleton types.
