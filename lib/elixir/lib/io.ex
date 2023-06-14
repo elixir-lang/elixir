@@ -313,6 +313,11 @@ defmodule IO do
   (in case --warnings-as-errors was enabled). It returns `:ok`
   if it succeeds.
 
+  Accepts the following options:
+
+    * `:allow_fancy` whether to allow fancy output if enabled, it is recommended
+      to disallow it for runtime warnings. Defaults to true.
+
   ## Examples
 
       stacktrace = [{MyApp, :main, 1, [file: 'my_app.ex', line: 4]}]
@@ -321,20 +326,34 @@ defmodule IO do
       #=>   my_app.ex:4: MyApp.main/1
 
   """
-  @spec warn(chardata | String.Chars.t(), Exception.stacktrace() | keyword() | Macro.Env.t()) ::
+  @spec warn(
+          chardata | String.Chars.t(),
+          Exception.stacktrace() | keyword() | Macro.Env.t(),
+          keyword()
+        ) ::
           :ok
-  def warn(message, stacktrace_info)
+  def warn(message, stacktrace_info, opts \\ [])
 
-  def warn(message, %Macro.Env{line: line, file: file} = env) do
+  def warn(message, %Macro.Env{line: line, file: file} = env, opts) do
     message = to_chardata(message)
-    :elixir_errors.emit_diagnostic(:warning, line, file, message, Macro.Env.stacktrace(env))
+    fancy_allowed? = Keyword.get(opts, :allow_fancy, true)
+
+    :elixir_errors.emit_diagnostic(
+      :warning,
+      line,
+      file,
+      message,
+      Macro.Env.stacktrace(env),
+      fancy_allowed?
+    )
   end
 
-  def warn(message, []) do
-    :elixir_errors.emit_diagnostic(:warning, 0, nil, to_chardata(message), [])
+  def warn(message, [], opts) do
+    fancy_allowed? = Keyword.get(opts, :allow_fancy, true)
+    :elixir_errors.emit_diagnostic(:warning, 0, nil, to_chardata(message), [], fancy_allowed?)
   end
 
-  def warn(message, [{_, _} | _] = keyword) do
+  def warn(message, [{_, _} | _] = keyword, opts) do
     if file = keyword[:file] do
       warn(
         message,
@@ -347,16 +366,17 @@ defmodule IO do
         }
       )
     else
-      warn(message, [])
+      warn(message, [], opts)
     end
   end
 
-  def warn(message, [{_, _, _, opts} | _] = stacktrace) do
+  def warn(message, [{_, _, _, opts} | _] = stacktrace, warn_opts) do
+    fancy_allowed? = Keyword.get(warn_opts, :allow_fancy, true)
     message = to_chardata(message)
     line = opts[:line]
     file = opts[:file]
     file = file && List.to_string(file)
-    :elixir_errors.emit_diagnostic(:warning, line || 0, file, message, stacktrace)
+    :elixir_errors.emit_diagnostic(:warning, line || 0, file, message, stacktrace, fancy_allowed?)
   end
 
   @doc false
