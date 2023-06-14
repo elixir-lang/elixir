@@ -1,0 +1,5 @@
+defmodule Sample do
+  def a do
+    10 + 😎
+  end
+end

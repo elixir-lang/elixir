@@ -8,6 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
+-export([fancy_exception_snippet/5, fancy_exception/5]).
 -export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -27,7 +28,10 @@ print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stack
     case (Stacktrace =:= []) orelse elixir_config:is_bootstrap() of
       true ->
         #{position := Position, file := File} = Diagnostic,
-        file_format(Position, File);
+        case File of 
+          nil -> [];
+          File -> ["\n  ", file_format(Position, File)]
+        end;
 
       false ->
         [["\n  ", 'Elixir.Exception':format_stacktrace_entry(E)] || E <- Stacktrace]
@@ -56,6 +60,121 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
   end,
 
   ok.
+
+% --------- Fancy Diagnostics
+
+fancy_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
+  #{content := Content, offset := Offset} = Snippet,
+
+  LineDigits = get_line_number_digits(LineNumber),
+  Spacing = n_spaces(LineDigits + 1),
+
+  Formatted = io_lib:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts│\n"
+    " ~p │ ~ts\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts~ts",
+    [
+     Spacing, prefix(error), file_format({LineNumber, Column}, File),
+     Spacing,
+     LineNumber, Content,
+     Spacing, highlight_below_line(Content, Offset, error),
+     Spacing,
+     Spacing, format_message(Description, LineDigits)
+    ]),
+
+  unicode:characters_to_binary(Formatted).
+
+fancy_exception(File, LineNumber, Column, Message, ShowLine) ->
+  Formatted = case filelib:is_regular(File) andalso ShowLine of 
+             true -> 
+               line_column_diagnostic({LineNumber, Column}, File, Message, error);
+             false -> 
+                  Fmt = no_line_diagnostic(LineNumber, File, Message, error),
+                  % Left pad so we stay aligned with "** (Exception)" banner
+                  ["   ", string:replace(Fmt, "\n", "\n   ")]
+           end,
+
+  unicode:characters_to_binary(Formatted).
+
+
+no_line_diagnostic(Position, File, Message, Severity) -> 
+  io_lib:format(
+    " ┌─ ~ts~ts\n"
+    " ~ts",
+    [
+     prefix(Severity), file_format(Position, File),
+     Message
+    ]
+   ).
+
+line_column_diagnostic(Position, File, Message, Severity) ->
+  {LineNumber, Column} = Position,
+  Line = get_file_line(File, LineNumber),
+  {TrimmedLine, TotalLeading} = trim_file_line(Line),
+  LineDigits = get_line_number_digits(LineNumber),
+  Spacing = n_spaces(LineDigits + 1),
+
+  io_lib:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts│\n"
+    " ~p │ ~ts\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts~ts",
+    [
+     Spacing, prefix(Severity), file_format(Position, File),
+     Spacing,
+     LineNumber, TrimmedLine, 
+     Spacing, highlight_below_line(TrimmedLine, Column - TotalLeading, Severity),
+     Spacing,
+     Spacing, format_message(Message, LineDigits)
+    ]
+  ).
+
+format_message(Message, NDigits) ->
+  Padding = list_to_binary(["\n  ", n_spaces(NDigits)]),
+  Bin = unicode:characters_to_binary(Message),
+  binary:replace(Bin, <<"\n">>, Padding, [global]).
+
+highlight_below_line(Line, Column, Severity) ->
+  ErrorLength = match_line_error(Line, Column),
+  case Severity of
+    warning ->  highlight([n_spaces(Column), lists:duplicate(ErrorLength, "~")], warning);
+    error -> highlight([n_spaces(Column), lists:duplicate(ErrorLength, "^")], error)
+  end.
+
+match_line_error(Line, Column) ->
+  TermRegex = "[A-Za-z_\.\{\}\(\)&@]*",
+  {ok, Re} = re:compile(TermRegex),
+  Tail = string:slice(Line, Column),
+ {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
+  case MatchingTerm of 
+    % If we cannot consume anything, return a single ^ at column position
+    <<>> -> 1;
+    _ -> string:length(MatchingTerm)
+  end.
+
+get_file_line(File, LineNumber) -> 
+  {ok, Data} = file:read_file(File),
+  Lines = binary:split(Data, <<"\n">>, [global]),
+  lists:nth(LineNumber, Lines).
+
+trim_file_line(Line) -> 
+  Trimmed = string:trim(Line, leading),
+  {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
+
+get_line_number_digits(Number) -> do_get_line_number_digits(Number, 1).
+
+do_get_line_number_digits(Number, Acc) when Number < 10 -> Acc;
+do_get_line_number_digits(Number, Acc) -> 
+  do_get_line_number_digits(Number div 10, Acc + 1).
+
+n_spaces(N) -> lists:duplicate(N, " ").
+
+% --------- END Fancy Diagnostics
 
 %% Compilation error/warn handling.
 
@@ -240,16 +359,18 @@ snippet(InputString, Location, StartLine, StartColumn) ->
 
 %% Helpers
 
-prefix(warning) ->
-  case application:get_env(elixir, ansi_enabled, false) of
-    true -> <<"\e[33mwarning: \e[0m">>;
-    false -> <<"warning: ">>
-  end;
-prefix(error) ->
-  case application:get_env(elixir, ansi_enabled, false) of
-    true -> <<"\e[31merror: \e[0m">>;
-    false -> <<"error: ">>
+prefix(warning) -> highlight(<<"warning: ">>, warning);
+prefix(error) -> highlight(<<"error: ">>, error).
+
+highlight(Message, Severity) ->
+  case {Severity, application:get_env(elixir, ansi_enabled, false)} of
+    {warning, true} -> yellow(Message);
+    {error, true} -> red(Message);
+    _ -> Message
   end.
+
+yellow(Msg) -> io_lib:format("\e[33m~ts\e[0m", [Msg]).
+red(Msg) -> io_lib:format("\e[31m~ts\e[0m", [Msg]).
 
 env_format(Meta, #{file := EnvFile} = E) ->
   {File, Position} = meta_location(Meta, EnvFile),
@@ -273,13 +394,13 @@ env_format(Meta, #{file := EnvFile} = E) ->
 file_format(_, nil) ->
   "";
 file_format({0, _Column}, File) ->
-  ["\n  ", elixir_utils:relative_to_cwd(File)];
+  elixir_utils:relative_to_cwd(File);
 file_format({Line, Column}, File) ->
-  io_lib:format("\n  ~ts:~w:~w", [elixir_utils:relative_to_cwd(File), Line, Column]);
+  io_lib:format("~ts:~w:~w", [elixir_utils:relative_to_cwd(File), Line, Column]);
 file_format(0, File) ->
-  ["\n  ", elixir_utils:relative_to_cwd(File)];
+  elixir_utils:relative_to_cwd(File);
 file_format(Line, File) ->
-  io_lib:format("\n  ~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
+  io_lib:format("~ts:~w", [elixir_utils:relative_to_cwd(File), Line]).
 
 meta_location(Meta, File) ->
   case elixir_utils:meta_keep(Meta) of
