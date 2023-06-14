@@ -51,13 +51,6 @@ standard_diagnostic_formatter(Diagnostic) ->
  
   [prefix(Severity), Message, Location, "\n\n"].
 
-fancy_lexer_exception(File, LineNumber, Column, Message, ShowLine) ->
-  Result = case filelib:is_regular(File) andalso ShowLine of 
-             true -> line_column_diagnostic({LineNumber, Column}, File, Message, error);
-             false -> no_line_diagnostic(LineNumber, File, Message, error)
-           end,
-  unicode:characters_to_binary(Result).
-
 fancy_diagnostic_formatter(Diagnostic) -> 
   #{position := Position, file := File, message := Message, severity := Severity} = Diagnostic,
 
@@ -79,19 +72,27 @@ fancy_lexer_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
     " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
-    " ~ts│ ~ts\n"
-    " ~ts│\n"
-    " ~ts│ ~ts\n"
-    " ~ts│",
+    " ~ts│ ~ts\n\n"
+    " ~ts~ts",
     [
      Spacing, prefix(error), file_format({LineNumber, Column}, File),
      Spacing,
      LineNumber, Content,
      Spacing, highlight_below_line(Content, Offset, error),
-     Spacing,
-     Spacing, format_message(Description, LineDigits, true), 
-     Spacing
+     Spacing, format_message(Description, LineDigits, false)
     ]),
+
+  unicode:characters_to_binary(Formatted).
+
+fancy_lexer_exception(File, LineNumber, Column, Message, ShowLine) ->
+  Formatted = case filelib:is_regular(File) andalso ShowLine of 
+             true -> 
+               line_column_diagnostic({LineNumber, Column}, File, Message, error);
+             false -> 
+                  Fmt = no_line_diagnostic(LineNumber, File, Message, error),
+                  % Left pad so we stay aligned with "** (Exception)" banner
+                  ["   ", string:replace(Fmt, "\n", "\n   ")]
+           end,
 
   unicode:characters_to_binary(Formatted).
 
@@ -102,7 +103,7 @@ fancy_warning_group(Message, [FirstDiagnostic | Rest]) ->
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
-  Stack = [["  ", 'Elixir.Exception':format_stacktrace_entry(H), "\n"] 
+  Stack = [["    ", n_spaces(LineDigits), 'Elixir.Exception':format_stacktrace_entry(H), "\n"] 
            || #{stacktrace := [H]} <- Rest],
 
   Output = case filelib:is_regular(File) of 
@@ -114,65 +115,46 @@ fancy_warning_group(Message, [FirstDiagnostic | Rest]) ->
         " ~ts┌─ ~ts~ts\n"
         " ~ts│\n"
         " ~p │ ~ts\n"
-        " ~ts│ ~ts\n"
-        " ~ts│\n"
-        " ~ts│ ~ts\n"
-        " ~ts│\n"
-        " ~ts│ Invalid call also found at ~b other locations:~n"
-        " ~ts│ ~ts\n\n",
+        " ~ts│ ~ts\n\n"
+        " ~ts~ts\n\n"
+        " ~tsInvalid call also found at ~b other locations:\n"
+        "~ts\n",
         [
          Spacing, prefix(warning), file_format(Position, File),
          Spacing,
          LineNumber, TrimmedLine,
          Spacing, highlight_below_line(TrimmedLine, 0, warning),
-         Spacing,
-         Spacing, Message, 
-         Spacing,
+         Spacing, Message,
          Spacing, length(Stack),
-         Spacing, fancify_newlines(list_to_binary(Stack), LineDigits)
+         Stack
         ]
        );
     false ->
       io_lib:format(
         " ~ts┌─ ~ts~ts\n"
-        " ~ts│\n"
-        " ~ts│ ~ts\n"
-        " ~ts│\n"
-        " ~ts│ Invalid call also found at ~b other locations:~n"
-        " ~ts│ ~ts\n\n",
+        " ~ts~ts\n\n"
+        " ~tsInvalid call also found at ~b other locations:~n"
+        "~ts\n",
         [
          Spacing, prefix(warning), file_format(Position, File),
-         Spacing,
          Spacing, Message, 
-         Spacing,
          Spacing, length(Stack),
-         Spacing, fancify_newlines(list_to_binary(Stack), LineDigits)
+         Stack
         ]
       )
   end,
   io:put_chars(standard_error, Output).
 
-fancify_newlines(Message, NDigits) -> 
-  LineSeparator = unicode:characters_to_binary(["\n ", n_spaces(NDigits), " │ "]),
-  binary:replace(Message, [<<"\n">>], LineSeparator, [global]).
-
 extract_line({L, _}) -> L;
 extract_line(L) -> L.
 
 no_line_diagnostic(Position, File, Message, Severity) -> 
-  LineNumber = extract_line(Position),
-  LineDigits = get_line_number_digits(LineNumber),
-  Spacing = n_spaces(LineDigits + 1),
   io_lib:format(
-    " ~ts┌─ ~ts~ts\n"
-    " ~ts│\n"
-    " ~p │ ~ts\n"
-    " ~ts│",
+    " ┌─ ~ts~ts\n"
+    " ~ts",
     [
-     Spacing, prefix(Severity), file_format(Position, File),
-     Spacing,
-     LineNumber, format_message(Message, LineDigits, false), 
-     Spacing
+     prefix(Severity), file_format(Position, File),
+     Message
     ]
    ).
 
@@ -187,18 +169,14 @@ line_column_diagnostic(Position, File, Message, Severity) ->
     " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
-    " ~ts│ ~ts\n"
-    " ~ts│\n"
-    " ~ts│ ~ts\n"
-    " ~ts│",
+    " ~ts│ ~ts\n\n"
+    " ~ts~ts",
     [
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
      LineNumber, TrimmedLine, 
      Spacing, highlight_below_line(TrimmedLine, Column - TotalLeading, Severity),
-     Spacing,
-     Spacing, format_message(Message, LineDigits, false),
-     Spacing
+     Spacing, format_message(Message, LineDigits, false)
     ]
   ).
 
@@ -212,18 +190,14 @@ line_only_diagnostic(LineNumber, File, Message, Severity) ->
     " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
-    " ~ts│ ~ts\n"
-    " ~ts│\n"
-    " ~ts│ ~ts\n"
-    " ~ts│",
+    " ~ts│ ~ts\n\n"
+    " ~ts~ts",
     [ 
      Spacing, prefix(Severity), file_format(LineNumber, File),
-     Spacing, 
+     Spacing,
      LineNumber, TrimmedLine,
      Spacing, highlight_below_line(TrimmedLine, Severity),
-     Spacing,
-     Spacing, format_message(Message, LineDigits, false),
-     Spacing
+     Spacing, format_message(Message, LineDigits, false)
     ]
  ).
 
@@ -518,7 +492,8 @@ env_format(Meta, #{file := EnvFile} = E) ->
 
 format_message(Message, NDigits, ReplaceNewlines) ->
   Lines = wrap_message(Message, 80),
-  LineSeparator = unicode:characters_to_binary(["\n ", n_spaces(NDigits), " │ "]),
+  % LineSeparator = unicode:characters_to_binary(["\n ", n_spaces(NDigits), " │ "]),
+  LineSeparator = list_to_binary(["\n  ", n_spaces(NDigits)]),
   Joined = join_binary(Lines, LineSeparator),
   case ReplaceNewlines of
     true -> binary:replace(Joined, [<<"\n">>], LineSeparator, [global]);

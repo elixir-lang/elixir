@@ -908,7 +908,7 @@ defmodule SyntaxError do
 
       file = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
 
-      "invalid syntax found on " <> file <> "\n\n" <> fancy <> "\n"
+      "invalid syntax found on " <> file <> "\n" <> fancy <> "\n"
     else
       Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
         " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
@@ -926,7 +926,7 @@ defmodule SyntaxError do
       fancy = :elixir_errors.fancy_lexer_exception(file, line, column, description, true)
       file = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
 
-      "invalid syntax found on " <> file <> "\n\n" <> fancy <> "\n"
+      "invalid syntax found on " <> file <> "\n" <> fancy <> "\n"
     else
       Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
         " " <> description
@@ -952,7 +952,7 @@ defmodule TokenMissingError do
 
       file = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
 
-      "token missing on " <> file <> "\n\n" <> fancy <> "\n"
+      "token missing on " <> file <> "\n" <> fancy <> "\n"
     else
       Exception.format_file_line_column(Path.relative_to_cwd(file), line, column) <>
         " " <> description <> "\n" <> Exception.format_snippet(snippet, line)
@@ -970,7 +970,7 @@ defmodule TokenMissingError do
       fancy = :elixir_errors.fancy_lexer_exception(file, line, column, description, false)
       file = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
 
-      "token missing on " <> file <> "\n\n" <> fancy <> "\n"
+      "token missing on " <> file <> "\n" <> fancy <> "\n"
     else
       Exception.format_file_line_column(file && Path.relative_to_cwd(file), line, column) <>
         " " <> description

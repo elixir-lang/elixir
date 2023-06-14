@@ -14,14 +14,12 @@ defmodule Kernel.FancyDiagnosticsTest do
     test "SyntaxError (snippet)" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:17:
-
          ┌─ error: nofile:1:17
          │
        1 │ [1, 2, 3, 4, 5, *]
          │                 ^
-         │
-         │ syntax error before: '*'
-         │
+
+         syntax error before: '*'
       """
 
       output =
@@ -39,14 +37,12 @@ defmodule Kernel.FancyDiagnosticsTest do
     test "TokenMissingError (snippet)" do
       expected = """
       ** (TokenMissingError) token missing on nofile:1:4:
-
          ┌─ error: nofile:1:4
          │
        1 │ 1 +
          │    ^
-         │
-         │ syntax error: expression is incomplete
-         │
+
+         syntax error: expression is incomplete
       """
 
       output =
@@ -64,11 +60,8 @@ defmodule Kernel.FancyDiagnosticsTest do
     test "TokenMissingError (line only)" do
       expected = """
       ** (TokenMissingError) token missing on nofile:2:1:
-
-         ┌─ error: nofile:2
-         │
-       2 │ missing terminator: end (for "fn" starting at line 1)
-         │
+          ┌─ error: nofile:2
+          missing terminator: end (for "fn" starting at line 1)
       """
 
       output =
@@ -91,14 +84,12 @@ defmodule Kernel.FancyDiagnosticsTest do
 
       expected = """
       ** (TokenMissingError) token missing on nofile:1:4:
-
          ┌─ error: nofile:1:4
          │
        1 │ 1 -
          │    ^
-         │
-         │ syntax error: expression is incomplete
-         │
+
+         syntax error: expression is incomplete
 
           nofile:10: :fake.fun/3
           nofile:10: :real.fun/2
@@ -122,17 +113,15 @@ defmodule Kernel.FancyDiagnosticsTest do
 
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:8:
-
          ┌─ error: nofile:1:8
          │
        1 │ [:a, :b}
          │        ^
-         │
-         │ unexpected token: }
-         │ 
-         │     HINT: the "[" on line 1 is missing terminator "]"
-         │ 
-         │
+
+         unexpected token: }
+
+          HINT: the "[" on line 1 is missing terminator "]"
+
       """
 
       output =
@@ -158,14 +147,13 @@ defmodule Kernel.FancyDiagnosticsTest do
          │
        5 │ A.bar()
          │ ~~~~~~~
-         │
-         │ A.bar/0 is undefined or private
-         │
-         │ Invalid call also found at 3 other locations:
-         │   test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:6:6: Sample.a/0
-         │   test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:7:6: Sample.a/0
-         │   test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:8:6: Sample.a/0
-         │ 
+
+         A.bar/0 is undefined or private
+
+         Invalid call also found at 3 other locations:
+           test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:6:6: Sample.a/0
+           test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:7:6: Sample.a/0
+           test/elixir/fixtures/fancy_diagnostics/grouped_warnings.ex:8:6: Sample.a/0
 
       """
 
@@ -181,14 +169,12 @@ defmodule Kernel.FancyDiagnosticsTest do
     test "grouped warnings (no file)" do
       expected = """
          ┌─ warning: nofile:3:6
-         │
-         │ A.bar/0 is undefined or private
-         │
-         │ Invalid call also found at 3 other locations:
-         │   nofile:4:6: Sample.a/0
-         │   nofile:5:6: Sample.a/0
-         │   nofile:6:6: Sample.a/0
-         │ 
+         A.bar/0 is undefined or private
+
+         Invalid call also found at 3 other locations:
+           nofile:4:6: Sample.a/0
+           nofile:5:6: Sample.a/0
+           nofile:6:6: Sample.a/0
 
       """
 
@@ -216,18 +202,19 @@ defmodule Kernel.FancyDiagnosticsTest do
          │
        4 │ def a(unused), do: 1
          │ ~~~~~~~~~~~~~~~~~~~~
-         │
-         │ variable "unused" is unused (if the variable is not meant to be used, prefix it with
-         │ an underscore)
-         │
+
+         variable "unused" is unused (if the variable is not meant to be used, prefix it with
+         an underscore)
 
       """
 
       source = read_fixture("warn_line.ex")
-      output = capture_io(:stderr, fn ->
-        quoted = Code.string_to_quoted!(source, columns: false)
-        Code.eval_quoted(quoted)
-      end)
+
+      output =
+        capture_io(:stderr, fn ->
+          quoted = Code.string_to_quoted!(source, columns: false)
+          Code.eval_quoted(quoted)
+        end)
 
       assert ansi_warning?(output)
       assert strip_ansi(output) == expected
@@ -241,10 +228,9 @@ defmodule Kernel.FancyDiagnosticsTest do
          │
        6 │ @foo
          │ ~~~~
-         │
-         │ module attribute @foo in code block has no effect as it is never returned (remove
-         │ the attribute or assign it to _ to avoid warnings)
-         │
+
+         module attribute @foo in code block has no effect as it is never returned (remove
+         the attribute or assign it to _ to avoid warnings)
 
       """
 
@@ -259,10 +245,8 @@ defmodule Kernel.FancyDiagnosticsTest do
 
     test "warning (no file)" do
       expected = """
-         ┌─ warning: nofile:2:3
-         │
-       2 │ unused alias List
-         │
+       ┌─ warning: nofile:2:3
+       unused alias List
 
       """
 
@@ -283,18 +267,11 @@ defmodule Kernel.FancyDiagnosticsTest do
 
     test "warning (long message)" do
       expected = """
-         ┌─ warning: nofile:4:12
-         │
-       4 │ variable "compare_local" is unused (there is a variable with the same name in the
-         │ context, use the pin operator (^) to match on it or prefix this variable with
-         │ underscore if it is not meant to be used)
-         │
+       ┌─ warning: nofile:4:12
+       variable "compare_local" is unused (there is a variable with the same name in the context, use the pin operator (^) to match on it or prefix this variable with underscore if it is not meant to be used)
 
-         ┌─ warning: nofile:3:5
-         │
-       3 │ variable "compare_local" is unused (if the variable is not meant to be used, prefix
-         │ it with an underscore)
-         │
+       ┌─ warning: nofile:3:5
+       variable "compare_local" is unused (if the variable is not meant to be used, prefix it with an underscore)
 
       """
 
@@ -320,9 +297,8 @@ defmodule Kernel.FancyDiagnosticsTest do
          │
        5 │ IO.puts(bar)
          │         ^^^^
-         │
-         │ undefined variable "bar"
-         │
+
+         undefined variable "bar"
 
       """
 
@@ -341,10 +317,9 @@ defmodule Kernel.FancyDiagnosticsTest do
          │
        4 │ def CamelCase do
          │ ^^^^^^^^^^^^^^^^
-         │
-         │ function names should start with lowercase characters or underscore, invalid name
-         │ CamelCase
-         │
+
+         function names should start with lowercase characters or underscore, invalid name
+         CamelCase
 
       """
 
@@ -359,11 +334,8 @@ defmodule Kernel.FancyDiagnosticsTest do
 
     test "error (long message)" do
       expected = """
-         ┌─ error: nofile:2:16
-         │
-       2 │ undefined function module_info/0 (this function is auto-generated by the compiler
-         │ and must always be called as a remote, as in __MODULE__.module_info/0)
-         │
+       ┌─ error: nofile:2:16
+       undefined function module_info/0 (this function is auto-generated by the compiler and must always be called as a remote, as in __MODULE__.module_info/0)
 
       """
 
@@ -384,10 +356,8 @@ defmodule Kernel.FancyDiagnosticsTest do
       Application.put_env(:elixir, :ansi_enabled, false)
 
       expected = """
-         ┌─ error: nofile:1:1
-         │
-       1 │ undefined variable "foo"
-         │
+       ┌─ error: nofile:1:1
+       undefined variable "foo"
 
       """
 
