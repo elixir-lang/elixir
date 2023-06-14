@@ -1044,6 +1044,8 @@ defmodule Code do
 
   """
   @doc since: "1.14.0"
+  @spec eval_quoted_with_env(Macro.t(), binding, Macro.Env.t(), keyword) ::
+          {term, binding, Macro.Env.t()}
   def eval_quoted_with_env(quoted, binding, %Macro.Env{} = env, opts \\ [])
       when is_list(binding) do
     eval_verify(:eval_quoted, [quoted, binding, env, opts])
