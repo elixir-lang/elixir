@@ -4462,6 +4462,7 @@ defmodule Enum do
 
       {:ok, count, fun} when is_function(fun, 1) ->
         amount = Kernel.min(amount, count - start)
+        amount = if step == 1, do: amount, else: div(amount - 1, step) + 1
         enumerable |> fun.() |> slice_exact(start, amount, step, count)
 
       # TODO: Deprecate me in Elixir v1.18.
