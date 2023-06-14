@@ -107,16 +107,9 @@ ensure_no_undefined_local(Module, All, E) ->
 warn_unused_local(Module, All, Private, E) ->
   if_tracker(Module, [], fun(Tracker) ->
     {Unreachable, Warnings} = ?tracker:collect_unused_locals(Tracker, All, Private),
-    [do_warn_unused_local(Meta, E, ?MODULE, Error) || {Meta, Error} <- Warnings],
+    [elixir_errors:file_warn(Meta, E, ?MODULE, Error) || {Meta, Error} <- Warnings],
     Unreachable
   end).
-
-do_warn_unused_local(Meta, E, ?MODULE, Error) ->
-  Env = case lists:keyfind(file, 1, Meta) of 
-          {file, {File, _}} -> E#{file := File};
-          _ -> E
-        end,
-  elixir_errors:file_warn(Meta, Env, ?MODULE, Error).
 
 format_error({function_conflict, {Receiver, {Name, Arity}}}) ->
   io_lib:format("imported ~ts.~ts/~B conflicts with local function",
