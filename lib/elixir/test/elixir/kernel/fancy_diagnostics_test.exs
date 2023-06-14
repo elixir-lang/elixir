@@ -212,9 +212,12 @@ defmodule Kernel.FancyDiagnosticsTest do
 
     test "warning (line only)" do
       expected = """
-         ┌─ warning: nofile:4
+         ┌─ warning: test/elixir/fixtures/fancy_diagnostics/warn_line.ex:4
          │
-       4 │ function hello/0 is unused
+       4 │ defp a, do: 1
+         │ ~~~~~~~~~~~~~
+         │
+         │ function a/0 is unused
          │
 
       """
@@ -311,8 +314,8 @@ defmodule Kernel.FancyDiagnosticsTest do
       expected = """
          ┌─ error: test/elixir/fixtures/fancy_diagnostics/error_line_column.ex:5:13
          │
-       5 │ IO.puts bar
-         │         ^^^
+       5 │ IO.puts(bar)
+         │         ^^^^
          │
          │ undefined variable "bar"
          │
@@ -422,7 +425,7 @@ defmodule Kernel.FancyDiagnosticsTest do
     Exception.format(:error, e, mock_stacktrace)
   end
 
-  defp read_fixture(name) do 
+  defp read_fixture(name) do
     fixture = "fancy_diagnostics/" <> name
 
     fixture

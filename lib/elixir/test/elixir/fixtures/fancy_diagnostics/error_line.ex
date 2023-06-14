@@ -4,4 +4,3 @@ defmodule Sample do
   def CamelCase do
   end
 end
-
