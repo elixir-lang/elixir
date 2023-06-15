@@ -417,7 +417,7 @@ defmodule CodeTest do
   test "string_to_quoted!/2 errors take lines and columns into account" do
     assert_exception(
       SyntaxError,
-      ["nofile:1:5:", "syntax error before:"],
+      ["nofile:1:5:", "syntax error before:", "1 + * 3", "^"],
       fn ->
         Code.string_to_quoted!("1 + * 3")
       end
@@ -425,7 +425,7 @@ defmodule CodeTest do
 
     assert_exception(
       SyntaxError,
-      ["nofile:10:5:", "syntax error before:"],
+      ["nofile:10:5:", "syntax error before:", "1 + * 3", "^"],
       fn ->
         Code.string_to_quoted!("1 + * 3", line: 10)
       end
@@ -433,7 +433,7 @@ defmodule CodeTest do
 
     assert_exception(
       SyntaxError,
-      ["nofile:10:7:", "syntax error before:"],
+      ["nofile:10:7:", "syntax error before:", "1 + * 3", "^"],
       fn ->
         Code.string_to_quoted!("1 + * 3", line: 10, column: 3)
       end
@@ -441,7 +441,7 @@ defmodule CodeTest do
 
     assert_exception(
       SyntaxError,
-      ["nofile:11:5:", "syntax error before:"],
+      ["nofile:11:5:", "syntax error before:", "1 + * 3", "^"],
       fn ->
         Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
       end
