@@ -8,7 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
--export([fancy_exception_snippet/5, fancy_exception/5]).
+-export([fancy_exception/4, fancy_exception/5]).
 -export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -63,7 +63,7 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
 % --------- Fancy Diagnostics
 
-fancy_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
+fancy_exception(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
@@ -87,17 +87,11 @@ fancy_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
 
   unicode:characters_to_binary(Formatted).
 
-fancy_exception(File, LineNumber, Column, Message, ShowLine) ->
-  Formatted = case filelib:is_regular(File) andalso ShowLine of 
-             true -> 
-               line_column_diagnostic({LineNumber, Column}, File, Message, error);
-             false -> 
-               Fmt = no_line_diagnostic(LineNumber, File, Message, error),
-               % Left pad so we stay aligned with "** (Exception)" banner
-               ["   ", string:replace(Fmt, "\n", "\n   ")]
-           end,
-
-  unicode:characters_to_binary(Formatted).
+fancy_exception(File, LineNumber, Column, Message) ->
+   Formatted = no_line_diagnostic({LineNumber, Column}, File, Message, error),
+   % Left pad so we stay aligned with "** (Exception)" banner
+   Padded = ["   ", string:replace(Formatted, "\n", "\n   ")],
+   unicode:characters_to_binary(Padded).
 
 no_line_diagnostic(Position, File, Message, Severity) -> 
   io_lib:format(

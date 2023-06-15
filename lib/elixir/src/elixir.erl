@@ -92,7 +92,6 @@ start(_Type, _Args) ->
     {parser_options, []},
     {debug_info, true},
     {warnings_as_errors, false},
-    {fancy_diagnostics, false},
     {relative_paths, true},
     {no_warn_undefined, []},
     {tracers, []}

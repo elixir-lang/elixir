@@ -4,9 +4,6 @@ defmodule Kernel.DiagnosticsTest do
   use ExUnit.Case, async: false
 
   setup do
-    Code.put_compiler_option(:fancy_diagnostics, true)
-    on_exit(fn -> Code.put_compiler_option(:fancy_diagnostics, false) end)
-
     Application.put_env(:elixir, :ansi_enabled, false)
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
   end
@@ -56,10 +53,10 @@ defmodule Kernel.DiagnosticsTest do
       assert output == expected
     end
 
-    test "TokenMissingError (line only)" do
+    test "TokenMissingError (no snippet)" do
       expected = """
       ** (TokenMissingError) token missing on nofile:2:1:
-          ┌─ error: nofile:2
+          ┌─ error: nofile:2:1
           missing terminator: end (for "fn" starting at line 1)
       """
 

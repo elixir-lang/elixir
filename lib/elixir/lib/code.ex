@@ -216,8 +216,7 @@ defmodule Code do
     :ignore_already_consolidated,
     :ignore_module_conflict,
     :relative_paths,
-    :warnings_as_errors,
-    :fancy_diagnostics
+    :warnings_as_errors
   ]
 
   @list_compiler_options [:no_warn_undefined, :tracers, :parser_options]
