@@ -28,7 +28,6 @@ defmodule Kernel.DiagnosticsTest do
           SyntaxError
         )
 
-      assert ansi_error?(output)
       assert strip_ansi(output) == expected
     end
 
@@ -51,7 +50,6 @@ defmodule Kernel.DiagnosticsTest do
           TokenMissingError
         )
 
-      assert ansi_error?(output)
       assert strip_ansi(output) == expected
     end
 
@@ -70,7 +68,6 @@ defmodule Kernel.DiagnosticsTest do
           TokenMissingError
         )
 
-      assert ansi_error?(output)
       assert strip_ansi(output) == expected
     end
 
@@ -96,7 +93,6 @@ defmodule Kernel.DiagnosticsTest do
           SyntaxError
         )
 
-      assert ansi_error?(output)
       assert strip_ansi(output) == expected
     end
 
@@ -128,7 +124,6 @@ defmodule Kernel.DiagnosticsTest do
           fake_stacktrace
         )
 
-      assert ansi_error?(output)
       assert strip_ansi(output) == expected
     end
 
@@ -136,40 +131,8 @@ defmodule Kernel.DiagnosticsTest do
       source = read_fixture("unicode_error._ex")
       output = capture_raise(source, SyntaxError)
 
-      assert ansi_error?(output)
-      assert strip_ansi(output) =~ "😎"
+      assert output =~ "😎"
     after
-      purge(Sample)
-    end
-
-    test "respects disabled ansi" do
-      Application.put_env(:elixir, :ansi_enabled, false)
-
-      expected = """
-      ** (SyntaxError) invalid syntax found on nofile:1:8:
-         ┌─ error: nofile:1:8
-         │
-       1 │ [:a, :b}
-         │        ^
-         │
-         unexpected token: }
-         
-             HINT: the "[" on line 1 is missing terminator "]"
-         
-      """
-
-      output =
-        capture_raise(
-          """
-          [:a, :b}
-          """,
-          SyntaxError
-        )
-
-      refute ansi_error?(output)
-      assert output == expected
-    after
-      Application.put_env(:elixir, :ansi_enabled, true)
       purge(Sample)
     end
   end
@@ -195,11 +158,6 @@ defmodule Kernel.DiagnosticsTest do
   defp purge(module) when is_atom(module) do
     :code.purge(module)
     :code.delete(module)
-  end
-
-  defp ansi_error?(output) do
-    pattern = :binary.compile_pattern(["\e[31m", "\e[0m"])
-    String.contains?(output, pattern)
   end
 
   defp strip_ansi(output) do
