@@ -74,6 +74,28 @@ defmodule Kernel.DiagnosticsTest do
       assert output == expected
     end
 
+    test "keeps trailing whitespace if under threshold" do
+      expected = """
+      ** (SyntaxError) invalid syntax found on nofile:1:23:
+         ┌─ error: nofile:1:23
+         │
+       1 │                   a + 😎
+         │                       ^
+         │
+         unexpected token: "😎" (column 23, code point U+****)
+      """
+
+      output =
+        capture_raise(
+          """
+                            a + 😎
+          """,
+          SyntaxError
+        )
+
+      assert output == expected
+    end
+
     test "limits trailing whitespace if too many" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:43:
