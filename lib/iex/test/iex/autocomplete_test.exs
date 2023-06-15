@@ -389,7 +389,7 @@ defmodule IEx.AutocompleteTest do
 
   test "completion for struct names" do
     assert {:yes, ~c"", entries} = expand(~c"%")
-    assert ~c"URI" in entries
+    assert ~c"Date" in entries
     assert ~c"IEx.History" in entries
     assert ~c"IEx.Server" in entries
 

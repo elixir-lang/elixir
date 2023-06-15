@@ -20,6 +20,7 @@ defmodule IEx.Autocomplete do
 
   @alias_only_atoms ~w(alias import require)a
   @alias_only_charlists ~w(alias import require)c
+  @max_structs_autocomplete 20
 
   @doc """
   Provides one helper function that is injected into connecting
@@ -309,21 +310,49 @@ defmodule IEx.Autocomplete do
   ## Structs
 
   defp expand_structs(hint, shell) do
-    aliases =
-      for {alias, mod} <- aliases_from_env(shell),
-          [name] = Module.split(alias),
-          String.starts_with?(name, hint),
-          struct?(mod) and not function_exported?(mod, :exception, 1),
-          do: %{kind: :struct, name: name}
+    {len, structs} =
+      shell
+      |> aliases_from_env()
+      |> Enum.reduce_while({0, []}, fn {alias, mod}, {len, structs} ->
+        [name] = Module.split(alias)
 
-    modules =
-      for "Elixir." <> name = full_name <- match_modules("Elixir." <> hint, true),
-          String.starts_with?(name, hint),
-          mod = String.to_atom(full_name),
-          struct?(mod) and not function_exported?(mod, :exception, 1),
-          do: %{kind: :struct, name: name}
+        cond do
+          len == @max_structs_autocomplete ->
+            {:halt, {len, structs}}
 
-    format_expansion(aliases ++ modules, hint)
+          String.starts_with?(name, hint) and struct?(mod) and
+              not function_exported?(mod, :exception, 1) ->
+            {:cont, {len + 1, [%{kind: :struct, name: name} | structs]}}
+
+          true ->
+            {:cont, {len, structs}}
+        end
+      end)
+
+    {len, structs} =
+      "Elixir."
+      |> Kernel.<>(hint)
+      |> match_modules(true)
+      |> Enum.reduce_while({len, structs}, fn full_name, {len, structs} ->
+        "Elixir." <> name = full_name
+        mod = String.to_atom(full_name)
+
+        cond do
+          len == @max_structs_autocomplete ->
+            {:halt, {len, structs}}
+
+          String.starts_with?(name, hint) and struct?(mod) and
+              not function_exported?(mod, :exception, 1) ->
+            {:cont, {len + 1, [%{kind: :struct, name: name} | structs]}}
+
+          true ->
+            {:cont, {len, structs}}
+        end
+      end)
+
+    structs
+    |> Enum.reverse()
+    |> format_expansion(hint, len == @max_structs_autocomplete)
   end
 
   defp struct?(mod) do
@@ -512,24 +541,32 @@ defmodule IEx.Autocomplete do
 
   ## Formatting
 
-  defp format_expansion([], _) do
+  defp format_expansion(entries, hint, hit_limit? \\ false)
+
+  defp format_expansion([], _, _) do
     no()
   end
 
-  defp format_expansion([uniq], hint) do
+  defp format_expansion([uniq], hint, _) do
     case to_hint(uniq, hint) do
       "" -> yes("", to_entries(uniq))
       hint -> yes(hint, [])
     end
   end
 
-  defp format_expansion([first | _] = entries, hint) do
+  defp format_expansion([first | _] = entries, hint, hit_limit?) do
     binary = Enum.map(entries, & &1.name)
     length = byte_size(hint)
     prefix = :binary.longest_common_prefix(binary)
 
     if prefix in [0, length] do
-      yes("", Enum.flat_map(entries, &to_entries/1))
+      entries = Enum.flat_map(entries, &to_entries/1)
+
+      if hit_limit? do
+        yes("", ["•••" | entries])
+      else
+        yes("", entries)
+      end
     else
       yes(binary_part(first.name, prefix, length - prefix), [])
     end
