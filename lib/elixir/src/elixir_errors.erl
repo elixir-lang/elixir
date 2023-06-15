@@ -65,7 +65,7 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
 fancy_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
-
+  {TrimmedContent, TotalLeading} = trim_line(Content),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
@@ -79,8 +79,8 @@ fancy_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
     [
      Spacing, prefix(error), file_format({LineNumber, Column}, File),
      Spacing,
-     LineNumber, Content,
-     Spacing, highlight_below_line(Content, Offset, error),
+     LineNumber, TrimmedContent,
+     Spacing, highlight_below_line((Offset - TotalLeading) + 1, error),
      Spacing,
      Spacing, format_message(Description, LineDigits)
     ]),
@@ -112,7 +112,7 @@ no_line_diagnostic(Position, File, Message, Severity) ->
 line_column_diagnostic(Position, File, Message, Severity) ->
   {LineNumber, Column} = Position,
   Line = get_file_line(File, LineNumber),
-  {TrimmedLine, TotalLeading} = trim_file_line(Line),
+  {TrimmedLine, TotalLeading} = trim_line(Line),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
 
@@ -127,7 +127,7 @@ line_column_diagnostic(Position, File, Message, Severity) ->
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
      LineNumber, TrimmedLine, 
-     Spacing, highlight_below_line(TrimmedLine, Column - TotalLeading, Severity),
+     Spacing, highlight_below_line(Column - TotalLeading, Severity),
      Spacing,
      Spacing, format_message(Message, LineDigits)
     ]
@@ -138,22 +138,11 @@ format_message(Message, NDigits) ->
   Bin = unicode:characters_to_binary(Message),
   binary:replace(Bin, <<"\n">>, Padding, [global]).
 
-highlight_below_line(Line, Column, Severity) ->
-  ErrorLength = match_line_error(Line, Column),
+highlight_below_line(Column, Severity) ->
+  ErrorLength = 1,
   case Severity of
     warning ->  highlight([n_spaces(Column), lists:duplicate(ErrorLength, $~)], warning);
     error -> highlight([n_spaces(Column), lists:duplicate(ErrorLength, $^)], error)
-  end.
-
-match_line_error(Line, Column) ->
-  TermRegex = "[A-Za-z_\.\{\}\(\)&@]*",
-  {ok, Re} = re:compile(TermRegex),
-  Tail = string:slice(Line, Column),
- {match, [MatchingTerm]} = re:run(Tail, Re, [{capture, all, binary}]),
-  case MatchingTerm of 
-    % If we cannot consume anything, return a single ^ at column position
-    <<>> -> 1;
-    _ -> string:length(MatchingTerm)
   end.
 
 get_file_line(File, LineNumber) -> 
@@ -171,7 +160,7 @@ get_file_line(File, LineNumber) ->
   ok = file:close(IoDevice),
   Line.
 
-trim_file_line(Line) -> 
+trim_line(Line) -> 
   Trimmed = string:trim(Line, leading),
   {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
 

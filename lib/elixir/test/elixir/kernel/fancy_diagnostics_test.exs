@@ -74,6 +74,32 @@ defmodule Kernel.FancyDiagnosticsTest do
       assert strip_ansi(output) == expected
     end
 
+    test "trims leading spaces on snippet" do
+      expected = """
+      ** (SyntaxError) invalid syntax found on nofile:5:11:
+         ┌─ error: nofile:5:11
+         │
+       5 │ end
+         │ ^
+         │
+         unexpected reserved word: end
+      """
+
+      output =
+        capture_raise(
+          ~S("""
+          if true do 
+              """
+                
+          end
+          """),
+          SyntaxError
+        )
+
+      assert ansi_error?(output)
+      assert strip_ansi(output) == expected
+    end
+
     test "shows stacktrace if present" do
       fake_stacktrace = [
         {:fake, :fun, 3, [file: "nofile", line: 10]},
