@@ -99,7 +99,6 @@ fancy_exception(File, LineNumber, Column, Message, ShowLine) ->
 
   unicode:characters_to_binary(Formatted).
 
-
 no_line_diagnostic(Position, File, Message, Severity) -> 
   io_lib:format(
     " ┌─ ~ts~ts\n"
