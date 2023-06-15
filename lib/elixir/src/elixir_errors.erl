@@ -92,9 +92,9 @@ fancy_exception(File, LineNumber, Column, Message, ShowLine) ->
              true -> 
                line_column_diagnostic({LineNumber, Column}, File, Message, error);
              false -> 
-                  Fmt = no_line_diagnostic(LineNumber, File, Message, error),
-                  % Left pad so we stay aligned with "** (Exception)" banner
-                  ["   ", string:replace(Fmt, "\n", "\n   ")]
+               Fmt = no_line_diagnostic(LineNumber, File, Message, error),
+               % Left pad so we stay aligned with "** (Exception)" banner
+               ["   ", string:replace(Fmt, "\n", "\n   ")]
            end,
 
   unicode:characters_to_binary(Formatted).
@@ -158,9 +158,19 @@ match_line_error(Line, Column) ->
   end.
 
 get_file_line(File, LineNumber) -> 
-  {ok, Data} = file:read_file(File),
-  Lines = binary:split(Data, <<"\n">>, [global]),
-  lists:nth(LineNumber, Lines).
+  {ok, IoDevice} = file:open(File, [read, {encoding, unicode}]),
+  LineCollector = fun 
+                    (I, nil) when I == LineNumber - 1 -> 
+                      io:get_line(IoDevice, "");
+                    (_, nil) -> 
+                      io:get_line(IoDevice, ""),
+                      nil;
+                    (_, Line) -> 
+                      Line
+                  end,
+  Line = lists:foldl(LineCollector, nil, lists:seq(0, LineNumber)),
+  ok = file:close(IoDevice),
+  Line.
 
 trim_file_line(Line) -> 
   Trimmed = string:trim(Line, leading),
