@@ -415,29 +415,37 @@ defmodule CodeTest do
   end
 
   test "string_to_quoted!/2 errors take lines and columns into account" do
-    message = "nofile:1:5: syntax error before: '*'\n    |\n  1 | 1 + * 3\n    |     ^"
+    assert_exception(
+      SyntaxError,
+      ["nofile:1:5:", "syntax error before:", "1 + * 3", "^"],
+      fn ->
+        Code.string_to_quoted!("1 + * 3")
+      end
+    )
 
-    assert_raise SyntaxError, message, fn ->
-      Code.string_to_quoted!("1 + * 3")
-    end
+    assert_exception(
+      SyntaxError,
+      ["nofile:10:5:", "syntax error before:", "1 + * 3", "^"],
+      fn ->
+        Code.string_to_quoted!("1 + * 3", line: 10)
+      end
+    )
 
-    message = "nofile:10:5: syntax error before: '*'\n    |\n 10 | 1 + * 3\n    |     ^"
+    assert_exception(
+      SyntaxError,
+      ["nofile:10:7:", "syntax error before:", "1 + * 3", "^"],
+      fn ->
+        Code.string_to_quoted!("1 + * 3", line: 10, column: 3)
+      end
+    )
 
-    assert_raise SyntaxError, message, fn ->
-      Code.string_to_quoted!("1 + * 3", line: 10)
-    end
-
-    message = "nofile:10:7: syntax error before: '*'\n    |\n 10 | 1 + * 3\n    |     ^"
-
-    assert_raise SyntaxError, message, fn ->
-      Code.string_to_quoted!("1 + * 3", line: 10, column: 3)
-    end
-
-    message = "nofile:11:5: syntax error before: '*'\n    |\n 11 | 1 + * 3\n    |     ^"
-
-    assert_raise SyntaxError, message, fn ->
-      Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
-    end
+    assert_exception(
+      SyntaxError,
+      ["nofile:11:5:", "syntax error before:", "1 + * 3", "^"],
+      fn ->
+        Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
+      end
+    )
   end
 
   test "string_to_quoted only requires the List.Chars protocol implementation to work" do
@@ -568,6 +576,19 @@ defmodule CodeTest do
                module_doc |> String.split("\n") |> Enum.at(0)
 
       assert Code.fetch_docs(Io) == {:error, :module_not_found}
+    end
+  end
+
+  defp assert_exception(ex, messages, callback) do
+    e =
+      assert_raise ex, fn ->
+        callback.()
+      end
+
+    error_msg = Exception.format(:error, e, [])
+
+    for msg <- messages do
+      assert error_msg =~ msg
     end
   end
 end

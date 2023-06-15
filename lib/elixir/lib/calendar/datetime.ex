@@ -174,7 +174,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Returns the current datetime in UTC, supporting 
+  Returns the current datetime in UTC, supporting
   a specific calendar and precision.
 
   If you want the current time in Unix seconds,
@@ -1427,7 +1427,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Returns true if the first datetime is strictly earlier than the second.
+  Returns `true` if the first datetime is strictly earlier than the second.
 
   ## Examples
 
@@ -1446,7 +1446,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Returns true if the first datetime is strictly later than the second.
+  Returns `true` if the first datetime is strictly later than the second.
 
   ## Examples
 

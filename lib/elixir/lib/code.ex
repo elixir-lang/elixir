@@ -1930,7 +1930,7 @@ defmodule Code do
   end
 
   @doc """
-  Returns true if the current process can await for module compilation.
+  Returns `true` if the current process can await for module compilation.
 
   When compiling Elixir code via `Kernel.ParallelCompiler`, which is
   used by Mix and `elixirc`, calling a module that has not yet been

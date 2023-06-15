@@ -202,7 +202,7 @@ defmodule Mix.Task do
   @doc """
   Indicates if the current task is recursing.
 
-  This returns true if a task is marked as recursive
+  This returns `true` if a task is marked as recursive
   and it is being executed inside an umbrella project.
   """
   @doc since: "1.8.0"
@@ -246,7 +246,7 @@ defmodule Mix.Task do
   @doc """
   Checks if the given `task` name is an alias.
 
-  Returns false if the given name is not an alias or if it is not a task.
+  Returns `false` if the given name is not an alias or if it is not a task.
 
   For more information about task aliasing, take a look at the
   ["Aliases"](https://hexdocs.pm/mix/Mix.html#module-aliases) section in the

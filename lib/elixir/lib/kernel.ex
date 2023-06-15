@@ -2495,7 +2495,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a struct; otherwise returns `false`.
+  Returns `true` if `term` is a struct; otherwise returns `false`.
 
   Allowed in guard tests.
 
@@ -2531,7 +2531,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is a struct of `name`; otherwise returns `false`.
+  Returns `true` if `term` is a struct of `name`; otherwise returns `false`.
 
   `is_struct/2` does not check that `name` exists and is a valid struct.
   If you want such validations, you must pattern match on the struct
@@ -2579,7 +2579,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is an exception; otherwise returns `false`.
+  Returns `true` if `term` is an exception; otherwise returns `false`.
 
   Allowed in guard tests.
 
@@ -2617,7 +2617,7 @@ defmodule Kernel do
   end
 
   @doc """
-  Returns true if `term` is an exception of `name`; otherwise returns `false`.
+  Returns `true` if `term` is an exception of `name`; otherwise returns `false`.
 
   Allowed in guard tests.
 

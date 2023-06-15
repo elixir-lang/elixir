@@ -761,7 +761,7 @@ defmodule Mix.Release do
   @doc """
   Copies ERTS if the release is configured to do so.
 
-  Returns true if the release was copied, false otherwise.
+  Returns `true` if the release was copied, `false` otherwise.
   """
   @spec copy_erts(t) :: boolean()
   def copy_erts(%{erts_source: nil}) do

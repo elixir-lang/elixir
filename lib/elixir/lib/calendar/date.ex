@@ -578,7 +578,7 @@ defmodule Date do
   end
 
   @doc """
-  Returns true if the first date is strictly earlier than the second.
+  Returns `true` if the first date is strictly earlier than the second.
 
   ## Examples
 
@@ -597,7 +597,7 @@ defmodule Date do
   end
 
   @doc """
-  Returns true if the first date is strictly later than the second.
+  Returns `true` if the first date is strictly later than the second.
 
   ## Examples
 
