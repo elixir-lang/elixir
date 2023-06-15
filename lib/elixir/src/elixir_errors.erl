@@ -142,8 +142,8 @@ format_message(Message, NDigits) ->
 highlight_below_line(Line, Column, Severity) ->
   ErrorLength = match_line_error(Line, Column),
   case Severity of
-    warning ->  highlight([n_spaces(Column), lists:duplicate(ErrorLength, "~")], warning);
-    error -> highlight([n_spaces(Column), lists:duplicate(ErrorLength, "^")], error)
+    warning ->  highlight([n_spaces(Column), lists:duplicate(ErrorLength, $~)], warning);
+    error -> highlight([n_spaces(Column), lists:duplicate(ErrorLength, $^)], error)
   end.
 
 match_line_error(Line, Column) ->
