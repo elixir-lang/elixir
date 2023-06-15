@@ -497,7 +497,10 @@ defmodule Kernel.ParserTest do
 
     test "heredoc with incomplete interpolation" do
       assert_token_missing(
-        ["nofile:2:1:", ~s/missing interpolation terminator: "}" (for heredoc starting at line 1)/],
+        [
+          "nofile:2:1:",
+          ~s/missing interpolation terminator: "}" (for heredoc starting at line 1)/
+        ],
         ~c"\"\"\"\n\#{\n"
       )
     end
@@ -687,7 +690,7 @@ defmodule Kernel.ParserTest do
         ~s/"foO𝚳" (code points 0x00066 0x0006F 0x0004F 0x1D6B3)/,
         "Hint: You could write the above in a similar way that is accepted by Elixir:",
         ~s/"foOM" (code points 0x00066 0x0006F 0x0004F 0x0004D)/,
-        "See https://hexdocs.pm/elixir/unicode-syntax.html for more information.",
+        "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."
       ]
 
       assert_syntax_error(message, ~c"foO𝚳")
@@ -1034,7 +1037,10 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(["nofile:1:1:", msg], ~s["""\n\\u\n"""])
 
       assert_syntax_error(
-        ["nofile:1:2:", "invalid or reserved Unicode code point \\u{FFFFFF}. Syntax error after: \\u"],
+        [
+          "nofile:1:2:",
+          "invalid or reserved Unicode code point \\u{FFFFFF}. Syntax error after: \\u"
+        ],
         ~S["\u{FFFFFF}"]
       )
     end
