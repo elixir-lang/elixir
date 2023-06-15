@@ -6,6 +6,9 @@ defmodule Kernel.DiagnosticsTest do
   setup do
     Code.put_compiler_option(:fancy_diagnostics, true)
     on_exit(fn -> Code.put_compiler_option(:fancy_diagnostics, false) end)
+
+    Application.put_env(:elixir, :ansi_enabled, false)
+    on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
   end
 
   describe "compile-time exceptions" do
@@ -28,7 +31,7 @@ defmodule Kernel.DiagnosticsTest do
           SyntaxError
         )
 
-      assert strip_ansi(output) == expected
+      assert output == expected
     end
 
     test "TokenMissingError (snippet)" do
@@ -50,7 +53,7 @@ defmodule Kernel.DiagnosticsTest do
           TokenMissingError
         )
 
-      assert strip_ansi(output) == expected
+      assert output == expected
     end
 
     test "TokenMissingError (line only)" do
@@ -68,7 +71,7 @@ defmodule Kernel.DiagnosticsTest do
           TokenMissingError
         )
 
-      assert strip_ansi(output) == expected
+      assert output == expected
     end
 
     test "trims leading spaces on snippet" do
@@ -93,7 +96,7 @@ defmodule Kernel.DiagnosticsTest do
           SyntaxError
         )
 
-      assert strip_ansi(output) == expected
+      assert output == expected
     end
 
     test "shows stacktrace if present" do
@@ -124,7 +127,7 @@ defmodule Kernel.DiagnosticsTest do
           fake_stacktrace
         )
 
-      assert strip_ansi(output) == expected
+      assert output == expected
     end
 
     test "handles unicode" do
@@ -158,10 +161,5 @@ defmodule Kernel.DiagnosticsTest do
   defp purge(module) when is_atom(module) do
     :code.purge(module)
     :code.delete(module)
-  end
-
-  defp strip_ansi(output) do
-    ansi_pattern = :binary.compile_pattern(["\e[33m", "\e[31m", "\e[0m"])
-    String.replace(output, ansi_pattern, "")
   end
 end
