@@ -59,11 +59,11 @@ defmodule Kernel.ParserTest do
 
     test "errors" do
       msg =
-        ~r/the range step operator \(\/\/\) must immediately follow the range definition operator \(\.\.\)/
+        "the range step operator (//) must immediately follow the range definition operator (..)"
 
-      assert_syntax_error(msg, "foo..bar baz//bat")
-      assert_syntax_error(msg, "foo++bar//bat")
-      assert_syntax_error(msg, "foo..(bar//bat)")
+      assert_syntax_error([msg], "foo..bar baz//bat")
+      assert_syntax_error([msg], "foo++bar//bat")
+      assert_syntax_error([msg], "foo..(bar//bat)")
     end
   end
 
@@ -132,9 +132,9 @@ defmodule Kernel.ParserTest do
 
     test "invalid multi-letter sigils" do
       msg =
-        ~r/nofile:1:1: invalid sigil name, it should be either a one-letter lowercase letter or a sequence of uppercase letters only/
+        ~r/invalid sigil name, it should be either a one-letter lowercase letter or a sequence of uppercase letters only/
 
-      assert_syntax_error(msg, "~Regex/foo/")
+      assert_syntax_error(["nofile:1:1:", msg], "~Regex/foo/")
     end
 
     test "sigil newlines" do
@@ -464,64 +464,67 @@ defmodule Kernel.ParserTest do
   describe "token missing errors" do
     test "missing paren" do
       assert_token_missing(
-        ~r/nofile:1:9: missing terminator: \) \(for \"\(\" starting at line 1\)/,
+        ["nofile:1:9:", "missing terminator: ) (for \"(\" starting at line 1)"],
         ~c"case 1 ("
       )
     end
 
     test "dot terminator" do
       assert_token_missing(
-        ~r/nofile:1:9: missing terminator: \" \(for function name starting at line 1\)/,
+        ["nofile:1:9:", "missing terminator: \" (for function name starting at line 1)"],
         ~c"foo.\"bar"
       )
     end
 
     test "sigil terminator" do
       assert_token_missing(
-        ~r/nofile:3:1: missing terminator: " \(for sigil ~r" starting at line 1\)/,
+        ["nofile:3:1:", "missing terminator: \" (for sigil ~r\" starting at line 1)"],
         ~c"~r\"foo\n\n"
       )
 
       assert_token_missing(
-        ~r/nofile:3:1: missing terminator: } \(for sigil ~r{ starting at line 1\)/,
+        ["nofile:3:1:", "missing terminator: } (for sigil ~r{ starting at line 1)"],
         ~c"~r{foo\n\n"
       )
     end
 
     test "string terminator" do
       assert_token_missing(
-        ~r/nofile:1:5: missing terminator: \" \(for string starting at line 1\)/,
+        ["nofile:1:5:", "missing terminator: \" (for string starting at line 1)"],
         ~c"\"bar"
       )
     end
 
     test "heredoc with incomplete interpolation" do
       assert_token_missing(
-        ~r/nofile:2:1: missing interpolation terminator: \"}\" \(for heredoc starting at line 1\)/,
+        [
+          "nofile:2:1:",
+          ~s/missing interpolation terminator: "}" (for heredoc starting at line 1)/
+        ],
         ~c"\"\"\"\n\#{\n"
       )
     end
 
     test "heredoc terminator" do
       assert_token_missing(
-        ~r/nofile:2:4: missing terminator: \"\"\" \(for heredoc starting at line 1\)/,
+        ["nofile:2:4:", ~s/missing terminator: """ (for heredoc starting at line 1)/],
         ~c"\"\"\"\nbar"
       )
 
       assert_token_missing(
-        ~r/nofile:2:7: missing terminator: \"\"\" \(for heredoc starting at line 1\)/,
+        ["nofile:2:7:", ~s/missing terminator: """ (for heredoc starting at line 1)/],
         ~c"\"\"\"\nbar\"\"\""
       )
     end
 
     test "missing end" do
       assert_token_missing(
-        ~r/nofile:1:9: missing terminator: end \(for \"do\" starting at line 1\)/,
+        ["nofile:1:9:", "missing terminator: end \(for \"do\" starting at line 1\)"],
         ~c"foo do 1"
       )
 
       assert_token_missing(
-        ~r"HINT: it looks like the \"do\" on line 2 does not have a matching \"end\"",
+        [~s/HINT: it looks like the "do" on line 2 does not have a matching "end"/],
         ~c"""
         defmodule MyApp do
           def one do
@@ -538,126 +541,142 @@ defmodule Kernel.ParserTest do
   describe "syntax errors" do
     test "invalid heredoc start" do
       assert_syntax_error(
-        ~r/nofile:1:4: heredoc allows only whitespace characters followed by a new line after opening \"\"\"/,
+        [
+          "nofile:1:4:",
+          ~r/heredoc allows only whitespace characters followed by a new line after opening \"\"\"/
+        ],
         ~c"\"\"\"bar\n\"\"\""
       )
     end
 
     test "invalid fn" do
       assert_syntax_error(
-        ~r/nofile:1:1: expected anonymous functions to be defined with -> inside: 'fn'/,
+        ["nofile:1:1:", "expected anonymous functions to be defined with -> inside: 'fn'"],
         ~c"fn 1 end"
       )
 
       assert_syntax_error(
-        ~r/nofile:2: unexpected operator ->. If you want to define multiple clauses,/,
+        ["nofile:2:", "unexpected operator ->. If you want to define multiple clauses,"],
         ~c"fn 1\n2 -> 3 end"
       )
     end
 
     test "invalid token" do
       assert_syntax_error(
-        ~r/nofile:1:1: unexpected token: "#{"\u3164"}" \(column 1, code point U\+3164\)/,
+        ["nofile:1:1:", ~s/unexpected token: "#{"\u3164"}" (column 1, code point U+3164)/],
         ~c"ㅤ = 1"
       )
 
       assert_syntax_error(
-        ~r/nofile:1:7: unexpected token: "#{"\u200B"}" \(column 7, code point U\+200B\)/,
+        ["nofile:1:7:", ~s/unexpected token: "#{"\u200B"}" (column 7, code point U+200B)/],
         ~c"[foo: \u200B]\noops"
       )
 
       assert_syntax_error(
-        ~r/nofile:1:1: unexpected token: carriage return \(column 1, code point U\+000D\)/,
+        ["nofile:1:1:", ~s/unexpected token: carriage return (column 1, code point U+000D)/],
         ~c"\r"
       )
     end
 
     test "invalid bidi in source" do
       assert_syntax_error(
-        ~r"nofile:1:1: invalid bidirectional formatting character in comment: \\u202A",
+        ["nofile:1:1:", ~s/invalid bidirectional formatting character in comment: \\u202A/],
         ~c"# This is a \u202A"
       )
 
       assert_syntax_error(
-        ~r"nofile:1:5: invalid bidirectional formatting character in comment: \\u202A",
+        ["nofile:1:5:", "invalid bidirectional formatting character in comment: \\u202A"],
         ~c"foo. # This is a \u202A"
       )
 
       assert_syntax_error(
-        ~r"nofile:1:12: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
+        [
+          "nofile:1:12:",
+          "invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead"
+        ],
         ~c"\"this is a \u202A\""
       )
 
       assert_syntax_error(
-        ~r"nofile:1:13: invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead",
+        [
+          "nofile:1:13:",
+          "invalid bidirectional formatting character in string: \\u202A. If you want to use such character, use it in its escaped \\u202A form instead"
+        ],
         ~c"\"this is a \\\u202A\""
       )
     end
 
     test "reserved tokens" do
-      assert_syntax_error(~r/nofile:1:1: reserved token: __aliases__/, ~c"__aliases__")
-      assert_syntax_error(~r/nofile:1:1: reserved token: __block__/, ~c"__block__")
+      assert_syntax_error(["nofile:1:1:", "reserved token: __aliases__"], ~c"__aliases__")
+      assert_syntax_error(["nofile:1:1:", "reserved token: __block__"], ~c"__block__")
     end
 
     test "invalid alias terminator" do
-      assert_syntax_error(~r/nofile:1:4: unexpected \( after alias Foo/, ~c"Foo()")
+      assert_syntax_error(["nofile:1:4:", "unexpected ( after alias Foo"], ~c"Foo()")
     end
 
     test "invalid quoted token" do
       assert_syntax_error(
-        ~r/nofile:1:9: syntax error before: \"world\"/,
+        ["nofile:1:9:", "syntax error before: \"world\""],
         ~c"\"hello\" \"world\""
       )
 
       assert_syntax_error(
-        ~r/nofile:1:3: syntax error before: 'Foobar'/,
+        ["nofile:1:3:", "syntax error before: 'Foobar'"],
         ~c"1 Foobar"
       )
 
       assert_syntax_error(
-        ~r/nofile:1:5: syntax error before: foo/,
+        ["nofile:1:5:", "syntax error before: foo"],
         ~c"Foo.:foo"
       )
 
       assert_syntax_error(
-        ~r/nofile:1:5: syntax error before: \"foo\"/,
+        ["nofile:1:5:", "syntax error before: \"foo\""],
         ~c"Foo.:\"foo\#{:bar}\""
       )
 
       assert_syntax_error(
-        ~r/nofile:1:5: syntax error before: \"/,
+        ["nofile:1:5:", "syntax error before: \""],
         ~c"Foo.:\"\#{:bar}\""
       )
     end
 
     test "invalid identifier" do
-      message = fn name ->
-        ~r/nofile:1:1: invalid character "@" \(code point U\+0040\) in identifier: #{name}/
-      end
+      message =
+        &["nofile:1:1:", ~s/invalid character "@" (code point U+0040) in identifier: #{&1}/]
 
       assert_syntax_error(message.("foo@"), ~c"foo@")
       assert_syntax_error(message.("foo@"), ~c"foo@ ")
       assert_syntax_error(message.("foo@bar"), ~c"foo@bar")
 
-      message = fn name ->
-        ~r/nofile:1:1: invalid character "@" \(code point U\+0040\) in alias: #{name}/
-      end
+      message =
+        &["nofile:1:1:", "invalid character \"@\" (code point U+0040) in alias: #{&1}"]
 
       assert_syntax_error(message.("Foo@"), ~c"Foo@")
       assert_syntax_error(message.("Foo@bar"), ~c"Foo@bar")
 
       message =
-        ~r/nofile:1:1: invalid character "\!" \(code point U\+0021\) in alias \(only ASCII characters, without punctuation, are allowed\): Foo\!/
+        [
+          "nofile:1:1:",
+          ~s/invalid character "!" (code point U+0021) in alias (only ASCII characters, without punctuation, are allowed): Foo!/
+        ]
 
       assert_syntax_error(message, ~c"Foo!")
 
       message =
-        ~r/nofile:1:1: invalid character "\?" \(code point U\+003F\) in alias \(only ASCII characters, without punctuation, are allowed\): Foo\?/
+        [
+          "nofile:1:1:",
+          ~s/invalid character "?" (code point U+003F) in alias (only ASCII characters, without punctuation, are allowed): Foo?/
+        ]
 
       assert_syntax_error(message, ~c"Foo?")
 
       message =
-        ~r/nofile:1:1: invalid character \"ó\" \(code point U\+00F3\) in alias \(only ASCII characters, without punctuation, are allowed\): Foó/
+        [
+          "nofile:1:1:",
+          ~s/invalid character "ó" (code point U+00F3) in alias (only ASCII characters, without punctuation, are allowed): Foó/
+        ]
 
       assert_syntax_error(message, ~c"Foó")
 
@@ -665,25 +684,16 @@ defmodule Kernel.ParserTest do
       #  "for foO𝚳, NFKC isn't enough because 𝚳 nfkc's to Greek Μ, would be mixed script.
       #   however the 'confusability skeleton' for that token produces an all-Latin foOM
       #   and would tokenize -- so suggest that, in case that's what they want"
-      message =
-        String.trim("""
-        Codepoint failed identifier tokenization, but a simpler form was found.
+      message = [
+        "Codepoint failed identifier tokenization, but a simpler form was found.",
+        "Got:",
+        ~s/"foO𝚳" (code points 0x00066 0x0006F 0x0004F 0x1D6B3)/,
+        "Hint: You could write the above in a similar way that is accepted by Elixir:",
+        ~s/"foOM" (code points 0x00066 0x0006F 0x0004F 0x0004D)/,
+        "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."
+      ]
 
-        Got:
-
-            "foO𝚳" (code points 0x00066 0x0006F 0x0004F 0x1D6B3)
-
-        Hint: You could write the above in a similar way that is accepted by Elixir:
-
-            "foOM" (code points 0x00066 0x0006F 0x0004F 0x0004D)
-
-        See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
-            |
-          1 | foO𝚳
-            |    ^
-        """)
-
-      assert_syntax_error(~r/#{message}/, ~c"foO𝚳")
+      assert_syntax_error(message, ~c"foO𝚳")
 
       # token suggestion heuristic:
       #  "for fooی𝚳, both NKFC and confusability would result in mixed scripts,
@@ -691,29 +701,20 @@ defmodule Kernel.ParserTest do
       #   Well, can't fix it all at once -- let's check for a suggestion just on
       #   the one codepoint that triggered this, the 𝚳 -- that would at least
       #   nudge them forwards."
-      message =
-        String.trim("""
-        Elixir expects unquoted Unicode atoms, variables, and calls to use allowed codepoints and to be in NFC form.
+      message = [
+        "Elixir expects unquoted Unicode atoms, variables, and calls to use allowed codepoints and to be in NFC form.",
+        "Got:",
+        ~s/"𝚳" (code points 0x1D6B3)/,
+        "Hint: You could write the above in a compatible format that is accepted by Elixir:",
+        ~s/"Μ" (code points 0x0039C)/,
+        "See https://hexdocs.pm/elixir/unicode-syntax.html for more information."
+      ]
 
-        Got:
-
-            "𝚳" (code points 0x1D6B3)
-
-        Hint: You could write the above in a compatible format that is accepted by Elixir:
-
-            "Μ" (code points 0x0039C)
-
-        See https://hexdocs.pm/elixir/unicode-syntax.html for more information.
-            |
-          2 | fooی𝚳
-            |     ^
-        """)
-
-      assert_syntax_error(~r/#{message}/, ~c"fooی𝚳")
+      assert_syntax_error(message, ~c"fooی𝚳")
     end
 
     test "keyword missing space" do
-      msg = ~r/nofile:1:1: keyword argument must be followed by space after: foo:/
+      msg = ["nofile:1:1:", "keyword argument must be followed by space after: foo:"]
 
       assert_syntax_error(msg, "foo:bar")
       assert_syntax_error(msg, "foo:+")
@@ -722,72 +723,74 @@ defmodule Kernel.ParserTest do
 
     test "invalid keyword list in tuple/binary" do
       assert_syntax_error(
-        ~r"unexpected keyword list inside tuple",
+        ["unexpected keyword list inside tuple"],
         ~c"{foo: :bar}"
       )
 
       assert_syntax_error(
-        ~r"unexpected keyword list inside tuple",
+        ["unexpected keyword list inside tuple"],
         ~c"{foo: :bar, baz: :bar}"
       )
 
       assert_syntax_error(
-        ~r"unexpected keyword list inside bitstring",
+        ["unexpected keyword list inside bitstring"],
         ~c"<<foo: :bar, baz: :bar>>"
       )
     end
 
     test "expression after keyword lists" do
       assert_syntax_error(
-        ~r"unexpected expression after keyword list",
+        ["unexpected expression after keyword list"],
         ~c"call foo: 1, :bar"
       )
 
       assert_syntax_error(
-        ~r"unexpected expression after keyword list",
+        ["unexpected expression after keyword list"],
         ~c"call(foo: 1, :bar)"
       )
 
       assert_syntax_error(
-        ~r"unexpected expression after keyword list",
+        ["unexpected expression after keyword list"],
         ~c"[foo: 1, :bar]"
       )
 
       assert_syntax_error(
-        ~r"unexpected expression after keyword list",
+        ["unexpected expression after keyword list"],
         ~c"%{foo: 1, :bar => :bar}"
       )
     end
 
     test "syntax errors include formatted snippet" do
-      message = "nofile:1:5: syntax error before: '*'\n    |\n  1 | 1 + * 3\n    |     ^"
+      message = ["nofile:1:5:", "syntax error before:", "1 + * 3", "^"]
       assert_syntax_error(message, "1 + * 3")
     end
 
     test "invalid map start" do
       assert_syntax_error(
-        ~r/nofile:1:7: expected %{ to define a map, got: %\[/,
+        ["nofile:1:7:", "expected %{ to define a map, got: %["],
         "{:ok, %[], %{}}"
       )
 
       assert_syntax_error(
-        ~r/nofile:1:3: unexpected space between % and \{/,
+        ["nofile:1:3:", "unexpected space between % and {"],
         "% {1, 2, 3}"
       )
     end
 
     test "invalid access" do
-      msg = ~r/nofile:1:6: too many arguments when accessing a value/
+      msg = ["nofile:1:6:", "too many arguments when accessing a value"]
       assert_syntax_error(msg, "foo[1, 2]")
       assert_syntax_error(msg, "foo[1, 2, 3]")
       assert_syntax_error(msg, "foo[1, 2, 3,]")
     end
 
     test "unexpected end" do
-      assert_syntax_error(~r"nofile:1:3: unexpected reserved word: end", ~c"1 end")
+      assert_syntax_error(["nofile:1:3:", "unexpected reserved word: end"], ~c"1 end")
 
       assert_syntax_error(
-        ~r" HINT: the \"end\" on line 2 may not have a matching \"do\" defined before it \(based on indentation\)",
+        [
+          "HINT: the \"end\" on line 2 may not have a matching \"do\" defined before it (based on indentation)"
+        ],
         ~c"""
         defmodule MyApp do
           def one end
@@ -797,7 +800,9 @@ defmodule Kernel.ParserTest do
       )
 
       assert_syntax_error(
-        ~r" HINT: the \"end\" on line 3 may not have a matching \"do\" defined before it \(based on indentation\)",
+        [
+          "HINT: the \"end\" on line 3 may not have a matching \"do\" defined before it (based on indentation)"
+        ],
         ~c"""
         defmodule MyApp do
           def one
@@ -810,7 +815,9 @@ defmodule Kernel.ParserTest do
       )
 
       assert_syntax_error(
-        ~r" HINT: the \"end\" on line 6 may not have a matching \"do\" defined before it \(based on indentation\)",
+        [
+          "HINT: the \"end\" on line 6 may not have a matching \"do\" defined before it (based on indentation)"
+        ],
         ~c"""
         defmodule MyApp do
           def one do
@@ -825,18 +832,18 @@ defmodule Kernel.ParserTest do
 
     test "invalid keywords" do
       assert_syntax_error(
-        ~r/nofile:1:2: syntax error before: '.'/,
+        ["nofile:1:2:", "syntax error before: '.'"],
         ~c"+.foo"
       )
 
       assert_syntax_error(
-        ~r/nofile:1:1: syntax error before: after. \"after\" is a reserved word/,
+        ["nofile:1:1:", "syntax error before: after. \"after\" is a reserved word"],
         ~c"after = 1"
       )
     end
 
     test "before sigil" do
-      msg = fn x -> ~r"nofile:1:9: syntax error before: sigil ~s starting with content '#{x}'" end
+      msg = &["nofile:1:9:", "syntax error before: sigil ~s starting with content '#{&1}'"]
 
       assert_syntax_error(msg.("bar baz"), ~c"~s(foo) ~s(bar baz)")
       # assert_syntax_error(msg.(""), ~c"~s(foo) ~s()")
@@ -846,24 +853,27 @@ defmodule Kernel.ParserTest do
 
     test "invalid do" do
       assert_syntax_error(
-        ~r/nofile:1:10: unexpected reserved word: do./,
+        ["nofile:1:10:", "unexpected reserved word: do."],
         ~c"if true, do\n"
       )
 
-      assert_syntax_error(~r/nofile:1:9: unexpected keyword: do:./, ~c"if true do:\n")
+      assert_syntax_error(["nofile:1:9:", "unexpected keyword: do:."], ~c"if true do:\n")
     end
 
     test "invalid parens call" do
       msg =
-        "nofile:1:5: unexpected parentheses. If you are making a function call, do not " <>
-          "insert spaces between the function name and the opening parentheses. " <>
-          "Syntax error before: '\\('"
+        [
+          "nofile:1:5:",
+          "unexpected parentheses",
+          "If you are making a function call, do not insert spaces between the function name and the opening parentheses.",
+          "Syntax error before: '\('"
+        ]
 
-      assert_syntax_error(~r/#{msg}/, ~c"foo (hello, world)")
+      assert_syntax_error(msg, ~c"foo (hello, world)")
     end
 
     test "invalid nested no parens call" do
-      msg = ~r"nofile:1: unexpected comma. Parentheses are required to solve ambiguity"
+      msg = ["nofile:1:", "unexpected comma. Parentheses are required to solve ambiguity"]
 
       assert_syntax_error(msg, ~c"[foo 1, 2]")
       assert_syntax_error(msg, ~c"[foo bar 1, 2]")
@@ -885,27 +895,38 @@ defmodule Kernel.ParserTest do
 
     test "invalid atom dot alias" do
       msg =
-        "nofile:1:6: atom cannot be followed by an alias. If the '.' was meant to be " <>
-          "part of the atom's name, the atom name must be quoted. Syntax error before: '.'"
+        [
+          "nofile:1:6:",
+          "atom cannot be followed by an alias. If the '.' was meant to be " <>
+            "part of the atom's name, the atom name must be quoted. Syntax error before: '.'"
+        ]
 
-      assert_syntax_error(~r/#{msg}/, ~c":foo.Bar")
-      assert_syntax_error(~r/#{msg}/, ~c":\"+\".Bar")
+      assert_syntax_error(msg, ~c":foo.Bar")
+      assert_syntax_error(msg, ~c":\"+\".Bar")
     end
 
     test "invalid map/struct" do
-      assert_syntax_error(~r/nofile:1:5: syntax error before: '}'/, ~c"%{:a}")
-      assert_syntax_error(~r/nofile:1:11: syntax error before: '}'/, ~c"%{{:a, :b}}")
-      assert_syntax_error(~r/nofile:1:8: syntax error before: '{'/, ~c"%{a, b}{a: :b}")
+      assert_syntax_error(["nofile:1:5:", "syntax error before: '}'"], ~c"%{:a}")
+      assert_syntax_error(["nofile:1:11:", "syntax error before: '}'"], ~c"%{{:a, :b}}")
+      assert_syntax_error(["nofile:1:8:", "syntax error before: '{'"], ~c"%{a, b}{a: :b}")
     end
 
     test "invalid interpolation" do
       assert_syntax_error(
-        ~r/nofile:1:17: unexpected token: \)\n\n    HINT: the \"do\" on line 1 is missing terminator \"end\"/,
+        [
+          "nofile:1:17:",
+          "unexpected token:",
+          "HINT: the \"do\" on line 1 is missing terminator \"end\""
+        ],
         ~c"\"foo\#{case 1 do )}bar\""
       )
 
       assert_syntax_error(
-        ~r"nofile:8:3: unexpected token: \)\n\n    HINT: the \"do\" on line 3 is missing terminator \"end\"",
+        [
+          "nofile:8:3:",
+          "unexpected token: )",
+          "HINT: the \"do\" on line 3 is missing terminator \"end\""
+        ],
         ~c"""
         defmodule MyApp do
           (
@@ -949,86 +970,87 @@ defmodule Kernel.ParserTest do
       """)
 
       # All invalid examples
-      assert_syntax_error(~r/nofile:1:3: syntax error before: ';'/, ~c"1+;\n2")
+      assert_syntax_error(["nofile:1:3:", "syntax error before: ';'"], ~c"1+;\n2")
 
-      assert_syntax_error(~r/nofile:1:8: syntax error before: ';'/, ~c"max(1, ;2)")
+      assert_syntax_error(["nofile:1:8:", "syntax error before: ';'"], ~c"max(1, ;2)")
     end
 
     test "invalid new line" do
       assert_syntax_error(
-        """
-        nofile:3:6: unexpectedly reached end of line. The current expression is invalid or incomplete
-            |
-          3 |   baz
-            |      ^\
-        """,
+        [
+          "nofile:3:6:",
+          "unexpectedly reached end of line. The current expression is invalid or incomplete",
+          "baz",
+          "^"
+        ],
         ~c"if true do\n  foo = [],\n  baz\nend"
       )
     end
 
     test "invalid \"fn do expr end\"" do
       assert_syntax_error(
-        """
-        nofile:1:4: unexpected reserved word: do. Anonymous functions are written as:
-
-            fn pattern -> expression end
-
-        Please remove the "do" keyword
-            |
-          1 | fn do :ok end
-            |    ^\
-        """,
+        [
+          "nofile:1:4:",
+          "unexpected reserved word: do. Anonymous functions are written as:",
+          "fn pattern -> expression end",
+          "Please remove the \"do\" keyword",
+          "fn do :ok end",
+          "^"
+        ],
         ~c"fn do :ok end"
       )
     end
 
     test "characters literal are printed correctly in syntax errors" do
-      assert_syntax_error(~r"nofile:1:5: syntax error before: \?a", ~c":ok ?a")
-      assert_syntax_error(~r"nofile:1:5: syntax error before: \?\\s", ~c":ok ?\\s")
-      assert_syntax_error(~r"nofile:1:5: syntax error before: \?す", ~c":ok ?す")
+      assert_syntax_error(["nofile:1:5:", "syntax error before: ?a"], ~c":ok ?a")
+      assert_syntax_error(["nofile:1:5:", "syntax error before: ?\\s"], ~c":ok ?\\s")
+      assert_syntax_error(["nofile:1:5:", "syntax error before: ?す"], ~c":ok ?す")
     end
 
     test "numbers are printed correctly in syntax errors" do
-      assert_syntax_error(~r/nofile:1:5: syntax error before: \"12\"/, ~c":ok 12")
-      assert_syntax_error(~r/nofile:1:5: syntax error before: \"0b1\"/, ~c":ok 0b1")
-      assert_syntax_error(~r/nofile:1:5: syntax error before: \"12.3\"/, ~c":ok 12.3")
+      assert_syntax_error(["nofile:1:5:", ~s/syntax error before: "12"/], ~c":ok 12")
+      assert_syntax_error(["nofile:1:5:", ~s/syntax error before: "0b1"/], ~c":ok 0b1")
+      assert_syntax_error(["nofile:1:5:", ~s/syntax error before: "12.3"/], ~c":ok 12.3")
 
       assert_syntax_error(
-        ~r"nofile:1:1: invalid character \"_\" after number 123_456",
+        ["nofile:1:1:", ~s/invalid character "_" after number 123_456/],
         ~c"123_456_foo"
       )
     end
 
     test "on hex errors" do
       msg =
-        "invalid hex escape character, expected \\\\xHH where H is a hexadecimal digit. Syntax error after: \\\\x"
+        "invalid hex escape character, expected \\xHH where H is a hexadecimal digit. Syntax error after: \\x"
 
-      assert_syntax_error(~r/nofile:1:2: #{msg}/, ~S["\x"])
-      assert_syntax_error(~r/nofile:1:1: #{msg}/, ~S[:"\x"])
-      assert_syntax_error(~r/nofile:1:2: #{msg}/, ~S["\x": 123])
-      assert_syntax_error(~r/nofile:1:1: #{msg}/, ~s["""\n\\x\n"""])
+      assert_syntax_error(["nofile:1:2:", msg], ~S["\x"])
+      assert_syntax_error(["nofile:1:1:", msg], ~S[:"\x"])
+      assert_syntax_error(["nofile:1:2:", msg], ~S["\x": 123])
+      assert_syntax_error(["nofile:1:1:", msg], ~s["""\n\\x\n"""])
     end
 
     test "on unicode errors" do
       msg = "invalid Unicode escape character"
 
-      assert_syntax_error(~r/nofile:1:2: #{msg}/, ~S["\u"])
-      assert_syntax_error(~r/nofile:1:1: #{msg}/, ~S[:"\u"])
-      assert_syntax_error(~r/nofile:1:2: #{msg}/, ~S["\u": 123])
-      assert_syntax_error(~r/nofile:1:1: #{msg}/, ~s["""\n\\u\n"""])
+      assert_syntax_error(["nofile:1:2:", msg], ~S["\u"])
+      assert_syntax_error(["nofile:1:1:", msg], ~S[:"\u"])
+      assert_syntax_error(["nofile:1:2:", msg], ~S["\u": 123])
+      assert_syntax_error(["nofile:1:1:", msg], ~s["""\n\\u\n"""])
 
       assert_syntax_error(
-        ~r/nofile:1:2: invalid or reserved Unicode code point \\u\{FFFFFF\}. Syntax error after: \\u/,
+        [
+          "nofile:1:2:",
+          "invalid or reserved Unicode code point \\u{FFFFFF}. Syntax error after: \\u"
+        ],
         ~S["\u{FFFFFF}"]
       )
     end
 
     test "on interpolation in calls" do
       msg =
-        ~r"interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: \""
+        "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: \""
 
-      assert_syntax_error(msg, ".\"\#{}\"")
-      assert_syntax_error(msg, ".\"a\#{:b}\"c")
+      assert_syntax_error([msg], ".\"\#{}\"")
+      assert_syntax_error([msg], ".\"a\#{:b}\"c")
     end
 
     test "on long atoms" do
@@ -1036,7 +1058,7 @@ defmodule Kernel.ParserTest do
         "@GR{+z]`_XrNla!d<GTZ]iw[s'l2N<5hGD0(.xh&}>0ptDp(amr.oS&<q(FA)5T3=},^{=JnwIOE*DPOslKV KF-kb7NF&Y#Lp3D7l/!s],^hnz1iB |E8~Y'-Rp&*E(O}|zoB#xsE.S/~~'=%H'2HOZu0PCfz6j=eHq5:yk{7&|}zeRONM+KWBCAUKWFw(tv9vkHTu#Ek$&]Q:~>,UbT}v$L|rHHXGV{;W!>avHbD[T-G5xrzR6m?rQPot-37B@"
 
       assert_syntax_error(
-        ~r"atom length must be less than system limit: ",
+        ["atom length must be less than system limit: "],
         ~s[:"#{atom}"]
       )
     end
@@ -1044,11 +1066,21 @@ defmodule Kernel.ParserTest do
 
   defp parse!(string), do: Code.string_to_quoted!(string)
 
-  defp assert_token_missing(given_message, string) do
-    assert_raise TokenMissingError, given_message, fn -> parse!(string) end
+  defp assert_token_missing(given_messages, string) do
+    e = assert_raise TokenMissingError, fn -> parse!(string) end
+    assert_exception_msg(e, given_messages)
   end
 
-  defp assert_syntax_error(given_message, string) do
-    assert_raise SyntaxError, given_message, fn -> parse!(string) end
+  defp assert_syntax_error(given_messages, source) do
+    e = assert_raise SyntaxError, fn -> parse!(source) end
+    assert_exception_msg(e, given_messages)
+  end
+
+  defp assert_exception_msg(exception, messages) do
+    error_msg = Exception.format(:error, exception, [])
+
+    for msg <- messages do
+      assert error_msg =~ msg
+    end
   end
 end
