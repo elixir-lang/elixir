@@ -1,6 +1,6 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
-defmodule Kernel.FancyDiagnosticsTest do
+defmodule Kernel.DiagnosticsTest do
   use ExUnit.Case, async: false
 
   setup do
@@ -185,7 +185,7 @@ defmodule Kernel.FancyDiagnosticsTest do
   end
 
   defp read_fixture(name) do
-    fixture = "fancy_diagnostics/" <> name
+    fixture = "diagnostics/" <> name
 
     fixture
     |> PathHelpers.fixture_path()
