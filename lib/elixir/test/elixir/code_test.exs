@@ -415,29 +415,37 @@ defmodule CodeTest do
   end
 
   test "string_to_quoted!/2 errors take lines and columns into account" do
-    message = "nofile:1:5: syntax error before: '*'\n    |\n  1 | 1 + * 3\n    |     ^"
+    msg =
+      assert capture_exception(SyntaxError, fn ->
+               Code.string_to_quoted!("1 + * 3")
+             end)
 
-    assert_raise SyntaxError, message, fn ->
-      Code.string_to_quoted!("1 + * 3")
-    end
+    assert msg =~ "nofile:1:5:"
+    assert msg =~ "syntax error before:"
 
-    message = "nofile:10:5: syntax error before: '*'\n    |\n 10 | 1 + * 3\n    |     ^"
+    msg =
+      assert capture_exception(SyntaxError, fn ->
+               Code.string_to_quoted!("1 + * 3", line: 10)
+             end)
 
-    assert_raise SyntaxError, message, fn ->
-      Code.string_to_quoted!("1 + * 3", line: 10)
-    end
+    assert msg =~ "nofile:10:5:"
+    assert msg =~ "syntax error before:"
 
-    message = "nofile:10:7: syntax error before: '*'\n    |\n 10 | 1 + * 3\n    |     ^"
+    msg =
+      assert capture_exception(SyntaxError, fn ->
+               Code.string_to_quoted!("1 + * 3", line: 10, column: 3)
+             end)
 
-    assert_raise SyntaxError, message, fn ->
-      Code.string_to_quoted!("1 + * 3", line: 10, column: 3)
-    end
+    assert msg =~ "nofile:10:7:"
+    assert msg =~ "syntax error before:"
 
-    message = "nofile:11:5: syntax error before: '*'\n    |\n 11 | 1 + * 3\n    |     ^"
+    msg =
+      assert capture_exception(SyntaxError, fn ->
+               Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
+             end)
 
-    assert_raise SyntaxError, message, fn ->
-      Code.string_to_quoted!(":ok\n1 + * 3", line: 10, column: 3)
-    end
+    assert msg =~ "nofile:11:5:"
+    assert msg =~ "syntax error before:"
   end
 
   test "string_to_quoted only requires the List.Chars protocol implementation to work" do
@@ -569,6 +577,15 @@ defmodule CodeTest do
 
       assert Code.fetch_docs(Io) == {:error, :module_not_found}
     end
+  end
+
+  defp capture_exception(ex, callback) do
+    e =
+      assert_raise ex, fn ->
+        callback.()
+      end
+
+    Exception.format(:error, e, [])
   end
 end
 

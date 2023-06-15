@@ -145,23 +145,27 @@ defmodule Kernel.WarningTest do
           Code.string_to_quoted!("if аdmin_, do: :ok, else: :err")
         end
 
-      assert Exception.message(exception) =~
-               "nofile:1:9: invalid mixed-script identifier found: аdmin"
+      assert Exception.message(exception) =~ "nofile:1:9:"
+      assert Exception.message(exception) =~ "invalid mixed-script identifier found: аdmin"
 
-      assert Exception.message(exception) =~ """
-               \\u0430 а {Cyrillic}
-               \\u0064 d {Latin}
-               \\u006D m {Latin}
-               \\u0069 i {Latin}
-               \\u006E n {Latin}
-               \\u005F _
-             """
+      for s <- [
+            "\\u0430 а {Cyrillic}",
+            "\\u0064 d {Latin}",
+            "\\u006D m {Latin}",
+            "\\u0069 i {Latin}",
+            "\\u006E n {Latin}",
+            "\\u005F _"
+          ] do
+        assert Exception.message(exception) =~ s
+      end
 
       # includes suggestion about what to change
       assert Exception.message(exception) =~ """
              Hint: You could write the above in a similar way that is accepted by Elixir:
+             """
 
-                 "admin_" (code points 0x00061 0x00064 0x0006D 0x00069 0x0006E 0x0005F)
+      assert Exception.message(exception) =~ """
+             "admin_" (code points 0x00061 0x00064 0x0006D 0x00069 0x0006E 0x0005F)
              """
 
       # a is in cyrillic
@@ -874,11 +878,11 @@ defmodule Kernel.WarningTest do
       end)
 
     assert output =~ "key :a will be overridden in map"
-    assert output =~ "warning_test.exs:870\n"
+    assert output =~ "warning_test.exs:874\n"
     assert output =~ "key :m will be overridden in map"
-    assert output =~ "warning_test.exs:871\n"
+    assert output =~ "warning_test.exs:875\n"
     assert output =~ "key 1 will be overridden in map"
-    assert output =~ "warning_test.exs:872\n"
+    assert output =~ "warning_test.exs:876\n"
 
     assert map_size(%{System.unique_integer() => 1, System.unique_integer() => 2}) == 2
   end

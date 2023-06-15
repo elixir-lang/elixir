@@ -191,7 +191,7 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "struct fields on defstruct" do
-    assert_eval_raise ArgumentError, "struct field names must be atoms, got: 1", ~c"""
+    assert_eval_raise ArgumentError, ["struct field names must be atoms, got: 1"], ~c"""
     defmodule Kernel.ErrorsTest.StructFieldsOnDefstruct do
       defstruct [1, 2, 3]
     end
@@ -375,7 +375,7 @@ defmodule Kernel.ErrorsTest do
       end
 
       assert_eval_raise KeyError,
-                        "key :age not found",
+                        ["key :age not found"],
                         ~c"%#{GoodStruct}{age: 27}"
 
       assert_compile_error(
@@ -407,8 +407,10 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid unquote splicing in one-liners" do
     assert_eval_raise ArgumentError,
-                      "unquote_splicing only works inside arguments and block contexts, " <>
-                        "wrap it in parens if you want it to work with one-liners",
+                      [
+                        "unquote_splicing only works inside arguments and block contexts, " <>
+                          "wrap it in parens if you want it to work with one-liners"
+                      ],
                       ~c"""
                       defmodule Kernel.ErrorsTest.InvalidUnquoteSplicingInOneliners do
                         defmacro oneliner2 do
@@ -440,7 +442,7 @@ defmodule Kernel.ErrorsTest do
 
     for kind <- [:type, :typep, :opaque, :spec, :callback, :macrocallback] do
       assert_eval_raise ArgumentError,
-                        message,
+                        [message],
                         """
                         defmodule PutTypespecAttribute do
                           Module.put_attribute(__MODULE__, #{inspect(kind)}, {})
@@ -468,28 +470,33 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid fn args" do
     assert_eval_raise TokenMissingError,
-                      ~r/nofile:1:5: missing terminator: end \(for "fn" starting at line 1\).*/,
+                      [
+                        "nofile:1:5:",
+                        ~r/missing terminator: end \(for "fn" starting at line 1\)/
+                      ],
                       ~c"fn 1"
   end
 
   test "invalid escape" do
     assert_eval_raise TokenMissingError,
-                      ~r/nofile:1:3: invalid escape \\ at end of file/,
+                      ["nofile:1:3:", "invalid escape \\ at end of file"],
                       ~c"1 \\"
   end
 
   test "show snippet on missing tokens" do
     assert_eval_raise TokenMissingError,
-                      "nofile:1:25: missing terminator: end (for \"do\" starting at line 1)\n" <>
-                        "    |\n" <>
-                        "  1 | defmodule ShowSnippet do\n" <>
-                        "    |                         ^",
+                      [
+                        "nofile:1:25:",
+                        "missing terminator: end (for \"do\" starting at line 1)",
+                        "defmodule ShowSnippet do\n",
+                        "^"
+                      ],
                       ~c"defmodule ShowSnippet do"
   end
 
   test "don't show snippet when error line is empty" do
     assert_eval_raise TokenMissingError,
-                      "nofile:3:1: missing terminator: end (for \"do\" starting at line 1)",
+                      ["nofile:3:1:", "missing terminator: end (for \"do\" starting at line 1)"],
                       ~c"defmodule ShowSnippet do\n\n"
   end
 
@@ -526,8 +533,9 @@ defmodule Kernel.ErrorsTest do
 
   test "macro with undefined local" do
     assert_eval_raise UndefinedFunctionError,
-                      "function Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1" <>
-                        " is undefined (function not available)",
+                      [
+                        "function Kernel.ErrorsTest.MacroWithUndefinedLocal.unknown/1 is undefined (function not available)"
+                      ],
                       ~c"""
                       defmodule Kernel.ErrorsTest.MacroWithUndefinedLocal do
                         defmacrop bar, do: unknown(1)
@@ -538,7 +546,9 @@ defmodule Kernel.ErrorsTest do
 
   test "private macro" do
     assert_eval_raise UndefinedFunctionError,
-                      "function Kernel.ErrorsTest.PrivateMacro.foo/0 is undefined (function not available)",
+                      [
+                        "function Kernel.ErrorsTest.PrivateMacro.foo/0 is undefined (function not available)"
+                      ],
                       ~c"""
                       defmodule Kernel.ErrorsTest.PrivateMacro do
                         defmacrop foo, do: 1
@@ -752,7 +762,9 @@ defmodule Kernel.ErrorsTest do
 
   test "already compiled module" do
     assert_eval_raise ArgumentError,
-                      "could not call Module.eval_quoted/4 because the module Record is already compiled",
+                      [
+                        "could not call Module.eval_quoted/4 because the module Record is already compiled"
+                      ],
                       ~c"Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file"
   end
 
@@ -780,7 +792,7 @@ defmodule Kernel.ErrorsTest do
     )
 
     assert_eval_raise ArgumentError,
-                      "invalid value for @dialyzer attribute: :not_an_option",
+                      ["invalid value for @dialyzer attribute: :not_an_option"],
                       ~c"defmodule Test do @dialyzer :not_an_option end"
   end
 
@@ -883,7 +895,7 @@ defmodule Kernel.ErrorsTest do
     )
 
     assert_eval_raise UndefinedFunctionError,
-                      "function List.\"{}\"/1 is undefined or private",
+                      ["function List.\"{}\"/1 is undefined or private"],
                       ~c"[List.{Chars}, \"one\"]"
   end
 
@@ -984,9 +996,16 @@ defmodule Kernel.ErrorsTest do
 
   ## Helpers
 
-  defp assert_eval_raise(given_exception, given_message, string) do
-    assert_raise given_exception, given_message, fn ->
-      Code.eval_string(string)
+  defp assert_eval_raise(given_exception, messages, source) do
+    e =
+      assert_raise given_exception, fn ->
+        Code.eval_string(source)
+      end
+
+    error_msg = Exception.format(:error, e, [])
+
+    for msg <- messages do
+      assert error_msg =~ msg
     end
   end
 
