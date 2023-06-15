@@ -65,9 +65,9 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
 fancy_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
-  {TrimmedContent, TotalLeading} = trim_line(Content),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
+  {FormattedSnippet, ColumnsTrimmed} = format_line(Content),
 
   Formatted = io_lib:format(
     " ~ts┌─ ~ts~ts\n"
@@ -79,8 +79,8 @@ fancy_exception_snippet(File, LineNumber, Column, Description, Snippet) ->
     [
      Spacing, prefix(error), file_format({LineNumber, Column}, File),
      Spacing,
-     LineNumber, TrimmedContent,
-     Spacing, highlight_below_line((Offset - TotalLeading) + 1, error),
+     LineNumber, FormattedSnippet,
+     Spacing, highlight_below_line(Offset - ColumnsTrimmed, error),
      Spacing,
      Spacing, format_message(Description, LineDigits)
     ]),
@@ -112,9 +112,9 @@ no_line_diagnostic(Position, File, Message, Severity) ->
 line_column_diagnostic(Position, File, Message, Severity) ->
   {LineNumber, Column} = Position,
   Line = get_file_line(File, LineNumber),
-  {TrimmedLine, TotalLeading} = trim_line(Line),
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
+  {FormattedLine, ColumnsTrimmed} = format_line(Line),
 
   io_lib:format(
     " ~ts┌─ ~ts~ts\n"
@@ -126,12 +126,28 @@ line_column_diagnostic(Position, File, Message, Severity) ->
     [
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
-     LineNumber, TrimmedLine, 
-     Spacing, highlight_below_line(Column - TotalLeading, Severity),
+     LineNumber, FormattedLine, 
+     Spacing, highlight_below_line(Column - ColumnsTrimmed, Severity),
      Spacing,
      Spacing, format_message(Message, LineDigits)
     ]
   ).
+
+format_line(Line) -> 
+  {ok, Re} = re:compile("\s*"),
+  {match, [{_Start, SpacesMatched}]} = re:run(Line, Re, [{capture, all, index}]),
+  case SpacesMatched >= 27 of
+    true ->
+      {Trimmed, _} = trim_line(Line),
+      ColumnsTrimmed = SpacesMatched - 22,
+      {["...", n_spaces(19), Trimmed], ColumnsTrimmed};
+    false ->
+      {Line, 0}
+  end.
+
+trim_line(Line) -> 
+  Trimmed = string:trim(Line, leading),
+  {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
 
 format_message(Message, NDigits) ->
   Padding = list_to_binary(["\n  ", n_spaces(NDigits)]),
@@ -159,10 +175,6 @@ get_file_line(File, LineNumber) ->
   Line = lists:foldl(LineCollector, nil, lists:seq(0, LineNumber)),
   ok = file:close(IoDevice),
   Line.
-
-trim_line(Line) -> 
-  Trimmed = string:trim(Line, leading),
-  {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
 
 get_line_number_digits(Number) -> do_get_line_number_digits(Number, 1).
 

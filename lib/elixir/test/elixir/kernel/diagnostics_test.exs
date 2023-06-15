@@ -74,25 +74,22 @@ defmodule Kernel.DiagnosticsTest do
       assert output == expected
     end
 
-    test "trims leading spaces on snippet" do
+    test "limits trailing whitespace if too many" do
       expected = """
-      ** (SyntaxError) invalid syntax found on nofile:5:11:
-         ┌─ error: nofile:5:11
+      ** (SyntaxError) invalid syntax found on nofile:1:43:
+         ┌─ error: nofile:1:43
          │
-       5 │ end
-         │ ^
+       1 │ ...                   a + 😎
+         │                           ^
          │
-         unexpected reserved word: end
+         unexpected token: "😎" (column 43, code point U+****)
       """
 
       output =
         capture_raise(
-          ~S("""
-          if true do 
-              """
-                
-          end
-          """),
+          """
+                                                a + 😎
+          """,
           SyntaxError
         )
 
