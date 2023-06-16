@@ -103,30 +103,6 @@ no_line_diagnostic(Position, File, Message, Severity) ->
     ]
    ).
 
-line_column_diagnostic(Position, File, Message, Severity) ->
-  {LineNumber, Column} = Position,
-  Line = get_file_line(File, LineNumber),
-  LineDigits = get_line_number_digits(LineNumber),
-  Spacing = n_spaces(LineDigits + 1),
-  {FormattedLine, ColumnsTrimmed} = format_line(Line),
-
-  io_lib:format(
-    " ~ts┌─ ~ts~ts\n"
-    " ~ts│\n"
-    " ~p │ ~ts\n"
-    " ~ts│ ~ts\n"
-    " ~ts│\n"
-    " ~ts~ts",
-    [
-     Spacing, prefix(Severity), file_format(Position, File),
-     Spacing,
-     LineNumber, FormattedLine, 
-     Spacing, highlight_below_line(Column - ColumnsTrimmed, Severity),
-     Spacing,
-     Spacing, format_message(Message, LineDigits)
-    ]
-  ).
-
 format_line(Line) -> 
   {ok, Re} = re:compile("\s*"),
   {match, [{_Start, SpacesMatched}]} = re:run(Line, Re, [{capture, all, index}]),
@@ -154,21 +130,6 @@ highlight_below_line(Column, Severity) ->
     warning ->  highlight([n_spaces(Column), lists:duplicate(ErrorLength, $~)], warning);
     error -> highlight([n_spaces(Column), lists:duplicate(ErrorLength, $^)], error)
   end.
-
-get_file_line(File, LineNumber) -> 
-  {ok, IoDevice} = file:open(File, [read, {encoding, unicode}]),
-  LineCollector = fun 
-                    (I, nil) when I == LineNumber - 1 -> 
-                      io:get_line(IoDevice, "");
-                    (_, nil) -> 
-                      io:get_line(IoDevice, ""),
-                      nil;
-                    (_, Line) -> 
-                      Line
-                  end,
-  Line = lists:foldl(LineCollector, nil, lists:seq(0, LineNumber)),
-  ok = file:close(IoDevice),
-  Line.
 
 get_line_number_digits(Number) -> do_get_line_number_digits(Number, 1).
 
