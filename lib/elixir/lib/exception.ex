@@ -892,7 +892,7 @@ defmodule SyntaxError do
       })
       when not is_nil(snippet) and not is_nil(column) do
     fancy =
-      :elixir_errors.fancy_exception(file, line, column, description, snippet)
+      :elixir_errors.format_exception(file, line, column, description, snippet)
 
     location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
     format_fancy(location, fancy)
@@ -905,7 +905,7 @@ defmodule SyntaxError do
         column: column,
         description: description
       }) do
-    fancy = :elixir_errors.fancy_exception(file, line, column, description)
+    fancy = :elixir_errors.format_exception(file, line, column, description)
     location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
     format_fancy(location, fancy)
   end
@@ -928,7 +928,7 @@ defmodule TokenMissingError do
       })
       when not is_nil(snippet) and not is_nil(column) do
     fancy =
-      :elixir_errors.fancy_exception(file, line, column, description, snippet)
+      :elixir_errors.format_exception(file, line, column, description, snippet)
 
     location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
     format_fancy(location, fancy)
@@ -941,7 +941,7 @@ defmodule TokenMissingError do
         column: column,
         description: description
       }) do
-    fancy = :elixir_errors.fancy_exception(file, line, column, description)
+    fancy = :elixir_errors.format_exception(file, line, column, description)
     location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
     format_fancy(location, fancy)
   end

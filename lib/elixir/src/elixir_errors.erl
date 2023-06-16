@@ -8,7 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
--export([fancy_exception/4, fancy_exception/5]).
+-export([format_exception/4, format_exception/5]).
 -export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -63,7 +63,7 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
 % --------- Fancy Diagnostics
 
-fancy_exception(File, LineNumber, Column, Description, Snippet) ->
+format_exception(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
@@ -87,7 +87,7 @@ fancy_exception(File, LineNumber, Column, Description, Snippet) ->
 
   unicode:characters_to_binary(Formatted).
 
-fancy_exception(File, LineNumber, Column, Message) ->
+format_exception(File, LineNumber, Column, Message) ->
    Formatted = no_line_diagnostic({LineNumber, Column}, File, Message, error),
    % Left pad so we stay aligned with "** (Exception)" banner
    Padded = ["   ", string:replace(Formatted, "\n", "\n   ")],
