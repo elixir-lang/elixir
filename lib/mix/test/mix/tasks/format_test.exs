@@ -840,8 +840,22 @@ defmodule Mix.Tasks.FormatTest do
       defmodule <%= module %>.Bar do end
       """)
 
-      assert_raise SyntaxError, ~r"a.ex:1:13: syntax error before: '='", fn ->
-        Mix.Tasks.Format.run(["a.ex"])
+      messages = [
+        "invalid syntax found on a.ex:1:13:",
+        "defmodule <%= module %>.Bar do end",
+        "^",
+        "syntax error before: '='"
+      ]
+
+      e =
+        assert_raise SyntaxError, fn ->
+          Mix.Tasks.Format.run(["a.ex"])
+        end
+
+      output = Exception.format(:error, e, [])
+
+      for msg <- messages do
+        assert output =~ msg
       end
 
       assert_received {:mix_shell, :error, ["mix format failed for file: a.ex"]}
@@ -850,10 +864,24 @@ defmodule Mix.Tasks.FormatTest do
 
   test "raises SyntaxError when parsing invalid stdin", context do
     in_tmp(context.test, fn ->
-      assert_raise SyntaxError, ~r"stdin.exs:1:13: syntax error before: '='", fn ->
-        capture_io("defmodule <%= module %>.Bar do end", fn ->
-          Mix.Tasks.Format.run(["-"])
-        end)
+      e =
+        assert_raise SyntaxError, fn ->
+          capture_io("defmodule <%= module %>.Bar do end", fn ->
+            Mix.Tasks.Format.run(["-"])
+          end)
+        end
+
+      messages = [
+        "invalid syntax found on stdin.exs:1:13:",
+        "defmodule <%= module %>.Bar do end",
+        "^",
+        "syntax error before: '='"
+      ]
+
+      output = Exception.format(:error, e, [])
+
+      for msg <- messages do
+        assert output =~ msg
       end
 
       assert_received {:mix_shell, :error, ["mix format failed for stdin"]}
