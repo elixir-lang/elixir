@@ -360,6 +360,8 @@ file_format(_, nil) ->
   "";
 file_format({0, _Column}, File) ->
   elixir_utils:relative_to_cwd(File);
+file_format({Line, nil}, File) ->
+  file_format(Line, File);
 file_format({Line, Column}, File) ->
   io_lib:format("~ts:~w:~w", [elixir_utils:relative_to_cwd(File), Line, Column]);
 file_format(0, File) ->

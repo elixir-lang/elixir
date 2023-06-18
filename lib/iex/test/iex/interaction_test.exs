@@ -69,7 +69,7 @@ defmodule IEx.InteractionTest do
     output = capture_iex(input)
 
     assert output =~ "** (TokenMissingError) token missing on iex:1:"
-    assert output =~ "error: iex:1:nil"
+    assert output =~ "error: iex:1\n"
     assert output =~ "incomplete expression"
   end
 
