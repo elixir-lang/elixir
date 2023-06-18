@@ -147,7 +147,14 @@ defmodule Kernel.DiagnosticsTest do
     end
 
     test "handles unicode" do
-      source = read_fixture("unicode_error._ex")
+      source = """
+      defmodule Sample do
+        def a do
+          10 + 😎
+        end
+      end
+      """
+
       output = capture_raise(source, SyntaxError)
 
       assert output =~ "😎"
@@ -164,14 +171,6 @@ defmodule Kernel.DiagnosticsTest do
       end
 
     Exception.format(:error, e, mock_stacktrace)
-  end
-
-  defp read_fixture(name) do
-    fixture = "diagnostics/" <> name
-
-    fixture
-    |> PathHelpers.fixture_path()
-    |> File.read!()
   end
 
   defp purge(module) when is_atom(module) do
