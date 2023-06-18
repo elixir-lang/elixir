@@ -61,9 +61,9 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
   ok.
 
-% --------- Fancy Diagnostics
+%% Format snippets
 
-format_exception(File, LineNumber, Column, Description, Snippet) ->
+format_snippet(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
   LineDigits = get_line_number_digits(LineNumber),
   Spacing = n_spaces(LineDigits + 1),
@@ -87,7 +87,7 @@ format_exception(File, LineNumber, Column, Description, Snippet) ->
 
   unicode:characters_to_binary(Formatted).
 
-format_exception(File, LineNumber, Column, Message) ->
+format_snippet(File, LineNumber, Column, Message) ->
    Formatted = no_line_diagnostic({LineNumber, Column}, File, Message, error),
    % Left pad so we stay aligned with "** (Exception)" banner
    Padded = ["   ", string:replace(Formatted, "\n", "\n   ")],
@@ -138,8 +138,6 @@ do_get_line_number_digits(Number, Acc) ->
   do_get_line_number_digits(Number div 10, Acc + 1).
 
 n_spaces(N) -> lists:duplicate(N, " ").
-
-% --------- END Fancy Diagnostics
 
 %% Compilation error/warn handling.
 
