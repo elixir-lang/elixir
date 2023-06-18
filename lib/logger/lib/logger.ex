@@ -210,7 +210,7 @@ defmodule Logger do
         metadata: [:error_code, :file]
 
   Or to configure default handler, for instance, to log into a file with
-  built-in support for log rotation:
+  built-in support for log rotation and compression:
 
       config :logger, :default_handler,
         config: [
@@ -218,8 +218,17 @@ defmodule Logger do
           filesync_repeat_interval: 5000,
           file_check: 5000,
           max_no_bytes: 10_000_000,
-          max_no_files: 5
+          max_no_files: 5,
+          compress_on_rotate: true
         ]
+
+  See [`:logger_std_h`](`:logger_std_h`) for all relevant configuration,
+  including overload protection. Or set `:default_handler` to false to
+  disable the default logging altogether:
+
+      config :logger, :default_handler, false
+
+  How to add new handlers is covered in later sections.
 
   > #### Keywords or maps {: .tip}
   >
@@ -230,14 +239,6 @@ defmodule Logger do
   >
   > When reading the handler configuration using Erlang's APIs,
   > the configuration will always be read (and written) as a map.
-
-  See [`:logger_std_h`](`:logger_std_h`) for all relevant configuration,
-  including overload protection. Or set `:default_handler` to false to
-  disable the default logging altogether:
-
-      config :logger, :default_handler, false
-
-  How to add new handlers is covered in later sections.
 
   ### Compile configuration
 
@@ -329,16 +330,19 @@ defmodule Logger do
   default handler, but you can use Erlang's [`:logger`](`:logger`) module
   to add other handlers too.
 
-  Erlang/OTP handlers must be listed under your own application. For example,
-  to setup an additional handler that writes to disk:
+  Erlang/OTP handlers must be listed under your own application.
+  For example, to setup an additional handler, so you write to
+  console and file:
 
       config :my_app, :logger, [
-        {:handler, :disk_log, :logger_disk_log_h, %{
+        {:handler, :file_log, :logger_std_h, %{
            config: %{
-             file: 'system.log',
+             file: ~c"system.log",
              filesync_repeat_interval: 5000,
+             file_check: 5000,
              max_no_bytes: 10_000_000,
-             max_no_files: 5
+             max_no_files: 5,
+             compress_on_rotate: true
            },
            formatter: Logger.Formatter.new()
          }}
@@ -355,9 +359,12 @@ defmodule Logger do
   flexibility but they should avoid performing any long running action in
   such handlers, as it may slow down the action being executed considerably.
   At the moment, there is no built-in overload protection for Erlang handlers,
-  so it is your responsibility to implement it. Alternatively, you can use the
-  [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
-  project.
+  so it is your responsibility to implement it.
+
+  Alternatively, you can use the
+  [`:logger_backends`](https://github.com/elixir-lang/logger_backends) project.
+  It sets up a log handler with overload protection and allows incoming events
+  to be dispatched to multiple backends.
 
   ## Backends and backwards compatibility
 
