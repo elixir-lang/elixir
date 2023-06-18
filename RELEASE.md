@@ -14,7 +14,7 @@
 
 6. Copy the relevant bits from /CHANGELOG.md to the GitHub release and publish it
 
-7. Add the release to `elixir.csv` with the minimum supported OTP version (all releases), update `erlang.csv` to the latest supported OTP version, and `_data/elixir-versions.yml` (except for RCs) files in `elixir-lang/elixir-lang.github.com`
+7. Update `_data/elixir-versions.yml` (except for RCs) in `elixir-lang/elixir-lang.github.com`
 
 ## Creating a new vMAJOR.MINOR branch (after first rc)
 
