@@ -8,7 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
--export([format_exception/4, format_exception/5]).
+-export([format_snippet/4, format_snippet/5]).
 -export([print_warning/1, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -65,7 +65,7 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
 format_snippet(File, LineNumber, Column, Description, Snippet) ->
   #{content := Content, offset := Offset} = Snippet,
-  LineDigits = get_line_number_digits(LineNumber),
+  LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(LineDigits + 1),
   {FormattedSnippet, ColumnsTrimmed} = format_line(Content),
 
@@ -131,11 +131,9 @@ highlight_below_line(Column, Severity) ->
     error -> highlight([n_spaces(Column), lists:duplicate(ErrorLength, $^)], error)
   end.
 
-get_line_number_digits(Number) -> do_get_line_number_digits(Number, 1).
-
-do_get_line_number_digits(Number, Acc) when Number < 10 -> Acc;
-do_get_line_number_digits(Number, Acc) -> 
-  do_get_line_number_digits(Number div 10, Acc + 1).
+get_line_number_digits(Number, Acc) when Number < 10 -> Acc;
+get_line_number_digits(Number, Acc) -> 
+  get_line_number_digits(Number div 10, Acc + 1).
 
 n_spaces(N) -> lists:duplicate(N, " ").
 
