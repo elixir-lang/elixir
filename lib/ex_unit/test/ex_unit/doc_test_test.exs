@@ -557,6 +557,7 @@ defmodule ExUnit.DocTestTest do
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     output = capture_io(fn -> ExUnit.run() end)
+    output = String.replace(output, [IO.ANSI.red(), IO.ANSI.reset()], "")
 
     assert output =~ """
              1) doctest module ExUnit.DocTestTest.Failure (1) (ExUnit.DocTestTest.FailureCompiled)
@@ -679,10 +680,11 @@ defmodule ExUnit.DocTestTest do
 
     ExUnit.configure(seed: 0, colors: [enabled: false])
     output = capture_io(fn -> ExUnit.run() end)
+    output = String.replace(output, [IO.ANSI.red(), IO.ANSI.reset()], "")
 
     assert output =~ """
              1) doctest ExUnit.DocTestTest.Invalid.a/0 (1) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:186:6:
                      ┌─ error: test/ex_unit/doc_test_test.exs:186:6
                      │
@@ -700,7 +702,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
              2) doctest ExUnit.DocTestTest.Invalid.b/0 (2) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:192:6:
                      ┌─ error: test/ex_unit/doc_test_test.exs:192:6
                      │
@@ -718,7 +720,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
              3) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (3) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:201:1:
                      ┌─ error: test/ex_unit/doc_test_test.exs:201:1
                      │
@@ -737,7 +739,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
              4) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (4) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:209:3:
                      ┌─ error: test/ex_unit/doc_test_test.exs:209:3
                      │
@@ -756,7 +758,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
              5) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (5) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:217:5:
                      ┌─ error: test/ex_unit/doc_test_test.exs:217:5
                      │
@@ -783,7 +785,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
              7) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (7) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:229:7:
                      ┌─ error: test/ex_unit/doc_test_test.exs:229:7
                      │
@@ -802,7 +804,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
              8) doctest ExUnit.DocTestTest.Invalid.t/0 (8) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:234:6:
                      ┌─ error: test/ex_unit/doc_test_test.exs:234:6
                      │
@@ -820,7 +822,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
              9) doctest ExUnit.DocTestTest.Invalid.result/0 (9) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:242:5:
                      ┌─ error: test/ex_unit/doc_test_test.exs:242:5
                      │
@@ -839,7 +841,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
             10) doctest ExUnit.DocTestTest.Invalid.mixed/0 (10) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:247:6:
                      ┌─ error: test/ex_unit/doc_test_test.exs:247:6
                      │
@@ -857,7 +859,7 @@ defmodule ExUnit.DocTestTest do
 
     assert output =~ """
             11) doctest ExUnit.DocTestTest.Invalid.invalid_second/0 (11) (ExUnit.DocTestTest.InvalidCompiled)
-                test/ex_unit/doc_test_test.exs:674
+                test/ex_unit/doc_test_test.exs:675
                 Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:255:6:
                      ┌─ error: test/ex_unit/doc_test_test.exs:255:6
                      │

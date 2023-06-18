@@ -522,7 +522,6 @@ defmodule ExUnit.DocTest do
     rescue
       e ->
         ex_message = "(#{inspect(e.__struct__)}) #{Exception.message(e)}"
-        ex_message = String.replace(ex_message, ["\e[31m", "\e[0m"], "")
         message = "Doctest did not compile, got: #{ex_message}"
 
         message =
