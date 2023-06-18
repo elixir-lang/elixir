@@ -462,7 +462,7 @@ defmodule ExUnit.Formatter do
   defp format_message(value, formatter) do
     value = String.replace(value, "\n", "\n" <> @counter_padding)
 
-    if String.contains?(value, IO.ANSI.red()) do
+    if String.contains?(value, IO.ANSI.reset()) do
       value
     else
       formatter.(:error_info, value)
