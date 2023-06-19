@@ -185,7 +185,7 @@ defmodule Kernel.DiagnosticsTest do
        3 │   defp a, do: A.b()
          │                ~
          │
-         A.b/0 is undefined (module A is not available or is yet to be defined)
+         A.b/0 is undefined or private
 
       """
 
@@ -213,7 +213,7 @@ defmodule Kernel.DiagnosticsTest do
        3 │   defp a, do: A.b()
          │   ~~~~~~~~~~~~~~~~~
          │
-         A.b/0 is undefined (module A is not available or is yet to be defined)
+         A.b/0 is undefined or private
 
       """
 
@@ -231,7 +231,7 @@ defmodule Kernel.DiagnosticsTest do
 
       expected = """
        ┌─ warning: nofile:2:16
-       A.b/0 is undefined (module A is not available or is yet to be defined)
+       A.b/0 is undefined or private
 
       """
 
@@ -377,7 +377,7 @@ defmodule Kernel.DiagnosticsTest do
 
       expected = """
        ┌─ warning: nofile:3:6
-       A.bar/0 is undefined (module A is not available or is yet to be defined)
+       A.bar/0 is undefined or private
 
        Invalid call also found at 3 other locations:
          nofile:4:6: Sample.a/0
@@ -416,7 +416,7 @@ defmodule Kernel.DiagnosticsTest do
        5 │     A.bar()
          │      ~
          │
-         A.bar/0 is undefined (module A is not available or is yet to be defined)
+         A.bar/0 is undefined or private
 
          Invalid call also found at 3 other locations:
            #{path}:6:6: Sample.a/0
@@ -455,7 +455,7 @@ defmodule Kernel.DiagnosticsTest do
        5 │     A.bar()
          │     ~~~~~~~
          │
-         A.bar/0 is undefined (module A is not available or is yet to be defined)
+         A.bar/0 is undefined or private
 
          Invalid call also found at 3 other locations:
            #{path}:6: Sample.a/0
