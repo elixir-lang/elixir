@@ -166,10 +166,200 @@ defmodule Kernel.DiagnosticsTest do
   end
 
   describe "compiler warnings" do
-    # handles unicode
-    # nofile
-    # file + line
-    # file + line + column
+    @tag :tmp_dir
+    test "simple warning (line + column + file)", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "long-warning.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+        defp a, do: A.b()
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:3:16
+         │
+       3 │   defp a, do: A.b()
+         │                ~
+         │
+         A.b/0 is undefined (module A is not available or is yet to be defined)
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "simple warning (line + file)", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "long-warning.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+        defp a, do: A.b()
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:3
+         │
+       3 │   defp a, do: A.b()
+         │   ~~~~~~~~~~~~~~~~~
+         │
+         A.b/0 is undefined (module A is not available or is yet to be defined)
+
+      """
+
+      assert capture_eval(source, false) =~ expected
+    after
+      purge(Sample)
+    end
+
+    test "simple warning (no file)" do
+      source = """
+      defmodule Sample do
+        defp a, do: A.b()
+      end
+      """
+
+      expected = """
+       ┌─ warning: nofile:2:16
+       A.b/0 is undefined (module A is not available or is yet to be defined)
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "long message (file)", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "long-warning.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def atom_case do
+          v = "bc"
+
+          case v do
+            _ when is_atom(v) -> :ok
+            _ -> :fail
+          end
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:8:14
+         │
+       8 │       _ when is_atom(v) -> :ok
+         │              ~
+         │
+         incompatible types:
+         
+             binary() !~ atom()
+         
+         in expression:
+         
+             # #{path}:8
+             is_atom(v)
+         
+         where "v" was given the type binary() in:
+         
+             # #{path}:5
+             v = "bc"
+         
+         where "v" was given the type atom() in:
+         
+             # #{path}:8
+             is_atom(v)
+         
+         Conflict found at
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    test "long message (nofile)" do
+      source = """
+      defmodule Sample do
+        def atom_case do
+          v = "bc"
+
+          case v do
+            _ when is_atom(v) -> :ok
+            _ -> :fail
+          end
+        end
+      end
+      """
+
+      expected = """
+       ┌─ warning: nofile:6:14
+       incompatible types:
+       
+           binary() !~ atom()
+       
+       in expression:
+       
+           # nofile:6
+           is_atom(v)
+       
+       where "v" was given the type binary() in:
+       
+           # nofile:3
+           v = "bc"
+       
+       where "v" was given the type atom() in:
+       
+           # nofile:6
+           is_atom(v)
+       
+       Conflict found at
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "handles unicode", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "warning_group_unicode.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def a do
+          A.bar("😎")
+          A.bar("😎")
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      assert capture_eval(source) =~ "😎"
+    after
+      purge(Sample)
+    end
   end
 
   describe "warning groups" do
@@ -186,17 +376,17 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-         ┌─ warning: nofile:3:6
-         A.bar/0 is undefined (module A is not available or is yet to be defined)
+       ┌─ warning: nofile:3:6
+       A.bar/0 is undefined (module A is not available or is yet to be defined)
 
-         Invalid call also found at 3 other locations:
-           nofile:4:6: Sample.a/0
-           nofile:5:6: Sample.a/0
-           nofile:6:6: Sample.a/0
+       Invalid call also found at 3 other locations:
+         nofile:4:6: Sample.a/0
+         nofile:5:6: Sample.a/0
+         nofile:6:6: Sample.a/0
 
       """
 
-      assert capture_eval(source) == expected
+      assert capture_eval(source) =~ expected
     after
       purge(Sample)
     end
@@ -224,7 +414,7 @@ defmodule Kernel.DiagnosticsTest do
          ┌─ warning: #{path}:5:6
          │
        5 │     A.bar()
-         │     ~~~~~~~
+         │      ~
          │
          A.bar/0 is undefined (module A is not available or is yet to be defined)
 
@@ -241,29 +431,40 @@ defmodule Kernel.DiagnosticsTest do
     end
 
     @tag :tmp_dir
-    test "file + line", %{tmp_dir: _tmp_dir} do
-      # TODO: this
-      assert true
-    end
-
-    @tag :tmp_dir
-    test "handles unicode", %{tmp_dir: tmp_dir} do
-      path = make_relative_tmp(tmp_dir, "warning_group_unicode.ex")
+    test "file + line", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "warning_group_nofile.ex")
 
       source = """
       defmodule Sample do
         @file "#{path}"
 
         def a do
-          A.bar("😎")
-          A.bar("😎")
+          A.bar()
+          A.bar()
+          A.bar()
+          A.bar()
         end
       end
       """
 
       File.write!(path, source)
 
-      assert capture_eval(source) =~ "😎"
+      expected = """
+         ┌─ warning: #{path}:5
+         │
+       5 │     A.bar()
+         │     ~~~~~~~
+         │
+         A.bar/0 is undefined (module A is not available or is yet to be defined)
+
+         Invalid call also found at 3 other locations:
+           #{path}:6: Sample.a/0
+           #{path}:7: Sample.a/0
+           #{path}:8: Sample.a/0
+
+      """
+
+      assert capture_eval(source, false) == expected
     after
       purge(Sample)
     end
@@ -273,14 +474,12 @@ defmodule Kernel.DiagnosticsTest do
     # Compiler outputs relative, so we just grab the tmp dir
     tmp_dir
     |> Path.join(filename)
-    |> Path.split()
-    |> Enum.drop_while(& &1 != "tmp")
-    |> Path.join()
+    |> Path.relative_to_cwd()
   end
 
-  defp capture_eval(source) do
+  defp capture_eval(source, columns? \\ true) do
     capture_io(:stderr, fn ->
-      quoted = Code.string_to_quoted!(source, columns: true)
+      quoted = Code.string_to_quoted!(source, columns: columns?)
       Code.eval_quoted(quoted)
     end)
   end

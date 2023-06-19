@@ -17,7 +17,44 @@
 
 %% TODO: Remove me on Elixir v2.0.
 print_warning(Position, File, Message) ->
-  Output = case {Position, filelib:is_regular(File)} of
+  Output = format_warning(Position, File, Message),
+  io:put_chars(standard_error, [Output, $\n]).
+
+%% Used by parallel checker as it groups warnings.
+print_warning(Message, [Diagnostic]) ->
+  #{file := File, position := Position} = Diagnostic,
+  print_warning(Position, File, Message);
+
+% Warning groups
+print_warning(Message, [FirstDiagnostic | Rest]) ->
+  #{position := Position, file := File} = FirstDiagnostic,
+  FormattedWarning = format_warning(Position, File, Message),
+  LineNumber = extract_line(Position),
+  LineDigits = get_line_number_digits(LineNumber, 1),
+
+  StacktracePadding = case filelib:is_regular(File) of
+                        true -> LineDigits + 4; % TODO: remove magic number
+                        false -> LineDigits + 2
+                      end,
+
+  WarnLocations = [[n_spaces(StacktracePadding), 'Elixir.Exception':format_stacktrace_entry(H), "\n"]
+                  || #{stacktrace := [H]} <- Rest],
+
+  Output = io_lib:format(
+    "~ts\n"
+    "~tsInvalid call also found at ~b other locations:~n"
+    "~ts\n",
+    [
+      FormattedWarning,
+      n_spaces(StacktracePadding - 2), length(WarnLocations),
+      WarnLocations
+    ]
+  ),
+
+  io:put_chars(standard_error, Output).
+
+format_warning(Position, File, Message) ->
+  Result = case {Position, filelib:is_regular(File)} of
     {{Line, Col}, true} ->
       format_line_column_diagnostic({Line, Col}, File, Message, warning);
     {Line, true} ->
@@ -26,29 +63,7 @@ print_warning(Position, File, Message) ->
       format_nofile_diagnostic(Position, File, Message, warning)
   end,
 
-  io:put_chars(standard_error, [Output, $\n]).
-
-%% Used by parallel checker as it groups warnings.
-print_warning(Message, [Diagnostic]) ->
-  #{file := File, position := Position} = Diagnostic,
-  print_warning(Position, File, Message);
-
-print_warning(Message, [FirstDiagnostic | Rest]) ->
-  #{file := File, position := Position} = FirstDiagnostic,
-
-  LineNumber = extract_line(Position),
-  LineDigits = get_line_number_digits(LineNumber, 1),
-  Spacing = n_spaces(LineDigits + 1),
-
-  WarnLocations = [["    ", n_spaces(LineDigits), 'Elixir.Exception':format_stacktrace_entry(H), "\n"]
-                  || #{stacktrace := [H]} <- Rest],
-
-  Output = case filelib:is_regular(File) of
-             true -> format_file_warning_group(Spacing, Position, File, Message, WarnLocations);
-             false -> format_nofile_warning_group(Spacing, Position, File, Message, WarnLocations)
-           end,
-
-  io:put_chars(standard_error, Output).
+  [Result, $\n].
 
 print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stacktrace} = Diagnostic) ->
   Location =
@@ -99,16 +114,16 @@ format_line_column_diagnostic(Position, File, Message, Severity) ->
     " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
-    " ~ts│ ~ts\n"
+    " ~ts│~ts\n"
     " ~ts│\n"
-    " ~ts~ts\n",
+    " ~ts~ts",
     [
      Spacing, prefix(Severity), file_format(Position, File),
      Spacing,
      LineNumber, FormattedLine,
      Spacing, highlight_at_position(Column - ColumnsTrimmed, Severity),
      Spacing,
-     Spacing, format_message(Message, LineDigits)
+     Spacing, format_message(Message, LineDigits, 2)
     ]
   ).
 
@@ -122,59 +137,18 @@ format_line_diagnostic(LineNumber, File, Message, Severity) ->
     " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
     " ~p │ ~ts\n"
-    " ~ts│ ~ts\n\n"
+    " ~ts│ ~ts\n"
     " ~ts│\n"
-    " ~ts~ts\n",
+    " ~ts~ts",
     [
      Spacing, prefix(Severity), file_format(LineNumber, File),
      Spacing,
      LineNumber, FormattedLine,
      Spacing, highlight_below_line(FormattedLine, Severity),
      Spacing,
-     Spacing, format_message(Message, LineDigits)
+     Spacing, format_message(Message, LineDigits, 2)
     ]
  ).
-
-format_nofile_warning_group(Spacing, Position, File, Message, WarnLocations) ->
-  io_lib:format(
-    " ~ts┌─ ~ts~ts\n"
-    " ~ts~ts\n\n"
-    " ~tsInvalid call also found at ~b other locations:~n"
-    "~ts\n",
-    [
-     Spacing, prefix(warning), file_format(Position, File),
-     Spacing, Message,
-     Spacing, length(WarnLocations),
-     WarnLocations
-    ]
-   ).
-
-format_file_warning_group(Spacing, Position, File, Message, WarnLocations) ->
-  LineNumber = extract_line(Position),
-  Line = get_file_line(File, LineNumber),
-  {FormattedLine, _} = format_line(Line),
-  LineDigits = get_line_number_digits(LineNumber, 1),
-
-  io_lib:format(
-    " ~ts┌─ ~ts~ts\n"
-    " ~ts│\n"
-    " ~p │ ~ts\n"
-    " ~ts│ ~ts\n"
-    " ~ts│\n"
-    " ~ts~ts\n\n"
-    " ~tsInvalid call also found at ~b other locations:\n"
-    "~ts\n",
-    [
-     Spacing, prefix(warning), file_format(Position, File),
-     Spacing,
-     LineNumber, FormattedLine,
-     Spacing, highlight_below_line(FormattedLine, warning),
-     Spacing,
-     Spacing, format_message(Message, LineDigits),
-     Spacing, length(WarnLocations),
-     WarnLocations
-    ]
-   ).
 
 extract_line({L, _}) -> L;
 extract_line(L) -> L.
@@ -216,7 +190,7 @@ format_snippet(File, LineNumber, Column, Description, Snippet) ->
      LineNumber, FormattedSnippet,
      Spacing, highlight_at_position(Offset - ColumnsTrimmed, error),
      Spacing,
-     Spacing, format_message(Description, LineDigits)
+     Spacing, format_message(Description, LineDigits, 2)
     ]),
 
   unicode:characters_to_binary(Formatted).
@@ -234,7 +208,7 @@ format_nofile_diagnostic(Position, File, Message, Severity) ->
     " ~ts",
     [
      prefix(Severity), file_format(Position, File),
-     Message
+     format_message(Message, 0, 1)
     ]
    ).
 
@@ -254,8 +228,8 @@ trim_line(Line) ->
   Trimmed = string:trim(Line, leading),
   {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
 
-format_message(Message, NDigits) ->
-  Padding = list_to_binary(["\n  ", n_spaces(NDigits)]),
+format_message(Message, NDigits, PaddingSize) ->
+  Padding = list_to_binary([$\n, n_spaces(NDigits + PaddingSize)]),
   Bin = unicode:characters_to_binary(Message),
   binary:replace(Bin, <<"\n">>, Padding, [global]).
 
