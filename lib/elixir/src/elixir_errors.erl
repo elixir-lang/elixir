@@ -28,7 +28,7 @@ print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stack
     case (Stacktrace =:= []) orelse elixir_config:is_bootstrap() of
       true ->
         #{position := Position, file := File} = Diagnostic,
-        case File of 
+        case File of
           nil -> [];
           File -> ["\n  ", file_format(Position, File)]
         end;
@@ -93,7 +93,7 @@ format_snippet(File, LineNumber, Column, Message) ->
    Padded = ["   ", string:replace(Formatted, "\n", "\n   ")],
    unicode:characters_to_binary(Padded).
 
-no_line_diagnostic(Position, File, Message, Severity) -> 
+no_line_diagnostic(Position, File, Message, Severity) ->
   io_lib:format(
     " ┌─ ~ts~ts\n"
     " ~ts",
@@ -103,21 +103,19 @@ no_line_diagnostic(Position, File, Message, Severity) ->
     ]
    ).
 
-format_line(Line) -> 
-  {ok, Re} = re:compile("\s*"),
-  {match, [{_Start, SpacesMatched}]} = re:run(Line, Re, [{capture, all, index}]),
-  case SpacesMatched >= 27 of
-    true ->
-      {Trimmed, _} = trim_line(Line),
+format_line(Line) ->
+  case trim_line(Line, 0) of
+    {Trimmed, SpacesMatched} when SpacesMatched >= 27 ->
       ColumnsTrimmed = SpacesMatched - 22,
       {["...", n_spaces(19), Trimmed], ColumnsTrimmed};
-    false ->
+
+    {_, _} ->
       {Line, 0}
   end.
 
-trim_line(Line) -> 
-  Trimmed = string:trim(Line, leading),
-  {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
+trim_line(<<$\s, Rest/binary>>, Count) -> trim_line(Rest, Count + 1);
+trim_line(<<$\t, Rest/binary>>, Count) -> trim_line(Rest, Count + 8);
+trim_line(Rest, Count) -> {Rest, Count}.
 
 format_message(Message, NDigits) ->
   Padding = list_to_binary(["\n  ", n_spaces(NDigits)]),
@@ -132,7 +130,7 @@ highlight_below_line(Column, Severity) ->
   end.
 
 get_line_number_digits(Number, Acc) when Number < 10 -> Acc;
-get_line_number_digits(Number, Acc) -> 
+get_line_number_digits(Number, Acc) ->
   get_line_number_digits(Number div 10, Acc + 1).
 
 n_spaces(N) -> lists:duplicate(N, " ").
@@ -299,10 +297,10 @@ raise_reserved(Location, File, Input, Keyword) ->
 
 raise_snippet(Location, File, Input, Kind, Message) when is_binary(File) ->
   {InputString, StartLine, StartColumn} = Input,
-  Snippet = snippet(InputString, Location, StartLine, StartColumn),
+  Snippet = snippet_line(InputString, Location, StartLine, StartColumn),
   raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
 
-snippet(InputString, Location, StartLine, StartColumn) ->
+snippet_line(InputString, Location, StartLine, StartColumn) ->
   {line, Line} = lists:keyfind(line, 1, Location),
   case lists:keyfind(column, 1, Location) of
     {column, Column} ->
@@ -372,7 +370,7 @@ meta_location(Meta, File) ->
   end.
 
 maybe_add_col(Position, Meta) ->
-  case lists:keyfind(column, 1, Meta) of 
+  case lists:keyfind(column, 1, Meta) of
     {column, Col} when is_integer(Col) -> [{column, Col} | Position];
     false -> Position
   end.
