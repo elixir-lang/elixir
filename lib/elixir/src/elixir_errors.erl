@@ -9,19 +9,46 @@
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
 -export([format_snippet/4, format_snippet/5]).
--export([print_warning/1, print_warning/3]).
+-export([print_warning/2, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
 
 %% Diagnostic API
 
 %% TODO: Remove me on Elixir v2.0.
-print_warning(Location, File, Message) ->
-  print_warning([Message, file_format(Location, File), $\n]).
+print_warning(Position, File, Message) ->
+  Output = case {Position, filelib:is_regular(File)} of
+    {{Line, Col}, true} ->
+      format_line_column_diagnostic({Line, Col}, File, Message, warning);
+    {Line, true} ->
+      format_line_diagnostic(Line, File, Message, warning);
+    {_, false} ->
+      format_nofile_diagnostic(Position, File, Message, warning)
+  end,
+
+  io:put_chars(standard_error, [Output, $\n]).
 
 %% Used by parallel checker as it groups warnings.
-print_warning(Message) ->
-  io:put_chars(standard_error, [prefix(warning), Message, $\n]).
+print_warning(Message, [Diagnostic]) ->
+  #{file := File, position := Position} = Diagnostic,
+  print_warning(Position, File, Message);
+
+print_warning(Message, [FirstDiagnostic | Rest]) ->
+  #{file := File, position := Position} = FirstDiagnostic,
+
+  LineNumber = extract_line(Position),
+  LineDigits = get_line_number_digits(LineNumber, 1),
+  Spacing = n_spaces(LineDigits + 1),
+
+  WarnLocations = [["    ", n_spaces(LineDigits), 'Elixir.Exception':format_stacktrace_entry(H), "\n"]
+                  || #{stacktrace := [H]} <- Rest],
+
+  Output = case filelib:is_regular(File) of
+             true -> format_file_warning_group(Spacing, Position, File, Message, WarnLocations);
+             false -> format_nofile_warning_group(Spacing, Position, File, Message, WarnLocations)
+           end,
+
+  io:put_chars(standard_error, Output).
 
 print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stacktrace} = Diagnostic) ->
   Location =
@@ -61,6 +88,113 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
   ok.
 
+format_line_column_diagnostic(Position, File, Message, Severity) ->
+  {LineNumber, Column} = Position,
+  Line = get_file_line(File, LineNumber),
+  {FormattedLine, ColumnsTrimmed} = format_line(Line),
+  LineDigits = get_line_number_digits(LineNumber, 1),
+  Spacing = n_spaces(LineDigits + 1),
+
+  io_lib:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts│\n"
+    " ~p │ ~ts\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts~ts\n",
+    [
+     Spacing, prefix(Severity), file_format(Position, File),
+     Spacing,
+     LineNumber, FormattedLine,
+     Spacing, highlight_at_position(Column - ColumnsTrimmed, Severity),
+     Spacing,
+     Spacing, format_message(Message, LineDigits)
+    ]
+  ).
+
+format_line_diagnostic(LineNumber, File, Message, Severity) ->
+  Line = get_file_line(File, LineNumber),
+  {FormattedLine, _} = format_line(Line),
+  LineDigits = get_line_number_digits(LineNumber, 1),
+  Spacing = n_spaces(LineDigits + 1),
+
+  io_lib:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts│\n"
+    " ~p │ ~ts\n"
+    " ~ts│ ~ts\n\n"
+    " ~ts│\n"
+    " ~ts~ts\n",
+    [
+     Spacing, prefix(Severity), file_format(LineNumber, File),
+     Spacing,
+     LineNumber, FormattedLine,
+     Spacing, highlight_below_line(FormattedLine, Severity),
+     Spacing,
+     Spacing, format_message(Message, LineDigits)
+    ]
+ ).
+
+format_nofile_warning_group(Spacing, Position, File, Message, WarnLocations) ->
+  io_lib:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts~ts\n\n"
+    " ~tsInvalid call also found at ~b other locations:~n"
+    "~ts\n",
+    [
+     Spacing, prefix(warning), file_format(Position, File),
+     Spacing, Message,
+     Spacing, length(WarnLocations),
+     WarnLocations
+    ]
+   ).
+
+format_file_warning_group(Spacing, Position, File, Message, WarnLocations) ->
+  LineNumber = extract_line(Position),
+  Line = get_file_line(File, LineNumber),
+  {FormattedLine, _} = format_line(Line),
+  LineDigits = get_line_number_digits(LineNumber, 1),
+
+  io_lib:format(
+    " ~ts┌─ ~ts~ts\n"
+    " ~ts│\n"
+    " ~p │ ~ts\n"
+    " ~ts│ ~ts\n"
+    " ~ts│\n"
+    " ~ts~ts\n\n"
+    " ~tsInvalid call also found at ~b other locations:\n"
+    "~ts\n",
+    [
+     Spacing, prefix(warning), file_format(Position, File),
+     Spacing,
+     LineNumber, FormattedLine,
+     Spacing, highlight_below_line(FormattedLine, warning),
+     Spacing,
+     Spacing, format_message(Message, LineDigits),
+     Spacing, length(WarnLocations),
+     WarnLocations
+    ]
+   ).
+
+extract_line({L, _}) -> L;
+extract_line(L) -> L.
+
+get_file_line(File, LineNumber) ->
+  {ok, IoDevice} = file:open(File, [read, {encoding, unicode}]),
+  LineCollector = fun
+                    (I, nil) when I == LineNumber - 1 ->
+                      io:get_line(IoDevice, "");
+                    (_, nil) ->
+                      io:get_line(IoDevice, ""),
+                      nil;
+                    (_, Line) ->
+                      Line
+                  end,
+  Line = lists:foldl(LineCollector, nil, lists:seq(0, LineNumber)),
+  NoNewline = string:replace(Line, "\n", ""),
+  ok = file:close(IoDevice),
+  NoNewline.
+
 %% Format snippets
 
 format_snippet(File, LineNumber, Column, Description, Snippet) ->
@@ -80,7 +214,7 @@ format_snippet(File, LineNumber, Column, Description, Snippet) ->
      Spacing, prefix(error), file_format({LineNumber, Column}, File),
      Spacing,
      LineNumber, FormattedSnippet,
-     Spacing, highlight_below_line(Offset - ColumnsTrimmed, error),
+     Spacing, highlight_at_position(Offset - ColumnsTrimmed, error),
      Spacing,
      Spacing, format_message(Description, LineDigits)
     ]),
@@ -88,12 +222,13 @@ format_snippet(File, LineNumber, Column, Description, Snippet) ->
   unicode:characters_to_binary(Formatted).
 
 format_snippet(File, LineNumber, Column, Message) ->
-   Formatted = no_line_diagnostic({LineNumber, Column}, File, Message, error),
+   Formatted = format_nofile_diagnostic({LineNumber, Column}, File, Message, error),
    % Left pad so we stay aligned with "** (Exception)" banner
    Padded = ["   ", string:replace(Formatted, "\n", "\n   ")],
    unicode:characters_to_binary(Padded).
 
-no_line_diagnostic(Position, File, Message, Severity) -> 
+% Formatting used when we cannot access `File` to read the line
+format_nofile_diagnostic(Position, File, Message, Severity) ->
   io_lib:format(
     " ┌─ ~ts~ts\n"
     " ~ts",
@@ -103,8 +238,8 @@ no_line_diagnostic(Position, File, Message, Severity) ->
     ]
    ).
 
-format_line(Line) -> 
-  {ok, Re} = re:compile("\s*"),
+format_line(Line) ->
+  {ok, Re} = re:compile("\s*", [unicode]),
   {match, [{_Start, SpacesMatched}]} = re:run(Line, Re, [{capture, all, index}]),
   case SpacesMatched >= 27 of
     true ->
@@ -115,7 +250,7 @@ format_line(Line) ->
       {Line, 0}
   end.
 
-trim_line(Line) -> 
+trim_line(Line) ->
   Trimmed = string:trim(Line, leading),
   {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
 
@@ -124,12 +259,24 @@ format_message(Message, NDigits) ->
   Bin = unicode:characters_to_binary(Message),
   binary:replace(Bin, <<"\n">>, Padding, [global]).
 
-highlight_below_line(Column, Severity) ->
-  ErrorLength = 1,
+highlight_at_position(Column, Severity) ->
   case Severity of
-    warning ->  highlight([n_spaces(Column), lists:duplicate(ErrorLength, $~)], warning);
-    error -> highlight([n_spaces(Column), lists:duplicate(ErrorLength, $^)], error)
+    warning ->  highlight([n_spaces(Column), $~], warning);
+    error -> highlight([n_spaces(Column), $^], error)
   end.
+
+highlight_below_line(Line, Severity) ->
+  % Don't highlight leading whitespaces in line
+  {ok, Re} = re:compile("\s*", [unicode]),
+  {match, [{_Start, SpacesMatched}]} = re:run(Line, Re, [{capture, all, index}]),
+
+  Length = string:length(Line),
+  Highlight = case Severity of
+    warning -> highlight(lists:duplicate(Length - SpacesMatched, "~"), warning);
+    error -> highlight(lists:duplicate(Length - SpacesMatched, "^"), error)
+  end,
+
+  [n_spaces(SpacesMatched), Highlight].
 
 get_line_number_digits(Number, Acc) when Number < 10 -> Acc;
 get_line_number_digits(Number, Acc) -> 

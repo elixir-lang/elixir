@@ -309,24 +309,9 @@ defmodule Module.ParallelChecker do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
       diagnostics = Enum.map(locations, &to_diagnostic(message, &1))
-      log? and :elixir_errors.print_warning([message, ?\n, format_stacktraces(diagnostics)])
+      log? and :elixir_errors.print_warning(message, diagnostics)
       diagnostics
     end)
-  end
-
-  defp format_stacktraces([diagnostic]) do
-    format_diagnostic_stacktrace(diagnostic)
-  end
-
-  defp format_stacktraces(diagnostics) do
-    [
-      "Invalid call found at #{length(diagnostics)} locations:\n",
-      Enum.map(diagnostics, &format_diagnostic_stacktrace/1)
-    ]
-  end
-
-  defp format_diagnostic_stacktrace(%{stacktrace: [stacktrace]}) do
-    ["  ", Exception.format_stacktrace_entry(stacktrace), ?\n]
   end
 
   defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do
