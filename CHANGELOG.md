@@ -109,82 +109,7 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
-## v1.15.0-rc.2 (2023-06-12)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [Module] Mark functions as generated in "Docs" chunk
-
-#### ExUnit
-
-  * [ExUnit.Doctest] Include `doctest_data` in doctest tags
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Kernel] Fix `import m, only: :sigils` for multi-letter sigils (regression)
-  * [Macro] Fix `Macro.to_string/1` for multi-letter sigils (regression)
-
-#### ExUnit
-
-  * [ExUnit] Mark test cases as invalid when an exit occurs during `setup_all`
-  * [ExUnit] Fix ExUnit diffs for multi-letter sigils (regression)
-  * [ExUnit.Doctest] Fix line information when a doctest with multiple assertions fails
-
-#### Mix
-
-  * [mix compile] Keep erts when pruning load paths (regression)
-  * [mix xref] Raise early if `mix xref` is used at the umbrella root
-
-## v1.15.0-rc.1 (2023-05-29)
-
-### 1. Enhancements
-
-#### Elixir
-
-  * [File] Support distributed `File.Stream`
-  * [Module] Add `Module.get_last_attribute/3`
-  * [Task] Reduce footprint of tasks by avoiding unecessary work during spawning
-
-#### ExUnit
-
-  * [ExUnit.Case] Add `ExUnit.Case.get_last_registered_test/1`
-
-### 2. Bug fixes
-
-#### Elixir
-
-  * [Code] Ensure `:on_undefined_variable` option works as advertised (regression)
-  * [Code] Format paths in `Code.with_diagnostic/2` as relative paths (regression)
-  * [Kernel] Raise when macros are given to dialyzer
-  * [Kernel] Support bitstring specifiers as map keys in pattern (regression)
-  * [Module] Ensure that `Module.get_attribute/3` returns `nil` and not the given default value when an attribute has been explicitly set as `nil`
-  * [Task] Do not double log Task failure reports
-
-#### ExUnit
-
-  * [ExUnit.CaptureLog] Allow capturing deprecated log level (regression)
-  * [ExUnit.DocTest] Ensure proper line is returned when failing to parse doctest results
-
-#### IEx
-
-  * [IEx] Fix IO operations not returning when booting IEx (regression)
-
-#### Mix
-
-  * [mix deps] Ensure dependencies with `included_applications` can be loaded (regression)
-  * [mix format] Ensure proper formatter options are returned for files (regression)
-
-### 3. Soft deprecations
-
-#### Elixir
-
-  * [Kernel] Require pin variable when accessing variable inside binary size in match
-
-## v1.15.0-rc.0 (2023-05-22)
+## v1.15.0 (2023-06-19)
 
 ### 1. Enhancements
 
@@ -205,6 +130,7 @@ new features and on compatibility.
   * [Date] Add `Date.before?/2` and `Date.after?/2`
   * [DateTime] Add `DateTime.before?/2` and `DateTime.after?/2`
   * [DateTime] Support precision in `DateTime.utc_now/2`
+  * [File] Support distributed `File.Stream`
   * [Inspect] `Inspect` now renders `'charlists'` as `~c"charlists"` by default
   * [Kernel] Break down `case` and `cond` inside `dbg/2`
   * [Kernel] Add `t:nonempty_binary/0` and `t:nonempty_bitstring/0`
@@ -225,6 +151,8 @@ new features and on compatibility.
   * [NaiveDateTime] Add `NaiveDateTime.beginning_of_day/1` and `NaiveDateTime.end_of_day/1`
   * [NaiveDateTime] Add `NaiveDateTime.before?/2` and `NaiveDateTime.after?/2`
   * [NaiveDateTime] Support precision in `NaiveDateTime.utc_now/2`
+  * [Module] Mark functions as generated in "Docs" chunk
+  * [Module] Add `Module.get_last_attribute/3`
   * [OptionParser] Support `:return_separator` option
   * [Process] Add `Process.alias/0,1` and `Process.unalias/1`
   * [Range] Add `Range.split/2`
@@ -234,6 +162,7 @@ new features and on compatibility.
   * [System] Support `:lines` in `System.cmd/3` to capture output line by line
   * [Task] Remove head of line blocking on `Task.yield_many/2`
   * [Task] Enable selective receive optimizations in Erlang/OTP 26+
+  * [Task] Reduce tasks footprint by avoiding unecessary work during spawning
   * [Task.Supervisor] Do not copy args on temporary `Task.Supervisor.start_child/2`
   * [Time] Add `Time.before?/2` and `Time.after?/2`
   * [URI] Add `URI.append_path/2`
@@ -242,7 +171,9 @@ new features and on compatibility.
 
   * [ExUnit] Add more color configuration to ExUnit CLI formatter
   * [ExUnit.Callbacks] Accept `{module, function}` tuples in ExUnit `setup` callbacks
+  * [ExUnit.Case] Add `ExUnit.Case.get_last_registered_test/1`
   * [ExUnit.Doctest] Add `ExUnit.DocTest.doctest_file/2`
+  * [ExUnit.Doctest] Include `doctest_data` in doctest tags
   * [ExUnit.Formatter] When comparing two anonymous functions, defined at the same place but capturing a different environment, we will now also diff the environments
 
 #### IEx
@@ -297,16 +228,22 @@ new features and on compatibility.
   * [Kernel] Expand macros on the left side of -> in `try/rescue`
   * [Kernel] Raise on misplaced `...` inside typespecs
   * [Kernel] Do not import `behaviour_info` and `module_info` functions from Erlang modules
+  * [Kernel] Raise when macros are given to dialyzer
   * [Kernel.ParallelCompiler] Make sure compiler doesn't crash when there are stray messages in the inbox
   * [Kernel.ParallelCompiler] Track compile and runtime warnings separately
+  * [Module] Ensure that `Module.get_attribute/3` returns `nil` and not the given default value when an attribute has been explicitly set as `nil`
   * [System] Fix race condition when a script would terminate before `System.stop/1` executes
+  * [Task] Do not double log Task failure reports
   * [URI] Make sure `URI.merge/2` works accordingly with relative paths
 
 #### ExUnit
 
   * [ExUnit] Fix crash when `@tag capture_log: true` was set to true and the Logger application was shut down in the middle of the test
   * [ExUnit] Do not merge context as tags inside the runner to reduce memory usage when emitting events to formatters
+  * [ExUnit] Mark test cases as invalid when an exit occurs during `setup_all`
   * [ExUnit] Do not expand or collect vars from quote in ExUnit assertions
+  * [ExUnit.DocTest] Ensure proper line is returned when failing to parse doctest results
+  * [ExUnit.Doctest] Fix line information when a doctest with multiple assertions fails
 
 #### IEx
 
@@ -318,6 +255,7 @@ new features and on compatibility.
 
   * [mix compile] Include `cwd` in compiler cache key
   * [mix release] Fix Windows service when invoking `erlsrv.exe` in path with spaces
+  * [mix xref] Raise early if `mix xref` is used at the umbrella root
 
 ### 3. Soft deprecations (no warnings emitted)
 
@@ -325,6 +263,7 @@ new features and on compatibility.
 
   * [File] `File.cp/3` and `File.cp_r/3` with a function as third argument
     is deprecated in favor of a keyword list
+  * [Kernel] Require pin variable when accessing variable inside binary size in match
   * [Kernel.ParallelCompiler] Require the `:return_diagnostics` option to be
     set to true when compiling or requiring code
 

@@ -1,6 +1,6 @@
 @if defined ELIXIR_CLI_ECHO (@echo on) else (@echo off)
 
-set ELIXIR_VERSION=1.15.0-rc.2
+set ELIXIR_VERSION=1.15.0
 
 setlocal enabledelayedexpansion
 if    ""%1""==""""                if ""%2""=="""" goto documentation
