@@ -17,18 +17,19 @@
 
 %% TODO: Remove me on Elixir v2.0.
 print_warning(Position, File, Message) ->
-  Output = format_warning(Position, File, Message),
+  Output = format_warning(Position, File, Message, []),
   io:put_chars(standard_error, [Output, $\n]).
 
 %% Used by parallel checker as it groups warnings.
 print_warning(Message, [Diagnostic]) ->
-  #{file := File, position := Position} = Diagnostic,
-  print_warning(Position, File, Message);
+  #{file := File, position := Position, stacktrace := S} = Diagnostic,
+  Output = format_warning(Position, File, Message, S),
+  io:put_chars(standard_error, [Output, $\n]);
 
 % Warning groups
 print_warning(Message, [FirstDiagnostic | Rest]) ->
-  #{position := Position, file := File} = FirstDiagnostic,
-  FormattedWarning = format_warning(Position, File, Message),
+  #{position := Position, file := File, stacktrace := S} = FirstDiagnostic,
+  FormattedWarning = format_warning(Position, File, Message, S),
   LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber, 1),
 
@@ -53,14 +54,14 @@ print_warning(Message, [FirstDiagnostic | Rest]) ->
 
   io:put_chars(standard_error, Output).
 
-format_warning(Position, File, Message) ->
+format_warning(Position, File, Message, Stacktrace) ->
   Result = case {Position, filelib:is_regular(File)} of
     {{Line, Col}, true} ->
-      format_line_column_diagnostic({Line, Col}, File, Message, warning);
+      format_line_column_diagnostic({Line, Col}, File, Message, Stacktrace, warning);
     {Line, true} ->
-      format_line_diagnostic(Line, File, Message, warning);
+      format_line_diagnostic(Line, File, Message, Stacktrace, warning);
     {_, false} ->
-      format_nofile_diagnostic(Position, File, Message, warning)
+      format_nofile_diagnostic(Position, File, Message, Stacktrace, warning)
   end,
 
   [Result, $\n].
@@ -103,12 +104,13 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
   ok.
 
-format_line_column_diagnostic(Position, File, Message, Severity) ->
+format_line_column_diagnostic(Position, File, Message, Stacktrace, Severity) ->
   {LineNumber, Column} = Position,
   Line = get_file_line(File, LineNumber),
   {FormattedLine, ColumnsTrimmed} = format_line(Line),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(LineDigits + 1),
+  Location = format_location(Position, File, Stacktrace),
 
   io_lib:format(
     " ~ts┌─ ~ts~ts\n"
@@ -118,7 +120,7 @@ format_line_column_diagnostic(Position, File, Message, Severity) ->
     " ~ts│\n"
     " ~ts~ts",
     [
-     Spacing, prefix(Severity), file_format(Position, File),
+     Spacing, prefix(Severity), Location,
      Spacing,
      LineNumber, FormattedLine,
      Spacing, highlight_at_position(Column - ColumnsTrimmed, Severity),
@@ -127,11 +129,12 @@ format_line_column_diagnostic(Position, File, Message, Severity) ->
     ]
   ).
 
-format_line_diagnostic(LineNumber, File, Message, Severity) ->
+format_line_diagnostic(LineNumber, File, Message, Stacktrace, Severity) ->
   Line = get_file_line(File, LineNumber),
   {FormattedLine, _} = format_line(Line),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(LineDigits + 1),
+  Location = format_location(LineNumber, File, Stacktrace),
 
   io_lib:format(
     " ~ts┌─ ~ts~ts\n"
@@ -141,7 +144,7 @@ format_line_diagnostic(LineNumber, File, Message, Severity) ->
     " ~ts│\n"
     " ~ts~ts",
     [
-     Spacing, prefix(Severity), file_format(LineNumber, File),
+     Spacing, prefix(Severity), Location,
      Spacing,
      LineNumber, FormattedLine,
      Spacing, highlight_below_line(FormattedLine, Severity),
@@ -149,6 +152,25 @@ format_line_diagnostic(LineNumber, File, Message, Severity) ->
      Spacing, format_message(Message, LineDigits, 2)
     ]
  ).
+
+% Formatting used when we cannot access `File` to read the line
+format_nofile_diagnostic(Position, File, Message, Stacktrace, Severity) ->
+  Location = format_location(Position, File, Stacktrace),
+
+  io_lib:format(
+    " ┌─ ~ts~ts\n"
+    " ~ts",
+    [
+     prefix(Severity), Location,
+     format_message(Message, 0, 1)
+    ]
+   ).
+
+format_location(Position, File, Stacktrace) ->
+  case Stacktrace of
+    [] -> file_format(Position, File);
+    [E] -> 'Elixir.Exception':format_stacktrace_entry(E)
+  end.
 
 extract_line({L, _}) -> L;
 extract_line(L) -> L.
@@ -196,21 +218,10 @@ format_snippet(File, LineNumber, Column, Description, Snippet) ->
   unicode:characters_to_binary(Formatted).
 
 format_snippet(File, LineNumber, Column, Message) ->
-   Formatted = format_nofile_diagnostic({LineNumber, Column}, File, Message, error),
+   Formatted = format_nofile_diagnostic({LineNumber, Column}, File, Message, [], error),
    % Left pad so we stay aligned with "** (Exception)" banner
    Padded = ["   ", string:replace(Formatted, "\n", "\n   ")],
    unicode:characters_to_binary(Padded).
-
-% Formatting used when we cannot access `File` to read the line
-format_nofile_diagnostic(Position, File, Message, Severity) ->
-  io_lib:format(
-    " ┌─ ~ts~ts\n"
-    " ~ts",
-    [
-     prefix(Severity), file_format(Position, File),
-     format_message(Message, 0, 1)
-    ]
-   ).
 
 format_line(Line) ->
   {ok, Re} = re:compile("\s*", [unicode]),
