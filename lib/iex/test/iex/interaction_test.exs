@@ -20,7 +20,7 @@ defmodule IEx.InteractionTest do
   end
 
   test "omits error color if exception has ansi reset character" do
-    enabled? = Application.get_env(:elixir, :ansi_enabled)
+    enabled? = IO.ANSI.enabled?()
     Application.put_env(:elixir, :ansi_enabled, true)
 
     expected = """
