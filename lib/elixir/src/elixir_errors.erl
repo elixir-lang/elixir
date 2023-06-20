@@ -26,7 +26,7 @@ print_warning(Message, [Diagnostic]) ->
   Output = format_warning(Position, File, Message, S),
   io:put_chars(standard_error, [Output, $\n]);
 
-% Warning groups
+%% Warning groups
 print_warning(Message, [FirstDiagnostic | Rest]) ->
   #{position := Position, file := File, stacktrace := S} = FirstDiagnostic,
   FormattedWarning = format_warning(Position, File, Message, S),
