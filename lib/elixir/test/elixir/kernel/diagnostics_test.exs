@@ -355,8 +355,8 @@ defmodule Kernel.DiagnosticsTest do
 
       File.write!(path, source)
 
-      assert capture_eval(source) == """
-         ┌─ warning: tmp/Kernel.DiagnosticsTest/test-compiler-warnings-trims-lines-if-too-many-whitespaces-f94020ad/trim_warning_line.ex:5:46: Sample.a/0
+      expected = """
+         ┌─ warning: #{path}:5:46: Sample.a/0
          │
        5 │ ...                   A.bar(:test)
          │                        ~
@@ -364,6 +364,8 @@ defmodule Kernel.DiagnosticsTest do
          A.bar/1 is undefined or private
 
       """
+
+      assert capture_eval(source) == expected
     after
       purge(Sample)
     end
