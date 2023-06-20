@@ -41,13 +41,18 @@ print_warning(Message, [FirstDiagnostic | Rest]) ->
   WarnLocations = [[n_spaces(StacktracePadding), 'Elixir.Exception':format_stacktrace_entry(H), "\n"]
                   || #{stacktrace := [H]} <- Rest],
 
+  LocationsPlural = case length(WarnLocations) of
+                      1 -> "location";
+                      _ -> "locations"
+                    end,
+
   Output = io_lib:format(
     "~ts\n"
-    "~tsInvalid call also found at ~b other locations:~n"
+    "~tsInvalid call also found at ~b other ~ts:~n"
     "~ts\n",
     [
       FormattedWarning,
-      n_spaces(StacktracePadding - 2), length(WarnLocations),
+      n_spaces(StacktracePadding - 2), length(WarnLocations), LocationsPlural,
       WarnLocations
     ]
   ),
@@ -71,7 +76,7 @@ print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stack
     case (Stacktrace =:= []) orelse elixir_config:is_bootstrap() of
       true ->
         #{position := Position, file := File} = Diagnostic,
-        case File of 
+        case File of
           nil -> [];
           File -> ["\n  ", file_format(Position, File)]
         end;
@@ -107,7 +112,7 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 format_line_column_diagnostic(Position, File, Message, Stacktrace, Severity) ->
   {LineNumber, Column} = Position,
   Line = get_file_line(File, LineNumber),
-  {FormattedLine, ColumnsTrimmed} = format_line(Line),
+  {FormattedLine, ColumnsTrimmed} = format_line(unicode:characters_to_binary(Line)),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(LineDigits + 1),
   Location = format_location(Position, File, Stacktrace),
@@ -131,7 +136,7 @@ format_line_column_diagnostic(Position, File, Message, Stacktrace, Severity) ->
 
 format_line_diagnostic(LineNumber, File, Message, Stacktrace, Severity) ->
   Line = get_file_line(File, LineNumber),
-  {FormattedLine, _} = format_line(Line),
+  {FormattedLine, _} = format_line(unicode:characters_to_binary(Line)),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(LineDigits + 1),
   Location = format_location(LineNumber, File, Stacktrace),
@@ -224,20 +229,18 @@ format_snippet(File, LineNumber, Column, Message) ->
    unicode:characters_to_binary(Padded).
 
 format_line(Line) ->
-  {ok, Re} = re:compile("\s*", [unicode]),
-  {match, [{_Start, SpacesMatched}]} = re:run(Line, Re, [{capture, all, index}]),
-  case SpacesMatched >= 27 of
-    true ->
-      {Trimmed, _} = trim_line(Line),
+  case trim_line(Line, 0) of
+    {Trimmed, SpacesMatched} when SpacesMatched >= 27 ->
       ColumnsTrimmed = SpacesMatched - 22,
       {["...", n_spaces(19), Trimmed], ColumnsTrimmed};
-    false ->
+
+    {_, _} ->
       {Line, 0}
   end.
 
-trim_line(Line) ->
-  Trimmed = string:trim(Line, leading),
-  {Trimmed, string:length(Line) - string:length(Trimmed) + 1}.
+trim_line(<<$\s, Rest/binary>>, Count) -> trim_line(Rest, Count + 1);
+trim_line(<<$\t, Rest/binary>>, Count) -> trim_line(Rest, Count + 8);
+trim_line(Rest, Count) -> {Rest, Count}.
 
 format_message(Message, NDigits, PaddingSize) ->
   Padding = list_to_binary([$\n, n_spaces(NDigits + PaddingSize)]),
@@ -264,7 +267,7 @@ highlight_below_line(Line, Severity) ->
   [n_spaces(SpacesMatched), Highlight].
 
 get_line_number_digits(Number, Acc) when Number < 10 -> Acc;
-get_line_number_digits(Number, Acc) -> 
+get_line_number_digits(Number, Acc) ->
   get_line_number_digits(Number div 10, Acc + 1).
 
 n_spaces(N) -> lists:duplicate(N, " ").
@@ -431,10 +434,10 @@ raise_reserved(Location, File, Input, Keyword) ->
 
 raise_snippet(Location, File, Input, Kind, Message) when is_binary(File) ->
   {InputString, StartLine, StartColumn} = Input,
-  Snippet = snippet(InputString, Location, StartLine, StartColumn),
+  Snippet = snippet_line(InputString, Location, StartLine, StartColumn),
   raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
 
-snippet(InputString, Location, StartLine, StartColumn) ->
+snippet_line(InputString, Location, StartLine, StartColumn) ->
   {line, Line} = lists:keyfind(line, 1, Location),
   case lists:keyfind(column, 1, Location) of
     {column, Column} ->
@@ -504,7 +507,7 @@ meta_location(Meta, File) ->
   end.
 
 maybe_add_col(Position, Meta) ->
-  case lists:keyfind(column, 1, Meta) of 
+  case lists:keyfind(column, 1, Meta) of
     {column, Col} when is_integer(Col) -> [{column, Col} | Position];
     false -> Position
   end.

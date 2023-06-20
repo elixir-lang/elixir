@@ -951,6 +951,7 @@ defmodule FileTest do
         {:ok, file} = File.open(fixture, [:write])
         assert IO.binwrite(file, "Русский") == :ok
         assert File.close(file) == :ok
+        assert_raise ErlangError, fn -> IO.binwrite(file, "Русский") end
         assert File.read(fixture) == {:ok, "Русский"}
       after
         File.rm(fixture)

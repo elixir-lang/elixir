@@ -268,9 +268,11 @@ defmodule IO do
   to stdio with this function will likely result in the wrong data
   being sent down the wire.
   """
-  @spec binwrite(device, iodata) :: :ok | {:error, term}
+  @spec binwrite(device, iodata) :: :ok
   def binwrite(device \\ :stdio, iodata) when is_iodata(iodata) do
-    :file.write(map_dev(device), iodata)
+    with {:error, reason} <- :file.write(map_dev(device), iodata) do
+      :erlang.error(reason)
+    end
   end
 
   @doc """

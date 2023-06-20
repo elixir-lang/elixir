@@ -340,6 +340,35 @@ defmodule Kernel.DiagnosticsTest do
     end
 
     @tag :tmp_dir
+    test "trims lines if too many whitespaces", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "trim_warning_line.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def a do
+                                                  A.bar(:test)
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      assert capture_eval(source) == """
+         ┌─ warning: tmp/Kernel.DiagnosticsTest/test-compiler-warnings-trims-lines-if-too-many-whitespaces-f94020ad/trim_warning_line.ex:5:46: Sample.a/0
+         │
+       5 │ ...                   A.bar(:test)
+         │                        ~
+         │
+         A.bar/1 is undefined or private
+
+      """
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
     test "handles unicode", %{tmp_dir: tmp_dir} do
       path = make_relative_tmp(tmp_dir, "warning_group_unicode.ex")
 

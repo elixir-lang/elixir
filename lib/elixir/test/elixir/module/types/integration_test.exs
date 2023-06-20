@@ -65,16 +65,14 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: :not_a_module.no_module/0 is undefined (module :not_a_module is not available or is yet to be defined)
-        a.ex:2: A.a/0
+      warnings = [
+        ":not_a_module.no_module/0 is undefined (module :not_a_module is not available or is yet to be defined)",
+        "a.ex:2: A.a/0",
+        ":lists.no_func/0 is undefined or private",
+        "a.ex:3: A.b/0"
+      ]
 
-      warning: :lists.no_func/0 is undefined or private
-        a.ex:3: A.b/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "handles built in functions" do
@@ -90,13 +88,12 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: Kernel.behaviour_info/1 is undefined or private
-        a.ex:6: A.e/0
+      warnings = [
+        "Kernel.behaviour_info/1 is undefined or private",
+        "a.ex:6: A.e/0"
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "handles module body conditionals" do
@@ -124,17 +121,14 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: List.old_flatten/1 is undefined or private. Did you mean:
+      warnings = [
+        "List.old_flatten/1 is undefined or private. Did you mean:",
+        "* flatten/1",
+        "* flatten/2",
+        "a.ex:15: A.flatten2/1"
+      ]
 
-            * flatten/1
-            * flatten/2
-
-        a.ex:15: A.flatten2/1
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports missing functions" do
@@ -150,16 +144,14 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A.no_func/0 is undefined or private
-        a.ex:2: A.a/0
+      warnings = [
+        "A.no_func/0 is undefined or private",
+        "a.ex:2: A.a/0",
+        "A.no_func/1 is undefined or private",
+        "external_source.ex:6: A.c/0"
+      ]
 
-      warning: A.no_func/1 is undefined or private
-        external_source.ex:6: A.c/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports missing functions respecting arity" do
@@ -175,22 +167,16 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A.a/1 is undefined or private. Did you mean:
+      warnings = [
+        "A.a/1 is undefined or private. Did you mean:",
+        "* a/0",
+        "a.ex:3: A.b/0",
+        "A.b/1 is undefined or private. Did you mean:",
+        "* b/0",
+        "external_source.ex:6: A.c/0"
+      ]
 
-            * a/0
-
-        a.ex:3: A.b/0
-
-      warning: A.b/1 is undefined or private. Did you mean:
-
-            * b/0
-
-        external_source.ex:6: A.c/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports missing modules" do
@@ -207,19 +193,16 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: D.no_module/0 is undefined (module D is not available or is yet to be defined)
-        a.ex:2: A.a/0
+      warnings = [
+        "D.no_module/0 is undefined (module D is not available or is yet to be defined)",
+        "a.ex:2: A.a/0",
+        "E.no_module/0 is undefined (module E is not available or is yet to be defined)",
+        "external_source.ex:5: A.c/0",
+        "Io.puts/1 is undefined (module Io is not available or is yet to be defined)",
+        "a.ex:7: A.i/0"
+      ]
 
-      warning: E.no_module/0 is undefined (module E is not available or is yet to be defined)
-        external_source.ex:5: A.c/0
-
-      warning: Io.puts/1 is undefined (module Io is not available or is yet to be defined)
-        a.ex:7: A.i/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports missing captures" do
@@ -234,16 +217,14 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A.no_func/0 is undefined or private
-        a.ex:2: A.a/0
+      warnings = [
+        "A.no_func/0 is undefined or private",
+        "a.ex:2: A.a/0",
+        "A.no_func/1 is undefined or private",
+        "external_source.ex:5: A.c/0"
+      ]
 
-      warning: A.no_func/1 is undefined or private
-        external_source.ex:5: A.c/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "doesn't report missing functions at compile time" do
@@ -279,14 +260,10 @@ defmodule Module.Types.IntegrationTest do
       }
 
       warnings = [
-        """
-        warning: B.no_func/0 is undefined or private
-          a.ex:2: A.a/0
-        """,
-        """
-        warning: A.no_func/0 is undefined or private
-          b.ex:2: B.a/0
-        """
+        "B.no_func/0 is undefined or private",
+        "a.ex:2: A.a/0",
+        "A.no_func/0 is undefined or private",
+        "b.ex:2: B.a/0"
       ]
 
       assert_warnings(files, warnings)
@@ -307,20 +284,18 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
-      Invalid call found at 2 locations:
-        a.ex:8: A.d/0
-        external_source.ex:5: A.b/0
+      warnings = [
+        "A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)",
+        "a.ex:8: A.d/0",
+        "Invalid call also found at 1 other location:",
+        "external_source.ex:5: A.b/0",
+        "A.no_func/0 is undefined or private",
+        "Invalid call also found at 1 other location:",
+        "a.ex:2: A.a/0",
+        "a.ex:7: A.c/0"
+      ]
 
-      warning: A.no_func/0 is undefined or private
-      Invalid call found at 2 locations:
-        a.ex:2: A.a/0
-        a.ex:7: A.c/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "protocols are checked, ignoring missing built-in impls" do
@@ -338,13 +313,12 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: B.no_func/0 is undefined (module B is not available or is yet to be defined)
-        a.ex:7: AProtocol.AImplementation.func/1
+      warnings = [
+        "B.no_func/0 is undefined (module B is not available or is yet to be defined)",
+        "a.ex:7: AProtocol.AImplementation.func/1"
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "handles Erlang ops" do
@@ -374,16 +348,13 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A.to_list/1 is undefined or private. Did you mean:
+      warnings = [
+        "A.to_list/1 is undefined or private. Did you mean:",
+        "* to_charlist/1",
+        "a.ex:7: A.c/1"
+      ]
 
-            * to_charlist/1
-
-        a.ex:7: A.c/1
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "do not warn for module defined in local context" do
@@ -417,13 +388,12 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: you must require B before invoking the macro B.b/0
-        ab.ex:2: A.a/0
+      warnings = [
+        "you must require B before invoking the macro B.b/0",
+        "ab.ex:2: A.a/0"
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "excludes local no_warn_undefined" do
@@ -449,22 +419,17 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)
-        a.ex:7: A.c/0
+      warnings = [
+        "MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)",
+        "a.ex:7: A.c/0",
+        "MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)",
+        "a.ex:8: A.d/0",
+        "B.func/3 is undefined or private. Did you mean:",
+        "* func/1",
+        "a.ex:11: A.g/0"
+      ]
 
-      warning: MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)
-        a.ex:8: A.d/0
-
-      warning: B.func/3 is undefined or private. Did you mean:
-
-            * func/1
-
-        a.ex:11: A.g/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "excludes global no_warn_undefined" do
@@ -497,22 +462,17 @@ defmodule Module.Types.IntegrationTest do
           """
         }
 
-        warning = """
-        warning: MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)
-          a.ex:7: A.c/0
+        warnings = [
+          "MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)",
+          "a.ex:7: A.c/0",
+          "MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)",
+          "a.ex:8: A.d/0",
+          "B.func/3 is undefined or private. Did you mean:",
+          "* func/1",
+          "a.ex:11: A.g/0"
+        ]
 
-        warning: MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)
-          a.ex:8: A.d/0
-
-        warning: B.func/3 is undefined or private. Did you mean:
-
-              * func/1
-
-          a.ex:11: A.g/0
-
-        """
-
-        assert_warnings(files, warning)
+        assert_warnings(files, warnings)
       after
         Code.compiler_options(no_warn_undefined: no_warn_undefined)
       end
@@ -628,13 +588,12 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A.a/0 is deprecated. oops
-        a.ex:3: A.a/0
+      warnings = [
+        "A.a/0 is deprecated. oops",
+        "a.ex:3: A.a/0"
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports imported functions" do
@@ -653,13 +612,12 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A.a/0 is deprecated. oops
-        b.ex:3: B.b/0
+      warnings = [
+        "A.a/0 is deprecated. oops",
+        "b.ex:3: B.b/0"
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports structs" do
@@ -681,19 +639,14 @@ defmodule Module.Types.IntegrationTest do
       }
 
       warnings = [
-        """
-        warning: A.__struct__/0 is deprecated. oops
-        Invalid call found at 2 locations:
-          a.ex:4: A.match/1
-          a.ex:5: A.build/1
-        """,
-        """
-        warning: A.__struct__/0 is deprecated. oops
-        Invalid call found at 2 locations:
-          b.ex:2: B.match/1
-          b.ex:3: B.build/1
-
-        """
+        "A.__struct__/0 is deprecated. oops",
+        "a.ex:4: A.match/1",
+        "Invalid call also found at 1 other location:",
+        "a.ex:5: A.build/1",
+        "A.__struct__/0 is deprecated. oops",
+        "b.ex:2: B.match/1",
+        "Invalid call also found at 1 other location:",
+        "b.ex:3: B.build/1"
       ]
 
       assert_warnings(files, warnings)
@@ -715,13 +668,12 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A.a/0 is deprecated. oops
-        b.ex:3: B (module)
+      warnings = [
+        "A.a/0 is deprecated. oops",
+        "b.ex:3: B (module)"
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "reports macro" do
@@ -740,13 +692,12 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A.a/0 is deprecated. oops
-        b.ex:3: B.b/0
+      warnings = [
+        "A.a/0 is deprecated. oops",
+        "b.ex:3: B.b/0"
+      ]
 
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
   end
 
