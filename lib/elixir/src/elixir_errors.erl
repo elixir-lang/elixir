@@ -34,7 +34,9 @@ print_warning(Message, [FirstDiagnostic | Rest]) ->
   LineDigits = get_line_number_digits(LineNumber, 1),
 
   StacktracePadding = case filelib:is_regular(File) of
-                        true -> LineDigits + 4; % TODO: remove magic number
+                        % Match indentation with the formatted warning
+                        % When we have the line available, we add 4 spaces, else 2
+                        true -> LineDigits + 4;
                         false -> LineDigits + 2
                       end,
 
