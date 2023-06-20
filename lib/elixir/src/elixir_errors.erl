@@ -257,13 +257,12 @@ highlight_at_position(Column, Severity) ->
 
 highlight_below_line(Line, Severity) ->
   % Don't highlight leading whitespaces in line
-  {ok, Re} = re:compile("\s*", [unicode]),
-  {match, [{_Start, SpacesMatched}]} = re:run(Line, Re, [{capture, all, index}]),
+  {_, SpacesMatched} = trim_line(Line, 0),
 
   Length = string:length(Line),
   Highlight = case Severity of
-    warning -> highlight(lists:duplicate(Length - SpacesMatched, "~"), warning);
-    error -> highlight(lists:duplicate(Length - SpacesMatched, "^"), error)
+    warning -> highlight(lists:duplicate(Length - SpacesMatched, $~), warning);
+    error -> highlight(lists:duplicate(Length - SpacesMatched, $^), error)
   end,
 
   [n_spaces(SpacesMatched), Highlight].
