@@ -329,16 +329,22 @@ defmodule Mix.Tasks.CompileTest do
     Application.delete_env(:sample, :hello, persistent: true)
   end
 
-  test "code path prunning" do
+  test "code path pruning" do
     Mix.ensure_application!(:parsetools)
+    otp_docs? = match?({:docs_v1, _, _, _, _, _, _}, Code.fetch_docs(:zlib))
 
     in_fixture("no_mixfile", fn ->
       assert Mix.Task.run("compile", []) == {:ok, []}
       assert :code.where_is_file(~c"parsetools.app") == :non_existing
 
       # Make sure erts is also kept but not loaded
-      assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(:zlib)
       assert Application.spec(:erts, :vsn) == nil
+
+      if otp_docs? do
+        assert {:docs_v1, _, _, _, _, _, _} = Code.fetch_docs(:zlib)
+      else
+        IO.warn("Erlang/OTP was not compiled with docs, skipping assertion")
+      end
     end)
   end
 
