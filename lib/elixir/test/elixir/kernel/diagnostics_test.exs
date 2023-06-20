@@ -180,7 +180,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:3:16
+         ┌─ warning: #{path}:3:16: Sample.a/0
          │
        3 │   defp a, do: A.b()
          │                ~
@@ -208,7 +208,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:3
+         ┌─ warning: #{path}:3: Sample.a/0
          │
        3 │   defp a, do: A.b()
          │   ~~~~~~~~~~~~~~~~~
@@ -230,7 +230,7 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-       ┌─ warning: nofile:2:16
+       ┌─ warning: nofile:2:16: Sample.a/0
        A.b/0 is undefined or private
 
       """
@@ -262,7 +262,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:8:14
+         ┌─ warning: #{path}:8:14: Sample.atom_case/0
          │
        8 │       _ when is_atom(v) -> :ok
          │              ~
@@ -310,7 +310,7 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-       ┌─ warning: nofile:6:14
+       ┌─ warning: nofile:6:14: Sample.atom_case/0
        incompatible types:
        
            binary() !~ atom()
@@ -376,7 +376,7 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-       ┌─ warning: nofile:3:6
+       ┌─ warning: nofile:3:6: Sample.a/0
        A.bar/0 is undefined or private
 
        Invalid call also found at 3 other locations:
@@ -411,7 +411,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:5:6
+         ┌─ warning: #{path}:5:6: Sample.a/0
          │
        5 │     A.bar()
          │      ~
@@ -450,7 +450,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:5
+         ┌─ warning: #{path}:5: Sample.a/0
          │
        5 │     A.bar()
          │     ~~~~~~~
