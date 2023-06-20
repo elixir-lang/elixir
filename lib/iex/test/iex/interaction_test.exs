@@ -19,6 +19,29 @@ defmodule IEx.InteractionTest do
     assert capture_iex("1 + 2") == "3"
   end
 
+  test "omits error color if exception has ansi reset character" do
+    enabled? = IO.ANSI.enabled?()
+    Application.put_env(:elixir, :ansi_enabled, true)
+
+    expected = """
+    ** (SyntaxError) invalid syntax found on iex:1:4:
+       ┌─ \e[31merror: \e[0miex:1:4
+       │
+     1 │ a += 2
+       │ \e[31m   ^\e[0m
+       │
+       syntax error before: '='
+    """
+
+    opts = [colors: [enabled: true]]
+    output = capture_iex("a += 2", opts)
+
+    refute String.starts_with?(output, IO.ANSI.red())
+    assert output =~ expected
+
+    Application.put_env(:elixir, :ansi_enabled, enabled?)
+  end
+
   test "invalid input" do
     output = capture_iex("if true do ) false end")
 

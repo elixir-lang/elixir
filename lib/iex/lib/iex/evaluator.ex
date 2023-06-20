@@ -400,7 +400,13 @@ defmodule IEx.Evaluator do
           [IEx.color(:eval_error, banner), pad(blame)]
 
         _ ->
-          [IEx.color(:eval_error, Exception.format_banner(kind, blamed, stacktrace))]
+          banner = Exception.format_banner(kind, blamed, stacktrace)
+
+          if String.contains?(banner, IO.ANSI.reset()) do
+            [banner]
+          else
+            [IEx.color(:eval_error, banner)]
+          end
       end
 
     stackdata = Exception.format_stacktrace(prune_stacktrace(stacktrace))
