@@ -316,7 +316,7 @@ defmodule Path do
     * If both paths are absolute, a relative path may be returned if
       they share a common prefix. You can pass the `:force` option to
       force this function to traverse up, but even then a relative
-      path is not guaranteed (for examples, if the absolute paths
+      path is not guaranteed (for example, if the absolute paths
       belong to different drives on Windows)
 
     * If a mixture of paths are given, the result will always match

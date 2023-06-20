@@ -6,7 +6,14 @@
 
 ### 2. Bug fixes
 
+#### Elixir
+
+  * [IO] Raise when using `IO.binwrite/2` on terminated device (mirroring `IO.write/2`)
+  * [Path] Ensure `Path.relative_to/2` returns a relative path when the given argument does not share a common prefix with `cwd`
+
 ### 3. Soft deprecations (no warnings emitted)
+
+  * [Path] Deprecate `Path.safe_relative_to/2` in favor of `Path.safe_relative/2`
 
 ### 4. Hard deprecations
 
