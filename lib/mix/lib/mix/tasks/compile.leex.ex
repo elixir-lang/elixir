@@ -53,13 +53,17 @@ defmodule Mix.Tasks.Compile.Leex do
       Mix.raise(":leex_options should be a list of options, got: #{inspect(options)}")
     end
 
-    opts = [parallel: true] ++ opts
+    opts = [parallel: true, preload: &preload/0] ++ opts
 
     Erlang.compile(manifest(), mappings, :xrl, :erl, opts, fn input, output ->
-      Erlang.ensure_application!(:parsetools, input)
       options = options ++ @forced_opts ++ [scannerfile: Erlang.to_erl_file(output)]
       :leex.file(Erlang.to_erl_file(input), options)
     end)
+  end
+
+  defp preload do
+    Mix.ensure_application!(:parsetools)
+    {:ok, _} = Application.ensure_all_started(:parsetools)
   end
 
   @impl true
