@@ -64,8 +64,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
 
       # Removing parse tools re-add it later even if only to show warnings
       :code.del_path(:parsetools)
-      :code.delete(:yecc)
-      :code.purge(:yecc)
+      purge([:yecc])
       refute Code.ensure_loaded?(:yecc)
 
       capture_io(fn ->

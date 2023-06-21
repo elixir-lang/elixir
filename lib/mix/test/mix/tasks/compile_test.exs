@@ -5,12 +5,6 @@ defmodule Mix.Tasks.CompileTest do
 
   defmacro position(line, column), do: {line, column}
 
-  defmodule CustomCompilers do
-    def project do
-      [compilers: [:elixir, :app, :custom]]
-    end
-  end
-
   defmodule DepsApp do
     def project do
       [app: :deps_app, version: "0.1.0", deps: [{:ok, "0.1.0", path: "deps/ok"}]]
@@ -23,7 +17,8 @@ defmodule Mix.Tasks.CompileTest do
     end
   end
 
-  setup do
+  setup tags do
+    Mix.ProjectStack.post_config(Map.get(tags, :project, []))
     Mix.Project.push(MixTest.Case.Sample)
     :ok
   end
@@ -37,19 +32,16 @@ defmodule Mix.Tasks.CompileTest do
     assert_received {:mix_shell, :info, ["mix compile.elixir    # " <> _]}
   end
 
+  @tag project: [compilers: [:elixir, :app, :custom]]
   test "compiles --list with custom mixfile" do
-    Mix.Project.pop()
-    Mix.Project.push(CustomCompilers)
     Mix.Task.run("compile", ["--list"])
 
     assert_received {:mix_shell, :info,
                      ["\nEnabled compilers: yecc, leex, elixir, app, custom, protocols"]}
   end
 
+  @tag project: [compilers: [:elixir, :app, :custom]]
   test "compiles does not require all compilers available on manifest" do
-    Mix.Project.pop()
-    Mix.Project.push(CustomCompilers)
-
     assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) ==
              ["compile.yecc", "compile.leex", "compile.elixir"]
   end
@@ -102,6 +94,34 @@ defmodule Mix.Tasks.CompileTest do
       """)
 
       assert Mix.Task.run("compile", ["--force", "--from-mix-deps-compile"]) == {:ok, []}
+    end)
+  end
+
+  @tag project: [compilers: Mix.compilers() ++ [:my_custom_compiler]]
+  test "compiles a project with custom in-project compiler" do
+    in_fixture("no_mixfile", fn ->
+      File.mkdir_p!("lib")
+
+      File.write!("lib/a.ex", """
+      defmodule Mix.Tasks.Compile.MyCustomCompiler do
+        use Mix.Task.Compiler
+
+        @impl true
+        def run(_args) do
+          Mix.shell().info("Compiling...")
+          :ok
+        end
+      end
+      """)
+
+      assert Mix.Task.run("compile") == {:ok, []}
+      assert_receive {:mix_shell, :info, ["Compiling..."]}
+      Code.delete_path(Mix.Project.compile_path())
+      purge([Mix.Tasks.Compile.MyCustomCompiler])
+      false = Code.ensure_loaded?(Mix.Tasks.Compile.MyCustomCompiler)
+
+      Mix.Task.clear()
+      assert Mix.Task.rerun("compile")
     end)
   end
 
