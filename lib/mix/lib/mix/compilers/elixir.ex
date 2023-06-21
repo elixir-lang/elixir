@@ -205,6 +205,10 @@ defmodule Mix.Compilers.Elixir do
         Code.purge_compiler_modules()
       end
     else
+      # Prepend ourselves, even if we did no work, as we may have defined
+      # future compilers.
+      Code.prepend_path(dest)
+
       # We need to return ok if deps_changed? or stale_modules changed,
       # even if no code was compiled, because we need to propagate the changed
       # status to compile.protocols. This will be the case whenever:
