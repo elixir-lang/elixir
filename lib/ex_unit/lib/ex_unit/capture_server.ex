@@ -232,7 +232,14 @@ defmodule ExUnit.CaptureServer do
 
     for [string_io, level] <- :ets.match(@ets, {:_, :"$1", :"$2"}),
         :logger.compare_levels(event.level, level) in [:gt, :eq] do
-      :ok = IO.write(string_io, chardata)
+      # There is a race condition where the capture_log is removed
+      # but another process is attempting to log to string io device
+      # that no longer exists, so we wrap it in try/catch.
+      try do
+        IO.write(string_io, chardata)
+      rescue
+        _ -> :ok
+      end
     end
   end
 end
