@@ -41,13 +41,17 @@ defmodule Mix.Tasks.CompileTest do
     Mix.Project.pop()
     Mix.Project.push(CustomCompilers)
     Mix.Task.run("compile", ["--list"])
-    assert_received {:mix_shell, :info, ["\nEnabled compilers: elixir, app, custom, protocols"]}
+
+    assert_received {:mix_shell, :info,
+                     ["\nEnabled compilers: yecc, leex, elixir, app, custom, protocols"]}
   end
 
   test "compiles does not require all compilers available on manifest" do
     Mix.Project.pop()
     Mix.Project.push(CustomCompilers)
-    assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) == ["compile.elixir"]
+
+    assert Mix.Tasks.Compile.manifests() |> Enum.map(&Path.basename/1) ==
+             ["compile.yecc", "compile.leex", "compile.elixir"]
   end
 
   test "compiles a project with mixfile" do

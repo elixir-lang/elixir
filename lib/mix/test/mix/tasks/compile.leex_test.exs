@@ -5,6 +5,7 @@ defmodule Mix.Tasks.Compile.LeexTest do
   import ExUnit.CaptureIO
 
   setup do
+    Mix.ProjectStack.post_config(compilers: [:leex | Mix.compilers()])
     Mix.Project.push(MixTest.Case.Sample)
     :ok
   end

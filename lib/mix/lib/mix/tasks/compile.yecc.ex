@@ -18,6 +18,9 @@ defmodule Mix.Tasks.Compile.Yecc do
   You can force compilation regardless of modification times by passing
   the `--force` option.
 
+  You must add `compilers: [:yecc] ++ Mix.compilers()` in the
+  `def project` section of your `mix.exs` to run this compiler.
+
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
@@ -47,21 +50,28 @@ defmodule Mix.Tasks.Compile.Yecc do
     Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
     mappings = Enum.zip(source_paths, source_paths)
 
-    options = project[:yecc_options] || []
+    yecc_options = project[:yecc_options] || []
 
-    unless is_list(options) do
-      Mix.raise(":yecc_options should be a list of options, got: #{inspect(options)}")
+    unless is_list(yecc_options) do
+      Mix.raise(":yecc_options should be a list of options, got: #{inspect(yecc_options)}")
     end
 
-    opts = [parallel: true, preload: &preload/0] ++ opts
+    opts = [parallel: true, preload: fn -> preload(project) end] ++ opts
 
     Erlang.compile(manifest(), mappings, :yrl, :erl, opts, fn input, output ->
-      options = options ++ @forced_opts ++ [parserfile: Erlang.to_erl_file(output)]
+      options = yecc_options ++ @forced_opts ++ [parserfile: Erlang.to_erl_file(output)]
       :yecc.file(Erlang.to_erl_file(input), options)
     end)
   end
 
-  defp preload do
+  defp preload(project) do
+    # TODO: Remove me in Elixir v2.0
+    unless :yecc in List.wrap(project[:compilers]) do
+      IO.warn(
+        "in order to compile .yrl files, you must add \"compilers: [:yecc] ++ Mix.compilers()\" to the \"def project\" section of your mix.exs"
+      )
+    end
+
     Mix.ensure_application!(:parsetools)
     {:ok, _} = Application.ensure_all_started(:parsetools)
   end

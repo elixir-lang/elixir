@@ -18,6 +18,9 @@ defmodule Mix.Tasks.Compile.Leex do
   You can force compilation regardless of modification times by passing
   the `--force` option.
 
+  You must add `compilers: [:leex] ++ Mix.compilers()` to the `def project`
+  section of your `mix.exs` to run this compiler.
+
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
@@ -28,8 +31,7 @@ defmodule Mix.Tasks.Compile.Leex do
 
     * `:erlc_paths` - directories to find source files. Defaults to `["src"]`.
 
-    * `:leex_options` - compilation options that apply
-      to Leex's compiler.
+    * `:leex_options` - compilation options that apply to Leex's compiler.
 
       For a complete list of options, see `:leex.file/2`.
       Note that the `:report`, `:return_errors`, and `:return_warnings` options
@@ -47,21 +49,28 @@ defmodule Mix.Tasks.Compile.Leex do
     Mix.Compilers.Erlang.assert_valid_erlc_paths(source_paths)
     mappings = Enum.zip(source_paths, source_paths)
 
-    options = project[:leex_options] || []
+    leex_options = project[:leex_options] || []
 
-    unless is_list(options) do
-      Mix.raise(":leex_options should be a list of options, got: #{inspect(options)}")
+    unless is_list(leex_options) do
+      Mix.raise(":leex_options should be a list of options, got: #{inspect(leex_options)}")
     end
 
-    opts = [parallel: true, preload: &preload/0] ++ opts
+    opts = [parallel: true, preload: fn -> preload(project) end] ++ opts
 
     Erlang.compile(manifest(), mappings, :xrl, :erl, opts, fn input, output ->
-      options = options ++ @forced_opts ++ [scannerfile: Erlang.to_erl_file(output)]
+      options = leex_options ++ @forced_opts ++ [scannerfile: Erlang.to_erl_file(output)]
       :leex.file(Erlang.to_erl_file(input), options)
     end)
   end
 
-  defp preload do
+  defp preload(project) do
+    # TODO: Remove me in Elixir v2.0
+    unless :leex in List.wrap(project[:compilers]) do
+      IO.warn(
+        "in order to compile .xrl files, you must add \"compilers: [:leex] ++ Mix.compilers()\" to the \"def project\" section of your mix.exs"
+      )
+    end
+
     Mix.ensure_application!(:parsetools)
     {:ok, _} = Application.ensure_all_started(:parsetools)
   end

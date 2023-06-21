@@ -7,6 +7,7 @@ defmodule Mix.Tasks.Compile.YeccTest do
   defmacro position(line, column), do: {line, column}
 
   setup do
+    Mix.ProjectStack.post_config(compilers: [:yecc | Mix.compilers()])
     Mix.Project.push(MixTest.Case.Sample)
     :ok
   end

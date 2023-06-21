@@ -71,7 +71,7 @@ defmodule Mix.Tasks.Compile do
   """
 
   @doc """
-  Returns all compilers.
+  Returns all compilers for the current project.
   """
   def compilers(config \\ Mix.Project.config()) do
     compilers = config[:compilers] || Mix.compilers()
@@ -84,6 +84,16 @@ defmodule Mix.Tasks.Compile do
       List.delete(compilers, :xref)
     else
       compilers
+    end
+    |> maybe_prepend(:leex)
+    |> maybe_prepend(:yecc)
+  end
+
+  defp maybe_prepend(compilers, compiler) do
+    if compiler in compilers do
+      compilers
+    else
+      [compiler | compilers]
     end
   end
 
