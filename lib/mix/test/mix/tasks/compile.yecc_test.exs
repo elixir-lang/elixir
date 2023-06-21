@@ -60,6 +60,24 @@ defmodule Mix.Tasks.Compile.YeccTest do
                  severity: :warning
                } = diagnostic
       end)
+
+      # Removing parse tools re-add it later even if only to show warnings
+      :code.del_path(:parsetools)
+      :code.delete(:yecc)
+      :code.purge(:yecc)
+      refute Code.ensure_loaded?(:yecc)
+
+      capture_io(fn ->
+        assert {:noop, [diagnostic]} = Mix.Tasks.Compile.Yecc.run([])
+
+        assert %Mix.Task.Compiler.Diagnostic{
+                 compiler_name: "yecc",
+                 file: ^file,
+                 message: "conflicts: 1 shift/reduce, 0 reduce/reduce",
+                 position: 0,
+                 severity: :warning
+               } = diagnostic
+      end)
     end)
   end
 

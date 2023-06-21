@@ -4,19 +4,22 @@ defmodule Mix.Compilers.Erlang do
   @manifest_vsn 1
 
   @doc """
-  Compiles the files in `mappings` with given extensions into
-  the destination, automatically invoking the callback for each
-  stale input and output pair (or for all if `force` is `true`) and
-  removing files that no longer have a source, while keeping the
-  `manifest` up to date.
+  Compiles the given `mappings`.
 
-  `mappings` should be a list of tuples in the form of `{src, dest}` paths.
+  `mappings` is a list of `{src, dest}` pairs, where the source
+  extensions are compiled into the destination extension,
+  automatically invoking the callback for each stale pair (or for
+  all if `force` is `true`) and removing files that no longer have
+  a source, while keeping the `manifest` up to date.
 
   ## Options
 
     * `:force` - forces compilation regardless of modification times
 
     * `:parallel` - a mapset of files to compile in parallel
+
+    * `:preload` - any code that must be preloaded if any pending
+      entry needs to be compiled
 
   ## Examples
 
@@ -54,22 +57,25 @@ defmodule Mix.Compilers.Erlang do
   def compile(manifest, mappings, src_ext, dest_ext, opts, callback) when is_list(opts) do
     force = opts[:force]
 
-    files =
+    entries =
       for {src, dest} <- mappings,
-          target <- extract_targets(src, src_ext, dest, dest_ext, force),
+          target <- extract_entries(src, src_ext, dest, dest_ext, force),
           do: target
 
-    compile(manifest, files, src_ext, opts, callback)
+    if preload = entries != [] && opts[:preload] do
+      preload.()
+    end
+
+    compile(manifest, entries, src_ext, opts, callback)
   end
 
   @doc """
-  Compiles the given `mappings`.
+  Compiles the given `entries`.
 
-  `mappings` should be a list of tuples in the form of `{src, dest}`.
+  `entries` are a list of `{:ok | :stale, src, dest}` tuples.
 
-  A `manifest` file and a `callback` to be invoked for each src/dest pair
-  must be given. A src/dest pair where destination is `nil` is considered
-  to be up to date and won't be (re-)compiled.
+  A `manifest` file and a `callback` to be invoked for each stale
+  src/dest pair must also be given.
 
   ## Options
 
@@ -78,8 +84,8 @@ defmodule Mix.Compilers.Erlang do
     * `:parallel` - a mapset of files to compile in parallel
 
   """
-  def compile(manifest, mappings, opts \\ [], callback) do
-    compile(manifest, mappings, :erl, opts, callback)
+  def compile(manifest, entries, opts \\ [], callback) do
+    compile(manifest, entries, :erl, opts, callback)
   end
 
   defp compile(manifest, mappings, ext, opts, callback) do
@@ -102,7 +108,7 @@ defmodule Mix.Compilers.Erlang do
     # Clear stale and removed files from manifest
     entries =
       Enum.reject(entries, fn {dest, _warnings} ->
-        dest in removed || Enum.any?(stale, fn {_, stale_dest} -> dest == stale_dest end)
+        dest in removed || List.keymember?(stale, dest, 1)
       end)
 
     if Keyword.get(opts, :all_warnings, true), do: show_warnings(entries)
@@ -156,9 +162,8 @@ defmodule Mix.Compilers.Erlang do
     end
   end
 
-  @doc """
-  Ensures the native OTP application is available.
-  """
+  # TODO: Deprecate this in favor of `Mix.ensure_application!/1` in Elixir v1.19.
+  @doc false
   def ensure_application!(app, _input) do
     Mix.ensure_application!(app)
     {:ok, _} = Application.ensure_all_started(app)
@@ -202,7 +207,7 @@ defmodule Mix.Compilers.Erlang do
     manifest |> read_manifest() |> Enum.map(&elem(&1, 0))
   end
 
-  defp extract_targets(src_dir, src_ext, dest_dir, dest_ext, force) do
+  defp extract_entries(src_dir, src_ext, dest_dir, dest_ext, force) do
     files = Mix.Utils.extract_files(List.wrap(src_dir), List.wrap(src_ext))
 
     for file <- files do
