@@ -317,8 +317,7 @@ defmodule ExUnit.DocTestTest.FencedHeredocs do
   ```
 
       ```
-      iex> 1 + 2
-      3
+      iex> 3 = 1 + 2
       ```
 
   ```

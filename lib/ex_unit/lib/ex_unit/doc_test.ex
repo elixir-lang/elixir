@@ -624,57 +624,37 @@ defmodule ExUnit.DocTest do
     end
   end
 
-  defp adjust_indent(kind, [line | rest], line_no, adjusted_lines, indent, module)
-       when kind in [:prompt, :after_prompt] do
+  defp adjust_indent(kind, [line | rest], line_no, adjusted_lines, indent, module) do
     stripped_line = strip_indent(line, indent)
+    trimmed_line = String.trim_leading(line)
 
-    case String.trim_leading(line) do
-      "" ->
-        :ok
+    if kind != :code and trimmed_line != stripped_line do
+      n_spaces = if indent == 1, do: "#{indent} space", else: "#{indent} spaces"
 
-      ^stripped_line ->
-        :ok
+      raise Error,
+        line: line_no,
+        module: module,
+        message: """
+        indentation level mismatch on doctest line: #{inspect(line)}
 
-      _ ->
-        n_spaces = if indent == 1, do: "#{indent} space", else: "#{indent} spaces"
+        If you are planning to assert on the result of an `iex>` expression, \
+        make sure the result is indented at the beginning of `iex>`, which \
+        in this case is exactly #{n_spaces}.
 
-        raise Error,
-          line: line_no,
-          module: module,
-          message: """
-          indentation level mismatch on doctest line: #{inspect(line)}
-
-          If you are planning to assert on the result of an `iex>` expression, \
-          make sure the result is indented at the beginning of `iex>`, which \
-          in this case is exactly #{n_spaces}.
-
-          If instead you have an `iex>` expression that spans over multiple lines, \
-          please make sure that each line after the first one begins with `...>`.
-          """
+        If instead you have an `iex>` expression that spans over multiple lines, \
+        please make sure that each line after the first one begins with `...>`.
+        """
     end
-
-    adjusted_lines = [{adjust_prompt(stripped_line, line_no, module), line_no} | adjusted_lines]
-
-    next =
-      cond do
-        kind == :prompt -> :after_prompt
-        String.starts_with?(stripped_line, @iex_prompt ++ @dot_prompt) -> :after_prompt
-        true -> :code
-      end
-
-    adjust_indent(next, rest, line_no + 1, adjusted_lines, indent, module)
-  end
-
-  defp adjust_indent(:code, [line | rest], line_no, adjusted_lines, indent, module) do
-    stripped_line = strip_indent(line, indent)
 
     cond do
       stripped_line == "" or String.starts_with?(stripped_line, @fences) ->
         adjusted_lines = [{"", line_no} | adjusted_lines]
         adjust_indent(:text, rest, line_no + 1, adjusted_lines, 0, module)
 
-      String.starts_with?(String.trim_leading(stripped_line), @iex_prompt) ->
-        adjust_indent(:prompt, [line | rest], line_no, adjusted_lines, indent, module)
+      kind == :prompt or String.starts_with?(trimmed_line, @iex_prompt) or
+          (kind == :maybe_prompt and String.starts_with?(trimmed_line, @dot_prompt)) ->
+        line = {adjust_prompt(stripped_line, line_no, module), line_no}
+        adjust_indent(:maybe_prompt, rest, line_no + 1, [line | adjusted_lines], indent, module)
 
       true ->
         adjusted_lines = [{stripped_line, line_no} | adjusted_lines]
