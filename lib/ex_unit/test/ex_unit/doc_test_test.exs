@@ -700,6 +700,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 6
+
     assert output =~ """
              2) doctest ExUnit.DocTestTest.Invalid.b/0 (2) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -719,6 +720,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 15
+
     assert output =~ """
              3) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (3) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -739,6 +741,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 23
+
     assert output =~ """
              4) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (4) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -759,6 +762,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 31
+
     assert output =~ """
              5) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (5) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -779,6 +783,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 36
+
     assert output =~ """
              6) doctest ExUnit.DocTestTest.Invalid.invalid_utf8/0 (6) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -788,6 +793,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 43
+
     assert output =~ """
              7) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (7) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -808,6 +814,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 48
+
     assert output =~ """
              8) doctest ExUnit.DocTestTest.Invalid.t/0 (8) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -827,6 +834,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 56
+
     assert output =~ """
              9) doctest ExUnit.DocTestTest.Invalid.result/0 (9) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -847,6 +855,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 61
+
     assert output =~ """
             10) doctest ExUnit.DocTestTest.Invalid.mixed/0 (10) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
@@ -866,6 +875,7 @@ defmodule ExUnit.DocTestTest do
            """
 
     line = starting_line + 69
+
     assert output =~ """
             11) doctest ExUnit.DocTestTest.Invalid.invalid_second/0 (11) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
