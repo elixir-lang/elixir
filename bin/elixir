@@ -94,6 +94,7 @@ starts_with () {
 }
 
 ERL_EXEC="erl"
+MODE="cli"
 I=1
 E=0
 LENGTH=$#
@@ -104,8 +105,12 @@ while [ $I -le $LENGTH ]; do
   S=0
   C=0
   case "$1" in
-    +elixirc|+iex)
+    +elixirc)
         C=1
+        ;;
+    +iex)
+        C=1
+        MODE="iex"
         ;;
     -v|--no-halt|--dbg)
         C=1
@@ -223,7 +228,7 @@ fi
 ERTS_BIN=
 ERTS_BIN="$ERTS_BIN"
 
-set -- "$ERTS_BIN$ERL_EXEC" -noshell -elixir_root "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin $ELIXIR_ERL_OPTIONS -s elixir start_cli $ERL "$@"
+set -- "$ERTS_BIN$ERL_EXEC" -noshell -elixir_root "$SCRIPT_PATH"/../lib -pa "$SCRIPT_PATH"/../lib/elixir/ebin $ELIXIR_ERL_OPTIONS -s elixir start_$MODE $ERL "$@"
 
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""

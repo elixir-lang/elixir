@@ -192,7 +192,8 @@ start_cli() ->
   'Elixir.Kernel.CLI':main(init:get_plain_arguments()),
   elixir_config:booted().
 
-%% TODO: Delete prim_tty branches and -user on Erlang/OTP 26.
+%% TODO: Delete prim_tty branches and -user on Erlang/OTP 26
+%% and add "-e :elixir.start_iex" to bin/iex instead of $MODE.
 start() ->
   case code:ensure_loaded(prim_tty) of
     {module, _} ->
@@ -207,6 +208,7 @@ start() ->
 start_iex() ->
   case code:ensure_loaded(prim_tty) of
     {module, _} ->
+      start_cli(),
       spawn(fun() ->
         elixir_config:wait_until_booted(),
         (shell:whereis() =:= undefined) andalso 'Elixir.IEx':cli()

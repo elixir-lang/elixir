@@ -82,7 +82,7 @@ rem Option which determines whether the loop is over
 set endLoop=0
 
 rem Designates which mode / Elixir component to run as
-set runMode="elixir"
+set runMode="cli"
 
 rem Designates the path to the current script
 set SCRIPT_PATH=%~dp0
@@ -106,7 +106,7 @@ if !endLoop! == 1 (
 )
 rem ******* EXECUTION OPTIONS **********************
 if !par!=="--werl"   (set useWerl=1 && goto startloop)
-if !par!=="+iex" (set parsElixir=!parsElixir! +iex && goto startloop)
+if !par!=="+iex"     (set parsElixir=!parsElixir! +iex && set runMode="iex" && goto startloop)
 if !par!=="+elixirc" (set parsElixir=!parsElixir! +elixirc && goto startloop)
 rem ******* EVAL PARAMETERS ************************
 if ""==!par:-e=! (
@@ -164,8 +164,13 @@ reg query HKCU\Console /v VirtualTerminalLevel 2>nul | findstr /e "0x1" >nul 2>n
 if %errorlevel% == 0 (
   set beforeExtra=-elixir ansi_enabled true !beforeExtra!
 )
+if !runMode! == "iex" (
+  set beforeExtra=-s elixir start_iex !beforeExtra!
+) else (
+  set beforeExtra=-s elixir start_cli !beforeExtra!
+)
 
-set beforeExtra=-noshell -elixir_root "!SCRIPT_PATH!..\lib" -pa "!SCRIPT_PATH!..\lib\elixir\ebin" -s elixir start_cli !beforeExtra!
+set beforeExtra=-noshell -elixir_root "!SCRIPT_PATH!..\lib" -pa "!SCRIPT_PATH!..\lib\elixir\ebin" !beforeExtra!
 
 if defined ELIXIR_CLI_DRY_RUN (
    if defined useWerl (
