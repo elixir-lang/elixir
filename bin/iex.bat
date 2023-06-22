@@ -24,6 +24,6 @@ goto end
 
 :run
 if defined IEX_WITH_WERL (set __ELIXIR_IEX_FLAGS=--werl) else (set __ELIXIR_IEX_FLAGS=)
-call "%~dp0\elixir.bat" --no-halt --erl "-user elixir" -e ":elixir.start_iex()" +iex %__ELIXIR_IEX_FLAGS% %*
+call "%~dp0\elixir.bat" --no-halt --erl "-user elixir" +iex %__ELIXIR_IEX_FLAGS% %*
 :end
 endlocal
