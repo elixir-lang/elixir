@@ -569,7 +569,7 @@ defmodule ExUnit.DocTestTest do
                      │      ^
                      │
                      syntax error before: '*'
-                
+
                 doctest:
                   iex> 1 + * 1
                   1
@@ -692,7 +692,7 @@ defmodule ExUnit.DocTestTest do
                      │      ^
                      │
                      syntax error before: '*'
-                
+
                 doctest:
                   iex> 1 + * 1
                   1
@@ -710,7 +710,7 @@ defmodule ExUnit.DocTestTest do
                      │      ^
                      │
                      syntax error before: '*'
-                
+
                 doctest:
                   iex> 1 + * 1
                   1
@@ -728,7 +728,7 @@ defmodule ExUnit.DocTestTest do
                      │ ^
                      │
                      unexpected token: "`" (column 1, code point U+0060)
-                
+
                 doctest:
                   iex> 1 + 2
                   3
@@ -747,7 +747,7 @@ defmodule ExUnit.DocTestTest do
                      │   ^
                      │
                      unexpected token: "`" (column 3, code point U+0060)
-                
+
                 doctest:
                   iex> 1 + 2
                   3
@@ -766,7 +766,7 @@ defmodule ExUnit.DocTestTest do
                      │     ^
                      │
                      unexpected token: "`" (column 5, code point U+0060)
-                
+
                 doctest:
                   iex> 1 + 2
                   3
@@ -793,7 +793,7 @@ defmodule ExUnit.DocTestTest do
                      │       ^
                      │
                      missing terminator: } (for "{" starting at line 229)
-                
+
                 If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, :oops}
@@ -812,7 +812,7 @@ defmodule ExUnit.DocTestTest do
                      │      ^
                      │
                      syntax error before: '*'
-                
+
                 doctest:
                   iex> 1 + * 1
                   1
@@ -830,7 +830,7 @@ defmodule ExUnit.DocTestTest do
                      │     ^
                      │
                      syntax error before: '*'
-                
+
                 doctest:
                   iex> :foo
                   iex> :bar
@@ -849,7 +849,7 @@ defmodule ExUnit.DocTestTest do
                      │      ^
                      │
                      syntax error: expression is incomplete
-                
+
                 doctest:
                   iex> 123 +
                   :mixed
@@ -867,7 +867,7 @@ defmodule ExUnit.DocTestTest do
                      │      ^
                      │
                      syntax error: expression is incomplete
-                
+
                 doctest:
                   iex> 123 +
                   :mixed

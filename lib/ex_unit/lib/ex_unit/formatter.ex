@@ -460,7 +460,7 @@ defmodule ExUnit.Formatter do
   end
 
   defp format_message(value, formatter) do
-    value = String.replace(value, "\n", "\n" <> @counter_padding)
+    value = pad_multiline(value, 5)
 
     if String.contains?(value, IO.ANSI.reset()) do
       value
@@ -571,9 +571,15 @@ defmodule ExUnit.Formatter do
   end
 
   defp pad_multiline(expr, padding_size) when is_binary(expr) do
-    padding = String.duplicate(" ", padding_size)
-    String.replace(expr, "\n", "\n" <> padding)
+    expr
+    |> String.split("\n")
+    |> pad_line("\n" <> String.duplicate(" ", padding_size))
+    |> IO.iodata_to_binary()
   end
+
+  defp pad_line([last], _padding), do: [last]
+  defp pad_line([first, "" | rest], padding), do: [first, "\n" | pad_line(["" | rest], padding)]
+  defp pad_line([first | rest], padding), do: [first, padding | pad_line(rest, padding)]
 
   defp error_info(msg, nil), do: pad(msg)
   defp error_info(msg, formatter), do: pad(formatter.(:error_info, msg))
