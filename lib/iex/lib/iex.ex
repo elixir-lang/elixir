@@ -536,6 +536,9 @@ defmodule IEx do
 
   @doc """
   Returns `true` if IEx was started, `false` otherwise.
+
+  This means the IEx application was started, but not
+  that its CLI interface is running.
   """
   @spec started?() :: boolean()
   def started? do
@@ -857,6 +860,8 @@ defmodule IEx do
 
   # This is a callback invoked by Erlang shell utilities
   # when someone presses Ctrl+G and adds `s 'Elixir.IEx'`.
+  # Let's consider exposing this as iex:start() and rename
+  # elixir:start_iex() to iex:cli().
   @doc false
   def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
     # TODO: Keep only this branch, delete optional args and mfa,
@@ -869,10 +874,13 @@ defmodule IEx do
       end)
     else
       spawn(fn ->
-        {:ok, _} = Application.ensure_all_started(:elixir)
-        System.wait_until_booted()
-        :ok = :io.setopts(binary: true, encoding: :unicode)
+        case :init.notify_when_started(self()) do
+          :started -> :ok
+          _ -> :init.wait_until_started()
+        end
+
         {:ok, _} = Application.ensure_all_started(:iex)
+        :ok = :io.setopts(binary: true, encoding: :unicode)
         _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
         IEx.Server.run_from_shell(opts, mfa)
       end)

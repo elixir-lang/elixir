@@ -6,7 +6,7 @@ defmodule IEx.CLI do
 
   def deprecated do
     if tty_works?() do
-      :user_drv.start([:"tty_sl -c -e", old_tty_args()])
+      :user_drv.start([:"tty_sl -c -e", tty_args()])
     else
       if get_remsh(:init.get_plain_arguments()) do
         IO.puts(
@@ -20,12 +20,8 @@ defmodule IEx.CLI do
       # IEx.Broker is capable of considering all groups under user_drv but
       # when we use :user.start(), we need to explicitly register it instead.
       # If we don't register, pry doesn't work.
-      IEx.start([register: true] ++ options())
+      IEx.start([register: true] ++ options(), {:elixir, :start_cli, []})
     end
-  end
-
-  def prompt(_n) do
-    []
   end
 
   # Check if tty works. If it does not, we fall back to the
@@ -41,7 +37,7 @@ defmodule IEx.CLI do
     end
   end
 
-  defp old_tty_args do
+  defp tty_args do
     if remote = get_remsh(:init.get_plain_arguments()) do
       remote = List.to_atom(append_hostname(remote))
 
@@ -77,7 +73,7 @@ defmodule IEx.CLI do
   end
 
   defp local_start_mfa do
-    {IEx, :start, [options()]}
+    {IEx, :start, [options(), {:elixir, :start_cli, []}]}
   end
 
   def remote_start(parent, ref) do
