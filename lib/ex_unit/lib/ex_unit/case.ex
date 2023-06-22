@@ -167,6 +167,9 @@ defmodule ExUnit.Case do
 
     * `:doctest_data` - additional metadata about doctests (if a doctest)
 
+    * `:test_type` - the test type used when printing test results.
+      It is set by ExUnit to `:test`, `:doctest` and so on, but is customizable.
+
   The following tags customize how tests behave:
 
     * `:capture_log` - see the "Log Capture" section below
@@ -177,9 +180,6 @@ defmodule ExUnit.Case do
       Accepts `:infinity` as a timeout value.
 
     * `:tmp_dir` - (since v1.11.0) see the "Tmp Dir" section below
-
-    * `:test_type` - the test type used when printing test results.
-      It is set by ExUnit to `:test`, `:doctest` and so on, but is customizable.
 
   ## Filters
 
