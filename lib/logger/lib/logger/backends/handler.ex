@@ -117,7 +117,7 @@ defmodule Logger.Backends.Handler do
   defp erlang_level_to_elixir_level(:alert), do: :error
   defp erlang_level_to_elixir_level(:critical), do: :error
   defp erlang_level_to_elixir_level(:error), do: :error
-  defp erlang_level_to_elixir_level(:warning), do: :warn
+  defp erlang_level_to_elixir_level(:warning), do: :warning
   defp erlang_level_to_elixir_level(:notice), do: :info
   defp erlang_level_to_elixir_level(:info), do: :info
   defp erlang_level_to_elixir_level(:debug), do: :debug
