@@ -853,6 +853,48 @@ defmodule Mix.ReleaseTest do
         assert release.boot_scripts.start[:unknown] == nil
       end)
     end
+
+    test "are ignored even if mode changes", context do
+      in_tmp(context.test, fn ->
+        write_app!(
+          "has_optional/ebin/has_optional.app",
+          {:application, :has_optional,
+           applications: [:kernel, :stdlib, :elixir, :unknown],
+           optional_applications: [:unknown],
+           description: ~c"has_optional",
+           modules: [],
+           vsn: ~c"1.0.0"}
+        )
+
+        write_app!(
+          "points_as_permanent/ebin/points_as_permanent.app",
+          {:application, :points_as_permanent,
+           applications: [:kernel, :stdlib, :elixir, :has_optional],
+           optional_applications: [:unknown],
+           description: ~c"points_as_permanent",
+           modules: [],
+           vsn: ~c"1.0.0"}
+        )
+
+        write_app!(
+          "points_as_temporary/ebin/points_as_temporary.app",
+          {:application, :points_as_temporary,
+           applications: [:kernel, :stdlib, :elixir, :has_optional],
+           optional_applications: [:unknown],
+           description: ~c"points_as_temporary",
+           modules: [],
+           vsn: ~c"1.0.0"}
+        )
+
+        release =
+          release(
+            applications: [points_as_permanent: :permanent, points_as_temporary: :temporary]
+          )
+
+        assert release.boot_scripts.start[:has_optional] == :permanent
+        assert release.boot_scripts.start[:unknown] == nil
+      end)
+    end
   end
 
   defp write_app!(path, app) do

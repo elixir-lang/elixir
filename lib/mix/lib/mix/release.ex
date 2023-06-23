@@ -285,7 +285,8 @@ defmodule Mix.Release do
               |> Enum.map(&{&1, new_mode})
 
             seen = put_in(seen[app][:mode], new_mode)
-            load_apps(apps, deps_apps, seen, otp_root, [], overrides)
+            optional = Keyword.get(properties, :optional_applications, [])
+            load_apps(apps, deps_apps, seen, otp_root, optional, overrides)
 
           true ->
             seen
