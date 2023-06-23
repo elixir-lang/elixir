@@ -117,6 +117,30 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.1
+
+### 1. Bug fixes
+
+#### ExUnit
+
+  * [ExUnit.CaptureLog] Fix race condition on concurrent `capture_log`
+  * [ExUnit.Doctest] Properly compile doctests without results terminated by fences
+
+#### IEx
+
+  * [IEx] Ensure `pry` works on Erlang/OTP 25 and earlier while IEx is booting
+
+#### Logger
+
+  * [Logger.Formatter] Properly handle `:function` as metadata
+
+#### Mix
+
+  * [mix compile] Ensure the current project is available on the code path after its Elixir sources are compiled
+  * [mix compile] Guarantee yecc/leex are available when emitting warnings from previous runs
+  * [mix deps] Fix an issue where dependencies could not be started in an umbrella projects
+  * [mix release] Properly handle optional dependencies when there is a conflict in the application start mode
+
 ## v1.15.0 (2023-06-19)
 
 ### 1. Enhancements
