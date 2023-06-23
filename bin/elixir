@@ -233,7 +233,7 @@ set -- "$ERTS_BIN$ERL_EXEC" -noshell -elixir_root "$SCRIPT_PATH"/../lib -pa "$SC
 if [ -n "$RUN_ERL_PIPE" ]; then
   ESCAPED=""
   for PART in "$@"; do
-    ESCAPED="$ESCAPED $(echo "$PART" | sed 's@[^a-zA-Z0-9_/-]@\\&@g')"
+    ESCAPED="$ESCAPED $(printf '%s' "$PART" | sed 's@[^a-zA-Z0-9_/-]@\\&@g')"
   done
   mkdir -p "$RUN_ERL_PIPE"
   mkdir -p "$RUN_ERL_LOG"
