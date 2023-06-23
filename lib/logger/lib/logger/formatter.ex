@@ -203,7 +203,7 @@ defmodule Logger.Formatter do
 
   def format(_event, _config) do
     raise "invalid configuration for Logger.Formatter. " <>
-            "Use Logger.Formatter.init/1 to define a formatter"
+            "Use Logger.Formatter.new/1 to define a formatter"
   end
 
   defp compute_meta(:module, %{mfa: {mod, _, _}}), do: mod
@@ -498,8 +498,6 @@ defmodule Logger.Formatter do
     rest
   end
 
-  defp metadata(:file, file) when is_list(file), do: file
-
   defp metadata(:domain, [head | tail]) when is_atom(head) do
     Enum.map_intersperse([head | tail], ?., &Atom.to_string/1)
   end
@@ -514,6 +512,8 @@ defmodule Logger.Formatter do
     Exception.format_mfa(mod, fun, arity)
   end
 
+  defp metadata(:function, function) when is_list(function), do: function
+  defp metadata(:file, file) when is_list(file), do: file
   defp metadata(_, list) when is_list(list), do: nil
 
   defp metadata(_, other) do
