@@ -72,8 +72,31 @@ defmodule Mix.Dep.Converger do
   """
   def converge(acc, lock, opts, callback) do
     {deps, acc, lock} = all(acc, lock, opts, callback)
-    if remote = Mix.RemoteConverger.get(), do: remote.post_converge
-    {topological_sort(deps), acc, lock}
+    if remote = Mix.RemoteConverger.get(), do: remote.post_converge()
+
+    deps =
+      for %{app: app, opts: opts} = dep <- topological_sort(deps) do
+        case Keyword.pop(opts, :app_properties) do
+          {nil, _opts} ->
+            dep
+
+          {app_properties, opts} ->
+            case :application.load({:application, app, app_properties}) do
+              :ok ->
+                :ok
+
+              {:error, {:already_loaded, _}} ->
+                :ok
+
+              {:error, error} ->
+                Mix.raise("Could not load application #{inspect(app)}: #{inspect(error)}")
+            end
+
+            %{dep | opts: opts}
+        end
+      end
+
+    {deps, acc, lock}
   end
 
   defp all(acc, lock, opts, callback) do
@@ -205,21 +228,20 @@ defmodule Mix.Dep.Converger do
         all(t, [dep | acc], upper, breadths, optional, rest, lock, state)
 
       :nomatch ->
-        {%{app: app, deps: deps, opts: opts} = dep, app_properties, rest, lock} =
+        {%{app: app, deps: deps, opts: opts} = dep, rest, lock} =
           case state.cache.(dep) do
             {:loaded, cached_dep} ->
-              {cached_dep, nil, rest, lock}
+              {cached_dep, rest, lock}
 
             {:unloaded, dep, children} ->
               {dep, rest, lock} = state.callback.(put_lock(dep, lock), rest, lock)
 
-              Mix.Dep.Loader.with_system_env(dep, fn ->
-                # After we invoke the callback (which may actually check out the
-                # dependency), we load the dependency including its latest info
-                # and children information.
-                {dep, app_properties} = Mix.Dep.Loader.load(dep, children, state.locked?)
-                {dep, app_properties, rest, lock}
-              end)
+              dep =
+                Mix.Dep.Loader.with_system_env(dep, fn ->
+                  Mix.Dep.Loader.load(dep, children, state.locked?)
+                end)
+
+              {dep, rest, lock}
           end
 
         # Something that we previously ruled out as an optional dependency is
@@ -234,24 +256,7 @@ defmodule Mix.Dep.Converger do
           split_non_fulfilled_optional(deps, Enum.map(acc, & &1.app), opts[:from_umbrella])
 
         new_breadths = Enum.map(deps, & &1.app) ++ breadths
-        res = all(deps, acc, breadths, new_breadths, discarded ++ optional, rest, lock, state)
-
-        # After we traverse all of our children, we can load ourselves.
-        # This is important in case of included application.
-        if app_properties do
-          case :application.load({:application, app, app_properties}) do
-            :ok ->
-              :ok
-
-            {:error, {:already_loaded, _}} ->
-              :ok
-
-            {:error, error} ->
-              Mix.raise("Could not start application #{inspect(app)}: #{inspect(error)}")
-          end
-        end
-
-        res
+        all(deps, acc, breadths, new_breadths, discarded ++ optional, rest, lock, state)
     end
   end
 

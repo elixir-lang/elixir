@@ -383,21 +383,21 @@ defmodule Mix.Dep.Loader do
 
     cond do
       not ok?(dep) ->
-        {dep, nil}
+        dep
 
       recently_fetched?(dep) ->
-        {%{dep | status: :compile}, nil}
+        %{dep | status: :compile}
 
       opts_app == false ->
-        {dep, nil}
+        dep
 
       true ->
         path = if is_binary(opts_app), do: opts_app, else: "ebin/#{app}.app"
         path = Path.expand(path, opts[:build])
 
         case app_status(path, app, req) do
-          {:ok, vsn, app} -> {%{dep | status: {:ok, vsn}}, app}
-          status -> {%{dep | status: status}, nil}
+          {:ok, vsn, app} -> %{dep | status: {:ok, vsn}, opts: [app_properties: app] ++ opts}
+          status -> %{dep | status: status}
         end
     end
   end
