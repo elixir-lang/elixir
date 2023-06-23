@@ -309,9 +309,51 @@ defmodule Module.ParallelChecker do
     Enum.flat_map(warnings, fn {module, warning, locations} ->
       message = module.format_warning(warning)
       diagnostics = Enum.map(locations, &to_diagnostic(message, &1))
-      log? and :elixir_errors.print_warning(message, diagnostics)
+      log? and print_warning(message, diagnostics)
       diagnostics
     end)
+  end
+
+  defp print_warning(message, [diagnostic]) do
+    :elixir_errors.print_warning(message, diagnostic)
+  end
+
+  defp print_warning(message, [first_diagnostic | rest]) do
+    :elixir_errors.print_warning(message, first_diagnostic)
+
+    %{position: position, file: file} = first_diagnostic
+
+    line =
+      case position do
+        {line, _} -> line
+        line -> line
+      end
+
+    line_digits = :elixir_errors.get_line_number_digits(line, 1)
+
+    # Match indentation with the formatted warning
+    # When we have the line available, we add 4 spaces, else 2
+    stacktrace_padding =
+      if File.regular?(file) do
+        line_digits + 4
+      else
+        line_digits + 2
+      end
+
+    warn_locations =
+      for diagnostic <- rest do
+        %{stacktrace: [s]} = diagnostic
+        String.duplicate(" ", stacktrace_padding) <> Exception.format_stacktrace_entry(s) <> "\n"
+      end
+
+    locations_plural = (length(warn_locations) == 1 && "location") || "locations"
+
+    rest =
+      String.duplicate(" ", stacktrace_padding - 2) <>
+        "Invalid call also found at #{length(warn_locations)} other #{locations_plural}:\n" <>
+        :erlang.list_to_binary(warn_locations)
+
+    IO.puts(:stderr, rest)
   end
 
   defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do

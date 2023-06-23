@@ -6,9 +6,10 @@
 -module(elixir_errors).
 -export([compile_error/1, compile_error/3, parse_error/5]).
 -export([function_error/4, module_error/4, file_error/4]).
--export([erl_warn/3, file_warn/4]).
--export([print_diagnostic/1, emit_diagnostic/5]).
 -export([format_snippet/6]).
+-export([erl_warn/3, file_warn/4]).
+-export([get_line_number_digits/2]).
+-export([print_diagnostic/1, emit_diagnostic/5]).
 -export([print_warning/2, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -21,49 +22,12 @@ print_warning(Position, File, Message) ->
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
 %% Used by parallel checker as it groups warnings.
-print_warning(Message, [Diagnostic]) ->
+print_warning(Message, Diagnostic) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
   Snippet = get_snippet(File, Position),
   Output = format_snippet(File, Position, Message, Snippet, warning, S),
 
-  io:put_chars(standard_error, [Output, $\n, $\n]);
-
-%% Warning groups
-print_warning(Message, [FirstDiagnostic | Rest]) ->
-  #{position := Position, file := File, stacktrace := S} = FirstDiagnostic,
-  Snippet = get_snippet(File, Position),
-  FormattedSnippet = format_snippet(File, Position, Message, Snippet, warning, S),
-
-  LineNumber = extract_line(Position),
-  LineDigits = get_line_number_digits(LineNumber, 1),
-
-  StacktracePadding = case filelib:is_regular(File) of
-                        % Match indentation with the formatted warning
-                        % When we have the line available, we add 4 spaces, else 2
-                        true -> LineDigits + 4;
-                        false -> LineDigits + 2
-                      end,
-
-  WarnLocations = [[n_spaces(StacktracePadding), 'Elixir.Exception':format_stacktrace_entry(H), "\n"]
-                  || #{stacktrace := [H]} <- Rest],
-
-  LocationsPlural = case length(WarnLocations) of
-                      1 -> "location";
-                      _ -> "locations"
-                    end,
-
-  Output = io_lib:format(
-    "~ts\n\n"
-    "~tsInvalid call also found at ~b other ~ts:~n"
-    "~ts\n",
-    [
-      FormattedSnippet,
-      n_spaces(StacktracePadding - 2), length(WarnLocations), LocationsPlural,
-      WarnLocations
-    ]
-  ),
-
-  io:put_chars(standard_error, Output).
+  io:put_chars(standard_error, [Output, $\n, $\n]).
 
 get_snippet(File, Position) ->
   Line = extract_line(Position),
