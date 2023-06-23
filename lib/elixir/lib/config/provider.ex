@@ -342,7 +342,7 @@ defmodule Config.Provider do
       * Make the runtime value match the compile time one
 
       * Recompile your project. If the misconfigured application is a dependency, \
-    you may need to run "mix deps.compile #{app} --force"
+    you may need to run "mix deps.clean #{app} --build"
 
       * Alternatively, you can disable this check. If you are using releases, you can \
     set :validate_compile_env to false in your release configuration. If you are \
