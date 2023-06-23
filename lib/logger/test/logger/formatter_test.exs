@@ -54,6 +54,28 @@ defmodule Logger.FormatterTest do
     assert format_time(time) == ["12", ?:, "30", ?:, "10", ?., [?0, "10"]]
   end
 
+  describe "log" do
+    test "handles :module and :function" do
+      {_, formatter} =
+        new(
+          format: "\n$time $metadata[$level] $message\n",
+          metadata: [:module, :function, :mfa],
+          colors: [enabled: false]
+        )
+
+      assert %{
+               level: :warn,
+               msg: {:string, "foo"},
+               meta: %{
+                 mfa: {Logger.Formatter, :compile, 1}
+               }
+             }
+             |> format(formatter)
+             |> IO.chardata_to_string() =~
+               "module=Logger.Formatter function=compile/1 mfa=Logger.Formatter.compile/1"
+    end
+  end
+
   describe "compile + format" do
     defmodule CompileMod do
       def format(_level, _msg, _ts, _md) do
@@ -66,7 +88,7 @@ defmodule Logger.FormatterTest do
                ["\n", :time, " ", :metadata, "[", :level, "] ", :message, "\n"]
     end
 
-    test "compile with str" do
+    test "compile with string" do
       assert compile("$level $time $date $metadata $message $node") ==
                Enum.intersperse([:level, :time, :date, :metadata, :message, :node], " ")
 
