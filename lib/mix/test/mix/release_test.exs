@@ -337,17 +337,14 @@ defmodule Mix.ReleaseTest do
 
     test "configures other applications in cascade", context do
       in_tmp(context.test, fn ->
-        app =
+        write_app!(
+          "my_sample_mode/ebin/my_sample_mode.app",
           {:application, :my_sample_mode,
            applications: [:kernel, :stdlib, :elixir, :runtime_tools, :compiler],
            description: ~c"my_sample_mode",
            modules: [],
            vsn: ~c"1.0.0"}
-
-        File.mkdir_p!("my_sample_mode/ebin")
-        Code.prepend_path("my_sample_mode/ebin")
-        format = :io_lib.format("%% coding: utf-8~n~p.~n", [app])
-        File.write!("my_sample_mode/ebin/my_sample_mode.app", format)
+        )
 
         apps = [my_sample_mode: :temporary]
         release = release(applications: apps)
@@ -802,18 +799,15 @@ defmodule Mix.ReleaseTest do
   describe "included applications" do
     test "are included in the release", context do
       in_tmp(context.test, fn ->
-        app =
+        write_app!(
+          "my_sample1/ebin/my_sample1.app",
           {:application, :my_sample1,
            applications: [:kernel, :stdlib, :elixir],
            description: ~c"my_sample1",
            modules: [],
            vsn: ~c"1.0.0",
            included_applications: [:runtime_tools]}
-
-        File.mkdir_p!("my_sample1/ebin")
-        Code.prepend_path("my_sample1/ebin")
-        format = :io_lib.format("%% coding: utf-8~n~p.~n", [app])
-        File.write!("my_sample1/ebin/my_sample1.app", format)
+        )
 
         release = release(applications: [my_sample1: :permanent])
         assert release.boot_scripts.start[:runtime_tools] == :load
@@ -825,18 +819,15 @@ defmodule Mix.ReleaseTest do
 
     test "raise on conflict", context do
       in_tmp(context.test, fn ->
-        app =
+        write_app!(
+          "my_sample2/ebin/my_sample2.app",
           {:application, :my_sample2,
            applications: [:kernel, :stdlib, :elixir, :runtime_tools],
            description: ~c"my_sample",
            modules: [],
            vsn: ~c"1.0.0",
            included_applications: [:runtime_tools]}
-
-        File.mkdir_p!("my_sample2/ebin")
-        Code.prepend_path("my_sample2/ebin")
-        format = :io_lib.format("%% coding: utf-8~n~p.~n", [app])
-        File.write!("my_sample2/ebin/my_sample2.app", format)
+        )
 
         assert_raise Mix.Error,
                      ":runtime_tools is listed both as a regular application and as an included application",
@@ -848,23 +839,28 @@ defmodule Mix.ReleaseTest do
   describe "optional applications" do
     test "are ignored if not available", context do
       in_tmp(context.test, fn ->
-        app =
-          {:application, :my_sample1,
+        write_app!(
+          "my_sample3/ebin/my_sample3.app",
+          {:application, :my_sample3,
            applications: [:kernel, :stdlib, :elixir, :unknown],
            optional_applications: [:unknown],
-           description: ~c"my_sample1",
+           description: ~c"my_sample3",
            modules: [],
            vsn: ~c"1.0.0"}
+        )
 
-        File.mkdir_p!("my_sample1/ebin")
-        Code.prepend_path("my_sample1/ebin")
-        format = :io_lib.format("%% coding: utf-8~n~p.~n", [app])
-        File.write!("my_sample1/ebin/my_sample1.app", format)
-
-        release = release(applications: [my_sample1: :permanent])
+        release = release(applications: [my_sample3: :permanent])
         assert release.boot_scripts.start[:unknown] == nil
       end)
     end
+  end
+
+  defp write_app!(path, app) do
+    dir = Path.dirname(path)
+    File.mkdir_p!(dir)
+    Code.prepend_path(dir)
+    format = :io_lib.format("%% coding: utf-8~n~p.~n", [app])
+    File.write!(path, format)
   end
 
   defp size!(path) do
