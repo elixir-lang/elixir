@@ -22,7 +22,6 @@ print_warning(Position, File, Message) ->
   Output = format_snippet(File, Position, Message, nil, warning, []),
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
-%% Used by parallel checker as it groups warnings.
 print_warning(Message, Diagnostic) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
   Snippet = get_snippet(File, Position),
@@ -177,9 +176,10 @@ format_message(Message, NDigits, PaddingSize) ->
   binary:replace(Bin, <<"\n">>, Padding, [global]).
 
 highlight_at_position(Column, Severity) ->
+  Spacing = n_spaces(max(Column - 1, 0)),
   case Severity of
-    warning ->  highlight([n_spaces(Column), $~], warning);
-    error -> highlight([n_spaces(Column), $^], error)
+    warning ->  highlight([Spacing, $~], warning);
+    error -> highlight([Spacing, $^], error)
   end.
 
 highlight_below_line(Line, Severity) ->
@@ -361,20 +361,19 @@ raise_reserved(Location, File, Input, Keyword) ->
           "it can't be used as a variable or be defined nor invoked as a regular function">>).
 
 raise_snippet(Location, File, Input, Kind, Message) when is_binary(File) ->
-  {InputString, StartLine, StartColumn} = Input,
-  Snippet = snippet_line(InputString, Location, StartLine, StartColumn),
+  {InputString, StartLine, _} = Input,
+  Snippet = snippet_line(InputString, Location, StartLine),
   raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
 
-snippet_line(InputString, Location, StartLine, StartColumn) ->
+snippet_line(InputString, Location, StartLine) ->
   {line, Line} = lists:keyfind(line, 1, Location),
   case lists:keyfind(column, 1, Location) of
     {column, Column} ->
       Lines = string:split(InputString, "\n", all),
       Snippet = (lists:nth(Line - StartLine + 1, Lines)),
-      Offset = if Line == StartLine -> Column - StartColumn; true -> Column - 1 end,
       case string:trim(Snippet, leading) of
         [] -> nil;
-        _ -> #{content => elixir_utils:characters_to_binary(Snippet), offset => Offset}
+        _ -> #{content => elixir_utils:characters_to_binary(Snippet), offset => Column}
       end;
 
     false ->
