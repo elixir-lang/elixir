@@ -1550,7 +1550,7 @@ tokenize_sigil_name([S | T], NameAcc, Line, Column, Scope, Tokens) when ?is_upca
   tokenize_sigil_name(T, [S | NameAcc], Line, Column + 1, Scope, Tokens);
 % With a lowercase letter and a non-empty NameAcc we return an error.
 tokenize_sigil_name([S | _T] = Original, [_ | _] = NameAcc, _Line, _Column, _Scope, _Tokens) when ?is_downcase(S) ->
-  Message = "invalid sigil name, it should be either a one-letter lowercase letter or a" ++ 
+  Message = "invalid sigil name, it should be either a one-letter lowercase letter or a" ++
             " sequence of uppercase letters only, got: ",
   {error, Message, [$~] ++ lists:reverse(NameAcc) ++ Original};
 % We finished the letters, so the name is over.
@@ -1561,12 +1561,8 @@ tokenize_sigil_contents([H, H, H | T] = Original, [S | _] = SigilName, Line, Col
     when ?is_quote(H) ->
   case extract_heredoc_with_interpolation(Line, Column, Scope, ?is_downcase(S), T, H) of
     {ok, NewLine, NewColumn, Parts, Rest, NewScope} ->
-      {Final, Modifiers} = collect_modifiers(Rest, []),
       Indentation = NewColumn - 4,
-      TokenColumn = Column - 1 - length(SigilName),
-      Token = {sigil, {Line, TokenColumn, nil}, SigilName, Parts, Modifiers, Indentation, <<H, H, H>>},
-      NewColumnWithModifiers = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
+      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, NewScope, Tokens, Indentation, <<H, H, H>>);
 
     {error, Reason} ->
       error(Reason, [$~] ++ SigilName ++ Original, Scope, Tokens)
@@ -1576,12 +1572,8 @@ tokenize_sigil_contents([H | T] = Original, [S | _] = SigilName, Line, Column, S
     when ?is_sigil(H) ->
   case elixir_interpolation:extract(Line, Column + 1, Scope, ?is_downcase(S), T, sigil_terminator(H)) of
     {NewLine, NewColumn, Parts, Rest, NewScope} ->
-      {Final, Modifiers} = collect_modifiers(Rest, []),
       Indentation = nil,
-      TokenColumn = Column - 1 - length(SigilName),
-      Token = {sigil, {Line, TokenColumn, nil}, SigilName, tokens_to_binary(Parts), Modifiers, Indentation, <<H>>},
-      NewColumnWithModifiers = NewColumn + length(Modifiers),
-      tokenize(Final, NewLine, NewColumnWithModifiers, NewScope, [Token | Tokens]);
+      add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, tokens_to_binary(Parts), Rest, NewScope, Tokens, Indentation, <<H>>);
 
     {error, Reason} ->
       Sigil = [$~, S, H],
@@ -1600,6 +1592,13 @@ tokenize_sigil_contents([H | _] = Original, SigilName, Line, Column, Scope, Toke
 % Incomplete sigil.
 tokenize_sigil_contents([], _SigilName, Line, Column, Scope, Tokens) ->
   tokenize([], Line, Column, Scope, Tokens).
+
+add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, Scope, Tokens, Indentation, Delimiter) ->
+  {Final, Modifiers} = collect_modifiers(Rest, []),
+  TokenColumn = Column - 1 - length(SigilName),
+  Token = {sigil, {Line, TokenColumn, nil}, SigilName, Parts, Modifiers, Indentation, Delimiter},
+  NewColumnWithModifiers = NewColumn + length(Modifiers),
+  tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]).
 
 %% Fail early on invalid do syntax. For example, after
 %% most keywords, after comma and so on.
