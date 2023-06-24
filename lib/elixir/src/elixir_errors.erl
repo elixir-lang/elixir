@@ -248,13 +248,22 @@ parse_error(Location, File, <<"syntax error before: ">>, Keyword, Input)
 
 %% Produce a human-readable message for errors before a sigil
 parse_error(Location, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full, Input) ->
-  {sigil, _, Sigil, _Atom, [Content | _], _, _, _} = parse_erl_term(Full),
+  {sigil, _, Atom, [Content | _], _, _, _} = parse_erl_term(Full),
   Content2 = case is_binary(Content) of
     true -> Content;
     false -> <<>>
   end,
-  SigilName = list_to_binary(Sigil),
-  Message = <<"syntax error before: sigil \~", SigilName/binary, " starting with content '", Content2/binary, "'">>,
+
+  % :static_atoms_encoder might encode :sigil_ atoms as arbitrary terms
+  MaybeSigil = case is_atom(Atom) of
+    true -> case atom_to_binary(Atom) of
+      <<"sigil_", Chars/binary>> -> <<"\~", Chars/binary, " ">>;
+      _ -> <<>>
+    end;
+    false -> <<>>
+  end,
+
+  Message = <<"syntax error before: sigil ", MaybeSigil/binary, "starting with content '", Content2/binary, "'">>,
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message);
 
 %% Binaries (and interpolation) are wrapped in [<<...>>]

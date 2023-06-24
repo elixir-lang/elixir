@@ -1603,7 +1603,7 @@ add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, Scope,
   case MaybeEncoded of
     {ok, Atom} ->
       {Final, Modifiers} = collect_modifiers(Rest, []),
-      Token = {sigil, {Line, TokenColumn, nil}, SigilName, Atom, Parts, Modifiers, Indentation, Delimiter},
+      Token = {sigil, {Line, TokenColumn, nil}, Atom, Parts, Modifiers, Indentation, Delimiter},
       NewColumnWithModifiers = NewColumn + length(Modifiers),
       tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
 

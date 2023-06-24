@@ -939,7 +939,7 @@ build_access(Expr, {List, Meta}) ->
 
 %% Interpolation aware
 
-build_sigil({sigil, Location, _SigilName, Atom, Parts, Modifiers, Indentation, Delimiter}) ->
+build_sigil({sigil, Location, Atom, Parts, Modifiers, Indentation, Delimiter}) ->
   Meta = meta_from_location(Location),
   MetaWithDelimiter = [{delimiter, Delimiter} | Meta],
   MetaWithIndentation = meta_with_indentation(Meta, Indentation),
