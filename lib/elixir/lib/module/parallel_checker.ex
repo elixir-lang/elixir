@@ -322,21 +322,15 @@ defmodule Module.ParallelChecker do
     total_locations = length(rest)
 
     locations =
-      rest
-      |> Enum.with_index(1)
-      |> Enum.map(fn {%{stacktrace: [s]}, i} ->
-        if i == total_locations do
-          ["  ", Exception.format_stacktrace_entry(s)]
-        else
-          ["  ", Exception.format_stacktrace_entry(s), ?\n]
-        end
+      Enum.map(rest, fn %{stacktrace: [s]} ->
+        ["\n  ", Exception.format_stacktrace_entry(s)]
       end)
 
     locations_plural = if total_locations == 1, do: "location", else: "locations"
 
     [
       message,
-      "\n\nInvalid call also found at #{total_locations} other #{locations_plural}:\n",
+      "\n\nInvalid call also found at #{total_locations} other #{locations_plural}:",
       locations
     ]
     |> IO.iodata_to_binary()
