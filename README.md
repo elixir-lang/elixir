@@ -89,7 +89,7 @@ After that, clone this repository to your machine, compile and test it:
 ```sh
 git clone https://github.com/elixir-lang/elixir.git
 cd elixir
-make clean test
+make
 ```
 
 > Note: if you are running on Windows,
@@ -99,9 +99,7 @@ on Windows](https://github.com/elixir-lang/elixir/wiki/Windows).
 In case you want to use this Elixir version as your system version,
 you need to add the `bin` directory to [your PATH environment variable](https://elixir-lang.org/install.html#setting-path-environment-variable).
 
-If Elixir fails to build (specifically when pulling in a new version via
-`git`), be sure to remove any previous build artifacts by running
-`make clean`, then `make test`.
+Additionally, you may choose to run the test suite with `make clean test`.
 
 ## Contributing
 
