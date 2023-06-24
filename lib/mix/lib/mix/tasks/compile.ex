@@ -146,9 +146,9 @@ defmodule Mix.Tasks.Compile do
     config = Mix.Project.config()
 
     # If we are in an umbrella project, now load paths from all children.
-    if Mix.Project.umbrella?(config) do
+    if apps_paths = Mix.Project.apps_paths(config) do
       loaded_paths =
-        Mix.Project.apps_paths(config)
+        apps_paths
         |> Map.keys()
         |> Mix.AppLoader.load_apps(Mix.Dep.cached(), config, [], fn
           {_app, path}, acc -> if path, do: [path | acc], else: acc
