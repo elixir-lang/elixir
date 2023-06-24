@@ -252,8 +252,6 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  ## Umbrellas as a dependency
-
   test "list deps for umbrella as dependency" do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.in_project(:umbrella_dep, ".", fn _ ->
@@ -373,7 +371,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "recompiles after compile time path dependency changes" do
+  test "recompiles when path dependencies change" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Task.run("compile", [])
@@ -385,30 +383,13 @@ defmodule Mix.UmbrellaTest do
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
-        # Emulate local recompilation
+        # Compile-time dependencies are recompiled
         File.write!("../foo/lib/foo.ex", File.read!("../foo/lib/foo.ex") <> "\n")
-        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("../foo/lib/foo.ex", mtime)
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/foo/.mix/compile.elixir")
 
         Mix.Task.clear()
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-
-        # But exports dependencies are not recompiled
-        File.write!("lib/bar.ex", "defmodule Bar, do: (require Foo)")
-
-        Mix.Task.clear()
-        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
-        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
-
-        # Touch to emulate local recompilation
-        File.write!("../foo/lib/foo.ex", File.read!("../foo/lib/foo.ex") <> "\n")
-        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("../foo/lib/foo.ex", mtime)
-
-        Mix.Task.clear()
-        assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
-        refute_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
 
       # Now let's add a new file to foo
@@ -446,18 +427,39 @@ defmodule Mix.UmbrellaTest do
         File.write!("../foo/lib/foo.ex", "defmodule Foo, do: defstruct [:bar]")
 
         # Add struct dependency
-        File.write!("lib/bar.ex", "defmodule Bar, do: %Foo{bar: true}")
-        Mix.Task.run("compile", ["--verbose"])
-        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        File.write!("lib/bar.ex", """
+        defmodule Bar do
+          def is_foo_bar(%Foo{bar: true}), do: true
+        end
+        """)
 
-        # Recompiles for struct dependencies
+        Mix.Task.run("compile", ["--verbose"])
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # Does not recompiles if export dependency does not change
         File.write!("../foo/lib/foo.ex", File.read!("../foo/lib/foo.ex") <> "\n")
-        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("../foo/lib/foo.ex", mtime)
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
 
         Mix.Task.clear()
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
-        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        refute_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # Recompiles if export dependency changes
+        File.write!("../foo/lib/foo.ex", "defmodule Foo, do: defstruct [:bar, :baz]")
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
+
+        Mix.Task.clear()
+        assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+
+        # Recompiles if export dependency is removed
+        File.rm!("../foo/lib/foo.ex")
+        Mix.Task.clear()
+
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Process.flag(:trap_exit, true)
+          catch_exit(Mix.Task.run("compile", ["--verbose"]))
+        end)
       end)
     end)
   end
@@ -480,16 +482,15 @@ defmodule Mix.UmbrellaTest do
         # Add compile time to Foo.Bar
         File.write!("lib/bar.ex", "defmodule Bar, do: Foo.Bar.hello()")
         Mix.Task.run("compile", ["--verbose"])
-        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles for due to compile dependency via runtime dependencies
         File.write!("../foo/lib/foo.baz.ex", File.read!("../foo/lib/foo.baz.ex") <> "\n")
-        mtime = File.stat!("_build/dev/lib/bar/.mix/compile.elixir").mtime
-        ensure_touched("../foo/lib/foo.ex", mtime)
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
 
         Mix.Task.clear()
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
-        assert_receive {:mix_shell, :info, ["Compiled lib/bar.ex"]}
+        assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
       end)
     end)
   end
