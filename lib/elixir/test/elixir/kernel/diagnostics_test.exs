@@ -410,7 +410,7 @@ defmodule Kernel.DiagnosticsTest do
        ┌─ warning: nofile:3:12: Sample.a/0
        Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
        
-       Invalid call also found at 3 other locations:
+       Similar warning found at 3 other locations:
          nofile:4:12: Sample.a/0
          nofile:5:12: Sample.a/0
          nofile:6:12: Sample.a/0
@@ -449,7 +449,7 @@ defmodule Kernel.DiagnosticsTest do
          │
          Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
          
-         Invalid call also found at 3 other locations:
+         Similar warning found at 3 other locations:
            #{path}:6:12: Sample.a/0
            #{path}:7:12: Sample.a/0
            #{path}:8:12: Sample.a/0
@@ -488,7 +488,7 @@ defmodule Kernel.DiagnosticsTest do
          │
          Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
          
-         Invalid call also found at 3 other locations:
+         Similar warning found at 3 other locations:
            #{path}:6: Sample.a/0
            #{path}:7: Sample.a/0
            #{path}:8: Sample.a/0
