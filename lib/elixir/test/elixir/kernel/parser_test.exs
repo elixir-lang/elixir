@@ -182,6 +182,9 @@ defmodule Kernel.ParserTest do
       assert Code.string_to_quoted(":there_is_no_such_atom", existing_atoms_only: true) ==
                {:error,
                 {[line: 1, column: 1], "unsafe atom does not exist: ", "there_is_no_such_atom"}}
+
+      assert Code.string_to_quoted("~UNKNOWN'foo bar'", existing_atoms_only: true) ==
+               {:error, {[line: 1, column: 1], "unsafe atom does not exist: ", "sigil_UNKNOWN"}}
     end
 
     test "encodes atoms" do
@@ -228,6 +231,20 @@ defmodule Kernel.ParserTest do
                )
     end
 
+    test "encodes multi-letter sigils" do
+      ref = make_ref()
+
+      encoder = fn atom, meta ->
+        assert atom == "sigil_UNKNOWN"
+        assert meta[:line] == 1
+        assert meta[:column] == 1
+        {:ok, ref}
+      end
+
+      assert {:ok, {^ref, [delimiter: "'", line: 1], [{:<<>>, [line: 1], ["abc"]}, []]}} =
+               Code.string_to_quoted("~UNKNOWN'abc'", static_atoms_encoder: encoder)
+    end
+
     test "addresses ambiguities" do
       encoder = fn string, _meta -> {:ok, {:atom, string}} end
 
@@ -254,6 +271,16 @@ defmodule Kernel.ParserTest do
                Code.string_to_quoted("[do: 1, true: 2, end: 3]", static_atoms_encoder: encoder)
     end
 
+    test "does not encode one-letter sigils" do
+      encoder = fn atom, _meta -> raise "shouldn't be invoked for #{atom}" end
+
+      assert {:ok, {:sigil_z, [{:delimiter, "'"}, {:line, 1}], [{:<<>>, [line: 1], ["foo"]}, []]}} =
+               Code.string_to_quoted("~z'foo'", static_atoms_encoder: encoder)
+
+      assert {:ok, {:sigil_Z, [{:delimiter, "'"}, {:line, 1}], [{:<<>>, [line: 1], ["foo"]}, []]}} =
+               Code.string_to_quoted("~Z'foo'", static_atoms_encoder: encoder)
+    end
+
     test "returns errors on long atoms even when using static_atoms_encoder" do
       atom = String.duplicate("a", 256)
 
@@ -271,6 +298,9 @@ defmodule Kernel.ParserTest do
 
       assert {:error, {[line: 1, column: 1], "Invalid atom name: ", "there_is_no_such_atom"}} =
                Code.string_to_quoted(":there_is_no_such_atom", static_atoms_encoder: encoder)
+
+      assert {:error, {[line: 1, column: 1], "Invalid atom name: ", "sigil_UNKNOWN"}} =
+               Code.string_to_quoted("~UNKNOWN'foo bar'", static_atoms_encoder: encoder)
     end
 
     test "may return tuples" do

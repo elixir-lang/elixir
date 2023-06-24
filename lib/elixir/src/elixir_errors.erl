@@ -248,7 +248,7 @@ parse_error(Location, File, <<"syntax error before: ">>, Keyword, Input)
 
 %% Produce a human-readable message for errors before a sigil
 parse_error(Location, File, <<"syntax error before: ">>, <<"{sigil,", _Rest/binary>> = Full, Input) ->
-  {sigil, _, Sigil, [Content | _], _, _, _} = parse_erl_term(Full),
+  {sigil, _, Sigil, _Atom, [Content | _], _, _, _} = parse_erl_term(Full),
   Content2 = case is_binary(Content) of
     true -> Content;
     false -> <<>>

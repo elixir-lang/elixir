@@ -1594,11 +1594,22 @@ tokenize_sigil_contents([], _SigilName, Line, Column, Scope, Tokens) ->
   tokenize([], Line, Column, Scope, Tokens).
 
 add_sigil_token(SigilName, Line, Column, NewLine, NewColumn, Parts, Rest, Scope, Tokens, Indentation, Delimiter) ->
-  {Final, Modifiers} = collect_modifiers(Rest, []),
   TokenColumn = Column - 1 - length(SigilName),
-  Token = {sigil, {Line, TokenColumn, nil}, SigilName, Parts, Modifiers, Indentation, Delimiter},
-  NewColumnWithModifiers = NewColumn + length(Modifiers),
-  tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]).
+  MaybeEncoded = case SigilName of
+    % Single-letter sigils present no risk of atom exhaustion (limited possibilities)
+    [_Char] -> {ok, list_to_atom("sigil_" ++ SigilName)};
+    _ -> unsafe_to_atom("sigil_" ++ SigilName, Line, TokenColumn, Scope)
+  end,
+  case MaybeEncoded of
+    {ok, Atom} ->
+      {Final, Modifiers} = collect_modifiers(Rest, []),
+      Token = {sigil, {Line, TokenColumn, nil}, SigilName, Atom, Parts, Modifiers, Indentation, Delimiter},
+      NewColumnWithModifiers = NewColumn + length(Modifiers),
+      tokenize(Final, NewLine, NewColumnWithModifiers, Scope, [Token | Tokens]);
+
+    {error, Reason} ->
+      error(Reason, Rest, Scope, Tokens)
+  end.
 
 %% Fail early on invalid do syntax. For example, after
 %% most keywords, after comma and so on.
