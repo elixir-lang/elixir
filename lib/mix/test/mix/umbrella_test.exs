@@ -457,8 +457,7 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.clear()
 
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Process.flag(:trap_exit, true)
-          catch_exit(Mix.Task.run("compile", ["--verbose"]))
+          assert {:error, _} = Mix.Task.run("compile", ["--verbose", "--return-errors"])
         end)
       end)
     end)
