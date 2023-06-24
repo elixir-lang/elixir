@@ -99,7 +99,7 @@ defmodule IEx.Helpers do
       reenable_tasks(config)
 
       force? = Keyword.get(options, :force, false)
-      args = ["--purge-consolidation-path-if-stale", consolidation]
+      args = ["--purge-consolidation-path-if-stale", "--return-errors", consolidation]
       args = if force?, do: ["--force" | args], else: args
 
       {result, _} = Mix.Task.run("compile", args)
