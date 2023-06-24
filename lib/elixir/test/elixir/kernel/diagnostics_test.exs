@@ -14,12 +14,12 @@ defmodule Kernel.DiagnosticsTest do
     test "SyntaxError (snippet)" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:17:
-         ┌─ error: nofile:1:17
-         │
-       1 │ [1, 2, 3, 4, 5, *]
-         │                 ^
-         │
-         syntax error before: '*'
+          ┌─ error: nofile:1:17
+          │
+        1 │ [1, 2, 3, 4, 5, *]
+          │                 ^
+          │
+          syntax error before: '*'
       """
 
       output =
@@ -36,12 +36,12 @@ defmodule Kernel.DiagnosticsTest do
     test "TokenMissingError (snippet)" do
       expected = """
       ** (TokenMissingError) token missing on nofile:1:4:
-         ┌─ error: nofile:1:4
-         │
-       1 │ 1 +
-         │    ^
-         │
-         syntax error: expression is incomplete
+          ┌─ error: nofile:1:4
+          │
+        1 │ 1 +
+          │    ^
+          │
+          syntax error: expression is incomplete
       """
 
       output =
@@ -76,12 +76,12 @@ defmodule Kernel.DiagnosticsTest do
     test "keeps trailing whitespace if under threshold" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:23:
-         ┌─ error: nofile:1:23
-         │
-       1 │                   a + 😎
-         │                       ^
-         │
-         unexpected token: "😎" (column 23, code point U+****)
+          ┌─ error: nofile:1:23
+          │
+        1 │                   a + 😎
+          │                       ^
+          │
+          unexpected token: "😎" (column 23, code point U+****)
       """
 
       output =
@@ -98,12 +98,12 @@ defmodule Kernel.DiagnosticsTest do
     test "limits trailing whitespace if too many" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:43:
-         ┌─ error: nofile:1:43
-         │
-       1 │ ...                   a + 😎
-         │                           ^
-         │
-         unexpected token: "😎" (column 43, code point U+****)
+          ┌─ error: nofile:1:43
+          │
+        1 │ ...                   a + 😎
+          │                           ^
+          │
+          unexpected token: "😎" (column 43, code point U+****)
       """
 
       output =
@@ -125,12 +125,12 @@ defmodule Kernel.DiagnosticsTest do
 
       expected = """
       ** (TokenMissingError) token missing on nofile:1:4:
-         ┌─ error: nofile:1:4
-         │
-       1 │ 1 -
-         │    ^
-         │
-         syntax error: expression is incomplete
+          ┌─ error: nofile:1:4
+          │
+        1 │ 1 -
+          │    ^
+          │
+          syntax error: expression is incomplete
 
           nofile:10: :fake.fun/3
           nofile:10: :real.fun/2
@@ -139,6 +139,36 @@ defmodule Kernel.DiagnosticsTest do
       output =
         capture_raise(
           """
+          1 -
+          """,
+          TokenMissingError,
+          fake_stacktrace
+        )
+
+      assert output == expected
+    end
+
+    test "2-digit line errors stay aligned with stacktrace" do
+      fake_stacktrace = [
+        {:fake, :fun, 3, [file: "nofile", line: 10]}
+      ]
+
+      expected = """
+      ** (TokenMissingError) token missing on nofile:12:4:
+          ┌─ error: nofile:12:4
+          │
+       12 │ 1 -
+          │    ^
+          │
+          syntax error: expression is incomplete
+
+          nofile:10: :fake.fun/3
+      """
+
+      output =
+        capture_raise(
+          """
+          #{String.duplicate("\n", 10)}
           1 -
           """,
           TokenMissingError,
