@@ -322,6 +322,7 @@ defmodule Module.ParallelChecker do
     %{position: position, file: file, stacktrace: s} = first_diagnostic
 
     snippet = :elixir_errors.get_snippet(file, position)
+
     formatted_snippet =
       :elixir_errors.format_snippet(file, position, message, snippet, :warning, s)
 
