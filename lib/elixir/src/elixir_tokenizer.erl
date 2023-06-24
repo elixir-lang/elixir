@@ -1419,7 +1419,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, StartLine, _} | Termin
     ExpectedEnd ->
       Suffix =
         io_lib:format(
-          "\n\n    HINT: the \"~ts\" on line ~B is missing terminator \"~ts\"\n",
+          "\n\n    HINT: the \"~ts\" on line ~B is missing terminator \"~ts\"",
           [Start, StartLine, ExpectedEnd]
         ),
       {error, {EndLine, EndColumn, {unexpected_token_or_reserved(End), Suffix}, [atom_to_list(End)]}}
@@ -1430,7 +1430,7 @@ check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hint
     case lists:keyfind('end', 1, Hints) of
       {'end', HintLine, _Identation} ->
         io_lib:format("\n\n    HINT: the \"end\" on line ~B may not have a matching \"do\" "
-                      "defined before it (based on indentation)\n", [HintLine]);
+                      "defined before it (based on indentation)", [HintLine]);
       false ->
         ""
     end,
@@ -1450,7 +1450,7 @@ unexpected_token_or_reserved(_) -> "unexpected token: ".
 missing_terminator_hint(Start, End, #elixir_tokenizer{mismatch_hints=Hints}) ->
   case lists:keyfind(Start, 1, Hints) of
     {Start, HintLine, _} ->
-      io_lib:format("\n\n    HINT: it looks like the \"~ts\" on line ~B does not have a matching \"~ts\"\n",
+      io_lib:format("\n\n    HINT: it looks like the \"~ts\" on line ~B does not have a matching \"~ts\"",
                     [Start, HintLine, End]);
     false ->
       ""
