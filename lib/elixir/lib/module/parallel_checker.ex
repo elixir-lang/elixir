@@ -318,47 +318,29 @@ defmodule Module.ParallelChecker do
     :elixir_errors.print_warning(message, diagnostic)
   end
 
-  defp print_warning(message, [first_diagnostic | rest]) do
-    %{position: position, file: file, stacktrace: s} = first_diagnostic
+  defp print_warning(message, [diagnostic | rest]) do
+    total_locations = length(rest)
 
-    snippet = :elixir_errors.get_snippet(file, position)
+    locations =
+      rest
+      |> Enum.with_index(1)
+      |> Enum.map(fn {%{stacktrace: [s]}, i} ->
+        if i == total_locations do
+          ["  ", Exception.format_stacktrace_entry(s)]
+        else
+          ["  ", Exception.format_stacktrace_entry(s), ?\n]
+        end
+      end)
 
-    formatted_snippet =
-      :elixir_errors.format_snippet(file, position, message, snippet, :warning, s)
+    locations_plural = (total_locations == 1 && "location") || "locations"
 
-    line =
-      case position do
-        {line, _} -> line
-        line -> line
-      end
-
-    line_digits = :elixir_errors.get_line_number_digits(line, 1)
-
-    # Match indentation with the formatted warning
-    # When we have the line available, we add 4 spaces, else 2
-    stacktrace_padding =
-      if File.regular?(file) do
-        line_digits + 4
-      else
-        line_digits + 2
-      end
-
-    warn_locations =
-      for diagnostic <- rest do
-        %{stacktrace: [s]} = diagnostic
-        String.duplicate(" ", stacktrace_padding) <> Exception.format_stacktrace_entry(s) <> "\n"
-      end
-
-    locations_plural = (length(warn_locations) == 1 && "location") || "locations"
-
-    msg =
-      formatted_snippet <>
-        "\n\n" <>
-        String.duplicate(" ", stacktrace_padding - 2) <>
-        "Invalid call also found at #{length(warn_locations)} other #{locations_plural}:\n" <>
-        :erlang.list_to_binary(warn_locations)
-
-    IO.puts(:stderr, msg)
+    [
+      message,
+      "\n\nInvalid call also found at #{total_locations} other #{locations_plural}:\n",
+      locations
+    ]
+    |> IO.iodata_to_binary()
+    |> :elixir_errors.print_warning(diagnostic)
   end
 
   defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do

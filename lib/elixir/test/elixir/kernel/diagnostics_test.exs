@@ -409,7 +409,7 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
        ┌─ warning: nofile:3:6: Sample.a/0
        A.bar/0 is undefined or private
-
+       
        Invalid call also found at 3 other locations:
          nofile:4:6: Sample.a/0
          nofile:5:6: Sample.a/0
@@ -448,7 +448,7 @@ defmodule Kernel.DiagnosticsTest do
          │      ~
          │
          A.bar/0 is undefined or private
-
+         
          Invalid call also found at 3 other locations:
            #{path}:6:6: Sample.a/0
            #{path}:7:6: Sample.a/0
@@ -487,7 +487,7 @@ defmodule Kernel.DiagnosticsTest do
          │     ~~~~~~~
          │
          A.bar/0 is undefined or private
-
+         
          Invalid call also found at 3 other locations:
            #{path}:6: Sample.a/0
            #{path}:7: Sample.a/0

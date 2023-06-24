@@ -8,8 +8,6 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([format_snippet/6]).
 -export([erl_warn/3, file_warn/4]).
--export([get_line_number_digits/2]).
--export([get_snippet/2]).
 -export([print_diagnostic/1, emit_diagnostic/5]).
 -export([print_warning/2, print_warning/3]).
 -include("elixir.hrl").
