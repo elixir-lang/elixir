@@ -1425,7 +1425,16 @@ defmodule Mix.Tasks.Release do
 
   defp cli_for(:windows, release) do
     {"env.bat", &env_bat_template(release: &1),
-     [{"#{release.name}.bat", cli_bat_template(release: release)}]}
+     [{"#{release.name}.bat", cli_bat_template(release: release) |> maybe_replace_werl()}]}
+  end
+
+  defp maybe_replace_werl(contents) do
+    # TODO: Remove me when we require Erlang/OTP 26+
+    if :erlang.system_info(:otp_release) >= ~c"26" do
+      String.replace(contents, "--werl", "")
+    else
+      contents
+    end
   end
 
   defp elixir_cli_for(:unix, release) do
