@@ -319,9 +319,11 @@ defmodule Module.ParallelChecker do
   end
 
   defp print_warning(message, [first_diagnostic | rest]) do
-    :elixir_errors.print_warning(message, first_diagnostic)
+    %{position: position, file: file, stacktrace: s} = first_diagnostic
 
-    %{position: position, file: file} = first_diagnostic
+    snippet = :elixir_errors.get_snippet(file, position)
+    formatted_snippet =
+      :elixir_errors.format_snippet(file, position, message, snippet, :warning, s)
 
     line =
       case position do
@@ -348,12 +350,14 @@ defmodule Module.ParallelChecker do
 
     locations_plural = (length(warn_locations) == 1 && "location") || "locations"
 
-    rest =
-      String.duplicate(" ", stacktrace_padding - 2) <>
+    msg =
+      formatted_snippet <>
+        "\n\n" <>
+        String.duplicate(" ", stacktrace_padding - 2) <>
         "Invalid call also found at #{length(warn_locations)} other #{locations_plural}:\n" <>
         :erlang.list_to_binary(warn_locations)
 
-    IO.puts(:stderr, rest)
+    IO.puts(:stderr, msg)
   end
 
   defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do
