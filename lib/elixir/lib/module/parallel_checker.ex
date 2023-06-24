@@ -332,7 +332,7 @@ defmodule Module.ParallelChecker do
         end
       end)
 
-    locations_plural = (total_locations == 1 && "location") || "locations"
+    locations_plural = if total_locations == 1, do: "location", else: "locations"
 
     [
       message,
