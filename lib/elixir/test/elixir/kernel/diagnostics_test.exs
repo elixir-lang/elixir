@@ -173,19 +173,19 @@ defmodule Kernel.DiagnosticsTest do
       source = """
       defmodule Sample do
         @file "#{path}"
-        defp a, do: A.b()
+        defp a, do: Unknown.b()
       end
       """
 
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:3:16: Sample.a/0
+         ┌─ warning: #{path}:3:22: Sample.a/0
          │
-       3 │   defp a, do: A.b()
-         │                ~
+       3 │   defp a, do: Unknown.b()
+         │                      ~
          │
-         A.b/0 is undefined or private
+         Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
 
       """
 
@@ -201,7 +201,7 @@ defmodule Kernel.DiagnosticsTest do
       source = """
       defmodule Sample do
         @file "#{path}"
-        defp a, do: A.b()
+        defp a, do: Unknown.b()
       end
       """
 
@@ -210,10 +210,10 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
          ┌─ warning: #{path}:3: Sample.a/0
          │
-       3 │   defp a, do: A.b()
-         │   ~~~~~~~~~~~~~~~~~
+       3 │   defp a, do: Unknown.b()
+         │   ~~~~~~~~~~~~~~~~~~~~~~~
          │
-         A.b/0 is undefined or private
+         Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
 
       """
 
@@ -225,13 +225,13 @@ defmodule Kernel.DiagnosticsTest do
     test "simple warning (no file)" do
       source = """
       defmodule Sample do
-        defp a, do: A.b()
+        defp a, do: Unknown.b()
       end
       """
 
       expected = """
-       ┌─ warning: nofile:2:16: Sample.a/0
-       A.b/0 is undefined or private
+       ┌─ warning: nofile:2:22: Sample.a/0
+       Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
 
       """
 
@@ -348,7 +348,7 @@ defmodule Kernel.DiagnosticsTest do
         @file "#{path}"
 
         def a do
-                                                  A.bar(:test)
+                                                  Unknown.bar(:test)
         end
       end
       """
@@ -356,12 +356,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:5:46: Sample.a/0
+         ┌─ warning: #{path}:5:52: Sample.a/0
          │
-       5 │ ...                   A.bar(:test)
-         │                        ~
+       5 │ ...                   Unknown.bar(:test)
+         │                              ~
          │
-         A.bar/1 is undefined or private
+         Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined)
 
       """
 
@@ -379,8 +379,8 @@ defmodule Kernel.DiagnosticsTest do
         @file "#{path}"
 
         def a do
-          A.bar("😎")
-          A.bar("😎")
+          Unknown.bar("😎")
+          Unknown.bar("😎")
         end
       end
       """
@@ -398,22 +398,22 @@ defmodule Kernel.DiagnosticsTest do
       source = """
       defmodule Sample do
         def a do
-          A.bar()
-          A.bar()
-          A.bar()
-          A.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
         end
       end
       """
 
       expected = """
-       ┌─ warning: nofile:3:6: Sample.a/0
-       A.bar/0 is undefined or private
+       ┌─ warning: nofile:3:12: Sample.a/0
+       Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
        
        Invalid call also found at 3 other locations:
-         nofile:4:6: Sample.a/0
-         nofile:5:6: Sample.a/0
-         nofile:6:6: Sample.a/0
+         nofile:4:12: Sample.a/0
+         nofile:5:12: Sample.a/0
+         nofile:6:12: Sample.a/0
 
       """
 
@@ -431,10 +431,10 @@ defmodule Kernel.DiagnosticsTest do
         @file "#{path}"
 
         def a do
-          A.bar()
-          A.bar()
-          A.bar()
-          A.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
         end
       end
       """
@@ -442,17 +442,17 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:5:6: Sample.a/0
+         ┌─ warning: #{path}:5:12: Sample.a/0
          │
-       5 │     A.bar()
-         │      ~
+       5 │     Unknown.bar()
+         │            ~
          │
-         A.bar/0 is undefined or private
+         Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
          
          Invalid call also found at 3 other locations:
-           #{path}:6:6: Sample.a/0
-           #{path}:7:6: Sample.a/0
-           #{path}:8:6: Sample.a/0
+           #{path}:6:12: Sample.a/0
+           #{path}:7:12: Sample.a/0
+           #{path}:8:12: Sample.a/0
 
       """
 
@@ -470,10 +470,10 @@ defmodule Kernel.DiagnosticsTest do
         @file "#{path}"
 
         def a do
-          A.bar()
-          A.bar()
-          A.bar()
-          A.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
         end
       end
       """
@@ -483,10 +483,10 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
          ┌─ warning: #{path}:5: Sample.a/0
          │
-       5 │     A.bar()
-         │     ~~~~~~~
+       5 │     Unknown.bar()
+         │     ~~~~~~~~~~~~~
          │
-         A.bar/0 is undefined or private
+         Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
          
          Invalid call also found at 3 other locations:
            #{path}:6: Sample.a/0
