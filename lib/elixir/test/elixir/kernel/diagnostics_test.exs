@@ -3,6 +3,8 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.DiagnosticsTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureIO
+
   setup do
     Application.put_env(:elixir, :ansi_enabled, false)
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
@@ -161,6 +163,356 @@ defmodule Kernel.DiagnosticsTest do
     after
       purge(Sample)
     end
+  end
+
+  describe "compiler warnings" do
+    @tag :tmp_dir
+    test "simple warning (line + column + file)", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "long-warning.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+        defp a, do: Unknown.b()
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:3:22: Sample.a/0
+         │
+       3 │   defp a, do: Unknown.b()
+         │                      ~
+         │
+         Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "simple warning (line + file)", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "long-warning.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+        defp a, do: Unknown.b()
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:3: Sample.a/0
+         │
+       3 │   defp a, do: Unknown.b()
+         │   ~~~~~~~~~~~~~~~~~~~~~~~
+         │
+         Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+
+      """
+
+      assert capture_eval(source, false) =~ expected
+    after
+      purge(Sample)
+    end
+
+    test "simple warning (no file)" do
+      source = """
+      defmodule Sample do
+        defp a, do: Unknown.b()
+      end
+      """
+
+      expected = """
+       ┌─ warning: nofile:2:22: Sample.a/0
+       Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "long message (file)", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "long-warning.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def atom_case do
+          v = "bc"
+
+          case v do
+            _ when is_atom(v) -> :ok
+            _ -> :fail
+          end
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:8:14: Sample.atom_case/0
+         │
+       8 │       _ when is_atom(v) -> :ok
+         │              ~
+         │
+         incompatible types:
+         
+             binary() !~ atom()
+         
+         in expression:
+         
+             # #{path}:8
+             is_atom(v)
+         
+         where "v" was given the type binary() in:
+         
+             # #{path}:5
+             v = "bc"
+         
+         where "v" was given the type atom() in:
+         
+             # #{path}:8
+             is_atom(v)
+         
+         Conflict found at
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    test "long message (nofile)" do
+      source = """
+      defmodule Sample do
+        def atom_case do
+          v = "bc"
+
+          case v do
+            _ when is_atom(v) -> :ok
+            _ -> :fail
+          end
+        end
+      end
+      """
+
+      expected = """
+       ┌─ warning: nofile:6:14: Sample.atom_case/0
+       incompatible types:
+       
+           binary() !~ atom()
+       
+       in expression:
+       
+           # nofile:6
+           is_atom(v)
+       
+       where "v" was given the type binary() in:
+       
+           # nofile:3
+           v = "bc"
+       
+       where "v" was given the type atom() in:
+       
+           # nofile:6
+           is_atom(v)
+       
+       Conflict found at
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "trims lines if too many whitespaces", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "trim_warning_line.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def a do
+                                                  Unknown.bar(:test)
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:5:52: Sample.a/0
+         │
+       5 │ ...                   Unknown.bar(:test)
+         │                              ~
+         │
+         Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined)
+
+      """
+
+      assert capture_eval(source) == expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "handles unicode", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "warning_group_unicode.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def a do
+          Unknown.bar("😎")
+          Unknown.bar("😎")
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      assert capture_eval(source) =~ "😎"
+    after
+      purge(Sample)
+    end
+  end
+
+  describe "warning groups" do
+    test "no file" do
+      source = """
+      defmodule Sample do
+        def a do
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+        end
+      end
+      """
+
+      expected = """
+       ┌─ warning: nofile:3:12: Sample.a/0
+       Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+       
+       Invalid call also found at 3 other locations:
+         nofile:4:12: Sample.a/0
+         nofile:5:12: Sample.a/0
+         nofile:6:12: Sample.a/0
+
+      """
+
+      assert capture_eval(source) =~ expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "file + line + column", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "warning_group_nofile.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def a do
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:5:12: Sample.a/0
+         │
+       5 │     Unknown.bar()
+         │            ~
+         │
+         Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+         
+         Invalid call also found at 3 other locations:
+           #{path}:6:12: Sample.a/0
+           #{path}:7:12: Sample.a/0
+           #{path}:8:12: Sample.a/0
+
+      """
+
+      assert capture_eval(source) == expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "file + line", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "warning_group_nofile.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def a do
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+          Unknown.bar()
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+         ┌─ warning: #{path}:5: Sample.a/0
+         │
+       5 │     Unknown.bar()
+         │     ~~~~~~~~~~~~~
+         │
+         Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+         
+         Invalid call also found at 3 other locations:
+           #{path}:6: Sample.a/0
+           #{path}:7: Sample.a/0
+           #{path}:8: Sample.a/0
+
+      """
+
+      assert capture_eval(source, false) == expected
+    after
+      purge(Sample)
+    end
+  end
+
+  defp make_relative_tmp(tmp_dir, filename) do
+    # Compiler outputs relative, so we just grab the tmp dir
+    tmp_dir
+    |> Path.join(filename)
+    |> Path.relative_to_cwd()
+  end
+
+  defp capture_eval(source, columns? \\ true) do
+    capture_io(:stderr, fn ->
+      quoted = Code.string_to_quoted!(source, columns: columns?)
+      Code.eval_quoted(quoted)
+    end)
   end
 
   defp capture_raise(source, exception, mock_stacktrace \\ []) do

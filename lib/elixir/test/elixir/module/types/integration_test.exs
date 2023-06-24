@@ -284,20 +284,18 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)
-      Invalid call found at 2 locations:
-        a.ex:8: A.d/0
-        external_source.ex:5: A.b/0
+      warnings = [
+        "A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)",
+        "a.ex:8: A.d/0",
+        "Invalid call also found at 1 other location:",
+        "external_source.ex:5: A.b/0",
+        "A.no_func/0 is undefined or private",
+        "Invalid call also found at 1 other location:",
+        "a.ex:2: A.a/0",
+        "a.ex:7: A.c/0"
+      ]
 
-      warning: A.no_func/0 is undefined or private
-      Invalid call found at 2 locations:
-        a.ex:2: A.a/0
-        a.ex:7: A.c/0
-
-      """
-
-      assert_warnings(files, warning)
+      assert_warnings(files, warnings)
     end
 
     test "protocols are checked, ignoring missing built-in impls" do
@@ -641,19 +639,14 @@ defmodule Module.Types.IntegrationTest do
       }
 
       warnings = [
-        """
-        warning: A.__struct__/0 is deprecated. oops
-        Invalid call found at 2 locations:
-          a.ex:4: A.match/1
-          a.ex:5: A.build/1
-        """,
-        """
-        warning: A.__struct__/0 is deprecated. oops
-        Invalid call found at 2 locations:
-          b.ex:2: B.match/1
-          b.ex:3: B.build/1
-
-        """
+        "A.__struct__/0 is deprecated. oops",
+        "a.ex:4: A.match/1",
+        "Invalid call also found at 1 other location:",
+        "a.ex:5: A.build/1",
+        "A.__struct__/0 is deprecated. oops",
+        "b.ex:2: B.match/1",
+        "Invalid call also found at 1 other location:",
+        "b.ex:3: B.build/1"
       ]
 
       assert_warnings(files, warnings)
