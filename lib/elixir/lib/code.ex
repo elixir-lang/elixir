@@ -1136,7 +1136,10 @@ defmodule Code do
     * syntax keywords (`fn`, `do`, `else`, and so on)
 
     * atoms containing interpolation (`:"#{1 + 1} is two"`), as these
-      atoms are constructed at runtime.
+      atoms are constructed at runtime
+
+    * atoms used to represent single-letter sigils like `:sigil_X`
+      (but multi-letter sigils like `:sigil_XYZ` are encoded).
 
   """
   @spec string_to_quoted(List.Chars.t(), keyword) ::
