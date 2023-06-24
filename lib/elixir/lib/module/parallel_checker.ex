@@ -330,7 +330,7 @@ defmodule Module.ParallelChecker do
 
     [
       message,
-      "\n\nInvalid call also found at #{total_locations} other #{locations_plural}:",
+      "\n\nSimilar warning found at #{total_locations} other #{locations_plural}:",
       locations
     ]
     |> IO.iodata_to_binary()
