@@ -205,4 +205,39 @@ defmodule FloatTest do
                 202_402_253_307_310_618_352_495_346_718_917_307_049_556_649_764_142_118_356_901_358_027_430_339_567_995_346_891_960_383_701_437_124_495_187_077_864_316_811_911_389_808_737_385_793_476_867_013_399_940_738_509_921_517_424_276_566_361_364_466_907_742_093_216_341_239_767_678_472_745_068_562_007_483_424_692_698_618_103_355_649_159_556_340_810_056_512_358_769_552_333_414_615_230_502_532_186_327_508_646_006_263_307_707_741_093_494_784}
     end
   end
+
+  describe "mod/2" do
+    test "with integers" do
+      assert Float.mod(6, 3) == 0
+      assert Float.mod(8, 2) == 0
+      assert Float.mod(7, 4) == 3
+      assert Float.mod(1, 8) == 1
+      assert Float.mod(9, 4) == 1
+
+      assert Float.mod(2, -4) == -2
+      assert Float.mod(-8, 3) == 1
+      assert Float.mod(13, 2) == 1
+      assert Float.mod(-1, 4) == 3
+      assert Float.mod(3, 2) == 1
+      assert Float.mod(7, 5) == 2
+      assert Float.mod(-12, -5) == -2
+      assert Float.mod(-17, -3) == -2
+    end
+
+    test "with mixed floats and integers" do
+      assert Float.mod(6, 3.3) == 2.7
+      assert Float.mod(8.5, 2) == 0.5
+      assert Float.mod(7.5, 4.5) == 3
+
+      assert Float.mod(5.3, -4.5) == -3.7
+      assert Float.mod(7.5, 4.5) == 3
+      assert Float.mod(-4.44, 2.22) == 0
+      assert Float.mod(2.4, 8) == 2.4
+      assert Float.mod(-1.2, -2) == -1.2
+
+      assert_raise ArithmeticError, "bad argument in arithmetic expression", fn ->
+        Float.mod(1, 0)
+      end
+    end
+  end
 end

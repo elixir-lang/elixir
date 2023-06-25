@@ -601,6 +601,23 @@ defmodule Float do
     IO.iodata_to_binary(:io_lib_format.fwrite_g(float))
   end
 
+  @doc """
+  Computes the modulo of a float division.
+
+  Raises an `ArithmeticError` exception when the `divisor` is `0`.
+
+  ## Examples
+
+      iex> Float.mod(6.0, 3.3)
+      2.7
+      iex> Float.mod(8.5, 2)
+      0.5
+  """
+  @spec mod(integer | float, neg_integer | pos_integer | float) :: float
+  def mod(dividend, divisor) do
+    dividend - divisor * :math.floor(dividend / divisor)
+  end
+
   @doc false
   @deprecated "Use Float.to_charlist/1 instead"
   def to_char_list(float), do: Float.to_charlist(float)
