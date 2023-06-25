@@ -34,7 +34,16 @@ get_snippet(File, Position) ->
     false -> nil
   end.
 
-print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stacktrace} = Diagnostic) ->
+print_diagnostic(Diagnostic) ->
+  fancy_diagnostic_printer(Diagnostic).
+
+fancy_diagnostic_printer(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic) ->
+  Snippet = get_snippet(F, P),
+  Output = format_snippet(F, P, M, Snippet, Severity, Stacktrace),
+  io:put_chars(standard_error, [Output, $\n, $\n]),
+  Diagnostic.
+
+std_diagnostic_printer(#{severity := Severity, message := Message, stacktrace := Stacktrace} = Diagnostic) ->
   Location =
     case (Stacktrace =:= []) orelse elixir_config:is_bootstrap() of
       true ->
