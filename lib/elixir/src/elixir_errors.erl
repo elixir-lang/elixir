@@ -91,7 +91,7 @@ get_file_line(File, LineNumber) ->
   ok = file:close(IoDevice),
   NoNewline.
 
-do_get_file_line(IoDevice, LN) when LN =< 1 ->
+do_get_file_line(IoDevice, 1) ->
   Line = io:get_line(IoDevice, ""),
   unicode:characters_to_binary(Line);
 do_get_file_line(IoDevice, N) ->
