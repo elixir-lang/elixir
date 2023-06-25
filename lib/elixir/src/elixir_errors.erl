@@ -86,19 +86,17 @@ extract_column(_) -> nil.
 
 get_file_line(File, LineNumber) ->
   {ok, IoDevice} = file:open(File, [read, {encoding, unicode}]),
-  LineCollector = fun
-                    (I, seek) when I == LineNumber - 1 ->
-                      io:get_line(IoDevice, "");
-                    (_, seek) ->
-                      io:get_line(IoDevice, ""),
-                      seek;
-                    (_, Line) ->
-                      unicode:characters_to_binary(Line)
-                  end,
-  Line = lists:foldl(LineCollector, seek, lists:seq(0, LineNumber)),
+  Line = do_get_file_line(IoDevice, LineNumber),
   NoNewline = binary:replace(Line, <<"\n">>, <<>>),
   ok = file:close(IoDevice),
   NoNewline.
+
+do_get_file_line(IoDevice, 1) ->
+  Line = io:get_line(IoDevice, ""),
+  unicode:characters_to_binary(Line);
+do_get_file_line(IoDevice, N) ->
+  io:get_line(IoDevice, ""),
+  do_get_file_line(IoDevice, N -1).
 
 %% Format snippets
 %% "Snippet" here refers to the source code line where the diagnostic/error occured
