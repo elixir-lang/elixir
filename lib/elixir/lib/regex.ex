@@ -512,7 +512,8 @@ defmodule Regex do
 
     * `:on` - specifies which captures to split the string on, and in what
       order. Defaults to `:first` which means captures inside the regex do not
-      affect the splitting process.
+      affect the splitting process. Check the moduledoc for `Regex`
+      to see the possible capture values.
 
     * `:include_captures` - when `true`, includes in the result the matches of
       the regular expression. The matches are not counted towards the maximum
