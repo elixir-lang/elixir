@@ -170,7 +170,11 @@ trim_line(Rest, Count) -> {Rest, Count}.
 format_message(Message, NDigits, PaddingSize) ->
   Padding = list_to_binary([$\n, n_spaces(NDigits + PaddingSize)]),
   Bin = unicode:characters_to_binary(Message),
-  binary:replace(Bin, <<"\n">>, Padding, [global]).
+  pad_line(binary:split(Bin, <<"\n">>, [global]), Padding).
+
+pad_line([Last], _Padding) -> [Last];
+pad_line([First, <<"">> | Rest], Padding) -> [First, "\n" | pad_line([<<"">> | Rest], Padding)];
+pad_line([First | Rest], Padding) -> [First, Padding | pad_line(Rest, Padding)].
 
 highlight_at_position(Column, Severity) ->
   Spacing = n_spaces(max(Column - 1, 0)),

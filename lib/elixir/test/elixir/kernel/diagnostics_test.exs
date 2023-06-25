@@ -19,7 +19,7 @@ defmodule Kernel.DiagnosticsTest do
         1 │ [1, 2, 3, 4, 5, *]
           │                 ^
           │
-          syntax error before: '*'
+          syntax error before: '*'\
       """
 
       output =
@@ -41,7 +41,7 @@ defmodule Kernel.DiagnosticsTest do
         1 │ 1 +
           │    ^
           │
-          syntax error: expression is incomplete
+          syntax error: expression is incomplete\
       """
 
       output =
@@ -59,7 +59,7 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
       ** (TokenMissingError) token missing on nofile:2:1:
           ┌─ error: nofile:2:1
-          missing terminator: end (for "fn" starting at line 1)
+          missing terminator: end (for "fn" starting at line 1)\
       """
 
       output =
@@ -81,7 +81,7 @@ defmodule Kernel.DiagnosticsTest do
         1 │                   a + 😎
           │                       ^
           │
-          unexpected token: "😎" (column 23, code point U+****)
+          unexpected token: "😎" (column 23, code point U+****)\
       """
 
       output =
@@ -103,7 +103,7 @@ defmodule Kernel.DiagnosticsTest do
         1 │ ...                   a + 😎
           │                           ^
           │
-          unexpected token: "😎" (column 43, code point U+****)
+          unexpected token: "😎" (column 43, code point U+****)\
       """
 
       output =
@@ -131,7 +131,6 @@ defmodule Kernel.DiagnosticsTest do
           │    ^
           │
           syntax error: expression is incomplete
-
           nofile:10: :fake.fun/3
           nofile:10: :real.fun/2
       """
@@ -161,7 +160,6 @@ defmodule Kernel.DiagnosticsTest do
           │    ^
           │
           syntax error: expression is incomplete
-
           nofile:10: :fake.fun/3
       """
 
@@ -216,7 +214,6 @@ defmodule Kernel.DiagnosticsTest do
           │                      ~
           │
           Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
-
       """
 
       assert capture_eval(source) =~ expected
@@ -244,7 +241,6 @@ defmodule Kernel.DiagnosticsTest do
           │   ~~~~~~~~~~~~~~~~~~~~~~~
           │
           Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
-
       """
 
       assert capture_eval(source, false) =~ expected
@@ -262,7 +258,6 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
        ┌─ warning: nofile:2:22: Sample.a/0
        Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
-
       """
 
       assert capture_eval(source) =~ expected
@@ -298,24 +293,24 @@ defmodule Kernel.DiagnosticsTest do
           │              ~
           │
           incompatible types:
-          
+
               binary() !~ atom()
-          
+
           in expression:
-          
+
               # #{path}:8
               is_atom(v)
-          
+
           where "v" was given the type binary() in:
-          
+
               # #{path}:5
               v = "bc"
-          
+
           where "v" was given the type atom() in:
-          
+
               # #{path}:8
               is_atom(v)
-          
+
           Conflict found at
 
       """
@@ -342,24 +337,24 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
        ┌─ warning: nofile:6:14: Sample.atom_case/0
        incompatible types:
-       
+
            binary() !~ atom()
-       
+
        in expression:
-       
+
            # nofile:6
            is_atom(v)
-       
+
        where "v" was given the type binary() in:
-       
+
            # nofile:3
            v = "bc"
-       
+
        where "v" was given the type atom() in:
-       
+
            # nofile:6
            is_atom(v)
-       
+
        Conflict found at
 
       """
@@ -439,7 +434,7 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
        ┌─ warning: nofile:3:12: Sample.a/0
        Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-       
+
        Similar warning found at 3 other locations:
          nofile:4:12: Sample.a/0
          nofile:5:12: Sample.a/0
@@ -478,7 +473,7 @@ defmodule Kernel.DiagnosticsTest do
           │            ~
           │
           Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-          
+
           Similar warning found at 3 other locations:
             #{path}:6:12: Sample.a/0
             #{path}:7:12: Sample.a/0
@@ -517,7 +512,7 @@ defmodule Kernel.DiagnosticsTest do
           │     ~~~~~~~~~~~~~
           │
           Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-          
+
           Similar warning found at 3 other locations:
             #{path}:6: Sample.a/0
             #{path}:7: Sample.a/0
