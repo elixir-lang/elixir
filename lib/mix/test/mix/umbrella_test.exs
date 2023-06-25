@@ -371,7 +371,7 @@ defmodule Mix.UmbrellaTest do
     end)
   end
 
-  test "recompiles when path dependencies change" do
+  test "recompiles when compile-time path dependencies change" do
     in_fixture("umbrella_dep/deps/umbrella/apps", fn ->
       Mix.Project.in_project(:bar, "bar", fn _ ->
         Mix.Task.run("compile", [])
@@ -385,7 +385,7 @@ defmodule Mix.UmbrellaTest do
 
         # Compile-time dependencies are recompiled
         File.write!("../foo/lib/foo.ex", File.read!("../foo/lib/foo.ex") <> "\n")
-        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/foo/.mix/compile.elixir")
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
 
         Mix.Task.clear()
         assert Mix.Task.run("compile", ["--verbose"]) == {:ok, []}
