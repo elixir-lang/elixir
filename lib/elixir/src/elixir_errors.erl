@@ -125,7 +125,8 @@ format_snippet(File, Position, Message, Snippet, Severity, Stacktrace) ->
                       end,
   LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber, 1),
-  Spacing = n_spaces(LineDigits + 1),
+  Spacing = n_spaces(max(2, LineDigits) + 1),
+  LineNumberSpacing = if LineDigits =:= 1 -> 1; true -> 0 end,
   {FormattedLine, ColumnsTrimmed} = format_line(Content),
   Location = format_location(Position, File, Stacktrace),
 
@@ -137,17 +138,17 @@ format_snippet(File, Position, Message, Snippet, Severity, Stacktrace) ->
   Formatted = io_lib:format(
     " ~ts┌─ ~ts~ts\n"
     " ~ts│\n"
-    " ~p │ ~ts\n"
+    " ~ts~p │ ~ts\n"
     " ~ts│ ~ts\n"
     " ~ts│\n"
     " ~ts~ts",
     [
      Spacing, prefix(Severity), Location,
      Spacing,
-     LineNumber, FormattedLine,
+     n_spaces(LineNumberSpacing), LineNumber, FormattedLine,
      Spacing, Highlight,
      Spacing,
-     Spacing, format_message(Message, LineDigits, 2)
+     Spacing, format_message(Message, LineDigits, 2 + LineNumberSpacing)
     ]),
 
   unicode:characters_to_binary(Formatted).
