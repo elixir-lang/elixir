@@ -5364,7 +5364,8 @@ defmodule Kernel do
   """
   defmacro defstruct(fields) do
     quote bind_quoted: [fields: fields, bootstrapped?: bootstrapped?(Enum)] do
-      {struct, derive, kv, body} = Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?)
+      {struct, derive, kv, body} =
+        Kernel.Utils.defstruct(__MODULE__, fields, bootstrapped?, __ENV__)
 
       case derive do
         [] -> :ok
