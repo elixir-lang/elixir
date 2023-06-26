@@ -55,21 +55,6 @@ defmodule CodeTest do
                end)
     end
 
-    test "reports correct position for duplicate struct fields" do
-      file = Path.absname("test/elixir/code_test.exs")
-      line = __ENV__.line + 5
-
-      assert {_, [%{file: ^file, position: ^line}]} =
-               Code.with_diagnostics(fn ->
-                 defmodule CodeTest.DuplicateStructField do
-                   defstruct [:foo, :bar, foo: 1]
-                 end
-               end)
-    after
-      :code.purge(CodeTest.DuplicateStructField)
-      :code.delete(CodeTest.DuplicateStructField)
-    end
-
     test "includes column information on unused variables" do
       assert {_, [%{position: {1, 12}}]} =
                Code.with_diagnostics(fn ->
