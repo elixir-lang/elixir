@@ -14,12 +14,12 @@ defmodule Kernel.DiagnosticsTest do
     test "SyntaxError (snippet)" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:17:
-         ┌─ error: nofile:1:17
-         │
-       1 │ [1, 2, 3, 4, 5, *]
-         │                 ^
-         │
-         syntax error before: '*'
+          ┌─ error: nofile:1:17
+          │
+        1 │ [1, 2, 3, 4, 5, *]
+          │                 ^
+          │
+          syntax error before: '*'\
       """
 
       output =
@@ -36,12 +36,12 @@ defmodule Kernel.DiagnosticsTest do
     test "TokenMissingError (snippet)" do
       expected = """
       ** (TokenMissingError) token missing on nofile:1:4:
-         ┌─ error: nofile:1:4
-         │
-       1 │ 1 +
-         │    ^
-         │
-         syntax error: expression is incomplete
+          ┌─ error: nofile:1:4
+          │
+        1 │ 1 +
+          │    ^
+          │
+          syntax error: expression is incomplete\
       """
 
       output =
@@ -59,7 +59,7 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
       ** (TokenMissingError) token missing on nofile:2:1:
           ┌─ error: nofile:2:1
-          missing terminator: end (for "fn" starting at line 1)
+          missing terminator: end (for "fn" starting at line 1)\
       """
 
       output =
@@ -76,12 +76,12 @@ defmodule Kernel.DiagnosticsTest do
     test "keeps trailing whitespace if under threshold" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:23:
-         ┌─ error: nofile:1:23
-         │
-       1 │                   a + 😎
-         │                       ^
-         │
-         unexpected token: "😎" (column 23, code point U+****)
+          ┌─ error: nofile:1:23
+          │
+        1 │                   a + 😎
+          │                       ^
+          │
+          unexpected token: "😎" (column 23, code point U+****)\
       """
 
       output =
@@ -98,12 +98,12 @@ defmodule Kernel.DiagnosticsTest do
     test "limits trailing whitespace if too many" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:43:
-         ┌─ error: nofile:1:43
-         │
-       1 │ ...                   a + 😎
-         │                           ^
-         │
-         unexpected token: "😎" (column 43, code point U+****)
+          ┌─ error: nofile:1:43
+          │
+        1 │ ...                   a + 😎
+          │                           ^
+          │
+          unexpected token: "😎" (column 43, code point U+****)\
       """
 
       output =
@@ -125,13 +125,12 @@ defmodule Kernel.DiagnosticsTest do
 
       expected = """
       ** (TokenMissingError) token missing on nofile:1:4:
-         ┌─ error: nofile:1:4
-         │
-       1 │ 1 -
-         │    ^
-         │
-         syntax error: expression is incomplete
-
+          ┌─ error: nofile:1:4
+          │
+        1 │ 1 -
+          │    ^
+          │
+          syntax error: expression is incomplete
           nofile:10: :fake.fun/3
           nofile:10: :real.fun/2
       """
@@ -139,6 +138,35 @@ defmodule Kernel.DiagnosticsTest do
       output =
         capture_raise(
           """
+          1 -
+          """,
+          TokenMissingError,
+          fake_stacktrace
+        )
+
+      assert output == expected
+    end
+
+    test "2-digit line errors stay aligned 1-digit line errors" do
+      fake_stacktrace = [
+        {:fake, :fun, 3, [file: "nofile", line: 10]}
+      ]
+
+      expected = """
+      ** (TokenMissingError) token missing on nofile:12:4:
+          ┌─ error: nofile:12:4
+          │
+       12 │ 1 -
+          │    ^
+          │
+          syntax error: expression is incomplete
+          nofile:10: :fake.fun/3
+      """
+
+      output =
+        capture_raise(
+          """
+          #{String.duplicate("\n", 10)}
           1 -
           """,
           TokenMissingError,
@@ -180,13 +208,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:3:22: Sample.a/0
-         │
-       3 │   defp a, do: Unknown.b()
-         │                      ~
-         │
-         Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
-
+          ┌─ warning: #{path}:3:22: Sample.a/0
+          │
+        3 │   defp a, do: Unknown.b()
+          │                      ~
+          │
+          Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
       """
 
       assert capture_eval(source) =~ expected
@@ -208,13 +235,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:3: Sample.a/0
-         │
-       3 │   defp a, do: Unknown.b()
-         │   ~~~~~~~~~~~~~~~~~~~~~~~
-         │
-         Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
-
+          ┌─ warning: #{path}:3: Sample.a/0
+          │
+        3 │   defp a, do: Unknown.b()
+          │   ~~~~~~~~~~~~~~~~~~~~~~~
+          │
+          Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
       """
 
       assert capture_eval(source, false) =~ expected
@@ -232,7 +258,6 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
        ┌─ warning: nofile:2:22: Sample.a/0
        Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
-
       """
 
       assert capture_eval(source) =~ expected
@@ -262,31 +287,31 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:8:14: Sample.atom_case/0
-         │
-       8 │       _ when is_atom(v) -> :ok
-         │              ~
-         │
-         incompatible types:
-         
-             binary() !~ atom()
-         
-         in expression:
-         
-             # #{path}:8
-             is_atom(v)
-         
-         where "v" was given the type binary() in:
-         
-             # #{path}:5
-             v = "bc"
-         
-         where "v" was given the type atom() in:
-         
-             # #{path}:8
-             is_atom(v)
-         
-         Conflict found at
+          ┌─ warning: #{path}:8:14: Sample.atom_case/0
+          │
+        8 │       _ when is_atom(v) -> :ok
+          │              ~
+          │
+          incompatible types:
+
+              binary() !~ atom()
+
+          in expression:
+
+              # #{path}:8
+              is_atom(v)
+
+          where "v" was given the type binary() in:
+
+              # #{path}:5
+              v = "bc"
+
+          where "v" was given the type atom() in:
+
+              # #{path}:8
+              is_atom(v)
+
+          Conflict found at
 
       """
 
@@ -312,24 +337,24 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
        ┌─ warning: nofile:6:14: Sample.atom_case/0
        incompatible types:
-       
+
            binary() !~ atom()
-       
+
        in expression:
-       
+
            # nofile:6
            is_atom(v)
-       
+
        where "v" was given the type binary() in:
-       
+
            # nofile:3
            v = "bc"
-       
+
        where "v" was given the type atom() in:
-       
+
            # nofile:6
            is_atom(v)
-       
+
        Conflict found at
 
       """
@@ -356,12 +381,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:5:52: Sample.a/0
-         │
-       5 │ ...                   Unknown.bar(:test)
-         │                              ~
-         │
-         Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined)
+          ┌─ warning: #{path}:5:52: Sample.a/0
+          │
+        5 │ ...                   Unknown.bar(:test)
+          │                              ~
+          │
+          Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined)
 
       """
 
@@ -409,7 +434,7 @@ defmodule Kernel.DiagnosticsTest do
       expected = """
        ┌─ warning: nofile:3:12: Sample.a/0
        Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-       
+
        Similar warning found at 3 other locations:
          nofile:4:12: Sample.a/0
          nofile:5:12: Sample.a/0
@@ -442,17 +467,17 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:5:12: Sample.a/0
-         │
-       5 │     Unknown.bar()
-         │            ~
-         │
-         Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-         
-         Similar warning found at 3 other locations:
-           #{path}:6:12: Sample.a/0
-           #{path}:7:12: Sample.a/0
-           #{path}:8:12: Sample.a/0
+          ┌─ warning: #{path}:5:12: Sample.a/0
+          │
+        5 │     Unknown.bar()
+          │            ~
+          │
+          Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+
+          Similar warning found at 3 other locations:
+            #{path}:6:12: Sample.a/0
+            #{path}:7:12: Sample.a/0
+            #{path}:8:12: Sample.a/0
 
       """
 
@@ -481,17 +506,17 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:5: Sample.a/0
-         │
-       5 │     Unknown.bar()
-         │     ~~~~~~~~~~~~~
-         │
-         Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-         
-         Similar warning found at 3 other locations:
-           #{path}:6: Sample.a/0
-           #{path}:7: Sample.a/0
-           #{path}:8: Sample.a/0
+          ┌─ warning: #{path}:5: Sample.a/0
+          │
+        5 │     Unknown.bar()
+          │     ~~~~~~~~~~~~~
+          │
+          Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+
+          Similar warning found at 3 other locations:
+            #{path}:6: Sample.a/0
+            #{path}:7: Sample.a/0
+            #{path}:8: Sample.a/0
 
       """
 

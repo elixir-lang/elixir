@@ -891,11 +891,10 @@ defmodule SyntaxError do
         snippet: snippet
       })
       when not is_nil(snippet) and not is_nil(column) do
-    formatted_snippet =
+    snippet =
       :elixir_errors.format_snippet(file, {line, column}, description, snippet, :error, [])
 
-    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
-    format_fancy(location, formatted_snippet)
+    format_message(file, line, column, snippet)
   end
 
   @impl true
@@ -905,16 +904,15 @@ defmodule SyntaxError do
         column: column,
         description: description
       }) do
-    formatted_snippet =
-      :elixir_errors.format_snippet(file, {line, column}, description, nil, :error, [])
+    snippet = :elixir_errors.format_snippet(file, {line, column}, description, nil, :error, [])
 
-    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
-    padded = "   " <> String.replace(formatted_snippet, "\n", "\n   ")
-    format_fancy(location, padded)
+    padded = "   " <> String.replace(snippet, "\n", "\n   ")
+    format_message(file, line, column, padded)
   end
 
-  defp format_fancy(location, formatted_snippet) do
-    "invalid syntax found on " <> location <> "\n" <> formatted_snippet <> "\n"
+  defp format_message(file, line, column, message) do
+    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
+    "invalid syntax found on " <> location <> "\n" <> message
   end
 end
 
@@ -930,11 +928,10 @@ defmodule TokenMissingError do
         snippet: snippet
       })
       when not is_nil(snippet) and not is_nil(column) do
-    fancy =
+    snippet =
       :elixir_errors.format_snippet(file, {line, column}, description, snippet, :error, [])
 
-    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
-    format_fancy(location, fancy)
+    format_message(file, line, column, snippet)
   end
 
   @impl true
@@ -944,14 +941,14 @@ defmodule TokenMissingError do
         column: column,
         description: description
       }) do
-    fancy = :elixir_errors.format_snippet(file, {line, column}, description, nil, :error, [])
-    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
-    padded = "   " <> String.replace(fancy, "\n", "\n   ")
-    format_fancy(location, padded)
+    snippet = :elixir_errors.format_snippet(file, {line, column}, description, nil, :error, [])
+    padded = "   " <> String.replace(snippet, "\n", "\n   ")
+    format_message(file, line, column, padded)
   end
 
-  defp format_fancy(location, fancy) do
-    "token missing on " <> location <> "\n" <> fancy <> "\n"
+  defp format_message(file, line, column, message) do
+    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
+    "token missing on " <> location <> "\n" <> message
   end
 end
 
