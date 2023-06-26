@@ -84,6 +84,7 @@ extract_line(L) -> L.
 extract_column({_, C}) -> C;
 extract_column(_) -> nil.
 
+get_file_line(_, 0) -> nil;
 get_file_line(File, LineNumber) ->
   {ok, IoDevice} = file:open(File, [read, {encoding, unicode}]),
   Line = do_get_file_line(IoDevice, LineNumber),
