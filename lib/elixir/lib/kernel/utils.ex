@@ -100,7 +100,7 @@ defmodule Kernel.Utils do
   @doc """
   Callback for defstruct.
   """
-  def defstruct(module, fields, bootstrapped?) do
+  def defstruct(module, fields, bootstrapped?, env) do
     {set, bag} = :elixir_module.data_tables(module)
 
     if :ets.member(set, :__struct__) do
@@ -152,7 +152,7 @@ defmodule Kernel.Utils do
       end
 
     # TODO: Make it raise on v2.0
-    warn_on_duplicate_struct_key(:lists.keysort(1, fields))
+    warn_on_duplicate_struct_key(:lists.keysort(1, fields), env)
 
     foreach = fn
       key when is_atom(key) ->
@@ -227,17 +227,17 @@ defmodule Kernel.Utils do
     end
   end
 
-  defp warn_on_duplicate_struct_key([]) do
+  defp warn_on_duplicate_struct_key([], _) do
     :ok
   end
 
-  defp warn_on_duplicate_struct_key([{key, _} | [{key, _} | _] = rest]) do
-    IO.warn("duplicate key #{inspect(key)} found in struct")
-    warn_on_duplicate_struct_key(rest)
+  defp warn_on_duplicate_struct_key([{key, _} | [{key, _} | _] = rest], env) do
+    IO.warn("duplicate key #{inspect(key)} found in struct", env)
+    warn_on_duplicate_struct_key(rest, env)
   end
 
-  defp warn_on_duplicate_struct_key([_ | rest]) do
-    warn_on_duplicate_struct_key(rest)
+  defp warn_on_duplicate_struct_key([_ | rest], env) do
+    warn_on_duplicate_struct_key(rest, env)
   end
 
   @doc """
