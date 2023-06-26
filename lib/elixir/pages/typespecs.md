@@ -325,7 +325,7 @@ So the following examples are not valid:
 
 ## Functions which raise an error
 
-Typespecs do not need to indicate that a function can raise an error; any function can fail any time if given invalid input.
+Typespecs do not need to indicate that a function can raise an error; any function can fail at any time if given invalid input.
 In the past, the Elixir standard library sometimes used `no_return()` to indicate this, but these usages have been removed.
 
 The `no_return()` type also should not be used for functions which do return but whose purpose is a "side effect", such as `IO.puts/1`.
