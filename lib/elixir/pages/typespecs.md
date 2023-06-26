@@ -312,6 +312,17 @@ Elixir discourages the use of the `string()` type. The `string()` type refers to
 
 Note that `String.t()` and `binary()` are equivalent to analysis tools. Although, for those reading the documentation, `String.t()` implies it is a UTF-8 encoded binary.
 
+Also note that it's not possible to specify a specific string value in a typespec because string literals are not supported.
+So the following examples are not valid:
+
+   # invalid spec; string literals not supported
+   @spec greet :: "hi"
+   def greet, do: "hi"
+
+   # invalid spec; string literals not supported as map keys, either
+   @spec greet(%{"name" => String.t()}) :: String.t()
+   def greet(%{"name" => name}), do: "hi #{name}"
+
 ## Functions which raise an error
 
 Typespecs do not need to indicate that a function can raise an error; any function can fail any time if given invalid input.
