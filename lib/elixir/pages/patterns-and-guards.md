@@ -57,7 +57,7 @@ iex> ^x = 2
 ** (MatchError) no match of right hand side value: 2
 ```
 
-If the same variable appears twice in the same pattern, then they must be bound to the same value:
+If the same variable appears multiple times in the same pattern, then all of them must be bound to the same value:
 
 ```iex
 iex> {x, x} = {1, 1}
