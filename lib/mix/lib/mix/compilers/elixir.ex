@@ -397,7 +397,7 @@ defmodule Mix.Compilers.Elixir do
             Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
             Enum.any?(external, &stale_external?(&1, modified, sources_stats)) or
             (last_mtime > modified and
-               (missing_beam_file?(dest, modules) or digest != digest_file!(source))),
+               (missing_beam_file?(dest, modules) or digest_changed?(source, digest))),
           do: source
 
     changed = new_paths ++ changed
@@ -427,7 +427,7 @@ defmodule Mix.Compilers.Elixir do
   defp stale_external?({external, digest}, modified, sources_stats) do
     case sources_stats do
       %{^external => {0, 0}} -> digest != nil
-      %{^external => {mtime, _}} -> mtime > modified and digest != digest_file!(external)
+      %{^external => {mtime, _}} -> mtime > modified and digest_changed?(external, digest)
     end
   end
 
@@ -441,8 +441,11 @@ defmodule Mix.Compilers.Elixir do
     end)
   end
 
-  defp digest_file!(file) do
-    file |> File.read!() |> digest_contents()
+  defp digest_changed?(file, digest) do
+    case File.read(file) do
+      {:ok, binary} -> digest != digest_contents(binary)
+      {:error, _} -> true
+    end
   end
 
   defp digest_contents(contents) do
