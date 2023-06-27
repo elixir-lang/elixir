@@ -2116,7 +2116,7 @@ defmodule Kernel.WarningTest do
 
   test "defstruct warns with duplicate keys" do
     assert_warn_eval(
-      ["nofile:2: ", "duplicate key :foo found in struct"],
+      ["nofile:2: TestMod", "duplicate key :foo found in struct"],
       """
       defmodule TestMod do
         defstruct [:foo, :bar, foo: 1]
