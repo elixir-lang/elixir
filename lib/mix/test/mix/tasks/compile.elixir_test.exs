@@ -971,7 +971,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       File.write!("lib/a.ex", """
       defmodule A do
+        # Listing directories as external resources
+        # is not valid but let's ensure we don't crash
+        @external_resource "lib"
         @external_resource "lib/a.eex"
+
         @external_resource #{inspect(tmp)}
         def a, do: :ok
       end
@@ -1007,6 +1011,12 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       # Recompiles once resource is deleted
       File.rm_rf!(tmp)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+
+      # Recompiles if directories are stale
+      File.touch!("lib", {{2038, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
