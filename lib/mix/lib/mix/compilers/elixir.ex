@@ -1100,7 +1100,7 @@ defmodule Mix.Compilers.Elixir do
       source(
         source,
         # We preserve the digest if the file is recompiled but not changed
-        digest: source(source, :digest) || (file |> File.read!() |> digest_contents()),
+        digest: source(source, :digest) || file |> File.read!() |> digest_contents(),
         compile_references: compile_references,
         export_references: export_references,
         runtime_references: runtime_references,
