@@ -1009,7 +1009,7 @@ defmodule Logger do
       compile_time_purge_matching?(compile_level, compile_metadata) ->
         no_log(data, quoted_metadata)
 
-      Application.fetch_env!(:logger, :always_evaluate_messages) ->
+      Application.get_env(:logger, :always_evaluate_messages, false) ->
         quote do
           data = Logger.__evaluate_log__(unquote(data))
           metadata = unquote(quoted_metadata)
@@ -1117,7 +1117,7 @@ defmodule Logger do
   end
 
   defp no_log(data, metadata) do
-    if Application.fetch_env!(:logger, :always_evaluate_messages) do
+    if Application.get_env(:logger, :always_evaluate_messages, false) do
       quote do
         Logger.__evaluate_log__(unquote(data))
         unquote(metadata)
