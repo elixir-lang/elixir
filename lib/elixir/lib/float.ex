@@ -4,6 +4,9 @@ defmodule Float do
   @moduledoc """
   Functions for working with floating-point numbers.
 
+  For mathematical operations on top of floating-points,
+  see Erlang's [`:math`](`:math`) module.
+
   ## Kernel functions
 
   There are functions related to floating-point numbers on the `Kernel` module
