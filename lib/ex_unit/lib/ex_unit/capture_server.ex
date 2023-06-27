@@ -71,11 +71,11 @@ defmodule ExUnit.CaptureServer do
     refs = Map.put(config.log_captures, ref, true)
 
     {level, opts} = Keyword.pop(opts, :level)
-    true = :ets.insert(@ets, {ref, string_io, level || :all})
+    {formatter_mod, formatter_config} = Logger.default_formatter(opts)
+    true = :ets.insert(@ets, {ref, string_io, level || :all, formatter_mod, formatter_config})
 
     if map_size(refs) == 1 do
-      formatter = Logger.default_formatter(opts)
-      :ok = :logger.add_handler(@name, __MODULE__, %{formatter: formatter})
+      :ok = :logger.add_handler(@name, __MODULE__, %{})
 
       status =
         with {:ok, config} <- :logger.get_handler_config(:default),
@@ -226,12 +226,10 @@ defmodule ExUnit.CaptureServer do
 
   ## :logger handler callback.
 
-  def log(event, %{} = config) do
-    %{formatter: {formatter_mod, formatter_config}} = config
-    chardata = formatter_mod.format(event, formatter_config)
-
-    for [string_io, level] <- :ets.match(@ets, {:_, :"$1", :"$2"}),
+  def log(event, _config) do
+    for {_ref, string_io, level, formatter_mod, formatter_config} <- :ets.tab2list(@ets),
         :logger.compare_levels(event.level, level) in [:gt, :eq] do
+      chardata = formatter_mod.format(event, formatter_config)
       # There is a race condition where the capture_log is removed
       # but another process is attempting to log to string io device
       # that no longer exists, so we wrap it in try/catch.
@@ -241,5 +239,7 @@ defmodule ExUnit.CaptureServer do
         _ -> :ok
       end
     end
+
+    :ok
   end
 end

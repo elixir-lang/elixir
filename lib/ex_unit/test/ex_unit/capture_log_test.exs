@@ -114,6 +114,19 @@ defmodule ExUnit.CaptureLogTest do
 
       assert log == "id=123 | hello"
     end
+
+    @tag capture_log: true
+    test "respect options with capture_log: true" do
+      options = [format: "$metadata| $message", metadata: [:id], colors: [enabled: false]]
+
+      assert {4, log} =
+               with_log(options, fn ->
+                 Logger.info("hello", id: 123)
+                 2 + 2
+               end)
+
+      assert log == "id=123 | hello"
+    end
   end
 
   defp wait_capture_removal() do
