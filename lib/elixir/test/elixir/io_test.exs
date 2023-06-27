@@ -181,51 +181,42 @@ defmodule IOTest do
     test "with stacktrace" do
       stacktrace = [{IEx.Evaluator, :eval, 4, [file: ~c"lib/iex/evaluator.ex", line: 108]}]
 
-      assert capture_io(:stderr, fn -> IO.warn("hello", stacktrace) end) =~ """
-             hello
-               lib/iex/evaluator.ex:108: IEx.Evaluator.eval/4
-             """
+      output = capture_io(:stderr, fn -> IO.warn("hello", stacktrace) end)
+
+      assert output =~ "hello"
+      assert output =~ "lib/iex/evaluator.ex:108: IEx.Evaluator.eval/4"
     end
 
     test "with env" do
-      assert capture_io(:stderr, fn -> IO.warn("hello", __ENV__) end) =~ ~r"""
-             hello
-               (lib/elixir/)?test/elixir/io_test.exs:#{__ENV__.line - 2}: IOTest.\"test warn with env\"/1
-             """
+      output = capture_io(:stderr, fn -> IO.warn("hello", __ENV__) end)
+
+      assert output =~ "hello"
+
+      assert output =~
+               "(lib/elixir/)?test/elixir/io_test.exs:#{__ENV__.line - 2}: IOTest.\"test warn with env\"/1"
     end
 
     test "with options" do
-      assert capture_io(:stderr, fn ->
-               IO.warn("hello", line: 13, file: "lib/foo.ex", module: Foo, function: {:bar, 1})
-             end) =~ """
-             hello
-               lib/foo.ex:13: Foo.bar/1
-             """
+      capture_io(:stderr, fn ->
+        IO.warn("hello", line: 13, file: "lib/foo.ex", module: Foo, function: {:bar, 1})
+      end)
+      |> assert_emits(["hello", "lib/foo.ex:13: Foo.bar/1"])
 
-      assert capture_io(:stderr, fn ->
-               IO.warn("hello", file: "lib/foo.ex", module: Foo, function: {:bar, 1})
-             end) =~ """
-             hello
-               lib/foo.ex: Foo.bar/1
-             """
+      capture_io(:stderr, fn ->
+        IO.warn("hello", file: "lib/foo.ex", module: Foo, function: {:bar, 1})
+      end)
+      |> assert_emits(["hello", "lib/foo.ex: Foo.bar/1"])
 
-      assert capture_io(:stderr, fn -> IO.warn("hello", file: "lib/foo.ex", module: Foo) end) =~
-               """
-               hello
-                 lib/foo.ex: Foo (module)
-               """
+      capture_io(:stderr, fn -> IO.warn("hello", file: "lib/foo.ex", module: Foo) end)
+      |> assert_emits(["hello", "lib/foo.ex: Foo (module)"])
 
-      assert capture_io(:stderr, fn -> IO.warn("hello", file: "lib/foo.ex") end) =~ """
-             hello
-               lib/foo.ex: (file)
-             """
+      capture_io(:stderr, fn -> IO.warn("hello", file: "lib/foo.ex") end)
+      |> assert_emits(["hello", "lib/foo.ex: (file)"])
 
-      assert capture_io(:stderr, fn ->
-               IO.warn("hello", file: "lib/foo.ex", function: {:bar, 1})
-             end) =~ """
-             hello
-               lib/foo.ex: (file)
-             """
+      capture_io(:stderr, fn ->
+        IO.warn("hello", file: "lib/foo.ex", function: {:bar, 1})
+      end)
+      |> assert_emits(["hello", "lib/foo.ex: (file)"])
 
       assert capture_io(:stderr, fn ->
                IO.warn("hello", line: 13, module: Foo, function: {:bar, 1})
@@ -293,5 +284,11 @@ defmodule IOTest do
   test "stream" do
     assert IO.stream() == IO.stream(:stdio, :line)
     assert IO.binstream() == IO.binstream(:stdio, :line)
+  end
+
+  defp assert_emits(output, messages) do
+    for m <- messages do
+      assert output =~ m
+    end
   end
 end

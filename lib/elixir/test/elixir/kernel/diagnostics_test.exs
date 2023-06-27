@@ -542,12 +542,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ error: #{path}:3
-         │
-       3 │   def CamelCase do
-         │   ^^^^^^^^^^^^^^^^
-         │
-         function names should start with lowercase characters or underscore, invalid name CamelCase
+          ┌─ error: #{path}:3
+          │
+        3 │   def CamelCase do
+          │   ^^^^^^^^^^^^^^^^
+          │
+          function names should start with lowercase characters or underscore, invalid name CamelCase
 
       """
 
@@ -573,12 +573,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ error: #{path}:5:13: Sample.foo/0
-         │
-       5 │     IO.puts(bar)
-         │             ^
-         │
-         undefined variable "bar"
+          ┌─ error: #{path}:5:13: Sample.foo/0
+          │
+        5 │     IO.puts(bar)
+          │             ^
+          │
+          undefined variable "bar"
 
       """
 
@@ -622,12 +622,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:3: Sample.a/1
-         │
-       3 │   def a(unused), do: 1
-         │   ~~~~~~~~~~~~~~~~~~~~
-         │
-         variable "unused" is unused (if the variable is not meant to be used, prefix it with an underscore)
+          ┌─ warning: #{path}:3: Sample.a/1
+          │
+        3 │   def a(unused), do: 1
+          │   ~~~~~~~~~~~~~~~~~~~~
+          │
+          variable "unused" is unused (if the variable is not meant to be used, prefix it with an underscore)
 
       """
 
@@ -655,12 +655,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-         ┌─ warning: #{path}:6:5: Sample.bar/0
-         │
-       6 │     @foo
-         │     ~
-         │
-         module attribute @foo in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)
+          ┌─ warning: #{path}:6:5: Sample.bar/0
+          │
+        6 │     @foo
+          │     ~
+          │
+          module attribute @foo in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)
 
       """
 

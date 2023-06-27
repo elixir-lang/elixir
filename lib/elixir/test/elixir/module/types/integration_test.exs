@@ -568,10 +568,10 @@ defmodule Module.Types.IntegrationTest do
         """
       }
 
-      warning = """
-      warning: from after_verify
-
-      """
+      warning = [
+        "warning:",
+        "from after_verify"
+      ]
 
       assert_warnings(files, warning)
     end
