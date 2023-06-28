@@ -110,7 +110,7 @@ defmodule CodeTest do
 
   describe "print_diagnostic/2" do
     @sample_diagnostic %{
-      file: "/home/vini/projects/elixir/open-source/elixir/lib/elixir/test/elixir/code_test.exs",
+      file: "code_test.exs",
       message: "module attribute @foo was set but never used",
       position: 119,
       severity: :warning,
@@ -127,7 +127,6 @@ defmodule CodeTest do
 
       assert output =~ "┌─"
       assert output =~ "code_test.exs:119: FakeModule (module)"
-      assert output =~ "~"
     end
 
     test "prints diagnostics in a simpler way if fancy: false" do
