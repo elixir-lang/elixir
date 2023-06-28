@@ -292,7 +292,7 @@ defmodule Mix.Tasks.Test do
       invoked during the tests themselves. That's because macros are invoked at
       compilation time, before the test coverage instrumentation begins;
 
-  ### Configuratiuon
+  ### Configuration
 
   The `:test_coverage` configures the coverage tool and accepts the following options:
 
