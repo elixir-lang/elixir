@@ -13,6 +13,12 @@ defmodule Mix.Tasks.Clean do
 
   By default this task works across all environments, unless `--only`
   is given.
+
+  ## Command line options
+
+    * `--deps` - clean dependencies as well as the current project's files
+    * `--only` - only clean the given environment
+
   """
 
   @switches [deps: :boolean, only: :string]
