@@ -161,17 +161,17 @@ defmodule IOTest do
 
   describe "warn" do
     test "with chardata" do
-      assert capture_io(:stderr, fn -> IO.warn("hello") end) =~
-               "hello\n  (ex_unit #{System.version()}) lib/ex_unit"
+      capture_io(:stderr, fn -> IO.warn("hello") end)
+      |> assert_emits(["hello", "(ex_unit #{System.version()}) lib/ex_unit"])
 
-      assert capture_io(:stderr, fn -> IO.warn(~c"hello") end) =~
-               "hello\n  (ex_unit #{System.version()}) lib/ex_unit"
+      capture_io(:stderr, fn -> IO.warn(~c"hello") end)
+      |> assert_emits(["hello", "(ex_unit #{System.version()}) lib/ex_unit"])
 
-      assert capture_io(:stderr, fn -> IO.warn(:hello) end) =~
-               "hello\n  (ex_unit #{System.version()}) lib/ex_unit"
+      capture_io(:stderr, fn -> IO.warn(:hello) end)
+      |> assert_emits(["hello", "(ex_unit #{System.version()}) lib/ex_unit"])
 
-      assert capture_io(:stderr, fn -> IO.warn(13) end) =~
-               "13\n  (ex_unit #{System.version()}) lib/ex_unit"
+      capture_io(:stderr, fn -> IO.warn(13) end)
+      |> assert_emits(["13", "(ex_unit #{System.version()}) lib/ex_unit"])
     end
 
     test "no stacktrace" do

@@ -83,7 +83,7 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
 format_location(Position, File, Stacktrace) ->
   case Stacktrace of
-    [E] -> 'Elixir.Exception':format_stacktrace_entry(E);
+    [E | _] -> 'Elixir.Exception':format_stacktrace_entry(E);
     _ -> file_format(Position, File)
   end.
 
