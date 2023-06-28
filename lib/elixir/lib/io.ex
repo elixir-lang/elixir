@@ -323,14 +323,26 @@ defmodule IO do
       #=>   my_app.ex:4: MyApp.main/1
 
   """
-  @spec warn(chardata | String.Chars.t(), Exception.stacktrace() | keyword() | Macro.Env.t(), keyword()) ::
+  @spec warn(
+          chardata | String.Chars.t(),
+          Exception.stacktrace() | keyword() | Macro.Env.t(),
+          keyword()
+        ) ::
           :ok
   def warn(message, stacktrace_info, opts \\ [])
 
   def warn(message, %Macro.Env{line: line, file: file} = env, opts) do
     message = to_chardata(message)
     fancy? = Keyword.get(opts, :fancy, true)
-    :elixir_errors.emit_diagnostic(:warning, line, file, message, Macro.Env.stacktrace(env), fancy?)
+
+    :elixir_errors.emit_diagnostic(
+      :warning,
+      line,
+      file,
+      message,
+      Macro.Env.stacktrace(env),
+      fancy?
+    )
   end
 
   def warn(message, [], opts) do

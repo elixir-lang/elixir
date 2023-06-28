@@ -219,8 +219,8 @@ defmodule IOTest do
       |> assert_emits(["hello", "lib/foo.ex: (file)"])
 
       assert capture_io(:stderr, fn ->
-        IO.warn("hello", line: 13, module: Foo, function: {:bar, 1})
-      end) =~ """
+               IO.warn("hello", line: 13, module: Foo, function: {:bar, 1})
+             end) =~ """
              hello
 
              """
