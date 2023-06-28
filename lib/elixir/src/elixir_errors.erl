@@ -34,32 +34,13 @@ get_snippet(File, Position) ->
     false -> nil
   end.
 
-print_diagnostic(Diagnostic, IsFancy) ->
-  case IsFancy of
-    true -> fancy_diagnostic_printer(Diagnostic);
-    false -> std_diagnostic_printer(Diagnostic)
-  end.
-
-fancy_diagnostic_printer(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic) ->
-  Snippet = get_snippet(F, P),
+print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic, ReadSnippet) ->
+  Snippet = case ReadSnippet of
+    true -> get_snippet(F, P);
+    false -> nil
+  end,
   Output = format_snippet(F, P, M, Snippet, Severity, Stacktrace),
   io:put_chars(standard_error, [Output, $\n, $\n]),
-  Diagnostic.
-
-std_diagnostic_printer(#{severity := Severity, message := Message, stacktrace := Stacktrace} = Diagnostic) ->
-  Location =
-    case (Stacktrace =:= []) orelse elixir_config:is_bootstrap() of
-      true ->
-        #{position := Position, file := File} = Diagnostic,
-        case File of
-          nil -> [];
-          File -> ["\n  ", file_format(Position, File)]
-        end;
-
-      false ->
-        [["\n  ", 'Elixir.Exception':format_stacktrace_entry(E)] || E <- Stacktrace]
-    end,
-  io:put_chars(standard_error, [prefix(Severity), Message, Location, "\n\n"]),
   Diagnostic.
 
 emit_diagnostic(Severity, Position, File, Message, Stacktrace, IsFancy) ->

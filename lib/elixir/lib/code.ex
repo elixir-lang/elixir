@@ -591,7 +591,7 @@ defmodule Code do
   """
   @doc since: "1.15.0"
   @spec print_diagnostic(diagnostic(:warning | :error)) :: :ok
-  def print_diagnostic(diagnostic, opts \\ []) do
+  def print_diagnostic(diagnostic) do
     :elixir_errors.print_diagnostic(diagnostic, true)
     :ok
   end
