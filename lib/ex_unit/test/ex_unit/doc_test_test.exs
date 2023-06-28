@@ -443,6 +443,16 @@ defmodule ExUnit.DocTestTest.Haiku do
 end
 |> ExUnit.BeamHelpers.write_beam()
 
+defmodule ExUnit.DocTestTest.VariableInExpectation do
+  @doc """
+  iex> num = 1
+  iex> ExUnit.DocTestTest.VariableInExpectation.inc(num)
+  num + 1
+  """
+  def inc(num), do: num + 1
+end
+|> ExUnit.BeamHelpers.write_beam()
+
 defmodule ExUnit.DocTestTest.PatternMatching do
   def starting_line, do: __ENV__.line + 2
 
@@ -506,6 +516,7 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.IndentationHeredocs
   doctest ExUnit.DocTestTest.FencedHeredocs
   doctest ExUnit.DocTestTest.Haiku
+  doctest ExUnit.DocTestTest.VariableInExpectation
 
   import ExUnit.CaptureIO
 
