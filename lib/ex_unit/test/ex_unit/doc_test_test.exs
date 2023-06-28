@@ -64,6 +64,13 @@ defmodule ExUnit.DocTestTest.GoodModule do
   bar
   """
   def multiline_exception_test, do: :ok
+
+  @doc """
+  iex> num = 1
+  iex> ExUnit.DocTestTest.GoodModule.variable_in_expectation(num)
+  num + 1
+  """
+  def variable_in_expectation(num), do: num + 1
 end
 |> ExUnit.BeamHelpers.write_beam()
 
@@ -443,16 +450,6 @@ defmodule ExUnit.DocTestTest.Haiku do
 end
 |> ExUnit.BeamHelpers.write_beam()
 
-defmodule ExUnit.DocTestTest.VariableInExpectation do
-  @doc """
-  iex> num = 1
-  iex> ExUnit.DocTestTest.VariableInExpectation.inc(num)
-  num + 1
-  """
-  def inc(num), do: num + 1
-end
-|> ExUnit.BeamHelpers.write_beam()
-
 defmodule ExUnit.DocTestTest.PatternMatching do
   def starting_line, do: __ENV__.line + 2
 
@@ -516,7 +513,6 @@ defmodule ExUnit.DocTestTest do
   doctest ExUnit.DocTestTest.IndentationHeredocs
   doctest ExUnit.DocTestTest.FencedHeredocs
   doctest ExUnit.DocTestTest.Haiku
-  doctest ExUnit.DocTestTest.VariableInExpectation
 
   import ExUnit.CaptureIO
 
@@ -1039,22 +1035,22 @@ defmodule ExUnit.DocTestTest do
     assert %{
              test_type: :doctest,
              doctest: NoImport,
-             doctest_line: 126,
-             doctest_data: %{end_line: 127}
+             doctest_line: 133,
+             doctest_data: %{end_line: 134}
            } = test1.tags
 
     assert %{
              test_type: :doctest,
              doctest: NoImport,
-             doctest_line: 129,
-             doctest_data: %{end_line: 130}
+             doctest_line: 136,
+             doctest_data: %{end_line: 137}
            } = test2.tags
 
     assert %{
              test_type: :doctest,
              doctest: NoTrailing,
-             doctest_line: 138,
-             doctest_data: %{end_line: 138}
+             doctest_line: 145,
+             doctest_data: %{end_line: 145}
            } = test3.tags
   end
 

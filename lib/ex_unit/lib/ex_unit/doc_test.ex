@@ -382,15 +382,13 @@ defmodule ExUnit.DocTest do
     last_expr = Macro.to_string(last_expr(expr_ast))
 
     quote do
-      # `expr_ast` may introduce variables that may be
-      # used within `expected_ast` so they both need to
-      # unquoted together here
+      # `expr_ast` may introduce variables that may be used
+      # within `expected_ast` so it needs to be unquoted here.
       value = unquote(expr_ast)
-      expected_value = unquote(expected_ast)
 
       ExUnit.DocTest.__test__(
         value,
-        expected_value,
+        unquote(expected_ast),
         unquote(doctest),
         unquote(last_expr),
         unquote(expected),
