@@ -588,17 +588,11 @@ defmodule Code do
 
   A diagnostic is either returned by `Kernel.ParallelCompiler`
   or by `Code.with_diagnostics/2`.
-
-  ## Options
-
-  * `:fancy` - whether to pretty-print the diagnostic. As it may impact
-    performance, it is not recommended to be used in runtime. Defaults to `true`.
   """
   @doc since: "1.15.0"
-  @spec print_diagnostic(diagnostic(:warning | :error), keyword()) :: :ok
+  @spec print_diagnostic(diagnostic(:warning | :error)) :: :ok
   def print_diagnostic(diagnostic, opts \\ []) do
-    fancy? = Keyword.get(opts, :fancy, true)
-    :elixir_errors.print_diagnostic(diagnostic, fancy?)
+    :elixir_errors.print_diagnostic(diagnostic, true)
     :ok
   end
 

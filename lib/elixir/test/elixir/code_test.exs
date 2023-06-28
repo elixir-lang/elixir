@@ -108,39 +108,6 @@ defmodule CodeTest do
     end
   end
 
-  describe "print_diagnostic/2" do
-    @sample_diagnostic %{
-      file: "code_test.exs",
-      message: "module attribute @foo was set but never used",
-      position: 119,
-      severity: :warning,
-      stacktrace: [
-        {FakeModule, :__MODULE__, 0, [file: "lib/elixir/test/elixir/code_test.exs", line: 119]}
-      ]
-    }
-
-    test "pretty-print diagnostics by default" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Code.print_diagnostic(@sample_diagnostic)
-        end)
-
-      assert output =~ "┌─"
-      assert output =~ "code_test.exs:119: FakeModule (module)"
-    end
-
-    test "prints diagnostics in a simpler way if fancy: false" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Code.print_diagnostic(@sample_diagnostic, fancy: false)
-        end)
-
-      refute output =~ "┌─"
-      assert output =~ "code_test.exs:119: FakeModule (module)"
-      refute output =~ "~"
-    end
-  end
-
   describe "eval_string/1,2,3" do
     test "correctly evaluates a string of code" do
       assert Code.eval_string("1 + 2") == {3, []}
