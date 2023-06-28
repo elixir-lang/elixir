@@ -323,20 +323,22 @@ defmodule IO do
       #=>   my_app.ex:4: MyApp.main/1
 
   """
-  @spec warn(chardata | String.Chars.t(), Exception.stacktrace() | keyword() | Macro.Env.t()) ::
+  @spec warn(chardata | String.Chars.t(), Exception.stacktrace() | keyword() | Macro.Env.t(), keyword()) ::
           :ok
-  def warn(message, stacktrace_info)
+  def warn(message, stacktrace_info, opts \\ [])
 
-  def warn(message, %Macro.Env{line: line, file: file} = env) do
+  def warn(message, %Macro.Env{line: line, file: file} = env, opts) do
     message = to_chardata(message)
-    :elixir_errors.emit_diagnostic(:warning, line, file, message, Macro.Env.stacktrace(env))
+    fancy? = Keyword.get(opts, :fancy, true)
+    :elixir_errors.emit_diagnostic(:warning, line, file, message, Macro.Env.stacktrace(env), fancy?)
   end
 
-  def warn(message, []) do
-    :elixir_errors.emit_diagnostic(:warning, 0, nil, to_chardata(message), [])
+  def warn(message, [], opts) do
+    fancy? = Keyword.get(opts, :fancy, true)
+    :elixir_errors.emit_diagnostic(:warning, 0, nil, to_chardata(message), [], fancy?)
   end
 
-  def warn(message, [{_, _} | _] = keyword) do
+  def warn(message, [{_, _} | _] = keyword, opts) do
     if file = keyword[:file] do
       warn(
         message,
@@ -346,19 +348,21 @@ defmodule IO do
             function: keyword[:function],
             line: keyword[:line],
             file: file
-        }
+        },
+        opts
       )
     else
-      warn(message, [])
+      warn(message, [], opts)
     end
   end
 
-  def warn(message, [{_, _, _, opts} | _] = stacktrace) do
+  def warn(message, [{_, _, _, opts} | _] = stacktrace, warn_opts) do
     message = to_chardata(message)
     line = opts[:line]
     file = opts[:file]
     file = file && List.to_string(file)
-    :elixir_errors.emit_diagnostic(:warning, line || 0, file, message, stacktrace)
+    fancy? = Keyword.get(warn_opts, :fancy, true)
+    :elixir_errors.emit_diagnostic(:warning, line || 0, file, message, stacktrace, fancy?)
   end
 
   @doc false

@@ -8,7 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([format_snippet/6]).
 -export([erl_warn/3, file_warn/4]).
--export([print_diagnostic/1, emit_diagnostic/5]).
+-export([print_diagnostic/2, emit_diagnostic/6]).
 -export([print_warning/2, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -34,8 +34,11 @@ get_snippet(File, Position) ->
     false -> nil
   end.
 
-print_diagnostic(Diagnostic) ->
-  fancy_diagnostic_printer(Diagnostic).
+print_diagnostic(Diagnostic, IsFancy) ->
+  case IsFancy of
+    true -> fancy_diagnostic_printer(Diagnostic);
+    false -> std_diagnostic_printer(Diagnostic)
+  end.
 
 fancy_diagnostic_printer(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic) ->
   Snippet = get_snippet(F, P),
@@ -59,7 +62,7 @@ std_diagnostic_printer(#{severity := Severity, message := Message, stacktrace :=
   io:put_chars(standard_error, [prefix(Severity), Message, Location, "\n\n"]),
   Diagnostic.
 
-emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
+emit_diagnostic(Severity, Position, File, Message, Stacktrace, IsFancy) ->
   Diagnostic = #{
     severity => Severity,
     file => File,
@@ -69,8 +72,8 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
   },
 
   case get(elixir_code_diagnostics) of
-    undefined -> print_diagnostic(Diagnostic);
-    {Tail, true} -> put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic) | Tail], true});
+    undefined -> print_diagnostic(Diagnostic, IsFancy);
+    {Tail, true} -> put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic, IsFancy) | Tail], true});
     {Tail, false} -> put(elixir_code_diagnostics, {[Diagnostic | Tail], false})
   end,
 
@@ -218,7 +221,7 @@ n_spaces(N) -> lists:duplicate(N, " ").
 erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
 erl_warn(Location, File, Warning) when is_binary(File) ->
-  emit_diagnostic(warning, Location, File, Warning, []).
+  emit_diagnostic(warning, Location, File, Warning, [], true).
 
 -spec file_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
 file_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
@@ -230,7 +233,7 @@ file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
     false ->
       {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, E),
       Message = Module:format_error(Desc),
-      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace)
+      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace, true)
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -263,7 +266,7 @@ function_error(Meta, Env, Module, Desc) ->
 print_error(Meta, Env, Module, Desc) ->
   {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace),
+  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, true),
   ok.
 
 %% Compilation error.
