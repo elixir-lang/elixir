@@ -3,7 +3,7 @@ defmodule ExUnit.Runner do
 
   alias ExUnit.EventManager, as: EM
 
-  @rand_algorithm :exs1024
+  @rand_algorithm :exsss
   @current_key __MODULE__
 
   def run(opts, load_us) when (is_integer(load_us) or is_nil(load_us)) and is_list(opts) do

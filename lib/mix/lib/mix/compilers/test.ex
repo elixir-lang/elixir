@@ -15,7 +15,7 @@ defmodule Mix.Compilers.Test do
   @compile {:no_warn_undefined, ExUnit}
   @stale_manifest "compile.test_stale"
   @manifest_vsn 1
-  @rand_algorithm :exs1024
+  @rand_algorithm :exsss
 
   @doc """
   Requires and runs test files.
