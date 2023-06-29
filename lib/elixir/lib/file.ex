@@ -1630,6 +1630,11 @@ defmodule File do
   @doc """
   Returns the list of files in the given directory.
 
+  Hidden files are not ignored and the results are *not* sorted.
+
+  Since directories are considered files by the file system,
+  they are also included in the returned value.
+
   Returns `{:ok, files}` in case of success,
   `{:error, reason}` otherwise.
   """
