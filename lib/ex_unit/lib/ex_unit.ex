@@ -273,6 +273,8 @@ defmodule ExUnit do
       different modules run in parallel. It defaults to `System.schedulers_online * 2`
       to optimize both CPU-bound and IO-bound tests;
 
+    * `:rand_algorithm` - algorithm to be used when generating the test seed. Defaults to `:exsss`;
+
     * `:max_failures` - the suite stops evaluating tests when this number of test failures
       is reached. All tests within a module that fail when using the
       [`setup_all/1,2`](`ExUnit.Callbacks.setup_all/1`) callbacks
