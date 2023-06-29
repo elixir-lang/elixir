@@ -273,8 +273,6 @@ defmodule ExUnit do
       different modules run in parallel. It defaults to `System.schedulers_online * 2`
       to optimize both CPU-bound and IO-bound tests;
 
-    * `:rand_algorithm` - algorithm to be used when generating the test seed. Defaults to `:exsss`;
-
     * `:max_failures` - the suite stops evaluating tests when this number of test failures
       is reached. All tests within a module that fail when using the
       [`setup_all/1,2`](`ExUnit.Callbacks.setup_all/1`) callbacks
@@ -283,6 +281,10 @@ defmodule ExUnit do
     * `:only_test_ids` - a list of `{module_name, test_name}` tuples that limits
       what tests get run. This is typically used by Mix to filter which tests
       should run;
+
+    * `:rand_algorithm` - algorithm to be used when generating the test seed.
+      Available algorithms can be found in Erlang's [`:rand`](https://www.erlang.org/doc/man/rand.html) documentation.
+      Defaults to `:exsss`;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
       calls in milliseconds, defaults to `100`;
