@@ -37,7 +37,7 @@ runs:
         shasum -a 1   elixir-otp-${{ inputs.otp }}.exe > elixir-otp-${{ inputs.otp }}.exe.sha1sum
         shasum -a 256 elixir-otp-${{ inputs.otp }}.exe > elixir-otp-${{ inputs.otp }}.exe.sha256sum
     - name: Get ExDoc ref
-      if: ${{ inputs.build_docs && github.ref_name != "main" }}
+      if: ${{ inputs.build_docs }}
       shell: bash
       run: |
         if [ "${{ github.ref_name }}" = "main" ]; then
