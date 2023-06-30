@@ -297,7 +297,7 @@ defmodule Mix.Tasks.Release.Init do
     if not defined RELEASE_PROG (set RELEASE_PROG=%~nx0)
     set RELEASE_COMMAND=%~1
     set REL_VSN_DIR=!RELEASE_ROOT!\releases\!RELEASE_VSN!
-    call "!REL_VSN_DIR!\env.bat"
+    call "!REL_VSN_DIR!\env.bat" %*
 
     if not defined RELEASE_COOKIE (set /p RELEASE_COOKIE=<!RELEASE_ROOT!\releases\COOKIE)
     if not defined RELEASE_MODE (set RELEASE_MODE=embedded)
