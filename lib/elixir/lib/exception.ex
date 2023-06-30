@@ -1082,7 +1082,7 @@ defmodule UndefinedFunctionError do
   @moduledoc """
   An exception raised when a function is invoked that is not defined.
 
-  The following fields of this exception are public and can be used freely:
+  The following fields of this exception are public and can be accessed freely:
 
     * `:module` (`t:module/0`) - the module name
     * `:function` (`t:atom/0`) - the function name
