@@ -1279,7 +1279,7 @@ end
 
 defmodule FunctionClauseError do
   @moduledoc """
-  An exception raised when a function invocation doesn't match any defined clause.
+  An exception raised when a function call doesn't match any defined clause.
 
   The following fields of this exception are public and can be used freely:
 
