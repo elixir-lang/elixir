@@ -283,7 +283,9 @@ defmodule ExUnit do
       should run;
 
     * `:rand_algorithm` - algorithm to be used when generating the test seed.
-      Available algorithms can be found in Erlang's [`:rand`](https://www.erlang.org/doc/man/rand.html) documentation.
+      Available algorithms can be found in Erlang's
+      [`:rand`](https://www.erlang.org/doc/man/rand.html) documentation (see
+      [`:rand.builting_arg/0`](https://www.erlang.org/doc/man/rand.html#type-builtin_alg)).
       Defaults to `:exsss`;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
