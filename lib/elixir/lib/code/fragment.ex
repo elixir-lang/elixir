@@ -619,7 +619,7 @@ defmodule Code.Fragment do
     {reversed_pre, post} = adjust_position(reversed_pre, post)
 
     case take_identifier(post, []) do
-      {_, [], _} ->
+      :none ->
         maybe_operator(reversed_pre, post, line, opts)
 
       {:identifier, reversed_post, rest} ->
@@ -627,7 +627,7 @@ defmodule Code.Fragment do
         reversed = reversed_post ++ reversed_pre
 
         case codepoint_cursor_context(reversed, opts) do
-          {{:struct, acc}, offset} ->
+          {{:struct, acc}, offset} when acc != [] ->
             build_surround({:struct, acc}, reversed, line, offset)
 
           {{:alias, acc}, offset} ->
@@ -729,15 +729,31 @@ defmodule Code.Fragment do
     do: take_identifier(t, [h | acc])
 
   defp take_identifier(rest, acc) do
-    with {[?. | t], _} <- strip_spaces(rest, 0),
+    {stripped, _} = strip_spaces(rest, 0)
+
+    with [?. | t] <- stripped,
          {[h | _], _} when h in ?A..?Z <- strip_spaces(t, 0) do
       take_alias(rest, acc)
     else
-      _ -> {:identifier, acc, rest}
+      # Consider it an identifier if we are at the end of line
+      # or if we have spaces not followed by . (call) or / (arity)
+      _ when acc == [] and (rest == [] or (hd(rest) in @space and hd(stripped) not in ~c"/.")) ->
+        {:identifier, acc, rest}
+
+      # If we are immediately followed by a container, we are still part of the identifier.
+      # We don't consider << as it _may_ be an operator.
+      _ when acc == [] and hd(stripped) in ~c"({[" ->
+        {:identifier, acc, rest}
+
+      _ when acc == [] ->
+        :none
+
+      _ ->
+        {:identifier, acc, rest}
     end
   end
 
-  defp take_alias([h | t], acc) when h not in @non_identifier,
+  defp take_alias([h | t], acc) when h in ?A..?Z or h in ?a..?z or h in ?0..9 or h == ?_,
     do: take_alias(t, [h | acc])
 
   defp take_alias(rest, acc) do
