@@ -286,7 +286,8 @@ defmodule ExUnit do
       Available algorithms can be found in Erlang's
       [`:rand`](https://www.erlang.org/doc/man/rand.html) documentation (see
       [`:rand.builting_arg/0`](https://www.erlang.org/doc/man/rand.html#type-builtin_alg)).
-      Defaults to `:exsss`;
+      Available since v1.16.0. Before v1.16.0, the algorithm was hard-coded to
+      `:exs1024`. On Elixir v1.16.0 and after, the default changed to `:exsss`;
 
     * `:refute_receive_timeout` - the timeout to be used on `refute_receive`
       calls in milliseconds, defaults to `100`;
