@@ -1281,7 +1281,7 @@ defmodule FunctionClauseError do
   @moduledoc """
   An exception raised when a function call doesn't match any defined clause.
 
-  The following fields of this exception are public and can be used freely:
+  The following fields of this exception are public and can be accessed freely:
 
     * `:module` (`t:module/0`) - the module name
     * `:function` (`t:atom/0`) - the function name
