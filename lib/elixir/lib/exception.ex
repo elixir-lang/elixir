@@ -1079,6 +1079,27 @@ defmodule BadArityError do
 end
 
 defmodule UndefinedFunctionError do
+  @moduledoc """
+  An exception raised when a function is invoked that is not defined.
+
+  The following fields of this exception are public and can be used freely:
+
+    * `:module` (`t:module/0`) - the module name
+    * `:function` (`t:atom/0`) - the function name
+    * `:arity` (`t:non_neg_integer/0`) - the arity of the function
+
+  For example, if you try to call `MyMod.non_existing_fun("hello", 1)`,
+  the error would look like:
+
+      %UndefinedFunctionError{
+        module: MyMod,
+        function: :non_existing_fun,
+        arity: 2,
+        # Other private fields...
+      }
+
+  """
+
   defexception [:module, :function, :arity, :reason, :message]
 
   @impl true
@@ -1257,6 +1278,27 @@ defmodule UndefinedFunctionError do
 end
 
 defmodule FunctionClauseError do
+  @moduledoc """
+  An exception raised when a function invocation doesn't match any defined clause.
+
+  The following fields of this exception are public and can be used freely:
+
+    * `:module` (`t:module/0`) - the module name
+    * `:function` (`t:atom/0`) - the function name
+    * `:arity` (`t:non_neg_integer/0`) - the arity of the function
+
+  For example, if you try to call a function such as `URI.parse/1` with something
+  other than a string, the error would look like:
+
+      %FunctionClauseError{
+        module: URI,
+        function: :parse,
+        arity: 1,
+        # Other private fields...
+      }
+
+  """
+
   defexception [:module, :function, :arity, :kind, :args, :clauses]
 
   @clause_limit 10
