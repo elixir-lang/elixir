@@ -578,6 +578,21 @@ defmodule Mix.Tasks.Release do
   )
   ```
 
+  Inside `env.sh` and `env.bat` files you can access command-line arguments given to release commands.
+  For example, given this `env.sh.eex`:
+
+  ```bash
+  echo $@
+  ```
+
+  or this `env.bat.eex`:
+
+  ```bash
+  echo %*
+  ```
+
+  starting the release with `bin/myapp start --foo bar baz` will print `start --foo bar baz`.
+
   ## Application configuration
 
   Mix provides two mechanisms for configuring the application environment
