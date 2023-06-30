@@ -117,29 +117,41 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
-## v1.15.1
+## v1.15.1 (2023-06-30)
 
-### 1. Bug fixes
+### 1. Enhancements
+
+  * [Code] `Code.string_to_quoted/2` honors `:static_atoms_encoder` for multi-letter sigils
+
+### 2. Bug fixes
 
 #### ExUnit
 
   * [ExUnit.CaptureLog] Fix race condition on concurrent `capture_log`
+  * [ExUnit.CaptureLog] Respect options passed to nested `capture_log` calls
   * [ExUnit.Doctest] Properly compile doctests without results terminated by fences
+  * [ExUnit.Doctest] Allow variables defined in doctests to be used in expectation
 
 #### IEx
 
   * [IEx] Ensure `pry` works on Erlang/OTP 25 and earlier while IEx is booting
+  * [IEx] `Code.Fragment.surround_context` considers surround context around spaces and parens
 
 #### Logger
 
+  * [Logger] Do not assume Logger has been loaded at compile-time
   * [Logger.Formatter] Properly handle `:function` as metadata
 
 #### Mix
 
   * [mix compile] Ensure the current project is available on the code path after its Elixir sources are compiled
   * [mix compile] Guarantee yecc/leex are available when emitting warnings from previous runs
+  * [mix compile] Fix bug where an external resource was deleted after its
+  mtime was successfully retrieved
+  * [mix compile] Track removed modules and exports across local deps
   * [mix deps] Fix an issue where dependencies could not be started in an umbrella projects
   * [mix release] Properly handle optional dependencies when there is a conflict in the application start mode
+  * [mix release] Remove `--werl` from release scripts on Erlang/OTP 26
 
 ## v1.15.0 (2023-06-19)
 
