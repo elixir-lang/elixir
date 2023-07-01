@@ -1497,6 +1497,16 @@ defmodule FunctionClauseError do
 end
 
 defmodule Code.LoadError do
+  @moduledoc """
+  An exception raised when a file cannot be loaded.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:file` (`t:String.t/0`) - the file name
+    * `:reason` (`t:term/0`) - the reason why the file could not be loaded
+
+  """
+
   defexception [:file, :message, :reason]
 
   def exception(opts) do
@@ -1508,6 +1518,28 @@ defmodule Code.LoadError do
 end
 
 defmodule Protocol.UndefinedError do
+  @moduledoc """
+  An exception raised when a protocol is not implemented for a given value.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:protocol` (`t:module/0`) - the protocol that is not implemented
+    * `:value` (`t:term/0`) - the value that does not implement the protocol
+
+  For example, this code:
+
+      Enum.at("A string!", 0)
+
+  would raise the following exception:
+
+      %Protocol.UndefinedError{
+        protocol: Enumerable,
+        value: "A string!",
+        # ...
+      }
+
+  """
+
   defexception [:protocol, :value, description: ""]
 
   @impl true
@@ -1548,6 +1580,19 @@ defmodule Protocol.UndefinedError do
 end
 
 defmodule KeyError do
+  @moduledoc """
+  An exception raised when a key is not found in a data structure.
+
+  For example, this is raised by `Map.fetch!/2` when the given key
+  cannot be found in the given map.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:term` (`t:term/0`) - the data structure that was searched
+    * `:key` (`t:term/0`) - the key that was not found
+
+  """
+
   defexception [:key, :term, :message]
 
   @impl true
@@ -1644,14 +1689,38 @@ defmodule UnicodeConversionError do
 end
 
 defmodule Enum.OutOfBoundsError do
+  @moduledoc """
+  An exception that is raised when a function expects an enumerable to have
+  a certain size but finds that it is too small.
+
+  For example, this is raised by `Access.at!/1`.
+  """
+
   defexception message: "out of bounds error"
 end
 
 defmodule Enum.EmptyError do
+  @moduledoc """
+  An exception that is raised when something expects a non-empty enumerable
+  but finds an empty one.
+
+  For example, this is raised by `Enum.min/3`.
+  """
+
   defexception message: "empty error"
 end
 
 defmodule File.Error do
+  @moduledoc """
+  An exception that is raised when a file operation fails.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:path` (`t:Path.t/0`) - the path of the file that caused the error
+    * `:reason` (`t:term/0`) - the reason for the error
+
+  """
+
   defexception [:reason, :path, action: ""]
 
   @impl true
@@ -1670,6 +1739,17 @@ defmodule File.Error do
 end
 
 defmodule File.CopyError do
+  @moduledoc """
+  An exception that is raised when copying a file fails.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:source` (`t:Path.t/0`) - the source path
+    * `:destination` (`t:Path.t/0`) - the destination path
+    * `:reason` (`t:term/0`) - the reason for the error
+
+  """
+
   defexception [:reason, :source, :destination, on: "", action: ""]
 
   @impl true
@@ -1688,6 +1768,17 @@ defmodule File.CopyError do
 end
 
 defmodule File.RenameError do
+  @moduledoc """
+  An exception that is raised when renaming a file fails.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:source` (`t:Path.t/0`) - the source path
+    * `:destination` (`t:Path.t/0`) - the destination path
+    * `:reason` (`t:term/0`) - the reason for the error
+
+  """
+
   defexception [:reason, :source, :destination, on: "", action: ""]
 
   @impl true
@@ -1706,6 +1797,17 @@ defmodule File.RenameError do
 end
 
 defmodule File.LinkError do
+  @moduledoc """
+  An exception that is raised when linking a file fails.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:existing` (`t:Path.t/0`) - the existing file to link
+    * `:new` (`t:Path.t/0`) - the link destination
+    * `:reason` (`t:term/0`) - the reason for the error
+
+  """
+
   defexception [:reason, :existing, :new, action: ""]
 
   @impl true
