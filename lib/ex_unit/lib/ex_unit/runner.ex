@@ -3,7 +3,6 @@ defmodule ExUnit.Runner do
 
   alias ExUnit.EventManager, as: EM
 
-  @rand_algorithm :exs1024
   @current_key __MODULE__
 
   def run(opts, load_us) when (is_integer(load_us) or is_nil(load_us)) and is_list(opts) do
@@ -76,6 +75,7 @@ defmodule ExUnit.Runner do
       max_cases: opts[:max_cases],
       max_failures: opts[:max_failures],
       only_test_ids: opts[:only_test_ids],
+      rand_algorithm: opts[:rand_algorithm],
       runner_pid: runner_pid,
       seed: opts[:seed],
       stats_pid: stats_pid,
@@ -379,10 +379,15 @@ defmodule ExUnit.Runner do
     exec_on_exit(test, test_pid, timeout)
   end
 
-  defp spawn_test_monitor(%{seed: seed, capture_log: capture_log}, test, parent_pid, context) do
+  defp spawn_test_monitor(
+         %{seed: seed, capture_log: capture_log, rand_algorithm: rand_algorithm},
+         test,
+         parent_pid,
+         context
+       ) do
     spawn_monitor(fn ->
       ExUnit.OnExitHandler.register(self())
-      generate_test_seed(seed, test)
+      generate_test_seed(seed, test, rand_algorithm)
       capture_log = Map.get(test.tags, :capture_log, capture_log)
 
       {time, test} =
@@ -484,8 +489,8 @@ defmodule ExUnit.Runner do
 
   ## Helpers
 
-  defp generate_test_seed(seed, %ExUnit.Test{module: module, name: name}) do
-    :rand.seed(@rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
+  defp generate_test_seed(seed, %ExUnit.Test{module: module, name: name}, rand_algorithm) do
+    :rand.seed(rand_algorithm, {:erlang.phash2(module), :erlang.phash2(name), seed})
   end
 
   defp process_max_failures(%{max_failures: :infinity}, _), do: :no
@@ -529,8 +534,8 @@ defmodule ExUnit.Runner do
     list
   end
 
-  defp shuffle(%{seed: seed}, list) do
-    _ = :rand.seed(@rand_algorithm, {seed, seed, seed})
+  defp shuffle(%{seed: seed, rand_algorithm: rand_algorithm}, list) do
+    _ = :rand.seed(rand_algorithm, {seed, seed, seed})
     Enum.shuffle(list)
   end
 
