@@ -999,6 +999,10 @@ defmodule BadStructError do
 end
 
 defmodule BadMapError do
+  @moduledoc """
+  An exception raised when something expected a map, but received something else.
+  """
+
   defexception [:term]
 
   @impl true
@@ -1008,6 +1012,10 @@ defmodule BadMapError do
 end
 
 defmodule BadBooleanError do
+  @moduledoc """
+  An exception raised when an operator expected a boolean, but received something else.
+  """
+
   defexception [:term, :operator]
 
   @impl true
@@ -1017,6 +1025,19 @@ defmodule BadBooleanError do
 end
 
 defmodule MatchError do
+  @moduledoc """
+  An exception raised when a pattern match (`=/2`) fails.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:term` (`t:term/0`) - the term that did not match the pattern
+
+  For example, this exception gets raised for code like this:
+
+      [_ | _] = []
+
+  """
+
   defexception [:term]
 
   @impl true
@@ -1026,6 +1047,23 @@ defmodule MatchError do
 end
 
 defmodule CaseClauseError do
+  @moduledoc """
+  An exception raised when a term in a `case/2` expression
+  does not match any of the defined `->` clauses.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:term` (`t:term/0`) - the term that did not match any of the clauses
+
+  For example, this exception gets raised for a `case/2` like the following:
+
+      case System.unique_integer() do
+        bin when is_binary(bin) -> :oops
+        :ok -> :neither_this_one
+      end
+
+  """
+
   defexception [:term]
 
   @impl true
@@ -1035,6 +1073,27 @@ defmodule CaseClauseError do
 end
 
 defmodule WithClauseError do
+  @moduledoc """
+  An exception raised when a term in a `with/1` expression
+  does not match any of the defined `->` clauses in its `else`.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:term` (`t:term/0`) - the term that did not match any of the clauses
+
+  For example, this exception gets raised for a `with/1` like the following, because
+  the `{:ok, 2}` term does not match the `:error` or `{:error, _}` clauses in the
+  `else`:
+
+      with {:ok, 1} <- {:ok, 2} do
+        :woah
+      else
+        :error -> :error
+        {:error, _} -> :error
+      end
+
+  """
+
   defexception [:term]
 
   @impl true
@@ -1044,6 +1103,18 @@ defmodule WithClauseError do
 end
 
 defmodule CondClauseError do
+  @moduledoc """
+  An exception raised when no clauses in a `cond/1` expression evaluate to a truthy value.
+
+  For example, this exception gets raised for a `cond/1` like the following:
+
+      cond do
+        1 + 1 == 3 -> :woah
+        nil -> "yeah this won't happen
+      end
+
+  """
+
   defexception []
 
   @impl true
@@ -1053,6 +1124,15 @@ defmodule CondClauseError do
 end
 
 defmodule TryClauseError do
+  @moduledoc """
+  An exception raised when a term in a `try/1` expression
+  does not match any of the defined `->` clauses in its `else`.
+
+  The following fields of this exception are public and can be accessed freely:
+
+    * `:term` (`t:term/0`) - the term that did not match any of the clauses
+
+  """
   defexception [:term]
 
   @impl true
@@ -1062,6 +1142,10 @@ defmodule TryClauseError do
 end
 
 defmodule BadArityError do
+  @moduledoc """
+  An exception raised when a function is called with the wrong number of arguments.
+  """
+
   defexception [:function, :args]
 
   @impl true
