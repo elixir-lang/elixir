@@ -117,6 +117,14 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.2 (2023-07-01)
+
+### 1. Bug fixes
+
+#### IEx
+
+  * [IEx] Fix CLI being unable to boot on Windows
+
 ## v1.15.1 (2023-06-30)
 
 ### 1. Enhancements
