@@ -561,6 +561,21 @@ defmodule Code do
     * `:log` - if the diagnostics should be logged as they happen.
       Defaults to `false`.
 
+  > #### Rescuing compilation errors {: .info}
+  >
+  > `with_diagnostics/2` does not automatically handle exceptions,
+  > so compilation errors may be raised.
+  > Compilation errors can be retrieved by adding a `try/1` in `fun`:
+  >
+  >     {result, all_errors_and_warnings} =
+  >       Code.with_diagnostics(fn ->
+  >         try do
+  >           {:ok, Code.compile_quoted(quoted)}
+  >         rescue
+  >           err -> {:error, err}
+  >         end
+  >       end)
+
   """
   @doc since: "1.15.0"
   @spec with_diagnostics(keyword(), (-> result)) :: {result, [diagnostic(:warning | :error)]}
