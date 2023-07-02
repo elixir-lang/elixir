@@ -564,7 +564,7 @@ defmodule Code do
   > #### Rescuing compilation errors {: .info}
   >
   > `with_diagnostics/2` does not automatically handle exceptions,
-  > so compilation errors will still be raised.
+  > so compilation errors may be raised.
   > Compilation errors can be retrieved by adding a `try/1` in `fun`:
   >
   >     {result, all_errors_and_warnings} =
