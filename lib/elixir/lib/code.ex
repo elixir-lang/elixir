@@ -570,9 +570,9 @@ defmodule Code do
   >     {result, all_errors_and_warnings} =
   >       Code.with_diagnostics(fn ->
   >         try do
-  >           Code.compile_quoted(quoted)
+  >           {:ok, Code.compile_quoted(quoted)}
   >         rescue
-  >           err -> err
+  >           err -> {:error, err}
   >         end
   >       end)
 
