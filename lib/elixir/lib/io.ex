@@ -333,7 +333,7 @@ defmodule IO do
   end
 
   def warn(message, []) do
-    :elixir_errors.emit_diagnostic(:warning, 0, nil, to_chardata(message), [], true)
+    :elixir_errors.emit_diagnostic(:warning, 0, nil, to_chardata(message), [], false)
   end
 
   def warn(message, [{_, _} | _] = keyword) do
