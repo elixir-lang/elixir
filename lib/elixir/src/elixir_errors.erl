@@ -43,7 +43,7 @@ print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace,
   io:put_chars(standard_error, [Output, $\n, $\n]),
   Diagnostic.
 
-emit_diagnostic(Severity, Position, File, Message, Stacktrace, IsFancy) ->
+emit_diagnostic(Severity, Position, File, Message, Stacktrace, ReadSnippet) ->
   Diagnostic = #{
     severity => Severity,
     file => File,
@@ -53,8 +53,8 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace, IsFancy) ->
   },
 
   case get(elixir_code_diagnostics) of
-    undefined -> print_diagnostic(Diagnostic, IsFancy);
-    {Tail, true} -> put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic, IsFancy) | Tail], true});
+    undefined -> print_diagnostic(Diagnostic, ReadSnippet);
+    {Tail, true} -> put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic, ReadSnippet) | Tail], true});
     {Tail, false} -> put(elixir_code_diagnostics, {[Diagnostic | Tail], false})
   end,
 
