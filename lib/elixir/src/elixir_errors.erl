@@ -16,17 +16,20 @@
 %% Diagnostic API
 
 %% TODO: Remove me on Elixir v2.0.
+%% Called by deprecated Kernel.ParallelCompiler.print_warning.
 print_warning(Position, File, Message) ->
   Output = format_snippet(File, Position, Message, nil, warning, []),
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
+%% Called by Module.ParallelChecker.
 print_warning(Message, Diagnostic) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
   Snippet = get_snippet(File, Position),
   Output = format_snippet(File, Position, Message, Snippet, warning, S),
-
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
+get_snippet(nil, _Position) ->
+  nil;
 get_snippet(File, Position) ->
   Line = extract_line(Position),
   case filelib:is_regular(File) of
