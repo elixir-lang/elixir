@@ -61,9 +61,18 @@ defmodule Kernel.CLITest do
            end)
   end
 
-  stderr_test "--help smoke test" do
-    output = elixir(~c"--help")
-    assert output =~ "Usage: elixir"
+  test "--eval smoke test" do
+    {output, 0} = System.cmd(elixir_executable(), ["--eval", "IO.puts :hello_world123"])
+    assert output =~ "hello_world123"
+
+    {output, 0} = System.cmd(iex_executable(), ["--eval", "IO.puts :hello_world123; System.halt"])
+    assert output =~ "hello_world123"
+
+    {output, 0} = System.cmd(elixir_executable(), ["-e", "IO.puts :hello_world123"])
+    assert output =~ "hello_world123"
+
+    {output, 0} = System.cmd(iex_executable(), ["-e", "IO.puts :hello_world123; System.halt"])
+    assert output =~ "hello_world123"
   end
 
   test "--version smoke test" do
@@ -85,6 +94,11 @@ defmodule Kernel.CLITest do
     output = elixir(~c"--short-version")
     assert output =~ System.version()
     refute output =~ "Erlang"
+  end
+
+  stderr_test "--help smoke test" do
+    output = elixir(~c"--help")
+    assert output =~ "Usage: elixir"
   end
 
   stderr_test "combining --help results in error" do
