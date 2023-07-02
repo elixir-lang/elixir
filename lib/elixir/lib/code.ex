@@ -591,7 +591,7 @@ defmodule Code do
 
   ## Options
 
-  * `:snippet` - whether to read the code snippet in the diagnostic location.
+    * `:snippet` - whether to read the code snippet in the diagnostic location.
       As it may impact performance, it is not recommended to be used in runtime.
       Defaults to `true`.
   """
