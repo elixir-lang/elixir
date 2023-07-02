@@ -62,16 +62,16 @@ defmodule Kernel.CLITest do
   end
 
   test "--eval smoke test" do
-    output = elixir(~c"--eval 'IO.puts :hello_world!'")
+    {output, 0} = System.cmd(elixir_executable(), ["--eval", "IO.puts :hello_world!"])
     assert output =~ "hello_world!"
 
-    output = iex(~c"--eval 'IO.puts :hello_world!; System.halt'")
+    {output, 0} = System.cmd(iex_executable(), ["--eval", "IO.puts :hello_world!; System.halt"])
     assert output =~ "hello_world!"
 
-    output = elixir(~c"-e 'IO.puts :hello_world!'")
+    {output, 0} = System.cmd(elixir_executable(), ["-e", "IO.puts :hello_world!"])
     assert output =~ "hello_world!"
 
-    output = iex(~c"-e 'IO.puts :hello_world!; System.halt'")
+    {output, 0} = System.cmd(iex_executable(), ["-e", "IO.puts :hello_world!; System.halt"])
     assert output =~ "hello_world!"
   end
 
