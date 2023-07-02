@@ -8,7 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([format_snippet/6]).
 -export([erl_warn/3, file_warn/4]).
--export([print_diagnostic/1, emit_diagnostic/5]).
+-export([print_diagnostic/2, emit_diagnostic/6]).
 -export([print_warning/2, print_warning/3]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
@@ -16,17 +16,20 @@
 %% Diagnostic API
 
 %% TODO: Remove me on Elixir v2.0.
+%% Called by deprecated Kernel.ParallelCompiler.print_warning.
 print_warning(Position, File, Message) ->
   Output = format_snippet(File, Position, Message, nil, warning, []),
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
+%% Called by Module.ParallelChecker.
 print_warning(Message, Diagnostic) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
   Snippet = get_snippet(File, Position),
   Output = format_snippet(File, Position, Message, Snippet, warning, S),
-
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
+get_snippet(nil, _Position) ->
+  nil;
 get_snippet(File, Position) ->
   Line = extract_line(Position),
   case filelib:is_regular(File) of
@@ -34,23 +37,16 @@ get_snippet(File, Position) ->
     false -> nil
   end.
 
-print_diagnostic(#{severity := Severity, message := Message, stacktrace := Stacktrace} = Diagnostic) ->
-  Location =
-    case (Stacktrace =:= []) orelse elixir_config:is_bootstrap() of
-      true ->
-        #{position := Position, file := File} = Diagnostic,
-        case File of
-          nil -> [];
-          File -> ["\n  ", file_format(Position, File)]
-        end;
-
-      false ->
-        [["\n  ", 'Elixir.Exception':format_stacktrace_entry(E)] || E <- Stacktrace]
-    end,
-  io:put_chars(standard_error, [prefix(Severity), Message, Location, "\n\n"]),
+print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic, ReadSnippet) ->
+  Snippet = case ReadSnippet of
+    true -> get_snippet(F, P);
+    false -> nil
+  end,
+  Output = format_snippet(F, P, M, Snippet, Severity, Stacktrace),
+  io:put_chars(standard_error, [Output, $\n, $\n]),
   Diagnostic.
 
-emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
+emit_diagnostic(Severity, Position, File, Message, Stacktrace, ReadSnippet) ->
   Diagnostic = #{
     severity => Severity,
     file => File,
@@ -60,8 +56,8 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
   },
 
   case get(elixir_code_diagnostics) of
-    undefined -> print_diagnostic(Diagnostic);
-    {Tail, true} -> put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic) | Tail], true});
+    undefined -> print_diagnostic(Diagnostic, ReadSnippet);
+    {Tail, true} -> put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic, ReadSnippet) | Tail], true});
     {Tail, false} -> put(elixir_code_diagnostics, {[Diagnostic | Tail], false})
   end,
 
@@ -74,8 +70,8 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace) ->
 
 format_location(Position, File, Stacktrace) ->
   case Stacktrace of
-    [] -> file_format(Position, File);
-    [E] -> 'Elixir.Exception':format_stacktrace_entry(E)
+    [E | _] -> 'Elixir.Exception':format_stacktrace_entry(E);
+    _ -> file_format(Position, File)
   end.
 
 extract_line({L, _}) -> L;
@@ -209,7 +205,7 @@ n_spaces(N) -> lists:duplicate(N, " ").
 erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
 erl_warn(Location, File, Warning) when is_binary(File) ->
-  emit_diagnostic(warning, Location, File, Warning, []).
+  emit_diagnostic(warning, Location, File, Warning, [], true).
 
 -spec file_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
 file_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
@@ -221,7 +217,7 @@ file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
     false ->
       {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, E),
       Message = Module:format_error(Desc),
-      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace)
+      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace, true)
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -254,7 +250,7 @@ function_error(Meta, Env, Module, Desc) ->
 print_error(Meta, Env, Module, Desc) ->
   {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace),
+  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, true),
   ok.
 
 %% Compilation error.

@@ -588,11 +588,18 @@ defmodule Code do
 
   A diagnostic is either returned by `Kernel.ParallelCompiler`
   or by `Code.with_diagnostics/2`.
+
+  ## Options
+
+    * `:snippet` - whether to read the code snippet in the diagnostic location.
+      As it may impact performance, it is not recommended to be used in runtime.
+      Defaults to `true`.
   """
   @doc since: "1.15.0"
-  @spec print_diagnostic(diagnostic(:warning | :error)) :: :ok
-  def print_diagnostic(diagnostic) do
-    :elixir_errors.print_diagnostic(diagnostic)
+  @spec print_diagnostic(diagnostic(:warning | :error), keyword()) :: :ok
+  def print_diagnostic(diagnostic, opts \\ []) do
+    read_snippet? = Keyword.get(opts, :snippet, true)
+    :elixir_errors.print_diagnostic(diagnostic, read_snippet?)
     :ok
   end
 

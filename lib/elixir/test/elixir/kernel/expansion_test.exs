@@ -1168,7 +1168,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "fails on block" do
-      message = ~r"block expressions are not allowed inside the capture operator &, got: 1\n2"
+      message = ~r"block expressions are not allowed inside the capture operator &, got: 1\n 2"
 
       assert_compile_error(message, fn ->
         code =
