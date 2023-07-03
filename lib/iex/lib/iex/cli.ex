@@ -89,8 +89,7 @@ defmodule IEx.CLI do
       spawn_link(fn ->
         receive do
           {:begin, ^ref, other} ->
-            {:ok, _} = Application.ensure_all_started(:elixir)
-            System.wait_until_booted()
+            :elixir.start_cli()
             send(other, {:done, ref})
         end
       end)
