@@ -1,6 +1,7 @@
 # Unicode Syntax
 
-Elixir supports Unicode throughout the language.
+Elixir supports Unicode throughout the language. This document is a complete reference of how
+Elixir supports Unicode in its syntax.
 
 Strings (`"olá"`) and charlists (`'olá'`) support Unicode since Elixir v1.0. Strings are UTF-8 encoded. Charlists are lists of Unicode code points. In such cases, the contents are kept as written by developers, without any transformation.
 

@@ -1,6 +1,9 @@
-# Typespecs
+# Typespecs reference
 
-Elixir comes with a notation for declaring types and specifications. Elixir is a dynamically typed language, and as such, type specifications are never used by the compiler to optimize or modify code. Still, using type specifications is useful because:
+Elixir comes with a notation for declaring types and specifications. This document is a
+reference into their uses and syntax.
+
+Elixir is a dynamically typed language, and as such, type specifications are never used by the compiler to optimize or modify code. Still, using type specifications is useful because:
 
   * they provide documentation (for example, tools such as [`ExDoc`](https://hexdocs.pm/ex_doc/) show type specifications in the documentation)
   * they're used by tools such as [Dialyzer](`:dialyzer`), that can analyze code with typespecs to find type inconsistencies and possible bugs

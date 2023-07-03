@@ -2,7 +2,18 @@
 canonical = System.fetch_env!("CANONICAL")
 
 [
-  extras: Path.wildcard("lib/elixir/pages/*.md") ++ ["CHANGELOG.md"],
+  extras: [
+    "lib/elixir/pages/references/compatibility-and-deprecations.md",
+    "lib/elixir/pages/references/library-guidelines.md",
+    "lib/elixir/pages/references/naming-conventions.md",
+    "lib/elixir/pages/references/operators.md",
+    "lib/elixir/pages/references/patterns-and-guards.md",
+    "lib/elixir/pages/references/syntax-reference.md",
+    "lib/elixir/pages/references/typespecs.md",
+    "lib/elixir/pages/references/unicode-syntax.md",
+    "lib/elixir/pages/references/writing-documentation.md",
+    "CHANGELOG.md"
+  ],
   deps: [
     eex: "https://hexdocs.pm/eex/#{canonical}",
     ex_unit: "https://hexdocs.pm/ex_unit/#{canonical}",
@@ -10,10 +21,15 @@ canonical = System.fetch_env!("CANONICAL")
     logger: "https://hexdocs.pm/logger/#{canonical}",
     mix: "https://hexdocs.pm/mix/#{canonical}"
   ],
+  groups_for_extras: [
+    References: ~r"pages/references/.*\.md$"
+  ],
   groups_for_functions: [
     Guards: &(&1[:guard] == true)
   ],
-  skip_undefined_reference_warnings_on: ["lib/elixir/pages/compatibility-and-deprecations.md"],
+  skip_undefined_reference_warnings_on: [
+    "lib/elixir/pages/references/compatibility-and-deprecations.md"
+  ],
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 

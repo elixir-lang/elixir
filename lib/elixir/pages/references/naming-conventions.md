@@ -1,6 +1,9 @@
 # Naming Conventions
 
-This document is an overview of the naming conventions in Elixir, from casing to punctuation characters. See [Syntax reference](syntax-reference.md) for a complete description of the naming rules and allowed characters.
+This document is a reference of the naming conventions in Elixir, from casing to punctuation characters.
+
+The naming convention is, by definition, a subset of the Elixir syntax. A convention aims to
+follow and set best practices for language and the community. If instead you want a complete reference into the Elixir syntax, beyond its conventions, see [the Syntax reference](syntax-reference.md).
 
 ## Casing
 
