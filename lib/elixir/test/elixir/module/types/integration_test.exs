@@ -569,7 +569,7 @@ defmodule Module.Types.IntegrationTest do
       }
 
       warning = [
-        "warning:",
+        "warning\n",
         "from after_verify"
       ]
 

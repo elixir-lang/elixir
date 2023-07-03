@@ -1441,17 +1441,16 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       IO.warn "warning", [{nil, nil, 0, file: 'lib/foo.txt', line: 3}]
       """)
 
-      file = Path.absname("lib/foo.txt")
-
       capture_io(:stderr, fn ->
         assert {:ok, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
 
         assert %Diagnostic{
-                 file: ^file,
+                 file: nil,
                  severity: :warning,
-                 position: 3,
+                 position: 0,
                  compiler_name: "Elixir",
-                 message: "warning"
+                 message: "warning",
+                 stacktrace: [{nil, nil, 0, [file: ~c"lib/foo.txt", line: 3]}]
                } = diagnostic
       end)
     end)
@@ -1567,7 +1566,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
           if Code.ensure_loaded?(B) and not function_exported?(B, :foo, 0) do
             :ok
           else
-            IO.warn("AFTER_VERIFY", Macro.Env.stacktrace(__ENV__))
+            IO.warn("AFTER_VERIFY", __ENV__)
           end
         end
       end

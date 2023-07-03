@@ -18,14 +18,14 @@
 %% TODO: Remove me on Elixir v2.0.
 %% Called by deprecated Kernel.ParallelCompiler.print_warning.
 print_warning(Position, File, Message) ->
-  Output = format_snippet(File, Position, Message, nil, warning, []),
+  Output = format_snippet(Position, File, Message, nil, warning, []),
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
 %% Called by Module.ParallelChecker.
 print_warning(Message, Diagnostic) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
   Snippet = get_snippet(File, Position),
-  Output = format_snippet(File, Position, Message, Snippet, warning, S),
+  Output = format_snippet(Position, File, Message, Snippet, warning, S),
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
 get_snippet(nil, _Position) ->
@@ -38,12 +38,21 @@ get_snippet(File, Position) ->
   end.
 
 print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic, ReadSnippet) ->
-  Snippet = case ReadSnippet of
-    true -> get_snippet(F, P);
-    false -> nil
-  end,
-  Output = format_snippet(F, P, M, Snippet, Severity, Stacktrace),
-  io:put_chars(standard_error, [Output, $\n, $\n]),
+  Snippet =
+    case ReadSnippet of
+      true -> get_snippet(F, P);
+      false -> nil
+    end,
+
+  Output = format_snippet(P, F, M, Snippet, Severity, Stacktrace),
+
+  MaybeStack =
+    case (F /= nil) orelse elixir_config:is_bootstrap() of
+      true -> [];
+      false -> [["\n  ", 'Elixir.Exception':format_stacktrace_entry(E)] || E <- Stacktrace]
+    end,
+
+  io:put_chars(standard_error, [Output, MaybeStack, $\n, $\n]),
   Diagnostic.
 
 emit_diagnostic(Severity, Position, File, Message, Stacktrace, ReadSnippet) ->
@@ -67,12 +76,6 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace, ReadSnippet) ->
   end,
 
   ok.
-
-format_location(Position, File, Stacktrace) ->
-  case Stacktrace of
-    [E | _] -> 'Elixir.Exception':format_stacktrace_entry(E);
-    _ -> file_format(Position, File)
-  end.
 
 extract_line({L, _}) -> L;
 extract_line(L) -> L.
@@ -98,49 +101,53 @@ do_get_file_line(IoDevice, N) ->
 %% Format snippets
 %% "Snippet" here refers to the source code line where the diagnostic/error occured
 
-format_snippet(File, Position, Message, nil, Severity, Stacktrace) ->
-  Location = format_location(Position, File, Stacktrace),
+format_snippet(Position, File, Message, nil, Severity, Stacktrace) ->
+  Location = location_format(Position, File, Stacktrace),
+
   Formatted = io_lib:format(
-    " ┌─ ~ts~ts\n"
+    " ┌─ ~ts\n"
     " ~ts",
     [
-     prefix(Severity), Location,
+     prefix(Severity, Location),
      format_message(Message, 0, 1)
     ]
    ),
 
   unicode:characters_to_binary(Formatted);
 
-format_snippet(File, Position, Message, Snippet, Severity, Stacktrace) ->
-  {Content, Column} = case Snippet of
-                        S when is_map(Snippet) ->
-                          #{content := C, offset := O} = S,
-                          {C, O};
+format_snippet(Position, File, Message, Snippet, Severity, Stacktrace) ->
+  {Content, Column} =
+    case Snippet of
+      S when is_map(Snippet) ->
+        #{content := C, offset := O} = S,
+        {C, O};
 
-                        _ when is_binary(Snippet) ->
-                          {Snippet, extract_column(Position)}
-                      end,
+      _ when is_binary(Snippet) ->
+        {Snippet, extract_column(Position)}
+    end,
+
   LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(max(2, LineDigits) + 1),
   LineNumberSpacing = if LineDigits =:= 1 -> 1; true -> 0 end,
   {FormattedLine, ColumnsTrimmed} = format_line(Content),
-  Location = format_location(Position, File, Stacktrace),
+  Location = location_format(Position, File, Stacktrace),
 
-  Highlight = case Column of
-                nil -> highlight_below_line(FormattedLine, Severity);
-                _ -> highlight_at_position(Column - ColumnsTrimmed, Severity)
-              end,
+  Highlight =
+    case Column of
+      nil -> highlight_below_line(FormattedLine, Severity);
+      _ -> highlight_at_position(Column - ColumnsTrimmed, Severity)
+    end,
 
   Formatted = io_lib:format(
-    " ~ts┌─ ~ts~ts\n"
+    " ~ts┌─ ~ts\n"
     " ~ts│\n"
     " ~ts~p │ ~ts\n"
     " ~ts│ ~ts\n"
     " ~ts│\n"
     " ~ts~ts",
     [
-     Spacing, prefix(Severity), Location,
+     Spacing, prefix(Severity, Location),
      Spacing,
      n_spaces(LineNumberSpacing), LineNumber, FormattedLine,
      Spacing, Highlight,
@@ -389,8 +396,10 @@ snippet_line(InputString, Location, StartLine) ->
 
 %% Helpers
 
-prefix(warning) -> highlight(<<"warning: ">>, warning);
-prefix(error) -> highlight(<<"error: ">>, error).
+prefix(warning, []) -> highlight(<<"warning">>, warning);
+prefix(error, []) -> highlight(<<"error">>, error);
+prefix(warning, Location) -> [highlight(<<"warning: ">>, warning), Location];
+prefix(error, Location) -> [highlight(<<"error: ">>, error), Location].
 
 highlight(Message, Severity) ->
   case {Severity, application:get_env(elixir, ansi_enabled, false)} of
@@ -421,8 +430,17 @@ env_format(Meta, #{file := EnvFile} = E) ->
     _ -> {Line, File, Stacktrace}
   end.
 
-file_format(_, nil) ->
-  "";
+%% If the file is nil, there is no precise location,
+%% so we don't show the stacktrace NOR the file.
+%% Otherwise we prefer the stacktrace, if available,
+%% as it also contains module/function.
+location_format(_Position, nil, _Stacktrace) ->
+  [];
+location_format(_Position, _File, [E | _]) ->
+  'Elixir.Exception':format_stacktrace_entry(E);
+location_format(Position, File, []) ->
+  file_format(Position, File).
+
 file_format({0, _Column}, File) ->
   elixir_utils:relative_to_cwd(File);
 file_format({Line, nil}, File) ->

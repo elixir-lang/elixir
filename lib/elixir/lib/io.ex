@@ -332,10 +332,6 @@ defmodule IO do
     :elixir_errors.emit_diagnostic(:warning, line, file, message, Macro.Env.stacktrace(env), true)
   end
 
-  def warn(message, []) do
-    :elixir_errors.emit_diagnostic(:warning, 0, nil, to_chardata(message), [], false)
-  end
-
   def warn(message, [{_, _} | _] = keyword) do
     if file = keyword[:file] do
       warn(
@@ -353,12 +349,14 @@ defmodule IO do
     end
   end
 
-  def warn(message, [{_, _, _, opts} | _] = stacktrace) do
+  def warn(message, []) do
     message = to_chardata(message)
-    line = opts[:line]
-    file = opts[:file]
-    file = file && List.to_string(file)
-    :elixir_errors.emit_diagnostic(:warning, line || 0, file, message, stacktrace, false)
+    :elixir_errors.emit_diagnostic(:warning, 0, nil, message, [], false)
+  end
+
+  def warn(message, [{_, _, _, _} | _] = stacktrace) do
+    message = to_chardata(message)
+    :elixir_errors.emit_diagnostic(:warning, 0, nil, message, stacktrace, false)
   end
 
   @doc false
