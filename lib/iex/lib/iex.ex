@@ -928,13 +928,18 @@ defmodule IEx do
         mfa
       end
 
-    :ok = :shell.start_interactive(shell)
+    case :shell.start_interactive(shell) do
+      :ok ->
+        receive do
+          {^ref, shell} -> shell
+        after
+          15_000 ->
+            IO.puts(:stderr, "Could not start IEx CLI due to reason: :boot_timeout")
+            System.halt(1)
+        end
 
-    receive do
-      {^ref, shell} -> shell
-    after
-      15_000 ->
-        IO.puts(:stderr, "Could not start the shell after 15 seconds, aborting...")
+      {:error, reason} ->
+        IO.puts(:stderr, "Could not start IEx CLI due to reason: #{inspect(reason)}")
         System.halt(1)
     end
   end
