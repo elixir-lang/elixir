@@ -1717,7 +1717,7 @@ defmodule File.Error do
   The following fields of this exception are public and can be accessed freely:
 
     * `:path` (`t:Path.t/0`) - the path of the file that caused the error
-    * `:reason` (`t:term/0`) - the reason for the error
+    * `:reason` (`t:File.posix/0`) - the reason for the error
 
   """
 
@@ -1746,7 +1746,7 @@ defmodule File.CopyError do
 
     * `:source` (`t:Path.t/0`) - the source path
     * `:destination` (`t:Path.t/0`) - the destination path
-    * `:reason` (`t:term/0`) - the reason for the error
+    * `:reason` (`t:File.posix/0`) - the reason why the file could not be copied
 
   """
 
@@ -1775,7 +1775,7 @@ defmodule File.RenameError do
 
     * `:source` (`t:Path.t/0`) - the source path
     * `:destination` (`t:Path.t/0`) - the destination path
-    * `:reason` (`t:term/0`) - the reason for the error
+    * `:reason` (`t:File.posix/0`) - the reason why the file could not be renamed
 
   """
 
@@ -1804,7 +1804,7 @@ defmodule File.LinkError do
 
     * `:existing` (`t:Path.t/0`) - the existing file to link
     * `:new` (`t:Path.t/0`) - the link destination
-    * `:reason` (`t:term/0`) - the reason for the error
+    * `:reason` (`t:File.posix/0`) - the reason why the file could not be linked
 
   """
 
