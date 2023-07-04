@@ -6,7 +6,7 @@ This document outlines anti-patterns related to processes and process-based abst
 
 TODO.
 
-## Agent Obsession
+## Scattered process interfaces
 
 TODO (note: it also applies to GenServer, so we should generalize it)
 
