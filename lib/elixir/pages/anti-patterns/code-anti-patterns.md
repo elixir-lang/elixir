@@ -30,10 +30,10 @@ TODO.
 
 TODO.
 
-## Namespace violation
+## Namespace trespassing
 
 TODO. (note: this is defining modules not in your namespace)
 
-## Speculative Generality
+## Speculative assumptions
 
-TODO. (note: it is Speculative Assumptions but renamed)
+TODO.
