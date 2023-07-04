@@ -34,6 +34,5 @@ Each anti-pattern is documented using the following structure:
   * **Refactoring:** Ways to change your code to improve its qualities. Examples of refactored
     code are presented to illustrate these changes.
 
-The initial catalog of anti-patterns was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG](http://aserg.labsoft.dcc.ufmg.br/). For more info, see [Code Smells in Elixir:
-Early Results from a Grey Literature Review](https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/Code-Smells-in-Elixir-ICPC22-Lucas-Vegi.pdf)
-and [the associated code repository](https://raw.githubusercontent.com/lucasvegi/Elixir-Code-Smells).
+The initial catalog of anti-patterns was proposed by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG](http://aserg.labsoft.dcc.ufmg.br/). For more info, see [Understanding Code Smells in Elixir Functional Language](https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/2023-emse-code-smells-elixir.pdf)
+and [the associated code repository](https://github.com/lucasvegi/Elixir-Code-Smells).
