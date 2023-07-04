@@ -790,10 +790,43 @@ end
 # docs.
 
 defmodule RuntimeError do
+  @moduledoc """
+  An exception for a generic runtime error.
+
+  This is the exception that `raise/1` raises when you pass it only a string as
+  a message:
+
+      iex> raise "oops!"
+      ** (RuntimeError) oops!
+
+  You should use this exceptions sparingly, since most of the time it might be
+  better to define your own exceptions specific to your application or library.
+  Sometimes, however, there are situations in which you don't expect a condition to
+  happen, but you want to give a meaningful error message if it does. In those cases,
+  `RuntimeError` can be a good choice.
+
+  ## Fields
+
+  `RuntimeError` exceptions have a single field, `:message` (a `t:String.t/0`),
+  which is public and can be accessed freely when reading or creating `RuntimeError`
+  exceptions.
+  """
+
   defexception message: "runtime error"
 end
 
 defmodule ArgumentError do
+  @moduledoc """
+  An exception raised when an argument to a function is invalid.
+
+  You can raise this exception when you want to signal that an argument to
+  a function is invalid.
+
+  `ArgumentError` exceptions have a single field, `:message` (a `t:String.t/0`),
+  which is public and can be accessed freely when reading or creating `ArgumentError`
+  exceptions.
+  """
+
   defexception message: "argument error"
 
   @impl true
@@ -836,6 +869,16 @@ defmodule ArgumentError do
 end
 
 defmodule ArithmeticError do
+  @moduledoc """
+  An exception raised on invalid arithmetic operations.
+
+  For example, this exception is raised if you divide by `0`:
+
+      iex> 1 / 0
+      ** (ArithmeticError) bad argument in arithmetic expression: 1 / 0
+
+  """
+
   defexception message: "bad argument in arithmetic expression"
 
   @unary_ops [:+, :-]
@@ -876,10 +919,28 @@ defmodule ArithmeticError do
 end
 
 defmodule SystemLimitError do
+  @moduledoc """
+  An exception raised when a system limit has been reached.
+
+  For example, this can happen if you try to create an atom that is too large.
+  """
+
   defexception message: "a system limit has been reached"
 end
 
 defmodule SyntaxError do
+  @moduledoc """
+  An exception raised when there's a syntax error when parsing code.
+
+  The following fields of this exceptions are public and can be accessed freely:
+
+    * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
+      the error occurred in code that did not come from a file
+    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
+    * `:column` (`t:non_neg_integer/0`) - the column where the error occurred
+
+  """
+
   defexception [:file, :line, :column, :snippet, description: "syntax error"]
 
   @impl true
@@ -917,6 +978,18 @@ defmodule SyntaxError do
 end
 
 defmodule TokenMissingError do
+  @moduledoc """
+  An exception raised when a token is missing when parsing code.
+
+  The following fields of this exceptions are public and can be accessed freely:
+
+    * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
+      the error occurred in code that did not come from a file
+    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
+    * `:column` (`t:non_neg_integer/0`) - the column where the error occurred
+
+  """
+
   defexception [:file, :line, :snippet, :column, description: "expression is incomplete"]
 
   @impl true
@@ -953,6 +1026,17 @@ defmodule TokenMissingError do
 end
 
 defmodule CompileError do
+  @moduledoc """
+  An exception raised when there's an error when compiling code.
+
+  The following fields of this exceptions are public and can be accessed freely:
+
+    * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
+      the error occurred in code that did not come from a file
+    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
+
+  """
+
   defexception [:file, :line, description: "compile error"]
 
   @impl true
@@ -965,6 +1049,17 @@ defmodule CompileError do
 end
 
 defmodule Kernel.TypespecError do
+  @moduledoc """
+  An exception raised when there's an error in a typespec.
+
+  The following fields of this exceptions are public and can be accessed freely:
+
+    * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
+      the error occurred in code that did not come from a file
+    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
+
+  """
+
   defexception [:file, :line, :description]
 
   @impl true
