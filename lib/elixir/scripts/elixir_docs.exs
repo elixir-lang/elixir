@@ -17,6 +17,9 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/references/typespecs.md",
     "lib/elixir/pages/references/unicode-syntax.md",
     "lib/elixir/pages/references/writing-documentation.md",
+    "lib/elixir/pages/meta-programming/quote-and-unquote.md",
+    "lib/elixir/pages/meta-programming/macros.md",
+    "lib/elixir/pages/meta-programming/domain-specific-languages.md",
     "CHANGELOG.md"
   ],
   deps: [
@@ -28,6 +31,7 @@ canonical = System.fetch_env!("CANONICAL")
   ],
   groups_for_extras: [
     "Anti-patterns": ~r"pages/anti-patterns/.*\.md$",
+    "Meta-programming": ~r"pages/meta-programming/.*\.md$",
     References: ~r"pages/references/.*\.md$"
   ],
   groups_for_functions: [
