@@ -30,7 +30,7 @@ TODO.
 
 TODO.
 
-## Namespace violation
+## Namespace trespassing
 
 TODO. (note: this is defining modules not in your namespace)
 
