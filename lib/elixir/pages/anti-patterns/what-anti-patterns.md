@@ -1,7 +1,7 @@
 # What are anti-patterns?
 
 Anti-patterns describe common mistakes or indicators of potential problems in code.
-They are also known by the term "code smells".
+They are also known as "code smells".
 
 The goal of these guides is to document known anti-patterns found in Elixir software
 and teach developers how to identify and correct them. If an existing piece of code
