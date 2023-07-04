@@ -1,4 +1,4 @@
-# Writing Documentation
+# Writing documentation
 
 Elixir treats documentation as a first-class citizen. Documentation must be easy to write and easy to read. In this document you will learn how to write documentation in Elixir, covering constructs like module attributes, style practices, and doctests.
 

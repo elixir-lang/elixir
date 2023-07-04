@@ -1,4 +1,4 @@
-# Naming Conventions
+# Naming conventions
 
 This document is a reference of the naming conventions in Elixir, from casing to punctuation characters.
 

@@ -1,4 +1,4 @@
-# Compatibility and Deprecations
+# Compatibility and deprecations
 
 Elixir is versioned according to a vMAJOR.MINOR.PATCH schema.
 
@@ -19,7 +19,7 @@ New releases are announced in the read-only [announcements mailing list](https:/
 
 There are currently no plans for a major v2 release.
 
-## Compatibility between non-major Elixir versions
+## Between non-major Elixir versions
 
 Elixir minor and patch releases are backwards compatible: well-defined behaviours and documented APIs in a given version will continue working on future versions.
 
@@ -37,7 +37,7 @@ In order to continue evolving the language without introducing breaking changes,
 
 The only exception to the compatibility guarantees above are experimental features, which will be explicitly marked as such, and do not provide any compatibility guarantee until they are stabilized.
 
-## Compatibility between Elixir and Erlang/OTP
+## Between Elixir and Erlang/OTP
 
 Erlang/OTP versioning is independent from the versioning of Elixir. Erlang releases a new major version yearly. Our goal is to support the last three Erlang major versions by the time Elixir is released. The compatibility table is shown below.
 

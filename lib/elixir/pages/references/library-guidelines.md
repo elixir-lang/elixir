@@ -1,4 +1,4 @@
-# Library Guidelines
+# Library guidelines
 
 This document outlines general guidelines for those writing and publishing
 Elixir libraries meant to be consumed by other developers.

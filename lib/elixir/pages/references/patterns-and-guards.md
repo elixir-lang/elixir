@@ -1,8 +1,8 @@
-# Patterns and Guards
+# Patterns and guards
 
 Elixir provides pattern matching, which allows us to assert on the shape or extract values from data structures. Patterns are often augmented with guards, which give developers the ability to perform more complex checks, albeit limited.
 
-This page provides a complete reference patterns and guards, their semantics, where they are allowed, and how to extend them.
+This document provides a complete reference on patterns and guards, their semantics, where they are allowed, and how to extend them.
 
 ## Patterns
 

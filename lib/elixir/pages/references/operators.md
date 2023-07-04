@@ -1,4 +1,4 @@
-# Operators
+# Operators reference
 
 This document is a complete reference of operators in Elixir, how they are parsed, how they can be defined, and how they can be overridden.
 

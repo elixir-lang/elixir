@@ -1,4 +1,4 @@
-# Unicode Syntax
+# Unicode syntax
 
 Elixir supports Unicode throughout the language. This document is a complete reference of how
 Elixir supports Unicode in its syntax.
