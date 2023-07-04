@@ -158,6 +158,10 @@ defmodule Regex do
   @type t :: %__MODULE__{re_pattern: term, source: binary, opts: binary | [term]}
 
   defmodule CompileError do
+    @moduledoc """
+    An exception raised when a regular expression could not be compiled.
+    """
+
     defexception message: "regex could not be compiled"
   end
 

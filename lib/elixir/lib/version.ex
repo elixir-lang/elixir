@@ -217,6 +217,12 @@ defmodule Version do
   end
 
   defmodule InvalidRequirementError do
+    @moduledoc """
+    An exception raised when a version requirement is invalid.
+
+    For example, see `Version.parse_requirement!/1`.
+    """
+
     defexception [:requirement]
 
     @impl true
@@ -231,6 +237,12 @@ defmodule Version do
   end
 
   defmodule InvalidVersionError do
+    @moduledoc """
+    An exception raised when a version is invalid.
+
+    For example, see `Version.parse!/1`.
+    """
+
     defexception [:version]
 
     @impl true

@@ -38,6 +38,12 @@ defmodule URI do
   @opaque authority :: nil | binary
 
   defmodule Error do
+    @moduledoc """
+    An exception raised when an error occurs when a `URI` is invalid.
+
+    For example, see `URI.new!/1`.
+    """
+
     defexception [:action, :reason, :part]
 
     @doc false

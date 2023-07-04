@@ -64,6 +64,12 @@ defmodule System do
   """
 
   defmodule EnvError do
+    @moduledoc """
+    An exception raised when a system environment variable is not set.
+
+    For example, see `System.fetch_env!/1`.
+    """
+
     defexception [:env]
 
     @impl true
@@ -1040,8 +1046,8 @@ defmodule System do
     * `:parallelism` - when `true`, the VM will schedule port tasks to improve
       parallelism in the system. If set to `false`, the VM will try to perform
       commands immediately, improving latency at the expense of parallelism.
-      The default is `false`, and can be set on system startup by passing the 
-      [`+spp`](https://www.erlang.org/doc/man/erl.html#+spp) flag to `--erl`. 
+      The default is `false`, and can be set on system startup by passing the
+      [`+spp`](https://www.erlang.org/doc/man/erl.html#+spp) flag to `--erl`.
       Use `:erlang.system_info(:port_parallelism)` to check if enabled.
 
   ## Error reasons

@@ -38,6 +38,12 @@ defmodule OptionParser do
         ]
 
   defmodule ParseError do
+    @moduledoc """
+    An exception raised when parsing option fails.
+
+    For example, see `OptionParser.parse!/2`.
+    """
+
     defexception [:message]
   end
 
