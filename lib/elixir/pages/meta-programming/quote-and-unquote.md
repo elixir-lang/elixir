@@ -2,12 +2,6 @@
 
 This guide aims to introduce the meta-programming techniques available in Elixir. The ability to represent an Elixir program by its own data structures is at the heart of meta-programming. This chapter starts by exploring those structures and the associated `quote` and `unquote` constructs, so we can take a look at macros in the next chapter and finally build our own domain specific language.
 
-> The Elixir guides are also available in EPUB format:
->
->   * [Getting started guide](https://repo.hex.pm/guides/elixir/elixir-getting-started-guide.epub)
->   * [Mix and OTP guide](https://repo.hex.pm/guides/elixir/mix-and-otp.epub)
->   * [Meta-programming guide](https://repo.hex.pm/guides/elixir/meta-programming-in-elixir.epub)
-
 ## Quoting
 
 The building block of an Elixir program is a tuple with three elements. For example, the function call `sum(1, 2, 3)` is represented internally as:
