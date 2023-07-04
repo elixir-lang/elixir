@@ -34,6 +34,6 @@ TODO.
 
 TODO. (note: this is defining modules not in your namespace)
 
-## Speculative Generality
+## Speculative generality
 
 TODO. (note: it is Speculative Assumptions but renamed)
