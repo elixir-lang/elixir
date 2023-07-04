@@ -29,7 +29,7 @@ TODO
 
 ## Excessive side-effects
 
-TODO (note: validate name)
+TODO
 
 ## Using exceptions for control-flow
 

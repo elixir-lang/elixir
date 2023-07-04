@@ -8,7 +8,7 @@ TODO.
 
 ## Scattered process interfaces
 
-TODO (note: it also applies to GenServer, so we should generalize it)
+TODO.
 
 ## Unsupervised processes
 
