@@ -3,6 +3,11 @@ canonical = System.fetch_env!("CANONICAL")
 
 [
   extras: [
+    "lib/elixir/pages/anti-patterns/what-anti-patterns.md",
+    "lib/elixir/pages/anti-patterns/code-anti-patterns.md",
+    "lib/elixir/pages/anti-patterns/design-anti-patterns.md",
+    "lib/elixir/pages/anti-patterns/process-anti-patterns.md",
+    "lib/elixir/pages/anti-patterns/macro-anti-patterns.md",
     "lib/elixir/pages/references/compatibility-and-deprecations.md",
     "lib/elixir/pages/references/library-guidelines.md",
     "lib/elixir/pages/references/naming-conventions.md",
@@ -22,6 +27,7 @@ canonical = System.fetch_env!("CANONICAL")
     mix: "https://hexdocs.pm/mix/#{canonical}"
   ],
   groups_for_extras: [
+    "Anti-patterns": ~r"pages/anti-patterns/.*\.md$",
     References: ~r"pages/references/.*\.md$"
   ],
   groups_for_functions: [
