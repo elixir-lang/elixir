@@ -1,22 +1,21 @@
 # Domain-Specific Languages (DSLs)
 
-[Domain-specific languages (DSL)](https://en.wikipedia.org/wiki/Domain-specific_language) allow developers to tailor their application to a particular domain. You don't need macros in order to have a DSL: every data structure and every function you define in your module is part of your Domain-specific language.
+[Domain-specific Languages (DSLs)](https://en.wikipedia.org/wiki/Domain-specific_language) allow developers to tailor their application to a particular domain. You don't need macros in order to have a DSL: every data structure and every function you define in your module is part of your domain-specific language.
 
-For example, imagine we want to implement a `Validator` module which provides a data validation domain-specific language. We could implement it using data structures, functions or macros. Let's see what those different DSLs would look like:
+For example, imagine we want to implement a `Validator` module which provides a data validation domain-specific language. We could implement it using data structures, functions, or macros. Let's see what those different DSLs would look like:
 
 ```elixir
-# 1. data structures
+# 1. Data structures
 import Validator
-validate user, name: [length: 1..100],
-               email: [matches: ~r/@/]
+validate user, name: [length: 1..100], email: [matches: ~r/@/]
 
-# 2. functions
+# 2. Functions
 import Validator
 user
 |> validate_length(:name, 1..100)
 |> validate_matches(:email, ~r/@/)
 
-# 3. macros + modules
+# 3. Macros + modules
 defmodule MyValidator do
   use Validator
   validate_length :name, 1..100
@@ -36,7 +35,9 @@ To drive the point home, imagine you want to validate a certain attribute only i
 
 In other words:
 
-    data > functions > macros
+```text
+data > functions > macros
+```
 
 That said, there are still cases where using macros and modules to build domain-specific languages is useful. Since we have explored data structures and function definitions in the Getting Started guide, this chapter will explore how to use macros and module attributes to tackle more complex DSLs.
 
@@ -57,7 +58,7 @@ defmodule MyTest do
   end
 end
 
-MyTest.run
+MyTest.run()
 ```
 
 In the example above, by using `TestCase`, we can write tests using the `test` macro, which defines a function named `run` to automatically run all tests for us. Our prototype will rely on the match operator (`=`) as a mechanism to do assertions.
@@ -110,7 +111,7 @@ iex> defmodule MyTest do
 ...> end
 ```
 
-For now, we don't have a mechanism to run tests, but we know that a function named "test hello" was defined behind the scenes. When we invoke it, it should fail:
+For now, we don't have a mechanism to run tests, but we know that a function named `test hello` was defined behind the scenes. When we invoke it, it should fail:
 
 ```elixir
 iex> MyTest."test hello"()
@@ -167,10 +168,10 @@ defmodule TestCase do
   defmacro __before_compile__(_env) do
     quote do
       def run do
-        Enum.each @tests, fn name ->
-          IO.puts "Running #{name}"
+        Enum.each(@tests, fn name ->
+          IO.puts("Running #{name}")
           apply(__MODULE__, name, [])
-        end
+        end)
       end
     end
   end
@@ -187,11 +188,11 @@ iex> defmodule MyTest do
 ...>     "hello" = "world"
 ...>   end
 ...> end
-iex> MyTest.run
+iex> MyTest.run()
 Running test hello
 ** (MatchError) no match of right hand side value: "world"
 ```
 
-Although we have overlooked some details, this is the main idea behind creating domain-specific modules in Elixir. Macros enable us to return quoted expressions that are executed in the caller, which we can then use to transform code and store relevant information in the target module via module attributes. Finally, callbacks such as `@before_compile` allow us to inject code into the module when its definition is complete.
+Although we have overlooked some details, this is the main idea behind creating domain-specific languages in Elixir via modules and macros. Macros enable us to return quoted expressions that are executed in the caller, which we can then use to transform code and store relevant information in the target module via module attributes. Finally, callbacks such as `@before_compile` allow us to inject code into the module when its definition is complete.
 
-Besides `@before_compile`, there are other useful module attributes like `@on_definition` and `@after_compile`, which you can read more about in [the docs for the `Module` module](https://hexdocs.pm/elixir/Module.html). You can also find useful information about macros and the compilation environment in the documentation for the [`Macro` module](https://hexdocs.pm/elixir/Macro.html) and [`Macro.Env`](https://hexdocs.pm/elixir/Macro.Env.html).
+Besides `@before_compile`, there are other useful module attributes like `@on_definition` and `@after_compile`, which you can read more about in the docs for `Module`. You can also find useful information about macros and the compilation environment in the documentation for the `Macro` and `Macro.Env`.
