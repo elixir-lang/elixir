@@ -29,7 +29,9 @@ defmodule MyLibrary do
     MyLibrary.Internal.sum(1, invalid_data)
   end
 end
+```
 
+```elixir
 iex> MyLibrary.foo(2)
 3
 iex> MyLibrary.foo("José") # With invalid data
@@ -50,14 +52,18 @@ defmodule MyLibrary do
     MyLibrary.Internal.sum(1, data)
   end
 end
+```
 
+```elixir
 iex> MyLibrary.foo(2) # With valid data
 3
 iex> MyLibrary.foo("José") # With invalid data
-** (FunctionClauseError) no function clause matching in MyLibrary.foo/1
-  The following arguments were given to MyLibrary.foo/1:
+** (FunctionClauseError) no function clause matching in MyLibrary.foo/1.
+The following arguments were given to MyLibrary.foo/1:
+
       # 1
       "José"
+
   my_library.ex:2: MyLibrary.foo/1
 ```
 

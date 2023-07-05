@@ -28,7 +28,9 @@ defmodule ModuleA do
     "From Module A"
   end
 end
+```
 
+```elixir
 defmodule Library do
   defmacro __using__(_opts) do
     quote do
@@ -41,7 +43,9 @@ defmodule Library do
     "From Library"
   end
 end
+```
 
+```elixir
 defmodule ClientApp do
   use Library
 
@@ -57,7 +61,7 @@ end
 
 When we try to compile `ClientApp`, Elixir detects the conflict and throws the following error:
 
-```elixir
+```
 error: imported ModuleA.foo/0 conflicts with local function
   └ client_app.ex:4:
 ```
@@ -78,8 +82,10 @@ defmodule ClientApp do
     from_lib() <> " - " <> foo()
   end
 end
+```
 
-iex(1)> ClientApp.from_client_app()
+```elixir
+iex> ClientApp.from_client_app()
 "From Library - Local function from client app"
 ```
 
