@@ -4,9 +4,13 @@ This document outlines anti-patterns related to processes and process-based abst
 
 ## Code organization by process
 
-**Problem:** This anti-pattern refers to code that is unnecessarily organized by processes. A process itself does not represent an anti-pattern, but it should only be used to model runtime properties (such as concurrency, access to shared resources, and event scheduling). When you use a process for code organization, it can create bottlenecks in the system.
+#### Problem
 
-**Example:** An example of this anti-pattern, as shown below, is a module that implements arithmetic operations (like `add` and `subtract`) by means of a `GenSever` process. If the number of calls to this single process grows, this code organization can compromise the system performance, therefore becoming a bottleneck.
+This anti-pattern refers to code that is unnecessarily organized by processes. A process itself does not represent an anti-pattern, but it should only be used to model runtime properties (such as concurrency, access to shared resources, and event scheduling). When you use a process for code organization, it can create bottlenecks in the system.
+
+#### Example
+
+An example of this anti-pattern, as shown below, is a module that implements arithmetic operations (like `add` and `subtract`) by means of a `GenSever` process. If the number of calls to this single process grows, this code organization can compromise the system performance, therefore becoming a bottleneck.
 
 ```elixir
 defmodule Calculator do
@@ -49,7 +53,9 @@ iex(3)> Calculator.subtract(2, 3, pid)
 -1
 ```
 
-**Refactoring:** In Elixir, as shown next, code organization must be done only through modules and functions. Whenever possible, a library should not impose specific behavior (such as parallelization) on its users. It is better to delegate this behavioral decision to the developers of clients, thus increasing the potential for code reuse of a library.
+#### Refactoring
+
+In Elixir, as shown next, code organization must be done only through modules and functions. Whenever possible, a library should not impose specific behavior (such as parallelization) on its users. It is better to delegate this behavioral decision to the developers of clients, thus increasing the potential for code reuse of a library.
 
 ```elixir
 defmodule Calculator do
@@ -74,9 +80,13 @@ TODO.
 
 ## Unsupervised processes
 
-**Problem:** In Elixir, creating a process outside a supervision tree is not an anti-pattern in itself. However, when you spawn many long-running processes outside of supervision trees, this can make visibility and monitoring of these processes difficult, preventing developers from fully controlling their applications.
+#### Problem
 
-**Example:** The following code example seeks to illustrate a library responsible for maintaining a numerical `Counter` through a `GenServer` process *outside a supervision tree*. Multiple counters can be created simultaneously by a client (one process for each counter), making these *unsupervised* processes difficult to manage. This can cause problems with the initialization, restart, and shutdown of a system.
+In Elixir, creating a process outside a supervision tree is not an anti-pattern in itself. However, when you spawn many long-running processes outside of supervision trees, this can make visibility and monitoring of these processes difficult, preventing developers from fully controlling their applications.
+
+#### Example
+
+The following code example seeks to illustrate a library responsible for maintaining a numerical `Counter` through a `GenServer` process *outside a supervision tree*. Multiple counters can be created simultaneously by a client (one process for each counter), making these *unsupervised* processes difficult to manage. This can cause problems with the initialization, restart, and shutdown of a system.
 
 ```elixir
 defmodule Counter do
@@ -130,7 +140,9 @@ iex(6)> Counter.bump(7)
 7
 ```
 
-**Refactoring:** To ensure that clients of a library have full control over their systems, regardless of the number of processes used and the lifetime of each one, all processes must be started inside a supervision tree. As shown below, this code uses a `Supervisor` as a supervision tree. When this Elixir application is started, two different counters (`Counter` and `:other_counter`) are also started as child processes of the `Supervisor` named `App.Supervisor`. Both are initialized to `0`. By means of this supervision tree, it is possible to manage the lifecycle of all child processes (stopping or restarting each one), improving the visibility of the entire app.
+#### Refactoring
+
+To ensure that clients of a library have full control over their systems, regardless of the number of processes used and the lifetime of each one, all processes must be started inside a supervision tree. As shown below, this code uses a `Supervisor` as a supervision tree. When this Elixir application is started, two different counters (`Counter` and `:other_counter`) are also started as child processes of the `Supervisor` named `App.Supervisor`. Both are initialized to `0`. By means of this supervision tree, it is possible to manage the lifecycle of all child processes (stopping or restarting each one), improving the visibility of the entire app.
 
 ```elixir
 defmodule SupervisedProcess.Application do

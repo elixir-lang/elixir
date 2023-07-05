@@ -12,9 +12,13 @@ TODO.
 
 ## `use` instead of `import`
 
-**Problem:** Elixir has mechanisms such as `import`, `alias`, and `use` to establish dependencies between modules. A code implemented with these mechanisms does not characterize a smell by itself; however, while the `import` and `alias` directives have lexical scope and only facilitate that a module to call functions of another, the `use` directive has a broader scope, something that can be problematic. The `use` directive allows a module to inject any type of code into another, including propagating dependencies. In this way, using the `use` directive makes code readability worse, because to understand exactly what will happen when it references a module, it is necessary to have knowledge of the internal details of the referenced module.
+#### Problem
 
-**Example:** The code shown below is an example of this anti-pattern. Three different modules were defined -- `ModuleA`, `Library`, and `ClientApp`. `ClientApp` is reusing code from the `Library` via the `use` directive, but is unaware of its internal details. This makes it harder for the author of `ClientApp` to visualize which modules and functionality are now available within its module. To make matters worse, `Library` also imports `ModuleA`, which defines a `foo/0` function that conflicts with a local function defined in `ClientApp`:
+Elixir has mechanisms such as `import`, `alias`, and `use` to establish dependencies between modules. A code implemented with these mechanisms does not characterize a smell by itself; however, while the `import` and `alias` directives have lexical scope and only facilitate that a module to call functions of another, the `use` directive has a broader scope, something that can be problematic. The `use` directive allows a module to inject any type of code into another, including propagating dependencies. In this way, using the `use` directive makes code readability worse, because to understand exactly what will happen when it references a module, it is necessary to have knowledge of the internal details of the referenced module.
+
+#### Example
+
+The code shown below is an example of this anti-pattern. Three different modules were defined -- `ModuleA`, `Library`, and `ClientApp`. `ClientApp` is reusing code from the `Library` via the `use` directive, but is unaware of its internal details. This makes it harder for the author of `ClientApp` to visualize which modules and functionality are now available within its module. To make matters worse, `Library` also imports `ModuleA`, which defines a `foo/0` function that conflicts with a local function defined in `ClientApp`:
 
 ```elixir
 defmodule ModuleA do
@@ -60,7 +64,9 @@ error: imported ModuleA.foo/0 conflicts with local function
   └ client_app.ex:4:
 ```
 
-**Refactoring:** To remove this anti-pattern, we recommend library authors to avoid providing `__using__` callbacks whenever it can be replaced by `alias` or `import` directives. In the following code, we assume `use Library` is no longer available and `ClientApp` was refactored in this way, and with that, the code is clearer and the conflict as previously shown no longer exists:
+#### Refactoring
+
+To remove this anti-pattern, we recommend library authors to avoid providing `__using__` callbacks whenever it can be replaced by `alias` or `import` directives. In the following code, we assume `use Library` is no longer available and `ClientApp` was refactored in this way, and with that, the code is clearer and the conflict as previously shown no longer exists:
 
   ```elixir
   defmodule ClientApp do
