@@ -31,8 +31,8 @@ canonical = System.fetch_env!("CANONICAL")
   ],
   groups_for_extras: [
     "Anti-patterns": ~r"pages/anti-patterns/.*\.md$",
-    "Meta-programming": ~r"pages/meta-programming/.*\.md$",
-    References: ~r"pages/references/.*\.md$"
+    References: ~r"pages/references/.*\.md$",
+    "Meta-programming": ~r"pages/meta-programming/.*\.md$"
   ],
   groups_for_functions: [
     Guards: &(&1[:guard] == true)
