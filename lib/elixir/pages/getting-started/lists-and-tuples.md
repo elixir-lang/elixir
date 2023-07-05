@@ -68,7 +68,7 @@ Implemented protocols
   ...
 ```
 
-We will talk more about charlists in the ["Binaries, strings, and charlists"](binaries-strings-and-char-lists.md) chapter.
+We will talk more about charlists in the ["Binaries, strings, and charlists"](binaries-strings-and-charlists.md) chapter.
 
 > #### Single-quoted strings {: .info}
 >
