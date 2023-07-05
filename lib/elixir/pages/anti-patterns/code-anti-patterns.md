@@ -41,7 +41,7 @@ end
 
 We removed the unnecessary comments. We also added a `@five_min_in_seconds` module attribute, which serves the additional purpose of giving a name to the "magic" number `60 * 5`, making the code clearer and more expressive.
 
-#### Documentation
+#### Additional remarks
 
 Elixir makes a clear distinction between **public documentation** and code comments. The language has built-in first-class support for documentation through `@doc`, `@moduledoc`, and more. See the [*Writing documentation*](writing-documentation.html) guide for more information.
 
