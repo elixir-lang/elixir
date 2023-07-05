@@ -3,6 +3,9 @@ canonical = System.fetch_env!("CANONICAL")
 
 [
   extras: [
+    "lib/elixir/pages/getting-started/introduction.md",
+    "lib/elixir/pages/getting-started/basic-types.md",
+    "lib/elixir/pages/getting-started/lists-and-tuples.md",
     "lib/elixir/pages/anti-patterns/what-anti-patterns.md",
     "lib/elixir/pages/anti-patterns/code-anti-patterns.md",
     "lib/elixir/pages/anti-patterns/design-anti-patterns.md",
@@ -30,6 +33,7 @@ canonical = System.fetch_env!("CANONICAL")
     mix: "https://hexdocs.pm/mix/#{canonical}"
   ],
   groups_for_extras: [
+    "Getting started": ~r"pages/getting-started/.*\.md$",
     "Anti-patterns": ~r"pages/anti-patterns/.*\.md$",
     References: ~r"pages/references/.*\.md$",
     "Meta-programming": ~r"pages/meta-programming/.*\.md$"
@@ -43,7 +47,7 @@ canonical = System.fetch_env!("CANONICAL")
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 
-    "Basic Types": [
+    "Data Types": [
       Atom,
       Base,
       Bitwise,
