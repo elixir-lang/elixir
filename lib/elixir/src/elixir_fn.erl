@@ -129,7 +129,7 @@ validate(_Meta, [], _Pos, _E) ->
   [].
 
 escape({'&', _, [Pos]}, _E, Dict) when is_integer(Pos), Pos > 0 ->
-  Var = {list_to_atom([$x | integer_to_list(Pos)]), [], ?var_context},
+  Var = {list_to_atom([$& | integer_to_list(Pos)]), [], nil},
   {Var, orddict:store(Pos, Var, Dict)};
 escape({'&', Meta, [Pos]}, E, _Dict) when is_integer(Pos) ->
   file_error(Meta, E, ?MODULE, {invalid_arity_for_capture, Pos});

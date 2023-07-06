@@ -452,6 +452,30 @@ defmodule Kernel.WarningTest do
     purge(RedefineSample)
   end
 
+  test "unused variable because re-declared in a match? pattern" do
+    assert_warn_eval(
+      [
+        "nofile:1:16",
+        "variable \"x\" is unused (there is a variable with the same name in the context,",
+        "variable \"x\" is unused (if the variable is not meant to be used,"
+      ],
+      """
+      fn x -> match?(x, :value) end
+      """
+    )
+
+    assert_warn_eval(
+      [
+        "nofile:1",
+        "variable \"&1\" is unused (there is a variable with the same name in the context,",
+        "variable \"&1\" is unused (if the variable is not meant to be used,"
+      ],
+      """
+      &match?(&1, :value)
+      """
+    )
+  end
+
   test "useless literal" do
     message = "code block contains unused literal \"oops\""
 
