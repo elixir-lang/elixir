@@ -13,7 +13,7 @@ The project name is given in the `snake_case` convention where all letters are l
 
 Every project has a `mix.exs` file, with instructions on how to build, compile, run tests, and so on. Libraries commonly have a `lib` directory, which includes Elixir source code, and a `test` directory. A `src` directory may also exist for Erlang sources.
 
-For more information on running your project, see the official [Mix & OTP guide](https://elixir-lang.org/getting-started/mix-otp/introduction-to-mix.html) or [Mix documentation](https://hexdocs.pm/mix/Mix.html).
+For more information on running your project, see the official [Mix & OTP guide](../mix-and-otp/introduction-to-mix.md) or [Mix documentation](`Mix`).
 
 ### Applications with supervision tree
 

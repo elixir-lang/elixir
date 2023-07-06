@@ -74,7 +74,7 @@ More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `Fi
 
 There are also some non-paired functions, with no non-bang variant. The bang still signifies that it will raise an exception on failure. Example: `Protocol.assert_protocol!/1`.
 
-In macro code, the bang on `alias!/1` and `var!/2` signifies that [macro hygiene](https://elixir-lang.org/getting-started/meta/macros.html#macro-hygiene) is set aside.
+In macro code, the bang on `alias!/1` and `var!/2` signifies that [macro hygiene](../meta-programming/macros.md#macro-hygiene) is set aside.
 
 ## Trailing question mark (`foo?`)
 
