@@ -155,7 +155,7 @@ Finally, remember you can also get a mini-overview of the runtime info by callin
 
 We have just scratched the surface of what the Erlang VM has to offer, for example:
 
-  * Alongside the observer application, Erlang also includes a [`:crashdump_viewer`](`:crashdump_viewer`) to view crash dumps
+  * Alongside the observer application, Erlang also includes a [`:crashdump_viewer`](https://www.erlang.org/doc/man/crashdump_viewer.html) to view crash dumps
 
   * Integration with OS level tracers, such as [Linux Trace Toolkit,](http://www.erlang.org/doc/apps/runtime_tools/LTTng.html) [DTRACE,](http://www.erlang.org/doc/apps/runtime_tools/DTRACE.html) and [SystemTap](http://www.erlang.org/doc/apps/runtime_tools/SYSTEMTAP.html)
 
