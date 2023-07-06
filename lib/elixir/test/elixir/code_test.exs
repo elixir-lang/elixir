@@ -90,6 +90,28 @@ defmodule CodeTest do
                  Code.eval_quoted(quoted, [])
                end)
     end
+
+    test "captures unknown local calls" do
+      sample = """
+      defmodule CodeTest.UnknownLocalCall do
+        def perform do
+          foo()
+        end
+      end
+      """
+
+      assert {:rescued, [%{message: message}]} =
+               Code.with_diagnostics(fn ->
+                 try do
+                   quoted = Code.string_to_quoted!(sample, columns: true)
+                   Code.eval_quoted(quoted, [])
+                 rescue
+                   _ -> :rescued
+                 end
+               end)
+
+      assert message =~ "undefined function foo/0"
+    end
   end
 
   describe "eval_string/1,2,3" do
