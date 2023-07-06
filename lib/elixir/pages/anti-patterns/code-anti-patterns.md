@@ -43,7 +43,7 @@ We removed the unnecessary comments. We also added a `@five_min_in_seconds` modu
 
 #### Additional remarks
 
-Elixir makes a clear distinction between **documentation** and code comments. The language has built-in first-class support for documentation through `@doc`, `@moduledoc`, and more. See the ["Writing documentation"](../references/writing-documentation.md) guide for more information.
+Elixir makes a clear distinction between **documentation** and code comments. The language has built-in first-class support for documentation through `@doc`, `@moduledoc`, and more. See the ["Writing documentation"](../getting-started/writing-documentation.md) guide for more information.
 
 ## Long parameter list
 
