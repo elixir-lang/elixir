@@ -1,6 +1,6 @@
 # Domain-Specific Languages (DSLs)
 
-[Domain-specific Languages (DSLs)](https://en.wikipedia.org/wiki/Domain-specific_language) allow developers to tailor their application to a particular domain. You don't need macros in order to have a DSL: every data structure and every function you define in your module is part of your domain-specific language.
+[Domain-specific Languages (DSLs)](https://en.wikipedia.org/wiki/Domain-specific_language) are languages tailored to a specific application domain. You don't need macros in order to have a DSL: every data structure and every function you define in your module is part of your domain-specific language.
 
 For example, imagine we want to implement a `Validator` module which provides a data validation domain-specific language. We could implement it using data structures, functions, or macros. Let's see what those different DSLs would look like:
 
