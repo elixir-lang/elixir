@@ -76,10 +76,6 @@ iex> Calculator.subtract(2, 3)
 
 ## Scattered process interfaces
 
-#### Note
-
-Formerly known as [Agent obsession](https://github.com/lucasvegi/Elixir-Code-Smells/tree/main#agent-obsession).
-
 #### Problem
 
 In Elixir, the use of an `Agent`, a `GenServer`, or any other process abstractions is not an anti-pattern in itself. However, when the responsibility for direct interaction with a process is spread throughout the entire system, it can become problematic. This bad practice can increase the difficulty of code maintenance and make the code more prone to bugs.
@@ -110,7 +106,7 @@ end
 defmodule C do
   def update(process) do
     # Some other code...
-    Agent.update(process, fn content -> [:atom_value | [content]] end)
+    Agent.update(process, fn content -> [:atom_value | content] end)
   end
 end
 ```
@@ -128,10 +124,10 @@ This spreading of responsibility can generate duplicated code and make code main
 
 ```elixir
 # start an agent with initial state of an empty list
-iex> {:ok, agent} = Agent.start_link fn -> [] end
+iex> {:ok, agent} = Agent.start_link(fn -> [] end)
 {:ok, #PID<0.135.0>}
 
-# many data format (for example, List, Map, Integer, Atom) are
+# many data formats (for example, List, Map, Integer, Atom) are
 # combined through direct access spread across the entire system
 iex> A.update(agent)
 iex> B.update(agent)
@@ -181,6 +177,10 @@ iex> Foo.Bucket.get(bucket, "beer")
 iex> Foo.Bucket.get(bucket, "milk")
 3
 ```
+
+#### Additional remarks
+
+This anti-pattern was formerly known as [Agent obsession](https://github.com/lucasvegi/Elixir-Code-Smells/tree/main#agent-obsession).
 
 ## Unsupervised processes
 
