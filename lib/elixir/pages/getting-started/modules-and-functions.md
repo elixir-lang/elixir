@@ -232,4 +232,4 @@ iex> Concat.join "Hello", "world", "_"
 
 Removing the default argument in this case will fix the warning.
 
-This finishes our short introduction to modules. In the next chapters, we will learn how to use function definitions for recursion, explore Elixir lexical directives that can be used for importing functions from other modules, and discuss module attributes.
+This finishes our short introduction to modules. In the next chapters, we will learn how to use function definitions for recursion and later on explore more functionality related to modules.

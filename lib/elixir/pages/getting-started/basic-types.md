@@ -325,6 +325,6 @@ iex> 1 === 1.0
 false
 ```
 
-The comparison operators in Elixir can compare across any data type. We say these operators perform _structural comparison_. For more information, you can read our documentation on [Structural vs Semantic comparisons](https://hexdocs.pm/elixir/Kernel.html#module-structural-comparison).
+The comparison operators in Elixir can compare across any data type. We say these operators perform _structural comparison_. For more information, you can read our documentation on [Structural vs Semantic comparisons](Kernel.html#module-structural-comparison).
 
 Elixir also provides data-types for expressing collections, such as lists and tuples, which we learn next. When we talk about concurrency and fault-tolerance via processes, we will also discuss ports, pids, and references, but that will come on later chapters. Let's move forward.
