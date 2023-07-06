@@ -294,6 +294,17 @@ To specify that a module implements a given behaviour, the `@behaviour` attribut
 
 If a callback module that implements a given behaviour doesn't export all the functions and macros defined by that behaviour, the user will be notified through warnings during the compilation process (no errors will happen).
 
+You can also use the `@impl` attribute before a function to denote that particular function is implementation a behaviour:
+
+    defmodule MyCallbackModule do
+      @behaviour MyBehaviour
+
+      @impl true
+      def my_fun(arg), do: arg
+    end
+
+You can also use `@impl MyBehaviour` to make clearer from which behaviour the callbacks comes from, providing even more context for future readers of your code.
+
 Elixir's standard library contains a few frequently used behaviours such as `GenServer`, `Supervisor`, and `Application`.
 
 ### Inspecting behaviours

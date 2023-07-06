@@ -162,4 +162,14 @@ iex> :zlib.uncompress(compressed)
 "\nMary had a little lamb,\nHis fleece was white as snow,\nAnd everywhere that Mary went,\nThe lamb was sure to go."
 ```
 
-Next let's take a look at existing Elixir (and Erlang) libraries you might use while debugging.
+## Learning Erlang
+
+If you want to get deeper into Erlang, here's a list of online resources that cover Erlang's fundamentals and its more advanced features:
+
+* This [Erlang Syntax: A Crash Course](https://elixir-lang.org/crash-course.html) provides a concise intro to Erlang's syntax. Each code snippet is accompanied by equivalent code in Elixir. This is an opportunity for you to not only get some exposure to Erlang's syntax but also review what you learned about Elixir.
+
+* Erlang's official website has a short [tutorial](https://www.erlang.org/course). There is a chapter with pictures briefly describing Erlang's primitives for [concurrent programming](https://www.erlang.org/course/concurrent_programming.html).
+
+* [Learn You Some Erlang for Great Good!](http://learnyousomeerlang.com/) is an excellent introduction to Erlang, its design principles, standard library, best practices, and much more. Once you have read through the crash course mentioned above, you'll be able to safely skip the first couple of chapters in the book that mostly deal with the syntax. When you reach [The Hitchhiker's Guide to Concurrency](http://learnyousomeerlang.com/the-hitchhikers-guide-to-concurrency) chapter, that's where the real fun starts.
+
+Our last step is to take a look at existing Elixir (and Erlang) libraries you might use while debugging.
