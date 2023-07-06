@@ -78,7 +78,7 @@ iex> Calculator.subtract(2, 3)
 
 #### Problem
 
-In Elixir, the use of an `Agent`, a `GenServer`, or any other process abstractions is not an anti-pattern in itself. However, when the responsibility for direct interaction with a process is spread throughout the entire system, it can become problematic. This bad practice can increase the difficulty of code maintenance and make the code more prone to bugs.
+In Elixir, the use of an `Agent`, a `GenServer`, or any other process abstraction is not an anti-pattern in itself. However, when the responsibility for direct interaction with a process is spread throughout the entire system, it can become problematic. This bad practice can increase the difficulty of code maintenance and make the code more prone to bugs.
 
 #### Example
 
@@ -138,6 +138,8 @@ iex> D.get(agent)
 [:atom_value, %{a: 123}]
 ```
 
+For a `GenServer` and other behaviours, this anti-pattern will manifest when scattering calls to `GenServer.call/3` and `GenServer.cast/2` throughout multiple modules, instead of encapsulating all the interaction with the `GenServer` in a single place.
+
 #### Refactoring
 
 Instead of spreading direct access to a process abstraction, such as `Agent`, over many places in the code, it is better to refactor this code by centralizing the responsibility for interacting with a process in a single module. This refactoring improves maintainability by removing duplicated code; it also allows you to limit the accepted format for shared data, reducing bug-proneness. As shown below, the module `Foo.Bucket` is centralizing the responsibility for interacting with the `Agent`. Any other place in the code that needs to access shared data must now delegate this action to `Foo.Bucket`. Also, `Foo.Bucket` now only allows data to be shared in `Map` format.
@@ -163,7 +165,7 @@ end
 The following are examples of how to delegate access to shared data (provided by an `Agent`) to `Foo.Bucket`.
 
 ```elixir
-# start an agent through a `Foo.Bucket`
+# start an agent through `Foo.Bucket`
 iex> {:ok, bucket} = Foo.Bucket.start_link(%{})
 {:ok, #PID<0.114.0>}
 
@@ -171,7 +173,7 @@ iex> {:ok, bucket} = Foo.Bucket.start_link(%{})
 iex> Foo.Bucket.put(bucket, "milk", 3)
 iex> Foo.Bucket.put(bucket, "beer", 7)
 
-# accessing shared data of specific keys
+# access shared data of specific keys
 iex> Foo.Bucket.get(bucket, "beer")
 7
 iex> Foo.Bucket.get(bucket, "milk")
