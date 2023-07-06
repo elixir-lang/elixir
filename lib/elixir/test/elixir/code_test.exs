@@ -94,7 +94,7 @@ defmodule CodeTest do
     test "includes column information on unknown remote function calls" do
       sample = """
       defmodule CodeTest.UnknownRemoteCall do
-        def perform do 
+        def perform do
           UnkownModule.foo()
         end
       end
@@ -105,6 +105,28 @@ defmodule CodeTest do
                  quoted = Code.string_to_quoted!(sample, columns: true)
                  Code.eval_quoted(quoted, [])
                end)
+    end
+
+    test "captures unknown local calls" do
+      sample = """
+      defmodule CodeTest.UnknownLocalCall do
+        def perform do
+          foo()
+        end
+      end
+      """
+
+      assert {:rescued, [%{message: message}]} =
+               Code.with_diagnostics(fn ->
+                 try do
+                   quoted = Code.string_to_quoted!(sample, columns: true)
+                   Code.eval_quoted(quoted, [])
+                 rescue
+                   _ -> :rescued
+                 end
+               end)
+
+      assert message =~ "undefined function foo/0"
     end
   end
 

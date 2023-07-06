@@ -5,23 +5,40 @@
 spawn(Fun) ->
   CompilerInfo = get(elixir_compiler_info),
 
+  CodeDiagnostics =
+    case get(elixir_code_diagnostics) of
+      undefined -> undefined;
+      {_Tail, Log} -> {[], Log}
+    end,
+
   {_, Ref} =
     spawn_monitor(fun() ->
       put(elixir_compiler_info, CompilerInfo),
+      put(elixir_code_diagnostics, CodeDiagnostics),
 
       try Fun() of
-        Result -> exit({ok, Result})
+        Result -> exit({ok, Result, get(elixir_code_diagnostics)})
       catch
         Kind:Reason:Stack ->
-          exit({Kind, Reason, Stack})
+          exit({Kind, Reason, Stack, get(elixir_code_diagnostics)})
       end
     end),
 
   receive
-    {'DOWN', Ref, process, _, {ok, Result}} ->
+    {'DOWN', Ref, process, _, {ok, Result, Diagnostics}} ->
+      copy_diagnostics(Diagnostics),
       Result;
-    {'DOWN', Ref, process, _, {Kind, Reason, Stack}} ->
+    {'DOWN', Ref, process, _, {Kind, Reason, Stack, Diagnostics}} ->
+      copy_diagnostics(Diagnostics),
       erlang:raise(Kind, Reason, Stack)
+  end.
+
+copy_diagnostics(undefined) ->
+  ok;
+copy_diagnostics({Head, _}) ->
+  case get(elixir_code_diagnostics) of
+    undefined -> ok;
+    {Tail, Log} -> put(elixir_code_diagnostics, {Head ++ Tail, Log})
   end.
 
 forms(Forms, File, Opts) ->

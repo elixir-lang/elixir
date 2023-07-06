@@ -508,19 +508,17 @@ beam_location(ModuleAsCharlist) ->
 checker_info() ->
   case get(elixir_checker_info) of
     undefined -> undefined;
-    _ ->
-      Log =
-        case erlang:get(elixir_code_diagnostics) of
-          {_, false} -> false;
-          _ -> true
-        end,
-
-      {'Elixir.Module.ParallelChecker':get(), Log}
+    _ -> 'Elixir.Module.ParallelChecker':get()
   end.
 
 spawn_parallel_checker(undefined, _Module, _ModuleMap) ->
-  nil;
-spawn_parallel_checker({CheckerInfo, Log}, Module, ModuleMap) ->
+  ok;
+spawn_parallel_checker(CheckerInfo, Module, ModuleMap) ->
+  Log =
+    case erlang:get(elixir_code_diagnostics) of
+      {_, false} -> false;
+      _ -> true
+    end,
   'Elixir.Module.ParallelChecker':spawn(CheckerInfo, Module, ModuleMap, Log).
 
 make_module_available(Module, Binary) ->
