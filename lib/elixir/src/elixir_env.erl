@@ -107,9 +107,18 @@ merge_and_check_unused_vars(Current, Unused, ClauseUnused, E) ->
       end;
 
     ({{Name, Kind}, _Count}, {Meta, Overridden}, Acc) ->
-      case (Kind == nil) andalso is_unused_var(Name) of
+      DisplayName = case Kind of
+        nil ->
+          Name;
+        elixir_fn ->
+          <<"x", Rest>> = atom_to_binary(Name),
+          binary_to_atom(<<"&", Rest>>);
+        _ ->
+          nil
+      end,
+      case (DisplayName /= nil) andalso is_unused_var(Name) of
         true ->
-          Warn = {unused_var, Name, Overridden},
+          Warn = {unused_var, DisplayName, Overridden},
           elixir_errors:file_warn(Meta, E, ?MODULE, Warn);
 
         false ->

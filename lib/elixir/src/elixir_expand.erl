@@ -610,7 +610,7 @@ mapfold(_Fun, S, E, [], Acc) ->
 %% Match/var helpers
 
 var_unused({_, Kind} = Pair, Meta, Version, Unused, Override) ->
-  case (Kind == nil) andalso should_warn(Meta) of
+  case (Kind == nil orelse Kind == elixir_fn) andalso should_warn(Meta) of
     true -> Unused#{{Pair, Version} => {Meta, Override}};
     false -> Unused
   end.
