@@ -80,7 +80,113 @@ iex> Calculator.subtract(2, 3)
 
 ## Scattered process interfaces
 
-TODO.
+#### Problem
+
+In Elixir, the use of an `Agent`, a `GenServer`, or any other process abstraction is not an anti-pattern in itself. However, when the responsibility for direct interaction with a process is spread throughout the entire system, it can become problematic. This bad practice can increase the difficulty of code maintenance and make the code more prone to bugs.
+
+#### Example
+
+The following code seeks to illustrate this anti-pattern. The responsibility for interacting directly with the `Agent` is spread across four different modules (`A`, `B`, `C`, and `D`).
+
+```elixir
+defmodule A do
+  def update(process) do
+    # Some other code...
+    Agent.update(process, fn _list -> 123 end)
+  end
+end
+```
+
+```elixir
+defmodule B do
+  def update(process) do
+    # Some other code...
+    Agent.update(process, fn content -> %{a: content} end)
+  end
+end
+```
+
+```elixir
+defmodule C do
+  def update(process) do
+    # Some other code...
+    Agent.update(process, fn content -> [:atom_value | content] end)
+  end
+end
+```
+
+```elixir
+defmodule D do
+  def get(process) do
+    # Some other code...
+    Agent.get(process, fn content -> content end)
+  end
+end
+```
+
+This spreading of responsibility can generate duplicated code and make code maintenance more difficult. Also, due to the lack of control over the format of the shared data, complex composed data can be shared. This freedom to use any format of data is dangerous and can induce developers to introduce bugs.
+
+```elixir
+# start an agent with initial state of an empty list
+iex> {:ok, agent} = Agent.start_link(fn -> [] end)
+{:ok, #PID<0.135.0>}
+
+# many data formats (for example, List, Map, Integer, Atom) are
+# combined through direct access spread across the entire system
+iex> A.update(agent)
+iex> B.update(agent)
+iex> C.update(agent)
+
+# state of shared information
+iex> D.get(agent)
+[:atom_value, %{a: 123}]
+```
+
+For a `GenServer` and other behaviours, this anti-pattern will manifest when scattering calls to `GenServer.call/3` and `GenServer.cast/2` throughout multiple modules, instead of encapsulating all the interaction with the `GenServer` in a single place.
+
+#### Refactoring
+
+Instead of spreading direct access to a process abstraction, such as `Agent`, over many places in the code, it is better to refactor this code by centralizing the responsibility for interacting with a process in a single module. This refactoring improves maintainability by removing duplicated code; it also allows you to limit the accepted format for shared data, reducing bug-proneness. As shown below, the module `Foo.Bucket` is centralizing the responsibility for interacting with the `Agent`. Any other place in the code that needs to access shared data must now delegate this action to `Foo.Bucket`. Also, `Foo.Bucket` now only allows data to be shared in `Map` format.
+
+```elixir
+defmodule Foo.Bucket do
+  use Agent
+
+  def start_link(_opts) do
+    Agent.start_link(fn -> %{} end)
+  end
+
+  def get(bucket, key) do
+    Agent.get(bucket, &Map.get(&1, key))
+  end
+
+  def put(bucket, key, value) do
+    Agent.update(bucket, &Map.put(&1, key, value))
+  end
+end
+```
+
+The following are examples of how to delegate access to shared data (provided by an `Agent`) to `Foo.Bucket`.
+
+```elixir
+# start an agent through `Foo.Bucket`
+iex> {:ok, bucket} = Foo.Bucket.start_link(%{})
+{:ok, #PID<0.114.0>}
+
+# add shared values to the keys `milk` and `beer`
+iex> Foo.Bucket.put(bucket, "milk", 3)
+iex> Foo.Bucket.put(bucket, "beer", 7)
+
+# access shared data of specific keys
+iex> Foo.Bucket.get(bucket, "beer")
+7
+iex> Foo.Bucket.get(bucket, "milk")
+3
+```
+
+#### Additional remarks
+
+This anti-pattern was formerly known as [Agent obsession](https://github.com/lucasvegi/Elixir-Code-Smells/tree/main#agent-obsession).
 
 ## Unsupervised processes
 
