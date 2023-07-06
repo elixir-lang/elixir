@@ -892,21 +892,25 @@ defmodule Kernel.WarningTest do
   end
 
   test "duplicate map keys" do
-    output =
-      capture_err(fn ->
-        defmodule DuplicateMapKeys do
-          assert %{a: :b, a: :c} == %{a: :c}
-          assert %{m: :n, m: :o, m: :p} == %{m: :p}
-          assert %{1 => 2, 1 => 3} == %{1 => 3}
-        end
-      end)
+    assert_warn_eval(
+      [
+        "key :a will be overridden in map",
+        "nofile:4:11\n",
+        "key :m will be overridden in map",
+        "nofile:5:11\n",
+        "key 1 will be overridden in map",
+        "nofile:6:11\n"
+      ],
+      """
+      defmodule DuplicateMapKeys do
+        import ExUnit.Assertions
 
-    assert output =~ "key :a will be overridden in map"
-    assert output =~ "warning_test.exs:874\n"
-    assert output =~ "key :m will be overridden in map"
-    assert output =~ "warning_test.exs:875\n"
-    assert output =~ "key 1 will be overridden in map"
-    assert output =~ "warning_test.exs:876\n"
+        assert %{a: :b, a: :c} == %{a: :c}
+        assert %{m: :n, m: :o, m: :p} == %{m: :p}
+        assert %{1 => 2, 1 => 3} == %{1 => 3}
+      end
+      """
+    )
 
     assert map_size(%{System.unique_integer() => 1, System.unique_integer() => 2}) == 2
   end
