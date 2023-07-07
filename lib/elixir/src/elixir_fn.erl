@@ -129,6 +129,9 @@ validate(_Meta, [], _Pos, _E) ->
   [].
 
 escape({'&', _, [Pos]}, _E, Dict) when is_integer(Pos), Pos > 0 ->
+  % Using a nil context here to emit warnings when variable is unused.
+  % This might pollute user space but is unlikely because variables
+  % named :"&1" are not valid syntax.
   Var = {list_to_atom([$& | integer_to_list(Pos)]), [], nil},
   {Var, orddict:store(Pos, Var, Dict)};
 escape({'&', Meta, [Pos]}, E, _Dict) when is_integer(Pos) ->
