@@ -588,8 +588,8 @@ defmodule Logger do
   @spec compare_levels(level, level) :: :lt | :eq | :gt
   def compare_levels(left, right) do
     :logger.compare_levels(
-      elixir_level_to_erlang_level(left),
-      elixir_level_to_erlang_level(right)
+      do_elixir_level_to_erlang_level(left),
+      do_elixir_level_to_erlang_level(right)
     )
   end
 
@@ -1139,4 +1139,7 @@ defmodule Logger do
   end
 
   defp elixir_level_to_erlang_level(other), do: other
+
+  defp do_elixir_level_to_erlang_level(:warn), do: :warning
+  defp do_elixir_level_to_erlang_level(other), do: other
 end
