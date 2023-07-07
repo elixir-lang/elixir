@@ -674,6 +674,9 @@ defmodule Mix do
     * `:lockfile` (since v1.14.0) - path to a lockfile to be used as a basis of
       dependency resolution.
 
+    * `:start_applications` (since v1.15.3) - if `true`, ensures that installed app
+      and its dependencies are started after install (Default: `true`)
+
   ## Examples
 
   Installing `:decimal` and `:jason`:
@@ -794,6 +797,7 @@ defmodule Mix do
     config_path = expand_path(opts[:config_path], deps, :config_path, "config/config.exs")
     system_env = Keyword.get(opts, :system_env, [])
     consolidate_protocols? = Keyword.get(opts, :consolidate_protocols, true)
+    start_applications? = Keyword.get(opts, :start_applications, true)
 
     id =
       {deps, config, system_env, consolidate_protocols?}
@@ -893,9 +897,11 @@ defmodule Mix do
             end
           end)
 
-          for %{app: app, opts: opts} <- Mix.Dep.cached(),
-              Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) do
-            Application.ensure_all_started(app)
+          if start_applications? do
+            for %{app: app, opts: opts} <- Mix.Dep.cached(),
+                Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) do
+              Application.ensure_all_started(app)
+            end
           end
 
           Mix.State.put(:installed, id)
