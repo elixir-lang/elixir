@@ -31,10 +31,13 @@ defmodule Mix.Tasks.App.Config do
     {opts, _, _} = OptionParser.parse(args, switches: @switches)
 
     config = Mix.Project.config()
-    runtime = config[:config_path] |> Path.dirname() |> Path.join("runtime.exs")
 
-    if File.exists?(runtime) do
-      Mix.Tasks.Loadconfig.load_runtime(runtime)
+    unless "--no-runtime-exs" in args do
+      runtime = config[:config_path] |> Path.dirname() |> Path.join("runtime.exs")
+
+      if File.exists?(runtime) do
+        Mix.Tasks.Loadconfig.load_runtime(runtime)
+      end
     end
 
     if opts[:preload_modules] do

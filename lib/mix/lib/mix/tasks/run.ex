@@ -77,7 +77,8 @@ defmodule Mix.Tasks.Run do
           archives_check: :boolean,
           elixir_version_check: :boolean,
           parallel_require: :keep,
-          preload_modules: :boolean
+          preload_modules: :boolean,
+          runtime_exs: :boolean
         ],
         return_separator: true
       )
