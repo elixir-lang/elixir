@@ -674,7 +674,7 @@ defmodule Mix do
     * `:lockfile` (since v1.14.0) - path to a lockfile to be used as a basis of
       dependency resolution.
 
-    * `:start_applications` (since v1.16.0) - if `true`, ensures that installed app
+    * `:start_applications` (since v1.15.3) - if `true`, ensures that installed app
       and its dependencies are started after install (Default: `true`)
 
   ## Examples
