@@ -380,7 +380,7 @@ defmodule Logger do
       we assume that you want to disable the built-in logging. You can force
       logging by setting `config :logger, :default_handler, []`
 
-    * The `:console` backend configuration is automatically maped to the default
+    * The `:console` backend configuration is automatically mapped to the default
       handler and default formatter. Previously, you would set:
 
           config :logger, :console,
