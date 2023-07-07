@@ -16,7 +16,7 @@ quoted(Forms, File, Callback) ->
 
     elixir_lexical:run(
       Env,
-      fun (LexicalEnv) -> eval_or_compile(Forms, [], LexicalEnv) end,
+      fun (LexicalEnv) -> maybe_fast_compile(Forms, [], LexicalEnv) end,
       fun (#{lexical_tracker := Pid}) -> Callback(File, Pid) end
     ),
 
@@ -32,7 +32,7 @@ file(File, Callback) ->
 %% Evaluates the given code through the Erlang compiler.
 %% It may end-up evaluating the code if it is deemed a
 %% more efficient strategy depending on the code snippet.
-eval_or_compile(Forms, Args, E) ->
+maybe_fast_compile(Forms, Args, E) ->
   case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) andalso
         (not elixir_config:is_bootstrap()) of
     true  -> fast_compile(Forms, E);
@@ -40,8 +40,9 @@ eval_or_compile(Forms, Args, E) ->
   end,
   ok.
 
-compile(Quoted, ArgsList, E) ->
-  {Expanded, SE, EE} = elixir_expand:expand(Quoted, elixir_env:env_to_ex(E), E),
+compile(Quoted, ArgsList, #{line := Line} = E) ->
+  Block = no_tail_optimize([{line, Line}], Quoted),
+  {Expanded, SE, EE} = elixir_expand:expand(Block, elixir_env:env_to_ex(E), E),
   elixir_env:check_unused_vars(SE, EE),
 
   {Module, Fun, Purgeable} =
@@ -55,7 +56,7 @@ spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
   {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, erl_anno:new(Line), S),
 
   Module = retrieve_compiler_module(),
-  Fun  = code_fun(?key(E, module)),
+  Fun = code_fun(?key(E, module)),
   Forms = code_mod(Fun, ErlExprs, Line, File, Module, Vars),
 
   {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch, no_bool_opt, no_ssa_opt]),
@@ -106,14 +107,8 @@ allows_fast_compilation(_) ->
 
 fast_compile({'__block__', _, Exprs}, E) ->
   lists:foldl(fun(Expr, _) -> fast_compile(Expr, E) end, nil, Exprs);
-fast_compile({defmodule, Meta, [Mod, [{do, TailBlock}]]}, NoLineE) ->
+fast_compile({defmodule, Meta, [Mod, [{do, Block}]]}, NoLineE) ->
   E = NoLineE#{line := ?line(Meta)},
-
-  Block = {'__block__', Meta, [
-    {'=', Meta, [{result, Meta, ?MODULE}, TailBlock]},
-    {{'.', Meta, [elixir_utils, noop]}, Meta, []},
-    {result, Meta, ?MODULE}
-  ]},
 
   Expanded = case Mod of
     {'__aliases__', _, _} ->
@@ -128,6 +123,13 @@ fast_compile({defmodule, Meta, [Mod, [{do, TailBlock}]]}, NoLineE) ->
 
   ContextModules = [Expanded | ?key(E, context_modules)],
   elixir_module:compile(Expanded, Block, [], false, E#{context_modules := ContextModules}).
+
+no_tail_optimize(Meta, Block) ->
+  {'__block__', Meta, [
+    {'=', Meta, [{result, Meta, ?MODULE}, Block]},
+    {{'.', Meta, [elixir_utils, noop]}, Meta, []},
+    {result, Meta, ?MODULE}
+  ]}.
 
 %% Bootstrapper
 
