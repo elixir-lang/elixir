@@ -50,7 +50,60 @@ iex> MyMath.sum(3+1, 5+6)
 
 ## Large code generation by macros
 
-TODO.
+#### Problem
+
+This anti-pattern is related to `macros` that generate too much code. When a `macro` provides a large code generation, it impacts how the compiler or the runtime works. The reason for this is that Elixir may have to expand, compile, and execute a code multiple times, which will make compilation slower.
+
+#### Example
+
+Imagine you are defining a router for a web application, where you could have macros like `get/2`. On every invocation of the `macro`, which can be hundreds, the code inside `get/2` will be expanded and compiled, which can generate a large volume of code in total.
+
+```elixir
+defmodule Routes do
+  defmacro get(route, handler) do
+    quote do
+      route = unquote(route)
+      handler = unquote(handler)
+
+      if not is_binary(route) do
+        raise ArgumentError, "route must be a binary"
+      end
+
+      if not is_atom(handler) do
+        raise ArgumentError, "route must be a module"
+      end
+
+      @store_route_for_compilation {route, handler}
+    end
+  end
+end
+```
+
+#### Refactoring
+
+To remove this anti-pattern, the developer must simplify the `macro`, delegating to other functions part of its work. As shown below, by encapsulating in the function `__define__/3` the functionality pre-existing inside the `quote`, we reduce the code that is expanded and compiled on every invocation of the `macro`, and instead we dispatch to a function to do the bulk of the work.
+
+```elixir
+defmodule Routes do
+  defmacro get(route, handler) do
+    quote do
+      Routes.__define__(__MODULE__, unquote(route), unquote(handler))
+    end
+  end
+
+  def __define__(module, route, handler) do
+    if not is_binary(route) do
+      raise ArgumentError, "route must be a binary"
+    end
+
+    if not is_atom(handler) do
+      raise ArgumentError, "route must be a module"
+    end
+
+    Module.put_attribute(module, :store_route_for_compilation, {route, handler})
+  end
+end
+```
 
 ## `use` instead of `import`
 
