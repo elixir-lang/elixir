@@ -94,7 +94,7 @@ defmodule CodeTest do
     test "includes column information on unknown remote function calls" do
       sample = """
       defmodule CodeTest.UnknownRemoteCall do
-        def perform do 
+        def perform do
           UnkownModule.foo()
         end
       end
@@ -105,6 +105,28 @@ defmodule CodeTest do
                  quoted = Code.string_to_quoted!(sample, columns: true)
                  Code.eval_quoted(quoted, [])
                end)
+    end
+
+    test "captures unknown local calls" do
+      sample = """
+      defmodule CodeTest.UnknownLocalCall do
+        def perform do
+          foo()
+        end
+      end
+      """
+
+      assert {:rescued, [%{message: message}]} =
+               Code.with_diagnostics(fn ->
+                 try do
+                   quoted = Code.string_to_quoted!(sample, columns: true)
+                   Code.eval_quoted(quoted, [])
+                 rescue
+                   _ -> :rescued
+                 end
+               end)
+
+      assert message =~ "undefined function foo/0"
     end
   end
 
@@ -341,7 +363,12 @@ defmodule CodeTest do
       assert env.versioned_vars == %{}
 
       assert_receive {:trace, {:on_module, _, _}, %{module: CodeTest.TracingPruning} = trace_env}
-      assert trace_env.versioned_vars == %{{:result, Kernel} => 5, {:x, nil} => 1, {:y, nil} => 4}
+
+      assert trace_env.versioned_vars == %{
+               {:result, :elixir_compiler} => 5,
+               {:x, nil} => 1,
+               {:y, nil} => 4
+             }
     end
 
     test "with defguard" do
@@ -497,6 +524,14 @@ defmodule CodeTest do
     after
       :code.purge(CompileCrossSample)
       :code.delete(CompileCrossSample)
+    end
+
+    test "disables tail call optimization at the root" do
+      try do
+        Code.compile_string("List.flatten(123)")
+      rescue
+        _ -> assert Enum.any?(__STACKTRACE__, &match?({_, :__FILE__, 1, _}, &1))
+      end
     end
   end
 

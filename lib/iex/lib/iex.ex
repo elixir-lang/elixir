@@ -582,9 +582,6 @@ defmodule IEx do
   @doc """
   Pries into the process environment.
 
-  When you start `iex`, IEx will set this function to be the
-  default `dbg/2` backend unless the `--no-pry` flag is given.
-
   This function is useful for debugging a particular chunk of code
   when executed by a particular process. The process becomes
   the evaluator of IEx commands and is temporarily changed to
@@ -599,6 +596,11 @@ defmodule IEx do
   functions still need to be accessed via `Mod.fun(args)`.
 
   See also `break!/4` for others ways to pry.
+
+  > #### `dbg/0` integration
+  >
+  > By calling `iex --dbg pry`, `iex` will set this function
+  > as the default backend for `dbg/0` calls.
 
   ## Examples
 

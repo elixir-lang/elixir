@@ -1,6 +1,6 @@
 # Writing documentation
 
-Elixir treats documentation as a first-class citizen. Documentation must be easy to write and easy to read. In this document you will learn how to write documentation in Elixir, covering constructs like module attributes, style practices, and doctests.
+Elixir treats documentation as a first-class citizen. Documentation must be easy to write and easy to read. In this guide you will learn how to write documentation in Elixir, covering constructs like module attributes, style practices, and doctests.
 
 ## Markdown
 
@@ -12,45 +12,51 @@ Elixir documentation is written using Markdown. There are plenty of guides on Ma
 
 Documentation in Elixir is usually attached to module attributes. Let's see an example:
 
-    defmodule MyApp.Hello do
-      @moduledoc """
-      This is the Hello module.
-      """
-      @moduledoc since: "1.0.0"
+```elixir
+defmodule MyApp.Hello do
+  @moduledoc """
+  This is the Hello module.
+  """
+  @moduledoc since: "1.0.0"
 
-      @doc """
-      Says hello to the given `name`.
+  @doc """
+  Says hello to the given `name`.
 
-      Returns `:ok`.
+  Returns `:ok`.
 
-      ## Examples
+  ## Examples
 
-          iex> MyApp.Hello.world(:john)
-          :ok
+      iex> MyApp.Hello.world(:john)
+      :ok
 
-      """
-      @doc since: "1.3.0"
-      def world(name) do
-        IO.puts("hello #{name}")
-      end
-    end
+  """
+  @doc since: "1.3.0"
+  def world(name) do
+    IO.puts("hello #{name}")
+  end
+end
+```
 
-The `@moduledoc` attribute is used to add documentation to the module. `@doc` is used before a function to provide documentation for it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs. Elixir also allows metadata to be attached to documentation, by passing a keyword list to `@doc` and friends.
+The `@moduledoc` attribute is used to add documentation to the module. `@doc` is used before a function to provide documentation for it. Besides the attributes above, `@typedoc` can also be used to attach documentation to types defined as part of typespecs, which we will explore later on. Elixir also allows metadata to be attached to documentation, by passing a keyword list to `@doc` and friends.
 
 ## Function Arguments
 
 When documenting a function, argument names are inferred by the compiler. For example:
 
-    def size(%{size: size}) do
-      size
-    end
+```elixir
+def size(%{size: size}) do
+  size
+end
+```
 
 The compiler will infer this argument as `map`. Sometimes the inference will be suboptimal, especially if the function contains multiple clauses with the argument matching on different values each time. You can specify the proper names for documentation by declaring only the function head at any moment before the implementation:
 
-    def size(map_with_size)
-    def size(%{size: size}) do
-      size
-    end
+```elixir
+def size(map_with_size)
+def size(%{size: size}) do
+  size
+end
+```
 
 ## Documentation metadata
 
@@ -58,11 +64,15 @@ Elixir allows developers to attach arbitrary metadata to the documentation. This
 
 Another common metadata is `:deprecated`, which emits a warning in the documentation, explaining that its usage is discouraged:
 
-    @doc deprecated: "Use Foo.bar/2 instead"
+```elixir
+@doc deprecated: "Use Foo.bar/2 instead"
+```
 
 Note that the `:deprecated` key does not warn when a developer invokes the functions. If you want the code to also emit a warning, you can use the `@deprecated` attribute:
 
-    @deprecated "Use Foo.bar/2 instead"
+```elixir
+@deprecated "Use Foo.bar/2 instead"
+```
 
 Metadata can have any key. Documentation tools often use metadata to provide more data to readers and to enrich the user experience.
 
@@ -90,9 +100,7 @@ When writing documentation:
 
 ## Doctests
 
-We recommend that developers include examples in their documentation, often under their own `## Examples` heading. To ensure examples do not get out of date, Elixir's test framework (ExUnit) provides a feature called doctests that allows developers to test the examples in their documentation. Doctests work by parsing out code samples starting with `iex>` from the documentation. You can read more about it at `ExUnit.DocTest`.
-
-Note that doctests have limitations. When you cannot doctest a function, because it relies on state or side-effects, we recommend developers include examples directly without the `iex>` prompt.
+We recommend that developers include examples in their documentation, often under their own `## Examples` heading. To ensure examples do not get out of date, Elixir's test framework (ExUnit) provides a feature called doctests that allows developers to test the examples in their documentation. Doctests work by parsing out code samples starting with `iex>` from the documentation. You can read more about them at `ExUnit.DocTest`.
 
 ## Documentation != Code comments
 
@@ -102,12 +110,7 @@ Code comments are aimed at developers reading the code. They are useful for mark
 
 Because private functions cannot be accessed externally, Elixir will warn if a private function has a `@doc` attribute and will discard its content. However, you can add code comments to private functions, as with any other piece of code, and we recommend developers to do so whenever they believe it will add relevant information to the readers and maintainers of such code.
 
-Finally, beware of redundant code comments, such as the ones describing the exact same that the code does:
-
-    # Total is the sum of the batch and individual entries
-    total = batch_sum + individual_sum
-
-In summary, documentation is a contract with users of your API, who may not necessarily have access to the source code; whereas code comments are for those who interact directly with the source. You can learn and express different guarantees about your software by separating those two concepts.
+In summary, documentation is a contract with users of your API, who may not necessarily have access to the source code, whereas code comments are for those who interact directly with the source. You can learn and express different guarantees about your software by separating those two concepts.
 
 ## Hiding internal Modules and Functions
 
@@ -115,23 +118,27 @@ Besides the modules and functions libraries provide as part of their public inte
 
 Conveniently, Elixir allows developers to hide modules and functions from the documentation, by setting `@doc false` to hide a particular function, or `@moduledoc false` to hide the whole module. If a module is hidden, you may even document the functions in the module, but the module itself won't be listed in the documentation:
 
-    defmodule MyApp.Hidden do
-      @moduledoc false
+```elixir
+defmodule MyApp.Hidden do
+  @moduledoc false
 
-      @doc """
-      This function won't be listed in docs.
-      """
-      def function_that_wont_be_listed_in_docs do
-        # ...
-      end
-    end
+  @doc """
+  This function won't be listed in docs.
+  """
+  def function_that_wont_be_listed_in_docs do
+    # ...
+  end
+end
+```
 
 In case you don't want to hide a whole module, you can hide functions individually:
 
-    defmodule MyApp.Sample do
-      @doc false
-      def add(a, b), do: a + b
-    end
+```elixir
+defmodule MyApp.Sample do
+  @doc false
+  def add(a, b), do: a + b
+end
+```
 
 However, keep in mind `@moduledoc false` or `@doc false` do not make a function private. The function above can still be invoked as `MyApp.Sample.add(1, 2)`. Not only that, if `MyApp.Sample` is imported, the `add/2` function will also be imported into the caller. For those reasons, be cautious when adding `@doc false` to functions, instead use one of these two options:
 

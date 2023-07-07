@@ -44,12 +44,14 @@ defmodule Calculator do
     {:reply, a - b, state}
   end
 end
+```
 
+```elixir
 iex> {:ok, pid} = GenServer.start_link(Calculator, :init)
 {:ok, #PID<0.132.0>}
 iex> Calculator.add(1, 5, pid)
 6
-iex(3)> Calculator.subtract(2, 3, pid)
+iex> Calculator.subtract(2, 3, pid)
 -1
 ```
 
@@ -67,7 +69,9 @@ defmodule Calculator do
     a - b
   end
 end
+```
 
+```elixir
 iex> Calculator.add(1, 5)
 6
 iex> Calculator.subtract(2, 3)
@@ -231,18 +235,20 @@ defmodule Counter do
     {:reply, counter, counter + value}
   end
 end
+```
 
+```elixir
 iex> Counter.start(0)
 {:ok, #PID<0.115.0>}
 iex> Counter.get()
 0
 iex> Counter.start(15, :other_counter)
 {:ok, #PID<0.120.0>}
-iex(4)> Counter.get(:other_counter)
+iex> Counter.get(:other_counter)
 15
-iex(5)> Counter.bump(-3, :other_counter)
+iex> Counter.bump(-3, :other_counter)
 12
-iex(6)> Counter.bump(7)
+iex> Counter.bump(7)
 7
 ```
 
@@ -264,7 +270,9 @@ defmodule SupervisedProcess.Application do
     Supervisor.start_link(children, strategy: :one_for_one, name: App.Supervisor)
   end
 end
+```
 
+```elixir
 iex> Supervisor.count_children(App.Supervisor)
 %{active: 2, specs: 2, supervisors: 0, workers: 2}
 iex> Counter.get(Counter)

@@ -4902,17 +4902,6 @@ defmodule Kernel do
           {expanded, nil}
       end
 
-    # We do this so that the block is not tail-call optimized and stacktraces
-    # are not messed up. Basically, we just insert something between the return
-    # value of the block and what is returned by defmodule. Using just ":ok" or
-    # similar doesn't work because it's likely optimized away by the compiler.
-    block =
-      quote do
-        result = unquote(block)
-        :elixir_utils.noop()
-        result
-      end
-
     escaped =
       case env do
         %{function: nil, lexical_tracker: pid} when is_pid(pid) ->

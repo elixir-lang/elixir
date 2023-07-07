@@ -48,6 +48,18 @@ defmodule MixTest do
       assert apply(InstallTest, :hello, []) == :world
     end
 
+    test "with start_applications: false", %{tmp_dir: tmp_dir} do
+      Mix.install(
+        [
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ],
+        start_applications: false
+      )
+
+      assert List.keyfind(Application.loaded_applications(), :install_test, 0)
+      refute List.keyfind(Application.started_applications(), :install_test, 0)
+    end
+
     test "with runtime: false", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test"), runtime: false}
