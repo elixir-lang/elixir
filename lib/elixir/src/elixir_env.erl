@@ -133,6 +133,8 @@ format_error({unused_var, Name, Overridden}) ->
   case atom_to_list(Name) of
     "_" ++ _ ->
       io_lib:format("unknown compiler variable \"~ts\" (expected one of __MODULE__, __ENV__, __DIR__, __CALLER__, __STACKTRACE__)", [Name]);
+    "&" ++ _ ->
+      io_lib:format("variable \"~ts\" is unused (this might happen when using a capture argument as a pattern)", [Name]);
     _ when Overridden ->
       io_lib:format("variable \"~ts\" is unused (there is a variable with the same name in the context, use the pin operator (^) to match on it or prefix this variable with underscore if it is not meant to be used)", [Name]);
     _ ->

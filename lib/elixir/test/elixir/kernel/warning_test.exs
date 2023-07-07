@@ -467,8 +467,8 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:1",
-        "variable \"&1\" is unused (there is a variable with the same name in the context,",
-        "variable \"&1\" is unused (if the variable is not meant to be used,"
+        "variable \"&1\" is unused (this might happen when using a capture argument as a pattern)",
+        "variable \"&1\" is unused (this might happen when using a capture argument as a pattern)"
       ],
       """
       &match?(&1, :value)
