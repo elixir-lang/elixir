@@ -4,11 +4,106 @@ This document outlines anti-patterns related to meta-programming.
 
 ## Unnecessary macros
 
-TODO.
+#### Problem
+
+**Macros** are powerful meta-programming mechanisms that can be used in Elixir to extend the language. While using macros is not an anti-pattern in itself, this meta-programming mechanism should only be used when absolutely necessary. Whenever a macro is used, but it would have been possible to solve the same problem using functions or other existing Elixir structures, the code becomes unnecessarily more complex and less readable. Because macros are more difficult to implement and reason about, their indiscriminate use can compromise the evolution of a system, reducing its maintainability.
+
+#### Example
+
+The `MyMath` module implements the `sum/2` macro to perform the sum of two numbers received as parameters. While this code has no syntax errors and can be executed correctly to get the desired result, it is unnecessarily more complex. By implementing this functionality as a macro rather than a conventional function, the code became less clear:
+
+```elixir
+defmodule MyMath do
+  defmacro sum(v1, v2) do
+    quote do
+      unquote(v1) + unquote(v2)
+    end
+  end
+end
+```
+```elixir
+iex> require MyMath
+MyMath
+iex> MyMath.sum(3, 5)
+8
+iex> MyMath.sum(3 + 1, 5 + 6)
+15
+```
+
+#### Refactoring
+
+To remove this anti-pattern, the developer must replace the unnecessary macro with structures that are simpler to write and understand, such as named functions. The code shown below is the result of the refactoring of the previous example. Basically, the `sum/2` macro has been transformed into a conventional named function. Note that the `require/2` call is no longer needed:
+
+```elixir
+defmodule MyMath do
+  def sum(v1, v2) do # <= The macro became a named function
+    v1 + v2
+  end
+end
+```
+```elixir
+iex> MyMath.sum(3, 5)
+8
+iex> MyMath.sum(3+1, 5+6)
+15
+```
 
 ## Large code generation by macros
 
-TODO.
+#### Problem
+
+This anti-pattern is related to macros that generate too much code. When a macro generates a large amount of code, it impacts how the compiler and/or the runtime work. The reason for this is that Elixir may have to expand, compile, and execute the code multiple times, which will make compilation slower and the resulting compiled artifacts larger.
+
+#### Example
+
+Imagine you are defining a router for a web application, where you could have macros like `get/2`. On every invocation of the macro (which could be hundreds), the code inside `get/2` will be expanded and compiled, which can generate a large volume of code overall.
+
+```elixir
+defmodule Routes do
+  defmacro get(route, handler) do
+    quote do
+      route = unquote(route)
+      handler = unquote(handler)
+
+      if not is_binary(route) do
+        raise ArgumentError, "route must be a binary"
+      end
+
+      if not is_atom(handler) do
+        raise ArgumentError, "route must be a module"
+      end
+
+      @store_route_for_compilation {route, handler}
+    end
+  end
+end
+```
+
+#### Refactoring
+
+To remove this anti-pattern, the developer should simplify the macro, delegating part of its work to other functions. As shown below, by encapsulating the code inside `quote/1` inside the function `__define__/3` instead, we reduce the code that is expanded and compiled on every invocation of the macro, and instead we dispatch to a function to do the bulk of the work.
+
+```elixir
+defmodule Routes do
+  defmacro get(route, handler) do
+    quote do
+      Routes.__define__(__MODULE__, unquote(route), unquote(handler))
+    end
+  end
+
+  def __define__(module, route, handler) do
+    if not is_binary(route) do
+      raise ArgumentError, "route must be a binary"
+    end
+
+    if not is_atom(handler) do
+      raise ArgumentError, "route must be a module"
+    end
+
+    Module.put_attribute(module, :store_route_for_compilation, {route, handler})
+  end
+end
+```
 
 ## `use` instead of `import`
 
