@@ -448,11 +448,11 @@ defmodule ExUnit do
   @doc since: "1.11.0"
   @spec fetch_test_supervisor() :: {:ok, pid()} | :error
   def fetch_test_supervisor() do
-    case ExUnit.OnExitHandler.get_supervisor(self()) do
+    case ExUnit.OnExitHandler.get_supervisor() do
       {:ok, nil} ->
         opts = [strategy: :one_for_one, max_restarts: 1_000_000, max_seconds: 1]
         {:ok, sup} = Supervisor.start_link([], opts)
-        ExUnit.OnExitHandler.put_supervisor(self(), sup)
+        ExUnit.OnExitHandler.put_supervisor(sup)
         {:ok, sup}
 
       {:ok, _} = ok ->

@@ -310,7 +310,7 @@ defmodule ExUnit.Runner do
     Process.put(@current_key, test_module)
 
     spawn_monitor(fn ->
-      ExUnit.OnExitHandler.register(self())
+      ExUnit.OnExitHandler.register()
 
       result =
         try do
@@ -386,7 +386,7 @@ defmodule ExUnit.Runner do
          context
        ) do
     spawn_monitor(fn ->
-      ExUnit.OnExitHandler.register(self())
+      ExUnit.OnExitHandler.register()
       generate_test_seed(seed, test, rand_algorithm)
       capture_log = Map.get(test.tags, :capture_log, capture_log)
 

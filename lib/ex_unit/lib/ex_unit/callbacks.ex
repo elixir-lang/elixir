@@ -489,7 +489,7 @@ defmodule ExUnit.Callbacks do
   """
   @spec on_exit(term, (-> term)) :: :ok
   def on_exit(name_or_ref \\ make_ref(), callback) when is_function(callback, 0) do
-    case ExUnit.OnExitHandler.add(self(), name_or_ref, callback) do
+    case ExUnit.OnExitHandler.add(name_or_ref, callback) do
       :ok ->
         :ok
 
@@ -620,7 +620,7 @@ defmodule ExUnit.Callbacks do
   @doc since: "1.5.0"
   @spec stop_supervised(id :: term()) :: :ok | {:error, :not_found}
   def stop_supervised(id) do
-    case ExUnit.OnExitHandler.get_supervisor(self()) do
+    case ExUnit.OnExitHandler.get_supervisor() do
       {:ok, nil} ->
         {:error, :not_found}
 

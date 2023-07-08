@@ -15,38 +15,38 @@ defmodule ExUnit.OnExitHandler do
     Agent.start_link(fn -> :ets.new(@name, @ets_opts) end, name: @name)
   end
 
-  @spec register(pid) :: :ok
-  def register(pid) when is_pid(pid) do
-    :ets.insert(@name, {pid, nil, []})
+  @spec register() :: :ok
+  def register do
+    :ets.insert(@name, {self(), nil, []})
     :ok
   end
 
-  @spec add(pid, term, (-> term)) :: :ok | :error
-  def add(pid, name_or_ref, callback) when is_pid(pid) and is_function(callback, 0) do
+  @spec add(term, (-> term)) :: :ok | :error
+  def add(name_or_ref, callback) when is_function(callback, 0) do
     try do
-      :ets.lookup_element(@name, pid, @on_exit)
+      :ets.lookup_element(@name, self(), @on_exit)
     rescue
       _ -> :error
     else
       entries ->
         entries = List.keystore(entries, name_or_ref, 0, {name_or_ref, callback})
-        true = :ets.update_element(@name, pid, {@on_exit, entries})
+        true = :ets.update_element(@name, self(), {@on_exit, entries})
         :ok
     end
   end
 
-  @spec get_supervisor(pid) :: {:ok, pid | nil} | :error
-  def get_supervisor(pid) when is_pid(pid) do
+  @spec get_supervisor() :: {:ok, pid | nil} | :error
+  def get_supervisor do
     try do
-      {:ok, :ets.lookup_element(@name, pid, @supervisor)}
+      {:ok, :ets.lookup_element(@name, self(), @supervisor)}
     rescue
       _ -> :error
     end
   end
 
-  @spec put_supervisor(pid, pid) :: :ok | :error
-  def put_supervisor(pid, sup) when is_pid(pid) and is_pid(sup) do
-    case :ets.update_element(@name, pid, {@supervisor, sup}) do
+  @spec put_supervisor(pid) :: :ok | :error
+  def put_supervisor(sup) when is_pid(sup) do
+    case :ets.update_element(@name, self(), {@supervisor, sup}) do
       true -> :ok
       false -> :error
     end
