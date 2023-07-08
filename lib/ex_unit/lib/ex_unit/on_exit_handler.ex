@@ -1,19 +1,12 @@
 defmodule ExUnit.OnExitHandler do
   @moduledoc false
 
-  @name __MODULE__
-  @ets_opts [:public, :named_table, read_concurrency: true, write_concurrency: true]
+  # ETS table name stored in ExUnit.Server
+  @name ExUnit.Server
 
   # ETS column numbers
   @supervisor 2
   @on_exit 3
-
-  use Agent
-
-  @spec start_link(keyword()) :: {:ok, pid}
-  def start_link(_opts) do
-    Agent.start_link(fn -> :ets.new(@name, @ets_opts) end, name: @name)
-  end
 
   @spec register() :: :ok
   def register do

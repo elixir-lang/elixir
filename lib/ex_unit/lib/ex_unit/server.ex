@@ -37,6 +37,9 @@ defmodule ExUnit.Server do
   ## Callbacks
 
   def init(:ok) do
+    # Table used by OnExitHandler
+    :ets.new(__MODULE__, [:public, :named_table, read_concurrency: true, write_concurrency: true])
+
     state = %{
       loaded: System.monotonic_time(),
       waiting: nil,

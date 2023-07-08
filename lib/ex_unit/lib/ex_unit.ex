@@ -173,8 +173,7 @@ defmodule ExUnit do
   def start(_type, []) do
     children = [
       ExUnit.Server,
-      ExUnit.CaptureServer,
-      ExUnit.OnExitHandler
+      ExUnit.CaptureServer
     ]
 
     opts = [strategy: :one_for_one, name: ExUnit.Supervisor]
