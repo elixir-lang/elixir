@@ -470,6 +470,8 @@ Atoms with foreign characters, such as whitespace, must be wrapped in quotes. Th
 
 Remember that, because lists and two-element tuples are quoted literals, by definition keywords are also literals (in fact, the only reason tuples with two elements are quoted literals is to support keywords as literals).
 
+In order to be valid keyword syntax, `:` cannot be preceded by any whitespace (`foo : 1` is invalid) and has to be followed by whitespace (`foo:1` is invalid).
+
 ### Keywords as last arguments
 
 Elixir also supports a syntax where if the last argument of a call is a keyword list then the square brackets can be skipped. This means that the following:
