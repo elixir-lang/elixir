@@ -387,7 +387,7 @@ defmodule Mix.Tasks.Test do
 
   ## File-system watchers
 
-  You can integrate `mix test` with filesystem watchers through the command line
+  You can integrate `mix test` with file system watchers through the command line
   via the `--listen-on-stdin` option. For example, you can use [fswatch](https://github.com/emcrisostomo/fswatch)
   or similar to emit newlines whenever there is a change, which will cause your test
   suite to re-run:
