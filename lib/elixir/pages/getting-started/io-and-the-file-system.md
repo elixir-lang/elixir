@@ -1,6 +1,6 @@
 # IO and the file system
 
-This chapter introduces the input/output mechanisms, file-system-related tasks, and related modules such as `IO`, `File`, and `Path`. The IO system provides a great opportunity to shed some light on some philosophies and curiosities of Elixir and the Erlang <abbr title="Virtual Machine">VM</abbr>.
+This chapter introduces the input/output mechanisms, file-system-related tasks, and related modules such as `IO`, `File`, and `Path`. The IO system provides a great opportunity to shed some light on some philosophies and curiosities of Elixir and the Erlang VM.
 
 ## The `IO` module
 
@@ -89,7 +89,7 @@ iex> Path.expand("~/hello")
 
 Using functions from the `Path` module as opposed to directly manipulating strings is preferred since the `Path` module takes care of different operating systems transparently. Finally, keep in mind that Elixir will automatically convert slashes (`/`) into backslashes (`\`) on Windows when performing file operations.
 
-With this, we have covered the main modules that Elixir provides for dealing with IO and interacting with the file system. In the next section, we will peek a bit under the covers and learn how the IO system is implemented in the <abbr title="Virtual Machine">VM</abbr>.
+With this, we have covered the main modules that Elixir provides for dealing with IO and interacting with the file system. In the next section, we will peek a bit under the covers and learn how the IO system is implemented in the VM.
 
 ## Processes
 
@@ -129,7 +129,7 @@ iex> IO.write(pid, "hello")
 
 After `IO.write/2`, we can see the request sent by the `IO` module printed out (a four-elements tuple). Soon after that, we see that it fails since the `IO` module expected some kind of result, which we did not supply.
 
-By modeling IO devices with processes, the Erlang <abbr title="Virtual Machine">VM</abbr> allows is to even read and write to files across nodes. Neat!
+By modeling IO devices with processes, the Erlang VM allows is to even read and write to files across nodes. Neat!
 
 ## `iodata` and `chardata`
 
@@ -214,4 +214,4 @@ We packed a lot into this small section, so let's break it down:
 
   * charlists are a special case of chardata, where it exclusively uses a list of integers Unicode codepoints. They can be created with the `~c` sigil. Lists of integers are automatically printed using the `~c` sigil if all integers in a list represent printable ASCII codepoints.
 
-This finishes our tour of IO devices and IO related functionality. We have learned about three Elixir modules - `IO`, `File`, and `Path` - as well as how the <abbr title="Virtual Machine">VM</abbr> uses processes for the underlying IO mechanisms and how to use `chardata` and `iodata` for IO operations.
+This finishes our tour of IO devices and IO related functionality. We have learned about three Elixir modules - `IO`, `File`, and `Path` - as well as how the VM uses processes for the underlying IO mechanisms and how to use `chardata` and `iodata` for IO operations.
