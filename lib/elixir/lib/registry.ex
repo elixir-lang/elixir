@@ -1283,7 +1283,7 @@ defmodule Registry do
   variables like `:"$1"`, `:"$2"`, and so forth.
 
   The third part, the body, is a list of shapes of the returned entries. Like guards, you have access to
-  assigned variables like `:"$1"`, which you can combine with hardcoded values to freely shape entries
+  assigned variables like `:"$1"`, which you can combine with hard-coded values to freely shape entries
   Note that tuples have to be wrapped in an additional tuple. To get a result format like
   `%{key: key, pid: pid, value: value}`, assuming you bound those variables in order in the match part,
   you would provide a body like `[%{key: :"$1", pid: :"$2", value: :"$3"}]`. Like guards, you can use

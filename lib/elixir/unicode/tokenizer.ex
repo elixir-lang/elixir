@@ -327,7 +327,7 @@ defmodule String.Tokenizer do
 
   defp unicode_continue(_), do: @bottom
 
-  # Hardcoded normalizations. Also split by upper, start, continue.
+  # Hard-coded normalizations. Also split by upper, start, continue.
 
   for {from, to} <- start_normalizations do
     mask = Map.fetch!(codepoints_to_mask, to)

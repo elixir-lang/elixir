@@ -159,7 +159,7 @@ if config_env() == :prod do
 end
 ```
 
-We have hardcoded the table and node names, which is good enough for our example, but you would likely move it to an external configuration system in an actual production setup. We have also wrapped it in a `config_env() == :prod` check, so this configuration does not apply to other environments.
+We have hard-coded the table and node names, which is good enough for our example, but you would likely move it to an external configuration system in an actual production setup. We have also wrapped it in a `config_env() == :prod` check, so this configuration does not apply to other environments.
 
 With the configuration in place, let's give assembling the release another try:
 
