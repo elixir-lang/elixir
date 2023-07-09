@@ -1,3 +1,5 @@
+# Configuration and releases
+
 In this last guide, we will make the routing table for our distributed key-value store configurable, and then finally package the software for production.
 
 Let's do this.

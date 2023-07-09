@@ -1,11 +1,4 @@
----
-section: getting-started
-layout: getting-started
-title: Distributed tasks and tags
-category: Mix and OTP
----
-
-{% include mix-otp-preface.html %}
+# Distributed tasks and tags
 
 In this chapter, we will go back to the `:kv` application and add a routing layer that will allow us to distribute requests between nodes based on the bucket name.
 

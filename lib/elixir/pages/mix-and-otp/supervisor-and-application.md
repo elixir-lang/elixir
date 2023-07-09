@@ -1,3 +1,5 @@
+# Supervisor and application
+
 In the previous chapter about `GenServer`, we implemented `KV.Registry` to manage buckets. At some point, we started monitoring buckets so we were able to take action whenever a `KV.Bucket` crashed. Although the change was relatively small, it introduced a question which is frequently asked by Elixir developers: what happens when something fails?
 
 Before we added monitoring, if a bucket crashed, the registry would forever point to a bucket that no longer exists. If a user tried to read or write to the crashed bucket, it would fail. Any attempt at creating a new bucket with the same name would just return the PID of the crashed bucket. In other words, that registry entry for that bucket would forever be in a bad state. Once we added monitoring, the registry automatically removes the entry for the crashed bucket. Trying to lookup the crashed bucket now (correctly) says the bucket does not exist and a user of the system can successfully create a new one if desired.

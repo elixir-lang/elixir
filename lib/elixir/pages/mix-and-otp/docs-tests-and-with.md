@@ -1,3 +1,5 @@
+# Doctests, patterns, and with
+
 In this chapter, we will implement the code that parses the commands we described in the first chapter:
 
 ```
@@ -323,7 +325,7 @@ end
 
 Every function clause dispatches the appropriate command to the `KV.Registry` server that we registered during the `:kv` application startup. Since our `:kv_server` depends on the `:kv` application, it is completely fine to depend on the services it provides.
 
-You might have noticed we have a function head, `def run(command)`, without a body. In the [Modules and Functions](/getting-started/modules-and-functions#default-arguments) chapter, we learned that a bodiless function can be used to declare default arguments for a multi-clause function. Here is another use case where we use a function without a body to document what the arguments are.
+You might have noticed we have a function head, `def run(command)`, without a body. In the [Modules and Functions](../getting-started/modules-and-functions.md#default-arguments) chapter, we learned that a bodiless function can be used to declare default arguments for a multi-clause function. Here is another use case where we use a function without a body to document what the arguments are.
 
 Note that we have also defined a private function named `lookup/2` to help with the common functionality of looking up a bucket and returning its `pid` if it exists, `{:error, :not_found}` otherwise.
 
