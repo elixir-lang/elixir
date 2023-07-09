@@ -9,8 +9,5 @@ canonical = System.fetch_env!("CANONICAL")
     iex: "https://hexdocs.pm/iex/#{canonical}",
     logger: "https://hexdocs.pm/logger/#{canonical}",
     mix: "https://hexdocs.pm/mix/#{canonical}"
-  ],
-  extras: [
-    "lib/mix/pages/introduction-to-mix.md"
   ]
 ]

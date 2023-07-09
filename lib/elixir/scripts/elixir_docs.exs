@@ -40,6 +40,7 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/references/syntax-reference.md",
     "lib/elixir/pages/references/typespecs.md",
     "lib/elixir/pages/references/unicode-syntax.md",
+    "lib/elixir/pages/mix/introduction-to-mix.md",
     "lib/elixir/pages/meta-programming/quote-and-unquote.md",
     "lib/elixir/pages/meta-programming/macros.md",
     "lib/elixir/pages/meta-programming/domain-specific-languages.md",
@@ -56,7 +57,8 @@ canonical = System.fetch_env!("CANONICAL")
     "Getting started": ~r"pages/getting-started/.*\.md$",
     "Anti-patterns": ~r"pages/anti-patterns/.*\.md$",
     References: ~r"pages/references/.*\.md$",
-    "Meta-programming": ~r"pages/meta-programming/.*\.md$"
+    "Meta-programming": ~r"pages/meta-programming/.*\.md$",
+    Mix: ~r"pages/mix/.*\.md$"
   ],
   groups_for_functions: [
     Guards: &(&1[:guard] == true)

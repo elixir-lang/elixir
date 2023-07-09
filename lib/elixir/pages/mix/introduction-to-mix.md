@@ -35,9 +35,7 @@ In order to build our key-value application, we are going to use three main tool
 
 * ***[ExUnit](`ExUnit`)*** is a test-unit based framework that ships with Elixir.
 
-In this chapter, we will create our first project using Mix and explore different features in <abbr title="Open Telecom Platform">OTP</abbr>, Mix, and ExUnit as we go.
-
-<b>Fuck</b>
+In this chapter, we will create our first project using Mix and explore different features in OTP, Mix, and ExUnit as we go.
 
 > If you have any questions or improvements to the guide, please reach discussion channels such as the [Elixir Forum](https://elixirforum.com) or the [issue tracker](https://github.com/elixir-lang/elixir-lang.github.com/issues). Your input is really important to help us guarantee the guides are accessible and up to date!
 >
