@@ -168,7 +168,7 @@ true
 
 By using the `alias/2` directive, we are changing the atom the alias expands to.
 
-Aliases expand to atoms because in the Erlang VM (and consequently Elixir) modules are always represented by atoms:
+Aliases expand to atoms because in the Erlang Virtual Machine (and consequently Elixir) modules are always represented by atoms:
 
 ```elixir
 iex> List.flatten([1, [2], 3])
