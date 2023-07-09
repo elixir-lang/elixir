@@ -406,7 +406,7 @@ defmodule KVServerTest do
 end
 ```
 
-Our integration test checks all server interaction, including unknown commands and not found errors. It is worth noting that, as with <abbr title="Erlang Term Storage">ETS</abbr> tables and linked processes, there is no need to close the socket. Once the test process exits, the socket is automatically closed.
+Our integration test checks all server interaction, including unknown commands and not found errors. It is worth noting that, as with ETS tables and linked processes, there is no need to close the socket. Once the test process exits, the socket is automatically closed.
 
 This time, since our test relies on global data, we have not given `async: true` to `use ExUnit.Case`. Furthermore, in order to guarantee our test is always in a clean state, we stop and start the `:kv` application before each test. In fact, stopping the `:kv` application even prints a warning on the terminal:
 
