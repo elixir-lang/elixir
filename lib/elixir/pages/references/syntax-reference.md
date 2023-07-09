@@ -39,7 +39,7 @@ Single-line strings in Elixir are written between double-quotes, such as `"foo"`
 
 Multi-line strings in Elixir are written with three double-quotes, and can have unescaped quotes within them. The resulting string will end with a newline. The indentation of the last `"""` is used to strip indentation from the inner string. For example:
 
-```
+```elixir
 iex> test = """
 ...>     this
 ...>     is

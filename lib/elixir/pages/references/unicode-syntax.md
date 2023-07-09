@@ -19,7 +19,7 @@ Elixir imposes many restrictions on identifiers for security purposes. For examp
 
 Elixir also disallows mixed-scripts in most scenarios. For example, it is not possible to name a variable `аdmin`, where `а` is in Cyrillic and the remaining characters are in Latin. Doing so will raise the following error:
 
-```
+```text
 ** (SyntaxError) invalid mixed-script identifier found: аdmin
 
 Mixed-script identifiers are not supported for security reasons. 'аdmin' is made of the following scripts:
@@ -158,6 +158,6 @@ This is not a modification of UTS39 clauses C1 (General Security Profile) or C2 
 
 Mixed-script detection is modified by these normalizations to the extent that the normalized codepoint is given the union of scriptsets from both characters.
 
-- For instance, in the example of MICRO => MU, Micro was a 'Common'-script character -- the same script given to the '_' underscore codepoint -- and thus the normalized character's scriptset will be {Greek, Common}. 'Common' intersects with all non-empty scriptsets, and thus the normalized character can be used in tokens written in any script without causing script mixing.
+  * For instance, in the example of MICRO => MU, Micro was a 'Common'-script character -- the same script given to the '_' underscore codepoint -- and thus the normalized character's scriptset will be {Greek, Common}. 'Common' intersects with all non-empty scriptsets, and thus the normalized character can be used in tokens written in any script without causing script mixing.
 
-- The code points normalized in this fashion are those that are in use in the community, and judged not likely to cause issues with unsafe script mixing. For instance, the MICRO or MU codepoint may be used in an atom or variable dealing with microseconds.
+  * The code points normalized in this fashion are those that are in use in the community, and judged not likely to cause issues with unsafe script mixing. For instance, the MICRO or MU codepoint may be used in an atom or variable dealing with microseconds.

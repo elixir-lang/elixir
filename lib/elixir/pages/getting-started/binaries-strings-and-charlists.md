@@ -200,7 +200,7 @@ iex> rest
 "anana"
 ```
 
-However, remember that binary pattern matching works on *bytes*, so matching on the string like "über" with multibyte characters won't match on the _character_, it will match on the _first byte of that character_:
+However, remember that binary pattern matching works on *bytes*, so matching on the string like "über" with multibyte characters won't match on the *character*, it will match on the *first byte of that character*:
 
 ```elixir
 iex> "ü" <> <<0>>

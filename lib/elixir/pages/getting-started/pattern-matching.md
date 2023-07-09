@@ -122,9 +122,10 @@ iex> x = 1
 iex> x = 2
 2
 ```
+
 However, there are times when we don't want variables to be rebound.
 
-Use the pin operator `^` when you want to pattern match against a variable's _existing value_ rather than rebinding the variable.
+Use the pin operator `^` when you want to pattern match against a variable's *existing value* rather than rebinding the variable.
 
 ```elixir
 iex> x = 1

@@ -180,7 +180,6 @@ Note that the syntactic representation of `map()` is `%{optional(any) => any}`, 
 Beyond `keyword()` and `keyword(t)`, it can be helpful to compose a spec for an expected keyword list.
 For example:
 
-
 ```elixir
 @type option :: {:name, String.t} | {:max, pos_integer} | {:min, pos_integer}
 @type options :: [option()]

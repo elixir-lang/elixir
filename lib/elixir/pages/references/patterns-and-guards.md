@@ -235,7 +235,7 @@ iex> %User{type: type} = %User{name: "meg"}
 
 The struct name can be extracted when putting a variable instead of a module name:
 
-```
+```elixir
 iex> %struct_name{} = %User{name: "meg"}
 %User{name: "meg"}
 iex> struct_name
