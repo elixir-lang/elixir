@@ -24,11 +24,11 @@ test "removes bucket on crash", %{registry: registry} do
 end
 ```
 
-The test is similar to "removes bucket on exit" except that we are being a bit more harsh by sending `:shutdown` as the exit reason instead of `:normal`. If a process terminates with a reason different than `:normal`, all linked processes receive an EXIT signal, causing the linked process to also terminate unless it is trapping exits.
+The test is similar to "removes bucket on exit" except that we are being a bit more harsh by sending `:shutdown` as the exit reason instead of `:normal`. If a process terminates with a reason other than `:normal`, all linked processes receive an EXIT signal, causing the linked process to also terminate unless it is trapping exits.
 
 Since the bucket terminated, the registry also stopped, and our test fails when trying to `GenServer.call/3` it:
 
-```
+```text
   1) test removes bucket on crash (KV.RegistryTest)
      test/kv/registry_test.exs:26
      ** (exit) exited in: GenServer.call(#PID<0.148.0>, {:lookup, "shopping"}, 5000)
@@ -46,7 +46,6 @@ We are going to solve this issue by defining a new supervisor that will spawn an
 Since a `DynamicSupervisor` does not define any children during initialization, the `DynamicSupervisor` also allows us to skip the work of defining a whole separate module with the usual `start_link` function and the `init` callback. Instead, we can define a `DynamicSupervisor` directly in the supervision tree, by giving it a name and a strategy.
 
 Open up `lib/kv/supervisor.ex` and add the dynamic supervisor as a child as follows:
-
 
 ```elixir
   def init(:ok) do
@@ -165,7 +164,7 @@ Now that we have defined our supervision tree, it is a great opportunity to intr
 iex> :observer.start
 ```
 
-A GUI should pop-up containing all sorts of information about our system, from general statistics to load charts as well as a list of all running processes and applications.
+A GUI should pop up containing all sorts of information about our system, from general statistics to load charts as well as a list of all running processes and applications.
 
 > Note: If `observer` does not start, here is what may have happened: some package managers default to installing a minimized Erlang without WX bindings for GUI support. In some package managers, you may be able to replace the headless Erlang with a more complete package (look for packages named `erlang` vs `erlang-nox` on Debian/Ubuntu/Arch). In others managers, you may need to install a separate `erlang-wx` (or similarly named) package. Alternatively, you can skip this section and continue the guide.
 
@@ -180,7 +179,7 @@ iex> KV.Registry.create(KV.Registry, "shopping")
 :ok
 ```
 
-We will leave it up to you to further explore what Observer provides. Note you can double click any process in the supervision tree to retrieve more information about it, as well as right-click a process to send "a kill signal", a perfect way to emulate failures and see if your supervisor reacts as expected.
+We will leave it up to you to further explore what Observer provides. Note you can double-click any process in the supervision tree to retrieve more information about it, as well as right-click a process to send "a kill signal", a perfect way to emulate failures and see if your supervisor reacts as expected.
 
 At the end of the day, tools like Observer are one of the reasons you want to always start processes inside supervision trees, even if they are temporary, to ensure they are always reachable and introspectable.
 

@@ -16,7 +16,7 @@ OK
 
 In the session above we interacted with the "shopping" bucket.
 
-Since agents are processes, each bucket has a process identifier (pid), but buckets do not have a name. Back [in the Process chapter](/getting-started/processes.html), we have learned that we can register processes in Elixir by giving them atom names:
+Since agents are processes, each bucket has a process identifier (PID), but buckets do not have a name. Back [in the Process chapter](/getting-started/processes.html), we have learned that we can register processes in Elixir by giving them atom names:
 
 ```elixir
 iex> Agent.start_link(fn -> %{} end, name: :shopping)
@@ -41,7 +41,7 @@ Please read the `GenServer` module documentation for an overview if you haven't 
 
 ## GenServer callbacks
 
-A GenServer is a process that invokes a limited set of functions under specific conditions. When we used an `Agent`, we would keep both the client code and the server code side by side, like this:
+A GenServer is a process that invokes a limited set of functions under specific conditions. When we used a `Agent`, we would keep both the client code and the server code side by side, like this:
 
 ```elixir
 def put(bucket, key, value) do
@@ -181,11 +181,11 @@ That's it for the client API. On the server side, we can implement a variety of 
 
 The first is the `init/1` callback, that receives the second argument given to `GenServer.start_link/3` and returns `{:ok, state}`, where state is a new map. We can already notice how the `GenServer` API makes the client/server segregation more apparent. `start_link/3` happens in the client, while `init/1` is the respective callback that runs on the server.
 
-For `call/2` requests, we  implement a `handle_call/3` callback that receives the `request`, the process from which we received the request (`_from`), and the current server state (`names`). The `handle_call/3` callback returns a tuple in the format `{:reply, reply, new_state}`. The first element of the tuple, `:reply`,  indicates that the server should send a reply back to the client. The second element, `reply`, is what will be sent to the client while the third, `new_state` is the new server state.
+For `call/2` requests, we implement a `handle_call/3` callback that receives the `request`, the process from which we received the request (`_from`), and the current server state (`names`). The `handle_call/3` callback returns a tuple in the format `{:reply, reply, new_state}`. The first element of the tuple, `:reply`, indicates that the server should send a reply back to the client. The second element, `reply`, is what will be sent to the client while the third, `new_state` is the new server state.
 
 For `cast/2` requests, we implement a `handle_cast/2` callback that receives the `request` and the current server state (`names`). The `handle_cast/2` callback returns a tuple in the format `{:noreply, new_state}`. Note that in a real application we would have probably implemented the callback for `:create` with a synchronous call instead of an asynchronous cast. We are doing it this way to illustrate how to implement a cast callback.
 
-There are other tuple formats both `handle_call/3` and `handle_cast/2` callbacks may return. There are also other callbacks like `terminate/2` and `code_change/3` that we could implement. You are welcome to explore the full `GenServer` documentation to learn more about those.
+There are other tuple formats both `handle_call/3` and `handle_cast/2` callbacks may return. There are other callbacks like `terminate/2` and `code_change/3` that we could implement. You are welcome to explore the full `GenServer` documentation to learn more about those.
 
 For now, let's write some tests to guarantee our GenServer works as expected.
 
@@ -214,7 +214,7 @@ defmodule KV.RegistryTest do
 end
 ```
 
-Our test case first asserts there's no buckets in our registry, creates a named bucket, looks it up, and asserts it behaves as a bucket.
+Our test case first asserts there are no buckets in our registry, creates a named bucket, looks it up, and asserts it behaves as a bucket.
 
 There is one important difference between the `setup` block we wrote for `KV.Registry` and the one we wrote for `KV.Bucket`. Instead of starting the registry by hand by calling `KV.Registry.start_link/1`, we instead called the `ExUnit.Callbacks.start_supervised!/2` function, passing the `KV.Registry` module.
 
@@ -226,7 +226,7 @@ Run the tests and they should all pass!
 
 ## The need for monitoring
 
-Everything we have done so far could have been implemented with an `Agent`. In this section, we will see one of many things that we can achieve with a GenServer that is not possible with an Agent.
+Everything we have done so far could have been implemented with a `Agent`. In this section, we will see one of many things that we can achieve with a GenServer that is not possible with an Agent.
 
 Let's start with a test that describes how we want the registry to behave if a bucket stops or crashes:
 
@@ -312,13 +312,13 @@ Finally, different from the other callbacks, we have defined a "catch-all" claus
 
 So far we have used three callbacks: `handle_call/3`, `handle_cast/2` and `handle_info/2`. Here is what we should consider when deciding when to use each:
 
-1. `handle_call/3` must be used for synchronous requests. This should be the default choice as waiting for the server reply is a useful backpressure mechanism.
+1. `handle_call/3` must be used for synchronous requests. This should be the default choice as waiting for the server reply is a useful back-pressure mechanism.
 
 2. `handle_cast/2` must be used for asynchronous requests, when you don't care about a reply. A cast does not guarantee the server has received the message and, for this reason, should be used sparingly. For example, the `create/2` function we have defined in this chapter should have used `call/2`. We have used `cast/2` for didactic purposes.
 
 3. `handle_info/2` must be used for all other messages a server may receive that are not sent via `GenServer.call/2` or `GenServer.cast/2`, including regular messages sent with `send/2`. The monitoring `:DOWN` messages are an example of this.
 
-Since any message, including the ones sent via `send/2`, go to `handle_info/2`, there is a chance unexpected messages will arrive to the server. Therefore, if we don't define the catch-all clause, those messages could cause our registry to crash, because no clause would match. We don't need to worry about such cases for `handle_call/3` and `handle_cast/2` though. Calls and casts are only done via the `GenServer` API, so an unknown message is quite likely a developer mistake.
+Since any message, including the ones sent via `send/2`, go to `handle_info/2`, there is a chance that unexpected messages will arrive to the server. Therefore, if we don't define the catch-all clause, those messages could cause our registry to crash, because no clause would match. We don't need to worry about such cases for `handle_call/3` and `handle_cast/2` though. Calls and casts are only done via the `GenServer` API, so an unknown message is quite likely a developer mistake.
 
 To help developers remember the differences between call, cast and info, the supported return values and more, we have a tiny [GenServer cheat sheet](/downloads/cheatsheets/gen-server.pdf).
 

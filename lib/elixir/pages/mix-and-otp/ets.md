@@ -190,6 +190,7 @@ def create(server, name) do
   GenServer.call(server, {:create, name})
 end
 ```
+
 ```elixir
 @impl true
 def handle_call({:create, name}, _from, {names, refs}) do
@@ -206,7 +207,7 @@ def handle_call({:create, name}, _from, {names, refs}) do
 end
 ```
 
-We changed the callback from `handle_cast/2` to `handle_call/3` and changed it to reply with the pid of the created bucket. Generally speaking, Elixir developers prefer to use `call/2` instead of `cast/2` as it also provides back-pressure - you block until you get a reply. Using `cast/2` when not necessary can also be considered a premature optimization.
+We changed the callback from `handle_cast/2` to `handle_call/3` and changed it to reply with the PID of the created bucket. Generally speaking, Elixir developers prefer to use `call/2` instead of `cast/2` as it also provides back-pressure — you block until you get a reply. Using `cast/2` when not necessary can also be considered a premature optimization.
 
 Let's run the tests once again. This time though, we will pass the `--trace` option:
 
@@ -216,7 +217,7 @@ $ mix test --trace
 
 The `--trace` option is useful when your tests are deadlocking or there are race conditions, as it runs all tests synchronously (`async: true` has no effect) and shows detailed information about each test. If you run the tests multiple times you may see this intermittent failure:
 
-```
+```text
   1) test removes buckets on exit (KV.RegistryTest)
      test/kv/registry_test.exs:19
      Assertion with == failed

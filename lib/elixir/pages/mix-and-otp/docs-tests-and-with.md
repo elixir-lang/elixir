@@ -2,7 +2,7 @@
 
 In this chapter, we will implement the code that parses the commands we described in the first chapter:
 
-```
+```text
 CREATE shopping
 OK
 
@@ -62,7 +62,7 @@ end
 
 Run the test suite and the doctest should fail:
 
-```
+```text
   1) doctest KVServer.Command.parse/1 (1) (KVServer.CommandTest)
      test/kv_server/command_test.exs:3
      Doctest failed
@@ -158,9 +158,9 @@ iex> KVServer.Command.parse("GET shopping\r\n")
 {:error, :unknown_command}
 ```
 
-As the name says, doctest is documentation first and a test later. Their goal is not to replace tests but to provide up to date documentation. You can read more about doctests in the `ExUnit.DocTest` documentation.
+As the name says, doctest is documentation first and a test later. Their goal is not to replace tests but to provide up-to-date documentation. You can read more about doctests in the `ExUnit.DocTest` documentation.
 
-## with
+## `with`
 
 As we are now able to parse commands, we can finally start implementing the logic that runs the commands. Let's add a stub definition for this function for now:
 
@@ -412,7 +412,7 @@ Our integration test checks all server interaction, including unknown commands a
 
 This time, since our test relies on global data, we have not given `async: true` to `use ExUnit.Case`. Furthermore, in order to guarantee our test is always in a clean state, we stop and start the `:kv` application before each test. In fact, stopping the `:kv` application even prints a warning on the terminal:
 
-```
+```text
 18:12:10.698 [info] Application kv exited: :stopped
 ```
 
@@ -426,7 +426,7 @@ Between `use ExUnit.Case` and setup, add the following call:
 
 In case the test crashes, you will see a report as follows:
 
-```
+```text
   1) test server interaction (KVServerTest)
      test/kv_server_test.exs:17
      ** (RuntimeError) oops

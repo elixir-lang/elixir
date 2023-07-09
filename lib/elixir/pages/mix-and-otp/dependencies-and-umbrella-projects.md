@@ -4,7 +4,7 @@ In this chapter, we will discuss how to manage dependencies in Mix.
 
 Our `kv` application is complete, so it's time to implement the server that will handle the requests we defined in the first chapter:
 
-```
+```text
 CREATE shopping
 OK
 

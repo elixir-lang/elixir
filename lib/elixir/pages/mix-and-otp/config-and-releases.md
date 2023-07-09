@@ -50,9 +50,9 @@ We need a way to configure the application environment. That's when we use confi
 
 Configuration files provide a mechanism for us to configure the environment of any application. Elixir provides two configuration entry points:
 
-  * `config/config.exs` - this file is read at build time, before we compile our application and before we even load our dependencies. This means we can't access the code in our application nor in our dependencies. However, it means we can control how they are compiled
+  * `config/config.exs` — this file is read at build time, before we compile our application and before we even load our dependencies. This means we can't access the code in our application nor in our dependencies. However, it means we can control how they are compiled
 
-  * `config/runtime.exs` - this file is read after our application and dependencies are compiled and therefore it can configure how our application works at runtime. If you want to read system environment variables (via `System.get_env/1`) or any sort of external configuration, this is the appropriate place to do so
+  * `config/runtime.exs` — this file is read after our application and dependencies are compiled and therefore it can configure how our application works at runtime. If you want to read system environment variables (via `System.get_env/1`) or any sort of external configuration, this is the appropriate place to do so
 
 For example, we can configure IEx default prompt to another value. Let's create the `config/runtime.exs` file with the following content:
 
@@ -108,19 +108,21 @@ A release is a self-contained directory that consists of your application code, 
 
 In a regular project, we can assemble a release by simply running `mix release`. However, we have an umbrella project, and in such cases Elixir requires some extra input from us. Let's see what is necessary:
 
-    $ MIX_ENV=prod mix release
-    ** (Mix) Umbrella projects require releases to be explicitly defined with a non-empty applications key that chooses which umbrella children should be part of the releases:
+```shell
+$ MIX_ENV=prod mix release
+** (Mix) Umbrella projects require releases to be explicitly defined with a non-empty applications key that chooses which umbrella children should be part of the releases:
 
-    releases: [
-      foo: [
-        applications: [child_app_foo: :permanent]
-      ],
-      bar: [
-        applications: [child_app_bar: :permanent]
-      ]
-    ]
+releases: [
+  foo: [
+    applications: [child_app_foo: :permanent]
+  ],
+  bar: [
+    applications: [child_app_bar: :permanent]
+  ]
+]
 
-    Alternatively you can perform the release from the children applications
+Alternatively you can perform the release from the children applications
+```
 
 That's because an umbrella project gives us plenty of options when deploying the software. We can:
 
@@ -140,7 +142,6 @@ releases: [
   ]
 ]
 ```
-
 
 That defines a release named `foo` with both `kv_server` and `kv` applications. Their mode is set to `:permanent`, which means that, if those applications crash, the whole node terminates. That's reasonable since those applications are essential to our system.
 
@@ -186,15 +187,15 @@ With the configuration in place, let's give assembling the release another try:
 
 Excellent! A release was assembled in `_build/prod/rel/foo`. Inside the release, there will be a `bin/foo` file which is the entry point to your system. It supports multiple commands, such as:
 
-  * `bin/foo start`, `bin/foo start_iex`, `bin/foo restart`, and `bin/foo stop` - for general management of the release
+  * `bin/foo start`, `bin/foo start_iex`, `bin/foo restart`, and `bin/foo stop` — for general management of the release
 
-  * `bin/foo rpc COMMAND` and `bin/foo remote` - for running commands on the running system or to connect to the running system
+  * `bin/foo rpc COMMAND` and `bin/foo remote` — for running commands on the running system or to connect to the running system
 
-  * `bin/foo eval COMMAND` - to start a fresh system that runs a single command and then shuts down
+  * `bin/foo eval COMMAND` — to start a fresh system that runs a single command and then shuts down
 
-  * `bin/foo daemon` and `bin/foo daemon_iex` - to start the system as a daemon on Unix-like systems
+  * `bin/foo daemon` and `bin/foo daemon_iex` — to start the system as a daemon on Unix-like systems
 
-  * `bin/foo install` - to install the system as a service on Windows machines
+  * `bin/foo install` — to install the system as a service on Windows machines
 
 If you run `bin/foo start`, it will start the system using a short name (`--sname`) equal to the release name, which in this case is `foo`. The next step is to start a system named `bar`, so we can connect `foo` and `bar` together, like we did in the previous chapter. But before we achieve this, let's talk a bit about the benefits of releases.
 
@@ -269,19 +270,26 @@ releases: [
 
 And now let's assemble both releases:
 
-    $ MIX_ENV=prod mix release foo
-    $ MIX_ENV=prod mix release bar
+```shell
+$ MIX_ENV=prod mix release foo
+$ MIX_ENV=prod mix release bar
+```
 
 Stop `foo` if it's still running and re-start it to load the `cookie`:
 
-    $ _build/prod/rel/foo/bin/foo start
+```shell
+$ _build/prod/rel/foo/bin/foo start
+```
 
 And start `bar` in another terminal:
 
-    $ _build/prod/rel/bar/bin/bar start
+```shell
+$ _build/prod/rel/bar/bin/bar start
+```
 
 You should see an error like the error below happen 5 times, before the application finally shuts down:
 
+```text
     17:21:57.567 [error] Task #PID<0.620.0> started from KVServer.Supervisor terminating
     ** (MatchError) no match of right hand side value: {:error, :eaddrinuse}
         (kv_server) lib/kv_server.ex:12: KVServer.accept/1
@@ -289,6 +297,7 @@ You should see an error like the error below happen 5 times, before the applicat
         (stdlib) proc_lib.erl:249: :proc_lib.init_p_do_apply/3
     Function: #Function<0.98032413/0 in KVServer.Application.start/2>
         Args: []
+```
 
 That's happening because the release `foo` is already listening on port `4040` and `bar` is trying to do the same! One option could be to move the `:port` configuration to the application environment, like we did for the routing table, and setup different ports per node.
 
@@ -325,13 +334,13 @@ With releases, we were able to "cut different slices" of our project and prepare
 
 Releases also provide built-in hooks for configuring almost every need of the production system:
 
-  * `config/config.exs` - provides build-time application configuration, which is executed before our application compiles. This file often imports configuration files based on the environment, such as `config/dev.exs` and `config/prod.exs`
+  * `config/config.exs` — provides build-time application configuration, which is executed before our application compiles. This file often imports configuration files based on the environment, such as `config/dev.exs` and `config/prod.exs`.
 
-  * `config/runtime.exs` - provides runtime application configuration. It is executed every time the release boots and is further extensible via config providers
+  * `config/runtime.exs` — provides runtime application configuration. It is executed every time the release boots and is further extensible via config providers.
 
-  * `rel/env.sh.eex` and `rel/env.bat.eex` - template files that are copied into every release and executed on every command to set up environment variables, including ones specific to the VM, and the general environment
+  * `rel/env.sh.eex` and `rel/env.bat.eex` — template files that are copied into every release and executed on every command to set up environment variables, including ones specific to the VM, and the general environment.
 
-  * `rel/vm.args.eex` - a template file that is copied into every release and provides static configuration of the Erlang Virtual Machine and other runtime flags
+  * `rel/vm.args.eex` — a template file that is copied into every release and provides static configuration of the Erlang Virtual Machine and other runtime flags.
 
 As we have seen, `config/config.exs` and `config/runtime.exs` are loaded during releases and regular Mix commands. On the other hand, `rel/env.sh.eex` and `rel/vm.args.eex` are specific to releases. Let's take a look.
 
@@ -372,7 +381,7 @@ If you open up `rel/env.sh.eex`, you will see:
 # export RELEASE_NODE=<%= @release.name %>
 ```
 
-The steps necessary to work across nodes is already commented out as an example. You can enable full distribution by uncommenting the last two lines by removing the leading  `# `.
+The steps necessary to work across nodes is already commented out as an example. You can enable full distribution by uncommenting the last two lines by removing the leading `# `.
 
 If you are on Windows, you will have to open up `rel/env.bat.eex`, where you will find this:
 
@@ -389,7 +398,7 @@ rem set RELEASE_NODE=<%= @release.name %>
 
 Once again, uncomment the last two lines by removing the leading `rem ` to enable full distribution. And that's all!
 
-### VM args
+### VM arguments
 
 The `rel/vm.args.eex` allows you to specify low-level flags that control how the Erlang VM and its runtime operate. You specify entries as if you were specifying arguments in the command line with code comments also supported. Here is the default generated file:
 
@@ -402,7 +411,7 @@ The `rel/vm.args.eex` allows you to specify low-level flags that control how the
     ## Tweak GC to run more often
     ##-env ERL_FULLSWEEP_AFTER 10
 
-You can see [a complete list of VM args and flags in the Erlang documentation](http://www.erlang.org/doc/man/erl.html).
+You can see [a complete list of VM arguments and flags in the Erlang documentation](http://www.erlang.org/doc/man/erl.html).
 
 ## Summing up
 

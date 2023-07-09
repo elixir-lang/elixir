@@ -64,9 +64,9 @@ iex> Node.spawn_link(:"foo@computer-name", fn -> Hello.world() end)
 hello world
 ```
 
-Elixir spawned a process on another node and returned its pid. The code then executed on the other node where the `Hello.world/0` function exists and invoked that function. Note that the result of "hello world" was printed on the current node `bar` and not on `foo`. In other words, the message to be printed was sent back from `foo` to `bar`. This happens because the process spawned on the other node (`foo`) knows all of the output should be sent back to the original node!
+Elixir spawned a process on another node and returned its PID. The code then executed on the other node where the `Hello.world/0` function exists and invoked that function. Note that the result of "hello world" was printed on the current node `bar` and not on `foo`. In other words, the message to be printed was sent back from `foo` to `bar`. This happens because the process spawned on the other node (`foo`) knows all the output should be sent back to the original node!
 
-We can send and receive messages from the pid returned by `Node.spawn_link/2` as usual. Let's try a quick ping-pong example:
+We can send and receive messages from the PID returned by `Node.spawn_link/2` as usual. Let's try a quick ping-pong example:
 
 ```elixir
 iex> pid = Node.spawn_link(:"foo@computer-name", fn ->
@@ -284,7 +284,7 @@ The `mix test` command also allows us to dynamically include and exclude tags. F
 $ elixir --sname foo -S mix test --only distributed
 ```
 
-You can read more about filters, tags and the default tags in `ExUnit.Case` module documentation.
+You can read more about filters, tags, and the default tags in the `ExUnit.Case` module documentation.
 
 ## Wiring it all up
 
@@ -340,7 +340,7 @@ In all of our examples, we relied on Erlang's ability to automatically connect n
 
 By default, Erlang establishes a fully meshed network, which means all nodes are connected to each other. Under this topology, the Erlang distribution is known to scale to several dozens of nodes in the same cluster. Erlang also has the concept of hidden nodes, which can allow developers to assemble custom topologies as seen in projects such as [Partisan](https://github.com/lasp-lang/partisan).
 
-In production, you may have nodes connecting and disconnecting at any time. In such scenarios, you need to provide _node discoverability_. Libraries such as [libcluster](https://github.com/bitwalker/libcluster/) and [peerage](https://github.com/mrluc/peerage) provide several strategies for node discoverability using DNS, Kubernetes, etc.
+In production, you may have nodes connecting and disconnecting at any time. In such scenarios, you need to provide *node discoverability*. Libraries such as [libcluster](https://github.com/bitwalker/libcluster/) and [peerage](https://github.com/mrluc/peerage) provide several strategies for node discoverability using DNS, Kubernetes, etc.
 
 Distributed key-value stores, used in real-life, need to consider the fact nodes may go up and down at any time and also migrate the bucket across nodes. Even further, buckets often need to be duplicated between nodes, so a failure in a node does not lead to the whole bucket being lost. This process is called *replication*. Our implementation won't attempt to tackle such problems. Instead, we assume there is a fixed number of nodes and therefore use a fixed routing table.
 

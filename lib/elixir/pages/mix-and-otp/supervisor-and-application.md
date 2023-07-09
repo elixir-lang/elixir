@@ -45,7 +45,7 @@ end
 
 Our supervisor has a single child so far: `KV.Registry`. After we define a list of children, we call `Supervisor.init/2`, passing the children and the supervision strategy.
 
-The supervision strategy dictates what happens when one of the children crashes. `:one_for_one` means that if a child dies, it will be the only one restarted. Since we have only one child now, that's all we need. The `Supervisor` behaviour supports many different strategies and we will discuss them in this chapter.
+The supervision strategy dictates what happens when one of the children crashes. `:one_for_one` means that if a child dies, it will be the only one restarted. Since we have only one child now, that's all we need. The `Supervisor` behaviour supports several strategies, which we will discuss in this chapter.
 
 Once the supervisor starts, it will traverse the list of children and it will invoke the `child_spec/1` function on each module.
 
@@ -85,7 +85,7 @@ iex> Supervisor.which_children(sup)
 
 Notice how the supervisor automatically started a new registry, with a new PID, in place of the first one once we caused it to crash due to a bad input.
 
-In the previous chapters, we have always started processes directly. For example, we would call `KV.Registry.start_link([])`, which would return `{:ok, pid}`, and that would allow us to interact with the registry via its `pid`. Now that processes are started by the supervisor, we have to directly ask the supervisor who its children are, and fetch the pid from the returned list of children. In practice, doing so every time would be very expensive. To address this, we often give names to processes, allowing them to be uniquely identified in a single machine from anywhere in our code.
+In the previous chapters, we have always started processes directly. For example, we would call `KV.Registry.start_link([])`, which would return `{:ok, pid}`, and that would allow us to interact with the registry via its `pid`. Now that processes are started by the supervisor, we have to directly ask the supervisor who its children are, and fetch the PID from the returned list of children. In practice, doing so every time would be very expensive. To address this, we often give names to processes, allowing them to be uniquely identified in a single machine from anywhere in our code.
 
 Let's learn how to do that.
 
@@ -112,7 +112,7 @@ If you revisit the `KV.Registry.start_link/1` implementation, you will remember 
   end
 ```
 
-which in turn will register the process with the given name. The `:name` option expects an atom for locally named processes (locally named means it is available to this machine - there are other options, which we won't discuss here). Since module identifiers are atoms (try `i(KV.Registry)` in IEx), we can name a process after the module that implements it, provided there is only one process for that name. This helps when debugging and introspecting the system.
+which in turn will register the process with the given name. The `:name` option expects an atom for locally named processes (locally named means it is available to this machine — there are other options, which we won't discuss here). Since module identifiers are atoms (try `i(KV.Registry)` in IEx), we can name a process after the module that implements it, provided there is only one process for that name. This helps when debugging and introspecting the system.
 
 Let's give the updated supervisor a try inside `iex -S mix`:
 
@@ -151,7 +151,7 @@ This file contains Erlang terms (written using Erlang syntax). Even though we ar
 
 > The `logger` application ships as part of Elixir. We stated that our application needs it by specifying it in the `:extra_applications` list in `mix.exs`. See the [official documentation](`Logger`) for more information.
 
-In a nutshell, an application consists of all of the modules defined in the `.app` file, including the `.app` file itself. An application has generally only two directories: `ebin`, for Elixir artefacts, such as `.beam` and `.app` files, and `priv`, with any other artefact or asset you may need in your application.
+In a nutshell, an application consists of all the modules defined in the `.app` file, including the `.app` file itself. An application has generally only two directories: `ebin`, for Elixir artifacts, such as `.beam` and `.app` files, and `priv`, with any other artifact or asset you may need in your application.
 
 Although Mix generates and maintains the `.app` file for us, we can customize its contents by adding new entries to the `application/0` function inside the `mix.exs` project file. We are going to do our first customization soon.
 
@@ -168,7 +168,7 @@ iex> Application.start(:kv)
 
 Oops, it's already started. Mix starts the current application and all of its dependencies automatically. This is also true for `mix test` and many other Mix commands.
 
-You can change this behaviour by giving the `--no-start` flag to Mix. It is rarely used in practice but it allows us to understand the underlying mechanisms better. Let's give it a try.
+You can change this behaviour by giving the `--no-start` flag to Mix. It is rarely used in practice, but it allows us to understand the underlying mechanisms better. Let's give it a try.
 
 Invoking `mix` is the same as `mix run`. Therefore, if you want to pass a flag to `mix` or `iex -S mix`, we just need to add the task name and the desired flags. For example, run `iex -S mix run --no-start`:
 
@@ -206,7 +206,7 @@ In practice, our tools always start our applications for us, but there is an API
 
 Whenever we invoke `iex -S mix`, Mix automatically starts our application by calling `Application.start(:kv)`. But can we customize what happens when our application starts? As a matter of fact, we can! To do so, we define an application callback.
 
-The first step is to tell our application definition (i.e. our `.app` file) which module is going to implement the application callback. Let's do so by opening  `mix.exs` and changing `def application` to the following:
+The first step is to tell our application definition (for example, our `.app` file) which module is going to implement the application callback. Let's do so by opening `mix.exs` and changing `def application` to the following:
 
 ```elixir
   def application do

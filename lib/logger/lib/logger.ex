@@ -17,7 +17,7 @@ defmodule Logger do
       to avoid clogging `Logger` backends.
 
     * Alternates between sync and async modes to remain
-      performant when required but also apply backpressure
+      performant when required but also apply back-pressure
       when under stress.
 
     * Support for custom filters and handlers as provided by

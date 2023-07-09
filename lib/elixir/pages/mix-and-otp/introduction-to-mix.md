@@ -29,11 +29,11 @@ OK
 
 In order to build our key-value application, we are going to use three main tools:
 
-* ***OTP*** _(Open Telecom Platform)_ is a set of libraries that ships with Erlang. Erlang developers use OTP to build robust, fault-tolerant applications. In this chapter we will explore how many aspects from OTP integrate with Elixir, including supervision trees, event managers and more;
+  * ***OTP*** *(Open Telecom Platform)* is a set of libraries that ships with Erlang. Erlang developers use OTP to build robust, fault-tolerant applications. In this chapter we will explore how many aspects from OTP integrate with Elixir, including supervision trees, event managers and more;
 
-* ***[Mix](`Mix`)*** is a build tool that ships with Elixir that provides tasks for creating, compiling, testing your application, managing its dependencies and much more;
+  * ***[Mix](`Mix`)*** is a build tool that ships with Elixir that provides tasks for creating, compiling, testing your application, managing its dependencies and much more;
 
-* ***[ExUnit](`ExUnit`)*** is a test-unit based framework that ships with Elixir.
+  * ***[ExUnit](`ExUnit`)*** is a test-unit based framework that ships with Elixir.
 
 In this chapter, we will create our first project using Mix and explore different features in OTP, Mix, and ExUnit as we go.
 
@@ -45,7 +45,7 @@ In this chapter, we will create our first project using Mix and explore differen
 
 When you install Elixir, besides getting the `elixir`, `elixirc`, and `iex` executables, you also get an executable Elixir script named `mix`.
 
-Let's create our first project by invoking `mix new` from the command line. We'll pass the project path as the argument (`kv`, in this case). By default the application name and module name will be retrieved from the path. So we tell Mix that our main module should be the all-uppercase `KV`, instead of the default, which would have been `Kv`:
+Let's create our first project by invoking `mix new` from the command line. We'll pass the project path as the argument (`kv`, in this case). By default, the application name and module name will be retrieved from the path. So we tell Mix that our main module should be the all-uppercase `KV`, instead of the default, which would have been `Kv`:
 
 ```console
 $ mix new kv --module KV
@@ -150,13 +150,13 @@ Generated kv app
 
 The `lib/kv.ex` file was compiled and an application manifest named `kv.app` was generated. All compilation artifacts are placed inside the `_build` directory using the options defined in the `mix.exs` file.
 
-Once the project is compiled, you can start an `iex` session inside the project by running the command below. The `-S mix` is necessary to load the project in the interactive shell:
+Once the project is compiled, you can start a `iex` session inside the project by running the command below. The `-S mix` is necessary to load the project in the interactive shell:
 
 ```console
 $ iex -S mix
 ```
 
-We are going to work on this `kv` project, making modifications and trying out the latest changes from an `iex` session. While you may start a new session whenever there are changes to the project source code, you can also recompile the project from within `iex` with the `recompile` helper, like this:
+We are going to work on this `kv` project, making modifications and trying out the latest changes from a `iex` session. While you may start a new session whenever there are changes to the project source code, you can also recompile the project from within `iex` with the `recompile` helper, like this:
 
 ```elixir
 iex> recompile()
@@ -241,7 +241,7 @@ Finished in 0.05 seconds
 1 doctest, 1 test, 1 failure
 ```
 
-For each failure, ExUnit prints a detailed report, containing the test name with the test case, the code that failed and the values for the left side and right side (rhs) of the `==` operator.
+For each failure, ExUnit prints a detailed report, containing the test name with the test case, the code that failed and the values for the left side and right side (RHS) of the `==` operator.
 
 In the second line of the failure, right below the test name, there is the location where the test was defined. If you copy the test location in full, including the file and line number, and append it to `mix test`, Mix will load and run just that particular test:
 

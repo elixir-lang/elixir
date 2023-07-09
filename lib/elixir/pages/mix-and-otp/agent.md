@@ -13,9 +13,9 @@ Elixir is an immutable language where nothing is shared by default. If we want t
 
 We covered processes in the *Getting Started* guide. ETS (Erlang Term Storage) is a new topic that we will explore in later chapters. When it comes to processes though, we rarely hand-roll our own, instead we use the abstractions available in Elixir and OTP:
 
-  * `Agent` - Simple wrappers around state.
-  * `GenServer` - "Generic servers" (processes) that encapsulate state, provide sync and async calls, support code reloading, and more.
-  * `Task` - Asynchronous units of computation that allow spawning a process and potentially retrieving its result at a later time.
+  * `Agent` — Simple wrappers around state.
+  * `GenServer` — "Generic servers" (processes) that encapsulate state, provide sync and async calls, support code reloading, and more.
+  * `Task` — Asynchronous units of computation that allow spawning a process and potentially retrieving its result at a later time.
 
 We will explore most of these abstractions in this guide. Keep in mind that they are all implemented on top of processes using the basic features provided by the VM, like `send/2`, `receive/1`, `spawn/1` and `Process.link/1`.
 
@@ -23,7 +23,7 @@ Here, we will use agents, and create a module named `KV.Bucket`, responsible for
 
 ## Agents
 
-`Agent`s are simple wrappers around state. If all you want from a process is to keep state, agents are a great fit. Let's start an `iex` session inside the project with:
+`Agent`s are simple wrappers around state. If all you want from a process is to keep state, agents are a great fit. Let's start a `iex` session inside the project with:
 
 ```console
 $ iex -S mix
@@ -124,7 +124,7 @@ The first step in our implementation is to call `use Agent`. Most of the functio
 
 Then we define a `start_link/1` function, which will effectively start the agent. It is a convention to define a `start_link/1` function that always accepts a list of options. We don't plan on using any options right now, but we might later on. We then proceed to call `Agent.start_link/1`, which receives an anonymous function that returns the Agent's initial state.
 
-We are keeping a map inside the agent to store our keys and values. Getting and putting values on the map is done with the Agent API  and the capture operator `&`, introduced in [the Getting Started guide](../getting-started/modules-and-functions.md#function-capturing). The agent passes its state to the anonymous function via the `&1` argument when `Agent.get/2` and `Agent.update/2` are called.
+We are keeping a map inside the agent to store our keys and values. Getting and putting values on the map is done with the Agent API and the capture operator `&`, introduced in [the Getting Started guide](../getting-started/modules-and-functions.md#function-capturing). The agent passes its state to the anonymous function via the `&1` argument when `Agent.get/2` and `Agent.update/2` are called.
 
 Now that the `KV.Bucket` module has been defined, our test should pass! You can try it yourself by running: `mix test`.
 
@@ -154,7 +154,7 @@ end
 
 We have first defined a setup callback with the help of the `setup/1` macro. The `setup/1` macro defines a callback that is run before every test, in the same process as the test itself.
 
-Note that we need a mechanism to pass the `bucket` pid from the callback to the test. We do so by using the *test context*. When we return `%{bucket: bucket}` from the callback, ExUnit will merge this map into the test context. Since the test context is a map itself, we can pattern match the bucket out of it, providing access to the bucket inside the test:
+Note that we need a mechanism to pass the `bucket` PID from the callback to the test. We do so by using the *test context*. When we return `%{bucket: bucket}` from the callback, ExUnit will merge this map into the test context. Since the test context is a map itself, we can pattern match the bucket out of it, providing access to the bucket inside the test:
 
 ```elixir
 test "stores values by key", %{bucket: bucket} do

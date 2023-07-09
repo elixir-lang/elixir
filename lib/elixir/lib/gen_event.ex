@@ -19,7 +19,7 @@ defmodule GenEvent do
   One alternative to GenEvent is a very minimal solution consisting of using a
   supervisor and multiple GenServers started under it. The supervisor acts as
   the "event manager" and the children GenServers act as the "event handlers".
-  This approach has some shortcomings (it provides no backpressure for example)
+  This approach has some shortcomings (it provides no back-pressure for example)
   but can still replace GenEvent for low-profile usages of it. [This blog post
   by José
   Valim](http://blog.plataformatec.com.br/2016/11/replacing-genevent-by-a-supervisor-genserver/)
@@ -31,7 +31,7 @@ defmodule GenEvent do
   [GenStage](https://github.com/elixir-lang/gen_stage) provides a great
   alternative. GenStage is an external Elixir library maintained by the Elixir
   team; it provides a tool to implement systems that exchange events in a
-  demand-driven way with built-in support for backpressure. See the [GenStage
+  demand-driven way with built-in support for back-pressure. See the [GenStage
   documentation](https://hexdocs.pm/gen_stage) for more information.
 
   ### `:gen_event`
