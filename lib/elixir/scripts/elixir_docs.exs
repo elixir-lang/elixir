@@ -40,6 +40,17 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/references/syntax-reference.md",
     "lib/elixir/pages/references/typespecs.md",
     "lib/elixir/pages/references/unicode-syntax.md",
+    "lib/elixir/pages/mix-and-otp/introduction-to-mix.md",
+    "lib/elixir/pages/mix-and-otp/agent.md",
+    "lib/elixir/pages/mix-and-otp/genserver.md",
+    "lib/elixir/pages/mix-and-otp/supervisor-and-application.md",
+    "lib/elixir/pages/mix-and-otp/dynamic-supervisor.md",
+    "lib/elixir/pages/mix-and-otp/ets.md",
+    "lib/elixir/pages/mix-and-otp/dependencies-and-umbrella-projects.md",
+    "lib/elixir/pages/mix-and-otp/task-and-gen-tcp.md",
+    "lib/elixir/pages/mix-and-otp/docs-tests-and-with.md",
+    "lib/elixir/pages/mix-and-otp/distributed-tasks.md",
+    "lib/elixir/pages/mix-and-otp/config-and-releases.md",
     "lib/elixir/pages/meta-programming/quote-and-unquote.md",
     "lib/elixir/pages/meta-programming/macros.md",
     "lib/elixir/pages/meta-programming/domain-specific-languages.md",
@@ -56,7 +67,8 @@ canonical = System.fetch_env!("CANONICAL")
     "Getting started": ~r"pages/getting-started/.*\.md$",
     "Anti-patterns": ~r"pages/anti-patterns/.*\.md$",
     References: ~r"pages/references/.*\.md$",
-    "Meta-programming": ~r"pages/meta-programming/.*\.md$"
+    "Meta-programming": ~r"pages/meta-programming/.*\.md$",
+    Mix: ~r"pages/mix-and-otp/.*\.md$"
   ],
   groups_for_functions: [
     Guards: &(&1[:guard] == true)
