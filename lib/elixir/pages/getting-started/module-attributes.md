@@ -20,10 +20,10 @@ end
 
 In the example above, we are defining the module documentation by using the module attribute syntax. Elixir has a handful of reserved attributes. Here are a few of them, the most commonly used ones:
 
-* `@moduledoc` - provides documentation for the current module.
-* `@doc` - provides documentation for the function or macro that follows the attribute.
-* `@spec` - provides a typespec for the function that follows the attribute.
-* `@behaviour` - (notice the British spelling) used for specifying an OTP or user-defined behaviour.
+  * `@moduledoc` — provides documentation for the current module.
+  * `@doc` — provides documentation for the function or macro that follows the attribute.
+  * `@spec` — provides a typespec for the function that follows the attribute.
+  * `@behaviour` — (notice the British spelling) used for specifying an OTP or user-defined behaviour.
 
 `@moduledoc` and `@doc` are by far the most used attributes, and we expect you to use them a lot. Elixir treats documentation as first-class and provides many functions to access documentation. We will cover them [in their own chapter](writing-documentation.md).
 

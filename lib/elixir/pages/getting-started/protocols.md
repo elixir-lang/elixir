@@ -99,17 +99,17 @@ iex> Size.size([1, 2, 3])
 
 It's possible to implement protocols for all Elixir data types:
 
-* `Atom`
-* `BitString`
-* `Float`
-* `Function`
-* `Integer`
-* `List`
-* `Map`
-* `PID`
-* `Port`
-* `Reference`
-* `Tuple`
+  * `Atom`
+  * `BitString`
+  * `Float`
+  * `Function`
+  * `Integer`
+  * `List`
+  * `Map`
+  * `PID`
+  * `Port`
+  * `Reference`
+  * `Tuple`
 
 ## Protocols and structs
 

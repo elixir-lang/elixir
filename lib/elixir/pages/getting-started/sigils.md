@@ -31,7 +31,7 @@ Check out the `Regex` module for more information on other modifiers and the sup
 
 So far, all examples have used `/` to delimit a regular expression. However, sigils support 8 different delimiters:
 
-```
+```elixir
 ~r/hello/
 ~r|hello|
 ~r"hello"
@@ -97,20 +97,20 @@ iex> ~S(String without escape codes \x26 without #{interpolation})
 
 The following escape codes can be used in strings and charlists:
 
-* `\\` – single backslash
-* `\a` – bell/alert
-* `\b` – backspace
-* `\d` - delete
-* `\e` - escape
-* `\f` - form feed
-* `\n` – newline
-* `\r` – carriage return
-* `\s` – space
-* `\t` – tab
-* `\v` – vertical tab
-* `\0` - null byte
-* `\xDD` - represents a single byte in hexadecimal (such as `\x13`)
-* `\uDDDD` and `\u{D...}` - represents a Unicode codepoint in hexadecimal (such as `\u{1F600}`)
+  * `\\` – single backslash
+  * `\a` – bell/alert
+  * `\b` – backspace
+  * `\d` - delete
+  * `\e` - escape
+  * `\f` - form feed
+  * `\n` – newline
+  * `\r` – carriage return
+  * `\s` – space
+  * `\t` – tab
+  * `\v` – vertical tab
+  * `\0` - null byte
+  * `\xDD` - represents a single byte in hexadecimal (such as `\x13`)
+  * `\uDDDD` and `\u{D...}` - represents a Unicode codepoint in hexadecimal (such as `\u{1F600}`)
 
 In addition to those, a double quote inside a double-quoted string needs to be escaped as `\"`, and, analogously, a single quote inside a single-quoted char list needs to be escaped as `\'`. Nevertheless, it is better style to change delimiters as seen above than to escape them.
 

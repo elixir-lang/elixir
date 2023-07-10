@@ -21,6 +21,7 @@ defmodule MyMath do
   end
 end
 ```
+
 ```elixir
 iex> require MyMath
 MyMath
@@ -41,6 +42,7 @@ defmodule MyMath do
   end
 end
 ```
+
 ```elixir
 iex> MyMath.sum(3, 5)
 8
@@ -156,7 +158,7 @@ end
 
 When we try to compile `ClientApp`, Elixir detects the conflict and throws the following error:
 
-```
+```text
 error: imported ModuleA.foo/0 conflicts with local function
   └ client_app.ex:4:
 ```
