@@ -99,9 +99,54 @@ end
 
 While this example of refactoring `get_customer/1` might seem quite more verbose than the original code, remember to imagine a scenario where `get_customer/1` is responsible for handling a number much larger than three different types of possible responses. This is the smelly scenario!
 
-## Complex else clauses in with
+## Complex `else` clauses in `with`
 
-TODO.
+#### Problem
+
+This anti-pattern refers to `with` statements that flatten all its error clauses into a single complex `else` block. This situation is harmful to the code readability and maintainability because difficult to know from which clause the error value came.
+
+#### Example
+
+An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that read a base 64 encoded string content from a file and returns a decoded binary string. This function uses a `with` statement that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
+
+```elixir
+def open_decoded_file(path) do
+  with {:ok, encoded} <- File.read(path),
+    {:ok, value} <- Base.decode64(encoded) do
+    value
+  else
+    {:error, _} -> :badfile
+    :error -> :badencoding
+  end
+end
+```
+
+#### Refactoring
+
+In this situation, instead of concentrating all error handlings within a single complex `else` block, it is better to normalize the return types in specific private functions. In this way, due to its organization, the code will be cleaner and more readable.
+
+```elixir
+def open_decoded_file(path) do
+  with {:ok, encoded} <- file_read(path),
+    {:ok, value} <- base_decode64(encoded) do
+    value
+  end
+end
+
+defp file_read(path) do
+  case File.read(path) do
+    {:ok, contents} -> {:ok, contents}
+    {:error, _} -> :badfile
+  end
+end
+
+defp base_decode64(contents) do
+  case Base.decode64(contents) do
+    {:ok, contents} -> {:ok, contents}
+    :error -> :badencoding
+  end
+end
+```
 
 ## Complex extractions in clauses
 
