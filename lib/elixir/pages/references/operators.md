@@ -72,8 +72,8 @@ Elixir provides the following built-in comparison operators (all of which can be
 
   * [`==`](`==/2`) - equal to
   * [`===`](`===/2`) - strictly equal to
-  * [`!=`](`!=/2`) - inequal to
-  * [`!==`](`!==/2`) - strictly inequal to
+  * [`!=`](`!=/2`) - not equal to
+  * [`!==`](`!==/2`) - strictly not equal to
   * [`<`](`</2`) - less-than
   * [`>`](`>/2`) - greater-than
   * [`<=`](`<=/2`) - less-than or equal to
