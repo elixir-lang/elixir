@@ -145,4 +145,4 @@ In other words, it is important to make a distinction between a regular Elixir v
 
 When working with macros and code that generates code, check out the documentation for the `Macro` module, which contains many functions to work with Elixir's AST.
 
-In this introduction, we have laid the groundwork to finally write our first macro. You can check that out in the [next guide](macros.html).
+In this introduction, we have laid the groundwork to finally write our first macro. You can check that out in the [next guide](macros.md).
