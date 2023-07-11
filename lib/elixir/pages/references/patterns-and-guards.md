@@ -6,7 +6,7 @@ This document provides a complete reference on patterns and guards, their semant
 
 ## Patterns
 
-Patterns in Elixir are made of variables, literals, and data structure specific syntax. One of the most used constructs to perform pattern matching is the match operator ([`=`](`=/2`)):
+Patterns in Elixir are made of variables, literals, and data structure specific syntax. One of the most used constructs to perform pattern matching is the match operator ([`=`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#=/2)):
 
 ```iex
 iex> x = 1
@@ -48,7 +48,7 @@ iex> x
 2
 ```
 
-In other words, Elixir supports rebinding. In case you don't want the value of a variable to change, you can use the pin operator (`^`):
+In other words, Elixir supports rebinding. In case you don't want the value of a variable to change, you can use the pin operator ([`^`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#%5E/1)):
 
 ```iex
 iex> x = 1
@@ -97,7 +97,7 @@ iex> 1 = 1.0
 
 ### Tuples
 
-Tuples may appear in patterns using the curly brackets syntax (`{}`). A tuple in a pattern will match only tuples of the same size, where each individual tuple element must also match:
+Tuples may appear in patterns using the curly brackets syntax ([`{}`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#%7B%7D/1)). A tuple in a pattern will match only tuples of the same size, where each individual tuple element must also match:
 
 ```iex
 iex> {:ok, integer} = {:ok, 13}
@@ -156,7 +156,7 @@ iex> [head | tail] = []
 ** (MatchError) no match of right hand side value: []
 ```
 
-Given charlists are represented as a list of integers, one can also perform prefix matches on charlists using the list concatenation operator ([`++`](`++/2`)):
+Given charlists are represented as a list of integers, one can also perform prefix matches on charlists using the list concatenation operator ([`++`](https://hexdocs.pm/elixir/main/Kernel.html#++/2)):
 
 ```elixir
 iex> 'hello ' ++ world = 'hello world'
@@ -169,7 +169,7 @@ Which is equivalent to matching on `[?h, ?e, ?l, ?l, ?o, ?\s | world]`. Suffix m
 
 ### Maps
 
-Maps may appear in patterns using the percentage sign followed by the curly brackets syntax (`%{}`). Opposite to lists and tuples, maps perform a subset match. This means a map pattern will match any other map that has at least all of the keys in the pattern.
+Maps may appear in patterns using the percentage sign followed by the curly brackets syntax ([`%{}`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#%25%7B%7D/1)). Opposite to lists and tuples, maps perform a subset match. This means a map pattern will match any other map that has at least all of the keys in the pattern.
 
 Here is an example where all keys match:
 
@@ -207,7 +207,7 @@ Finally, note map keys in patterns must always be literals or previously bound v
 
 ### Structs
 
-Structs may appear in patterns using the percentage sign, the struct module name or a variable followed by the curly brackets syntax (`%{}`).
+Structs may appear in patterns using the percentage sign, the struct module name or a variable followed by the curly brackets syntax ([`%{}`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#%25/2)).
 
 Given the following struct:
 
@@ -244,7 +244,7 @@ User
 
 ### Binaries
 
-Binaries may appear in patterns using the double less-than/greater-than syntax ([`<<>>`](`<<>>/1`)). A binary in a pattern can match multiple segments at the same time, each with different type, size, and unit:
+Binaries may appear in patterns using the double less-than/greater-than syntax ([`<<>>`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#%3C%3C%3E%3E/1)). A binary in a pattern can match multiple segments at the same time, each with different type, size, and unit:
 
 ```iex
 iex> <<val::unit(8)-size(2)-integer>> = <<123, 56>>
@@ -253,9 +253,9 @@ iex> val
 31544
 ```
 
-See the documentation for [`<<>>`](`<<>>/1`) for a complete definition of pattern matching for binaries.
+See the documentation for [`<<>>`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#%3C%3C%3E%3E/1) for a complete definition of pattern matching for binaries.
 
-Finally, remember that strings in Elixir are UTF-8 encoded binaries. This means that, similar to charlists, prefix matches on strings are also possible with the binary concatenation operator ([`<>`](`<>/2`)):
+Finally, remember that strings in Elixir are UTF-8 encoded binaries. This means that, similar to charlists, prefix matches on strings are also possible with the binary concatenation operator ([`<>`](https://hexdocs.pm/elixir/main/Kernel.html#%3C%3E/2)):
 
 ```elixir
 iex> "hello " <> world = "hello world"
@@ -274,19 +274,19 @@ Not all expressions are allowed in guard clauses, but only a handful of them. Th
 
 ### List of allowed functions and operators
 
-You can find the built-in list of guards [in the `Kernel` module](Kernel.html#guards). Here is an overview:
+You can find the built-in list of guards [in the `Kernel` module]([Kernel.html#guards](https://hexdocs.pm/elixir/main/Kernel.html#guards)). Here is an overview:
 
-  * comparison operators ([`==`](`==/2`), [`!=`](`!=/2`), [`===`](`===/2`), [`!==`](`!==/2`),
-    [`<`](`</2`), [`<=`](`<=/2`), [`>`](`>/2`), [`>=`](`>=/2`))
-  * strictly boolean operators ([`and`](`and/2`), [`or`](`or/2`), [`not`](`not/1`)). Note [`&&`](`&&/2`), [`||`](`||/2`), and [`!`](`!/1`) sibling operators are **not allowed** as they're not *strictly* boolean - meaning they don't require arguments to be booleans
-  * arithmetic unary operators ([`+`](`+/1`), [`-`](`-/1`))
-  * arithmetic binary operators [`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), [`/`](`//2`))
-  * [`in`](`in/2`) and [`not in`](`in/2`) operators (as long as the right-hand side is a list or a range)
+  * comparison operators ([`==`](https://hexdocs.pm/elixir/main/Kernel.html#==/2), [`!=`](https://hexdocs.pm/elixir/main/Kernel.html#!=/2), [`===`](https://hexdocs.pm/elixir/main/Kernel.html#===/2), [`!==`](https://hexdocs.pm/elixir/main/Kernel.html#!==/2),
+    [`<`](https://hexdocs.pm/elixir/main/Kernel.html#%3C/2), [`<=`](https://hexdocs.pm/elixir/main/Kernel.html#%3C=/2), [`>`](https://hexdocs.pm/elixir/main/Kernel.html#%3E/2), [`>=`](https://hexdocs.pm/elixir/main/Kernel.html#%3E=/2))
+  * strictly boolean operators ([`and`](https://hexdocs.pm/elixir/main/Kernel.html#and/2), [`or`](https://hexdocs.pm/elixir/main/Kernel.html#or/2), [`not`](https://hexdocs.pm/elixir/main/Kernel.html#not/1)). Note [`&&`](https://hexdocs.pm/elixir/main/Kernel.html#&&/2), [`||`](https://hexdocs.pm/elixir/main/Kernel.html#%7C%7C/2), and [`!`](https://hexdocs.pm/elixir/main/Kernel.html#!/1) sibling operators are **not allowed** as they're not *strictly* boolean - meaning they don't require arguments to be booleans
+  * arithmetic unary operators ([`+`](https://hexdocs.pm/elixir/main/Kernel.html#+/1), [`-`](https://hexdocs.pm/elixir/main/Kernel.html#-/1))
+  * arithmetic binary operators ([`+`](https://hexdocs.pm/elixir/main/Kernel.html#+/2), [`-`](https://hexdocs.pm/elixir/main/Kernel.html#-/2), [`*`](https://hexdocs.pm/elixir/main/Kernel.html#*/2), [`/`](https://hexdocs.pm/elixir/main/Kernel.html#//2))
+  * [`in`](https://hexdocs.pm/elixir/main/Kernel.html#in/2) and [`not in`](https://hexdocs.pm/elixir/main/Kernel.html#in/2) operators (as long as the right-hand side is a list or a range)
   * "type-check" functions (`is_list/1`, `is_number/1`, and the like)
   * functions that work on built-in datatypes (`abs/1`, `hd/1`, `map_size/1`, and others)
   * the `map.field` syntax
 
-The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](Bitwise.html#guards).
+The module `Bitwise` also includes a handful of [Erlang bitwise operations as guards](https://hexdocs.pm/elixir/main/Bitwise.html).
 
 Macros constructed out of any combination of the above guards are also valid guards - for example, `Integer.is_even/1`. For more information, see the "Custom patterns and guards expressions" section shown below.
 
@@ -418,9 +418,9 @@ Check.empty?({})
 
 ## Where patterns and guards can be used
 
-In the examples above, we have used the match operator ([`=`](`=/2`)) and function clauses to showcase patterns and guards respectively. Here is the list of the built-in constructs in Elixir that support patterns and guards.
+In the examples above, we have used the match operator ([`=`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#=/2)) and function clauses to showcase patterns and guards respectively. Here is the list of the built-in constructs in Elixir that support patterns and guards.
 
-  * `match?/2`:
+  * [`match?/2`](https://hexdocs.pm/elixir/main/Kernel.html#match?/2):
 
     ```elixir
     match?({:ok, value} when value > 0, {:ok, 13})
@@ -433,7 +433,7 @@ In the examples above, we have used the match operator ([`=`](`=/2`)) and functi
     def type(term) when is_float(term), do: :float
     ```
 
-  * [`case`](`case/2`) expressions:
+  * [`case`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#case/2) expressions:
 
     ```elixir
     case x do
@@ -443,7 +443,7 @@ In the examples above, we have used the match operator ([`=`](`=/2`)) and functi
     end
     ```
 
-  * anonymous functions (`fn/1`):
+  * anonymous functions [`fn/1`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#fn/1):
 
     ```elixir
     larger_than_two? = fn
@@ -452,7 +452,7 @@ In the examples above, we have used the match operator ([`=`](`=/2`)) and functi
     end
     ```
 
-  * [`for`](`for/1`) and [`with`](`with/1`) support patterns and guards on the left side of `<-`:
+  * [`for`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#for/1) and [`with`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#with/1) support patterns and guards on the left side of `<-`:
 
     ```elixir
     for x when x >= 0 <- [1, -2, 3, -4], do: x
@@ -460,13 +460,13 @@ In the examples above, we have used the match operator ([`=`](`=/2`)) and functi
 
     `with` also supports the `else` keyword, which supports patterns matching and guards.
 
-  * [`try`](`try/1`) supports patterns and guards on `catch` and `else`
+  * [`try`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#try/1) supports patterns and guards on `catch` and `else`
 
-  * [`receive`](`receive/1`) supports patterns and guards to match on the received messages.
+  * [`receive`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#receive/1) supports patterns and guards to match on the received messages.
 
   * custom guards can also be defined with `defguard/1` and `defguardp/1`. A custom guard can only be defined based on existing guards.
 
-Note that the match operator ([`=`](`=/2`)) does *not* support guards:
+Note that the match operator ([`=`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#=/2)) does *not* support guards:
 
 ```elixir
 {:ok, binary} = File.read("some/file")

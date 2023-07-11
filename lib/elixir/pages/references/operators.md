@@ -33,18 +33,18 @@ Operator                                       | Associativity
 
 Elixir provides the following built-in operators:
 
-  * [`+`](`+/1`) and [`-`](`-/1`) - unary positive/negative
-  * [`+`](`+/2`), [`-`](`-/2`), [`*`](`*/2`), and [`/`](`//2`) - basic arithmetic operations
-  * [`++`](`++/2`) and [`--`](`--/2`) - list concatenation and subtraction
-  * [`and`](`and/2`) and [`&&`](`&&/2`) - strict and relaxed boolean "and"
-  * [`or`](`or/2`) and [`||`](`||/2`) - strict and relaxed boolean "or"
-  * [`not`](`not/1`) and [`!`](`!/1`) - strict and relaxed boolean "not"
-  * [`in`](`in/2`) and [`not in`](`in/2`) - membership
-  * [`@`](`@/1`) - module attribute
-  * [`..`](`../0`), [`..`](`../2`), and [`..//`](`..///3`) - range creation
-  * [`<>`](`<>/2`) - binary concatenation
-  * [`|>`](`|>/2`) - pipeline
-  * [`=~`](`=~/2`) - text-based match
+  * [`+`](https://hexdocs.pm/elixir/main/Kernel.html#+/1) and [`-`](https://hexdocs.pm/elixir/main/Kernel.html#-/1) - unary positive/negative
+  * [`+`](https://hexdocs.pm/elixir/main/Kernel.html#+/2), [`-`](https://hexdocs.pm/elixir/main/Kernel.html#-/2), [`*`](https://hexdocs.pm/elixir/main/Kernel.html#*/2), and [`/`](https://hexdocs.pm/elixir/main/Kernel.html#//2) - basic arithmetic operations
+  * [`++`](https://hexdocs.pm/elixir/main/Kernel.html#++/2) and [`--`](https://hexdocs.pm/elixir/main/Kernel.html#--/2) - list concatenation and subtraction
+  * [`and`](https://hexdocs.pm/elixir/main/Kernel.html#and/2) and [`&&`](https://hexdocs.pm/elixir/main/Kernel.html#&&/2) - strict and relaxed boolean "and"
+  * [`or`](https://hexdocs.pm/elixir/main/Kernel.html#or/2) and [`||`](https://hexdocs.pm/elixir/main/Kernel.html#%7C%7C/2) - strict and relaxed boolean "or"
+  * [`not`](https://hexdocs.pm/elixir/main/Kernel.html#not/1) and [`!`](https://hexdocs.pm/elixir/main/Kernel.html#!/1) - strict and relaxed boolean "not"
+  * [`in`](https://hexdocs.pm/elixir/main/Kernel.html#in/2) and [`not in`](https://hexdocs.pm/elixir/main/Kernel.html#in/2) - membership
+  * [`@`](https://hexdocs.pm/elixir/main/Kernel.html#@/1) - module attribute
+  * [`..`](https://hexdocs.pm/elixir/main/Kernel.html#../0), [`..`](https://hexdocs.pm/elixir/main/Kernel.html#../2), and [`..//`](https://hexdocs.pm/elixir/main/Kernel.html#..///3) - range creation
+  * [`<>`](https://hexdocs.pm/elixir/main/Kernel.html#%3C%3E/2) - binary concatenation
+  * [`|>`](https://hexdocs.pm/elixir/main/Kernel.html#%7C%3E/2) - pipeline
+  * [`=~`](https://hexdocs.pm/elixir/main/Kernel.html#=~/2) - text-based match
 
 Many of those can be used in guards; consult the [list of allowed guard functions and operators](patterns-and-guards.md#list-of-allowed-functions-and-operators).
 
@@ -53,33 +53,33 @@ See [Custom and overridden operators](#custom-and-overridden-operators) below fo
 
 Some other operators are special forms and cannot be overridden:
 
-  * [`^`](`^/1`) - pin operator
-  * [`.`](`./2`) - dot operator
-  * [`=`](`=/2`) - match operator
-  * [`&`](`&/1`) - capture operator
-  * [`::`](`::/2`) - type operator
+  * [`^`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#%5E/1) - pin operator
+  * [`.`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#./2) - dot operator
+  * [`=`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#=/2) - match operator
+  * [`&`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#&/1) - capture operator
+  * [`::`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#::/2) - type operator
 
 Finally, these operators appear in the precedence table above but are only meaningful within certain constructs:
 
-  * `=>` - see [`%{}`](`%{}/1`)
+  * `=>` - see [`%{}`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#%25%7B%7D/1)
   * `when` - see [Guards](patterns-and-guards.md#guards)
-  * `<-` - see [`for`](`for/1`) and [`with`](`with/1`)
-  * `\\` - see [Default arguments](Kernel.html#def/2-default-arguments)
+  * `<-` - see [`for`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#for/1) and [`with`](https://hexdocs.pm/elixir/main/Kernel.SpecialForms.html#with/1)
+  * `\\` - see [Default arguments](https://hexdocs.pm/elixir/main/Kernel.html#def/2-default-arguments)
 
 ## Comparison operators
 
 Elixir provides the following built-in comparison operators (all of which can be used in guards):
 
-  * [`==`](`==/2`) - equal to
-  * [`===`](`===/2`) - strictly equal to
-  * [`!=`](`!=/2`) - inequal to
-  * [`!==`](`!==/2`) - strictly inequal to
-  * [`<`](`</2`) - less-than
-  * [`>`](`>/2`) - greater-than
-  * [`<=`](`<=/2`) - less-than or equal to
-  * [`>=`](`>=/2`) - greater-than or equal to
+  * [`==`](https://hexdocs.pm/elixir/main/Kernel.html#==/2) - equal to
+  * [`===`](https://hexdocs.pm/elixir/main/Kernel.html#===/2) - strictly equal to
+  * [`!=`](https://hexdocs.pm/elixir/main/Kernel.html#!=/2) - unequal to
+  * [`!==`](https://hexdocs.pm/elixir/main/Kernel.html#!==/2) - strictly unequal to
+  * [`<`](https://hexdocs.pm/elixir/main/Kernel.html#%3C/2) - less-than
+  * [`>`](https://hexdocs.pm/elixir/main/Kernel.html#%3E/2) - greater-than
+  * [`<=`](https://hexdocs.pm/elixir/main/Kernel.html#%3C=/2) - less-than or equal to
+  * [`>=`](https://hexdocs.pm/elixir/main/Kernel.html#%3E=/2) - greater-than or equal to
 
-The only difference between [`==`](`==/2`) and [`===`](`===/2`) is that [`===`](`===/2`) is strict when it comes to comparing integers and floats:
+The only difference between [`==`](https://hexdocs.pm/elixir/main/Kernel.html#==/2) and [`===`](https://hexdocs.pm/elixir/main/Kernel.html#===/2) is that [`===`](https://hexdocs.pm/elixir/main/Kernel.html#===/2) is strict when it comes to comparing integers and floats:
 
 ```elixir
 iex> 1 == 1.0
@@ -88,7 +88,7 @@ iex> 1 === 1.0
 false
 ```
 
-[`!=`](`!=/2`) and [`!==`](`!==/2`) act as the negation of [`==`](`==/2`) and [`===`](`===/2`), respectively.
+[`!=`](https://hexdocs.pm/elixir/main/Kernel.html#!=/2) and [`!==`](https://hexdocs.pm/elixir/main/Kernel.html#!==/2) act as the negation of [`==`](https://hexdocs.pm/elixir/main/Kernel.html#==/2) and [`===`](https://hexdocs.pm/elixir/main/Kernel.html#===/2), respectively.
 
 ## Custom and overridden operators
 
@@ -132,7 +132,7 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `+++`
   * `---`
 
-The following operators are used by the `Bitwise` module when imported: [`&&&`](`Bitwise.&&&/2`), [`<<<`](`Bitwise.<<</2`), [`>>>`](`Bitwise.>>>/2`), and [`|||`](`Bitwise.|||/2`). See the documentation for `Bitwise` for more information.
+The following operators are used by the [`Bitwise`](https://hexdocs.pm/elixir/main/Bitwise.html) module when imported: [`&&&`](https://hexdocs.pm/elixir/main/Bitwise.html#&&&/2), [`<<<`](https://hexdocs.pm/elixir/main/Bitwise.html#%3C%3C%3C/2), [`>>>`](https://hexdocs.pm/elixir/main/Bitwise.html#%3E%3E%3E/2), and [`|||`](https://hexdocs.pm/elixir/main/Bitwise.html#%7C%7C%7C/2). See the documentation for [`Bitwise`](https://hexdocs.pm/elixir/main/Bitwise.html) for more information.
 
 Note that the Elixir community generally discourages custom operators. They can be hard to read and even more to understand, as they don't have a descriptive name like functions do. That said, some specific cases or custom domain specific languages (DSLs) may justify these practices.
 
