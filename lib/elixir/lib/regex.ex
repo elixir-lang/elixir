@@ -299,7 +299,7 @@ defmodule Regex do
   end
 
   @doc false
-  @deprecated "Use Kernel.is_struct(xyz, Regex) or pattern match on %Regex{} instead"
+  @deprecated "Use Kernel.is_struct(term, Regex) or pattern match on %Regex{} instead"
   def regex?(term)
   def regex?(%Regex{}), do: true
   def regex?(_), do: false
