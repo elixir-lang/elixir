@@ -82,7 +82,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
 [v1.15] | `Calendar.ISO.day_of_week/3`                        | `Calendar.ISO.day_of_week/4` (v1.11)
 [v1.15] | `Exception.exception?/1`                            | `Kernel.is_exception/1` (v1.11)
-[v1.15] | `Regex.regex?/1`                                    | `Kernel.is_struct/2` (v1.11)
+[v1.15] | `Regex.regex?/1`                                    | `Kernel.is_struct/2` via `Kernel.is_struct(xyz, Regex)` (v1.11)
 [v1.15] | `Logger.warn/2`                                     | `Logger.warning/2` (v1.11)
 [v1.14] | `use Bitwise`                                       | `import Bitwise` (v1.0)
 [v1.14] | `~~~/1`                                             | `bnot/2` (v1.0)
