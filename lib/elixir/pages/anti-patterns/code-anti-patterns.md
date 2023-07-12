@@ -57,7 +57,7 @@ When a function assumes the responsibility of handling multiple errors alone, it
 
 #### Example
 
-An example of this anti-pattern is when a function uses the `case` control-flow structure or other similar constructs (for example, `cond`, or `receive`) to handle multiple variations of response types returned by the same API endpoint. This practice can make the function more complex, long, and difficult to understand, as shown next.
+An example of this anti-pattern is when a function uses the `case` control-flow structure or other similar constructs (for example, `cond` or `receive`) to handle variations of a return type. This practice can make the function more complex, long, and difficult to understand, as shown next.
 
 ```elixir
 def get_customer(customer_id) do
@@ -96,11 +96,11 @@ def get_customer(customer_id) do
 end
 ```
 
-The code above is complex because the `case` clauses are long and often have their own branching logic in them. With the clauses spread out, it is hard to understand what each clause does individually and it is hard to see all of the different scenarios you are pattern matching on.
+The code above is complex because the `case` clauses are long and often have their own branching logic in them. With the clauses spread out, it is hard to understand what each clause does individually and it is hard to see all of the different scenarios your code pattern matches on.
 
 #### Refactoring
 
-As shown below, in this situation, instead of concentrating all handlings within the same function, creating a complex branching, it is better to delegate each branch to a different private function. In this way, the code will be cleaner and more readable.
+As shown below, in this situation, instead of concentrating all error handling within the same function, creating complex branches, it is better to delegate each branch to a different private function. In this way, the code will be cleaner and more readable.
 
 ```elixir
 def get_customer(customer_id) do
@@ -114,9 +114,9 @@ def get_customer(customer_id) do
 end
 ```
 
-Where `http_customer_to_struct(customer_id, body)` and `http_error(status, body)` contains contains the previous branches encapsulated into functions.
+Both `http_customer_to_struct(customer_id, body)` and `http_error(status, body)` above contains the previous branches refactored into private functions.
 
-It is worth noting that this refactoring is extremely trivial to perform in Elixir because clauses cannot defined variables or otherwise affect their parent scope. Therefore, extracting any clause or branch to a private function is a matter of gathering all variables used in that branch and passing them as arguments to the new function.
+It is worth noting that this refactoring is trivial to perform in Elixir because clauses cannot define variables or otherwise affect their parent scope. Therefore, extracting any clause or branch to a private function is a matter of gathering all variables used in that branch and passing them as arguments to the new function.
 
 ## Complex `else` clauses in `with`
 
@@ -126,7 +126,7 @@ This anti-pattern refers to `with` statements that flatten all its error clauses
 
 #### Example
 
-An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that reads a base 64 encoded string content from a file and returns a decoded binary string. This function uses a `with` statement that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
+An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that reads a Base64-encoded string content from a file and returns a decoded binary string. This function uses a `with` statement that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
 
 ```elixir
 def open_decoded_file(path) do
@@ -140,11 +140,11 @@ def open_decoded_file(path) do
 end
 ```
 
-The trouble with this approach is that it is unclear how each pattern on the left side of `<-` relates to their error at the end. The more patterns in a `with`, the less readable the code gets and the more likely unrelated failures witll conflict with other's `else` branches.
+In the code above, it is unclear how each pattern on the left side of `<-` relates to their error at the end. The more patterns in a `with`, the less clear the code gets, and the more likely unrelated failures will overlap each other.
 
 #### Refactoring
 
-In this situation, instead of concentrating all error handlings within a single complex `else` block, it is better to normalize the return types in specific private functions. In this way, `with` can focus on the success case and the errors are normalized closer to where they happen, leading to better organized and maintainable code.
+In this situation, instead of concentrating all error handling within a single complex `else` block, it is better to normalize the return types in specific private functions. In this way, `with` can focus on the success case and the errors are normalized closer to where they happen, leading to better organized and maintainable code.
 
 ```elixir
 def open_decoded_file(path) do
