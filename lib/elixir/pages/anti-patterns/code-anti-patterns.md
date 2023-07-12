@@ -61,43 +61,62 @@ An example of this anti-pattern is when a function uses the `case` control-flow 
 
 ```elixir
 def get_customer(customer_id) do
-  case get("/customers/#{customer_id}") do
-    {:ok, %Tesla.Env{status: 200, body: body}} -> {:ok, body}
-    {:ok, %Tesla.Env{body: body}} -> {:error, body}
-    {:error, _} = other -> other
+  case SomeHTTPClient.get("/customers/#{customer_id}") do
+    {:ok, %{status: 200, body: body}} ->
+      case Jason.decode(body) do
+        {:ok, decoded} ->
+          %{
+            "first_name" => first_name,
+            "last_name" => last_name,
+            "company" => company
+          } = decoded
+
+          customer =
+            %Customer{
+              id: customer_id,
+              name: "#{first_name} #{last_name}",
+              company: company
+            }
+
+          {:ok, customer}
+
+        {:error, _} ->
+          {:error, "invalid reponse body"}
+      end
+
+    {:error, %{status: status, body: body}} ->
+      case Jason.decode(body) do
+        %{"error" => message} when is_binary(message) ->
+          {:error, message}
+
+        %{} ->
+          {:error, "invalid reponse with status #{status}"}
+      end
   end
 end
 ```
 
-Although `get_customer/1` is not really long in this example, it could be. Thinking about this more complex scenario, where a large number of different responses can be provided to the same endpoint, is not a good idea to concentrate all on a single function. This is a risky scenario, where a little typo, or any problem introduced by the programmer in handling a response type, could eventually compromise the handling of all responses from the endpoint (if the function raises an exception, for example).
+The code above is complex because the `case` clauses are long and often have their own branching logic in them. With the clauses spread out, it is hard to understand what each clause does individually and it is hard to see all of the different scenarios you are pattern matching on.
 
 #### Refactoring
 
-As shown below, in this situation, instead of concentrating all handlings within the same function, creating a complex branching, it is better to delegate each branch (handling of a response type) to a different private function. In this way, the code will be cleaner, more concise, and readable.
+As shown below, in this situation, instead of concentrating all handlings within the same function, creating a complex branching, it is better to delegate each branch to a different private function. In this way, the code will be cleaner and more readable.
 
 ```elixir
-def get_customer(customer_id) when is_integer(customer_id) do
-  case get("/customers/#{customer_id}") do
-    {:ok, %Tesla.Env{status: 200, body: body}} -> success_api_response(body)
-    {:ok, %Tesla.Env{body: body}} -> x_error_api_response(body)
-    {:error, _} = other -> y_error_api_response(other)
+def get_customer(customer_id) do
+  case SomeHTTPClient.get("/customers/#{customer_id}") do
+    {:ok, %{status: 200, body: body}} ->
+      http_customer_to_struct(customer_id, body)
+
+    {:error, %{status: status, body: body}} ->
+      http_error(status, body)
   end
-end
-
-defp success_api_response(body) do
-  {:ok, body}
-end
-
-defp x_error_api_response(body) do
-  {:error, body}
-end
-
-defp y_error_api_response(other) do
-  other
 end
 ```
 
-While this example of refactoring `get_customer/1` might seem quite more verbose than the original code, remember to imagine a scenario where `get_customer/1` is responsible for handling a number much larger than three different types of possible responses. This is the smelly scenario!
+Where `http_customer_to_struct(customer_id, body)` and `http_error(status, body)` contains contains the previous branches encapsulated into functions.
+
+It is worth noting that this refactoring is extremely trivial to perform in Elixir because clauses cannot defined variables or otherwise affect their parent scope. Therefore, extracting any clause or branch to a private function is a matter of gathering all variables used in that branch and passing them as arguments to the new function.
 
 ## Complex `else` clauses in `with`
 
@@ -107,43 +126,45 @@ This anti-pattern refers to `with` statements that flatten all its error clauses
 
 #### Example
 
-An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that read a base 64 encoded string content from a file and returns a decoded binary string. This function uses a `with` statement that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
+An example of this anti-pattern, as shown below, is a function `open_decoded_file/1` that reads a base 64 encoded string content from a file and returns a decoded binary string. This function uses a `with` statement that needs to handle two possible errors, all of which are concentrated in a single complex `else` block.
 
 ```elixir
 def open_decoded_file(path) do
   with {:ok, encoded} <- File.read(path),
-    {:ok, value} <- Base.decode64(encoded) do
-    value
+       {:ok, decoded} <- Base.decode64(encoded) do
+    {:ok, String.trim(decoded)}
   else
-    {:error, _} -> :badfile
-    :error -> :badencoding
+    {:error, _} -> {:error, :badfile}
+    :error -> {:error, :badencoding}
   end
 end
 ```
 
+The trouble with this approach is that it is unclear how each pattern on the left side of `<-` relates to their error at the end. The more patterns in a `with`, the less readable the code gets and the more likely unrelated failures witll conflict with other's `else` branches.
+
 #### Refactoring
 
-In this situation, instead of concentrating all error handlings within a single complex `else` block, it is better to normalize the return types in specific private functions. In this way, due to its organization, the code will be cleaner and more readable.
+In this situation, instead of concentrating all error handlings within a single complex `else` block, it is better to normalize the return types in specific private functions. In this way, `with` can focus on the success case and the errors are normalized closer to where they happen, leading to better organized and maintainable code.
 
 ```elixir
 def open_decoded_file(path) do
   with {:ok, encoded} <- file_read(path),
-    {:ok, value} <- base_decode64(encoded) do
-    value
+       {:ok, decoded} <- base_decode64(encoded) do
+    {:ok, String.trim(decoded)}
   end
 end
 
 defp file_read(path) do
   case File.read(path) do
     {:ok, contents} -> {:ok, contents}
-    {:error, _} -> :badfile
+    {:error, _} -> {:ok, :badfile}
   end
 end
 
 defp base_decode64(contents) do
   case Base.decode64(contents) do
-    {:ok, contents} -> {:ok, contents}
-    :error -> :badencoding
+    {:ok, decoded} -> {:ok, decoded}
+    :error -> {:error, :badencoding}
   end
 end
 ```
