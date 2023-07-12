@@ -157,7 +157,7 @@ end
 defp file_read(path) do
   case File.read(path) do
     {:ok, contents} -> {:ok, contents}
-    {:error, _} -> {:ok, :badfile}
+    {:error, _} -> {:error, :badfile}
   end
 end
 
