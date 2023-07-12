@@ -600,26 +600,29 @@ defmodule Mix do
   """
   @doc since: "1.15.0"
   def ensure_application!(app) when is_atom(app) do
-    ensure_application!(app, Mix.State.builtin_apps())
+    ensure_application!(app, Mix.State.builtin_apps(), [])
     :ok
   end
 
-  defp ensure_application!(app, builtin_apps) do
+  defp ensure_application!(app, builtin_apps, optional) do
     case builtin_apps do
       %{^app => path} ->
         Code.prepend_path(path, cache: true)
         Application.load(app)
+        optional = List.wrap(Application.spec(app, :optional_applications))
 
         Application.spec(app, :applications)
         |> List.wrap()
-        |> Enum.each(&ensure_application!(&1, builtin_apps))
+        |> Enum.each(&ensure_application!(&1, builtin_apps, optional))
 
       %{} ->
-        Mix.raise(
-          "The application \"#{app}\" could not be found. This may happen if your " <>
-            "Operating System broke Erlang into multiple packages and may be fixed " <>
-            "by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages"
-        )
+        unless app in optional do
+          Mix.raise(
+            "The application \"#{app}\" could not be found. This may happen if your " <>
+              "Operating System broke Erlang into multiple packages and may be fixed " <>
+              "by installing the missing \"erlang-dev\" and \"erlang-#{app}\" packages"
+          )
+        end
     end
   end
 
