@@ -169,6 +169,41 @@ defp base_decode64(contents) do
 end
 ```
 
+## Boolean parameters
+
+#### Problem
+
+A boolean argument indicates the function has 2 different behaviors. This argument passes as is in `some_fn(true)` and you need to go into source code to understand what this boolean argument means. It gets worse, when function has two boolean arguments or more, so the function complexity grows exponentially. 
+
+#### Example
+
+```elixir
+def take_first_name(full_name, trim \\ false) do
+  String.split(full_name, " ", trim: trim) |> hd()
+end
+
+take_first_name(" John  Doe", true) # => John
+```
+
+To understand what this code does, you need to jump to the function implementation. Or at least to see its signature.
+
+
+#### Refactoring
+
+In this case, you should accept arguments as options and pass the argument to function explicitly.
+
+```elixir
+def take_first_name(full_name, options) do
+  trim = Keyword.get(options, :trim, false)
+
+  String.split(full_name, " ", trim: trim) |> hd()
+end
+
+take_first_name(" John   Doe", trim: true) # => John
+```
+
+After refactoring, the ambiguity is reduced and code becomes easier to read and understand, reducing the need to get into source code of the function.
+
 ## Complex extractions in clauses
 
 TODO.
