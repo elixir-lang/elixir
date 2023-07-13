@@ -10,6 +10,7 @@
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/2, emit_diagnostic/6]).
 -export([print_warning/2, print_warning/3]).
+-export([print_warning_group/2]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
 
@@ -27,6 +28,15 @@ print_warning(Message, Diagnostic) ->
   Snippet = get_snippet(File, Position),
   Output = format_snippet(Position, File, Message, Snippet, warning, S),
   io:put_chars(standard_error, [Output, $\n, $\n]).
+
+%% Called by Module.ParallelChecker.
+print_warning_group(Message, [Diagnostic | Others]) ->
+  #{file := File, position := Position, stacktrace := S} = Diagnostic,
+  Snippet = get_snippet(File, Position),
+  Formatted = format_snippet(Position, File, Message, Snippet, warning, S),
+  TotalLocations = length(Others),
+  Locations = [["\n └─ ", 'Elixir.Exception':format_stacktrace_entry(ES)] || #{stacktrace := [ES]} <- Others],
+  io:put_chars(standard_error, [Formatted, Locations, $\n, $\n]).
 
 get_snippet(nil, _Position) ->
   nil;
@@ -105,11 +115,11 @@ format_snippet(Position, File, Message, nil, Severity, Stacktrace) ->
   Location = location_format(Position, File, Stacktrace),
 
   Formatted = io_lib:format(
-    " ┌─ ~ts\n"
-    " ~ts",
+    " ~ts: ~ts\n"
+    " └─ ~ts",
     [
-     prefix(Severity, Location),
-     format_message(Message, 0, 1)
+     prefix(Severity, []), format_message(Message, 0, 1),
+     Location
     ]
    ),
 

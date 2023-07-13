@@ -220,10 +220,7 @@ defmodule IOTest do
 
       assert capture_io(:stderr, fn ->
                IO.warn("hello", line: 13, module: Foo, function: {:bar, 1})
-             end) =~ """
-             hello
-
-             """
+             end) =~ "hello"
     end
   end
 
