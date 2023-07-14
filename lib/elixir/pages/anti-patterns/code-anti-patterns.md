@@ -227,6 +227,7 @@ defmodule Graphics do
   end
 end
 ```
+
 ```elixir
 iex> point_2d = %{x: 2, y: 3}
 %{x: 2, y: 3}
@@ -254,6 +255,7 @@ defmodule Graphics do
   end
 end
 ```
+
 ```elixir
 iex> point_2d = %{x: 2, y: 3}
 %{x: 2, y: 3}
@@ -274,6 +276,7 @@ defmodule Point do
   defstruct [x: nil, y: nil]
 end
 ```
+
 ```elixir
 iex> point = %Point{x: 2, y: 3}
 %Point{x: 2, y: 3}
