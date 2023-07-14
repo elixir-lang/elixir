@@ -244,6 +244,7 @@ defmodule Range do
 
   """
   @doc since: "1.12.0"
+  @spec size(t) :: non_neg_integer
   def size(range)
   def size(first..last//step) when step > 0 and first > last, do: 0
   def size(first..last//step) when step < 0 and first < last, do: 0
