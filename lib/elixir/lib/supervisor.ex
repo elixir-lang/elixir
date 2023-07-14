@@ -617,34 +617,34 @@ defmodule Supervisor do
         }
 
   @typedoc """
-  A child spec that can be passed to functions that start children.
+  A module-based child spec.
 
-  A child can be:
+  This is a form of child spec that you can pass to functions such as `child_spec/2`,
+  `start_child/2`, and `start_link/2`.
 
-    * a **child specification** (see `t:child_spec/0`)
+  A module-based child spec can be:
 
-    * a **module**, where `module.child_spec([])` will be invoked to retrieve
-      its child specification
+    * a **module** — the supervisor calls `module.child_spec([])` to retrieve the
+      child specification
 
-    * a **two-element tuple** in the shape of `{module, arg}`, where `module.child_spec(arg)`
-      will be invoked to retrieve its child specification
+    * a **two-element tuple** in the shape of `{module, arg}` — the supervisor
+      calls `module.child_spec(arg)` to retrieve the child specification
 
   """
   @typedoc since: "1.16.0"
-  @type start_spec :: {module(), args :: term()} | module() | child_spec()
+  @type module_spec :: {module(), args :: term()} | module()
 
   @doc """
   Starts a supervisor with the given children.
 
   `children` is a list of the following forms:
 
-    * a [child specification](`t:child_spec/0`)
+    * a child specification (see `t:child_spec/0`)
 
-    * a module, where `module.child_spec([])` will be invoked to retrieve
-      its child specification
+    * a module-based child specification (see `t:module_spec/0`)
 
-    * a two-element tuple in the shape of `{module, arg}`, where `module.child_spec(arg)`
-      will be invoked to retrieve its child specification
+    * a (old) Erlang-style child specification (see
+      [`:supervisor.child_spec()`](`t::supervisor.child_spec/0`))
 
   A strategy is required to be provided through the `:strategy` option. See
   "Supervisor strategies and options" for examples and other options.
@@ -670,9 +670,10 @@ defmodule Supervisor do
   process and exits not only on crashes but also if the parent process exits
   with `:normal` reason.
   """
-  @spec start_link([child_spec | (old_erlang_child_spec :: :supervisor.child_spec())], [
-          option | init_option
-        ]) ::
+  @spec start_link(
+          [child_spec | module_spec | (old_erlang_child_spec :: :supervisor.child_spec())],
+          [option | init_option]
+        ) ::
           {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
   def start_link(children, options) when is_list(children) do
     {sup_opts, start_opts} =
@@ -720,7 +721,10 @@ defmodule Supervisor do
   description of the available strategies.
   """
   @doc since: "1.5.0"
-  @spec init([start_spec() | (old_erlang_child_spec :: :supervisor.child_spec())], [init_option]) ::
+  @spec init(
+          [child_spec | module_spec | (old_erlang_child_spec :: :supervisor.child_spec())],
+          [init_option]
+        ) ::
           {:ok,
            {sup_flags(), [child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
   def init(children, options) when is_list(children) and is_list(options) do
@@ -863,7 +867,7 @@ defmodule Supervisor do
       #=>   start: {Agent, :start_link, [fn -> :ok end]}}
 
   """
-  @spec child_spec(start_spec(), keyword) :: child_spec()
+  @spec child_spec(child_spec() | module_spec(), keyword()) :: child_spec()
   def child_spec(module_or_map, overrides)
 
   def child_spec({_, _, _, _, _, _} = tuple, _overrides) do
@@ -960,7 +964,7 @@ defmodule Supervisor do
   """
   @spec start_child(
           supervisor,
-          start_spec | (old_erlang_child_spec :: :supervisor.child_spec())
+          child_spec | module_spec | (old_erlang_child_spec :: :supervisor.child_spec())
         ) :: on_start_child
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     call(supervisor, {:start_child, child_spec})
