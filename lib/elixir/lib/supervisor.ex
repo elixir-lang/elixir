@@ -537,13 +537,13 @@ defmodule Supervisor do
                {sup_flags(), [child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
               | :ignore
 
-  @typedoc "Return values of `start_link` functions"
+  @typedoc "Return values of `start_link/2` and `start_link/3`."
   @type on_start ::
           {:ok, pid}
           | :ignore
           | {:error, {:already_started, pid} | {:shutdown, term} | term}
 
-  @typedoc "Return values of `start_child` functions"
+  @typedoc "Return values of `start_child/2`."
   @type on_start_child ::
           {:ok, child}
           | {:ok, child, info :: term}
@@ -557,13 +557,13 @@ defmodule Supervisor do
   """
   @type child :: pid | :undefined
 
-  @typedoc "The supervisor name"
+  @typedoc "The supervisor name."
   @type name :: atom | {:global, term} | {:via, module, term}
 
-  @typedoc "Option values used by the `start*` functions"
+  @typedoc "Option values used by the `start_link/2` and `start_link/3` functions."
   @type option :: {:name, name}
 
-  @typedoc "The supervisor flags returned on init"
+  @typedoc "The supervisor flags returned on init."
   @type sup_flags() :: %{
           strategy: strategy(),
           intensity: non_neg_integer(),
@@ -571,32 +571,32 @@ defmodule Supervisor do
           auto_shutdown: auto_shutdown()
         }
 
-  @typedoc "The supervisor reference"
+  @typedoc "The supervisor reference."
   @type supervisor :: pid | name | {atom, node}
 
-  @typedoc "Options given to `start_link/2` and `init/2`"
+  @typedoc "Options given to `start_link/2` and `c:init/2`."
   @type init_option ::
           {:strategy, strategy}
           | {:max_restarts, non_neg_integer}
           | {:max_seconds, pos_integer}
           | {:auto_shutdown, auto_shutdown}
 
-  @typedoc "Supported restart options"
+  @typedoc "Supported restart options."
   @type restart :: :permanent | :transient | :temporary
 
-  @typedoc "Supported shutdown options"
+  @typedoc "Supported shutdown options."
   @type shutdown :: timeout() | :brutal_kill
 
-  @typedoc "Supported strategies"
+  @typedoc "Supported strategies."
   @type strategy :: :one_for_one | :one_for_all | :rest_for_one
 
-  @typedoc "Supported automatic shutdown options"
+  @typedoc "Supported automatic shutdown options."
   @type auto_shutdown :: :never | :any_significant | :all_significant
 
   @typedoc """
-  Supervisor type.
+  Type of a supervised child.
 
-  Whether the supervisor is a worker or a supervisor.
+  Whether the supervised child is a worker or a supervisor.
   """
   @type type :: :worker | :supervisor
 
