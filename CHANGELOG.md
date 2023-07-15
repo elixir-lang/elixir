@@ -117,6 +117,32 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.3 (2023-07-15)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Kernel] Improve better stacktraces when executing unnested Elixir code in a file
+
+#### Mix
+
+  * [Mix] Allow to opt out of starting apps in `Mix.install/2`
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code] Ensure `with_diagnostics` propagate warnings from inner Erlang passes
+
+#### IEx
+
+  * [IEx] Fix `--remsh` on Erlang/OTP 25 and earlier
+
+#### Mix
+
+  * [mix compile.elixir] Ensure `__mix_recompile__?` callbacks are properly invoked
+
 ## v1.15.2 (2023-07-01)
 
 ### 1. Bug fixes
