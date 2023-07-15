@@ -17,9 +17,9 @@ defmodule Mix.Tasks.Deps.Loadpaths do
     * `--no-archives-check` - does not check archives
     * `--no-compile` - does not compile even if files require compilation
     * `--no-deps-check` - does not check or compile deps, only load available ones
-    * `--no-deps-loading` - does not add deps loadpaths to the code path
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-optional-deps` - does not compile or load optional deps
+    * `--no-path-loading` - does not add entries to the code path
 
   """
 
@@ -48,7 +48,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
       deps_check(all, "--no-compile" in args)
     end
 
-    unless "--no-deps-loading" in args do
+    unless "--no-path-loading" in args do
       Code.prepend_paths(Enum.flat_map(all, &Mix.Dep.load_paths/1), cache: true)
     end
 
