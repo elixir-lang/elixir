@@ -641,7 +641,11 @@ defmodule Supervisor do
 
     * a child specification (see `t:child_spec/0`)
 
-    * a module-based child specification (see `t:module_spec/0`)
+    * a module, where the supervisor calls `module.child_spec([])`
+      to retrieve the child specification (see `t:module_spec/0`)
+
+    * a `{module, arg}` tuple, where the supervisor calls `module.child_spec(arg)`
+      to retrieve the child specification (see `t:module_spec/0`)
 
     * a (old) Erlang-style child specification (see
       [`:supervisor.child_spec()`](`t::supervisor.child_spec/0`))
