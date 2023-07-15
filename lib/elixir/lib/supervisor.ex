@@ -620,7 +620,7 @@ defmodule Supervisor do
   A module-based child spec.
 
   This is a form of child spec that you can pass to functions such as `child_spec/2`,
-  `start_child/2`, and `start_link/2`.
+  `start_child/2`, and `start_link/2`, in addition to the normalized `t:child_spec/0`.
 
   A module-based child spec can be:
 
