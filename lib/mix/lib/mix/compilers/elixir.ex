@@ -46,6 +46,11 @@ defmodule Mix.Compilers.Elixir do
     {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_deps_config} =
       parse_manifest(manifest, dest)
 
+    # Prepend ourselves early because of __mix_recompile__? checks
+    # and also that, in case of nothing compiled, we already need
+    # ourselves available in the path.
+    Code.prepend_path(dest)
+
     # If modules have been added or removed from the Erlang compiler,
     # we need to recompile all references to old and new modules.
     stale =
@@ -205,10 +210,6 @@ defmodule Mix.Compilers.Elixir do
         Code.purge_compiler_modules()
       end
     else
-      # Prepend ourselves, even if we did no work, as we may have defined
-      # future compilers.
-      Code.prepend_path(dest)
-
       # We need to return ok if deps_changed? or stale_modules changed,
       # even if no code was compiled, because we need to propagate the changed
       # status to compile.protocols. This will be the case whenever:
