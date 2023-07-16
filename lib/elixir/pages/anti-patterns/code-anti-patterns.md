@@ -312,7 +312,6 @@ iex> point.z   # <= trying to access a non-existent key
 iex> point[:x] # <= by default, struct does not support dynamic access
 ** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
 ```
-```
 
 #### Additional remarks
 
