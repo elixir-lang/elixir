@@ -211,7 +211,7 @@ end
 
 #### Problem
 
-In Elixir, it is possible to access values from `Maps`, which are key-value data structures, either strictly or dynamically. When trying to dynamically access the value of a key from a `Map`, if the informed key does not exist, a null value (`nil`) will be returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the `Map` or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
+In Elixir, it is possible to access values from `Maps`, which are key-value data structures, either statically or dynamically. When trying to dynamically access the value of a key from a `Map`, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the `Map` or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
 
 #### Example
 
@@ -243,7 +243,7 @@ As can be seen in the example above, even when the key `:z` does not exist in th
 
 #### Refactoring
 
-To remove this anti-pattern, whenever a `Map` has keys of `Atom` type, replace the dynamic access to its values per strict access. When a non-existent key is strictly accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
+To remove this anti-pattern, whenever a `Map` has keys of `Atom` type, replace the dynamic access to its values by the `map.field`syntax. When a non-existent key is statically accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
 
 ```elixir
 defmodule Graphics do
@@ -268,24 +268,50 @@ iex> Graphics.plot(point_3d)
 {5, 6, nil}
 ```
 
-As shown below, another alternative to refactor this anti-pattern is to replace a `Map` with a `struct` (named map). By default, structs only support strict access to values. In this way, accesses will always return clear and objective results:
+As shown below, another alternative to refactor this anti-pattern is to use pattern matching:
 
 ```elixir
-defmodule Point do
+defmodule Graphics do
+  def plot(%{x: x, y: y, z: z}) do
+    #Some other code...
+
+    # Strict access to use point values
+    {x, y, z}
+  end
+end
+```
+
+```elixir
+iex> point_2d = %{x: 2, y: 3}
+%{x: 2, y: 3}
+iex> point_3d = %{x: 5, y: 6, z: nil}
+%{x: 5, y: 6, z: nil}
+iex> Graphics.plot(point_2d)
+** (FunctionClauseError)  no function clause matching in Graphics.plot/1
+  graphic.ex:2: Graphics.plot/1                  # <= the :z key does not exist!
+iex> Graphics.plot(point_3d)
+{5, 6, nil}
+```
+
+Another alternative is to use structs. By default, structs only support static access to its fields, promoting cleaner patterns:
+
+```elixir
+defmodule Point.2D do
   @enforce_keys [:x, :y]
   defstruct [x: nil, y: nil]
 end
 ```
 
 ```elixir
-iex> point = %Point{x: 2, y: 3}
-%Point{x: 2, y: 3}
+iex> point = %Point.2D{x: 2, y: 3}
+%Point.2D{x: 2, y: 3}
 iex> point.x   # <= strict access to use point values
 2
 iex> point.z   # <= trying to access a non-existent key
 ** (KeyError) key :z not found in: %Point{x: 2, y: 3}
 iex> point[:x] # <= by default, struct does not support dynamic access
 ** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
+```
 ```
 
 #### Additional remarks
