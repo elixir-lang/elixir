@@ -1143,6 +1143,8 @@ defmodule Stream do
 
   If an `offset` is given, we will index from the given offset instead of from zero.
 
+  If given `offset` is negative, counting goes from `offset` to zero and so on.
+
   ## Examples
 
       iex> stream = Stream.with_index([1, 2, 3])
@@ -1152,6 +1154,10 @@ defmodule Stream do
       iex> stream = Stream.with_index([1, 2, 3], 3)
       iex> Enum.to_list(stream)
       [{1, 3}, {2, 4}, {3, 5}]
+
+      iex> stream = Stream.with_index([1, 2, 3], -3)
+      iex> Enum.to_list(stream)
+      [{1, -3}, {2, -2}, {3, -1}]
 
   """
   @spec with_index(Enumerable.t(), integer) :: Enumerable.t()
