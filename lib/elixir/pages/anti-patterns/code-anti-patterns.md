@@ -171,11 +171,151 @@ end
 
 ## Complex extractions in clauses
 
-TODO.
+#### Problem
+
+When we use multi-clause functions, it is possible to extract values in the clauses for further usage and for pattern matching/guard checking. This extraction itself does not represent an anti-pattern, but when you have too many clauses or too many arguments, it becomes hard to know which extracted parts are used for pattern/guards and what is used only inside the function body. This anti-pattern is related to [Unrelated multi-clause function](design-anti-patterns.md#unrelated-multi-clause-function), but with implications of its own. It impairs the code readability in a different way.
+
+#### Example
+
+The multi-clause function `drive/1` is extracting fields of an `%User{}` struct for usage in the clause expression (`age`) and for usage in the function body (`name`). Ideally, a function should not mix pattern matching extractions for usage in its guard expressions and also in its body.
+
+```elixir
+def drive(%User{name: name, age: age}) when age >= 18 do
+  "#{name} can drive"
+end
+
+def drive(%User{name: name, age: age}) when age < 18 do
+  "#{name} cannot drive"
+end
+```
+
+While the example is small and looks like a clear code, try to imagine a situation where `drive/1` was more complex, having many more clauses, arguments, and extractions.
+
+#### Refactoring
+
+As shown below, a possible solution to this anti-pattern is to extract only pattern/guard related variables in the signature once you have many arguments or multiple clauses:
+
+```elixir
+def drive(%User{age: age} = user) when age >= 18 do
+  %User{name: name} = user
+  "#{name} can drive"
+end
+
+def drive(%User{age: age} = user) when age < 18 do
+  %User{name: name} = user
+  "#{name} cannot drive"
+end
+```
 
 ## Dynamic map fields access
 
-TODO.
+#### Problem
+
+In Elixir, it is possible to access values from `Maps`, which are key-value data structures, either statically or dynamically. When trying to dynamically access the value of a key from a `Map`, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the `Map` or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
+
+#### Example
+
+The function `plot/1` tries to draw a graphic to represent the position of a point in a cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D cartesian coordinate system. To decide if a point is 2D or 3D, this function uses dynamic access to retrieve values of the `Map` keys:
+
+```elixir
+defmodule Graphics do
+  def plot(point) do
+    #Some other code...
+
+    # Dynamic access to use point values
+    {point[:x], point[:y], point[:z]}
+  end
+end
+```
+
+```elixir
+iex> point_2d = %{x: 2, y: 3}
+%{x: 2, y: 3}
+iex> point_3d = %{x: 5, y: 6, z: nil}
+%{x: 5, y: 6, z: nil}
+iex> Graphics.plot(point_2d)
+{2, 3, nil}   # <= ambiguous return
+iex> Graphics.plot(point_3d)
+{5, 6, nil}
+```
+
+As can be seen in the example above, even when the key `:z` does not exist in the `Map` (`point_2d`), dynamic access returns the value `nil`. This return can be dangerous because of its ambiguity. It is not possible to conclude from it whether the `Map` has the key `:z` or not. If the function relies on the return value to make decisions about how to plot a point, this can be problematic and even cause errors when testing the code.
+
+#### Refactoring
+
+To remove this anti-pattern, whenever a `Map` has keys of `Atom` type, replace the dynamic access to its values by the `map.field`syntax. When a non-existent key is statically accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
+
+```elixir
+defmodule Graphics do
+  def plot(point) do
+    #Some other code...
+
+    # Strict access to use point values
+    {point.x, point.y, point.z}
+  end
+end
+```
+
+```elixir
+iex> point_2d = %{x: 2, y: 3}
+%{x: 2, y: 3}
+iex> point_3d = %{x: 5, y: 6, z: nil}
+%{x: 5, y: 6, z: nil}
+iex> Graphics.plot(point_2d)
+** (KeyError) key :z not found in: %{x: 2, y: 3} # <= explicitly warns that
+  graphic.ex:6: Graphics.plot/1                  # <= the :z key does not exist!
+iex> Graphics.plot(point_3d)
+{5, 6, nil}
+```
+
+As shown below, another alternative to refactor this anti-pattern is to use pattern matching:
+
+```elixir
+defmodule Graphics do
+  def plot(%{x: x, y: y, z: z}) do
+    #Some other code...
+
+    # Strict access to use point values
+    {x, y, z}
+  end
+end
+```
+
+```elixir
+iex> point_2d = %{x: 2, y: 3}
+%{x: 2, y: 3}
+iex> point_3d = %{x: 5, y: 6, z: nil}
+%{x: 5, y: 6, z: nil}
+iex> Graphics.plot(point_2d)
+** (FunctionClauseError)  no function clause matching in Graphics.plot/1
+  graphic.ex:2: Graphics.plot/1                  # <= the :z key does not exist!
+iex> Graphics.plot(point_3d)
+{5, 6, nil}
+```
+
+Another alternative is to use structs. By default, structs only support static access to its fields, promoting cleaner patterns:
+
+```elixir
+defmodule Point.2D do
+  @enforce_keys [:x, :y]
+  defstruct [x: nil, y: nil]
+end
+```
+
+```elixir
+iex> point = %Point.2D{x: 2, y: 3}
+%Point.2D{x: 2, y: 3}
+iex> point.x   # <= strict access to use point values
+2
+iex> point.z   # <= trying to access a non-existent key
+** (KeyError) key :z not found in: %Point{x: 2, y: 3}
+iex> point[:x] # <= by default, struct does not support dynamic access
+** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
+```
+
+#### Additional remarks
+
+This anti-pattern was formerly known as [Accessing non-existent Map/Struct fields](https://github.com/lucasvegi/Elixir-Code-Smells#accessing-non-existent-mapstruct-fields).
 
 ## Dynamic atom creation
 
