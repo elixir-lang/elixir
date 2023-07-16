@@ -67,7 +67,7 @@ defmodule Mix.Release do
   @default_apps [kernel: :permanent, stdlib: :permanent, elixir: :permanent, sasl: :permanent]
   @safe_modes [:permanent, :temporary, :transient]
   @unsafe_modes [:load, :none]
-  @significant_chunks ~w(Atom AtU8 Attr Code StrT ImpT ExpT FunT LitT Line)c
+  @additional_chunks ~w(Attr)c
   @copy_app_dirs ["priv"]
 
   @doc false
@@ -879,7 +879,7 @@ defmodule Mix.Release do
   @spec strip_beam(binary(), keyword()) :: {:ok, binary()} | {:error, :beam_lib, term()}
   def strip_beam(binary, options \\ []) when is_list(options) do
     chunks_to_keep = options[:keep] |> List.wrap() |> Enum.map(&String.to_charlist/1)
-    all_chunks = Enum.uniq(@significant_chunks ++ chunks_to_keep)
+    all_chunks = Enum.uniq(@additional_chunks ++ :beam_lib.significant_chunks() ++ chunks_to_keep)
     compress? = Keyword.get(options, :compress, false)
 
     case :beam_lib.chunks(binary, all_chunks, [:allow_missing_chunks]) do
