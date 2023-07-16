@@ -130,7 +130,7 @@ defmodule ExUnit.CaseTemplate do
   The second argument passed to `use MyCase` gets forwarded to `using/2` too:
 
       defmodule SomeTestCase do
-        use MyCase, async: true, import_helpers: true, async: true
+        use MyCase, async: true, import_helpers: true
 
         test "the truth" do
           # truth/0 comes from MyApp.TestHelpers:
