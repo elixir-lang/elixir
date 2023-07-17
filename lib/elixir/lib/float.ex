@@ -61,6 +61,7 @@ defmodule Float do
       1.7976931348623157e308
 
   """
+  @spec max_finite() :: float
   def max_finite, do: @max_finite
 
   @doc """
@@ -72,6 +73,7 @@ defmodule Float do
       -1.7976931348623157e308
 
   """
+  @spec min_finite() :: float
   def min_finite, do: @min_finite
 
   @doc """
