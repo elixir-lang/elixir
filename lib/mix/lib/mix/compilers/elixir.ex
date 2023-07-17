@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 19
+  @manifest_vsn 20
   @checkpoint_vsn 2
 
   import Record
@@ -566,72 +566,72 @@ defmodule Mix.Compilers.Elixir do
     Enum.any?(enumerable, &Map.has_key?(map, &1))
   end
 
-  defp stale_local_deps(local_deps, manifest, stale_modules, modified, old_exports) do
+  defp stale_local_deps(local_deps, manifest, stale_modules, modified, deps_exports) do
     base = Path.basename(manifest)
 
     # The stale modules so far will become both stale_modules and stale_exports,
     # as any export from a dependency needs to be recompiled.
     stale_modules = Map.from_keys(stale_modules, true)
 
-    {stale_modules, stale_exports, new_exports} =
-      for %{opts: opts} <- local_deps,
-          manifest = Path.join([opts[:build], ".mix", base]),
-          Mix.Utils.last_modified(manifest) > modified,
-          reduce: {stale_modules, stale_modules, []} do
-        {modules, exports, new_exports} ->
-          {manifest_modules, manifest_sources} = read_manifest(manifest)
+    for %{app: app, opts: opts} <- local_deps,
+        manifest = Path.join([opts[:build], ".mix", base]),
+        Mix.Utils.last_modified(manifest) > modified,
+        reduce: {stale_modules, stale_modules, deps_exports} do
+      {modules, exports, deps_exports} ->
+        {manifest_modules, manifest_sources} = read_manifest(manifest)
 
-          dep_modules =
-            for module(module: module, timestamp: timestamp) <- manifest_modules,
-                timestamp > modified,
-                do: module
+        dep_modules =
+          for module(module: module, timestamp: timestamp) <- manifest_modules,
+              timestamp > modified,
+              do: module
 
-          # If any module has a compile time dependency on a changed module
-          # within the dependency, they will be recompiled. However, export
-          # and runtime dependencies won't have recompiled so we need to
-          # propagate them to the parent app.
-          {dep_modules, _, _} =
-            fixpoint_runtime_modules(manifest_sources, Map.from_keys(dep_modules, true))
+        # If any module has a compile time dependency on a changed module
+        # within the dependency, they will be recompiled. However, export
+        # and runtime dependencies won't have recompiled so we need to
+        # propagate them to the parent app.
+        {dep_modules, _, _} =
+          fixpoint_runtime_modules(manifest_sources, Map.from_keys(dep_modules, true))
 
-          # Update exports
-          {exports, new_exports} =
-            for {module, _} <- dep_modules, reduce: {exports, new_exports} do
-              {exports, new_exports} ->
-                export = exports_md5(module, false)
+        old_exports = Map.get(deps_exports, app, %{})
 
-                # If the exports are the same, then the API did not change,
-                # so we do not mark the export as stale. Note this has to
-                # be very conservative. If the module is not loaded or if
-                # the exports were not there, we need to consider it a stale
-                # export.
-                exports =
-                  if export && old_exports[module] == export,
-                    do: exports,
-                    else: Map.put(exports, module, true)
+        # Update exports
+        {exports, new_exports} =
+          for {module, _} <- dep_modules, reduce: {exports, []} do
+            {exports, new_exports} ->
+              export = exports_md5(module, false)
 
-                # Then we store the new export if any
-                new_exports =
-                  if export,
-                    do: [{module, export} | new_exports],
-                    else: new_exports
+              # If the exports are the same, then the API did not change,
+              # so we do not mark the export as stale. Note this has to
+              # be very conservative. If the module is not loaded or if
+              # the exports were not there, we need to consider it a stale
+              # export.
+              exports =
+                if export && old_exports[module] == export,
+                  do: exports,
+                  else: Map.put(exports, module, true)
 
-                {exports, new_exports}
-            end
+              # Then we store the new export if any
+              new_exports =
+                if export,
+                  do: [{module, export} | new_exports],
+                  else: new_exports
 
-          {Map.merge(modules, dep_modules), exports, new_exports}
-      end
+              {exports, new_exports}
+          end
 
-    # Any dependency in old export but not in new export
-    # was removed so we need to mark them as stale too.
-    new_exports = Map.new(new_exports)
+        new_exports = Map.new(new_exports)
 
-    removed =
-      for {module, _} <- old_exports,
-          not is_map_key(new_exports, module),
-          do: {module, true},
-          into: %{}
+        removed =
+          for {module, _} <- old_exports,
+              not is_map_key(new_exports, module),
+              do: {module, true},
+              into: %{}
 
-    {Map.merge(stale_modules, removed), Map.merge(stale_exports, removed), new_exports}
+        modules = modules |> Map.merge(dep_modules) |> Map.merge(removed)
+        exports = Map.merge(exports, removed)
+        deps_exports = Map.put(deps_exports, app, new_exports)
+        {modules, exports, deps_exports}
+    end
   end
 
   defp fixpoint_runtime_modules(sources, modules) when modules != %{} do
