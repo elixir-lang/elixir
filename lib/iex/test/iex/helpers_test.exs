@@ -333,9 +333,10 @@ defmodule IEx.HelpersTest do
       assert help =~ "Welcome to Interactive Elixir"
     end
 
-    test "prints non-Elixir module specs" do
-      assert capture_io(fn -> h(:timer.sleep() / 1) end) =~
-               "@spec sleep(time) :: :ok when time: timeout()"
+    test "prints Erlang module specs" do
+      captured = capture_io(fn -> h(:timer.sleep() / 1) end)
+      assert captured =~ ":timer.sleep/1"
+      assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
     end
 
     test "prints module documentation" do

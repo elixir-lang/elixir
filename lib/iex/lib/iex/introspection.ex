@@ -375,6 +375,10 @@ defmodule IEx.Introspection do
     spec = get_spec(mod, fun, arity)
 
     cond do
+      language == :erlang ->
+        print_erlang_doc(mod, fun, arity)
+        :ok
+
       doc_tuple = find_doc_with_content(docs, fun, arity) ->
         print_fun(mod, language, format, doc_tuple, spec)
         :ok
@@ -797,6 +801,14 @@ defmodule IEx.Introspection do
 
   defp translate_doc(%{"en" => doc}), do: doc
   defp translate_doc(_), do: nil
+
+  defp print_erlang_doc(mod, fun, arity) do
+    heading = Exception.format_mfa(mod, fun, arity)
+    opts = IEx.Config.ansi_docs()
+    IO.ANSI.Docs.print_headings([heading], opts)
+    {:ok, docs} = :code.get_doc(mod)
+    :shell_docs.render(mod, fun, arity, docs) |> IO.puts()
+  end
 
   defp no_beam(module) do
     case Code.ensure_loaded(module) do
