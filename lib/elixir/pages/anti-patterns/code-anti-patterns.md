@@ -319,7 +319,68 @@ This anti-pattern was formerly known as [Accessing non-existent Map/Struct field
 
 ## Dynamic atom creation
 
-TODO.
+#### Problem
+
+An `atom` is a primary data type of Elixir whose value is its own name. They are often useful to identify resources or express an operation's state. The creation of an `atom` do not characterize an anti-pattern by itself; however, `atoms` are not collected by Elixir's Garbage Collector, so values of this type live in memory while software is executing, during its entire lifetime. Also, BEAM limits the number of `atoms` that can exist in an application (`1_048_576`) and each `atom` has a maximum size limited to 255 Unicode code points. For these reasons, the dynamic atom creation is considered an anti-pattern, since in this way the developer has no control over how many `atoms` will be created during the software execution. This unpredictable scenario can expose the software to unexpected behavior caused by excessive memory usage, or even by reaching the maximum number of `atoms` possible.
+
+#### Example
+
+Imagine that you are implementing a code that performs the conversion of `string` values into `atoms` to identify resources. These `strings` can come from user input or even have been received as response from requests to an API. As this is a dynamic and unpredictable scenario, it is possible for identical `strings` to be converted into new `atoms` that are repeated unnecessarily. This kind of conversion, in addition to wasting memory, can be problematic for the software if it happens too often.
+
+```elixir
+defmodule Identifier do
+  def generate(id) when is_bitstring(id) do
+    String.to_atom(id)  #<= dynamic atom creation!!
+  end
+end
+```
+
+```elixir
+iex> string_from_user_input = "my_id"
+"my_id"
+iex> string_from_API_response = "my_id"
+"my_id"
+iex> Identifier.generate(string_from_user_input)
+:my_id
+iex> Identifier.generate(string_from_API_response)
+:my_id   #<= atom repeated was created!
+```
+
+When we use the `String.to_atom/1` function to dynamically create an `atom`, it is created regardless of whether there is already another one with the same value in memory, so when this happens automatically, we will not have control over meeting the limits established by BEAM.
+
+#### Refactoring
+
+To remove this anti-pattern, we must ensure that all the identifier `atoms` are created statically, only once, at the beginning of an application's execution:
+
+```elixir
+# statically created atoms...
+_ = :my_id
+_ = :my_id2
+_ = :my_id3
+_ = :my_id4
+```
+
+Next, you should replace the use of the `String.to_atom/1` function with the `String.to_existing_atom/1` function. This will allow string-to-atom conversions to just map the strings to atoms already in memory (statically created at the beginning of the execution), thus preventing repeated `atoms` from being created dynamically. This second part of the refactoring is presented below.
+
+```elixir
+defmodule Identifier do
+  def generate(id) when is_bitstring(id) do
+    String.to_existing_atom(id)  #<= just maps a string to an existing atom!
+  end
+end
+```
+
+```elixir
+iex> Identifier.generate("my_id")
+:my_id
+iex> Identifier.generate("my_id2")
+:my_id2
+iex> Identifier.generate("non_existent_id")
+** (ArgumentError) errors were found at the given arguments:
+* 1st argument: not an already existing atom
+```
+
+Note that in the third use example, when a `string` different from an already existing `atom` is given, Elixir shows an error instead of performing the conversion. This demonstrates that this refactoring creates a more controlled and predictable scenario for the application in terms of memory usage.
 
 ## Namespace trespassing
 
