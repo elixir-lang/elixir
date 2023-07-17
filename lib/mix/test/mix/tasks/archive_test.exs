@@ -32,6 +32,7 @@ defmodule Mix.Tasks.ArchiveTest do
       message = "Generated archive \"archive-0.1.0.ez\" with MIX_ENV=dev"
       assert_received {:mix_shell, :info, [^message]}
       assert File.regular?(~c"archive-0.1.0.ez")
+      assert to_charlist(Mix.Project.consolidation_path()) not in :code.get_path()
 
       assert_archive_content_default()
       refute has_in_zip_file?(~c"archive-0.1.0.ez", ~c"archive-0.1.0/priv/.dot_file")

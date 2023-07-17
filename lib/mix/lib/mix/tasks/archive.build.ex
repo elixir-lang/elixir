@@ -61,7 +61,7 @@ defmodule Mix.Tasks.Archive.Build do
     project = Mix.Project.get()
 
     if project && Keyword.get(opts, :compile, true) do
-      Mix.Task.run(:compile, args)
+      Mix.Task.run(:compile, ["--no-protocol-consolidation" | args])
     end
 
     source =
