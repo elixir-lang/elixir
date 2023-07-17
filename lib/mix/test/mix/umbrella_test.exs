@@ -453,7 +453,8 @@ defmodule Mix.UmbrellaTest do
         assert_received {:mix_shell, :info, ["Compiled lib/bar.ex"]}
 
         # Recompiles if export dependency is removed
-        File.rm!("../foo/lib/foo.ex")
+        File.write!("../foo/lib/foo.ex", "")
+        ensure_touched("../foo/lib/foo.ex", "_build/dev/lib/bar/.mix/compile.elixir")
         Mix.Task.clear()
 
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
