@@ -537,13 +537,13 @@ defmodule Supervisor do
                {sup_flags(), [child_spec() | (old_erlang_child_spec :: :supervisor.child_spec())]}}
               | :ignore
 
-  @typedoc "Return values of `start_link` functions"
+  @typedoc "Return values of `start_link/2` and `start_link/3`."
   @type on_start ::
           {:ok, pid}
           | :ignore
           | {:error, {:already_started, pid} | {:shutdown, term} | term}
 
-  @typedoc "Return values of `start_child` functions"
+  @typedoc "Return values of `start_child/2`."
   @type on_start_child ::
           {:ok, child}
           | {:ok, child, info :: term}
@@ -557,13 +557,13 @@ defmodule Supervisor do
   """
   @type child :: pid | :undefined
 
-  @typedoc "The supervisor name"
+  @typedoc "The supervisor name."
   @type name :: atom | {:global, term} | {:via, module, term}
 
-  @typedoc "Option values used by the `start*` functions"
+  @typedoc "Option values used by the `start_link/2` and `start_link/3` functions."
   @type option :: {:name, name}
 
-  @typedoc "The supervisor flags returned on init"
+  @typedoc "The supervisor flags returned on init."
   @type sup_flags() :: %{
           strategy: strategy(),
           intensity: non_neg_integer(),
@@ -571,32 +571,32 @@ defmodule Supervisor do
           auto_shutdown: auto_shutdown()
         }
 
-  @typedoc "The supervisor reference"
+  @typedoc "The supervisor reference."
   @type supervisor :: pid | name | {atom, node}
 
-  @typedoc "Options given to `start_link/2` and `init/2`"
+  @typedoc "Options given to `start_link/2` and `c:init/2`."
   @type init_option ::
           {:strategy, strategy}
           | {:max_restarts, non_neg_integer}
           | {:max_seconds, pos_integer}
           | {:auto_shutdown, auto_shutdown}
 
-  @typedoc "Supported restart options"
+  @typedoc "Supported restart options."
   @type restart :: :permanent | :transient | :temporary
 
-  @typedoc "Supported shutdown options"
+  @typedoc "Supported shutdown options."
   @type shutdown :: timeout() | :brutal_kill
 
-  @typedoc "Supported strategies"
+  @typedoc "Supported strategies."
   @type strategy :: :one_for_one | :one_for_all | :rest_for_one
 
-  @typedoc "Supported automatic shutdown options"
+  @typedoc "Supported automatic shutdown options."
   @type auto_shutdown :: :never | :any_significant | :all_significant
 
   @typedoc """
-  Supervisor type.
+  Type of a supervised child.
 
-  Whether the supervisor is a worker or a supervisor.
+  Whether the supervised child is a worker or a supervisor.
   """
   @type type :: :worker | :supervisor
 
@@ -616,18 +616,39 @@ defmodule Supervisor do
           optional(:significant) => boolean()
         }
 
+  @typedoc """
+  A module-based child spec.
+
+  This is a form of child spec that you can pass to functions such as `child_spec/2`,
+  `start_child/2`, and `start_link/2`, in addition to the normalized `t:child_spec/0`.
+
+  A module-based child spec can be:
+
+    * a **module** — the supervisor calls `module.child_spec([])` to retrieve the
+      child specification
+
+    * a **two-element tuple** in the shape of `{module, arg}` — the supervisor
+      calls `module.child_spec(arg)` to retrieve the child specification
+
+  """
+  @typedoc since: "1.16.0"
+  @type module_spec :: {module(), args :: term()} | module()
+
   @doc """
   Starts a supervisor with the given children.
 
   `children` is a list of the following forms:
 
-    * a [child specification](`t:child_spec/0`)
+    * a child specification (see `t:child_spec/0`)
 
-    * a module, where `module.child_spec([])` will be invoked to retrieve
-      its child specification
+    * a module, where the supervisor calls `module.child_spec([])`
+      to retrieve the child specification (see `t:module_spec/0`)
 
-    * a two-element tuple in the shape of `{module, arg}`, where `module.child_spec(arg)`
-      will be invoked to retrieve its child specification
+    * a `{module, arg}` tuple, where the supervisor calls `module.child_spec(arg)`
+      to retrieve the child specification (see `t:module_spec/0`)
+
+    * a (old) Erlang-style child specification (see
+      [`:supervisor.child_spec()`](`t::supervisor.child_spec/0`))
 
   A strategy is required to be provided through the `:strategy` option. See
   "Supervisor strategies and options" for examples and other options.
@@ -654,14 +675,10 @@ defmodule Supervisor do
   with `:normal` reason.
   """
   @spec start_link(
-          [
-            child_spec()
-            | {module, term}
-            | module
-            | (old_erlang_child_spec :: :supervisor.child_spec())
-          ],
+          [child_spec | module_spec | (old_erlang_child_spec :: :supervisor.child_spec())],
           [option | init_option]
-        ) :: {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
+        ) ::
+          {:ok, pid} | {:error, {:already_started, pid} | {:shutdown, term} | term}
   def start_link(children, options) when is_list(children) do
     {sup_opts, start_opts} =
       Keyword.split(options, [:strategy, :max_seconds, :max_restarts, :auto_shutdown])
@@ -709,12 +726,7 @@ defmodule Supervisor do
   """
   @doc since: "1.5.0"
   @spec init(
-          [
-            child_spec()
-            | {module, term}
-            | module
-            | (old_erlang_child_spec :: :supervisor.child_spec())
-          ],
+          [child_spec | module_spec | (old_erlang_child_spec :: :supervisor.child_spec())],
           [init_option]
         ) ::
           {:ok,
@@ -859,7 +871,7 @@ defmodule Supervisor do
       #=>   start: {Agent, :start_link, [fn -> :ok end]}}
 
   """
-  @spec child_spec(child_spec() | {module, arg :: term} | module, keyword) :: child_spec()
+  @spec child_spec(child_spec() | module_spec(), keyword()) :: child_spec()
   def child_spec(module_or_map, overrides)
 
   def child_spec({_, _, _, _, _, _} = tuple, _overrides) do
@@ -956,12 +968,8 @@ defmodule Supervisor do
   """
   @spec start_child(
           supervisor,
-          child_spec()
-          | {module, term}
-          | module
-          | (old_erlang_child_spec :: :supervisor.child_spec())
-        ) ::
-          on_start_child
+          child_spec | module_spec | (old_erlang_child_spec :: :supervisor.child_spec())
+        ) :: on_start_child
   def start_child(supervisor, {_, _, _, _, _, _} = child_spec) do
     call(supervisor, {:start_child, child_spec})
   end

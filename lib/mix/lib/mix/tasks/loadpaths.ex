@@ -20,9 +20,9 @@ defmodule Mix.Tasks.Loadpaths do
     * `--no-archives-check` - does not check archives
     * `--no-compile` - does not compile dependencies, only check and load them
     * `--no-deps-check` - does not check dependencies, only load available ones
-    * `--no-deps-loading` - does not add deps loadpaths to the code path
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-optional-deps` - does not compile or load optional deps
+    * `--no-path-loading` - does not add entries to the code path
 
   """
   @impl true
@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Loadpaths do
     :ok
   end
 
-  defp load_project(config, _args) do
+  defp load_project(config, args) do
     vsn = {System.version(), :erlang.system_info(:otp_release)}
     scm = config[:build_scm]
 
@@ -53,17 +53,17 @@ defmodule Mix.Tasks.Loadpaths do
     # any of SCM or Elixir version changes. Applies
     # to dependencies and the main project alike.
     case Mix.Dep.ElixirSCM.read() do
-      {:ok, old_vsn, _} when old_vsn != vsn -> rm_rf_app(config)
-      {:ok, _, old_scm} when old_scm != scm -> rm_rf_app(config)
-      _ -> :ok
+      {:ok, old_vsn, old_scm} when old_vsn != vsn or old_scm != scm ->
+        File.rm_rf(Mix.Project.app_path(config))
+        File.rm_rf(Mix.Project.consolidation_path(config))
+
+      _ ->
+        :ok
     end
 
-    # We don't cache the current application as we may still write to it
-    Code.prepend_path(Mix.Project.compile_path(config))
-  end
-
-  defp rm_rf_app(config) do
-    File.rm_rf(Mix.Project.app_path(config))
-    File.rm_rf(Mix.Project.consolidation_path(config))
+    unless "--no-path-loading" in args do
+      # We don't cache the current application as we may still write to it
+      Code.prepend_path(Mix.Project.compile_path(config))
+    end
   end
 end
