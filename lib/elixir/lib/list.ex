@@ -927,7 +927,7 @@ defmodule List do
   @doc """
   Converts a charlist to an atom.
 
-  Elixir supports conversions from charlists which contains any Unicode
+  Elixir supports conversions from charlists which contain any Unicode
   code point.
 
   Inlined by the compiler.
@@ -949,7 +949,7 @@ defmodule List do
   @doc """
   Converts a charlist to an existing atom.
 
-  Elixir supports conversions from charlists which contains any Unicode
+  Elixir supports conversions from charlists which contain any Unicode
   code point. Raises an `ArgumentError` if the atom does not exist.
 
   Inlined by the compiler.
@@ -1168,7 +1168,7 @@ defmodule List do
   An *edit script* is a keyword list. Each key describes the "editing action" to
   take in order to bring `list1` closer to being equal to `list2`; a key can be
   `:eq`, `:ins`, or `:del`. Each value is a sublist of either `list1` or `list2`
-  that should be inserted (if the corresponding key `:ins`), deleted (if the
+  that should be inserted (if the corresponding key is `:ins`), deleted (if the
   corresponding key is `:del`), or left alone (if the corresponding key is
   `:eq`) in `list1` in order to be closer to `list2`.
 
