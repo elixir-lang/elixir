@@ -454,6 +454,9 @@ defmodule Mix.Compilers.Elixir do
       8 -> :crypto.hash(:blake2b, contents)
       _ -> :crypto.hash(:blake2s, contents)
     end
+  rescue
+    # Blake may not be available on all OpenSSL distribution
+    _ -> :erlang.md5(contents)
   end
 
   defp set_compiler_opts(opts) do
