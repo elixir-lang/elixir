@@ -133,7 +133,7 @@ new features and on compatibility.
 
 #### Elixir
 
-  * [Kernel] Improve better stacktraces when executing unnested Elixir code in a file
+  * [Kernel] Improve stacktraces when executing unnested Elixir code in a file
 
 #### Mix
 
