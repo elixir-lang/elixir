@@ -117,6 +117,16 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.4 (2023-07-18)
+
+### 1. Bug fixes
+
+#### Mix
+
+  * [mix archive.build] Disable protocol consolidation when building archiveson archive.install
+  * [mix compile] Track removed files per local dependency (this addresses a bug where files depending on modules from path dependencies always recompiled)
+  * [mix release] Do not strip relevant chunks from Erlang/OTP 26
+
 ## v1.15.3 (2023-07-15)
 
 ### 1. Enhancements
