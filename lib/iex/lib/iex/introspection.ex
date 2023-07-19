@@ -259,6 +259,9 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         case Code.fetch_docs(module) do
+          {:docs_v1, _, :erlang, _, _, _, _} = erl_docs ->
+            :shell_docs.render(module, erl_docs) |> IO.puts()
+
           {:docs_v1, _, _, format, %{} = doc, metadata, _} ->
             print_doc([inspect(module)], [], format, doc, metadata)
 
