@@ -1010,9 +1010,9 @@ defmodule IEx.HelpersTest do
     end
 
     test "prints single type from erlang module" do
-      captured = capture_io(fn -> t(:erlang.char()) end)
-      assert captured =~ "-type char() :: 0..1114111"
-      assert captured =~ "An ASCII character or a unicode codepoint"
+      captured = capture_io(fn -> t(:erlang.iovec()) end)
+      assert captured =~ "-type iovec() :: [binary()]"
+      assert captured =~ "A list of binaries."
     end
   end
 
