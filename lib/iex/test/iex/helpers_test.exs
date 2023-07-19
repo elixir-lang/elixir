@@ -1013,6 +1013,18 @@ defmodule IEx.HelpersTest do
       captured = capture_io(fn -> t(:erlang.iovec()) end)
       assert captured =~ "-type iovec() :: [binary()]"
       assert captured =~ "A list of binaries."
+
+      captured = capture_io(fn -> t(:erlang.iovec() / 0) end)
+      assert captured =~ "-type iovec() :: [binary()]"
+      assert captured =~ "A list of binaries."
+    end
+
+    test "handles non-existing types from erlang module" do
+      captured = capture_io(fn -> t(:erlang.foo()) end)
+      assert captured =~ "No type information for :erlang.foo was found or :erlang.foo is private"
+
+      captured = capture_io(fn -> t(:erlang.foo() / 1) end)
+      assert captured =~ "No type information for :erlang.foo was found or :erlang.foo is private"
     end
   end
 

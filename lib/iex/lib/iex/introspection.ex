@@ -691,7 +691,10 @@ defmodule IEx.Introspection do
   def t({module, type}) when is_atom(module) and is_atom(type) do
     case get_docs(module, [:type]) do
       {:erlang, _, _, erl_docs} ->
-        :shell_docs.render_type(module, type, erl_docs) |> IO.puts()
+        case :shell_docs.render_type(module, type, erl_docs) do
+          {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
+          iodata -> IO.puts(iodata)
+        end
 
       {_, format, docs, _} ->
         case Typespec.fetch_types(module) do
@@ -722,7 +725,10 @@ defmodule IEx.Introspection do
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
     case get_docs(module, [:type]) do
       {:erlang, _, _, erl_docs} ->
-        :shell_docs.render_type(module, type, arity, erl_docs) |> IO.puts()
+        case :shell_docs.render_type(module, type, arity, erl_docs) do
+          {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
+          chardata -> IO.puts(chardata)
+        end
 
       {_, format, docs, _} ->
         case Typespec.fetch_types(module) do
