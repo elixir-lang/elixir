@@ -706,7 +706,7 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:3: ",
-        "the default values for the first 2 optional arguments in b/3 are never used"
+        "the default value for the last optional argument in b/3 is never used"
       ],
       ~S"""
       defmodule Sample2 do
@@ -717,11 +717,14 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3: ", "the default value for the first optional argument in b/3 is never used"],
+      [
+        "nofile:3: ",
+        "the default values for the last 2 optional arguments in b/4 are never used"
+      ],
       ~S"""
       defmodule Sample3 do
-        def a, do: b(1)
-        defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
+        def a, do: b(1, 2)
+        defp b(arg1, arg2 \\ 2, arg3 \\ 3, arg4 \\ 4), do: [arg1, arg2, arg3, arg4]
       end
       """
     )
@@ -734,24 +737,9 @@ defmodule Kernel.WarningTest do
            """) == ""
 
     assert_warn_eval(
-      ["nofile:3: ", "default values for the optional arguments in b/3 are never used"],
+      ["nofile:3: ", "the default value for the last optional argument in b/3 is never used"],
       ~S"""
       defmodule Sample5 do
-        def a, do: b(1, 2, 3)
-        defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
-
-        defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
-      end
-      """
-    )
-
-    assert_warn_eval(
-      [
-        "nofile:3: ",
-        "the default values for the first 2 optional arguments in b/3 are never used"
-      ],
-      ~S"""
-      defmodule Sample6 do
         def a, do: b(1, 2)
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
 
@@ -760,7 +748,7 @@ defmodule Kernel.WarningTest do
       """
     )
   after
-    purge([Sample1, Sample2, Sample3, Sample4, Sample5, Sample6])
+    purge([Sample1, Sample2, Sample3, Sample4, Sample5])
   end
 
   test "unused import" do
