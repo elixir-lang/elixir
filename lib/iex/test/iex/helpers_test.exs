@@ -321,8 +321,7 @@ defmodule IEx.HelpersTest do
       assert "\n## Loaded OTP applications" <> _ =
                capture_io(fn -> runtime_info([:applications]) end)
 
-      assert "\n## Memory allocators" <> _ =
-               capture_io(fn -> runtime_info([:allocators]) end)
+      assert "\n## Memory allocators" <> _ = capture_io(fn -> runtime_info([:allocators]) end)
     end
   end
 
@@ -333,7 +332,12 @@ defmodule IEx.HelpersTest do
       assert help =~ "Welcome to Interactive Elixir"
     end
 
-    test "prints Erlang module specs" do
+    test "prints Erlang module documentation" do
+      captured = capture_io(fn -> h(:timer) end)
+      assert captured =~ "This module provides useful functions related to time."
+    end
+
+    test "prints Erlang module function specs" do
       captured = capture_io(fn -> h(:timer.sleep() / 1) end)
       assert captured =~ ":timer.sleep/1"
       assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
@@ -998,6 +1002,18 @@ defmodule IEx.HelpersTest do
       end)
     after
       cleanup_modules([TypeSample])
+    end
+
+    test "prints all types in erlang module" do
+      captured = capture_io(fn -> t(:queue) end)
+      assert captured =~ "type queue() :: queue(_)"
+      assert captured =~ "@opaque queue(item)"
+    end
+
+    test "prints single type from erlang module" do
+      captured = capture_io(fn -> t(:erlang.char()) end)
+      assert captured =~ "@type char() :: 0..1_114_111"
+      assert captured =~ "An ASCII character or a unicode (stdlib:unicode) codepoint"
     end
   end
 
