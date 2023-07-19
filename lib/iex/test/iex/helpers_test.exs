@@ -925,7 +925,6 @@ defmodule IEx.HelpersTest do
     test "prints type information" do
       assert "@type t() ::" <> _ = capture_io(fn -> t(Enum.t()) end)
       assert capture_io(fn -> t(Enum.t()) end) == capture_io(fn -> t(Enum.t() / 0) end)
-      assert "@type child_spec() ::" <> _ = capture_io(fn -> t(:supervisor.child_spec()) end)
       assert capture_io(fn -> t(URI.t()) end) == capture_io(fn -> t(URI.t() / 0) end)
     end
 
@@ -1006,14 +1005,14 @@ defmodule IEx.HelpersTest do
 
     test "prints all types in erlang module" do
       captured = capture_io(fn -> t(:queue) end)
-      assert captured =~ "type queue() :: queue(_)"
-      assert captured =~ "@opaque queue(item)"
+      assert captured =~ "-type queue() :: queue(_)"
+      assert captured =~ "-opaque queue(Item)"
     end
 
     test "prints single type from erlang module" do
       captured = capture_io(fn -> t(:erlang.char()) end)
-      assert captured =~ "@type char() :: 0..1_114_111"
-      assert captured =~ "An ASCII character or a unicode (stdlib:unicode) codepoint"
+      assert captured =~ "-type char() :: 0..1114111"
+      assert captured =~ "An ASCII character or a unicode codepoint"
     end
   end
 

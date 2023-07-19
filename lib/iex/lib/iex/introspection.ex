@@ -666,41 +666,53 @@ defmodule IEx.Introspection do
   Prints the types for the given module and type documentation.
   """
   def t(module) when is_atom(module) do
-    case Typespec.fetch_types(module) do
-      :error ->
-        no_beam(module)
+    case :code.get_doc(module) do
+      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
+        :shell_docs.render_type(module, erl_docs) |> IO.puts()
 
-      {:ok, []} ->
-        types_not_found(inspect(module))
+      _ ->
+        case Typespec.fetch_types(module) do
+          :error ->
+            no_beam(module)
 
-      {:ok, types} ->
-        types
-        |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
-        |> Enum.each(&(&1 |> format_type() |> IO.puts()))
+          {:ok, []} ->
+            types_not_found(inspect(module))
+
+          {:ok, types} ->
+            types
+            |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
+            |> Enum.each(&(&1 |> format_type() |> IO.puts()))
+        end
     end
 
     dont_display_result()
   end
 
   def t({module, type}) when is_atom(module) and is_atom(type) do
-    case Typespec.fetch_types(module) do
-      :error ->
-        no_beam(module)
+    case :code.get_doc(module) do
+      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
+        :shell_docs.render_type(module, type, erl_docs) |> IO.puts()
 
-      {:ok, types} ->
-        types
-        |> Enum.filter(&match?({kind, {^type, _, _}} when kind in [:type, :opaque], &1))
-        |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
-        |> case do
-          [] ->
-            types_not_found_or_private("#{inspect(module)}.#{type}")
+      _ ->
+        case Typespec.fetch_types(module) do
+          :error ->
+            no_beam(module)
 
-          types ->
-            Enum.map(types, fn {_, {_, _, args}} = typespec ->
-              module
-              |> type_doc(type, length(args), typespec)
-              |> print_typespec()
-            end)
+          {:ok, types} ->
+            types
+            |> Enum.filter(&match?({kind, {^type, _, _}} when kind in [:type, :opaque], &1))
+            |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
+            |> case do
+              [] ->
+                types_not_found_or_private("#{inspect(module)}.#{type}")
+
+              types ->
+                Enum.map(types, fn {_, {_, _, args}} = typespec ->
+                  module
+                  |> type_doc(type, length(args), typespec)
+                  |> print_typespec()
+                end)
+            end
         end
     end
 
@@ -708,26 +720,32 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
-    case Typespec.fetch_types(module) do
-      :error ->
-        no_beam(module)
+    case :code.get_doc(module) do
+      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
+        :shell_docs.render_type(module, type, arity, erl_docs) |> IO.puts()
 
-      {:ok, types} ->
-        types
-        |> Enum.find(
-          &match?(
-            {kind, {^type, _, args}} when kind in [:type, :opaque] and length(args) == arity,
-            &1
-          )
-        )
-        |> case do
-          nil ->
-            types_not_found_or_private("#{inspect(module)}.#{type}")
+      _ ->
+        case Typespec.fetch_types(module) do
+          :error ->
+            no_beam(module)
 
-          typespec ->
-            module
-            |> type_doc(type, arity, typespec)
-            |> print_typespec()
+          {:ok, types} ->
+            types
+            |> Enum.find(
+              &match?(
+                {kind, {^type, _, args}} when kind in [:type, :opaque] and length(args) == arity,
+                &1
+              )
+            )
+            |> case do
+              nil ->
+                types_not_found_or_private("#{inspect(module)}.#{type}")
+
+              typespec ->
+                module
+                |> type_doc(type, arity, typespec)
+                |> print_typespec()
+            end
         end
     end
 
