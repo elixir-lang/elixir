@@ -343,6 +343,11 @@ defmodule IEx.HelpersTest do
       assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
     end
 
+    test "handles non-existing Erlang module function" do
+      captured = capture_io(fn -> h(:timer.baz() / 1) end)
+      assert captured =~ "No documentation for :timer.baz was found"
+    end
+
     test "prints module documentation" do
       assert "\n                                  IEx.Helpers\n\nWelcome to Interactive Elixir" <>
                _ = capture_io(fn -> h(IEx.Helpers) end)

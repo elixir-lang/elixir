@@ -830,8 +830,15 @@ defmodule IEx.Introspection do
   defp print_erlang_doc(mod, fun, arity, docs) do
     heading = Exception.format_mfa(mod, fun, arity)
     opts = IEx.Config.ansi_docs()
-    IO.ANSI.Docs.print_headings([heading], opts)
-    :shell_docs.render(mod, fun, arity, docs) |> IO.puts()
+
+    case :shell_docs.render(mod, fun, arity, docs) do
+      {:error, :function_missing} ->
+        docs_not_found("#{inspect(mod)}.#{fun}")
+
+      chardata ->
+        IO.ANSI.Docs.print_headings([heading], opts)
+        IO.puts(chardata)
+    end
   end
 
   defp no_beam(module) do
