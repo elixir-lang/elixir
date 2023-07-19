@@ -259,6 +259,9 @@ defmodule IEx.Introspection do
     case Code.ensure_loaded(module) do
       {:module, _} ->
         case Code.fetch_docs(module) do
+          {:docs_v1, _, :erlang, _, _, _, _} = erl_docs ->
+            :shell_docs.render(module, erl_docs) |> IO.puts()
+
           {:docs_v1, _, _, format, %{} = doc, metadata, _} ->
             print_doc([inspect(module)], [], format, doc, metadata)
 
@@ -279,7 +282,7 @@ defmodule IEx.Introspection do
   def h({module, function}) when is_atom(module) and is_atom(function) do
     case Code.ensure_loaded(module) do
       {:module, _} ->
-        {_language, _format, docs} = get_docs(module, [:function, :macro])
+        {_language, _format, docs, _} = get_docs(module, [:function, :macro])
 
         exports =
           cond do
@@ -371,10 +374,14 @@ defmodule IEx.Introspection do
   end
 
   defp h_mod_fun_arity(mod, fun, arity) when is_atom(mod) do
-    {language, format, docs} = get_docs(mod, [:function, :macro])
+    {language, format, docs, docs_v1} = get_docs(mod, [:function, :macro])
     spec = get_spec(mod, fun, arity)
 
     cond do
+      language == :erlang ->
+        print_erlang_doc(mod, fun, arity, docs_v1)
+        :ok
+
       doc_tuple = find_doc_with_content(docs, fun, arity) ->
         print_fun(mod, language, format, doc_tuple, spec)
         :ok
@@ -408,23 +415,23 @@ defmodule IEx.Introspection do
   end
 
   defp has_type?(mod, fun) do
-    {_, _, docs} = get_docs(mod, [:type])
+    {_, _, docs, _} = get_docs(mod, [:type])
     Enum.any?(docs, &match?({_, ^fun, _}, elem(&1, 0)))
   end
 
   defp has_type?(mod, fun, arity) do
-    {_, _, docs} = get_docs(mod, [:type])
+    {_, _, docs, _} = get_docs(mod, [:type])
     Enum.any?(docs, &match?({_, ^fun, ^arity}, elem(&1, 0)))
   end
 
   defp get_docs(mod, kinds) do
     case Code.fetch_docs(mod) do
-      {:docs_v1, _, language, format, _, _, docs} ->
+      {:docs_v1, _, language, format, _, _, docs} = docs_v1 ->
         docs = for {{kind, _, _}, _, _, _, _} = doc <- docs, kind in kinds, do: doc
-        {language, format, docs}
+        {language, format, docs, docs_v1}
 
       {:error, _} ->
-        {nil, nil, nil}
+        {nil, nil, nil, nil}
     end
   end
 
@@ -564,7 +571,7 @@ defmodule IEx.Introspection do
   end
 
   defp get_callback_docs(mod, filter) do
-    {_, format, docs} = get_docs(mod, [:callback, :macrocallback])
+    {_, format, docs, _} = get_docs(mod, [:callback, :macrocallback])
 
     case Typespec.fetch_callbacks(mod) do
       :error ->
@@ -659,41 +666,53 @@ defmodule IEx.Introspection do
   Prints the types for the given module and type documentation.
   """
   def t(module) when is_atom(module) do
-    case Typespec.fetch_types(module) do
-      :error ->
-        no_beam(module)
+    case :code.get_doc(module) do
+      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
+        :shell_docs.render_type(module, erl_docs) |> IO.puts()
 
-      {:ok, []} ->
-        types_not_found(inspect(module))
+      _ ->
+        case Typespec.fetch_types(module) do
+          :error ->
+            no_beam(module)
 
-      {:ok, types} ->
-        types
-        |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
-        |> Enum.each(&(&1 |> format_type() |> IO.puts()))
+          {:ok, []} ->
+            types_not_found(inspect(module))
+
+          {:ok, types} ->
+            types
+            |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
+            |> Enum.each(&(&1 |> format_type() |> IO.puts()))
+        end
     end
 
     dont_display_result()
   end
 
   def t({module, type}) when is_atom(module) and is_atom(type) do
-    case Typespec.fetch_types(module) do
-      :error ->
-        no_beam(module)
+    case :code.get_doc(module) do
+      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
+        :shell_docs.render_type(module, type, erl_docs) |> IO.puts()
 
-      {:ok, types} ->
-        types
-        |> Enum.filter(&match?({kind, {^type, _, _}} when kind in [:type, :opaque], &1))
-        |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
-        |> case do
-          [] ->
-            types_not_found_or_private("#{inspect(module)}.#{type}")
+      _ ->
+        case Typespec.fetch_types(module) do
+          :error ->
+            no_beam(module)
 
-          types ->
-            Enum.map(types, fn {_, {_, _, args}} = typespec ->
-              module
-              |> type_doc(type, length(args), typespec)
-              |> print_typespec()
-            end)
+          {:ok, types} ->
+            types
+            |> Enum.filter(&match?({kind, {^type, _, _}} when kind in [:type, :opaque], &1))
+            |> Enum.sort_by(fn {_, {name, _, args}} -> {name, length(args)} end)
+            |> case do
+              [] ->
+                types_not_found_or_private("#{inspect(module)}.#{type}")
+
+              types ->
+                Enum.map(types, fn {_, {_, _, args}} = typespec ->
+                  module
+                  |> type_doc(type, length(args), typespec)
+                  |> print_typespec()
+                end)
+            end
         end
     end
 
@@ -701,26 +720,32 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
-    case Typespec.fetch_types(module) do
-      :error ->
-        no_beam(module)
+    case :code.get_doc(module) do
+      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
+        :shell_docs.render_type(module, type, arity, erl_docs) |> IO.puts()
 
-      {:ok, types} ->
-        types
-        |> Enum.find(
-          &match?(
-            {kind, {^type, _, args}} when kind in [:type, :opaque] and length(args) == arity,
-            &1
-          )
-        )
-        |> case do
-          nil ->
-            types_not_found_or_private("#{inspect(module)}.#{type}")
+      _ ->
+        case Typespec.fetch_types(module) do
+          :error ->
+            no_beam(module)
 
-          typespec ->
-            module
-            |> type_doc(type, arity, typespec)
-            |> print_typespec()
+          {:ok, types} ->
+            types
+            |> Enum.find(
+              &match?(
+                {kind, {^type, _, args}} when kind in [:type, :opaque] and length(args) == arity,
+                &1
+              )
+            )
+            |> case do
+              nil ->
+                types_not_found_or_private("#{inspect(module)}.#{type}")
+
+              typespec ->
+                module
+                |> type_doc(type, arity, typespec)
+                |> print_typespec()
+            end
         end
     end
 
@@ -733,7 +758,7 @@ defmodule IEx.Introspection do
   end
 
   defp type_doc(module, type, arity, typespec) do
-    {_, format, docs} = get_docs(module, [:type])
+    {_, format, docs, _} = get_docs(module, [:type])
 
     if docs do
       {_, _, _, content, metadata} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
@@ -797,6 +822,13 @@ defmodule IEx.Introspection do
 
   defp translate_doc(%{"en" => doc}), do: doc
   defp translate_doc(_), do: nil
+
+  defp print_erlang_doc(mod, fun, arity, docs) do
+    heading = Exception.format_mfa(mod, fun, arity)
+    opts = IEx.Config.ansi_docs()
+    IO.ANSI.Docs.print_headings([heading], opts)
+    :shell_docs.render(mod, fun, arity, docs) |> IO.puts()
+  end
 
   defp no_beam(module) do
     case Code.ensure_loaded(module) do
