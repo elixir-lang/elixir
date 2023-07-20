@@ -689,11 +689,14 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type}) when is_atom(module) and is_atom(type) do
-    case :code.get_doc(module) do
-      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
-        :shell_docs.render_type(module, type, erl_docs) |> IO.puts()
+    case get_docs(module, [:type]) do
+      {:erlang, _, _, erl_docs} ->
+        case :shell_docs.render_type(module, type, erl_docs) do
+          {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
+          iodata -> IO.puts(iodata)
+        end
 
-      _ ->
+      {_, format, docs, _} ->
         case Typespec.fetch_types(module) do
           :error ->
             no_beam(module)
@@ -708,8 +711,8 @@ defmodule IEx.Introspection do
 
               types ->
                 Enum.map(types, fn {_, {_, _, args}} = typespec ->
-                  module
-                  |> type_doc(type, length(args), typespec)
+                  type
+                  |> type_doc(length(args), typespec, format, docs)
                   |> print_typespec()
                 end)
             end
@@ -720,11 +723,14 @@ defmodule IEx.Introspection do
   end
 
   def t({module, type, arity}) when is_atom(module) and is_atom(type) and is_integer(arity) do
-    case :code.get_doc(module) do
-      {:ok, {:docs_v1, _, :erlang, _, _, _, _} = erl_docs} ->
-        :shell_docs.render_type(module, type, arity, erl_docs) |> IO.puts()
+    case get_docs(module, [:type]) do
+      {:erlang, _, _, erl_docs} ->
+        case :shell_docs.render_type(module, type, arity, erl_docs) do
+          {:error, :type_missing} -> types_not_found_or_private("#{inspect(module)}.#{type}")
+          chardata -> IO.puts(chardata)
+        end
 
-      _ ->
+      {_, format, docs, _} ->
         case Typespec.fetch_types(module) do
           :error ->
             no_beam(module)
@@ -742,8 +748,8 @@ defmodule IEx.Introspection do
                 types_not_found_or_private("#{inspect(module)}.#{type}")
 
               typespec ->
-                module
-                |> type_doc(type, arity, typespec)
+                type
+                |> type_doc(arity, typespec, format, docs)
                 |> print_typespec()
             end
         end
@@ -757,9 +763,7 @@ defmodule IEx.Introspection do
     dont_display_result()
   end
 
-  defp type_doc(module, type, arity, typespec) do
-    {_, format, docs, _} = get_docs(module, [:type])
-
+  defp type_doc(type, arity, typespec, format, docs) do
     if docs do
       {_, _, _, content, metadata} = Enum.find(docs, &match?({:type, ^type, ^arity}, elem(&1, 0)))
       {format, format_type(typespec), content, metadata}
@@ -826,8 +830,15 @@ defmodule IEx.Introspection do
   defp print_erlang_doc(mod, fun, arity, docs) do
     heading = Exception.format_mfa(mod, fun, arity)
     opts = IEx.Config.ansi_docs()
-    IO.ANSI.Docs.print_headings([heading], opts)
-    :shell_docs.render(mod, fun, arity, docs) |> IO.puts()
+
+    case :shell_docs.render(mod, fun, arity, docs) do
+      {:error, :function_missing} ->
+        docs_not_found("#{inspect(mod)}.#{fun}")
+
+      chardata ->
+        IO.ANSI.Docs.print_headings([heading], opts)
+        IO.puts(chardata)
+    end
   end
 
   defp no_beam(module) do
