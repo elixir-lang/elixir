@@ -14,12 +14,12 @@ defmodule Kernel.DiagnosticsTest do
     test "SyntaxError (snippet)" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:17:
-          ┌─ error: nofile:1:17
+          error: syntax error before: '*'
           │
         1 │ [1, 2, 3, 4, 5, *]
           │                 ^
           │
-          syntax error before: '*'\
+          └─ nofile:1:17\
       """
 
       output =
@@ -36,12 +36,12 @@ defmodule Kernel.DiagnosticsTest do
     test "TokenMissingError (snippet)" do
       expected = """
       ** (TokenMissingError) token missing on nofile:1:4:
-          ┌─ error: nofile:1:4
+          error: syntax error: expression is incomplete
           │
         1 │ 1 +
           │    ^
           │
-          syntax error: expression is incomplete\
+          └─ nofile:1:4\
       """
 
       output =
@@ -58,8 +58,8 @@ defmodule Kernel.DiagnosticsTest do
     test "TokenMissingError (no snippet)" do
       expected = """
       ** (TokenMissingError) token missing on nofile:2:1:
-          ┌─ error: nofile:2:1
-          missing terminator: end (for "fn" starting at line 1)\
+          error: missing terminator: end (for "fn" starting at line 1)
+          └─ nofile:2:1\
       """
 
       output =
@@ -76,12 +76,12 @@ defmodule Kernel.DiagnosticsTest do
     test "keeps trailing whitespace if under threshold" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:23:
-          ┌─ error: nofile:1:23
+          error: unexpected token: "😎" (column 23, code point U+****)
           │
         1 │                   a + 😎
           │                       ^
           │
-          unexpected token: "😎" (column 23, code point U+****)\
+          └─ nofile:1:23\
       """
 
       output =
@@ -98,12 +98,12 @@ defmodule Kernel.DiagnosticsTest do
     test "limits trailing whitespace if too many" do
       expected = """
       ** (SyntaxError) invalid syntax found on nofile:1:43:
-          ┌─ error: nofile:1:43
+          error: unexpected token: "😎" (column 43, code point U+****)
           │
         1 │ ...                   a + 😎
           │                           ^
           │
-          unexpected token: "😎" (column 43, code point U+****)\
+          └─ nofile:1:43\
       """
 
       output =
@@ -125,12 +125,12 @@ defmodule Kernel.DiagnosticsTest do
 
       expected = """
       ** (TokenMissingError) token missing on nofile:1:4:
-          ┌─ error: nofile:1:4
+          error: syntax error: expression is incomplete
           │
         1 │ 1 -
           │    ^
           │
-          syntax error: expression is incomplete
+          └─ nofile:1:4
           nofile:10: :fake.fun/3
           nofile:10: :real.fun/2
       """
@@ -154,12 +154,12 @@ defmodule Kernel.DiagnosticsTest do
 
       expected = """
       ** (TokenMissingError) token missing on nofile:12:4:
-          ┌─ error: nofile:12:4
+          error: syntax error: expression is incomplete
           │
        12 │ 1 -
           │    ^
           │
-          syntax error: expression is incomplete
+          └─ nofile:12:4
           nofile:10: :fake.fun/3
       """
 
@@ -208,12 +208,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ warning: #{path}:3:22: Sample.a/0
+          warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
           │
         3 │   defp a, do: Unknown.b()
           │                      ~
           │
-          Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+          └─ #{path}:3:22: Sample.a/0
       """
 
       assert capture_eval(source) =~ expected
@@ -235,12 +235,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ warning: #{path}:3: Sample.a/0
+          warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
           │
         3 │   defp a, do: Unknown.b()
           │   ~~~~~~~~~~~~~~~~~~~~~~~
           │
-          Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+          └─ #{path}:3: Sample.a/0
       """
 
       assert capture_eval(source, false) =~ expected
@@ -256,8 +256,8 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-       ┌─ warning: nofile:2:22: Sample.a/0
-       Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+       warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
+       └─ nofile:2:22: Sample.a/0
       """
 
       assert capture_eval(source) =~ expected
@@ -287,12 +287,7 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ warning: #{path}:8:14: Sample.atom_case/0
-          │
-        8 │       _ when is_atom(v) -> :ok
-          │              ~
-          │
-          incompatible types:
+          warning: incompatible types:
 
               binary() !~ atom()
 
@@ -312,7 +307,11 @@ defmodule Kernel.DiagnosticsTest do
               is_atom(v)
 
           Conflict found at
-
+          │
+        8 │       _ when is_atom(v) -> :ok
+          │              ~
+          │
+          └─ #{path}:8:14: Sample.atom_case/0
       """
 
       assert capture_eval(source) =~ expected
@@ -335,8 +334,7 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-       ┌─ warning: nofile:6:14: Sample.atom_case/0
-       incompatible types:
+       warning: incompatible types:
 
            binary() !~ atom()
 
@@ -356,6 +354,7 @@ defmodule Kernel.DiagnosticsTest do
            is_atom(v)
 
        Conflict found at
+       └─ nofile:6:14: Sample.atom_case/0
 
       """
 
@@ -381,12 +380,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ warning: #{path}:5:52: Sample.a/0
+          warning: Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined)
           │
         5 │ ...                   Unknown.bar(:test)
           │                              ~
           │
-          Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined)
+          └─ #{path}:5:52: Sample.a/0
 
       """
 
@@ -432,13 +431,11 @@ defmodule Kernel.DiagnosticsTest do
       """
 
       expected = """
-       ┌─ warning: nofile:3:12: Sample.a/0
-       Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-
-       Similar warning found at 3 other locations:
-         nofile:4:12: Sample.a/0
-         nofile:5:12: Sample.a/0
-         nofile:6:12: Sample.a/0
+       warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
+       └─ nofile:3:12: Sample.a/0
+       └─ nofile:4:12: Sample.a/0
+       └─ nofile:5:12: Sample.a/0
+       └─ nofile:6:12: Sample.a/0
 
       """
 
@@ -467,17 +464,15 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ warning: #{path}:5:12: Sample.a/0
+          warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
           │
         5 │     Unknown.bar()
           │            ~
           │
-          Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-
-          Similar warning found at 3 other locations:
-            #{path}:6:12: Sample.a/0
-            #{path}:7:12: Sample.a/0
-            #{path}:8:12: Sample.a/0
+          └─ #{path}:5:12: Sample.a/0
+          └─ #{path}:6:12: Sample.a/0
+          └─ #{path}:7:12: Sample.a/0
+          └─ #{path}:8:12: Sample.a/0
 
       """
 
@@ -506,17 +501,15 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ warning: #{path}:5: Sample.a/0
+          warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
           │
         5 │     Unknown.bar()
           │     ~~~~~~~~~~~~~
           │
-          Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-
-          Similar warning found at 3 other locations:
-            #{path}:6: Sample.a/0
-            #{path}:7: Sample.a/0
-            #{path}:8: Sample.a/0
+          └─ #{path}:5: Sample.a/0
+          └─ #{path}:6: Sample.a/0
+          └─ #{path}:7: Sample.a/0
+          └─ #{path}:8: Sample.a/0
 
       """
 
@@ -542,12 +535,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ error: #{path}:3
+          error: function names should start with lowercase characters or underscore, invalid name CamelCase
           │
         3 │   def CamelCase do
           │   ^^^^^^^^^^^^^^^^
           │
-          function names should start with lowercase characters or underscore, invalid name CamelCase
+          └─ #{path}:3
 
       """
 
@@ -573,12 +566,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ error: #{path}:5:13: Sample.foo/0
+          error: undefined variable "bar"
           │
         5 │     IO.puts(bar)
           │             ^
           │
-          undefined variable "bar"
+          └─ #{path}:5:13: Sample.foo/0
 
       """
 
@@ -589,8 +582,8 @@ defmodule Kernel.DiagnosticsTest do
 
     test "no file" do
       expected = """
-       ┌─ error: nofile:2:16: Sample.foo/0
-       undefined function module_info/0 (this function is auto-generated by the compiler and must always be called as a remote, as in __MODULE__.module_info/0)
+       error: undefined function module_info/0 (this function is auto-generated by the compiler and must always be called as a remote, as in __MODULE__.module_info/0)
+       └─ nofile:2:16: Sample.foo/0
 
       """
 
@@ -622,12 +615,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ warning: #{path}:3: Sample.a/1
+          warning: variable "unused" is unused (if the variable is not meant to be used, prefix it with an underscore)
           │
         3 │   def a(unused), do: 1
           │   ~~~~~~~~~~~~~~~~~~~~
           │
-          variable "unused" is unused (if the variable is not meant to be used, prefix it with an underscore)
+          └─ #{path}:3: Sample.a/1
 
       """
 
@@ -655,12 +648,12 @@ defmodule Kernel.DiagnosticsTest do
       File.write!(path, source)
 
       expected = """
-          ┌─ warning: #{path}:6:5: Sample.bar/0
+          warning: module attribute @foo in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)
           │
         6 │     @foo
           │     ~
           │
-          module attribute @foo in code block has no effect as it is never returned (remove the attribute or assign it to _ to avoid warnings)
+          └─ #{path}:6:5: Sample.bar/0
 
       """
 
@@ -671,8 +664,8 @@ defmodule Kernel.DiagnosticsTest do
 
     test "no file" do
       expected = """
-       ┌─ warning: nofile:2:3
-       unused alias List
+       warning: unused alias List
+       └─ nofile:2:3
 
       """
 

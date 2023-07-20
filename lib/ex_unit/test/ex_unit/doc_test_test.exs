@@ -569,12 +569,12 @@ defmodule ExUnit.DocTestTest do
              1) doctest module ExUnit.DocTestTest.Failure (1) (ExUnit.DocTestTest.FailureCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:#{starting_line}:6:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{starting_line}:6
+                     error: syntax error before: '*'
                      │
                  #{starting_line} │  1 + * 1
                      │      ^
                      │
-                     syntax error before: '*'
+                     └─ test/ex_unit/doc_test_test.exs:#{starting_line}:6
                 doctest:
                   iex> 1 + * 1
                   1
@@ -691,12 +691,12 @@ defmodule ExUnit.DocTestTest do
              1) doctest ExUnit.DocTestTest.Invalid.a/0 (1) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:#{starting_line}:6:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{starting_line}:6
+                     error: syntax error before: '*'
                      │
                  #{starting_line} │  1 + * 1
                      │      ^
                      │
-                     syntax error before: '*'
+                     └─ test/ex_unit/doc_test_test.exs:#{starting_line}:6
                 doctest:
                   iex> 1 + * 1
                   1
@@ -710,12 +710,12 @@ defmodule ExUnit.DocTestTest do
              2) doctest ExUnit.DocTestTest.Invalid.b/0 (2) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:#{line}:6:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:6
+                     error: syntax error before: '*'
                      │
                  #{line} │  1 + * 1
                      │      ^
                      │
-                     syntax error before: '*'
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:6
                 doctest:
                   iex> 1 + * 1
                   1
@@ -729,12 +729,12 @@ defmodule ExUnit.DocTestTest do
              3) doctest ExUnit.DocTestTest.Invalid.indented_not_enough/0 (3) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:#{line}:1:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:1
+                     error: unexpected token: "`" (column 1, code point U+0060)
                      │
                  #{line} │ `
                      │ ^
                      │
-                     unexpected token: "`" (column 1, code point U+0060)
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:1
                 doctest:
                   iex> 1 + 2
                   3
@@ -749,12 +749,12 @@ defmodule ExUnit.DocTestTest do
              4) doctest ExUnit.DocTestTest.Invalid.indented_too_much/0 (4) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:#{line}:3:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:3
+                     error: unexpected token: "`" (column 3, code point U+0060)
                      │
                  #{line} │   ```
                      │   ^
                      │
-                     unexpected token: "`" (column 3, code point U+0060)
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:3
                 doctest:
                   iex> 1 + 2
                   3
@@ -769,12 +769,12 @@ defmodule ExUnit.DocTestTest do
              5) doctest ExUnit.DocTestTest.Invalid.dedented_past_fence/0 (5) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:#{line}:5:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:5
+                     error: unexpected token: "`" (column 5, code point U+0060)
                      │
                  #{line} │     ```
                      │     ^
                      │
-                     unexpected token: "`" (column 5, code point U+0060)
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:5
                 doctest:
                   iex> 1 + 2
                   3
@@ -799,12 +799,12 @@ defmodule ExUnit.DocTestTest do
              7) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (7) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:#{line}:7:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:7
+                     error: missing terminator: } (for "{" starting at line #{line})
                      │
                  #{line} │ {:ok, #Inspect<[]>}
                      │       ^
                      │
-                     missing terminator: } (for "{" starting at line #{line})
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:7
                 If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, :oops}
@@ -819,12 +819,12 @@ defmodule ExUnit.DocTestTest do
              8) doctest ExUnit.DocTestTest.Invalid.t/0 (8) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:#{line}:6:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:6
+                     error: syntax error before: '*'
                      │
                  #{line} │  1 + * 1
                      │      ^
                      │
-                     syntax error before: '*'
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:6
                 doctest:
                   iex> 1 + * 1
                   1
@@ -838,12 +838,12 @@ defmodule ExUnit.DocTestTest do
              9) doctest ExUnit.DocTestTest.Invalid.result/0 (9) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (SyntaxError) invalid syntax found on test/ex_unit/doc_test_test.exs:#{line}:5:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:5
+                     error: syntax error before: '*'
                      │
                  #{line} │ 1 + * 1
                      │     ^
                      │
-                     syntax error before: '*'
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:5
                 doctest:
                   iex> :foo
                   iex> :bar
@@ -858,12 +858,12 @@ defmodule ExUnit.DocTestTest do
             10) doctest ExUnit.DocTestTest.Invalid.mixed/0 (10) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:#{line}:6:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:6
+                     error: syntax error: expression is incomplete
                      │
                  #{line} │  123 +
                      │      ^
                      │
-                     syntax error: expression is incomplete
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:6
                 doctest:
                   iex> 123 +
                   :mixed
@@ -877,12 +877,12 @@ defmodule ExUnit.DocTestTest do
             11) doctest ExUnit.DocTestTest.Invalid.invalid_second/0 (11) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:#{line}:6:
-                     ┌─ error: test/ex_unit/doc_test_test.exs:#{line}:6
+                     error: syntax error: expression is incomplete
                      │
                  #{line} │  123 +
                      │      ^
                      │
-                     syntax error: expression is incomplete
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:6
                 doctest:
                   iex> 123 +
                   :mixed

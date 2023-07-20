@@ -318,23 +318,8 @@ defmodule Module.ParallelChecker do
     :elixir_errors.print_warning(message, diagnostic)
   end
 
-  defp print_warning(message, [diagnostic | rest]) do
-    total_locations = length(rest)
-
-    locations =
-      Enum.map(rest, fn %{stacktrace: [s]} ->
-        ["\n  ", Exception.format_stacktrace_entry(s)]
-      end)
-
-    locations_plural = if total_locations == 1, do: "location", else: "locations"
-
-    [
-      message,
-      "\n\nSimilar warning found at #{total_locations} other #{locations_plural}:",
-      locations
-    ]
-    |> IO.iodata_to_binary()
-    |> :elixir_errors.print_warning(diagnostic)
+  defp print_warning(message, grouped_warnings) do
+    :elixir_errors.print_warning_group(message, grouped_warnings)
   end
 
   defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do
