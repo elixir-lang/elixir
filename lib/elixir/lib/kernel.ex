@@ -199,7 +199,7 @@ defmodule Kernel do
 
   This means **comparisons in Elixir are structural**, as it has the goal
   of comparing data types as efficiently as possible to create flexible
-  and perform data structures. This distinction is specially important
+  and performant data structures. This distinction is specially important
   for functions that provide ordering, such as `>/2`, `</2`, `>=/2`,
   `<=/2`, `min/2`, and `max/2`. For example:
 
