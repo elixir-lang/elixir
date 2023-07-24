@@ -471,6 +471,12 @@ defmodule NaiveDateTime do
         unit
       )
       when is_integer(amount_to_add) do
+    if not is_integer(unit) and
+         unit not in ~w(second millisecond microsecond nanosecond)a do
+      raise ArgumentError,
+            "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
+    end
+
     ppd = System.convert_time_unit(86400, :second, unit)
     precision = max(Calendar.ISO.time_unit_to_precision(unit), precision)
 
@@ -552,6 +558,12 @@ defmodule NaiveDateTime do
             "cannot calculate the difference between #{inspect(naive_datetime1)} and " <>
               "#{inspect(naive_datetime2)} because their calendars are not compatible " <>
               "and thus the result would be ambiguous"
+    end
+
+    if not is_integer(unit) and
+         unit not in ~w(second millisecond microsecond nanosecond)a do
+      raise ArgumentError,
+            "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
     units1 = naive_datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)
