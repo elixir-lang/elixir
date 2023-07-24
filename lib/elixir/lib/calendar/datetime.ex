@@ -1516,6 +1516,12 @@ defmodule DateTime do
         %{utc_offset: utc_offset2, std_offset: std_offset2} = datetime2,
         unit
       ) do
+    if not is_integer(unit) and
+         unit not in ~w(second millisecond microsecond nanosecond)a do
+      raise ArgumentError,
+            "unsupported time unit. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
+    end
+
     naive_diff =
       (datetime1 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit)) -
         (datetime2 |> to_iso_days() |> Calendar.ISO.iso_days_to_unit(unit))
