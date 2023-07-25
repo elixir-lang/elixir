@@ -194,6 +194,7 @@ defmodule Mix.Tasks.Profile.Fprof do
       IO.puts("Warmup...")
       fun.()
     end
+    apply_opts = Keyword.take(opts, [:procs])
 
     {return_value, file_to_remove} =
       if Keyword.get(opts, :trace_to_file, false) do
@@ -204,12 +205,12 @@ defmodule Mix.Tasks.Profile.Fprof do
           |> Path.expand()
           |> String.to_charlist()
 
-        result = :fprof.apply(fun, [], file: filename)
+        result = :fprof.apply(fun, [], [{:file, filename} | apply_opts])
         :fprof.profile(file: filename)
         {result, trace_file}
       else
         {:ok, tracer} = :fprof.profile([:start])
-        {:fprof.apply(fun, [], tracer: tracer), nil}
+        {:fprof.apply(fun, [], [{:tracer, tracer} | apply_opts]), nil}
       end
 
     {:ok, analyse_dest} = StringIO.open("")
