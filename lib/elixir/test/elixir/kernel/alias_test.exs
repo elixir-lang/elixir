@@ -27,6 +27,13 @@ defmodule Kernel.AliasTest do
     assert Nested.flatten([[13]]) == [13]
   end
 
+  test "non-recursive alias" do
+    alias Billing, as: BillingLib
+    alias MyApp.Billing
+    assert BillingLib == :"Elixir.Billing"
+    assert Billing == :"Elixir.MyApp.Billing"
+  end
+
   test "lexical" do
     if true_fun() do
       alias OMG, as: List, warn: false

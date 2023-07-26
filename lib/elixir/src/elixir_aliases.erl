@@ -162,10 +162,10 @@ to_partial(Arg) when is_binary(Arg)   -> Arg.
 
 %% Lookup an alias in the current scope.
 
-lookup(Else, Dict, Counter) ->
-  case lists:keyfind(Else, 1, Dict) of
-    {Else, {Counter, Value}} -> lookup(Value, Dict, Counter);
-    {Else, Value} when is_atom(Value) -> lookup(Value, Dict, Counter);
+lookup(Else, List, Counter) ->
+  case lists:keyfind(Else, 1, List) of
+    {Else, {Counter, Value}} -> Value;
+    {Else, Value} when is_atom(Value) -> Value;
     _ -> Else
   end.
 
