@@ -150,7 +150,7 @@ iex> File.read("path/to/unknown/file")
 {:error, :enoent}
 ```
 
-If the path given to `File.read/1` exists, it returns a tuple with the atom `:ok` as the first element and the file contents as the second. Otherwise, it returns a tuple with `:error` and the error description.
+If the path given to `File.read/1` exists, it returns a tuple with the atom `:ok` as the first element and the file contents as the second. Otherwise, it returns a tuple with `:error` and the error description. `File.read/1` returns a tuple, not a list, because it always contains two values. As we will soon learn, Elixir allows us to _pattern match_ on such shapes. Returning a list would not bring any advantages.
 
 Most of the time, Elixir is going to guide you to do the right thing. For example, there is an `elem/2` function to access a tuple item but there is no built-in equivalent for lists:
 
