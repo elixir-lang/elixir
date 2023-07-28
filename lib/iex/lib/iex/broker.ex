@@ -85,9 +85,13 @@ defmodule IEx.Broker do
     yes?(IO.gets(:stdio, interrupt))
   end
 
-  defp yes?(string) do
-    is_binary(string) and String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
-  end
+  defp yes?(string) when is_binary(string),
+    do: String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
+
+  defp yes?(charlist) when is_list(charlist),
+    do: yes?(List.to_string(charlist))
+
+  defp yes?(_), do: false
 
   @doc """
   Client requests a takeover.
