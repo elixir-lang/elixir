@@ -152,6 +152,8 @@ iex> File.read("path/to/unknown/file")
 
 If the path given to `File.read/1` exists, it returns a tuple with the atom `:ok` as the first element and the file contents as the second. Otherwise, it returns a tuple with `:error` and the error description.
 
+`File.read/1` returns a tuple, not a list, because there it contains always two values and there is no need to update the returned result. Returning a list instead would not bring any advantages.
+
 Most of the time, Elixir is going to guide you to do the right thing. For example, there is an `elem/2` function to access a tuple item but there is no built-in equivalent for lists:
 
 ```elixir
