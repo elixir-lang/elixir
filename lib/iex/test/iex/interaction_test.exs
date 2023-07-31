@@ -25,7 +25,7 @@ defmodule IEx.InteractionTest do
 
     expected = """
     ** (SyntaxError) invalid syntax found on iex:1:4:
-        \e[31merror\e[0m: syntax error before: '='
+        \e[31merror: \e[0msyntax error before: '='
         │
       1 │ a += 2
         │ \e[31m   ^\e[0m
@@ -46,7 +46,7 @@ defmodule IEx.InteractionTest do
     output = capture_iex("if true do ) false end")
 
     assert output =~ "** (SyntaxError) invalid syntax found on iex:1:12:"
-    assert output =~ "error: unexpected token: )"
+    assert output =~ "unexpected token: )"
     assert output =~ "iex:1:12"
     assert output =~ "if true do ) false end"
     assert output =~ ~s/HINT: the "do" on line 1 is missing terminator "end"/
