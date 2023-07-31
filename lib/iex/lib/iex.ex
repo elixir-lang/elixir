@@ -868,6 +868,7 @@ defmodule IEx do
     if Code.ensure_loaded?(:prim_tty) do
       spawn(fn ->
         {:ok, _} = Application.ensure_all_started(:iex)
+        :ok = :io.setopts(binary: true, encoding: :unicode)
         _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
         IEx.Server.run([register: false] ++ opts)
       end)
