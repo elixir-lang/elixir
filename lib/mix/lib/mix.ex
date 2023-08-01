@@ -594,9 +594,11 @@ defmodule Mix do
   Ensures the given application from Erlang/OTP or Elixir and its dependencies
   are available in the path.
 
-  This is mostly used for Mix internal needs. In your own tasks, you should
-  list the Erlang application dependencies under the `:extra_applications`
-  section of your `mix.exs`.
+  Generally speaking, you should list the Erlang application dependencies under
+  the `:extra_applications` section of your `mix.exs`. This must only be used by
+  Mix tasks which wish to avoid depending on Erlang/Elixir for certain reasons.
+
+  This function does not start the given applications.
   """
   @doc since: "1.15.0"
   def ensure_application!(app) when is_atom(app) do
