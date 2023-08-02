@@ -200,11 +200,15 @@ defmodule ExUnit.Diff do
 
       {diff, env}
     else
-      diff_value(left, right, env)
+      non_recursive_diff_value(left, right, env)
     end
   end
 
   defp diff_value(left, right, env) do
+    non_recursive_diff_value(left, right, env)
+  end
+
+  defp non_recursive_diff_value(left, right, env) do
     diff_left = escape(left) |> update_diff_meta(true)
     diff_right = escape(right) |> update_diff_meta(true)
     diff = %__MODULE__{equivalent?: false, left: diff_left, right: diff_right}
