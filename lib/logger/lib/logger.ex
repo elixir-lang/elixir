@@ -366,6 +366,32 @@ defmodule Logger do
   It sets up a log handler with overload protection and allows incoming events
   to be dispatched to multiple backends.
 
+  ### Filtering
+
+  You can add filters to Erlang's `:logger`. For example, to filter out logs
+  that contain a particular string, you could create a module:
+
+      defmodule LogFilter do
+        def filter(log_event, _opts) do
+          case log_event do
+            %{msg: msg} when is_binary(msg) ->
+              if msg =~ "password" do
+                :stop
+              else
+                :ignore
+              end
+
+            _ ->
+              :ignore
+          end
+        end
+      end
+
+  Then, when you start your application, such as in the
+  `c:Application.start/2` callback:
+
+      :logger.add_primary_filter(:word_filter, {&LogFilter.filter/2, []})
+
   ## Backends and backwards compatibility
 
   Prior to Elixir v1.15, custom logging could be achieved with Logger
