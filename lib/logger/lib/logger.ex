@@ -372,11 +372,10 @@ defmodule Logger do
   that contain a particular string, you could create a module:
 
       defmodule LogFilter do
-        @spec filter(map(), keyword()) :: :stop | :ignore | map()
         def filter(log_event, _opts) do
           case log_event do
             %{msg: msg} when is_binary(msg) ->
-              if msg =~ "twitter" do
+              if msg =~ "password" do
                 :stop
               else
                 :ignore
