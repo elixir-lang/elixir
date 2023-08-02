@@ -369,7 +369,7 @@ defmodule Logger do
   ### Filtering
 
   You can add filters to Erlang's `:logger`. For example, to filter out logs
-  that contain a string, you could create a module:
+  that contain a particular string, you could create a module:
 
       defmodule LogFilter do
         @spec filter(map(), keyword()) :: :stop | :ignore | map()
@@ -381,13 +381,15 @@ defmodule Logger do
               else
                 :ignore
               end
+
             _ ->
               :ignore
           end
         end
       end
 
-  Then, in your Application.start/2 function in application.ex:
+  Then, when you start your application, such as in the
+  `c:Application.start/2` callback:
 
       :logger.add_primary_filter(:word_filter, {&LogFilter.filter/2, []})
 
