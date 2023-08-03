@@ -753,7 +753,7 @@ defmodule Code.Fragment do
     end
   end
 
-  defp take_alias([h | t], acc) when h in ?A..?Z or h in ?a..?z or h in ?0..9 or h == ?_,
+  defp take_alias([h | t], acc) when h in ?A..?Z or h in ?a..?z or h in ?0..?9 or h == ?_,
     do: take_alias(t, [h | acc])
 
   defp take_alias(rest, acc) do
