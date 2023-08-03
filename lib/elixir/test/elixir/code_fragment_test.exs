@@ -738,6 +738,14 @@ defmodule CodeFragmentTest do
                  end: {3, 5}
                }
       end
+
+      for i <- 1..11 do
+        assert CF.surround_context("Foo.Bar.Baz.foo(bar)", {1, i}) == %{
+                 context: {:alias, ~c"Foo.Bar.Baz"},
+                 begin: {1, 1},
+                 end: {1, 12}
+               }
+      end
     end
 
     test "underscored special forms" do
