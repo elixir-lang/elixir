@@ -641,8 +641,18 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+
+    assert_warn_eval(
+      ["nofile:3: ", "function b/0 is unused\n"],
+      ~S"""
+      defmodule Sample5 do
+        def a, do: nil
+        defp b(), do: unquote(1)
+      end
+      """
+    )
   after
-    purge([Sample1, Sample2, Sample3, Sample4])
+    purge([Sample1, Sample2, Sample3, Sample4, Sample5])
   end
 
   test "unused cyclic functions" do
@@ -673,8 +683,19 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+
+    assert_warn_eval(
+      ["nofile:2: ", "macro hello/0 is unused\n"],
+      ~S"""
+      defmodule Sample2 do
+        defmacrop hello do
+          quote do: unquote(1)
+        end
+      end
+      """
+    )
   after
-    purge(Sample)
+    purge([Sample, Sample2])
   end
 
   test "shadowing" do
