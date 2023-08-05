@@ -40,7 +40,7 @@ has_unquotes({quote, _, [QuoteOpts, Child]}, QuoteLevel) ->
     _ -> has_unquotes(Child, QuoteLevel + 1)
   end;
 has_unquotes({Unquote, _, [Child]}, QuoteLevel)
-  when (Unquote == unquote) orelse (Unquote == unquote_splicing) ->
+  when Unquote == unquote; Unquote == unquote_splicing ->
   case QuoteLevel of
     0 -> true;
     _ ->  has_unquotes(Child, QuoteLevel - 1)
