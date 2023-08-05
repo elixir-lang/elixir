@@ -138,8 +138,6 @@ defmodule Kernel.Overridable do
     end
   end
 
-  defmacrop private_macro(x \\ raise("never called"))
-
   defmacrop private_macro(x) do
     quote do
       unquote(x) + 100

@@ -118,12 +118,12 @@ fetch_definition([], _E, _Module, _Set, _Bag, All, Private) ->
 add_defaults_to_meta(0, Meta) -> Meta;
 add_defaults_to_meta(Defaults, Meta) -> [{defaults, Defaults} | Meta].
 
-head_and_definition_meta(true, Meta, 0, _All) ->
+head_and_definition_meta(none, _Meta, _HeadDefaults, _All) ->
+  false;
+head_and_definition_meta(_, Meta, 0, _All) ->
   Meta;
-head_and_definition_meta(true, _Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
-  HeadMeta;
-head_and_definition_meta(false, _Meta, _HeadDefaults, _All) ->
-  false.
+head_and_definition_meta(_, _Meta, _HeadDefaults, [{_, _, HeadMeta, _} | _]) ->
+  HeadMeta.
 
 %% Section for storing definitions
 
@@ -135,7 +135,7 @@ store_definition(Kind, Key, Pos) ->
   {Call, Body} = elixir_module:read_cache(Module, Key),
   store_definition(Kind, true, Call, Body, E).
 
-store_definition(Kind, CheckClauses, Call, Body, #{line := Line} = E) ->
+store_definition(Kind, HasNoUnquote, Call, Body, #{line := Line} = E) ->
   {NameAndArgs, Guards} = elixir_utils:extract_guards(Call),
 
   {Name, Args} = case NameAndArgs of
@@ -158,7 +158,11 @@ store_definition(Kind, CheckClauses, Call, Body, #{line := Line} = E) ->
     _ -> Context
   end,
 
-  DoCheckClauses = (Context == []) andalso (CheckClauses),
+  CheckClauses = if
+    Context /= [] -> none;
+    HasNoUnquote -> all;
+    true -> unused_only
+  end,
 
   %% Check if there is a file information in the definition.
   %% If so, we assume this come from another source and
@@ -191,7 +195,7 @@ store_definition(Kind, CheckClauses, Call, Body, #{line := Line} = E) ->
   run_with_location_change(File, E, fun(EL) ->
     assert_no_aliases_name(DefMeta, Name, Args, EL),
     assert_valid_name(DefMeta, Kind, Name, Args, EL),
-    store_definition(DefMeta, Kind, DoCheckClauses, Name, Arity,
+    store_definition(DefMeta, Kind, CheckClauses, Name, Arity,
                      LinifyArgs, LinifyGuards, LinifyBody, ?key(E, file), EL)
   end).
 
@@ -210,7 +214,7 @@ store_definition(Meta, Kind, CheckClauses, Name, Arity, DefaultsArgs, Guards, Bo
 
   store_definition(CheckClauses, Kind, Meta, Name, Arity, File,
                    Module, DefaultsLength, Clauses),
-  [store_definition(false, Kind, Meta, Name, length(DefaultArgs), File,
+  [store_definition(none, Kind, Meta, Name, length(DefaultArgs), File,
                     Module, 0, [Default]) || {_, DefaultArgs, _, _} = Default <- Defaults],
 
   run_on_definition_callbacks(Kind, Module, Name, DefaultsArgs, Guards, Body, E),
@@ -264,10 +268,11 @@ run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
   _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- lists:reverse(Callbacks)],
   ok.
 
-store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses) ->
+store_definition(CheckClauses, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses) ->
   {Set, Bag} = elixir_module:data_tables(Module),
   Tuple = {Name, Arity},
   HasBody = Clauses =/= [],
+  CheckAll = CheckClauses == all,
 
   if
     Defaults > 0 ->
@@ -281,7 +286,7 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
       [{_, StoredKind, StoredMeta, StoredFile, StoredCheck, {StoredDefaults, LastHasBody, LastDefaults}}] ->
         check_valid_kind(Meta, File, Name, Arity, Kind, StoredKind, StoredFile, StoredMeta),
         check_valid_defaults(Meta, File, Name, Arity, Kind, Defaults, StoredDefaults, LastDefaults, HasBody, LastHasBody),
-        (Check and StoredCheck) andalso
+        (CheckAll and (StoredCheck == all)) andalso
           check_valid_clause(Meta, File, Name, Arity, Kind, Set, StoredMeta, StoredFile, Clauses),
 
         {max(Defaults, StoredDefaults), StoredMeta};
@@ -290,9 +295,9 @@ store_definition(Check, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses
         {Defaults, Meta}
     end,
 
-  Check andalso ets:insert(Set, {?last_def, Tuple}),
+  CheckAll andalso ets:insert(Set, {?last_def, Tuple}),
   ets:insert(Bag, [{{clauses, Tuple}, Clause} || Clause <- Clauses]),
-  ets:insert(Set, {{def, Tuple}, Kind, FirstMeta, File, Check, {MaxDefaults, HasBody, Defaults}}).
+  ets:insert(Set, {{def, Tuple}, Kind, FirstMeta, File, CheckClauses, {MaxDefaults, HasBody, Defaults}}).
 
 %% Handling of defaults
 

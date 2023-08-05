@@ -641,8 +641,18 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+
+    assert_warn_eval(
+      ["nofile:3: ", "function b/0 is unused\n"],
+      ~S"""
+      defmodule Sample5 do
+        def a, do: nil
+        defp b(), do: unquote(1)
+      end
+      """
+    )
   after
-    purge([Sample1, Sample2, Sample3, Sample4])
+    purge([Sample1, Sample2, Sample3, Sample4, Sample5])
   end
 
   test "unused cyclic functions" do
@@ -673,8 +683,19 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+
+    assert_warn_eval(
+      ["nofile:2: ", "macro hello/0 is unused\n"],
+      ~S"""
+      defmodule Sample2 do
+        defmacrop hello do
+          quote do: unquote(1)
+        end
+      end
+      """
+    )
   after
-    purge(Sample)
+    purge([Sample, Sample2])
   end
 
   test "shadowing" do
@@ -969,6 +990,24 @@ defmodule Kernel.WarningTest do
   end
 
   test "late function heads" do
+    assert_warn_eval(
+      [
+        "nofile:4\n",
+        "function head for def add/2 must come at the top of its direct implementation"
+      ],
+      """
+      defmodule Sample do
+        def add(a, b), do: a + b
+        @doc "hello"
+        def add(a, b)
+      end
+      """
+    )
+  after
+    purge(Sample)
+  end
+
+  test "late function heads do not warn for meta programming" do
     assert capture_eval("""
            defmodule Sample1 do
              defmacro __using__(_) do
@@ -985,19 +1024,16 @@ defmodule Kernel.WarningTest do
            end
            """) == ""
 
-    assert_warn_eval(
-      [
-        "nofile:4\n",
-        "function head for def add/2 must come at the top of its direct implementation"
-      ],
-      """
-      defmodule Sample3 do
-        def add(a, b), do: a + b
-        @doc "hello"
-        def add(a, b)
-      end
-      """
-    )
+    assert capture_eval("""
+           defmodule Sample3 do
+            for fun <- [:foo, :bar] do
+              def unquote(fun)(), do: unquote(fun)
+            end
+
+             def foo()
+             def bar()
+           end
+           """) == ""
   after
     purge([Sample1, Sample2, Sample3])
   end
@@ -1432,7 +1468,7 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample1.Atom])
   end
 
-  test "overridden def name" do
+  test "ungrouped def name" do
     assert_warn_eval(
       [
         "nofile:4\n",
@@ -1450,7 +1486,7 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "overridden def name and arity" do
+  test "ungrouped def name and arity" do
     assert_warn_eval(
       [
         "nofile:4\n",
@@ -1464,6 +1500,19 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+  after
+    purge(Sample)
+  end
+
+  test "ungrouped defs do not warn for meta programming" do
+    assert capture_eval("""
+           defmodule Sample do
+             for atom <- [:foo, :bar] do
+               def from_string(unquote(to_string(atom))), do: unquote(atom)
+               def to_string(unquote(atom)), do: unquote(to_string(atom))
+             end
+           end
+           """) == ""
   after
     purge(Sample)
   end
