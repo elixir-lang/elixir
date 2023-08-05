@@ -30,17 +30,35 @@ fun_to_quoted(Function) ->
 
 %% has_unquotes
 
-has_unquotes({unquote, _, [_]}) -> true;
-has_unquotes({unquote_splicing, _, [_]}) -> true;
-has_unquotes({{'.', _, [_, unquote]}, _, [_]}) -> true;
-has_unquotes({Var, _, Ctx}) when is_atom(Var), is_atom(Ctx) -> false;
-has_unquotes({Name, _, Args}) when is_list(Args) ->
-  has_unquotes(Name) orelse lists:any(fun has_unquotes/1, Args);
-has_unquotes({Left, Right}) ->
-  has_unquotes(Left) orelse has_unquotes(Right);
-has_unquotes(List) when is_list(List) ->
-  lists:any(fun has_unquotes/1, List);
-has_unquotes(_Other) -> false.
+has_unquotes(Ast) -> has_unquotes(Ast, 0).
+
+has_unquotes({quote, _, [Child]}, QuoteLevel) ->
+  has_unquotes(Child, QuoteLevel + 1);
+has_unquotes({quote, _, [QuoteOpts, Child]}, QuoteLevel) ->
+  case disables_unquote(QuoteOpts) of
+    true -> false;
+    _ -> has_unquotes(Child, QuoteLevel + 1)
+  end;
+has_unquotes({Unquote, _, [Child]}, QuoteLevel)
+  when (Unquote == unquote) orelse (Unquote == unquote_splicing) ->
+  case QuoteLevel of
+    0 -> true;
+    _ ->  has_unquotes(Child, QuoteLevel - 1)
+end;
+has_unquotes({{'.', _, [_, unquote]}, _, [_]}, _) -> true;
+has_unquotes({Var, _, Ctx}, _) when is_atom(Var), is_atom(Ctx) -> false;
+has_unquotes({Name, _, Args}, QuoteLevel) when is_list(Args) ->
+  has_unquotes(Name) orelse lists:any(fun(Child) -> has_unquotes(Child, QuoteLevel) end, Args);
+has_unquotes({Left, Right}, QuoteLevel) ->
+  has_unquotes(Left, QuoteLevel) orelse has_unquotes(Right, QuoteLevel);
+has_unquotes(List, QuoteLevel) when is_list(List) ->
+  lists:any(fun(Child) -> has_unquotes(Child, QuoteLevel) end, List);
+has_unquotes(_Other, _) -> false.
+
+disables_unquote([{unquote, false} | _]) -> true;
+disables_unquote([{bind_quoted, _} | _]) -> true;
+disables_unquote([_H | T]) -> disables_unquote(T);
+disables_unquote(_) -> false.
 
 %% Apply the line from site call on quoted contents.
 %% Receives a Key to look for the default line as argument.
