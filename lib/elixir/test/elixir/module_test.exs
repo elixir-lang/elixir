@@ -357,8 +357,10 @@ defmodule ModuleTest do
         def world, do: true
       end
 
-    assert_raise CompileError, fn ->
-      {:module, Elixir, _, _} = Module.create(Elixir, contents, __ENV__)
+    assert_raise CompileError, ~r/cannot compile module Elixir/, fn ->
+      Code.with_diagnostics(fn ->
+        Module.create(Elixir, contents, __ENV__)
+      end)
     end
   end
 
