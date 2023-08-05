@@ -751,7 +751,7 @@ defmodule StringTest do
   end
 
   test "slice/2" do
-    assert String.slice("elixir", 0..-2) == "elixi"
+    assert String.slice("elixir", 0..-2//1) == "elixi"
     assert String.slice("elixir", 1..3) == "lix"
     assert String.slice("elixir", -5..-3) == "lix"
     assert String.slice("elixir", -5..3) == "lix"
@@ -770,15 +770,19 @@ defmodule StringTest do
     assert String.slice("ειξήριολ", 9..9) == ""
     assert String.slice("", 0..0) == ""
     assert String.slice("", 1..1) == ""
-    assert String.slice("あいうえお", -2..-4) == ""
-    assert String.slice("あいうえお", -10..-15) == ""
-    assert String.slice("hello あいうえお Unicode", 8..-1) == "うえお Unicode"
+    assert String.slice("あいうえお", -2..-4//1) == ""
+    assert String.slice("あいうえお", -10..-15//1) == ""
+    assert String.slice("hello あいうえお Unicode", 8..-1//1) == "うえお Unicode"
     assert String.slice("abc", -1..14) == "c"
-    assert String.slice("a·̀ͯ‿.⁀:", 0..-2) == "a·̀ͯ‿.⁀"
+    assert String.slice("a·̀ͯ‿.⁀:", 0..-2//1) == "a·̀ͯ‿.⁀"
 
     assert_raise FunctionClauseError, fn ->
       String.slice(nil, 0..1)
     end
+
+    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+             assert String.slice("elixir", 0..-2) == "elixi"
+           end) =~ "negative steps are not supported in String.slice/2, pass 0..-2//1 instead"
   end
 
   test "slice/2 with steps" do

@@ -2231,7 +2231,7 @@ defmodule String do
   If the first position is after the string ends or after
   the last position of the range, it returns an empty string:
 
-      iex> String.slice("elixir", 10..3)
+      iex> String.slice("elixir", 10..3//1)
       ""
       iex> String.slice("a", 1..1500)
       ""

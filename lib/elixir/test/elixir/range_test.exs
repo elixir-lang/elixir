@@ -220,7 +220,11 @@ defmodule RangeTest do
       assert Enum.member?(desc, 2)
       assert Enum.count(desc) == 3
       assert Enum.drop(desc, 1) == [2, 1]
-      assert Enum.slice([1, 2, 3, 4, 5, 6], desc) == []
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert Enum.slice([1, 2, 3, 4, 5, 6], desc) == []
+             end) =~ "negative steps are not supported in Enum.slice/2, pass 3..1//1 instead"
+
       # testing private Enum.aggregate
       assert Enum.max(desc) == 3
       assert Enum.sum(desc) == 6
@@ -233,7 +237,10 @@ defmodule RangeTest do
       desc = %{__struct__: Range, first: 3, last: 1}
 
       assert String.slice("elixir", asc) == "lix"
-      assert String.slice("elixir", desc) == ""
+
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               assert String.slice("elixir", desc) == ""
+             end) =~ "negative steps are not supported in String.slice/2, pass 3..1//1 instead"
     end
   end
 end
