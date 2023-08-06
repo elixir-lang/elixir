@@ -1342,8 +1342,21 @@ defmodule UndefinedFunctionError do
       hint_for_loaded_module(module, function, arity, nil)
   end
 
-  defp hint(_module, _function, _arity, _loaded?) do
-    ""
+  defp hint(module, function, arity, _loaded?) do
+    {module, _distance} =
+      Enum.map(:code.all_available(), fn {name, _, _} ->
+        {name, String.jaro_distance(to_string(module), to_string(name))}
+      end)
+      |> Enum.sort_by(&elem(&1, 1), :desc)
+      |> Enum.take(3)
+      |> Enum.find(fn {module, _distance} ->
+        module
+        |> to_string()
+        |> String.to_atom()
+        |> function_exported?(function, arity)
+      end)
+
+    ". Did you mean:\n\n      * #{Exception.format_mfa(String.to_existing_atom(to_string(module)), function, arity)}\n"
   end
 
   @doc false

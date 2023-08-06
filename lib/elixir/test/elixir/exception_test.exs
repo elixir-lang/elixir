@@ -595,6 +595,14 @@ defmodule ExceptionTest do
       assert message =~ "* set_cookie/2"
     end
 
+    test "annotates undefined function error with module suggestions" do
+      assert blame_message(Enu, & &1.map(&1, 1)) == """
+             function Enu.map/2 is undefined (module Enu is not available). Did you mean:
+
+                   * Enum.map/2
+             """
+    end
+
     test "annotates undefined function clause error with macro hints" do
       assert blame_message(Integer, & &1.is_odd(1)) ==
                "function Integer.is_odd/1 is undefined or private. However, there is " <>
