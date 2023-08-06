@@ -671,7 +671,7 @@ defmodule Mix do
       configuration. The configuration is part of the `Mix.install/2` cache, so
       different configurations will lead to different apps. For this reason, you
       want to minimize the amount of configuration set through this option.
-      Use `Application.put_all_env/4` for setting other runtime configuration.
+      Use `Application.put_all_env/2` for setting other runtime configuration.
 
     * `:config_path` (since v1.14.0) - path to a configuration file. If a `runtime.exs`
       file exists in the same directory as the given path, it is loaded too.
