@@ -90,6 +90,18 @@ defmodule IO.ANSITest do
     assert_raise ArgumentError, "invalid ANSI sequence specification: nil", fn ->
       IO.ANSI.format(["Hello!", nil], true)
     end
+
+    assert_raise ArgumentError, "invalid ANSI sequence specification: :brigh", fn ->
+      IO.ANSI.format([:brigh, "Hello!"], false)
+    end
+
+    assert_raise ArgumentError, "invalid ANSI sequence specification: nil", fn ->
+      IO.ANSI.format(["Hello!", nil], false)
+    end
+
+    assert_raise ArgumentError, "invalid ANSI sequence specification: :invalid", fn ->
+      IO.ANSI.format(:invalid, false)
+    end
   end
 
   test "colors" do
