@@ -274,6 +274,8 @@ defmodule IO.ANSI do
   emitting actual ANSI codes. When `false`, no ANSI codes will be emitted.
   By default checks if ANSI is enabled using the `enabled?/0` function.
 
+  An `ArgumentError` will be raised if an invalid ANSI code is provided.
+
   ## Examples
 
       iex> IO.ANSI.format(["Hello, ", :red, :bright, "world!"], true)
@@ -315,6 +317,7 @@ defmodule IO.ANSI do
   end
 
   defp do_format(term, rem, acc, false, append_reset) when is_atom(term) do
+    format_sequence(term)
     do_format([], rem, acc, false, append_reset)
   end
 
