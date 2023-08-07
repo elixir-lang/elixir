@@ -5,6 +5,8 @@ defmodule Kernel.DiagnosticsTest do
 
   import ExUnit.CaptureIO
 
+  alias Mix.Task.Compiler.Diagnostic
+
   setup do
     Application.put_env(:elixir, :ansi_enabled, false)
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
@@ -681,6 +683,49 @@ defmodule Kernel.DiagnosticsTest do
       assert output == expected
     after
       purge(Sample)
+    end
+  end
+
+  describe "Code.print_diagnostic" do
+    @tag :tmp_dir
+    test "handles diagnostic length", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "diagnostic_length.ex")
+
+      diagnostic = %Diagnostic{
+        file: path,
+        severity: :error,
+        message: "Diagnostic length test",
+        position: {4, 7},
+        length: 3,
+        compiler_name: "Elixir"
+      }
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def bar do
+          nil
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      result =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Code.print_diagnostic(diagnostic)
+        end)
+
+      assert result == """
+                 error: Diagnostic length test
+                 │
+               4 │   def bar do
+                 │       ^^^
+                 │
+                 └─ #{path}:4:7
+
+             """
     end
   end
 
