@@ -26,7 +26,7 @@ defmodule Mix.Tasks.Cmd do
 
       $ mix do --app app1 --app app2 cmd pwd
 
-  The tasks aborts whenenever a command exits with a non-zero status.
+  The tasks aborts whenever a command exits with a non-zero status.
 
   This task is automatically re-enabled, so it can be called multiple times
   with different arguments.

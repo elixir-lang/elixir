@@ -159,7 +159,7 @@ end
 
 ### Sigils
 
-Sigils start with `~` and are followed by one lowercase letter or by one or more uppercase letters, immediatelly followed by one of the following pairs:
+Sigils start with `~` and are followed by one lowercase letter or by one or more uppercase letters, immediately followed by one of the following pairs:
 
   * `(` and `)`
   * `{` and `}`

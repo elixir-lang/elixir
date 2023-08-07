@@ -457,7 +457,7 @@ defmodule Logger do
   ## Examples
 
   `Logger` will automatically load a default formatter into the default handler
-  on boot. However, you can use this function if you wish to programatically replace
+  on boot. However, you can use this function if you wish to programmatically replace
   a handler formatter. For example, inside tests, you might want to change the formatter
   settings:
 
