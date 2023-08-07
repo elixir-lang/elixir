@@ -72,7 +72,7 @@ defmodule DateTime do
   rules, ultimately affecting the result. For example, a country may
   choose to enter or abandon "Daylight Saving Time", which is a
   process where we adjust the clock one hour forward or one hour
-  back once per year. Whenener the rules change, the exact instant
+  back once per year. Whenever the rules change, the exact instant
   that 2:30 AM in Polish time will be in Brazil may change.
 
   In other words, whenever working with future DateTimes, there is

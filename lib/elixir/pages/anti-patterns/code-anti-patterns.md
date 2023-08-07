@@ -81,7 +81,7 @@ def get_customer(customer_id) do
           {:ok, customer}
 
         {:error, _} ->
-          {:error, "invalid reponse body"}
+          {:error, "invalid response body"}
       end
 
     {:error, %{status: status, body: body}} ->
@@ -90,7 +90,7 @@ def get_customer(customer_id) do
           {:error, message}
 
         %{} ->
-          {:error, "invalid reponse with status #{status}"}
+          {:error, "invalid response with status #{status}"}
       end
   end
 end

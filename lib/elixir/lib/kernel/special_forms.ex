@@ -349,7 +349,7 @@ defmodule Kernel.SpecialForms do
 
   Or as a part of function definitions to pattern match:
 
-      defmodule ImageTyper do
+      defmodule ImageType do
         @png_signature <<137::size(8), 80::size(8), 78::size(8), 71::size(8),
                          13::size(8), 10::size(8), 26::size(8), 10::size(8)>>
         @jpg_signature <<255::size(8), 216::size(8)>>
