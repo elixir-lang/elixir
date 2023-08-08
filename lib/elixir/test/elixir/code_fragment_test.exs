@@ -209,7 +209,10 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("hello.(\n") == {:anonymous_call, {:var, ~c"hello"}}
       assert CF.cursor_context("hello.(\r\n") == {:anonymous_call, {:var, ~c"hello"}}
 
+      assert CF.cursor_context("hello . (") == {:anonymous_call, {:var, ~c"hello"}}
+
       assert CF.cursor_context("@hello.(") == {:anonymous_call, {:module_attribute, ~c"hello"}}
+      assert CF.cursor_context("@hello . (") == {:anonymous_call, {:module_attribute, ~c"hello"}}
     end
 
     test "nested expressions" do
