@@ -246,20 +246,23 @@ defmodule Code.Fragment do
     end
   end
 
-  defp call_to_cursor_context({[?., h | t], spaces}) when h not in @non_identifier do
-    case identifier_to_cursor_context([h | t], spaces, true) do
-      {{:local_or_var, acc}, count} -> {{:anonymous_call, {:var, acc}}, count + 1}
-      {{:module_attribute, _} = attr, count} -> {{:anonymous_call, attr}, count + 1}
-      {_, _} -> {:none, 0}
-    end
-  end
-
   defp call_to_cursor_context({reverse, spaces}) do
-    case identifier_to_cursor_context(reverse, spaces, true) do
-      {{:local_or_var, acc}, count} -> {{:local_call, acc}, count}
-      {{:dot, base, acc}, count} -> {{:dot_call, base, acc}, count}
-      {{:operator, acc}, count} -> {{:operator_call, acc}, count}
-      {_, _} -> {:none, 0}
+    with [?. | rest] <- reverse,
+         {rest, spaces} = strip_spaces(rest, spaces),
+         [h | _] when h not in @non_identifier <- rest do
+      case identifier_to_cursor_context(rest, spaces, true) do
+        {{:local_or_var, acc}, count} -> {{:anonymous_call, {:var, acc}}, count + 1}
+        {{:module_attribute, _} = attr, count} -> {{:anonymous_call, attr}, count + 1}
+        {_, _} -> {:none, 0}
+      end
+    else
+      _ ->
+        case identifier_to_cursor_context(reverse, spaces, true) do
+          {{:local_or_var, acc}, count} -> {{:local_call, acc}, count}
+          {{:dot, base, acc}, count} -> {{:dot_call, base, acc}, count}
+          {{:operator, acc}, count} -> {{:operator_call, acc}, count}
+          {_, _} -> {:none, 0}
+        end
     end
   end
 
