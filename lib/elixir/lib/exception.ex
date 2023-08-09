@@ -1346,8 +1346,7 @@ defmodule UndefinedFunctionError do
     downcased_module = downcase_module_name(module)
 
     candidate =
-      :code.all_available()
-      |> Enum.find(fn {name, _, _} ->
+      Enum.find(:code.all_available(), fn {name, _, _} ->
         downcase_module_name(name) == downcased_module
       end)
 
