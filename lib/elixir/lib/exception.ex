@@ -1352,7 +1352,7 @@ defmodule UndefinedFunctionError do
       end)
 
     with {_, _, _} <- candidate,
-         {:module, module} <- load_module_filename(candidate),
+         {:module, module} <- load_module(candidate),
          true <- function_exported?(module, function, arity) do
       ". Did you mean:\n\n      * #{Exception.format_mfa(module, function, arity)}\n"
     else
@@ -1360,7 +1360,7 @@ defmodule UndefinedFunctionError do
     end
   end
 
-  defp load_module_filename({name, _path, _loaded?}) do
+  defp load_module({name, _path, _loaded?}) do
     name
     |> to_string()
     |> String.to_atom()
