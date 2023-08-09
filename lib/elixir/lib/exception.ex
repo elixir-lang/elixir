@@ -1343,20 +1343,38 @@ defmodule UndefinedFunctionError do
   end
 
   defp hint(module, function, arity, _loaded?) do
-    {module, _distance} =
-      Enum.map(:code.all_available(), fn {name, _, _} ->
-        {name, String.jaro_distance(to_string(module), to_string(name))}
-      end)
-      |> Enum.sort_by(&elem(&1, 1), :desc)
-      |> Enum.take(3)
-      |> Enum.find(fn {module, _distance} ->
-        module
-        |> to_string()
-        |> String.to_atom()
-        |> function_exported?(function, arity)
+    normalized_module = normalized_module_name(module)
+
+    candidate =
+      :code.all_available()
+      |> Enum.find(fn {name, _, _} ->
+        normalized_module_name(name) == normalized_module
       end)
 
-    ". Did you mean:\n\n      * #{Exception.format_mfa(String.to_existing_atom(to_string(module)), function, arity)}\n"
+    with {_, _, _} <- candidate,
+         {:module, module} <- load_module_filename(candidate),
+         true <- function_exported?(module, function, arity) do
+      ". Did you mean:\n\n      * #{Exception.format_mfa(module, function, arity)}\n"
+    else
+      _ -> ""
+    end
+  end
+
+  defp load_module_filename({name, path, loaded?}) do
+    if loaded? do
+      {:module, name |> to_string() |> String.to_existing_atom()}
+    else
+      path
+      |> Path.rootname(".beam")
+      |> String.to_charlist()
+      |> :code.load_abs()
+    end
+  end
+
+  defp normalized_module_name(module) do
+    module
+    |> to_string()
+    |> String.downcase()
   end
 
   @doc false
