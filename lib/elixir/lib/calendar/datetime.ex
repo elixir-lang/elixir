@@ -93,7 +93,7 @@ defmodule DateTime do
   explicitly say which occurence of 2:30 AM you mean: the one in
   "Summer Time", which occurs before the shift, or the one
   in "Standard Time", which occurs after it. Applications that are
-  date and time sensitive, need to take these scenarios into account
+  date and time sensitive need to take these scenarios into account
   and correctly communicate them to users.
 
   The good news is: Elixir contains all of the building blocks
@@ -105,21 +105,23 @@ defmodule DateTime do
   example, look at how `DateTime.new/4` returns different results
   based on the scenarios described in this section.
 
-  ## Converting between Timezones
+  ## Converting between timezones
 
   Bearing in mind the cautions above, and assuming you've brought in a full
-  timezone database - here are some examples of common shifts between time
+  timezone database, here are some examples of common shifts between time
   zones.
 
-      # local time to UTC
-      {:ok, ny} = DateTime.from_naive(~N[2023-06-26T09:30:00], "America/New_York")
-      {:ok, #DateTime<2023-06-26 09:30:00-04:00 EDT America/New_York>}
-      {:ok, utc} = DateTime.shift_zone(ny, "Etc/UTC")
-      {:ok, ~U[2023-06-26 13:30:00Z]}
+      # Local time to UTC
+      new_york = DateTime.from_naive!(~N[2023-06-26T09:30:00], "America/New_York")
+      #=> #DateTime<2023-06-26 09:30:00-04:00 EDT America/New_York>
+      
+      utc = DateTime.shift_zone!(new_york, "Etc/UTC")
+      #=> ~U[2023-06-26 13:30:00Z]
 
       # UTC to local time
-      DateTime.shift_zone(utc, "Europe/Paris")
-      {:ok, #DateTime<2023-06-26 15:30:00+02:00 CEST Europe/Paris>}
+      DateTime.shift_zone!(utc, "Europe/Paris")
+      #=> #DateTime<2023-06-26 15:30:00+02:00 CEST Europe/Paris>
+
   """
 
   @enforce_keys [:year, :month, :day, :hour, :minute, :second] ++
