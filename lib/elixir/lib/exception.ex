@@ -1343,12 +1343,12 @@ defmodule UndefinedFunctionError do
   end
 
   defp hint(module, function, arity, _loaded?) do
-    normalized_module = normalized_module_name(module)
+    downcased_module = downcase_module_name(module)
 
     candidate =
       :code.all_available()
       |> Enum.find(fn {name, _, _} ->
-        normalized_module_name(name) == normalized_module
+        downcase_module_name(name) == downcased_module
       end)
 
     with {_, _, _} <- candidate,
@@ -1360,18 +1360,14 @@ defmodule UndefinedFunctionError do
     end
   end
 
-  defp load_module_filename({name, path, loaded?}) do
-    if loaded? do
-      {:module, name |> to_string() |> String.to_existing_atom()}
-    else
-      path
-      |> Path.rootname(".beam")
-      |> String.to_charlist()
-      |> :code.load_abs()
-    end
+  defp load_module_filename({name, _path, _loaded?}) do
+    name
+    |> to_string()
+    |> String.to_atom()
+    |> Code.ensure_loaded()
   end
 
-  defp normalized_module_name(module) do
+  defp downcase_module_name(module) do
     module
     |> to_string()
     |> String.downcase()
