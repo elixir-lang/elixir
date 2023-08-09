@@ -284,11 +284,11 @@ defmodule Module.Types.Of do
   defp check_deprecated(:erlang, module, fun, arity, _reason, meta, context) do
     case :otp_internal.obsolete(module, fun, arity) do
       {:deprecated, string} when is_list(string) ->
-        reason = string |> List.to_string() |> String.capitalize()
+        reason = string |> List.to_string() |> :string.titlecase()
         warn(meta, context, {:deprecated, module, fun, arity, reason})
 
       {:deprecated, string, removal} when is_list(string) and is_list(removal) ->
-        reason = string |> List.to_string() |> String.capitalize()
+        reason = string |> List.to_string() |> :string.titlecase()
         reason = "It will be removed in #{removal}. #{reason}"
         warn(meta, context, {:deprecated, module, fun, arity, reason})
 
