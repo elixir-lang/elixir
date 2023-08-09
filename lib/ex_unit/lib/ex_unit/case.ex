@@ -431,7 +431,7 @@ defmodule ExUnit.Case do
 
   When using Mix, you can run all tests in a describe block by name:
 
-      $ mix test --only describe:"String.capitalize/1"
+      $ mix test --only describe:"String.downcase/1"
 
   or by passing the exact line the describe block starts on:
 
