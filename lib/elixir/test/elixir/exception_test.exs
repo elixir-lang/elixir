@@ -595,6 +595,17 @@ defmodule ExceptionTest do
       assert message =~ "* set_cookie/2"
     end
 
+    test "annotates undefined function error with module suggestions" do
+      assert blame_message(ENUM, & &1.map(&1, 1)) == """
+             function ENUM.map/2 is undefined (module ENUM is not available). Did you mean:
+
+                   * Enum.map/2
+             """
+
+      assert blame_message(ENUM, & &1.not_a_function(&1, 1)) ==
+               "function ENUM.not_a_function/2 is undefined (module ENUM is not available)"
+    end
+
     test "annotates undefined function clause error with macro hints" do
       assert blame_message(Integer, & &1.is_odd(1)) ==
                "function Integer.is_odd/1 is undefined or private. However, there is " <>
