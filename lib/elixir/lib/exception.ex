@@ -1362,8 +1362,7 @@ defmodule UndefinedFunctionError do
 
   defp load_module({name, _path, _loaded?}) do
     name
-    |> to_string()
-    |> String.to_atom()
+    |> List.to_atom()
     |> Code.ensure_loaded()
   end
 
