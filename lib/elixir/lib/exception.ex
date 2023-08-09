@@ -1370,7 +1370,7 @@ defmodule UndefinedFunctionError do
   defp downcase_module_name(module) do
     module
     |> to_string()
-    |> String.downcase()
+    |> String.downcase(:ascii)
   end
 
   @doc false
