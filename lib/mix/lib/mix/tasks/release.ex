@@ -115,15 +115,12 @@ defmodule Mix.Tasks.Release do
   distribution. For example, if you need to do some prep work before
   running the actual system, like migrating your database, `eval` can
   be a good fit. Just keep in mind any application you may use during
-  eval has to be explicitly loaded and/or started.
+  eval has to be explicitly started.
 
   You can start an application by calling `Application.ensure_all_started/1`.
-  However, if for some reason you cannot start an application, maybe
-  because it will run other services you do not want, you must at least
-  load the application by calling `Application.load/1`. If you don't
-  load the application, any attempt at reading its environment or
-  configuration may fail. Note that if you start an application,
-  it is automatically loaded before started.
+  From Elixir v1.16, it is guaranteed the applications have been
+  at least loaded. In earlier versions, if you needed to load applications
+  but not start them, you also needed to call `Application.load/1`.
 
   Another way to run commands is with `rpc`, which will connect to the
   system currently running and instruct it to execute the given
