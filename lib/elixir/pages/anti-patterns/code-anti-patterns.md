@@ -321,66 +321,74 @@ This anti-pattern was formerly known as [Accessing non-existent Map/Struct field
 
 #### Problem
 
-An `Atom` is a basic data type of Elixir whose value is its own name. *Atoms* are often useful to identify resources or express the state or result of an operation. Creatings *atoms* dynamically is not an anti-pattern by itself; however, *atoms* are not collected by the BEAM's garbage collector, so values of this type live in memory while software is executing, during its entire lifetime. Also, BEAM limits the number of *atoms* that can exist in an application (*1_048_576* by default) and each *atom* has a maximum size limited to 255 Unicode code points. For these reasons, creating *atoms* dynamically is considered an anti-pattern, since in this way the developer has no control over how many *atoms* will be created during the software execution. This unpredictable scenario can expose the software to unexpected behavior caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
+An `Atom` is a basic data type of Elixir whose value is its own name. *Atoms* are often useful to identify resources or express the state or result of an operation. Creatings *atoms* dynamically is not an anti-pattern by itself; however, *atoms* are not collected by the BEAM's garbage collector, so values of this type live in memory while software is executing, during its entire lifetime. Also, BEAM limits the number of *atoms* that can exist in an application (*1_048_576* by default) and each *atom* has a maximum size limited to 255 Unicode code points. For these reasons, creating *atoms* dynamically can be considered an anti-pattern in some situations, since in this way the developer has no control over how many *atoms* will be created during the software execution. This unpredictable scenario can expose the software to unexpected behavior caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
 
 #### Example
 
-Imagine that you are implementing a code that performs the conversion of *string* values into *atoms* to identify resources. These *strings* can come from user input or even have been received as response from requests to an API. As this is a dynamic and unpredictable scenario, it is possible for identical *strings* to be converted into new *atoms* that are repeated unnecessarily. This kind of conversion, in addition to wasting memory, can be problematic for the software if it happens too often.
+Picture yourself implementing code that converts *string* values into *atoms*. These *strings* could have been received as responses to API requests, for instance. This dynamic and unpredictable scenario poses a security risk, as these uncontrolled conversions can potentially trigger out-of-memory errors.
 
 ```elixir
-defmodule Identifier do
-  def generate(id) when is_binary(id) do
-    String.to_atom(id)  #<= dynamic atom creation!!
+defmodule API do
+  def request(foo) do
+    #Some other code...
+
+    case foo do
+      "bar" -> %{code: 110, type: "error"}
+      "qux" -> %{code: 112, type: "ok"}
+    end
+  end
+  
+  def generate_atom(response) when is_map(response)
+    String.to_atom(response.type)  #<= dynamic atom creation!!
   end
 end
 ```
 
 ```elixir
-iex> string_from_user_input = "my_id"
-"my_id"
-iex> string_from_api_response = "my_id"
-"my_id"
-iex> Identifier.generate(string_from_user_input)
-:my_id
-iex> Identifier.generate(string_from_API_response)
-:my_id   #<= atom repeated was created!
+iex> API.request("bar") |> API.generate_atom()
+:error
+iex> API.request("qux") |> API.generate_atom()
+:ok
 ```
 
-When we use the `String.to_atom/1` function to dynamically create an *atom*, it is created regardless of whether there is already another one with the same value in memory, so when this happens automatically, we will not have control over meeting the limits established by BEAM.
+When we use the `String.to_atom/1` function to dynamically create an *atom* in an API, it essentially gains potential access to create arbitrary *atoms* in our system, causing us to lose control over adhering to the limits established by the BEAM. This issue could be exploited by someone to create enough *atoms* to shut down a system.
 
 #### Refactoring
 
-To remove this anti-pattern, we must ensure that all the identifier *atoms* are created statically, only once, at the beginning of an application's execution:
+To eliminate this anti-pattern, before any string-to-atom conversion takes place, we must ensure that all potential *atoms* to be created from *string* conversions are statically defined in the module where these conversions will occur. Next, you should replace the use of the `String.to_atom/1` function with the `String.to_existing_atom/1` function. This will allow us to have greater control over which *atoms* can be created by the API, as only those *atoms* loaded at the module level will be convertible from *strings*.
 
 ```elixir
-# statically created atoms...
-_ = :my_id
-_ = :my_id2
-_ = :my_id3
-_ = :my_id4
-```
+defmodule API do
+  # statically created atoms
+  _ = :error
+  _ = :ok
+  
+  def request(foo) do
+    #Some other code...
 
-Next, you should replace the use of the `String.to_atom/1` function with the `String.to_existing_atom/1` function. This will allow string-to-atom conversions to just map the strings to atoms already in memory (statically created at the beginning of the execution), thus preventing repeated *atoms* from being created dynamically. This second part of the refactoring is presented below.
-
-```elixir
-defmodule Identifier do
-  def generate(id) when is_binary(id) do
-    String.to_existing_atom(id)  #<= just maps a string to an existing atom!
+    case foo do
+      "bar" -> %{code: 110, type: "error"}
+      "qux" -> %{code: 112, type: "ok"}
+    end
+  end
+  
+  def generate_atom(response) when is_map(response) do
+    String.to_existing_atom(response.type)  #<= just maps a string to an existing atom!
   end
 end
 ```
 
 ```elixir
-iex> Identifier.generate("my_id")
-:my_id
-iex> Identifier.generate("my_id2")
-:my_id2
-iex> Identifier.generate("non_existent_id")
+iex> API.request("bar") |> API.generate_atom()
+:error
+iex> API.request("qux") |> API.generate_atom()
+:ok
+iex> API.generate_atom(%{code: 113, type: "exploit"})
 ** (ArgumentError) errors were found at the given arguments:
 * 1st argument: not an already existing atom
 ```
 
-Note that in the third use example, when a *string* different from an already existing *atom* is given, Elixir shows an error instead of performing the conversion. This demonstrates that this refactoring creates a more controlled and predictable scenario for the application in terms of memory usage.
+Note that in the third use example, when a *string* different from an already existing *atom* is given, Elixir shows an error instead of performing the conversion. This demonstrates that this refactoring creates a more controlled and predictable scenario for the application in terms of memory usage and security.
 
 ## Namespace trespassing
 
