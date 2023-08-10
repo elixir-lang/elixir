@@ -355,14 +355,15 @@ When we use the `String.to_atom/1` function to dynamically create an *atom* in a
 
 #### Refactoring
 
-To eliminate this anti-pattern, before any string-to-atom conversion takes place, we must ensure that all potential *atoms* to be created from *string* conversions are statically defined in the module where these conversions will occur. Next, you should replace the use of the `String.to_atom/1` function with the `String.to_existing_atom/1` function. This will allow us to have greater control over which *atoms* can be created by the API, as only those *atoms* loaded at the module level will be convertible from *strings*.
+To eliminate this anti-pattern, before any string-to-atom conversion takes place, we must ensure that all potential *atoms* to be created from *string* conversions are statically defined in the module where these conversions will occur. We do this via the function `static_atom_creation/0`. Next, you should replace the use of the `String.to_atom/1` function with the `String.to_existing_atom/1` function. This will allow us to have greater control over which *atoms* can be created by the API, as only those *atoms* loaded at the module level will be convertible from *strings*.
 
 ```elixir
 defmodule API do
-  # statically created atoms
-  _ = :error
-  _ = :ok
-  
+  defp static_atom_creation() do
+    _ = :error
+    _ = :ok
+  end
+
   def request(foo) do
     #Some other code...
 
@@ -373,6 +374,7 @@ defmodule API do
   end
   
   def generate_atom(response) when is_map(response) do
+    static_atom_creation()
     String.to_existing_atom(response.type)  #<= just maps a string to an existing atom!
   end
 end
