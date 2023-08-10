@@ -1342,8 +1342,33 @@ defmodule UndefinedFunctionError do
       hint_for_loaded_module(module, function, arity, nil)
   end
 
-  defp hint(_module, _function, _arity, _loaded?) do
-    ""
+  defp hint(module, function, arity, _loaded?) do
+    downcased_module = downcase_module_name(module)
+
+    candidate =
+      Enum.find(:code.all_available(), fn {name, _, _} ->
+        downcase_module_name(name) == downcased_module
+      end)
+
+    with {_, _, _} <- candidate,
+         {:module, module} <- load_module(candidate),
+         true <- function_exported?(module, function, arity) do
+      ". Did you mean:\n\n      * #{Exception.format_mfa(module, function, arity)}\n"
+    else
+      _ -> ""
+    end
+  end
+
+  defp load_module({name, _path, _loaded?}) do
+    name
+    |> List.to_atom()
+    |> Code.ensure_loaded()
+  end
+
+  defp downcase_module_name(module) do
+    module
+    |> to_string()
+    |> String.downcase(:ascii)
   end
 
   @doc false

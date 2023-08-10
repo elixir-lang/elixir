@@ -22,6 +22,7 @@
   * [Date] Deprecate inferring a range with negative step, call `Date.range/3` with a negative step instead
   * [Enum] Deprecate passing a range with negative step on `Enum.slice/2`, give `first..last//1` instead
   * [String] Deprecate passing a range with negative step on `String.slice/2`, give `first..last//1` instead
+  * [String] Deprecate `capitalize` in favor of Erlang's `:string.titlecase/1`
 
 #### ExUnit
 

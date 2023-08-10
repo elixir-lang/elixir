@@ -823,6 +823,7 @@ defmodule String do
       iex> String.upcase("ıi", :turkic)
       "Iİ"
 
+  Also see `String.downcase/2` and Erlang's `:string.titlecase/1` for other conversions.
   """
   @spec upcase(t, :default | :ascii | :greek | :turkic) :: t
   def upcase(string, mode \\ :default)
@@ -856,6 +857,8 @@ defmodule String do
   all non-conditional transformations outlined in the Unicode standard. `:ascii`
   lowercases only the letters A to Z. `:greek` includes the context sensitive
   mappings found in Greek. `:turkic` properly handles the letter i with the dotless variant.
+
+  Also see `String.upcase/2` and Erlang's `:string.titlecase/1` for other conversions.
 
   ## Examples
 
@@ -917,28 +920,8 @@ defmodule String do
   defp downcase_ascii(<<char, rest::bits>>), do: [char | downcase_ascii(rest)]
   defp downcase_ascii(<<>>), do: []
 
-  @doc """
-  Converts the first character in the given string to
-  uppercase and the remainder to lowercase according to `mode`.
-
-  `mode` may be `:default`, `:ascii`, `:greek` or `:turkic`. The `:default` mode considers
-  all non-conditional transformations outlined in the Unicode standard. `:ascii`
-  capitalizes only the letters A to Z. `:greek` includes the context sensitive
-  mappings found in Greek. `:turkic` properly handles the letter i with the dotless variant.
-
-  ## Examples
-
-      iex> String.capitalize("abcd")
-      "Abcd"
-
-      iex> String.capitalize("ﬁn")
-      "Fin"
-
-      iex> String.capitalize("olá")
-      "Olá"
-
-  """
-  @spec capitalize(t, :default | :ascii | :greek | :turkic) :: t
+  @doc false
+  @deprecated "Use :string.titlecase instead"
   def capitalize(string, mode \\ :default)
 
   def capitalize(<<char, rest::binary>>, :ascii) do
@@ -947,8 +930,10 @@ defmodule String do
   end
 
   def capitalize(string, mode) when is_binary(string) do
-    {char, rest} = String.Unicode.titlecase_once(string, mode)
-    char <> downcase(rest, mode)
+    case next_grapheme(string) do
+      {left, right} -> :string.titlecase(left) <> downcase(right, mode)
+      nil -> string
+    end
   end
 
   @doc false
