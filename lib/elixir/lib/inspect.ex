@@ -426,38 +426,36 @@ defimpl Inspect, for: Function do
   def inspect(function, _opts) do
     fun_info = Function.info(function)
     mod = fun_info[:module]
-    name = fun_info[:name]
 
     cond do
       not is_atom(mod) ->
-        "#Function<#{uniq(fun_info)}/#{fun_info[:arity]}>"
+        to_str("#{uniq(fun_info)}/#{fun_info[:arity]}")
 
-      fun_info[:type] == :external and fun_info[:env] == [] ->
-        inspected_as_atom = Macro.inspect_atom(:literal, mod)
-        inspected_as_function = Macro.inspect_atom(:remote_call, name)
-        "&#{inspected_as_atom}.#{inspected_as_function}/#{fun_info[:arity]}"
+      is_named_func?(fun_info[:type], fun_info[:env]) ->
+        inspect_atom = Macro.inspect_atom(:literal, mod)
+        inspect_fun = Macro.inspect_atom(:remote_call, fun_info[:name])
+        "&#{inspect_atom}.#{inspect_fun}/#{fun_info[:arity]}"
 
-      match?(@elixir_compiler ++ _, Atom.to_charlist(mod)) ->
-        if function_exported?(mod, :__RELATIVE__, 0) do
-          "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
-        else
-          default_inspect(mod, fun_info)
-        end
+      exported?(mod) ->
+        to_str("#{uniq(fun_info)} in file:#{mod.__RELATIVE__}")
 
       true ->
-        default_inspect(mod, fun_info)
+        inspect_atom = Macro.inspect_atom(:literal, mod)
+        extracted_name = extract_name(fun_info[:name])
+        to_str("#{uniq(fun_info)}/#{fun_info[:arity]} in #{inspect_atom}#{extracted_name}")
     end
   end
 
-  defp default_inspect(mod, fun_info) do
-    inspected_as_atom = Macro.inspect_atom(:literal, mod)
-    extracted_name = extract_name(fun_info[:name])
-    "#Function<#{uniq(fun_info)}/#{fun_info[:arity]} in #{inspected_as_atom}#{extracted_name}>"
+  defp is_named_func?(:external, []), do: true
+  defp is_named_func?(_, _), do: false
+  defp to_str(f), do: "#Function<#{f}>"
+
+  defp exported?(mod) do
+    match?(@elixir_compiler ++ _, Atom.to_charlist(mod)) &&
+      function_exported?(mod, :__RELATIVE__, 0)
   end
 
-  defp extract_name([]) do
-    ""
-  end
+  defp extract_name([]), do: ""
 
   defp extract_name(name) do
     case Identifier.extract_anonymous_fun_parent(name) do
