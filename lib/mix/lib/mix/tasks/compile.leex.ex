@@ -23,9 +23,9 @@ defmodule Mix.Tasks.Compile.Leex do
 
   ## Command line options
 
+    * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
+      (default is true except on errors)
     * `--force` - forces compilation regardless of modification times
-
-    * `--no-all-warnings` - prints only warnings from files currently compiled (instead of all)
 
   ## Configuration
 
