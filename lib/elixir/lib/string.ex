@@ -929,10 +929,20 @@ defmodule String do
     <<char>> <> downcase(rest, :ascii)
   end
 
+  @letter_I <<0x0049::utf8>>
+  @letter_i <<0x0069::utf8>>
+  @letter_I_dot_above <<0x0130::utf8>>
+
   def capitalize(string, mode) when is_binary(string) do
     case next_grapheme(string) do
-      {left, right} -> :string.titlecase(left) <> downcase(right, mode)
-      nil -> string
+      {@letter_i, right} ->
+        if(mode == :turkic, do: @letter_I_dot_above, else: @letter_I) <> downcase(right, mode)
+
+      {left, right} ->
+        :string.titlecase(left) <> downcase(right, mode)
+
+      nil ->
+        string
     end
   end
 

@@ -270,6 +270,10 @@ defmodule StringTest do
     assert mod.capitalize("ﬁn") == "Fin"
     assert mod.capitalize("àáâ", :ascii) == "àáâ"
     assert mod.capitalize("aáA", :ascii) == "Aáa"
+    assert mod.capitalize("iii", :turkic) == "İii"
+    assert mod.capitalize("ııı", :turkic) == "Iıı"
+    assert mod.capitalize("İii", :turkic) == "İii"
+    assert mod.capitalize("Iıı", :turkic) == "Iıı"
   end
 
   test "replace_leading/3" do
