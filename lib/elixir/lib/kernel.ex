@@ -124,8 +124,9 @@ defmodule Kernel do
 
   ### Supporting documents
 
-  Elixir documentation also includes supporting documents under the
-  "Pages" section. Those are:
+  Under the "Pages" section in sidebar you will find tutorials, guides,
+  and reference documents that outline Elixir semantics and behaviours
+  in more detail. Those are:
 
     * [Compatibility and deprecations](compatibility-and-deprecations.md) - lists
       compatibility between every Elixir version and Erlang/OTP, release schema;
@@ -133,14 +134,12 @@ defmodule Kernel do
     * [Library guidelines](library-guidelines.md) - general guidelines, anti-patterns,
       and rules for those writing libraries
     * [Naming conventions](naming-conventions.md) - naming conventions for Elixir code
-    * [Operators](operators.md) - lists all Elixir operators and their precedences
+    * [Operators reference](operators.md) - lists all Elixir operators and their precedences
     * [Patterns and guards](patterns-and-guards.md) - an introduction to patterns,
       guards, and extensions
     * [Syntax reference](syntax-reference.md) - the language syntax reference
-    * [Typespecs](typespecs.md)- types and function specifications, including list of types
+    * [Typespecs reference](typespecs.md)- types and function specifications, including list of types
     * [Unicode syntax](unicode-syntax.md) - outlines Elixir support for Unicode
-    * [Writing documentation](writing-documentation.md) - guidelines for writing
-      documentation in Elixir
 
   ## Guards
 
@@ -4822,6 +4821,16 @@ defmodule Kernel do
       Number.two()
       #=> 2
 
+  ## Module names and aliases
+
+  Module names (and aliases) must start with an ASCII uppercase character which
+  may be followed by any ASCII letter, number, or underscore. Elixir's
+  [Naming Conventions](naming-conventions.md) suggest for module names and aliases
+  to be written in the `CamelCase` format.
+
+  You can also use atoms as the module name, although they must only contain ASCII
+  characters.
+
   ## Nesting
 
   Nesting a module inside another module affects the name of the nested module:
@@ -4856,7 +4865,7 @@ defmodule Kernel do
   Elixir module names can be dynamically generated. This is very
   useful when working with macros. For instance, one could write:
 
-      defmodule String.to_atom("Foo#{1}") do
+      defmodule Module.concat(["Foo", "Bar"]) do
         # contents ...
       end
 
@@ -5068,30 +5077,14 @@ defmodule Kernel do
     * can be given more than once
     * ordered, as specified by the developer
 
-  ## Function and variable names
+  ## Function names
 
-  Function and variable names have the following syntax:
-  A _lowercase ASCII letter_ or an _underscore_, followed by any number of
-  _lowercase or uppercase ASCII letters_, _numbers_, or _underscores_.
-  Optionally they can end in either an _exclamation mark_ or a _question mark_.
-
-  For variables, any identifier starting with an underscore should indicate an
-  unused variable. For example:
-
-      def foo(bar) do
-        []
-      end
-      #=> warning: variable bar is unused
-
-      def foo(_bar) do
-        []
-      end
-      #=> no warning
-
-      def foo(_bar) do
-        _bar
-      end
-      #=> warning: the underscored variable "_bar" is used after being set
+  Function and variable names in Elixir must start with an underscore or a
+  Unicode letter that is not in uppercase or titlecase. They may continue
+  using a sequence of Unicode letters, numbers, and underscores. They may
+  end in `?` or `!`. Elixir's [Naming Conventions](naming-conventions.md)
+  suggest for function and variable names to be written in the `snake_case`
+  format.
 
   ## `rescue`/`catch`/`after`/`else`
 
