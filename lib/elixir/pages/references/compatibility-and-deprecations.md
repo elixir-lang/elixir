@@ -82,7 +82,6 @@ Version | Deprecated feature                                  | Replaced by (ava
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
 [v1.16] | Ranges with negative steps in `Enum.slice/2`        | Explicit steps in ranges (v1.11)
 [v1.16] | Ranges with negative steps in `String.slice/2`      | Explicit steps in ranges (v1.11)
-[v1.16] | `String.capitalize/2`                               | `:string.titlecase/1` (v1.8)
 [v1.15] | `Calendar.ISO.day_of_week/3`                        | `Calendar.ISO.day_of_week/4` (v1.11)
 [v1.15] | `Exception.exception?/1`                            | `Kernel.is_exception/1` (v1.11)
 [v1.15] | `Regex.regex?/1`                                    | `Kernel.is_struct/2` (`Kernel.is_struct(term, Regex)`) (v1.11)

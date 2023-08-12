@@ -823,7 +823,7 @@ defmodule String do
       iex> String.upcase("ıi", :turkic)
       "Iİ"
 
-  Also see `String.downcase/2` and Erlang's `:string.titlecase/1` for other conversions.
+  Also see `downcase/2` and `capitalize/2` for other conversions.
   """
   @spec upcase(t, :default | :ascii | :greek | :turkic) :: t
   def upcase(string, mode \\ :default)
@@ -858,7 +858,7 @@ defmodule String do
   lowercases only the letters A to Z. `:greek` includes the context sensitive
   mappings found in Greek. `:turkic` properly handles the letter i with the dotless variant.
 
-  Also see `String.upcase/2` and Erlang's `:string.titlecase/1` for other conversions.
+  Also see `upcase/2` and `capitalize/2` for other conversions.
 
   ## Examples
 
@@ -920,8 +920,34 @@ defmodule String do
   defp downcase_ascii(<<char, rest::bits>>), do: [char | downcase_ascii(rest)]
   defp downcase_ascii(<<>>), do: []
 
-  @doc false
-  @deprecated "Use :string.titlecase instead"
+  @doc """
+  Converts the first character in the given string to
+  uppercase and the remainder to lowercase according to `mode`.
+
+  `mode` may be `:default`, `:ascii`, `:greek` or `:turkic`. The `:default` mode
+  considers all non-conditional transformations outlined in the Unicode standard.
+  `:ascii` capitalizes only the letters A to Z. `:greek` includes the context
+  sensitive mappings found in Greek. `:turkic` properly handles the letter `i`
+  with the dotless variant.
+
+  Also see `upcase/2` and `capitalize/2` for other conversions. If you want
+  a variation of this function that does not lowercase the rest of string,
+  see Erlang's `:string.titlecase/1`.
+
+  ## Examples
+
+      iex> String.capitalize("abcd")
+      "Abcd"
+      iex> String.capitalize("ABCD")
+      "Abcd"
+
+      iex> String.capitalize("ﬁn")
+      "Fin"
+      iex> String.capitalize("olá")
+      "Olá"
+
+  """
+  @spec capitalize(t, :default | :ascii | :greek | :turkic) :: t
   def capitalize(string, mode \\ :default)
 
   def capitalize(<<char, rest::binary>>, :ascii) do
