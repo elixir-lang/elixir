@@ -278,6 +278,9 @@ defmodule StringTest do
     assert String.capitalize("Iıı", :turkic) == "Iıı"
 
     assert String.capitalize(<<138, ?B, ?C>>) == <<138, ?b, ?c>>
+
+    assert String.capitalize(<<225, 158, 128, 225, 158, 185, 225>>) ==
+             <<225, 158, 128, 225, 158, 185, 225>>
   end
 
   test "replace_leading/3" do
@@ -607,6 +610,7 @@ defmodule StringTest do
 
   test "next_grapheme/1" do
     assert String.next_grapheme("Ā̀stute") == {"Ā̀", "stute"}
+    assert String.next_grapheme(<<225, 158, 128, 225, 158, 185, 225>>) == {"កឹ", <<225>>}
     assert String.next_grapheme("") == nil
   end
 
