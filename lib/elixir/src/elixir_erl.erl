@@ -74,6 +74,13 @@ elixir_to_erl(Tree, Ann) when is_atom(Tree) ->
   {atom, Ann, Tree};
 elixir_to_erl(Tree, Ann) when is_integer(Tree) ->
   {integer, Ann, Tree};
+elixir_to_erl(Tree, Ann) when is_float(Tree), Tree == 0.0 ->
+  Op =
+    case <<Tree/float>> of
+        <<1:1,_:63>> -> '-';
+        _ -> '+'
+    end,
+  {op, Ann, Op, {float, Ann, 0.0}};
 elixir_to_erl(Tree, Ann) when is_float(Tree) ->
   {float, Ann, Tree};
 elixir_to_erl(Tree, Ann) when is_binary(Tree) ->

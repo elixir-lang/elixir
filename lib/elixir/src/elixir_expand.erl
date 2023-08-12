@@ -451,6 +451,10 @@ expand(Pid, S, E) when is_pid(Pid) ->
       {Pid, E}
   end;
 
+expand(Float, S, #{context := match} = E) when is_float(Float), Float == 0.0 ->
+  elixir_errors:file_warn([], E, ?MODULE, invalid_match_on_zero_float),
+  {Float, S, E};
+
 expand(Other, S, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
   {Other, S, E};
 
@@ -860,7 +864,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
       is_atom(Receiver) andalso
         elixir_env:trace({remote_function, Meta, Receiver, Right, length(Args)}, E),
 
-      {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
+      {EArgs, {SA, _}, EA} = expand_remote_args(Receiver, Right, Args, {SL, S}, E),
 
       case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs, S) of
         {ok, Rewritten} ->
@@ -874,6 +878,12 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
 expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   file_error(Meta, E, ?MODULE, {invalid_call, Call}).
+
+%% 0.0 inside a match warns. It must be either +0.0 or -0.0.
+%% Therefore we want to avoid the warning here.
+expand_remote_args(erlang, '+', [Arg], PairS, E) when is_number(Arg) -> {[Arg], PairS, E};
+expand_remote_args(erlang, '-', [Arg], PairS, E) when is_number(Arg) -> {[Arg], PairS, E};
+expand_remote_args(_Remote, _Fun, Args, PairS, E) -> mapfold(fun expand_arg/3, PairS, E, Args).
 
 attach_context_module(_Receiver, Meta, #{function := nil}) ->
   Meta;
@@ -1159,6 +1169,8 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
 guard_context(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
 guard_context(_) -> "guards".
 
+format_error(invalid_match_on_zero_float) ->
+  "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+. Instead you must match on +0.0 or -0.0";
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",

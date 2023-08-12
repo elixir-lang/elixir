@@ -15,7 +15,7 @@
 }).
 
 -record(elixir_erl, {
-  context=nil,             %% can be match, guards or nil
+  context=nil,             %% can be match, guard or nil
   extra=nil,               %% extra information about the context, like pin_guard and map_key
   caller=false,            %% when true, it means caller was invoked
   var_names=#{},           %% maps of defined variables and their alias
