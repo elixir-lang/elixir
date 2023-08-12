@@ -959,16 +959,16 @@ defmodule String do
   @letter_i <<0x0069::utf8>>
   @letter_I_dot_above <<0x0130::utf8>>
 
+  def capitalize(<<@letter_i, right::binary>>, mode) do
+    if(mode == :turkic, do: @letter_I_dot_above, else: @letter_I) <> downcase(right, mode)
+  end
+
   def capitalize(string, mode) when is_binary(string) do
-    case next_grapheme(string) do
-      {@letter_i, right} ->
-        if(mode == :turkic, do: @letter_I_dot_above, else: @letter_I) <> downcase(right, mode)
-
-      {left, right} ->
-        :string.titlecase(left) <> downcase(right, mode)
-
-      nil ->
-        string
+    case :unicode_util.gc(string) do
+      [gc, rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
+      [gc | rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
+      [] -> ""
+      {:error, <<byte, rest::bits>>} -> <<byte>> <> downcase(rest, mode)
     end
   end
 
@@ -2961,7 +2961,7 @@ defmodule String do
   defp codepoint_byte_size(_), do: 4
 
   defp grapheme_to_binary(cp) when is_integer(cp), do: <<cp::utf8>>
-  defp grapheme_to_binary(gc), do: :unicode.characters_to_binary(gc)
+  defp grapheme_to_binary(gc) when is_list(gc), do: for(cp <- gc, do: <<cp::utf8>>, into: "")
 
   defp grapheme_byte_size(cp) when is_integer(cp), do: codepoint_byte_size(cp)
   defp grapheme_byte_size(cps), do: grapheme_byte_size(cps, 0)

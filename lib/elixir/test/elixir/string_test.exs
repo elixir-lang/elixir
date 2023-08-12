@@ -276,6 +276,8 @@ defmodule StringTest do
     assert String.capitalize("ııı", :turkic) == "Iıı"
     assert String.capitalize("İii", :turkic) == "İii"
     assert String.capitalize("Iıı", :turkic) == "Iıı"
+
+    assert String.capitalize(<<138, ?B, ?C>>) == <<138, ?b, ?c>>
   end
 
   test "replace_leading/3" do
