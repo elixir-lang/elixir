@@ -34,6 +34,8 @@ iex> String.split("1  2  3", " ", trim: true)
 ["1", "2", "3"]
 ```
 
+As shown in the example above, keyword lists are mostly used as optional arguments to functions.
+
 As the name implies, keyword lists are simply lists. In particular, they are lists consisting of 2-item tuples where the first element (the key) is an atom and the second element can be any value. Both representations are the same:
 
 ```elixir
@@ -86,7 +88,7 @@ query =
     select: w
 ```
 
-Although we can pattern match on keyword lists, it is rarely done in practice since pattern matching on lists requires the number of items and their order to match:
+Although we can pattern match on keyword lists, it is not done in practice since pattern matching on lists requires the number of items and their order to match:
 
 ```elixir
 iex> [a: a] = [a: 1]
@@ -99,7 +101,9 @@ iex> [b: b, a: a] = [a: 1, b: 2]
 ** (MatchError) no match of right hand side value: [a: 1, b: 2]
 ```
 
-In order to manipulate keyword lists, Elixir provides the `Keyword` module. Remember, though, keyword lists are simply lists, and as such they provide the same linear performance characteristics as them: the longer the list, the longer it will take to find a key, to count the number of items, and so on. For this reason, keyword lists are used in Elixir mainly for passing optional values. If you need to store many items or guarantee one-key associates with at maximum one-value, you should use maps instead.
+Furthermore, given keyword lists are often used as optional arguments, they are used in situations where not all keys may be present, which would make it impossible to match on them. In a nutshell, do not pattern match on keyword lists.
+
+In order to manipulate keyword lists, Elixir provides the `Keyword` module. Remember, though, keyword lists are simply lists, and as such they provide the same linear performance characteristics as them: the longer the list, the longer it will take to find a key, to count the number of items, and so on. If you need to store a large amount of keys in a key-value data structure, Elixir offers maps, which we will soon learn.
 
 ### `do`-blocks and keywords
 
@@ -125,7 +129,7 @@ Pay close attention to both syntaxes. In the keyword list format, we separate ea
 
 Note that only a handful of keyword lists can be converted to blocks: `do`, `else`, `catch`, `rescue`, and `after`. Those are all the keywords used by Elixir control-flow constructs. We have already learned some of them and we will learn others in the future.
 
-With this out of the way, let's see how we can work with nested data structures.
+With this out of the way, let's talk about maps.
 
 ## Maps as key-value pairs
 
@@ -173,7 +177,7 @@ iex> Map.to_list(%{:a => 1, 2 => :b})
 [{2, :b}, {:a, 1}]
 ```
 
-## Maps of fixed keys
+## Maps of predefined keys
 
 In the previous section, we have used maps as a key-value data structure where keys can be added or removed at any time. However, it is also common to create maps with a pre-defined set of keys. Their values may be updated, but new keys are never added nor removed. This is useful when we know the shape of the data we are working with and, if we get a different key, it likely means a mistake was done elsewhere.
 
@@ -186,7 +190,7 @@ iex> map = %{:name => "John", :age => 23}
 
 As you can see from the printed result above, Elixir also allows you to write maps of atom keys using the same `key: value` syntax as keyword lists.
 
-When the keys are atoms, in particular when working with maps of fixed keys, we can also also access them using the `map.key` syntax:
+When the keys are atoms, in particular when working with maps of predefined keys, we can also also access them using the `map.key` syntax:
 
 ```elixir
 iex> map = %{name: "John", age: 23}
@@ -198,7 +202,16 @@ iex> map.agee
 ** (KeyError) key :agee not found in: %{name: "John", age: 23}
 ```
 
-This syntax has one large benefit in that it raises if the key does not exist in the map and the compiler may even detect and warn when possible. This makes it useful to get quick feedback and spot bugs and typos early on. This is also the syntax used to power another Elixir feature called "Structs", which we will learn later on.
+There is also syntax for updating keys, which also raises if the key has not yet been defined:
+
+```elixir
+iex> %{map | name: "Mary"}
+%{name: "Mary", age: 23}
+iex> %{map | agee: 27}
+** (KeyError) key :agee not found in: %{name: "John", age: 23}
+```
+
+These operations have one large benefit in that they raise if the key does not exist in the map and the compiler may even detect and warn when possible. This makes them useful to get quick feedback and spot bugs and typos early on. This is also the syntax used to power another Elixir feature called "Structs", which we will learn later on.
 
 Elixir developers typically prefer to use the `map.key` syntax and pattern matching instead of the functions in the `Map` module when working with maps because they lead to an assertive style of programming. [This blog post by José Valim](https://dashbit.co/blog/writing-assertive-code-with-elixir) provides insight and examples on how you get more concise and faster software by writing assertive code in Elixir.
 
@@ -250,12 +263,14 @@ There is more to learn about `put_in/2` and `update_in/2`, including the `get_an
 
 ## Summary
 
-The different ways for working with key-value stores in Elixir can be daunting at first, the bottom line is that, between the `Access` module and pattern matching, Elixir developers have a rich set of tools for manipulating complex, potentially nested, data structures.
+There are two different data structures for working with key-value stores in Elixir. Alongside the `Access` module and pattern matching, they provide a rich set of tools for manipulating complex, potentially nested, data structures.
 
 As we conclude this chapter, the important to keep in mind is that you should:
 
   * Use keyword lists for passing optional values to functions
 
-  * Use maps for general key-value data structures and when working with known data (by using maps with fixed keys)
+  * Use maps for general key-value data structures
+
+  * Use maps when working with data that has a predefined set of keys
 
 Now let's talk about modules and functions.
