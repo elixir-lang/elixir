@@ -39,6 +39,9 @@ defmodule Inspect.Opts do
     * `:inspect_fun` (since v1.9.0) - a function to build algebra documents.
       Defaults to `Inspect.Opts.default_inspect_fun/0`.
 
+    * `:label` - decorates the output with a label. The label will be printed
+      before the inspected `item`.
+
     * `:limit` - limits the number of items that are inspected for tuples,
       bitstrings, maps, lists and any other collection of items, with the exception of
       printable strings and printable charlists which use the `:printable_limit` option.
