@@ -1345,17 +1345,25 @@ defmodule UndefinedFunctionError do
   defp hint(module, function, arity, _loaded?) do
     downcased_module = downcase_module_name(module)
 
-    candidate =
-      Enum.find(:code.all_available(), fn {name, _, _} ->
-        downcase_module_name(name) == downcased_module
+    candidates =
+      Enum.filter(:code.all_available(), fn {name, _, _} = candidate ->
+        if downcase_module_name(name) == downcased_module or
+             String.ends_with?(to_string(name), strip_elixir_prefix(module)) do
+          with {:module, module} <- load_module(candidate),
+               true <- function_exported?(module, function, arity) do
+            true
+          else
+            _ -> false
+          end
+        else
+          false
+        end
       end)
 
-    with {_, _, _} <- candidate,
-         {:module, module} <- load_module(candidate),
-         true <- function_exported?(module, function, arity) do
-      ". Did you mean:\n\n      * #{Exception.format_mfa(module, function, arity)}\n"
+    if candidates != [] do
+      ". Did you mean:\n#{Enum.map(candidates, fn {module, _, _} -> "\n      * #{Exception.format_mfa(String.to_atom(to_string(module)), function, arity)}" end)}\n"
     else
-      _ -> ""
+      ""
     end
   end
 
@@ -1363,6 +1371,12 @@ defmodule UndefinedFunctionError do
     name
     |> List.to_atom()
     |> Code.ensure_loaded()
+  end
+
+  defp strip_elixir_prefix(module) do
+    module
+    |> to_string()
+    |> String.replace_leading("Elixir.", "")
   end
 
   defp downcase_module_name(module) do
