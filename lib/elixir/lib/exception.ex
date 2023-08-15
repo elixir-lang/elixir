@@ -1342,26 +1342,29 @@ defmodule UndefinedFunctionError do
       hint_for_loaded_module(module, function, arity, nil)
   end
 
+  @max_suggestions 10
   defp hint(module, function, arity, _loaded?) do
     downcased_module = downcase_module_name(module)
+    stripped_module = module |> Atom.to_string() |> String.replace_leading("Elixir.", "")
 
     candidates =
-      Enum.filter(:code.all_available(), fn {name, _, _} = candidate ->
-        if downcase_module_name(name) == downcased_module or
-             String.ends_with?(to_string(name), strip_elixir_prefix(module)) do
-          with {:module, module} <- load_module(candidate),
-               true <- function_exported?(module, function, arity) do
-            true
-          else
-            _ -> false
-          end
-        else
-          false
-        end
-      end)
+      for {name, _, _} = candidate <- :code.all_available(),
+          downcase_module_name(name) == downcased_module or
+            String.ends_with?(List.to_string(name), stripped_module),
+          {:module, module} <- [load_module(candidate)],
+          function_exported?(module, function, arity),
+          do: module
 
     if candidates != [] do
-      ". Did you mean:\n#{Enum.map(candidates, fn {module, _, _} -> "\n      * #{Exception.format_mfa(String.to_atom(to_string(module)), function, arity)}" end)}\n"
+      suggestions =
+        candidates
+        |> Enum.take(@max_suggestions)
+        |> Enum.sort(:asc)
+        |> Enum.map(fn module ->
+          ["\n      * ", Exception.format_mfa(module, function, arity)]
+        end)
+
+      IO.iodata_to_binary([". Did you mean:\n", suggestions, "\n"])
     else
       ""
     end
@@ -1371,12 +1374,6 @@ defmodule UndefinedFunctionError do
     name
     |> List.to_atom()
     |> Code.ensure_loaded()
-  end
-
-  defp strip_elixir_prefix(module) do
-    module
-    |> to_string()
-    |> String.replace_leading("Elixir.", "")
   end
 
   defp downcase_module_name(module) do
