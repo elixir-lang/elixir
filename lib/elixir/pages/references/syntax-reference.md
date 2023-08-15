@@ -433,7 +433,7 @@ end
 
 ### Optional parentheses
 
-Elixir provides optional parentheses:
+Elixir provides optional parentheses on local and remote calls with one or more arguments:
 
 ```elixir
 quote do
