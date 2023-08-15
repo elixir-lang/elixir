@@ -1342,7 +1342,7 @@ defmodule UndefinedFunctionError do
       hint_for_loaded_module(module, function, arity, nil)
   end
 
-  @max_suggestions 10
+  @max_suggestions 5
   defp hint(module, function, arity, _loaded?) do
     downcased_module = downcase_module_name(module)
     stripped_module = module |> Atom.to_string() |> String.replace_leading("Elixir.", "")
