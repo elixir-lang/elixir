@@ -310,7 +310,7 @@ end
 #=> {:<<>>, [], [1, 2, 3]}
 ```
 
-The same applies to maps, where each pair is treated as a list of tuples with two elements:
+The same applies to maps, where pairs are treated as a list of tuples with two elements:
 
 ```elixir
 quote do
