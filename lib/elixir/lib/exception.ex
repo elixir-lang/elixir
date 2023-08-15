@@ -1342,20 +1342,31 @@ defmodule UndefinedFunctionError do
       hint_for_loaded_module(module, function, arity, nil)
   end
 
+  @max_suggestions 5
   defp hint(module, function, arity, _loaded?) do
     downcased_module = downcase_module_name(module)
+    stripped_module = module |> Atom.to_string() |> String.replace_leading("Elixir.", "")
 
-    candidate =
-      Enum.find(:code.all_available(), fn {name, _, _} ->
-        downcase_module_name(name) == downcased_module
-      end)
+    candidates =
+      for {name, _, _} = candidate <- :code.all_available(),
+          downcase_module_name(name) == downcased_module or
+            String.ends_with?(List.to_string(name), stripped_module),
+          {:module, module} <- [load_module(candidate)],
+          function_exported?(module, function, arity),
+          do: module
 
-    with {_, _, _} <- candidate,
-         {:module, module} <- load_module(candidate),
-         true <- function_exported?(module, function, arity) do
-      ". Did you mean:\n\n      * #{Exception.format_mfa(module, function, arity)}\n"
+    if candidates != [] do
+      suggestions =
+        candidates
+        |> Enum.take(@max_suggestions)
+        |> Enum.sort(:asc)
+        |> Enum.map(fn module ->
+          ["\n      * ", Exception.format_mfa(module, function, arity)]
+        end)
+
+      IO.iodata_to_binary([". Did you mean:\n", suggestions, "\n"])
     else
-      _ -> ""
+      ""
     end
   end
 
