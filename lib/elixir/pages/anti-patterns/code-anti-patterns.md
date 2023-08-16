@@ -386,7 +386,6 @@ iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" 
 
 In such cases, passing an unknown status will raise as long as the status was not defined anywhere as an atom in the system. However, assuming `status` can be either `:ok`, `:error`, or `:redirect`, how can you guarantee those atoms exist? You must ensure those atoms exist somewhere **in the same module** where `String.to_existing_atom/1` is called. For example, if you had this code:
 
-
 ```elixir
 defmodule MyRequestHandler do
   def parse(%{"status" => status, "message" => message} = _payload) do
