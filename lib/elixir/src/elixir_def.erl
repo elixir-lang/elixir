@@ -268,7 +268,8 @@ run_on_definition_callbacks(Kind, Module, Name, Args, Guards, Body, E) ->
   _ = [Mod:Fun(E, Kind, Name, Args, Guards, Body) || {Mod, Fun} <- lists:reverse(Callbacks)],
   ok.
 
-store_definition(CheckClauses, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses) ->
+store_definition(CheckClauses, Kind, Meta, Name, Arity, File, Module, Defaults, Clauses)
+    when CheckClauses == all; CheckClauses == none; CheckClauses == unused_only ->
   {Set, Bag} = elixir_module:data_tables(Module),
   Tuple = {Name, Arity},
   HasBody = Clauses =/= [],
