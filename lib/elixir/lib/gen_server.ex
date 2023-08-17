@@ -162,7 +162,7 @@ defmodule GenServer do
       participant S as Server (Process)
       participant M as Module (Code)
 
-      rect rgb(240, 240, 240)
+      rect rgb(248, 248, 248)
         note right of C: Typically started by a supervisor.
         C->>S: GenServer.start_link(module, arg, options)
         S-->>M: init(arg)
@@ -170,20 +170,20 @@ defmodule GenServer do
         S->>C: {:ok, pid} | :ignore | {:error, reason}
       end
 
-      rect rgb(240, 240, 240)
+      rect rgb(248, 248, 248)
         C->>S: GenServer.call(pid, message)
         S-->>M: handle_call(message, from, state)
         M-->>S: {:reply, reply, state} | {:stop, reason, reply, state}
         S->>C: reply
       end
 
-      rect rgb(240, 240, 240)
+      rect rgb(248, 248, 248)
         C->>S: GenServer.cast(pid, message)
         S-->>M: handle_cast(message, state)
         M-->>S: {:noreply, state} | {:stop, reason, state}
       end
 
-      rect rgb(240, 240, 240)
+      rect rgb(248, 248, 248)
         C->>S: Kernel.send(pid, message)
         S-->>M: handle_info(message, state)
         M-->>S: {:noreply, state} | {:stop, reason, state}
