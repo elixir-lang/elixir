@@ -307,7 +307,7 @@ Or on Windows:
 
 ## Exploring
 
-There is much more to Mix, and we will continue to explore it as we build our project. A general overview is available on the [Mix documentation](`Mix`). Read [the Mix source code here](https://github.com/elixir-lang/elixir/tree/main/lib/mix).
+There is much more to Mix, and we will continue to explore it as we build our project. A general overview is available on the [Mix documentation](`Mix`).
 
 Keep in mind that you can always invoke the help task to list all available tasks:
 

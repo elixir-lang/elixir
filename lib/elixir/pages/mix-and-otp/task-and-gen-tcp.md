@@ -284,7 +284,9 @@ In this case, the answer is yes: if the acceptor crashes, there is no need to cr
 
 However, there is still one concern left, which are the restart strategies. Tasks, by default, have the `:restart` value set to `:temporary`, which means they are not restarted. This is an excellent default for the connections started via the `Task.Supervisor`, as it makes no sense to restart a failed connection, but it is a bad choice for the acceptor. If the acceptor crashes, we want to bring the acceptor up and running again.
 
-We could fix this by defining our own module that calls `use Task, restart: :permanent` and invokes a `start_link` function responsible for restarting the task, quite similar to `Agent` and `GenServer`. However, let's take a different approach here. When integrating with someone else's library, we won't be able to change how their agents, tasks, and servers are defined. Instead, we need to be able to customize their child specification dynamically. This can be done by using `Supervisor.child_spec/2`, a function that we happen to know from previous chapters. Let's rewrite `start/2` in `KVServer.Application` once more:
+Let's fix this. We know that for a child of shape `{Task, fun}`, Elixir will retrieve invoke `Task.child_spec(fun)` to retrieve the underlying child specification. Therefore, to ensure `{Task, fun}` has `:restart` set to `:permanent`, we would need to change the `Task` module. However, that's impossible to do, as the `Task` module is defined as part of Elixir's standard library (and even if it was possible, it is unlikely it would be a *good* idea).
+
+Luckily, this can be done by using `Supervisor.child_spec/2`, which allows us to configure a child specification with new values. Let's rewrite `start/2` in `KVServer.Application` once more:
 
 ```elixir
   def start(_type, _args) do
@@ -300,6 +302,6 @@ We could fix this by defining our own module that calls `use Task, restart: :per
   end
 ```
 
-`Supervisor.child_spec/2` is capable of building a child specification from a given module and/or tuple, and it also accepts values that override the underlying child specification. Now we have an always running acceptor that starts temporary task processes under an always running task supervisor.
+Now we have an always running acceptor that starts temporary task processes under an always running task supervisor.
 
 In the next chapter, we will start parsing the client requests and sending responses, finishing our server.
