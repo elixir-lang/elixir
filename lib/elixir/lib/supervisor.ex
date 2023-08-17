@@ -574,7 +574,7 @@ defmodule Supervisor do
   @typedoc "The supervisor reference."
   @type supervisor :: pid | name | {atom, node}
 
-  @typedoc "Options given to `start_link/2` and `c:init/2`."
+  @typedoc "Options given to `start_link/2` and `c:init/1`."
   @type init_option ::
           {:strategy, strategy}
           | {:max_restarts, non_neg_integer}
