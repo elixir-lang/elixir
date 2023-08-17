@@ -41,7 +41,7 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/references/typespecs.md",
     "lib/elixir/pages/references/unicode-syntax.md",
     "lib/elixir/pages/mix-and-otp/introduction-to-mix.md",
-    "lib/elixir/pages/mix-and-otp/agent.md",
+    "lib/elixir/pages/mix-and-otp/agents.md",
     "lib/elixir/pages/mix-and-otp/genservers.md",
     "lib/elixir/pages/mix-and-otp/supervisor-and-application.md",
     "lib/elixir/pages/mix-and-otp/dynamic-supervisor.md",

@@ -307,12 +307,11 @@ Or on Windows:
 
 ## Exploring
 
-There is much more to Mix, and we will continue to explore it as we build our project. A general overview is available on the [Mix documentation](`Mix`).
-
-Keep in mind that you can always invoke the help task to list all available tasks:
+There is much more to Mix, and we will continue to explore it as we build our project. A general overview is available on the [Mix documentation](`Mix`) and you can always invoke the help task to list all available tasks:
 
 ```console
 $ mix help
+$ mix help compile
 ```
 
-You can get further information about a particular task by invoking `mix help TASK`.
+Now let's move forward and add the first modules and functions to your application.
