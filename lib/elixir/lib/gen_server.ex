@@ -147,10 +147,47 @@ defmodule GenServer do
         end
       end
 
-
   In practice, it is common to have both server and client functions in
   the same module. If the server and/or client implementations are growing
   complex, you may want to have them in different modules.
+
+  The following diagram summarizes the interactions between client and server.
+  Both Client and Server are processes. The Server <-> Module interaction happens
+  the GenServer process calls your code:
+
+  ```mermaid
+  sequenceDiagram
+      participant C as Client (Process)
+      participant S as Server (Process)
+      participant M as Module (Code)
+
+      rect rgb(240, 240, 240)
+        note right of C: Typically started by a supervisor.
+        C->>S: GenServer.start_link(module, arg, options)
+        S-->>M: init(arg)
+        M-->>S: {:ok, state} | :ignore | {:eror, reason}
+        S->>C: {:ok, pid} | :ignore | {:error, reason}
+      end
+
+      rect rgb(240, 240, 240)
+        C->>S: GenServer.call(pid, message)
+        S-->>M: handle_call(message, from, state)
+        M-->>S: {:reply, reply, state} | {:stop, reason, reply, state}
+        S->>C: reply
+      end
+
+      rect rgb(240, 240, 240)
+        C->>S: GenServer.cast(pid, message)
+        S-->>M: handle_cast(message, state)
+        M-->>S: {:noreply, state} | {:stop, reason, state}
+      end
+
+      rect rgb(240, 240, 240)
+        C->>S: Kernel.send(pid, message)
+        S-->>M: handle_info(message, state)
+        M-->>S: {:noreply, state} | {:stop, reason, state}
+      end
+  ```
 
   ## How to supervise
 
