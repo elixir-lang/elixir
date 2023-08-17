@@ -152,8 +152,9 @@ defmodule GenServer do
   complex, you may want to have them in different modules.
 
   The following diagram summarizes the interactions between client and server.
-  Both Client and Server are processes. The Server <-> Module interaction happens
-  the GenServer process calls your code:
+  Both Client and Server are processes and communication happens via messages
+  (continuous line). The Server <-> Module interaction happens when the
+  GenServer process calls your code (dotted lines):
 
   ```mermaid
   sequenceDiagram
