@@ -103,31 +103,31 @@ defmodule Mix.Tasks.Escript.Build do
 
   ## Example
 
-  * `mix.exs`:
+  In your `mix.exs`:
 
-        defmodule MyApp.MixProject do
-          use Mix.Project
+      defmodule MyApp.MixProject do
+        use Mix.Project
 
-          def project do
-            [
-              app: :my_app,
-              version: "0.0.1",
-              escript: escript()
-            ]
-          end
-
-          def escript do
-            [main_module: MyApp.CLI]
-          end
+        def project do
+          [
+            app: :my_app,
+            version: "0.0.1",
+            escript: escript()
+          ]
         end
 
-  * `lib/cli.ex`:
-
-        defmodule MyApp.CLI do
-          def main(_args) do
-            IO.puts("Hello from MyApp!")
-          end
+        def escript do
+          [main_module: MyApp.CLI]
         end
+      end
+
+  Then define the entrypoint, such as the following in `lib/cli.ex`:
+
+      defmodule MyApp.CLI do
+        def main(_args) do
+          IO.puts("Hello from MyApp!")
+        end
+      end
 
   """
 

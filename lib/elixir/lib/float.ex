@@ -61,6 +61,7 @@ defmodule Float do
       1.7976931348623157e308
 
   """
+  @spec max_finite() :: float
   def max_finite, do: @max_finite
 
   @doc """
@@ -72,6 +73,7 @@ defmodule Float do
       -1.7976931348623157e308
 
   """
+  @spec min_finite() :: float
   def min_finite, do: @min_finite
 
   @doc """
@@ -350,7 +352,7 @@ defmodule Float do
     raise ArgumentError, invalid_precision_message(precision)
   end
 
-  defp round(0.0 = num, _precision, _rounding), do: num
+  defp round(num, _precision, _rounding) when is_float(num) and num == 0.0, do: num
 
   defp round(float, precision, rounding) do
     <<sign::1, exp::11, significant::52-bitstring>> = <<float::float>>
@@ -498,7 +500,7 @@ defmodule Float do
   """
   @doc since: "1.4.0"
   @spec ratio(float) :: {integer, pos_integer}
-  def ratio(0.0), do: {0, 1}
+  def ratio(float) when is_float(float) and float == 0.0, do: {0, 1}
 
   def ratio(float) when is_float(float) do
     <<sign::1, exp::11, mantissa::52>> = <<float::float>>

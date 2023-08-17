@@ -54,6 +54,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
   ## Command line options
 
+    * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
+      (default is true except on errors)
     * `--docs` (`--no-docs`) - attaches (or not) documentation to compiled modules
     * `--debug-info` (`--no-debug-info`) - attaches (or not) debug info to compiled modules
     * `--force` - forces compilation regardless of modification times

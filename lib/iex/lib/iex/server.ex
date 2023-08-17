@@ -149,7 +149,7 @@ defmodule IEx.Server do
         stop_evaluator(evaluator, evaluator_ref)
 
       msg ->
-        handle_take_over(msg, state, evaluator, evaluator_ref, input, fn state ->
+        handle_common(msg, state, evaluator, evaluator_ref, input, fn state ->
           wait_input(state, evaluator, evaluator_ref, input)
         end)
     end
@@ -163,17 +163,17 @@ defmodule IEx.Server do
         loop(state, status, evaluator, evaluator_ref, nil)
 
       msg ->
-        handle_take_over(msg, state, evaluator, evaluator_ref, nil, fn state ->
+        handle_common(msg, state, evaluator, evaluator_ref, nil, fn state ->
           wait_eval(state, evaluator, evaluator_ref)
         end)
     end
   end
 
-  defp wait_take_over(state, evaluator, evaluator_ref, input) do
+  defp wait_common(state, evaluator, evaluator_ref, input) do
     receive do
       msg ->
-        handle_take_over(msg, state, evaluator, evaluator_ref, input, fn state ->
-          wait_take_over(state, evaluator, evaluator_ref, input)
+        handle_common(msg, state, evaluator, evaluator_ref, input, fn state ->
+          wait_common(state, evaluator, evaluator_ref, input)
         end)
     end
   end
@@ -182,7 +182,7 @@ defmodule IEx.Server do
   #
   # A take process may also happen if the evaluator dies,
   # then a new evaluator is created to replace the dead one.
-  defp handle_take_over(
+  defp handle_common(
          {:take_over, take_pid, take_ref, take_location, take_whereami, take_opts},
          state,
          evaluator,
@@ -211,7 +211,7 @@ defmodule IEx.Server do
   end
 
   # User did ^G while the evaluator was busy or stuck
-  defp handle_take_over(
+  defp handle_common(
          {:EXIT, _pid, :interrupt},
          state,
          evaluator,
@@ -224,7 +224,7 @@ defmodule IEx.Server do
     rerun(state, [], evaluator, evaluator_ref, input)
   end
 
-  defp handle_take_over(
+  defp handle_common(
          {:EXIT, pid, reason},
          state,
          evaluator,
@@ -240,11 +240,11 @@ defmodule IEx.Server do
     end
   end
 
-  defp handle_take_over({:respawn, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
+  defp handle_common({:respawn, evaluator}, state, evaluator, evaluator_ref, input, _callback) do
     rerun(bump_counter(state), [], evaluator, evaluator_ref, input)
   end
 
-  defp handle_take_over(
+  defp handle_common(
          {:continue, evaluator, next?},
          state,
          evaluator,
@@ -253,10 +253,10 @@ defmodule IEx.Server do
          _callback
        ) do
     send(evaluator, {:done, self(), next?})
-    wait_take_over(state, evaluator, evaluator_ref, input)
+    wait_common(state, evaluator, evaluator_ref, input)
   end
 
-  defp handle_take_over(
+  defp handle_common(
          {:DOWN, evaluator_ref, :process, evaluator, :normal},
          state,
          evaluator,
@@ -267,7 +267,7 @@ defmodule IEx.Server do
     rerun(state, [], evaluator, evaluator_ref, input)
   end
 
-  defp handle_take_over(
+  defp handle_common(
          {:DOWN, evaluator_ref, :process, evaluator, reason},
          state,
          evaluator,
@@ -288,7 +288,7 @@ defmodule IEx.Server do
     rerun(state, [], evaluator, evaluator_ref, input)
   end
 
-  defp handle_take_over(_, state, _evaluator, _evaluator_ref, _input, callback) do
+  defp handle_common(_, state, _evaluator, _evaluator_ref, _input, callback) do
     callback.(state)
   end
 

@@ -758,39 +758,50 @@ defmodule DateTimeTest do
              %{datetime | microsecond: {0, 0}}
   end
 
-  test "diff/2" do
-    dt1 = %DateTime{
-      year: 100,
-      month: 2,
-      day: 28,
-      zone_abbr: "CET",
-      hour: 23,
-      minute: 0,
-      second: 7,
-      microsecond: {0, 0},
-      utc_offset: 3600,
-      std_offset: 0,
-      time_zone: "Europe/Warsaw"
-    }
+  describe "diff" do
+    test "diff with invalid time unit" do
+      dt = DateTime.utc_now()
 
-    dt2 = %DateTime{
-      year: -0004,
-      month: 2,
-      day: 29,
-      zone_abbr: "CET",
-      hour: 23,
-      minute: 0,
-      second: 7,
-      microsecond: {0, 0},
-      utc_offset: 3600,
-      std_offset: 0,
-      time_zone: "Europe/Warsaw"
-    }
+      message =
+        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
 
-    assert DateTime.diff(dt1, dt2) == 3_281_904_000
+      assert_raise ArgumentError, message, fn -> DateTime.diff(dt, dt, "day") end
+    end
 
-    # Test with a non-struct map conforming to Calendar.datetime
-    assert DateTime.diff(Map.from_struct(dt1), Map.from_struct(dt2)) == 3_281_904_000
+    test "diff with valid time unit" do
+      dt1 = %DateTime{
+        year: 100,
+        month: 2,
+        day: 28,
+        zone_abbr: "CET",
+        hour: 23,
+        minute: 0,
+        second: 7,
+        microsecond: {0, 0},
+        utc_offset: 3600,
+        std_offset: 0,
+        time_zone: "Europe/Warsaw"
+      }
+
+      dt2 = %DateTime{
+        year: -0004,
+        month: 2,
+        day: 29,
+        zone_abbr: "CET",
+        hour: 23,
+        minute: 0,
+        second: 7,
+        microsecond: {0, 0},
+        utc_offset: 3600,
+        std_offset: 0,
+        time_zone: "Europe/Warsaw"
+      }
+
+      assert DateTime.diff(dt1, dt2) == 3_281_904_000
+
+      # Test with a non-struct map conforming to Calendar.datetime
+      assert DateTime.diff(Map.from_struct(dt1), Map.from_struct(dt2)) == 3_281_904_000
+    end
   end
 
   describe "from_naive" do

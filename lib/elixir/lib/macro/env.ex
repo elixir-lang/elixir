@@ -11,8 +11,8 @@ defmodule Macro.Env do
   following trick:
 
       def make_custom_env do
-        import SomeModule, only: [some_function: 2]
-        alias A.B.C
+        import SomeModule, only: [some_function: 2], warn: false
+        alias A.B.C, warn: false
         __ENV__
       end
 

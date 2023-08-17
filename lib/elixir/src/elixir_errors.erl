@@ -10,6 +10,7 @@
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/2, emit_diagnostic/6]).
 -export([print_warning/2, print_warning/3]).
+-export([print_warning_group/2]).
 -include("elixir.hrl").
 -type location() :: non_neg_integer() | {non_neg_integer(), non_neg_integer()}.
 
@@ -27,6 +28,20 @@ print_warning(Message, Diagnostic) ->
   Snippet = get_snippet(File, Position),
   Output = format_snippet(Position, File, Message, Snippet, warning, S),
   io:put_chars(standard_error, [Output, $\n, $\n]).
+
+%% Called by Module.ParallelChecker.
+print_warning_group(Message, [Diagnostic | Others]) ->
+  #{file := File, position := Position, stacktrace := S} = Diagnostic,
+  Snippet = get_snippet(File, Position),
+  Formatted = format_snippet(Position, File, Message, Snippet, warning, S),
+  LineNumber = extract_line(Position),
+  LineDigits = get_line_number_digits(LineNumber, 1),
+  Padding = case Snippet of
+    nil -> 0;
+    _ -> max(4, LineDigits + 2)
+  end,
+  Locations = [["\n", n_spaces(Padding), "└─ ", 'Elixir.Exception':format_stacktrace_entry(ES)] || #{stacktrace := [ES]} <- Others],
+  io:put_chars(standard_error, [Formatted, Locations, $\n, $\n]).
 
 get_snippet(nil, _Position) ->
   nil;
@@ -101,16 +116,17 @@ do_get_file_line(IoDevice, N) ->
 %% Format snippets
 %% "Snippet" here refers to the source code line where the diagnostic/error occured
 
+format_snippet(_Position, nil, Message, nil, Severity, _Stacktrace) ->
+  Formatted = [prefix(Severity), Message],
+  unicode:characters_to_binary(Formatted);
+
 format_snippet(Position, File, Message, nil, Severity, Stacktrace) ->
   Location = location_format(Position, File, Stacktrace),
 
   Formatted = io_lib:format(
-    " ┌─ ~ts\n"
-    " ~ts",
-    [
-     prefix(Severity, Location),
-     format_message(Message, 0, 1)
-    ]
+    "~ts~ts\n"
+    "└─ ~ts",
+    [prefix(Severity), Message, Location]
    ),
 
   unicode:characters_to_binary(Formatted);
@@ -140,19 +156,19 @@ format_snippet(Position, File, Message, Snippet, Severity, Stacktrace) ->
     end,
 
   Formatted = io_lib:format(
-    " ~ts┌─ ~ts\n"
+    " ~ts~ts~ts\n"
     " ~ts│\n"
     " ~ts~p │ ~ts\n"
     " ~ts│ ~ts\n"
     " ~ts│\n"
-    " ~ts~ts",
+    " ~ts└─ ~ts",
     [
-     Spacing, prefix(Severity, Location),
+     Spacing, prefix(Severity), format_message(Message, LineDigits, 2 + LineNumberSpacing),
      Spacing,
      n_spaces(LineNumberSpacing), LineNumber, FormattedLine,
      Spacing, Highlight,
      Spacing,
-     Spacing, format_message(Message, LineDigits, 2 + LineNumberSpacing)
+     Spacing, Location
     ]),
 
   unicode:characters_to_binary(Formatted).
@@ -396,10 +412,8 @@ snippet_line(InputString, Location, StartLine) ->
 
 %% Helpers
 
-prefix(warning, []) -> highlight(<<"warning">>, warning);
-prefix(error, []) -> highlight(<<"error">>, error);
-prefix(warning, Location) -> [highlight(<<"warning: ">>, warning), Location];
-prefix(error, Location) -> [highlight(<<"error: ">>, error), Location].
+prefix(warning) -> highlight(<<"warning: ">>, warning);
+prefix(error) -> highlight(<<"error: ">>, error).
 
 highlight(Message, Severity) ->
   case {Severity, application:get_env(elixir, ansi_enabled, false)} of
@@ -430,12 +444,7 @@ env_format(Meta, #{file := EnvFile} = E) ->
     _ -> {Line, File, Stacktrace}
   end.
 
-%% If the file is nil, there is no precise location,
-%% so we don't show the stacktrace NOR the file.
-%% Otherwise we prefer the stacktrace, if available,
-%% as it also contains module/function.
-location_format(_Position, nil, _Stacktrace) ->
-  [];
+%% We prefer the stacktrace, if available, as it also contains module/function.
 location_format(_Position, _File, [E | _]) ->
   'Elixir.Exception':format_stacktrace_entry(E);
 location_format(Position, File, []) ->

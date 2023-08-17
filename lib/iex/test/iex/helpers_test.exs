@@ -321,8 +321,7 @@ defmodule IEx.HelpersTest do
       assert "\n## Loaded OTP applications" <> _ =
                capture_io(fn -> runtime_info([:applications]) end)
 
-      assert "\n## Memory allocators" <> _ =
-               capture_io(fn -> runtime_info([:allocators]) end)
+      assert "\n## Memory allocators" <> _ = capture_io(fn -> runtime_info([:allocators]) end)
     end
   end
 
@@ -333,9 +332,20 @@ defmodule IEx.HelpersTest do
       assert help =~ "Welcome to Interactive Elixir"
     end
 
-    test "prints non-Elixir module specs" do
-      assert capture_io(fn -> h(:timer.sleep() / 1) end) =~
-               "@spec sleep(time) :: :ok when time: timeout()"
+    test "prints Erlang module documentation" do
+      captured = capture_io(fn -> h(:timer) end)
+      assert captured =~ "This module provides useful functions related to time."
+    end
+
+    test "prints Erlang module function specs" do
+      captured = capture_io(fn -> h(:timer.sleep() / 1) end)
+      assert captured =~ ":timer.sleep/1"
+      assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
+    end
+
+    test "handles non-existing Erlang module function" do
+      captured = capture_io(fn -> h(:timer.baz() / 1) end)
+      assert captured =~ "No documentation for :timer.baz was found"
     end
 
     test "prints module documentation" do
@@ -920,7 +930,6 @@ defmodule IEx.HelpersTest do
     test "prints type information" do
       assert "@type t() ::" <> _ = capture_io(fn -> t(Enum.t()) end)
       assert capture_io(fn -> t(Enum.t()) end) == capture_io(fn -> t(Enum.t() / 0) end)
-      assert "@type child_spec() ::" <> _ = capture_io(fn -> t(:supervisor.child_spec()) end)
       assert capture_io(fn -> t(URI.t()) end) == capture_io(fn -> t(URI.t() / 0) end)
     end
 
@@ -997,6 +1006,30 @@ defmodule IEx.HelpersTest do
       end)
     after
       cleanup_modules([TypeSample])
+    end
+
+    test "prints all types in erlang module" do
+      captured = capture_io(fn -> t(:queue) end)
+      assert captured =~ "-type queue() :: queue(_)"
+      assert captured =~ "-opaque queue(Item)"
+    end
+
+    test "prints single type from erlang module" do
+      captured = capture_io(fn -> t(:erlang.iovec()) end)
+      assert captured =~ "-type iovec() :: [binary()]"
+      assert captured =~ "A list of binaries."
+
+      captured = capture_io(fn -> t(:erlang.iovec() / 0) end)
+      assert captured =~ "-type iovec() :: [binary()]"
+      assert captured =~ "A list of binaries."
+    end
+
+    test "handles non-existing types from erlang module" do
+      captured = capture_io(fn -> t(:erlang.foo()) end)
+      assert captured =~ "No type information for :erlang.foo was found or :erlang.foo is private"
+
+      captured = capture_io(fn -> t(:erlang.foo() / 1) end)
+      assert captured =~ "No type information for :erlang.foo was found or :erlang.foo is private"
     end
   end
 

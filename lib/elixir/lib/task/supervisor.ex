@@ -335,6 +335,11 @@ defmodule Task.Supervisor do
       * `:kill_task` - the task that timed out is killed. The value
         emitted for that task is `{:exit, :timeout}`.
 
+    * `:zip_input_on_exit` - (since v1.14.0) adds the original
+      input to `:exit` tuples. The value emitted for that task is
+      `{:exit, {input, reason}}`, where `input` is the collection element
+      that caused an exited during processing. Defaults to `false`.
+
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value. Defaults to `5000` milliseconds.
 

@@ -378,11 +378,11 @@ defmodule Mix.ReleaseTest do
       assert release.boot_scripts.start_clean == [
                kernel: :permanent,
                stdlib: :permanent,
-               elixir: :none,
-               sasl: :none,
-               mix: :none,
+               elixir: :load,
+               sasl: :load,
+               mix: :load,
                iex: :none,
-               compiler: :none
+               compiler: :load
              ]
     end
   end

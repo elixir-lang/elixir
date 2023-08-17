@@ -1121,6 +1121,8 @@ defmodule ExUnit.DiffTest do
     )
   end
 
+  @compile {:no_warn_undefined, String}
+
   test "functions" do
     identity = & &1
     inspect = inspect(identity)
@@ -1130,10 +1132,14 @@ defmodule ExUnit.DiffTest do
 
     refute_diff(identity == :a, "-#{inspect}-", "+:a+")
     refute_diff({identity, identity} == :a, "-{#{inspect}, #{inspect}}", "+:a+")
-
     refute_diff({identity, :a} == {:a, identity}, "{-#{inspect}-, -:a-}", "{+:a+, +#{inspect}+}")
-
     refute_diff(%{identity => identity} == :a, "-%{#{inspect} => #{inspect}}", "+:a+")
+
+    refute_diff(
+      (&String.to_charlist/1) == (&String.unknown/1),
+      "-&String.to_charlist/1-",
+      "+&String.unknown/1"
+    )
 
     refute_diff(
       %Opaque{data: identity} == :a,

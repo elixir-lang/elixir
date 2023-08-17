@@ -78,6 +78,9 @@ defmodule Code.Fragment do
     * `{:local_call, charlist}` - the context is a local (import or local)
       call, such as `hello_world(` and `hello_world `
 
+    * `{:anonymous_call, inside_caller}` - the context is an anonymous
+      call, such as `fun.(` and `@fun.(`.
+
     * `{:module_attribute, charlist}` - the context is a module attribute,
       such as `@hello_wor`
 
@@ -140,6 +143,7 @@ defmodule Code.Fragment do
           | {:local_or_var, charlist}
           | {:local_arity, charlist}
           | {:local_call, charlist}
+          | {:anonymous_call, inside_caller}
           | {:module_attribute, charlist}
           | {:operator, charlist}
           | {:operator_arity, charlist}
@@ -164,7 +168,8 @@ defmodule Code.Fragment do
                | {:alias, inside_alias, charlist}
                | {:local_or_var, charlist}
                | {:module_attribute, charlist}
-               | {:dot, inside_dot, charlist}
+               | {:dot, inside_dot, charlist},
+             inside_caller: {:var, charlist} | {:module_attribute, charlist}
   def cursor_context(fragment, opts \\ [])
 
   def cursor_context(fragment, opts)
@@ -242,11 +247,22 @@ defmodule Code.Fragment do
   end
 
   defp call_to_cursor_context({reverse, spaces}) do
-    case identifier_to_cursor_context(reverse, spaces, true) do
-      {{:local_or_var, acc}, count} -> {{:local_call, acc}, count}
-      {{:dot, base, acc}, count} -> {{:dot_call, base, acc}, count}
-      {{:operator, acc}, count} -> {{:operator_call, acc}, count}
-      {_, _} -> {:none, 0}
+    with [?. | rest] <- reverse,
+         {rest, spaces} = strip_spaces(rest, spaces),
+         [h | _] when h not in @non_identifier <- rest do
+      case identifier_to_cursor_context(rest, spaces, true) do
+        {{:local_or_var, acc}, count} -> {{:anonymous_call, {:var, acc}}, count + 1}
+        {{:module_attribute, _} = attr, count} -> {{:anonymous_call, attr}, count + 1}
+        {_, _} -> {:none, 0}
+      end
+    else
+      _ ->
+        case identifier_to_cursor_context(reverse, spaces, true) do
+          {{:local_or_var, acc}, count} -> {{:local_call, acc}, count}
+          {{:dot, base, acc}, count} -> {{:dot_call, base, acc}, count}
+          {{:operator, acc}, count} -> {{:operator_call, acc}, count}
+          {_, _} -> {:none, 0}
+        end
     end
   end
 
@@ -753,7 +769,7 @@ defmodule Code.Fragment do
     end
   end
 
-  defp take_alias([h | t], acc) when h in ?A..?Z or h in ?a..?z or h in ?0..9 or h == ?_,
+  defp take_alias([h | t], acc) when h in ?A..?Z or h in ?a..?z or h in ?0..?9 or h == ?_,
     do: take_alias(t, [h | acc])
 
   defp take_alias(rest, acc) do

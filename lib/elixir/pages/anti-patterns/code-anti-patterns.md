@@ -81,7 +81,7 @@ def get_customer(customer_id) do
           {:ok, customer}
 
         {:error, _} ->
-          {:error, "invalid reponse body"}
+          {:error, "invalid response body"}
       end
 
     {:error, %{status: status, body: body}} ->
@@ -90,7 +90,7 @@ def get_customer(customer_id) do
           {:error, message}
 
         %{} ->
-          {:error, "invalid reponse with status #{status}"}
+          {:error, "invalid response with status #{status}"}
       end
   end
 end
@@ -211,11 +211,11 @@ end
 
 #### Problem
 
-In Elixir, it is possible to access values from `Maps`, which are key-value data structures, either statically or dynamically. When trying to dynamically access the value of a key from a `Map`, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the `Map` or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
+In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When trying to dynamically access the value of a key from a map, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
 
 #### Example
 
-The function `plot/1` tries to draw a graphic to represent the position of a point in a cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D cartesian coordinate system. To decide if a point is 2D or 3D, this function uses dynamic access to retrieve values of the `Map` keys:
+The function `plot/1` tries to draw a graphic to represent the position of a point in a cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
 
 ```elixir
 defmodule Graphics do
@@ -239,11 +239,11 @@ iex> Graphics.plot(point_3d)
 {5, 6, nil}
 ```
 
-As can be seen in the example above, even when the key `:z` does not exist in the `Map` (`point_2d`), dynamic access returns the value `nil`. This return can be dangerous because of its ambiguity. It is not possible to conclude from it whether the `Map` has the key `:z` or not. If the function relies on the return value to make decisions about how to plot a point, this can be problematic and even cause errors when testing the code.
+As can be seen in the example above, even when the key `:z` does not exist in the map (`point_2d`), dynamic access returns the value `nil`. This return can be dangerous because of its ambiguity. It is not possible to conclude from it whether the map has the key `:z` or not. If the function relies on the return value to make decisions about how to plot a point, this can be problematic and even cause errors when testing the code.
 
 #### Refactoring
 
-To remove this anti-pattern, whenever a `Map` has keys of `Atom` type, replace the dynamic access to its values by the `map.field`syntax. When a non-existent key is statically accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
+To remove this anti-pattern, whenever a map has keys of `Atom` type, replace the dynamic access to its values by the `map.field`syntax. When a non-existent key is statically accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
 
 ```elixir
 defmodule Graphics do

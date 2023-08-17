@@ -175,7 +175,7 @@ defmodule IOTest do
     end
 
     test "no stacktrace" do
-      assert capture_io(:stderr, fn -> IO.warn("hello", []) end) =~ "hello\n\n"
+      assert capture_io(:stderr, fn -> IO.warn("hello", []) end) =~ "hello\n"
     end
 
     test "with stacktrace" do
@@ -220,10 +220,7 @@ defmodule IOTest do
 
       assert capture_io(:stderr, fn ->
                IO.warn("hello", line: 13, module: Foo, function: {:bar, 1})
-             end) =~ """
-             hello
-
-             """
+             end) =~ "hello"
     end
   end
 

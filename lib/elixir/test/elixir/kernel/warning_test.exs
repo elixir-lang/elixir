@@ -641,8 +641,18 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+
+    assert_warn_eval(
+      ["nofile:3: ", "function b/0 is unused\n"],
+      ~S"""
+      defmodule Sample5 do
+        def a, do: nil
+        defp b(), do: unquote(1)
+      end
+      """
+    )
   after
-    purge([Sample1, Sample2, Sample3, Sample4])
+    purge([Sample1, Sample2, Sample3, Sample4, Sample5])
   end
 
   test "unused cyclic functions" do
@@ -673,8 +683,19 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+
+    assert_warn_eval(
+      ["nofile:2: ", "macro hello/0 is unused\n"],
+      ~S"""
+      defmodule Sample2 do
+        defmacrop hello do
+          quote do: unquote(1)
+        end
+      end
+      """
+    )
   after
-    purge(Sample)
+    purge([Sample, Sample2])
   end
 
   test "shadowing" do
@@ -706,7 +727,7 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:3: ",
-        "the default values for the first 2 optional arguments in b/3 are never used"
+        "the default value for the last optional argument in b/3 is never used"
       ],
       ~S"""
       defmodule Sample2 do
@@ -717,11 +738,14 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3: ", "the default value for the first optional argument in b/3 is never used"],
+      [
+        "nofile:3: ",
+        "the default values for the last 2 optional arguments in b/4 are never used"
+      ],
       ~S"""
       defmodule Sample3 do
-        def a, do: b(1)
-        defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3), do: [arg1, arg2, arg3]
+        def a, do: b(1, 2)
+        defp b(arg1, arg2 \\ 2, arg3 \\ 3, arg4 \\ 4), do: [arg1, arg2, arg3, arg4]
       end
       """
     )
@@ -734,24 +758,9 @@ defmodule Kernel.WarningTest do
            """) == ""
 
     assert_warn_eval(
-      ["nofile:3: ", "default values for the optional arguments in b/3 are never used"],
+      ["nofile:3: ", "the default value for the last optional argument in b/3 is never used"],
       ~S"""
       defmodule Sample5 do
-        def a, do: b(1, 2, 3)
-        defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
-
-        defp b(arg1, arg2, arg3), do: [arg1, arg2, arg3]
-      end
-      """
-    )
-
-    assert_warn_eval(
-      [
-        "nofile:3: ",
-        "the default values for the first 2 optional arguments in b/3 are never used"
-      ],
-      ~S"""
-      defmodule Sample6 do
         def a, do: b(1, 2)
         defp b(arg1 \\ 1, arg2 \\ 2, arg3 \\ 3)
 
@@ -760,7 +769,7 @@ defmodule Kernel.WarningTest do
       """
     )
   after
-    purge([Sample1, Sample2, Sample3, Sample4, Sample5, Sample6])
+    purge([Sample1, Sample2, Sample3, Sample4, Sample5])
   end
 
   test "unused import" do
@@ -981,6 +990,24 @@ defmodule Kernel.WarningTest do
   end
 
   test "late function heads" do
+    assert_warn_eval(
+      [
+        "nofile:4\n",
+        "function head for def add/2 must come at the top of its direct implementation"
+      ],
+      """
+      defmodule Sample do
+        def add(a, b), do: a + b
+        @doc "hello"
+        def add(a, b)
+      end
+      """
+    )
+  after
+    purge(Sample)
+  end
+
+  test "late function heads do not warn for meta programming" do
     assert capture_eval("""
            defmodule Sample1 do
              defmacro __using__(_) do
@@ -997,19 +1024,16 @@ defmodule Kernel.WarningTest do
            end
            """) == ""
 
-    assert_warn_eval(
-      [
-        "nofile:4\n",
-        "function head for def add/2 must come at the top of its direct implementation"
-      ],
-      """
-      defmodule Sample3 do
-        def add(a, b), do: a + b
-        @doc "hello"
-        def add(a, b)
-      end
-      """
-    )
+    assert capture_eval("""
+           defmodule Sample3 do
+            for fun <- [:foo, :bar] do
+              def unquote(fun)(), do: unquote(fun)
+            end
+
+             def foo()
+             def bar()
+           end
+           """) == ""
   after
     purge([Sample1, Sample2, Sample3])
   end
@@ -1146,6 +1170,18 @@ defmodule Kernel.WarningTest do
         @foo
       end
       """
+    )
+  after
+    purge(Sample)
+  end
+
+  test "parens on nullary remote call" do
+    assert_warn_eval(
+      [
+        "nofile:1:8",
+        "parentheses are required for function calls with no arguments, got: System.version"
+      ],
+      "System.version"
     )
   after
     purge(Sample)
@@ -1444,7 +1480,7 @@ defmodule Kernel.WarningTest do
     purge([Sample1, Sample1.Atom])
   end
 
-  test "overridden def name" do
+  test "ungrouped def name" do
     assert_warn_eval(
       [
         "nofile:4\n",
@@ -1462,7 +1498,7 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "overridden def name and arity" do
+  test "ungrouped def name and arity" do
     assert_warn_eval(
       [
         "nofile:4\n",
@@ -1476,6 +1512,19 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+  after
+    purge(Sample)
+  end
+
+  test "ungrouped defs do not warn for meta programming" do
+    assert capture_eval("""
+           defmodule Sample do
+             for atom <- [:foo, :bar] do
+               def from_string(unquote(to_string(atom))), do: unquote(atom)
+               def to_string(unquote(atom)), do: unquote(to_string(atom))
+             end
+           end
+           """) == ""
   after
     purge(Sample)
   end

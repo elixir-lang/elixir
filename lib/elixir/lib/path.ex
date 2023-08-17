@@ -856,7 +856,7 @@ defmodule Path do
 
     * The path is not relative, such as `"/foo/bar"`.
 
-    * A `..` component would make it so that the path would travers up above
+    * A `..` component would make it so that the path would traverse up above
       the root of `relative_to`.
 
     * A symbolic link in the path points to something above the root of `cwd`.

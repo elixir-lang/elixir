@@ -144,63 +144,85 @@ defmodule NaiveDateTimeTest do
     end
   end
 
-  test "add/2 with other calendars" do
-    assert ~N[2000-01-01 12:34:15.123456]
-           |> NaiveDateTime.convert!(Calendar.Holocene)
-           |> NaiveDateTime.add(10, :second) ==
-             %NaiveDateTime{
-               calendar: Calendar.Holocene,
-               year: 12000,
-               month: 1,
-               day: 1,
-               hour: 12,
-               minute: 34,
-               second: 25,
-               microsecond: {123_456, 6}
-             }
+  describe "add" do
+    test "add with invalid time unit" do
+      dt = NaiveDateTime.utc_now()
+
+      message =
+        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
+
+      assert_raise ArgumentError, message, fn -> NaiveDateTime.add(dt, 1, "day") end
+    end
+
+    test "add with other calendars" do
+      assert ~N[2000-01-01 12:34:15.123456]
+             |> NaiveDateTime.convert!(Calendar.Holocene)
+             |> NaiveDateTime.add(10, :second) ==
+               %NaiveDateTime{
+                 calendar: Calendar.Holocene,
+                 year: 12000,
+                 month: 1,
+                 day: 1,
+                 hour: 12,
+                 minute: 34,
+                 second: 25,
+                 microsecond: {123_456, 6}
+               }
+    end
+
+    test "add with datetime" do
+      dt = %DateTime{
+        year: 2000,
+        month: 2,
+        day: 29,
+        zone_abbr: "CET",
+        hour: 23,
+        minute: 0,
+        second: 7,
+        microsecond: {0, 0},
+        utc_offset: 3600,
+        std_offset: 0,
+        time_zone: "Europe/Warsaw"
+      }
+
+      assert NaiveDateTime.add(dt, 21, :second) == ~N[2000-02-29 23:00:28]
+    end
   end
 
-  test "add/2 with datetime" do
-    dt = %DateTime{
-      year: 2000,
-      month: 2,
-      day: 29,
-      zone_abbr: "CET",
-      hour: 23,
-      minute: 0,
-      second: 7,
-      microsecond: {0, 0},
-      utc_offset: 3600,
-      std_offset: 0,
-      time_zone: "Europe/Warsaw"
-    }
+  describe "diff" do
+    test "diff with invalid time unit" do
+      dt = NaiveDateTime.utc_now()
 
-    assert NaiveDateTime.add(dt, 21, :second) == ~N[2000-02-29 23:00:28]
-  end
+      message =
+        ~r/unsupported time unit\. Expected :day, :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got "day"/
 
-  test "diff/2 with other calendars" do
-    assert ~N[2000-01-01 12:34:15.123456]
-           |> NaiveDateTime.convert!(Calendar.Holocene)
-           |> NaiveDateTime.add(10, :second)
-           |> NaiveDateTime.diff(~N[2000-01-01 12:34:15.123456]) == 10
-  end
+      assert_raise ArgumentError, message, fn -> NaiveDateTime.diff(dt, dt, "day") end
+    end
 
-  test "diff/2 with datetime" do
-    dt = %DateTime{
-      year: 2000,
-      month: 2,
-      day: 29,
-      zone_abbr: "CET",
-      hour: 23,
-      minute: 0,
-      second: 7,
-      microsecond: {0, 0},
-      utc_offset: 3600,
-      std_offset: 0,
-      time_zone: "Europe/Warsaw"
-    }
+    test "diff with other calendars" do
+      assert ~N[2000-01-01 12:34:15.123456]
+             |> NaiveDateTime.convert!(Calendar.Holocene)
+             |> NaiveDateTime.add(10, :second)
+             |> NaiveDateTime.diff(~N[2000-01-01 12:34:15.123456]) == 10
+    end
 
-    assert NaiveDateTime.diff(%{dt | second: 57}, dt, :second) == 50
+    test "diff with datetime" do
+      dt = %DateTime{
+        year: 2000,
+        month: 2,
+        day: 29,
+        zone_abbr: "CET",
+        hour: 23,
+        minute: 0,
+        second: 7,
+        microsecond: {0, 0},
+        utc_offset: 3600,
+        std_offset: 0,
+        time_zone: "Europe/Warsaw"
+      }
+
+      assert NaiveDateTime.diff(%{dt | second: 57}, dt, :second) == 50
+    end
   end
 
   test "convert/2" do

@@ -85,26 +85,33 @@ defmodule IEx.Broker do
     yes?(IO.gets(:stdio, interrupt))
   end
 
-  defp yes?(string) do
-    is_binary(string) and String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
-  end
+  defp yes?(string) when is_binary(string),
+    do: String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
+
+  defp yes?(charlist) when is_list(charlist),
+    do: yes?(List.to_string(charlist))
+
+  defp yes?(_), do: false
 
   @doc """
   Client requests a takeover.
   """
   @spec take_over(binary, iodata, keyword) ::
           {:ok, server :: pid, group_leader :: pid, counter :: integer}
-          | {:error, :no_iex | :refused}
+          | {:error, :no_iex | :refused | atom()}
   def take_over(location, whereami, opts) do
     case take_over_existing(location, whereami, opts) do
       {:error, :no_iex} ->
         cond do
-          # TODO: Remove this check on Erlang/OTP 26+ and {:error, :no_iex}
+          # TODO: Remove this check on Erlang/OTP 26+ and {:error, :no_iex} return
           not Code.ensure_loaded?(:prim_tty) ->
             {:error, :no_iex}
 
           take_over?(location, whereami, opts) ->
-            {:ok, IEx.cli(opts), Process.group_leader(), 1}
+            case IEx.shell(opts) do
+              {:ok, shell} -> {:ok, shell, Process.group_leader(), 1}
+              {:error, reason} -> {:error, reason}
+            end
 
           true ->
             {:error, :refused}

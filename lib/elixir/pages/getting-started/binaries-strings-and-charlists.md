@@ -239,8 +239,7 @@ iex> [?h, ?e, ?l, ?l, ?o]
 ~c"hello"
 ```
 
-The `~c` sigil (we'll cover sigils later in the ["Sigils"](sigils.md) chapter)
-indicates the fact that we are dealing with a charlist and not a regular string.
+The `~c` sigil (we'll cover sigils later in the ["Sigils"](sigils.md) chapter) indicates the fact that we are dealing with a charlist and not a regular string.
 
 Instead of containing bytes, a charlist contains integer code points. However, the list is only printed as a sigil if all code points are within the ASCII range:
 
@@ -258,7 +257,14 @@ iex> heartbeats_per_minute = [99, 97, 116]
 ~c"cat"
 ```
 
-You can convert a charlist to a string and back by using the `to_string/1` and `to_charlist/1` functions:
+You can always for charlists to be printed in their list representation by calling the `inspect/2` function:
+
+```elixir
+iex> inspect(heartbeats_per_minute, charlists: :as_list)
+"[99, 97, 116]"
+```
+
+Furthermore, you can convert a charlist to a string and back by using the `to_string/1` and `to_charlist/1`:
 
 ```elixir
 iex> to_charlist("hełło")
@@ -271,7 +277,7 @@ iex> to_string(1)
 "1"
 ```
 
-Note that those functions are polymorphic - not only do they convert charlists to strings, they also operate on integers, atoms, and so on.
+The functions above are polymorphic, in other words, they accept many shapes: not only do they convert charlists to strings (and vice-versa), they can also convert integers, atoms, and so on.
 
 String (binary) concatenation uses the `<>` operator but charlists, being lists, use the list concatenation operator `++`:
 

@@ -1216,7 +1216,8 @@ defmodule Enum do
       "no bools!"
 
   """
-  @spec find_value(t, any, (element -> any)) :: any | nil
+  @spec find_value(t, default, (element -> found_value)) :: found_value | default
+        when found_value: term
   def find_value(enumerable, default \\ nil, fun)
 
   def find_value(enumerable, default, fun) when is_list(enumerable) do

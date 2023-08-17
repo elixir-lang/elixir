@@ -124,6 +124,8 @@ defmodule CodeFragmentTest do
       assert CF.cursor_context("hello(\t") == {:local_call, ~c"hello"}
       assert CF.cursor_context("hello(\n") == {:local_call, ~c"hello"}
       assert CF.cursor_context("hello(\r\n") == {:local_call, ~c"hello"}
+      assert CF.cursor_context("...(") == {:local_call, ~c"..."}
+      assert CF.cursor_context("...(\s") == {:local_call, ~c"..."}
     end
 
     test "dot_arity" do
@@ -198,6 +200,19 @@ defmodule CodeFragmentTest do
 
       assert CF.cursor_context("@foo.Foo.hello(") ==
                {:dot_call, {:alias, {:module_attribute, ~c"foo"}, ~c"Foo"}, ~c"hello"}
+    end
+
+    test "anonymous_call" do
+      assert CF.cursor_context("hello.(") == {:anonymous_call, {:var, ~c"hello"}}
+      assert CF.cursor_context("hello.(\s") == {:anonymous_call, {:var, ~c"hello"}}
+      assert CF.cursor_context("hello.(\t") == {:anonymous_call, {:var, ~c"hello"}}
+      assert CF.cursor_context("hello.(\n") == {:anonymous_call, {:var, ~c"hello"}}
+      assert CF.cursor_context("hello.(\r\n") == {:anonymous_call, {:var, ~c"hello"}}
+
+      assert CF.cursor_context("hello . (") == {:anonymous_call, {:var, ~c"hello"}}
+
+      assert CF.cursor_context("@hello.(") == {:anonymous_call, {:module_attribute, ~c"hello"}}
+      assert CF.cursor_context("@hello . (") == {:anonymous_call, {:module_attribute, ~c"hello"}}
     end
 
     test "nested expressions" do
@@ -736,6 +751,14 @@ defmodule CodeFragmentTest do
                  context: {:alias, ~c"Foo.Bar.Baz"},
                  begin: {1, 1},
                  end: {3, 5}
+               }
+      end
+
+      for i <- 1..11 do
+        assert CF.surround_context("Foo.Bar.Baz.foo(bar)", {1, i}) == %{
+                 context: {:alias, ~c"Foo.Bar.Baz"},
+                 begin: {1, 1},
+                 end: {1, 12}
                }
       end
     end

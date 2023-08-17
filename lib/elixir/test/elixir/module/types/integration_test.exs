@@ -286,13 +286,11 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)",
-        "a.ex:8: A.d/0",
-        "Similar warning found at 1 other location:",
-        "external_source.ex:5: A.b/0",
+        "└─ a.ex:8: A.d/0",
+        "└─ external_source.ex:5: A.b/0",
         "A.no_func/0 is undefined or private",
-        "Similar warning found at 1 other location:",
-        "a.ex:2: A.a/0",
-        "a.ex:7: A.c/0"
+        "└─ a.ex:2: A.a/0",
+        "└─ a.ex:7: A.c/0"
       ]
 
       assert_warnings(files, warnings)
@@ -569,7 +567,7 @@ defmodule Module.Types.IntegrationTest do
       }
 
       warning = [
-        "warning\n",
+        "warning: ",
         "from after_verify"
       ]
 
@@ -640,13 +638,11 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "A.__struct__/0 is deprecated. oops",
-        "a.ex:4: A.match/1",
-        "Similar warning found at 1 other location:",
-        "a.ex:5: A.build/1",
+        "└─ a.ex:4: A.match/1",
+        "└─ a.ex:5: A.build/1",
         "A.__struct__/0 is deprecated. oops",
-        "b.ex:2: B.match/1",
-        "Similar warning found at 1 other location:",
-        "b.ex:3: B.build/1"
+        "└─ b.ex:2: B.match/1",
+        "└─ b.ex:3: B.build/1"
       ]
 
       assert_warnings(files, warnings)

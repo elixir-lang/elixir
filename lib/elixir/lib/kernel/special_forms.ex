@@ -349,7 +349,7 @@ defmodule Kernel.SpecialForms do
 
   Or as a part of function definitions to pattern match:
 
-      defmodule ImageTyper do
+      defmodule ImageType do
         @png_signature <<137::size(8), 80::size(8), 78::size(8), 71::size(8),
                          13::size(8), 10::size(8), 26::size(8), 10::size(8)>>
         @jpg_signature <<255::size(8), 216::size(8)>>
@@ -1543,7 +1543,7 @@ defmodule Kernel.SpecialForms do
   area, as `{:ok, area}` or return `:error`. We could implement
   this function as:
 
-      def area(map) do
+      def area(opts) do
         case Map.fetch(opts, :width) do
           {:ok, width} ->
             case Map.fetch(opts, :height) do
@@ -1562,7 +1562,7 @@ defmodule Kernel.SpecialForms do
   While the code above works, it is quite verbose. Using `with`,
   we could rewrite it as:
 
-      def area(map) do
+      def area(opts) do
         with {:ok, width} <- Map.fetch(opts, :width),
              {:ok, height} <- Map.fetch(opts, :height) do
           {:ok, width * height}

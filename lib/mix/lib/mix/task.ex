@@ -46,15 +46,26 @@ defmodule Mix.Task do
 
   ## Module attributes
 
+  You can control some behavior of your Mix task by setting module
+  attributes. This section documents the available attributes.
+
+  ### `@shortdoc`
+
   Define the `@shortdoc` attribute if you wish to make the task
   publicly visible on `mix help`. Omit this attribute if you do
   not want your task to be listed via `mix help`.
+
+  ### `@moduledoc`
+
   The `@moduledoc` attribute may override `@shortdoc`. The task
   will not appear in `mix help` if documentation for the entire
   module is hidden with `@moduledoc false`.
 
-  If a task has requirements, they can be listed using the
-  `@requirements` attribute. For example:
+  ### `@requirements`
+
+  If a task has *requirements*, they can be listed using the
+  `@requirements` attribute. Requirements are other Mix
+  tasks that this task requires to have run. For example:
 
       @requirements ["app.config"]
 
@@ -67,8 +78,17 @@ defmodule Mix.Task do
 
   You can also run tasks directly with `run/2`.
 
-  Finally, set `@recursive true` if you want the task to run
+  ### `@recursive`
+
+  Set `@recursive true` if you want the task to run
   on each umbrella child in an umbrella project.
+
+  ### `@preferred_cli_env`
+
+  Sets the preferred Mix environment for this task. For example,
+  if your task is meant to be used for testing, you could set
+
+      @preferred_cli_env :test
 
   ## Documentation
 

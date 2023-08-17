@@ -734,14 +734,6 @@ defmodule KernelTest do
       assert result =~ ":lists.member(rand(), [1 | some_call()]"
     end
 
-    defp quote_case_in(left, right) do
-      quote do
-        case 0 do
-          _ when unquote(left) in unquote(right) -> true
-        end
-      end
-    end
-
     test "is optimized" do
       assert expand_to_string(quote(do: foo in [])) ==
                "_ = foo\nfalse"

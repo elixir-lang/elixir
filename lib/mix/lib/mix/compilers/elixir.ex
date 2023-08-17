@@ -203,7 +203,7 @@ defmodule Mix.Compilers.Elixir do
           {_, _, sources, _, _} = state
           errors = Enum.map(errors, &diagnostic/1)
           warnings = Enum.map(r_warnings ++ c_warnings, &diagnostic/1)
-          all_warnings = Keyword.get(opts, :all_warnings, true)
+          all_warnings = Keyword.get(opts, :all_warnings, errors == [])
           {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
       after
         Code.compiler_options(previous_opts)
@@ -454,6 +454,9 @@ defmodule Mix.Compilers.Elixir do
       8 -> :crypto.hash(:blake2b, contents)
       _ -> :crypto.hash(:blake2s, contents)
     end
+  rescue
+    # Blake may not be available on all OpenSSL distribution
+    _ -> :erlang.md5(contents)
   end
 
   defp set_compiler_opts(opts) do

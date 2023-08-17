@@ -1116,7 +1116,7 @@ defmodule Task do
   ## Example
 
   `Task.yield_many/2` allows developers to spawn multiple tasks
-  and retrieve the results received in a given timeframe.
+  and retrieve the results received in a given time frame.
   If we combine it with `Task.shutdown/2` (or `Task.ignore/1`),
   it allows us to gather those results and cancel (or ignore)
   the tasks that have not replied in time.

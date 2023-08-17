@@ -49,10 +49,11 @@ defmodule Mix.Tasks.Compile do
 
   ## Command line options
 
+    * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
+      (default is true except on errors)
     * `--erl-config` - path to an Erlang term file that will be loaded as Mix config
     * `--force` - forces compilation
     * `--list` - lists all enabled compilers
-    * `--no-all-warnings` - prints only warnings from files currently compiled (instead of all)
     * `--no-app-loading` - does not load .app resource file after compilation
     * `--no-archives-check` - skips checking of archives
     * `--no-compile` - does not actually compile, only loads code and perform checks

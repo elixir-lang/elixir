@@ -80,6 +80,8 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.16] | Ranges with negative steps in `Enum.slice/2`        | Explicit steps in ranges (v1.11)
+[v1.16] | Ranges with negative steps in `String.slice/2`      | Explicit steps in ranges (v1.11)
 [v1.15] | `Calendar.ISO.day_of_week/3`                        | `Calendar.ISO.day_of_week/4` (v1.11)
 [v1.15] | `Exception.exception?/1`                            | `Kernel.is_exception/1` (v1.11)
 [v1.15] | `Regex.regex?/1`                                    | `Kernel.is_struct/2` (`Kernel.is_struct(term, Regex)`) (v1.11)
@@ -204,3 +206,4 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.13]: https://github.com/elixir-lang/elixir/blob/v1.13/CHANGELOG.md#4-hard-deprecations
 [v1.14]: https://github.com/elixir-lang/elixir/blob/v1.14/CHANGELOG.md#4-hard-deprecations
 [v1.15]: https://github.com/elixir-lang/elixir/blob/v1.15/CHANGELOG.md#4-hard-deprecations
+[v1.16]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations

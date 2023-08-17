@@ -460,6 +460,23 @@ defmodule Task.SupervisorTest do
       assert_receive 2
       assert_receive 3
     end
+
+    test "with timeout and :zip_input_on_exit set to true", %{supervisor: supervisor} do
+      opts = Keyword.merge(@opts, zip_input_on_exit: true, on_timeout: :kill_task, timeout: 50)
+
+      assert supervisor
+             |> Task.Supervisor.async_stream([1, 100], &sleep/1, opts)
+             |> Enum.to_list() == [ok: 1, exit: {100, :timeout}]
+    end
+
+    test "with outer halt on failure and :zip_input_on_exit", %{supervisor: supervisor} do
+      Process.flag(:trap_exit, true)
+      opts = Keyword.merge(@opts, zip_input_on_exit: true)
+
+      assert supervisor
+             |> Task.Supervisor.async_stream(1..8, &exit/1, opts)
+             |> Enum.take(4) == [exit: {1, 1}, exit: {2, 2}, exit: {3, 3}, exit: {4, 4}]
+    end
   end
 
   describe "async_stream_nolink" do

@@ -383,6 +383,9 @@ defmodule Mix.Tasks.ReleaseTest do
           raise "file should not be loaded while assembling release"
         end
 
+        # Ensure app has been loaded
+        [_ | _] = Application.spec(:release_test, :modules)
+
         config :release_test, :runtime,
           override: :runtime,
           config_env: config_env(),
@@ -657,7 +660,11 @@ defmodule Mix.Tasks.ReleaseTest do
       Mix.Project.in_project(:release_test, ".", config, fn _ ->
         File.write!("config/runtime.exs", """
         import Config
+
         config :release_test, :runtime, [mode: :code.get_mode()]
+
+        # Ensure app has been loaded
+        [_ | _] = Application.spec(:release_test, :modules)
         """)
 
         root = Path.absname("_build/dev/rel/eval")

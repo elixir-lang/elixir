@@ -130,7 +130,7 @@ iex> list ++ [4]
 [1, 2, 3, 4]
 ```
 
-Tuples, on the other hand, are stored contiguously in memory. This means getting the tuple size or accessing an element by index is fast. However, updating or adding elements to tuples is expensive because it requires creating a new tuple in memory:
+Tuples, on the other hand, are stored contiguously in memory. This means getting the tuple size or accessing an element by index is fast. On the other hand, updating or adding elements to tuples is expensive because it requires creating a new tuple in memory:
 
 ```elixir
 iex> tuple = {:a, :b, :c, :d}
@@ -139,9 +139,29 @@ iex> put_elem(tuple, 2, :e)
 {:a, :b, :e, :d}
 ```
 
-Note that this applies only to the tuple itself, not its contents. For instance, when you update a tuple, all entries are shared between the old and the new tuple, except for the entry that has been replaced. In other words, tuples and lists in Elixir are capable of sharing their contents. This reduces the amount of memory allocation the language needs to perform and is only possible thanks to the immutable semantics of the language.
+Note, however, the elements themselves are not copied. When you update a tuple, all entries are shared between the old and the new tuple, except for the entry that has been replaced. This rule applies to most data structures in Elixir. This reduces the amount of memory allocation the language needs to perform and is only possible thanks to the immutable semantics of the language.
 
-Those performance characteristics dictate the usage of those data structures. One very common use case for tuples is to use them to return extra information from a function. For example, `File.read/1` is a function that can be used to read file contents. It returns a tuple:
+Those performance characteristics dictate the usage of those data structures. In a nutshell, lists are used when the number of elements returned may vary. Tuples have a fixed size. Let's see two examples from the `String` module:
+
+```elixir
+iex> String.split("hello world")
+["hello", "world"]
+iex> String.split("hello beautiful world")
+["hello", "beautiful", "world"]
+```
+
+The `String.split/2` function breaks a string into a list of strings on every whitespace character. Since the amount of elements returned depends on the input, we use a list.
+
+On the other hand, `String.split_at/2` splits a string in two parts at a given position. Since it always returns two entries, regardless of the input size, it returns tuples:
+
+```elixir
+iex> String.split_at("hello world", 3)
+{"hel", "lo world"}
+iex> String.split_at("hello world", 3)
+{"hello w", "orld"}
+```
+
+It is also very common to use tuples and atoms to create "tagged tuples", which is a handy return value when an operation may succeed or fail. For example, `File.read/1` reads the contents of a file at a given path, which may or may not exist. It returns tagged tuples:
 
 ```elixir
 iex> File.read("path/to/existing/file")
@@ -150,9 +170,9 @@ iex> File.read("path/to/unknown/file")
 {:error, :enoent}
 ```
 
-If the path given to `File.read/1` exists, it returns a tuple with the atom `:ok` as the first element and the file contents as the second. Otherwise, it returns a tuple with `:error` and the error description.
+If the path given to `File.read/1` exists, it returns a tuple with the atom `:ok` as the first element and the file contents as the second. Otherwise, it returns a tuple with `:error` and the error description. As we will soon learn, Elixir allows us to *pattern match* on tagged tuples and effortlessly handle both success and failure cases.
 
-Most of the time, Elixir is going to guide you to do the right thing. For example, there is an `elem/2` function to access a tuple item but there is no built-in equivalent for lists:
+Given Elixir consistently follows those rules, the choice between lists and tuples get clearer as you learn and use the language. Elixir often guides you to do the right thing. For example, there is an `elem/2` function to access a tuple item:
 
 ```elixir
 iex> tuple = {:ok, "hello"}
@@ -160,6 +180,8 @@ iex> tuple = {:ok, "hello"}
 iex> elem(tuple, 1)
 "hello"
 ```
+
+However, given you often don't know the number of elements in a list, there is no built-in equivalent for accessing arbitrary entries in a lists, apart from its head.
 
 ## Size or length?
 

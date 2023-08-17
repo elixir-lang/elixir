@@ -42,7 +42,7 @@ The character must either be all in Cyrillic or all in Latin. The only mixed-scr
 
 Finally, Elixir will also warn on confusable identifiers in the same file. For example, Elixir will emit a warning if you use both variables `а` (Cyrillic) and `а` (Latin) in your code.
 
-That's the overall introduction of how Unicode is used in Elixir identifiers. In a nutshell, its goal is to support different writing systems in use today while keeping the Elixir languague itself clear and secure.
+That's the overall introduction of how Unicode is used in Elixir identifiers. In a nutshell, its goal is to support different writing systems in use today while keeping the Elixir language itself clear and secure.
 
 For the technical details, see the next sections that cover the technical Unicode requirements.
 
