@@ -8,6 +8,17 @@ defmodule GenServer do
   will have a standard set of interface functions and include functionality for
   tracing and error reporting. It will also fit into a supervision tree.
 
+  ```mermaid
+  graph TD
+      GenServer
+      GenServer -. reply -.-> A
+      GenServer -. reply -.-> B
+      GenServer -. reply -.-> C
+      A(Client #1) -- request --> GenServer
+      B(Client #2) -- request --> GenServer
+      C(Client #3) -- request --> GenServer
+  ```
+
   ## Example
 
   The GenServer behaviour abstracts the common client-server interaction.
@@ -136,10 +147,48 @@ defmodule GenServer do
         end
       end
 
-
   In practice, it is common to have both server and client functions in
   the same module. If the server and/or client implementations are growing
   complex, you may want to have them in different modules.
+
+  The following diagram summarizes the interactions between client and server.
+  Both Client and Server are processes and communication happens via messages
+  (continuous line). The Server <-> Module interaction happens when the
+  GenServer process calls your code (dotted lines):
+
+  ```mermaid
+  sequenceDiagram
+      participant C as Client (Process)
+      participant S as Server (Process)
+      participant M as Module (Code)
+
+      rect rgb(248, 248, 248)
+        note right of C: Typically started by a supervisor.
+        C->>S: GenServer.start_link(module, arg, options)
+        S-->>M: init(arg)
+        M-->>S: {:ok, state} | :ignore | {:eror, reason}
+        S->>C: {:ok, pid} | :ignore | {:error, reason}
+      end
+
+      rect rgb(248, 248, 248)
+        C->>S: GenServer.call(pid, message)
+        S-->>M: handle_call(message, from, state)
+        M-->>S: {:reply, reply, state} | {:stop, reason, reply, state}
+        S->>C: reply
+      end
+
+      rect rgb(248, 248, 248)
+        C->>S: GenServer.cast(pid, message)
+        S-->>M: handle_cast(message, state)
+        M-->>S: {:noreply, state} | {:stop, reason, state}
+      end
+
+      rect rgb(248, 248, 248)
+        C->>S: Kernel.send(pid, message)
+        S-->>M: handle_info(message, state)
+        M-->>S: {:noreply, state} | {:stop, reason, state}
+      end
+  ```
 
   ## How to supervise
 

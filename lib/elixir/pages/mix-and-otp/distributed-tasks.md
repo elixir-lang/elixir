@@ -340,7 +340,7 @@ In all of our examples, we relied on Erlang's ability to automatically connect n
 
 By default, Erlang establishes a fully meshed network, which means all nodes are connected to each other. Under this topology, the Erlang distribution is known to scale to several dozens of nodes in the same cluster. Erlang also has the concept of hidden nodes, which can allow developers to assemble custom topologies as seen in projects such as [Partisan](https://github.com/lasp-lang/partisan).
 
-In production, you may have nodes connecting and disconnecting at any time. In such scenarios, you need to provide *node discoverability*. Libraries such as [libcluster](https://github.com/bitwalker/libcluster/) and [peerage](https://github.com/mrluc/peerage) provide several strategies for node discoverability using DNS, Kubernetes, etc.
+In production, you may have nodes connecting and disconnecting at any time. In such scenarios, you need to provide *node discoverability*. Libraries such as [libcluster](https://github.com/bitwalker/libcluster/) and [dns_cluster](https://github.com/phoenixframework/dns_cluster) provide several strategies for node discoverability using DNS, Kubernetes, etc.
 
 Distributed key-value stores, used in real-life, need to consider the fact nodes may go up and down at any time and also migrate the bucket across nodes. Even further, buckets often need to be duplicated between nodes, so a failure in a node does not lead to the whole bucket being lost. This process is called *replication*. Our implementation won't attempt to tackle such problems. Instead, we assume there is a fixed number of nodes and therefore use a fixed routing table.
 

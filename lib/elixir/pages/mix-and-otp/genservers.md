@@ -35,7 +35,7 @@ Instead of abusing the built-in name facility, we will create our own *process r
 
 The registry needs to guarantee that it is always up to date. For example, if one of the bucket processes crashes due to a bug, the registry must notice this change and avoid serving stale entries. In Elixir, we say the registry needs to *monitor* each bucket. Because our *registry* needs to be able to receive and handle ad-hoc messages from the system, the `Agent` API is not enough.
 
-We will use a `GenServer` to create a registry process that can monitor the bucket processes. GenServer provides industrial strength functionality for building servers in both Elixir and  OTP.
+We will use a `GenServer` to create a registry process that can monitor the bucket processes. GenServer provides industrial strength functionality for building servers in both Elixir and OTP.
 
 Please read the `GenServer` module documentation for an overview if you haven't yet. Once you do so, we are ready to proceed.
 
