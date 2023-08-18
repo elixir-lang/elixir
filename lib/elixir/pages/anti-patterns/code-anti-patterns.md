@@ -420,7 +420,7 @@ TODO.
 
 #### Problem
 
-Overall, Elixir systems are composed of many supervised processes, so the effects of an error will be localized in a single process, not propagating to the entire application. A supervisor will detect the failing process, and restart it at that level. For this type of design to behave well, it's important that problematic code crashes when it fails to fulfill its purpose. However, some code may have undesired behavior making many assumptions we have not really planned for, such as being able to return incorrect values instead of forcing a crash. These speculative assumptions can give a false impression that the code is working correctly.
+Overall, Elixir systems are composed of many supervised processes, so the effects of an error will be localized in a single process, not propagating to the entire application. A supervisor will detect the failing process, and possibly restart it. For this type of design to work well, it's important that problematic code crashes when it fails to fulfill its purpose. However, some code may have undesired behavior making many assumptions we have not really planned for, such as being able to return incorrect values instead of forcing a crash. These speculative assumptions can give a false impression that the code is working correctly.
 
 #### Example
 
