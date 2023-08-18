@@ -47,7 +47,38 @@ Elixir makes a clear distinction between **documentation** and code comments. Th
 
 ## Long parameter list
 
-TODO.
+#### Problem
+
+In a functional language like Elixir, functions tend to be pure and therefore do not access or manipulate values outside their scopes. Since the input values of these functions are just their parameters, it is natural to expect that functions with a long list of parameters be created to keep them pure. However, when this list has **more than three or four parameters**, the function's interface becomes confusing and prone to errors during use.
+
+#### Example
+
+In the following example, the `loan/6` function has an unnecessarily long list of parameters, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
+
+```elixir
+defmodule Library do
+  # Too many parameters that can be grouped!
+  def loan(user_name, email, password, user_alias, book_title, book_ed) do
+    ...
+  end
+end
+```
+
+#### Refactoring
+
+To eliminate this anti-pattern, related parameters can be grouped using `Maps`, `Structs`, or even `Tuples`. This effectively reduces the number of function parameters, simplifying its interface. In the case of the `loan/6`, its parameters were grouped into two different `Maps`, thereby reducing its arity to `loan/2`:
+
+```elixir
+defmodule Library do
+  def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
+   ...
+  end
+end
+```
+
+#### Additional remarks
+
+Although this refactoring has grouped parameters using `Maps`, we can find, in different functions, identical sets of parameters that could be grouped. These duplicated sets are known in the literature as *Data Clumps*. In that case, is better to create a `Struct` to group these parameters and reuse this to refactor all functions where these sets of parameters occur.
 
 ## Complex branching
 
@@ -220,7 +251,7 @@ The function `plot/1` tries to draw a graphic to represent the position of a poi
 ```elixir
 defmodule Graphics do
   def plot(point) do
-    #Some other code...
+    # Some other code...
 
     # Dynamic access to use point values
     {point[:x], point[:y], point[:z]}
@@ -248,7 +279,7 @@ To remove this anti-pattern, whenever a map has keys of `Atom` type, replace the
 ```elixir
 defmodule Graphics do
   def plot(point) do
-    #Some other code...
+    # Some other code...
 
     # Strict access to use point values
     {point.x, point.y, point.z}
@@ -273,7 +304,7 @@ As shown below, another alternative to refactor this anti-pattern is to use patt
 ```elixir
 defmodule Graphics do
   def plot(%{x: x, y: y, z: z}) do
-    #Some other code...
+    # Some other code...
 
     # Strict access to use point values
     {x, y, z}
