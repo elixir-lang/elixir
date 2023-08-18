@@ -71,7 +71,7 @@ To eliminate this anti-pattern, related parameters can be grouped using `Maps`, 
 ```elixir
 defmodule Library do
   def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
-   ...
+    ...
   end
 end
 ```
