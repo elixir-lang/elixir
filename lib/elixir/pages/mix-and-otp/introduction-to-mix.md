@@ -47,7 +47,7 @@ In this chapter, we will create our first project using Mix and explore differen
 >
 > As an Elixir developer, you will most likely use one of the many existing frameworks when writing your Elixir code. [Phoenix](https://phoenixframework.org) covers web applications, [Ecto](https://github.com/elixir-ecto/ecto) communicates with databases, you can craft embedded software with [Nerves](https://nerves-project.org/), [Nx](https://github.com/elixir-nx) powers machine learning and AI projects, [Membrane](https://membrane.stream/) assembles audio/video processing pipelines, [Broadway](https://elixir-broadway.org/) handles data ingestion and processing, and many more. These frameworks handle the lower level details of concurrency, distribution, and fault-tolerance, so you, as a user, can focus on your own needs and demands.
 >
-> On the other hand, if you want to learn the foundations these frameworks are built, and the abstractions that power the Elixir ecosystem, this guide will give you a tour through several important concepts.
+> On the other hand, if you want to learn the foundations these frameworks are built upon, and the abstractions that power the Elixir ecosystem, this guide will give you a tour through several important concepts.
 
 ## Our first project
 
