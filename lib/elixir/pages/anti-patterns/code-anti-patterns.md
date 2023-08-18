@@ -418,4 +418,66 @@ TODO.
 
 ## Speculative assumptions
 
-TODO.
+#### Problem
+
+Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, not propagating to the entire application. A supervisor will detect the failing process, report it, and possibly restart it. This means Elixir developers do not need to program defensively, making assumptions we have not really planned for, such as being able to return incorrect values instead of forcing a crash. These speculative assumptions can give a false impression that the code is working correctly.
+
+#### Example
+
+The function `get_value/2` tries to extract a value from a specific key of a URL query string. As it is not implemented using pattern matching, `get_value/2` always returns a value, regardless of the format of the URL query string passed as a parameter in the call. Sometimes the returned value will be valid. However, if a URL query string with an unexpected format is used in the call, `get_value/2` will extract incorrect values from it:
+
+```elixir
+defmodule Extract do
+  def get_value(string, desired_key) do
+    parts = String.split(string, "&")
+
+    Enum.find_value(parts, fn pair ->
+      key_value = String.split(pair, "=")
+      Enum.at(key_value, 0) == desired_key && Enum.at(key_value, 1)
+    end)
+  end
+end
+```
+
+```elixir
+# URL query string according to with the planned format - OK!
+iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "lab")
+"ASERG"
+iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "university")
+"UFMG"
+# Unplanned URL query string format - Unplanned value extraction!
+iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "university")
+"institution"   # <= why not "institution=UFMG"? or only "UFMG"?
+```
+
+#### Refactoring
+
+To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behaviour, shown below, will allow clients to decide how to handle these errors and will not give a false impression that the code is working correctly when unexpected values are extracted:
+
+```elixir
+defmodule Extract do
+  def get_value(string, desired_key) do
+    parts = String.split(string, "&")
+
+    Enum.find_value(parts, fn pair ->
+      [key, value] = String.split(pair, "=") # <= pattern matching
+      key == desired_key && value
+    end)
+  end
+end
+````
+
+```elixir
+# URL query string according to with the planned format - OK!
+iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "name")
+"Lucas"
+# Unplanned URL query string format - Crash explaining the problem to the client!
+iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "university")
+** (MatchError) no match of right hand side value: ["university", "institution", "UFMG"]
+  extract.ex:7: anonymous fn/2 in Extract.get_value/2 # <= left hand: [key, value] pair
+iex> Extract.get_value("name=Lucas&university&lab=ASERG", "university")
+** (MatchError) no match of right hand side value: ["university"]
+  extract.ex:7: anonymous fn/2 in Extract.get_value/2 # <= left hand: [key, value] pair
+```
+
+The goal is to promote an assertive style of programming where you handle the known cases. Once an unexpected scenario arises in production, you can decide to address it accordingly, based on the needs of the code using actual examples, or conclude the scenario is indeed expected and the exception is the desired choice.
