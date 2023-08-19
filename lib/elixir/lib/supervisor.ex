@@ -248,13 +248,13 @@ defmodule Supervisor do
       participant M as Module (Code)
 
       note right of C: child is a {module, arg} specification
-      C->>S: Supervisor.start_link([child])
-      S-->>M: module.child_spec(arg)
-      M-->>S: %{id: term, start: {module, :start_link, [arg]}}
-      S-->>M: module.start_link(arg)
+      C->>+S: Supervisor.start_link([child])
+      S-->>+M: module.child_spec(arg)
+      M-->>-S: %{id: term, start: {module, :start_link, [arg]}}
+      S-->>+M: module.start_link(arg)
       M->>M: Spawns child process (child_pid)
-      M-->>S: {:ok, child_pid} | :ignore | {:error, reason}
-      S->>C: {:ok, supervisor_pid} | {:error, reason}
+      M-->>-S: {:ok, child_pid} | :ignore | {:error, reason}
+      S->>-C: {:ok, supervisor_pid} | {:error, reason}
   ```
 
   Luckily for us, `use GenServer` already defines a `Counter.child_spec/1`
