@@ -47,7 +47,38 @@ Elixir makes a clear distinction between **documentation** and code comments. Th
 
 ## Long parameter list
 
-TODO.
+#### Problem
+
+In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point the function's interface becomes confusing and prone to errors during use.
+
+#### Example
+
+In the following example, the `loan/6` functions takes too many arguments, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
+
+```elixir
+defmodule Library do
+  # Too many parameters that can be grouped!
+  def loan(user_name, email, password, user_alias, book_title, book_ed) do
+    ...
+  end
+end
+```
+
+#### Refactoring
+
+To address this anti-pattern, related arguments can be grouped using maps, structs, or even tuples. This effectively reduces the number of arguments, simplifying the function's interface. In the case of `loan/6`, its arguments were grouped into two different maps, thereby reducing its arity to `loan/2`:
+
+```elixir
+defmodule Library do
+  def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
+    ...
+  end
+end
+```
+
+In some cases, the function with too many arguments may be a private function, which gives us more flexibility over how to separate the function arguments. One possible suggestion for such scenarios is to split the arguments in two maps (or tuples): one map keeps the data that may change, and the other keeps the data that won't change (read-only). This gives us a mechanical option to refactor the code.
+
+Other times, a function may legitimately take half a dozen or more completely unrelated arguments. This may suggest the function is trying to do too much and would be better broken into multiple functions, each responsible for a smaller piece of the overall responsibility.
 
 ## Complex branching
 
@@ -220,7 +251,7 @@ The function `plot/1` tries to draw a graphic to represent the position of a poi
 ```elixir
 defmodule Graphics do
   def plot(point) do
-    #Some other code...
+    # Some other code...
 
     # Dynamic access to use point values
     {point[:x], point[:y], point[:z]}
@@ -248,7 +279,7 @@ To remove this anti-pattern, whenever a map has keys of `Atom` type, replace the
 ```elixir
 defmodule Graphics do
   def plot(point) do
-    #Some other code...
+    # Some other code...
 
     # Strict access to use point values
     {point.x, point.y, point.z}
@@ -273,7 +304,7 @@ As shown below, another alternative to refactor this anti-pattern is to use patt
 ```elixir
 defmodule Graphics do
   def plot(%{x: x, y: y, z: z}) do
-    #Some other code...
+    # Some other code...
 
     # Strict access to use point values
     {x, y, z}
