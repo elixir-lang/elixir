@@ -242,7 +242,7 @@ defmodule IEx do
   Now, try to access the `hello` variable again:
 
       hello
-      ** (UndefinedFunctionError) undefined function hello/0
+      ** (CompileError) undefined variable "hello"
 
   The command above fails because we have switched shells.
   Since shells are isolated from each other, you can't access the
