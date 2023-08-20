@@ -49,11 +49,11 @@ Elixir makes a clear distinction between **documentation** and code comments. Th
 
 #### Problem
 
-In a functional language like Elixir, functions tend to be pure and therefore do not access or manipulate values outside their scopes. Since the input values of these functions are just their parameters, it is natural to expect that functions with a long list of parameters be created to keep them pure. However, when this list has **more than three or four parameters**, the function's interface becomes confusing and prone to errors during use.
+In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point the function's interface becomes confusing and prone to errors during use.
 
 #### Example
 
-In the following example, the `loan/6` function has an unnecessarily long list of parameters, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
+In the following example, the `loan/6` functions takes too many arguments, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
 
 ```elixir
 defmodule Library do
@@ -66,7 +66,7 @@ end
 
 #### Refactoring
 
-To eliminate this anti-pattern, related parameters can be grouped using `Maps`, `Structs`, or even `Tuples`. This effectively reduces the number of function parameters, simplifying its interface. In the case of the `loan/6`, its parameters were grouped into two different `Maps`, thereby reducing its arity to `loan/2`:
+To address this anti-pattern, related arguments can be grouped using maps, structs, or even tuples. This effectively reduces the number of arguments, simplifying the function's interface. In the case of `loan/6`, its arguments were grouped into two different maps, thereby reducing its arity to `loan/2`:
 
 ```elixir
 defmodule Library do
@@ -76,9 +76,9 @@ defmodule Library do
 end
 ```
 
-#### Additional remarks
+In some cases, the function with too many arguments may be a private function, which gives us more flexibility over how to separate the function arguments. One possible suggestion for such scenarios is to split the arguments in two maps (or tuples): one map keeps the data that may change, and the other keeps the data that won't change (read-only). This gives us a mechanical option to refactor the code.
 
-Although this refactoring has grouped parameters using `Maps`, we can find, in different functions, identical sets of parameters that could be grouped. These duplicated sets are known in the literature as *Data Clumps*. In that case, is better to create a `Struct` to group these parameters and reuse this to refactor all functions where these sets of parameters occur.
+Other times, a function may legitimately take half a dozen or more completely unrelated arguments. This may suggest the function is trying to do too much and would be better broken into multiple functions, each responsible for a smaller piece of the overall responsibility.
 
 ## Complex branching
 
