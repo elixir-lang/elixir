@@ -370,7 +370,7 @@ iex> Enum.into(pairs, %{})
 ```elixir
 iex> Enum.into(cart, %{}, fn item ->
 ...>   {item.fruit, item.count}
-```> end)
+...> end)
 %{"apple" => 3, "banana" => 1, "orange" => 6}
 ```
 

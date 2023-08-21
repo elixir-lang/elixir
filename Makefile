@@ -190,6 +190,7 @@ docs_elixir: compile ../ex_doc/bin/ex_doc
 	$(Q) rm -rf doc/elixir
 	$(call DOCS_COMPILE,Elixir,elixir,Kernel,--config "lib/elixir/scripts/elixir_docs.exs")
 	$(call DOCS_CONFIG,elixir)
+	cp -R lib/elixir/pages/images doc/elixir
 
 docs_eex: compile ../ex_doc/bin/ex_doc
 	@ echo "==> ex_doc (eex)"
