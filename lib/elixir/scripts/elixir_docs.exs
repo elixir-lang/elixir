@@ -27,6 +27,7 @@ canonical = System.fetch_env!("CANONICAL")
     "lib/elixir/pages/getting-started/optional-syntax.md",
     "lib/elixir/pages/getting-started/erlang-libraries.md",
     "lib/elixir/pages/getting-started/debugging.md",
+    "lib/elixir/pages/cheatsheets/enum-cheat.cheatmd",
     "lib/elixir/pages/anti-patterns/what-anti-patterns.md",
     "lib/elixir/pages/anti-patterns/code-anti-patterns.md",
     "lib/elixir/pages/anti-patterns/design-anti-patterns.md",
@@ -65,6 +66,7 @@ canonical = System.fetch_env!("CANONICAL")
   ],
   groups_for_extras: [
     "Getting started": ~r"pages/getting-started/.*\.md$",
+    Cheatsheets: ~r"pages/cheatsheets/.*\.cheatmd$",
     "Anti-patterns": ~r"pages/anti-patterns/.*\.md$",
     References: ~r"pages/references/.*\.md$",
     "Meta-programming": ~r"pages/meta-programming/.*\.md$",

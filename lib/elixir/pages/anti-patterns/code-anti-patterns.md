@@ -496,7 +496,7 @@ defmodule Extract do
     end)
   end
 end
-````
+```
 
 ```elixir
 # URL query string according to with the planned format - OK!
