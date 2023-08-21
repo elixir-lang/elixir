@@ -78,6 +78,7 @@ canonical = System.fetch_env!("CANONICAL")
   skip_undefined_reference_warnings_on: [
     "lib/elixir/pages/references/compatibility-and-deprecations.md"
   ],
+  formatters: ["html", "epub"],
   groups_for_modules: [
     # [Kernel, Kernel.SpecialForms],
 
@@ -178,30 +179,34 @@ canonical = System.fetch_env!("CANONICAL")
     #   Supervisor.Spec
     # ]
   ],
-  before_closing_body_tag: fn _ ->
-    """
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        mermaid.initialize({
-          startOnLoad: false,
-          theme: document.body.className.includes("dark") ? "dark" : "default"
-        });
-        let id = 0;
-        for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
-          const preEl = codeEl.parentElement;
-          const graphDefinition = codeEl.textContent;
-          const graphEl = document.createElement("div");
-          const graphId = "mermaid-graph-" + id++;
-          mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
-            graphEl.innerHTML = svg;
-            bindFunctions?.(graphEl);
-            preEl.insertAdjacentElement("afterend", graphEl);
-            preEl.remove();
+  before_closing_body_tag: fn
+    :html ->
+      """
+      <script src="https://cdn.jsdelivr.net/npm/mermaid@10.2.3/dist/mermaid.min.js"></script>
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: document.body.className.includes("dark") ? "dark" : "default"
           });
-        }
-      });
-    </script>
-    """
+          let id = 0;
+          for (const codeEl of document.querySelectorAll("pre code.mermaid")) {
+            const preEl = codeEl.parentElement;
+            const graphDefinition = codeEl.textContent;
+            const graphEl = document.createElement("div");
+            const graphId = "mermaid-graph-" + id++;
+            mermaid.render(graphId, graphDefinition).then(({svg, bindFunctions}) => {
+              graphEl.innerHTML = svg;
+              bindFunctions?.(graphEl);
+              preEl.insertAdjacentElement("afterend", graphEl);
+              preEl.remove();
+            });
+          }
+        });
+      </script>
+      """
+
+    _ ->
+      ""
   end
 ]
