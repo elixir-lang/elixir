@@ -3474,6 +3474,29 @@ defmodule Enum do
   end
 
   @doc """
+  Maps and sums the given enumerable in one pass.
+
+  Raises `ArithmeticError` if `fun` returns a non-numeric value.
+
+  ## Examples
+
+      iex> Enum.sum([%{count: 1}, %{count: 2}, %{count: 3}], fn x -> x.count end)
+      6
+
+      iex> Enum.sum(1..3, fn x -> x ** 2 end)
+      14
+
+      iex> Enum.sum([], fn x -> x.count end)
+      0
+
+  """
+  @doc since: "1.16.0"
+  @spec sum(t, (element -> number)) :: number
+  def sum(enumerable, fun) when is_function(fun, 1) do
+    reduce(enumerable, 0, fn x, acc -> acc + fun.(x) end)
+  end
+
+  @doc """
   Returns the product of all elements.
 
   Raises `ArithmeticError` if `enumerable` contains a non-numeric value.
