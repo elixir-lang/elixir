@@ -350,7 +350,7 @@ When comparing structs, use `Enum.min/2` with a module as sorter.
 
 ```elixir
 iex> Enum.min_by(cart, & &1.count)
-%{fruit: "banana", count: 1},
+%{fruit: "banana", count: 1}
 ```
 
 When comparing structs, use `Enum.min_by/3` with a module as sorter.
@@ -368,7 +368,7 @@ When comparing structs, use `Enum.max/2` with a module as sorter.
 
 ```elixir
 iex> Enum.max_by(cart, & &1.count)
-%{fruit: "orange", count: 6},
+%{fruit: "orange", count: 6}
 ```
 
 When comparing structs, use `Enum.max_by/3` with a module as sorter.
@@ -917,7 +917,7 @@ iex> Enum.shuffle(cart)
 ### [chunk_by(enum, fun)](`Enum.chunk_by/2`)
 
 ```elixir
-iex> Enum.chunk_by(cart, &String.length(&1))
+iex> Enum.chunk_by(cart, &String.length(&1.fruit))
 [
   [%{fruit: "apple", count: 3}],
   [
@@ -1006,9 +1006,10 @@ See `Enum.zip_with/2` for zipping many collections at once.
 iex> fruits = ["apple", "banana", "orange"]
 iex> counts = [3, 1, 6]
 iex> Enum.zip_reduce(fruits, counts, 0, fn fruit, count, acc ->
-...>   {{fruit, count + acc}, acc + count}
+...>   price = if fruit =~ "e", do: count * 2, else: count
+...>   acc + price
 ...> end)
-[{"apple", 3}, {"banana", 4}, {"orange", 10}]
+19
 ```
 
 See `Enum.zip_reduce/3` for zipping many collections at once.
