@@ -3492,6 +3492,12 @@ defmodule Enum do
   """
   @doc since: "1.16.0"
   @spec sum(t, (element -> number)) :: number
+  def sum(enumerable, fun)
+
+  def sum(list, fun) when is_list(list) and is_function(fun, 1) do
+    sum_list(list, fun, 0)
+  end
+
   def sum(enumerable, fun) when is_function(fun, 1) do
     reduce(enumerable, 0, fn x, acc -> acc + fun.(x) end)
   end
@@ -4792,6 +4798,11 @@ defmodule Enum do
   defp split_while_list([], _, acc) do
     {:lists.reverse(acc), []}
   end
+
+  ## sum
+
+  defp sum_list([], _, acc), do: acc
+  defp sum_list([h | t], fun, acc), do: sum_list(t, fun, acc + fun.(h))
 
   ## take
 
