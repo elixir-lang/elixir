@@ -1006,8 +1006,8 @@ See `Enum.zip_with/2` for zipping many collections at once.
 iex> fruits = ["apple", "banana", "orange"]
 iex> counts = [3, 1, 6]
 iex> Enum.zip_reduce(fruits, counts, 0, fn fruit, count, acc ->
-...>   price = if fruit == "banana", do: 1, else: 2
-...>   acc + price * count
+...>   price = if fruit =~ "e", do: count * 2, else: count
+...>   acc + price
 ...> end)
 19
 ```
