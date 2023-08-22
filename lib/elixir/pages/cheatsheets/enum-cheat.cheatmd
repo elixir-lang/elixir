@@ -163,7 +163,7 @@ iex> Enum.reduce(cart, 0, fn item, acc ->
 iex> Enum.map_reduce(cart, 0, fn item, acc ->
 ...>   {item.fruit, item.count + acc}
 ...> end)
-[{"apple", 3}, {"banana", 4}, {"orange", 10}]
+{["apple", "banana", "orange"], 10}
 ```
 
 ### [scan(enum, acc, fun)](`Enum.scan/3`)
