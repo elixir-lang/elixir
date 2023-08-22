@@ -12,28 +12,6 @@ cart = [
 
 Some examples use the [`string =~ part`](`=~/2`) operator, which checks the string on the left contains the part on the right.
 
-## Filtering
-{: .col-2}
-
-### [filter(enum, fun)](`Enum.filter/2`)
-
-```elixir
-iex> Enum.filter(cart, &(&1.fruit =~ "o"))
-[
-  %{fruit: "orange", count: 6}
-]
-```
-
-### [reject(enum, fun)](`Enum.reject/2`)
-
-```elixir
-iex> Enum.reject(cart, &(&1.fruit =~ "o"))
-[
-  %{fruit: "apple", count: 3},
-  %{fruit: "banana", count: 1}
-]
-```
-
 ## Predicates
 {: .col-2}
 
@@ -94,6 +72,31 @@ iex> Enum.empty?(cart)
 false
 iex> Enum.empty?([])
 true
+```
+
+## Filtering
+{: .col-2}
+
+### [filter(enum, fun)](`Enum.filter/2`)
+
+```elixir
+iex> Enum.filter(cart, &(&1.fruit =~ "o"))
+[%{fruit: "orange", count: 6}]
+iex> Enum.filter(cart, &(&1.fruit =~ "e"))
+[
+  %{fruit: "apple", count: 3},
+  %{fruit: "orange", count: 6}
+]
+```
+
+### [reject(enum, fun)](`Enum.reject/2`)
+
+```elixir
+iex> Enum.reject(cart, &(&1.fruit =~ "o"))
+[
+  %{fruit: "apple", count: 3},
+  %{fruit: "banana", count: 1}
+]
 ```
 
 ## Mapping
