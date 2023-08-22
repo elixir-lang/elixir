@@ -350,13 +350,6 @@ iex> Enum.flat_map_reduce(cart, 0, fn item, acc ->
 ## Conversion
 {: .col-2}
 
-### [to_list(enum)](`Enum.to_list/1`)
-
-```elixir
-iex> Enum.to_list(1..5)
-[1, 2, 3, 4, 5]
-```
-
 ### [into(enum, collectable)](`Enum.into/2`)
 
 ```elixir
@@ -372,6 +365,13 @@ iex> Enum.into(cart, %{}, fn item ->
 ...>   {item.fruit, item.count}
 ...> end)
 %{"apple" => 3, "banana" => 1, "orange" => 6}
+```
+
+### [to_list(enum)](`Enum.to_list/1`)
+
+```elixir
+iex> Enum.to_list(1..5)
+[1, 2, 3, 4, 5]
 ```
 
 ## Duplicates & uniques
@@ -427,28 +427,57 @@ iex> Enum.uniq_by(cart, &String.last(&1.fruit))
 ### [at(enum, index, default \\\\ nil)](`Enum.at/2`)
 
 ```elixir
-iex> Enum.at(cart)
+iex> Enum.at(cart, 0)
+%{fruit: "apple", count: 3}
+iex> Enum.at(cart, 10)
+nil
+iex> Enum.at(cart, 10, :none)
+:none
 ```
+
+Accessing a list by index in a loop is discouraged.
 
 ### [fetch(enum, index)](`Enum.fetch/2`)
 
 ```elixir
-iex> Enum.fetch(cart)
+iex> Enum.fetch(cart, 0)
+{:ok, %{fruit: "apple", count: 3}}
+iex> Enum.fetch(cart, 10)
+:error
 ```
 
-### [fetch!(enum, index)](`Enum.fetch/2`)
+### [fetch!(enum, index)](`Enum.fetch!/2`)
 
 ```elixir
-iex> Enum.fetch(cart)
+iex> Enum.fetch!(cart, 0)
+%{fruit: "apple", count: 3}
+iex> Enum.fetch!(cart, 10)
+** (Enum.OutOfBoundsError) out of bounds error
 ```
 
 ### [with_index(enum)](`Enum.with_index/1`)
 
 ```elixir
 iex> Enum.with_index(cart)
+[
+  {%{fruit: "apple", count: 3}, 0},
+  {%{fruit: "banana", count: 1}, 1},
+  {%{fruit: "orange", count: 6}, 2}
+]
 ```
 
-See `Enum.with_index/2` for custom indexing.
+### [with_index(enum, fun)](`Enum.with_index/2`)
+
+```elixir
+iex> Enum.with_index(cart, fun, fn item, index ->
+...>   {item.fruit, index}
+...> end)
+[
+  {"apple", 0},
+  {"banana", 1},
+  {"orange", 2}
+]
+```
 
 ## Finding
 {: .col-2}
@@ -456,19 +485,34 @@ See `Enum.with_index/2` for custom indexing.
 ### [find(enum, default \\\\ nil, fun)](`Enum.find/2`)
 
 ```elixir
-iex> Enum.find(cart)
+iex> Enum.find(cart, &(&1.fruit =~ "o"))
+%{fruit: "orange", count: 6}
+iex> Enum.find(cart, &(&1.fruit =~ "y"))
+nil
+iex> Enum.find(cart, :none, &(&1.fruit =~ "y"))
+:none
 ```
 
 ### [find_index(enum, fun)](`Enum.find_index/2`)
 
 ```elixir
-iex> Enum.find_index(cart)
+iex> Enum.find_index(cart, &(&1.fruit =~ "o"))
+2
+iex> Enum.find_index(cart, &(&1.fruit =~ "y"))
+nil
 ```
 
 ### [find_value(enum, default \\\\ nil, fun)](`Enum.find_value/2`)
 
 ```elixir
-iex> Enum.find_value(cart)
+iex> Enum.find_value(cart, fn item ->
+...>   if item.count == 1, do: item.fruit, else: nil
+...> end)
+"banana"
+iex> Enum.find_value(cart, :none, fn item ->
+...>   if item.count == 100, do: item.fruit, else: nil
+...> end)
+:none
 ```
 
 ## Grouping
