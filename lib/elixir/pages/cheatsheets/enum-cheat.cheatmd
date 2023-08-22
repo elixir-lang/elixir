@@ -113,6 +113,15 @@ iex> for item <- cart, item.fruit =~ "e" do
 ]
 ```
 
+Pattern-matching in comprehensions acts as a filter as well:
+
+```elixir
+iex> for %{count: 1, fruit: fruit} <- cart do
+...>   fruit
+...> end
+["banana"]
+```
+
 ## Mapping
 {: .col-2}
 
