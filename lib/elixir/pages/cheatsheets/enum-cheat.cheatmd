@@ -472,7 +472,7 @@ iex> Enum.with_index(cart)
 ### [with_index(enum, fun)](`Enum.with_index/2`)
 
 ```elixir
-iex> Enum.with_index(cart, fun, fn item, index ->
+iex> Enum.with_index(cart, fn item, index ->
 ...>   {item.fruit, index}
 ...> end)
 [
