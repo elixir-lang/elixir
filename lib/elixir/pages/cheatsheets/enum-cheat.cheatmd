@@ -99,6 +99,20 @@ iex> Enum.reject(cart, &(&1.fruit =~ "o"))
 ]
 ```
 
+### [Comprehension](`for/1`)
+
+Filtering can also be done with comprehensions:
+
+```elixir
+iex> for item <- cart, item.fruit =~ "e" do
+...>   item
+...> end
+[
+  %{fruit: "apple", count: 3},
+  %{fruit: "orange", count: 6}
+]
+```
+
 ## Mapping
 {: .col-2}
 
@@ -128,6 +142,26 @@ iex> Enum.map_every(cart, 2, fn item ->
   %{fruit: "banana", count: 1},
   %{fruit: "orange", count: 16}
 ]
+```
+
+### [Comprehension](`for/1`)
+
+Mapping can also be done with comprehensions:
+
+```elixir
+iex> for item <- cart do
+...>   item.fruit
+...> end
+["apple", "banana", "orange"]
+```
+
+You can also filter and map at once:
+
+```elixir
+iex> for item <- cart, item.fruit =~ "e" do
+...>   item.fruit
+...> end
+["apple", "orange"]
 ```
 
 ## Side-effects
@@ -186,6 +220,26 @@ iex> Enum.reduce_while(cart, 0, fn item, acc ->
 ...>   end
 ...> end)
 4
+```
+
+### [Comprehension](`for/1`)
+
+Reducing can also be done with comprehensions:
+
+```elixir
+iex> for item <- cart, reduce: 0 do
+...>   acc -> item.count + acc
+...> end
+10
+```
+
+You can also filter and reduce at once:
+
+```elixir
+iex> for item <- cart, item.fruit =~ "e", reduce: 0 do
+...>   acc -> item.count + acc
+...> end
+9
 ```
 
 ## Aggregations
@@ -303,7 +357,6 @@ When comparing structs, use `Enum.max/2` with a module as sorter.
 
 ### [max_by(enum, mapper)](`Enum.max_by/2`)
 
-
 ```elixir
 iex> Enum.max_by(cart, & &1.count)
 %{fruit: "orange", count: 6},
@@ -350,6 +403,19 @@ iex> Enum.flat_map_reduce(cart, 0, fn item, acc ->
   "orange", "orange", "orange", "orange", "orange"], 10}
 ```
 
+### [Comprehension](`for/1`)
+
+Flattening can also be done with comprehensions:
+
+```elixir
+iex> for item <- cart,
+...>     fruit <- List.duplicate(item.fruit, item.count) do
+...>   fruit
+...> end
+["apple", "apple", "apple", "banana", "orange",
+ "orange", "orange", "orange", "orange", "orange"]
+```
+
 ## Conversion
 {: .col-2}
 
@@ -375,6 +441,17 @@ iex> Enum.into(cart, %{}, fn item ->
 ```elixir
 iex> Enum.to_list(1..5)
 [1, 2, 3, 4, 5]
+```
+
+### [Comprehension](`for/1`)
+
+Conversion can also be done with comprehensions:
+
+```elixir
+iex> for item <- cart, into: %{} do
+...>   {item.fruit, item.count}
+...> end
+%{"apple" => 3, "banana" => 1, "orange" => 6}
 ```
 
 ## Duplicates & uniques
@@ -411,6 +488,8 @@ iex> Enum.dedup_by(cart, & &1.count < 5)
 iex> Enum.uniq([1, 2, 2, 3, 3, 3, 1, 2, 3])
 [1, 2, 3]
 ```
+
+Comprehensions also support the `uniq: true` option.
 
 ### [uniq_by(enum, fun)](`Enum.uniq_by/2`)
 
@@ -895,7 +974,7 @@ iex> Enum.zip(fruits, counts)
 
 See `Enum.zip/1` for zipping many collections at once.
 
-### [zip_with(enum1, enum2, zip_fun)](`Enum.zip_with/2`)
+### [zip_with(enum1, enum2, fun)](`Enum.zip_with/2`)
 
 ```elixir
 iex> fruits = ["apple", "banana", "orange"]
@@ -912,7 +991,7 @@ iex> Enum.zip_with(fruits, counts, fn fruit, count ->
 
 See `Enum.zip_with/2` for zipping many collections at once.
 
-### [zip_reduce(left, right, acc, reducer)](`Enum.zip_reduce/4`)
+### [zip_reduce(left, right, acc, fun)](`Enum.zip_reduce/4`)
 
 ```elixir
 iex> fruits = ["apple", "banana", "orange"]
