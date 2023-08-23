@@ -303,13 +303,7 @@ defmodule Mix.Tasks.Format do
       Mix.raise("Expected :plugins to return a list of modules, got: #{inspect(plugins)}")
     end
 
-    if plugins != [] do
-      Mix.Task.run("loadpaths", [])
-    end
-
-    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
-      Mix.Task.run("compile", [])
-    end
+    maybe_load_and_compile_plugins(plugins)
 
     for plugin <- plugins do
       cond do
@@ -351,11 +345,18 @@ defmodule Mix.Tasks.Format do
     else
       manifest = Path.join(Mix.Project.manifest_path(), @manifest)
 
-      {{locals_without_parens, subdirectories}, sources} =
+      {cached?, {{locals_without_parens, subdirectories}, sources}} =
         maybe_cache_in_manifest(dot_formatter, manifest, fn ->
           {subdirectories, sources} = eval_subs_opts(subs, cwd, sources)
           {{eval_deps_opts(deps), subdirectories}, sources}
         end)
+
+      # If we read from cache, we may still need to load and compile plugins.
+      if cached? do
+        Enum.each(subdirectories, fn {_path, {opts, _deps}} ->
+          maybe_load_and_compile_plugins(Keyword.get(opts, :plugins, []))
+        end)
+      end
 
       formatter_opts =
         Keyword.update(
@@ -369,11 +370,21 @@ defmodule Mix.Tasks.Format do
     end
   end
 
+  defp maybe_load_and_compile_plugins(plugins) do
+    if plugins != [] do
+      Mix.Task.run("loadpaths", [])
+    end
+
+    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
+      Mix.Task.run("compile", [])
+    end
+  end
+
   defp maybe_cache_in_manifest(dot_formatter, manifest, fun) do
     cond do
-      is_nil(Mix.Project.get()) or dot_formatter != ".formatter.exs" -> fun.()
-      entry = read_manifest(manifest) -> entry
-      true -> write_manifest!(manifest, fun.())
+      is_nil(Mix.Project.get()) or dot_formatter != ".formatter.exs" -> {false, fun.()}
+      entry = read_manifest(manifest) -> {true, entry}
+      true -> {false, write_manifest!(manifest, fun.())}
     end
   end
 
