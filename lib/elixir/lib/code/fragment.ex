@@ -693,6 +693,9 @@ defmodule Code.Fragment do
           {{:alias, acc}, offset} ->
             build_surround({:alias, acc}, reversed, line, offset)
 
+          {{:alias, parent, acc}, offset} ->
+            build_surround({:alias, parent, acc}, reversed, line, offset)
+
           {{:struct, acc}, offset} ->
             build_surround({:struct, acc}, reversed, line, offset)
 
