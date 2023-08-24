@@ -755,17 +755,21 @@ defmodule CodeFragmentTest do
                end: {1, 11}
              }
 
-      assert CF.surround_context("__MODULE__.Foo", {1, 12}) == %{
-               context: {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Foo"},
-               begin: {1, 1},
-               end: {1, 15}
-             }
+      for i <- 1..15 do
+        assert CF.surround_context("__MODULE__.Foo", {1, i}) == %{
+                 context: {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Foo"},
+                 begin: {1, 1},
+                 end: {1, 15}
+               }
+      end
 
-      assert CF.surround_context("__MODULE__.Foo.Sub", {1, 16}) == %{
-               context: {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Foo.Sub"},
-               begin: {1, 1},
-               end: {1, 19}
-             }
+      for i <- 1..19 do
+        assert CF.surround_context("__MODULE__.Foo.Sub", {1, i}) == %{
+                 context: {:alias, {:local_or_var, ~c"__MODULE__"}, ~c"Foo.Sub"},
+                 begin: {1, 1},
+                 end: {1, 19}
+               }
+      end
 
       assert CF.surround_context("%__MODULE__{}", {1, 5}) == %{
                context: {:struct, {:local_or_var, ~c"__MODULE__"}},
@@ -811,17 +815,21 @@ defmodule CodeFragmentTest do
     end
 
     test "attribute submodules" do
-      assert CF.surround_context("@some.Foo", {1, 8}) == %{
-               context: {:alias, {:module_attribute, ~c"some"}, ~c"Foo"},
-               begin: {1, 1},
-               end: {1, 10}
-             }
+      for i <- 1..10 do
+        assert CF.surround_context("@some.Foo", {1, i}) == %{
+                 context: {:alias, {:module_attribute, ~c"some"}, ~c"Foo"},
+                 begin: {1, 1},
+                 end: {1, 10}
+               }
+      end
 
-      assert CF.surround_context("@some.Foo.Sub", {1, 12}) == %{
-               context: {:alias, {:module_attribute, ~c"some"}, ~c"Foo.Sub"},
-               begin: {1, 1},
-               end: {1, 14}
-             }
+      for i <- 1..14 do
+        assert CF.surround_context("@some.Foo.Sub", {1, i}) == %{
+                 context: {:alias, {:module_attribute, ~c"some"}, ~c"Foo.Sub"},
+                 begin: {1, 1},
+                 end: {1, 14}
+               }
+      end
 
       assert CF.surround_context("%@some{}", {1, 5}) == %{
                context: {:struct, {:module_attribute, ~c"some"}},
