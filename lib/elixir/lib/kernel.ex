@@ -6022,7 +6022,7 @@ defmodule Kernel do
   @doc since: "1.14.0"
   defmacro dbg(code \\ quote(do: binding()), options \\ []) do
     {mod, fun, args} = Application.compile_env!(__CALLER__, :elixir, :dbg_callback)
-    apply(mod, fun, [code, options, __CALLER__ | args])
+    Macro.compile_apply(mod, fun, [code, options, __CALLER__ | args], __CALLER__)
   end
 
   ## Sigils
