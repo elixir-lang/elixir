@@ -117,6 +117,35 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.5 (2023-08-28)
+
+### 1. Enhancements
+
+#### IEx
+
+  * [IEx.Autocomplete] Speed up loading of struct suggestions
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code.Fragment] Fix `Code.Fragment.surround_context/2` for aliases and submodules of non-aliases
+  * [Kernel] Ensure stacktrace is included when necessary when rescuing multiple exceptions in the same branch
+  * [Kernel] Fix index in error message for unused optional arguments
+
+#### ExUnit
+
+  * [ExUnit.Diff] Fix scenario where diff would not show up due to a timed-out loop
+
+#### IEx
+
+  * [IEx] Force group leader to run as a binary and unicode in IEx
+
+#### Mix
+
+  * [mix compile] Do not assume `blake` is always available
+  * [mix format] Load and compile plugins if specified in subdirectories
+
 ## v1.15.4 (2023-07-18)
 
 ### 1. Bug fixes
