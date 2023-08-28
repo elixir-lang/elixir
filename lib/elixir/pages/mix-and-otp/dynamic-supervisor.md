@@ -164,7 +164,7 @@ Now that we have defined our supervision tree, it is a great opportunity to intr
 iex> :observer.start()
 ```
 
-> ### Missing dependencies 
+> #### Missing dependencies {: .warning}
 >
 > When running `iex` inside a project with `iex -S mix`, `observer` won't be available as a dependency. To do so, you will need to call the following functions before:
 >
