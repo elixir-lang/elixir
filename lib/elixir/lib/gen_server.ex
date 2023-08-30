@@ -165,7 +165,7 @@ defmodule GenServer do
       note right of C: Typically started by a supervisor
       C->>+S: GenServer.start_link(module, arg, options)
       S-->>+M: init(arg)
-      M-->>-S: {:ok, state} | :ignore | {:eror, reason}
+      M-->>-S: {:ok, state} | :ignore | {:error, reason}
       S->>-C: {:ok, pid} | :ignore | {:error, reason}
 
       note right of C: call is synchronous
