@@ -106,7 +106,7 @@ defmodule ProtocolTest do
   test "protocol implementation with Any and struct fallbacks" do
     assert WithAny.impl_for(%NoImplStruct{}) == WithAny.Any
     # Derived
-    assert WithAny.impl_for(%ImplStruct{}) == WithAny.Any
+    assert WithAny.impl_for(%ImplStruct{}) == ProtocolTest.WithAny.ProtocolTest.ImplStruct
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{}) == WithAny.Map
     assert WithAny.impl_for(self()) == WithAny.Any
@@ -182,7 +182,6 @@ defmodule ProtocolTest do
   test "defimpl" do
     module = Module.concat(Sample, ImplStruct)
     assert module.__impl__(:for) == ImplStruct
-    assert module.__impl__(:target) == module
     assert module.__impl__(:protocol) == Sample
     assert module.__info__(:attributes)[:__impl__] == [protocol: Sample, for: ImplStruct]
   end
@@ -190,7 +189,6 @@ defmodule ProtocolTest do
   test "defimpl with implicit derive" do
     module = Module.concat(WithAny, ImplStruct)
     assert module.__impl__(:for) == ImplStruct
-    assert module.__impl__(:target) == WithAny.Any
     assert module.__impl__(:protocol) == WithAny
     assert module.__info__(:attributes)[:__impl__] == [protocol: WithAny, for: ImplStruct]
   end
@@ -198,7 +196,6 @@ defmodule ProtocolTest do
   test "defimpl with explicit derive" do
     module = Module.concat(Derivable, ImplStruct)
     assert module.__impl__(:for) == ImplStruct
-    assert module.__impl__(:target) == module
     assert module.__impl__(:protocol) == Derivable
     assert module.__info__(:attributes)[:__impl__] == [protocol: Derivable, for: ImplStruct]
   end
