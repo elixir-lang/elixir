@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Compile do
       longer has an effect as Elixir will now copy those at release time
 
     * `:compilers` - compilers to run, defaults to `Mix.compilers/0`,
-      which are `[:yecc, :leex, :erlang, :elixir, :app]`.
+      which are `[:erlang, :elixir, :app]`.
 
     * `:consolidate_protocols` - when `true`, runs protocol
       consolidation via the `mix compile.protocols` task. The default
