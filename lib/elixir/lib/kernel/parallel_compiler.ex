@@ -56,20 +56,21 @@ defmodule Kernel.ParallelCompiler do
     ref = make_ref()
 
     # We spawn a series of tasks for parallel processing.
-    # The tasks will notify themselves to the parallel compiler.
+    # The tasks notify themselves to the compiler.
     tasks =
       Enum.map(collection, fn item ->
         async(fn ->
           send(parent, {ref, self()})
-          fun.(item)
+
+          receive do
+            ^ref -> fun.(item)
+          end
         end)
       end)
 
-    # Once all tasks have registered themselves in the parallel compiler,
-    # we notify the parallel compiler that we are waiting on those tasks.
-    # We could be the ones notifying the tasks to the parallel compiler
-    # but, given the tasks may immediately run code, it is preferred for
-    # the parallel compiler to be aware of them as soon as possible.
+    # Then the tasks notify us. This is important because if
+    # we wait before the tasks notify the compiler, we may be
+    # released as there is nothing else running.
     on =
       for %{pid: pid} <- tasks do
         receive do
@@ -77,19 +78,26 @@ defmodule Kernel.ParallelCompiler do
         end
       end
 
+    # Notify the compiler we are waiting on the tasks.
     {compiler_pid, file_pid} = :erlang.get(:elixir_compiler_info)
     defining = :elixir_module.compiler_modules()
     send(compiler_pid, {:waiting, :pmap, self(), ref, file_pid, on, defining, :raise})
 
-    # Run tasks, notify the compiler tasks we are done, and wait until the
-    # compiler lets us run. We could have the tasks report directly to the
-    # parallel compiler, which in turn would notify us, but that would require
-    # reimplementing await_many, so we both wait and make ourselves available.
+    # Now we allow the tasks to run. This step is not strictly
+    # necessary but it makes compilation more deterministic by
+    # only allowing tasks to run once we are waiting.
+    Enum.each(on, &send(&1, ref))
+
+    # Await tasks and notify the compiler they are done. We could
+    # have the tasks report directly to the compiler, which in turn
+    # would notify us, but that would require reimplementing await_many,
+    # and copying the results across boundaries, so we don't.
     res = Task.await_many(tasks, :infinity)
     send(compiler_pid, {:available, :pmap, on})
 
+    # Only run once the compiler lets us, to avoid unbounded parallelism.
     receive do
-      {^ref, :found} -> res
+      {^ref, _result} -> res
     end
   end
 
