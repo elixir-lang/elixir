@@ -69,7 +69,62 @@ The following arguments were given to MyLibrary.foo/1:
 
 ## Alternative return types
 
-TODO
+#### Problem
+
+This anti-pattern refers to functions that receive options (for example, *keyword list*) parameters that drastically change their return type. Because options are optional and sometimes set dynamically, if they change the return type it may be hard to understand what the function actually returns.
+
+#### Example
+
+An example of this anti-pattern, as shown below, is when a library (for example, `AlternativeInteger`) has a multi-clause function `parse/2` with many alternative return types. Depending on the options received as a parameter, the function will have a different return type.
+
+```elixir
+defmodule AlternativeInteger do
+  def parse(string, opts) when is_list(opts) do
+    case opts[:discard_rest] do
+      true -> String.to_integer(string)
+      _    -> Integer.parse(string)
+    end
+  end
+
+  def parse(string, opts \\ :default) do
+    case opts do
+      :default -> Integer.parse(string)
+    end
+  end
+end
+```
+
+```elixir
+iex> AlternativeInteger.parse("13")
+{13, ""}
+iex> AlternativeInteger.parse("13", discard_rest: true)
+13
+iex> AlternativeInteger.parse("13", discard_rest: false)
+{13, ""}
+```
+
+#### Refactoring
+
+To refactor this anti-pattern, as shown next, it's better to add in the library a specific function for each return type (for example, `parse_no_rest/1`), no longer delegating this to an options parameter.
+
+```elixir
+defmodule AlternativeInteger do
+  def parse_no_rest(string) do
+    String.to_integer(string)
+  end
+
+  def parse(string) do
+    Integer.parse(string)
+  end
+end
+```
+
+```elixir
+iex> AlternativeInteger.parse("13")
+{13, ""}
+iex> AlternativeInteger.parse_no_rest("13")
+13
+```
 
 ## Unrelated multi-clause function
 
