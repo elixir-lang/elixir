@@ -105,7 +105,7 @@ iex> AlternativeInteger.parse("13", discard_rest: false)
 
 #### Refactoring
 
-To refactor this anti-pattern, as shown next, it's better to add in the library a specific function for each return type (for example, `parse_no_rest/1`), no longer delegating this to an options parameter.
+To refactor this anti-pattern, as shown next, add a specific function for each return type (for example, `parse_no_rest/1`), no longer delegating this to options passed as arguments.
 
 ```elixir
 defmodule AlternativeInteger do
