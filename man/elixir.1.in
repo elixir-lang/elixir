@@ -56,4 +56,5 @@ If the file doesn't exist when a node starts, it will be created.
 .Bl -tag -width Ds
 .It Main website: https://elixir-lang.org
 .It Documentation: https://elixir-lang.org/docs.html
+.It Package manager: https://hex.pm
 .El

@@ -408,6 +408,7 @@ defimpl Inspect, for: Regex do
 
   defp normalize(<<?\\, ?\\, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?\\, ?\\>>)
   defp normalize(<<?\\, ?/, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?/>>)
+  defp normalize(<<?\\, ?#, ?{, rest::binary>>, acc), do: normalize(rest, <<acc::binary, ?#, ?{>>)
   defp normalize(<<char, rest::binary>>, acc), do: normalize(rest, <<acc::binary, char>>)
   defp normalize(<<>>, acc), do: acc
 

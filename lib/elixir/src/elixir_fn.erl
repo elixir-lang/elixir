@@ -185,7 +185,7 @@ format_error({block_expr_in_capture, Expr}) ->
                 ['Elixir.Macro':to_string(Expr)]);
 format_error({nested_capture, Arg}) ->
   io_lib:format("nested captures are not allowed. You cannot define a function using "
-    " the capture operator & inside another function defined via &. Got invalid nested "
+    "the capture operator & inside another function defined via &. Got invalid nested "
     "capture: ~ts", ['Elixir.Macro':to_string(Arg)]);
 format_error({invalid_arity_for_capture, Arity}) ->
   io_lib:format("capture argument &~B must be numbered between 1 and 255", [Arity]);

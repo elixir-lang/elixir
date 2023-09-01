@@ -224,6 +224,17 @@ defmodule Kernel.RaiseTest do
       assert result == "an exception"
     end
 
+    test "named function clause (stacktrace) or runtime (no stacktrace) error" do
+      result =
+        try do
+          Access.get("foo", 0)
+        rescue
+          x in [FunctionClauseError, CaseClauseError] -> Exception.message(x)
+        end
+
+      assert result == "no function clause matching in Access.get/3"
+    end
+
     test "with higher precedence than catch" do
       result =
         try do

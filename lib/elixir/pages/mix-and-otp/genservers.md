@@ -1,6 +1,6 @@
 # GenServer
 
-In the [previous chapter](/getting-started/mix-otp/agent.html), we used agents to represent our buckets. In the [introduction to mix](/getting-started/mix-otp/introduction-to-mix.html), we specified we would like to name each bucket so we can do the following:
+In the [previous chapter](../agents.md), we used agents to represent our buckets. In the [introduction to mix](../introduction-to-mix.md), we specified we would like to name each bucket so we can do the following:
 
 ```elixir
 CREATE shopping
@@ -16,7 +16,7 @@ OK
 
 In the session above we interacted with the "shopping" bucket.
 
-Since agents are processes, each bucket has a process identifier (PID), but buckets do not have a name. Back [in the Process chapter](/getting-started/processes.html), we have learned that we can register processes in Elixir by giving them atom names:
+Since agents are processes, each bucket has a process identifier (PID), but buckets do not have a name. Back [in the Process chapter](../getting-started/processes.md), we have learned that we can register processes in Elixir by giving them atom names:
 
 ```elixir
 iex> Agent.start_link(fn -> %{} end, name: :shopping)
@@ -324,7 +324,7 @@ To help developers remember the differences between call, cast and info, the sup
 
 ## Monitors or links?
 
-We have previously learned about links in the [Process chapter](/getting-started/processes.html). Now, with the registry complete, you may be wondering: when should we use monitors and when should we use links?
+We have previously learned about links in the [Process chapter](../getting-started/processes.md). Now, with the registry complete, you may be wondering: when should we use monitors and when should we use links?
 
 Links are bi-directional. If you link two processes and one of them crashes, the other side will crash too (unless it is trapping exits). A monitor is uni-directional: only the monitoring process will receive notifications about the monitored one. In other words: use links when you want linked crashes, and monitors when you just want to be informed of crashes, exits, and so on.
 

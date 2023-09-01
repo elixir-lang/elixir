@@ -256,9 +256,12 @@ defmodule Enum do
       iex> Enum.map(map, fn {k, v} -> {k, v * 2} end)
       [{"a", 2}, {"b", 4}]
 
-  However, many other enumerables exist in the language, such as `MapSet`s
+  Many other enumerables exist in the language, such as `MapSet`s
   and the data type returned by `File.stream!/3` which allows a file to be
   traversed as if it was an enumerable.
+
+  For a general overview of all functions in the `Enum` module, see
+  [the `Enum` cheatsheet](enum-cheat.html).
 
   The functions in this module work in linear time. This means that, the
   time it takes to perform an operation grows at the same rate as the length

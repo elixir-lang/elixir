@@ -55,7 +55,7 @@ normalize_rescue(Meta, Var, Pattern, Expr, ErlangAliases) ->
         dynamic_normalize(Meta, Var, ?REQUIRES_STACKTRACE);
 
       false ->
-        case lists:splitwith(fun is_normalized_with_stacktrace/1, ErlangAliases) of
+        case lists:partition(fun is_normalized_with_stacktrace/1, ErlangAliases) of
           {[], _} -> [];
           {_, []} -> {'__STACKTRACE__', Meta, nil};
           {Some, _} -> dynamic_normalize(Meta, Var, Some)

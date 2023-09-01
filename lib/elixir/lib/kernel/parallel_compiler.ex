@@ -14,19 +14,12 @@ defmodule Kernel.ParallelCompiler do
 
   @doc """
   Starts a task for parallel compilation.
-
-  If you have a file that needs to compile other modules in parallel,
-  the spawned processes need to be aware of the compiler environment.
-  This function allows a developer to create a task that is aware of
-  those environments.
-
-  See `Task.async/1` for more information. The task spawned must be
-  always awaited on by calling `Task.await/1`
   """
-  @doc since: "1.6.0"
+  # TODO: Deprecate this on Elixir v1.20.
+  @doc deprecated: "Use `pmap/2` instead"
   def async(fun) when is_function(fun, 0) do
     case :erlang.get(:elixir_compiler_info) do
-      {compiler, _} ->
+      {compiler_pid, file_pid} ->
         file = :erlang.get(:elixir_compiler_file)
         dest = :erlang.get(:elixir_compiler_dest)
 
@@ -34,9 +27,9 @@ defmodule Kernel.ParallelCompiler do
         {_parent, checker} = Module.ParallelChecker.get()
 
         Task.async(fn ->
-          send(compiler, {:async, self()})
-          Module.ParallelChecker.put(compiler, checker)
-          :erlang.put(:elixir_compiler_info, {compiler, self()})
+          send(compiler_pid, {:async, self()})
+          Module.ParallelChecker.put(compiler_pid, checker)
+          :erlang.put(:elixir_compiler_info, {compiler_pid, file_pid})
           :erlang.put(:elixir_compiler_file, file)
           dest != :undefined and :erlang.put(:elixir_compiler_dest, dest)
           :erlang.process_flag(:error_handler, error_handler)
@@ -47,6 +40,64 @@ defmodule Kernel.ParallelCompiler do
         raise ArgumentError,
               "cannot spawn parallel compiler task because " <>
                 "the current file is not being compiled/required"
+    end
+  end
+
+  @doc """
+  Perform parallel compilation of `collection` with `fun`.
+
+  If you have a file that needs to compile other modules in parallel,
+  the spawned processes need to be aware of the compiler environment.
+  This function allows a developer to perform such tasks.
+  """
+  @doc since: "1.16.0"
+  def pmap(collection, fun) when is_function(fun, 1) do
+    parent = self()
+    ref = make_ref()
+
+    # We spawn a series of tasks for parallel processing.
+    # The tasks notify themselves to the compiler.
+    tasks =
+      Enum.map(collection, fn item ->
+        async(fn ->
+          send(parent, {ref, self()})
+
+          receive do
+            ^ref -> fun.(item)
+          end
+        end)
+      end)
+
+    # Then the tasks notify us. This is important because if
+    # we wait before the tasks notify the compiler, we may be
+    # released as there is nothing else running.
+    on =
+      for %{pid: pid} <- tasks do
+        receive do
+          {^ref, ^pid} -> pid
+        end
+      end
+
+    # Notify the compiler we are waiting on the tasks.
+    {compiler_pid, file_pid} = :erlang.get(:elixir_compiler_info)
+    defining = :elixir_module.compiler_modules()
+    send(compiler_pid, {:waiting, :pmap, self(), ref, file_pid, on, defining, :raise})
+
+    # Now we allow the tasks to run. This step is not strictly
+    # necessary but it makes compilation more deterministic by
+    # only allowing tasks to run once we are waiting.
+    Enum.each(on, &send(&1, ref))
+
+    # Await tasks and notify the compiler they are done. We could
+    # have the tasks report directly to the compiler, which in turn
+    # would notify us, but that would require reimplementing await_many,
+    # and copying the results across boundaries, so we don't.
+    res = Task.await_many(tasks, :infinity)
+    send(compiler_pid, {:available, :pmap, on})
+
+    # Only run once the compiler lets us, to avoid unbounded parallelism.
+    receive do
+      {^ref, _result} -> res
     end
   end
 
@@ -528,7 +579,7 @@ defmodule Kernel.ParallelCompiler do
     nilify_empty_or_sort(
       for %{pid: file_pid} <- files,
           {pid, {_, _, ^file_pid, on, _, _}} <- waiting_list,
-          not defining?(on, waiting_list),
+          is_atom(on) and not defining?(on, waiting_list),
           do: {pid, :not_found}
     )
   end
@@ -536,7 +587,7 @@ defmodule Kernel.ParallelCompiler do
   defp deadlocked(waiting_list, type, defining?) do
     nilify_empty_or_sort(
       for {pid, {_, _, _, on, _, ^type}} <- waiting_list,
-          defining?(on, waiting_list) == defining?,
+          is_atom(on) and defining?(on, waiting_list) == defining?,
           do: {pid, :deadlock}
     )
   end
@@ -558,8 +609,8 @@ defmodule Kernel.ParallelCompiler do
         new_spawned = Map.put(spawned, ref, pid)
         wait_for_messages(queue, new_spawned, waiting, files, result, warnings, errors, state)
 
-      {:available, kind, module} ->
-        {available, result} = update_result(result, kind, module, true)
+      {:available, kind, on} ->
+        {available, result} = update_result(result, kind, on, :done)
 
         spawn_workers(
           available ++ queue,
@@ -577,7 +628,6 @@ defmodule Kernel.ParallelCompiler do
 
         # Release the module loader which is waiting for an ack
         send(child, {ref, :ack})
-
         {available, result} = update_result(result, :module, module, binary)
 
         spawn_workers(
@@ -596,7 +646,7 @@ defmodule Kernel.ParallelCompiler do
         send(child, {ref, :not_found})
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:waiting, kind, child_pid, ref, file_pid, on, defining, deadlock?} ->
+      {:waiting, kind, child_pid, ref, file_pid, on, defining, deadlock} ->
         # If we already got what we were waiting for, do not put it on waiting.
         # If we're waiting on ourselves, send :found so that we can crash with
         # a better error.
@@ -607,7 +657,7 @@ defmodule Kernel.ParallelCompiler do
             send(child_pid, {ref, :found})
             {waiting, files, result}
           else
-            waiting = Map.put(waiting, child_pid, {kind, ref, file_pid, on, defining, deadlock?})
+            waiting = Map.put(waiting, child_pid, {kind, ref, file_pid, on, defining, deadlock})
             files = update_timing(files, file_pid, :compiling)
             result = Map.put(result, {kind, on}, [child_pid | available_or_pending])
             {waiting, files, result}
