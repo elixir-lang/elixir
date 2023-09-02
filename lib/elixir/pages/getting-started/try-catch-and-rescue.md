@@ -248,7 +248,7 @@ iex> try do
 ...>   _ -> what_happened = :rescued
 ...> end
 iex> what_happened
-** (CompileError) undefined function: what_happened/0
+** (CompileError) undefined variable "what_happened"
 ```
 
 Instead, you should return the value of the `try` expression:
@@ -274,7 +274,7 @@ iex> try do
 ...> rescue
 ...>   _ -> another_what_happened
 ...> end
-** (CompileError) undefined function: another_what_happened/0
+** (CompileError) undefined variable "another_what_happened"
 ```
 
 This finishes our introduction on `try`, `catch`, and `rescue`. You will find they are used less frequently in Elixir than in other languages. Next we will talk about a very important subject to Elixir developers: writing documentation.

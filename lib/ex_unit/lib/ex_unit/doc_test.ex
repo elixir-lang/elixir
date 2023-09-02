@@ -631,8 +631,14 @@ defmodule ExUnit.DocTest do
   defp adjust_indent(kind, [line | rest], line_no, adjusted_lines, indent, module) do
     stripped_line = strip_indent(line, indent)
     trimmed_line = String.trim_leading(line)
+    done? = stripped_line == "" or String.starts_with?(stripped_line, @fences)
 
-    if kind != :code and trimmed_line != stripped_line do
+    overrun? =
+      if kind == :code,
+        do: not done? and byte_size(trimmed_line) > byte_size(stripped_line),
+        else: byte_size(trimmed_line) != byte_size(stripped_line)
+
+    if overrun? do
       n_spaces = if indent == 1, do: "#{indent} space", else: "#{indent} spaces"
 
       raise Error,
@@ -642,7 +648,7 @@ defmodule ExUnit.DocTest do
         indentation level mismatch on doctest line: #{inspect(line)}
 
         If you are planning to assert on the result of an `iex>` expression, \
-        make sure the result is indented at the beginning of `iex>`, which \
+        make sure the result is indented at the same level as `iex>`, which \
         in this case is exactly #{n_spaces}.
 
         If instead you have an `iex>` expression that spans over multiple lines, \
@@ -651,7 +657,7 @@ defmodule ExUnit.DocTest do
     end
 
     cond do
-      stripped_line == "" or String.starts_with?(stripped_line, @fences) ->
+      done? ->
         adjusted_lines = [{"", line_no} | adjusted_lines]
         adjust_indent(:text, rest, line_no + 1, adjusted_lines, 0, module)
 

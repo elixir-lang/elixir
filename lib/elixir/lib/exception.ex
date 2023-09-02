@@ -1342,8 +1342,44 @@ defmodule UndefinedFunctionError do
       hint_for_loaded_module(module, function, arity, nil)
   end
 
-  defp hint(_module, _function, _arity, _loaded?) do
-    ""
+  @max_suggestions 5
+  defp hint(module, function, arity, _loaded?) do
+    downcased_module = downcase_module_name(module)
+    stripped_module = module |> Atom.to_string() |> String.replace_leading("Elixir.", "")
+
+    candidates =
+      for {name, _, _} = candidate <- :code.all_available(),
+          downcase_module_name(name) == downcased_module or
+            String.ends_with?(List.to_string(name), stripped_module),
+          {:module, module} <- [load_module(candidate)],
+          function_exported?(module, function, arity),
+          do: module
+
+    if candidates != [] do
+      suggestions =
+        candidates
+        |> Enum.take(@max_suggestions)
+        |> Enum.sort(:asc)
+        |> Enum.map(fn module ->
+          ["\n      * ", Exception.format_mfa(module, function, arity)]
+        end)
+
+      IO.iodata_to_binary([". Did you mean:\n", suggestions, "\n"])
+    else
+      ""
+    end
+  end
+
+  defp load_module({name, _path, _loaded?}) do
+    name
+    |> List.to_atom()
+    |> Code.ensure_loaded()
+  end
+
+  defp downcase_module_name(module) do
+    module
+    |> to_string()
+    |> String.downcase(:ascii)
   end
 
   @doc false

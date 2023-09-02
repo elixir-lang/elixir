@@ -1,6 +1,6 @@
 # GenServer
 
-In the [previous chapter](/getting-started/mix-otp/agent.html), we used agents to represent our buckets. In the [introduction to mix](/getting-started/mix-otp/introduction-to-mix.html), we specified we would like to name each bucket so we can do the following:
+In the [previous chapter](../agents.md), we used agents to represent our buckets. In the [introduction to mix](../introduction-to-mix.md), we specified we would like to name each bucket so we can do the following:
 
 ```elixir
 CREATE shopping
@@ -16,7 +16,7 @@ OK
 
 In the session above we interacted with the "shopping" bucket.
 
-Since agents are processes, each bucket has a process identifier (PID), but buckets do not have a name. Back [in the Process chapter](/getting-started/processes.html), we have learned that we can register processes in Elixir by giving them atom names:
+Since agents are processes, each bucket has a process identifier (PID), but buckets do not have a name. Back [in the Process chapter](../getting-started/processes.md), we have learned that we can register processes in Elixir by giving them atom names:
 
 ```elixir
 iex> Agent.start_link(fn -> %{} end, name: :shopping)
@@ -35,7 +35,7 @@ Instead of abusing the built-in name facility, we will create our own *process r
 
 The registry needs to guarantee that it is always up to date. For example, if one of the bucket processes crashes due to a bug, the registry must notice this change and avoid serving stale entries. In Elixir, we say the registry needs to *monitor* each bucket. Because our *registry* needs to be able to receive and handle ad-hoc messages from the system, the `Agent` API is not enough.
 
-We will use a `GenServer` to create a registry process that can monitor the bucket processes. GenServer provides industrial strength functionality for building servers in both Elixir and  OTP.
+We will use a `GenServer` to create a registry process that can monitor the bucket processes. GenServer provides industrial strength functionality for building servers in both Elixir and OTP.
 
 Please read the `GenServer` module documentation for an overview if you haven't yet. Once you do so, we are ready to proceed.
 
@@ -324,7 +324,7 @@ To help developers remember the differences between call, cast and info, the sup
 
 ## Monitors or links?
 
-We have previously learned about links in the [Process chapter](/getting-started/processes.html). Now, with the registry complete, you may be wondering: when should we use monitors and when should we use links?
+We have previously learned about links in the [Process chapter](../getting-started/processes.md). Now, with the registry complete, you may be wondering: when should we use monitors and when should we use links?
 
 Links are bi-directional. If you link two processes and one of them crashes, the other side will crash too (unless it is trapping exits). A monitor is uni-directional: only the monitoring process will receive notifications about the monitored one. In other words: use links when you want linked crashes, and monitors when you just want to be informed of crashes, exits, and so on.
 

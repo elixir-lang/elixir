@@ -5,7 +5,9 @@ defmodule Keyword do
   The first element of these tuples is known as the *key*, and it must be an atom.
   The second element, known as the *value*, can be any term.
 
-  Keywords are mostly used to work with optional values.
+  Keywords are mostly used to work with optional values. For a general introduction
+  to keywords and how the compare with maps, see our [Keyword and Maps](keywords-and-maps.md)
+  guide.
 
   ## Examples
 

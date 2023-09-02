@@ -553,19 +553,22 @@ defmodule Code do
   @doc """
   Executes the given `fun` and capture all diagnostics.
 
-  Diagnostics are warnings and errors emitted by the compiler
-  and by functions such as `IO.warn/2`.
+  Diagnostics are warnings and errors emitted during code
+  evaluation or single-file compilation and by functions
+  such as `IO.warn/2`.
+
+  If using `mix compile` or `Kernel.ParallelCompiler`,
+  note they already capture and return diagnostics.
 
   ## Options
 
     * `:log` - if the diagnostics should be logged as they happen.
       Defaults to `false`.
 
-  > #### Rescuing compilation errors {: .info}
+  > #### Rescuing errors {: .info}
   >
-  > `with_diagnostics/2` does not automatically handle exceptions,
-  > so compilation errors may be raised.
-  > Compilation errors can be retrieved by adding a `try/1` in `fun`:
+  > `with_diagnostics/2` does not automatically handle exceptions.
+  > You may capture them by adding a `try/1` in `fun`:
   >
   >     {result, all_errors_and_warnings} =
   >       Code.with_diagnostics(fn ->

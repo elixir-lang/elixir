@@ -98,8 +98,6 @@ defmodule KV.RouterTest do
 
 Note we removed `async: true` from `use ExUnit.Case`. Since the application environment is a global storage, tests that modify it cannot run concurrently. With all changes in place, all tests should pass, including the distributed one.
 
-Details of other configuration strategies are beyond the scope of this document, but you should be aware that other sources of runtime configuration data can be specified as configuration providers in `mix.exs`. For more details see the documentation for the `Config.Provider` module. Excellent libraries for many types of config providers can be found on [Hex](https://hex.pm). These can ease the use of environment variables and configuration files of various formats, such as TOML, YAML, INI, and JSON.
-
 ## Releases
 
 Now that our application runs distributed, you may be wondering how we can package our application to run in production. After all, all of our code so far depends on Erlang and Elixir versions that are installed in your current system. To achieve this goal, Elixir provides releases.
@@ -417,7 +415,7 @@ You can see [a complete list of VM arguments and flags in the Erlang documentati
 
 Throughout the guide, we have built a very simple distributed key-value store as an opportunity to explore many constructs like generic servers, supervisors, tasks, agents, applications and more. Not only that, we have written tests for the whole application, got familiar with ExUnit, and learned how to use the Mix build tool to accomplish a wide range of tasks.
 
-If you are looking for a distributed key-value store to use in production, you should definitely look into [Riak](http://basho.com/products/riak-kv/), which also runs in the Erlang VM. In Riak, the buckets are replicated, to avoid data loss, and instead of a router, they use [consistent hashing](https://en.wikipedia.org/wiki/Consistent_hashing) to map a bucket to a node. A consistent hashing algorithm helps reduce the amount of data that needs to be migrated when new storage nodes are added to your live system.
+If you are looking for a distributed key-value store to use in production, you should definitely look into [Riak](http://riak.com/products/riak-kv/), which also runs in the Erlang VM. In Riak, the buckets are replicated, to avoid data loss, and instead of a router, they use [consistent hashing](https://en.wikipedia.org/wiki/Consistent_hashing) to map a bucket to a node. A consistent hashing algorithm helps reduce the amount of data that needs to be migrated when new storage nodes are added to your live system.
 
 Of course, Elixir can be used for much more than distributed key-value stores. Embedded systems, data-processing and data-ingestion, web applications, audio/video streaming systems, and others are many of the different domains Elixir excels at. We hope this guide has prepared you to explore any of those domains or any future domain you may desire to bring Elixir into.
 

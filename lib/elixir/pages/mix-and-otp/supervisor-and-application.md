@@ -168,16 +168,7 @@ iex> Application.start(:kv)
 
 Oops, it's already started. Mix starts the current application and all of its dependencies automatically. This is also true for `mix test` and many other Mix commands.
 
-You can change this behaviour by giving the `--no-start` flag to Mix. It is rarely used in practice, but it allows us to understand the underlying mechanisms better. Let's give it a try.
-
-Invoking `mix` is the same as `mix run`. Therefore, if you want to pass a flag to `mix` or `iex -S mix`, we just need to add the task name and the desired flags. For example, run `iex -S mix run --no-start`:
-
-```elixir
-iex> Application.start(:kv)
-:ok
-```
-
-We can stop our `:kv` application as well as the `:logger` application, which is started by default with Elixir:
+We can, however, stop our `:kv` application, as well as the `:logger` application:
 
 ```elixir
 iex> Application.stop(:kv)
@@ -193,7 +184,7 @@ iex> Application.start(:kv)
 {:error, {:not_started, :logger}}
 ```
 
-Now we get an error because an application that `:kv` depends on (`:logger` in this case) isn't started. We need to either start each application manually in the correct order or call `Application.ensure_all_started` as follows:
+Now we get an error because an application that `:kv` depends on (`:logger` in this case) isn't started. We need to either start each application manually in the correct order or call `Application.ensure_all_started/1` as follows:
 
 ```elixir
 iex> Application.ensure_all_started(:kv)

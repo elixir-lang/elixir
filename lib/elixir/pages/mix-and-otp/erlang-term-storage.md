@@ -99,6 +99,7 @@ defmodule KV.Registry do
     case lookup(names, name) do
       {:ok, _pid} ->
         {:noreply, {names, refs}}
+
       :error ->
         {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.Bucket)
         ref = Process.monitor(pid)
@@ -197,6 +198,7 @@ def handle_call({:create, name}, _from, {names, refs}) do
   case lookup(names, name) do
     {:ok, pid} ->
       {:reply, pid, {names, refs}}
+
     :error ->
       {:ok, pid} = DynamicSupervisor.start_child(KV.BucketSupervisor, KV.Bucket)
       ref = Process.monitor(pid)
@@ -232,7 +234,7 @@ According to the failure message, we are expecting that the bucket no longer exi
 
 Last time we fixed the race condition by replacing the asynchronous operation, a `cast`, by a `call`, which is synchronous. Unfortunately, the `handle_info/2` callback we are using to receive the `:DOWN` message and delete the entry from the ETS table does not have a synchronous equivalent. This time, we need to find a way to guarantee the registry has processed the `:DOWN` notification sent when the bucket process terminated.
 
-An easy way to do so is by sending a synchronous request to the registry before we do the bucket lookup. The `Agent.stop/2` operation is synchronous and only returns after the bucket process terminates and all `:DOWN` messages are delivered. Therefore, once `Agent.stop/2` returns, the registry has already received the `:DOWN` message but it may not have processed it yet. In order to guarantee the processing of the `:DOWN` message, we can do a synchronous request. Since messages are processed in order, once the registry replies to the synchronous request, then the `:DOWN` message will definitely have been processed.
+An easy way to do so is by sending a synchronous request to the registry before we do the bucket lookup. The `Agent.stop/2` operation is synchronous and only returns after the bucket process terminates. Therefore, once `Agent.stop/2` returns, the registry has received the `:DOWN` message but it may not have processed it yet. In order to guarantee the processing of the `:DOWN` message, we can do a synchronous request. Since messages are processed in order, once the registry replies to the synchronous request, then the `:DOWN` message will definitely have been processed.
 
 Let's do so by creating a "bogus" bucket, which is a synchronous request, after `Agent.stop/2` in both "remove" tests at `test/kv/registry_test.exs`:
 
@@ -262,23 +264,8 @@ Let's do so by creating a "bogus" bucket, which is a synchronous request, after 
 
 Our tests should now (always) pass!
 
-Note that the purpose of the test is to check whether the registry processes the bucket's shutdown message correctly. The fact that the `KV.Registry.lookup/2` sends us a valid bucket does not mean that the bucket is still alive by the time you call it. For example, it might have crashed for some reason. The following test depicts this situation:
-
-```elixir
-  test "bucket can crash at any time", %{registry: registry} do
-    KV.Registry.create(registry, "shopping")
-    {:ok, bucket} = KV.Registry.lookup(registry, "shopping")
-
-    # Simulate a bucket crash by explicitly and synchronously shutting it down
-    Agent.stop(bucket, :shutdown)
-
-    # Now trying to call the dead process causes a :noproc exit
-    catch_exit KV.Bucket.put(bucket, "milk", 3)
-  end
-```
-
 This concludes our optimization chapter. We have used ETS as a cache mechanism where reads can happen from any processes but writes are still serialized through a single process. More importantly, we have also learned that once data can be read asynchronously, we need to be aware of the race conditions it might introduce.
 
-In practice, if you find yourself in a position where you need a process registry for dynamic processes, you should use the `Registry` module provided as part of Elixir. It provides functionality similar to the one we have built using a GenServer + `:ets` while also being able to perform both writes and reads concurrently. [It has been benchmarked to scale across all cores even on machines with 40 cores](https://elixir-lang.org/blog/2017/01/05/elixir-v1-4-0-released/).
+In practice, if you find yourself in a position where you need a registry for dynamic processes, you should use the `Registry` module provided as part of Elixir. It provides functionality similar to the one we have built using a GenServer + `:ets` while also being able to perform both writes and reads concurrently. [It has been benchmarked to scale across all cores even on machines with 40 cores](https://elixir-lang.org/blog/2017/01/05/elixir-v1-4-0-released/).
 
 Next, let's discuss external and internal dependencies and how Mix helps us manage large codebases.

@@ -236,6 +236,27 @@ defmodule Supervisor do
         }
       end
 
+  Then the supervisor will call `Counter.start_link(arg)` to start the child
+  process. This flow is summarized in the diagram below. Caller is a process
+  which spawns the Supervisor process. The Supervisor then proceeds to call
+  your code (Module) to spawn its child process:
+
+  ```mermaid
+  sequenceDiagram
+      participant C as Caller (Process)
+      participant S as Supervisor (Process)
+      participant M as Module (Code)
+
+      note right of C: child is a {module, arg} specification
+      C->>+S: Supervisor.start_link([child])
+      S-->>+M: module.child_spec(arg)
+      M-->>-S: %{id: term, start: {module, :start_link, [arg]}}
+      S-->>+M: module.start_link(arg)
+      M->>M: Spawns child process (child_pid)
+      M-->>-S: {:ok, child_pid} | :ignore | {:error, reason}
+      S->>-C: {:ok, supervisor_pid} | {:error, reason}
+  ```
+
   Luckily for us, `use GenServer` already defines a `Counter.child_spec/1`
   exactly like above, so you don't need to write the definition above yourself.
   If you want to customize the automatically generated `child_spec/1` function,
@@ -574,7 +595,7 @@ defmodule Supervisor do
   @typedoc "The supervisor reference."
   @type supervisor :: pid | name | {atom, node}
 
-  @typedoc "Options given to `start_link/2` and `c:init/2`."
+  @typedoc "Options given to `start_link/2` and `c:init/1`."
   @type init_option ::
           {:strategy, strategy}
           | {:max_restarts, non_neg_integer}

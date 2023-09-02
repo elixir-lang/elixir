@@ -392,7 +392,7 @@ defmodule Mix.Release do
   defp boot_mode(mode), do: mode
 
   defp build_start_clean_boot(boot) do
-    for({app, _mode} <- boot, do: {app, :none})
+    for({app, mode} <- boot, do: {app, if(mode == :none, do: :none, else: :load)})
     |> Keyword.put(:stdlib, :permanent)
     |> Keyword.put(:kernel, :permanent)
   end

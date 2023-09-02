@@ -233,11 +233,62 @@ defmodule Mix.Tasks.Format do
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
 
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+
     args
     |> expand_args(cwd, dot_formatter, formatter_opts_and_subs, opts)
     |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: :infinity)
     |> Enum.reduce({[], []}, &collect_status/2)
     |> check!(opts)
+  end
+
+  defp load_plugins({formatter_opts, subs}) do
+    plugins = Keyword.get(formatter_opts, :plugins, [])
+
+    if not is_list(plugins) do
+      Mix.raise("Expected :plugins to return a list of directories, got: #{inspect(plugins)}")
+    end
+
+    if plugins != [] do
+      Mix.Task.run("loadpaths", [])
+    end
+
+    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
+      Mix.Task.run("compile", [])
+    end
+
+    for plugin <- plugins do
+      cond do
+        not Code.ensure_loaded?(plugin) ->
+          Mix.raise("Formatter plugin #{inspect(plugin)} cannot be found")
+
+        not function_exported?(plugin, :features, 1) ->
+          Mix.raise("Formatter plugin #{inspect(plugin)} does not define features/1")
+
+        true ->
+          :ok
+      end
+    end
+
+    sigils =
+      for plugin <- plugins,
+          sigil <- find_sigils_from_plugins(plugin, formatter_opts),
+          do: {sigil, plugin}
+
+    sigils =
+      sigils
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Enum.map(fn {sigil, plugins} ->
+        {sigil,
+         fn input, opts ->
+           Enum.reduce(plugins, input, fn plugin, input ->
+             plugin.format(input, opts ++ formatter_opts)
+           end)
+         end}
+      end)
+
+    {Keyword.put(formatter_opts, :sigils, sigils),
+     Enum.map(subs, fn {path, opts} -> {path, load_plugins(opts)} end)}
   end
 
   @doc """
@@ -289,7 +340,6 @@ defmodule Mix.Tasks.Format do
   defp eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, sources) do
     deps = Keyword.get(formatter_opts, :import_deps, [])
     subs = Keyword.get(formatter_opts, :subdirectories, [])
-    plugins = Keyword.get(formatter_opts, :plugins, [])
 
     if not is_list(deps) do
       Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
@@ -298,53 +348,6 @@ defmodule Mix.Tasks.Format do
     if not is_list(subs) do
       Mix.raise("Expected :subdirectories to return a list of directories, got: #{inspect(subs)}")
     end
-
-    if not is_list(plugins) do
-      Mix.raise("Expected :plugins to return a list of modules, got: #{inspect(plugins)}")
-    end
-
-    if plugins != [] do
-      Mix.Task.run("loadpaths", [])
-    end
-
-    if not Enum.all?(plugins, &Code.ensure_loaded?/1) do
-      Mix.Task.run("compile", [])
-    end
-
-    for plugin <- plugins do
-      cond do
-        not Code.ensure_loaded?(plugin) ->
-          Mix.raise("Formatter plugin #{inspect(plugin)} cannot be found")
-
-        not function_exported?(plugin, :features, 1) ->
-          Mix.raise("Formatter plugin #{inspect(plugin)} does not define features/1")
-
-        true ->
-          :ok
-      end
-    end
-
-    sigils =
-      for plugin <- plugins,
-          sigil <- find_sigils_from_plugins(plugin, formatter_opts),
-          do: {sigil, plugin}
-
-    sigils =
-      sigils
-      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
-      |> Enum.map(fn {sigil, plugins} ->
-        {sigil,
-         fn input, opts ->
-           Enum.reduce(plugins, input, fn plugin, input ->
-             plugin.format(input, opts ++ formatter_opts)
-           end)
-         end}
-      end)
-
-    formatter_opts =
-      formatter_opts
-      |> Keyword.put(:plugins, plugins)
-      |> Keyword.put(:sigils, sigils)
 
     if deps == [] and subs == [] do
       {{formatter_opts, []}, sources}

@@ -93,12 +93,12 @@ case_ignorable_categories = :binary.compile_pattern(["Mn", "Me", "Cf", "Lm", "Sk
       _iso,
       upper,
       lower,
-      title
+      _title
     ] = :binary.split(line, ";", [:global])
 
     cacc =
-      if upper != "" or lower != "" or title != "" do
-        [{to_binary.(codepoint), to_binary.(upper), to_binary.(lower), to_binary.(title)} | cacc]
+      if upper != "" or lower != "" do
+        [{to_binary.(codepoint), to_binary.(upper), to_binary.(lower)} | cacc]
       else
         cacc
       end
@@ -168,14 +168,14 @@ defmodule String.Unicode do
         acc
 
       line, acc ->
-        [codepoint, lower, title, upper, _] = :binary.split(line, "; ", [:global])
+        [codepoint, lower, _title, upper, _] = :binary.split(line, "; ", [:global])
         key = to_binary.(codepoint)
 
         :lists.keystore(
           key,
           1,
           acc,
-          {key, to_binary.(upper), to_binary.(lower), to_binary.(title)}
+          {key, to_binary.(upper), to_binary.(lower)}
         )
     end)
 
@@ -265,7 +265,7 @@ defmodule String.Unicode do
 
   {singles, tables} =
     compute_lookup.(
-      for {codepoint, _upper, lower, _title} <- codes,
+      for {codepoint, _upper, lower} <- codes,
           lower && lower != codepoint,
           codepoint not in conditional_downcase,
           do: {codepoint, lower}
@@ -352,7 +352,7 @@ defmodule String.Unicode do
 
   {singles, tables} =
     compute_lookup.(
-      for {codepoint, upper, _lower, _title} <- codes,
+      for {codepoint, upper, _lower} <- codes,
           upper && upper != codepoint,
           codepoint not in conditional_upcase,
           do: {codepoint, upper}
@@ -380,51 +380,6 @@ defmodule String.Unicode do
   end
 
   def upcase("", acc, _mode), do: IO.iodata_to_binary(:lists.reverse(acc))
-
-  # Titlecase once
-
-  def titlecase_once("", _mode), do: {"", ""}
-
-  # Turkic i -> İ
-  def titlecase_once(<<@letter_i, rest::binary>>, mode) do
-    char = if mode == :turkic, do: @letter_I_dot_above, else: @letter_I
-    {char, rest}
-  end
-
-  conditional_titlecase = [@letter_i]
-
-  {singles, tables} =
-    compute_lookup.(
-      for {codepoint, _upper, _lower, title} <- codes,
-          title && title != codepoint,
-          codepoint not in conditional_titlecase,
-          do: {codepoint, title}
-    )
-
-  for {codepoint, title} <- singles do
-    def titlecase_once(<<unquote(codepoint), rest::bits>>, _mode) do
-      {unquote(title), rest}
-    end
-  end
-
-  for {prefix, clauses} <- tables do
-    def titlecase_once(<<unquote(prefix), byte, rest::bits>>, _mode) do
-      value = case byte, do: unquote(clauses)
-      {value, rest}
-    end
-  end
-
-  def titlecase_once(<<char::utf8, rest::binary>>, _mode) do
-    if char >= ?a and char <= ?z do
-      {<<char - 32::utf8>>, rest}
-    else
-      {<<char::utf8>>, rest}
-    end
-  end
-
-  def titlecase_once(<<char, rest::binary>>, _mode) do
-    {<<char>>, rest}
-  end
 end
 
 defmodule String.Break do

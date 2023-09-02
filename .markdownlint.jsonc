@@ -17,6 +17,8 @@
   "MD014": false,
   // Multiple headings with the same content. That's fine.
   "MD024": false,
+  // Allow empty line between block quotes. Used by contiguous admonition blocks.
+  "MD028": false,
   // Allowed HTML inline elements.
   "MD033": {
     "allowed_elements": [

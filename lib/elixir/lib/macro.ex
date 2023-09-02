@@ -1759,6 +1759,18 @@ defmodule Macro do
   end
 
   @doc """
+  Applies a `mod`, `function`, and `args` at compile-time in `caller`.
+
+  This is used when you want to programatically invoke a macro at
+  compile-time.
+  """
+  @doc since: "1.16.0"
+  def compile_apply(mod, fun, args, caller) do
+    :elixir_env.trace({:remote_macro, [], mod, fun, length(args)}, caller)
+    Kernel.apply(mod, fun, args)
+  end
+
+  @doc """
   Receives an AST node and expands it once.
 
   The following contents are expanded:
@@ -2322,7 +2334,7 @@ defmodule Macro do
   ## Atom handling
 
   @doc """
-  Classifies a runtime `atom` based on its possible AST placement.
+  Classifies an `atom` based on its possible AST placement.
 
   It returns one of the following atoms:
 

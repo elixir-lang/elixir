@@ -161,16 +161,29 @@ Since we have relied only on a non-shared partition of the bucket supervisor so 
 Now that we have defined our supervision tree, it is a great opportunity to introduce the Observer tool that ships with Erlang. Start your application with `iex -S mix` and key this in:
 
 ```elixir
-iex> :observer.start
+iex> :observer.start()
 ```
+
+> #### Missing dependencies {: .warning}
+>
+> When running `iex` inside a project with `iex -S mix`, `observer` won't be available as a dependency. To do so, you will need to call the following functions before:
+>
+> ```elixir
+> iex> Mix.ensure_application!(:wx)
+> iex> Mix.ensure_application!(:runtime_tools)
+> iex> Mix.ensure_application!(:observer)
+> iex> :observer.start()
+> ```
+>
+> If any of the calls above fail, here is what may have happened: some package managers default to installing a minimized Erlang without WX bindings for GUI support. In some package managers, you may be able to replace the headless Erlang with a more complete package (look for packages named `erlang` vs `erlang-nox` on Debian/Ubuntu/Arch). In others managers, you may need to install a separate `erlang-wx` (or similarly named) package.
+>
+> There are conversations to improve this experience in future releases.
 
 A GUI should pop up containing all sorts of information about our system, from general statistics to load charts as well as a list of all running processes and applications.
 
-> Note: If `observer` does not start, here is what may have happened: some package managers default to installing a minimized Erlang without WX bindings for GUI support. In some package managers, you may be able to replace the headless Erlang with a more complete package (look for packages named `erlang` vs `erlang-nox` on Debian/Ubuntu/Arch). In others managers, you may need to install a separate `erlang-wx` (or similarly named) package. Alternatively, you can skip this section and continue the guide.
-
 In the Applications tab, you will see all applications currently running in your system alongside their supervision tree. You can select the `kv` application to explore it further:
 
-<img src="/images/contents/kv-observer.png" width="640" alt="Observer GUI screenshot" />
+<img src="images/kv-observer.png" alt="Observer GUI screenshot" />
 
 Not only that, as you create new buckets on the terminal, you should see new processes spawned in the supervision tree shown in Observer:
 

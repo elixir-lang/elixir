@@ -418,20 +418,20 @@ defmodule ExUnit.Case do
       defmodule StringTest do
         use ExUnit.Case, async: true
 
-        describe "String.capitalize/1" do
-          test "first grapheme is in uppercase" do
-            assert String.capitalize("hello") == "Hello"
+        describe "String.downcase/1" do
+          test "with ascii characters" do
+            assert String.downcase("HELLO") == "hello"
           end
 
-          test "converts remaining graphemes to lowercase" do
-            assert String.capitalize("HELLO") == "Hello"
+          test "with Unicode" do
+            assert String.downcase("HÉLLÒ") == "héllò"
           end
         end
       end
 
   When using Mix, you can run all tests in a describe block by name:
 
-      $ mix test --only describe:"String.capitalize/1"
+      $ mix test --only describe:"String.downcase/1"
 
   or by passing the exact line the describe block starts on:
 

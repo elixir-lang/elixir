@@ -4,7 +4,7 @@ In this guide, we will learn how to keep and share state between multiple entiti
 
 If you have skipped the *Getting Started* guide or read it long ago, be sure to re-read the [Processes](../getting-started/processes.md) chapter. We will use it as a starting point.
 
-## The trouble with state
+## The trouble with (mutable) state
 
 Elixir is an immutable language where nothing is shared by default. If we want to share information, which can be read and modified from multiple places, we have two main options in Elixir:
 

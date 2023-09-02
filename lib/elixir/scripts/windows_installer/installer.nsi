@@ -1,8 +1,6 @@
 !include "MUI2.nsh"
 !include "StrFunc.nsh"
-${Using:StrFunc} StrStr
 ${Using:StrFunc} UnStrStr
-${Using:StrFunc} UnStrRep
 
 Name "Elixir"
 ManifestDPIAware true
@@ -16,7 +14,6 @@ Page custom CheckOTPPageShow CheckOTPPageLeave
 
 var Dialog
 var DownloadOTPLink
-var InstalledERTSVersion
 var InstalledOTPRelease
 var OTPPath
 Function CheckOTPPageShow
@@ -30,11 +27,10 @@ Function CheckOTPPageShow
   ${EndIf}
 
   EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
-  ReadRegStr $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
-  StrCpy $InstalledERTSVersion $0
-  StrCpy $OTPPath $1
+  ReadRegStr $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
+  StrCpy $OTPPath $0
 
-  ${If} $1 == ""
+  ${If} $OTPPath == ""
     ${NSD_CreateLabel} 0 0   100% 20u "Couldn't find existing Erlang/OTP installation. Click the link below to download and install it before proceeding."
     ${NSD_CreateLink}  0 25u 100% 20u "Download Erlang/OTP ${OTP_RELEASE}"
     Pop $DownloadOTPLink
@@ -103,36 +99,33 @@ Function FinishPageShow
 
   EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
   ReadRegStr $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
-  StrCpy $OTPPath $0
-  ${If} $0 != ""
-    ${NSD_CreateCheckbox} 0 20u 195u 10u "&Add $0\bin to %PATH%"
-    Pop $AddOTPToPathCheckbox
-    SendMessage $AddOTPToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
-  ${EndIf}
+  ${NSD_CreateCheckbox} 0 20u 195u 10u "&Add $0\bin to %PATH%"
+  Pop $AddOTPToPathCheckbox
+  SendMessage $AddOTPToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
 
   nsDialogs::Show
 FunctionEnd
 
+var PathsToAdd
 Function FinishPageLeave
   ${NSD_GetState} $AddOTPToPathCheckbox $0
   ${If} $0 <> ${BST_UNCHECKED}
-    ReadRegStr $0 HKCU "Environment" "Path"
-    ${StrStr} $1 "$0" "$OTPPath\bin"
-    ${If} $1 == ""
-      WriteRegExpandStr HKCU "Environment" "Path" "$OTPPath\bin;$0"
-    ${Else}
-      MessageBox MB_OK "$OTPPath\bin already in %PATH%"
-    ${EndIf}
+    StrCpy $PathsToAdd ";$OTPPath\bin"
   ${EndIf}
 
   ${NSD_GetState} $AddElixirToPathCheckbox $0
   ${If} $0 <> ${BST_UNCHECKED}
-    ReadRegStr $0 HKCU "Environment" "Path"
-    ${StrStr} $1 "$0" "$INSTDIR\bin"
-    ${If} $1 == ""
-      WriteRegExpandStr HKCU "Environment" "Path" "$INSTDIR\bin;$0"
-    ${Else}
-      MessageBox MB_OK "$INSTDIR\bin already in %PATH%"
+    StrCpy $PathsToAdd "$PathsToAdd;$INSTDIR\bin"
+  ${EndIf}
+
+  ${If} "$PathsToAdd" != ""
+    nsExec::ExecToStack `"$OTPPath\bin\escript.exe" "$INSTDIR\update_system_path.erl" add "$PathsToAdd"`
+    Pop $0
+    Pop $1
+    ${If} $0 != 0
+      SetErrorlevel 5
+      MessageBox MB_ICONSTOP "adding paths failed with $0: $1"
+      Quit
     ${EndIf}
   ${EndIf}
 FunctionEnd
@@ -140,25 +133,21 @@ FunctionEnd
 Section "Install Elixir" SectionElixir
   SetOutPath "$INSTDIR"
   File /r "${ELIXIR_DIR}\"
+  File "update_system_path.erl"
 
   WriteUninstaller "Uninstall.exe"
 SectionEnd
 
-; Uninstall Page: Files
-
-!insertmacro MUI_UNPAGE_DIRECTORY
-!insertmacro MUI_UNPAGE_INSTFILES
-
-Section "Uninstall"
-  RMDir /r "$INSTDIR"
-SectionEnd
-
-; Uninstall Page: Finish
+; Uninstall Page: Remove from %PATH%
 
 var RemoveOTPFromPathCheckbox
 var RemoveElixirFromPathCheckbox
 Function un.FinishPageShow
-  !insertmacro MUI_HEADER_TEXT "Finish Setup" ""
+  !insertmacro MUI_HEADER_TEXT "Remove from %PATH%" ""
+
+  EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
+  ReadRegStr $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
+  StrCpy $OTPPath $0
 
   nsDialogs::Create 1018
   Pop $Dialog
@@ -168,6 +157,7 @@ Function un.FinishPageShow
   ${EndIf}
 
   ReadRegStr $0 HKCU "Environment" "Path"
+
   ${UnStrStr} $1 "$0" "$INSTDIR\bin"
   ${If} $1 != ""
     ${NSD_CreateCheckbox} 0 0 195u 10u "&Remove $INSTDIR\bin from %PATH%"
@@ -175,9 +165,6 @@ Function un.FinishPageShow
     SendMessage $RemoveElixirFromPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
   ${EndIf}
 
-  EnumRegKey $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
-  ReadRegStr $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$1" ""
-  StrCpy $OTPPath $1
   ${UnStrStr} $1 "$0" "$OTPPath\bin"
   ${If} $1 != ""
     ${NSD_CreateCheckbox} 0 20u 195u 10u "&Remove $OTPPath\bin from %PATH%"
@@ -188,22 +175,37 @@ Function un.FinishPageShow
   nsDialogs::Show
 FunctionEnd
 
+var PathsToRemove
 Function un.FinishPageLeave
-  ReadRegStr $0 HKCU "Environment" "Path"
-
   ${NSD_GetState} $RemoveOTPFromPathCheckbox $1
   ${If} $1 <> ${BST_UNCHECKED}
-    ${UnStrRep} $0 "$0" "$OTPPath\bin;" ""
+    StrCpy $PathsToRemove ";$OTPPath\bin"
   ${EndIf}
 
   ${NSD_GetState} $RemoveElixirFromPathCheckbox $1
   ${If} $1 <> ${BST_UNCHECKED}
-    ${UnStrRep} $0 "$0" "$INSTDIR\bin;" ""
+    StrCpy $PathsToRemove "$PathsToRemove;$INSTDIR\bin"
   ${EndIf}
 
-  WriteRegExpandStr HKCU "Environment" "Path" "$0"
+  ${If} "$PathsToRemove" != ""
+    nsExec::ExecToStack `"$OTPPath\bin\escript.exe" "$INSTDIR\update_system_path.erl" remove "$PathsToRemove"`
+    Pop $0
+    Pop $1
+    ${If} $0 != 0
+      SetErrorlevel 5
+      MessageBox MB_ICONSTOP "removing paths failed with $0: $1"
+      Quit
+    ${EndIf}
+  ${EndIf}
 FunctionEnd
 
 UninstPage custom un.FinishPageShow un.FinishPageLeave
+
+!insertmacro MUI_UNPAGE_DIRECTORY
+!insertmacro MUI_UNPAGE_INSTFILES
+
+Section "Uninstall"
+  RMDir /r "$INSTDIR"
+SectionEnd
 
 !insertmacro MUI_LANGUAGE "English"

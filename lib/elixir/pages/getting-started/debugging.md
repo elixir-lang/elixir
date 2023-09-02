@@ -137,6 +137,7 @@ iex> :observer.start()
 > iex> Mix.ensure_application!(:wx)
 > iex> Mix.ensure_application!(:runtime_tools)
 > iex> Mix.ensure_application!(:observer)
+> iex> :observer.start()
 > ```
 >
 > If any of the calls above fail, here is what may have happened: some package managers default to installing a minimized Erlang without WX bindings for GUI support. In some package managers, you may be able to replace the headless Erlang with a more complete package (look for packages named `erlang` vs `erlang-nox` on Debian/Ubuntu/Arch). In others managers, you may need to install a separate `erlang-wx` (or similarly named) package.

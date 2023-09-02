@@ -684,7 +684,7 @@ defmodule Protocol do
   end
 
   defp load_impl(protocol, for) do
-    Module.concat(protocol, for).__impl__(:target)
+    Module.concat(protocol, for)
   end
 
   # Finally compile the module and emit its bytecode.
@@ -826,7 +826,7 @@ defmodule Protocol do
     quote bind_quoted: [built_in: __built_in__()] do
       any_impl_for =
         if @fallback_to_any do
-          quote do: unquote(__MODULE__.Any).__impl__(:target)
+          quote do: unquote(__MODULE__.Any)
         else
           nil
         end
@@ -853,11 +853,9 @@ defmodule Protocol do
           target = Module.concat(__MODULE__, mod)
 
           Kernel.def impl_for(data) when :erlang.unquote(guard)(data) do
-            try do
-              unquote(target).__impl__(:target)
-            rescue
-              UndefinedFunctionError ->
-                unquote(any_impl_for)
+            case Code.ensure_compiled(unquote(target)) do
+              {:module, module} -> module
+              {:error, _} -> unquote(any_impl_for)
             end
           end
         end,
@@ -888,14 +886,11 @@ defmodule Protocol do
 
       # Internal handler for Structs
       Kernel.defp struct_impl_for(struct) do
-        target = Module.concat(__MODULE__, struct)
-
-        try do
-          target.__impl__(:target)
-        rescue
-          UndefinedFunctionError ->
-            unquote(any_impl_for)
-        end
+        target =
+          case Code.ensure_compiled(Module.concat(__MODULE__, struct)) do
+            {:module, module} -> module
+            {:error, _} -> unquote(any_impl_for)
+          end
       end
 
       # Inline struct implementation for performance
@@ -962,10 +957,8 @@ defmodule Protocol do
     impl =
       quote unquote: false do
         @doc false
-        @spec __impl__(:target) :: __MODULE__
         @spec __impl__(:for) :: unquote(for)
         @spec __impl__(:protocol) :: unquote(protocol)
-        def __impl__(:target), do: __MODULE__
         def __impl__(:for), do: unquote(for)
         def __impl__(:protocol), do: unquote(protocol)
       end
@@ -1025,21 +1018,30 @@ defmodule Protocol do
       if function_exported?(mod, fun, length(args)) do
         apply(mod, fun, args)
       else
+        funs =
+          for {fun, arity} <- protocol.__protocol__(:functions) do
+            args = Macro.generate_arguments(arity, nil)
+
+            quote do
+              def unquote(fun)(unquote_splicing(args)),
+                do: unquote(impl).unquote(fun)(unquote_splicing(args))
+            end
+          end
+
         quoted =
           quote do
+            @behaviour unquote(protocol)
             Module.register_attribute(__MODULE__, :__impl__, persist: true)
             @__impl__ [protocol: unquote(protocol), for: unquote(for)]
 
             @doc false
-            @spec __impl__(:target) :: unquote(impl)
             @spec __impl__(:protocol) :: unquote(protocol)
             @spec __impl__(:for) :: unquote(for)
-            def __impl__(:target), do: unquote(impl)
             def __impl__(:protocol), do: unquote(protocol)
             def __impl__(:for), do: unquote(for)
           end
 
-        Module.create(Module.concat(protocol, for), quoted, Macro.Env.location(env))
+        Module.create(Module.concat(protocol, for), [quoted | funs], Macro.Env.location(env))
       end
     end)
   end

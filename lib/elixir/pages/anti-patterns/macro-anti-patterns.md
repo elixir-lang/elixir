@@ -186,7 +186,9 @@ iex> ClientApp.from_client_app()
 "From Library - Local function from client app"
 ```
 
-**Additional remarks:** In situations where you need to do more than importing and aliasing modules, providing `use MyModule` may be necessary, as it provides a common extension point within the Elixir ecosystem.
+#### Additional remarks
+
+In situations where you need to do more than importing and aliasing modules, providing `use MyModule` may be necessary, as it provides a common extension point within the Elixir ecosystem.
 
 Therefore, to provide guidance and clarity, we recommend library authors to include an admonition block in their `@moduledoc` that explains how `use MyModule` impacts the developer's code. As an example, the `GenServer` documentation outlines:
 

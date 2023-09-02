@@ -1466,25 +1466,43 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Project.push(MixTest.Case.Sample)
       File.mkdir_p!("lib")
 
+      File.write!("lib/b.ex", """
+      defmodule B do
+        def unused_var(unused_var), do: :ok
+      end
+      """)
+
+      assert capture_io(:stderr, fn ->
+               assert {:ok, [_diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+             end) =~ "unused_var"
+
+      file = Path.absname("lib/a.ex")
+
       File.write!("lib/a.ex", """
       defmodule A do
         def my_fn(), do: $$$
       end
       """)
 
-      file = Path.absname("lib/a.ex")
+      refute capture_io(:stderr, fn ->
+               purge([B])
+               assert {:error, [_warning, error]} = Mix.Tasks.Compile.Elixir.run([])
 
-      capture_io(:stderr, fn ->
-        assert {:error, [diagnostic]} = Mix.Tasks.Compile.Elixir.run([])
+               assert %Diagnostic{
+                        file: ^file,
+                        severity: :error,
+                        position: {2, 20},
+                        message: "** (SyntaxError) invalid syntax found on lib/a.ex:2:" <> _,
+                        compiler_name: "Elixir"
+                      } = error
+             end) =~ "unused_var"
 
-        assert %Diagnostic{
-                 file: ^file,
-                 severity: :error,
-                 position: {2, 20},
-                 message: "** (SyntaxError) invalid syntax found on lib/a.ex:2:" <> _,
-                 compiler_name: "Elixir"
-               } = diagnostic
-      end)
+      assert capture_io(:stderr, fn ->
+               purge([B])
+
+               assert {:error, [_warning, _error]} =
+                        Mix.Tasks.Compile.Elixir.run(["--all-warnings"])
+             end) =~ "unused_var"
     end)
   end
 

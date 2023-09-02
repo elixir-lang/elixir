@@ -30,10 +30,8 @@ A variable can only be assigned on the left side of `=`:
 
 ```elixir
 iex> 1 = unknown
-** (CompileError) iex:1: undefined function unknown/0
+** (CompileError) iex:1: undefined variable "unknown"
 ```
-
-Since there is no variable `unknown` previously defined, Elixir assumed you were trying to call a function named `unknown/0`, but such a function does not exist.
 
 ## Pattern matching
 

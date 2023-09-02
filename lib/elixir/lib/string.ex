@@ -823,6 +823,7 @@ defmodule String do
       iex> String.upcase("ıi", :turkic)
       "Iİ"
 
+  Also see `downcase/2` and `capitalize/2` for other conversions.
   """
   @spec upcase(t, :default | :ascii | :greek | :turkic) :: t
   def upcase(string, mode \\ :default)
@@ -856,6 +857,8 @@ defmodule String do
   all non-conditional transformations outlined in the Unicode standard. `:ascii`
   lowercases only the letters A to Z. `:greek` includes the context sensitive
   mappings found in Greek. `:turkic` properly handles the letter i with the dotless variant.
+
+  Also see `upcase/2` and `capitalize/2` for other conversions.
 
   ## Examples
 
@@ -921,19 +924,25 @@ defmodule String do
   Converts the first character in the given string to
   uppercase and the remainder to lowercase according to `mode`.
 
-  `mode` may be `:default`, `:ascii`, `:greek` or `:turkic`. The `:default` mode considers
-  all non-conditional transformations outlined in the Unicode standard. `:ascii`
-  capitalizes only the letters A to Z. `:greek` includes the context sensitive
-  mappings found in Greek. `:turkic` properly handles the letter i with the dotless variant.
+  `mode` may be `:default`, `:ascii`, `:greek` or `:turkic`. The `:default` mode
+  considers all non-conditional transformations outlined in the Unicode standard.
+  `:ascii` capitalizes only the letters A to Z. `:greek` includes the context
+  sensitive mappings found in Greek. `:turkic` properly handles the letter `i`
+  with the dotless variant.
+
+  Also see `upcase/2` and `capitalize/2` for other conversions. If you want
+  a variation of this function that does not lowercase the rest of string,
+  see Erlang's `:string.titlecase/1`.
 
   ## Examples
 
       iex> String.capitalize("abcd")
       "Abcd"
+      iex> String.capitalize("ABCD")
+      "Abcd"
 
       iex> String.capitalize("ﬁn")
       "Fin"
-
       iex> String.capitalize("olá")
       "Olá"
 
@@ -946,9 +955,21 @@ defmodule String do
     <<char>> <> downcase(rest, :ascii)
   end
 
+  @letter_I <<0x0049::utf8>>
+  @letter_i <<0x0069::utf8>>
+  @letter_I_dot_above <<0x0130::utf8>>
+
+  def capitalize(<<@letter_i, right::binary>>, mode) do
+    if(mode == :turkic, do: @letter_I_dot_above, else: @letter_I) <> downcase(right, mode)
+  end
+
   def capitalize(string, mode) when is_binary(string) do
-    {char, rest} = String.Unicode.titlecase_once(string, mode)
-    char <> downcase(rest, mode)
+    case :unicode_util.gc(string) do
+      [gc, rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
+      [gc | rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
+      [] -> ""
+      {:error, <<byte, rest::bits>>} -> <<byte>> <> downcase(rest, mode)
+    end
   end
 
   @doc false
@@ -2940,7 +2961,7 @@ defmodule String do
   defp codepoint_byte_size(_), do: 4
 
   defp grapheme_to_binary(cp) when is_integer(cp), do: <<cp::utf8>>
-  defp grapheme_to_binary(gc), do: :unicode.characters_to_binary(gc)
+  defp grapheme_to_binary(gc) when is_list(gc), do: for(cp <- gc, do: <<cp::utf8>>, into: "")
 
   defp grapheme_byte_size(cp) when is_integer(cp), do: codepoint_byte_size(cp)
   defp grapheme_byte_size(cps), do: grapheme_byte_size(cps, 0)

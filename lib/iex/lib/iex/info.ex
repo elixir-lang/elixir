@@ -2,7 +2,7 @@ defprotocol IEx.Info do
   @fallback_to_any true
 
   @moduledoc """
-  A protocol to print information in IEx about the given datastructure.
+  A protocol to print information in IEx about the given data structure.
 
   `IEx.Helpers.i/1` uses this protocol to display a term-specific list
   of of information.

@@ -337,7 +337,7 @@ defmodule Kernel.ParallelCompilerTest do
       purge([FooCircular, BarCircular])
     end
 
-    test "handles async compilation" do
+    test "handles pmap compilation" do
       [foo, bar] =
         write_tmp(
           "async_compile",
@@ -345,10 +345,11 @@ defmodule Kernel.ParallelCompilerTest do
           defmodule FooAsync do
             true = Code.can_await_module_compilation?()
 
-            Kernel.ParallelCompiler.async(fn ->
-              true = Code.can_await_module_compilation?()
-              BarAsync.__info__(:module)
-            end)
+            [BarAsync] =
+              Kernel.ParallelCompiler.pmap([:ok], fn :ok ->
+                true = Code.can_await_module_compilation?()
+                BarAsync.__info__(:module)
+              end)
           end
           """,
           bar: """
@@ -368,17 +369,15 @@ defmodule Kernel.ParallelCompilerTest do
       purge([FooAsync, BarAsync])
     end
 
-    test "handles async deadlocks" do
+    test "handles pmap deadlocks" do
       [foo, bar] =
         write_tmp(
           "async_deadlock",
           foo: """
           defmodule FooAsyncDeadlock do
-            Kernel.ParallelCompiler.async(fn ->
+            Kernel.ParallelCompiler.pmap([:ok], fn :ok ->
               BarAsyncDeadlock.__info__(:module)
             end)
-
-            BarAsyncDeadlock.__info__(:module)
           end
           """,
           bar: """
@@ -391,8 +390,8 @@ defmodule Kernel.ParallelCompilerTest do
       capture_io(:stderr, fn ->
         fixtures = [foo, bar]
         assert {:error, [foo_error, bar_error], []} = Kernel.ParallelCompiler.compile(fixtures)
-        assert bar_error == {bar, nil, "deadlocked waiting on module FooAsyncDeadlock"}
-        assert foo_error == {foo, nil, "deadlocked waiting on module BarAsyncDeadlock"}
+        assert {^bar, nil, "deadlocked waiting on module FooAsyncDeadlock"} = bar_error
+        assert {^foo, nil, "deadlocked waiting on pmap [#PID<" <> _} = foo_error
       end)
     end
 
