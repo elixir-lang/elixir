@@ -81,20 +81,8 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace, Options) ->
   ReadSnippet = proplists:get_value(read_snippet, Options, false),
 
   Span = case lists:keyfind(span, 1, Options) of
-    {span, {EndLine, EndCol}} ->
-      {EndLine, EndCol};
-    _ ->
-      % When we don't receive the span, fallback to highlighting a single
-      % character at error position.
-      % If we don't have column information, ignore span and highlight the whole
-      % line.
-     case Position of
-       {Line, Col} ->
-         {Line, Col + 1};
-
-       _ ->
-         nil
-     end
+    {span, {EndLine, EndCol}} -> {EndLine, EndCol};
+    _ -> nil
   end,
 
   Diagnostic = #{
@@ -173,7 +161,6 @@ format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
     case Column of
       nil ->
         highlight_below_line(FormattedLine, Severity);
-
       _ ->
         Length = calculate_span_length({Line, Column}, Span),
         highlight_at_position(Column - ColumnsTrimmed, Severity, Length)
