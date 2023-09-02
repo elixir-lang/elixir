@@ -148,8 +148,6 @@ format_snippet(Position, File, Message, nil, Severity, Stacktrace, _Span) ->
 
 format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
   Column = extract_column(Position),
-  Line = extract_line(Position),
-
   LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(max(2, LineDigits) + 1),
@@ -161,7 +159,7 @@ format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
     case Column of
       nil -> highlight_below_line(FormattedLine, Severity);
       _ ->
-        Length = calculate_span_length({Line, Column}, Span),
+        Length = calculate_span_length({LineNumber, Column}, Span),
         highlight_at_position(Column - ColumnsTrimmed, Severity, Length)
     end,
 
