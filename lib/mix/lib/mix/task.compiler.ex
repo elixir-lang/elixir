@@ -41,7 +41,7 @@ defmodule Mix.Task.Compiler do
             compiler_name: String.t(),
             details: any,
             stacktrace: Exception.stacktrace(),
-            length: non_neg_integer | nil
+            span: {non_neg_integer, non_neg_integer} | nil
           }
 
     @typedoc """
@@ -83,7 +83,7 @@ defmodule Mix.Task.Compiler do
       :message,
       :position,
       :compiler_name,
-      length: nil,
+      span: nil,
       details: nil,
       stacktrace: []
     ]
