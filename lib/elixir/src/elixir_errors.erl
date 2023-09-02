@@ -159,8 +159,7 @@ format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
 
   Highlight =
     case Column of
-      nil ->
-        highlight_below_line(FormattedLine, Severity);
+      nil -> highlight_below_line(FormattedLine, Severity);
       _ ->
         Length = calculate_span_length({Line, Column}, Span),
         highlight_at_position(Column - ColumnsTrimmed, Severity, Length)
