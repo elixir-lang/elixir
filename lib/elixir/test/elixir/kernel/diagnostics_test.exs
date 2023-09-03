@@ -684,6 +684,92 @@ defmodule Kernel.DiagnosticsTest do
     end
   end
 
+  describe "Code.print_diagnostic" do
+    @tag :tmp_dir
+    test "handles diagnostic with span", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "diagnostic_length.ex")
+
+      diagnostic = %{
+        file: path,
+        severity: :error,
+        message: "Diagnostic span test",
+        stacktrace: [],
+        position: {4, 7},
+        span: {4, 10},
+        compiler_name: "Elixir"
+      }
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def bar do
+          nil
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      result =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Code.print_diagnostic(diagnostic)
+        end)
+
+      assert result == """
+                 error: Diagnostic span test
+                 │
+               4 │   def bar do
+                 │       ^^^
+                 │
+                 └─ #{path}:4:7
+
+             """
+    end
+
+    @tag :tmp_dir
+    test "prints single marker for multiline diagnostic", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "diagnostic_length.ex")
+
+      diagnostic = %{
+        file: path,
+        severity: :error,
+        message: "Diagnostic span test",
+        stacktrace: [],
+        position: {4, 7},
+        span: {5, 2},
+        compiler_name: "Elixir"
+      }
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def bar do
+          nil
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      result =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          Code.print_diagnostic(diagnostic)
+        end)
+
+      assert result == """
+                 error: Diagnostic span test
+                 │
+               4 │   def bar do
+                 │       ^
+                 │
+                 └─ #{path}:4:7
+
+             """
+    end
+  end
+
   defp make_relative_tmp(tmp_dir, filename) do
     # Compiler outputs relative, so we just grab the tmp dir
     tmp_dir

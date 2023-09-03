@@ -328,7 +328,8 @@ defmodule Module.ParallelChecker do
       file: file,
       position: position_to_tuple(position),
       message: IO.iodata_to_binary(message),
-      stacktrace: [to_stacktrace(file, position, mfa)]
+      stacktrace: [to_stacktrace(file, position, mfa)],
+      span: nil
     }
   end
 

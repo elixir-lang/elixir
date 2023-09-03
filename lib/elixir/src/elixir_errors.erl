@@ -6,7 +6,7 @@
 -module(elixir_errors).
 -export([compile_error/1, compile_error/3, parse_error/5]).
 -export([function_error/4, module_error/4, file_error/4]).
--export([format_snippet/6]).
+-export([format_snippet/7]).
 -export([erl_warn/3, file_warn/4]).
 -export([print_diagnostic/2, emit_diagnostic/6]).
 -export([print_warning/2, print_warning/3]).
@@ -19,21 +19,23 @@
 %% TODO: Remove me on Elixir v2.0.
 %% Called by deprecated Kernel.ParallelCompiler.print_warning.
 print_warning(Position, File, Message) ->
-  Output = format_snippet(Position, File, Message, nil, warning, []),
+  Output = format_snippet(Position, File, Message, nil, warning, [], nil),
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
 %% Called by Module.ParallelChecker.
 print_warning(Message, Diagnostic) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
   Snippet = get_snippet(File, Position),
-  Output = format_snippet(Position, File, Message, Snippet, warning, S),
+  Span = get_span(Diagnostic),
+  Output = format_snippet(Position, File, Message, Snippet, warning, S, Span),
   io:put_chars(standard_error, [Output, $\n, $\n]).
 
 %% Called by Module.ParallelChecker.
 print_warning_group(Message, [Diagnostic | Others]) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
   Snippet = get_snippet(File, Position),
-  Formatted = format_snippet(Position, File, Message, Snippet, warning, S),
+  Span = get_span(Diagnostic),
+  Formatted = format_snippet(Position, File, Message, Snippet, warning, S, Span),
   LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Padding = case Snippet of
@@ -42,6 +44,9 @@ print_warning_group(Message, [Diagnostic | Others]) ->
   end,
   Locations = [["\n", n_spaces(Padding), "└─ ", 'Elixir.Exception':format_stacktrace_entry(ES)] || #{stacktrace := [ES]} <- Others],
   io:put_chars(standard_error, [Formatted, Locations, $\n, $\n]).
+
+get_span(#{span := nil}) -> nil;
+get_span(#{span := Span}) -> Span.
 
 get_snippet(nil, _Position) ->
   nil;
@@ -59,7 +64,8 @@ print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace,
       false -> nil
     end,
 
-  Output = format_snippet(P, F, M, Snippet, Severity, Stacktrace),
+  Span = get_span(Diagnostic),
+  Output = format_snippet(P, F, M, Snippet, Severity, Stacktrace, Span),
 
   MaybeStack =
     case (F /= nil) orelse elixir_config:is_bootstrap() of
@@ -70,13 +76,21 @@ print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace,
   io:put_chars(standard_error, [Output, MaybeStack, $\n, $\n]),
   Diagnostic.
 
-emit_diagnostic(Severity, Position, File, Message, Stacktrace, ReadSnippet) ->
+emit_diagnostic(Severity, Position, File, Message, Stacktrace, Options) ->
+  ReadSnippet = proplists:get_value(read_snippet, Options, false),
+
+  Span = case lists:keyfind(span, 1, Options) of
+    {span, {EndLine, EndCol}} -> {EndLine, EndCol};
+    _ -> nil
+  end,
+
   Diagnostic = #{
     severity => Severity,
     file => File,
     position => Position,
     message => unicode:characters_to_binary(Message),
-    stacktrace => Stacktrace
+    stacktrace => Stacktrace,
+    span => Span
   },
 
   case get(elixir_code_diagnostics) of
@@ -116,11 +130,11 @@ do_get_file_line(IoDevice, N) ->
 %% Format snippets
 %% "Snippet" here refers to the source code line where the diagnostic/error occured
 
-format_snippet(_Position, nil, Message, nil, Severity, _Stacktrace) ->
+format_snippet(_Position, nil, Message, nil, Severity, _Stacktrace, _Span) ->
   Formatted = [prefix(Severity), Message],
   unicode:characters_to_binary(Formatted);
 
-format_snippet(Position, File, Message, nil, Severity, Stacktrace) ->
+format_snippet(Position, File, Message, nil, Severity, Stacktrace, _Span) ->
   Location = location_format(Position, File, Stacktrace),
 
   Formatted = io_lib:format(
@@ -131,28 +145,21 @@ format_snippet(Position, File, Message, nil, Severity, Stacktrace) ->
 
   unicode:characters_to_binary(Formatted);
 
-format_snippet(Position, File, Message, Snippet, Severity, Stacktrace) ->
-  {Content, Column} =
-    case Snippet of
-      S when is_map(Snippet) ->
-        #{content := C, offset := O} = S,
-        {C, O};
-
-      _ when is_binary(Snippet) ->
-        {Snippet, extract_column(Position)}
-    end,
-
+format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
+  Column = extract_column(Position),
   LineNumber = extract_line(Position),
   LineDigits = get_line_number_digits(LineNumber, 1),
   Spacing = n_spaces(max(2, LineDigits) + 1),
   LineNumberSpacing = if LineDigits =:= 1 -> 1; true -> 0 end,
-  {FormattedLine, ColumnsTrimmed} = format_line(Content),
+  {FormattedLine, ColumnsTrimmed} = format_line(Snippet),
   Location = location_format(Position, File, Stacktrace),
 
   Highlight =
     case Column of
       nil -> highlight_below_line(FormattedLine, Severity);
-      _ -> highlight_at_position(Column - ColumnsTrimmed, Severity)
+      _ ->
+        Length = calculate_span_length({LineNumber, Column}, Span),
+        highlight_at_position(Column - ColumnsTrimmed, Severity, Length)
     end,
 
   Formatted = io_lib:format(
@@ -172,6 +179,10 @@ format_snippet(Position, File, Message, Snippet, Severity, Stacktrace) ->
     ]),
 
   unicode:characters_to_binary(Formatted).
+
+calculate_span_length({StartLine, StartCol}, {StartLine, EndCol}) -> EndCol - StartCol;
+calculate_span_length({StartLine, _}, {EndLine, _}) when EndLine > StartLine -> 1;
+calculate_span_length({_, _}, nil) -> 1.
 
 format_line(Line) ->
   case trim_line(Line, 0) of
@@ -196,11 +207,11 @@ pad_line([Last], _Padding) -> [Last];
 pad_line([First, <<"">> | Rest], Padding) -> [First, "\n" | pad_line([<<"">> | Rest], Padding)];
 pad_line([First | Rest], Padding) -> [First, Padding | pad_line(Rest, Padding)].
 
-highlight_at_position(Column, Severity) ->
+highlight_at_position(Column, Severity, Length) ->
   Spacing = n_spaces(max(Column - 1, 0)),
   case Severity of
-    warning ->  highlight([Spacing, $~], warning);
-    error -> highlight([Spacing, $^], error)
+    warning ->  highlight([Spacing, lists:duplicate(Length, $~)], warning);
+    error -> highlight([Spacing, lists:duplicate(Length, $^)], error)
   end.
 
 highlight_below_line(Line, Severity) ->
@@ -228,7 +239,7 @@ n_spaces(N) -> lists:duplicate(N, " ").
 erl_warn(none, File, Warning) ->
   erl_warn(0, File, Warning);
 erl_warn(Location, File, Warning) when is_binary(File) ->
-  emit_diagnostic(warning, Location, File, Warning, [], true).
+  emit_diagnostic(warning, Location, File, Warning, [], [{read_snippet, true}]).
 
 -spec file_warn(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> ok.
 file_warn(Meta, File, Module, Desc) when is_list(Meta), is_binary(File) ->
@@ -240,7 +251,7 @@ file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
     false ->
       {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, E),
       Message = Module:format_error(Desc),
-      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace, true)
+      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true}])
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -273,7 +284,7 @@ function_error(Meta, Env, Module, Desc) ->
 print_error(Meta, Env, Module, Desc) ->
   {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, true),
+  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true}]),
   ok.
 
 %% Compilation error.
@@ -398,12 +409,12 @@ raise_snippet(Location, File, Input, Kind, Message) when is_binary(File) ->
 snippet_line(InputString, Location, StartLine) ->
   {line, Line} = lists:keyfind(line, 1, Location),
   case lists:keyfind(column, 1, Location) of
-    {column, Column} ->
+    {column, _} ->
       Lines = string:split(InputString, "\n", all),
       Snippet = (lists:nth(Line - StartLine + 1, Lines)),
       case string:trim(Snippet, leading) of
         [] -> nil;
-        _ -> #{content => elixir_utils:characters_to_binary(Snippet), offset => Column}
+        _ -> elixir_utils:characters_to_binary(Snippet)
       end;
 
     false ->
