@@ -650,6 +650,8 @@ defmodule Access do
   the longer it will take to access its index. Therefore index-based operations
   are generally avoided in favor of other functions in the `Enum` module.
 
+  A `default` value can be given since Elixir v1.16.
+
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
@@ -694,17 +696,8 @@ defmodule Access do
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
 
   """
-  @spec at(integer) :: access_fun(data :: list, current_value :: term)
-  def at(index) when is_integer(index) do
-    fn op, data, next -> at(op, data, index, next, nil) end
-  end
-
-  @doc """
-  Same as `at/1`, but also accepts a default value in case the index does not exist.
-  """
-  @doc since: "1.15.6"
   @spec at(integer, term) :: access_fun(data :: list, current_value :: term)
-  def at(index, default) when is_integer(index) do
+  def at(index, default \\ nil) when is_integer(index) do
     fn op, data, next -> at(op, data, index, next, default) end
   end
 
