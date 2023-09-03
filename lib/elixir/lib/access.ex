@@ -646,6 +646,13 @@ defmodule Access do
   @doc ~S"""
   Returns a function that accesses the element at `index` (zero based) of a list.
 
+  The returned function uses the default value if no element exists at `index`.
+  This can be used to specify defaults and safely traverse missing elements.
+
+      iex> list = [%{name: "john"}, %{name: "mary"}]
+      iex> get_in(list, [Access.at(10, %{name: "alice"}), :name])
+      "alice"
+
   Keep in mind that index lookups in lists take linear time: the larger the list,
   the longer it will take to access its index. Therefore index-based operations
   are generally avoided in favor of other functions in the `Enum` module.
@@ -669,7 +676,7 @@ defmodule Access do
       ...> end)
       {"mary", [%{name: "john"}, %{name: "MARY"}]}
 
-  `at/1` can also be used to pop elements out of a list or
+  `at/2` can also be used to pop elements out of a list or
   a key inside of a list:
 
       iex> list = [%{name: "john"}, %{name: "mary"}]
@@ -678,7 +685,7 @@ defmodule Access do
       iex> pop_in(list, [Access.at(0), :name])
       {"john", [%{}, %{name: "mary"}]}
 
-  When the index is out of bounds, `nil` is returned and the update function is never called:
+  When the index is out of bounds, `default` is returned and the update function is never called:
 
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.at(10), :name])
@@ -694,20 +701,20 @@ defmodule Access do
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
 
   """
-  @spec at(integer) :: access_fun(data :: list, current_value :: term)
-  def at(index) when is_integer(index) do
-    fn op, data, next -> at(op, data, index, next) end
+  @spec at(integer, term) :: access_fun(data :: list, current_value :: term)
+  def at(index, default \\ nil) when is_integer(index) do
+    fn op, data, next -> at(op, data, index, default, next) end
   end
 
-  defp at(:get, data, index, next) when is_list(data) do
-    data |> Enum.at(index) |> next.()
+  defp at(:get, data, index, default, next) when is_list(data) do
+    data |> Enum.at(index, default) |> next.()
   end
 
-  defp at(:get_and_update, data, index, next) when is_list(data) do
-    get_and_update_at(data, index, next, [], fn -> nil end)
+  defp at(:get_and_update, data, index, default, next) when is_list(data) do
+    get_and_update_at(data, index, next, [], fn -> default end)
   end
 
-  defp at(_op, data, _index, _next) do
+  defp at(_op, data, _index, _default, _next) do
     raise "Access.at/1 expected a list, got: #{inspect(data)}"
   end
 
