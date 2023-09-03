@@ -5,8 +5,6 @@ defmodule Kernel.DiagnosticsTest do
 
   import ExUnit.CaptureIO
 
-  alias Mix.Task.Compiler.Diagnostic
-
   setup do
     Application.put_env(:elixir, :ansi_enabled, false)
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
@@ -691,10 +689,11 @@ defmodule Kernel.DiagnosticsTest do
     test "handles diagnostic with span", %{tmp_dir: tmp_dir} do
       path = make_relative_tmp(tmp_dir, "diagnostic_length.ex")
 
-      diagnostic = %Diagnostic{
+      diagnostic = %{
         file: path,
         severity: :error,
         message: "Diagnostic span test",
+        stacktrace: [],
         position: {4, 7},
         span: {4, 10},
         compiler_name: "Elixir"
@@ -732,10 +731,11 @@ defmodule Kernel.DiagnosticsTest do
     test "prints single marker for multiline diagnostic", %{tmp_dir: tmp_dir} do
       path = make_relative_tmp(tmp_dir, "diagnostic_length.ex")
 
-      diagnostic = %Diagnostic{
+      diagnostic = %{
         file: path,
         severity: :error,
         message: "Diagnostic span test",
+        stacktrace: [],
         position: {4, 7},
         span: {5, 2},
         compiler_name: "Elixir"
