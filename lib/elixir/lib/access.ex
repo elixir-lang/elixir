@@ -696,18 +696,27 @@ defmodule Access do
   """
   @spec at(integer) :: access_fun(data :: list, current_value :: term)
   def at(index) when is_integer(index) do
-    fn op, data, next -> at(op, data, index, next) end
+    fn op, data, next -> at(op, data, index, next, nil) end
   end
 
-  defp at(:get, data, index, next) when is_list(data) do
-    data |> Enum.at(index) |> next.()
+  @doc """
+  Same as `at/1`, but also accepts a default value in case the index does not exist.
+  """
+  @doc since: "1.15.6"
+  @spec at(integer, term) :: access_fun(data :: list, current_value :: term)
+  def at(index, default) when is_integer(index) do
+    fn op, data, next -> at(op, data, index, next, default) end
   end
 
-  defp at(:get_and_update, data, index, next) when is_list(data) do
-    get_and_update_at(data, index, next, [], fn -> nil end)
+  defp at(:get, data, index, next, default) when is_list(data) do
+    data |> Enum.at(index, default) |> next.()
   end
 
-  defp at(_op, data, _index, _next) do
+  defp at(:get_and_update, data, index, next, default) when is_list(data) do
+    get_and_update_at(data, index, next, [], fn -> default end)
+  end
+
+  defp at(_op, data, _index, _next, _default) do
     raise "Access.at/1 expected a list, got: #{inspect(data)}"
   end
 
