@@ -46,8 +46,7 @@ print_warning_group(Message, [Diagnostic | Others]) ->
   io:put_chars(standard_error, [Formatted, Locations, $\n, $\n]).
 
 get_span(#{span := nil}) -> nil;
-get_span(#{span := Span}) -> Span;
-get_span(_) -> nil.
+get_span(#{span := Span}) -> Span.
 
 get_snippet(nil, _Position) ->
   nil;

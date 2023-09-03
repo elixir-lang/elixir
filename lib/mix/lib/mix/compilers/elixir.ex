@@ -741,8 +741,8 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp apply_warnings(sources, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}) do
-    runtime_group = Enum.group_by(r_warnings, & &1.file, &{&1.position, &1.message, &1[:span]})
-    compile_group = Enum.group_by(c_warnings, & &1.file, &{&1.position, &1.message, &1[:span]})
+    runtime_group = Enum.group_by(r_warnings, & &1.file, &{&1.position, &1.message, &1.span})
+    compile_group = Enum.group_by(c_warnings, & &1.file, &{&1.position, &1.message, &1.span})
 
     for source(
           source: source_path,
@@ -763,7 +763,8 @@ defmodule Mix.Compilers.Elixir do
          position: position,
          message: message,
          severity: severity,
-         stacktrace: stacktrace
+         stacktrace: stacktrace,
+         span: span
        }) do
     %Mix.Task.Compiler.Diagnostic{
       file: file,
@@ -771,7 +772,8 @@ defmodule Mix.Compilers.Elixir do
       message: message,
       severity: severity,
       compiler_name: "Elixir",
-      stacktrace: stacktrace
+      stacktrace: stacktrace,
+      span: span
     }
   end
 

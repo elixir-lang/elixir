@@ -864,7 +864,8 @@ defmodule Kernel.ParallelCompiler do
         file: Path.absname(file),
         position: nil,
         message: description,
-        stacktrace: stacktrace
+        stacktrace: stacktrace,
+        span: nil
       }
     end
   end
@@ -892,7 +893,15 @@ defmodule Kernel.ParallelCompiler do
     line = get_line(file, reason, stack)
     file = Path.absname(file)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
-    %{file: file, position: line || 0, message: message, severity: :error, stacktrace: stack}
+
+    %{
+      file: file,
+      position: line || 0,
+      message: message,
+      severity: :error,
+      stacktrace: stack,
+      span: nil
+    }
   end
 
   defp get_line(_file, %{line: line, column: column}, _stack)
