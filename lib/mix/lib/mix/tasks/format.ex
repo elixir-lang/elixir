@@ -246,7 +246,7 @@ defmodule Mix.Tasks.Format do
     plugins = Keyword.get(formatter_opts, :plugins, [])
 
     if not is_list(plugins) do
-      Mix.raise("Expected :plugins to return a list of directories, got: #{inspect(plugins)}")
+      Mix.raise("Expected :plugins to return a list of modules, got: #{inspect(plugins)}")
     end
 
     if plugins != [] do
