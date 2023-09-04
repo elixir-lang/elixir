@@ -3489,6 +3489,11 @@ defmodule Enum do
       iex> Enum.sum([], fn x -> x.count end)
       0
 
+  Filtering can be achieved by returning `0` to remove elements:
+
+      iex> Enum.sum([1, -2, 3], fn x -> if x > 0, do: x, else: 0 end)
+      4
+
   """
   @doc since: "1.16.0"
   @spec sum(t, (element -> number)) :: number
