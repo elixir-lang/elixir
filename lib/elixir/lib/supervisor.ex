@@ -377,7 +377,7 @@ defmodule Supervisor do
     the supervisor will automatically shut down its children, then itself.
 
   Only `:transient` and `:temporary` child processes can be marked as significant,
-  and this configuration affects the behavior. Significant `:transient` child
+  and this configuration affects the behaviour. Significant `:transient` child
   processes must exit normally for automatic shutdown to be considered, where
   `:temporary` child processes may exit for any reason.
 
@@ -875,7 +875,7 @@ defmodule Supervisor do
   `module.child_spec([])`.
 
   After the child specification is retrieved, the fields on `overrides`
-  are directly applied on the child spec. If `overrides` has keys that
+  are directly applied to the child spec. If `overrides` has keys that
   do not map to any child specification field, an error is raised.
 
   See the "Child specification" section in the module documentation
