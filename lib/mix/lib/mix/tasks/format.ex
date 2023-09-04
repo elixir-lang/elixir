@@ -129,9 +129,8 @@ defmodule Mix.Tasks.Format do
         inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}", "posts/*.{md,markdown}"]
       ]
 
-  Remember that, when running the formatter with plugins, you must make
-  sure that your dependencies and your application have been compiled,
-  so the relevant plugin code can be loaded. Otherwise a warning is logged.
+  Notice that, when running the formatter with plugins, your code will be
+  compiled first.
 
   In addition, the order by which you input your plugins is the format order.
   So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
