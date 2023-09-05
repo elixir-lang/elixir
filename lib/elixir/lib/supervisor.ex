@@ -377,7 +377,7 @@ defmodule Supervisor do
     the supervisor will automatically shut down its children, then itself.
 
   Only `:transient` and `:temporary` child processes can be marked as significant,
-  and this configuration affects the behaviour. Significant `:transient` child
+  and this configuration affects the behavior. Significant `:transient` child
   processes must exit normally for automatic shutdown to be considered, where
   `:temporary` child processes may exit for any reason.
 
