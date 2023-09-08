@@ -227,8 +227,8 @@ iex> users = [
   mary: %{name: "Mary", age: 29, languages: ["Elixir", "F#", "Clojure"]}
 ]
 [
-  john: %{age: 27, languages: ["Erlang", "Ruby", "Elixir"], name: "John"},
-  mary: %{age: 29, languages: ["Elixir", "F#", "Clojure"], name: "Mary"}
+  john: %{name: "John", age: 27, languages: ["Erlang", "Ruby", "Elixir"]},
+  mary: %{name: "Mary", age: 29, languages: ["Elixir", "F#", "Clojure"]}
 ]
 ```
 
@@ -244,8 +244,8 @@ It happens we can also use this same syntax for updating the value:
 ```elixir
 iex> users = put_in users[:john].age, 31
 [
-  john: %{age: 31, languages: ["Erlang", "Ruby", "Elixir"], name: "John"},
-  mary: %{age: 29, languages: ["Elixir", "F#", "Clojure"], name: "Mary"}
+  john: %{name: "John", age: 31, languages: ["Erlang", "Ruby", "Elixir"]},
+  mary: %{name: "Mary", age: 29, languages: ["Elixir", "F#", "Clojure"]}
 ]
 ```
 
@@ -254,8 +254,8 @@ The `update_in/2` macro is similar but allows us to pass a function that control
 ```elixir
 iex> users = update_in users[:mary].languages, fn languages -> List.delete(languages, "Clojure") end
 [
-  john: %{age: 31, languages: ["Erlang", "Ruby", "Elixir"], name: "John"},
-  mary: %{age: 29, languages: ["Elixir", "F#"], name: "Mary"}
+  john: %{name: "John", age: 31, languages: ["Erlang", "Ruby", "Elixir"]},
+  mary: %{name: "Mary", age: 29, languages: ["Elixir", "F#"]}
 ]
 ```
 
