@@ -10,6 +10,175 @@ defmodule Kernel.DiagnosticsTest do
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
   end
 
+  describe "mismatched delimiter" do
+    test "same line" do
+      expected = """
+      ** (SyntaxError) invalid syntax found on nofile:1:17:
+          error: syntax error before: '*'
+          │
+        1 │ [1, 2, 3, 4, 5, 6)
+          │ │                └ mismatched closing delimiter
+          │ └ unclosed delimiter
+          │
+          └─ nofile:1:17\
+      """
+
+      output =
+        capture_raise(
+          """
+          [1, 2, 3, 4, 5, 6)
+          """,
+          SyntaxError
+        )
+
+      assert output == expected
+    end
+
+    test "two-line span" do
+      expected = """
+      ** (SyntaxError) invalid syntax found on nofile:1:17:
+          error: syntax error before: '*'
+          │
+        1 │ [a, b, c
+          │ └ unclosed delimiter
+        2 │  d, f, g}
+          │         └ mismatched closing delimiter
+          │
+          └─ nofile:1:17\
+      """
+
+      output =
+        capture_raise(
+          """
+          [a, b, c
+           d, f, g}
+          """,
+          SyntaxError
+        )
+
+      assert output == expected
+    end
+
+    test "many-line span" do
+      expected = """
+      ** (SyntaxError) invalid syntax found on nofile:1:17:
+          error: syntax error before: '*'
+          │
+        1 │ [ a,
+          │ └ unclosed delimiter
+        2 │   b,
+        3 │   c,
+        4 │   d
+        5 │   e )
+          │     └ mismatched closing delimiter
+          │
+          └─ nofile:1:17\
+      """
+
+      output =
+        capture_raise(
+          """
+          [ a,
+            b,
+            c,
+            d
+            e )
+          """,
+          SyntaxError
+        )
+
+      assert output == expected
+    end
+
+    test "trim inbetween lines if too many" do
+      expected = """
+      ** (SyntaxError) invalid syntax found on nofile:1:17:
+          error: syntax error before: '*'
+          │
+        1 │ [ a,
+          │ └ unclosed delimiter
+          │ ...
+        9 │   i )
+          │     └ mismatched closing delimiter
+          │
+          └─ nofile:1:17\
+      """
+
+      output =
+        capture_raise(
+          """
+          [ a,
+            b,
+            c,
+            d,
+            e,
+            f,
+            g,
+            h
+            i )
+          """,
+          SyntaxError
+        )
+
+      assert output == expected
+    end
+
+
+    test "trims lines that are too long (> 60 chars)" do
+      expected = """
+      ** (SyntaxError) invalid syntax found on nofile:1:17:
+          error: syntax error before: '*'
+          │
+        1 │ ... = { a,
+          │       └ unclosed delimiter
+        2 │ ...
+        3 │ ...     b )
+          │           └ mismatched closing delimiter
+          │
+          └─ nofile:1:17\
+      """
+
+      output =
+        capture_raise(
+          """
+          a                                                           = { a,
+
+                                                                         b )
+          """,
+          SyntaxError
+        )
+
+      assert output == expected
+
+      expected = """
+      ** (SyntaxError) invalid syntax found on nofile:1:17:
+          error: syntax error before: '*'
+          │
+        1 │ ... aaaa = [ 1,
+          │            └ unclosed delimiter
+        2 │ ...
+        3 │ ... aaaa" )
+          │           └ mismatched closing delimiter
+          │
+          └─ nofile:1:17\
+      """
+
+      output =
+        capture_raise(
+          """
+          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa = [ 1,
+
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" )
+          """,
+          SyntaxError
+        )
+
+      assert output == expected
+    end
+
+    # TODO: maybe trim in middle of line if too long and both delimiters are in the same line
+  end
+
   describe "compile-time exceptions" do
     test "SyntaxError (snippet)" do
       expected = """
