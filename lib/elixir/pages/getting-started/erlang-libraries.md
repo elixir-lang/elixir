@@ -2,6 +2,19 @@
 
 Elixir provides excellent interoperability with Erlang libraries. In fact, Elixir discourages simply wrapping Erlang libraries in favor of directly interfacing with Erlang code. In this section, we will present some of the most common and useful Erlang functionality that is not found in Elixir.
 
+Erlang modules have a different naming convention than in Elixir and start in lowercase. In both cases, module names are atoms and we invoke functions by dispatching to the module name:
+
+```elixir
+iex> is_atom(String)
+true
+iex> String.first("hello")
+"h"
+iex> is_atom(:binary)
+true
+iex> :binary.first("hello")
+104
+```
+
 As you grow more proficient in Elixir, you may want to explore the Erlang [STDLIB Reference Manual](http://www.erlang.org/doc/apps/stdlib/index.html) in more detail.
 
 ## The binary module
@@ -9,9 +22,9 @@ As you grow more proficient in Elixir, you may want to explore the Erlang [STDLI
 The built-in Elixir String module handles binaries that are UTF-8 encoded. [The `:binary` module](`:binary`) is useful when you are dealing with binary data that is not necessarily UTF-8 encoded.
 
 ```elixir
-iex> String.to_charlist "Ø"
+iex> String.to_charlist("Ø")
 [216]
-iex> :binary.bin_to_list "Ø"
+iex> :binary.bin_to_list("Ø")
 [195, 152]
 ```
 
@@ -25,7 +38,7 @@ Elixir does not contain a function similar to `printf` found in C and other lang
 iex> :io.format("Pi is approximately given by:~10.3f~n", [:math.pi])
 Pi is approximately given by:     3.142
 :ok
-iex> to_string :io_lib.format("Pi is approximately given by:~10.3f~n", [:math.pi])
+iex> to_string(:io_lib.format("Pi is approximately given by:~10.3f~n", [:math.pi]))
 "Pi is approximately given by:     3.142\n"
 ```
 

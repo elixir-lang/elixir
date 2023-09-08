@@ -191,9 +191,13 @@ defmodule Access do
         case __STACKTRACE__ do
           [unquote(top) | _] ->
             reason =
-              "#{inspect(unquote(module))} does not implement the Access behaviour. " <>
-                "If you are using get_in/put_in/update_in, you can specify the field " <>
-                "to be accessed using Access.key!/1"
+              """
+              #{inspect(unquote(module))} does not implement the Access behaviour
+
+              You can use the "struct.field" syntax to access struct fields. \
+              You can also use Access.key!/1 to access struct fields dynamically \
+              inside get_in/put_in/update_in\
+              """
 
             %{unquote(exception) | reason: reason}
 
@@ -326,9 +330,23 @@ defmodule Access do
     end
   end
 
+  def get(list, key, _default) when is_list(list) and is_integer(key) do
+    raise ArgumentError, """
+    the Access module does not support accessing lists by index, got: #{inspect(key)}
+
+    Accessing a list by index is typically discouraged in Elixir, \
+    instead we prefer to use the Enum module to manipulate lists \
+    as a whole. If you really must access a list element by index, \
+    you can Enum.at/1 or the functions in the List module\
+    """
+  end
+
   def get(list, key, _default) when is_list(list) do
-    raise ArgumentError,
-          "the Access calls for keywords expect the key to be an atom, got: " <> inspect(key)
+    raise ArgumentError, """
+    the Access module supports only keyword lists (with atom keys), got: #{inspect(key)}
+
+    If you want to search lists of tuples, use List.keyfind/3\
+    """
   end
 
   def get(nil, _key, default) do
@@ -377,8 +395,24 @@ defmodule Access do
     Map.get_and_update(map, key, fun)
   end
 
-  def get_and_update(list, key, fun) when is_list(list) do
+  def get_and_update(list, key, fun) when is_list(list) and is_atom(key) do
     Keyword.get_and_update(list, key, fun)
+  end
+
+  def get_and_update(list, key, _fun) when is_list(list) and is_integer(key) do
+    raise ArgumentError, """
+    the Access module does not support accessing lists by index, got: #{inspect(key)}
+
+    Accessing a list by index is typically discouraged in Elixir, \
+    instead we prefer to use the Enum module to manipulate lists \
+    as a whole. If you really must mostify a list element by index, \
+    you can Access.at/1 or the functions in the List module\
+    """
+  end
+
+  def get_and_update(list, key, _fun) when is_list(list) do
+    raise ArgumentError,
+          "the Access module supports only keyword lists (with atom keys), got: " <> inspect(key)
   end
 
   def get_and_update(nil, key, _fun) do
@@ -506,6 +540,21 @@ defmodule Access do
       {"john", %{user: %{}}}
       iex> get_in(map, [Access.key!(:user), Access.key!(:unknown)])
       ** (KeyError) key :unknown not found in: %{name: \"john\"}
+
+  The examples above could be partially written as:
+
+      iex> map = %{user: %{name: "john"}}
+      iex> map.user.name
+      "john"
+      iex> get_and_update_in(map.user.name, fn prev ->
+      ...>   {prev, String.upcase(prev)}
+      ...> end)
+      {"john", %{user: %{name: "JOHN"}}}
+
+  However, it is not possible to remove fields using the dot notation,
+  as it is implified those fields must also be present. In any case,
+  `Access.key!/1` is useful when the key is not known in advance
+  and must be accessed dynamically.
 
   An error is raised if the accessed structure is not a map/struct:
 
@@ -650,8 +699,6 @@ defmodule Access do
   the longer it will take to access its index. Therefore index-based operations
   are generally avoided in favor of other functions in the `Enum` module.
 
-  A `default` value can be given since Elixir v1.16.
-
   The returned function is typically passed as an accessor to `Kernel.get_in/2`,
   `Kernel.get_and_update_in/3`, and friends.
 
@@ -696,20 +743,20 @@ defmodule Access do
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
 
   """
-  @spec at(integer, term) :: access_fun(data :: list, current_value :: term)
-  def at(index, default \\ nil) when is_integer(index) do
-    fn op, data, next -> at(op, data, index, next, default) end
+  @spec at(integer) :: access_fun(data :: list, current_value :: term)
+  def at(index) when is_integer(index) do
+    fn op, data, next -> at(op, data, index, next) end
   end
 
-  defp at(:get, data, index, next, default) when is_list(data) do
-    data |> Enum.at(index, default) |> next.()
+  defp at(:get, data, index, next) when is_list(data) do
+    data |> Enum.at(index) |> next.()
   end
 
-  defp at(:get_and_update, data, index, next, default) when is_list(data) do
-    get_and_update_at(data, index, next, [], fn -> default end)
+  defp at(:get_and_update, data, index, next) when is_list(data) do
+    get_and_update_at(data, index, next, [], fn -> nil end)
   end
 
-  defp at(_op, data, _index, _next, _default) do
+  defp at(_op, data, _index, _next) do
     raise "Access.at/1 expected a list, got: #{inspect(data)}"
   end
 

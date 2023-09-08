@@ -239,23 +239,6 @@ defmodule AccessTest do
     end
   end
 
-  describe "at/2" do
-    @test_list [1, 2, 3, 4, 5, 6]
-
-    test "accepts default value (get_in)" do
-      assert :default = get_in(@test_list, [Access.at(10, :default)])
-    end
-
-    test "accepts default value (get_and_update_in)" do
-      list = @test_list
-
-      assert {:default, ^list} =
-               get_and_update_in(list, [Access.at(10, :default)], fn :default ->
-                 {nil, nil}
-               end)
-    end
-  end
-
   describe "at!/1" do
     @test_list [1, 2, 3, 4, 5, 6]
 
