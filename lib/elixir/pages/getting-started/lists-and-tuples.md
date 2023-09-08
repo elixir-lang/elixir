@@ -157,7 +157,7 @@ On the other hand, `String.split_at/2` splits a string in two parts at a given p
 ```elixir
 iex> String.split_at("hello world", 3)
 {"hel", "lo world"}
-iex> String.split_at("hello world", 3)
+iex> String.split_at("hello world", -4)
 {"hello w", "orld"}
 ```
 
