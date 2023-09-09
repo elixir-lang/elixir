@@ -1410,7 +1410,7 @@ check_terminator({'end', {EndLine, _, _}}, [{'do', _, _, Indentation} | Terminat
 
   {ok, NewScope#elixir_tokenizer{terminators=Terminators}};
 
-check_terminator({End, {EndLine, EndColumn, _}}, [{Start, StartLine, StartColumn, _} | Terminators], Scope)
+check_terminator({End, {EndLine, EndColumn, _}}, [{Start, StartLine, _, _} | Terminators], Scope)
     when End == 'end'; End == ')'; End == ']'; End == '}'; End == '>>' ->
   case terminator(Start) of
     End ->
