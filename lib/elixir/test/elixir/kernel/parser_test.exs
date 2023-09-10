@@ -941,8 +941,46 @@ defmodule Kernel.ParserTest do
       assert_syntax_error(["nofile:1:8:", "syntax error before: '{'"], ~c"%{a, b}{a: :b}")
     end
 
+    test "mismatching delimiters" do
+      assert_mismatched_delimiter_error(
+        [
+          "nofile:1:9:",
+          "unexpected token:",
+          "HINT: the \"fn\" on line 1 is missing terminator \"end\""
+        ],
+        ~c"fn a -> )"
+      )
+
+      assert_mismatched_delimiter_error(
+        [
+          "nofile:1:16:",
+          "unexpected token:",
+          "HINT: the \"do\" on line 1 is missing terminator \"end\""
+        ],
+        ~c"defmodule A do ]"
+      )
+
+      assert_mismatched_delimiter_error(
+        [
+          "nofile:1:9:",
+          "unexpected token:",
+          "HINT: the \"(\" on line 1 is missing terminator \")\""
+        ],
+        ~c"(1, 2, 3}"
+      )
+
+      assert_mismatched_delimiter_error(
+        [
+          "nofile:1:14:",
+          "unexpected reserved word:",
+          "HINT: the \"<<\" on line 1 is missing terminator \">>\""
+        ],
+        ~c"<<1, 2, 3, 4 end"
+      )
+    end
+
     test "invalid interpolation" do
-      assert_syntax_error(
+      assert_mismatched_delimiter_error(
         [
           "nofile:1:17:",
           "unexpected token:",
@@ -951,7 +989,7 @@ defmodule Kernel.ParserTest do
         ~c"\"foo\#{case 1 do )}bar\""
       )
 
-      assert_syntax_error(
+      assert_mismatched_delimiter_error(
         [
           "nofile:8:3:",
           "unexpected token: )",
@@ -1103,6 +1141,11 @@ defmodule Kernel.ParserTest do
 
   defp assert_syntax_error(given_messages, source) do
     e = assert_raise SyntaxError, fn -> parse!(source) end
+    assert_exception_msg(e, given_messages)
+  end
+
+  defp assert_mismatched_delimiter_error(given_messages, source) do
+    e = assert_raise MismatchedDelimiterError, fn -> parse!(source) end
     assert_exception_msg(e, given_messages)
   end
 

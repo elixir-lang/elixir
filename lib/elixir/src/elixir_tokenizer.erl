@@ -1410,7 +1410,7 @@ check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation} | Terminators
 
   {ok, NewScope#elixir_tokenizer{terminators=Terminators}};
 
-check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, _, _}, _} | Terminators], Scope)
+check_terminator({End, {EndLine, EndColumn, _} = E}, [{Start, {StartLine, _, _} = S, _} | Terminators], Scope)
     when End == 'end'; End == ')'; End == ']'; End == '}'; End == '>>' ->
   case terminator(Start) of
     End ->
@@ -1422,7 +1422,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, _, _}, _} 
           "\n\n    HINT: the \"~ts\" on line ~B is missing terminator \"~ts\"",
           [Start, StartLine, ExpectedEnd]
         ),
-      {error, {EndLine, EndColumn, {unexpected_token_or_reserved(End), Suffix}, [atom_to_list(End)]}}
+      {error, {S, E, {unexpected_token_or_reserved(End), Suffix}, [atom_to_list(End)]}}
   end;
 
 check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints}) ->

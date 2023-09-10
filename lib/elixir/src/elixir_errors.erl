@@ -374,7 +374,16 @@ parse_error(Location, File, Error, <<"[", _/binary>> = Full, Input) when is_bina
 %% Given a string prefix and suffix to insert the token inside the error message rather than append it
 parse_error(Location, File, {ErrorPrefix, ErrorSuffix}, Token, Input) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
   Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary >>,
-  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message);
+
+  case lists:keyfind(line, 1, Location) of
+     {line, {_, _, _} = Start} ->
+      case lists:keyfind(column, 1, Location) of
+         {column, {_, _, _} = End} ->
+           raise_mismatched_delimiter(Start, End, File, Input, Message)
+       end;
+     _ ->
+      raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
+  end;
 
 %% Misplaced char tokens (for example, {char, _, 97}) are translated by Erlang into
 %% the char literal (i.e., the token in the previous example becomes $a),
@@ -394,6 +403,11 @@ parse_erl_term(Term) ->
   {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
+
+raise_mismatched_delimiter({_, _, _} = StartPosition, {EndLine, EndCol, _} = EndPosition, File, Input, Message) ->
+  {InputString, InputStartLine, _} = Input,
+  Snippet = snippet_line(InputString, [{line, EndLine}, {column, EndCol}], InputStartLine),
+  raise('Elixir.MismatchedDelimiterError', Message, [{file, File}, {snippet, Snippet}, {start_position, StartPosition}, {end_position, EndPosition}]).
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',
