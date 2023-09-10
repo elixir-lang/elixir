@@ -144,7 +144,7 @@ tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, 
   AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
   {ok, Line, Column, AllWarnings, AccTokens};
 
-tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, StartLine, _} | _]} = Scope, Tokens) ->
+tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, {StartLine, _, _}, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
   Hint = missing_terminator_hint(Start, End, Scope),
   Message = "missing terminator: ~ts (for \"~ts\" starting at line ~B)",
@@ -1376,12 +1376,12 @@ handle_terminator(Rest, Line, Column, Scope, Token, Tokens) ->
       tokenize(Rest, Line, Column, New, [Token | Tokens])
   end.
 
-check_terminator({Start, {Line, _, _}}, Terminators, Scope)
+check_terminator({Start, Meta}, Terminators, Scope)
     when Start == '('; Start == '['; Start == '{'; Start == '<<' ->
   Indentation = Scope#elixir_tokenizer.indentation,
-  {ok, Scope#elixir_tokenizer{terminators=[{Start, Line, Indentation} | Terminators]}};
+  {ok, Scope#elixir_tokenizer{terminators=[{Start, Meta, Indentation} | Terminators]}};
 
-check_terminator({Start, {Line, _, _}}, Terminators, Scope) when Start == 'fn'; Start == 'do' ->
+check_terminator({Start, Meta}, Terminators, Scope) when Start == 'fn'; Start == 'do' ->
   Indentation = Scope#elixir_tokenizer.indentation,
 
   NewScope =
@@ -1394,7 +1394,7 @@ check_terminator({Start, {Line, _, _}}, Terminators, Scope) when Start == 'fn'; 
         Scope
     end,
 
-  {ok, NewScope#elixir_tokenizer{terminators=[{Start, Line, Indentation} | Terminators]}};
+  {ok, NewScope#elixir_tokenizer{terminators=[{Start, Meta, Indentation} | Terminators]}};
 
 check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation} | Terminators], Scope) ->
   NewScope =
@@ -1410,7 +1410,7 @@ check_terminator({'end', {EndLine, _, _}}, [{'do', _, Indentation} | Terminators
 
   {ok, NewScope#elixir_tokenizer{terminators=Terminators}};
 
-check_terminator({End, {EndLine, EndColumn, _}}, [{Start, StartLine, _} | Terminators], Scope)
+check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, _, _}, _} | Terminators], Scope)
     when End == 'end'; End == ')'; End == ']'; End == '}'; End == '>>' ->
   case terminator(Start) of
     End ->
@@ -1449,7 +1449,7 @@ unexpected_token_or_reserved(_) -> "unexpected token: ".
 
 missing_terminator_hint(Start, End, #elixir_tokenizer{mismatch_hints=Hints}) ->
   case lists:keyfind(Start, 1, Hints) of
-    {Start, HintLine, _} ->
+    {Start, {HintLine, _, _}, _} ->
       io_lib:format("\n\n    HINT: it looks like the \"~ts\" on line ~B does not have a matching \"~ts\"",
                     [Start, HintLine, End]);
     false ->
