@@ -79,17 +79,12 @@ An example of this anti-pattern, as shown below, is when a function has many alt
 
 ```elixir
 defmodule AlternativeInteger do
+  @spec parse(String.t(), keyword()) :: integer() | {integer(), String.t()} | :error
   def parse(string, options \\ []) when is_list(options) do
     if Keyword.get(options, :discard_rest, false) do
       String.to_integer(string)
     else
       Integer.parse(string)
-    end
-  end
-
-  def parse(string, opts \\ :default) do
-    case opts do
-      :default -> Integer.parse(string)
     end
   end
 end
