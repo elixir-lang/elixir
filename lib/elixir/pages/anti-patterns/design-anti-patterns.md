@@ -84,7 +84,10 @@ defmodule AlternativeInteger do
     if Keyword.get(options, :discard_rest, false) do
       String.to_integer(string)
     else
-      Integer.parse(string)
+      case String.parse(string) do
+        {int, _rest} -> int
+        :error -> :error
+      end
     end
   end
 end
@@ -105,12 +108,14 @@ To refactor this anti-pattern, as shown next, add a specific function for each r
 
 ```elixir
 defmodule AlternativeInteger do
-  def parse_no_rest(string) do
-    String.to_integer(string)
-  end
-
+  @spec parse(String.t()) :: {integer(), rest :: String.t()} | :error
   def parse(string) do
     Integer.parse(string)
+  end
+  
+  @spec parse_discard_rest(String.t()) :: integer()
+  def parse_discard_rest(string) do
+    String.to_integer(string)
   end
 end
 ```
