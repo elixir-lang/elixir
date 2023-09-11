@@ -1446,7 +1446,7 @@ defmodule Code.Formatter do
     {left, state} = bitstring_spec_to_algebra(left, state, normalize_modifiers, op)
     {right, state} = bitstring_spec_element_to_algebra(right, state, normalize_modifiers)
     doc = concat(concat(left, Atom.to_string(op)), right)
-    doc = if paren_op == :* && op != :*, do: wrap_in_parens(doc), else: doc
+    doc = if paren_op == :*, do: wrap_in_parens(doc), else: doc
     {doc, state}
   end
 
