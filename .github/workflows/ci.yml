@@ -36,7 +36,7 @@ jobs:
             development: true
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 50
       - uses: erlef/setup-beam@v1
@@ -82,7 +82,7 @@ jobs:
     steps:
       - name: Configure Git
         run: git config --global core.autocrlf input
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 50
       - uses: erlef/setup-beam@v1
@@ -107,7 +107,7 @@ jobs:
     name: Check POSIX-compliant
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 50
       - name: Install Shellcheck

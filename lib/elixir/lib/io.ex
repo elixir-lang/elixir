@@ -329,7 +329,10 @@ defmodule IO do
 
   def warn(message, %Macro.Env{line: line, file: file} = env) do
     message = to_chardata(message)
-    :elixir_errors.emit_diagnostic(:warning, line, file, message, Macro.Env.stacktrace(env), true)
+
+    :elixir_errors.emit_diagnostic(:warning, line, file, message, Macro.Env.stacktrace(env),
+      read_snippet: true
+    )
   end
 
   def warn(message, [{_, _} | _] = keyword) do
@@ -351,12 +354,12 @@ defmodule IO do
 
   def warn(message, []) do
     message = to_chardata(message)
-    :elixir_errors.emit_diagnostic(:warning, 0, nil, message, [], false)
+    :elixir_errors.emit_diagnostic(:warning, 0, nil, message, [], read_snippet: false)
   end
 
   def warn(message, [{_, _, _, _} | _] = stacktrace) do
     message = to_chardata(message)
-    :elixir_errors.emit_diagnostic(:warning, 0, nil, message, stacktrace, false)
+    :elixir_errors.emit_diagnostic(:warning, 0, nil, message, stacktrace, read_snippet: false)
   end
 
   @doc false
