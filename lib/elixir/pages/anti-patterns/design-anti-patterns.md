@@ -104,18 +104,21 @@ iex> AlternativeInteger.parse("13", discard_rest: false)
 
 #### Refactoring
 
-To refactor this anti-pattern, as shown next, add a specific function for each return type (for example, `parse_no_rest/1`), no longer delegating this to options passed as arguments.
+To refactor this anti-pattern, as shown next, add a specific function for each return type (for example, `parse_discard_rest/1`), no longer delegating this to options passed as arguments.
 
 ```elixir
 defmodule AlternativeInteger do
-  @spec parse(String.t()) :: {integer(), rest :: String.t()} | :error
+  @spec parse(String.t()) :: {integer(), String.t()} | :error
   def parse(string) do
     Integer.parse(string)
   end
   
-  @spec parse_discard_rest(String.t()) :: integer()
+  @spec parse_discard_rest(String.t()) :: integer() | :error
   def parse_discard_rest(string) do
-    String.to_integer(string)
+    case Integer.parse(string) do
+      {int, _rest} -> int
+      :error -> :error
+    end
   end
 end
 ```
@@ -123,7 +126,7 @@ end
 ```elixir
 iex> AlternativeInteger.parse("13")
 {13, ""}
-iex> AlternativeInteger.parse_no_rest("13")
+iex> AlternativeInteger.parse_discard_rest("13")
 13
 ```
 
