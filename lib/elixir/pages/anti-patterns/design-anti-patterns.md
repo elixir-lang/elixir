@@ -75,14 +75,15 @@ This anti-pattern refers to functions that receive options (for example, *keywor
 
 #### Example
 
-An example of this anti-pattern, as shown below, is when a library (for example, `AlternativeInteger`) has a multi-clause function `parse/2` with many alternative return types. Depending on the options received as a parameter, the function will have a different return type.
+An example of this anti-pattern, as shown below, is when a function has many alternative return types, depending on the options received as a parameter.
 
 ```elixir
 defmodule AlternativeInteger do
-  def parse(string, opts) when is_list(opts) do
-    case opts[:discard_rest] do
-      true -> String.to_integer(string)
-      _    -> Integer.parse(string)
+  def parse(string, options \\ []) when is_list(options) do
+    if Keyword.get(options, :discard_rest, false) do
+      String.to_integer(string)
+    else
+      Integer.parse(string)
     end
   end
 
