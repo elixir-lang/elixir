@@ -451,7 +451,8 @@ defmodule Mix.Tasks.Format do
       _ ->
         Mix.raise(
           "Unknown dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
-            "Make sure the dependency is listed in your mix.exs and you have run \"mix deps.get\""
+            "Make sure the dependency is listed in your mix.exs for environment #{inspect(Mix.env())} " <>
+            "and you have run \"mix deps.get\""
         )
     end
   end
