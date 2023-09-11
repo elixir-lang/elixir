@@ -144,7 +144,99 @@ TODO
 
 ## Using exceptions for control-flow
 
-TODO
+#### Problem
+
+This anti-pattern refers to code that forces developers to handle exceptions for control-flow. Exception handling itself does not represent an anti-pattern, but this should not be the only alternative available to developers to handle an error in client code. When developers have no freedom to decide if an error is exceptional or not, this is considered an anti-pattern.
+
+#### Example
+
+An example of this anti-pattern, as shown below, is when a library (for example, `MyModule`) forces its clients to use `try .. rescue` statements to capture and evaluate errors. This library does not allow developers to decide if an error is exceptional or not in their applications.
+
+```elixir
+defmodule MyModule do
+  def janky_function(value) do
+    if is_integer(value) do
+      #...
+      "Result..."
+    else
+      raise RuntimeError, message: "invalid argument. Is not integer!"
+    end
+  end
+end
+```
+
+```elixir
+defmodule Client do
+  # Client forced to use exceptions for control-flow.
+  def foo(arg) do
+    try do
+      value = MyModule.janky_function(arg)
+      "All good! #{value}."
+    rescue
+      e in RuntimeError ->
+        reason = e.message
+        "Uh oh! #{reason}."
+    end
+  end
+end
+```
+
+```elixir
+iex> Client.foo(1)
+"All good! Result...."
+iex> Client.foo("lucas")
+"Uh oh! invalid argument. Is not integer!."
+```
+
+#### Refactoring
+
+Library authors should guarantee that clients are not required to use exceptions for control-flow in their applications. As shown below, this can be done by refactoring the library `MyModule`, providing two versions of the function that forces clients to use exceptions for control-flow: 
+
+1) A version with the raised exceptions should have the same name as the smelly one, but with a trailing `!` (`janky_function!/1`);
+  
+2) Another version, without raised exceptions, should have a name identical to the original version (`janky_function/1`) and should return the result wrapped in a tuple.
+
+```elixir
+defmodule MyModule do
+  def janky_function(value) do
+    if is_integer(value) do
+      #...
+      {:ok, "Result..."}
+    else
+      {:error, "invalid argument. Is not integer!"}
+    end
+  end
+
+  def janky_function!(value) do
+    case janky_function(value) do
+      {:ok, result} -> result
+      {:error, message} -> raise RuntimeError, message: message
+    end
+  end
+end
+```
+
+This refactoring gives clients more freedom to decide how to proceed in the event of errors, defining what is exceptional or not in different situations. As shown next, when an error is not exceptional, clients can use specific control-flow structures, such as the `case` statement along with pattern matching.
+
+```elixir
+defmodule Client do
+  # Clients now can also choose to use control-flow structures
+  # for control-flow when an error is not exceptional.
+  def foo(arg) do
+    case MyModule.janky_function(arg) do
+      {:ok, value} -> "All good! #{value}."
+      {:error, reason} -> "Uh oh! #{reason}."
+    end
+  end
+end
+```
+
+```elixir
+iex> Client.foo(1)
+"All good! Result...."
+iex> Client.foo("lucas")
+"Uh oh! invalid argument. Is not integer!."
+```
 
 ## Using application configuration for libraries
 
