@@ -188,7 +188,7 @@ iex> Client.foo("Lucas")
 
 #### Refactoring
 
-Library authors should guarantee that users are not required to use exceptions for control flow in their applications. As shown below, this can be done by refactoring `MyModule`, providing two versions of the function that forces clients to use exceptions for control flow: 
+Library authors should guarantee that users are not required to use exceptions for control flow in their applications. As shown below, this can be done by refactoring `MyModule`, providing two versions of the function that forces clients to use exceptions for control flow:
 
   1. A version that raises exceptions should have the same name as the "janky" one, but with a trailing `!` (`janky_function!/1`);
   
