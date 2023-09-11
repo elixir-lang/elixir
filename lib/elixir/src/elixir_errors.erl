@@ -374,15 +374,9 @@ parse_error(Location, File, Error, <<"[", _/binary>> = Full, Input) when is_bina
 %% Given a string prefix and suffix to insert the token inside the error message rather than append it
 parse_error(Location, File, {ErrorPrefix, ErrorSuffix}, Token, Input) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
   Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary >>,
-
-  case lists:keyfind(line, 1, Location) of
-     {line, {_, _, _} = Start} ->
-      case lists:keyfind(column, 1, Location) of
-         {column, {_, _, _} = End} ->
-           raise_mismatched_delimiter(Start, End, File, Input, Message)
-       end;
-     _ ->
-      raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
+  case lists:keyfind(error_type, 1, Location) of
+    {error_type, mismatched_delimiter} -> raise_mismatched_delimiter(Location, File, Input, Message);
+    _ -> raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
   end;
 
 %% Misplaced char tokens (for example, {char, _, 97}) are translated by Erlang into
@@ -404,10 +398,14 @@ parse_erl_term(Term) ->
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
 
-raise_mismatched_delimiter({_, _, _} = StartPosition, {EndLine, EndCol, _} = EndPosition, File, Input, Message) ->
+raise_mismatched_delimiter(Location, File, Input, Message) ->
+  {line, StartLine} = lists:keyfind(line, 1, Location),
+  {column, StartCol} = lists:keyfind(column, 1, Location),
+  {end_line, EndLine} = lists:keyfind(end_line, 1, Location),
+  {end_column, EndCol} = lists:keyfind(end_column, 1, Location),
   {InputString, InputStartLine, _} = Input,
   Snippet = snippet_line(InputString, [{line, EndLine}, {column, EndCol}], InputStartLine),
-  raise('Elixir.MismatchedDelimiterError', Message, [{file, File}, {snippet, Snippet}, {start_position, StartPosition}, {end_position, EndPosition}]).
+  raise('Elixir.MismatchedDelimiterError', Message, [{file, File}, {snippet, Snippet}, {start_position, {StartLine, StartCol}}, {end_position, {EndLine, EndCol}}]).
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',

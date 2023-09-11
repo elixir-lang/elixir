@@ -942,13 +942,11 @@ defmodule MismatchedDelimiterError do
   @impl true
   def message(%{
         start_position: _start_position,
-        end_position: end_position,
+        end_position: {line, column},
         description: description,
         file: file,
         snippet: snippet
       }) do
-    {line, column, _} = end_position
-
     snippet =
       :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
 
