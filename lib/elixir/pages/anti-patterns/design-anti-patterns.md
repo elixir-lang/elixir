@@ -82,9 +82,9 @@ defmodule AlternativeInteger do
   @spec parse(String.t(), keyword()) :: integer() | {integer(), String.t()} | :error
   def parse(string, options \\ []) when is_list(options) do
     if Keyword.get(options, :discard_rest, false) do
-      String.to_integer(string)
+      Integer.parse(string)
     else
-      case String.parse(string) do
+      case Integer.parse(string) do
         {int, _rest} -> int
         :error -> :error
       end
