@@ -12,6 +12,7 @@
 -define(is_quote(S), (S =:= $" orelse S =:= $')).
 -define(is_sigil(S), (S =:= $/ orelse S =:= $< orelse S =:= $" orelse S =:= $' orelse
                       S =:= $[ orelse S =:= $( orelse S =:= ${ orelse S =:= $|)).
+-define(LOC(Line, Column), [{line, Line}, {column, Column}]).
 
 %% Spaces
 -define(is_horizontal_space(S), (S =:= $\s orelse S =:= $\t)).
