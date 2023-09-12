@@ -145,6 +145,7 @@ defmodule PartitionSupervisor do
   @typedoc """
   The name of the `PartitionSupervisor`.
   """
+  @typedoc since: "1.14.0"
   @type name :: atom() | {:via, module(), term()}
 
   @doc false
