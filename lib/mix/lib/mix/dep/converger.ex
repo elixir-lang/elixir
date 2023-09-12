@@ -61,6 +61,18 @@ defmodule Mix.Dep.Converger do
   end
 
   @doc """
+  Converge without lock and accumulator updates.
+
+  Note the dependencies returned from converge are not yet loaded.
+  The relevant app keys are found under `dep.opts[:app_properties]`.
+
+  See `Mix.Dep.Loader.children/1` for options.
+  """
+  def converge(opts \\ []) do
+    converge(nil, nil, opts, &{&1, &2, &3}) |> elem(0)
+  end
+
+  @doc """
   Converges all dependencies from the current project,
   including nested dependencies.
 
@@ -68,35 +80,15 @@ defmodule Mix.Dep.Converger do
   must return an updated dependency in case some processing
   is done.
 
+  Note the dependencies returned from converge are not yet loaded.
+  The relevant app keys are found under `dep.opts[:app_properties]`.
+
   See `Mix.Dep.Loader.children/1` for options.
   """
   def converge(acc, lock, opts, callback) do
     {deps, acc, lock} = all(acc, lock, opts, callback)
     if remote = Mix.RemoteConverger.get(), do: remote.post_converge()
-
-    deps =
-      for %{app: app, opts: opts} = dep <- topological_sort(deps) do
-        case Keyword.pop(opts, :app_properties) do
-          {nil, _opts} ->
-            dep
-
-          {app_properties, opts} ->
-            case :application.load({:application, app, app_properties}) do
-              :ok ->
-                :ok
-
-              {:error, {:already_loaded, _}} ->
-                :ok
-
-              {:error, error} ->
-                Mix.raise("Could not load application #{inspect(app)}: #{inspect(error)}")
-            end
-
-            %{dep | opts: opts}
-        end
-      end
-
-    {deps, acc, lock}
+    {topological_sort(deps), acc, lock}
   end
 
   defp all(acc, lock, opts, callback) do

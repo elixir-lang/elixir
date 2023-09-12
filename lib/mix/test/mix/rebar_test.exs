@@ -149,14 +149,14 @@ defmodule Mix.RebarTest do
   describe "integration with Mix" do
     test "inherits Rebar manager" do
       Mix.Project.push(RebarAsDep)
-      deps = Mix.Dep.load_on_environment([])
+      deps = Mix.Dep.Converger.converge([])
       assert Enum.all?(deps, &(&1.manager == :rebar3))
     end
 
     test "parses Rebar dependencies from rebar.config" do
       Mix.Project.push(RebarAsDep)
 
-      deps = Mix.Dep.load_on_environment([])
+      deps = Mix.Dep.Converger.converge([])
       assert Enum.all?(deps, &(&1.manager == :rebar3))
       assert Enum.find(deps, &(&1.app == :rebar_dep))
 
@@ -175,7 +175,7 @@ defmodule Mix.RebarTest do
 
         Mix.Tasks.Deps.Get.run([])
 
-        assert Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app) ==
+        assert Mix.Dep.Converger.converge([]) |> Enum.map(& &1.app) ==
                  [:git_repo, :git_rebar, :rebar_override]
       end)
     after
@@ -199,7 +199,7 @@ defmodule Mix.RebarTest do
         assert :rebar_dep.any_function() == :ok
 
         load_paths =
-          Mix.Dep.load_on_environment([])
+          Mix.Dep.Converger.converge([])
           |> Enum.map(&Mix.Dep.load_paths(&1))
           |> Enum.concat()
 
