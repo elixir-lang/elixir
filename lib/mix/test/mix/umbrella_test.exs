@@ -294,7 +294,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.push(CycleDeps)
 
-      assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:foo, :bar, :umbrella]
+      assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) == [:foo, :bar, :umbrella]
     end)
   end
 
@@ -332,7 +332,7 @@ defmodule Mix.UmbrellaTest do
         end
         """)
 
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:a, :b, :bar, :foo]
+        assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) == [:a, :b, :bar, :foo]
       end)
     end)
   end

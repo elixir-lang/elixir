@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Deps.Tree do
           value = opts[switch],
           do: {key, :"#{value}"}
 
-    deps = Mix.Dep.load_on_environment(deps_opts)
+    deps = Mix.Dep.Converger.converge(deps_opts)
 
     root =
       case args do
