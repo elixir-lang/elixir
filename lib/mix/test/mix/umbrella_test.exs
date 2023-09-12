@@ -64,6 +64,10 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run("deps.loadpaths")
         Mix.Task.run("compile", ["--verbose"])
 
+        # Extra applications are picked even for umbrellas
+        assert :code.where_is_file(~c"runtime_tools.app") != :non_existing
+        assert :code.where_is_file(~c"observer.app") == :non_existing
+
         assert_received {:mix_shell, :info, ["==> bar"]}
         assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
