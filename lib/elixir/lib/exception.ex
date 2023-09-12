@@ -937,20 +937,38 @@ defmodule MismatchedDelimiterError do
   - `fn a -> )`
   """
 
-  defexception [:file, :start_position, :end_position, :snippet, description: "syntax error"]
+  defexception [
+    :file,
+    :line,
+    :column,
+    :end_line,
+    :end_column,
+    :snippet,
+    description: "mismatched delimiter error"
+  ]
 
   @impl true
   def message(%{
-        start_position: _start_position,
-        end_position: {line, column},
+        line: _start_line,
+        column: _start_column,
+        end_line: end_line,
+        end_column: end_column,
         description: description,
         file: file,
         snippet: snippet
       }) do
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
+      :elixir_errors.format_snippet(
+        {end_line, end_column},
+        file,
+        description,
+        snippet,
+        :error,
+        [],
+        nil
+      )
 
-    format_message(file, line, column, snippet)
+    format_message(file, end_line, end_column, snippet)
   end
 
   defp format_message(file, line, column, message) do
