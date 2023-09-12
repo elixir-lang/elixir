@@ -5,7 +5,7 @@ defprotocol IEx.Info do
   A protocol to print information in IEx about the given data structure.
 
   `IEx.Helpers.i/1` uses this protocol to display a term-specific list
-  of of information.
+  of information.
 
   By default, an `Any` implementation will be used which returns
   the `"Data type"`, `"Description"` and `"Reference modules"` sections.
