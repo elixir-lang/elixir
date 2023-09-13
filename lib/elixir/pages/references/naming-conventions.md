@@ -64,11 +64,26 @@ Many functions come in pairs, such as `File.read/1` and `File.read!/1`. `File.re
 The version without `!` is preferred when you want to handle different outcomes using pattern matching:
 
     case File.read(file) do
-      {:ok, body}      -> # do something with the `body`
+      {:ok, body} -> # do something with the `body`
       {:error, reason} -> # handle the error caused by `reason`
     end
 
 However, if you expect the outcome to always be successful (for instance, if you expect the file always to exist), the bang variation can be more convenient and will raise a more helpful error message (than a failed pattern match) on failure.
+
+When thinking about failure cases for functions, we are thinking strictly about errors that happen within their domain, such as failing to open a file. Errors that come from invalid argument types, for example, must always raise regardless if the function has a bang or not. The exception is often an `ArgumentError` or a detailed `FunctionClauseError`:
+
+    iex(1)> File.read(123)
+    ** (FunctionClauseError) no function clause matching in IO.chardata_to_string/1
+
+        The following arguments were given to IO.chardata_to_string/1:
+
+            # 1
+            123
+
+        Attempted function clauses (showing 2 out of 2):
+
+            def chardata_to_string(string) when is_binary(string)
+            def chardata_to_string(list) when is_list(list)
 
 More examples of paired functions: `Base.decode16/2` and `Base.decode16!/2`, `File.cwd/0` and `File.cwd!/0`.
 
