@@ -1027,14 +1027,33 @@ defmodule MismatchedDelimiterError do
   defp digits(number, acc), do: digits(div(number, 10), acc + 1)
 
   defp format_snippet(
-         {start_line, _start_column},
-         {end_line, _end_column},
-         _description,
-         _file,
-         _lines
+         {start_line, start_column},
+         {end_line, end_column},
+         description,
+         file,
+         lines
        )
        when start_line == end_line do
-    "TODO: same line case"
+    max_digits = digits(end_line)
+    general_padding = max(2, max_digits) + 1
+    padding = n_spaces(general_padding)
+
+    line = Enum.at(lines, end_line - 1)
+    formatted_line = "#{line_padding(end_line, max_digits)}#{end_line} │ #{line}"
+
+    mismatched_closing_line = n_spaces(start_column - 1) <> red("│") <> mismatched_closing_delimiter(abs(end_column - start_column))
+         unclosed_delimiter_line = padding <> " │ " <> n_spaces(start_column - 1) <> unclosed_delimiter(start_column)
+
+    below_line = "#{padding} │ #{mismatched_closing_line}\n#{unclosed_delimiter_line}"
+
+    """
+     #{padding}#{red("error:")} #{pad_message(description, padding)}
+     #{padding}│
+    #{formatted_line}
+    #{below_line}
+     #{padding}│
+     #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
+    """
   end
 
   defp line_range(lines, {start_line, start_column}, {end_line, end_column}, padding, max_digits) do

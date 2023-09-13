@@ -11,29 +11,77 @@ defmodule Kernel.DiagnosticsTest do
   end
 
   describe "mismatched delimiter" do
-    # TODO: maybe trim middle of line if gap between start col and end col is too long
-    # test "same line" do
-    #   expected = """
-    #   ** (SyntaxError) invalid syntax found on nofile:1:17:
-    #       error: syntax error before: '*'
-    #       │
-    #     1 │ [1, 2, 3, 4, 5, 6)
-    #       │ │                └ mismatched closing delimiter
-    #       │ └ unclosed delimiter
-    #       │
-    #       └─ nofile:1:17\
-    #   """
+    test "trims start if distance exceeds threshold in same line" do
+      expected = """
+      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:77:
+          error: unexpected token: }
+          HINT: the "[" on line 1 is missing terminator "]"
+          │
+        1 │ ...long_long_name = [1, 2, 3}
+          │                     │       └ mismatched closing delimiter
+          │                     └ unclosed delimiter
+          │
+          └─ nofile:1:77\
+      """
 
-    #   output =
-    #     capture_raise(
-    #       """
-    #       [1, 2, 3, 4, 5, 6)
-    #       """,
-    #       SyntaxError
-    #     )
+      output =
+        capture_raise(
+          """
+          long_long_long_long_long_long_long_variable_with_a_long_long_name = [1, 2, 3}
+          """,
+          MismatchedDelimiterError
+        )
 
-    #   assert output == expected
-    # end
+      assert output == expected
+    end
+
+    test "trims in between if distance exceeds threshold in same line" do
+      expected = """
+      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:91:
+          error: unexpected token: )
+          HINT: the "[" on line 1 is missing terminator "]"
+          │
+        1 │ [1, MyLong.ReallyLong...function(), 200)
+          │ │                                      └ mismatched closing delimiter
+          │ └ unclosed delimiter
+          │
+          └─ nofile:1:91\
+      """
+
+      output =
+        capture_raise(
+          """
+          [1, MyLong.ReallyLongModule.FromALongNamespace.calling_a_really_long_named_function(), 200)
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == expected
+    end
+
+    test "same line" do
+      expected = """
+      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:18:
+          error: unexpected token: )
+          HINT: the "[" on line 1 is missing terminator "]"
+          │
+        1 │ [1, 2, 3, 4, 5, 6)
+          │ │                └ mismatched closing delimiter
+          │ └ unclosed delimiter
+          │
+          └─ nofile:1:18\
+      """
+
+      output =
+        capture_raise(
+          """
+          [1, 2, 3, 4, 5, 6)
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == expected
+    end
 
     test "two-line span" do
       expected = """
@@ -208,59 +256,57 @@ defmodule Kernel.DiagnosticsTest do
       assert output == expected
     end
 
-    # test "trims lines that are too long (> 60 chars)" do
-    #   expected = """
-    #   ** (SyntaxError) invalid syntax found on nofile:1:17:
-    #       error: syntax error before: '*'
-    #       │
-    #     1 │ ... = { a,
-    #       │       └ unclosed delimiter
-    #     2 │ ...
-    #     3 │ ...     b )
-    #       │           └ mismatched closing delimiter
-    #       │
-    #       └─ nofile:1:17\
-    #   """
+    test "trims lines that are too long (> 60 chars)" do
+      expected = """
+      ** (MismatchedDelimiterError) invalid syntax found on nofile:1:17:
+          error: syntax error before: '*'
+          │
+        1 │ ...= { a,
+          │      └ unclosed delimiter
+        2 │ ...
+        3 │ ...    b )
+          │          └ mismatched closing delimiter
+          │
+          └─ nofile:1:17\
+      """
 
-    #   output =
-    #     capture_raise(
-    #       """
-    #       a                                                           = { a,
+      output =
+        capture_raise(
+          """
+          a                                                           = { a,
 
-    #                                                                      b )
-    #       """,
-    #       SyntaxError
-    #     )
+                                                                         b )
+          """,
+          MismatchedDelimiterError
+        )
 
-    #   assert output == expected
+      assert output == expected
 
-    #   expected = """
-    #   ** (SyntaxError) invalid syntax found on nofile:1:17:
-    #       error: syntax error before: '*'
-    #       │
-    #     1 │ ... aaaa = [ 1,
-    #       │            └ unclosed delimiter
-    #     2 │ ...
-    #     3 │ ... aaaa" )
-    #       │           └ mismatched closing delimiter
-    #       │
-    #       └─ nofile:1:17\
-    #   """
+      expected = """
+      ** (MismatchedDelimiterError) invalid syntax found on nofile:1:17:
+          error: syntax error before: '*'
+          │
+        1 │ ...aaaa = [ 1,
+          │           └ unclosed delimiter
+          │ ...
+        3 │ ...aaaa" )
+          │          └ mismatched closing delimiter
+          │
+          └─ nofile:1:17\
+      """
 
-    #   output =
-    #     capture_raise(
-    #       """
-    #       aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa = [ 1,
+      output =
+        capture_raise(
+          """
+          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa = [ 1,
 
-    #       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" )
-    #       """,
-    #       SyntaxError
-    #     )
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" )
+          """,
+          MismatchedDelimiterError
+        )
 
-    #   assert output == expected
-    # end
-
-    # TODO: maybe trim in middle of line if too long and both delimiters are in the same line
+      assert output == expected
+    end
   end
 
   describe "compile-time exceptions" do
