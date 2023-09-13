@@ -251,8 +251,9 @@ defmodule Kernel.DiagnosticsTest do
         )
 
       assert output == """
-             ** (MismatchedDelimiterError) invalid syntax found on nofile:1:17:
-                 error: syntax error before: '*'
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:66:
+                 error: unexpected token: )
+                 HINT: the "{" on line 1 is missing terminator "}"
                  │
                1 │ ...= { a,
                  │      └ unclosed delimiter
@@ -260,7 +261,7 @@ defmodule Kernel.DiagnosticsTest do
                3 │ ...    b )
                  │          └ mismatched closing delimiter
                  │
-                 └─ nofile:1:17\
+                 └─ nofile:3:66\
              """
 
       output =
@@ -274,8 +275,9 @@ defmodule Kernel.DiagnosticsTest do
         )
 
       assert output == """
-             ** (MismatchedDelimiterError) invalid syntax found on nofile:1:17:
-                 error: syntax error before: '*'
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:66:
+                 error: unexpected token: )
+                 HINT: the "[" on line 99 is missing terminator "]"
                  │
                1 │ ...aaaa = [ 1,
                  │           └ unclosed delimiter
@@ -283,7 +285,7 @@ defmodule Kernel.DiagnosticsTest do
                3 │ ...aaaa" )
                  │          └ mismatched closing delimiter
                  │
-                 └─ nofile:1:17\
+                 └─ nofile:3:66\
              """
     end
   end
