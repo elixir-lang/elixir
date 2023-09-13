@@ -11,6 +11,7 @@ defmodule Kernel.DiagnosticsTest do
   end
 
   describe "mismatched delimiter" do
+    # TODO: maybe trim middle of line if gap between start col and end col is too long
     # test "same line" do
     #   expected = """
     #   ** (SyntaxError) invalid syntax found on nofile:1:17:
@@ -128,35 +129,77 @@ defmodule Kernel.DiagnosticsTest do
 
     test "pads according to line number digits" do
       expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:11:5:
+      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:13:5:
           error: unexpected token: )
           HINT: the "[" on line 1 is missing terminator "]"
           │
-       10 │ [ a,
+        1 │ [ a,
           │ └ unclosed delimiter
           │ ...
-       11 │   b )
+       13 │   b )
           │     └ mismatched closing delimiter
           │
-          └─ nofile:11:5\
+          └─ nofile:13:5\
       """
 
       output =
         capture_raise(
           """
-
-
-
-
-
-
-
-
-
-
-
-
           [ a,
+          #{String.duplicate("\n", 10)}
+            b )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == expected
+
+      expected = """
+      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:403:5:
+           error: unexpected token: )
+           HINT: the "[" on line 1 is missing terminator "]"
+           │
+         1 │ [ a,
+           │ └ unclosed delimiter
+           │ ...
+       403 │   b )
+           │     └ mismatched closing delimiter
+           │
+           └─ nofile:403:5\
+      """
+
+      output =
+        capture_raise(
+          """
+          [ a,
+          #{String.duplicate("\n", 400)}
+            b )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == expected
+
+      expected = """
+      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:107:5:
+           error: unexpected token: )
+           HINT: the "[" on line 99 is missing terminator "]"
+           │
+        99 │ [ a,
+           │ └ unclosed delimiter
+           │ ...
+       107 │   b )
+           │     └ mismatched closing delimiter
+           │
+           └─ nofile:107:5\
+      """
+
+      output =
+        capture_raise(
+          """
+          #{String.duplicate("\n", 97)}
+          [ a,
+          #{String.duplicate("\n", 6)}
             b )
           """,
           MismatchedDelimiterError

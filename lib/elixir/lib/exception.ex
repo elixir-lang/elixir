@@ -975,22 +975,25 @@ defmodule MismatchedDelimiterError do
          lines
        )
        when start_line < end_line do
-    digits = length(Integer.digits(end_line))
-    total_padding = max(2, digits) + 1
-    padding = String.duplicate(" ", total_padding)
+    max_digits = digits(end_line)
+    general_padding = max(2, max_digits) + 1
+    padding = n_spaces(general_padding)
 
     relevant_lines =
       if end_line - start_line < @max_lines_shown do
-        line_range(lines, start_pos, end_pos, padding)
+        line_range(lines, start_pos, end_pos, padding, max_digits)
       else
         first_line = Enum.at(lines, start_line - 1)
         last_line = Enum.at(lines, end_line - 1)
 
+        start_padding = line_padding(start_line, max_digits)
+        end_padding = line_padding(end_line, max_digits)
+
         """
-         #{padding}#{start_line} │ #{first_line}
+        #{start_padding}#{start_line} │ #{first_line}
          #{padding}│ #{unclosed_delimiter(start_column)}
          #{padding}│ ...
-         #{padding}#{end_line} │ #{last_line}
+        #{end_padding}#{end_line} │ #{last_line}
          #{padding}│ #{mismatched_closing_delimiter(end_column)}\
         """
       end
@@ -998,11 +1001,30 @@ defmodule MismatchedDelimiterError do
     """
      #{padding}#{red("error:")} #{pad_message(description, padding)}
      #{padding}│
-     #{relevant_lines}
+    #{relevant_lines}
      #{padding}│
      #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
     """
   end
+
+  defp line_padding(line_number, max_digits) do
+    line_digits = digits(line_number)
+
+    spacing =
+      if line_digits == 1 do
+        max(2, max_digits)
+      else
+        max_digits - line_digits + 1
+      end
+
+    n_spaces(spacing)
+  end
+
+  defp n_spaces(n), do: String.duplicate(" ", n)
+
+  defp digits(number, acc \\ 1)
+  defp digits(number, acc) when number < 10, do: acc
+  defp digits(number, acc), do: digits(div(number, 10), acc + 1)
 
   defp format_snippet(
          {start_line, _start_column},
@@ -1015,7 +1037,7 @@ defmodule MismatchedDelimiterError do
     "TODO: same line case"
   end
 
-  defp line_range(lines, {start_line, start_column}, {end_line, end_column}, padding) do
+  defp line_range(lines, {start_line, start_column}, {end_line, end_column}, padding, max_digits) do
     start_line = start_line - 1
     end_line = end_line - 1
 
@@ -1027,21 +1049,23 @@ defmodule MismatchedDelimiterError do
       start_line = start_line + 1
       end_line = end_line + 1
 
+      line_padding = line_padding(line_number, max_digits)
+
       cond do
         line_number == start_line ->
           """
-          #{line_number} │ #{line}
+          #{line_padding}#{line_number} │ #{line}
            #{padding}│ #{unclosed_delimiter(start_column)}\
           """
 
         line_number == end_line ->
           """
-           #{line_number} │ #{line}
+          #{line_padding}#{line_number} │ #{line}
            #{padding}│ #{mismatched_closing_delimiter(end_column)}\
           """
 
         true ->
-          " #{line_number} │ #{line}"
+          "#{line_padding}#{line_number} │ #{line}"
       end
     end)
     |> Enum.join("\n")
