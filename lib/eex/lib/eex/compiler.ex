@@ -72,8 +72,8 @@ defmodule EEx.Compiler do
         {key, expr} =
           case :elixir_tokenizer.tokenize(expr, 1, file: "eex", check_terminators: false) do
             {:ok, _line, _column, warnings, tokens} ->
-              Enum.each(Enum.reverse(warnings), fn {location, file, msg} ->
-                :elixir_errors.erl_warn(location, file, msg)
+              Enum.each(Enum.reverse(warnings), fn {location, msg} ->
+                :elixir_errors.erl_warn(location, state.file, msg)
               end)
 
               token_key(tokens, expr)
