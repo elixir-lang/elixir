@@ -36,7 +36,7 @@ defmodule Mix.DepTest do
   defp assert_wrong_dependency(deps) do
     with_deps(deps, fn ->
       assert_raise Mix.Error, ~r"Dependency specified in the wrong format", fn ->
-        Mix.Dep.load_on_environment([])
+        Mix.Dep.Converger.converge([])
       end
     end)
   end
@@ -59,7 +59,7 @@ defmodule Mix.DepTest do
     in_fixture("deps_status", fn ->
       Mix.Project.push(DepsApp)
 
-      deps = Mix.Dep.load_on_environment([])
+      deps = Mix.Dep.Converger.converge([])
       assert length(deps) == 6
       assert Enum.find(deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1))
       assert Enum.find(deps, &match?(%Mix.Dep{app: :invalidvsn, status: {:invalidvsn, :ok}}, &1))
@@ -102,7 +102,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        deps = Mix.Dep.load_on_environment([])
+        deps = Mix.Dep.Converger.converge([])
         assert Enum.find(deps, &match?(%Mix.Dep{app: :ok, status: {:ok, _}}, &1))
       end)
     end)
@@ -115,7 +115,7 @@ defmodule Mix.DepTest do
       in_fixture("deps_status", fn ->
         send(self(), {:mix_shell_input, :yes?, false})
         msg = "Could not find an SCM for dependency :ok from Mix.DepTest.ProcessDepsApp"
-        assert_raise Mix.Error, msg, fn -> Mix.Dep.load_on_environment([]) end
+        assert_raise Mix.Error, msg, fn -> Mix.Dep.Converger.converge([]) end
       end)
     end)
   end
@@ -139,7 +139,7 @@ defmodule Mix.DepTest do
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
         assert_raise Mix.Error, ~r"Invalid requirement", fn ->
-          Mix.Dep.load_on_environment([])
+          Mix.Dep.Converger.converge([])
         end
       end)
     end)
@@ -150,7 +150,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:git_repo, :deps_repo]
+        assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) == [:git_repo, :deps_repo]
       end)
     end)
   end
@@ -172,7 +172,7 @@ defmodule Mix.DepTest do
         end
         """)
 
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:deps_repo]
+        assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) == [:deps_repo]
       end)
     end)
   end
@@ -185,7 +185,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:git_repo, :deps_repo]
+        assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) == [:git_repo, :deps_repo]
       end)
     end)
   end
@@ -200,7 +200,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        [dep1, dep2] = Mix.Dep.load_on_environment([])
+        [dep1, dep2] = Mix.Dep.Converger.converge([])
         assert dep1.manager == nil
         assert dep2.manager == :rebar3
       end)
@@ -252,7 +252,7 @@ defmodule Mix.DepTest do
         end
         """)
 
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:git_repo, :deps_repo]
+        assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) == [:git_repo, :deps_repo]
       end)
     end)
   end
@@ -362,7 +362,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_tmp("load dependency with env vars", fn ->
-        Mix.Dep.load_on_environment([])
+        Mix.Dep.Converger.converge([])
         assert {:ok, "contents dep test"} = File.read(file_path)
       end)
     end)
@@ -378,7 +378,7 @@ defmodule Mix.DepTest do
 
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
-        [git_repo, _] = Mix.Dep.load_on_environment([])
+        [git_repo, _] = Mix.Dep.Converger.converge([])
         %{app: :git_repo, status: {:overridden, _}} = git_repo
       end)
     end)
@@ -549,7 +549,7 @@ defmodule Mix.DepTest do
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
         # Both orders below are valid after topological sort
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) in [
+        assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) in [
                  [:git_repo, :abc_repo, :deps_repo],
                  [:abc_repo, :git_repo, :deps_repo]
                ]
@@ -604,7 +604,7 @@ defmodule Mix.DepTest do
     with_deps(deps, fn ->
       in_fixture("deps_status", fn ->
         # Both orders below are valid after topological sort
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) in [
+        assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) in [
                  [:git_repo, :abc_repo, :deps_repo],
                  [:abc_repo, :git_repo, :deps_repo]
                ]
@@ -639,13 +639,13 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          deps = Mix.Dep.load_on_environment(env: :other_env)
+          deps = Mix.Dep.Converger.converge(env: :other_env)
           assert length(deps) == 2
 
-          deps = Mix.Dep.load_on_environment([])
+          deps = Mix.Dep.Converger.converge([])
           assert length(deps) == 2
 
-          assert [dep] = Mix.Dep.load_on_environment(env: :prod)
+          assert [dep] = Mix.Dep.Converger.converge(env: :prod)
           assert dep.app == :foo
         end)
       end)
@@ -676,10 +676,10 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:deps_repo] = Enum.map(loaded, & &1.app)
 
-          loaded = Mix.Dep.load_on_environment(env: :test)
+          loaded = Mix.Dep.Converger.converge(env: :test)
           assert [:deps_repo] = Enum.map(loaded, & &1.app)
         end)
       end)
@@ -694,15 +694,15 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedonly: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :dev)
+          loaded = Mix.Dep.Converger.converge(env: :dev)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedonly: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :test)
+          loaded = Mix.Dep.Converger.converge(env: :test)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedonly: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
@@ -727,15 +727,15 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :dev)
+          loaded = Mix.Dep.Converger.converge(env: :dev)
           assert [:deps_repo] = Enum.map(loaded, & &1.app)
           assert [noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :test)
+          loaded = Mix.Dep.Converger.converge(env: :test)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
         end)
@@ -751,18 +751,18 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :dev)
+          loaded = Mix.Dep.Converger.converge(env: :dev)
           assert [] = Enum.map(loaded, & &1.app)
 
-          loaded = Mix.Dep.load_on_environment(env: :test)
+          loaded = Mix.Dep.Converger.converge(env: :test)
           assert [:git_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :prod)
+          loaded = Mix.Dep.Converger.converge(env: :prod)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
         end)
@@ -778,15 +778,15 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedonly: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :dev)
+          loaded = Mix.Dep.Converger.converge(env: :dev)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedonly: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :test)
+          loaded = Mix.Dep.Converger.converge(env: :test)
           assert [:git_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _] = Enum.map(loaded, & &1.status)
 
@@ -811,19 +811,19 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :dev)
+          loaded = Mix.Dep.Converger.converge(env: :dev)
           assert [:deps_repo] = Enum.map(loaded, & &1.app)
           assert [noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :test)
+          loaded = Mix.Dep.Converger.converge(env: :test)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(env: :prod)
+          loaded = Mix.Dep.Converger.converge(env: :prod)
           assert [] = Enum.map(loaded, & &1.app)
         end)
       end)
@@ -848,7 +848,7 @@ defmodule Mix.DepTest do
             """)
 
             Mix.State.clear_cache()
-            loaded = Mix.Dep.load_on_environment([])
+            loaded = Mix.Dep.Converger.converge([])
             Enum.map(loaded, &{&1.app, &1.opts[:only]})
           end)
         end)
@@ -933,13 +933,13 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          deps = Mix.Dep.load_on_environment(target: :rpi3)
+          deps = Mix.Dep.Converger.converge(target: :rpi3)
           assert length(deps) == 2
 
-          deps = Mix.Dep.load_on_environment([])
+          deps = Mix.Dep.Converger.converge([])
           assert length(deps) == 2
 
-          assert [dep] = Mix.Dep.load_on_environment(target: :host)
+          assert [dep] = Mix.Dep.Converger.converge(target: :host)
           assert dep.app == :foo
         end)
       end)
@@ -973,15 +973,15 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedtargets: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :host)
+          loaded = Mix.Dep.Converger.converge(target: :host)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedtargets: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :rpi3)
+          loaded = Mix.Dep.Converger.converge(target: :rpi3)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedtargets: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
@@ -1006,15 +1006,15 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :host)
+          loaded = Mix.Dep.Converger.converge(target: :host)
           assert [:deps_repo] = Enum.map(loaded, & &1.app)
           assert [noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :rpi3)
+          loaded = Mix.Dep.Converger.converge(target: :rpi3)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
         end)
@@ -1030,18 +1030,18 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :host)
+          loaded = Mix.Dep.Converger.converge(target: :host)
           assert [] = Enum.map(loaded, & &1.app)
 
-          loaded = Mix.Dep.load_on_environment(target: :bbb)
+          loaded = Mix.Dep.Converger.converge(target: :bbb)
           assert [:git_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :rpi3)
+          loaded = Mix.Dep.Converger.converge(target: :rpi3)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
         end)
@@ -1057,15 +1057,15 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedtargets: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :host)
+          loaded = Mix.Dep.Converger.converge(target: :host)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [divergedtargets: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :rpi3)
+          loaded = Mix.Dep.Converger.converge(target: :rpi3)
           assert [:git_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _] = Enum.map(loaded, & &1.status)
 
@@ -1090,19 +1090,19 @@ defmodule Mix.DepTest do
 
       with_deps(deps, fn ->
         in_fixture("deps_status", fn ->
-          loaded = Mix.Dep.load_on_environment([])
+          loaded = Mix.Dep.Converger.converge([])
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :host)
+          loaded = Mix.Dep.Converger.converge(target: :host)
           assert [:deps_repo] = Enum.map(loaded, & &1.app)
           assert [noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :bbb)
+          loaded = Mix.Dep.Converger.converge(target: :bbb)
           assert [:git_repo, :deps_repo] = Enum.map(loaded, & &1.app)
           assert [unavailable: _, noappfile: {_, _}] = Enum.map(loaded, & &1.status)
 
-          loaded = Mix.Dep.load_on_environment(target: :rpi3)
+          loaded = Mix.Dep.Converger.converge(target: :rpi3)
           assert [] = Enum.map(loaded, & &1.app)
         end)
       end)
@@ -1127,7 +1127,7 @@ defmodule Mix.DepTest do
             """)
 
             Mix.State.clear_cache()
-            loaded = Mix.Dep.load_on_environment([])
+            loaded = Mix.Dep.Converger.converge([])
             Enum.map(loaded, &{&1.app, &1.opts[:targets]})
           end)
         end)

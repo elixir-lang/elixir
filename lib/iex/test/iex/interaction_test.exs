@@ -45,7 +45,7 @@ defmodule IEx.InteractionTest do
   test "invalid input" do
     output = capture_iex("if true do ) false end")
 
-    assert output =~ "** (SyntaxError) invalid syntax found on iex:1:12:"
+    assert output =~ "** (MismatchedDelimiterError) mismatched delimiter found on iex:1:12:"
     assert output =~ "unexpected token: )"
     assert output =~ "iex:1:12"
     assert output =~ "if true do ) false end"

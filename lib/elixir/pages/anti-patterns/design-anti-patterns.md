@@ -69,7 +69,66 @@ The following arguments were given to MyLibrary.foo/1:
 
 ## Alternative return types
 
-TODO
+#### Problem
+
+This anti-pattern refers to functions that receive options (for example, *keyword list*) parameters that drastically change their return type. Because options are optional and sometimes set dynamically, if they change the return type it may be hard to understand what the function actually returns.
+
+#### Example
+
+An example of this anti-pattern, as shown below, is when a function has many alternative return types, depending on the options received as a parameter.
+
+```elixir
+defmodule AlternativeInteger do
+  @spec parse(String.t(), keyword()) :: integer() | {integer(), String.t()} | :error
+  def parse(string, options \\ []) when is_list(options) do
+    if Keyword.get(options, :discard_rest, false) do
+      Integer.parse(string)
+    else
+      case Integer.parse(string) do
+        {int, _rest} -> int
+        :error -> :error
+      end
+    end
+  end
+end
+```
+
+```elixir
+iex> AlternativeInteger.parse("13")
+{13, ""}
+iex> AlternativeInteger.parse("13", discard_rest: true)
+13
+iex> AlternativeInteger.parse("13", discard_rest: false)
+{13, ""}
+```
+
+#### Refactoring
+
+To refactor this anti-pattern, as shown next, add a specific function for each return type (for example, `parse_discard_rest/1`), no longer delegating this to options passed as arguments.
+
+```elixir
+defmodule AlternativeInteger do
+  @spec parse(String.t()) :: {integer(), String.t()} | :error
+  def parse(string) do
+    Integer.parse(string)
+  end
+  
+  @spec parse_discard_rest(String.t()) :: integer() | :error
+  def parse_discard_rest(string) do
+    case Integer.parse(string) do
+      {int, _rest} -> int
+      :error -> :error
+    end
+  end
+end
+```
+
+```elixir
+iex> AlternativeInteger.parse("13")
+{13, ""}
+iex> AlternativeInteger.parse_discard_rest("13")
+13
+```
 
 ## Unrelated multi-clause function
 
