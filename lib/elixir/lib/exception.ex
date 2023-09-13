@@ -983,8 +983,8 @@ defmodule MismatchedDelimiterError do
       if end_line - start_line < @max_lines_shown do
         line_range(lines, start_pos, end_pos, padding, max_digits)
       else
-        first_line = Enum.at(lines, start_line - 1)
-        last_line = Enum.at(lines, end_line - 1)
+        first_line = Enum.fetch!(lines, start_line - 1)
+        last_line = Enum.fetch!(lines, end_line - 1)
 
         start_padding = line_padding(start_line, max_digits)
         end_padding = line_padding(end_line, max_digits)
@@ -1038,15 +1038,14 @@ defmodule MismatchedDelimiterError do
     general_padding = max(2, max_digits) + 1
     padding = n_spaces(general_padding)
 
-    line = Enum.at(lines, end_line - 1)
+    line = Enum.fetch!(lines, end_line - 1)
     formatted_line = "#{line_padding(end_line, max_digits)}#{end_line} │ #{line}"
 
     mismatched_closing_line =
-      n_spaces(start_column - 1) <>
-        red("│") <> mismatched_closing_delimiter(abs(end_column - start_column))
+      [n_spaces(start_column - 1), red("│"), mismatched_closing_delimiter(end_column - start_column)]
 
     unclosed_delimiter_line =
-      padding <> " │ " <> n_spaces(start_column - 1) <> unclosed_delimiter(start_column)
+      [padding, " │ ", n_spaces(start_column - 1), unclosed_delimiter(start_column)]
 
     below_line = "#{padding} │ #{mismatched_closing_line}\n#{unclosed_delimiter_line}"
 
@@ -1066,8 +1065,7 @@ defmodule MismatchedDelimiterError do
 
     lines
     |> Enum.slice(start_line..end_line)
-    |> Enum.zip(start_line..end_line)
-    |> Enum.map(fn {line, line_number} ->
+    |> Enum.zip_with(start_line..end_line, fn line, line_number ->
       line_number = line_number + 1
       start_line = start_line + 1
       end_line = end_line + 1
@@ -1091,20 +1089,20 @@ defmodule MismatchedDelimiterError do
           "#{line_padding}#{line_number} │ #{line}"
       end
     end)
-    |> Enum.join("\n")
+    |> Enum.intersperse("\n")
   end
 
   defp mismatched_closing_delimiter(end_column),
-    do: String.duplicate(" ", end_column - 1) <> red("└ mismatched closing delimiter")
+    do: [n_spaces(end_column - 1), red("└ mismatched closing delimiter")]
 
   defp unclosed_delimiter(start_column),
-    do: String.duplicate(" ", start_column - 1) <> red("└ unclosed delimiter")
+    do: [n_spaces(start_column - 1), red("└ unclosed delimiter")]
 
   defp pad_message(message, padding), do: String.replace(message, "\n", "\n #{padding}")
 
   defp red(string) do
     if IO.ANSI.enabled?() do
-      IO.ANSI.red() <> string <> IO.ANSI.reset()
+      [IO.ANSI.red(), string, IO.ANSI.reset()]
     else
       string
     end
