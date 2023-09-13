@@ -146,94 +146,65 @@ TODO
 
 #### Problem
 
-This anti-pattern refers to code that forces developers to handle exceptions for control flow. Exception handling itself does not represent an anti-pattern, but this should not be the only alternative available to developers to handle an error in client code. When developers have no freedom to decide if an error is exceptional or not, this is considered an anti-pattern.
+This anti-pattern refers to code that uses exceptions for control flow. Exception handling itself does not represent an anti-pattern, but developers must prefer to use `case` and pattern matching to change the flow of their code, instead of `try/rescue`. In turn, library authors should provide developers with APIs to handle errors without relying on exception handling. When developers have no freedom to decide if an error is exceptional or not, this is considered an anti-pattern.
 
 #### Example
 
-An example of this anti-pattern, as shown below, is when a library forces its users to use `try/1` statements to rescue raised exceptions and handle different cases. Such a library library does not allow developers to decide if an error is exceptional or not in their applications.
+An example of this anti-pattern, as shown below, is using `try/rescue` to deal with file operations:
 
 ```elixir
 defmodule MyModule do
-  def janky_function(value) do
-    if is_integer(value) do
-      "It's an integer"
-    else
-      raise "expected integer, got: #{inspect(value)}"
-    end
-  end
-end
-```
-
-```elixir
-defmodule Client do
-  # Client forced to use exceptions for control flow.
-  def print_janky_function(arg) do
+  def print_file(file) do
     try do
-      result = MyModule.janky_function(arg)
-      "All good! #{result}."
+      IO.puts(File.read!(file))
     rescue
-      exception in RuntimeError ->
-        "Uh oh! #{exception.message}."
+      e -> IO.puts(:stderr, Exception.message(e))
     end
   end
 end
 ```
 
 ```elixir
-iex> Client.print_janky_function(1)
-"All good! It's an integer."
-iex> Client.foo("Lucas")
-"Uh oh! expected integer, got: \"Lucas\""
+iex> MyModule.print_file("valid_file")
+This is a valid file!
+:ok
+iex> MyModule.print_file("invalid_file")
+could not read file "invalid_file": no such file or directory
+:ok
 ```
 
 #### Refactoring
 
-Library authors should guarantee that users are not required to use exceptions for control flow in their applications. As shown below, this can be done by refactoring `MyModule`, providing two versions of the function that forces clients to use exceptions for control flow:
-
-  1. A version that raises exceptions should have the same name as the "janky" one, but with a trailing `!` (`janky_function!/1`);
-  
-  2. Another version, without raised exceptions, should have a name identical to the original version (`janky_function/1`) and should return the result wrapped in a tuple.
+To refactor this anti-pattern, as shown next, use `File.read/1`, which returns tuples instead of raising when a file cannot be read:
 
 ```elixir
 defmodule MyModule do
-  def janky_function(value) do
-    if is_integer(value) do
-      {:ok, "It's an integer"}
-    else
-      {:error, "expected an integer, got: #{inspect(value)}"}
-    end
-  end
-
-  def janky_function!(value) do
-    case janky_function(value) do
-      {:ok, result} -> result
-      {:error, message} -> raise(message)
+  def print_file(file) do
+    case File.read(file) do
+      {:ok, binary} -> IO.puts(binary)
+      {:error, reason} -> IO.puts(:stderr, "could not read file #{file}: #{reason}")
     end
   end
 end
 ```
 
-This refactoring gives users more freedom to decide how to proceed in the event of errors, defining what is exceptional or not in different situations. As shown next, when an error is not exceptional, clients can use specific control-flow structures, such as the `case/2` statement.
+This is only possible because the `File` module provides APIs for reading files with tuples as results (`File.read/1`), as well as a version that raises an exception (`File.read!/1`). The bang (exclamation point) is effectively part of [Elixir's naming conventions](naming-conventions.html#trailing-bang-foo).
+
+Library authors are encouraged to follow the same practices. In practice, the bang variant is implemented on top of the non-raising version of the code. For example, `File.read/1` is implemented as:
 
 ```elixir
-defmodule Client do
-  # Users now can also choose to use control-flow structures
-  # for control flow when an error is not exceptional.
-  def print_janky_function(arg) do
-    case MyModule.janky_function(arg) do
-      {:ok, value} -> "All good! #{value}."
-      {:error, reason} -> "Uh oh! #{reason}."
-    end
+def read!(path) do
+  case read(path) do
+    {:ok, binary} ->
+      binary
+
+    {:error, reason} ->
+      raise File.Error, reason: reason, action: "read file", path: IO.chardata_to_string(path)
   end
 end
 ```
 
-```elixir
-iex> Client.print_janky_function(1)
-"All good! It's an integer."
-iex> Client.print_janky_function("Lucas")
-"Uh oh! expected an integer, got: \"Lucas\""
-```
+A common practice followed by the community is to make the non-raising version to return `{:ok, result}` or `{:error, Exception.t}`. For example, an HTTP client may return `{:ok, %HTTP.Response{}}` on success cases and a `{:error, %HTTP.Error{}}` for failures, where `HTTP.Error` is [implemented as an exception](`Kernel.defexception/1`). This makes it convenient for anyone to raise an exception by simply calling `Kernel.raise/1`.
 
 ## Using application configuration for libraries
 
