@@ -983,17 +983,28 @@ defmodule MismatchedDelimiterError do
       if end_line - start_line < @max_lines_shown do
         line_range(lines, start_pos, end_pos, padding, max_digits)
       else
-        first_line = Enum.fetch!(lines, start_line - 1)
-        last_line = Enum.fetch!(lines, end_line - 1)
-
         start_padding = line_padding(start_line, max_digits)
-        end_padding = line_padding(end_line, max_digits)
+        first_line = Enum.fetch!(lines, start_line - 1)
+
+        range = (end_line - 2)..(end_line - 1)
+        last_lines = lines
+                     |> Enum.slice(range)
+                     |> Enum.zip_with(range, fn line, line_number ->
+                      line_number = line_number + 1
+                      line_padding = line_padding(line_number, max_digits)
+                      formatted_line = "#{line_padding}#{line_number} │ #{line}"
+                       if line_number == end_line do
+                         formatted_line
+                       else
+                         [formatted_line, "\n"]
+                       end
+                     end)
 
         """
         #{start_padding}#{start_line} │ #{first_line}
          #{padding}│ #{unclosed_delimiter(start_column)}
          #{padding}│ ...
-        #{end_padding}#{end_line} │ #{last_line}
+        #{last_lines}
          #{padding}│ #{mismatched_closing_delimiter(end_column)}\
         """
       end

@@ -183,6 +183,7 @@ defmodule Kernel.DiagnosticsTest do
                1 │ [ a,
                  │ └ unclosed delimiter
                  │ ...
+              12 │ 
               13 │   b )
                  │     └ mismatched closing delimiter
                  │
@@ -207,6 +208,7 @@ defmodule Kernel.DiagnosticsTest do
                 1 │ [ a,
                   │ └ unclosed delimiter
                   │ ...
+              402 │ 
               403 │   b )
                   │     └ mismatched closing delimiter
                   │
@@ -232,6 +234,7 @@ defmodule Kernel.DiagnosticsTest do
                99 │ [ a,
                   │ └ unclosed delimiter
                   │ ...
+              106 │ 
               107 │   b )
                   │     └ mismatched closing delimiter
                   │
