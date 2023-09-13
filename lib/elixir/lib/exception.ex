@@ -1041,8 +1041,12 @@ defmodule MismatchedDelimiterError do
     line = Enum.at(lines, end_line - 1)
     formatted_line = "#{line_padding(end_line, max_digits)}#{end_line} │ #{line}"
 
-    mismatched_closing_line = n_spaces(start_column - 1) <> red("│") <> mismatched_closing_delimiter(abs(end_column - start_column))
-         unclosed_delimiter_line = padding <> " │ " <> n_spaces(start_column - 1) <> unclosed_delimiter(start_column)
+    mismatched_closing_line =
+      n_spaces(start_column - 1) <>
+        red("│") <> mismatched_closing_delimiter(abs(end_column - start_column))
+
+    unclosed_delimiter_line =
+      padding <> " │ " <> n_spaces(start_column - 1) <> unclosed_delimiter(start_column)
 
     below_line = "#{padding} │ #{mismatched_closing_line}\n#{unclosed_delimiter_line}"
 

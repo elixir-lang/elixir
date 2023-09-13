@@ -12,18 +12,6 @@ defmodule Kernel.DiagnosticsTest do
 
   describe "mismatched delimiter" do
     test "trims start if distance exceeds threshold in same line" do
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:77:
-          error: unexpected token: }
-          HINT: the "[" on line 1 is missing terminator "]"
-          │
-        1 │ ...long_long_name = [1, 2, 3}
-          │                     │       └ mismatched closing delimiter
-          │                     └ unclosed delimiter
-          │
-          └─ nofile:1:77\
-      """
-
       output =
         capture_raise(
           """
@@ -32,22 +20,20 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:77:
+                 error: unexpected token: }
+                 HINT: the "[" on line 1 is missing terminator "]"
+                 │
+               1 │ ...long_long_name = [1, 2, 3}
+                 │                     │       └ mismatched closing delimiter
+                 │                     └ unclosed delimiter
+                 │
+                 └─ nofile:1:77\
+             """
     end
 
     test "trims in between if distance exceeds threshold in same line" do
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:91:
-          error: unexpected token: )
-          HINT: the "[" on line 1 is missing terminator "]"
-          │
-        1 │ [1, MyLong.ReallyLong...function(), 200)
-          │ │                                      └ mismatched closing delimiter
-          │ └ unclosed delimiter
-          │
-          └─ nofile:1:91\
-      """
-
       output =
         capture_raise(
           """
@@ -56,22 +42,20 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:91:
+                 error: unexpected token: )
+                 HINT: the "[" on line 1 is missing terminator "]"
+                 │
+               1 │ [1, MyLong.ReallyLong...function(), 200)
+                 │ │                                      └ mismatched closing delimiter
+                 │ └ unclosed delimiter
+                 │
+                 └─ nofile:1:91\
+             """
     end
 
     test "same line" do
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:18:
-          error: unexpected token: )
-          HINT: the "[" on line 1 is missing terminator "]"
-          │
-        1 │ [1, 2, 3, 4, 5, 6)
-          │ │                └ mismatched closing delimiter
-          │ └ unclosed delimiter
-          │
-          └─ nofile:1:18\
-      """
-
       output =
         capture_raise(
           """
@@ -80,23 +64,20 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:18:
+                 error: unexpected token: )
+                 HINT: the "[" on line 1 is missing terminator "]"
+                 │
+               1 │ [1, 2, 3, 4, 5, 6)
+                 │ │                └ mismatched closing delimiter
+                 │ └ unclosed delimiter
+                 │
+                 └─ nofile:1:18\
+             """
     end
 
     test "two-line span" do
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:2:9:
-          error: unexpected token: }
-          HINT: the "[" on line 1 is missing terminator "]"
-          │
-        1 │ [a, b, c
-          │ └ unclosed delimiter
-        2 │  d, f, g}
-          │         └ mismatched closing delimiter
-          │
-          └─ nofile:2:9\
-      """
-
       output =
         capture_raise(
           """
@@ -106,26 +87,21 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:2:9:
+                 error: unexpected token: }
+                 HINT: the "[" on line 1 is missing terminator "]"
+                 │
+               1 │ [a, b, c
+                 │ └ unclosed delimiter
+               2 │  d, f, g}
+                 │         └ mismatched closing delimiter
+                 │
+                 └─ nofile:2:9\
+             """
     end
 
     test "many-line span" do
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:5:5:
-          error: unexpected token: )
-          HINT: the "[" on line 1 is missing terminator "]"
-          │
-        1 │ [ a,
-          │ └ unclosed delimiter
-        2 │   b,
-        3 │   c,
-        4 │   d
-        5 │   e )
-          │     └ mismatched closing delimiter
-          │
-          └─ nofile:5:5\
-      """
-
       output =
         capture_raise(
           """
@@ -138,58 +114,57 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:5:5:
+                 error: unexpected token: )
+                 HINT: the "[" on line 1 is missing terminator "]"
+                 │
+               1 │ [ a,
+                 │ └ unclosed delimiter
+               2 │   b,
+               3 │   c,
+               4 │   d
+               5 │   e )
+                 │     └ mismatched closing delimiter
+                 │
+                 └─ nofile:5:5\
+             """
     end
 
     test "trim inbetween lines if too many" do
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:9:5:
-          error: unexpected token: )
-          HINT: the "[" on line 1 is missing terminator "]"
-          │
-        1 │ [ a,
-          │ └ unclosed delimiter
-          │ ...
-        9 │   i )
-          │     └ mismatched closing delimiter
-          │
-          └─ nofile:9:5\
-      """
-
       output =
         capture_raise(
           """
-          [ a,
-            b,
-            c,
-            d,
-            e,
-            f,
-            g,
-            h
-            i )
+          [ :a,
+            :b,
+            :c,
+            :d,
+            :e,
+            :f,
+            :g,
+            :h
+          )
           """,
           MismatchedDelimiterError
         )
 
-      assert output == expected
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:9:1:
+                 error: unexpected token: )
+                 HINT: the "[" on line 1 is missing terminator "]"
+                 │
+               1 │ [ :a,
+                 │ └ unclosed delimiter
+                 │ ...
+               8 │   :h
+               9 │ )
+                 │ └ mismatched closing delimiter
+                 │
+                 └─ nofile:9:1\
+             """
     end
 
     test "pads according to line number digits" do
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:13:5:
-          error: unexpected token: )
-          HINT: the "[" on line 1 is missing terminator "]"
-          │
-        1 │ [ a,
-          │ └ unclosed delimiter
-          │ ...
-       13 │   b )
-          │     └ mismatched closing delimiter
-          │
-          └─ nofile:13:5\
-      """
-
       output =
         capture_raise(
           """
@@ -200,21 +175,19 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
-
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:403:5:
-           error: unexpected token: )
-           HINT: the "[" on line 1 is missing terminator "]"
-           │
-         1 │ [ a,
-           │ └ unclosed delimiter
-           │ ...
-       403 │   b )
-           │     └ mismatched closing delimiter
-           │
-           └─ nofile:403:5\
-      """
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:13:5:
+                 error: unexpected token: )
+                 HINT: the "[" on line 1 is missing terminator "]"
+                 │
+               1 │ [ a,
+                 │ └ unclosed delimiter
+                 │ ...
+              13 │   b )
+                 │     └ mismatched closing delimiter
+                 │
+                 └─ nofile:13:5\
+             """
 
       output =
         capture_raise(
@@ -226,21 +199,19 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
-
-      expected = """
-      ** (MismatchedDelimiterError) mismatched delimiter found on nofile:107:5:
-           error: unexpected token: )
-           HINT: the "[" on line 99 is missing terminator "]"
-           │
-        99 │ [ a,
-           │ └ unclosed delimiter
-           │ ...
-       107 │   b )
-           │     └ mismatched closing delimiter
-           │
-           └─ nofile:107:5\
-      """
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:403:5:
+                  error: unexpected token: )
+                  HINT: the "[" on line 1 is missing terminator "]"
+                  │
+                1 │ [ a,
+                  │ └ unclosed delimiter
+                  │ ...
+              403 │   b )
+                  │     └ mismatched closing delimiter
+                  │
+                  └─ nofile:403:5\
+             """
 
       output =
         capture_raise(
@@ -253,23 +224,22 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:107:5:
+                  error: unexpected token: )
+                  HINT: the "[" on line 99 is missing terminator "]"
+                  │
+               99 │ [ a,
+                  │ └ unclosed delimiter
+                  │ ...
+              107 │   b )
+                  │     └ mismatched closing delimiter
+                  │
+                  └─ nofile:107:5\
+             """
     end
 
     test "trims lines that are too long (> 60 chars)" do
-      expected = """
-      ** (MismatchedDelimiterError) invalid syntax found on nofile:1:17:
-          error: syntax error before: '*'
-          │
-        1 │ ...= { a,
-          │      └ unclosed delimiter
-        2 │ ...
-        3 │ ...    b )
-          │          └ mismatched closing delimiter
-          │
-          └─ nofile:1:17\
-      """
-
       output =
         capture_raise(
           """
@@ -280,20 +250,18 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
-
-      expected = """
-      ** (MismatchedDelimiterError) invalid syntax found on nofile:1:17:
-          error: syntax error before: '*'
-          │
-        1 │ ...aaaa = [ 1,
-          │           └ unclosed delimiter
-          │ ...
-        3 │ ...aaaa" )
-          │          └ mismatched closing delimiter
-          │
-          └─ nofile:1:17\
-      """
+      assert output == """
+             ** (MismatchedDelimiterError) invalid syntax found on nofile:1:17:
+                 error: syntax error before: '*'
+                 │
+               1 │ ...= { a,
+                 │      └ unclosed delimiter
+               2 │ ...
+               3 │ ...    b )
+                 │          └ mismatched closing delimiter
+                 │
+                 └─ nofile:1:17\
+             """
 
       output =
         capture_raise(
@@ -305,7 +273,18 @@ defmodule Kernel.DiagnosticsTest do
           MismatchedDelimiterError
         )
 
-      assert output == expected
+      assert output == """
+             ** (MismatchedDelimiterError) invalid syntax found on nofile:1:17:
+                 error: syntax error before: '*'
+                 │
+               1 │ ...aaaa = [ 1,
+                 │           └ unclosed delimiter
+                 │ ...
+               3 │ ...aaaa" )
+                 │          └ mismatched closing delimiter
+                 │
+                 └─ nofile:1:17\
+             """
     end
   end
 
