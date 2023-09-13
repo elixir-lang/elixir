@@ -144,7 +144,67 @@ TODO
 
 ## Using exceptions for control-flow
 
-TODO
+#### Problem
+
+This anti-pattern refers to code that uses exceptions for control flow. Exception handling itself does not represent an anti-pattern, but developers must prefer to use `case` and pattern matching to change the flow of their code, instead of `try/rescue`. In turn, library authors should provide developers with APIs to handle errors without relying on exception handling. When developers have no freedom to decide if an error is exceptional or not, this is considered an anti-pattern.
+
+#### Example
+
+An example of this anti-pattern, as shown below, is using `try/rescue` to deal with file operations:
+
+```elixir
+defmodule MyModule do
+  def print_file(file) do
+    try do
+      IO.puts(File.read!(file))
+    rescue
+      e -> IO.puts(:stderr, Exception.message(e))
+    end
+  end
+end
+```
+
+```elixir
+iex> MyModule.print_file("valid_file")
+This is a valid file!
+:ok
+iex> MyModule.print_file("invalid_file")
+could not read file "invalid_file": no such file or directory
+:ok
+```
+
+#### Refactoring
+
+To refactor this anti-pattern, as shown next, use `File.read/1`, which returns tuples instead of raising when a file cannot be read:
+
+```elixir
+defmodule MyModule do
+  def print_file(file) do
+    case File.read(file) do
+      {:ok, binary} -> IO.puts(binary)
+      {:error, reason} -> IO.puts(:stderr, "could not read file #{file}: #{reason}")
+    end
+  end
+end
+```
+
+This is only possible because the `File` module provides APIs for reading files with tuples as results (`File.read/1`), as well as a version that raises an exception (`File.read!/1`). The bang (exclamation point) is effectively part of [Elixir's naming conventions](naming-conventions.html#trailing-bang-foo).
+
+Library authors are encouraged to follow the same practices. In practice, the bang variant is implemented on top of the non-raising version of the code. For example, `File.read/1` is implemented as:
+
+```elixir
+def read!(path) do
+  case read(path) do
+    {:ok, binary} ->
+      binary
+
+    {:error, reason} ->
+      raise File.Error, reason: reason, action: "read file", path: IO.chardata_to_string(path)
+  end
+end
+```
+
+A common practice followed by the community is to make the non-raising version to return `{:ok, result}` or `{:error, Exception.t}`. For example, an HTTP client may return `{:ok, %HTTP.Response{}}` on success cases and a `{:error, %HTTP.Error{}}` for failures, where `HTTP.Error` is [implemented as an exception](`Kernel.defexception/1`). This makes it convenient for anyone to raise an exception by simply calling `Kernel.raise/1`.
 
 ## Using application configuration for libraries
 
