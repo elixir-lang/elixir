@@ -431,7 +431,7 @@ defmodule Code.Formatter do
     {color("nil", nil, state.inspect_opts), state}
   end
 
-  defp quoted_to_algebra({:__block__, meta, _} = block, _context, state) do
+  defp quoted_to_algebra({:__block__, meta, args} = block, _context, state) when is_list(args) do
     {block, state} = block_to_algebra(block, line(meta), closing_line(meta), state)
     {surround("(", block, ")"), state}
   end
