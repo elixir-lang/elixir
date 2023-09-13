@@ -491,7 +491,8 @@ defmodule EEx.Compiler do
 
   defp syntax_error!(message, meta, state) do
     raise EEx.SyntaxError,
-      message: message <> code_snippet(state.source, state.indentation, meta),
+      message: message,
+      snippet: code_snippet(state.source, state.indentation, meta),
       file: state.file,
       line: meta.line,
       column: meta.column

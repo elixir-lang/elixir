@@ -273,6 +273,19 @@ defmodule EExTest do
   end
 
   describe "raises syntax errors" do
+    test "with relative file information" do
+      message = """
+      foobar.eex:1:5: expected closing '%>' for EEx expression
+        |
+      1 | foo <%= bar
+        |     ^\
+      """
+
+      assert_raise EEx.SyntaxError, message, fn ->
+        EEx.compile_string("foo <%= bar", file: Path.join(File.cwd!(), "foobar.eex"))
+      end
+    end
+
     test "when the token is invalid" do
       message = """
       nofile:1:5: expected closing '%>' for EEx expression
