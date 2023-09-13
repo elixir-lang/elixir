@@ -1419,7 +1419,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
     ExpectedEnd ->
       Suffix =
         io_lib:format(
-          "\n\n    HINT: the \"~ts\" on line ~B is missing terminator \"~ts\"",
+          "\nHINT: the \"~ts\" on line ~B is missing terminator \"~ts\"",
           [Start, StartLine, ExpectedEnd]
         ),
       StartLoc = ?LOC(StartLine, StartColumn),

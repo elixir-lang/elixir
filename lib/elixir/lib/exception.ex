@@ -937,6 +937,8 @@ defmodule MismatchedDelimiterError do
   - `fn a -> )`
   """
 
+  @max_lines_shown 5
+
   defexception [
     :file,
     :line,
@@ -949,26 +951,116 @@ defmodule MismatchedDelimiterError do
 
   @impl true
   def message(%{
-        line: _start_line,
-        column: _start_column,
+        line: start_line,
+        column: start_column,
         end_line: end_line,
         end_column: end_column,
         description: description,
         file: file,
         snippet: snippet
       }) do
-    snippet =
-      :elixir_errors.format_snippet(
-        {end_line, end_column},
-        file,
-        description,
-        snippet,
-        :error,
-        [],
-        nil
-      )
+    start_pos = {start_line, start_column}
+    end_pos = {end_line, end_column}
+    lines = String.split(snippet, "\n")
 
+    snippet = format_snippet(start_pos, end_pos, description, file, lines)
     format_message(file, end_line, end_column, snippet)
+  end
+
+  defp format_snippet(
+         {start_line, start_column} = start_pos,
+         {end_line, end_column} = end_pos,
+         description,
+         file,
+         lines
+       )
+       when start_line < end_line do
+    digits = length(Integer.digits(end_line))
+    total_padding = max(2, digits) + 1
+    padding = String.duplicate(" ", total_padding)
+
+    relevant_lines =
+      if end_line - start_line < @max_lines_shown do
+        line_range(lines, start_pos, end_pos, padding)
+      else
+        first_line = Enum.at(lines, start_line - 1)
+        last_line = Enum.at(lines, end_line - 1)
+
+        """
+         #{padding}#{start_line} │ #{first_line}
+         #{padding}│ #{unclosed_delimiter(start_column)}
+         #{padding}│ ...
+         #{padding}#{end_line} │ #{last_line}
+         #{padding}│ #{mismatched_closing_delimiter(end_column)}\
+        """
+      end
+
+    """
+     #{padding}#{red("error:")} #{pad_message(description, padding)}
+     #{padding}│
+     #{relevant_lines}
+     #{padding}│
+     #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
+    """
+  end
+
+  defp format_snippet(
+         {start_line, _start_column},
+         {end_line, _end_column},
+         _description,
+         _file,
+         _lines
+       )
+       when start_line == end_line do
+    "TODO: same line case"
+  end
+
+  defp line_range(lines, {start_line, start_column}, {end_line, end_column}, padding) do
+    start_line = start_line - 1
+    end_line = end_line - 1
+
+    lines
+    |> Enum.slice(start_line..end_line)
+    |> Enum.zip(start_line..end_line)
+    |> Enum.map(fn {line, line_number} ->
+      line_number = line_number + 1
+      start_line = start_line + 1
+      end_line = end_line + 1
+
+      cond do
+        line_number == start_line ->
+          """
+          #{line_number} │ #{line}
+           #{padding}│ #{unclosed_delimiter(start_column)}\
+          """
+
+        line_number == end_line ->
+          """
+           #{line_number} │ #{line}
+           #{padding}│ #{mismatched_closing_delimiter(end_column)}\
+          """
+
+        true ->
+          " #{line_number} │ #{line}"
+      end
+    end)
+    |> Enum.join("\n")
+  end
+
+  defp mismatched_closing_delimiter(end_column),
+    do: String.duplicate(" ", end_column - 1) <> red("└ mismatched closing delimiter")
+
+  defp unclosed_delimiter(start_column),
+    do: String.duplicate(" ", start_column - 1) <> red("└ unclosed delimiter")
+
+  defp pad_message(message, padding), do: String.replace(message, "\n", "\n #{padding}")
+
+  defp red(string) do
+    if IO.ANSI.enabled?() do
+      IO.ANSI.red() <> string <> IO.ANSI.reset()
+    else
+      string
+    end
   end
 
   defp format_message(file, line, column, message) do

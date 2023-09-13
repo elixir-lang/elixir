@@ -399,11 +399,9 @@ parse_erl_term(Term) ->
   Parsed.
 
 raise_mismatched_delimiter(Location, File, Input, Message) ->
-  {end_line, EndLine} = lists:keyfind(end_line, 1, Location),
-  {end_column, EndCol} = lists:keyfind(end_column, 1, Location),
-  {InputString, InputStartLine, _} = Input,
-  Snippet = snippet_line(InputString, [{line, EndLine}, {column, EndCol}], InputStartLine),
-  raise('Elixir.MismatchedDelimiterError', Message,  [{file, File}, {snippet, Snippet} | Location]).
+  {InputString, _, _} = Input,
+  InputBinary = iolist_to_binary(InputString),
+  raise('Elixir.MismatchedDelimiterError', Message,  [{file, File}, {snippet, InputBinary} | Location]).
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',
