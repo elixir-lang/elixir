@@ -860,10 +860,6 @@ expand_remote(Receiver, DotMeta, Right, Meta, NoParens, Args, S, SL, #{context :
 
     true ->
       AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
-
-      is_atom(Receiver) andalso
-        elixir_env:trace({remote_function, Meta, Receiver, Right, length(Args)}, E),
-
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
 
       case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs, S) of
