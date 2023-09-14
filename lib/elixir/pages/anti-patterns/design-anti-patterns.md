@@ -138,26 +138,28 @@ Using multi-clause functions in Elixir, to group functions of the same name, is 
 
 #### Example
 
-A recurrent example of abusive use of multi-clause functions is when we’re trying to mix too much-unrelated business logic into the function definitions. This makes it difficult to read and understand the logic involved in the functions, which may impair code maintainability. Some developers use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, but unfortunately, with a multi-clause function, we can only use these annotations once per function name, particularly on the first or header function. As shown next, all other variations of the function need to be documented only with comments, a mechanism that cannot automate tests, leaving the code prone to bugs.
+A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the function definitions. This makes it difficult to read and understand the logic involved in the functions, which may impair code maintainability. Some developers use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, but unfortunately, with a multi-clause function, we can only use these annotations once per function name, particularly on the first or header function. As shown next, all other variations of the function need to be documented only with comments, a mechanism that cannot automate tests, leaving the code prone to bugs.
 
 ```elixir
 @doc """
-Update sharp product with 0 or empty count
+Updates "sharp" product with `0` or empty count.
 
 ## Examples
-iex> Namespace.Module.update(...)
-expected result...
+
+    iex> Namespace.Module.update(...)
+    ...
+
 """
 def update(%Product{count: nil, material: material}) when material in ["metal", "glass"] do
   # ...
 end
 
-# update blunt product
+# Updates "blunt" product
 def update(%Product{count: count, material: material}) when count > 0 and material in ["metal", "glass"] do
   # ...
 end
 
-# update animal...
+# Updates animal
 def update(%Animal{count: 1, skin: skin}) when skin in ["fur", "hairy"] do
   # ...
 end
@@ -169,43 +171,43 @@ As shown below, a possible solution to this anti-pattern is to break the busines
 
 ```elixir
 @doc """
-Update sharp product
-
-## Parameter
-struct: %Product{...}
+Updates a "sharp" product.
 
 ## Examples
-iex> Namespace.Module.update_sharp_product(%Product{...})
-expected result...
+
+    iex> Namespace.Module.update_sharp_product(%Product{...})
+    ...
+
 """
+@spec update_sharp_product(Product.t()) :: term()
 def update_sharp_product(struct) do
   # ...
 end
 
 @doc """
-Update blunt product
-
-## Parameter
-struct: %Product{...}
+Updates a "blunt" product.
 
 ## Examples
-iex> Namespace.Module.update_blunt_product(%Product{...})
-expected result...
+
+    iex> Namespace.Module.update_blunt_product(%Product{...})
+    ...
+    
 """
+@spec update_blunt_product(Product.t()) :: term()
 def update_blunt_product(struct) do
   # ...
 end
 
 @doc """
-Update animal
-
-## Parameter
-struct: %Animal{...}
+Updates an animal.
 
 ## Examples
-iex> Namespace.Module.update_animal(%Animal{...})
-expected result...
+
+    iex> Namespace.Module.update_animal(%Animal{...})
+    ...
+
 """
+@spec update_animal(Animal.t()) :: term()
 def update_animal(struct) do
   # ...
 end
