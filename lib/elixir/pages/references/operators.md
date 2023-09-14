@@ -6,28 +6,28 @@ This document is a complete reference of operators in Elixir, how they are parse
 
 The following is a list of all operators that Elixir is capable of parsing, ordered from higher to lower precedence, alongside their associativity:
 
-Operator                                       | Associativity
----------------------------------------------- | -------------
-`@`                                            | Unary
-`.`                                            | Left
-`+` `-` `!` `^` `not`                          | Unary
-`**`                                           | Left
-`*` `/`                                        | Left
-`+` `-`                                        | Left
-`++` `--` `+++` `---` `..` `<>`                | Right
-`in` `not in`                                  | Left
-`\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>`  | Left
-`<` `>` `<=` `>=`                              | Left
-`==` `!=` `=~` `===` `!==`                     | Left
-`&&` `&&&` `and`                               | Left
-`\|\|` `\|\|\|` `or`                           | Left
-`=`                                            | Right
-`&`                                            | Unary
-`=>` (valid only inside `%{}`)                 | Right
-`\|`                                           | Right
-`::`                                           | Right
-`when`                                         | Right
-`<-` `\\`                                      | Left
+Operator                                             | Associativity
+---------------------------------------------------- | -------------
+`@`                                                  | Unary
+`.`                                                  | Left
+`+` `-` `!` `^` `not`                                | Unary
+`**`                                                 | Left
+`*` `/`                                              | Left
+`+` `-`                                              | Left
+`++` `--` `+++` `---` `..` `<>`                      | Right
+`in` `not in`                                        | Left
+`\|>` `<\|>` `<<<` `>>>` `<<~` `~>>` `<~` `~>` `<~>` | Left
+`<` `>` `<=` `>=`                                    | Left
+`==` `!=` `=~` `===` `!==`                           | Left
+`&&` `&&&` `and`                                     | Left
+`\|\|` `\|\|\|` `or`                                 | Left
+`=`                                                  | Right
+`&`                                                  | Unary
+`=>` (valid only inside `%{}`)                       | Right
+`\|`                                                 | Right
+`::`                                                 | Right
+`when`                                               | Right
+`<-` `\\`                                            | Left
 
 ## General operators
 
@@ -129,6 +129,7 @@ The following is a table of all the operators that Elixir is capable of parsing,
   * `<~`
   * `~>`
   * `<~>`
+  * `<|>`
   * `+++`
   * `---`
 
