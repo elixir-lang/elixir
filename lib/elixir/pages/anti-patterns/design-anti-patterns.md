@@ -132,7 +132,84 @@ iex> AlternativeInteger.parse_discard_rest("13")
 
 ## Unrelated multi-clause function
 
-TODO
+#### Problem
+
+Using multi-clause functions in Elixir, to group functions of the same name, is not an anti-pattern in itself. However, due to the great flexibility provided by this programming feature, some developers may abuse the number of guard clauses and pattern matches to group *unrelated* functionality.
+
+#### Example
+
+A recurrent example of abusive use of multi-clause functions is when we’re trying to mix too much-unrelated business logic into the function definitions. This makes it difficult to read and understand the logic involved in the functions, which may impair code maintainability. Some developers use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, but unfortunately, with a multi-clause function, we can only use these annotations once per function name, particularly on the first or header function. As shown next, all other variations of the function need to be documented only with comments, a mechanism that cannot automate tests, leaving the code prone to bugs.
+
+```elixir
+@doc """
+Update sharp product with 0 or empty count
+
+## Examples
+iex> Namespace.Module.update(...)
+expected result...
+"""
+def update(%Product{count: nil, material: material}) when material in ["metal", "glass"] do
+  # ...
+end
+
+# update blunt product
+def update(%Product{count: count, material: material}) when count > 0 and material in ["metal", "glass"] do
+  # ...
+end
+
+# update animal...
+def update(%Animal{count: 1, skin: skin}) when skin in ["fur", "hairy"] do
+  # ...
+end
+```
+
+#### Refactoring
+
+As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in several different simple functions. Each function can have a specific `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can have a lot of impact on the function's current users, so be careful!
+
+```elixir
+@doc """
+Update sharp product
+
+## Parameter
+struct: %Product{...}
+
+## Examples
+iex> Namespace.Module.update_sharp_product(%Product{...})
+expected result...
+"""
+def update_sharp_product(struct) do
+  # ...
+end
+
+@doc """
+Update blunt product
+
+## Parameter
+struct: %Product{...}
+
+## Examples
+iex> Namespace.Module.update_blunt_product(%Product{...})
+expected result...
+"""
+def update_blunt_product(struct) do
+  # ...
+end
+
+@doc """
+Update animal
+
+## Parameter
+struct: %Animal{...}
+
+## Examples
+iex> Namespace.Module.update_animal(%Animal{...})
+expected result...
+"""
+def update_animal(struct) do
+  # ...
+end
+```
 
 ## Feature envy
 
