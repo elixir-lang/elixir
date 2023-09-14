@@ -1003,7 +1003,7 @@ defmodule MismatchedDelimiterError do
         """
         #{start_padding}#{start_line} │ #{first_line}
          #{padding}│ #{unclosed_delimiter(start_column)}
-         #{padding}│ ...
+         ...
         #{last_lines}
          #{padding}│ #{mismatched_closing_delimiter(end_column)}\
         """
