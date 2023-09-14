@@ -308,6 +308,24 @@ defmodule Mix.Tasks.FormatTest do
                '''abc
              end
              """
+
+      {formatter_function, _options} = Mix.Tasks.Format.formatter_for_file("a.ex")
+
+      assert formatter_function.("""
+             if true do
+               ~W'''
+               foo bar baz
+               '''abc
+             end
+             """) == """
+             if true do
+               ~W'''
+               foo
+               bar
+               baz
+               '''abc
+             end
+             """
     end)
   end
 
