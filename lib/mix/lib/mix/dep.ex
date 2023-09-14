@@ -114,12 +114,12 @@ defmodule Mix.Dep do
         write_cached_deps(top, {env, target}, load_and_cache(config, top, bottom, env, target))
 
       _ ->
-        converge(env: env, target: target)
+        converge_and_load(env: env, target: target)
     end
   end
 
   defp load_and_cache(_config, top, top, env, target) do
-    converge(env: env, target: target)
+    converge_and_load(env: env, target: target)
   end
 
   defp load_and_cache(config, _top, bottom, _env, _target) do
@@ -152,6 +152,20 @@ defmodule Mix.Dep do
     end)
   end
 
+  defp converge_and_load(opts) do
+    for %{app: app, opts: opts} = dep <- Mix.Dep.Converger.converge(opts) do
+      case Keyword.pop(opts, :app_properties) do
+        {nil, _opts} ->
+          dep
+
+        {app_properties, opts} ->
+          # We don't raise because child dependencies may be missing if manually cleaned
+          :application.load({:application, app, app_properties})
+          %{dep | opts: opts}
+      end
+    end
+  end
+
   defp read_cached_deps(project, env_target) do
     case Mix.State.read_cache({:cached_deps, project}) do
       {^env_target, deps} -> deps
@@ -172,25 +186,6 @@ defmodule Mix.Dep do
       key = {:cached_deps, project}
       Mix.State.delete_cache(key)
     end
-  end
-
-  @doc """
-  Returns loaded dependencies recursively on the given environment.
-
-  If no environment is passed, dependencies are loaded across all
-  environments. The result is not cached.
-
-  ## Exceptions
-
-  This function raises an exception if any of the dependencies
-  provided in the project are in the wrong format.
-  """
-  def load_on_environment(opts) do
-    converge(opts)
-  end
-
-  defp converge(opts) do
-    Mix.Dep.Converger.converge(nil, nil, opts, &{&1, &2, &3}) |> elem(0)
   end
 
   @doc """

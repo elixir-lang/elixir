@@ -44,8 +44,10 @@ extract([$\\, $#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) -
 extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
   Output1 = build_string(Buffer, Output),
   case elixir_tokenizer:tokenize(Rest, Line, Column + 2, Scope#elixir_tokenizer{terminators=[]}) of
-    {error, {EndLine, EndColumn, _, "}"}, [$} | NewRest], Warnings, Tokens} ->
+    {error, {Location, _, "}"}, [$} | NewRest], Warnings, Tokens} ->
       NewScope = Scope#elixir_tokenizer{warnings=Warnings},
+      {line, EndLine} = lists:keyfind(line, 1, Location),
+      {column, EndColumn} = lists:keyfind(column, 1, Location),
       Output2 = build_interpol(Line, Column, EndLine, EndColumn, lists:reverse(Tokens), Output1),
       extract(NewRest, [], Output2, EndLine, EndColumn + 1, NewScope, true, Last);
     {error, Reason, _, _, _} ->
@@ -76,7 +78,7 @@ extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
       Token = io_lib:format("\\u~4.16.0B", [Char]),
       Pre = "invalid bidirectional formatting character in string: ",
       Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
-      {error, {Line, Column, {Pre, Pos}, Token}};
+      {error, {?LOC(Line, Column), {Pre, Pos}, Token}};
 
     [Char | NewRest] ->
       extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);

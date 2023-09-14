@@ -928,6 +928,55 @@ defmodule SystemLimitError do
   defexception message: "a system limit has been reached"
 end
 
+defmodule MismatchedDelimiterError do
+  @moduledoc """
+  An exception raised when a mismatched delimiter is found when parsing code.
+
+  For example:
+  - `[1, 2, 3}`
+  - `fn a -> )`
+  """
+
+  defexception [
+    :file,
+    :line,
+    :column,
+    :end_line,
+    :end_column,
+    :snippet,
+    description: "mismatched delimiter error"
+  ]
+
+  @impl true
+  def message(%{
+        line: _start_line,
+        column: _start_column,
+        end_line: end_line,
+        end_column: end_column,
+        description: description,
+        file: file,
+        snippet: snippet
+      }) do
+    snippet =
+      :elixir_errors.format_snippet(
+        {end_line, end_column},
+        file,
+        description,
+        snippet,
+        :error,
+        [],
+        nil
+      )
+
+    format_message(file, end_line, end_column, snippet)
+  end
+
+  defp format_message(file, line, column, message) do
+    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
+    "mismatched delimiter found on " <> location <> "\n" <> message
+  end
+end
+
 defmodule SyntaxError do
   @moduledoc """
   An exception raised when there's a syntax error when parsing code.

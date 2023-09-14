@@ -431,7 +431,7 @@ defmodule Code.Formatter do
     {color("nil", nil, state.inspect_opts), state}
   end
 
-  defp quoted_to_algebra({:__block__, meta, _} = block, _context, state) do
+  defp quoted_to_algebra({:__block__, meta, args} = block, _context, state) when is_list(args) do
     {block, state} = block_to_algebra(block, line(meta), closing_line(meta), state)
     {surround("(", block, ")"), state}
   end
@@ -1419,7 +1419,9 @@ defmodule Code.Formatter do
 
   defp bitstring_segment_to_algebra({{:"::", _, [segment, spec]}, i}, state, last) do
     {doc, state} = quoted_to_algebra(segment, :parens_arg, state)
-    {spec, state} = bitstring_spec_to_algebra(spec, state, state.normalize_bitstring_modifiers)
+
+    {spec, state} =
+      bitstring_spec_to_algebra(spec, state, state.normalize_bitstring_modifiers, :"::")
 
     spec = wrap_in_parens_if_inspected_atom(spec)
     spec = if i == last, do: bitstring_wrap_parens(spec, i, last), else: spec
@@ -1438,15 +1440,17 @@ defmodule Code.Formatter do
     {bitstring_wrap_parens(doc, i, last), state}
   end
 
-  defp bitstring_spec_to_algebra({op, _, [left, right]}, state, normalize_modifiers)
+  defp bitstring_spec_to_algebra({op, _, [left, right]}, state, normalize_modifiers, paren_op)
        when op in [:-, :*] do
     normalize_modifiers = normalize_modifiers && op != :*
-    {left, state} = bitstring_spec_to_algebra(left, state, normalize_modifiers)
+    {left, state} = bitstring_spec_to_algebra(left, state, normalize_modifiers, op)
     {right, state} = bitstring_spec_element_to_algebra(right, state, normalize_modifiers)
-    {concat(concat(left, Atom.to_string(op)), right), state}
+    doc = concat(concat(left, Atom.to_string(op)), right)
+    doc = if paren_op == :*, do: wrap_in_parens(doc), else: doc
+    {doc, state}
   end
 
-  defp bitstring_spec_to_algebra(spec, state, normalize_modifiers) do
+  defp bitstring_spec_to_algebra(spec, state, normalize_modifiers, _paren_op) do
     bitstring_spec_element_to_algebra(spec, state, normalize_modifiers)
   end
 

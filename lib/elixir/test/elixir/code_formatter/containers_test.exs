@@ -275,6 +275,8 @@ defmodule Code.Formatter.ContainersTest do
       assert_format "<< 1 :: 2 - unit(3) >>", "<<1::2-unit(3)>>"
       assert_format "<< 1 :: 2 * 3 - unit(4) >>", "<<1::2*3-unit(4)>>"
       assert_format "<< 1 :: 2 - unit(3) - 4 / 5 >>", "<<1::2-unit(3)-(4 / 5)>>"
+      assert_format "<<0 :: ( x - 1 ) * 5>>", "<<0::(x-1)*5>>"
+      assert_format "<<0 :: 2 * 3 * 4>>", "<<0::(2*3)*4>>"
     end
 
     test "in comprehensions" do

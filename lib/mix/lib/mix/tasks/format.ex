@@ -306,6 +306,8 @@ defmodule Mix.Tasks.Format do
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
 
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+
     find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
   end
 
@@ -450,7 +452,8 @@ defmodule Mix.Tasks.Format do
       _ ->
         Mix.raise(
           "Unknown dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
-            "Make sure the dependency is listed in your mix.exs and you have run \"mix deps.get\""
+            "Make sure the dependency is listed in your mix.exs for environment #{inspect(Mix.env())} " <>
+            "and you have run \"mix deps.get\""
         )
     end
   end

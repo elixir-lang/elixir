@@ -130,11 +130,15 @@ dispatch_require(Meta, Receiver, Name, Args, S, E, Callback) when is_atom(Receiv
 
   case elixir_rewrite:inline(Receiver, Name, Arity) of
     {AR, AN} ->
+      elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
       Callback(AR, AN, Args);
     false ->
       case expand_require(Meta, Receiver, {Name, Arity}, Args, S, E) of
-        {ok, Receiver, Quoted} -> expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E);
-        error -> Callback(Receiver, Name, Args)
+        {ok, Receiver, Quoted} ->
+          expand_quoted(Meta, Receiver, Name, Arity, Quoted, S, E);
+        error ->
+          elixir_env:trace({remote_function, Meta, Receiver, Name, Arity}, E),
+          Callback(Receiver, Name, Args)
       end
   end;
 

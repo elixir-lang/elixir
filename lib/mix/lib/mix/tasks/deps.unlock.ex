@@ -83,7 +83,7 @@ defmodule Mix.Tasks.Deps.Unlock do
   end
 
   defp unused_apps(lock) do
-    apps = Mix.Dep.load_on_environment([]) |> Enum.map(& &1.app)
+    apps = Mix.Dep.Converger.converge([]) |> Enum.map(& &1.app)
 
     lock
     |> Map.drop(apps)

@@ -41,7 +41,7 @@ defmodule Mix.Tasks.Deps.Clean do
           value = opts[switch],
           do: {key, :"#{value}"}
 
-    loaded_deps = Mix.Dep.load_on_environment(loaded_opts)
+    loaded_deps = Mix.Dep.Converger.converge(loaded_opts)
 
     apps_to_clean =
       cond do

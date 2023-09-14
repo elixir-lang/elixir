@@ -118,6 +118,7 @@ defmodule Kernel.TracersTest do
     require Integer
     true = Integer.is_odd(1)
     {1, ""} = Integer.parse("1")
+    "foo" = Atom.to_string(:foo)
     """)
 
     assert_receive {{:remote_macro, meta, Integer, :is_odd, 1}, _}
@@ -127,6 +128,10 @@ defmodule Kernel.TracersTest do
     assert_receive {{:remote_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
     assert meta[:column] == 19
+
+    assert_receive {{:remote_function, meta, Atom, :to_string, 1}, _}
+    assert meta[:line] == 4
+    assert meta[:column] == 14
   end
 
   test "traces remote via captures" do
