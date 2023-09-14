@@ -306,6 +306,8 @@ defmodule Mix.Tasks.Format do
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
 
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+
     find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
   end
 
