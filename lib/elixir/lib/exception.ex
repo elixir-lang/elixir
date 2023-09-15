@@ -947,7 +947,6 @@ defmodule MismatchedDelimiterError do
     :end_column,
     :opening_delimiter,
     :closing_delimiter,
-    :expected_closing_delimiter,
     :snippet,
     description: "mismatched delimiter error"
   ]
@@ -959,17 +958,17 @@ defmodule MismatchedDelimiterError do
         end_line: end_line,
         end_column: end_column,
         description: description,
-        opening_delimiter: _open_delimiter,
-        closing_delimiter: _close_delimiter,
-        expected_closing_delimiter: expected_closing_delimiter,
+        opening_delimiter: opening_delimiter,
+        closing_delimiter: _closing_delimiter,
         file: file,
         snippet: snippet
       }) do
     start_pos = {start_line, start_column}
     end_pos = {end_line, end_column}
     lines = String.split(snippet, "\n")
+    expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
 
-    snippet = format_snippet(start_pos, end_pos, description, file, lines, expected_closing_delimiter)
+    snippet = format_snippet(start_pos, end_pos, description, file, lines, expected_delimiter)
     format_message(file, end_line, end_column, snippet)
   end
 
@@ -979,7 +978,7 @@ defmodule MismatchedDelimiterError do
          description,
          file,
          lines,
-         close_delimiter
+         expected_delimiter
        )
        when start_line < end_line do
     max_digits = digits(end_line)
@@ -988,9 +987,16 @@ defmodule MismatchedDelimiterError do
 
     relevant_lines =
       if end_line - start_line < @max_lines_shown do
-        line_range(lines, start_pos, end_pos, padding, max_digits, close_delimiter)
+        line_range(lines, start_pos, end_pos, padding, max_digits, expected_delimiter)
       else
-        trimmed_inbetween_lines(lines, start_pos, end_pos, padding, max_digits, close_delimiter)
+        trimmed_inbetween_lines(
+          lines,
+          start_pos,
+          end_pos,
+          padding,
+          max_digits,
+          expected_delimiter
+        )
       end
 
     """
@@ -1008,7 +1014,7 @@ defmodule MismatchedDelimiterError do
          description,
          file,
          lines,
-         close_delimiter
+         expected_delimiter
        )
        when start_line == end_line do
     max_digits = digits(end_line)
@@ -1022,7 +1028,7 @@ defmodule MismatchedDelimiterError do
       [
         n_spaces(start_column - 1),
         red("│"),
-        mismatched_closing_delimiter(end_column - start_column, close_delimiter)
+        mismatched_closing_delimiter(end_column - start_column, expected_delimiter)
       ]
 
     unclosed_delimiter_line =
@@ -1065,7 +1071,7 @@ defmodule MismatchedDelimiterError do
          {end_line, end_column},
          padding,
          max_digits,
-         close_delimiter
+         expected_delimiter
        ) do
     start_padding = line_padding(start_line, max_digits)
     end_padding = line_padding(end_line, max_digits)
@@ -1077,11 +1083,18 @@ defmodule MismatchedDelimiterError do
      #{padding}│ #{unclosed_delimiter(start_column)}
      ...
     #{end_padding}#{end_line} │ #{last_line}
-     #{padding}│ #{mismatched_closing_delimiter(end_column, close_delimiter)}\
+     #{padding}│ #{mismatched_closing_delimiter(end_column, expected_delimiter)}\
     """
   end
 
-  defp line_range(lines, {start_line, start_column}, {end_line, end_column}, padding, max_digits, close_delimiter) do
+  defp line_range(
+         lines,
+         {start_line, start_column},
+         {end_line, end_column},
+         padding,
+         max_digits,
+         expected_delimiter
+       ) do
     start_line = start_line - 1
     end_line = end_line - 1
 
@@ -1116,7 +1129,7 @@ defmodule MismatchedDelimiterError do
             "\n",
             padding,
             " │ ",
-            mismatched_closing_delimiter(end_column, close_delimiter)
+            mismatched_closing_delimiter(end_column, expected_delimiter)
           ]
 
         true ->
@@ -1127,7 +1140,10 @@ defmodule MismatchedDelimiterError do
   end
 
   defp mismatched_closing_delimiter(end_column, expected_closing_delimiter),
-    do: [n_spaces(end_column - 1), red(~s/└ mismatched closing delimiter (expecting "#{expected_closing_delimiter}")/)]
+    do: [
+      n_spaces(end_column - 1),
+      red(~s/└ mismatched closing delimiter (expecting "#{expected_closing_delimiter}")/)
+    ]
 
   defp unclosed_delimiter(start_column),
     do: [n_spaces(start_column - 1), red("└ unclosed delimiter")]

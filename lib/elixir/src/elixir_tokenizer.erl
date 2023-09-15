@@ -1,7 +1,7 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
 -include("elixir_tokenizer.hrl").
--export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1]).
+-export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1, terminator/1]).
 
 -define(at_op(T),
   T =:= $@).
@@ -1416,7 +1416,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
     End ->
       {ok, Scope#elixir_tokenizer{terminators=Terminators}};
 
-    ExpectedEnd ->
+    _ExpectedEnd ->
       Meta = [
         {line, StartLine},
         {column, StartColumn},
@@ -1424,8 +1424,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
         {end_column, EndColumn},
         {error_type, mismatched_delimiter},
         {opening_delimiter, Start},
-        {closing_delimiter, End},
-        {expected_closing_delimiter, ExpectedEnd}
+        {closing_delimiter, End}
      ],
      {error, {Meta, unexpected_token_or_reserved(End), [atom_to_list(End)]}}
   end;
