@@ -1142,7 +1142,7 @@ defmodule MismatchedDelimiterError do
   defp mismatched_closing_delimiter(end_column, expected_closing_delimiter),
     do: [
       n_spaces(end_column - 1),
-      red(~s/└ mismatched closing delimiter (expecting "#{expected_closing_delimiter}")/)
+      red(~s/└ mismatched closing delimiter (expected "#{expected_closing_delimiter}")/)
     ]
 
   defp unclosed_delimiter(start_column),

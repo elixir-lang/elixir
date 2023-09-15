@@ -25,7 +25,7 @@ defmodule Kernel.DiagnosticsTest do
                  error: unexpected token: )
                  │
                1 │ [1, 2, 3, 4, 5, 6)
-                 │ │                └ mismatched closing delimiter (expecting "]")
+                 │ │                └ mismatched closing delimiter (expected "]")
                  │ └ unclosed delimiter
                  │
                  └─ nofile:1:18\
@@ -49,7 +49,7 @@ defmodule Kernel.DiagnosticsTest do
                1 │ [a, b, c
                  │ └ unclosed delimiter
                2 │  d, f, g}
-                 │         └ mismatched closing delimiter (expecting "]")
+                 │         └ mismatched closing delimiter (expected "]")
                  │
                  └─ nofile:2:9\
              """
@@ -78,7 +78,7 @@ defmodule Kernel.DiagnosticsTest do
                3 │   c,
                4 │   d
                5 │   e )
-                 │     └ mismatched closing delimiter (expecting "]")
+                 │     └ mismatched closing delimiter (expected "]")
                  │
                  └─ nofile:5:5\
              """
@@ -101,7 +101,7 @@ defmodule Kernel.DiagnosticsTest do
                  │ └ unclosed delimiter
                2 │   IO.inspect(2 + 2) + 2
                3 │ )
-                 │ └ mismatched closing delimiter (expecting "end")
+                 │ └ mismatched closing delimiter (expected "end")
                  │
                  └─ nofile:3:1\
              """
@@ -132,7 +132,7 @@ defmodule Kernel.DiagnosticsTest do
                  │ └ unclosed delimiter
               ...
                9 │ )
-                 │ └ mismatched closing delimiter (expecting "]")
+                 │ └ mismatched closing delimiter (expected "]")
                  │
                  └─ nofile:9:1\
              """
@@ -157,7 +157,7 @@ defmodule Kernel.DiagnosticsTest do
                  │ └ unclosed delimiter
               ...
               13 │   b )
-                 │     └ mismatched closing delimiter (expecting "]")
+                 │     └ mismatched closing delimiter (expected "]")
                  │
                  └─ nofile:13:5\
              """
@@ -180,7 +180,7 @@ defmodule Kernel.DiagnosticsTest do
                   │ └ unclosed delimiter
               ...
               403 │   b )
-                  │     └ mismatched closing delimiter (expecting "]")
+                  │     └ mismatched closing delimiter (expected "]")
                   │
                   └─ nofile:403:5\
              """
@@ -204,7 +204,7 @@ defmodule Kernel.DiagnosticsTest do
                   │ └ unclosed delimiter
               ...
               107 │   b )
-                  │     └ mismatched closing delimiter (expecting "]")
+                  │     └ mismatched closing delimiter (expected "]")
                   │
                   └─ nofile:107:5\
              """
