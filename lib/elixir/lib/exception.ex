@@ -968,7 +968,7 @@ defmodule MismatchedDelimiterError do
   end
 
   defp format_snippet(
-         {start_line, start_column} = start_pos,
+         {start_line, _start_column} = start_pos,
          {end_line, end_column} = end_pos,
          description,
          file,
@@ -994,25 +994,6 @@ defmodule MismatchedDelimiterError do
      #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
     """
   end
-
-  defp line_padding(line_number, max_digits) do
-    line_digits = digits(line_number)
-
-    spacing =
-      if line_digits == 1 do
-        max(2, max_digits)
-      else
-        max_digits - line_digits + 1
-      end
-
-    n_spaces(spacing)
-  end
-
-  defp n_spaces(n), do: String.duplicate(" ", n)
-
-  defp digits(number, acc \\ 1)
-  defp digits(number, acc) when number < 10, do: acc
-  defp digits(number, acc), do: digits(div(number, 10), acc + 1)
 
   defp format_snippet(
          {start_line, start_column},
@@ -1050,6 +1031,25 @@ defmodule MismatchedDelimiterError do
      #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
     """
   end
+
+  defp line_padding(line_number, max_digits) do
+    line_digits = digits(line_number)
+
+    spacing =
+      if line_digits == 1 do
+        max(2, max_digits)
+      else
+        max_digits - line_digits + 1
+      end
+
+    n_spaces(spacing)
+  end
+
+  defp n_spaces(n), do: String.duplicate(" ", n)
+
+  defp digits(number, acc \\ 1)
+  defp digits(number, acc) when number < 10, do: acc
+  defp digits(number, acc), do: digits(div(number, 10), acc + 1)
 
   defp trimmed_inbetween_lines(lines, {start_line, start_column}, {end_line, end_column}, padding, max_digits) do
     start_padding = line_padding(start_line, max_digits)

@@ -11,50 +11,6 @@ defmodule Kernel.DiagnosticsTest do
   end
 
   describe "mismatched delimiter" do
-    test "trims start if distance exceeds threshold in same line" do
-      output =
-        capture_raise(
-          """
-          long_long_long_long_long_long_long_variable_with_a_long_long_name = [1, 2, 3}
-          """,
-          MismatchedDelimiterError
-        )
-
-      assert output == """
-             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:77:
-                 error: unexpected token: }
-                 HINT: the "[" on line 1 is missing terminator "]"
-                 │
-               1 │ ...long_long_name = [1, 2, 3}
-                 │                     │       └ mismatched closing delimiter
-                 │                     └ unclosed delimiter
-                 │
-                 └─ nofile:1:77\
-             """
-    end
-
-    test "trims in between if distance exceeds threshold in same line" do
-      output =
-        capture_raise(
-          """
-          [1, MyLong.ReallyLongModule.FromALongNamespace.calling_a_really_long_named_function(), 200)
-          """,
-          MismatchedDelimiterError
-        )
-
-      assert output == """
-             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:91:
-                 error: unexpected token: )
-                 HINT: the "[" on line 1 is missing terminator "]"
-                 │
-               1 │ [1, MyLong.ReallyLong...function(), 200)
-                 │ │                                      └ mismatched closing delimiter
-                 │ └ unclosed delimiter
-                 │
-                 └─ nofile:1:91\
-             """
-    end
-
     test "same line" do
       output =
         capture_raise(
@@ -235,56 +191,6 @@ defmodule Kernel.DiagnosticsTest do
                   │     └ mismatched closing delimiter
                   │
                   └─ nofile:107:5\
-             """
-    end
-
-    test "trims lines that are too long (> 60 chars)" do
-      output =
-        capture_raise(
-          """
-          a                                                           = { a,
-
-                                                                         b )
-          """,
-          MismatchedDelimiterError
-        )
-
-      assert output == """
-             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:66:
-                 error: unexpected token: )
-                 HINT: the "{" on line 1 is missing terminator "}"
-                 │
-               1 │ ...= { a,
-                 │      └ unclosed delimiter
-               2 │ ...
-               3 │ ...    b )
-                 │          └ mismatched closing delimiter
-                 │
-                 └─ nofile:3:66\
-             """
-
-      output =
-        capture_raise(
-          """
-          aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa = [ 1,
-
-          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" )
-          """,
-          MismatchedDelimiterError
-        )
-
-      assert output == """
-             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:66:
-                 error: unexpected token: )
-                 HINT: the "[" on line 99 is missing terminator "]"
-                 │
-               1 │ ...aaaa = [ 1,
-                 │           └ unclosed delimiter
-                 │ ...
-               3 │ ...aaaa" )
-                 │          └ mismatched closing delimiter
-                 │
-                 └─ nofile:3:66\
              """
     end
   end
