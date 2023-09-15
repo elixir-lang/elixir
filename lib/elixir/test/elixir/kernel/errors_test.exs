@@ -477,7 +477,7 @@ defmodule Kernel.ErrorsTest do
                         ],
                         ~c"fn 1"
 
-    assert exception.open_delimiter == :fn
+    assert exception.opening_delimiter == :fn
   end
 
   test "invalid escape" do

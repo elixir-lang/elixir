@@ -1045,7 +1045,7 @@ defmodule TokenMissingError do
     :line,
     :snippet,
     :column,
-    :open_delimiter,
+    :opening_delimiter,
     description: "expression is incomplete"
   ]
 

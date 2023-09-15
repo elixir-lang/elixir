@@ -149,7 +149,7 @@ tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, {StartLine,
   Hint = missing_terminator_hint(Start, End, Scope),
   Message = "missing terminator: ~ts (for \"~ts\" starting at line ~B)",
   Formatted = io_lib:format(Message, [End, Start, StartLine]),
-  Meta = [{open_delimiter, Start} | ?LOC(EndLine, Column)],
+  Meta = [{opening_delimiter, Start} | ?LOC(EndLine, Column)],
   error({Meta, [Formatted, Hint], []}, [], Scope, Tokens);
 
 tokenize([], Line, Column, #elixir_tokenizer{} = Scope, Tokens) ->
