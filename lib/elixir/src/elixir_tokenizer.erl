@@ -1416,15 +1416,10 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
     End ->
       {ok, Scope#elixir_tokenizer{terminators=Terminators}};
 
-    ExpectedEnd ->
-      Suffix =
-        io_lib:format(
-          "\nHINT: the \"~ts\" on line ~B is missing terminator \"~ts\"",
-          [Start, StartLine, ExpectedEnd]
-        ),
+    _ExpectedEnd ->
       StartLoc = ?LOC(StartLine, StartColumn),
       EndLoc = [{end_line, EndLine}, {end_column, EndColumn}, {error_type, mismatched_delimiter}],
-      {error, {StartLoc ++ EndLoc, {unexpected_token_or_reserved(End), Suffix}, [atom_to_list(End)]}}
+      {error, {StartLoc ++ EndLoc, unexpected_token_or_reserved(End), [atom_to_list(End)]}}
   end;
 
 check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints}) ->

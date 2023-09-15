@@ -1088,14 +1088,26 @@ defmodule MismatchedDelimiterError do
       cond do
         line_number == start_line ->
           [
-            line_padding, to_string(line_number), " │ ", line, "\n",
-            padding, " │ ", unclosed_delimiter(start_column)
+            line_padding,
+            to_string(line_number),
+            " │ ",
+            line,
+            "\n",
+            padding,
+            " │ ",
+            unclosed_delimiter(start_column)
           ]
 
         line_number == end_line ->
           [
-            line_padding, to_string(line_number), " │ ", line, "\n",
-            padding, " │ ", mismatched_closing_delimiter(end_column)
+            line_padding,
+            to_string(line_number),
+            " │ ",
+            line,
+            "\n",
+            padding,
+            " │ ",
+            mismatched_closing_delimiter(end_column)
           ]
 
         true ->

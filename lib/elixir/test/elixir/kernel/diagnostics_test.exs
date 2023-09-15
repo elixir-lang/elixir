@@ -23,7 +23,6 @@ defmodule Kernel.DiagnosticsTest do
       assert output == """
              ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:18:
                  error: unexpected token: )
-                 HINT: the "[" on line 1 is missing terminator "]"
                  │
                1 │ [1, 2, 3, 4, 5, 6)
                  │ │                └ mismatched closing delimiter
@@ -46,7 +45,6 @@ defmodule Kernel.DiagnosticsTest do
       assert output == """
              ** (MismatchedDelimiterError) mismatched delimiter found on nofile:2:9:
                  error: unexpected token: }
-                 HINT: the "[" on line 1 is missing terminator "]"
                  │
                1 │ [a, b, c
                  │ └ unclosed delimiter
@@ -73,7 +71,6 @@ defmodule Kernel.DiagnosticsTest do
       assert output == """
              ** (MismatchedDelimiterError) mismatched delimiter found on nofile:5:5:
                  error: unexpected token: )
-                 HINT: the "[" on line 1 is missing terminator "]"
                  │
                1 │ [ a,
                  │ └ unclosed delimiter
@@ -107,7 +104,6 @@ defmodule Kernel.DiagnosticsTest do
       assert output == """
              ** (MismatchedDelimiterError) mismatched delimiter found on nofile:9:1:
                  error: unexpected token: )
-                 HINT: the "[" on line 1 is missing terminator "]"
                  │
                1 │ [ :a,
                  │ └ unclosed delimiter
@@ -133,7 +129,6 @@ defmodule Kernel.DiagnosticsTest do
       assert output == """
              ** (MismatchedDelimiterError) mismatched delimiter found on nofile:13:5:
                  error: unexpected token: )
-                 HINT: the "[" on line 1 is missing terminator "]"
                  │
                1 │ [ a,
                  │ └ unclosed delimiter
@@ -157,7 +152,6 @@ defmodule Kernel.DiagnosticsTest do
       assert output == """
              ** (MismatchedDelimiterError) mismatched delimiter found on nofile:403:5:
                   error: unexpected token: )
-                  HINT: the "[" on line 1 is missing terminator "]"
                   │
                 1 │ [ a,
                   │ └ unclosed delimiter
@@ -182,7 +176,6 @@ defmodule Kernel.DiagnosticsTest do
       assert output == """
              ** (MismatchedDelimiterError) mismatched delimiter found on nofile:107:5:
                   error: unexpected token: )
-                  HINT: the "[" on line 99 is missing terminator "]"
                   │
                99 │ [ a,
                   │ └ unclosed delimiter

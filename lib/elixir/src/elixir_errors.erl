@@ -373,11 +373,8 @@ parse_error(Location, File, Error, <<"[", _/binary>> = Full, Input) when is_bina
 
 %% Given a string prefix and suffix to insert the token inside the error message rather than append it
 parse_error(Location, File, {ErrorPrefix, ErrorSuffix}, Token, Input) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
-  Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary >>,
-  case lists:keytake(error_type, 1, Location) of
-    {value, {error_type, mismatched_delimiter}, Loc} -> raise_mismatched_delimiter(Loc, File, Input, Message);
-    _ -> raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
-  end;
+  Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary>>,
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message);
 
 %% Misplaced char tokens (for example, {char, _, 97}) are translated by Erlang into
 %% the char literal (i.e., the token in the previous example becomes $a),
@@ -391,7 +388,10 @@ parse_error(Location, File, <<"syntax error before: ">>, <<$$, Char/binary>>, In
 %% Everything else is fine as is
 parse_error(Location, File, Error, Token, Input) when is_binary(Error), is_binary(Token) ->
   Message = <<Error/binary, Token/binary>>,
-  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message).
+  case lists:keytake(error_type, 1, Location) of
+    {value, {error_type, mismatched_delimiter}, Loc} -> raise_mismatched_delimiter(Loc, File, Input, Message);
+    _ -> raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
+  end.
 
 parse_erl_term(Term) ->
   {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
