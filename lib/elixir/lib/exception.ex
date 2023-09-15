@@ -1087,19 +1087,19 @@ defmodule MismatchedDelimiterError do
 
       cond do
         line_number == start_line ->
-          """
-          #{line_padding}#{line_number} │ #{line}
-           #{padding}│ #{unclosed_delimiter(start_column)}\
-          """
+          [
+            line_padding, to_string(line_number), " │ ", line, "\n",
+            padding, " │ ", unclosed_delimiter(start_column)
+          ]
 
         line_number == end_line ->
-          """
-          #{line_padding}#{line_number} │ #{line}
-           #{padding}│ #{mismatched_closing_delimiter(end_column)}\
-          """
+          [
+            line_padding, to_string(line_number), " │ ", line, "\n",
+            padding, " │ ", mismatched_closing_delimiter(end_column)
+          ]
 
         true ->
-          "#{line_padding}#{line_number} │ #{line}"
+          [line_padding, to_string(line_number), " │ ", line]
       end
     end)
     |> Enum.intersperse("\n")
