@@ -651,7 +651,7 @@ defmodule Process do
   defdelegate unlink(pid_or_port), to: :erlang
 
   @doc """
-  Registers the given `pid_or_port` under the given `name`.
+  Registers the given `pid_or_port` under the given `name` on the local node.
 
   `name` must be an atom and can then be used instead of the
   PID/port identifier when sending messages with `Kernel.send/2`.
