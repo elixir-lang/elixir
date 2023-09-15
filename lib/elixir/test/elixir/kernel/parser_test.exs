@@ -946,7 +946,8 @@ defmodule Kernel.ParserTest do
         [
           "nofile:1:9:",
           "unexpected token:",
-          "HINT: the \"fn\" on line 1 is missing terminator \"end\""
+          "└ unclosed delimiter",
+          "└ mismatched closing delimiter"
         ],
         ~c"fn a -> )"
       )
@@ -955,7 +956,8 @@ defmodule Kernel.ParserTest do
         [
           "nofile:1:16:",
           "unexpected token:",
-          "HINT: the \"do\" on line 1 is missing terminator \"end\""
+          "└ unclosed delimiter",
+          "└ mismatched closing delimiter"
         ],
         ~c"defmodule A do ]"
       )
@@ -964,7 +966,8 @@ defmodule Kernel.ParserTest do
         [
           "nofile:1:9:",
           "unexpected token:",
-          "HINT: the \"(\" on line 1 is missing terminator \")\""
+          "└ unclosed delimiter",
+          "└ mismatched closing delimiter"
         ],
         ~c"(1, 2, 3}"
       )
@@ -973,7 +976,8 @@ defmodule Kernel.ParserTest do
         [
           "nofile:1:14:",
           "unexpected reserved word:",
-          "HINT: the \"<<\" on line 1 is missing terminator \">>\""
+          "└ unclosed delimiter",
+          "└ mismatched closing delimiter"
         ],
         ~c"<<1, 2, 3, 4 end"
       )
@@ -984,7 +988,8 @@ defmodule Kernel.ParserTest do
         [
           "nofile:1:17:",
           "unexpected token:",
-          "HINT: the \"do\" on line 1 is missing terminator \"end\""
+          "└ unclosed delimiter",
+          "└ mismatched closing delimiter"
         ],
         ~c"\"foo\#{case 1 do )}bar\""
       )
@@ -993,7 +998,8 @@ defmodule Kernel.ParserTest do
         [
           "nofile:8:3:",
           "unexpected token: )",
-          "HINT: the \"do\" on line 3 is missing terminator \"end\""
+          "└ unclosed delimiter",
+          "└ mismatched closing delimiter"
         ],
         ~c"""
         defmodule MyApp do

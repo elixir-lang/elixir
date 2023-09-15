@@ -937,38 +937,225 @@ defmodule MismatchedDelimiterError do
   - `fn a -> )`
   """
 
+  @max_lines_shown 5
+
   defexception [
     :file,
     :line,
     :column,
     :end_line,
     :end_column,
+    :opening_delimiter,
+    :closing_delimiter,
     :snippet,
     description: "mismatched delimiter error"
   ]
 
   @impl true
   def message(%{
-        line: _start_line,
-        column: _start_column,
+        line: start_line,
+        column: start_column,
         end_line: end_line,
         end_column: end_column,
         description: description,
+        opening_delimiter: opening_delimiter,
+        closing_delimiter: _closing_delimiter,
         file: file,
         snippet: snippet
       }) do
-    snippet =
-      :elixir_errors.format_snippet(
-        {end_line, end_column},
-        file,
-        description,
-        snippet,
-        :error,
-        [],
-        nil
-      )
+    start_pos = {start_line, start_column}
+    end_pos = {end_line, end_column}
+    lines = String.split(snippet, "\n")
+    expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
 
+    snippet = format_snippet(start_pos, end_pos, description, file, lines, expected_delimiter)
     format_message(file, end_line, end_column, snippet)
+  end
+
+  defp format_snippet(
+         {start_line, _start_column} = start_pos,
+         {end_line, end_column} = end_pos,
+         description,
+         file,
+         lines,
+         expected_delimiter
+       )
+       when start_line < end_line do
+    max_digits = digits(end_line)
+    general_padding = max(2, max_digits) + 1
+    padding = n_spaces(general_padding)
+
+    relevant_lines =
+      if end_line - start_line < @max_lines_shown do
+        line_range(lines, start_pos, end_pos, padding, max_digits, expected_delimiter)
+      else
+        trimmed_inbetween_lines(
+          lines,
+          start_pos,
+          end_pos,
+          padding,
+          max_digits,
+          expected_delimiter
+        )
+      end
+
+    """
+     #{padding}#{red("error:")} #{pad_message(description, padding)}
+     #{padding}│
+    #{relevant_lines}
+     #{padding}│
+     #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
+    """
+  end
+
+  defp format_snippet(
+         {start_line, start_column},
+         {end_line, end_column},
+         description,
+         file,
+         lines,
+         expected_delimiter
+       )
+       when start_line == end_line do
+    max_digits = digits(end_line)
+    general_padding = max(2, max_digits) + 1
+    padding = n_spaces(general_padding)
+
+    line = Enum.fetch!(lines, end_line - 1)
+    formatted_line = [line_padding(end_line, max_digits), to_string(end_line), " │ ", line]
+
+    mismatched_closing_line =
+      [
+        n_spaces(start_column - 1),
+        red("│"),
+        mismatched_closing_delimiter(end_column - start_column, expected_delimiter)
+      ]
+
+    unclosed_delimiter_line =
+      [padding, " │ ", unclosed_delimiter(start_column)]
+
+    below_line = [padding, " │ ", mismatched_closing_line, "\n", unclosed_delimiter_line]
+
+    """
+     #{padding}#{red("error:")} #{pad_message(description, padding)}
+     #{padding}│
+    #{formatted_line}
+    #{below_line}
+     #{padding}│
+     #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
+    """
+  end
+
+  defp line_padding(line_number, max_digits) do
+    line_digits = digits(line_number)
+
+    spacing =
+      if line_digits == 1 do
+        max(2, max_digits)
+      else
+        max_digits - line_digits + 1
+      end
+
+    n_spaces(spacing)
+  end
+
+  defp n_spaces(n), do: String.duplicate(" ", n)
+
+  defp digits(number, acc \\ 1)
+  defp digits(number, acc) when number < 10, do: acc
+  defp digits(number, acc), do: digits(div(number, 10), acc + 1)
+
+  defp trimmed_inbetween_lines(
+         lines,
+         {start_line, start_column},
+         {end_line, end_column},
+         padding,
+         max_digits,
+         expected_delimiter
+       ) do
+    start_padding = line_padding(start_line, max_digits)
+    end_padding = line_padding(end_line, max_digits)
+    first_line = Enum.fetch!(lines, start_line - 1)
+    last_line = Enum.fetch!(lines, end_line - 1)
+
+    """
+    #{start_padding}#{start_line} │ #{first_line}
+     #{padding}│ #{unclosed_delimiter(start_column)}
+     ...
+    #{end_padding}#{end_line} │ #{last_line}
+     #{padding}│ #{mismatched_closing_delimiter(end_column, expected_delimiter)}\
+    """
+  end
+
+  defp line_range(
+         lines,
+         {start_line, start_column},
+         {end_line, end_column},
+         padding,
+         max_digits,
+         expected_delimiter
+       ) do
+    start_line = start_line - 1
+    end_line = end_line - 1
+
+    lines
+    |> Enum.slice(start_line..end_line)
+    |> Enum.zip_with(start_line..end_line, fn line, line_number ->
+      line_number = line_number + 1
+      start_line = start_line + 1
+      end_line = end_line + 1
+
+      line_padding = line_padding(line_number, max_digits)
+
+      cond do
+        line_number == start_line ->
+          [
+            line_padding,
+            to_string(line_number),
+            " │ ",
+            line,
+            "\n",
+            padding,
+            " │ ",
+            unclosed_delimiter(start_column)
+          ]
+
+        line_number == end_line ->
+          [
+            line_padding,
+            to_string(line_number),
+            " │ ",
+            line,
+            "\n",
+            padding,
+            " │ ",
+            mismatched_closing_delimiter(end_column, expected_delimiter)
+          ]
+
+        true ->
+          [line_padding, to_string(line_number), " │ ", line]
+      end
+    end)
+    |> Enum.intersperse("\n")
+  end
+
+  defp mismatched_closing_delimiter(end_column, expected_closing_delimiter),
+    do: [
+      n_spaces(end_column - 1),
+      red(~s/└ mismatched closing delimiter (expected "#{expected_closing_delimiter}")/)
+    ]
+
+  defp unclosed_delimiter(start_column),
+    do: [n_spaces(start_column - 1), red("└ unclosed delimiter")]
+
+  defp pad_message(message, padding), do: String.replace(message, "\n", "\n #{padding}")
+
+  defp red(string) do
+    if IO.ANSI.enabled?() do
+      [IO.ANSI.red(), string, IO.ANSI.reset()]
+    else
+      string
+    end
   end
 
   defp format_message(file, line, column, message) do
