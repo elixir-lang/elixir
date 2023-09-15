@@ -1416,10 +1416,18 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
     End ->
       {ok, Scope#elixir_tokenizer{terminators=Terminators}};
 
-    _ExpectedEnd ->
-      StartLoc = ?LOC(StartLine, StartColumn),
-      EndLoc = [{end_line, EndLine}, {end_column, EndColumn}, {error_type, mismatched_delimiter}],
-      {error, {StartLoc ++ EndLoc, unexpected_token_or_reserved(End), [atom_to_list(End)]}}
+    ExpectedEnd ->
+      Meta = [
+        {line, StartLine},
+        {column, StartColumn},
+        {end_line, EndLine},
+        {end_column, EndColumn},
+        {error_type, mismatched_delimiter},
+        {opening_delimiter, Start},
+        {closing_delimiter, End},
+        {expected_closing_delimiter, ExpectedEnd}
+     ],
+     {error, {Meta, unexpected_token_or_reserved(End), [atom_to_list(End)]}}
   end;
 
 check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints}) ->

@@ -25,7 +25,7 @@ defmodule Kernel.DiagnosticsTest do
                  error: unexpected token: )
                  │
                1 │ [1, 2, 3, 4, 5, 6)
-                 │ │                └ mismatched closing delimiter
+                 │ │                └ mismatched closing delimiter (expecting "]")
                  │ └ unclosed delimiter
                  │
                  └─ nofile:1:18\
@@ -49,7 +49,7 @@ defmodule Kernel.DiagnosticsTest do
                1 │ [a, b, c
                  │ └ unclosed delimiter
                2 │  d, f, g}
-                 │         └ mismatched closing delimiter
+                 │         └ mismatched closing delimiter (expecting "]")
                  │
                  └─ nofile:2:9\
              """
@@ -59,7 +59,7 @@ defmodule Kernel.DiagnosticsTest do
       output =
         capture_raise(
           """
-          [ a,
+              [ a,
             b,
             c,
             d
@@ -72,15 +72,38 @@ defmodule Kernel.DiagnosticsTest do
              ** (MismatchedDelimiterError) mismatched delimiter found on nofile:5:5:
                  error: unexpected token: )
                  │
-               1 │ [ a,
-                 │ └ unclosed delimiter
+               1 │     [ a,
+                 │     └ unclosed delimiter
                2 │   b,
                3 │   c,
                4 │   d
                5 │   e )
-                 │     └ mismatched closing delimiter
+                 │     └ mismatched closing delimiter (expecting "]")
                  │
                  └─ nofile:5:5\
+             """
+
+      output =
+        capture_raise(
+          """
+          fn always_forget_end ->
+            IO.inspect(2 + 2) + 2
+          )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:1:
+                 error: unexpected token: )
+                 │
+               1 │ fn always_forget_end ->
+                 │ └ unclosed delimiter
+               2 │   IO.inspect(2 + 2) + 2
+               3 │ )
+                 │ └ mismatched closing delimiter (expecting "end")
+                 │
+                 └─ nofile:3:1\
              """
     end
 
@@ -109,7 +132,7 @@ defmodule Kernel.DiagnosticsTest do
                  │ └ unclosed delimiter
               ...
                9 │ )
-                 │ └ mismatched closing delimiter
+                 │ └ mismatched closing delimiter (expecting "]")
                  │
                  └─ nofile:9:1\
              """
@@ -134,7 +157,7 @@ defmodule Kernel.DiagnosticsTest do
                  │ └ unclosed delimiter
               ...
               13 │   b )
-                 │     └ mismatched closing delimiter
+                 │     └ mismatched closing delimiter (expecting "]")
                  │
                  └─ nofile:13:5\
              """
@@ -157,7 +180,7 @@ defmodule Kernel.DiagnosticsTest do
                   │ └ unclosed delimiter
               ...
               403 │   b )
-                  │     └ mismatched closing delimiter
+                  │     └ mismatched closing delimiter (expecting "]")
                   │
                   └─ nofile:403:5\
              """
@@ -181,7 +204,7 @@ defmodule Kernel.DiagnosticsTest do
                   │ └ unclosed delimiter
               ...
               107 │   b )
-                  │     └ mismatched closing delimiter
+                  │     └ mismatched closing delimiter (expecting "]")
                   │
                   └─ nofile:107:5\
              """
