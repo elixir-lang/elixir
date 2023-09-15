@@ -983,30 +983,7 @@ defmodule MismatchedDelimiterError do
       if end_line - start_line < @max_lines_shown do
         line_range(lines, start_pos, end_pos, padding, max_digits)
       else
-        start_padding = line_padding(start_line, max_digits)
-        first_line = Enum.fetch!(lines, start_line - 1)
-
-        range = (end_line - 2)..(end_line - 1)
-        last_lines = lines
-                     |> Enum.slice(range)
-                     |> Enum.zip_with(range, fn line, line_number ->
-                      line_number = line_number + 1
-                      line_padding = line_padding(line_number, max_digits)
-                      formatted_line = "#{line_padding}#{line_number} │ #{line}"
-                       if line_number == end_line do
-                         formatted_line
-                       else
-                         [formatted_line, "\n"]
-                       end
-                     end)
-
-        """
-        #{start_padding}#{start_line} │ #{first_line}
-         #{padding}│ #{unclosed_delimiter(start_column)}
-         ...
-        #{last_lines}
-         #{padding}│ #{mismatched_closing_delimiter(end_column)}\
-        """
+        trimmed_inbetween_lines(lines, start_pos, end_pos, padding, max_digits)
       end
 
     """
@@ -1050,15 +1027,19 @@ defmodule MismatchedDelimiterError do
     padding = n_spaces(general_padding)
 
     line = Enum.fetch!(lines, end_line - 1)
-    formatted_line = "#{line_padding(end_line, max_digits)}#{end_line} │ #{line}"
+    formatted_line = [line_padding(end_line, max_digits), to_string(end_line), " │ ", line]
 
     mismatched_closing_line =
-      [n_spaces(start_column - 1), red("│"), mismatched_closing_delimiter(end_column - start_column)]
+      [
+        n_spaces(start_column - 1),
+        red("│"),
+        mismatched_closing_delimiter(end_column - start_column)
+      ]
 
     unclosed_delimiter_line =
       [padding, " │ ", n_spaces(start_column - 1), unclosed_delimiter(start_column)]
 
-    below_line = "#{padding} │ #{mismatched_closing_line}\n#{unclosed_delimiter_line}"
+    below_line = [padding, " │ ", mismatched_closing_line, "\n", unclosed_delimiter_line]
 
     """
      #{padding}#{red("error:")} #{pad_message(description, padding)}
@@ -1067,6 +1048,21 @@ defmodule MismatchedDelimiterError do
     #{below_line}
      #{padding}│
      #{padding}└─ #{Path.relative_to_cwd(file)}:#{end_line}:#{end_column}\
+    """
+  end
+
+  defp trimmed_inbetween_lines(lines, {start_line, start_column}, {end_line, end_column}, padding, max_digits) do
+    start_padding = line_padding(start_line, max_digits)
+    end_padding = line_padding(end_line, max_digits)
+    first_line = Enum.fetch!(lines, start_line - 1)
+    last_line = Enum.fetch!(lines, end_line - 1)
+
+    """
+    #{start_padding}#{start_line} │ #{first_line}
+     #{padding}│ #{unclosed_delimiter(start_column)}
+     ...
+    #{end_padding}#{end_line} │ #{last_line}
+     #{padding}│ #{mismatched_closing_delimiter(end_column)}\
     """
   end
 
