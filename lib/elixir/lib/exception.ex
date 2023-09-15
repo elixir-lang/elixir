@@ -1040,7 +1040,14 @@ defmodule TokenMissingError do
 
   """
 
-  defexception [:file, :line, :snippet, :column, description: "expression is incomplete"]
+  defexception [
+    :file,
+    :line,
+    :snippet,
+    :column,
+    :open_delimiter,
+    description: "expression is incomplete"
+  ]
 
   @impl true
   def message(%{
