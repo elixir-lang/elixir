@@ -1051,7 +1051,13 @@ defmodule MismatchedDelimiterError do
   defp digits(number, acc) when number < 10, do: acc
   defp digits(number, acc), do: digits(div(number, 10), acc + 1)
 
-  defp trimmed_inbetween_lines(lines, {start_line, start_column}, {end_line, end_column}, padding, max_digits) do
+  defp trimmed_inbetween_lines(
+         lines,
+         {start_line, start_column},
+         {end_line, end_column},
+         padding,
+         max_digits
+       ) do
     start_padding = line_padding(start_line, max_digits)
     end_padding = line_padding(end_line, max_digits)
     first_line = Enum.fetch!(lines, start_line - 1)
