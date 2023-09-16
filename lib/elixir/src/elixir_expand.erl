@@ -380,8 +380,9 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
           {{Name, Meta, Kind}, S, E};
 
         _ ->
-          function_error(Meta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, Meta, Kind}, S, E}
+          SpanMeta =  elixir_env:calculate_span(Meta, Name),
+          function_error(SpanMeta, E, ?MODULE, {undefined_var, Name, Kind}),
+          {{Name, SpanMeta, Kind}, S, E}
       end
   end;
 

@@ -251,7 +251,7 @@ file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
     false ->
       {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, E),
       Message = Module:format_error(Desc),
-      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true}])
+      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true} | Meta])
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -284,7 +284,7 @@ function_error(Meta, Env, Module, Desc) ->
 print_error(Meta, Env, Module, Desc) ->
   {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true}]),
+  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true} | Meta]),
   ok.
 
 %% Compilation error.
