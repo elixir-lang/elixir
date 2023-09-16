@@ -751,6 +751,68 @@ defmodule Kernel.DiagnosticsTest do
     end
 
     @tag :tmp_dir
+    test "shows span for unused variables", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "error_line_column.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def foo(unused_param) do
+          :constant
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+          warning: variable "unused_param" is unused (if the variable is not meant to be used, prefix it with an underscore)
+          │
+        4 │   def foo(unused_param) do
+          │           ~~~~~~~~~~~~
+          │
+          └─ #{path}:4:11: Sample.foo/1
+
+      """
+
+      assert capture_eval(source) == expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "shows span for undefined variables", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "undefined_variable_span.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def foo(a) do
+          a - unknown_var
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+          error: undefined variable "unknown_var"
+          │
+        5 │     a - unknown_var
+          │         ^^^^^^^^^^^
+          │
+          └─ #{path}:5:9: Sample.foo/1
+
+      """
+
+      assert capture_compile(source) == expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
     test "line + column", %{tmp_dir: tmp_dir} do
       path = make_relative_tmp(tmp_dir, "error_line_column.ex")
 
@@ -770,7 +832,7 @@ defmodule Kernel.DiagnosticsTest do
           error: undefined variable "bar"
           │
         5 │     IO.puts(bar)
-          │             ^
+          │             ^^^
           │
           └─ #{path}:5:13: Sample.foo/0
 

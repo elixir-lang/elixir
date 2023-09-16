@@ -284,7 +284,7 @@ function_error(Meta, Env, Module, Desc) ->
 print_error(Meta, Env, Module, Desc) ->
   {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true}]),
+  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true} | Meta]),
   ok.
 
 %% Compilation error.
