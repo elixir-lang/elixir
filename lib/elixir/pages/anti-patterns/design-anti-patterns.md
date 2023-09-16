@@ -132,7 +132,78 @@ iex> AlternativeInteger.parse_discard_rest("13")
 
 ## Unrelated multi-clause function
 
-TODO
+#### Problem
+
+Using multi-clause functions in Elixir, to group functions of the same name, is not an anti-pattern in itself. However, due to the great flexibility provided by this programming feature, some developers may abuse the number of guard clauses and pattern matches to group *unrelated* functionality.
+
+#### Example
+
+A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the same function definition. Such functions often have generic names or too broad specifications, making it difficult for maintainers and users of said functions to maintain and understand them.
+
+Some developers may use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, however the documentation itself may end-up full of conditionals to describe how the function behaves for each different argument combination.
+
+```elixir
+@doc """
+Updates a struct.
+
+If given a "sharp" product (metal or glass with empty count),
+it will...
+
+If given a blunt product, it will...
+
+If given an animal, it will...
+"""
+def update(%Product{count: nil, material: material})
+    when material in ["metal", "glass"] do
+  # ...
+end
+
+def update(%Product{count: count, material: material})
+    when count > 0 and material not in ["metal", "glass"] do
+  # ...
+end
+
+def update(%Animal{count: 1, skin: skin})
+    when skin in ["fur", "hairy"] do
+  # ...
+end
+```
+
+#### Refactoring
+
+As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in several different simple functions. More precise names make the scope of the function clear. Each function can have a specific `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can have a lot of impact on the function's current users, so be careful!
+
+```elixir
+@doc """
+Updates a "sharp" product.
+
+It will...
+"""
+def update_sharp_product(%Product{count: nil, material: material})
+    when material in ["metal", "glass"] do
+  # ...
+end
+
+@doc """
+Updates a "blunt" product.
+
+It will...
+"""
+def update_blunt_product(%Product{count: count, material: material})
+    when count > 0 and material not in ["metal", "glass"] do
+  # ...
+end
+
+@doc """
+Updates an animal.
+
+It will...
+"""
+def update_animal(%Animal{count: 1, skin: skin})
+    when skin in ["fur", "hairy"] do
+  # ...
+end
+```
 
 ## Feature envy
 
