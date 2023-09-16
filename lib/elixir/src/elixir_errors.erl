@@ -400,7 +400,7 @@ parse_erl_term(Term) ->
 
 raise_mismatched_delimiter(Location, File, Input, Message) ->
   {InputString, _, _} = Input,
-  InputBinary = iolist_to_binary(InputString),
+  InputBinary = elixir_utils:characters_to_binary(InputString),
   raise('Elixir.MismatchedDelimiterError', Message,  [{file, File}, {snippet, InputBinary} | Location]).
 
 raise_reserved(Location, File, Input, Keyword) ->

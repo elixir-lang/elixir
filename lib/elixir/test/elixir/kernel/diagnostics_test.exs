@@ -11,6 +11,27 @@ defmodule Kernel.DiagnosticsTest do
   end
 
   describe "mismatched delimiter" do
+    test "same line - handles unicode input" do
+      output =
+        capture_raise(
+          """
+          [1, 2, 3, 4, 5, 6) <- 😎
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:18:
+                 error: unexpected token: )
+                 │
+               1 │ [1, 2, 3, 4, 5, 6) <- 😎
+                 │ │                └ mismatched closing delimiter (expected "]")
+                 │ └ unclosed delimiter
+                 │
+                 └─ nofile:1:18\
+             """
+    end
+
     test "same line" do
       output =
         capture_raise(
@@ -107,6 +128,31 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
+    test "line range - handles unicode input" do
+      output =
+        capture_raise(
+          """
+          defmodule A do
+            IO.inspect(2 + 2)
+          ) <- 😎
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:1:
+                 error: unexpected token: )
+                 │
+               1 │ defmodule A do
+                 │             └ unclosed delimiter
+               2 │   IO.inspect(2 + 2)
+               3 │ ) <- 😎
+                 │ └ mismatched closing delimiter (expected "end")
+                 │
+                 └─ nofile:3:1\
+             """
+    end
+
     test "trim inbetween lines if too many" do
       output =
         capture_raise(
@@ -132,6 +178,37 @@ defmodule Kernel.DiagnosticsTest do
                  │ └ unclosed delimiter
               ...
                9 │ )
+                 │ └ mismatched closing delimiter (expected "]")
+                 │
+                 └─ nofile:9:1\
+             """
+    end
+
+    test "trimmed line range - handles unicode input" do
+      output =
+        capture_raise(
+          """
+          [ :a,
+            :b,
+            :c,
+            :d,
+            :e,
+            :f,
+            :g,
+            :h
+          ) <- 😎
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:9:1:
+                 error: unexpected token: )
+                 │
+               1 │ [ :a,
+                 │ └ unclosed delimiter
+              ...
+               9 │ ) <- 😎
                  │ └ mismatched closing delimiter (expected "]")
                  │
                  └─ nofile:9:1\
