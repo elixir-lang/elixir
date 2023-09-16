@@ -90,10 +90,9 @@ check_unused_vars(#elixir_ex{unused={Unused, _Version}}, E) ->
   E.
 
 calculate_span(Name, Meta) ->
-  Line = ?line(Meta),
   case lists:keyfind(column, 1, Meta) of
     {column, Column} ->
-      [{span, {Line, Column + string:length(atom_to_binary(Name))}} | Meta];
+      [{span, {?line(Meta), Column + string:length(atom_to_binary(Name))}} | Meta];
 
     _ ->
       Meta
