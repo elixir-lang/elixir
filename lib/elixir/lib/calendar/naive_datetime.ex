@@ -1224,7 +1224,7 @@ defmodule NaiveDateTime do
 
       datetime
       |> NaiveDateTime.beginning_of_day()
-      |> DateTime.from_naive(datetime.timezone)
+      |> DateTime.from_naive(datetime.time_zone)
 
   Note that the beginning of the day may not exist or be ambiguous
   in a given timezone, so you must handle those cases accordingly.
@@ -1251,7 +1251,7 @@ defmodule NaiveDateTime do
 
       datetime
       |> NaiveDateTime.end_of_day()
-      |> DateTime.from_naive(datetime.timezone)
+      |> DateTime.from_naive(datetime.time_zone)
 
   Note that the end of the day may not exist or be ambiguous
   in a given timezone, so you must handle those cases accordingly.
