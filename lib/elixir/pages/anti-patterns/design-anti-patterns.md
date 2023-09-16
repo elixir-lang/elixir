@@ -138,77 +138,69 @@ Using multi-clause functions in Elixir, to group functions of the same name, is 
 
 #### Example
 
-A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the function definitions. This makes it difficult to read and understand the logic involved in the functions, which may impair code maintainability. Some developers use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, but unfortunately, with a multi-clause function, we can only use these annotations once per function name, particularly on the first or header function. As shown next, all other variations of the function need to be documented only with comments, a mechanism that cannot automate tests, leaving the code prone to bugs.
+A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the same function definition. Such functions often have generic names or too broad specifications, making it difficult for maintainers and users of said functions to maintain and understand them.
+
+Some developers may use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, however the documentation itself may end-up full of conditionals to describe how the function behaves for each different argument combination.
 
 ```elixir
 @doc """
-Updates "sharp" product with `0` or empty count.
+Updates a struct.
 
-## Examples
+If given a "sharp" product (metal or glass with empty count),
+it will...
 
-    iex> Namespace.Module.update(...)
-    ...
+If given a blunt product, it will...
 
+If given an animal, it will...
 """
-def update(%Product{count: nil, material: material}) when material in ["metal", "glass"] do
+def update(%Product{count: nil, material: material})
+    when material in ["metal", "glass"] do
   # ...
 end
 
-# Updates "blunt" product
-def update(%Product{count: count, material: material}) when count > 0 and material in ["metal", "glass"] do
+def update(%Product{count: count, material: material})
+    when count > 0 and material not in ["metal", "glass"] do
   # ...
 end
 
-# Updates animal
-def update(%Animal{count: 1, skin: skin}) when skin in ["fur", "hairy"] do
+def update(%Animal{count: 1, skin: skin})
+    when skin in ["fur", "hairy"] do
   # ...
 end
 ```
 
 #### Refactoring
 
-As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in several different simple functions. Each function can have a specific `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can have a lot of impact on the function's current users, so be careful!
+As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in several different simple functions. More precise names make the scope of the function clear. Each function can have a specific `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can have a lot of impact on the function's current users, so be careful!
 
 ```elixir
 @doc """
 Updates a "sharp" product.
 
-## Examples
-
-    iex> Namespace.Module.update_sharp_product(%Product{...})
-    ...
-
+It will...
 """
-@spec update_sharp_product(Product.t()) :: term()
-def update_sharp_product(struct) do
+def update_sharp_product(%Product{count: nil, material: material})
+    when material in ["metal", "glass"] do
   # ...
 end
 
 @doc """
 Updates a "blunt" product.
 
-## Examples
-
-    iex> Namespace.Module.update_blunt_product(%Product{...})
-    ...
-    
+It will...
 """
-@spec update_blunt_product(Product.t()) :: term()
-def update_blunt_product(struct) do
+def update_blunt_product(%Product{count: count, material: material})
+    when count > 0 and material not in ["metal", "glass"] do
   # ...
 end
 
 @doc """
 Updates an animal.
 
-## Examples
-
-    iex> Namespace.Module.update_animal(%Animal{...})
-    ...
-
+It will...
 """
-@spec update_animal(Animal.t()) :: term()
-def update_animal(struct) do
+def update_animal(%Animal{count: 1, skin: skin})
+    when skin in ["fur", "hairy"] do
   # ...
 end
 ```
