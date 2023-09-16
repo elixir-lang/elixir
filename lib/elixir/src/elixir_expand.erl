@@ -380,9 +380,9 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
           {{Name, Meta, Kind}, S, E};
 
         _ ->
-          SpanMeta = [calculate_span(Name, Meta) | Meta],
+          SpanMeta =  elixir_env:calculate_span(Name, Meta),
           function_error(SpanMeta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, Meta, Kind}, S, E}
+          {{Name, SpanMeta, Kind}, S, E}
       end
   end;
 
@@ -463,16 +463,6 @@ expand(Other, _S, E) ->
   file_error([{line, 0}], ?key(E, file), ?MODULE, {invalid_quoted_expr, Other}).
 
 %% Helpers
-
-calculate_span(Name, Meta) ->
-  Line = ?line(Meta),
-  case lists:keyfind(column, 1, Meta) of
-    {column, Column} ->
-      {span, {Line, Column + string:length(atom_to_binary(Name))}};
-
-    _ ->
-      []
-  end.
 
 escape_env_entries(Meta, #elixir_ex{vars={Read, _}}, Env0) ->
   Env1 = case Env0 of

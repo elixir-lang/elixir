@@ -2,7 +2,7 @@
 -include("elixir.hrl").
 -export([
   new/0, to_caller/1, with_vars/2, reset_vars/1, env_to_ex/1, set_prematch_from_config/1,
-  reset_unused_vars/1, check_unused_vars/2, merge_and_check_unused_vars/3,
+  reset_unused_vars/1, check_unused_vars/2, merge_and_check_unused_vars/3, calculate_span/2,
   trace/2, format_error/1,
   reset_read/2, prepare_write/1, close_write/2
 ]).
@@ -85,7 +85,7 @@ reset_unused_vars(#elixir_ex{unused={_Unused, Version}} = S) ->
   S#elixir_ex{unused={#{}, Version}}.
 
 check_unused_vars(#elixir_ex{unused={Unused, _Version}}, E) ->
-  [elixir_errors:file_warn([calculate_span(Name, Meta) | Meta], E, ?MODULE, {unused_var, Name, Overridden}) ||
+  [elixir_errors:file_warn(calculate_span(Name, Meta), E, ?MODULE, {unused_var, Name, Overridden}) ||
     {{{Name, nil}, _}, {Meta, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
   E.
 
@@ -93,10 +93,10 @@ calculate_span(Name, Meta) ->
   Line = ?line(Meta),
   case lists:keyfind(column, 1, Meta) of
     {column, Column} ->
-      {span, {Line, Column + string:length(atom_to_binary(Name))}};
+      [{span, {Line, Column + string:length(atom_to_binary(Name))}} | Meta];
 
     _ ->
-      []
+      Meta
   end.
 
 merge_and_check_unused_vars(S, #elixir_ex{vars={Read, Write}, unused={Unused, _Version}}, E) ->
