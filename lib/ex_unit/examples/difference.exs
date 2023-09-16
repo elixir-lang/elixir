@@ -1,3 +1,4 @@
+# Run it from root as: make compile && bin/elixir lib/ex_unit/examples/difference.exs
 ExUnit.start(seed: 0)
 
 defmodule Difference do

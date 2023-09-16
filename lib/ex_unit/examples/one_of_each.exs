@@ -1,3 +1,4 @@
+# Run it from root as: make compile && bin/elixir lib/ex_unit/examples/one_of_each.exs
 ExUnit.start(seed: 0)
 
 defmodule TestOneOfEach do
