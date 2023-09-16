@@ -93,7 +93,7 @@ calculate_span(Name, Meta) ->
   Line = ?line(Meta),
   case lists:keyfind(column, 1, Meta) of
     {column, Column} ->
-      {span, {Line, Column + string:length(atom_to_list(Name))}};
+      {span, {Line, Column + string:length(atom_to_binary(Name))}};
 
     _ ->
       []
