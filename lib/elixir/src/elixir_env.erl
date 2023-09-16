@@ -85,9 +85,19 @@ reset_unused_vars(#elixir_ex{unused={_Unused, Version}} = S) ->
   S#elixir_ex{unused={#{}, Version}}.
 
 check_unused_vars(#elixir_ex{unused={Unused, _Version}}, E) ->
-  [elixir_errors:file_warn(Meta, E, ?MODULE, {unused_var, Name, Overridden}) ||
+  [elixir_errors:file_warn([calculate_span(Name, Meta) | Meta], E, ?MODULE, {unused_var, Name, Overridden}) ||
     {{{Name, nil}, _}, {Meta, Overridden}} <- maps:to_list(Unused), is_unused_var(Name)],
   E.
+
+calculate_span(Name, Meta) ->
+  Line = ?line(Meta),
+  case lists:keyfind(column, 1, Meta) of
+    {column, Column} ->
+      {span, {Line, Column + string:length(atom_to_list(Name))}};
+
+    _ ->
+      []
+  end.
 
 merge_and_check_unused_vars(S, #elixir_ex{vars={Read, Write}, unused={Unused, _Version}}, E) ->
   #elixir_ex{unused={ClauseUnused, Version}} = S,
