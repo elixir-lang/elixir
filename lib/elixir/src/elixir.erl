@@ -89,7 +89,7 @@ start(_Type, _Args) ->
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {on_undefined_variable, raise},
-    {parser_options, []},
+    {parser_options, [{columns, true}]},
     {debug_info, true},
     {warnings_as_errors, false},
     {relative_paths, true},
