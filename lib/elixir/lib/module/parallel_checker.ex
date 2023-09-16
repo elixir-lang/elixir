@@ -155,8 +155,7 @@ defmodule Module.ParallelChecker do
 
     case :erlang.get(:elixir_code_diagnostics) do
       :undefined -> :ok
-      {tail, true} -> :erlang.put(:elixir_code_diagnostics, {diagnostics ++ tail, true})
-      {tail, false} -> :erlang.put(:elixir_code_diagnostics, {diagnostics ++ tail, false})
+      {tail, log?} -> :erlang.put(:elixir_code_diagnostics, {diagnostics ++ tail, log?})
     end
 
     diagnostics

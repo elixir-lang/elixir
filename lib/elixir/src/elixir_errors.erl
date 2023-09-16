@@ -50,12 +50,31 @@ get_span(#{span := Span}) -> Span.
 
 get_snippet(nil, _Position) ->
   nil;
+get_snippet(<<"nofile">>, _Position) ->
+  nil;
 get_snippet(File, Position) ->
-  Line = extract_line(Position),
-  case filelib:is_regular(File) of
-    true -> get_file_line(File, Line);
-    false -> nil
+  LineNumber = extract_line(Position),
+  get_file_line(File, LineNumber).
+
+get_file_line(_, 0) -> nil;
+get_file_line(File, LineNumber) ->
+  case file:open(File, [read, binary]) of
+    {ok, IoDevice} ->
+      Line = traverse_file_line(IoDevice, LineNumber),
+      ok = file:close(IoDevice),
+      Line;
+    {error, _} ->
+      nil
   end.
+
+traverse_file_line(IoDevice, 1) ->
+  case file:read_line(IoDevice) of
+    {ok, Line} -> binary:replace(Line, <<"\n">>, <<>>);
+    _ -> nil
+  end;
+traverse_file_line(IoDevice, N) ->
+  file:read_line(IoDevice),
+  traverse_file_line(IoDevice, N - 1).
 
 print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic, ReadSnippet) ->
   Snippet =
@@ -111,21 +130,6 @@ extract_line(L) -> L.
 
 extract_column({_, C}) -> C;
 extract_column(_) -> nil.
-
-get_file_line(_, 0) -> nil;
-get_file_line(File, LineNumber) ->
-  {ok, IoDevice} = file:open(File, [read, {encoding, unicode}]),
-  Line = do_get_file_line(IoDevice, LineNumber),
-  NoNewline = binary:replace(Line, <<"\n">>, <<>>),
-  ok = file:close(IoDevice),
-  NoNewline.
-
-do_get_file_line(IoDevice, 1) ->
-  Line = io:get_line(IoDevice, ""),
-  unicode:characters_to_binary(Line);
-do_get_file_line(IoDevice, N) ->
-  io:get_line(IoDevice, ""),
-  do_get_file_line(IoDevice, N -1).
 
 %% Format snippets
 %% "Snippet" here refers to the source code line where the diagnostic/error occured
