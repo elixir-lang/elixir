@@ -1019,7 +1019,7 @@ charlist_part({Begin, End, Tokens}) ->
       true -> [{closing, meta_from_location(End)} | Meta];
       false -> Meta
     end,
-  {{'.', Meta, ['Elixir.Kernel', to_string]}, MetaWithExtra, [Form]}.
+  {{'.', Meta, ['Elixir.Kernel', to_string]}, [{from_interpolation, true} | MetaWithExtra], [Form]}.
 
 string_parts(Parts) ->
   [string_part(Part) || Part <- Parts].
@@ -1030,10 +1030,10 @@ string_part({Begin, End, Tokens}) ->
   Meta = meta_from_location(Begin),
   MetaWithExtra =
     case ?token_metadata() of
-      true -> [{closing, meta_from_location(End)} | meta_from_location(Begin)];
-      false -> meta_from_location(Begin)
+      true -> [{closing, meta_from_location(End)} | Meta];
+      false -> Meta
     end,
-  {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, MetaWithExtra, [Form]}, {binary, Meta, nil}]}.
+  {'::', Meta, [{{'.', Meta, ['Elixir.Kernel', to_string]}, [{from_interpolation, true} | MetaWithExtra], [Form]}, {binary, Meta, nil}]}.
 
 string_tokens_parse(Tokens) ->
   case parse(Tokens) of

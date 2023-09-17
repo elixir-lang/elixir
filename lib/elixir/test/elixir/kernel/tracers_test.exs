@@ -209,6 +209,16 @@ defmodule Kernel.TracersTest do
     :code.delete(Sample)
   end
 
+  test "traces string interpolation" do
+    compile_string("""
+    arg = 1 + 2
+    "foo\#{arg}"
+    """)
+
+    assert_receive {{:remote_macro, meta, Kernel, :to_string, 1}, _env}
+    assert meta[:from_interpolation]
+  end
+
   """
   # Make sure this module is compiled with column information
   defmodule MacroWithColumn do
