@@ -525,9 +525,9 @@ argument_error(Message) ->
 %% Helpers
 
 meta(Meta, Q) ->
-  generated(keep(Meta, Q), Q).
+  generated(keep(keydelete(column, Meta), Q), Q).
 
-generated(Meta, #elixir_quote{generated=true}) -> elixir_utils:generated(Meta);
+generated(Meta, #elixir_quote{generated=true}) -> [{generated, true} | Meta];
 generated(Meta, #elixir_quote{generated=false}) -> Meta.
 
 keep(Meta, #elixir_quote{file=nil, line=Line}) ->

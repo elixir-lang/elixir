@@ -1416,7 +1416,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         assert %Diagnostic{
                  file: ^file,
                  severity: :warning,
-                 position: 2,
+                 position: {2, 13},
                  compiler_name: "Elixir",
                  message: ^message
                } = diagnostic
@@ -1430,7 +1430,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
         assert %Diagnostic{
                  file: ^file,
                  severity: :warning,
-                 position: 2,
+                 position: {2, 13},
                  compiler_name: "Elixir",
                  message: ^message
                } = diagnostic

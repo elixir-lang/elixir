@@ -10,6 +10,284 @@ defmodule Kernel.DiagnosticsTest do
     on_exit(fn -> Application.put_env(:elixir, :ansi_enabled, true) end)
   end
 
+  describe "mismatched delimiter" do
+    test "same line - handles unicode input" do
+      output =
+        capture_raise(
+          """
+          [1, 2, 3, 4, 5, 6) <- 😎
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:18:
+                 error: unexpected token: )
+                 │
+               1 │ [1, 2, 3, 4, 5, 6) <- 😎
+                 │ │                └ mismatched closing delimiter (expected "]")
+                 │ └ unclosed delimiter
+                 │
+                 └─ nofile:1:18\
+             """
+    end
+
+    test "same line" do
+      output =
+        capture_raise(
+          """
+          [1, 2, 3, 4, 5, 6)
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:1:18:
+                 error: unexpected token: )
+                 │
+               1 │ [1, 2, 3, 4, 5, 6)
+                 │ │                └ mismatched closing delimiter (expected "]")
+                 │ └ unclosed delimiter
+                 │
+                 └─ nofile:1:18\
+             """
+    end
+
+    test "two-line span" do
+      output =
+        capture_raise(
+          """
+          [a, b, c
+           d, f, g}
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:2:9:
+                 error: unexpected token: }
+                 │
+               1 │ [a, b, c
+                 │ └ unclosed delimiter
+               2 │  d, f, g}
+                 │         └ mismatched closing delimiter (expected "]")
+                 │
+                 └─ nofile:2:9\
+             """
+    end
+
+    test "many-line span" do
+      output =
+        capture_raise(
+          """
+              [ a,
+            b,
+            c,
+            d
+            e )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:5:5:
+                 error: unexpected token: )
+                 │
+               1 │     [ a,
+                 │     └ unclosed delimiter
+               2 │   b,
+               3 │   c,
+               4 │   d
+               5 │   e )
+                 │     └ mismatched closing delimiter (expected "]")
+                 │
+                 └─ nofile:5:5\
+             """
+
+      output =
+        capture_raise(
+          """
+          fn always_forget_end ->
+            IO.inspect(2 + 2) + 2
+          )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:1:
+                 error: unexpected token: )
+                 │
+               1 │ fn always_forget_end ->
+                 │ └ unclosed delimiter
+               2 │   IO.inspect(2 + 2) + 2
+               3 │ )
+                 │ └ mismatched closing delimiter (expected "end")
+                 │
+                 └─ nofile:3:1\
+             """
+    end
+
+    test "line range - handles unicode input" do
+      output =
+        capture_raise(
+          """
+          defmodule A do
+            IO.inspect(2 + 2)
+          ) <- 😎
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:1:
+                 error: unexpected token: )
+                 │
+               1 │ defmodule A do
+                 │             └ unclosed delimiter
+               2 │   IO.inspect(2 + 2)
+               3 │ ) <- 😎
+                 │ └ mismatched closing delimiter (expected "end")
+                 │
+                 └─ nofile:3:1\
+             """
+    end
+
+    test "trim inbetween lines if too many" do
+      output =
+        capture_raise(
+          """
+          [ :a,
+            :b,
+            :c,
+            :d,
+            :e,
+            :f,
+            :g,
+            :h
+          )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:9:1:
+                 error: unexpected token: )
+                 │
+               1 │ [ :a,
+                 │ └ unclosed delimiter
+              ...
+               9 │ )
+                 │ └ mismatched closing delimiter (expected "]")
+                 │
+                 └─ nofile:9:1\
+             """
+    end
+
+    test "trimmed line range - handles unicode input" do
+      output =
+        capture_raise(
+          """
+          [ :a,
+            :b,
+            :c,
+            :d,
+            :e,
+            :f,
+            :g,
+            :h
+          ) <- 😎
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:9:1:
+                 error: unexpected token: )
+                 │
+               1 │ [ :a,
+                 │ └ unclosed delimiter
+              ...
+               9 │ ) <- 😎
+                 │ └ mismatched closing delimiter (expected "]")
+                 │
+                 └─ nofile:9:1\
+             """
+    end
+
+    test "pads according to line number digits" do
+      output =
+        capture_raise(
+          """
+          [ a,
+          #{String.duplicate("\n", 10)}
+            b )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:13:5:
+                 error: unexpected token: )
+                 │
+               1 │ [ a,
+                 │ └ unclosed delimiter
+              ...
+              13 │   b )
+                 │     └ mismatched closing delimiter (expected "]")
+                 │
+                 └─ nofile:13:5\
+             """
+
+      output =
+        capture_raise(
+          """
+          [ a,
+          #{String.duplicate("\n", 400)}
+            b )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:403:5:
+                  error: unexpected token: )
+                  │
+                1 │ [ a,
+                  │ └ unclosed delimiter
+              ...
+              403 │   b )
+                  │     └ mismatched closing delimiter (expected "]")
+                  │
+                  └─ nofile:403:5\
+             """
+
+      output =
+        capture_raise(
+          """
+          #{String.duplicate("\n", 97)}
+          [ a,
+          #{String.duplicate("\n", 6)}
+            b )
+          """,
+          MismatchedDelimiterError
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:107:5:
+                  error: unexpected token: )
+                  │
+               99 │ [ a,
+                  │ └ unclosed delimiter
+              ...
+              107 │   b )
+                  │     └ mismatched closing delimiter (expected "]")
+                  │
+                  └─ nofile:107:5\
+             """
+    end
+  end
+
   describe "compile-time exceptions" do
     test "SyntaxError (snippet)" do
       expected = """
@@ -550,6 +828,68 @@ defmodule Kernel.DiagnosticsTest do
     end
 
     @tag :tmp_dir
+    test "shows span for unused variables", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "error_line_column.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def foo(unused_param) do
+          :constant
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+          warning: variable "unused_param" is unused (if the variable is not meant to be used, prefix it with an underscore)
+          │
+        4 │   def foo(unused_param) do
+          │           ~~~~~~~~~~~~
+          │
+          └─ #{path}:4:11: Sample.foo/1
+
+      """
+
+      assert capture_eval(source) == expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
+    test "shows span for undefined variables", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "undefined_variable_span.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def foo(a) do
+          a - unknown_var
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+          error: undefined variable "unknown_var"
+          │
+        5 │     a - unknown_var
+          │         ^^^^^^^^^^^
+          │
+          └─ #{path}:5:9: Sample.foo/1
+
+      """
+
+      assert capture_compile(source) == expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
     test "line + column", %{tmp_dir: tmp_dir} do
       path = make_relative_tmp(tmp_dir, "error_line_column.ex")
 
@@ -569,7 +909,7 @@ defmodule Kernel.DiagnosticsTest do
           error: undefined variable "bar"
           │
         5 │     IO.puts(bar)
-          │             ^
+          │             ^^^
           │
           └─ #{path}:5:13: Sample.foo/0
 

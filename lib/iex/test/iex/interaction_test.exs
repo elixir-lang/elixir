@@ -49,7 +49,8 @@ defmodule IEx.InteractionTest do
     assert output =~ "unexpected token: )"
     assert output =~ "iex:1:12"
     assert output =~ "if true do ) false end"
-    assert output =~ ~s/HINT: the "do" on line 1 is missing terminator "end"/
+    assert output =~ "└ unclosed delimiter"
+    assert output =~ "└ mismatched closing delimiter"
   end
 
   test "multiple vars" do

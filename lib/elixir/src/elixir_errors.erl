@@ -50,12 +50,31 @@ get_span(#{span := Span}) -> Span.
 
 get_snippet(nil, _Position) ->
   nil;
+get_snippet(<<"nofile">>, _Position) ->
+  nil;
 get_snippet(File, Position) ->
-  Line = extract_line(Position),
-  case filelib:is_regular(File) of
-    true -> get_file_line(File, Line);
-    false -> nil
+  LineNumber = extract_line(Position),
+  get_file_line(File, LineNumber).
+
+get_file_line(_, 0) -> nil;
+get_file_line(File, LineNumber) ->
+  case file:open(File, [read, binary]) of
+    {ok, IoDevice} ->
+      Line = traverse_file_line(IoDevice, LineNumber),
+      ok = file:close(IoDevice),
+      Line;
+    {error, _} ->
+      nil
   end.
+
+traverse_file_line(IoDevice, 1) ->
+  case file:read_line(IoDevice) of
+    {ok, Line} -> binary:replace(Line, <<"\n">>, <<>>);
+    _ -> nil
+  end;
+traverse_file_line(IoDevice, N) ->
+  file:read_line(IoDevice),
+  traverse_file_line(IoDevice, N - 1).
 
 print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic, ReadSnippet) ->
   Snippet =
@@ -111,21 +130,6 @@ extract_line(L) -> L.
 
 extract_column({_, C}) -> C;
 extract_column(_) -> nil.
-
-get_file_line(_, 0) -> nil;
-get_file_line(File, LineNumber) ->
-  {ok, IoDevice} = file:open(File, [read, {encoding, unicode}]),
-  Line = do_get_file_line(IoDevice, LineNumber),
-  NoNewline = binary:replace(Line, <<"\n">>, <<>>),
-  ok = file:close(IoDevice),
-  NoNewline.
-
-do_get_file_line(IoDevice, 1) ->
-  Line = io:get_line(IoDevice, ""),
-  unicode:characters_to_binary(Line);
-do_get_file_line(IoDevice, N) ->
-  io:get_line(IoDevice, ""),
-  do_get_file_line(IoDevice, N -1).
 
 %% Format snippets
 %% "Snippet" here refers to the source code line where the diagnostic/error occured
@@ -251,7 +255,7 @@ file_warn(Meta, E, Module, Desc) when is_list(Meta) ->
     false ->
       {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, E),
       Message = Module:format_error(Desc),
-      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true}])
+      emit_diagnostic(warning, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true} | Meta])
   end.
 
 -spec file_error(list(), binary() | #{file := binary(), _ => _}, module(), any()) -> no_return().
@@ -284,7 +288,7 @@ function_error(Meta, Env, Module, Desc) ->
 print_error(Meta, Env, Module, Desc) ->
   {EnvPosition, EnvFile, EnvStacktrace} = env_format(Meta, Env),
   Message = Module:format_error(Desc),
-  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true}]),
+  emit_diagnostic(error, EnvPosition, EnvFile, Message, EnvStacktrace, [{read_snippet, true} | Meta]),
   ok.
 
 %% Compilation error.
@@ -373,11 +377,8 @@ parse_error(Location, File, Error, <<"[", _/binary>> = Full, Input) when is_bina
 
 %% Given a string prefix and suffix to insert the token inside the error message rather than append it
 parse_error(Location, File, {ErrorPrefix, ErrorSuffix}, Token, Input) when is_binary(ErrorPrefix), is_binary(ErrorSuffix), is_binary(Token) ->
-  Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary >>,
-  case lists:keytake(error_type, 1, Location) of
-    {value, {error_type, mismatched_delimiter}, Loc} -> raise_mismatched_delimiter(Loc, File, Input, Message);
-    _ -> raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
-  end;
+  Message = <<ErrorPrefix/binary, Token/binary, ErrorSuffix/binary>>,
+  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message);
 
 %% Misplaced char tokens (for example, {char, _, 97}) are translated by Erlang into
 %% the char literal (i.e., the token in the previous example becomes $a),
@@ -391,7 +392,10 @@ parse_error(Location, File, <<"syntax error before: ">>, <<$$, Char/binary>>, In
 %% Everything else is fine as is
 parse_error(Location, File, Error, Token, Input) when is_binary(Error), is_binary(Token) ->
   Message = <<Error/binary, Token/binary>>,
-  raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message).
+  case lists:keytake(error_type, 1, Location) of
+    {value, {error_type, mismatched_delimiter}, Loc} -> raise_mismatched_delimiter(Loc, File, Input, Message);
+    _ -> raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
+  end.
 
 parse_erl_term(Term) ->
   {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
@@ -399,11 +403,9 @@ parse_erl_term(Term) ->
   Parsed.
 
 raise_mismatched_delimiter(Location, File, Input, Message) ->
-  {end_line, EndLine} = lists:keyfind(end_line, 1, Location),
-  {end_column, EndCol} = lists:keyfind(end_column, 1, Location),
-  {InputString, InputStartLine, _} = Input,
-  Snippet = snippet_line(InputString, [{line, EndLine}, {column, EndCol}], InputStartLine),
-  raise('Elixir.MismatchedDelimiterError', Message,  [{file, File}, {snippet, Snippet} | Location]).
+  {InputString, _, _} = Input,
+  InputBinary = elixir_utils:characters_to_binary(InputString),
+  raise('Elixir.MismatchedDelimiterError', Message,  [{file, File}, {snippet, InputBinary} | Location]).
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',

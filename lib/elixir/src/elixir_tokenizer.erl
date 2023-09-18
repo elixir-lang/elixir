@@ -1,7 +1,7 @@
 -module(elixir_tokenizer).
 -include("elixir.hrl").
 -include("elixir_tokenizer.hrl").
--export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1]).
+-export([tokenize/1, tokenize/3, tokenize/4, invalid_do_error/1, terminator/1]).
 
 -define(at_op(T),
   T =:= $@).
@@ -149,7 +149,8 @@ tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, {StartLine,
   Hint = missing_terminator_hint(Start, End, Scope),
   Message = "missing terminator: ~ts (for \"~ts\" starting at line ~B)",
   Formatted = io_lib:format(Message, [End, Start, StartLine]),
-  error({?LOC(EndLine, Column), [Formatted, Hint], []}, [], Scope, Tokens);
+  Meta = [{opening_delimiter, Start} | ?LOC(EndLine, Column)],
+  error({Meta, [Formatted, Hint], []}, [], Scope, Tokens);
 
 tokenize([], Line, Column, #elixir_tokenizer{} = Scope, Tokens) ->
   #elixir_tokenizer{ascii_identifiers_only=Ascii, warnings=Warnings} = Scope,
@@ -1416,15 +1417,17 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
     End ->
       {ok, Scope#elixir_tokenizer{terminators=Terminators}};
 
-    ExpectedEnd ->
-      Suffix =
-        io_lib:format(
-          "\n\n    HINT: the \"~ts\" on line ~B is missing terminator \"~ts\"",
-          [Start, StartLine, ExpectedEnd]
-        ),
-      StartLoc = ?LOC(StartLine, StartColumn),
-      EndLoc = [{end_line, EndLine}, {end_column, EndColumn}, {error_type, mismatched_delimiter}],
-      {error, {StartLoc ++ EndLoc, {unexpected_token_or_reserved(End), Suffix}, [atom_to_list(End)]}}
+    _ExpectedEnd ->
+      Meta = [
+        {line, StartLine},
+        {column, StartColumn},
+        {end_line, EndLine},
+        {end_column, EndColumn},
+        {error_type, mismatched_delimiter},
+        {opening_delimiter, Start},
+        {closing_delimiter, End}
+     ],
+     {error, {Meta, unexpected_token_or_reserved(End), [atom_to_list(End)]}}
   end;
 
 check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hints=Hints}) ->

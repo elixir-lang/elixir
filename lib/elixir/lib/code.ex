@@ -1595,7 +1595,7 @@ defmodule Code do
       to the parser when compiling files. It accepts the same options as
       `string_to_quoted/2` (except by the options that change the AST itself).
       This can be used in combination with the tracer to retrieve localized
-      information about events happening during compilation. Defaults to `[]`.
+      information about events happening during compilation. Defaults to `[columns: true]`.
       This option only affects code compilation functions, such as `compile_string/2`
       and `compile_file/2` but not `string_to_quoted/2` and friends, as the
       latter is used for other purposes beyond compilation.
