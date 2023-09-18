@@ -52,11 +52,14 @@ Function CheckOTPPageShow
     ${If} $0 == 0
       StrCpy $InstalledOTPRelease $1
       ${If} $InstalledOTPRelease == ${OTP_RELEASE}
-        ${NSD_CreateLabel} 0 0 100% 20u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath. Please proceed."
+        ${NSD_CreateLabel} 0 0 100% 60u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath. Please proceed."
         StrCpy $OTPVerified "true"
       ${ElseIf} $2 < ${OTP_RELEASE}
-        ${NSD_CreateLabel} 0 0 100% 30u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
-        We recommend checking if there is an Elixir version precompiled for Erlang/OTP $InstalledOTPRelease. Otherwise, proceed."
+        ${NSD_CreateLabel} 0 0 100% 60u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
+        $\r$\n$\r$\nYou can either search for another Elixir installer precompiled for Erlang/OTP $InstalledOTPRelease or download Erlang/OTP ${OTP_RELEASE} and install before proceeding."
+        ${NSD_CreateLink}  0 60u 100% 20u "Download Erlang/OTP ${OTP_RELEASE}"
+        Pop $DownloadOTPLink
+        ${NSD_OnClick} $DownloadOTPLink OpenOTPDownloads
       ${Else}
         SetErrorlevel 5
         MessageBox MB_ICONSTOP "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir version was precompiled for Erlang/OTP ${OTP_RELEASE}. \
