@@ -285,7 +285,7 @@ The [*application environment*](https://hexdocs.pm/elixir/1.15/Application.html#
 
 #### Example
 
-The `DashSplitter` module represents a library that configures the behavior of its functions through the global application environment mechanism. These configurations are concentrated in the *config/config.exs* file, shown below:
+The `DashSplitter` module represents a library that configures the behavior of its functions through the global application environment. These configurations are concentrated in the *config/config.exs* file, shown below:
 
 ```elixir
 import Config
