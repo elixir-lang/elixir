@@ -198,7 +198,8 @@ defmodule Macro do
     * `:keep` - Used by `quote/2` with the option `location: :keep` to annotate
       the file and the line number of the quoted source.
 
-    * `:line` - The line number of the AST node.
+    * `:line` - The line number of the AST node. Note line information is discarded
+      from quoted code but can be enabled back via the `:line` option.
 
   The following metadata keys are enabled by `Code.string_to_quoted/2`:
 
@@ -207,7 +208,8 @@ defmodule Macro do
       with parens. The `:closing` does not delimit the end of expression if
       there are `:do` and `:end` metadata  (when `:token_metadata` is true)
 
-    * `:column` - the column number of the AST node (when `:columns` is true)
+    * `:column` - the column number of the AST node (when `:columns` is true).
+      Note column information is always discarded from quoted code.
 
     * `:delimiter` - contains the opening delimiter for sigils, strings,
       and charlists as a string (such as `"{"`, `"/"`, `"'"`, and the like)
