@@ -749,7 +749,7 @@ defmodule System do
     case :binary.match(varname, "=") do
       {_, _} ->
         raise ArgumentError,
-              "cannot execute System.put_env/1-2 for key with \"=\", got: #{inspect(varname)}"
+              "cannot execute System.put_env/2 for key with \"=\", got: #{inspect(varname)}"
 
       :nomatch ->
         :os.putenv(String.to_charlist(varname), String.to_charlist(value))
@@ -767,7 +767,22 @@ defmodule System do
   """
   @spec put_env(Enumerable.t()) :: :ok
   def put_env(enum) do
-    Enum.each(enum, fn {key, value} -> put_env(to_string(key), value) end)
+    Enum.each(enum, fn
+      {key, nil} ->
+        :os.unsetenv(to_charlist(key))
+
+      {key, val} ->
+        key = to_charlist(key)
+
+        case :string.find(key, "=") do
+          :nomatch ->
+            :os.putenv(key, to_charlist(val))
+
+          _ ->
+            raise ArgumentError,
+                  "cannot execute System.put_env/1 for key with \"=\", got: #{inspect(key)}"
+        end
+    end)
   end
 
   @doc """

@@ -72,7 +72,7 @@ defmodule SystemTest do
     assert System.put_env(@test_var, nil) == :ok
     assert System.get_env(@test_var) == nil
 
-    assert_raise ArgumentError, ~r[cannot execute System.put_env/1-2 for key with \"=\"], fn ->
+    assert_raise ArgumentError, ~r[cannot execute System.put_env/2 for key with \"=\"], fn ->
       System.put_env("FOO=BAR", "BAZ")
     end
   end
