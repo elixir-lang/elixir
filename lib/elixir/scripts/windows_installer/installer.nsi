@@ -16,6 +16,7 @@ var Dialog
 var DownloadOTPLink
 var InstalledOTPRelease
 var OTPPath
+var OTPVerified
 Function CheckOTPPageShow
   !insertmacro MUI_HEADER_TEXT "Checking Erlang/OTP" ""
 
@@ -26,9 +27,15 @@ Function CheckOTPPageShow
     Abort
   ${EndIf}
 
-  EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
-  ReadRegStr $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
-  StrCpy $OTPPath $0
+  StrCpy $0 0
+  loop:
+    EnumRegKey $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" $0
+    StrCmp $1 "" done
+    ReadRegStr $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$1" ""
+    StrCpy $OTPPath $1
+    IntOp $0 $0 + 1
+    goto loop
+  done:
 
   ${If} $OTPPath == ""
     ${NSD_CreateLabel} 0 0   100% 20u "Couldn't find existing Erlang/OTP installation. Click the link below to download and install it before proceeding."
@@ -46,6 +53,7 @@ Function CheckOTPPageShow
       StrCpy $InstalledOTPRelease $1
       ${If} $InstalledOTPRelease == ${OTP_RELEASE}
         ${NSD_CreateLabel} 0 0 100% 20u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath. Please proceed."
+        StrCpy $OTPVerified "true"
       ${ElseIf} $2 < ${OTP_RELEASE}
         ${NSD_CreateLabel} 0 0 100% 30u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
         We recommend checking if there is an Elixir version precompiled for Erlang/OTP $InstalledOTPRelease. Otherwise, proceed."
@@ -53,12 +61,10 @@ Function CheckOTPPageShow
         SetErrorlevel 5
         MessageBox MB_ICONSTOP "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir version was precompiled for Erlang/OTP ${OTP_RELEASE}. \
         Please upgrade your Erlang/OTP version or choose an Elixir installer matching your Erlang/OTP version"
-        Quit
       ${EndIf}
     ${Else}
       SetErrorlevel 5
       MessageBox MB_ICONSTOP "Found existing Erlang/OTP installation at $OTPPath but checking it exited with $0: $1"
-      Quit
     ${EndIf}
   ${EndIf}
 
@@ -97,11 +103,13 @@ Function FinishPageShow
   Pop $AddElixirToPathCheckbox
   SendMessage $AddElixirToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
 
-  EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
-  ReadRegStr $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
-  ${NSD_CreateCheckbox} 0 20u 195u 10u "&Add $0\bin to %PATH%"
+  ${If} $OTPVerified == "true"
+  ${NSD_CreateCheckbox} 0 20u 195u 10u "&Add $OTPPath\bin to %PATH%"
   Pop $AddOTPToPathCheckbox
   SendMessage $AddOTPToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
+  ${EndIf}
+
+  ${NSD_CreateLabel} 0 40u 100% 20u "Note: you need to restart your shell for the enviornment variable changes to take effect."
 
   nsDialogs::Show
 FunctionEnd
@@ -145,9 +153,15 @@ var RemoveElixirFromPathCheckbox
 Function un.FinishPageShow
   !insertmacro MUI_HEADER_TEXT "Remove from %PATH%" ""
 
-  EnumRegKey $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" 0
-  ReadRegStr $0 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$0" ""
-  StrCpy $OTPPath $0
+  StrCpy $0 0
+  loop:
+    EnumRegKey $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang" $0
+    StrCmp $1 "" done
+    ReadRegStr $1 HKLM "SOFTWARE\WOW6432NODE\Ericsson\Erlang\$1" ""
+    StrCpy $OTPPath $1
+    IntOp $0 $0 + 1
+    goto loop
+  done:
 
   nsDialogs::Create 1018
   Pop $Dialog
