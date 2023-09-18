@@ -68,9 +68,9 @@ canonical = System.fetch_env!("CANONICAL")
     "Getting started": ~r"pages/getting-started/.*\.md$",
     Cheatsheets: ~r"pages/cheatsheets/.*\.cheatmd$",
     "Anti-patterns": ~r"pages/anti-patterns/.*\.md$",
-    References: ~r"pages/references/.*\.md$",
     "Meta-programming": ~r"pages/meta-programming/.*\.md$",
-    "Mix & OTP": ~r"pages/mix-and-otp/.*\.md$"
+    "Mix & OTP": ~r"pages/mix-and-otp/.*\.md$",
+    References: ~r"pages/references/.*\.md$"
   ],
   groups_for_functions: [
     Guards: &(&1[:guard] == true)

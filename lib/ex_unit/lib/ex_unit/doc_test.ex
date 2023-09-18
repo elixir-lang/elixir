@@ -610,25 +610,29 @@ defmodule ExUnit.DocTest do
   @fences ["```", "~~~"]
 
   defp adjust_indent(lines, line_no, module) do
-    adjust_indent(:text, lines, line_no, [], 0, module)
+    adjust_text(lines, line_no, [], module)
   end
 
-  defp adjust_indent(_kind, [], line_no, adjusted_lines, _indent, _module) do
+  defp adjust_text([], line_no, adjusted_lines, _module) do
     {Enum.reverse(adjusted_lines), line_no - 1}
   end
 
-  defp adjust_indent(:text, [line | rest], line_no, adjusted_lines, indent, module) do
+  defp adjust_text([line | rest], line_no, adjusted_lines, module) do
     case String.starts_with?(String.trim_leading(line), @iex_prompt) do
       true ->
-        line_indent = get_indent(line, indent)
-        adjust_indent(:prompt, [line | rest], line_no, adjusted_lines, line_indent, module)
+        {indent, _len} = :binary.match(line, "iex")
+        adjust_code(:prompt, [line | rest], line_no, adjusted_lines, indent, module)
 
       false ->
-        adjust_indent(:text, rest, line_no + 1, adjusted_lines, indent, module)
+        adjust_text(rest, line_no + 1, adjusted_lines, module)
     end
   end
 
-  defp adjust_indent(kind, [line | rest], line_no, adjusted_lines, indent, module) do
+  defp adjust_code(_kind, [], line_no, adjusted_lines, _indent, _module) do
+    {Enum.reverse(adjusted_lines), line_no - 1}
+  end
+
+  defp adjust_code(kind, [line | rest], line_no, adjusted_lines, indent, module) do
     stripped_line = strip_indent(line, indent)
     trimmed_line = String.trim_leading(line)
     done? = stripped_line == "" or String.starts_with?(stripped_line, @fences)
@@ -659,23 +663,16 @@ defmodule ExUnit.DocTest do
     cond do
       done? ->
         adjusted_lines = [{"", line_no} | adjusted_lines]
-        adjust_indent(:text, rest, line_no + 1, adjusted_lines, 0, module)
+        adjust_text(rest, line_no + 1, adjusted_lines, module)
 
       kind == :prompt or String.starts_with?(trimmed_line, @iex_prompt) or
           (kind == :maybe_prompt and String.starts_with?(trimmed_line, @dot_prompt)) ->
         line = {adjust_prompt(stripped_line, line_no, module), line_no}
-        adjust_indent(:maybe_prompt, rest, line_no + 1, [line | adjusted_lines], indent, module)
+        adjust_code(:maybe_prompt, rest, line_no + 1, [line | adjusted_lines], indent, module)
 
       true ->
         adjusted_lines = [{stripped_line, line_no} | adjusted_lines]
-        adjust_indent(:code, rest, line_no + 1, adjusted_lines, indent, module)
-    end
-  end
-
-  defp get_indent(line, current_indent) do
-    case :binary.match(line, "iex") do
-      {pos, _len} -> pos
-      :nomatch -> current_indent
+        adjust_code(:code, rest, line_no + 1, adjusted_lines, indent, module)
     end
   end
 
