@@ -736,25 +736,24 @@ defmodule System do
   @doc """
   Sets an environment variable value.
 
-  Sets a new `value` for the environment variable `key`.
-  `nil` values erase the given key.
+  Sets a new `value` for the environment variable `varname`.
+  `nil` values erase the given environment variable.
   """
   @spec put_env(binary, binary | nil) :: :ok
-  def put_env(key, value) when is_binary(key) do
-    case value do
-      nil ->
-        :os.unsetenv(to_charlist(key))
+  def put_env(varname, nil) when is_binary(varname) do
+    :os.unsetenv(to_charlist(varname))
+    :ok
+  end
 
-      value ->
-        case :string.find(key, "=") do
-          :nomatch ->
-            :os.putenv(key, to_charlist(value))
-            :ok
+  def put_env(varname, value) when is_binary(varname) and is_binary(value) do
+    case :binary.match(varname, "=") do
+      {_, _} ->
+        raise ArgumentError,
+              "cannot execute System.put_env/1-2 for key with \"=\", got: #{inspect(varname)}"
 
-          _ ->
-            raise ArgumentError,
-                  "cannot execute System.put_env for key with \"=\", got: #{key}"
-        end
+      :nomatch ->
+        :os.putenv(String.to_charlist(varname), String.to_charlist(value))
+        :ok
     end
   end
 
@@ -768,7 +767,7 @@ defmodule System do
   """
   @spec put_env(Enumerable.t()) :: :ok
   def put_env(enum) do
-    Enum.each(enum, fn {key, value} -> put_env(key, value) end)
+    Enum.each(enum, fn {key, value} -> put_env(to_string(key), value) end)
   end
 
   @doc """
