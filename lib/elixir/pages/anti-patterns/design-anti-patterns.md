@@ -285,7 +285,7 @@ The [*application environment*](https://hexdocs.pm/elixir/1.15/Application.html#
 
 #### Example
 
-The `DashSplitter` module represents a library that configures the behavior of its functions through the global *Application Environment* mechanism. These configurations are concentrated in the *config/config.exs* file, shown below:
+The `DashSplitter` module represents a library that configures the behavior of its functions through the global application environment mechanism. These configurations are concentrated in the *config/config.exs* file, shown below:
 
 ```elixir
 import Config
@@ -296,7 +296,7 @@ config :app_config,
 import_config "#{config_env()}.exs"
 ```
 
-One of the functions implemented by the `DashSplitter` library is `split/1`. This function aims to separate a string received via a parameter into a certain number of parts. The character used as a separator in `split/1` is always `"-"` and the number of parts the string is split into is defined globally by the *Application Environment*. This value is retrieved by the `split/1` function by calling `Application.fetch_env!/2`, as shown next:
+One of the functions implemented by the `DashSplitter` library is `split/1`. This function aims to separate a string received via a parameter into a certain number of parts. The character used as a separator in `split/1` is always `"-"` and the number of parts the string is split into is defined globally by the application environment. This value is retrieved by the `split/1` function by calling `Application.fetch_env!/2`, as shown next:
 
 ```elixir
 defmodule DashSplitter do
