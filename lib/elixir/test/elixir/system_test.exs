@@ -68,6 +68,10 @@ defmodule SystemTest do
     System.delete_env(@test_var)
     assert System.get_env(@test_var) == nil
 
+    System.put_env(@test_var, "SAMPLE")
+    System.put_env(@test_var, nil)
+    assert System.get_env(@test_var) == nil
+
     assert_raise ArgumentError, ~r[cannot execute System.put_env/2 for key with \"=\"], fn ->
       System.put_env("FOO=BAR", "BAZ")
     end

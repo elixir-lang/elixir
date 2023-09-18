@@ -736,18 +736,25 @@ defmodule System do
   @doc """
   Sets an environment variable value.
 
-  Sets a new `value` for the environment variable `varname`.
+  Sets a new `value` for the environment variable `key`.
+  `nil` values erase the given key.
   """
-  @spec put_env(binary, binary) :: :ok
-  def put_env(varname, value) when is_binary(varname) and is_binary(value) do
-    case :binary.match(varname, "=") do
-      {_, _} ->
-        raise ArgumentError,
-              "cannot execute System.put_env/2 for key with \"=\", got: #{inspect(varname)}"
+  @spec put_env(binary, binary | nil) :: :ok
+  def put_env(key, value) when is_binary(key) do
+    case value do
+      nil ->
+        :os.unsetenv(to_charlist(key))
 
-      :nomatch ->
-        :os.putenv(String.to_charlist(varname), String.to_charlist(value))
-        :ok
+      value ->
+        case :string.find(key, "=") do
+          :nomatch ->
+            :os.putenv(key, to_charlist(value))
+            :ok
+
+          _ ->
+            raise ArgumentError,
+                  "cannot execute System.put_env for key with \"=\", got: #{key}"
+        end
     end
   end
 
@@ -761,22 +768,7 @@ defmodule System do
   """
   @spec put_env(Enumerable.t()) :: :ok
   def put_env(enum) do
-    Enum.each(enum, fn
-      {key, nil} ->
-        :os.unsetenv(to_charlist(key))
-
-      {key, val} ->
-        key = to_charlist(key)
-
-        case :string.find(key, "=") do
-          :nomatch ->
-            :os.putenv(key, to_charlist(val))
-
-          _ ->
-            raise ArgumentError,
-                  "cannot execute System.put_env/1 for key with \"=\", got: #{inspect(key)}"
-        end
-    end)
+    Enum.each(enum, fn {key, value} -> put_env(key, value) end)
   end
 
   @doc """
