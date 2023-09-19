@@ -103,7 +103,7 @@ Function VerifyOTP
         ${NSD_CreateLabel} 0 0 100% 60u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath. Please proceed."
         StrCpy $OTPVerified "true"
 
-      ${ElseIf} $2 < ${OTP_RELEASE}
+      ${Else}
         ${If} $OTPMismatchLabelCreated != "true"
           StrCpy $OTPMismatchLabelCreated "true"
           ${NSD_CreateLabel} 0 0 100% 60u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
@@ -114,11 +114,6 @@ Function VerifyOTP
         ShowWindow $OTPMismatchLabel ${SW_SHOW}
         ShowWindow $DownloadOTPLink  ${SW_SHOW}
         ShowWindow $VerifyOTPButton  ${SW_SHOW}
-
-      ${Else}
-        SetErrorlevel 5
-        MessageBox MB_ICONSTOP "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir version was precompiled for Erlang/OTP ${OTP_RELEASE}. \
-        Please upgrade your Erlang/OTP version or choose an Elixir installer matching your Erlang/OTP version"
       ${EndIf}
     ${Else}
       SetErrorlevel 5
@@ -155,17 +150,20 @@ Function FinishPageShow
     Abort
   ${EndIf}
 
-  ${NSD_CreateCheckbox} 0 0 195u 10u "&Add $INSTDIR\bin to %PATH%"
-  Pop $AddElixirToPathCheckbox
-  SendMessage $AddElixirToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
+  ; we add to PATH using erlang, so there must be an OTP installed to do so.
+  ${If} "$OTPPath" != ""
+    ${NSD_CreateCheckbox} 0 0 195u 10u "&Add $INSTDIR\bin to %PATH%"
+    Pop $AddElixirToPathCheckbox
+    SendMessage $AddElixirToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
 
-  ${If} $OTPVerified == "true"
-  ${NSD_CreateCheckbox} 0 20u 195u 10u "&Add $OTPPath\bin to %PATH%"
-  Pop $AddOTPToPathCheckbox
-  SendMessage $AddOTPToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
+    ${NSD_CreateCheckbox} 0 20u 195u 10u "&Add $OTPPath\bin to %PATH%"
+    Pop $AddOTPToPathCheckbox
+    ${If} $OTPVerified == "true"
+      SendMessage $AddOTPToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
+    ${EndIf}
+
+    ${NSD_CreateLabel} 0 40u 100% 20u "Note: you need to restart your shell for the environment variable changes to take effect."
   ${EndIf}
-
-  ${NSD_CreateLabel} 0 40u 100% 20u "Note: you need to restart your shell for the environment variable changes to take effect."
 
   nsDialogs::Show
 FunctionEnd
