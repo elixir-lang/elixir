@@ -165,7 +165,7 @@ Function FinishPageShow
   SendMessage $AddOTPToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
   ${EndIf}
 
-  ${NSD_CreateLabel} 0 40u 100% 20u "Note: you need to restart your shell for the enviornment variable changes to take effect."
+  ${NSD_CreateLabel} 0 40u 100% 20u "Note: you need to restart your shell for the environment variable changes to take effect."
 
   nsDialogs::Show
 FunctionEnd
