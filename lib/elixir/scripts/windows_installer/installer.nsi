@@ -14,7 +14,6 @@ Page custom CheckOTPPageShow CheckOTPPageLeave
 
 var InstalledOTPRelease
 var OTPPath
-var OTPVerified
 
 var Dialog
 var NoOTPLabel
@@ -101,7 +100,6 @@ Function VerifyOTP
       StrCpy $InstalledOTPRelease $1
       ${If} $InstalledOTPRelease == ${OTP_RELEASE}
         ${NSD_CreateLabel} 0 0 100% 60u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath. Please proceed."
-        StrCpy $OTPVerified "true"
 
       ${Else}
         ${If} $OTPMismatchLabelCreated != "true"
@@ -158,9 +156,7 @@ Function FinishPageShow
 
     ${NSD_CreateCheckbox} 0 20u 195u 10u "&Add $OTPPath\bin to %PATH%"
     Pop $AddOTPToPathCheckbox
-    ${If} $OTPVerified == "true"
-      SendMessage $AddOTPToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
-    ${EndIf}
+    SendMessage $AddOTPToPathCheckbox ${BM_SETCHECK} ${BST_CHECKED} 0
 
     ${NSD_CreateLabel} 0 40u 100% 20u "Note: you need to restart your shell for the environment variable changes to take effect."
   ${EndIf}
