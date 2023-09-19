@@ -755,9 +755,12 @@ defmodule System do
   Sets multiple environment variables.
 
   Sets a new value for each environment variable corresponding
-  to each `{key, value}` pair in `enum`. Keys are automatically
-  converted to strings, values are sent as is. `nil` values erase
+  to each `{key, value}` pair in `enum`. Keys and non-nil values
+  are automatically converted to charlists. `nil` values erase
   the given keys.
+
+  Overall, this is a convenience wrapper around `put_env/2` and
+  `delete_env/2` with support for different key and value formats.
   """
   @spec put_env(Enumerable.t()) :: :ok
   def put_env(enum) do
