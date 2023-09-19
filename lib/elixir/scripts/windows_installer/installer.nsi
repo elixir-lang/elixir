@@ -12,11 +12,19 @@ InstallDir "$PROGRAMFILES64\Elixir"
 
 Page custom CheckOTPPageShow CheckOTPPageLeave
 
-var Dialog
-var DownloadOTPLink
 var InstalledOTPRelease
 var OTPPath
 var OTPVerified
+
+var Dialog
+var NoOTPLabel
+var NoOTPLabelCreated
+var OTPMismatchLabel
+var OTPMismatchLabelCreated
+var DownloadOTPLink
+var DownloadOTPLinkCreated
+var VerifyOTPButton
+var VerifyOTPButtonCreated
 Function CheckOTPPageShow
   !insertmacro MUI_HEADER_TEXT "Checking Erlang/OTP" ""
 
@@ -25,6 +33,40 @@ Function CheckOTPPageShow
 
   ${If} $Dialog == error
     Abort
+  ${EndIf}
+
+  Call VerifyOTP
+
+  nsDialogs::Show
+FunctionEnd
+
+Function VerifyOTP
+  ${If} $NoOTPLabelCreated == "true"
+    ShowWindow $NoOTPLabel ${SW_HIDE}
+  ${EndIf}
+
+  ${If} $OTPMismatchLabelCreated == "true"
+    ShowWindow $OTPMismatchLabel ${SW_HIDE}
+  ${EndIf}
+
+  ${If} $DownloadOTPLinkCreated == "true"
+    ShowWindow $DownloadOTPLink ${SW_HIDE}
+  ${Else}
+    StrCpy $DownloadOTPLinkCreated "true"
+    ${NSD_CreateLink}  0 60u 100% 20u "Download Erlang/OTP ${OTP_RELEASE}"
+    Pop $DownloadOTPLink
+    ${NSD_OnClick} $DownloadOTPLink OpenOTPDownloads
+    ShowWindow $DownloadOTPLink ${SW_HIDE}
+  ${EndIf}
+
+  ${If} $VerifyOTPButtonCreated == "true"
+    ShowWindow $VerifyOTPButton ${SW_HIDE}
+  ${Else}
+    StrCpy $VerifyOTPButtonCreated "true"
+    ${NSD_CreateButton} 0 80u 25% 12u "Verify Erlang/OTP"
+    Pop $VerifyOTPButton
+    ${NSD_OnClick} $VerifyOTPButton VerifyOTP
+    ShowWindow $VerifyOTPButton ${SW_HIDE}
   ${EndIf}
 
   StrCpy $0 0
@@ -38,10 +80,16 @@ Function CheckOTPPageShow
   done:
 
   ${If} $OTPPath == ""
-    ${NSD_CreateLabel} 0 0   100% 20u "Couldn't find existing Erlang/OTP installation. Click the link below to download and install it before proceeding."
-    ${NSD_CreateLink}  0 25u 100% 20u "Download Erlang/OTP ${OTP_RELEASE}"
-    Pop $DownloadOTPLink
-    ${NSD_OnClick} $DownloadOTPLink OpenOTPDownloads
+    ${If} $NoOTPLabelCreated != "true"
+      StrCpy $NoOTPLabelCreated "true"
+      ${NSD_CreateLabel} 0 0   100% 20u "Couldn't find existing Erlang/OTP installation. Click the link below to download and install it before proceeding."
+      Pop $NoOTPLabel
+    ${EndIf}
+
+    ShowWindow $NoOTPLabel ${SW_SHOW}
+    ShowWindow $DownloadOTPLink ${SW_SHOW}
+    ShowWindow $VerifyOTPButton ${SW_SHOW}
+
   ${Else}
     nsExec::ExecToStack `$OTPPath\bin\erl.exe -noinput -eval "\
     io:put_chars(erlang:system_info(otp_release)),\
@@ -54,12 +102,19 @@ Function CheckOTPPageShow
       ${If} $InstalledOTPRelease == ${OTP_RELEASE}
         ${NSD_CreateLabel} 0 0 100% 60u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath. Please proceed."
         StrCpy $OTPVerified "true"
+
       ${ElseIf} $2 < ${OTP_RELEASE}
-        ${NSD_CreateLabel} 0 0 100% 60u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
-        $\r$\n$\r$\nYou can either search for another Elixir installer precompiled for Erlang/OTP $InstalledOTPRelease or download Erlang/OTP ${OTP_RELEASE} and install before proceeding."
-        ${NSD_CreateLink}  0 60u 100% 20u "Download Erlang/OTP ${OTP_RELEASE}"
-        Pop $DownloadOTPLink
-        ${NSD_OnClick} $DownloadOTPLink OpenOTPDownloads
+        ${If} $OTPMismatchLabelCreated != "true"
+          StrCpy $OTPMismatchLabelCreated "true"
+          ${NSD_CreateLabel} 0 0 100% 60u "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir installer was precompiled for Erlang/OTP ${OTP_RELEASE}. \
+          $\r$\n$\r$\nYou can either search for another Elixir installer precompiled for Erlang/OTP $InstalledOTPRelease or download Erlang/OTP ${OTP_RELEASE} and install before proceeding."
+          Pop $OTPMismatchLabel
+        ${EndIf}
+
+        ShowWindow $OTPMismatchLabel ${SW_SHOW}
+        ShowWindow $DownloadOTPLink  ${SW_SHOW}
+        ShowWindow $VerifyOTPButton  ${SW_SHOW}
+
       ${Else}
         SetErrorlevel 5
         MessageBox MB_ICONSTOP "Found existing Erlang/OTP $InstalledOTPRelease installation at $OTPPath but this Elixir version was precompiled for Erlang/OTP ${OTP_RELEASE}. \
@@ -70,8 +125,6 @@ Function CheckOTPPageShow
       MessageBox MB_ICONSTOP "Found existing Erlang/OTP installation at $OTPPath but checking it exited with $0: $1"
     ${EndIf}
   ${EndIf}
-
-  nsDialogs::Show
 FunctionEnd
 
 Function OpenOTPDownloads
