@@ -1,6 +1,6 @@
-# PropertyValueAliases-15.0.0.txt
-# Date: 2022-08-05, 23:42:17 GMT
-# © 2022 Unicode®, Inc.
+# PropertyValueAliases-15.1.0.txt
+# Date: 2023-08-07, 15:21:34 GMT
+# © 2023 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use, see https://www.unicode.org/terms_of_use.html
 #
@@ -91,6 +91,7 @@ age; 12.1                             ; V12_1
 age; 13.0                             ; V13_0
 age; 14.0                             ; V14_0
 age; 15.0                             ; V15_0
+age; 15.1                             ; V15_1
 age; NA                               ; Unassigned
 
 # Alphabetic (Alpha)
@@ -208,6 +209,7 @@ blk; CJK_Ext_E                        ; CJK_Unified_Ideographs_Extension_E
 blk; CJK_Ext_F                        ; CJK_Unified_Ideographs_Extension_F
 blk; CJK_Ext_G                        ; CJK_Unified_Ideographs_Extension_G
 blk; CJK_Ext_H                        ; CJK_Unified_Ideographs_Extension_H
+blk; CJK_Ext_I                        ; CJK_Unified_Ideographs_Extension_I
 blk; CJK_Radicals_Sup                 ; CJK_Radicals_Supplement
 blk; CJK_Strokes                      ; CJK_Strokes
 blk; CJK_Symbols                      ; CJK_Symbols_And_Punctuation
@@ -817,6 +819,21 @@ IDSB; Y                               ; Yes                              ; T    
 IDST; N                               ; No                               ; F                                ; False
 IDST; Y                               ; Yes                              ; T                                ; True
 
+# IDS_Unary_Operator (IDSU)
+
+IDSU; N                               ; No                               ; F                                ; False
+IDSU; Y                               ; Yes                              ; T                                ; True
+
+# ID_Compat_Math_Continue (ID_Compat_Math_Continue)
+
+ID_Compat_Math_Continue; N            ; No                               ; F                                ; False
+ID_Compat_Math_Continue; Y            ; Yes                              ; T                                ; True
+
+# ID_Compat_Math_Start (ID_Compat_Math_Start)
+
+ID_Compat_Math_Start; N               ; No                               ; F                                ; False
+ID_Compat_Math_Start; Y               ; Yes                              ; T                                ; True
+
 # ID_Continue (IDC)
 
 IDC; N                                ; No                               ; F                                ; False
@@ -835,6 +852,13 @@ IDS; Y                                ; Yes                              ; T    
 
 Ideo; N                               ; No                               ; F                                ; False
 Ideo; Y                               ; Yes                              ; T                                ; True
+
+# Indic_Conjunct_Break (InCB)
+
+InCB; Consonant                       ; Consonant
+InCB; Extend                          ; Extend
+InCB; Linker                          ; Linker
+InCB; None                            ; None
 
 # Indic_Positional_Category (InPC)
 
@@ -1074,7 +1098,10 @@ jt ; U                                ; Non_Joining
 # Line_Break (lb)
 
 lb ; AI                               ; Ambiguous
+lb ; AK                               ; Aksara
 lb ; AL                               ; Alphabetic
+lb ; AP                               ; Aksara_Prebase
+lb ; AS                               ; Aksara_Start
 lb ; B2                               ; Break_Both
 lb ; BA                               ; Break_After
 lb ; BB                               ; Break_Before
@@ -1112,6 +1139,8 @@ lb ; SA                               ; Complex_Context
 lb ; SG                               ; Surrogate
 lb ; SP                               ; Space
 lb ; SY                               ; Break_Symbols
+lb ; VF                               ; Virama_Final
+lb ; VI                               ; Virama
 lb ; WJ                               ; Word_Joiner
 lb ; XX                               ; Unknown
 lb ; ZW                               ; ZWSpace
@@ -1155,6 +1184,9 @@ NFD_QC; Y                             ; Yes
 NFKC_QC; M                            ; Maybe
 NFKC_QC; N                            ; No
 NFKC_QC; Y                            ; Yes
+
+# NFKC_Simple_Casefold (NFKC_SCF)
+
 
 # NFKD_Quick_Check (NFKD_QC)
 
