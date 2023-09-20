@@ -1,6 +1,6 @@
-# ScriptExtensions-15.0.0.txt
-# Date: 2022-02-02, 00:57:11 GMT
-# © 2022 Unicode®, Inc.
+# ScriptExtensions-15.1.0.txt
+# Date: 2023-02-01, 23:02:24 GMT
+# © 2023 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use, see https://www.unicode.org/terms_of_use.html
 #
@@ -136,20 +136,20 @@
 
 # ================================================
 
-# Script_Extensions=Arab Rohg
-
-06D4          ; Arab Rohg # Po       ARABIC FULL STOP
-
-# Total code points: 1
-
-# ================================================
-
 # Script_Extensions=Arab Nkoo
 
 FD3E          ; Arab Nkoo # Pe       ORNATE LEFT PARENTHESIS
 FD3F          ; Arab Nkoo # Ps       ORNATE RIGHT PARENTHESIS
 
 # Total code points: 2
+
+# ================================================
+
+# Script_Extensions=Arab Rohg
+
+06D4          ; Arab Rohg # Po       ARABIC FULL STOP
+
+# Total code points: 1
 
 # ================================================
 
@@ -553,14 +553,6 @@ FF64..FF65    ; Bopo Hang Hani Hira Kana Yiii # Po   [2] HALFWIDTH IDEOGRAPHIC C
 
 # ================================================
 
-# Script_Extensions=Beng Deva Gran Knda Nand Orya Telu Tirh
-
-1CF2          ; Beng Deva Gran Knda Nand Orya Telu Tirh # Lo       VEDIC SIGN ARDHAVISARGA
-
-# Total code points: 1
-
-# ================================================
-
 # Script_Extensions=Adlm Arab Mand Mani Ougr Phlp Rohg Sogd Syrc
 
 0640          ; Adlm Arab Mand Mani Ougr Phlp Rohg Sogd Syrc # Lm       ARABIC TATWEEL
@@ -569,19 +561,34 @@ FF64..FF65    ; Bopo Hang Hani Hira Kana Yiii # Po   [2] HALFWIDTH IDEOGRAPHIC C
 
 # ================================================
 
+# Script_Extensions=Beng Deva Gran Knda Mlym Nand Orya Sinh Telu Tirh
+
+1CF2          ; Beng Deva Gran Knda Mlym Nand Orya Sinh Telu Tirh # Lo       VEDIC SIGN ARDHAVISARGA
+
+# Total code points: 1
+
+# ================================================
+
 # Script_Extensions=Deva Dogr Gujr Guru Khoj Kthi Mahj Modi Sind Takr Tirh
 
 A836..A837    ; Deva Dogr Gujr Guru Khoj Kthi Mahj Modi Sind Takr Tirh # So   [2] NORTH INDIC QUARTER MARK..NORTH INDIC PLACEHOLDER MARK
-A838          ; Deva Dogr Gujr Guru Khoj Kthi Mahj Modi Sind Takr Tirh # Sc       NORTH INDIC RUPEE MARK
 A839          ; Deva Dogr Gujr Guru Khoj Kthi Mahj Modi Sind Takr Tirh # So       NORTH INDIC QUANTITY MARK
 
-# Total code points: 4
+# Total code points: 3
 
 # ================================================
 
 # Script_Extensions=Beng Deva Gran Gujr Guru Knda Latn Mlym Orya Taml Telu Tirh
 
 0952          ; Beng Deva Gran Gujr Guru Knda Latn Mlym Orya Taml Telu Tirh # Mn       DEVANAGARI STRESS SIGN ANUDATTA
+
+# Total code points: 1
+
+# ================================================
+
+# Script_Extensions=Deva Dogr Gujr Guru Khoj Kthi Mahj Modi Shrd Sind Takr Tirh
+
+A838          ; Deva Dogr Gujr Guru Khoj Kthi Mahj Modi Shrd Sind Takr Tirh # Sc       NORTH INDIC RUPEE MARK
 
 # Total code points: 1
 
@@ -595,17 +602,17 @@ A839          ; Deva Dogr Gujr Guru Khoj Kthi Mahj Modi Sind Takr Tirh # So     
 
 # ================================================
 
-# Script_Extensions=Deva Dogr Gujr Guru Khoj Knda Kthi Mahj Modi Nand Sind Takr Tirh
+# Script_Extensions=Deva Dogr Gujr Guru Khoj Knda Kthi Mahj Modi Nand Shrd Sind Takr Tirh
 
-A833..A835    ; Deva Dogr Gujr Guru Khoj Knda Kthi Mahj Modi Nand Sind Takr Tirh # No   [3] NORTH INDIC FRACTION ONE SIXTEENTH..NORTH INDIC FRACTION THREE SIXTEENTHS
+A833..A835    ; Deva Dogr Gujr Guru Khoj Knda Kthi Mahj Modi Nand Shrd Sind Takr Tirh # No   [3] NORTH INDIC FRACTION ONE SIXTEENTH..NORTH INDIC FRACTION THREE SIXTEENTHS
 
 # Total code points: 3
 
 # ================================================
 
-# Script_Extensions=Deva Dogr Gujr Guru Khoj Knda Kthi Mahj Mlym Modi Nand Sind Takr Tirh
+# Script_Extensions=Deva Dogr Gujr Guru Khoj Knda Kthi Mahj Mlym Modi Nand Shrd Sind Takr Tirh
 
-A830..A832    ; Deva Dogr Gujr Guru Khoj Knda Kthi Mahj Mlym Modi Nand Sind Takr Tirh # No   [3] NORTH INDIC FRACTION ONE QUARTER..NORTH INDIC FRACTION THREE QUARTERS
+A830..A832    ; Deva Dogr Gujr Guru Khoj Knda Kthi Mahj Mlym Modi Nand Shrd Sind Takr Tirh # No   [3] NORTH INDIC FRACTION ONE QUARTER..NORTH INDIC FRACTION THREE QUARTERS
 
 # Total code points: 3
 
