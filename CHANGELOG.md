@@ -117,6 +117,29 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.6 (2023-09-20)
+
+This release also includes fixes to the Windows installer.
+
+### 1. Bug fixes
+
+#### EEx
+
+  * [EEx] Do not crash when printing tokenizer warnings
+
+#### Elixir
+
+  * [Code] Fix formatter for nested `*` in bitstrings
+  * [Code] Improve feedback when an invalid block is given `Code.quoted_to_algebra/2`
+  * [Kernel] Trace functions before they are inlined
+
+#### Mix
+
+  * [mix compile] Ensure `:extra_applications` declare in umbrella projects are loaded
+  * [mix deps.get] Do not check for invalid applications before deps.get
+  * [mix deps.update] Do not check for invalid applications before deps.update
+  * [mix format] Load plugins when invoking the formatter from an IDE
+
 ## v1.15.5 (2023-08-28)
 
 ### 1. Enhancements
@@ -152,7 +175,7 @@ new features and on compatibility.
 
 #### Mix
 
-  * [mix archive.build] Disable protocol consolidation when building archiveson archive.install
+  * [mix archive.build] Disable protocol consolidation when building archives on archive.install
   * [mix compile] Track removed files per local dependency (this addresses a bug where files depending on modules from path dependencies always recompiled)
   * [mix release] Do not strip relevant chunks from Erlang/OTP 26
 
@@ -166,7 +189,7 @@ new features and on compatibility.
 
 #### Mix
 
-  * [Mix] Allow to opt out of starting apps in `Mix.install/2`
+  * [Mix] Allow to opt-out of starting apps in `Mix.install/2`
 
 ### 2. Bug fixes
 
