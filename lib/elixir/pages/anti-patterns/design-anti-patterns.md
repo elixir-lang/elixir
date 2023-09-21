@@ -281,7 +281,7 @@ A common practice followed by the community is to make the non-raising version t
 
 #### Problem
 
-The [*application environment*](https://hexdocs.pm/elixir/1.15/Application.html#module-the-application-environment) can be used to parameterize global values that can be used in an Elixir system. This parameterization mechanism can be very useful and therefore is not considered an anti-pattern by itself. However, library authors should avoid using the application environment to configure their library. The reason is exactly that the application environment is a **global** state, so there can only be a single value for each key in the environment for an application. This makes it impossible for multiple applications depending on the same library to configure the same aspect of the library in different ways.
+The [*application environment*](https://hexdocs.pm/elixir/Application.html#module-the-application-environment) can be used to parameterize global values that can be used in an Elixir system. This mechanism can be very useful and therefore is not considered an anti-pattern by itself. However, library authors should avoid using the application environment to configure their library. The reason is exactly that the application environment is a **global** state, so there can only be a single value for each key in the environment for an application. This makes it impossible for multiple applications depending on the same library to configure the same aspect of the library in different ways.
 
 #### Example
 
