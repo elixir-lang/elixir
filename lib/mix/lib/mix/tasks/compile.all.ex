@@ -125,7 +125,7 @@ defmodule Mix.Tasks.Compile.All do
     Enum.reduce(Mix.ProjectStack.pop_after_compiler(compiler), result, & &1.(&2))
   end
 
-  defp project_apps(config) do
+  def project_apps(config) do
     project = Mix.Project.get!()
 
     properties =

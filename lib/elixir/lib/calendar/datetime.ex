@@ -114,7 +114,7 @@ defmodule DateTime do
       # Local time to UTC
       new_york = DateTime.from_naive!(~N[2023-06-26T09:30:00], "America/New_York")
       #=> #DateTime<2023-06-26 09:30:00-04:00 EDT America/New_York>
-      
+
       utc = DateTime.shift_zone!(new_york, "Etc/UTC")
       #=> ~U[2023-06-26 13:30:00Z]
 
@@ -1208,7 +1208,7 @@ defmodule DateTime do
   end
 
   @doc """
-  Converts to ISO8601 specifying both a calendar and a mode.
+  Converts from ISO8601 specifying both a calendar and a mode.
 
   See `from_iso8601/2` for more information.
 

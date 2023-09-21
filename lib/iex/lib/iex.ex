@@ -36,7 +36,7 @@ defmodule IEx do
   IEx expects inputs and outputs to be in UTF-8 encoding. This is the
   default for most Unix terminals but it may not be the case on Windows.
   If you are running on Windows and you see incorrect values printed,
-  you may need change the encoding of your current session by running
+  you may need to change the encoding of your current session by running
   `chcp 65001` before calling `iex` (or before calling `iex.bat` if using
   PowerShell).
 
@@ -242,7 +242,7 @@ defmodule IEx do
   Now, try to access the `hello` variable again:
 
       hello
-      ** (UndefinedFunctionError) undefined function hello/0
+      ** (CompileError) undefined variable "hello"
 
   The command above fails because we have switched shells.
   Since shells are isolated from each other, you can't access the

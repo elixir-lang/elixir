@@ -76,7 +76,7 @@ extract_interpolations_with_an_escaped_character_test() ->
    ] = extract_interpolations("f#{?\\a > ?\\a   }").
 
 extract_interpolations_with_invalid_expression_inside_interpolation_test() ->
-  {1, 4, "unexpected token: ", _} = extract_interpolations("f#{:1}o").
+  {[{line, 1}, {column, 4}], "unexpected token: ", _} = extract_interpolations("f#{:1}o").
 
 %% Bin strings
 

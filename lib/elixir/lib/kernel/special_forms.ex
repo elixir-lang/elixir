@@ -1026,9 +1026,10 @@ defmodule Kernel.SpecialForms do
         end
       end
 
+      require Hygiene
       Hygiene.write()
       Hygiene.read()
-      ** (RuntimeError) undefined variable a or undefined function a/0
+      ** (CompileError) undefined variable "a" (context Hygiene)
 
   For such, you can explicitly pass the current module scope as
   argument:
@@ -1047,6 +1048,7 @@ defmodule Kernel.SpecialForms do
         end
       end
 
+      require Hygiene
       ContextHygiene.write()
       ContextHygiene.read()
       #=> 1

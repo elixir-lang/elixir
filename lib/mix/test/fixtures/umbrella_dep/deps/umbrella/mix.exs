@@ -4,4 +4,8 @@ defmodule Umbrella.MixProject do
   def project do
     [apps_path: "apps"]
   end
+
+  def application do
+    [extra_applications: [:runtime_tools]]
+  end
 end

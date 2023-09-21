@@ -47,7 +47,38 @@ Elixir makes a clear distinction between **documentation** and code comments. Th
 
 ## Long parameter list
 
-TODO.
+#### Problem
+
+In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point the function's interface becomes confusing and prone to errors during use.
+
+#### Example
+
+In the following example, the `loan/6` functions takes too many arguments, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
+
+```elixir
+defmodule Library do
+  # Too many parameters that can be grouped!
+  def loan(user_name, email, password, user_alias, book_title, book_ed) do
+    ...
+  end
+end
+```
+
+#### Refactoring
+
+To address this anti-pattern, related arguments can be grouped using maps, structs, or even tuples. This effectively reduces the number of arguments, simplifying the function's interface. In the case of `loan/6`, its arguments were grouped into two different maps, thereby reducing its arity to `loan/2`:
+
+```elixir
+defmodule Library do
+  def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
+    ...
+  end
+end
+```
+
+In some cases, the function with too many arguments may be a private function, which gives us more flexibility over how to separate the function arguments. One possible suggestion for such scenarios is to split the arguments in two maps (or tuples): one map keeps the data that may change, and the other keeps the data that won't change (read-only). This gives us a mechanical option to refactor the code.
+
+Other times, a function may legitimately take half a dozen or more completely unrelated arguments. This may suggest the function is trying to do too much and would be better broken into multiple functions, each responsible for a smaller piece of the overall responsibility.
 
 ## Complex branching
 
@@ -220,7 +251,7 @@ The function `plot/1` tries to draw a graphic to represent the position of a poi
 ```elixir
 defmodule Graphics do
   def plot(point) do
-    #Some other code...
+    # Some other code...
 
     # Dynamic access to use point values
     {point[:x], point[:y], point[:z]}
@@ -248,7 +279,7 @@ To remove this anti-pattern, whenever a map has keys of `Atom` type, replace the
 ```elixir
 defmodule Graphics do
   def plot(point) do
-    #Some other code...
+    # Some other code...
 
     # Strict access to use point values
     {point.x, point.y, point.z}
@@ -273,7 +304,7 @@ As shown below, another alternative to refactor this anti-pattern is to use patt
 ```elixir
 defmodule Graphics do
   def plot(%{x: x, y: y, z: z}) do
-    #Some other code...
+    # Some other code...
 
     # Strict access to use point values
     {x, y, z}
@@ -319,7 +350,98 @@ This anti-pattern was formerly known as [Accessing non-existent Map/Struct field
 
 ## Dynamic atom creation
 
-TODO.
+#### Problem
+
+An `Atom` is an Elixir basic type whose value is its own name. Atoms are often useful to identify resources or express the state, or result, of an operation. Creating atoms dynamically is not an anti-pattern by itself; however, atoms are not garbage collected by the Erlang Virtual Machine, so values of this type live in memory during a software's entire execution lifetime. The Erlang VM limits the number of atoms that can exist in an application by default to *1_048_576*, which is more than enough to cover all atoms defined in a program, but attempts to serve as an early limit for applications which are "leaking atoms" through dynamic creation.
+
+For these reason, creating atoms dynamically can be considered an anti-pattern when the developer has no control over how many atoms will be created during the software execution. This unpredictable scenario can expose the software to unexpected behaviour caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
+
+#### Example
+
+Picture yourself implementing code that converts string values into atoms. These strings could have been received from an external system, either as part of a request into our application, or as part of a response to your application. This dynamic and unpredictable scenario poses a security risk, as these uncontrolled conversions can potentially trigger out-of-memory errors.
+
+```elixir
+defmodule MyRequestHandler do
+  def parse(%{"status" => status, "message" => message} = _payload) do
+    %{status: String.to_atom(status), message: message}
+  end
+end
+```
+
+```elixir
+iex> MyRequestHandler.parse(%{"status" => "ok", "message" => "all good"})
+%{status: :ok, message: "all good"}
+```
+
+When we use the `String.to_atom/1` function to dynamically create an atom, it essentially gains potential access to create arbitrary atoms in our system, causing us to lose control over adhering to the limits established by the BEAM. This issue could be exploited by someone to create enough atoms to shut down a system.
+
+#### Refactoring
+
+To eliminate this anti-pattern, developers must either perform explicit conversions by mapping strings to atoms or replace the use of `String.to_atom/1` with `String.to_existing_atom/1`. An explicit conversion could be done as follows:
+
+```elixir
+defmodule MyRequestHandler do
+  def parse(%{"status" => status, "message" => message} = _payload) do
+    %{status: convert_status(status), message: message}
+  end
+
+  defp convert_status("ok"), do: :ok
+  defp convert_status("error"), do: :error
+  defp convert_status("redirect"), do: :redirect
+end
+```
+
+```elixir
+iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" => "all good"})
+** (FunctionClauseError) no function clause matching in MyRequestHandler.convert_status/1
+```
+
+By explicitly listing all supported statuses, you guarantee only a limited number of conversions may happen. Passing an invalid status will lead to a function clause error.
+
+An alternative is to use `String.to_existing_atom/1`, which will only convert a string to atom if the atom already exists in the system:
+
+```elixir
+defmodule MyRequestHandler do
+  def parse(%{"status" => status, "message" => message} = _payload) do
+    %{status: String.to_existing_atom(status), message: message}
+  end
+end
+```
+
+```elixir
+iex> MyRequestHandler.parse(%{"status" => "status_not_seen_anywhere", "message" => "all good"})
+** (ArgumentError) errors were found at the given arguments:
+
+  * 1st argument: not an already existing atom
+```
+
+In such cases, passing an unknown status will raise as long as the status was not defined anywhere as an atom in the system. However, assuming `status` can be either `:ok`, `:error`, or `:redirect`, how can you guarantee those atoms exist? You must ensure those atoms exist somewhere **in the same module** where `String.to_existing_atom/1` is called. For example, if you had this code:
+
+```elixir
+defmodule MyRequestHandler do
+  def parse(%{"status" => status, "message" => message} = _payload) do
+    %{status: String.to_existing_atom(status), message: message}
+  end
+
+  def handle(%{status: status}) do
+    case status do
+      :ok -> ...
+      :error -> ...
+      :redirect -> ...
+    end
+  end
+end
+```
+
+All valid statuses all defined as atoms within the same module, and that's enough. If you want to be explicit, you could also have a function that lists them:
+
+```elixir
+def valid_statuses do
+  [:ok, :error, :redirect]
+end
+```
+
+However, keep in mind using a module attribute or defining the atoms in the module body, outside of a function, are not sufficient, as the module body is only executed during compilation and it is not necessarily part of the compiled module loaded at runtime.
 
 ## Namespace trespassing
 
@@ -327,4 +449,66 @@ TODO.
 
 ## Speculative assumptions
 
-TODO.
+#### Problem
+
+Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, not propagating to the entire application. A supervisor will detect the failing process, report it, and possibly restart it. This means Elixir developers do not need to program defensively, making assumptions we have not really planned for, such as being able to return incorrect values instead of forcing a crash. These speculative assumptions can give a false impression that the code is working correctly.
+
+#### Example
+
+The function `get_value/2` tries to extract a value from a specific key of a URL query string. As it is not implemented using pattern matching, `get_value/2` always returns a value, regardless of the format of the URL query string passed as a parameter in the call. Sometimes the returned value will be valid. However, if a URL query string with an unexpected format is used in the call, `get_value/2` will extract incorrect values from it:
+
+```elixir
+defmodule Extract do
+  def get_value(string, desired_key) do
+    parts = String.split(string, "&")
+
+    Enum.find_value(parts, fn pair ->
+      key_value = String.split(pair, "=")
+      Enum.at(key_value, 0) == desired_key && Enum.at(key_value, 1)
+    end)
+  end
+end
+```
+
+```elixir
+# URL query string according to with the planned format - OK!
+iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "lab")
+"ASERG"
+iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "university")
+"UFMG"
+# Unplanned URL query string format - Unplanned value extraction!
+iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "university")
+"institution"   # <= why not "institution=UFMG"? or only "UFMG"?
+```
+
+#### Refactoring
+
+To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behaviour, shown below, will allow clients to decide how to handle these errors and will not give a false impression that the code is working correctly when unexpected values are extracted:
+
+```elixir
+defmodule Extract do
+  def get_value(string, desired_key) do
+    parts = String.split(string, "&")
+
+    Enum.find_value(parts, fn pair ->
+      [key, value] = String.split(pair, "=") # <= pattern matching
+      key == desired_key && value
+    end)
+  end
+end
+```
+
+```elixir
+# URL query string according to with the planned format - OK!
+iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "name")
+"Lucas"
+# Unplanned URL query string format - Crash explaining the problem to the client!
+iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "university")
+** (MatchError) no match of right hand side value: ["university", "institution", "UFMG"]
+  extract.ex:7: anonymous fn/2 in Extract.get_value/2 # <= left hand: [key, value] pair
+iex> Extract.get_value("name=Lucas&university&lab=ASERG", "university")
+** (MatchError) no match of right hand side value: ["university"]
+  extract.ex:7: anonymous fn/2 in Extract.get_value/2 # <= left hand: [key, value] pair
+```
+
+The goal is to promote an assertive style of programming where you handle the known cases. Once an unexpected scenario arises in production, you can decide to address it accordingly, based on the needs of the code using actual examples, or conclude the scenario is indeed expected and the exception is the desired choice.

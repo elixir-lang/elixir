@@ -109,7 +109,9 @@ defmodule Protocol.ConsolidationTest do
   test "consolidated implementations with any and tuple fallback" do
     assert WithAny.impl_for(%NoImplStruct{}) == WithAny.Any
     # Derived
-    assert WithAny.impl_for(%ImplStruct{}) == WithAny.Any
+    assert WithAny.impl_for(%ImplStruct{}) ==
+             Protocol.ConsolidationTest.WithAny.Protocol.ConsolidationTest.ImplStruct
+
     assert WithAny.impl_for(%{__struct__: "foo"}) == WithAny.Map
     assert WithAny.impl_for(%{}) == WithAny.Map
     assert WithAny.impl_for(self()) == WithAny.Any

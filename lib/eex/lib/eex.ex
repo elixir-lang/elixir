@@ -1,9 +1,12 @@
 defmodule EEx.SyntaxError do
-  defexception [:message, :file, :line, :column]
+  defexception [:file, :line, :column, :snippet, message: "syntax error"]
 
   @impl true
   def message(exception) do
-    "#{exception.file}:#{exception.line}:#{exception.column}: #{exception.message}"
+    %{file: file, line: line, column: column, message: message, snippet: snippet} = exception
+
+    Exception.format_file_line_column(file && Path.relative_to_cwd(file), line, column, " ") <>
+      message <> (snippet || "")
   end
 end
 

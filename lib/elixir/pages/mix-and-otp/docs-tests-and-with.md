@@ -418,7 +418,7 @@ This time, since our test relies on global data, we have not given `async: true`
 
 To avoid printing log messages during tests, ExUnit provides a neat feature called `:capture_log`. By setting `@tag :capture_log` before each test or `@moduletag :capture_log` for the whole test module, ExUnit will automatically capture anything that is logged while the test runs. In case our test fails, the captured logs will be printed alongside the ExUnit report.
 
-Between `use ExUnit.Case` and setup, add the following call:
+Between `use ExUnit.Case` and `setup`, add the following call:
 
 ```elixir
 @moduletag :capture_log
@@ -438,7 +438,7 @@ In case the test crashes, you will see a report as follows:
      13:44:10.035 [notice] Application kv exited: :stopped
 ```
 
-With this simple integration test, we start to see why integration tests may be slow. Not only can this test not run asynchronously, but it also requires the expensive setup of stopping and starting the `:kv` application. In fact, your test suite may even fail and run into timeouts. If that's the case, you can tweak the `:gen_tcp.recv(socket, 0)` call to pass a third argument, which is the timeout in milliseconds. In the next chapter we will learn about application configuration, which we could use to make the timeout configurable, if desired.
+With this simple integration test, we start to see why integration tests may be slow. Not only can this test not run asynchronously, but it also requires the expensive setup of stopping and starting the `:kv` application.
 
 At the end of the day, it is up to you and your team to figure out the best testing strategy for your applications. You need to balance code quality, confidence, and test suite runtime. For example, we may start with testing the server only with integration tests, but if the server continues to grow in future releases, or it becomes a part of the application with frequent bugs, it is important to consider breaking it apart and writing more intensive unit tests that don't have the weight of an integration test.
 

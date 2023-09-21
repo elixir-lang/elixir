@@ -52,14 +52,6 @@ defmodule Module.Types.ExprTest do
     assert quoted_expr({:a, 123}) == {:ok, {:tuple, 2, [{:atom, :a}, :integer]}}
   end
 
-  # Use module attribute to avoid formatter adding parentheses
-  @mix_module Mix
-
-  test "module call" do
-    assert quoted_expr(@mix_module.shell) == {:ok, :dynamic}
-    assert quoted_expr(@mix_module.shell.info) == {:ok, {:var, 0}}
-  end
-
   describe "binary" do
     test "literal" do
       assert quoted_expr(<<"foo"::binary>>) == {:ok, :binary}

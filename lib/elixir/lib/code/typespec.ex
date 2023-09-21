@@ -121,7 +121,7 @@ defmodule Code.Typespec do
   located by the runtime system. The types will be in the Erlang
   Abstract Format.
   """
-  @spec fetch_specs(module) :: {:ok, [tuple]} | :error
+  @spec fetch_specs(module | binary) :: {:ok, [tuple]} | :error
   def fetch_specs(module) when is_atom(module) or is_binary(module) do
     case typespecs_abstract_code(module) do
       {:ok, abstract_code} ->
@@ -142,7 +142,7 @@ defmodule Code.Typespec do
   which can be located by the runtime system. The types will be
   in the Erlang Abstract Format.
   """
-  @spec fetch_callbacks(module) :: {:ok, [tuple]} | :error
+  @spec fetch_callbacks(module | binary) :: {:ok, [tuple]} | :error
   def fetch_callbacks(module) when is_atom(module) or is_binary(module) do
     case typespecs_abstract_code(module) do
       {:ok, abstract_code} ->

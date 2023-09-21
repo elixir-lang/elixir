@@ -334,6 +334,31 @@ defmodule Kernel.LexicalTrackerTest do
       assert URI in runtime
     end
 
+    test "dbg adds a compile dependency" do
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.Dbg do
+          def foo, do: dbg(:ok)
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      assert Macro in compile
+      refute Macro in exports
+      refute Macro in runtime
+
+      {{compile, exports, runtime, _}, _binding} =
+        Code.eval_string("""
+        defmodule Kernel.LexicalTrackerTest.NoDbg do
+          Kernel.LexicalTracker.references(__ENV__.lexical_tracker)
+        end |> elem(3)
+        """)
+
+      refute Macro in compile
+      refute Macro in exports
+      refute Macro in runtime
+    end
+
     test "imports adds an export dependency" do
       {{compile, exports, runtime, _}, _binding} =
         Code.eval_string("""

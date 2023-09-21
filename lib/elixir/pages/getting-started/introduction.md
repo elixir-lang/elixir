@@ -6,8 +6,6 @@ This guide will teach you about Elixir fundamentals - the language syntax, how t
 
 Let's get started.
 
-> If you find any errors in the documentation, you can submit fixes by clicking the "source code" icon on the top right of every page and then clicking the "Edit" button.
-
 ## Installation
 
 If you haven't yet installed Elixir, visit our [installation page](https://elixir-lang.org/install.html). Once you are done, you can run `elixir --version` to get the current Elixir version. The requirements for this guide are:

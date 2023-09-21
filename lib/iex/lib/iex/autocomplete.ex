@@ -146,7 +146,7 @@ defmodule IEx.Autocomplete do
 
   @doc false
   def exports(mod) do
-    if Code.ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
+    if ensure_loaded?(mod) and function_exported?(mod, :__info__, 1) do
       mod.__info__(:macros) ++ (mod.__info__(:functions) -- [__info__: 1])
     else
       mod.module_info(:exports) -- [module_info: 0, module_info: 1]
@@ -313,21 +313,23 @@ defmodule IEx.Autocomplete do
       for {alias, mod} <- aliases_from_env(shell),
           [name] = Module.split(alias),
           String.starts_with?(name, hint),
-          struct?(mod) and not function_exported?(mod, :exception, 1),
-          do: %{kind: :struct, name: name}
+          do: {mod, name}
 
     modules =
       for "Elixir." <> name = full_name <- match_modules("Elixir." <> hint, true),
           String.starts_with?(name, hint),
           mod = String.to_atom(full_name),
-          struct?(mod) and not function_exported?(mod, :exception, 1),
+          do: {mod, name}
+
+    all = aliases ++ modules
+    Code.ensure_all_loaded(Enum.map(all, &elem(&1, 0)))
+
+    refs =
+      for {mod, name} <- all,
+          function_exported?(mod, :__struct__, 1) and not function_exported?(mod, :exception, 1),
           do: %{kind: :struct, name: name}
 
-    format_expansion(aliases ++ modules, hint)
-  end
-
-  defp struct?(mod) do
-    Code.ensure_loaded?(mod) and function_exported?(mod, :__struct__, 1)
+    format_expansion(refs, hint)
   end
 
   defp expand_container_context(code, context, hint, shell) do
@@ -420,7 +422,9 @@ defmodule IEx.Autocomplete do
   defp container_context_struct(cursor, pairs, aliases, shell) do
     with {pairs, [^cursor]} <- Enum.split(pairs, -1),
          alias = value_from_alias(aliases, shell),
-         true <- Keyword.keyword?(pairs) and struct?(alias) do
+         true <-
+           Keyword.keyword?(pairs) and ensure_loaded?(alias) and
+             function_exported?(alias, :__struct__, 1) do
       {:struct, alias, pairs}
     else
       _ -> nil

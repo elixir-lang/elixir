@@ -1,6 +1,6 @@
-# PropList-15.0.0.txt
-# Date: 2022-08-05, 22:17:16 GMT
-# © 2022 Unicode®, Inc.
+# PropList-15.1.0.txt
+# Date: 2023-08-01, 21:56:53 GMT
+# © 2023 Unicode®, Inc.
 # Unicode and the Unicode Logo are registered trademarks of Unicode, Inc. in the U.S. and other countries.
 # For terms of use, see https://www.unicode.org/terms_of_use.html
 #
@@ -856,11 +856,12 @@ FA70..FAD9    ; Ideographic # Lo [106] CJK COMPATIBILITY IDEOGRAPH-FA70..CJK COM
 2B740..2B81D  ; Ideographic # Lo [222] CJK UNIFIED IDEOGRAPH-2B740..CJK UNIFIED IDEOGRAPH-2B81D
 2B820..2CEA1  ; Ideographic # Lo [5762] CJK UNIFIED IDEOGRAPH-2B820..CJK UNIFIED IDEOGRAPH-2CEA1
 2CEB0..2EBE0  ; Ideographic # Lo [7473] CJK UNIFIED IDEOGRAPH-2CEB0..CJK UNIFIED IDEOGRAPH-2EBE0
+2EBF0..2EE5D  ; Ideographic # Lo [622] CJK UNIFIED IDEOGRAPH-2EBF0..CJK UNIFIED IDEOGRAPH-2EE5D
 2F800..2FA1D  ; Ideographic # Lo [542] CJK COMPATIBILITY IDEOGRAPH-2F800..CJK COMPATIBILITY IDEOGRAPH-2FA1D
 30000..3134A  ; Ideographic # Lo [4939] CJK UNIFIED IDEOGRAPH-30000..CJK UNIFIED IDEOGRAPH-3134A
 31350..323AF  ; Ideographic # Lo [4192] CJK UNIFIED IDEOGRAPH-31350..CJK UNIFIED IDEOGRAPH-323AF
 
-# Total code points: 105854
+# Total code points: 106476
 
 # ================================================
 
@@ -1241,13 +1242,20 @@ E0020..E007F  ; Other_Grapheme_Extend # Cf  [96] TAG SPACE..CANCEL TAG
 # ================================================
 
 2FF0..2FF1    ; IDS_Binary_Operator # So   [2] IDEOGRAPHIC DESCRIPTION CHARACTER LEFT TO RIGHT..IDEOGRAPHIC DESCRIPTION CHARACTER ABOVE TO BELOW
-2FF4..2FFB    ; IDS_Binary_Operator # So   [8] IDEOGRAPHIC DESCRIPTION CHARACTER FULL SURROUND..IDEOGRAPHIC DESCRIPTION CHARACTER OVERLAID
+2FF4..2FFD    ; IDS_Binary_Operator # So  [10] IDEOGRAPHIC DESCRIPTION CHARACTER FULL SURROUND..IDEOGRAPHIC DESCRIPTION CHARACTER SURROUND FROM LOWER RIGHT
+31EF          ; IDS_Binary_Operator # So       IDEOGRAPHIC DESCRIPTION CHARACTER SUBTRACTION
 
-# Total code points: 10
+# Total code points: 13
 
 # ================================================
 
 2FF2..2FF3    ; IDS_Trinary_Operator # So   [2] IDEOGRAPHIC DESCRIPTION CHARACTER LEFT TO MIDDLE AND RIGHT..IDEOGRAPHIC DESCRIPTION CHARACTER ABOVE TO MIDDLE AND BELOW
+
+# Total code points: 2
+
+# ================================================
+
+2FFE..2FFF    ; IDS_Unary_Operator # So   [2] IDEOGRAPHIC DESCRIPTION CHARACTER HORIZONTAL REFLECTION..IDEOGRAPHIC DESCRIPTION CHARACTER ROTATION
 
 # Total code points: 2
 
@@ -1275,10 +1283,11 @@ FA27..FA29    ; Unified_Ideograph # Lo   [3] CJK COMPATIBILITY IDEOGRAPH-FA27..C
 2B740..2B81D  ; Unified_Ideograph # Lo [222] CJK UNIFIED IDEOGRAPH-2B740..CJK UNIFIED IDEOGRAPH-2B81D
 2B820..2CEA1  ; Unified_Ideograph # Lo [5762] CJK UNIFIED IDEOGRAPH-2B820..CJK UNIFIED IDEOGRAPH-2CEA1
 2CEB0..2EBE0  ; Unified_Ideograph # Lo [7473] CJK UNIFIED IDEOGRAPH-2CEB0..CJK UNIFIED IDEOGRAPH-2EBE0
+2EBF0..2EE5D  ; Unified_Ideograph # Lo [622] CJK UNIFIED IDEOGRAPH-2EBF0..CJK UNIFIED IDEOGRAPH-2EE5D
 30000..3134A  ; Unified_Ideograph # Lo [4939] CJK UNIFIED IDEOGRAPH-30000..CJK UNIFIED IDEOGRAPH-3134A
 31350..323AF  ; Unified_Ideograph # Lo [4192] CJK UNIFIED IDEOGRAPH-31350..CJK UNIFIED IDEOGRAPH-323AF
 
-# Total code points: 97058
+# Total code points: 97680
 
 # ================================================
 
@@ -1376,8 +1385,58 @@ AABB..AABC    ; Logical_Order_Exception # Lo   [2] TAI VIET VOWEL AUE..TAI VIET 
 0387          ; Other_ID_Continue # Po       GREEK ANO TELEIA
 1369..1371    ; Other_ID_Continue # No   [9] ETHIOPIC DIGIT ONE..ETHIOPIC DIGIT NINE
 19DA          ; Other_ID_Continue # No       NEW TAI LUE THAM DIGIT ONE
+200C..200D    ; Other_ID_Continue # Cf   [2] ZERO WIDTH NON-JOINER..ZERO WIDTH JOINER
+30FB          ; Other_ID_Continue # Po       KATAKANA MIDDLE DOT
+FF65          ; Other_ID_Continue # Po       HALFWIDTH KATAKANA MIDDLE DOT
 
-# Total code points: 12
+# Total code points: 16
+
+# ================================================
+
+00B2..00B3    ; ID_Compat_Math_Continue # No   [2] SUPERSCRIPT TWO..SUPERSCRIPT THREE
+00B9          ; ID_Compat_Math_Continue # No       SUPERSCRIPT ONE
+2070          ; ID_Compat_Math_Continue # No       SUPERSCRIPT ZERO
+2074..2079    ; ID_Compat_Math_Continue # No   [6] SUPERSCRIPT FOUR..SUPERSCRIPT NINE
+207A..207C    ; ID_Compat_Math_Continue # Sm   [3] SUPERSCRIPT PLUS SIGN..SUPERSCRIPT EQUALS SIGN
+207D          ; ID_Compat_Math_Continue # Ps       SUPERSCRIPT LEFT PARENTHESIS
+207E          ; ID_Compat_Math_Continue # Pe       SUPERSCRIPT RIGHT PARENTHESIS
+2080..2089    ; ID_Compat_Math_Continue # No  [10] SUBSCRIPT ZERO..SUBSCRIPT NINE
+208A..208C    ; ID_Compat_Math_Continue # Sm   [3] SUBSCRIPT PLUS SIGN..SUBSCRIPT EQUALS SIGN
+208D          ; ID_Compat_Math_Continue # Ps       SUBSCRIPT LEFT PARENTHESIS
+208E          ; ID_Compat_Math_Continue # Pe       SUBSCRIPT RIGHT PARENTHESIS
+2202          ; ID_Compat_Math_Continue # Sm       PARTIAL DIFFERENTIAL
+2207          ; ID_Compat_Math_Continue # Sm       NABLA
+221E          ; ID_Compat_Math_Continue # Sm       INFINITY
+1D6C1         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL BOLD NABLA
+1D6DB         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL BOLD PARTIAL DIFFERENTIAL
+1D6FB         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL ITALIC NABLA
+1D715         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL ITALIC PARTIAL DIFFERENTIAL
+1D735         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL BOLD ITALIC NABLA
+1D74F         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL BOLD ITALIC PARTIAL DIFFERENTIAL
+1D76F         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL SANS-SERIF BOLD NABLA
+1D789         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL SANS-SERIF BOLD PARTIAL DIFFERENTIAL
+1D7A9         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL SANS-SERIF BOLD ITALIC NABLA
+1D7C3         ; ID_Compat_Math_Continue # Sm       MATHEMATICAL SANS-SERIF BOLD ITALIC PARTIAL DIFFERENTIAL
+
+# Total code points: 43
+
+# ================================================
+
+2202          ; ID_Compat_Math_Start # Sm       PARTIAL DIFFERENTIAL
+2207          ; ID_Compat_Math_Start # Sm       NABLA
+221E          ; ID_Compat_Math_Start # Sm       INFINITY
+1D6C1         ; ID_Compat_Math_Start # Sm       MATHEMATICAL BOLD NABLA
+1D6DB         ; ID_Compat_Math_Start # Sm       MATHEMATICAL BOLD PARTIAL DIFFERENTIAL
+1D6FB         ; ID_Compat_Math_Start # Sm       MATHEMATICAL ITALIC NABLA
+1D715         ; ID_Compat_Math_Start # Sm       MATHEMATICAL ITALIC PARTIAL DIFFERENTIAL
+1D735         ; ID_Compat_Math_Start # Sm       MATHEMATICAL BOLD ITALIC NABLA
+1D74F         ; ID_Compat_Math_Start # Sm       MATHEMATICAL BOLD ITALIC PARTIAL DIFFERENTIAL
+1D76F         ; ID_Compat_Math_Start # Sm       MATHEMATICAL SANS-SERIF BOLD NABLA
+1D789         ; ID_Compat_Math_Start # Sm       MATHEMATICAL SANS-SERIF BOLD PARTIAL DIFFERENTIAL
+1D7A9         ; ID_Compat_Math_Start # Sm       MATHEMATICAL SANS-SERIF BOLD ITALIC NABLA
+1D7C3         ; ID_Compat_Math_Start # Sm       MATHEMATICAL SANS-SERIF BOLD ITALIC PARTIAL DIFFERENTIAL
+
+# Total code points: 13
 
 # ================================================
 
@@ -1398,6 +1457,7 @@ AABB..AABC    ; Logical_Order_Exception # Lo   [2] TAI VIET VOWEL AUE..TAI VIET 
 1367..1368    ; Sentence_Terminal # Po   [2] ETHIOPIC QUESTION MARK..ETHIOPIC PARAGRAPH SEPARATOR
 166E          ; Sentence_Terminal # Po       CANADIAN SYLLABICS FULL STOP
 1735..1736    ; Sentence_Terminal # Po   [2] PHILIPPINE SINGLE PUNCTUATION..PHILIPPINE DOUBLE PUNCTUATION
+17D4..17D5    ; Sentence_Terminal # Po   [2] KHMER SIGN KHAN..KHMER SIGN BARIYOOSAN
 1803          ; Sentence_Terminal # Po       MONGOLIAN FULL STOP
 1809          ; Sentence_Terminal # Po       MONGOLIAN MANCHU FULL STOP
 1944..1945    ; Sentence_Terminal # Po   [2] LIMBU EXCLAMATION MARK..LIMBU QUESTION MARK
@@ -1462,7 +1522,7 @@ FF61          ; Sentence_Terminal # Po       HALFWIDTH IDEOGRAPHIC FULL STOP
 1BC9F         ; Sentence_Terminal # Po       DUPLOYAN PUNCTUATION CHINOOK FULL STOP
 1DA88         ; Sentence_Terminal # Po       SIGNWRITING FULL STOP
 
-# Total code points: 154
+# Total code points: 156
 
 # ================================================
 

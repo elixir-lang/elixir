@@ -253,23 +253,34 @@ defmodule StringTest do
   end
 
   test "capitalize/1" do
-    mod = String
-    assert mod.capitalize("") == ""
-    assert mod.capitalize("abc") == "Abc"
-    assert mod.capitalize("ABC") == "Abc"
-    assert mod.capitalize("c b a") == "C b a"
-    assert mod.capitalize("1ABC") == "1abc"
-    assert mod.capitalize("_aBc1") == "_abc1"
-    assert mod.capitalize(" aBc1") == " abc1"
-    assert mod.capitalize("àáâ") == "Àáâ"
-    assert mod.capitalize("ÀÁÂ") == "Àáâ"
-    assert mod.capitalize("âáà") == "Âáà"
-    assert mod.capitalize("ÂÁÀ") == "Âáà"
-    assert mod.capitalize("òóôõö") == "Òóôõö"
-    assert mod.capitalize("ÒÓÔÕÖ") == "Òóôõö"
-    assert mod.capitalize("ﬁn") == "Fin"
-    assert mod.capitalize("àáâ", :ascii) == "àáâ"
-    assert mod.capitalize("aáA", :ascii) == "Aáa"
+    assert String.capitalize("") == ""
+    assert String.capitalize("abc") == "Abc"
+    assert String.capitalize("ABC") == "Abc"
+    assert String.capitalize("c b a") == "C b a"
+    assert String.capitalize("1ABC") == "1abc"
+    assert String.capitalize("_aBc1") == "_abc1"
+    assert String.capitalize(" aBc1") == " abc1"
+    assert String.capitalize("àáâ") == "Àáâ"
+    assert String.capitalize("ÀÁÂ") == "Àáâ"
+    assert String.capitalize("âáà") == "Âáà"
+    assert String.capitalize("ÂÁÀ") == "Âáà"
+    assert String.capitalize("òóôõö") == "Òóôõö"
+    assert String.capitalize("ÒÓÔÕÖ") == "Òóôõö"
+    assert String.capitalize("ﬁn") == "Fin"
+
+    assert String.capitalize("ABC", :ascii) == "Abc"
+    assert String.capitalize("àáâ", :ascii) == "àáâ"
+    assert String.capitalize("aáA", :ascii) == "Aáa"
+
+    assert String.capitalize("iii", :turkic) == "İii"
+    assert String.capitalize("ııı", :turkic) == "Iıı"
+    assert String.capitalize("İii", :turkic) == "İii"
+    assert String.capitalize("Iıı", :turkic) == "Iıı"
+
+    assert String.capitalize(<<138, ?B, ?C>>) == <<138, ?b, ?c>>
+
+    assert String.capitalize(<<225, 158, 128, 225, 158, 185, 225>>) ==
+             <<225, 158, 128, 225, 158, 185, 225>>
   end
 
   test "replace_leading/3" do
@@ -599,6 +610,7 @@ defmodule StringTest do
 
   test "next_grapheme/1" do
     assert String.next_grapheme("Ā̀stute") == {"Ā̀", "stute"}
+    assert String.next_grapheme(<<225, 158, 128, 225, 158, 185, 225>>) == {"កឹ", <<225>>}
     assert String.next_grapheme("") == nil
   end
 

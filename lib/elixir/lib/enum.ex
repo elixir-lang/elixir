@@ -256,9 +256,12 @@ defmodule Enum do
       iex> Enum.map(map, fn {k, v} -> {k, v * 2} end)
       [{"a", 2}, {"b", 4}]
 
-  However, many other enumerables exist in the language, such as `MapSet`s
+  Many other enumerables exist in the language, such as `MapSet`s
   and the data type returned by `File.stream!/3` which allows a file to be
   traversed as if it was an enumerable.
+
+  For a general overview of all functions in the `Enum` module, see
+  [the `Enum` cheatsheet](enum-cheat.html).
 
   The functions in this module work in linear time. This means that, the
   time it takes to perform an operation grows at the same rate as the length
@@ -2387,7 +2390,14 @@ defmodule Enum do
   def random(enumerable) when is_list(enumerable) do
     case length(enumerable) do
       0 -> raise Enum.EmptyError
-      length -> enumerable |> drop_list(random_integer(0, length - 1)) |> hd()
+      length -> enumerable |> drop_list(random_count(length)) |> hd()
+    end
+  end
+
+  def random(first.._//step = range) do
+    case Range.size(range) do
+      0 -> raise Enum.EmptyError
+      size -> first + random_count(size) * step
     end
   end
 
@@ -2398,14 +2408,14 @@ defmodule Enum do
           []
 
         {:ok, count, fun} when is_function(fun, 1) ->
-          slice_list(fun.(enumerable), random_integer(0, count - 1), 1, 1)
+          slice_list(fun.(enumerable), random_count(count), 1, 1)
 
         # TODO: Deprecate me in Elixir v1.18.
         {:ok, count, fun} when is_function(fun, 2) ->
-          fun.(random_integer(0, count - 1), 1)
+          fun.(random_count(count), 1)
 
         {:ok, count, fun} when is_function(fun, 3) ->
-          fun.(random_integer(0, count - 1), 1, 1)
+          fun.(random_count(count), 1, 1)
 
         {:error, _} ->
           take_random(enumerable, 1)
@@ -2415,6 +2425,10 @@ defmodule Enum do
       [] -> raise Enum.EmptyError
       [elem] -> elem
     end
+  end
+
+  defp random_count(count) do
+    :rand.uniform(count) - 1
   end
 
   @doc """
@@ -3606,7 +3620,7 @@ defmodule Enum do
     sample = Tuple.duplicate(nil, count)
 
     reducer = fn elem, {idx, sample} ->
-      jdx = random_integer(0, idx)
+      jdx = random_index(idx)
 
       cond do
         idx < count ->
@@ -3627,7 +3641,7 @@ defmodule Enum do
 
   def take_random(enumerable, count) when is_integer(count) and count >= 0 do
     reducer = fn elem, {idx, sample} ->
-      jdx = random_integer(0, idx)
+      jdx = random_index(idx)
 
       cond do
         idx < count ->
@@ -3662,6 +3676,9 @@ defmodule Enum do
   end
 
   defp take_random_list_one([], current, _), do: [current]
+
+  defp random_index(0), do: 0
+  defp random_index(idx), do: :rand.uniform(idx + 1) - 1
 
   @doc """
   Takes the elements from the beginning of the `enumerable` while `fun` returns
@@ -4144,18 +4161,6 @@ defmodule Enum do
       element, :empty -> first.(element)
       element, acc -> fun.(element, acc)
     end)
-  end
-
-  defp random_integer(limit, limit) when is_integer(limit) do
-    limit
-  end
-
-  defp random_integer(lower_limit, upper_limit) when upper_limit < lower_limit do
-    random_integer(upper_limit, lower_limit)
-  end
-
-  defp random_integer(lower_limit, upper_limit) do
-    lower_limit + :rand.uniform(upper_limit - lower_limit + 1) - 1
   end
 
   ## Implementations

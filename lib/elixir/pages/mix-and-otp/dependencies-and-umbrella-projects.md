@@ -24,7 +24,7 @@ OK
 
 However, instead of adding more code to the `kv` application, we are going to build the TCP server as another application that is a client of the `kv` application. Since the whole runtime and Elixir ecosystem are geared towards applications, it makes sense to break our projects into smaller applications that work together rather than building a big, monolithic app.
 
-Before creating our new application, we must discuss how Mix handles dependencies. In practice, there are two kinds of dependencies we usually work with: internal and external dependencies. Mix supports mechanisms to work with both of them.
+Before creating our new application, we must discuss how Mix handles dependencies. In practice, there are two kinds of dependencies we usually work with: internal and external dependencies. Mix supports mechanisms to work with both.
 
 ## External dependencies
 
@@ -190,7 +190,7 @@ deps_path: "../../deps",
 lockfile: "../../mix.lock",
 ```
 
-Those options mean all dependencies will be checked out to `kv_umbrella/deps`, and they will share the same build, config and lock files. We haven't talked about configuration yet, but from here we can build the intuition that all configuration and dependencies are shared across all projects in an umbrella, and it is not per application.
+Those options mean all dependencies will be checked out to `kv_umbrella/deps`, and they will share the same build, config, and lock files. We haven't talked about configuration yet, but from here we can build the intuition that all configuration and dependencies are shared across all projects in an umbrella, and it is not per application.
 
 The second change is in the `application` function inside `mix.exs`:
 
@@ -293,9 +293,7 @@ In this chapter, we have learned more about Mix dependencies and umbrella projec
 
 When using umbrella applications, it is important to have a clear boundary between them. Our upcoming `kv_server` must only access public APIs defined in `kv`. Think of your umbrella apps as any other dependency or even Elixir itself: you can only access what is public and documented. Reaching into private functionality in your dependencies is a poor practice that will eventually cause your code to break when a new version is up.
 
-Umbrella applications can also be used as a stepping stone for eventually extracting an application from your codebase. For example, imagine a web application that has to send "push notifications" to its users. The whole "push notifications system" can be developed as a separate application in the umbrella, with its own supervision tree and APIs. If you ever run into a situation where another project needs the push notifications system, the system can be moved to a private repository or a Hex package.
-
-Developers may also use umbrella projects to break large business domains apart. The caution here is to make sure the domains don't depend on each other (also known as cyclic dependencies). If you run into such situations, it means those applications are not as isolated from each other as you originally thought, and you have architectural and design issues to solve.
+Umbrella applications can also be used as a stepping stone for eventually extracting an application from your codebase. For example, imagine a web application that has to send "push notifications" to its users. The whole "push notifications system" can be developed as a separate application in the umbrella, with its own supervision tree and APIs. If you ever run into a situation where another project needs the push notifications system, the system can be moved to a private repository or [a Hex package](https://hex.pm/).
 
 Finally, keep in mind that applications in an umbrella project all share the same configurations and dependencies. If two applications in your umbrella need to configure the same dependency in drastically different ways or even use different versions, you have probably outgrown the benefits brought by umbrellas. Remember you can break the umbrella and still leverage the benefits behind "mono-repos".
 

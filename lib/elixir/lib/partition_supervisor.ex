@@ -13,6 +13,8 @@ defmodule PartitionSupervisor do
   `name` is the name of the `PartitionSupervisor` and key is used
   for routing.
 
+  This module was introduced in Elixir v1.14.0.
+
   ## Simple Example
 
   Let's start with an example which is not useful per se, but shows how the
@@ -29,7 +31,7 @@ defmodule PartitionSupervisor do
         end
 
         def init(args) do
-          IO.inspect [__MODULE__, " got args ", args, " in ", self()]
+          IO.inspect([__MODULE__, " got args ", args, " in ", self()])
           {:ok, _initial_state = []}
         end
 
@@ -39,7 +41,7 @@ defmodule PartitionSupervisor do
 
         def handle_call({:collect, msg}, _from, state) do
           new_state = [msg | state]
-          IO.inspect ["current messages:", new_state, " in process", self()]
+          IO.inspect(["current messages:", new_state, " in process", self()])
           {:reply, :ok, new_state}
         end
       end
@@ -134,6 +136,8 @@ defmodule PartitionSupervisor do
   you can use `GenServer.whereis({:via, PartitionSupervisor, {name, key}})`.
   """
 
+  @moduledoc since: "1.14.0"
+
   @behaviour Supervisor
 
   @registry PartitionSupervisor.Registry
@@ -141,6 +145,7 @@ defmodule PartitionSupervisor do
   @typedoc """
   The name of the `PartitionSupervisor`.
   """
+  @typedoc since: "1.14.0"
   @type name :: atom() | {:via, module(), term()}
 
   @doc false

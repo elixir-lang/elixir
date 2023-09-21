@@ -64,6 +64,10 @@ defmodule Mix.UmbrellaTest do
         Mix.Task.run("deps.loadpaths")
         Mix.Task.run("compile", ["--verbose"])
 
+        # Extra applications are picked even for umbrellas
+        assert :code.where_is_file(~c"runtime_tools.app") != :non_existing
+        assert :code.where_is_file(~c"observer.app") == :non_existing
+
         assert_received {:mix_shell, :info, ["==> bar"]}
         assert_received {:mix_shell, :info, ["Generated bar app"]}
         assert File.regular?("_build/dev/lib/bar/ebin/Elixir.Bar.beam")
@@ -290,7 +294,7 @@ defmodule Mix.UmbrellaTest do
     in_fixture("umbrella_dep", fn ->
       Mix.Project.push(CycleDeps)
 
-      assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:foo, :bar, :umbrella]
+      assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) == [:foo, :bar, :umbrella]
     end)
   end
 
@@ -328,7 +332,7 @@ defmodule Mix.UmbrellaTest do
         end
         """)
 
-        assert Enum.map(Mix.Dep.load_on_environment([]), & &1.app) == [:a, :b, :bar, :foo]
+        assert Enum.map(Mix.Dep.Converger.converge([]), & &1.app) == [:a, :b, :bar, :foo]
       end)
     end)
   end

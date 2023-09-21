@@ -380,8 +380,9 @@ expand({Name, Meta, Kind}, S, E) when is_atom(Name), is_atom(Kind) ->
           {{Name, Meta, Kind}, S, E};
 
         _ ->
-          function_error(Meta, E, ?MODULE, {undefined_var, Name, Kind}),
-          {{Name, Meta, Kind}, S, E}
+          SpanMeta =  elixir_env:calculate_span(Meta, Name),
+          function_error(SpanMeta, E, ?MODULE, {undefined_var, Name, Kind}),
+          {{Name, SpanMeta, Kind}, S, E}
       end
   end;
 
@@ -396,12 +397,16 @@ expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args
 
 %% Remote calls
 
-expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
+expand({{'.', DotMeta, [Left, Right]}, Meta, Args} = Expr, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S), E),
+  NoParens = lists:keyfind(no_parens, 1, Meta),
+
+  (is_atom(ELeft) and (Args =:= []) and (NoParens =:= {no_parens, true})) andalso
+    elixir_errors:file_warn(Meta, E, ?MODULE, {remote_nullary_no_parens, Expr}),
 
   elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF, AA) ->
-    expand_remote(AR, DotMeta, AF, Meta, AA, S, SL, EL)
+    expand_remote(AR, DotMeta, AF, Meta, NoParens, AA, S, SL, EL)
   end);
 
 %% Anonymous calls
@@ -848,22 +853,18 @@ expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
 
 %% Remote
 
-expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context} = E) when is_atom(Receiver) or is_tuple(Receiver) ->
+expand_remote(Receiver, DotMeta, Right, Meta, NoParens, Args, S, SL, #{context := Context} = E) when is_atom(Receiver) or is_tuple(Receiver) ->
   assert_no_clauses(Right, Meta, Args, E),
 
-  case {Context, lists:keyfind(no_parens, 1, Meta)} of
-    {guard, NoParens} when is_tuple(Receiver) ->
+  if
+    Context =:= guard, is_tuple(Receiver) ->
       (NoParens /= {no_parens, true}) andalso
         function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, guard_context(S)}),
 
       {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
-    _ ->
+    true ->
       AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
-
-      is_atom(Receiver) andalso
-        elixir_env:trace({remote_function, Meta, Receiver, Right, length(Args)}, E),
-
       {EArgs, {SA, _}, EA} = expand_remote_args(Receiver, Right, Args, {SL, S}, E),
 
       case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs, S) of
@@ -875,7 +876,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context}
           file_error(Meta, E, elixir_rewrite, Error)
       end
   end;
-expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
+expand_remote(Receiver, DotMeta, Right, Meta, _NoParens, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   file_error(Meta, E, ?MODULE, {invalid_call, Call}).
 
@@ -1171,6 +1172,9 @@ guard_context(_) -> "guards".
 
 format_error(invalid_match_on_zero_float) ->
   "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+. Instead you must match on +0.0 or -0.0";
+format_error({remote_nullary_no_parens, Expr}) ->
+  String = 'Elixir.String':replace_suffix('Elixir.Macro':to_string(Expr), <<"()">>, <<>>),
+  io_lib:format("parentheses are required for function calls with no arguments, got: ~ts", [String]);
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",

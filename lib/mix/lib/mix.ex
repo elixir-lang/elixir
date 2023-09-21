@@ -798,11 +798,25 @@ defmodule Mix do
           other
       end)
 
-    config = Keyword.get(opts, :config, [])
+    opts =
+      Keyword.validate!(opts,
+        config: [],
+        config_path: nil,
+        consolidate_protocols: true,
+        elixir: nil,
+        force: false,
+        lockfile: nil,
+        runtime_config: [],
+        start_applications: true,
+        system_env: [],
+        verbose: false
+      )
+
     config_path = expand_path(opts[:config_path], deps, :config_path, "config/config.exs")
-    system_env = Keyword.get(opts, :system_env, [])
-    consolidate_protocols? = Keyword.get(opts, :consolidate_protocols, true)
-    start_applications? = Keyword.get(opts, :start_applications, true)
+    config = Keyword.fetch!(opts, :config)
+    system_env = Keyword.fetch!(opts, :system_env)
+    consolidate_protocols? = Keyword.fetch!(opts, :consolidate_protocols)
+    start_applications? = Keyword.fetch!(opts, :start_applications)
 
     id =
       {deps, config, system_env, consolidate_protocols?}
@@ -810,7 +824,7 @@ defmodule Mix do
       |> :erlang.md5()
       |> Base.encode16(case: :lower)
 
-    force? = System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or !!opts[:force]
+    force? = System.get_env("MIX_INSTALL_FORCE") in ["1", "true"] or Keyword.fetch!(opts, :force)
 
     case Mix.State.get(:installed) do
       nil ->
@@ -819,7 +833,7 @@ defmodule Mix do
 
         install_dir = install_dir(id)
 
-        if opts[:verbose] do
+        if Keyword.fetch!(opts, :verbose) do
           Mix.shell().info("Mix.install/2 using #{install_dir}")
         end
 

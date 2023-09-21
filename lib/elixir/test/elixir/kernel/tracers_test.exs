@@ -3,7 +3,11 @@ Code.require_file("../test_helper.exs", __DIR__)
 defmodule Kernel.TracersTest do
   use ExUnit.Case
 
-  import Code, only: [compile_string: 1]
+  defp compile_string(string) do
+    string
+    |> Code.string_to_quoted!(columns: true)
+    |> Code.compile_quoted()
+  end
 
   def trace(event, %Macro.Env{} = env) do
     send(self(), {event, env})
@@ -118,6 +122,7 @@ defmodule Kernel.TracersTest do
     require Integer
     true = Integer.is_odd(1)
     {1, ""} = Integer.parse("1")
+    "foo" = Atom.to_string(:foo)
     """)
 
     assert_receive {{:remote_macro, meta, Integer, :is_odd, 1}, _}
@@ -127,6 +132,10 @@ defmodule Kernel.TracersTest do
     assert_receive {{:remote_function, meta, Integer, :parse, 1}, _}
     assert meta[:line] == 3
     assert meta[:column] == 19
+
+    assert_receive {{:remote_function, meta, Atom, :to_string, 1}, _}
+    assert meta[:line] == 4
+    assert meta[:column] == 14
   end
 
   test "traces remote via captures" do
@@ -198,5 +207,38 @@ defmodule Kernel.TracersTest do
   after
     :code.purge(Sample)
     :code.delete(Sample)
+  end
+
+  test "traces string interpolation" do
+    compile_string("""
+    arg = 1 + 2
+    "foo\#{arg}"
+    """)
+
+    assert_receive {{:remote_macro, meta, Kernel, :to_string, 1}, _env}
+    assert meta[:from_interpolation]
+  end
+
+  """
+  # Make sure this module is compiled with column information
+  defmodule MacroWithColumn do
+    defmacro some_macro(list) do
+      quote do
+        Enum.map(unquote(list), fn str -> String.upcase(str) end)
+      end
+    end
+  end
+  """
+  |> Code.string_to_quoted!(columns: true)
+  |> Code.compile_quoted()
+
+  test "traces quoted from macro expansion without column information" do
+    compile_string("""
+    require MacroWithColumn
+    MacroWithColumn.some_macro(["hello", "world", "!"])
+    """)
+
+    assert_receive {{:alias_reference, meta, Enum}, _env}
+    refute meta[:column]
   end
 end

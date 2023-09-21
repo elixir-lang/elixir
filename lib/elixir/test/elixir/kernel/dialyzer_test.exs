@@ -27,6 +27,7 @@ defmodule Kernel.DialyzerTest do
       :elixir_env,
       ArgumentError,
       Atom,
+      Code,
       Enum,
       Exception,
       ExUnit.AssertionError,

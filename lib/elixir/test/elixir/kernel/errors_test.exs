@@ -469,12 +469,15 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "invalid fn args" do
-    assert_eval_raise TokenMissingError,
-                      [
-                        "nofile:1:5:",
-                        ~r/missing terminator: end \(for "fn" starting at line 1\)/
-                      ],
-                      ~c"fn 1"
+    exception =
+      assert_eval_raise TokenMissingError,
+                        [
+                          "nofile:1:5:",
+                          ~r/missing terminator: end \(for "fn" starting at line 1\)/
+                        ],
+                        ~c"fn 1"
+
+    assert exception.opening_delimiter == :fn
   end
 
   test "invalid escape" do
@@ -997,16 +1000,18 @@ defmodule Kernel.ErrorsTest do
   ## Helpers
 
   defp assert_eval_raise(given_exception, messages, source) do
-    e =
+    exception =
       assert_raise given_exception, fn ->
         Code.eval_string(source)
       end
 
-    error_msg = Exception.format(:error, e, [])
+    error_msg = Exception.format(:error, exception, [])
 
     for msg <- messages do
       assert error_msg =~ msg
     end
+
+    exception
   end
 
   defp assert_compile_error(messages, string) do

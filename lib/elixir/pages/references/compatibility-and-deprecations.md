@@ -82,7 +82,6 @@ Version | Deprecated feature                                  | Replaced by (ava
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
 [v1.16] | Ranges with negative steps in `Enum.slice/2`        | Explicit steps in ranges (v1.11)
 [v1.16] | Ranges with negative steps in `String.slice/2`      | Explicit steps in ranges (v1.11)
-[v1.16] | `String.capitalize/2`                               | `:string.titlecase/1` (v1.8)
 [v1.15] | `Calendar.ISO.day_of_week/3`                        | `Calendar.ISO.day_of_week/4` (v1.11)
 [v1.15] | `Exception.exception?/1`                            | `Kernel.is_exception/1` (v1.11)
 [v1.15] | `Regex.regex?/1`                                    | `Kernel.is_struct/2` (`Kernel.is_struct(term, Regex)`) (v1.11)
@@ -160,7 +159,7 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.5]  | `String.lstrip/2` and `String.rstrip/2`             | Use `String.trim_leading/2` and `String.trim_trailing/2` with a binary as second argument (v1.3)
 [v1.5]  | `String.strip/1` and `String.strip/2`               | `String.trim/1` and `String.trim/2` (v1.3)
 [v1.5]  | `String.to_char_list/1`                             | `String.to_charlist/1` (v1.3)
-[v1.4]  | [Anonymous functions](`fn/1`) with no expression after `->` | Use an expression or explicitly return `nil` (v1.0)
+[v1.4]  | Anonymous functions with no expression after `->`   | Use an expression or explicitly return `nil` (v1.0)
 [v1.4]  | Support for making [private functions](`defp/2`) overridable | Use [public functions](`def/2`) (v1.0)
 [v1.4]  | Variable used as function call                      | Use parentheses (v1.0)
 [v1.4]  | `Access.key/1`                                      | `Access.key/2` (v1.3)

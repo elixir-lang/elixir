@@ -129,9 +129,8 @@ defmodule Mix.Tasks.Format do
         inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}", "posts/*.{md,markdown}"]
       ]
 
-  Remember that, when running the formatter with plugins, you must make
-  sure that your dependencies and your application have been compiled,
-  so the relevant plugin code can be loaded. Otherwise a warning is logged.
+  Notice that, when running the formatter with plugins, your code will be
+  compiled first.
 
   In addition, the order by which you input your plugins is the format order.
   So, in the above `.formatter.exs`, the `MixMarkdownFormatter` will format
@@ -233,6 +232,8 @@ defmodule Mix.Tasks.Format do
     {formatter_opts_and_subs, _sources} =
       eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
 
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+
     args
     |> expand_args(cwd, dot_formatter, formatter_opts_and_subs, opts)
     |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: :infinity)
@@ -240,64 +241,8 @@ defmodule Mix.Tasks.Format do
     |> check!(opts)
   end
 
-  @doc """
-  Returns a formatter function and the formatter options to
-  be used for the given file.
-
-  The function must be called with the contents of the file
-  to be formatted. The options are returned for reflection
-  purposes.
-  """
-  @doc since: "1.13.0"
-  def formatter_for_file(file, opts \\ []) do
-    cwd = Keyword.get_lazy(opts, :root, &File.cwd!/0)
-    {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
-
-    {formatter_opts_and_subs, _sources} =
-      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
-
-    find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
-  end
-
-  @doc """
-  Returns formatter options to be used for the given file.
-  """
-  # TODO: Deprecate on Elixir v1.17
-  @doc deprecated: "Use formatter_for_file/2 instead"
-  def formatter_opts_for_file(file, opts \\ []) do
-    {_, formatter_opts} = formatter_for_file(file, opts)
-    formatter_opts
-  end
-
-  defp eval_dot_formatter(cwd, opts) do
-    cond do
-      dot_formatter = opts[:dot_formatter] ->
-        {dot_formatter, eval_file_with_keyword_list(dot_formatter)}
-
-      File.regular?(Path.join(cwd, ".formatter.exs")) ->
-        dot_formatter = Path.join(cwd, ".formatter.exs")
-        {".formatter.exs", eval_file_with_keyword_list(dot_formatter)}
-
-      true ->
-        {".formatter.exs", []}
-    end
-  end
-
-  # This function reads exported configuration from the imported
-  # dependencies and subdirectories and deals with caching the result
-  # of reading such configuration in a manifest file.
-  defp eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, sources) do
-    deps = Keyword.get(formatter_opts, :import_deps, [])
-    subs = Keyword.get(formatter_opts, :subdirectories, [])
+  defp load_plugins({formatter_opts, subs}) do
     plugins = Keyword.get(formatter_opts, :plugins, [])
-
-    if not is_list(deps) do
-      Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
-    end
-
-    if not is_list(subs) do
-      Mix.raise("Expected :subdirectories to return a list of directories, got: #{inspect(subs)}")
-    end
 
     if not is_list(plugins) do
       Mix.raise("Expected :plugins to return a list of modules, got: #{inspect(plugins)}")
@@ -341,10 +286,69 @@ defmodule Mix.Tasks.Format do
          end}
       end)
 
-    formatter_opts =
-      formatter_opts
-      |> Keyword.put(:plugins, plugins)
-      |> Keyword.put(:sigils, sigils)
+    {Keyword.put(formatter_opts, :sigils, sigils),
+     Enum.map(subs, fn {path, opts} -> {path, load_plugins(opts)} end)}
+  end
+
+  @doc """
+  Returns a formatter function and the formatter options to
+  be used for the given file.
+
+  The function must be called with the contents of the file
+  to be formatted. The options are returned for reflection
+  purposes.
+  """
+  @doc since: "1.13.0"
+  def formatter_for_file(file, opts \\ []) do
+    cwd = Keyword.get_lazy(opts, :root, &File.cwd!/0)
+    {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
+
+    {formatter_opts_and_subs, _sources} =
+      eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
+
+    formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+
+    find_formatter_and_opts_for_file(Path.expand(file, cwd), formatter_opts_and_subs)
+  end
+
+  @doc """
+  Returns formatter options to be used for the given file.
+  """
+  # TODO: Deprecate on Elixir v1.17
+  @doc deprecated: "Use formatter_for_file/2 instead"
+  def formatter_opts_for_file(file, opts \\ []) do
+    {_, formatter_opts} = formatter_for_file(file, opts)
+    formatter_opts
+  end
+
+  defp eval_dot_formatter(cwd, opts) do
+    cond do
+      dot_formatter = opts[:dot_formatter] ->
+        {dot_formatter, eval_file_with_keyword_list(dot_formatter)}
+
+      File.regular?(Path.join(cwd, ".formatter.exs")) ->
+        dot_formatter = Path.join(cwd, ".formatter.exs")
+        {".formatter.exs", eval_file_with_keyword_list(dot_formatter)}
+
+      true ->
+        {".formatter.exs", []}
+    end
+  end
+
+  # This function reads exported configuration from the imported
+  # dependencies and subdirectories and deals with caching the result
+  # of reading such configuration in a manifest file.
+  defp eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, sources) do
+    deps = Keyword.get(formatter_opts, :import_deps, [])
+    subs = Keyword.get(formatter_opts, :subdirectories, [])
+
+    if not is_list(deps) do
+      Mix.raise("Expected :import_deps to return a list of dependencies, got: #{inspect(deps)}")
+    end
+
+    if not is_list(subs) do
+      Mix.raise("Expected :subdirectories to return a list of directories, got: #{inspect(subs)}")
+    end
 
     if deps == [] and subs == [] do
       {{formatter_opts, []}, sources}
@@ -448,7 +452,8 @@ defmodule Mix.Tasks.Format do
       _ ->
         Mix.raise(
           "Unknown dependency #{inspect(dep)} given to :import_deps in the formatter configuration. " <>
-            "Make sure the dependency is listed in your mix.exs and you have run \"mix deps.get\""
+            "Make sure the dependency is listed in your mix.exs for environment #{inspect(Mix.env())} " <>
+            "and you have run \"mix deps.get\""
         )
     end
   end

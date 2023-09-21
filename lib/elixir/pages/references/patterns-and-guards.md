@@ -303,7 +303,7 @@ Guards start with the `when` operator, followed by a guard expression. The claus
 
 Writing the `empty_map?/1` function by only using pattern matching would not be possible (as pattern matching on `%{}` would match *any* map, not only the empty ones).
 
-### Failing guards
+### Non-passing guards
 
 A function clause will be executed if and only if its guard expression evaluates to `true`. If any other value is returned, the function clause will be skipped. In particular, guards have no concept of "truthy" or "falsy".
 

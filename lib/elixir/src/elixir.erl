@@ -89,7 +89,7 @@ start(_Type, _Args) ->
     {ignore_already_consolidated, false},
     {ignore_module_conflict, false},
     {on_undefined_variable, raise},
-    {parser_options, []},
+    {parser_options, [{columns, true}]},
     {debug_info, true},
     {warnings_as_errors, false},
     {relative_paths, true},
@@ -455,11 +455,9 @@ string_to_tokens(String, StartLine, StartColumn, File, Opts) when is_integer(Sta
       (lists:keyfind(warnings, 1, Opts) /= {warnings, false}) andalso
         [elixir_errors:erl_warn(L, File, M) || {L, M} <- lists:reverse(Warnings)],
       {ok, Tokens};
-    {error, {Line, Column, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _Warnings, _SoFar} ->
-      Location = [{line, Line}, {column, Column}],
+    {error, {Location, {ErrorPrefix, ErrorSuffix}, Token}, _Rest, _Warnings, _SoFar} ->
       {error, {Location, {to_binary(ErrorPrefix), to_binary(ErrorSuffix)}, to_binary(Token)}};
-    {error, {Line, Column, Error, Token}, _Rest, _Warnings, _SoFar} ->
-      Location = [{line, Line}, {column, Column}],
+    {error, {Location, Error, Token}, _Rest, _Warnings, _SoFar} ->
       {error, {Location, to_binary(Error), to_binary(Token)}}
   end.
 
