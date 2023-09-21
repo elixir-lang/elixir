@@ -318,7 +318,7 @@ iex> DashSplitter.split("Lucas-Francisco-da-Matta-Vegi")
 
 #### Refactoring
 
-To remove this anti-pattern and make the library more adaptable and flexible, this type of configuration must be performed via parameters in function calls. The code shown below performs the refactoring of the `split/1` function by adding a new optional parameter of type *Keyword list*. With this new parameter, it is possible to modify the default behavior of the function at the time of its call, allowing multiple different ways of using `split/2` within the same application:
+To remove this anti-pattern and make the library more adaptable and flexible, this type of configuration must be performed via parameters in function calls. The code shown below performs the refactoring of the `split/1` function by accepting [keyword lists](`Keyword`) as a new optional parameter. With this new parameter, it is possible to modify the default behavior of the function at the time of its call, allowing multiple different ways of using `split/2` within the same application:
 
 ```elixir
 defmodule DashSplitter do
