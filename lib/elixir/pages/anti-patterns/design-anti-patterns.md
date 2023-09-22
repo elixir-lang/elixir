@@ -207,7 +207,83 @@ end
 
 ## Feature envy
 
-TODO
+#### Problem
+
+This anti-pattern occurs when a function accesses more data or calls more functions from another `Module` than from its own. The presence of this anti-pattern can make a `Module` less cohesive and increase code coupling.
+
+#### Example
+
+In the following code, all the data used in the `calculate_total_item/1` function of the module `Order` comes from the `OrderItem` module. This increases coupling and decreases code cohesion unnecessarily.
+
+```elixir
+defmodule Order do
+  def calculate_total_order(list_items) do
+    ...
+  end
+
+  def calculate_total_item(id) do
+    item = OrderItem.find_item(id)
+    total = (item.price + item.taxes) * item.amount
+    discount = OrderItem.find_discount(item)
+
+    unless is_nil(discount) do    # <= all data comes from OrderItem!
+      total - total * discount
+    else
+      total
+    end
+  end
+end
+```
+
+```elixir
+defmodule OrderItem do
+  def find_item(id) do
+    ...
+    %{price: ..., taxes: ..., amount: ...}
+  end
+
+  def find_discount(item) do
+    ...
+  end
+end
+```
+
+#### Refactoring
+
+To remove this anti-pattern we can move `calculate_total_item/1` to `OrderItem`. Thus the `Order` module could become more cohesive and the coupling would decrease.
+
+```elixir
+defmodule Order do
+  def calculate_total_order(list_items) do
+    ...
+  end
+end
+```
+
+```elixir
+defmodule OrderItem do
+  def find_item(id) do
+    ...
+    %{price: ..., taxes: ..., amount: ...}
+  end
+
+  def find_discount(item) do
+    ...
+  end
+
+  def calculate_total_item(id) do   # <= function moved from Order!
+    item = find_item(id)
+    total = (item.price + item.taxes) * item.amount
+    discount = find_discount(item)
+
+    unless is_nil(discount) do    
+      total - total * discount
+    else
+      total
+    end
+  end
+end
+```
 
 ## Excessive side-effects
 
