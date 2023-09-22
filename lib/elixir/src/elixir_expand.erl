@@ -458,8 +458,7 @@ expand(Pid, S, E) when is_pid(Pid) ->
 
 expand(Zero, S, #{context := match} = E) when is_float(Zero), Zero == 0.0 ->
   elixir_errors:file_warn([], E, ?MODULE, invalid_match_on_zero_float),
-  Escaped = {{'.', [], [erlang, '+']}, [], [0.0]},
-  {Escaped, S, E};
+  {Zero, S, E};
 
 expand(Other, S, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
   {Other, S, E};

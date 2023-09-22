@@ -654,18 +654,6 @@ defmodule Module.Types.Pattern do
     {:ok, :float, context}
   end
 
-  # +12 / -12
-  defp of_shared({{:., _, [:erlang, op]}, _, [literal]}, _stack, context, _fun)
-       when is_integer(literal) and op in [:+, :-] do
-    {:ok, :integer, context}
-  end
-
-  # +1.2 / -1.2
-  defp of_shared({{:., _, [:erlang, op]}, _, [literal]}, _stack, context, _fun)
-       when is_float(literal) and op in [:+, :-] do
-    {:ok, :float, context}
-  end
-
   # "..."
   defp of_shared(literal, _stack, context, _fun) when is_binary(literal) do
     {:ok, :binary, context}
