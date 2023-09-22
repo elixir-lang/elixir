@@ -217,20 +217,16 @@ In the following code, all the data used in the `calculate_total_item/1` functio
 
 ```elixir
 defmodule Order do
-  def calculate_total_order(list_items) do
-    ...
-  end
+  # Some functions...
 
   def calculate_total_item(id) do
     item = OrderItem.find_item(id)
     total = (item.price + item.taxes) * item.amount
-    discount = OrderItem.find_discount(item)
-
-    unless is_nil(discount) do    # <= all data comes from OrderItem!
-      total - total * discount
-    else
-      total
-    end
+  if discount = OrderItem.find_discount(item) do
+    total - total * discount
+  else
+    total
+  end
   end
 end
 ```
@@ -254,9 +250,7 @@ To remove this anti-pattern we can move `calculate_total_item/1` to `OrderItem`.
 
 ```elixir
 defmodule Order do
-  def calculate_total_order(list_items) do
-    ...
-  end
+  # Some functions...
 end
 ```
 
