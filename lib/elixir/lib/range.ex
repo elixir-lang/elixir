@@ -273,6 +273,7 @@ defmodule Range do
 
   """
   @doc since: "1.14.0"
+  @spec shift(t, integer) :: t
   def shift(first..last//step, steps_to_shift)
       when is_integer(steps_to_shift) do
     new(first + steps_to_shift * step, last + steps_to_shift * step, step)
@@ -364,6 +365,7 @@ defmodule Range do
 
   """
   @doc since: "1.15.0"
+  @spec split(t, integer) :: {t, t}
   def split(first..last//step = range, split) when is_integer(split) do
     if split >= 0 do
       split(first, last, step, split)
@@ -392,8 +394,17 @@ defmodule Range do
 
   @doc """
   Converts a range to a list.
+
+  ## Examples
+
+      iex> Range.to_list(0..5)
+      [0, 1, 2, 3, 4, 5]
+      iex> Range.to_list(-3..0)
+      [-3, -2, -1, 0]
+
   """
   @doc since: "1.15.0"
+  @spec to_list(t) :: list
   def to_list(first..last//step)
       when step > 0 and first <= last
       when step < 0 and first >= last do
