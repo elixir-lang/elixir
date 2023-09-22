@@ -404,7 +404,7 @@ defmodule Range do
 
   """
   @doc since: "1.15.0"
-  @spec to_list(t) :: list
+  @spec to_list(t) :: list(integer)
   def to_list(first..last//step)
       when step > 0 and first <= last
       when step < 0 and first >= last do
