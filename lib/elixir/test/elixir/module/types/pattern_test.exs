@@ -15,6 +15,20 @@ defmodule Module.Types.PatternTest do
     end
   end
 
+  defmacrop quoted_pattern_with_diagnostics(patterns) do
+    {ast, diagnostics} = Code.with_diagnostics(fn -> expand_head(patterns, true) end)
+
+    quote do
+      {patterns, true} = unquote(Macro.escape(ast))
+
+      result =
+        Pattern.of_pattern(patterns, new_stack(), new_context())
+        |> lift_result()
+
+      {result, unquote(Macro.escape(diagnostics))}
+    end
+  end
+
   defmacrop quoted_head(patterns, guards \\ []) do
     quote do
       {patterns, guards} = unquote(Macro.escape(expand_head(patterns, guards)))
@@ -76,8 +90,14 @@ defmodule Module.Types.PatternTest do
       assert quoted_pattern(false) == {:ok, {:atom, false}}
       assert quoted_pattern(:foo) == {:ok, {:atom, :foo}}
       assert quoted_pattern(0) == {:ok, :integer}
-      assert quoted_pattern(0.0) == {:ok, :float}
+      assert quoted_pattern(+0.0) == {:ok, :float}
+      assert quoted_pattern(-0.0) == {:ok, :float}
       assert quoted_pattern("foo") == {:ok, :binary}
+
+      assert {{:ok, :float}, [diagnostic]} = quoted_pattern_with_diagnostics(0.0)
+
+      assert diagnostic.message =~
+               "pattern matching on 0.0 is equivalent to matching only on +0.0"
     end
 
     test "list" do
