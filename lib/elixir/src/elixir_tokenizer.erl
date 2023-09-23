@@ -955,12 +955,6 @@ handle_space_sensitive_tokens(String, Line, Column, Scope, Tokens) ->
 
 %% Helpers
 
-blue(Message) ->
-  case application:get_env(elixir, ansi_enabled, false) of
-    true -> ["\e[34m", Message, "\e[0m"];
-    false -> Message
-  end.
-
 eol(_Line, _Column, [{',', {Line, Column, Count}} | Tokens]) ->
   [{',', {Line, Column, Count + 1}} | Tokens];
 eol(_Line, _Column, [{';', {Line, Column, Count}} | Tokens]) ->
@@ -1441,7 +1435,7 @@ check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hint
     case lists:keyfind('end', 1, Hints) of
       {'end', HintLine, _Identation} ->
         io_lib:format("\n~ts the \"end\" on line ~B may not have a matching \"do\" "
-                      "defined before it (based on indentation)", [blue("hint:"), HintLine]);
+                      "defined before it (based on indentation)", [elixir_errors:prefix(hint), HintLine]);
       false ->
         ""
     end,
@@ -1462,7 +1456,7 @@ missing_terminator_hint(Start, End, #elixir_tokenizer{mismatch_hints=Hints}) ->
   case lists:keyfind(Start, 1, Hints) of
     {Start, {HintLine, _, _}, _} ->
       io_lib:format("\n~ts it looks like the \"~ts\" on line ~B does not have a matching \"~ts\"",
-                    [blue("hint:"), Start, HintLine, End]);
+                    [elixir_errors:prefix(hint), Start, HintLine, End]);
     false ->
       ""
   end.

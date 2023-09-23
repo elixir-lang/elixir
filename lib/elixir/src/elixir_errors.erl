@@ -8,6 +8,7 @@
 -export([function_error/4, module_error/4, file_error/4]).
 -export([format_snippet/7]).
 -export([erl_warn/3, file_warn/4]).
+-export([prefix/1]).
 -export([print_diagnostic/2, emit_diagnostic/6]).
 -export([print_warning/2, print_warning/3]).
 -export([print_warning_group/2]).
@@ -135,14 +136,14 @@ extract_column(_) -> nil.
 %% "Snippet" here refers to the source code line where the diagnostic/error occured
 
 format_snippet(_Position, nil, Message, nil, Severity, _Stacktrace, _Span) ->
-  Formatted = [prefix(Severity), Message],
+  Formatted = [prefix(Severity), " ", Message],
   unicode:characters_to_binary(Formatted);
 
 format_snippet(Position, File, Message, nil, Severity, Stacktrace, _Span) ->
   Location = location_format(Position, File, Stacktrace),
 
   Formatted = io_lib:format(
-    "~ts~ts\n"
+    "~ts ~ts\n"
     "└─ ~ts",
     [prefix(Severity), Message, Location]
    ),
@@ -167,7 +168,7 @@ format_snippet(Position, File, Message, Snippet, Severity, Stacktrace, Span) ->
     end,
 
   Formatted = io_lib:format(
-    " ~ts~ts~ts\n"
+    " ~ts~ts ~ts\n"
     " ~ts│\n"
     " ~ts~p │ ~ts\n"
     " ~ts│ ~ts\n"
@@ -435,18 +436,21 @@ snippet_line(InputString, Location, StartLine) ->
 
 %% Helpers
 
-prefix(warning) -> highlight(<<"warning: ">>, warning);
-prefix(error) -> highlight(<<"error: ">>, error).
+prefix(warning) -> highlight(<<"warning:">>, warning);
+prefix(error) -> highlight(<<"error:">>, error);
+prefix(hint) -> highlight(<<"hint:">>, hint).
 
 highlight(Message, Severity) ->
   case {Severity, application:get_env(elixir, ansi_enabled, false)} of
     {warning, true} -> yellow(Message);
     {error, true} -> red(Message);
+    {hint, true} -> blue(Message);
     _ -> Message
   end.
 
-yellow(Msg) -> io_lib:format("\e[33m~ts\e[0m", [Msg]).
-red(Msg) -> io_lib:format("\e[31m~ts\e[0m", [Msg]).
+yellow(Msg) -> ["\e[33m", Msg, "\e[0m"].
+blue(Msg) -> ["\e[34m", Msg, "\e[0m"].
+red(Msg) -> ["\e[31m", Msg, "\e[0m"].
 
 env_format(Meta, #{file := EnvFile} = E) ->
   {File, Position} = meta_location(Meta, EnvFile),
