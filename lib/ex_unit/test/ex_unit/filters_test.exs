@@ -219,14 +219,14 @@ defmodule ExUnit.FiltersTest do
               [exclude: [:test], include: [line: "456"]]}
 
     assert ExUnit.Filters.parse_path("test/some/path.exs:123:456notalinenumber456") ==
-             {"test/some/path.exs:123:456notalinenumber456", []}
+             {"test/some/path.exs", [{:exclude, [:test]}, {:include, [line: "123"]}]}
 
     assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123notalinenumber123:456") ==
              {"C:\\some\\path.exs:123notalinenumber123",
               [exclude: [:test], include: [line: "456"]]}
 
     assert ExUnit.Filters.parse_path("C:\\some\\path.exs:123:456notalinenumber456") ==
-             {"C:\\some\\path.exs:123:456notalinenumber456", []}
+             {"C:\\some\\path.exs", [{:exclude, [:test]}, {:include, [line: "123"]}]}
 
     output =
       ExUnit.CaptureIO.capture_io(:stderr, fn ->

@@ -18,7 +18,7 @@ defmodule ExUnit.Filters do
   def parse_path(file) do
     case extract_line_numbers(file) do
       {path, []} -> {path, []}
-      {path, line_numbers} -> {path, exclude: [:test], include: line_numbers}
+      {path, line_tuples} -> {path, exclude: [:test], include: line_tuples}
     end
   end
 
@@ -27,36 +27,23 @@ defmodule ExUnit.Filters do
       [part] ->
         {part, []}
 
-      parts ->
-        {reversed_line_numbers, reversed_path_parts} =
-          parts
-          |> Enum.reverse()
-          |> Enum.split_while(&match?({_, ""}, Integer.parse(&1)))
+      [path | parts] ->
+        {path_parts, line_numbers} = Enum.split_while(parts, &(not valid_line_number?(&1)))
 
-        line_numbers =
-          for line_number <- reversed_line_numbers,
-              valid_line_number?(line_number),
-              reduce: [],
-              do: (acc -> [line: line_number] ++ acc)
+        line_tuples = for n <- line_numbers, valid_line_number(n), do: {:line, n}
 
-        path =
-          reversed_path_parts
-          |> Enum.reverse()
-          |> Enum.join(":")
+        path = Enum.join([path | path_parts], ":")
 
-        {path, line_numbers}
+        {path, line_tuples}
     end
   end
 
-  defp valid_line_number?(arg) do
-    case Integer.parse(arg) do
-      {num, ""} when num > 0 ->
-        true
+  defp valid_line_number?(str), do: match?({x, ""} when x > 0, Integer.parse(str))
 
-      _ ->
-        IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
-        false
-    end
+  defp valid_line_number(str) do
+    valid? = valid_line_number?(str)
+    valid? || IO.warn("invalid line number given as ExUnit filter: #{str}", [])
+    valid?
   end
 
   @doc """
