@@ -14,8 +14,8 @@ cond_line_test() ->
 
 float_match_test() ->
   {'case', _, _,
-    [{clause, _, [{op, _, '+', {float, _, 0.0}}], [], [{atom, _, pos}]},
-     {clause, _, [{op, _, '-', {float, _, 0.0}}], [], [{atom, _, neg}]}]
+    [{clause, _, [{op, _, '+', {float, _, +0.0}}], [], [{atom, _, pos}]},
+     {clause, _, [{op, _, '-', {float, _, +0.0}}], [], [{atom, _, neg}]}]
   } = to_erl("case X do\n  +0.0 -> :pos\n  -0.0 -> :neg\nend").
 
 % Optimized
