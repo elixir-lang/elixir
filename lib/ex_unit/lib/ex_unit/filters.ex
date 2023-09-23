@@ -34,10 +34,10 @@ defmodule ExUnit.Filters do
           |> Enum.split_while(&match?({_, ""}, Integer.parse(&1)))
 
         line_numbers =
-          reversed_line_numbers
-          |> Enum.reject(&invalid_line_number?/1)
-          |> Enum.reverse()
-          |> Enum.map(&{:line, &1})
+          for line_number <- reversed_line_numbers,
+              valid_line_number?(line_number),
+              reduce: [],
+              do: (acc -> [line: line_number] ++ acc)
 
         path =
           reversed_path_parts
@@ -48,14 +48,14 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp invalid_line_number?(arg) do
+  defp valid_line_number?(arg) do
     case Integer.parse(arg) do
       {num, ""} when num > 0 ->
-        false
+        true
 
       _ ->
         IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
-        true
+        false
     end
   end
 
