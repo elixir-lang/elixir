@@ -207,7 +207,55 @@ end
 
 ## Feature envy
 
-TODO
+#### Problem
+
+This anti-pattern occurs when a function accesses more data or calls more functions from another module than from its own. The presence of this anti-pattern can make a module less cohesive and increase code coupling.
+
+#### Example
+
+In the following code, all the data used in the `calculate_total_item/1` function of the module `Order` comes from the `OrderItem` module. This increases coupling and decreases code cohesion unnecessarily.
+
+```elixir
+defmodule Order do
+  # Some functions...
+
+  def calculate_total_item(id) do
+    item = OrderItem.find_item(id)
+    total = (item.price + item.taxes) * item.amount
+
+    if discount = OrderItem.find_discount(item) do
+      total - total * discount
+    else
+      total
+    end
+  end
+end
+```
+
+#### Refactoring
+
+To remove this anti-pattern we can move `calculate_total_item/1` to `OrderItem`, decreasing coupling:
+
+```elixir
+defmodule OrderItem do
+  def find_item(id)
+  def find_discount(item)
+
+  def calculate_total_item(id) do   # <= function moved from Order!
+    item = find_item(id)
+    total = (item.price + item.taxes) * item.amount
+    discount = find_discount(item)
+
+    unless is_nil(discount) do    
+      total - total * discount
+    else
+      total
+    end
+  end
+end
+```
+
+This refactoring is only possible when you own both modules. If the module you are invoking belongs to another application, then it is not possible to add new functions to it, and your only option is to define an additional module that augments the third-party module.
 
 ## Excessive side-effects
 
