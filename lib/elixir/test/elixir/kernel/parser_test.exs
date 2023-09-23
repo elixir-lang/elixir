@@ -554,7 +554,7 @@ defmodule Kernel.ParserTest do
       )
 
       assert_token_missing(
-        [~s/HINT: it looks like the "do" on line 2 does not have a matching "end"/],
+        ["hint:", ~s/it looks like the "do" on line 2 does not have a matching "end"/],
         ~c"""
         defmodule MyApp do
           def one do
@@ -819,7 +819,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 2 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 2 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do
@@ -831,7 +832,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 3 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 3 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do
@@ -846,7 +848,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 6 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 6 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do

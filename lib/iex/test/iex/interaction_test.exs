@@ -25,7 +25,7 @@ defmodule IEx.InteractionTest do
 
     expected = """
     ** (SyntaxError) invalid syntax found on iex:1:4:
-        \e[31merror: \e[0msyntax error before: '='
+        \e[31merror:\e[0m syntax error before: '='
         │
       1 │ a += 2
         │ \e[31m   ^\e[0m
