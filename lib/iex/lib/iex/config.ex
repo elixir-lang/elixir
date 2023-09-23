@@ -16,6 +16,7 @@ defmodule IEx.Config do
 
   # Generate a continuation prompt based on IEx prompt.
   # This is set as global configuration on app start.
+  @compile {:no_warn_undefined, :prim_tty}
   def prompt(prompt) do
     case Enum.split_while(prompt, &(&1 != ?()) do
       # It is not the default Elixir shell, so we use the default prompt
