@@ -399,9 +399,7 @@ defmodule IEx do
     * `:width`
     * `:history_size`
     * `:default_prompt`
-    * `:continuation_prompt`
     * `:alive_prompt`
-    * `:alive_continuation_prompt`
     * `:parser`
 
   They are discussed individually in the sections below.
