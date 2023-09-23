@@ -49,7 +49,7 @@ defmodule Kernel.ErrorsTest do
   test "undefined function" do
     assert_compile_error(
       [
-        "hello.ex:4: ",
+        "hello.ex:4:5: ",
         "undefined function bar/0 (expected Kernel.ErrorsTest.BadForm to define such a function or for it to be imported, but none are available)"
       ],
       ~c"""

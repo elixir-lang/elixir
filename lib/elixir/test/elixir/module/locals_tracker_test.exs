@@ -50,8 +50,12 @@ defmodule Module.LocalsTrackerTest do
   test "preserves column information on retrieval", config do
     D.add_local(config[:ref], {:public, 1}, {:private, 1}, [line: 1, column: 1], false)
 
-    undefined = D.collect_undefined_locals(config[:ref], @used)
-    assert undefined == [{{:public, 1}, [line: 1, column: 1], {:private, 1}, :undefined_function}]
+    undefined = D.collect_undefined_locals(config[:ref], @used, "foo.exs")
+
+    assert undefined == [
+             {{:public, 1}, [span: {1, 8}, line: 1, column: 1], "foo.exs", {:private, 1},
+              :undefined_function}
+           ]
   end
 
   test "private definitions with unused default arguments", config do
@@ -80,8 +84,8 @@ defmodule Module.LocalsTrackerTest do
   test "undefined functions are marked as so", config do
     D.add_local(config[:ref], {:public, 1}, {:private, 1}, [line: 1], false)
 
-    undefined = D.collect_undefined_locals(config[:ref], @used)
-    assert undefined == [{{:public, 1}, [line: 1], {:private, 1}, :undefined_function}]
+    undefined = D.collect_undefined_locals(config[:ref], @used, "foo.exs")
+    assert undefined == [{{:public, 1}, [line: 1], "foo.exs", {:private, 1}, :undefined_function}]
   end
 
   ### Incorrect dispatches
@@ -93,8 +97,8 @@ defmodule Module.LocalsTrackerTest do
 
     D.add_local(config[:ref], {:public, 1}, {:macro, 1}, [line: 5], false)
 
-    undefined = D.collect_undefined_locals(config[:ref], definitions)
-    assert undefined == [{{:public, 1}, [line: 5], {:macro, 1}, :incorrect_dispatch}]
+    undefined = D.collect_undefined_locals(config[:ref], definitions, "foo.exs")
+    assert undefined == [{{:public, 1}, [line: 5], "foo.exs", {:macro, 1}, :incorrect_dispatch}]
   end
 
   ## Defaults

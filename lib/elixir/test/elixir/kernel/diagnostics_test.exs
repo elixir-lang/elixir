@@ -890,6 +890,37 @@ defmodule Kernel.DiagnosticsTest do
     end
 
     @tag :tmp_dir
+    test "shows span for unknown local function calls", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "unknown_local_function_call.ex")
+
+      source = """
+      defmodule Sample do
+        @file "#{path}"
+
+        def foo do
+          _result = unknown_func_call!(:hello!)
+        end
+      end
+      """
+
+      File.write!(path, source)
+
+      expected = """
+          error: undefined function unknown_func_call!/1 (expected Sample to define such a function or for it to be imported, but none are available)
+          │
+        5 │     _result = unknown_func_call!(:hello!)
+          │               ^^^^^^^^^^^^^^^^^^
+          │
+          └─ #{path}:5:15: Sample.foo/0
+
+      """
+
+      assert capture_compile(source) == expected
+    after
+      purge(Sample)
+    end
+
+    @tag :tmp_dir
     test "line + column", %{tmp_dir: tmp_dir} do
       path = make_relative_tmp(tmp_dir, "error_line_column.ex")
 

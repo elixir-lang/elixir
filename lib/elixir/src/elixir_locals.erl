@@ -99,8 +99,8 @@ ensure_no_import_conflict(Module, All, E) ->
 
 ensure_no_undefined_local(Module, All, E) ->
   if_tracker(Module, [], fun(Tracker) ->
-    [elixir_errors:module_error(Meta, E#{function := Function}, ?MODULE, {Error, Tuple, Module})
-     || {Function, Meta, Tuple, Error} <- ?tracker:collect_undefined_locals(Tracker, All)],
+    [elixir_errors:module_error(Meta, E#{function := Function, file := File}, ?MODULE, {Error, Tuple, Module})
+     || {Function, Meta, File, Tuple, Error} <- ?tracker:collect_undefined_locals(Tracker, All, ?key(E, file))],
     ok
   end).
 
