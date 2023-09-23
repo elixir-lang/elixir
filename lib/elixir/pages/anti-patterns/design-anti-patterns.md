@@ -255,7 +255,7 @@ defmodule OrderItem do
 end
 ```
 
-This refactoring is only possible when you own both modules. If the module you are invoking belongs to another application, then it is not possible to change, and your only option is to define an additional module to augment the third-party module.
+This refactoring is only possible when you own both modules. If the module you are invoking belongs to another application, then it is not possible to add new functions to it, and your only option is to define an additional module that augments the third-party module.
 
 ## Excessive side-effects
 
