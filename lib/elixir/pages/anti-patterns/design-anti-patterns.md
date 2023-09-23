@@ -209,7 +209,7 @@ end
 
 #### Problem
 
-This anti-pattern occurs when a function accesses more data or calls more functions from another `Module` than from its own. The presence of this anti-pattern can make a `Module` less cohesive and increase code coupling.
+This anti-pattern occurs when a function accesses more data or calls more functions from another module than from its own. The presence of this anti-pattern can make a module less cohesive and increase code coupling.
 
 #### Example
 
@@ -222,48 +222,24 @@ defmodule Order do
   def calculate_total_item(id) do
     item = OrderItem.find_item(id)
     total = (item.price + item.taxes) * item.amount
-  if discount = OrderItem.find_discount(item) do
-    total - total * discount
-  else
-    total
-  end
-  end
-end
-```
 
-```elixir
-defmodule OrderItem do
-  def find_item(id) do
-    ...
-    %{price: ..., taxes: ..., amount: ...}
-  end
-
-  def find_discount(item) do
-    ...
+    if discount = OrderItem.find_discount(item) do
+      total - total * discount
+    else
+      total
+    end
   end
 end
 ```
 
 #### Refactoring
 
-To remove this anti-pattern we can move `calculate_total_item/1` to `OrderItem`. Thus the `Order` module could become more cohesive and the coupling would decrease.
-
-```elixir
-defmodule Order do
-  # Some functions...
-end
-```
+To remove this anti-pattern we can move `calculate_total_item/1` to `OrderItem`, decreasing coupling:
 
 ```elixir
 defmodule OrderItem do
-  def find_item(id) do
-    ...
-    %{price: ..., taxes: ..., amount: ...}
-  end
-
-  def find_discount(item) do
-    ...
-  end
+  def find_item(id)
+  def find_discount(item)
 
   def calculate_total_item(id) do   # <= function moved from Order!
     item = find_item(id)
@@ -278,6 +254,8 @@ defmodule OrderItem do
   end
 end
 ```
+
+This refactoring is only possible when you own both modules. If the module you are invoking belongs to another application, then it is not possible to change, and your only option is to define an additional module to augment the third-party module.
 
 ## Excessive side-effects
 
