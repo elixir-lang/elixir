@@ -894,6 +894,9 @@ attach_context_module(Receiver, Meta, #{context_modules := ContextModules}) ->
     false -> Meta
   end.
 
+% Signed numbers can be rewritten no matter the context
+rewrite(_, erlang, _, '+', _, [Arg], _S) when is_number(Arg) -> {ok, Arg};
+rewrite(_, erlang, _, '-', _, [Arg], _S) when is_number(Arg) -> {ok, -Arg};
 rewrite(match, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
   elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
 rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs, S) ->
