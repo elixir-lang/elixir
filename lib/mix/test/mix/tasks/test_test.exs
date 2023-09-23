@@ -501,7 +501,7 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ """
                ==> bar
                Excluding tags: [:test]
-               Including tags: [line: \"10\"]
+               Including tags: [location: {\"test/bar_tests.exs\", \"10\"}]
 
                .
                """

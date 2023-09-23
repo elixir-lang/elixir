@@ -16,13 +16,13 @@ defmodule ExUnit.Filters do
   """
   @spec parse_path(String.t()) :: {String.t(), Keyword.t()}
   def parse_path(file) do
-    case extract_line_numbers(file) do
+    case extract_locations(file) do
       {path, []} -> {path, []}
-      {path, line_tuples} -> {path, exclude: [:test], include: line_tuples}
+      {path, locations} -> {path, exclude: [:test], include: locations}
     end
   end
 
-  defp extract_line_numbers(file) do
+  defp extract_locations(file) do
     case String.split(file, ":") do
       [part] ->
         {part, []}
@@ -30,11 +30,11 @@ defmodule ExUnit.Filters do
       [path | parts] ->
         {path_parts, line_numbers} = Enum.split_while(parts, &(not valid_line_number?(&1)))
 
-        line_tuples = for n <- line_numbers, valid_line_number(n), do: {:line, n}
-
         path = Enum.join([path | path_parts], ":")
 
-        {path, line_tuples}
+        locations = for n <- line_numbers, valid_line_number(n), do: {:location, {path, n}}
+
+        {path, locations}
     end
   end
 
@@ -186,7 +186,11 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:line, line}, %{line: _, describe_line: describe_line} = tags, collection) do
+  defp has_tag(
+         {:location, {_file, line}},
+         %{line: _, describe_line: describe_line} = tags,
+         collection
+       ) do
     line = to_integer(line)
 
     cond do
