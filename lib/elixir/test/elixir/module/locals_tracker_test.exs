@@ -51,7 +51,11 @@ defmodule Module.LocalsTrackerTest do
     D.add_local(config[:ref], {:public, 1}, {:private, 1}, [line: 1, column: 1], false)
 
     undefined = D.collect_undefined_locals(config[:ref], @used)
-    assert undefined == [{{:public, 1}, [line: 1, column: 1], {:private, 1}, :undefined_function}]
+
+    assert undefined == [
+             {{:public, 1}, [span: {1, 8}, line: 1, column: 1], {:private, 1},
+              :undefined_function}
+           ]
   end
 
   test "private definitions with unused default arguments", config do

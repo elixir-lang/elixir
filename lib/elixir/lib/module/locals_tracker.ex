@@ -105,9 +105,9 @@ defmodule Module.LocalsTracker do
   def collect_undefined_locals({set, bag}, all_defined) do
     undefined =
       for {pair, _, meta, _} <- all_defined,
-          {local, position, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
+          {{local_name, _} = local, position, macro_dispatch?} <-
+            out_neighbours(bag, {:local, pair}),
           error = undefined_local_error(set, local, macro_dispatch?),
-          {local_name, _arity} = local,
           do: {pair, build_meta(meta, position, local_name), local, error}
 
     :lists.usort(undefined)
