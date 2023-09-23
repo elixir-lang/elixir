@@ -876,9 +876,9 @@ defmodule Kernel.ParserTest do
       msg = &["nofile:1:9:", "syntax error before: sigil ~s starting with content '#{&1}'"]
 
       assert_syntax_error(msg.("bar baz"), ~c"~s(foo) ~s(bar baz)")
-      # assert_syntax_error(msg.(""), ~c"~s(foo) ~s()")
-      # assert_syntax_error(msg.("bar "), ~c"~s(foo) ~s(bar \#{:baz})")
-      # assert_syntax_error(msg.(""), ~c"~s(foo) ~s(\#{:bar} baz)")
+      assert_syntax_error(msg.(""), ~c"~s(foo) ~s()")
+      assert_syntax_error(msg.("bar "), ~c"~s(foo) ~s(bar \#{:baz})")
+      assert_syntax_error(msg.(""), ~c"~s(foo) ~s(\#{:bar} baz)")
     end
 
     test "invalid do" do
