@@ -107,7 +107,8 @@ defmodule Module.LocalsTracker do
       for {pair, _, meta, _} <- all_defined,
           {local, position, macro_dispatch?} <- out_neighbours(bag, {:local, pair}),
           error = undefined_local_error(set, local, macro_dispatch?),
-          do: {pair, build_meta(position, meta), local, error}
+          {local_name, _arity} = local,
+          do: {pair, build_meta(meta, position, local_name), local, error}
 
     :lists.usort(undefined)
   end
@@ -217,12 +218,18 @@ defmodule Module.LocalsTracker do
     {get_line(meta), meta[:column]}
   end
 
-  defp build_meta(nil, _meta), do: []
+  defp build_meta(nil, _meta, _), do: []
+
+  defp build_meta(meta, position, function_name) do
+    meta
+    |> add_position(position)
+    |> :elixir_env.calculate_span(function_name)
+  end
 
   # We need to transform any file annotation in the function
   # definition into a keep annotation that is used by the
   # error handling system in order to respect line/file.
-  defp build_meta(position, meta) do
+  defp add_position(meta, position) do
     case {position, Keyword.get(meta, :file)} do
       {{line, _col}, {file, _}} -> [keep: {file, line}]
       {{line, nil}, nil} -> [line: line]
