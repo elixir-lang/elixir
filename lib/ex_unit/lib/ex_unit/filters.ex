@@ -14,27 +14,43 @@ defmodule ExUnit.Filters do
   on the command line) includes a line number filter, and if so returns the
   appropriate ExUnit configuration options.
   """
-  @spec parse_path(String.t()) :: {String.t(), Keyword.t()}
-  def parse_path(file) do
-    case extract_locations(file) do
-      {path, []} -> {path, []}
-      {path, locations} -> {path, exclude: [:test], include: locations}
+  @spec parse_path(String.t()) :: {String.t(), ex_unit_opts :: Keyword.t()}
+  def parse_path(file_path) do
+    {[parsed_path], ex_unit_opts} = parse_paths([file_path])
+    {parsed_path, ex_unit_opts}
+  end
+
+  @doc "Like `parse_path/1` but for multiple paths. ExUnit filter options are combined."
+  @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts :: Keyword.t()}
+  def parse_paths(file_paths) do
+    Enum.reduce(file_paths, {[], []}, fn file_path, {parsed_paths, includes} ->
+      {parsed_path, lines} = extract_line_numbers(file_path)
+      includes = Enum.reduce(lines, includes, &[{:location, {parsed_path, &1}} | &2])
+      {[parsed_path | parsed_paths], includes}
+    end)
+    |> case do
+      {parsed_paths, []} ->
+        {Enum.reverse(parsed_paths), []}
+
+      {parsed_paths, includes} ->
+        {Enum.reverse(parsed_paths), exclude: [:test], include: Enum.reverse(includes)}
     end
   end
 
-  defp extract_locations(file) do
-    case String.split(file, ":") do
-      [part] ->
-        {part, []}
+  @spec extract_path(String.t()) :: String.t()
+  def extract_path(file_path), do: elem(extract_line_numbers(file_path), 0)
+
+  defp extract_line_numbers(file_path) do
+    case String.split(file_path, ":") do
+      [path] ->
+        {path, []}
 
       [path | parts] ->
         {path_parts, line_numbers} = Enum.split_while(parts, &(not valid_line_number?(&1)))
-
+        # Add back the parts that are not valid integer line numbers.
         path = Enum.join([path | path_parts], ":")
-
-        locations = for n <- line_numbers, valid_line_number(n), do: {:location, {path, n}}
-
-        {path, locations}
+        lines = Enum.filter(line_numbers, &valid_line_number/1)
+        {path, lines}
     end
   end
 
@@ -186,15 +202,14 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag(
-         {:location, {_file, line}},
-         %{line: _, describe_line: describe_line} = tags,
-         collection
-       ) do
+  defp has_tag({:location, {file, line}}, %{line: _, describe_line: _} = tags, collection) do
     line = to_integer(line)
 
     cond do
-      describe_line == line ->
+      file && not String.ends_with?(tags.file, file) ->
+        false
+
+      tags.describe_line == line ->
         true
 
       describe_block?(line, collection) ->
@@ -203,6 +218,10 @@ defmodule ExUnit.Filters do
       true ->
         tags.line <= line and closest_test_before_line(line, collection).tags.line == tags.line
     end
+  end
+
+  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, collection) do
+    has_tag({:location, {nil, line}}, tags, collection)
   end
 
   defp has_tag(pair, tags, _collection) do

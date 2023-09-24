@@ -475,10 +475,8 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp relative_app_file_exists?(file) do
-    {file, _} = ExUnit.Filters.parse_path(file)
-    File.exists?(Path.join("../..", file))
-  end
+  defp relative_app_file_exists?(file),
+    do: File.exists?(Path.join("../..", ExUnit.Filters.extract_path(file)))
 
   defp do_run(opts, args, files) do
     _ = Mix.Project.get!()
@@ -555,7 +553,7 @@ defmodule Mix.Tasks.Test do
 
     # Finally parse, require and load the files
     test_elixirc_options = project[:test_elixirc_options] || []
-    test_files = parse_files(files, shell, test_paths)
+    test_files = parse_file_paths(files, test_paths)
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
@@ -692,30 +690,19 @@ defmodule Mix.Tasks.Test do
     [autorun: false] ++ opts
   end
 
-  defp parse_files([], _shell, test_paths) do
+  defp parse_file_paths([], test_paths) do
     test_paths
   end
 
-  defp parse_files([single_file], _shell, _test_paths) do
-    # Check if the single file path matches test/path/to_test.exs:123. If it does,
-    # apply "--only line:123" and trim the trailing :123 part.
-    {single_file, opts} = ExUnit.Filters.parse_path(single_file)
-    ExUnit.configure(opts)
-    [single_file]
-  end
-
-  defp parse_files(files, shell, _test_paths) do
-    if Enum.any?(files, &match?({_, [_ | _]}, ExUnit.Filters.parse_path(&1))) do
-      raise_with_shell(shell, "Line numbers can only be used when running a single test file")
-    else
-      files
-    end
+  defp parse_file_paths(file_paths, _test_paths) do
+    {parsed_file_paths, ex_unit_opts} = ExUnit.Filters.parse_paths(file_paths)
+    ExUnit.configure(ex_unit_opts)
+    parsed_file_paths
   end
 
   defp parse_filters(opts, key) do
-    if Keyword.has_key?(opts, key) do
-      ExUnit.Filters.parse(Keyword.get_values(opts, key))
-    end
+    values = Keyword.get_values(opts, key)
+    if values != [], do: ExUnit.Filters.parse(values)
   end
 
   defp filter_opts(opts, :only) do
