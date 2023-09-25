@@ -5,6 +5,8 @@ defmodule Module.Types.TypesTest do
   alias Module.Types
   alias Module.Types.{Pattern, Expr}
 
+  @hint :elixir_errors.prefix(:hint)
+
   defmacro warning(patterns \\ [], guards \\ [], body) do
     min_line = min_line(patterns ++ guards ++ [body])
     patterns = reset_line(patterns, min_line)
@@ -261,7 +263,7 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:1
                  <<foo>>
 
-             HINT: all expressions given to binaries are assumed to be of type \
+             #{@hint} all expressions given to binaries are assumed to be of type \
              integer() unless said otherwise. For example, <<expr>> assumes "expr" \
              is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
              to change the default behaviour.
@@ -314,7 +316,7 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:1
                  {_} = foo
 
-             HINT: use pattern matching or "is_tuple(foo) and tuple_size(foo) == 1" to guard a sized tuple.
+             #{@hint} use pattern matching or "is_tuple(foo) and tuple_size(foo) == 1" to guard a sized tuple.
              """
     end
 
@@ -454,7 +456,7 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:4
                  :atom = foo
 
-             HINT: "var.field" (without parentheses) implies "var" is a map() while \
+             #{@hint} "var.field" (without parentheses) implies "var" is a map() while \
              "var.fun()" (with parentheses) implies "var" is an atom()
              """
     end
@@ -489,7 +491,7 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:4
                  module.__struct__
 
-             HINT: "var.field" (without parentheses) implies "var" is a map() while \
+             #{@hint} "var.field" (without parentheses) implies "var" is a map() while \
              "var.fun()" (with parentheses) implies "var" is an atom()
              """
     end
@@ -517,7 +519,7 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:1
                  foo.__struct__()
 
-             HINT: "var.field" (without parentheses) implies "var" is a map() while \
+             #{@hint} "var.field" (without parentheses) implies "var" is a map() while \
              "var.fun()" (with parentheses) implies "var" is an atom()
              """
     end
@@ -632,7 +634,7 @@ defmodule Module.Types.TypesTest do
                  # types_test.ex:5
                  map2.subkey
 
-             HINT: "var.field" (without parentheses) implies "var" is a map() while "var.fun()" (with parentheses) implies "var" is an atom()
+             #{@hint} "var.field" (without parentheses) implies "var" is a map() while "var.fun()" (with parentheses) implies "var" is an atom()
              """
     end
   end

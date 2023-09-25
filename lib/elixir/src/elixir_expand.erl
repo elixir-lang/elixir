@@ -456,6 +456,10 @@ expand(Pid, S, E) when is_pid(Pid) ->
       {Pid, E}
   end;
 
+expand(Zero, S, #{context := match} = E) when is_float(Zero), Zero == 0.0 ->
+  elixir_errors:file_warn([], E, ?MODULE, invalid_match_on_zero_float),
+  {Zero, S, E};
+
 expand(Other, S, E) when is_number(Other); is_atom(Other); is_binary(Other) ->
   {Other, S, E};
 
@@ -890,6 +894,9 @@ attach_context_module(Receiver, Meta, #{context_modules := ContextModules}) ->
     false -> Meta
   end.
 
+% Signed numbers can be rewritten no matter the context
+rewrite(_, erlang, _, '+', _, [Arg], _S) when is_number(Arg) -> {ok, Arg};
+rewrite(_, erlang, _, '-', _, [Arg], _S) when is_number(Arg) -> {ok, -Arg};
 rewrite(match, Receiver, DotMeta, Right, Meta, EArgs, _S) ->
   elixir_rewrite:match_rewrite(Receiver, DotMeta, Right, Meta, EArgs);
 rewrite(guard, Receiver, DotMeta, Right, Meta, EArgs, S) ->
@@ -1163,6 +1170,8 @@ guard_context(_) -> "guards".
 format_error({remote_nullary_no_parens, Expr}) ->
   String = 'Elixir.String':replace_suffix('Elixir.Macro':to_string(Expr), <<"()">>, <<>>),
   io_lib:format("parentheses are required for function calls with no arguments, got: ~ts", [String]);
+format_error(invalid_match_on_zero_float) ->
+  "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+. Instead you must match on +0.0 or -0.0";
 format_error({useless_literal, Term}) ->
   io_lib:format("code block contains unused literal ~ts "
                 "(remove the literal or assign it to _ to avoid warnings)",

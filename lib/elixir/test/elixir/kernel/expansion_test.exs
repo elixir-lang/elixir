@@ -468,6 +468,16 @@ defmodule Kernel.ExpansionTest do
     end
   end
 
+  describe "floats" do
+    test "cannot be 0.0 inside match" do
+      assert capture_io(:stderr, fn -> expand(quote(do: 0.0 = 0.0)) end) =~
+               "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+"
+
+      assert {:=, [], [+0.0, +0.0]} = expand(quote(do: +0.0 = 0.0))
+      assert {:=, [], [-0.0, +0.0]} = expand(quote(do: -0.0 = 0.0))
+    end
+  end
+
   describe "tuples" do
     test "expanded as arguments" do
       assert expand(quote(do: {after_expansion = 1, a})) == quote(do: {after_expansion = 1, a()})
@@ -715,8 +725,11 @@ defmodule Kernel.ExpansionTest do
         expand(quote(do: [1] ++ 2 ++ [3] = [1, 2, 3]))
       end)
 
-      assert {:=, _, [-1, {{:., _, [:erlang, :-]}, _, [1]}]} = expand(quote(do: -1 = -1))
-      assert {:=, _, [1, {{:., _, [:erlang, :+]}, _, [1]}]} = expand(quote(do: +1 = +1))
+      assert {:=, _, [-1, -1]} =
+               expand(quote(do: -1 = -1))
+
+      assert {:=, _, [1, 1]} =
+               expand(quote(do: +1 = +1))
 
       assert {:=, _, [[{:|, _, [1, [{:|, _, [2, 3]}]]}], [1, 2, 3]]} =
                expand(quote(do: [1] ++ [2] ++ 3 = [1, 2, 3]))

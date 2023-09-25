@@ -554,7 +554,7 @@ defmodule Kernel.ParserTest do
       )
 
       assert_token_missing(
-        [~s/HINT: it looks like the "do" on line 2 does not have a matching "end"/],
+        ["hint:", ~s/it looks like the "do" on line 2 does not have a matching "end"/],
         ~c"""
         defmodule MyApp do
           def one do
@@ -819,7 +819,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 2 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 2 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do
@@ -831,7 +832,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 3 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 3 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do
@@ -846,7 +848,8 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         [
-          "HINT: the \"end\" on line 6 may not have a matching \"do\" defined before it (based on indentation)"
+          "hint:",
+          "the \"end\" on line 6 may not have a matching \"do\" defined before it (based on indentation)"
         ],
         ~c"""
         defmodule MyApp do
@@ -876,9 +879,9 @@ defmodule Kernel.ParserTest do
       msg = &["nofile:1:9:", "syntax error before: sigil ~s starting with content '#{&1}'"]
 
       assert_syntax_error(msg.("bar baz"), ~c"~s(foo) ~s(bar baz)")
-      # assert_syntax_error(msg.(""), ~c"~s(foo) ~s()")
-      # assert_syntax_error(msg.("bar "), ~c"~s(foo) ~s(bar \#{:baz})")
-      # assert_syntax_error(msg.(""), ~c"~s(foo) ~s(\#{:bar} baz)")
+      assert_syntax_error(msg.(""), ~c"~s(foo) ~s()")
+      assert_syntax_error(msg.("bar "), ~c"~s(foo) ~s(bar \#{:baz})")
+      assert_syntax_error(msg.(""), ~c"~s(foo) ~s(\#{:bar} baz)")
     end
 
     test "invalid do" do

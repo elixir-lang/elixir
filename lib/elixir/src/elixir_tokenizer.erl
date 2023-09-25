@@ -1434,8 +1434,8 @@ check_terminator({'end', {Line, Column, _}}, [], #elixir_tokenizer{mismatch_hint
   Suffix =
     case lists:keyfind('end', 1, Hints) of
       {'end', HintLine, _Identation} ->
-        io_lib:format("\n\n    HINT: the \"end\" on line ~B may not have a matching \"do\" "
-                      "defined before it (based on indentation)", [HintLine]);
+        io_lib:format("\n~ts the \"end\" on line ~B may not have a matching \"do\" "
+                      "defined before it (based on indentation)", [elixir_errors:prefix(hint), HintLine]);
       false ->
         ""
     end,
@@ -1455,8 +1455,8 @@ unexpected_token_or_reserved(_) -> "unexpected token: ".
 missing_terminator_hint(Start, End, #elixir_tokenizer{mismatch_hints=Hints}) ->
   case lists:keyfind(Start, 1, Hints) of
     {Start, {HintLine, _, _}, _} ->
-      io_lib:format("\n\n    HINT: it looks like the \"~ts\" on line ~B does not have a matching \"~ts\"",
-                    [Start, HintLine, End]);
+      io_lib:format("\n~ts it looks like the \"~ts\" on line ~B does not have a matching \"~ts\"",
+                    [elixir_errors:prefix(hint), Start, HintLine, End]);
     false ->
       ""
   end.
