@@ -5,7 +5,46 @@ play within a codebase.
 
 ## Primitive obsession
 
-TODO
+#### Problem
+
+This anti-pattern can be felt when Elixir basic types (for example, *integer*, *float*, and *string*) are abusively used in function parameters and code variables, rather than creating specific composite data types (for example, *structs*, and *map*) that can better represent a domain.
+
+#### Example
+
+An example of this anti-pattern is the use of a single *string* to represent an `Address`. An `Address` is a more complex structure than a simple basic (aka, primitive) value.
+
+```elixir
+defmodule Foo do    
+  @spec bar(String.t()) :: any()
+  def bar(address) do
+    # Do something with address...
+  end  
+end
+```
+
+#### Refactoring
+
+We can create an `Address` struct to remove this anti-pattern, better representing this domain through a composite type. Additionally, we can modify the `bar/1` function to accept a parameter of type `Address` instead of a *string*. With this modification, we can extract each field of this composite type individually when needed. 
+
+```elixir
+defmodule Address do    
+  defstruct street: nil, city: nil, state: nil, postal_code: nil, country: nil
+
+  @type t :: %Address{street: String.t(), city: String.t(), state: String.t(), postal_code: integer(), country: String.t()}
+end
+```
+
+```elixir
+defmodule Foo do    
+  @spec bar(Address.t()) :: any()
+  def bar(address) do
+    # Some other code...
+
+    %Address{postal_code: zip} = address
+    # Do something with zip... 
+  end  
+end
+```
 
 ## Boolean obsession
 
