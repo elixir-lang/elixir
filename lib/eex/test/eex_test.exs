@@ -463,17 +463,13 @@ defmodule EExTest do
       end
     end
 
-    test "when middle expression has a modifier" do
-      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-               EEx.compile_string("foo <%= if true do %>true<%= else %>false<% end %>")
-             end) =~ ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= else %>\"]
-    end
+    test "when trying to use marker '|' without implementation" do
+      msg =
+        ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/
 
-    test "when end expression has a modifier" do
-      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-               EEx.compile_string("foo <%= if true do %>true<% else %>false<%= end %>")
-             end) =~
-               ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= end %>\"]
+      assert_raise EEx.SyntaxError, msg, fn ->
+        EEx.compile_string("<%| true %>")
+      end
     end
 
     test "when trying to use marker '/' without implementation" do
@@ -485,17 +481,6 @@ defmodule EExTest do
       end
     end
 
-    test "when trying to use marker '|' without implementation" do
-      msg =
-        ~r/unsupported EEx syntax <%| %> \(the syntax is valid but not supported by the current EEx engine\)/
-
-      assert_raise EEx.SyntaxError, msg, fn ->
-        EEx.compile_string("<%| true %>")
-      end
-    end
-  end
-
-  describe "error messages" do
     test "honor line numbers" do
       assert_raise EEx.SyntaxError,
                    "nofile:100:6: expected closing '%>' for EEx expression",
@@ -516,18 +501,30 @@ defmodule EExTest do
         EEx.compile_string("foo <%= bar", file: "my_file.eex")
       end
     end
+  end
 
-    test "when <%!-- is not closed" do
-      message = """
-      my_file.eex:1:5: expected closing '--%>' for EEx expression
-        |
-      1 | foo <%!-- bar
-        |     ^\
-      """
+  describe "warnings" do
+    test "when middle expression has a modifier" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               EEx.compile_string("foo <%= if true do %>true<%= else %>false<% end %>")
+             end) =~ ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= else %>\"]
+    end
 
-      assert_raise EEx.SyntaxError, message, fn ->
-        EEx.compile_string("foo <%!-- bar", file: "my_file.eex")
-      end
+    test "when end expression has a modifier" do
+      assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
+               EEx.compile_string("foo <%= if true do %>true<% else %>false<%= end %>")
+             end) =~
+               ~s[unexpected beginning of EEx tag \"<%=\" on \"<%= end %>\"]
+    end
+
+    test "from tokenizer" do
+      warning =
+        ExUnit.CaptureIO.capture_io(:stderr, fn ->
+          EEx.compile_string(~s'<%= :"foo" %>', file: "tokenizer.ex")
+        end)
+
+      assert warning =~ "found quoted atom \"foo\" but the quotes are not required"
+      assert warning =~ "tokenizer.ex:1:5"
     end
   end
 

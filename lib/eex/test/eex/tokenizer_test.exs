@@ -5,12 +5,6 @@ defmodule EEx.TokenizerTest do
 
   @opts [indentation: 0, trim: false]
 
-  test "tokenizer warning" do
-    assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             EEx.tokenize(~c"foo <% :'bar' %>", @opts)
-           end) =~ "found quoted atom \"bar\" but the quotes are not required"
-  end
-
   test "simple charlists" do
     assert EEx.tokenize(~c"foo", @opts) ==
              {:ok, [{:text, ~c"foo", %{column: 1, line: 1}}, {:eof, %{column: 4, line: 1}}]}
