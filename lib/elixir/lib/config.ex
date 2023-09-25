@@ -86,7 +86,7 @@ defmodule Config do
   the `mix.exs` file and inside custom Mix tasks, which always within the
   `Mix.Tasks` namespace.
 
-  ## config/runtime.exs
+  ## `config/runtime.exs`
 
   For runtime configuration, you can use the `config/runtime.exs` file.
   It is executed right before applications start in both Mix and releases
