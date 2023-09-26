@@ -51,14 +51,14 @@ This is a special case of *Primitive obsession*, specific to boolean values.
 
 #### Example
 
-An example of this anti-pattern is a function that receives two or more options, such as `editor: true` and `admin: true`, to configure its behaviour in overlaping ways. In the code below, the `:editor` option has no effect if `:admin` is set, meaning that the `:admin` option has higher priority than `:editor`, and they are ultimately related.
+An example of this anti-pattern is a function that receives two or more options, such as `editor: true` and `admin: true`, to configure its behaviour in overlapping ways. In the code below, the `:editor` option has no effect if `:admin` is set, meaning that the `:admin` option has higher priority than `:editor`, and they are ultimately related.
 
 ```elixir
 defmodule MyApp do
-  def process(invoice, opts \\ []) do
+  def process(invoice, options \\ []) do
     cond do
-      opts[:admin] ->  # Is an admin
-      opts[:editor] -> # Is an editor
+      options[:admin] ->  # Is an admin
+      options[:editor] -> # Is an editor
       true ->          # Is none
     end
   end
@@ -71,8 +71,8 @@ Instead of using multiple options, the code above could be refactored to receive
 
 ```elixir
 defmodule MyApp do
-  def process(invoice, opts \\ []) do
-    case Keyword.get(opts, :role, :default) do
+  def process(invoice, options \\ []) do
+    case Keyword.get(options, :role, :default) do
       :admin ->   # Is an admin
       :editor ->  # Is an editor
       :default -> # Is none
@@ -83,7 +83,7 @@ end
 
 This anti-pattern may also happen in our own data structures. For example, we may define a `User` struct with two boolean fields, `:editor` and `:admin`, while a single field named `:role` may be preferred.
 
-Finally, it is worth noting that using atoms may be preferred even when we have a single boolean argument/option. For example, imagine an invoice may be set as approved/unnaproved. One option is to provide a function that expects a boolean:
+Finally, it is worth noting that using atoms may be preferred even when we have a single boolean argument/option. For example, imagine an invoice may be set as approved/unapproved. One option is to provide a function that expects a boolean:
 
 ```elixir
 MyApp.update(invoice, approved: true)
@@ -95,7 +95,7 @@ However, using atoms may read better and make it simpler to add further states (
 MyApp.update(invoice, status: :approved)
 ```
 
-Remember booleans are internally represented as atoms. Therefore there is no perform penalty in one approach over the other.
+Remember booleans are internally represented as atoms. Therefore there is no performance penalty in one approach over the other.
 
 ## Working with invalid data
 
