@@ -7,17 +7,17 @@ play within a codebase.
 
 #### Problem
 
-This anti-pattern can be felt when Elixir basic types (for example, *integer*, *float*, and *string*) are abusively used in function parameters and code variables, rather than creating specific composite data types (for example, *tuples* and *structs*) that can better represent a domain.
+This anti-pattern happens when Elixir basic types (for example, *integer*, *float*, and *string*) are abusively used in function parameters and code variables, rather than creating specific composite data types (for example, *tuples* and *structs*) that can better represent a domain.
 
 #### Example
 
 An example of this anti-pattern is the use of a single *string* to represent an `Address`. An `Address` is a more complex structure than a simple basic (aka, primitive) value.
 
 ```elixir
-defmodule MyApp do    
+defmodule MyApp do
   def process_address(address) when is_binary(address) do
     # Do something with address...
-  end  
+  end
 end
 ```
 
@@ -25,25 +25,77 @@ Another example of this anti-pattern is using floating numbers to model money an
 
 #### Refactoring
 
-We can create an `Address` struct to remove this anti-pattern, better representing this domain through a composite type. Additionally, we can modify the `process_address/1` function to accept a parameter of type `Address` instead of a *string*. With this modification, we can extract each field of this composite type individually when needed. 
+We can create an `Address` struct to remove this anti-pattern, better representing this domain through a composite type. Additionally, we can modify the `process_address/1` function to accept a parameter of type `Address` instead of a *string*. With this modification, we can extract each field of this composite type individually when needed.
 
 ```elixir
-defmodule Address do    
+defmodule Address do
   defstruct [:street, :city, :state, :postal_code, :country]
 end
 ```
 
 ```elixir
-defmodule MyApp do    
+defmodule MyApp do
   def process_address(%Address{} = address) do
     # Do something with address...
-  end  
+  end
 end
 ```
 
 ## Boolean obsession
 
-TODO
+#### Problem
+
+This anti-pattern happens when booleans are used instead of atoms to encode information. The usage of booleans themselves is not an anti-pattern, but whenever multiple booleans are used with overlapping states, replacing the booleans by atoms (or composite data types such as *tuples*) may lead to clearer code.
+
+This is a special case of *Primitive obsession*, specific to boolean values.
+
+#### Example
+
+An example of this anti-pattern is a function that receives two or more options, such as `editor: true` and `admin: true`, to configure its behaviour in overlaping ways. In the code below, the `:editor` option has no effect if `:admin` is set, meaning that the `:admin` option has higher priority than `:editor`, and they are ultimately related.
+
+```elixir
+defmodule MyApp do
+  def process(invoice, opts \\ []) do
+    cond do
+      opts[:admin] ->  # Is an admin
+      opts[:editor] -> # Is an editor
+      true ->          # Is none
+    end
+  end
+end
+```
+
+#### Refactoring
+
+Instead of using multiple options, the code above could be refactored to receive a single option, called `:role`, that can be either `:admin`, `:editor`, or `:default`:
+
+```elixir
+defmodule MyApp do
+  def process(invoice, opts \\ []) do
+    case Keyword.get(opts, :role, :default) do
+      :admin ->   # Is an admin
+      :editor ->  # Is an editor
+      :default -> # Is none
+    end
+  end
+end
+```
+
+This anti-pattern may also happen in our own data structures. For example, we may define a `User` struct with two boolean fields, `:editor` and `:admin`, while a single field named `:role` may be preferred.
+
+Finally, it is worth noting that using atoms may be preferred even when we have a single boolean argument/option. For example, imagine an invoice may be set as approved/unnaproved. One option is to provide a function that expects a boolean:
+
+```elixir
+MyApp.update(invoice, approved: true)
+```
+
+However, using atoms may read better and make it simpler to add further states (such as pending) in the future:
+
+```elixir
+MyApp.update(invoice, status: :approved)
+```
+
+Remember booleans are internally represented as atoms. Therefore there is no perform penalty in one approach over the other.
 
 ## Working with invalid data
 
@@ -146,7 +198,7 @@ defmodule AlternativeInteger do
   def parse(string) do
     Integer.parse(string)
   end
-  
+
   @spec parse_discard_rest(String.t()) :: integer() | :error
   def parse_discard_rest(string) do
     case Integer.parse(string) do
@@ -280,7 +332,7 @@ defmodule OrderItem do
     total = (item.price + item.taxes) * item.amount
     discount = find_discount(item)
 
-    unless is_nil(discount) do    
+    unless is_nil(discount) do
       total - total * discount
     else
       total
