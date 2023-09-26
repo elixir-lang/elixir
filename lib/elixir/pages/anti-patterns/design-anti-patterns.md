@@ -47,7 +47,7 @@ end
 
 This anti-pattern happens when booleans are used instead of atoms to encode information. The usage of booleans themselves is not an anti-pattern, but whenever multiple booleans are used with overlapping states, replacing the booleans by atoms (or composite data types such as *tuples*) may lead to clearer code.
 
-This is a special case of *Primitive obsession*, specific to boolean values.
+This is a special case of [*Primitive obsession*](#primitive-obsession), specific to boolean values.
 
 #### Example
 
