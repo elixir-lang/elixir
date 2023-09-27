@@ -343,9 +343,41 @@ end
 
 This refactoring is only possible when you own both modules. If the module you are invoking belongs to another application, then it is not possible to add new functions to it, and your only option is to define an additional module that augments the third-party module.
 
-## Excessive side-effects
+## Scattered side-effects
 
-TODO
+#### Problem
+
+Elixir code tends to be explicit: it receives all inputs as arguments and returns all outputs. Furthermore, a given piece of code is clearer if, when called with the same inputs, it always returns the same output, without performing any other change in the system.
+
+For example, `String.split/2` fits this definition. It receives three arguments and, if the arguments do not change, the result is always the same:
+
+```elixir
+iex> String.split("hello world", " ")
+["hello", "world"]
+iex> String.split("hello world", " ")
+["hello", "world"]
+```
+
+On the other hand, `System.unique_integer/0` returns a different value, every time we call it:
+
+```elixir
+iex> System.unique_integer()
+-576460752303423478
+iex> System.unique_integer()
+-576460752303423446
+```
+
+We say that the `System.unique_integer/0` is *impure*, as it contains side-effects. When you invoke it, it changes the state of the program or the environment in a way that is not reflected on the output. On the other hand, we say `String.split/2` is *pure*. As a general rule, *pure* functions are easier to debug, test, and maintain then *impure* ones.
+
+Side-effects are essential when writing production software. Reading a file, logging a message, sending messages between processes, etc. are all side-effects. Writing code with side-effects is not an anti-pattern. However, you want to write your code where side-effects are located in key areas, instead of scattered throughout your functions.
+
+#### Example
+
+TODO.
+
+#### Refactoring
+
+TODO.
 
 ## Using exceptions for control-flow
 
