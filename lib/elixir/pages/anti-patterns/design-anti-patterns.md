@@ -454,10 +454,12 @@ defmodule Recode do
   end
 
   defp read_and_decode!(file) do
+    # Side-effect: reads a file from disk
     file |> File.read!() |> Jason.decode!()
   end
 
   defp encode_and_write!(file, data) do
+    # Side-effect: writes a file to disk
     File.write!(file, Jason.encode!(data))
   end
 end
@@ -467,13 +469,14 @@ The code above has side-effects, such as reading and writing files, scattered ar
 
 #### Refactoring
 
-To refactor this anti-pattern, we want break our code into smaller functions without side-effects, and rely on side-effects only when connecting all logic together. To do so, we define a new `recode_contents!` function, which works directly on the contents of a file, instead of file themselves.
+To refactor this anti-pattern, we want break our code into smaller functions without side-effects, and rely on side-effects only when connecting all logic together. To do so, we define a new `recode_contents!/1` function, which works directly on the contents of a file, instead of file themselves.
 
 ```elixir
 defmodule Recode do
   require Logger
 
   def recode!(file) do
+    # Side-effects now concentrated in a single function
     binary = File.read!(file)
     File.write!(file, recode_contents!(binary))
   end
@@ -493,7 +496,7 @@ end
 
 One of the benefits of unifying the side-effects, alongside with making the `recode_contents!/1` function public, is that it is now possible to test the encoding and decoding logic directly, without having to manipulate files.
 
-Finally, it is worth noting that `recode_contents!` may still raise exceptions when given invalid JSON data and exceptions are also side-effects. Our goal is not to avoid side-effects at all costs, but understand their benefits and impact on our code. After all, exceptions are an important mechanism to signal something went wrong in our code, as long as we are not [*using exceptions for flow control*](#using-exceptions-for-control-flow).
+Finally, it is worth noting that `recode_contents!/1` may still raise exceptions when given invalid JSON data and exceptions are also side-effects. Our goal is not to avoid side-effects at all costs, but understand their benefits and impact on our code. After all, exceptions are an important mechanism to signal something went wrong in our code, as long as we are not [*using exceptions for flow control*](#using-exceptions-for-control-flow).
 
 ## Using application configuration for libraries
 
