@@ -463,7 +463,7 @@ defmodule Recode do
 end
 ```
 
-The code above has side-effects, such as reading and writing files, scattered around different functions. This makes the code harder to understand and maintain. For instance, as the `transform_data` function grows in complexity, the only way to test it is by writing and reading data from disk, which makes tests more complex and expensive then necessary.
+The code above has side-effects, such as reading and writing files, scattered around different functions. This makes the code harder to understand and maintain. For instance, as the `transform_data/1` function grows in complexity, the only way to test it is by writing and reading data from disk, which makes tests more complex and expensive then necessary.
 
 #### Refactoring
 
@@ -491,7 +491,7 @@ defmodule Recode do
 end
 ```
 
-One of the benefits of the approach above is that it is now possible to test the encoding and decoding logic directly, without having to resort to files.
+One of the benefits of unifying the side-effects, alongside with making the `recode_contents!/1` function public, is that it is now possible to test the encoding and decoding logic directly, without having to manipulate files.
 
 Finally, it is worth noting that `recode_contents!` may still raise exceptions when given invalid JSON data and exceptions are also side-effects. Our goal is not to avoid side-effects at all costs, but understand their benefits and impact on our code. After all, exceptions are an important mechanism to signal something went wrong in our code, as long as we are not [*using exceptions for flow control*](#using-exceptions-for-control-flow).
 
