@@ -6188,15 +6188,24 @@ defmodule Kernel do
   defmacro sigil_r(term, modifiers)
 
   defmacro sigil_r({:<<>>, _meta, [string]}, options) when is_binary(string) do
-    binary = :elixir_interpolation.unescape_string(string, &Regex.unescape_map/1)
+    binary = :elixir_interpolation.unescape_string(string, &regex_unescape_map/1)
     regex = Regex.compile!(binary, :binary.list_to_bin(options))
     Macro.escape(regex)
   end
 
   defmacro sigil_r({:<<>>, meta, pieces}, options) do
-    binary = {:<<>>, meta, unescape_tokens(pieces, &Regex.unescape_map/1)}
+    binary = {:<<>>, meta, unescape_tokens(pieces, &regex_unescape_map/1)}
     quote(do: Regex.compile!(unquote(binary), unquote(:binary.list_to_bin(options))))
   end
+
+  defp regex_unescape_map(:newline), do: true
+  defp regex_unescape_map(?f), do: ?\f
+  defp regex_unescape_map(?n), do: ?\n
+  defp regex_unescape_map(?r), do: ?\r
+  defp regex_unescape_map(?t), do: ?\t
+  defp regex_unescape_map(?v), do: ?\v
+  defp regex_unescape_map(?a), do: ?\a
+  defp regex_unescape_map(_), do: false
 
   @doc ~S"""
   Handles the sigil `~R` for regular expressions.

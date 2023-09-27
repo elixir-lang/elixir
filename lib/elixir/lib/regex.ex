@@ -852,19 +852,6 @@ defmodule Regex do
 
   # Helpers
 
-  @doc false
-  # Unescape map function used by Macro.unescape_string.
-  def unescape_map(:newline), do: true
-  def unescape_map(?f), do: ?\f
-  def unescape_map(?n), do: ?\n
-  def unescape_map(?r), do: ?\r
-  def unescape_map(?t), do: ?\t
-  def unescape_map(?v), do: ?\v
-  def unescape_map(?a), do: ?\a
-  def unescape_map(_), do: false
-
-  # Private Helpers
-
   defp translate_options(<<?u, t::binary>>, acc), do: translate_options(t, [:unicode, :ucp | acc])
   defp translate_options(<<?i, t::binary>>, acc), do: translate_options(t, [:caseless | acc])
   defp translate_options(<<?x, t::binary>>, acc), do: translate_options(t, [:extended | acc])
