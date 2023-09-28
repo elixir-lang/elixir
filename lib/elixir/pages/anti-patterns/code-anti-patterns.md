@@ -465,7 +465,7 @@ Even if `Plug` does not currently define a `Plug.Auth` module, it may add such a
 
 #### Refactoring
 
-Given the package is named `:plug_auth`, it must define modules inside the `Plug.Auth` namespace:
+Given the package is named `:plug_auth`, it must define modules inside the `PlugAuth` namespace:
 
 ```elixir
 defmodule PlugAuth do
