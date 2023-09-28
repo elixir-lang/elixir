@@ -573,10 +573,17 @@ defmodule Mix.Tasks.FormatTest do
   test "reads exported configuration from subdirectories", context do
     in_tmp(context.test, fn ->
       File.write!(".formatter.exs", """
-      [subdirectories: ["lib"]]
+      [subdirectories: ["li", "lib"]]
       """)
 
+      # We also create a directory called li to ensure files
+      # from lib won't accidentally match on li.
+      File.mkdir_p!("li")
       File.mkdir_p!("lib")
+
+      File.write!("li/.formatter.exs", """
+      [inputs: "**/*", locals_without_parens: [other_fun: 2]]
+      """)
 
       File.write!("lib/.formatter.exs", """
       [inputs: "a.ex", locals_without_parens: [my_fun: 2]]

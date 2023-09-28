@@ -583,8 +583,15 @@ defmodule Mix.Tasks.Format do
 
   defp recur_formatter_opts_for_file(file, {formatter_opts, subs}) do
     Enum.find_value(subs, formatter_opts, fn {sub, formatter_opts_and_subs} ->
-      if String.starts_with?(file, sub) do
-        recur_formatter_opts_for_file(file, formatter_opts_and_subs)
+      size = byte_size(sub)
+
+      case file do
+        <<prefix::binary-size(size), dir_separator, _::binary>>
+        when prefix == sub and dir_separator in [?\\, ?/] ->
+          recur_formatter_opts_for_file(file, formatter_opts_and_subs)
+
+        _ ->
+          nil
       end
     end)
   end
