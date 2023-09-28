@@ -83,7 +83,7 @@ end
 
 This anti-pattern may also happen in our own data structures. For example, we may define a `User` struct with two boolean fields, `:editor` and `:admin`, while a single field named `:role` may be preferred.
 
-Finally, it is worth noting that using atoms may be preferred even when we have a single boolean argument/option. For example, imagine an invoice may be set as approved/unapproved. One option is to provide a function that expects a boolean:
+Finally, it is worth noting that using atoms may be preferred even when we have a single boolean argument/option. For example, consider an invoice which may be set as approved/unapproved. One option is to provide a function that expects a boolean:
 
 ```elixir
 MyApp.update(invoice, approved: true)
@@ -342,10 +342,6 @@ end
 ```
 
 This refactoring is only possible when you own both modules. If the module you are invoking belongs to another application, then it is not possible to add new functions to it, and your only option is to define an additional module that augments the third-party module.
-
-## Excessive side-effects
-
-TODO
 
 ## Using exceptions for control-flow
 
