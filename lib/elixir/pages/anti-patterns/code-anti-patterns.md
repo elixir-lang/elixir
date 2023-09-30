@@ -45,41 +45,6 @@ We removed the unnecessary comments. We also added a `@five_min_in_seconds` modu
 
 Elixir makes a clear distinction between **documentation** and code comments. The language has built-in first-class support for documentation through `@doc`, `@moduledoc`, and more. See the ["Writing documentation"](../getting-started/writing-documentation.md) guide for more information.
 
-## Long parameter list
-
-#### Problem
-
-In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point the function's interface becomes confusing and prone to errors during use.
-
-#### Example
-
-In the following example, the `loan/6` functions takes too many arguments, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
-
-```elixir
-defmodule Library do
-  # Too many parameters that can be grouped!
-  def loan(user_name, email, password, user_alias, book_title, book_ed) do
-    ...
-  end
-end
-```
-
-#### Refactoring
-
-To address this anti-pattern, related arguments can be grouped using maps, structs, or even tuples. This effectively reduces the number of arguments, simplifying the function's interface. In the case of `loan/6`, its arguments were grouped into two different maps, thereby reducing its arity to `loan/2`:
-
-```elixir
-defmodule Library do
-  def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
-    ...
-  end
-end
-```
-
-In some cases, the function with too many arguments may be a private function, which gives us more flexibility over how to separate the function arguments. One possible suggestion for such scenarios is to split the arguments in two maps (or tuples): one map keeps the data that may change, and the other keeps the data that won't change (read-only). This gives us a mechanical option to refactor the code.
-
-Other times, a function may legitimately take half a dozen or more completely unrelated arguments. This may suggest the function is trying to do too much and would be better broken into multiple functions, each responsible for a smaller piece of the overall responsibility.
-
 ## Complex branching
 
 #### Problem
@@ -238,116 +203,6 @@ def drive(%User{age: age} = user) when age < 18 do
 end
 ```
 
-## Dynamic map fields access
-
-#### Problem
-
-In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When trying to dynamically access the value of a key from a map, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
-
-#### Example
-
-The function `plot/1` tries to draw a graphic to represent the position of a point in a cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
-
-```elixir
-defmodule Graphics do
-  def plot(point) do
-    # Some other code...
-
-    # Dynamic access to use point values
-    {point[:x], point[:y], point[:z]}
-  end
-end
-```
-
-```elixir
-iex> point_2d = %{x: 2, y: 3}
-%{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
-iex> Graphics.plot(point_2d)
-{2, 3, nil}   # <= ambiguous return
-iex> Graphics.plot(point_3d)
-{5, 6, nil}
-```
-
-As can be seen in the example above, even when the key `:z` does not exist in the map (`point_2d`), dynamic access returns the value `nil`. This return can be dangerous because of its ambiguity. It is not possible to conclude from it whether the map has the key `:z` or not. If the function relies on the return value to make decisions about how to plot a point, this can be problematic and even cause errors when testing the code.
-
-#### Refactoring
-
-To remove this anti-pattern, whenever a map has keys of `Atom` type, replace the dynamic access to its values by the `map.field`syntax. When a non-existent key is statically accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
-
-```elixir
-defmodule Graphics do
-  def plot(point) do
-    # Some other code...
-
-    # Strict access to use point values
-    {point.x, point.y, point.z}
-  end
-end
-```
-
-```elixir
-iex> point_2d = %{x: 2, y: 3}
-%{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
-iex> Graphics.plot(point_2d)
-** (KeyError) key :z not found in: %{x: 2, y: 3} # <= explicitly warns that
-  graphic.ex:6: Graphics.plot/1                  # <= the :z key does not exist!
-iex> Graphics.plot(point_3d)
-{5, 6, nil}
-```
-
-As shown below, another alternative to refactor this anti-pattern is to use pattern matching:
-
-```elixir
-defmodule Graphics do
-  def plot(%{x: x, y: y, z: z}) do
-    # Some other code...
-
-    # Strict access to use point values
-    {x, y, z}
-  end
-end
-```
-
-```elixir
-iex> point_2d = %{x: 2, y: 3}
-%{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
-iex> Graphics.plot(point_2d)
-** (FunctionClauseError)  no function clause matching in Graphics.plot/1
-  graphic.ex:2: Graphics.plot/1                  # <= the :z key does not exist!
-iex> Graphics.plot(point_3d)
-{5, 6, nil}
-```
-
-Another alternative is to use structs. By default, structs only support static access to its fields, promoting cleaner patterns:
-
-```elixir
-defmodule Point.2D do
-  @enforce_keys [:x, :y]
-  defstruct [x: nil, y: nil]
-end
-```
-
-```elixir
-iex> point = %Point.2D{x: 2, y: 3}
-%Point.2D{x: 2, y: 3}
-iex> point.x   # <= strict access to use point values
-2
-iex> point.z   # <= trying to access a non-existent key
-** (KeyError) key :z not found in: %Point{x: 2, y: 3}
-iex> point[:x] # <= by default, struct does not support dynamic access
-** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
-```
-
-#### Additional remarks
-
-This anti-pattern was formerly known as [Accessing non-existent Map/Struct fields](https://github.com/lucasvegi/Elixir-Code-Smells#accessing-non-existent-mapstruct-fields).
-
 ## Dynamic atom creation
 
 #### Problem
@@ -443,6 +298,41 @@ end
 
 However, keep in mind using a module attribute or defining the atoms in the module body, outside of a function, are not sufficient, as the module body is only executed during compilation and it is not necessarily part of the compiled module loaded at runtime.
 
+## Long parameter list
+
+#### Problem
+
+In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point the function's interface becomes confusing and prone to errors during use.
+
+#### Example
+
+In the following example, the `loan/6` functions takes too many arguments, causing its interface to be confusing and potentially leading developers to introduce errors during calls to this function.
+
+```elixir
+defmodule Library do
+  # Too many parameters that can be grouped!
+  def loan(user_name, email, password, user_alias, book_title, book_ed) do
+    ...
+  end
+end
+```
+
+#### Refactoring
+
+To address this anti-pattern, related arguments can be grouped using maps, structs, or even tuples. This effectively reduces the number of arguments, simplifying the function's interface. In the case of `loan/6`, its arguments were grouped into two different maps, thereby reducing its arity to `loan/2`:
+
+```elixir
+defmodule Library do
+  def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
+    ...
+  end
+end
+```
+
+In some cases, the function with too many arguments may be a private function, which gives us more flexibility over how to separate the function arguments. One possible suggestion for such scenarios is to split the arguments in two maps (or tuples): one map keeps the data that may change, and the other keeps the data that won't change (read-only). This gives us a mechanical option to refactor the code.
+
+Other times, a function may legitimately take half a dozen or more completely unrelated arguments. This may suggest the function is trying to do too much and would be better broken into multiple functions, each responsible for a smaller piece of the overall responsibility.
+
 ## Namespace trespassing
 
 #### Problem
@@ -480,6 +370,112 @@ There are few known exceptions to this anti-pattern:
   * [Custom Mix tasks](`Mix.Task`) are always defined under the `Mix.Tasks` namespace, such as `Mix.Tasks.PlugAuth`
 
   * If you are the maintainer for both `plug` and `plug_auth`, then you may allow `plug_auth` to define modules with the `Plug` namespace, such as `Plug.Auth`. However, you are responsible for avoiding or managing any conflicts that may arise in the future
+
+## Non-existent map keys
+
+#### Problem
+
+In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When the keys are known upfront, they must be accessed using the `map.key` notation, instead of `map[:key]`. When the latter is used, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
+
+#### Example
+
+The function `plot/1` tries to draw a graphic to represent the position of a point in a cartesian plane. This function receives a parameter of `Map` type with the point attributes, which can be a point of a 2D or 3D cartesian coordinate system. This function uses dynamic access to retrieve values for the map keys:
+
+```elixir
+defmodule Graphics do
+  def plot(point) do
+    # Some other code...
+
+    # Dynamic access to use point values
+    {point[:x], point[:y], point[:z]}
+  end
+end
+```
+
+```elixir
+iex> point_2d = %{x: 2, y: 3}
+%{x: 2, y: 3}
+iex> point_3d = %{x: 5, y: 6, z: nil}
+%{x: 5, y: 6, z: nil}
+iex> Graphics.plot(point_2d)
+{2, 3, nil}   # <= ambiguous return
+iex> Graphics.plot(point_3d)
+{5, 6, nil}
+```
+
+As can be seen in the example above, even when the key `:z` does not exist in the map (`point_2d`), dynamic access returns the value `nil`. This return can be dangerous because of its ambiguity. It is not possible to conclude from it whether the map has the key `:z` or not. If the function relies on the return value to make decisions about how to plot a point, this can be problematic and even cause errors when testing the code.
+
+#### Refactoring
+
+To remove this anti-pattern, whenever accessing a known key of `Atom` type, replace the dynamic `map[:key]` syntax by the static `map.key` notation. This way, when a non-existent key is accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
+
+```elixir
+defmodule Graphics do
+  def plot(point) do
+    # Some other code...
+
+    # Strict access to use point values
+    {point.x, point.y, point.z}
+  end
+end
+```
+
+```elixir
+iex> point_2d = %{x: 2, y: 3}
+%{x: 2, y: 3}
+iex> point_3d = %{x: 5, y: 6, z: nil}
+%{x: 5, y: 6, z: nil}
+iex> Graphics.plot(point_2d)
+** (KeyError) key :z not found in: %{x: 2, y: 3} # <= explicitly warns that
+  graphic.ex:6: Graphics.plot/1                  # <= the :z key does not exist!
+iex> Graphics.plot(point_3d)
+{5, 6, nil}
+```
+
+As shown below, another alternative to refactor this anti-pattern is to use pattern matching:
+
+```elixir
+defmodule Graphics do
+  def plot(%{x: x, y: y, z: z}) do
+    # Some other code...
+
+    # Strict access to use point values
+    {x, y, z}
+  end
+end
+```
+
+```elixir
+iex> point_2d = %{x: 2, y: 3}
+%{x: 2, y: 3}
+iex> point_3d = %{x: 5, y: 6, z: nil}
+%{x: 5, y: 6, z: nil}
+iex> Graphics.plot(point_2d)
+** (FunctionClauseError)  no function clause matching in Graphics.plot/1
+  graphic.ex:2: Graphics.plot/1                  # <= the :z key does not exist!
+iex> Graphics.plot(point_3d)
+{5, 6, nil}
+```
+
+Another alternative is to use structs. By default, structs only support static access to its fields, promoting cleaner patterns:
+
+```elixir
+defmodule Point.2D do
+  @enforce_keys [:x, :y]
+  defstruct [x: nil, y: nil]
+end
+```
+
+```elixir
+iex> point = %Point.2D{x: 2, y: 3}
+%Point.2D{x: 2, y: 3}
+iex> point.x   # <= strict access to use point values
+2
+iex> point.z   # <= trying to access a non-existent key
+** (KeyError) key :z not found in: %Point{x: 2, y: 3}
+iex> point[:x] # <= by default, struct does not support dynamic access
+** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
+```
 
 ## Speculative assumptions
 

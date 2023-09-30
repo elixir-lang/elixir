@@ -3,42 +3,67 @@
 This document outlines anti-patterns related to your modules, functions, and the role they
 play within a codebase.
 
-## Primitive obsession
+## Alternative return types
 
 #### Problem
 
-This anti-pattern happens when Elixir basic types (for example, *integer*, *float*, and *string*) are abusively used in function parameters and code variables, rather than creating specific composite data types (for example, *tuples* and *structs*) that can better represent a domain.
+This anti-pattern refers to functions that receive options (typically as a *keyword list*) parameters that drastically change their return type. Because options are optional and sometimes set dynamically, if they also change the return type, it may be hard to understand what the function actually returns.
 
 #### Example
 
-An example of this anti-pattern is the use of a single *string* to represent an `Address`. An `Address` is a more complex structure than a simple basic (aka, primitive) value.
+An example of this anti-pattern, as shown below, is when a function has many alternative return types, depending on the options received as a parameter.
 
 ```elixir
-defmodule MyApp do
-  def process_address(address) when is_binary(address) do
-    # Do something with address...
+defmodule AlternativeInteger do
+  @spec parse(String.t(), keyword()) :: integer() | {integer(), String.t()} | :error
+  def parse(string, options \\ []) when is_list(options) do
+    if Keyword.get(options, :discard_rest, false) do
+      Integer.parse(string)
+    else
+      case Integer.parse(string) do
+        {int, _rest} -> int
+        :error -> :error
+      end
+    end
   end
 end
 ```
 
-Another example of this anti-pattern is using floating numbers to model money and currency, when [richer data structures should be preferred](https://hexdocs.pm/ex_money/).
+```elixir
+iex> AlternativeInteger.parse("13")
+{13, ""}
+iex> AlternativeInteger.parse("13", discard_rest: true)
+13
+iex> AlternativeInteger.parse("13", discard_rest: false)
+{13, ""}
+```
 
 #### Refactoring
 
-We can create an `Address` struct to remove this anti-pattern, better representing this domain through a composite type. Additionally, we can modify the `process_address/1` function to accept a parameter of type `Address` instead of a *string*. With this modification, we can extract each field of this composite type individually when needed.
+To refactor this anti-pattern, as shown next, add a specific function for each return type (for example, `parse_discard_rest/1`), no longer delegating this to options passed as arguments.
 
 ```elixir
-defmodule Address do
-  defstruct [:street, :city, :state, :postal_code, :country]
+defmodule AlternativeInteger do
+  @spec parse(String.t()) :: {integer(), String.t()} | :error
+  def parse(string) do
+    Integer.parse(string)
+  end
+
+  @spec parse_discard_rest(String.t()) :: integer() | :error
+  def parse_discard_rest(string) do
+    case Integer.parse(string) do
+      {int, _rest} -> int
+      :error -> :error
+    end
+  end
 end
 ```
 
 ```elixir
-defmodule MyApp do
-  def process_address(%Address{} = address) do
-    # Do something with address...
-  end
-end
+iex> AlternativeInteger.parse("13")
+{13, ""}
+iex> AlternativeInteger.parse_discard_rest("13")
+13
 ```
 
 ## Boolean obsession
@@ -97,11 +122,165 @@ MyApp.update(invoice, status: :approved)
 
 Remember booleans are internally represented as atoms. Therefore there is no performance penalty in one approach over the other.
 
-## Working with invalid data
+## Exceptions for control-flow
 
 #### Problem
 
-This anti-pattern refers to a function that does not validate its parameters' types and therefore can produce internal unexpected behavior. When an error is raised inside a function due to an invalid parameter value, it can be confusing for developers and make it harder to locate and fix the error.
+This anti-pattern refers to code that uses exceptions for control flow. Exception handling itself does not represent an anti-pattern, but developers must prefer to use `case` and pattern matching to change the flow of their code, instead of `try/rescue`. In turn, library authors should provide developers with APIs to handle errors without relying on exception handling. When developers have no freedom to decide if an error is exceptional or not, this is considered an anti-pattern.
+
+#### Example
+
+An example of this anti-pattern, as shown below, is using `try/rescue` to deal with file operations:
+
+```elixir
+defmodule MyModule do
+  def print_file(file) do
+    try do
+      IO.puts(File.read!(file))
+    rescue
+      e -> IO.puts(:stderr, Exception.message(e))
+    end
+  end
+end
+```
+
+```elixir
+iex> MyModule.print_file("valid_file")
+This is a valid file!
+:ok
+iex> MyModule.print_file("invalid_file")
+could not read file "invalid_file": no such file or directory
+:ok
+```
+
+#### Refactoring
+
+To refactor this anti-pattern, as shown next, use `File.read/1`, which returns tuples instead of raising when a file cannot be read:
+
+```elixir
+defmodule MyModule do
+  def print_file(file) do
+    case File.read(file) do
+      {:ok, binary} -> IO.puts(binary)
+      {:error, reason} -> IO.puts(:stderr, "could not read file #{file}: #{reason}")
+    end
+  end
+end
+```
+
+This is only possible because the `File` module provides APIs for reading files with tuples as results (`File.read/1`), as well as a version that raises an exception (`File.read!/1`). The bang (exclamation point) is effectively part of [Elixir's naming conventions](naming-conventions.html#trailing-bang-foo).
+
+Library authors are encouraged to follow the same practices. In practice, the bang variant is implemented on top of the non-raising version of the code. For example, `File.read/1` is implemented as:
+
+```elixir
+def read!(path) do
+  case read(path) do
+    {:ok, binary} ->
+      binary
+
+    {:error, reason} ->
+      raise File.Error, reason: reason, action: "read file", path: IO.chardata_to_string(path)
+  end
+end
+```
+
+A common practice followed by the community is to make the non-raising version to return `{:ok, result}` or `{:error, Exception.t}`. For example, an HTTP client may return `{:ok, %HTTP.Response{}}` on success cases and a `{:error, %HTTP.Error{}}` for failures, where `HTTP.Error` is [implemented as an exception](`Kernel.defexception/1`). This makes it convenient for anyone to raise an exception by simply calling `Kernel.raise/1`.
+
+## Feature envy
+
+#### Problem
+
+This anti-pattern occurs when a function accesses more data or calls more functions from another module than from its own. The presence of this anti-pattern can make a module less cohesive and increase code coupling.
+
+#### Example
+
+In the following code, all the data used in the `calculate_total_item/1` function of the module `Order` comes from the `OrderItem` module. This increases coupling and decreases code cohesion unnecessarily.
+
+```elixir
+defmodule Order do
+  # Some functions...
+
+  def calculate_total_item(id) do
+    item = OrderItem.find_item(id)
+    total = (item.price + item.taxes) * item.amount
+
+    if discount = OrderItem.find_discount(item) do
+      total - total * discount
+    else
+      total
+    end
+  end
+end
+```
+
+#### Refactoring
+
+To remove this anti-pattern we can move `calculate_total_item/1` to `OrderItem`, decreasing coupling:
+
+```elixir
+defmodule OrderItem do
+  def find_item(id)
+  def find_discount(item)
+
+  def calculate_total_item(id) do   # <= function moved from Order!
+    item = find_item(id)
+    total = (item.price + item.taxes) * item.amount
+    discount = find_discount(item)
+
+    unless is_nil(discount) do
+      total - total * discount
+    else
+      total
+    end
+  end
+end
+```
+
+This refactoring is only possible when you own both modules. If the module you are invoking belongs to another application, then it is not possible to add new functions to it, and your only option is to define an additional module that augments the third-party module.
+
+## Primitive obsession
+
+#### Problem
+
+This anti-pattern happens when Elixir basic types (for example, *integer*, *float*, and *string*) are abusively used in function parameters and code variables, rather than creating specific composite data types (for example, *tuples* and *structs*) that can better represent a domain.
+
+#### Example
+
+An example of this anti-pattern is the use of a single *string* to represent an `Address`. An `Address` is a more complex structure than a simple basic (aka, primitive) value.
+
+```elixir
+defmodule MyApp do
+  def process_address(address) when is_binary(address) do
+    # Do something with address...
+  end
+end
+```
+
+Another example of this anti-pattern is using floating numbers to model money and currency, when [richer data structures should be preferred](https://hexdocs.pm/ex_money/).
+
+#### Refactoring
+
+We can create an `Address` struct to remove this anti-pattern, better representing this domain through a composite type. Additionally, we can modify the `process_address/1` function to accept a parameter of type `Address` instead of a *string*. With this modification, we can extract each field of this composite type individually when needed.
+
+```elixir
+defmodule Address do
+  defstruct [:street, :city, :state, :postal_code, :country]
+end
+```
+
+```elixir
+defmodule MyApp do
+  def process_address(%Address{} = address) do
+    # Do something with address...
+  end
+end
+```
+
+## Propagating invalid data
+
+#### Problem
+
+This anti-pattern refers to a function that does not validate its parameters and propagates it to other functions, which can produce internal unexpected behavior. When an error is raised inside a function due to an invalid parameter value, it can be confusing for developers and make it harder to locate and fix the error.
 
 #### Example
 
@@ -151,69 +330,6 @@ The following arguments were given to MyLibrary.foo/1:
       "José"
 
   my_library.ex:2: MyLibrary.foo/1
-```
-
-## Alternative return types
-
-#### Problem
-
-This anti-pattern refers to functions that receive options (for example, *keyword list*) parameters that drastically change their return type. Because options are optional and sometimes set dynamically, if they change the return type it may be hard to understand what the function actually returns.
-
-#### Example
-
-An example of this anti-pattern, as shown below, is when a function has many alternative return types, depending on the options received as a parameter.
-
-```elixir
-defmodule AlternativeInteger do
-  @spec parse(String.t(), keyword()) :: integer() | {integer(), String.t()} | :error
-  def parse(string, options \\ []) when is_list(options) do
-    if Keyword.get(options, :discard_rest, false) do
-      Integer.parse(string)
-    else
-      case Integer.parse(string) do
-        {int, _rest} -> int
-        :error -> :error
-      end
-    end
-  end
-end
-```
-
-```elixir
-iex> AlternativeInteger.parse("13")
-{13, ""}
-iex> AlternativeInteger.parse("13", discard_rest: true)
-13
-iex> AlternativeInteger.parse("13", discard_rest: false)
-{13, ""}
-```
-
-#### Refactoring
-
-To refactor this anti-pattern, as shown next, add a specific function for each return type (for example, `parse_discard_rest/1`), no longer delegating this to options passed as arguments.
-
-```elixir
-defmodule AlternativeInteger do
-  @spec parse(String.t()) :: {integer(), String.t()} | :error
-  def parse(string) do
-    Integer.parse(string)
-  end
-
-  @spec parse_discard_rest(String.t()) :: integer() | :error
-  def parse_discard_rest(string) do
-    case Integer.parse(string) do
-      {int, _rest} -> int
-      :error -> :error
-    end
-  end
-end
-```
-
-```elixir
-iex> AlternativeInteger.parse("13")
-{13, ""}
-iex> AlternativeInteger.parse_discard_rest("13")
-13
 ```
 
 ## Unrelated multi-clause function
@@ -290,122 +406,6 @@ def update_animal(%Animal{count: 1, skin: skin})
   # ...
 end
 ```
-
-## Feature envy
-
-#### Problem
-
-This anti-pattern occurs when a function accesses more data or calls more functions from another module than from its own. The presence of this anti-pattern can make a module less cohesive and increase code coupling.
-
-#### Example
-
-In the following code, all the data used in the `calculate_total_item/1` function of the module `Order` comes from the `OrderItem` module. This increases coupling and decreases code cohesion unnecessarily.
-
-```elixir
-defmodule Order do
-  # Some functions...
-
-  def calculate_total_item(id) do
-    item = OrderItem.find_item(id)
-    total = (item.price + item.taxes) * item.amount
-
-    if discount = OrderItem.find_discount(item) do
-      total - total * discount
-    else
-      total
-    end
-  end
-end
-```
-
-#### Refactoring
-
-To remove this anti-pattern we can move `calculate_total_item/1` to `OrderItem`, decreasing coupling:
-
-```elixir
-defmodule OrderItem do
-  def find_item(id)
-  def find_discount(item)
-
-  def calculate_total_item(id) do   # <= function moved from Order!
-    item = find_item(id)
-    total = (item.price + item.taxes) * item.amount
-    discount = find_discount(item)
-
-    unless is_nil(discount) do
-      total - total * discount
-    else
-      total
-    end
-  end
-end
-```
-
-This refactoring is only possible when you own both modules. If the module you are invoking belongs to another application, then it is not possible to add new functions to it, and your only option is to define an additional module that augments the third-party module.
-
-## Using exceptions for control-flow
-
-#### Problem
-
-This anti-pattern refers to code that uses exceptions for control flow. Exception handling itself does not represent an anti-pattern, but developers must prefer to use `case` and pattern matching to change the flow of their code, instead of `try/rescue`. In turn, library authors should provide developers with APIs to handle errors without relying on exception handling. When developers have no freedom to decide if an error is exceptional or not, this is considered an anti-pattern.
-
-#### Example
-
-An example of this anti-pattern, as shown below, is using `try/rescue` to deal with file operations:
-
-```elixir
-defmodule MyModule do
-  def print_file(file) do
-    try do
-      IO.puts(File.read!(file))
-    rescue
-      e -> IO.puts(:stderr, Exception.message(e))
-    end
-  end
-end
-```
-
-```elixir
-iex> MyModule.print_file("valid_file")
-This is a valid file!
-:ok
-iex> MyModule.print_file("invalid_file")
-could not read file "invalid_file": no such file or directory
-:ok
-```
-
-#### Refactoring
-
-To refactor this anti-pattern, as shown next, use `File.read/1`, which returns tuples instead of raising when a file cannot be read:
-
-```elixir
-defmodule MyModule do
-  def print_file(file) do
-    case File.read(file) do
-      {:ok, binary} -> IO.puts(binary)
-      {:error, reason} -> IO.puts(:stderr, "could not read file #{file}: #{reason}")
-    end
-  end
-end
-```
-
-This is only possible because the `File` module provides APIs for reading files with tuples as results (`File.read/1`), as well as a version that raises an exception (`File.read!/1`). The bang (exclamation point) is effectively part of [Elixir's naming conventions](naming-conventions.html#trailing-bang-foo).
-
-Library authors are encouraged to follow the same practices. In practice, the bang variant is implemented on top of the non-raising version of the code. For example, `File.read/1` is implemented as:
-
-```elixir
-def read!(path) do
-  case read(path) do
-    {:ok, binary} ->
-      binary
-
-    {:error, reason} ->
-      raise File.Error, reason: reason, action: "read file", path: IO.chardata_to_string(path)
-  end
-end
-```
-
-A common practice followed by the community is to make the non-raising version to return `{:ok, result}` or `{:error, Exception.t}`. For example, an HTTP client may return `{:ok, %HTTP.Response{}}` on success cases and a `{:error, %HTTP.Error{}}` for failures, where `HTTP.Error` is [implemented as an exception](`Kernel.defexception/1`). This makes it convenient for anyone to raise an exception by simply calling `Kernel.raise/1`.
 
 ## Using application configuration for libraries
 
