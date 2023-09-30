@@ -159,10 +159,6 @@ defmodule RegexTest do
     assert Regex.named_captures(~r/c(.)/, "cat") == %{}
   end
 
-  test "sigil R" do
-    assert Regex.match?(~R/f#{1,3}o/, "f#o")
-  end
-
   test "run/2" do
     assert Regex.run(~r"c(d)", "abcd") == ["cd", "d"]
     assert Regex.run(~r"e", "abcd") == nil

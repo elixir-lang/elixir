@@ -7,7 +7,7 @@ defmodule Regex do
   in the [`:re` module documentation](`:re`).
 
   Regular expressions in Elixir can be created using the sigils
-  `~r` (see `sigil_r/2`) or `~R` (see `sigil_R/2`):
+  `~r` (see `sigil_r/2`):
 
       # A simple regular expression that matches foo anywhere in the string
       ~r/foo/

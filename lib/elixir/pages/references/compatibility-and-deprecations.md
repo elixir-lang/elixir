@@ -80,6 +80,7 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.16] | `~R/.../`                                           | `~r/.../` (v1.0)
 [v1.16] | Ranges with negative steps in `Enum.slice/2`        | Explicit steps in ranges (v1.11)
 [v1.16] | Ranges with negative steps in `String.slice/2`      | Explicit steps in ranges (v1.11)
 [v1.15] | `Calendar.ISO.day_of_week/3`                        | `Calendar.ISO.day_of_week/4` (v1.11)

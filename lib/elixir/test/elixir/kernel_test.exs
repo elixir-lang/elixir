@@ -86,24 +86,19 @@ defmodule KernelTest do
   test "=~/2" do
     assert "abcd" =~ ~r/c(d)/ == true
     assert "abcd" =~ ~r/e/ == false
-    assert "abcd" =~ ~R/c(d)/ == true
-    assert "abcd" =~ ~R/e/ == false
 
     string = "^ab+cd*$"
     assert string =~ "ab+" == true
     assert string =~ "bb" == false
 
     assert "abcd" =~ ~r// == true
-    assert "abcd" =~ ~R// == true
     assert "abcd" =~ "" == true
 
     assert "" =~ ~r// == true
-    assert "" =~ ~R// == true
     assert "" =~ "" == true
 
     assert "" =~ "abcd" == false
     assert "" =~ ~r/abcd/ == false
-    assert "" =~ ~R/abcd/ == false
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
       1234 =~ "hello"
@@ -114,7 +109,7 @@ defmodule KernelTest do
     end
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->
-      1234 =~ ~R"hello"
+      1234 =~ ~r"hello"
     end
 
     assert_raise FunctionClauseError, "no function clause matching in Kernel.=~/2", fn ->

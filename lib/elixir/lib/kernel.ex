@@ -6207,25 +6207,13 @@ defmodule Kernel do
   defp regex_unescape_map(?a), do: ?\a
   defp regex_unescape_map(_), do: false
 
-  @doc ~S"""
-  Handles the sigil `~R` for regular expressions.
-
-  It returns a regular expression pattern without interpolations and
-  without escape characters. Note it still supports escape of Regex
-  tokens (such as escaping `+` or `?`) and it also requires you to
-  escape the closing sigil character itself if it appears on the Regex.
-
-  More information on regexes can be found in the `Regex` module.
-
-  ## Examples
-
-      iex> Regex.match?(~R(f#{1,3}o), "f#o")
-      true
-
-  """
-  defmacro sigil_R(term, modifiers)
-
+  @doc false
   defmacro sigil_R({:<<>>, _meta, [string]}, options) when is_binary(string) do
+    IO.warn(
+      "~R/.../ is deprecated, use ~r/.../ instead",
+      Macro.Env.stacktrace(__CALLER__)
+    )
+
     regex = Regex.compile!(string, :binary.list_to_bin(options))
     Macro.escape(regex)
   end

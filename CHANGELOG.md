@@ -100,6 +100,7 @@ TODO: Guides, diagrams, anti-patterns, cheatsheets.
 
   * [Date] Deprecate inferring a range with negative step, call `Date.range/3` with a negative step instead
   * [Enum] Deprecate passing a range with negative step on `Enum.slice/2`, give `first..last//1` instead
+  * [Kernel] `~R/.../` is deprecated in favor of `~r/.../`. This is because `~R/.../` still allowed escape codes, which did not fit the definition of uppercase sigils
   * [String] Deprecate passing a range with negative step on `String.slice/2`, give `first..last//1` instead
 
 #### ExUnit
