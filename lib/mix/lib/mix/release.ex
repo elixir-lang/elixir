@@ -755,6 +755,7 @@ defmodule Mix.Release do
   @doc """
   Finds a template path for the release.
   """
+  @spec rel_templates_path(t, Path.t()) :: binary
   def rel_templates_path(release, path) do
     Path.join(release.options[:rel_templates_path] || "rel", path)
   end
