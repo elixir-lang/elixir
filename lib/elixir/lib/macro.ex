@@ -464,6 +464,9 @@ defmodule Macro do
       iex> Macro.path(quote(do: [1, 2, 3]), & &1 == 3)
       [3, [1, 2, 3]]
 
+      iex> Macro.path(quote(do: [1, 2]), & &1 == 5)
+      nil
+
       iex> Macro.path(quote(do: Foo.bar(3)), & &1 == 3)
       [3, quote(do: Foo.bar(3))]
 
@@ -478,6 +481,7 @@ defmodule Macro do
 
   """
   @doc since: "1.14.0"
+  @spec path(t, (t -> as_boolean(term))) :: [t] | nil
   def path(ast, fun) when is_function(fun, 1) do
     path(ast, [], fun)
   end
