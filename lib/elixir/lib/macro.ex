@@ -464,6 +464,9 @@ defmodule Macro do
       iex> Macro.path(quote(do: [1, 2, 3]), & &1 == 3)
       [3, [1, 2, 3]]
 
+      iex> Macro.path(quote(do: [1, 2]), & &1 == 5)
+      nil
+
       iex> Macro.path(quote(do: Foo.bar(3)), & &1 == 3)
       [3, quote(do: Foo.bar(3))]
 
