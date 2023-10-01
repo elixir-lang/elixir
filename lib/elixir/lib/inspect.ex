@@ -117,13 +117,22 @@ defprotocol Inspect do
 
   In case there is an error while your structure is being inspected,
   Elixir will raise an `ArgumentError` error and will automatically fall back
-  to a raw representation for printing the structure.
+  to a raw representation for printing the structure. Furthermore, you
+  must be careful when debugging your own Inspect implementation, as calls
+  to `IO.inspect/2` or `dbg/1` may trigger an infinite loop (as in order to
+  inspect/debug the data structure, you must call `inspect` itself).
 
-  You can, however, access the underlying error by invoking the `Inspect`
-  implementation directly. For example, to test `Inspect.MapSet` above,
-  you can invoke it as:
+  Here are some tips:
 
-      Inspect.MapSet.inspect(MapSet.new(), %Inspect.Opts{})
+    * For debugging, use `IO.inspect/2` with the `structs: false` option,
+      which disables custom printing and avoids calling the Inspect
+      implementation recursively
+
+    * To access the underlying error on your custom `Inspect` implementation,
+      you may invoke the protocol directly. For example, we could invoke the
+      `Inspect.MapSet` implementation above as:
+
+          Inspect.MapSet.inspect(MapSet.new(), %Inspect.Opts{})
 
   """
 
