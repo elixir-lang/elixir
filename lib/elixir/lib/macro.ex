@@ -450,10 +450,12 @@ defmodule Macro do
   def generate_arguments(amount, context), do: generate_arguments(amount, context, &var/2)
 
   @doc """
-  Returns the path to the node in `ast` which `fun` returns `true`.
+  Returns the path to the node in `ast` for which `fun` returns a truthy value.
 
   The path is a list, starting with the node in which `fun` returns
-  true, followed by all of its parents.
+  a truthy value, followed by all of its parents.
+
+  Returns `nil` if `fun` returns only falsy values.
 
   Computing the path can be an efficient operation when you want
   to find a particular node in the AST within its context and then
