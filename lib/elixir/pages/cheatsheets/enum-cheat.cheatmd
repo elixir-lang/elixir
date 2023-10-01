@@ -636,7 +636,7 @@ iex> Enum.group_by(cart, &String.last(&1.fruit), & &1.fruit)
 }
 ```
 
-## Joining & interpersing
+## Joining & interspersing
 {: .col-2}
 
 ### [join(enum, joiner \\\\ "")](`Enum.join/2`)
