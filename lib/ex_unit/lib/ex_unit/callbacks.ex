@@ -549,14 +549,7 @@ defmodule ExUnit.Callbacks do
       end
 
     child_spec = Supervisor.child_spec(child_spec_or_module, opts)
-
-    case Supervisor.start_child(sup, child_spec) do
-      {:error, {:already_started, _pid}} ->
-        {:error, {:duplicate_child_name, child_spec.id}}
-
-      other ->
-        other
-    end
+    Supervisor.start_child(sup, child_spec)
   end
 
   @doc """

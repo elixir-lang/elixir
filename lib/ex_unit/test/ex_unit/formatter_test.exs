@@ -491,28 +491,25 @@ defmodule ExUnit.FormatterTest do
   test "inspect failure" do
     failure = [{:error, catch_assertion(assert :will_fail == %BadInspect{}), []}]
 
-    message = ~S'''
-      got FunctionClauseError with message:
-
-          """
-          no function clause matching in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2
-          """
-
-      while inspecting:
-
-          %{__struct__: ExUnit.FormatterTest.BadInspect, key: 0}
-
-      Stacktrace:
-    '''
-
-    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ """
+    assert format_test_failure(test(), failure, 1, 80, &formatter/2) =~ ~s'''
              1) world (Hello)
                 test/ex_unit/formatter_test.exs:1
                 Assertion with == failed
                 code:  assert :will_fail == %BadInspect{}
                 left:  :will_fail
-                right: #Inspect.Error<\n#{message}\
-           """
+                right: #Inspect.Error<
+             got FunctionClauseError with message:
+
+                 """
+                 no function clause matching in Inspect.ExUnit.FormatterTest.BadInspect.inspect/2
+                 """
+
+             while inspecting:
+
+                 #{inspect(%BadInspect{}, structs: false)}
+
+             Stacktrace:
+           '''
   end
 
   defmodule BadMessage do
