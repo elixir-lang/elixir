@@ -481,7 +481,7 @@ defmodule Macro do
 
   """
   @doc since: "1.14.0"
-  @spec path(t, (term -> as_boolean(term))) :: [output] | nil
+  @spec path(t, (t -> as_boolean(term))) :: [t] | nil
   def path(ast, fun) when is_function(fun, 1) do
     path(ast, [], fun)
   end
