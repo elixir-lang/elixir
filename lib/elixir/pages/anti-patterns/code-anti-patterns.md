@@ -501,7 +501,7 @@ end
 ```
 
 ```elixir
-# URL query string according to with the planned format - OK!
+# URL query string with the planned format - OK!
 iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "lab")
 "ASERG"
 iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "university")
@@ -529,7 +529,7 @@ end
 ```
 
 ```elixir
-# URL query string according to with the planned format - OK!
+# URL query string with the planned format - OK!
 iex> Extract.get_value("name=Lucas&university=UFMG&lab=ASERG", "name")
 "Lucas"
 # Unplanned URL query string format - Crash explaining the problem to the client!
