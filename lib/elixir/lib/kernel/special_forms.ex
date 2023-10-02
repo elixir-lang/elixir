@@ -297,7 +297,7 @@ defmodule Kernel.SpecialForms do
   `unsigned` (default) | `integer`
   `little`             | `integer`, `float`, `utf16`, `utf32`
   `big` (default)      | `integer`, `float`, `utf16`, `utf32`
-  `native`             | `integer`, `utf16`, `utf32`
+  `native`             | `integer`, `float`, `utf16`, `utf32`
 
   ### Sign
 
