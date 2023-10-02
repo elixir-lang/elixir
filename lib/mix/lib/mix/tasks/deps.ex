@@ -110,7 +110,9 @@ defmodule Mix.Tasks.Deps do
   ### Git options (`:git`)
 
     * `:git` - the Git repository URI
-    * `:github` - a shortcut for specifying Git repos from GitHub, uses `:git`
+    * `:github` - a shortcut for specifying Git repos from GitHub, uses `:git`.
+      Use `ssh: true` if ssh rather than https needs to be used for fetching the
+      dependency.
     * `:ref` - the reference to checkout (may be a branch, a commit SHA or a tag)
     * `:branch` - the Git branch to checkout
     * `:tag` - the Git tag to checkout

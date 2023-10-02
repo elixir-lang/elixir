@@ -651,6 +651,18 @@ defmodule Mix.DepTest do
       end)
     end
 
+    test "formats github URI" do
+      deps = [
+        {:foo, github: "elixir-lang/foo"},
+        {:foo, github: "elixir-lang/foo", ssh: true}
+      ]
+
+      assert [
+               "https://github.com/elixir-lang/foo.git",
+               "git@github.com:elixir-lang/foo.git"
+             ] == Mix.SCM.Git.accepts_options(nil, deps)
+    end
+
     test "fetches parent deps matching specified env" do
       deps = [{:only, github: "elixir-lang/only", only: [:dev]}]
 

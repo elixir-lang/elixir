@@ -45,6 +45,7 @@ defmodule Mix.SCM.Git do
       gh = opts[:github] ->
         opts
         |> Keyword.delete(:github)
+        |> format_uri(Keyword.get(opts, :ssh), gh)
         |> Keyword.put(:git, "https://github.com/#{gh}.git")
         |> validate_git_options()
 
@@ -142,6 +143,12 @@ defmodule Mix.SCM.Git do
     # Get the new repo lock
     get_lock(opts)
   end
+
+  defp format_uri(opts, true, gh),
+    do: Keyword.put(opts, :git, "git@github.com:#{gh}.git")
+
+  defp format_uri(opts, ssh, gh) when is_nil(ssh) or not ssh,
+    do: Keyword.put(opts, :git, "https://github.com/#{gh}.git")
 
   defp sparse_opts(opts) do
     if opts[:sparse] do
