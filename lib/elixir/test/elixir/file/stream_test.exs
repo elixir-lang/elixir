@@ -10,8 +10,12 @@ defmodule File.StreamTest do
     :ok
   end
 
-  defp stream!(node, src, modes \\ [], lines_or_bytes \\ :line) do
-    :erpc.call(node, File, :stream!, [src, modes, lines_or_bytes])
+  defp stream!(node, src, lines_or_bytes_or_modes \\ []) do
+    :erpc.call(node, File, :stream!, [src, lines_or_bytes_or_modes])
+  end
+
+  defp stream!(node, src, lines_or_bytes, modes) do
+    :erpc.call(node, File, :stream!, [src, lines_or_bytes, modes])
   end
 
   distributed_node = :"secondary@#{node() |> Atom.to_string() |> :binary.split("@") |> tl()}"
@@ -54,7 +58,7 @@ defmodule File.StreamTest do
         stream = stream!(@node, src, [:utf8])
         assert Enum.count(stream) == 1
 
-        stream = stream!(@node, src, [], 2)
+        stream = stream!(@node, src, 2)
         assert Enum.count(stream) == 2
       end
 
@@ -82,7 +86,7 @@ defmodule File.StreamTest do
         dest = tmp_path("tmp_test.txt")
 
         try do
-          stream = stream!(@node, src, [], 1)
+          stream = stream!(@node, src, 1)
 
           File.open(dest, [:write], fn target ->
             Enum.each(stream, fn <<char>> ->
@@ -145,11 +149,11 @@ defmodule File.StreamTest do
                |> Enum.take(1) == [<<239, 187, 191>> <> "Русский\n"]
 
         assert @node
-               |> stream!(src, [], 1)
+               |> stream!(src, 1)
                |> Enum.take(5) == [<<239>>, <<187>>, <<191>>, <<208>>, <<160>>]
 
         assert @node |> stream!(src, []) |> Enum.count() == 2
-        assert @node |> stream!(src, [], 1) |> Enum.count() == 22
+        assert @node |> stream!(src, 1) |> Enum.count() == 22
       end
 
       test "trims BOM via option when raw" do
@@ -164,7 +168,7 @@ defmodule File.StreamTest do
                |> Enum.take(5) == [<<208>>, <<160>>, <<209>>, <<131>>, <<209>>]
 
         assert @node |> stream!(src, [:trim_bom]) |> Enum.count() == 2
-        assert @node |> stream!(src, [:trim_bom], 1) |> Enum.count() == 19
+        assert @node |> stream!(src, 1, [:trim_bom]) |> Enum.count() == 19
       end
 
       test "keeps BOM with utf8 encoding" do
@@ -175,7 +179,7 @@ defmodule File.StreamTest do
                |> Enum.take(1) == [<<239, 187, 191>> <> "Русский\n"]
 
         assert @node
-               |> stream!(src, [{:encoding, :utf8}], 1)
+               |> stream!(src, 1, [{:encoding, :utf8}])
                |> Enum.take(9) == ["\uFEFF", "Р", "у", "с", "с", "к", "и", "й", "\n"]
       end
 
@@ -187,7 +191,7 @@ defmodule File.StreamTest do
                |> Enum.take(1) == ["Русский\n"]
 
         assert @node
-               |> stream!(src, [{:encoding, :utf8}, :trim_bom], 1)
+               |> stream!(src, 1, [{:encoding, :utf8}, :trim_bom])
                |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
       end
 
@@ -215,7 +219,7 @@ defmodule File.StreamTest do
                |> Enum.take(1) == ["Русский\n"]
 
         assert @node
-               |> stream!(src, [{:encoding, {:utf16, :big}}, :trim_bom], 1)
+               |> stream!(src, 1, [{:encoding, {:utf16, :big}}, :trim_bom])
                |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
       end
 
@@ -227,7 +231,7 @@ defmodule File.StreamTest do
                |> Enum.take(1) == ["Русский\n"]
 
         assert @node
-               |> stream!(src, [{:encoding, {:utf16, :little}}, :trim_bom], 1)
+               |> stream!(src, 1, [{:encoding, {:utf16, :little}}, :trim_bom])
                |> Enum.take(8) == ["Р", "у", "с", "с", "к", "и", "й", "\n"]
       end
 
@@ -255,7 +259,7 @@ defmodule File.StreamTest do
         dest = tmp_path("tmp_test.txt")
 
         try do
-          stream = stream!(@node, src, [:utf8], 1)
+          stream = stream!(@node, src, 1, [:utf8])
 
           File.open(dest, [:write], fn target ->
             Enum.each(stream, fn <<char::utf8>> ->

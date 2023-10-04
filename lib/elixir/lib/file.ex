@@ -1676,6 +1676,18 @@ defmodule File do
     :file.close(io_device)
   end
 
+  @doc """
+  Shortcut for `File.stream!/3`.
+  """
+  @spec stream!(Path.t(), :line | pos_integer | [stream_mode]) :: File.Stream.t()
+  def stream!(path, line_or_bytes_modes \\ [])
+
+  def stream!(path, modes) when is_list(modes),
+    do: stream!(path, :line, modes)
+
+  def stream!(path, line_or_bytes) when is_integer(line_or_bytes) or line_or_bytes == :line,
+    do: stream!(path, line_or_bytes, [])
+
   @doc ~S"""
   Returns a `File.Stream` for the given `path` with the given `modes`.
 
@@ -1723,17 +1735,25 @@ defmodule File do
 
   ## Examples
 
+      # Read a utf8 text file which may include BOM
+      File.stream!("./test/test.txt", encoding: :utf8, trim_bom: true)
+
       # Read in 2048 byte chunks rather than lines
-      File.stream!("./test/test.data", [], 2048)
-      #=> %File.Stream{line_or_bytes: 2048, modes: [:raw, :read_ahead, :binary],
-      #=>   path: "./test/test.data", raw: true}
+      File.stream!("./test/test.data", 2048)
 
   See `Stream.run/1` for an example of streaming into a file.
   """
-  @spec stream!(Path.t(), [stream_mode], :line | pos_integer) :: File.Stream.t()
-  def stream!(path, modes \\ [], line_or_bytes \\ :line) do
+  @spec stream!(Path.t(), :line | pos_integer, [stream_mode]) :: File.Stream.t()
+  def stream!(path, line_or_bytes, modes)
+
+  def stream!(path, modes, line_or_bytes) when is_list(modes) do
+    # TODO: Deprecate this on Elixir v1.20
+    stream!(path, line_or_bytes, modes)
+  end
+
+  def stream!(path, line_or_bytes, modes) do
     modes = normalize_modes(modes, true)
-    File.Stream.__build__(IO.chardata_to_string(path), modes, line_or_bytes)
+    File.Stream.__build__(IO.chardata_to_string(path), line_or_bytes, modes)
   end
 
   @doc """
