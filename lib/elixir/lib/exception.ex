@@ -675,7 +675,7 @@ defmodule Exception do
       #=> "#Function<...>/1"
 
   """
-  @spec format_fa(fun, non_neg_integer) :: String.t()
+  @spec format_fa(fun, arity) :: String.t()
   def format_fa(fun, arity) when is_function(fun) do
     "#{inspect(fun)}#{format_arity(arity)}"
   end
@@ -700,7 +700,7 @@ defmodule Exception do
   where func is the name of the enclosing function. Convert to
   "anonymous fn in func/arity"
   """
-  @spec format_mfa(module, fun, non_neg_integer) :: String.t()
+  @spec format_mfa(module, fun, arity) :: String.t()
   def format_mfa(module, fun, arity) when is_atom(module) and is_atom(fun) do
     case Code.Identifier.extract_anonymous_fun_parent(fun) do
       {outer_name, outer_arity} ->
@@ -740,7 +740,7 @@ defmodule Exception do
       ""
 
   """
-  @spec format_file_line(term, term, String.t()) :: String.t()
+  @spec format_file_line(String.t() | nil, non_neg_integer | nil, String.t()) :: String.t()
   def format_file_line(file, line, suffix \\ "") do
     cond do
       is_nil(file) -> ""
@@ -772,7 +772,12 @@ defmodule Exception do
       ""
 
   """
-  @spec format_file_line_column(term, term, term, String.t()) :: String.t()
+  @spec format_file_line_column(
+          String.t() | nil,
+          non_neg_integer | nil,
+          non_neg_integer | nil,
+          String.t()
+        ) :: String.t()
   def format_file_line_column(file, line, column, suffix \\ "") do
     cond do
       is_nil(file) -> ""
