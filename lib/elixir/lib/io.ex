@@ -567,6 +567,7 @@ defmodule IO do
 
   """
   @doc since: "1.12.0"
+  @spec stream() :: Enumerable.t()
   def stream, do: stream(:stdio, :line)
 
   @doc """
@@ -620,6 +621,7 @@ defmodule IO do
 
   """
   @doc since: "1.12.0"
+  @spec binstream() :: Enumerable.t()
   def binstream, do: binstream(:stdio, :line)
 
   @doc """
