@@ -759,6 +759,7 @@ defmodule String do
       "fi"
 
   """
+  @spec normalize(t, :nfd | :nfc | :nfkd | :nfkc) :: t
   def normalize(string, form)
 
   def normalize(string, :nfd) when is_binary(string) do
