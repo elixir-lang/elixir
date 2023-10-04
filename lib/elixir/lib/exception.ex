@@ -740,7 +740,7 @@ defmodule Exception do
       ""
 
   """
-  @spec format_file_line(String.t() | nil, pos_integer | nil, String.t()) :: String.t()
+  @spec format_file_line(String.t() | nil, non_neg_integer | nil, String.t()) :: String.t()
   def format_file_line(file, line, suffix \\ "") do
     cond do
       is_nil(file) -> ""
@@ -774,8 +774,8 @@ defmodule Exception do
   """
   @spec format_file_line_column(
           String.t() | nil,
-          pos_integer | nil,
-          pos_integer | nil,
+          non_neg_integer | nil,
+          non_neg_integer | nil,
           String.t()
         ) :: String.t()
   def format_file_line_column(file, line, column, suffix \\ "") do
