@@ -197,6 +197,7 @@ defmodule Agent do
   See the "Child specification" section in the `Supervisor` module for more detailed information.
   """
   @doc since: "1.5.0"
+  @spec child_spec(term) :: %{id: module, start: {module, :start_link, [term]}}
   def child_spec(arg) do
     %{
       id: Agent,
