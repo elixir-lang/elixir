@@ -648,7 +648,7 @@ defmodule Exception do
   A stacktrace must be given as an argument. If not, the stacktrace
   is retrieved from `Process.info/2`.
   """
-  @spec format_stacktrace(stacktrace) :: String.t()
+  @spec format_stacktrace(stacktrace | nil) :: String.t()
   def format_stacktrace(trace \\ nil) do
     trace =
       if trace do
