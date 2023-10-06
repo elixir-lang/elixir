@@ -34,6 +34,37 @@ defmodule Regex do
 
       ~r/(?<foo>.)(?<bar>.)/.source == ~r/(?<foo>.)(?<bar>.)/.source
 
+  ## Escapes
+
+  Escape sequences are split into two categories.
+
+  ### Non-printing characters
+
+    * `\a` - Alarm, that is, the BEL character (hex 07)
+    * `\e` - Escape (hex 1B)
+    * `\f` - Form feed (hex 0C)
+    * `\n` - Line feed (hex 0A)
+    * `\r` - Carriage return (hex 0D)
+    * `\t` - Tab (hex 09)
+    * `\xhh` - Character with hex code hh
+    * `\x{hhh..}` - Character with hex code hhh..
+
+  `\u` and `\U` are not supported. Other escape sequences, such as `\ddd`
+  for octals, are supported but discouraged.
+
+  ### Generic character types
+
+    * `\d` - Any decimal digit
+    * `\D` - Any character that is not a decimal digit
+    * `\h` - Any horizontal whitespace character
+    * `\H` - Any character that is not a horizontal whitespace character
+    * `\s` - Any whitespace character
+    * `\S` - Any character that is not a whitespace character
+    * `\v` - Any vertical whitespace character
+    * `\V` - Any character that is not a vertical whitespace character
+    * `\w` - Any "word" character
+    * `\W` - Any "non-word" character
+
   ## Modifiers
 
   The modifiers available when creating a Regex are:
