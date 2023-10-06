@@ -700,7 +700,7 @@ defmodule Exception do
   where func is the name of the enclosing function. Convert to
   "anonymous fn in func/arity"
   """
-  @spec format_mfa(module, atom, arity) :: String.t()
+  @spec format_mfa(module, atom, arity_or_args) :: String.t()
   def format_mfa(module, fun, arity) when is_atom(module) and is_atom(fun) do
     case Code.Identifier.extract_anonymous_fun_parent(fun) do
       {outer_name, outer_arity} ->
