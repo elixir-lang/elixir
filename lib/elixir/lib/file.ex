@@ -86,8 +86,8 @@ defmodule File do
       :file.pread(file, 15, 6)
       #=> {:ok, "Leaves"}
 
-  Alternatively, if you need to keep track of the current position, use `:file.position/2` and
-  `:file.read/2`:
+  Alternatively, if you need to keep track of the current position,
+  use `:file.position/2` and `:file.read/2`:
 
       :file.position(file, 6)
       #=> {:ok, 6}
