@@ -83,7 +83,7 @@ defmodule File do
       File.write(temp_filename, "Eats, Shoots & Leaves")
       file = File.open!(temp_filename)
       :file.pread(file, 15, 6)
-      #=> {:ok, " Leaves"}
+      #=> {:ok, "Leaves"}
 
   Alternatively, if you need to keep track of the current position, use `:file.position/2` and
   `:file.read/2`:
