@@ -79,9 +79,8 @@ defmodule File do
 
   To read from a specific position in a file, use `:file.pread/3`:
 
-      temp_filename = Path.join(System.tmp_dir!(), "example")
-      File.write(temp_filename, "Eats, Shoots & Leaves")
-      file = File.open!(temp_filename)
+      File.write("example.txt", "Eats, Shoots & Leaves")
+      file = File.open!("example.txt")
       :file.pread(file, 15, 6)
       #=> {:ok, "Leaves"}
 
