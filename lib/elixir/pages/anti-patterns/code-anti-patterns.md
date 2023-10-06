@@ -463,7 +463,7 @@ Elixir provides the concept of truthiness: where `nil` and `false` are considere
 
 #### Example
 
-The simplest scenario this anti-pattern manifest is conditions, such as:
+The simplest scenario where this anti-pattern manifests is in conditionals, such as:
 
 ```elixir
 if is_binary(name) && is_integer(age) do
