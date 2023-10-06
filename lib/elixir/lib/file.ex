@@ -79,22 +79,23 @@ defmodule File do
 
   To read from a specific position in a file, use `:file.pread/3`:
 
-      iex> temp_filename = Path.join(System.tmp_dir!(), "example")
-      iex> File.write(temp_filename, "Eats, Shoots & Leaves")
-      iex> file = File.open!(temp_filename)
-      iex> :file.pread(file, 14, 7)
-      {:ok, " Leaves"}
+      temp_filename = Path.join(System.tmp_dir!(), "example")
+      File.write(temp_filename, "Eats, Shoots & Leaves")
+      file = File.open!(temp_filename)
+      :file.pread(file, 15, 6)
+      #=> {:ok, " Leaves"}
 
-  Alternatively, if you need to keep track of the current position, use `:file.position/2` and `:file.read/2`:
+  Alternatively, if you need to keep track of the current position, use `:file.position/2` and
+  `:file.read/2`:
 
-      iex> :file.position(file, 6)
-      {:ok, 6}
-      iex> :file.read(file, 6)
-      {:ok, "Shoots"}
-      iex :file.position(file, {:cur, -12})
-      {:ok, 0}
-      iex :file.read(file, 4)
-      {:ok, "Eats"}
+      :file.position(file, 6)
+      #=> {:ok, 6}
+      :file.read(file, 6)
+      #=> {:ok, "Shoots"}
+      :file.position(file, {:cur, -12})
+      #=> {:ok, 0}
+      :file.read(file, 4)
+      #=> {:ok, "Eats"}
   """
 
   @type posix :: :file.posix()
