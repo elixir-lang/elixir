@@ -6199,12 +6199,6 @@ defmodule Kernel do
   end
 
   defp regex_unescape_map(:newline), do: true
-  defp regex_unescape_map(?f), do: ?\f
-  defp regex_unescape_map(?n), do: ?\n
-  defp regex_unescape_map(?r), do: ?\r
-  defp regex_unescape_map(?t), do: ?\t
-  defp regex_unescape_map(?v), do: ?\v
-  defp regex_unescape_map(?a), do: ?\a
   defp regex_unescape_map(_), do: false
 
   @doc false

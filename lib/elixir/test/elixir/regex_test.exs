@@ -71,15 +71,12 @@ defmodule RegexTest do
     assert Regex.re_pattern(Regex.compile!("foo")) == Regex.re_pattern(~r"foo")
 
     assert Regex.source(Regex.compile!("\a\b\d\e\f\n\r\s\t\v")) == "\a\b\d\e\f\n\r\s\t\v"
-    assert Regex.source(~r<\a\b\d\e\f\n\r\s\t\v>) == "\a\\b\\d\\e\f\n\r\\s\t\v"
+    assert Regex.source(~r<\a\b\d\e\f\n\r\s\t\v>) == "\\a\\b\\d\\e\\f\\n\\r\\s\\t\\v"
 
     assert Regex.re_pattern(Regex.compile!("\a\b\d\e\f\n\r\s\t\v")) ==
-             Regex.re_pattern(~r"\a\010\177\033\f\n\r \t\v")
+             Regex.re_pattern(~r"\x07\x08\x7F\x1B\x0C\x0A\x0D\x20\x09\x0B")
 
-    assert Regex.source(Regex.compile!("\a\\b\\d\e\f\n\r\\s\t\v")) == "\a\\b\\d\e\f\n\r\\s\t\v"
-    assert Regex.source(~r<\a\\b\\d\\e\f\n\r\\s\t\v>) == "\a\\\\b\\\\d\\\\e\f\n\r\\\\s\t\v"
-
-    assert Regex.re_pattern(Regex.compile!("\a\\b\\d\e\f\n\r\\s\t\v")) ==
+    assert Regex.re_pattern(Regex.compile!("\\a\\b\\d\e\f\\n\\r\\s\\t\\v")) ==
              Regex.re_pattern(~r"\a\b\d\e\f\n\r\s\t\v")
   end
 
