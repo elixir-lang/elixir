@@ -81,7 +81,7 @@ defmodule File do
   module to interact with files returned by Elixir. For example,
   to read from a specific position in a file, use `:file.pread/3`:
 
-      File.write("example.txt", "Eats, Shoots & Leaves")
+      File.write!("example.txt", "Eats, Shoots & Leaves")
       file = File.open!("example.txt")
       :file.pread(file, 15, 6)
       #=> {:ok, "Leaves"}
