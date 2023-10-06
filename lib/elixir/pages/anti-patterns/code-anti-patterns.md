@@ -493,7 +493,7 @@ This technique may be particularly important when working with Erlang code. Erla
 
 #### Problem
 
-In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When the keys are known upfront, they must be accessed using the `map.key` notation, instead of `map[:key]`. When the latter is used, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
+In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When the keys are known upfront, they must be accessed using the `map.key` notation, which asserts the key exists. If `map[:key]` is used and the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has a bound `nil` value. In this way, this anti-pattern may cause bugs in the code.
 
 #### Example
 
