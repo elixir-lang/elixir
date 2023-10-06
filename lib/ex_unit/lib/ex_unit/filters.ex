@@ -20,7 +20,11 @@ defmodule ExUnit.Filters do
     {parsed_path, ex_unit_opts}
   end
 
-  @doc "Like `parse_path/1` but for multiple paths. ExUnit filter options are combined."
+  @doc """
+  Like `parse_path/1` but for multiple paths.
+
+  ExUnit filter options are combined.
+  """
   @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts :: Keyword.t()}
   def parse_paths(file_paths) do
     Enum.reduce(file_paths, {[], []}, fn file_path, {parsed_paths, includes} ->
@@ -47,7 +51,6 @@ defmodule ExUnit.Filters do
 
       [path | parts] ->
         {path_parts, line_numbers} = Enum.split_while(parts, &(not valid_line_number?(&1)))
-        # Add back the parts that are not valid integer line numbers.
         path = Enum.join([path | path_parts], ":")
         lines = Enum.filter(line_numbers, &valid_line_number/1)
         {path, lines}
@@ -203,12 +206,17 @@ defmodule ExUnit.Filters do
   end
 
   defp has_tag({:location, {file, line}}, %{line: _, describe_line: _} = tags, collection) do
+    if file && not String.ends_with?(tags.file, file) do
+      false
+    else
+      has_tag({:line, line}, tags, collection)
+    end
+  end
+
+  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, collection) do
     line = to_integer(line)
 
     cond do
-      file && not String.ends_with?(tags.file, file) ->
-        false
-
       tags.describe_line == line ->
         true
 
@@ -218,10 +226,6 @@ defmodule ExUnit.Filters do
       true ->
         tags.line <= line and closest_test_before_line(line, collection).tags.line == tags.line
     end
-  end
-
-  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, collection) do
-    has_tag({:location, {nil, line}}, tags, collection)
   end
 
   defp has_tag(pair, tags, _collection) do

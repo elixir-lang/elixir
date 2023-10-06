@@ -701,8 +701,9 @@ defmodule Mix.Tasks.Test do
   end
 
   defp parse_filters(opts, key) do
-    values = Keyword.get_values(opts, key)
-    if values != [], do: ExUnit.Filters.parse(values)
+    if Keyword.has_key?(opts, key) do
+      ExUnit.Filters.parse(Keyword.get_values(opts, key))
+    end
   end
 
   defp filter_opts(opts, :only) do

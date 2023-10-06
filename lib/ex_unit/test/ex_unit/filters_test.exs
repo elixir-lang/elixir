@@ -270,10 +270,13 @@ defmodule ExUnit.FiltersTest do
 
     assert output =~ "invalid line number given as ExUnit filter: 0"
     assert output =~ "invalid line number given as ExUnit filter: -789"
+  end
 
-    # Test multiple paths:
-
+  test "multiple file paths with line numbers" do
+    unix_path = "test/some/path.exs"
+    windows_path = "C:\\some\\path.exs"
     other_unix_path = "test/some/other_path.exs"
+    other_windows_path = "C:\\some\\other_path.exs"
 
     assert ExUnit.Filters.parse_paths(["#{unix_path}:123", "#{other_unix_path}:456"]) ==
              {[unix_path, other_unix_path],
@@ -281,8 +284,6 @@ defmodule ExUnit.FiltersTest do
                 exclude: [:test],
                 include: [location: {unix_path, "123"}, location: {other_unix_path, "456"}]
               ]}
-
-    other_windows_path = "C:\\some\\other_path.exs"
 
     assert ExUnit.Filters.parse_paths(["#{windows_path}:123", "#{other_windows_path}:456"]) ==
              {[windows_path, other_windows_path],
