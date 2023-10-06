@@ -85,7 +85,7 @@ defmodule File do
       iex> :file.pread(file, 14, 7)
       {:ok, " Leaves"}
 
-  Or if you need to keep track of the current position `:file.position/2` and `:file.read/2`:
+  Alternatively, if you need to keep track of the current position, use `:file.position/2` and `:file.read/2`:
 
       iex> :file.position(file, 6)
       {:ok, 6}
