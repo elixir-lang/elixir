@@ -74,6 +74,29 @@ defmodule File do
 
   Check `:file.open/2` for more information about such options and
   other performance considerations.
+
+  ## Seeking within a file
+
+  You may also use any of the functions from the [`:file`](`:file`)
+  module to interact with files returned by Elixir. For example,
+  to read from a specific position in a file, use `:file.pread/3`:
+
+      File.write!("example.txt", "Eats, Shoots & Leaves")
+      file = File.open!("example.txt")
+      :file.pread(file, 15, 6)
+      #=> {:ok, "Leaves"}
+
+  Alternatively, if you need to keep track of the current position,
+  use `:file.position/2` and `:file.read/2`:
+
+      :file.position(file, 6)
+      #=> {:ok, 6}
+      :file.read(file, 6)
+      #=> {:ok, "Shoots"}
+      :file.position(file, {:cur, -12})
+      #=> {:ok, 0}
+      :file.read(file, 4)
+      #=> {:ok, "Eats"}
   """
 
   @type posix :: :file.posix()
