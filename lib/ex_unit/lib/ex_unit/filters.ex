@@ -27,18 +27,19 @@ defmodule ExUnit.Filters do
   """
   @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts :: Keyword.t()}
   def parse_paths(file_paths) do
-    Enum.reduce(file_paths, {[], []}, fn file_path, {parsed_paths, includes} ->
-      {parsed_path, lines} = extract_line_numbers(file_path)
-      includes = Enum.reduce(lines, includes, &[{:location, {parsed_path, &1}} | &2])
-      {[parsed_path | parsed_paths], includes}
-    end)
-    |> case do
-      {parsed_paths, []} ->
-        {Enum.reverse(parsed_paths), []}
+    {parsed_paths, locations} =
+      Enum.map_reduce(file_paths, [], fn file_path, locations ->
+        case extract_line_numbers(file_path) do
+          {path, []} -> {path, locations}
+          {path, [line]} -> {path, [{:location, {path, line}} | locations]}
+          {path, lines} -> {path, [{:location, {path, lines}} | locations]}
+        end
+      end)
 
-      {parsed_paths, includes} ->
-        {Enum.reverse(parsed_paths), exclude: [:test], include: Enum.reverse(includes)}
-    end
+    ex_unit_opts =
+      if locations == [], do: [], else: [exclude: [:test], include: Enum.reverse(locations)]
+
+    {parsed_paths, ex_unit_opts}
   end
 
   @spec extract_path(String.t()) :: String.t()
@@ -205,11 +206,11 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:location, {file, line}}, %{line: _, describe_line: _} = tags, collection) do
-    if file && not String.ends_with?(tags.file, file) do
+  defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, collection) do
+    if path && not String.ends_with?(tags.file, path) do
       false
     else
-      has_tag({:line, line}, tags, collection)
+      List.wrap(lines) |> Enum.any?(&has_tag({:line, &1}, tags, collection))
     end
   end
 
