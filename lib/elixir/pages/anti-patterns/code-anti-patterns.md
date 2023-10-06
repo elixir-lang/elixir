@@ -375,7 +375,7 @@ There are few known exceptions to this anti-pattern:
 
 #### Problem
 
-Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, not propagating to the entire application. A supervisor will detect the failing process, report it, and possibly restart it. This means Elixir developers can write code in an assertive style, instead of programming defensively and returning incorrect values which were not planned for.
+Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, not propagating to the entire application. A supervisor will detect the failing process, report it, and possibly restart it. This anti-pattern arises when developers write defensive or imprecise code, capable of returning incorrect values which were not planned for, instead of programming in an assertive style through pattern matching and guards.
 
 #### Example
 
@@ -487,18 +487,7 @@ else
 end
 ```
 
-A more assertive version of the code may also replace `if/2` by `case/2`, applying similar concepts to the ones presented in [Non-assertive patterns](#non-assertive-patterns):
-
-```elixir
-case is_binary(name) or is_integer(age) do
-  true -> # ...
-  false -> # ...
-end
-```
-
-These techniques may be particularly important when working with Erlang code. Erlang does not have the concept of truthiness. It never returns `nil`, instead its functions may return `:error` or `:undefined` in places an Elixir developer would return `nil`.
-
-Therefore, to avoid accidentally interpreting `:undefined` or `:error` as a truthy value, it may be preferrable to use `and/2`, `or/2`, `not/1`, and `case/2` exclusively when interfacing with Erlang APIs.
+This technique may be particularly important when working with Erlang code. Erlang does not have the concept of truthiness. It never returns `nil`, instead its functions may return `:error` or `:undefined` in places an Elixir developer would return `nil`. Therefore, to avoid accidentally interpreting `:undefined` or `:error` as a truthy value, you may prefer to use `and/2`, `or/2`, and `not/1` exclusively when interfacing with Erlang APIs.
 
 ## Non-existent map keys
 
