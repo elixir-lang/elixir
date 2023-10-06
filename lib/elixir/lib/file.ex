@@ -77,7 +77,9 @@ defmodule File do
 
   ## Seeking within a file
 
-  To read from a specific position in a file, use `:file.pread/3`:
+  You may also use any of the functions from the [`:file`](`:file`)
+  module to interact with files returned by Elixir. For example,
+  to read from a specific position in a file, use `:file.pread/3`:
 
       File.write("example.txt", "Eats, Shoots & Leaves")
       file = File.open!("example.txt")
