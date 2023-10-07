@@ -6,6 +6,8 @@ defmodule ExUnit.Filters do
   """
 
   @type t :: list({atom, Regex.t() | String.Chars.t()} | atom)
+  @type location :: {:location, {String.t(), pos_integer | [pos_integer, ...]}}
+  @type ex_unit_opts :: [exclude: [:test], include: [location, ...]] | []
 
   @doc """
   Parses filters out of a path.
@@ -14,7 +16,7 @@ defmodule ExUnit.Filters do
   on the command line) includes a line number filter, and if so returns the
   appropriate ExUnit configuration options.
   """
-  @spec parse_path(String.t()) :: {String.t(), ex_unit_opts :: Keyword.t()}
+  @spec parse_path(String.t()) :: {String.t(), ex_unit_opts}
   def parse_path(file_path) do
     {[parsed_path], ex_unit_opts} = parse_paths([file_path])
     {parsed_path, ex_unit_opts}
@@ -25,7 +27,7 @@ defmodule ExUnit.Filters do
 
   ExUnit filter options are combined.
   """
-  @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts :: Keyword.t()}
+  @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts}
   def parse_paths(file_paths) do
     {parsed_paths, locations} =
       Enum.map_reduce(file_paths, [], fn file_path, locations ->
@@ -51,19 +53,24 @@ defmodule ExUnit.Filters do
         {path, []}
 
       [path | parts] ->
-        {path_parts, line_numbers} = Enum.split_while(parts, &(not valid_line_number?(&1)))
+        {path_parts, line_numbers} = Enum.split_while(parts, &(to_line_number(&1) == nil))
         path = Enum.join([path | path_parts], ":")
-        lines = Enum.filter(line_numbers, &valid_line_number/1)
+        lines = for n <- line_numbers, valid_number = validate_line_number(n), do: valid_number
         {path, lines}
     end
   end
 
-  defp valid_line_number?(str), do: match?({x, ""} when x > 0, Integer.parse(str))
+  defp to_line_number(str) do
+    case Integer.parse(str) do
+      {x, ""} when x > 0 -> x
+      _ -> nil
+    end
+  end
 
-  defp valid_line_number(str) do
-    valid? = valid_line_number?(str)
-    valid? || IO.warn("invalid line number given as ExUnit filter: #{str}", [])
-    valid?
+  defp validate_line_number(str) do
+    number = to_line_number(str)
+    number == nil && IO.warn("invalid line number given as ExUnit filter: #{str}", [])
+    number
   end
 
   @doc """
