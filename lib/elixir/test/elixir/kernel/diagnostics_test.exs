@@ -489,9 +489,9 @@ defmodule Kernel.DiagnosticsTest do
           warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
           │
         3 │   defp a, do: Unknown.b()
-          │                      ~
+          │                       ~
           │
-          └─ #{path}:3:22: Sample.a/0
+          └─ #{path}:3:23: Sample.a/0
       """
 
       assert capture_eval(source) =~ expected
@@ -535,7 +535,7 @@ defmodule Kernel.DiagnosticsTest do
 
       expected = """
       warning: Unknown.b/0 is undefined (module Unknown is not available or is yet to be defined)
-      └─ nofile:2:22: Sample.a/0
+      └─ nofile:2:23: Sample.a/0
       """
 
       assert capture_eval(source) =~ expected
@@ -661,9 +661,9 @@ defmodule Kernel.DiagnosticsTest do
           warning: Unknown.bar/1 is undefined (module Unknown is not available or is yet to be defined)
           │
         5 │ ...                   Unknown.bar(:test)
-          │                              ~
+          │                               ~
           │
-          └─ #{path}:5:52: Sample.a/0
+          └─ #{path}:5:53: Sample.a/0
 
       """
 
@@ -710,10 +710,10 @@ defmodule Kernel.DiagnosticsTest do
 
       expected = """
       warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
-      └─ nofile:3:12: Sample.a/0
-      └─ nofile:4:12: Sample.a/0
-      └─ nofile:5:12: Sample.a/0
-      └─ nofile:6:12: Sample.a/0
+      └─ nofile:3:13: Sample.a/0
+      └─ nofile:4:13: Sample.a/0
+      └─ nofile:5:13: Sample.a/0
+      └─ nofile:6:13: Sample.a/0
 
       """
 
@@ -745,12 +745,12 @@ defmodule Kernel.DiagnosticsTest do
           warning: Unknown.bar/0 is undefined (module Unknown is not available or is yet to be defined)
           │
         5 │     Unknown.bar()
-          │            ~
+          │             ~
           │
-          └─ #{path}:5:12: Sample.a/0
-          └─ #{path}:6:12: Sample.a/0
-          └─ #{path}:7:12: Sample.a/0
-          └─ #{path}:8:12: Sample.a/0
+          └─ #{path}:5:13: Sample.a/0
+          └─ #{path}:6:13: Sample.a/0
+          └─ #{path}:7:13: Sample.a/0
+          └─ #{path}:8:13: Sample.a/0
 
       """
 

@@ -209,12 +209,12 @@ expand({'&', Meta, [{super, SuperMeta, Args} = Expr]}, S, E) when is_list(Args) 
       expand_fn_capture(Meta, Expr, S, E)
   end;
 
-expand({'&', Meta, [{'/', _, [{super, _, Context}, Arity]} = Expr]}, S, E) when is_atom(Context), is_integer(Arity) ->
+expand({'&', Meta, [{'/', ArityMeta, [{super, SuperMeta, Context}, Arity]} = Expr]}, S, E) when is_atom(Context), is_integer(Arity) ->
   assert_no_match_or_guard_scope(Meta, "&", S, E),
 
   case resolve_super(Meta, Arity, E) of
     {Kind, Name, _} when Kind == def; Kind == defp ->
-      {{'&', Meta, [{'/', [], [{Name, [], Context}, Arity]}]}, S, E};
+      {{'&', Meta, [{'/', ArityMeta, [{Name, SuperMeta, Context}, Arity]}]}, S, E};
     _ ->
       expand_fn_capture(Meta, Expr, S, E)
   end;
@@ -510,15 +510,15 @@ resolve_super(Meta, Arity, E) ->
 
 expand_fn_capture(Meta, Arg, S, E) ->
   case elixir_fn:capture(Meta, Arg, S, E) of
-    {{remote, Remote, Fun, Arity}, RemoteMeta, SE, EE} ->
+    {{remote, Remote, Fun, Arity}, RequireMeta, DotMeta, SE, EE} ->
       is_atom(Remote) andalso
-        elixir_env:trace({remote_function, RemoteMeta, Remote, Fun, Arity}, E),
-      AttachedMeta = attach_context_module(Remote, Meta, E),
-      {{'&', AttachedMeta, [{'/', [], [{{'.', [], [Remote, Fun]}, [], []}, Arity]}]}, SE, EE};
-    {{local, Fun, Arity}, _LocalMeta, _SE, #{function := nil}} ->
+        elixir_env:trace({remote_function, RequireMeta, Remote, Fun, Arity}, E),
+      AttachedMeta = attach_context_module(Remote, RequireMeta, E),
+      {{'&', Meta, [{'/', [], [{{'.', DotMeta, [Remote, Fun]}, AttachedMeta, []}, Arity]}]}, SE, EE};
+    {{local, Fun, Arity}, _, _, _SE, #{function := nil}} ->
       file_error(Meta, E, ?MODULE, {undefined_local_capture, Fun, Arity});
-    {{local, Fun, Arity}, _LocalMeta, SE, EE} ->
-      {{'&', Meta, [{'/', [], [{Fun, [], nil}, Arity]}]}, SE, EE};
+    {{local, Fun, Arity}, LocalMeta, _, SE, EE} ->
+      {{'&', Meta, [{'/', [], [{Fun, LocalMeta, nil}, Arity]}]}, SE, EE};
     {expand, Expr, SE, EE} ->
       expand(Expr, SE, EE)
   end.
@@ -864,10 +864,10 @@ expand_remote(Receiver, DotMeta, Right, Meta, NoParens, Args, S, SL, #{context :
       {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
 
     true ->
-      AttachedDotMeta = attach_context_module(Receiver, DotMeta, E),
+      AttachedMeta = attach_context_module(Receiver, Meta, E),
       {EArgs, {SA, _}, EA} = mapfold(fun expand_arg/3, {SL, S}, E, Args),
 
-      case rewrite(Context, Receiver, AttachedDotMeta, Right, Meta, EArgs, S) of
+      case rewrite(Context, Receiver, DotMeta, Right, AttachedMeta, EArgs, S) of
         {ok, Rewritten} ->
           maybe_warn_comparison(Rewritten, Args, E),
           {Rewritten, elixir_env:close_write(SA, S), EA};

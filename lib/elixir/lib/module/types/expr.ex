@@ -391,10 +391,10 @@ defmodule Module.Types.Expr do
   end
 
   # expr.fun(arg)
-  def of_expr({{:., meta1, [expr1, fun]}, _meta2, args} = expr2, _expected, stack, context) do
+  def of_expr({{:., _meta1, [expr1, fun]}, meta2, args} = expr2, _expected, stack, context) do
     # TODO: Use expected type to infer intersection return type
 
-    context = Of.remote(expr1, fun, length(args), meta1, context)
+    context = Of.remote(expr1, fun, length(args), meta2, context)
     stack = push_expr_stack(expr2, stack)
 
     with {:ok, _expr_type, context} <- of_expr(expr1, :dynamic, stack, context),
@@ -407,7 +407,7 @@ defmodule Module.Types.Expr do
 
   # &Foo.bar/1
   def of_expr(
-        {:&, meta, [{:/, _, [{{:., _, [module, fun]}, _, []}, arity]}]},
+        {:&, _, [{:/, _, [{{:., _, [module, fun]}, meta, []}, arity]}]},
         _expected,
         _stack,
         context

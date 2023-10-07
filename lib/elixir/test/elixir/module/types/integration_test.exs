@@ -67,9 +67,9 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         ":not_a_module.no_module/0 is undefined (module :not_a_module is not available or is yet to be defined)",
-        "a.ex:2:27: A.a/0",
+        "a.ex:2:28: A.a/0",
         ":lists.no_func/0 is undefined or private",
-        "a.ex:3:20: A.b/0"
+        "a.ex:3:21: A.b/0"
       ]
 
       assert_warnings(files, warnings)
@@ -90,7 +90,7 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "Kernel.behaviour_info/1 is undefined or private",
-        "a.ex:6:20: A.e/0"
+        "a.ex:6:21: A.e/0"
       ]
 
       assert_warnings(files, warnings)
@@ -125,7 +125,7 @@ defmodule Module.Types.IntegrationTest do
         "List.old_flatten/1 is undefined or private. Did you mean:",
         "* flatten/1",
         "* flatten/2",
-        "a.ex:15:32: A.flatten2/1"
+        "a.ex:15:33: A.flatten2/1"
       ]
 
       assert_warnings(files, warnings)
@@ -146,9 +146,9 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "A.no_func/0 is undefined or private",
-        "a.ex:2:15: A.a/0",
+        "a.ex:2:16: A.a/0",
         "A.no_func/1 is undefined or private",
-        "external_source.ex:6:14: A.c/0"
+        "external_source.ex:6:17: A.c/0"
       ]
 
       assert_warnings(files, warnings)
@@ -170,10 +170,10 @@ defmodule Module.Types.IntegrationTest do
       warnings = [
         "A.a/1 is undefined or private. Did you mean:",
         "* a/0",
-        "a.ex:3:15: A.b/0",
+        "a.ex:3:16: A.b/0",
         "A.b/1 is undefined or private. Did you mean:",
         "* b/0",
-        "external_source.ex:6:15: A.c/0"
+        "external_source.ex:6:16: A.c/0"
       ]
 
       assert_warnings(files, warnings)
@@ -195,11 +195,11 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "D.no_module/0 is undefined (module D is not available or is yet to be defined)",
-        "a.ex:2:15: A.a/0",
+        "a.ex:2:16: A.a/0",
         "E.no_module/0 is undefined (module E is not available or is yet to be defined)",
-        "external_source.ex:5:15: A.c/0",
+        "external_source.ex:5:16: A.c/0",
         "Io.puts/1 is undefined (module Io is not available or is yet to be defined)",
-        "a.ex:7:16: A.i/0"
+        "a.ex:7:17: A.i/0"
       ]
 
       assert_warnings(files, warnings)
@@ -219,9 +219,9 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "A.no_func/0 is undefined or private",
-        "a.ex:2:14: A.a/0",
+        "a.ex:2:17: A.a/0",
         "A.no_func/1 is undefined or private",
-        "external_source.ex:5:14: A.c/0"
+        "external_source.ex:5:17: A.c/0"
       ]
 
       assert_warnings(files, warnings)
@@ -261,9 +261,9 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "B.no_func/0 is undefined or private",
-        "a.ex:2:15: A.a/0",
+        "a.ex:2:16: A.a/0",
         "A.no_func/0 is undefined or private",
-        "b.ex:2:15: B.a/0"
+        "b.ex:2:16: B.a/0"
       ]
 
       assert_warnings(files, warnings)
@@ -286,11 +286,11 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "A2.no_func/0 is undefined (module A2 is not available or is yet to be defined)",
-        "└─ a.ex:8:16: A.d/0",
-        "└─ external_source.ex:5:16: A.b/0",
+        "└─ a.ex:8:17: A.d/0",
+        "└─ external_source.ex:5:17: A.b/0",
         "A.no_func/0 is undefined or private",
-        "└─ a.ex:2:15: A.a/0",
-        "└─ a.ex:7:15: A.c/0"
+        "└─ a.ex:2:16: A.a/0",
+        "└─ a.ex:7:16: A.c/0"
       ]
 
       assert_warnings(files, warnings)
@@ -313,7 +313,7 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "B.no_func/0 is undefined (module B is not available or is yet to be defined)",
-        "a.ex:7:23: AProtocol.AImplementation.func/1"
+        "a.ex:7:24: AProtocol.AImplementation.func/1"
       ]
 
       assert_warnings(files, warnings)
@@ -349,7 +349,7 @@ defmodule Module.Types.IntegrationTest do
       warnings = [
         "A.to_list/1 is undefined or private. Did you mean:",
         "* to_charlist/1",
-        "a.ex:7:18: A.c/1"
+        "a.ex:7:19: A.c/1"
       ]
 
       assert_warnings(files, warnings)
@@ -388,7 +388,7 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "you must require B before invoking the macro B.b/0",
-        "ab.ex:2:17: A.a/0"
+        "ab.ex:2:18: A.a/0"
       ]
 
       assert_warnings(files, warnings)
@@ -419,12 +419,12 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)",
-        "a.ex:7:28: A.c/0",
+        "a.ex:7:29: A.c/0",
         "MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)",
-        "a.ex:8:28: A.d/0",
+        "a.ex:8:29: A.d/0",
         "B.func/3 is undefined or private. Did you mean:",
         "* func/1",
-        "a.ex:11:15: A.g/0"
+        "a.ex:11:16: A.g/0"
       ]
 
       assert_warnings(files, warnings)
@@ -462,12 +462,12 @@ defmodule Module.Types.IntegrationTest do
 
         warnings = [
           "MissingModule2.func/1 is undefined (module MissingModule2 is not available or is yet to be defined)",
-          "a.ex:7:28: A.c/0",
+          "a.ex:7:29: A.c/0",
           "MissingModule3.func/2 is undefined (module MissingModule3 is not available or is yet to be defined)",
-          "a.ex:8:28: A.d/0",
+          "a.ex:8:29: A.d/0",
           "B.func/3 is undefined or private. Did you mean:",
           "* func/1",
-          "a.ex:11:15: A.g/0"
+          "a.ex:11:16: A.g/0"
         ]
 
         assert_warnings(files, warnings)
@@ -588,7 +588,7 @@ defmodule Module.Types.IntegrationTest do
 
       warnings = [
         "A.a/0 is deprecated. oops",
-        "a.ex:3:15: A.a/0"
+        "a.ex:3:16: A.a/0"
       ]
 
       assert_warnings(files, warnings)

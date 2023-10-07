@@ -100,7 +100,7 @@ defmodule CodeTest do
       end
       """
 
-      assert {_, [%{position: {3, 17}}]} =
+      assert {_, [%{position: {3, 18}}]} =
                Code.with_diagnostics(fn ->
                  quoted = Code.string_to_quoted!(sample, columns: true)
                  Code.eval_quoted(quoted, [])

@@ -1143,10 +1143,10 @@ defmodule Kernel.ExpansionTest do
     test "expands remotes" do
       assert expand(quote(do: &List.flatten/2)) ==
                quote(do: &:"Elixir.List".flatten/2)
-               |> clean_meta([:imports, :context, :no_parens])
+               |> clean_meta([:imports, :context])
 
       assert expand(quote(do: &Kernel.is_atom/1)) ==
-               quote(do: &:erlang.is_atom/1) |> clean_meta([:imports, :context, :no_parens])
+               quote(do: &:erlang.is_atom/1) |> clean_meta([:imports, :context])
     end
 
     test "expands macros" do
