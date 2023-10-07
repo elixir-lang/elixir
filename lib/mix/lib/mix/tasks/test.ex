@@ -553,7 +553,7 @@ defmodule Mix.Tasks.Test do
 
     # Finally parse, require and load the files
     test_elixirc_options = project[:test_elixirc_options] || []
-    test_files = parse_file_paths(files, test_paths)
+    test_files = if files != [], do: parse_file_paths(files), else: test_paths
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
 
@@ -690,11 +690,7 @@ defmodule Mix.Tasks.Test do
     [autorun: false] ++ opts
   end
 
-  defp parse_file_paths([], test_paths) do
-    test_paths
-  end
-
-  defp parse_file_paths(file_paths, _test_paths) do
+  defp parse_file_paths(file_paths) do
     {parsed_file_paths, ex_unit_opts} = ExUnit.Filters.parse_paths(file_paths)
     ExUnit.configure(ex_unit_opts)
     parsed_file_paths
