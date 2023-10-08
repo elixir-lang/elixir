@@ -342,17 +342,19 @@ defmodule CodeTest do
                {[{{:x, :foo}, 2}], [x: :foo]}
     end
 
-    test "undefined function with custom env" do
-      env = Code.env_for_eval(CustomEnv.make_custom_env())
-      quoted = quote do: foo()
+    if :erlang.system_info(:otp_release) >= ~c"25" do
+      test "undefined function with custom env" do
+        env = Code.env_for_eval(CustomEnv.make_custom_env())
+        quoted = quote do: foo()
 
-      assert_exception(
-        UndefinedFunctionError,
-        ["** (UndefinedFunctionError) function foo/0 is undefined"],
-        fn ->
-          Code.eval_quoted_with_env(quoted, [], env)
-        end
-      )
+        assert_exception(
+          UndefinedFunctionError,
+          ["** (UndefinedFunctionError) function foo/0 is undefined"],
+          fn ->
+            Code.eval_quoted_with_env(quoted, [], env)
+          end
+        )
+      end
     end
 
     defmodule Tracer do
