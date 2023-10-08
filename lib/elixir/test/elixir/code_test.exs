@@ -291,10 +291,6 @@ defmodule CodeTest do
     end
   end
 
-  defmodule CustomEnv do
-    def make_custom_env, do: __ENV__
-  end
-
   describe "eval_quoted_with_env/3" do
     test "returns results, bindings, and env" do
       alias :lists, as: MyList
@@ -343,8 +339,8 @@ defmodule CodeTest do
     end
 
     if :erlang.system_info(:otp_release) >= ~c"25" do
-      test "undefined function with custom env" do
-        env = Code.env_for_eval(CustomEnv.make_custom_env())
+      test "undefined function" do
+        env = Code.env_for_eval(__ENV__)
         quoted = quote do: foo()
 
         assert_exception(
