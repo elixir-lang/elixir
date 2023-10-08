@@ -291,6 +291,10 @@ defmodule CodeTest do
     end
   end
 
+  defmodule CustomEnv do
+    def make_custom_env, do: __ENV__
+  end
+
   describe "eval_quoted_with_env/3" do
     test "returns results, bindings, and env" do
       alias :lists, as: MyList
@@ -336,6 +340,19 @@ defmodule CodeTest do
 
       assert fun.(quote(do: fn -> var!(x, :foo) end), [{{:x, :foo}, 2}, {{:y, :foo}, 3}]) ==
                {[{{:x, :foo}, 2}], [x: :foo]}
+    end
+
+    test "undefined function with custom env" do
+      env = Code.env_for_eval(CustomEnv.make_custom_env())
+      quoted = quote do: foo()
+
+      assert_exception(
+        UndefinedFunctionError,
+        ["** (UndefinedFunctionError) function foo/0 is undefined"],
+        fn ->
+          Code.eval_quoted_with_env(quoted, [], env)
+        end
+      )
     end
 
     defmodule Tracer do

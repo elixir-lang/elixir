@@ -1576,6 +1576,11 @@ defmodule UndefinedFunctionError do
     {"function #{formatted_fun} is undefined or private", true}
   end
 
+  defp message(:"undefined local", nil, function, arity) do
+    "nil." <> formatted_fun = Exception.format_mfa(nil, function, arity)
+    {"function #{formatted_fun} is undefined", false}
+  end
+
   defp message(reason, module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
     {"function #{formatted_fun} is undefined (#{reason})", false}
