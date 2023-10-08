@@ -2122,20 +2122,10 @@ defmodule Kernel do
       end
 
     erlang_error =
-      case :erlang.system_info(:otp_release) >= [?2, ?4] do
-        true ->
-          fn x ->
-            quote do
-              :erlang.error(unquote(x), :none, error_info: %{module: Exception})
-            end
-          end
-
-        false ->
-          fn x ->
-            quote do
-              :erlang.error(unquote(x))
-            end
-          end
+      fn x ->
+        quote do
+          :erlang.error(unquote(x), :none, error_info: %{module: Exception})
+        end
       end
 
     case message do

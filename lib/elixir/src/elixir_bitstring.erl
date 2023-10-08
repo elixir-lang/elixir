@@ -385,12 +385,7 @@ format_error(bittype_signed) ->
 format_error(bittype_unit) ->
   "integer and float types require a size specifier if the unit specifier is given";
 format_error({bittype_float_size, Other}) ->
-  Message =
-    case erlang:system_info(otp_release) >= "24" of
-      true -> "16, 32, or 64";
-      false -> "32 or 64"
-    end,
-  io_lib:format("float requires size*unit to be ~s (default), got: ~p", [Message, Other]);
+  io_lib:format("float requires size*unit to be 16, 32, or 64 (default), got: ~p", [Other]);
 format_error({invalid_literal, Literal}) ->
   io_lib:format("invalid literal ~ts in <<>>", ['Elixir.Macro':to_string(Literal)]);
 format_error({undefined_bittype, Expr}) ->
