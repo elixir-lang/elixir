@@ -34,7 +34,6 @@ defmodule ExUnit.Filters do
       Enum.map_reduce(file_paths, [], fn file_path, locations ->
         case extract_line_numbers(file_path) do
           {path, []} -> {path, locations}
-          {path, [line]} -> {path, [{:location, {path, line}} | locations]}
           {path, lines} -> {path, [{:location, {path, lines}} | locations]}
         end
       end)
@@ -45,9 +44,6 @@ defmodule ExUnit.Filters do
     {parsed_paths, ex_unit_opts}
   end
 
-  @spec extract_path(String.t()) :: String.t()
-  def extract_path(file_path), do: elem(extract_line_numbers(file_path), 0)
-
   defp extract_line_numbers(file_path) do
     case String.split(file_path, ":") do
       [path] ->
@@ -57,7 +53,11 @@ defmodule ExUnit.Filters do
         {path_parts, line_numbers} = Enum.split_while(parts, &(to_line_number(&1) == nil))
         path = Enum.join([path | path_parts], ":")
         lines = for n <- line_numbers, valid_number = validate_line_number(n), do: valid_number
-        {path, lines}
+
+        case lines do
+          [line] -> {path, line}
+          lines -> {path, lines}
+        end
     end
   end
 
@@ -129,18 +129,23 @@ defmodule ExUnit.Filters do
   ## Examples
 
       iex> ExUnit.Filters.parse(["foo:bar", "baz", "line:9", "bool:true"])
-      [{:foo, "bar"}, :baz, {:line, "9"}, {:bool, "true"}]
+      [{:foo, "bar"}, :baz, {:line, 9}, {:bool, "true"}]
 
   """
   @spec parse([String.t()]) :: t
   def parse(filters) do
     Enum.map(filters, fn filter ->
-      case String.split(filter, ":", parts: 2) do
-        [key, value] -> {String.to_atom(key), value}
+      case :binary.split(filter, ":") do
+        [key, value] -> parse_kv(String.to_atom(key), value)
         [key] -> String.to_atom(key)
       end
     end)
   end
+
+  defp parse_kv(:line, line) when is_integer(line), do: {:line, line}
+  defp parse_kv(:line, line) when is_binary(line), do: {:line, String.to_integer(line)}
+  defp parse_kv(:location, loc) when is_binary(loc), do: {:location, extract_line_numbers(loc)}
+  defp parse_kv(key, value), do: {key, value}
 
   @doc """
   Returns a tuple containing useful information about test failures from the
@@ -215,16 +220,12 @@ defmodule ExUnit.Filters do
   end
 
   defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, collection) do
-    if path && not String.ends_with?(tags.file, path) do
-      false
-    else
-      List.wrap(lines) |> Enum.any?(&has_tag({:line, &1}, tags, collection))
-    end
+    String.ends_with?(tags.file, path) and
+      lines |> List.wrap() |> Enum.any?(&has_tag({:line, &1}, tags, collection))
   end
 
-  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, collection) do
-    line = to_integer(line)
-
+  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, collection)
+       when is_integer(line) do
     cond do
       tags.describe_line == line ->
         true
@@ -257,9 +258,6 @@ defmodule ExUnit.Filters do
   end
 
   defp has_tag(key, tags) when is_atom(key), do: Map.has_key?(tags, key) and key
-
-  defp to_integer(integer) when is_integer(integer), do: integer
-  defp to_integer(integer) when is_binary(integer), do: String.to_integer(integer)
 
   defp compare("Elixir." <> tag1, tag2), do: compare(tag1, tag2)
   defp compare(tag1, "Elixir." <> tag2), do: compare(tag1, tag2)

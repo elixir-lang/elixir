@@ -475,8 +475,10 @@ defmodule Mix.Tasks.Test do
     end
   end
 
-  defp relative_app_file_exists?(file),
-    do: File.exists?(Path.join("../..", ExUnit.Filters.extract_path(file)))
+  defp relative_app_file_exists?(file) do
+    {[file], _} = ExUnit.Filters.parse_paths([file])
+    File.exists?(Path.join("../..", file))
+  end
 
   defp do_run(opts, args, files) do
     _ = Mix.Project.get!()

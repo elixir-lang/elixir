@@ -166,21 +166,21 @@ defmodule ExUnit.FiltersTest do
       %ExUnit.Test{tags: %{line: 13, describe_line: 12}}
     ]
 
-    assert ExUnit.Filters.eval([line: "3"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "4"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "5"], [:line], %{line: 5, describe_line: nil}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "6"], [:line], %{line: 5, describe_line: nil}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "2"], [:line], %{line: 3, describe_line: 2}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 8, describe_line: 7}, tests) == :ok
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 10, describe_line: 7}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 3], [:line], %{line: 3, describe_line: 2}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 4], [:line], %{line: 3, describe_line: 2}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 5], [:line], %{line: 5, describe_line: nil}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 6], [:line], %{line: 5, describe_line: nil}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 2], [:line], %{line: 3, describe_line: 2}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 7], [:line], %{line: 8, describe_line: 7}, tests) == :ok
+    assert ExUnit.Filters.eval([line: 7], [:line], %{line: 10, describe_line: 7}, tests) == :ok
 
-    assert ExUnit.Filters.eval([line: "1"], [:line], %{line: 3, describe_line: 2}, tests) ==
+    assert ExUnit.Filters.eval([line: 1], [:line], %{line: 3, describe_line: 2}, tests) ==
              {:excluded, "due to line filter"}
 
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 3, describe_line: 2}, tests) ==
+    assert ExUnit.Filters.eval([line: 7], [:line], %{line: 3, describe_line: 2}, tests) ==
              {:excluded, "due to line filter"}
 
-    assert ExUnit.Filters.eval([line: "7"], [:line], %{line: 5, describe_line: nil}, tests) ==
+    assert ExUnit.Filters.eval([line: 7], [:line], %{line: 5, describe_line: nil}, tests) ==
              {:excluded, "due to line filter"}
   end
 
@@ -188,7 +188,9 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.parse(["run"]) == [:run]
     assert ExUnit.Filters.parse(["run:true"]) == [run: "true"]
     assert ExUnit.Filters.parse(["run:test"]) == [run: "test"]
-    assert ExUnit.Filters.parse(["line:9"]) == [line: "9"]
+    assert ExUnit.Filters.parse(["line:9"]) == [line: 9]
+    assert ExUnit.Filters.parse(["location:foo.exs:9"]) == [location: {"foo.exs", 9}]
+    assert ExUnit.Filters.parse(["location:foo.exs:9:11"]) == [location: {"foo.exs", [9, 11]}]
   end
 
   test "file paths with line numbers" do

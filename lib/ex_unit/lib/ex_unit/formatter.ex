@@ -140,12 +140,15 @@ defmodule ExUnit.Formatter do
       iex> format_filters([run: true, slow: false], :include)
       "Including tags: [run: true, slow: false]"
 
+      iex> format_filters([list: [61, 62, 63]], :exclude)
+      "Excluding tags: [list: [61, 62, 63]]"
+
   """
   @spec format_filters(keyword, atom) :: String.t()
   def format_filters(filters, type) do
     case type do
-      :exclude -> "Excluding tags: #{inspect(filters)}"
-      :include -> "Including tags: #{inspect(filters)}"
+      :exclude -> "Excluding tags: #{inspect(filters, charlists: :as_lists)}"
+      :include -> "Including tags: #{inspect(filters, charlists: :as_lists)}"
     end
   end
 
