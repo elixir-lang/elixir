@@ -349,7 +349,7 @@ defmodule CodeTest do
 
         assert_exception(
           UndefinedFunctionError,
-          ["** (UndefinedFunctionError) function foo/0 is undefined"],
+          ["** (UndefinedFunctionError) function foo/0 is undefined (there is no such import)"],
           fn ->
             Code.eval_quoted_with_env(quoted, [], env)
           end
