@@ -438,14 +438,14 @@ defmodule Mix.Tasks.TestTest do
       end)
     end
 
-    test "raises an exception if line numbers are given with multiple files" do
+    test "runs multiple test files if line numbers are given" do
       in_fixture("test_stale", fn ->
         assert_run_output(
-          [
-            "test/a_test_stale.exs",
-            "test/b_test_stale.exs:4"
-          ],
-          "Line numbers can only be used when running a single test file"
+          ["test/a_test_stale.exs:2", "test/b_test_stale.exs:4"],
+          """
+          Excluding tags: [:test]
+          Including tags: [location: {"test/a_test_stale.exs", 2}, location: {"test/b_test_stale.exs", 4}]
+          """
         )
       end)
     end
@@ -501,13 +501,25 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ """
                ==> bar
                Excluding tags: [:test]
-               Including tags: [line: \"10\"]
+               Including tags: [location: {"test/bar_tests.exs", 10}]
 
                .
                """
 
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
+
+        output = mix(["test", "apps/foo/test/foo_tests.exs:9", "apps/bar/test/bar_tests.exs:5"])
+
+        assert output =~ """
+               Excluding tags: [:test]
+               Including tags: [location: {"test/foo_tests.exs", 9}]
+               """
+
+        assert output =~ """
+               Excluding tags: [:test]
+               Including tags: [location: {"test/bar_tests.exs", 5}]
+               """
       end)
     end
   end

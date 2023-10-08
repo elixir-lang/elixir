@@ -6,6 +6,8 @@ defmodule ExUnit.Filters do
   """
 
   @type t :: list({atom, Regex.t() | String.Chars.t()} | atom)
+  @type location :: {:location, {String.t(), pos_integer | [pos_integer, ...]}}
+  @type ex_unit_opts :: [exclude: [:test], include: [location, ...]] | []
 
   @doc """
   Parses filters out of a path.
@@ -14,49 +16,62 @@ defmodule ExUnit.Filters do
   on the command line) includes a line number filter, and if so returns the
   appropriate ExUnit configuration options.
   """
-  @spec parse_path(String.t()) :: {String.t(), Keyword.t()}
-  def parse_path(file) do
-    case extract_line_numbers(file) do
-      {path, []} -> {path, []}
-      {path, line_numbers} -> {path, exclude: [:test], include: line_numbers}
+  @spec parse_path(String.t()) :: {String.t(), ex_unit_opts}
+  # TODO: Deprecate this on Elixir v1.20
+  def parse_path(file_path) do
+    {[parsed_path], ex_unit_opts} = parse_paths([file_path])
+    {parsed_path, ex_unit_opts}
+  end
+
+  @doc """
+  Like `parse_path/1` but for multiple paths.
+
+  ExUnit filter options are combined.
+  """
+  @spec parse_paths([String.t()]) :: {[String.t()], ex_unit_opts}
+  def parse_paths(file_paths) do
+    {parsed_paths, locations} =
+      Enum.map_reduce(file_paths, [], fn file_path, locations ->
+        case extract_line_numbers(file_path) do
+          {path, []} -> {path, locations}
+          {path, [line]} -> {path, [{:location, {path, line}} | locations]}
+          {path, lines} -> {path, [{:location, {path, lines}} | locations]}
+        end
+      end)
+
+    ex_unit_opts =
+      if locations == [], do: [], else: [exclude: [:test], include: Enum.reverse(locations)]
+
+    {parsed_paths, ex_unit_opts}
+  end
+
+  @spec extract_path(String.t()) :: String.t()
+  def extract_path(file_path), do: elem(extract_line_numbers(file_path), 0)
+
+  defp extract_line_numbers(file_path) do
+    case String.split(file_path, ":") do
+      [path] ->
+        {path, []}
+
+      [path | parts] ->
+        {path_parts, line_numbers} = Enum.split_while(parts, &(to_line_number(&1) == nil))
+        path = Enum.join([path | path_parts], ":")
+        lines = for n <- line_numbers, valid_number = validate_line_number(n), do: valid_number
+        {path, lines}
     end
   end
 
-  defp extract_line_numbers(file) do
-    case String.split(file, ":") do
-      [part] ->
-        {part, []}
-
-      parts ->
-        {reversed_line_numbers, reversed_path_parts} =
-          parts
-          |> Enum.reverse()
-          |> Enum.split_while(&match?({_, ""}, Integer.parse(&1)))
-
-        line_numbers =
-          for line_number <- reversed_line_numbers,
-              valid_line_number?(line_number),
-              reduce: [],
-              do: (acc -> [line: line_number] ++ acc)
-
-        path =
-          reversed_path_parts
-          |> Enum.reverse()
-          |> Enum.join(":")
-
-        {path, line_numbers}
+  defp to_line_number(str) do
+    case Integer.parse(str) do
+      {x, ""} when x > 0 -> x
+      _ -> nil
     end
   end
 
-  defp valid_line_number?(arg) do
-    case Integer.parse(arg) do
-      {num, ""} when num > 0 ->
-        true
-
-      _ ->
-        IO.warn("invalid line number given as ExUnit filter: #{arg}", [])
-        false
-    end
+  defp validate_line_number(str) do
+    number = to_line_number(str)
+    number == nil && IO.warn("invalid line number given as ExUnit filter: #{str}", [])
+    number
   end
 
   @doc """
@@ -199,11 +214,19 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:line, line}, %{line: _, describe_line: describe_line} = tags, collection) do
+  defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, collection) do
+    if path && not String.ends_with?(tags.file, path) do
+      false
+    else
+      List.wrap(lines) |> Enum.any?(&has_tag({:line, &1}, tags, collection))
+    end
+  end
+
+  defp has_tag({:line, line}, %{line: _, describe_line: _} = tags, collection) do
     line = to_integer(line)
 
     cond do
-      describe_line == line ->
+      tags.describe_line == line ->
         true
 
       describe_block?(line, collection) ->
