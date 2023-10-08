@@ -17,6 +17,7 @@ defmodule ExUnit.Filters do
   appropriate ExUnit configuration options.
   """
   @spec parse_path(String.t()) :: {String.t(), ex_unit_opts}
+  # TODO: Deprecate this on Elixir v1.20
   def parse_path(file_path) do
     {[parsed_path], ex_unit_opts} = parse_paths([file_path])
     {parsed_path, ex_unit_opts}
