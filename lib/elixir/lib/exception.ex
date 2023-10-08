@@ -666,30 +666,18 @@ defmodule Exception do
   end
 
   @doc """
-  Receives an anonymous function (or function name) with an arity and
-  formats it as shown in stacktraces.
-
-  The arity may also be a list of arguments.
+  Receives an anonymous function and arity and formats it as
+  shown in stacktraces. The arity may also be a list of arguments.
 
   ## Examples
 
       Exception.format_fa(fn -> nil end, 1)
       #=> "#Function<...>/1"
 
-      iex> Exception.format_fa(:foo, 2)
-      "foo/2"
-
-      iex> Exception.format_fa(:foo, [:bar, 3])
-      "foo(:bar, 3)"
-
   """
-  @spec format_fa(fun | atom, arity) :: String.t()
+  @spec format_fa(fun, arity) :: String.t()
   def format_fa(fun, arity) when is_function(fun) do
     "#{inspect(fun)}#{format_arity(arity)}"
-  end
-
-  def format_fa(fun, arity) when is_atom(fun) do
-    "#{Macro.inspect_atom(:remote_call, fun)}#{format_arity(arity)}"
   end
 
   @doc """
@@ -1589,7 +1577,7 @@ defmodule UndefinedFunctionError do
   end
 
   defp message(:"undefined local", nil, function, arity) do
-    formatted_fun = Exception.format_fa(function, arity)
+    "nil." <> formatted_fun = Exception.format_mfa(nil, function, arity)
     {"function #{formatted_fun} is undefined (there is no such import)", false}
   end
 
