@@ -1579,8 +1579,7 @@ defmodule UndefinedFunctionError do
   end
 
   defp message(:"undefined local", nil, function, arity) do
-    "nil." <> formatted_fun = Exception.format_mfa(nil, function, arity)
-    {"function #{formatted_fun} is undefined (there is no such import)", :no_hint}
+    {"function #{function}/#{arity} is undefined (there is no such import)", :no_hint}
   end
 
   defp message(reason, module, function, arity) do
