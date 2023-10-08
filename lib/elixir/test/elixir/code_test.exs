@@ -338,6 +338,21 @@ defmodule CodeTest do
                {[{{:x, :foo}, 2}], [x: :foo]}
     end
 
+    if :erlang.system_info(:otp_release) >= ~c"25" do
+      test "undefined function" do
+        env = Code.env_for_eval(__ENV__)
+        quoted = quote do: foo()
+
+        assert_exception(
+          UndefinedFunctionError,
+          ["** (UndefinedFunctionError) function foo/0 is undefined (there is no such import)"],
+          fn ->
+            Code.eval_quoted_with_env(quoted, [], env)
+          end
+        )
+      end
+    end
+
     defmodule Tracer do
       def trace(event, env) do
         send(self(), {:trace, event, env})

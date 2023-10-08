@@ -359,7 +359,8 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
         end,
 
       ExternalHandler = eval_external_handler(NewE),
-      {value, Value, NewBinding} = erl_eval:exprs(Exprs, ErlBinding, none, ExternalHandler),
+      LocalHandler = eval_local_handler(NewE),
+      {value, Value, NewBinding} = erl_eval:exprs(Exprs, ErlBinding, LocalHandler, ExternalHandler),
       PruneBefore = if Prune -> length(Binding); true -> -1 end,
 
       {DumpedBinding, DumpedVars} =
@@ -370,8 +371,20 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
 
 %% TODO: Remove conditional once we require Erlang/OTP 25+.
 -if(?OTP_RELEASE >= 25).
+eval_local_handler(#{function := Function}) when Function /= nil ->
+  Handler = fun(FunName, Args) ->
+    {current_stacktrace, Stack} =
+          erlang:process_info(self(), current_stacktrace),
+    Opts = [{module, nil}, {function, FunName}, {arity, length(Args)},
+      {reason, 'undefined local'}],
+    Exception = 'Elixir.UndefinedFunctionError':exception(Opts),
+    erlang:raise(error, Exception, Stack)
+  end,
+  {value, Handler};
+eval_local_handler(_Env) ->
+  none.
 eval_external_handler(Env) ->
-  Fun = fun(Ann, FunOrModFun, Args) ->
+  Handler = fun(Ann, FunOrModFun, Args) ->
     try
       case FunOrModFun of
         {Mod, Fun} -> apply(Mod, Fun, Args);
@@ -415,7 +428,7 @@ eval_external_handler(Env) ->
         erlang:raise(Kind, Reason, Custom)
     end
   end,
-  {value, Fun}.
+  {value, Handler}.
 
 %% We need to check if we have dropped any frames.
 %% If we have not dropped frames, then we need to drop one
@@ -428,6 +441,8 @@ drop_common([], [{?MODULE, _, _, _} | T2], _ToDrop) -> T2;
 drop_common([], [_ | T2], true) -> T2;
 drop_common([], T2, _) -> T2.
 -else.
+eval_local_handler(_Env) ->
+  none.
 eval_external_handler(_Env) ->
   none.
 -endif.
