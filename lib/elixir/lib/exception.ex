@@ -1541,7 +1541,7 @@ defmodule UndefinedFunctionError do
   @impl true
   def message(%{message: nil} = exception) do
     %{reason: reason, module: module, function: function, arity: arity} = exception
-    {message, _loaded?} = message(reason, module, function, arity)
+    {message, _hint_type} = message(reason, module, function, arity)
     message
   end
 
@@ -1552,11 +1552,11 @@ defmodule UndefinedFunctionError do
   defp message(nil, module, function, arity) do
     cond do
       is_nil(function) or is_nil(arity) ->
-        {"undefined function", false}
+        {"undefined function", :suggest_module}
 
       is_nil(module) ->
         formatted_fun = Exception.format_mfa(module, function, arity)
-        {"function #{formatted_fun} is undefined", false}
+        {"function #{formatted_fun} is undefined", :suggest_module}
 
       function_exported?(module, :module_info, 0) ->
         message(:"function not exported", module, function, arity)
@@ -1568,44 +1568,48 @@ defmodule UndefinedFunctionError do
 
   defp message(:"module could not be loaded", module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
-    {"function #{formatted_fun} is undefined (module #{inspect(module)} is not available)", false}
+
+    {"function #{formatted_fun} is undefined (module #{inspect(module)} is not available)",
+     :suggest_module}
   end
 
   defp message(:"function not exported", module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
-    {"function #{formatted_fun} is undefined or private", true}
+    {"function #{formatted_fun} is undefined or private", :suggest_function}
   end
 
   defp message(:"undefined local", nil, function, arity) do
     "nil." <> formatted_fun = Exception.format_mfa(nil, function, arity)
-    {"function #{formatted_fun} is undefined (there is no such import)", false}
+    {"function #{formatted_fun} is undefined (there is no such import)", :no_hint}
   end
 
   defp message(reason, module, function, arity) do
     formatted_fun = Exception.format_mfa(module, function, arity)
-    {"function #{formatted_fun} is undefined (#{reason})", false}
+    {"function #{formatted_fun} is undefined (#{reason})", :suggest_module}
   end
 
   @impl true
   def blame(exception, stacktrace) do
     %{reason: reason, module: module, function: function, arity: arity} = exception
-    {message, loaded?} = message(reason, module, function, arity)
-    message = message <> hint(module, function, arity, loaded?)
+    {message, hint_type} = message(reason, module, function, arity)
+    message = message <> hint(module, function, arity, hint_type)
     {%{exception | message: message}, stacktrace}
   end
 
-  defp hint(nil, _function, 0, _loaded?) do
+  defp hint(_, _, _, :no_hint), do: ""
+
+  defp hint(nil, _function, 0, _hint_type) do
     ". If you are using the dot syntax, such as module.function(), " <>
       "make sure the left-hand side of the dot is a module atom"
   end
 
-  defp hint(module, function, arity, true) do
+  defp hint(module, function, arity, :suggest_function) do
     behaviour_hint(module, function, arity) <>
       hint_for_loaded_module(module, function, arity, nil)
   end
 
   @max_suggestions 5
-  defp hint(module, function, arity, _loaded?) do
+  defp hint(module, function, arity, :suggest_module) do
     downcased_module = downcase_module_name(module)
     stripped_module = module |> Atom.to_string() |> String.replace_leading("Elixir.", "")
 
