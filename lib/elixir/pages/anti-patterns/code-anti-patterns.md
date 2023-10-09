@@ -371,11 +371,11 @@ There are few known exceptions to this anti-pattern:
 
   * If you are the maintainer for both `plug` and `plug_auth`, then you may allow `plug_auth` to define modules with the `Plug` namespace, such as `Plug.Auth`. However, you are responsible for avoiding or managing any conflicts that may arise in the future
 
-## Non-existent map keys
+## Non-assertive map access
 
 #### Problem
 
-In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When the keys are known upfront, they must be accessed using the `map.key` notation, instead of `map[:key]`. When the latter is used, if the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has no bound value. In this way, this anti-pattern may cause bugs in the code.
+In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When the keys are known upfront, they must be accessed using the `map.key` notation, which asserts the key exists. If `map[:key]` is used and the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has a bound `nil` value. In this way, this anti-pattern may cause bugs in the code.
 
 #### Example
 
@@ -477,11 +477,15 @@ iex> point[:x] # <= by default, struct does not support dynamic access
 ** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
 ```
 
-## Speculative assumptions
+#### Additional remarks
+
+This anti-pattern was formerly known as [Accessing non-existent map/struct fields](https://github.com/lucasvegi/Elixir-Code-Smells#accessing-non-existent-mapstruct-fields).
+
+## Non-assertive pattern matching
 
 #### Problem
 
-Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, not propagating to the entire application. A supervisor will detect the failing process, report it, and possibly restart it. This means Elixir developers do not need to program defensively, making assumptions we have not really planned for, such as being able to return incorrect values instead of forcing a crash. These speculative assumptions can give a false impression that the code is working correctly.
+Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, and don't propagate to the entire application. A supervisor detects the failing process, reports it, and possibly restarts it. This anti-pattern arises when developers write defensive or imprecise code, capable of returning incorrect values which were not planned for, instead of programming in an assertive style through pattern matching and guards.
 
 #### Example
 
@@ -513,7 +517,7 @@ iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "univ
 
 #### Refactoring
 
-To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behaviour, shown below, will allow clients to decide how to handle these errors and will not give a false impression that the code is working correctly when unexpected values are extracted:
+To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behaviour, shown below, allows clients to decide how to handle these errors and doesn't give a false impression that the code is working correctly when unexpected values are extracted:
 
 ```elixir
 defmodule Extract do
@@ -541,4 +545,60 @@ iex> Extract.get_value("name=Lucas&university&lab=ASERG", "university")
   extract.ex:7: anonymous fn/2 in Extract.get_value/2 # <= left hand: [key, value] pair
 ```
 
-The goal is to promote an assertive style of programming where you handle the known cases. Once an unexpected scenario arises in production, you can decide to address it accordingly, based on the needs of the code using actual examples, or conclude the scenario is indeed expected and the exception is the desired choice.
+Elixir and pattern matching promote an assertive style of programming where you handle the known cases. Once an unexpected scenario arises, you can decide to address it accordingly based on practical examples, or conclude the scenario is indeed invalid and the exception is the desired choice.
+
+`case/2` is another important construct in Elixir that help us write assertive code, by matching on specific patterns. For example, if a function returns `{:ok, ...}` or `{:error, ...}`, prefer to explicitly match on both patterns:
+
+```elixir
+case some_function(arg) do
+  {:ok, value} -> # ...
+  {:error, _} -> # ...
+end
+```
+
+In particular, avoid matching solely on `_`, as shown below, as it is less clear in intent and it may hide bugs if `some_function/1` adds new return values in the future:
+
+```elixir
+case some_function(arg) do
+  {:ok, value} -> # ...
+  _ -> # ...
+end
+```
+
+#### Additional remarks
+
+This anti-pattern was formerly known as [Speculative assumptions](https://github.com/lucasvegi/Elixir-Code-Smells#speculative-assumptions).
+
+## Non-assertive truthiness
+
+#### Problem
+
+Elixir provides the concept of truthiness: `nil` and `false` are considered "falsy" and all other values are "truthy". Many constructs in the language, such as `&&/2`, `||/2`, and `!/1` handle truthy and falsy values. Using those operators is not an anti-pattern. However, using those operators when all operands are expected to be booleans, may be an anti-pattern.
+
+#### Example
+
+The simplest scenario where this anti-pattern manifests is in conditionals, such as:
+
+```elixir
+if is_binary(name) && is_integer(age) do
+  # ...
+else
+  # ...
+end
+```
+
+Given both operands of `&&/2` are booleans, the code is more generic than necessary, and potentially unclear.
+
+#### Refactoring
+
+To remove this anti-pattern, we can replace `&&/2`, `||/2`, and `!/1` by `and/2`, `or/2`, and `not/1` respectively. These operators assert at least their first argument is a boolean:
+
+```elixir
+if is_binary(name) or is_integer(age) do
+  # ...
+else
+  # ...
+end
+```
+
+This technique may be particularly important when working with Erlang code. Erlang does not have the concept of truthiness. It never returns `nil`, instead its functions may return `:error` or `:undefined` in places an Elixir developer would return `nil`. Therefore, to avoid accidentally interpreting `:undefined` or `:error` as a truthy value, you may prefer to use `and/2`, `or/2`, and `not/1` exclusively when interfacing with Erlang APIs.
