@@ -455,11 +455,15 @@ case some_function(arg) do
 end
 ```
 
+#### Additional remarks
+
+This anti-pattern was formerly known as [Speculative assumptions](https://github.com/lucasvegi/Elixir-Code-Smells#speculative-assumptions).
+
 ## Non-assertive truthiness
 
 #### Problem
 
-Elixir provides the concept of truthiness: where `nil` and `false` are considered "falsy" and all other values are "truthy". Many constructs in the language, such as `&&/2`, `||/2`, and `!/1` handle truthy and falsy values. Using those operators is not an anti-pattern. However, using those operators when all operands are expected to be booleans, may be an anti-pattern.
+Elixir provides the concept of truthiness: `nil` and `false` are considered "falsy" and all other values are "truthy". Many constructs in the language, such as `&&/2`, `||/2`, and `!/1` handle truthy and falsy values. Using those operators is not an anti-pattern. However, using those operators when all operands are expected to be booleans, may be an anti-pattern.
 
 #### Example
 
