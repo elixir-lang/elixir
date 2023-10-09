@@ -598,3 +598,6 @@ iex> point.z   # <= trying to access a non-existent key
 iex> point[:x] # <= by default, struct does not support dynamic access
 ** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
 ```
+
+#### Additional remarks
+This anti-pattern was formerly known as [Accessing non-existent map/struct fields](https://github.com/lucasvegi/Elixir-Code-Smells#accessing-non-existent-mapstruct-fields).
