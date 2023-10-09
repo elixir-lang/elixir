@@ -371,11 +371,11 @@ There are few known exceptions to this anti-pattern:
 
   * If you are the maintainer for both `plug` and `plug_auth`, then you may allow `plug_auth` to define modules with the `Plug` namespace, such as `Plug.Auth`. However, you are responsible for avoiding or managing any conflicts that may arise in the future
 
-## Non-assertive patterns
+## Non-assertive pattern matching
 
 #### Problem
 
-Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, not propagating to the entire application. A supervisor will detect the failing process, report it, and possibly restart it. This anti-pattern arises when developers write defensive or imprecise code, capable of returning incorrect values which were not planned for, instead of programming in an assertive style through pattern matching and guards.
+Overall, Elixir systems are composed of many supervised processes, so the effects of an error are localized to a single process, and don't propagate to the entire application. A supervisor detects the failing process, reports it, and possibly restarts it. This anti-pattern arises when developers write defensive or imprecise code, capable of returning incorrect values which were not planned for, instead of programming in an assertive style through pattern matching and guards.
 
 #### Example
 
@@ -407,7 +407,7 @@ iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "univ
 
 #### Refactoring
 
-To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behaviour, shown below, will allow clients to decide how to handle these errors and will not give a false impression that the code is working correctly when unexpected values are extracted:
+To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behaviour, shown below, allows clients to decide how to handle these errors and doesn't give a false impression that the code is working correctly when unexpected values are extracted:
 
 ```elixir
 defmodule Extract do
@@ -437,7 +437,7 @@ iex> Extract.get_value("name=Lucas&university&lab=ASERG", "university")
 
 Elixir and pattern matching promote an assertive style of programming where you handle the known cases. Once an unexpected scenario arises, you can decide to address it accordingly based on practical examples, or conclude the scenario is indeed invalid and the exception is the desired choice.
 
-`case/2` is another important construct in Elixir that help us write assertive code, by matching on specific patterns. For exmaple, if a function returns `{:ok, ...}` or `{:error, ...}`, prefer to explicitly match on both patterns:
+`case/2` is another important construct in Elixir that help us write assertive code, by matching on specific patterns. For example, if a function returns `{:ok, ...}` or `{:error, ...}`, prefer to explicitly match on both patterns:
 
 ```elixir
 case some_function(arg) do
