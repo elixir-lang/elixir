@@ -69,14 +69,22 @@ defmodule Mix.Task do
 
       @requirements ["app.config"]
 
-  Tasks typically depend on the `"app.config"` task, when they
-  need to access code from the current project with all apps
-  already configured, or the "app.start" task, when they also
-  need those apps to be already started:
+  A task will typically depend on one of the following tasks:
 
-      @requirements ["app.start"]
+    * "loadpaths" - this ensures dependencies are available
+      and compiled. If you are publishing a task as part of
+      a library to be used by others, and your task does not
+      need to interact with the user code in any way, this is
+      the recommended requirement
 
-  You can also run tasks directly with `run/2`.
+    * "app.config" - additionally compiles and loads the runtime
+      configuration for the current project. If you are creating
+      a task to be used within your application or as part of a
+      library, which must invoke or interact with the user code,
+      this is the minimum recommended requirement
+
+    * "app.start" - additionally starts the supervision tree of
+      the current project and its dependencies
 
   ### `@recursive`
 
