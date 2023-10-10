@@ -20,7 +20,7 @@
 
 ### In the new branch
 
-1. Set `CANONICAL=` in /Makefile
+1. Comment out `CANONICAL=` in /Makefile
 
 2. Update tables in /SECURITY.md and "Compatibility and Deprecations"
 
