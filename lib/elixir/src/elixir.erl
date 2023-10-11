@@ -11,6 +11,7 @@
 ]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
+-define(elixir_eval_env, {elixir, eval_env}).
 
 %% Top level types
 %% TODO: Remove char_list type on v2.0
@@ -357,8 +358,25 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
           _ -> [Erl]
         end,
 
-      ExternalHandler = eval_external_handler(NewE),
-      {value, Value, NewBinding} = erl_eval:exprs(Exprs, ErlBinding, none, ExternalHandler),
+      ExternalHandler = eval_external_handler(),
+
+      {value, Value, NewBinding} =
+        try
+          %% ?elixir_eval_env is used by the external handler.
+          %%
+          %% The reason why we use the process dictionary to pass the environment
+          %% is because we want to avoid passing closures to erl_eval, as that
+          %% would effectively tie the eval code to the Elixir version and it is
+          %% best if it depends solely on Erlang/OTP.
+          %%
+          %% The downside is that functions that escape the eval context will no
+          %% longer have the original environment they came from.
+          erlang:put(?elixir_eval_env, NewE),
+          erl_eval:exprs(Exprs, ErlBinding, none, ExternalHandler)
+        after
+          erlang:erase(?elixir_eval_env)
+        end,
+
       PruneBefore = if Prune -> length(Binding); true -> -1 end,
 
       {DumpedBinding, DumpedVars} =
@@ -369,52 +387,62 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
 
 %% TODO: Remove conditional once we require Erlang/OTP 25+.
 -if(?OTP_RELEASE >= 25).
-eval_external_handler(Env) ->
-  Fun = fun(Ann, FunOrModFun, Args) ->
-    try
-      case FunOrModFun of
-        {Mod, Fun} -> apply(Mod, Fun, Args);
-        Fun -> apply(Fun, Args)
-      end
-    catch
-      Kind:Reason:Stacktrace ->
-        %% Take everything up to the Elixir module
-        Pruned =
-          lists:takewhile(fun
-            ({elixir,_,_,_}) -> false;
-            (_) -> true
-          end, Stacktrace),
+  eval_external_handler() -> {value, fun eval_external_handler/3}.
+-else.
+  eval_external_handler() -> none.
+-endif.
 
-        Caller =
-          lists:dropwhile(fun
-            ({elixir,_,_,_}) -> false;
-            (_) -> true
-          end, Stacktrace),
-
-        %% Now we prune any shared code path from erl_eval
-        {current_stacktrace, Current} =
-          erlang:process_info(self(), current_stacktrace),
-
-        %% We need to make sure that we don't generate more
-        %% frames than supported. So we do our best to drop
-        %% from the Caller, but if the caller has no frames,
-        %% we need to drop from Pruned.
-        {DroppedCaller, ToDrop} =
-          case Caller of
-            [] -> {[], true};
-            _ -> {lists:droplast(Caller), false}
-          end,
-
-        Reversed = drop_common(lists:reverse(Current), lists:reverse(Pruned), ToDrop),
-        File = elixir_utils:characters_to_list(?key(Env, file)),
-        Location = [{file, File}, {line, erl_anno:line(Ann)}],
-
-        %% Add file+line information at the bottom
-        Custom = lists:reverse([{elixir_eval, '__FILE__', 1, Location} | Reversed], DroppedCaller),
-        erlang:raise(Kind, Reason, Custom)
+eval_external_handler(Ann, FunOrModFun, Args) ->
+  try
+    case FunOrModFun of
+      {Mod, Fun} -> apply(Mod, Fun, Args);
+      Fun -> apply(Fun, Args)
     end
-  end,
-  {value, Fun}.
+  catch
+    Kind:Reason:Stacktrace ->
+      %% Take everything up to the Elixir module
+      Pruned =
+        lists:takewhile(fun
+          ({elixir,_,_,_}) -> false;
+          (_) -> true
+        end, Stacktrace),
+
+      Caller =
+        lists:dropwhile(fun
+          ({elixir,_,_,_}) -> false;
+          (_) -> true
+        end, Stacktrace),
+
+      %% Now we prune any shared code path from erl_eval
+      {current_stacktrace, Current} =
+        erlang:process_info(self(), current_stacktrace),
+
+      %% We need to make sure that we don't generate more
+      %% frames than supported. So we do our best to drop
+      %% from the Caller, but if the caller has no frames,
+      %% we need to drop from Pruned.
+      {DroppedCaller, ToDrop} =
+        case Caller of
+          [] -> {[], true};
+          _ -> {lists:droplast(Caller), false}
+        end,
+
+      Reversed = drop_common(lists:reverse(Current), lists:reverse(Pruned), ToDrop),
+
+      %% Add file+line information at the bottom
+      Bottom =
+        case erlang:get(?elixir_eval_env) of
+          #{file := File} ->
+            [{elixir_eval, '__FILE__', 1,
+             [{file, elixir_utils:characters_to_list(File)}, {line, erl_anno:line(Ann)}]}];
+
+          _ ->
+            []
+        end,
+
+      Custom = lists:reverse(Bottom ++ Reversed, DroppedCaller),
+      erlang:raise(Kind, Reason, Custom)
+  end.
 
 %% We need to check if we have dropped any frames.
 %% If we have not dropped frames, then we need to drop one
@@ -426,10 +454,6 @@ drop_common([_ | T1], T2, ToDrop) -> drop_common(T1, T2, ToDrop);
 drop_common([], [{?MODULE, _, _, _} | T2], _ToDrop) -> T2;
 drop_common([], [_ | T2], true) -> T2;
 drop_common([], T2, _) -> T2.
--else.
-eval_external_handler(_Env) ->
-  none.
--endif.
 
 %% Converts a quoted expression to Erlang abstract format
 
