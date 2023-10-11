@@ -190,6 +190,7 @@ compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
       end),
 
     Autoload andalso code:load_binary(Module, beam_location(ModuleAsCharlist), Binary),
+    put_compiler_modules(CompilerModules),
     eval_callbacks(Line, DataBag, after_compile, [CallbackE, Binary], CallbackE),
     elixir_env:trace({on_module, Binary, none}, ModuleE),
     warn_unused_attributes(DataSet, DataBag, PersistedAttributes, E),

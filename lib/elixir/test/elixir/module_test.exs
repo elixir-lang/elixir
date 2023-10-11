@@ -18,8 +18,10 @@ defmodule ModuleTest.ToBeUsed do
 
   defmacro __after_compile__(%Macro.Env{module: ModuleTest.ToUse} = env, bin)
            when is_binary(bin) do
+    # Ensure module is not longer tracked as being loaded
+    false = __MODULE__ in :elixir_module.compiler_modules()
     [] = Macro.Env.vars(env)
-    # IO.puts "HELLO"
+    :ok
   end
 
   defmacro callback(env) do
@@ -33,7 +35,7 @@ end
 
 defmodule ModuleTest.ToUse do
   # Moving the next line around can make tests fail
-  36 = __ENV__.line
+  38 = __ENV__.line
   var = 1
   # Not available in callbacks
   _ = var
@@ -147,7 +149,7 @@ defmodule ModuleTest do
   end
 
   test "retrieves line from use callsite" do
-    assert ModuleTest.ToUse.line() == 41
+    assert ModuleTest.ToUse.line() == 43
   end
 
   ## Callbacks
