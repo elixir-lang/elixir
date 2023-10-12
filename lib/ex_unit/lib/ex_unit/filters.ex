@@ -142,7 +142,6 @@ defmodule ExUnit.Filters do
     end)
   end
 
-  defp parse_kv(:line, line) when is_integer(line), do: {:line, line}
   defp parse_kv(:line, line) when is_binary(line), do: {:line, String.to_integer(line)}
   defp parse_kv(:location, loc) when is_binary(loc), do: {:location, extract_line_numbers(loc)}
   defp parse_kv(key, value), do: {key, value}
