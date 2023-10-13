@@ -210,7 +210,7 @@ iex> time_zone
 As hinted at the beginning of this chapter, sigils in Elixir are extensible. In fact, using the sigil `~r/foo/i` is equivalent to calling `sigil_r` with a binary and a char list as the argument:
 
 ```elixir
-iex> sigil_r(<<"foo">>, ~c"i")
+iex> sigil_r(<<"foo">>, [?i])
 ~r"foo"i
 ```
 
