@@ -162,6 +162,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      The tasks must trap exits for the timeout to have an effect.
 
   """
   @spec async(Supervisor.supervisor(), (-> any), Keyword.t()) :: Task.t()
@@ -183,6 +184,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      The tasks must trap exits for the timeout to have an effect.
 
   """
   @spec async(Supervisor.supervisor(), module, atom, [term], Keyword.t()) :: Task.t()
@@ -208,6 +210,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      The tasks must trap exits for the timeout to have an effect.
 
   ## Compatibility with OTP behaviours
 
@@ -337,6 +340,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the tasks must be killed directly on shutdown
       or an integer indicating the timeout value. Defaults to `5000` milliseconds.
+      The tasks must trap exits for the timeout to have an effect.
 
   ## Examples
 
@@ -455,6 +459,7 @@ defmodule Task.Supervisor do
 
     * `:shutdown` - `:brutal_kill` if the task must be killed directly on shutdown
       or an integer indicating the timeout value, defaults to 5000 milliseconds.
+      The task must trap exits for the timeout to have an effect.
 
   """
   @spec start_child(Supervisor.supervisor(), (-> any), keyword) ::
