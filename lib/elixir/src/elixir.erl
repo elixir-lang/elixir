@@ -387,10 +387,7 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
 
 %% TODO: Remove conditional once we require Erlang/OTP 25+.
 -if(?OTP_RELEASE >= 25).
-  eval_external_handler() -> {value, fun eval_external_handler/3}.
--else.
-  eval_external_handler() -> none.
--endif.
+eval_external_handler() -> {value, fun eval_external_handler/3}.
 
 eval_external_handler(Ann, FunOrModFun, Args) ->
   try
@@ -454,6 +451,9 @@ drop_common([_ | T1], T2, ToDrop) -> drop_common(T1, T2, ToDrop);
 drop_common([], [{?MODULE, _, _, _} | T2], _ToDrop) -> T2;
 drop_common([], [_ | T2], true) -> T2;
 drop_common([], T2, _) -> T2.
+-else.
+  eval_external_handler() -> none.
+-endif.
 
 %% Converts a quoted expression to Erlang abstract format
 
