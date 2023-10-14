@@ -7,7 +7,7 @@
 -export([
   string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
   env_for_eval/1, quoted_to_erl/2, eval_forms/3, eval_quoted/3,
-  eval_quoted/4
+  eval_quoted/4, eval_local_handler/2, eval_external_handler/3
 ]).
 -include("elixir.hrl").
 -define(system, 'Elixir.System').
@@ -359,7 +359,7 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
           _ -> [Erl]
         end,
 
-      LocalHandler = {value, fun eval_local_handler/2},
+      LocalHandler = {value, fun ?MODULE:eval_local_handler/2},
       ExternalHandler = eval_external_handler(),
 
       {value, Value, NewBinding} =
@@ -395,7 +395,7 @@ eval_local_handler(FunName, Args) ->
 
 %% TODO: Remove conditional once we require Erlang/OTP 25+.
 -if(?OTP_RELEASE >= 25).
-eval_external_handler() -> {value, fun eval_external_handler/3}.
+eval_external_handler() -> {value, fun ?MODULE:eval_external_handler/3}.
 
 eval_external_handler(Ann, FunOrModFun, Args) ->
   try
