@@ -361,7 +361,7 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
 
       %% We use remote names so eval works across Elixir versions.
       LocalHandler = {value, fun ?MODULE:eval_local_handler/2},
-      ExternalHandler = {value, fun ?MODULE:eval_external_handler/3},
+      ExternalHandler = eval_external_handler(),
 
       {value, Value, NewBinding} =
         try
@@ -396,6 +396,9 @@ eval_local_handler(FunName, Args) ->
 
 %% TODO: Remove conditional once we require Erlang/OTP 25+.
 -if(?OTP_RELEASE >= 25).
+eval_external_handler() ->
+  {value, fun ?MODULE:eval_external_handler/3}.
+
 eval_external_handler(Ann, FunOrModFun, Args) ->
   try
     case FunOrModFun of
@@ -459,11 +462,8 @@ drop_common([], [{?MODULE, _, _, _} | T2], _ToDrop) -> T2;
 drop_common([], [_ | T2], true) -> T2;
 drop_common([], T2, _) -> T2.
 -else.
-eval_external_handler(_Ann, FunOrModFun, Args) ->
-  case FunOrModFun of
-    {Mod, Fun} -> apply(Mod, Fun, Args);
-    Fun -> apply(Fun, Args)
-  end.
+eval_external_handler() -> none.
+eval_external_handler(_Ann, _FunOrModFun, _Args) -> error(unused).
 -endif.
 
 %% Converts a quoted expression to Erlang abstract format
