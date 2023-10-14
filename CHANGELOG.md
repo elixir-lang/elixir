@@ -117,6 +117,24 @@ in the long term.
 See the new `Logger` documentation for more information on the
 new features and on compatibility.
 
+## v1.15.7 (2023-10-14)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Elixir] Allow code evaluation across Elixir versions
+
+### 2. Bug fixes
+
+#### EEx
+
+  * [EEx] Do not emit duplicate warnings from tokenizer
+
+#### Mix
+
+  * [mix format] Correctly match file to subdirectory in `Mix.Tasks.Format.formatter_for_file/2`
+
 ## v1.15.6 (2023-09-20)
 
 This release also includes fixes to the Windows installer.
