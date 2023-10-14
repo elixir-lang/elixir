@@ -51,6 +51,8 @@ error: function names should start with lowercase characters or underscore, inva
   └─ lib/sample.ex:3
 ```
 
+A huge thank you to Vinícius Muller for working on the new diagnostics.
+
 ## Revamped documentation
 
 TODO: Guides, diagrams, anti-patterns, cheatsheets.
@@ -73,6 +75,10 @@ TODO: Guides, diagrams, anti-patterns, cheatsheets.
   * [Macro] Add `Macro.compile_apply/4`
   * [String] Update to Unicode 15.1.0
 
+#### Mix
+
+  * [mix test] Allow testing multiple file:line at once, such as `mix test test/foo_test.exs:13 test/bar_test.exs:27`
+
 ### 2. Bug fixes
 
 #### Elixir
@@ -81,6 +87,7 @@ TODO: Guides, diagrams, anti-patterns, cheatsheets.
   * [Kernel] Do not expand aliases recursively (the alias stored in Macro.Env is already expanded)
   * [Kernel] Ensure `dbg` module is a compile-time dependency
   * [Kernel] Warn when a private function or macro uses `unquote/1` and the function/macro itself is unused
+  * [Kernel.ParallelCompiler] Consider a module has been defined in `@after_compile` callbacks to avoid deadlocks
   * [Path] Ensure `Path.relative_to/2` returns a relative path when the given argument does not share a common prefix with `cwd`
 
 #### ExUnit
@@ -91,6 +98,7 @@ TODO: Guides, diagrams, anti-patterns, cheatsheets.
 
 #### Elixir
 
+  * [File] Deprecate `File.stream!(file, options, line_or_bytes)` in favor of keeping the options as last argument, as in `File.stream!(file, line_or_bytes, options)`
   * [Kernel.ParallelCompiler] Deprecate `Kernel.ParallelCompiler.async/1` in favor of `Kernel.ParallelCompiler.pmap/2`
   * [Path] Deprecate `Path.safe_relative_to/2` in favor of `Path.safe_relative/2`
 
