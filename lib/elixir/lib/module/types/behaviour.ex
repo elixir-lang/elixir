@@ -259,7 +259,7 @@ defmodule Module.Types.Behaviour do
 
   defp known_callbacks(callbacks) do
     formatted_callbacks =
-      for {{name, arity}, {kind, module, _}} <- callbacks do
+      for {{name, arity}, list} <- callbacks, {kind, module, _} <- list do
         "\n  * " <> Exception.format_mfa(module, name, arity) <> " (#{format_definition(kind)})"
       end
 
