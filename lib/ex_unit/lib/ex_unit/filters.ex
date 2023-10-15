@@ -6,8 +6,8 @@ defmodule ExUnit.Filters do
   """
 
   @type t :: list({atom, Regex.t() | String.Chars.t()} | atom)
-  @type location :: {:location, {String.t(), pos_integer | [pos_integer, ...]}}
-  @type ex_unit_opts :: [exclude: [:test], include: [location, ...]] | []
+  @type file_lines :: {:file, {String.t(), pos_integer | [pos_integer, ...]}}
+  @type ex_unit_opts :: [exclude: [:test], include: [file_lines, ...]] | []
 
   @doc """
   Parses filters out of a path.
@@ -34,7 +34,7 @@ defmodule ExUnit.Filters do
       Enum.map_reduce(file_paths, [], fn file_path, locations ->
         case extract_line_numbers(file_path) do
           {path, []} -> {path, locations}
-          {path, lines} -> {path, [{:location, {path, lines}} | locations]}
+          {path, lines} -> {path, [{:file, {path, lines}} | locations]}
         end
       end)
 
@@ -143,7 +143,7 @@ defmodule ExUnit.Filters do
   end
 
   defp parse_kv(:line, line) when is_binary(line), do: {:line, String.to_integer(line)}
-  defp parse_kv(:location, loc) when is_binary(loc), do: {:location, extract_line_numbers(loc)}
+  defp parse_kv(:file, loc) when is_binary(loc), do: {:file, extract_line_numbers(loc)}
   defp parse_kv(key, value), do: {key, value}
 
   @doc """
@@ -218,7 +218,7 @@ defmodule ExUnit.Filters do
     end
   end
 
-  defp has_tag({:location, {path, lines}}, %{line: _, describe_line: _} = tags, collection) do
+  defp has_tag({:file, {path, lines}}, %{line: _, describe_line: _} = tags, collection) do
     String.ends_with?(tags.file, path) and
       lines |> List.wrap() |> Enum.any?(&has_tag({:line, &1}, tags, collection))
   end

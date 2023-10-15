@@ -444,7 +444,7 @@ defmodule Mix.Tasks.TestTest do
           ["test/a_test_stale.exs:2", "test/b_test_stale.exs:4"],
           """
           Excluding tags: [:test]
-          Including tags: [location: {"test/a_test_stale.exs", 2}, location: {"test/b_test_stale.exs", 4}]
+          Including tags: [file: {"test/a_test_stale.exs", 2}, file: {"test/b_test_stale.exs", 4}]
           """
         )
       end)
@@ -501,7 +501,7 @@ defmodule Mix.Tasks.TestTest do
         assert output =~ """
                ==> bar
                Excluding tags: [:test]
-               Including tags: [location: {"test/bar_tests.exs", 10}]
+               Including tags: [file: {"test/bar_tests.exs", 10}]
 
                .
                """
@@ -513,12 +513,12 @@ defmodule Mix.Tasks.TestTest do
 
         assert output =~ """
                Excluding tags: [:test]
-               Including tags: [location: {"test/foo_tests.exs", 9}]
+               Including tags: [file: {"test/foo_tests.exs", 9}]
                """
 
         assert output =~ """
                Excluding tags: [:test]
-               Including tags: [location: {"test/bar_tests.exs", 5}]
+               Including tags: [file: {"test/bar_tests.exs", 5}]
                """
       end)
     end

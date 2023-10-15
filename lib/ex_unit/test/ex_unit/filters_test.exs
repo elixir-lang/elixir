@@ -189,8 +189,8 @@ defmodule ExUnit.FiltersTest do
     assert ExUnit.Filters.parse(["run:true"]) == [run: "true"]
     assert ExUnit.Filters.parse(["run:test"]) == [run: "test"]
     assert ExUnit.Filters.parse(["line:9"]) == [line: 9]
-    assert ExUnit.Filters.parse(["location:foo.exs:9"]) == [location: {"foo.exs", 9}]
-    assert ExUnit.Filters.parse(["location:foo.exs:9:11"]) == [location: {"foo.exs", [9, 11]}]
+    assert ExUnit.Filters.parse(["file:foo.exs:9"]) == [file: {"foo.exs", 9}]
+    assert ExUnit.Filters.parse(["file:foo.exs:9:11"]) == [file: {"foo.exs", [9, 11]}]
   end
 
   test "file paths with line numbers" do
@@ -199,7 +199,7 @@ defmodule ExUnit.FiltersTest do
 
     for path <- [unix_path, windows_path] do
       assert ExUnit.Filters.parse_path("#{path}:123") ==
-               {path, [exclude: [:test], include: [location: {path, 123}]]}
+               {path, [exclude: [:test], include: [file: {path, 123}]]}
 
       assert ExUnit.Filters.parse_path(path) == {path, []}
 
@@ -207,19 +207,19 @@ defmodule ExUnit.FiltersTest do
                {"#{path}:123notreallyalinenumber123", []}
 
       assert ExUnit.Filters.parse_path("#{path}:123:456") ==
-               {path, [exclude: [:test], include: [location: {path, [123, 456]}]]}
+               {path, [exclude: [:test], include: [file: {path, [123, 456]}]]}
 
       assert ExUnit.Filters.parse_path("#{path}:123notalinenumber123:456") ==
                {"#{path}:123notalinenumber123",
-                [exclude: [:test], include: [location: {"#{path}:123notalinenumber123", 456}]]}
+                [exclude: [:test], include: [file: {"#{path}:123notalinenumber123", 456}]]}
 
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
           assert ExUnit.Filters.parse_path("#{path}:123:456notalinenumber456") ==
-                   {path, [{:exclude, [:test]}, {:include, [location: {path, 123}]}]}
+                   {path, [{:exclude, [:test]}, {:include, [file: {path, 123}]}]}
 
           assert ExUnit.Filters.parse_path("#{path}:123:0:-789:456") ==
-                   {path, [exclude: [:test], include: [location: {path, [123, 456]}]]}
+                   {path, [exclude: [:test], include: [file: {path, [123, 456]}]]}
         end)
 
       assert output =~ "invalid line number given as ExUnit filter: 456notalinenumber456"
@@ -242,14 +242,14 @@ defmodule ExUnit.FiltersTest do
                {[path, other_path],
                 [
                   exclude: [:test],
-                  include: [location: {other_path, [456, 789]}]
+                  include: [file: {other_path, [456, 789]}]
                 ]}
 
       assert ExUnit.Filters.parse_paths(["#{path}:123", "#{other_path}:456"]) ==
                {[path, other_path],
                 [
                   exclude: [:test],
-                  include: [location: {path, 123}, location: {other_path, 456}]
+                  include: [file: {path, 123}, file: {other_path, 456}]
                 ]}
 
       output =
@@ -262,8 +262,8 @@ defmodule ExUnit.FiltersTest do
                     [
                       exclude: [:test],
                       include: [
-                        location: {path, [123, 456]},
-                        location: {other_path, [321, 654]}
+                        file: {path, [123, 456]},
+                        file: {other_path, [321, 654]}
                       ]
                     ]}
         end)
