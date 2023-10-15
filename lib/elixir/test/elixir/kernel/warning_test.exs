@@ -1379,7 +1379,7 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:9: ",
-        "conflicting behaviours found. function foo/0 is required by Sample1 and Sample2 (in module Sample3)"
+        "conflicting behaviours found. Callback function foo/0 is defined by both Sample1 and Sample2 (in module Sample3)"
       ],
       """
       defmodule Sample1 do
@@ -1396,6 +1396,39 @@ defmodule Kernel.WarningTest do
       end
       """
     )
+  after
+    purge([Sample1, Sample2, Sample3])
+  end
+
+  test "conflicting behaviour (but one optional callback)" do
+    message =
+      capture_compile("""
+      defmodule Sample1 do
+        @callback foo :: term
+      end
+
+      defmodule Sample2 do
+        @callback foo :: term
+        @callback bar :: term
+        @optional_callbacks foo: 0
+      end
+
+      defmodule Sample3 do
+        @behaviour Sample1
+        @behaviour Sample2
+
+        @impl Sample1
+        def foo, do: 1
+        @impl Sample2
+        def bar, do: 2
+      end
+      """)
+
+    assert message =~
+             "conflicting behaviours found. Callback function foo/0 is defined by both Sample1 and Sample2 (in module Sample3)"
+
+    refute message =~ "module attribute @impl was not set"
+    refute message =~ "this behaviour does not specify such callback"
   after
     purge([Sample1, Sample2, Sample3])
   end
