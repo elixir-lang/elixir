@@ -1379,7 +1379,7 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "nofile:9: ",
-        "conflicting behaviours found. function foo/0 is required by Sample1 and Sample2 (in module Sample3)"
+        "conflicting behaviours found. Callback function foo/0 is defined by both Sample1 and Sample2 (in module Sample3)"
       ],
       """
       defmodule Sample1 do

@@ -302,9 +302,9 @@ defmodule Module.Types.Behaviour do
 
   def format_warning({:duplicate_behaviour, module, behaviour, conflict, kind, callback}) do
     [
-      "conflicting behaviours found. ",
+      "conflicting behaviours found. Callback ",
       format_definition(kind, callback),
-      " is required by ",
+      " is defined by both ",
       inspect(conflict),
       " and ",
       inspect(behaviour),
