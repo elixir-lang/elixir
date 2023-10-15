@@ -69,7 +69,7 @@ defmodule Module.Types.Behaviour do
 
     context =
       case context.callbacks do
-        %{^callback => {_kind, conflict, _optional?}} ->
+        %{^callback => [{_kind, conflict, _optional?} | _]} ->
           warn(
             context,
             {:duplicate_behaviour, context.module, behaviour, conflict, kind, callback}
@@ -79,11 +79,15 @@ defmodule Module.Types.Behaviour do
           context
       end
 
-    put_in(context.callbacks[callback], {kind, behaviour, original in optional_callbacks})
+    new_callback = {kind, behaviour, original in optional_callbacks}
+    callbacks = context.callbacks[callback] || []
+
+    put_in(context.callbacks[callback], [new_callback | callbacks])
   end
 
   defp check_callbacks(context, all_definitions) do
-    for {callback, {kind, behaviour, optional?}} <- context.callbacks,
+    for {callback, callbacks} <- context.callbacks,
+        {kind, behaviour, optional?} <- callbacks,
         reduce: context do
       context ->
         case :lists.keyfind(callback, 1, all_definitions) do
@@ -186,10 +190,10 @@ defmodule Module.Types.Behaviour do
   end
 
   defp behaviour_callbacks_for_impls([fa | tail], behaviour, callbacks) do
-    case callbacks[fa] do
-      {_, ^behaviour, _} ->
-        [{fa, behaviour} | behaviour_callbacks_for_impls(tail, behaviour, callbacks)]
-
+    with list when is_list(list) <- callbacks[fa],
+         true <- Enum.any?(list, &match?({_, ^behaviour, _}, &1)) do
+      [{fa, behaviour} | behaviour_callbacks_for_impls(tail, behaviour, callbacks)]
+    else
       _ ->
         behaviour_callbacks_for_impls(tail, behaviour, callbacks)
     end
@@ -201,8 +205,12 @@ defmodule Module.Types.Behaviour do
 
   defp callbacks_for_impls([fa | tail], callbacks) do
     case callbacks[fa] do
-      {_, behaviour, _} -> [{fa, behaviour} | callbacks_for_impls(tail, callbacks)]
-      nil -> callbacks_for_impls(tail, callbacks)
+      list when is_list(list) ->
+        Enum.map(list, fn {_, behaviour, _} -> {fa, behaviour} end) ++
+          callbacks_for_impls(tail, callbacks)
+
+      nil ->
+        callbacks_for_impls(tail, callbacks)
     end
   end
 
@@ -214,8 +222,11 @@ defmodule Module.Types.Behaviour do
   defp warn_missing_impls(context, impl_contexts, defs) do
     for {pair, kind, meta, _clauses} <- defs, kind in [:def, :defmacro], reduce: context do
       context ->
-        with {:ok, {_, behaviour, _}} <- Map.fetch(context.callbacks, pair),
-             true <- missing_impl_in_context?(meta, behaviour, impl_contexts) do
+        with {:ok, callbacks} <- Map.fetch(context.callbacks, pair),
+             {_, behaviour, _} <-
+               Enum.find(callbacks, fn {_, behaviour, _} ->
+                 missing_impl_in_context?(meta, behaviour, impl_contexts)
+               end) do
           warn(context, {:missing_impl, pair, kind, behaviour},
             line: :elixir_utils.get_line(meta)
           )
