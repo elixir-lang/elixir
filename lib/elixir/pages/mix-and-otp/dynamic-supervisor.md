@@ -1,4 +1,4 @@
-# DynamicSupervisor
+# Supervising dynamic children
 
 We have now successfully defined our supervisor which is automatically started (and stopped) as part of our application lifecycle.
 

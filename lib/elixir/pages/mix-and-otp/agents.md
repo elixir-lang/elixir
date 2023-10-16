@@ -1,4 +1,4 @@
-# Agent
+# Simple state management with agents
 
 In this guide, we will learn how to keep and share state between multiple entities. If you have previous programming experience, you may think of globally shared variables, but the model we will learn here is quite different. The next chapters will generalize the concepts introduced here.
 
@@ -21,7 +21,7 @@ We will explore most of these abstractions in this guide. Keep in mind that they
 
 Here, we will use agents, and create a module named `KV.Bucket`, responsible for storing our key-value entries in a way that allows them to be read and modified by other processes.
 
-## Agents
+## Agents 101
 
 `Agent`s are simple wrappers around state. If all you want from a process is to keep state, agents are a great fit. Let's start a `iex` session inside the project with:
 

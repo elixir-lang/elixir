@@ -1,4 +1,4 @@
-# Supervisor and application
+# Supervision trees and applications
 
 In the previous chapter about `GenServer`, we implemented `KV.Registry` to manage buckets. At some point, we started monitoring buckets so we were able to take action whenever a `KV.Bucket` crashed. Although the change was relatively small, it introduced a question which is frequently asked by Elixir developers: what happens when something fails?
 

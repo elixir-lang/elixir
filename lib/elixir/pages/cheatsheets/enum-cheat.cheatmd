@@ -307,7 +307,7 @@ iex> cart |> Enum.map(& &1.count) |> Enum.product()
 ## Sorting
 {: .col-2}
 
-### [`sort(enum, sorter \\\\ :asc)`](`Enum.sort/2`)
+### [`sort(enum, sorter \\ :asc)`](`Enum.sort/2`)
 
 ```elixir
 iex> cart |> Enum.map(& &1.fruit) |> Enum.sort()
@@ -318,7 +318,7 @@ iex> cart |> Enum.map(& &1.fruit) |> Enum.sort(:desc)
 
 When sorting structs, use `Enum.sort/2` with a module as sorter.
 
-### [`sort_by(enum, mapper, sorter \\\\ :asc)`](`Enum.sort_by/2`)
+### [`sort_by(enum, mapper, sorter \\ :asc)`](`Enum.sort_by/2`)
 
 ```elixir
 iex> Enum.sort_by(cart, & &1.count)
@@ -515,7 +515,7 @@ iex> Enum.uniq_by(cart, &String.last(&1.fruit))
 ## Indexing
 {: .col-2}
 
-### [`at(enum, index, default \\\\ nil)`](`Enum.at/2`)
+### [`at(enum, index, default \\ nil)`](`Enum.at/2`)
 
 ```elixir
 iex> Enum.at(cart, 0)
@@ -573,7 +573,7 @@ iex> Enum.with_index(cart, fn item, index ->
 ## Finding
 {: .col-2}
 
-### [`find(enum, default \\\\ nil, fun)`](`Enum.find/2`)
+### [`find(enum, default \\ nil, fun)`](`Enum.find/2`)
 
 ```elixir
 iex> Enum.find(cart, &(&1.fruit =~ "o"))
@@ -593,7 +593,7 @@ iex> Enum.find_index(cart, &(&1.fruit =~ "y"))
 nil
 ```
 
-### [`find_value(enum, default \\\\ nil, fun)`](`Enum.find_value/2`)
+### [`find_value(enum, default \\ nil, fun)`](`Enum.find_value/2`)
 
 ```elixir
 iex> Enum.find_value(cart, fn item ->
@@ -639,28 +639,28 @@ iex> Enum.group_by(cart, &String.last(&1.fruit), & &1.fruit)
 ## Joining & interspersing
 {: .col-2}
 
-### [`join(enum, joiner \\\\ "")`](`Enum.join/2`)
+### [`join(enum, joiner \\ "")`](`Enum.join/2`)
 
 ```elixir
 iex> Enum.join(["apple", "banana", "orange"], ", ")
 "apple, banana, orange"
 ```
 
-### [`map_join(enum, joiner \\\\ "", mapper)`](`Enum.map_join/3`)
+### [`map_join(enum, joiner \\ "", mapper)`](`Enum.map_join/3`)
 
 ```elixir
 iex> Enum.map_join(cart, ", ", & &1.fruit)
 "apple, banana, orange"
 ```
 
-### [`intersperse(enum, separator \\\\ "")`](`Enum.intersperse/2`)
+### [`intersperse(enum, separator \\ "")`](`Enum.intersperse/2`)
 
 ```elixir
 iex> Enum.intersperse(["apple", "banana", "orange"], ", ")
 ["apple", ", ", "banana", ", ", "orange"]
 ```
 
-### [`map_intersperse(enum, separator \\\\ "", mapper)`](`Enum.map_intersperse/3`)
+### [`map_intersperse(enum, separator \\ "", mapper)`](`Enum.map_intersperse/3`)
 
 ```elixir
 iex> Enum.map_intersperse(cart, ", ", & &1.fruit)
@@ -940,7 +940,7 @@ iex> Enum.chunk_every(cart, 2)
 ]
 ```
 
-### [`chunk_every(enum, count, step, leftover \\\\ [])`](`Enum.chunk_every/2`)
+### [`chunk_every(enum, count, step, leftover \\ [])`](`Enum.chunk_every/2`)
 
 ```elixir
 iex> Enum.chunk_every(cart, 2, 2, [:elements, :to_complete])
