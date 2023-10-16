@@ -4890,7 +4890,7 @@ defmodule Kernel do
 
     {expanded, with_alias} =
       with true <- is_atom(expanded),
-           {full, old, new} when new != nil <- alias_defmodule(alias, expanded, env) do
+           {full, old, new} <- alias_defmodule(alias, expanded, env) do
         # Expand the module considering the current environment/nesting
         meta = [defined: full, context: env.module] ++ alias_meta(alias)
         {full, {:alias, meta, [old, [as: new, warn: false]]}}
@@ -4955,6 +4955,10 @@ defmodule Kernel do
   defp expand_module_alias(other, env), do: Macro.expand(other, env)
 
   # defmodule Elixir.Alias
+  defp alias_defmodule({:__aliases__, _, [:"Elixir", _]}, _module, _env),
+    do: nil
+
+  # defmodule Elixir.Alias.Nested...
   defp alias_defmodule({:__aliases__, _, [:"Elixir", _ | _]}, module, _env),
     do: {module, module, nil}
 
