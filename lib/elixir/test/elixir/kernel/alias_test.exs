@@ -147,3 +147,34 @@ defmodule Macro.AliasTest.User do
     assert is_map(struct(Macro.AliasTest.User.Second, []).baz)
   end
 end
+
+defmodule Kernel.AliasNestingEnvTest do
+  use ExUnit.Case, async: true
+
+  alias Another.AliasEnv, warn: false
+
+  def aliases_before, do: __ENV__.aliases
+
+  defmodule Elixir.AliasEnv do
+    def aliases_nested, do: __ENV__.aliases
+  end
+
+  def aliases_after, do: __ENV__.aliases
+
+  test "keeps env after overriding nested Elixir module of the same name" do
+    assert aliases_before() == [
+             {Elixir.Nested, Kernel.AliasTest.Nested},
+             {Elixir.AliasEnv, Another.AliasEnv}
+           ]
+
+    assert Elixir.AliasEnv.aliases_nested() == [
+             {Elixir.Nested, Kernel.AliasTest.Nested},
+             {Elixir.AliasEnv, Another.AliasEnv}
+           ]
+
+    assert aliases_after() == [
+             {Elixir.Nested, Kernel.AliasTest.Nested},
+             {Elixir.AliasEnv, Another.AliasEnv}
+           ]
+  end
+end

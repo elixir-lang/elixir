@@ -4889,14 +4889,13 @@ defmodule Kernel do
     expanded = expand_module_alias(alias, env)
 
     {expanded, with_alias} =
-      case is_atom(expanded) do
-        true ->
-          # Expand the module considering the current environment/nesting
-          {full, old, new} = alias_defmodule(alias, expanded, env)
-          meta = [defined: full, context: env.module] ++ alias_meta(alias)
-          {full, {:alias, meta, [old, [as: new, warn: false]]}}
-
-        false ->
+      with true <- is_atom(expanded),
+           {full, old, new} when new != nil <- alias_defmodule(alias, expanded, env) do
+        # Expand the module considering the current environment/nesting
+        meta = [defined: full, context: env.module] ++ alias_meta(alias)
+        {full, {:alias, meta, [old, [as: new, warn: false]]}}
+      else
+        _ ->
           {expanded, nil}
       end
 
