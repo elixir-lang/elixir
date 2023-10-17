@@ -334,6 +334,16 @@ defmodule ModuleTest do
     assert Elixir.ModuleTest.NonAtomAlias.hello() == :world
   end
 
+  test "does not leak alias from Elixir root alias" do
+    defmodule Elixir.ModuleTest.ElixirRootAlias do
+      def hello, do: :world
+    end
+
+    refute __ENV__.aliases[Elixir.ModuleTest]
+    refute __ENV__.aliases[Elixir.ElixirRootAlias]
+    assert Elixir.ModuleTest.ElixirRootAlias.hello() == :world
+  end
+
   test "does not warn on captured underscored vars" do
     _unused = 123
 

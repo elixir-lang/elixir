@@ -4889,13 +4889,14 @@ defmodule Kernel do
     expanded = expand_module_alias(alias, env)
 
     {expanded, with_alias} =
-      case alias_defmodule(alias, expanded, env) do
-        {full, old, new} ->
+      case is_atom(expanded) do
+        true ->
+          {full, old, opts} = alias_defmodule(alias, expanded, env)
           # Expand the module considering the current environment/nesting
-          meta = [defined: full, context: env.module] ++ alias_meta(alias)
-          {full, {:alias, meta, [old, [as: new, warn: false]]}}
+          meta = [defined: full] ++ alias_meta(alias)
+          {full, {:require, meta, [old, opts]}}
 
-        nil ->
+        false ->
           {expanded, nil}
       end
 
@@ -4954,28 +4955,28 @@ defmodule Kernel do
 
   defp expand_module_alias(other, env), do: Macro.expand(other, env)
 
-  defp alias_defmodule(_raw, module, _env) when not is_atom(module), do: nil
-
   # defmodule Elixir.Alias
-  defp alias_defmodule({:__aliases__, _, [:"Elixir", _ | _]}, _module, _env), do: nil
+  defp alias_defmodule({:__aliases__, _, [:"Elixir", _ | _]}, module, _env),
+    do: {module, module, []}
 
   # defmodule Alias in root
-  defp alias_defmodule({:__aliases__, _, _}, _module, %{module: nil}), do: nil
+  defp alias_defmodule({:__aliases__, _, _}, module, %{module: nil}), do: {module, module, []}
 
   # defmodule Alias nested
   defp alias_defmodule({:__aliases__, _, [h | t]}, _module, env) when is_atom(h) do
     module = :elixir_aliases.concat([env.module, h])
     alias = String.to_atom("Elixir." <> Atom.to_string(h))
+    opts = [as: alias, warn: false]
 
     case t do
-      [] -> {module, module, alias}
-      _ -> {String.to_atom(Enum.join([module | t], ".")), module, alias}
+      [] -> {module, module, opts}
+      _ -> {String.to_atom(Enum.join([module | t], ".")), module, opts}
     end
   end
 
   # defmodule _
   defp alias_defmodule(_raw, module, _env) do
-    {module, module, nil}
+    {module, module, []}
   end
 
   defp module_var({name, kind}, meta) when is_atom(kind), do: {name, meta, kind}

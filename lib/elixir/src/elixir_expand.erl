@@ -84,11 +84,19 @@ expand({require, Meta, [Ref, Opts]}, S, E) ->
   {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
   {EOpts, ST, ET}  = expand_opts(Meta, require, [as, warn], no_alias_opts(Opts), SR, ER),
 
-  if
-    is_atom(ERef) ->
+  %% Add the alias to context_modules if defined is set.
+  %% This is used by defmodule in order to store the defined
+  %% module in context modules.
+  case lists:keyfind(defined, 1, Meta) of
+    {defined, Mod} when is_atom(Mod) ->
+      EA = ET#{context_modules := [Mod | ?key(ET, context_modules)]},
+      {ERef, ST, expand_alias(Meta, false, ERef, EOpts, EA)};
+
+    false when is_atom(ERef) ->
       elixir_aliases:ensure_loaded(Meta, ERef, ET),
       {ERef, ST, expand_require(Meta, ERef, EOpts, ET)};
-    true ->
+
+    false ->
       file_error(Meta, E, ?MODULE, {expected_compile_time_module, require, Ref})
   end;
 
@@ -982,29 +990,22 @@ expand_require(Meta, Ref, Opts, E) ->
   RE = E#{requires := ordsets:add_element(Ref, ?key(E, requires))},
   expand_alias(Meta, false, Ref, Opts, RE).
 
-expand_alias(Meta, IncludeByDefault, Ref, Opts, #{context_modules := Context} = E) ->
-  New = expand_as(lists:keyfind(as, 1, Opts), Meta, IncludeByDefault, Ref, E),
+expand_alias(Meta, IncludeByDefault, Ref, Opts, E) ->
+  case expand_as(lists:keyfind(as, 1, Opts), Meta, IncludeByDefault, Ref, E) of
+    {ok, New} ->
+      {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, Opts, E),
+      E#{aliases := Aliases, macro_aliases := MacroAliases};
 
-  %% Add the alias to context_modules if defined is set.
-  %% This is used by defmodule in order to store the defined
-  %% module in context modules.
-  NewContext =
-    case lists:keyfind(defined, 1, Meta) of
-      {defined, Mod} when is_atom(Mod) -> [Mod | Context];
-      false -> Context
-    end,
+    error ->
+      E
+  end.
 
-  {Aliases, MacroAliases} = elixir_aliases:store(Meta, New, Ref, Opts, E),
-  E#{aliases := Aliases, macro_aliases := MacroAliases, context_modules := NewContext}.
-
-expand_as({as, nil}, _Meta, _IncludeByDefault, Ref, _E) ->
-  Ref;
 expand_as({as, Atom}, Meta, _IncludeByDefault, _Ref, E) when is_atom(Atom), not is_boolean(Atom) ->
   case atom_to_list(Atom) of
     "Elixir." ++ ([FirstLetter | _] = Rest) when FirstLetter >= $A, FirstLetter =< $Z ->
       case string:tokens(Rest, ".") of
         [_] ->
-          Atom;
+          {ok, Atom};
         _ ->
           file_error(Meta, E, ?MODULE, {invalid_alias_for_as, nested_alias, Atom})
       end;
@@ -1015,10 +1016,10 @@ expand_as(false, Meta, IncludeByDefault, Ref, E) ->
   if
     IncludeByDefault ->
       case elixir_aliases:last(Ref) of
-        {ok, NewRef} -> NewRef;
+        {ok, NewRef} -> {ok, NewRef};
         error -> file_error(Meta, E, ?MODULE, {invalid_alias_module, Ref})
       end;
-    true -> Ref
+    true -> error
   end;
 expand_as({as, Other}, Meta, _IncludeByDefault, _Ref, E) ->
   file_error(Meta, E, ?MODULE, {invalid_alias_for_as, not_alias, Other}).
