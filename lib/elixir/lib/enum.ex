@@ -1493,6 +1493,9 @@ defmodule Enum do
       iex> Enum.into([a: 1, a: 2], %{})
       %{a: 2}
 
+      iex> Enum.into([a: 2], %{a: 1})
+      %{a: 2}
+
   """
   @spec into(Enumerable.t(), Collectable.t()) :: Collectable.t()
   def into(enumerable, collectable)
