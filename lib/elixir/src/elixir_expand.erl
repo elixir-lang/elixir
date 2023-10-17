@@ -68,10 +68,7 @@ expand({alias, Meta, [Ref, Opts]}, S, E) ->
   assert_no_match_or_guard_scope(Meta, "alias", S, E),
   {ERef, SR, ER} = expand_without_aliases_report(Ref, S, E),
   {EOpts, ST, ET} = expand_opts(Meta, alias, [as, warn], no_alias_opts(Opts), SR, ER),
-  case lists:member(ERef, ['Elixir.True', 'Elixir.False', 'Elixir.Nil']) of
-    true ->  elixir_errors:file_warn(Meta, E, ?MODULE, {commonly_mistaken_alias, Ref});
-    false -> ok
-  end,
+
   if
     is_atom(ERef) ->
       {ERef, ST, expand_alias(Meta, true, ERef, EOpts, ET)};
@@ -1036,6 +1033,12 @@ expand_without_aliases_report(Other, S, E) ->
 expand_aliases({'__aliases__', Meta, _} = Alias, S, E, Report) ->
   case elixir_aliases:expand_or_concat(Alias, E) of
     Receiver when is_atom(Receiver) ->
+      if
+        Receiver =:= 'Elixir.True'; Receiver =:= 'Elixir.False'; Receiver =:= 'Elixir.Nil' ->
+          elixir_errors:file_warn(Meta, E, ?MODULE, {commonly_mistaken_alias, Receiver});
+        true ->
+          ok
+      end,
       Report andalso elixir_env:trace({alias_reference, Meta, Receiver}, E),
       {Receiver, S, E};
 
