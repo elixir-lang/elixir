@@ -406,7 +406,7 @@ defmodule Access do
     Accessing a list by index is typically discouraged in Elixir, \
     instead we prefer to use the Enum module to manipulate lists \
     as a whole. If you really must mostify a list element by index, \
-    you can Access.at/1 or the functions in the List module\
+    you can Access.at/2 or the functions in the List module\
     """
   end
 
@@ -718,7 +718,7 @@ defmodule Access do
       ...> end)
       {"mary", [%{name: "john"}, %{name: "MARY"}]}
 
-  `at/1` can also be used to pop elements out of a list or
+  `at/2` can also be used to pop elements out of a list or
   a key inside of a list:
 
       iex> list = [%{name: "john"}, %{name: "mary"}]
@@ -742,7 +742,7 @@ defmodule Access do
   An error is raised if the accessed structure is not a list:
 
       iex> get_in(%{}, [Access.at(1)])
-      ** (RuntimeError) Access.at/1 expected a list, got: %{}
+      ** (RuntimeError) Access.at/2 expected a list, got: %{}
 
   """
   @spec at(integer, term) :: access_fun(data :: list, current_value :: term)
@@ -759,7 +759,7 @@ defmodule Access do
   end
 
   defp at(_op, data, _index, _next, _default) do
-    raise "Access.at/1 expected a list, got: #{inspect(data)}"
+    raise "Access.at/2 expected a list, got: #{inspect(data)}"
   end
 
   defp get_and_update_at([head | rest], 0, next, updates, _default_fun) do
@@ -788,7 +788,7 @@ defmodule Access do
   end
 
   @doc ~S"""
-  Same as `at/1` except that it raises `Enum.OutOfBoundsError`
+  Same as `at/2` except that it raises `Enum.OutOfBoundsError`
   if the given index is out of bounds.
 
   ## Examples
