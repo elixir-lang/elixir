@@ -808,6 +808,11 @@ defmodule IEx.Introspection do
   end
 
   defp print_doc(headings, types, format, doc, metadata) do
+    # It's possible for some of the headings to contain newline characters (`\n`), so in order to prevent it from
+    # breaking the output from `print_headings/2`, as `print_headings/2` tries to pad the whole heading, we first 
+    # split any heading containgin newline characters into multiple headings, that way each one is padded on its own.
+    headings = headings |> Enum.map(fn heading -> String.split(heading, "\n") end) |> List.flatten()
+
     doc = translate_doc(doc) || ""
     opts = IEx.Config.ansi_docs()
     IO.ANSI.Docs.print_headings(headings, opts)
