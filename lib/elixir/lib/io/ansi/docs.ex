@@ -50,6 +50,10 @@ defmodule IO.ANSI.Docs do
   """
   @spec print_headings([String.t()], keyword) :: :ok
   def print_headings(headings, options \\ []) do
+    # It's possible for some of the headings to contain newline characters (`\n`), so in order to prevent it from
+    # breaking the output from `print_headings/2`, as `print_headings/2` tries to pad the whole heading, we first split
+    # any heading containgin newline characters into multiple headings, that way each one is padded on its own.
+    headings = Enum.flat_map(headings, fn heading -> String.split(heading, "\n") end)
     options = Keyword.merge(default_options(), options)
     newline_after_block(options)
     width = options[:width]
