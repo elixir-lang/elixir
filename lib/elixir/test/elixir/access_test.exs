@@ -226,6 +226,10 @@ defmodule AccessTest do
       assert get_in(@test_list, [Access.at(-10)]) == nil
     end
 
+    test "returns 0 if index is out of bounds counting from the end" do
+      assert get_in(@test_list, [Access.at(-10, 0)]) == 0
+    end
+
     test "updates the element counting from the end if index is negative" do
       assert get_and_update_in(@test_list, [Access.at(-2)], fn prev ->
                {prev, :foo}
@@ -236,6 +240,12 @@ defmodule AccessTest do
       assert get_and_update_in(@test_list, [Access.at(-10)], fn prev ->
                {prev, :foo}
              end) == {nil, [1, 2, 3, 4, 5, 6]}
+    end
+
+    test "returns 0 and does not update if index is out of bounds" do
+      assert get_and_update_in(@test_list, [Access.at(-10, 0)], fn prev ->
+               {prev, :foo}
+             end) == {0, [1, 2, 3, 4, 5, 6]}
     end
   end
 

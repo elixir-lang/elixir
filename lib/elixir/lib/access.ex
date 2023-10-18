@@ -727,11 +727,13 @@ defmodule Access do
       iex> pop_in(list, [Access.at(0), :name])
       {"john", [%{}, %{name: "mary"}]}
 
-  When the index is out of bounds, `nil` is returned and the update function is never called:
+  When the index is out of bounds, default is returned and the update function is never called:
 
       iex> list = [%{name: "john"}, %{name: "mary"}]
       iex> get_in(list, [Access.at(10), :name])
       nil
+      iex> get_in(list, [Access.at(10, %{name: "meg"}), :name])
+      "meg"
       iex> get_and_update_in(list, [Access.at(10), :name], fn prev ->
       ...>   {prev, String.upcase(prev)}
       ...> end)
@@ -743,20 +745,20 @@ defmodule Access do
       ** (RuntimeError) Access.at/1 expected a list, got: %{}
 
   """
-  @spec at(integer) :: access_fun(data :: list, current_value :: term)
-  def at(index) when is_integer(index) do
-    fn op, data, next -> at(op, data, index, next) end
+  @spec at(integer, term) :: access_fun(data :: list, current_value :: term)
+  def at(index, default \\ nil) when is_integer(index) do
+    fn op, data, next -> at(op, data, index, next, default) end
   end
 
-  defp at(:get, data, index, next) when is_list(data) do
-    data |> Enum.at(index) |> next.()
+  defp at(:get, data, index, next, default) when is_list(data) do
+    data |> Enum.at(index, default) |> next.()
   end
 
-  defp at(:get_and_update, data, index, next) when is_list(data) do
-    get_and_update_at(data, index, next, [], fn -> nil end)
+  defp at(:get_and_update, data, index, next, default) when is_list(data) do
+    get_and_update_at(data, index, next, [], fn -> default end)
   end
 
-  defp at(_op, data, _index, _next) do
+  defp at(_op, data, _index, _next, _default) do
     raise "Access.at/1 expected a list, got: #{inspect(data)}"
   end
 
