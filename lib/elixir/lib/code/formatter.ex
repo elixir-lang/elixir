@@ -1622,24 +1622,29 @@ defmodule Code.Formatter do
   end
 
   defp insert_underscores(digits) do
+    byte_size = byte_size(digits)
+
     cond do
       digits =~ "_" ->
         digits
 
-      byte_size(digits) >= 6 ->
-        digits
-        |> String.to_charlist()
-        |> Enum.reverse()
-        |> Enum.chunk_every(3)
-        |> Enum.intersperse(~c"_")
-        |> List.flatten()
-        |> Enum.reverse()
-        |> List.to_string()
+      byte_size >= 6 ->
+        offset = rem(byte_size, 3)
+        {prefix, rest} = String.split_at(digits, offset)
+        do_insert_underscores(prefix, rest)
 
       true ->
         digits
     end
   end
+
+  defp do_insert_underscores(acc, ""), do: acc
+
+  defp do_insert_underscores("", <<next::binary-3, rest::binary>>),
+    do: do_insert_underscores(next, rest)
+
+  defp do_insert_underscores(acc, <<next::binary-3, rest::binary>>),
+    do: do_insert_underscores(<<acc::binary, "_", next::binary>>, rest)
 
   defp escape_heredoc(string, escape) do
     string = String.replace(string, escape, "\\" <> escape)
