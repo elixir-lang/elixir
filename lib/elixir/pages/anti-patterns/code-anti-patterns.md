@@ -594,7 +594,7 @@ Given both operands of `&&/2` are booleans, the code is more generic than necess
 To remove this anti-pattern, we can replace `&&/2`, `||/2`, and `!/1` by `and/2`, `or/2`, and `not/1` respectively. These operators assert at least their first argument is a boolean:
 
 ```elixir
-if is_binary(name) or is_integer(age) do
+if is_binary(name) and is_integer(age) do
   # ...
 else
   # ...
