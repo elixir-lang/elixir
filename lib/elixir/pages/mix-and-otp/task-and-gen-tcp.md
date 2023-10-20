@@ -284,7 +284,7 @@ In this case, the answer is yes: if the acceptor crashes, there is no need to cr
 
 However, there is still one concern left, which are the restart strategies. Tasks, by default, have the `:restart` value set to `:temporary`, which means they are not restarted. This is an excellent default for the connections started via the `Task.Supervisor`, as it makes no sense to restart a failed connection, but it is a bad choice for the acceptor. If the acceptor crashes, we want to bring the acceptor up and running again.
 
-Let's fix this. We know that for a child of shape `{Task, fun}`, Elixir will invoke `Task.child_spec(fun)` to retrieve the underlying child specification. Therefore, one might imagine that to change the `{Task, fun}` specificatio to have a `:restart` of `:permanent`, we would need to change the `Task` module. However, that's impossible to do, as the `Task` module is defined as part of Elixir's standard library (and even if it was possible, it is unlikely it would be a good idea).
+Let's fix this. We know that for a child of shape `{Task, fun}`, Elixir will invoke `Task.child_spec(fun)` to retrieve the underlying child specification. Therefore, one might imagine that to change the `{Task, fun}` specification to have a `:restart` of `:permanent`, we would need to change the `Task` module. However, that's impossible to do, as the `Task` module is defined as part of Elixir's standard library (and even if it was possible, it is unlikely it would be a good idea).
 Luckily, this can be done by using `Supervisor.child_spec/2`, which allows us to configure a child specification with new values. Let's rewrite `start/2` in `KVServer.Application` once more:
 
 ```elixir

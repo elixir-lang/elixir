@@ -79,7 +79,7 @@ iex> is_integer(2.0)
 false
 ```
 
-You can also use `is_float` or `is_number` to check, respectively, if an argument is an a float, or either an integer or float.
+You can also use `is_float` or `is_number` to check, respectively, if an argument is a float, or either an integer or float.
 
 ## Identifying functions and documentation
 
@@ -143,7 +143,7 @@ iex> true or raise("This error will never be raised")
 true
 ```
 
-Elixir also provides the concept of `nil`, to indicate the absence of a value, and a set of logical operators that also manipulate `nil`: `||/2`, `&&/2`, and `!/1`. For these operators, `false` and `nil` are considered "falsy", all other valuesare considered "truthy":
+Elixir also provides the concept of `nil`, to indicate the absence of a value, and a set of logical operators that also manipulate `nil`: `||/2`, `&&/2`, and `!/1`. For these operators, `false` and `nil` are considered "falsy", all other values are considered "truthy":
 
 ```elixir
 # or
