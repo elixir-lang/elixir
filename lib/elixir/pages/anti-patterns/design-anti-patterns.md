@@ -7,7 +7,7 @@ play within a codebase.
 
 #### Problem
 
-This anti-pattern refers to functions that receive options (typically as a *keyword list*) parameters that drastically change their return type. Because options are optional and sometimes set dynamically, if they also change the return type, it may be hard to understand what the function actually returns.
+This anti-pattern refers to functions that receive options (typically as a *keyword list* parameter) that drastically change their return type. Because options are optional and sometimes set dynamically, if they also change the return type, it may be hard to understand what the function actually returns.
 
 #### Example
 
@@ -170,7 +170,7 @@ end
 
 This is only possible because the `File` module provides APIs for reading files with tuples as results (`File.read/1`), as well as a version that raises an exception (`File.read!/1`). The bang (exclamation point) is effectively part of [Elixir's naming conventions](naming-conventions.html#trailing-bang-foo).
 
-Library authors are encouraged to follow the same practices. In practice, the bang variant is implemented on top of the non-raising version of the code. For example, `File.read/1` is implemented as:
+Library authors are encouraged to follow the same practices. In practice, the bang variant is implemented on top of the non-raising version of the code. For example, `File.read!/1` is implemented as:
 
 ```elixir
 def read!(path) do
@@ -184,7 +184,7 @@ def read!(path) do
 end
 ```
 
-A common practice followed by the community is to make the non-raising version to return `{:ok, result}` or `{:error, Exception.t}`. For example, an HTTP client may return `{:ok, %HTTP.Response{}}` on success cases and a `{:error, %HTTP.Error{}}` for failures, where `HTTP.Error` is [implemented as an exception](`Kernel.defexception/1`). This makes it convenient for anyone to raise an exception by simply calling `Kernel.raise/1`.
+A common practice followed by the community is to make the non-raising version return `{:ok, result}` or `{:error, Exception.t}`. For example, an HTTP client may return `{:ok, %HTTP.Response{}}` on success cases and `{:error, %HTTP.Error{}}` for failures, where `HTTP.Error` is [implemented as an exception](`Kernel.defexception/1`). This makes it convenient for anyone to raise an exception by simply calling `Kernel.raise/1`.
 
 ## Feature envy
 
@@ -280,7 +280,7 @@ end
 
 #### Problem
 
-This anti-pattern refers to a function that does not validate its parameters and propagates it to other functions, which can produce internal unexpected behavior. When an error is raised inside a function due to an invalid parameter value, it can be confusing for developers and make it harder to locate and fix the error.
+This anti-pattern refers to a function that does not validate its parameters and propagates them to other functions, which can produce internal unexpected behavior. When an error is raised inside a function due to an invalid parameter value, it can be confusing for developers and make it harder to locate and fix the error.
 
 #### Example
 
