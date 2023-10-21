@@ -110,7 +110,7 @@ def get_customer(customer_id) do
 end
 ```
 
-Both `http_customer_to_struct(customer_id, body)` and `http_error(status, body)` above contains the previous branches refactored into private functions.
+Both `http_customer_to_struct(customer_id, body)` and `http_error(status, body)` above contain the previous branches refactored into private functions.
 
 It is worth noting that this refactoring is trivial to perform in Elixir because clauses cannot define variables or otherwise affect their parent scope. Therefore, extracting any clause or branch to a private function is a matter of gathering all variables used in that branch and passing them as arguments to the new function.
 
@@ -118,7 +118,7 @@ It is worth noting that this refactoring is trivial to perform in Elixir because
 
 #### Problem
 
-This anti-pattern refers to `with` statements that flatten all its error clauses into a single complex `else` block. This situation is harmful to the code readability and maintainability because difficult to know from which clause the error value came.
+This anti-pattern refers to `with` statements that flatten all its error clauses into a single complex `else` block. This situation is harmful to the code readability and maintainability because it's difficult to know from which clause the error value came.
 
 #### Example
 
@@ -136,7 +136,7 @@ def open_decoded_file(path) do
 end
 ```
 
-In the code above, it is unclear how each pattern on the left side of `<-` relates to their error at the end. The more patterns in a `with`, the less clear the code gets, and the more likely unrelated failures will overlap each other.
+In the code above, it is unclear how each pattern on the left side of `<-` relates to their error at the end. The more patterns in a `with`, the less clear the code gets, and the more likely it is that unrelated failures will overlap each other.
 
 #### Refactoring
 
@@ -302,7 +302,7 @@ However, keep in mind using a module attribute or defining the atoms in the modu
 
 #### Problem
 
-In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point the function's interface becomes confusing and prone to errors during use.
+In a functional language like Elixir, functions tend to explicitly receive all inputs and return all relevant outputs, instead of relying on mutations or side-effects. As functions grow in complexity, the amount of arguments (parameters) they need to work with may grow, to a point where the function's interface becomes confusing and prone to errors during use.
 
 #### Example
 
