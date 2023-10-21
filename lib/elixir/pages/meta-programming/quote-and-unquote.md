@@ -40,7 +40,7 @@ iex> quote do: x
 {:x, [], Elixir}
 ```
 
-When quoting more complex expressions, we can see that the code is represented in such tuples, which are often nested inside each other in a structure resembling a tree. Many languages would call such representations an *Abstract Syntax Tree* (AST). Elixir calls them *quoted expressions*:
+When quoting more complex expressions, we can see that the code is represented in such tuples, which are often nested inside each other in a structure resembling a tree. Many languages would call such representations an [*Abstract Syntax Tree*](https://en.wikipedia.org/wiki/Abstract_syntax_tree) (AST). Elixir calls them *quoted expressions*:
 
 ```elixir
 iex> quote do: sum(1, 2 + 3, 4)
