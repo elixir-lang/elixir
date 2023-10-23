@@ -523,12 +523,14 @@ defmodule ModuleTest do
     in_module do
       def foo(a, b), do: a + b
 
-      assert {:v1, :def, _,
+      assert {:v1, :def, def_meta,
               [
-                {_, [{:a, _, nil}, {:b, _, nil}], [],
+                {clause_meta, [{:a, _, nil}, {:b, _, nil}], [],
                  {{:., _, [:erlang, :+]}, _, [{:a, _, nil}, {:b, _, nil}]}}
               ]} = Module.get_definition(__MODULE__, {:foo, 2})
 
+      assert [line: _, column: _] = Keyword.take(def_meta, [:line, :column])
+      assert [line: _, column: _] = Keyword.take(clause_meta, [:line, :column])
       assert {:v1, :def, _, []} = Module.get_definition(__MODULE__, {:foo, 2}, skip_clauses: true)
 
       assert Module.delete_definition(__MODULE__, {:foo, 2})

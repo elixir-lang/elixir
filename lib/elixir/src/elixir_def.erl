@@ -148,9 +148,14 @@ store_definition(Kind, HasNoUnquote, Call, Body, #{line := Line} = E) ->
   %% extract meta information like file and context.
   {_, Meta, _} = Call,
 
-  Context = case lists:keyfind(context, 1, Meta) of
-    {context, _} = ContextPair -> [ContextPair];
+  Column = case lists:keyfind(column, 1, Meta) of
+    {column, _} = ColumnPair -> [ColumnPair];
     _ -> []
+  end,
+
+  Context = case lists:keyfind(context, 1, Meta) of
+    {context, _} = ContextPair -> [ContextPair | Column];
+    _ -> Column
   end,
 
   Generated = case lists:keyfind(generated, 1, Meta) of
