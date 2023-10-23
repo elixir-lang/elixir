@@ -601,7 +601,7 @@ defmodule Kernel.WarningTest do
 
   test "unused function" do
     assert_warn_eval(
-      ["nofile:2: ", "function hello/0 is unused\n"],
+      ["nofile:2:8: ", "function hello/0 is unused\n"],
       """
       defmodule Sample1 do
         defp hello, do: nil
@@ -610,7 +610,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:2: ", "function hello/1 is unused\n"],
+      ["nofile:2:8: ", "function hello/1 is unused\n"],
       """
       defmodule Sample2 do
         defp hello(0), do: hello(1)
@@ -620,7 +620,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:4: ", "function c/2 is unused\n"],
+      ["nofile:4:8: ", "function c/2 is unused\n"],
       ~S"""
       defmodule Sample3 do
         def a, do: nil
@@ -632,7 +632,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3: ", "function b/2 is unused\n"],
+      ["nofile:3:8: ", "function b/2 is unused\n"],
       ~S"""
       defmodule Sample4 do
         def a, do: nil
@@ -643,7 +643,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3: ", "function b/0 is unused\n"],
+      ["nofile:3:8: ", "function b/0 is unused\n"],
       ~S"""
       defmodule Sample5 do
         def a, do: nil
@@ -658,9 +658,9 @@ defmodule Kernel.WarningTest do
   test "unused cyclic functions" do
     assert_warn_eval(
       [
-        "nofile:2: ",
+        "nofile:2:8: ",
         "function a/0 is unused\n",
-        "nofile:3: ",
+        "nofile:3:8: ",
         "function b/0 is unused\n"
       ],
       """
@@ -676,7 +676,7 @@ defmodule Kernel.WarningTest do
 
   test "unused macro" do
     assert_warn_eval(
-      ["nofile:2: ", "macro hello/0 is unused"],
+      ["nofile:2:13: ", "macro hello/0 is unused"],
       """
       defmodule Sample do
         defmacrop hello, do: nil
@@ -685,7 +685,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:2: ", "macro hello/0 is unused\n"],
+      ["nofile:2:13: ", "macro hello/0 is unused\n"],
       ~S"""
       defmodule Sample2 do
         defmacrop hello do
@@ -715,7 +715,7 @@ defmodule Kernel.WarningTest do
 
   test "unused default args" do
     assert_warn_eval(
-      ["nofile:3: ", "default values for the optional arguments in b/3 are never used"],
+      ["nofile:3:8: ", "default values for the optional arguments in b/3 are never used"],
       ~S"""
       defmodule Sample1 do
         def a, do: b(1, 2, 3)
@@ -726,7 +726,7 @@ defmodule Kernel.WarningTest do
 
     assert_warn_eval(
       [
-        "nofile:3: ",
+        "nofile:3:8: ",
         "the default value for the last optional argument in b/3 is never used"
       ],
       ~S"""
@@ -739,7 +739,7 @@ defmodule Kernel.WarningTest do
 
     assert_warn_eval(
       [
-        "nofile:3: ",
+        "nofile:3:8: ",
         "the default values for the last 2 optional arguments in b/4 are never used"
       ],
       ~S"""
@@ -758,7 +758,7 @@ defmodule Kernel.WarningTest do
            """) == ""
 
     assert_warn_eval(
-      ["nofile:3: ", "the default value for the last optional argument in b/3 is never used"],
+      ["nofile:3:8: ", "the default value for the last optional argument in b/3 is never used"],
       ~S"""
       defmodule Sample5 do
         def a, do: b(1, 2)
@@ -992,7 +992,7 @@ defmodule Kernel.WarningTest do
   test "late function heads" do
     assert_warn_eval(
       [
-        "nofile:4\n",
+        "nofile:4:7\n",
         "function head for def add/2 must come at the top of its direct implementation"
       ],
       """
@@ -1117,7 +1117,7 @@ defmodule Kernel.WarningTest do
     )
 
     assert_warn_eval(
-      ["nofile:3\n", message],
+      ["nofile:3:7\n", message],
       ~S"""
       defmodule Sample2 do
         def hello(_arg)
@@ -1145,7 +1145,7 @@ defmodule Kernel.WarningTest do
 
   test "unused with local with overridable" do
     assert_warn_eval(
-      ["nofile:3: ", "function world/0 is unused"],
+      ["nofile:3:8: ", "function world/0 is unused"],
       """
       defmodule Sample do
         def hello, do: world()
@@ -1516,7 +1516,7 @@ defmodule Kernel.WarningTest do
   test "ungrouped def name" do
     assert_warn_eval(
       [
-        "nofile:4\n",
+        "nofile:4:7\n",
         "clauses with the same name should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
       ],
       """
@@ -1534,7 +1534,7 @@ defmodule Kernel.WarningTest do
   test "ungrouped def name and arity" do
     assert_warn_eval(
       [
-        "nofile:4\n",
+        "nofile:4:7\n",
         "clauses with the same name and arity (number of arguments) should be grouped together, \"def foo/2\" was previously defined (nofile:2)"
       ],
       """
@@ -2006,7 +2006,7 @@ defmodule Kernel.WarningTest do
 
   test "catch comes before rescue in def" do
     assert_warn_eval(
-      ["nofile:2\n", ~s("catch" should always come after "rescue" in def)],
+      ["nofile:2:7\n", ~s("catch" should always come after "rescue" in def)],
       """
       defmodule Sample do
         def foo do
@@ -2052,7 +2052,7 @@ defmodule Kernel.WarningTest do
 
   test "unused private guard" do
     assert_warn_eval(
-      ["nofile:2: ", "macro foo/2 is unused\n"],
+      ["nofile:2:13: ", "macro foo/2 is unused\n"],
       """
       defmodule Sample do
         defguardp foo(bar, baz) when bar + baz
@@ -2173,7 +2173,7 @@ defmodule Kernel.WarningTest do
 
   test "def warns if only clause is else" do
     assert_warn_compile(
-      ["nofile:2\n", "\"else\" shouldn't be used as the only clause in \"def\""],
+      ["nofile:2:7\n", "\"else\" shouldn't be used as the only clause in \"def\""],
       """
       defmodule Sample do
         def foo do

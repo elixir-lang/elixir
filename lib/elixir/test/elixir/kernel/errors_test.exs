@@ -146,7 +146,7 @@ defmodule Kernel.ErrorsTest do
 
   test "function without definition" do
     assert_compile_error(
-      ["nofile:2: ", "implementation not provided for predefined def foo/0"],
+      ["nofile:2:7: ", "implementation not provided for predefined def foo/0"],
       ~c"""
       defmodule Kernel.ErrorsTest.FunctionWithoutDefition do
         def foo
@@ -174,7 +174,7 @@ defmodule Kernel.ErrorsTest do
 
   test "guard without definition" do
     assert_compile_error(
-      ["nofile:2: ", "implementation not provided for predefined defmacro foo/1"],
+      ["nofile:2:12: ", "implementation not provided for predefined defmacro foo/1"],
       ~c"""
       defmodule Kernel.ErrorsTest.GuardWithoutDefition do
         defguard foo(bar)
@@ -505,7 +505,7 @@ defmodule Kernel.ErrorsTest do
 
   test "function local conflict" do
     assert_compile_error(
-      ["nofile:3: ", "imported Kernel.&&/2 conflicts with local function"],
+      ["nofile:3:9: ", "imported Kernel.&&/2 conflicts with local function"],
       ~c"""
       defmodule Kernel.ErrorsTest.FunctionLocalConflict do
         def other, do: 1 && 2
@@ -611,7 +611,7 @@ defmodule Kernel.ErrorsTest do
   test "function definition with alias" do
     assert_compile_error(
       [
-        "nofile:2\n",
+        "nofile:2:7\n",
         "function names should start with lowercase characters or underscore, invalid name Bar"
       ],
       ~c"""
@@ -670,7 +670,7 @@ defmodule Kernel.ErrorsTest do
 
   test "def defmacro clause change" do
     assert_compile_error(
-      ["nofile:3\n", "defmacro foo/1 already defined as def in nofile:2"],
+      ["nofile:3:12\n", "defmacro foo/1 already defined as def in nofile:2"],
       ~c"""
       defmodule Kernel.ErrorsTest.DefDefmacroClauseChange do
         def foo(1), do: 1
@@ -692,7 +692,7 @@ defmodule Kernel.ErrorsTest do
 
   test "internal function overridden" do
     assert_compile_error(
-      ["nofile:2\n", "cannot define def __info__/1 as it is automatically defined by Elixir"],
+      ["nofile:2:7\n", "cannot define def __info__/1 as it is automatically defined by Elixir"],
       ~c"""
       defmodule Kernel.ErrorsTest.InternalFunctionOverridden do
         def __info__(_), do: []
@@ -858,13 +858,13 @@ defmodule Kernel.ErrorsTest do
   end
 
   test "function head with guard" do
-    assert_compile_error(["nofile:2: ", "missing :do option in \"def\""], ~c"""
+    assert_compile_error(["nofile:2:7: ", "missing :do option in \"def\""], ~c"""
     defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
       def foo(n) when is_number(n)
     end
     """)
 
-    assert_compile_error(["nofile:2: ", "missing :do option in \"def\""], ~c"""
+    assert_compile_error(["nofile:2:7: ", "missing :do option in \"def\""], ~c"""
     defmodule Kernel.ErrorsTest.BodyessFunctionWithGuard do
       def foo(n) when is_number(n), true
     end
@@ -873,7 +873,7 @@ defmodule Kernel.ErrorsTest do
 
   test "invalid args for function head" do
     assert_compile_error(
-      ["nofile:2: ", "only variables and \\\\ are allowed as arguments in function head."],
+      ["nofile:2:7: ", "only variables and \\\\ are allowed as arguments in function head."],
       ~c"""
       defmodule Kernel.ErrorsTest.InvalidArgsForBodylessClause do
         def foo(nil)

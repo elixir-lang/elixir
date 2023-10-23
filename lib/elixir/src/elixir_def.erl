@@ -138,29 +138,25 @@ store_definition(Kind, Key, Pos) ->
 store_definition(Kind, HasNoUnquote, Call, Body, #{line := Line} = E) ->
   {NameAndArgs, Guards} = elixir_utils:extract_guards(Call),
 
-  {Name, Args} = case NameAndArgs of
-    {N, _, A} when is_atom(N), is_atom(A) -> {N, []};
-    {N, _, A} when is_atom(N), is_list(A) -> {N, A};
+  {Name, Meta, Args} = case NameAndArgs of
+    {N, M, A} when is_atom(N), is_atom(A) -> {N, M, []};
+    {N, M, A} when is_atom(N), is_list(A) -> {N, M, A};
     _ -> elixir_errors:file_error([{line, Line}], E, ?MODULE, {invalid_def, Kind, NameAndArgs})
   end,
 
-  %% Now that we have verified the call format,
-  %% extract meta information like file and context.
-  {_, Meta, _} = Call,
-
-  Column = case lists:keyfind(column, 1, Meta) of
-    {column, _} = ColumnPair -> [ColumnPair];
+  Context = case lists:keyfind(context, 1, Meta) of
+    {context, _} = ContextPair -> [ContextPair];
     _ -> []
   end,
 
-  Context = case lists:keyfind(context, 1, Meta) of
-    {context, _} = ContextPair -> [ContextPair | Column];
-    _ -> Column
+  Column = case lists:keyfind(column, 1, Meta) of
+    {column, _} = ColumnPair -> [ColumnPair | Context];
+    _ -> Context
   end,
 
   Generated = case lists:keyfind(generated, 1, Meta) of
-    {generated, true} -> ?generated(Context);
-    _ -> Context
+    {generated, true} = GeneratedPair -> [GeneratedPair | Column];
+    _ -> Column
   end,
 
   CheckClauses = if
