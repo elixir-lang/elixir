@@ -356,29 +356,36 @@ defmodule Module.ParallelChecker do
 
   defp cache_module({server, ets}, module) do
     if lock(server, module) do
-      cache_from_chunk(ets, module) || cache_from_info(ets, module)
+      object_code = :code.get_object_code(module)
+
+      # The chunk has more information, so that's our preference
+      with {^module, binary, _filename} <- object_code,
+           {:ok, {^module, [{~c"ExCk", chunk}]}} <- :beam_lib.chunks(binary, [~c"ExCk"]),
+           {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
+        cache_chunk(ets, module, contents.exports)
+      else
+        _ ->
+          # Otherwise, if the module is loaded, use its info
+          case :erlang.module_loaded(module) do
+            true ->
+              {mode, exports} = info_exports(module)
+              deprecated = info_deprecated(module)
+              cache_info(ets, module, exports, deprecated, mode)
+
+            false ->
+              # Or load exports from chunk
+              with {^module, binary, _filename} <- object_code,
+                   {:ok, {^module, [exports: exports]}} <- :beam_lib.chunks(binary, [:exports]) do
+                exports = Map.new(Enum.map(exports, &{&1, :def}))
+                cache_info(ets, module, exports, %{}, :erlang)
+              else
+                _ ->
+                  :ets.insert(ets, {{:cached, module}, false})
+              end
+          end
+      end
+
       unlock(server, module)
-    end
-  end
-
-  defp cache_from_chunk(ets, module) do
-    with {^module, binary, _filename} <- :code.get_object_code(module),
-         {:ok, {^module, [{~c"ExCk", chunk}]}} <- :beam_lib.chunks(binary, [~c"ExCk"]),
-         {:elixir_checker_v1, contents} <- :erlang.binary_to_term(chunk) do
-      cache_chunk(ets, module, contents.exports)
-      true
-    else
-      _ -> false
-    end
-  end
-
-  defp cache_from_info(ets, module) do
-    if Code.ensure_loaded?(module) do
-      {mode, exports} = info_exports(module)
-      deprecated = info_deprecated(module)
-      cache_info(ets, module, exports, deprecated, mode)
-    else
-      :ets.insert(ets, {{:cached, module}, false})
     end
   end
 
