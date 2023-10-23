@@ -576,12 +576,18 @@ keynew(Key, Meta, Value) ->
 %% expressions, so we need to clean up the forms to
 %% allow them to get a new counter on the next expansion.
 
-annotate({Def, Meta, [{H, M, A} | T]}, Context) when ?defs(Def) ->
-  {Def, Meta, [{H, keystore(context, M, Context), A} | T]};
-annotate({{'.', _, [_, Def]} = Target, Meta, [{H, M, A} | T]}, Context) when ?defs(Def) ->
-  {Target, Meta, [{H, keystore(context, M, Context), A} | T]};
-
+annotate({Def, Meta, [H | T]}, Context) when ?defs(Def) ->
+  {Def, Meta, [annotate_def(H, Context) | T]};
+annotate({{'.', _, [_, Def]} = Target, Meta, [H | T]}, Context) when ?defs(Def) ->
+  {Target, Meta, [annotate_def(H, Context) | T]};
 annotate({Lexical, Meta, [_ | _] = Args}, Context) when ?lexical(Lexical) ->
   NewMeta = keystore(context, keydelete(counter, Meta), Context),
   {Lexical, NewMeta, Args};
 annotate(Tree, _Context) -> Tree.
+
+annotate_def({'when', Meta, [Left, Right]}, Context) ->
+  {'when', Meta, [annotate_def(Left, Context), Right]};
+annotate_def({Fun, Meta, Args}, Context) ->
+  {Fun, keystore(context, Meta, Context), Args};
+annotate_def(Other, _Context) ->
+  Other.
