@@ -1557,10 +1557,10 @@ defmodule DateTime do
   `t:System.time_unit/0`. It defaults to `:second`. Negative values
   will move backwards in time.
 
-  This function always consider the unit to be computed according
+  This function always considers the unit to be computed according
   to the `Calendar.ISO`.
 
-  This function uses relies on a contiguous representation of time,
+  This function relies on a contiguous representation of time,
   ignoring the wall time and timezone changes. For example, if you add
   one day when there are summer time/daylight saving time changes,
   it will also change the time forward or backward by one hour,
