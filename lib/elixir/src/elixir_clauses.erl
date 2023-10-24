@@ -382,7 +382,7 @@ format_error({bad_or_missing_clauses, Kind}) ->
   io_lib:format("expected -> clauses in \"~ts\"", [Kind]);
 
 format_error({duplicated_clauses, Kind, Key}) ->
-  io_lib:format("duplicated :~ts clauses given for \"~ts\"", [Key, Kind]);
+  io_lib:format("duplicate :~ts clauses given for \"~ts\"", [Key, Kind]);
 
 format_error({unexpected_option, Kind, Option}) ->
   io_lib:format("unexpected option ~ts in \"~ts\"", ['Elixir.Macro':to_string(Option), Kind]);

@@ -815,11 +815,11 @@ defmodule Enum do
 
   @doc """
   Enumerates the `enumerable`, returning a list where all consecutive
-  duplicated elements are collapsed to a single element.
+  duplicate elements are collapsed to a single element.
 
   Elements are compared using `===/2`.
 
-  If you want to remove all duplicated elements, regardless of order,
+  If you want to remove all duplicate elements, regardless of order,
   see `uniq/1`.
 
   ## Examples
@@ -848,7 +848,7 @@ defmodule Enum do
 
   @doc """
   Enumerates the `enumerable`, returning a list where all consecutive
-  duplicated elements are collapsed to a single element.
+  duplicate elements are collapsed to a single element.
 
   The function `fun` maps every element to a term which is used to
   determine if two elements are duplicates.
@@ -3725,7 +3725,7 @@ defmodule Enum do
   def to_list(enumerable), do: reverse(enumerable) |> :lists.reverse()
 
   @doc """
-  Enumerates the `enumerable`, removing all duplicated elements.
+  Enumerates the `enumerable`, removing all duplicate elements.
 
   ## Examples
 

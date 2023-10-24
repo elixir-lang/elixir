@@ -134,7 +134,7 @@ defmodule OptionParser do
   Switches can be specified with modifiers, which change how
   they behave. The following modifiers are supported:
 
-    * `:keep` - keeps duplicated elements instead of overriding them;
+    * `:keep` - keeps duplicate elements instead of overriding them;
       works with all types except `:count`. Specifying `switch_name: :keep`
       assumes the type of `:switch_name` will be `:string`.
 
