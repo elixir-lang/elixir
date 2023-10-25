@@ -2243,11 +2243,6 @@ defmodule Module do
     value
   end
 
-  defp valid_dialyzer_attribute?({key, fun_arities}) when is_atom(key) do
-    (key == :nowarn_function or valid_dialyzer_attribute?(key)) and
-      function_arity_list?(List.wrap(fun_arities))
-  end
-
   defp function_arity_list?(fun_arities) do
     is_list(fun_arities) and
       :lists.all(
@@ -2257,6 +2252,11 @@ defmodule Module do
         end,
         fun_arities
       )
+  end
+
+  defp valid_dialyzer_attribute?({key, fun_arities}) when is_atom(key) do
+    (key == :nowarn_function or valid_dialyzer_attribute?(key)) and
+      function_arity_list?(List.wrap(fun_arities))
   end
 
   defp valid_dialyzer_attribute?(attr) do
