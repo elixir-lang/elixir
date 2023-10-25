@@ -78,7 +78,9 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
   * [Code.Fragment] Handle anonymous calls in fragments
   * [Kernel] Suggest module names based on suffix and casing errors when the module does not exist in `UndefinedFunctionError`
   * [Kernel.ParallelCompiler] Introduce `Kernel.ParallelCompiler.pmap/2` to compile multiple additional entries in parallel
+  * [Kernel.SpecialForms] Warn if `True`/`False`/`Nil` are used as aliases and there is no such alias
   * [Macro] Add `Macro.compile_apply/4`
+  * [Module] Add support for `@nifs` annotation from Erlang/OTP 25
   * [String] Update to Unicode 15.1.0
 
 #### Mix
@@ -89,10 +91,12 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
 
 #### Elixir
 
+  * [Code.Fragment] Fix crash in `Code.Fragment.surround_context/2` when matching on `->`
   * [IO] Raise when using `IO.binwrite/2` on terminated device (mirroring `IO.write/2`)
   * [Kernel] Do not expand aliases recursively (the alias stored in Macro.Env is already expanded)
   * [Kernel] Ensure `dbg` module is a compile-time dependency
   * [Kernel] Warn when a private function or macro uses `unquote/1` and the function/macro itself is unused
+  * [Kernel] Do not define an alias for nested modules starting with `Elixir.` in their definition
   * [Kernel.ParallelCompiler] Consider a module has been defined in `@after_compile` callbacks to avoid deadlocks
   * [Path] Ensure `Path.relative_to/2` returns a relative path when the given argument does not share a common prefix with `cwd`
 
