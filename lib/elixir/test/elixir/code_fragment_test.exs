@@ -1050,6 +1050,9 @@ defmodule CodeFragmentTest do
                begin: {1, 5},
                end: {1, 6}
              }
+
+      # invalid
+      assert CF.surround_context("->", {1, 2}) == :none
     end
 
     test "sigil" do
