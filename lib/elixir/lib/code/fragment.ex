@@ -597,7 +597,8 @@ defmodule Code.Fragment do
                | {:dot, inside_dot, charlist}
                | {:module_attribute, charlist}
                | {:unquoted_atom, charlist}
-               | {:var, charlist},
+               | {:var, charlist}
+               | :expr,
              inside_alias:
                {:local_or_var, charlist}
                | {:module_attribute, charlist},
