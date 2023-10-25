@@ -489,7 +489,7 @@ defmodule Code.Fragment do
 
         cond do
           Code.Identifier.unary_op(op) == :error and Code.Identifier.binary_op(op) == :error ->
-            :none
+            {:none, 0}
 
           match?([?. | rest] when rest == [] or hd(rest) != ?., rest) ->
             dot(tl(rest), dot_count + 1, acc)
