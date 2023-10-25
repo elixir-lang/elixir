@@ -323,6 +323,12 @@ defmodule Module do
   Once this module is compiled, this information becomes available via
   the `Code.fetch_docs/1` function.
 
+  ### `@nifs` (since v1.16.0)
+
+  A list of functions and their arities which will be overridden
+  by a native implementation (NIF). See the Erlang documentation
+  for more information: https://www.erlang.org/doc/man/erl_nif
+
   ### `@on_definition`
 
   A hook that will be invoked when each function or macro in the current
@@ -2209,6 +2215,16 @@ defmodule Module do
     end
   end
 
+  defp preprocess_attribute(:nifs, value) do
+    unless function_arity_list?(value) do
+      raise ArgumentError,
+            "@nifs is a built-in module attribute for specifying a list " <>
+              "of functions and their arities that are NIFs, got: #{inspect(value)}"
+    end
+
+    value
+  end
+
   defp preprocess_attribute(:dialyzer, value) do
     # From https://github.com/erlang/otp/blob/master/lib/stdlib/src/erl_lint.erl
     :lists.foreach(
@@ -2229,12 +2245,17 @@ defmodule Module do
 
   defp valid_dialyzer_attribute?({key, fun_arities}) when is_atom(key) do
     (key == :nowarn_function or valid_dialyzer_attribute?(key)) and
+      function_arity_list?(List.wrap(fun_arities))
+  end
+
+  defp function_arity_list?(fun_arities) do
+    is_list(fun_arities) and
       :lists.all(
         fn
           {fun, arity} when is_atom(fun) and is_integer(arity) -> true
           _ -> false
         end,
-        List.wrap(fun_arities)
+        fun_arities
       )
   end
 

@@ -140,6 +140,9 @@ compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
         DialyzerAttribute = lists:keyfind(dialyzer, 1, Attributes),
         validate_dialyzer_attribute(DialyzerAttribute, AllDefinitions, Line, E),
 
+        NifsAttribute = lists:keyfind(nifs, 1, Attributes),
+        validate_nifs_attribute(NifsAttribute, AllDefinitions, Line, E),
+
         Unreachable = elixir_locals:warn_unused_local(Module, AllDefinitions, NewPrivate, E),
         elixir_locals:ensure_no_undefined_local(Module, AllDefinitions, E),
         elixir_locals:ensure_no_import_conflict(Module, AllDefinitions, E),
@@ -229,8 +232,8 @@ validate_compile_opt({inline, Inlines}, Defs, Unreachable, Line, E) ->
       [];
     {ok, FilteredInlines} ->
       [{inline, FilteredInlines}];
-    {error, Def} ->
-      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_inline, Def}),
+    {error, Reason} ->
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, Reason),
       []
   end;
 validate_compile_opt(Opt, Defs, Unreachable, Line, E) when is_list(Opt) ->
@@ -240,7 +243,10 @@ validate_compile_opt(Opt, _Defs, _Unreachable, _Line, _E) ->
 
 validate_inlines([Inline | Inlines], Defs, Unreachable, Acc) ->
   case lists:keyfind(Inline, 1, Defs) of
-    false -> {error, Inline};
+    false ->
+      {error, {undefined_function, {compile, inline}, Inline}};
+    {_Def, Type, _Meta, _Clauses} when Type == defmacro; Type == defmacrop ->
+      {error, {bad_macro, {compile, inline}, Inline}};
     _ ->
       case lists:member(Inline, Unreachable) of
         true -> validate_inlines(Inlines, Defs, Unreachable, Acc);
@@ -252,27 +258,36 @@ validate_inlines([], _Defs, _Unreachable, Acc) -> {ok, Acc}.
 validate_on_load_attribute({on_load, Def}, Defs, Private, Line, E) ->
   case lists:keyfind(Def, 1, Defs) of
     false ->
-      elixir_errors:module_error([{line, Line}], E, ?MODULE, {undefined_on_load, Def}),
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {undefined_function, on_load, Def}),
       Private;
-    {_, Kind, _, _} when Kind == def; Kind == defp ->
-      lists:keydelete(Def, 1, Private);
-    {_, WrongKind, _, _} ->
-      elixir_errors:module_error([{line, Line}], E, ?MODULE, {wrong_kind_on_load, Def, WrongKind}),
-      Private
+    {_Def, Type, _Meta, _Clauses} when Type == defmacro; Type == defmacrop ->
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_macro, on_load, Def}),
+      Private;
+    _ ->
+      lists:keydelete(Def, 1, Private)
   end;
 validate_on_load_attribute(false, _Defs, Private, _Line, _E) -> Private.
 
 validate_dialyzer_attribute({dialyzer, Dialyzer}, Defs, Line, E) ->
-  [case lists:keyfind(Fun, 1, Defs) of
-    false ->
-      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_dialyzer_no_def, Key, Fun});
-    {Fun, Type, _Meta, _Clauses} when Type == defmacro; Type == defmacrop ->
-      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_dialyzer_no_macro, Key, Fun});
-    _ ->
-      ok
-   end || {Key, Funs} <- lists:flatten([Dialyzer]), Fun <- lists:flatten([Funs])];
+  [validate_definition({dialyzer, Key}, Fun, Defs, Line, E)
+   || {Key, Funs} <- lists:flatten([Dialyzer]), Fun <- lists:flatten([Funs])];
 validate_dialyzer_attribute(false, _Defs, _Line, _E) ->
   ok.
+
+validate_nifs_attribute({nifs, Funs}, Defs, Line, E) ->
+  [validate_definition(nifs, Fun, Defs, Line, E) || Fun <- lists:flatten([Funs])];
+validate_nifs_attribute(false, _Defs, _Line, _E) ->
+  ok.
+
+validate_definition(Key, Fun, Defs, Line, E) ->
+  case lists:keyfind(Fun, 1, Defs) of
+    false ->
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {undefined_function, Key, Fun});
+    {Fun, Type, _Meta, _Clauses} when Type == defmacro; Type == defmacrop ->
+      elixir_errors:module_error([{line, Line}], E, ?MODULE, {bad_macro, Key, Fun});
+    _ ->
+      ok
+   end.
 
 defines_behaviour(DataBag) ->
   ets:member(DataBag, {accumulate, callback}) orelse ets:member(DataBag, {accumulate, macrocallback}).
@@ -374,7 +389,7 @@ build(Module, Line, File, E) ->
     {?counter_attr, 0}
   ]),
 
-  Persisted = [behaviour, on_load, external_resource, dialyzer, vsn],
+  Persisted = [behaviour, dialyzer, external_resource, on_load, vsn, nifs],
   ets:insert(DataBag, [{persisted_attributes, Attr} || Attr <- Persisted]),
 
   OnDefinition =
@@ -580,17 +595,14 @@ format_error({module_reserved, Module}) ->
 format_error({module_in_definition, Module, File, Line}) ->
   io_lib:format("cannot define module ~ts because it is currently being defined in ~ts:~B",
     [elixir_aliases:inspect(Module), elixir_utils:relative_to_cwd(File), Line]);
-format_error({bad_inline, {Name, Arity}}) ->
-  io_lib:format("inlined function ~ts/~B undefined", [Name, Arity]);
-format_error({bad_dialyzer_no_def, Key, {Name, Arity}}) ->
-  io_lib:format("undefined function ~ts/~B given to @dialyzer :~ts", [Name, Arity, Key]);
-format_error({bad_dialyzer_no_macro, Key, {Name, Arity}}) ->
-  io_lib:format("macro ~ts/~B given to @dialyzer :~ts (@dialyzer only supports function annotations)", [Name, Arity, Key]);
-format_error({undefined_on_load, {Name, Arity}}) ->
-  io_lib:format("undefined function ~ts/~B given to @on_load", [Name, Arity]);
-format_error({wrong_kind_on_load, {Name, Arity}, WrongKind}) ->
-  io_lib:format("expected @on_load function ~ts/~B to be a function, got \"~ts\"",
-                [Name, Arity, WrongKind]);
+format_error({undefined_function, {Attr, Key}, {Name, Arity}}) ->
+  io_lib:format("undefined function ~ts/~B given to @~ts :~ts", [Name, Arity, Attr, Key]);
+format_error({undefined_function, Attr, {Name, Arity}}) ->
+  io_lib:format("undefined function ~ts/~B given to @~ts", [Name, Arity, Attr]);
+format_error({bad_macro, {Attr, Key}, {Name, Arity}}) ->
+  io_lib:format("macro ~ts/~B given to @~ts :~ts (only functions are supported)", [Name, Arity, Attr, Key]);
+format_error({bad_macro, Attr, {Name, Arity}}) ->
+  io_lib:format("macro ~ts/~B given to @~ts (only functions are supported)", [Name, Arity, Attr]);
 format_error({parse_transform, Module}) ->
   io_lib:format("@compile {:parse_transform, ~ts} is deprecated. Elixir will no longer support "
                 "Erlang-based transforms in future versions", [elixir_aliases:inspect(Module)]).

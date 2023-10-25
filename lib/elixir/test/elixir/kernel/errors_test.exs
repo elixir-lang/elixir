@@ -771,11 +771,32 @@ defmodule Kernel.ErrorsTest do
                       ~c"Module.eval_quoted Record, quote(do: 1), [], file: __ENV__.file"
   end
 
-  test "@compile inline with undefined function" do
+  test "invalid @compile inline" do
     assert_compile_error(
-      ["nofile:1: ", "inlined function foo/1 undefined"],
+      ["nofile:1: ", "undefined function foo/1 given to @compile :inline"],
       ~c"defmodule Test do @compile {:inline, foo: 1} end"
     )
+
+    assert_compile_error(
+      ["nofile:1: ", "undefined function foo/1 given to @compile :inline"],
+      ~c"defmodule Test do @compile {:inline, foo: 1}; defmacro foo(_) end"
+    )
+  end
+
+  test "invalid @nifs attribute" do
+    assert_compile_error(
+      ["nofile:1: ", "undefined function foo/1 given to @nifs"],
+      ~c"defmodule Test do @nifs [foo: 1] end"
+    )
+
+    assert_compile_error(
+      ["nofile:1: ", "undefined function foo/1 given to @nifs"],
+      ~c"defmodule Test do @nifs [foo: 1]; defmacro foo(_) end"
+    )
+
+    assert_eval_raise ArgumentError,
+                      ["@nifs is a built-in module attribute"],
+                      ~c"defmodule Test do @nifs :not_an_option end"
   end
 
   test "invalid @dialyzer options" do
@@ -825,7 +846,7 @@ defmodule Kernel.ErrorsTest do
 
   test "wrong kind for @on_load attribute" do
     assert_compile_error(
-      ["nofile:1: ", "expected @on_load function foo/0 to be a function, got \"defmacro\""],
+      ["nofile:1: ", "macro foo/0 given to @on_load"],
       ~c"""
       defmodule PrivateOnLoadFunction do
         @on_load :foo
