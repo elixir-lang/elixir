@@ -42,8 +42,6 @@ defmodule Mix.Tasks.Compile do
       the paths set by the code loader from the `ERL_LIBS` environment as
       well as explicitely listed by providing `-pa` and `-pz` options
       to Erlang.
-
-
   ## Compilers
 
   To see documentation for each specific compiler, you must
