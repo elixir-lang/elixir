@@ -2266,7 +2266,9 @@ defmodule Module do
         [:no_match, :no_opaque, :no_fail_call, :no_contracts] ++
         [:no_behaviours, :no_undefined_callbacks, :unmatched_returns] ++
         [:error_handling, :race_conditions, :no_missing_calls] ++
-        [:specdiffs, :overspecs, :underspecs, :unknown, :no_underspecs]
+        [:specdiffs, :overspecs, :underspecs, :unknown, :no_underspecs] ++
+        [:extra_return, :no_extra_return, :no_missing_return] ++
+        [:missing_return, :no_unknown]
     )
   end
 
