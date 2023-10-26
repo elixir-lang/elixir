@@ -1109,7 +1109,8 @@ defmodule Task do
     * `{:ok, term}` if the task has successfully reported its
       result back in the given time interval
     * `{:exit, reason}` if the task has died
-    * `nil` if the task keeps running past the timeout
+    * `nil` if the task keeps running, either because a limit
+      has been reached or past the timeout
 
   Check `yield/2` for more information.
 
@@ -1162,6 +1163,10 @@ defmodule Task do
   The second argument is either a timeout or options, which defaults
   to this:
 
+    * `:limit` - the maximum amount of tasks to wait for.
+      If the limit is reached before the timeout, this function
+      returns immediately without triggering the `:on_timeout` behaviour
+
     * `:timeout` - the maximum amount of time (in milliseconds or `:infinity`)
       each task is allowed to execute for. Defaults to `5000`.
 
@@ -1173,7 +1178,11 @@ defmodule Task do
       * `:kill_task` - the task that timed out is killed.
   """
   @spec yield_many([t], timeout) :: [{t, {:ok, term} | {:exit, term} | nil}]
-  @spec yield_many([t], timeout: timeout, on_timeout: :nothing | :ignore | :kill_task) ::
+  @spec yield_many([t],
+          limit: pos_integer(),
+          timeout: timeout,
+          on_timeout: :nothing | :ignore | :kill_task
+        ) ::
           [{t, {:ok, term} | {:exit, term} | nil}]
   def yield_many(tasks, opts \\ [])
 
@@ -1182,9 +1191,6 @@ defmodule Task do
   end
 
   def yield_many(tasks, opts) when is_list(opts) do
-    on_timeout = Keyword.get(opts, :on_timeout, :nothing)
-    timeout = Keyword.get(opts, :timeout, 5_000)
-
     refs =
       Map.new(tasks, fn %Task{ref: ref, owner: owner} = task ->
         if owner != self() do
@@ -1194,6 +1200,9 @@ defmodule Task do
         {ref, nil}
       end)
 
+    on_timeout = Keyword.get(opts, :on_timeout, :nothing)
+    timeout = Keyword.get(opts, :timeout, 5_000)
+    limit = Keyword.get(opts, :limit, map_size(refs))
     timeout_ref = make_ref()
 
     timer_ref =
@@ -1202,16 +1211,17 @@ defmodule Task do
       end
 
     try do
-      yield_many(map_size(refs), refs, timeout_ref, timer_ref)
+      yield_many(limit, refs, timeout_ref, timer_ref)
     catch
       {:noconnection, reason} ->
         exit({reason, {__MODULE__, :yield_many, [tasks, timeout]}})
     else
-      refs ->
+      {timed_out?, refs} ->
         for task <- tasks do
           value =
             with nil <- Map.fetch!(refs, task.ref) do
               case on_timeout do
+                _ when not timed_out? -> nil
                 :nothing -> nil
                 :kill_task -> shutdown(task, :brutal_kill)
                 :ignore -> ignore(task)
@@ -1226,7 +1236,7 @@ defmodule Task do
   defp yield_many(0, refs, timeout_ref, timer_ref) do
     timer_ref && Process.cancel_timer(timer_ref)
     receive do: (^timeout_ref -> :ok), after: (0 -> :ok)
-    refs
+    {false, refs}
   end
 
   defp yield_many(limit, refs, timeout_ref, timer_ref) do
@@ -1243,7 +1253,7 @@ defmodule Task do
         end
 
       ^timeout_ref ->
-        refs
+        {true, refs}
     end
   end
 

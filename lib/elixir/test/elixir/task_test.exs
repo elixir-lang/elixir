@@ -601,6 +601,37 @@ defmodule TaskTest do
                [{task1, {:ok, :result}}, {task2, nil}, {task3, {:exit, :normal}}]
     end
 
+    test "returns results from multiple tasks with limit" do
+      task1 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task2 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+      task3 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
+
+      send(self(), {task1.ref, :result})
+      send(self(), {:DOWN, task3.ref, :process, self(), :normal})
+
+      assert Task.yield_many([task1, task2, task3], limit: 1, timeout: :infinity) ==
+               [{task1, {:ok, :result}}, {task2, nil}, {task3, nil}]
+
+      assert Task.yield_many([task2, task3], limit: 1, timeout: :infinity) ==
+               [{task2, nil}, {task3, {:exit, :normal}}]
+    end
+
+    test "returns results from multiple tasks with limit and on timeout" do
+      Process.flag(:trap_exit, true)
+      task1 = Task.async(fn -> Process.sleep(:infinity) end)
+      task2 = Task.async(fn -> :done end)
+
+      assert Task.yield_many([task1, task2], timeout: :infinity, on_timeout: :kill_task, limit: 1) ==
+               [{task1, nil}, {task2, {:ok, :done}}]
+
+      assert Process.alive?(task1.pid)
+
+      assert Task.yield_many([task1], timeout: 0, on_timeout: :kill_task, limit: 1) ==
+               [{task1, nil}]
+
+      refute Process.alive?(task1.pid)
+    end
+
     test "returns results on infinity timeout" do
       task1 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
       task2 = %Task{ref: make_ref(), owner: self(), pid: nil, mfa: {__MODULE__, :test, 1}}
