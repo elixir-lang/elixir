@@ -242,7 +242,7 @@ This refactoring is only possible when you own both modules. If the module you a
 
 #### Problem
 
-This anti-pattern happens when Elixir basic types (for example, *integer*, *float*, and *string*) are abusively used in function parameters and code variables, rather than creating specific composite data types (for example, *tuples* and *structs*) that can better represent a domain.
+This anti-pattern happens when Elixir basic types (for example, *integer*, *float*, and *string*) are abusively used in function parameters and code variables, rather than creating specific composite data types (for example, *tuples*, *maps*, and *structs*) that can better represent a domain.
 
 #### Example
 
@@ -260,7 +260,7 @@ Another example of this anti-pattern is using floating numbers to model money an
 
 #### Refactoring
 
-We can create an `Address` struct to remove this anti-pattern, better representing this domain through a composite type. Additionally, we can modify the `process_address/1` function to accept a parameter of type `Address` instead of a *string*. With this modification, we can extract each field of this composite type individually when needed.
+Possible solutions to this anti-pattern is to use maps or structs to model our address. The example below creates an `Address` struct, better representing this domain through a composite type. Additionally, we can modify the `process_address/1` function to accept a parameter of type `Address` instead of a *string*. With this modification, we can extract each field of this composite type individually when needed.
 
 ```elixir
 defmodule Address do
