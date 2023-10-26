@@ -375,7 +375,7 @@ There are few known exceptions to this anti-pattern:
 
 #### Problem
 
-In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When the keys are known upfront, they must be accessed using the `map.key` notation, which asserts the key exists. If `map[:key]` is used and the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has a bound `nil` value. In this way, this anti-pattern may cause bugs in the code.
+In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When a key is expected to exist in the map, it must be accessed using the `map.key` notation, which asserts the key exists. If `map[:key]` is used and the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has a bound `nil` value. In this way, this anti-pattern may cause bugs in the code.
 
 #### Example
 
@@ -407,7 +407,7 @@ As can be seen in the example above, even when the key `:z` does not exist in th
 
 #### Refactoring
 
-To remove this anti-pattern, whenever accessing a known key of `Atom` type, replace the dynamic `map[:key]` syntax by the static `map.key` notation. This way, when a non-existent key is accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
+To remove this anti-pattern, whenever accessing an existing key of `Atom` type in the map, replace the dynamic `map[:key]` syntax by the static `map.key` notation. This way, when a non-existent key is accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
 
 ```elixir
 defmodule Graphics do
@@ -457,7 +457,7 @@ iex> Graphics.plot(point_3d)
 {5, 6, nil}
 ```
 
-Another alternative is to use structs. By default, structs only support static access to its fields, promoting cleaner patterns:
+Another alternative is to use structs. By default, structs only support static access to its fields:
 
 ```elixir
 defmodule Point.2D do
@@ -476,6 +476,8 @@ iex> point.z   # <= trying to access a non-existent key
 iex> point[:x] # <= by default, struct does not support dynamic access
 ** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
 ```
+
+Generally speaking, structs are useful when sharing data structures across modules, at the cost of adding a compile time dependency between these modules. If module `A` uses a struct defined in module `B`, `A` must be recompiled if the fields in the struct `B` change.
 
 #### Additional remarks
 
