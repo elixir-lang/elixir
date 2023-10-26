@@ -35,6 +35,15 @@ defmodule Mix.Tasks.Compile do
       this has undesirable side-effects (such as skipping some
       compiler checks) and should be avoided.
 
+    * `:prune_code_paths` - prune code paths before compilation. When true
+      (default), this prunes code paths of applications that are not listed
+      in the project file with dependencies.  When false, this keeps the
+      entirety of Erlang/OTP available on the project starts, including
+      the paths set by the code loader from the `ERL_LIBS` environment as
+      well as explicitely listed by providing `-pa` and `-pz` options
+      to Erlang.
+
+
   ## Compilers
 
   To see documentation for each specific compiler, you must
