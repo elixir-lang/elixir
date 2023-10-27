@@ -356,6 +356,9 @@ defmodule Mix do
 
     * `MIX_PATH` - appends extra code paths
 
+    * `MIX_PROFILE` - a list of comma-separated Mix tasks to profile the time spent on
+      functions by the process running the task
+
     * `MIX_QUIET` - does not print information messages to the terminal
 
     * `MIX_REBAR3` - path to rebar3 command that overrides the one Mix installs

@@ -181,6 +181,8 @@ defmodule Mix.Tasks.Profile.Eprof do
     * `:calls` - filters out any results with a call count lower than this
     * `:time` - filters out any results that took lower than specified (in µs)
     * `:sort` - sort the results by `:time` or `:calls` (default: `:time`)
+    * `:warmup` - if the code should be warmed up before profiling (default: `true`)
+    * `:set_on_spawn` - if newly spawned processes should be measured (default: `true`)
 
   """
   @spec profile((-> result), keyword()) :: result when result: any()
@@ -198,7 +200,8 @@ defmodule Mix.Tasks.Profile.Eprof do
     end
 
     :eprof.start()
-    {:ok, return_value} = :eprof.profile([], fun, Keyword.get(opts, :matching, {:_, :_, :_}))
+    matching = Keyword.get(opts, :matching, {:_, :_, :_})
+    {:ok, return_value} = :eprof.profile([], fun, matching, Keyword.take(opts, [:set_on_spawn]))
 
     results =
       Enum.map(:eprof.dump(), fn {pid, call_results} ->

@@ -10,6 +10,10 @@ defmodule Mix.CLI do
     if env_variable_activated?("MIX_QUIET"), do: Mix.shell(Mix.Shell.Quiet)
     if env_variable_activated?("MIX_DEBUG"), do: Mix.debug(true)
 
+    if profile = System.get_env("MIX_PROFILE", "") do
+      Mix.State.put(:profile, String.split(profile, ","))
+    end
+
     case check_for_shortcuts(args) do
       :help ->
         Mix.shell().info("Mix is a build tool for Elixir")

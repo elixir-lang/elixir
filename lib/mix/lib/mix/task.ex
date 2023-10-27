@@ -492,14 +492,21 @@ defmodule Mix.Task do
   end
 
   defp with_debug(task, args, proj, fun) do
-    if Mix.debug?() do
-      shell = Mix.shell()
-      shell.info(["-> Running mix ", task_to_string(task, args), project_to_string(proj)])
-      {time, res} = :timer.tc(fun)
-      shell.info(["<- Ran mix ", task, " in ", Integer.to_string(div(time, 1000)), "ms"])
-      res
-    else
-      fun.()
+    cond do
+      Mix.debug?() ->
+        shell = Mix.shell()
+        shell.info(["-> Running mix ", task_to_string(task, args), project_to_string(proj)])
+        {time, res} = :timer.tc(fun)
+        shell.info(["<- Ran mix ", task, " in ", Integer.to_string(div(time, 1000)), "ms"])
+        res
+
+      task in Mix.State.get(:profile, []) ->
+        shell = Mix.shell()
+        shell.info(["-> Profiling mix ", task_to_string(task, args), project_to_string(proj)])
+        Mix.Tasks.Profile.Eprof.profile(fun, warmup: false, set_on_spawn: false)
+
+      true ->
+        fun.()
     end
   end
 
