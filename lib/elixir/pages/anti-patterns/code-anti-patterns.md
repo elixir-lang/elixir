@@ -375,7 +375,9 @@ There are few known exceptions to this anti-pattern:
 
 #### Problem
 
-In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When a key is expected to exist in the map, it must be accessed using the `map.key` notation, which asserts the key exists. If `map[:key]` is used and the informed key does not exist, `nil` is returned. This return can be confusing and does not allow developers to conclude whether the key is non-existent in the map or just has a bound `nil` value. In this way, this anti-pattern may cause bugs in the code.
+In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When a key is expected to exist in the map, it must be accessed using the `map.key` notation, which asserts the key exists. If the key does not exist, an exception is raised (and in some situations also compiler warnings), allowing developers to catch bugs early on.
+
+`map[:key]` must be used with optional keys. This way, if the informed key does not exist, `nil` is returned. When used with required keys, this return can be confusing and allow `nil` values to pass through the system, while `map.key` would raise upfront. In this way, this anti-pattern may cause bugs in the code.
 
 #### Example
 
@@ -432,7 +434,9 @@ iex> Graphics.plot(point_3d)
 {5, 6, nil}
 ```
 
-As shown below, another alternative to refactor this anti-pattern is to use pattern matching:
+Overall, the usage of `map.key` and `map[:key]` encode important information about your data structure, allowing developers to be clear about their intent. See both `Map` and `Access` module documentation for more information and examples.
+
+Another alternative to refactor this anti-pattern is to use pattern matching:
 
 ```elixir
 defmodule Graphics do
