@@ -81,10 +81,14 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
   * [Kernel.SpecialForms] Warn if `True`/`False`/`Nil` are used as aliases and there is no such alias
   * [Macro] Add `Macro.compile_apply/4`
   * [Module] Add support for `@nifs` annotation from Erlang/OTP 25
+  * [Module] Add support for missing `@dialyzer` configuration
   * [String] Update to Unicode 15.1.0
+  * [Task] Add `:limit` option to `Task.yield_many/2`
 
 #### Mix
 
+  * [mix] Add `MIX_PROFILE` to profile a list of comma separated tasks
+  * [mix compile.elixir] Optimize scenario where there are thousands of files in `lib/` and one of them is changed
   * [mix test] Allow testing multiple file:line at once, such as `mix test test/foo_test.exs:13 test/bar_test.exs:27`
 
 ### 2. Bug fixes
@@ -103,6 +107,10 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
 #### ExUnit
 
   * [ExUnit] Raise on incorrectly dedented doctests
+
+#### Mix
+
+  * [Mix] Ensure files with duplicate modules are recompiled whenever any of the files change
 
 ### 3. Soft deprecations (no warnings emitted)
 
