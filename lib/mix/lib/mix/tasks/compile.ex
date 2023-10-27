@@ -38,7 +38,7 @@ defmodule Mix.Tasks.Compile do
     * `:prune_code_paths` - prune code paths before compilation. When true
       (default), this prunes code paths of applications that are not listed
       in the project file with dependencies.  When false, this keeps the
-      entirety of Erlang/OTP available on the project starts, including
+      entirety of Erlang/OTP available when the project starts, including
       the paths set by the code loader from the `ERL_LIBS` environment as
       well as explicitely listed by providing `-pa` and `-pz` options
       to Erlang.
@@ -70,7 +70,7 @@ defmodule Mix.Tasks.Compile do
       if a library still successfully compiles without optional dependencies (which is the
       default case with dependencies)
     * `--no-prune-code-paths` - do not prune code paths before compilation, this keeps
-      the entirety of Erlang/OTP available on the project starts
+      the entirety of Erlang/OTP available when the project starts
     * `--no-protocol-consolidation` - skips protocol consolidation
     * `--no-validate-compile-env` - does not validate the application compile environment
     * `--return-errors` - returns error status and diagnostics instead of exiting on error
