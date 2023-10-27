@@ -173,7 +173,7 @@ defmodule Mix.Compilers.Elixir do
         compiler_loop(stale, stale_modules, dest, timestamp, opts, state)
       else
         {:ok, info, state} ->
-          {modules, _exports, sources, pending_modules, _pending_exports} = state
+          {modules, _exports, sources, pending_modules, _stale_exports} = state
 
           previous_warnings =
             if Keyword.get(opts, :all_warnings, true),
@@ -531,7 +531,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entry(entry, acc, sources, stale_exports, compile_path) do
     module(module: module, sources: source_files, export: export) = entry
-    {rest, exports, changed, stale} = acc
+    {rest, exports, changed, stale_modules} = acc
 
     {compile_references, export_references, runtime_references} =
       Enum.reduce(source_files, {[], [], []}, fn file, {compile_acc, export_acc, runtime_acc} ->
@@ -548,20 +548,20 @@ defmodule Mix.Compilers.Elixir do
       # If I changed in disk or have a compile time reference to
       # something stale or have a reference to an old export,
       # I need to be recompiled.
-      has_any_key?(changed, source_files) or has_any_key?(stale, compile_references) or
+      has_any_key?(changed, source_files) or has_any_key?(stale_modules, compile_references) or
           has_any_key?(stale_exports, export_references) ->
         remove_and_purge(beam_path(compile_path, module), module)
         changed = Enum.reduce(source_files, changed, &Map.put(&2, &1, true))
-        {rest, Map.put(exports, module, export), changed, Map.put(stale, module, true)}
+        {rest, Map.put(exports, module, export), changed, Map.put(stale_modules, module, true)}
 
       # If I have a runtime references to something stale,
       # I am stale too.
-      has_any_key?(stale, runtime_references) ->
-        {[entry | rest], exports, changed, Map.put(stale, module, true)}
+      has_any_key?(stale_modules, runtime_references) ->
+        {[entry | rest], exports, changed, Map.put(stale_modules, module, true)}
 
       # Otherwise, we don't store it anywhere
       true ->
-        {[entry | rest], exports, changed, stale}
+        {[entry | rest], exports, changed, stale_modules}
     end
   end
 
@@ -1032,11 +1032,29 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp each_cycle(stale_modules, compile_path, timestamp, state) do
-    {modules, _exports, sources, pending_modules, pending_exports} = state
+  defp each_cycle(runtime_modules, compile_path, timestamp, state) do
+    {modules, _exports, sources, pending_modules, stale_exports} = state
 
+    stale_modules =
+      modules
+      |> Enum.map(&module(&1, :module))
+      |> Map.from_keys(true)
+
+    # Because a module may be accidentally overridden in another file,
+    # we need to mark any pending module that has been defined as changed.
+    {pending_modules, changed} =
+      Enum.reduce(pending_modules, {[], []}, fn module, {pending_acc, changed_acc} ->
+        if is_map_key(stale_modules, module(module, :module)) do
+          {pending_acc, module(module, :sources) ++ changed_acc}
+        else
+          {[module | pending_acc], changed_acc}
+        end
+      end)
+
+    # We don't need to pass stale_modules here because
+    # runtime dependencies have already been marked as stale.
     {pending_modules, exports, changed} =
-      update_stale_entries(pending_modules, sources, [], %{}, pending_exports, compile_path)
+      update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, compile_path)
 
     # For each changed file, mark it as changed.
     # If compilation fails mid-cycle, they will be picked next time around.
@@ -1045,18 +1063,13 @@ defmodule Mix.Compilers.Elixir do
     end
 
     if changed == [] do
-      stale_modules =
-        modules
-        |> Enum.map(&module(&1, :module))
-        |> Map.from_keys(true)
-        |> Map.merge(stale_modules)
-
-      {_, runtime_modules, sources} = fixpoint_runtime_modules(sources, stale_modules)
+      {_, runtime_modules, sources} =
+        fixpoint_runtime_modules(sources, Map.merge(stale_modules, runtime_modules))
 
       runtime_paths =
         Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
 
-      state = {modules, exports, sources, pending_modules, pending_exports}
+      state = {modules, exports, sources, pending_modules, stale_exports}
       {{:runtime, runtime_paths, []}, state}
     else
       Mix.Utils.compiling_n(length(changed), :ex)
@@ -1085,7 +1098,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp each_file(file, references, verbose, state, cwd) do
     {compile_references, export_references, runtime_references, compile_env} = references
-    {modules, exports, sources, pending_modules, pending_exports} = state
+    {modules, exports, sources, pending_modules, stale_exports} = state
 
     file = Path.relative_to(file, cwd)
 
@@ -1114,22 +1127,22 @@ defmodule Mix.Compilers.Elixir do
         compile_env: compile_env
       )
 
-    {modules, exports, [source | sources], pending_modules, pending_exports}
+    {modules, exports, [source | sources], pending_modules, stale_exports}
   end
 
   defp each_module(file, module, kind, external, new_export, state, timestamp, cwd) do
-    {modules, exports, sources, pending_modules, pending_exports} = state
+    {modules, exports, sources, pending_modules, stale_exports} = state
 
     file = Path.relative_to(file, cwd)
     external = process_external_resources(external, cwd)
 
     old_export = Map.get(exports, module)
 
-    pending_exports =
+    stale_exports =
       if old_export && old_export != new_export do
-        pending_exports
+        stale_exports
       else
-        Map.delete(pending_exports, module)
+        Map.delete(stale_exports, module)
       end
 
     {module_sources, existing_module?} =
@@ -1163,7 +1176,7 @@ defmodule Mix.Compilers.Elixir do
       )
 
     modules = prepend_or_merge(modules, module, module(:module), module, existing_module?)
-    {modules, exports, [source | sources], pending_modules, pending_exports}
+    {modules, exports, [source | sources], pending_modules, stale_exports}
   end
 
   defp prepend_or_merge(collection, key, pos, value, true) do

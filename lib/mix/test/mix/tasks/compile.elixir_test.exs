@@ -931,10 +931,11 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.A.beam")
       assert File.regular?("_build/dev/lib/sample/ebin/Elixir.B.beam")
 
+      # Compile directly so it does not point to a .beam file
       Code.put_compiler_option(:ignore_module_conflict, true)
       Code.compile_file("lib/b.ex")
-      force_recompilation("lib/a.ex")
 
+      force_recompilation("lib/a.ex")
       Mix.Tasks.Compile.Elixir.run(["--verbose"])
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end)
@@ -960,6 +961,33 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+    end)
+  end
+
+  test "compiles dependent changed on conflict" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+      assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+      purge([A, B])
+
+      capture_io(:stderr, fn ->
+        File.write!("lib/a.ex", "defmodule B, do: :not_ok")
+        assert {:ok, [_, _]} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
+        assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+        assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+        purge([A, B])
+      end)
+
+      capture_io(:stderr, fn ->
+        File.write!("lib/a.ex", "defmodule A, do: :ok")
+        assert {:ok, []} = Mix.Tasks.Compile.Elixir.run(["--verbose"])
+        assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+        assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
+        purge([A, B])
+      end)
     end)
   end
 
