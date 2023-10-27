@@ -1,15 +1,14 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 21
+  @manifest_vsn 22
   @checkpoint_vsn 2
 
   import Record
 
-  defrecord :module, [:module, :kind, :sources, :export, :recompile?, :timestamp]
+  defrecord :module, [:kind, :sources, :export, :recompile?, :timestamp]
 
   defrecord :source,
-    source: nil,
     size: 0,
     digest: nil,
     compile_references: [],
@@ -112,7 +111,7 @@ defmodule Mix.Compilers.Elixir do
             compile_env_apps = compile_env_apps ++ config_apps
 
             compile_env_stale =
-              for source(compile_env: compile_env, modules: modules) <- all_sources,
+              for {_, source(compile_env: compile_env, modules: modules)} <- all_sources,
                   Enum.any?(compile_env_apps, &List.keymember?(compile_env, &1, 0)),
                   module <- modules,
                   do: module
@@ -128,7 +127,7 @@ defmodule Mix.Compilers.Elixir do
     {stale_modules, stale_exports, all_local_exports} =
       stale_local_deps(local_deps, manifest, stale, modified, all_local_exports)
 
-    prev_paths = for source(source: source) <- all_sources, do: source
+    prev_paths = Map.keys(all_sources)
     removed = prev_paths -- all_paths
     {sources, removed_modules} = remove_removed_sources(all_sources, removed)
 
@@ -169,11 +168,11 @@ defmodule Mix.Compilers.Elixir do
       previous_opts = set_compiler_opts(opts)
 
       try do
-        state = {[], exports, sources, modules, removed_modules}
+        state = {%{}, exports, sources, [], modules, removed_modules}
         compiler_loop(stale, stale_modules, dest, timestamp, opts, state)
       else
         {:ok, info, state} ->
-          {modules, _exports, sources, pending_modules, _stale_exports} = state
+          {modules, _exports, sources, _changed, pending_modules, _stale_exports} = state
 
           previous_warnings =
             if Keyword.get(opts, :all_warnings, true),
@@ -184,7 +183,7 @@ defmodule Mix.Compilers.Elixir do
 
           write_manifest(
             manifest,
-            modules ++ pending_modules,
+            Map.merge(modules, pending_modules),
             sources,
             all_local_exports,
             new_parents,
@@ -200,7 +199,7 @@ defmodule Mix.Compilers.Elixir do
 
         {:error, errors, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}, state} ->
           # In case of errors, we show all previous warnings and all new ones.
-          {_, _, sources, _, _} = state
+          {_, _, sources, _, _, _} = state
           errors = Enum.map(errors, &diagnostic/1)
           warnings = Enum.map(r_warnings ++ c_warnings, &diagnostic/1)
           all_warnings = Keyword.get(opts, :all_warnings, errors == [])
@@ -273,7 +272,7 @@ defmodule Mix.Compilers.Elixir do
   def clean(manifest, compile_path) do
     {modules, _} = read_manifest(manifest)
 
-    Enum.each(modules, fn module(module: module) ->
+    Enum.each(modules, fn {module, _} ->
       File.rm(beam_path(compile_path, module))
     end)
   end
@@ -284,7 +283,7 @@ defmodule Mix.Compilers.Elixir do
   def protocols_and_impls(manifest, compile_path) do
     {modules, _} = read_manifest(manifest)
 
-    for module(module: module, kind: kind) <- modules,
+    for {module, module(kind: kind)} <- modules,
         match?(:protocol, kind) or match?({:impl, _}, kind),
         do: {module, kind, beam_path(compile_path, module)}
   end
@@ -305,7 +304,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_info_from_force(manifest, all_paths, all_modules, dest) do
     # A config, path dependency or manifest has changed, let's just compile everything
-    for module(module: module) <- all_modules,
+    for {module, _} <- all_modules,
         do: remove_and_purge(beam_path(dest, module), module)
 
     sources_stats =
@@ -318,7 +317,7 @@ defmodule Mix.Compilers.Elixir do
     # would have an outdated manifest.
     File.rm(manifest)
 
-    {[], %{}, all_paths, sources_stats}
+    {%{}, %{}, all_paths, sources_stats}
   end
 
   # If any .beam file is missing, the first one will the first to miss,
@@ -339,7 +338,7 @@ defmodule Mix.Compilers.Elixir do
          dest
        ) do
     {modules_to_recompile, modules_to_mix_check} =
-      for module(module: module, recompile?: recompile?) <- all_modules, reduce: {[], []} do
+      for {module, module(recompile?: recompile?)} <- all_modules, reduce: {[], []} do
         {modules_to_recompile, modules_to_mix_check} ->
           cond do
             Map.has_key?(stale_modules, module) ->
@@ -387,7 +386,7 @@ defmodule Mix.Compilers.Elixir do
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
     changed =
-      for source(source: source, external: external, size: size, digest: digest, modules: modules) <-
+      for {source, source(external: external, size: size, digest: digest, modules: modules)} <-
             all_sources,
           {last_mtime, last_size} = Map.fetch!(sources_stats, source),
           # If the user does a change, compilation fails, and then they revert
@@ -433,7 +432,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp mtimes_and_sizes(sources) do
-    Enum.reduce(sources, %{}, fn source(source: source, external: external), map ->
+    Enum.reduce(sources, %{}, fn {source, source(external: external)}, map ->
       map = Map.put_new_lazy(map, source, fn -> Mix.Utils.last_modified_and_size(source) end)
 
       Enum.reduce(external, map, fn {file, _}, map ->
@@ -467,7 +466,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp put_compile_env(sources) do
     all_compile_env =
-      Enum.reduce(sources, :ordsets.new(), fn source(compile_env: compile_env), acc ->
+      Enum.reduce(sources, :ordsets.new(), fn {_, source(compile_env: compile_env)}, acc ->
         :ordsets.union(compile_env, acc)
       end)
 
@@ -478,8 +477,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_removed_sources(sources, removed) do
     Enum.reduce(removed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
-      {source(modules: modules), acc_sources} = List.keytake(acc_sources, file, source(:source))
-
+      {source(modules: modules), acc_sources} = Map.pop(acc_sources, file)
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
       {acc_sources, acc_modules}
     end)
@@ -492,14 +490,14 @@ defmodule Mix.Compilers.Elixir do
     Enum.reduce(stale, {sources, removed_modules}, fn file, {acc_sources, acc_modules} ->
       %{^file => {_, size}} = sources_stats
 
-      {modules, acc_sources} =
-        case List.keytake(acc_sources, file, source(:source)) do
-          {source(modules: modules), acc_sources} -> {modules, acc_sources}
-          nil -> {[], acc_sources}
+      modules =
+        case acc_sources do
+          %{^file => source(modules: modules)} -> modules
+          %{} -> []
         end
 
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-      {[source(source: file, size: size) | acc_sources], acc_modules}
+      {Map.put(acc_sources, file, source(size: size)), acc_modules}
     end)
   end
 
@@ -520,7 +518,7 @@ defmodule Mix.Compilers.Elixir do
 
   defp remove_stale_entries(modules, exports, old_changed, old_stale, reducer) do
     {pending_modules, exports, new_changed, new_stale} =
-      Enum.reduce(modules, {[], exports, old_changed, old_stale}, reducer)
+      Enum.reduce(modules, {modules, exports, old_changed, old_stale}, reducer)
 
     if map_size(new_stale) > map_size(old_stale) or map_size(new_changed) > map_size(old_changed) do
       remove_stale_entries(pending_modules, exports, new_changed, new_stale, reducer)
@@ -530,8 +528,8 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp remove_stale_entry(entry, acc, sources, stale_exports, compile_path) do
-    module(module: module, sources: source_files, export: export) = entry
-    {rest, exports, changed, stale_modules} = acc
+    {module, module(sources: source_files, export: export)} = entry
+    {pending_modules, exports, changed, stale_modules} = acc
 
     {compile_references, export_references, runtime_references} =
       Enum.reduce(source_files, {[], [], []}, fn file, {compile_acc, export_acc, runtime_acc} ->
@@ -539,7 +537,7 @@ defmodule Mix.Compilers.Elixir do
           compile_references: compile_refs,
           export_references: export_refs,
           runtime_references: runtime_refs
-        ) = List.keyfind(sources, file, source(:source))
+        ) = Map.fetch!(sources, file)
 
         {compile_acc ++ compile_refs, export_acc ++ export_refs, runtime_acc ++ runtime_refs}
       end)
@@ -552,16 +550,18 @@ defmodule Mix.Compilers.Elixir do
           has_any_key?(stale_exports, export_references) ->
         remove_and_purge(beam_path(compile_path, module), module)
         changed = Enum.reduce(source_files, changed, &Map.put(&2, &1, true))
-        {rest, Map.put(exports, module, export), changed, Map.put(stale_modules, module, true)}
+
+        {Map.delete(pending_modules, module), Map.put(exports, module, export), changed,
+         Map.put(stale_modules, module, true)}
 
       # If I have a runtime references to something stale,
       # I am stale too.
       has_any_key?(stale_modules, runtime_references) ->
-        {[entry | rest], exports, changed, Map.put(stale_modules, module, true)}
+        {pending_modules, exports, changed, Map.put(stale_modules, module, true)}
 
       # Otherwise, we don't store it anywhere
       true ->
-        {[entry | rest], exports, changed, stale_modules}
+        {pending_modules, exports, changed, stale_modules}
     end
   end
 
@@ -584,7 +584,7 @@ defmodule Mix.Compilers.Elixir do
         {manifest_modules, manifest_sources} = read_manifest(manifest)
 
         dep_modules =
-          for module(module: module, timestamp: timestamp) <- manifest_modules,
+          for {module, module(timestamp: timestamp)} <- manifest_modules,
               timestamp > modified,
               do: module
 
@@ -638,7 +638,7 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp fixpoint_runtime_modules(sources, modules) when modules != %{} do
-    fixpoint_runtime_modules(sources, modules, false, [], [], [])
+    fixpoint_runtime_modules(Map.to_list(sources), modules, false, [], [], sources)
   end
 
   defp fixpoint_runtime_modules(sources, modules) do
@@ -646,31 +646,34 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp fixpoint_runtime_modules(
-         [source | sources],
+         [{source_path, source_entry} = pair | sources],
          modules,
          new?,
          pending_sources,
          acc_modules,
          acc_sources
        ) do
-    source(export_references: export_refs, runtime_references: runtime_refs) = source
+    source(export_references: export_refs, runtime_references: runtime_refs) = source_entry
 
     if has_any_key?(modules, export_refs) or has_any_key?(modules, runtime_refs) do
-      new_modules = Enum.reject(source(source, :modules), &Map.has_key?(modules, &1))
+      new_modules = Enum.reject(source(source_entry, :modules), &Map.has_key?(modules, &1))
       modules = Enum.reduce(new_modules, modules, &Map.put(&2, &1, true))
       new? = new? or new_modules != []
       acc_modules = new_modules ++ acc_modules
-      acc_sources = [source(source, runtime_warnings: []) | acc_sources]
+
+      acc_sources =
+        Map.replace!(acc_sources, source_path, source(source_entry, runtime_warnings: []))
+
       fixpoint_runtime_modules(sources, modules, new?, pending_sources, acc_modules, acc_sources)
     else
-      pending_sources = [source | pending_sources]
+      pending_sources = [pair | pending_sources]
       fixpoint_runtime_modules(sources, modules, new?, pending_sources, acc_modules, acc_sources)
     end
   end
 
   defp fixpoint_runtime_modules([], modules, new?, pending_sources, acc_modules, acc_sources)
        when new? == false or pending_sources == [],
-       do: {modules, acc_modules, acc_sources ++ pending_sources}
+       do: {modules, acc_modules, acc_sources}
 
   defp fixpoint_runtime_modules([], modules, true, pending_sources, acc_modules, acc_sources),
     do: fixpoint_runtime_modules(pending_sources, modules, false, [], acc_modules, acc_sources)
@@ -714,11 +717,11 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp previous_warnings(sources, print?) do
-    for source(
-          source: source,
-          compile_warnings: compile_warnings,
-          runtime_warnings: runtime_warnings
-        ) <- sources,
+    for {source,
+         source(
+           compile_warnings: compile_warnings,
+           runtime_warnings: runtime_warnings
+         )} <- sources,
         file = Path.absname(source),
         {position, message, span} <- compile_warnings ++ runtime_warnings do
       diagnostic = %Mix.Task.Compiler.Diagnostic{
@@ -740,21 +743,27 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
+  defp apply_warnings(sources, %{runtime_warnings: [], compile_warnings: []}) do
+    sources
+  end
+
   defp apply_warnings(sources, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}) do
     runtime_group = Enum.group_by(r_warnings, & &1.file, &{&1.position, &1.message, &1.span})
     compile_group = Enum.group_by(c_warnings, & &1.file, &{&1.position, &1.message, &1.span})
 
-    for source(
-          source: source_path,
-          runtime_warnings: runtime_warnings,
-          compile_warnings: compile_warnings
-        ) = s <- sources do
+    for {source_path, source_entry} <- sources, into: %{} do
       key = Path.absname(source_path)
 
-      source(s,
-        runtime_warnings: Map.get(runtime_group, key, runtime_warnings),
-        compile_warnings: Map.get(compile_group, key, compile_warnings)
-      )
+      source(
+        runtime_warnings: runtime_warnings,
+        compile_warnings: compile_warnings
+      ) = source_entry
+
+      {source_path,
+       source(source_entry,
+         runtime_warnings: Map.get(runtime_group, key, runtime_warnings),
+         compile_warnings: Map.get(compile_group, key, compile_warnings)
+       )}
     end
   end
 
@@ -829,7 +838,7 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  @default_manifest {[], [], %{}, [], nil, nil}
+  @default_manifest {%{}, %{}, %{}, [], nil, nil}
 
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do
@@ -842,7 +851,8 @@ defmodule Mix.Compilers.Elixir do
       {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config} ->
         {modules, sources, local_exports, parent, cache_key, deps_config}
 
-      # {vsn, modules, sources, ...} v5-v16
+      # {vsn, %{module => record}, sources, ...} v22-?
+      # {vsn, [module_record], sources, ...} v5-v21
       manifest when is_tuple(manifest) and is_integer(elem(manifest, 0)) ->
         purge_old_manifest(compile_path, elem(manifest, 1))
 
@@ -857,8 +867,18 @@ defmodule Mix.Compilers.Elixir do
 
   defp purge_old_manifest(compile_path, data) do
     try do
-      for module <- data, elem(module, 0) == :module do
-        module = elem(module, 1)
+      # If data is a list, we have an old manifest and
+      # we convert it to the same format as maps.
+      data =
+        if is_list(data) do
+          for entry <- data, elem(entry, 0) == :module do
+            {elem(entry, 1), entry}
+          end
+        else
+          data
+        end
+
+      for {module, _} <- data do
         File.rm(beam_path(compile_path, module))
         :code.purge(module)
         :code.delete(module)
@@ -873,33 +893,34 @@ defmodule Mix.Compilers.Elixir do
     @default_manifest
   end
 
-  defp write_manifest(manifest, [], [], _exports, _parents, _cache_key, _deps_config, _timestamp) do
-    File.rm(manifest)
-    :ok
-  end
-
   defp write_manifest(
          manifest,
-         modules,
-         sources,
+         %{} = modules,
+         %{} = sources,
          exports,
          parents,
          cache_key,
          deps_config,
          timestamp
        ) do
-    File.mkdir_p!(Path.dirname(manifest))
+    if modules == %{} and sources == %{} do
+      File.rm(manifest)
+    else
+      File.mkdir_p!(Path.dirname(manifest))
 
-    term = {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config}
-    manifest_data = :erlang.term_to_binary(term, [:compressed])
-    File.write!(manifest, manifest_data)
-    File.touch!(manifest, timestamp)
-    delete_checkpoint(manifest)
+      term = {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config}
+      manifest_data = :erlang.term_to_binary(term, [:compressed])
+      File.write!(manifest, manifest_data)
+      File.touch!(manifest, timestamp)
+      delete_checkpoint(manifest)
 
-    # Since Elixir is a dependency itself, we need to touch the lock
-    # so the current Elixir version, used to compile the files above,
-    # is properly stored.
-    Mix.Dep.ElixirSCM.update()
+      # Since Elixir is a dependency itself, we need to touch the lock
+      # so the current Elixir version, used to compile the files above,
+      # is properly stored.
+      Mix.Dep.ElixirSCM.update()
+    end
+
+    :ok
   end
 
   defp beam_path(compile_path, module) do
@@ -1033,26 +1054,8 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp each_cycle(runtime_modules, compile_path, timestamp, state) do
-    {modules, _exports, sources, pending_modules, stale_exports} = state
+    {modules, _exports, sources, changed, pending_modules, stale_exports} = state
 
-    stale_modules =
-      modules
-      |> Enum.map(&module(&1, :module))
-      |> Map.from_keys(true)
-
-    # Because a module may be accidentally overridden in another file,
-    # we need to mark any pending module that has been defined as changed.
-    {pending_modules, changed} =
-      Enum.reduce(pending_modules, {[], []}, fn module, {pending_acc, changed_acc} ->
-        if is_map_key(stale_modules, module(module, :module)) do
-          {pending_acc, module(module, :sources) ++ changed_acc}
-        else
-          {[module | pending_acc], changed_acc}
-        end
-      end)
-
-    # We don't need to pass stale_modules here because
-    # runtime dependencies have already been marked as stale.
     {pending_modules, exports, changed} =
       update_stale_entries(pending_modules, sources, changed, %{}, stale_exports, compile_path)
 
@@ -1063,13 +1066,16 @@ defmodule Mix.Compilers.Elixir do
     end
 
     if changed == [] do
+      # We merge runtime_modules (which is a map of %{module => true}) into
+      # a map of modules (which is a map of %{module => record}). This is fine
+      # since fixpoint_runtime_modules only cares about map keys.
       {_, runtime_modules, sources} =
-        fixpoint_runtime_modules(sources, Map.merge(stale_modules, runtime_modules))
+        fixpoint_runtime_modules(sources, Map.merge(modules, runtime_modules))
 
       runtime_paths =
         Enum.map(runtime_modules, &{&1, Path.join(compile_path, Atom.to_string(&1) <> ".beam")})
 
-      state = {modules, exports, sources, pending_modules, stale_exports}
+      state = {modules, exports, sources, [], pending_modules, stale_exports}
       {{:runtime, runtime_paths, []}, state}
     else
       Mix.Utils.compiling_n(length(changed), :ex)
@@ -1081,24 +1087,22 @@ defmodule Mix.Compilers.Elixir do
       # remove the pending exports as we notice they have not gone stale.
       {sources, removed_modules} =
         Enum.reduce(changed, {sources, %{}}, fn file, {acc_sources, acc_modules} ->
-          {source(size: size, digest: digest, modules: modules), acc_sources} =
-            List.keytake(acc_sources, file, source(:source))
-
+          source(size: size, digest: digest, modules: modules) = Map.fetch!(acc_sources, file)
           acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
 
           # Define empty records for the sources that needs
           # to be recompiled (but were not changed on disk)
-          {[source(source: file, size: size, digest: digest) | acc_sources], acc_modules}
+          {Map.replace!(acc_sources, file, source(size: size, digest: digest)), acc_modules}
         end)
 
-      state = {modules, exports, sources, pending_modules, removed_modules}
+      state = {modules, exports, sources, [], pending_modules, removed_modules}
       {{:compile, changed, []}, state}
     end
   end
 
   defp each_file(file, references, verbose, state, cwd) do
     {compile_references, export_references, runtime_references, compile_env} = references
-    {modules, exports, sources, pending_modules, stale_exports} = state
+    {modules, exports, sources, changed, pending_modules, stale_exports} = state
 
     file = Path.relative_to(file, cwd)
 
@@ -1106,12 +1110,10 @@ defmodule Mix.Compilers.Elixir do
       Mix.shell().info("Compiled #{file}")
     end
 
-    {source, sources} = List.keytake(sources, file, source(:source))
-
     compile_references =
       Enum.reject(compile_references, &match?("elixir_" <> _, Atom.to_string(&1)))
 
-    source(modules: source_modules) = source
+    source(modules: source_modules) = source = Map.fetch!(sources, file)
     compile_references = compile_references -- source_modules
     export_references = export_references -- source_modules
     runtime_references = runtime_references -- source_modules
@@ -1127,15 +1129,15 @@ defmodule Mix.Compilers.Elixir do
         compile_env: compile_env
       )
 
-    {modules, exports, [source | sources], pending_modules, stale_exports}
+    sources = Map.replace!(sources, file, source)
+    {modules, exports, sources, changed, pending_modules, stale_exports}
   end
 
   defp each_module(file, module, kind, external, new_export, state, timestamp, cwd) do
-    {modules, exports, sources, pending_modules, stale_exports} = state
+    {modules, exports, sources, changed, pending_modules, stale_exports} = state
 
     file = Path.relative_to(file, cwd)
     external = process_external_resources(external, cwd)
-
     old_export = Map.get(exports, module)
 
     stale_exports =
@@ -1145,14 +1147,14 @@ defmodule Mix.Compilers.Elixir do
         Map.delete(stale_exports, module)
       end
 
-    {module_sources, existing_module?} =
-      case List.keyfind(modules, module, module(:module)) do
-        module(sources: old_sources) -> {[file | List.delete(old_sources, file)], true}
-        nil -> {[file], false}
+    module_sources =
+      case modules do
+        %{^module => module(sources: old_sources)} -> [file | List.delete(old_sources, file)]
+        %{} -> [file]
       end
 
-    {source, sources} =
-      List.keytake(sources, file, source(:source)) ||
+    source =
+      Map.get(sources, file) ||
         Mix.raise(
           "Could not find source for #{inspect(file)}. Make sure the :elixirc_paths configuration " <>
             "is a list of relative paths to the current project or absolute paths to external directories"
@@ -1165,9 +1167,8 @@ defmodule Mix.Compilers.Elixir do
         modules: [module | source(source, :modules)]
       )
 
-    module =
+    entry =
       module(
-        module: module,
         kind: kind,
         sources: module_sources,
         export: new_export,
@@ -1175,16 +1176,18 @@ defmodule Mix.Compilers.Elixir do
         recompile?: function_exported?(module, :__mix_recompile__?, 0)
       )
 
-    modules = prepend_or_merge(modules, module, module(:module), module, existing_module?)
-    {modules, exports, [source | sources], pending_modules, stale_exports}
-  end
+    modules = Map.put(modules, module, entry)
+    sources = Map.replace!(sources, file, source)
 
-  defp prepend_or_merge(collection, key, pos, value, true) do
-    List.keystore(collection, key, pos, value)
-  end
+    # In case the module defined is pending, this is a source conflict.
+    # So we need to compile all duplicates.
+    changed =
+      case pending_modules do
+        %{^module => module(sources: sources)} -> sources ++ changed
+        %{} -> changed
+      end
 
-  defp prepend_or_merge(collection, _key, _pos, value, false) do
-    [value | collection]
+    {modules, exports, sources, changed, pending_modules, stale_exports}
   end
 
   defp detect_kind(module) do

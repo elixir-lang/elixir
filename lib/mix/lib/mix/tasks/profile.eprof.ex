@@ -201,7 +201,8 @@ defmodule Mix.Tasks.Profile.Eprof do
 
     :eprof.start()
     matching = Keyword.get(opts, :matching, {:_, :_, :_})
-    {:ok, return_value} = :eprof.profile([], fun, matching, Keyword.take(opts, [:set_on_spawn]))
+    set_on_spawn = Keyword.get(opts, :set_on_spawn, true)
+    {:ok, return_value} = :eprof.profile([], fun, matching, set_on_spawn: set_on_spawn)
 
     results =
       Enum.map(:eprof.dump(), fn {pid, call_results} ->

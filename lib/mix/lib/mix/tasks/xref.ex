@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Xref do
   use Mix.Task
 
   import Mix.Compilers.Elixir,
-    only: [read_manifest: 1, source: 0, source: 1, source: 2, module: 1]
+    only: [read_manifest: 1, source: 1, source: 2, module: 1]
 
   @shortdoc "Prints cross reference information"
   @manifest "compile.elixir"
@@ -363,7 +363,7 @@ defmodule Mix.Tasks.Xref do
         ]
   def calls(opts \\ []) do
     for manifest <- manifests(opts),
-        source(source: source, modules: modules) <- read_manifest(manifest) |> elem(1),
+        {source, source(modules: modules)} <- read_manifest(manifest) |> elem(1),
         module <- modules,
         call <- collect_calls(source, module),
         do: call
@@ -469,9 +469,10 @@ defmodule Mix.Tasks.Xref do
     module = parse_module(module)
 
     file_callers =
-      for source <- sources(opts),
-          reference = reference(module, source),
-          do: {source(source, :source), reference}
+      for manifest <- manifests(opts),
+          {source_path, source_entry} <- read_manifest(manifest) |> elem(1),
+          reference = reference(module, source_entry),
+          do: {source_path, reference}
 
     for {file, type} <- Enum.sort(file_callers) do
       Mix.shell().info([file, " (", type, ")"])
@@ -719,32 +720,31 @@ defmodule Mix.Tasks.Xref do
   end
 
   defp file_references(filter, opts) do
-    module_sources =
+    module_sources_list =
       for manifest_path <- manifests(opts),
           {manifest_modules, manifest_sources} = read_manifest(manifest_path),
-          module(module: module, sources: sources) <- manifest_modules,
-          source <- sources,
-          source = Enum.find(manifest_sources, &match?(source(source: ^source), &1)),
-          do: {module, source}
+          {module, module(sources: sources)} <- manifest_modules,
+          source_path <- sources,
+          source_entry = manifest_sources[source_path],
+          do: {module, {source_path, source_entry}}
 
-    all_modules = MapSet.new(module_sources, &elem(&1, 0))
+    module_sources = Map.new(module_sources_list)
 
-    Map.new(module_sources, fn {current, source} ->
+    Map.new(module_sources_list, fn {current, {file, source_entry}} ->
       source(
         runtime_references: runtime,
         export_references: exports,
-        compile_references: compile,
-        source: file
-      ) = source
+        compile_references: compile
+      ) = source_entry
 
       compile_references =
-        modules_to_nodes(compile, :compile, current, source, module_sources, all_modules, filter)
+        modules_to_nodes(compile, :compile, current, file, module_sources, filter)
 
       export_references =
-        modules_to_nodes(exports, :export, current, source, module_sources, all_modules, filter)
+        modules_to_nodes(exports, :export, current, file, module_sources, filter)
 
       runtime_references =
-        modules_to_nodes(runtime, nil, current, source, module_sources, all_modules, filter)
+        modules_to_nodes(runtime, nil, current, file, module_sources, filter)
 
       references =
         runtime_references
@@ -756,16 +756,16 @@ defmodule Mix.Tasks.Xref do
     end)
   end
 
-  defp modules_to_nodes(_, label, _, _, _, _, filter) when filter != :all and label != filter do
+  defp modules_to_nodes(_, label, _, _, _, filter) when filter != :all and label != filter do
     %{}
   end
 
-  defp modules_to_nodes(modules, label, current, source, module_sources, all_modules, _filter) do
+  defp modules_to_nodes(modules, label, current, file, module_sources, _filter) do
     for module <- modules,
         module != current,
-        module in all_modules,
-        module_sources[module] != source,
-        do: {source(module_sources[module], :source), label},
+        {source_path, _source_entry} <- [module_sources[module]],
+        file != source_path,
+        do: {source_path, label},
         into: %{}
   end
 
@@ -1047,12 +1047,6 @@ defmodule Mix.Tasks.Xref do
   end
 
   ## Helpers
-
-  defp sources(opts) do
-    for manifest <- manifests(opts),
-        source() = source <- read_manifest(manifest) |> elem(1),
-        do: source
-  end
 
   defp apps(opts) do
     siblings =
