@@ -112,6 +112,8 @@ defmodule Keyword do
 
       iex> Keyword.from_keys([:foo, :bar, :baz], :atom)
       [foo: :atom, bar: :atom, baz: :atom]
+      iex> Keyword.from_keys([], :atom)
+      []
 
   """
   @doc since: "1.14.0"
