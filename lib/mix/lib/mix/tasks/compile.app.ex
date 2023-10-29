@@ -78,8 +78,10 @@ defmodule Mix.Tasks.Compile.App do
       technically valid in any resource file, but it is only effective for
       applications with a callback module. Defaults to `:infinity`.
 
-  Besides the options above, `.app` files also expect other options like
-  `:modules` and `:vsn`, but these are automatically added by Mix.
+  Besides the options above, `.app` files also expect other options
+  like `:modules` and `:vsn`, but these are automatically added by Mix.
+  The complete list can be found on [Erlang's application
+  specification](https://www.erlang.org/doc/man/app).
 
   ## Command line options
 

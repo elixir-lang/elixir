@@ -200,7 +200,7 @@ defmodule Application do
   In the sections above, we have configured an application in the
   `application/0` section of the `mix.exs` file. Ultimately, Mix will use
   this configuration to create an [*application resource
-  file*](https://www.erlang.org/doc/man/application.html), which is a file called
+  file*](https://www.erlang.org/doc/man/app), which is a file called
   `APP_NAME.app`. For example, the application resource file of the OTP
   application `ex_unit` is called `ex_unit.app`.
 
@@ -466,6 +466,9 @@ defmodule Application do
   The following keys are returned:
 
     * #{Enum.map_join(@application_keys, "\n  * ", &"`#{inspect(&1)}`")}
+
+  For a description of all fields, see [Erlang's application
+  specification](https://www.erlang.org/doc/man/app).
 
   Note the environment is not returned as it can be accessed via
   `fetch_env/2`. Returns `nil` if the application is not loaded.
