@@ -299,7 +299,7 @@ defmodule IO.ANSI do
 
   ## Examples
 
-      iex> IO.ANSI.format_fragment([:bright, 'Word'], true)
+      iex> IO.ANSI.format_fragment([:bright, ~c"Word"], true)
       [[[[[[] | "\e[1m"], 87], 111], 114], 100]
 
   """

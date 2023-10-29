@@ -1471,7 +1471,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Mix.Project.push(MixTest.Case.Sample)
 
       File.write!("lib/a.ex", """
-      IO.warn "warning", [{nil, nil, 0, file: 'lib/foo.txt', line: 3}]
+      IO.warn "warning", [{nil, nil, 0, file: ~c"lib/foo.txt", line: 3}]
       """)
 
       capture_io(:stderr, fn ->

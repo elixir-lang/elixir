@@ -317,8 +317,8 @@ defmodule EEx do
 
   ## Examples
 
-      iex> EEx.tokenize('foo', line: 1, column: 1)
-      {:ok, [{:text, 'foo', %{column: 1, line: 1}}, {:eof, %{column: 4, line: 1}}]}
+      iex> EEx.tokenize(~c"foo", line: 1, column: 1)
+      {:ok, [{:text, ~c"foo", %{column: 1, line: 1}}, {:eof, %{column: 4, line: 1}}]}
 
   ## Result
 

@@ -31,7 +31,7 @@ defmodule Code.Fragment do
       :expr
 
       iex> Code.Fragment.cursor_context("hello_wor")
-      {:local_or_var, 'hello_wor'}
+      {:local_or_var, ~c"hello_wor"}
 
   ## Return values
 
@@ -547,7 +547,7 @@ defmodule Code.Fragment do
   ## Examples
 
       iex> Code.Fragment.surround_context("foo", {1, 1})
-      %{begin: {1, 1}, context: {:local_or_var, 'foo'}, end: {1, 4}}
+      %{begin: {1, 1}, context: {:local_or_var, ~c"foo"}, end: {1, 4}}
 
   ## Differences to `cursor_context/2`
 

@@ -362,25 +362,25 @@ defmodule Integer do
   ## Examples
 
       iex> Integer.to_charlist(123)
-      '123'
+      ~c"123"
 
       iex> Integer.to_charlist(+456)
-      '456'
+      ~c"456"
 
       iex> Integer.to_charlist(-789)
-      '-789'
+      ~c"-789"
 
       iex> Integer.to_charlist(0123)
-      '123'
+      ~c"123"
 
       iex> Integer.to_charlist(100, 16)
-      '64'
+      ~c"64"
 
       iex> Integer.to_charlist(-100, 16)
-      '-64'
+      ~c"-64"
 
       iex> Integer.to_charlist(882_681_651, 36)
-      'ELIXIR'
+      ~c"ELIXIR"
 
   """
   @spec to_charlist(integer, 2..36) :: charlist

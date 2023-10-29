@@ -392,7 +392,7 @@ defmodule Mix.Tasks.ReleaseTest do
           config_target: config_target(),
           mode: :code.get_mode()
 
-        config :release_test, :encoding, {:runtime, :_μ, :"£", "£", '£'}
+        config :release_test, :encoding, {:runtime, :_μ, :"£", "£", ~c"£"}
         """)
 
         root = Path.absname("_build/dev/rel/runtime_config")

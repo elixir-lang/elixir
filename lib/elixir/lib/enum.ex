@@ -3590,7 +3590,7 @@ defmodule Enum do
       iex> Enum.take_random(1..10, 2)
       [3, 1]
       iex> Enum.take_random(?a..?z, 5)
-      'mikel'
+      ~c"mikel"
 
   """
   @spec take_random(t, non_neg_integer) :: list

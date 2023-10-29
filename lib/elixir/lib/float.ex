@@ -571,7 +571,7 @@ defmodule Float do
   ## Examples
 
       iex> Float.to_charlist(7.0)
-      '7.0'
+      ~c"7.0"
 
   """
   @spec to_charlist(float) :: charlist

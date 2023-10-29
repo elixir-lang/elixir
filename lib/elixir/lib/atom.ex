@@ -67,7 +67,7 @@ defmodule Atom do
   ## Examples
 
       iex> Atom.to_charlist(:"An atom")
-      'An atom'
+      ~c"An atom"
 
   """
   @spec to_charlist(atom) :: charlist

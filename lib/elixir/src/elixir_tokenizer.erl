@@ -247,18 +247,20 @@ tokenize([$?, Char | T], Line, Column, Scope, Tokens) ->
 tokenize("\"\"\"" ++ T, Line, Column, Scope, Tokens) ->
   handle_heredocs(T, Line, Column, $", Scope, Tokens);
 
-%% TODO: Deprecate single-quoted in Elixir v1.17
+%% TODO: Remove me in Elixir v2.0
 tokenize("'''" ++ T, Line, Column, Scope, Tokens) ->
-  handle_heredocs(T, Line, Column, $', Scope, Tokens);
+  NewScope = prepend_warning(Line, Column, "single-quoted string represent charlists. Use ~c''' if you indeed want a charlist or use \"\"\" instead", Scope),
+  handle_heredocs(T, Line, Column, $', NewScope, Tokens);
 
 % Strings
 
 tokenize([$" | T], Line, Column, Scope, Tokens) ->
   handle_strings(T, Line, Column + 1, $", Scope, Tokens);
 
-%% TODO: Deprecate single-quoted in Elixir v1.17
+%% TODO: Remove me in Elixir v2.0
 tokenize([$' | T], Line, Column, Scope, Tokens) ->
-  handle_strings(T, Line, Column + 1, $', Scope, Tokens);
+  NewScope = prepend_warning(Line, Column, "single-quoted strings represent charlists. Use ~c\"\" if you indeed want a charlist or use \"\" instead", Scope),
+  handle_strings(T, Line, Column + 1, $', NewScope, Tokens);
 
 % Operator atoms
 
