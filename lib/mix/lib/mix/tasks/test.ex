@@ -766,7 +766,7 @@ defmodule Mix.Tasks.Test do
     partition = System.get_env("MIX_TEST_PARTITION")
 
     case partition && Integer.parse(partition) do
-      {partition, ""} when partition in 1..total ->
+      {partition, ""} when partition in 1..total//1 ->
         partition = partition - 1
 
         # We sort the files because Path.wildcard does not guarantee

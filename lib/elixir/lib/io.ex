@@ -128,8 +128,15 @@ defmodule IO do
   @doc """
   Reads from the IO `device`.
 
-  The `device` is iterated by the given number of characters, line by line if
-  `:line` is given, or until `:eof`.
+  The `device` is iterated as specified by the `line_or_chars` argument:
+
+    * if `line_or_chars` is an integer, it represents a number of bytes. The device is
+      iterated by that number of bytes.
+
+    * if `line_or_chars` is `:line`, the device is iterated line by line.
+
+    * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
+      If the device is already at the end, it returns `:eof` itself.
 
   It returns:
 
@@ -145,8 +152,10 @@ defmodule IO do
   @spec read(device, :eof | :line | non_neg_integer) :: chardata | nodata
   def read(device \\ :stdio, line_or_chars)
 
-  # TODO: Deprecate me on v1.17
+  # TODO: Remove me on v2.0
   def read(device, :all) do
+    IO.warn("IO.read(device, :all) is deprecated, use IO.read(device, :eof) instead")
+
     with :eof <- read(device, :eof) do
       with [_ | _] = opts <- :io.getopts(device),
            false <- Keyword.get(opts, :binary, true) do
@@ -179,10 +188,8 @@ defmodule IO do
 
     * if `line_or_chars` is `:line`, the device is iterated line by line.
 
-    * if `line_or_chars` is `:eof`, the device is iterated until `:eof`. `line_or_chars`
-      can only be `:eof` since Elixir 1.13.0. `:eof` replaces the deprecated `:all`,
-      with the difference that `:all` returns `""` on end of file, while `:eof` returns
-      `:eof` itself.
+    * if `line_or_chars` is `:eof` (since v1.13), the device is iterated until `:eof`.
+      If the device is already at the end, it returns `:eof` itself.
 
   It returns:
 
@@ -200,8 +207,9 @@ defmodule IO do
   @spec binread(device, :eof | :line | non_neg_integer) :: iodata | nodata
   def binread(device \\ :stdio, line_or_chars)
 
-  # TODO: Deprecate me on v1.17
+  # TODO: Remove me on v2.0
   def binread(device, :all) do
+    IO.warn("IO.binread(device, :all) is deprecated, use IO.binread(device, :eof) instead")
     with :eof <- binread(device, :eof), do: ""
   end
 

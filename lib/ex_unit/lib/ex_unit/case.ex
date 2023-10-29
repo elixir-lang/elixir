@@ -614,8 +614,8 @@ defmodule ExUnit.Case do
   This function is deprecated in favor of `register_test/6` which performs
   better under tight loops by avoiding `__ENV__`.
   """
-  # TODO: Deprecate on Elixir v1.17
-  @doc deprecated: "Use register_test/6 instead"
+  # TODO: Remove me Elixir v2.0
+  @deprecated "Use register_test/6 instead"
   @doc since: "1.3.0"
   def register_test(%{module: mod, file: file, line: line}, test_type, name, tags) do
     register_test(mod, file, line, test_type, name, tags)

@@ -9,7 +9,7 @@ defmodule Kernel.WithTest do
   end
 
   test "matching with" do
-    assert with(_..42 <- 1..42, do: :ok) == :ok
+    assert with(_..42//_ <- 1..42, do: :ok) == :ok
     assert with({:ok, res} <- error(), do: res) == :error
     assert with({:ok, _} = res <- ok(42), do: elem(res, 1)) == 42
   end

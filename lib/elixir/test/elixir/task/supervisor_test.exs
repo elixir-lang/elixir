@@ -383,7 +383,7 @@ defmodule Task.SupervisorTest do
       Process.flag(:trap_exit, true)
 
       assert supervisor
-             |> Task.Supervisor.async_stream(4..1, &sleep/1, @opts)
+             |> Task.Supervisor.async_stream(4..1//-1, &sleep/1, @opts)
              |> Enum.to_list() == [ok: 4, ok: 3, ok: 2, ok: 1]
     end
 
@@ -504,7 +504,7 @@ defmodule Task.SupervisorTest do
 
     test "streams an enumerable with slowest first", %{supervisor: supervisor} do
       assert supervisor
-             |> Task.Supervisor.async_stream_nolink(4..1, &sleep/1, @opts)
+             |> Task.Supervisor.async_stream_nolink(4..1//-1, &sleep/1, @opts)
              |> Enum.to_list() == [ok: 4, ok: 3, ok: 2, ok: 1]
     end
 

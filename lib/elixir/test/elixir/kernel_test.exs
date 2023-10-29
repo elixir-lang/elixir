@@ -534,28 +534,6 @@ defmodule KernelTest do
       assert fun_in(17.0) == :none
     end
 
-    def dynamic_in(x, y, z) when x in y..z, do: true
-    def dynamic_in(_x, _y, _z), do: false
-
-    test "in dynamic range function guard" do
-      assert dynamic_in(1, 1, 3)
-      assert dynamic_in(2, 1, 3)
-      assert dynamic_in(3, 1, 3)
-
-      assert dynamic_in(1, 3, 1)
-      assert dynamic_in(2, 3, 1)
-      assert dynamic_in(3, 3, 1)
-
-      refute dynamic_in(0, 1, 3)
-      refute dynamic_in(4, 1, 3)
-      refute dynamic_in(0, 3, 1)
-      refute dynamic_in(4, 3, 1)
-
-      refute dynamic_in(2, 1.0, 3)
-      refute dynamic_in(2, 1, 3.0)
-      refute dynamic_in(2.0, 1, 3)
-    end
-
     def dynamic_step_in(x, y, z, w) when x in y..z//w, do: true
     def dynamic_step_in(_x, _y, _z, _w), do: false
 
@@ -597,7 +575,7 @@ defmodule KernelTest do
       assert case_in(1, 1..3) == true
       assert case_in(2, 1..3) == true
       assert case_in(3, 1..3) == true
-      assert case_in(-3, -1..-3) == true
+      assert case_in(-3, -1..-3//-1) == true
     end
 
     def map_dot(map) when map.field, do: true

@@ -332,14 +332,14 @@ defmodule StringIOTest do
     {:ok, pid} = StringIO.open("abcdefg")
     result = get_until(pid, :unicode, "", GetUntilCallbacks, :up_to_3_bytes)
     assert result == "abc"
-    assert IO.read(pid, :all) == "defg"
+    assert IO.read(pid, :eof) == "defg"
   end
 
   test "get_until with up_to_3_bytes_discard_rest" do
     {:ok, pid} = StringIO.open("abcdefg")
     result = get_until(pid, :unicode, "", GetUntilCallbacks, :up_to_3_bytes_discard_rest)
     assert result == "abc"
-    assert IO.read(pid, :all) == ""
+    assert IO.read(pid, :eof) == :eof
   end
 
   test "get_until with until_eof" do

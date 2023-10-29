@@ -314,8 +314,8 @@ defmodule Mix.Tasks.Format do
   @doc """
   Returns formatter options to be used for the given file.
   """
-  # TODO: Deprecate on Elixir v1.17
-  @doc deprecated: "Use formatter_for_file/2 instead"
+  # TODO: Remove me Elixir v1.17
+  @deprecated "Use formatter_for_file/2 instead"
   def formatter_opts_for_file(file, opts \\ []) do
     {_, formatter_opts} = formatter_for_file(file, opts)
     formatter_opts

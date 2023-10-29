@@ -781,7 +781,7 @@ defmodule StringTest do
     end
 
     assert ExUnit.CaptureIO.capture_io(:stderr, fn ->
-             assert String.slice("elixir", 0..-2) == "elixi"
+             assert String.slice("elixir", 0..-2//-1) == "elixi"
            end) =~ "negative steps are not supported in String.slice/2, pass 0..-2//1 instead"
   end
 

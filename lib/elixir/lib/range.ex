@@ -184,7 +184,7 @@ defmodule Range do
 
   @spec new(limit, limit) :: t
   def new(first, last) when is_integer(first) and is_integer(last) do
-    # TODO: Deprecate inferring a range with a step of -1 on Elixir v1.17
+    # TODO: Deprecate inferring a range with a step of -1 on Elixir v1.18
     step = if first <= last, do: 1, else: -1
     %Range{first: first, last: last, step: step}
   end
@@ -231,8 +231,6 @@ defmodule Range do
       iex> Range.size(1..10//-1)
       0
 
-      iex> Range.size(10..1)
-      10
       iex> Range.size(10..1//-1)
       10
       iex> Range.size(10..1//-2)
@@ -428,7 +426,7 @@ defmodule Range do
 
       iex> Range.disjoint?(1..5, 6..9)
       true
-      iex> Range.disjoint?(5..1, 6..9)
+      iex> Range.disjoint?(5..1//-1, 6..9)
       true
       iex> Range.disjoint?(1..5, 5..9)
       false
@@ -508,8 +506,10 @@ defmodule Range do
 
   @doc false
   @deprecated "Pattern match on first..last//step instead"
-  def range?(term)
-  def range?(first..last) when is_integer(first) and is_integer(last), do: true
+  def range?(%{__struct__: Range, first: first, last: last})
+      when is_integer(first) and is_integer(last),
+      do: true
+
   def range?(_), do: false
 end
 

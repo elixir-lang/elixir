@@ -2733,7 +2733,7 @@ defmodule Enum do
   end
 
   # Normalize negative input ranges like Enum.slice/2
-  def slide(enumerable, first..last, insertion_index)
+  def slide(enumerable, first..last//_, insertion_index)
       when first < 0 or last < 0 or insertion_index < 0 do
     count = Enum.count(enumerable)
     normalized_first = if first >= 0, do: first, else: Kernel.max(first + count, 0)
@@ -2750,23 +2750,23 @@ defmodule Enum do
     end
   end
 
-  def slide(enumerable, insertion_index.._, insertion_index) do
+  def slide(enumerable, insertion_index.._//_, insertion_index) do
     Enum.to_list(enumerable)
   end
 
-  def slide(_, first..last, insertion_index)
+  def slide(_, first..last//_, insertion_index)
       when insertion_index > first and insertion_index <= last do
     raise ArgumentError,
           "insertion index for slide must be outside the range being moved " <>
             "(tried to insert #{first}..#{last} at #{insertion_index})"
   end
 
-  def slide(enumerable, first..last, _insertion_index) when first > last do
+  def slide(enumerable, first..last//_, _insertion_index) when first > last do
     Enum.to_list(enumerable)
   end
 
   # Guarantees at this point: step size == 1 and first <= last and (insertion_index < first or insertion_index > last)
-  def slide(enumerable, first..last, insertion_index) do
+  def slide(enumerable, first..last//_, insertion_index) do
     impl = if is_list(enumerable), do: &slide_list_start/4, else: &slide_any/4
 
     cond do

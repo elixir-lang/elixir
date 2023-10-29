@@ -3951,24 +3951,36 @@ defmodule Kernel do
         first = Macro.expand(first, __CALLER__)
         last = Macro.expand(last, __CALLER__)
         validate_range!(first, last)
-        range(__CALLER__.context, first, last)
+        stepless_range(__CALLER__.context, first, last, __CALLER__)
 
       false ->
-        range(__CALLER__.context, first, last)
+        stepless_range(__CALLER__.context, first, last, __CALLER__)
     end
   end
 
-  defp range(_context, first, last) when is_integer(first) and is_integer(last) do
-    # TODO: Deprecate inferring a range with a step of -1 on Elixir v1.17
-    step = if first <= last, do: 1, else: -1
+  defp stepless_range(_context, first, last, caller)
+       when is_integer(first) and is_integer(last) do
+    step =
+      if first <= last do
+        1
+      else
+        # TODO: Always use 1 as an step in Elixir v2.0
+        IO.warn(
+          "#{first}..#{last} has a default step of -1, please write #{first}..#{last}//-1 instead",
+          Macro.Env.stacktrace(caller)
+        )
+
+        -1
+      end
+
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
   end
 
-  defp range(nil, first, last) do
+  defp stepless_range(nil, first, last, _caller) do
     quote(do: Elixir.Range.new(unquote(first), unquote(last)))
   end
 
-  defp range(:guard, first, last) do
+  defp stepless_range(:guard, first, last, caller) do
     # We need to compute the step using guards. We don't have conditionals,
     # but we can emulate them using a map access.
     step =
@@ -3979,12 +3991,27 @@ defmodule Kernel do
         )
       end
 
-    # TODO: Deprecate me inside guard when sides are not integers on Elixir v1.17
+    # TODO: Always assume step 1 in Elixir v2.0
+    range = "#{Macro.to_string(first)}..#{Macro.to_string(last)}"
+
+    IO.warn(
+      "#{range} inside guards requires an explicit step, please write #{range}//1 or #{range}//-1 instead",
+      Macro.Env.stacktrace(caller)
+    )
+
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last, step: step]}
   end
 
-  defp range(:match, first, last) do
-    # TODO: Deprecate me inside match in all occasions (including literals) on Elixir v1.17
+  defp stepless_range(:match, first, last, caller) do
+    # TODO: Make me an error in Elixir v2.0
+    range = "#{Macro.to_string(first)}..#{Macro.to_string(last)}"
+
+    IO.warn(
+      "#{range} inside match is deprecated, " <>
+        "you must always match on the step: #{range}//var or #{range}//_ if you want to ignore it",
+      Macro.Env.stacktrace(caller)
+    )
+
     {:%{}, [], [__struct__: Elixir.Range, first: first, last: last]}
   end
 

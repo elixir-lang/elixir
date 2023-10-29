@@ -842,13 +842,13 @@ defmodule TaskTest do
     test "streams an enumerable with ordered: false" do
       opts = [max_concurrency: 1, ordered: false]
 
-      assert 4..1
+      assert 4..1//-1
              |> Task.async_stream(&sleep(&1 * 100), opts)
              |> Enum.to_list() == [ok: 400, ok: 300, ok: 200, ok: 100]
 
       opts = [max_concurrency: 4, ordered: false]
 
-      assert 4..1
+      assert 4..1//-1
              |> Task.async_stream(&sleep(&1 * 100), opts)
              |> Enum.to_list() == [ok: 100, ok: 200, ok: 300, ok: 400]
     end
@@ -943,7 +943,7 @@ defmodule TaskTest do
       test "streams an enumerable with slowest first" do
         Process.flag(:trap_exit, true)
 
-        assert 4..1
+        assert 4..1//-1
                |> Task.async_stream(&sleep/1, @opts)
                |> Enum.to_list() == [ok: 4, ok: 3, ok: 2, ok: 1]
       end
@@ -986,7 +986,7 @@ defmodule TaskTest do
       end
 
       test "is zippable with slowest first" do
-        task = 4..1 |> Task.async_stream(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
+        task = 4..1//-1 |> Task.async_stream(&sleep/1, @opts) |> Stream.map(&elem(&1, 1))
         assert Enum.zip(task, task) == [{4, 4}, {3, 3}, {2, 2}, {1, 1}]
       end
 
@@ -1007,7 +1007,7 @@ defmodule TaskTest do
       end
 
       test "with inner halt and slowest first" do
-        assert 8..1
+        assert 8..1//-1
                |> Stream.take(4)
                |> Task.async_stream(&sleep/1, @opts)
                |> Enum.to_list() == [ok: 8, ok: 7, ok: 6, ok: 5]
@@ -1028,7 +1028,7 @@ defmodule TaskTest do
       end
 
       test "with outer halt and slowest first" do
-        assert 8..1
+        assert 8..1//-1
                |> Task.async_stream(&sleep/1, @opts)
                |> Enum.take(4) == [ok: 8, ok: 7, ok: 6, ok: 5]
       end

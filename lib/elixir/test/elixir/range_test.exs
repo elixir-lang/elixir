@@ -5,8 +5,8 @@ defmodule RangeTest do
 
   doctest Range
 
-  defp reverse(first..last) do
-    last..first
+  defp reverse(first..last//step) do
+    last..first//-step
   end
 
   defp assert_disjoint(r1, r2) do
@@ -39,7 +39,7 @@ defmodule RangeTest do
     assert (1..3).first == 1
     assert (1..3).last == 3
     assert (1..3).step == 1
-    assert (3..1).step == -1
+    assert (3..1//-1).step == -1
     assert (1..3//2).step == 2
   end
 
@@ -47,7 +47,7 @@ defmodule RangeTest do
     assert inspect(1..3) == "1..3"
     assert inspect(1..3//2) == "1..3//2"
 
-    assert inspect(3..1) == "3..1//-1"
+    assert inspect(3..1//-1) == "3..1//-1"
     assert inspect(3..1//1) == "3..1//1"
   end
 
@@ -59,7 +59,7 @@ defmodule RangeTest do
 
   test "in guard equality" do
     case {1, 1..1} do
-      {n, range} when range == n..n -> true
+      {n, range} when range == n..n//1 -> true
     end
   end
 
