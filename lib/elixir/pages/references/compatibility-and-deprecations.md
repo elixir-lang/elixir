@@ -80,6 +80,10 @@ The first column is the version the feature was hard deprecated. The second colu
 
 Version | Deprecated feature                                  | Replaced by (available since)
 :-------| :-------------------------------------------------- | :---------------------------------------------------------------
+[v1.17] | Single-quoted charlists (`'foo'`)                   | `~c"foo"` (v1.0)
+[v1.17] | `left..right` in patterns and guards                | `left..right//step` (v1.11)
+[v1.17] | `ExUnit.Case.register_test/4`                       | `register_test/6` (v1.10)
+[v1.17] | `:all` in `IO.read/2` and `IO.binread/2`            | `:eof` (v1.13)
 [v1.16] | `~R/.../`                                           | `~r/.../` (v1.0)
 [v1.16] | Ranges with negative steps in `Enum.slice/2`        | Explicit steps in ranges (v1.11)
 [v1.16] | Ranges with negative steps in `String.slice/2`      | Explicit steps in ranges (v1.11)
@@ -207,4 +211,5 @@ Version | Deprecated feature                                  | Replaced by (ava
 [v1.13]: https://github.com/elixir-lang/elixir/blob/v1.13/CHANGELOG.md#4-hard-deprecations
 [v1.14]: https://github.com/elixir-lang/elixir/blob/v1.14/CHANGELOG.md#4-hard-deprecations
 [v1.15]: https://github.com/elixir-lang/elixir/blob/v1.15/CHANGELOG.md#4-hard-deprecations
-[v1.16]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
+[v1.16]: https://github.com/elixir-lang/elixir/blob/v1.16/CHANGELOG.md#4-hard-deprecations
+[v1.17]: https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations
