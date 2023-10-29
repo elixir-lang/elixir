@@ -127,7 +127,7 @@ iex> if true, do: "This will be seen", else: "This won't"
 
 Pay close attention to both syntaxes. In the keyword list format, we separate each key-value pair with commas, and each key is followed by `:`. In the `do`-blocks, we get rid of the colons, the commas, and separate each keyword by a newline. They are useful exactly because they remove the verbosity when writing blocks of code. Most of the time, you will use the block syntax, but it is good to know they are equivalent.
 
-Note that only a handful of keyword lists can be converted to blocks: `do`, `else`, `catch`, `rescue`, and `after`. Those are all the keywords used by Elixir control-flow constructs. We have already learned some of them and we will learn others in the future.
+This plays an important role in the language as it allows Elixir syntax to stay small but still expressive. We only need few data structures to represent the language, a topic we will come back to when talking about [optional syntax](optional-syntax.md) and go in-depth when discussing [meta-programming](../quote-and-unquote.md).
 
 With this out of the way, let's talk about maps.
 
