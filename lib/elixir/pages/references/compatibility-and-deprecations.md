@@ -8,12 +8,11 @@ Elixir applies bug fixes only to the latest minor branch. Security patches are a
 
 Elixir version | Support
 :------------- | :-----------------------------
-1.16           | Development
-1.15           | Bug fixes and security patches
+1.16           | Bug fixes and security patches
+1.15           | Security patches only
 1.14           | Security patches only
 1.13           | Security patches only
 1.12           | Security patches only
-1.11           | Security patches only
 
 New releases are announced in the read-only [announcements mailing list](https://groups.google.com/group/elixir-lang-ann). All security releases [will be tagged with `[security]`](https://groups.google.com/forum/#!searchin/elixir-lang-ann/%5Bsecurity%5D%7Csort:date).
 
@@ -43,6 +42,7 @@ Erlang/OTP versioning is independent from the versioning of Elixir. Erlang relea
 
 Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
+1.16           | 24 - 26
 1.15           | 24 - 26
 1.14           | 23 - 25
 1.13           | 22 - 24 (and Erlang/OTP 25 from v1.13.4)
