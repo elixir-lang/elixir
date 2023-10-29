@@ -1683,6 +1683,7 @@ defmodule Code.Formatter do
   end
 
   defp heredoc_line(["", _ | _]), do: nest(line(), :reset)
+  defp heredoc_line(["\r", _ | _]), do: nest(line(), :reset)
   defp heredoc_line(_), do: line()
 
   defp args_to_algebra_with_comments(args, meta, skip_parens?, last_arg_mode, join, state, fun) do

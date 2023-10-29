@@ -384,6 +384,14 @@ defmodule Code.Formatter.LiteralsTest do
       """
       '''
     end
+
+    test "with new lines" do
+      assert_format ~s|foo do\n  """\n  foo\n  \n  bar\n  """\nend|,
+                    ~s|foo do\n  """\n  foo\n\n  bar\n  """\nend|
+
+      assert_format ~s|foo do\r\n  """\r\n  foo\r\n  \r\n  bar\r\n  """\r\nend|,
+                    ~s|foo do\n  """\n  foo\r\n\r\n  bar\r\n  """\nend|
+    end
   end
 
   describe "charlist heredocs" do
