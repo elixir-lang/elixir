@@ -504,7 +504,7 @@ defmodule Process do
   If the process is already dead when calling `Process.monitor/1`, a
   `:DOWN` message is delivered immediately.
 
-  See ["The need for monitoring"](https://elixir-lang.org/getting-started/mix-otp/genserver.html#the-need-for-monitoring)
+  See ["The need for monitoring"](genservers.md#the-need-for-monitoring)
   for an example. See `:erlang.monitor/2` for more information.
 
   Inlined by the compiler.
