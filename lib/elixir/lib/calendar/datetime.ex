@@ -90,7 +90,7 @@ defmodule DateTime do
   hour that does not exist. Then, when they move the clock back,
   there is a certain hour that will happen twice. So if you want to
   schedule a meeting when this shift back happens, you would need to
-  explicitly say which occurence of 2:30 AM you mean: the one in
+  explicitly say which occurrence of 2:30 AM you mean: the one in
   "Summer Time", which occurs before the shift, or the one
   in "Standard Time", which occurs after it. Applications that are
   date and time sensitive need to take these scenarios into account

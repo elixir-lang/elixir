@@ -6060,7 +6060,7 @@ defmodule Kernel do
       iex> ~S(\o/)
       "\\o/"
 
-  However, if you want to re-use the sigil character itself on
+  However, if you want to reuse the sigil character itself on
   the string, you need to escape it:
 
       iex> ~S((\))

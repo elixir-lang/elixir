@@ -40,7 +40,7 @@ defmodule Mix.Tasks.Compile do
       in the project file with dependencies.  When false, this keeps the
       entirety of Erlang/OTP available when the project starts, including
       the paths set by the code loader from the `ERL_LIBS` environment as
-      well as explicitely listed by providing `-pa` and `-pz` options
+      well as explicitly listed by providing `-pa` and `-pz` options
       to Erlang.
   ## Compilers
 
