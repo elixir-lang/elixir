@@ -376,7 +376,7 @@ defmodule IO do
     stacktrace = Enum.drop(stacktrace, stacktrace_drop_levels)
 
     if :elixir_config.warn(key, stacktrace) do
-      warn(message, stacktrace)
+      warn(message.(), stacktrace)
     else
       :ok
     end

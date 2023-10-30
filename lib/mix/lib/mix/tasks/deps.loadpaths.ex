@@ -123,7 +123,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
   # Every local dependency (i.e. that are not fetchable)
   # are automatically recompiled if they are ok.
   defp local?(dep) do
-    not dep.scm.fetchable?
+    not dep.scm.fetchable?()
   end
 
   defp show_not_ok!([]) do

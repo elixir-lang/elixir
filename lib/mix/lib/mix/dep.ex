@@ -257,7 +257,7 @@ defmodule Mix.Dep do
     # If the dependency is not fetchable, then it is never compiled
     # from scratch and therefore it needs the parent configuration
     # files to know when to recompile.
-    config = [inherit_parent_config_files: not scm.fetchable?] ++ config
+    config = [inherit_parent_config_files: not scm.fetchable?()] ++ config
     env = opts[:env] || :prod
     old_env = Mix.env()
 

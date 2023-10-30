@@ -125,7 +125,7 @@ defmodule ExUnit.CLIFormatter do
   end
 
   def handle_cast({:module_started, %ExUnit.TestModule{name: name, file: file}}, config) do
-    if config.trace() do
+    if config.trace do
       IO.puts("\n#{inspect(name)} [#{Path.relative_to_cwd(file)}]")
     end
 

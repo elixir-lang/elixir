@@ -935,5 +935,5 @@ defmodule Mix.Project do
 
   @private_config [:build_scm, :deps_app_path, :deps_build_path]
   defp get_project_config(nil), do: []
-  defp get_project_config(atom), do: atom.project |> Keyword.drop(@private_config)
+  defp get_project_config(atom), do: atom.project() |> Keyword.drop(@private_config)
 end

@@ -235,7 +235,7 @@ defmodule Mix.Tasks.Compile do
       module = Mix.Task.get("compile.#{compiler}")
 
       if module && function_exported?(module, :manifests, 0) do
-        module.manifests
+        module.manifests()
       else
         []
       end

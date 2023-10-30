@@ -252,7 +252,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_raise Mix.Error, fn -> Mix.Tasks.Deps.Loadpaths.run([]) end
 
       # Flush the errors we got, move to a clean slate
-      Mix.shell().flush
+      Mix.shell().flush()
       Mix.Task.clear()
 
       # Calling get should update the dependency
@@ -281,7 +281,7 @@ defmodule Mix.Tasks.DepsGitTest do
       refute File.exists?("deps/git_repo/lib/git_repo.ex")
 
       # Flush the errors we got, move to a clean slate
-      Mix.shell().flush
+      Mix.shell().flush()
       Mix.Task.clear()
       Process.delete(:git_repo_opts)
       Mix.Project.pop()
@@ -309,7 +309,7 @@ defmodule Mix.Tasks.DepsGitTest do
       assert File.exists?("deps/git_repo/lib/git_repo.ex")
 
       # Flush the errors we got, move to a clean slate
-      Mix.shell().flush
+      Mix.shell().flush()
       Mix.Task.clear()
       Process.put(:git_repo_opts, sparse: "sparse_dir")
       Mix.Project.pop()

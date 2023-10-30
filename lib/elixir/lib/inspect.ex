@@ -449,7 +449,7 @@ defimpl Inspect, for: Function do
 
       match?(@elixir_compiler ++ _, Atom.to_charlist(mod)) ->
         if function_exported?(mod, :__RELATIVE__, 0) do
-          "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__}>"
+          "#Function<#{uniq(fun_info)} in file:#{mod.__RELATIVE__()}>"
         else
           default_inspect(mod, fun_info)
         end

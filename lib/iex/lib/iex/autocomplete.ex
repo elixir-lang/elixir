@@ -338,7 +338,7 @@ defmodule IEx.Autocomplete do
         container_context_map_fields(pairs, map, hint)
 
       {:struct, alias, pairs} when context == :expr ->
-        map = Map.from_struct(alias.__struct__)
+        map = Map.from_struct(alias.__struct__())
         container_context_map_fields(pairs, map, hint)
 
       :bitstring_modifier ->

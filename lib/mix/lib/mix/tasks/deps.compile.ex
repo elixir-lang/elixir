@@ -121,7 +121,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp touch_fetchable(scm, path) do
-    if scm.fetchable? do
+    if scm.fetchable?() do
       path = Path.join(path, ".mix")
       File.mkdir_p!(path)
       File.touch!(Path.join(path, "compile.fetch"))
@@ -132,7 +132,7 @@ defmodule Mix.Tasks.Deps.Compile do
   end
 
   defp check_unavailable!(app, scm, {:unavailable, path}) do
-    if scm.fetchable? do
+    if scm.fetchable?() do
       Mix.raise(
         "Cannot compile dependency #{inspect(app)} because " <>
           "it isn't available, run \"mix deps.get\" first"
@@ -339,13 +339,13 @@ defmodule Mix.Tasks.Deps.Compile do
 
   defp filter_available_and_local_deps(deps) do
     Enum.filter(deps, fn dep ->
-      Mix.Dep.available?(dep) or not dep.scm.fetchable?
+      Mix.Dep.available?(dep) or not dep.scm.fetchable?()
     end)
   end
 
   defp reject_local_deps(deps, options) do
     if options[:skip_local_deps] do
-      Enum.filter(deps, fn %{scm: scm} -> scm.fetchable? end)
+      Enum.filter(deps, fn %{scm: scm} -> scm.fetchable?() end)
     else
       deps
     end

@@ -403,7 +403,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp recently_fetched?(%Mix.Dep{opts: opts, scm: scm}) do
-    scm.fetchable? &&
+    scm.fetchable?() &&
       Mix.Utils.stale?(
         join_stale(opts, :dest, ".fetch"),
         join_stale(opts, :build, ".mix/compile.fetch")

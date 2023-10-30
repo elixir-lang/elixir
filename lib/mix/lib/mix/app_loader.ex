@@ -38,7 +38,7 @@ defmodule Mix.AppLoader do
     else
       List.first(
         for %{app: app, scm: scm, opts: opts} <- Mix.Dep.cached(),
-            not scm.fetchable?,
+            not scm.fetchable?(),
             Mix.Utils.last_modified(Path.join([opts[:build], "ebin", "#{app}.app"])) >
               modified do
           manifest

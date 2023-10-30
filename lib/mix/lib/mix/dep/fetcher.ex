@@ -50,7 +50,7 @@ defmodule Mix.Dep.Fetcher do
 
     cond do
       # Dependencies that cannot be fetched are always compiled afterwards
-      not scm.fetchable? ->
+      not scm.fetchable?() ->
         {dep, [app | acc], lock}
 
       # If the dependency is not available or we have a lock mismatch

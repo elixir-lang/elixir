@@ -779,7 +779,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A, B])
 
       same_length_content = "lib/a.ex" |> File.read!() |> String.replace("A", "Z")
@@ -812,7 +812,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A, B])
 
       future = {{2038, 1, 1}, {0, 0, 0}}
@@ -843,7 +843,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A, B])
 
       # Compile with error
@@ -882,7 +882,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A, B])
 
       File.write!("lib/a.ex", File.read!("lib/a.ex") <> "\n")
@@ -903,7 +903,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A, B])
 
       force_recompilation("lib/b.ex")
@@ -952,7 +952,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A, B])
 
       File.rm("lib/b.ex")
@@ -1012,7 +1012,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # Compiles with missing external resources
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A, B])
 
       # Update local existing resource timestamp is not enough
@@ -1028,7 +1028,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       # Does not update on old existing resource
       File.touch!("lib/a.eex", @old_time)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A, B])
 
       # Create external resource
@@ -1211,7 +1211,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       refute function_exported?(A, :one, 0)
 
-      Mix.shell().flush
+      Mix.shell().flush()
       purge([A])
 
       File.rm("lib/b.ex")

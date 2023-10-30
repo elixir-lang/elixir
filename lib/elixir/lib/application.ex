@@ -850,7 +850,10 @@ defmodule Application do
 
   # TODO: Remove this deprecation warning on 2.0+ and allow list lookups as in compile_env.
   defp maybe_warn_on_app_env_key(app, key) do
-    message = "passing non-atom as application env key is deprecated, got: #{inspect(key)}"
+    message = fn ->
+      "passing non-atom as application env key is deprecated, got: #{inspect(key)}"
+    end
+
     IO.warn_once({Application, :key, app, key}, message, _stacktrace_drop_levels = 2)
   end
 

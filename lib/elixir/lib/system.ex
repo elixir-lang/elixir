@@ -1422,8 +1422,10 @@ defmodule System do
   defp warn(unit, replacement_unit) do
     IO.warn_once(
       {__MODULE__, unit},
-      "deprecated time unit: #{inspect(unit)}. A time unit should be " <>
-        ":second, :millisecond, :microsecond, :nanosecond, or a positive integer",
+      fn ->
+        "deprecated time unit: #{inspect(unit)}. A time unit should be " <>
+          ":second, :millisecond, :microsecond, :nanosecond, or a positive integer"
+      end,
       _stacktrace_drop_levels = 4
     )
 
