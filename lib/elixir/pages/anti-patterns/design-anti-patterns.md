@@ -298,11 +298,11 @@ The following arguments were given to MyLibrary.foo/1:
 
 #### Problem
 
-Using multi-clause functions in Elixir, to group functions of the same name, is not an anti-pattern in itself. However, due to the great flexibility provided by this programming feature, some developers may abuse the number of guard clauses and pattern matches to group *unrelated* functionality.
+Using multi-clause functions in Elixir, to group functions of the same name, is a powerful Elixir feature. However, some developers may abuse this feature to group *unrelated* functionality, which configures an anti-pattern.
 
 #### Example
 
-A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the same function definition. Such functions often have generic names or too broad specifications, making it difficult for maintainers and users of said functions to maintain and understand them.
+A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the same function definition. Such functions often have generic names or too broad specifications, making it difficult for other developers to understand and maintain them.
 
 Some developers may use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, however the documentation itself may end-up full of conditionals to describe how the function behaves for each different argument combination. This is a good indicator that the clauses are ultimately unrelated.
 
