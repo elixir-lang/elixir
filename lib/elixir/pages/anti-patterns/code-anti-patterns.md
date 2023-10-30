@@ -436,7 +436,7 @@ iex> Graphics.plot(point_3d)
 
 Overall, the usage of `map.key` and `map[:key]` encode important information about your data structure, allowing developers to be clear about their intent. See both `Map` and `Access` module documentation for more information and examples.
 
-Another alternative to refactor this anti-pattern is to use pattern matching:
+An even simpler alternative to refactor this anti-pattern is to use pattern matching:
 
 ```elixir
 defmodule Graphics do
@@ -460,6 +460,8 @@ iex> Graphics.plot(point_2d)
 iex> Graphics.plot(point_3d)
 {5, 6, nil}
 ```
+
+Pattern-matching is specially useful when matching over multiple keys at once and also when you want to match and assert on the values of a map.
 
 Another alternative is to use structs. By default, structs only support static access to its fields:
 
