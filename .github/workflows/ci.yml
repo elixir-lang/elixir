@@ -3,10 +3,10 @@ name: CI
 on:
   push:
     paths-ignore:
-      - 'lib/**/*.md'
+      - "lib/**/*.md"
   pull_request:
     paths-ignore:
-      - 'lib/**/*.md'
+      - "lib/**/*.md"
 
 env:
   ELIXIR_ASSERT_TIMEOUT: 2000
@@ -24,12 +24,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - otp_version: '26.0'
+          - otp_version: "26.0"
             otp_latest: true
-          - otp_version: '25.3'
-          - otp_version: '25.0'
-          - otp_version: '24.3'
-          - otp_version: '24.0'
+          - otp_version: "25.3"
+          - otp_version: "25.0"
           - otp_version: master
             development: true
           - otp_version: maint
@@ -77,7 +75,7 @@ jobs:
     name: Windows Server 2019, Erlang/OTP ${{ matrix.otp_version }}
     strategy:
       matrix:
-        otp_version: ['24', '25', '26']
+        otp_version: ["25", "26"]
     runs-on: windows-2019
     steps:
       - name: Configure Git

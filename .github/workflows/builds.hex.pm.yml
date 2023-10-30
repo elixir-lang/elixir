@@ -22,13 +22,11 @@ jobs:
       max-parallel: 1
       matrix:
         include:
-          - otp: 24
-            otp_version: '24.3'
-            upload_generic_version: upload_generic_version
           - otp: 25
-            otp_version: '25.3'
+            otp_version: "25.3"
+            upload_generic_version: upload_generic_version
           - otp: 26
-            otp_version: '26.0'
+            otp_version: "26.0"
             build_docs: build_docs
     runs-on: ubuntu-22.04
     steps:
