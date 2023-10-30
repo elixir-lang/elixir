@@ -395,7 +395,7 @@ end
 
 All of the constructs above are part of Elixir's syntax and have their own representation as part of the Elixir AST. This section will discuss the remaining constructs that are alternative representations of the constructs above. In other words, the constructs below can be represented in more than one way in your Elixir code and retain AST equivalence. We call this "Optional Syntax".
 
-For a lightweight introduction to Elixir's Optional Syntax, [see this document](https://elixir-lang.org/getting-started/optional-syntax.html). Below we continue with a more complete reference.
+For a lightweight introduction to Elixir's Optional Syntax, [see this document](optional-syntax.md). Below we continue with a more complete reference.
 
 ### Integers in other bases and Unicode code points
 
