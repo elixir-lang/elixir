@@ -25,6 +25,7 @@ defmodule Kernel.DialyzerTest do
     mods = [
       :elixir,
       :elixir_env,
+      :elixir_erl_pass,
       ArgumentError,
       Atom,
       Code,
