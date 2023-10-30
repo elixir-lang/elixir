@@ -4,9 +4,11 @@ Anti-patterns describe common mistakes or indicators of potential problems in co
 They are also known as "code smells".
 
 The goal of these guides is to document known anti-patterns found in Elixir software
-and teach developers how to identify and correct them. If an existing piece of code
-matches an anti-pattern, it does not mean your code must be rewritten. However, you
-should take its potential pitfalls and alternatives into consideration.
+and teach developers how to identify them and their limitations. If an existing piece
+of code matches an anti-pattern, it does not mean your code must be rewritten.
+No codebase is free of anti-patterns and one should not aim to remove all
+anti-patterns of a codebase. The goal is to promote a discussion of potential
+pitfalls and provide alternatives into consideration.
 
 The anti-patterns in these guides are broken into 4 main categories:
 
