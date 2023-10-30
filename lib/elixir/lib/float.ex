@@ -603,7 +603,7 @@ defmodule Float do
   """
   @spec to_string(float) :: String.t()
   def to_string(float) when is_float(float) do
-    IO.iodata_to_binary(:io_lib_format.fwrite_g(float))
+    :erlang.float_to_binary(float, [:short])
   end
 
   @doc false
