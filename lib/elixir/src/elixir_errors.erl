@@ -133,7 +133,7 @@ extract_column({_, C}) -> C;
 extract_column(_) -> nil.
 
 %% Format snippets
-%% "Snippet" here refers to the source code line where the diagnostic/error occured
+%% "Snippet" here refers to the source code line where the diagnostic/error occurred
 
 format_snippet(_Position, nil, Message, nil, Severity, _Stacktrace, _Span) ->
   Formatted = [prefix(Severity), " ", Message],

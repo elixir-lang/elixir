@@ -1336,7 +1336,7 @@ format_error({undefined_function, Name, Args}) ->
   io_lib:format("undefined function ~ts/~B (there is no such import)", [Name, length(Args)]);
 format_error({unpinned_bitsize_var, Name, Kind}) ->
   io_lib:format("the variable \"~ts\"~ts is accessed inside size(...) of a bitstring "
-                "but it was defined outside of the match. You must preceed it with the "
+                "but it was defined outside of the match. You must precede it with the "
                 "pin operator", [Name, context_info(Kind)]);
 format_error({underscored_var_repeat, Name, Kind}) ->
   io_lib:format("the underscored variable \"~ts\"~ts appears more than once in a "

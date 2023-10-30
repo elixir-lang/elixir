@@ -567,7 +567,7 @@ defmodule ModuleTest do
   end
 
   describe "get_attribute/3" do
-    test "returns a list when the attribute is marked as `accummulate: true`" do
+    test "returns a list when the attribute is marked as `accumulate: true`" do
       in_module do
         Module.register_attribute(__MODULE__, :value, accumulate: true)
         Module.put_attribute(__MODULE__, :value, 1)

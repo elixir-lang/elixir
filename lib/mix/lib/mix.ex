@@ -297,7 +297,7 @@ defmodule Mix do
   are several tasks depending on `mix compile`, the code will be compiled
   only once.
 
-  Similary, `mix format` can only be invoked once. So if you have an alias
+  Similarly, `mix format` can only be invoked once. So if you have an alias
   that attempts to invoke `mix format` multiple times, it won't work unless
   it is explicitly reenabled using `Mix.Task.reenable/1`:
 

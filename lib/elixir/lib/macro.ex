@@ -1709,7 +1709,7 @@ defmodule Macro do
   @doc """
   Applies a `mod`, `function`, and `args` at compile-time in `caller`.
 
-  This is used when you want to programatically invoke a macro at
+  This is used when you want to programmatically invoke a macro at
   compile-time.
   """
   @doc since: "1.16.0"

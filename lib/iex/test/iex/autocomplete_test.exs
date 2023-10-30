@@ -415,7 +415,7 @@ defmodule IEx.AutocompleteTest do
 
     assert {:yes, ~c"ry: ", []} = expand(~c"%URI{path: \"foo\", que")
     assert {:no, [], []} = expand(~c"%URI{path: \"foo\", unkno")
-    assert {:no, [], []} = expand(~c"%Unkown{path: \"foo\", unkno")
+    assert {:no, [], []} = expand(~c"%Unknown{path: \"foo\", unkno")
   end
 
   test "completion for struct keys in update syntax" do
@@ -429,7 +429,7 @@ defmodule IEx.AutocompleteTest do
 
     assert {:yes, ~c"ry: ", []} = expand(~c"%URI{var | path: \"foo\", que")
     assert {:no, [], []} = expand(~c"%URI{var | path: \"foo\", unkno")
-    assert {:no, [], []} = expand(~c"%Unkown{var | path: \"foo\", unkno")
+    assert {:no, [], []} = expand(~c"%Unknown{var | path: \"foo\", unkno")
   end
 
   test "completion for map keys in update syntax" do
