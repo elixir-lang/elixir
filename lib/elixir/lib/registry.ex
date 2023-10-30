@@ -27,8 +27,8 @@ defmodule Registry do
   `Registry.start_link/1`, it can be used to register and access named
   processes using the `{:via, Registry, {registry, key}}` tuple:
 
-      {:ok, _} = Registry.start_link(keys: :unique, name: Registry.ViaTest)
-      name = {:via, Registry, {Registry.ViaTest, "agent"}}
+      {:ok, _} = Registry.start_link(keys: :unique, name: MyApp.Registry)
+      name = {:via, Registry, {MyApp.Registry, "agent"}}
       {:ok, _} = Agent.start_link(fn -> 0 end, name: name)
       Agent.get(name, & &1)
       #=> 0
@@ -39,22 +39,22 @@ defmodule Registry do
   In the previous example, we were not interested in associating a value to the
   process:
 
-      Registry.lookup(Registry.ViaTest, "agent")
+      Registry.lookup(MyApp.Registry, "agent")
       #=> [{self(), nil}]
 
   However, in some cases it may be desired to associate a value to the process
   using the alternate `{:via, Registry, {registry, key, value}}` tuple:
 
-      {:ok, _} = Registry.start_link(keys: :unique, name: Registry.ViaTest)
-      name = {:via, Registry, {Registry.ViaTest, "agent", :hello}}
+      {:ok, _} = Registry.start_link(keys: :unique, name: MyApp.Registry)
+      name = {:via, Registry, {MyApp.Registry, "agent", :hello}}
       {:ok, agent_pid} = Agent.start_link(fn -> 0 end, name: name)
-      Registry.lookup(Registry.ViaTest, "agent")
+      Registry.lookup(MyApp.Registry, "agent")
       #=> [{agent_pid, :hello}]
 
   To this point, we have been starting `Registry` using `start_link/1`.
   Typically the registry is started as part of a supervision tree though:
 
-      {Registry, keys: :unique, name: Registry.ViaTest}
+      {Registry, keys: :unique, name: MyApp.Registry}
 
   Only registries with unique keys can be used in `:via`. If the name is
   already taken, the case-specific `start_link` function (`Agent.start_link/2`
