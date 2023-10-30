@@ -139,10 +139,10 @@ preload_common_modules() ->
 parse_otp_release() ->
   %% Whenever we change this check, we should also change Makefile.
   case string:to_integer(erlang:system_info(otp_release)) of
-    {Num, _} when Num >= 24 ->
+    {Num, _} when Num >= 25 ->
       Num;
     _ ->
-      io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 24+~n", []),
+      io:format(standard_error, "ERROR! Unsupported Erlang/OTP version, expected Erlang/OTP 25+~n", []),
       erlang:halt(1)
   end.
 
@@ -361,7 +361,7 @@ eval_forms(Tree, Binding, OrigE, Opts) ->
 
       %% We use remote names so eval works across Elixir versions.
       LocalHandler = {value, fun ?MODULE:eval_local_handler/2},
-      ExternalHandler = eval_external_handler(),
+      ExternalHandler = {value, fun ?MODULE:eval_external_handler/3},
 
       {value, Value, NewBinding} =
         try
@@ -393,11 +393,6 @@ eval_local_handler(FunName, Args) ->
   Opts = [{module, nil}, {function, FunName}, {arity, length(Args)}, {reason, 'undefined local'}],
   Exception = 'Elixir.UndefinedFunctionError':exception(Opts),
   erlang:raise(error, Exception, Stack).
-
-%% TODO: Remove conditional once we require Erlang/OTP 25+.
--if(?OTP_RELEASE >= 25).
-eval_external_handler() ->
-  {value, fun ?MODULE:eval_external_handler/3}.
 
 eval_external_handler(Ann, FunOrModFun, Args) ->
   try
@@ -461,10 +456,6 @@ drop_common([_ | T1], T2, ToDrop) -> drop_common(T1, T2, ToDrop);
 drop_common([], [{?MODULE, _, _, _} | T2], _ToDrop) -> T2;
 drop_common([], [_ | T2], true) -> T2;
 drop_common([], T2, _) -> T2.
--else.
-eval_external_handler() -> none.
-eval_external_handler(_Ann, _FunOrModFun, _Args) -> error(unused).
--endif.
 
 %% Converts a quoted expression to Erlang abstract format
 

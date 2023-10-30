@@ -996,17 +996,15 @@ defmodule ExceptionTest do
     end
   end
 
-  if System.otp_release() >= "25" do
-    describe "binary constructor error info" do
-      defp concat(a, b), do: a <> b
+  describe "binary constructor error info" do
+    defp concat(a, b), do: a <> b
 
-      test "on binary concatenation" do
-        assert message(123, &concat(&1, "bar")) ==
-                 "construction of binary failed: segment 1 of type 'binary': expected a binary but got: 123"
+    test "on binary concatenation" do
+      assert message(123, &concat(&1, "bar")) ==
+               "construction of binary failed: segment 1 of type 'binary': expected a binary but got: 123"
 
-        assert message(~D[0001-02-03], &concat(&1, "bar")) ==
-                 "construction of binary failed: segment 1 of type 'binary': expected a binary but got: ~D[0001-02-03]"
-      end
+      assert message(~D[0001-02-03], &concat(&1, "bar")) ==
+               "construction of binary failed: segment 1 of type 'binary': expected a binary but got: ~D[0001-02-03]"
     end
   end
 

@@ -181,25 +181,23 @@ defmodule CodeTest do
       end
     end
 
-    if System.otp_release() >= "25" do
-      test "includes eval file in stacktrace" do
-        try do
-          Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
-        rescue
-          _ ->
-            assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
-        end
+    test "includes eval file in stacktrace" do
+      try do
+        Code.eval_string("<<a::size(b)>>", [a: :a, b: :b], file: "myfile")
+      rescue
+        _ ->
+          assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
+      end
 
-        try do
-          Code.eval_string(
-            "Enum.map([a: :a, b: :b], fn {a, b} -> <<a::size(b)>> end)",
-            [],
-            file: "myfile"
-          )
-        rescue
-          _ ->
-            assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
-        end
+      try do
+        Code.eval_string(
+          "Enum.map([a: :a, b: :b], fn {a, b} -> <<a::size(b)>> end)",
+          [],
+          file: "myfile"
+        )
+      rescue
+        _ ->
+          assert Exception.format_stacktrace(__STACKTRACE__) =~ "myfile:1"
       end
     end
 
@@ -338,19 +336,17 @@ defmodule CodeTest do
                {[{{:x, :foo}, 2}], [x: :foo]}
     end
 
-    if :erlang.system_info(:otp_release) >= ~c"25" do
-      test "undefined function" do
-        env = Code.env_for_eval(__ENV__)
-        quoted = quote do: foo()
+    test "undefined function" do
+      env = Code.env_for_eval(__ENV__)
+      quoted = quote do: foo()
 
-        assert_exception(
-          UndefinedFunctionError,
-          ["** (UndefinedFunctionError) function foo/0 is undefined (there is no such import)"],
-          fn ->
-            Code.eval_quoted_with_env(quoted, [], env)
-          end
-        )
-      end
+      assert_exception(
+        UndefinedFunctionError,
+        ["** (UndefinedFunctionError) function foo/0 is undefined (there is no such import)"],
+        fn ->
+          Code.eval_quoted_with_env(quoted, [], env)
+        end
+      )
     end
 
     defmodule Tracer do
