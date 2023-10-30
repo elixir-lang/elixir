@@ -299,7 +299,7 @@ There are few known exceptions to this anti-pattern:
 
   * [Protocol implementations](`Kernel.defimpl/2`) are, by design, defined under the protocol namespace
 
-  * [Custom Mix tasks](`Mix.Task`) are always defined under the `Mix.Tasks` namespace, such as `Mix.Tasks.PlugAuth`
+  * In some scenarios, the namespace owner may allow exceptions to this rule. For example, in Elixir itself, you defined [custom Mix tasks](`Mix.Task`) by placing them under the `Mix.Tasks` namespace, such as `Mix.Tasks.PlugAuth`
 
   * If you are the maintainer for both `plug` and `plug_auth`, then you may allow `plug_auth` to define modules with the `Plug` namespace, such as `Plug.Auth`. However, you are responsible for avoiding or managing any conflicts that may arise in the future
 
