@@ -1,5 +1,9 @@
-<h1><img src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo.png#gh-light-mode-only" width="200" alt="Elixir">
-<img src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo-dark.png#gh-dark-mode-only" width="200" alt="Elixir"></h1>
+<h1>
+ <picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo-dark.png">
+  <img alt="Elixir logo" src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo.png" width="200">
+ </picture>
+</h1>
 
 [![CI](https://github.com/elixir-lang/elixir/workflows/CI/badge.svg?branch=main)](https://github.com/elixir-lang/elixir/actions?query=branch%3Amain+workflow%3ACI)
 

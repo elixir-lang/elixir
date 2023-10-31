@@ -26,6 +26,8 @@
       "a",
       "br",
       "img",
+      "picture",
+      "source",
       "noscript",
       "p",
       "script"
