@@ -695,6 +695,29 @@ defmodule Module.Types.IntegrationTest do
 
       assert_warnings(files, warnings)
     end
+
+    test "reports unquote functions" do
+      files = %{
+        "a.ex" => """
+        defmodule A do
+          @deprecated "oops"
+          def a, do: :ok
+        end
+        """,
+        "b.ex" => """
+        defmodule B do
+          def b, do: unquote(&A.a/0)
+        end
+        """
+      }
+
+      warnings = [
+        "A.a/0 is deprecated. oops",
+        "b.ex: B.b/0"
+      ]
+
+      assert_warnings(files, warnings)
+    end
   end
 
   defp assert_warnings(files, expected) when is_binary(expected) do
