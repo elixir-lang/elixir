@@ -985,6 +985,7 @@ defmodule Mix do
   Returns whether `Mix.install/2` was called in the current node.
   """
   @doc since: "1.13.0"
+  @spec installed?() :: boolean()
   def installed? do
     Mix.State.get(:installed) != nil
   end
