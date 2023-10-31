@@ -58,6 +58,6 @@ end
 
 defimpl List.Chars, for: Float do
   def to_charlist(term) do
-    :io_lib_format.fwrite_g(term)
+    :erlang.float_to_list(term, [:short])
   end
 end
