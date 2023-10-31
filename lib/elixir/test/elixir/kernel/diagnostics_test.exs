@@ -153,7 +153,7 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
-    test "trim inbetween lines if too many" do
+    test "trim in between lines if too many" do
       output =
         capture_raise(
           """

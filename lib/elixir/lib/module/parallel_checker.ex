@@ -334,7 +334,7 @@ defmodule Module.ParallelChecker do
 
   defp position_to_tuple(position) do
     case position[:column] do
-      nil -> position[:line]
+      nil -> position[:line] || 0
       col -> {position[:line], col}
     end
   end
