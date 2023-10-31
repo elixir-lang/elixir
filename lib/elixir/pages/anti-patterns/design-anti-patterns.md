@@ -302,7 +302,7 @@ Using multi-clause functions in Elixir, to group functions of the same name, is 
 
 #### Example
 
-A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the same function definition. Such functions often have generic names or too broad specifications, making it difficult for other developers to understand and maintain them.
+A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the same function definition, in a way the behaviour of each clause is completely distinct from the other ones. Such functions often have too broad specifications, making it difficult for other developers to understand and maintain them.
 
 Some developers may use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, however the documentation itself may end-up full of conditionals to describe how the function behaves for each different argument combination. This is a good indicator that the clauses are ultimately unrelated.
 
@@ -310,51 +310,32 @@ Some developers may use documentation mechanisms such as `@doc` annotations to c
 @doc """
 Updates a struct.
 
-If given a "sharp" product (metal or glass with empty count),
-it will...
-
-If given a blunt product, it will...
+If given a product, it will...
 
 If given an animal, it will...
 """
-def update(%Product{count: nil, material: material})
-    when material in ["metal", "glass"] do
+def update(%Product{count: count, material: material})  do
   # ...
 end
 
-def update(%Product{count: count, material: material})
-    when count > 0 and material not in ["metal", "glass"] do
-  # ...
-end
-
-def update(%Animal{count: 1, skin: skin})
-    when skin in ["fur", "hairy"] do
+def update(%Animal{count: count, skin: skin})  do
   # ...
 end
 ```
 
+If updating an animal is completely different from updating a product and requires a different set of rules, it may be worth splitting those over different functions or even different modules.
+
 #### Refactoring
 
-As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in several different simple functions. More precise names make the scope of the function clear. Each function can have a specific `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can have a lot of impact on the function's current users, so be careful!
+As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in simple functions. Each function can have a specific name and `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can impact the function's current users, so be careful!
 
 ```elixir
 @doc """
-Updates a "sharp" product.
+Updates a product.
 
 It will...
 """
-def update_sharp_product(%Product{count: nil, material: material})
-    when material in ["metal", "glass"] do
-  # ...
-end
-
-@doc """
-Updates a "blunt" product.
-
-It will...
-"""
-def update_blunt_product(%Product{count: count, material: material})
-    when count > 0 and material not in ["metal", "glass"] do
+def update_product(%Product{count: count, material: material}) do
   # ...
 end
 
@@ -363,11 +344,47 @@ Updates an animal.
 
 It will...
 """
-def update_animal(%Animal{count: 1, skin: skin})
-    when skin in ["fur", "hairy"] do
+def update_animal(%Animal{count: count, skin: skin}) do
   # ...
 end
 ```
+
+These functions may still be implemented with multiple clauses, as long as the clauses group related funtionality. For example, `update_product` could be in practice implemented as follows:
+
+```elixir
+def update_product(%Product{count: 0}) do
+  # ...
+end
+
+def update_product(%Product{material: material})
+    when material in ["metal", "glass"] do
+  # ...
+end
+
+def update_product(%Product{material: material})
+    when material not in ["metal", "glass"] do
+  # ...
+end
+```
+
+You can see this pattern in practice within Elixir itself. The `+/2` operator can add `Integer`s and `Float`s together, but not `String`s, which instead use the `<>/2` operator. In this sense, it is reasonable to handle integers and floats in the same operation, but strings are unrelated enough to deserve their own function.
+
+You will also find examples in Elixir of functions that work with any struct, such as `struct/2`:
+
+```elixir
+iex> struct(URI.parse("/foo/bar"), path: "/bar/baz")
+%URI{
+  scheme: nil,
+  userinfo: nil,
+  host: nil,
+  port: nil,
+  path: "/bar/baz",
+  query: nil,
+  fragment: nil
+}
+```
+
+The difference here is that the `struct/2` function behaves precisely the same for any struct given, therefore there is no question of how the function handles different inputs. If the behaviour is clear and consistent for all inputs, then the anti-pattern does not take place.
 
 ## Using application configuration for libraries
 
