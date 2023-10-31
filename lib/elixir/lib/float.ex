@@ -576,7 +576,7 @@ defmodule Float do
   """
   @spec to_charlist(float) :: charlist
   def to_charlist(float) when is_float(float) do
-    :io_lib_format.fwrite_g(float)
+    :erlang.float_to_list(float, [:short])
   end
 
   @doc """
