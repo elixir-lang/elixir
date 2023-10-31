@@ -183,8 +183,7 @@ defmodule Logger.Translator do
   end
 
   def translate(_min_level, :debug, :report, {:logger, [formatter_error: formatter] ++ data}) do
-    # TODO: Remove :catched once we require Erlang/OTP 25+
-    case data[:caught] || data[:catched] do
+    case data[:caught] do
       {:throw, {:error, good, bad}, stacktrace} ->
         message =
           "bad return value from Logger formatter #{inspect(formatter)}, " <>

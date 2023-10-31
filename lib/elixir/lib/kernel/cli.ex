@@ -462,8 +462,7 @@ defmodule Kernel.CLI do
 
   defp process_command({:compile, patterns}, config) do
     # If ensuring the dir returns an error no files will be found.
-    # TODO: Use :filelib.ensure_path/1 once we require Erlang/OTP 25+
-    _ = :filelib.ensure_dir(:filename.join(config.output, "."))
+    _ = :filelib.ensure_path(config.output)
 
     case filter_multiple_patterns(patterns) do
       {:ok, []} ->

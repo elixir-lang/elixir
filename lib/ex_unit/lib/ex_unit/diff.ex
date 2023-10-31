@@ -749,7 +749,7 @@ defmodule ExUnit.Diff do
   defp load_struct(struct) do
     if is_atom(struct) and struct != nil and
          Code.ensure_loaded?(struct) and function_exported?(struct, :__struct__, 0) do
-      struct.__struct__
+      struct.__struct__()
     end
   end
 
