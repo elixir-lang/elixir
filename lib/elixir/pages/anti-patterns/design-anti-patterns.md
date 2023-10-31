@@ -1,6 +1,6 @@
 # Design-related anti-patterns
 
-This document outlines anti-patterns related to your modules, functions, and the role they
+This document outlines potential anti-patterns related to your modules, functions, and the role they
 play within a codebase.
 
 ## Alternative return types
