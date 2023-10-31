@@ -255,7 +255,9 @@ To address this anti-pattern, related arguments can be grouped using maps, struc
 
 ```elixir
 defmodule Library do
-  def loan(%{name: name, email: email, password: password, alias: alias} = user, %{title: title, ed: ed} = book) do
+  def loan(user, book) do
+    %{name: name, email: email, password: password, alias: alias} = user
+    %{title: title, ed: ed} = book
     ...
   end
 end
