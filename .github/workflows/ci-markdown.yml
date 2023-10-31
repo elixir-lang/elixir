@@ -31,3 +31,4 @@ jobs:
         with:
           globs: |
             lib/elixir/pages/**/*.md
+            README.md

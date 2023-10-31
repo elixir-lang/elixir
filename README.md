@@ -1,5 +1,5 @@
-<img src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo.png#gh-light-mode-only" width="200" alt="Elixir">
-<img src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo-dark.png#gh-dark-mode-only" width="200" alt="Elixir">
+<h1><img src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo.png#gh-light-mode-only" width="200" alt="Elixir">
+<img src="https://github.com/elixir-lang/elixir-lang.github.com/raw/main/images/logo/logo-dark.png#gh-dark-mode-only" width="200" alt="Elixir"></h1>
 
 [![CI](https://github.com/elixir-lang/elixir/workflows/CI/badge.svg?branch=main)](https://github.com/elixir-lang/elixir/actions?query=branch%3Amain+workflow%3ACI)
 
@@ -12,7 +12,7 @@ For more about Elixir, installation and documentation,
 ## Policies
 
 New releases are announced in the [announcement mailing list][8].
-You can subscribe by sending an email to elixir-lang-ann+subscribe@googlegroups.com
+You can subscribe by sending an email to <elixir-lang-ann+subscribe@googlegroups.com>
 and replying to the confirmation email.
 
 All security releases [will be tagged with `[security]`][10]. For more
@@ -25,7 +25,7 @@ All interactions in our official communication channels follow our
 
 For reporting bugs, [visit our issue tracker][2] and follow the steps
 for reporting a new issue. **Please disclose security vulnerabilities
-privately at elixir-security@googlegroups.com**.
+privately at <elixir-security@googlegroups.com>**.
 
 ## Issues tracker management
 
@@ -107,17 +107,17 @@ We welcome everyone to contribute to Elixir. To do so, there are a few
 things you need to know about the code. First, Elixir code is divided
 in applications inside the `lib` folder:
 
-* `elixir` - Elixir's kernel and standard library
+  * `elixir` - Elixir's kernel and standard library
 
-* `eex` - EEx is the template engine that allows you to embed Elixir
+  * `eex` - EEx is the template engine that allows you to embed Elixir
 
-* `ex_unit` - ExUnit is a simple test framework that ships with Elixir
+  * `ex_unit` - ExUnit is a simple test framework that ships with Elixir
 
-* `iex` - IEx stands for Interactive Elixir: Elixir's interactive shell
+  * `iex` - IEx stands for Interactive Elixir: Elixir's interactive shell
 
-* `logger` - Logger is the built-in logger
+  * `logger` - Logger is the built-in logger
 
-* `mix` - Mix is Elixir's build tool
+  * `mix` - Mix is Elixir's build tool
 
 You can run all tests in the root directory with `make test` and you can
 also run tests for a specific framework `make test_#{APPLICATION}`, for example,
@@ -166,9 +166,9 @@ With tests running and passing, you are ready to contribute to Elixir and
 We have saved some excellent pull requests we have received in the past in
 case you are looking for some examples:
 
-* [Implement Enum.member? - Pull request](https://github.com/elixir-lang/elixir/pull/992)
-* [Add String.valid? - Pull request](https://github.com/elixir-lang/elixir/pull/1058)
-* [Implement capture_io for ExUnit - Pull request](https://github.com/elixir-lang/elixir/pull/1059)
+  * [Implement Enum.member? - Pull request](https://github.com/elixir-lang/elixir/pull/992)
+  * [Add String.valid? - Pull request](https://github.com/elixir-lang/elixir/pull/1058)
+  * [Implement capture_io for ExUnit - Pull request](https://github.com/elixir-lang/elixir/pull/1059)
 
 ### Reviewing changes
 

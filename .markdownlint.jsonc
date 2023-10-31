@@ -22,6 +22,7 @@
   // Allowed HTML inline elements.
   "MD033": {
     "allowed_elements": [
+      "h1",
       "a",
       "br",
       "img",
