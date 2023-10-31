@@ -57,13 +57,13 @@ A huge thank you to Vinícius Muller for working on the new diagnostics.
 
 Elixir's Getting Started guided has been made part of the Elixir repository and incorporated into ExDoc. This was an opportunity to revisit and unify all official guides and references.
 
-We have also incorporated and extended the work on [Understanding Code Smells in Elixir Functional Language](https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/2023-emse-code-smells-elixir.pdf), by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG](http://aserg.labsoft.dcc.ufmg.br/), into the official document in the form of anti-patterns. The anti-patterns are divided into four categories: code-related, design-related, process-related, and meta-programming. Our goal is to give all developers with both positive and negative examples of Elixir code, with context and examples on how to improve their codebases.
+We have also incorporated and extended the work on [Understanding Code Smells in Elixir Functional Language](https://github.com/lucasvegi/Elixir-Code-Smells/blob/main/etc/2023-emse-code-smells-elixir.pdf), by Lucas Vegi and Marco Tulio Valente, from [ASERG/DCC/UFMG](http://aserg.labsoft.dcc.ufmg.br/), into the official document in the form of anti-patterns. The anti-patterns are divided into four categories: code-related, design-related, process-related, and meta-programming. Our goal is to give all developers examples of potential anti-patterns, with context and examples on how to improve their codebases.
 
 Another [ExDoc](https://github.com/elixir-lang/ex_doc) feature we have incorporated in this release is the addition of cheatsheets, starting with [a cheatsheet for the Enum module](https://hexdocs.pm/elixir/main/enum-cheat.html). If you would like to contribute future cheatsheets to Elixir itself, feel free to start a discussion with an issue.
 
 Finally, we have started enriching our documentation with [Mermaid.js](https://mermaid.js.org/) diagrams. You can find examples in the [GenServer](https://hexdocs.pm/elixir/main/GenServer.html) and [Supervisor](https://hexdocs.pm/elixir/main/Supervisor.html) docs.
 
-## v1.16.0-dev
+## v1.16.0-rc.0 (2023-10-31)
 
 ### 1. Enhancements
 
@@ -76,6 +76,7 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
   * [Code] Automatically include columns in parsing options
   * [Code] Introduce `MismatchedDelimiterError` for handling mismatched delimiter exceptions
   * [Code.Fragment] Handle anonymous calls in fragments
+  * [Code.Formatter] Trim trailing whitespace on heredocs with `\r\n`
   * [Kernel] Suggest module names based on suffix and casing errors when the module does not exist in `UndefinedFunctionError`
   * [Kernel.ParallelCompiler] Introduce `Kernel.ParallelCompiler.pmap/2` to compile multiple additional entries in parallel
   * [Kernel.SpecialForms] Warn if `True`/`False`/`Nil` are used as aliases and there is no such alias
