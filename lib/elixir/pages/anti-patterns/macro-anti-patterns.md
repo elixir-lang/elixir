@@ -1,6 +1,6 @@
 # Meta-programming anti-patterns
 
-This document outlines anti-patterns related to meta-programming.
+This document outlines potential anti-patterns related to meta-programming.
 
 ## Large code generation by macros
 

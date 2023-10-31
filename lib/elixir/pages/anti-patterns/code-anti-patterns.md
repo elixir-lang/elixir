@@ -1,6 +1,6 @@
 # Code-related anti-patterns
 
-This document outlines anti-patterns related to your code and particular Elixir idioms and features.
+This document outlines potential anti-patterns related to your code and particular Elixir idioms and features.
 
 ## Comments
 
@@ -294,6 +294,8 @@ defmodule PlugAuth do
   # ...
 end
 ```
+
+#### Additional remarks
 
 There are few known exceptions to this anti-pattern:
 

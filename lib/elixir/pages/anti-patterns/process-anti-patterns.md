@@ -1,6 +1,6 @@
 # Process-related anti-patterns
 
-This document outlines anti-patterns related to processes and process-based abstractions.
+This document outlines potential anti-patterns related to processes and process-based abstractions.
 
 ## Code organization by process
 
