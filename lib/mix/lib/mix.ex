@@ -661,9 +661,6 @@ defmodule Mix do
   This function can only be called outside of a Mix project and only with the
   same dependencies in the given VM.
 
-  **Note:** this feature is currently experimental and it may change
-  in future releases.
-
   ## Options
 
     * `:force` - if `true`, runs with empty install cache. This is useful when you want
