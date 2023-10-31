@@ -705,7 +705,7 @@ defmodule Calendar do
 
   # Hour using a 12-hour clock
   defp format_modifiers("I" <> rest, width, pad, datetime, format_options, acc) do
-    result = (rem(datetime.hour() + 23, 12) + 1) |> Integer.to_string() |> pad_leading(width, pad)
+    result = (rem(datetime.hour + 23, 12) + 1) |> Integer.to_string() |> pad_leading(width, pad)
     parse(rest, datetime, format_options, [result | acc])
   end
 
