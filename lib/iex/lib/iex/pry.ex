@@ -116,7 +116,7 @@ defmodule IEx.Pry do
 
   The actual line is especially formatted in bold.
   """
-  @spec whereami(Path.t(), non_neg_integer(), pos_integer()) :: {:ok, IO.chardata()} | :error
+  @spec whereami(String.t(), non_neg_integer(), pos_integer()) :: {:ok, IO.chardata()} | :error
   def whereami(file, line, radius)
       when is_binary(file) and is_integer(line) and is_integer(radius) and radius > 0 do
     with true <- File.regular?(file),
