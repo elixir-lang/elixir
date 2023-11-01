@@ -646,8 +646,8 @@ no_parens_remote(true, _Fun) -> error;
 no_parens_remote(Atom, Fun) when is_atom(Atom) ->
   Message = fun() ->
     io_lib:format(
-      "using map.field notation (without parens) to invoke function ~ts.~ts() is deprecated, "
-      "you must add parens instead: remote.function()",
+      "using map.field notation (without parentheses) to invoke function ~ts.~ts() is deprecated, "
+      "you must add parentheses instead: remote.function()",
       [elixir_aliases:inspect(Atom), Fun]
     )
   end,
