@@ -47,6 +47,9 @@ defmodule Mix.Tasks.Escript.Install do
     * `--submodules` - fetches repository submodules before building escript from
       Git or GitHub
 
+    * `--sparse` - checkout a single directory inside the Git repository and use
+      it as the escript project directory
+
     * `--app` - specifies a custom app name to be used for building the escript
       from Git, GitHub, or Hex
 
@@ -66,6 +69,7 @@ defmodule Mix.Tasks.Escript.Install do
     force: :boolean,
     sha512: :string,
     submodules: :boolean,
+    sparse: :string,
     app: :string,
     organization: :string,
     repo: :string,

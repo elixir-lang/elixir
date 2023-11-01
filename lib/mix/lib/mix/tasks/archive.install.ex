@@ -47,6 +47,9 @@ defmodule Mix.Tasks.Archive.Install do
     * `--submodules` - fetches repository submodules before building archive from
       Git or GitHub
 
+    * `--sparse` - checkout a single directory inside the Git repository and use
+      it as the archive root directory
+
     * `--app` - specifies a custom app name to be used for building the archive
       from Git, GitHub, or Hex
 
@@ -63,6 +66,7 @@ defmodule Mix.Tasks.Archive.Install do
     force: :boolean,
     sha512: :string,
     submodules: :boolean,
+    sparse: :string,
     app: :string,
     organization: :string,
     repo: :string,
