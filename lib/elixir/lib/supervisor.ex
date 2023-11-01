@@ -413,10 +413,10 @@ defmodule Supervisor do
   The difference between the two approaches is that a module-based
   supervisor gives you more direct control over how the supervisor
   is initialized. Instead of calling `Supervisor.start_link/2` with
-  a list of child specifications that are automatically initialized, we manually
-  initialize the children by calling `Supervisor.init/2` inside its
-  `c:init/1` callback. `Supervisor.init/2` accepts the same `:strategy`,
-  `:max_restarts`, and `:max_seconds` options as `start_link/2`.
+  a list of child specifications that are implicitly initialized for us,
+  we must explicitly initialize the children by calling `Supervisor.init/2`
+  inside its `c:init/1` callback. `Supervisor.init/2` accepts the same
+  `:strategy`, `:max_restarts`, and `:max_seconds` options as `start_link/2`.
 
   > #### `use Supervisor` {: .info}
   >
