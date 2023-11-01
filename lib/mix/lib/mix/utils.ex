@@ -656,9 +656,7 @@ defmodule Mix.Utils do
     request = {:binary.bin_to_list(path), headers}
 
     # Use the system certificates
-    # Currently we inline what `:httpc.ssl_verify_host_options/1` is doing, because it is not present
-    # on OTP < 25.1.
-    # TODO: just use `ssl_options = :httpc.ssl_verify_host_options(true)` once OTP >= 26.0 is required.
+    # TODO: use `ssl_options = :httpc.ssl_verify_host_options(true)` on Erlang/OTP 26+
     ssl_options = [
       verify: :verify_peer,
       cacerts: :public_key.cacerts_get(),
