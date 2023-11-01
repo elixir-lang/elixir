@@ -17,7 +17,7 @@ Type specifications (most often referred to as *typespecs*) are defined in diffe
   * `@callback`
   * `@macrocallback`
 
-In addition, you can use `@typedoc` to describe a custom `@type` definition.
+In addition, you can use `@typedoc` to document a custom `@type` definition.
 
 See the "User-defined types" and "Defining a specification" sub-sections below for more information on defining types and typespecs.
 
@@ -250,18 +250,113 @@ Behaviours in Elixir (and Erlang) are a way to separate and abstract the generic
 
 A behaviour module defines a set of functions and macros (referred to as *callbacks*) that callback modules implementing that behaviour must export. This "interface" identifies the specific part of the component. For example, the `GenServer` behaviour and functions abstract away all the message-passing (sending and receiving) and error reporting that a "server" process will likely want to implement from the specific parts such as the actions that this server process has to perform.
 
-To define a behaviour module, it's enough to define one or more callbacks in that module. To define callbacks, the `@callback` and `@macrocallback` module attributes can be used (for function callbacks and macro callbacks respectively).
+Say we want to implement a bunch of parsers, each parsing structured data: for example, a JSON parser and a MessagePack parser. Each of these two parsers will *behave* the same way: both will provide a `parse/1` function and an `extensions/0` function. The `parse/1` function will return an Elixir representation of the structured data, while the `extensions/0` function will return a list of file extensions that can be used for each type of data (e.g., `.json` for JSON files).
 
-    defmodule MyBehaviour do
-      @callback my_fun(arg :: any) :: any
-      @macrocallback my_macro(arg :: any) :: Macro.t
-    end
+We can create a `Parser` behaviour:
+
+```elixir
+defmodule Parser do
+  @doc """
+  Parses a string.
+  """
+  @callback parse(String.t) :: {:ok, term} | {:error, atom}
+
+  @doc """
+  Lists all supported file extensions.
+  """
+  @callback extensions() :: [String.t]
+end
+```
 
 As seen in the example above, defining a callback is a matter of defining a specification for that callback, made of:
 
-  * the callback name (`my_fun` or `my_macro` in the example)
-  * the arguments that the callback must accept (`arg :: any` in the example)
+  * the callback name (`parse` or `extensions` in the example)
+  * the arguments that the callback must accept (`String.t`)
   * the *expected* type of the callback return value
+
+Modules adopting the `Parser` behaviour will have to implement all the functions defined with the `@callback` attribute. As you can see, `@callback` expects a function name but also a function specification like the ones used with the `@spec` attribute we saw above.
+
+### Implementing behaviours
+
+Implementing a behaviour is straightforward:
+
+```elixir
+defmodule JSONParser do
+  @behaviour Parser
+
+  @impl Parser
+  def parse(str), do: {:ok, "some json " <> str} # ... parse JSON
+
+  @impl Parser
+  def extensions, do: [".json"]
+end
+```
+
+```elixir
+defmodule CSVParser do
+  @behaviour Parser
+
+  @impl Parser
+  def parse(str), do: {:ok, "some csv " <> str} # ... parse CSV
+
+  @impl Parser
+  def extensions, do: [".csv"]
+end
+```
+
+If a module adopting a given behaviour doesn't implement one of the callbacks required by that behaviour, a compile-time warning will be generated.
+
+Furthermore, with `@impl` you can also make sure that you are implementing the **correct** callbacks from the given behaviour in an explicit manner. For example, the following parser implements both `parse` and `extensions`. However, thanks to a typo, `BADParser` is implementing `parse/0` instead of `parse/1`.
+
+```elixir
+defmodule BADParser do
+  @behaviour Parser
+
+  @impl Parser
+  def parse, do: {:ok, "something bad"}
+
+  @impl Parser
+  def extensions, do: ["bad"]
+end
+```
+
+This code generates a warning letting you know that you are mistakenly implementing `parse/0` instead of `parse/1`.
+You can read more about `@impl` in the [module documentation](Module.html#module-impl).
+
+### Using behaviours
+
+Behaviours are useful because you can pass modules around as arguments and you can then *call back* to any of the functions specified in the behaviour. For example, we can have a function that receives a filename, several parsers, and parses the file based on its extension:
+
+```elixir
+@spec parse_path(Path.t(), [module()]) :: {:ok, term} | {:error, atom}
+def parse_path(filename, parsers) do
+  with {:ok, ext} <- parse_extension(filename),
+       {:ok, parser} <- find_parser(ext, parsers),
+       {:ok, contents} <- File.read(filename) do
+    parser.parse(contents)
+  end
+end
+
+defp parse_extension(filename) do
+  if ext = Path.extname(filename) do
+    {:ok, ext}
+  else
+    {:error, :no_extension}
+  end
+end
+
+defp find_parser(ext, parsers) do
+  if parser = Enum.find(parsers, fn parser -> ext in parser.extensions() end) do
+    {:ok, parser}
+  else
+    {:error, :no_matching_parser}
+  end
+end
+```
+
+You could also invoke any parser directly: `CSVParser.parse(...)`.
+
+Note you don't need to define a behaviour in order to dynamically dispatch on a module, but those features often go hand in hand.
 
 ### Optional callbacks
 
@@ -278,34 +373,6 @@ Optional callbacks can be defined through the `@optional_callbacks` module attri
 
 One example of optional callback in Elixir's standard library is `c:GenServer.format_status/2`.
 
-### Implementing behaviours
-
-To specify that a module implements a given behaviour, the `@behaviour` attribute must be used:
-
-    defmodule MyBehaviour do
-      @callback my_fun(arg :: any) :: any
-    end
-
-    defmodule MyCallbackModule do
-      @behaviour MyBehaviour
-      def my_fun(arg), do: arg
-    end
-
-If a callback module that implements a given behaviour doesn't export all the functions and macros defined by that behaviour, the user will be notified through warnings during the compilation process (no errors will happen).
-
-You can also use the `@impl` attribute before a function to denote that particular function is implementation a behaviour:
-
-    defmodule MyCallbackModule do
-      @behaviour MyBehaviour
-
-      @impl true
-      def my_fun(arg), do: arg
-    end
-
-You can also use `@impl MyBehaviour` to make clearer from which behaviour the callbacks comes from, providing even more context for future readers of your code.
-
-Elixir's standard library contains a few frequently used behaviours such as `GenServer`, `Supervisor`, and `Application`.
-
 ### Inspecting behaviours
 
 The `@callback` and `@optional_callbacks` attributes are used to create a `behaviour_info/1` function available on the defining module. This function can be used to retrieve the callbacks and optional callbacks defined by that module.
@@ -318,6 +385,10 @@ For example, for the `MyBehaviour` module defined in "Optional callbacks" above:
     #=> ["MACRO-non_vital_macro": 2, non_vital_fun: 0]
 
 When using `iex`, the `IEx.Helpers.b/1` helper is also available.
+
+## Pitfalls
+
+There are some known pitfalls when using typespecs, they are documented next.
 
 ## The `string()` type
 
