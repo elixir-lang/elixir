@@ -444,3 +444,35 @@ iex> DashSplitter.split("Lucas-Francisco-da-Matta-Vegi", [parts: 5])
 iex> DashSplitter.split("Lucas-Francisco-da-Matta-Vegi") #<= default config is used!
 ["Lucas", "Francisco-da-Matta-Vegi"]
 ```
+
+#### Additional Remarks
+
+For Mix tasks and related tools, it may be necessary to provide per-project configuration. For example, imagine you have a `:linter` project, which supports setting the output file and the verbosity level. You may choose to configure it through application environment:
+
+```elixir
+config :linter,
+  output_file: "/path/to/output.json",
+  verbosity: 3
+```
+
+However, `Mix` allows tasks to read per-project configuration via `Mix.Project.config/0`. In this case, you can configure the `:linter` directly in the `mix.exs` file:
+
+```elixir
+def project do
+  [
+    app: :my_app,
+    version: "1.0.0",
+    linter: [
+      output_file: "/path/to/output.json",
+      verbosity: 3
+    ],
+    ...
+  ]
+end
+```
+
+Additonally, if a Mix task is available, you can also accept these options as command line arguments (see `OptionParser`):
+
+```bash
+mix linter --output-file /path/to/output.json --verbosity 3
+```
