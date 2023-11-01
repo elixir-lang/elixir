@@ -326,8 +326,17 @@ defmodule Module do
   ### `@nifs` (since v1.16.0)
 
   A list of functions and their arities which will be overridden
-  by a native implementation (NIF). See the Erlang documentation
-  for more information: https://www.erlang.org/doc/man/erl_nif
+  by a native implementation (NIF).
+
+      defmodule MyLibrary.MyModule do
+        @nifs [foo: 1, bar: 2]
+
+        def foo(arg1), do: :erlang.nif_error(:not_loaded)
+        def bar(arg1, arg2), do: :erlang.nif_error(:not_loaded)
+      end
+
+  See the Erlang documentation for more information:
+  https://www.erlang.org/doc/man/erl_nif
 
   ### `@on_definition`
 
