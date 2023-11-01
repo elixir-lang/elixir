@@ -431,8 +431,8 @@ iex> for item <- cart,
 ### [`into(enum, collectable)`](`Enum.into/2`)
 
 ```elixir
-iex> pairs = [{"apple", 3}, {"banana", 1}, {"orange", 6}]
-iex> Enum.into(pairs, %{})
+iex> cart = [{"apple", 3}, {"banana", 1}, {"orange", 6}]
+iex> Enum.into(cart, %{})
 %{"apple" => 3, "banana" => 1, "orange" => 6}
 ```
 
