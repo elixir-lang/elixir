@@ -445,29 +445,17 @@ iex> DashSplitter.split("Lucas-Francisco-da-Matta-Vegi") #<= default config is u
 ["Lucas", "Francisco-da-Matta-Vegi"]
 ```
 
-### Additional Remarks
+#### Additional Remarks
 
-Notice that in some cases you need to be able to set a global configuration option for a library that cannot be set through function calls. This mainly applies to build tools and tools plugins.
-
-#### Example
-
-The `:linter` module represents a library that provides a custom mix task for linting your project. It supports setting the output file and the verbosity level through application environment configuration:
+For Mix tasks and related tools, it may be necessary to provide per-project configuration. For example, imagine you have a `:linter` project, which supports setting the output file and the verbosity level. You may choose to configure it through application environment:
 
 ```elixir
-import Config
-
 config :linter,
   output_file: "/path/to/output.json",
   verbosity: 3
-
-import_config "#{config_env()}.exs"
 ```
 
-The problem here lies on the fact that all projects using the `:linter` package would need to add a `config` for configuring it, even if this is not necessary.
-
-#### Refactoring
-
-To remove this anti-pattern the `:linter` should retrieve these configuration options from `Mix.Project`:
+However, `Mix` allows tasks to read per-project configuration via `Mix.Project.config/0`. In this case, you can configure the `:linter` directly in the `mix.exs` file:
 
 ```elixir
 def project do
@@ -483,7 +471,7 @@ def project do
 end
 ```
 
-Additonally if the `:linter` is a mix task, it could be refactored to expect these configuration options as command line arguments:
+Additonally, if a Mix task is available, you can also accept these options as command line arguments (see `OptionParser`):
 
 ```bash
 mix linter --output-file /path/to/output.json --verbosity 3
