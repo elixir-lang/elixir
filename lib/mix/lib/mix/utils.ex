@@ -656,7 +656,14 @@ defmodule Mix.Utils do
     request = {:binary.bin_to_list(path), headers}
 
     # Use the system certificates
-    ssl_options = :httpc.ssl_verify_host_options(true)
+    # Currently we inline what `:httpc.ssl_verify_host_options/1` is doing, because it is not present
+    # on OTP < 25.1.
+    # TODO: just use `ssl_options = :httpc.ssl_verify_host_options(true)` once OTP >= 26.0 is required.
+    ssl_options = [
+      verify: :verify_peer,
+      cacerts: :public_key.cacerts_get(),
+      customize_hostname_check: [match_fun: :public_key.pkix_verify_hostname_match_fun(:https)]
+    ]
 
     # We are using relaxed: true because some servers is returning a Location
     # header with relative paths, which does not follow the spec. This would
