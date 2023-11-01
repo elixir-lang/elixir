@@ -143,9 +143,8 @@ defmodule Inspect.Opts do
   function as this must be controlled by applications. Libraries
   should instead define their own structs with custom inspect
   implementations. If a library must change the default inspect
-  function, then it is best to define to ask users of your library
-  to explicitly call `default_inspect_fun/1` with your function of
-  choice.
+  function, then it is best to ask users of your library to explicitly
+  call `default_inspect_fun/1` with your function of choice.
 
   The default is `Inspect.inspect/2`.
 
