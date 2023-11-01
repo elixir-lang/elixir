@@ -655,23 +655,8 @@ defmodule Mix.Utils do
     headers = [{~c"user-agent", ~c"Mix/#{System.version()}"}]
     request = {:binary.bin_to_list(path), headers}
 
-    # Use the system certificates if available, otherwise skip peer verification
-    # TODO: Always use system certificates when OTP >= 25.1 is required
-    ssl_options =
-      if Code.ensure_loaded?(:httpc) and function_exported?(:httpc, :ssl_verify_host_options, 1) do
-        try do
-          apply(:httpc, :ssl_verify_host_options, [true])
-        rescue
-          _ ->
-            Mix.shell().error(
-              "warning: failed to load system certificates. SSL peer verification will be skipped but downloads are still verified with a checksum"
-            )
-
-            [verify: :verify_none]
-        end
-      else
-        [verify: :verify_none]
-      end
+    # Use the system certificates
+    ssl_options = :httpc.ssl_verify_host_options(true)
 
     # We are using relaxed: true because some servers is returning a Location
     # header with relative paths, which does not follow the spec. This would
