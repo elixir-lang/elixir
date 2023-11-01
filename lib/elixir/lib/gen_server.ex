@@ -8,6 +8,13 @@ defmodule GenServer do
   will have a standard set of interface functions and include functionality for
   tracing and error reporting. It will also fit into a supervision tree.
 
+  ```mermaid
+  graph BT
+      C(Client #3) ~~~ B(Client #2) ~~~ A(Client #1)
+      A & B & C -->|request| GenServer
+      GenServer -.->|reply| A & B & C
+  ```
+
   ## Example
 
   The GenServer behaviour abstracts the common client-server interaction.
