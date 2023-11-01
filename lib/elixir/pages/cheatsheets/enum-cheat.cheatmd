@@ -711,7 +711,7 @@ iex> Enum.slide(fruits, 2, 4)
 iex> Enum.slide(fruits, 1..3, 0)
 ["banana", "grape", "orange", "apple", "pear"]
 iex> Enum.slide(fruits, 1..3, 4)
-["banana", "pear", "grape", "orange", "apple"]
+["apple", "pear", "banana", "grape", "orange"]
 ```
 
 ## Reversing
