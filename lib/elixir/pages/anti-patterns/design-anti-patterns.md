@@ -349,7 +349,7 @@ def update_animal(%Animal{count: count, skin: skin}) do
 end
 ```
 
-These functions may still be implemented with multiple clauses, as long as the clauses group related funtionality. For example, `update_product` could be in practice implemented as follows:
+These functions may still be implemented with multiple clauses, as long as the clauses group related functionality. For example, `update_product` could be in practice implemented as follows:
 
 ```elixir
 def update_product(%Product{count: 0}) do
