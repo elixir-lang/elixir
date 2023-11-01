@@ -707,7 +707,7 @@ fruits = ["apple", "banana", "grape", "orange", "pear"]
 iex> Enum.slide(fruits, 2, 0)
 ["grape", "apple", "banana", "orange", "pear"]
 iex> Enum.slide(fruits, 2, 4)
-["apple", "banana", "orange", "pear", "grape", ]
+["apple", "banana", "orange", "pear", "grape"]
 iex> Enum.slide(fruits, 1..3, 0)
 ["banana", "grape", "orange", "apple", "pear"]
 iex> Enum.slide(fruits, 1..3, 4)
