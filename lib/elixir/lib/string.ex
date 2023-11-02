@@ -1888,6 +1888,7 @@ defmodule String do
       iex> String.replace_invalid("nem rán b" <> <<225, 187>> <> " bề", "ERROR!")
       "nem rán bERROR! bề"
   """
+  @doc since: "1.16.0"
   def replace_invalid(string, replacement \\ "�")
       when is_binary(string) and is_binary(replacement) do
     do_replace_invalid(string, replacement, <<>>)

@@ -1751,13 +1751,15 @@ defmodule File do
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
 
-  ## Byte order marks
+  ## Byte order marks an dread offset
 
   If you pass `:trim_bom` in the modes parameter, the stream will
   trim UTF-8, UTF-16 and UTF-32 byte order marks when reading from file.
 
   Note that this function does not try to discover the file encoding
-  based on BOM.
+  based on BOM. From Elixir v1.16.0, you may also pass a `:read_offset`
+  that is skipped whenever enumerating the stream (if both `:read_offset`
+  and `:trim_bom` are given, the offset is skipped after the BOM).
 
   ## Examples
 
