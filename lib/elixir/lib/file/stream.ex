@@ -18,11 +18,10 @@ defmodule File.Stream do
 
   @doc false
   def __build__(path, line_or_bytes, modes) do
-    with {:read_offset, offset} <- :lists.keyfind(:read_offset, 1, modes) do
-      unless is_integer(offset) and offset >= 0 do
-        raise ArgumentError,
-              "expected :read_offset to be a non-negative integer, got: #{inspect(offset)}"
-      end
+    with {:read_offset, offset} <- :lists.keyfind(:read_offset, 1, modes),
+         false <- is_integer(offset) and offset >= 0 do
+      raise ArgumentError,
+            "expected :read_offset to be a non-negative integer, got: #{inspect(offset)}"
     end
 
     raw = :lists.keyfind(:encoding, 1, modes) == false
