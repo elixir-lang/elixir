@@ -826,6 +826,33 @@ defmodule StringTest do
     refute String.valid?("asdasdasd" <> <<0xFFFF::16>>, :fast_ascii)
   end
 
+  test "replace_invalid" do
+    assert String.replace_invalid("") === ""
+    assert String.replace_invalid(<<0xFF>>) === "�"
+    assert String.replace_invalid(<<0xFF, 0xFF, 0xFF>>) === "���"
+
+    # Valid ASCII
+    assert String.replace_invalid("hello") === "hello"
+
+    # Valid UTF-8
+    assert String.replace_invalid("こんにちは") === "こんにちは"
+
+    # 2/3 byte truncated "ề"
+    assert String.replace_invalid(<<225, 187>>) === "�"
+    assert String.replace_invalid("nem rán b" <> <<225, 187>> <> " bề") === "nem rán b� bề"
+
+    # 2/4 byte truncated "😔"
+    assert String.replace_invalid(<<240, 159>>) === "�"
+    assert String.replace_invalid("It's so over " <> <<240, 159>>) === "It's so over �"
+
+    # 3/4 byte truncated "😃"
+    assert String.replace_invalid(<<240, 159, 152>>) === "�"
+    assert String.replace_invalid("We're so back " <> <<240, 159, 152>>) === "We're so back �"
+
+    # 3 byte overlong "e"
+    assert String.replace_invalid(<<0b11100000, 0b10000001, 0b10100101>>) === "���"
+  end
+
   test "chunk/2 with :valid trait" do
     assert String.chunk("", :valid) == []
 
