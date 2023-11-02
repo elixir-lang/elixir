@@ -65,7 +65,7 @@ defmodule Path do
       "bar/../x"
 
   """
-  @spec absname(t, t) :: binary
+  @spec absname(t, t | (-> t)) :: binary
   def absname(path, relative_to) do
     path = IO.chardata_to_string(path)
 
