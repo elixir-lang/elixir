@@ -942,6 +942,7 @@ defmodule Logger do
 
   for level <- @levels do
     report = [something: :reported, this: level]
+    report_with_metadata = [user_id: 42, request_id: "xU32kFa"]
 
     extra =
       if translation = translations[level] do
@@ -973,6 +974,13 @@ defmodule Logger do
         # as map
         Logger.#{level}(#{inspect(Map.new(report))})
 
+    Report message with metadata (maps or keywords):
+
+        # as a keyword list
+        Logger.#{level}("this is a #{level} message", #{inspect(report_with_metadata)})
+
+        # as map
+        Logger.#{level}("this is a #{level} message", #{inspect(Map.new(report_with_metadata))})
     """
 
     # Only macros generated for the "new" Erlang levels are available since 1.11.0. Other
