@@ -245,7 +245,7 @@ defmodule Mix.Local.Installer do
   end
 
   defp git_fetcher(url, git_config, opts) do
-    git_opts = git_config ++ [git: url, submodules: opts[:submodules]]
+    git_opts = git_config ++ [git: url, submodules: opts[:submodules], sparse: opts[:sparse]]
 
     app_name =
       if opts[:app] do
@@ -347,9 +347,7 @@ defmodule Mix.Local.Installer do
               File.cwd!()
             end)
 
-          package_name = elem(dep_spec, 0)
-          package_name_string = Atom.to_string(package_name)
-          package_path = Path.join([tmp_path, "deps", package_name_string])
+          {package_name, package_path} = package_name_path(dep_spec, tmp_path)
 
           post_config = [
             deps_path: Path.join(tmp_path, "deps"),
@@ -367,6 +365,24 @@ defmodule Mix.Local.Installer do
     :code.purge(Mix.Local.Installer.Fetcher)
     :code.delete(Mix.Local.Installer.Fetcher)
   end
+
+  defp package_name_path(dep_spec, tmp_path) do
+    package_name = elem(dep_spec, 0)
+    package_name_string = Atom.to_string(package_name)
+    package_path = Path.join([tmp_path, "deps", package_name_string, maybe_sparse_dir(dep_spec)])
+
+    {package_name, package_path}
+  end
+
+  defp maybe_sparse_dir({_app, opts}) when is_list(opts) do
+    if opts[:git] do
+      opts[:sparse] || ""
+    else
+      ""
+    end
+  end
+
+  defp maybe_sparse_dir(_dep_spec), do: ""
 
   defp in_fetcher(_mix_exs) do
     Mix.Task.run("deps.get", ["--only", Atom.to_string(Mix.env())])
