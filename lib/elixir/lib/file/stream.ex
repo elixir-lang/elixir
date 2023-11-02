@@ -38,13 +38,36 @@ defmodule File.Stream do
 
   @doc false
   def __open__(%File.Stream{path: path, node: node}, modes) when node == node() do
-    :file.open(path, modes)
+    path
+    |> :file.open(modes)
+    |> position_after_open(modes)
   end
 
   @doc false
   def __open__(%File.Stream{path: path, node: node}, modes) do
-    :erpc.call(node, :file_io_server, :start, [self(), path, List.delete(modes, :raw)])
+    node
+    |> :erpc.call(:file_io_server, :start, [self(), path, List.delete(modes, :raw)])
+    |> position_after_open(modes)
   end
+
+  defp position_after_open({:ok, fd}, modes) do
+    case :lists.keyfind(:offset, 1, modes) do
+      {:offset, offset} ->
+        case :file.position(fd, offset) do
+          {:ok, _position} ->
+            {:ok, fd}
+
+          {:error, reason} ->
+            :file.close(fd)
+            {:error, reason}
+        end
+
+      false ->
+        {:ok, fd}
+    end
+  end
+
+  defp position_after_open({:error, reason}, _modes), do: {:error, reason}
 
   defimpl Collectable do
     def into(%{modes: modes, raw: raw} = stream) do

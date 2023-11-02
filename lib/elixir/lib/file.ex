@@ -133,12 +133,16 @@ defmodule File do
 
   @type stream_mode ::
           encoding_mode()
+          | offset_mode()
           | :append
           | :compressed
           | :delayed_write
           | :trim_bom
           | {:read_ahead, pos_integer | false}
           | {:delayed_write, non_neg_integer, non_neg_integer}
+
+  @type offset_mode :: {:offset, location()}
+  @type location :: :file.location()
 
   @type erlang_time ::
           {{year :: non_neg_integer(), month :: 1..12, day :: 1..31},

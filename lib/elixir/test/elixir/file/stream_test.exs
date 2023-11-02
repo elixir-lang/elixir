@@ -141,6 +141,22 @@ defmodule File.StreamTest do
         end
       end
 
+      test "supports byte offset" do
+        src = fixture_path("file.txt")
+
+        assert @node
+               |> stream!(src, [{:offset, 0}])
+               |> Enum.take(1) == ["FOO\n"]
+
+        assert @node
+               |> stream!(src, [{:offset, 1}])
+               |> Enum.take(1) == ["OO\n"]
+
+        assert @node
+               |> stream!(src, [{:offset, 4}])
+               |> Enum.take(1) == []
+      end
+
       test "keeps BOM when raw" do
         src = fixture_path("utf8_bom.txt")
 
