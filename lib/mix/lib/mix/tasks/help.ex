@@ -221,7 +221,18 @@ defmodule Mix.Tasks.Help do
   end
 
   defp alias_doc(task_name, note) do
-    {"Alias for " <> inspect(task_name), "mix.exs", note}
+    alias_doc = """
+    Alias for
+
+        #{format_alias(task_name)}
+    """
+
+    {alias_doc, "mix.exs", note}
+  end
+
+  defp format_alias(task) do
+    inspect(task, pretty: true, width: 0)
+    |> String.replace("\n", "\n    ")
   end
 
   defp task_doc(task) do

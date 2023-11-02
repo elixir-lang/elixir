@@ -80,7 +80,8 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix h\n\n"
-      assert output =~ "Alias for \"hello\"\n"
+      assert output =~ "Alias for\n\n"
+      assert output =~ "    \"hello\"\n"
       assert output =~ ~r/^Location: mix.exs/m
 
       output =
@@ -89,7 +90,8 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix p\n\n"
-      assert output =~ "Alias for &Kernel.inspect/1\n"
+      assert output =~ "Alias for\n\n"
+      assert output =~ "    &Kernel.inspect/1\n"
       assert output =~ ~r/^Location: mix.exs/m
 
       output =
@@ -98,7 +100,9 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix help\n\n"
-      assert output =~ "Alias for [\"help\", \"hello\"]\n"
+      assert output =~ "Alias for\n\n"
+      assert output =~ "    [\"help\",\n"
+      assert output =~ "    \"hello\"]\n"
       assert output =~ ~r/^Location: mix.exs/m
 
       output =
@@ -107,7 +111,8 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix nested.h\n\n"
-      assert output =~ ~r/Alias for \[#Function/
+      assert output =~ "Alias for\n\n"
+      assert output =~ ~r/    \[#Function/
       assert output =~ ~r/^Location: mix.exs/m
     end)
   end
@@ -149,7 +154,8 @@ defmodule Mix.Tasks.HelpTest do
         end)
 
       assert output =~ "mix compile\n\n"
-      assert output =~ "Alias for \"compile\"\n"
+      assert output =~ "Alias for\n\n"
+      assert output =~ "\"compile\"\n"
       assert output =~ ~r/^Location: mix.exs/m
 
       assert output =~
