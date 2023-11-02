@@ -44,7 +44,7 @@ defmodule Path do
   """
   @spec absname(t) :: binary
   def absname(path) do
-    absname(path, File.cwd!())
+    absname(path, &File.cwd!/0)
   end
 
   @doc """
@@ -71,13 +71,27 @@ defmodule Path do
 
     case type(path) do
       :relative ->
+        relative_to =
+          if is_function(relative_to, 0) do
+            relative_to.()
+          else
+            relative_to
+          end
+
         absname_join([relative_to, path])
 
       :absolute ->
         absname_join([path])
 
       :volumerelative ->
-        relative_to = IO.chardata_to_string(relative_to)
+        relative_to =
+          if is_function(relative_to, 0) do
+            relative_to.()
+          else
+            relative_to
+          end
+          |> IO.chardata_to_string()
+
         absname_vr(split(path), split(relative_to), relative_to)
     end
   end
@@ -163,7 +177,7 @@ defmodule Path do
   """
   @spec expand(t) :: binary
   def expand(path) do
-    expand_dot(absname(expand_home(path), File.cwd!()))
+    expand_dot(absname(expand_home(path), &File.cwd!/0))
   end
 
   @doc """
@@ -192,7 +206,7 @@ defmodule Path do
   """
   @spec expand(t, t) :: binary
   def expand(path, relative_to) do
-    expand_dot(absname(absname(expand_home(path), expand_home(relative_to)), File.cwd!()))
+    expand_dot(absname(absname(expand_home(path), expand_home(relative_to)), &File.cwd!/0))
   end
 
   @doc """
