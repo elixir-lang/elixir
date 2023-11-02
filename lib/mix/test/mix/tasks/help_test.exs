@@ -199,6 +199,21 @@ defmodule Mix.Tasks.HelpTest do
     end)
   end
 
+  test "help --aliases", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(Aliases)
+
+      Mix.Tasks.Help.run(["--aliases"])
+      assert_received {:mix_shell, :info, ["mix h" <> message]}
+      assert message =~ ~r/# Alias defined in mix.exs/
+
+      assert_received {:mix_shell, :info, ["mix c" <> message]}
+      assert message =~ ~r/# Alias defined in mix.exs/
+
+      refute_received {:mix_shell, :info, ["mix deps" <> _]}
+    end)
+  end
+
   test "bad arguments" do
     message = "Unexpected arguments, expected \"mix help\" or \"mix help TASK\""
 

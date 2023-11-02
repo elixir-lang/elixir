@@ -14,6 +14,7 @@ defmodule Mix.Tasks.Help do
       $ mix help --search PATTERN - prints all tasks and aliases that contain PATTERN in the name
       $ mix help --names          - prints all task names and aliases
                                   (useful for autocompleting)
+      $ mix help --aliases        - prints all aliases
 
   ## Colors
 
@@ -67,6 +68,16 @@ defmodule Mix.Tasks.Help do
     for info <- Enum.sort(aliases ++ tasks) do
       Mix.shell().info(info)
     end
+  end
+
+  def run(["--aliases"]) do
+    loadpaths!()
+
+    aliases = load_aliases()
+
+    {docs, max} = build_doc_list([], aliases)
+
+    display_doc_list(docs, max)
   end
 
   def run(["--search", pattern]) do
