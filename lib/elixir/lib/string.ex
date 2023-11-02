@@ -1872,6 +1872,111 @@ defmodule String do
   end
 
   @doc ~S"""
+  Returns a new string created by replacing all invalid bytes with `replacement` (`"�"` by default).
+
+  ## Examples
+
+      iex> String.replace_invalid("asd" <> <<0xFF::8>>)
+      "asd�"
+
+      iex> String.replace_invalid("nem rán bề bề")
+      "nem rán bề bề"
+
+      iex> String.replace_invalid("nem rán b" <> <<225, 187>> <> " bề")
+      "nem rán b� bề"
+
+      iex> String.replace_invalid("nem rán b" <> <<225, 187>> <> " bề", "ERROR!")
+      "nem rán bERROR! bề"
+  """
+  def replace_invalid(string, replacement \\ "�")
+      when is_binary(string) and is_binary(replacement) do
+    do_replace_invalid(string, replacement, <<>>)
+  end
+
+  # Valid ASCII (for better average speed)
+  defp do_replace_invalid(<<ascii::8, n_lead::2, rest::bits>>, rep, acc)
+       when ascii in 0..127 and n_lead != 0b10 do
+    do_replace_invalid(<<n_lead::2, rest::bits>>, rep, <<acc::bits, ascii::8>>)
+  end
+
+  # Valid UTF-8
+  defp do_replace_invalid(<<codepoint::utf8, rest::bits>>, rep, acc) do
+    do_replace_invalid(rest, rep, <<acc::bits, codepoint::utf8>>)
+  end
+
+  # 2/3 truncated sequence
+  defp do_replace_invalid(<<0b1110::4, i::4, 0b10::2, ii::6>>, rep, acc) do
+    <<tcp::10>> = <<i::4, ii::6>>
+    <<acc::bits, replace_invalid_ii_of_iii(tcp, rep)::bits>>
+  end
+
+  defp do_replace_invalid(<<0b1110::4, i::4, 0b10::2, ii::6, n_lead::2, rest::bits>>, rep, acc)
+       when n_lead != 0b10 do
+    <<tcp::10>> = <<i::4, ii::6>>
+
+    do_replace_invalid(
+      <<n_lead::2, rest::bits>>,
+      rep,
+      <<acc::bits, replace_invalid_ii_of_iii(tcp, rep)::bits>>
+    )
+  end
+
+  # 2/4
+  defp do_replace_invalid(<<0b11110::5, i::3, 0b10::2, ii::6>>, rep, acc) do
+    <<tcp::10>> = <<i::4, ii::6>>
+    <<acc::bits, replace_invalid_ii_of_iiii(tcp, rep)::bits>>
+  end
+
+  defp do_replace_invalid(<<0b11110::5, i::3, 0b10::2, ii::6, n_lead::2, rest::bits>>, rep, acc)
+       when n_lead != 0b10 do
+    <<tcp::10>> = <<i::4, ii::6>>
+
+    do_replace_invalid(
+      <<n_lead::2, rest::bits>>,
+      rep,
+      <<acc::bits, replace_invalid_ii_of_iiii(tcp, rep)::bits>>
+    )
+  end
+
+  # 3/4
+  defp do_replace_invalid(<<0b11110::5, i::3, 0b10::2, ii::6, 0b10::2, iii::6>>, rep, acc) do
+    <<tcp::15>> = <<i::3, ii::6, iii::6>>
+    <<acc::bits, replace_invalid_iii_of_iiii(tcp, rep)::bits>>
+  end
+
+  defp do_replace_invalid(
+         <<0b11110::5, i::3, 0b10::2, ii::6, 0b10::2, iii::6, n_lead::2, rest::bits>>,
+         rep,
+         acc
+       )
+       when n_lead != 0b10 do
+    <<tcp::15>> = <<i::3, ii::6, iii::6>>
+
+    do_replace_invalid(
+      <<n_lead::2, rest::bits>>,
+      rep,
+      <<acc::bits, replace_invalid_iii_of_iiii(tcp, rep)::bits>>
+    )
+  end
+
+  # any other invalid bytes
+  defp do_replace_invalid(<<_, rest::bits>>, rep, acc),
+    do: do_replace_invalid(rest, rep, <<acc::bits, rep::bits>>)
+
+  defp do_replace_invalid(<<>>, _, acc), do: acc
+
+  # bounds-checking truncated code points for overlong encodings
+  defp replace_invalid_ii_of_iii(tcp, rep) when tcp >= 32 and tcp <= 863, do: rep
+  defp replace_invalid_ii_of_iii(tcp, rep) when tcp >= 896 and tcp <= 1023, do: rep
+  defp replace_invalid_ii_of_iii(_, rep), do: rep <> rep
+
+  defp replace_invalid_ii_of_iiii(tcp, rep) when tcp >= 16 and tcp <= 271, do: rep
+  defp replace_invalid_ii_of_iiii(_, rep), do: rep <> rep
+
+  defp replace_invalid_iii_of_iiii(tcp, rep) when tcp >= 1024 and tcp <= 17407, do: rep
+  defp replace_invalid_iii_of_iiii(_, rep), do: rep <> rep <> rep
+
+  @doc ~S"""
   Splits the string into chunks of characters that share a common trait.
 
   The trait can be one of two options:
