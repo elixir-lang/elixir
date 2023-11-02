@@ -145,16 +145,19 @@ defmodule File.StreamTest do
         src = fixture_path("file.txt")
 
         assert @node
-               |> stream!(src, [{:offset, 0}])
+               |> stream!(src, [{:read_offset, 0}])
                |> Enum.take(1) == ["FOO\n"]
 
         assert @node
-               |> stream!(src, [{:offset, 1}])
+               |> stream!(src, [{:read_offset, 1}])
                |> Enum.take(1) == ["OO\n"]
 
         assert @node
-               |> stream!(src, [{:offset, 4}])
+               |> stream!(src, [{:read_offset, 4}])
                |> Enum.take(1) == []
+
+        assert @node |> stream!(src, 1, [{:read_offset, 1}]) |> Enum.count() == 3
+        assert @node |> stream!(src, 1, [{:read_offset, 4}]) |> Enum.count() == 0
       end
 
       test "keeps BOM when raw" do
@@ -185,6 +188,7 @@ defmodule File.StreamTest do
 
         assert @node |> stream!(src, [:trim_bom]) |> Enum.count() == 2
         assert @node |> stream!(src, 1, [:trim_bom]) |> Enum.count() == 19
+        assert @node |> stream!(src, 2, [:trim_bom]) |> Enum.count() == 10
       end
 
       test "keeps BOM with utf8 encoding" do

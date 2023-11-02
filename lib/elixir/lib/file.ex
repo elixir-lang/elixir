@@ -133,7 +133,7 @@ defmodule File do
 
   @type stream_mode ::
           encoding_mode()
-          | offset_mode()
+          | read_offset_mode()
           | :append
           | :compressed
           | :delayed_write
@@ -141,7 +141,7 @@ defmodule File do
           | {:read_ahead, pos_integer | false}
           | {:delayed_write, non_neg_integer, non_neg_integer}
 
-  @type offset_mode :: {:offset, location()}
+  @type read_offset_mode :: {:read_offset, non_neg_integer()}
   @type location :: :file.location()
 
   @type erlang_time ::

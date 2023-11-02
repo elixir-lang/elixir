@@ -18,6 +18,13 @@ defmodule File.Stream do
 
   @doc false
   def __build__(path, line_or_bytes, modes) do
+    with {:read_offset, offset} <- :lists.keyfind(:read_offset, 1, modes) do
+      unless is_integer(offset) and offset >= 0 do
+        raise ArgumentError,
+              "expected :read_offset to be a non-negative integer, got: #{inspect(offset)}"
+      end
+    end
+
     raw = :lists.keyfind(:encoding, 1, modes) == false
 
     modes =
@@ -38,36 +45,13 @@ defmodule File.Stream do
 
   @doc false
   def __open__(%File.Stream{path: path, node: node}, modes) when node == node() do
-    path
-    |> :file.open(modes)
-    |> position_after_open(modes)
+    :file.open(path, modes)
   end
 
   @doc false
   def __open__(%File.Stream{path: path, node: node}, modes) do
-    node
-    |> :erpc.call(:file_io_server, :start, [self(), path, List.delete(modes, :raw)])
-    |> position_after_open(modes)
+    :erpc.call(node, :file_io_server, :start, [self(), path, List.delete(modes, :raw)])
   end
-
-  defp position_after_open({:ok, fd}, modes) do
-    case :lists.keyfind(:offset, 1, modes) do
-      {:offset, offset} ->
-        case :file.position(fd, offset) do
-          {:ok, _position} ->
-            {:ok, fd}
-
-          {:error, reason} ->
-            :file.close(fd)
-            {:error, reason}
-        end
-
-      false ->
-        {:ok, fd}
-    end
-  end
-
-  defp position_after_open({:error, reason}, _modes), do: {:error, reason}
 
   defimpl Collectable do
     def into(%{modes: modes, raw: raw} = stream) do
@@ -111,7 +95,7 @@ defmodule File.Stream do
       start_fun = fn ->
         case File.Stream.__open__(stream, read_modes(modes)) do
           {:ok, device} ->
-            if :trim_bom in modes, do: trim_bom(device, raw) |> elem(0), else: device
+            skip_bom_and_offset(device, raw, modes)
 
           {:error, reason} ->
             raise File.Error, reason: reason, action: "stream", path: stream.path
@@ -127,9 +111,14 @@ defmodule File.Stream do
       Stream.resource(start_fun, next_fun, &:file.close/1).(acc, fun)
     end
 
-    def count(%{modes: modes, line_or_bytes: :line, path: path} = stream) do
+    def count(%{modes: modes, line_or_bytes: :line, path: path, raw: raw} = stream) do
       pattern = :binary.compile_pattern("\n")
-      counter = &count_lines(&1, path, pattern, read_function(stream), 0)
+
+      counter = fn device ->
+        device = skip_bom_and_offset(device, raw, modes)
+        count_lines(device, path, pattern, read_function(stream), 0)
+      end
+
       {:ok, open!(stream, modes, counter)}
     end
 
@@ -139,8 +128,11 @@ defmodule File.Stream do
           {:error, __MODULE__}
 
         {:ok, %{size: size}} ->
+          bom_offset = count_raw_bom(stream, modes)
+          offset = get_read_offset(modes)
+          size = max(size - bom_offset - offset, 0)
           remainder = if rem(size, bytes) == 0, do: 0, else: 1
-          {:ok, div(size, bytes) + remainder - count_raw_bom(stream, modes)}
+          {:ok, div(size, bytes) + remainder}
 
         {:error, reason} ->
           raise File.Error, reason: reason, action: "stream", path: path
@@ -181,6 +173,23 @@ defmodule File.Stream do
       end
     end
 
+    defp skip_bom_and_offset(device, raw, modes) do
+      device =
+        if :trim_bom in modes do
+          device |> trim_bom(raw) |> elem(0)
+        else
+          device
+        end
+
+      offset = get_read_offset(modes)
+
+      if offset > 0 do
+        {:ok, _} = :file.position(device, {:cur, offset})
+      end
+
+      device
+    end
+
     defp trim_bom(device, true) do
       bom_length = device |> IO.binread(4) |> bom_length()
       {:ok, new_pos} = :file.position(device, bom_length)
@@ -205,6 +214,13 @@ defmodule File.Stream do
     defp bom_length(<<0, 0, 254, 255, _rest::binary>>), do: 4
     defp bom_length(<<254, 255, 0, 0, _rest::binary>>), do: 4
     defp bom_length(_binary), do: 0
+
+    def get_read_offset(modes) do
+      case :lists.keyfind(:read_offset, 1, modes) do
+        {:read_offset, offset} -> offset
+        false -> 0
+      end
+    end
 
     defp read_modes(modes) do
       for mode <- modes, mode not in [:write, :append, :trim_bom], do: mode
