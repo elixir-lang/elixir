@@ -141,6 +141,35 @@ defmodule File.StreamTest do
         end
       end
 
+      test "supports byte offset" do
+        src = fixture_path("file.txt")
+
+        assert @node
+               |> stream!(src, [{:read_offset, 0}])
+               |> Enum.take(1) == ["FOO\n"]
+
+        assert @node
+               |> stream!(src, [{:read_offset, 1}])
+               |> Enum.take(1) == ["OO\n"]
+
+        assert @node
+               |> stream!(src, [{:read_offset, 4}])
+               |> Enum.take(1) == []
+
+        assert @node |> stream!(src, 1, [{:read_offset, 1}]) |> Enum.count() == 3
+        assert @node |> stream!(src, 1, [{:read_offset, 4}]) |> Enum.count() == 0
+      end
+
+      test "applies offset after trimming BOM" do
+        src = fixture_path("utf8_bom.txt")
+
+        assert @node
+               |> stream!(src, [:trim_bom, {:read_offset, 4}])
+               |> Enum.take(1) == ["сский\n"]
+
+        assert @node |> stream!(src, 1, [:trim_bom, {:read_offset, 4}]) |> Enum.count() == 15
+      end
+
       test "keeps BOM when raw" do
         src = fixture_path("utf8_bom.txt")
 
@@ -169,6 +198,7 @@ defmodule File.StreamTest do
 
         assert @node |> stream!(src, [:trim_bom]) |> Enum.count() == 2
         assert @node |> stream!(src, 1, [:trim_bom]) |> Enum.count() == 19
+        assert @node |> stream!(src, 2, [:trim_bom]) |> Enum.count() == 10
       end
 
       test "keeps BOM with utf8 encoding" do
