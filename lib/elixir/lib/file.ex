@@ -142,7 +142,6 @@ defmodule File do
           | {:delayed_write, non_neg_integer, non_neg_integer}
 
   @type read_offset_mode :: {:read_offset, non_neg_integer()}
-  @type location :: :file.location()
 
   @type erlang_time ::
           {{year :: non_neg_integer(), month :: 1..12, day :: 1..31},
