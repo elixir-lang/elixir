@@ -344,6 +344,13 @@ defmodule Mix.Tasks.Compile.App do
   defp handle_extra_applications(properties, config) do
     {extra, properties} = Keyword.pop(properties, :extra_applications, [])
 
+    if extra != [] and Keyword.has_key?(properties, :applications) do
+      Mix.shell().error(
+        "both :extra_applications and :applications was found in your mix.exs. " <>
+          "You most likely want to remove the :applications key, as all applications are derived from your dependencies"
+      )
+    end
+
     {all, optional} =
       project_apps(properties, config, extra, fn ->
         apps_from_runtime_prod_deps(properties, config)
