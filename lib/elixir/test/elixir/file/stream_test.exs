@@ -160,6 +160,16 @@ defmodule File.StreamTest do
         assert @node |> stream!(src, 1, [{:read_offset, 4}]) |> Enum.count() == 0
       end
 
+      test "applies offset after trimming BOM" do
+        src = fixture_path("utf8_bom.txt")
+
+        assert @node
+               |> stream!(src, [:trim_bom, {:read_offset, 4}])
+               |> Enum.take(1) == ["сский\n"]
+
+        assert @node |> stream!(src, 1, [:trim_bom, {:read_offset, 4}]) |> Enum.count() == 15
+      end
+
       test "keeps BOM when raw" do
         src = fixture_path("utf8_bom.txt")
 
