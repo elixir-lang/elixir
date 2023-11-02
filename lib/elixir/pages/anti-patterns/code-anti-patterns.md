@@ -220,7 +220,7 @@ defmodule MyRequestHandler do
 end
 ```
 
-All valid statuses all defined as atoms within the same module, and that's enough. If you want to be explicit, you could also have a function that lists them:
+All valid statuses are defined as atoms within the same module, and that's enough. If you want to be explicit, you could also have a function that lists them:
 
 ```elixir
 def valid_statuses do
