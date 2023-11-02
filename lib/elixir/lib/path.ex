@@ -51,10 +51,10 @@ defmodule Path do
   Builds a path from `relative_to` to `path`.
 
   If `path` is already an absolute path, `relative_to` is ignored. See also
-  `relative_to/3`.
+  `relative_to/3`. `relative_to` is either a path or an anonymous function,
+  which is invoked only when necessary, that returns a path.
 
-  Unlike `expand/2`, no attempt is made to
-  resolve `..`, `.` or `~`.
+  Unlike `expand/2`, no attempt is made to resolve `..`, `.` or `~`.
 
   ## Examples
 
@@ -65,7 +65,7 @@ defmodule Path do
       "bar/../x"
 
   """
-  @spec absname(t, t) :: binary
+  @spec absname(t, t | (-> t)) :: binary
   def absname(path, relative_to) do
     path = IO.chardata_to_string(path)
 
