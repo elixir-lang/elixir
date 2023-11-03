@@ -839,44 +839,6 @@ defmodule ArgumentError do
   """
 
   defexception message: "argument error"
-
-  @impl true
-  def blame(
-        exception,
-        [{:erlang, :apply, [module, function, args], _} | _] = stacktrace
-      ) do
-    message =
-      cond do
-        not proper_list?(args) ->
-          "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)} " <>
-            "with arguments #{inspect(args)}. Arguments (the third argument of apply) must always be a proper list"
-
-        # Note that args may be an empty list even if they were supplied
-        not is_atom(module) and is_atom(function) and args == [] ->
-          "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
-            "If you are using Kernel.apply/3, make sure the module is an atom. " <>
-            "If you are using the dot syntax, such as module.function(), " <>
-            "make sure the left-hand side of the dot is a module atom"
-
-        not is_atom(module) ->
-          "you attempted to apply a function on #{inspect(module)}. " <>
-            "Modules (the first argument of apply) must always be an atom"
-
-        not is_atom(function) ->
-          "you attempted to apply a function named #{inspect(function)} on module #{inspect(module)}. " <>
-            "However, #{inspect(function)} is not a valid function name. Function names (the second argument " <>
-            "of apply) must always be an atom"
-      end
-
-    {%{exception | message: message}, stacktrace}
-  end
-
-  def blame(exception, stacktrace) do
-    {exception, stacktrace}
-  end
-
-  defp proper_list?(list) when length(list) >= 0, do: true
-  defp proper_list?(_), do: false
 end
 
 defmodule ArithmeticError do
@@ -1998,21 +1960,23 @@ defmodule KeyError do
   defp message(key, term) do
     message = "key #{inspect(key)} not found"
 
-    if term != nil do
-      message <> " in: #{inspect(term, pretty: true, limit: :infinity)}"
-    else
-      message
+    cond do
+      term == nil ->
+        message
+
+      is_atom(term) and is_atom(key) ->
+        message <>
+          " in: #{inspect(term)} (if instead you want to invoke #{inspect(term)}.#{key}(), " <>
+          "make sure to add parentheses after the function name)"
+
+      true ->
+        message <> " in: #{inspect(term, pretty: true, limit: :infinity)}"
     end
   end
 
   @impl true
   def blame(exception = %{message: message}, stacktrace) when is_binary(message) do
     {exception, stacktrace}
-  end
-
-  def blame(exception = %{term: nil}, stacktrace) do
-    message = message(exception.key, exception.term)
-    {%{exception | message: message}, stacktrace}
   end
 
   def blame(exception, stacktrace) do
@@ -2231,9 +2195,39 @@ defmodule ErlangError do
 
   @doc false
   def normalize(:badarg, stacktrace) do
-    case error_info(:badarg, stacktrace, "errors were found at the given arguments") do
-      {:ok, reason, details} -> %ArgumentError{message: reason <> details}
-      :error -> %ArgumentError{}
+    case stacktrace do
+      [{:erlang, :apply, [module, function, args], _} | _] when not is_atom(module) ->
+        message =
+          cond do
+            is_map(module) and is_atom(function) and is_map_key(module, function) ->
+              "you attempted to apply a function named #{inspect(function)} on a map/struct. " <>
+                "If you are using Kernel.apply/3, make sure the module is an atom. " <>
+                if is_function(module[function]) do
+                  "If you are trying to invoke an anonymous function in a map/struct, " <>
+                    "add a dot between the function name and the parenthesis: map.#{function}.()"
+                else
+                  "If you are using the dot syntax, ensure there are no parentheses " <>
+                    "after the field name, such as map.#{function}"
+                end
+
+            is_atom(function) and args == [] ->
+              "you attempted to apply a function named #{inspect(function)} on #{inspect(module)}. " <>
+                "If you are using Kernel.apply/3, make sure the module is an atom. " <>
+                "If you are using the dot syntax, such as module.function(), " <>
+                "make sure the left-hand side of the dot is an atom representing a module"
+
+            true ->
+              "you attempted to apply a function on #{inspect(module)}. " <>
+                "Modules (the first argument of apply) must always be an atom"
+          end
+
+        %ArgumentError{message: message}
+
+      _ ->
+        case error_info(:badarg, stacktrace, "errors were found at the given arguments") do
+          {:ok, reason, details} -> %ArgumentError{message: reason <> details}
+          :error -> %ArgumentError{}
+        end
     end
   end
 

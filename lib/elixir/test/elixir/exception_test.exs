@@ -534,24 +534,15 @@ defmodule ExceptionTest do
       assert blame_message([], & &1.foo()) ==
                "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
-                 "module.function(), make sure the left-hand side of the dot is a module atom"
+                 "module.function(), make sure the left-hand side of the dot is an atom representing a module"
 
       assert blame_message([], &apply(&1, :foo, [])) ==
                "you attempted to apply a function named :foo on []. If you are using Kernel.apply/3, make sure " <>
                  "the module is an atom. If you are using the dot syntax, such as " <>
-                 "module.function(), make sure the left-hand side of the dot is a module atom"
+                 "module.function(), make sure the left-hand side of the dot is an atom representing a module"
 
-      assert blame_message([], &apply(Kernel, &1, [1, 2])) ==
-               "you attempted to apply a function named [] on module Kernel. However, [] is not a valid function name. " <>
-                 "Function names (the second argument of apply) must always be an atom"
-
-      assert blame_message(123, &apply(Kernel, :+, &1)) ==
-               "you attempted to apply a function named :+ on module Kernel with arguments 123. " <>
-                 "Arguments (the third argument of apply) must always be a proper list"
-
-      assert blame_message(123, &apply(Kernel, :+, [&1 | 456])) ==
-               "you attempted to apply a function named :+ on module Kernel with arguments [123 | 456]. " <>
-                 "Arguments (the third argument of apply) must always be a proper list"
+      assert blame_message([], &apply(&1, :foo, [1, 2])) ==
+               "you attempted to apply a function on []. Modules (the first argument of apply) must always be an atom"
     end
 
     test "annotates function clause errors" do
