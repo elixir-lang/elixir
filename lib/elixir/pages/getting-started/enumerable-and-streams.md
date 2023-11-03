@@ -119,6 +119,6 @@ iex> Enum.take(stream, 10)
 
 The example above will fetch the first 10 lines of the file you have selected. This means streams can be very useful for handling large files or even slow resources like network resources.
 
-The `Enum` and `Stream` modules provide a wide-range functions but know all of them at heart. Familiarize yourself with `Enum.map/2`, `Enum.reduce/3` and other functions with either `map` or `reduce` in their names, and you will naturally build an intuition around the most important use cases. You may also focus on the `Enum` module first and only move to `Stream` for the particular scenarios where laziness is required, to either deal with slow resources or large, possibly infinite, collections.
+The `Enum` and `Stream` modules provide a wide range of functions, but you don't have to know all of them by heart. Familiarize yourself with `Enum.map/2`, `Enum.reduce/3` and other functions with either `map` or `reduce` in their names, and you will naturally build an intuition around the most important use cases. You may also focus on the `Enum` module first and only move to `Stream` for the particular scenarios where laziness is required, to either deal with slow resources or large, possibly infinite, collections.
 
 Next, we'll look at a feature central to Elixir, Processes, which allows us to write concurrent, parallel and distributed programs in an easy and understandable way.
