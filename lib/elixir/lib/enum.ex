@@ -2362,12 +2362,6 @@ defmodule Enum do
   the random value. Check its documentation for setting a
   different random algorithm or a different seed.
 
-  The implementation is based on the
-  [reservoir sampling](https://en.wikipedia.org/wiki/Reservoir_sampling#Relation_to_Fisher-Yates_shuffle)
-  algorithm.
-  It assumes that the sample being returned can fit into memory;
-  the input `enumerable` doesn't have to, as it is traversed just once.
-
   If a range is passed into the function, this function will pick a
   random value between the range limits, without traversing the whole
   range (thus executing in constant time and constant memory).
@@ -2386,6 +2380,12 @@ defmodule Enum do
       iex> Enum.random(1..1_000)
       309
 
+  ## Implementation
+
+  The random functions in this module implement reservoir sampling,
+  which allows them to sample infinite collections. In particular,
+  we implement Algorithm L, as described in by Kim-Hung Li in
+  "Reservoir-Sampling Algorithms of Time Complexity O(n(1+log(N/n)))".
   """
   @spec random(t) :: element
   def random(enumerable)
@@ -2902,11 +2902,11 @@ defmodule Enum do
   the default from Erlang/OTP 22:
 
       # Although not necessary, let's seed the random algorithm
-      iex> :rand.seed(:exsss, {1, 2, 3})
-      iex> Enum.shuffle([1, 2, 3])
-      [3, 2, 1]
+      iex> :rand.seed(:exsss, {11, 22, 33})
       iex> Enum.shuffle([1, 2, 3])
       [2, 1, 3]
+      iex> Enum.shuffle([1, 2, 3])
+      [2, 3, 1]
 
   """
   @spec shuffle(t) :: list
@@ -2916,8 +2916,11 @@ defmodule Enum do
         [{:rand.uniform(), x} | acc]
       end)
 
-    shuffle_unwrap(:lists.keysort(1, randomized), [])
+    shuffle_unwrap(:lists.keysort(1, randomized))
   end
+
+  defp shuffle_unwrap([{_, h} | rest]), do: [h | shuffle_unwrap(rest)]
+  defp shuffle_unwrap([]), do: []
 
   @doc """
   Returns a subset list of the given `enumerable` by `index_range`.
@@ -3588,100 +3591,114 @@ defmodule Enum do
       # Although not necessary, let's seed the random algorithm
       iex> :rand.seed(:exsss, {1, 2, 3})
       iex> Enum.take_random(1..10, 2)
-      [3, 1]
+      [6, 1]
       iex> Enum.take_random(?a..?z, 5)
-      ~c"mikel"
+      ~c"bkzmt"
 
   """
   @spec take_random(t, non_neg_integer) :: list
   def take_random(enumerable, count)
   def take_random(_enumerable, 0), do: []
-
   def take_random([], _), do: []
-  def take_random([h | t], 1), do: take_random_list_one(t, h, 1)
 
   def take_random(enumerable, 1) do
     enumerable
-    |> reduce([], fn
-      x, [current | index] ->
-        if :rand.uniform(index + 1) == 1 do
-          [x | index + 1]
-        else
-          [current | index + 1]
-        end
+    |> reduce({0, 0, 1.0, nil}, fn
+      elem, {idx, idx, w, _current} ->
+        {jdx, w} = take_jdx_w(idx, w, 1)
+        {idx + 1, jdx, w, elem}
 
-      x, [] ->
-        [x | 1]
+      _elem, {idx, jdx, w, current} ->
+        {idx + 1, jdx, w, current}
     end)
     |> case do
-      [] -> []
-      [current | _index] -> [current]
+      {0, 0, 1.0, nil} -> []
+      {_idx, _jdx, _w, current} -> [current]
     end
   end
 
-  def take_random(enumerable, count) when is_integer(count) and count in 0..128 do
+  def take_random(enumerable, count) when count in 0..128 do
     sample = Tuple.duplicate(nil, count)
 
-    reducer = fn elem, {idx, sample} ->
-      jdx = random_index(idx)
+    reducer = fn
+      elem, {idx, jdx, w, sample} when idx < count ->
+        rand = take_index(idx)
+        sample = sample |> put_elem(idx, elem(sample, rand)) |> put_elem(rand, elem)
 
-      cond do
-        idx < count ->
-          value = elem(sample, jdx)
-          {idx + 1, put_elem(sample, idx, value) |> put_elem(jdx, elem)}
+        if idx == jdx do
+          {jdx, w} = take_jdx_w(idx, w, count)
+          {idx + 1, jdx, w, sample}
+        else
+          {idx + 1, jdx, w, sample}
+        end
 
-        jdx < count ->
-          {idx + 1, put_elem(sample, jdx, elem)}
+      elem, {idx, idx, w, sample} ->
+        pos = :rand.uniform(count) - 1
+        {jdx, w} = take_jdx_w(idx, w, count)
+        {idx + 1, jdx, w, put_elem(sample, pos, elem)}
 
-        true ->
-          {idx + 1, sample}
-      end
+      _elem, {idx, jdx, w, sample} ->
+        {idx + 1, jdx, w, sample}
     end
 
-    {size, sample} = reduce(enumerable, {0, sample}, reducer)
-    sample |> Tuple.to_list() |> take(Kernel.min(count, size))
+    {size, _, _, sample} = reduce(enumerable, {0, count - 1, 1.0, sample}, reducer)
+
+    if count < size do
+      Tuple.to_list(sample)
+    else
+      take_tupled(sample, size, [])
+    end
   end
 
   def take_random(enumerable, count) when is_integer(count) and count >= 0 do
-    reducer = fn elem, {idx, sample} ->
-      jdx = random_index(idx)
+    reducer = fn
+      elem, {idx, jdx, w, sample} when idx < count ->
+        rand = take_index(idx)
+        sample = sample |> Map.put(idx, Map.get(sample, rand)) |> Map.put(rand, elem)
 
-      cond do
-        idx < count ->
-          value = Map.get(sample, jdx)
-          {idx + 1, Map.put(sample, idx, value) |> Map.put(jdx, elem)}
+        if idx == jdx do
+          {jdx, w} = take_jdx_w(idx, w, count)
+          {idx + 1, jdx, w, sample}
+        else
+          {idx + 1, jdx, w, sample}
+        end
 
-        jdx < count ->
-          {idx + 1, Map.put(sample, jdx, elem)}
+      elem, {idx, idx, w, sample} ->
+        pos = :rand.uniform(count) - 1
+        {jdx, w} = take_jdx_w(idx, w, count)
+        {idx + 1, jdx, w, %{sample | pos => elem}}
 
-        true ->
-          {idx + 1, sample}
-      end
+      _elem, {idx, jdx, w, sample} ->
+        {idx + 1, jdx, w, sample}
     end
 
-    {size, sample} = reduce(enumerable, {0, %{}}, reducer)
-    take_random(sample, Kernel.min(count, size), [])
+    {size, _, _, sample} = reduce(enumerable, {0, count - 1, 1.0, %{}}, reducer)
+    take_mapped(sample, Kernel.min(count, size), [])
   end
 
-  defp take_random(_sample, 0, acc), do: acc
+  @compile {:inline, take_jdx_w: 3, take_index: 1}
+  defp take_jdx_w(idx, w, count) do
+    w = w * :math.exp(:math.log(:rand.uniform()) / count)
+    jdx = idx + floor(:math.log(:rand.uniform()) / :math.log(1 - w)) + 1
+    {jdx, w}
+  end
 
-  defp take_random(sample, position, acc) do
+  defp take_index(0), do: 0
+  defp take_index(idx), do: :rand.uniform(idx + 1) - 1
+
+  defp take_tupled(_sample, 0, acc), do: acc
+
+  defp take_tupled(sample, position, acc) do
     position = position - 1
-    take_random(sample, position, [Map.get(sample, position) | acc])
+    take_tupled(sample, position, [elem(sample, position) | acc])
   end
 
-  defp take_random_list_one([h | t], current, index) do
-    if :rand.uniform(index + 1) == 1 do
-      take_random_list_one(t, h, index + 1)
-    else
-      take_random_list_one(t, current, index + 1)
-    end
+  defp take_mapped(_sample, 0, acc), do: acc
+
+  defp take_mapped(sample, position, acc) do
+    position = position - 1
+    take_mapped(sample, position, [Map.fetch!(sample, position) | acc])
   end
-
-  defp take_random_list_one([], current, _), do: [current]
-
-  defp random_index(0), do: 0
-  defp random_index(idx), do: :rand.uniform(idx + 1) - 1
 
   @doc """
   Takes the elements from the beginning of the `enumerable` while `fun` returns
@@ -4438,14 +4455,6 @@ defmodule Enum do
     acc = fun.(elem, acc)
     [acc | scan_list(rest, acc, fun)]
   end
-
-  ## shuffle
-
-  defp shuffle_unwrap([{_, h} | enumerable], t) do
-    shuffle_unwrap(enumerable, [h | t])
-  end
-
-  defp shuffle_unwrap([], t), do: t
 
   ## slice
 
