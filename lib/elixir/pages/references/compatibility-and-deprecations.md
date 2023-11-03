@@ -44,7 +44,7 @@ Elixir version | Supported Erlang/OTP versions
 :------------- | :-------------------------------
 1.16           | 24 - 26
 1.15           | 24 - 26
-1.14           | 23 - 25
+1.14           | 23 - 25 (and Erlang/OTP 26 from v1.14.5)
 1.13           | 22 - 24 (and Erlang/OTP 25 from v1.13.4)
 1.12           | 22 - 24
 1.11           | 21 - 23 (and Erlang/OTP 24 from v1.11.4)
