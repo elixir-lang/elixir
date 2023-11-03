@@ -129,7 +129,7 @@ iex> IO.write(pid, "hello")
 
 After `IO.write/2`, we can see the request sent by the `IO` module printed out (a four-elements tuple). Soon after that, we see that it fails since the `IO` module expected some kind of result, which we did not supply.
 
-By modeling IO devices with processes, the Erlang VM allows is to even read and write to files across nodes. Neat!
+By modeling IO devices with processes, the Erlang VM allows us to even read and write to files across nodes. Neat!
 
 ## `iodata` and `chardata`
 
