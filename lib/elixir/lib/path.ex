@@ -64,6 +64,9 @@ defmodule Path do
       iex> Path.absname("../x", "bar")
       "bar/../x"
 
+      iex> Path.absname("foo", fn -> "lazy" end)
+      "lazy/foo"
+
   """
   @spec absname(t, t | (-> t)) :: binary
   def absname(path, relative_to) do
