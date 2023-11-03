@@ -1751,7 +1751,7 @@ defmodule File do
   One may also consider passing the `:delayed_write` option if the stream
   is meant to be written to under a tight loop.
 
-  ## Byte order marks an dread offset
+  ## Byte order marks and read offset
 
   If you pass `:trim_bom` in the modes parameter, the stream will
   trim UTF-8, UTF-16 and UTF-32 byte order marks when reading from file.
