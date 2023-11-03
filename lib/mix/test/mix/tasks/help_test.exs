@@ -29,20 +29,6 @@ defmodule Mix.Tasks.HelpTest do
     end
   end
 
-  test "help lists all aliases", context do
-    in_tmp(context.test, fn ->
-      Mix.Project.push(Aliases)
-
-      Mix.Tasks.Help.run([])
-
-      assert_received {:mix_shell, :info, ["mix h" <> message]}
-      assert message =~ ~r/# Alias defined in mix.exs/
-
-      assert_received {:mix_shell, :info, ["mix c" <> message]}
-      assert message =~ ~r/# Alias defined in mix.exs/
-    end)
-  end
-
   test "help --names", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(Aliases)
@@ -63,11 +49,50 @@ defmodule Mix.Tasks.HelpTest do
         aliases: [
           h: "hello",
           p: &inspect/1,
+          foo: &foo/1,
+          bar: fn _ -> :ok end,
           help: ["help", "hello"],
-          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"]
+          "nested.h": [&Mix.shell().info(inspect(&1)), "h foo bar"],
+          other: [
+            "format --check-formatted",
+            fn _ -> :ok end,
+            &foo/1,
+            "help"
+          ]
         ]
       ]
     end
+
+    defp foo(_), do: :ok
+  end
+
+  test "help lists all aliases", context do
+    in_tmp(context.test, fn ->
+      Mix.Project.push(ComplexAliases)
+
+      Mix.Tasks.Help.run([])
+
+      assert_received {:mix_shell, :info, ["mix h" <> message]}
+      assert message =~ ~r/# Alias for hello/
+
+      assert_received {:mix_shell, :info, ["mix p" <> message]}
+      assert message =~ ~r/# Alias for &inspect\/1/
+
+      assert_received {:mix_shell, :info, ["mix foo" <> message]}
+      assert message =~ ~r/# Alias for &foo\/1/
+
+      assert_received {:mix_shell, :info, ["mix bar" <> message]}
+      assert message =~ ~r/# Alias for a function/
+
+      assert_received {:mix_shell, :info, ["mix help" <> message]}
+      assert message =~ ~r/# Alias for help, hello/
+
+      assert_received {:mix_shell, :info, ["mix nested.h" <> message]}
+      assert message =~ ~r/# Alias for a function, h foo bar/
+
+      assert_received {:mix_shell, :info, ["mix other" <> message]}
+      assert message =~ ~r/# Alias for format --check-formatted, a function, &foo\/1, help/
+    end)
   end
 
   test "help ALIAS", context do
@@ -178,7 +203,7 @@ defmodule Mix.Tasks.HelpTest do
 
       Mix.Tasks.Help.run(["--search", "h"])
       assert_received {:mix_shell, :info, ["mix h" <> message]}
-      assert message =~ ~r/# Alias defined in mix.exs/
+      assert message =~ ~r/# Alias for hello/
     end)
   end
 
@@ -205,10 +230,10 @@ defmodule Mix.Tasks.HelpTest do
 
       Mix.Tasks.Help.run(["--aliases"])
       assert_received {:mix_shell, :info, ["mix h" <> message]}
-      assert message =~ ~r/# Alias defined in mix.exs/
+      assert message =~ ~r/# Alias for hello/
 
       assert_received {:mix_shell, :info, ["mix c" <> message]}
-      assert message =~ ~r/# Alias defined in mix.exs/
+      assert message =~ ~r/# Alias for compile/
 
       refute_received {:mix_shell, :info, ["mix deps" <> _]}
     end)
