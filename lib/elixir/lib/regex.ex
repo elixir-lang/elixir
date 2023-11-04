@@ -304,7 +304,7 @@ defmodule Regex do
   Returns the version of the underlying Regex engine.
   """
   @doc since: "1.4.0"
-  @spec version :: term()
+  @spec version :: {binary, atom}
   def version do
     {:re.version(), :erlang.system_info(:endian)}
   end
