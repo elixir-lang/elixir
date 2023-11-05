@@ -2300,11 +2300,13 @@ defmodule Kernel.SpecialForms do
   defmacro try(args), do: error!([args])
 
   @doc """
-  Checks if there is a message matching the given clauses
-  in the current process mailbox.
+  Checks if there is a message matching any of the given clauses in the current
+  process mailbox.
 
-  In case there is no such message, the current process hangs
-  until a message arrives or waits until a given timeout value.
+  If there is no matching message, the current process waits until a matching
+  message arrives or until after a given timeout value.
+
+  Any new and existing messages that do not match will remain in the mailbox.
 
   ## Examples
 
@@ -2317,8 +2319,8 @@ defmodule Kernel.SpecialForms do
           IO.puts(:stderr, "Unexpected message received")
       end
 
-  An optional `after` clause can be given in case the message was not
-  received after the given timeout period, specified in milliseconds:
+  An optional `after` clause can be given in case no matching message is
+  received during the given timeout period, specified in milliseconds:
 
       receive do
         {:selector, number, name} when is_integer(number) ->
