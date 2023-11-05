@@ -2057,7 +2057,8 @@ defmodule Code do
 
   defp get_beam_and_path(module) do
     with {^module, beam, filename} <- :code.get_object_code(module),
-         {:ok, ^module} <- beam |> :beam_lib.info() |> Keyword.fetch(:module) do
+         info_pairs when is_list(info_pairs) <- :beam_lib.info(beam),
+         {:ok, ^module} <- Keyword.fetch(info_pairs, :module) do
       {beam, filename}
     else
       _ -> :error
