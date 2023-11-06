@@ -186,6 +186,10 @@ end
 
 A common practice followed by the community is to make the non-raising version return `{:ok, result}` or `{:error, Exception.t}`. For example, an HTTP client may return `{:ok, %HTTP.Response{}}` on success cases and `{:error, %HTTP.Error{}}` for failures, where `HTTP.Error` is [implemented as an exception](`Kernel.defexception/1`). This makes it convenient for anyone to raise an exception by simply calling `Kernel.raise/1`.
 
+#### Additional remarks
+
+This anti-pattern was formerly known as [Using exceptions for control-flow](https://github.com/lucasvegi/Elixir-Code-Smells#using-exceptions-for-control-flow).
+
 ## Primitive obsession
 
 #### Problem
@@ -293,6 +297,10 @@ The following arguments were given to MyLibrary.foo/1:
 
   my_library.ex:2: MyLibrary.foo/1
 ```
+
+#### Additional remarks
+
+This anti-pattern was formerly known as [Working with invalid data](https://github.com/lucasvegi/Elixir-Code-Smells#working-with-invalid-data).
 
 ## Unrelated multi-clause function
 
