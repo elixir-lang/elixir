@@ -2,7 +2,7 @@
 
 Elixir provides double-quoted strings as well as a concept called charlists, which are defined using the `~c"hello world"` sigil syntax. In this chapter, we will learn more about sigils and how to define our own.
 
-One of Elixir's goals is extensibility: developers should be able to extend the language to fit any particular domain. Sigils provide the foundation for extending the language with custom textual representations. Sigils start with the tilde (`~`) character which is followed by a one lower-case letter or several upper-case ones and then a delimiter. Optionally, modifiers can be added after the final delimiter.
+One of Elixir's goals is extensibility: developers should be able to extend the language to fit any particular domain. Sigils provide the foundation for extending the language with custom textual representations. Sigils start with the tilde (`~`) character which is followed by either a single lower-case letter or one or more upper-case letters, and then a delimiter. Optional modifiers are added after the final delimiter.
 
 ## Regular expressions
 
