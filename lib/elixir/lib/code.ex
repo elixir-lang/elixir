@@ -962,10 +962,9 @@ defmodule Code do
     to_quoted_opts =
       [
         unescape: false,
-        warn_on_unnecessary_quotes: false,
         literal_encoder: &{:ok, {:__block__, &2, [&1]}},
         token_metadata: true,
-        warnings: false
+        emit_warnings: false
       ] ++ opts
 
     {forms, comments} = string_to_quoted_with_comments!(string, to_quoted_opts)
@@ -1126,9 +1125,8 @@ defmodule Code do
       atoms but `:existing_atoms_only` is still used for dynamic atoms,
       such as atoms with interpolations.
 
-    * `:warn_on_unnecessary_quotes` - when `false`, does not warn
-      when atoms, keywords or calls have unnecessary quotes on
-      them. Defaults to `true`.
+    * `:emit_warnings` (since v1.16.0) - when `false`, does not emit
+      tokenizing/parsing related warnings. Defaults to `true`.
 
   ## `Macro.to_string/2`
 

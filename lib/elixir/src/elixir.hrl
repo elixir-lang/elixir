@@ -36,6 +36,5 @@
   ascii_identifiers_only=true,
   indentation=0,
   mismatch_hints=[],
-  warn_on_unnecessary_quotes=true,
   warnings=[]
 }).
