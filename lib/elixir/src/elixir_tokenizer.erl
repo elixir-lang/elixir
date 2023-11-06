@@ -796,7 +796,7 @@ handle_strings(T, Line, Column, H, Scope, Tokens) ->
               Token = {kw_identifier, {Line, Column - 1, nil}, Atom},
               tokenize(Rest, NewLine, NewColumn + 1, NewScope, [Token | Tokens]);
             {error, Reason} ->
-              {error, Reason, Rest, Tokens}
+              error(Reason, Rest, NewScope, Tokens)
           end;
 
         {ok, Unescaped} ->
