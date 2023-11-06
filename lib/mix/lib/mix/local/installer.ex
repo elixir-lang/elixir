@@ -319,8 +319,15 @@ defmodule Mix.Local.Installer do
   """
   @spec fetch(tuple, (atom -> any), (atom -> any)) :: any
   def fetch(dep_spec, in_fetcher \\ &in_fetcher/1, in_package) do
-    with_tmp_dir(fn tmp_path ->
+    tmp_path = tmp_path()
+    previous_env = Mix.env()
+    deps_path = System.get_env("MIX_DEPS_PATH")
+    code_path = :code.get_path()
+
+    try do
       File.mkdir_p!(tmp_path)
+      System.delete_env("MIX_DEPS_PATH")
+      Mix.env(:prod)
 
       File.write!(Path.join(tmp_path, "mix.exs"), """
       defmodule Mix.Local.Installer.MixProject do
@@ -336,34 +343,36 @@ defmodule Mix.Local.Installer do
       end
       """)
 
-      with_reset_prod_env(fn ->
-        Mix.ProjectStack.on_clean_slate(fn ->
-          tmp_path =
-            Mix.Project.in_project(:mix_local_installer, tmp_path, [], fn mix_exs ->
-              in_fetcher.(mix_exs)
-
-              # The tmp_dir may have symlinks in it, so we properly resolve
-              # the directory before customizing deps_path and lockfile.
-              File.cwd!()
-            end)
-
-          {package_name, package_path} = package_name_path(dep_spec, tmp_path)
-
-          post_config = [
-            deps_path: Path.join(tmp_path, "deps"),
-            lockfile: Path.join(tmp_path, "mix.lock")
-          ]
-
-          Mix.Project.in_project(package_name, package_path, post_config, fn mix_exs ->
+      Mix.ProjectStack.on_clean_slate(fn ->
+        tmp_path =
+          Mix.Project.in_project(:mix_local_installer, tmp_path, [], fn mix_exs ->
             in_fetcher.(mix_exs)
-            in_package.(mix_exs)
+
+            # The tmp_dir may have symlinks in it, so we properly resolve
+            # the directory before customizing deps_path and lockfile.
+            File.cwd!()
           end)
+
+        {package_name, package_path} = package_name_path(dep_spec, tmp_path)
+
+        post_config = [
+          deps_path: Path.join(tmp_path, "deps"),
+          lockfile: Path.join(tmp_path, "mix.lock")
+        ]
+
+        Mix.Project.in_project(package_name, package_path, post_config, fn mix_exs ->
+          in_fetcher.(mix_exs)
+          in_package.(mix_exs)
         end)
       end)
-    end)
-  after
-    :code.purge(Mix.Local.Installer.Fetcher)
-    :code.delete(Mix.Local.Installer.Fetcher)
+    after
+      File.rm_rf(tmp_path)
+      Mix.env(previous_env)
+      deps_path && System.put_env("MIX_DEPS_PATH", deps_path)
+      :code.set_path(code_path)
+      :code.purge(Mix.Local.Installer.Fetcher)
+      :code.delete(Mix.Local.Installer.Fetcher)
+    end
   end
 
   defp package_name_path(dep_spec, tmp_path) do
@@ -388,28 +397,8 @@ defmodule Mix.Local.Installer do
     Mix.Task.run("deps.get", ["--only", Atom.to_string(Mix.env())])
   end
 
-  defp with_tmp_dir(fun) do
+  defp tmp_path do
     unique = :crypto.strong_rand_bytes(4) |> Base.url_encode64(padding: false)
-    tmp_path = Path.join(System.tmp_dir!(), "mix-local-installer-fetcher-" <> unique)
-
-    try do
-      fun.(tmp_path)
-    after
-      File.rm_rf(tmp_path)
-    end
-  end
-
-  defp with_reset_prod_env(fun) do
-    previous_env = Mix.env()
-    deps_path = System.get_env("MIX_DEPS_PATH")
-
-    try do
-      System.delete_env("MIX_DEPS_PATH")
-      Mix.env(:prod)
-      fun.()
-    after
-      Mix.env(previous_env)
-      deps_path && System.put_env("MIX_DEPS_PATH", deps_path)
-    end
+    Path.join(System.tmp_dir!(), "mix-local-installer-fetcher-" <> unique)
   end
 end
