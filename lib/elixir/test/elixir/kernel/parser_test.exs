@@ -1136,7 +1136,12 @@ defmodule Kernel.ParserTest do
 
       assert_syntax_error(
         ["atom length must be less than system limit: "],
-        ~s[:"#{atom}"]
+        ~s{:"#{atom}"}
+      )
+
+      assert_syntax_error(
+        ["atom length must be less than system limit: "],
+        ~s{["#{atom}": 123]}
       )
     end
   end
