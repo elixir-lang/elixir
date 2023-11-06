@@ -1107,6 +1107,6 @@ defmodule Code.Fragment do
     opts =
       Keyword.take(opts, [:file, :line, :column, :columns, :token_metadata, :literal_encoder])
 
-    Code.string_to_quoted(fragment, [cursor_completion: true, warnings: false] ++ opts)
+    Code.string_to_quoted(fragment, [cursor_completion: true, emit_warnings: false] ++ opts)
   end
 end

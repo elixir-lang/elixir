@@ -123,8 +123,6 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{preserve_comments=PreserveComments};
       ({unescape, Unescape}, Acc) when is_boolean(Unescape) ->
         Acc#elixir_tokenizer{unescape=Unescape};
-      ({warn_on_unnecessary_quotes, Unnecessary}, Acc) when is_boolean(Unnecessary) ->
-        Acc#elixir_tokenizer{warn_on_unnecessary_quotes=Unnecessary};
       (_, Acc) ->
         Acc
     end, #elixir_tokenizer{identifier_tokenizer=IdentifierTokenizer}, Opts),
@@ -966,12 +964,11 @@ eol(_Line, _Column, [{eol, {Line, Column, Count}} | Tokens]) ->
 eol(Line, Column, Tokens) ->
   [{eol, {Line, Column, 1}} | Tokens].
 
-is_unnecessary_quote([Part], #elixir_tokenizer{warn_on_unnecessary_quotes=true} = Scope) when is_list(Part) ->
+is_unnecessary_quote([Part], Scope) when is_list(Part) ->
   case (Scope#elixir_tokenizer.identifier_tokenizer):tokenize(Part) of
     {identifier, _, [], _, true, Special} -> not lists:member(at, Special);
     _ -> false
   end;
-
 is_unnecessary_quote(_Parts, _Scope) ->
   false.
 
