@@ -820,7 +820,10 @@ Negative indexes count from the back:
 
 ```elixir
 iex> Enum.drop(cart, -1)
-[%{fruit: "orange", count: 6}]
+[
+  %{fruit: "apple", count: 3},
+  %{fruit: "banana", count: 1}
+]
 ```
 
 ### [`drop_every(enum, nth)`](`Enum.drop_every/2`)
@@ -851,10 +854,7 @@ Negative indexes count from the back:
 
 ```elixir
 iex> Enum.take(cart, -1)
-[
-  %{fruit: "apple", count: 3},
-  %{fruit: "banana", count: 1}
-]
+[%{fruit: "orange", count: 6}]
 ```
 
 ### [`take_every(enum, nth)`](`Enum.take_every/2`)
