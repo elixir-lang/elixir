@@ -198,7 +198,7 @@ defmodule Float do
   defp add_dot(acc, false), do: acc <> ".0"
 
   @doc """
-  Rounds a float to the largest number less than or equal to `num`.
+  Rounds a float to the largest float less than or equal to `number`.
 
   `floor/2` also accepts a precision to round a floating-point value down
   to an arbitrary number of fractional digits (between 0 and 15).
@@ -246,7 +246,7 @@ defmodule Float do
   end
 
   @doc """
-  Rounds a float to the smallest integer greater than or equal to `num`.
+  Rounds a float to the smallest float greater than or equal to `number`.
 
   `ceil/2` also accepts a precision to round a floating-point value down
   to an arbitrary number of fractional digits (between 0 and 15).
