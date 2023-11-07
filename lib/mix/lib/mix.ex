@@ -3,7 +3,7 @@ defmodule Mix do
   Mix is a build tool that provides tasks for creating, compiling,
   and testing Elixir projects, managing its dependencies, and more.
 
-  ## Mix.Project
+  ## `Mix.Project`
 
   The foundation of Mix is a project. A project can be defined by using
   `Mix.Project` in a module, usually placed in a file named `mix.exs`:
@@ -36,7 +36,7 @@ defmodule Mix do
   The best way to get started with your first project is by calling
   `mix new my_project` from the command line.
 
-  ## Mix.Task
+  ## `Mix.Task`
 
   Tasks are what make Mix extensible.
 
