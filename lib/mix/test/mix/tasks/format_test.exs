@@ -183,6 +183,9 @@ defmodule Mix.Tasks.FormatTest do
 
   test "uses inputs and configuration from .formatter.exs", context do
     in_tmp(context.test, fn ->
+      # We need a project in order to enable caching
+      Mix.Project.push(__MODULE__.FormatWithDepsApp)
+
       File.write!(".formatter.exs", """
       [
         inputs: ["a.ex"],
@@ -198,6 +201,17 @@ defmodule Mix.Tasks.FormatTest do
 
       assert File.read!("a.ex") == """
              foo bar(baz)
+             """
+
+      File.write!(".formatter.exs", """
+      [inputs: ["a.ex"]]
+      """)
+
+      ensure_touched(".formatter.exs", "_build/dev/lib/format_with_deps/.mix/format_timestamp")
+      Mix.Tasks.Format.run([])
+
+      assert File.read!("a.ex") == """
+             foo(bar(baz))
              """
     end)
   end
@@ -677,6 +691,7 @@ defmodule Mix.Tasks.FormatTest do
   test "reads exported configuration from dependencies and subdirectories", context do
     in_tmp(context.test, fn ->
       Mix.Project.push(__MODULE__.FormatWithDepsApp)
+      format_timestamp = "_build/dev/lib/format_with_deps/.mix/format_timestamp"
 
       File.mkdir_p!("deps/my_dep/")
 
@@ -724,11 +739,7 @@ defmodule Mix.Tasks.FormatTest do
       """)
 
       File.touch!("lib/sub/.formatter.exs", {{2038, 1, 1}, {0, 0, 0}})
-
-      File.touch!(
-        "_build/dev/lib/format_with_deps/.mix/format_timestamp",
-        {{2010, 1, 1}, {0, 0, 0}}
-      )
+      File.touch!(format_timestamp, {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Format.run([])
 
@@ -750,11 +761,7 @@ defmodule Mix.Tasks.FormatTest do
       """)
 
       File.touch!("lib/extra/.formatter.exs", {{2038, 1, 1}, {0, 0, 0}})
-
-      File.touch!(
-        "_build/dev/lib/format_with_deps/.mix/format_timestamp",
-        {{2010, 1, 1}, {0, 0, 0}}
-      )
+      File.touch!(format_timestamp, {{2010, 1, 1}, {0, 0, 0}})
 
       Mix.Tasks.Format.run([])
 
