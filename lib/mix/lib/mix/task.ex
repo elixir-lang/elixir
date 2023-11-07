@@ -2,11 +2,17 @@ defmodule Mix.Task do
   @moduledoc """
   Provides conveniences for creating, loading, and manipulating Mix tasks.
 
-  A Mix task can be defined by `use Mix.Task` in a module whose name
-  begins with `Mix.Tasks.` and which defines the `run/1` function.
+  To create a new Mix task, you'll need to:
+
+    1. Create a module whose name begins with `Mix.Tasks.` (for example,
+       `Mix.Tasks.MyTask`).
+    2. Call `use Mix.Task` in that module.
+    3. Implement the `Mix.Task` behaviour in that module (that is,
+       implement the `c:run/1` callback).
+
   Typically, task modules live inside the `lib/mix/tasks/` directory,
   and their file names use dot separators instead of underscores
-  (e.g. `deps.clean.ex`) - although ultimately the file name is not
+  (for example, `deps.clean.ex`) - although ultimately the file name is not
   relevant.
 
   For example:
@@ -71,20 +77,20 @@ defmodule Mix.Task do
 
   A task will typically depend on one of the following tasks:
 
-    * "loadpaths" - this ensures dependencies are available
-      and compiled. If you are publishing a task as part of
-      a library to be used by others, and your task does not
-      need to interact with the user code in any way, this is
-      the recommended requirement
+    * ["loadpaths"](`Mix.Tasks.Loadpaths`) - this ensures
+      dependencies are available and compiled. If you are publishing
+      a task as part of a library to be used by others, and your
+      task does not need to interact with the user code in any way,
+      this is the recommended requirement
 
-    * "app.config" - additionally compiles and loads the runtime
-      configuration for the current project. If you are creating
-      a task to be used within your application or as part of a
-      library, which must invoke or interact with the user code,
-      this is the minimum recommended requirement
+    * ["app.config"](`Mix.Tasks.App.Config`) - additionally compiles
+      and load the runtime configuration for the current project. If
+      you are creating a task to be used within your application or
+      as part of a library, which must invoke or interact with the
+      user code, this is the minimum recommended requirement
 
-    * "app.start" - additionally starts the supervision tree of
-      the current project and its dependencies
+    * ["app.start"](`Mix.Tasks.App.Start`) - additionally starts the
+      supervision tree of the current project and its dependencies
 
   ### `@recursive`
 
@@ -105,7 +111,18 @@ defmodule Mix.Task do
   shown is the `@moduledoc` of the task's module.
   """
 
+  @typedoc """
+  The name of a task.
+
+  For example, `"deps.clean"` or `:"deps.clean"`.
+  """
   @type task_name :: String.t() | atom
+
+  @typedoc """
+  The module that implements a Mix task.
+
+  For example, `Mix.Tasks.MyTask`.
+  """
   @type task_module :: atom
 
   @doc """
