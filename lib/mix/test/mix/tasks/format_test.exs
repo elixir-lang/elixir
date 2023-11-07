@@ -724,6 +724,12 @@ defmodule Mix.Tasks.FormatTest do
       """)
 
       File.touch!("lib/sub/.formatter.exs", {{2038, 1, 1}, {0, 0, 0}})
+
+      File.touch!(
+        "_build/dev/lib/format_with_deps/.mix/format_timestamp",
+        {{2010, 1, 1}, {0, 0, 0}}
+      )
+
       Mix.Tasks.Format.run([])
 
       assert File.read!("lib/sub/a.ex") == """
@@ -744,6 +750,12 @@ defmodule Mix.Tasks.FormatTest do
       """)
 
       File.touch!("lib/extra/.formatter.exs", {{2038, 1, 1}, {0, 0, 0}})
+
+      File.touch!(
+        "_build/dev/lib/format_with_deps/.mix/format_timestamp",
+        {{2010, 1, 1}, {0, 0, 0}}
+      )
+
       Mix.Tasks.Format.run([])
 
       {_, formatter_opts} = Mix.Tasks.Format.formatter_for_file("lib/extra/a.ex")

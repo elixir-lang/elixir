@@ -53,6 +53,9 @@ defmodule Mix.Tasks.Format do
 
   ## Task-specific options
 
+    * `--force` - force formatting to happen on all files, instead of
+      relying on cache.
+
     * `--check-formatted` - checks that the file is already formatted.
       This is useful in pre-commit hooks and CI scripts if you want to
       reject contributions with unformatted code. If the check fails,
@@ -180,10 +183,12 @@ defmodule Mix.Tasks.Format do
     no_exit: :boolean,
     dot_formatter: :string,
     dry_run: :boolean,
-    stdin_filename: :string
+    stdin_filename: :string,
+    force: :boolean
   ]
 
-  @manifest "cached_dot_formatter"
+  @manifest_timestamp "format_timestamp"
+  @manifest_dot_formatter "cached_dot_formatter"
   @manifest_vsn 2
 
   @newline "\n"
@@ -216,9 +221,9 @@ defmodule Mix.Tasks.Format do
   @callback format(String.t(), Keyword.t()) :: String.t()
 
   @impl true
-  def run(args) do
+  def run(all_args) do
     cwd = File.cwd!()
-    {opts, args} = OptionParser.parse!(args, strict: @switches)
+    {opts, args} = OptionParser.parse!(all_args, strict: @switches)
     {dot_formatter, formatter_opts} = eval_dot_formatter(cwd, opts)
 
     if opts[:check_equivalent] do
@@ -233,13 +238,48 @@ defmodule Mix.Tasks.Format do
       eval_deps_and_subdirectories(cwd, dot_formatter, formatter_opts, [dot_formatter])
 
     formatter_opts_and_subs = load_plugins(formatter_opts_and_subs)
+    files = expand_args(args, cwd, dot_formatter, formatter_opts_and_subs, opts)
 
-    args
-    |> expand_args(cwd, dot_formatter, formatter_opts_and_subs, opts)
-    |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: :infinity)
-    |> Enum.reduce({[], []}, &collect_status/2)
-    |> check!(opts)
+    maybe_cache_timestamps(all_args, files, fn files ->
+      files
+      |> Task.async_stream(&format_file(&1, opts), ordered: false, timeout: :infinity)
+      |> Enum.reduce({[], []}, &collect_status/2)
+      |> check!(opts)
+    end)
   end
+
+  defp maybe_cache_timestamps([], files, fun) do
+    if Mix.Project.get() do
+      # We fetch the time from before we read files so any future
+      # change to files are still picked up by the formatter
+      timestamp = System.os_time(:second)
+      dir = Mix.Project.manifest_path()
+      manifest_timestamp = Path.join(dir, @manifest_timestamp)
+      manifest_dot_formatter = Path.join(dir, @manifest_dot_formatter)
+      last_modified = Mix.Utils.last_modified(manifest_timestamp)
+      sources = [Mix.Project.config_mtime(), manifest_dot_formatter, ".formatter.exs"]
+
+      files =
+        if Mix.Utils.stale?(sources, [last_modified]) do
+          files
+        else
+          Enum.filter(files, fn {file, _opts} ->
+            Mix.Utils.last_modified(file) > last_modified
+          end)
+        end
+
+      try do
+        fun.(files)
+      after
+        File.mkdir_p!(dir)
+        File.touch!(manifest_timestamp, timestamp)
+      end
+    else
+      fun.(files)
+    end
+  end
+
+  defp maybe_cache_timestamps([_ | _], files, fun), do: fun.(files)
 
   defp load_plugins({formatter_opts, subs}) do
     plugins = Keyword.get(formatter_opts, :plugins, [])
@@ -353,7 +393,7 @@ defmodule Mix.Tasks.Format do
     if deps == [] and subs == [] do
       {{formatter_opts, []}, sources}
     else
-      manifest = Path.join(Mix.Project.manifest_path(), @manifest)
+      manifest = Path.join(Mix.Project.manifest_path(), @manifest_dot_formatter)
 
       {{locals_without_parens, subdirectories}, sources} =
         maybe_cache_in_manifest(dot_formatter, manifest, fn ->
