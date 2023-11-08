@@ -194,6 +194,7 @@ defmodule System do
   Returns the endianness the system was compiled with.
   """
   @endianness :erlang.system_info(:endian)
+  @doc since: "1.2.0"
   @spec compiled_endianness() :: :little | :big
   def compiled_endianness do
     @endianness
@@ -1208,6 +1209,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc since: "1.2.0"
   @spec monotonic_time() :: integer
   def monotonic_time do
     :erlang.monotonic_time()
@@ -1219,6 +1221,7 @@ defmodule System do
   This time is monotonically increasing and starts in an unspecified
   point in time.
   """
+  @doc since: "1.2.0"
   @spec monotonic_time(time_unit) :: integer
   def monotonic_time(unit) do
     :erlang.monotonic_time(normalize_time_unit(unit))
@@ -1233,6 +1236,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc since: "1.2.0"
   @spec system_time() :: integer
   def system_time do
     :erlang.system_time()
@@ -1245,6 +1249,7 @@ defmodule System do
   case of time warps although the VM works towards aligning
   them. This time is not monotonic.
   """
+  @doc since: "1.2.0"
   @spec system_time(time_unit) :: integer
   def system_time(unit) do
     :erlang.system_time(normalize_time_unit(unit))
@@ -1267,6 +1272,7 @@ defmodule System do
   runtime, you can call this function to convert 1 second to the `:native`
   time unit: `System.convert_time_unit(1, :second, :native)`.
   """
+  @doc since: "1.2.0"
   @spec convert_time_unit(integer, time_unit | :native, time_unit | :native) :: integer
   def convert_time_unit(time, from_unit, to_unit) do
     :erlang.convert_time_unit(time, normalize_time_unit(from_unit), normalize_time_unit(to_unit))
@@ -1282,6 +1288,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc since: "1.2.0"
   @spec time_offset() :: integer
   def time_offset do
     :erlang.time_offset()
@@ -1296,6 +1303,7 @@ defmodule System do
   `monotonic_time/1`), gives the Erlang system time that corresponds
   to that monotonic time.
   """
+  @doc since: "1.2.0"
   @spec time_offset(time_unit) :: integer
   def time_offset(unit) do
     :erlang.time_offset(normalize_time_unit(unit))
@@ -1379,6 +1387,7 @@ defmodule System do
 
   Inlined by the compiler.
   """
+  @doc since: "1.2.0"
   @spec unique_integer([:positive | :monotonic]) :: integer
   def unique_integer(modifiers \\ []) do
     :erlang.unique_integer(modifiers)
