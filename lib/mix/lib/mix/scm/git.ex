@@ -201,18 +201,37 @@ defmodule Mix.SCM.Git do
   ## Helpers
 
   defp validate_git_options(opts) do
-    err =
-      "You should specify only one of branch, ref or tag, and only once. " <>
-        "Error on Git dependency: #{redact_uri(opts[:git])}"
-
-    validate_single_uniq(opts, [:branch, :ref, :tag], err)
+    opts
+    |> tap(&validate_single_refspec!/1)
+    |> tap(&validate_string_refspecs!/1)
   end
 
-  defp validate_single_uniq(opts, take, error) do
-    case Keyword.take(opts, take) do
-      [] -> opts
-      [_] -> opts
-      _ -> Mix.raise(error)
+  defp validate_single_refspec!(opts) do
+    case Keyword.take(opts, [:branch, :ref, :tag]) do
+      [] ->
+        opts
+
+      [_] ->
+        opts
+
+      _ ->
+        Mix.raise(
+          "You should specify only one of branch, ref or tag, and only once. " <>
+            "Error on Git dependency: #{redact_uri(opts[:git])}"
+        )
+    end
+  end
+
+  defp validate_string_refspecs!(opts) do
+    for {_kind, refspec} <- Keyword.take(opts, [:branch, :ref, :tag]) do
+      if is_binary(refspec) do
+        :ok
+      else
+        Mix.raise(
+          "A dependency's branch, ref or tag must be a string. " <>
+            "Error on Git dependency: #{redact_uri(opts[:git])}"
+        )
+      end
     end
   end
 
