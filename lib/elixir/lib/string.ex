@@ -1872,18 +1872,14 @@ defmodule String do
   end
 
   defguardp replace_invalid_ii_of_iii(i, ii)
-            when (896 <= Bitwise.bor(Bitwise.bsl(i, 6), ii) and
-                    Bitwise.bor(Bitwise.bsl(i, 6), ii) <= 1023) or
-                   (32 <= Bitwise.bor(Bitwise.bsl(i, 6), ii) and
-                      Bitwise.bor(Bitwise.bsl(i, 6), ii) <= 863)
+            when Bitwise.bor(Bitwise.bsl(i, 6), ii) in 32..863 or
+                   Bitwise.bor(Bitwise.bsl(i, 6), ii) in 896..1023
 
   defguardp replace_invalid_ii_of_iv(i, ii)
-            when 16 <= Bitwise.bor(Bitwise.bsl(i, 6), ii) and
-                   Bitwise.bor(Bitwise.bsl(i, 6), ii) <= 271
+            when Bitwise.bor(Bitwise.bsl(i, 6), ii) in 16..271
 
   defguardp replace_invalid_iii_of_iv(i, ii, iii)
-            when 1024 <= Bitwise.bor(Bitwise.bor(Bitwise.bsl(i, 12), Bitwise.bsl(ii, 6)), iii) and
-                   Bitwise.bor(Bitwise.bor(Bitwise.bsl(i, 12), Bitwise.bsl(ii, 6)), iii) <= 17407
+            when Bitwise.bor(Bitwise.bor(Bitwise.bsl(i, 12), Bitwise.bsl(ii, 6)), iii) in 1024..17407
 
   defguardp replace_invalid_is_next(next) when Bitwise.bsr(next, 6) !== 0b10
 
