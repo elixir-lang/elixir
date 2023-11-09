@@ -1871,6 +1871,22 @@ defmodule String do
     end
   end
 
+  defguardp replace_invalid_ii_of_iii(i, ii)
+            when (896 <= Bitwise.bor(Bitwise.bsl(i, 6), ii) and
+                    Bitwise.bor(Bitwise.bsl(i, 6), ii) <= 1023) or
+                   (32 <= Bitwise.bor(Bitwise.bsl(i, 6), ii) and
+                      Bitwise.bor(Bitwise.bsl(i, 6), ii) <= 863)
+
+  defguardp replace_invalid_ii_of_iv(i, ii)
+            when 16 <= Bitwise.bor(Bitwise.bsl(i, 6), ii) and
+                   Bitwise.bor(Bitwise.bsl(i, 6), ii) <= 271
+
+  defguardp replace_invalid_iii_of_iv(i, ii, iii)
+            when 1024 <= Bitwise.bor(Bitwise.bor(Bitwise.bsl(i, 12), Bitwise.bsl(ii, 6)), iii) and
+                   Bitwise.bor(Bitwise.bor(Bitwise.bsl(i, 12), Bitwise.bsl(ii, 6)), iii) <= 17407
+
+  defguardp replace_invalid_is_next(next) when Bitwise.bsr(next, 6) !== 0b10
+
   @doc ~S"""
   Returns a new string created by replacing all invalid bytes with `replacement` (`"�"` by default).
 
@@ -1889,93 +1905,73 @@ defmodule String do
       "nem rán bERROR! bề"
   """
   @doc since: "1.16.0"
-  def replace_invalid(string, replacement \\ "�")
-      when is_binary(string) and is_binary(replacement) do
-    do_replace_invalid(string, replacement, <<>>)
+  def replace_invalid(bytes, replacement \\ "�")
+      when is_binary(bytes) and is_binary(replacement) do
+    do_replace_invalid(bytes, replacement, <<>>)
   end
 
   # Valid ASCII (for better average speed)
-  defp do_replace_invalid(<<ascii::8, n_lead::2, rest::bits>>, rep, acc)
-       when ascii in 0..127 and n_lead != 0b10 do
-    do_replace_invalid(<<n_lead::2, rest::bits>>, rep, <<acc::bits, ascii::8>>)
+  defp do_replace_invalid(<<ascii::8, next::8, _::bytes>> = rest, rep, acc)
+       when ascii in 0..127 and replace_invalid_is_next(next) do
+    <<_::8, rest::bytes>> = rest
+    do_replace_invalid(rest, rep, acc <> <<ascii::8>>)
   end
 
   # Valid UTF-8
-  defp do_replace_invalid(<<codepoint::utf8, rest::bits>>, rep, acc) do
-    do_replace_invalid(rest, rep, <<acc::bits, codepoint::utf8>>)
+  defp do_replace_invalid(<<grapheme::utf8, rest::bytes>>, rep, acc) do
+    do_replace_invalid(rest, rep, acc <> <<grapheme::utf8>>)
   end
 
   # 2/3 truncated sequence
-  defp do_replace_invalid(<<0b1110::4, i::4, 0b10::2, ii::6>>, rep, acc) do
-    <<tcp::10>> = <<i::4, ii::6>>
-    <<acc::bits, replace_invalid_ii_of_iii(tcp, rep)::bits>>
+  defp do_replace_invalid(<<0b1110::4, i::4, 0b10::2, ii::6>>, rep, acc)
+       when replace_invalid_ii_of_iii(i, ii) do
+    acc <> rep
   end
 
-  defp do_replace_invalid(<<0b1110::4, i::4, 0b10::2, ii::6, n_lead::2, rest::bits>>, rep, acc)
-       when n_lead != 0b10 do
-    <<tcp::10>> = <<i::4, ii::6>>
-
-    do_replace_invalid(
-      <<n_lead::2, rest::bits>>,
-      rep,
-      <<acc::bits, replace_invalid_ii_of_iii(tcp, rep)::bits>>
-    )
+  defp do_replace_invalid(<<0b1110::4, i::4, 0b10::2, ii::6, next::8, _::bytes>> = rest, rep, acc)
+       when replace_invalid_ii_of_iii(i, ii) and replace_invalid_is_next(next) do
+    <<_::16, rest::bytes>> = rest
+    do_replace_invalid(rest, rep, acc <> rep)
   end
 
   # 2/4
-  defp do_replace_invalid(<<0b11110::5, i::3, 0b10::2, ii::6>>, rep, acc) do
-    <<tcp::10>> = <<i::4, ii::6>>
-    <<acc::bits, replace_invalid_ii_of_iiii(tcp, rep)::bits>>
-  end
-
-  defp do_replace_invalid(<<0b11110::5, i::3, 0b10::2, ii::6, n_lead::2, rest::bits>>, rep, acc)
-       when n_lead != 0b10 do
-    <<tcp::10>> = <<i::4, ii::6>>
-
-    do_replace_invalid(
-      <<n_lead::2, rest::bits>>,
-      rep,
-      <<acc::bits, replace_invalid_ii_of_iiii(tcp, rep)::bits>>
-    )
-  end
-
-  # 3/4
-  defp do_replace_invalid(<<0b11110::5, i::3, 0b10::2, ii::6, 0b10::2, iii::6>>, rep, acc) do
-    <<tcp::15>> = <<i::3, ii::6, iii::6>>
-    <<acc::bits, replace_invalid_iii_of_iiii(tcp, rep)::bits>>
+  defp do_replace_invalid(<<0b11110::5, i::3, 0b10::2, ii::6>>, rep, acc)
+       when replace_invalid_ii_of_iv(i, ii) do
+    acc <> rep
   end
 
   defp do_replace_invalid(
-         <<0b11110::5, i::3, 0b10::2, ii::6, 0b10::2, iii::6, n_lead::2, rest::bits>>,
+         <<0b11110::5, i::3, 0b10::2, ii::6, next::8, _::bytes>> = rest,
          rep,
          acc
        )
-       when n_lead != 0b10 do
-    <<tcp::15>> = <<i::3, ii::6, iii::6>>
-
-    do_replace_invalid(
-      <<n_lead::2, rest::bits>>,
-      rep,
-      <<acc::bits, replace_invalid_iii_of_iiii(tcp, rep)::bits>>
-    )
+       when replace_invalid_ii_of_iv(i, ii) and replace_invalid_is_next(next) do
+    <<_::16, rest::bytes>> = rest
+    do_replace_invalid(rest, rep, acc <> rep)
   end
 
-  # any other invalid bytes
-  defp do_replace_invalid(<<_, rest::bits>>, rep, acc),
-    do: do_replace_invalid(rest, rep, <<acc::bits, rep::bits>>)
+  # 3/4
+  defp do_replace_invalid(<<0b11110::5, i::3, 0b10::2, ii::6, 0b10::2, iii::6>>, rep, acc)
+       when replace_invalid_iii_of_iv(i, ii, iii) do
+    acc <> rep
+  end
 
+  defp do_replace_invalid(
+         <<0b11110::5, i::3, 0b10::2, ii::6, 0b10::2, iii::6, next::8, _::bytes>> = rest,
+         rep,
+         acc
+       )
+       when replace_invalid_iii_of_iv(i, ii, iii) and replace_invalid_is_next(next) do
+    <<_::24, rest::bytes>> = rest
+    do_replace_invalid(rest, rep, acc <> rep)
+  end
+
+  # Everything else
+  defp do_replace_invalid(<<_, rest::bytes>>, rep, acc),
+    do: do_replace_invalid(rest, rep, acc <> rep)
+
+  # Final
   defp do_replace_invalid(<<>>, _, acc), do: acc
-
-  # bounds-checking truncated code points for overlong encodings
-  defp replace_invalid_ii_of_iii(tcp, rep) when tcp >= 32 and tcp <= 863, do: rep
-  defp replace_invalid_ii_of_iii(tcp, rep) when tcp >= 896 and tcp <= 1023, do: rep
-  defp replace_invalid_ii_of_iii(_, rep), do: rep <> rep
-
-  defp replace_invalid_ii_of_iiii(tcp, rep) when tcp >= 16 and tcp <= 271, do: rep
-  defp replace_invalid_ii_of_iiii(_, rep), do: rep <> rep
-
-  defp replace_invalid_iii_of_iiii(tcp, rep) when tcp >= 1024 and tcp <= 17407, do: rep
-  defp replace_invalid_iii_of_iiii(_, rep), do: rep <> rep <> rep
 
   @doc ~S"""
   Splits the string into chunks of characters that share a common trait.
