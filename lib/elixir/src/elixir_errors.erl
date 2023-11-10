@@ -57,8 +57,7 @@ get_snippet(File, Position) ->
   LineNumber = extract_line(Position),
   get_file_line(File, LineNumber).
 
-get_file_line(_, 0) -> nil;
-get_file_line(File, LineNumber) ->
+get_file_line(File, LineNumber) when is_integer(LineNumber), LineNumber > 0 ->
   case file:open(File, [read, binary]) of
     {ok, IoDevice} ->
       Line = traverse_file_line(IoDevice, LineNumber),
@@ -66,7 +65,8 @@ get_file_line(File, LineNumber) ->
       Line;
     {error, _} ->
       nil
-  end.
+  end;
+get_file_line(_, _) -> nil.
 
 traverse_file_line(IoDevice, 1) ->
   case file:read_line(IoDevice) of
