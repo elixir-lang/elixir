@@ -1636,8 +1636,8 @@ defmodule Enum do
 
   If `joiner` is not passed at all, it defaults to an empty string.
 
-  All elements in the `enumerable` must be convertible to a string,
-  otherwise an error is raised.
+  All elements in the `enumerable` must be convertible to a string
+  or be a binary, otherwise an error is raised.
 
   ## Examples
 
@@ -1651,7 +1651,7 @@ defmodule Enum do
       "ab cdefg h i"
 
   """
-  @spec join(t, String.t()) :: String.t()
+  @spec join(t, binary()) :: binary()
   def join(enumerable, joiner \\ "")
 
   def join(enumerable, "") do
