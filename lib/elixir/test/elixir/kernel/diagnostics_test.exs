@@ -544,101 +544,41 @@ defmodule Kernel.DiagnosticsTest do
     end
 
     @tag :tmp_dir
-    test "long message (file)", %{tmp_dir: tmp_dir} do
-      path = make_relative_tmp(tmp_dir, "long-warning.ex")
+    test "IO.warn file+line+column", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "io-warn-file-line-column.ex")
 
       source = """
-      defmodule Sample do
-        @file "#{path}"
-
-        def atom_case do
-          v = "bc"
-
-          case v do
-            _ when is_atom(v) -> :ok
-            _ -> :fail
-          end
-        end
-      end
+      IO.warn("oops\\nmulti\\nline", file: __ENV__.file, line: __ENV__.line, column: 4)
       """
 
       File.write!(path, source)
 
       expected = """
-          warning: incompatible types:
-
-              binary() !~ atom()
-
-          in expression:
-
-              # #{path}:8
-              is_atom(v)
-
-          where "v" was given the type binary() in:
-
-              # #{path}:5
-              v = "bc"
-
-          where "v" was given the type atom() in:
-
-              # #{path}:8
-              is_atom(v)
-
-          Conflict found at
+          warning: oops
+          multi
+          line
           │
-        8 │       _ when is_atom(v) -> :ok
-          │              ~
+        1 │ IO.warn("oops\\nmulti\\nline", file: __ENV__.file, line: __ENV__.line, column: 4)
+          │ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           │
-          └─ #{path}:8:14: Sample.atom_case/0
+          └─ tmp\
       """
 
-      assert capture_eval(source) =~ expected
-    after
-      purge(Sample)
+      assert capture_io(:stderr, fn -> Code.eval_file(path) end) =~ expected
     end
 
-    test "long message (nofile)" do
-      source = """
-      defmodule Sample do
-        def atom_case do
-          v = "bc"
+    test "IO.warn with missing data" do
+      assert capture_eval("""
+             IO.warn("oops-bad", file: #{inspect(__ENV__.file)}, line: 3, column: nil)
+             """) =~ "warning: oops-bad"
 
-          case v do
-            _ when is_atom(v) -> :ok
-            _ -> :fail
-          end
-        end
-      end
-      """
+      assert capture_eval("""
+             IO.warn("oops-bad", file: #{inspect(__ENV__.file)}, line: nil)
+             """) =~ "oops-bad"
 
-      expected = """
-      warning: incompatible types:
-
-          binary() !~ atom()
-
-      in expression:
-
-          # nofile:6
-          is_atom(v)
-
-      where "v" was given the type binary() in:
-
-          # nofile:3
-          v = "bc"
-
-      where "v" was given the type atom() in:
-
-          # nofile:6
-          is_atom(v)
-
-      Conflict found at
-      └─ nofile:6:14: Sample.atom_case/0
-
-      """
-
-      assert capture_eval(source) =~ expected
-    after
-      purge(Sample)
+      assert capture_eval("""
+             IO.warn("oops-bad", file: nil)
+             """) =~ "oops-bad"
     end
 
     @tag :tmp_dir
