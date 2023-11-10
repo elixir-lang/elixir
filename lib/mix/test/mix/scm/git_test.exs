@@ -61,15 +61,15 @@ defmodule Mix.SCM.GitTest do
   end
 
   test "raises about non-binary Git refspec options" do
-    assert_raise Mix.Error, ~r/branch, ref or tag must be a string/, fn ->
+    assert_raise Mix.Error, ~r/A dependency's branch must be a string/, fn ->
       Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: :main)
     end
 
-    assert_raise Mix.Error, ~r/branch, ref or tag must be a string/, fn ->
+    assert_raise Mix.Error, ~r/A dependency's tag must be a string/, fn ->
       Mix.SCM.Git.accepts_options(nil, git: "/repo", tag: :stable)
     end
 
-    assert_raise Mix.Error, ~r/branch, ref or tag must be a string/, fn ->
+    assert_raise Mix.Error, ~r/A dependency's ref must be a string/, fn ->
       Mix.SCM.Git.accepts_options(nil, git: "/repo", ref: :abcdef0123456789)
     end
   end
