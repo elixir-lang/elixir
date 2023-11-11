@@ -50,13 +50,27 @@ defmodule Mix.SCM.GitTest do
     end
   end
 
-  test "raises about conflicting Git checkout options" do
+  test "raises about conflicting Git refspec options" do
     assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
       Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "main", tag: "0.1.0")
     end
 
     assert_raise Mix.Error, ~r/You should specify only one of branch, ref or tag/, fn ->
       Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: "main", branch: "develop")
+    end
+  end
+
+  test "raises about non-binary Git refspec options" do
+    assert_raise Mix.Error, ~r/A dependency's branch must be a string/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", branch: :main)
+    end
+
+    assert_raise Mix.Error, ~r/A dependency's tag must be a string/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", tag: :stable)
+    end
+
+    assert_raise Mix.Error, ~r/A dependency's ref must be a string/, fn ->
+      Mix.SCM.Git.accepts_options(nil, git: "/repo", ref: :abcdef0123456789)
     end
   end
 
