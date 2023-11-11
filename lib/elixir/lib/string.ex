@@ -2601,6 +2601,25 @@ defmodule String do
   end
 
   @doc """
+  Determines if the `string` is empty.
+
+  Returns `true` if `string` is empty, otherwise `false`.
+
+  ## Examples
+
+      iex> String.empty?("")
+      true
+
+      iex> String.empty?("elixir")
+      false
+
+  """
+  @spec empty?(t) :: boolean
+  def empty?(string) when is_binary(string) do
+    byte_size(string) == 0
+  end
+
+  @doc """
   Searches if `string` contains any of the given `contents`.
 
   `contents` can be either a string, a list of strings,

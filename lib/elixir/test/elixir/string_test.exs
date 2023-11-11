@@ -908,6 +908,13 @@ defmodule StringTest do
     refute String.contains?("elixir of life", ["death", "mercury", "eternal life"])
   end
 
+  test "empty?/0" do
+    assert String.empty?("")
+    refute String.empty?("elixir")
+    refute String.empty?("elixir of life")
+    refute String.empty?("エリクシア")
+  end
+
   test "to_charlist/1" do
     assert String.to_charlist("æß") == [?æ, ?ß]
     assert String.to_charlist("abc") == [?a, ?b, ?c]
