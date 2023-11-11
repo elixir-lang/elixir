@@ -124,7 +124,7 @@ The first step in our implementation is to call `use Agent`. Most of the functio
 
 Then we define a `start_link/1` function, which will effectively start the agent. It is a convention to define a `start_link/1` function that always accepts a list of options. We don't plan on using any options right now, but we might later on. We then proceed to call `Agent.start_link/1`, which receives an anonymous function that returns the Agent's initial state.
 
-We are keeping a map inside the agent to store our keys and values. Getting and putting values on the map is done with the Agent API and the capture operator `&`, introduced in [the Getting Started guide](../getting-started/modules-and-functions.md#function-capturing). The agent passes its state to the anonymous function via the `&1` argument when `Agent.get/2` and `Agent.update/2` are called.
+We are keeping a map inside the agent to store our keys and values. Getting and putting values on the map is done with the Agent API and the capture operator `&`, introduced in [the Getting Started guide](../getting-started/anonymous-functions.md#the-capture-operator). The agent passes its state to the anonymous function via the `&1` argument when `Agent.get/2` and `Agent.update/2` are called.
 
 Now that the `KV.Bucket` module has been defined, our test should pass! You can try it yourself by running: `mix test`.
 
