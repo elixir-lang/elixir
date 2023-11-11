@@ -320,7 +320,7 @@ So far we have used three callbacks: `handle_call/3`, `handle_cast/2` and `handl
 
 Since any message, including the ones sent via `send/2`, go to `handle_info/2`, there is a chance that unexpected messages will arrive to the server. Therefore, if we don't define the catch-all clause, those messages could cause our registry to crash, because no clause would match. We don't need to worry about such cases for `handle_call/3` and `handle_cast/2` though. Calls and casts are only done via the `GenServer` API, so an unknown message is quite likely a developer mistake.
 
-To help developers remember the differences between call, cast and info, the supported return values and more, we have a tiny [GenServer cheat sheet](/downloads/cheatsheets/gen-server.pdf).
+To help developers remember the differences between call, cast and info, the supported return values and more, we have a tiny [GenServer cheat sheet](https://elixir-lang.org/downloads/cheatsheets/gen-server.pdf).
 
 ## Monitors or links?
 
