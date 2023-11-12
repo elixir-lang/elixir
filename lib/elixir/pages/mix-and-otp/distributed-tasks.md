@@ -90,7 +90,7 @@ There are three better alternatives to `Node.spawn_link/2` that we could use in 
 
 2. We could have a server running on the other node and send requests to that node via the `GenServer` API. For example, you can call a server on a remote node by using `GenServer.call({name, node}, arg)` or passing the remote process PID as the first argument
 
-3. We could use [tasks](`Task`), which we have learned about in [a previous chapter](../getting-started/mix-otp/task-and-gen-tcp.md), as they can be spawned on both local and remote nodes
+3. We could use [tasks](`Task`), which we have learned about in [a previous chapter](task-and-gen-tcp.md), as they can be spawned on both local and remote nodes
 
 The options above have different properties. The GenServer would serialize your requests on a single server, while tasks are effectively running asynchronously on the remote node, with the only serialization point being the spawning done by the supervisor.
 

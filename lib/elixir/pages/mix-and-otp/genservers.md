@@ -1,6 +1,6 @@
 # Client-server communication with GenServer
 
-In the [previous chapter](../agents.md), we used agents to represent our buckets. In the [introduction to mix](../introduction-to-mix.md), we specified we would like to name each bucket so we can do the following:
+In the [previous chapter](agents.md), we used agents to represent our buckets. In the [introduction to mix](introduction-to-mix.md), we specified we would like to name each bucket so we can do the following:
 
 ```elixir
 CREATE shopping
