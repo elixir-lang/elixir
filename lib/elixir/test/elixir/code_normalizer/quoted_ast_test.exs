@@ -229,6 +229,12 @@ defmodule Code.Normalizer.QuotedASTTest do
     test "invalid block" do
       assert quoted_to_string({:__block__, [], {:bar, [], []}}) ==
                "{:__block__, [], {:bar, [], []}}"
+
+      assert quoted_to_string({:foo, [], [{:do, :ok}, :not_keyword]}) ==
+               "foo({:do, :ok}, :not_keyword)"
+
+      assert quoted_to_string({:foo, [], [[{:do, :ok}, :not_keyword]]}) ==
+               "foo([{:do, :ok}, :not_keyword])"
     end
 
     test "not in" do

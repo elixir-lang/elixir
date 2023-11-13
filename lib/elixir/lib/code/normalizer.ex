@@ -349,13 +349,15 @@ defmodule Code.Normalizer do
         meta
       end
 
+    last = List.last(args)
+
     cond do
-      Keyword.has_key?(meta, :do) or match?([{{:__block__, _, [:do]}, _} | _], List.last(args)) ->
+      Keyword.has_key?(meta, :do) or match?([{{:__block__, _, [:do]}, _} | _], last) ->
         # def foo do :ok end
         # def foo, do: :ok
         normalize_kw_blocks(form, meta, args, state)
 
-      match?([{:do, _} | _], List.last(args)) ->
+      match?([{:do, _} | _], last) and Keyword.keyword?(last) ->
         # Non normalized kw blocks
         line = state.parent_meta[:line]
         meta = meta ++ [do: [line: line], end: [line: line]]
