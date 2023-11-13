@@ -29,6 +29,7 @@ defmodule Kernel.SigilsTest do
     assert ~S(f\no) == "f\\no"
     assert ~S(foo\)) == "foo)"
     assert ~S[foo\]] == "foo]"
+    assert ~S[foo\\]] == "foo\\]"
   end
 
   test "sigil S newline" do

@@ -85,8 +85,8 @@ defmodule Code.Formatter.LiteralsTest do
     end
 
     test "without escapes" do
-      assert_same ~S[:foo]
-      assert_same ~S[:\\]
+      assert_same ~s[:foo]
+      assert_same ~s[:\\\\]
     end
 
     test "with escapes" do
