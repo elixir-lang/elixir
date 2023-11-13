@@ -404,9 +404,10 @@ parse_erl_term(Term) ->
   Parsed.
 
 raise_mismatched_delimiter(Location, File, Input, Message) ->
-  {InputString, _, _} = Input,
+  {InputString, StartLine, _} = Input,
   InputBinary = elixir_utils:characters_to_binary(InputString),
-  raise('Elixir.MismatchedDelimiterError', Message,  [{file, File}, {snippet, InputBinary} | Location]).
+  KV = [{file, File}, {line_offset, StartLine - 1}, {snippet, InputBinary} | Location],
+  raise('Elixir.MismatchedDelimiterError', Message, KV).
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',
