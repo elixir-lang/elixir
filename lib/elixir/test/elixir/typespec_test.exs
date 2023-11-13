@@ -1582,21 +1582,27 @@ defmodule TypespecTest do
     """)
 
     [type: type] = types(:typespec_test_mod)
-    line = 5
 
     assert Code.Typespec.type_to_quoted(type) ==
-             {:"::", [], [{:t, [], [{:x, [line: line], nil}]}, [{:x, [line: line], nil}]]}
+             {:"::", [],
+              [
+                {:t, [], [{:x, meta(5, 9), nil}]},
+                [{:x, meta(5, 20), nil}]
+              ]}
 
     [{{:f, 1}, [spec]}] = specs(:typespec_test_mod)
-    line = 7
 
     assert Code.Typespec.spec_to_quoted(:f, spec) ==
-             {:when, [line: line],
+             {:when, meta(7, 8),
               [
-                {:"::", [line: line],
-                 [{:f, [line: line], [{:x, [line: line], nil}]}, {:x, [line: line], nil}]},
-                [x: {:var, [line: line], nil}]
+                {:"::", meta(7, 8),
+                 [{:f, meta(7, 8), [{:x, meta(7, 9), nil}]}, {:x, meta(7, 15), nil}]},
+                [x: {:var, meta(7, 8), nil}]
               ]}
+  end
+
+  defp meta(line, column) do
+    [line: line, column: column]
   end
 
   defp erlc(context, module, code) do
