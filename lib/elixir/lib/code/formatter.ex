@@ -289,6 +289,7 @@ defmodule Code.Formatter do
     end
   end
 
+  # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
   defp quoted_to_algebra(
          {{:., _, [List, :to_charlist]}, meta, [entries]} = quoted,
          context,
@@ -2224,6 +2225,7 @@ defmodule Code.Formatter do
       (not interpolated?(entries) and eol_or_comments?(meta, state))
   end
 
+  # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
   defp next_break_fits?({{:., _, [List, :to_charlist]}, meta, [[_ | _]]}, _state) do
     meta[:delimiter] == ~s[''']
   end

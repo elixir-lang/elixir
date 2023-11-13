@@ -96,6 +96,7 @@ defmodule Code.Normalizer do
   end
 
   # Charlists with interpolations
+  # TODO: Remove this clause on Elixir v2.0 once single-quoted charlists are removed
   defp do_normalize({{:., dot_meta, [List, :to_charlist]}, call_meta, [parts]} = quoted, state) do
     if list_interpolated?(parts) do
       parts =

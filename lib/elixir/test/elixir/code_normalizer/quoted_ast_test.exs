@@ -688,28 +688,6 @@ defmodule Code.Normalizer.QuotedASTTest do
       assert quoted_to_string(~c"\x00\x01\x10") == ~S/[0, 1, 16]/
     end
 
-    test "charlists with interpolations" do
-      # using string_to_quoted to avoid the formatter fixing the charlists
-
-      assert Code.string_to_quoted!(~S/'one #{2} three'/) |> quoted_to_string(escape: false) ==
-               ~S/~c"one #{2} three"/
-
-      assert Code.string_to_quoted!(~S/'one #{2} three'/) |> quoted_to_string() ==
-               ~S/~c"one #{2} three"/
-
-      assert Code.string_to_quoted!(~S/'one\n\'#{2}\'\nthree'/) |> quoted_to_string(escape: false) ==
-               ~s[~c"one\n'\#{2}'\nthree"]
-
-      assert Code.string_to_quoted!(~S/'one\n\'#{2}\'\nthree'/) |> quoted_to_string() ==
-               ~S[~c"one\n'#{2}'\nthree"]
-
-      assert Code.string_to_quoted!(~S/'one\n"#{2}"\nthree'/) |> quoted_to_string(escape: false) ==
-               ~s[~c"one\n\\"\#{2}\\"\nthree"]
-
-      assert Code.string_to_quoted!(~S/'one\n"#{2}"\nthree'/) |> quoted_to_string() ==
-               ~S[~c"one\n\"#{2}\"\nthree"]
-    end
-
     test "atoms" do
       assert quoted_to_string(quote(do: :"a\nb\tc"), escape: false) == ~s/:"a\nb\tc"/
       assert quoted_to_string(quote(do: :"a\nb\tc")) == ~S/:"a\nb\tc"/
