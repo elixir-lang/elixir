@@ -53,6 +53,28 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
+    test "same line with offset" do
+      output =
+        capture_raise(
+          """
+          [1, 2, 3, 4, 5, 6)
+          """,
+          MismatchedDelimiterError,
+          line: 3
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:18:
+                 error: unexpected token: )
+                 │
+               3 │ [1, 2, 3, 4, 5, 6)
+                 │ │                └ mismatched closing delimiter (expected "]")
+                 │ └ unclosed delimiter
+                 │
+                 └─ nofile:3:18\
+             """
+    end
+
     test "two-line span" do
       output =
         capture_raise(
@@ -73,6 +95,30 @@ defmodule Kernel.DiagnosticsTest do
                  │         └ mismatched closing delimiter (expected "]")
                  │
                  └─ nofile:2:9\
+             """
+    end
+
+    test "two-line span with offset" do
+      output =
+        capture_raise(
+          """
+          [a, b, c
+           d, f, g}
+          """,
+          MismatchedDelimiterError,
+          line: 3
+        )
+
+      assert output == """
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:4:9:
+                 error: unexpected token: }
+                 │
+               3 │ [a, b, c
+                 │ └ unclosed delimiter
+               4 │  d, f, g}
+                 │         └ mismatched closing delimiter (expected "]")
+                 │
+                 └─ nofile:4:9\
              """
     end
 
@@ -103,7 +149,9 @@ defmodule Kernel.DiagnosticsTest do
                  │
                  └─ nofile:5:5\
              """
+    end
 
+    test "many-line span with offset" do
       output =
         capture_raise(
           """
@@ -111,20 +159,21 @@ defmodule Kernel.DiagnosticsTest do
             IO.inspect(2 + 2) + 2
           )
           """,
-          MismatchedDelimiterError
+          MismatchedDelimiterError,
+          line: 3
         )
 
       assert output == """
-             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:3:1:
+             ** (MismatchedDelimiterError) mismatched delimiter found on nofile:5:1:
                  error: unexpected token: )
                  │
-               1 │ fn always_forget_end ->
+               3 │ fn always_forget_end ->
                  │ └ unclosed delimiter
-               2 │   IO.inspect(2 + 2) + 2
-               3 │ )
+               4 │   IO.inspect(2 + 2) + 2
+               5 │ )
                  │ └ mismatched closing delimiter (expected "end")
                  │
-                 └─ nofile:3:1\
+                 └─ nofile:5:1\
              """
     end
 
@@ -290,16 +339,6 @@ defmodule Kernel.DiagnosticsTest do
 
   describe "compile-time exceptions" do
     test "SyntaxError (snippet)" do
-      expected = """
-      ** (SyntaxError) invalid syntax found on nofile:1:17:
-          error: syntax error before: '*'
-          │
-        1 │ [1, 2, 3, 4, 5, *]
-          │                 ^
-          │
-          └─ nofile:1:17\
-      """
-
       output =
         capture_raise(
           """
@@ -308,20 +347,39 @@ defmodule Kernel.DiagnosticsTest do
           SyntaxError
         )
 
-      assert output == expected
+      assert output == """
+             ** (SyntaxError) invalid syntax found on nofile:1:17:
+                 error: syntax error before: '*'
+                 │
+               1 │ [1, 2, 3, 4, 5, *]
+                 │                 ^
+                 │
+                 └─ nofile:1:17\
+             """
+    end
+
+    test "SyntaxError (snippet) with offset" do
+      output =
+        capture_raise(
+          """
+          [1, 2, 3, 4, 5, *]
+          """,
+          SyntaxError,
+          line: 3
+        )
+
+      assert output == """
+             ** (SyntaxError) invalid syntax found on nofile:3:17:
+                 error: syntax error before: '*'
+                 │
+               3 │ [1, 2, 3, 4, 5, *]
+                 │                 ^
+                 │
+                 └─ nofile:3:17\
+             """
     end
 
     test "TokenMissingError (snippet)" do
-      expected = """
-      ** (TokenMissingError) token missing on nofile:1:4:
-          error: syntax error: expression is incomplete
-          │
-        1 │ 1 +
-          │    ^
-          │
-          └─ nofile:1:4\
-      """
-
       output =
         capture_raise(
           """
@@ -330,7 +388,36 @@ defmodule Kernel.DiagnosticsTest do
           TokenMissingError
         )
 
-      assert output == expected
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:1:4:
+                 error: syntax error: expression is incomplete
+                 │
+               1 │ 1 +
+                 │    ^
+                 │
+                 └─ nofile:1:4\
+             """
+    end
+
+    test "TokenMissingError (snippet) with offset" do
+      output =
+        capture_raise(
+          """
+          1 +
+          """,
+          TokenMissingError,
+          line: 3
+        )
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:3:4:
+                 error: syntax error: expression is incomplete
+                 │
+               3 │ 1 +
+                 │    ^
+                 │
+                 └─ nofile:3:4\
+             """
     end
 
     test "TokenMissingError (no snippet)" do
@@ -419,7 +506,7 @@ defmodule Kernel.DiagnosticsTest do
           1 -
           """,
           TokenMissingError,
-          fake_stacktrace
+          stacktrace: fake_stacktrace
         )
 
       assert output == expected
@@ -448,7 +535,7 @@ defmodule Kernel.DiagnosticsTest do
           1 -
           """,
           TokenMissingError,
-          fake_stacktrace
+          stacktrace: fake_stacktrace
         )
 
       assert output == expected
@@ -1104,14 +1191,16 @@ defmodule Kernel.DiagnosticsTest do
     end)
   end
 
-  defp capture_raise(source, exception, mock_stacktrace \\ []) do
+  defp capture_raise(source, exception, opts \\ []) do
+    {stacktrace, opts} = Keyword.pop(opts, :stacktrace, [])
+
     e =
       assert_raise exception, fn ->
-        ast = Code.string_to_quoted!(source, columns: true)
+        ast = Code.string_to_quoted!(source, [columns: true] ++ opts)
         Code.eval_quoted(ast)
       end
 
-    Exception.format(:error, e, mock_stacktrace)
+    Exception.format(:error, e, stacktrace)
   end
 
   defp purge(module) when is_atom(module) do

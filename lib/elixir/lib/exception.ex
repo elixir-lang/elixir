@@ -916,6 +916,7 @@ defmodule MismatchedDelimiterError do
     :file,
     :line,
     :column,
+    :line_offset,
     :end_line,
     :end_column,
     :opening_delimiter,
@@ -930,6 +931,7 @@ defmodule MismatchedDelimiterError do
         column: start_column,
         end_line: end_line,
         end_column: end_column,
+        line_offset: line_offset,
         description: description,
         opening_delimiter: opening_delimiter,
         closing_delimiter: _closing_delimiter,
@@ -941,13 +943,24 @@ defmodule MismatchedDelimiterError do
     lines = String.split(snippet, "\n")
     expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
 
-    snippet = format_snippet(start_pos, end_pos, description, file, lines, expected_delimiter)
+    snippet =
+      format_snippet(
+        start_pos,
+        end_pos,
+        line_offset,
+        description,
+        file,
+        lines,
+        expected_delimiter
+      )
+
     format_message(file, end_line, end_column, snippet)
   end
 
   defp format_snippet(
          {start_line, _start_column} = start_pos,
          {end_line, end_column} = end_pos,
+         line_offset,
          description,
          file,
          lines,
@@ -960,12 +973,21 @@ defmodule MismatchedDelimiterError do
 
     relevant_lines =
       if end_line - start_line < @max_lines_shown do
-        line_range(lines, start_pos, end_pos, padding, max_digits, expected_delimiter)
+        line_range(
+          lines,
+          start_pos,
+          end_pos,
+          line_offset,
+          padding,
+          max_digits,
+          expected_delimiter
+        )
       else
         trimmed_inbetween_lines(
           lines,
           start_pos,
           end_pos,
+          line_offset,
           padding,
           max_digits,
           expected_delimiter
@@ -984,6 +1006,7 @@ defmodule MismatchedDelimiterError do
   defp format_snippet(
          {start_line, start_column},
          {end_line, end_column},
+         line_offset,
          description,
          file,
          lines,
@@ -994,7 +1017,7 @@ defmodule MismatchedDelimiterError do
     general_padding = max(2, max_digits) + 1
     padding = n_spaces(general_padding)
 
-    line = Enum.fetch!(lines, end_line - 1)
+    line = Enum.fetch!(lines, end_line - 1 - line_offset)
     formatted_line = [line_padding(end_line, max_digits), to_string(end_line), " │ ", line]
 
     mismatched_closing_line =
@@ -1042,14 +1065,15 @@ defmodule MismatchedDelimiterError do
          lines,
          {start_line, start_column},
          {end_line, end_column},
+         line_offset,
          padding,
          max_digits,
          expected_delimiter
        ) do
     start_padding = line_padding(start_line, max_digits)
     end_padding = line_padding(end_line, max_digits)
-    first_line = Enum.fetch!(lines, start_line - 1)
-    last_line = Enum.fetch!(lines, end_line - 1)
+    first_line = Enum.fetch!(lines, start_line - 1 - line_offset)
+    last_line = Enum.fetch!(lines, end_line - 1 - line_offset)
 
     """
     #{start_padding}#{start_line} │ #{first_line}
@@ -1064,6 +1088,7 @@ defmodule MismatchedDelimiterError do
          lines,
          {start_line, start_column},
          {end_line, end_column},
+         line_offset,
          padding,
          max_digits,
          expected_delimiter
@@ -1072,7 +1097,7 @@ defmodule MismatchedDelimiterError do
     end_line = end_line - 1
 
     lines
-    |> Enum.slice(start_line..end_line)
+    |> Enum.slice((start_line - line_offset)..(end_line - line_offset))
     |> Enum.zip_with(start_line..end_line, fn line, line_number ->
       line_number = line_number + 1
       start_line = start_line + 1
