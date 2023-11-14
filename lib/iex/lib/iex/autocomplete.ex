@@ -38,7 +38,7 @@ defmodule IEx.Autocomplete do
   @doc """
   The expansion logic.
 
-  Some of the expansion has to be use the current shell
+  Some of the expansion has to use the current shell
   environment, which is found via the broker.
   """
   def expand(code, shell \\ IEx.Broker.shell()) do
