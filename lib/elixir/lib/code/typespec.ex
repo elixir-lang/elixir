@@ -420,5 +420,13 @@ defmodule Code.Typespec do
     :error
   end
 
-  defp meta(anno), do: [line: :erl_anno.line(anno)]
+  defp meta(anno) do
+    case :erl_anno.location(anno) do
+      {line, column} ->
+        [line: line, column: column]
+
+      line when is_integer(line) ->
+        [line: line]
+    end
+  end
 end
