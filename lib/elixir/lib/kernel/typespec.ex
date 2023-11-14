@@ -385,17 +385,17 @@ defmodule Kernel.Typespec do
       compile_error(caller, error)
     end
 
-    line = line(meta)
+    location = location(meta)
     vars = Keyword.keys(guard)
 
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
     {return, state} = typespec(return, vars, caller, state)
-    spec = {:type, line, :fun, [{:type, line, :product, args}, return]}
+    spec = {:type, location, :fun, [{:type, location, :product, args}, return]}
 
     {spec, state} =
       case guard_to_constraints(guard, vars, meta, caller, state) do
         {[], state} -> {spec, state}
-        {constraints, state} -> {{:type, line, :bounded_fun, [spec, constraints]}, state}
+        {constraints, state} -> {{:type, location, :bounded_fun, [spec, constraints]}, state}
       end
 
     ensure_no_unused_local_vars!(caller, state.local_vars)
@@ -437,7 +437,7 @@ defmodule Kernel.Typespec do
   defp ensure_not_default(_), do: :ok
 
   defp guard_to_constraints(guard, vars, meta, caller, state) do
-    line = line(meta)
+    location = location(meta)
 
     fun = fn
       {_name, {:var, _, context}}, {constraints, state} when is_atom(context) ->
@@ -445,9 +445,9 @@ defmodule Kernel.Typespec do
 
       {name, type}, {constraints, state} ->
         {spec, state} = typespec(type, vars, caller, state)
-        constraint = [{:atom, line, :is_subtype}, [{:var, line, name}, spec]]
+        constraint = [{:atom, location, :is_subtype}, [{:var, location, name}, spec]]
         state = update_local_vars(state, name)
-        {[{:type, line, :constraint, constraint} | constraints], state}
+        {[{:type, location, :constraint, constraint} | constraints], state}
     end
 
     {constraints, state} = :lists.foldl(fun, {[], state}, guard)
@@ -456,21 +456,27 @@ defmodule Kernel.Typespec do
 
   ## To typespec conversion
 
-  defp line(meta) do
-    Keyword.get(meta, :line, 0)
+  defp location(meta) do
+    line = Keyword.get(meta, :line, 0)
+
+    if column = meta[:column] do
+      {line, column}
+    else
+      line
+    end
   end
 
   # Handle unions
   defp typespec({:|, meta, [_, _]} = exprs, vars, caller, state) do
     exprs = collect_union(exprs)
     {union, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, exprs)
-    {{:type, line(meta), :union, union}, state}
+    {{:type, location(meta), :union, union}, state}
   end
 
   # Handle binaries
   defp typespec({:<<>>, meta, []}, _, _, state) do
-    line = line(meta)
-    {{:type, line, :binary, [{:integer, line, 0}, {:integer, line, 0}]}, state}
+    location = location(meta)
+    {{:type, location, :binary, [{:integer, location, 0}, {:integer, location, 0}]}, state}
   end
 
   defp typespec(
@@ -480,14 +486,18 @@ defmodule Kernel.Typespec do
          state
        )
        when is_atom(ctx1) and is_atom(ctx2) and unit in 1..256 do
-    line = line(meta)
-    {{:type, line, :binary, [{:integer, line, 0}, {:integer, line(unit_meta), unit}]}, state}
+    location = location(meta)
+
+    {{:type, location, :binary, [{:integer, location, 0}, {:integer, location(unit_meta), unit}]},
+     state}
   end
 
   defp typespec({:<<>>, meta, [{:"::", size_meta, [{:_, _, ctx}, size]}]}, _, _, state)
        when is_atom(ctx) and is_integer(size) and size >= 0 do
-    line = line(meta)
-    {{:type, line, :binary, [{:integer, line(size_meta), size}, {:integer, line, 0}]}, state}
+    location = location(meta)
+
+    {{:type, location, :binary, [{:integer, location(size_meta), size}, {:integer, location, 0}]},
+     state}
   end
 
   defp typespec(
@@ -505,8 +515,8 @@ defmodule Kernel.Typespec do
        )
        when is_atom(ctx1) and is_atom(ctx2) and is_atom(ctx3) and is_integer(size) and
               size >= 0 and unit in 1..256 do
-    args = [{:integer, line(size_meta), size}, {:integer, line(unit_meta), unit}]
-    {{:type, line(meta), :binary, args}, state}
+    args = [{:integer, location(size_meta), size}, {:integer, location(unit_meta), unit}]
+    {{:type, location(meta), :binary, args}, state}
   end
 
   defp typespec({:<<>>, _meta, _args}, _vars, caller, _state) do
@@ -519,7 +529,7 @@ defmodule Kernel.Typespec do
 
   ## Handle maps and structs
   defp typespec({:map, meta, args}, _vars, _caller, state) when args == [] or is_atom(args) do
-    {{:type, line(meta), :map, :any}, state}
+    {{:type, location(meta), :map, :any}, state}
   end
 
   defp typespec({:%{}, meta, fields} = map, vars, caller, state) do
@@ -527,17 +537,17 @@ defmodule Kernel.Typespec do
       {{:required, meta2, [k]}, v}, state ->
         {arg1, state} = typespec(k, vars, caller, state)
         {arg2, state} = typespec(v, vars, caller, state)
-        {{:type, line(meta2), :map_field_exact, [arg1, arg2]}, state}
+        {{:type, location(meta2), :map_field_exact, [arg1, arg2]}, state}
 
       {{:optional, meta2, [k]}, v}, state ->
         {arg1, state} = typespec(k, vars, caller, state)
         {arg2, state} = typespec(v, vars, caller, state)
-        {{:type, line(meta2), :map_field_assoc, [arg1, arg2]}, state}
+        {{:type, location(meta2), :map_field_assoc, [arg1, arg2]}, state}
 
       {k, v}, state ->
         {arg1, state} = typespec(k, vars, caller, state)
         {arg2, state} = typespec(v, vars, caller, state)
-        {{:type, line(meta), :map_field_exact, [arg1, arg2]}, state}
+        {{:type, location(meta), :map_field_exact, [arg1, arg2]}, state}
 
       {:|, _, [_, _]}, _state ->
         error =
@@ -551,7 +561,7 @@ defmodule Kernel.Typespec do
     end
 
     {fields, state} = :lists.mapfoldl(fun, state, fields)
-    {{:type, line(meta), :map, fields}, state}
+    {{:type, location(meta), :map, fields}, state}
   end
 
   defp typespec({:%, _, [name, {:%{}, meta, fields}]} = node, vars, caller, state) do
@@ -644,7 +654,7 @@ defmodule Kernel.Typespec do
     {right, state} = typespec(right, vars, caller, state)
     :ok = validate_range(left, right, caller)
 
-    {{:type, line(meta), :range, [left, right]}, state}
+    {{:type, location(meta), :range, [left, right]}, state}
   end
 
   # Handle special forms
@@ -668,7 +678,7 @@ defmodule Kernel.Typespec do
         pair -> pair
       end
 
-    {{:type, line(meta), :fun, fun_args}, state}
+    {{:type, location(meta), :fun, fun_args}, state}
   end
 
   # Handle type operator
@@ -691,10 +701,10 @@ defmodule Kernel.Typespec do
         # This may be generating an invalid typespec but we need to generate it
         # to avoid breaking existing code that was valid but only broke Dialyzer
         {right, state} = typespec(expr, vars, caller, state)
-        {{:ann_type, line(meta), [{:var, line(var_meta), var_name}, right]}, state}
+        {{:ann_type, location(meta), [{:var, location(var_meta), var_name}, right]}, state}
 
       {right, state} ->
-        {{:ann_type, line(meta), [{:var, line(var_meta), var_name}, right]}, state}
+        {{:ann_type, location(meta), [{:var, location(var_meta), var_name}, right]}, state}
     end
   end
 
@@ -723,13 +733,13 @@ defmodule Kernel.Typespec do
     {left, state} = typespec(left, vars, caller, state)
     state = %{state | undefined_type_error_enabled?: true}
     {right, state} = typespec(right, vars, caller, state)
-    {{:ann_type, line(meta), [left, right]}, state}
+    {{:ann_type, location(meta), [left, right]}, state}
   end
 
   # Handle unary ops
   defp typespec({op, meta, [integer]}, _, _, state) when op in [:+, :-] and is_integer(integer) do
-    line = line(meta)
-    {{:op, line, op, {:integer, line, integer}}, state}
+    location = location(meta)
+    {{:op, location, op, {:integer, location, integer}}, state}
   end
 
   # Handle remote calls in the form of @module_attribute.type.
@@ -778,12 +788,12 @@ defmodule Kernel.Typespec do
 
   # Handle tuples
   defp typespec({:tuple, meta, []}, _vars, _caller, state) do
-    {{:type, line(meta), :tuple, :any}, state}
+    {{:type, location(meta), :tuple, :any}, state}
   end
 
   defp typespec({:{}, meta, t}, vars, caller, state) when is_list(t) do
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, t)
-    {{:type, line(meta), :tuple, args}, state}
+    {{:type, location(meta), :tuple, args}, state}
   end
 
   defp typespec({left, right}, vars, caller, state) do
@@ -799,7 +809,7 @@ defmodule Kernel.Typespec do
   defp typespec({name, meta, atom}, vars, caller, state) when is_atom(atom) do
     if :lists.member(name, vars) do
       state = update_local_vars(state, name)
-      {{:var, line(meta), name}, state}
+      {{:var, location(meta), name}, state}
     else
       typespec({name, meta, []}, vars, caller, state)
     end
@@ -814,7 +824,7 @@ defmodule Kernel.Typespec do
 
     IO.warn(warning, caller)
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
-    {{:type, line(meta), :string, args}, state}
+    {{:type, location(meta), :string, args}, state}
   end
 
   defp typespec({:nonempty_string, meta, args}, vars, caller, state) do
@@ -825,7 +835,7 @@ defmodule Kernel.Typespec do
 
     IO.warn(warning, caller)
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
-    {{:type, line(meta), :nonempty_string, args}, state}
+    {{:type, location(meta), :nonempty_string, args}, state}
   end
 
   defp typespec({type, _meta, []}, vars, caller, state) when type in [:charlist, :char_list] do
@@ -855,7 +865,7 @@ defmodule Kernel.Typespec do
 
   defp typespec({:fun, meta, args}, vars, caller, state) do
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
-    {{:type, line(meta), :fun, args}, state}
+    {{:type, location(meta), :fun, args}, state}
   end
 
   defp typespec({:..., _meta, _args}, _vars, caller, _state) do
@@ -872,7 +882,7 @@ defmodule Kernel.Typespec do
 
     case :erl_internal.is_type(name, arity) do
       true ->
-        {{:type, line(meta), name, args}, state}
+        {{:type, location(meta), name, args}, state}
 
       false ->
         if state.undefined_type_error_enabled? and
@@ -890,7 +900,7 @@ defmodule Kernel.Typespec do
             %{state | used_type_pairs: [{name, arity} | state.used_type_pairs]}
           end
 
-        {{:user_type, line(meta), name, args}, state}
+        {{:user_type, location(meta), name, args}, state}
     end
   end
 
@@ -963,7 +973,7 @@ defmodule Kernel.Typespec do
 
   defp remote_type({remote, meta, name, args}, vars, caller, state) do
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
-    {{:remote_type, line(meta), [remote, name, args]}, state}
+    {{:remote_type, location(meta), [remote, name, args]}, state}
   end
 
   defp collect_union({:|, _, [a, b]}), do: [a | collect_union(b)]
@@ -996,16 +1006,16 @@ defmodule Kernel.Typespec do
   end
 
   defp fn_args(meta, [{:..., _, _}], _vars, _caller, state) do
-    {{:type, line(meta), :any}, state}
+    {{:type, location(meta), :any}, state}
   end
 
   defp fn_args(meta, args, vars, caller, state) do
     {args, state} = :lists.mapfoldl(&typespec(&1, vars, caller, &2), state, args)
-    {{:type, line(meta), :product, args}, state}
+    {{:type, location(meta), :product, args}, state}
   end
 
   defp variable({name, meta, args}) when is_atom(name) and is_atom(args) do
-    {:var, line(meta), name}
+    {:var, location(meta), name}
   end
 
   defp variable(expr), do: expr
