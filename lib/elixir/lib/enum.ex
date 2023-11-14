@@ -3903,8 +3903,11 @@ defmodule Enum do
       iex> Enum.zip([1, 2, 3, 4, 5], [:a, :b, :c])
       [{1, :a}, {2, :b}, {3, :c}]
 
+      iex> Enum.zip([], [:a, :b, :c])
+      []
+
   """
-  @spec zip(t, t) :: [{any, any}]
+  @spec zip(t, t) :: [{any, any}] | []
   def zip(enumerable1, enumerable2) when is_list(enumerable1) and is_list(enumerable2) do
     zip_list(enumerable1, enumerable2, [])
   end
@@ -3926,6 +3929,9 @@ defmodule Enum do
 
       iex> Enum.zip([[1, 2, 3, 4, 5], [:a, :b, :c]])
       [{1, :a}, {2, :b}, {3, :c}]
+
+      iex> Enum.zip([[], [:a, :b, :c]])
+      []
 
   """
   @doc since: "1.4.0"
