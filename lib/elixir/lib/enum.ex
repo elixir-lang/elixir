@@ -3907,7 +3907,7 @@ defmodule Enum do
       []
 
   """
-  @spec zip(t, t) :: [{any, any}] | []
+  @spec zip(t, t) :: [{any, any}]
   def zip(enumerable1, enumerable2) when is_list(enumerable1) and is_list(enumerable2) do
     zip_list(enumerable1, enumerable2, [])
   end
