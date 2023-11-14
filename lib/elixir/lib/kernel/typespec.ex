@@ -459,7 +459,7 @@ defmodule Kernel.Typespec do
   defp location(meta) do
     line = Keyword.get(meta, :line, 0)
 
-    if column = meta[:column] do
+    if column = Keyword.get(meta, :column) do
       {line, column}
     else
       line
