@@ -33,12 +33,22 @@ expand(_BitstrMeta, _Fun, [], Acc, S, E, Alignment, _RequireSize) ->
 expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment, RequireSize) ->
   {ELeft, {SL, OriginalS}, EL} = expand_expr(Meta, Left, Fun, S, E),
 
-  MatchOrRequireSize = RequireSize or is_match_size(T, EL),
-  EType = expr_type(ELeft),
-  {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL, OriginalS, EL, MatchOrRequireSize),
-
-  EAcc = concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, ES, MatchOrRequireSize),
-  expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize);
+  case {ELeft, Right} of
+    {{'^', _, [{var, _, _}]}, {Type, _, Atom}} when Type == binary orelse Type == bitstring, is_atom(Atom) ->
+      SizeFun = case Type of
+        binary -> byte_size;
+        bitstring -> bit_size
+      end,
+      ERight = {'-', Meta, [Right, {size, Meta, [{{'.', Meta, [erlang, SizeFun]}, Meta, [ELeft]}]}]},
+      EAcc = concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, EL, RequireSize),
+      expand(BitstrMeta, Fun, T, EAcc, {SL, OriginalS}, EL, unknown, RequireSize);
+    _ ->
+      MatchOrRequireSize = RequireSize or is_match_size(T, EL),
+      EType = expr_type(ELeft),
+      {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL, OriginalS, EL, MatchOrRequireSize),
+      EAcc = concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, ES, MatchOrRequireSize),
+      expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize)
+   end;
 expand(BitstrMeta, Fun, [H | T], Acc, S, E, Alignment, RequireSize) ->
   Meta = extract_meta(H, BitstrMeta),
   {ELeft, {SS, OriginalS}, ES} = expand_expr(Meta, H, Fun, S, E),

@@ -269,6 +269,16 @@ defmodule Kernel.BinaryTest do
     assert <<1::size((^foo).bar)>> = <<1::5>>
   end
 
+  test "automatic size computation of matched bitsyntax variable" do
+    var = "foo"
+    <<^var::binary, rest::binary>> = "foobar"
+    assert rest == "bar"
+
+    var = <<0, 1>>
+    <<^var::bitstring, rest::bitstring>> = <<0, 1, 2, 3>>
+    assert rest == <<2, 3>>
+  end
+
   defmacro signed_16 do
     quote do
       big - signed - integer - unit(16)
