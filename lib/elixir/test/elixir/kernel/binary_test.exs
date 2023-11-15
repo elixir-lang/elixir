@@ -274,8 +274,14 @@ defmodule Kernel.BinaryTest do
     <<^var::binary, rest::binary>> = "foobar"
     assert rest == "bar"
 
+    <<^var::bytes, rest::bytes>> = "foobar"
+    assert rest == "bar"
+
     var = <<0, 1>>
     <<^var::bitstring, rest::bitstring>> = <<0, 1, 2, 3>>
+    assert rest == <<2, 3>>
+
+    <<^var::bits, rest::bits>> = <<0, 1, 2, 3>>
     assert rest == <<2, 3>>
   end
 
