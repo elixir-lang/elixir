@@ -1100,7 +1100,7 @@ defmodule Code do
       For example, `"null byte\\t\\x00"` will be kept as is instead of being
       converted to a bitstring literal. Note if you set this option to false, the
       resulting AST is no longer valid, but it can be useful to analyze/transform
-      source code, typically in in combination with `quoted_to_algebra/2`.
+      source code, typically in combination with `quoted_to_algebra/2`.
       Defaults to `true`.
 
     * `:existing_atoms_only` - when `true`, raises an error
@@ -1213,7 +1213,7 @@ defmodule Code do
 
   Comments are maps with the following fields:
 
-    * `:line` - The line number the source code
+    * `:line` - The line number of the source code
 
     * `:text` - The full text of the comment, including the leading `#`
 
@@ -1693,7 +1693,7 @@ defmodule Code do
 
   Returns a list of tuples where the first element is the module name
   and the second one is its bytecode (as a binary). A `file` can be
-  given as second argument which will be used for reporting warnings
+  given as a second argument which will be used for reporting warnings
   and errors.
 
   **Warning**: `string` can be any Elixir code and code can be executed with
