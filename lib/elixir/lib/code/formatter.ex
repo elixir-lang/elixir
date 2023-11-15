@@ -521,14 +521,15 @@ defmodule Code.Formatter do
               {string(~S{"..//":}), state}
 
             {:__block__, _, [atom]} when is_atom(atom) ->
-              key =
+              iodata =
                 if Macro.classify_atom(atom) in [:identifier, :unquoted] do
-                  IO.iodata_to_binary([Atom.to_string(atom), ?:])
+                  [Atom.to_string(atom), ?:]
                 else
-                  IO.iodata_to_binary([?", Atom.to_string(atom), ?", ?:])
+                  [?", atom |> Atom.to_string() |> String.replace("\"", "\\\""), ?", ?:]
                 end
 
-              {string(key) |> color(:atom, state.inspect_opts), state}
+              {iodata |> IO.iodata_to_binary() |> string() |> color(:atom, state.inspect_opts),
+               state}
 
             {{:., _, [:erlang, :binary_to_atom]}, _, [{:<<>>, _, entries}, :utf8]} ->
               interpolation_to_algebra(entries, @double_quote, state, "\"", "\":")
