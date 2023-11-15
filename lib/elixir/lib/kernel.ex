@@ -2064,9 +2064,6 @@ defmodule Kernel do
       {var, _, nil} when is_atom(var) ->
         invalid_concat_left_argument_error(Atom.to_string(var))
 
-      {:^, _, [{var, _, nil}]} when is_atom(var) ->
-        invalid_concat_left_argument_error("^#{Atom.to_string(var)}")
-
       _ ->
         expanded_arg
     end

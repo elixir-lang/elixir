@@ -35,7 +35,12 @@ expand(BitstrMeta, Fun, [{'::', Meta, [Left, Right]} | T], Acc, S, E, Alignment,
 
   MatchOrRequireSize = RequireSize or is_match_size(T, EL),
   EType = expr_type(ELeft),
-  {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL, OriginalS, EL, MatchOrRequireSize),
+  ExpectSize = case ELeft of
+    {'^', _, [{_, _, _}]} -> {infer, ELeft};
+    _ when MatchOrRequireSize -> required;
+    _ -> optional
+  end,
+  {ERight, EAlignment, SS, ES} = expand_specs(EType, Meta, Right, SL, OriginalS, EL, ExpectSize),
 
   EAcc = concat_or_prepend_bitstring(Meta, ELeft, ERight, Acc, ES, MatchOrRequireSize),
   expand(BitstrMeta, Fun, T, EAcc, {SS, OriginalS}, ES, alignment(Alignment, EAlignment), RequireSize);
@@ -147,7 +152,7 @@ expand_expr(Meta, Component, Fun, S, E) ->
 
 %% Expands and normalizes types of a bitstring.
 
-expand_specs(ExprType, Meta, Info, S, OriginalS, E, RequireSize) ->
+expand_specs(ExprType, Meta, Info, S, OriginalS, E, ExpectSize) ->
   Default =
     #{size => default,
       unit => default,
@@ -158,11 +163,17 @@ expand_specs(ExprType, Meta, Info, S, OriginalS, E, RequireSize) ->
     expand_each_spec(Meta, unpack_specs(Info, []), Default, S, OriginalS, E),
 
   MergedType = type(Meta, ExprType, Type, E),
-  validate_size_required(Meta, RequireSize, ExprType, MergedType, Size, ES),
+  validate_size_required(Meta, ExpectSize, ExprType, MergedType, Size, ES),
   SizeAndUnit = size_and_unit(Meta, ExprType, Size, Unit, ES),
   Alignment = compute_alignment(MergedType, Size, Unit),
 
-  [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, SizeAndUnit, ES),
+  MaybeInferredSize = case {ExpectSize, MergedType, SizeAndUnit} of
+    {{infer, PinnedVar}, binary, []} -> [{size, Meta, [{{'.', Meta, [erlang, byte_size]}, Meta, [PinnedVar]}]}];
+    {{infer, PinnedVar}, bitstring, []} -> [{size, Meta, [{{'.', Meta, [erlang, bit_size]}, Meta, [PinnedVar]}]}];
+    _ -> SizeAndUnit
+  end,
+
+  [H | T] = build_spec(Meta, Size, Unit, MergedType, Endianness, Sign, MaybeInferredSize, ES),
   {lists:foldl(fun(I, Acc) -> {'-', Meta, [Acc, I]} end, H, T), Alignment, SS, ES}.
 
 type(_, default, default, _) ->
@@ -276,7 +287,7 @@ validate_spec_arg(Meta, unit, Value, _S, _OriginalS, E) when not is_integer(Valu
 validate_spec_arg(_Meta, _Key, _Value, _S, _OriginalS, _E) ->
   ok.
 
-validate_size_required(Meta, true, default, Type, default, E) when Type == binary; Type == bitstring ->
+validate_size_required(Meta, required, default, Type, default, E) when Type == binary; Type == bitstring ->
   function_error(Meta, E, ?MODULE, unsized_binary),
   ok;
 validate_size_required(_, _, _, _, _, _) ->
