@@ -128,20 +128,6 @@ defmodule Kernel.BinaryTest do
     assert_raise ArgumentError, message, fn ->
       Code.eval_string(~s["a" <> b <> "c" = "abc"])
     end
-
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string(~s[
-        a = "a"
-        ^a <> "b" = "ab"
-      ])
-    end
-
-    assert_raise ArgumentError, message, fn ->
-      Code.eval_string(~s[
-        b = "b"
-        "a" <> ^b <> "c" = "abc"
-      ])
-    end
   end
 
   test "hex" do
@@ -277,11 +263,17 @@ defmodule Kernel.BinaryTest do
     <<^var::bytes, rest::bytes>> = "foobar"
     assert rest == "bar"
 
+    ^var <> rest = "foobar"
+    assert rest == "bar"
+
     var = <<0, 1>>
     <<^var::bitstring, rest::bitstring>> = <<0, 1, 2, 3>>
     assert rest == <<2, 3>>
 
     <<^var::bits, rest::bits>> = <<0, 1, 2, 3>>
+    assert rest == <<2, 3>>
+
+    ^var <> rest = <<0, 1, 2, 3>>
     assert rest == <<2, 3>>
   end
 
