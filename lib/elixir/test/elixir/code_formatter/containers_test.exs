@@ -203,6 +203,7 @@ defmodule Code.Formatter.ContainersTest do
       assert_same ~S(["\w": 1, "\\w": 2])
       assert_same ~S(["Elixir.Foo": 1, "Elixir.Bar": 2])
       assert_format ~S(["Foo": 1, "Bar": 2]), ~S([Foo: 1, Bar: 2])
+      assert_same ~S(["with \"scare quotes\"": 1])
     end
 
     test "with operators keyword lists" do
