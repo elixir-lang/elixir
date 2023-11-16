@@ -46,9 +46,9 @@ defmodule Config do
   ## Migrating from `use Mix.Config`
 
   The `Config` module in Elixir was introduced in v1.9 as a replacement to
-  `Mix.Config`, which was specific to Mix and has been deprecated.
+  `use Mix.Config`, which was specific to Mix and has been deprecated.
 
-  You can leverage `Config` instead of `Mix.Config` in three steps. The first
+  You can leverage `Config` instead of `use Mix.Config` in three steps. The first
   step is to replace `use Mix.Config` at the top of your config files by
   `import Config`.
 
