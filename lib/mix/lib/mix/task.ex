@@ -256,6 +256,9 @@ defmodule Mix.Task do
     Mix.ProjectStack.recursing() != nil
   end
 
+  @doc """
+  Available for backwards compatibility.
+  """
   @deprecated "Configure the environment in your mix.exs"
   defdelegate preferred_cli_env(task), to: Mix.CLI
 
