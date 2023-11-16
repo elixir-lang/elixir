@@ -232,9 +232,10 @@ defmodule ExUnit do
     * `:capture_log` - if ExUnit should default to keeping track of log messages
       and print them on test failure. Can be overridden for individual tests via
       `@tag capture_log: false`. This can also be configured to a specific level
-       with `capture_log: [level: LEVEL]`, for example:
-       `capture_log: [level: :emergency]` to prevent any output from test failures.
-       Defaults to `false`;
+      with `capture_log: [level: LEVEL]`, to capture all logs but only keep those
+      above `LEVEL`. Note that `on_exit` and `setup_all` callbacks may still log,
+      as they run outside of the testing process. To silent those, you can use
+      `ExUnit.CaptureLog.capture_log/2` or consider disabling logging altogether.
 
     * `:colors` - a keyword list of color options to be used by some formatters:
       * `:enabled` - boolean option to enable colors, defaults to `IO.ANSI.enabled?/0`;
