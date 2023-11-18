@@ -910,8 +910,6 @@ defmodule MismatchedDelimiterError do
   - `fn a -> )`
   """
 
-  @max_lines_shown 5
-
   defexception [
     :file,
     :line,
@@ -943,30 +941,46 @@ defmodule MismatchedDelimiterError do
     lines = String.split(snippet, "\n")
     expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
 
+    start_message = "└ unclosed delimiter"
+    end_message = ~s/└ mismatched closing delimiter (expected "#{expected_delimiter}")/
+
     snippet =
-      format_snippet(
+      SnippetFormatter.format_snippet(
         start_pos,
         end_pos,
         line_offset,
         description,
         file,
         lines,
-        expected_delimiter
+        start_message,
+        end_message
       )
 
     format_message(file, end_line, end_column, snippet)
   end
 
-  defp format_snippet(
-         {start_line, _start_column} = start_pos,
-         {end_line, end_column} = end_pos,
-         line_offset,
-         description,
-         file,
-         lines,
-         expected_delimiter
-       )
-       when start_line < end_line do
+  defp format_message(file, line, column, message) do
+    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
+    "mismatched delimiter found on " <> location <> "\n" <> message
+  end
+end
+
+defmodule SnippetFormatter do
+  @moduledoc false
+
+  @max_lines_shown 5
+
+  def format_snippet(
+        {start_line, _start_column} = start_pos,
+        {end_line, end_column} = end_pos,
+        line_offset,
+        description,
+        file,
+        lines,
+        start_message,
+        end_message
+      )
+      when start_line < end_line do
     max_digits = digits(end_line)
     general_padding = max(2, max_digits) + 1
     padding = n_spaces(general_padding)
@@ -980,7 +994,8 @@ defmodule MismatchedDelimiterError do
           line_offset,
           padding,
           max_digits,
-          expected_delimiter
+          start_message,
+          end_message
         )
       else
         trimmed_inbetween_lines(
@@ -990,7 +1005,8 @@ defmodule MismatchedDelimiterError do
           line_offset,
           padding,
           max_digits,
-          expected_delimiter
+          start_message,
+          end_message
         )
       end
 
@@ -1003,16 +1019,17 @@ defmodule MismatchedDelimiterError do
     """
   end
 
-  defp format_snippet(
-         {start_line, start_column},
-         {end_line, end_column},
-         line_offset,
-         description,
-         file,
-         lines,
-         expected_delimiter
-       )
-       when start_line == end_line do
+  def format_snippet(
+        {start_line, start_column},
+        {end_line, end_column},
+        line_offset,
+        description,
+        file,
+        lines,
+        start_message,
+        end_message
+      )
+      when start_line == end_line do
     max_digits = digits(end_line)
     general_padding = max(2, max_digits) + 1
     padding = n_spaces(general_padding)
@@ -1024,11 +1041,11 @@ defmodule MismatchedDelimiterError do
       [
         n_spaces(start_column - 1),
         red("│"),
-        mismatched_closing_delimiter(end_column - start_column, expected_delimiter)
+        format_end_message(end_column - start_column, end_message)
       ]
 
     unclosed_delimiter_line =
-      [padding, " │ ", unclosed_delimiter(start_column)]
+      [padding, " │ ", format_start_message(start_column, start_message)]
 
     below_line = [padding, " │ ", mismatched_closing_line, "\n", unclosed_delimiter_line]
 
@@ -1068,7 +1085,8 @@ defmodule MismatchedDelimiterError do
          line_offset,
          padding,
          max_digits,
-         expected_delimiter
+         start_message,
+         end_message
        ) do
     start_padding = line_padding(start_line, max_digits)
     end_padding = line_padding(end_line, max_digits)
@@ -1077,10 +1095,10 @@ defmodule MismatchedDelimiterError do
 
     """
     #{start_padding}#{start_line} │ #{first_line}
-     #{padding}│ #{unclosed_delimiter(start_column)}
+     #{padding}│ #{format_start_message(start_column, start_message)}
      ...
     #{end_padding}#{end_line} │ #{last_line}
-     #{padding}│ #{mismatched_closing_delimiter(end_column, expected_delimiter)}\
+     #{padding}│ #{format_end_message(end_column, end_message)}\
     """
   end
 
@@ -1091,7 +1109,8 @@ defmodule MismatchedDelimiterError do
          line_offset,
          padding,
          max_digits,
-         expected_delimiter
+         start_message,
+         end_message
        ) do
     start_line = start_line - 1
     end_line = end_line - 1
@@ -1115,7 +1134,7 @@ defmodule MismatchedDelimiterError do
             "\n",
             padding,
             " │ ",
-            unclosed_delimiter(start_column)
+            format_start_message(start_column, start_message)
           ]
 
         line_number == end_line ->
@@ -1127,7 +1146,7 @@ defmodule MismatchedDelimiterError do
             "\n",
             padding,
             " │ ",
-            mismatched_closing_delimiter(end_column, expected_delimiter)
+            format_end_message(end_column, end_message)
           ]
 
         true ->
@@ -1137,14 +1156,14 @@ defmodule MismatchedDelimiterError do
     |> Enum.intersperse("\n")
   end
 
-  defp mismatched_closing_delimiter(end_column, expected_closing_delimiter),
+  defp format_end_message(end_column, message),
     do: [
       n_spaces(end_column - 1),
-      red(~s/└ mismatched closing delimiter (expected "#{expected_closing_delimiter}")/)
+      red(message)
     ]
 
-  defp unclosed_delimiter(start_column),
-    do: [n_spaces(start_column - 1), red("└ unclosed delimiter")]
+  defp format_start_message(start_column, message),
+    do: [n_spaces(start_column - 1), red(message)]
 
   defp pad_message(message, padding), do: String.replace(message, "\n", "\n #{padding}")
 
@@ -1154,11 +1173,6 @@ defmodule MismatchedDelimiterError do
     else
       string
     end
-  end
-
-  defp format_message(file, line, column, message) do
-    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
-    "mismatched delimiter found on " <> location <> "\n" <> message
   end
 end
 
@@ -1228,8 +1242,11 @@ defmodule TokenMissingError do
   defexception [
     :file,
     :line,
-    :snippet,
     :column,
+    :end_line,
+    :end_column,
+    :line_offset,
+    :snippet,
     :opening_delimiter,
     description: "expression is incomplete"
   ]
@@ -1239,12 +1256,37 @@ defmodule TokenMissingError do
         file: file,
         line: line,
         column: column,
+        end_line: end_line,
+        line_offset: line_offset,
         description: description,
+        opening_delimiter: opening_delimiter,
         snippet: snippet
       })
-      when not is_nil(snippet) and not is_nil(column) do
+      when not is_nil(snippet) and not is_nil(column) and not is_nil(end_line) do
+    # TODO: fallback to showing new line if line is too long
+    lines = snippet |> String.trim_trailing("\n") |> String.split("\n")
+    trimmed_lines = end_line - Enum.count(lines)
+    actual_end_line = end_line - trimmed_lines
+    end_column = lines |> Enum.fetch!(actual_end_line - 1) |> String.length()
+
+    start_pos = {line, column}
+    end_pos = {actual_end_line, end_column + 1}
+    expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
+
+    start_message = ~s/└ unclosed delimiter/
+    end_message = ~s/└ missing closing delimiter (expected "#{expected_delimiter}")/
+
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
+      SnippetFormatter.format_snippet(
+        start_pos,
+        end_pos,
+        line_offset,
+        description,
+        file,
+        lines,
+        start_message,
+        end_message
+      )
 
     format_message(file, line, column, snippet)
   end
@@ -1254,10 +1296,11 @@ defmodule TokenMissingError do
         file: file,
         line: line,
         column: column,
+        snippet: snippet,
         description: description
       }) do
     snippet =
-      :elixir_errors.format_snippet({line, column}, file, description, nil, :error, [], nil)
+      :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
 
     padded = "   " <> String.replace(snippet, "\n", "\n   ")
     format_message(file, line, column, padded)

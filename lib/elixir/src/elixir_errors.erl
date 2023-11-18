@@ -319,7 +319,10 @@ parse_error(Location, File, Error, <<>>, Input) ->
     <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
     _ -> <<Error/binary>>
   end,
-  raise_snippet(Location, File, Input, 'Elixir.TokenMissingError', Message);
+  case lists:keytake(error_type, 1, Location) of
+    {value, {error_type, unterminated_delimiter}, Loc} -> raise_token_missing(Loc, File, Input, Message);
+    _ -> raise_snippet(Location, File, Input, 'Elixir.TokenMissingError', Message)
+  end;
 
 %% Show a nicer message for end of line
 parse_error(Location, File, <<"syntax error before: ">>, <<"eol">>, Input) ->
@@ -408,6 +411,11 @@ raise_mismatched_delimiter(Location, File, Input, Message) ->
   InputBinary = elixir_utils:characters_to_binary(InputString),
   KV = [{file, File}, {line_offset, StartLine - 1}, {snippet, InputBinary} | Location],
   raise('Elixir.MismatchedDelimiterError', Message, KV).
+
+raise_token_missing(Location, File, Input, Message) ->
+  {InputString, StartLine, _} = Input,
+  InputBinary = elixir_utils:characters_to_binary(InputString),
+  raise('Elixir.TokenMissingError', Message,  [{line_offset, StartLine - 1}, {file, File}, {snippet, InputBinary} | Location]).
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',

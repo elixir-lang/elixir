@@ -337,6 +337,20 @@ defmodule Kernel.DiagnosticsTest do
     end
   end
 
+  describe "token missing error" do
+    test "missing string terminator" do
+    end
+
+    test "missing parens terminator" do
+    end
+
+    test "missing heredoc terminator" do
+    end
+
+    test "supports unicode" do
+    end
+  end
+
   describe "compile-time exceptions" do
     test "SyntaxError (snippet)" do
       output =
@@ -420,11 +434,16 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
-    test "TokenMissingError (no snippet)" do
+    test "TokenMissingError (unclosed delimiter)" do
       expected = """
       ** (TokenMissingError) token missing on nofile:2:1:
-         error: missing terminator: end (for "fn" starting at line 1)
-         └─ nofile:2:1\
+          error: missing terminator: end (for "fn" starting at line 1)
+          │
+        1 │ fn a
+          │ │   └ missing closing delimiter (expected "end")
+          │ └ unclosed delimiter
+          │
+          └─ nofile:2:1
       """
 
       output =
