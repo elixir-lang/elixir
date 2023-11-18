@@ -519,7 +519,7 @@ defmodule Time do
          unit not in ~w(second millisecond microsecond nanosecond)a do
       raise ArgumentError,
             "unsupported time unit. Expected :hour, :minute, :second, :millisecond, " <>
-            ":microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
+              ":microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
     amount_to_add = System.convert_time_unit(amount_to_add, unit, :microsecond)
