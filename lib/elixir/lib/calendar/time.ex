@@ -515,10 +515,11 @@ defmodule Time do
 
   def add(%{calendar: calendar, microsecond: {_, precision}} = time, amount_to_add, unit)
       when is_integer(amount_to_add) do
-    if not is_integer(unit) and
+    if (is_integer(unit) and unit < 1) or
          unit not in ~w(second millisecond microsecond nanosecond)a do
       raise ArgumentError,
-            "unsupported time unit. Expected :hour, :minute, :second, :millisecond, :microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
+            "unsupported time unit. Expected :hour, :minute, :second, :millisecond, " <>
+              ":microsecond, :nanosecond, or a positive integer, got #{inspect(unit)}"
     end
 
     amount_to_add = System.convert_time_unit(amount_to_add, unit, :microsecond)

@@ -90,4 +90,14 @@ defmodule TimeTest do
 
     assert Time.truncate(~T[01:01:01.123456], :second) == ~T[01:01:01]
   end
+
+  test "add/3" do
+    time = ~T[00:00:00.0]
+
+    assert Time.add(time, 1, :hour) == ~T[01:00:00.0]
+
+    assert_raise ArgumentError, ~r/Expected :hour, :minute, :second/, fn ->
+      Time.add(time, 1, 0)
+    end
+  end
 end
