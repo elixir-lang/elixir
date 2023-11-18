@@ -1,4 +1,4 @@
-# Changelog for Elixir v1.16
+# Changelog for Elixir v1.17
 
 ## v1.17.0-dev
 
@@ -21,6 +21,6 @@
 
   * [ExUnit.Case] `register_test/4` is deprecated in favor of `register_test/6` for performance reasons
 
-## v1.15
+## v1.16
 
 The CHANGELOG for v1.16 releases can be found [in the v1.16 branch](https://github.com/elixir-lang/elixir/blob/v1.16/CHANGELOG.md).
