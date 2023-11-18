@@ -1263,14 +1263,18 @@ defmodule TokenMissingError do
         snippet: snippet
       })
       when not is_nil(snippet) and not is_nil(column) and not is_nil(end_line) do
-    # TODO: fallback to showing new line if line is too long
     lines = snippet |> String.trim_trailing("\n") |> String.split("\n")
     trimmed_lines = end_line - Enum.count(lines)
     actual_end_line = end_line - trimmed_lines
-    end_column = lines |> Enum.fetch!(actual_end_line - 1) |> String.length()
+
+    end_column =
+      lines
+      |> Enum.fetch!(actual_end_line - 1)
+      |> String.length()
+      |> Kernel.+(1)
 
     start_pos = {line, column}
-    end_pos = {actual_end_line, end_column + 1}
+    end_pos = {actual_end_line, end_column}
     expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
 
     start_message = ~s/└ unclosed delimiter/
@@ -1288,7 +1292,7 @@ defmodule TokenMissingError do
         end_message
       )
 
-    format_message(file, line, column, snippet)
+    format_message(file, actual_end_line, end_column, snippet)
   end
 
   @impl true
@@ -1302,8 +1306,7 @@ defmodule TokenMissingError do
     snippet =
       :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
 
-    padded = "   " <> String.replace(snippet, "\n", "\n   ")
-    format_message(file, line, column, padded)
+    format_message(file, line, column, snippet)
   end
 
   defp format_message(file, line, column, message) do
