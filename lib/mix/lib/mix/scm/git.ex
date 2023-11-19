@@ -164,7 +164,7 @@ defmodule Mix.SCM.Git do
   defp sparse_toggle(opts) do
     cond do
       sparse = opts[:sparse] ->
-        sparse_check(git_version())
+        check_sparse_support(git_version())
         git!(["--git-dir=.git", "config", "core.sparsecheckout", "true"])
         File.mkdir_p!(".git/info")
         File.write!(".git/info/sparse-checkout", sparse)
@@ -180,13 +180,15 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp sparse_check(version) do
-    unless {1, 7, 4} <= version do
-      version = version |> Tuple.to_list() |> Enum.join(".")
+  defp check_sparse_support(version) do
+    ensure_feature_compatibility(version, {1, 7, 4}, "sparse checkout")
+  end
 
+  defp ensure_feature_compatibility(version, required_version, feature) do
+    unless required_version <= version do
       Mix.raise(
-        "Git >= 1.7.4 is required to use sparse checkout. " <>
-          "You are running version #{version}"
+        "Git >= #{format_version(required_version)} is required to use #{feature}. " <>
+          "You are running version #{format_version(version)}"
       )
     end
   end
@@ -352,6 +354,10 @@ defmodule Mix.SCM.Git do
     |> Enum.take(3)
     |> Enum.map(&to_integer/1)
     |> List.to_tuple()
+  end
+
+  defp format_version(version) do
+    version |> Tuple.to_list() |> Enum.join(".")
   end
 
   defp to_integer(string) do
