@@ -27,6 +27,7 @@ git_exclude =
   Mix.SCM.Git.unsupported_options()
   |> Enum.map(fn
     :sparse -> {:git_sparse, true}
+    :depth -> {:git_depth, true}
   end)
 
 {line_exclude, line_include} =
