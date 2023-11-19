@@ -517,8 +517,8 @@ defmodule Time do
       when is_integer(amount_to_add) do
     valid? =
       if is_integer(unit),
-         do: unit > 0,
-         else: unit in ~w(second millisecond microsecond nanosecond)a
+        do: unit > 0,
+        else: unit in ~w(second millisecond microsecond nanosecond)a
 
     unless valid? do
       raise ArgumentError,
