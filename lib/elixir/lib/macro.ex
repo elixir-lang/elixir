@@ -367,7 +367,7 @@ defmodule Macro do
   Note the arguments are not unique. If you later on want
   to access the same variables, you can invoke this function
   with the same inputs. Use `generate_unique_arguments/2` to
-  generate a unique arguments that can't be overridden.
+  generate unique arguments that can't be overridden.
 
   ## Examples
 
