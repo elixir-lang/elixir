@@ -320,7 +320,7 @@ parse_error(Location, File, Error, <<>>, Input) ->
     _ -> <<Error/binary>>
   end,
   case lists:keytake(error_type, 1, Location) of
-    {value, {error_type, unterminated_delimiter}, Loc} -> raise_token_missing(Loc, File, Input, Message);
+    {value, {error_type, unclosed_delimiter}, Loc} -> raise_token_missing(Loc, File, Input, Message);
     _ -> raise_snippet(Location, File, Input, 'Elixir.TokenMissingError', Message)
   end;
 

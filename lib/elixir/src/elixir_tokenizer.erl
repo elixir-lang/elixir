@@ -148,7 +148,7 @@ tokenize([], EndLine, _, #elixir_tokenizer{terminators=[{Start, {StartLine, Star
   Message = "missing terminator: ~ts",
   Formatted = io_lib:format(Message, [End]),
   Meta = [
-          {error_type, unterminated_delimiter},
+          {error_type, unclosed_delimiter},
           {opening_delimiter, Start},
           {line, StartLine},
           {column, StartColumn},
