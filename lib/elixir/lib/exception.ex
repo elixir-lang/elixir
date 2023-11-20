@@ -793,183 +793,8 @@ defmodule Exception do
       col -> format_file_line_column(Keyword.get(opts, :file), Keyword.get(opts, :line), col, " ")
     end
   end
-end
 
-# Some exceptions implement "message/1" instead of "exception/1" mostly
-# for bootstrap reasons. It is recommended for applications to implement
-# "exception/1" instead of "message/1" as described in "defexception/1"
-# docs.
-
-defmodule RuntimeError do
-  @moduledoc """
-  An exception for a generic runtime error.
-
-  This is the exception that `raise/1` raises when you pass it only a string as
-  a message:
-
-      iex> raise "oops!"
-      ** (RuntimeError) oops!
-
-  You should use this exceptions sparingly, since most of the time it might be
-  better to define your own exceptions specific to your application or library.
-  Sometimes, however, there are situations in which you don't expect a condition to
-  happen, but you want to give a meaningful error message if it does. In those cases,
-  `RuntimeError` can be a good choice.
-
-  ## Fields
-
-  `RuntimeError` exceptions have a single field, `:message` (a `t:String.t/0`),
-  which is public and can be accessed freely when reading or creating `RuntimeError`
-  exceptions.
-  """
-
-  defexception message: "runtime error"
-end
-
-defmodule ArgumentError do
-  @moduledoc """
-  An exception raised when an argument to a function is invalid.
-
-  You can raise this exception when you want to signal that an argument to
-  a function is invalid.
-
-  `ArgumentError` exceptions have a single field, `:message` (a `t:String.t/0`),
-  which is public and can be accessed freely when reading or creating `ArgumentError`
-  exceptions.
-  """
-
-  defexception message: "argument error"
-end
-
-defmodule ArithmeticError do
-  @moduledoc """
-  An exception raised on invalid arithmetic operations.
-
-  For example, this exception is raised if you divide by `0`:
-
-      iex> 1 / 0
-      ** (ArithmeticError) bad argument in arithmetic expression: 1 / 0
-
-  """
-
-  defexception message: "bad argument in arithmetic expression"
-
-  @unary_ops [:+, :-]
-  @binary_ops [:+, :-, :*, :/]
-  @binary_funs [:div, :rem]
-  @bitwise_binary_funs [:band, :bor, :bxor, :bsl, :bsr]
-
-  @impl true
-  def blame(%{message: message} = exception, [{:erlang, fun, args, _} | _] = stacktrace) do
-    message =
-      message <>
-        case {fun, args} do
-          {op, [a]} when op in @unary_ops ->
-            ": #{op}(#{inspect(a)})"
-
-          {op, [a, b]} when op in @binary_ops ->
-            ": #{inspect(a)} #{op} #{inspect(b)}"
-
-          {fun, [a, b]} when fun in @binary_funs ->
-            ": #{fun}(#{inspect(a)}, #{inspect(b)})"
-
-          {fun, [a, b]} when fun in @bitwise_binary_funs ->
-            ": Bitwise.#{fun}(#{inspect(a)}, #{inspect(b)})"
-
-          {:bnot, [a]} ->
-            ": Bitwise.bnot(#{inspect(a)})"
-
-          _ ->
-            ""
-        end
-
-    {%{exception | message: message}, stacktrace}
-  end
-
-  def blame(exception, stacktrace) do
-    {exception, stacktrace}
-  end
-end
-
-defmodule SystemLimitError do
-  @moduledoc """
-  An exception raised when a system limit has been reached.
-
-  For example, this can happen if you try to create an atom that is too large.
-  """
-
-  defexception message: "a system limit has been reached"
-end
-
-defmodule MismatchedDelimiterError do
-  @moduledoc """
-  An exception raised when a mismatched delimiter is found when parsing code.
-
-  For example:
-  - `[1, 2, 3}`
-  - `fn a -> )`
-  """
-
-  defexception [
-    :file,
-    :line,
-    :column,
-    :line_offset,
-    :end_line,
-    :end_column,
-    :opening_delimiter,
-    :closing_delimiter,
-    :snippet,
-    description: "mismatched delimiter error"
-  ]
-
-  @impl true
-  def message(%{
-        line: start_line,
-        column: start_column,
-        end_line: end_line,
-        end_column: end_column,
-        line_offset: line_offset,
-        description: description,
-        opening_delimiter: opening_delimiter,
-        closing_delimiter: _closing_delimiter,
-        file: file,
-        snippet: snippet
-      }) do
-    start_pos = {start_line, start_column}
-    end_pos = {end_line, end_column}
-    lines = String.split(snippet, "\n")
-    expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
-
-    start_message = "└ unclosed delimiter"
-    end_message = ~s/└ mismatched closing delimiter (expected "#{expected_delimiter}")/
-
-    snippet =
-      SnippetFormatter.format_snippet(
-        start_pos,
-        end_pos,
-        line_offset,
-        description,
-        file,
-        lines,
-        start_message,
-        end_message
-      )
-
-    format_message(file, end_line, end_column, snippet)
-  end
-
-  defp format_message(file, line, column, message) do
-    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
-    "mismatched delimiter found on " <> location <> "\n" <> message
-  end
-end
-
-defmodule SnippetFormatter do
-  @moduledoc false
-
-  @max_lines_shown 5
-
+  @doc false
   def format_snippet(
         {start_line, _start_column} = start_pos,
         {end_line, end_column} = end_pos,
@@ -986,7 +811,7 @@ defmodule SnippetFormatter do
     padding = n_spaces(general_padding)
 
     relevant_lines =
-      if end_line - start_line < @max_lines_shown do
+      if end_line - start_line < 5 do
         line_range(
           lines,
           start_pos,
@@ -1176,6 +1001,176 @@ defmodule SnippetFormatter do
   end
 end
 
+# Some exceptions implement "message/1" instead of "exception/1" mostly
+# for bootstrap reasons. It is recommended for applications to implement
+# "exception/1" instead of "message/1" as described in "defexception/1"
+# docs.
+
+defmodule RuntimeError do
+  @moduledoc """
+  An exception for a generic runtime error.
+
+  This is the exception that `raise/1` raises when you pass it only a string as
+  a message:
+
+      iex> raise "oops!"
+      ** (RuntimeError) oops!
+
+  You should use this exceptions sparingly, since most of the time it might be
+  better to define your own exceptions specific to your application or library.
+  Sometimes, however, there are situations in which you don't expect a condition to
+  happen, but you want to give a meaningful error message if it does. In those cases,
+  `RuntimeError` can be a good choice.
+
+  ## Fields
+
+  `RuntimeError` exceptions have a single field, `:message` (a `t:String.t/0`),
+  which is public and can be accessed freely when reading or creating `RuntimeError`
+  exceptions.
+  """
+
+  defexception message: "runtime error"
+end
+
+defmodule ArgumentError do
+  @moduledoc """
+  An exception raised when an argument to a function is invalid.
+
+  You can raise this exception when you want to signal that an argument to
+  a function is invalid.
+
+  `ArgumentError` exceptions have a single field, `:message` (a `t:String.t/0`),
+  which is public and can be accessed freely when reading or creating `ArgumentError`
+  exceptions.
+  """
+
+  defexception message: "argument error"
+end
+
+defmodule ArithmeticError do
+  @moduledoc """
+  An exception raised on invalid arithmetic operations.
+
+  For example, this exception is raised if you divide by `0`:
+
+      iex> 1 / 0
+      ** (ArithmeticError) bad argument in arithmetic expression: 1 / 0
+
+  """
+
+  defexception message: "bad argument in arithmetic expression"
+
+  @unary_ops [:+, :-]
+  @binary_ops [:+, :-, :*, :/]
+  @binary_funs [:div, :rem]
+  @bitwise_binary_funs [:band, :bor, :bxor, :bsl, :bsr]
+
+  @impl true
+  def blame(%{message: message} = exception, [{:erlang, fun, args, _} | _] = stacktrace) do
+    message =
+      message <>
+        case {fun, args} do
+          {op, [a]} when op in @unary_ops ->
+            ": #{op}(#{inspect(a)})"
+
+          {op, [a, b]} when op in @binary_ops ->
+            ": #{inspect(a)} #{op} #{inspect(b)}"
+
+          {fun, [a, b]} when fun in @binary_funs ->
+            ": #{fun}(#{inspect(a)}, #{inspect(b)})"
+
+          {fun, [a, b]} when fun in @bitwise_binary_funs ->
+            ": Bitwise.#{fun}(#{inspect(a)}, #{inspect(b)})"
+
+          {:bnot, [a]} ->
+            ": Bitwise.bnot(#{inspect(a)})"
+
+          _ ->
+            ""
+        end
+
+    {%{exception | message: message}, stacktrace}
+  end
+
+  def blame(exception, stacktrace) do
+    {exception, stacktrace}
+  end
+end
+
+defmodule SystemLimitError do
+  @moduledoc """
+  An exception raised when a system limit has been reached.
+
+  For example, this can happen if you try to create an atom that is too large.
+  """
+
+  defexception message: "a system limit has been reached"
+end
+
+defmodule MismatchedDelimiterError do
+  @moduledoc """
+  An exception raised when a mismatched delimiter is found when parsing code.
+
+  For example:
+  - `[1, 2, 3}`
+  - `fn a -> )`
+  """
+
+  defexception [
+    :file,
+    :line,
+    :column,
+    :line_offset,
+    :end_line,
+    :end_column,
+    :opening_delimiter,
+    :closing_delimiter,
+    :snippet,
+    description: "mismatched delimiter error"
+  ]
+
+  @impl true
+  def message(%{
+        line: start_line,
+        column: start_column,
+        end_line: end_line,
+        end_column: end_column,
+        line_offset: line_offset,
+        description: description,
+        opening_delimiter: opening_delimiter,
+        closing_delimiter: _closing_delimiter,
+        file: file,
+        snippet: snippet
+      }) do
+    start_pos = {start_line, start_column}
+    end_pos = {end_line, end_column}
+    lines = String.split(snippet, "\n")
+    expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
+
+    start_message = "└ unclosed delimiter"
+    end_message = ~s/└ mismatched closing delimiter (expected "#{expected_delimiter}")/
+
+    snippet =
+      Exception.format_snippet(
+        start_pos,
+        end_pos,
+        line_offset,
+        description,
+        file,
+        lines,
+        start_message,
+        end_message
+      )
+
+    format_message(file, end_line, end_column, snippet)
+  end
+
+  defp format_message(file, line, column, message) do
+    location = Exception.format_file_line_column(Path.relative_to_cwd(file), line, column)
+    "mismatched delimiter found on " <> location <> "\n" <> message
+  end
+end
+
 defmodule SyntaxError do
   @moduledoc """
   An exception raised when there's a syntax error when parsing code.
@@ -1244,7 +1239,6 @@ defmodule TokenMissingError do
     :line,
     :column,
     :end_line,
-    :end_column,
     :line_offset,
     :snippet,
     :opening_delimiter,
@@ -1281,7 +1275,7 @@ defmodule TokenMissingError do
     end_message = ~s/└ missing closing delimiter (expected "#{expected_delimiter}")/
 
     snippet =
-      SnippetFormatter.format_snippet(
+      Exception.format_snippet(
         start_pos,
         end_pos,
         line_offset,
