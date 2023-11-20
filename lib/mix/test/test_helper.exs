@@ -22,7 +22,12 @@ Application.put_env(:logger, :backends, [])
 
 os_exclude = if match?({:win32, _}, :os.type()), do: [unix: true], else: [windows: true]
 epmd_exclude = if match?({:win32, _}, :os.type()), do: [epmd: true], else: []
-git_exclude = if Mix.SCM.Git.git_version() <= {1, 7, 4}, do: [git_sparse: true], else: []
+
+git_exclude =
+  Mix.SCM.Git.unsupported_options()
+  |> Enum.map(fn
+    :sparse -> {:git_sparse, true}
+  end)
 
 {line_exclude, line_include} =
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}

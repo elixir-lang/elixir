@@ -180,8 +180,11 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  @min_git_version_sparse {1, 7, 4}
+  @min_git_version_progress {1, 7, 1}
+
   defp check_sparse_support(version) do
-    ensure_feature_compatibility(version, {1, 7, 4}, "sparse checkout")
+    ensure_feature_compatibility(version, @min_git_version_sparse, "sparse checkout")
   end
 
   defp ensure_feature_compatibility(version, required_version, feature) do
@@ -194,7 +197,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp progress_switch(version) do
-    if {1, 7, 1} <= version, do: ["--progress"], else: []
+    if @min_git_version_progress <= version, do: ["--progress"], else: []
   end
 
   defp tags_switch(nil), do: []
@@ -330,9 +333,16 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  # Also invoked by lib/mix/test/test_helper.exs
+  # Invoked by lib/mix/test/test_helper.exs
   @doc false
-  def git_version do
+  def unsupported_options do
+    git_version = git_version()
+
+    []
+    |> Kernel.++(if git_version < @min_git_version_sparse, do: [:sparse], else: [])
+  end
+
+  defp git_version do
     case Mix.State.fetch(:git_version) do
       {:ok, version} ->
         version
