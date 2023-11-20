@@ -361,7 +361,7 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
-    test "shows inbetween lines if EOL is not far below" do
+    test "shows in between lines if EOL is not far below" do
       output =
         capture_raise(
           """
