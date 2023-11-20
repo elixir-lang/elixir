@@ -206,6 +206,11 @@ defmodule Mix.SCM.Git do
   ## Helpers
 
   defp validate_git_options(opts) do
+    opts
+    |> validate_refspec()
+  end
+
+  defp validate_refspec(opts) do
     case Keyword.take(opts, [:branch, :ref, :tag]) do
       [] ->
         opts
