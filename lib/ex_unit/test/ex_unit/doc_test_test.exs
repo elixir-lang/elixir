@@ -793,7 +793,7 @@ defmodule ExUnit.DocTestTest do
              6) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (6) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
                 Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:#{line}:7:
-                     error: missing terminator: } (for "{" starting at line #{line})
+                     error: missing terminator: }
                      │
                  #{line} │ {:ok, #Inspect<[]>}
                      │       ^

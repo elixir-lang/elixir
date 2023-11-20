@@ -1259,16 +1259,16 @@ defmodule TokenMissingError do
       when not is_nil(snippet) and not is_nil(column) and not is_nil(end_line) do
     lines = snippet |> String.trim_trailing("\n") |> String.split("\n")
     trimmed_lines = end_line - Enum.count(lines)
-    actual_end_line = end_line - trimmed_lines
+    end_line = end_line - trimmed_lines
 
     end_column =
       lines
-      |> Enum.fetch!(actual_end_line - 1)
+      |> Enum.fetch!(end_line - 1)
       |> String.length()
       |> Kernel.+(1)
 
     start_pos = {line, column}
-    end_pos = {actual_end_line, end_column}
+    end_pos = {end_line, end_column}
     expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
 
     start_message = ~s/└ unclosed delimiter/
@@ -1286,7 +1286,7 @@ defmodule TokenMissingError do
         end_message
       )
 
-    format_message(file, actual_end_line, end_column, snippet)
+    format_message(file, end_line, end_column, snippet)
   end
 
   @impl true

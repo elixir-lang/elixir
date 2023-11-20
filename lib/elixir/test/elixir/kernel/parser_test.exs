@@ -494,7 +494,7 @@ defmodule Kernel.ParserTest do
   describe "token missing errors" do
     test "missing paren" do
       assert_token_missing(
-        ["nofile:1:9:", "missing terminator: ) (for \"(\" starting at line 1)"],
+        ["nofile:1:9:", "missing terminator: )"],
         ~c"case 1 ("
       )
     end
@@ -549,7 +549,7 @@ defmodule Kernel.ParserTest do
 
     test "missing end" do
       assert_token_missing(
-        ["nofile:1:9:", "missing terminator: end \(for \"do\" starting at line 1\)"],
+        ["nofile:1:9:", "missing terminator: end"],
         ~c"foo do 1"
       )
 
