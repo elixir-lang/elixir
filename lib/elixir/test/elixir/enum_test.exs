@@ -475,6 +475,18 @@ defmodule EnumTest do
              [1001, 2, 3, 4, 5, 6, 7, 8, 9, 10]
   end
 
+  test "map_filter/3" do
+    assert Std.map_filter([1, 2, 3], &(&1 > 3), &(&1 + 1)) == [4]
+    assert Std.map_filter([1], &(&1 == 1), &(&1 + 0)) == [1]
+    assert Std.map_filter([2, 3, 4], &(&1 == 1), &(&1 * 2)) == []
+  end
+
+  test "map_reject/3" do
+    assert Std.map_reject([1, 2, 3], &(&1 > 3), &(&1 + 1)) == [2, 3]
+    assert Std.map_reject([1], &(&1 == 1), &(&1 + 0)) == []
+    assert Std.map_reject([2, 3, 4], &(&1 == 1), &(&1 * 2)) == [4, 6, 8]
+  end
+
   test "map_intersperse/3" do
     assert Enum.map_intersperse([], :a, &(&1 * 2)) == []
     assert Enum.map_intersperse([1], :a, &(&1 * 2)) == [2]

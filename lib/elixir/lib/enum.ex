@@ -1749,6 +1749,42 @@ defmodule Enum do
   end
 
   @doc """
+  Maps and filters the given `enumerable` in one pass.
+  ## Examples
+
+      iex> Enum.map_filter([1, 2, 3], &(&1 > 3), &(&1 + 1))
+      [4]
+
+      iex> Enum.map_filter([1, 2, 3], &(&1 != 3), &(&1 + 1))
+      [2, 4]
+
+  """
+  @spec map_filter(t, (element -> as_boolean(term)), (element -> any())) :: list()
+  def map_filter(enumerable, filter, mapper) do
+    reduce(enumerable, [], fn entry, acc ->
+      entry = mapper.(entry)
+      if filter.(entry), do: [entry | acc], else: acc
+    end)
+    |> :lists.reverse()
+  end
+
+  @doc """
+  Maps and rejects the given `enumerable` in one pass.
+  ## Examples
+
+      iex> Enum.map_reject([1, 2, 3], &(&1 > 3), &(&1 + 1))
+      [2, 3]
+
+      iex> Enum.map_reject([1, 2, 3], &(&1 != 3), &(&1 + 1))
+      [3]
+
+  """
+  @spec map_reject(t, (element -> as_boolean(term)), (element -> any())) :: list()
+  def map_reject(enumerable, rejecter, mapper) do
+    map_filter(enumerable, &(not rejecter.(&1)), mapper)
+  end
+
+  @doc """
   Maps and intersperses the given enumerable in one pass.
 
   ## Examples
