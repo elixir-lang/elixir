@@ -3777,7 +3777,9 @@ defmodule Kernel do
   Provides an `if/2` macro.
 
   This macro expects the first argument to be a condition and the second
-  argument to be a keyword list.
+  argument to be a keyword list. Similar to `case/2`, any assignment in
+  the condition will be available on both clauses, as well as after the
+  `if` expression.
 
   ## One-liner examples
 
