@@ -13,15 +13,15 @@ defmodule Logger do
 
     * Supports both message-based and structural logging.
 
+    * Integrate with Erlang's [`:logger'](`:logger`) and
+      support custom filters and handlers.
+
     * Formats and truncates messages on the client
-      to avoid clogging `Logger` backends.
+      to avoid clogging `Logger` handlers.
 
     * Alternates between sync and async modes to remain
       performant when required but also apply back-pressure
       when under stress.
-
-    * Support for custom filters and handlers as provided by
-      Erlang's `:logger`.
 
     * Allows overriding the logging level for a specific module,
       application or process.
@@ -65,7 +65,7 @@ defmodule Logger do
 
   For example, `:info` takes precedence over `:debug`. If your log
   level is set to `:info`, then all `:info`, `:notice` and above will
-  be passed to backends. If your log level is set to `:alert`, only
+  be passed to handlers. If your log level is set to `:alert`, only
   `:alert` and `:emergency` will be printed.
 
   ## Message
@@ -126,8 +126,8 @@ defmodule Logger do
     * `:crash_reason` - a two-element tuple with the throw/error/exit reason
       as first argument and the stacktrace as second. A throw will always be
       `{:nocatch, term}`. An error is always an `Exception` struct. All other
-      entries are exits. The console backend ignores this metadata by default
-      but it can be useful to other backends, such as the ones that report
+      entries are exits. The default formatter ignores this metadata by default
+      but it can be useful to certain handlers, such as the ones that report
       errors to third-party services
 
   There are two special metadata keys, `:module` and `:function`, which
@@ -275,8 +275,8 @@ defmodule Logger do
       Remember that if you want to purge log calls from a dependency, the
       dependency must be recompiled.
 
-  For example, to configure the `:backends` and purge all calls that happen
-  at compile time with level lower than `:info` in a `config/config.exs` file:
+  For example, to purge all calls that happen at compile time with level
+  lower than `:info` in a `config/config.exs` file:
 
       config :logger,
         compile_time_purge_matching: [
@@ -300,7 +300,7 @@ defmodule Logger do
 
     * `:level` - the logging level. Attempting to log any message
       with severity less than the configured level will simply
-      cause the message to be ignored. Keep in mind that each backend
+      cause the message to be ignored. Keep in mind that each handler
       may have its specific level, too. In addition to levels mentioned
       above it also supports 2 "meta-levels":
 
@@ -397,7 +397,7 @@ defmodule Logger do
   Prior to Elixir v1.15, custom logging could be achieved with Logger
   backends. The main API for writing Logger backends have been moved to
   the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
-  project. However, the backends are still part of Elixir for backwards
+  project. However, the backends API are still part of Elixir for backwards
   compatibility.
 
   Important remarks:
@@ -428,9 +428,12 @@ defmodule Logger do
       Backends, you can still set `backends: [Logger.Backends.Console]` and place
       the configuration under `config :logger, Logger.Backends.Console`. Although
       consider using the [`:logger_backends`](https://github.com/elixir-lang/logger_backends)
-      project in such case, as `Logger.Backends.Console` itself will be deprecated
+      project in such cases, as `Logger.Backends.Console` itself will be deprecated
       in future releases
 
+    * `Logger.Backends` only receive `:debug`, `:info`, `:warning`, and `:error`
+      messages. `:notice` maps to `:info`. `:warn` amps to `:warnings`.
+      All others map to `:error`
   """
 
   @type level ::
@@ -933,37 +936,21 @@ defmodule Logger do
 
   defp add_elixir_domain(metadata), do: Map.put(metadata, :domain, [:elixir])
 
-  translations = %{
-    emergency: :error,
-    alert: :error,
-    critical: :error,
-    notice: :info
-  }
-
   for level <- @levels do
     report = [something: :reported, this: level]
-
-    extra =
-      if translation = translations[level] do
-        """
-
-
-        This is reported as \"#{translation}\" in Elixir's
-        logger backends for backwards compatibility reasons.
-
-        """
-      end
+    metadata = [user_id: 42, request_id: "xU32kFa"]
+    article = if level in [:info, :error, :alert, :emergency], do: "an", else: "a"
 
     @doc """
-    Logs a #{level} message.
+    Logs #{article} #{level} message.
 
-    Returns `:ok`.#{extra}
+    Returns `:ok`.
 
     ## Examples
 
     Logging a message (string or iodata):
 
-        Logger.#{level}("this is a #{level} message")
+        Logger.#{level}("this is #{article} #{level} message")
 
     Report message (maps or keywords):
 
@@ -972,6 +959,14 @@ defmodule Logger do
 
         # as map
         Logger.#{level}(#{inspect(Map.new(report))})
+
+    Report message with metadata (maps or keywords):
+
+        # as a keyword list
+        Logger.#{level}("this is #{article} #{level} message", #{inspect(metadata)})
+
+        # as map
+        Logger.#{level}("this is #{article} #{level} message", #{inspect(Map.new(metadata))})
 
     """
 
