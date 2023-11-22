@@ -67,6 +67,20 @@ defmodule ExUnit.Formatter do
           load: pos_integer | nil
         }
 
+  @typedoc """
+  A function that this module calls to format various things.
+  """
+  @typedoc since: "1.16.0"
+  @type formatter_callback :: (atom, term -> term)
+
+  @typedoc """
+  Width for formatting.
+
+  For example, see `format_assertion_diff/4`.
+  """
+  @typedoc since: "1.16.0"
+  @type width :: non_neg_integer | :infinity
+
   import Exception, only: [format_stacktrace_entry: 1, format_file_line: 3]
 
   alias ExUnit.Diff
@@ -155,6 +169,14 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test and formats its failure.
   """
+  @spec format_test_failure(
+          ExUnit.Test.t(),
+          [failure],
+          non_neg_integer,
+          width,
+          formatter_callback
+        ) :: String.t()
+        when failure: {atom, term, Exception.stacktrace()}
   def format_test_failure(test, failures, counter, width, formatter) do
     %ExUnit.Test{name: name, module: module, tags: tags} = test
 
@@ -177,6 +199,14 @@ defmodule ExUnit.Formatter do
   @doc """
   Receives a test module and formats its failure.
   """
+  @spec format_test_all_failure(
+          ExUnit.TestModule.t(),
+          [failure],
+          non_neg_integer,
+          width,
+          formatter_callback
+        ) :: String.t()
+        when failure: {atom, term, Exception.stacktrace()}
   def format_test_all_failure(test_module, failures, counter, width, formatter) do
     name = test_module.name
 
@@ -280,6 +310,12 @@ defmodule ExUnit.Formatter do
   for formatted content, the width (may be `:infinity`),
   and the formatter callback function.
   """
+  @spec format_assertion_diff(
+          %ExUnit.AssertionError{},
+          non_neg_integer,
+          width,
+          formatter_callback
+        ) :: keyword
   def format_assertion_diff(assert_error, padding_size, width, formatter)
 
   def format_assertion_diff(%ExUnit.AssertionError{context: {:mailbox, _pins, []}}, _, _, _) do
