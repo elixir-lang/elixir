@@ -1175,18 +1175,6 @@ defmodule Kernel.WarningTest do
     purge(Sample)
   end
 
-  test "parens on nullary remote call" do
-    assert_warn_eval(
-      [
-        "nofile:1:8",
-        "parentheses are required for function calls with no arguments, got: System.version"
-      ],
-      "System.version"
-    )
-  after
-    purge(Sample)
-  end
-
   test "parens with module attribute" do
     assert_warn_eval(
       [

@@ -402,16 +402,12 @@ expand({Atom, Meta, Args}, S, E) when is_atom(Atom), is_list(Meta), is_list(Args
 
 %% Remote calls
 
-expand({{'.', DotMeta, [Left, Right]}, Meta, Args} = Expr, S, E)
+expand({{'.', DotMeta, [Left, Right]}, Meta, Args}, S, E)
     when (is_tuple(Left) orelse is_atom(Left)), is_atom(Right), is_list(Meta), is_list(Args) ->
   {ELeft, SL, EL} = expand(Left, elixir_env:prepare_write(S), E),
-  NoParens = lists:keyfind(no_parens, 1, Meta),
-
-  (is_atom(ELeft) and (Args =:= []) and (NoParens =:= {no_parens, true})) andalso
-    elixir_errors:file_warn(Meta, E, ?MODULE, {remote_nullary_no_parens, Expr}),
 
   elixir_dispatch:dispatch_require(Meta, ELeft, Right, Args, S, EL, fun(AR, AF, AA) ->
-    expand_remote(AR, DotMeta, AF, Meta, NoParens, AA, S, SL, EL)
+    expand_remote(AR, DotMeta, AF, Meta, AA, S, SL, EL)
   end);
 
 %% Anonymous calls
@@ -858,12 +854,13 @@ expand_local(Meta, Name, Args, _S, #{function := nil} = E) ->
 
 %% Remote
 
-expand_remote(Receiver, DotMeta, Right, Meta, NoParens, Args, S, SL, #{context := Context} = E) when is_atom(Receiver) or is_tuple(Receiver) ->
+expand_remote(Receiver, DotMeta, Right, Meta, Args, S, SL, #{context := Context} = E)
+    when is_atom(Receiver) or is_tuple(Receiver) ->
   assert_no_clauses(Right, Meta, Args, E),
 
   if
     Context =:= guard, is_tuple(Receiver) ->
-      (NoParens /= {no_parens, true}) andalso
+      (lists:keyfind(no_parens, 1, Meta) /= {no_parens, true}) andalso
         function_error(Meta, E, ?MODULE, {parens_map_lookup, Receiver, Right, guard_context(S)}),
 
       {{{'.', DotMeta, [Receiver, Right]}, Meta, []}, SL, E};
@@ -881,7 +878,7 @@ expand_remote(Receiver, DotMeta, Right, Meta, NoParens, Args, S, SL, #{context :
           file_error(Meta, E, elixir_rewrite, Error)
       end
   end;
-expand_remote(Receiver, DotMeta, Right, Meta, _NoParens, Args, _, _, E) ->
+expand_remote(Receiver, DotMeta, Right, Meta, Args, _, _, E) ->
   Call = {{'.', DotMeta, [Receiver, Right]}, Meta, Args},
   file_error(Meta, E, ?MODULE, {invalid_call, Call}).
 
@@ -1171,9 +1168,6 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
 guard_context(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
 guard_context(_) -> "guards".
 
-format_error({remote_nullary_no_parens, Expr}) ->
-  String = 'Elixir.String':replace_suffix('Elixir.Macro':to_string(Expr), <<"()">>, <<>>),
-  io_lib:format("parentheses are required for function calls with no arguments, got: ~ts", [String]);
 format_error(invalid_match_on_zero_float) ->
   "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+. Instead you must match on +0.0 or -0.0";
 format_error({useless_literal, Term}) ->
