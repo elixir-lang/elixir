@@ -16,6 +16,11 @@ defmodule LoggerTest do
     msg("module=LoggerTest #{text}")
   end
 
+  test "levels/0" do
+    assert [_ | _] = Logger.levels()
+    assert :info in Logger.levels()
+  end
+
   test "level/0" do
     assert Logger.level() == :debug
 
