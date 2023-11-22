@@ -311,7 +311,7 @@ defmodule ExUnit.Formatter do
   and the formatter callback function.
   """
   @spec format_assertion_diff(
-          ExUnit.AssertionError.t(),
+          %ExUnit.AssertionError(),
           non_neg_integer,
           width,
           formatter_callback
