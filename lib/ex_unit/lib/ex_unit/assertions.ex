@@ -9,14 +9,14 @@ defmodule ExUnit.AssertionError do
 
   @typedoc since: "1.16.0"
   @type t :: %__MODULE__{
-            left: any,
-            right: any,
-            message: any,
-            expr: any,
-            args: any,
-            doctest: any,
-            context: any
-  }
+          left: any,
+          right: any,
+          message: any,
+          expr: any,
+          args: any,
+          doctest: any,
+          context: any
+        }
 
   defexception left: @no_value,
                right: @no_value,
@@ -47,8 +47,8 @@ defmodule ExUnit.MultiError do
 
   @typedoc since: "1.16.0"
   @type t :: %__MODULE__{
-    errors: [{Exception.kind, any, Exception.stacktrace}]
-  }
+          errors: [{Exception.kind(), any, Exception.stacktrace()}]
+        }
 
   defexception errors: []
 
