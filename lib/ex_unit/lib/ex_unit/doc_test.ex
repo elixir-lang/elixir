@@ -152,6 +152,12 @@ defmodule ExUnit.DocTest do
   @opaque_type_regex ~r/#[\w\.]+</
 
   defmodule Error do
+    @moduledoc """
+    Exception raised when there's an error with the syntax or semantics of a doctest.
+    """
+
+    @typedoc since: "1.16.0"
+    @type t :: %__MODULE__{message: String.t()}
     defexception [:message]
 
     @impl true

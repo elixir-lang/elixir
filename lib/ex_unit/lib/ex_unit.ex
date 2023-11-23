@@ -148,6 +148,16 @@ defmodule ExUnit do
   end
 
   defmodule TimeoutError do
+    @moduledoc """
+    Exception raised when a test times out.
+    """
+
+    @typedoc since: "1.16.0"
+    @type t :: %__MODULE__{
+            timeout: non_neg_integer,
+            type: String.t()
+          }
+
     defexception [:timeout, :type]
 
     @impl true
