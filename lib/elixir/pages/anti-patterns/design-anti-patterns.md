@@ -218,7 +218,7 @@ Another example of this anti-pattern is using floating numbers to model money an
 
 #### Refactoring
 
-Possible solutions to this anti-pattern is to use maps or structs to model our address. The example below creates an `Address` struct, better representing this domain through a composite type. Additionally, we introduce a `parse/1` function, that converts the string into an `Address`, which will simplify the logic of remainng functions. With this modification, we can extract each field of this composite type individually when needed.
+Possible solutions to this anti-pattern is to use maps or structs to model our address. The example below creates an `Address` struct, better representing this domain through a composite type. Additionally, we introduce a `parse/1` function, that converts the string into an `Address`, which will simplify the logic of remaining functions. With this modification, we can extract each field of this composite type individually when needed.
 
 ```elixir
 defmodule Address do
