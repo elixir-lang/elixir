@@ -446,6 +446,13 @@ defmodule Logger do
   @metadata :logger_level
 
   @doc ~S"""
+  Returns all the available levels.
+  """
+  @doc since: "1.16.0"
+  @spec levels() :: [level(), ...]
+  def levels(), do: @levels
+
+  @doc ~S"""
   Returns the default formatter used by Logger.
 
   It returns a `Logger.Formatter` built on the `:default_formatter` configuration:
