@@ -68,10 +68,87 @@ defmodule ExUnit.Formatter do
         }
 
   @typedoc """
-  A function that this module calls to format various things.
+  Key passed to a formatter callback to format a diff.
+
+  See `t:formatter_callback/0`.
   """
   @typedoc since: "1.16.0"
-  @type formatter_callback :: (atom, term -> term)
+  @type formatter_callback_diff_key ::
+          :diff_delete
+          | :diff_delete_whitespace
+          | :diff_insert
+          | :diff_insert_whitespace
+
+  @typedoc """
+  Key passed to a formatter callback to format information.
+
+  See `t:formatter_callback/0`.
+  """
+  @typedoc since: "1.16.0"
+  @type formatter_callback_info_key ::
+          :extra_info
+          | :error_info
+          | :test_module_info
+          | :test_info
+          | :location_info
+          | :stacktrace_info
+          | :blame_diff
+
+  @typedoc """
+  A function that this module calls to format various things.
+
+  You can pass this functions to various functions in this module, and use it
+  to customize the formatting of the output. For example, ExUnit's CLI formatter
+  uses this callback to colorize output.
+
+  ## Keys
+
+  The possible keys are:
+
+    * `:diff_enabled?` - whether diffing is enabled. It receives a boolean
+      indicating whether diffing is enabled by default and returns a boolean
+      indicating whether diffing should be enabled for the current test.
+
+    * `:diff_delete` and `:diff_delete_whitespace` - Should format a diff deletion,
+      with or without whitespace respectively.
+
+    * `:diff_insert` and `:diff_insert_whitespace` - Should format a diff insertion,
+      with or without whitespace respectively.
+
+    * `:extra_info` - Should format extra information, such as the `"code: "` label
+      that precedes code to show.
+
+    * `:error_info` - Should format error information.
+
+    * `:error_info` - Should format error information.
+
+    * `:test_module_info` - Should format test module information. The message returned
+    when this key is passed precedes messages such as `"failure on setup_all callback [...]"`.
+
+    * `:test_info` - Should format test information.
+
+    * `:location_info` - Should format test location information.
+
+    * `:stacktrace_info` - Should format stacktrace information.
+
+    * `:blame_diff` - Should format a string of code.
+
+  ## Examples
+
+  For example, to format errors as *red strings* and everything else as is, you could define
+  a formatter callback function like this:
+
+      formatter_callback = fn
+        :error_info, msg -> [:red, msg, :reset] |> IO.ANSI.format() |> IO.iodata_to_binary()
+        _key, value -> value
+      end
+
+  """
+  @typedoc since: "1.16.0"
+  @type formatter_callback ::
+          (:diff_enabled?, boolean -> boolean)
+          | (formatter_callback_diff_key, Inspect.Algebra.t() -> Inspect.Algebra.t())
+          | (formatter_callback_info_key, String.t() -> String.t())
 
   @typedoc """
   Width for formatting.
@@ -166,11 +243,20 @@ defmodule ExUnit.Formatter do
     end
   end
 
-  @doc """
-  Receives a test and formats its failure.
+  @doc ~S"""
+  Receives a test and formats its failures.
+
+  ## Examples
+
+      iex> failure = {:error, catch_error(raise "oops"), _stacktrace = []}
+      iex> formatter_cb = fn _key, value -> value end
+      iex> test = %ExUnit.Test{name: :"it works", module: MyTest, tags: %{file: "file.ex", line: 7}}
+      iex> format_test_failure(test, [failure], 1, 80, formatter_cb)
+      "  1) it works (MyTest)\n     file.ex:7\n     ** (RuntimeError) oops\n"
+
   """
   @spec format_test_failure(
-          ExUnit.Test.t(),
+          test,
           [failure],
           non_neg_integer,
           width,
@@ -196,8 +282,17 @@ defmodule ExUnit.Formatter do
     format_test_all_failure(test_case, failures, counter, width, formatter)
   end
 
-  @doc """
+  @doc ~S"""
   Receives a test module and formats its failure.
+
+  ## Examples
+
+      iex> failure = {:error, catch_error(raise "oops"), _stacktrace = []}
+      iex> formatter_cb = fn _key, value -> value end
+      iex> test_module = %ExUnit.TestModule{name: Hello}
+      iex> format_test_all_failure(test_module, [failure], 1, 80, formatter_cb)
+      "  1) Hello: failure on setup_all callback, all tests have been invalidated\n     ** (RuntimeError) oops\n"
+
   """
   @spec format_test_all_failure(
           ExUnit.TestModule.t(),
@@ -309,6 +404,18 @@ defmodule ExUnit.Formatter do
   It expects the assertion error, the `padding_size`
   for formatted content, the width (may be `:infinity`),
   and the formatter callback function.
+
+  ## Examples
+
+      iex> error = assert_raise ExUnit.AssertionError, fn -> assert [1, 2] == [1, 3] end
+      iex> formatter_cb = fn
+      ...>   :diff_enabled?, _ -> true
+      ...>   _key, value -> value
+      ...> end
+      iex> keyword = format_assertion_diff(error, 5, 80, formatter_cb)
+      iex> for {key, val} <- keyword, do: {key, IO.iodata_to_binary(val)}
+      [left: "[1, 2]", right: "[1, 3]"]
+
   """
   @spec format_assertion_diff(
           %ExUnit.AssertionError{},
