@@ -134,6 +134,7 @@ defmodule Logger.Formatter do
   The color of the message can also be configured per message via
   the `:ansi_color` metadata.
   """
+  @spec new(keyword) :: {Logger.Formatter, struct()}
   def new(options \\ []) do
     template = compile(options[:format])
     colors = colors(options[:colors] || [])

@@ -41,6 +41,11 @@ defmodule Logger.Translator do
   @doc """
   Built-in translation function.
   """
+  @spec translate(Logger.level(), Logger.level(), :format | :report, :logger.report()) ::
+          {:ok, iodata, keyword}
+          | {:ok, iodata}
+          | :skip
+          | :none
   def translate(min_level, level, kind, message)
 
   def translate(min_level, _level, :report, {:logger, %{label: label} = report}) do
