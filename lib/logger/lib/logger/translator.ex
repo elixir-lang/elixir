@@ -40,12 +40,10 @@ defmodule Logger.Translator do
 
   @doc """
   Built-in translation function.
+
+  This function is an implementation of the `c:translate/4` callback.
+  For arguments and return value of this function, see that callback.
   """
-  @spec translate(Logger.level(), Logger.level(), :format | :report, :logger.report()) ::
-          {:ok, iodata, keyword}
-          | {:ok, iodata}
-          | :skip
-          | :none
   def translate(min_level, level, kind, message)
 
   def translate(min_level, _level, :report, {:logger, %{label: label} = report}) do
