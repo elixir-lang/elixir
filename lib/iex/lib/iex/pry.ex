@@ -519,7 +519,7 @@ defmodule IEx.Pry do
     next_binding = binding(expr, binding)
     {min_line, max_line} = line_range(expr, line)
 
-    if force? or (min_line > line and min_line != :infinity) do
+    if force? or min_line > line do
       pry_var = next_var(version)
       pry_binding = Map.to_list(binding)
       pry_opts = [line: min_line] ++ opts
@@ -545,7 +545,9 @@ defmodule IEx.Pry do
   end
 
   defp line_range(ast, line) do
-    {_, min_max} =
+    # We want min_line to start from infinity because
+    # if it starts from line it will always just return line.
+    {_, {min, max}} =
       Macro.prewalk(ast, {:infinity, line}, fn
         {_, meta, _} = ast, {min_line, max_line} when is_list(meta) ->
           line = meta[:line]
@@ -560,7 +562,7 @@ defmodule IEx.Pry do
           {ast, acc}
       end)
 
-    min_max
+    if min == :infinity, do: {line, max}, else: {min, max}
   end
 
   defp binding(ast, binding) do
