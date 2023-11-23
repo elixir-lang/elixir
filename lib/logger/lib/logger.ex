@@ -13,7 +13,7 @@ defmodule Logger do
 
     * Supports both message-based and structural logging.
 
-    * Integrate with Erlang's [`:logger'](`:logger`) and
+    * Integrate with Erlang's [`:logger`](`:logger`) and
       support custom filters and handlers.
 
     * Formats and truncates messages on the client
