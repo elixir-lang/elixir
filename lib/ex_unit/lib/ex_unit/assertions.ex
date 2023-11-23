@@ -1,9 +1,22 @@
 defmodule ExUnit.AssertionError do
   @moduledoc """
   Raised to signal an assertion error.
+
+  This is used by macros such as `ExUnit.Assertions.assert/1`.
   """
 
   @no_value :ex_unit_no_meaningful_value
+
+  @typedoc since: "1.16.0"
+  @type t :: %__MODULE__{
+          left: any,
+          right: any,
+          message: any,
+          expr: any,
+          args: any,
+          doctest: any,
+          context: any
+        }
 
   defexception left: @no_value,
                right: @no_value,
@@ -16,6 +29,7 @@ defmodule ExUnit.AssertionError do
   @doc """
   Indicates no meaningful value for a field.
   """
+  @spec no_value :: atom
   def no_value do
     @no_value
   end
@@ -30,6 +44,11 @@ defmodule ExUnit.MultiError do
   @moduledoc """
   Raised to signal multiple errors happened in a test case.
   """
+
+  @typedoc since: "1.16.0"
+  @type t :: %__MODULE__{
+          errors: [{Exception.kind(), any, Exception.stacktrace()}]
+        }
 
   defexception errors: []
 
