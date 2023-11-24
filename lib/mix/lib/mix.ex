@@ -663,23 +663,23 @@ defmodule Mix do
 
   ## Options
 
-    * `:force` - if `true`, runs with empty install cache. This is useful when you want
+    * `:force` - if `true`, runs with an empty install cache. This is useful when you want
       to update your dependencies or your install got into an inconsistent state.
       To use this option, you can also set the `MIX_INSTALL_FORCE` environment variable.
       (Default: `false`)
 
-    * `:verbose` - if `true`, prints additional debugging information
+    * `:verbose` - if `true`, prints additional debugging information.
       (Default: `false`)
 
     * `:consolidate_protocols` - if `true`, runs protocol
-      consolidation via the `mix compile.protocols` task (Default: `true`)
+      consolidation via the `mix compile.protocols` task. (Default: `true`)
 
     * `:elixir` - if set, ensures the current Elixir version matches the given
-      version requirement (Default: `nil`)
+      version requirement. (Default: `nil`)
 
     * `:system_env` (since v1.13.0) - a list or a map of system environment variable
       names with respective values as binaries. The system environment is made part
-      of the `Mix.install/2` cache, so different configurations will lead to different apps
+      of the `Mix.install/2` cache, so different configurations will lead to different apps.
 
     * `:config` (since v1.13.0) - a keyword list of keyword lists of compile-time
       configuration. The configuration is part of the `Mix.install/2` cache, so
@@ -690,11 +690,11 @@ defmodule Mix do
     * `:config_path` (since v1.14.0) - path to a configuration file. If a `runtime.exs`
       file exists in the same directory as the given path, it is loaded too.
 
-    * `:lockfile` (since v1.14.0) - path to a lockfile to be used as a basis of
+    * `:lockfile` (since v1.14.0) - path to a lockfile to be used as the basis of
       dependency resolution.
 
-    * `:start_applications` (since v1.15.3) - if `true`, ensures that installed app
-      and its dependencies are started after install (Default: `true`)
+    * `:start_applications` (since v1.15.3) - if `true`, ensures that an installed app
+      and its dependencies are started after the install. (Default: `true`)
 
   ## Examples
 
@@ -753,17 +753,17 @@ defmodule Mix do
   macro, you cannot use the struct or macro immediately after the install
   call. For example, this won't work:
 
-      Mix.install([:decimal])
+      Mix.install(:decimal)
       %Decimal{} = Decimal.new(42)
 
   That's because Elixir first expands all structs and all macros, and then
   it executes the code. This means that, by the time Elixir tries to expand
   the `%Decimal{}` struct, the dependency has not been installed yet.
 
-  Luckily this has a straightforward solution, which is move the code to
+  Luckily this has a straightforward solution, which is to move the code
   inside a module:
 
-      Mix.install([:decimal])
+      Mix.install(:decimal)
 
       defmodule Script do
         def run do
@@ -779,6 +779,9 @@ defmodule Mix do
   """
   @doc since: "1.12.0"
   def install(deps, opts \\ [])
+
+  def install(dep, opts) when is_atom(dep) or is_tuple(dep),
+    do: install([dep], opts)
 
   def install(deps, opts) when is_list(deps) and is_list(opts) do
     Mix.start()

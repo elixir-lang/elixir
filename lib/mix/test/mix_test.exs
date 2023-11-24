@@ -29,15 +29,32 @@ defmodule MixTest do
 
     setup :test_project
 
+    test "single dependency not wrapped in a list", %{tmp_dir: tmp_dir} do
+      dep = {:install_test, path: Path.join(tmp_dir, "install_test")}
+      refute is_list(dep)
+      Mix.install(dep)
+
+      assert Protocol.consolidated?(InstallTest.Protocol)
+
+      assert File.dir?(Path.join(tmp_dir, "installs"))
+      assert_received {:mix_shell, :info, ["==> install_test"]}
+      assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+      assert_received {:mix_shell, :info, ["Generated install_test app"]}
+      refute_received _
+
+      assert Application.app_dir(:crypto) =~ "crypto"
+      assert List.keyfind(Application.started_applications(), :install_test, 0)
+      assert apply(InstallTest, :hello, []) == :world
+    end
+
     test "default options", %{tmp_dir: tmp_dir} do
       Mix.install([
         {:install_test, path: Path.join(tmp_dir, "install_test")}
       ])
 
-      assert File.dir?(Path.join(tmp_dir, "installs"))
-
       assert Protocol.consolidated?(InstallTest.Protocol)
 
+      assert File.dir?(Path.join(tmp_dir, "installs"))
       assert_received {:mix_shell, :info, ["==> install_test"]}
       assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
       assert_received {:mix_shell, :info, ["Generated install_test app"]}
