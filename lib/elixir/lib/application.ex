@@ -892,11 +892,12 @@ defmodule Application do
 
   ## Options
 
-    * `:type` - if the application should be started in `:permanent`,
-      `:temporary`, or `:transient`. See `t:restart_type/1` for more information.
+    * `:type` - if the application should be started `:temporary` (default),
+      `:permanent`, or `:transient`. See `t:restart_type/1` for more information.
 
     * `:mode` - (since v1.15.0) if the applications should be started serially
-      or concurrently. This option requires Erlang/OTP 26+.
+      (`:serial`, default) or concurrently (`:concurrent`). This option requires
+      Erlang/OTP 26+.
 
   """
   @spec ensure_all_started(app | [app], type: restart_type(), mode: :serial | :concurrent) ::
