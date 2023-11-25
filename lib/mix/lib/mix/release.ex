@@ -68,7 +68,7 @@ defmodule Mix.Release do
   @safe_modes [:permanent, :temporary, :transient]
   @unsafe_modes [:load, :none]
   @additional_chunks ~w(Attr)c
-  @copy_app_dirs ["priv"]
+  @copy_app_dirs ["priv", "include"]
 
   @doc false
   @spec from_config!(atom, keyword, keyword) :: t
