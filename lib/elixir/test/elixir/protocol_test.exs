@@ -121,6 +121,16 @@ defmodule ProtocolTest do
     end
   end
 
+  test "protocol not implemented for atom but for struct" do
+    message =
+      "protocol ProtocolTest.Sample not implemented for ProtocolTest.ImplStruct of type Atom (maybe you meant %ProtocolTest.ImplStruct{}, the struct)"
+
+    assert_raise Protocol.UndefinedError, message, fn ->
+      sample = Sample
+      sample.ok(ImplStruct)
+    end
+  end
+
   test "protocol documentation and deprecated" do
     import PathHelpers
 

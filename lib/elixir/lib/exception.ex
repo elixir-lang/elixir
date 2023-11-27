@@ -1928,21 +1928,30 @@ defmodule Protocol.UndefinedError do
   @impl true
   def message(%{protocol: protocol, value: value, description: description}) do
     "protocol #{inspect(protocol)} not implemented for #{inspect(value)} of type " <>
-      value_type(value) <> maybe_description(description) <> maybe_available(protocol)
+      value_type(value, protocol) <> maybe_description(description) <> maybe_available(protocol)
   end
 
-  defp value_type(%{__struct__: struct}), do: "#{inspect(struct)} (a struct)"
-  defp value_type(value) when is_atom(value), do: "Atom"
-  defp value_type(value) when is_bitstring(value), do: "BitString"
-  defp value_type(value) when is_float(value), do: "Float"
-  defp value_type(value) when is_function(value), do: "Function"
-  defp value_type(value) when is_integer(value), do: "Integer"
-  defp value_type(value) when is_list(value), do: "List"
-  defp value_type(value) when is_map(value), do: "Map"
-  defp value_type(value) when is_pid(value), do: "PID"
-  defp value_type(value) when is_port(value), do: "Port"
-  defp value_type(value) when is_reference(value), do: "Reference"
-  defp value_type(value) when is_tuple(value), do: "Tuple"
+  defp value_type(%{__struct__: struct}, _), do: "#{inspect(struct)} (a struct)"
+
+  defp value_type(value, protocol) when is_atom(value) do
+    with true <- function_exported?(value, :__struct__, 0),
+         module when is_atom(module) <- protocol.impl_for(value.__struct__()) do
+      "Atom (maybe you meant %#{inspect(value)}{}, the struct)"
+    else
+      _ -> "Atom"
+    end
+  end
+
+  defp value_type(value, _) when is_bitstring(value), do: "BitString"
+  defp value_type(value, _) when is_float(value), do: "Float"
+  defp value_type(value, _) when is_function(value), do: "Function"
+  defp value_type(value, _) when is_integer(value), do: "Integer"
+  defp value_type(value, _) when is_list(value), do: "List"
+  defp value_type(value, _) when is_map(value), do: "Map"
+  defp value_type(value, _) when is_pid(value), do: "PID"
+  defp value_type(value, _) when is_port(value), do: "Port"
+  defp value_type(value, _) when is_reference(value), do: "Reference"
+  defp value_type(value, _) when is_tuple(value), do: "Tuple"
 
   defp maybe_description(""), do: ""
   defp maybe_description(description), do: ", " <> description
