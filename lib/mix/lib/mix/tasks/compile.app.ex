@@ -4,14 +4,14 @@ defmodule Mix.Tasks.Compile.App do
   @recursive true
 
   @moduledoc """
-  Writes an .app file.
+  Writes a `.app` file.
 
-  An `.app` file is a file containing Erlang terms that defines
+  A `.app` file is a file containing Erlang terms that defines
   your application. Mix automatically generates this file based on
   your `mix.exs` configuration.
 
   In order to generate the `.app` file, Mix expects your project
-  to have both `:app` and `:version` keys. Furthermore, you can
+  to have both the `:app` and `:version` keys. Furthermore, you can
   configure the generated application by defining an `application/0`
   function in your `mix.exs` that returns a keyword list.
 
