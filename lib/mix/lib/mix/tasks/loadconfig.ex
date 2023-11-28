@@ -11,8 +11,8 @@ defmodule Mix.Tasks.Loadconfig do
   Any configuration file loaded with `loadconfig` is treated
   as a compile-time configuration.
 
-  Note that "config/config.exs" is always loaded automatically
-  by the Mix CLI when it boots. "config/runtime.exs" is loaded
+  `config/config.exs` is **always loaded automatically**
+  by the Mix CLI when it boots. `config/runtime.exs` is loaded
   automatically by `mix app.config` before starting the current
   application. Therefore there is no need to load those config
   files directly.
