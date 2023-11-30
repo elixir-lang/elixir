@@ -150,7 +150,7 @@ iex> String.split("hello beautiful world")
 ["hello", "beautiful", "world"]
 ```
 
-The `String.split/2` function breaks a string into a list of strings on every whitespace character. Since the amount of elements returned depends on the input, we use a list.
+The `String.split/1` function breaks a string into a list of strings on every whitespace character. Since the amount of elements returned depends on the input, we use a list.
 
 On the other hand, `String.split_at/2` splits a string in two parts at a given position. Since it always returns two entries, regardless of the input size, it returns tuples:
 
