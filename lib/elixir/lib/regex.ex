@@ -471,8 +471,7 @@ defmodule Regex do
   end
 
   @doc ~S"""
-  Same as `run/3`, but scans the target several times collecting all
-  matches of the regular expression.
+  Same as `run/3` but returns all non-overlapping matches of the regular expression.
 
   A list of lists is returned, where each entry in the primary list represents a
   match and each entry in the secondary list represents the captured contents.
@@ -496,6 +495,12 @@ defmodule Regex do
 
       iex> Regex.scan(~r/e/, "abcd")
       []
+
+      iex> Regex.scan(~r/ab|bc|cd/, "abcd")
+      [["ab"], ["cd"]]
+
+      iex> Regex.scan(~r/ab|bc|cd/, "abbccd")
+      [["ab"], ["bc"], ["cd"]]
 
       iex> Regex.scan(~r/\p{Sc}/u, "$, £, and €")
       [["$"], ["£"], ["€"]]
