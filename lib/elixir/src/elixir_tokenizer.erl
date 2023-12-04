@@ -142,12 +142,18 @@ tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, 
   AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
   {ok, Line, Column, AllWarnings, AccTokens};
 
-tokenize([], EndLine, Column, #elixir_tokenizer{terminators=[{Start, {StartLine, _, _}, _} | _]} = Scope, Tokens) ->
+tokenize([], EndLine, _, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
   Hint = missing_terminator_hint(Start, End, Scope),
-  Message = "missing terminator: ~ts (for \"~ts\" starting at line ~B)",
-  Formatted = io_lib:format(Message, [End, Start, StartLine]),
-  Meta = [{opening_delimiter, Start} | ?LOC(EndLine, Column)],
+  Message = "missing terminator: ~ts",
+  Formatted = io_lib:format(Message, [End]),
+  Meta = [
+          {error_type, unclosed_delimiter},
+          {opening_delimiter, Start},
+          {line, StartLine},
+          {column, StartColumn},
+          {end_line, EndLine}
+         ],
   error({Meta, [Formatted, Hint], []}, [], Scope, Tokens);
 
 tokenize([], Line, Column, #elixir_tokenizer{} = Scope, Tokens) ->
