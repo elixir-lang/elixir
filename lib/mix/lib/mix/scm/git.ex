@@ -125,14 +125,18 @@ defmodule Mix.SCM.Git do
     sparse_toggle(opts)
     update_origin(opts[:git])
 
+    rev = get_lock_rev(opts[:lock], opts) || get_opts_rev(opts)
+
     # Fetch external data
     ["--git-dir=.git", "fetch", "--force", "--quiet"]
     |> Kernel.++(progress_switch(git_version()))
     |> Kernel.++(tags_switch(opts[:tag]))
+    |> Kernel.++(depth_switch(opts[:depth]))
+    |> Kernel.++(if rev, do: ["origin", rev], else: [])
     |> git!()
 
     # Migrate the Git repo
-    rev = get_lock_rev(opts[:lock], opts) || get_opts_rev(opts) || default_branch()
+    rev = rev || default_branch()
     git!(["--git-dir=.git", "checkout", "--quiet", rev])
 
     if opts[:submodules] do
@@ -164,7 +168,7 @@ defmodule Mix.SCM.Git do
   defp sparse_toggle(opts) do
     cond do
       sparse = opts[:sparse] ->
-        sparse_check(git_version())
+        check_sparse_support(git_version())
         git!(["--git-dir=.git", "config", "core.sparsecheckout", "true"])
         File.mkdir_p!(".git/info")
         File.write!(".git/info/sparse-checkout", sparse)
@@ -180,27 +184,50 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  defp sparse_check(version) do
-    unless {1, 7, 4} <= version do
-      version = version |> Tuple.to_list() |> Enum.join(".")
+  @min_git_version_sparse {1, 7, 4}
+  @min_git_version_depth {1, 5, 0}
+  @min_git_version_progress {1, 7, 1}
 
+  defp check_sparse_support(version) do
+    ensure_feature_compatibility(version, @min_git_version_sparse, "sparse checkout")
+  end
+
+  defp check_depth_support(version) do
+    ensure_feature_compatibility(version, @min_git_version_depth, "depth (shallow clone)")
+  end
+
+  defp ensure_feature_compatibility(version, required_version, feature) do
+    unless required_version <= version do
       Mix.raise(
-        "Git >= 1.7.4 is required to use sparse checkout. " <>
-          "You are running version #{version}"
+        "Git >= #{format_version(required_version)} is required to use #{feature}. " <>
+          "You are running version #{format_version(version)}"
       )
     end
   end
 
   defp progress_switch(version) do
-    if {1, 7, 1} <= version, do: ["--progress"], else: []
+    if @min_git_version_progress <= version, do: ["--progress"], else: []
   end
 
   defp tags_switch(nil), do: []
   defp tags_switch(_), do: ["--tags"]
 
+  defp depth_switch(nil), do: []
+
+  defp depth_switch(n) when is_integer(n) and n > 0 do
+    check_depth_support(git_version())
+    ["--depth=#{n}"]
+  end
+
   ## Helpers
 
   defp validate_git_options(opts) do
+    opts
+    |> validate_refspec()
+    |> validate_depth()
+  end
+
+  defp validate_refspec(opts) do
     case Keyword.take(opts, [:branch, :ref, :tag]) do
       [] ->
         opts
@@ -222,6 +249,22 @@ defmodule Mix.SCM.Git do
     end
   end
 
+  defp validate_depth(opts) do
+    case Keyword.take(opts, [:depth]) do
+      [] ->
+        opts
+
+      [{:depth, depth}] when is_integer(depth) and depth > 0 ->
+        opts
+
+      invalid_depth ->
+        Mix.raise(
+          "The depth must be a positive integer, and be specified only once, got: #{inspect(invalid_depth)}. " <>
+            "Error on Git dependency: #{redact_uri(opts[:git])}"
+        )
+    end
+  end
+
   defp get_lock(opts) do
     %{rev: rev} = get_rev_info()
     {:git, opts[:git], rev, get_lock_opts(opts)}
@@ -238,7 +281,7 @@ defmodule Mix.SCM.Git do
   defp get_lock_rev(_, _), do: nil
 
   defp get_lock_opts(opts) do
-    lock_opts = Keyword.take(opts, [:branch, :ref, :tag, :sparse, :subdir])
+    lock_opts = Keyword.take(opts, [:branch, :ref, :tag, :sparse, :subdir, :depth])
 
     if opts[:submodules] do
       lock_opts ++ [submodules: true]
@@ -248,11 +291,7 @@ defmodule Mix.SCM.Git do
   end
 
   defp get_opts_rev(opts) do
-    if branch = opts[:branch] do
-      "origin/#{branch}"
-    else
-      opts[:ref] || opts[:tag]
-    end
+    opts[:branch] || opts[:ref] || opts[:tag]
   end
 
   defp redact_uri(git) do
@@ -282,6 +321,8 @@ defmodule Mix.SCM.Git do
   end
 
   defp default_branch() do
+    # Note: the `set-head -a` command requires the remote reference to be
+    # fetched first.
     git!(["--git-dir=.git", "remote", "set-head", "origin", "-a"])
     "origin/HEAD"
   end
@@ -328,9 +369,17 @@ defmodule Mix.SCM.Git do
     end
   end
 
-  # Also invoked by lib/mix/test/test_helper.exs
+  # Invoked by lib/mix/test/test_helper.exs
   @doc false
-  def git_version do
+  def unsupported_options do
+    git_version = git_version()
+
+    []
+    |> Kernel.++(if git_version < @min_git_version_sparse, do: [:sparse], else: [])
+    |> Kernel.++(if git_version < @min_git_version_depth, do: [:depth], else: [])
+  end
+
+  defp git_version do
     case Mix.State.fetch(:git_version) do
       {:ok, version} ->
         version
@@ -352,6 +401,10 @@ defmodule Mix.SCM.Git do
     |> Enum.take(3)
     |> Enum.map(&to_integer/1)
     |> List.to_tuple()
+  end
+
+  defp format_version(version) do
+    version |> Tuple.to_list() |> Enum.join(".")
   end
 
   defp to_integer(string) do

@@ -32,7 +32,7 @@ defmodule Mix.SCM.GitTest do
              "https://github.com/elixir-lang/some_dep.git - v1"
 
     assert Mix.SCM.Git.format(Keyword.put(opts, :branch, "b")) ==
-             "https://github.com/elixir-lang/some_dep.git - origin/b"
+             "https://github.com/elixir-lang/some_dep.git - b"
 
     assert Mix.SCM.Git.format(Keyword.put(opts, :ref, "abcdef")) ==
              "https://github.com/elixir-lang/some_dep.git - abcdef"
