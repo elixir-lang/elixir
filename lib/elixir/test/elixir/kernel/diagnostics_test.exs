@@ -337,6 +337,140 @@ defmodule Kernel.DiagnosticsTest do
     end
   end
 
+  describe "token missing error" do
+    test "missing parens terminator" do
+      output =
+        capture_raise(
+          """
+          my_numbers = [1, 2, 3, 4, 5, 6
+          IO.inspect(my_numbers)
+          """,
+          TokenMissingError
+        )
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:2:23:
+                 error: missing terminator: ]
+                 │
+               1 │ my_numbers = [1, 2, 3, 4, 5, 6
+                 │              └ unclosed delimiter
+               2 │ IO.inspect(my_numbers)
+                 │                       └ missing closing delimiter (expected "]")
+                 │
+                 └─ nofile:2:23\
+             """
+    end
+
+    test "shows in between lines if EOL is not far below" do
+      output =
+        capture_raise(
+          """
+          my_numbers = [1, 2, 3, 4, 5, 6
+          my_numbers
+          |> Enum.map(&(&1 + 1))
+          |> Enum.map(&(&1 * &1))
+          |> IO.inspect()
+          """,
+          TokenMissingError
+        )
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:5:16:
+                 error: missing terminator: ]
+                 │
+               1 │ my_numbers = [1, 2, 3, 4, 5, 6
+                 │              └ unclosed delimiter
+               2 │ my_numbers
+               3 │ |> Enum.map(&(&1 + 1))
+               4 │ |> Enum.map(&(&1 * &1))
+               5 │ |> IO.inspect()
+                 │                └ missing closing delimiter (expected "]")
+                 │
+                 └─ nofile:5:16\
+             """
+    end
+
+    test "trims lines" do
+      output =
+        capture_raise(
+          """
+          my_numbers = (1, 2, 3, 4, 5, 6
+
+
+
+
+
+
+          IO.inspect(my_numbers)
+          """,
+          TokenMissingError
+        )
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:8:23:
+                 error: missing terminator: )
+                 │
+               1 │ my_numbers = (1, 2, 3, 4, 5, 6
+                 │              └ unclosed delimiter
+              ...
+               8 │ IO.inspect(my_numbers)
+                 │                       └ missing closing delimiter (expected ")")
+                 │
+                 └─ nofile:8:23\
+             """
+    end
+
+    test "shows the last non-empty line of a file" do
+      output =
+        capture_raise(
+          """
+          my_numbers = {1, 2, 3, 4, 5, 6
+          IO.inspect(my_numbers)
+
+
+
+
+          """,
+          TokenMissingError
+        )
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:2:23:
+                 error: missing terminator: }
+                 │
+               1 │ my_numbers = {1, 2, 3, 4, 5, 6
+                 │              └ unclosed delimiter
+               2 │ IO.inspect(my_numbers)
+                 │                       └ missing closing delimiter (expected "}")
+                 │
+                 └─ nofile:2:23\
+             """
+    end
+
+    test "supports unicode" do
+      output =
+        capture_raise(
+          """
+          my_emojis = [1, 2, 3, 4 # ⚗️
+          IO.inspect(my_numbers)
+          """,
+          TokenMissingError
+        )
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:2:23:
+                 error: missing terminator: ]
+                 │
+               1 │ my_emojis = [1, 2, 3, 4 # ⚗️
+                 │             └ unclosed delimiter
+               2 │ IO.inspect(my_numbers)
+                 │                       └ missing closing delimiter (expected "]")
+                 │
+                 └─ nofile:2:23\
+             """
+    end
+  end
+
   describe "compile-time exceptions" do
     test "SyntaxError (snippet)" do
       output =
@@ -420,11 +554,16 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
-    test "TokenMissingError (no snippet)" do
+    test "TokenMissingError (unclosed delimiter)" do
       expected = """
-      ** (TokenMissingError) token missing on nofile:2:1:
-         error: missing terminator: end (for "fn" starting at line 1)
-         └─ nofile:2:1\
+      ** (TokenMissingError) token missing on nofile:1:5:
+          error: missing terminator: end
+          │
+        1 │ fn a
+          │ │   └ missing closing delimiter (expected "end")
+          │ └ unclosed delimiter
+          │
+          └─ nofile:1:5\
       """
 
       output =

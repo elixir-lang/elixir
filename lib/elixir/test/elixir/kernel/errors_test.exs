@@ -473,7 +473,7 @@ defmodule Kernel.ErrorsTest do
       assert_eval_raise TokenMissingError,
                         [
                           "nofile:1:5:",
-                          ~r/missing terminator: end \(for "fn" starting at line 1\)/
+                          ~r/missing terminator: end/
                         ],
                         ~c"fn 1"
 
@@ -490,16 +490,16 @@ defmodule Kernel.ErrorsTest do
     assert_eval_raise TokenMissingError,
                       [
                         "nofile:1:25:",
-                        "missing terminator: end (for \"do\" starting at line 1)",
+                        "missing terminator: end",
                         "defmodule ShowSnippet do\n",
-                        "^"
+                        "└ unclosed delimiter"
                       ],
                       ~c"defmodule ShowSnippet do"
   end
 
   test "don't show snippet when error line is empty" do
     assert_eval_raise TokenMissingError,
-                      ["nofile:3:1:", "missing terminator: end (for \"do\" starting at line 1)"],
+                      ["nofile:1:25:", "missing terminator: end"],
                       ~c"defmodule ShowSnippet do\n\n"
   end
 
