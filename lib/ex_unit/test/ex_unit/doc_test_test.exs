@@ -790,15 +790,16 @@ defmodule ExUnit.DocTestTest do
     line = starting_line + 35
 
     assert output =~ """
-             6) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (6) (ExUnit.DocTestTest.InvalidCompiled)
+           6) doctest ExUnit.DocTestTest.Invalid.misplaced_opaque_type/0 (6) (ExUnit.DocTestTest.InvalidCompiled)
                 test/ex_unit/doc_test_test.exs:#{doctest_line}
-                Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:#{line}:7:
+                Doctest did not compile, got: (TokenMissingError) token missing on test/ex_unit/doc_test_test.exs:#{line}:20:
                      error: missing terminator: }
                      │
-                 #{line} │ {:ok, #Inspect<[]>}
-                     │       ^
+                 228 │ {:ok, #Inspect<[]>}
+                     │ │                  └ missing closing delimiter (expected "}")
+                     │ └ unclosed delimiter
                      │
-                     └─ test/ex_unit/doc_test_test.exs:#{line}:7
+                     └─ test/ex_unit/doc_test_test.exs:#{line}:20
                 If you are planning to assert on the result of an iex> expression which contains a value inspected as #Name<...>, please make sure the inspected value is placed at the beginning of the expression; otherwise Elixir will treat it as a comment due to the leading sign #.
                 doctest:
                   iex> {:ok, :oops}
