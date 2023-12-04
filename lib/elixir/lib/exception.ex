@@ -1260,20 +1260,11 @@ defmodule TokenMissingError do
     {lines, total_trimmed_lines} = handle_trailing_newlines(snippet)
     end_line = end_line - total_trimmed_lines
 
-    # For cases such as inside ExUnit doctests, our snippet is tiny, containing
-    # only the lines in the doctest, but the `line` and `end_line` we receive
-    # are still tied to the whole file.
-    #
-    # In these situations we use `line_offset` to treat `line` as 1 for
-    # operating on the snippet, while retaining the original line information.
-    should_use_line_offset? = is_nil(Enum.at(lines, end_line - 1))
-
     end_column =
-      if should_use_line_offset? do
-        fetch_line_length(lines, end_line - line_offset - 1)
-      else
-        fetch_line_length(lines, end_line - 1)
-      end
+      lines
+      |> Enum.fetch!(end_line - line_offset - 1)
+      |> String.length()
+      |> Kernel.+(1)
 
     start_pos = {line, column}
     end_pos = {end_line, end_column}
@@ -1316,13 +1307,6 @@ defmodule TokenMissingError do
     total_trimmed_newlines = String.length(snippet) - String.length(trimmed_snippet)
     lines = String.split(trimmed_snippet, "\n")
     {lines, total_trimmed_newlines}
-  end
-
-  defp fetch_line_length(lines, index) do
-    lines
-    |> Enum.fetch!(index)
-    |> String.length()
-    |> Kernel.+(1)
   end
 
   defp format_message(file, line, column, message) do
