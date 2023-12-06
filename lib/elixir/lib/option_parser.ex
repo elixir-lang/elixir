@@ -205,6 +205,15 @@ defmodule OptionParser do
   only useful when you are building command-line applications that receive
   dynamically-named arguments and must be avoided in long-running systems.
 
+  Remember that, as it's difficult to know which atoms exist, the results of
+  parsing may be surprising. Compare the following two examples:
+
+      iex>  OptionParser.parse(["--name", "Foo"], switches: [])
+      {[name: "Foo"], [], []}
+
+      iex>  OptionParser.parse(["--surname", "Bar"], switches: [])
+      {[], [], []}
+
   ## Aliases
 
   A set of aliases can be specified in the `:aliases` option:
