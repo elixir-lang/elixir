@@ -152,21 +152,28 @@ defmodule OptionParser do
   ### Parsing unknown switches
 
   When the `:switches` option is given, `OptionParser` will attempt to parse
-  unknown switches:
+  unknown switches.
+
+  Switches without an argument will be set to `true`:
 
       iex> OptionParser.parse(["--debug"], switches: [key: :string])
       {[debug: true], [], []}
 
   Even though we haven't specified `--debug` in the list of switches, it is part
-  of the returned options. This would also work:
+  of the returned options.
+
+  Switches followed by a value will be assigned the value, as a string:
 
       iex> OptionParser.parse(["--debug", "value"], switches: [key: :string])
       {[debug: "value"], [], []}
 
-  Switches followed by a value will be assigned the value, as a string. Switches
-  without an argument will be set automatically to `true`. Since we cannot assert
-  the type of the switch value, it is preferred to use the `:strict` option that
-  accepts only known switches and always verify their types.
+  Since we cannot assert the type of the switch value, it is preferred to use the
+  `:strict` option that accepts only known switches and always verify their types.
+
+  Switches followed by another switch will be set to true:
+
+      iex> OptionParser.parse(["--debug", "--ok"], switches: [])
+      {[debug: true, ok: true], [], []}
 
   If you do want to parse unknown switches, remember that Elixir converts switches
   to atoms. Since atoms are not garbage-collected, OptionParser will only parse
