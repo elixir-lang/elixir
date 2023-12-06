@@ -6,7 +6,8 @@ Name "Elixir"
 ManifestDPIAware true
 Unicode True
 InstallDir "$PROGRAMFILES64\Elixir"
-!define MUI_ICON "assets\drop.ico"
+!define MUI_ICON "assets\Elixir.ico"
+!define MUI_UNICON "assets\Elixir.ico"
 
 ; Install Page: Install Erlang/OTP
 
@@ -191,7 +192,15 @@ FunctionEnd
 Section "Install Elixir" SectionElixir
   SetOutPath "$INSTDIR"
   File /r "${ELIXIR_DIR}\"
+  File "assets\Elixir.ico"
   File "update_system_path.erl"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "DisplayName" "Elixir"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "DisplayVersion" "${ELIXIR_VERSION}"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "DisplayIcon" "$INSTDIR\Elixir.ico"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "Publisher" "The Elixir Team"
+  WriteRegStr   HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "UninstallString" '"$INSTDIR\Uninstall.exe"'
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "NoModify" 1
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "NoRepair" 1
 
   WriteUninstaller "Uninstall.exe"
 SectionEnd
@@ -270,6 +279,7 @@ UninstPage custom un.FinishPageShow un.FinishPageLeave
 
 Section "Uninstall"
   RMDir /r "$INSTDIR"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir"
 SectionEnd
 
 !insertmacro MUI_LANGUAGE "English"
