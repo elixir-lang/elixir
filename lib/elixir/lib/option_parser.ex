@@ -171,11 +171,11 @@ defmodule OptionParser do
   If you do want to parse unknown switches, remember that Elixir converts switches
   to atoms. Since atoms are not garbage-collected, OptionParser will only parse
   switches that translate to atoms used by the runtime to avoid leaking atoms.
-  For instance, the code below will discard the `--option-parser-example` switch
+  The code below discards the `--option-parser-example` switch
   because the `:option_parser_example` atom is never used anywhere:
 
-      OptionParser.parse(["--option-parser-example"], switches: [debug: :boolean])
-      # The :option_parser_example atom is not used anywhere below
+      iex> OptionParser.parse(["--option-parser-example"], switches: [])
+      {[], [], []}
 
   However, the code below would work as long as `:option_parser_example` atom is
   used at some point later (or earlier) **in the same module**. For example:
