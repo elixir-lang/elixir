@@ -538,7 +538,9 @@ defmodule Module do
   undefined functions, deprecations, etc. A module is always verified after
   it is compiled. In Mix projects, a module is also verified when any of its
   runtime dependencies change. Therefore this is useful to perform verification
-  of the current module while avoiding compile-time dependencies.
+  of the current module while avoiding compile-time dependencies. Given the
+  callback is invoked under different scenarios, Elixir provides no guarantees
+  of when in the compilation cycle nor in which process the callback runs.
 
   Accepts a module or a `{module, function_name}` tuple. The function
   must take one argument: the module name. When just a module is provided,
