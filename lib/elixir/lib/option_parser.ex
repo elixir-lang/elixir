@@ -185,14 +185,20 @@ defmodule OptionParser do
       iex> OptionParser.parse(["--option-parser-example"], switches: [])
       {[], [], []}
 
-  However, the code below would work as long as `:option_parser_example` atom is
-  used at some point later (or earlier) **in the same module**. For example:
+  However, if a switch corresponds to an existing Elixir atom, whether from your
+  code, a dependency or from Elixir itself, it will be accepted:
 
-      {opts, _, _} = OptionParser.parse(["--option-parser-example"], switches: [debug: :boolean])
-      # ... then somewhere in the same module you access it ...
-      opts[:option_parser_example]
+      iex> OptionParser.parse(["--shutdown"], switches: [])
+      ...> |> get_in([Access.elem(0), Access.at(0), Access.elem(0)]) |> to_string()
+      "shutdown"
 
-  In other words, Elixir will only parse options that are used by the runtime,
+  Note, the example above is contrived in such away as to **not** make explicit
+  use of the `:shutdown` atom, which would defeat the purpose!
+  The `parse/2` output is:
+
+      [{shutdown: true}, {}, {}]
+
+  So, Elixir will only parse options that are used by the runtime,
   ignoring all others. If you would like to parse all switches, regardless if
   they exist or not, you can force creation of atoms by passing
   `allow_nonexistent_atoms: true` as option. Use this option with care. It is
