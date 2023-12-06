@@ -202,6 +202,8 @@ Section "Install Elixir" SectionElixir
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "NoModify" 1
   WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir" "NoRepair" 1
 
+  WriteRegStr   HKLM "Software\Elixir\Elixir" "InstallRoot" "$INSTDIR"
+
   WriteUninstaller "Uninstall.exe"
 SectionEnd
 
@@ -280,6 +282,8 @@ UninstPage custom un.FinishPageShow un.FinishPageLeave
 Section "Uninstall"
   RMDir /r "$INSTDIR"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\Elixir"
+  DeleteRegKey HKLM "Software\Elixir\Elixir"
+  DeleteRegKey /ifempty HKLM "Software\Elixir"
 SectionEnd
 
 !insertmacro MUI_LANGUAGE "English"
