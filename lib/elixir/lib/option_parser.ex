@@ -176,8 +176,9 @@ defmodule OptionParser do
       {[debug: true, ok: true], [], []}
 
   If you do want to parse unknown switches, remember that Elixir converts switches
-  to atoms. Since atoms are not garbage-collected, OptionParser will only parse
-  switches that translate to atoms used by the runtime to avoid leaking atoms.
+  to atoms. By default, since atoms are not garbage-collected, to avoid creating
+  new ones, OptionParser will only parse switches that translate to atoms already
+  used by the runtime.
   The code below discards the `--option-parser-example` switch
   because the `:option_parser_example` atom is never used anywhere:
 
