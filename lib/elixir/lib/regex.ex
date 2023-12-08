@@ -84,7 +84,7 @@ defmodule Regex do
       each line; use `\A` and `\z` to match the end or beginning of the string
 
     * `:extended` (x) - whitespace characters are ignored except when escaped
-      and allow `#` to delimit comments
+      or within `[..]`, and allow `#` to delimit comments
 
     * `:firstline` (f) - forces the unanchored pattern to match before or at the
       first newline, though the matched text may continue over the newline
