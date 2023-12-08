@@ -65,7 +65,7 @@ iex> case :ok do
 ** (CaseClauseError) no case clause matching: :ok
 ```
 
-The documentation for the `Kernel` module lists all available guards in its sidebar. You can also consult the complete [Patterns and Guards](../references/patterns-and-guards.html#guards) reference for in-depth documentation.
+The documentation for the `Kernel` module lists all available guards in its sidebar. You can also consult the complete [Patterns and Guards](patterns-and-guards.html#guards) reference for in-depth documentation.
 
 ## cond
 
