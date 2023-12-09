@@ -39,7 +39,7 @@ defmodule Mix.Task.Compiler do
             message: IO.chardata(),
             position: position,
             compiler_name: String.t(),
-            details: any,
+            details: Exception.t() | any,
             stacktrace: Exception.stacktrace(),
             span: {non_neg_integer, non_neg_integer} | nil
           }

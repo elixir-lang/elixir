@@ -900,9 +900,13 @@ defmodule Kernel.ParallelCompiler do
       message: message,
       severity: :error,
       stacktrace: stack,
-      span: nil
+      span: nil,
+      exception: get_exception(reason)
     }
   end
+
+  defp get_exception(exception) when is_exception(exception), do: exception
+  defp get_exception(_reason), do: nil
 
   defp get_line(_file, %{line: line, column: column}, _stack)
        when is_integer(line) and line > 0 and is_integer(column) and column >= 0 do
