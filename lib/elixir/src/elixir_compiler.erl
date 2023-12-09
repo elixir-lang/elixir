@@ -1,6 +1,6 @@
 %% Elixir compiler front-end to the Erlang backend.
 -module(elixir_compiler).
--export([string/3, quoted/3, bootstrap/0, file/2, compile/3]).
+-export([string/3, quoted/3, bootstrap/0, file/2, compile/4]).
 -include("elixir.hrl").
 
 string(Contents, File, Callback) ->
@@ -36,22 +36,22 @@ maybe_fast_compile(Forms, Args, E) ->
   case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) andalso
         (not elixir_config:is_bootstrap()) of
     true  -> fast_compile(Forms, E);
-    false -> compile(Forms, Args, E)
+    false -> compile(Forms, Args, [], E)
   end,
   ok.
 
-compile(Quoted, ArgsList, #{line := Line} = E) ->
+compile(Quoted, ArgsList, CompilerOpts, #{line := Line} = E) ->
   Block = no_tail_optimize([{line, Line}], Quoted),
   {Expanded, SE, EE} = elixir_expand:expand(Block, elixir_env:env_to_ex(E), E),
   elixir_env:check_unused_vars(SE, EE),
 
   {Module, Fun, Purgeable} =
-    elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, E) end),
+    elixir_erl_compiler:spawn(fun() -> spawned_compile(Expanded, CompilerOpts, E) end),
 
   Args = list_to_tuple(ArgsList),
   {dispatch(Module, Fun, Args, Purgeable), SE, EE}.
 
-spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
+spawned_compile(ExExprs, CompilerOpts, #{line := Line, file := File} = E) ->
   {Vars, S} = elixir_erl_var:from_env(E),
   {ErlExprs, _} = elixir_erl_pass:translate(ExExprs, erl_anno:new(Line), S),
 
@@ -59,7 +59,7 @@ spawned_compile(ExExprs, #{line := Line, file := File} = E) ->
   Fun = code_fun(?key(E, module)),
   Forms = code_mod(Fun, ErlExprs, Line, File, Module, Vars),
 
-  {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch, no_bool_opt, no_ssa_opt]),
+  {Module, Binary} = elixir_erl_compiler:noenv_forms(Forms, File, [nowarn_nomatch | CompilerOpts]),
   code:load_binary(Module, "", Binary),
   {Module, Fun, is_purgeable(Module, Binary)}.
 
