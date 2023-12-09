@@ -204,6 +204,7 @@ defmodule Code do
           required(:position) => position,
           required(:stacktrace) => Exception.stacktrace(),
           required(:span) => {non_neg_integer, non_neg_integer} | nil,
+          optional(:exception) => Exception.t() | nil,
           optional(any()) => any()
         }
 

@@ -767,14 +767,16 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp diagnostic(%{
-         file: file,
-         position: position,
-         message: message,
-         severity: severity,
-         stacktrace: stacktrace,
-         span: span
-       }) do
+  defp diagnostic(
+         %{
+           file: file,
+           position: position,
+           message: message,
+           severity: severity,
+           stacktrace: stacktrace,
+           span: span
+         } = diagnostic
+       ) do
     %Mix.Task.Compiler.Diagnostic{
       file: file,
       position: position,
@@ -782,7 +784,8 @@ defmodule Mix.Compilers.Elixir do
       severity: severity,
       compiler_name: "Elixir",
       stacktrace: stacktrace,
-      span: span
+      span: span,
+      details: Map.get(diagnostic, :exception, nil)
     }
   end
 
