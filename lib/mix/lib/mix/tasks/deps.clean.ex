@@ -103,7 +103,7 @@ defmodule Mix.Tasks.Deps.Clean do
     messages =
       Enum.flat_map(results, fn
         {:error, reason, file} ->
-          ["file: #{file}, reason: #{:file.format_error(reason)}"]
+          ["\tfile: #{file}, reason: #{:file.format_error(reason)}"]
 
         _ ->
           []
