@@ -102,8 +102,11 @@ defmodule Mix.Tasks.Deps.Clean do
   defp maybe_warn_failed_file_deletion(results, dependency) when is_list(results) do
     messages =
       Enum.flat_map(results, fn
-        {:error, reason, file} -> ["file: #{inspect(file)}, reason: #{inspect(reason)}:"]
-        _ -> []
+        {:error, reason, file} ->
+          ["file: #{file}, reason: #{:file.format_error(reason)}"]
+
+        _ ->
+          []
       end)
 
     with [_ | _] <- messages do
