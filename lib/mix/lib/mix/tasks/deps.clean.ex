@@ -99,26 +99,14 @@ defmodule Mix.Tasks.Deps.Clean do
     paths
   end
 
-  defp maybe_warn_failed_file_deletion(results, dependency) when is_list(results) do
-    messages =
-      Enum.flat_map(results, fn
-        {:error, reason, file} ->
-          ["\tfile: #{file}, reason: #{:file.format_error(reason)}"]
-
-        _ ->
-          []
-      end)
-
-    with [_ | _] <- messages do
+  defp maybe_warn_failed_file_deletion(result) do
+    with {:error, reason, file} <- result do
       Mix.shell().error(
-        "warning: errors occurred while deleting files for dependency: #{dependency} \n" <>
-          Enum.join(messages, "\n")
+        "warning: could not delete file #{Path.relative_to_cwd(file)}, " <>
+          "reason: #{:file.format_error(reason)}"
       )
     end
   end
-
-  defp maybe_warn_failed_file_deletion(result, dependency),
-    do: maybe_warn_failed_file_deletion([result], dependency)
 
   defp do_clean(apps, deps, build_path, deps_path, build_only?) do
     shell = Mix.shell()
@@ -133,8 +121,7 @@ defmodule Mix.Tasks.Deps.Clean do
       |> Path.join(to_string(app))
       |> Path.wildcard()
       |> maybe_warn_for_invalid_path(app)
-      |> Enum.map(&File.rm_rf/1)
-      |> maybe_warn_failed_file_deletion(app)
+      |> Enum.map(&(&1 |> File.rm_rf() |> maybe_warn_failed_file_deletion()))
 
       # Remove everything from the source directory of dependencies.
       # Skip this step if --build option is specified or if
@@ -145,7 +132,7 @@ defmodule Mix.Tasks.Deps.Clean do
         deps_path
         |> Path.join(to_string(app))
         |> File.rm_rf()
-        |> maybe_warn_failed_file_deletion(app)
+        |> maybe_warn_failed_file_deletion()
       end
     end)
   end
