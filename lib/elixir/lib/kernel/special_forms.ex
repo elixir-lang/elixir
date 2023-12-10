@@ -1494,6 +1494,8 @@ defmodule Kernel.SpecialForms do
 
   ## The `:reduce` option
 
+  *Available since Elixir v1.8*.
+
   While the `:into` option allows us to customize the comprehension behaviour
   to a given data type, such as putting all of the values inside a map or inside
   a binary, it is not always enough.
