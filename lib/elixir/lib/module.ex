@@ -2133,8 +2133,7 @@ defmodule Module do
   end
 
   defp attribute_stack(module, line) do
-    file = String.to_charlist(Path.relative_to_cwd(:elixir_module.file(module)))
-    [{module, :__MODULE__, 0, file: file, line: line}]
+    struct!(Macro.Env, module: module, file: :elixir_module.file(module), line: line)
   end
 
   ## Helpers

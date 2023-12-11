@@ -1640,22 +1640,39 @@ defmodule Kernel.WarningTest do
   end
 
   test "reserved doc metadata keys" do
-    output =
-      capture_eval("""
-      defmodule Sample do
-        @typedoc opaque: false
-        @type t :: binary
+    {output, diagnostics} =
+      Code.with_diagnostics([log: true], fn ->
+        capture_eval("""
+        defmodule Sample do
+          @typedoc opaque: false
+          @type t :: binary
 
-        @doc defaults: 3, since: "1.2.3"
-        def foo(a), do: a
-      end
-      """)
+          @doc defaults: 3, since: "1.2.3"
+          def foo(a), do: a
+        end
+        """)
+      end)
 
     assert output =~ "ignoring reserved documentation metadata key: :opaque"
     assert output =~ "nofile:2: "
     assert output =~ "ignoring reserved documentation metadata key: :defaults"
     assert output =~ "nofile:5: "
     refute output =~ ":since"
+
+    assert [
+             %{
+               message: "ignoring reserved documentation metadata key: :opaque",
+               position: 2,
+               file: "nofile",
+               severity: :warning
+             },
+             %{
+               message: "ignoring reserved documentation metadata key: :defaults",
+               position: 5,
+               file: "nofile",
+               severity: :warning
+             }
+           ] = diagnostics
   after
     purge(Sample)
   end
