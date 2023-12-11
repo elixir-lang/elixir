@@ -3622,7 +3622,7 @@ defmodule Kernel do
   defp do_at([], meta, name, function?, env) do
     IO.warn(
       "the @#{name}() notation (with parentheses) is deprecated, please use @#{name} (without parentheses) instead",
-      Macro.Env.stacktrace(env)
+      env
     )
 
     do_at(nil, meta, name, function?, env)
