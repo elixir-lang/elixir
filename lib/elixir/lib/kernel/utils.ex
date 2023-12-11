@@ -36,14 +36,14 @@ defmodule Kernel.Utils do
     if is_list(funs) do
       IO.warn(
         "passing a list to Kernel.defdelegate/2 is deprecated, please define each delegate separately",
-        Macro.Env.stacktrace(env)
+        env
       )
     end
 
     if Keyword.has_key?(opts, :append_first) do
       IO.warn(
         "Kernel.defdelegate/2 :append_first option is deprecated",
-        Macro.Env.stacktrace(env)
+        env
       )
     end
 
