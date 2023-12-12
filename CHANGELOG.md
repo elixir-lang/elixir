@@ -104,7 +104,7 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
 #### Mix
 
   * [mix archive.install] Restore code paths after archive.install
-  * [mix escript.install] Restore code paths after archive.install
+  * [mix escript.install] Restore code paths after escript.install
 
 ## v1.16.0-rc.0 (2023-10-31)
 
