@@ -27,7 +27,7 @@ defmodule Mix.Tasks.Deps.Clean do
   @impl true
   def run(args) do
     Mix.Project.get!()
-    {opts, apps, _} = OptionParser.parse(args, switches: @switches)
+    {opts, apps} = OptionParser.parse!(args, strict: @switches)
 
     build_path =
       Mix.Project.build_path()
