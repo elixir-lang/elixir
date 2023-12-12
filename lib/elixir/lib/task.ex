@@ -17,6 +17,27 @@ defmodule Task do
   They are implemented by spawning a process that sends a message
   to the caller once the given computation is performed.
 
+  Be wary though that tasks are still processes and so data
+  will need to be completely copied to them which will result
+  in more memory usage and depending on the data and work,
+  even longer run times.
+  For example if your code was:
+
+      large_data = fetch_large_data()
+      task = Task.async(fn -> do_some_work(large_data) end)
+      res = do_some_other_work()
+      res + Task.await(task)
+
+  Then we'd need to copy over all of `large_data` which can be
+  very resource intensive. So, if possible try to avoid using
+  huge pieces of data in tasks. Instead, if possible, you
+  could fetch them inside the task itself:
+
+      task = Task.async(fn ->
+        large_data = fetch_large_data()
+        do_some_work(large_data)
+      end)
+
   Compared to plain processes, started with `spawn/1`, tasks
   include monitoring metadata and logging in case of errors.
 
