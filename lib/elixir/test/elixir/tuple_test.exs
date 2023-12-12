@@ -62,4 +62,18 @@ defmodule TupleTest do
     mod = Tuple
     assert mod.delete_at({:foo, :bar, :baz}, 0) == {:bar, :baz}
   end
+
+  test "ok/1" do
+    assert Tuple.ok(:foo) == {:ok, :foo}
+
+    mod = Tuple
+    assert mod.ok(:foo) == {:ok, :foo}
+  end
+
+  test "error/1" do
+    assert Tuple.error(:foo) == {:error, :foo}
+
+    mod = Tuple
+    assert mod.error(:foo) == {:error, :foo}
+  end
 end

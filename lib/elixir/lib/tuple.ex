@@ -184,4 +184,28 @@ defmodule Tuple do
   def to_list(tuple) do
     :erlang.tuple_to_list(tuple)
   end
+
+  @doc """
+  Wraps a term in a tuple tagged with `:ok`.
+
+  ## Examples
+
+      iex> Tuple.ok(:foo)
+      {:ok, :foo}
+
+  """
+  @spec ok(term) :: {:ok, term}
+  def ok(term), do: {:ok, term}
+
+  @doc """
+  Wraps a term in a tuple tagged with `:error`.
+
+  ## Examples
+
+      iex> Tuple.error(:foo)
+      {:error, :foo}
+
+  """
+  @spec error(term) :: {:error, term}
+  def error(term), do: {:error, term}
 end
