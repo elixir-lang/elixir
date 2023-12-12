@@ -44,10 +44,38 @@ defmodule Task do
        means that, if the caller crashes, the task will crash
        too and vice-versa. This is on purpose: if the process
        meant to receive the result no longer exists, there is
-       no purpose in completing the computation.
+       no purpose in completing the computation. If this is not
+       desired, you will want to use supervised tasks, described
+       in a subsequent section.
 
-       If this is not desired, you will want to use supervised
-       tasks, described next.
+  ## Tasks are processes
+
+  Tasks are processes and so data will need to be completely copied
+  to them. Take the following code as an example:
+
+      large_data = fetch_large_data()
+      task = Task.async(fn -> do_some_work(large_data) end)
+      res = do_some_other_work()
+      res + Task.await(task)
+
+  The code above copies over all of `large_data`, which can be
+  resource intensive depending on the size of the data.
+  There are two ways to address this.
+
+  First, if you need to access only part of `large_data`,
+  consider extracting it before the task:
+
+      large_data = fetch_large_data()
+      subset_data = large_data.some_field
+      task = Task.async(fn -> do_some_work(subset_data) end)
+
+  Alternatively, if you can move the data loading altogether
+  to the task, it may be even better:
+
+      task = Task.async(fn ->
+        large_data = fetch_large_data()
+        do_some_work(large_data)
+      end)
 
   ## Dynamically supervised tasks
 
