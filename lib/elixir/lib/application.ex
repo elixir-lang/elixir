@@ -817,16 +817,29 @@ defmodule Application do
   end
 
   @doc """
-  Puts the environment for multiple apps at the same time.
+  Puts the environment for multiple applications at the same time.
 
   The given config should not:
 
     * have the same application listed more than once
     * have the same key inside the same application listed more than once
 
-  If those conditions are not met, it will raise.
+  If those conditions are not met, this function will raise.
 
-  It receives the same options as `put_env/4`. Returns `:ok`.
+  This function receives the same options as `put_env/4`. Returns `:ok`.
+
+  ## Examples
+
+      Application.put_all_env(
+        my_app: [
+          key: :value,
+          another_key: :another_value
+        ],
+        another_app: [
+          key: :value
+        ]
+      )
+
   """
   @doc since: "1.9.0"
   @spec put_all_env([{app, [{key, value}]}], timeout: timeout, persistent: boolean) :: :ok
