@@ -63,6 +63,49 @@ Another [ExDoc](https://github.com/elixir-lang/ex_doc) feature we have incorpora
 
 Finally, we have started enriching our documentation with [Mermaid.js](https://mermaid.js.org/) diagrams. You can find examples in the [GenServer](https://hexdocs.pm/elixir/main/GenServer.html) and [Supervisor](https://hexdocs.pm/elixir/main/Supervisor.html) docs.
 
+## v1.16.0-rc.1 (2023-12-12)
+
+### 1. Enhancements
+
+#### Elixir
+
+  * [Code] Add `:emit_warnings` for `Code.string_to_quoted/2`
+  * [File] Add `:offset` option to `File.stream!/2`
+  * [Kernel] Auto infer size of matched variable in bitstrings
+  * [Kernel] Preserve column information when translating typespecs
+  * [String] Add `String.replace_invalid/2`
+
+#### Logger
+
+  * [Logger] Add `Logger.levels/0`
+
+#### Mix
+
+  * [mix archive.install] Support `--sparse` option
+  * [mix compile.app] Warn if both `:applications` and `:extra_applications` are used
+  * [mix compile.elixir] Pass original exception down to diagnostic `:details` when possible
+  * [mix deps.clean] Emit a warning instead of crashing when a dependency cannot be removed
+  * [mix escript.install] Support `--sparse` option
+  * [mix release] Include `include/` directory in releases
+
+### 2. Bug fixes
+
+#### Elixir
+
+  * [Code] Keep quotes for atom keys in formatter
+  * [Macro] Address exception on `Macro.to_string/1` for certain ASTs
+  * [Module] Make sure file and position information is included in several module warnings (regression)
+  * [Path] Lazily evaluate `File.cwd!/0` in `Path.expand/1` and `Path.absname/1`
+
+#### IEx
+
+  * [IEx.Pry] Fix prying functions with only literals in their body
+
+#### Mix
+
+  * [mix archive.install] Restore code paths after archive.install
+  * [mix escript.install] Restore code paths after archive.install
+
 ## v1.16.0-rc.0 (2023-10-31)
 
 ### 1. Enhancements
