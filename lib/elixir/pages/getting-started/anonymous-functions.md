@@ -17,7 +17,7 @@ true
 
 In the example above, we defined an anonymous function that receives two arguments, `a` and `b`, and returns the result of `a + b`. The arguments are always on the left-hand side of `->` and the code to be executed on the right-hand side. The anonymous function is stored in the variable `add`.
 
-We can invoke anonymous functions by passing arguments to it. Note that a dot (`.`) between the variable and parentheses is required to invoke an anonymous function. The dot ensures there is no ambiguity between calling the anonymous function matched to a variable `add` and a named function `add/2`. We will write our own named functions when dealing with [Modules and Functions](modules-and-functions.md). For now, just remember that Elixir makes a clear distinction between anonymous functions and named functions.
+We can invoke anonymous functions by passing arguments to it. Note that a dot (`.`) between the variable and parentheses is required to invoke an anonymous function. The dot makes it clear when you are calling an anonymous function, stored in the variable `add`, opposed to a function named `add/2`. For example, if you have an anonymous function stored in the variable `is_atom`, there is no ambiguity between `is_atom.(:foo)` and `is_atom(:foo)`. If both used the same `is_atom(:foo)` syntax, the only way to know the actual behaviour of `is_atom(:foo)` would be by scanning all code searching if an `is_atom` variable was defined thus far. This scanning hurts maintainability as it requires developers to track additional context in their head when reading and writing code.
 
 Anonymous functions in Elixir are also identified by the number of arguments they receive. We can check if a function is of any given arity by using `is_function/2`:
 
