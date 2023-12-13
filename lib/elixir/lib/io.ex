@@ -316,17 +316,20 @@ defmodule IO do
       entry from the compilation environment will be used
 
     * a keyword list with at least the `:file` option representing
-      a single stacktrace entry (since v1.14.0). The `:line`, `:module`,
-      `:function` options are also supported
+      a single stacktrace entry (since v1.14.0). The `:line`, `:column`,
+      `:module`, and `:function` options are also supported
 
-  This function also notifies the compiler a warning was printed
-  (in case --warnings-as-errors was enabled). It returns `:ok`
-  if it succeeds.
+  This function notifies the compiler a warning was printed
+  and emits a compiler diagnostic (`t:Code.diagnostic/1`).
+  The diagnostic will include precise file and location information
+  if a `Macro.Env` is given or those values have been passed as
+  keyword list, but not for stacktraces, as they are often imprecise.
+
+  It returns `:ok` if it succeeds.
 
   ## Examples
 
-      stacktrace = [{MyApp, :main, 1, [file: 'my_app.ex', line: 4]}]
-      IO.warn("variable bar is unused", stacktrace)
+      IO.warn("variable bar is unused", module: MyApp, function: {:main, 1}, line: 4, file: "my_app.ex")
       #=> warning: variable bar is unused
       #=>   my_app.ex:4: MyApp.main/1
 
@@ -345,15 +348,22 @@ defmodule IO do
 
   def warn(message, [{_, _} | _] = keyword) do
     if file = keyword[:file] do
-      warn(
-        message,
-        %{
+      line = keyword[:line]
+      column = keyword[:column]
+      position = if line && column, do: {line, column}, else: line
+      message = to_chardata(message)
+
+      stacktrace =
+        Macro.Env.stacktrace(%{
           __ENV__
           | module: keyword[:module],
             function: keyword[:function],
-            line: keyword[:line],
+            line: line,
             file: file
-        }
+        })
+
+      :elixir_errors.emit_diagnostic(:warning, position, file, message, stacktrace,
+        read_snippet: true
       )
     else
       warn(message, [])
