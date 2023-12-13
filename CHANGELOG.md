@@ -29,6 +29,21 @@ For mismatched delimiters, it now shows both delimiters:
     └─ lib/my_app.ex:1:18
 ```
 
+For unclosed delimiters, it now shows where the unclosed delimiter starts:
+
+```
+** (TokenMissingError) token missing on lib/my_app:8:23:
+    error: missing terminator: )
+    │
+  1 │ my_numbers = (1, 2, 3, 4, 5, 6
+    │              └ unclosed delimiter
+ ...
+  8 │ IO.inspect(my_numbers)
+    │                       └ missing closing delimiter (expected ")")
+    │
+    └─ lib/my_app:8:23
+```
+
 Errors and warnings diagnostics also include code snippets. When possible, we will show precise spans, such as on undefined variables:
 
 ```
@@ -51,7 +66,7 @@ error: function names should start with lowercase characters or underscore, inva
   └─ lib/sample.ex:3
 ```
 
-A huge thank you to Vinícius Muller for working on the new diagnostics.
+A huge thank you to Vinícius Müller for working on the new diagnostics.
 
 ## Revamped documentation
 
