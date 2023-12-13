@@ -93,7 +93,7 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
 #### Elixir
 
   * [Code] Keep quotes for atom keys in formatter
-  * [Kernel] Re-enabled compiler optimzations for top level functions in scripts (enabled in v1.14.0 but shouldn't impact most programs)
+  * [Kernel] Re-enabled compiler optimzations for top level functions in scripts (disabled in v1.14.0 but shouldn't impact most programs)
   * [Macro] Address exception on `Macro.to_string/1` for certain ASTs
   * [Module] Make sure file and position information is included in several module warnings (regression)
   * [Path] Lazily evaluate `File.cwd!/0` in `Path.expand/1` and `Path.absname/1`
