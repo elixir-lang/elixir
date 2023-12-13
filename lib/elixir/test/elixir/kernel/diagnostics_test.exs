@@ -770,6 +770,30 @@ defmodule Kernel.DiagnosticsTest do
     end
 
     @tag :tmp_dir
+    test "IO.warn file+line", %{tmp_dir: tmp_dir} do
+      path = make_relative_tmp(tmp_dir, "io-warn-file-line.ex")
+
+      source = """
+      IO.warn("oops\\nmulti\\nline", file: __ENV__.file, line: __ENV__.line)
+      """
+
+      File.write!(path, source)
+
+      expected = """
+          warning: oops
+          multi
+          line
+          │
+        1 │ IO.warn("oops\\nmulti\\nline", file: __ENV__.file, line: __ENV__.line)
+          │ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          │
+          └─ tmp\
+      """
+
+      assert capture_io(:stderr, fn -> Code.eval_file(path) end) =~ expected
+    end
+
+    @tag :tmp_dir
     test "IO.warn file+line+column", %{tmp_dir: tmp_dir} do
       path = make_relative_tmp(tmp_dir, "io-warn-file-line-column.ex")
 
@@ -785,7 +809,7 @@ defmodule Kernel.DiagnosticsTest do
           line
           │
         1 │ IO.warn("oops\\nmulti\\nline", file: __ENV__.file, line: __ENV__.line, column: 4)
-          │ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          │    ~
           │
           └─ tmp\
       """
