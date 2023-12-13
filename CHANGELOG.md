@@ -96,6 +96,7 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
   * [Macro] Address exception on `Macro.to_string/1` for certain ASTs
   * [Module] Make sure file and position information is included in several module warnings (regression)
   * [Path] Lazily evaluate `File.cwd!/0` in `Path.expand/1` and `Path.absname/1`
+  * [Compiler] Re-enabled compiler optimzations for top level functions in scripts, which has been a regression since 1.14.0 but shouldn't impact most programs
 
 #### IEx
 
