@@ -496,7 +496,13 @@ defmodule CodeTest do
   test "string_to_quoted returns error on incomplete escaped string" do
     assert Code.string_to_quoted("\"\\") ==
              {:error,
-              {[line: 1, column: 3], "missing terminator: \" (for string starting at line 1)", ""}}
+              {[
+                 line: 1,
+                 column: 1,
+                 error_type: :unclosed_delimiter,
+                 end_line: 1,
+                 opening_delimiter: :"\""
+               ], "missing terminator: \" (for string starting at line 1)", ""}}
   end
 
   test "compile source" do

@@ -78,7 +78,7 @@ extract_char(Rest, Buffer, Output, Line, Column, Scope, Interpol, Last) ->
       Token = io_lib:format("\\u~4.16.0B", [Char]),
       Pre = "invalid bidirectional formatting character in string: ",
       Pos = io_lib:format(". If you want to use such character, use it in its escaped ~ts form instead", [Token]),
-      {error, {?LOC(Line, Column), {Pre, Pos}, Token}};
+      {error, {[{error_type, invalid_bidi} | ?LOC(Line, Column)], {Pre, Pos}, Token}};
 
     [Char | NewRest] ->
       extract(NewRest, [Char | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);

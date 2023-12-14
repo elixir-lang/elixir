@@ -388,6 +388,31 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
+    test "missing string terminator" do
+      output =
+        capture_raise(
+          """
+          a = "test string
+
+          IO.inspect(10 + 20)
+          """,
+          TokenMissingError
+        )
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:3:20:
+                 error: missing terminator: " (for string starting at line 1)
+                 │
+               1 │ a = "test string
+                 │     └ unclosed delimiter
+               2 │ 
+               3 │ IO.inspect(10 + 20)
+                 │                    └ missing closing delimiter (expected ")
+                 │
+                 └─ nofile:3:20\
+             """
+    end
+
     test "shows in between lines if EOL is not far below" do
       output =
         capture_raise(

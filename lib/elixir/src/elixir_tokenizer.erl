@@ -774,7 +774,16 @@ handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
 handle_strings(T, Line, Column, H, Scope, Tokens) ->
   case elixir_interpolation:extract(Line, Column, Scope, true, T, H) of
     {error, Reason} ->
-      interpolation_error(Reason, [H | T], Scope, Tokens, " (for string starting at line ~B)", [Line]);
+      {error, {Meta, Message, Token}, NewRest, NewScope, NewTokens} = interpolation_error(Reason, [H | T], Scope, Tokens, " (for string starting at line ~B)", [Line]),
+      NewMeta = case lists:keyfind(error_type, 1, Meta) of
+        % Don't override other errors that may have happened downstream already
+        {error_type, mismatched_delimiter} -> Meta;
+        {error_type, invalid_bidi} -> lists:keydelete(error_type, 1, Meta);
+        _ ->
+          {line, EndLine} = lists:keyfind(line, 1, Meta),
+          [{line, Line}, {column, Column - 1}, {error_type, unclosed_delimiter}, {end_line, EndLine}, {opening_delimiter, '"'}]
+      end,
+      {error, {NewMeta, Message, Token}, NewRest, NewScope, NewTokens};
 
     {NewLine, NewColumn, Parts, [$: | Rest], InterScope} when ?is_space(hd(Rest)) ->
       NewScope = case is_unnecessary_quote(Parts, InterScope) of
@@ -1493,6 +1502,7 @@ terminator('(')  -> ')';
 terminator('[')  -> ']';
 terminator('{')  -> '}';
 terminator('"""') -> '"""';
+terminator('"')  -> '"';
 terminator('<<') -> '>>'.
 
 %% Keywords checking
