@@ -142,18 +142,20 @@ tokenize([], Line, Column, #elixir_tokenizer{cursor_completion=Cursor} = Scope, 
   AccTokens = cursor_complete(Line, CursorColumn, CursorTerminators, CursorTokens),
   {ok, Line, Column, AllWarnings, AccTokens};
 
-tokenize([], EndLine, _, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _} | _]} = Scope, Tokens) ->
+tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLine, StartColumn, _}, _} | _]} = Scope, Tokens) ->
   End = terminator(Start),
   Hint = missing_terminator_hint(Start, End, Scope),
   Message = "missing terminator: ~ts",
   Formatted = io_lib:format(Message, [End]),
   Meta = [
-          {error_type, unclosed_delimiter},
-          {opening_delimiter, Start},
-          {line, StartLine},
-          {column, StartColumn},
-          {end_line, EndLine}
-         ],
+    {error_type, unclosed_delimiter},
+    {opening_delimiter, Start},
+    {expected_delimiter, End},
+    {line, StartLine},
+    {column, StartColumn},
+    {end_line, EndLine},
+    {end_column, EndColumn}
+  ],
   error({Meta, [Formatted, Hint], []}, [], Scope, Tokens);
 
 tokenize([], Line, Column, #elixir_tokenizer{} = Scope, Tokens) ->
@@ -531,7 +533,7 @@ tokenize([$:, H | T] = Original, Line, Column, Scope, Tokens) when ?is_quote(H) 
 
     {error, Reason} ->
       Message = " (for atom starting at line ~B)",
-      interpolation_error(Reason, Original, Scope, Tokens, Message, [Line])
+      interpolation_error(Reason, Original, Scope, Tokens, Message, [Line], Line, Column + 1, [H], [H])
   end;
 
 tokenize([$: | String] = Original, Line, Column, Scope, Tokens) ->
@@ -772,7 +774,7 @@ handle_heredocs(T, Line, Column, H, Scope, Tokens) ->
 handle_strings(T, Line, Column, H, Scope, Tokens) ->
   case elixir_interpolation:extract(Line, Column, Scope, true, T, H) of
     {error, Reason} ->
-      interpolation_error(Reason, [H | T], Scope, Tokens, " (for string starting at line ~B)", [Line]);
+      interpolation_error(Reason, [H | T], Scope, Tokens, " (for string starting at line ~B)", [Line], Line, Column-1, [H], [H]);
 
     {NewLine, NewColumn, Parts, [$: | Rest], InterScope} when ?is_space(hd(Rest)) ->
       NewScope = case is_unnecessary_quote(Parts, InterScope) of
@@ -925,7 +927,7 @@ handle_dot([$., H | T] = Original, Line, Column, DotInfo, Scope, Tokens) when ?i
       Message = "interpolation is not allowed when calling function/macro. Found interpolation in a call starting with: ",
       error({?LOC(Line, Column), Message, [H]}, Rest, NewScope, Tokens);
     {error, Reason} ->
-      interpolation_error(Reason, Original, Scope, Tokens, " (for function name starting at line ~B)", [Line])
+      interpolation_error(Reason, Original, Scope, Tokens, " (for function name starting at line ~B)", [Line], Line, Column, [H], [H])
   end;
 
 handle_dot([$. | Rest], Line, Column, DotInfo, Scope, Tokens) ->
@@ -1030,16 +1032,7 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
           {ok, NewLine, NewColumn, tokens_to_binary(Parts2), Rest, NewScope};
 
         {error, Reason} ->
-          {Position, Message, List} = interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line]),
-          {line, EndLine} = lists:keyfind(line, 1, Position),
-           Meta = [
-             {error_type, unclosed_delimiter},
-             {opening_delimiter, '"""'},
-             {line, Line},
-             {column, Column},
-             {end_line, EndLine}
-          ],
-          {error, {Meta, Message, List}}
+          {error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line], Line, Column, [H, H, H], [H, H, H])}
       end;
 
     error ->
@@ -1352,12 +1345,21 @@ previous_was_eol(_) -> nil.
 
 %% Error handling
 
-interpolation_error(Reason, Rest, Scope, Tokens, Extension, Args) ->
-  error(interpolation_format(Reason, Extension, Args), Rest, Scope, Tokens).
+interpolation_error(Reason, Rest, Scope, Tokens, Extension, Args, Line, Column, Opening, Closing) ->
+  error(interpolation_format(Reason, Extension, Args, Line, Column, Opening, Closing), Rest, Scope, Tokens).
 
-interpolation_format({string, Line, Column, Message, Token}, Extension, Args) ->
-  {?LOC(Line, Column), [Message, io_lib:format(Extension, Args)], Token};
-interpolation_format({_, _, _} = Reason, _Extension, _Args) ->
+interpolation_format({string, EndLine, EndColumn, Message, Token}, Extension, Args, Line, Column, Opening, Closing) ->
+  Meta = [
+    {error_type, unclosed_delimiter},
+    {opening_delimiter, list_to_atom(Opening)},
+    {expected_delimiter, list_to_atom(Closing)},
+    {line, Line},
+    {column, Column},
+    {end_line, EndLine},
+    {end_column, EndColumn}
+  ],
+  {Meta, [Message, io_lib:format(Extension, Args)], Token};
+interpolation_format({_, _, _} = Reason, _Extension, _Args, _Line, _Column, _Opening, _Closing) ->
   Reason.
 
 %% Terminators
@@ -1429,7 +1431,7 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
     End ->
       {ok, Scope#elixir_tokenizer{terminators=Terminators}};
 
-    _ExpectedEnd ->
+    ExpectedEnd ->
       Meta = [
         {line, StartLine},
         {column, StartColumn},
@@ -1437,7 +1439,8 @@ check_terminator({End, {EndLine, EndColumn, _}}, [{Start, {StartLine, StartColum
         {end_column, EndColumn},
         {error_type, mismatched_delimiter},
         {opening_delimiter, Start},
-        {closing_delimiter, End}
+        {closing_delimiter, End},
+        {expected_delimiter, ExpectedEnd}
      ],
      {error, {Meta, unexpected_token_or_reserved(End), [atom_to_list(End)]}}
   end;
@@ -1490,7 +1493,6 @@ terminator('do') -> 'end';
 terminator('(')  -> ')';
 terminator('[')  -> ']';
 terminator('{')  -> '}';
-terminator('"""') -> '"""';
 terminator('<<') -> '>>'.
 
 %% Keywords checking
@@ -1596,7 +1598,7 @@ tokenize_sigil_contents([H | T] = Original, [S | _] = SigilName, Line, Column, S
     {error, Reason} ->
       Sigil = [$~, S, H],
       Message = " (for sigil ~ts starting at line ~B)",
-      interpolation_error(Reason, [$~] ++ SigilName ++ Original, Scope, Tokens, Message, [Sigil, Line])
+      interpolation_error(Reason, [$~] ++ SigilName ++ Original, Scope, Tokens, Message, [Sigil, Line], Line, Column, [H], [sigil_terminator(H)])
   end;
 
 tokenize_sigil_contents([H | _] = Original, SigilName, Line, Column, Scope, Tokens) ->

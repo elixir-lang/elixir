@@ -795,12 +795,10 @@ defmodule Exception do
   end
 
   @doc false
-  def format_expected_delimiter(opening_delimiter) do
-    terminator = :elixir_tokenizer.terminator(opening_delimiter)
-
-    if terminator |> Atom.to_string() |> String.contains?(["\"", "'"]),
-      do: terminator,
-      else: ~s("#{terminator}")
+  def format_delimiter(delimiter) do
+    if delimiter |> Atom.to_string() |> String.contains?(["\"", "'"]),
+      do: delimiter,
+      else: ~s("#{delimiter}")
   end
 
   @doc false
@@ -1159,8 +1157,23 @@ defmodule MismatchedDelimiterError do
   An exception raised when a mismatched delimiter is found when parsing code.
 
   For example:
-  - `[1, 2, 3}`
-  - `fn a -> )`
+
+    * `[1, 2, 3}`
+    * `fn a -> )`
+
+  The following fields of this exceptions are public and can be accessed freely:
+
+    * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
+      the error occurred in code that did not come from a file
+    * `:line` - the line for the opening delimiter
+    * `:column` - the column for the opening delimiter
+    * `:end_line` - the line for the mismatched closing delimiter
+    * `:end_column` - the column for the mismatched closing delimiter
+    * `:opening_delimiter` - an atom representing the opening delimiter
+    * `:closing_delimiter` - an atom representing the mismatched closing delimiter
+    * `:expected_delimiter` - an atom representing the closing delimiter
+    * `:description` - a description of the mismatched delimiter error
+
   """
 
   defexception [
@@ -1172,6 +1185,7 @@ defmodule MismatchedDelimiterError do
     :end_column,
     :opening_delimiter,
     :closing_delimiter,
+    :expected_delimiter,
     :snippet,
     description: "mismatched delimiter error"
   ]
@@ -1184,15 +1198,14 @@ defmodule MismatchedDelimiterError do
         end_column: end_column,
         line_offset: line_offset,
         description: description,
-        opening_delimiter: opening_delimiter,
-        closing_delimiter: _closing_delimiter,
+        expected_delimiter: expected_delimiter,
         file: file,
         snippet: snippet
       }) do
     start_pos = {start_line, start_column}
     end_pos = {end_line, end_column}
     lines = String.split(snippet, "\n")
-    expected_delimiter = Exception.format_expected_delimiter(opening_delimiter)
+    expected_delimiter = Exception.format_delimiter(expected_delimiter)
 
     start_message = "└ unclosed delimiter"
     end_message = ~s/└ mismatched closing delimiter (expected #{expected_delimiter})/
@@ -1226,8 +1239,9 @@ defmodule SyntaxError do
 
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
       the error occurred in code that did not come from a file
-    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
-    * `:column` (`t:non_neg_integer/0`) - the column where the error occurred
+    * `:line` - the line where the error occurred
+    * `:column` - the column where the error occurred
+    * `:description` - a description of the syntax error
 
   """
 
@@ -1276,9 +1290,13 @@ defmodule TokenMissingError do
 
     * `:file` (`t:Path.t/0` or `nil`) - the file where the error occurred, or `nil` if
       the error occurred in code that did not come from a file
-    * `:line` (`t:non_neg_integer/0`) - the line where the error occurred
-    * `:column` (`t:non_neg_integer/0`) - the column where the error occurred
-
+    * `:line` - the line for the opening delimiter
+    * `:column` - the column for the opening delimiter
+    * `:end_line` - the line for the end of the string
+    * `:end_column` - the column for the end of the string
+    * `:opening_delimiter` - an atom representing the opening delimiter
+    * `:expected_delimiter` - an atom representing the expected delimiter
+    * `:description` - a description of the missing token error
   """
 
   defexception [
@@ -1286,9 +1304,11 @@ defmodule TokenMissingError do
     :line,
     :column,
     :end_line,
+    :end_column,
     :line_offset,
     :snippet,
     :opening_delimiter,
+    :expected_delimiter,
     description: "expression is incomplete"
   ]
 
@@ -1300,7 +1320,7 @@ defmodule TokenMissingError do
         end_line: end_line,
         line_offset: line_offset,
         description: description,
-        opening_delimiter: opening_delimiter,
+        expected_delimiter: expected_delimiter,
         snippet: snippet
       })
       when not is_nil(snippet) and not is_nil(column) and not is_nil(end_line) do
@@ -1315,7 +1335,7 @@ defmodule TokenMissingError do
 
     start_pos = {line, column}
     end_pos = {end_line, end_column}
-    expected_delimiter = Exception.format_expected_delimiter(opening_delimiter)
+    expected_delimiter = Exception.format_delimiter(expected_delimiter)
 
     start_message = ~s/└ unclosed delimiter/
     end_message = ~s/└ missing closing delimiter (expected #{expected_delimiter})/

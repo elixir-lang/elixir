@@ -380,11 +380,89 @@ defmodule Kernel.DiagnosticsTest do
                1 │ a = \"""
                  │     └ unclosed delimiter
                2 │ test string
-               3 │ 
+               3 │\s
                4 │ IO.inspect(10 + 20)
                  │                    └ missing closing delimiter (expected \""")
                  │
                  └─ nofile:4:20\
+             """
+    end
+
+    test "missing sigil terminator" do
+      output =
+        capture_raise("~s<foobar", TokenMissingError)
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:1:10:
+                 error: missing terminator: > (for sigil ~s< starting at line 1)
+                 │
+               1 │ ~s<foobar
+                 │   │      └ missing closing delimiter (expected ">")
+                 │   └ unclosed delimiter
+                 │
+                 └─ nofile:1:10\
+             """
+
+      output =
+        capture_raise("~s|foobar", TokenMissingError)
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:1:10:
+                 error: missing terminator: | (for sigil ~s| starting at line 1)
+                 │
+               1 │ ~s|foobar
+                 │   │      └ missing closing delimiter (expected "|")
+                 │   └ unclosed delimiter
+                 │
+                 └─ nofile:1:10\
+             """
+    end
+
+    test "missing string terminator" do
+      output =
+        capture_raise("\"foobar", TokenMissingError)
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:1:8:
+                 error: missing terminator: " (for string starting at line 1)
+                 │
+               1 │ "foobar
+                 │ │      └ missing closing delimiter (expected ")
+                 │ └ unclosed delimiter
+                 │
+                 └─ nofile:1:8\
+             """
+    end
+
+    test "missing atom terminator" do
+      output =
+        capture_raise(":\"foobar", TokenMissingError)
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:1:9:
+                 error: missing terminator: " (for atom starting at line 1)
+                 │
+               1 │ :"foobar
+                 │  │      └ missing closing delimiter (expected ")
+                 │  └ unclosed delimiter
+                 │
+                 └─ nofile:1:9\
+             """
+    end
+
+    test "missing function terminator" do
+      output =
+        capture_raise("K.\"foobar", TokenMissingError)
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:1:10:
+                 error: missing terminator: " (for function name starting at line 1)
+                 │
+               1 │ K."foobar
+                 │   │      └ missing closing delimiter (expected ")
+                 │   └ unclosed delimiter
+                 │
+                 └─ nofile:1:10\
              """
     end
 
