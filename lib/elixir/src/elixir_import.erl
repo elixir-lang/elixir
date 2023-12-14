@@ -9,24 +9,26 @@ import(Meta, Ref, Opts, E) ->
   {Functions, Macros, Added} =
     case keyfind(only, Opts) of
       {only, functions} ->
-        {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
+        {Added1, _Used1, Funs} = import_functions(Meta, Ref, Opts, E),
         {Funs, keydelete(Ref, ?key(E, macros)), Added1};
       {only, macros} ->
-        {Added2, Macs} = import_macros(true, Meta, Ref, Opts, E),
+        {Added2, _Used2, Macs} = import_macros(true, Meta, Ref, Opts, E),
         {keydelete(Ref, ?key(E, functions)), Macs, Added2};
       {only, sigils} ->
-        {Added1, Funs} = import_sigil_functions(Meta, Ref, Opts, E),
-        {Added2, Macs} = import_sigil_macros(Meta, Ref, Opts, E),
+        {Added1, _Used1, Funs} = import_sigil_functions(Meta, Ref, Opts, E),
+        {Added2, _Used2, Macs} = import_sigil_macros(Meta, Ref, Opts, E),
         {Funs, Macs, Added1 or Added2};
       {only, List} when is_list(List) ->
-        {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
-        {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
+        {Added1, Used1, Funs} = import_functions(Meta, Ref, Opts, E),
+        {Added2, Used2, Macs} = import_macros(false, Meta, Ref, Opts, E),
+        [elixir_errors:file_warn(Meta, ?key(E, file), ?MODULE, {invalid_import, {Ref, Name, Arity}}) ||
+         {Name, Arity} <- (List -- Used1) -- Used2],
         {Funs, Macs, Added1 or Added2};
       {only, Other} ->
         elixir_errors:file_error(Meta, E, ?MODULE, {invalid_option, only, Other});
       false ->
-        {Added1, Funs} = import_functions(Meta, Ref, Opts, E),
-        {Added2, Macs} = import_macros(false, Meta, Ref, Opts, E),
+        {Added1, _Used1, Funs} = import_functions(Meta, Ref, Opts, E),
+        {Added2, _Used2, Macs} = import_macros(false, Meta, Ref, Opts, E),
         {Funs, Macs, Added1 or Added2}
     end,
 
@@ -95,9 +97,6 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
         _ -> elixir_errors:file_error(Meta, File, ?MODULE, only_and_except_given)
       end,
 
-      [elixir_errors:file_warn(Meta, File, ?MODULE, {invalid_import, {Key, Name, Arity}}) ||
-       {Name, Arity} <- Only -- get_exports(Key)],
-
       intersection(Only, Existing());
 
     _ ->
@@ -125,30 +124,19 @@ calculate(Meta, Key, Opts, Old, File, Existing) ->
   %% Normalize the data before storing it
   case ordsets:from_list(New) of
     [] ->
-      {false, keydelete(Key, Old)};
+      {false, [], keydelete(Key, Old)};
     Set  ->
       ensure_no_special_form_conflict(Meta, File, Key, Set),
-      {true, [{Key, Set} | keydelete(Key, Old)]}
+      {true, Set, [{Key, Set} | keydelete(Key, Old)]}
   end.
 
 %% Retrieve functions and macros from modules
-
-get_exports(Module) ->
-  get_functions(Module) ++ get_macros(Module).
 
 get_functions(Module) ->
   try
     Module:'__info__'(functions)
   catch
     error:undef -> remove_internals(Module:module_info(exports))
-  end.
-
-get_macros(Module) ->
-  case fetch_macros(Module) of
-    {ok, Macros} ->
-      Macros;
-    error ->
-      []
   end.
 
 fetch_macros(Module) ->
