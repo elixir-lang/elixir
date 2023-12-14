@@ -494,9 +494,13 @@ defmodule CodeTest do
   end
 
   test "string_to_quoted returns error on incomplete escaped string" do
-    assert Code.string_to_quoted("\"\\") ==
-             {:error,
-              {[line: 1, column: 3], "missing terminator: \" (for string starting at line 1)", ""}}
+    assert {:error, {meta, "missing terminator: \" (for string starting at line 1)", ""}} =
+             Code.string_to_quoted("\"\\")
+
+    assert meta[:line] == 1
+    assert meta[:column] == 1
+    assert meta[:end_line] == 1
+    assert meta[:end_column] == 3
   end
 
   test "compile source" do

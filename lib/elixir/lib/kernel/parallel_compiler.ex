@@ -890,7 +890,7 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp to_error(file, kind, reason, stack) do
-    line = get_line(file, reason, stack)
+    {line, span} = get_line_span(file, reason, stack)
     file = Path.absname(file)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
 
@@ -900,7 +900,7 @@ defmodule Kernel.ParallelCompiler do
       message: message,
       severity: :error,
       stacktrace: stack,
-      span: nil,
+      span: span,
       exception: get_exception(reason)
     }
   end
@@ -908,35 +908,47 @@ defmodule Kernel.ParallelCompiler do
   defp get_exception(exception) when is_exception(exception), do: exception
   defp get_exception(_reason), do: nil
 
-  defp get_line(_file, %{line: line, column: column}, _stack)
+  defp get_line_span(
+         _file,
+         %{line: line, column: column, end_line: end_line, end_column: end_column},
+         _stack
+       )
+       when is_integer(line) and line > 0 and is_integer(column) and column >= 0 and
+              is_integer(end_line) and end_line > 0 and is_integer(end_column) and end_column >= 0 do
+    {{line, column}, {end_line, end_column}}
+  end
+
+  defp get_line_span(_file, %{line: line, column: column}, _stack)
        when is_integer(line) and line > 0 and is_integer(column) and column >= 0 do
-    {line, column}
+    {{line, column}, nil}
   end
 
-  defp get_line(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
-    line
+  defp get_line_span(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
+    {line, nil}
   end
 
-  defp get_line(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
-    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
-      Keyword.get(info, :line)
-    end
+  defp get_line_span(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
+    get_line_span_from_stacktrace_info(info, file)
   end
 
-  defp get_line(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
+  defp get_line_span(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
        when expanding in [~c"expanding macro", ~c"expanding struct"] do
-    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
-      Keyword.get(info, :line)
-    end
+    get_line_span_from_stacktrace_info(info, file)
   end
 
-  defp get_line(file, _reason, [{_, _, _, info} | _]) do
-    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
-      Keyword.get(info, :line)
-    end
+  defp get_line_span(file, _reason, [{_, _, _, info} | _]) do
+    get_line_span_from_stacktrace_info(info, file)
   end
 
-  defp get_line(_, _, _) do
-    nil
+  defp get_line_span(_, _, _) do
+    {nil, nil}
+  end
+
+  defp get_line_span_from_stacktrace_info(info, file) do
+    if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
+      {Keyword.get(info, :line), nil}
+    else
+      {nil, nil}
+    end
   end
 end
