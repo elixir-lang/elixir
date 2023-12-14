@@ -798,7 +798,7 @@ defmodule Exception do
   def format_expected_delimiter(opening_delimiter) do
     terminator = :elixir_tokenizer.terminator(opening_delimiter)
 
-    if terminator |> Atom.to_string() |> String.contains?("\""),
+    if terminator |> Atom.to_string() |> String.contains?(["\"", "'"]),
       do: terminator,
       else: ~s("#{terminator}")
   end
