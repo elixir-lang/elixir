@@ -1071,11 +1071,6 @@ defmodule Kernel.ParserTest do
 
   defp parse!(string), do: Code.string_to_quoted!(string)
 
-  defp assert_token_missing(given_messages, string) do
-    e = assert_raise TokenMissingError, fn -> parse!(string) end
-    assert_exception_msg(e, given_messages)
-  end
-
   defp assert_syntax_error(given_messages, source) do
     e = assert_raise SyntaxError, fn -> parse!(source) end
     assert_exception_msg(e, given_messages)
