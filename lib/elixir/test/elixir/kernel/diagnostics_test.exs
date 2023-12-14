@@ -382,7 +382,7 @@ defmodule Kernel.DiagnosticsTest do
                2 │ test string
                3 │ 
                4 │ IO.inspect(10 + 20)
-                 │                    └ missing closing delimiter (expected \""""")
+                 │                    └ missing closing delimiter (expected \""")
                  │
                  └─ nofile:4:20\
              """

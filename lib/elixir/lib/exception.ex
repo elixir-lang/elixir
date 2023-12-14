@@ -795,6 +795,15 @@ defmodule Exception do
   end
 
   @doc false
+  def format_expected_delimiter(opening_delimiter) do
+    terminator = :elixir_tokenizer.terminator(opening_delimiter)
+
+    if terminator |> Atom.to_string() |> String.contains?("\""),
+      do: terminator,
+      else: ~s("#{terminator}")
+  end
+
+  @doc false
   def format_snippet(
         {start_line, _start_column} = start_pos,
         {end_line, end_column} = end_pos,
@@ -1145,10 +1154,10 @@ defmodule MismatchedDelimiterError do
     start_pos = {start_line, start_column}
     end_pos = {end_line, end_column}
     lines = String.split(snippet, "\n")
-    expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
+    expected_delimiter = Exception.format_expected_delimiter(opening_delimiter)
 
     start_message = "└ unclosed delimiter"
-    end_message = ~s/└ mismatched closing delimiter (expected "#{expected_delimiter}")/
+    end_message = ~s/└ mismatched closing delimiter (expected #{expected_delimiter})/
 
     snippet =
       Exception.format_snippet(
@@ -1268,10 +1277,10 @@ defmodule TokenMissingError do
 
     start_pos = {line, column}
     end_pos = {end_line, end_column}
-    expected_delimiter = :elixir_tokenizer.terminator(opening_delimiter)
+    expected_delimiter = Exception.format_expected_delimiter(opening_delimiter)
 
     start_message = ~s/└ unclosed delimiter/
-    end_message = ~s/└ missing closing delimiter (expected "#{expected_delimiter}")/
+    end_message = ~s/└ missing closing delimiter (expected #{expected_delimiter})/
 
     snippet =
       Exception.format_snippet(

@@ -1036,7 +1036,7 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
           {line, EndLine} = lists:keyfind(line, 1, Position),
            Meta = [
              {error_type, unclosed_delimiter},
-             {opening_delimiter, '\"\"\"'},
+             {opening_delimiter, '"""'},
              {line, Line},
              {column, Column},
              {end_line, EndLine}
