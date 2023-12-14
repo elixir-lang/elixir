@@ -528,7 +528,7 @@ defmodule Kernel.ParserTest do
     test "heredoc with incomplete interpolation" do
       assert_token_missing(
         [
-          "nofile:2:1:",
+          "nofile:1:4:",
           ~s/missing interpolation terminator: "}" (for heredoc starting at line 1)/
         ],
         ~c"\"\"\"\n\#{\n"

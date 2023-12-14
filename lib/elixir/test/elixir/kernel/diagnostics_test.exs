@@ -361,6 +361,33 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
+    test "missing heredoc terminator" do
+      output =
+        capture_raise(
+          """
+          a = \"""
+          test string
+
+          IO.inspect(10 + 20)
+          """,
+          TokenMissingError
+        )
+
+      assert output == """
+             ** (TokenMissingError) token missing on nofile:4:20:
+                 error: missing terminator: \""" (for heredoc starting at line 1)
+                 │
+               1 │ a = \"""
+                 │     └ unclosed delimiter
+               2 │ test string
+               3 │ 
+               4 │ IO.inspect(10 + 20)
+                 │                    └ missing closing delimiter (expected \""")
+                 │
+                 └─ nofile:4:20\
+             """
+    end
+
     test "shows in between lines if EOL is not far below" do
       output =
         capture_raise(
