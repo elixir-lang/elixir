@@ -1032,7 +1032,16 @@ extract_heredoc_with_interpolation(Line, Column, Scope, Interpol, T, H) ->
           {ok, NewLine, NewColumn, tokens_to_binary(Parts2), Rest, NewScope};
 
         {error, Reason} ->
-          {error, interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line])}
+          {Position, Message, List} = interpolation_format(Reason, " (for heredoc starting at line ~B)", [Line]),
+          {line, EndLine} = lists:keyfind(line, 1, Position),
+           Meta = [
+             {error_type, unclosed_delimiter},
+             {opening_delimiter, '"""'},
+             {line, Line},
+             {column, Column},
+             {end_line, EndLine}
+          ],
+          {error, {Meta, Message, List}}
       end;
 
     error ->
@@ -1483,6 +1492,7 @@ terminator('do') -> 'end';
 terminator('(')  -> ')';
 terminator('[')  -> ']';
 terminator('{')  -> '}';
+terminator('"""') -> '"""';
 terminator('<<') -> '>>'.
 
 %% Keywords checking
