@@ -199,7 +199,8 @@ defmodule Code do
 
   If there is a file and position, then the diagnostic is precise
   and you can use the given file and position for generating snippets,
-  IDEs annotations, and so on.
+  IDEs annotations, and so on. An optional span is available with
+  the line and column the diagnostic ends.
 
   Otherwise, a stacktrace may be given, which you can place your own
   heuristics to provide better reporting.
@@ -210,7 +211,7 @@ defmodule Code do
           required(:message) => String.t(),
           required(:position) => position(),
           required(:stacktrace) => Exception.stacktrace(),
-          required(:span) => {non_neg_integer(), non_neg_integer()} | nil,
+          required(:span) => {line :: pos_integer(), column :: pos_integer()} | nil,
           optional(:exception) => Exception.t() | nil,
           optional(any()) => any()
         }
