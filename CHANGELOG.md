@@ -170,7 +170,8 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
 
 #### Mix
 
-  * [Mix] Ensure files with duplicate modules are recompiled whenever any of the files change
+  * [mix compile] Ensure files with duplicate modules are recompiled whenever any of the files change
+  * [mix compile] Update Mix compiler diagnostics documentation and typespecs to match the Elixir compiler behaviour where both lines and columns start from one (before it inaccurately said that columns started from zero)
 
 ### 3. Soft deprecations (no warnings emitted)
 
@@ -179,6 +180,10 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
   * [File] Deprecate `File.stream!(file, options, line_or_bytes)` in favor of keeping the options as last argument, as in `File.stream!(file, line_or_bytes, options)`
   * [Kernel.ParallelCompiler] Deprecate `Kernel.ParallelCompiler.async/1` in favor of `Kernel.ParallelCompiler.pmap/2`
   * [Path] Deprecate `Path.safe_relative_to/2` in favor of `Path.safe_relative/2`
+
+#### Mix
+
+  * [mix compile] Returning a four-element tuple as a position in `Mix.Task.Compiler.Diagnostic`
 
 ### 4. Hard deprecations
 
