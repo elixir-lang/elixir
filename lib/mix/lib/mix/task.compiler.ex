@@ -31,13 +31,20 @@ defmodule Mix.Task.Compiler do
   defmodule Diagnostic do
     @moduledoc """
     Diagnostic information such as a warning or compilation error.
+
+    If there is a file and position, then the diagnostic is precise
+    and you can use the given file and position for generating snippets,
+    IDEs annotations, and so on.
+
+    Otherwise, a stacktrace may be given, which you can place your own
+    heuristics to provide better reporting.
     """
 
     @type t :: %__MODULE__{
-            file: Path.t(),
+            file: Path.t() | nil,
             severity: severity,
             message: IO.chardata(),
-            position: position,
+            position: Code.position(),
             compiler_name: String.t(),
             details: Exception.t() | any,
             stacktrace: Exception.stacktrace(),
@@ -60,21 +67,6 @@ defmodule Mix.Task.Compiler do
 
     """
     @type severity :: :error | :warning | :information | :hint
-
-    @typedoc """
-    Where in a file the diagnostic applies. Can be either a line number,
-    a `{line, column}` tuple, a range specified as `{start_line, start_col,
-    end_line, end_col}`. `0` line represents unknown.
-
-    Line numbers are one-based, and column numbers in a range are zero-based and refer
-    to the cursor position at the start of the character at that index. For example,
-    to indicate that a diagnostic applies to the first `n` characters of the
-    first line, the range would be `{1, 0, 1, n}`.
-    """
-    @type position ::
-            non_neg_integer
-            | {pos_integer, non_neg_integer}
-            | {pos_integer, non_neg_integer, pos_integer, non_neg_integer}
 
     @enforce_keys [:file, :severity, :message, :position, :compiler_name]
     defstruct [

@@ -196,21 +196,36 @@ defmodule Code do
 
   @typedoc """
   Diagnostics returned by the compiler and code evaluation.
+
+  If there is a file and position, then the diagnostic is precise
+  and you can use the given file and position for generating snippets,
+  IDEs annotations, and so on.
+
+  Otherwise, a stacktrace may be given, which you can place your own
+  heuristics to provide better reporting.
   """
   @type diagnostic(severity) :: %{
-          required(:file) => Path.t(),
+          required(:file) => Path.t() | nil,
           required(:severity) => severity,
           required(:message) => String.t(),
-          required(:position) => position,
+          required(:position) => position(),
           required(:stacktrace) => Exception.stacktrace(),
-          required(:span) => {non_neg_integer, non_neg_integer} | nil,
+          required(:span) => {non_neg_integer(), non_neg_integer()} | nil,
           optional(:exception) => Exception.t() | nil,
           optional(any()) => any()
         }
 
   @typedoc "The line. 0 indicates no line."
   @type line() :: non_neg_integer()
-  @type position() :: line() | {pos_integer(), column :: non_neg_integer}
+
+  @typedoc """
+  The position of the diagnostic.
+
+  Can be either a line number or a `{line, column}`.
+  Line and columns numbers are one-based.
+  A position of `0` represents unknown.
+  """
+  @type position() :: line() | {line :: pos_integer(), column :: pos_integer()}
 
   @boolean_compiler_options [
     :docs,
