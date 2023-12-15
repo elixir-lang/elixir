@@ -16,7 +16,7 @@ defmodule Port do
       iex> send(port, {self(), :close})
       :ok
       iex> flush()
-      {#Port<0.1464>, :closed}
+      {#Port<0.1444>, :closed}
       :ok
 
   In the example above, we have created a new port that executes the
