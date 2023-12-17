@@ -47,7 +47,7 @@ defmodule Mix.Task.Compiler do
             message: IO.chardata(),
             position: Code.position(),
             compiler_name: String.t(),
-            details: Exception.t() | any,
+            details: term(),
             stacktrace: Exception.stacktrace(),
             span: {line :: pos_integer(), column :: pos_integer()} | nil
           }

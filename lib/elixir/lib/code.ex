@@ -212,7 +212,7 @@ defmodule Code do
           required(:position) => position(),
           required(:stacktrace) => Exception.stacktrace(),
           required(:span) => {line :: pos_integer(), column :: pos_integer()} | nil,
-          optional(:exception) => Exception.t() | nil,
+          optional(:details) => term(),
           optional(any()) => any()
         }
 
