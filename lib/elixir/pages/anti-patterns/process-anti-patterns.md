@@ -291,46 +291,29 @@ iex> Counter.get(Counter) # After the restart, this process can be used again
 0
 ```
 
-## Sending unnecessary between processes
+## Sending unnecessary data
 
 #### Problem
 
-Sending a lot of data between processes is not an anti-pattern by itself, it may be necessary. However, it is costly as messages will be fully copied to the receiving process, which is both CPU and memory intensive. This is due to erlang's "shared nothing" architecture where each process has its own memory, simplifying and speeding up garbage collection.
-Notably, you don't need to use `send/2` to trigger this anti pattern, the anonymous functions used in `spawn/1` and `Task.async/1` etc. capture the data and trigger the same problem.
+Sending a message to a process can be an expensive operation if it is big enough, as messages will be fully copied to the receiving process, which is both CPU and memory intensive. This is due to erlang's "shared nothing" architecture where each process has its own memory, simplifying and speeding up garbage collection.
+That this happens is more obvious when using `send/2`, `GenServer.call/3` or the initial data in `GenServer.start_link/3`, however notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3` & friends. It is more subtle here as the anonymous function passed to these captures the variables it references in its closure - meaning that data will also be copied over. Hence, you can accidentally send way more data to a process than you actually need.
 
 #### Example
 
-To depict the problem let's imagine you were to implement a simple rate limiter based on the IP of a connection. It may seem like a good idea to hand over the whole connection ("We might need more data later!"), however it results in copying a lot of unnecessary data (request body, params etc.).
+To depict the problem let's imagine you were to implement some simple reporting of ip addresses that made requests against your application. You want to do this asynchronously to not block processing, so you decide to use `spawn/1`. It may seem like a good idea to hand over the whole connection ("We might need more data later!"), however it results in copying a lot of unnecessary data (request body, params etc.).
 
 ```elixir
-defmodule RateLimiter do
-  use GenServer
-
-  def report_request(conn, pid) do
-    GenServer.call(pid, {:report_request, conn})
-  end
-
-  @impl GenServer
-  def init(init_arg) do
-    {:ok, init_arg}
-  end
-
-  @impl GenServer
-  def handle_call({:report_request, conn}, _from, state) do
-    ip = conn.remote_ip
-    # actual logic irrelevant for example, but involves ip
-
-    {:reply, :ok, state}
-  end
-end
+# log_request_ip send the ip to some external service
+spawn(fn -> log_request_ip(conn) end)
 ```
+
+Please note that this problem also occurs if you think you may just be accessing the relevant parts:
 
 ```elixir
-iex(1)> {:ok, pid} = GenServer.start_link(RateLimiter, :init)
-{:ok, #PID<0.286.0>}
-iex(2)> RateLimiter.report_request(%Plug.Conn{remote_ip: {127,0,0,1}}, pid)
-:ok
+spawn(fn -> log_request_ip(conn.remote_ip) end)
 ```
+
+This will still copy over all of `conn`.
 
 #### Refactoring
 
@@ -340,33 +323,9 @@ This anti-pattern has many potential remedies:
 * If only the process you send the data to needs it, it may fetch the data itself instead.
 * There are some data structures that are shared between processes and hence don't need copying, such as [ets](https://www.erlang.org/doc/man/ets) and [persistent_term](https://www.erlang.org/doc/man/persistent_term.html).
 
-In our case the first, and most common, strategy is applicable. If all we need _right now_ is the ip address, then let's only work with that.
+In our case the first, and most common, strategy is applicable. If all we need _right now_ is the ip address, then let's only work with that and make sure that's all we're passing into the closure:
 
 ```elixir
-defmodule RateLimiter do
-  use GenServer
-
-  def report_request(ip, pid) do
-    GenServer.call(pid, {:report_request, ip})
-  end
-
-  @impl GenServer
-  def init(init_arg) do
-    {:ok, init_arg}
-  end
-
-  @impl GenServer
-  def handle_call({:report_request, ip}, _from, state) do
-    # actual logic irrelevant for example, but involves ip
-
-    {:reply, :ok, state}
-  end
-end
-```
-
-```elixir
-iex(1)> {:ok, pid} = GenServer.start_link(RateLimiter, :init)
-{:ok, #PID<0.286.0>}
-iex(2)> RateLimiter.report_request({127,0,0,1}, pid)
-:ok
+ip_address = conn.remote_ip
+spawn(fn -> log_request_ip(ip_address) end)
 ```
