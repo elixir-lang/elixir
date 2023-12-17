@@ -785,7 +785,7 @@ defmodule Mix.Compilers.Elixir do
       compiler_name: "Elixir",
       stacktrace: stacktrace,
       span: span,
-      details: Map.get(diagnostic, :exception, nil)
+      details: Map.get(diagnostic, :details, nil)
     }
   end
 

@@ -901,12 +901,9 @@ defmodule Kernel.ParallelCompiler do
       severity: :error,
       stacktrace: stack,
       span: span,
-      exception: get_exception(reason)
+      details: {kind, reason}
     }
   end
-
-  defp get_exception(exception) when is_exception(exception), do: exception
-  defp get_exception(_reason), do: nil
 
   defp get_line_span(
          _file,

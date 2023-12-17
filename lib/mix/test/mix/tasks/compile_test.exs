@@ -183,7 +183,7 @@ defmodule Mix.Tasks.CompileTest do
                  position: {2, 20},
                  message: "** (SyntaxError) invalid syntax found on lib/a.ex:2:" <> _,
                  compiler_name: "Elixir",
-                 details: %SyntaxError{}
+                 details: {:error, %SyntaxError{}}
                } = diagnostic
       end)
     end)
