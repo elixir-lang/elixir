@@ -362,21 +362,23 @@ defmodule URI do
   end
 
   @doc """
-  Percent-escapes all characters that require escaping in `string`.
+  Percent-encodes all characters that require escaping in `string`.
 
-  This means reserved characters, such as `:` and `/`, and the
-  so-called unreserved characters, which have the same meaning both
-  escaped and unescaped, won't be escaped by default.
+  By default, this function is meant to escape the whole URI, and
+  therefore it will escape all characters which are foreign to the
+  URI specification. Reserved characters (such as `:` and `/`) or
+  unreserved (such as letters and numbers) are not escaped.
+
+  Because different components of a URI require different escaping
+  rules, this function also accepts a `predicate` function as an optional
+  argument. If passed, this function will be called with each byte
+  in `string` as its argument and should return a truthy value (anything other
+  than `false` or `nil`) if the given byte should be left as is, or
+  return a falsy value (`false` or `nil`) if the character should be
+  escaped. Defaults to `URI.char_unescaped?/1`.
 
   See `encode_www_form/1` if you are interested in escaping reserved
   characters too.
-
-  This function also accepts a `predicate` function as an optional
-  argument. If passed, this function will be called with each byte
-  in `string` as its argument and should return a truthy value (anything other
-  than `false` or `nil`) if the given byte should be left as is, or return a
-  falsy value (`false` or `nil`) if the character should be escaped. Defaults
-  to `URI.char_unescaped?/1`.
 
   ## Examples
 
