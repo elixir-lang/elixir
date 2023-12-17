@@ -179,7 +179,7 @@ case you are looking for some examples:
 Once a pull request is sent, the Elixir team will review your changes.
 We outline our process below to clarify the roles of everyone involved.
 
-All pull requests must be approved by two committers before being merged into
+All pull requests must be approved by at least one committer before being merged into
 the repository. If any changes are necessary, the team will leave appropriate
 comments requesting changes to the code. Unfortunately, we cannot guarantee a
 pull request will be merged, even when modifications are requested, as the Elixir
