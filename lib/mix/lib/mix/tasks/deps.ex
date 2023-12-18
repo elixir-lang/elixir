@@ -82,9 +82,9 @@ defmodule Mix.Tasks.Deps do
       (like `[:dev, :test]`)
 
     * `:targets` - the dependency is made available only for the given targets.
-      By default the dependency will be available in all environments. The value
+      By default the dependency will be available in all targets. The value
       of this option can either be a single target (like `:host`) or a list of
-      environments (like `[:host, :rpi3]`)
+      targets (like `[:host, :rpi3]`)
 
     * `:override` - if set to `true` the dependency will override any other
       definitions of itself by other dependencies
