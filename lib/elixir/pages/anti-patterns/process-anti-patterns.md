@@ -295,12 +295,12 @@ iex> Counter.get(Counter) # After the restart, this process can be used again
 
 #### Problem
 
-Sending a message to a process can be an expensive operation if it is big enough, as messages will be fully copied to the receiving process, which is both CPU and memory intensive. This is due to erlang's "shared nothing" architecture where each process has its own memory, simplifying and speeding up garbage collection.
-That this happens is more obvious when using `send/2`, `GenServer.call/3` or the initial data in `GenServer.start_link/3`, however notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3` & friends. It is more subtle here as the anonymous function passed to these captures the variables it references in its closure - meaning that data will also be copied over. Hence, you can accidentally send way more data to a process than you actually need.
+Sending a message to a process can be an expensive operation if it is big enough, as messages will be fully copied to the receiving process, which is both CPU and memory intensive. This is due to Erlang's "share nothing" architecture where each process has its own memory, simplifying and speeding up garbage collection.
+This is more obvious when using `send/2`, `GenServer.call/3`, or the initial data in `GenServer.start_link/3`. Notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3`, etc. It is more subtle here as the anonymous function passed to these functions captures the variables it references in its closure; this means that all data will be copied over. By doing this, you can accidentally send way more data to a process than you actually need.
 
 #### Example
 
-To depict the problem let's imagine you were to implement some simple reporting of ip addresses that made requests against your application. You want to do this asynchronously to not block processing, so you decide to use `spawn/1`. It may seem like a good idea to hand over the whole connection ("We might need more data later!"), however it results in copying a lot of unnecessary data (request body, params etc.).
+To depict the problem, let's imagine you were to implement some simple reporting of IP addresses that made requests against your application. You want to do this asynchronously and not block processing, so you decide to use `spawn/1`. It may seem like a good idea to hand over the whole connection because we might need more data later. However passing the connection results in copying a lot of unnecessary data like the request body, params, etc.
 
 ```elixir
 # log_request_ip send the ip to some external service
@@ -319,11 +319,11 @@ This will still copy over all of `conn`.
 
 This anti-pattern has many potential remedies:
 
-* Limiting the data you send to the absolute necessary minimum, instead of just sending the whole struct. For example, don't send an entire `Plug.Conn` struct if all you need is a couple of fields.
-* If only the process you send the data to needs it, it may fetch the data itself instead.
-* There are some data structures that are shared between processes and hence don't need copying, such as [ets](https://www.erlang.org/doc/man/ets) and [persistent_term](https://www.erlang.org/doc/man/persistent_term.html).
+* Limit the data you send to the absolute necessary minimum instead of sending an entire struct. For example, don't send an entire `Plug.Conn` struct if all you need is a couple of fields.
+* If only the process that needs data is the one you are sending to, consider making the process fetch that data instead of passing it.
+* There are some data structures that are already shared between processes and don't need copying, such as [ETS](https://www.erlang.org/doc/man/ets) and [`:persistent_term`](https://www.erlang.org/doc/man/persistent_term.html).
 
-In our case the first, and most common, strategy is applicable. If all we need _right now_ is the ip address, then let's only work with that and make sure that's all we're passing into the closure:
+In our case, limiting the input data is a reasonable strategy. If all we need _right now_ is the IP address, then let's only work with that and make sure we're only passing the IP address into the closure, like so:
 
 ```elixir
 ip_address = conn.remote_ip
