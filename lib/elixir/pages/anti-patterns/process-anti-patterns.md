@@ -188,6 +188,58 @@ iex> Foo.Bucket.get(bucket, "milk")
 
 This anti-pattern was formerly known as [Agent obsession](https://github.com/lucasvegi/Elixir-Code-Smells/tree/main#agent-obsession).
 
+## Sending unnecessary data
+
+#### Problem
+
+Sending a message to a process can be an expensive operation if the message is big enough. That's because that message will be fully copied to the receiving process, which may be CPU and memory intensive. This is due to Erlang's "share nothing" architecture, where each process has its own memory, which simplifies and speeds up garbage collection.
+
+This is more obvious when using `send/2`, `GenServer.call/3`, or the initial data in `GenServer.start_link/3`. Notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3`, and so on. It is more subtle here as the anonymous function passed to these functions captures the variables it references, and all captured variables will be copied over. By doing this, you can accidentally send way more data to a process than you actually need.
+
+#### Example
+
+Imagine you were to implement some simple reporting of IP addresses that made requests against your application. You want to do this asynchronously and not block processing, so you decide to use `spawn/1`. It may seem like a good idea to hand over the whole connection because we might need more data later. However passing the connection results in copying a lot of unnecessary data like the request body, params, etc.
+
+```elixir
+# log_request_ip send the ip to some external service
+spawn(fn -> log_request_ip(conn) end)
+```
+
+This problem also occurs when accessing only the relevant parts:
+
+```elixir
+spawn(fn -> log_request_ip(conn.remote_ip) end)
+```
+
+This will still copy over all of `conn`, because the `conn` variable is being captured inside the spawned function. The function then extracts the `remote_ip` field, but only after the whole `conn` has been copied over.
+
+`send/2` and the `GenServer` APIs also rely on message passing. In the example below, the `conn` is once again copied to the underlying `GenServer`:
+
+```elixir
+GenServer.cast(pid, {:report_ip_address, conn})
+```
+
+#### Refactoring
+
+This anti-pattern has many potential remedies:
+
+* Limit the data you send to the absolute necessary minimum instead of sending an entire struct. For example, don't send an entire `conn` struct if all you need is a couple of fields.
+* If the only process that needs data is the one you are sending to, consider making the process fetch that data instead of passing it.
+* Some abstractions, such as [`:persistent_term`](https://www.erlang.org/doc/man/persistent_term.html), allows you to share data between processes, as long as such data changes infrequently.
+
+In our case, limiting the input data is a reasonable strategy. If all we need *right now* is the IP address, then let's only work with that and make sure we're only passing the IP address into the closure, like so:
+
+```elixir
+ip_address = conn.remote_ip
+spawn(fn -> log_request_ip(ip_address) end)
+```
+
+Or in the `GenServer` case:
+
+```elixir
+GenServer.cast(pid, {:report_ip_address, conn.remote_ip})
+```
+
 ## Unsupervised processes
 
 #### Problem
@@ -289,43 +341,4 @@ iex> Counter.get(Counter) # The process was terminated
 iex> Supervisor.restart_child(App.Supervisor, Counter)
 iex> Counter.get(Counter) # After the restart, this process can be used again
 0
-```
-
-## Sending unnecessary data
-
-#### Problem
-
-Sending a message to a process can be an expensive operation if the message is big enough. That's because that message will be fully copied to the receiving process, which is both CPU and memory intensive. This is due to Erlang's "share nothing" architecture, where each process has its own memory, which simplifies and speeds up garbage collection.
-This is more obvious when using `send/2`, `GenServer.call/3`, or the initial data in `GenServer.start_link/3`. Notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3`, and so on. It is more subtle here as the anonymous function passed to these functions captures the variables it references in its closure; this means that all data will be copied over. By doing this, you can accidentally send way more data to a process than you actually need.
-
-#### Example
-
-To depict the problem, let's imagine you were to implement some simple reporting of IP addresses that made requests against your application. You want to do this asynchronously and not block processing, so you decide to use `spawn/1`. It may seem like a good idea to hand over the whole connection because we might need more data later. However passing the connection results in copying a lot of unnecessary data like the request body, params, etc.
-
-```elixir
-# log_request_ip send the ip to some external service
-spawn(fn -> log_request_ip(conn) end)
-```
-
-Please note that this problem also occurs if you think you may just be accessing the relevant parts:
-
-```elixir
-spawn(fn -> log_request_ip(conn.remote_ip) end)
-```
-
-This will still copy over all of `conn`, because the `conn` variable is being captured as a closure inside the spawned function. That function then extracts the `remote_ip` field, but only after the whole `conn` has been copied over.
-
-#### Refactoring
-
-This anti-pattern has many potential remedies:
-
-* Limit the data you send to the absolute necessary minimum instead of sending an entire struct. For example, don't send an entire `Plug.Conn` struct if all you need is a couple of fields.
-* If only the process that needs data is the one you are sending to, consider making the process fetch that data instead of passing it.
-* There are some data structures that are already shared between processes and don't need copying, such as [ETS](https://www.erlang.org/doc/man/ets) and [`:persistent_term`](https://www.erlang.org/doc/man/persistent_term.html).
-
-In our case, limiting the input data is a reasonable strategy. If all we need *right now* is the IP address, then let's only work with that and make sure we're only passing the IP address into the closure, like so:
-
-```elixir
-ip_address = conn.remote_ip
-spawn(fn -> log_request_ip(ip_address) end)
 ```
