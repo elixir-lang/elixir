@@ -125,7 +125,7 @@ tokenize(String, Line, Column, Opts) ->
         Acc#elixir_tokenizer{unescape=Unescape};
       (_, Acc) ->
         Acc
-    end, #elixir_tokenizer{identifier_tokenizer=IdentifierTokenizer}, Opts),
+    end, #elixir_tokenizer{identifier_tokenizer=IdentifierTokenizer, column=Column}, Opts),
 
   tokenize(String, Line, Column, Scope, []).
 
@@ -712,9 +712,9 @@ unexpected_token([T | Rest], Line, Column, Scope, Tokens) ->
   error({?LOC(Line, Column), "unexpected token: ", Message}, Rest, Scope, Tokens).
 
 tokenize_eol(Rest, Line, Scope, Tokens) ->
-  {StrippedRest, Indentation} = strip_horizontal_space(Rest, 0),
-  IndentedScope = Scope#elixir_tokenizer{indentation=Indentation},
-  tokenize(StrippedRest, Line + 1, Indentation + 1, IndentedScope, Tokens).
+  {StrippedRest, Column} = strip_horizontal_space(Rest, Scope#elixir_tokenizer.column),
+  IndentedScope = Scope#elixir_tokenizer{indentation=Column-1},
+  tokenize(StrippedRest, Line + 1, Column, IndentedScope, Tokens).
 
 strip_horizontal_space([H | T], Counter) when ?is_horizontal_space(H) ->
   strip_horizontal_space(T, Counter + 1);
@@ -730,12 +730,12 @@ tokenize_dot(T, Line, Column, DotInfo, Scope, Tokens) ->
 
         {Rest, Comment} ->
           preserve_comments(Line, Column, Tokens, Comment, Rest, Scope),
-          tokenize_dot(Rest, Line, 1, DotInfo, Scope, Tokens)
+          tokenize_dot(Rest, Line, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens)
       end;
     {"\r\n" ++ Rest, _} ->
-      tokenize_dot(Rest, Line + 1, 1, DotInfo, Scope, Tokens);
+      tokenize_dot(Rest, Line + 1, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens);
     {"\n" ++ Rest, _} ->
-      tokenize_dot(Rest, Line + 1, 1, DotInfo, Scope, Tokens);
+      tokenize_dot(Rest, Line + 1, Scope#elixir_tokenizer.column, DotInfo, Scope, Tokens);
     {Rest, Length} ->
       handle_dot([$. | Rest], Line, Column + Length, DotInfo, Scope, Tokens)
   end.
