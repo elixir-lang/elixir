@@ -106,6 +106,7 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace, Options) ->
 
   Diagnostic = #{
     severity => Severity,
+    source => File,
     file => File,
     position => Position,
     message => unicode:characters_to_binary(Message),

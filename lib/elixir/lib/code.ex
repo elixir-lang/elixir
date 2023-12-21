@@ -197,6 +197,7 @@ defmodule Code do
   @typedoc """
   Diagnostics returned by the compiler and code evaluation.
 
+  The file and position relate to where the diagnostic should be shown.
   If there is a file and position, then the diagnostic is precise
   and you can use the given file and position for generating snippets,
   IDEs annotations, and so on. An optional span is available with
@@ -204,8 +205,14 @@ defmodule Code do
 
   Otherwise, a stacktrace may be given, which you can place your own
   heuristics to provide better reporting.
+
+  The source field points to the source file the compiler tracked
+  the error to. For example, a file `lib/foo.ex` may embed `.eex`
+  templates from `lib/foo/bar.eex`. A syntax error on the EEx template
+  will point to file `lib/foo/bar.eex` but the source is `lib/foo.ex`.
   """
   @type diagnostic(severity) :: %{
+          required(:source) => Path.t() | nil,
           required(:file) => Path.t() | nil,
           required(:severity) => severity,
           required(:message) => String.t(),

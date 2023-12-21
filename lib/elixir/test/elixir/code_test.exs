@@ -252,6 +252,7 @@ defmodule CodeTest do
                  message: "undefined variable \"x\"",
                  position: 1,
                  file: "nofile",
+                 source: "nofile",
                  stacktrace: [],
                  severity: :error
                }

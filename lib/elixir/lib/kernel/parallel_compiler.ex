@@ -859,9 +859,12 @@ defmodule Kernel.ParallelCompiler do
     )
 
     for {file, _, description, stacktrace} <- deadlock do
+      file = Path.absname(file)
+
       %{
         severity: :error,
-        file: Path.absname(file),
+        file: file,
+        source: file,
         position: nil,
         message: description,
         stacktrace: stacktrace,
@@ -889,13 +892,14 @@ defmodule Kernel.ParallelCompiler do
     ])
   end
 
-  defp to_error(file, kind, reason, stack) do
-    {line, span} = get_line_span(file, reason, stack)
-    file = Path.absname(file)
+  defp to_error(source, kind, reason, stack) do
+    {file, line, span} = get_snippet_info(source, reason, stack)
+    source = Path.absname(source)
     message = :unicode.characters_to_binary(Kernel.CLI.format_error(kind, reason, stack))
 
     %{
-      file: file,
+      file: file || source,
+      source: source,
       position: line || 0,
       message: message,
       severity: :error,
@@ -905,47 +909,47 @@ defmodule Kernel.ParallelCompiler do
     }
   end
 
-  defp get_line_span(
+  defp get_snippet_info(
          _file,
-         %{line: line, column: column, end_line: end_line, end_column: end_column},
+         %{file: file, line: line, column: column, end_line: end_line, end_column: end_column},
          _stack
        )
        when is_integer(line) and line > 0 and is_integer(column) and column >= 0 and
               is_integer(end_line) and end_line > 0 and is_integer(end_column) and end_column >= 0 do
-    {{line, column}, {end_line, end_column}}
+    {Path.absname(file), {line, column}, {end_line, end_column}}
   end
 
-  defp get_line_span(_file, %{line: line, column: column}, _stack)
+  defp get_snippet_info(_file, %{file: file, line: line, column: column}, _stack)
        when is_integer(line) and line > 0 and is_integer(column) and column >= 0 do
-    {{line, column}, nil}
+    {Path.absname(file), {line, column}, nil}
   end
 
-  defp get_line_span(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
-    {line, nil}
+  defp get_snippet_info(_file, %{line: line}, _stack) when is_integer(line) and line > 0 do
+    {nil, line, nil}
   end
 
-  defp get_line_span(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
-    get_line_span_from_stacktrace_info(info, file)
+  defp get_snippet_info(file, :undef, [{_, _, _, []}, {_, _, _, info} | _]) do
+    get_snippet_info_from_stacktrace_info(info, file)
   end
 
-  defp get_line_span(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
+  defp get_snippet_info(file, _reason, [{_, _, _, [file: expanding]}, {_, _, _, info} | _])
        when expanding in [~c"expanding macro", ~c"expanding struct"] do
-    get_line_span_from_stacktrace_info(info, file)
+    get_snippet_info_from_stacktrace_info(info, file)
   end
 
-  defp get_line_span(file, _reason, [{_, _, _, info} | _]) do
-    get_line_span_from_stacktrace_info(info, file)
+  defp get_snippet_info(file, _reason, [{_, _, _, info} | _]) do
+    get_snippet_info_from_stacktrace_info(info, file)
   end
 
-  defp get_line_span(_, _, _) do
-    {nil, nil}
+  defp get_snippet_info(_, _, _) do
+    {nil, nil, nil}
   end
 
-  defp get_line_span_from_stacktrace_info(info, file) do
+  defp get_snippet_info_from_stacktrace_info(info, file) do
     if Keyword.get(info, :file) == to_charlist(Path.relative_to_cwd(file)) do
-      {Keyword.get(info, :line), nil}
+      {nil, Keyword.get(info, :line), nil}
     else
-      {nil, nil}
+      {nil, nil, nil}
     end
   end
 end
