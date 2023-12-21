@@ -223,9 +223,11 @@ GenServer.cast(pid, {:report_ip_address, conn})
 
 This anti-pattern has many potential remedies:
 
-* Limit the data you send to the absolute necessary minimum instead of sending an entire struct. For example, don't send an entire `conn` struct if all you need is a couple of fields.
-* If the only process that needs data is the one you are sending to, consider making the process fetch that data instead of passing it.
-* Some abstractions, such as [`:persistent_term`](https://www.erlang.org/doc/man/persistent_term.html), allows you to share data between processes, as long as such data changes infrequently.
+  * Limit the data you send to the absolute necessary minimum instead of sending an entire struct. For example, don't send an entire `conn` struct if all you need is a couple of fields.
+
+  * If the only process that needs data is the one you are sending to, consider making the process fetch that data instead of passing it.
+
+  * Some abstractions, such as [`:persistent_term`](https://www.erlang.org/doc/man/persistent_term.html), allows you to share data between processes, as long as such data changes infrequently.
 
 In our case, limiting the input data is a reasonable strategy. If all we need *right now* is the IP address, then let's only work with that and make sure we're only passing the IP address into the closure, like so:
 
