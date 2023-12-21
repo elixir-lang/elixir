@@ -324,6 +324,7 @@ defmodule Module.ParallelChecker do
   defp to_diagnostic(message, {file, position, mfa}) when is_list(position) do
     %{
       severity: :warning,
+      source: file,
       file: file,
       position: position_to_tuple(position),
       message: IO.iodata_to_binary(message),

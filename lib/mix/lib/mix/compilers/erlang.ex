@@ -288,8 +288,11 @@ defmodule Mix.Compilers.Erlang do
   defp to_diagnostics(warnings_or_errors, severity) do
     for {file, issues} <- warnings_or_errors,
         {location, module, data} <- issues do
+      file = Path.absname(file)
+
       %Mix.Task.Compiler.Diagnostic{
-        file: Path.absname(file),
+        file: file,
+        source: file,
         position: location_normalize(location),
         message: to_string(module.format_error(data)),
         severity: severity,

@@ -724,9 +724,11 @@ defmodule Mix.Compilers.Elixir do
          )} <- sources,
         file = Path.absname(source),
         {position, message, span} <- compile_warnings ++ runtime_warnings do
+      # TODO: Store the whole diagnostic
       diagnostic = %Mix.Task.Compiler.Diagnostic{
         severity: :warning,
         file: file,
+        source: file,
         position: position,
         message: message,
         compiler_name: "Elixir",
@@ -774,11 +776,13 @@ defmodule Mix.Compilers.Elixir do
            message: message,
            severity: severity,
            stacktrace: stacktrace,
-           span: span
+           span: span,
+           source: source
          } = diagnostic
        ) do
     %Mix.Task.Compiler.Diagnostic{
       file: file,
+      source: source,
       position: position,
       message: message,
       severity: severity,

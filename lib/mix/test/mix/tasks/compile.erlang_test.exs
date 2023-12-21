@@ -95,6 +95,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "erl_parse",
                  file: ^file,
+                 source: ^file,
                  message: "syntax error before: zzz",
                  position: position(2, 5),
                  severity: :error
@@ -120,6 +121,7 @@ defmodule Mix.Tasks.Compile.ErlangTest do
 
         assert %Mix.Task.Compiler.Diagnostic{
                  file: ^file,
+                 source: ^file,
                  compiler_name: "erl_lint",
                  message: "function my_fn/0 is unused",
                  position: position(2, 1),

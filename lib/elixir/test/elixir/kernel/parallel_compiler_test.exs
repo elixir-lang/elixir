@@ -480,6 +480,24 @@ defmodule Kernel.ParallelCompilerTest do
       end)
     end
 
+    test "gets correct file+line+column number for SyntaxError" do
+      File.mkdir_p!(tmp_path())
+
+      [fixture] =
+        write_tmp("error",
+          error: """
+          raise SyntaxError, file: "foo/bar.ex", line: 3, column: 10
+          """
+        )
+
+      file = Path.absname("foo/bar.ex")
+
+      capture_io(:stderr, fn ->
+        assert {:error, [%{file: ^file, source: ^fixture, position: {3, 10}}], _} =
+                 Kernel.ParallelCompiler.compile([fixture], return_diagnostics: true)
+      end)
+    end
+
     test "gets proper beam destinations from dynamic modules" do
       fixtures =
         write_tmp(

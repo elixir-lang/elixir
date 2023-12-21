@@ -32,6 +32,7 @@ defmodule Mix.Task.Compiler do
     @moduledoc """
     Diagnostic information such as a warning or compilation error.
 
+    The file and position relate to where the diagnostic should be shown.
     If there is a file and position, then the diagnostic is precise
     and you can use the given file and position for generating snippets,
     IDEs annotations, and so on. An optional span is available with
@@ -39,10 +40,16 @@ defmodule Mix.Task.Compiler do
 
     Otherwise, a stacktrace may be given, which you can place your own
     heuristics to provide better reporting.
+
+    The source field points to the source file the compiler tracked
+    the error to. For example, a file `lib/foo.ex` may embed `.eex`
+    templates from `lib/foo/bar.eex`. A syntax error on the EEx template
+    will point to file `lib/foo/bar.eex` but the source is `lib/foo.ex`.
     """
 
     @type t :: %__MODULE__{
             file: Path.t() | nil,
+            source: Path.t() | nil,
             severity: severity,
             message: IO.chardata(),
             position: Code.position(),
@@ -72,6 +79,7 @@ defmodule Mix.Task.Compiler do
     @enforce_keys [:file, :severity, :message, :position, :compiler_name]
     defstruct [
       :file,
+      :source,
       :severity,
       :message,
       :position,

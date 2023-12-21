@@ -1443,6 +1443,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
         assert %Diagnostic{
                  file: ^file,
+                 source: ^file,
                  severity: :warning,
                  position: {2, 13},
                  compiler_name: "Elixir",
@@ -1457,6 +1458,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
         assert %Diagnostic{
                  file: ^file,
+                 source: ^file,
                  severity: :warning,
                  position: {2, 13},
                  compiler_name: "Elixir",
@@ -1518,6 +1520,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
                assert %Diagnostic{
                         file: ^file,
+                        source: ^file,
                         severity: :error,
                         position: {2, 20},
                         message: "** (SyntaxError) invalid syntax found on lib/a.ex:2:" <> _,
@@ -1552,6 +1555,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
 
         assert %Diagnostic{
                  file: ^file,
+                 source: ^file,
                  severity: :error,
                  position: 2,
                  message: "** (KeyError) key :invalid_key not found" <> _,

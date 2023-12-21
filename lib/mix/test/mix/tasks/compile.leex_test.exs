@@ -24,6 +24,7 @@ defmodule Mix.Tasks.Compile.LeexTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "leex",
                  file: ^file,
+                 source: ^file,
                  message: "missing Definitions",
                  position: 1,
                  severity: :error

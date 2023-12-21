@@ -179,6 +179,7 @@ defmodule Mix.Tasks.CompileTest do
 
         assert %Mix.Task.Compiler.Diagnostic{
                  file: ^file,
+                 source: ^file,
                  severity: :error,
                  position: {2, 20},
                  message: "** (SyntaxError) invalid syntax found on lib/a.ex:2:" <> _,
@@ -213,6 +214,7 @@ defmodule Mix.Tasks.CompileTest do
 
         assert %Mix.Task.Compiler.Diagnostic{
                  file: ^file,
+                 source: ^file,
                  severity: :error,
                  position: 3,
                  message: "** (RuntimeError) error\n    expanding macro: A.custom_macro/0" <> _,
@@ -242,6 +244,7 @@ defmodule Mix.Tasks.CompileTest do
         assert %Mix.Task.Compiler.Diagnostic{
                  compiler_name: "erl_parse",
                  file: ^file,
+                 source: ^file,
                  message: "syntax error before: b",
                  position: position(2, 5),
                  severity: :error
