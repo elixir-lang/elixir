@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 22
+  @manifest_vsn 23
   @checkpoint_vsn 2
 
   import Record
@@ -171,7 +171,7 @@ defmodule Mix.Compilers.Elixir do
         state = {%{}, exports, sources, [], modules, removed_modules}
         compiler_loop(stale, stale_modules, dest, timestamp, opts, state)
       else
-        {:ok, info, state} ->
+        {:ok, %{runtime_warnings: runtime_warnings, compile_warnings: compile_warnings}, state} ->
           {modules, _exports, sources, _changed, pending_modules, _stale_exports} = state
 
           previous_warnings =
@@ -179,7 +179,9 @@ defmodule Mix.Compilers.Elixir do
               do: previous_warnings(sources, true),
               else: []
 
-          sources = apply_warnings(sources, info)
+          runtime_warnings = Enum.map(runtime_warnings, &diagnostic/1)
+          compile_warnings = Enum.map(compile_warnings, &diagnostic/1)
+          sources = apply_warnings(sources, runtime_warnings, compile_warnings)
 
           write_manifest(
             manifest,
@@ -193,8 +195,7 @@ defmodule Mix.Compilers.Elixir do
           )
 
           put_compile_env(sources)
-          info_warnings = info.runtime_warnings ++ info.compile_warnings
-          all_warnings = previous_warnings ++ Enum.map(info_warnings, &diagnostic/1)
+          all_warnings = previous_warnings ++ runtime_warnings ++ compile_warnings
           unless_previous_warnings_as_errors(previous_warnings, opts, {:ok, all_warnings})
 
         {:error, errors, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}, state} ->
@@ -717,25 +718,9 @@ defmodule Mix.Compilers.Elixir do
   end
 
   defp previous_warnings(sources, print?) do
-    for {source,
-         source(
-           compile_warnings: compile_warnings,
-           runtime_warnings: runtime_warnings
-         )} <- sources,
-        file = Path.absname(source),
-        {position, message, span} <- compile_warnings ++ runtime_warnings do
-      # TODO: Store the whole diagnostic
-      diagnostic = %Mix.Task.Compiler.Diagnostic{
-        severity: :warning,
-        file: file,
-        source: file,
-        position: position,
-        message: message,
-        compiler_name: "Elixir",
-        stacktrace: [],
-        span: span
-      }
-
+    for {_, source(compile_warnings: compile_warnings, runtime_warnings: runtime_warnings)} <-
+          sources,
+        diagnostic <- compile_warnings ++ runtime_warnings do
       if print? do
         Mix.shell().print_app()
         Code.print_diagnostic(diagnostic)
@@ -745,13 +730,13 @@ defmodule Mix.Compilers.Elixir do
     end
   end
 
-  defp apply_warnings(sources, %{runtime_warnings: [], compile_warnings: []}) do
+  defp apply_warnings(sources, [], []) do
     sources
   end
 
-  defp apply_warnings(sources, %{runtime_warnings: r_warnings, compile_warnings: c_warnings}) do
-    runtime_group = Enum.group_by(r_warnings, & &1.file, &{&1.position, &1.message, &1.span})
-    compile_group = Enum.group_by(c_warnings, & &1.file, &{&1.position, &1.message, &1.span})
+  defp apply_warnings(sources, runtime_warnings, compile_warnings) do
+    runtime_group = Enum.group_by(runtime_warnings, & &1.source)
+    compile_group = Enum.group_by(compile_warnings, & &1.source)
 
     for {source_path, source_entry} <- sources, into: %{} do
       key = Path.absname(source_path)
