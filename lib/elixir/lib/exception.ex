@@ -805,7 +805,6 @@ defmodule Exception do
   def format_snippet(
         {start_line, _start_column} = start_pos,
         {end_line, end_column} = end_pos,
-        line_offset,
         description,
         file,
         lines,
@@ -819,22 +818,12 @@ defmodule Exception do
 
     relevant_lines =
       if end_line - start_line < 5 do
-        line_range(
-          lines,
-          start_pos,
-          end_pos,
-          line_offset,
-          padding,
-          max_digits,
-          start_message,
-          end_message
-        )
+        line_range(lines, start_pos, end_pos, padding, max_digits, start_message, end_message)
       else
         trimmed_inbetween_lines(
           lines,
           start_pos,
           end_pos,
-          line_offset,
           padding,
           max_digits,
           start_message,
@@ -854,7 +843,6 @@ defmodule Exception do
   def format_snippet(
         {start_line, start_column},
         {end_line, end_column},
-        line_offset,
         description,
         file,
         lines,
@@ -865,9 +853,7 @@ defmodule Exception do
     max_digits = digits(end_line)
     general_padding = max(2, max_digits) + 1
     padding = n_spaces(general_padding)
-
-    line = Enum.fetch!(lines, end_line - 1 - line_offset)
-    formatted_line = [line_padding(end_line, max_digits), to_string(end_line), " │ ", line]
+    formatted_line = [line_padding(end_line, max_digits), to_string(end_line), " │ ", hd(lines)]
 
     mismatched_closing_line =
       [
@@ -914,7 +900,6 @@ defmodule Exception do
          lines,
          {start_line, start_column},
          {end_line, end_column},
-         line_offset,
          padding,
          max_digits,
          start_message,
@@ -922,8 +907,8 @@ defmodule Exception do
        ) do
     start_padding = line_padding(start_line, max_digits)
     end_padding = line_padding(end_line, max_digits)
-    first_line = Enum.fetch!(lines, start_line - 1 - line_offset)
-    last_line = Enum.fetch!(lines, end_line - 1 - line_offset)
+    first_line = hd(lines)
+    last_line = List.last(lines)
 
     """
     #{start_padding}#{start_line} │ #{first_line}
@@ -938,22 +923,12 @@ defmodule Exception do
          lines,
          {start_line, start_column},
          {end_line, end_column},
-         line_offset,
          padding,
          max_digits,
          start_message,
          end_message
        ) do
-    start_line = start_line - 1
-    end_line = end_line - 1
-
-    lines
-    |> Enum.slice((start_line - line_offset)..(end_line - line_offset))
-    |> Enum.zip_with(start_line..end_line, fn line, line_number ->
-      line_number = line_number + 1
-      start_line = start_line + 1
-      end_line = end_line + 1
-
+    Enum.zip_with(lines, start_line..end_line, fn line, line_number ->
       line_padding = line_padding(line_number, max_digits)
 
       cond do
@@ -1142,7 +1117,6 @@ defmodule MismatchedDelimiterError do
     :file,
     :line,
     :column,
-    :line_offset,
     :end_line,
     :end_column,
     :opening_delimiter,
@@ -1158,7 +1132,6 @@ defmodule MismatchedDelimiterError do
         column: start_column,
         end_line: end_line,
         end_column: end_column,
-        line_offset: line_offset,
         description: description,
         expected_delimiter: expected_delimiter,
         file: file,
@@ -1176,7 +1149,6 @@ defmodule MismatchedDelimiterError do
       Exception.format_snippet(
         start_pos,
         end_pos,
-        line_offset,
         description,
         file,
         lines,
@@ -1267,7 +1239,6 @@ defmodule TokenMissingError do
     :column,
     :end_line,
     :end_column,
-    :line_offset,
     :snippet,
     :opening_delimiter,
     :expected_delimiter,
@@ -1280,20 +1251,19 @@ defmodule TokenMissingError do
         line: line,
         column: column,
         end_line: end_line,
-        line_offset: line_offset,
         description: description,
         expected_delimiter: expected_delimiter,
         snippet: snippet
       })
       when not is_nil(snippet) and not is_nil(column) and not is_nil(end_line) do
-    {lines, total_trimmed_lines} = handle_trailing_newlines(snippet)
-    end_line = end_line - total_trimmed_lines
+    {trimmed, [last_line | _] = reversed_lines} =
+      snippet
+      |> String.split("\n")
+      |> Enum.reverse()
+      |> Enum.split_while(&(&1 == ""))
 
-    end_column =
-      lines
-      |> Enum.fetch!(end_line - line_offset - 1)
-      |> String.length()
-      |> Kernel.+(1)
+    end_line = end_line - length(trimmed)
+    end_column = String.length(last_line) + 1
 
     start_pos = {line, column}
     end_pos = {end_line, end_column}
@@ -1306,10 +1276,9 @@ defmodule TokenMissingError do
       Exception.format_snippet(
         start_pos,
         end_pos,
-        line_offset,
         description,
         file,
-        lines,
+        Enum.reverse(reversed_lines),
         start_message,
         end_message
       )
@@ -1329,13 +1298,6 @@ defmodule TokenMissingError do
       :elixir_errors.format_snippet({line, column}, file, description, snippet, :error, [], nil)
 
     format_message(file, line, column, snippet)
-  end
-
-  defp handle_trailing_newlines(snippet) do
-    trimmed_snippet = String.trim_trailing(snippet, "\n")
-    total_trimmed_newlines = String.length(snippet) - String.length(trimmed_snippet)
-    lines = String.split(trimmed_snippet, "\n")
-    {lines, total_trimmed_newlines}
   end
 
   defp format_message(file, line, column, message) do
