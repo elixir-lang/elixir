@@ -16,11 +16,9 @@ defmodule Kernel.TracersTest do
 
   setup_all do
     Code.put_compiler_option(:tracers, [__MODULE__])
-    Code.put_compiler_option(:parser_options, columns: true)
 
     on_exit(fn ->
       Code.put_compiler_option(:tracers, [])
-      Code.put_compiler_option(:parser_options, [])
     end)
   end
 
