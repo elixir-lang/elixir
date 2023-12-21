@@ -26,7 +26,7 @@ print_warning(Position, File, Message) ->
 %% Called by Module.ParallelChecker.
 print_warning(Message, Diagnostic) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
-  Snippet = get_snippet(File, Position),
+  Snippet = read_snippet(File, Position),
   Span = get_span(Diagnostic),
   Output = format_snippet(Position, File, Message, Snippet, warning, S, Span),
   io:put_chars(standard_error, [Output, $\n, $\n]).
@@ -34,7 +34,7 @@ print_warning(Message, Diagnostic) ->
 %% Called by Module.ParallelChecker.
 print_warning_group(Message, [Diagnostic | Others]) ->
   #{file := File, position := Position, stacktrace := S} = Diagnostic,
-  Snippet = get_snippet(File, Position),
+  Snippet = read_snippet(File, Position),
   Span = get_span(Diagnostic),
   Formatted = format_snippet(Position, File, Message, Snippet, warning, S, Span),
   LineNumber = extract_line(Position),
@@ -49,11 +49,11 @@ print_warning_group(Message, [Diagnostic | Others]) ->
 get_span(#{span := nil}) -> nil;
 get_span(#{span := Span}) -> Span.
 
-get_snippet(nil, _Position) ->
+read_snippet(nil, _Position) ->
   nil;
-get_snippet(<<"nofile">>, _Position) ->
+read_snippet(<<"nofile">>, _Position) ->
   nil;
-get_snippet(File, Position) ->
+read_snippet(File, Position) ->
   LineNumber = extract_line(Position),
   get_file_line(File, LineNumber).
 
@@ -80,7 +80,7 @@ traverse_file_line(IoDevice, N) ->
 print_diagnostic(#{severity := Severity, message := M, stacktrace := Stacktrace, position := P, file := F} = Diagnostic, ReadSnippet) ->
   Snippet =
     case ReadSnippet of
-      true -> get_snippet(F, P);
+      true -> read_snippet(F, P);
       false -> nil
     end,
 
@@ -320,10 +320,8 @@ parse_error(Location, File, Error, <<>>, Input) ->
     <<"syntax error before: ">> -> <<"syntax error: expression is incomplete">>;
     _ -> <<Error/binary>>
   end,
-  case lists:keytake(error_type, 1, Location) of
-    {value, {error_type, unclosed_delimiter}, Loc} -> raise_unclosed_delimiter(Loc, File, Input, Message);
-    _ -> raise_snippet(Location, File, Input, 'Elixir.TokenMissingError', Message)
-  end;
+
+  raise_snippet(Location, File, Input, 'Elixir.TokenMissingError', Message);
 
 %% Show a nicer message for end of line
 parse_error(Location, File, <<"syntax error before: ">>, <<"eol">>, Input) ->
@@ -398,26 +396,16 @@ parse_error(Location, File, <<"syntax error before: ">>, <<$$, Char/binary>>, In
 parse_error(Location, File, Error, Token, Input) when is_binary(Error), is_binary(Token) ->
   Message = <<Error/binary, Token/binary>>,
   case lists:keytake(error_type, 1, Location) of
-    {value, {error_type, mismatched_delimiter}, Loc} -> raise_mismatched_delimiter(Loc, File, Input, Message);
-    _ -> raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
+    {value, {error_type, mismatched_delimiter}, Loc} ->
+      raise_snippet(Loc, File, Input, 'Elixir.MismatchedDelimiterError', Message);
+    _ ->
+      raise_snippet(Location, File, Input, 'Elixir.SyntaxError', Message)
   end.
 
 parse_erl_term(Term) ->
   {ok, Tokens, _} = erl_scan:string(binary_to_list(Term)),
   {ok, Parsed} = erl_parse:parse_term(Tokens ++ [{dot, 1}]),
   Parsed.
-
-raise_mismatched_delimiter(Location, File, Input, Message) ->
-  {InputString, StartLine, StartColumn} = Input,
-  Snippet = indent(elixir_utils:characters_to_binary(InputString), StartColumn),
-  Opts = [{file, File}, {line_offset, StartLine - 1}, {snippet, Snippet} | Location],
-  raise('Elixir.MismatchedDelimiterError', Message, Opts).
-
-raise_unclosed_delimiter(Location, File, Input, Message) ->
-  {InputString, StartLine, StartColumn} = Input,
-  Snippet = indent(elixir_utils:characters_to_binary(InputString), StartColumn),
-  Opts = [{line_offset, StartLine - 1}, {file, File}, {snippet, Snippet} | Location],
-  raise('Elixir.TokenMissingError', Message, Opts).
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',
@@ -426,31 +414,42 @@ raise_reserved(Location, File, Input, Keyword) ->
           "it can't be used as a variable or be defined nor invoked as a regular function">>).
 
 raise_snippet(Location, File, Input, Kind, Message) when is_binary(File) ->
-  {InputString, StartLine, StartColumn} = Input,
-  Snippet = snippet_line(InputString, Location, StartLine),
-  raise(Kind, Message, [{file, File}, {snippet, indent(Snippet, StartColumn)} | Location]).
+  Snippet = cut_snippet(Location, Input),
+  raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
 
-indent(nil, _StartColumn) -> nil;
-indent(Snippet, StartColumn) when StartColumn > 1 ->
-  Prefix = binary:copy(<<" ">>, StartColumn - 1),
-  Replaced = binary:replace(Snippet, <<"\n">>, <<Prefix/binary, "\n">>, [global]),
-  <<Prefix/binary, Replaced/binary>>;
-indent(Snippet, _StartColumn) -> Snippet.
-
-snippet_line(InputString, Location, StartLine) ->
-  {line, Line} = lists:keyfind(line, 1, Location),
+cut_snippet(Location, Input) ->
   case lists:keyfind(column, 1, Location) of
     {column, _} ->
-      Lines = string:split(InputString, "\n", all),
-      Snippet = (lists:nth(Line - StartLine + 1, Lines)),
-      case string:trim(Snippet, leading) of
-        [] -> nil;
-        _ -> elixir_utils:characters_to_binary(Snippet)
+      {line, Line} = lists:keyfind(line, 1, Location),
+
+      case lists:keyfind(end_line, 1, Location) of
+        {end_line, EndLine} ->
+          cut_snippet(Input, Line, EndLine - Line + 1);
+
+        false ->
+          Snippet = cut_snippet(Input, Line, 1),
+          case string:trim(Snippet, leading) of
+            <<>> -> nil;
+            _ -> Snippet
+          end
       end;
 
     false ->
       nil
   end.
+
+cut_snippet({InputString, StartLine, StartColumn}, Line, Span) ->
+  %% In case the code is indented, we need to add the indentation back
+  %% for the snippets to match the reported columns.
+  Indent = binary:copy(<<" ">>, StartColumn - 1),
+  Lines = string:split(InputString, "\n", all),
+  [Head | Tail] = lists:nthtail(Line - StartLine, Lines),
+  IndentedTail = indent_n(Tail, Span - 1, <<"\n", Indent/binary>>),
+  elixir_utils:characters_to_binary([Indent, Head, IndentedTail]).
+
+indent_n([], _Count, _Indent) -> [];
+indent_n(_Lines, 0, _Indent) -> [];
+indent_n([H | T], Count, Indent) -> [Indent, H | indent_n(T, Count - 1, Indent)].
 
 %% Helpers
 

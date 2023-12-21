@@ -148,7 +148,6 @@ tokenize([], EndLine, EndColumn, #elixir_tokenizer{terminators=[{Start, {StartLi
   Message = "missing terminator: ~ts",
   Formatted = io_lib:format(Message, [End]),
   Meta = [
-    {error_type, unclosed_delimiter},
     {opening_delimiter, Start},
     {expected_delimiter, End},
     {line, StartLine},
@@ -1350,7 +1349,6 @@ interpolation_error(Reason, Rest, Scope, Tokens, Extension, Args, Line, Column, 
 
 interpolation_format({string, EndLine, EndColumn, Message, Token}, Extension, Args, Line, Column, Opening, Closing) ->
   Meta = [
-    {error_type, unclosed_delimiter},
     {opening_delimiter, list_to_atom(Opening)},
     {expected_delimiter, list_to_atom(Closing)},
     {line, Line},
