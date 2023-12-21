@@ -147,7 +147,7 @@ defmodule Kernel.ParallelCompilerTest do
       expected_msg = "Undef.__struct__/1 is undefined, cannot expand struct Undef"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 3, msg}, {^fixture, 0, compile_msg}], []} =
+               assert {:error, [{^fixture, {3, 5}, msg}, {^fixture, 0, compile_msg}], []} =
                         Kernel.ParallelCompiler.compile([fixture])
 
                assert msg =~ expected_msg
@@ -216,7 +216,7 @@ defmodule Kernel.ParallelCompilerTest do
         "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 7, msg}, {^fixture, 0, compile_msg}], []} =
+               assert {:error, [{^fixture, {7, 3}, msg}, {^fixture, 0, compile_msg}], []} =
                         Kernel.ParallelCompiler.compile([fixture])
 
                assert msg =~ expected_msg
@@ -245,7 +245,9 @@ defmodule Kernel.ParallelCompilerTest do
         "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^missing_struct, 2, msg}, {^missing_struct, 0, compile_msg}], []} =
+               assert {:error,
+                       [{^missing_struct, {2, 3}, msg}, {^missing_struct, 0, compile_msg}],
+                       []} =
                         Kernel.ParallelCompiler.compile([missing_struct, depends_on])
 
                assert msg =~ expected_msg
@@ -272,7 +274,9 @@ defmodule Kernel.ParallelCompilerTest do
       expected_msg = "module Unknown.Module is not loaded and could not be found"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^missing_import, 2, msg}, {^missing_import, 0, compile_msg}], []} =
+               assert {:error,
+                       [{^missing_import, {2, 3}, msg}, {^missing_import, 0, compile_msg}],
+                       []} =
                         Kernel.ParallelCompiler.compile([missing_import, depends_on])
 
                assert msg =~ expected_msg
@@ -509,7 +513,7 @@ defmodule Kernel.ParallelCompilerTest do
       expected_msg = "Undef.__struct__/1 is undefined, cannot expand struct Undef"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 3, msg}, {^fixture, 0, compile_msg}], []} =
+               assert {:error, [{^fixture, {3, 5}, msg}, {^fixture, 0, compile_msg}], []} =
                         Kernel.ParallelCompiler.require([fixture])
 
                assert msg =~ expected_msg
@@ -537,7 +541,7 @@ defmodule Kernel.ParallelCompilerTest do
         "ThisModuleWillNeverBeAvailable.__struct__/1 is undefined, cannot expand struct ThisModuleWillNeverBeAvailable"
 
       assert capture_io(:stderr, fn ->
-               assert {:error, [{^fixture, 7, msg}, {^fixture, 0, compile_msg}], []} =
+               assert {:error, [{^fixture, {7, 3}, msg}, {^fixture, 0, compile_msg}], []} =
                         Kernel.ParallelCompiler.require([fixture])
 
                assert msg =~ expected_msg

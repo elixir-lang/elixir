@@ -761,38 +761,31 @@ defmodule EExTest do
     end
 
     test "line and column meta" do
-      parser_options = Code.get_compiler_option(:parser_options)
-      Code.put_compiler_option(:parser_options, columns: true)
+      indentation = 12
 
-      try do
-        indentation = 12
+      ast =
+        EEx.compile_string(
+          """
+          <%= f() %> <% f() %>
+            <%= f fn -> %>
+              <%= f() %>
+            <% end %>
+          """,
+          indentation: indentation
+        )
 
-        ast =
-          EEx.compile_string(
-            """
-            <%= f() %> <% f() %>
-              <%= f fn -> %>
-                <%= f() %>
-              <% end %>
-            """,
-            indentation: indentation
-          )
+      {_, calls} =
+        Macro.prewalk(ast, [], fn
+          {:f, meta, _args} = expr, acc -> {expr, [meta | acc]}
+          other, acc -> {other, acc}
+        end)
 
-        {_, calls} =
-          Macro.prewalk(ast, [], fn
-            {:f, meta, _args} = expr, acc -> {expr, [meta | acc]}
-            other, acc -> {other, acc}
-          end)
-
-        assert Enum.reverse(calls) == [
-                 [line: 1, column: indentation + 5],
-                 [line: 1, column: indentation + 15],
-                 [line: 2, column: indentation + 7],
-                 [line: 3, column: indentation + 9]
-               ]
-      after
-        Code.put_compiler_option(:parser_options, parser_options)
-      end
+      assert Enum.reverse(calls) == [
+               [line: 1, column: indentation + 5],
+               [line: 1, column: indentation + 15],
+               [line: 2, column: indentation + 7],
+               [line: 3, column: indentation + 9]
+             ]
     end
   end
 
