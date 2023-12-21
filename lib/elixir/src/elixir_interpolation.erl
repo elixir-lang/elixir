@@ -97,7 +97,7 @@ extract_nl(Rest, Buffer, Output, Line, Scope, Interpol, [H,H,H] = Last) ->
       extract(NewRest, NewBuffer, Output, Line + 1, Column, Scope, Interpol, Last)
   end;
 extract_nl(Rest, Buffer, Output, Line, Scope, Interpol, Last) ->
-  extract(Rest, Buffer, Output, Line + 1, 1, Scope, Interpol, Last).
+  extract(Rest, Buffer, Output, Line + 1, Scope#elixir_tokenizer.column, Scope, Interpol, Last).
 
 strip_horizontal_space([H | T], Buffer, Counter) when H =:= $\s; H =:= $\t ->
   strip_horizontal_space(T, [H | Buffer], Counter + 1);

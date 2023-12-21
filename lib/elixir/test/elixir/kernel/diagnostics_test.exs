@@ -638,24 +638,25 @@ defmodule Kernel.DiagnosticsTest do
              """
     end
 
-    test "TokenMissingError (snippet) with offset" do
+    test "TokenMissingError (snippet) with offset and column" do
       output =
         capture_raise(
           """
           1 +
           """,
           TokenMissingError,
-          line: 3
+          line: 3,
+          column: 3
         )
 
       assert output == """
-             ** (TokenMissingError) token missing on nofile:3:4:
+             ** (TokenMissingError) token missing on nofile:3:6:
                  error: syntax error: expression is incomplete
                  │
-               3 │ 1 +
-                 │    ^
+               3 │   1 +
+                 │      ^
                  │
-                 └─ nofile:3:4\
+                 └─ nofile:3:6\
              """
     end
 
@@ -852,7 +853,7 @@ defmodule Kernel.DiagnosticsTest do
           └─ #{path}:3: Sample.a/0
       """
 
-      assert capture_eval(source, false) =~ expected
+      assert capture_eval(source, columns: false) =~ expected
     after
       purge(Sample)
     end
@@ -1086,7 +1087,7 @@ defmodule Kernel.DiagnosticsTest do
 
       """
 
-      assert capture_eval(source, false) == expected
+      assert capture_eval(source, columns: false) == expected
     after
       purge(Sample)
     end
@@ -1117,7 +1118,7 @@ defmodule Kernel.DiagnosticsTest do
 
       """
 
-      assert capture_compile(source, false) == expected
+      assert capture_compile(source, columns: false) == expected
     after
       purge(Sample)
     end
@@ -1290,7 +1291,7 @@ defmodule Kernel.DiagnosticsTest do
 
       """
 
-      assert capture_eval(source, false) == expected
+      assert capture_eval(source, columns: false) == expected
     after
       purge(Sample)
     end
@@ -1443,17 +1444,17 @@ defmodule Kernel.DiagnosticsTest do
     |> Path.relative_to_cwd()
   end
 
-  defp capture_eval(source, columns? \\ true) do
+  defp capture_eval(source, opts \\ [columns: true]) do
     capture_io(:stderr, fn ->
-      quoted = Code.string_to_quoted!(source, columns: columns?)
+      quoted = Code.string_to_quoted!(source, opts)
       Code.eval_quoted(quoted)
     end)
   end
 
-  defp capture_compile(source, columns? \\ true) do
+  defp capture_compile(source, opts \\ [columns: true]) do
     capture_io(:stderr, fn ->
       assert_raise CompileError, fn ->
-        ast = Code.string_to_quoted!(source, columns: columns?)
+        ast = Code.string_to_quoted!(source, opts)
         Code.eval_quoted(ast)
       end
     end)

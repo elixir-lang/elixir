@@ -321,7 +321,7 @@ parse_error(Location, File, Error, <<>>, Input) ->
     _ -> <<Error/binary>>
   end,
   case lists:keytake(error_type, 1, Location) of
-    {value, {error_type, unclosed_delimiter}, Loc} -> raise_token_missing(Loc, File, Input, Message);
+    {value, {error_type, unclosed_delimiter}, Loc} -> raise_unclosed_delimiter(Loc, File, Input, Message);
     _ -> raise_snippet(Location, File, Input, 'Elixir.TokenMissingError', Message)
   end;
 
@@ -408,15 +408,16 @@ parse_erl_term(Term) ->
   Parsed.
 
 raise_mismatched_delimiter(Location, File, Input, Message) ->
-  {InputString, StartLine, _} = Input,
-  InputBinary = elixir_utils:characters_to_binary(InputString),
-  KV = [{file, File}, {line_offset, StartLine - 1}, {snippet, InputBinary} | Location],
-  raise('Elixir.MismatchedDelimiterError', Message, KV).
+  {InputString, StartLine, StartColumn} = Input,
+  Snippet = indent(elixir_utils:characters_to_binary(InputString), StartColumn),
+  Opts = [{file, File}, {line_offset, StartLine - 1}, {snippet, Snippet} | Location],
+  raise('Elixir.MismatchedDelimiterError', Message, Opts).
 
-raise_token_missing(Location, File, Input, Message) ->
-  {InputString, StartLine, _} = Input,
-  InputBinary = elixir_utils:characters_to_binary(InputString),
-  raise('Elixir.TokenMissingError', Message,  [{line_offset, StartLine - 1}, {file, File}, {snippet, InputBinary} | Location]).
+raise_unclosed_delimiter(Location, File, Input, Message) ->
+  {InputString, StartLine, StartColumn} = Input,
+  Snippet = indent(elixir_utils:characters_to_binary(InputString), StartColumn),
+  Opts = [{line_offset, StartLine - 1}, {file, File}, {snippet, Snippet} | Location],
+  raise('Elixir.TokenMissingError', Message, Opts).
 
 raise_reserved(Location, File, Input, Keyword) ->
   raise_snippet(Location, File, Input, 'Elixir.SyntaxError',
@@ -425,9 +426,16 @@ raise_reserved(Location, File, Input, Keyword) ->
           "it can't be used as a variable or be defined nor invoked as a regular function">>).
 
 raise_snippet(Location, File, Input, Kind, Message) when is_binary(File) ->
-  {InputString, StartLine, _} = Input,
+  {InputString, StartLine, StartColumn} = Input,
   Snippet = snippet_line(InputString, Location, StartLine),
-  raise(Kind, Message, [{file, File}, {snippet, Snippet} | Location]).
+  raise(Kind, Message, [{file, File}, {snippet, indent(Snippet, StartColumn)} | Location]).
+
+indent(nil, _StartColumn) -> nil;
+indent(Snippet, StartColumn) when StartColumn > 1 ->
+  Prefix = binary:copy(<<" ">>, StartColumn - 1),
+  Replaced = binary:replace(Snippet, <<"\n">>, <<Prefix/binary, "\n">>, [global]),
+  <<Prefix/binary, Replaced/binary>>;
+indent(Snippet, _StartColumn) -> Snippet.
 
 snippet_line(InputString, Location, StartLine) ->
   {line, Line} = lists:keyfind(line, 1, Location),

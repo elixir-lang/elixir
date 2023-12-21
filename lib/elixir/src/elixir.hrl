@@ -35,6 +35,7 @@
   identifier_tokenizer=elixir_tokenizer,
   ascii_identifiers_only=true,
   indentation=0,
+  column=1,
   mismatch_hints=[],
   warnings=[]
 }).
