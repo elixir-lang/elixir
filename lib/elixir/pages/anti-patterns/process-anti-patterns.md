@@ -295,8 +295,8 @@ iex> Counter.get(Counter) # After the restart, this process can be used again
 
 #### Problem
 
-Sending a message to a process can be an expensive operation if it is big enough, as messages will be fully copied to the receiving process, which is both CPU and memory intensive. This is due to Erlang's "share nothing" architecture where each process has its own memory, simplifying and speeding up garbage collection.
-This is more obvious when using `send/2`, `GenServer.call/3`, or the initial data in `GenServer.start_link/3`. Notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3`, etc. It is more subtle here as the anonymous function passed to these functions captures the variables it references in its closure; this means that all data will be copied over. By doing this, you can accidentally send way more data to a process than you actually need.
+Sending a message to a process can be an expensive operation if the message is big enough. That's because that message will be fully copied to the receiving process, which is both CPU and memory intensive. This is due to Erlang's "share nothing" architecture, where each process has its own memory, which simplifies and speeds up garbage collection.
+This is more obvious when using `send/2`, `GenServer.call/3`, or the initial data in `GenServer.start_link/3`. Notably this also happens when using `spawn/1`, `Task.async/1`, `Task.async_stream/3`, and so on. It is more subtle here as the anonymous function passed to these functions captures the variables it references in its closure; this means that all data will be copied over. By doing this, you can accidentally send way more data to a process than you actually need.
 
 #### Example
 
@@ -313,7 +313,7 @@ Please note that this problem also occurs if you think you may just be accessing
 spawn(fn -> log_request_ip(conn.remote_ip) end)
 ```
 
-This will still copy over all of `conn`.
+This will still copy over all of `conn`, because the `conn` variable is being captured as a closure inside the spawned function. That function then extracts the `remote_ip` field, but only after the whole `conn` has been copied over.
 
 #### Refactoring
 
@@ -323,7 +323,7 @@ This anti-pattern has many potential remedies:
 * If only the process that needs data is the one you are sending to, consider making the process fetch that data instead of passing it.
 * There are some data structures that are already shared between processes and don't need copying, such as [ETS](https://www.erlang.org/doc/man/ets) and [`:persistent_term`](https://www.erlang.org/doc/man/persistent_term.html).
 
-In our case, limiting the input data is a reasonable strategy. If all we need _right now_ is the IP address, then let's only work with that and make sure we're only passing the IP address into the closure, like so:
+In our case, limiting the input data is a reasonable strategy. If all we need *right now* is the IP address, then let's only work with that and make sure we're only passing the IP address into the closure, like so:
 
 ```elixir
 ip_address = conn.remote_ip
