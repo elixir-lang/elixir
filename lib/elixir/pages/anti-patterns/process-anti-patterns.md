@@ -6,7 +6,7 @@ This document outlines potential anti-patterns related to processes and process-
 
 #### Problem
 
-This anti-pattern refers to code that is unnecessarily organized by processes. A process itself does not represent an anti-pattern, but it should only be used to model runtime properties (such as concurrency, access to shared resources, and event scheduling). When you use a process for code organization, it can create bottlenecks in the system.
+This anti-pattern refers to code that is unnecessarily organized by processes. A process itself does not represent an anti-pattern, but it should only be used to model runtime properties (such as concurrency, access to shared resources, error isolation, etc). When you use a process for code organization, it can create bottlenecks in the system.
 
 #### Example
 
@@ -261,7 +261,9 @@ defmodule Counter do
   use GenServer
 
   @doc "Starts a counter process."
-  def start(initial_value, name \\ __MODULE__) when is_integer(initial_value) do
+  def start_link(opts \\ []) do
+    initial_valye = Keyword.get(opts, :initial_value, 0)
+    name = Keywoird.get(opts, :name, __MODULE__)
     GenServer.start(__MODULE__, initial_value, name: name)
   end
 
@@ -271,7 +273,7 @@ defmodule Counter do
   end
 
   @doc "Bumps the value of the given counter."
-  def bump(value, pid_name \\ __MODULE__) do
+  def bump(pid_name \\ __MODULE__, value) do
     GenServer.call(pid_name, {:bump, value})
   end
 
@@ -292,17 +294,17 @@ end
 ```
 
 ```elixir
-iex> Counter.start(0)
+iex> Counter.start_link()
 {:ok, #PID<0.115.0>}
 iex> Counter.get()
 0
-iex> Counter.start(15, :other_counter)
+iex> Counter.start_link(initial_value: 15, name: :other_counter)
 {:ok, #PID<0.120.0>}
 iex> Counter.get(:other_counter)
 15
-iex> Counter.bump(-3, :other_counter)
+iex> Counter.bump(:other_counter, -3)
 12
-iex> Counter.bump(7)
+iex> Counter.bump(Counter, 7)
 7
 ```
 
@@ -317,8 +319,13 @@ defmodule SupervisedProcess.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      %{id: Counter, start: {Counter, :start, [0]}},
-      %{id: :other_counter, start: {Counter, :start, [0, :other_counter]}}
+      # With the default values for counter and name
+      Counter,
+      # With custom values for counter, name, and a custom ID
+      Supervisor.child_spec(
+        {Counter, name: :other_counter, initial_value: 15},
+        id: :other_counter
+      )
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one, name: App.Supervisor)
@@ -332,8 +339,8 @@ iex> Supervisor.count_children(App.Supervisor)
 iex> Counter.get(Counter)
 0
 iex> Counter.get(:other_counter)
-0
-iex> Counter.bump(7, Counter)
+15
+iex> Counter.bump(Counter, 7)
 7
 iex> Supervisor.terminate_child(App.Supervisor, Counter)
 iex> Supervisor.count_children(App.Supervisor) # Only one active child
