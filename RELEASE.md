@@ -12,7 +12,7 @@
 
 5. Wait until GitHub Actions publish artifacts to the draft release and the CI is green
 
-6. Copy the relevant bits from /CHANGELOG.md to the GitHub release and publish it
+6. Copy the relevant bits from /CHANGELOG.md to the GitHub release and publish it (link to the announcement if there is one)
 
 7. Update `_data/elixir-versions.yml` (except for RCs) in `elixir-lang/elixir-lang.github.com`
 
