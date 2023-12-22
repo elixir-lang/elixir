@@ -309,9 +309,13 @@ There are few known exceptions to this anti-pattern:
 
 #### Problem
 
-In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically. When a key is expected to exist in the map, it must be accessed using the `map.key` notation, which asserts the key exists. If the key does not exist, an exception is raised (and in some situations also compiler warnings), allowing developers to catch bugs early on.
+In Elixir, it is possible to access values from `Map`s, which are key-value data structures, either statically or dynamically.
 
-`map[:key]` must be used with optional keys. This way, if the informed key does not exist, `nil` is returned. When used with required keys, this return can be confusing and allow `nil` values to pass through the system, while `map.key` would raise upfront. In this way, this anti-pattern may cause bugs in the code.
+When a key is expected to exist in a map, it must be accessed using the `map.key` notation, making it clear to developers (and the compiler) that the key must exist. If the key does not exist, an exception is raised (and in some cases also compiler warnings). This is also known as the static notation, as the key is known at the time of writing the code.
+
+When a key is optional, the `map[:key]` notation must be used instead. This way, if the informed key does not exist, `nil` is returned. This is the dynamic notation, as it also supports dynamic key access, such as `map[some_var]`.
+
+When you use `map[:key]` to access a key that always exists in the map, you are making the code less clear for developers and for the compiler, as they now need to work with the assumption the key may not be there. This mismatch may also make it harder to track certain bugs. If the key is unexpected missing, you will have a `nil` value propagate through the system, instead of raising on map access.
 
 #### Example
 
@@ -321,8 +325,6 @@ The function `plot/1` tries to draw a graphic to represent the position of a poi
 defmodule Graphics do
   def plot(point) do
     # Some other code...
-
-    # Dynamic access to use point values
     {point[:x], point[:y], point[:z]}
   end
 end
@@ -331,90 +333,75 @@ end
 ```elixir
 iex> point_2d = %{x: 2, y: 3}
 %{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
+iex> point_3d = %{x: 5, y: 6, z: 7}
+%{x: 5, y: 6, z: 7}
 iex> Graphics.plot(point_2d)
-{2, 3, nil}   # <= ambiguous return
+{2, 3, nil}
 iex> Graphics.plot(point_3d)
-{5, 6, nil}
+{5, 6, 7}
 ```
 
-As can be seen in the example above, even when the key `:z` does not exist in the map (`point_2d`), dynamic access returns the value `nil`. This return can be dangerous because of its ambiguity. It is not possible to conclude from it whether the map has the key `:z` or not. If the function relies on the return value to make decisions about how to plot a point, this can be problematic and even cause errors when testing the code.
+Given we want to plot both 2D and 3D points, the behaviour above is expected. But what happens if we forget to pass a point with either `:x` or `:y`?
+
+```elixir
+iex> bad_point = %{y: 3, z: 4}
+%{y: 3, z: 4}
+iex> Graphics.plot(bad_point)
+{nil, 3, 4}
+```
+
+The behaviour above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on.
 
 #### Refactoring
 
-To remove this anti-pattern, whenever accessing an existing key of `Atom` type in the map, replace the dynamic `map[:key]` syntax by the static `map.key` notation. This way, when a non-existent key is accessed, Elixir raises an error immediately, allowing developers to find bugs faster. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
+To remove this anti-pattern, we must use the dynamic `map[:key]` syntax and the static `map.key` notation according to our requirements. We expect `:x` and `:y` to always exist, but not `:z`. The next code illustrates the refactoring of `plot/1`, removing this anti-pattern:
 
 ```elixir
 defmodule Graphics do
   def plot(point) do
     # Some other code...
-
-    # Strict access to use point values
-    {point.x, point.y, point.z}
+    {point.x, point.y, point[:z]}
   end
 end
 ```
 
 ```elixir
-iex> point_2d = %{x: 2, y: 3}
-%{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
 iex> Graphics.plot(point_2d)
-** (KeyError) key :z not found in: %{x: 2, y: 3} # <= explicitly warns that
-  graphic.ex:6: Graphics.plot/1                  # <= the :z key does not exist!
-iex> Graphics.plot(point_3d)
-{5, 6, nil}
+{2, 3, nil}
+iex> Graphics.plot(bad_point)
+** (KeyError) key :x not found in: %{y: 3, z: 4} # <= explicitly warns that
+  graphic.ex:4: Graphics.plot/1                  # <= the :z key does not exist!
 ```
 
 Overall, the usage of `map.key` and `map[:key]` encode important information about your data structure, allowing developers to be clear about their intent. See both `Map` and `Access` module documentation for more information and examples.
 
-An even simpler alternative to refactor this anti-pattern is to use pattern matching:
+An alternative to refactor this anti-pattern is to use pattern matching, defining explicit clauses for 2d vs 3d points:
 
 ```elixir
 defmodule Graphics do
+  # 2d
+  def plot(%{x: x, y: y}) do
+    # Some other code...
+    {x, y}
+  end
+
+  # 3d
   def plot(%{x: x, y: y, z: z}) do
     # Some other code...
-
-    # Strict access to use point values
     {x, y, z}
   end
 end
 ```
 
-```elixir
-iex> point_2d = %{x: 2, y: 3}
-%{x: 2, y: 3}
-iex> point_3d = %{x: 5, y: 6, z: nil}
-%{x: 5, y: 6, z: nil}
-iex> Graphics.plot(point_2d)
-** (FunctionClauseError)  no function clause matching in Graphics.plot/1
-  graphic.ex:2: Graphics.plot/1                  # <= the :z key does not exist!
-iex> Graphics.plot(point_3d)
-{5, 6, nil}
-```
+Pattern-matching is specially useful when matching over multiple keys as well as on the values themselves at once.
 
-Pattern-matching is specially useful when matching over multiple keys at once and also when you want to match and assert on the values of a map.
-
-Another alternative is to use structs. By default, structs only support static access to its fields:
+Another option is to use structs. By default, structs only support static access to its fields. In such scenarios, you may consider defining structs for both 2D and 3D points:
 
 ```elixir
-defmodule Point.2D do
+defmodule Point2D do
   @enforce_keys [:x, :y]
   defstruct [x: nil, y: nil]
 end
-```
-
-```elixir
-iex> point = %Point.2D{x: 2, y: 3}
-%Point.2D{x: 2, y: 3}
-iex> point.x   # <= strict access to use point values
-2
-iex> point.z   # <= trying to access a non-existent key
-** (KeyError) key :z not found in: %Point{x: 2, y: 3}
-iex> point[:x] # <= by default, struct does not support dynamic access
-** (UndefinedFunctionError) ... (Point does not implement the Access behaviour)
 ```
 
 Generally speaking, structs are useful when sharing data structures across modules, at the cost of adding a compile time dependency between these modules. If module `A` uses a struct defined in module `B`, `A` must be recompiled if the fields in the struct `B` change.
@@ -498,7 +485,7 @@ case some_function(arg) do
 end
 ```
 
-In particular, avoid matching solely on `_`, as shown below, as it is less clear in intent and it may hide bugs if `some_function/1` adds new return values in the future:
+In particular, avoid matching solely on `_`, as shown below:
 
 ```elixir
 case some_function(arg) do
@@ -506,6 +493,8 @@ case some_function(arg) do
   _ -> # ...
 end
 ```
+
+ Matching on `_` is less clear in intent and it may hide bugs if `some_function/1` adds new return values in the future.
 
 #### Additional remarks
 
