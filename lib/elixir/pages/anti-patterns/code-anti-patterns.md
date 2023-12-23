@@ -379,16 +379,16 @@ An alternative to refactor this anti-pattern is to use pattern matching, definin
 
 ```elixir
 defmodule Graphics do
-  # 2d
-  def plot(%{x: x, y: y}) do
-    # Some other code...
-    {x, y}
-  end
-
   # 3d
   def plot(%{x: x, y: y, z: z}) do
     # Some other code...
     {x, y, z}
+  end
+
+  # 2d
+  def plot(%{x: x, y: y}) do
+    # Some other code...
+    {x, y}
   end
 end
 ```
