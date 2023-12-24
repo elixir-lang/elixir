@@ -33,7 +33,13 @@ Writing code is only the first of many steps to publish a package. We strongly r
 
   * Write documentation. The Elixir community is proud of treating documentation as a first-class citizen and making documentation easily accessible. Libraries contribute to the status quo by providing complete API documentation with examples for their modules, types and functions. See the [Writing documentation](../getting-started/writing-documentation.md) chapter of the Getting Started guide for more information. Projects like [ExDoc](https://github.com/elixir-lang/ex_doc) can be used to generate HTML and EPUB documents from the documentation. ExDoc also supports "extra pages", like this one that you are reading. Such pages augment the documentation with tutorials, guides, references, and even cheat-sheets.
 
-  * Follow best practices. The Elixir project documents [a series of anti-patterns](../anti-patterns/what-anti-patterns.md) that you may want to avoid in your code. The [process-related anti-patterns](../anti-patterns/process-anti-patterns.md) and [meta-programming anti-patterns](../anti-patterns/macro-anti-patterns.md) are of special attention to library authors.
+  * Follow best practices. The Elixir project documents [a series of anti-patterns](../anti-patterns/what-anti-patterns.md) that you may want to avoid in your code. Of particular importance to library authors are:
+
+    * [Design-related anti-patterns](../anti-patterns/design-anti-patterns.md)
+
+    * [Process-related anti-patterns](../anti-patterns/process-anti-patterns.md)
+
+    * [Meta-programming anti-patterns](../anti-patterns/macro-anti-patterns.md)
 
 Projects are often made available to other developers [by publishing a Hex package](https://hex.pm/docs/publish). Hex also [supports private packages for organizations](https://hex.pm/pricing). If ExDoc is configured for the Mix project, publishing a package on Hex will also automatically publish the generated documentation to [HexDocs](https://hexdocs.pm).
 
