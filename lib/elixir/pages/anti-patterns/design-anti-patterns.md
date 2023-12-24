@@ -392,7 +392,7 @@ iex> DashSplitter.split("Lucas-Francisco-da-Matta-Vegi") #<= default config is u
 ["Lucas", "Francisco-da-Matta-Vegi"]
 ```
 
-Of course, not all uses of the application environment by libraries are disallowed. For example, the application environment can be coupled with other extensibility mechanisms, such as [behaviours](https://hexdocs.pm/elixir/typespecs.html#behaviours), to remove some of the downsides. For example, if a library needs to parse JSON or CSV files, or perform HTTP requests, the library author may pick one package to use as default but allow its users to swap to different implementations via the application environment.
+Of course, not all uses of the application environment by libraries are incorrect. One example is using configuration to replace a component (or dependency) of a library by another that must behave the exact same. Consider a library that needs to parse CSV files. The library author may pick one package to use as default parser but allow its users to swap to different implementations via the application environment. At the end of the day, choosing a different CSV parser should not change the outcome, and library authors can even enforce this by [defining behaviours](../references/typespecs.md#behaviours) with the exact semantics they expect.
 
 #### Additional remarks: Supervision trees
 
