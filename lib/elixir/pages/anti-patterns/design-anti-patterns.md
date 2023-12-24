@@ -416,6 +416,8 @@ children = [
 ]
 ```
 
+Some libraries, such as [Ecto](https://github.com/elixir-ecto/ecto), allow you to pass your application name as an option (called `:otp_app` or similar) and then automatically read the environment from *your* application. While this addresses the issue with the application environment being global, as they read from each individual application, it comes at the cost of some indirection, compared to the example above where users explicitly read their application environment from their own code, whenever desired.
+
 #### Additional remarks: Compile-time configuration
 
 A similar discussion entails compile-time configuration. What if a library author requires some configuration to be provided at compilation time?
