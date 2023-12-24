@@ -251,7 +251,9 @@ end
 
 #### Refactoring
 
-To address this anti-pattern, related arguments can be grouped using maps, structs, or even tuples. This effectively reduces the number of arguments, simplifying the function's interface. In the case of `loan/6`, its arguments were grouped into two different maps, thereby reducing its arity to `loan/2`:
+To address this anti-pattern, related arguments can be grouped using key-value data structures, such as maps, structs, or even keyword lists in the case of optional arguments. This effectively reduces the number of arguments and the key-value data structures adds clarity to the caller.
+
+For this particular example, the arguments to `loan/6` can be grouped into two different maps, thereby reducing its arity to `loan/2`:
 
 ```elixir
 defmodule Library do
