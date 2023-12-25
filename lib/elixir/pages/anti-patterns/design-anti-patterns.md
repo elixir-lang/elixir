@@ -398,9 +398,9 @@ Of course, not all uses of the application environment by libraries are incorrec
 
 In practice, libraries may require additional configuration beyond keyword lists. For example, if a library needs to start a supervision tree, how can the user of said library customize its supervision tree? Given the supervision tree itself is global (as it belongs to the library), library authors may be tempted to use the application configuration once more.
 
-A possible solution in such cases is to, instead of starting the supervision tree inside the library, the library should provide its own child specifications, so the user of the library starts all necessary processes under its own supervision tree.
+One solution is for the library to provide its own child specification, instead of starting the supervision tree itself. This allows the user to start all necessary processes under its own supervision tree, potentially passing custom configuration options during initialization.
 
-You can see this pattern in practice in projects like [Nx](https://github.com/elixir-nx/nx) and [DNS Cluster](https://github.com/phoenixframework/dns_cluster). In order to use these projects (or certain features within them), you must list the necessary processes under your own supervision tree:
+You can see this pattern in practice in projects like [Nx](https://github.com/elixir-nx/nx) and [DNS Cluster](https://github.com/phoenixframework/dns_cluster). These libraries require that you list processes under your own supervision tree:
 
 ```elixir
 children = [
