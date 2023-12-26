@@ -165,7 +165,7 @@ error: imported ModuleA.foo/0 conflicts with local function
 
 #### Refactoring
 
-To remove this anti-pattern, we recommend library authors to avoid providing `__using__/1` callbacks whenever it can be replaced by `alias/1` or `import/1` directives. In the following code, we assume `use Library` is no longer available and `ClientApp` was refactored in this way, and with that, the code is clearer and the conflict as previously shown no longer exists:
+To remove this anti-pattern, we recommend library authors avoid providing `__using__/1` callbacks whenever it can be replaced by `alias/1` or `import/1` directives. In the following code, we assume `use Library` is no longer available and `ClientApp` was refactored in this way, and with that, the code is clearer and the conflict as previously shown no longer exists:
 
 ```elixir
 defmodule ClientApp do
