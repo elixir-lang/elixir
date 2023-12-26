@@ -245,7 +245,7 @@ end
 
 #### Problem
 
-Using multi-clause functions in Elixir, to group functions of the same name, is a powerful Elixir feature. However, some developers may abuse this feature to group *unrelated* functionality, which configures an anti-pattern.
+Using multi-clause functions is a powerful Elixir feature. However, some developers may abuse this feature to group *unrelated* functionality, which is an anti-pattern.
 
 #### Example
 
