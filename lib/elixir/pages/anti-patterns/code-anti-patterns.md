@@ -317,7 +317,7 @@ When a key is expected to exist in a map, it must be accessed using the `map.key
 
 When a key is optional, the `map[:key]` notation must be used instead. This way, if the informed key does not exist, `nil` is returned. This is the dynamic notation, as it also supports dynamic key access, such as `map[some_var]`.
 
-When you use `map[:key]` to access a key that always exists in the map, you are making the code less clear for developers and for the compiler, as they now need to work with the assumption the key may not be there. This mismatch may also make it harder to track certain bugs. If the key is unexpected missing, you will have a `nil` value propagate through the system, instead of raising on map access.
+When you use `map[:key]` to access a key that always exists in the map, you are making the code less clear for developers and for the compiler, as they now need to work with the assumption the key may not be there. This mismatch may also make it harder to track certain bugs. If the key is unexpectedly missing, you will have a `nil` value propagate through the system, instead of raising on map access.
 
 #### Example
 

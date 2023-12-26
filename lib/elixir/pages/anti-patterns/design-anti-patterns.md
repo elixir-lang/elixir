@@ -245,11 +245,11 @@ end
 
 #### Problem
 
-Using multi-clause functions in Elixir, to group functions of the same name, is a powerful Elixir feature. However, some developers may abuse this feature to group *unrelated* functionality, which configures an anti-pattern.
+Using multi-clause functions is a powerful Elixir feature. However, some developers may abuse this feature to group *unrelated* functionality, which is an anti-pattern.
 
 #### Example
 
-A frequent example of this usage of multi-clause functions is when developers mix unrelated business logic into the same function definition, in a way the behaviour of each clause is completely distinct from the other ones. Such functions often have too broad specifications, making it difficult for other developers to understand and maintain them.
+A frequent example of this usage of multi-clause functions occurs when developers mix unrelated business logic into the same function definition, in a way that the behaviour of each clause becomes completely distinct from the others. Such functions often have too broad specifications, making it difficult for other developers to understand and maintain them.
 
 Some developers may use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, however the documentation itself may end-up full of conditionals to describe how the function behaves for each different argument combination. This is a good indicator that the clauses are ultimately unrelated.
 
@@ -274,7 +274,7 @@ If updating an animal is completely different from updating a product and requir
 
 #### Refactoring
 
-As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in simple functions. Each function can have a specific name and `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can impact the function's current users, so be careful!
+As shown below, a possible solution to this anti-pattern is to break the business rules that are mixed up in a single unrelated multi-clause function in simple functions. Each function can have a specific name and `@doc`, describing its behavior and parameters received. While this refactoring sounds simple, it can impact the function's callers, so be careful!
 
 ```elixir
 @doc """
