@@ -374,7 +374,7 @@ iex> DashSplitter.split("Lucas-Francisco-da-Matta-Vegi")
 
 #### Refactoring
 
-To remove this anti-pattern and make the library more adaptable and flexible, this type of configuration must be performed via parameters in function calls. The code shown below performs the refactoring of the `split/1` function by accepting [keyword lists](`Keyword`) as a new optional parameter. With this new parameter, it is possible to modify the default behavior of the function at the time of its call, allowing multiple different ways of using `split/2` within the same application:
+To remove this anti-pattern, this type of configuration should be performed using a parameter passed to the function. The code shown below performs the refactoring of the `split/1` function by accepting [keyword lists](`Keyword`) as a new optional parameter. With this new parameter, it is possible to modify the default behavior of the function at the time of its call, allowing multiple different ways of using `split/2` within the same application:
 
 ```elixir
 defmodule DashSplitter do
@@ -392,7 +392,55 @@ iex> DashSplitter.split("Lucas-Francisco-da-Matta-Vegi") #<= default config is u
 ["Lucas", "Francisco-da-Matta-Vegi"]
 ```
 
-#### Additional Remarks
+Of course, not all uses of the application environment by libraries are incorrect. One example is using configuration to replace a component (or dependency) of a library by another that must behave the exact same. Consider a library that needs to parse CSV files. The library author may pick one package to use as default parser but allow its users to swap to different implementations via the application environment. At the end of the day, choosing a different CSV parser should not change the outcome, and library authors can even enforce this by [defining behaviours](../references/typespecs.md#behaviours) with the exact semantics they expect.
+
+#### Additional remarks: Supervision trees
+
+In practice, libraries may require additional configuration beyond keyword lists. For example, if a library needs to start a supervision tree, how can the user of said library customize its supervision tree? Given the supervision tree itself is global (as it belongs to the library), library authors may be tempted to use the application configuration once more.
+
+One solution is for the library to provide its own child specification, instead of starting the supervision tree itself. This allows the user to start all necessary processes under its own supervision tree, potentially passing custom configuration options during initialization.
+
+You can see this pattern in practice in projects like [Nx](https://github.com/elixir-nx/nx) and [DNS Cluster](https://github.com/phoenixframework/dns_cluster). These libraries require that you list processes under your own supervision tree:
+
+```elixir
+children = [
+  {DNSCluster, query: "my.subdomain"}
+]
+```
+
+In such cases, if the users of `DNSCluster` need to configure DNSCluster per environment, they can be the ones reading from the application environment, without the library forcing them to:
+
+```elixir
+children = [
+  {DNSCluster, query: Application.get_env(:my_app, :dns_cluster_query) || :ignore}
+]
+```
+
+Some libraries, such as [Ecto](https://github.com/elixir-ecto/ecto), allow you to pass your application name as an option (called `:otp_app` or similar) and then automatically read the environment from *your* application. While this addresses the issue with the application environment being global, as they read from each individual application, it comes at the cost of some indirection, compared to the example above where users explicitly read their application environment from their own code, whenever desired.
+
+#### Additional remarks: Compile-time configuration
+
+A similar discussion entails compile-time configuration. What if a library author requires some configuration to be provided at compilation time?
+
+Once again, instead of forcing users of your library to provide compile-time configuration, you may want to allow users of your library to generate the code themselves. That's the approach taken by libraries such as [Ecto](https://github.com/elixir-ecto/ecto):
+
+```elixir
+defmodule MyApp.Repo do
+  use Ecto.Repo, adapter: Ecto.Adapters.Postgres
+end
+```
+
+Instead of forcing developers to share a single repository, Ecto allows its users to define as many repositories as they want. Given the `:adapter` configuration is required at compile-time, it is a required value on `use Ecto.Repo`. If developers want to configure the adapter per environment, then it is their choice:
+
+```elixir
+defmodule MyApp.Repo do
+  use Ecto.Repo, adapter: Application.compile_env(:my_app, :repo_adapter)
+end
+```
+
+On the other hand, [code generation comes with its own anti-patterns](macro-anti-patterns.md), and must be considered carefully. That's to say: while using the application environment for libraries is discouraged, especially compile-time configuration, in some cases they may be the best option. For example, consider a library needs to parse CSV or JSON files to generate code based on data files. In such cases, it is best to provide reasonable defaults and make them customizable via the application environment, instead of asking each user of your library to generate the exact same code.
+
+#### Additional remarks: Mix tasks
 
 For Mix tasks and related tools, it may be necessary to provide per-project configuration. For example, imagine you have a `:linter` project, which supports setting the output file and the verbosity level. You may choose to configure it through application environment:
 
