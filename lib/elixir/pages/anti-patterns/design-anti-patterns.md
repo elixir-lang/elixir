@@ -30,7 +30,7 @@ end
 
 ```elixir
 iex> AlternativeInteger.parse("13")
-{13, ""}
+13
 iex> AlternativeInteger.parse("13", discard_rest: true)
 13
 iex> AlternativeInteger.parse("13", discard_rest: false)
