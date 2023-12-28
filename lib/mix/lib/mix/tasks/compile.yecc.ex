@@ -68,7 +68,7 @@ defmodule Mix.Tasks.Compile.Yecc do
     # TODO: Remove me in Elixir v2.0
     unless :yecc in List.wrap(project[:compilers]) do
       IO.warn(
-        "in order to compile .yrl files, you must add \"compilers: [:yecc] ++ Mix.compilers()\" to the \"def project\" section of your mix.exs"
+        "in order to compile .yrl files, you must add \"compilers: [:yecc] ++ Mix.compilers()\" to the \"def project\" section of #{project[:app]}'s mix.exs"
       )
     end
 
