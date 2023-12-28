@@ -67,7 +67,7 @@ defmodule Mix.Tasks.Compile.Leex do
     # TODO: Remove me in Elixir v2.0
     unless :leex in List.wrap(project[:compilers]) do
       IO.warn(
-        "in order to compile .xrl files, you must add \"compilers: [:leex] ++ Mix.compilers()\" to the \"def project\" section of your mix.exs"
+        "in order to compile .xrl files, you must add \"compilers: [:leex] ++ Mix.compilers()\" to the \"def project\" section of #{project[:app]}'s mix.exs"
       )
     end
 
