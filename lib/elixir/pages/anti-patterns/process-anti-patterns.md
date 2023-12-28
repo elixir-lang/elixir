@@ -262,7 +262,7 @@ defmodule Counter do
 
   @doc "Starts a counter process."
   def start_link(opts \\ []) do
-    initial_valye = Keyword.get(opts, :initial_value, 0)
+    initial_value = Keyword.get(opts, :initial_value, 0)
     name = Keyword.get(opts, :name, __MODULE__)
     GenServer.start(__MODULE__, initial_value, name: name)
   end
