@@ -257,7 +257,7 @@ iex> heartbeats_per_minute = [99, 97, 116]
 ~c"cat"
 ```
 
-You can always for charlists to be printed in their list representation by calling the `inspect/2` function:
+You can always force charlists to be printed in their list representation by calling the `inspect/2` function:
 
 ```elixir
 iex> inspect(heartbeats_per_minute, charlists: :as_list)
