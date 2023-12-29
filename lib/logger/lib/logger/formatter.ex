@@ -186,7 +186,12 @@ defmodule Logger.Formatter do
       truncate: truncate
     } = config
 
-    system_time = Map.get_lazy(meta, :time, fn -> :os.system_time(:microsecond) end)
+    system_time =
+      case meta do
+        %{time: time} when is_integer(time) and time >= 0 -> time
+        _ -> :os.system_time(:microsecond)
+      end
+
     date_time_ms = system_time_to_date_time_ms(system_time, utc_log?)
 
     meta_list =

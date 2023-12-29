@@ -74,6 +74,25 @@ defmodule Logger.FormatterTest do
              |> IO.chardata_to_string() =~
                "module=Logger.Formatter function=compile/1 mfa=Logger.Formatter.compile/1"
     end
+
+    test "handles invalid :time in metadata" do
+      {_, formatter} =
+        new(
+          format: "\n$time $message\n",
+          colors: [enabled: false]
+        )
+
+      assert %{
+               level: :warn,
+               msg: {:string, "message"},
+               meta: %{
+                 mfa: {Logger.Formatter, :compile, 1},
+                 time: "invalid"
+               }
+             }
+             |> format(formatter)
+             |> IO.chardata_to_string() =~ ~r"\d\d\d message"
+    end
   end
 
   describe "compile + format" do
