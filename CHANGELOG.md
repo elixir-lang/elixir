@@ -118,6 +118,7 @@ Finally, we have started enriching our documentation with [Mermaid.js](https://m
   * [mix compile.elixir] Pass original exception down to diagnostic `:details` when possible
   * [mix compile.elixir] Optimize scenario where there are thousands of files in `lib/` and one of them is changed
   * [mix deps.clean] Emit a warning instead of crashing when a dependency cannot be removed
+  * [mix escript.build] Escripts now strip .beam files by default, which leads to smaller escripts. However, if you are using escripts to access Elixir docs or compile Elixir code, documentation and deprecation metadata is no longer available. Set `strip_beams: false` in your escript configuration in your `mix.exs` to keep all metadata
   * [mix escript.install] Support `--sparse` option
   * [mix release] Include `include/` directory in releases
   * [mix test] Allow testing multiple file:line at once, such as `mix test test/foo_test.exs:13 test/bar_test.exs:27`
