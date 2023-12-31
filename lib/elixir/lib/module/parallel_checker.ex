@@ -167,8 +167,8 @@ defmodule Module.ParallelChecker do
 
   defp collect_results(count, diagnostics) do
     receive do
-      {:diagnostic, diagnostic} ->
-        diagnostic = format_diagnostic_file(diagnostic)
+      {:diagnostic, %{file: file} = diagnostic} ->
+        diagnostic = %{diagnostic | file: file && Path.absname(file)}
         collect_results(count, [diagnostic | diagnostics])
 
       {__MODULE__, _module, new_diagnostics} ->
@@ -285,11 +285,6 @@ defmodule Module.ParallelChecker do
       :all -> :all
       list when is_list(list) -> no_warn_undefined ++ list
     end
-  end
-
-  @doc false
-  def format_diagnostic_file(%{file: file} = diagnostic) do
-    %{diagnostic | file: file && Path.absname(file)}
   end
 
   ## Warning helpers

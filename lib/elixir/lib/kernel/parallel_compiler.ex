@@ -681,12 +681,12 @@ defmodule Kernel.ParallelCompiler do
         state = %{state | timer_ref: timer_ref}
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:diagnostic, %{severity: :warning} = diagnostic} ->
-        warnings = [Module.ParallelChecker.format_diagnostic_file(diagnostic) | warnings]
+      {:diagnostic, %{severity: :warning, file: file} = diagnostic} ->
+        warnings = [%{diagnostic | file: file && Path.absname(file)} | warnings]
         wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:diagnostic, %{severity: :error} = diagnostic} ->
-        errors = [Module.ParallelChecker.format_diagnostic_file(diagnostic) | errors]
+      {:diagnostic, %{severity: :error, file: file} = diagnostic} ->
+        errors = [%{diagnostic | file: file && Path.absname(file)} | errors]
         wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
 
       {:file_ok, child_pid, ref, file, lexical} ->
