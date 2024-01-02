@@ -371,8 +371,8 @@ end
 iex> Graphics.plot(point_2d)
 {2, 3, nil}
 iex> Graphics.plot(bad_point)
-** (KeyError) key :x not found in: %{y: 3, z: 4} # <= explicitly warns that
-  graphic.ex:4: Graphics.plot/1                  # <= the :x key does not exist!
+** (KeyError) key :x not found in: %{y: 3, z: 4}
+  graphic.ex:4: Graphics.plot/1
 ```
 
 Overall, the usage of `map.key` and `map[:key]` encode important information about your data structure, allowing developers to be clear about their intent. See both `Map` and `Access` module documentation for more information and examples.
