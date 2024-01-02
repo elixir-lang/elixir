@@ -2,7 +2,7 @@
 
 This document outlines potential anti-patterns related to meta-programming.
 
-## Large code generation by macros
+## Large code generation
 
 #### Problem
 

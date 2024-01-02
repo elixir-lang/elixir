@@ -2,7 +2,7 @@
 
 This document outlines potential anti-patterns related to your code and particular Elixir idioms and features.
 
-## Comments
+## Comments overuse
 
 #### Problem
 
