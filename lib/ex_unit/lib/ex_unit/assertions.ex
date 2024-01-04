@@ -418,8 +418,9 @@ defmodule ExUnit.Assertions do
   Asserts that a message matching `pattern` was or is going to be received
   within the `timeout` period, specified in milliseconds.
 
-  Unlike `assert_received`, it has a default `timeout`
-  of 100 milliseconds.
+  Unlike `assert_received`, it has a configurable timeout.
+  The default timeout duration is determined by the `assert_receive_timeout` option,
+  which can be set using `ExUnit.configure/1`. This option defaults to 100 milliseconds.
 
   The `pattern` argument must be a match pattern. Flunks with `failure_message`
   if a message matching `pattern` is not received.
