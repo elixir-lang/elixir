@@ -1,4 +1,4 @@
-defmodule Module.Types.Behaviour do
+defmodule Module.Behaviour do
   # Checking functionality for @behaviours and @impl
   @moduledoc false
 

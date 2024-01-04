@@ -1443,7 +1443,7 @@ defmodule Module do
                 "to defoverridable/1 because #{error_explanation}"
     end
 
-    behaviour_callbacks = Module.Types.Behaviour.callbacks(behaviour)
+    behaviour_callbacks = Module.Behaviour.callbacks(behaviour)
 
     tuples =
       for definition <- definitions_in(module),

@@ -27,36 +27,11 @@ defmodule Module.Types.Of do
   # assumptions.
 
   @doc """
-  Handles open maps (with dynamic => dynamic).
+  Handles open maps.
   """
   def open_map(args, stack, context, of_fun) do
-    with {:ok, pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      # If we match on a map such as %{"foo" => "bar"}, we cannot
-      # assert that %{binary() => binary()}, since we are matching
-      # only a single binary of infinite possible values. Therefore,
-      # the correct would be to match it to %{binary() => binary() | var}.
-      #
-      # We can skip this in two cases:
-      #
-      #   1. If the key is a singleton, then we know that it has no
-      #      other value than the current one
-      #
-      #   2. If the value is a variable, then there is no benefit in
-      #      creating another variable, so we can skip it
-      #
-      # For now, we skip generating the var itself and introduce
-      # :dynamic instead.
-      pairs =
-        for {key, value} <- pairs, not has_unbound_var?(key, context) do
-          if singleton?(key, context) or match?({:var, _}, value) do
-            {key, value}
-          else
-            {key, to_union([value, :dynamic], context)}
-          end
-        end
-
-      triplets = pairs_to_unions(pairs, [], context) ++ [{:optional, :dynamic, :dynamic}]
-      {:ok, {:map, triplets}, context}
+    with {:ok, _pairs, context} <- map_pairs(args, stack, context, of_fun) do
+      {:ok, :dynamic, context}
     end
   end
 
@@ -64,8 +39,8 @@ defmodule Module.Types.Of do
   Handles closed maps (without dynamic => dynamic).
   """
   def closed_map(args, stack, context, of_fun) do
-    with {:ok, pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      {:ok, {:map, closed_to_unions(pairs, context)}, context}
+    with {:ok, _pairs, context} <- map_pairs(args, stack, context, of_fun) do
+      {:ok, :dynamic, context}
     end
   end
 
@@ -77,62 +52,12 @@ defmodule Module.Types.Of do
     end)
   end
 
-  defp closed_to_unions([{key, value}], _context), do: [{:required, key, value}]
-
-  defp closed_to_unions(pairs, context) do
-    case Enum.split_with(pairs, fn {key, _value} -> has_unbound_var?(key, context) end) do
-      {[], pairs} -> pairs_to_unions(pairs, [], context)
-      {[_ | _], pairs} -> pairs_to_unions([{:dynamic, :dynamic} | pairs], [], context)
-    end
-  end
-
-  defp pairs_to_unions([{key, value} | ahead], behind, context) do
-    {matched_ahead, values} = find_matching_values(ahead, key, [], [])
-
-    # In case nothing matches, use the original ahead
-    ahead = matched_ahead || ahead
-
-    all_values =
-      [value | values] ++
-        find_subtype_values(ahead, key, context) ++
-        find_subtype_values(behind, key, context)
-
-    pairs_to_unions(ahead, [{key, to_union(all_values, context)} | behind], context)
-  end
-
-  defp pairs_to_unions([], acc, context) do
-    acc
-    |> Enum.sort(&subtype?(elem(&1, 0), elem(&2, 0), context))
-    |> Enum.map(fn {key, value} -> {:required, key, value} end)
-  end
-
-  defp find_subtype_values(pairs, key, context) do
-    for {pair_key, pair_value} <- pairs, subtype?(pair_key, key, context), do: pair_value
-  end
-
-  defp find_matching_values([{key, value} | ahead], key, acc, values) do
-    find_matching_values(ahead, key, acc, [value | values])
-  end
-
-  defp find_matching_values([{_, _} = pair | ahead], key, acc, values) do
-    find_matching_values(ahead, key, [pair | acc], values)
-  end
-
-  defp find_matching_values([], _key, acc, [_ | _] = values), do: {Enum.reverse(acc), values}
-  defp find_matching_values([], _key, _acc, []), do: {nil, []}
-
   @doc """
   Handles structs.
   """
   def struct(struct, meta, context) do
     context = remote(struct, :__struct__, 0, meta, context)
-
-    entries =
-      for key <- Map.keys(struct.__struct__()), key != :__struct__ do
-        {:required, {:atom, key}, :dynamic}
-      end
-
-    {:ok, {:map, [{:required, {:atom, :__struct__}, {:atom, struct}} | entries]}, context}
+    {:ok, :dynamic, context}
   end
 
   ## Binary
@@ -235,8 +160,6 @@ defmodule Module.Types.Of do
   Handles remote calls.
   """
   def remote(module, fun, arity, meta, context) when is_atom(module) do
-    # TODO: In the future we may want to warn for modules defined
-    # in the local context
     if Keyword.get(meta, :context_module, false) do
       context
     else
