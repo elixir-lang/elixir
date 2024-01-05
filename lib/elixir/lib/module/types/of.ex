@@ -3,13 +3,11 @@ defmodule Module.Types.Of do
   # Generic AST and Enum helpers go to Module.Types.Helpers.
   @moduledoc false
 
-  @prefix quote(do: ...)
-  @suffix quote(do: ...)
+  # @prefix quote(do: ...)
+  # @suffix quote(do: ...)
 
   alias Module.ParallelChecker
-
-  import Module.Types.Helpers
-  import Module.Types.Unify
+  import Module.Types.{Helpers, Descr}
 
   # There are important assumptions on how we work with maps.
   #
@@ -31,7 +29,7 @@ defmodule Module.Types.Of do
   """
   def open_map(args, stack, context, of_fun) do
     with {:ok, _pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      {:ok, :dynamic, context}
+      {:ok, map(), context}
     end
   end
 
@@ -40,14 +38,14 @@ defmodule Module.Types.Of do
   """
   def closed_map(args, stack, context, of_fun) do
     with {:ok, _pairs, context} <- map_pairs(args, stack, context, of_fun) do
-      {:ok, :dynamic, context}
+      {:ok, map(), context}
     end
   end
 
   defp map_pairs(pairs, stack, context, of_fun) do
     map_reduce_ok(pairs, context, fn {key, value}, context ->
-      with {:ok, key_type, context} <- of_fun.(key, :dynamic, stack, context),
-           {:ok, value_type, context} <- of_fun.(value, :dynamic, stack, context),
+      with {:ok, key_type, context} <- of_fun.(key, stack, context),
+           {:ok, value_type, context} <- of_fun.(value, stack, context),
            do: {:ok, {key_type, value_type}, context}
     end)
   end
@@ -57,7 +55,7 @@ defmodule Module.Types.Of do
   """
   def struct(struct, meta, context) do
     context = remote(struct, :__struct__, 0, meta, context)
-    {:ok, :dynamic, context}
+    {:ok, map(), context}
   end
 
   ## Binary
@@ -68,41 +66,43 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def binary([], _stack, context, _of_fun) do
+  def binary([], _type, _stack, context, _of_fun) do
     {:ok, context}
   end
 
-  def binary([head], stack, context, of_fun) do
-    head_stack = push_expr_stack({:<<>>, get_meta(head), [head]}, stack)
-    binary_segment(head, head_stack, context, of_fun)
+  def binary([head], type, stack, context, of_fun) do
+    # stack = push_expr_stack({:<<>>, get_meta(head), [head]}, stack)
+    binary_segment(head, type, stack, context, of_fun)
   end
 
-  def binary([head | tail], stack, context, of_fun) do
-    head_stack = push_expr_stack({:<<>>, get_meta(head), [head, @suffix]}, stack)
+  def binary([head | tail], type, stack, context, of_fun) do
+    # stack = push_expr_stack({:<<>>, get_meta(head), [head, @suffix]}, stack)
 
-    case binary_segment(head, head_stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, stack, context, of_fun)
+    case binary_segment(head, type, stack, context, of_fun) do
+      {:ok, context} -> binary_many(tail, type, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp binary_many([last], stack, context, of_fun) do
-    last_stack = push_expr_stack({:<<>>, get_meta(last), [@prefix, last]}, stack)
-    binary_segment(last, last_stack, context, of_fun)
+  defp binary_many([last], type, stack, context, of_fun) do
+    # stack = push_expr_stack({:<<>>, get_meta(last), [@prefix, last]}, stack)
+    binary_segment(last, type, stack, context, of_fun)
   end
 
-  defp binary_many([head | tail], stack, context, of_fun) do
-    head_stack = push_expr_stack({:<<>>, get_meta(head), [@prefix, head, @suffix]}, stack)
+  defp binary_many([head | tail], type, stack, context, of_fun) do
+    # stack = push_expr_stack({:<<>>, get_meta(head), [@prefix, head, @suffix]}, stack)
 
-    case binary_segment(head, head_stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, stack, context, of_fun)
+    case binary_segment(head, type, stack, context, of_fun) do
+      {:ok, context} -> binary_many(tail, type, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp binary_segment({:"::", _meta, [expr, specifiers]}, stack, context, of_fun) do
-    expected_type =
-      collect_binary_specifier(specifiers, &binary_type(stack.context, &1)) || :integer
+  defp binary_segment({:"::", _meta, [expr, specifiers]}, type, stack, context, of_fun) do
+    # TODO: handle size in specifiers
+    # TODO: unpack specifiers once
+    _expected_type =
+      collect_binary_specifier(specifiers, &binary_type(type, &1)) || :integer
 
     utf? = collect_binary_specifier(specifiers, &utf_type?/1)
     float? = collect_binary_specifier(specifiers, &float_type?/1)
@@ -110,15 +110,14 @@ defmodule Module.Types.Of do
     # Special case utf and float specifiers because they can be two types as literals
     # but only a specific type as a variable in a pattern
     cond do
-      stack.context == :pattern and utf? and is_binary(expr) ->
+      type == :pattern and utf? and is_binary(expr) ->
         {:ok, context}
 
-      stack.context == :pattern and float? and is_integer(expr) ->
+      type == :pattern and float? and is_integer(expr) ->
         {:ok, context}
 
       true ->
-        with {:ok, type, context} <- of_fun.(expr, expected_type, stack, context),
-             {:ok, _type, context} <- unify(type, expected_type, stack, context),
+        with {:ok, _type, context} <- of_fun.(expr, stack, context),
              do: {:ok, context}
     end
   end

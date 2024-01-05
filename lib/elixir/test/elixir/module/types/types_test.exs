@@ -3,35 +3,30 @@ Code.require_file("type_helper.exs", __DIR__)
 defmodule Module.Types.TypesTest do
   use ExUnit.Case, async: true
   alias Module.Types
-  alias Module.Types.{Pattern, Expr}
 
   defmacro warning(patterns \\ [], guards \\ [], body) do
     min_line = min_line(patterns ++ guards ++ [body])
     patterns = reset_line(patterns, min_line)
     guards = reset_line(guards, min_line)
     body = reset_line(body, min_line)
-    expr = TypeHelper.expand_expr(patterns, guards, body, __CALLER__)
 
     quote do
-      Module.Types.TypesTest.__expr__(unquote(Macro.escape(expr)))
+      unquote(TypeHelper.typecheck(patterns, guards, body, __CALLER__))
+      |> Module.Types.TypesTest.__warning__()
     end
   end
 
-  defmacro generated(ast) do
-    Macro.prewalk(ast, fn node -> Macro.update_meta(node, &([generated: true] ++ &1)) end)
-  end
-
-  def __expr__({patterns, guards, body}) do
-    with {:ok, _types, context} <-
-           Pattern.of_head(patterns, guards, TypeHelper.new_stack(), TypeHelper.new_context()),
-         {:ok, _type, context} <- Expr.of_expr(body, :dynamic, TypeHelper.new_stack(), context) do
-      case context.warnings do
-        [warning] -> to_message(:warning, warning)
-        _ -> :none
+  def __warning__(result) do
+    context =
+      case result do
+        {:ok, _, context} -> context
+        {:error, context} -> context
       end
-    else
-      {:error, {type, reason, context}} ->
-        to_message(:error, {type, reason, context})
+
+    case context.warnings do
+      [warning] -> to_message(warning)
+      [] -> raise "no warnings"
+      [_ | _] = warnings -> raise "too many warnings: #{inspect(warnings)}"
     end
   end
 
@@ -53,19 +48,10 @@ defmodule Module.Types.TypesTest do
     min
   end
 
-  defp to_message(:warning, {module, warning, _location}) do
+  defp to_message({module, warning, _location}) do
     warning
     |> module.format_warning()
     |> IO.iodata_to_binary()
-  end
-
-  defp to_message(:error, {type, reason, context}) do
-    {Module.Types, error, _location} = Module.Types.error_to_warning(type, reason, context)
-
-    error
-    |> Module.Types.format_warning()
-    |> IO.iodata_to_binary()
-    |> String.trim_trailing("\nConflict found at")
   end
 
   test "expr_to_string/1" do
@@ -81,13 +67,13 @@ defmodule Module.Types.TypesTest do
   end
 
   test "undefined function warnings" do
-    assert warning([], URI.unknown("foo")) ==
+    assert warning(URI.unknown("foo")) ==
              "URI.unknown/1 is undefined or private"
 
-    assert warning([], if(true, do: URI.unknown("foo"))) ==
+    assert warning(if(true, do: URI.unknown("foo"))) ==
              "URI.unknown/1 is undefined or private"
 
-    assert warning([], try(do: :ok, after: URI.unknown("foo"))) ==
+    assert warning(try(do: :ok, after: URI.unknown("foo"))) ==
              "URI.unknown/1 is undefined or private"
   end
 end

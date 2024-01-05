@@ -187,7 +187,7 @@ bootstrap_files() ->
      <<"module/parallel_checker.ex">>,
      <<"module/behaviour.ex">>,
      <<"module/types/helpers.ex">>,
-     <<"module/types/unify.ex">>,
+     <<"module/types/descr.ex">>,
      <<"module/types/of.ex">>,
      <<"module/types/pattern.ex">>,
      <<"module/types/expr.ex">>,

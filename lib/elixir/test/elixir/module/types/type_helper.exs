@@ -2,37 +2,54 @@ Code.require_file("../../test_helper.exs", __DIR__)
 
 defmodule TypeHelper do
   alias Module.Types
-  alias Module.Types.{Pattern, Expr, Unify}
+  alias Module.Types.{Pattern, Expr}
 
-  defmacro quoted_expr(patterns \\ [], guards \\ [], body) do
-    expr = expand_expr(patterns, guards, body, __CALLER__)
-
+  @doc """
+  Main helper for checking the given AST type checks without warnings.
+  """
+  defmacro typecheck!(patterns \\ [], guards \\ [], body) do
     quote do
-      TypeHelper.__expr__(unquote(Macro.escape(expr)))
+      unquote(typecheck(patterns, guards, body, __CALLER__))
+      |> TypeHelper.__typecheck__!()
     end
   end
 
-  def __expr__({patterns, guards, body}) do
-    with {:ok, _types, context} <-
-           Pattern.of_head(patterns, guards, new_stack(), new_context()),
-         {:ok, type, context} <- Expr.of_expr(body, :dynamic, new_stack(), context) do
-      {[type], _context} = Unify.lift_types([type], context)
-      {:ok, type}
-    else
-      {:error, {type, reason, _context}} ->
-        {:error, {type, reason}}
-    end
-  end
+  def __typecheck__!({:ok, type, %{warnings: []}}), do: type
 
-  def expand_expr(patterns, guards, expr, env) do
+  def __typecheck__!({:ok, _type, %{warnings: warnings}}),
+    do: raise("type checking ok but with warnings: #{inspect(warnings)}")
+
+  def __typecheck__!({:error, %{warnings: warnings}}),
+    do: raise("type checking errored with warnings: #{inspect(warnings)}")
+
+  @doc """
+  Building block for typechecking a given AST.
+  """
+  def typecheck(patterns, guards, body, env) do
     fun =
       quote do
-        fn unquote(patterns) when unquote(guards) -> unquote(expr) end
+        fn unquote(patterns) when unquote(guards) -> unquote(body) end
       end
 
     {ast, _, _} = :elixir_expand.expand(fun, :elixir_env.env_to_ex(env), env)
     {:fn, _, [{:->, _, [[{:when, _, [patterns, guards]}], body]}]} = ast
-    {patterns, guards, body}
+
+    quote do
+      TypeHelper.__typecheck__(
+        unquote(Macro.escape(patterns)),
+        unquote(Macro.escape(guards)),
+        unquote(Macro.escape(body))
+      )
+    end
+  end
+
+  def __typecheck__(patterns, guards, body) do
+    stack = new_stack()
+
+    with {:ok, _types, context} <- Pattern.of_head(patterns, guards, stack, new_context()),
+         {:ok, type, context} <- Expr.of_expr(body, stack, context) do
+      {:ok, type, context}
+    end
   end
 
   def new_context() do
@@ -40,9 +57,6 @@ defmodule TypeHelper do
   end
 
   def new_stack() do
-    %{
-      Types.stack()
-      | last_expr: {:foo, [], nil}
-    }
+    Types.stack()
   end
 end
