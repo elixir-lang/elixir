@@ -52,11 +52,11 @@ defmodule TypeHelper do
     end
   end
 
-  def new_context() do
-    Types.context("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
+  def new_stack() do
+    Types.stack("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
   end
 
-  def new_stack() do
-    Types.stack()
+  def new_context() do
+    Types.context()
   end
 end

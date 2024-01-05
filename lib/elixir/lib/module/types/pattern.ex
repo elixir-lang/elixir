@@ -171,7 +171,7 @@ defmodule Module.Types.Pattern do
   # %Struct{...}
   defp of_shared({:%, meta1, [module, {:%{}, _meta2, args}]}, stack, context, fun)
        when is_atom(module) do
-    with {:ok, _, context} <- Of.struct(module, meta1, context),
+    with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
          {:ok, _, context} <- Of.open_map(args, stack, context, fun) do
       {:ok, map(), context}
     end

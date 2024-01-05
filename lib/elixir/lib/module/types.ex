@@ -9,10 +9,10 @@ defmodule Module.Types do
 
   @doc false
   def warnings(module, file, defs, no_warn_undefined, cache) do
-    stack = stack()
+    context = context()
 
     Enum.flat_map(defs, fn {{fun, arity} = function, kind, meta, clauses} ->
-      context = context(with_file_meta(meta, file), module, function, no_warn_undefined, cache)
+      stack = stack(with_file_meta(meta, file), module, function, no_warn_undefined, cache)
 
       Enum.flat_map(clauses, fn {_meta, args, guards, body} ->
         try do
@@ -65,7 +65,7 @@ defmodule Module.Types do
   end
 
   @doc false
-  def context(file, module, function, no_warn_undefined, cache) do
+  def stack(file, module, function, no_warn_undefined, cache) do
     %{
       # File of module
       file: file,
@@ -76,53 +76,15 @@ defmodule Module.Types do
       # List of calls to not warn on as undefined
       no_warn_undefined: no_warn_undefined,
       # A list of cached modules received from the parallel compiler
-      cache: cache,
-      # Expression variable to type variable
-      vars: %{},
-      # Type variable to expression variable
-      types_to_vars: %{},
-      # Type variable to type
-      types: %{},
-      # Trace of all variables that have been refined to a type,
-      # including the type they were refined to, why, and where
-      traces: %{},
-      # Counter to give type variables unique names
-      counter: 0,
-      # Track if a variable was inferred from a type guard function such is_tuple/1
-      # or a guard function that fails such as elem/2, possible values are:
-      # `:guarded` when `is_tuple(x)`
-      # `:guarded` when `is_tuple and elem(x, 0)`
-      # `:fail` when `elem(x, 0)`
-      guard_sources: %{},
-      # A list with all warnings from the running the code
-      warnings: []
+      cache: cache
     }
   end
 
   @doc false
-  def stack() do
+  def context() do
     %{
-      # Stack of variables we have refined during unification,
-      # used for creating relevant traces
-      unify_stack: [],
-      # Last expression we have recursed through during inference,
-      # used for tracing
-      last_expr: nil,
-      # When false do not add a trace when a type variable is refined,
-      # useful when merging contexts where the variables already have traces
-      trace: true,
-      # There are two factors that control how we track guards.
-      #
-      # * consider_type_guards?: if type guards should be considered.
-      #   This applies only at the root and root-based "and" and "or" nodes.
-      #
-      # * keep_guarded? - if a guarded clause should remain as guarded
-      #   even on failure. Used on the right side of and.
-      #
-      type_guards: {_consider_type_guards? = true, _keep_guarded? = false},
-      # Context used to determine if unification is bi-directional, :expr
-      # is directional, :pattern is bi-directional
-      context: nil
+      # A list of all warnings found so far
+      warnings: []
     }
   end
 

@@ -124,7 +124,7 @@ defmodule Module.Types.Expr do
         stack,
         context
       ) do
-    with {:ok, _, context} <- Of.struct(module, meta, context),
+    with {:ok, _, context} <- Of.struct(module, meta, stack, context),
          {:ok, _, context} <- of_expr(update, stack, context) do
       {:ok, map(), context}
     end
@@ -137,7 +137,7 @@ defmodule Module.Types.Expr do
 
   # %Struct{...}
   def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]}, _expected, stack, context) do
-    with {:ok, _, context} <- Of.struct(module, meta1, context),
+    with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
          {:ok, _, context} <- Of.open_map(args, stack, context, &of_expr/3) do
       {:ok, map(), context}
     end
@@ -166,17 +166,10 @@ defmodule Module.Types.Expr do
   # cond do pat -> expr end
   def of_expr({:cond, _meta, [[{:do, clauses}]]}, _expected, stack, context) do
     {result, context} =
-      reduce_ok(clauses, context, fn {:->, meta, [head, body]}, context = acc ->
-        case of_expr(head, stack, context) do
-          {:ok, _, context} ->
-            with {:ok, _expr_type, context} <- of_expr(body, stack, context) do
-              {:ok, context}
-            end
-
-          error ->
-            # Skip the clause if it the head has an error
-            if meta[:generated], do: {:ok, acc}, else: error
-        end
+      reduce_ok(clauses, context, fn {:->, _meta, [head, body]}, context ->
+        with {:ok, _, context} <- of_expr(head, stack, context),
+             {:ok, _, context} <- of_expr(body, stack, context),
+             do: {:ok, context}
       end)
 
     case result do
@@ -304,7 +297,7 @@ defmodule Module.Types.Expr do
 
   # expr.fun(arg)
   def of_expr({{:., _meta1, [expr1, fun]}, meta2, args}, _expected, stack, context) do
-    context = Of.remote(expr1, fun, length(args), meta2, context)
+    context = Of.remote(expr1, fun, length(args), meta2, stack, context)
 
     with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
          {:ok, _arg_types, context} <-
@@ -317,11 +310,11 @@ defmodule Module.Types.Expr do
   def of_expr(
         {:&, _, [{:/, _, [{{:., _, [module, fun]}, meta, []}, arity]}]},
         _expected,
-        _stack,
+        stack,
         context
       )
       when is_atom(module) and is_atom(fun) do
-    context = Of.remote(module, fun, arity, meta, context)
+    context = Of.remote(module, fun, arity, meta, stack, context)
     {:ok, dynamic(), context}
   end
 
@@ -400,19 +393,12 @@ defmodule Module.Types.Expr do
   end
 
   defp of_clauses(clauses, stack, context) do
-    reduce_ok(clauses, context, fn {:->, meta, [head, body]}, context ->
+    reduce_ok(clauses, context, fn {:->, _meta, [head, body]}, context ->
       {patterns, guards} = extract_head(head)
 
-      case Pattern.of_head(patterns, guards, stack, context) do
-        {:ok, _, context} ->
-          with {:ok, _expr_type, context} <- of_expr(body, stack, context) do
-            {:ok, context}
-          end
-
-        error ->
-          # Skip the clause if it the head has an error
-          if meta[:generated], do: {:ok, context}, else: error
-      end
+      with {:ok, _, context} <- Pattern.of_head(patterns, guards, stack, context),
+           {:ok, _, context} <- of_expr(body, stack, context),
+           do: {:ok, context}
     end)
   end
 

@@ -53,8 +53,8 @@ defmodule Module.Types.Of do
   @doc """
   Handles structs.
   """
-  def struct(struct, meta, context) do
-    context = remote(struct, :__struct__, 0, meta, context)
+  def struct(struct, meta, stack, context) do
+    context = remote(struct, :__struct__, 0, meta, stack, context)
     {:ok, map(), context}
   end
 
@@ -158,61 +158,61 @@ defmodule Module.Types.Of do
   @doc """
   Handles remote calls.
   """
-  def remote(module, fun, arity, meta, context) when is_atom(module) do
+  def remote(module, fun, arity, meta, stack, context) when is_atom(module) do
     if Keyword.get(meta, :context_module, false) do
       context
     else
-      ParallelChecker.preload_module(context.cache, module)
-      check_export(module, fun, arity, meta, context)
+      ParallelChecker.preload_module(stack.cache, module)
+      check_export(module, fun, arity, meta, stack, context)
     end
   end
 
-  def remote(_module, _fun, _arity, _meta, context), do: context
+  def remote(_module, _fun, _arity, _meta, _stack, context), do: context
 
-  defp check_export(module, fun, arity, meta, context) do
-    case ParallelChecker.fetch_export(context.cache, module, fun, arity) do
+  defp check_export(module, fun, arity, meta, stack, context) do
+    case ParallelChecker.fetch_export(stack.cache, module, fun, arity) do
       {:ok, mode, :def, reason} ->
-        check_deprecated(mode, module, fun, arity, reason, meta, context)
+        check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
 
       {:ok, mode, :defmacro, reason} ->
-        context = warn(meta, context, {:unrequired_module, module, fun, arity})
-        check_deprecated(mode, module, fun, arity, reason, meta, context)
+        context = warn({:unrequired_module, module, fun, arity}, meta, stack, context)
+        check_deprecated(mode, module, fun, arity, reason, meta, stack, context)
 
       {:error, :module} ->
-        if warn_undefined?(module, fun, arity, context) do
-          warn(meta, context, {:undefined_module, module, fun, arity})
+        if warn_undefined?(module, fun, arity, stack) do
+          warn({:undefined_module, module, fun, arity}, meta, stack, context)
         else
           context
         end
 
       {:error, :function} ->
-        if warn_undefined?(module, fun, arity, context) do
-          exports = ParallelChecker.all_exports(context.cache, module)
-          warn(meta, context, {:undefined_function, module, fun, arity, exports})
+        if warn_undefined?(module, fun, arity, stack) do
+          exports = ParallelChecker.all_exports(stack.cache, module)
+          warn({:undefined_function, module, fun, arity, exports}, meta, stack, context)
         else
           context
         end
     end
   end
 
-  defp check_deprecated(:elixir, module, fun, arity, reason, meta, context) do
+  defp check_deprecated(:elixir, module, fun, arity, reason, meta, stack, context) do
     if reason do
-      warn(meta, context, {:deprecated, module, fun, arity, reason})
+      warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
     else
       context
     end
   end
 
-  defp check_deprecated(:erlang, module, fun, arity, _reason, meta, context) do
+  defp check_deprecated(:erlang, module, fun, arity, _reason, meta, stack, context) do
     case :otp_internal.obsolete(module, fun, arity) do
       {:deprecated, string} when is_list(string) ->
         reason = string |> List.to_string() |> :string.titlecase()
-        warn(meta, context, {:deprecated, module, fun, arity, reason})
+        warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
 
       {:deprecated, string, removal} when is_list(string) and is_list(removal) ->
         reason = string |> List.to_string() |> :string.titlecase()
         reason = "It will be removed in #{removal}. #{reason}"
-        warn(meta, context, {:deprecated, module, fun, arity, reason})
+        warn({:deprecated, module, fun, arity, reason}, meta, stack, context)
 
       _ ->
         context
@@ -229,24 +229,22 @@ defmodule Module.Types.Of do
   #
   # But for protocols we don't want to traverse the protocol code anyway.
   # TODO: remove this clause once we no longer traverse the protocol code.
-  defp warn_undefined?(_module, :__impl__, 1, _context), do: false
-  defp warn_undefined?(_module, :module_info, 0, _context), do: false
-  defp warn_undefined?(_module, :module_info, 1, _context), do: false
-  defp warn_undefined?(:erlang, :orelse, 2, _context), do: false
-  defp warn_undefined?(:erlang, :andalso, 2, _context), do: false
+  defp warn_undefined?(_module, :__impl__, 1, _stack), do: false
+  defp warn_undefined?(_module, :module_info, 0, _stack), do: false
+  defp warn_undefined?(_module, :module_info, 1, _stack), do: false
+  defp warn_undefined?(:erlang, :orelse, 2, _stack), do: false
+  defp warn_undefined?(:erlang, :andalso, 2, _stack), do: false
 
   defp warn_undefined?(_, _, _, %{no_warn_undefined: :all}) do
     false
   end
 
-  defp warn_undefined?(module, fun, arity, context) do
-    not Enum.any?(context.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
+  defp warn_undefined?(module, fun, arity, stack) do
+    not Enum.any?(stack.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
   end
 
-  defp warn(meta, context, warning) do
-    {fun, arity} = context.function
-    location = {context.file, meta, {context.module, fun, arity}}
-    %{context | warnings: [{__MODULE__, warning, location} | context.warnings]}
+  defp warn(warning, meta, stack, context) do
+    warn(__MODULE__, warning, meta, stack, context)
   end
 
   ## Warning formatting

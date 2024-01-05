@@ -26,6 +26,15 @@ defmodule Module.Types.Helpers do
   def get_meta(_other), do: []
 
   @doc """
+  Emits a warnings.
+  """
+  def warn(module, warning, meta, stack, context) do
+    {fun, arity} = stack.function
+    location = {stack.file, meta, {stack.module, fun, arity}}
+    %{context | warnings: [{module, warning, location} | context.warnings]}
+  end
+
+  @doc """
   Like `Enum.reduce/3` but only continues while `fun` returns `{:ok, acc}`
   and stops on `{:error, reason}`.
   """
