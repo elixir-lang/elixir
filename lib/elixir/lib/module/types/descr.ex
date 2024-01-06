@@ -47,9 +47,8 @@ defmodule Module.Types.Descr do
   Computes the union of two descrs.
   """
   def union(%{} = left, %{} = right) do
-    # Erlang maps implementation has to preserve the order.
-    # We simply don't care about the order, so we have a
-    # faster implementation.
+    # Erlang maps:merge_with/3 has to preserve the order in combiner.
+    # We don't care about the order, so we have a faster implementation.
     if map_size(left) > map_size(right) do
       iterator_union(:maps.next(:maps.iterator(right)), left)
     else
@@ -64,9 +63,8 @@ defmodule Module.Types.Descr do
   Computes the intersection of two descrs.
   """
   def intersection(%{} = left, %{} = right) do
-    # Erlang maps implementation has to preserve the order.
-    # We simply don't care about the order, so we have a
-    # faster implementation.
+    # Erlang maps:intersect_with/3 has to preserve the order in combiner.
+    # We don't care about the order, so we have a faster implementation.
     if map_size(left) > map_size(right) do
       iterator_intersection(:maps.next(:maps.iterator(right)), left, [])
     else
@@ -74,6 +72,7 @@ defmodule Module.Types.Descr do
     end
   end
 
+  # Returning 0 from the callback is taken as none() for that subtype.
   @compile {:inline, intersection: 3}
   defp intersection(:bitmap, v1, v2), do: bitmap_intersection(v1, v2)
 
@@ -84,6 +83,7 @@ defmodule Module.Types.Descr do
     iterator_difference(:maps.next(:maps.iterator(right)), left)
   end
 
+  # Returning 0 from the callback is taken as none() for that subtype.
   @compile {:inline, difference: 3}
   defp difference(:bitmap, v1, v2), do: bitmap_difference(v1, v2)
 
