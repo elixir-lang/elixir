@@ -3645,9 +3645,10 @@ defmodule Kernel do
           :elixir_quote.escape(value, :none, false)
         rescue
           ex in [ArgumentError] ->
-            raise ArgumentError,
-                  "cannot inject attribute @#{name} into function/macro because " <>
-                    Exception.message(ex)
+            reraise ArgumentError,
+                    "cannot inject attribute @#{name} into function/macro because " <>
+                      Exception.message(ex),
+                    __STACKTRACE__
         end
 
       false when doc_attr? ->

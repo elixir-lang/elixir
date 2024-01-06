@@ -365,7 +365,9 @@ defmodule Protocol do
       impl.__impl__(:protocol)
     rescue
       UndefinedFunctionError ->
-        raise ArgumentError, "#{inspect(impl)} is not an implementation of a protocol" <> extra
+        reraise ArgumentError,
+                "#{inspect(impl)} is not an implementation of a protocol" <> extra,
+                __STACKTRACE__
     else
       ^protocol ->
         :ok

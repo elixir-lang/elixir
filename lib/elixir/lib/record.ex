@@ -334,7 +334,9 @@ defmodule Record do
           Macro.escape(value)
         rescue
           e in [ArgumentError] ->
-            raise ArgumentError, "invalid value for record field #{key}, " <> Exception.message(e)
+            reraise ArgumentError,
+                    "invalid value for record field #{key}, " <> Exception.message(e),
+                    __STACKTRACE__
         else
           value -> {key, value}
         end
@@ -343,7 +345,8 @@ defmodule Record do
         {key, nil}
 
       other ->
-        raise ArgumentError, "#{kind} fields must be atoms, got: #{inspect(other)}"
+        raise ArgumentError,
+              "#{kind} fields must be atoms, got: #{inspect(other)}"
     end
 
     :lists.map(normalizer_fun, fields)

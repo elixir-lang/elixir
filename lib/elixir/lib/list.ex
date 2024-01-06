@@ -1081,20 +1081,22 @@ defmodule List do
       :unicode.characters_to_binary(list)
     rescue
       ArgumentError ->
-        raise ArgumentError, """
-        cannot convert the given list to a string.
+        reraise ArgumentError,
+                """
+                cannot convert the given list to a string.
 
-        To be converted to a string, a list must either be empty or only
-        contain the following elements:
+                To be converted to a string, a list must either be empty or only
+                contain the following elements:
 
-          * strings
-          * integers representing Unicode code points
-          * a list containing one of these three elements
+                  * strings
+                  * integers representing Unicode code points
+                  * a list containing one of these three elements
 
-        Please check the given list or call inspect/1 to get the list representation, got:
+                Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect(list)}
-        """
+                #{inspect(list)}
+                """,
+                __STACKTRACE__
     else
       result when is_binary(result) ->
         result
@@ -1134,19 +1136,21 @@ defmodule List do
       :unicode.characters_to_list(list)
     rescue
       ArgumentError ->
-        raise ArgumentError, """
-        cannot convert the given list to a charlist.
+        reraise ArgumentError,
+                """
+                cannot convert the given list to a charlist.
 
-        To be converted to a charlist, a list must contain only:
+                To be converted to a charlist, a list must contain only:
 
-          * strings
-          * integers representing Unicode code points
-          * or a list containing one of these three elements
+                  * strings
+                  * integers representing Unicode code points
+                  * or a list containing one of these three elements
 
-        Please check the given list or call inspect/1 to get the list representation, got:
+                Please check the given list or call inspect/1 to get the list representation, got:
 
-        #{inspect(list)}
-        """
+                #{inspect(list)}
+                """,
+                __STACKTRACE__
     else
       result when is_list(result) ->
         result

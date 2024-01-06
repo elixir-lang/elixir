@@ -794,7 +794,7 @@ defmodule Supervisor do
       e in UndefinedFunctionError ->
         case __STACKTRACE__ do
           [{^module, :child_spec, [^arg], _} | _] ->
-            raise ArgumentError, child_spec_error(module)
+            reraise ArgumentError, child_spec_error(module), __STACKTRACE__
 
           stack ->
             reraise e, stack

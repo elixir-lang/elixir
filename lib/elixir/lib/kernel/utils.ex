@@ -123,7 +123,9 @@ defmodule Kernel.Utils do
           :elixir_quote.escape(val, false, :none)
         rescue
           e in [ArgumentError] ->
-            raise ArgumentError, "invalid value for struct field #{key}, " <> Exception.message(e)
+            reraise ArgumentError,
+                    "invalid value for struct field #{key}, " <> Exception.message(e),
+                    __STACKTRACE__
         else
           _ -> {key, val}
         end
