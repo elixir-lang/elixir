@@ -831,7 +831,7 @@ defmodule Calendar do
          "s" <> rest,
          _width,
          _pad,
-         datetime = %{utc_offset: _utc_offset, std_offset: _std_offset},
+         %{utc_offset: _utc_offset, std_offset: _std_offset} = datetime,
          format_options,
          acc
        ) do
@@ -859,7 +859,7 @@ defmodule Calendar do
          "z" <> rest,
          width,
          pad,
-         datetime = %{utc_offset: utc_offset, std_offset: std_offset},
+         %{utc_offset: utc_offset, std_offset: std_offset} = datetime,
          format_options,
          acc
        ) do

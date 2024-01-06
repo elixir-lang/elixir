@@ -2412,7 +2412,7 @@ defmodule Code.Formatter do
     {left, right}
   end
 
-  defp get_charlist_quotes(_heredoc = false, state) do
+  defp get_charlist_quotes(false = _heredoc, state) do
     if state.normalize_charlists_as_sigils do
       {@sigil_c, @double_quote}
     else
@@ -2420,7 +2420,7 @@ defmodule Code.Formatter do
     end
   end
 
-  defp get_charlist_quotes(_heredoc = true, state) do
+  defp get_charlist_quotes(true = _heredoc, state) do
     if state.normalize_charlists_as_sigils do
       {@sigil_c_heredoc, @double_heredoc}
     else

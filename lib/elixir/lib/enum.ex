@@ -1837,10 +1837,10 @@ defmodule Enum do
   end
 
   @doc false
-  def max(list = [_ | _]), do: :lists.max(list)
+  def max([_ | _] = list), do: :lists.max(list)
 
   @doc false
-  def max(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+  def max([_ | _] = list, empty_fallback) when is_function(empty_fallback, 0) do
     :lists.max(list)
   end
 
@@ -2017,10 +2017,10 @@ defmodule Enum do
   end
 
   @doc false
-  def min(list = [_ | _]), do: :lists.min(list)
+  def min([_ | _] = list), do: :lists.min(list)
 
   @doc false
-  def min(list = [_ | _], empty_fallback) when is_function(empty_fallback, 0) do
+  def min([_ | _] = list, empty_fallback) when is_function(empty_fallback, 0) do
     :lists.min(list)
   end
 

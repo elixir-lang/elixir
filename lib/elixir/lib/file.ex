@@ -1931,5 +1931,5 @@ defmodule File do
   defp normalize_path_or_io_device(path) when is_list(path), do: IO.chardata_to_string(path)
   defp normalize_path_or_io_device(path) when is_binary(path), do: path
   defp normalize_path_or_io_device(io_device) when is_pid(io_device), do: io_device
-  defp normalize_path_or_io_device(io_device = {:file_descriptor, _, _}), do: io_device
+  defp normalize_path_or_io_device({:file_descriptor, _, _} = io_device), do: io_device
 end

@@ -188,7 +188,7 @@ defmodule IO.ANSI.Docs do
     process(drop_comment([line | rest]), text, indent, options)
   end
 
-  defp process(all = [line | rest], text, indent, options) do
+  defp process([line | rest] = all, text, indent, options) do
     {stripped, count} = strip_spaces(line, 0, :infinity)
 
     cond do

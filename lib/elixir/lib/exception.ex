@@ -362,7 +362,7 @@ defmodule Exception do
     _ -> false
   end
 
-  defp evaluate_guard(kernel_op, meta, guards = [_, _]) do
+  defp evaluate_guard(kernel_op, meta, [_, _] = guards) do
     [x, y] = Enum.map(guards, &evaluate_guard/1)
 
     logic_value =
@@ -2016,7 +2016,7 @@ defmodule KeyError do
   defexception [:key, :term, :message]
 
   @impl true
-  def message(exception = %{message: nil}), do: message(exception.key, exception.term)
+  def message(%{message: nil} = exception), do: message(exception.key, exception.term)
   def message(%{message: message}), do: message
 
   defp message(key, term) do

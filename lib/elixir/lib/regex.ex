@@ -252,8 +252,8 @@ defmodule Regex do
     end
   end
 
-  defp format_doc_opts(_doc_opts = "", _opts = []), do: ""
-  defp format_doc_opts(_doc_opts = "", opts), do: opts
+  defp format_doc_opts("" = _doc_opts, [] = _opts), do: ""
+  defp format_doc_opts("" = _doc_opts, opts), do: opts
   defp format_doc_opts(doc_opts, _opts), do: doc_opts
 
   @doc """

@@ -461,7 +461,7 @@ defmodule URI do
     unpercent(string, "", true)
   end
 
-  defp unpercent(<<?+, tail::binary>>, acc, spaces = true) do
+  defp unpercent(<<?+, tail::binary>>, acc, true = spaces) do
     unpercent(tail, <<acc::binary, ?\s>>, spaces)
   end
 
