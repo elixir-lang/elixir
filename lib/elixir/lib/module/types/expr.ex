@@ -4,42 +4,38 @@ defmodule Module.Types.Expr do
   alias Module.Types.{Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
-  def of_expr(ast, stack, context) do
-    of_expr(ast, term(), stack, context)
-  end
-
   # :atom
-  def of_expr(atom, _expected, _stack, context) when is_atom(atom) do
+  def of_expr(atom, _stack, context) when is_atom(atom) do
     {:ok, atom(atom), context}
   end
 
   # 12
-  def of_expr(literal, _expected, _stack, context) when is_integer(literal) do
+  def of_expr(literal, _stack, context) when is_integer(literal) do
     {:ok, integer(), context}
   end
 
   # 1.2
-  def of_expr(literal, _expected, _stack, context) when is_float(literal) do
+  def of_expr(literal, _stack, context) when is_float(literal) do
     {:ok, float(), context}
   end
 
   # "..."
-  def of_expr(literal, _expected, _stack, context) when is_binary(literal) do
+  def of_expr(literal, _stack, context) when is_binary(literal) do
     {:ok, binary(), context}
   end
 
   # #PID<...>
-  def of_expr(literal, _expected, _stack, context) when is_pid(literal) do
+  def of_expr(literal, _stack, context) when is_pid(literal) do
     {:ok, pid(), context}
   end
 
   # []
-  def of_expr([], _expected, _stack, context) do
+  def of_expr([], _stack, context) do
     {:ok, empty_list(), context}
   end
 
-  # [expr, ...]
-  def of_expr(exprs, _expected, stack, context) when is_list(exprs) do
+  # TODO: [expr, ...]
+  def of_expr(exprs, stack, context) when is_list(exprs) do
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
       {:ok, _types, context} -> {:ok, non_empty_list(), context}
       {:error, reason} -> {:error, reason}
@@ -47,25 +43,25 @@ defmodule Module.Types.Expr do
   end
 
   # {left, right}
-  def of_expr({left, right}, expected, stack, context) do
-    of_expr({:{}, [], [left, right]}, expected, stack, context)
+  def of_expr({left, right}, stack, context) do
+    of_expr({:{}, [], [left, right]}, stack, context)
   end
 
-  # <<...>>>
-  def of_expr({:<<>>, _meta, args}, _expected, stack, context) do
+  # TODO: <<...>>>
+  def of_expr({:<<>>, _meta, args}, stack, context) do
     case Of.binary(args, :expr, stack, context, &of_expr/3) do
       {:ok, context} -> {:ok, binary(), context}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  # left | []
-  def of_expr({:|, _meta, [left_expr, []]}, expected, stack, context) do
-    of_expr(left_expr, expected, stack, context)
+  # TODO: left | []
+  def of_expr({:|, _meta, [left_expr, []]}, stack, context) do
+    of_expr(left_expr, stack, context)
   end
 
-  # left | right
-  def of_expr({:|, _meta, [left_expr, right_expr]}, _expected, stack, context) do
+  # TODO: left | right
+  def of_expr({:|, _meta, [left_expr, right_expr]}, stack, context) do
     case of_expr(left_expr, stack, context) do
       {:ok, _left, context} ->
         of_expr(right_expr, stack, context)
@@ -75,47 +71,45 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # __CALLER__
-  def of_expr({:__CALLER__, _meta, var_context}, _expected, _stack, context)
+  # TODO: __CALLER__
+  def of_expr({:__CALLER__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
     {:ok, dynamic(), context}
   end
 
-  # __STACKTRACE__
-  def of_expr({:__STACKTRACE__, _meta, var_context}, _expected, _stack, context)
+  # TODO: __STACKTRACE__
+  def of_expr({:__STACKTRACE__, _meta, var_context}, _stack, context)
       when is_atom(var_context) do
     {:ok, dynamic(), context}
   end
 
-  # {...}
-  def of_expr({:{}, _meta, exprs}, _expected, stack, context) do
+  # TODO: {...}
+  def of_expr({:{}, _meta, exprs}, stack, context) do
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
       {:ok, _types, context} -> {:ok, tuple(), context}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  # left = right
-  def of_expr({:=, _meta, [left_expr, right_expr]}, _expected, stack, context) do
-    with {:ok, left_type, context} <-
-           Pattern.of_pattern(left_expr, stack, context),
-         {:ok, right_type, context} <- of_expr(right_expr, left_type, stack, context) do
+  # TODO: left = right
+  def of_expr({:=, _meta, [left_expr, right_expr]}, stack, context) do
+    with {:ok, _left_type, context} <- Pattern.of_pattern(left_expr, stack, context),
+         {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
       {:ok, right_type, context}
     end
   end
 
-  # %{map | ...}
-  def of_expr({:%{}, _, [{:|, _, [map, args]}]}, _expected, stack, context) do
+  # TODO: %{map | ...}
+  def of_expr({:%{}, _, [{:|, _, [map, args]}]}, stack, context) do
     with {:ok, _, context} <- of_expr(map, stack, context),
          {:ok, _, context} <- Of.closed_map(args, stack, context, &of_expr/3) do
       {:ok, map(), context}
     end
   end
 
-  # %Struct{map | ...}
+  # TODO: %Struct{map | ...}
   def of_expr(
         {:%, meta, [module, {:%{}, _, [{:|, _, [_, _]}]} = update]},
-        _expected,
         stack,
         context
       ) do
@@ -125,13 +119,13 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # %{...}
-  def of_expr({:%{}, _meta, args}, _expected, stack, context) do
+  # TODO: %{...}
+  def of_expr({:%{}, _meta, args}, stack, context) do
     Of.closed_map(args, stack, context, &of_expr/3)
   end
 
-  # %Struct{...}
-  def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]}, _expected, stack, context) do
+  # TODO: %Struct{...}
+  def of_expr({:%, meta1, [module, {:%{}, _meta2, args}]}, stack, context) do
     with {:ok, _, context} <- Of.struct(module, meta1, stack, context),
          {:ok, _, context} <- Of.open_map(args, stack, context, &of_expr/3) do
       {:ok, map(), context}
@@ -139,12 +133,12 @@ defmodule Module.Types.Expr do
   end
 
   # ()
-  def of_expr({:__block__, _meta, []}, _expected, _stack, context) do
+  def of_expr({:__block__, _meta, []}, _stack, context) do
     {:ok, atom(nil), context}
   end
 
   # (expr; expr)
-  def of_expr({:__block__, _meta, exprs}, expected, stack, context) do
+  def of_expr({:__block__, _meta, exprs}, stack, context) do
     {pre, [post]} = Enum.split(exprs, -1)
 
     result =
@@ -153,13 +147,13 @@ defmodule Module.Types.Expr do
       end)
 
     case result do
-      {:ok, _, context} -> of_expr(post, expected, stack, context)
+      {:ok, _, context} -> of_expr(post, stack, context)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  # cond do pat -> expr end
-  def of_expr({:cond, _meta, [[{:do, clauses}]]}, _expected, stack, context) do
+  # TODO: cond do pat -> expr end
+  def of_expr({:cond, _meta, [[{:do, clauses}]]}, stack, context) do
     {result, context} =
       reduce_ok(clauses, context, fn {:->, _meta, [head, body]}, context ->
         with {:ok, _, context} <- of_expr(head, stack, context),
@@ -173,15 +167,15 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # case expr do pat -> expr end
-  def of_expr({:case, _meta, [case_expr, [{:do, clauses}]]}, _expected, stack, context) do
+  # TODO: case expr do pat -> expr end
+  def of_expr({:case, _meta, [case_expr, [{:do, clauses}]]}, stack, context) do
     with {:ok, _expr_type, context} <- of_expr(case_expr, stack, context),
          {:ok, context} <- of_clauses(clauses, stack, context),
          do: {:ok, dynamic(), context}
   end
 
-  # fn pat -> expr end
-  def of_expr({:fn, _meta, clauses}, _expected, stack, context) do
+  # TODO: fn pat -> expr end
+  def of_expr({:fn, _meta, clauses}, stack, context) do
     case of_clauses(clauses, stack, context) do
       {:ok, context} -> {:ok, dynamic(), context}
       {:error, reason} -> {:error, reason}
@@ -191,8 +185,8 @@ defmodule Module.Types.Expr do
   @try_blocks [:do, :after]
   @try_clause_blocks [:catch, :else, :after]
 
-  # try do expr end
-  def of_expr({:try, _meta, [blocks]}, _expected, stack, context) do
+  # TODO: try do expr end
+  def of_expr({:try, _meta, [blocks]}, stack, context) do
     {result, context} =
       reduce_ok(blocks, context, fn
         {:rescue, clauses}, context ->
@@ -221,8 +215,8 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # receive do pat -> expr end
-  def of_expr({:receive, _meta, [blocks]}, _expected, stack, context) do
+  # TODO: receive do pat -> expr end
+  def of_expr({:receive, _meta, [blocks]}, stack, context) do
     {result, context} =
       reduce_ok(blocks, context, fn
         {:do, {:__block__, _, []}}, context ->
@@ -243,8 +237,8 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # for pat <- expr do expr end
-  def of_expr({:for, _meta, [_ | _] = args}, _expected, stack, context) do
+  # TODO: for pat <- expr do expr end
+  def of_expr({:for, _meta, [_ | _] = args}, stack, context) do
     {clauses, [[{:do, block} | opts]]} = Enum.split(args, -1)
 
     with {:ok, context} <- reduce_ok(clauses, context, &for_clause(&1, stack, &2)),
@@ -261,16 +255,16 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # with pat <- expr do expr end
-  def of_expr({:with, _meta, [_ | _] = clauses}, _expected, stack, context) do
+  # TODO: with pat <- expr do expr end
+  def of_expr({:with, _meta, [_ | _] = clauses}, stack, context) do
     case reduce_ok(clauses, context, &with_clause(&1, stack, &2)) do
       {:ok, context} -> {:ok, dynamic(), context}
       {:error, reason} -> {:error, reason}
     end
   end
 
-  # fun.(args)
-  def of_expr({{:., _meta1, [fun]}, _meta2, args}, _expected, stack, context) do
+  # TODO: fun.(args)
+  def of_expr({{:., _meta1, [fun]}, _meta2, args}, stack, context) do
     with {:ok, _fun_type, context} <- of_expr(fun, stack, context),
          {:ok, _arg_types, context} <-
            map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
@@ -278,8 +272,8 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # expr.key_or_fun
-  def of_expr({{:., _meta1, [expr1, _key_or_fun]}, meta2, []}, _expected, stack, context)
+  # TODO: expr.key_or_fun
+  def of_expr({{:., _meta1, [expr1, _key_or_fun]}, meta2, []}, stack, context)
       when not is_atom(expr1) do
     if Keyword.get(meta2, :no_parens, false) do
       with {:ok, _, context} <- of_expr(expr1, stack, context) do
@@ -292,8 +286,8 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # expr.fun(arg)
-  def of_expr({{:., _meta1, [expr1, fun]}, meta2, args}, _expected, stack, context) do
+  # TODO: expr.fun(arg)
+  def of_expr({{:., _meta1, [expr1, fun]}, meta2, args}, stack, context) do
     context = Of.remote(expr1, fun, length(args), meta2, stack, context)
 
     with {:ok, _expr_type, context} <- of_expr(expr1, stack, context),
@@ -303,10 +297,9 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # &Foo.bar/1
+  # TODO: &Foo.bar/1
   def of_expr(
         {:&, _, [{:/, _, [{{:., _, [module, fun]}, meta, []}, arity]}]},
-        _expected,
         stack,
         context
       )
@@ -316,13 +309,13 @@ defmodule Module.Types.Expr do
   end
 
   # &foo/1
-  # & &1
-  def of_expr({:&, _meta, _arg}, _expected, _stack, context) do
+  # TODO: & &1
+  def of_expr({:&, _meta, _arg}, _stack, context) do
     {:ok, dynamic(), context}
   end
 
-  # fun(arg)
-  def of_expr({fun, _meta, args}, _expected, stack, context)
+  # TODO: fun(arg)
+  def of_expr({fun, _meta, args}, stack, context)
       when is_atom(fun) and is_list(args) do
     with {:ok, _arg_types, context} <-
            map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
@@ -330,8 +323,8 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # var
-  def of_expr(var, _expected, _stack, context) when is_var(var) do
+  # TODO: var
+  def of_expr(var, _stack, context) when is_var(var) do
     {:ok, fetch_var!(var, context), context}
   end
 
