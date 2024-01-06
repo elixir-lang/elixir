@@ -345,8 +345,7 @@ defmodule Record do
         {key, nil}
 
       other ->
-        raise ArgumentError,
-              "#{kind} fields must be atoms, got: #{inspect(other)}"
+        raise ArgumentError, "#{kind} fields must be atoms, got: #{inspect(other)}"
     end
 
     :lists.map(normalizer_fun, fields)
