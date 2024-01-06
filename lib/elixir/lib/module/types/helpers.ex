@@ -15,9 +15,34 @@ defmodule Module.Types.Helpers do
   end
 
   @doc """
-  Returns unique identifier for the current assignment of the variable.
+  Defines a new variable.
   """
-  def var_name({_name, meta, _context}), do: Keyword.fetch!(meta, :version)
+  def new_var({:_, _meta, _var_context}, type, context) do
+    {nil, type, context}
+  end
+
+  def new_var({var_name, meta, var_context}, type, context) do
+    version = Keyword.fetch!(meta, :version)
+
+    # TODO: What happens if the variable is defined with another type?
+    case context.vars do
+      %{^version => data} ->
+        {version, type, put_in(context.vars[version], %{data | type: type})}
+
+      %{} ->
+        {version, type,
+         put_in(context.vars[version], %{type: type, name: var_name, context: var_context})}
+    end
+  end
+
+  @doc """
+  Fetches the type of a defined variable.
+  """
+  def fetch_var!({_name, meta, _context}, context) do
+    version = Keyword.fetch!(meta, :version)
+    %{vars: %{^version => %{type: type}}} = context
+    type
+  end
 
   @doc """
   Returns the AST metadata.

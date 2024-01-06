@@ -1,10 +1,6 @@
 defmodule Module.Types do
   @moduledoc false
 
-  defmodule Error do
-    defexception [:message]
-  end
-
   alias Module.Types.{Expr, Pattern}
 
   @doc false
@@ -22,7 +18,7 @@ defmodule Module.Types do
             def_expr = {kind, meta, [guards_to_expr(guards, {fun, [], args}), [do: body]]}
 
             error =
-              Error.exception("""
+              RuntimeError.exception("""
               found error while checking types for #{Exception.format_mfa(module, fun, arity)}:
 
               #{Exception.format_banner(:error, e, __STACKTRACE__)}\
@@ -31,7 +27,7 @@ defmodule Module.Types do
 
               #{Macro.to_string(def_expr)}
 
-              In case it is a bug, please report it at: https://github.com/elixir-lang/elixir/issues
+              Please report this bug at: https://github.com/elixir-lang/elixir/issues
               """)
 
             reraise error, __STACKTRACE__
@@ -84,7 +80,9 @@ defmodule Module.Types do
   def context() do
     %{
       # A list of all warnings found so far
-      warnings: []
+      warnings: [],
+      # Information about all vars and their types
+      vars: %{}
     }
   end
 

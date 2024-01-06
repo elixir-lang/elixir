@@ -33,6 +33,24 @@ defmodule Module.Types.Expr do
     {:ok, pid(), context}
   end
 
+  # []
+  def of_expr([], _expected, _stack, context) do
+    {:ok, empty_list(), context}
+  end
+
+  # [expr, ...]
+  def of_expr(exprs, _expected, stack, context) when is_list(exprs) do
+    case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
+      {:ok, _types, context} -> {:ok, non_empty_list(), context}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  # {left, right}
+  def of_expr({left, right}, expected, stack, context) do
+    of_expr({:{}, [], [left, right]}, expected, stack, context)
+  end
+
   # <<...>>>
   def of_expr({:<<>>, _meta, args}, _expected, stack, context) do
     case Of.binary(args, :expr, stack, context, &of_expr/3) do
@@ -57,19 +75,6 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # []
-  def of_expr([], _expected, _stack, context) do
-    {:ok, empty_list(), context}
-  end
-
-  # [expr, ...]
-  def of_expr(exprs, _expected, stack, context) when is_list(exprs) do
-    case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
-      {:ok, _types, context} -> {:ok, non_empty_list(), context}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
   # __CALLER__
   def of_expr({:__CALLER__, _meta, var_context}, _expected, _stack, context)
       when is_atom(var_context) do
@@ -80,16 +85,6 @@ defmodule Module.Types.Expr do
   def of_expr({:__STACKTRACE__, _meta, var_context}, _expected, _stack, context)
       when is_atom(var_context) do
     {:ok, dynamic(), context}
-  end
-
-  # var
-  def of_expr(var, _expected, _stack, context) when is_var(var) do
-    {:ok, dynamic(), context}
-  end
-
-  # {left, right}
-  def of_expr({left, right}, expected, stack, context) do
-    of_expr({:{}, [], [left, right]}, expected, stack, context)
   end
 
   # {...}
@@ -202,12 +197,14 @@ defmodule Module.Types.Expr do
       reduce_ok(blocks, context, fn
         {:rescue, clauses}, context ->
           reduce_ok(clauses, context, fn
-            {:->, _, [[{:in, _, [_var, _exceptions]}], body]}, context ->
-              # TODO: make sure var is defined in context
+            {:->, _, [[{:in, _, [var, _exceptions]}], body]}, context ->
+              # TODO: Vars are a union of the structs above
+              {_version, _type, context} = new_var(var, dynamic(), context)
               of_expr_context(body, stack, context)
 
-            {:->, _, [[_var], body]}, context ->
-              # TODO: make sure var is defined in context
+            {:->, _, [[var], body]}, context ->
+              # TODO: Vars are structs with the exception field and that's it
+              {_version, _type, context} = new_var(var, dynamic(), context)
               of_expr_context(body, stack, context)
           end)
 
@@ -331,6 +328,11 @@ defmodule Module.Types.Expr do
            map_reduce_ok(args, context, &of_expr(&1, stack, &2)) do
       {:ok, dynamic(), context}
     end
+  end
+
+  # var
+  def of_expr(var, _expected, _stack, context) when is_var(var) do
+    {:ok, fetch_var!(var, context), context}
   end
 
   defp for_clause({:<-, _, [left, expr]}, stack, context) do

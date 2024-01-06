@@ -19,19 +19,9 @@ defmodule Module.Types.Pattern do
   Return the type and typing context of a pattern expression or an error
   in case of a typing conflict.
   """
-  # _
-  def of_pattern({:_, _meta, atom}, _stack, context) when is_atom(atom) do
-    {:ok, dynamic(), context}
-  end
-
   # ^var
-  def of_pattern({:^, _meta, [_var]}, _stack, context) do
-    {:ok, dynamic(), context}
-  end
-
-  # var
-  def of_pattern(var, _stack, context) when is_var(var) do
-    {:ok, dynamic(), context}
+  def of_pattern({:^, _meta, [var]}, _stack, context) do
+    {:ok, fetch_var!(var, context), context}
   end
 
   # left = right
@@ -69,6 +59,12 @@ defmodule Module.Types.Pattern do
       {:ok, context} -> {:ok, binary(), context}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  # var or _
+  def of_pattern(var, _stack, context) when is_var(var) do
+    {_version, type, context} = new_var(var, dynamic(), context)
+    {:ok, type, context}
   end
 
   def of_pattern(expr, stack, context) do
