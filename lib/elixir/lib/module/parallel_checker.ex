@@ -249,7 +249,7 @@ defmodule Module.ParallelChecker do
       |> merge_compiler_no_warn_undefined()
 
     behaviour_warnings =
-      Module.Types.Behaviour.check_behaviours_and_impls(
+      Module.Behaviour.check_behaviours_and_impls(
         module,
         file,
         line,

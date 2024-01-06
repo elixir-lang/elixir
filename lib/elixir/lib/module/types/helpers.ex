@@ -26,6 +26,15 @@ defmodule Module.Types.Helpers do
   def get_meta(_other), do: []
 
   @doc """
+  Emits a warnings.
+  """
+  def warn(module, warning, meta, stack, context) do
+    {fun, arity} = stack.function
+    location = {stack.file, meta, {stack.module, fun, arity}}
+    %{context | warnings: [{module, warning, location} | context.warnings]}
+  end
+
+  @doc """
   Like `Enum.reduce/3` but only continues while `fun` returns `{:ok, acc}`
   and stops on `{:error, reason}`.
   """
@@ -141,32 +150,6 @@ defmodule Module.Types.Helpers do
 
   defp do_flat_map_reduce_ok([], {list, acc}, _fun),
     do: {:ok, Enum.reverse(Enum.concat(list)), acc}
-
-  @doc """
-  Given a list of `[{:ok, term()} | {:error, term()}]` it returns a list of
-  errors `{:error, [term()]}` in case of at least one error or `{:ok, [term()]}`
-  if there are no errors.
-  """
-  def oks_or_errors(list) do
-    case Enum.split_with(list, &match?({:ok, _}, &1)) do
-      {oks, []} -> {:ok, Enum.map(oks, fn {:ok, ok} -> ok end)}
-      {_oks, errors} -> {:error, Enum.map(errors, fn {:error, error} -> error end)}
-    end
-  end
-
-  @doc """
-  Combines a list of guard expressions `when x when y when z` to an expression
-  combined with `or`, `x or y or z`.
-  """
-  # TODO: Remove this and let multiple when be treated as multiple clauses,
-  #       meaning they will be intersection types
-  def guards_to_or([]) do
-    []
-  end
-
-  def guards_to_or(guards) do
-    Enum.reduce(guards, fn guard, acc -> {{:., [], [:erlang, :orelse]}, [], [guard, acc]} end)
-  end
 
   @doc """
   Like `Enum.zip/1` but will zip multiple lists together instead of only two.

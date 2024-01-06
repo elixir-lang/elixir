@@ -211,30 +211,6 @@ defmodule CodeTest do
              end) =~ "an __ENV__ with outdated compilation information was given to eval"
     end
 
-    test "emits checker warnings" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Code.eval_string(File.read!(fixture_path("checker_warning.exs")), [])
-        end)
-
-      assert output =~ "incompatible types"
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
-
-    test "captures checker diagnostics" do
-      {{{:module, _, _, _}, _}, diagnostics} =
-        Code.with_diagnostics(fn ->
-          Code.eval_string(File.read!(fixture_path("checker_warning.exs")), [])
-        end)
-
-      assert [%{message: "incompatible types:" <> _}] = diagnostics
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
-
     test "formats diagnostic file paths as relatives" do
       {_, diagnostics} =
         Code.with_diagnostics(fn ->
@@ -398,47 +374,6 @@ defmodule CodeTest do
       assert Code.compile_file(fixture_path("code_sample.exs")) == []
       refute fixture_path("code_sample.exs") in Code.required_files()
     end
-
-    test "emits checker warnings" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Code.compile_file(fixture_path("checker_warning.exs"))
-        end)
-
-      assert output =~ "incompatible types"
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
-
-    test "captures checker diagnostics" do
-      {[{CodeTest.CheckerWarning, _}], diagnostics} =
-        Code.with_diagnostics(fn ->
-          Code.compile_file(fixture_path("checker_warning.exs"))
-        end)
-
-      assert [%{message: "incompatible types:" <> _}] = diagnostics
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
-
-    test "captures checker diagnostics with logging" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          {[{CodeTest.CheckerWarning, _}], diagnostics} =
-            Code.with_diagnostics([log: true], fn ->
-              Code.compile_file(fixture_path("checker_warning.exs"))
-            end)
-
-          assert [%{message: "incompatible types:" <> _}] = diagnostics
-        end)
-
-      assert output =~ "incompatible types"
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
-    end
   end
 
   test "require_file/1" do
@@ -520,18 +455,6 @@ defmodule CodeTest do
     after
       :code.purge(CompileSimpleSample)
       :code.delete(CompileSimpleSample)
-    end
-
-    test "emits checker warnings" do
-      output =
-        ExUnit.CaptureIO.capture_io(:stderr, fn ->
-          Code.compile_string(File.read!(fixture_path("checker_warning.exs")))
-        end)
-
-      assert output =~ "incompatible types"
-    after
-      :code.purge(CodeTest.CheckerWarning)
-      :code.delete(CodeTest.CheckerWarning)
     end
 
     test "works across lexical scopes" do
