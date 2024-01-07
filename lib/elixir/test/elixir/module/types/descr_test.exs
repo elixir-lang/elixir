@@ -70,5 +70,9 @@ defmodule Module.Types.DescrTest do
     test "none" do
       assert none() |> to_quoted_string() == "none()"
     end
+
+    test "term" do
+      assert term() |> to_quoted_string() == "term()"
+    end
   end
 end

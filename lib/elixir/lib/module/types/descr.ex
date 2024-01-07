@@ -90,6 +90,10 @@ defmodule Module.Types.Descr do
   @doc """
   Converts a descr to its quoted representation.
   """
+  def to_quoted(descr) when descr == %{bitmap: @top} do
+    {:term, [], []}
+  end
+
   def to_quoted(%{} = descr) do
     case Enum.flat_map(descr, fn {key, value} -> to_quoted(key, value) end) do
       [] -> {:none, [], []}
