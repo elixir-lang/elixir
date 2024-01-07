@@ -203,7 +203,7 @@ defmodule ExUnit.FiltersTest do
       assert ExUnit.Filters.parse_path("#{path}:123") ==
                {fixed_path, [exclude: [:test], include: [location: {fixed_path, 123}]]}
 
-      assert ExUnit.Filters.parse_path(path) == {path, []}
+      assert ExUnit.Filters.parse_path(path) == {fixed_path, []}
 
       assert ExUnit.Filters.parse_path("#{path}:123notreallyalinenumber123") ==
                {"#{fixed_path}:123notreallyalinenumber123", []}
