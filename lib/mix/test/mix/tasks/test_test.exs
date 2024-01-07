@@ -523,14 +523,14 @@ defmodule Mix.Tasks.TestTest do
                Including tags: [location: {"test/foo_tests.exs", 9}]
                """
 
-        assert output =~ "1 test, 0 failures"
+        assert output =~ "1 test, 0 failures\n"
 
         assert output =~ """
                Excluding tags: [:test]
                Including tags: [location: {"test/bar_tests.exs", 5}]
                """
 
-        assert output =~ "4 tests, 0 failures"
+        assert output =~ "4 tests, 0 failures, 3 excluded\n"
       end)
     end
   end
