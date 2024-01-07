@@ -198,28 +198,33 @@ defmodule ExUnit.FiltersTest do
     windows_path = "C:\\some\\path.exs"
 
     for path <- [unix_path, windows_path] do
-      assert ExUnit.Filters.parse_path("#{path}:123") ==
-               {path, [exclude: [:test], include: [location: {path, 123}]]}
+      fixed_path = path |> Path.split() |> Path.join()
 
-      assert ExUnit.Filters.parse_path(path) == {path, []}
+      assert ExUnit.Filters.parse_path("#{path}:123") ==
+               {fixed_path, [exclude: [:test], include: [location: {fixed_path, 123}]]}
+
+      assert ExUnit.Filters.parse_path(path) == {fixed_path, []}
 
       assert ExUnit.Filters.parse_path("#{path}:123notreallyalinenumber123") ==
-               {"#{path}:123notreallyalinenumber123", []}
+               {"#{fixed_path}:123notreallyalinenumber123", []}
 
       assert ExUnit.Filters.parse_path("#{path}:123:456") ==
-               {path, [exclude: [:test], include: [location: {path, [123, 456]}]]}
+               {fixed_path, [exclude: [:test], include: [location: {fixed_path, [123, 456]}]]}
 
       assert ExUnit.Filters.parse_path("#{path}:123notalinenumber123:456") ==
-               {"#{path}:123notalinenumber123",
-                [exclude: [:test], include: [location: {"#{path}:123notalinenumber123", 456}]]}
+               {"#{fixed_path}:123notalinenumber123",
+                [
+                  exclude: [:test],
+                  include: [location: {"#{fixed_path}:123notalinenumber123", 456}]
+                ]}
 
       output =
         ExUnit.CaptureIO.capture_io(:stderr, fn ->
           assert ExUnit.Filters.parse_path("#{path}:123:456notalinenumber456") ==
-                   {path, [{:exclude, [:test]}, {:include, [location: {path, 123}]}]}
+                   {fixed_path, [{:exclude, [:test]}, {:include, [location: {fixed_path, 123}]}]}
 
           assert ExUnit.Filters.parse_path("#{path}:123:0:-789:456") ==
-                   {path, [exclude: [:test], include: [location: {path, [123, 456]}]]}
+                   {fixed_path, [exclude: [:test], include: [location: {fixed_path, [123, 456]}]]}
         end)
 
       assert output =~ "invalid line number given as ExUnit filter: 456notalinenumber456"
@@ -231,25 +236,25 @@ defmodule ExUnit.FiltersTest do
   test "multiple file paths with line numbers" do
     unix_path = "test/some/path.exs"
     windows_path = "C:\\some\\path.exs"
-    other_unix_path = "test/some/other_path.exs"
+    other_unix_path = "test//some//other_path.exs"
     other_windows_path = "C:\\some\\other_path.exs"
 
-    for {path, other_path} <- [
-          {unix_path, other_unix_path},
-          {windows_path, other_windows_path}
-        ] do
+    for {path, other_path} <- [{unix_path, other_unix_path}, {windows_path, other_windows_path}] do
+      fixed_path = path |> Path.split() |> Path.join()
+      fixed_other_path = other_path |> Path.split() |> Path.join()
+
       assert ExUnit.Filters.parse_paths([path, "#{other_path}:456:789"]) ==
-               {[path, other_path],
+               {[fixed_path, fixed_other_path],
                 [
                   exclude: [:test],
-                  include: [location: {other_path, [456, 789]}]
+                  include: [location: {fixed_other_path, [456, 789]}]
                 ]}
 
       assert ExUnit.Filters.parse_paths(["#{path}:123", "#{other_path}:456"]) ==
-               {[path, other_path],
+               {[fixed_path, fixed_other_path],
                 [
                   exclude: [:test],
-                  include: [location: {path, 123}, location: {other_path, 456}]
+                  include: [location: {fixed_path, 123}, location: {fixed_other_path, 456}]
                 ]}
 
       output =
@@ -258,12 +263,12 @@ defmodule ExUnit.FiltersTest do
                    "#{path}:123:0:-789:456",
                    "#{other_path}:321:0:-987:654"
                  ]) ==
-                   {[path, other_path],
+                   {[fixed_path, fixed_other_path],
                     [
                       exclude: [:test],
                       include: [
-                        location: {path, [123, 456]},
-                        location: {other_path, [321, 654]}
+                        location: {fixed_path, [123, 456]},
+                        location: {fixed_other_path, [321, 654]}
                       ]
                     ]}
         end)

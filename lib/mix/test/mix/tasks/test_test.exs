@@ -223,6 +223,15 @@ defmodule Mix.Tasks.TestTest do
         output = mix(["test", "test/passing_and_failing_test_failed.exs", "--failed"])
         assert output =~ "1 test, 1 failure"
 
+        # Plus line
+        output = mix(["test", "test/passing_and_failing_test_failed.exs:5", "--failed"])
+        assert output =~ "1 test, 1 failure"
+
+        if windows?() do
+          output = mix(["test", "test\\passing_and_failing_test_failed.exs:5", "--failed"])
+          assert output =~ "1 test, 1 failure"
+        end
+
         # `--failed` composes with an `--only` filter by running the intersection.
         # Of the failing tests, 1 is tagged with `@tag :foo`.
         # Of the passing tests, 1 is tagged with `@tag :foo`.
@@ -509,17 +518,28 @@ defmodule Mix.Tasks.TestTest do
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
-        output = mix(["test", "apps/foo/test/foo_tests.exs:9", "apps/bar/test/bar_tests.exs:5"])
+        casing =
+          if windows?() do
+            "apps\\bar\\test\\bar_tests.exs:5"
+          else
+            "apps/bar/test/bar_tests.exs:5"
+          end
+
+        output = mix(["test", "apps/foo/test/foo_tests.exs:9", casing])
 
         assert output =~ """
                Excluding tags: [:test]
                Including tags: [location: {"test/foo_tests.exs", 9}]
                """
 
+        assert output =~ "1 test, 0 failures\n"
+
         assert output =~ """
                Excluding tags: [:test]
                Including tags: [location: {"test/bar_tests.exs", 5}]
                """
+
+        assert output =~ "4 tests, 0 failures, 3 excluded\n"
       end)
     end
   end
