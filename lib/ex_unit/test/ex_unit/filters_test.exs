@@ -247,14 +247,14 @@ defmodule ExUnit.FiltersTest do
                {[fixed_path, fixed_other_path],
                 [
                   exclude: [:test],
-                  include: [location: {other_path, [456, 789]}]
+                  include: [location: {fixed_other_path, [456, 789]}]
                 ]}
 
       assert ExUnit.Filters.parse_paths(["#{path}:123", "#{other_path}:456"]) ==
                {[fixed_path, fixed_other_path],
                 [
                   exclude: [:test],
-                  include: [location: {path, 123}, location: {other_path, 456}]
+                  include: [location: {fixed_path, 123}, location: {fixed_other_path, 456}]
                 ]}
 
       output =
