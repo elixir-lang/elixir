@@ -236,7 +236,7 @@ defmodule ExUnit.FiltersTest do
   test "multiple file paths with line numbers" do
     unix_path = "test/some/path.exs"
     windows_path = "C:\\some\\path.exs"
-    other_unix_path = "test/some/other_path.exs"
+    other_unix_path = "test//some//other_path.exs"
     other_windows_path = "C:\\some\\other_path.exs"
 
     for {path, other_path} <- [{unix_path, other_unix_path}, {windows_path, other_windows_path}] do
