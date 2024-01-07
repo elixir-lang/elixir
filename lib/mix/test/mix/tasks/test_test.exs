@@ -223,8 +223,12 @@ defmodule Mix.Tasks.TestTest do
         output = mix(["test", "test/passing_and_failing_test_failed.exs", "--failed"])
         assert output =~ "1 test, 1 failure"
 
+        # Plus line
+        output = mix(["test", "test/passing_and_failing_test_failed.exs:5", "--failed"])
+        assert output =~ "1 test, 1 failure"
+
         if windows?() do
-          output = mix(["test", "test\\passing_and_failing_test_failed.exs", "--failed"])
+          output = mix(["test", "test\\passing_and_failing_test_failed.exs:5", "--failed"])
           assert output =~ "1 test, 1 failure"
         end
 
