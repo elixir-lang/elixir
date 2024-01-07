@@ -223,6 +223,11 @@ defmodule Mix.Tasks.TestTest do
         output = mix(["test", "test/passing_and_failing_test_failed.exs", "--failed"])
         assert output =~ "1 test, 1 failure"
 
+        if windows?() do
+          output = mix(["test", "test\\passing_and_failing_test_failed.exs", "--failed"])
+          assert output =~ "1 test, 1 failure"
+        end
+
         # `--failed` composes with an `--only` filter by running the intersection.
         # Of the failing tests, 1 is tagged with `@tag :foo`.
         # Of the passing tests, 1 is tagged with `@tag :foo`.
