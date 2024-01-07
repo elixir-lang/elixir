@@ -509,7 +509,14 @@ defmodule Mix.Tasks.TestTest do
         refute output =~ "==> foo"
         refute output =~ "Paths given to \"mix test\" did not match any directory/file"
 
-        output = mix(["test", "apps/foo/test/foo_tests.exs:9", "apps/bar/test/bar_tests.exs:5"])
+        casing =
+          if windows?() do
+            "apps\\bar\\test\\bar_tests.exs:5"
+          else
+            "apps/bar/test/bar_tests.exs:5"
+          end
+
+        output = mix(["test", "apps/foo/test/foo_tests.exs:9", casing])
 
         assert output =~ """
                Excluding tags: [:test]
