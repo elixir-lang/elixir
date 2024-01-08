@@ -1526,17 +1526,14 @@ defmodule Enum do
 
   defp into_map(%{} = enumerable), do: enumerable
 
-  defp into_map(enumerable) when is_list(enumerable),
-    do: :maps.from_list(valid_keyword!(enumerable))
+  defp into_map(enumerable) when is_list(enumerable), do: :maps.from_list(enumerable)
 
-  defp into_map(enumerable),
-    do: enumerable |> Enum.to_list() |> valid_keyword! |> :maps.from_list()
+  defp into_map(enumerable), do: enumerable |> Enum.to_list() |> :maps.from_list()
 
-  defp into_map(%{} = enumerable, collectable),
-    do: Map.merge(collectable, enumerable)
+  defp into_map(%{} = enumerable, collectable), do: Map.merge(collectable, enumerable)
 
   defp into_map(enumerable, collectable) when is_list(enumerable),
-    do: Map.merge(collectable, :maps.from_list(valid_keyword!(enumerable)))
+    do: Map.merge(collectable, :maps.from_list(enumerable))
 
   defp into_map(enumerable, collectable),
     do: Enum.reduce(enumerable, collectable, fn {key, val}, acc -> Map.put(acc, key, val) end)
@@ -1565,19 +1562,6 @@ defmodule Enum do
       {:cont, fun.(acc, {:cont, x})}
     end)
     |> elem(1)
-  end
-
-  defp valid_keyword!(enumerable) do
-    case enumerable do
-      [] ->
-        enumerable
-
-      [h | _] when is_tuple(h) and tuple_size(h) == 2 ->
-        enumerable
-
-      [h | _] ->
-        raise ArgumentError, "collecting into a map requires {key, value} tuples, got: #{h}"
-    end
   end
 
   @doc """
