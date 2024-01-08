@@ -262,10 +262,6 @@ defmodule Module.Types.Pattern do
     ]
   end
 
-  defp format_var({var, _, context}), do: format_var(var, context)
-  defp format_var(var, nil), do: "\"#{var}\""
-  defp format_var(var, context), do: "\"#{var}\" (context #{inspect(context)})"
-
   defp format_traces(expr, %{vars: vars}) do
     {_, versions} =
       Macro.prewalk(expr, %{}, fn
@@ -281,10 +277,12 @@ defmodule Module.Types.Pattern do
           {node, versions}
       end)
 
-    versions
-    |> Map.values()
+    vars = Map.values(versions)
+
+    vars
     |> Enum.sort_by(& &1.name)
     |> Enum.map(&format_trace/1)
+    |> Kernel.++(format_hints(vars))
   end
 
   defp format_trace(%{off_traces: []}) do
@@ -310,6 +308,29 @@ defmodule Module.Types.Pattern do
     ["\nwhere #{format_var(name, context)} was given the #{type_or_types}:\n" | traces]
   end
 
-  def pluralize([_], singular, _plural), do: singular
-  def pluralize(_, _singular, plural), do: plural
+  defp format_var({var, _, context}), do: format_var(var, context)
+  defp format_var(var, nil), do: "\"#{var}\""
+  defp format_var(var, context), do: "\"#{var}\" (context #{inspect(context)})"
+
+  defp pluralize([_], singular, _plural), do: singular
+  defp pluralize(_, _singular, plural), do: plural
+
+  defp bitstring_trace?({{:<<>>, _, _}, _, _}), do: true
+  defp bitstring_trace?(_), do: false
+
+  defp format_hints(vars) do
+    if Enum.any?(vars, fn data -> Enum.any?(data.off_traces, &bitstring_trace?/1) end) do
+      [
+        """
+
+        #{hint()} all expressions given to binaries are assumed to be of type \
+        integer() unless said otherwise. For example, <<expr>> assumes "expr" \
+        is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+        to change the default behaviour.
+        """
+      ]
+    else
+      []
+    end
+  end
 end

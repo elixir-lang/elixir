@@ -93,18 +93,34 @@ defmodule TypeHelper do
     end
   end
 
-  def new_stack() do
+  defp new_stack() do
     Types.stack("types_test.ex", TypesTest, {:test, 0}, [], Module.ParallelChecker.test_cache())
   end
 
-  def new_context() do
+  defp new_context() do
     Types.context()
   end
 
   @doc """
-  A sigil that replaces LINE references by actual line.
+  The hint prefix.
   """
-  defmacro sigil_L({:<<>>, _, [string]}, []) do
-    String.replace(string, "LINE", Integer.to_string(__CALLER__.line))
+  def hint, do: :elixir_errors.prefix(:hint)
+
+  @doc """
+  A string-like sigil that replaces LINE references by actual line.
+  """
+  defmacro sigil_l({:<<>>, meta, parts}, []) do
+    parts =
+      for part <- parts do
+        if is_binary(part) do
+          part
+          |> String.replace("LINE", Integer.to_string(__CALLER__.line))
+          |> :elixir_interpolation.unescape_string()
+        else
+          part
+        end
+      end
+
+    {:<<>>, meta, parts}
   end
 end

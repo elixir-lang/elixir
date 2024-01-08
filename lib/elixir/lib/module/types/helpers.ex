@@ -15,6 +15,11 @@ defmodule Module.Types.Helpers do
   end
 
   @doc """
+  Formatted hint in typing errors.
+  """
+  def hint, do: :elixir_errors.prefix(:hint)
+
+  @doc """
   Converts the given expression to a string,
   translating inlined Erlang calls back to Elixir.
   """
