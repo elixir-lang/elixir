@@ -18,4 +18,17 @@ defmodule Module.Types.ExprTest do
     assert typecheck!({1, 2}) == tuple()
     assert typecheck!(%{}) == map()
   end
+
+  describe "undefined functions" do
+    test "warnings" do
+      assert typewarn!(URI.unknown("foo")) ==
+               {dynamic(), "URI.unknown/1 is undefined or private"}
+
+      assert typewarn!(if(true, do: URI.unknown("foo"))) ==
+               {dynamic(), "URI.unknown/1 is undefined or private"}
+
+      assert typewarn!(try(do: :ok, after: URI.unknown("foo"))) ==
+               {dynamic(), "URI.unknown/1 is undefined or private"}
+    end
+  end
 end

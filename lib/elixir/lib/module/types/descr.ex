@@ -104,6 +104,17 @@ defmodule Module.Types.Descr do
   @compile {:inline, to_quoted: 2}
   defp to_quoted(:bitmap, val), do: bitmap_to_quoted(val)
 
+  @doc """
+  Converts a descr to its quoted string representation.
+  """
+  def to_quoted_string(descr) do
+    descr
+    |> to_quoted()
+    |> Code.Formatter.to_algebra()
+    |> Inspect.Algebra.format(98)
+    |> IO.iodata_to_binary()
+  end
+
   ## Iterator helpers
 
   defp iterator_union({key, v1, iterator}, map) do

@@ -3,8 +3,8 @@ defmodule Module.Types.Of do
   # Generic AST and Enum helpers go to Module.Types.Helpers.
   @moduledoc false
 
-  # @prefix quote(do: ...)
-  # @suffix quote(do: ...)
+  @prefix quote(do: ...)
+  @suffix quote(do: ...)
 
   alias Module.ParallelChecker
   import Module.Types.{Helpers, Descr}
@@ -77,28 +77,22 @@ defmodule Module.Types.Of do
   end
 
   def binary([head], kind, stack, context, of_fun) do
-    # stack = push_expr_stack({:<<>>, get_meta(head), [head]}, stack)
-    binary_segment(head, kind, stack, context, of_fun)
+    binary_segment(head, kind, [head], stack, context, of_fun)
   end
 
   def binary([head | tail], kind, stack, context, of_fun) do
-    # stack = push_expr_stack({:<<>>, get_meta(head), [head, @suffix]}, stack)
-
-    case binary_segment(head, kind, stack, context, of_fun) do
+    case binary_segment(head, kind, [head, @suffix], stack, context, of_fun) do
       {:ok, context} -> binary_many(tail, kind, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
   defp binary_many([last], kind, stack, context, of_fun) do
-    # stack = push_expr_stack({:<<>>, get_meta(last), [@prefix, last]}, stack)
-    binary_segment(last, kind, stack, context, of_fun)
+    binary_segment(last, kind, [@prefix, last], stack, context, of_fun)
   end
 
   defp binary_many([head | tail], kind, stack, context, of_fun) do
-    # stack = push_expr_stack({:<<>>, get_meta(head), [@prefix, head, @suffix]}, stack)
-
-    case binary_segment(head, kind, stack, context, of_fun) do
+    case binary_segment(head, kind, [@prefix, head, @suffix], stack, context, of_fun) do
       {:ok, context} -> binary_many(tail, kind, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
@@ -106,64 +100,45 @@ defmodule Module.Types.Of do
 
   # If the segment is a literal, the compiler has already checked its validity,
   # so we just skip it.
-  defp binary_segment({:"::", _meta, [expr, _specifiers]}, _kind, _stack, context, _of_fun)
+  defp binary_segment({:"::", _meta, [expr, _specifiers]}, _kind, _args, _stack, context, _of_fun)
        when is_binary(expr) or is_number(expr) do
     {:ok, context}
   end
 
-  defp binary_segment({:"::", _meta, [expr, specifiers]}, kind, stack, context, of_fun) do
-    # TODO: unpack specifiers once
-    expected_type =
-      collect_binary_specifier(specifiers, &binary_type(kind, &1)) || @integer
+  defp binary_segment({:"::", meta, [expr, specifiers]}, kind, args, stack, context, of_fun) do
+    expected_type = specifier_info(kind, specifiers)
+    expected_expr = {expected_type, {:<<>>, meta, args}}
 
-    utf? = collect_binary_specifier(specifiers, &utf_type?/1)
-    float? = collect_binary_specifier(specifiers, &float_type?/1)
-
-    # Special case utf and float specifiers because they can be two types as literals
-    # but only a specific type as a variable in a pattern
-    cond do
-      kind == :pattern and utf? and is_binary(expr) ->
+    with {:ok, actual_type, context} <- of_fun.(expr, expected_expr, stack, context) do
+      # If we are in a pattern and we have a variable, the refinement
+      # will already have checked the type, so we skip the check here.
+      # TODO: properly handle dynamic. Do we need materialization?
+      if actual_type == :dynamic or
+           (kind == :pattern and is_var(expr)) or
+           is_none(difference(actual_type, expected_type)) do
         {:ok, context}
-
-      kind == :pattern and float? and is_integer(expr) ->
-        {:ok, context}
-
-      true ->
-        with {:ok, _type, context} <- of_fun.(expr, expected_type, stack, context),
-             do: {:ok, context}
+      else
+        # TODO: emit warning
+        {:error, context}
+      end
     end
   end
 
-  # Collect binary type specifiers,
-  # from `<<pattern::integer-size(10)>>` collect `integer`
-  defp collect_binary_specifier({:-, _meta, [left, right]}, fun) do
-    collect_binary_specifier(left, fun) || collect_binary_specifier(right, fun)
-  end
-
-  defp collect_binary_specifier(other, fun) do
-    fun.(other)
-  end
-
-  defp binary_type(:expr, {:float, _, _}), do: @integer_or_float
-  defp binary_type(:expr, {:utf8, _, _}), do: @integer_or_binary
-  defp binary_type(:expr, {:utf16, _, _}), do: @integer_or_binary
-  defp binary_type(:expr, {:utf32, _, _}), do: @integer_or_binary
-  defp binary_type(:pattern, {:utf8, _, _}), do: @integer
-  defp binary_type(:pattern, {:utf16, _, _}), do: @integer
-  defp binary_type(:pattern, {:utf32, _, _}), do: @integer
-  defp binary_type(:pattern, {:float, _, _}), do: @float
-  defp binary_type(_context, {:integer, _, _}), do: @integer
-  defp binary_type(_context, {:bits, _, _}), do: @binary
-  defp binary_type(_context, {:bitstring, _, _}), do: @binary
-  defp binary_type(_context, {:bytes, _, _}), do: @binary
-  defp binary_type(_context, {:binary, _, _}), do: @binary
-  defp binary_type(_context, _specifier), do: nil
-
-  defp utf_type?({specifier, _, _}), do: specifier in [:utf8, :utf16, :utf32]
-  defp utf_type?(_), do: false
-
-  defp float_type?({:float, _, _}), do: true
-  defp float_type?(_), do: false
+  defp specifier_info(kind, {:-, _, [left, _right]}), do: specifier_info(kind, left)
+  defp specifier_info(:expr, {:float, _, _}), do: @integer_or_float
+  defp specifier_info(:expr, {:utf8, _, _}), do: @integer_or_binary
+  defp specifier_info(:expr, {:utf16, _, _}), do: @integer_or_binary
+  defp specifier_info(:expr, {:utf32, _, _}), do: @integer_or_binary
+  defp specifier_info(:pattern, {:utf8, _, _}), do: @integer
+  defp specifier_info(:pattern, {:utf16, _, _}), do: @integer
+  defp specifier_info(:pattern, {:utf32, _, _}), do: @integer
+  defp specifier_info(:pattern, {:float, _, _}), do: @float
+  defp specifier_info(_kind, {:integer, _, _}), do: @integer
+  defp specifier_info(_kind, {:bits, _, _}), do: @binary
+  defp specifier_info(_kind, {:bitstring, _, _}), do: @binary
+  defp specifier_info(_kind, {:bytes, _, _}), do: @binary
+  defp specifier_info(_kind, {:binary, _, _}), do: @binary
+  defp specifier_info(_kind, _specifier), do: @integer
 
   ## Remote
 
