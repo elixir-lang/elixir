@@ -33,7 +33,7 @@ defmodule Mix.Tasks.Deps.Loadpaths do
 
     all =
       if "--no-optional-deps" in args do
-        for dep <- all, dep.opts[:optional] != true, do: dep
+        for dep <- all, not dep.opts[:optional], do: dep
       else
         all
       end
