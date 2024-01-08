@@ -303,7 +303,7 @@ defmodule Module.Types.Pattern do
 
         """
 
-            # #{Exception.format_file_line(file, meta[:line])}
+            # #{Exception.format_file_line(Path.relative_to_cwd(file), meta[:line])}
             #{Macro.to_string(expr)}
             => #{to_quoted_string(type)}
         """
