@@ -30,6 +30,10 @@ defmodule Module.Types.Descr do
   @term %{bitmap: @bit_top}
   @none %{}
 
+  # Guard helpers
+
+  defguard is_none(map) when map == %{}
+
   # Type definitions
 
   # TODO: Have an atom for term()
