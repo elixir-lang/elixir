@@ -35,6 +35,22 @@ defmodule Module.Types.PatternTest do
              is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
              to change the default behaviour.
              """
+
+      assert typeerror!([<<x::binary-size(2), x::float>>], x) == ~l"""
+             incompatible types assigned to "x":
+
+                 binary() !~ float()
+
+             where "x" was given the types:
+
+                 # types_test.ex:LINE:
+                 <<x::binary-size(2), ...>>
+                 => binary()
+
+                 # types_test.ex:LINE:
+                 <<..., x::float>>
+                 => float()
+             """
     end
   end
 end

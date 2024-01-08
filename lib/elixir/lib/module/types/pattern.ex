@@ -252,17 +252,20 @@ defmodule Module.Types.Pattern do
   ## Format warnings
 
   def format_warning({:refine_var, old_type, new_type, var, context}) do
+    {traces, hints} = format_traces(var, context)
+
     [
       """
       incompatible types assigned to #{format_var(var)}:
 
           #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
       """,
-      format_traces(var, context)
+      traces,
+      format_hints(hints)
     ]
   end
 
-  defp format_traces(expr, %{vars: vars}) do
+  def format_traces(expr, %{vars: vars}) do
     {_, versions} =
       Macro.prewalk(expr, %{}, fn
         {var_name, meta, var_context}, versions when is_atom(var_name) and is_atom(var_context) ->
@@ -279,10 +282,12 @@ defmodule Module.Types.Pattern do
 
     vars = Map.values(versions)
 
-    vars
-    |> Enum.sort_by(& &1.name)
-    |> Enum.map(&format_trace/1)
-    |> Kernel.++(format_hints(vars))
+    formatted_traces =
+      vars
+      |> Enum.sort_by(& &1.name)
+      |> Enum.map(&format_trace/1)
+
+    {formatted_traces, trace_hints(vars)}
   end
 
   defp format_trace(%{off_traces: []}) do
@@ -315,20 +320,12 @@ defmodule Module.Types.Pattern do
   defp pluralize([_], singular, _plural), do: singular
   defp pluralize(_, _singular, plural), do: plural
 
-  defp bitstring_trace?({{:<<>>, _, _}, _, _}), do: true
-  defp bitstring_trace?(_), do: false
+  defp integer_bitstring_trace?({{:<<>>, _, _}, _file, type}), do: type == integer()
+  defp integer_bitstring_trace?(_), do: false
 
-  defp format_hints(vars) do
-    if Enum.any?(vars, fn data -> Enum.any?(data.off_traces, &bitstring_trace?/1) end) do
-      [
-        """
-
-        #{hint()} all expressions given to binaries are assumed to be of type \
-        integer() unless said otherwise. For example, <<expr>> assumes "expr" \
-        is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
-        to change the default behaviour.
-        """
-      ]
+  defp trace_hints(vars) do
+    if Enum.any?(vars, fn data -> Enum.any?(data.off_traces, &integer_bitstring_trace?/1) end) do
+      [:inferred_integer_bitstring]
     else
       []
     end

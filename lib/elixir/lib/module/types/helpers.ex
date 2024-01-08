@@ -15,9 +15,24 @@ defmodule Module.Types.Helpers do
   end
 
   @doc """
-  Formatted hint in typing errors.
+  Formatted hints in typing errors.
   """
-  def hint, do: :elixir_errors.prefix(:hint)
+  def format_hints(hints) do
+    hints
+    |> Enum.uniq()
+    |> Enum.map(fn
+      :inferred_integer_bitstring ->
+        """
+
+        #{hint()} all expressions given to binaries are assumed to be of type \
+        integer() unless said otherwise. For example, <<expr>> assumes "expr" \
+        is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+        to change the default behaviour.
+        """
+    end)
+  end
+
+  defp hint, do: :elixir_errors.prefix(:hint)
 
   @doc """
   Converts the given expression to a string,
