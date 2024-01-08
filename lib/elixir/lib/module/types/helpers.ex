@@ -15,33 +15,47 @@ defmodule Module.Types.Helpers do
   end
 
   @doc """
-  Defines a new variable.
+  Formatted hints in typing errors.
   """
-  def new_var({:_, _meta, _var_context}, type, context) do
-    {nil, type, context}
+  def format_hints(hints) do
+    hints
+    |> Enum.uniq()
+    |> Enum.map(fn
+      :inferred_bitstring_spec ->
+        """
+
+        #{hint()} all expressions given to binaries are assumed to be of type \
+        integer() unless said otherwise. For example, <<expr>> assumes "expr" \
+        is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+        to change the default behaviour.
+        """
+    end)
   end
 
-  def new_var({var_name, meta, var_context}, type, context) do
-    version = Keyword.fetch!(meta, :version)
-
-    # TODO: What happens if the variable is defined with another type?
-    case context.vars do
-      %{^version => data} ->
-        {version, type, put_in(context.vars[version], %{data | type: type})}
-
-      %{} ->
-        {version, type,
-         put_in(context.vars[version], %{type: type, name: var_name, context: var_context})}
-    end
-  end
+  defp hint, do: :elixir_errors.prefix(:hint)
 
   @doc """
-  Fetches the type of a defined variable.
+  Converts the given expression to a string,
+  translating inlined Erlang calls back to Elixir.
   """
-  def fetch_var!({_name, meta, _context}, context) do
-    version = Keyword.fetch!(meta, :version)
-    %{vars: %{^version => %{type: type}}} = context
-    type
+  def expr_to_string(expr) do
+    expr
+    |> reverse_rewrite()
+    |> Macro.to_string()
+  end
+
+  defp reverse_rewrite(guard) do
+    Macro.prewalk(guard, fn
+      {{:., _, [mod, fun]}, meta, args} -> erl_to_ex(mod, fun, args, meta)
+      other -> other
+    end)
+  end
+
+  defp erl_to_ex(mod, fun, args, meta) do
+    case :elixir_rewrite.erl_to_ex(mod, fun, args) do
+      {Kernel, fun, args} -> {fun, meta, args}
+      {mod, fun, args} -> {{:., [], [mod, fun]}, meta, args}
+    end
   end
 
   @doc """
