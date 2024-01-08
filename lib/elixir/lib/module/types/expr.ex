@@ -97,7 +97,7 @@ defmodule Module.Types.Expr do
 
   # TODO: left = right
   def of_expr({:=, _meta, [left_expr, right_expr]}, stack, context) do
-    with {:ok, _left_type, context} <- Pattern.of_pattern(left_expr, stack, context),
+    with {:ok, _left_type, context} <- Pattern.of_pattern(left_expr, dynamic(), stack, context),
          {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
       {:ok, right_type, context}
     end
@@ -197,12 +197,12 @@ defmodule Module.Types.Expr do
           reduce_ok(clauses, context, fn
             {:->, _, [[{:in, _, [var, _exceptions]}], body]}, context ->
               # TODO: Vars are a union of the structs above
-              {_version, _type, context} = new_var(var, dynamic(), context)
+              {:ok, _type, context} = Pattern.of_pattern(var, dynamic(), stack, context)
               of_expr_context(body, stack, context)
 
             {:->, _, [[var], body]}, context ->
               # TODO: Vars are structs with the exception field and that's it
-              {_version, _type, context} = new_var(var, dynamic(), context)
+              {:ok, _type, context} = Pattern.of_pattern(var, dynamic(), stack, context)
               of_expr_context(body, stack, context)
           end)
 
@@ -327,9 +327,9 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: var
+  # var
   def of_expr(var, _stack, context) when is_var(var) do
-    {:ok, fetch_var!(var, context), context}
+    {:ok, Pattern.of_var(var, context), context}
   end
 
   defp for_clause({:<-, _, [left, expr]}, stack, context) do
@@ -342,7 +342,7 @@ defmodule Module.Types.Expr do
 
   defp for_clause({:<<>>, _, [{:<-, _, [pattern, expr]}]}, stack, context) do
     # TODO: the compiler guarantees pattern is a binary but we need to check expr is a binary
-    with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, stack, context),
+    with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, dynamic(), stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end

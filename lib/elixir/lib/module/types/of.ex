@@ -9,6 +9,12 @@ defmodule Module.Types.Of do
   alias Module.ParallelChecker
   import Module.Types.{Helpers, Descr}
 
+  @integer_or_float union(integer(), float())
+  @integer_or_binary union(integer(), binary())
+  @integer integer()
+  @float float()
+  @binary binary()
+
   # There are important assumptions on how we work with maps.
   #
   # First, the keys in the map must be ordered by subtyping.
@@ -108,7 +114,7 @@ defmodule Module.Types.Of do
   defp binary_segment({:"::", _meta, [expr, specifiers]}, kind, stack, context, of_fun) do
     # TODO: unpack specifiers once
     expected_type =
-      collect_binary_specifier(specifiers, &binary_type(kind, &1)) || :integer
+      collect_binary_specifier(specifiers, &binary_type(kind, &1)) || @integer
 
     utf? = collect_binary_specifier(specifiers, &utf_type?/1)
     float? = collect_binary_specifier(specifiers, &float_type?/1)
@@ -138,19 +144,19 @@ defmodule Module.Types.Of do
     fun.(other)
   end
 
-  defp binary_type(:expr, {:float, _, _}), do: {:union, [:integer, :float]}
-  defp binary_type(:expr, {:utf8, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:expr, {:utf16, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:expr, {:utf32, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:pattern, {:utf8, _, _}), do: :integer
-  defp binary_type(:pattern, {:utf16, _, _}), do: :integer
-  defp binary_type(:pattern, {:utf32, _, _}), do: :integer
-  defp binary_type(:pattern, {:float, _, _}), do: :float
-  defp binary_type(_context, {:integer, _, _}), do: :integer
-  defp binary_type(_context, {:bits, _, _}), do: :binary
-  defp binary_type(_context, {:bitstring, _, _}), do: :binary
-  defp binary_type(_context, {:bytes, _, _}), do: :binary
-  defp binary_type(_context, {:binary, _, _}), do: :binary
+  defp binary_type(:expr, {:float, _, _}), do: @integer_or_float
+  defp binary_type(:expr, {:utf8, _, _}), do: @integer_or_binary
+  defp binary_type(:expr, {:utf16, _, _}), do: @integer_or_binary
+  defp binary_type(:expr, {:utf32, _, _}), do: @integer_or_binary
+  defp binary_type(:pattern, {:utf8, _, _}), do: @integer
+  defp binary_type(:pattern, {:utf16, _, _}), do: @integer
+  defp binary_type(:pattern, {:utf32, _, _}), do: @integer
+  defp binary_type(:pattern, {:float, _, _}), do: @float
+  defp binary_type(_context, {:integer, _, _}), do: @integer
+  defp binary_type(_context, {:bits, _, _}), do: @binary
+  defp binary_type(_context, {:bitstring, _, _}), do: @binary
+  defp binary_type(_context, {:bytes, _, _}), do: @binary
+  defp binary_type(_context, {:binary, _, _}), do: @binary
   defp binary_type(_context, _specifier), do: nil
 
   defp utf_type?({specifier, _, _}), do: specifier in [:utf8, :utf16, :utf32]

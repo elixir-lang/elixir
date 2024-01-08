@@ -22,6 +22,10 @@ defmodule Module.Types.Descr do
   @fun 1 <<< 12
   @top (1 <<< 13) - 1
 
+  # Guard helpers
+
+  defguard is_none(map) when map == %{}
+
   # Type definitions
 
   def dynamic(), do: :dynamic
