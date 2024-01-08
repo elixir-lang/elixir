@@ -143,7 +143,7 @@ defimpl Collectable, for: BitString do
 
       _acc, {:cont, other} ->
         raise ArgumentError,
-              "collecting into a bitstring requires a bitstring, got: #{inspect(other)}"
+              "collecting into a binary requires a bitstring, got: #{inspect(other)}"
     end
 
     {[binary], fun}
@@ -160,7 +160,7 @@ defimpl Collectable, for: BitString do
       _acc, :halt ->
         :ok
 
-      _map_acc, {:cont, other} ->
+      _acc, {:cont, other} ->
         raise ArgumentError,
               "collecting into a bitstring requires a bitstring, got: #{inspect(other)}"
     end

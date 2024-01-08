@@ -440,16 +440,32 @@ defmodule EnumTest do
       Enum.into(Date.range(c.date, ~D[2019-01-01]), %{a: 1})
     end
 
-    bit_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(c.item)}"
-    bit_map_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(c.tuple)}"
-    bit_date_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(c.date)}"
-    assert_raise ArgumentError, bit_msg, fn -> Enum.into(Range.new(c.item, 10), <<>>) end
+    bit_msg = "collecting into a binary requires a bitstring, got: #{inspect(c.item)}"
+    bit_map_msg = "collecting into a binary requires a bitstring, got: #{inspect(c.tuple)}"
+    bit_date_msg = "collecting into a binary requires a bitstring, got: #{inspect(c.date)}"
+    assert_raise ArgumentError, bit_msg, fn -> Enum.into(Range.new(c.item, 10, 1), <<>>) end
     assert_raise ArgumentError, bit_msg, fn -> Enum.into([c.item, 2, 3], <<>>) end
     assert_raise ArgumentError, bit_msg, fn -> Enum.into(MapSet.new([c.item, 2, 3, 4]), <<>>) end
     assert_raise ArgumentError, bit_map_msg, fn -> Enum.into(c.map, <<>>) end
 
     assert_raise ArgumentError, bit_date_msg, fn ->
       Enum.into(Date.range(c.date, ~D[2019-01-01]), <<>>)
+    end
+
+    bit_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(c.item)}"
+    bit_map_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(c.tuple)}"
+    bit_date_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(c.date)}"
+    assert_raise ArgumentError, bit_msg, fn -> Enum.into(Range.new(c.item, 10, 1), <<1::1>>) end
+    assert_raise ArgumentError, bit_msg, fn -> Enum.into([c.item, 2, 3], <<1::1>>) end
+
+    assert_raise ArgumentError, bit_msg, fn ->
+      Enum.into(MapSet.new([c.item, 2, 3, 4]), <<1::1>>)
+    end
+
+    assert_raise ArgumentError, bit_map_msg, fn -> Enum.into(c.map, <<1::1>>) end
+
+    assert_raise ArgumentError, bit_date_msg, fn ->
+      Enum.into(Date.range(c.date, ~D[2019-01-01]), <<1::1>>)
     end
   end
 
