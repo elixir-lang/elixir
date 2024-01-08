@@ -152,10 +152,10 @@ defmodule Regex do
 
   There is another character class, `ascii`, that erroneously matches
   Latin-1 characters instead of the 0-127 range specified by POSIX. This
-  cannot be fixed without altering the behaviour of other classes, so we
+  cannot be fixed without altering the behavior of other classes, so we
   recommend matching the range with `[\\0-\x7f]` instead.
 
-  Note the behaviour of those classes may change according to the Unicode
+  Note the behavior of those classes may change according to the Unicode
   and other modifiers:
 
       iex> String.match?("josé", ~r/^[[:lower:]]+$/)

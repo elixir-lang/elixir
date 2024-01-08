@@ -261,7 +261,7 @@ defmodule Path do
       Path.relative("/bar/foo.ex")      #=> "bar/foo.ex"
 
   """
-  # Note this function does not expand paths because the behaviour
+  # Note this function does not expand paths because the behavior
   # is ambiguous. If we expand it before converting to relative, then
   # "/usr/../../foo" means "/foo". If we expand it after, it means "../foo".
   # We could expand only relative paths but it is best to say it never
