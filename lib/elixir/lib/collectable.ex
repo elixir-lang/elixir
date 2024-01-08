@@ -172,6 +172,9 @@ defimpl Collectable, for: Map do
 
       _map_acc, :halt ->
         :ok
+
+      _map_acc, {:cont, other} ->
+        raise ArgumentError, "collecting into a map requires {key, value} tuples, got: #{inspect(other)}"
     end
 
     {map, fun}

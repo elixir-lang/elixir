@@ -415,6 +415,14 @@ defmodule EnumTest do
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into(1..3, []) == [1, 2, 3]
     assert Enum.into(["H", "i"], "") == "Hi"
+
+    assert_raise RuntimeError,
+                 "collecting into a map requires {key, value} tuples, got: 1",
+                 fn -> Enum.into(Range.new(1, 10, 1), %{}) end
+
+    assert_raise RuntimeError,
+                 "collecting into a map requires {key, value} tuples, got: 1",
+                 fn -> Enum.into(Range.new(1, 10, 1), %{a: 1}) end
   end
 
   test "into/3" do
