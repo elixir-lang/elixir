@@ -51,9 +51,11 @@ defmodule Module.Types.ExprTest do
 
                 where "x" was given the type:
 
-                    # types_test.ex:LINE-2:
+                    # type: binary()
+                    # from: types_test.ex:LINE-2
                     <<x::binary-size(2)>>
-                    => binary()
+
+                typing violation found at:\
                 """}
 
       assert typewarn!([<<x::binary>>], <<x>>) ==
@@ -73,11 +75,13 @@ defmodule Module.Types.ExprTest do
 
                 where "x" was given the type:
 
-                    # types_test.ex:LINE-2:
+                    # type: binary()
+                    # from: types_test.ex:LINE-2
                     <<x::binary>>
-                    => binary()
 
                 #{hints(:inferred_bitstring_spec)}
+
+                typing violation found at:\
                 """}
 
       assert typewarn!([<<x>>], <<x::binary>>) ==
@@ -97,11 +101,13 @@ defmodule Module.Types.ExprTest do
 
                 where "x" was given the type:
 
-                    # types_test.ex:LINE-2:
+                    # type: integer()
+                    # from: types_test.ex:LINE-2
                     <<x>>
-                    => integer()
 
                 #{hints(:inferred_bitstring_spec)}
+
+                typing violation found at:\
                 """}
     end
   end

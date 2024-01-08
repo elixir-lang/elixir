@@ -22,13 +22,15 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the types:
 
-                 # types_test.ex:LINE:
+                 # type: binary()
+                 # from: types_test.ex:LINE
                  <<x::binary-size(2), ...>>
-                 => binary()
 
-                 # types_test.ex:LINE:
+                 # type: float()
+                 # from: types_test.ex:LINE
                  <<..., x::float>>
-                 => float()
+
+             typing violation found at:\
              """
 
       assert typeerror!([<<x::float, x>>], x) == ~l"""
@@ -38,15 +40,17 @@ defmodule Module.Types.PatternTest do
 
              where "x" was given the types:
 
-                 # types_test.ex:LINE:
+                 # type: float()
+                 # from: types_test.ex:LINE
                  <<x::float, ...>>
-                 => float()
 
-                 # types_test.ex:LINE:
+                 # type: integer()
+                 # from: types_test.ex:LINE
                  <<..., x>>
-                 => integer()
 
              #{hints(:inferred_bitstring_spec)}
+
+             typing violation found at:\
              """
     end
   end

@@ -113,9 +113,9 @@ defmodule Module.Types.Of do
       # If we are in a pattern and we have a variable, the refinement
       # will already have checked the type, so we skip the check here.
       # TODO: properly handle dynamic. Do we need materialization?
-      if actual_type == :dynamic or
+      if actual_type == dynamic() or
            (kind == :pattern and is_var(left)) or
-           is_none(difference(actual_type, expected_type)) do
+           empty?(difference(actual_type, expected_type)) do
         {:ok, context}
       else
         hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
@@ -264,7 +264,8 @@ defmodule Module.Types.Of do
           #{to_quoted_string(actual_type)}
       """,
       traces,
-      format_hints(hints ++ trace_hints)
+      format_hints(hints ++ trace_hints),
+      "\ntyping violation found at:"
     ]
   end
 

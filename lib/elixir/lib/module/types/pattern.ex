@@ -46,7 +46,7 @@ defmodule Module.Types.Pattern do
         data = %{data | type: new_type, off_traces: new_trace(expr, type, stack, off_traces)}
         context = put_in(context.vars[version], data)
 
-        if is_none(new_type) do
+        if empty?(new_type) do
           {:error,
            warn(__MODULE__, {:refine_var, old_type, type, var, context}, meta, stack, context)}
         else
@@ -261,7 +261,8 @@ defmodule Module.Types.Pattern do
           #{to_quoted_string(old_type)} !~ #{to_quoted_string(new_type)}
       """,
       traces,
-      format_hints(hints)
+      format_hints(hints),
+      "\ntyping violation found at:"
     ]
   end
 
@@ -301,11 +302,17 @@ defmodule Module.Types.Pattern do
       |> Enum.map(fn {expr, file, type} ->
         meta = get_meta(expr)
 
+        location =
+          file
+          |> Path.relative_to_cwd()
+          |> Exception.format_file_line(meta[:line])
+          |> String.replace_suffix(":", "")
+
         """
 
-            # #{Exception.format_file_line(Path.relative_to_cwd(file), meta[:line])}
+            # type: #{to_quoted_string(type)}
+            # from: #{location}
             #{Macro.to_string(expr)}
-            => #{to_quoted_string(type)}
         """
       end)
 
