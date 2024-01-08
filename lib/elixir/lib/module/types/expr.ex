@@ -4,6 +4,10 @@ defmodule Module.Types.Expr do
   alias Module.Types.{Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
+  defp of_expr(ast, _expected, stack, context) do
+    of_expr(ast, stack, context)
+  end
+
   # :atom
   def of_expr(atom, _stack, context) when is_atom(atom) do
     {:ok, atom(atom), context}
@@ -47,9 +51,9 @@ defmodule Module.Types.Expr do
     of_expr({:{}, [], [left, right]}, stack, context)
   end
 
-  # TODO: <<...>>>
+  # <<...>>>
   def of_expr({:<<>>, _meta, args}, stack, context) do
-    case Of.binary(args, :expr, stack, context, &of_expr/3) do
+    case Of.binary(args, :expr, stack, context, &of_expr/4) do
       {:ok, context} -> {:ok, binary(), context}
       {:error, reason} -> {:error, reason}
     end

@@ -66,43 +66,49 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def binary([], _type, _stack, context, _of_fun) do
+  def binary([], _kind, _stack, context, _of_fun) do
     {:ok, context}
   end
 
-  def binary([head], type, stack, context, of_fun) do
+  def binary([head], kind, stack, context, of_fun) do
     # stack = push_expr_stack({:<<>>, get_meta(head), [head]}, stack)
-    binary_segment(head, type, stack, context, of_fun)
+    binary_segment(head, kind, stack, context, of_fun)
   end
 
-  def binary([head | tail], type, stack, context, of_fun) do
+  def binary([head | tail], kind, stack, context, of_fun) do
     # stack = push_expr_stack({:<<>>, get_meta(head), [head, @suffix]}, stack)
 
-    case binary_segment(head, type, stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, type, stack, context, of_fun)
+    case binary_segment(head, kind, stack, context, of_fun) do
+      {:ok, context} -> binary_many(tail, kind, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp binary_many([last], type, stack, context, of_fun) do
+  defp binary_many([last], kind, stack, context, of_fun) do
     # stack = push_expr_stack({:<<>>, get_meta(last), [@prefix, last]}, stack)
-    binary_segment(last, type, stack, context, of_fun)
+    binary_segment(last, kind, stack, context, of_fun)
   end
 
-  defp binary_many([head | tail], type, stack, context, of_fun) do
+  defp binary_many([head | tail], kind, stack, context, of_fun) do
     # stack = push_expr_stack({:<<>>, get_meta(head), [@prefix, head, @suffix]}, stack)
 
-    case binary_segment(head, type, stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, type, stack, context, of_fun)
+    case binary_segment(head, kind, stack, context, of_fun) do
+      {:ok, context} -> binary_many(tail, kind, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp binary_segment({:"::", _meta, [expr, specifiers]}, type, stack, context, of_fun) do
-    # TODO: handle size in specifiers
+  # If the segment is a literal, the compiler has already checked its validity,
+  # so we just skip it.
+  defp binary_segment({:"::", _meta, [expr, _specifiers]}, _kind, _stack, context, _of_fun)
+       when is_binary(expr) or is_number(expr) do
+    {:ok, context}
+  end
+
+  defp binary_segment({:"::", _meta, [expr, specifiers]}, kind, stack, context, of_fun) do
     # TODO: unpack specifiers once
-    _expected_type =
-      collect_binary_specifier(specifiers, &binary_type(type, &1)) || :integer
+    expected_type =
+      collect_binary_specifier(specifiers, &binary_type(kind, &1)) || :integer
 
     utf? = collect_binary_specifier(specifiers, &utf_type?/1)
     float? = collect_binary_specifier(specifiers, &float_type?/1)
@@ -110,14 +116,14 @@ defmodule Module.Types.Of do
     # Special case utf and float specifiers because they can be two types as literals
     # but only a specific type as a variable in a pattern
     cond do
-      type == :pattern and utf? and is_binary(expr) ->
+      kind == :pattern and utf? and is_binary(expr) ->
         {:ok, context}
 
-      type == :pattern and float? and is_integer(expr) ->
+      kind == :pattern and float? and is_integer(expr) ->
         {:ok, context}
 
       true ->
-        with {:ok, _type, context} <- of_fun.(expr, stack, context),
+        with {:ok, _type, context} <- of_fun.(expr, expected_type, stack, context),
              do: {:ok, context}
     end
   end
