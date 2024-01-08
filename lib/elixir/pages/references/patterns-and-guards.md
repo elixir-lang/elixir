@@ -159,13 +159,13 @@ iex> [head | tail] = []
 Given charlists are represented as a list of integers, one can also perform prefix matches on charlists using the list concatenation operator ([`++`](`++/2`)):
 
 ```elixir
-iex> 'hello ' ++ world = 'hello world'
-'hello world'
+iex> ~c"hello " ++ world = ~c"hello world"
+~c"hello world"
 iex> world
-'world'
+~c"world"
 ```
 
-Which is equivalent to matching on `[?h, ?e, ?l, ?l, ?o, ?\s | world]`. Suffix matches (`hello ++ ' world'`) are not valid patterns.
+Which is equivalent to matching on `[?h, ?e, ?l, ?l, ?o, ?\s | world]`. Suffix matches (`hello ++ ~c" world"`) are not valid patterns.
 
 ### Maps
 
