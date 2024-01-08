@@ -1545,7 +1545,7 @@ defmodule Enum do
     do: Enum.reduce(enumerable, collectable, fn {key, val}, acc -> Map.put(acc, key, val) end)
 
   defp into_protocol(enumerable, collectable) do
-    {initial, fun} = Collectable.into(collectablex)
+    {initial, fun} = Collectable.into(collectable)
 
     try do
       reduce_into_protocol(enumerable, initial, fun)
