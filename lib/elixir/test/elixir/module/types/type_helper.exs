@@ -102,9 +102,15 @@ defmodule TypeHelper do
   end
 
   @doc """
-  The hint prefix.
+  Interpolate the given hints.
   """
-  def hint, do: :elixir_errors.prefix(:hint)
+  def hints(hints) do
+    hints
+    |> List.wrap()
+    |> Module.Types.Helpers.format_hints()
+    |> IO.iodata_to_binary()
+    |> String.trim()
+  end
 
   @doc """
   A string-like sigil that replaces LINE references by actual line.

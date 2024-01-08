@@ -77,10 +77,7 @@ defmodule Module.Types.ExprTest do
                     <<x::binary>>
                     => binary()
 
-                #{hint()} all expressions given to binaries are assumed to be of type \
-                integer() unless said otherwise. For example, <<expr>> assumes "expr" \
-                is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
-                to change the default behaviour.
+                #{hints(:inferred_bitstring_spec)}
                 """}
 
       assert typewarn!([<<x>>], <<x::binary>>) ==
@@ -104,10 +101,7 @@ defmodule Module.Types.ExprTest do
                     <<x>>
                     => integer()
 
-                #{hint()} all expressions given to binaries are assumed to be of type \
-                integer() unless said otherwise. For example, <<expr>> assumes "expr" \
-                is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
-                to change the default behaviour.
+                #{hints(:inferred_bitstring_spec)}
                 """}
     end
   end
