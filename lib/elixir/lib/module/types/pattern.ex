@@ -320,12 +320,13 @@ defmodule Module.Types.Pattern do
   defp pluralize([_], singular, _plural), do: singular
   defp pluralize(_, _singular, plural), do: plural
 
-  defp integer_bitstring_trace?({{:<<>>, _, _}, _file, type}), do: type == integer()
-  defp integer_bitstring_trace?(_), do: false
+  defp inferred_bitstring_spec?(trace) do
+    match?({{:<<>>, [inferred_bitstring_spec: true] ++ _meta, _}, _file, _type}, trace)
+  end
 
   defp trace_hints(vars) do
-    if Enum.any?(vars, fn data -> Enum.any?(data.off_traces, &integer_bitstring_trace?/1) end) do
-      [:inferred_integer_bitstring]
+    if Enum.any?(vars, fn data -> Enum.any?(data.off_traces, &inferred_bitstring_spec?/1) end) do
+      [:inferred_bitstring_spec]
     else
       []
     end

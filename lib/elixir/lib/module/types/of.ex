@@ -3,11 +3,11 @@ defmodule Module.Types.Of do
   # Generic AST and Enum helpers go to Module.Types.Helpers.
   @moduledoc false
 
-  @prefix quote(do: ...)
-  @suffix quote(do: ...)
-
   alias Module.ParallelChecker
   import Module.Types.{Helpers, Descr}
+
+  @prefix quote(do: ...)
+  @suffix quote(do: ...)
 
   @integer_or_float union(integer(), float())
   @integer_or_binary union(integer(), binary())
@@ -100,26 +100,26 @@ defmodule Module.Types.Of do
 
   # If the segment is a literal, the compiler has already checked its validity,
   # so we just skip it.
-  defp binary_segment({:"::", _meta, [expr, _specifiers]}, _kind, _args, _stack, context, _of_fun)
-       when is_binary(expr) or is_number(expr) do
+  defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context, _of_fun)
+       when is_binary(left) or is_number(left) do
     {:ok, context}
   end
 
-  defp binary_segment({:"::", meta, [expr, specifiers]}, kind, args, stack, context, of_fun) do
-    expected_type = specifier_info(kind, specifiers)
-    expected_expr = {expected_type, {:<<>>, meta, args}}
+  defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context, of_fun) do
+    expected_type = specifier_info(kind, right)
+    expr = {:<<>>, meta, args}
 
-    with {:ok, actual_type, context} <- of_fun.(expr, expected_expr, stack, context) do
+    with {:ok, actual_type, context} <- of_fun.(left, {expected_type, expr}, stack, context) do
       # If we are in a pattern and we have a variable, the refinement
       # will already have checked the type, so we skip the check here.
       # TODO: properly handle dynamic. Do we need materialization?
       if actual_type == :dynamic or
-           (kind == :pattern and is_var(expr)) or
+           (kind == :pattern and is_var(left)) or
            is_none(difference(actual_type, expected_type)) do
         {:ok, context}
       else
-        # TODO: emit warning
-        {:error, context}
+        hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
+        {:error, incompatible_warn(expr, expected_type, actual_type, hints, meta, stack, context)}
       end
     end
   end
@@ -230,11 +230,43 @@ defmodule Module.Types.Of do
     not Enum.any?(stack.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
   end
 
+  ## Warning helpers
+
+  @doc """
+  Emits incompatible types warning for the given expression
+  """
+  def incompatible_warn(expr, expected_type, actual_type, hints \\ [], meta, stack, context) do
+    warning = {:incompatible, expr, expected_type, actual_type, hints, context}
+    warn(__MODULE__, warning, meta, stack, context)
+  end
+
   defp warn(warning, meta, stack, context) do
     warn(__MODULE__, warning, meta, stack, context)
   end
 
   ## Warning formatting
+
+  def format_warning({:incompatible, expr, expected_type, actual_type, hints, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      incompatible types in expression:
+
+          #{Macro.to_string(expr)}
+
+      expected type:
+
+          #{to_quoted_string(expected_type)}
+
+      but got type:
+
+          #{to_quoted_string(actual_type)}
+      """,
+      traces,
+      format_hints(hints ++ trace_hints)
+    ]
+  end
 
   def format_warning({:undefined_module, module, fun, arity}) do
     [

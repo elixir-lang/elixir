@@ -42,7 +42,7 @@ defmodule Module.Types.Expr do
   def of_expr(exprs, stack, context) when is_list(exprs) do
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
       {:ok, _types, context} -> {:ok, non_empty_list(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -55,7 +55,8 @@ defmodule Module.Types.Expr do
   def of_expr({:<<>>, _meta, args}, stack, context) do
     case Of.binary(args, :expr, stack, context, &of_expr/4) do
       {:ok, context} -> {:ok, binary(), context}
-      {:error, reason} -> {:error, reason}
+      # It is safe to discard errors from binary inside expressions
+      {:error, context} -> {:ok, binary(), context}
     end
   end
 
@@ -70,8 +71,8 @@ defmodule Module.Types.Expr do
       {:ok, _left, context} ->
         of_expr(right_expr, stack, context)
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, context} ->
+        {:error, context}
     end
   end
 
@@ -91,7 +92,7 @@ defmodule Module.Types.Expr do
   def of_expr({:{}, _meta, exprs}, stack, context) do
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
       {:ok, _types, context} -> {:ok, tuple(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -153,7 +154,7 @@ defmodule Module.Types.Expr do
 
     case result do
       {:ok, _, context} -> of_expr(post, stack, context)
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -183,7 +184,7 @@ defmodule Module.Types.Expr do
   def of_expr({:fn, _meta, clauses}, stack, context) do
     case of_clauses(clauses, stack, context) do
       {:ok, context} -> {:ok, dynamic(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -264,7 +265,7 @@ defmodule Module.Types.Expr do
   def of_expr({:with, _meta, [_ | _] = clauses}, stack, context) do
     case reduce_ok(clauses, context, &with_clause(&1, stack, &2)) do
       {:ok, context} -> {:ok, dynamic(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -425,7 +426,7 @@ defmodule Module.Types.Expr do
   defp of_expr_context(expr, stack, context) do
     case of_expr(expr, stack, context) do
       {:ok, _type, context} -> {:ok, context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 end

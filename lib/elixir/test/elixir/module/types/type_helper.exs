@@ -114,7 +114,7 @@ defmodule TypeHelper do
       for part <- parts do
         if is_binary(part) do
           part
-          |> String.replace("LINE", Integer.to_string(__CALLER__.line))
+          |> replace_line(__CALLER__.line)
           |> :elixir_interpolation.unescape_string()
         else
           part
@@ -122,5 +122,22 @@ defmodule TypeHelper do
       end
 
     {:<<>>, meta, parts}
+  end
+
+  defp replace_line(string, line) do
+    [head | rest] = String.split(string, "LINE")
+
+    rest =
+      for part <- rest do
+        case part do
+          <<?-, num, part::binary>> when num in ?0..?9 ->
+            [Integer.to_string(line - num + ?0), part]
+
+          part ->
+            [Integer.to_string(line), part]
+        end
+      end
+
+    IO.iodata_to_binary([head | rest])
   end
 end

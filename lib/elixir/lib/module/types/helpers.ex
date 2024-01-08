@@ -21,7 +21,7 @@ defmodule Module.Types.Helpers do
     hints
     |> Enum.uniq()
     |> Enum.map(fn
-      :inferred_integer_bitstring ->
+      :inferred_bitstring_spec ->
         """
 
         #{hint()} all expressions given to binaries are assumed to be of type \

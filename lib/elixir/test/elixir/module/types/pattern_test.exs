@@ -15,27 +15,6 @@ defmodule Module.Types.PatternTest do
     end
 
     test "error" do
-      assert typeerror!([<<x::float, x::integer>>], x) == ~l"""
-             incompatible types assigned to "x":
-
-                 float() !~ integer()
-
-             where "x" was given the types:
-
-                 # types_test.ex:LINE:
-                 <<x::float, ...>>
-                 => float()
-
-                 # types_test.ex:LINE:
-                 <<..., x::integer>>
-                 => integer()
-
-             #{hint()} all expressions given to binaries are assumed to be of type \
-             integer() unless said otherwise. For example, <<expr>> assumes "expr" \
-             is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
-             to change the default behaviour.
-             """
-
       assert typeerror!([<<x::binary-size(2), x::float>>], x) == ~l"""
              incompatible types assigned to "x":
 
@@ -50,6 +29,27 @@ defmodule Module.Types.PatternTest do
                  # types_test.ex:LINE:
                  <<..., x::float>>
                  => float()
+             """
+
+      assert typeerror!([<<x::float, x>>], x) == ~l"""
+             incompatible types assigned to "x":
+
+                 float() !~ integer()
+
+             where "x" was given the types:
+
+                 # types_test.ex:LINE:
+                 <<x::float, ...>>
+                 => float()
+
+                 # types_test.ex:LINE:
+                 <<..., x>>
+                 => integer()
+
+             #{hint()} all expressions given to binaries are assumed to be of type \
+             integer() unless said otherwise. For example, <<expr>> assumes "expr" \
+             is an integer. Pass a modifier, such as <<expr::float>> or <<expr::binary>>, \
+             to change the default behaviour.
              """
     end
   end
