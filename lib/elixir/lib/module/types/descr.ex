@@ -32,7 +32,8 @@ defmodule Module.Types.Descr do
 
   # Guard helpers
 
-  defguard is_none(map) when map == %{}
+  @term %{bitmap: @bit_top}
+  @none %{}
 
   # Type definitions
 
