@@ -3,11 +3,17 @@ defmodule Module.Types.Of do
   # Generic AST and Enum helpers go to Module.Types.Helpers.
   @moduledoc false
 
-  # @prefix quote(do: ...)
-  # @suffix quote(do: ...)
-
   alias Module.ParallelChecker
   import Module.Types.{Helpers, Descr}
+
+  @prefix quote(do: ...)
+  @suffix quote(do: ...)
+
+  @integer_or_float union(integer(), float())
+  @integer_or_binary union(integer(), binary())
+  @integer integer()
+  @float float()
+  @binary binary()
 
   # There are important assumptions on how we work with maps.
   #
@@ -66,92 +72,73 @@ defmodule Module.Types.Of do
   In the stack, we add nodes such as <<expr>>, <<..., expr>>, etc,
   based on the position of the expression within the binary.
   """
-  def binary([], _type, _stack, context, _of_fun) do
+  def binary([], _kind, _stack, context, _of_fun) do
     {:ok, context}
   end
 
-  def binary([head], type, stack, context, of_fun) do
-    # stack = push_expr_stack({:<<>>, get_meta(head), [head]}, stack)
-    binary_segment(head, type, stack, context, of_fun)
+  def binary([head], kind, stack, context, of_fun) do
+    binary_segment(head, kind, [head], stack, context, of_fun)
   end
 
-  def binary([head | tail], type, stack, context, of_fun) do
-    # stack = push_expr_stack({:<<>>, get_meta(head), [head, @suffix]}, stack)
-
-    case binary_segment(head, type, stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, type, stack, context, of_fun)
+  def binary([head | tail], kind, stack, context, of_fun) do
+    case binary_segment(head, kind, [head, @suffix], stack, context, of_fun) do
+      {:ok, context} -> binary_many(tail, kind, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp binary_many([last], type, stack, context, of_fun) do
-    # stack = push_expr_stack({:<<>>, get_meta(last), [@prefix, last]}, stack)
-    binary_segment(last, type, stack, context, of_fun)
+  defp binary_many([last], kind, stack, context, of_fun) do
+    binary_segment(last, kind, [@prefix, last], stack, context, of_fun)
   end
 
-  defp binary_many([head | tail], type, stack, context, of_fun) do
-    # stack = push_expr_stack({:<<>>, get_meta(head), [@prefix, head, @suffix]}, stack)
-
-    case binary_segment(head, type, stack, context, of_fun) do
-      {:ok, context} -> binary_many(tail, type, stack, context, of_fun)
+  defp binary_many([head | tail], kind, stack, context, of_fun) do
+    case binary_segment(head, kind, [@prefix, head, @suffix], stack, context, of_fun) do
+      {:ok, context} -> binary_many(tail, kind, stack, context, of_fun)
       {:error, reason} -> {:error, reason}
     end
   end
 
-  defp binary_segment({:"::", _meta, [expr, specifiers]}, type, stack, context, of_fun) do
-    # TODO: handle size in specifiers
-    # TODO: unpack specifiers once
-    _expected_type =
-      collect_binary_specifier(specifiers, &binary_type(type, &1)) || :integer
+  # If the segment is a literal, the compiler has already checked its validity,
+  # so we just skip it.
+  defp binary_segment({:"::", _meta, [left, _right]}, _kind, _args, _stack, context, _of_fun)
+       when is_binary(left) or is_number(left) do
+    {:ok, context}
+  end
 
-    utf? = collect_binary_specifier(specifiers, &utf_type?/1)
-    float? = collect_binary_specifier(specifiers, &float_type?/1)
+  defp binary_segment({:"::", meta, [left, right]}, kind, args, stack, context, of_fun) do
+    expected_type = specifier_info(kind, right)
+    expr = {:<<>>, meta, args}
 
-    # Special case utf and float specifiers because they can be two types as literals
-    # but only a specific type as a variable in a pattern
-    cond do
-      type == :pattern and utf? and is_binary(expr) ->
+    with {:ok, actual_type, context} <- of_fun.(left, {expected_type, expr}, stack, context) do
+      # If we are in a pattern and we have a variable, the refinement
+      # will already have checked the type, so we skip the check here.
+      # TODO: properly handle dynamic. Do we need materialization?
+      if actual_type == dynamic() or
+           (kind == :pattern and is_var(left)) or
+           empty?(difference(actual_type, expected_type)) do
         {:ok, context}
-
-      type == :pattern and float? and is_integer(expr) ->
-        {:ok, context}
-
-      true ->
-        with {:ok, _type, context} <- of_fun.(expr, stack, context),
-             do: {:ok, context}
+      else
+        hints = if meta[:inferred_bitstring_spec], do: [:inferred_bitstring_spec], else: []
+        {:error, incompatible_warn(expr, expected_type, actual_type, hints, meta, stack, context)}
+      end
     end
   end
 
-  # Collect binary type specifiers,
-  # from `<<pattern::integer-size(10)>>` collect `integer`
-  defp collect_binary_specifier({:-, _meta, [left, right]}, fun) do
-    collect_binary_specifier(left, fun) || collect_binary_specifier(right, fun)
-  end
-
-  defp collect_binary_specifier(other, fun) do
-    fun.(other)
-  end
-
-  defp binary_type(:expr, {:float, _, _}), do: {:union, [:integer, :float]}
-  defp binary_type(:expr, {:utf8, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:expr, {:utf16, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:expr, {:utf32, _, _}), do: {:union, [:integer, :binary]}
-  defp binary_type(:pattern, {:utf8, _, _}), do: :integer
-  defp binary_type(:pattern, {:utf16, _, _}), do: :integer
-  defp binary_type(:pattern, {:utf32, _, _}), do: :integer
-  defp binary_type(:pattern, {:float, _, _}), do: :float
-  defp binary_type(_context, {:integer, _, _}), do: :integer
-  defp binary_type(_context, {:bits, _, _}), do: :binary
-  defp binary_type(_context, {:bitstring, _, _}), do: :binary
-  defp binary_type(_context, {:bytes, _, _}), do: :binary
-  defp binary_type(_context, {:binary, _, _}), do: :binary
-  defp binary_type(_context, _specifier), do: nil
-
-  defp utf_type?({specifier, _, _}), do: specifier in [:utf8, :utf16, :utf32]
-  defp utf_type?(_), do: false
-
-  defp float_type?({:float, _, _}), do: true
-  defp float_type?(_), do: false
+  defp specifier_info(kind, {:-, _, [left, _right]}), do: specifier_info(kind, left)
+  defp specifier_info(:expr, {:float, _, _}), do: @integer_or_float
+  defp specifier_info(:expr, {:utf8, _, _}), do: @integer_or_binary
+  defp specifier_info(:expr, {:utf16, _, _}), do: @integer_or_binary
+  defp specifier_info(:expr, {:utf32, _, _}), do: @integer_or_binary
+  defp specifier_info(:pattern, {:utf8, _, _}), do: @integer
+  defp specifier_info(:pattern, {:utf16, _, _}), do: @integer
+  defp specifier_info(:pattern, {:utf32, _, _}), do: @integer
+  defp specifier_info(:pattern, {:float, _, _}), do: @float
+  defp specifier_info(_kind, {:integer, _, _}), do: @integer
+  defp specifier_info(_kind, {:bits, _, _}), do: @binary
+  defp specifier_info(_kind, {:bitstring, _, _}), do: @binary
+  defp specifier_info(_kind, {:bytes, _, _}), do: @binary
+  defp specifier_info(_kind, {:binary, _, _}), do: @binary
+  defp specifier_info(_kind, _specifier), do: @integer
 
   ## Remote
 
@@ -243,11 +230,44 @@ defmodule Module.Types.Of do
     not Enum.any?(stack.no_warn_undefined, &(&1 == module or &1 == {module, fun, arity}))
   end
 
+  ## Warning helpers
+
+  @doc """
+  Emits incompatible types warning for the given expression
+  """
+  def incompatible_warn(expr, expected_type, actual_type, hints \\ [], meta, stack, context) do
+    warning = {:incompatible, expr, expected_type, actual_type, hints, context}
+    warn(__MODULE__, warning, meta, stack, context)
+  end
+
   defp warn(warning, meta, stack, context) do
     warn(__MODULE__, warning, meta, stack, context)
   end
 
   ## Warning formatting
+
+  def format_warning({:incompatible, expr, expected_type, actual_type, hints, context}) do
+    {traces, trace_hints} = Module.Types.Pattern.format_traces(expr, context)
+
+    [
+      """
+      incompatible types in expression:
+
+          #{Macro.to_string(expr)}
+
+      expected type:
+
+          #{to_quoted_string(expected_type)}
+
+      but got type:
+
+          #{to_quoted_string(actual_type)}
+      """,
+      traces,
+      format_hints(hints ++ trace_hints),
+      "\ntyping violation found at:"
+    ]
+  end
 
   def format_warning({:undefined_module, module, fun, arity}) do
     [

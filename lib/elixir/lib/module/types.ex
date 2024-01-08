@@ -85,25 +85,4 @@ defmodule Module.Types do
       vars: %{}
     }
   end
-
-  @doc false
-  def expr_to_string(expr) do
-    expr
-    |> reverse_rewrite()
-    |> Macro.to_string()
-  end
-
-  defp reverse_rewrite(guard) do
-    Macro.prewalk(guard, fn
-      {{:., _, [mod, fun]}, meta, args} -> erl_to_ex(mod, fun, args, meta)
-      other -> other
-    end)
-  end
-
-  defp erl_to_ex(mod, fun, args, meta) do
-    case :elixir_rewrite.erl_to_ex(mod, fun, args) do
-      {Kernel, fun, args} -> {fun, meta, args}
-      {mod, fun, args} -> {{:., [], [mod, fun]}, meta, args}
-    end
-  end
 end

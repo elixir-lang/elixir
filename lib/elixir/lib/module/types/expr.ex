@@ -4,6 +4,10 @@ defmodule Module.Types.Expr do
   alias Module.Types.{Of, Pattern}
   import Module.Types.{Helpers, Descr}
 
+  defp of_expr(ast, _expected_expr, stack, context) do
+    of_expr(ast, stack, context)
+  end
+
   # :atom
   def of_expr(atom, _stack, context) when is_atom(atom) do
     {:ok, atom(atom), context}
@@ -38,7 +42,7 @@ defmodule Module.Types.Expr do
   def of_expr(exprs, stack, context) when is_list(exprs) do
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
       {:ok, _types, context} -> {:ok, non_empty_list(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -47,11 +51,12 @@ defmodule Module.Types.Expr do
     of_expr({:{}, [], [left, right]}, stack, context)
   end
 
-  # TODO: <<...>>>
+  # <<...>>>
   def of_expr({:<<>>, _meta, args}, stack, context) do
-    case Of.binary(args, :expr, stack, context, &of_expr/3) do
+    case Of.binary(args, :expr, stack, context, &of_expr/4) do
       {:ok, context} -> {:ok, binary(), context}
-      {:error, reason} -> {:error, reason}
+      # It is safe to discard errors from binary inside expressions
+      {:error, context} -> {:ok, binary(), context}
     end
   end
 
@@ -66,8 +71,8 @@ defmodule Module.Types.Expr do
       {:ok, _left, context} ->
         of_expr(right_expr, stack, context)
 
-      {:error, reason} ->
-        {:error, reason}
+      {:error, context} ->
+        {:error, context}
     end
   end
 
@@ -87,13 +92,14 @@ defmodule Module.Types.Expr do
   def of_expr({:{}, _meta, exprs}, stack, context) do
     case map_reduce_ok(exprs, context, &of_expr(&1, stack, &2)) do
       {:ok, _types, context} -> {:ok, tuple(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
   # TODO: left = right
   def of_expr({:=, _meta, [left_expr, right_expr]}, stack, context) do
-    with {:ok, _left_type, context} <- Pattern.of_pattern(left_expr, stack, context),
+    with {:ok, _left_type, context} <-
+           Pattern.of_pattern(left_expr, stack, context),
          {:ok, right_type, context} <- of_expr(right_expr, stack, context) do
       {:ok, right_type, context}
     end
@@ -148,7 +154,7 @@ defmodule Module.Types.Expr do
 
     case result do
       {:ok, _, context} -> of_expr(post, stack, context)
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -178,7 +184,7 @@ defmodule Module.Types.Expr do
   def of_expr({:fn, _meta, clauses}, stack, context) do
     case of_clauses(clauses, stack, context) do
       {:ok, context} -> {:ok, dynamic(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -191,14 +197,14 @@ defmodule Module.Types.Expr do
       reduce_ok(blocks, context, fn
         {:rescue, clauses}, context ->
           reduce_ok(clauses, context, fn
-            {:->, _, [[{:in, _, [var, _exceptions]}], body]}, context ->
+            {:->, _, [[{:in, _, [var, _exceptions]} = expr], body]}, context ->
               # TODO: Vars are a union of the structs above
-              {_version, _type, context} = new_var(var, dynamic(), context)
+              {:ok, _type, context} = Pattern.of_pattern(var, {dynamic(), expr}, stack, context)
               of_expr_context(body, stack, context)
 
             {:->, _, [[var], body]}, context ->
               # TODO: Vars are structs with the exception field and that's it
-              {_version, _type, context} = new_var(var, dynamic(), context)
+              {:ok, _type, context} = Pattern.of_pattern(var, stack, context)
               of_expr_context(body, stack, context)
           end)
 
@@ -259,7 +265,7 @@ defmodule Module.Types.Expr do
   def of_expr({:with, _meta, [_ | _] = clauses}, stack, context) do
     case reduce_ok(clauses, context, &with_clause(&1, stack, &2)) do
       {:ok, context} -> {:ok, dynamic(), context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 
@@ -323,9 +329,9 @@ defmodule Module.Types.Expr do
     end
   end
 
-  # TODO: var
+  # var
   def of_expr(var, _stack, context) when is_var(var) do
-    {:ok, fetch_var!(var, context), context}
+    {:ok, Pattern.of_var(var, context), context}
   end
 
   defp for_clause({:<-, _, [left, expr]}, stack, context) do
@@ -338,7 +344,8 @@ defmodule Module.Types.Expr do
 
   defp for_clause({:<<>>, _, [{:<-, _, [pattern, expr]}]}, stack, context) do
     # TODO: the compiler guarantees pattern is a binary but we need to check expr is a binary
-    with {:ok, _pattern_type, context} <- Pattern.of_pattern(pattern, stack, context),
+    with {:ok, _pattern_type, context} <-
+           Pattern.of_pattern(pattern, stack, context),
          {:ok, _expr_type, context} <- of_expr(expr, stack, context),
          do: {:ok, context}
   end
@@ -419,7 +426,7 @@ defmodule Module.Types.Expr do
   defp of_expr_context(expr, stack, context) do
     case of_expr(expr, stack, context) do
       {:ok, _type, context} -> {:ok, context}
-      {:error, reason} -> {:error, reason}
+      {:error, context} -> {:error, context}
     end
   end
 end

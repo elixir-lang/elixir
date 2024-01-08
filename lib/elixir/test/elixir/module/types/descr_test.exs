@@ -5,8 +5,6 @@ defmodule Module.Types.DescrTest do
 
   import Module.Types.Descr
 
-  defp to_quoted_string(descr), do: Macro.to_string(to_quoted(descr))
-
   describe "union" do
     test "bitmap" do
       assert union(integer(), float()) == union(float(), integer())
@@ -49,7 +47,7 @@ defmodule Module.Types.DescrTest do
 
     test "term" do
       assert difference(float(), term()) == none()
-      assert difference(float(), term()) == none()
+      assert difference(integer(), term()) == none()
     end
 
     test "none" do
