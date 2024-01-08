@@ -1527,6 +1527,7 @@ defmodule Enum do
   defp into_map(%{} = enumerable), do: enumerable
 
   defp into_map(enumerable) when is_list(enumerable), do: :maps.from_list(enumerable)
+  defp into_map(enumerable) when is_list(enumerable), do: :maps.from_list(enumerable)
 
   defp into_map(enumerable), do: enumerable |> Enum.to_list() |> :maps.from_list()
 
