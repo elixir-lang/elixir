@@ -130,7 +130,7 @@ defmodule Math do
 end
 ```
 
-And it will provide the same behaviour. You may use `do:` for one-liners but always use `do`-blocks for functions spanning multiple lines. If you prefer to be consistent, you can use `do`-blocks throughout your codebase.
+And it will provide the same behavior. You may use `do:` for one-liners but always use `do`-blocks for functions spanning multiple lines. If you prefer to be consistent, you can use `do`-blocks throughout your codebase.
 
 ## Default arguments
 

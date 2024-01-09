@@ -141,7 +141,7 @@ end
 
 An `Atom` is an Elixir basic type whose value is its own name. Atoms are often useful to identify resources or express the state, or result, of an operation. Creating atoms dynamically is not an anti-pattern by itself; however, atoms are not garbage collected by the Erlang Virtual Machine, so values of this type live in memory during a software's entire execution lifetime. The Erlang VM limits the number of atoms that can exist in an application by default to *1_048_576*, which is more than enough to cover all atoms defined in a program, but attempts to serve as an early limit for applications which are "leaking atoms" through dynamic creation.
 
-For these reason, creating atoms dynamically can be considered an anti-pattern when the developer has no control over how many atoms will be created during the software execution. This unpredictable scenario can expose the software to unexpected behaviour caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
+For these reason, creating atoms dynamically can be considered an anti-pattern when the developer has no control over how many atoms will be created during the software execution. This unpredictable scenario can expose the software to unexpected behavior caused by excessive memory usage, or even by reaching the maximum number of *atoms* possible.
 
 #### Example
 
@@ -343,7 +343,7 @@ iex> Graphics.plot(point_3d)
 {5, 6, 7}
 ```
 
-Given we want to plot both 2D and 3D points, the behaviour above is expected. But what happens if we forget to pass a point with either `:x` or `:y`?
+Given we want to plot both 2D and 3D points, the behavior above is expected. But what happens if we forget to pass a point with either `:x` or `:y`?
 
 ```elixir
 iex> bad_point = %{y: 3, z: 4}
@@ -352,7 +352,7 @@ iex> Graphics.plot(bad_point)
 {nil, 3, 4}
 ```
 
-The behaviour above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on.
+The behavior above is unexpected because our function should not work with points without a `:x` key. This leads to subtle bugs, as we may now pass `nil` to another function, instead of raising early on.
 
 #### Refactoring
 
@@ -448,7 +448,7 @@ iex> Extract.get_value("name=Lucas&university=institution=UFMG&lab=ASERG", "univ
 
 #### Refactoring
 
-To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behaviour, shown below, allows clients to decide how to handle these errors and doesn't give a false impression that the code is working correctly when unexpected values are extracted:
+To remove this anti-pattern, `get_value/2` can be refactored through the use of pattern matching. So, if an unexpected URL query string format is used, the function will crash instead of returning an invalid value. This behavior, shown below, allows clients to decide how to handle these errors and doesn't give a false impression that the code is working correctly when unexpected values are extracted:
 
 ```elixir
 defmodule Extract do

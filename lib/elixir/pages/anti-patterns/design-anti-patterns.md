@@ -75,7 +75,7 @@ This is a special case of [*Primitive obsession*](#primitive-obsession), specifi
 
 #### Example
 
-An example of this anti-pattern is a function that receives two or more options, such as `editor: true` and `admin: true`, to configure its behaviour in overlapping ways. In the code below, the `:editor` option has no effect if `:admin` is set, meaning that the `:admin` option has higher priority than `:editor`, and they are ultimately related.
+An example of this anti-pattern is a function that receives two or more options, such as `editor: true` and `admin: true`, to configure its behavior in overlapping ways. In the code below, the `:editor` option has no effect if `:admin` is set, meaning that the `:admin` option has higher priority than `:editor`, and they are ultimately related.
 
 ```elixir
 defmodule MyApp do
@@ -249,7 +249,7 @@ Using multi-clause functions is a powerful Elixir feature. However, some develop
 
 #### Example
 
-A frequent example of this usage of multi-clause functions occurs when developers mix unrelated business logic into the same function definition, in a way that the behaviour of each clause becomes completely distinct from the others. Such functions often have too broad specifications, making it difficult for other developers to understand and maintain them.
+A frequent example of this usage of multi-clause functions occurs when developers mix unrelated business logic into the same function definition, in a way that the behavior of each clause becomes completely distinct from the others. Such functions often have too broad specifications, making it difficult for other developers to understand and maintain them.
 
 Some developers may use documentation mechanisms such as `@doc` annotations to compensate for poor code readability, however the documentation itself may end-up full of conditionals to describe how the function behaves for each different argument combination. This is a good indicator that the clauses are ultimately unrelated.
 
@@ -331,7 +331,7 @@ iex> struct(URI.parse("/foo/bar"), path: "/bar/baz")
 }
 ```
 
-The difference here is that the `struct/2` function behaves precisely the same for any struct given, therefore there is no question of how the function handles different inputs. If the behaviour is clear and consistent for all inputs, then the anti-pattern does not take place.
+The difference here is that the `struct/2` function behaves precisely the same for any struct given, therefore there is no question of how the function handles different inputs. If the behavior is clear and consistent for all inputs, then the anti-pattern does not take place.
 
 ## Using application configuration for libraries
 

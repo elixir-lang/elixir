@@ -12,7 +12,7 @@ defmodule Mix.Dep.Loader do
   are included as children.
 
   By default, it will filter all dependencies that does not match
-  current environment, behaviour can be overridden via options.
+  current environment, behavior can be overridden via options.
   """
   def children(locked?) do
     mix_children(Mix.Project.config(), locked?, []) ++ Mix.Dep.Umbrella.unloaded()

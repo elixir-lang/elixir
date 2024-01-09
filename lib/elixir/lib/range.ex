@@ -172,7 +172,7 @@ defmodule Range do
   one element, which is the number itself.
 
   If `first` is greater than `last`, the range will be decreasing from `first`
-  to `last`, albeit this behaviour is deprecated. Therefore, it is advised to
+  to `last`, albeit this behavior is deprecated. Therefore, it is advised to
   explicitly list the step with `new/3`.
 
   ## Examples

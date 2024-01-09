@@ -758,7 +758,7 @@ defmodule File do
 
   Note: The command `mv` in Unix-like systems behaves differently depending on
   whether `source` is a file and the `destination` is an existing directory.
-  We have chosen to explicitly disallow this behaviour.
+  We have chosen to explicitly disallow this behavior.
 
   ## Examples
 
@@ -822,7 +822,7 @@ defmodule File do
       The function receives arguments for `source_file` and `destination_file`. It should
       return `true` if the existing file should be overwritten, `false` if otherwise.
       The default callback returns `true`. On earlier versions, this callback could be
-      given as third argument, but such behaviour is now deprecated.
+      given as third argument, but such behavior is now deprecated.
 
   """
   @spec cp(Path.t(), Path.t(), on_conflict: on_conflict_callback) :: :ok | {:error, posix}
@@ -895,7 +895,7 @@ defmodule File do
 
   Note: The command `cp` in Unix-like systems behaves differently depending on
   whether `destination` is an existing directory or not. We have chosen to
-  explicitly disallow this behaviour. If `source` is a `file` and `destination`
+  explicitly disallow this behavior. If `source` is a `file` and `destination`
   is a directory, `{:error, :eisdir}` will be returned.
 
   ## Options
@@ -904,7 +904,7 @@ defmodule File do
       The function receives arguments for `source` and `destination`. It should return
       `true` if the existing file should be overwritten, `false` if otherwise. The default
       callback returns `true`. On earlier versions, this callback could be given as third
-      argument, but such behaviour is now deprecated.
+      argument, but such behavior is now deprecated.
 
     * `:dereference_symlinks` - (since v1.14.0) By default, this function will copy symlinks
       by creating symlinks that point to the same location. This option forces symlinks to be
