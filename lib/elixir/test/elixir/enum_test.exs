@@ -428,7 +428,7 @@ defmodule EnumTest do
     assert_raise ArgumentError, map_msg, fn -> Enum.into(1..10, %{}) end
 
     assert_raise ArgumentError, map_date_msg, fn ->
-      Enum.into(Date.range(date, Date.new!(2015, 1, 3)), %{})
+      Enum.into(Date.range(date, ~D[2015-01-03]), %{})
     end
 
     assert_raise ArgumentError, map_msg, fn -> Enum.into(Range.new(item, 10), %{a: 1}) end
