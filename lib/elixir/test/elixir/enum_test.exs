@@ -407,11 +407,7 @@ defmodule EnumTest do
     assert Enum.intersperse([1, 2, 3], true) == [1, true, 2, true, 3]
   end
 
-  setup do
-    %{item: 1, date: ~D[2015-01-01], map: %{a: 1}, tuple: {:a, 1}}
-  end
-
-  test "into/2", c do
+  test "into/2" do
     assert Enum.into([a: 1, b: 2], %{}) == %{a: 1, b: 2}
     assert Enum.into([a: 1, b: 2], %{c: 3}) == %{a: 1, b: 2, c: 3}
     assert Enum.into(MapSet.new(a: 1, b: 2), %{}) == %{a: 1, b: 2}
@@ -419,11 +415,17 @@ defmodule EnumTest do
     assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
     assert Enum.into(1..3, []) == [1, 2, 3]
     assert Enum.into(["H", "i"], "") == "Hi"
+  end
+
+  test "into/2 exceptions" do
+    item = 1
+    date = ~D[2015-01-01]
+    map = %{a: 1}
+    tuple = {:a, 1}
 
     map_msg = "collecting into a map requires {key, value} tuples, got: #{inspect(c.item)}"
     map_date_msg = "collecting into a map requires {key, value} tuples, got: #{inspect(c.date)}"
     assert_raise ArgumentError, map_msg, fn -> Enum.into(Range.new(c.item, 10, 1), %{}) end
-    # assert_raise ArgumentError, map_msg, fn -> Enum.into(MapSet.new([c.item, 2, 3]), %{}) end
 
     assert_raise ArgumentError, map_date_msg, fn ->
       Enum.into(Date.range(c.date, Date.new!(2015, 1, 3)), %{})
