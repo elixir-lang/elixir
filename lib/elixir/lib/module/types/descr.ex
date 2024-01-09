@@ -30,11 +30,6 @@ defmodule Module.Types.Descr do
   @term %{bitmap: @bit_top}
   @none %{}
 
-  # Guard helpers
-
-  @term %{bitmap: @bit_top}
-  @none %{}
-
   # Type definitions
 
   # TODO: Have an atom for term()
