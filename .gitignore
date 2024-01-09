@@ -15,6 +15,3 @@ erl_crash.dump
 .DS_Store
 *.swpq
 .gitignore
-.tools-version
-/.vscode
-
