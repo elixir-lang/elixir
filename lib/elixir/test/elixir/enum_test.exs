@@ -425,7 +425,7 @@ defmodule EnumTest do
 
     map_msg = "collecting into a map requires {key, value} tuples, got: #{inspect(item)}"
     map_date_msg = "collecting into a map requires {key, value} tuples, got: #{inspect(date)}"
-    assert_raise ArgumentError, map_msg, fn -> Enum.into(Range.new(item, 10, 1), %{}) end
+    assert_raise ArgumentError, map_msg, fn -> Enum.into(1..10, %{}) end
 
     assert_raise ArgumentError, map_date_msg, fn ->
       Enum.into(Date.range(date, Date.new!(2015, 1, 3)), %{})
