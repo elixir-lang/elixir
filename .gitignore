@@ -14,4 +14,3 @@ erl_crash.dump
 .tool-versions
 .DS_Store
 *.swpq
-.gitignore
