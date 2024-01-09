@@ -550,7 +550,7 @@ defmodule Kernel.SpecialForms do
   Elixir won't emit any warnings though, since the alias
   was not explicitly defined.
 
-  Both warning behaviours could be changed by explicitly
+  Both warning behaviors could be changed by explicitly
   setting the `:warn` option to `true` or `false`.
 
   """
@@ -674,7 +674,7 @@ defmodule Kernel.SpecialForms do
   Elixir won't emit any warnings though, since the import
   was not explicitly defined.
 
-  Both warning behaviours could be changed by explicitly
+  Both warning behaviors could be changed by explicitly
   setting the `:warn` option to `true` or `false`.
 
   ## Ambiguous function/macro names
@@ -888,7 +888,7 @@ defmodule Kernel.SpecialForms do
   At first, there is nothing in this example that actually reveals it is a
   macro. But what is happening is that, at compilation time, `squared(5)`
   becomes `5 * 5`. The argument `5` is duplicated in the produced code, we
-  can see this behaviour in practice though because our macro actually has
+  can see this behavior in practice though because our macro actually has
   a bug:
 
       import Math
@@ -915,7 +915,7 @@ defmodule Kernel.SpecialForms do
       my_number.() * my_number.()
 
   Which invokes the function twice, explaining why we get the printed value
-  twice! In the majority of the cases, this is actually unexpected behaviour,
+  twice! In the majority of the cases, this is actually unexpected behavior,
   and that's why one of the first things you need to keep in mind when it
   comes to macros is to **not unquote the same value more than once**.
 
@@ -1444,7 +1444,7 @@ defmodule Kernel.SpecialForms do
       [elixir: :prolog]
 
   Given the grandparents of Erlang and Prolog were nil, those values were
-  filtered out. If you don't want this behaviour, a simple option is to
+  filtered out. If you don't want this behavior, a simple option is to
   move the filter inside the do-block:
 
       iex> languages = [elixir: :erlang, erlang: :prolog, prolog: nil]
@@ -1496,7 +1496,7 @@ defmodule Kernel.SpecialForms do
 
   *Available since Elixir v1.8*.
 
-  While the `:into` option allows us to customize the comprehension behaviour
+  While the `:into` option allows us to customize the comprehension behavior
   to a given data type, such as putting all of the values inside a map or inside
   a binary, it is not always enough.
 
@@ -1624,7 +1624,7 @@ defmodule Kernel.SpecialForms do
       iex> width
       nil
 
-  The behaviour of any expression in a clause is the same as if it was
+  The behavior of any expression in a clause is the same as if it was
   written outside of `with`. For example, `=` will raise a `MatchError`
   instead of returning the non-matched value:
 

@@ -1,6 +1,6 @@
 # Protocols
 
-Protocols are a mechanism to achieve polymorphism in Elixir where you want the behaviour to vary depending on the data type. We are already familiar with one way of solving this type of problem: via pattern matching and guard clauses. Consider a simple utility module that would tell us the type of input variable:
+Protocols are a mechanism to achieve polymorphism in Elixir where you want the behavior to vary depending on the data type. We are already familiar with one way of solving this type of problem: via pattern matching and guard clauses. Consider a simple utility module that would tell us the type of input variable:
 
 ```elixir
 defmodule Utility do
@@ -12,7 +12,7 @@ end
 
 If the use of this module were confined to your own project, you would be able to keep defining new `type/1` functions for each new data type. However, this code could be problematic if it was shared as a dependency by multiple apps because there would be no easy way to extend its functionality.
 
-This is where protocols can help us: protocols allow us to extend the original behaviour for as many data types as we need. That's because **dispatching on a protocol is available to any data type that has implemented the protocol** and a protocol can be implemented by anyone, at any time.
+This is where protocols can help us: protocols allow us to extend the original behavior for as many data types as we need. That's because **dispatching on a protocol is available to any data type that has implemented the protocol** and a protocol can be implemented by anyone, at any time.
 
 Here's how we could write the same `Utility.type/1` functionality as a protocol:
 
@@ -184,7 +184,7 @@ defprotocol Size do
 end
 ```
 
-As we said in the previous section, the implementation of `Size` for `Any` is not one that can apply to any data type. That's one of the reasons why `@fallback_to_any` is an opt-in behaviour. For the majority of protocols, raising an error when a protocol is not implemented is the proper behaviour. That said, assuming we have implemented `Any` as in the previous section:
+As we said in the previous section, the implementation of `Size` for `Any` is not one that can apply to any data type. That's one of the reasons why `@fallback_to_any` is an opt-in behavior. For the majority of protocols, raising an error when a protocol is not implemented is the proper behavior. That said, assuming we have implemented `Any` as in the previous section:
 
 ```elixir
 defimpl Size, for: Any do

@@ -409,7 +409,7 @@ check_deprecated(Meta, Kind, ?application, Name, Arity, E) ->
       ok
   end;
 check_deprecated(Meta, Kind, Receiver, Name, Arity, E) ->
-  %% Any compile time behaviour cannot be verified by the runtime group pass.
+  %% Any compile time behavior cannot be verified by the runtime group pass.
   case ((?key(E, function) == nil) or (Kind == macro)) andalso get_deprecations(Receiver) of
     [_ | _] = Deprecations ->
       case lists:keyfind({Name, Arity}, 1, Deprecations) of

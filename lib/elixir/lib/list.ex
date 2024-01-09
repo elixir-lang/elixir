@@ -107,7 +107,7 @@ defmodule List do
   charlists in IEx when you encounter them, which shows you the type, description
   and also the raw representation in one single summary.
 
-  The rationale behind this behaviour is to better support
+  The rationale behind this behavior is to better support
   Erlang libraries which may return text as charlists
   instead of Elixir strings. In Erlang, charlists are the default
   way of handling strings, while in Elixir it's binaries. One

@@ -269,12 +269,12 @@ defmodule Enum do
   After all, if we want to traverse every element on a list, the longer the
   list, the more elements we need to traverse, and the longer it will take.
 
-  This linear behaviour should also be expected on operations like `count/1`,
+  This linear behavior should also be expected on operations like `count/1`,
   `member?/2`, `at/2` and similar. While Elixir does allow data types to
   provide performant variants for such operations, you should not expect it
   to always be available, since the `Enum` module is meant to work with a
   large variety of data types and not all data types can provide optimized
-  behaviour.
+  behavior.
 
   Finally, note the functions in the `Enum` module are eager: they will
   traverse the enumerable as soon as they are invoked. This is particularly
@@ -4021,7 +4021,7 @@ defmodule Enum do
   @doc """
   Reduces over two enumerables halting as soon as either enumerable is empty.
 
-  In practice, the behaviour provided by this function can be achieved with:
+  In practice, the behavior provided by this function can be achieved with:
 
       Enum.reduce(Stream.zip(left, right), acc, reducer)
 
@@ -4055,7 +4055,7 @@ defmodule Enum do
   The reducer will receive 2 args: a list of elements (one from each enum) and the
   accumulator.
 
-  In practice, the behaviour provided by this function can be achieved with:
+  In practice, the behavior provided by this function can be achieved with:
 
       Enum.reduce(Stream.zip(enums), acc, reducer)
 

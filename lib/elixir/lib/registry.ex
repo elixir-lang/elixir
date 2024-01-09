@@ -18,7 +18,7 @@ defmodule Registry do
   implementation. We explore some of those use cases below.
 
   The registry may also be transparently partitioned, which provides
-  more scalable behaviour for running registries on highly concurrent
+  more scalable behavior for running registries on highly concurrent
   environments with thousands or millions of entries.
 
   ## Using in `:via`

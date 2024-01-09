@@ -1181,7 +1181,7 @@ defmodule Task do
   given time. All other tasks will have been shut down using
   the `Task.shutdown/2` call.
 
-  As a convenience, you can achieve a similar behaviour to above
+  As a convenience, you can achieve a similar behavior to above
   by specifying the `:on_timeout` option to be `:kill_task` (or
   `:ignore`). See `Task.await_many/2` if you would rather exit
   the caller process on timeout.

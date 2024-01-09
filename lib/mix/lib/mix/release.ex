@@ -433,7 +433,7 @@ defmodule Mix.Release do
   the `:elixir` application configuration in `sys_config` to be
   read during boot and trigger the providers.
 
-  It uses the following release options to customize its behaviour:
+  It uses the following release options to customize its behavior:
 
     * `:reboot_system_after_config`
     * `:start_distribution_during_config`
