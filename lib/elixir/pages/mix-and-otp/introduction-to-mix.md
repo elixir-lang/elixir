@@ -295,7 +295,7 @@ def project do
 end
 ```
 
-When true, the `:start_permanent` option starts your application in permanent mode, which means the Erlang VM will crash if your application's supervision tree shuts down. Notice we don't want this behaviour in dev and test because it is useful to keep the VM instance running in those environments for troubleshooting purposes.
+When true, the `:start_permanent` option starts your application in permanent mode, which means the Erlang VM will crash if your application's supervision tree shuts down. Notice we don't want this behavior in dev and test because it is useful to keep the VM instance running in those environments for troubleshooting purposes.
 
 Mix will default to the `:dev` environment, except for the `test` task that will default to the `:test` environment. The environment can be changed via the `MIX_ENV` environment variable:
 

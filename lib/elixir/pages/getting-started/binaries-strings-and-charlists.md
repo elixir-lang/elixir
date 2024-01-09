@@ -250,7 +250,7 @@ iex> is_list(~c"hełło")
 true
 ```
 
-This is done to ease interoperability with Erlang, even though it may lead to some surprising behaviour. For example, if you are storing a list of integers that happen to range between 0 and 127, by default IEx will interpret this as a charlist and it will display the corresponding ASCII characters.
+This is done to ease interoperability with Erlang, even though it may lead to some surprising behavior. For example, if you are storing a list of integers that happen to range between 0 and 127, by default IEx will interpret this as a charlist and it will display the corresponding ASCII characters.
 
 ```elixir
 iex> heartbeats_per_minute = [99, 97, 116]

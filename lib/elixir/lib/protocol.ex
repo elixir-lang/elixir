@@ -126,8 +126,8 @@ defmodule Protocol do
   Although the implementation above is arguably not a reasonable
   one. For example, it makes no sense to say a PID or an integer
   have a size of `0`. That's one of the reasons why `@fallback_to_any`
-  is an opt-in behaviour. For the majority of protocols, raising
-  an error when a protocol is not implemented is the proper behaviour.
+  is an opt-in behavior. For the majority of protocols, raising
+  an error when a protocol is not implemented is the proper behavior.
 
   ## Multiple implementations
 

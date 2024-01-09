@@ -125,7 +125,7 @@ defmodule Kernel do
   ### Supporting documents
 
   Under the "Pages" section in sidebar you will find tutorials, guides,
-  and reference documents that outline Elixir semantics and behaviours
+  and reference documents that outline Elixir semantics and behaviors
   in more detail. Those are:
 
     * [Compatibility and deprecations](compatibility-and-deprecations.md) - lists
@@ -548,10 +548,10 @@ defmodule Kernel do
     * `exit({:shutdown, term})`
 
   Exiting with any other reason is considered abnormal and treated
-  as a crash. This means the default supervisor behaviour kicks in,
+  as a crash. This means the default supervisor behavior kicks in,
   error reports are emitted, and so forth.
 
-  This behaviour is relied on in many different places. For example,
+  This behavior is relied on in many different places. For example,
   `ExUnit` uses `exit(:shutdown)` when exiting the test process to
   signal linked processes, supervision trees and so on to politely
   shut down too.
@@ -2362,7 +2362,7 @@ defmodule Kernel do
   Keys in the `Enumerable` that don't exist in the struct are automatically
   discarded. Note that keys must be atoms, as only atoms are allowed when
   defining a struct. If there are duplicate keys in the `Enumerable`, the last
-  entry will be taken (same behaviour as `Map.new/1`).
+  entry will be taken (same behavior as `Map.new/1`).
 
   This function is useful for dynamically creating and updating structs, as
   well as for converting maps to structs; in the latter case, just inserting
@@ -2410,7 +2410,7 @@ defmodule Kernel do
   @doc """
   Similar to `struct/2` but checks for key validity.
 
-  The function `struct!/2` emulates the compile time behaviour
+  The function `struct!/2` emulates the compile time behavior
   of structs. This means that:
 
     * when building a struct, as in `struct!(SomeStruct, key: :value)`,
@@ -3389,7 +3389,7 @@ defmodule Kernel do
 
   The pin operator will check if the values are equal, using `===/2`, while
   patterns have their own rules when matching maps, lists, and so forth.
-  Such behaviour is not specific to `match?/2`. The following code also
+  Such behavior is not specific to `match?/2`. The following code also
   throws an exception:
 
       attrs = %{x: 1}
@@ -3928,7 +3928,7 @@ defmodule Kernel do
   one element, which is the number itself.
 
   If first is more than last, the range will be decreasing from first
-  to last, albeit this behaviour is deprecated. Instead prefer to
+  to last, albeit this behavior is deprecated. Instead prefer to
   explicitly list the step with `first..last//-1`.
 
   See the `Range` module for more information.

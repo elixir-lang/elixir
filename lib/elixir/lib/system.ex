@@ -42,7 +42,7 @@ defmodule System do
     * `system_time/0` - the VM view of the `os_time/0`. The system time and operating
       system time may not match in case of time warps although the VM works towards
       aligning them. This time is not monotonic (i.e., it may decrease)
-      as its behaviour is configured [by the VM time warp
+      as its behavior is configured [by the VM time warp
       mode](https://www.erlang.org/doc/apps/erts/time_correction.html#Time_Warp_Modes);
 
     * `monotonic_time/0` - a monotonically increasing time provided
@@ -522,7 +522,7 @@ defmodule System do
   in case trapping exists is not supported by the current OS.
 
   The first time a signal is trapped, it will override the
-  default behaviour from the operating system. If the same
+  default behavior from the operating system. If the same
   signal is trapped multiple times, subsequent functions
   given to `trap_signal` will execute *first*. In other
   words, you can consider each function is prepended to
@@ -536,7 +536,7 @@ defmodule System do
     * `:sigusr1` - halts the VM via status code of 1
 
   Therefore, if you add traps to the signals above, the
-  default behaviour above will be executed after all user
+  default behavior above will be executed after all user
   signals.
 
   ## Implementation notes

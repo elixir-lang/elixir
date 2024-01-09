@@ -167,7 +167,7 @@ defmodule String do
   the locale, it is not taken into account by this module.
 
   In general, the functions in this module rely on the Unicode
-  Standard, but do not contain any of the locale specific behaviour.
+  Standard, but do not contain any of the locale specific behavior.
   More information about graphemes can be found in the [Unicode
   Standard Annex #29](https://www.unicode.org/reports/tr29/).
 
@@ -227,7 +227,7 @@ defmodule String do
   to the definition of the encoding) is encountered, only one
   code point needs to be rejected.
 
-  This module relies on this behaviour to ignore such invalid
+  This module relies on this behavior to ignore such invalid
   characters. For example, `length/1` will return
   a correct result even if an invalid code point is fed into it.
 
@@ -1472,7 +1472,7 @@ defmodule String do
   The `replacement` may be a string or a function that receives the matched
   pattern and must return the replacement as a string or iodata.
 
-  By default it replaces all occurrences but this behaviour can be controlled
+  By default it replaces all occurrences but this behavior can be controlled
   through the `:global` option; see the "Options" section below.
 
   ## Options

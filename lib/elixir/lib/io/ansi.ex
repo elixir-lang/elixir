@@ -268,7 +268,7 @@ defmodule IO.ANSI do
   The named sequences are represented by atoms.
 
   It will also append an `IO.ANSI.reset/0` to the chardata when a conversion is
-  performed. If you don't want this behaviour, use `format_fragment/2`.
+  performed. If you don't want this behavior, use `format_fragment/2`.
 
   An optional boolean parameter can be passed to enable or disable
   emitting actual ANSI codes. When `false`, no ANSI codes will be emitted.

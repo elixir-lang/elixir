@@ -320,7 +320,7 @@ defmodule Mix do
 
   ## Environment variables
 
-  Several environment variables can be used to modify Mix's behaviour.
+  Several environment variables can be used to modify Mix's behavior.
 
   Mix responds to the following variables:
 
@@ -367,7 +367,7 @@ defmodule Mix do
     * `MIX_TARGET` - specifies which target should be used. See [Targets](#module-targets)
 
     * `MIX_XDG` - asks Mix to follow the [XDG Directory Specification](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
-      for its home directory and configuration files. This behaviour needs to
+      for its home directory and configuration files. This behavior needs to
       be opt-in due to backwards compatibility. `MIX_HOME` has higher preference
       than `MIX_XDG`. If none of the variables are set, the default directory
       `~/.mix` will be used
@@ -749,7 +749,7 @@ defmodule Mix do
   ## Limitations
 
   There is one limitation to `Mix.install/2`, which is actually an Elixir
-  behaviour. If you are installing a dependency that defines a struct or
+  behavior. If you are installing a dependency that defines a struct or
   macro, you cannot use the struct or macro immediately after the install
   call. For example, this won't work:
 

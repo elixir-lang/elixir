@@ -3,14 +3,14 @@ defmodule Code do
   Utilities for managing code compilation, code evaluation, and code loading.
 
   This module complements Erlang's [`:code` module](`:code`)
-  to add behaviour which is specific to Elixir. For functions to
+  to add behavior which is specific to Elixir. For functions to
   manipulate Elixir's AST (rather than evaluating it), see the
   `Macro` module.
 
   ## Working with files
 
   This module contains three functions for compiling and evaluating files.
-  Here is a summary of them and their behaviour:
+  Here is a summary of them and their behavior:
 
     * `require_file/2` - compiles a file and tracks its name. It does not
       compile the file again if it has been previously required.
@@ -710,8 +710,8 @@ defmodule Code do
   specially because a function is named `defmodule`, `def`, or the like. This
   principle mirrors Elixir's goal of being an extensible language where
   developers can extend the language with new constructs as if they were
-  part of the language. When it is absolutely necessary to change behaviour
-  based on the name, this behaviour should be configurable, such as the
+  part of the language. When it is absolutely necessary to change behavior
+  based on the name, this behavior should be configurable, such as the
   `:locals_without_parens` option.
 
   ## Running the formatter
@@ -855,7 +855,7 @@ defmodule Code do
     * Newlines before certain operators (such as the pipeline operators)
       and before other operators (such as comparison operators)
 
-  The behaviours above are not guaranteed. We may remove or add new
+  The behaviors above are not guaranteed. We may remove or add new
   rules in the future. The goal of documenting them is to provide better
   understanding on what to expect from the formatter.
 
@@ -1145,7 +1145,7 @@ defmodule Code do
 
     * `:static_atoms_encoder` - the static atom encoder function, see
       "The `:static_atoms_encoder` function" section below. Note this
-      option overrides the `:existing_atoms_only` behaviour for static
+      option overrides the `:existing_atoms_only` behavior for static
       atoms but `:existing_atoms_only` is still used for dynamic atoms,
       such as atoms with interpolations.
 
@@ -1627,7 +1627,7 @@ defmodule Code do
       error. You may be set it to `:warn` if you want undefined variables to
       emit a warning and expand as to a local call to the zero-arity function
       of the same name (for example, `node` would be expanded as `node()`).
-      This `:warn` behaviour only exists for compatibility reasons when working
+      This `:warn` behavior only exists for compatibility reasons when working
       with old dependencies.
 
   It always returns `:ok`. Raises an error for invalid options.
@@ -1961,7 +1961,7 @@ defmodule Code do
   @doc """
   Returns `true` if the module is loaded.
 
-  This function doesn't attempt to load the module. For such behaviour,
+  This function doesn't attempt to load the module. For such behavior,
   `ensure_loaded?/1` can be used.
 
   ## Examples

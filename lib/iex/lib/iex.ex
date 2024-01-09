@@ -115,7 +115,7 @@ defmodule IEx do
       iex(1)> [1, [2], 3]
       [1, [2], 3]
 
-  To prevent this behaviour breaking valid code where the subsequent line
+  To prevent this behavior breaking valid code where the subsequent line
   begins with a binary operator, such as `|>/2` or `++/2` , IEx automatically
   treats such lines as if they were prepended with `IEx.Helpers.v/0`, which
   returns the value of the previous expression, if available.

@@ -210,7 +210,7 @@ defmodule Float do
 
   ## Known issues
 
-  The behaviour of `floor/2` for floats can be surprising. For example:
+  The behavior of `floor/2` for floats can be surprising. For example:
 
       iex> Float.floor(12.52, 2)
       12.51
@@ -218,7 +218,7 @@ defmodule Float do
   One may have expected it to floor to 12.52. This is not a bug.
   Most decimal fractions cannot be represented as a binary floating point
   and therefore the number above is internally represented as 12.51999999,
-  which explains the behaviour above.
+  which explains the behavior above.
 
   ## Examples
 
@@ -254,7 +254,7 @@ defmodule Float do
   The operation is performed on the binary floating point, without a
   conversion to decimal.
 
-  The behaviour of `ceil/2` for floats can be surprising. For example:
+  The behavior of `ceil/2` for floats can be surprising. For example:
 
       iex> Float.ceil(-12.52, 2)
       -12.51
@@ -262,7 +262,7 @@ defmodule Float do
   One may have expected it to ceil to -12.52. This is not a bug.
   Most decimal fractions cannot be represented as a binary floating point
   and therefore the number above is internally represented as -12.51999999,
-  which explains the behaviour above.
+  which explains the behavior above.
 
   This function always returns floats. `Kernel.trunc/1` may be used instead to
   truncate the result to an integer afterwards.
@@ -305,7 +305,7 @@ defmodule Float do
 
   ## Known issues
 
-  The behaviour of `round/2` for floats can be surprising. For example:
+  The behavior of `round/2` for floats can be surprising. For example:
 
       iex> Float.round(5.5675, 3)
       5.567
@@ -313,8 +313,8 @@ defmodule Float do
   One may have expected it to round to the half up 5.568. This is not a bug.
   Most decimal fractions cannot be represented as a binary floating point
   and therefore the number above is internally represented as 5.567499999,
-  which explains the behaviour above. If you want exact rounding for decimals,
-  you must use a decimal library. The behaviour above is also in accordance
+  which explains the behavior above. If you want exact rounding for decimals,
+  you must use a decimal library. The behavior above is also in accordance
   to reference implementations, such as "Correctly Rounded Binary-Decimal and
   Decimal-Binary Conversions" by David M. Gay.
 
