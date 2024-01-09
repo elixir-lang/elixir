@@ -1525,6 +1525,7 @@ defmodule Kernel do
 
   If the `right` operand is not a proper list, it returns an improper list.
   If the `left` operand is not a proper list, it raises `ArgumentError`.
+  If the `left` operand is an empty list, it returns the `right` operand.
 
   Inlined by the compiler.
 
@@ -1547,6 +1548,10 @@ defmodule Kernel do
       iex> [1] ++ [2 | 3]
       [1, 2 | 3]
 
+      # empty list on the left will return the right operand
+      iex> [] ++ 1
+      1
+
   The `++/2` operator is right associative, meaning:
 
       iex> [1, 2, 3] -- [1] ++ [2]
@@ -1558,7 +1563,8 @@ defmodule Kernel do
       [3]
 
   """
-  @spec list ++ term :: maybe_improper_list
+  @spec [] ++ a :: a when a: term()
+  @spec nonempty_list() ++ term() :: maybe_improper_list()
   def left ++ right do
     :erlang.++(left, right)
   end
