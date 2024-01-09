@@ -432,7 +432,6 @@ defmodule EnumTest do
     end
 
     assert_raise ArgumentError, map_msg, fn -> Enum.into(Range.new(item, 10), %{a: 1}) end
-    # make assert_raise ArgumentError, map_msg, fn -> Enum.into([c.item, 2, 3], %{a: 1}) end
 
     assert_raise ArgumentError, map_msg, fn ->
       Enum.into(MapSet.new([item, 2, 3]), %{a: 1})
