@@ -455,7 +455,6 @@ defmodule Kernel.ParallelCompiler do
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
        when map_size(spawned) == 0 and map_size(waiting) == 0 do
-    [] = errors
     [] = files
     cycle_return = each_cycle_return(state.each_cycle.())
     state = cycle_timing(result, state)
