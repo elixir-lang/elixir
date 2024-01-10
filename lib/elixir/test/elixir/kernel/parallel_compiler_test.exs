@@ -196,6 +196,28 @@ defmodule Kernel.ParallelCompilerTest do
       purge([QuickExample])
     end
 
+    test "does not crash on external reports" do
+      [fixture] =
+        write_tmp(
+          "compile_quoted",
+          quick_example: """
+          defmodule CompileQuoted do
+            try do
+              Code.compile_quoted({:fn, [], [{:->, [], [[], quote(do: unknown_var)]}]})
+            rescue
+              _ -> :ok
+            end
+          end
+          """
+        )
+
+      assert capture_io(:stderr, fn ->
+               assert {:ok, [CompileQuoted], []} = Kernel.ParallelCompiler.compile([fixture])
+             end) =~ "undefined variable \"unknown_var\""
+    after
+      purge([CompileQuoted])
+    end
+
     test "does not hang on missing dependencies" do
       [fixture] =
         write_tmp(
