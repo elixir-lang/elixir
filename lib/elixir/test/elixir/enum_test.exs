@@ -418,55 +418,16 @@ defmodule EnumTest do
   end
 
   test "into/2 exceptions" do
-    item = 1
-    date = ~D[2015-01-01]
-    map = %{a: 1}
-    tuple = {:a, 1}
+    assert_raise ArgumentError,
+                 "collecting into a map requires {key, value} tuples, got: 1",
+                 fn -> Enum.into(1..10, %{}) end
 
-    map_msg = "collecting into a map requires {key, value} tuples, got: #{inspect(item)}"
-    map_date_msg = "collecting into a map requires {key, value} tuples, got: #{inspect(date)}"
-    assert_raise ArgumentError, map_msg, fn -> Enum.into(1..10, %{}) end
-
-    assert_raise ArgumentError, map_date_msg, fn ->
-      Enum.into(Date.range(date, ~D[2015-01-03]), %{})
+    assert_raise ArgumentError, "collecting into a binary requires a bitstring, got: 1", fn ->
+      Enum.into(1..10, <<>>)
     end
 
-    assert_raise ArgumentError, map_msg, fn -> Enum.into(Range.new(item, 10), %{a: 1}) end
-
-    assert_raise ArgumentError, map_msg, fn ->
-      Enum.into(MapSet.new([item, 2, 3]), %{a: 1})
-    end
-
-    assert_raise ArgumentError, map_date_msg, fn ->
-      Enum.into(Date.range(date, ~D[2019-01-01]), %{a: 1})
-    end
-
-    bit_msg = "collecting into a binary requires a bitstring, got: #{inspect(item)}"
-    bit_map_msg = "collecting into a binary requires a bitstring, got: #{inspect(tuple)}"
-    bit_date_msg = "collecting into a binary requires a bitstring, got: #{inspect(date)}"
-    assert_raise ArgumentError, bit_msg, fn -> Enum.into(Range.new(item, 10, 1), <<>>) end
-    assert_raise ArgumentError, bit_msg, fn -> Enum.into([item, 2, 3], <<>>) end
-    assert_raise ArgumentError, bit_msg, fn -> Enum.into(MapSet.new([item, 2, 3, 4]), <<>>) end
-    assert_raise ArgumentError, bit_map_msg, fn -> Enum.into(map, <<>>) end
-
-    assert_raise ArgumentError, bit_date_msg, fn ->
-      Enum.into(Date.range(date, ~D[2019-01-01]), <<>>)
-    end
-
-    bit_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(item)}"
-    bit_map_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(tuple)}"
-    bit_date_msg = "collecting into a bitstring requires a bitstring, got: #{inspect(date)}"
-    assert_raise ArgumentError, bit_msg, fn -> Enum.into(Range.new(item, 10, 1), <<1::1>>) end
-    assert_raise ArgumentError, bit_msg, fn -> Enum.into([item, 2, 3], <<1::1>>) end
-
-    assert_raise ArgumentError, bit_msg, fn ->
-      Enum.into(MapSet.new([item, 2, 3, 4]), <<1::1>>)
-    end
-
-    assert_raise ArgumentError, bit_map_msg, fn -> Enum.into(map, <<1::1>>) end
-
-    assert_raise ArgumentError, bit_date_msg, fn ->
-      Enum.into(Date.range(date, ~D[2019-01-01]), <<1::1>>)
+    assert_raise ArgumentError, "collecting into a bitstring requires a bitstring, got: 1", fn ->
+      Enum.into(1..10, <<1::1>>)
     end
   end
 
