@@ -552,7 +552,7 @@ defmodule Access do
       {"john", %{user: %{name: "JOHN"}}}
 
   However, it is not possible to remove fields using the dot notation,
-  as it is implified those fields must also be present. In any case,
+  as it is implied those fields must also be present. In any case,
   `Access.key!/1` is useful when the key is not known in advance
   and must be accessed dynamically.
 
