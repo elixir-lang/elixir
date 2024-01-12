@@ -1204,10 +1204,9 @@ format_error(unhandled_arrow_op) ->
   "This typically means invalid syntax or a macro is not available in scope";
 format_error(unhandled_cons_op) ->
   "misplaced operator |/2\n\n"
-  "The | operator is typically used between brackets as the cons operator:\n\n"
-  "    [head | tail]\n\n"
-  "where head is a sequence of elements separated by commas and the tail "
-  "is the remaining of a list.\n\n"
+  "The | operator is typically used between brackets to mark the tail of a list:\n\n"
+  "    [head | tail]\n"
+  "    [head, middle, ... | tail]\n\n"
   "It is also used to update maps and structs, via the %{map | key: value} notation, "
   "and in typespecs, such as @type and @spec, to express the union of two types";
 format_error(unhandled_type_op) ->
