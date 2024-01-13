@@ -353,6 +353,10 @@ defmodule Code.Normalizer do
     last = List.last(args)
 
     cond do
+      not allow_keyword?(form, arity) ->
+        args = normalize_args(args, %{state | parent_meta: meta})
+        {form, meta, args}
+
       Keyword.has_key?(meta, :do) or match?([{{:__block__, _, [:do]}, _} | _], last) ->
         # def foo do :ok end
         # def foo, do: :ok
@@ -364,7 +368,7 @@ defmodule Code.Normalizer do
         meta = meta ++ [do: [line: line], end: [line: line]]
         normalize_kw_blocks(form, meta, args, state)
 
-      allow_keyword?(form, arity) ->
+      true ->
         args = normalize_args(args, %{state | parent_meta: meta})
         {last_arg, leading_args} = List.pop_at(args, -1, [])
 
@@ -385,10 +389,6 @@ defmodule Code.Normalizer do
           end
 
         {form, meta, leading_args ++ last_args}
-
-      true ->
-        args = normalize_args(args, %{state | parent_meta: meta})
-        {form, meta, args}
     end
   end
 
