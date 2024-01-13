@@ -9,7 +9,9 @@ defmodule Mix.Tasks.Loadconfig do
       $ mix loadconfig path/to/config.exs
 
   Any configuration file loaded with `loadconfig` is treated
-  as a compile-time configuration.
+  as a compile-time configuration. This means all application
+  keys are merged into their respective applications, however
+  the values themselves are not deep merged.
 
   `config/config.exs` is **always loaded automatically**
   by the Mix CLI when it boots. `config/runtime.exs` is loaded
