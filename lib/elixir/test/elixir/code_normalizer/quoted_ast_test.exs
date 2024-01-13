@@ -539,6 +539,10 @@ defmodule Code.Normalizer.QuotedASTTest do
                "\e[34m[\e[0m\e[32ma:\e[0m \e[33m1\e[0m, \e[32mb:\e[0m \e[33m2\e[0m\e[34m]\e[0m"
     end
 
+    test "keyword list with :do as operand" do
+      assert quoted_to_string(quote(do: a = [do: 1])) == "a = [do: 1]"
+    end
+
     test "interpolation" do
       assert quoted_to_string(quote(do: "foo#{bar}baz")) == ~S["foo#{bar}baz"]
     end
