@@ -83,6 +83,16 @@ defmodule ExUnit.SupervisedTest do
     end
   end
 
+  test "starts a supervised process with correct :\"$callers\"" do
+    test_pid = self()
+    fun = fn -> send(test_pid, Process.get(:"$callers")) end
+    {:ok, _pid} = start_supervised({Task, fun})
+
+    assert_received [] = callers
+
+    assert List.last(callers) == test_pid
+  end
+
   test "stops a supervised process" do
     {:ok, pid} = start_supervised({MyAgent, 0})
     assert stop_supervised(MyAgent) == :ok
