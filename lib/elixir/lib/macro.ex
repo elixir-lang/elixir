@@ -136,8 +136,9 @@ defmodule Macro do
 
     * `:closing` - contains metadata about the closing pair, such as a `}`
       in a tuple or in a map, or such as the closing `)` in a function call
-      with parens. The `:closing` does not delimit the end of expression if
-      there are `:do` and `:end` metadata  (when `:token_metadata` is true)
+      with parens (when `:token_metadata` is true). If the function call
+      has a do-end block attached to it, its metadata is found under the
+      `:do` and `:end` metadata
 
     * `:column` - the column number of the AST node (when `:columns` is true).
       Note column information is always discarded from quoted code.
@@ -154,8 +155,8 @@ defmodule Macro do
       `do`-`end` blocks (when `:token_metadata` is true)
 
     * `:end_of_expression` - denotes when the end of expression effectively
-      happens. Available for all expressions except the last one inside a
-      `__block__` (when `:token_metadata` is true)
+      happens (when `:token_metadata` is true). Available for all expressions
+      except the last one inside a `__block__`
 
     * `:indentation` - indentation of a sigil heredoc
 
