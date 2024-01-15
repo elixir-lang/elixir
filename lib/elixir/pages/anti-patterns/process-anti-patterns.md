@@ -310,7 +310,7 @@ iex> Counter.bump(Counter, 7)
 
 #### Refactoring
 
-To ensure that clients of a library have full control over their systems, regardless of the number of processes used and the lifetime of each one, all processes must be started inside a supervision tree. As shown below, this code uses a `Supervisor` as a supervision tree. When this Elixir application is started, two different counters (`Counter` and `:other_counter`) are also started as child processes of the `Supervisor` named `App.Supervisor`. Both are initialized to `0`. By means of this supervision tree, it is possible to manage the lifecycle of all child processes (stopping or restarting each one), improving the visibility of the entire app.
+To ensure that clients of a library have full control over their systems, regardless of the number of processes used and the lifetime of each one, all processes must be started inside a supervision tree. As shown below, this code uses a `Supervisor` as a supervision tree. When this Elixir application is started, two different counters (`Counter` and `:other_counter`) are also started as child processes of the `Supervisor` named `App.Supervisor`. One is initialized with `0`, the other with `15`. By means of this supervision tree, it is possible to manage the lifecycle of all child processes (stopping or restarting each one), improving the visibility of the entire app.
 
 ```elixir
 defmodule SupervisedProcess.Application do
