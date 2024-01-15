@@ -1,6 +1,6 @@
 # Writing Documentation
 
-Elixir elevates documentation to first-class status, emphasizing ease of writing as well as readability. This guide will teach you to craft effective documentation in Elixir, covering essential constructs like module attributes, typespec, style practices, and doctests.
+Elixir elevates documentation to first-class status, emphasizing ease of writing as well as readability. This guide will teach you to craft effective documentation in Elixir, covering essential constructs like module attributes, typespecs, style practices, and doctests.
 ## Markdown
 
 Elixir documentation is written in Markdown. Some commonly used elements are: 
