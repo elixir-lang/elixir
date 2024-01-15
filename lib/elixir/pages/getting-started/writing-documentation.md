@@ -229,7 +229,6 @@ defmodule MyApp.Sample do
   @doc false
   def add(a, b), do: a + b
 end
-
 ```
 
 To document a function in a hidden module (`@moduledoc false`), use `@doc` as usual. The module won't appear in the generated documentation, but documented functions will.
