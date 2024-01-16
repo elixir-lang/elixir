@@ -45,7 +45,7 @@ defmodule ExUnit.Filters do
   end
 
   defp extract_line_numbers(file_path) do
-    case Path.relative_to_cwd(file_path) |> String.split(":") do
+    case normalize_relative_path(file_path) |> String.split(":") do
       [path] ->
         {path, []}
 
@@ -63,6 +63,17 @@ defmodule ExUnit.Filters do
           [line] -> {path, line}
           lines -> {path, lines}
         end
+    end
+  end
+
+  defp normalize_relative_path(file_path) do
+    case Path.safe_relative(file_path) do
+      {:ok, path} ->
+        path
+
+      :error ->
+        IO.warn("invalid file path given as ExUnit filter: #{file_path}", [])
+        file_path
     end
   end
 
