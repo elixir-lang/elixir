@@ -24,7 +24,7 @@ defmodule Routes do
       end
 
       if not is_atom(handler) do
-        raise ArgumentError, "route must be a module"
+        raise ArgumentError, "handler must be a module"
       end
 
       @store_route_for_compilation {route, handler}
@@ -51,7 +51,7 @@ defmodule Routes do
     end
 
     if not is_atom(handler) do
-      raise ArgumentError, "route must be a module"
+      raise ArgumentError, "handler must be a module"
     end
 
     Module.put_attribute(module, :store_route_for_compilation, {route, handler})
