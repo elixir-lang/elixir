@@ -196,9 +196,10 @@ defmodule ExUnit.FiltersTest do
   test "file paths with line numbers" do
     unix_path = "test/some/path.exs"
     windows_path = "C:\\some\\path.exs"
+    unix_path_with_dot = "./test/some/path.exs"
 
-    for path <- [unix_path, windows_path] do
-      fixed_path = path |> Path.split() |> Path.join()
+    for path <- [unix_path, windows_path, unix_path_with_dot] do
+      fixed_path = path |> Path.split() |> Path.join() |> Path.relative_to_cwd()
 
       assert ExUnit.Filters.parse_path("#{path}:123") ==
                {fixed_path, [exclude: [:test], include: [location: {fixed_path, 123}]]}

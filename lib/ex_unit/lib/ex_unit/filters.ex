@@ -45,13 +45,18 @@ defmodule ExUnit.Filters do
   end
 
   defp extract_line_numbers(file_path) do
-    case String.split(file_path, ":") do
+    case Path.relative_to_cwd(file_path) |> String.split(":") do
       [path] ->
         {path, []}
 
       [path | parts] ->
         {path_parts, line_numbers} = Enum.split_while(parts, &(to_line_number(&1) == nil))
-        path = Enum.join([path | path_parts], ":") |> Path.split() |> Path.join()
+
+        path =
+          Enum.join([path | path_parts], ":")
+          |> Path.split()
+          |> Path.join()
+
         lines = for n <- line_numbers, valid_number = validate_line_number(n), do: valid_number
 
         case lines do
