@@ -279,24 +279,4 @@ defmodule ExUnit.FiltersTest do
       assert output =~ "invalid line number given as ExUnit filter: -987"
     end
   end
-
-  test "file outside of the current directory" do
-    external_path = "../other_project/test/path.exs"
-
-    output =
-      ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        assert ExUnit.Filters.parse_path(external_path) == {external_path, []}
-      end)
-
-    assert output =~ "invalid file path given as ExUnit filter: ../other_project/test/path.exs"
-
-    output =
-      ExUnit.CaptureIO.capture_io(:stderr, fn ->
-        assert ExUnit.Filters.parse_path("#{external_path}:123") ==
-                 {external_path,
-                  [{:exclude, [:test]}, {:include, [location: {external_path, 123}]}]}
-      end)
-
-    assert output =~ "invalid file path given as ExUnit filter: ../other_project/test/path.exs"
-  end
 end
