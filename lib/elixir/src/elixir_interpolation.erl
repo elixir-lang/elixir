@@ -60,8 +60,8 @@ extract([$#, ${ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
       {error, {string, Line, Column, "missing interpolation terminator: \"}\"", []}}
   end;
 
-extract([$\\ | Rest], Buffer, Output, Line, Column, Scope, true, Last) ->
-  extract_char(Rest, [$\\ | Buffer], Output, Line, Column + 1, Scope, true, Last);
+extract([$\\ | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
+  extract_char(Rest, [$\\ | Buffer], Output, Line, Column + 1, Scope, Interpol, Last);
 
 %% Catch all clause
 
