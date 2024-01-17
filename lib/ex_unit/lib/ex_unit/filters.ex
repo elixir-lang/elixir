@@ -45,7 +45,7 @@ defmodule ExUnit.Filters do
   end
 
   defp extract_line_numbers(file_path) do
-    case String.split(file_path, ":") do
+    case Path.relative_to_cwd(file_path) |> String.split(":") do
       [path] ->
         {path, []}
 
