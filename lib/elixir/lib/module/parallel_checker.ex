@@ -167,7 +167,8 @@ defmodule Module.ParallelChecker do
 
   defp collect_results(count, diagnostics) do
     receive do
-      {:diagnostic, %{file: file} = diagnostic} ->
+      {:diagnostic, %{file: file} = diagnostic, read_snippet} ->
+        :elixir_errors.print_diagnostic(diagnostic, read_snippet)
         diagnostic = %{diagnostic | file: file && Path.absname(file)}
         collect_results(count, [diagnostic | diagnostics])
 

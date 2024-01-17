@@ -455,6 +455,11 @@ defmodule Kernel.ParallelCompiler do
   # No more queue, nothing waiting, this cycle is done
   defp spawn_workers([], spawned, waiting, files, result, warnings, errors, state)
        when map_size(spawned) == 0 and map_size(waiting) == 0 do
+    # Print any spurious error that we may have found
+    Enum.map(errors, fn {diagnostic, read_snippet} ->
+      :elixir_errors.print_diagnostic(diagnostic, read_snippet)
+    end)
+
     [] = files
     cycle_return = each_cycle_return(state.each_cycle.())
     state = cycle_timing(result, state)
@@ -509,8 +514,9 @@ defmodule Kernel.ParallelCompiler do
     if deadlocked do
       spawn_workers(deadlocked, spawned, waiting, files, result, warnings, errors, state)
     else
-      deadlock_errors = handle_deadlock(waiting, files)
-      {return_error(deadlock_errors ++ errors, warnings), state}
+      return_error(warnings, errors, state, fn ->
+        handle_deadlock(waiting, files)
+      end)
     end
   end
 
@@ -680,12 +686,13 @@ defmodule Kernel.ParallelCompiler do
         state = %{state | timer_ref: timer_ref}
         spawn_workers(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:diagnostic, %{severity: :warning, file: file} = diagnostic} ->
+      {:diagnostic, %{severity: :warning, file: file} = diagnostic, read_snippet} ->
+        :elixir_errors.print_diagnostic(diagnostic, read_snippet)
         warnings = [%{diagnostic | file: file && Path.absname(file)} | warnings]
         wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
 
-      {:diagnostic, %{severity: :error, file: file} = diagnostic} ->
-        errors = [%{diagnostic | file: file && Path.absname(file)} | errors]
+      {:diagnostic, %{severity: :error} = diagnostic, read_snippet} ->
+        errors = [{diagnostic, read_snippet} | errors]
         wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
 
       {:file_ok, child_pid, ref, file, lexical} ->
@@ -705,10 +712,13 @@ defmodule Kernel.ParallelCompiler do
         spawn_workers(queue, new_spawned, waiting, new_files, result, warnings, errors, state)
 
       {:file_error, child_pid, file, {kind, reason, stack}} ->
-        print_error(file, kind, reason, stack)
         {_file, _new_spawned, new_files} = discard_file_pid(spawned, files, child_pid)
         terminate(new_files)
-        {return_error([to_error(file, kind, reason, stack) | errors], warnings), state}
+
+        return_error(warnings, errors, state, fn ->
+          print_error(file, kind, reason, stack)
+          [to_error(file, kind, reason, stack)]
+        end)
 
       {:DOWN, ref, :process, pid, reason} when is_map_key(spawned, ref) ->
         # async spawned processes have no file, so we always have to delete the ref directly
@@ -717,18 +727,27 @@ defmodule Kernel.ParallelCompiler do
         {file, spawned, files} = discard_file_pid(spawned, files, pid)
 
         if file do
-          print_error(file.file, :exit, reason, [])
           terminate(files)
-          {return_error([to_error(file.file, :exit, reason, []) | errors], warnings), state}
+
+          return_error(warnings, errors, state, fn ->
+            print_error(file.file, :exit, reason, [])
+            [to_error(file.file, :exit, reason, [])]
+          end)
         else
           wait_for_messages(queue, spawned, waiting, files, result, warnings, errors, state)
         end
     end
   end
 
-  defp return_error(errors, warnings) do
+  defp return_error(warnings, errors, state, fun) do
+    errors =
+      Enum.map(errors, fn {%{file: file} = diagnostic, read_snippet} ->
+        :elixir_errors.print_diagnostic(diagnostic, read_snippet)
+        %{diagnostic | file: file && Path.absname(file)}
+      end)
+
     info = %{compile_warnings: Enum.reverse(warnings), runtime_warnings: []}
-    {:error, Enum.reverse(errors), info}
+    {{:error, Enum.reverse(errors, fun.()), info}, state}
   end
 
   defp update_result(result, kind, module, value) do
