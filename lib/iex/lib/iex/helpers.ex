@@ -94,20 +94,32 @@ defmodule IEx.Helpers do
   """
   def recompile(options \\ []) do
     if mix_started?() do
-      config = Mix.Project.config()
-      consolidation = Mix.Project.consolidation_path(config)
-      reenable_tasks(config)
+      project = Mix.Project.get()
 
-      force? = Keyword.get(options, :force, false)
-      args = ["--purge-consolidation-path-if-stale", "--return-errors", consolidation]
-      args = if force?, do: ["--force" | args], else: args
-
-      {result, _} = Mix.Task.run("compile", args)
-      result
+      if is_nil(project) or
+           project.__info__(:compile)[:source] == String.to_charlist(Path.absname("mix.exs")) do
+        do_recompile(options)
+      else
+        message = "Cannot recompile because the current working directory changed"
+        IO.puts(IEx.color(:eval_error, message))
+      end
     else
       IO.puts(IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix"))
       :error
     end
+  end
+
+  defp do_recompile(options) do
+    config = Mix.Project.config()
+    consolidation = Mix.Project.consolidation_path(config)
+    reenable_tasks(config)
+
+    force? = Keyword.get(options, :force, false)
+    args = ["--purge-consolidation-path-if-stale", "--return-errors", consolidation]
+    args = if force?, do: ["--force" | args], else: args
+
+    {result, _} = Mix.Task.run("compile", args)
+    result
   end
 
   defp mix_started? do
