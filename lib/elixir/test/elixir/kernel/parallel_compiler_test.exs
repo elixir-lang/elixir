@@ -327,7 +327,7 @@ defmodule Kernel.ParallelCompilerTest do
       msg =
         capture_io(:stderr, fn ->
           fixtures = [foo, bar]
-          assert {:error, [foo_error, bar_error], []} = Kernel.ParallelCompiler.compile(fixtures)
+          assert {:error, [bar_error, foo_error], []} = Kernel.ParallelCompiler.compile(fixtures)
           assert bar_error == {bar, nil, "deadlocked waiting on module FooDeadlock"}
           assert foo_error == {foo, nil, "deadlocked waiting on module BarDeadlock"}
         end)
@@ -415,7 +415,7 @@ defmodule Kernel.ParallelCompilerTest do
 
       capture_io(:stderr, fn ->
         fixtures = [foo, bar]
-        assert {:error, [foo_error, bar_error], []} = Kernel.ParallelCompiler.compile(fixtures)
+        assert {:error, [bar_error, foo_error], []} = Kernel.ParallelCompiler.compile(fixtures)
         assert {^bar, nil, "deadlocked waiting on module FooAsyncDeadlock"} = bar_error
         assert {^foo, nil, "deadlocked waiting on pmap [#PID<" <> _} = foo_error
       end)

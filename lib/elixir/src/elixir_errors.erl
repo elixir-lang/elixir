@@ -115,14 +115,17 @@ emit_diagnostic(Severity, Position, File, Message, Stacktrace, Options) ->
   },
 
   case get(elixir_code_diagnostics) of
-    undefined -> print_diagnostic(Diagnostic, ReadSnippet);
-    {Tail, true} -> put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic, ReadSnippet) | Tail], true});
-    {Tail, false} -> put(elixir_code_diagnostics, {[Diagnostic | Tail], false})
-  end,
+    undefined ->
+      case get(elixir_compiler_info) of
+        undefined -> print_diagnostic(Diagnostic, ReadSnippet);
+        {CompilerPid, _} -> CompilerPid ! {diagnostic, Diagnostic, ReadSnippet}
+      end;
 
-  case get(elixir_compiler_info) of
-    undefined -> ok;
-    {CompilerPid, _} -> CompilerPid ! {diagnostic, Diagnostic}
+    {Tail, true} ->
+      put(elixir_code_diagnostics, {[print_diagnostic(Diagnostic, ReadSnippet) | Tail], true});
+
+    {Tail, false} ->
+      put(elixir_code_diagnostics, {[Diagnostic | Tail], false})
   end,
 
   ok.
