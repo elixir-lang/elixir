@@ -96,11 +96,12 @@ defmodule IEx.Helpers do
     if mix_started?() do
       project = Mix.Project.get()
 
-      if project &&
+      if is_nil(project) or
            project.__info__(:compile)[:source] == String.to_charlist(Path.absname("mix.exs")) do
         do_recompile(options)
       else
-        IO.warn("Not inside Mix project")
+        message = "Cannot recompile because the current working directory changed"
+        IO.puts(IEx.color(:eval_error, message))
       end
     else
       IO.puts(IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix"))
