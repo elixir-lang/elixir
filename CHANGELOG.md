@@ -4,6 +4,10 @@
 
 ### 1. Enhancements
 
+#### IEx
+
+  * [IEx.Helpers] Warns if `recompile` was called and the current working directory changed
+
 ### 2. Bug fixes
 
 ### 3. Soft deprecations (no warnings emitted)
