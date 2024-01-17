@@ -155,8 +155,10 @@ defmodule Macro do
       `do`-`end` blocks (when `:token_metadata` is true)
 
     * `:end_of_expression` - denotes when the end of expression effectively
-      happens (when `:token_metadata` is true). Available for all expressions
-      except the last one inside a `__block__`
+      happens (when `:token_metadata` is true). This is only available for
+      direct children of a `__block__`, and it is either the location of a
+      newline or of the `;` character. The last expression of `__block__`
+      does not have this metadata.
 
     * `:indentation` - indentation of a sigil heredoc
 
