@@ -94,7 +94,14 @@ defmodule IEx.Helpers do
   """
   def recompile(options \\ []) do
     if mix_started?() do
-      do_recompile(options)
+      project = Mix.Project.get()
+
+      if project &&
+           project.__info__(:compile)[:source] == String.to_charlist(Path.absname("mix.exs")) do
+        do_recompile(options)
+      else
+        IO.warn("Not inside Mix project")
+      end
     else
       IO.puts(IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix"))
       :error
