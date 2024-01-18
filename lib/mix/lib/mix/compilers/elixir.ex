@@ -68,7 +68,7 @@ defmodule Mix.Compilers.Elixir do
         do: [Mix.Project | stale],
         else: stale
 
-    # If the lock has changed or a local dependency was added ore removed,
+    # If the lock has changed or a local dependency was added or removed,
     # we need to traverse lock/config files.
     deps_changed? =
       Mix.Utils.stale?([Mix.Project.config_mtime()], [modified]) or
