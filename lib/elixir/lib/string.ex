@@ -2089,12 +2089,27 @@ defmodule String do
     end
   end
 
-  @doc false
-  @deprecated "Use String.next_grapheme/1 instead"
+  @doc """
+  Returns the size (in bytes) of the next grapheme.
+
+  The result is a tuple with the next grapheme size in bytes and
+  the remainder of the string or `nil` in case the string
+  reached its end.
+
+  ## Examples
+
+      iex> String.next_grapheme_size("olá")
+      {1, "lá"}
+
+      iex> String.next_grapheme_size("")
+      nil
+
+  """
   @spec next_grapheme_size(t) :: {pos_integer, t} | nil
   def next_grapheme_size(string) when is_binary(string) do
     case :unicode_util.gc(string) do
       [gc] -> {grapheme_byte_size(gc), <<>>}
+      [gc, rest] -> {grapheme_byte_size(gc), rest}
       [gc | rest] -> {grapheme_byte_size(gc), rest}
       [] -> nil
       {:error, <<_, rest::bits>>} -> {1, rest}
