@@ -808,6 +808,47 @@ defmodule StringTest do
     assert String.slice("a·̀ͯ‿.⁀:", 0..-2//2) == "a‿⁀"
   end
 
+  test "byte_slice/2" do
+    # ASCII
+    assert String.byte_slice("elixir", 0, 6) == "elixir"
+    assert String.byte_slice("elixir", 0, 5) == "elixi"
+    assert String.byte_slice("elixir", 1, 4) == "lixi"
+    assert String.byte_slice("elixir", 0, 10) == "elixir"
+    assert String.byte_slice("elixir", -3, 10) == "xir"
+    assert String.byte_slice("elixir", -10, 10) == "elixir"
+    assert String.byte_slice("elixir", 1, 0) == ""
+    assert String.byte_slice("elixir", 10, 10) == ""
+
+    # 2 byte
+    assert String.byte_slice("héllò", 1, 4) == "éll"
+    assert String.byte_slice("héllò", 1, 5) == "éll"
+    assert String.byte_slice("héllò", 1, 6) == "éllò"
+    assert String.byte_slice("héllò", 2, 4) == "llò"
+
+    # 3 byte
+    assert String.byte_slice("hかllか", 1, 4) == "かl"
+    assert String.byte_slice("hかllか", 1, 5) == "かll"
+    assert String.byte_slice("hかllか", 1, 6) == "かll"
+    assert String.byte_slice("hかllか", 1, 7) == "かll"
+    assert String.byte_slice("hかllか", 1, 8) == "かllか"
+    assert String.byte_slice("hかllか", 2, 4) == "ll"
+    assert String.byte_slice("hかllか", 2, 5) == "llか"
+
+    # 4 byte
+    assert String.byte_slice("h😍ll😍", 1, 4) == "😍"
+    assert String.byte_slice("h😍ll😍", 1, 5) == "😍l"
+    assert String.byte_slice("h😍ll😍", 1, 6) == "😍ll"
+    assert String.byte_slice("h😍ll😍", 1, 7) == "😍ll"
+    assert String.byte_slice("h😍ll😍", 1, 8) == "😍ll"
+    assert String.byte_slice("h😍ll😍", 1, 9) == "😍ll"
+    assert String.byte_slice("h😍ll😍", 1, 10) == "😍ll😍"
+    assert String.byte_slice("h😍ll😍", 2, 5) == "ll"
+    assert String.byte_slice("h😍ll😍", 2, 6) == "ll😍"
+
+    # Already invalid
+    assert String.byte_slice(<<178, "ll", 178>>, 0, 10) == "ll"
+  end
+
   test "valid?/1" do
     assert String.valid?("afds")
     assert String.valid?("øsdfh")
