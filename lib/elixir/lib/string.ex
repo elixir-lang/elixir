@@ -2586,27 +2586,29 @@ defmodule String do
     byte = :binary.at(string, last)
 
     cond do
-      # This byte is valid, discard all truncated entries
+      # ASCII byte, discard all truncated entries
       byte <= 127 ->
         last + 1
 
+      # In the middle of a codepoint
       byte <= 191 ->
         invalid_suffix(string, last - 1, truncated + 1)
 
-      # 2 bytes
+      # 2 bytes codepoint start
       byte <= 223 ->
         if truncated == 1, do: last + truncated + 1, else: last
 
-      # 3 bytes
+      # 3 bytes codepoint start
       byte <= 239 ->
         if truncated == 2, do: last + truncated + 1, else: last
 
-      # 3 bytes
+      # 4 bytes codepoint start
       byte <= 247 ->
         if truncated == 3, do: last + truncated + 1, else: last
 
+      # Invalid codepoint, discard it, stop checking
       true ->
-        last
+        last + 1
     end
   end
 

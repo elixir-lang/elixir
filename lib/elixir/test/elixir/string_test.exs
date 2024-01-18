@@ -845,8 +845,11 @@ defmodule StringTest do
     assert String.byte_slice("h😍ll😍", 2, 5) == "ll"
     assert String.byte_slice("h😍ll😍", 2, 6) == "ll😍"
 
-    # Already invalid
+    # Already truncated
     assert String.byte_slice(<<178, "ll", 178>>, 0, 10) == "ll"
+
+    # Already invalid
+    assert String.byte_slice(<<255, "ll", 255>>, 0, 10) == <<255, "ll", 255>>
   end
 
   test "valid?/1" do
