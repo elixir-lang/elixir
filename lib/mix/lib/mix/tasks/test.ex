@@ -163,9 +163,10 @@ defmodule Mix.Tasks.Test do
     * `--preload-modules` - preloads all modules defined in applications
 
     * `--profile-require time` - profiles the time spent to require test files.
-      Used only for debugging. The test suite does not run.
+      Used only for debugging. The test suite does not run
 
-    * `--raise` - raises if the test suite failed
+    * `--raise` - immediately raises if the test suite fails, instead of continuing
+      the execution of other Mix tasks
 
     * `--seed` - seeds the random number generator used to randomize the order of tests;
       `--seed 0` disables randomization so the tests in a single file will always be ran
