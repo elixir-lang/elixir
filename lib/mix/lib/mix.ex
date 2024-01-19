@@ -337,6 +337,12 @@ defmodule Mix do
       written to. For example, "_build". If `MIX_BUILD_PATH` is set, this option
       is ignored.
 
+    * `MIX_COMPILE_CWD_CACHE` - Invalidates the compilation cache when the current
+      directory gets changed. This is the recommended behavior to avoid potential issues,
+      but can trigger undesired recompilations in some workflows where files are relocated
+      between compilation and mix task execution.
+      True by default, set to `0` or `false` to disable.
+
     * `MIX_DEBUG` - outputs debug information about each task before running it
 
     * `MIX_DEPS_PATH` - sets the project `Mix.Project.deps_path/0` config for the

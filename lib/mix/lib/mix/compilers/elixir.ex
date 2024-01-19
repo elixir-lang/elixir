@@ -81,7 +81,8 @@ defmodule Mix.Compilers.Elixir do
 
     {force?, stale, new_deps_config} =
       cond do
-        !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key ->
+        !!opts[:force] or is_nil(old_deps_config) or
+            not cache_key_matches?(old_cache_key, new_cache_key) ->
           {true, stale, deps_config(local_deps)}
 
         deps_changed? or compile_env_apps != [] ->
@@ -266,6 +267,14 @@ defmodule Mix.Compilers.Elixir do
       []
     end
   end
+
+  defp cache_key_matches?(same, same), do: true
+
+  defp cache_key_matches?({base, srcs, left_cwd, opt}, {base, srcs, right_cwd, opt})
+       when is_nil(left_cwd) or is_nil(right_cwd),
+       do: true
+
+  defp cache_key_matches?(_left_key, _right_key), do: false
 
   @doc """
   Removes compiled files for the given `manifest`.

@@ -115,7 +115,8 @@ defmodule Mix.Tasks.Compile.Elixir do
 
     manifest = manifest()
     base = xref_exclude_opts(project[:elixirc_options] || [], project)
-    cache_key = {base, srcs, File.cwd!(), "--no-optional-deps" in args}
+    maybe_cwd = if System.get_env("MIX_COMPILE_CWD_CACHE") not in ["0", "false"], do: File.cwd!()
+    cache_key = {base, srcs, maybe_cwd, "--no-optional-deps" in args}
 
     opts =
       base
