@@ -966,6 +966,7 @@ defmodule String do
 
   def capitalize(string, mode) when is_binary(string) do
     case :unicode_util.gc(string) do
+      [gc] -> grapheme_to_binary(:string.titlecase([gc]))
       [gc, rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
       [gc | rest] -> grapheme_to_binary(:string.titlecase([gc])) <> downcase(rest, mode)
       [] -> ""
