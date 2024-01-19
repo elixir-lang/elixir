@@ -254,6 +254,7 @@ defmodule StringTest do
 
   test "capitalize/1" do
     assert String.capitalize("") == ""
+    assert String.capitalize("1") == "1"
     assert String.capitalize("abc") == "Abc"
     assert String.capitalize("ABC") == "Abc"
     assert String.capitalize("c b a") == "C b a"
