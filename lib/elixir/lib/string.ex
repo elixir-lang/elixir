@@ -2513,7 +2513,7 @@ defmodule String do
   truncated codepoints. This is useful when you have a string and you need
   to guarantee it does not exceed a certain amount of bytes.
 
-  If the size is greater than the number of bytes in the string, then it
+  If the offset is greater than the number of bytes in the string, then it
   returns `""`. Similar to `String.slice/2`, a negative `start_bytes`
   will be adjusted to the end of the string (but in bytes).
 
@@ -2555,11 +2555,11 @@ defmodule String do
       iex> String.byte_slice("héllo", 2, 3)
       "llo"
 
-  Note that, if you have a raw bytes, then you must use `binary_slice/3`
+  Note that, if you want to work on raw bytes, then you must use `binary_slice/3`
   instead.
   """
   @doc since: "1.17.0"
-  @spec byte_slice(t, integer, non_neg_integer) :: grapheme
+  @spec byte_slice(t, integer, non_neg_integer) :: t
   def byte_slice(string, start_bytes, size_bytes)
       when is_binary(string) and is_integer(start_bytes) and is_integer(size_bytes) and
              size_bytes >= 0 do
