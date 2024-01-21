@@ -110,6 +110,18 @@ When using `IEx`, you may pass `--dbg pry` as an option to "stop" the code execu
 $ iex --dbg pry
 ```
 
+Or to debug inside a of a project:
+
+```console
+$ iex --dbg pry -S mix
+```
+
+Or during tests (the `--trace` flag on `mix test` avoid tests from timing out):
+
+```console
+$ iex --dbg pry -S mix test --trace
+```
+
 Now a call to `dbg` will ask if you want to pry the existing code. If you accept, you'll be able to access all variables, as well as imports and aliases from the code, directly from IEx. This is called "prying". While the pry session is running, the code execution stops, until `continue` or `next` are called. Remember you can always run `iex` in the context of a project with `iex -S mix TASK`.
 
 <script id="asciicast-509509" src="https://asciinema.org/a/509509.js" async></script>
