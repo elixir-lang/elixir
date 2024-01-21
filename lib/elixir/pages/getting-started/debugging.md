@@ -116,7 +116,7 @@ Or to debug inside a of a project:
 $ iex --dbg pry -S mix
 ```
 
-Or during tests (the `--trace` flag on `mix test` avoid tests from timing out):
+Or during tests (the `--trace` flag on `mix test` prevents tests from timing out):
 
 ```console
 $ iex --dbg pry -S mix test --trace
