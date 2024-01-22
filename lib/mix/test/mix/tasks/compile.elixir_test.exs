@@ -1251,7 +1251,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
     end)
   after
-    tmp_path("renamed_dir") |> File.rm_rf!()
+    tmp_path("renamed_dir") |> File.rm_rf()
   end
 
   test "does not recompiles when changing directory with MIX_NO_COMPILE=1" do
@@ -1270,7 +1270,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   after
     System.delete_env("MIX_NO_COMPILE")
-    tmp_path("renamed_dir") |> File.rm_rf!()
+    tmp_path("renamed_dir") |> File.rm_rf()
   end
 
   test "compiles files with autoload disabled" do
