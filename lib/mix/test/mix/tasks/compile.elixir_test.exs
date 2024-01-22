@@ -1254,6 +1254,25 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     tmp_path("renamed_dir") |> File.rm_rf!()
   end
 
+  test "does not recompiles when changing directory with MIX_NO_COMPILE=1" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      purge([A, B])
+
+      tmp = tmp_path("renamed_dir")
+      File.rename!(File.cwd!(), tmp)
+      File.cd!(tmp)
+
+      System.put_env("MIX_NO_COMPILE", "1")
+      # Now we have a noop
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
+    end)
+  after
+    System.delete_env("MIX_NO_COMPILE")
+    tmp_path("renamed_dir") |> File.rm_rf!()
+  end
+
   test "compiles files with autoload disabled" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)

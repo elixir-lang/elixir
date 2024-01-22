@@ -81,6 +81,9 @@ defmodule Mix.Compilers.Elixir do
 
     {force?, stale, new_deps_config} =
       cond do
+        System.get_env("MIX_NO_COMPILE") in ["1", "true"] ->
+          {false, stale, old_deps_config}
+
         !!opts[:force] or is_nil(old_deps_config) or old_cache_key != new_cache_key ->
           {true, stale, deps_config(local_deps)}
 
