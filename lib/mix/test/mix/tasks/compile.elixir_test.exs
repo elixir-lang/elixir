@@ -1237,6 +1237,23 @@ defmodule Mix.Tasks.Compile.ElixirTest do
     end)
   end
 
+  test "recompiles when changing directory" do
+    in_fixture("no_mixfile", fn ->
+      Mix.Project.push(MixTest.Case.Sample)
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      purge([A, B])
+
+      tmp = tmp_path("renamed_dir")
+      File.rename!(File.cwd!(), tmp)
+      File.cd!(tmp)
+
+      assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
+      assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
+    end)
+  after
+    tmp_path("renamed_dir") |> File.rm_rf!()
+  end
+
   test "compiles files with autoload disabled" do
     in_fixture("no_mixfile", fn ->
       Mix.Project.push(MixTest.Case.Sample)
