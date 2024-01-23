@@ -294,8 +294,7 @@ defmodule Module.Types.Descr do
     if MapSet.subset?(@boolset, a) do
       MapSet.difference(a, @boolset)
       |> Enum.sort()
-      |> Enum.map(&literal/1)
-      |> Enum.reduce({:boolean, [], []}, &{:or, [], [&2, &1]})
+      |> Enum.reduce({:boolean, [], []}, &{:or, [], [&2, literal(&1)]})
     else
       Enum.sort(a)
       |> Enum.map(&literal/1)
