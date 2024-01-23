@@ -172,10 +172,16 @@ defmodule Path do
   Converts the path to an absolute one, expanding
   any `.` and `..` components and a leading `~`.
 
+  If a relative path is provided it is expanded relatively to
+  the current working directory.
+
   ## Examples
 
       Path.expand("/foo/bar/../baz")
       #=> "/foo/baz"
+
+      Path.expand("foo/bar/../baz")
+      #=> "$PWD/foo/baz"
 
   """
   @spec expand(t) :: binary
