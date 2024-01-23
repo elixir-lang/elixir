@@ -147,9 +147,7 @@ defmodule Module.Types.Descr do
   end
 
   defp count_top_types(%{} = descr) do
-    descr
-    |> Enum.map(fn {key, val} -> count_top_types(key, val) end)
-    |> Enum.sum()
+    Enum.reduce(descr, 0, fn {key, val}, acc -> acc + count_top_types(key, val) end)
   end
 
   @compile {:inline, count_top_types: 2}
