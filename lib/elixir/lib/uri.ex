@@ -365,9 +365,9 @@ defmodule URI do
   Percent-encodes all characters that require escaping in `string`.
 
   By default, this function is meant to escape the whole URI, and
-  therefore it will escape all characters which are foreign to the
-  URI specification. Reserved characters (such as `:` and `/`) or
-  unreserved (such as letters and numbers) are not escaped.
+  therefore it will only escape characters which are foreign in
+  all parts of a URI. Reserved characters (such as `:` and `/`)
+  or unreserved (such as letters and numbers) are not escaped.
 
   Because different components of a URI require different escaping
   rules, this function also accepts a `predicate` function as an optional
