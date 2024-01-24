@@ -760,7 +760,7 @@ defmodule Mix do
   it executes the code. This means that, by the time Elixir tries to expand
   the `%Decimal{}` struct, the dependency has not been installed yet.
 
-  Luckily this has a straightforward solution, which is move the code to
+  Luckily this has a straightforward solution, which is to move the code
   inside a module:
 
       Mix.install([:decimal])

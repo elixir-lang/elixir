@@ -21,7 +21,7 @@ defmodule Mix.Tasks.Run do
       $ mix run -e "DbUtils.delete_old_records()" -- arg1 arg2 arg3
 
   In both cases, the command-line arguments for the script or expression
-  are available in `System.argv/0`. This mirror the command line interface
+  are available in `System.argv/0`. This mirrors the command line interface
   in the `elixir` executable.
 
   For starting long running systems, one typically passes the `--no-halt`
