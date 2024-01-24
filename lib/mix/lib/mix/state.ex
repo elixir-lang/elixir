@@ -22,7 +22,7 @@ defmodule Mix.State do
     GenServer.call(@name, :builtin_apps, @timeout)
   end
 
-  ## ETS state storage (mutable, not cleared ion tests)
+  ## ETS state storage (mutable, not cleared in tests)
 
   def fetch(key) do
     case :ets.lookup(@name, key) do

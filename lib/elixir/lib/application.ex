@@ -258,8 +258,8 @@ defmodule Application do
       Application.stop(:ex_unit)
       #=> :ok
 
-  Stopping an application without a callback module is defined, but except for
-  some system tracing, it is in practice a no-op.
+  Stopping an application without a callback module defined, is in practice a
+  no-op, except for some system tracing.
 
   Stopping an application with a callback module has three steps:
 
@@ -277,7 +277,7 @@ defmodule Application do
   invoked only after termination of the whole supervision tree.
 
   Shutting down a live system cleanly can be done by calling `System.stop/1`. It
-  will shut down every application in the opposite order they had been started.
+  will shut down every application in the reverse order they were started.
 
   By default, a SIGTERM from the operating system will automatically translate to
   `System.stop/0`. You can also have more explicit control over operating system
