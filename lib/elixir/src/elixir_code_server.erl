@@ -91,11 +91,11 @@ handle_cast({unrequire_files, Files}, Config) ->
   Unrequired = maps:without(Files, Current),
   {noreply, Config#elixir_code_server{required=Unrequired}};
 
-handle_cast({return_compiler_module, Module, Purgeable}, Config) ->
+handle_cast({return_compiler_module, Module, Purged}, Config) ->
   {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
 
   ModPool =
-    case Purgeable of
+    case Purged of
       true -> {Used, [Module | Unused], Counter};
       false -> {[Module | Used], Unused, Counter}
     end,
