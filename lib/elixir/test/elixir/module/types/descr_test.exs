@@ -21,10 +21,10 @@ defmodule Module.Types.DescrTest do
     end
 
     test "atom" do
-      assert union(atom(), atom(:a)) == atom()
-      assert union(atom(:a), atom(:b)) == atom([:a, :b])
-      assert union(atom(:a), negation(atom(:b))) == negation(atom(:b))
-      assert union(negation(atom([:a, :b])), negation(atom([:b, :c]))) == negation(atom(:b))
+      assert union(atom(), atom([:a])) == atom()
+      assert union(atom([:a]), atom([:b])) == atom([:a, :b])
+      assert union(atom([:a]), negation(atom([:b]))) == negation(atom([:b]))
+      assert union(negation(atom([:a, :b])), negation(atom([:b, :c]))) == negation(atom([:b]))
     end
   end
 
@@ -45,9 +45,9 @@ defmodule Module.Types.DescrTest do
     end
 
     test "atom" do
-      assert intersection(atom(), atom(:a)) == atom(:a)
-      assert intersection(atom(:a), atom(:b)) == none()
-      assert intersection(atom(:a), negation(atom(:b))) == atom(:a)
+      assert intersection(atom(), atom([:a])) == atom([:a])
+      assert intersection(atom([:a]), atom([:b])) == none()
+      assert intersection(atom([:a]), negation(atom([:b]))) == atom([:a])
     end
   end
 
@@ -72,8 +72,8 @@ defmodule Module.Types.DescrTest do
     end
 
     test "atom" do
-      assert difference(atom(:a), atom()) == none()
-      assert difference(atom(:a), atom(:b)) == atom(:a)
+      assert difference(atom([:a]), atom()) == none()
+      assert difference(atom([:a]), atom([:b])) == atom([:a])
     end
   end
 
@@ -88,18 +88,15 @@ defmodule Module.Types.DescrTest do
     end
 
     test "negation" do
-      assert negation(integer()) |> to_quoted_string() == "not integer()"
-      assert negation(union(integer(), atom(:a))) |> to_quoted_string() == "not (:a or integer())"
       assert negation(negation(integer())) |> to_quoted_string() == "integer()"
+      assert negation(negation(atom([:foo, :bar]))) |> to_quoted_string() == ":bar or :foo"
     end
 
     test "atom" do
       assert atom() |> to_quoted_string() == "atom()"
-      assert atom(:a) |> to_quoted_string() == ":a"
-      assert negation(atom(:a)) |> to_quoted_string() == "not :a"
+      assert atom([:a]) |> to_quoted_string() == ":a"
       assert atom([:a, :b]) |> to_quoted_string() == ":a or :b"
-      assert negation(atom([:a, :b])) |> to_quoted_string() == "not (:a or :b)"
-      assert difference(atom(), atom(:a)) |> to_quoted_string() == "atom() and not :a"
+      assert difference(atom(), atom([:a])) |> to_quoted_string() == "atom() and not :a"
     end
 
     test "boolean" do

@@ -24,7 +24,7 @@ defmodule Module.Types.Descr do
   @bit_fun 1 <<< 11
   @bit_top (1 <<< 12) - 1
 
-  @atom_top {:negation, MapSet.new()}
+  @atom_top {:negation, :sets.new(version: 2)}
 
   # Guard helpers
 
@@ -37,7 +37,7 @@ defmodule Module.Types.Descr do
   def term(), do: @term
   def none(), do: @none
 
-  def atom(a), do: %{atom: atom_mk(a)}
+  def atom(as), do: %{atom: atom_new(as)}
   def atom(), do: %{atom: @atom_top}
   def binary(), do: %{bitmap: @bit_binary}
   def empty_list(), do: %{bitmap: @bit_empty_list}
@@ -131,28 +131,11 @@ defmodule Module.Types.Descr do
   """
   def to_quoted_string(descr) do
     descr
-    |> to_quoted_with_print_heuristic()
+    |> to_quoted()
     |> Code.Formatter.to_algebra()
     |> Inspect.Algebra.format(98)
     |> IO.iodata_to_binary()
   end
-
-  # Heuristic for when to print a type as `not t`: if the number of top types in `t`
-  # is greater than 6, we print it as `not (negation(t))`
-  # Hence, we print `not integer()` instead of `atom() or float() or tuple() or ...`
-  defp to_quoted_with_print_heuristic(descr) do
-    if count_top_types(descr) > 6,
-      do: {:not, [], [to_quoted(negation(descr))]},
-      else: to_quoted(descr)
-  end
-
-  defp count_top_types(%{} = descr) do
-    Enum.reduce(descr, 0, fn {key, val}, acc -> acc + count_top_types(key, val) end)
-  end
-
-  @compile {:inline, count_top_types: 2}
-  defp count_top_types(:bitmap, val), do: bitmap_count_top_types(val)
-  defp count_top_types(:atom, val), do: atom_count_top_types(val)
 
   ## Iterator helpers
 
@@ -231,81 +214,76 @@ defmodule Module.Types.Descr do
         do: {type, [], []}
   end
 
-  defp bitmap_count_top_types(val), do: Integer.digits(val, 2) |> Enum.sum()
-
   ## Atoms
 
-  # The atom component of a type consists of pairs `{MapSet.t(atom()), boolean()}`.
-  # If the boolean is true, the type represents the union of the atoms in the set.
-  # If the boolean is false, the type represents all the possible atoms, except the ones
-  # in the set.
+  # The atom component of a type consists of pairs `{tag, set}` where `set` is a
+  # set of atoms.
+  # If `tag = :union` the pair represents the union of the atoms in `set`.
+  # Else, if `tag = :negation`, it represents every atom except those in `set`.
   #
   # Example:
-  #   - `{MapSet.new([:a, :b]), true}` represents type `:a or :b`
-  #   - `{MapSet.new([:c, :d]), false}` represents type `atom() \ (:c or :d)
+  #   - `{:union, :sets.from_list([:a, :b])}` represents type `:a or :b`
+  #   - `{:negation, :sets.from_list([:c, :d])}` represents type `atom() \ (:c or :d)
   #
-  # `{MapSet.new([]), false}` is the `atom()` top type, as it is the difference
+  # `{:negation, :sets.new()}` is the `atom()` top type, as it is the difference
   # of `atom()` with an empty list.
 
-  defp atom_mk(a) when is_atom(a), do: {:union, MapSet.new([a])}
-  defp atom_mk(as) when is_list(as), do: {:union, MapSet.new(as)}
+  defp atom_new(as) when is_list(as), do: {:union, :sets.from_list(as, version: 2)}
 
   defp atom_intersection({tag1, s1}, {tag2, s2}) do
     {tag, s} =
       case {tag1, tag2} do
-        {:union, :union} -> {:union, MapSet.intersection(s1, s2)}
-        {:negation, :negation} -> {:negation, MapSet.union(s1, s2)}
-        {:union, :negation} -> {:union, MapSet.difference(s1, s2)}
-        {:negation, :union} -> {:union, MapSet.difference(s2, s1)}
+        {:union, :union} -> {:union, :sets.intersection(s1, s2)}
+        {:negation, :negation} -> {:negation, :sets.union(s1, s2)}
+        {:union, :negation} -> {:union, :sets.subtract(s1, s2)}
+        {:negation, :union} -> {:union, :sets.subtract(s2, s1)}
       end
 
-    if MapSet.size(s) == 0, do: 0, else: {tag, s}
+    if :sets.size(s) == 0, do: 0, else: {tag, s}
   end
 
-  defp atom_union({:union, s1}, {:union, s2}), do: {:union, MapSet.union(s1, s2)}
-  defp atom_union({:negation, s1}, {:negation, s2}), do: {:negation, MapSet.intersection(s1, s2)}
-  defp atom_union({:union, s1}, {:negation, s2}), do: {:negation, MapSet.difference(s2, s1)}
-  defp atom_union({:negation, s1}, {:union, s2}), do: {:negation, MapSet.difference(s1, s2)}
+  defp atom_union({:union, s1}, {:union, s2}), do: {:union, :sets.union(s1, s2)}
+  defp atom_union({:negation, s1}, {:negation, s2}), do: {:negation, :sets.intersection(s1, s2)}
+  defp atom_union({:union, s1}, {:negation, s2}), do: {:negation, :sets.subtract(s2, s1)}
+  defp atom_union({:negation, s1}, {:union, s2}), do: {:negation, :sets.subtract(s1, s2)}
 
   defp atom_difference({tag1, s1}, {tag2, s2}) do
     {tag, s} =
       case {tag1, tag2} do
-        {:union, :union} -> {:union, MapSet.difference(s1, s2)}
-        {:negation, :negation} -> {:union, MapSet.difference(s2, s1)}
-        {:union, :negation} -> {:union, MapSet.intersection(s1, s2)}
-        {:negation, :union} -> {:negation, MapSet.union(s1, s2)}
+        {:union, :union} -> {:union, :sets.subtract(s1, s2)}
+        {:negation, :negation} -> {:union, :sets.subtract(s2, s1)}
+        {:union, :negation} -> {:union, :sets.intersection(s1, s2)}
+        {:negation, :union} -> {:negation, :sets.union(s1, s2)}
       end
 
-    if MapSet.size(s) == 0, do: 0, else: {tag, s}
+    if :sets.size(s) == 0, do: 0, else: {tag, s}
   end
 
   defp literal(lit), do: {:__block__, [], [lit]}
-  @boolset MapSet.new([true, false])
+  @boolset :sets.from_list([true, false], version: 2)
 
-  defp atom_to_quoted({:union, a = %MapSet{}}) do
-    if MapSet.subset?(@boolset, a) do
-      MapSet.difference(a, @boolset)
+  defp atom_to_quoted({:union, a}) do
+    if :sets.is_subset(@boolset, a) do
+      :sets.subtract(a, @boolset)
+      |> :sets.to_list()
       |> Enum.sort()
       |> Enum.reduce({:boolean, [], []}, &{:or, [], [&2, literal(&1)]})
     else
-      Enum.sort(a)
+      :sets.to_list(a)
+      |> Enum.sort()
       |> Enum.map(&literal/1)
       |> Enum.reduce(&{:or, [], [&2, &1]})
     end
     |> List.wrap()
   end
 
-  defp atom_to_quoted({:negation, a = %MapSet{}}) do
-    if MapSet.size(a) == 0 do
+  defp atom_to_quoted({:negation, a}) do
+    if :sets.size(a) == 0 do
       {:atom, [], []}
     else
       atom_to_quoted({:union, a})
       |> Kernel.then(&{:and, [], [{:atom, [], []}, {:not, [], &1}]})
     end
     |> List.wrap()
-  end
-
-  defp atom_count_top_types({tag, a}) do
-    if tag == :difference and MapSet.size(a) == 0, do: 1, else: 0
   end
 end
