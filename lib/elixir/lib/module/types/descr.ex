@@ -18,12 +18,13 @@ defmodule Module.Types.Descr do
   @bit_port 1 <<< 6
   @bit_reference 1 <<< 7
 
-  @atom_top {MapSet.new([]), false}
-  @bit_non_empty_list 1 <<< 9
-  @bit_map 1 <<< 10
-  @bit_tuple 1 <<< 11
-  @bit_fun 1 <<< 12
-  @bit_top (1 <<< 13) - 1
+  @bit_non_empty_list 1 <<< 8
+  @bit_map 1 <<< 9
+  @bit_tuple 1 <<< 10
+  @bit_fun 1 <<< 11
+  @bit_top (1 <<< 12) - 1
+
+  @atom_top {:negation, MapSet.new()}
 
   # Guard helpers
 
@@ -138,7 +139,6 @@ defmodule Module.Types.Descr do
 
   # Heuristic for when to print a type as `not t`: if the number of top types in `t`
   # is greater than 6, we print it as `not (negation(t))`
-  #
   # Hence, we print `not integer()` instead of `atom() or float() or tuple() or ...`
   defp to_quoted_with_print_heuristic(descr) do
     if count_top_types(descr) > 6,
@@ -249,55 +249,46 @@ defmodule Module.Types.Descr do
   # `{MapSet.new([]), false}` is the `atom()` top type, as it is the difference
   # of `atom()` with an empty list.
 
-  defp atom_mk(a) when is_atom(a), do: {MapSet.new([a]), true}
-  defp atom_mk(as) when is_list(as), do: {MapSet.new(as), true}
+  defp atom_mk(a) when is_atom(a), do: {:union, MapSet.new([a])}
+  defp atom_mk(as) when is_list(as), do: {:union, MapSet.new(as)}
 
-  defp atom_intersection({s1, neg1}, {s2, neg2}) do
-    result_set =
-      case {neg1, neg2} do
-        {true, true} -> MapSet.intersection(s1, s2)
-        {false, false} -> MapSet.union(s1, s2)
-        {true, false} -> MapSet.difference(s1, s2)
-        {false, true} -> MapSet.difference(s2, s1)
+  defp atom_intersection({tag1, s1}, {tag2, s2}) do
+    {tag, s} =
+      case {tag1, tag2} do
+        {:union, :union} -> {:union, MapSet.intersection(s1, s2)}
+        {:negation, :negation} -> {:negation, MapSet.union(s1, s2)}
+        {:union, :negation} -> {:union, MapSet.difference(s1, s2)}
+        {:negation, :union} -> {:union, MapSet.difference(s2, s1)}
       end
 
-    if MapSet.size(result_set) == 0 do
-      0
-    else
-      {result_set, neg1 or neg2}
-    end
+    if MapSet.size(s) == 0, do: 0, else: {tag, s}
   end
 
-  defp atom_union({s1, true}, {s2, true}), do: {MapSet.union(s1, s2), true}
-  defp atom_union({s1, false}, {s2, false}), do: {MapSet.intersection(s1, s2), false}
-  defp atom_union({s1, true}, {s2, false}), do: {MapSet.difference(s2, s1), false}
-  defp atom_union({s1, false}, {s2, true}), do: {MapSet.difference(s1, s2), false}
+  defp atom_union({:union, s1}, {:union, s2}), do: {:union, MapSet.union(s1, s2)}
+  defp atom_union({:negation, s1}, {:negation, s2}), do: {:negation, MapSet.intersection(s1, s2)}
+  defp atom_union({:union, s1}, {:negation, s2}), do: {:negation, MapSet.difference(s2, s1)}
+  defp atom_union({:negation, s1}, {:union, s2}), do: {:negation, MapSet.difference(s1, s2)}
 
-  defp atom_difference({s1, neg1}, {s2, neg2}) do
-    result_set =
-      case {neg1, neg2} do
-        {true, true} -> MapSet.difference(s1, s2)
-        {false, false} -> MapSet.difference(s2, s1)
-        {true, false} -> MapSet.intersection(s1, s2)
-        {false, true} -> MapSet.union(s1, s2)
+  defp atom_difference({tag1, s1}, {tag2, s2}) do
+    {tag, s} =
+      case {tag1, tag2} do
+        {:union, :union} -> {:union, MapSet.difference(s1, s2)}
+        {:negation, :negation} -> {:union, MapSet.difference(s2, s1)}
+        {:union, :negation} -> {:union, MapSet.intersection(s1, s2)}
+        {:negation, :union} -> {:negation, MapSet.union(s1, s2)}
       end
 
-    if MapSet.size(result_set) == 0 do
-      0
-    else
-      {result_set, neg1 or not neg2}
-    end
+    if MapSet.size(s) == 0, do: 0, else: {tag, s}
   end
 
   defp literal(lit), do: {:__block__, [], [lit]}
   @boolset MapSet.new([true, false])
 
-  defp atom_to_quoted({a = %MapSet{}, true}) do
+  defp atom_to_quoted({:union, a = %MapSet{}}) do
     if MapSet.subset?(@boolset, a) do
       MapSet.difference(a, @boolset)
       |> Enum.sort()
-      |> Enum.map(&literal/1)
-      |> Enum.reduce({:boolean, [], []}, &{:or, [], [&2, &1]})
+      |> Enum.reduce({:boolean, [], []}, &{:or, [], [&2, literal(&1)]})
     else
       Enum.sort(a)
       |> Enum.map(&literal/1)
@@ -306,17 +297,17 @@ defmodule Module.Types.Descr do
     |> List.wrap()
   end
 
-  defp atom_to_quoted({a = %MapSet{}, false}) do
+  defp atom_to_quoted({:negation, a = %MapSet{}}) do
     if MapSet.size(a) == 0 do
       {:atom, [], []}
     else
-      atom_to_quoted({a, true})
+      atom_to_quoted({:union, a})
       |> Kernel.then(&{:and, [], [{:atom, [], []}, {:not, [], &1}]})
     end
     |> List.wrap()
   end
 
-  defp atom_count_top_types({a, neg}) do
-    if not neg and MapSet.size(a) == 0, do: 1, else: 0
+  defp atom_count_top_types({tag, a}) do
+    if tag == :difference and MapSet.size(a) == 0, do: 1, else: 0
   end
 end
