@@ -224,7 +224,8 @@ defmodule ExUnit.Runner do
       EM.test_finished(config.manager, excluded_or_skipped_test)
     end
 
-    {test_module, invalid_tests, finished_tests} = run_module(config, test_module, to_run_tests)
+    {test_module, invalid_tests, finished_tests} =
+      run_tests_under_module(config, test_module, to_run_tests)
 
     pending_tests =
       case process_max_failures(config, test_module) do
@@ -271,11 +272,11 @@ defmodule ExUnit.Runner do
     test_ids == nil or MapSet.member?(test_ids, {test.module, test.name})
   end
 
-  defp run_module(_config, test_module, []) do
+  defp run_tests_under_module(_config, test_module, []) do
     {test_module, [], []}
   end
 
-  defp run_module(config, test_module, tests) do
+  defp run_tests_under_module(config, test_module, tests) do
     {module_pid, module_ref} = run_setup_all(test_module, self())
 
     {test_module, invalid_tests, finished_tests} =
