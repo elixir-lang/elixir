@@ -111,7 +111,7 @@ defmodule Module.Types.Descr do
   @doc """
   Compute the negation of a type.
   """
-  def negation(%{} = descr), do: difference(@term, descr)
+  def negation(%{} = descr), do: difference(term(), descr)
 
   @doc """
   Converts a descr to its quoted representation.
