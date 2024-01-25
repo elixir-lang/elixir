@@ -191,7 +191,7 @@ It also allows composition with existing types.
 For example:
 
 ```elixir
-type option :: {:my_option, String.t()} | GenServer.option()
+@type option :: {:my_option, String.t()} | GenServer.option()
 
 @spec start_link([option()]) :: GenServer.on_start()
 def start_link(opts) do
