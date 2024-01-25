@@ -404,7 +404,7 @@ defmodule Task.Supervisor do
     build_stream(supervisor, :nolink, enumerable, {module, function, args}, options)
   end
 
-  @doc """
+  @doc ~S"""
   Returns a stream that runs the given `function` concurrently on each
   element in `enumerable`.
 
@@ -414,6 +414,34 @@ defmodule Task.Supervisor do
   to `async_nolink/3`.
 
   See `async_stream/6` for discussion and examples.
+
+  ## Error handling and cleanup
+
+  Even if tasks are not linked to the caller, there is no risk of leaving dangling tasks
+  running after the stream halts.
+
+  Consider the following example:
+
+      Task.Supervisor.async_stream_nolink(MySupervisor, collection, fun, on_timeout: :kill_task, ordered: false)
+      |> Enum.each(fn
+        {:ok, _} -> :ok
+        {:exit, reason} -> raise "Task exited: #{Exception.format_exit(reason)}"
+      end)
+
+  If one task raises or times out, the second clause gets called, an exception is raised,
+  the stream halts and all ongoing tasks will be shut down.
+
+  Here is another example:
+
+      Task.Supervisor.async_stream_nolink(MySupervisor, collection, fun, on_timeout: :kill_task, ordered: false)
+      |> Stream.filter(&match?({:ok, _}, &1))
+      |> Enum.take(3)
+
+  This will return the 3 first tasks to succeed, ignoring timeouts and errors, and shutdown
+  every ongoing task.
+
+  Just running the stream with `Stream.run/1` on the other hand would ignore errors and process the whole stream.
+
   """
   @doc since: "1.4.0"
   @spec async_stream_nolink(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
