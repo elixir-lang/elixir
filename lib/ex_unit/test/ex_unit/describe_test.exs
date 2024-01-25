@@ -44,7 +44,7 @@ defmodule ExUnit.DescribeTest do
   describe "failures" do
     test "when using setup_all inside describe" do
       assert_raise RuntimeError, ~r"cannot invoke setup_all/1-2 inside describe", fn ->
-        defmodule Sample do
+        defmodule Sample1 do
           use ExUnit.Case
 
           describe "hello" do
@@ -60,7 +60,7 @@ defmodule ExUnit.DescribeTest do
       regex = ~r{cannot call "describe" inside another "describe"}
 
       assert_raise RuntimeError, regex, fn ->
-        defmodule Sample do
+        defmodule Sample2 do
           use ExUnit.Case
 
           describe "hello" do
@@ -73,7 +73,7 @@ defmodule ExUnit.DescribeTest do
 
     test "when using non-string describe name" do
       assert_raise ArgumentError, ~r"describe name must be a string, got: :not_allowed", fn ->
-        defmodule Sample do
+        defmodule Sample3 do
           use ExUnit.Case
 
           describe :not_allowed do
