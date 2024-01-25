@@ -172,8 +172,18 @@ defmodule ExUnit.Runner do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module.__ex_unit__()) end)
-      spawn_modules(config, modules, Map.put(running, ref, pid))
+      pids_by_ref = spawn_tests_under_module(config, module)
+      spawn_modules(config, modules, Map.merge(running, pids_by_ref))
+    end
+  end
+
+  defp spawn_tests_under_module(config, module) do
+    test_module = module.__ex_unit__()
+
+    for test <- test_module.tests, into: %{} do
+      {pid, ref} = spawn_monitor(fn -> run_module(config, %{test_module | tests: [test]}) end)
+
+      {ref, pid}
     end
   end
 
