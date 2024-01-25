@@ -119,7 +119,7 @@ defmodule ExUnit.Runner do
 
         # Run all sync modules directly
         for module <- sync_modules do
-          running = spawn_modules(config, [module], %{})
+          running = run_modules(config, [module], %{})
           running != %{} and wait_until_available(config, running)
         end
 
@@ -148,6 +148,19 @@ defmodule ExUnit.Runner do
           {:DOWN, ref, _, _, _} when is_map_key(running, ref) ->
             Map.delete(running, ref)
         end
+    end
+  end
+
+  defp run_modules(_config, [], running) do
+    running
+  end
+
+  defp run_modules(config, [module | modules], running) do
+    if max_failures_reached?(config) do
+      running
+    else
+      {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
+      run_modules(config, modules, Map.put(running, ref, pid))
     end
   end
 
