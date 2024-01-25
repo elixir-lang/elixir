@@ -159,7 +159,7 @@ defmodule ExUnit.Runner do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
+      {pid, ref} = spawn_monitor(fn -> run_module(config, module.__ex_unit__()) end)
       run_modules(config, modules, Map.put(running, ref, pid))
     end
   end
@@ -172,7 +172,7 @@ defmodule ExUnit.Runner do
     if max_failures_reached?(config) do
       running
     else
-      {pid, ref} = spawn_monitor(fn -> run_module(config, module) end)
+      {pid, ref} = spawn_monitor(fn -> run_module(config, module.__ex_unit__()) end)
       spawn_modules(config, modules, Map.put(running, ref, pid))
     end
   end
@@ -224,8 +224,7 @@ defmodule ExUnit.Runner do
 
   ## Running modules
 
-  defp run_module(config, module) do
-    test_module = module.__ex_unit__()
+  defp run_module(config, test_module) do
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should be run or skipped
