@@ -10,7 +10,7 @@ defmodule Module.Types.Expr do
 
   # :atom
   def of_expr(atom, _stack, context) when is_atom(atom) do
-    {:ok, atom(atom), context}
+    {:ok, atom([atom]), context}
   end
 
   # 12
@@ -140,7 +140,7 @@ defmodule Module.Types.Expr do
 
   # ()
   def of_expr({:__block__, _meta, []}, _stack, context) do
-    {:ok, atom(nil), context}
+    {:ok, atom([nil]), context}
   end
 
   # (expr; expr)

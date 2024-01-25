@@ -172,7 +172,7 @@ defmodule Module.Types.Pattern do
 
   # :atom
   defp of_shared(atom, _expected_expr, _stack, context, _fun) when is_atom(atom) do
-    {:ok, atom(atom), context}
+    {:ok, atom([atom]), context}
   end
 
   # 12

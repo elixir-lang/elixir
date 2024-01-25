@@ -7,9 +7,9 @@ defmodule Module.Types.ExprTest do
   import Module.Types.Descr
 
   test "literal" do
-    assert typecheck!(true) == atom(true)
-    assert typecheck!(false) == atom(false)
-    assert typecheck!(:foo) == atom(:foo)
+    assert typecheck!(true) == atom([true])
+    assert typecheck!(false) == atom([false])
+    assert typecheck!(:foo) == atom([:foo])
     assert typecheck!(0) == integer()
     assert typecheck!(0.0) == float()
     assert typecheck!("foo") == binary()
