@@ -51,7 +51,8 @@ defmodule Module.Types.Descr do
   def reference(), do: %{bitmap: @bit_reference}
   def tuple(), do: %{bitmap: @bit_tuple}
 
-  def boolean(), do: atom([true, false])
+  @boolset :sets.from_list([true, false], version: 2)
+  def boolean(), do: %{atom: {:union, @boolset}}
 
   ## Set operations
 
@@ -260,7 +261,6 @@ defmodule Module.Types.Descr do
   end
 
   defp literal(lit), do: {:__block__, [], [lit]}
-  @boolset :sets.from_list([true, false], version: 2)
 
   defp atom_to_quoted({:union, a}) do
     if :sets.is_subset(@boolset, a) do
