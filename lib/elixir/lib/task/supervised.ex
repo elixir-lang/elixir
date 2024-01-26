@@ -189,19 +189,45 @@ defmodule Task.Supervised do
 
   ## Stream
 
-  def stream(enumerable, acc, reducer, callers, mfa, options, spawn) do
-    next = &Enumerable.reduce(enumerable, &1, fn x, acc -> {:suspend, [x | acc]} end)
-    max_concurrency = Keyword.get(options, :max_concurrency, System.schedulers_online())
+  def validate_stream_options!(options) do
+    options =
+      Keyword.validate!(options,
+        max_concurrency: System.schedulers_online(),
+        on_timeout: :exit,
+        timeout: 5000,
+        ordered: true,
+        zip_input_on_exit: false,
+        shutdown: 5000
+      )
+
+    max_concurrency = options[:max_concurrency]
+    timeout = options[:timeout]
+    shutdown = options[:shutdown]
 
     unless is_integer(max_concurrency) and max_concurrency > 0 do
       raise ArgumentError, ":max_concurrency must be an integer greater than zero"
     end
 
-    ordered? = Keyword.get(options, :ordered, true)
-    timeout = Keyword.get(options, :timeout, 5000)
-    on_timeout = Keyword.get(options, :on_timeout, :exit)
-    zip_input_on_exit? = Keyword.get(options, :zip_input_on_exit, false)
+    unless options[:on_timeout] in [:exit, :kill_task] do
+      raise ArgumentError, ":on_timeout must be either :exit or :kill_task"
+    end
+
+    unless (is_integer(timeout) and timeout >= 0) or timeout == :infinity do
+      raise ArgumentError, ":timeout must be either a positive integer or :infinity"
+    end
+
+    unless (is_integer(shutdown) and shutdown >= 0) or shutdown == :brutal_kill do
+      raise ArgumentError, ":shutdown must be either a positive integer or :brutal_kill"
+    end
+
+    options
+  end
+
+  def stream(enumerable, acc, reducer, callers, mfa, options, spawn) do
+    next = &Enumerable.reduce(enumerable, &1, fn x, acc -> {:suspend, [x | acc]} end)
     parent = self()
+
+    timeout = options[:timeout]
 
     {:trap_exit, trap_exit?} = Process.info(self(), :trap_exit)
 
@@ -225,17 +251,17 @@ defmodule Task.Supervised do
       reducer: reducer,
       monitor_pid: monitor_pid,
       monitor_ref: monitor_ref,
-      ordered: ordered?,
-      timeout: timeout,
-      on_timeout: on_timeout,
-      zip_input_on_exit: zip_input_on_exit?,
+      ordered: options[:ordered],
+      timeout: options[:timeout],
+      on_timeout: options[:on_timeout],
+      zip_input_on_exit: options[:zip_input_on_exit],
       callers: callers,
       mfa: mfa
     }
 
     stream_reduce(
       acc,
-      max_concurrency,
+      options[:max_concurrency],
       _spawned = 0,
       _delivered = 0,
       _waiting = %{},
