@@ -1214,6 +1214,7 @@ defmodule Code do
   It returns the AST if it succeeds,
   raises an exception otherwise. The exception is a `TokenMissingError`
   in case a token is missing (usually because the expression is incomplete),
+  `MismatchedDelimiterError` (in case of mismatched opening and closing delimiters) and
   `SyntaxError` otherwise.
 
   Check `string_to_quoted/2` for options information.
