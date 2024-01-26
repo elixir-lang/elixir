@@ -428,8 +428,12 @@ defmodule Task.Supervisor do
         {:exit, reason} -> raise "Task exited: #{Exception.format_exit(reason)}"
       end)
 
-  If one task raises or times out, the second clause gets called, an exception is raised,
-  the stream halts and all ongoing tasks will be shut down.
+  If one task raises or times out:
+  
+    1. the second clause gets called,
+    2. an exception is raised,
+    3. the stream halts,
+    4. and all ongoing tasks will be shut down
 
   Here is another example:
 
@@ -437,7 +441,7 @@ defmodule Task.Supervisor do
       |> Stream.filter(&match?({:ok, _}, &1))
       |> Enum.take(3)
 
-  This will return the 3 first tasks to succeed, ignoring timeouts and errors, and shutdown
+  This will return the three first tasks to succeed, ignoring timeouts and errors, and shut down
   every ongoing task.
 
   Just running the stream with `Stream.run/1` on the other hand would ignore errors and process the whole stream.
