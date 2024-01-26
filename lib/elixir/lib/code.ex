@@ -2032,7 +2032,7 @@ defmodule Code do
              :module_not_found
              | :chunk_not_found
              | {:invalid_chunk, binary}
-             | :beam_lib.chnk_rsn()}
+             | :invalid_beam}
         when annotation: :erl_anno.anno(),
              beam_language: :elixir | :erlang | atom(),
              doc_content: %{optional(binary) => binary} | :none | :hidden,
@@ -2104,8 +2104,8 @@ defmodule Code do
       {:error, :beam_lib, {:file_error, _, :enoent}} ->
         {:error, :module_not_found}
 
-      {:error, :beam_lib, reason} ->
-        {:error, reason}
+      {:error, :beam_lib, _} ->
+        {:error, :invalid_beam}
     end
   end
 
