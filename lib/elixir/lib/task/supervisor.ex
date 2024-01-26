@@ -429,11 +429,11 @@ defmodule Task.Supervisor do
       end)
 
   If one task raises or times out:
-  
-    1. the second clause gets called,
-    2. an exception is raised,
-    3. the stream halts,
-    4. and all ongoing tasks will be shut down
+
+    1. the second clause gets called
+    2. an exception is raised
+    3. the stream halts
+    4. all ongoing tasks will be shut down
 
   Here is another example:
 
