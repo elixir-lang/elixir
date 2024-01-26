@@ -537,7 +537,7 @@ defmodule Mix.Tasks.DepsTest do
 
   test "fails on diverged dependencies on get/update" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(ConflictDepsApp)
+      Mix.Project.push(ConflictDepsApp, "mix.exs")
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Loadpaths.run([])
@@ -608,11 +608,11 @@ defmodule Mix.Tasks.DepsTest do
     end)
   end
 
-  @overriding_msg "  the dependency git_repo in mix.exs is overriding"
+  @overriding_msg "  the dependency git_repo in custom/deps_repo/mix.exs is overriding"
 
   test "fails on diverged dependencies even when optional" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(ConvergedDepsApp)
+      Mix.Project.push(ConvergedDepsApp, "custom/deps_repo/mix.exs")
 
       File.write!("custom/deps_repo/mix.exs", """
       defmodule DepsRepo do
@@ -700,15 +700,15 @@ defmodule Mix.Tasks.DepsTest do
 
   test "converged dependencies errors if not overriding" do
     in_fixture("deps_status", fn ->
-      Mix.Project.push(NonOverriddenDepsApp)
+      Mix.Project.push(NonOverriddenDepsApp, "custom_mix.exs")
 
       assert_raise Mix.Error, fn ->
         Mix.Tasks.Deps.Loadpaths.run([])
       end
 
       receive do
-        {:mix_shell, :error, ["  the dependency git_repo in mix.exs" <> _ = msg]} ->
-          assert msg =~ "In mix.exs:"
+        {:mix_shell, :error, ["  the dependency git_repo in custom_mix.exs" <> _ = msg]} ->
+          assert msg =~ "In custom_mix.exs:"
 
           assert msg =~
                    "{:git_repo, \"0.1.0\", [env: :prod, git: #{inspect(fixture_path("git_repo"))}]}"

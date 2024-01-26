@@ -358,7 +358,7 @@ defmodule Mix.Dep.Loader do
   end
 
   defp mix_children(config, locked?, opts) do
-    from = Path.absname("mix.exs")
+    from = Mix.Project.project_file()
 
     (config[:deps] || [])
     |> Enum.map(&to_dep(&1, from, _manager = nil, locked?))
