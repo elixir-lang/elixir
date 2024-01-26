@@ -2028,7 +2028,11 @@ defmodule Code do
   @spec fetch_docs(module | String.t()) ::
           {:docs_v1, annotation, beam_language, format, module_doc :: doc_content, metadata,
            docs :: [doc_element]}
-          | {:error, :module_not_found | :chunk_not_found | {:invalid_chunk, binary}}
+          | {:error,
+             :module_not_found
+             | :chunk_not_found
+             | {:invalid_chunk, binary}
+             | :beam_lib.chnk_rsn()}
         when annotation: :erl_anno.anno(),
              beam_language: :elixir | :erlang | atom(),
              doc_content: %{optional(binary) => binary} | :none | :hidden,
@@ -2099,6 +2103,9 @@ defmodule Code do
 
       {:error, :beam_lib, {:file_error, _, :enoent}} ->
         {:error, :module_not_found}
+
+      {:error, :beam_lib, reason} ->
+        {:error, reason}
     end
   end
 
