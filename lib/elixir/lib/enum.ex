@@ -261,7 +261,7 @@ defmodule Enum do
   traversed as if it was an enumerable.
 
   For a general overview of all functions in the `Enum` module, see
-  [the `Enum` cheatsheet](enum-cheat.html).
+  [the `Enum` cheatsheet](enum-cheat.cheatmd).
 
   The functions in this module work in linear time. This means that, the
   time it takes to perform an operation grows at the same rate as the length

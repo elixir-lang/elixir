@@ -26,7 +26,7 @@ defmodule Unless do
 end
 ```
 
-The function receives the arguments and passes them to `if/2`. However, as we learned in the [previous guide](quote-and-unquote.html), the macro will receive quoted expressions, inject them into the quote, and finally return another quoted expression.
+The function receives the arguments and passes them to `if/2`. However, as we learned in the [previous guide](quote-and-unquote.md), the macro will receive quoted expressions, inject them into the quote, and finally return another quoted expression.
 
 Let's start `iex` with the module above:
 

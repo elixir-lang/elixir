@@ -2,6 +2,7 @@
 canonical = System.fetch_env!("CANONICAL")
 
 [
+  assets: "lib/elixir/pages/images",
   extras: [
     "lib/elixir/pages/getting-started/introduction.md",
     "lib/elixir/pages/getting-started/basic-types.md",

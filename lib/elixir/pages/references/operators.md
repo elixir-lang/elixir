@@ -64,7 +64,7 @@ Finally, these operators appear in the precedence table above but are only meani
   * `=>` - see [`%{}`](`%{}/1`)
   * `when` - see [Guards](patterns-and-guards.md#guards)
   * `<-` - see [`for`](`for/1`) and [`with`](`with/1`)
-  * `\\` - see [Default arguments](Kernel.html#def/2-default-arguments)
+  * `\\` - see [Default arguments](`Kernel#def/2-default-arguments`)
 
 ## Comparison operators
 
