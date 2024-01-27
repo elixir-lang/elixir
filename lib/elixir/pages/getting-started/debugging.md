@@ -174,7 +174,7 @@ We have just scratched the surface of what the Erlang VM has to offer, for examp
 
   * [Microstate accounting](http://www.erlang.org/doc/man/msacc.html) measures how much time the runtime spends in several low-level tasks in a short time interval
 
-  * Mix ships with many tasks under the `profile` namespace, such as `mix cprof` and `mix fprof`
+  * Mix ships with many tasks under the `profile` namespace, such as `mix profile.cprof` and `mix profile.fprof`
 
   * For more advanced use cases, we recommend the excellent [Erlang in Anger](https://www.erlang-in-anger.com/), which is available as a free ebook
 
