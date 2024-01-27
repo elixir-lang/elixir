@@ -274,7 +274,7 @@ Not all expressions are allowed in guard clauses, but only a handful of them. Th
 
 ### List of allowed functions and operators
 
-You can find the built-in list of guards [in the `Kernel` module](Kernel.html#guards). Here is an overview:
+You can find the built-in list of guards [in the `Kernel` module](`Kernel#guards`). Here is an overview:
 
   * comparison operators ([`==`](`==/2`), [`!=`](`!=/2`), [`===`](`===/2`), [`!==`](`!==/2`),
     [`<`](`</2`), [`<=`](`<=/2`), [`>`](`>/2`), [`>=`](`>=/2`))

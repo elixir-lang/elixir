@@ -13,7 +13,7 @@ iex> Enum.map(%{1 => 2, 3 => 4}, fn {k, v} -> k * v end)
 [2, 12]
 ```
 
-The `Enum` module provides a huge range of functions to transform, sort, group, filter and retrieve items from enumerables. It is one of the modules developers use frequently in their Elixir code. For a general overview of all functions in the `Enum` module, see [the `Enum` cheatsheet](enum-cheat.html).
+The `Enum` module provides a huge range of functions to transform, sort, group, filter and retrieve items from enumerables. It is one of the modules developers use frequently in their Elixir code. For a general overview of all functions in the `Enum` module, see [the `Enum` cheatsheet](enum-cheat.cheatmd).
 
 Elixir also provides ranges (see `Range`), which are also enumerable:
 
