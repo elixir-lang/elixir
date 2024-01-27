@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Profile.Fprof do
   @moduledoc """
   Profiles the given file or expression using Erlang's `fprof` tool.
 
-  `fprof` can be useful when you want to discover the bottlenecks of a
+  [`:fprof`](`:fprof`) can be useful when you want to discover the bottlenecks of a
   sequential code.
 
   Before running the code, it invokes the `app.start` task which compiles

@@ -6,7 +6,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   @moduledoc """
   Profiles the given file or expression using Erlang's `eprof` tool.
 
-  `:eprof` provides time information of each function call and can be useful
+  [`:eprof`](`:eprof`) provides time information of each function call and can be useful
   when you want to discover the bottlenecks related to this.
 
   Before running the code, it invokes the `app.start` task which compiles
@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Profile.Eprof do
   some performance impact on the execution, but the impact is considerably lower than
   `Mix.Tasks.Profile.Fprof`. If you have a large system try to profile a limited
   scenario or focus on the main modules or processes. Another alternative is to use
-  `Mix.Tasks.Profile.Cprof` that uses `:cprof` and has a low performance degradation effect.
+  `Mix.Tasks.Profile.Cprof` that uses [`:cprof`](`:cprof`) and has a low performance degradation effect.
   """
 
   @switches [
