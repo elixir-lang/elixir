@@ -88,8 +88,7 @@ defmodule ExUnit.SupervisedTest do
     fun = fn -> send(test_pid, {:callers, Process.get(:"$callers")}) end
     {:ok, _pid} = start_supervised({Task, fun})
 
-    assert_received {:callers, callers}
-
+    assert_receive {:callers, callers}
     assert List.last(callers) == test_pid
   end
 
@@ -98,8 +97,7 @@ defmodule ExUnit.SupervisedTest do
     fun = fn -> send(test_pid, {:ancestors, Process.get(:"$ancestors")}) end
     {:ok, _pid} = start_supervised({Task, fun})
 
-    assert_received {:ancestors, ancestors}
-
+    assert_receive {:ancestors, ancestors}
     assert List.last(ancestors) == test_pid
   end
 
