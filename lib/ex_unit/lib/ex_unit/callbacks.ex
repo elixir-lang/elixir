@@ -520,6 +520,13 @@ defmodule ExUnit.Callbacks do
   See the `Supervisor` module for a discussion on child specifications
   and the available specification keys.
 
+  The started process is not linked to the test process and a crash will
+  not necessarily fail the test. To start and link a process to guarantee
+  that any crash would also fail the test use `start_link_supervised!/2`.
+
+  This function returns `{:ok, pid}` in case of success, otherwise it
+  returns `{:error, reason}`.
+
   The advantage of starting a process under the test supervisor is that
   it is guaranteed to exit before the next test starts. Therefore, you
   don't need to remove the process at the end of your tests via
@@ -528,12 +535,15 @@ defmodule ExUnit.Callbacks do
   test, as simply shutting down the process would cause it to be restarted
   according to its `:restart` value.
 
-  The started process is not linked to the test process and a crash will
-  not necessarily fail the test. To start and link a process to guarantee
-  that any crash would also fail the test use `start_link_supervised!/2`.
-
-  This function returns `{:ok, pid}` in case of success, otherwise it
-  returns `{:error, reason}`.
+  Another advantage is that the test process will act as both an ancestor
+  as well as a caller to the supervised processes. When a process is started
+  under a supervision tree, it typically populates the `$ancestors` key in
+  its process dictionary with all of its ancestors, which will include the test
+  process. Additionally, `start_supervised/2` will also store the test process
+  in the `$callers` key of the started process, allowing tools that perform
+  either ancestor or caller tracking to reach the test process. You can learn 
+  more about these keys in
+  [the `Task` module](`Task#module-ancestor-and-caller-tracking`).
   """
   @doc since: "1.5.0"
   @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
