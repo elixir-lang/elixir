@@ -536,13 +536,14 @@ defmodule ExUnit.Callbacks do
   according to its `:restart` value.
 
   Another advantage is that the test process will act as both an ancestor
-  as well as a caller to supervised processes, which can be useful for certain
-  usecases, which need to relate some functionality to the test starting the
-  process. `$ancestors` is populated as expected given the supervisor is
-  started by the test process. Populating `$callers` doesn't happen by default
-  when starting a process as a child of a supervisor, but happens as part of
-  `start_supervised/2` out of convenience.
-
+  as well as a caller to the supervised processes. When a process is started
+  under a supervision tree, it typically populates the `$ancestors` key in
+  its process dictionary with all of its ancestors, which will include the test
+  process. Additionally, `start_supervised/2` will also store the test process
+  in the `$callers` key of the started process, allowing tools that perform
+  either ancestor or caller tracking to reach the test process. You can learn 
+  more about these keys in
+  [the `Task` module](`Task#module-ancestor-and-caller-tracking`).
   """
   @doc since: "1.5.0"
   @spec start_supervised(Supervisor.child_spec() | module | {module, term}, keyword) ::
