@@ -538,9 +538,9 @@ defmodule ExUnit.Callbacks do
   Another advantage is that the test process will act as both an ancestor
   as well as a caller to supervised processes, which can be useful for certain
   usecases, which need to relate some functionality to the test starting the
-  process. Populating `$ancestors` works as expected given the supervisor is
-  started by the test process. `$callers` doesn't happen by default when
-  starting a process as a child of a supervisor, but happens as part of
+  process. `$ancestors` is populated as expected given the supervisor is
+  started by the test process. Populating `$callers` doesn't happen by default
+  when starting a process as a child of a supervisor, but happens as part of
   `start_supervised/2` out of convenience.
 
   """
