@@ -592,10 +592,10 @@ defmodule Task.Supervisor do
   end
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
-    options = Task.Supervised.validate_stream_options!(options)
+    options = Task.Supervised.validate_stream_options(options)
 
     fn acc, acc_fun ->
-      shutdown = options[:shutdown]
+      shutdown = options.shutdown
       owner = get_owner(self())
 
       Task.Supervised.stream(enumerable, acc, acc_fun, get_callers(self()), fun, options, fn ->

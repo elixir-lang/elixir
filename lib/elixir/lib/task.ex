@@ -717,7 +717,7 @@ defmodule Task do
   end
 
   defp build_stream(enumerable, fun, options) do
-    options = Task.Supervised.validate_stream_options!(options)
+    options = Task.Supervised.validate_stream_options(options)
 
     fn acc, acc_fun ->
       owner = get_owner(self())

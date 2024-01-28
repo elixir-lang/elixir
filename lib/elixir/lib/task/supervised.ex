@@ -189,26 +189,19 @@ defmodule Task.Supervised do
 
   ## Stream
 
-  def validate_stream_options!(options) do
-    options =
-      Keyword.validate!(options,
-        max_concurrency: System.schedulers_online(),
-        on_timeout: :exit,
-        timeout: 5000,
-        ordered: true,
-        zip_input_on_exit: false,
-        shutdown: 5000
-      )
-
-    max_concurrency = options[:max_concurrency]
-    timeout = options[:timeout]
-    shutdown = options[:shutdown]
+  def validate_stream_options(options) do
+    max_concurrency = Keyword.get_lazy(options, :max_concurrency, &System.schedulers_online/0)
+    on_timeout = Keyword.get(options, :on_timeout, :exit)
+    timeout = Keyword.get(options, :timeout, 5000)
+    ordered = Keyword.get(options, :ordered, true)
+    zip_input_on_exit = Keyword.get(options, :zip_input_on_exit, false)
+    shutdown = Keyword.get(options, :shutdown, 5000)
 
     unless is_integer(max_concurrency) and max_concurrency > 0 do
       raise ArgumentError, ":max_concurrency must be an integer greater than zero"
     end
 
-    unless options[:on_timeout] in [:exit, :kill_task] do
+    unless on_timeout in [:exit, :kill_task] do
       raise ArgumentError, ":on_timeout must be either :exit or :kill_task"
     end
 
@@ -220,14 +213,19 @@ defmodule Task.Supervised do
       raise ArgumentError, ":shutdown must be either a positive integer or :brutal_kill"
     end
 
-    options
+    %{
+      max_concurrency: max_concurrency,
+      on_timeout: on_timeout,
+      timeout: timeout,
+      ordered: ordered,
+      zip_input_on_exit: zip_input_on_exit,
+      shutdown: shutdown
+    }
   end
 
-  def stream(enumerable, acc, reducer, callers, mfa, options, spawn) do
+  def stream(enumerable, acc, reducer, callers, mfa, options, spawn) when is_map(options) do
     next = &Enumerable.reduce(enumerable, &1, fn x, acc -> {:suspend, [x | acc]} end)
     parent = self()
-
-    timeout = options[:timeout]
 
     {:trap_exit, trap_exit?} = Process.info(self(), :trap_exit)
 
@@ -238,7 +236,7 @@ defmodule Task.Supervised do
 
     {monitor_pid, monitor_ref} =
       Process.spawn(
-        fn -> stream_monitor(parent, spawn, trap_exit?, timeout) end,
+        fn -> stream_monitor(parent, spawn, trap_exit?, options.timeout) end,
         spawn_opts
       )
 
@@ -247,21 +245,21 @@ defmodule Task.Supervised do
     # about our reference to it.
     send(monitor_pid, {parent, monitor_ref})
 
-    config = %{
-      reducer: reducer,
-      monitor_pid: monitor_pid,
-      monitor_ref: monitor_ref,
-      ordered: options[:ordered],
-      timeout: options[:timeout],
-      on_timeout: options[:on_timeout],
-      zip_input_on_exit: options[:zip_input_on_exit],
-      callers: callers,
-      mfa: mfa
-    }
+    config =
+      Map.merge(
+        options,
+        %{
+          reducer: reducer,
+          monitor_pid: monitor_pid,
+          monitor_ref: monitor_ref,
+          callers: callers,
+          mfa: mfa
+        }
+      )
 
     stream_reduce(
       acc,
-      options[:max_concurrency],
+      options.max_concurrency,
       _spawned = 0,
       _delivered = 0,
       _waiting = %{},
