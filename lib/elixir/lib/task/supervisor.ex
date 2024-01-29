@@ -77,6 +77,10 @@ defmodule Task.Supervisor do
           DynamicSupervisor.option()
           | DynamicSupervisor.init_option()
 
+  @typedoc "Options given to `async_stream` and `async_stream_nolink` functions"
+  @typedoc since: "1.17.0"
+  @type async_stream_option :: Task.async_stream_option() | {:shutdown, Supervisor.shutdown()}
+
   @doc false
   def child_spec(opts) when is_list(opts) do
     id =
@@ -356,8 +360,14 @@ defmodule Task.Supervisor do
 
   """
   @doc since: "1.4.0"
-  @spec async_stream(Supervisor.supervisor(), Enumerable.t(), module, atom, [term], keyword) ::
-          Enumerable.t()
+  @spec async_stream(
+          Supervisor.supervisor(),
+          Enumerable.t(),
+          module,
+          atom,
+          [term],
+          [async_stream_option]
+        ) :: Enumerable.t()
   def async_stream(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
     build_stream(supervisor, :link, enumerable, {module, function, args}, options)
@@ -374,8 +384,12 @@ defmodule Task.Supervisor do
   See `async_stream/6` for discussion, options, and examples.
   """
   @doc since: "1.4.0"
-  @spec async_stream(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
-          Enumerable.t()
+  @spec async_stream(
+          Supervisor.supervisor(),
+          Enumerable.t(),
+          (term -> term),
+          [async_stream_option]
+        ) :: Enumerable.t()
   def async_stream(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :link, enumerable, fun, options)
   end
@@ -397,7 +411,7 @@ defmodule Task.Supervisor do
           module,
           atom,
           [term],
-          keyword
+          [async_stream_option]
         ) :: Enumerable.t()
   def async_stream_nolink(supervisor, enumerable, module, function, args, options \\ [])
       when is_atom(module) and is_atom(function) and is_list(args) do
@@ -448,8 +462,12 @@ defmodule Task.Supervisor do
 
   """
   @doc since: "1.4.0"
-  @spec async_stream_nolink(Supervisor.supervisor(), Enumerable.t(), (term -> term), keyword) ::
-          Enumerable.t()
+  @spec async_stream_nolink(
+          Supervisor.supervisor(),
+          Enumerable.t(),
+          (term -> term),
+          [async_stream_option]
+        ) :: Enumerable.t()
   def async_stream_nolink(supervisor, enumerable, fun, options \\ []) when is_function(fun, 1) do
     build_stream(supervisor, :nolink, enumerable, fun, options)
   end
