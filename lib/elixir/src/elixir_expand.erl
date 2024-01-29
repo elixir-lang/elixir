@@ -1314,7 +1314,7 @@ format_error({invalid_quoted_expr, Expr}) ->
 format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
   Message =
     "cannot find or invoke local ~ts/~B inside ~ts. "
-    "Only macros can be invoked in a ~ts and they must be defined before their invocation. Called as: ~ts",
+    "Only macros can be invoked in ~ts and they must be defined before their invocation. Called as: ~ts",
   io_lib:format(Message, [Name, length(Args), Context, Context, 'Elixir.Macro':to_string(Call)]);
 format_error({invalid_pid_in_function, Pid, {Name, Arity}}) ->
   io_lib:format("cannot compile PID ~ts inside quoted expression for function ~ts/~B",
