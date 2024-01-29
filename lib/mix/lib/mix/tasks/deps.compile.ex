@@ -207,7 +207,7 @@ defmodule Mix.Tasks.Deps.Compile do
       {"TERM", "dumb"}
     ]
 
-    cmd = "#{rebar_cmd(dep)} bare compile --paths #{lib_path}"
+    cmd = "#{escape_path(rebar_cmd(dep))} bare compile --paths #{escape_path(lib_path)}"
     do_command(dep, config, cmd, false, env)
 
     # Check if we have any new symlinks after compilation
@@ -218,6 +218,11 @@ defmodule Mix.Tasks.Deps.Compile do
 
     Code.prepend_path(Path.join(build_path, "ebin"), cache: true)
     true
+  end
+
+  defp escape_path(path) do
+    escape = if match?({:win32, _}, :os.type()), do: "^ ", else: "\\ "
+    String.replace(path, " ", escape)
   end
 
   defp rebar_config(dep) do
