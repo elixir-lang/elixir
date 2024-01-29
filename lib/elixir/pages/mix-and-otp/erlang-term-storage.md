@@ -266,6 +266,6 @@ Our tests should now (always) pass!
 
 This concludes our optimization chapter. We have used ETS as a cache mechanism where reads can happen from any processes but writes are still serialized through a single process. More importantly, we have also learned that once data can be read asynchronously, we need to be aware of the race conditions it might introduce.
 
-In practice, if you find yourself in a position where you need a registry for dynamic processes, you should use the `Registry` module provided as part of Elixir. It provides functionality similar to the one we have built using a GenServer + `:ets` while also being able to perform both writes and reads concurrently. [It has been benchmarked to scale across all cores even on machines with 40 cores](https://elixir-lang.org/blog/2017/01/05/elixir-v1-4-0-released/).
+In practice, if you find yourself in a position where you need a registry for dynamic processes, you should use the `Registry` module provided as part of Elixir. It provides functionality similar to the one we have built using a GenServer + `:ets` while also being able to perform both writes and reads concurrently. [It has been benchmarked to scale across all cores even on machines with 40 cores](https://elixir-lang.org/releases/elixir-v1-4-0-released.html).
 
 Next, let's discuss external and internal dependencies and how Mix helps us manage large codebases.
