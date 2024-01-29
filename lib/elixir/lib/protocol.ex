@@ -972,6 +972,7 @@ defmodule Protocol do
       Protocol.__ensure_defimpl__(protocol, for, __ENV__)
 
       defmodule name do
+        @moduledoc false
         @behaviour protocol
         @protocol protocol
         @for for
