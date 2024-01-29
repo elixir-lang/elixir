@@ -133,6 +133,20 @@ defmodule ProtocolTest do
       end
     )
 
+    write_beam(
+      defimpl SampleDocsProto, for: List do
+        def ok(_), do: true
+      end
+    )
+
+    write_beam(
+      defimpl SampleDocsProto, for: Map do
+        @moduledoc "for map"
+
+        def ok(_), do: true
+      end
+    )
+
     {:docs_v1, _, _, _, _, _, docs} = Code.fetch_docs(SampleDocsProto)
 
     assert {{:type, :t, 0}, _, [], %{"en" => type_doc}, _} = List.keyfind(docs, {:type, :t, 0}, 0)
@@ -143,6 +157,10 @@ defmodule ProtocolTest do
 
     deprecated = SampleDocsProto.__info__(:deprecated)
     assert [{{:ok, 1}, "Reason"}] = deprecated
+
+    {:docs_v1, _, _, _, :hidden, _, _} = Code.fetch_docs(SampleDocsProto.List)
+    {:docs_v1, _, _, _, moduledoc, _, _} = Code.fetch_docs(SampleDocsProto.Map)
+    assert moduledoc == %{"en" => "for map"}
   end
 
   @compile {:no_warn_undefined, WithAll}
