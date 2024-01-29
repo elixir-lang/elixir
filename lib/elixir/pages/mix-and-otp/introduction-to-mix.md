@@ -271,7 +271,7 @@ Most editors provide built-in integration with the formatter, allowing a file to
 
 For companies and teams, we recommend developers to run `mix format --check-formatted` on their continuous integration servers, ensuring all current and future code follows the standard.
 
-You can learn more about the code formatter by checking [the format task documentation](`mix format`) or by reading [the release announcement for Elixir v1.6](https://elixir-lang.org/blog/2018/01/17/elixir-v1-6-0-released/), the first version to include the formatter.
+You can learn more about the code formatter by checking [the format task documentation](`mix format`) or by reading [the release announcement for Elixir v1.6](https://elixir-lang.org/releases/elixir-v1-6-0-released.html), the first version to include the formatter.
 
 ## Environments
 
