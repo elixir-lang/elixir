@@ -127,11 +127,6 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       Process.put({MixTest.Case.Sample, :application}, extra_applications: [:logger])
       File.mkdir_p!("config")
 
-      File.write!("config/config.exs", """
-      import Config
-      config :logger, :level, :debug
-      """)
-
       File.write!("lib/a.ex", """
       defmodule A do
         _ = Logger.metadata()
