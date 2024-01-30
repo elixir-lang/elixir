@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 24
+  @manifest_vsn 25
   @checkpoint_vsn 2
 
   import Record
@@ -35,6 +35,8 @@ defmodule Mix.Compilers.Elixir do
   def compile(manifest, srcs, dest, new_cache_key, new_parent_manifests, new_parents, opts) do
     Mix.ensure_application!(:crypto)
     modified = Mix.Utils.last_modified(manifest)
+    config_mtime = Mix.Project.config_mtime()
+    project_mtime = Mix.Utils.last_modified(Mix.Project.project_file())
     new_parents = :ordsets.from_list(new_parents)
 
     # We fetch the time from before we read files so any future
@@ -43,7 +45,9 @@ defmodule Mix.Compilers.Elixir do
     timestamp = System.os_time(:second)
     all_paths = Mix.Utils.extract_files(srcs, [:ex])
 
-    {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_deps_config} =
+    {all_modules, all_sources, all_local_exports, old_parents, old_cache_key, old_deps_config,
+     old_project_mtime,
+     old_config_mtime} =
       parse_manifest(manifest, dest)
 
     # Prepend ourselves early because of __mix_recompile__? checks
@@ -65,14 +69,14 @@ defmodule Mix.Compilers.Elixir do
 
     # If mix.exs has changed, recompile anything that calls Mix.Project.
     stale =
-      if Mix.Utils.stale?([Mix.Project.project_file()], [modified]),
+      if project_mtime > old_project_mtime,
         do: [Mix.Project | stale],
         else: stale
 
     # If the lock has changed or a local dependency was added or removed,
     # we need to traverse lock/config files.
     deps_changed? =
-      Mix.Utils.stale?([Mix.Project.config_mtime()], [modified]) or
+      config_mtime > old_config_mtime or
         local_deps_changed?(old_deps_config, local_deps)
 
     # If a configuration is only accessed at compile-time, we don't need to
@@ -191,6 +195,8 @@ defmodule Mix.Compilers.Elixir do
             new_parents,
             new_cache_key,
             new_deps_config,
+            project_mtime,
+            config_mtime,
             timestamp
           )
 
@@ -234,6 +240,8 @@ defmodule Mix.Compilers.Elixir do
           new_parents,
           new_cache_key,
           new_deps_config,
+          project_mtime,
+          config_mtime,
           timestamp
         )
       end
@@ -304,7 +312,7 @@ defmodule Mix.Compilers.Elixir do
     rescue
       _ -> {[], []}
     else
-      {@manifest_vsn, modules, sources, _, _, _, _} -> {modules, sources}
+      {@manifest_vsn, modules, sources, _, _, _, _, _, _} -> {modules, sources}
       _ -> {[], []}
     end
   end
@@ -839,7 +847,7 @@ defmodule Mix.Compilers.Elixir do
 
   ## Manifest handling
 
-  @default_manifest {%{}, %{}, %{}, [], nil, nil}
+  @default_manifest {%{}, %{}, %{}, [], nil, nil, 0, 0}
 
   # Similar to read_manifest, but for internal consumption and with data migration support.
   defp parse_manifest(manifest, compile_path) do
@@ -849,8 +857,10 @@ defmodule Mix.Compilers.Elixir do
       _ ->
         @default_manifest
     else
-      {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config} ->
-        {modules, sources, local_exports, parent, cache_key, deps_config}
+      {@manifest_vsn, modules, sources, local_exports, parent, cache_key, deps_config,
+       project_mtime, config_mtime} ->
+        {modules, sources, local_exports, parent, cache_key, deps_config, project_mtime,
+         config_mtime}
 
       # {vsn, %{module => record}, sources, ...} v22-?
       # {vsn, [module_record], sources, ...} v5-v21
@@ -902,6 +912,8 @@ defmodule Mix.Compilers.Elixir do
          parents,
          cache_key,
          deps_config,
+         project_mtime,
+         config_mtime,
          timestamp
        ) do
     if modules == %{} and sources == %{} do
@@ -909,7 +921,10 @@ defmodule Mix.Compilers.Elixir do
     else
       File.mkdir_p!(Path.dirname(manifest))
 
-      term = {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config}
+      term =
+        {@manifest_vsn, modules, sources, exports, parents, cache_key, deps_config, project_mtime,
+         config_mtime}
+
       manifest_data = :erlang.term_to_binary(term, [:compressed])
       File.write!(manifest, manifest_data)
       File.touch!(manifest, timestamp)

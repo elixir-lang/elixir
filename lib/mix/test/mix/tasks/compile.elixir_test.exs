@@ -96,7 +96,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       assert_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
 
-      File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
+      ensure_touched(__ENV__.file, "_build/dev/lib/sample/.mix/compile.elixir")
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -107,14 +107,13 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       end
       """)
 
+      ensure_touched(__ENV__.file, "_build/dev/lib/sample/.mix/compile.elixir")
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
       assert File.stat!("_build/dev/lib/sample/.mix/compile.elixir").mtime > @old_time
 
-      # Making the manifest olds returns :ok, but does not recompile.
-      # Note we use ensure_touched instead of @old_time for preciseness.
       ensure_touched(__ENV__.file, "_build/dev/lib/sample/.mix/compile.elixir")
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       refute_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -146,6 +145,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       recompile = fn ->
         Mix.ProjectStack.pop()
         Mix.Project.push(MixTest.Case.Sample)
+        ensure_touched("config/config.exs")
         Mix.Tasks.Loadconfig.load_compile("config/config.exs")
         Mix.Tasks.Compile.Elixir.run(["--verbose"])
       end
@@ -276,6 +276,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       recompile = fn ->
         Mix.ProjectStack.pop()
         Mix.Project.push(MixTest.Case.Sample)
+        ensure_touched("config/config.exs")
         Mix.Tasks.Loadconfig.load_compile("config/config.exs")
         Mix.Tasks.Compile.Elixir.run(["--verbose"])
       end
@@ -345,6 +346,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       recompile = fn ->
         Mix.ProjectStack.pop()
         Mix.Project.push(MixTest.Case.Sample)
+        ensure_touched("config/config.exs")
         Mix.Tasks.Loadconfig.load_compile("config/config.exs")
         Mix.Tasks.Compile.Elixir.run(["--verbose"])
       end
@@ -404,6 +406,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       recompile = fn ->
         Mix.ProjectStack.pop()
         Mix.Project.push(MixTest.Case.Sample)
+        ensure_touched("config/config.exs")
         Mix.Tasks.Loadconfig.load_compile("config/config.exs")
         Mix.Tasks.Compile.Elixir.run(["--verbose"])
       end
@@ -499,8 +502,8 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{"logger": :unused}
       """)
 
+      ensure_touched("mix.lock")
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
-      File.touch!("_build/dev/lib/sample/.mix/compile.app_cache", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
@@ -511,6 +514,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{"logger": :another}
       """)
 
+      ensure_touched("mix.lock")
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
@@ -522,6 +526,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       %{}
       """)
 
+      ensure_touched("mix.lock")
       File.touch!("_build/dev/lib/sample/.mix/compile.elixir", @old_time)
       assert recompile.() == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
