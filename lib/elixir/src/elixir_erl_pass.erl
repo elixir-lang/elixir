@@ -185,9 +185,15 @@ translate({for, Meta, [_ | _] = Args}, _Ann, S) ->
   elixir_erl_for:translate(Meta, Args, S);
 
 translate({with, Meta, [_ | _] = Args}, _Ann, S) ->
+  Ann = ?ann(Meta),
   {Exprs, [{do, Do} | Opts]} = elixir_utils:split_last(Args),
-  {ElseClause, SE} = translate_with_else(Meta, Opts, S),
-  translate_with_do(Exprs, ?ann(Meta), Do, ElseClause, SE);
+  {ElseClause, MaybeFun, SE} = translate_with_else(Meta, Opts, S),
+  {Case, SD} = translate_with_do(Exprs, Ann, Do, ElseClause, SE),
+
+  case MaybeFun of
+    nil -> {Case, SD};
+    FunAssign -> {{block, Ann, [FunAssign, Case]}, SD}
+  end;
 
 %% Variables
 
@@ -400,48 +406,37 @@ returns_boolean(Condition, Body) ->
 %% with
 
 translate_with_else(Meta, [], S) ->
-  Generated = ?ann(?generated(Meta)),
+  Ann = ?ann(Meta),
   {VarName, SC} = elixir_erl_var:build('_', S),
-  Var = {var, Generated, VarName},
-  {{clause, Generated, [Var], [], [Var]}, SC};
+  Var = {var, Ann, VarName},
+  {{clause, Ann, [Var], [], [Var]}, nil, SC};
 translate_with_else(Meta, [{'else', [{'->', _, [[{Var, VarMeta, Kind}], Clause]}]}], S) when is_atom(Var), is_atom(Kind) ->
   Ann = ?ann(Meta),
-  Generated = erl_anno:set_generated(true, Ann),
   {ElseVarErl, SV} = elixir_erl_var:translate(VarMeta, Var, Kind, S#elixir_erl{context=match}),
   {TranslatedClause, SC} = translate(Clause, Ann, SV#elixir_erl{context=nil}),
-  {{clause, Generated, [ElseVarErl], [], [TranslatedClause]}, SC};
+  Clauses = [{clause, Ann, [ElseVarErl], [], [TranslatedClause]}],
+  with_else_closure(Meta, Clauses, SC);
 translate_with_else(Meta, [{'else', Else}], S) ->
   Generated = ?generated(Meta),
-  {ElseVarEx, ElseVarErl, SE} = elixir_erl_var:assign(Generated, S),
-  {RaiseVar, _, SV} = elixir_erl_var:assign(Generated, SE),
+  {RaiseVar, _, SV} = elixir_erl_var:assign(Generated, S),
 
   RaiseExpr = {{'.', Generated, [erlang, error]}, Generated, [{else_clause, RaiseVar}]},
   RaiseClause = {'->', Generated, [[RaiseVar], RaiseExpr]},
-  GeneratedElse = [build_generated_clause(Generated, ElseClause) || ElseClause <- Else],
 
-  Case = {'case', Generated, [ElseVarEx, [{do, GeneratedElse ++ [RaiseClause]}]]},
-  {TranslatedCase, SC} = translate(Case, ?ann(Meta), SV),
-  {{clause, ?ann(Generated), [ElseVarErl], [], [TranslatedCase]}, SC}.
+  Clauses = elixir_erl_clauses:get_clauses('else', [{'else', Else ++ [RaiseClause]}], match),
+  {TranslatedClauses, SC} = elixir_erl_clauses:clauses(Clauses, SV),
+  with_else_closure(Meta, TranslatedClauses, SC).
 
-build_generated_clause(Generated, {'->', _, [Args, Clause]}) ->
-  NewArgs = [build_generated_clause_arg(Generated, Arg) || Arg <- Args],
-  {'->', Generated, [NewArgs, Clause]}.
+with_else_closure(Meta, TranslatedClauses, S) ->
+  Ann = ?ann(Meta),
+  {_, FunErlVar, SC} = elixir_erl_var:assign(Meta, S),
+  {_, ArgErlVar, SA} = elixir_erl_var:assign(Meta, SC),
+  FunAssign = {match, Ann, FunErlVar, {'fun', Ann, {clauses, TranslatedClauses}}},
+  FunCall = {call, Ann, FunErlVar, [ArgErlVar]},
+  {{clause, Ann, [ArgErlVar], [], [FunCall]}, FunAssign, SA}.
 
-build_generated_clause_arg(Generated, Arg) ->
-  {Expr, Guards} = elixir_utils:extract_guards(Arg),
-  NewGuards = [build_generated_guard(Generated, Guard) || Guard <- Guards],
-  concat_guards(Generated, Expr, NewGuards).
-
-build_generated_guard(Generated, {{'.', _, _} = Call, _, Args}) ->
-  {Call, Generated, [build_generated_guard(Generated, Arg) || Arg <- Args]};
-build_generated_guard(_, Expr) ->
-  Expr.
-
-concat_guards(_Meta, Expr, []) ->
-  Expr;
-concat_guards(Meta, Expr, [Guard | Tail]) ->
-  {'when', Meta, [Expr, concat_guards(Meta, Guard, Tail)]}.
-
+translate_with_do([{'<-', Meta, [{Var, _, Ctx} = Left, Expr]} | Rest], Ann, Do, Else, S) when is_atom(Var), is_atom(Ctx) ->
+  translate_with_do([{'=', Meta, [Left, Expr]} | Rest], Ann, Do, Else, S);
 translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], _Ann, Do, Else, S) ->
   Ann = ?ann(Meta),
   {Args, Guards} = elixir_utils:extract_guards(Left),
@@ -449,9 +444,8 @@ translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], _Ann, Do, Else, S) ->
   {TArgs, SA} = elixir_erl_clauses:match(Ann, fun translate/3, Args, SR),
   TGuards = elixir_erl_clauses:guards(Ann, Guards, SA#elixir_erl.extra_guards, SA),
   {TBody, SB} = translate_with_do(Rest, Ann, Do, Else, SA#elixir_erl{extra_guards=[]}),
-
   Clause = {clause, Ann, [TArgs], TGuards, unblock(TBody)},
-  {{'case', erl_anno:set_generated(true, Ann), TExpr, [Clause, Else]}, SB};
+  {{'case', Ann, TExpr, [Clause, Else]}, SB};
 translate_with_do([Expr | Rest], Ann, Do, Else, S) ->
   {TExpr, TS} = translate(Expr, Ann, S),
   {TRest, RS} = translate_with_do(Rest, Ann, Do, Else, TS),

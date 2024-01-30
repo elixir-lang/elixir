@@ -169,11 +169,16 @@ with(Meta, Args, S, E) ->
 
   {{with, Meta, EExprs ++ [[{do, EDo} | EOpts]]}, S3, E}.
 
-expand_with({'<-', Meta, [Left, Right]}, {S, E, _HasMatch}) ->
+expand_with({'<-', Meta, [Left, Right]}, {S, E, HasMatch}) ->
   {ERight, SR, ER} = elixir_expand:expand(Right, S, E),
   SM = elixir_env:reset_read(SR, S),
   {[ELeft], SL, EL} = head([Left], SM, ER),
-  {{'<-', Meta, [ELeft, ERight]}, {SL, EL, true}};
+  NewHasMatch =
+    case ELeft of
+      {Var, _, Ctx} when is_atom(Var), is_atom(Ctx) -> HasMatch;
+      _ -> true
+    end,
+  {{'<-', Meta, [ELeft, ERight]}, {SL, EL, NewHasMatch}};
 expand_with(Expr, {S, E, HasMatch}) ->
   {EExpr, SE, EE} = elixir_expand:expand(Expr, S, E),
   {EExpr, {SE, EE, HasMatch}}.
