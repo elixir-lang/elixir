@@ -207,7 +207,7 @@ defmodule Mix.Tasks.Deps.Compile do
       {"TERM", "dumb"}
     ]
 
-    cmd = "#{escape_path(rebar_cmd(dep))} bare compile --paths #{escape_path(lib_path)}"
+    cmd = "#{rebar_cmd(dep)} bare compile --paths #{escape_path(lib_path)}"
     do_command(dep, config, cmd, false, env)
 
     # Check if we have any new symlinks after compilation

@@ -219,7 +219,7 @@ defmodule Mix.RebarTest do
     # We run only on Unix because Windows has a hard time
     # removing the Rebar executable after executed.
     @tag :unix
-    test "applies variables from :system_env option when compiling dependencies" do
+    test "applies variables from :system_env option on config/compilation" do
       in_tmp("applies variables from system_env", fn ->
         Mix.Project.push(RebarAsDepWithEnv)
 
@@ -231,6 +231,27 @@ defmodule Mix.RebarTest do
 
         assert {:ok, "rebar3"} = File.read(expected_file)
       end)
+    end
+
+    # We run only on Unix because Windows has a hard time
+    # removing the Rebar executable after executed.
+    @tag :unix
+    test "gets and compiles dependencies with MIX_REBAR3 with spaces" do
+      in_tmp("rebar3 env with spaces", fn ->
+        File.cp!(Mix.Rebar.local_rebar_path(:rebar3), "rebar3")
+        System.put_env("MIX_REBAR3", Path.absname("rebar3"))
+        assert Mix.Rebar.rebar_cmd(:rebar3) =~ " "
+
+        Mix.Project.push(RebarAsDep)
+        Mix.Tasks.Deps.Get.run([])
+        assert_received {:mix_shell, :info, ["* Getting git_rebar " <> _]}
+
+        Mix.Tasks.Deps.Compile.run([])
+        assert_received {:mix_shell, :run, ["===> Compiling git_rebar\n"]}
+        assert_received {:mix_shell, :run, ["===> Compiling rebar_dep\n"]}
+      end)
+    after
+      System.delete_env("MIX_REBAR3")
     end
 
     test "gets and compiles dependencies with Mix" do
