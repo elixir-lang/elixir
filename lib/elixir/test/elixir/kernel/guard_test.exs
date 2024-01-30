@@ -311,7 +311,7 @@ defmodule Kernel.GuardTest do
       end
 
       assert_compile_error(
-        "cannot invoke remote function :erlang\.is_record/2 inside guards",
+        "cannot invoke remote function :erlang\.is_record/2 inside a guard",
         fn ->
           defmodule IsRecord2Usage do
             defguard foo(rec) when :erlang.is_record(rec, :tag)
@@ -320,7 +320,7 @@ defmodule Kernel.GuardTest do
       )
 
       assert_compile_error(
-        "cannot invoke remote function :erlang\.is_record/3 inside guards",
+        "cannot invoke remote function :erlang\.is_record/3 inside a guard",
         fn ->
           defmodule IsRecord3Usage do
             defguard foo(rec) when :erlang.is_record(rec, :tag, 7)
@@ -329,7 +329,7 @@ defmodule Kernel.GuardTest do
       )
 
       assert_compile_error(
-        ~r"cannot invoke remote function :erlang\.\+\+/2 inside guards",
+        ~r"cannot invoke remote function :erlang\.\+\+/2 inside a guard",
         fn ->
           defmodule ListSubtractionUsage do
             defguard foo(list) when list ++ []
@@ -338,7 +338,7 @@ defmodule Kernel.GuardTest do
       )
 
       assert_compile_error(
-        "cannot invoke remote function :erlang\.\-\-/2 inside guards",
+        "cannot invoke remote function :erlang\.\-\-/2 inside a guard",
         fn ->
           defmodule ListSubtractionUsage do
             defguard foo(list) when list -- []
@@ -419,7 +419,7 @@ defmodule Kernel.GuardTest do
       end)
 
       assert_compile_error(
-        "cannot invoke remote function in guards. " <>
+        "cannot invoke remote function inside a guard. " <>
           "If you want to do a map lookup instead, please remove parens from map.field()",
         fn ->
           defmodule MapDot do
@@ -428,7 +428,7 @@ defmodule Kernel.GuardTest do
         end
       )
 
-      assert_compile_error("cannot invoke remote function Module.fun/0 inside guards", fn ->
+      assert_compile_error("cannot invoke remote function Module.fun/0 inside a guard", fn ->
         defmodule MapDot do
           def map_dot(map) when Module.fun(), do: true
         end

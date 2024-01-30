@@ -340,7 +340,7 @@ allowed_guard(Right, Arity) ->
   erl_internal:guard_bif(Right, Arity) orelse elixir_utils:guard_op(Right, Arity).
 
 format_error({invalid_guard, Receiver, Right, Arity, Context}) ->
-  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside ~ts",
+  io_lib:format("cannot invoke remote function ~ts.~ts/~B inside a ~ts",
                 ['Elixir.Macro':to_string(Receiver), Right, Arity, Context]);
 format_error({invalid_match, Receiver, Right, Arity}) ->
   io_lib:format("cannot invoke remote function ~ts.~ts/~B inside a match",

@@ -836,7 +836,7 @@ expand_local(Meta, Name, Args, S, #{module := Module, function := Function, cont
   %% so we can print multiple entries at the same time.
   case Context of
     match ->
-      module_error(Meta, E, ?MODULE, {invalid_local_invocation, match, {Name, Meta, Args}});
+      module_error(Meta, E, ?MODULE, {invalid_local_invocation, "match", {Name, Meta, Args}});
 
     guard ->
       module_error(Meta, E, ?MODULE, {invalid_local_invocation, guard_context(S), {Name, Meta, Args}});
@@ -1166,7 +1166,7 @@ assert_no_underscore_clause_in_cond(_Other, _E) ->
 %% Errors
 
 guard_context(#elixir_ex{prematch={_, _, {bitsize, _}}}) -> "bitstring size specifier";
-guard_context(_) -> "guards".
+guard_context(_) -> "guard".
 
 format_error(invalid_match_on_zero_float) ->
   "pattern matching on 0.0 is equivalent to matching only on +0.0 from Erlang/OTP 27+. Instead you must match on +0.0 or -0.0";
@@ -1264,7 +1264,7 @@ format_error({invalid_expr_in_guard, Kind}) ->
   io_lib:format(Message, [Kind]);
 format_error({invalid_expr_in_bitsize, Kind}) ->
   Message =
-    "~ts is not allowed in bitstring size specifier. The size specifier in matches works like guards. "
+    "~ts is not allowed inside a bitstring size specifier. The size specifier in matches works like guards. "
     "To learn more about guards, visit: https://hexdocs.pm/elixir/patterns-and-guards.html#guards",
   io_lib:format(Message, [Kind]);
 format_error({invalid_alias, Expr}) ->
@@ -1313,8 +1313,8 @@ format_error({invalid_quoted_expr, Expr}) ->
   io_lib:format(Message, ['Elixir.Kernel':inspect(Expr, [])]);
 format_error({invalid_local_invocation, Context, {Name, _, Args} = Call}) ->
   Message =
-    "cannot find or invoke local ~ts/~B inside ~ts. "
-    "Only macros can be invoked in a ~ts and they must be defined before their invocation. Called as: ~ts",
+    "cannot find or invoke local ~ts/~B inside a ~ts. "
+    "Only macros can be invoked inside a ~ts and they must be defined before their invocation. Called as: ~ts",
   io_lib:format(Message, [Name, length(Args), Context, Context, 'Elixir.Macro':to_string(Call)]);
 format_error({invalid_pid_in_function, Pid, {Name, Arity}}) ->
   io_lib:format("cannot compile PID ~ts inside quoted expression for function ~ts/~B",
@@ -1369,7 +1369,7 @@ format_error({undefined_var_to_call, Name}) ->
   io_lib:format("variable \"~ts\" does not exist and is being expanded to \"~ts()\","
                 " please use parentheses to remove the ambiguity or change the variable name", [Name, Name]);
 format_error({parens_map_lookup, Map, Field, Context}) ->
-  io_lib:format("cannot invoke remote function in ~ts. "
+  io_lib:format("cannot invoke remote function inside a ~ts. "
                 "If you want to do a map lookup instead, please remove parens from ~ts.~ts()",
                 [Context, 'Elixir.Macro':to_string(Map), Field]);
 format_error({super_in_genserver, {Name, Arity}}) ->

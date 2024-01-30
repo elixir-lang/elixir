@@ -434,7 +434,7 @@ defmodule Kernel.ExpansionTest do
 
     test "in matches" do
       assert_compile_error(
-        ~r"cannot find or invoke local foo/1 inside match. .+ Called as: foo\(:bar\)",
+        ~r"cannot find or invoke local foo/1 inside a match. .+ Called as: foo\(:bar\)",
         fn ->
           expand(quote(do: foo(:bar) = :bar))
         end
@@ -737,13 +737,13 @@ defmodule Kernel.ExpansionTest do
 
     test "in guards" do
       message =
-        ~r"cannot invoke remote function Hello.something_that_does_not_exist/1 inside guard"
+        ~r"cannot invoke remote function Hello.something_that_does_not_exist/1 inside a guard"
 
       assert_compile_error(message, fn ->
         expand(quote(do: fn arg when Hello.something_that_does_not_exist(arg) -> arg end))
       end)
 
-      message = ~r"cannot invoke remote function :erlang.make_ref/0 inside guard"
+      message = ~r"cannot invoke remote function :erlang.make_ref/0 inside a guard"
 
       assert_compile_error(message, fn ->
         expand(quote(do: fn arg when make_ref() -> arg end))
@@ -751,7 +751,7 @@ defmodule Kernel.ExpansionTest do
     end
 
     test "in guards with bitstrings" do
-      message = ~r"cannot invoke remote function String.Chars.to_string/1 inside guards"
+      message = ~r"cannot invoke remote function String.Chars.to_string/1 inside a guard"
 
       assert_compile_error(message, fn ->
         expand(quote(do: fn arg when "#{arg}foo" == "argfoo" -> arg end))
@@ -2731,7 +2731,7 @@ defmodule Kernel.ExpansionTest do
       end)
 
       assert_compile_error(
-        ~r"cannot find or invoke local foo/0 inside bitstring size specifier",
+        ~r"cannot find or invoke local foo/0 inside a bitstring size specifier",
         fn ->
           code =
             quote do
@@ -2742,7 +2742,7 @@ defmodule Kernel.ExpansionTest do
         end
       )
 
-      message = ~r"anonymous call is not allowed in bitstring size specifier"
+      message = ~r"anonymous call is not allowed inside a bitstring size specifier"
 
       assert_compile_error(message, fn ->
         code =
@@ -2753,7 +2753,7 @@ defmodule Kernel.ExpansionTest do
         expand(code, [])
       end)
 
-      message = ~r"cannot invoke remote function in bitstring size specifier"
+      message = ~r"cannot invoke remote function inside a bitstring size specifier"
 
       assert_compile_error(message, fn ->
         code =
@@ -2765,7 +2765,7 @@ defmodule Kernel.ExpansionTest do
         expand(code, [])
       end)
 
-      message = ~r"cannot invoke remote function Foo.bar/0 inside bitstring size specifier"
+      message = ~r"cannot invoke remote function Foo.bar/0 inside a bitstring size specifier"
 
       assert_compile_error(message, fn ->
         code =
