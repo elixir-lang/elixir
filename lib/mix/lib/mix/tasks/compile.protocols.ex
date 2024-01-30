@@ -57,6 +57,10 @@ defmodule Mix.Tasks.Compile.Protocols do
     cond do
       # We need to reconsolidate all protocols whenever the dependency changes
       # because we only track protocols from the current app and from local deps.
+      #
+      # We are only interested in the compile.lock from config_mtime (which is
+      # a build artifact), so it would be fine to compare it directly against
+      # the manifest, but let's follow best practices anyway.
       opts[:force] || config_mtime > old_config_mtime ->
         clean()
         paths = consolidation_paths()

@@ -33,6 +33,11 @@ defmodule Mix.AppLoader do
     manifest = manifest(config)
     modified = Mix.Utils.last_modified(manifest)
 
+    # We depend both on the lockfile via compile.lock (a build artifact) via
+    # `config_mtime` and `project_file`. Ideally we compare the `project_file`
+    # timestamp (a source artifact) against its old timestamp (instead of the
+    # manifest timestamp which is a build artifact), but at the moment there
+    # is no trivial place to store it.
     if Mix.Utils.stale?([Mix.Project.config_mtime(), Mix.Project.project_file()], [modified]) do
       manifest
     else

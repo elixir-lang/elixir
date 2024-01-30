@@ -142,6 +142,8 @@ defmodule Mix.Tasks.Compile.App do
 
     target = Path.join(path, "#{app}.app")
 
+    # We mostly depend on the project_file through the def application function,
+    # but it doesn't hurt to also include config_mtime.
     new_mtime =
       max(Mix.Project.config_mtime(), Mix.Utils.last_modified(Mix.Project.project_file()))
 
