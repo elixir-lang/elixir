@@ -218,7 +218,7 @@ defmodule Mix.Rebar do
   defp wrap_cmd(rebar) do
     cond do
       not match?({:win32, _}, :os.type()) ->
-        rebar
+        String.replace(rebar, " ", "\\ ")
 
       String.ends_with?(rebar, ".cmd") ->
         "\"#{String.replace(rebar, "/", "\\")}\""
