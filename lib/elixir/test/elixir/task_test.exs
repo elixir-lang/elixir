@@ -885,14 +885,6 @@ defmodule TaskTest do
       end
     end
 
-    test "does not allow streaming with invalid :shutdown" do
-      assert_raise ArgumentError,
-                   ":shutdown must be either a positive integer or :brutal_kill",
-                   fn ->
-                     Task.async_stream([1], fn _ -> :ok end, shutdown: :unknown)
-                   end
-    end
-
     test "streams with fake down messages on the inbox" do
       parent = self()
 
