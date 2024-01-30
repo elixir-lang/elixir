@@ -92,7 +92,7 @@ Variables in Elixir must start with an underscore or a Unicode letter that is no
 
 ### Non-qualified calls (local calls)
 
-Non-qualified calls, such as `add(1, 2)`, must start with characters and then follow the same rules as as variables, which are optionally followed by parentheses, and then arguments.
+Non-qualified calls, such as `add(1, 2)`, must start with characters and then follow the same rules as variables, which are optionally followed by parentheses, and then arguments.
 
 Parentheses are required for zero-arity calls (i.e. calls without arguments), to avoid ambiguity with variables. If parentheses are used, they must immediately follow the function name *without spaces*. For example, `add (1, 2)` is a syntax error, since `(1, 2)` is treated as an invalid block which is attempted to be given as a single argument to `add`.
 
@@ -104,7 +104,7 @@ As many programming languages, Elixir also support operators as non-qualified ca
 
 ### Qualified calls (remote calls)
 
-Qualified calls, such as `Math.add(1, 2)`, must start with characters and then follow the same rules as as variables, which are optionally followed by parentheses, and then arguments. Qualified calls also support operators, such as `Kernel.+(1, 2)`. Elixir also allows the function name to be written between double- or single-quotes, allowing any character in between the quotes, such as `Math."++add++"(1, 2)`.
+Qualified calls, such as `Math.add(1, 2)`, must start with characters and then follow the same rules as variables, which are optionally followed by parentheses, and then arguments. Qualified calls also support operators, such as `Kernel.+(1, 2)`. Elixir also allows the function name to be written between double- or single-quotes, allowing any character in between the quotes, such as `Math."++add++"(1, 2)`.
 
 Similar to non-qualified calls, parentheses have different meaning for zero-arity calls (i.e. calls without arguments). If parentheses are used, such as `mod.fun()`, it means a function call. If parenthesis are skipped, such as `map.field`, it means accessing a field of a map.
 
