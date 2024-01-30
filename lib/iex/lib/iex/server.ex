@@ -16,7 +16,8 @@ defmodule IEx.Server do
             prefix: "iex",
             on_eof: :stop_evaluator,
             evaluator_options: [],
-            expand_fun: nil
+            expand_fun: nil,
+            client: nil
 
   @doc """
   Starts a new IEx server session.
@@ -122,6 +123,8 @@ defmodule IEx.Server do
   end
 
   defp wait_input(state, evaluator, evaluator_ref, input) do
+    client = state.client
+
     receive do
       {:io_reply, ^input, code} when is_binary(code) ->
         :io.setopts(expand_fun: fn _ -> {:yes, [], []} end)
@@ -147,6 +150,13 @@ defmodule IEx.Server do
       # Triggered when IO dies while waiting for input
       {:DOWN, ^input, _, _, _} ->
         stop_evaluator(evaluator, evaluator_ref)
+
+      {:new_connection, client} ->
+        wait_input(%{state | client: client}, evaluator, evaluator_ref, input)
+
+      {:tcp, ^client, code} ->
+        send(evaluator, {:evalsocket, self(), client, code, state.counter, state.parser_state})
+        wait_eval(state, evaluator, evaluator_ref)
 
       msg ->
         handle_common(msg, state, evaluator, evaluator_ref, input, fn state ->
@@ -317,6 +327,25 @@ defmodule IEx.Server do
     prefix = Keyword.get(opts, :prefix, "iex")
     on_eof = Keyword.get(opts, :on_eof, :stop_evaluator)
     gl = Process.group_leader()
+
+    # TODO add cli argument --socket <port>
+    {:ok, socket} = :gen_tcp.listen(5555, [:binary, {:active, true}, {:reuseaddr, true}])
+    parent = self()
+
+    spawn(fn ->
+      {:ok, client} = :gen_tcp.accept(socket)
+      send(parent, {:new_connection, client})
+
+      loop = fn f ->
+        receive do
+          msg ->
+            send(parent, msg)
+            f.(f)
+        end
+      end
+
+      loop.(loop)
+    end)
 
     expand_fun =
       if node(gl) != node() do

@@ -188,6 +188,17 @@ defmodule IEx.Evaluator do
         send(server, {:evaled, self(), status, parser_state})
         loop(state)
 
+      {:evalsocket, ^server, socket_client, code, counter, parser_state} ->
+        {status, parser_state, state} = parse_eval_inspect(code, counter, parser_state, state)
+
+        if status == :ok do
+          {[{_, result} | _], _} = state.history.queue
+          :gen_tcp.send(socket_client, inspect(result) <> "\n")
+        end
+
+        send(server, {:evaled, self(), status, parser_state})
+        loop(state)
+
       {:fields_from_env, ^server, ref, receiver, fields} ->
         send(receiver, {ref, Map.take(state.env, fields)})
         loop(state)
