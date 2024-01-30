@@ -167,6 +167,8 @@ iex> !nil
 true
 ```
 
+Since only `false` and `nil` are considered "falsy", values like `0` and `""` that some other programming languages consider to also be "falsy" are in fact "truthy" in Elixir.
+
 ## Atoms
 
 An atom is a constant whose value is its own name. Some other languages call these symbols. They are often useful to enumerate over distinct values, such as:
