@@ -147,17 +147,17 @@ defmodule Mix.Tasks.DepsGitTest do
       assert_received {:mix_shell, :info, [^message]}
 
       assert File.exists?("deps/deps_on_git_repo/mix.exs")
-      assert File.rm("deps/deps_on_git_repo/.fetch") == :ok
       assert File.exists?("deps/git_repo/mix.exs")
-      assert File.rm("deps/git_repo/.fetch") == :ok
 
       # Compile the dependencies
       Mix.Tasks.Deps.Compile.run([])
+      assert File.exists?("_build/dev/lib/deps_on_git_repo/.mix/compile.fetch")
+      assert File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
 
       # Now update children and make sure it propagates
       Mix.Tasks.Deps.Update.run(["git_repo"])
-      assert File.exists?("deps/deps_on_git_repo/.fetch")
-      assert File.exists?("deps/git_repo/.fetch")
+      refute File.exists?("_build/dev/lib/deps_on_git_repo/.mix/compile.fetch")
+      refute File.exists?("_build/dev/lib/git_repo/.mix/compile.fetch")
 
       # Clear tasks to recompile Git repo but unload it so...
       purge([GitRepo])

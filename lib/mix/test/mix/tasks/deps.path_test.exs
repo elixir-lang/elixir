@@ -28,16 +28,6 @@ defmodule Mix.Tasks.DepsPathTest do
   end
 
   @tag apps: [:raw_sample]
-  test "does not mark for compilation on get/update" do
-    in_fixture("deps_status", fn ->
-      Mix.Project.push(DepsApp)
-
-      Mix.Tasks.Deps.Get.run(["--all"])
-      refute File.exists?("custom/raw_repo/.fetch")
-    end)
-  end
-
-  @tag apps: [:raw_sample]
   test "compiles and runs even if lock does not match" do
     in_fixture("deps_status", fn ->
       Mix.Project.push(DepsApp)
