@@ -167,7 +167,7 @@ iex> !nil
 true
 ```
 
-Since only `false` and `nil` are considered "falsy", values like `0` and `""` that some other programming languages consider to also be "falsy" are in fact "truthy" in Elixir.
+Similarly, values like `0` and `""`, which some other programming languages consider to be "falsy", are also "truthy" in Elixir.
 
 ## Atoms
 
