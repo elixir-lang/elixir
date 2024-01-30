@@ -141,12 +141,15 @@ defmodule Mix.Tasks.Compile.App do
     modules = modules_from(path) |> Enum.sort()
 
     target = Path.join(path, "#{app}.app")
-    sources = [Mix.Project.config_mtime(), Mix.Project.project_file()]
+
+    new_mtime =
+      max(Mix.Project.config_mtime(), Mix.Utils.last_modified(Mix.Project.project_file()))
 
     current_properties = current_app_properties(target)
     compile_env = load_compile_env(current_properties)
+    old_mtime = Keyword.get(current_properties, :config_mtime, 0)
 
-    if opts[:force] || Mix.Utils.stale?(sources, [target]) ||
+    if opts[:force] || new_mtime > old_mtime ||
          app_changed?(current_properties, modules, compile_env) do
       properties =
         [
@@ -160,6 +163,7 @@ defmodule Mix.Tasks.Compile.App do
         |> handle_extra_applications(config)
         |> add_compile_env(compile_env)
 
+      properties = [config_mtime: new_mtime] ++ properties
       contents = :io_lib.format("~p.~n", [{:application, app, properties}])
 
       Mix.Project.ensure_structure()
