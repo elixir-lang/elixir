@@ -435,6 +435,8 @@ with_else_closure(Meta, TranslatedClauses, S) ->
   FunCall = {call, Ann, FunErlVar, [ArgErlVar]},
   {{clause, Ann, [ArgErlVar], [], [FunCall]}, FunAssign, SA}.
 
+translate_with_do([{'<-', Meta, [{Var, _, Ctx} = Left, Expr]} | Rest], Ann, Do, Else, S) when is_atom(Var), is_atom(Ctx) ->
+  translate_with_do([{'=', Meta, [Left, Expr]} | Rest], Ann, Do, Else, S);
 translate_with_do([{'<-', Meta, [Left, Expr]} | Rest], _Ann, Do, Else, S) ->
   Ann = ?ann(Meta),
   {Args, Guards} = elixir_utils:extract_guards(Left),
