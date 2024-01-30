@@ -138,7 +138,7 @@ defmodule Mix.Tasks.Compile.App do
     validate_version(version)
 
     path = Keyword.get_lazy(opts, :compile_path, &Mix.Project.compile_path/0)
-    modules = modules_from(Path.wildcard("#{path}/*.beam")) |> Enum.sort()
+    modules = modules_from(path) |> Enum.sort()
 
     target = Path.join(path, "#{app}.app")
     sources = [Mix.Project.config_mtime(), Mix.Project.project_file()]
@@ -213,8 +213,16 @@ defmodule Mix.Tasks.Compile.App do
 
   defp ensure_present(_name, _val), do: :ok
 
-  defp modules_from(beams) do
-    Enum.map(beams, &(&1 |> Path.basename() |> Path.rootname(".beam") |> String.to_atom()))
+  defp modules_from(path) do
+    case File.ls(path) do
+      {:ok, entries} ->
+        for entry <- entries,
+            String.ends_with?(entry, ".beam"),
+            do: entry |> binary_part(0, byte_size(entry) - 5) |> String.to_atom()
+
+      {:error, _} ->
+        []
+    end
   end
 
   defp merge_project_application(best_guess, project) do
