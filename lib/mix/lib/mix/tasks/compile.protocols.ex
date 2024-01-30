@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   use Mix.Task.Compiler
 
   @manifest "compile.protocols"
-  @manifest_vsn 1
+  @manifest_vsn 2
 
   @moduledoc ~S"""
   Consolidates all protocols in all paths.
@@ -100,11 +100,7 @@ defmodule Mix.Tasks.Compile.Protocols do
         [Mix.Project.app_path(config) | deps]
       end
 
-    Enum.flat_map(paths, fn path ->
-      manifest_path = Path.join(path, ".mix/compile.elixir")
-      compile_path = Path.join(path, "ebin")
-      Mix.Compilers.Elixir.protocols_and_impls(manifest_path, compile_path)
-    end)
+    Mix.Compilers.Elixir.protocols_and_impls(paths)
   end
 
   defp consolidation_paths do
@@ -179,7 +175,7 @@ defmodule Mix.Tasks.Compile.Protocols do
       _ ->
         # If there is no manifest or it is out of date, remove old files
         File.rm_rf(output)
-        []
+        {%{}, %{}}
     end
   end
 
@@ -189,37 +185,46 @@ defmodule Mix.Tasks.Compile.Protocols do
     File.write!(manifest, manifest_data)
   end
 
-  defp diff_manifest(manifest, new_metadata, output) do
-    modified = Mix.Utils.last_modified(manifest)
-    old_metadata = read_manifest(manifest, output)
+  defp diff_manifest(manifest, {new_protocols, new_impls}, output) do
+    {old_protocols, old_impls} = read_manifest(manifest, output)
 
     protocols =
-      for {protocol, :protocol, beam} <- new_metadata,
-          Mix.Utils.last_modified(beam) > modified,
-          remove_consolidated(protocol, output),
-          do: protocol
+      new_protocols
+      |> Enum.filter(fn {protocol, new_timestamp} ->
+        case old_protocols do
+          # There is a new version, removed the consolidated
+          %{^protocol => old_timestamp} when new_timestamp > old_timestamp ->
+            remove_consolidated(protocol, output)
+            true
 
-    protocols =
-      Enum.reduce(new_metadata -- old_metadata, Map.from_keys(protocols, true), fn
-        {_, {:impl, protocol}, _beam}, protocols ->
-          Map.put(protocols, protocol, true)
+          # Nothing changed
+          %{^protocol => _} ->
+            false
 
-        {protocol, :protocol, _beam}, protocols ->
-          Map.put(protocols, protocol, true)
+          # New protocol
+          %{} ->
+            true
+        end
       end)
+      |> Map.new()
 
-    removed_metadata = old_metadata -- new_metadata
+    protocols =
+      for {impl, protocol} <- new_impls,
+          not is_map_key(old_impls, impl),
+          do: {protocol, true},
+          into: protocols
 
     removed_protocols =
-      for {protocol, :protocol, _beam} <- removed_metadata,
-          remove_consolidated(protocol, output),
-          do: protocol
+      for {protocol, _timestamp} <- old_protocols,
+          not is_map_key(new_protocols, protocol),
+          do: remove_consolidated(protocol, output)
 
     removed_protocols = Map.from_keys(removed_protocols, true)
 
     protocols =
-      for {_, {:impl, protocol}, _beam} <- removed_metadata,
-          not Map.has_key?(removed_protocols, protocol),
+      for {impl, protocol} <- old_impls,
+          not is_map_key(new_impls, impl),
+          not is_map_key(removed_protocols, protocol),
           do: {protocol, true},
           into: protocols
 
@@ -228,5 +233,6 @@ defmodule Mix.Tasks.Compile.Protocols do
 
   defp remove_consolidated(protocol, output) do
     File.rm(Path.join(output, "#{Atom.to_string(protocol)}.beam"))
+    protocol
   end
 end

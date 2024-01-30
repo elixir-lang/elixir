@@ -1,7 +1,7 @@
 defmodule Mix.Compilers.Elixir do
   @moduledoc false
 
-  @manifest_vsn 23
+  @manifest_vsn 24
   @checkpoint_vsn 2
 
   import Record
@@ -10,6 +10,7 @@ defmodule Mix.Compilers.Elixir do
 
   defrecord :source,
     size: 0,
+    mtime: 0,
     digest: nil,
     compile_references: [],
     export_references: [],
@@ -137,7 +138,6 @@ defmodule Mix.Compilers.Elixir do
       else
         compiler_info_from_updated(
           manifest,
-          modified,
           all_paths -- prev_paths,
           all_modules,
           all_sources,
@@ -225,8 +225,7 @@ defmodule Mix.Compilers.Elixir do
       # any other change, but the diff check should be reasonably fast anyway.
       status = if removed != [] or deps_changed? or stale_modules != %{}, do: :ok, else: :noop
 
-      # If nothing changed but there is one more recent mtime, bump the manifest
-      if status != :noop or Enum.any?(Map.values(sources_stats), &(elem(&1, 0) > modified)) do
+      if status != :noop do
         write_manifest(
           manifest,
           modules,
@@ -281,12 +280,19 @@ defmodule Mix.Compilers.Elixir do
   @doc """
   Returns protocols and implementations for the given `manifest`.
   """
-  def protocols_and_impls(manifest, compile_path) do
-    {modules, _} = read_manifest(manifest)
+  def protocols_and_impls(paths) do
+    Enum.reduce(paths, {%{}, %{}}, fn path, acc ->
+      {modules, _} = read_manifest(Path.join(path, ".mix/compile.elixir"))
 
-    for {module, module(kind: kind)} <- modules,
-        match?(:protocol, kind) or match?({:impl, _}, kind),
-        do: {module, kind, beam_path(compile_path, module)}
+      Enum.reduce(modules, acc, fn
+        {module, module(kind: kind, timestamp: timestamp)}, {protocols, impls} ->
+          case kind do
+            :protocol -> {Map.put(protocols, module, timestamp), impls}
+            {:impl, protocol} -> {protocols, Map.put(impls, module, protocol)}
+            _ -> {protocols, impls}
+          end
+      end)
+    end)
   end
 
   @doc """
@@ -329,7 +335,6 @@ defmodule Mix.Compilers.Elixir do
 
   defp compiler_info_from_updated(
          manifest,
-         modified,
          new_paths,
          all_modules,
          all_sources,
@@ -387,7 +392,8 @@ defmodule Mix.Compilers.Elixir do
     # Sources that have changed on disk or
     # any modules associated with them need to be recompiled
     changed =
-      for {source, source(external: external, size: size, digest: digest, modules: modules)} <-
+      for {source,
+           source(external: external, size: size, mtime: mtime, digest: digest, modules: modules)} <-
             all_sources,
           {last_mtime, last_size} = Map.fetch!(sources_stats, source),
           # If the user does a change, compilation fails, and then they revert
@@ -396,8 +402,8 @@ defmodule Mix.Compilers.Elixir do
           # files are available.
           size != last_size or
             Enum.any?(modules, &Map.has_key?(modules_to_recompile, &1)) or
-            Enum.any?(external, &stale_external?(&1, modified, sources_stats)) or
-            (last_mtime > modified and
+            Enum.any?(external, &stale_external?(&1, sources_stats)) or
+            (last_mtime > mtime and
                (missing_beam_file?(dest, modules) or digest_changed?(source, digest))),
           do: source
 
@@ -425,10 +431,13 @@ defmodule Mix.Compilers.Elixir do
     {modules, exports, changed, sources_stats}
   end
 
-  defp stale_external?({external, digest}, modified, sources_stats) do
+  defp stale_external?({external, {mtime, size}, digest}, sources_stats) do
     case sources_stats do
-      %{^external => {0, 0}} -> digest != nil
-      %{^external => {mtime, _}} -> mtime > modified and digest_changed?(external, digest)
+      %{^external => {0, 0}} ->
+        digest != nil
+
+      %{^external => {last_mtime, last_size}} ->
+        size != last_size or (last_mtime > mtime and digest_changed?(external, digest))
     end
   end
 
@@ -436,7 +445,7 @@ defmodule Mix.Compilers.Elixir do
     Enum.reduce(sources, %{}, fn {source, source(external: external)}, map ->
       map = Map.put_new_lazy(map, source, fn -> Mix.Utils.last_modified_and_size(source) end)
 
-      Enum.reduce(external, map, fn {file, _}, map ->
+      Enum.reduce(external, map, fn {file, _, _}, map ->
         Map.put_new_lazy(map, file, fn -> Mix.Utils.last_modified_and_size(file) end)
       end)
     end)
@@ -489,7 +498,7 @@ defmodule Mix.Compilers.Elixir do
   # so we rely on sources_stats to avoid multiple FS lookups.
   defp update_stale_sources(sources, stale, removed_modules, sources_stats) do
     Enum.reduce(stale, {sources, removed_modules}, fn file, {acc_sources, acc_modules} ->
-      %{^file => {_, size}} = sources_stats
+      %{^file => {mtime, size}} = sources_stats
 
       modules =
         case acc_sources do
@@ -498,7 +507,7 @@ defmodule Mix.Compilers.Elixir do
         end
 
       acc_modules = Enum.reduce(modules, acc_modules, &Map.put(&2, &1, true))
-      {Map.put(acc_sources, file, source(size: size)), acc_modules}
+      {Map.put(acc_sources, file, source(size: size, mtime: mtime)), acc_modules}
     end)
   end
 
@@ -1199,10 +1208,13 @@ defmodule Mix.Compilers.Elixir do
 
   defp process_external_resources(external, cwd) do
     for file <- external do
-      case File.read(file) do
-        {:ok, binary} -> {Path.relative_to(file, cwd), digest_contents(binary)}
-        {:error, _} -> {Path.relative_to(file, cwd), nil}
-      end
+      digest =
+        case File.read(file) do
+          {:ok, binary} -> digest_contents(binary)
+          {:error, _} -> nil
+        end
+
+      {Path.relative_to(file, cwd), Mix.Utils.last_modified_and_size(file), digest}
     end
   end
 end

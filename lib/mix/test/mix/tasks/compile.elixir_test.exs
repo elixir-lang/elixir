@@ -1019,8 +1019,7 @@ defmodule Mix.Tasks.Compile.ElixirTest do
       File.touch!("lib/a.eex", {{2038, 1, 1}, {0, 0, 0}})
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:noop, []}
 
-      File.write!("lib/a.eex", [File.read!("lib/a.eex"), ?\n])
-      File.touch!("lib/a.eex", {{2038, 1, 1}, {0, 0, 0}})
+      force_recompilation("lib/a.eex")
       assert Mix.Tasks.Compile.Elixir.run(["--verbose"]) == {:ok, []}
       assert_received {:mix_shell, :info, ["Compiled lib/a.ex"]}
       refute_received {:mix_shell, :info, ["Compiled lib/b.ex"]}
