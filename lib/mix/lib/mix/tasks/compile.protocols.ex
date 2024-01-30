@@ -2,7 +2,7 @@ defmodule Mix.Tasks.Compile.Protocols do
   use Mix.Task.Compiler
 
   @manifest "compile.protocols"
-  @manifest_vsn 2
+  @manifest_vsn 3
 
   @moduledoc ~S"""
   Consolidates all protocols in all paths.
@@ -49,23 +49,26 @@ defmodule Mix.Tasks.Compile.Protocols do
 
     manifest = manifest()
     output = Mix.Project.consolidation_path(config)
+    config_mtime = Mix.Project.config_mtime()
     protocols_and_impls = protocols_and_impls(config)
+    metadata = {config_mtime, protocols_and_impls}
+    {old_config_mtime, old_protocols_and_impls} = read_manifest(manifest, output)
 
     cond do
       # We need to reconsolidate all protocols whenever the dependency changes
       # because we only track protocols from the current app and from local deps.
-      opts[:force] || Mix.Utils.stale?([Mix.Project.config_mtime()], [manifest]) ->
+      opts[:force] || config_mtime > old_config_mtime ->
         clean()
         paths = consolidation_paths()
 
         paths
         |> Protocol.extract_protocols()
-        |> consolidate(paths, output, manifest, protocols_and_impls, opts)
+        |> consolidate(paths, output, manifest, metadata, opts)
 
       protocols_and_impls ->
-        manifest
-        |> diff_manifest(protocols_and_impls, output)
-        |> consolidate(consolidation_paths(), output, manifest, protocols_and_impls, opts)
+        protocols_and_impls
+        |> diff_manifest(old_protocols_and_impls, output)
+        |> consolidate(consolidation_paths(), output, manifest, metadata, opts)
 
       true ->
         :noop
@@ -175,7 +178,7 @@ defmodule Mix.Tasks.Compile.Protocols do
       _ ->
         # If there is no manifest or it is out of date, remove old files
         File.rm_rf(output)
-        {%{}, %{}}
+        {0, {%{}, %{}}}
     end
   end
 
@@ -185,9 +188,7 @@ defmodule Mix.Tasks.Compile.Protocols do
     File.write!(manifest, manifest_data)
   end
 
-  defp diff_manifest(manifest, {new_protocols, new_impls}, output) do
-    {old_protocols, old_impls} = read_manifest(manifest, output)
-
+  defp diff_manifest({new_protocols, new_impls}, {old_protocols, old_impls}, output) do
     protocols =
       new_protocols
       |> Enum.filter(fn {protocol, new_timestamp} ->
