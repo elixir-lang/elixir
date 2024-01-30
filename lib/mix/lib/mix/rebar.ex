@@ -36,7 +36,7 @@ defmodule Mix.Rebar do
   @doc """
   Returns the path to the available `rebar` command.
   """
-  # TODO: Remove on Elixir v1.18 because phx_new and other installers rely on it.
+  # TODO: Remove on Elixir v1.20 because phx_new and other installers rely on it.
   def rebar_cmd(:rebar) do
     Mix.shell().error("[warning] :rebar is no longer supported in Mix, falling back to :rebar3")
     rebar_cmd(:rebar3)
@@ -218,7 +218,7 @@ defmodule Mix.Rebar do
   defp wrap_cmd(rebar) do
     cond do
       not match?({:win32, _}, :os.type()) ->
-        rebar
+        String.replace(rebar, " ", "\\ ")
 
       String.ends_with?(rebar, ".cmd") ->
         "\"#{String.replace(rebar, "/", "\\")}\""
