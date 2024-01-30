@@ -233,6 +233,9 @@ defmodule Mix.RebarTest do
       end)
     end
 
+    # We run only on Unix because Windows has a hard time
+    # removing the Rebar executable after executed.
+    @tag :unix
     test "gets and compiles dependencies with MIX_REBAR3 with spaces" do
       in_tmp("rebar3 env with spaces", fn ->
         File.cp!(Mix.Rebar.local_rebar_path(:rebar3), "rebar3")
