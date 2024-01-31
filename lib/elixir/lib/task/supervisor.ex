@@ -592,8 +592,15 @@ defmodule Task.Supervisor do
   end
 
   defp build_stream(supervisor, link_type, enumerable, fun, options) do
+    shutdown = Keyword.get(options, :shutdown, 5000)
+
+    unless (is_integer(shutdown) and shutdown >= 0) or shutdown == :brutal_kill do
+      raise ArgumentError, ":shutdown must be either a positive integer or :brutal_kill"
+    end
+
+    options = Task.Supervised.validate_stream_options(options)
+
     fn acc, acc_fun ->
-      shutdown = options[:shutdown]
       owner = get_owner(self())
 
       Task.Supervised.stream(enumerable, acc, acc_fun, get_callers(self()), fun, options, fn ->

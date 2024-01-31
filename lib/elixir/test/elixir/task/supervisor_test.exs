@@ -477,6 +477,14 @@ defmodule Task.SupervisorTest do
              |> Task.Supervisor.async_stream(1..8, &exit/1, opts)
              |> Enum.take(4) == [exit: {1, 1}, exit: {2, 2}, exit: {3, 3}, exit: {4, 4}]
     end
+
+    test "does not allow streaming with invalid :shutdown", %{supervisor: supervisor} do
+      message = ":shutdown must be either a positive integer or :brutal_kill"
+
+      assert_raise ArgumentError, message, fn ->
+        Task.Supervisor.async_stream(supervisor, [], fn _ -> :ok end, shutdown: :unknown)
+      end
+    end
   end
 
   describe "async_stream_nolink" do

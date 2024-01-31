@@ -869,7 +869,19 @@ defmodule TaskTest do
 
     test "does not allow streaming with max_concurrency = 0" do
       assert_raise ArgumentError, ":max_concurrency must be an integer greater than zero", fn ->
-        Task.async_stream([1], fn _ -> :ok end, max_concurrency: 0) |> Enum.to_list()
+        Task.async_stream([1], fn _ -> :ok end, max_concurrency: 0)
+      end
+    end
+
+    test "does not allow streaming with invalid :on_timeout" do
+      assert_raise ArgumentError, ":on_timeout must be either :exit or :kill_task", fn ->
+        Task.async_stream([1], fn _ -> :ok end, on_timeout: :unknown)
+      end
+    end
+
+    test "does not allow streaming with invalid :timeout" do
+      assert_raise ArgumentError, ":timeout must be either a positive integer or :infinity", fn ->
+        Task.async_stream([1], fn _ -> :ok end, timeout: :unknown)
       end
     end
 
