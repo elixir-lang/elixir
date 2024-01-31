@@ -492,11 +492,8 @@ defmodule IEx.AutocompleteTest do
 
     eval("import Enum; import Protocol")
 
-    assert ExUnit.CaptureIO.capture_io(fn ->
-             send(self(), expand(~c"reduce("))
-           end) == "\nreduce(enumerable, acc, fun)"
-
-    assert_received {:yes, ~c"", [~c"reduce(enumerable, fun)"]}
+    assert expand(~c"reduce(") ==
+             {:yes, ~c"", [~c"reduce(enumerable, fun)", ~c"reduce(enumerable, acc, fun)"]}
 
     assert expand(~c"take(") == {:yes, ~c"", [~c"take(enumerable, amount)"]}
     assert expand(~c"derive(") == {:yes, ~c"", [~c"derive(protocol, module, options \\\\ [])"]}
