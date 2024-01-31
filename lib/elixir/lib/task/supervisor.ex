@@ -77,7 +77,9 @@ defmodule Task.Supervisor do
           DynamicSupervisor.option()
           | DynamicSupervisor.init_option()
 
-  @typedoc "Options given to `async_stream` and `async_stream_nolink` functions"
+  @typedoc """
+  Options given to `async_stream` and `async_stream_nolink` functions.
+  """
   @typedoc since: "1.17.0"
   @type async_stream_option :: Task.async_stream_option() | {:shutdown, Supervisor.shutdown()}
 
