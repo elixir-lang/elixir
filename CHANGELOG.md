@@ -78,6 +78,28 @@ Another [ExDoc](https://github.com/elixir-lang/ex_doc) feature we have incorpora
 
 Finally, we have started enriching our documentation with [Mermaid.js](https://mermaid.js.org/) diagrams. You can find examples in the [GenServer](https://hexdocs.pm/elixir/main/GenServer.html) and [Supervisor](https://hexdocs.pm/elixir/main/Supervisor.html) docs.
 
+## v1.16.1 (2024-01-31)
+
+### 1. Bug fixes
+
+#### Elixir
+
+  * [Code] Fix `Code.quoted_to_algebra/2` for operator with :do key as operand
+  * [Kernel.ParallelCompiler] Do not crash parallel compiler when it receives diagnostics from additional code evaluation
+  * [Kernel.ParallelCompiler] Always log errors at the end of compilation
+  * [String] Fix `String.capitalize/1` with a single codepoint
+
+#### IEx
+
+  * [IEx] Fix autocompletion of function signatures on Erlang/OTP 26
+  * [IEx] Do not assume `$HOME` is set
+
+#### Mix
+
+  * [mix deps.compile] Handle compilation of rebar3 dependencies when rebar3 is on a path with spaces on Unix
+  * [mix test] Properly resolve relative paths when running tests from individual files
+  * [mix test] Properly resolve Windows paths when running tests from individual files
+
 ## v1.16.0 (2023-12-22)
 
 ### 1. Enhancements
