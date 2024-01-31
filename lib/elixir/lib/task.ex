@@ -293,7 +293,9 @@ defmodule Task do
   """
   @opaque ref :: reference()
 
-  @typedoc "Options given to `async_stream` functions"
+  @typedoc """
+  Options given to `async_stream` functions.
+  """
   @typedoc since: "1.17.0"
   @type async_stream_option ::
           {:max_concurrency, pos_integer()}
