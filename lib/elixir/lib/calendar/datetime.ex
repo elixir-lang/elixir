@@ -1494,12 +1494,8 @@ defmodule DateTime do
 
   ## Examples
 
-      iex> dt1 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "AMT",
-      ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-      ...>                 utc_offset: -14400, std_offset: 0, time_zone: "America/Manaus"}
-      iex> dt2 = %DateTime{year: 2000, month: 2, day: 29, zone_abbr: "CET",
-      ...>                 hour: 23, minute: 0, second: 7, microsecond: {0, 0},
-      ...>                 utc_offset: 3600, std_offset: 0, time_zone: "Europe/Warsaw"}
+      iex> dt1 = ~U[2024-01-15 15:00:00Z]
+      iex> dt2 = ~U[2024-01-15 10:00:00Z]
       iex> DateTime.diff(dt1, dt2)
       18000
       iex> DateTime.diff(dt2, dt1)
