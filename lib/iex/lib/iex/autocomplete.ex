@@ -197,9 +197,7 @@ defmodule IEx.Autocomplete do
   end
 
   defp expand_signatures([_ | _] = signatures, _shell) do
-    [head | tail] = Enum.sort(signatures, &(String.length(&1) <= String.length(&2)))
-    if tail != [], do: IO.write("\n" <> (tail |> Enum.reverse() |> Enum.join("\n")))
-    yes("", [head])
+    yes("", Enum.sort_by(signatures, &String.length/1))
   end
 
   defp expand_signatures([], shell), do: expand_local_or_var("", shell)
