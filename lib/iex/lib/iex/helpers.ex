@@ -986,6 +986,14 @@ defmodule IEx.Helpers do
   end
 
   @doc """
+  A shortcut for `continue/0`.
+  """
+  @doc since: "1.17.0"
+  def c do
+    continue()
+  end
+
+  @doc """
   Sets up a breakpoint in the AST of shape `Module.function/arity`
   with the given number of `stops`.
 
