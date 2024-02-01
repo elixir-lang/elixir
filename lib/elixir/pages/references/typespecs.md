@@ -44,7 +44,7 @@ In the example above:
 
 ## Types and their syntax
 
-The syntax Elixir provides for type specifications is similar to [the one in Erlang](https://www.erlang.org/doc/reference_manual/typespec.html). Most of the built-in types provided in Erlang (for example, `pid()`) are expressed in the same way: `pid()` (or simply `pid`). Parameterized types (such as `list(integer)`) are supported as well and so are remote types (such as [`Enum.t()`](`t:Enum.t/0`)). Integers and atom literals are allowed as types (for example, `1`, `:atom`, or `false`). All other types are built out of unions of predefined types. Some shorthands are allowed, such as `[...]` and `<<>>`.
+The syntax Elixir provides for type specifications is similar to [the one in Erlang](https://www.erlang.org/doc/reference_manual/typespec.html). Most of the built-in types provided in Erlang (for example, `pid()`) are expressed in the same way: `pid()` (or simply `pid`). Parameterized types (such as `list(integer)`) are supported as well and so are remote types (such as [`Enum.t()`](`t:Enum.t/0`)). Integers and atom literals are allowed as types (for example, `1`, `:atom`, or `false`). All other types are built out of unions of predefined types. Some types can also be declared using their syntactical notation, such as `[type]` for lists, `{type1, type2, ...}` for tuples and `<<_ * _>>` for binaries.
 
 The notation to represent the union of types is the pipe `|`. For example, the typespec `type :: atom() | pid() | tuple()` creates a type `type` that can be either an `atom`, a `pid`, or a `tuple`. This is usually called a [sum type](https://en.wikipedia.org/wiki/Tagged_union) in other languages
 
