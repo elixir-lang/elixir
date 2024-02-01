@@ -424,6 +424,8 @@ defmodule Path do
   defp relative_to_unforced(_, _, original), do: join(original)
 
   defp relative_to_forced(path, path, _original), do: "."
+  defp relative_to_forced(["."], _path, _original), do: "."
+  defp relative_to_forced(path, ["."], _original), do: join(path)
   defp relative_to_forced([h | t1], [h | t2], original), do: relative_to_forced(t1, t2, original)
 
   # this should only happen if we have two paths on different drives on windows
