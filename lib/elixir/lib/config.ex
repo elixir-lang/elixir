@@ -82,9 +82,9 @@ defmodule Config do
         ...
       end
 
-  The only files where you may access functions from the `Mix` module are
-  the `mix.exs` file and inside custom Mix tasks, which always within the
-  `Mix.Tasks` namespace.
+  The only places where you may access functions from the `Mix` module are
+  the `mix.exs` file and inside custom Mix tasks, which are always within
+  the `Mix.Tasks` namespace.
 
   ## `config/runtime.exs`
 
