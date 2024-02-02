@@ -1771,6 +1771,8 @@ defmodule File do
 
   See `Stream.run/1` for an example of streaming into a file.
   """
+  # TODO: Remove this on Elixir v1.20
+  @spec stream!(Path.t(), [stream_mode], :line | pos_integer) :: File.Stream.t()
   @spec stream!(Path.t(), :line | pos_integer, [stream_mode]) :: File.Stream.t()
   def stream!(path, line_or_bytes, modes)
 
