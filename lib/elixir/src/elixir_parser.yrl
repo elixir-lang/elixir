@@ -292,13 +292,13 @@ bracket_arg -> open_bracket container_expr close_bracket : build_access_arg('$1'
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_access_arg('$1', '$2', '$4').
 bracket_arg -> open_bracket container_expr ',' container_args close_bracket : error_too_many_access_syntax('$3').
 
-bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_no_parens('$1', nil), '$2').
+bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_no_parens('$1', nil), meta_with_from_brackets('$2')).
 bracket_expr -> access_expr bracket_arg : build_access('$1', meta_with_from_brackets('$2')).
 
 bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_arg :
-                     build_access(build_unary_op('$1', build_no_parens('$2', nil)), '$3').
+                     build_access(build_unary_op('$1', build_no_parens('$2', nil)), meta_with_from_brackets('$3')).
 bracket_at_expr -> at_op_eol access_expr bracket_arg :
-                     build_access(build_unary_op('$1', '$2'), '$3').
+                     build_access(build_unary_op('$1', '$2'), meta_with_from_brackets('$3')).
 
 %% Blocks
 

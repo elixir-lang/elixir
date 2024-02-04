@@ -217,6 +217,35 @@ defmodule Kernel.TracersTest do
     assert meta[:from_interpolation]
   end
 
+  test "traces bracket access" do
+    compile_string("""
+    foo = %{bar: 3}
+    foo[:bar]
+    """)
+
+    assert_receive {{:remote_function, meta, Access, :get, 2}, _env}
+    assert meta[:from_brackets]
+
+    compile_string("""
+    defmodule Foo do
+      @foo %{bar: 3}
+      def a() do
+        @foo[:bar]
+      end
+    end
+    """)
+
+    assert_receive {{:remote_function, meta, Access, :get, 2}, _env}
+    assert meta[:from_brackets]
+
+    compile_string("""
+    %{bar: 3}[:bar]
+    """)
+
+    assert_receive {{:remote_function, meta, Access, :get, 2}, _env}
+    assert meta[:from_brackets]
+  end
+
   """
   # Make sure this module is compiled with column information
   defmodule MacroWithColumn do
