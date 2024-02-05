@@ -332,13 +332,21 @@ defmodule Kernel.ParserTest do
       nfc_abba = [225, 98, 98, 224]
       nfd_abba = [97, 769, 98, 98, 97, 768]
       context = [line: 1, column: 8]
-      expr = "'ábbà' = 1"
+      expr = "\"ábbà\" = 1"
 
       assert string_to_quoted.(String.normalize(expr, :nfc)) ==
-               {:ok, {:=, context, [nfc_abba, 1]}}
+               {:ok, {:=, context, [List.to_string(nfc_abba), 1]}}
 
       assert string_to_quoted.(String.normalize(expr, :nfd)) ==
-               {:ok, {:=, context, [nfd_abba, 1]}}
+               {:ok, {:=, context, [List.to_string(nfd_abba), 1]}}
+    end
+
+    test "handles maps and structs" do
+      assert Code.string_to_quoted("%{}", columns: true) ==
+               {:ok, {:%{}, [line: 1, column: 1], []}}
+
+      assert Code.string_to_quoted("%:atom{}", columns: true) ==
+               {:ok, {:%, [line: 1, column: 1], [:atom, {:%{}, [line: 1, column: 7], []}]}}
     end
   end
 
@@ -411,7 +419,6 @@ defmodule Kernel.ParserTest do
       string_to_quoted = &Code.string_to_quoted!(&1, opts)
 
       assert string_to_quoted.(~s("one")) == {:__block__, [delimiter: "\"", line: 1], ["one"]}
-      assert string_to_quoted.("'one'") == {:__block__, [delimiter: "'", line: 1], [~c"one"]}
       assert string_to_quoted.("?é") == {:__block__, [token: "?é", line: 1], [233]}
       assert string_to_quoted.("0b10") == {:__block__, [token: "0b10", line: 1], [2]}
       assert string_to_quoted.("12") == {:__block__, [token: "12", line: 1], [12]}

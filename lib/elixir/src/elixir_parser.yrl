@@ -644,7 +644,7 @@ struct_expr -> at_op_eol struct_expr : build_unary_op('$1', '$2').
 struct_expr -> unary_op_eol struct_expr : build_unary_op('$1', '$2').
 struct_expr -> parens_call : '$1'.
 
-map -> map_op map_args : '$2'.
+map -> map_op map_args : adjust_map_column('$2').
 map -> struct_op struct_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
 map -> struct_op struct_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
 
@@ -777,6 +777,17 @@ build_map(Left, Args, Right) ->
 build_map_update(Left, {Pipe, Struct, Map}, Right, Extra) ->
   Op = build_op(Struct, Pipe, append_non_empty(Map, Extra)),
   {'%{}', newlines_pair(Left, Right) ++ meta_from_token(Left), [Op]}.
+
+adjust_map_column(Map) ->
+  case ?columns() of
+    true ->
+      {'%{}', Meta, Pairs} = Map,
+      UpdatedMeta = [{Key, if Key =:= column -> Value - 1; true -> Value end} ||
+                     {Key, Value} <- Meta],
+      {'%{}', UpdatedMeta, Pairs};
+    false ->
+      Map
+  end.
 
 %% Blocks
 
