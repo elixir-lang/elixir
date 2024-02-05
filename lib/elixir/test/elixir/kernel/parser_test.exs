@@ -396,6 +396,75 @@ defmodule Kernel.ParserTest do
 
       assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
                {:__block__, [], args}
+
+      file = ~s'''
+      case :foo do
+        :foo ->
+          case get(:foo) do
+            :FOO ->
+              :bar
+            _ ->
+              :error
+            end
+
+        _ ->
+          :error
+      end
+      '''
+
+      expected = {
+        :case,
+        [do: [line: 1, column: 11], end: [line: 12, column: 1], line: 1, column: 1],
+        [
+          :foo,
+          [
+            do: [
+              {
+                :->,
+                [
+                  {:end_of_expression, [newlines: 2, line: 8, column: 10]},
+                  {:newlines, 1},
+                  {:line, 2},
+                  {:column, 8}
+                ],
+                [
+                  [:foo],
+                  {
+                    :case,
+                    [
+                      end_of_expression: [newlines: 2, line: 8, column: 10],
+                      do: [line: 3, column: 20],
+                      end: [line: 8, column: 7],
+                      line: 3,
+                      column: 5
+                    ],
+                    [
+                      {:get, [closing: [line: 3, column: 18], line: 3, column: 10], [:foo]},
+                      [
+                        do: [
+                          {:->,
+                           [
+                             end_of_expression: [newlines: 1, line: 5, column: 13],
+                             newlines: 1,
+                             line: 4,
+                             column: 12
+                           ], [[:FOO], :bar]},
+                          {:->, [newlines: 1, line: 6, column: 9],
+                           [[{:_, [line: 6, column: 7], nil}], :error]}
+                        ]
+                      ]
+                    ]
+                  }
+                ]
+              },
+              {:->, [newlines: 1, line: 10, column: 5],
+               [[{:_, [line: 10, column: 3], nil}], :error]}
+            ]
+          ]
+        ]
+      }
+
+      assert Code.string_to_quoted!(file, token_metadata: true, columns: true) == expected
     end
 
     test "adds pairing information" do
