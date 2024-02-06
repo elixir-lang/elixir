@@ -398,6 +398,27 @@ defmodule Kernel.ParserTest do
                {:__block__, [], args}
     end
 
+    test "does not add end of expression to ->" do
+      file = """
+      case true do
+        :foo -> :bar
+        :baz -> :bat
+      end
+      """
+
+      assert Code.string_to_quoted!(file, token_metadata: true) ==
+               {:case, [do: [line: 1], end: [line: 4], line: 1],
+                [
+                  true,
+                  [
+                    do: [
+                      {:->, [line: 2], [[:foo], :bar]},
+                      {:->, [line: 3], [[:baz], :bat]}
+                    ]
+                  ]
+                ]}
+    end
+
     test "adds pairing information" do
       string_to_quoted = &Code.string_to_quoted!(&1, token_metadata: true)
 

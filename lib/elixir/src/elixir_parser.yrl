@@ -830,7 +830,7 @@ annotate_eoe(Token, Stack) ->
         {{_, Location}, [{'->', StabMeta, [StabArgs, {Left, Meta, Right}]} | Rest]} when is_list(Meta) ->
           [{'->', StabMeta, [StabArgs, {Left, [{end_of_expression, end_of_expression(Location)} | Meta], Right}]} | Rest];
 
-        {{_, Location}, [{Left, Meta, Right} | Rest]} when is_list(Meta) ->
+        {{_, Location}, [{Left, Meta, Right} | Rest]} when is_list(Meta), Left =/= '->' ->
           [{Left, [{end_of_expression, end_of_expression(Location)} | Meta], Right} | Rest];
 
         _ ->
