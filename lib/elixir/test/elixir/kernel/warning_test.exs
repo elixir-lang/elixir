@@ -904,11 +904,11 @@ defmodule Kernel.WarningTest do
     assert_warn_eval(
       [
         "key :a will be overridden in map",
-        "nofile:4:11\n",
+        "nofile:4:10\n",
         "key :m will be overridden in map",
-        "nofile:5:11\n",
+        "nofile:5:10\n",
         "key 1 will be overridden in map",
-        "nofile:6:11\n"
+        "nofile:6:10\n"
       ],
       """
       defmodule DuplicateMapKeys do
