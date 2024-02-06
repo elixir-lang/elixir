@@ -170,9 +170,6 @@ defmodule Code.Normalizer do
           right = normalize_map_args(right, state)
           [{:|, pipe_meta, [left, right]}]
 
-        [{_, _, _} = call] ->
-          [do_normalize(call, state)]
-
         args ->
           normalize_map_args(args, state)
       end
