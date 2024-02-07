@@ -6,9 +6,15 @@ defmodule Kernel.ParserTest do
   describe "nullary ops" do
     test "in expressions" do
       assert parse!("..") == {:.., [line: 1], []}
+      assert parse!("...") == {:..., [line: 1], []}
     end
 
-    test "raises on ambiguous uses" do
+    test "in capture" do
+      assert parse!("&../0") == {:&, [line: 1], [{:/, [line: 1], [{:.., [line: 1], nil}, 0]}]}
+      assert parse!("&.../0") == {:&, [line: 1], [{:/, [line: 1], [{:..., [line: 1], nil}, 0]}]}
+    end
+
+    test "raises on ambiguous uses when also binary" do
       assert_raise SyntaxError, ~r/syntax error before: do/, fn ->
         parse!("if .. do end")
       end
@@ -19,6 +25,16 @@ defmodule Kernel.ParserTest do
     test "in keywords" do
       assert parse!("f(!: :ok)") == {:f, [line: 1], [[!: :ok]]}
       assert parse!("f @: :ok") == {:f, [line: 1], [[@: :ok]]}
+    end
+
+    test "in maps" do
+      assert parse!("%{+foo, bar => bat, ...baz}") ==
+               {:%{}, [line: 1],
+                [
+                  {:+, [line: 1], [{:foo, [line: 1], nil}]},
+                  {{:bar, [line: 1], nil}, {:bat, [line: 1], nil}},
+                  {:..., [line: 1], [{:baz, [line: 1], nil}]}
+                ]}
     end
 
     test "ambiguous ops in keywords" do
@@ -890,8 +906,7 @@ defmodule Kernel.ParserTest do
     end
 
     test "invalid map/struct" do
-      assert_syntax_error(["nofile:1:5:", "syntax error before: '}'"], ~c"%{:a}")
-      assert_syntax_error(["nofile:1:11:", "syntax error before: '}'"], ~c"%{{:a, :b}}")
+      assert_syntax_error(["nofile:1:15:", "syntax error before: '}'"], ~c"%{foo bar, baz}")
       assert_syntax_error(["nofile:1:8:", "syntax error before: '{'"], ~c"%{a, b}{a: :b}")
     end
 

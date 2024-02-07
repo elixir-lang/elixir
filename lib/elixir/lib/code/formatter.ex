@@ -478,6 +478,11 @@ defmodule Code.Formatter do
     end
   end
 
+  # ...
+  defp quoted_to_algebra({:..., _meta, []}, _context, state) do
+    {"...", state}
+  end
+
   # 1..2//3
   defp quoted_to_algebra({:"..//", meta, [left, middle, right]}, context, state) do
     quoted_to_algebra({:"//", meta, [{:.., meta, [left, middle]}, right]}, context, state)

@@ -95,6 +95,9 @@
 -define(pipe_op(T),
   T =:= $|).
 
+-define(ellipsis_op3(T1, T2, T3),
+  T1 =:= $., T2 =:= $., T3 =:= $.).
+
 %% Deprecated operators
 
 -define(unary_op3(T1, T2, T3),
@@ -272,8 +275,6 @@ tokenize([$' | T], Line, Column, Scope, Tokens) ->
 tokenize(".:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 2, Scope, [{kw_identifier, {Line, Column, nil}, '.'} | Tokens]);
 
-tokenize("...:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{kw_identifier, {Line, Column, nil}, '...'} | Tokens]);
 tokenize("<<>>:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 5, Scope, [{kw_identifier, {Line, Column, nil}, '<<>>'} | Tokens]);
 tokenize("%{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
@@ -287,8 +288,6 @@ tokenize("{}:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
 tokenize("..//:" ++ Rest, Line, Column, Scope, Tokens) when ?is_space(hd(Rest)) ->
   tokenize(Rest, Line, Column + 5, Scope, [{kw_identifier, {Line, Column, nil}, '..//'} | Tokens]);
 
-tokenize(":..." ++ Rest, Line, Column, Scope, Tokens) ->
-  tokenize(Rest, Line, Column + 4, Scope, [{atom, {Line, Column, nil}, '...'} | Tokens]);
 tokenize(":<<>>" ++ Rest, Line, Column, Scope, Tokens) ->
   tokenize(Rest, Line, Column + 5, Scope, [{atom, {Line, Column, nil}, '<<>>'} | Tokens]);
 tokenize(":%{}" ++ Rest, Line, Column, Scope, Tokens) ->
@@ -303,7 +302,7 @@ tokenize(":..//" ++ Rest, Line, Column, Scope, Tokens) ->
 % ## Three Token Operators
 tokenize([$:, T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?xor_op3(T1, T2, T3); ?concat_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?xor_op3(T1, T2, T3); ?concat_op3(T1, T2, T3); ?ellipsis_op3(T1, T2, T3) ->
   Token = {atom, {Line, Column, nil}, list_to_atom([T1, T2, T3])},
   tokenize(Rest, Line, Column + 4, Scope, [Token | Tokens]);
 
@@ -331,13 +330,6 @@ tokenize([$:, T | Rest], Line, Column, Scope, Tokens) when
 
 % ## Stand-alone tokens
 
-%% TODO: Consider either making ... as nullary operator (same as ..)
-%% or deprecating it. In Elixir itself it is only used in typespecs.
-tokenize("..." ++ Rest, Line, Column, Scope, Tokens) ->
-  NewScope = maybe_warn_too_many_of_same_char("...", Rest, Line, Column, Scope),
-  Token = check_call_identifier(Line, Column, "...", '...', Rest),
-  tokenize(Rest, Line, Column + 3, NewScope, [Token | Tokens]);
-
 tokenize("=>" ++ Rest, Line, Column, Scope, Tokens) ->
   Token = {assoc_op, {Line, Column, previous_was_eol(Tokens)}, '=>'},
   tokenize(Rest, Line, Column + 2, Scope, add_token_with_eol(Token, Tokens));
@@ -356,6 +348,9 @@ tokenize("..//" ++ Rest = String, Line, Column, Scope, Tokens) ->
 % ## Three token operators
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?unary_op3(T1, T2, T3) ->
   handle_unary_op(Rest, Line, Column, unary_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
+
+tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?ellipsis_op3(T1, T2, T3) ->
+  handle_unary_op(Rest, Line, Column, ellipsis_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
 
 tokenize([T1, T2, T3 | Rest], Line, Column, Scope, Tokens) when ?comp_op3(T1, T2, T3) ->
   handle_op(Rest, Line, Column, comp_op, 3, list_to_atom([T1, T2, T3]), Scope, Tokens);
@@ -877,7 +872,7 @@ handle_op(Rest, Line, Column, Kind, Length, Op, Scope, Tokens) ->
 % ## Three Token Operators
 handle_dot([$., T1, T2, T3 | Rest], Line, Column, DotInfo, Scope, Tokens) when
     ?unary_op3(T1, T2, T3); ?comp_op3(T1, T2, T3); ?and_op3(T1, T2, T3); ?or_op3(T1, T2, T3);
-    ?arrow_op3(T1, T2, T3); ?xor_op3(T1, T2, T3); ?concat_op3(T1, T2, T3) ->
+    ?arrow_op3(T1, T2, T3); ?xor_op3(T1, T2, T3); ?concat_op3(T1, T2, T3); ?ellipsis_op3(T1, T2, T3) ->
   handle_call_identifier(Rest, Line, Column, DotInfo, 3, [T1, T2, T3], Scope, Tokens);
 
 % ## Two Token Operators
@@ -1687,12 +1682,10 @@ invalid_do_with_fn_error(Prefix) ->
 
 % TODO: Turn into an error on v2.0
 maybe_warn_too_many_of_same_char([T | _] = Token, [T | _] = _Rest, Line, Column, Scope) ->
-  Warning =
-    case T of
-      $. -> "please use parens around \"...\" instead";
-      _ -> io_lib:format("please use a space between \"~ts\" and the next \"~ts\"", [Token, [T]])
-    end,
-  Message = io_lib:format("found \"~ts\" followed by \"~ts\", ~ts", [Token, [T], Warning]),
+  Message = io_lib:format(
+    "found \"~ts\" followed by \"~ts\", please use a space between \"~ts\" and the next \"~ts\"",
+    [Token, [T], Token, [T]]
+  ),
   prepend_warning(Line, Column, Message, Scope);
 maybe_warn_too_many_of_same_char(_Token, _Rest, _Line, _Column, Scope) ->
   Scope.
@@ -1826,7 +1819,7 @@ prune_tokens([{OpType, _, _} | _] = Tokens, [], Terminators)
        OpType =:= in_match_op; OpType =:= type_op; OpType =:= dual_op; OpType =:= mult_op;
        OpType =:= power_op; OpType =:= concat_op; OpType =:= range_op; OpType =:= xor_op;
        OpType =:= pipe_op; OpType =:= stab_op; OpType =:= when_op; OpType =:= assoc_op;
-       OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op ->
+       OpType =:= rel_op; OpType =:= ternary_op; OpType =:= capture_op; OpType =:= ellipsis_op ->
   {Tokens, Terminators};
 %%% or we traverse until the end.
 prune_tokens([_ | Tokens], Opener, Terminators) ->

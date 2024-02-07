@@ -387,7 +387,7 @@ defmodule Kernel.ParallelCompilerTest do
 
       capture_io(:stderr, fn ->
         fixtures = [foo, bar]
-        assert assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
+        assert {:ok, modules, []} = Kernel.ParallelCompiler.compile(fixtures)
         assert FooAsync in modules
         assert BarAsync in modules
       end)

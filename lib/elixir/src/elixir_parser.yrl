@@ -2,7 +2,7 @@ Nonterminals
   grammar expr_list
   expr container_expr block_expr access_expr
   no_parens_expr no_parens_zero_expr no_parens_one_expr no_parens_one_ambig_expr
-  bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr
+  bracket_expr bracket_at_expr bracket_arg matched_expr unmatched_expr sub_matched_expr
   unmatched_op_expr matched_op_expr no_parens_op_expr no_parens_many_expr
   comp_op_eol at_op_eol unary_op_eol and_op_eol or_op_eol capture_op_eol
   dual_op_eol mult_op_eol power_op_eol concat_op_eol xor_op_eol pipe_op_eol
@@ -12,8 +12,8 @@ Nonterminals
   list list_args open_bracket close_bracket
   tuple open_curly close_curly
   bitstring open_bit close_bit
-  map map_op map_close map_args struct_expr struct_op
-  assoc_op_eol assoc_expr assoc_base assoc_update assoc_update_kw assoc
+  map map_op map_base_expr map_close map_args
+  assoc_op_eol assoc_expr assoc_base assoc assoc_update assoc_update_kw
   container_args_base container_args
   call_args_parens_expr call_args_parens_base call_args_parens parens_call
   call_args_no_parens_one call_args_no_parens_ambig call_args_no_parens_expr
@@ -32,7 +32,7 @@ Terminals
   fn 'end' alias
   atom atom_quoted atom_safe atom_unsafe bin_string list_string sigil
   bin_heredoc list_heredoc
-  comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op
+  comp_op at_op unary_op and_op or_op arrow_op match_op in_op in_match_op ellipsis_op
   type_op dual_op mult_op power_op concat_op range_op xor_op pipe_op stab_op when_op
   capture_int capture_op assoc_op rel_op ternary_op dot_call_op
   'true' 'false' 'nil' 'do' eol ';' ',' '.'
@@ -65,6 +65,7 @@ Right     60 type_op_eol.     %% ::
 Right     70 pipe_op_eol.     %% |
 Right     80 assoc_op_eol.    %% =>
 Nonassoc  90 capture_op_eol.  %% &
+Nonassoc  90 ellipsis_op.     %% ...
 Right    100 match_op_eol.    %% =
 Left     120 or_op_eol.       %% ||, |||, or
 Left     130 and_op_eol.      %% &&, &&&, and
@@ -142,13 +143,12 @@ expr -> unmatched_expr : '$1'.
 %% if calls without parentheses are do blocks in particular
 %% segments and act accordingly.
 matched_expr -> matched_expr matched_op_expr : build_op('$1', '$2').
+matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
-matched_expr -> no_parens_one_expr : '$1'.
-matched_expr -> no_parens_zero_expr : '$1'.
-matched_expr -> access_expr : '$1'.
-matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2').
+matched_expr -> ellipsis_op matched_expr : build_unary_op('$1', '$2').
+matched_expr -> sub_matched_expr : '$1'.
 
 unmatched_expr -> matched_expr unmatched_op_expr : build_op('$1', '$2').
 unmatched_expr -> unmatched_expr matched_op_expr : build_op('$1', '$2').
@@ -157,12 +157,14 @@ unmatched_expr -> unmatched_expr no_parens_op_expr : warn_no_parens_after_do_op(
 unmatched_expr -> unary_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> at_op_eol expr : build_unary_op('$1', '$2').
 unmatched_expr -> capture_op_eol expr : build_unary_op('$1', '$2').
+unmatched_expr -> ellipsis_op expr : build_unary_op('$1', '$2').
 unmatched_expr -> block_expr : '$1'.
 
 no_parens_expr -> matched_expr no_parens_op_expr : build_op('$1', '$2').
 no_parens_expr -> unary_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> at_op_eol no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> capture_op_eol no_parens_expr : build_unary_op('$1', '$2').
+no_parens_expr -> ellipsis_op no_parens_expr : build_unary_op('$1', '$2').
 no_parens_expr -> no_parens_one_ambig_expr : '$1'.
 no_parens_expr -> no_parens_many_expr : '$1'.
 
@@ -246,6 +248,12 @@ no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_no_parens('
 no_parens_zero_expr -> dot_do_identifier : build_no_parens('$1', nil).
 no_parens_zero_expr -> dot_identifier : build_no_parens('$1', nil).
 
+sub_matched_expr -> no_parens_zero_expr : '$1'.
+sub_matched_expr -> range_op : build_nullary_op('$1').
+sub_matched_expr -> ellipsis_op : build_nullary_op('$1').
+sub_matched_expr -> access_expr : '$1'.
+sub_matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2').
+
 %% From this point on, we just have constructs that can be
 %% used with the access syntax. Note that (dot_)identifier
 %% is not included in this list simply because the tokenizer
@@ -281,7 +289,6 @@ access_expr -> atom_safe : build_quoted_atom('$1', true, delimiter(<<$">>)).
 access_expr -> atom_unsafe : build_quoted_atom('$1', false, delimiter(<<$">>)).
 access_expr -> dot_alias : '$1'.
 access_expr -> parens_call : '$1'.
-access_expr -> range_op : build_nullary_op('$1').
 
 %% Also used by maps and structs
 parens_call -> dot_call_identifier call_args_parens : build_parens('$1', '$2', {[], []}).
@@ -598,6 +605,11 @@ bitstring -> open_bit container_args close_bit : build_bit('$1', '$2', '$3').
 
 % Map and structs
 
+map_base_expr -> sub_matched_expr : '$1'.
+map_base_expr -> at_op_eol map_base_expr : build_unary_op('$1', '$2').
+map_base_expr -> unary_op_eol map_base_expr : build_unary_op('$1', '$2').
+map_base_expr -> ellipsis_op map_base_expr : build_unary_op('$1', '$2').
+
 assoc_op_eol -> assoc_op : '$1'.
 assoc_op_eol -> assoc_op eol : '$1'.
 
@@ -605,9 +617,7 @@ assoc_expr -> matched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
 assoc_expr -> unmatched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
 assoc_expr -> matched_expr assoc_op_eol unmatched_expr : {'$1', '$3'}.
 assoc_expr -> unmatched_expr assoc_op_eol matched_expr : {'$1', '$3'}.
-assoc_expr -> dot_identifier : build_identifier('$1', nil).
-assoc_expr -> no_parens_one_expr : '$1'.
-assoc_expr -> parens_call : '$1'.
+assoc_expr -> map_base_expr : '$1'.
 
 assoc_update -> matched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
 assoc_update -> unmatched_expr pipe_op_eol assoc_expr : {'$2', '$1', ['$3']}.
@@ -635,18 +645,9 @@ map_args -> open_curly assoc_update ',' close_curly : build_map_update('$1', '$2
 map_args -> open_curly assoc_update ',' map_close : build_map_update('$1', '$2', element(2, '$4'), element(1, '$4')).
 map_args -> open_curly assoc_update_kw close_curly : build_map_update('$1', '$2', '$3', []).
 
-struct_op -> '%' : '$1'.
-struct_expr -> atom : handle_literal(?exprs('$1'), '$1', []).
-struct_expr -> atom_quoted : handle_literal(?exprs('$1'), '$1', delimiter(<<$">>)).
-struct_expr -> dot_alias : '$1'.
-struct_expr -> dot_identifier : build_identifier('$1', nil).
-struct_expr -> at_op_eol struct_expr : build_unary_op('$1', '$2').
-struct_expr -> unary_op_eol struct_expr : build_unary_op('$1', '$2').
-struct_expr -> parens_call : '$1'.
-
 map -> map_op map_args : adjust_map_column('$2').
-map -> struct_op struct_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
-map -> struct_op struct_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
+map -> '%' map_base_expr map_args : {'%', meta_from_token('$1'), ['$2', '$3']}.
+map -> '%' map_base_expr eol map_args : {'%', meta_from_token('$1'), ['$2', '$4']}.
 
 Erlang code.
 

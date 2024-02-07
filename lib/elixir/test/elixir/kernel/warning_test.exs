@@ -196,10 +196,10 @@ defmodule Kernel.WarningTest do
   test "operators formed by many of the same character followed by that character" do
     assert_warn_eval(
       [
-        "nofile:1:11",
-        "found \"...\" followed by \".\", please use parens around \"...\" instead"
+        "nofile:1:12",
+        "found \"+++\" followed by \"+\", please use a space between \"+++\" and the next \"+\""
       ],
-      "quote do: ....()"
+      "quote do: 1++++1"
     )
   end
 

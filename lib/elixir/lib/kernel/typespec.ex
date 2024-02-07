@@ -917,11 +917,11 @@ defmodule Kernel.Typespec do
     typespec({nil, [], []}, vars, caller, state)
   end
 
-  defp typespec([{:..., _, atom}], vars, caller, state) when is_atom(atom) do
+  defp typespec([{:..., _, _}], vars, caller, state) do
     typespec({:nonempty_list, [], []}, vars, caller, state)
   end
 
-  defp typespec([spec, {:..., _, atom}], vars, caller, state) when is_atom(atom) do
+  defp typespec([spec, {:..., _, _}], vars, caller, state) do
     typespec({:nonempty_list, [], [spec]}, vars, caller, state)
   end
 

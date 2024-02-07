@@ -22,7 +22,7 @@ Operator                                       | Associativity
 `&&` `&&&` `and`                               | Left
 `\|\|` `\|\|\|` `or`                           | Left
 `=`                                            | Right
-`&`                                            | Unary
+`&`, `...`                                     | Unary
 `=>` (valid only inside `%{}`)                 | Right
 `\|`                                           | Right
 `::`                                           | Right

@@ -109,10 +109,6 @@ identifier_test() ->
 module_macro_test() ->
   [{identifier, {1, 1, _}, '__MODULE__'}] = tokenize("__MODULE__").
 
-triple_dot_test() ->
-  [{identifier, {1, 1, _}, '...'}] = tokenize("..."),
-  [{'.', {1, 1, nil}}, {identifier, {1, 3, _}, '..'}] = tokenize(". ..").
-
 dot_test() ->
   [{identifier, {1, 1, _}, foo},
    {'.', {1, 4, nil}},
