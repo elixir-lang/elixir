@@ -291,7 +291,7 @@ defmodule Mix do
   then `mix cmd` to execute a command line shell script. This shows how
   powerful aliases mixed with Mix tasks can be.
 
-  One commit pitfall of aliases comes when trying to invoke the same task
+  One common pitfall of aliases comes when trying to invoke the same task
   multiple times. Mix tasks are designed to run only once. This prevents
   the same task from being executed multiple times. For example, if there
   are several tasks depending on `mix compile`, the code will be compiled
