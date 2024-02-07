@@ -143,6 +143,7 @@ expr -> unmatched_expr : '$1'.
 %% if calls without parentheses are do blocks in particular
 %% segments and act accordingly.
 matched_expr -> matched_expr matched_op_expr : build_op('$1', '$2').
+matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
