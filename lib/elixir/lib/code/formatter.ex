@@ -634,7 +634,7 @@ defmodule Code.Formatter do
 
   defp maybe_binary_op_to_algebra(fun, meta, args, context, state) do
     with [left, right] <- args,
-         {_, _} <- Code.Identifier.binary_op(fun) do
+         {_, _} <- augmented_binary_op(fun) do
       binary_op_to_algebra(fun, Atom.to_string(fun), meta, left, right, context, state)
     else
       _ -> :error
@@ -661,7 +661,7 @@ defmodule Code.Formatter do
 
   defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, _nesting)
        when op in @right_new_line_before_binary_operators do
-    op_info = Code.Identifier.binary_op(op)
+    op_info = augmented_binary_op(op)
     op_string = op_string <> " "
     left_context = left_op_context(context)
     right_context = right_op_context(context)
@@ -698,7 +698,7 @@ defmodule Code.Formatter do
 
   defp binary_op_to_algebra(op, _, meta, left_arg, right_arg, context, state, _nesting)
        when op in @pipeline_operators do
-    op_info = Code.Identifier.binary_op(op)
+    op_info = augmented_binary_op(op)
     left_context = left_op_context(context)
     right_context = right_op_context(context)
     max_line = line(meta)
@@ -712,7 +712,7 @@ defmodule Code.Formatter do
         {{doc, @empty, 1}, state}
 
       {{op, context}, arg}, _args, state ->
-        op_info = Code.Identifier.binary_op(op)
+        op_info = augmented_binary_op(op)
         op_string = Atom.to_string(op) <> " "
         {doc, state} = binary_operand_to_algebra(arg, context, state, op, op_info, :right, 0)
         {{concat(op_string, doc), @empty, 1}, state}
@@ -722,7 +722,7 @@ defmodule Code.Formatter do
   end
 
   defp binary_op_to_algebra(op, op_string, meta, left_arg, right_arg, context, state, nesting) do
-    op_info = Code.Identifier.binary_op(op)
+    op_info = augmented_binary_op(op)
     left_context = left_op_context(context)
     right_context = right_op_context(context)
 
@@ -781,7 +781,7 @@ defmodule Code.Formatter do
     {parent_assoc, parent_prec} = parent_info
 
     with {op, meta, [left, right]} <- operand,
-         op_info = Code.Identifier.binary_op(op),
+         op_info = augmented_binary_op(op),
          {_assoc, prec} <- op_info do
       op_string = Atom.to_string(op)
 
@@ -2192,10 +2192,15 @@ defmodule Code.Formatter do
     unary_operator?(quoted) or binary_operator?(quoted)
   end
 
+  # We convert ..// into two operators for simplicity,
+  # so we need to augment the binary table.
+  defp augmented_binary_op(:"//"), do: {:right, 190}
+  defp augmented_binary_op(op), do: Code.Identifier.binary_op(op)
+
   defp binary_operator?(quoted) do
     case quoted do
       {op, _, [_, _, _]} when op in @multi_binary_operators -> true
-      {op, _, [_, _]} when is_atom(op) -> Code.Identifier.binary_op(op) != :error
+      {op, _, [_, _]} when is_atom(op) -> augmented_binary_op(op) != :error
       _ -> false
     end
   end

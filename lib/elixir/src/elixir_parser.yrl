@@ -143,11 +143,11 @@ expr -> unmatched_expr : '$1'.
 %% if calls without parentheses are do blocks in particular
 %% segments and act accordingly.
 matched_expr -> matched_expr matched_op_expr : build_op('$1', '$2').
-matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> unary_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> at_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> capture_op_eol matched_expr : build_unary_op('$1', '$2').
 matched_expr -> ellipsis_op matched_expr : build_unary_op('$1', '$2').
+matched_expr -> no_parens_one_expr : '$1'.
 matched_expr -> sub_matched_expr : '$1'.
 
 unmatched_expr -> matched_expr unmatched_op_expr : build_op('$1', '$2').
@@ -192,6 +192,10 @@ matched_op_expr -> pipe_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> comp_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> rel_op_eol matched_expr : {'$1', '$2'}.
 matched_op_expr -> arrow_op_eol matched_expr : {'$1', '$2'}.
+
+%% We warn exclusively for |> and friends because they are used
+%% in other languages with lower precedence than function application,
+%% which can be the source of confusion.
 matched_op_expr -> arrow_op_eol no_parens_one_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
 unmatched_op_expr -> match_op_eol unmatched_expr : {'$1', '$2'}.
@@ -230,9 +234,7 @@ no_parens_op_expr -> when_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> pipe_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> comp_op_eol no_parens_expr : {'$1', '$2'}.
 no_parens_op_expr -> rel_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> arrow_op_eol no_parens_expr : {'$1', '$2'}.
-no_parens_op_expr -> arrow_op_eol no_parens_one_ambig_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
-no_parens_op_expr -> arrow_op_eol no_parens_many_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
+no_parens_op_expr -> arrow_op_eol no_parens_expr : warn_pipe('$1', '$2'), {'$1', '$2'}.
 
 %% Allow when (and only when) with keywords
 no_parens_op_expr -> when_op_eol call_args_no_parens_kw : {'$1', '$2'}.
@@ -245,8 +247,8 @@ no_parens_many_expr -> dot_identifier call_args_no_parens_many_strict : build_no
 
 no_parens_one_expr -> dot_op_identifier call_args_no_parens_one : build_no_parens('$1', '$2').
 no_parens_one_expr -> dot_identifier call_args_no_parens_one : build_no_parens('$1', '$2').
-no_parens_zero_expr -> dot_do_identifier : build_no_parens('$1', nil).
-no_parens_zero_expr -> dot_identifier : build_no_parens('$1', nil).
+no_parens_zero_expr -> dot_do_identifier : build_identifier('$1').
+no_parens_zero_expr -> dot_identifier : build_identifier('$1').
 
 sub_matched_expr -> no_parens_zero_expr : '$1'.
 sub_matched_expr -> range_op : build_nullary_op('$1').
@@ -299,11 +301,11 @@ bracket_arg -> open_bracket container_expr close_bracket : build_access_arg('$1'
 bracket_arg -> open_bracket container_expr ',' close_bracket : build_access_arg('$1', '$2', '$4').
 bracket_arg -> open_bracket container_expr ',' container_args close_bracket : error_too_many_access_syntax('$3').
 
-bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_no_parens('$1', nil), meta_with_from_brackets('$2')).
+bracket_expr -> dot_bracket_identifier bracket_arg : build_access(build_identifier('$1'), meta_with_from_brackets('$2')).
 bracket_expr -> access_expr bracket_arg : build_access('$1', meta_with_from_brackets('$2')).
 
 bracket_at_expr -> at_op_eol dot_bracket_identifier bracket_arg :
-                     build_access(build_unary_op('$1', build_no_parens('$2', nil)), meta_with_from_brackets('$3')).
+                     build_access(build_unary_op('$1', build_identifier('$2')), meta_with_from_brackets('$3')).
 bracket_at_expr -> at_op_eol access_expr bracket_arg :
                      build_access(build_unary_op('$1', '$2'), meta_with_from_brackets('$3')).
 
@@ -897,32 +899,35 @@ build_nested_parens(Dot, Args1, {Args2Meta, Args2}, {BlockMeta, Block}) ->
   {Identifier, Meta, append_non_empty(Args2, Block)}.
 
 build_parens(Expr, {ArgsMeta, Args}, {BlockMeta, Block}) ->
-  {BuiltExpr, BuiltMeta, BuiltArgs} = build_identifier(Expr, append_non_empty(Args, Block)),
+  {BuiltExpr, BuiltMeta, BuiltArgs} = build_call(Expr, append_non_empty(Args, Block)),
   {BuiltExpr, BlockMeta ++ ArgsMeta ++ BuiltMeta, BuiltArgs}.
 
 build_no_parens_do_block(Expr, Args, {BlockMeta, Block}) ->
-  {BuiltExpr, BuiltMeta, BuiltArgs} = build_no_parens(Expr, Args ++ Block),
+  {BuiltExpr, BuiltMeta, BuiltArgs} = build_call(Expr, Args ++ Block),
   {BuiltExpr, BlockMeta ++ BuiltMeta, BuiltArgs}.
 
 build_no_parens(Expr, Args) ->
-  build_identifier(Expr, Args).
+  build_call(Expr, Args).
 
-build_identifier({'.', Meta, IdentifierLocation, DotArgs}, nil) ->
+build_identifier({'.', Meta, IdentifierLocation, DotArgs}) ->
   {{'.', Meta, DotArgs}, [{no_parens, true} | IdentifierLocation], []};
 
-build_identifier({'.', Meta, IdentifierLocation, DotArgs}, Args) ->
-  {{'.', Meta, DotArgs}, IdentifierLocation, Args};
-
-build_identifier({'.', Meta, _} = Dot, nil) ->
+build_identifier({'.', Meta, _} = Dot) ->
   {Dot, [{no_parens, true} | Meta], []};
 
-build_identifier({'.', Meta, _} = Dot, Args) ->
+build_identifier({_, Location, Identifier}) ->
+  {Identifier, meta_from_location(Location), nil}.
+
+build_call({'.', Meta, IdentifierLocation, DotArgs}, Args) ->
+  {{'.', Meta, DotArgs}, IdentifierLocation, Args};
+
+build_call({'.', Meta, _} = Dot, Args) ->
   {Dot, Meta, Args};
 
-build_identifier({op_identifier, Location, Identifier}, [Arg]) ->
+build_call({op_identifier, Location, Identifier}, [Arg]) ->
   {Identifier, [{ambiguous_op, nil} | meta_from_location(Location)], [Arg]};
 
-build_identifier({_, Location, Identifier}, Args) ->
+build_call({_, Location, Identifier}, Args) ->
   {Identifier, meta_from_location(Location), Args}.
 
 %% Fn
