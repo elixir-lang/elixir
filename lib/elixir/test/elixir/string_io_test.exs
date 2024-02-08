@@ -267,7 +267,7 @@ defmodule StringIOTest do
   test "IO.stream with invalid UTF-8" do
     {:ok, pid} = StringIO.open(<<130, 227, 129, 132, 227, 129, 134>>)
 
-    assert_raise IO.StreamError, fn ->
+    assert_raise IO.StreamError, "error during streaming: :invalid_unicode", fn ->
       IO.stream(pid, 2) |> Enum.to_list()
     end
 
