@@ -7,11 +7,19 @@ IEx.configure(colors: [enabled: false])
 {line_exclude, line_include} =
   if line = System.get_env("LINE"), do: {[:test], [line: line]}, else: {[], []}
 
+erlang_doc_exclude =
+  if match?({:docs_v1, _, _, _, _, _, _}, Code.fetch_docs(:array)) do
+    []
+  else
+    IO.puts("Erlang/OTP compiled without docs, some tests are excluded...")
+    [:erlang_doc]
+  end
+
 ExUnit.start(
   assert_receive_timeout: assert_timeout,
   trace: !!System.get_env("TRACE"),
   include: line_include,
-  exclude: line_exclude
+  exclude: line_exclude ++ erlang_doc_exclude
 )
 
 defmodule IEx.Case do
