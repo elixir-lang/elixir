@@ -332,17 +332,20 @@ defmodule IEx.HelpersTest do
       assert help =~ "Welcome to Interactive Elixir"
     end
 
+    @tag :erlang_doc
     test "prints Erlang module documentation" do
       captured = capture_io(fn -> h(:timer) end)
       assert captured =~ "This module provides useful functions related to time."
     end
 
+    @tag :erlang_doc
     test "prints Erlang module function specs" do
       captured = capture_io(fn -> h(:timer.sleep() / 1) end)
       assert captured =~ ":timer.sleep/1"
       assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
     end
 
+    @tag :erlang_doc
     test "handles non-existing Erlang module function" do
       captured = capture_io(fn -> h(:timer.baz() / 1) end)
       assert captured =~ "No documentation for :timer.baz was found"
@@ -1008,13 +1011,15 @@ defmodule IEx.HelpersTest do
       cleanup_modules([TypeSample])
     end
 
-    test "prints all types in erlang module" do
+    @tag :erlang_doc
+    test "prints all types in Erlang module" do
       captured = capture_io(fn -> t(:queue) end)
       assert captured =~ "-type queue() :: queue(_)"
       assert captured =~ "-opaque queue(Item)"
     end
 
-    test "prints single type from erlang module" do
+    @tag :erlang_doc
+    test "prints single type from Erlang module" do
       captured = capture_io(fn -> t(:erlang.iovec()) end)
       assert captured =~ "-type iovec() :: [binary()]"
       assert captured =~ "A list of binaries."
@@ -1024,7 +1029,8 @@ defmodule IEx.HelpersTest do
       assert captured =~ "A list of binaries."
     end
 
-    test "handles non-existing types from erlang module" do
+    @tag :erlang_doc
+    test "handles non-existing types from Erlang module" do
       captured = capture_io(fn -> t(:erlang.foo()) end)
       assert captured =~ "No type information for :erlang.foo was found or :erlang.foo is private"
 
