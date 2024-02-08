@@ -2082,8 +2082,9 @@ defmodule Kernel do
   defp invalid_concat_left_argument_error(arg) do
     :erlang.error(
       ArgumentError.exception(
-        "the left argument of <> operator inside a match should always be a literal " <>
-          "binary because its size can't be verified. Got: #{arg}"
+        "the left argument of <> operator inside a match should always be either a literal " <>
+          "binary or an existing variable matched with the pin operator (such as ^some_var) " <>
+          "because its size can't be verified. Got: #{arg}"
       )
     )
   end
