@@ -119,7 +119,7 @@ defmodule Kernel.BinaryTest do
       Code.eval_string(~s["foo" <> 1])
     end
 
-    message = ~r"left argument of <> operator inside a match"
+    message = ~r"cannot perform prefix match because the left operand of <> has unknown size."
 
     assert_raise ArgumentError, message, fn ->
       Code.eval_string(~s[a <> "b" = "ab"])
