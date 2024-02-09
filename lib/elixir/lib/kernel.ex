@@ -379,9 +379,9 @@ defmodule Kernel do
   end
 
   @doc """
-  Extracts the part of the binary at `start` with `length`.
+  Extracts the part of the binary at `start` with `size`.
 
-  If `start` or `length` reference in any way outside the binary,
+  If `start` or `size` reference in any way outside the binary,
   an `ArgumentError` exception is raised.
 
   Allowed in guard tests. Inlined by the compiler.
@@ -391,13 +391,13 @@ defmodule Kernel do
       iex> binary_part("foo", 1, 2)
       "oo"
 
-  A negative `length` can be used to extract bytes that come *before* the byte
+  A negative `size` can be used to extract bytes that come *before* the byte
   at `start`:
 
       iex> binary_part("Hello", 5, -3)
       "llo"
 
-  An `ArgumentError` is raised when the length is outside of the binary:
+  An `ArgumentError` is raised when the size is outside of the binary:
 
       binary_part("Hello", 0, 10)
       ** (ArgumentError) argument error
@@ -405,8 +405,8 @@ defmodule Kernel do
   """
   @doc guard: true
   @spec binary_part(binary, non_neg_integer, integer) :: binary
-  def binary_part(binary, start, length) do
-    :erlang.binary_part(binary, start, length)
+  def binary_part(binary, start, size) do
+    :erlang.binary_part(binary, start, size)
   end
 
   @doc """
