@@ -209,6 +209,11 @@ defmodule SystemTest do
       assert {"1\n2\n", 0} = System.shell("x=1; echo $x; echo '2'")
     end
 
+    test "shell/1 with empty string" do
+      assert {"", 0} = System.shell("")
+      assert {"", 0} = System.shell("  ")
+    end
+
     @tag timeout: 1_000
     test "shell/1 returns when command awaits input" do
       assert {"", 0} = System.shell("cat", close_stdin: true)
