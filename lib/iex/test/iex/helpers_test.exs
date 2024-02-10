@@ -1048,6 +1048,15 @@ defmodule IEx.HelpersTest do
       assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv(-1)")
       assert capture_iex("1\n2\nv(2)") == capture_iex("1\n2\nv()")
     end
+
+    test "returns proper error when trying to access history out of bounds" do
+      # We evaluate 22 statements as 20 is the current limit for iex history
+      assert capture_iex("""
+             \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+             v(1)
+             """) =~
+               "(RuntimeError) v(1) is out of bounds, the currently preserved history ranges from 2 to 22"
+    end
   end
 
   describe "flush" do
