@@ -955,6 +955,12 @@ defmodule System do
   @doc since: "1.12.0"
   @spec shell(binary, keyword) :: {Collectable.t(), exit_status :: non_neg_integer}
   def shell(command, opts \\ []) when is_binary(command) do
+    command |> String.trim() |> do_shell(opts)
+  end
+
+  defp do_shell("", _opts), do: {"", 0}
+
+  defp do_shell(command, opts) do
     assert_no_null_byte!(command, "System.shell/2")
     {close_stdin?, opts} = Keyword.pop(opts, :close_stdin, false)
 
