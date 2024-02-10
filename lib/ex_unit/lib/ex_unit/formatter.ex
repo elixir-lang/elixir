@@ -30,6 +30,10 @@ defmodule ExUnit.Formatter do
       the VM is going to shutdown. It receives the test cases (or test
       module in case of `setup_all`) still running.
 
+    * `:max_failures_reached` -
+      the test run has been aborted due to reaching max failures limit set
+      with `:max_failures` option
+
   The formatter will also receive the following events but they are deprecated
   and should be ignored:
 
