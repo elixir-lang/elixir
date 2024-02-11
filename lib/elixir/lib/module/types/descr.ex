@@ -445,10 +445,9 @@ defmodule Module.Types.Descr do
 
   defp dynamic_to_quoted(%{} = descr) do
     if term?(descr) do
-      {:dynamic, [], []}
+      [{:dynamic, [], []}]
     else
-      {:and, [], [to_quoted(descr), {:dynamic, [], []}]}
+      [{:and, [], [to_quoted(descr), {:dynamic, [], []}]}]
     end
-    |> List.wrap()
   end
 end
