@@ -45,7 +45,7 @@ defmodule IEx.History do
   end
 
   # Traverses the queue back-to-front if the index is negative.
-  def nth(%History{queue: q, size: size, start: start}, n)
+  def nth(%History{queue: q, size: size}, n)
       when n < 0 and size + n >= 0 do
     get_nth(:queue.reverse(q), abs(n) - 1)
   end
