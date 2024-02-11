@@ -55,7 +55,7 @@ defmodule IEx.History do
   end
 
   def nth(%History{size: size, start: start}, n) do
-    raise "v(#{n}) is out of bounds, the currently preserved history ranges from #{start} to #{start + size} " <>
+    raise "v(#{n}) is out of bounds, the currently preserved history ranges from #{start} to #{start + size - 1} " <>
             "(or use negative numbers to look from the end)"
   end
 
@@ -95,10 +95,10 @@ defmodule IEx.History do
     {collect?, %{state | start: counter}}
   end
 
-  defp prune(%{queue: q} = state, counter, limit, collect?) do
+  defp prune(%{queue: q, size: size} = state, counter, limit, collect?) do
     {{:value, entry}, q} = :queue.out(q)
     collect? = collect? || has_binary(entry)
-    prune(%{state | queue: q}, counter + 1, limit, collect?)
+    prune(%{state | queue: q, size: size - 1}, counter + 1, limit, collect?)
   end
 
   # Checks val and each of its elements (if it is a list or a tuple)
