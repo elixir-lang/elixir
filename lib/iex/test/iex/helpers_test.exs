@@ -1055,7 +1055,7 @@ defmodule IEx.HelpersTest do
              \n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
              v(1)
              """) =~
-               "(RuntimeError) v(1) is out of bounds, the currently preserved history ranges from 2 to 22"
+               "(RuntimeError) v(1) is out of bounds, the currently preserved history ranges from 3 to 22"
     end
   end
 

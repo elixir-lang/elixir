@@ -91,7 +91,7 @@ defmodule IEx.History do
     {false, state}
   end
 
-  defp prune(%{size: size} = state, counter, limit, collect?) when size - counter < limit do
+  defp prune(%{size: size} = state, counter, limit, collect?) when size <= limit do
     {collect?, %{state | start: counter}}
   end
 
