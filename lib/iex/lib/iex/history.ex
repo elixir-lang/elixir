@@ -46,7 +46,7 @@ defmodule IEx.History do
 
   # Traverses the queue back-to-front if the index is negative.
   def nth(%History{queue: q, size: size, start: start}, n)
-      when n < 0 and size + n >= start - 1 do
+      when n < 0 and size + n >= 0 do
     get_nth(:queue.reverse(q), abs(n) - 1)
   end
 
@@ -54,7 +54,15 @@ defmodule IEx.History do
     raise "v(#{n}) is out of bounds, no entries were stored in history so far"
   end
 
-  def nth(%History{size: size, start: start}, n) do
+  def nth(%History{size: size, start: start} = h, n) do
+    # IO.inspect(h: h, n: n)
+
+    IO.inspect(
+      IO.inspect(size, label: :size) + IO.inspect(n, label: :n) >=
+        IO.inspect(start, label: :start) - 1,
+      label: :result
+    )
+
     raise "v(#{n}) is out of bounds, the currently preserved history ranges from #{start} to #{start + size - 1} " <>
             "(or use negative numbers to look from the end)"
   end

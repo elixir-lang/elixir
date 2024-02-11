@@ -1057,6 +1057,20 @@ defmodule IEx.HelpersTest do
              """) =~
                "(RuntimeError) v(1) is out of bounds, the currently preserved history ranges from 3 to 22"
     end
+
+    test "negative lookup works properly after crashes" do
+      capture =
+        capture_iex("""
+            \n
+            \n
+            \n
+            Process.exit(self(), :some_reason)\n
+            :target_value
+            v(-1)
+        """)
+
+      assert capture |> String.split("\n") |> List.last() == ":target_value"
+    end
   end
 
   describe "flush" do
