@@ -16,7 +16,7 @@ quoted(Forms, File, Callback) ->
 
     elixir_lexical:run(
       Env,
-      fun (LexicalEnv) -> maybe_fast_compile(Forms, [], LexicalEnv) end,
+      fun (LexicalEnv) -> maybe_fast_compile(Forms, LexicalEnv) end,
       fun (#{lexical_tracker := Pid}) -> Callback(File, Pid) end
     ),
 
@@ -32,11 +32,11 @@ file(File, Callback) ->
 %% Evaluates the given code through the Erlang compiler.
 %% It may end-up evaluating the code if it is deemed a
 %% more efficient strategy depending on the code snippet.
-maybe_fast_compile(Forms, Args, E) ->
+maybe_fast_compile(Forms, E) ->
   case (?key(E, module) == nil) andalso allows_fast_compilation(Forms) andalso
         (not elixir_config:is_bootstrap()) of
     true  -> fast_compile(Forms, E);
-    false -> compile(Forms, Args, [], E)
+    false -> compile(Forms, [], [], E)
   end,
   ok.
 
