@@ -55,14 +55,6 @@ defmodule IEx.History do
   end
 
   def nth(%History{size: size, start: start} = h, n) do
-    # IO.inspect(h: h, n: n)
-
-    IO.inspect(
-      IO.inspect(size, label: :size) + IO.inspect(n, label: :n) >=
-        IO.inspect(start, label: :start) - 1,
-      label: :result
-    )
-
     raise "v(#{n}) is out of bounds, the currently preserved history ranges from #{start} to #{start + size - 1} " <>
             "(or use negative numbers to look from the end)"
   end
