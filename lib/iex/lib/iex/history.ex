@@ -54,7 +54,7 @@ defmodule IEx.History do
     raise "v(#{n}) is out of bounds, no entries were stored in history so far"
   end
 
-  def nth(%History{size: size, start: start} = h, n) do
+  def nth(%History{size: size, start: start}, n) do
     raise "v(#{n}) is out of bounds, the currently preserved history ranges from #{start} to #{start + size - 1} " <>
             "(or use negative numbers to look from the end)"
   end
