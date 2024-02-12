@@ -26,6 +26,25 @@ defmodule Module.Types.DescrTest do
       assert union(atom([:a]), negation(atom([:b]))) == negation(atom([:b]))
       assert union(negation(atom([:a, :b])), negation(atom([:b, :c]))) == negation(atom([:b]))
     end
+    
+    test "all primitive types" do
+      all = [
+        atom(),
+        integer(),
+        float(),
+        binary(),
+        map(),
+        non_empty_list(),
+        empty_list(),
+        tuple(),
+        fun(),
+        pid(),
+        port(),
+        reference()
+      ]
+
+      assert Enum.reduce(all, &union/2) == term()
+    end
 
     test "dynamic" do
       assert equal?(union(dynamic(), dynamic()), dynamic())

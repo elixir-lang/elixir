@@ -219,7 +219,7 @@ defmodule Node do
 
   If `node` does not exist, a useless PID is returned.
 
-  For the list of available options, see `:erlang.spawn/4`.
+  For the list of available options, see `:erlang.spawn_opt/5`.
 
   Inlined by the compiler.
   """

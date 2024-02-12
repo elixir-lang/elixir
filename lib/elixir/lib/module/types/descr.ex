@@ -10,19 +10,19 @@ defmodule Module.Types.Descr do
   # the dynamic type.
   import Bitwise
 
-  @bit_binary 1 <<< 1
-  @bit_empty_list 1 <<< 2
-  @bit_integer 1 <<< 3
-  @bit_float 1 <<< 4
-  @bit_pid 1 <<< 5
-  @bit_port 1 <<< 6
-  @bit_reference 1 <<< 7
+  @bit_binary 1 <<< 0
+  @bit_empty_list 1 <<< 1
+  @bit_integer 1 <<< 2
+  @bit_float 1 <<< 3
+  @bit_pid 1 <<< 4
+  @bit_port 1 <<< 5
+  @bit_reference 1 <<< 6
 
-  @bit_non_empty_list 1 <<< 8
-  @bit_map 1 <<< 9
-  @bit_tuple 1 <<< 10
-  @bit_fun 1 <<< 11
-  @bit_top (1 <<< 12) - 1
+  @bit_non_empty_list 1 <<< 7
+  @bit_map 1 <<< 8
+  @bit_tuple 1 <<< 9
+  @bit_fun 1 <<< 10
+  @bit_top (1 <<< 11) - 1
 
   @atom_top {:negation, :sets.new(version: 2)}
 
