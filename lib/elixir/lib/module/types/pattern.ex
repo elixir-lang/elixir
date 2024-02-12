@@ -33,16 +33,7 @@ defmodule Module.Types.Pattern do
 
     case context.vars do
       %{^version => %{type: old_type, off_traces: off_traces} = data} ->
-        dynamic = dynamic()
-
-        # TODO: Properly compute intersection and union of dynamic
-        new_type =
-          if old_type == dynamic or type == dynamic do
-            dynamic
-          else
-            intersection(type, old_type)
-          end
-
+        new_type = intersection(type, old_type)
         data = %{data | type: new_type, off_traces: new_trace(expr, type, stack, off_traces)}
         context = put_in(context.vars[version], data)
 

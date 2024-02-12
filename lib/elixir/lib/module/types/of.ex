@@ -111,7 +111,8 @@ defmodule Module.Types.Of do
 
     with {:ok, actual_type, context} <- of_fun.(left, {expected_type, expr}, stack, context) do
       # If we are in a pattern and we have a variable, the refinement
-      # will already have checked the type, so we skip the check here.
+      # will already have checked the type, so we skip the check here
+      # as an optimization.
       # TODO: properly handle dynamic. Do we need materialization?
       if actual_type == dynamic() or
            (kind == :pattern and is_var(left)) or

@@ -26,7 +26,7 @@ defmodule Module.Types.DescrTest do
       assert union(atom([:a]), negation(atom([:b]))) == negation(atom([:b]))
       assert union(negation(atom([:a, :b])), negation(atom([:b, :c]))) == negation(atom([:b]))
     end
-    
+
     test "all primitive types" do
       all = [
         atom(),
