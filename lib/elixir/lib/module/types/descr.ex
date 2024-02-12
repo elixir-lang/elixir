@@ -284,6 +284,8 @@ defmodule Module.Types.Descr do
 
   @doc """
   Check if a type is equal to another.
+  
+  It is currently not optimized. Only to be used in tests.
   """
   def equal?(left, right), do: subtype?(left, right) and subtype?(right, left)
 
