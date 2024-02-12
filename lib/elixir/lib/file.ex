@@ -1764,7 +1764,7 @@ defmodule File do
   ## Examples
 
       # Read a utf8 text file which may include BOM
-      File.stream!("./test/test.txt", encoding: :utf8, trim_bom: true)
+      File.stream!("./test/test.txt", [:trim_bom, encoding: :utf8])
 
       # Read in 2048 byte chunks rather than lines
       File.stream!("./test/test.data", 2048)
