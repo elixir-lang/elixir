@@ -251,8 +251,8 @@ defmodule Module.Types.Descr do
   @doc """
   Check if a type is a subtype of another.
 
-  If     `left  ~= (left_dyn  and dynamic()) or left_static`
-  and    `right ~= (right_dyn and dynamic()) or right_static`
+  If     `left  = (left_dyn  and dynamic()) or left_static`
+  and    `right = (right_dyn and dynamic()) or right_static`
 
   then the gradual subtyping relation defined in Definition 6.5 page 125 of
   the thesis https://vlanvin.fr/papers/thesis.pdf is:
