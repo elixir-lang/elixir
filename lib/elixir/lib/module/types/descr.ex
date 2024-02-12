@@ -144,9 +144,11 @@ defmodule Module.Types.Descr do
     if gradual?(left) or gradual?(right) do
       {left_dynamic, left_static} = Map.pop(left, :dynamic, left)
       {right_dynamic, right_static} = Map.pop(right, :dynamic, right)
+      dynamic_part = difference_static(left_dynamic, right_static)
 
-      difference_static(left_static, right_dynamic)
-      |> Map.put(:dynamic, difference_static(left_dynamic, right_static))
+      if empty?(dynamic_part),
+        do: @none,
+        else: Map.put(difference_static(left_static, right_dynamic), :dynamic, dynamic_part)
     else
       difference_static(left, right)
     end
@@ -284,7 +286,7 @@ defmodule Module.Types.Descr do
 
   @doc """
   Check if a type is equal to another.
-  
+
   It is currently not optimized. Only to be used in tests.
   """
   def equal?(left, right), do: subtype?(left, right) and subtype?(right, left)

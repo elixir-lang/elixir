@@ -30,6 +30,7 @@ defmodule Module.Types.DescrTest do
     test "dynamic" do
       assert equal?(union(dynamic(), dynamic()), dynamic())
       assert equal?(union(dynamic(), term()), term())
+      assert equal?(union(term(), dynamic()), term())
       assert equal?(union(intersection(dynamic(), atom()), atom()), atom())
     end
   end
@@ -61,6 +62,9 @@ defmodule Module.Types.DescrTest do
     test "dynamic" do
       assert equal?(intersection(dynamic(), dynamic()), dynamic())
       assert equal?(intersection(dynamic(), term()), dynamic())
+      assert equal?(intersection(term(), dynamic()), dynamic())
+      assert empty?(intersection(dynamic(), none()))
+      assert empty?(intersection(intersection(dynamic(), atom()), integer()))
     end
   end
 
@@ -91,6 +95,9 @@ defmodule Module.Types.DescrTest do
 
     test "dynamic" do
       assert equal?(dynamic(), difference(dynamic(), dynamic()))
+      assert equal?(dynamic(), difference(term(), dynamic()))
+      assert empty?(difference(dynamic(), term()))
+      assert empty?(difference(none(), dynamic()))
     end
   end
 
