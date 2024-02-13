@@ -1629,7 +1629,8 @@ defmodule Code do
       emit a warning and expand as to a local call to the zero-arity function
       of the same name (for example, `node` would be expanded as `node()`).
       This `:warn` behavior only exists for compatibility reasons when working
-      with old dependencies.
+      with old dependencies, its usage is discouraged and it will be removed
+      in future releases.
 
   It always returns `:ok`. Raises an error for invalid options.
 
@@ -1680,6 +1681,7 @@ defmodule Code do
   end
 
   # TODO: Make this option have no effect on Elixir v2.0
+  # TODO: Warn if mode is :warn on Elixir v1.19
   def put_compiler_option(:on_undefined_variable, value) when value in [:raise, :warn] do
     :elixir_config.put(:on_undefined_variable, value)
     :ok
