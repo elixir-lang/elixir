@@ -448,10 +448,19 @@ defmodule Module.Types.Descr do
   defp dynamic_union(left, right), do: union_static(left, right)
 
   defp dynamic_to_quoted(%{} = descr) do
-    if term?(descr) do
-      [{:dynamic, [], []}]
+    cond do
+      term?(descr) -> [{:dynamic, [], []}]
+      single = indivisible_bitmap(descr) -> [single]
+      true -> [{:and, [], [{:dynamic, [], []}, to_quoted(descr)]}]
+    end
+  end
+
+  defp indivisible_bitmap(descr) do
+    with %{bitmap: bitmap} when map_size(descr) == 1 <- descr,
+         [single] <- bitmap_to_quoted(bitmap) do
+      single
     else
-      [{:and, [], [to_quoted(descr), {:dynamic, [], []}]}]
+      _ -> nil
     end
   end
 end
