@@ -219,7 +219,7 @@ defmodule Mix.Project do
       consolidation_path: consolidation_path(config),
       deps_path: deps_path(config),
       deps_build_path: build_path(config),
-      lockfile: Path.expand(config[:lockfile])
+      lockfile: Path.expand(lockfile(config))
     ] ++ Keyword.take(config, [:build_embedded, :build_per_environment, :prune_code_paths])
   end
 
@@ -677,6 +677,11 @@ defmodule Mix.Project do
   @spec build_path(keyword) :: Path.t()
   def build_path(config \\ config()) do
     System.get_env("MIX_BUILD_PATH") || config[:deps_build_path] || do_build_path(config)
+  end
+
+  @doc false
+  def lockfile(config \\ config()) do
+    System.get_env("MIX_LOCKFILE") || config[:lockfile]
   end
 
   defp do_build_path(config) do

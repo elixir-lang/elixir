@@ -354,6 +354,8 @@ defmodule Mix do
 
     * `MIX_INSTALL_FORCE` - (since v1.13.0) runs `Mix.install/2` with empty install cache
 
+    * `MIX_LOCKFILE` - sets the path to the lockfile (default: `mix.lock`)
+
     * `MIX_PATH` - appends extra code paths
 
     * `MIX_PROFILE` - a list of comma-separated Mix tasks to profile the time spent on

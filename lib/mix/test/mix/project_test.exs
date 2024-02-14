@@ -62,6 +62,19 @@ defmodule Mix.ProjectTest do
     end
   end
 
+  describe "lockfile/1" do
+    test "defaults to mix.lock" do
+      assert Mix.Project.lockfile() == "mix.lock"
+    end
+
+    test "considers MIX_LOCKFILE" do
+      System.put_env("MIX_LOCKFILE", "another.lock")
+      assert Mix.Project.lockfile() == "another.lock"
+    after
+      System.delete_env("MIX_LOCKFILE")
+    end
+  end
+
   test "returns mix.exs path" do
     assert Mix.Project.project_file() == nil
     Mix.Project.push(SampleProject, "sample")

@@ -50,7 +50,7 @@ defmodule Mix.Dep.Lock do
   end
 
   defp lockfile do
-    Mix.Project.config()[:lockfile]
+    Mix.Project.lockfile()
   end
 
   defp assert_no_merge_conflicts_in_lockfile(lockfile, info) do
