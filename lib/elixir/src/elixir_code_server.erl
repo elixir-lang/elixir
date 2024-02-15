@@ -64,8 +64,10 @@ handle_call(retrieve_compiler_module, _From, Config) ->
   end;
 
 handle_call(purge_compiler_modules, _From, Config) ->
-  {Used, NewConfig} = purge_compiler_modules(Config),
-  {reply, {ok, length(Used)}, NewConfig};
+  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
+  _ = [code:purge(Module) || Module <- Used],
+  ModPool = {[], Used ++ Unused, Counter},
+  {reply, {ok, length(Used)}, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_call(Request, _From, Config) ->
   {stop, {badcall, Request}, Config}.
@@ -95,11 +97,28 @@ handle_cast({return_compiler_module, Module}, Config) ->
   {noreply, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_cast(purge_compiler_modules, Config) ->
-  {_Used, NewConfig} = purge_compiler_modules(Config),
-  {noreply, NewConfig};
+  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
+
+  case Used of
+    [] -> ok;
+    _ ->
+      Opts = [{monitor, [{tag, {purged, Used}}]}],
+      erlang:spawn_opt(fun() ->
+        [code:purge(Module) || Module <- Used],
+        ok
+      end, Opts)
+  end,
+
+  ModPool = {[], Unused, Counter},
+  {noreply, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.
+
+handle_info({{purged, Purged}, _Ref, process, _Pid, _Reason}, Config) ->
+  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
+  ModPool = {Used, Purged ++ Unused, Counter},
+  {noreply, Config#elixir_code_server{mod_pool=ModPool}};
 
 handle_info({'DOWN', Ref, process, _Pid, _Reason}, Config) ->
   {noreply, undefmodule(Ref, Config)};
@@ -115,12 +134,6 @@ code_change(_Old, Config, _Extra) ->
 
 compiler_module(I) ->
   list_to_atom("elixir_compiler_" ++ integer_to_list(I)).
-
-purge_compiler_modules(Config) ->
-  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
-  _ = [code:purge(Module) || Module <- Used],
-  ModPool = {[], Used ++ Unused, Counter},
-  {Used, Config#elixir_code_server{mod_pool=ModPool}}.
 
 defmodule(Pid, Tuple, #elixir_code_server{mod_ets=ModEts} = Config) ->
   ets:insert(elixir_modules, Tuple),
