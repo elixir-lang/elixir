@@ -35,22 +35,22 @@ privately at <elixir-security@googlegroups.com>**.
 
 All currently open bugs related to the Elixir repository are listed
 in the issues tracker. The Elixir team uses the issues tracker to focus
-on *actionable items*, including planned enhancements in the short- and
-medium-term. We also do our best to label entries for clarity and to ease
+on *actionable items*, including planned enhancements in the short and
+medium term. We also do our best to label entries for clarity and to ease
 collaboration.
 
 Our *actionable item policy* has some important consequences, such as:
 
-  * Proposing new features as well as request for support, help, and
+  * Proposing new features as well as requests for support, help, and
     guidance must be done in their own spaces, detailed next.
 
-  * Issues where we have identified to be outside of Elixir scope,
-    such as a bug upstream, will be closed (and requested to be moved
+  * Issues we have identified to be outside of Elixir's scope,
+    such as an upstream bug, will be closed (and requested to be moved
     elsewhere if appropriate).
 
   * We actively close unrelated and non-actionable issues to keep the
-    issues tracker tidy. However, we may get things wrong from time to
-    time, so we are glad to revisit issues and reopen if necessary.
+    issues tracker tidy. We may get things wrong from time to
+    time and will gladly revisit issues, reopening when necessary.
 
 Keep the tone positive and be kind! For more information, see the
 [Code of Conduct][1].
@@ -76,7 +76,7 @@ in the next release are then "closed" and added to the [changelog][7].
 
 ### Discussions, support, and help
 
-For general discussions, support, and help, please use many of the community
+For general discussions, support, and help, please use the community
 spaces [listed on the sidebar of the Elixir website](https://elixir-lang.org/),
 such as forums, chat platforms, etc, where the wider community will be available
 to help you.
@@ -107,9 +107,9 @@ Additionally, you may choose to run the test suite with `make clean test`.
 
 ## Contributing
 
-We welcome everyone to contribute to Elixir. To do so, there are a few
+We invite contributions to Elixir. To contribute, there are a few
 things you need to know about the code. First, Elixir code is divided
-in applications inside the `lib` folder:
+by each application inside the `lib` folder:
 
   * `elixir` - Elixir's kernel and standard library
 
@@ -123,13 +123,13 @@ in applications inside the `lib` folder:
 
   * `mix` - Mix is Elixir's build tool
 
-You can run all tests in the root directory with `make test` and you can
-also run tests for a specific framework `make test_#{APPLICATION}`, for example,
+You can run all tests in the root directory with `make test`. You can
+also run tests for a specific framework with `make test_#{APPLICATION}`, for example,
 `make test_ex_unit`. If you just changed something in Elixir's standard
 library, you can run only that portion through `make test_stdlib`.
 
-If you are changing just one file, you can choose to compile and run tests only
-for that particular file for fast development cycles. For example, if you
+If you are only changing one file, you can choose to compile and run tests 
+for that specific file for faster development cycles. For example, if you
 are changing the String module, you can compile it and run its tests as:
 
 ```sh
@@ -150,7 +150,7 @@ make compile
 ```
 
 After your changes are done, please remember to run `make format` to guarantee
-all files are properly formatted and then run the full suite with
+all files are properly formatted, then run the full suite with
 `make test`.
 
 If your contribution fails during the bootstrapping of the language,
@@ -160,7 +160,7 @@ you can rebuild the language from scratch with:
 make clean_elixir compile
 ```
 
-Similarly, if you can't get Elixir to compile or the tests to pass after
+Similarly, if you can not get Elixir to compile or the tests to pass after
 updating an existing checkout, run `make clean compile`. You can check
 [the official build status](https://github.com/elixir-lang/elixir/actions/workflows/ci.yml).
 More tasks can be found by reading the [Makefile](Makefile).
@@ -180,7 +180,7 @@ Once a pull request is sent, the Elixir team will review your changes.
 We outline our process below to clarify the roles of everyone involved.
 
 All pull requests must be approved by two committers before being merged into
-the repository. If any changes are necessary, the team will leave appropriate
+the repository. If changes are necessary, the team will leave appropriate
 comments requesting changes to the code. Unfortunately, we cannot guarantee a
 pull request will be merged, even when modifications are requested, as the Elixir
 team will re-evaluate the contribution as it changes.
@@ -200,8 +200,8 @@ a comment.
 
 ## Building documentation
 
-Building the documentation requires [ExDoc](https://github.com/elixir-lang/ex_doc)
-to be installed and built alongside Elixir:
+Building the documentation requires that [ExDoc](https://github.com/elixir-lang/ex_doc)
+is installed and built alongside Elixir:
 
 ```sh
 # After cloning and compiling Elixir, in its parent directory:
