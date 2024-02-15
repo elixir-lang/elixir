@@ -56,9 +56,9 @@ defmodule EnumTest do
     end
 
     test "mix and match" do
-      enums = [[1, 2], %{a: 3, b: 4}, [5, 6]]
+      enums = [[1, 2], 3..4, [5, 6]]
       result = Enum.zip_reduce(enums, [], fn elements, acc -> [List.to_tuple(elements) | acc] end)
-      assert result == [{2, {:b, 4}, 6}, {1, {:a, 3}, 5}]
+      assert result == [{2, 4, 6}, {1, 3, 5}]
     end
   end
 
@@ -412,7 +412,7 @@ defmodule EnumTest do
     assert Enum.into([a: 1, b: 2], %{c: 3}) == %{a: 1, b: 2, c: 3}
     assert Enum.into(MapSet.new(a: 1, b: 2), %{}) == %{a: 1, b: 2}
     assert Enum.into(MapSet.new(a: 1, b: 2), %{c: 3}) == %{a: 1, b: 2, c: 3}
-    assert Enum.into(%{a: 1, b: 2}, []) == [a: 1, b: 2]
+    assert Enum.into(%{a: 1, b: 2}, []) |> Enum.sort() == [a: 1, b: 2]
     assert Enum.into(1..3, []) == [1, 2, 3]
     assert Enum.into(["H", "i"], "") == "Hi"
   end
@@ -1444,7 +1444,7 @@ defmodule EnumTest do
   test "unzip/1" do
     assert Enum.unzip([{:a, 1}, {:b, 2}, {:c, 3}]) == {[:a, :b, :c], [1, 2, 3]}
     assert Enum.unzip([]) == {[], []}
-    assert Enum.unzip(%{a: 1, b: 2}) == {[:a, :b], [1, 2]}
+    assert Enum.unzip(%{a: 1}) == {[:a], [1]}
     assert Enum.unzip(foo: "a", bar: "b") == {[:foo, :bar], ["a", "b"]}
 
     assert_raise FunctionClauseError, fn -> Enum.unzip([{:a, 1}, {:b, 2, "foo"}]) end

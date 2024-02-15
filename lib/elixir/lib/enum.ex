@@ -3809,9 +3809,6 @@ defmodule Enum do
       iex> Enum.unzip([{:a, 1}, {:b, 2}, {:c, 3}])
       {[:a, :b, :c], [1, 2, 3]}
 
-      iex> Enum.unzip(%{a: 1, b: 2})
-      {[:a, :b], [1, 2]}
-
   """
   @spec unzip(t) :: {[element], [element]}
 
@@ -4067,7 +4064,7 @@ defmodule Enum do
       ...> end)
       [{1, 2, 3}, {1, 2, 3}]
 
-      iex> enums = [[1, 2], %{a: 3, b: 4}, [5, 6]]
+      iex> enums = [[1, 2], [a: 3, b: 4], [5, 6]]
       ...> Enum.zip_reduce(enums, [], fn elements, acc ->
       ...>   [List.to_tuple(elements) | acc]
       ...> end)
