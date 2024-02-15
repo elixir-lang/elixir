@@ -64,10 +64,8 @@ handle_call(retrieve_compiler_module, _From, Config) ->
   end;
 
 handle_call(purge_compiler_modules, _From, Config) ->
-  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
-  _ = [code:purge(Module) || Module <- Used],
-  ModPool = {[], Used ++ Unused, Counter},
-  {reply, {ok, length(Used)}, Config#elixir_code_server{mod_pool=ModPool}};
+  {Used, NewConfig} = purge_compiler_modules(Config),
+  {reply, {ok, length(Used)}, NewConfig};
 
 handle_call(Request, _From, Config) ->
   {stop, {badcall, Request}, Config}.
@@ -91,16 +89,14 @@ handle_cast({unrequire_files, Files}, Config) ->
   Unrequired = maps:without(Files, Current),
   {noreply, Config#elixir_code_server{required=Unrequired}};
 
-handle_cast({return_compiler_module, Module, Purgeable}, Config) ->
+handle_cast({return_compiler_module, Module}, Config) ->
   {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
-
-  ModPool =
-    case Purgeable of
-      true -> {Used, [Module | Unused], Counter};
-      false -> {[Module | Used], Unused, Counter}
-    end,
-
+  ModPool = {[Module | Used], Unused, Counter},
   {noreply, Config#elixir_code_server{mod_pool=ModPool}};
+
+handle_cast(purge_compiler_modules, Config) ->
+  {_Used, NewConfig} = purge_compiler_modules(Config),
+  {noreply, NewConfig};
 
 handle_cast(Request, Config) ->
   {stop, {badcast, Request}, Config}.
@@ -119,6 +115,12 @@ code_change(_Old, Config, _Extra) ->
 
 compiler_module(I) ->
   list_to_atom("elixir_compiler_" ++ integer_to_list(I)).
+
+purge_compiler_modules(Config) ->
+  {Used, Unused, Counter} = Config#elixir_code_server.mod_pool,
+  _ = [code:purge(Module) || Module <- Used],
+  ModPool = {[], Used ++ Unused, Counter},
+  {Used, Config#elixir_code_server{mod_pool=ModPool}}.
 
 defmodule(Pid, Tuple, #elixir_code_server{mod_ets=ModEts} = Config) ->
   ets:insert(elixir_modules, Tuple),

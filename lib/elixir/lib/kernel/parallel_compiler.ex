@@ -467,9 +467,11 @@ defmodule Kernel.ParallelCompiler do
 
     case cycle_return do
       {:runtime, dependent_modules, extra_warnings} ->
+        :elixir_code_server.cast(:purge_compiler_modules)
         verify_modules(result, extra_warnings ++ warnings, dependent_modules, state)
 
       {:compile, [], extra_warnings} ->
+        :elixir_code_server.cast(:purge_compiler_modules)
         verify_modules(result, extra_warnings ++ warnings, [], state)
 
       {:compile, more, extra_warnings} ->
