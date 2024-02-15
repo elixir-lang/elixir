@@ -147,7 +147,7 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.keys(%{a: 1, b: 2})
+      Map.keys(%{a: 1, b: 2})
       [:a, :b]
 
   """
@@ -161,7 +161,7 @@ defmodule Map do
 
   ## Examples
 
-      iex> Map.values(%{a: 1, b: 2})
+      Map.values(%{a: 1, b: 2})
       [1, 2]
 
   """
