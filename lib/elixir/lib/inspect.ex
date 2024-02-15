@@ -535,7 +535,8 @@ end
 
 defimpl Inspect, for: Any do
   defmacro __deriving__(module, struct, options) do
-    fields = Map.keys(struct) -- [:__exception__, :__struct__]
+    fields = Enum.sort(Map.keys(struct) -- [:__exception__, :__struct__])
+
     only = Keyword.get(options, :only, fields)
     except = Keyword.get(options, :except, [])
     optional = Keyword.get(options, :optional, [])
@@ -545,7 +546,7 @@ defimpl Inspect, for: Any do
     :ok = validate_option(:optional, optional, fields, module)
 
     inspect_module =
-      if fields == only and except == [] do
+      if fields == Enum.sort(only) and except == [] do
         Inspect.Map
       else
         Inspect.Any
