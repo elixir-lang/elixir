@@ -1,7 +1,7 @@
 defmodule Mix.Hex do
   @moduledoc false
   @compile {:no_warn_undefined, Hex}
-  @hex_requirement ">= 0.19.0"
+  @hex_requirement ">= 2.0.6"
   @hex_builds_url "https://builds.hex.pm"
 
   @doc """
