@@ -275,6 +275,8 @@ defmodule Float do
       -56.0
       iex> Float.ceil(34.251, 2)
       34.26
+      iex> Float.ceil(-0.01)
+      -0.0
 
   """
   @spec ceil(float, precision_range) :: float
@@ -332,6 +334,8 @@ defmodule Float do
       -6.0
       iex> Float.round(12.341444444444441, 15)
       12.341444444444441
+      iex> Float.round(-0.01)
+      -0.0
 
   """
   @spec round(float, precision_range) :: float
@@ -339,6 +343,10 @@ defmodule Float do
   # Faster implementations are available on more recent papers
   # and could be implemented in the future.
   def round(float, precision \\ 0)
+
+  def round(float, 0) when float == 0.0, do: float
+
+  def round(float, 0) when is_float(float) and float > -0.5 and float < 0.0, do: -0.0
 
   def round(float, 0) when is_float(float) do
     float |> :erlang.round() |> :erlang.float()
@@ -365,6 +373,8 @@ defmodule Float do
         case rounding do
           :ceil when sign === 0 -> 1 / power_of_10(precision)
           :floor when sign === 1 -> -1 / power_of_10(precision)
+          :ceil when sign === 1 -> -0.0
+          :half_up when sign === 1 -> -0.0
           _ -> 0.0
         end
 
@@ -394,6 +404,9 @@ defmodule Float do
         boundary = den <<< 52
 
         cond do
+          num == 0 and sign == 1 ->
+            -0.0
+
           num == 0 ->
             0.0
 
