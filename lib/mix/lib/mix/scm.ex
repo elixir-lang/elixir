@@ -132,6 +132,14 @@ defmodule Mix.SCM do
   end
 
   @doc """
+  Deletes the given SCM from the list of available SCMs.
+  """
+  @doc since: "1.16.2"
+  def delete(mod) when is_atom(mod) do
+    Mix.State.update(:scm, &List.delete(&1, mod))
+  end
+
+  @doc """
   Prepends the given SCM module to the list of available SCMs.
   """
   def prepend(mod) when is_atom(mod) do

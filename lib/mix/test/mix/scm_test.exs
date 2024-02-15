@@ -12,10 +12,14 @@ defmodule Mix.SCMTest do
   test "prepends an SCM" do
     Mix.SCM.prepend(Hello)
     assert Enum.at(Mix.SCM.available(), 0) == Hello
+    Mix.SCM.delete(Hello)
+    assert Hello not in Mix.SCM.available()
   end
 
   test "appends an SCM" do
     Mix.SCM.append(Hello)
     assert Enum.at(Mix.SCM.available(), -1) == Hello
+    Mix.SCM.delete(Hello)
+    assert Hello not in Mix.SCM.available()
   end
 end
