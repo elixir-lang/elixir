@@ -213,7 +213,6 @@ defmodule Mix.Compilers.Elixir do
           {:error, previous_warnings(sources, all_warnings) ++ warnings ++ errors}
       after
         Code.compiler_options(previous_opts)
-        Code.purge_compiler_modules()
       end
     else
       # We need to return ok if deps_changed? or stale_modules changed,

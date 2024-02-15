@@ -743,6 +743,9 @@ defmodule Kernel.ParallelCompiler do
   end
 
   defp return_error(warnings, errors, state, fun) do
+    # Also prune compiler modules in case of errors
+    :elixir_code_server.cast(:purge_compiler_modules)
+
     errors =
       Enum.map(errors, fn {%{file: file} = diagnostic, read_snippet} ->
         :elixir_errors.print_diagnostic(diagnostic, read_snippet)
