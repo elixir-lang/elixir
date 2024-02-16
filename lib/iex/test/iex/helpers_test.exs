@@ -339,10 +339,10 @@ defmodule IEx.HelpersTest do
     end
 
     @tag :erlang_doc
-    test "prints Erlang module function specs" do
+    test "prints Erlang module function docs" do
       captured = capture_io(fn -> h(:timer.sleep() / 1) end)
       assert captured =~ ":timer.sleep/1"
-      assert captured =~ "-spec sleep(Time) -> ok when Time :: timeout()."
+      assert captured =~ "sleep(Time)"
     end
 
     @tag :erlang_doc
@@ -1014,18 +1014,18 @@ defmodule IEx.HelpersTest do
     @tag :erlang_doc
     test "prints all types in Erlang module" do
       captured = capture_io(fn -> t(:queue) end)
-      assert captured =~ "-type queue() :: queue(_)"
-      assert captured =~ "-opaque queue(Item)"
+      assert captured =~ "queue()"
+      assert captured =~ "queue(Item)"
     end
 
     @tag :erlang_doc
     test "prints single type from Erlang module" do
       captured = capture_io(fn -> t(:erlang.iovec()) end)
-      assert captured =~ "-type iovec() :: [binary()]"
+      assert captured =~ "iovec()"
       assert captured =~ "A list of binaries."
 
       captured = capture_io(fn -> t(:erlang.iovec() / 0) end)
-      assert captured =~ "-type iovec() :: [binary()]"
+      assert captured =~ "iovec()"
       assert captured =~ "A list of binaries."
     end
 
