@@ -346,10 +346,11 @@ defmodule Float do
 
   def round(float, 0) when float == 0.0, do: float
 
-  def round(float, 0) when is_float(float) and float > -0.5 and float < 0.0, do: -0.0
-
   def round(float, 0) when is_float(float) do
-    float |> :erlang.round() |> :erlang.float()
+    case float |> :erlang.round() |> :erlang.float() do
+      zero when zero == 0.0 and float < 0.0 -> -0.0
+      rounded -> rounded
+    end
   end
 
   def round(float, precision) when is_float(float) and precision in @precision_range do
