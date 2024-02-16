@@ -1301,16 +1301,16 @@ defmodule Registry do
       iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "world", :value)
-      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}])
-      [{"world", self(), :value}, {"hello", self(), :value}]
+      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :"$2", :"$3"}, [], [{{:"$1", :"$2", :"$3"}}]}]) |> Enum.sort()
+      [{"hello", self(), :value}, {"world", self(), :value}]
 
   Get all keys in the registry:
 
       iex> Registry.start_link(keys: :unique, name: Registry.SelectAllTest)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "hello", :value)
       iex> {:ok, _} = Registry.register(Registry.SelectAllTest, "world", :value)
-      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :_, :_}, [], [:"$1"]}])
-      ["world", "hello"]
+      iex> Registry.select(Registry.SelectAllTest, [{{:"$1", :_, :_}, [], [:"$1"]}]) |> Enum.sort()
+      ["hello", "world"]
 
   """
   @doc since: "1.9.0"
