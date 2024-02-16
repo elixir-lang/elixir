@@ -192,13 +192,18 @@ defmodule Mix.Tasks.TestTest do
 
                Percentage | Module
                -----------|--------------------------
+                   50.00% | Bar.Protocol
                   100.00% | Bar
                   100.00% | Bar.Ignore
-                  100.00% | Bar.Protocol
                   100.00% | Bar.Protocol.BitString
                   100.00% | Foo
                -----------|--------------------------
-                  100.00% | Total
+                   83.33% | Total
+
+               Coverage test failed, threshold not met:
+
+                   Coverage:   83.33%
+                   Threshold:  90.00%
                """
       end)
     end
