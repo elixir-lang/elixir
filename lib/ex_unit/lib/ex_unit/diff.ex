@@ -286,10 +286,10 @@ defmodule ExUnit.Diff do
   defp diff_pin({:^, _, [var]} = pin, right, %{pins: pins} = env) do
     identifier = var_context(var)
     %{^identifier => pin_value} = pins
-    {diff, post_env} = diff_value(pin_value, right, env)
+    {diff, post_env} = diff_value(pin_value, right, %{env | context: :===})
 
     diff_left = update_diff_meta(pin, not diff.equivalent?)
-    {%{diff | left: diff_left}, post_env}
+    {%{diff | left: diff_left}, %{post_env | context: :match}}
   end
 
   # Vars
