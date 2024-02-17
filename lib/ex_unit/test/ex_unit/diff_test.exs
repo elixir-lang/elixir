@@ -251,7 +251,12 @@ defmodule ExUnit.DiffTest do
     refute_diff([:a, [:c, :b]] = [:a, [:b, :c]], "[:a, [-:c-, :b]]", "[:a, [:b, +:c+]]")
     refute_diff(:a = [:a, [:b, :c]], "-:a-", "+[:a, [:b, :c]]+")
 
-    pins = %{{:a, nil} => :a, {:b, nil} => :b, {:list_ab, nil} => [:a, :b]}
+    pins = %{
+      {:a, nil} => :a,
+      {:b, nil} => :b,
+      {:list_ab, nil} => [:a, :b],
+      {:list_tuple, nil} => [{:foo}]
+    }
 
     assert_diff(x = [], [x: []], pins)
     assert_diff(x = [:a, :b], [x: [:a, :b]], pins)
@@ -282,6 +287,9 @@ defmodule ExUnit.DiffTest do
 
     refute_diff([:a, :b] = :a, "-[:a, :b]-", "+:a+")
     refute_diff([:foo] = [:foo, {:a, :b, :c}], "[:foo]", "[:foo, +{:a, :b, :c}+]")
+
+    refute_diff([{:foo}] = [{:bar}], "[{-:foo-}]", "[{+:bar+}]")
+    refute_diff(^list_tuple = [{:bar}], "-^list_tuple-", "[{+:bar+}]", pins)
   end
 
   test "improper lists" do
