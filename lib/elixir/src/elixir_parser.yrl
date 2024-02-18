@@ -23,7 +23,7 @@ Nonterminals
   kw_eol kw_base kw_data kw_call call_args_no_parens_kw_expr call_args_no_parens_kw
   dot_op dot_alias dot_bracket_identifier dot_call_identifier
   dot_identifier dot_op_identifier dot_do_identifier dot_paren_identifier
-  do_block fn_eoe do_eoe end_eoe block_eoe block_item block_list
+  do_block fn_eoe do_eoe block_eoe block_item block_list
   .
 
 Terminals
@@ -91,8 +91,8 @@ Nonassoc 330 dot_identifier.
 grammar -> eoe : {'__block__', meta_from_token('$1'), []}.
 grammar -> expr_list : build_block(reverse('$1')).
 grammar -> eoe expr_list : build_block(reverse('$2')).
-grammar -> expr_list eoe : build_block(reverse('$1')).
-grammar -> eoe expr_list eoe : build_block(reverse('$2')).
+grammar -> expr_list eoe : build_block(reverse(annotate_eoe('$2', '$1'))).
+grammar -> eoe expr_list eoe : build_block(reverse(annotate_eoe('$3', '$2'))).
 grammar -> '$empty' : {'__block__', [], []}.
 
 % Note expressions are on reverse order
@@ -263,11 +263,9 @@ sub_matched_expr -> access_expr kw_identifier : error_invalid_kw_identifier('$2'
 access_expr -> bracket_at_expr : '$1'.
 access_expr -> bracket_expr : '$1'.
 access_expr -> capture_int int : build_unary_op('$1', number_value('$2')).
-access_expr -> fn_eoe stab end_eoe : build_fn('$1', '$2', '$3').
-access_expr -> open_paren stab close_paren : build_paren_stab('$1', '$2', '$3').
-access_expr -> open_paren stab ';' close_paren : build_paren_stab('$1', '$2', '$4').
-access_expr -> open_paren ';' stab ';' close_paren : build_paren_stab('$1', '$3', '$5').
-access_expr -> open_paren ';' stab close_paren : build_paren_stab('$1', '$3', '$4').
+access_expr -> fn_eoe stab_eoe 'end' : build_fn('$1', '$2', '$3').
+access_expr -> open_paren stab_eoe ')' : build_paren_stab('$1', '$2', '$3').
+access_expr -> open_paren ';' stab_eoe ')' : build_paren_stab('$1', '$3', '$4').
 access_expr -> open_paren ';' close_paren : build_paren_stab('$1', [], '$3').
 access_expr -> empty_paren : warn_empty_paren('$1'), {'__block__', [], []}.
 access_expr -> int : handle_number(number_value('$1'), '$1', ?exprs('$1')).
@@ -313,7 +311,7 @@ bracket_at_expr -> at_op_eol access_expr bracket_arg :
 
 do_block -> do_eoe 'end' :
               {do_end_meta('$1', '$2'), [[{handle_literal(do, '$1'), {'__block__', [], []}}]]}.
-do_block -> do_eoe stab end_eoe :
+do_block -> do_eoe stab_eoe 'end' :
               {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), build_stab('$2')}]]}.
 do_block -> do_eoe block_list 'end' :
               {do_end_meta('$1', '$3'), [[{handle_literal(do, '$1'), {'__block__', [], []}} | '$2']]}.
@@ -330,9 +328,6 @@ fn_eoe -> 'fn' eoe : next_is_eol('$1', '$2').
 do_eoe -> 'do' : '$1'.
 do_eoe -> 'do' eoe : '$1'.
 
-end_eoe -> 'end' : '$1'.
-end_eoe -> eoe 'end' : '$2'.
-
 block_eoe -> block_identifier : '$1'.
 block_eoe -> block_identifier eoe : '$1'.
 
@@ -340,7 +335,7 @@ stab -> stab_expr : ['$1'].
 stab -> stab eoe stab_expr : ['$3' | annotate_eoe('$2', '$1')].
 
 stab_eoe -> stab : '$1'.
-stab_eoe -> stab eoe : '$1'.
+stab_eoe -> stab eoe : annotate_eoe('$2', '$1').
 
 stab_expr -> expr :
                '$1'.

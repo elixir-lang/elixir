@@ -407,11 +407,71 @@ defmodule Kernel.ParserTest do
            line: 4,
            column: 1
          ], []},
-        {:five, [closing: [line: 7, column: 6], line: 7, column: 1], []}
+        {:five,
+         [
+           end_of_expression: [newlines: 1, line: 7, column: 7],
+           closing: [line: 7, column: 6],
+           line: 7,
+           column: 1
+         ], []}
       ]
 
       assert Code.string_to_quoted!(file, token_metadata: true, columns: true) ==
                {:__block__, [], args}
+    end
+
+    test "adds end_of_expression to the right hand side of ->" do
+      file = """
+      case true do
+        :foo -> bar(); two()
+        :baz -> bat()
+      end
+      """
+
+      assert Code.string_to_quoted!(file, token_metadata: true) ==
+               {:case,
+                [
+                  end_of_expression: [newlines: 1, line: 4],
+                  do: [line: 1],
+                  end: [line: 4],
+                  line: 1
+                ],
+                [
+                  true,
+                  [
+                    do: [
+                      {:->, [line: 2],
+                       [
+                         [:foo],
+                         {:__block__, [],
+                          [
+                            {:bar,
+                             [
+                               end_of_expression: [newlines: 0, line: 2],
+                               closing: [line: 2],
+                               line: 2
+                             ], []},
+                            {:two,
+                             [
+                               end_of_expression: [newlines: 1, line: 2],
+                               closing: [line: 2],
+                               line: 2
+                             ], []}
+                          ]}
+                       ]},
+                      {:->, [line: 3],
+                       [
+                         [:baz],
+                         {:bat,
+                          [
+                            end_of_expression: [newlines: 1, line: 3],
+                            closing: [line: 3],
+                            line: 3
+                          ], []}
+                       ]}
+                    ]
+                  ]
+                ]}
     end
 
     test "does not add end of expression to ->" do
@@ -419,7 +479,7 @@ defmodule Kernel.ParserTest do
       case true do
         :foo -> :bar
         :baz -> :bat
-      end
+      end\
       """
 
       assert Code.string_to_quoted!(file, token_metadata: true) ==
