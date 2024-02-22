@@ -94,7 +94,7 @@ We are getting a little bit ahead of ourselves. Let's talk about bitstrings to l
 
 ## Bitstrings
 
-Although we have covered code points and UTF-8 encoding, we still need to go a bit deeper into how exactly we store the encoded bytes, and this is where we introduce the **bitstring**. A bitstring is a fundamental data type in Elixir, denoted with the `<<>>/1` syntax. **A bitstring is a contiguous sequence of bits in memory.**
+Although we have covered code points and UTF-8 encoding, we still need to go a bit deeper into how exactly we store the encoded bytes, and this is where we introduce the **bitstring**. A bitstring is a fundamental data type in Elixir, denoted with the [`<<>>`](`<<>>/1`) syntax. **A bitstring is a contiguous sequence of bits in memory.**
 
 By default, 8 bits (i.e. 1 byte) is used to store each number in a bitstring, but you can manually specify the number of bits via a `::n` modifier to denote the size in `n` bits, or you can use the more verbose declaration `::size(n)`:
 
@@ -120,6 +120,8 @@ true
 ```
 
 Here, 257 in base 2 would be represented as `100000001`, but since we have reserved only 8 bits for its representation (by default), the left-most bit is ignored and the value becomes truncated to `00000001`, or simply `1` in decimal.
+
+A complete reference for the bitstring constructor can be found in [`<<>>`](`<<>>/1`)'s documentation.
 
 ## Binaries
 
