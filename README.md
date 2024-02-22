@@ -128,7 +128,7 @@ also run tests for a specific framework with `make test_#{APPLICATION}`, for exa
 `make test_ex_unit`. If you just changed something in Elixir's standard
 library, you can run only that portion through `make test_stdlib`.
 
-If you are only changing one file, you can choose to compile and run tests 
+If you are only changing one file, you can choose to compile and run tests
 for that specific file for faster development cycles. For example, if you
 are changing the String module, you can compile it and run its tests as:
 
