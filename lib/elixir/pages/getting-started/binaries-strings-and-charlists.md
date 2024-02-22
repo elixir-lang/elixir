@@ -121,7 +121,7 @@ true
 
 Here, 257 in base 2 would be represented as `100000001`, but since we have reserved only 8 bits for its representation (by default), the left-most bit is ignored and the value becomes truncated to `00000001`, or simply `1` in decimal.
 
-**A complete reference for the bitstring constructor can be found in the [`SpecialForms`](`<<>>/1`) documentation.**
+A complete reference for the bitstring constructor can be found in [`<<>>`](`<<>>/1`)'s documentation.
 
 ## Binaries
 
