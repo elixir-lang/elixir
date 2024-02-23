@@ -210,12 +210,13 @@ defmodule Code.Formatter.LiteralsTest do
     test "with escapes" do
       assert_format ~S['f\a\b\ro'], ~S[~c"f\a\b\ro"]
       assert_format ~S['single \' quote'], ~S[~c"single ' quote"]
-      assert_format ~S['double " quote'], ~S[~c"double \" quote"]
-      assert_format ~S['escaped \" quote'], ~S[~c"escaped \" quote"]
-      assert_format ~S['\\"'], ~S[~c"\\\""]
+      assert_format ~S['double " quote'], ~S[~c'double " quote']
+      assert_format ~S['escaped \" quote'], ~S[~c'escaped \" quote']
+      assert_format ~S['\\"'], ~S[~c'\\"']
 
       assert_same ~S['f\a\b\ro'], @keep_charlists
       assert_same ~S['single \' quote'], @keep_charlists
+      assert_same ~S['double " quote'], @keep_charlists
       assert_same ~S['escaped \" quote'], @keep_charlists
       assert_same ~S['\\"'], @keep_charlists
     end
@@ -239,7 +240,7 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "with interpolation" do
       assert_format ~S['one #{2} three'], ~S[~c"one #{2} three"]
-      assert_format ~S['#{1}\n \\ " \"'], ~S[~c"#{1}\n \\ \" \""]
+      assert_format ~S['#{1}\n \\ " \"'], ~S[~c'#{1}\n \\ " \"']
 
       assert_same ~S['one #{2} three'], @keep_charlists
       assert_same ~S['#{1}\n \\ " \"'], @keep_charlists
@@ -247,7 +248,7 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "with escape and interpolation" do
       assert_format ~S['one\n\'#{2}\'\nthree'], ~S[~c"one\n'#{2}'\nthree"]
-      assert_format ~S['one\n"#{2}"\nthree'], ~S[~c"one\n\"#{2}\"\nthree"]
+      assert_format ~S['one\n"#{2}"\nthree'], ~S[~c'one\n"#{2}"\nthree']
 
       assert_same ~S['one\n\'#{2}\'\nthree'], @keep_charlists
     end
