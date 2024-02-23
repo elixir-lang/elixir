@@ -212,10 +212,12 @@ defmodule Code.Formatter.LiteralsTest do
       assert_format ~S['single \' quote'], ~S[~c"single ' quote"]
       assert_format ~S['double " quote'], ~S[~c"double \" quote"]
       assert_format ~S['escaped \" quote'], ~S[~c"escaped \" quote"]
+      assert_format ~S['\\"'], ~S[~c"\\\""]
 
       assert_same ~S['f\a\b\ro'], @keep_charlists
       assert_same ~S['single \' quote'], @keep_charlists
       assert_same ~S['escaped \" quote'], @keep_charlists
+      assert_same ~S['\\"'], @keep_charlists
     end
 
     test "keeps literal new lines" do
