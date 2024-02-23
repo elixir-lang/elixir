@@ -13,7 +13,10 @@
     assert_same: 2,
 
     # Errors tests
-    assert_eval_raise: 3
+    assert_eval_raise: 3,
+
+    # Float tests
+    float_assert: 1
   ],
   normalize_bitstring_modifiers: false
 ]
