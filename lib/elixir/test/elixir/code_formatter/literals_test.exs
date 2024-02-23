@@ -211,9 +211,11 @@ defmodule Code.Formatter.LiteralsTest do
       assert_format ~S['f\a\b\ro'], ~S[~c"f\a\b\ro"]
       assert_format ~S['single \' quote'], ~S[~c"single ' quote"]
       assert_format ~S['double " quote'], ~S[~c"double \" quote"]
+      assert_format ~S['escaped \" quote'], ~S[~c"escaped \" quote"]
 
       assert_same ~S['f\a\b\ro'], @keep_charlists
       assert_same ~S['single \' quote'], @keep_charlists
+      assert_same ~S['escaped \" quote'], @keep_charlists
     end
 
     test "keeps literal new lines" do
@@ -235,8 +237,10 @@ defmodule Code.Formatter.LiteralsTest do
 
     test "with interpolation" do
       assert_format ~S['one #{2} three'], ~S[~c"one #{2} three"]
+      assert_format ~S['#{1}\n \\ " \"'], ~S[~c"#{1}\n \\ \" \""]
 
       assert_same ~S['one #{2} three'], @keep_charlists
+      assert_same ~S['#{1}\n \\ " \"'], @keep_charlists
     end
 
     test "with escape and interpolation" do
