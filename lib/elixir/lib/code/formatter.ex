@@ -375,7 +375,7 @@ defmodule Code.Formatter do
 
       ~s['] ->
         {opener, quotes} = get_charlist_quotes(false, state)
-        string = list |> List.to_string() |> escape_charlist_string(quotes)
+        string = list |> List.to_string() |> escape_string(quotes)
         {opener |> concat(string) |> concat(quotes), state}
 
       _other ->
@@ -1306,7 +1306,7 @@ defmodule Code.Formatter do
 
   defp list_interpolation_to_algebra([entry | entries], escape, state, acc, last)
        when is_binary(entry) do
-    acc = concat(acc, escape_charlist_string(entry, escape))
+    acc = concat(acc, escape_string(entry, escape))
     list_interpolation_to_algebra(entries, escape, state, acc, last)
   end
 
@@ -1658,15 +1658,6 @@ defmodule Code.Formatter do
     heredoc_to_algebra(["" | String.split(string, "\n")])
   end
 
-  defp escape_charlist_string(string, escape = @double_quote) do
-    # prevent double escapes, e.g. '\"' -> ~c"\""
-    string
-    |> String.replace("\\" <> escape, escape)
-    |> escape_string(escape)
-  end
-
-  defp escape_charlist_string(string, escape), do: escape_string(string, escape)
-
   defp escape_string(string, <<_, _, _>> = escape) do
     string = String.replace(string, escape, "\\" <> escape)
     heredoc_to_algebra(String.split(string, "\n"))
@@ -1674,11 +1665,34 @@ defmodule Code.Formatter do
 
   defp escape_string(string, escape) when is_binary(escape) do
     string
-    |> String.replace(escape, "\\" <> escape)
-    |> String.split("\n")
-    |> Enum.reverse()
-    |> Enum.map(&string/1)
+    |> do_escape_string(escape, [], [])
+    |> Enum.map(fn reversed_chars ->
+      Enum.reverse(reversed_chars) |> IO.chardata_to_string() |> string()
+    end)
     |> Enum.reduce(&concat(&1, concat(nest(line(), :reset), &2)))
+  end
+
+  defp do_escape_string(string, escape, current, acc) do
+    case string do
+      <<>> ->
+        [current | acc]
+
+      "\n" <> rest ->
+        do_escape_string(rest, escape, [], [current | acc])
+
+      "\\\\" <> rest ->
+        do_escape_string(rest, escape, [?\\, ?\\ | current], acc)
+
+      # prevent double escapes, e.g. '\"' -> ~c"\""
+      "\\" <> ^escape <> rest ->
+        do_escape_string(rest, escape, [escape, ?\\ | current], acc)
+
+      ^escape <> rest ->
+        do_escape_string(rest, escape, [escape, ?\\ | current], acc)
+
+      <<char::utf8, rest::binary>> ->
+        do_escape_string(rest, escape, [char | current], acc)
+    end
   end
 
   defp heredoc_to_algebra([string]) do
