@@ -708,10 +708,10 @@ defmodule Code.Normalizer.QuotedASTTest do
                ~S[~c"one\n'#{2}'\nthree"]
 
       assert Code.string_to_quoted!(~S/'one\n"#{2}"\nthree'/) |> quoted_to_string(escape: false) ==
-               ~s[~c"one\n\\"\#{2}\\"\nthree"]
+               ~s[~c'one\n"\#{2}"\nthree']
 
       assert Code.string_to_quoted!(~S/'one\n"#{2}"\nthree'/) |> quoted_to_string() ==
-               ~S[~c"one\n\"#{2}\"\nthree"]
+               ~S[~c'one\n"#{2}"\nthree']
     end
 
     test "atoms" do
