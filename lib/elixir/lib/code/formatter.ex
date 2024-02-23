@@ -6,7 +6,8 @@ defmodule Code.Formatter do
   @double_heredoc "\"\"\""
   @single_quote "'"
   @single_heredoc "'''"
-  @sigil_c "~c\""
+  @sigil_c_double "~c\""
+  @sigil_c_single "~c'"
   @sigil_c_heredoc "~c\"\"\""
   @newlines 2
   @min_line 0
@@ -299,7 +300,7 @@ defmodule Code.Formatter do
         remote_to_algebra(quoted, context, state)
 
       meta[:delimiter] == ~s['''] ->
-        {opener, quotes} = get_charlist_quotes(true, state)
+        {opener, quotes} = get_charlist_quotes(:heredoc, state)
 
         {doc, state} =
           entries
@@ -309,7 +310,7 @@ defmodule Code.Formatter do
         {force_unfit(doc), state}
 
       true ->
-        {opener, quotes} = get_charlist_quotes(false, state)
+        {opener, quotes} = get_charlist_quotes({:regular, entries}, state)
         list_interpolation_to_algebra(entries, quotes, state, opener, quotes)
     end
   end
@@ -368,13 +369,14 @@ defmodule Code.Formatter do
   defp quoted_to_algebra({:__block__, meta, [list]}, _context, state) when is_list(list) do
     case meta[:delimiter] do
       ~s['''] ->
-        {opener, quotes} = get_charlist_quotes(true, state)
+        {opener, quotes} = get_charlist_quotes(:heredoc, state)
         string = list |> List.to_string() |> escape_heredoc(quotes)
         {opener |> concat(string) |> concat(quotes) |> force_unfit(), state}
 
       ~s['] ->
-        {opener, quotes} = get_charlist_quotes(false, state)
-        string = list |> List.to_string() |> escape_string(quotes)
+        string = list |> List.to_string()
+        {opener, quotes} = get_charlist_quotes({:regular, [string]}, state)
+        string = escape_string(string, quotes)
         {opener |> concat(string) |> concat(quotes), state}
 
       _other ->
@@ -2410,19 +2412,23 @@ defmodule Code.Formatter do
     {left, right}
   end
 
-  defp get_charlist_quotes(_heredoc = false, state) do
-    if state.normalize_charlists_as_sigils do
-      {@sigil_c, @double_quote}
-    else
-      {@single_quote, @single_quote}
-    end
-  end
-
-  defp get_charlist_quotes(_heredoc = true, state) do
+  defp get_charlist_quotes(:heredoc, state) do
     if state.normalize_charlists_as_sigils do
       {@sigil_c_heredoc, @double_heredoc}
     else
       {@single_heredoc, @single_heredoc}
     end
+  end
+
+  defp get_charlist_quotes({:regular, chunks}, state) do
+    cond do
+      !state.normalize_charlists_as_sigils -> {@single_quote, @single_quote}
+      Enum.any?(chunks, &has_double_quote?/1) -> {@sigil_c_single, @single_quote}
+      true -> {@sigil_c_double, @double_quote}
+    end
+  end
+
+  defp has_double_quote?(chunk) do
+    is_binary(chunk) and chunk =~ @double_quote
   end
 end
