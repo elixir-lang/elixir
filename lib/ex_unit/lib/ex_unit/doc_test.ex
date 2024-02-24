@@ -96,9 +96,9 @@ defmodule ExUnit.DocTest do
   values are treated as comments in Elixir code due to the leading
   `#` sign, they require special care when being used in doctests.
 
-  Imagine you have a map that contains a MapSet and is printed as:
+  Imagine you have a map that contains a `DateTime` and is printed as:
 
-      %{users: #MapSet<[:foo, :bar]>}
+      %{datetime: #DateTime<2023-06-26 09:30:00+09:00 JST Asia/Tokyo>}
 
   If you try to match on such an expression, `doctest` will fail to compile.
   There are two ways to resolve this.
@@ -106,20 +106,20 @@ defmodule ExUnit.DocTest do
   The first is to rely on the fact that doctest can compare internal
   structures as long as they are at the root. So one could write:
 
-      iex> map = %{users: Enum.into([:foo, :bar], MapSet.new())}
-      iex> map.users
-      #MapSet<[:foo, :bar]>
+      iex> map = %{datetime: DateTime.from_naive!(~N[2023-06-26T09:30:00], "Asia/Tokyo")}
+      iex> map.datetime
+      #DateTime<2023-06-26 09:30:00+09:00 JST Asia/Tokyo>
 
   Whenever a doctest starts with "#Name<", `doctest` will perform a string
   comparison. For example, the above test will perform the following match:
 
-      inspect(map.users) == "#MapSet<[:foo, :bar]>"
+      inspect(map.datetime) == "#DateTime<2023-06-26 09:30:00+09:00 JST Asia/Tokyo>"
 
   Alternatively, since doctest results are actually evaluated, you can have
-  the MapSet building expression as the doctest result:
+  the `DateTime` building expression as the doctest result:
 
-      iex> %{users: Enum.into([:foo, :bar], MapSet.new())}
-      %{users: Enum.into([:foo, :bar], MapSet.new())}
+      iex> %{datetime: DateTime.from_naive!(~N[2023-06-26T09:30:00], "Asia/Tokyo")}
+      %{datetime: DateTime.from_naive!(~N[2023-06-26T09:30:00], "Asia/Tokyo")}
 
   The downside of this approach is that the doctest result is not really
   what users would see in the terminal.
