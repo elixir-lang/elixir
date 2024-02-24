@@ -802,7 +802,7 @@ defmodule IEx.HelpersTest do
 
       assert capture_io(fn -> b(NoMix.run()) end) == "Could not load module NoMix, got: nofile\n"
 
-      assert capture_io(fn -> b(Exception.message() / 1) end) ==
+      assert capture_io(fn -> b(Exception.message() / 1) end) =~
                "@callback message(t()) :: String.t()\n\n"
 
       assert capture_io(fn -> b(:gen_server.handle_cast() / 2) end) =~

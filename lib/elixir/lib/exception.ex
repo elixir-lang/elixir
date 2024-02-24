@@ -31,7 +31,21 @@ defmodule Exception do
   @type arity_or_args :: non_neg_integer | list
   @type location :: keyword
 
+  @doc """
+  Receives the arguments given to `raise/2` and returns the exception struct.
+
+  The default implementation accepts either a set of keyword arguments
+  that is merged into the struct or a string to be used as the exception's message.
+  """
   @callback exception(term) :: t
+
+  @doc """
+  Receives the exception struct and must return its message.
+
+  Most commonly exceptions have a message field which by default is accessed
+  by this function. However, if an exception does not have a message field,
+  this function must be explicitly implemented.
+  """
   @callback message(t) :: String.t()
 
   @doc """
