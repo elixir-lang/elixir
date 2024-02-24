@@ -367,6 +367,11 @@ defmodule Code.Formatter do
     tuple_to_algebra(meta, [left, right], :flex_break, state)
   end
 
+  # (left -> right)
+  defp quoted_to_algebra({:__block__, _, [[{:->, _, _} | _] = clauses]}, _context, state) do
+    paren_fun_to_algebra(clauses, @max_line, @min_line, state)
+  end
+
   defp quoted_to_algebra({:__block__, meta, [list]}, _context, state) when is_list(list) do
     case meta[:delimiter] do
       ~s['''] ->
@@ -417,6 +422,7 @@ defmodule Code.Formatter do
     {Keyword.fetch!(meta, :token) |> float_to_algebra(state.inspect_opts), state}
   end
 
+  # (unquote_splicing(...))
   defp quoted_to_algebra(
          {:__block__, _meta, [{:unquote_splicing, meta, [_] = args}]},
          context,
@@ -503,11 +509,6 @@ defmodule Code.Formatter do
 
   defp quoted_to_algebra({_, _, args} = quoted, context, state) when is_list(args) do
     remote_to_algebra(quoted, context, state)
-  end
-
-  # (left -> right)
-  defp quoted_to_algebra([{:->, _, _} | _] = clauses, _context, state) do
-    paren_fun_to_algebra(clauses, @max_line, @min_line, state)
   end
 
   # [keyword: :list] (inner part)

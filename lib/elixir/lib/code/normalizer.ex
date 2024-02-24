@@ -137,11 +137,6 @@ defmodule Code.Normalizer do
     {:., meta, [left, right]}
   end
 
-  # A list of left to right arrows is not considered as a list literal, so it's not wrapped
-  defp do_normalize([{:->, _, [_ | _]} | _] = quoted, state) do
-    normalize_args(quoted, state)
-  end
-
   # left -> right
   defp do_normalize({:->, meta, [left, right]}, state) do
     meta = patch_meta_line(meta, state.parent_meta)

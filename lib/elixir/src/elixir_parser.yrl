@@ -789,12 +789,14 @@ adjust_map_column(Map) ->
 
 %% Blocks
 
-build_block([{unquote_splicing, _, [_]}]=Exprs) ->
-  {'__block__', [], Exprs};
-build_block([Expr]) ->
+build_block(Exprs) -> build_block(Exprs, []).
+
+build_block([{unquote_splicing, _, [_]}]=Exprs, Meta) ->
+  {'__block__', Meta, Exprs};
+build_block([Expr], _Meta) ->
   Expr;
-build_block(Exprs) ->
-  {'__block__', [], Exprs}.
+build_block(Exprs, Meta) ->
+  {'__block__', Meta, Exprs}.
 
 %% Newlines
 
@@ -1072,11 +1074,9 @@ build_stab(Stab) ->
 build_paren_stab(_Before, [{Op, _, [_]}]=Exprs, _After) when ?rearrange_uop(Op) ->
   {'__block__', [], Exprs};
 build_paren_stab(Before, Stab, After) ->
-  case build_stab(Stab) of
-    {'__block__', Meta, Block} ->
-      {'__block__', Meta ++ meta_from_token_with_closing(Before, After), Block};
-    Other ->
-      Other
+  case check_stab(Stab, none) of
+    block -> build_block(reverse(Stab), meta_from_token_with_closing(Before, After));
+    stab -> handle_literal(collect_stab(Stab, [], []), Before, newlines_pair(Before, After))
   end.
 
 collect_stab([{'->', Meta, [Left, Right]} | T], Exprs, Stabs) ->

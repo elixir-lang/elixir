@@ -474,6 +474,56 @@ defmodule Kernel.ParserTest do
                 ]}
     end
 
+    test "end of expression with literal" do
+      file = """
+      a do
+        d ->
+          (
+            b -> c
+          )
+      end
+      """
+
+      assert Code.string_to_quoted!(file,
+               token_metadata: true,
+               literal_encoder: &{:ok, {:__block__, &2, [&1]}}
+             ) ==
+               {:a,
+                [
+                  end_of_expression: [newlines: 1, line: 6],
+                  do: [line: 1],
+                  end: [line: 6],
+                  line: 1
+                ],
+                [
+                  [
+                    {{:__block__, [line: 1], [:do]},
+                     [
+                       {:->, [newlines: 1, line: 2],
+                        [
+                          [{:d, [line: 2], nil}],
+                          {:__block__,
+                           [
+                             end_of_expression: [newlines: 1, line: 5],
+                             newlines: 1,
+                             closing: [line: 5],
+                             line: 3
+                           ],
+                           [
+                             [
+                               {:->, [line: 4],
+                                [
+                                  [{:b, [line: 4], nil}],
+                                  {:c, [end_of_expression: [newlines: 1, line: 4], line: 4], nil}
+                                ]}
+                             ]
+                           ]}
+                        ]}
+                     ]}
+                  ]
+                ]}
+    end
+
     test "does not add end of expression to ->" do
       file = """
       case true do
@@ -551,7 +601,7 @@ defmodule Kernel.ParserTest do
                 [
                   {:->, [line: 1],
                    [
-                     [{:__block__, [token: "1", line: 1, closing: [line: 1], line: 1], [1]}],
+                     [{:__block__, [token: "1", line: 1], [1]}],
                      {:__block__, [delimiter: "\"", line: 1], ["hello"]}
                    ]}
                 ]}
