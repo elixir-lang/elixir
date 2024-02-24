@@ -33,7 +33,17 @@ extract([$\n | Rest], Buffer, Output, Line, _Column, Scope, Interpol, Last) ->
   extract_nl(Rest, [$\n | Buffer], Output, Line, Scope, Interpol, Last);
 
 extract([$\\, Last | Rest], Buffer, Output, Line, Column, Scope, Interpol, Last) ->
-  extract(Rest, [Last | Buffer], Output, Line, Column+2, Scope, Interpol, Last);
+  NewScope =
+    %% TODO: Remove this on Elixir v2.0
+    case Interpol of
+      true ->
+        Scope;
+      false ->
+        Msg = "using \\~ts to escape the closing of an uppercase sigil is deprecated, please use another delimiter or a lowercase sigil instead",
+        prepend_warning(Line, Column, io_lib:format(Msg, [[Last]]), Scope)
+    end,
+
+  extract(Rest, [Last | Buffer], Output, Line, Column+2, NewScope, Interpol, Last);
 
 extract([$\\, Last, Last, Last | Rest], Buffer, Output, Line, Column, Scope, Interpol, [Last, Last, Last] = All) ->
   extract(Rest, [Last, Last, Last | Buffer], Output, Line, Column+4, Scope, Interpol, All);
@@ -279,3 +289,6 @@ build_string(Buffer, Output) -> [lists:reverse(Buffer) | Output].
 
 build_interpol(Line, Column, EndLine, EndColumn, Buffer, Output) ->
   [{{Line, Column, nil}, {EndLine, EndColumn, nil}, Buffer} | Output].
+
+prepend_warning(Line, Column, Msg, #elixir_tokenizer{warnings=Warnings} = Scope) ->
+  Scope#elixir_tokenizer{warnings = [{{Line, Column}, Msg} | Warnings]}.

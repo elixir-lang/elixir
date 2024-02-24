@@ -6054,8 +6054,7 @@ defmodule Kernel do
   Handles the sigil `~S` for strings.
 
   It returns a string without interpolations and without escape
-  characters, except for the escaping of the closing sigil character
-  itself.
+  characters.
 
   ## Examples
 
@@ -6065,12 +6064,6 @@ defmodule Kernel do
       "f\#{o}o"
       iex> ~S(\o/)
       "\\o/"
-
-  However, if you want to reuse the sigil character itself on
-  the string, you need to escape it:
-
-      iex> ~S((\))
-      "()"
 
   """
   defmacro sigil_S(term, modifiers)
@@ -6108,8 +6101,7 @@ defmodule Kernel do
   Handles the sigil `~C` for charlists.
 
   It returns a charlist without interpolations and without escape
-  characters, except for the escaping of the closing sigil character
-  itself.
+  characters.
 
   A charlist is a list of integers where all the integers are valid code points.
   The three expressions below are equivalent:
@@ -6519,8 +6511,7 @@ defmodule Kernel do
   Handles the sigil `~W` for list of words.
 
   It returns a list of "words" split by whitespace without interpolations
-  and without escape characters, except for the escaping of the closing
-  sigil character itself.
+  and without escape characters.
 
   ## Modifiers
 

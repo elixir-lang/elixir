@@ -1099,6 +1099,10 @@ defmodule Kernel.WarningTest do
     purge(UseSample)
   end
 
+  test "deprecated closing sigil delimiter" do
+    assert_warn_eval(["nofile:1:7", "deprecated"], "~S(foo\\))")
+  end
+
   test "deprecated not left in right" do
     assert_warn_eval(["nofile:1:7", "deprecated"], "not 1 in [1, 2, 3]")
   end
