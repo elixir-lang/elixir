@@ -982,7 +982,7 @@ defmodule StringTest do
     assert String.jaro_distance("marhha", "martha") == 0.888888888888889
     assert String.jaro_distance("dwayne", "duane") == 0.8222222222222223
     assert String.jaro_distance("dixon", "dicksonx") == 0.7666666666666666
-    assert String.jaro_distance("xdicksonx", "dixon") == 0.7851851851851852
+    assert String.jaro_distance("xdicksonx", "dixon") == 0.7518518518518519
     assert String.jaro_distance("shackleford", "shackelford") == 0.9696969696969697
     assert String.jaro_distance("dunningham", "cunnigham") == 0.8962962962962964
     assert String.jaro_distance("nichleson", "nichulson") == 0.9259259259259259
@@ -999,6 +999,7 @@ defmodule StringTest do
     assert String.jaro_distance("jon", "john") == 0.9166666666666666
     assert String.jaro_distance("jon", "jan") == 0.7777777777777777
     assert String.jaro_distance("семена", "стремя") == 0.6666666666666666
+    assert String.jaro_distance("Sunday", "Saturday") == 0.7194444444444444
   end
 
   test "myers_difference/2" do
