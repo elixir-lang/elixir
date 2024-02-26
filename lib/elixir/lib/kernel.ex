@@ -2680,15 +2680,11 @@ defmodule Kernel do
   end
 
   @doc """
-  Gets a value from a nested structure.
+  Gets a value from a nested structure with nil-safe handling.
 
   Uses the `Access` module to traverse the structures
   according to the given `keys`, unless the `key` is a
   function, which is detailed in a later section.
-
-  Note that if none of the given keys are functions,
-  there is rarely a reason to use `get_in` over
-  writing "regular" Elixir code using `[]`.
 
   ## Examples
 
@@ -2716,18 +2712,6 @@ defmodule Kernel do
       iex> # Equivalent to:
       iex> users["unknown"][:age]
       nil
-
-      iex> users = nil
-      iex> get_in(users, [Access.all(), :age])
-      nil
-
-  Alternatively, if you need to access complex data-structures, you can
-  use pattern matching:
-
-      case users do
-        %{"john" => %{age: age}} -> age
-        _ -> default_value
-      end
 
   ## Functions as keys
 
@@ -2758,13 +2742,18 @@ defmodule Kernel do
 
       get_in(some_struct, [:some_key, :nested_key])
 
-  The good news is that structs have predefined shape. Therefore,
-  you can write instead:
+  There are two alternatives. One is to use regular Elixir syntax
+  for accessing the keys:
 
       some_struct.some_key.nested_key
 
-  If, by any chance, `some_key` can return nil, you can always
-  fallback to pattern matching to provide nested struct handling:
+  However, if you want to safely handle nil values, you can use `get_in/1`:
+
+      get_in(some_struct.some_key.nested_key)
+
+  Pattern-matching is another option for handling such cases,
+  which can be especially useful if you want to match on several
+  fields at once or provide custom return values:
 
       case some_struct do
         %{some_key: %{nested_key: value}} -> value
@@ -2983,6 +2972,63 @@ defmodule Kernel do
     do: Access.get_and_update(data, key, &pop_in_data(&1, tail))
 
   @doc """
+  Gets a key from the nested structure via the given `path`, with
+  nil-safe handling.
+
+  This is similar to `get_in/2`, except the path is extracted via
+  a macro rather than passing a list. For example:
+
+      get_in(opts[:foo][:bar])
+
+  Is equivalent to:
+
+      get_in(opts, [:foo, :bar])
+
+  Additionally, this macro can traverse structs:
+
+      get_in(struct.foo.bar)
+
+  In case any of the components returns `nil`, `nil` will be returned
+  and `get_in/1` won't traverse any further.
+
+  Note that in order for this macro to work, the complete path must always
+  be visible by this macro. For more information about the supported path
+  expressions, please check `get_and_update_in/2` docs.
+
+  ## Examples
+
+      iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
+      iex> get_in(users["john"].age)
+      27
+      iex> get_in(users["unknown"].age)
+      nil
+
+  """
+  defmacro get_in(path) do
+    {[h | t], _} = unnest(path, [], true, "get_in/1")
+    nest_get_in(h, quote(do: x), t)
+  end
+
+  defp nest_get_in(h, _var, []) do
+    h
+  end
+
+  defp nest_get_in(h, var, [{:map, key} | tail]) do
+    quote generated: true do
+      case unquote(h) do
+        %{unquote(key) => unquote(var)} -> unquote(nest_get_in(var, var, tail))
+        nil -> nil
+        unquote(var) -> :erlang.error({:badkey, unquote(key), unquote(var)})
+      end
+    end
+  end
+
+  defp nest_get_in(h, var, [{:access, key} | tail]) do
+    h = quote do: Access.get(unquote(h), unquote(key))
+    nest_get_in(h, var, tail)
+  end
+
+  @doc """
   Puts a value in a nested structure via the given `path`.
 
   This is similar to `put_in/3`, except the path is extracted via
@@ -3017,7 +3063,7 @@ defmodule Kernel do
   defmacro put_in(path, value) do
     case unnest(path, [], true, "put_in/2") do
       {[h | t], true} ->
-        nest_update_in(h, t, quote(do: fn _ -> unquote(value) end))
+        nest_map_update_in(h, t, quote(do: fn _ -> unquote(value) end))
 
       {[h | t], false} ->
         expr = nest_get_and_update_in(h, t, quote(do: fn _ -> {nil, unquote(value)} end))
@@ -3094,7 +3140,7 @@ defmodule Kernel do
   defmacro update_in(path, fun) do
     case unnest(path, [], true, "update_in/2") do
       {[h | t], true} ->
-        nest_update_in(h, t, fun)
+        nest_map_update_in(h, t, fun)
 
       {[h | t], false} ->
         expr = nest_get_and_update_in(h, t, quote(do: fn x -> {nil, unquote(fun).(x)} end))
@@ -3160,17 +3206,17 @@ defmodule Kernel do
     nest_get_and_update_in(h, t, fun)
   end
 
-  defp nest_update_in([], fun), do: fun
+  defp nest_map_update_in([], fun), do: fun
 
-  defp nest_update_in(list, fun) do
+  defp nest_map_update_in(list, fun) do
     quote do
-      fn x -> unquote(nest_update_in(quote(do: x), list, fun)) end
+      fn x -> unquote(nest_map_update_in(quote(do: x), list, fun)) end
     end
   end
 
-  defp nest_update_in(h, [{:map, key} | t], fun) do
+  defp nest_map_update_in(h, [{:map, key} | t], fun) do
     quote do
-      Map.update!(unquote(h), unquote(key), unquote(nest_update_in(t, fun)))
+      Map.update!(unquote(h), unquote(key), unquote(nest_map_update_in(t, fun)))
     end
   end
 
