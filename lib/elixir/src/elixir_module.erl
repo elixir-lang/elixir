@@ -118,6 +118,7 @@ invalid_module_name(Module) ->
 compile(Line, Module, ModuleAsCharlist, Block, Vars, Prune, E) ->
   File = ?key(E, file),
   check_module_availability(Module, Line, E),
+  elixir_env:trace(defmodule, E),
 
   CompilerModules = compiler_modules(),
   {Tables, Ref} = build(Module, Line, File, E),

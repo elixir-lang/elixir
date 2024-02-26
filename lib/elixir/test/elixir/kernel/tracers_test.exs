@@ -201,6 +201,19 @@ defmodule Kernel.TracersTest do
     end
     """)
 
+    assert_receive {:defmodule, %{module: Sample, function: nil}}
+    assert_receive {{:on_module, <<_::binary>>, :none}, %{module: Sample, function: nil}}
+  after
+    :code.purge(Sample)
+    :code.delete(Sample)
+  end
+
+  test "traces dynamic modules" do
+    compile_string("""
+    Module.create(Sample, :ok, __ENV__)
+    """)
+
+    assert_receive {:defmodule, %{module: Sample, function: nil}}
     assert_receive {{:on_module, <<_::binary>>, :none}, %{module: Sample, function: nil}}
   after
     :code.purge(Sample)
