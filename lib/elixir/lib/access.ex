@@ -62,7 +62,7 @@ defmodule Access do
       iex> get_in(users["unknown"].age)
       nil
 
-  Notice how, even if no user was found, `get_in/1` returned nil.
+  Notice how, even if no user was found, `get_in/1` returned `nil`.
   Outside of `get_in/1`, trying to access the field `.age` on `nil`
   would raise.
 
