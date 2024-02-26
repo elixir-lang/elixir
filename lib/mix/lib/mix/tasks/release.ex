@@ -1021,7 +1021,7 @@ defmodule Mix.Tasks.Release do
     * `--no-deps-check` - does not check dependencies
     * `--no-elixir-version-check` - does not check Elixir version
     * `--no-compile` - does not compile before assembling the release
-    * `--overwrite` - if there is an existing release version, overwrite it
+    * `--overwrite` - overwrite existing files instead of prompting the user for action
     * `--path` - the path of the release
     * `--quiet` - does not write progress to the standard output
     * `--version` - the version of the release
