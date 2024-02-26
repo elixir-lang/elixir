@@ -3070,11 +3070,9 @@ defmodule String do
   def jaro_distance(_string, ""), do: 0.0
   def jaro_distance("", _string), do: 0.0
 
-  # TODO: Remove me when we require Erlang/OTP 27+
-  @jaro_module if :erlang.system_info(:otp_release) >= [?2, ?7], do: :string, else: :elixir_utils
-
   def jaro_distance(string1, string2) when is_binary(string1) and is_binary(string2) do
-    @jaro_module.jaro_similarity(string1, string2)
+    # TODO: Replace by :string.jaro_similarity/2 when we require Erlang/OTP 27+
+    :elixir_utils.jaro_similarity(string1, string2)
   end
 
   @doc """
