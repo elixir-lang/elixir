@@ -1346,6 +1346,7 @@ defmodule IEx.Helpers do
       #PID<0.0.0>
 
   """
+  @spec pid(binary | atom) :: pid()
   def pid("#PID<" <> string) do
     :erlang.list_to_pid(~c"<#{string}")
   end
@@ -1373,6 +1374,7 @@ defmodule IEx.Helpers do
       #PID<0.64.2048>
 
   """
+  @spec pid(non_neg_integer, non_neg_integer, non_neg_integer) :: pid()
   def pid(x, y, z)
       when is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and is_integer(z) and z >= 0 do
     :erlang.list_to_pid(
@@ -1392,6 +1394,7 @@ defmodule IEx.Helpers do
 
   """
   @doc since: "1.8.0"
+  @spec port(binary) :: port()
   def port(string) when is_binary(string) do
     :erlang.list_to_port(~c"#Port<#{string}>")
   end
@@ -1408,6 +1411,7 @@ defmodule IEx.Helpers do
 
   """
   @doc since: "1.8.0"
+  @spec port(non_neg_integer, non_neg_integer) :: port()
   def port(major, minor)
       when is_integer(major) and major >= 0 and is_integer(minor) and minor >= 0 do
     :erlang.list_to_port(
@@ -1425,6 +1429,7 @@ defmodule IEx.Helpers do
 
   """
   @doc since: "1.6.0"
+  @spec ref(binary) :: reference()
   def ref(string) when is_binary(string) do
     :erlang.list_to_ref(~c"#Ref<#{string}>")
   end
@@ -1439,6 +1444,7 @@ defmodule IEx.Helpers do
 
   """
   @doc since: "1.6.0"
+  @spec ref(non_neg_integer, non_neg_integer, non_neg_integer, non_neg_integer) :: reference()
   def ref(w, x, y, z)
       when is_integer(w) and w >= 0 and is_integer(x) and x >= 0 and is_integer(y) and y >= 0 and
              is_integer(z) and z >= 0 do
