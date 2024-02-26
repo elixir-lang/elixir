@@ -48,9 +48,13 @@ defmodule Access do
   keys, they only allow the `struct.key` syntax and they do not
   allow the `struct[key]` access syntax.
 
+  In other words, the `map[key]` syntax is loose, returning `nil`
+  for missing keys, while the `map.key` syntax is strict, raising
+  for both nil values and missing keys.
+
   To bridge this gap, Elixir provides the `get_in/1` and `get_in/2`
-  functions, which are capable of traversing complex nested data
-  structures, even in the presence of `nil`s:
+  functions, which are capable of traversing nested data structures,
+  even in the presence of `nil`s:
 
       iex> users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       iex> get_in(users["john"].age)

@@ -942,6 +942,7 @@ defmodule KernelTest do
       assert get_in(is_nil.age) == nil
 
       assert_raise KeyError, ~r"key :unknown not found", fn -> get_in(users.unknown) end
+      assert_raise KeyError, ~r"key :unknown not found", fn -> get_in(users.meg.unknown) end
     end
 
     test "get_in/2" do
