@@ -158,6 +158,10 @@ defmodule Code do
       of keys to traverse in the application environment and `return` is either
       `{:ok, value}` or `:error`.
 
+    * `:defmodule` - (since v1.16.2) traced as soon as the definition of a module
+      starts. This is invoked early on in the module life-cycle, `Module.open?/1`
+      still returns `false` for such traces
+
     * `{:on_module, bytecode, _ignore}` - (since v1.13.0) traced whenever a module
       is defined. This is equivalent to the `@after_compile` callback and invoked
       after any `@after_compile` in the given module. The third element is currently
