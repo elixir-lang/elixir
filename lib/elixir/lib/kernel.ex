@@ -2989,7 +2989,7 @@ defmodule Kernel do
 
       get_in(struct.foo.bar)
 
-  In case any of the components returns `nil`, `nil` will be returned
+  In case any of the keys returns `nil`, then `nil` will be returned
   and `get_in/1` won't traverse any further.
 
   Note that in order for this macro to work, the complete path must always
