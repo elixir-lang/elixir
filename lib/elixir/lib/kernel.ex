@@ -2742,12 +2742,13 @@ defmodule Kernel do
 
       get_in(some_struct, [:some_key, :nested_key])
 
-  There are two alternatives. One is to use regular Elixir syntax
-  for accessing the keys:
+  There are two alternatives. Given structs have predefined keys,
+  we can use the `struct.field` notation:
 
       some_struct.some_key.nested_key
 
-  However, if you want to safely handle nil values, you can use `get_in/1`:
+  However, the code above will fail if any of the values return `nil`.
+  If you also want to handle nil values, you can use `get_in/1`:
 
       get_in(some_struct.some_key.nested_key)
 
