@@ -929,6 +929,22 @@ defmodule KernelTest do
       defstruct [:foo, :bar]
     end
 
+    test "get_in/1" do
+      users = %{"john" => %{age: 27}, :meg => %{age: 23}}
+      assert get_in(users["john"][:age]) == 27
+      assert get_in(users["dave"][:age]) == nil
+      assert get_in(users["john"].age) == 27
+      assert get_in(users["dave"].age) == nil
+      assert get_in(users.meg[:age]) == 23
+      assert get_in(users.meg.age) == 23
+
+      is_nil = nil
+      assert get_in(is_nil.age) == nil
+
+      assert_raise KeyError, ~r"key :unknown not found", fn -> get_in(users.unknown) end
+      assert_raise KeyError, ~r"key :unknown not found", fn -> get_in(users.meg.unknown) end
+    end
+
     test "get_in/2" do
       users = %{"john" => %{age: 27}, "meg" => %{age: 23}}
       assert get_in(users, ["john", :age]) == 27

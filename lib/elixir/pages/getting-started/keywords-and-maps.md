@@ -217,7 +217,7 @@ Elixir developers typically prefer to use the `map.key` syntax and pattern match
 
 ## Nested data structures
 
-Often we will have maps inside maps, or even keywords lists inside maps, and so forth. Elixir provides conveniences for manipulating nested data structures via the `put_in/2`, `update_in/2` and other macros giving the same conveniences you would find in imperative languages while keeping the immutable properties of the language.
+Often we will have maps inside maps, or even keywords lists inside maps, and so forth. Elixir provides conveniences for manipulating nested data structures via the `get_in/1`, `put_in/2`, `update_in/2`, and other macros giving the same conveniences you would find in imperative languages while keeping the immutable properties of the language.
 
 Imagine you have the following structure:
 
@@ -259,7 +259,7 @@ iex> users = update_in users[:mary].languages, fn languages -> List.delete(langu
 ]
 ```
 
-There is more to learn about `put_in/2` and `update_in/2`, including the `get_and_update_in/2` that allows us to extract a value and update the data structure at once. There are also `put_in/3`, `update_in/3` and `get_and_update_in/3` which allow dynamic access into the data structure.
+There is more to learn about `get_in/1`, `pop_in/1` and others, including the `get_and_update_in/2` that allows us to extract a value and update the data structure at once. There are also `get_in/3`, `put_in/3`, `update_in/3`, `get_and_update_in/3`, `pop_in/2` which allow dynamic access into the data structure.
 
 ## Summary
 
