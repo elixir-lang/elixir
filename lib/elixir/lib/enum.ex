@@ -3889,7 +3889,7 @@ defmodule Enum do
   Zips corresponding elements from two enumerables into a list
   of tuples.
 
-  Because a list of two-element tuples with atoms as the initial
+  Because a list of two-element tuples with atoms as the first
   tuple element is a keyword list (`Keyword`), zipping a first list
   of atoms with a second list of any kind creates a keyword list.
 
