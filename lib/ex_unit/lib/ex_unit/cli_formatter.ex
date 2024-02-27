@@ -65,7 +65,8 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, update_test_timings(config, test)}
   end
 
-  def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, _}} = test}, config) do
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:excluded, reason}} = test}, config)
+      when is_binary(reason) do
     if config.trace, do: IO.puts(trace_test_excluded(test))
 
     test_counter = update_test_counter(config.test_counter, test)
@@ -74,7 +75,8 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:test_finished, %ExUnit.Test{state: {:skipped, _}} = test}, config) do
+  def handle_cast({:test_finished, %ExUnit.Test{state: {:skipped, reason}} = test}, config)
+      when is_binary(reason) do
     if config.trace do
       IO.puts(skipped(trace_test_skipped(test), config))
     else
@@ -87,7 +89,11 @@ defmodule ExUnit.CLIFormatter do
     {:noreply, config}
   end
 
-  def handle_cast({:test_finished, %ExUnit.Test{state: {:invalid, _}} = test}, config) do
+  def handle_cast(
+        {:test_finished,
+         %ExUnit.Test{state: {:invalid, %ExUnit.TestModule{state: {:failed, _}}}} = test},
+        config
+      ) do
     if config.trace do
       IO.puts(invalid(trace_test_result(test), config))
     else

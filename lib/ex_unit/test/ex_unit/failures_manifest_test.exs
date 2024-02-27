@@ -9,7 +9,7 @@ defmodule ExUnit.FailuresManifestTest do
   @skipped {:skipped, "reason"}
   @excluded {:excluded, "reason"}
   @failed {:failed, []}
-  @invalid {:invalid, SomeMod}
+  @invalid {:invalid, %ExUnit.TestModule{}}
 
   describe "files_with_failures/1" do
     test "returns the set of files with failures" do

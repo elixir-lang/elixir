@@ -159,7 +159,7 @@ defmodule ExUnit.RunnerStatsTest do
 
   defp state_for(:passed), do: nil
   defp state_for(:failed), do: {:failed, []}
-  defp state_for(:invalid), do: {:invalid, TestModule}
+  defp state_for(:invalid), do: {:invalid, %ExUnit.TestModule{}}
   defp state_for(:skipped), do: {:skipped, "reason"}
   defp state_for(:excluded), do: {:excluded, "reason"}
 

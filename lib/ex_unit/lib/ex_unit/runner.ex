@@ -293,8 +293,8 @@ defmodule ExUnit.Runner do
           {test_module, invalid_tests, []}
 
         {:DOWN, ^module_ref, :process, ^module_pid, error} ->
-          invalid_tests = mark_tests_invalid(tests, test_module)
           test_module = %{test_module | state: failed({:EXIT, module_pid}, error, [])}
+          invalid_tests = mark_tests_invalid(tests, test_module)
           {test_module, invalid_tests, []}
       end
 

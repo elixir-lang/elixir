@@ -70,7 +70,11 @@ defmodule ExUnit do
 
   """
   @type state ::
-          nil | {:excluded, binary} | {:failed, failed} | {:invalid, module} | {:skipped, binary}
+          nil
+          | {:excluded, binary}
+          | {:failed, failed}
+          | {:invalid, ExUnit.TestModule.t()}
+          | {:skipped, binary}
 
   @typedoc "The error state returned by `ExUnit.Test` and `ExUnit.TestModule`"
   @type failed :: [{Exception.kind(), reason :: term, Exception.stacktrace()}]
