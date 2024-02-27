@@ -83,6 +83,9 @@ defmodule Mix.Tasks.Compile.App do
   The complete list can be found on [Erlang's application
   specification](https://www.erlang.org/doc/man/app).
 
+  From Elixir v1.17 onwards, the application .app file is also loaded
+  whenever the task runs.
+
   ## Command line options
 
     * `--force` - forces compilation regardless of modification times
@@ -167,12 +170,14 @@ defmodule Mix.Tasks.Compile.App do
 
       properties = [config_mtime: new_mtime] ++ properties
       contents = :io_lib.format("~p.~n", [{:application, app, properties}])
+      :application.load({:application, app, properties})
 
       Mix.Project.ensure_structure()
       File.write!(target, IO.chardata_to_string(contents))
       Mix.shell().info("Generated #{app} app")
       {:ok, []}
     else
+      :application.load({:application, app, current_properties})
       {:noop, []}
     end
   end
