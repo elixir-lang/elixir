@@ -3889,12 +3889,19 @@ defmodule Enum do
   Zips corresponding elements from two enumerables into a list
   of tuples.
 
+  Because a list of two-element tuples with atoms as the first
+  tuple element is a keyword list (`Keyword`), zipping a first list
+  of atoms with a second list of any kind creates a keyword list.
+
   The zipping finishes as soon as either enumerable completes.
 
   ## Examples
 
       iex> Enum.zip([1, 2, 3], [:a, :b, :c])
       [{1, :a}, {2, :b}, {3, :c}]
+
+      iex> Enum.zip([:a, :b, :c], [1, 2, 3])
+      [a: 1, b: 2, c: 3]
 
       iex> Enum.zip([1, 2, 3, 4, 5], [:a, :b, :c])
       [{1, :a}, {2, :b}, {3, :c}]

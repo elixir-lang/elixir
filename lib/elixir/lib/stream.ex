@@ -1200,6 +1200,11 @@ defmodule Stream do
   @doc """
   Zips two enumerables together, lazily.
 
+  Because a list of two-element tuples with atoms as the first
+  tuple element is a keyword list (`Keyword`), zipping a first `Stream`
+  of atoms with a second `Stream` of any kind creates a `Stream`
+  that generates a keyword list.
+
   The zipping finishes as soon as either enumerable completes.
 
   ## Examples
@@ -1208,6 +1213,8 @@ defmodule Stream do
       iex> cycle = Stream.cycle([:a, :b, :c])
       iex> Stream.zip(concat, cycle) |> Enum.to_list()
       [{1, :a}, {2, :b}, {3, :c}, {4, :a}, {5, :b}, {6, :c}]
+      iex> Stream.zip(cycle, concat) |> Enum.to_list()
+      [a: 1, b: 2, c: 3, a: 4, b: 5, c: 6]
 
   """
   @spec zip(Enumerable.t(), Enumerable.t()) :: Enumerable.t()
