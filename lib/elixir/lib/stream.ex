@@ -1200,7 +1200,7 @@ defmodule Stream do
   @doc """
   Zips two enumerables together, lazily.
 
-  Because a list of two-element tuples with atoms as the initial
+  Because a list of two-element tuples with atoms as the first
   tuple element is a keyword list (`Keyword`), zipping a first `Stream`
   of atoms with a second `Stream` of any kind creates a `Stream`
   that generates a keyword list.
