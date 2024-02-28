@@ -28,6 +28,23 @@ defmodule ExUnit.CaptureIOTest do
     end
   end
 
+  defmodule MockProc do
+    use GenServer
+
+    def start_link do
+      GenServer.start_link(__MODULE__, [])
+    end
+
+    @impl GenServer
+    def init(_), do: {:ok, nil}
+
+    @impl GenServer
+    def handle_call({device, message}, _from, state) do
+      IO.puts(device, message)
+      {:reply, device, state}
+    end
+  end
+
   import ExUnit.CaptureIO
   doctest ExUnit.CaptureIO, import: true
 
@@ -467,6 +484,20 @@ defmodule ExUnit.CaptureIOTest do
 
       assert capture_io(:stderr, [input: "b"], fn -> :ok end)
     end
+  end
+
+  test "capture_io with pid in options" do
+    {:ok, pid} = MockProc.start_link()
+
+    assert capture_io([pid: pid], fn ->
+             GenServer.call(pid, {:stdio, "a"})
+           end) == "a\n"
+
+    assert capture_io(:stderr, [pid: pid], fn ->
+             GenServer.call(pid, {:stderr, "b"})
+           end) == "b\n"
+
+    GenServer.stop(pid)
   end
 
   test "with_io" do

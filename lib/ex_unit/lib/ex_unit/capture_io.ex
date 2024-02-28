@@ -72,6 +72,9 @@ defmodule ExUnit.CaptureIO do
     * `:encoding` (since v1.10.0) - encoding of the IO device. Allowed
       values are `:unicode` (default) and `:latin1`.
 
+    * `:pid` (since v1.17.0) - a process identifier. This option can be
+      used to capture IO from an already-started process.
+
   ## Examples
 
   To capture the standard io:
@@ -236,15 +239,16 @@ defmodule ExUnit.CaptureIO do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     encoding = Keyword.get(options, :encoding, :unicode)
     input = Keyword.get(options, :input, "")
+    pid = Keyword.get(options, :pid, self())
 
     original_gl = Process.group_leader()
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config, encoding: encoding)
 
     try do
-      Process.group_leader(self(), capture_gl)
+      Process.group_leader(pid, capture_gl)
       do_capture_gl(capture_gl, fun)
     after
-      Process.group_leader(self(), original_gl)
+      Process.group_leader(pid, original_gl)
     end
   end
 
