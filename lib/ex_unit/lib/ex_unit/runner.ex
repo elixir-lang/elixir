@@ -216,8 +216,7 @@ defmodule ExUnit.Runner do
     EM.module_started(config.manager, test_module)
 
     # Prepare tests, selecting which ones should be run or skipped
-    tests = prepare_tests(config, test_module.tests)
-    {excluded_and_skipped_tests, to_run_tests} = Enum.split_with(tests, & &1.state)
+    {to_run_tests, excluded_and_skipped_tests} = prepare_tests(config, test_module.tests)
 
     for excluded_or_skipped_test <- excluded_and_skipped_tests do
       EM.test_started(config.manager, excluded_or_skipped_test)
@@ -257,14 +256,18 @@ defmodule ExUnit.Runner do
     exclude = config.exclude
     test_ids = config.only_test_ids
 
-    for test <- tests, include_test?(test_ids, test) do
-      tags = Map.merge(test.tags, %{test: test.name, module: test.module})
+    {to_run, to_skip} =
+      for test <- tests, include_test?(test_ids, test), reduce: {[], []} do
+        {to_run, to_skip} ->
+          tags = Map.merge(test.tags, %{test: test.name, module: test.module})
 
-      case ExUnit.Filters.eval(include, exclude, tags, tests) do
-        :ok -> %{test | tags: tags}
-        excluded_or_skipped -> %{test | state: excluded_or_skipped}
+          case ExUnit.Filters.eval(include, exclude, tags, tests) do
+            :ok -> {[%{test | tags: tags} | to_run], to_skip}
+            excluded_or_skipped -> {to_run, [%{test | state: excluded_or_skipped} | to_skip]}
+          end
       end
-    end
+
+    {Enum.reverse(to_run), Enum.reverse(to_skip)}
   end
 
   defp include_test?(test_ids, test) do

@@ -1,9 +1,8 @@
 defmodule ExUnit.Filters do
-  alias ExUnit.FailuresManifest
-
   @moduledoc """
   Conveniences for parsing and evaluating filters.
   """
+  alias ExUnit.FailuresManifest
 
   @type t :: list({atom, Regex.t() | String.Chars.t()} | atom)
   @type location :: {:location, {String.t(), pos_integer | [pos_integer, ...]}}
@@ -195,26 +194,32 @@ defmodule ExUnit.Filters do
   @spec eval(t, t, map, [ExUnit.Test.t()]) ::
           :ok | {:excluded, String.t()} | {:skipped, String.t()}
   def eval(include, exclude, tags, collection) when is_map(tags) do
-    excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection))
-    excluded? = excluded != nil
-    included? = Enum.any?(include, &has_tag(&1, tags, collection))
+    cond do
+      Enum.any?(include, &has_tag(&1, tags, collection)) ->
+        maybe_skipped(include, tags, collection)
 
-    if included? or not excluded? do
-      skip_tag = %{skip: Map.get(tags, :skip, true)}
-      skip_included_explicitly? = Enum.any?(include, &has_tag(&1, skip_tag, collection))
+      excluded = Enum.find_value(exclude, &has_tag(&1, tags, collection)) ->
+        {:excluded, "due to #{excluded} filter"}
 
-      case Map.fetch(tags, :skip) do
-        {:ok, msg} when is_binary(msg) and not skip_included_explicitly? ->
-          {:skipped, msg}
+      true ->
+        maybe_skipped(include, tags, collection)
+    end
+  end
 
-        {:ok, true} when not skip_included_explicitly? ->
-          {:skipped, "due to skip tag"}
+  defp maybe_skipped(include, tags, collection) do
+    case tags do
+      %{skip: skip} when is_binary(skip) or skip == true ->
+        skip_tags = %{skip: skip}
+        skip_included_explicitly? = Enum.any?(include, &has_tag(&1, skip_tags, collection))
 
-        _ ->
-          :ok
-      end
-    else
-      {:excluded, "due to #{excluded} filter"}
+        cond do
+          skip_included_explicitly? -> :ok
+          is_binary(skip) -> {:skipped, skip}
+          skip -> {:skipped, "due to skip tag"}
+        end
+
+      _ ->
+        :ok
     end
   end
 
