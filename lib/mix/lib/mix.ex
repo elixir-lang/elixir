@@ -855,22 +855,13 @@ defmodule Mix do
           File.rm_rf!(install_dir)
         end
 
-        config = [
-          version: "0.1.0",
-          build_embedded: false,
-          build_per_environment: true,
-          build_path: "_build",
-          lockfile: "mix.lock",
-          deps_path: "deps",
+        dynamic_config = [
           deps: deps,
-          app: :mix_install,
-          erlc_paths: [],
-          elixirc_paths: [],
-          compilers: [],
           consolidate_protocols: consolidate_protocols?,
-          config_path: config_path,
-          prune_code_paths: false
+          config_path: config_path
         ]
+
+        config = install_project_config(dynamic_config)
 
         started_apps = Application.started_applications()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
@@ -937,13 +928,18 @@ defmodule Mix do
             end
           end
 
-          Mix.State.put(:installed, id)
+          Mix.State.put(:installed, {id, dynamic_config})
           :ok
         after
           Mix.ProjectStack.pop()
+          # Clear all tasks invoked during installation, since there
+          # is no reason to keep this in memory. Additionally this
+          # allows us to rerun tasks for the dependencies later on,
+          # such as recompilation
+          Mix.Task.clear()
         end
 
-      ^id when not force? ->
+      {^id, _dynamic_config} when not force? ->
         :ok
 
       _ ->
@@ -976,6 +972,45 @@ defmodule Mix do
 
     version = "elixir-#{System.version()}-erts-#{:erlang.system_info(:version)}"
     Path.join([install_root, version, cache_id])
+  end
+
+  defp install_project_config(dynamic_config) do
+    [
+      version: "0.1.0",
+      build_embedded: false,
+      build_per_environment: true,
+      build_path: "_build",
+      lockfile: "mix.lock",
+      deps_path: "deps",
+      app: :mix_install,
+      erlc_paths: [],
+      elixirc_paths: [],
+      compilers: [],
+      prune_code_paths: false
+    ] ++ dynamic_config
+  end
+
+  @doc false
+  def in_install_project(fun) do
+    case Mix.State.get(:installed) do
+      {id, dynamic_config} ->
+        config = install_project_config(dynamic_config)
+
+        install_dir = install_dir(id)
+
+        File.cd!(install_dir, fn ->
+          :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
+
+          try do
+            fun.()
+          after
+            Mix.ProjectStack.pop()
+          end
+        end)
+
+      nil ->
+        Mix.raise("trying to call Mix.in_install_project/1, but Mix.install/2 was never called")
+    end
   end
 
   @doc """

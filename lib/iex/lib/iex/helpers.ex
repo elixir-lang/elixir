@@ -93,19 +93,30 @@ defmodule IEx.Helpers do
 
   """
   def recompile(options \\ []) do
-    if mix_started?() do
-      project = Mix.Project.get()
+    cond do
+      not mix_started?() ->
+        IO.puts(IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix"))
+        :error
 
-      if is_nil(project) or
-           project.__info__(:compile)[:source] == String.to_charlist(Path.absname("mix.exs")) do
-        do_recompile(options)
-      else
-        message = "Cannot recompile because the current working directory changed"
-        IO.puts(IEx.color(:eval_error, message))
-      end
-    else
-      IO.puts(IEx.color(:eval_error, "Mix is not running. Please start IEx with: iex -S mix"))
-      :error
+      Mix.installed?() ->
+        Mix.in_install_project(fn ->
+          result = do_recompile(options)
+          # Just as with Mix.install/2 we clear all task invocations,
+          # so that we can recompile the dependencies again next time
+          Mix.Task.clear()
+          result
+        end)
+
+      true ->
+        project = Mix.Project.get()
+
+        if is_nil(project) or
+             project.__info__(:compile)[:source] == String.to_charlist(Path.absname("mix.exs")) do
+          do_recompile(options)
+        else
+          message = "Cannot recompile because the current working directory changed"
+          IO.puts(IEx.color(:eval_error, message))
+        end
     end
   end
 
