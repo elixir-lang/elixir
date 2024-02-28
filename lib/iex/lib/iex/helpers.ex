@@ -69,17 +69,22 @@ defmodule IEx.Helpers do
   import IEx, only: [dont_display_result: 0]
 
   @doc """
-  Recompiles the current Mix project.
+  Recompiles the current Mix project or Mix install
+  dependencies.
 
-  This helper only works when IEx is started with a Mix
-  project, for example, `iex -S mix`. Note this function
-  simply recompiles Elixir modules, without reloading
-  configuration, recompiling dependencies, or restarting
-  applications.
+  This helper requires either `Mix.install/2` to have been
+  called within the current IEx session or for IEx to be
+  started alongside, for example, `iex -S mix`.
 
-  Therefore, any long running process may crash on recompilation,
-  as changed modules will be temporarily removed and recompiled,
-  without going through the proper code change callback.
+  In the `Mix.install/1` case, it will recompile any outdated
+  path dependency declared during install. Within a project,
+  it will recompile any outdated module.
+
+  Note this function simply recompiles Elixir modules, without
+  reloading configuration or restarting applications. This means
+  any long running process may crash on recompilation, as changed
+  modules will be temporarily removed and recompiled, without
+  going through the proper code change callback.
 
   If you want to reload a single module, consider using
   `r(ModuleName)` instead.
