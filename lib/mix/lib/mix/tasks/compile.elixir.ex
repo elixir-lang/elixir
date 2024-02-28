@@ -158,10 +158,10 @@ defmodule Mix.Tasks.Compile.Elixir do
     logger_config_app = Application.get_env(:logger, :compile_time_application)
 
     try do
-      Logger.configure(compile_time_application: app)
+      Application.put_env(:logger, :compile_time_application, app)
       fun.()
     after
-      Logger.configure(compile_time_application: logger_config_app)
+      Application.put_env(:logger, :compile_time_application, logger_config_app)
     end
   end
 
