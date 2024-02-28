@@ -20,7 +20,7 @@ defmodule IEx.CLI do
       # IEx.Broker is capable of considering all groups under user_drv but
       # when we use :user.start(), we need to explicitly register it instead.
       # If we don't register, pry doesn't work.
-      IEx.start([register: true] ++ options(), {:elixir, :start_cli, []})
+      :iex.start([register: true] ++ options(), {:elixir, :start_cli, []})
     end
   end
 
@@ -73,7 +73,7 @@ defmodule IEx.CLI do
   end
 
   defp local_start_mfa do
-    {IEx, :start, [options(), {:elixir, :start_cli, []}]}
+    {:iex, :start, [options(), {:elixir, :start_cli, []}]}
   end
 
   def remote_start(parent, ref) do
@@ -94,7 +94,7 @@ defmodule IEx.CLI do
         end
       end)
 
-    {IEx, :start, [opts, {__MODULE__, :remote_start, [parent, ref]}]}
+    {:iex, :start, [opts, {__MODULE__, :remote_start, [parent, ref]}]}
   end
 
   defp options do

@@ -306,22 +306,6 @@ defmodule System do
   end
 
   @doc """
-  Waits until the system boots.
-
-  Calling this function blocks until all of ARGV is processed.
-  Inside a release, this means the boot script and then ARGV
-  have been processed. This is only useful for those implementing
-  custom shells/consoles on top of Elixir.
-
-  However, be careful to not invoke this command from within
-  the process that is processing the command line arguments,
-  as doing so would lead to a deadlock.
-  """
-  @doc since: "1.15.0"
-  @spec wait_until_booted() :: :ok
-  defdelegate wait_until_booted(), to: :elixir_config
-
-  @doc """
   Current working directory.
 
   Returns the current working directory or `nil` if one

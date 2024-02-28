@@ -63,8 +63,9 @@ defmodule IEx.Pry do
         IEx.Evaluator.init(:no_ack, server, group_leader, start, opts)
 
       {:error, :no_iex} ->
+        # TODO: Remove this conditional on Erlang/OTP 26+
         extra =
-          if match?({:win32, _}, :os.type()) do
+          if match?({:win32, _}, :os.type()) and :erlang.system_info(:otp_release) < ~c"26" do
             " If you are using Windows, you may need to start IEx with the --werl option."
           else
             ""
@@ -551,12 +552,12 @@ defmodule IEx.Pry do
     {_, {min, max}} =
       Macro.prewalk(ast, {:infinity, line}, fn
         {_, meta, _} = ast, {min_line, max_line} when is_list(meta) ->
-          line = meta[:line]
+          case Keyword.fetch(meta, :line) do
+            {:ok, line} when line > 0 ->
+              {ast, {min(line, min_line), max(line, max_line)}}
 
-          if line > 0 do
-            {ast, {min(line, min_line), max(line, max_line)}}
-          else
-            {ast, {min_line, max_line}}
+            _ ->
+              {ast, {min_line, max_line}}
           end
 
         ast, acc ->

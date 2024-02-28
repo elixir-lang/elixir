@@ -2,7 +2,7 @@
 %% private to the Elixir compiler and reserved to be used by Elixir only.
 -module(elixir).
 -behaviour(application).
--export([start_cli/0, start/0, start_iex/0]).
+-export([start_cli/0, start/0]).
 -export([start/2, stop/1, config_change/3]).
 -export([
   string_to_tokens/5, tokens_to_quoted/3, 'string_to_quoted!'/5,
@@ -176,16 +176,12 @@ check_file_encoding(Encoding) ->
   end.
 
 %% Boot and process given options. Invoked by Elixir's script.
-
-%% TODO: Delete prim_tty branches and -user on Erlang/OTP 26.
-%% TODO: Remove IEx.CLI module
-%% TODO: Replace "-user elixir" and "-s elixir start_$MODE"
-%% by calls to "-s elixir cli" and "-e iex:cli()"
+%% TODO: Delete prim_tty branches on Erlang/OTP 26.
 
 start() ->
   case code:ensure_loaded(prim_tty) of
     {module, _} ->
-      user_drv:start(#{initial_shell => noshell});
+      user_drv:start(#{initial_shell => iex:shell()});
     {error, _} ->
       case init:get_argument(elixir_root) of
         {ok, [[Root]]} -> code:add_patha(Root ++ "/iex/ebin");
@@ -207,18 +203,7 @@ start_cli() ->
     {error, _}  -> ok
   end,
 
-  'Elixir.Kernel.CLI':main(init:get_plain_arguments()),
-  elixir_config:booted().
-
-start_iex() ->
-  case code:ensure_loaded(prim_tty) of
-    {module, _} ->
-      start_cli(),
-      iex:cli();
-
-    {error, _} ->
-      ok
-  end.
+  'Elixir.Kernel.CLI':main(init:get_plain_arguments()).
 
 %% EVAL HOOKS
 

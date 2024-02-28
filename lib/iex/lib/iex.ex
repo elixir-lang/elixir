@@ -226,7 +226,7 @@ defmodule IEx do
   alternate between them. Let's give it a try:
 
       User switch command
-       --> s 'Elixir.IEx'
+       --> s iex
        --> c
 
   The command above will start a new shell and connect to it.
@@ -858,71 +858,10 @@ defmodule IEx do
 
   ## CLI
 
-  # This is a callback invoked by Erlang shell utilities
-  # when someone presses Ctrl+G and adds `s 'Elixir.IEx'`.
+  # TODO: Remove me on Elixir v1.20+
   @doc false
-  def start(opts \\ [], mfa \\ {IEx, :dont_display_result, []}) do
-    # TODO: Expose this as iex:start() instead on Erlang/OTP 26+
-    # TODO: Keep only this branch, delete optional args and mfa,
-    # and delete IEx.Server.run_from_shell/2 on Erlang/OTP 26+
-    if Code.ensure_loaded?(:prim_tty) do
-      spawn(fn ->
-        {:ok, _} = Application.ensure_all_started(:iex)
-        :ok = :io.setopts(binary: true, encoding: :unicode)
-        _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
-        IEx.Server.run([register: false] ++ opts)
-      end)
-    else
-      spawn(fn ->
-        case :init.notify_when_started(self()) do
-          :started -> :ok
-          _ -> :init.wait_until_started()
-        end
-
-        {:ok, _} = Application.ensure_all_started(:iex)
-        :ok = :io.setopts(binary: true, encoding: :unicode)
-        _ = for fun <- Enum.reverse(after_spawn()), do: fun.()
-        IEx.Server.run_from_shell(opts, mfa)
-      end)
-    end
-  end
-
-  # TODO: The idea is to expose this as a public API once we require
-  # Erlang/OTP 26 but it may not be possible. In such cases, we may
-  # want to move this to another module.
-  # See https://github.com/erlang/otp/issues/8113#issuecomment-1941613281
-  @compile {:no_warn_undefined, {:shell, :start_interactive, 1}}
-
-  @doc false
-  def shell(opts) do
-    {remote, opts} = Keyword.pop(opts, :remote)
-    ref = make_ref()
-    mfa = {__MODULE__, :__shell__, [self(), ref, opts]}
-
-    shell =
-      if remote do
-        {:remote, to_charlist(remote), mfa}
-      else
-        mfa
-      end
-
-    case :shell.start_interactive(shell) do
-      :ok ->
-        receive do
-          {^ref, shell} -> {:ok, shell}
-        after
-          15_000 -> {:error, :timeout}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  @doc false
-  def __shell__(parent, ref, opts) do
-    pid = start(opts)
-    send(parent, {ref, pid})
-    pid
+  def start do
+    IO.warn("Use \"s iex\" instead")
+    :iex.start()
   end
 end

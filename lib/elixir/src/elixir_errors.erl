@@ -299,7 +299,9 @@ print_error(Meta, Env, Module, Desc) ->
 %% Compilation error.
 
 -spec compile_error(#{file := binary(), _ => _}) -> no_return().
-compile_error(#{module := Module, file := File}) when Module /= nil ->
+%% We check for the lexical tracker because pry() inside a module
+%% will have the environment but not a tracker.
+compile_error(#{module := Module, file := File, lexical_tracker := LT}) when Module /= nil, LT /= nil ->
   Inspected = elixir_aliases:inspect(Module),
   Message = io_lib:format("cannot compile module ~ts (errors have been logged)", [Inspected]),
   compile_error([], File, Message);

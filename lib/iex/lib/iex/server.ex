@@ -61,7 +61,9 @@ defmodule IEx.Server do
   defp shell_loop(opts, pid, ref) do
     receive do
       {:take_over, take_pid, take_ref, take_location, take_whereami, take_opts} ->
-        if take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, 1) do
+        IO.puts(IEx.color(:eval_interrupt, "Break reached: #{take_location}#{take_whereami}"))
+
+        if take_over?(take_pid, take_ref, 1, true) do
           run_without_registration(init_state(opts), take_opts, nil)
         else
           shell_loop(opts, pid, ref)
@@ -257,17 +259,6 @@ defmodule IEx.Server do
   end
 
   defp handle_common(
-         {:DOWN, evaluator_ref, :process, evaluator, :normal},
-         state,
-         evaluator,
-         evaluator_ref,
-         input,
-         _callback
-       ) do
-    rerun(state, [], evaluator, evaluator_ref, input)
-  end
-
-  defp handle_common(
          {:DOWN, evaluator_ref, :process, evaluator, reason},
          state,
          evaluator,
@@ -275,14 +266,16 @@ defmodule IEx.Server do
          input,
          _callback
        ) do
-    try do
-      io_error(
-        "** (EXIT from #{inspect(evaluator)}) shell process exited with reason: " <>
-          Exception.format_exit(reason)
-      )
-    catch
-      type, detail ->
-        io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
+    if abnormal_reason?(reason) do
+      try do
+        io_error(
+          "** (EXIT from #{inspect(evaluator)}) shell process exited with reason: " <>
+            Exception.format_exit(reason)
+        )
+      catch
+        type, detail ->
+          io_error("** (IEx.Error) #{type} when printing EXIT message: #{inspect(detail)}")
+      end
     end
 
     rerun(state, [], evaluator, evaluator_ref, input)
@@ -292,8 +285,16 @@ defmodule IEx.Server do
     callback.(state)
   end
 
+  defp abnormal_reason?(:normal), do: false
+  defp abnormal_reason?(:shutdown), do: false
+  defp abnormal_reason?({:shutdown, _}), do: false
+  defp abnormal_reason?(_), do: true
+
   defp take_over?(take_pid, take_ref, take_location, take_whereami, take_opts, counter) do
-    answer = IEx.Broker.take_over?(take_location, take_whereami, take_opts)
+    evaluator = take_opts[:evaluator] || self()
+    message = "Request to pry #{inspect(evaluator)} at #{take_location}#{take_whereami}"
+    interrupt = IEx.color(:eval_interrupt, "#{message}\nAllow? [Yn] ")
+    answer = yes?(IO.gets(:stdio, interrupt))
     take_over?(take_pid, take_ref, counter, answer)
   end
 
@@ -310,6 +311,14 @@ defmodule IEx.Server do
         false
     end
   end
+
+  defp yes?(string) when is_binary(string),
+    do: String.trim(string) in ["", "y", "Y", "yes", "YES", "Yes"]
+
+  defp yes?(charlist) when is_list(charlist),
+    do: yes?(List.to_string(charlist))
+
+  defp yes?(_), do: false
 
   ## State
 
