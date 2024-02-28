@@ -887,7 +887,10 @@ defmodule IEx do
     end
   end
 
-  # TODO: Make this public when we require Erlang/OTP 26+
+  # TODO: The idea is to expose this as a public API once we require
+  # Erlang/OTP 26 but it may not be possible. In such cases, we may
+  # want to move this to another module.
+  # See https://github.com/erlang/otp/issues/8113#issuecomment-1941613281
   @compile {:no_warn_undefined, {:shell, :start_interactive, 1}}
 
   @doc false

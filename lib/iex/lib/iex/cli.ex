@@ -1,4 +1,4 @@
-# Remove this whole module on Erlang/OTP 26+.
+# TODO: Remove this whole module on Erlang/OTP 26+.
 defmodule IEx.CLI do
   @moduledoc false
 
