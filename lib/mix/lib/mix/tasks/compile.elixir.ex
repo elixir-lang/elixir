@@ -126,16 +126,19 @@ defmodule Mix.Tasks.Compile.Elixir do
     # Having compilations racing with other is most undesired,
     # so we wrap the compiler in a lock. Ideally we would use
     # flock in the future.
-    Mix.State.lock(__MODULE__, fn ->
-      Mix.Compilers.Elixir.compile(
-        manifest,
-        srcs,
-        dest,
-        cache_key,
-        Mix.Tasks.Compile.Erlang.manifests(),
-        Mix.Tasks.Compile.Erlang.modules(),
-        opts
-      )
+
+    with_logger_app(project, fn ->
+      Mix.State.lock(__MODULE__, fn ->
+        Mix.Compilers.Elixir.compile(
+          manifest,
+          srcs,
+          dest,
+          cache_key,
+          Mix.Tasks.Compile.Erlang.manifests(),
+          Mix.Tasks.Compile.Erlang.modules(),
+          opts
+        )
+      end)
     end)
   end
 
@@ -147,6 +150,19 @@ defmodule Mix.Tasks.Compile.Elixir do
   def clean do
     dest = Mix.Project.compile_path()
     Mix.Compilers.Elixir.clean(manifest(), dest)
+  end
+
+  # Run this operation in compile.elixir as the compiler can be called directly
+  defp with_logger_app(config, fun) do
+    app = Keyword.fetch!(config, :app)
+    logger_config_app = Application.get_env(:logger, :compile_time_application)
+
+    try do
+      Logger.configure(compile_time_application: app)
+      fun.()
+    after
+      Logger.configure(compile_time_application: logger_config_app)
+    end
   end
 
   defp xref_exclude_opts(opts, project) do

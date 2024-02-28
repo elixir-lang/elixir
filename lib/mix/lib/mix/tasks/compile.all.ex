@@ -53,11 +53,9 @@ defmodule Mix.Tasks.Compile.All do
         # Build the project structure so we can write down compiled files.
         Mix.Project.build_structure(config)
 
-        with_logger_app(config, fn ->
-          config
-          |> Mix.Tasks.Compile.compilers()
-          |> compile(args, :noop, [])
-        end)
+        config
+        |> Mix.Tasks.Compile.compilers()
+        |> compile(args, :noop, [])
       end
 
     if app_cache do
@@ -82,18 +80,6 @@ defmodule Mix.Tasks.Compile.All do
     end
 
     result
-  end
-
-  defp with_logger_app(config, fun) do
-    app = Keyword.fetch!(config, :app)
-    logger_config_app = Application.get_env(:logger, :compile_time_application)
-
-    try do
-      Logger.configure(compile_time_application: app)
-      fun.()
-    after
-      Logger.configure(compile_time_application: logger_config_app)
-    end
   end
 
   defp compile([], _, status, diagnostics) do
