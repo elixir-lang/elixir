@@ -120,6 +120,7 @@ Or during tests (the `--trace` flag on `mix test` prevents tests from timing out
 
 ```console
 $ iex --dbg pry -S mix test --trace
+$ iex --dbg pry -S mix test path/to/file:line --trace
 ```
 
 Now a call to `dbg` will ask if you want to pry the existing code. If you accept, you'll be able to access all variables, as well as imports and aliases from the code, directly from IEx. This is called "prying". While the pry session is running, the code execution stops, until `continue` or `next` are called. Remember you can always run `iex` in the context of a project with `iex -S mix TASK`.
@@ -170,7 +171,7 @@ We have just scratched the surface of what the Erlang VM has to offer, for examp
 
   * Alongside the observer application, Erlang also includes a [`:crashdump_viewer`](https://www.erlang.org/doc/man/crashdump_viewer.html) to view crash dumps
 
-  * Integration with OS level tracers, such as [Linux Trace Toolkit,](http://www.erlang.org/doc/apps/runtime_tools/LTTng.html) [DTRACE,](http://www.erlang.org/doc/apps/runtime_tools/DTRACE.html) and [SystemTap](http://www.erlang.org/doc/apps/runtime_tools/SYSTEMTAP.html)
+  * Integration with OS level tracers, such as [Linux Trace Toolkit,](https://www.erlang.org/doc/apps/runtime_tools/lttng) [DTRACE,](https://www.erlang.org/doc/apps/runtime_tools/dtrace) and [SystemTap](https://www.erlang.org/doc/apps/runtime_tools/systemtap)
 
   * [Microstate accounting](http://www.erlang.org/doc/man/msacc.html) measures how much time the runtime spends in several low-level tasks in a short time interval
 
