@@ -105,11 +105,11 @@ defmodule IEx.Helpers do
 
       Mix.installed?() ->
         Mix.in_install_project(fn ->
-          result = do_recompile(options)
+          do_recompile(options)
           # Just as with Mix.install/2 we clear all task invocations,
           # so that we can recompile the dependencies again next time
           Mix.Task.clear()
-          result
+          :ok
         end)
 
       true ->
