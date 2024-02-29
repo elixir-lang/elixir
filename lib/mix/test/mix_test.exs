@@ -263,27 +263,25 @@ defmodule MixTest do
         [
           {:git_repo, git: fixture_path("git_repo")}
         ],
-        lockfile: lockfile,
-        verbose: true
+        lockfile: lockfile
       )
 
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
-      assert_received {:mix_shell, :info, ["Mix.install/2 using " <> install_dir]}
+
+      install_dir = Mix.install_project_dir()
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
     end
 
     test ":lockfile merging", %{tmp_dir: tmp_dir} do
       [rev1, rev2 | _] = get_git_repo_revs("git_repo")
 
-      Mix.install(
-        [
-          {:git_repo, git: fixture_path("git_repo")}
-        ],
-        verbose: true
-      )
+      Mix.install([
+        {:git_repo, git: fixture_path("git_repo")}
+      ])
 
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
-      assert_received {:mix_shell, :info, ["Mix.install/2 using " <> install_dir]}
+
+      install_dir = Mix.install_project_dir()
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev1
 
       Mix.Project.push(GitApp)
@@ -314,12 +312,11 @@ defmodule MixTest do
           {:install_test, path: Path.join(tmp_dir, "install_test")},
           {:git_repo, git: fixture_path("git_repo")}
         ],
-        lockfile: :install_test,
-        verbose: true
+        lockfile: :install_test
       )
 
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
-      assert_received {:mix_shell, :info, ["Mix.install/2 using " <> install_dir]}
+      install_dir = Mix.install_project_dir()
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
     end
 
