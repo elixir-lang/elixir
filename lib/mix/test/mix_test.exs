@@ -39,7 +39,7 @@ defmodule MixTest do
       assert Protocol.consolidated?(InstallTest.Protocol)
 
       assert_received {:mix_shell, :info, ["==> install_test"]}
-      assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
       assert_received {:mix_shell, :info, ["Generated install_test app"]}
       refute_received _
 
@@ -67,7 +67,7 @@ defmodule MixTest do
 
       assert File.dir?(Path.join(tmp_dir, "installs"))
       assert_received {:mix_shell, :info, ["==> install_test"]}
-      assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+      assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
       assert_received {:mix_shell, :info, ["Generated install_test app"]}
       refute_received _
 
@@ -345,6 +345,36 @@ defmodule MixTest do
       assert Mix.installed?()
     end
 
+    test "in_install_project", %{tmp_dir: tmp_dir} do
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test")}
+      ])
+
+      Mix.in_install_project(fn ->
+        config = Mix.Project.config()
+        assert [{:install_test, [path: _]}] = config[:deps]
+      end)
+    end
+
+    test "in_install_project recompile", %{tmp_dir: tmp_dir} do
+      Mix.install([
+        {:install_test, path: Path.join(tmp_dir, "install_test")}
+      ])
+
+      File.write!("#{tmp_dir}/install_test/lib/install_test.ex", """
+      defmodule InstallTest do
+        def hello do
+          :universe
+        end
+      end
+      """)
+
+      Mix.in_install_project(fn ->
+        Mix.Task.run("compile")
+        assert apply(InstallTest, :hello, []) == :universe
+      end)
+    end
+
     defp test_project(%{tmp_dir: tmp_dir}) do
       path = :code.get_path()
 
@@ -384,7 +414,9 @@ defmodule MixTest do
           :world
         end
       end
+      """)
 
+      File.write!("#{tmp_dir}/install_test/lib/install_test_protocol.ex", """
       defprotocol InstallTest.Protocol do
         def foo(x)
       end
