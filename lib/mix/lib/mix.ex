@@ -661,6 +661,13 @@ defmodule Mix do
   This function can only be called outside of a Mix project and only with the
   same dependencies in the given VM.
 
+  The `MIX_INSTALL_RESTORE_PROJECT_DIR` environment variable may be specified.
+  It should point to a previous installation directory, which can be obtained
+  with `Mix.install_project_dir/0` (after calling `Mix.install/2`). Using a
+  restore dir may speed up the installation, since matching dependencies do
+  not need be refetched nor recompiled. This environment variable is ignored
+  if `:force` is enabled.
+
   ## Options
 
     * `:force` - if `true`, runs with empty install cache. This is useful when you want
@@ -845,14 +852,14 @@ defmodule Mix do
         Application.put_all_env(config, persistent: true)
         System.put_env(system_env)
 
-        install_dir = install_dir(id)
+        install_project_dir = install_project_dir(id)
 
         if Keyword.fetch!(opts, :verbose) do
-          Mix.shell().info("Mix.install/2 using #{install_dir}")
+          Mix.shell().info("Mix.install/2 using #{install_project_dir}")
         end
 
         if force? do
-          File.rm_rf!(install_dir)
+          File.rm_rf!(install_project_dir)
         end
 
         dynamic_config = [
@@ -865,21 +872,28 @@ defmodule Mix do
 
         started_apps = Application.started_applications()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
-        build_dir = Path.join(install_dir, "_build")
+        build_dir = Path.join(install_project_dir, "_build")
         external_lockfile = expand_path(opts[:lockfile], deps, :lockfile, "mix.lock")
 
         try do
           first_build? = not File.dir?(build_dir)
-          File.mkdir_p!(install_dir)
 
-          File.cd!(install_dir, fn ->
+          restore_dir = System.get_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
+
+          if first_build? and restore_dir != nil and not force? do
+            File.cp_r(restore_dir, install_project_dir)
+          end
+
+          File.mkdir_p!(install_project_dir)
+
+          File.cd!(install_project_dir, fn ->
             if config_path do
               Mix.Task.rerun("loadconfig")
             end
 
             cond do
               external_lockfile ->
-                md5_path = Path.join(install_dir, "merge.lock.md5")
+                md5_path = Path.join(install_project_dir, "merge.lock.md5")
 
                 old_md5 =
                   case File.read(md5_path) do
@@ -890,7 +904,7 @@ defmodule Mix do
                 new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
 
                 if old_md5 != new_md5 do
-                  lockfile = Path.join(install_dir, "mix.lock")
+                  lockfile = Path.join(install_project_dir, "mix.lock")
                   old_lock = Mix.Dep.Lock.read(lockfile)
                   new_lock = Mix.Dep.Lock.read(external_lockfile)
                   Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
@@ -926,6 +940,10 @@ defmodule Mix do
                 Keyword.get(opts, :runtime, true) and Keyword.get(opts, :app, true) do
               Application.ensure_all_started(app)
             end
+          end
+
+          if restore_dir do
+            remove_leftover_deps(install_project_dir)
           end
 
           Mix.State.put(:installed, {id, dynamic_config})
@@ -965,7 +983,29 @@ defmodule Mix do
     Path.join(app_dir, relative_path)
   end
 
-  defp install_dir(cache_id) do
+  defp remove_leftover_deps(install_project_dir) do
+    build_lib_dir = Path.join([install_project_dir, "_build", "dev", "lib"])
+    deps_dir = Path.join(install_project_dir, "deps")
+
+    deps = File.ls!(build_lib_dir)
+
+    loaded_deps =
+      for {app, _description, _version} <- Application.loaded_applications(),
+          into: MapSet.new(),
+          do: Atom.to_string(app)
+
+    # We want to keep :mix_install, but it has no application
+    loaded_deps = MapSet.put(loaded_deps, "mix_install")
+
+    for dep <- deps, not MapSet.member?(loaded_deps, dep) do
+      build_path = Path.join(build_lib_dir, dep)
+      File.rm_rf(build_path)
+      dep_path = Path.join(deps_dir, dep)
+      File.rm_rf(dep_path)
+    end
+  end
+
+  defp install_project_dir(cache_id) do
     install_root =
       System.get_env("MIX_INSTALL_DIR") ||
         Path.join(Mix.Utils.mix_cache(), "installs")
@@ -996,9 +1036,9 @@ defmodule Mix do
       {id, dynamic_config} ->
         config = install_project_config(dynamic_config)
 
-        install_dir = install_dir(id)
+        install_project_dir = install_project_dir(id)
 
-        File.cd!(install_dir, fn ->
+        File.cd!(install_project_dir, fn ->
           :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
 
           try do
@@ -1010,6 +1050,18 @@ defmodule Mix do
 
       nil ->
         Mix.raise("trying to call Mix.in_install_project/1, but Mix.install/2 was never called")
+    end
+  end
+
+  @doc """
+  Returns the directory where the current `Mix.install/2` project
+  resides.
+  """
+  @spec install_project_dir() :: Path.t()
+  def install_project_dir() do
+    case Mix.State.get(:installed) do
+      {id, _dynamic_config} -> install_project_dir(id)
+      nil -> nil
     end
   end
 
