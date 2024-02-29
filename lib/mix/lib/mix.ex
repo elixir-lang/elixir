@@ -881,7 +881,7 @@ defmodule Mix do
           restore_dir = System.get_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
 
           if first_build? and restore_dir != nil and not force? do
-            File.cp_r!(restore_dir, install_dir)
+            File.cp_r(restore_dir, install_dir)
           end
 
           File.mkdir_p!(install_dir)
@@ -1002,9 +1002,9 @@ defmodule Mix do
 
     for dep <- leftover_deps do
       build_path = Path.join(build_lib_dir, dep)
-      File.rm_rf!(build_path)
+      File.rm_rf(build_path)
       dep_path = Path.join(deps_dir, dep)
-      File.rm_rf!(dep_path)
+      File.rm_rf(dep_path)
     end
   end
 
