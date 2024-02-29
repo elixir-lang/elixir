@@ -276,7 +276,7 @@ defmodule ExUnit.Case do
   """
 
   @type env :: module() | Macro.Env.t()
-
+  @compile {:no_warn_undefined, [IEx.Pry]}
   @reserved [:module, :file, :line, :test, :async, :registered, :describe]
 
   @doc false
