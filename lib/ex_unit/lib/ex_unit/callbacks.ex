@@ -3,8 +3,8 @@ defmodule ExUnit.Callbacks do
   Defines ExUnit callbacks.
 
   This module defines the `setup/1`, `setup/2`, `setup_all/1`, and
-  `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`
-  and `stop_supervised/1` functions.
+  `setup_all/2` callbacks, as well as the `on_exit/2`, `start_supervised/2`,
+  `stop_supervised/1` and `start_link_supervised!/2` functions.
 
   The setup callbacks may be used to define [test fixtures](https://en.wikipedia.org/wiki/Test_fixture#Software)
   and run any initialization code which help bring the system into a known
