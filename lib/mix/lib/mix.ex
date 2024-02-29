@@ -852,14 +852,14 @@ defmodule Mix do
         Application.put_all_env(config, persistent: true)
         System.put_env(system_env)
 
-        install_dir = install_dir(id)
+        install_project_dir = install_project_dir(id)
 
         if Keyword.fetch!(opts, :verbose) do
-          Mix.shell().info("Mix.install/2 using #{install_dir}")
+          Mix.shell().info("Mix.install/2 using #{install_project_dir}")
         end
 
         if force? do
-          File.rm_rf!(install_dir)
+          File.rm_rf!(install_project_dir)
         end
 
         dynamic_config = [
@@ -872,7 +872,7 @@ defmodule Mix do
 
         started_apps = Application.started_applications()
         :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
-        build_dir = Path.join(install_dir, "_build")
+        build_dir = Path.join(install_project_dir, "_build")
         external_lockfile = expand_path(opts[:lockfile], deps, :lockfile, "mix.lock")
 
         try do
@@ -881,19 +881,19 @@ defmodule Mix do
           restore_dir = System.get_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
 
           if first_build? and restore_dir != nil and not force? do
-            File.cp_r(restore_dir, install_dir)
+            File.cp_r(restore_dir, install_project_dir)
           end
 
-          File.mkdir_p!(install_dir)
+          File.mkdir_p!(install_project_dir)
 
-          File.cd!(install_dir, fn ->
+          File.cd!(install_project_dir, fn ->
             if config_path do
               Mix.Task.rerun("loadconfig")
             end
 
             cond do
               external_lockfile ->
-                md5_path = Path.join(install_dir, "merge.lock.md5")
+                md5_path = Path.join(install_project_dir, "merge.lock.md5")
 
                 old_md5 =
                   case File.read(md5_path) do
@@ -904,7 +904,7 @@ defmodule Mix do
                 new_md5 = external_lockfile |> File.read!() |> :erlang.md5()
 
                 if old_md5 != new_md5 do
-                  lockfile = Path.join(install_dir, "mix.lock")
+                  lockfile = Path.join(install_project_dir, "mix.lock")
                   old_lock = Mix.Dep.Lock.read(lockfile)
                   new_lock = Mix.Dep.Lock.read(external_lockfile)
                   Mix.Dep.Lock.write(Map.merge(old_lock, new_lock), file: lockfile)
@@ -943,7 +943,7 @@ defmodule Mix do
           end
 
           if restore_dir do
-            remove_leftover_deps(install_dir)
+            remove_leftover_deps(install_project_dir)
           end
 
           Mix.State.put(:installed, {id, dynamic_config})
@@ -983,9 +983,9 @@ defmodule Mix do
     Path.join(app_dir, relative_path)
   end
 
-  defp remove_leftover_deps(install_dir) do
-    build_lib_dir = Path.join([install_dir, "_build", "dev", "lib"])
-    deps_dir = Path.join(install_dir, "deps")
+  defp remove_leftover_deps(install_project_dir) do
+    build_lib_dir = Path.join([install_project_dir, "_build", "dev", "lib"])
+    deps_dir = Path.join(install_project_dir, "deps")
 
     deps = File.ls!(build_lib_dir)
 
@@ -1005,7 +1005,7 @@ defmodule Mix do
     end
   end
 
-  defp install_dir(cache_id) do
+  defp install_project_dir(cache_id) do
     install_root =
       System.get_env("MIX_INSTALL_DIR") ||
         Path.join(Mix.Utils.mix_cache(), "installs")
@@ -1036,9 +1036,9 @@ defmodule Mix do
       {id, dynamic_config} ->
         config = install_project_config(dynamic_config)
 
-        install_dir = install_dir(id)
+        install_project_dir = install_project_dir(id)
 
-        File.cd!(install_dir, fn ->
+        File.cd!(install_project_dir, fn ->
           :ok = Mix.ProjectStack.push(@mix_install_project, config, "nofile")
 
           try do
@@ -1060,7 +1060,7 @@ defmodule Mix do
   @spec install_project_dir() :: Path.t()
   def install_project_dir() do
     case Mix.State.get(:installed) do
-      {id, _dynamic_config} -> install_dir(id)
+      {id, _dynamic_config} -> install_project_dir(id)
       nil -> nil
     end
   end

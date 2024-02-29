@@ -268,8 +268,8 @@ defmodule MixTest do
 
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
 
-      install_dir = Mix.install_project_dir()
-      assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
+      install_project_dir = Mix.install_project_dir()
+      assert File.read!(Path.join(install_project_dir, "mix.lock")) =~ rev
     end
 
     test ":lockfile merging", %{tmp_dir: tmp_dir} do
@@ -281,8 +281,8 @@ defmodule MixTest do
 
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
 
-      install_dir = Mix.install_project_dir()
-      assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev1
+      install_project_dir = Mix.install_project_dir()
+      assert File.read!(Path.join(install_project_dir, "mix.lock")) =~ rev1
 
       Mix.Project.push(GitApp)
       lockfile = Path.join(tmp_dir, "lock")
@@ -296,7 +296,7 @@ defmodule MixTest do
         lockfile: lockfile
       )
 
-      assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev1
+      assert File.read!(Path.join(install_project_dir, "mix.lock")) =~ rev1
     end
 
     test ":lockfile with application name", %{tmp_dir: tmp_dir} do
@@ -316,8 +316,8 @@ defmodule MixTest do
       )
 
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
-      install_dir = Mix.install_project_dir()
-      assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
+      install_project_dir = Mix.install_project_dir()
+      assert File.read!(Path.join(install_project_dir, "mix.lock")) =~ rev
     end
 
     test ":lockfile that does not exist" do
@@ -338,14 +338,14 @@ defmodule MixTest do
         assert_received {:mix_shell, :info, ["Generated git_repo app"]}
         refute_received _
 
-        install_dir = Mix.install_project_dir()
-        build_lib_path = Path.join([install_dir, "_build", "dev", "lib"])
-        deps_path = Path.join([install_dir, "deps"])
+        install_project_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_project_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_project_dir, "deps"])
 
         assert File.ls!(build_lib_path) |> Enum.sort() == ["git_repo", "mix_install"]
         assert File.ls!(deps_path) == ["git_repo"]
 
-        System.put_env("MIX_INSTALL_RESTORE_PROJECT_DIR", install_dir)
+        System.put_env("MIX_INSTALL_RESTORE_PROJECT_DIR", install_project_dir)
       end)
 
       # Adding a dependency
@@ -361,16 +361,16 @@ defmodule MixTest do
         assert_received {:mix_shell, :info, ["Generated install_test app"]}
         refute_received _
 
-        install_dir = Mix.install_project_dir()
-        build_lib_path = Path.join([install_dir, "_build", "dev", "lib"])
-        deps_path = Path.join([install_dir, "deps"])
+        install_project_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_project_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_project_dir, "deps"])
 
         assert File.ls!(build_lib_path) |> Enum.sort() ==
                  ["git_repo", "install_test", "mix_install"]
 
         assert File.ls!(deps_path) == ["git_repo"]
 
-        System.put_env("MIX_INSTALL_RESTORE_PROJECT_DIR", install_dir)
+        System.put_env("MIX_INSTALL_RESTORE_PROJECT_DIR", install_project_dir)
       end)
 
       # Removing a dependency
@@ -382,9 +382,9 @@ defmodule MixTest do
 
         refute_received _
 
-        install_dir = Mix.install_project_dir()
-        build_lib_path = Path.join([install_dir, "_build", "dev", "lib"])
-        deps_path = Path.join([install_dir, "deps"])
+        install_project_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_project_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_project_dir, "deps"])
 
         assert File.ls!(build_lib_path) |> Enum.sort() == ["install_test", "mix_install"]
         assert File.ls!(deps_path) == []
