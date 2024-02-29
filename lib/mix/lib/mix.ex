@@ -1060,11 +1060,8 @@ defmodule Mix do
   @spec install_project_dir() :: Path.t()
   def install_project_dir() do
     case Mix.State.get(:installed) do
-      {id, _dynamic_config} ->
-        install_dir(id)
-
-      nil ->
-        nil
+      {id, _dynamic_config} -> install_dir(id)
+      nil -> nil
     end
   end
 
