@@ -109,6 +109,11 @@ defmodule Mix.Tasks.Test do
     * `--all-warnings` (`--no-all-warnings`) - prints all warnings, including previous compilations
       (default is true except on errors)
 
+    * `-b`, `--breakpoints` - (since v1.17.0) sets a breakpoint at the beginning
+      of every test. The debugger goes line-by-line and can access all variables
+      and imports (but not local functions). You can press `n` for the next line
+      and `c` for the next test. This automatically sets `--trace`
+
     * `--color` - enables color in the output
 
     * `--cover` - runs coverage tool. See "Coverage" section below
@@ -411,6 +416,7 @@ defmodule Mix.Tasks.Test do
 
   @switches [
     all_warnings: :boolean,
+    breakpoints: :boolean,
     force: :boolean,
     color: :boolean,
     cover: :boolean,
@@ -445,7 +451,7 @@ defmodule Mix.Tasks.Test do
 
   @impl true
   def run(args) do
-    {opts, files} = OptionParser.parse!(args, strict: @switches)
+    {opts, files} = OptionParser.parse!(args, strict: @switches, aliases: [b: :breakpoints])
 
     if not Mix.Task.recursing?() do
       do_run(opts, args, files)
@@ -545,6 +551,20 @@ defmodule Mix.Tasks.Test do
 
     # The test helper may change the Mix.shell(), so revert it whenever we raise and after suite
     shell = Mix.shell()
+    test_elixirc_options = project[:test_elixirc_options] || []
+
+    {test_elixirc_options, opts} =
+      cond do
+        not Keyword.get(opts, :breakpoints, false) ->
+          {test_elixirc_options, opts}
+
+        IEx.started?() ->
+          {Keyword.put(test_elixirc_options, :debug_info, true), opts}
+
+        true ->
+          Mix.shell().error("you must run \"iex -S mix test\" when using -b/--breakpoints")
+          {test_elixirc_options, Keyword.delete(opts, :breakpoints)}
+      end
 
     # Configure ExUnit now and then again so the task options override test_helper.exs
     {ex_unit_opts, allowed_files} = process_ex_unit_opts(opts)
@@ -555,7 +575,6 @@ defmodule Mix.Tasks.Test do
     ExUnit.configure(merge_helper_opts(ex_unit_opts))
 
     # Finally parse, require and load the files
-    test_elixirc_options = project[:test_elixirc_options] || []
     test_files = if files != [], do: parse_file_paths(files), else: test_paths
     test_pattern = project[:test_pattern] || "*_test.exs"
     warn_test_pattern = project[:warn_test_pattern] || "*_test.ex"
@@ -643,6 +662,7 @@ defmodule Mix.Tasks.Test do
   end
 
   @option_keys [
+    :breakpoints,
     :trace,
     :max_cases,
     :max_failures,
@@ -679,17 +699,12 @@ defmodule Mix.Tasks.Test do
 
   defp merge_helper_opts(opts) do
     # The only options that are additive from app env are the excludes
-    merge_opts(opts, :exclude)
-  end
-
-  defp merge_opts(opts, key) do
-    value = List.wrap(Application.get_env(:ex_unit, key, []))
-    Keyword.update(opts, key, value, &Enum.uniq(&1 ++ value))
+    value = List.wrap(Application.get_env(:ex_unit, :exclude, []))
+    Keyword.update(opts, :exclude, value, &Enum.uniq(&1 ++ value))
   end
 
   defp default_opts(opts) do
-    # Set autorun to false because Mix
-    # automatically runs the test suite for us.
+    # Set autorun to false because Mix automatically runs the test suite for us.
     [autorun: false] ++ opts
   end
 

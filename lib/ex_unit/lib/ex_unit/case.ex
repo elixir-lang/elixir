@@ -366,34 +366,52 @@ defmodule ExUnit.Case do
     end
 
     contents =
-      case contents do
+      case annotate_test(contents, __CALLER__) do
         [do: block] ->
           quote do
             unquote(block)
             :ok
           end
 
-        _ ->
+        contents ->
           quote do
             try(unquote(contents))
             :ok
           end
       end
 
-    var = Macro.escape(var)
-    contents = Macro.escape(contents, unquote: true)
     %{module: mod, file: file, line: line} = __CALLER__
 
-    quote bind_quoted: [
-            var: var,
-            contents: contents,
-            message: message,
-            mod: mod,
-            file: file,
-            line: line
-          ] do
-      name = ExUnit.Case.register_test(mod, file, line, :test, message, [])
-      def unquote(name)(unquote(var)), do: unquote(contents)
+    name =
+      quote do
+        name =
+          ExUnit.Case.register_test(
+            unquote(mod),
+            unquote(file),
+            unquote(line),
+            :test,
+            unquote(message),
+            []
+          )
+      end
+
+    def =
+      {:def, [],
+       [
+         {{:unquote, [], [quote(do: name)]}, [], [var]},
+         [do: contents]
+       ]}
+
+    {:__block__, [], [name, def]}
+  end
+
+  defp annotate_test(contents, caller) do
+    if Application.get_env(:ex_unit, :breakpoints, false) and Keyword.keyword?(contents) do
+      for {key, expr} <- contents do
+        {key, IEx.Pry.annotate_quoted(expr, true, caller)}
+      end
+    else
+      contents
     end
   end
 

@@ -86,7 +86,7 @@ defmodule IEx.Pry do
   end
 
   @doc false
-  def pry_with_next(next?, binding, opts_or_env) when is_boolean(next?) do
+  def __next__(next?, binding, opts_or_env) when is_boolean(next?) do
     next? and pry(binding, opts_or_env) == {:ok, true}
   end
 
@@ -105,6 +105,63 @@ defmodule IEx.Pry do
   end
 
   defp prune_stacktrace([]) do
+    []
+  end
+
+  @doc """
+  Annotate quoted expression with line-by-line `IEx.Pry` debugging steps.
+
+  It expected the `quoted` expression to annotate, a `condition` that controls
+  if pry should run or not (usually is simply the boolean `true`), and the
+  caller macro environment.
+  """
+  @doc since: "1.17.0"
+  @spec annotate_quoted(Macro.t(), Macro.t(), Macro.Env.t()) :: Macro.t()
+  def annotate_quoted(quoted, condition, caller) do
+    prelude =
+      quote do
+        [
+          env = unquote(Macro.escape(Macro.Env.prune_compile_info(caller))),
+          next? = unquote(condition)
+        ]
+      end
+
+    next_pry =
+      fn line, _version, _binding ->
+        quote do
+          next? = IEx.Pry.__next__(next?, binding(), %{env | line: unquote(line)})
+        end
+      end
+
+    annotate_quoted(quoted, prelude, caller.line, 0, :ok, fn _, _ -> :ok end, next_pry)
+  end
+
+  defp annotate_quoted(maybe_block, prelude, line, version, binding, next_binding, next_pry)
+       when is_list(prelude) do
+    exprs =
+      maybe_block
+      |> unwrap_block()
+      |> annotate_quoted(true, line, version, binding, {next_binding, next_pry})
+
+    {:__block__, [], prelude ++ exprs}
+  end
+
+  defp annotate_quoted([expr | exprs], force?, line, version, binding, funs) do
+    {next_binding, next_pry} = funs
+    new_binding = next_binding.(expr, binding)
+    {min_line, max_line} = line_range(expr, line)
+
+    if force? or min_line > line do
+      [
+        next_pry.(min_line, version, binding),
+        expr | annotate_quoted(exprs, false, max_line, version + 1, new_binding, funs)
+      ]
+    else
+      [expr | annotate_quoted(exprs, false, max_line, version, new_binding, funs)]
+    end
+  end
+
+  defp annotate_quoted([], _force?, _line, _version, _binding, _funs) do
     []
   end
 
@@ -473,7 +530,6 @@ defmodule IEx.Pry do
 
   defp instrument_clause({meta, args, guards, clause}, ref, case_pattern, opts) do
     arity = length(args)
-    exprs = unwrap_block(clause)
 
     # Have an extra binding per argument for case matching.
     case_vars =
@@ -487,20 +543,23 @@ defmodule IEx.Pry do
     # Generate the take_over condition with the ETS lookup.
     # Remember this is expanded AST, so no aliases allowed,
     # no locals (such as the unary -) and so on.
-    initialize_next =
+    prelude =
       quote do
-        unquote(next_var(arity + 1)) =
-          case unquote(case_head) do
-            unquote(case_pattern) ->
-              :erlang."/="(
-                # :ets.update_counter(table, key, {pos, inc, threshold, reset})
-                :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)),
-                unquote(-1)
-              )
+        [
+          unquote(next_var(arity + 1)) = unquote(opts),
+          unquote(next_var(arity + 2)) =
+            case unquote(case_head) do
+              unquote(case_pattern) ->
+                :erlang."/="(
+                  # :ets.update_counter(table, key, {pos, inc, threshold, reset})
+                  :ets.update_counter(unquote(@table), unquote(ref), unquote(update_op)),
+                  unquote(-1)
+                )
 
-            _ ->
-              false
-          end
+              _ ->
+                false
+            end
+        ]
       end
 
     args =
@@ -508,42 +567,25 @@ defmodule IEx.Pry do
       |> Enum.zip(args)
       |> Enum.map(fn {var, arg} -> {:=, [], [arg, var]} end)
 
-    # The variable we pass around will start after the arity,
-    # as we use the arity to instrument the clause.
+    version = arity + 2
     binding = match_binding(args, %{})
     line = Keyword.get(meta, :line, 1)
-    exprs = instrument_body(exprs, true, line, arity + 1, binding, opts)
+    env_var = next_var(arity + 1)
 
-    {meta, args, guards, {:__block__, meta, [initialize_next | exprs]}}
-  end
+    clause =
+      annotate_quoted(clause, prelude, line, version, binding, &next_binding/2, fn
+        line, version, binding ->
+          quote do
+            unquote(next_var(version + 1)) =
+              :"Elixir.IEx.Pry".__next__(
+                unquote(next_var(version)),
+                unquote(Map.to_list(binding)),
+                [{:line, unquote(line)} | unquote(env_var)]
+              )
+          end
+      end)
 
-  defp instrument_body([expr | exprs], force?, line, version, binding, opts) do
-    next_binding = binding(expr, binding)
-    {min_line, max_line} = line_range(expr, line)
-
-    if force? or min_line > line do
-      pry_var = next_var(version)
-      pry_binding = Map.to_list(binding)
-      pry_opts = [line: min_line] ++ opts
-
-      pry =
-        quote do
-          unquote(next_var(version + 1)) =
-            :"Elixir.IEx.Pry".pry_with_next(
-              unquote(pry_var),
-              unquote(pry_binding),
-              unquote(pry_opts)
-            )
-        end
-
-      [pry, expr | instrument_body(exprs, false, max_line, version + 1, next_binding, opts)]
-    else
-      [expr | instrument_body(exprs, false, max_line, version, next_binding, opts)]
-    end
-  end
-
-  defp instrument_body([], _force?, _line, _version, _binding, _opts) do
-    []
+    {meta, args, guards, clause}
   end
 
   defp line_range(ast, line) do
@@ -567,7 +609,7 @@ defmodule IEx.Pry do
     if min == :infinity, do: {line, max}, else: {min, max}
   end
 
-  defp binding(ast, binding) do
+  defp next_binding(ast, binding) do
     {_, binding} =
       Macro.prewalk(ast, binding, fn
         {:=, _, [left, _right]}, acc ->
@@ -637,7 +679,7 @@ defmodule IEx.Pry do
 
         env = unquote(env_with_line_from_asts(first_ast_chunk))
 
-        next? = IEx.Pry.pry_with_next(true, binding(), env)
+        next? = IEx.Pry.__next__(true, binding(), env)
         value = unquote(pipe_chunk_of_asts(first_ast_chunk))
 
         IEx.Pry.__dbg_pipe_step__(
@@ -656,7 +698,7 @@ defmodule IEx.Pry do
         quote do
           unquote(ast_acc)
           env = unquote(env_with_line_from_asts(asts_chunk))
-          next? = IEx.Pry.pry_with_next(next?, binding(), env)
+          next? = IEx.Pry.__next__(next?, binding(), env)
           value = unquote(piped_asts)
 
           IEx.Pry.__dbg_pipe_step__(

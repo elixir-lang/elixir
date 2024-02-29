@@ -185,6 +185,76 @@ defmodule IEx.PryTest do
     end
   end
 
+  describe "annotate_quoted" do
+    def annotate_quoted(block, condition \\ true) do
+      {:__block__, meta, [{:=, _, [{:env, _, _}, _]} | tail]} =
+        block
+        |> Code.string_to_quoted!()
+        |> IEx.Pry.annotate_quoted(condition, %{__ENV__ | line: 1})
+
+      Macro.to_string({:__block__, meta, tail})
+    end
+
+    test "one expresion, one line" do
+      assert annotate_quoted("""
+             x = 123
+             y = 456
+             x + y
+             """) == """
+             next? = true
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 1})
+             x = 123
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 2})
+             y = 456
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 3})
+             x + y\
+             """
+    end
+
+    test "one expression, multiple lines" do
+      assert annotate_quoted("""
+             (x = 123) &&
+              (y = 456)
+             x + y
+             """) == """
+             next? = true
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 1})
+             (x = 123) && (y = 456)
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 3})
+             x + y\
+             """
+    end
+
+    test "one line, multiple expressions" do
+      assert annotate_quoted("""
+             x = 123; y = 456
+             x + y
+             """) == """
+             next? = true
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 1})
+             x = 123
+             y = 456
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 2})
+             x + y\
+             """
+    end
+
+    test "multiple line, multiple expressions" do
+      assert annotate_quoted("""
+             x = 123; y =
+              456
+             x + y
+             """) == """
+             next? = true
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 1})
+             x = 123
+             y = 456
+             next? = IEx.Pry.__next__(next?, binding(), %{env | line: 3})
+             x + y\
+             """
+    end
+  end
+
   defp instrumented?(module) do
     module.module_info(:attributes)[:iex_pry] == [true]
   end

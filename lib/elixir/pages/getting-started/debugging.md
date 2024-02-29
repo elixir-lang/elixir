@@ -79,7 +79,7 @@ feature #=> %{inspiration: "Rust", name: :dbg}
 Map.put(feature, :in_version, "1.14.0") #=> %{in_version: "1.14.0", inspiration: "Rust", name: :dbg}
 ```
 
-When talking about `IO.inspect/2`, we mentioned its usefulness when placed between steps of `|>` pipelines. `dbg` does it better: it understands Elixir code, so it will print values at *every step of the pipeline*.
+When talking about `IO.inspect/2`, we mentioned its usefulness when placed between steps of `|>` pipelines. `dbg` does it better: it understands Elixir code, so it will print values at _every step of the pipeline_.
 
 ```elixir
 # In dbg_pipes.exs
@@ -102,7 +102,7 @@ __ENV__.file #=> "/home/myuser/dbg_pipes.exs"
 
 While `dbg` provides conveniences around Elixir constructs, you will need `IEx` if you want to execute code and set breakpoints while debugging.
 
-## Breakpoints
+## Pry
 
 When using `IEx`, you may pass `--dbg pry` as an option to "stop" the code execution where the `dbg` call is:
 
@@ -116,22 +116,30 @@ Or to debug inside a of a project:
 $ iex --dbg pry -S mix
 ```
 
-Or during tests (the `--trace` flag on `mix test` prevents tests from timing out):
+Now any call to `dbg` will ask if you want to pry the existing code. If you accept, you'll be able to access all variables, as well as imports and aliases from the code, directly from IEx. This is called "prying". While the pry session is running, the code execution stops, until `continue` (or `c`) or `next` (or `n`) are called. Remember you can always run `iex` in the context of a project with `iex -S mix TASK`.
 
-```console
-$ iex --dbg pry -S mix test --trace
-$ iex --dbg pry -S mix test path/to/file:line --trace
-```
+<script id="asciicast-509509" src="https://asciinema.org/a/509509.js" async></script><noscript><p><a href="https://asciinema.org/a/509509">See the example in asciinema</a></p></noscript>
 
-Now a call to `dbg` will ask if you want to pry the existing code. If you accept, you'll be able to access all variables, as well as imports and aliases from the code, directly from IEx. This is called "prying". While the pry session is running, the code execution stops, until `continue` or `next` are called. Remember you can always run `iex` in the context of a project with `iex -S mix TASK`.
-
-<script id="asciicast-509509" src="https://asciinema.org/a/509509.js" async></script>
+## Breakpoints
 
 `dbg` calls require us to change the code we intend to debug and has limited stepping functionality. Luckily IEx also provides a `IEx.break!/2` function which allows you to set and manage breakpoints on any Elixir code without modifying its source:
 
 <script type="text/javascript" src="https://asciinema.org/a/0h3po0AmTcBAorc5GBNU97nrs.js" id="asciicast-0h3po0AmTcBAorc5GBNU97nrs" async></script><noscript><p><a href="https://asciinema.org/a/0h3po0AmTcBAorc5GBNU97nrs">See the example in asciinema</a></p></noscript>
 
-Similar to `dbg`, once a breakpoint is reached code execution stops until `continue` or `next` are invoked. However, `break!/2` does not have access to aliases and imports from the debugged code as it works on the compiled artifact rather than on source code.
+Similar to `dbg`, once a breakpoint is reached, code execution stops until `continue` (or `c`) or `next` (or `n`) are invoked. Breakpoints can navigate line-by-line by default, however, they do not have access to aliases and imports when breakpoints are set on compiled modules.
+
+The `mix test` task direct integration with breakpoints via the `-b`/`--breakpoints` flag. When the flag is used, a breakpoint is set at the beginning of every test that will run:
+
+<script async id="asciicast-XTZ15jFKFAlr8ZxIZMzaHgL5n" src="https://asciinema.org/a/XTZ15jFKFAlr8ZxIZMzaHgL5n.js"></script><noscript><p><a href="https://asciinema.org/a/XTZ15jFKFAlr8ZxIZMzaHgL5n">See the example in asciinema</a></p></noscript>
+
+Here are some commands you can use in practice:
+
+```console
+# Debug all failed tests
+$ iex -S mix test --breakpoints --failed
+# Debug the test at the given file:line
+$ iex -S mix test -b path/to/file:line
+```
 
 ## Observer
 
@@ -147,15 +155,13 @@ iex> :observer.start()
 > When running `iex` inside a project with `iex -S mix`, `observer` won't be available as a dependency. To do so, you will need to call the following functions before:
 >
 > ```elixir
-> iex> Mix.ensure_application!(:wx)
-> iex> Mix.ensure_application!(:runtime_tools)
+> iex> Mix.ensure_application!(:wx)             # Not necessary on Erlang/OTP 27+
+> iex> Mix.ensure_application!(:runtime_tools)  # Not necessary on Erlang/OTP 27+
 > iex> Mix.ensure_application!(:observer)
 > iex> :observer.start()
 > ```
 >
 > If any of the calls above fail, here is what may have happened: some package managers default to installing a minimized Erlang without WX bindings for GUI support. In some package managers, you may be able to replace the headless Erlang with a more complete package (look for packages named `erlang` vs `erlang-nox` on Debian/Ubuntu/Arch). In others managers, you may need to install a separate `erlang-wx` (or similarly named) package.
->
-> There are conversations to improve this experience in future releases.
 
 The above will open another Graphical User Interface that provides many panes to fully understand and navigate the runtime and your project.
 
