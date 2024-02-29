@@ -352,8 +352,6 @@ defmodule Mix do
     * `MIX_INSTALL_DIR` - (since v1.12.0) specifies directory where `Mix.install/2` keeps
        install cache
 
-    * `MIX_INSTALL_FORCE` - (since v1.13.0) runs `Mix.install/2` with empty install cache
-
     * `MIX_PATH` - appends extra code paths
 
     * `MIX_PROFILE` - a list of comma-separated Mix tasks to profile the time spent on
@@ -661,13 +659,6 @@ defmodule Mix do
   This function can only be called outside of a Mix project and only with the
   same dependencies in the given VM.
 
-  The `MIX_INSTALL_RESTORE_PROJECT_DIR` environment variable may be specified.
-  It should point to a previous installation directory, which can be obtained
-  with `Mix.install_project_dir/0` (after calling `Mix.install/2`). Using a
-  restore dir may speed up the installation, since matching dependencies do
-  not need be refetched nor recompiled. This environment variable is ignored
-  if `:force` is enabled.
-
   ## Options
 
     * `:force` - if `true`, runs with empty install cache. This is useful when you want
@@ -783,6 +774,21 @@ defmodule Mix do
   The contents inside `defmodule` will only be expanded and executed
   after `Mix.install/2` runs, which means that any struct, macros,
   and imports will be correctly handled.
+
+  ## Environment variables
+
+  The `MIX_INSTALL_DIR` environment variable configures the directory that
+  caches all `Mix.install/2`.
+
+  The `MIX_INSTALL_FORCE` is available since Elixir v1.13.0 and forces
+  `Mix.install/2` to discard any previously cached entry of the current install.
+
+  The `MIX_INSTALL_RESTORE_PROJECT_DIR` environment variable may be specified
+  since Elixir v1.16.2. It should point to a previous installation directory,
+  which can be obtained with `Mix.install_project_dir/0` (after calling `Mix.install/2`).
+  Using a restore dir may speed up the installation, since matching dependencies
+  do not need be refetched nor recompiled. This environment variable is ignored
+  if `:force` is enabled.
   """
   @doc since: "1.12.0"
   def install(deps, opts \\ [])
@@ -1057,6 +1063,7 @@ defmodule Mix do
   Returns the directory where the current `Mix.install/2` project
   resides.
   """
+  @doc since: "1.16.2"
   @spec install_project_dir() :: Path.t()
   def install_project_dir() do
     case Mix.State.get(:installed) do
