@@ -1067,7 +1067,7 @@ defmodule Mix do
         install_dir(id)
 
       nil ->
-        Mix.raise("trying to call Mix.install_project_dir/0, but Mix.install/2 was never called")
+        nil
     end
   end
 
