@@ -68,6 +68,7 @@ defmodule Kernel.CLITest do
     {output, 0} = System.cmd(elixir_executable(), ["-e", "IO.puts :hello_world123"])
     assert output =~ "hello_world123"
 
+    # TODO: remove this once we bump CI to 26.3
     unless windows?() and :erlang.system_info(:otp_release) == ~c"26" do
       {output, 0} =
         System.cmd(iex_executable(), ["--eval", "IO.puts :hello_world123; System.halt()"])
