@@ -661,6 +661,13 @@ defmodule Mix do
   This function can only be called outside of a Mix project and only with the
   same dependencies in the given VM.
 
+  The `MIX_INSTALL_RESTORE_PROJECT_DIR` environment variable may be specified.
+  It should point to a previous installation directory, which can be obtained
+  with `Mix.install_project_dir/0` (after calling `Mix.install/2`). Using a
+  restore dir may speed up the installation, since matching dependencies do
+  not need be refetched nor recompiled. This environment variable is ignored
+  if `:force` is enabled.
+
   ## Options
 
     * `:force` - if `true`, runs with empty install cache. This is useful when you want
@@ -870,6 +877,13 @@ defmodule Mix do
 
         try do
           first_build? = not File.dir?(build_dir)
+
+          restore_dir = System.get_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
+
+          if first_build? and restore_dir != nil and not force? do
+            File.cp_r!(restore_dir, install_dir)
+          end
+
           File.mkdir_p!(install_dir)
 
           File.cd!(install_dir, fn ->
@@ -928,6 +942,10 @@ defmodule Mix do
             end
           end
 
+          if restore_dir do
+            remove_leftover_deps!(install_dir)
+          end
+
           Mix.State.put(:installed, {id, dynamic_config})
           :ok
         after
@@ -963,6 +981,31 @@ defmodule Mix do
     end
 
     Path.join(app_dir, relative_path)
+  end
+
+  defp remove_leftover_deps!(install_dir) do
+    build_lib_dir = Path.join([install_dir, "_build", "dev", "lib"])
+    deps_dir = Path.join(install_dir, "deps")
+
+    deps = build_lib_dir |> File.ls!() |> MapSet.new()
+
+    loaded_deps =
+      for {app, _description, _version} <- Application.loaded_applications(),
+          into: MapSet.new(),
+          do: Atom.to_string(app)
+
+    leftover_deps =
+      deps
+      |> MapSet.difference(loaded_deps)
+      # We want to keep :mix_install, but it has no application
+      |> MapSet.delete("mix_install")
+
+    for dep <- leftover_deps do
+      build_path = Path.join(build_lib_dir, dep)
+      File.rm_rf!(build_path)
+      dep_path = Path.join(deps_dir, dep)
+      File.rm_rf!(dep_path)
+    end
   end
 
   defp install_dir(cache_id) do
@@ -1010,6 +1053,21 @@ defmodule Mix do
 
       nil ->
         Mix.raise("trying to call Mix.in_install_project/1, but Mix.install/2 was never called")
+    end
+  end
+
+  @doc """
+  Returns the directory where the current `Mix.install/2` project
+  resides.
+  """
+  @spec install_project_dir() :: Path.t()
+  def install_project_dir() do
+    case Mix.State.get(:installed) do
+      {id, _dynamic_config} ->
+        install_dir(id)
+
+      nil ->
+        Mix.raise("trying to call Mix.install_project_dir/0, but Mix.install/2 was never called")
     end
   end
 

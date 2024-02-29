@@ -270,8 +270,6 @@ defmodule MixTest do
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
       assert_received {:mix_shell, :info, ["Mix.install/2 using " <> install_dir]}
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
-    after
-      purge([GitRepo, GitRepo.MixProject])
     end
 
     test ":lockfile merging", %{tmp_dir: tmp_dir} do
@@ -301,8 +299,6 @@ defmodule MixTest do
       )
 
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev1
-    after
-      purge([GitRepo, GitRepo.MixProject])
     end
 
     test ":lockfile with application name", %{tmp_dir: tmp_dir} do
@@ -325,14 +321,79 @@ defmodule MixTest do
       assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
       assert_received {:mix_shell, :info, ["Mix.install/2 using " <> install_dir]}
       assert File.read!(Path.join(install_dir, "mix.lock")) =~ rev
-    after
-      purge([GitRepo, GitRepo.MixProject])
     end
 
     test ":lockfile that does not exist" do
       assert_raise File.Error, ~r/bad": no such file or directory/, fn ->
         Mix.install([], lockfile: "bad")
       end
+    end
+
+    test "restore dir", %{tmp_dir: tmp_dir} do
+      with_cleanup(fn ->
+        Mix.install([
+          {:git_repo, git: fixture_path("git_repo")}
+        ])
+
+        assert_received {:mix_shell, :info, ["* Getting git_repo " <> _]}
+        assert_received {:mix_shell, :info, ["==> git_repo"]}
+        assert_received {:mix_shell, :info, ["Compiling 1 file (.ex)"]}
+        assert_received {:mix_shell, :info, ["Generated git_repo app"]}
+        refute_received _
+
+        install_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_dir, "deps"])
+
+        assert File.ls!(build_lib_path) |> Enum.sort() == ["git_repo", "mix_install"]
+        assert File.ls!(deps_path) == ["git_repo"]
+
+        System.put_env("MIX_INSTALL_RESTORE_PROJECT_DIR", install_dir)
+      end)
+
+      # Adding a dependency
+
+      with_cleanup(fn ->
+        Mix.install([
+          {:git_repo, git: fixture_path("git_repo")},
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ])
+
+        assert_received {:mix_shell, :info, ["==> install_test"]}
+        assert_received {:mix_shell, :info, ["Compiling 2 files (.ex)"]}
+        assert_received {:mix_shell, :info, ["Generated install_test app"]}
+        refute_received _
+
+        install_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_dir, "deps"])
+
+        assert File.ls!(build_lib_path) |> Enum.sort() ==
+                 ["git_repo", "install_test", "mix_install"]
+
+        assert File.ls!(deps_path) == ["git_repo"]
+
+        System.put_env("MIX_INSTALL_RESTORE_PROJECT_DIR", install_dir)
+      end)
+
+      # Removing a dependency
+
+      with_cleanup(fn ->
+        Mix.install([
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ])
+
+        refute_received _
+
+        install_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_dir, "_build", "dev", "lib"])
+        deps_path = Path.join([install_dir, "deps"])
+
+        assert File.ls!(build_lib_path) |> Enum.sort() == ["install_test", "mix_install"]
+        assert File.ls!(deps_path) == []
+      end)
+    after
+      System.delete_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
     end
 
     test "installed?", %{tmp_dir: tmp_dir} do
@@ -380,15 +441,7 @@ defmodule MixTest do
 
       on_exit(fn ->
         :code.set_path(path)
-        purge([InstallTest, InstallTest.MixProject, InstallTest.Protocol])
-
-        ExUnit.CaptureLog.capture_log(fn ->
-          Application.stop(:git_repo)
-          Application.unload(:git_repo)
-
-          Application.stop(:install_test)
-          Application.unload(:install_test)
-        end)
+        cleanup_deps()
       end)
 
       Mix.State.put(:installed, nil)
@@ -423,6 +476,38 @@ defmodule MixTest do
       """)
 
       [tmp_dir: tmp_dir]
+    end
+
+    defp with_cleanup(fun) do
+      path = :code.get_path()
+
+      try do
+        fun.()
+      after
+        :code.set_path(path)
+        cleanup_deps()
+
+        Mix.State.clear_cache()
+        Mix.State.put(:installed, nil)
+      end
+    end
+
+    defp cleanup_deps() do
+      purge([
+        GitRepo,
+        GitRepo.MixProject,
+        InstallTest,
+        InstallTest.MixProject,
+        InstallTest.Protocol
+      ])
+
+      ExUnit.CaptureLog.capture_log(fn ->
+        Application.stop(:git_repo)
+        Application.unload(:git_repo)
+
+        Application.stop(:install_test)
+        Application.unload(:install_test)
+      end)
     end
   end
 end
