@@ -17,10 +17,17 @@ defmodule IEx.CLI do
 
       :user.start()
 
-      # IEx.Broker is capable of considering all groups under user_drv but
-      # when we use :user.start(), we need to explicitly register it instead.
-      # If we don't register, pry doesn't work.
-      :iex.start([register: true] ++ options(), {:elixir, :start_cli, []})
+      spawn(fn ->
+        :application.ensure_all_started(:iex)
+
+        case :init.notify_when_started(self()) do
+          :started -> :ok
+          _ -> :init.wait_until_started()
+        end
+
+        :ok = :io.setopts(binary: true, encoding: :unicode)
+        IEx.Server.run_from_shell([register: true] ++ options(), {:elixir, :start_cli, []})
+      end)
     end
   end
 
