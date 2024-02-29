@@ -105,6 +105,14 @@ defmodule IEx.Helpers do
 
       Mix.installed?() ->
         Mix.in_install_project(fn ->
+          # TODO: remove this once Mix requires Hex with the fix from
+          # https://github.com/hexpm/hex/pull/1015
+          # Context: Mix.install/1 starts :hex if necessary and stops
+          # it afterwards. Calling compile here may require hex to be
+          # started and that should happen automatically, but because
+          # of a bug it is not (fixed in the linked PR).
+          _ = Application.ensure_all_started(:hex)
+
           do_recompile(options)
           # Just as with Mix.install/2 we clear all task invocations,
           # so that we can recompile the dependencies again next time
