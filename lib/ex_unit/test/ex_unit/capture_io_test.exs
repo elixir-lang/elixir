@@ -31,12 +31,15 @@ defmodule ExUnit.CaptureIOTest do
   defmodule MockProc do
     use GenServer
 
-    def start_link do
-      GenServer.start_link(__MODULE__, [])
+    def start_link(gl) do
+      GenServer.start_link(__MODULE__, gl)
     end
 
     @impl GenServer
-    def init(_), do: {:ok, nil}
+    def init(gl) do
+      Process.group_leader(self(), gl)
+      {:ok, nil}
+    end
 
     @impl GenServer
     def handle_call({:stdio, message}, _from, state) do
@@ -502,7 +505,10 @@ defmodule ExUnit.CaptureIOTest do
   end
 
   test "capture_io with a separate process" do
-    {:ok, pid} = MockProc.start_link()
+    {:ok, gl} = StringIO.open("")
+    pid = start_supervised!({MockProc, gl})
+
+    assert Process.info(pid, :group_leader) == {:group_leader, gl}
 
     assert capture_io(pid, fn ->
              GenServer.call(pid, {:stdio, "a"})
@@ -524,7 +530,8 @@ defmodule ExUnit.CaptureIOTest do
              GenServer.call(pid, {:stderr, "uhoh"})
            end) == "uhoh\n"
 
-    GenServer.stop(pid)
+    assert Process.info(pid, :group_leader) == {:group_leader, gl}
+    assert StringIO.contents(gl) == {"", ""}
   end
 
   test "with_io" do

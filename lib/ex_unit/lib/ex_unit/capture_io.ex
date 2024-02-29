@@ -151,23 +151,15 @@ defmodule ExUnit.CaptureIO do
   @spec capture_io(atom() | pid() | String.t() | keyword(), (-> any())) :: String.t()
   def capture_io(device_pid_input_or_options, fun)
 
-  def capture_io(device, fun) when is_atom(device) and is_function(fun, 0) do
-    {_result, capture} = with_io(device, fun)
+  def capture_io(device_or_pid, fun)
+      when (is_atom(device_or_pid) or is_pid(device_or_pid)) and is_function(fun, 0) do
+    {_result, capture} = with_io(device_or_pid, fun)
     capture
   end
 
-  def capture_io(pid, fun) when is_pid(pid) and is_function(fun, 0) do
-    {_result, capture} = with_io(pid, fun)
-    capture
-  end
-
-  def capture_io(input, fun) when is_binary(input) and is_function(fun, 0) do
-    {_result, capture} = with_io(input, fun)
-    capture
-  end
-
-  def capture_io(options, fun) when is_list(options) and is_function(fun, 0) do
-    {_result, capture} = with_io(options, fun)
+  def capture_io(input_or_options, fun)
+      when (is_binary(input_or_options) or is_list(input_or_options)) and is_function(fun, 0) do
+    {_result, capture} = with_io(input_or_options, fun)
     capture
   end
 
@@ -178,28 +170,9 @@ defmodule ExUnit.CaptureIO do
   """
   @spec capture_io(atom() | pid(), String.t() | keyword(), (-> any())) :: String.t()
   def capture_io(device_or_pid, input_or_options, fun)
-
-  def capture_io(device, input, fun)
-      when is_atom(device) and is_binary(input) and is_function(fun, 0) do
-    {_result, capture} = with_io(device, input, fun)
-    capture
-  end
-
-  def capture_io(device, options, fun)
-      when is_atom(device) and is_list(options) and is_function(fun, 0) do
-    {_result, capture} = with_io(device, options, fun)
-    capture
-  end
-
-  def capture_io(pid, input, fun)
-      when is_pid(pid) and is_binary(input) and is_function(fun, 0) do
-    {_result, capture} = with_io(pid, input, fun)
-    capture
-  end
-
-  def capture_io(pid, options, fun)
-      when is_pid(pid) and is_list(options) and is_function(fun, 0) do
-    {_result, capture} = with_io(pid, options, fun)
+      when (is_atom(device_or_pid) or is_pid(device_or_pid)) and
+             (is_binary(input_or_options) or is_list(input_or_options)) and is_function(fun, 0) do
+    {_result, capture} = with_io(device_or_pid, input_or_options, fun)
     capture
   end
 
@@ -262,7 +235,7 @@ defmodule ExUnit.CaptureIO do
 
   def with_io(device, input, fun)
       when is_atom(device) and is_binary(input) and is_function(fun, 0) do
-    with_io(device, [input: input], fun)
+    do_with_io(map_dev(device), [input: input], fun)
   end
 
   def with_io(device, options, fun)
@@ -272,7 +245,7 @@ defmodule ExUnit.CaptureIO do
 
   def with_io(pid, input, fun)
       when is_pid(pid) and is_binary(input) and is_function(fun, 0) do
-    with_io(pid, [input: input], fun)
+    do_with_io(pid, [input: input], fun)
   end
 
   def with_io(pid, options, fun)
@@ -280,19 +253,20 @@ defmodule ExUnit.CaptureIO do
     do_with_io(pid, options, fun)
   end
 
-  defp map_dev(:stdio), do: :standard_io
+  defp map_dev(:standard_io), do: self()
+  defp map_dev(:stdio), do: self()
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other), do: other
 
-  defp do_with_io(device_or_pid, options, fun)
-       when device_or_pid == :standard_io or is_pid(device_or_pid) do
+  defp do_with_io(pid, options, fun) when is_pid(pid) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     encoding = Keyword.get(options, :encoding, :unicode)
     input = Keyword.get(options, :input, "")
 
-    original_gl = Process.group_leader()
+    {:group_leader, original_gl} =
+      Process.info(pid, :group_leader) || {:group_leader, Process.group_leader()}
+
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config, encoding: encoding)
-    pid = if is_pid(device_or_pid), do: device_or_pid, else: self()
 
     try do
       Process.group_leader(pid, capture_gl)
@@ -302,7 +276,7 @@ defmodule ExUnit.CaptureIO do
     end
   end
 
-  defp do_with_io(device, options, fun) do
+  defp do_with_io(device, options, fun) when is_atom(device) do
     input = Keyword.get(options, :input, "")
     encoding = Keyword.get(options, :encoding, :unicode)
 
