@@ -28,6 +28,38 @@ defmodule ExUnit.CaptureIOTest do
     end
   end
 
+  defmodule MockProc do
+    use GenServer
+
+    def start_link do
+      GenServer.start_link(__MODULE__, [])
+    end
+
+    @impl GenServer
+    def init(_), do: {:ok, nil}
+
+    @impl GenServer
+    def handle_call({:stdio, message}, _from, state) do
+      IO.puts(message)
+      {:reply, :ok, state}
+    end
+
+    @impl GenServer
+    def handle_call({:prompt, prompt}, _from, state) do
+      prompt
+      |> IO.gets()
+      |> IO.puts()
+
+      {:reply, :ok, state}
+    end
+
+    @impl GenServer
+    def handle_call({:stderr, message}, _from, state) do
+      IO.puts(:stderr, message)
+      {:reply, :ok, state}
+    end
+  end
+
   import ExUnit.CaptureIO
   doctest ExUnit.CaptureIO, import: true
 
@@ -467,6 +499,32 @@ defmodule ExUnit.CaptureIOTest do
 
       assert capture_io(:stderr, [input: "b"], fn -> :ok end)
     end
+  end
+
+  test "capture_io with a separate process" do
+    {:ok, pid} = MockProc.start_link()
+
+    assert capture_io(pid, fn ->
+             GenServer.call(pid, {:stdio, "a"})
+           end) == "a\n"
+
+    assert capture_io(pid, [input: "b"], fn ->
+             GenServer.call(pid, {:prompt, "> "})
+           end) == "> b\n"
+
+    assert capture_io(pid, "c", fn ->
+             GenServer.call(pid, {:prompt, "> "})
+           end) == "> c\n"
+
+    assert capture_io(pid, [input: "d", capture_prompt: false], fn ->
+             GenServer.call(pid, {:prompt, "> "})
+           end) == "d\n"
+
+    assert capture_io(:stderr, fn ->
+             GenServer.call(pid, {:stderr, "uhoh"})
+           end) == "uhoh\n"
+
+    GenServer.stop(pid)
   end
 
   test "with_io" do
