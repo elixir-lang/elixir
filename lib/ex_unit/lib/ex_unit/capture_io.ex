@@ -148,11 +148,16 @@ defmodule ExUnit.CaptureIO do
 
   See `capture_io/1` for more information.
   """
-  @spec capture_io(atom() | String.t() | keyword(), (-> any())) :: String.t()
-  def capture_io(device_input_or_options, fun)
+  @spec capture_io(atom() | pid() | String.t() | keyword(), (-> any())) :: String.t()
+  def capture_io(device_pid_input_or_options, fun)
 
   def capture_io(device, fun) when is_atom(device) and is_function(fun, 0) do
     {_result, capture} = with_io(device, fun)
+    capture
+  end
+
+  def capture_io(pid, fun) when is_pid(pid) and is_function(fun, 0) do
+    {_result, capture} = with_io(pid, fun)
     capture
   end
 
@@ -171,8 +176,8 @@ defmodule ExUnit.CaptureIO do
 
   See `capture_io/1` for more information.
   """
-  @spec capture_io(atom(), String.t() | keyword(), (-> any())) :: String.t()
-  def capture_io(device, input_or_options, fun)
+  @spec capture_io(atom() | pid(), String.t() | keyword(), (-> any())) :: String.t()
+  def capture_io(device_or_pid, input_or_options, fun)
 
   def capture_io(device, input, fun)
       when is_atom(device) and is_binary(input) and is_function(fun, 0) do
@@ -183,6 +188,18 @@ defmodule ExUnit.CaptureIO do
   def capture_io(device, options, fun)
       when is_atom(device) and is_list(options) and is_function(fun, 0) do
     {_result, capture} = with_io(device, options, fun)
+    capture
+  end
+
+  def capture_io(pid, input, fun)
+      when is_pid(pid) and is_binary(input) and is_function(fun, 0) do
+    {_result, capture} = with_io(pid, input, fun)
+    capture
+  end
+
+  def capture_io(pid, options, fun)
+      when is_pid(pid) and is_list(options) and is_function(fun, 0) do
+    {_result, capture} = with_io(pid, options, fun)
     capture
   end
 
@@ -215,11 +232,15 @@ defmodule ExUnit.CaptureIO do
   See `with_io/1` for more information.
   """
   @doc since: "1.13.0"
-  @spec with_io(atom() | String.t() | keyword(), (-> any())) :: {any(), String.t()}
-  def with_io(device_input_or_options, fun)
+  @spec with_io(atom() | pid() | String.t() | keyword(), (-> any())) :: {any(), String.t()}
+  def with_io(device_pid_input_or_options, fun)
 
   def with_io(device, fun) when is_atom(device) and is_function(fun, 0) do
     with_io(device, [], fun)
+  end
+
+  def with_io(pid, fun) when is_pid(pid) and is_function(fun, 0) do
+    with_io(pid, [], fun)
   end
 
   def with_io(input, fun) when is_binary(input) and is_function(fun, 0) do
@@ -236,8 +257,8 @@ defmodule ExUnit.CaptureIO do
   See `with_io/1` for more information.
   """
   @doc since: "1.13.0"
-  @spec with_io(atom(), String.t() | keyword(), (-> any())) :: {any(), String.t()}
-  def with_io(device, input_or_options, fun)
+  @spec with_io(atom() | pid(), String.t() | keyword(), (-> any())) :: {any(), String.t()}
+  def with_io(device_or_pid, input_or_options, fun)
 
   def with_io(device, input, fun)
       when is_atom(device) and is_binary(input) and is_function(fun, 0) do
@@ -249,18 +270,29 @@ defmodule ExUnit.CaptureIO do
     do_with_io(map_dev(device), options, fun)
   end
 
+  def with_io(pid, input, fun)
+      when is_pid(pid) and is_binary(input) and is_function(fun, 0) do
+    with_io(pid, [input: input], fun)
+  end
+
+  def with_io(pid, options, fun)
+      when is_pid(pid) and is_list(options) and is_function(fun, 0) do
+    do_with_io(pid, options, fun)
+  end
+
   defp map_dev(:stdio), do: :standard_io
   defp map_dev(:stderr), do: :standard_error
   defp map_dev(other), do: other
 
-  defp do_with_io(:standard_io, options, fun) do
+  defp do_with_io(device_or_pid, options, fun)
+       when device_or_pid == :standard_io or is_pid(device_or_pid) do
     prompt_config = Keyword.get(options, :capture_prompt, true)
     encoding = Keyword.get(options, :encoding, :unicode)
     input = Keyword.get(options, :input, "")
-    pid = Keyword.get(options, :pid, self())
 
     original_gl = Process.group_leader()
     {:ok, capture_gl} = StringIO.open(input, capture_prompt: prompt_config, encoding: encoding)
+    pid = if is_pid(device_or_pid), do: device_or_pid, else: self()
 
     try do
       Process.group_leader(pid, capture_gl)
