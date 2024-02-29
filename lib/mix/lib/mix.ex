@@ -943,7 +943,7 @@ defmodule Mix do
           end
 
           if restore_dir do
-            remove_leftover_deps!(install_dir)
+            remove_leftover_deps(install_dir)
           end
 
           Mix.State.put(:installed, {id, dynamic_config})
@@ -983,24 +983,21 @@ defmodule Mix do
     Path.join(app_dir, relative_path)
   end
 
-  defp remove_leftover_deps!(install_dir) do
+  defp remove_leftover_deps(install_dir) do
     build_lib_dir = Path.join([install_dir, "_build", "dev", "lib"])
     deps_dir = Path.join(install_dir, "deps")
 
-    deps = build_lib_dir |> File.ls!() |> MapSet.new()
+    deps = File.ls!(build_lib_dir)
 
     loaded_deps =
       for {app, _description, _version} <- Application.loaded_applications(),
           into: MapSet.new(),
           do: Atom.to_string(app)
 
-    leftover_deps =
-      deps
-      |> MapSet.difference(loaded_deps)
-      # We want to keep :mix_install, but it has no application
-      |> MapSet.delete("mix_install")
+    # We want to keep :mix_install, but it has no application
+    loaded_deps = MapSet.put(loaded_deps, "mix_install")
 
-    for dep <- leftover_deps do
+    for dep <- deps, not MapSet.member?(loaded_deps, dep) do
       build_path = Path.join(build_lib_dir, dep)
       File.rm_rf(build_path)
       dep_path = Path.join(deps_dir, dep)
