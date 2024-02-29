@@ -169,8 +169,8 @@ iex> :observer.start()
 > When running `iex` inside a project with `iex -S mix`, `observer` won't be available as a dependency. To do so, you will need to call the following functions before:
 >
 > ```elixir
-> iex> Mix.ensure_application!(:wx)
-> iex> Mix.ensure_application!(:runtime_tools)
+> iex> Mix.ensure_application!(:wx)             # Not necessary on Erlang/OTP 27+
+> iex> Mix.ensure_application!(:runtime_tools)  # Not necessary on Erlang/OTP 27+
 > iex> Mix.ensure_application!(:observer)
 > iex> :observer.start()
 > ```
