@@ -221,10 +221,6 @@ defmodule IO.ANSI.Docs do
 
   ### Quotes
 
-  defp process_quote([], lines, indent, options) do
-    write_quote(lines, indent, options, false)
-  end
-
   defp process_quote([">", ">" <> line | rest], lines, indent, options) do
     write_quote(lines, indent, options, true)
     write_empty_quote_line(options)
@@ -364,10 +360,6 @@ defmodule IO.ANSI.Docs do
   end
 
   ### Code blocks
-
-  defp process_code([], code, indent, options) do
-    write_code(code, indent, options)
-  end
 
   # Blank line between code blocks
   defp process_code(["", "    " <> line | rest], code, indent, options) do
