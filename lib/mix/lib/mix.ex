@@ -1069,7 +1069,7 @@ defmodule Mix do
   resides.
   """
   @doc since: "1.16.2"
-  @spec install_project_dir() :: Path.t()
+  @spec install_project_dir() :: Path.t() | nil
   def install_project_dir() do
     case Mix.State.get(:installed) do
       {id, _dynamic_config} -> install_project_dir(id)
