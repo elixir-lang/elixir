@@ -326,7 +326,7 @@ defmodule MixTest do
       end
     end
 
-    test "restore dir", %{tmp_dir: tmp_dir} do
+    test "using restore dir", %{tmp_dir: tmp_dir} do
       with_cleanup(fn ->
         Mix.install([
           {:git_repo, git: fixture_path("git_repo")}
@@ -388,6 +388,39 @@ defmodule MixTest do
 
         assert File.ls!(build_lib_path) |> Enum.sort() == ["install_test", "mix_install"]
         assert File.ls!(deps_path) == []
+      end)
+    after
+      System.delete_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
+    end
+
+    test "using restore dir removes consolidated files when not needed", %{tmp_dir: tmp_dir} do
+      with_cleanup(fn ->
+        Mix.install([
+          {:install_test, path: Path.join(tmp_dir, "install_test")}
+        ])
+
+        install_project_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_project_dir, "_build", "dev", "lib"])
+        build_project_path = Path.join(build_lib_path, "mix_install")
+
+        assert File.ls!(build_project_path) |> Enum.sort() == [".mix", "consolidated", "ebin"]
+
+        System.put_env("MIX_INSTALL_RESTORE_PROJECT_DIR", install_project_dir)
+      end)
+
+      with_cleanup(fn ->
+        Mix.install(
+          [
+            {:install_test, path: Path.join(tmp_dir, "install_test")}
+          ],
+          consolidate_protocols: false
+        )
+
+        install_project_dir = Mix.install_project_dir()
+        build_lib_path = Path.join([install_project_dir, "_build", "dev", "lib"])
+        build_project_path = Path.join(build_lib_path, "mix_install")
+
+        assert File.ls!(build_project_path) |> Enum.sort() == [".mix", "ebin"]
       end)
     after
       System.delete_env("MIX_INSTALL_RESTORE_PROJECT_DIR")
