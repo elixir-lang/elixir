@@ -187,8 +187,11 @@ defmodule IO.ANSI.DocsTest do
       assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
       result = format_markdown("line\n```elixir\ncode\ncode2\n```\nline2\n")
       assert result == "line\n\e[0m\n\e[36m    code\n    code2\e[0m\n\e[0m\nline2\n\e[0m"
-      result = format_markdown("line\n~~~elixir\ncode\n```\n~~~\nline2\n")
-      assert result == "line\n\e[0m\n\e[36m    code\n    ```\e[0m\n\e[0m\nline2\n\e[0m"
+    end
+
+    test "mermaid fenced code block is discarded" do
+      result = format_markdown("line\n```mermaid\ncode\ncode2\n```\nline2\n")
+      assert result == "line\n\e[0m\nline2\n\e[0m"
     end
 
     test "* list is converted" do

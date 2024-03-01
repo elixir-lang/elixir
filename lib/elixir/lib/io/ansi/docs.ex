@@ -176,12 +176,17 @@ defmodule IO.ANSI.Docs do
     process_code(rest, [line], indent, options)
   end
 
-  defp process(["```" <> _line | rest], text, indent, options) do
-    process_fenced_code_block(rest, text, indent, options, _delimiter = "```")
+  defp process(["```mermaid" <> _line | rest], text, indent, options) do
+    write_text(text, indent, options)
+
+    rest
+    |> Enum.drop_while(&(&1 != "```"))
+    |> Enum.drop(1)
+    |> process([], indent, options)
   end
 
-  defp process(["~~~" <> _line | rest], text, indent, options) do
-    process_fenced_code_block(rest, text, indent, options, _delimiter = "~~~")
+  defp process(["```" <> _line | rest], text, indent, options) do
+    process_fenced_code_block(rest, text, indent, options, _delimiter = "```")
   end
 
   defp process(["<!--" <> line | rest], text, indent, options) do
@@ -388,7 +393,7 @@ defmodule IO.ANSI.Docs do
   end
 
   defp process_fenced_code([line | rest], code, indent, options, delimiter) do
-    if line === delimiter do
+    if line == delimiter do
       process_code(rest, code, indent, options)
     else
       process_fenced_code(rest, [line | code], indent, options, delimiter)
