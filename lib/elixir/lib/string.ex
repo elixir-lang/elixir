@@ -1844,7 +1844,7 @@ defmodule String do
       ** (FunctionClauseError) no function clause matching in String.valid?/2
 
   """
-  @spec valid?(t) :: boolean
+  @spec valid?(t, :default | :fast_ascii) :: boolean
   def valid?(string, algorithm \\ :default)
 
   def valid?(<<string::binary>>, :default), do: valid_utf8?(string)
@@ -1902,6 +1902,7 @@ defmodule String do
       "nem rán bERROR! bề"
   """
   @doc since: "1.16.0"
+  @spec replace_invalid(binary, t) :: t
   def replace_invalid(bytes, replacement \\ "�")
       when is_binary(bytes) and is_binary(replacement) do
     do_replace_invalid(bytes, replacement, <<>>)
