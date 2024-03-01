@@ -377,6 +377,8 @@ defmodule Mix do
   """
 
   @mix_install_project __MODULE__.InstallProject
+  @mix_install_app :mix_install
+  @mix_install_app_string Atom.to_string(@mix_install_app)
 
   use Application
 
@@ -893,6 +895,7 @@ defmodule Mix do
 
           if first_build? and restore_dir != nil and not force? do
             File.cp_r(restore_dir, install_project_dir)
+            remove_dep(install_project_dir, @mix_install_app_string)
           end
 
           File.mkdir_p!(install_project_dir)
@@ -996,7 +999,6 @@ defmodule Mix do
 
   defp remove_leftover_deps(install_project_dir) do
     build_lib_dir = Path.join([install_project_dir, "_build", "dev", "lib"])
-    deps_dir = Path.join(install_project_dir, "deps")
 
     deps = File.ls!(build_lib_dir)
 
@@ -1006,14 +1008,21 @@ defmodule Mix do
           do: Atom.to_string(app)
 
     # We want to keep :mix_install, but it has no application
-    loaded_deps = MapSet.put(loaded_deps, "mix_install")
+    loaded_deps = MapSet.put(loaded_deps, @mix_install_app_string)
 
     for dep <- deps, not MapSet.member?(loaded_deps, dep) do
-      build_path = Path.join(build_lib_dir, dep)
-      File.rm_rf(build_path)
-      dep_path = Path.join(deps_dir, dep)
-      File.rm_rf(dep_path)
+      remove_dep(install_project_dir, dep)
     end
+  end
+
+  defp remove_dep(install_project_dir, dep) do
+    build_lib_dir = Path.join([install_project_dir, "_build", "dev", "lib"])
+    deps_dir = Path.join(install_project_dir, "deps")
+
+    build_path = Path.join(build_lib_dir, dep)
+    File.rm_rf(build_path)
+    dep_path = Path.join(deps_dir, dep)
+    File.rm_rf(dep_path)
   end
 
   defp install_project_dir(cache_id) do
@@ -1033,7 +1042,7 @@ defmodule Mix do
       build_path: "_build",
       lockfile: "mix.lock",
       deps_path: "deps",
-      app: :mix_install,
+      app: @mix_install_app,
       erlc_paths: [],
       elixirc_paths: [],
       compilers: [],
