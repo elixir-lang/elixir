@@ -1096,12 +1096,9 @@ defmodule Enum do
 
       iex> Enum.filter([1, 2, 3], fn x -> rem(x, 2) == 0 end)
       [2]
-      iex> Enum.filter(["sally@example.com", "john@example.com"], fn x -> String.contains?(x, "example.com") end)
-      ["sally@example.com", "john@example.com"]
-      iex> Enum.filter([:error, :error, :error, :error], fn
-        :ok -> true
-        _anything_else -> false 
-      end)
+      iex> Enum.filter(["apple", "pear", "banana"], fn fruit -> String.contains?(fruit, "a") end)
+      ["apple", "pear", "banana"]
+      iex> Enum.filter([4, 21, 24, 904], fn seconds -> seconds > 1000 end)
       []
 
   Keep in mind that `filter` is not capable of filtering and
