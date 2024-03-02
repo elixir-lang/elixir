@@ -815,7 +815,7 @@ defmodule Date do
   @doc false
   defp shift_months(date, 0), do: date
 
-  defp shift_months(%Date{year: year, month: month, day: day}, months) do
+  defp shift_months(%Date{calendar: calendar, year: year, month: month, day: day}, months) do
     total_months = year * 12 + month + months - 1
     new_year = Integer.floor_div(total_months, 12)
 
@@ -825,7 +825,7 @@ defmodule Date do
         new_month -> new_month
       end
 
-    last_day_of_month = :calendar.last_day_of_the_month(abs(new_year), new_month)
+    last_day_of_month = calendar.days_in_month(new_year, new_month)
     new_day = min(day, last_day_of_month)
 
     Date.new!(new_year, new_month, new_day)
