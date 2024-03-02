@@ -825,8 +825,7 @@ defmodule Date do
         new_month -> new_month
       end
 
-    last_day_of_month = calendar.days_in_month(new_year, new_month)
-    new_day = min(day, last_day_of_month)
+    new_day = min(day, calendar.days_in_month(new_year, new_month))
 
     Date.new!(new_year, new_month, new_day)
   end
