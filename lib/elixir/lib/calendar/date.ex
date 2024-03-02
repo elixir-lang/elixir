@@ -52,7 +52,7 @@ defmodule Date do
       ~D[2010-04-17]
 
       iex> Date.shift(~D[1970-01-01], year: 40, month: 3, week: 2, day: 3)
-      ~D[2010-04-18]
+      {:ok, ~D[2010-04-18]}
 
   Those functions are optimized to deal with common epochs, such
   as the Unix Epoch above or the Gregorian Epoch (0000-01-01).
@@ -785,27 +785,27 @@ defmodule Date do
   ## Examples
 
       iex> Date.shift(~D[2016-01-03], month: 2)
-      ~D[2016-03-03]
+      {:ok, ~D[2016-03-03]}
       iex> Date.shift(~D[2016-02-29], month: 1)
-      ~D[2016-03-29]
+      {:ok, ~D[2016-03-29]}
       iex> Date.shift(~D[2016-01-31], month: 1)
-      ~D[2016-02-29]
+      {:ok, ~D[2016-02-29]}
       iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
-      ~D[2020-02-01]
+      {:ok, ~D[2020-02-01]}
 
   """
-  # @doc since: "1.5.0"
-  @spec shift(Calendar.date(), [shift_unit()]) :: t
+  @spec shift(Calendar.date(), [shift_unit()]) :: {:ok, t}
   def shift(%{calendar: Calendar.ISO} = date, shift_units) do
     shift_units = Keyword.validate!(shift_units, year: 0, month: 0, week: 0, day: 0)
 
-    Enum.reduce(shift_units, date, fn
-      {_opt, 0}, new_date -> new_date
-      {:year, value}, new_date -> shift_months(new_date, value * 12)
-      {:month, value}, new_date -> shift_months(new_date, value)
-      {:week, value}, new_date -> Date.add(new_date, value * 7)
-      {:day, value}, new_date -> Date.add(new_date, value)
-    end)
+    {:ok,
+     Enum.reduce(shift_units, date, fn
+       {_opt, 0}, new_date -> new_date
+       {:year, value}, new_date -> shift_months(new_date, value * 12)
+       {:month, value}, new_date -> shift_months(new_date, value)
+       {:week, value}, new_date -> Date.add(new_date, value * 7)
+       {:day, value}, new_date -> Date.add(new_date, value)
+     end)}
   end
 
   def shift(_date, _opts) do

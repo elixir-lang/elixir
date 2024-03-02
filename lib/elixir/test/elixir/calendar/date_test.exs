@@ -182,36 +182,36 @@ defmodule DateTest do
 
   test "shift/2" do
     date1 = ~D[2012-02-29]
-    assert Date.shift(date1, day: -1) == ~D[2012-02-28]
-    assert Date.shift(date1, day: 1) == ~D[2012-03-01]
-    assert Date.shift(date1, month: -1) == ~D[2012-01-29]
-    assert Date.shift(date1, month: -2) == ~D[2011-12-29]
-    assert Date.shift(date1, week: -1) == ~D[2012-02-22]
-    assert Date.shift(date1, week: -9) == ~D[2011-12-28]
-    assert Date.shift(date1, month: 1) == ~D[2012-03-29]
-    assert Date.shift(date1, year: -1) == ~D[2011-02-28]
-    assert Date.shift(date1, year: 1) == ~D[2013-02-28]
-    assert Date.shift(date1, year: 4) == ~D[2016-02-29]
+    assert Date.shift(date1, day: -1) == {:ok, ~D[2012-02-28]}
+    assert Date.shift(date1, day: 1) == {:ok, ~D[2012-03-01]}
+    assert Date.shift(date1, month: -1) == {:ok, ~D[2012-01-29]}
+    assert Date.shift(date1, month: -2) == {:ok, ~D[2011-12-29]}
+    assert Date.shift(date1, week: -1) == {:ok, ~D[2012-02-22]}
+    assert Date.shift(date1, week: -9) == {:ok, ~D[2011-12-28]}
+    assert Date.shift(date1, month: 1) == {:ok, ~D[2012-03-29]}
+    assert Date.shift(date1, year: -1) == {:ok, ~D[2011-02-28]}
+    assert Date.shift(date1, year: 1) == {:ok, ~D[2013-02-28]}
+    assert Date.shift(date1, year: 4) == {:ok, ~D[2016-02-29]}
 
-    assert Date.shift(date1, year: 1, day: 2) == ~D[2013-03-02]
-    assert Date.shift(date1, day: -2, year: -1, month: 24) == ~D[2013-02-26]
-    assert Date.shift(date1, day: 2, year: 4, month: 1) == ~D[2016-03-31]
+    assert Date.shift(date1, year: 1, day: 2) == {:ok, ~D[2013-03-02]}
+    assert Date.shift(date1, day: -2, year: -1, month: 24) == {:ok, ~D[2013-02-26]}
+    assert Date.shift(date1, day: 2, year: 4, month: 1) == {:ok, ~D[2016-03-31]}
     assert Date.shift(date1, year: 1) == Date.shift(date1, month: 12)
 
     date2 = ~D[0000-01-01]
-    assert Date.shift(date2, day: -1) == ~D[-0001-12-31]
-    assert Date.shift(date2, day: 1) == ~D[0000-01-02]
-    assert Date.shift(date2, month: -1) == ~D[-0001-12-01]
-    assert Date.shift(date2, month: 1) == ~D[0000-02-01]
-    assert Date.shift(date2, year: -1) == ~D[-0001-01-01]
-    assert Date.shift(date2, year: 1) == ~D[0001-01-01]
-    assert Date.shift(date2, day: 2, year: 1, month: 37) == ~D[0004-02-03]
+    assert Date.shift(date2, day: -1) == {:ok, ~D[-0001-12-31]}
+    assert Date.shift(date2, day: 1) == {:ok, ~D[0000-01-02]}
+    assert Date.shift(date2, month: -1) == {:ok, ~D[-0001-12-01]}
+    assert Date.shift(date2, month: 1) == {:ok, ~D[0000-02-01]}
+    assert Date.shift(date2, year: -1) == {:ok, ~D[-0001-01-01]}
+    assert Date.shift(date2, year: 1) == {:ok, ~D[0001-01-01]}
+    assert Date.shift(date2, day: 2, year: 1, month: 37) == {:ok, ~D[0004-02-03]}
 
     date3 = ~D[2000-01-01]
-    assert Date.shift(date3, month: 12) == ~D[2001-01-01]
-    assert Date.shift(date3, month: 14) == ~D[2001-03-01]
-    assert Date.shift(date3, month: -32) == ~D[1997-05-01]
-    assert Date.shift(date3, day: 2, year: 4, month: 1) == ~D[2004-02-03]
+    assert Date.shift(date3, month: 12) == {:ok, ~D[2001-01-01]}
+    assert Date.shift(date3, month: 14) == {:ok, ~D[2001-03-01]}
+    assert Date.shift(date3, month: -32) == {:ok, ~D[1997-05-01]}
+    assert Date.shift(date3, day: 2, year: 4, month: 1) == {:ok, ~D[2004-02-03]}
 
     assert_raise ArgumentError, fn ->
       date = ~D[2000-01-01]
