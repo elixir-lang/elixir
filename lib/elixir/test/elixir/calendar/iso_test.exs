@@ -428,4 +428,40 @@ defmodule Calendar.ISOTest do
                {:error, :invalid_format}
     end
   end
+
+  describe "shift_date/2" do
+    test "regular use" do
+      assert Calendar.ISO.shift_date(2024, 3, 2, []) == {2024, 3, 2}
+      assert Calendar.ISO.shift_date(2024, 3, 2, year: 1) == {2025, 3, 2}
+      assert Calendar.ISO.shift_date(2024, 3, 2, month: 2) == {2024, 5, 2}
+      assert Calendar.ISO.shift_date(2024, 3, 2, week: 3) == {2024, 3, 23}
+      assert Calendar.ISO.shift_date(2024, 3, 2, day: 5) == {2024, 3, 7}
+      assert Calendar.ISO.shift_date(0, 1, 1, month: 1) == {0, 2, 1}
+      assert Calendar.ISO.shift_date(0, 1, 1, year: 1) == {1, 1, 1}
+      assert Calendar.ISO.shift_date(0, 1, 1, year: -2, month: 2) == {-2, 3, 1}
+      assert Calendar.ISO.shift_date(-4, 1, 1, year: -1) == {-5, 1, 1}
+
+      assert Calendar.ISO.shift_date(2024, 3, 2, year: 1, month: 2, week: 3, day: 5) ==
+               {2025, 5, 28}
+
+      assert Calendar.ISO.shift_date(2024, 3, 2, year: -1, month: -2, week: -3) ==
+               {2022, 12, 12}
+    end
+
+    test "leap year" do
+      assert Calendar.ISO.shift_date(2020, 2, 28, day: 1) == {2020, 2, 29}
+      assert Calendar.ISO.shift_date(2020, 2, 29, year: 1) == {2021, 2, 28}
+      assert Calendar.ISO.shift_date(2024, 3, 31, month: -1) == {2024, 2, 29}
+      assert Calendar.ISO.shift_date(2024, 3, 31, month: -2) == {2024, 1, 31}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 1) == {2024, 2, 29}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 2) == {2024, 3, 31}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 3) == {2024, 4, 30}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 4) == {2024, 5, 31}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 5) == {2024, 6, 30}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 6) == {2024, 7, 31}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 7) == {2024, 8, 31}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 8) == {2024, 9, 30}
+      assert Calendar.ISO.shift_date(2024, 1, 31, month: 9) == {2024, 10, 31}
+    end
+  end
 end
