@@ -763,6 +763,8 @@ defmodule Date do
   @doc """
   Shifts a date by given list of durations according to its calendar.
 
+  Check `Calendar.ISO.shift_date/4` for more information.
+
   ## Examples
 
       iex> Date.shift(~D[2016-01-03], month: 2)
@@ -779,7 +781,7 @@ defmodule Date do
   def shift(%{calendar: calendar} = date, shift_units) do
     %{year: year, month: month, day: day} = date
     {year, month, day} = calendar.shift_date(year, month, day, shift_units)
-    {:ok, %Date{calendar: Calendar.ISO, year: year, month: month, day: day}}
+    {:ok, %Date{calendar: calendar, year: year, month: month, day: day}}
   end
 
   @doc false

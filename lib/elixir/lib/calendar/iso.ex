@@ -162,9 +162,9 @@ defmodule Calendar.ISO do
   @type format :: :basic | :extended
 
   @typedoc """
-  The shift units that can be applied when shifting dates.
+  The duration units that can be applied when shifting dates.
   """
-  @type shift_unit ::
+  @type duration_unit ::
           {:year, integer()}
           | {:month, integer()}
           | {:week, integer()}
@@ -1465,10 +1465,9 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Shifts the given date by a list of shift units.
+  Shifts the given date by a list of duration units and values.
 
-  Available units are: `:year, :month, :week, :day` which
-  are applied in that order.
+  Available units are: `:year, :month, :week, :day` which are applied in that order.
 
   When shifting by month:
   - it will shift to the current day of a month
@@ -1485,12 +1484,19 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.shift_date(2016, 1, 31, year: 4, day: 1)
       {2020, 2, 1}
   """
-  @spec shift_date(year(), month(), day(), [shift_unit()]) :: {year, month, day}
+  @spec shift_date(year(), month(), day(), [duration_unit()]) :: {year, month, day}
   @impl true
-  def shift_date(year, month, day, shift_units) do
-    shift_units = Keyword.validate!(shift_units, year: 0, month: 0, week: 0, day: 0)
+  def shift_date(year, month, day, duration) do
+    duration = Keyword.validate!(duration, year: 0, month: 0, week: 0, day: 0)
 
-    Enum.reduce(shift_units, {year, month, day}, fn
+    duration_sorted = [
+      year: duration[:year],
+      month: duration[:month],
+      week: duration[:week],
+      day: duration[:day]
+    ]
+
+    Enum.reduce(duration_sorted, {year, month, day}, fn
       {_opt, 0}, new_date -> new_date
       {:year, value}, new_date -> shift_years(new_date, value)
       {:month, value}, new_date -> shift_months(new_date, value)
@@ -1507,22 +1513,21 @@ defmodule Calendar.ISO do
   end
 
   @doc false
-  defp shift_weeks({year, month, day}, days) do
-    date_to_iso_days(year, month, day)
-    |> Kernel.+(days * 7)
-    |> date_from_iso_days()
+  defp shift_weeks(date, days) do
+    shift_days(date, days * 7)
   end
 
   @doc false
   defp shift_months({year, month, day}, months) do
     months_in_year = months_in_year(year)
-
     total_months = year * months_in_year + month + months - 1
+
     new_year = Integer.floor_div(total_months, months_in_year)
 
     new_month =
       case rem(total_months, months_in_year) + 1 do
         0 -> months_in_year
+        new_month when new_month < 1 -> new_month + months_in_year
         new_month -> new_month
       end
 
