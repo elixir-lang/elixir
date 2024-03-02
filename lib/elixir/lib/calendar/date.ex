@@ -773,14 +773,14 @@ defmodule Date do
   Shifts a date by given units. Raises an `ArgumentError` if the
   given date is not a valid Calendar.ISO date.
 
-  Available shift units are: `:year, :month, :week, :day` and the shift
-  is always applied in that order.
+  Available shift units are: `:year, :month, :week, :day`
+  The shift options are applied in the order they are given.
 
   `Date.shift/2` defines a week as 7 days and a year as 12 months.
 
   When shifting by month:
   - it will shift to the current day of a month
-  - if the current day does not exist in a month, it will shift to the last day of a month
+  - when the current day does not exist in a month, it will shift to the last day of a month
 
   ## Examples
 
@@ -799,14 +799,7 @@ defmodule Date do
   def shift(%{calendar: Calendar.ISO} = date, shift_units) do
     shift_units = Keyword.validate!(shift_units, year: 0, month: 0, week: 0, day: 0)
 
-    ordered_units = [
-      year: shift_units[:year],
-      month: shift_units[:month],
-      week: shift_units[:week],
-      day: shift_units[:day]
-    ]
-
-    Enum.reduce(ordered_units, date, fn
+    Enum.reduce(shift_units, date, fn
       {_opt, 0}, new_date -> new_date
       {:year, value}, new_date -> shift_months(new_date, value * 12)
       {:month, value}, new_date -> shift_months(new_date, value)
