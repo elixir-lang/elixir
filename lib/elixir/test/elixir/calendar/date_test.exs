@@ -218,7 +218,7 @@ defmodule DateTest do
       Date.shift(date, months: 12)
     end
 
-    assert_raise ArgumentError, ~s/date invalid or not supported/, fn ->
+    assert_raise UndefinedFunctionError, fn ->
       date = Calendar.Holocene.date(12000, 01, 01)
       Date.shift(date, month: 12)
     end

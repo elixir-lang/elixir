@@ -162,6 +162,15 @@ defmodule Calendar.ISO do
   @type format :: :basic | :extended
 
   @typedoc """
+  The shift units that can be applied when shifting dates.
+  """
+  @type shift_unit ::
+          {:year, integer()}
+          | {:month, integer()}
+          | {:week, integer()}
+          | {:day, integer()}
+
+  @typedoc """
   Microseconds with stored precision.
 
   The precision represents the number of digits that must be used when
@@ -1453,6 +1462,79 @@ defmodule Calendar.ISO do
   @spec iso_days_to_end_of_day(Calendar.iso_days()) :: Calendar.iso_days()
   def iso_days_to_end_of_day({days, _day_fraction}) do
     {days, {@parts_per_day - 1, @parts_per_day}}
+  end
+
+  @doc """
+  Shifts the given date by a list of shift units.
+
+  Available units are: `:year, :month, :week, :day` which
+  are applied in that order.
+
+  When shifting by month:
+  - it will shift to the current day of a month
+  - when the current day does not exist in a month, it will shift to the last day of a month
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_date(2016, 1, 3, month: 2)
+      {2016, 3, 3}
+      iex> Calendar.ISO.shift_date(2016, 2, 29, month: 1)
+      {2016, 3, 29}
+      iex> Calendar.ISO.shift_date(2016, 1, 31, month: 1)
+      {2016, 2, 29}
+      iex> Calendar.ISO.shift_date(2016, 1, 31, year: 4, day: 1)
+      {2020, 2, 1}
+  """
+  @spec shift_date(year(), month(), day(), [shift_unit()]) :: {year, month, day}
+  @impl true
+  def shift_date(year, month, day, shift_units) do
+    shift_units = Keyword.validate!(shift_units, year: 0, month: 0, week: 0, day: 0)
+
+    Enum.reduce(shift_units, {year, month, day}, fn
+      {_opt, 0}, new_date -> new_date
+      {:year, value}, new_date -> shift_years(new_date, value)
+      {:month, value}, new_date -> shift_months(new_date, value)
+      {:week, value}, new_date -> shift_weeks(new_date, value)
+      {:day, value}, new_date -> shift_days(new_date, value)
+    end)
+  end
+
+  @doc false
+  defp shift_days({year, month, day}, days) do
+    date_to_iso_days(year, month, day)
+    |> Kernel.+(days)
+    |> date_from_iso_days()
+  end
+
+  @doc false
+  defp shift_weeks({year, month, day}, days) do
+    date_to_iso_days(year, month, day)
+    |> Kernel.+(days * 7)
+    |> date_from_iso_days()
+  end
+
+  @doc false
+  defp shift_months({year, month, day}, months) do
+    months_in_year = months_in_year(year)
+
+    total_months = year * months_in_year + month + months - 1
+    new_year = Integer.floor_div(total_months, months_in_year)
+
+    new_month =
+      case rem(total_months, months_in_year) + 1 do
+        0 -> months_in_year
+        new_month -> new_month
+      end
+
+    new_day = min(day, days_in_month(new_year, new_month))
+
+    {new_year, new_month, new_day}
+  end
+
+  @doc false
+  defp shift_years({year, _, _} = date, years) do
+    months_in_year = months_in_year(year)
+    shift_months(date, years * months_in_year)
   end
 
   ## Helpers

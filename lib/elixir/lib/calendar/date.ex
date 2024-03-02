@@ -68,15 +68,6 @@ defmodule Date do
           calendar: Calendar.calendar()
         }
 
-  @typedoc """
-  The shift units that can be applied when shifting dates.
-  """
-  @type shift_unit ::
-          {:year, integer()}
-          | {:month, integer()}
-          | {:week, integer()}
-          | {:day, integer()}
-
   @doc """
   Returns a range of dates.
 
@@ -770,17 +761,7 @@ defmodule Date do
   end
 
   @doc """
-  Shifts a date by given units. Raises an `ArgumentError` if the
-  given date is not a valid Calendar.ISO date.
-
-  Available shift units are: `:year, :month, :week, :day`
-  The shift options are applied in the order they are given.
-
-  `Date.shift/2` defines a week as 7 days and a year as 12 months.
-
-  When shifting by month:
-  - it will shift to the current day of a month
-  - when the current day does not exist in a month, it will shift to the last day of a month
+  Shifts a date by given list of durations according to its calendar.
 
   ## Examples
 
@@ -794,40 +775,11 @@ defmodule Date do
       {:ok, ~D[2020-02-01]}
 
   """
-  @spec shift(Calendar.date(), [shift_unit()]) :: {:ok, t}
-  def shift(%{calendar: Calendar.ISO} = date, shift_units) do
-    shift_units = Keyword.validate!(shift_units, year: 0, month: 0, week: 0, day: 0)
-
-    {:ok,
-     Enum.reduce(shift_units, date, fn
-       {_opt, 0}, new_date -> new_date
-       {:year, value}, new_date -> shift_months(new_date, value * 12)
-       {:month, value}, new_date -> shift_months(new_date, value)
-       {:week, value}, new_date -> Date.add(new_date, value * 7)
-       {:day, value}, new_date -> Date.add(new_date, value)
-     end)}
-  end
-
-  def shift(_date, _opts) do
-    raise ArgumentError, "date invalid or not supported"
-  end
-
-  @doc false
-  defp shift_months(date, 0), do: date
-
-  defp shift_months(%Date{calendar: calendar, year: year, month: month, day: day}, months) do
-    total_months = year * 12 + month + months - 1
-    new_year = Integer.floor_div(total_months, 12)
-
-    new_month =
-      case rem(total_months, 12) + 1 do
-        0 -> 12
-        new_month -> new_month
-      end
-
-    new_day = min(day, calendar.days_in_month(new_year, new_month))
-
-    Date.new!(new_year, new_month, new_day)
+  @spec shift(Calendar.date(), keyword()) :: {:ok, t}
+  def shift(%{calendar: calendar} = date, shift_units) do
+    %{year: year, month: month, day: day} = date
+    {year, month, day} = calendar.shift_date(year, month, day, shift_units)
+    {:ok, %Date{calendar: Calendar.ISO, year: year, month: month, day: day}}
   end
 
   @doc false

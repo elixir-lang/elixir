@@ -338,6 +338,11 @@ defmodule Calendar do
   @doc since: "1.15.0"
   @callback iso_days_to_end_of_day(iso_days) :: iso_days
 
+  @doc """
+  Shifts date by given duration according to its calendar.
+  """
+  @callback shift_date(year(), month(), day(), keyword()) :: {year, month, day}
+
   # General Helpers
 
   @doc """
