@@ -40,7 +40,7 @@ defmodule Date do
 
   ## Using epochs
 
-  The `add/2` and `diff/2` functions can be used for computing dates
+  The `add/2`, `diff/2` and `shift/2` functions can be used for computing dates
   or retrieving the number of days between instants. For example, if there
   is an interest in computing the number of days from the Unix epoch
   (1970-01-01):
@@ -50,6 +50,9 @@ defmodule Date do
 
       iex> Date.add(~D[1970-01-01], 14716)
       ~D[2010-04-17]
+
+      iex> Date.shift(~D[1970-01-01], year: 40, month: 3, week: 2, day: 3)
+      ~D[2010-04-18]
 
   Those functions are optimized to deal with common epochs, such
   as the Unix Epoch above or the Gregorian Epoch (0000-01-01).
@@ -64,6 +67,15 @@ defmodule Date do
           day: Calendar.day(),
           calendar: Calendar.calendar()
         }
+
+  @typedoc """
+  The shift units that can be applied when shifting dates.
+  """
+  @type shift_unit ::
+          {:year, integer()}
+          | {:month, integer()}
+          | {:week, integer()}
+          | {:day, integer()}
 
   @doc """
   Returns a range of dates.
@@ -755,6 +767,75 @@ defmodule Date do
       raise ArgumentError,
             "cannot calculate the difference between #{inspect(date1)} and #{inspect(date2)} because their calendars are not compatible and thus the result would be ambiguous"
     end
+  end
+
+  @doc """
+  Shifts a date by given units. Raises an `ArgumentError` if the
+  given date is not a valid Calendar.ISO date.
+
+  Available shift units are: `:year, :month, :week, :day` and the shift
+  is always applied in that order.
+
+  `Date.shift/2` defines a week as 7 days and a year as 12 months.
+
+  When shifting by month:
+  - it will shift to the current day of a month
+  - if the current day does not exist in a month, it will shift to the last day of a month
+
+  ## Examples
+
+      iex> Date.shift(~D[2016-01-03], month: 2)
+      ~D[2016-03-03]
+      iex> Date.shift(~D[2016-02-29], month: 1)
+      ~D[2016-03-29]
+      iex> Date.shift(~D[2016-01-31], month: 1)
+      ~D[2016-02-29]
+      iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
+      ~D[2020-02-01]
+
+  """
+  # @doc since: "1.5.0"
+  @spec shift(Calendar.date(), [shift_unit()]) :: t
+  def shift(%{calendar: Calendar.ISO} = date, shift_units) do
+    shift_units = Keyword.validate!(shift_units, year: 0, month: 0, week: 0, day: 0)
+
+    ordered_units = [
+      year: shift_units[:year],
+      month: shift_units[:month],
+      week: shift_units[:week],
+      day: shift_units[:day]
+    ]
+
+    Enum.reduce(ordered_units, date, fn
+      {_opt, 0}, new_date -> new_date
+      {:year, value}, new_date -> shift_months(new_date, value * 12)
+      {:month, value}, new_date -> shift_months(new_date, value)
+      {:week, value}, new_date -> Date.add(new_date, value * 7)
+      {:day, value}, new_date -> Date.add(new_date, value)
+    end)
+  end
+
+  def shift(_date, _opts) do
+    raise ArgumentError, "date invalid or not supported"
+  end
+
+  @doc false
+  defp shift_months(date, 0), do: date
+
+  defp shift_months(%Date{year: year, month: month, day: day}, months) do
+    total_months = year * 12 + month + months - 1
+    new_year = Integer.floor_div(total_months, 12)
+
+    new_month =
+      case rem(total_months, 12) + 1 do
+        0 -> 12
+        new_month -> new_month
+      end
+
+    last_day_of_month = :calendar.last_day_of_the_month(abs(new_year), new_month)
+    new_day = min(day, last_day_of_month)
+
+    Date.new!(new_year, new_month, new_day)
   end
 
   @doc false
