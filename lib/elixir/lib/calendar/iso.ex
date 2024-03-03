@@ -162,15 +162,6 @@ defmodule Calendar.ISO do
   @type format :: :basic | :extended
 
   @typedoc """
-  The duration units that can be applied when shifting dates.
-  """
-  @type duration_unit ::
-          {:year, integer()}
-          | {:month, integer()}
-          | {:week, integer()}
-          | {:day, integer()}
-
-  @typedoc """
   Microseconds with stored precision.
 
   The precision represents the number of digits that must be used when
@@ -1465,9 +1456,9 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Shifts the given date by a list of duration units and values.
+  Shifts date by Calendar.Duration units according to its calendar.
 
-  Available units are: `:year, :month, :week, :day` which are applied in that order.
+  Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
   When shifting by month:
   - it will shift to the current day of a month
@@ -1484,41 +1475,90 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.shift_date(2016, 1, 31, year: 4, day: 1)
       {2020, 2, 1}
   """
-  @spec shift_date(year(), month(), day(), [duration_unit()]) :: {year, month, day}
+  @spec shift_date(year(), month(), day(), [Calendar.Duration.duration_unit()]) ::
+          {year, month, day}
   @impl true
-  def shift_date(year, month, day, duration) do
-    duration = Keyword.validate!(duration, year: 0, month: 0, week: 0, day: 0)
+  def shift_date(year, month, day, duration_units) do
+    {year, month, day, _, _, _, _} =
+      shift_naive_datetime(year, month, day, 0, 0, 0, {0, 0}, duration_units)
 
-    duration_sorted = [
-      year: duration[:year],
-      month: duration[:month],
-      week: duration[:week],
-      day: duration[:day]
-    ]
+    {year, month, day}
+  end
 
-    Enum.reduce(duration_sorted, {year, month, day}, fn
-      {_opt, 0}, new_date -> new_date
-      {:year, value}, new_date -> shift_years(new_date, value)
-      {:month, value}, new_date -> shift_months(new_date, value)
-      {:week, value}, new_date -> shift_weeks(new_date, value)
-      {:day, value}, new_date -> shift_days(new_date, value)
+  @doc """
+  Shifts naive datetime by Calendar.Duration units according to its calendar.
+
+  Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
+
+  When shifting by month:
+  - it will shift to the current day of a month
+  - when the current day does not exist in a month, it will shift to the last day of a month
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, hour: 1)
+      {2016, 1, 3, 1, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, hour: 30)
+      {2016, 1, 4, 6, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, microsecond: 100)
+      {2016, 1, 3, 0, 0, 0, {100, 6}}
+  """
+  @spec shift_naive_datetime(year, month, day, hour, minute, second, microsecond, [
+          Calendar.Duration.duration_unit()
+        ]) :: {year, month, day, hour, minute, second, microsecond}
+  @impl true
+  def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration_units) do
+    Enum.reduce(duration_units, {year, month, day, hour, minute, second, microsecond}, fn
+      {_opt, 0}, naive_datetime -> naive_datetime
+      {:year, value}, naive_datetime -> shift_years(naive_datetime, value)
+      {:month, value}, naive_datetime -> shift_months(naive_datetime, value)
+      {:week, value}, naive_datetime -> shift_weeks(naive_datetime, value)
+      {time_unit, value}, naive_datetime -> shift_numerical(naive_datetime, value, time_unit)
     end)
   end
 
-  @doc false
-  defp shift_days({year, month, day}, days) do
-    date_to_iso_days(year, month, day)
-    |> Kernel.+(days)
-    |> date_from_iso_days()
+  def shift_numerical(naive_datetime, value, :day) do
+    shift_time_unit(naive_datetime, value * 86400, :second)
+  end
+
+  def shift_numerical(naive_datetime, value, :hour) do
+    shift_time_unit(naive_datetime, value * 3600, :second)
+  end
+
+  def shift_numerical(naive_datetime, value, :minute) do
+    shift_time_unit(naive_datetime, value * 60, :second)
+  end
+
+  def shift_numerical(naive_datetime, value, unit) do
+    shift_time_unit(naive_datetime, value, unit)
+  end
+
+  defp shift_time_unit(naive_datetime, value, unit) do
+    {year, month, day, hour, minute, second, {_, ms_precision} = microsecond} = naive_datetime
+
+    ppd = System.convert_time_unit(86400, :second, unit)
+    precision = max(time_unit_to_precision(unit), ms_precision)
+
+    {year, month, day, hour, minute, second, {ms_value, _}} =
+      naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
+      |> add_day_fraction_to_iso_days(value, ppd)
+      |> naive_datetime_from_iso_days()
+
+    {year, month, day, hour, minute, second, {ms_value, precision}}
   end
 
   @doc false
-  defp shift_weeks(date, days) do
-    shift_days(date, days * 7)
+  defp shift_days(naive_datetime, days) do
+    shift_time_unit(naive_datetime, days * 86400, :second)
   end
 
   @doc false
-  defp shift_months({year, month, day}, months) do
+  defp shift_weeks(naive_datetime, days) do
+    shift_days(naive_datetime, days * 7)
+  end
+
+  @doc false
+  defp shift_months({year, month, day, hour, minute, second, microsecond}, months) do
     months_in_year = months_in_year(year)
     total_months = year * months_in_year + month + months - 1
 
@@ -1533,13 +1573,14 @@ defmodule Calendar.ISO do
 
     new_day = min(day, days_in_month(new_year, new_month))
 
-    {new_year, new_month, new_day}
+    {new_year, new_month, new_day, hour, minute, second, microsecond}
   end
 
   @doc false
-  defp shift_years({year, _, _} = date, years) do
+  defp shift_years(naive_datetime, years) do
+    year = elem(naive_datetime, 0)
     months_in_year = months_in_year(year)
-    shift_months(date, years * months_in_year)
+    shift_months(naive_datetime, years * months_in_year)
   end
 
   ## Helpers

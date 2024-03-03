@@ -182,6 +182,7 @@ defmodule DateTest do
 
   test "shift/2" do
     assert Date.shift(~D[2012-02-29], day: -1) == {:ok, ~D[2012-02-28]}
+    assert Date.shift(~D[2012-02-29], second: 86400) == {:ok, ~D[2012-03-01]}
     assert Date.shift(~D[2012-02-29], month: -1) == {:ok, ~D[2012-01-29]}
     assert Date.shift(~D[2012-02-29], week: -9) == {:ok, ~D[2011-12-28]}
     assert Date.shift(~D[2012-02-29], month: 1) == {:ok, ~D[2012-03-29]}

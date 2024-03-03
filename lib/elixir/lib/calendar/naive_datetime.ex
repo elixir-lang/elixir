@@ -572,6 +572,66 @@ defmodule NaiveDateTime do
   end
 
   @doc """
+  Shifts a naive datetime by given Calendar.Duration according to its calendar.
+
+  Check `Calendar.ISO.shift_naive_datetime/8` for more information.
+
+  ## Examples
+
+      iex> NaiveDateTime.shift(~N[2016-01-03 00:00:00], month: 2)
+      {:ok, ~N[2016-03-03 00:00:00]}
+      iex> NaiveDateTime.shift(~N[2016-02-29 00:00:00], month: 1)
+      {:ok, ~N[2016-03-29 00:00:00]}
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], month: 1)
+      {:ok, ~N[2016-02-29 00:00:00]}
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], year: 4, day: 1)
+      {:ok, ~N[2020-02-01 00:00:00]}
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], second: 45)
+      {:ok, ~N[2016-01-31 00:00:45]}
+      iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], microsecond: 100)
+      {:ok, ~N[2016-01-31 00:00:00.000100]}
+
+  """
+  @spec shift(Calendar.date(), [Calendar.Duration.duration_units()]) :: {:ok, t}
+  def shift(%{calendar: calendar} = date, duration_units) do
+    duration = Calendar.Duration.sorted!(duration_units)
+
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond
+    } = date
+
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        duration
+      )
+
+    {:ok,
+     %NaiveDateTime{
+       calendar: calendar,
+       year: year,
+       month: month,
+       day: day,
+       hour: hour,
+       minute: minute,
+       second: second,
+       microsecond: microsecond
+     }}
+  end
+
+  @doc """
   Returns the given naive datetime with the microsecond field truncated to the
   given precision (`:microsecond`, `:millisecond` or `:second`).
 

@@ -761,7 +761,7 @@ defmodule Date do
   end
 
   @doc """
-  Shifts a date by given list of durations according to its calendar.
+  Shifts a date by given Calendar.Duration according to its calendar.
 
   Check `Calendar.ISO.shift_date/4` for more information.
 
@@ -777,10 +777,12 @@ defmodule Date do
       {:ok, ~D[2020-02-01]}
 
   """
-  @spec shift(Calendar.date(), keyword()) :: {:ok, t}
-  def shift(%{calendar: calendar} = date, shift_units) do
+  @spec shift(Calendar.date(), [Calendar.Duration.duration_units()]) :: {:ok, t}
+  def shift(%{calendar: calendar} = date, duration_units) do
+    duration = Calendar.Duration.sorted!(duration_units)
+
     %{year: year, month: month, day: day} = date
-    {year, month, day} = calendar.shift_date(year, month, day, shift_units)
+    {year, month, day} = calendar.shift_date(year, month, day, duration)
     {:ok, %Date{calendar: calendar, year: year, month: month, day: day}}
   end
 
