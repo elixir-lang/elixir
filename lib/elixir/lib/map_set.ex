@@ -268,7 +268,6 @@ defmodule MapSet do
       false
 
   See `is_member/2` for a guard-supported variant.
-
   """
   @spec member?(t, value) :: boolean
   def member?(%MapSet{map: set}, value) do
