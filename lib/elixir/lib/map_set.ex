@@ -83,6 +83,7 @@ defmodule MapSet do
       true
 
   """
+  @doc since: "1.17.0"
   defguard is_member(map_set, value)
            when is_struct(map_set, __MODULE__) and
                   is_map_key(map_set.map, value)
