@@ -1096,6 +1096,10 @@ defmodule Enum do
 
       iex> Enum.filter([1, 2, 3], fn x -> rem(x, 2) == 0 end)
       [2]
+      iex> Enum.filter(["apple", "pear", "banana"], fn fruit -> String.contains?(fruit, "a") end)
+      ["apple", "pear", "banana"]
+      iex> Enum.filter([4, 21, 24, 904], fn seconds -> seconds > 1000 end)
+      []
 
   Keep in mind that `filter` is not capable of filtering and
   transforming an element at the same time. If you would like
