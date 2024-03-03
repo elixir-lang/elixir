@@ -85,7 +85,7 @@ defmodule MapSet do
   """
   defguard is_member(map_set, value)
            when is_struct(map_set, __MODULE__) and
-                  :erlang.is_map_key(value, map_set.map)
+                  is_map_key(map_set.map, value)
 
   @doc """
   Returns a new set.
