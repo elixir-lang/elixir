@@ -565,6 +565,8 @@ defmodule Time do
 
   ## Examples
 
+      iex> Time.shift(~T[00:00:00], ~P[2DT4H30M25S])
+      {:ok, ~T[04:30:25]}
       iex> Time.shift(~T[01:00:15], hour: 12)
       {:ok, ~T[13:00:15]}
       iex> Time.shift(~T[01:15:00], hour: 6, minute: 15)
@@ -576,7 +578,7 @@ defmodule Time do
 
   """
   @spec shift(Calendar.time(), Calendar.Duration.t() | [Calendar.Duration.duration_units()]) ::
-          {:ok, t()} | {:error, :invalid_duration}
+          {:ok, t} | {:error, :invalid_duration}
   def shift(%Time{calendar: calendar} = time, %Calendar.Duration{} = duration) do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 

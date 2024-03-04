@@ -761,18 +761,18 @@ defmodule Date do
   end
 
   @doc """
-  Shifts a date by given Calendar.Duration according to its calendar.
+  Shifts a date by given duration according to its calendar.
 
   Check `Calendar.ISO.shift_date/4` for more information.
 
   ## Examples
 
+      iex> Date.shift(~D[2016-01-03], ~P[4Y1M2W26D])
+      {:ok, ~D[2020-03-14]}
       iex> Date.shift(~D[2016-01-03], month: 2)
       {:ok, ~D[2016-03-03]}
       iex> Date.shift(~D[2016-02-29], month: 1)
       {:ok, ~D[2016-03-29]}
-      iex> Date.shift(~D[2016-01-31], month: 1)
-      {:ok, ~D[2016-02-29]}
       iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
       {:ok, ~D[2020-02-01]}
 
