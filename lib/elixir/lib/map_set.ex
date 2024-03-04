@@ -88,7 +88,7 @@ defmodule MapSet do
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
-          (is_struct(unquote(map_set), unquote(__MODULE__)) or :fail) and
+          is_struct(unquote(map_set), unquote(__MODULE__)) and
             is_map_key(unquote(map_set).map, unquote(value))
         end
 

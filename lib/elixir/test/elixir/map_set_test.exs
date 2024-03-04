@@ -7,23 +7,25 @@ defmodule MapSetTest do
 
   test "is_member/2" do
     map_set = MapSet.new(1..3)
+    list = [1, 2, 3]
+
     assert MapSet.is_member(map_set, 2)
     refute MapSet.is_member(map_set, 4)
-
-    guards = fn
-      map_set when MapSet.is_member(map_set, 4) -> :found_4
-      map_set when MapSet.is_member(map_set, 2) -> :found_2
-      _ -> :error
-    end
-    assert guards.(map_set) == :found_2
-    assert guards.(MapSet.new(1..4)) == :found_4
-
-    list = [1, 2, 3]
-    assert guards.(list) == :error
 
     assert_raise ArgumentError, ~r/expected a MapSet/, fn ->
       MapSet.is_member(list, 2)
     end
+
+    guards = fn
+      input when MapSet.is_member(input, 4) or input == 4 -> :found_4
+      input when MapSet.is_member(input, 2) -> :found_2
+      _ -> :error
+    end
+
+    assert guards.(map_set) == :found_2
+    assert guards.(MapSet.new(1..4)) == :found_4
+    assert guards.(4) == :found_4
+    assert guards.(list) == :error
   end
 
   test "new/1" do
