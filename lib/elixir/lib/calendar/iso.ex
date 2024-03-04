@@ -1519,26 +1519,26 @@ defmodule Calendar.ISO do
 
     Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
       {_opt, 0}, naive_datetime -> naive_datetime
-      {:year, value}, naive_datetime -> shift_years(naive_datetime, value)
+      {:year, value}, naive_datetime -> shift_months(naive_datetime, value * 12)
       {:month, value}, naive_datetime -> shift_months(naive_datetime, value)
-      {:week, value}, naive_datetime -> shift_weeks(naive_datetime, value)
+      {:week, value}, naive_datetime -> shift_numerical(naive_datetime, value * 7, :day)
       {time_unit, value}, naive_datetime -> shift_numerical(naive_datetime, value, time_unit)
     end)
   end
 
-  def shift_numerical(naive_datetime, value, :day) do
+  defp shift_numerical(naive_datetime, value, :day) do
     shift_time_unit(naive_datetime, value * 86400, :second)
   end
 
-  def shift_numerical(naive_datetime, value, :hour) do
+  defp shift_numerical(naive_datetime, value, :hour) do
     shift_time_unit(naive_datetime, value * 3600, :second)
   end
 
-  def shift_numerical(naive_datetime, value, :minute) do
+  defp shift_numerical(naive_datetime, value, :minute) do
     shift_time_unit(naive_datetime, value * 60, :second)
   end
 
-  def shift_numerical(naive_datetime, value, unit) do
+  defp shift_numerical(naive_datetime, value, unit) do
     shift_time_unit(naive_datetime, value, unit)
   end
 
@@ -1556,19 +1556,8 @@ defmodule Calendar.ISO do
     {year, month, day, hour, minute, second, {ms_value, precision}}
   end
 
-  @doc false
-  defp shift_days(naive_datetime, days) do
-    shift_time_unit(naive_datetime, days * 86400, :second)
-  end
-
-  @doc false
-  defp shift_weeks(naive_datetime, days) do
-    shift_days(naive_datetime, days * 7)
-  end
-
-  @doc false
   defp shift_months({year, month, day, hour, minute, second, microsecond}, months) do
-    months_in_year = months_in_year(year)
+    months_in_year = 12
     total_months = year * months_in_year + month + months - 1
 
     new_year = Integer.floor_div(total_months, months_in_year)
@@ -1583,13 +1572,6 @@ defmodule Calendar.ISO do
     new_day = min(day, days_in_month(new_year, new_month))
 
     {new_year, new_month, new_day, hour, minute, second, microsecond}
-  end
-
-  @doc false
-  defp shift_years(naive_datetime, years) do
-    year = elem(naive_datetime, 0)
-    months_in_year = months_in_year(year)
-    shift_months(naive_datetime, years * months_in_year)
   end
 
   ## Helpers
