@@ -36,8 +36,18 @@ defmodule Calendar.Duration do
 
   @spec new!([duration_unit]) :: t()
   def new!(duration_units) do
-    Keyword.validate!(duration_units, Map.keys(%__MODULE__{}) -- [:__struct__])
     struct!(__MODULE__, duration_units)
+  end
+
+  @spec new([duration_unit]) :: {:ok, t()} | {:error, :invalid_duration}
+  def new(duration_units) do
+    case Keyword.validate(duration_units, Map.keys(%__MODULE__{}) -- [:__struct__]) do
+      {:ok, duration_units} ->
+        {:ok, struct(__MODULE__, duration_units)}
+
+      {:error, _invalid_keys} ->
+        {:error, :invalid_duration}
+    end
   end
 
   @duration_regex ~r/P(?:(?<year>-?\d+)Y)?(?:(?<month>-?\d+)M)?(?:(?<week>-?\d+)W)?(?:(?<day>-?\d+)D)?(?:T(?:(?<hour>-?\d+)H)?(?:(?<minute>-?\d+)M)?(?:(?<second>-?\d+)S)?)?/

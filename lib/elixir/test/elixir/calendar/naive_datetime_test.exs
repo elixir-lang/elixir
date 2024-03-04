@@ -447,9 +447,6 @@ defmodule NaiveDateTimeTest do
              microsecond: -8
            ) == {:ok, ~N[1998-10-06 18:53:52.999992]}
 
-    assert_raise ArgumentError, fn ->
-      naive_datetime = naive_datetime
-      NaiveDateTime.shift(naive_datetime, months: 12)
-    end
+    assert NaiveDateTime.shift(naive_datetime, months: 12) == {:error, :invalid_duration}
   end
 end
