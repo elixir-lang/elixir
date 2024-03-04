@@ -1483,7 +1483,7 @@ defmodule Calendar.ISO do
 
     {year, month, day, _, _, _, _} =
       Enum.reduce(shift_options, {year, month, day, 0, 0, 0, {0, 0}}, fn
-        {_opt, 0}, naive_datetime ->
+        {_, 0}, naive_datetime ->
           naive_datetime
 
         {:month, value}, naive_datetime ->
@@ -1535,7 +1535,7 @@ defmodule Calendar.ISO do
     shift_options = shift_naive_datetime_options(duration)
 
     Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
-      {_opt, 0}, naive_datetime ->
+      {_, 0}, naive_datetime ->
         naive_datetime
 
       {:month, value}, naive_datetime ->

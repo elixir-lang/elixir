@@ -391,4 +391,62 @@ defmodule NaiveDateTimeTest do
       assert NaiveDateTime.end_of_day(~N[2000-01-01 23:00:07]) == ~N[2000-01-01 23:59:59]
     end
   end
+
+  describe "shift/2" do
+    naive_datetime = ~N[2000-01-01 00:00:00]
+    assert NaiveDateTime.shift(naive_datetime, year: 1) == {:ok, ~N[2001-01-01 00:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, month: 1) == {:ok, ~N[2000-02-01 00:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, week: 3) == {:ok, ~N[2000-01-22 00:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, day: 2) == {:ok, ~N[2000-01-03 00:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, hour: 6) == {:ok, ~N[2000-01-01 06:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, minute: 30) == {:ok, ~N[2000-01-01 00:30:00]}
+    assert NaiveDateTime.shift(naive_datetime, second: 45) == {:ok, ~N[2000-01-01 00:00:45]}
+
+    assert NaiveDateTime.shift(naive_datetime, year: -1) == {:ok, ~N[1999-01-01 00:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, month: -1) == {:ok, ~N[1999-12-01 00:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, week: -1) == {:ok, ~N[1999-12-25 00:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, day: -1) == {:ok, ~N[1999-12-31 00:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, hour: -12) == {:ok, ~N[1999-12-31 12:00:00]}
+    assert NaiveDateTime.shift(naive_datetime, minute: -45) == {:ok, ~N[1999-12-31 23:15:00]}
+    assert NaiveDateTime.shift(naive_datetime, second: -30) == {:ok, ~N[1999-12-31 23:59:30]}
+
+    assert NaiveDateTime.shift(naive_datetime, microsecond: -500) ==
+             {:ok, ~N[1999-12-31 23:59:59.999500]}
+
+    assert NaiveDateTime.shift(naive_datetime, microsecond: 500) ==
+             {:ok, ~N[2000-01-01 00:00:00.000500]}
+
+    assert NaiveDateTime.shift(naive_datetime, year: 1, month: 2) ==
+             {:ok, ~N[2001-03-01 00:00:00]}
+
+    assert NaiveDateTime.shift(naive_datetime, month: 2, day: 3, hour: 6, minute: 15) ==
+             {:ok, ~N[2000-03-04 06:15:00]}
+
+    assert NaiveDateTime.shift(naive_datetime,
+             year: 1,
+             month: 2,
+             week: 3,
+             day: 4,
+             hour: 5,
+             minute: 6,
+             second: 7,
+             microsecond: 8
+           ) == {:ok, ~N[2001-03-26 05:06:07.000008]}
+
+    assert NaiveDateTime.shift(naive_datetime,
+             year: -1,
+             month: -2,
+             week: -3,
+             day: -4,
+             hour: -5,
+             minute: -6,
+             second: -7,
+             microsecond: -8
+           ) == {:ok, ~N[1998-10-06 18:53:52.999992]}
+
+    assert_raise ArgumentError, fn ->
+      naive_datetime = naive_datetime
+      NaiveDateTime.shift(naive_datetime, months: 12)
+    end
+  end
 end
