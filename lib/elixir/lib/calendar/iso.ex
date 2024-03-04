@@ -1532,37 +1532,6 @@ defmodule Calendar.ISO do
     end)
   end
 
-  defp shift_options(%Calendar.Duration{
-         year: year,
-         month: month,
-         week: week,
-         day: day,
-         hour: hour,
-         minute: minute,
-         second: second,
-         microsecond: microsecond
-       }) do
-    [
-      month: year * 12 + month,
-      second: week * 7 * 86400 + day * 86400 + hour * 3600 + minute * 60 + second,
-      microsecond: microsecond
-    ]
-  end
-
-  defp shift_numerical(naive_datetime, value, unit) when unit in [:second, :microsecond] do
-    {year, month, day, hour, minute, second, {_, ms_precision} = microsecond} = naive_datetime
-
-    ppd = System.convert_time_unit(86400, :second, unit)
-    precision = max(time_unit_to_precision(unit), ms_precision)
-
-    {year, month, day, hour, minute, second, {ms_value, _}} =
-      naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
-      |> add_day_fraction_to_iso_days(value, ppd)
-      |> naive_datetime_from_iso_days()
-
-    {year, month, day, hour, minute, second, {ms_value, precision}}
-  end
-
   defp shift_months({year, month, day, hour, minute, second, microsecond}, months) do
     months_in_year = 12
     total_months = year * months_in_year + month + months - 1
@@ -1579,6 +1548,37 @@ defmodule Calendar.ISO do
     new_day = min(day, days_in_month(new_year, new_month))
 
     {new_year, new_month, new_day, hour, minute, second, microsecond}
+  end
+
+  defp shift_numerical(naive_datetime, value, unit) when unit in [:second, :microsecond] do
+    {year, month, day, hour, minute, second, {_, ms_precision} = microsecond} = naive_datetime
+
+    ppd = System.convert_time_unit(86400, :second, unit)
+    precision = max(time_unit_to_precision(unit), ms_precision)
+
+    {year, month, day, hour, minute, second, {ms_value, _}} =
+      naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
+      |> add_day_fraction_to_iso_days(value, ppd)
+      |> naive_datetime_from_iso_days()
+
+    {year, month, day, hour, minute, second, {ms_value, precision}}
+  end
+
+  defp shift_options(%Calendar.Duration{
+         year: year,
+         month: month,
+         week: week,
+         day: day,
+         hour: hour,
+         minute: minute,
+         second: second,
+         microsecond: microsecond
+       }) do
+    [
+      month: year * 12 + month,
+      second: week * 7 * 86400 + day * 86400 + hour * 3600 + minute * 60 + second,
+      microsecond: microsecond
+    ]
   end
 
   ## Helpers
