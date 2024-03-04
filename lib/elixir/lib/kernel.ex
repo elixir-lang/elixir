@@ -6311,6 +6311,30 @@ defmodule Kernel do
   end
 
   @doc ~S"""
+  Handles the sigil `~P` for durations in ISO8601 format.
+
+  ## Examples
+
+      iex> ~P[3Y6M4DT12H30M5S]
+      %Calendar.Duration{
+        year: 3,
+        month: 6,
+        week: 0,
+        day: 4,
+        hour: 12,
+        minute: 30,
+        second: 5,
+        microsecond: 0
+      }
+
+  """
+  defmacro sigil_P({:<<>>, _, [duration_string]}, []) do
+    quote do
+      Calendar.Duration.parse!(unquote("P#{duration_string}"))
+    end
+  end
+
+  @doc ~S"""
   Handles the sigil `~T` for times.
 
   By default, this sigil uses the built-in `Calendar.ISO`, which
