@@ -24,7 +24,7 @@ defmodule Calendar.Duration do
         }
 
   @typedoc "Individually valid Duration units"
-  @type duration_unit ::
+  @type unit ::
           {:year, integer()}
           | {:month, integer()}
           | {:week, integer()}
@@ -34,16 +34,16 @@ defmodule Calendar.Duration do
           | {:second, integer()}
           | {:microsecond, integer()}
 
-  @spec new!([duration_unit]) :: t()
-  def new!(duration_units) do
-    struct!(__MODULE__, duration_units)
+  @spec new!([unit]) :: t()
+  def new!(units) do
+    struct!(__MODULE__, units)
   end
 
-  @spec new([duration_unit]) :: {:ok, t()} | {:error, :invalid_duration}
-  def new(duration_units) do
-    case Keyword.validate(duration_units, Map.keys(%__MODULE__{}) -- [:__struct__]) do
-      {:ok, duration_units} ->
-        {:ok, struct(__MODULE__, duration_units)}
+  @spec new([unit]) :: {:ok, t()} | {:error, :invalid_duration}
+  def new(units) do
+    case Keyword.validate(units, Map.keys(%__MODULE__{}) -- [:__struct__]) do
+      {:ok, units} ->
+        {:ok, struct(__MODULE__, units)}
 
       {:error, _invalid_keys} ->
         {:error, :invalid_duration}

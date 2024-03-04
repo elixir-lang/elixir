@@ -1689,15 +1689,17 @@ defmodule DateTime do
   """
   @spec shift(
           Calendar.datetime(),
-          Calendar.Duration.t() | [Calendar.Duration.duration_units()],
+          Calendar.Duration.t() | [Calendar.Duration.unit()],
           Calendar.time_zone_database()
         ) ::
           {:ok, t}
           | {:ambiguous, first_datetime :: t, second_datetime :: t}
           | {:gap, t, t}
           | {:error,
-             :incompatible_calendars | :time_zone_not_found | :utc_only_time_zone_database,
-             :invalid_duration}
+             :incompatible_calendars
+             | :time_zone_not_found
+             | :utc_only_time_zone_database
+             | :invalid_duration}
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
   def shift(
