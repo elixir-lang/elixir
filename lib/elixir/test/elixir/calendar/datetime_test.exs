@@ -1071,4 +1071,41 @@ defmodule DateTimeTest do
       assert catch_error(DateTime.to_naive(~N[2000-02-29 12:23:34]))
     end
   end
+
+  test "shift/2" do
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], year: 1) == {:ok, ~U[2001-01-01 00:00:00Z]}
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1) == {:ok, ~U[2000-02-01 00:00:00Z]}
+
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1, day: 28) ==
+             {:ok, ~U[2000-02-29 00:00:00Z]}
+
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 1, day: 30) ==
+             {:ok, ~U[2000-03-02 00:00:00Z]}
+
+    assert DateTime.shift(~U[2000-01-01 00:00:00Z], month: 2, day: 29) ==
+             {:ok, ~U[2000-03-30 00:00:00Z]}
+
+    assert DateTime.shift(~U[2000-02-29 00:00:00Z], year: -1) == {:ok, ~U[1999-02-28 00:00:00Z]}
+    assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1) == {:ok, ~U[2000-01-29 00:00:00Z]}
+
+    assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1, day: -28) ==
+             {:ok, ~U[2000-01-01 00:00:00Z]}
+
+    assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1, day: -30) ==
+             {:ok, ~U[1999-12-30 00:00:00Z]}
+
+    assert DateTime.shift(~U[2000-02-29 00:00:00Z], month: -1, day: -29) ==
+             {:ok, ~U[1999-12-31 00:00:00Z]}
+
+    datetime =
+      DateTime.new!(
+        Date.new!(2018, 10, 27),
+        Time.new!(2, 30, 0, {0, 0}),
+        "Europe/Copenhagen",
+        FakeTimeZoneDatabase
+      )
+
+    assert {:ambiguous, %DateTime{}, %DateTime{}} =
+             DateTime.shift(datetime, [day: 1], FakeTimeZoneDatabase)
+  end
 end

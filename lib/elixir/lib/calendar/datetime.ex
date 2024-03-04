@@ -1675,6 +1675,76 @@ defmodule DateTime do
   end
 
   @doc """
+  Shifts a datetime by given Calendar.Duration according to its calendar.
+
+  Can return an ambiguous or gap datetime tuple.
+
+  ## Examples
+
+      iex> DateTime.shift(~U[2016-01-03 00:00:00Z], month: 2)
+      {:ok, ~U[2016-03-03 00:00:00Z]}
+
+  """
+  @spec shift(
+          Calendar.datetime(),
+          Calendar.Duration.t() | [Calendar.Duration.duration_units()],
+          Calendar.time_zone_database()
+        ) ::
+          {:ok, t}
+          | {:ambiguous, first_datetime :: t, second_datetime :: t}
+          | {:gap, t, t}
+          | {:error,
+             :incompatible_calendars | :time_zone_not_found | :utc_only_time_zone_database,
+             :invalid_duration}
+  def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
+
+  def shift(
+        %DateTime{calendar: calendar} = datetime,
+        %Calendar.Duration{} = duration,
+        time_zone_database
+      ) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      microsecond: microsecond,
+      time_zone: time_zone
+    } = datetime
+
+    {year, month, day, hour, minute, second, microsecond} =
+      calendar.shift_naive_datetime(
+        year,
+        month,
+        day,
+        hour,
+        minute,
+        second,
+        microsecond,
+        duration
+      )
+
+    new(
+      Date.new!(year, month, day),
+      Time.new!(hour, minute, second, microsecond),
+      time_zone,
+      time_zone_database
+    )
+  end
+
+  def shift(%DateTime{} = datetime, duration_units, time_zone_database) do
+    case Calendar.Duration.new(duration_units) do
+      {:ok, duration} ->
+        shift(datetime, duration, time_zone_database)
+
+      {:error, :invalid_duration} ->
+        {:error, :invalid_duration}
+    end
+  end
+
+  @doc """
   Returns the given datetime with the microsecond field truncated to the given
   precision (`:microsecond`, `:millisecond` or `:second`).
 
