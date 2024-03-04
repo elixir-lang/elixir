@@ -1052,6 +1052,8 @@ defmodule Mix do
 
   @doc false
   def in_install_project(fun) do
+    Mix.start()
+
     case Mix.State.get(:installed) do
       {id, dynamic_config} ->
         config = install_project_config(dynamic_config)
@@ -1080,6 +1082,8 @@ defmodule Mix do
   @doc since: "1.16.2"
   @spec install_project_dir() :: Path.t() | nil
   def install_project_dir() do
+    Mix.start()
+
     case Mix.State.get(:installed) do
       {id, _dynamic_config} -> install_project_dir(id)
       nil -> nil
@@ -1092,6 +1096,8 @@ defmodule Mix do
   @doc since: "1.13.0"
   @spec installed?() :: boolean()
   def installed? do
+    Mix.start()
+
     Mix.State.get(:installed) != nil
   end
 
