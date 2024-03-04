@@ -124,8 +124,6 @@ defmodule ExUnit.Formatter do
 
     * `:error_info` - Should format error information.
 
-    * `:error_info` - Should format error information.
-
     * `:test_module_info` - Should format test module information. The message returned
     when this key is passed precedes messages such as `"failure on setup_all callback [...]"`.
 
