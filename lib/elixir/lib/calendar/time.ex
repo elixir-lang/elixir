@@ -559,6 +559,51 @@ defmodule Time do
   end
 
   @doc """
+  Shifts a Time by given Calendar.Duration according to its calendar.
+
+  Check `Calendar.ISO.shift_time/4` for more information.
+
+  ## Examples
+
+      iex> Time.shift(~T[01:00:15], hour: 12)
+      {:ok, ~T[13:00:15]}
+      iex> Time.shift(~T[01:15:00], hour: 6, minute: 15)
+      {:ok, ~T[07:30:00]}
+      iex> Time.shift(~T[01:15:00], second: 125)
+      {:ok, ~T[01:17:05]}
+      iex> Time.shift(~T[01:00:15], microsecond: 100)
+      {:ok, ~T[01:00:15.000100]}
+
+  """
+  @spec shift(Calendar.time(), Calendar.Duration.t() | [Calendar.Duration.duration_units()]) ::
+          {:ok, t()} | {:error, :invalid_duration}
+  def shift(%Time{calendar: calendar} = time, %Calendar.Duration{} = duration) do
+    %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
+
+    {hour, minute, second, microsecond} =
+      calendar.shift_time(hour, minute, second, microsecond, duration)
+
+    {:ok,
+     %Time{
+       calendar: calendar,
+       hour: hour,
+       minute: minute,
+       second: second,
+       microsecond: microsecond
+     }}
+  end
+
+  def shift(%Time{} = date = date, duration_units) do
+    case Calendar.Duration.new(duration_units) do
+      {:ok, duration} ->
+        shift(date, duration)
+
+      {:error, :invalid_duration} ->
+        {:error, :invalid_duration}
+    end
+  end
+
+  @doc """
   Compares two time structs.
 
   Returns `:gt` if first time is later than the second

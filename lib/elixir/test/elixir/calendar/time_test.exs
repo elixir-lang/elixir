@@ -102,4 +102,14 @@ defmodule TimeTest do
       Time.add(time, 1, 0)
     end
   end
+
+  test "shift/2" do
+    time = ~T[00:00:00.0]
+    assert Time.shift(time, hour: 1) == {:ok, ~T[01:00:00.0]}
+    assert Time.shift(time, hour: 25) == {:ok, ~T[01:00:00.0]}
+    assert Time.shift(time, minute: 25) == {:ok, ~T[00:25:00.0]}
+    assert Time.shift(time, second: 50) == {:ok, ~T[00:00:50.0]}
+    assert Time.shift(time, microsecond: 150) == {:ok, ~T[00:00:00.000150]}
+    assert Time.shift(time, hour: 2, minute: 65, second: 5) == {:ok, ~T[03:05:05.0]}
+  end
 end

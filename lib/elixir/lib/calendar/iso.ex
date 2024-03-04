@@ -1475,11 +1475,10 @@ defmodule Calendar.ISO do
       iex> Calendar.ISO.shift_date(2016, 1, 31, Calendar.Duration.new!(year: 4, day: 1))
       {2020, 2, 1}
   """
-  @spec shift_date(year(), month(), day(), Calendar.Duration.t()) ::
-          {year, month, day}
+  @spec shift_date(year, month, day, Calendar.Duration.t()) :: {year, month, day}
   @impl true
   def shift_date(year, month, day, duration) do
-    shift_options = shift_date_options(duration)
+    shift_options = get_shift_options(:date, duration)
 
     {year, month, day, _, _, _, _} =
       Enum.reduce(shift_options, {year, month, day, 0, 0, 0, {0, 0}}, fn
@@ -1532,7 +1531,7 @@ defmodule Calendar.ISO do
         ) :: {year, month, day, hour, minute, second, microsecond}
   @impl true
   def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
-    shift_options = shift_naive_datetime_options(duration)
+    shift_options = get_shift_options(:naive_datetime, duration)
 
     Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
       {_, 0}, naive_datetime ->
@@ -1540,6 +1539,36 @@ defmodule Calendar.ISO do
 
       {:month, value}, naive_datetime ->
         shift_months(naive_datetime, value)
+
+      {:second, value}, naive_datetime ->
+        shift_time_unit(naive_datetime, value, :second)
+
+      {:microsecond, value}, naive_datetime ->
+        shift_time_unit(naive_datetime, value, :microsecond)
+    end)
+  end
+
+  @doc """
+  Shifts time by Calendar.Duration units according to its calendar.
+
+  Available units are: `:hour, :minute, :second, :microsecond`.
+
+  ## Examples
+
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Calendar.Duration.new!(hour: 2))
+      {15, 0, 0, {0, 0}}
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Calendar.Duration.new!(microsecond: 100))
+      {13, 0, 0, {100, 6}}
+  """
+  @spec shift_time(hour, minute, second, microsecond, Calendar.Duration.t()) ::
+          {hour, minute, second, microsecond}
+  @impl true
+  def shift_time(hour, minute, second, microsecond, duration) do
+    shift_options = get_shift_options(:time, duration)
+
+    Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
+      {_, 0}, naive_datetime ->
+        naive_datetime
 
       {:second, value}, naive_datetime ->
         shift_time_unit(naive_datetime, value, :second)
@@ -1576,9 +1605,12 @@ defmodule Calendar.ISO do
     {new_year, new_month, new_day, hour, minute, second, microsecond}
   end
 
-  defp shift_time_unit(naive_datetime, value, unit) when unit in [:second, :microsecond] do
-    {year, month, day, hour, minute, second, {_, ms_precision} = microsecond} = naive_datetime
-
+  defp shift_time_unit(
+         {year, month, day, hour, minute, second, {_, ms_precision} = microsecond},
+         value,
+         unit
+       )
+       when unit in [:second, :microsecond] do
     ppd = System.convert_time_unit(86400, :second, unit)
     precision = max(time_unit_to_precision(unit), ms_precision)
 
@@ -1590,7 +1622,42 @@ defmodule Calendar.ISO do
     {year, month, day, hour, minute, second, {ms_value, precision}}
   end
 
-  defp shift_naive_datetime_options(%Calendar.Duration{
+  defp shift_time_unit(
+         {hour, minute, second, {_, precision} = microsecond},
+         value,
+         unit
+       )
+       when unit in [:second, :microsecond] do
+    time = {0, time_to_day_fraction(hour, minute, second, microsecond)}
+    amount_to_add = System.convert_time_unit(value, unit, :microsecond)
+    total = iso_days_to_unit(time, :microsecond) + amount_to_add
+    parts = Integer.mod(total, @parts_per_day)
+    precision = max(time_unit_to_precision(unit), precision)
+
+    {hour, minute, second, {microsecond, _}} = time_from_day_fraction({parts, @parts_per_day})
+
+    {hour, minute, second, {microsecond, precision}}
+  end
+
+  defp get_shift_options(:date, %{
+         year: year,
+         month: month,
+         week: week,
+         day: day,
+         hour: hour,
+         minute: minute,
+         second: second,
+         microsecond: microsecond
+       }) do
+    [
+      month: year * 12 + month,
+      day: week * 7 + day,
+      second: hour * 3600 + minute * 60 + second,
+      microsecond: microsecond
+    ]
+  end
+
+  defp get_shift_options(:naive_datetime, %{
          year: year,
          month: month,
          week: week,
@@ -1607,19 +1674,13 @@ defmodule Calendar.ISO do
     ]
   end
 
-  defp shift_date_options(%Calendar.Duration{
-         year: year,
-         month: month,
-         week: week,
-         day: day,
+  defp get_shift_options(:time, %{
          hour: hour,
          minute: minute,
          second: second,
          microsecond: microsecond
        }) do
     [
-      month: year * 12 + month,
-      day: week * 7 + day,
       second: hour * 3600 + minute * 60 + second,
       microsecond: microsecond
     ]

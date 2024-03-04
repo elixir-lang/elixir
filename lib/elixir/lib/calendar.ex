@@ -358,6 +358,12 @@ defmodule Calendar do
               Calendar.Duration.t()
             ) :: {year, month, day, hour, minute, second, microsecond}
 
+  @doc """
+  Shifts time by given duration according to its calendar.
+  """
+  @callback shift_time(hour, minute, second, microsecond, Calendar.Duration.t()) ::
+              {hour, minute, second, microsecond}
+
   # General Helpers
 
   @doc """
