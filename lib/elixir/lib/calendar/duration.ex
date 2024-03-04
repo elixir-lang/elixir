@@ -41,18 +41,4 @@ defmodule Calendar.Duration do
     Keyword.validate!(duration_units, Map.keys(%__MODULE__{}) -- [:__struct__])
     struct!(__MODULE__, duration_units)
   end
-
-  @spec to_shift_options(t()) :: [duration_unit()]
-  def to_shift_options(duration) do
-    [
-      year: duration.year,
-      month: duration.month,
-      week: duration.week,
-      day: duration.day,
-      hour: duration.hour,
-      minute: duration.minute,
-      second: duration.second,
-      microsecond: duration.microsecond
-    ]
-  end
 end

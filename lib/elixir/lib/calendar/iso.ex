@@ -1515,34 +1515,41 @@ defmodule Calendar.ISO do
         ) :: {year, month, day, hour, minute, second, microsecond}
   @impl true
   def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
-    shift_options = Calendar.Duration.to_shift_options(duration)
+    shift_options = shift_options(duration)
 
     Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
-      {_opt, 0}, naive_datetime -> naive_datetime
-      {:year, value}, naive_datetime -> shift_months(naive_datetime, value * 12)
-      {:month, value}, naive_datetime -> shift_months(naive_datetime, value)
-      {:week, value}, naive_datetime -> shift_numerical(naive_datetime, value * 7, :day)
-      {time_unit, value}, naive_datetime -> shift_numerical(naive_datetime, value, time_unit)
+      {_opt, 0}, naive_datetime ->
+        naive_datetime
+
+      {:month, value}, naive_datetime ->
+        shift_months(naive_datetime, value)
+
+      {:second, value}, naive_datetime ->
+        shift_numerical(naive_datetime, value, :second)
+
+      {:microsecond, value}, naive_datetime ->
+        shift_numerical(naive_datetime, value, :microsecond)
     end)
   end
 
-  defp shift_numerical(naive_datetime, value, :day) do
-    shift_time_unit(naive_datetime, value * 86400, :second)
+  defp shift_options(%Calendar.Duration{
+         year: year,
+         month: month,
+         week: week,
+         day: day,
+         hour: hour,
+         minute: minute,
+         second: second,
+         microsecond: microsecond
+       }) do
+    [
+      month: year * 12 + month,
+      second: week * 7 * 86400 + day * 86400 + hour * 3600 + minute * 60 + second,
+      microsecond: microsecond
+    ]
   end
 
-  defp shift_numerical(naive_datetime, value, :hour) do
-    shift_time_unit(naive_datetime, value * 3600, :second)
-  end
-
-  defp shift_numerical(naive_datetime, value, :minute) do
-    shift_time_unit(naive_datetime, value * 60, :second)
-  end
-
-  defp shift_numerical(naive_datetime, value, unit) do
-    shift_time_unit(naive_datetime, value, unit)
-  end
-
-  defp shift_time_unit(naive_datetime, value, unit) do
+  defp shift_numerical(naive_datetime, value, unit) when unit in [:second, :microsecond] do
     {year, month, day, hour, minute, second, {_, ms_precision} = microsecond} = naive_datetime
 
     ppd = System.convert_time_unit(86400, :second, unit)
