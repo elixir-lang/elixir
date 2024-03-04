@@ -13,33 +13,33 @@ defmodule Calendar.Duration do
 
   @typedoc "Duration in calendar units"
   @type t :: %__MODULE__{
-          year: integer(),
-          month: integer(),
-          week: integer(),
-          day: integer(),
-          hour: integer(),
-          minute: integer(),
-          second: integer(),
-          microsecond: integer()
+          year: integer,
+          month: integer,
+          week: integer,
+          day: integer,
+          hour: integer,
+          minute: integer,
+          second: integer,
+          microsecond: integer
         }
 
   @typedoc "Individually valid Duration units"
   @type unit ::
-          {:year, integer()}
-          | {:month, integer()}
-          | {:week, integer()}
-          | {:day, integer()}
-          | {:hour, integer()}
-          | {:minute, integer()}
-          | {:second, integer()}
-          | {:microsecond, integer()}
+          {:year, integer}
+          | {:month, integer}
+          | {:week, integer}
+          | {:day, integer}
+          | {:hour, integer}
+          | {:minute, integer}
+          | {:second, integer}
+          | {:microsecond, integer}
 
-  @spec new!([unit]) :: t()
+  @spec new!([unit]) :: t
   def new!(units) do
     struct!(__MODULE__, units)
   end
 
-  @spec new([unit]) :: {:ok, t()} | {:error, :invalid_duration}
+  @spec new([unit]) :: {:ok, t} | {:error, :invalid_duration}
   def new(units) do
     case Keyword.validate(units, Map.keys(%__MODULE__{}) -- [:__struct__]) do
       {:ok, units} ->
@@ -50,8 +50,10 @@ defmodule Calendar.Duration do
     end
   end
 
+  # TODO write parser instead of relying on regex
+  # TODO write formatter to implement in Inspect + String.Chars
   @duration_regex ~r/P(?:(?<year>-?\d+)Y)?(?:(?<month>-?\d+)M)?(?:(?<week>-?\d+)W)?(?:(?<day>-?\d+)D)?(?:T(?:(?<hour>-?\d+)H)?(?:(?<minute>-?\d+)M)?(?:(?<second>-?\d+)S)?)?/
-  @spec parse!(String.t()) :: t()
+  @spec parse!(binary) :: t
   def parse!(duration_string) when is_binary(duration_string) do
     case Regex.named_captures(@duration_regex, duration_string) do
       %{
