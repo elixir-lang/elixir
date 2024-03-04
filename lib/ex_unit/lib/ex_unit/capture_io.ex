@@ -36,7 +36,7 @@ defmodule ExUnit.CaptureIO do
   another process, however that is not safe to do concurrently.
 
   You may also capture any other named IO device, such as `:stderr`. This is
-  also safe to run concurrently but, if several tests are writting to the same
+  also safe to run concurrently but, if several tests are writing to the same
   device at once, captured output may include output from a different test.
 
   A developer can set a string as an input. The default input is an empty
