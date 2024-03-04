@@ -66,7 +66,7 @@ defmodule MapSet do
   @doc """
   Checks if `map_set` contains `value`. Allowed in guards.
 
-  Otherwise equivalent to `member?/2`.
+  Otherwise functions like `member?/2`.
 
   ## Examples
 
@@ -84,9 +84,27 @@ defmodule MapSet do
 
   """
   @doc guard: true, since: "1.17.0"
-  defguard is_member(map_set, value)
-           when is_struct(map_set, __MODULE__) and
-                  is_map_key(map_set.map, value)
+  defmacro is_member(map_set, value) do
+    case Macro.Env.in_guard?(__CALLER__) do
+      true ->
+        quote do
+          (is_struct(unquote(map_set), unquote(__MODULE__)) or :fail) and
+            is_map_key(unquote(map_set).map, unquote(value))
+        end
+
+      false ->
+        quote do
+          map_set = unquote(map_set)
+          value = unquote(value)
+
+          if is_struct(map_set, unquote(__MODULE__)) do
+            is_map_key(map_set.map, value)
+          else
+            raise ArgumentError, message: "expected a MapSet, got: #{inspect(map_set)}"
+          end
+        end
+    end
+  end
 
   @doc """
   Returns a new set.

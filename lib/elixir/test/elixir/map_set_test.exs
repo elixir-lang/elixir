@@ -5,6 +5,27 @@ defmodule MapSetTest do
 
   doctest MapSet
 
+  test "is_member/2" do
+    map_set = MapSet.new(1..3)
+    assert MapSet.is_member(map_set, 2)
+    refute MapSet.is_member(map_set, 4)
+
+    guards = fn
+      map_set when MapSet.is_member(map_set, 4) -> :found_4
+      map_set when MapSet.is_member(map_set, 2) -> :found_2
+      _ -> :error
+    end
+    assert guards.(map_set) == :found_2
+    assert guards.(MapSet.new(1..4)) == :found_4
+
+    list = [1, 2, 3]
+    assert guards.(list) == :error
+
+    assert_raise ArgumentError, ~r/expected a MapSet/, fn ->
+      MapSet.is_member(list, 2)
+    end
+  end
+
   test "new/1" do
     result = MapSet.new(1..5)
     assert MapSet.equal?(result, Enum.into(1..5, MapSet.new()))
