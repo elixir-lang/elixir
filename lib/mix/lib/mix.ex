@@ -1052,7 +1052,7 @@ defmodule Mix do
 
   @doc false
   def in_install_project(fun) do
-    case Mix.State.get(:installed) do
+    case safe_get_installed() do
       {id, dynamic_config} ->
         config = install_project_config(dynamic_config)
 
@@ -1080,7 +1080,7 @@ defmodule Mix do
   @doc since: "1.16.2"
   @spec install_project_dir() :: Path.t() | nil
   def install_project_dir() do
-    case Mix.State.get(:installed) do
+    case safe_get_installed() do
       {id, _dynamic_config} -> install_project_dir(id)
       nil -> nil
     end
@@ -1092,7 +1092,17 @@ defmodule Mix do
   @doc since: "1.13.0"
   @spec installed?() :: boolean()
   def installed? do
-    Mix.State.get(:installed) != nil
+    safe_get_installed() != nil
+  end
+
+  defp safe_get_installed() do
+    if mix_started?() do
+      Mix.State.get(:installed)
+    end
+  end
+
+  defp mix_started?() do
+    Process.whereis(Mix.State) != nil
   end
 
   defp stop_apps([]), do: :ok
