@@ -1567,14 +1567,14 @@ defmodule Calendar.ISO do
     shift_options = get_shift_options(:time, duration)
 
     Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
-      {_, 0}, naive_datetime ->
-        naive_datetime
+      {_, 0}, time ->
+        time
 
-      {:second, value}, naive_datetime ->
-        shift_time_unit(naive_datetime, value, :second)
+      {:second, value}, time ->
+        shift_time_unit(time, value, :second)
 
-      {:microsecond, value}, naive_datetime ->
-        shift_time_unit(naive_datetime, value, :microsecond)
+      {:microsecond, value}, time ->
+        shift_time_unit(time, value, :microsecond)
     end)
   end
 
