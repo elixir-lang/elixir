@@ -36,11 +36,14 @@ defmodule Calendar.Duration do
           | {:second, integer()}
           | {:microsecond, integer()}
 
-  @spec sorted!([duration_unit()]) :: [duration_unit()]
-  def sorted!(duration_units) do
+  @spec new!([duration_unit]) :: t()
+  def new!(duration_units) do
     Keyword.validate!(duration_units, Map.keys(%__MODULE__{}) -- [:__struct__])
-    duration = struct!(__MODULE__, duration_units)
+    struct!(__MODULE__, duration_units)
+  end
 
+  @spec to_shift_options(t()) :: [duration_unit()]
+  def to_shift_options(duration) do
     [
       year: duration.year,
       month: duration.month,

@@ -1466,21 +1466,21 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.shift_date(2016, 1, 3, month: 2)
+      iex> Calendar.ISO.shift_date(2016, 1, 3, Calendar.Duration.new!(month: 2))
       {2016, 3, 3}
-      iex> Calendar.ISO.shift_date(2016, 2, 29, month: 1)
+      iex> Calendar.ISO.shift_date(2016, 2, 29, Calendar.Duration.new!(month: 1))
       {2016, 3, 29}
-      iex> Calendar.ISO.shift_date(2016, 1, 31, month: 1)
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Calendar.Duration.new!(month: 1))
       {2016, 2, 29}
-      iex> Calendar.ISO.shift_date(2016, 1, 31, year: 4, day: 1)
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Calendar.Duration.new!(year: 4, day: 1))
       {2020, 2, 1}
   """
-  @spec shift_date(year(), month(), day(), [Calendar.Duration.duration_unit()]) ::
+  @spec shift_date(year(), month(), day(), Calendar.Duration.t()) ::
           {year, month, day}
   @impl true
-  def shift_date(year, month, day, duration_units) do
+  def shift_date(year, month, day, duration) do
     {year, month, day, _, _, _, _} =
-      shift_naive_datetime(year, month, day, 0, 0, 0, {0, 0}, duration_units)
+      shift_naive_datetime(year, month, day, 0, 0, 0, {0, 0}, duration)
 
     {year, month, day}
   end
@@ -1496,19 +1496,28 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, hour: 1)
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Calendar.Duration.new!(hour: 1))
       {2016, 1, 3, 1, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, hour: 30)
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Calendar.Duration.new!(hour: 30))
       {2016, 1, 4, 6, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, microsecond: 100)
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Calendar.Duration.new!(microsecond: 100))
       {2016, 1, 3, 0, 0, 0, {100, 6}}
   """
-  @spec shift_naive_datetime(year, month, day, hour, minute, second, microsecond, [
-          Calendar.Duration.duration_unit()
-        ]) :: {year, month, day, hour, minute, second, microsecond}
+  @spec shift_naive_datetime(
+          year,
+          month,
+          day,
+          hour,
+          minute,
+          second,
+          microsecond,
+          Calendar.Duration.t()
+        ) :: {year, month, day, hour, minute, second, microsecond}
   @impl true
-  def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration_units) do
-    Enum.reduce(duration_units, {year, month, day, hour, minute, second, microsecond}, fn
+  def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
+    shift_options = Calendar.Duration.to_shift_options(duration)
+
+    Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
       {_opt, 0}, naive_datetime -> naive_datetime
       {:year, value}, naive_datetime -> shift_years(naive_datetime, value)
       {:month, value}, naive_datetime -> shift_months(naive_datetime, value)
