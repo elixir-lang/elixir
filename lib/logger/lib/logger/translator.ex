@@ -406,11 +406,9 @@ defmodule Logger.Translator do
   end
 
   defp report_crash(min_level, crashed, extra, linked) do
-    [
-      {:pid, pid},
-      {:registered_name, name},
-      {:error_info, {kind, reason, stack}} | crashed
-    ] = crashed
+    {pid, crashed} = Keyword.pop_first(crashed, :pid)
+    {name, crashed} = Keyword.pop_first(crashed, :registered_name)
+    {{kind, reason, stack}, crashed} = Keyword.pop_first(crashed, :error_info)
 
     dictionary = crashed[:dictionary]
     reason = Exception.normalize(kind, reason, stack)
@@ -459,6 +457,10 @@ defmodule Logger.Translator do
 
   defp crash_info(min_level, [{:ancestors, ancestors} | debug], prefix) do
     [prefix, "Ancestors: ", inspect(ancestors) | crash_info(min_level, debug, prefix)]
+  end
+
+  defp crash_info(min_level, [{:process_label, _} | info], prefix) do
+    crash_info(min_level, info, prefix)
   end
 
   defp crash_info(:debug, debug, prefix) do
