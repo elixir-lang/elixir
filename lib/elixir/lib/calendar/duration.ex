@@ -3,7 +3,10 @@ defmodule Calendar.Duration do
   The calendar Duration type.
   """
 
-  defstruct year: 0, month: 0, week: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0
+  @default [year: 0, month: 0, week: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0]
+  @fields Keyword.keys(@default)
+
+  defstruct @default
 
   @typedoc "Duration in calendar units"
   @type t :: %__MODULE__{
@@ -43,7 +46,7 @@ defmodule Calendar.Duration do
   """
   @spec new([unit]) :: {:ok, t} | {:error, :invalid_duration}
   def new(units) do
-    case Keyword.validate(units, Map.keys(%__MODULE__{}) -- [:__struct__]) do
+    case Keyword.validate(units, @fields) do
       {:ok, units} ->
         {:ok, struct(__MODULE__, units)}
 

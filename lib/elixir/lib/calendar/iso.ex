@@ -1491,11 +1491,8 @@ defmodule Calendar.ISO do
         {:day, value}, naive_datetime ->
           shift_days(naive_datetime, value)
 
-        {:second, value}, naive_datetime ->
-          shift_time_unit(naive_datetime, value, :second)
-
-        {:microsecond, value}, naive_datetime ->
-          shift_time_unit(naive_datetime, value, :microsecond)
+        {time_unit, value}, naive_datetime ->
+          shift_time_unit(naive_datetime, value, time_unit)
       end)
 
     {year, month, day}
@@ -1540,11 +1537,8 @@ defmodule Calendar.ISO do
       {:month, value}, naive_datetime ->
         shift_months(naive_datetime, value)
 
-      {:second, value}, naive_datetime ->
-        shift_time_unit(naive_datetime, value, :second)
-
-      {:microsecond, value}, naive_datetime ->
-        shift_time_unit(naive_datetime, value, :microsecond)
+      {time_unit, value}, naive_datetime ->
+        shift_time_unit(naive_datetime, value, time_unit)
     end)
   end
 
