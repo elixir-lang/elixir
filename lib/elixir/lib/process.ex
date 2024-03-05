@@ -940,6 +940,23 @@ defmodule Process do
   @spec unalias(alias) :: boolean
   defdelegate unalias(alias), to: :erlang
 
+  @doc """
+  Add a descriptive term to the current process.
+  The term does not need to be unique, and in Erlang/OTP 27+ will be shown in Observer.
+
+  ## Examples
+
+      Process.set_label(:worker)
+      #=> :ok
+  """
+  @spec set_label(term()) :: nil
+  def set_label(label) do
+    # TODO: switch to `:proc_lib.set_label/2` when we require Erlang/OTP 27+
+    Process.put(:"$process_label", label)
+    # mimic return value of `:proc_lib.set_label/2`
+    :ok
+  end
+
   @compile {:inline, nilify: 1}
   defp nilify(:undefined), do: nil
   defp nilify(other), do: other
