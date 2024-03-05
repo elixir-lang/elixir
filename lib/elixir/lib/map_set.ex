@@ -82,6 +82,20 @@ defmodule MapSet do
       ...> end
       true
 
+  ## Exceptions
+
+  Normally, if `map_set` is not a `MapSet`, `is_member/2` will raise (just like `member?/2`).
+  However, in guards, it will simply return false, allowing chaining.
+
+      iex> MapSet.is_member([1, 2, 3], :value)
+      ** (ArgumentError) expected a MapSet, got: [1, 2, 3]
+
+      iex> case [1, 2, 3] do
+      ...>   enumerable when MapSet.is_member(enumerable, 3) or length(enumerable) == 3 -> true
+      ...>   _ -> false
+      ...> end
+      true
+
   """
   @doc guard: true, since: "1.17.0"
   defmacro is_member(map_set, value) do
@@ -97,7 +111,7 @@ defmodule MapSet do
           value = unquote(value)
 
           case unquote(map_set) do
-            %MapSet{map: map} ->  is_map_key(map, value)
+            %MapSet{map: map} -> is_map_key(map, value)
             other -> raise ArgumentError, message: "expected a MapSet, got: #{inspect(other)}"
           end
         end
