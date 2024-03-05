@@ -1,30 +1,26 @@
 Code.require_file("../test_helper.exs", __DIR__)
 
-defmodule Calendar.DurationTest do
+defmodule DurationTest do
   use ExUnit.Case, async: true
-  doctest Calendar.Duration
+  doctest Duration
 
   test "new/1" do
-    assert Calendar.Duration.new(year: 2, month: 1, week: 3) ==
-             {:ok, %Calendar.Duration{year: 2, month: 1, week: 3}}
+    assert Duration.new(year: 2, month: 1, week: 3) ==
+             {:ok, %Duration{year: 2, month: 1, week: 3}}
 
-    assert Calendar.Duration.new(months: 1) == {:error, :invalid_duration}
+    assert Duration.new(months: 1) == {:error, :invalid_duration}
   end
 
   test "new!/1" do
-    assert Calendar.Duration.new!(year: 2, month: 1, week: 3) == %Calendar.Duration{
-             year: 2,
-             month: 1,
-             week: 3
-           }
+    assert Duration.new!(year: 2, month: 1, week: 3) == %Duration{year: 2, month: 1, week: 3}
 
     assert_raise KeyError, ~s/key :months not found/, fn ->
-      Calendar.Duration.new!(months: 1)
+      Duration.new!(months: 1)
     end
   end
 
   test "add/2" do
-    d1 = %Calendar.Duration{
+    d1 = %Duration{
       year: 1,
       month: 2,
       week: 3,
@@ -35,7 +31,7 @@ defmodule Calendar.DurationTest do
       microsecond: 8
     }
 
-    d2 = %Calendar.Duration{
+    d2 = %Duration{
       year: 8,
       month: 7,
       week: 6,
@@ -46,7 +42,7 @@ defmodule Calendar.DurationTest do
       microsecond: 1
     }
 
-    assert Calendar.Duration.add(d1, d2) == %Calendar.Duration{
+    assert Duration.add(d1, d2) == %Duration{
              year: 9,
              month: 9,
              week: 9,
@@ -57,12 +53,12 @@ defmodule Calendar.DurationTest do
              microsecond: 9
            }
 
-    assert Calendar.Duration.add(d1, d2) == Calendar.Duration.add(d2, d1)
+    assert Duration.add(d1, d2) == Duration.add(d2, d1)
 
-    d1 = %Calendar.Duration{month: 2, week: 3, day: 4}
-    d2 = %Calendar.Duration{year: 8, day: 2, second: 2}
+    d1 = %Duration{month: 2, week: 3, day: 4}
+    d2 = %Duration{year: 8, day: 2, second: 2}
 
-    assert Calendar.Duration.add(d1, d2) == %Calendar.Duration{
+    assert Duration.add(d1, d2) == %Duration{
              year: 8,
              month: 2,
              week: 3,
@@ -75,7 +71,7 @@ defmodule Calendar.DurationTest do
   end
 
   test "subtract/2" do
-    d1 = %Calendar.Duration{
+    d1 = %Duration{
       year: 1,
       month: 2,
       week: 3,
@@ -86,7 +82,7 @@ defmodule Calendar.DurationTest do
       microsecond: 8
     }
 
-    d2 = %Calendar.Duration{
+    d2 = %Duration{
       year: 8,
       month: 7,
       week: 6,
@@ -97,7 +93,7 @@ defmodule Calendar.DurationTest do
       microsecond: 1
     }
 
-    assert Calendar.Duration.subtract(d1, d2) == %Calendar.Duration{
+    assert Duration.subtract(d1, d2) == %Duration{
              year: -7,
              month: -5,
              week: -3,
@@ -108,7 +104,7 @@ defmodule Calendar.DurationTest do
              microsecond: 7
            }
 
-    assert Calendar.Duration.subtract(d2, d1) == %Calendar.Duration{
+    assert Duration.subtract(d2, d1) == %Duration{
              year: 7,
              month: 5,
              week: 3,
@@ -119,12 +115,12 @@ defmodule Calendar.DurationTest do
              microsecond: -7
            }
 
-    assert Calendar.Duration.subtract(d1, d2) != Calendar.Duration.subtract(d2, d1)
+    assert Duration.subtract(d1, d2) != Duration.subtract(d2, d1)
 
-    d1 = %Calendar.Duration{year: 10, month: 2, week: 3, day: 4}
-    d2 = %Calendar.Duration{year: 8, day: 2, second: 2}
+    d1 = %Duration{year: 10, month: 2, week: 3, day: 4}
+    d2 = %Duration{year: 8, day: 2, second: 2}
 
-    assert Calendar.Duration.subtract(d1, d2) == %Calendar.Duration{
+    assert Duration.subtract(d1, d2) == %Duration{
              year: 2,
              month: 2,
              week: 3,
@@ -137,7 +133,7 @@ defmodule Calendar.DurationTest do
   end
 
   test "multiply/2" do
-    duration = %Calendar.Duration{
+    duration = %Duration{
       year: 1,
       month: 2,
       week: 3,
@@ -148,7 +144,7 @@ defmodule Calendar.DurationTest do
       microsecond: 8
     }
 
-    assert Calendar.Duration.multiply(duration, 3) == %Calendar.Duration{
+    assert Duration.multiply(duration, 3) == %Duration{
              year: 3,
              month: 6,
              week: 9,
@@ -159,8 +155,8 @@ defmodule Calendar.DurationTest do
              microsecond: 24
            }
 
-    assert Calendar.Duration.multiply(%Calendar.Duration{year: 2, day: 4, minute: 5}, 4) ==
-             %Calendar.Duration{
+    assert Duration.multiply(%Duration{year: 2, day: 4, minute: 5}, 4) ==
+             %Duration{
                year: 8,
                month: 0,
                week: 0,
@@ -173,7 +169,7 @@ defmodule Calendar.DurationTest do
   end
 
   test "negate/1" do
-    duration = %Calendar.Duration{
+    duration = %Duration{
       year: 1,
       month: 2,
       week: 3,
@@ -184,7 +180,7 @@ defmodule Calendar.DurationTest do
       microsecond: 8
     }
 
-    assert Calendar.Duration.negate(duration) == %Calendar.Duration{
+    assert Duration.negate(duration) == %Duration{
              year: -1,
              month: -2,
              week: -3,
@@ -195,8 +191,8 @@ defmodule Calendar.DurationTest do
              microsecond: -8
            }
 
-    assert Calendar.Duration.negate(%Calendar.Duration{year: 2, day: 4, minute: 5}) ==
-             %Calendar.Duration{
+    assert Duration.negate(%Duration{year: 2, day: 4, minute: 5}) ==
+             %Duration{
                year: -2,
                month: 0,
                week: 0,

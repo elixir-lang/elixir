@@ -559,7 +559,7 @@ defmodule Time do
   end
 
   @doc """
-  Shifts a Time by given Calendar.Duration according to its calendar.
+  Shifts a Time by given Duration according to its calendar.
 
   Check `Calendar.ISO.shift_time/4` for more information.
 
@@ -575,9 +575,9 @@ defmodule Time do
       {:ok, ~T[01:00:15.000100]}
 
   """
-  @spec shift(Calendar.time(), Calendar.Duration.t() | [Calendar.Duration.unit()]) ::
+  @spec shift(Calendar.time(), Duration.t() | [Duration.unit()]) ::
           {:ok, t} | {:error, :invalid_duration}
-  def shift(%Time{calendar: calendar} = time, %Calendar.Duration{} = duration) do
+  def shift(%Time{calendar: calendar} = time, %Duration{} = duration) do
     %{hour: hour, minute: minute, second: second, microsecond: microsecond} = time
 
     {hour, minute, second, microsecond} =
@@ -594,7 +594,7 @@ defmodule Time do
   end
 
   def shift(%Time{} = date = date, duration_units) do
-    case Calendar.Duration.new(duration_units) do
+    case Duration.new(duration_units) do
       {:ok, duration} ->
         shift(date, duration)
 

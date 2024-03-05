@@ -1,6 +1,6 @@
-defmodule Calendar.Duration do
+defmodule Duration do
   @moduledoc """
-  The calendar Duration type.
+  The Duration type.
   """
 
   @default [year: 0, month: 0, week: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0]
@@ -32,15 +32,15 @@ defmodule Calendar.Duration do
           | {:microsecond, integer}
 
   @doc """
-  Create `Calendar.Duration` struct from valid duration units.
+  Create `Duration` struct from valid duration units.
 
   Returns `{:error, :invalid_duration}` when called with invalid units.
 
   ## Examples
 
-      iex> Calendar.Duration.new(month: 2)
-      {:ok, %Calendar.Duration{month: 2}}
-      iex> Calendar.Duration.new(months: 2)
+      iex> Duration.new(month: 2)
+      {:ok, %Duration{month: 2}}
+      iex> Duration.new(months: 2)
       {:error, :invalid_duration}
 
   """
@@ -60,8 +60,8 @@ defmodule Calendar.Duration do
 
   ## Examples
 
-      iex> Calendar.Duration.new!(month: 2)
-      %Calendar.Duration{month: 2}
+      iex> Duration.new!(month: 2)
+      %Duration{month: 2}
 
   """
   @spec new!([unit]) :: t
@@ -74,8 +74,8 @@ defmodule Calendar.Duration do
 
   ## Examples
 
-      iex> Calendar.Duration.add(%Calendar.Duration{week: 2, day: 1}, %Calendar.Duration{day: 2})
-      %Calendar.Duration{week: 2, day: 3}
+      iex> Duration.add(%Duration{week: 2, day: 1}, %Duration{day: 2})
+      %Duration{week: 2, day: 3}
 
   """
   @spec add(t, t) :: t
@@ -97,8 +97,8 @@ defmodule Calendar.Duration do
 
   ## Examples
 
-      iex> Calendar.Duration.subtract(%Calendar.Duration{week: 2, day: 1}, %Calendar.Duration{day: 2})
-      %Calendar.Duration{week: 2, day: -1}
+      iex> Duration.subtract(%Duration{week: 2, day: 1}, %Duration{day: 2})
+      %Duration{week: 2, day: -1}
 
   """
   @spec subtract(t, t) :: t
@@ -116,12 +116,12 @@ defmodule Calendar.Duration do
   end
 
   @doc """
-  Multiplies all Calendar.Duration units by given integer.
+  Multiplies all Duration units by given integer.
 
   ## Examples
 
-      iex> Calendar.Duration.multiply(%Calendar.Duration{day: 1, minute: 15, second: -10}, 3)
-      %Calendar.Duration{day: 3, minute: 45, second: -30}
+      iex> Duration.multiply(%Duration{day: 1, minute: 15, second: -10}, 3)
+      %Duration{day: 3, minute: 45, second: -30}
 
   """
   @spec multiply(t, integer) :: t
@@ -139,12 +139,12 @@ defmodule Calendar.Duration do
   end
 
   @doc """
-  Negates all units of a Calendar.Duration.
+  Negates all units of a Duration.
 
   ## Examples
 
-      iex> Calendar.Duration.negate(%Calendar.Duration{day: 1, minute: 15, second: -10})
-      %Calendar.Duration{day: -1, minute: -15, second: 10}
+      iex> Duration.negate(%Duration{day: 1, minute: 15, second: -10})
+      %Duration{day: -1, minute: -15, second: 10}
 
   """
   @spec negate(t) :: t

@@ -1456,7 +1456,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Shifts date by Calendar.Duration units according to its calendar.
+  Shifts date by Duration units according to its calendar.
 
   Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
@@ -1466,16 +1466,16 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.shift_date(2016, 1, 3, Calendar.Duration.new!(month: 2))
+      iex> Calendar.ISO.shift_date(2016, 1, 3, Duration.new!(month: 2))
       {2016, 3, 3}
-      iex> Calendar.ISO.shift_date(2016, 2, 29, Calendar.Duration.new!(month: 1))
+      iex> Calendar.ISO.shift_date(2016, 2, 29, Duration.new!(month: 1))
       {2016, 3, 29}
-      iex> Calendar.ISO.shift_date(2016, 1, 31, Calendar.Duration.new!(month: 1))
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new!(month: 1))
       {2016, 2, 29}
-      iex> Calendar.ISO.shift_date(2016, 1, 31, Calendar.Duration.new!(year: 4, day: 1))
+      iex> Calendar.ISO.shift_date(2016, 1, 31, Duration.new!(year: 4, day: 1))
       {2020, 2, 1}
   """
-  @spec shift_date(year, month, day, Calendar.Duration.t()) :: {year, month, day}
+  @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
   @impl true
   def shift_date(year, month, day, duration) do
     shift_options = get_shift_options(:date, duration)
@@ -1499,7 +1499,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Shifts naive datetime by Calendar.Duration units according to its calendar.
+  Shifts naive datetime by Duration units according to its calendar.
 
   Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
@@ -1509,11 +1509,11 @@ defmodule Calendar.ISO do
 
   ## Examples
 
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Calendar.Duration.new!(hour: 1))
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(hour: 1))
       {2016, 1, 3, 1, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Calendar.Duration.new!(hour: 30))
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(hour: 30))
       {2016, 1, 4, 6, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Calendar.Duration.new!(microsecond: 100))
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new!(microsecond: 100))
       {2016, 1, 3, 0, 0, 0, {100, 6}}
   """
   @spec shift_naive_datetime(
@@ -1524,7 +1524,7 @@ defmodule Calendar.ISO do
           minute,
           second,
           microsecond,
-          Calendar.Duration.t()
+          Duration.t()
         ) :: {year, month, day, hour, minute, second, microsecond}
   @impl true
   def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
@@ -1543,18 +1543,18 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Shifts time by Calendar.Duration units according to its calendar.
+  Shifts time by Duration units according to its calendar.
 
   Available units are: `:hour, :minute, :second, :microsecond`.
 
   ## Examples
 
-      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Calendar.Duration.new!(hour: 2))
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new!(hour: 2))
       {15, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Calendar.Duration.new!(microsecond: 100))
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new!(microsecond: 100))
       {13, 0, 0, {100, 6}}
   """
-  @spec shift_time(hour, minute, second, microsecond, Calendar.Duration.t()) ::
+  @spec shift_time(hour, minute, second, microsecond, Duration.t()) ::
           {hour, minute, second, microsecond}
   @impl true
   def shift_time(hour, minute, second, microsecond, duration) do

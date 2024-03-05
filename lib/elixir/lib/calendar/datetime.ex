@@ -1687,7 +1687,7 @@ defmodule DateTime do
   """
   @spec shift(
           Calendar.datetime(),
-          Calendar.Duration.t() | [Calendar.Duration.unit()],
+          Duration.t() | [Duration.unit()],
           Calendar.time_zone_database()
         ) ::
           {:ok, t}
@@ -1702,7 +1702,7 @@ defmodule DateTime do
 
   def shift(
         %DateTime{calendar: calendar} = datetime,
-        %Calendar.Duration{} = duration,
+        %Duration{} = duration,
         time_zone_database
       ) do
     %{
@@ -1737,7 +1737,7 @@ defmodule DateTime do
   end
 
   def shift(%DateTime{} = datetime, duration_units, time_zone_database) do
-    case Calendar.Duration.new(duration_units) do
+    case Duration.new(duration_units) do
       {:ok, duration} ->
         shift(datetime, duration, time_zone_database)
 
