@@ -82,27 +82,13 @@ defmodule MapSet do
       ...> end
       true
 
-  ## Exceptions
-
-  Normally, if `map_set` is not a `MapSet`, `is_member/2` will raise (just like `member?/2`).
-  However, in guards, it will simply return false, allowing chaining.
-
-      iex> MapSet.is_member([1, 2, 3], :value)
-      ** (ArgumentError) expected a MapSet, got: [1, 2, 3]
-
-      iex> case [1, 2, 3] do
-      ...>   enumerable when MapSet.is_member(enumerable, 3) or length(enumerable) == 3 -> true
-      ...>   _ -> false
-      ...> end
-      true
-
   """
   @doc guard: true, since: "1.17.0"
   defmacro is_member(map_set, value) do
     case Macro.Env.in_guard?(__CALLER__) do
       true ->
         quote do
-          is_struct(unquote(map_set), unquote(__MODULE__)) and
+          (unquote(map_set).__struct__ == unquote(__MODULE__) or :fail) and
             is_map_key(unquote(map_set).map, unquote(value))
         end
 

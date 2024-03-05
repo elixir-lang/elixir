@@ -18,13 +18,17 @@ defmodule MapSetTest do
 
     guards = fn
       input when MapSet.is_member(input, 4) or input == 4 -> :found_4
+      input when (is_struct(input, MapSet) and MapSet.is_member(input, 3)) or input == 3 -> :found_3
       input when MapSet.is_member(input, 2) -> :found_2
       _ -> :error
     end
 
-    assert guards.(map_set) == :found_2
+    assert guards.(MapSet.new(1..2)) == :found_2
+    assert guards.(MapSet.new(1..3)) == :found_3
     assert guards.(MapSet.new(1..4)) == :found_4
-    assert guards.(4) == :found_4
+    assert guards.(2) == :error
+    assert guards.(3) == :found_3
+    assert guards.(4) == :error
     assert guards.(list) == :error
   end
 
