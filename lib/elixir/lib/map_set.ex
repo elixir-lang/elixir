@@ -94,13 +94,11 @@ defmodule MapSet do
 
       false ->
         quote do
-          map_set = unquote(map_set)
           value = unquote(value)
 
-          if is_struct(map_set, unquote(__MODULE__)) do
-            is_map_key(map_set.map, value)
-          else
-            raise ArgumentError, message: "expected a MapSet, got: #{inspect(map_set)}"
+          case unquote(map_set) do
+            %MapSet{map: map} ->  is_map_key(map, value)
+            other -> raise ArgumentError, message: "expected a MapSet, got: #{inspect(other)}"
           end
         end
     end
