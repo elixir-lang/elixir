@@ -448,7 +448,7 @@ defmodule Protocol do
   ## Examples
 
       # Get Elixir's ebin directory path and retrieve all protocols
-      iex> path = Path.join(:code.lib_dir(:elixir), "ebin")
+      iex> path = Application.app_dir(:elixir, "ebin")
       iex> mods = Protocol.extract_protocols([path])
       iex> Enumerable in mods
       true
@@ -477,7 +477,7 @@ defmodule Protocol do
   ## Examples
 
       # Get Elixir's ebin directory path and retrieve all protocols
-      iex> path = Path.join(:code.lib_dir(:elixir), "ebin")
+      iex> path = Application.app_dir(:elixir, "ebin")
       iex> mods = Protocol.extract_impls(Enumerable, [path])
       iex> List in mods
       true

@@ -144,7 +144,7 @@ defmodule IEx.HelpersTest do
   describe "open" do
     @iex_helpers "iex/lib/iex/helpers.ex"
     @elixir_erl "elixir/src/elixir.erl"
-    @lists_erl "#{:code.lib_dir(:stdlib)}/src/lists.erl"
+    @lists_erl Application.app_dir(:stdlib, "src/lists.erl")
     @httpc_erl "src/http_client/httpc.erl"
     @editor System.get_env("ELIXIR_EDITOR")
 
