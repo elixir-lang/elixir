@@ -51,7 +51,7 @@ defmodule Date do
       iex> Date.add(~D[1970-01-01], 14716)
       ~D[2010-04-17]
 
-      iex> Date.shift(~D[1970-01-01], ~P[40Y3M2W3D])
+      iex> Date.shift(~D[1970-01-01], year: 40, month: 3, week: 2, day: 3)
       {:ok, ~D[2010-04-18]}
 
   Those functions are optimized to deal with common epochs, such
@@ -767,8 +767,6 @@ defmodule Date do
 
   ## Examples
 
-      iex> Date.shift(~D[2016-01-03], ~P[4Y1M2W26D])
-      {:ok, ~D[2020-03-14]}
       iex> Date.shift(~D[2016-01-03], month: 2)
       {:ok, ~D[2016-03-03]}
       iex> Date.shift(~D[2016-02-29], month: 1)

@@ -195,8 +195,6 @@ defmodule DateTest do
     assert Date.shift(~D[2000-01-01], month: 12) == {:ok, ~D[2001-01-01]}
     assert Date.shift(~D[0000-01-01], day: 2, year: 1, month: 37) == {:ok, ~D[0004-02-03]}
 
-    assert Date.shift(~D[2012-01-01], ~P[1Y3M2D]) == {:ok, ~D[2013-04-03]}
-
     assert Date.shift(~D[2012-01-01], months: 12) == {:error, :invalid_duration}
 
     assert_raise UndefinedFunctionError, fn ->
