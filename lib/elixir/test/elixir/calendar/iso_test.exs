@@ -468,130 +468,126 @@ defmodule Calendar.ISOTest do
     assert Calendar.ISO.shift_date(2024, 1, 31, Duration.new!(month: 9)) == {2024, 10, 31}
   end
 
-  describe "shift_naive_datetime/2" do
-    test "regular use" do
-      assert Calendar.ISO.shift_naive_datetime(
-               2024,
-               3,
-               2,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!([])
-             ) == {2024, 3, 2, 0, 0, 0, {0, 0}}
-    end
+  test "shift_naive_datetime/2" do
+    assert Calendar.ISO.shift_naive_datetime(
+             2024,
+             3,
+             2,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!([])
+           ) == {2024, 3, 2, 0, 0, 0, {0, 0}}
 
-    test "leap year" do
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               1,
-               1,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(year: 1)
-             ) == {2001, 1, 1, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             1,
+             1,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(year: 1)
+           ) == {2001, 1, 1, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               1,
-               1,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(month: 1)
-             ) == {2000, 2, 1, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             1,
+             1,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(month: 1)
+           ) == {2000, 2, 1, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               1,
-               1,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(month: 1, day: 28)
-             ) == {2000, 2, 29, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             1,
+             1,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(month: 1, day: 28)
+           ) == {2000, 2, 29, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               1,
-               1,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(month: 1, day: 30)
-             ) == {2000, 3, 2, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             1,
+             1,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(month: 1, day: 30)
+           ) == {2000, 3, 2, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               1,
-               1,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(month: 2, day: 29)
-             ) == {2000, 3, 30, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             1,
+             1,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(month: 2, day: 29)
+           ) == {2000, 3, 30, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               2,
-               29,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(year: -1)
-             ) == {1999, 2, 28, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             2,
+             29,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(year: -1)
+           ) == {1999, 2, 28, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               2,
-               29,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(month: -1)
-             ) == {2000, 1, 29, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             2,
+             29,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(month: -1)
+           ) == {2000, 1, 29, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               2,
-               29,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(month: -1, day: -28)
-             ) == {2000, 1, 1, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             2,
+             29,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(month: -1, day: -28)
+           ) == {2000, 1, 1, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               2,
-               29,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(month: -1, day: -30)
-             ) == {1999, 12, 30, 0, 0, 0, {0, 0}}
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             2,
+             29,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(month: -1, day: -30)
+           ) == {1999, 12, 30, 0, 0, 0, {0, 0}}
 
-      assert Calendar.ISO.shift_naive_datetime(
-               2000,
-               2,
-               29,
-               0,
-               0,
-               0,
-               {0, 0},
-               Duration.new!(month: -1, day: -29)
-             ) == {1999, 12, 31, 0, 0, 0, {0, 0}}
-    end
+    assert Calendar.ISO.shift_naive_datetime(
+             2000,
+             2,
+             29,
+             0,
+             0,
+             0,
+             {0, 0},
+             Duration.new!(month: -1, day: -29)
+           ) == {1999, 12, 31, 0, 0, 0, {0, 0}}
   end
 end
