@@ -203,25 +203,4 @@ defmodule DurationTest do
                microsecond: 0
              }
   end
-
-  test "compare/2" do
-    d1 = %Duration{year: 1, month: 2, second: 7}
-    d2 = %Duration{year: 1, month: 2, second: 7}
-
-    assert Duration.compare(d1, d2) == :eq
-
-    d1 = %Duration{year: 1, month: 2, day: 1, second: 7}
-    d2 = %Duration{year: 1, month: 2, second: 7}
-
-    assert Duration.compare(d1, d2) == :gt
-    assert Duration.compare(d2, d1) == :lt
-  end
-
-  test "from_seconds/2" do
-    assert Duration.from_seconds(36_806_407) == %Duration{year: 1, month: 2, day: 1, second: 7}
-  end
-
-  test "to_seconds/2" do
-    assert Duration.to_seconds(%Duration{year: 1, month: 2, day: 1, second: 7}) == 36_806_407
-  end
 end

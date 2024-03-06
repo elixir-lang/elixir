@@ -339,16 +339,6 @@ defmodule Calendar do
   @callback iso_days_to_end_of_day(iso_days) :: iso_days
 
   @doc """
-  Converts seconds to duration.
-  """
-  @callback duration_from_seconds(integer) :: Duration.t()
-
-  @doc """
-  Converts duration to seconds.
-  """
-  @callback duration_to_seconds(Duration.t()) :: integer
-
-  @doc """
   Shifts date by given duration according to its calendar.
   """
   @callback shift_date(year, month, day, Duration.t()) :: {year, month, day}

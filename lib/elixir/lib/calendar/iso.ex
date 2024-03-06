@@ -1416,69 +1416,6 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Converts seconds to duration based on ISO time unit scale.
-
-  ## Examples
-
-      iex> Calendar.ISO.duration_from_seconds(87290)
-      %Duration{day: 1, minute: 14, second: 50}
-
-  """
-  @spec duration_from_seconds(integer) :: Duration.t()
-  @impl true
-  def duration_from_seconds(seconds) do
-    {years, seconds} = div_rem(seconds, 365 * @seconds_per_day)
-    {months, seconds} = div_rem(seconds, 30 * @seconds_per_day)
-    {weeks, seconds} = div_rem(seconds, 7 * @seconds_per_day)
-    {days, seconds} = div_rem(seconds, @seconds_per_day)
-    {hours, seconds} = div_rem(seconds, 60 * 60)
-    {minutes, seconds} = div_rem(seconds, 60)
-
-    %Duration{
-      year: years,
-      month: months,
-      week: weeks,
-      day: days,
-      hour: hours,
-      minute: minutes,
-      second: seconds
-    }
-  end
-
-  @doc """
-  Converts duration to seconds based on ISO time unit scale.
-
-  ## Examples
-
-      iex> Calendar.ISO.duration_to_seconds(%Duration{day: 1, minute: 14, second: 50})
-      87290
-
-  """
-  @spec duration_to_seconds(Duration.t()) :: integer
-  @impl true
-  def duration_to_seconds(%Duration{
-        year: year,
-        month: month,
-        week: week,
-        day: day,
-        hour: hour,
-        minute: minute,
-        second: second,
-        microsecond: microsecond
-      }) do
-    Enum.sum([
-      year * 365 * @seconds_per_day,
-      month * 30 * @seconds_per_day,
-      week * 7 * @seconds_per_day,
-      day * @seconds_per_day,
-      hour * 60 * 60,
-      minute * 60,
-      second,
-      div(microsecond, 1_000_000)
-    ])
-  end
-
-  @doc """
   Converts the `t:Calendar.iso_days/0` to the first moment of the day.
 
   ## Examples
