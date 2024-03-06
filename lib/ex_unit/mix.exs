@@ -33,7 +33,8 @@ defmodule ExUnit.MixProject do
         stacktrace_depth: 20,
         timeout: 60000,
         trace: false,
-        after_suite: []
+        after_suite: [],
+        repeat_until_failure: false
       ]
     ]
   end

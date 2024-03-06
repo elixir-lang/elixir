@@ -34,6 +34,10 @@ defmodule ExUnit.Server do
     GenServer.call(@name, :take_sync_modules, @timeout)
   end
 
+  def restore_modules() do
+    GenServer.call(@name, :restore_modules, @timeout)
+  end
+
   ## Callbacks
 
   def init(:ok) do
@@ -44,7 +48,9 @@ defmodule ExUnit.Server do
       loaded: System.monotonic_time(),
       waiting: nil,
       async_modules: [],
-      sync_modules: []
+      sync_modules: [],
+      original_async_modules: [],
+      original_sync_modules: []
     }
 
     {:ok, state}
@@ -59,6 +65,16 @@ defmodule ExUnit.Server do
   def handle_call(:take_sync_modules, _from, state) do
     %{waiting: nil, loaded: :done, async_modules: []} = state
     {:reply, state.sync_modules, %{state | sync_modules: [], loaded: System.monotonic_time()}}
+  end
+
+  def handle_call(:restore_modules, _from, state) do
+    {:reply, :ok,
+     %{
+       state
+       | loaded: :done,
+         async_modules: state.original_async_modules,
+         sync_modules: state.original_sync_modules
+     }}
   end
 
   def handle_call({:modules_loaded, _}, _from, %{loaded: :done} = state) do
@@ -85,12 +101,14 @@ defmodule ExUnit.Server do
   def handle_call({:add, name, :async}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state = update_in(state.async_modules, &[name | &1])
+    state = update_in(state.original_async_modules, &[name | &1])
     {:reply, :ok, take_modules(state)}
   end
 
   def handle_call({:add, name, :sync}, _from, %{loaded: loaded} = state)
       when is_integer(loaded) do
     state = update_in(state.sync_modules, &[name | &1])
+    state = update_in(state.original_sync_modules, &[name | &1])
     {:reply, :ok, state}
   end
 

@@ -61,7 +61,13 @@ defmodule ExUnit.Runner do
     EM.stop(config.manager)
     after_suite_callbacks = Application.fetch_env!(:ex_unit, :after_suite)
     Enum.each(after_suite_callbacks, fn callback -> callback.(stats) end)
-    stats
+
+    if Keyword.fetch!(opts, :repeat_until_failure) and stats.failures == 0 do
+      ExUnit.Server.restore_modules()
+      run_with_trap(opts, load_us)
+    else
+      stats
+    end
   end
 
   defp configure(opts, manager, runner_pid, stats_pid) do
