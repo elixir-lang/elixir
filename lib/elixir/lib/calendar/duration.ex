@@ -3,7 +3,15 @@ defmodule Duration do
   The Duration type.
   """
 
-  defstruct year: 0, month: 0, week: 0, day: 0, hour: 0, minute: 0, second: 0, microsecond: 0
+  defstruct year: 0,
+            month: 0,
+            week: 0,
+            day: 0,
+            hour: 0,
+            minute: 0,
+            second: 0,
+            millisecond: 0,
+            microsecond: 0
 
   @typedoc "Duration in calendar units"
   @type t :: %Duration{
@@ -14,6 +22,7 @@ defmodule Duration do
           hour: integer,
           minute: integer,
           second: integer,
+          millisecond: integer,
           microsecond: integer
         }
 
@@ -26,6 +35,7 @@ defmodule Duration do
           | {:hour, integer}
           | {:minute, integer}
           | {:second, integer}
+          | {:millisecond, integer}
           | {:microsecond, integer}
 
   @doc """
@@ -63,6 +73,7 @@ defmodule Duration do
       hour: d1.hour + d2.hour,
       minute: d1.minute + d2.minute,
       second: d1.second + d2.second,
+      millisecond: d1.millisecond + d2.millisecond,
       microsecond: d1.microsecond + d2.microsecond
     }
   end
@@ -86,6 +97,7 @@ defmodule Duration do
       hour: d1.hour - d2.hour,
       minute: d1.minute - d2.minute,
       second: d1.second - d2.second,
+      millisecond: d1.millisecond - d2.millisecond,
       microsecond: d1.microsecond - d2.microsecond
     }
   end
@@ -109,6 +121,7 @@ defmodule Duration do
       hour: duration.hour * integer,
       minute: duration.minute * integer,
       second: duration.second * integer,
+      millisecond: duration.millisecond * integer,
       microsecond: duration.microsecond * integer
     }
   end
@@ -132,6 +145,7 @@ defmodule Duration do
       hour: -duration.hour,
       minute: -duration.minute,
       second: -duration.second,
+      millisecond: -duration.millisecond,
       microsecond: -duration.microsecond
     }
   end
@@ -142,7 +156,7 @@ defmodule Duration do
 
   def invalid_keys(duration_units, :date) do
     Enum.filter(
-      [:hour, :minute, :second, :microsecond],
+      [:hour, :minute, :second, :millisecond, :microsecond],
       &Keyword.has_key?(duration_units, &1)
     )
   end

@@ -416,6 +416,12 @@ defmodule NaiveDateTimeTest do
     assert NaiveDateTime.shift(naive_datetime, microsecond: 500) ==
              {:ok, ~N[2000-01-01 00:00:00.000500]}
 
+    assert NaiveDateTime.shift(naive_datetime, millisecond: 500) ==
+             {:ok, ~N[2000-01-01 00:00:00.500]}
+
+    assert NaiveDateTime.shift(naive_datetime, millisecond: 500, microsecond: 100) ==
+             {:ok, ~N[2000-01-01 00:00:00.500100]}
+
     assert NaiveDateTime.shift(naive_datetime, year: 1, month: 2) ==
              {:ok, ~N[2001-03-01 00:00:00]}
 
