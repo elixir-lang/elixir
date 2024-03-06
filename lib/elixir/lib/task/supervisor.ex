@@ -152,7 +152,7 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Supervisor`.
-  The task will still be linked to the caller, see `Task.async/3` for
+  The task will still be linked to the caller, see `Task.async/1` for
   more information and `async_nolink/3` for a non-linked variant.
 
   Raises an error if `supervisor` has reached the maximum number of
@@ -174,7 +174,7 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Supervisor`.
-  The task will still be linked to the caller, see `Task.async/3` for
+  The task will still be linked to the caller, see `Task.async/1` for
   more information and `async_nolink/3` for a non-linked variant.
 
   Raises an error if `supervisor` has reached the maximum number of
@@ -196,7 +196,7 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Supervisor`.
-  The task won't be linked to the caller, see `Task.async/3` for
+  The task won't be linked to the caller, see `Task.async/1` for
   more information.
 
   Raises an error if `supervisor` has reached the maximum number of
@@ -283,7 +283,7 @@ defmodule Task.Supervisor do
   Starts a task that can be awaited on.
 
   The `supervisor` must be a reference as defined in `Supervisor`.
-  The task won't be linked to the caller, see `Task.async/3` for
+  The task won't be linked to the caller, see `Task.async/1` for
   more information.
 
   Raises an error if `supervisor` has reached the maximum number of
