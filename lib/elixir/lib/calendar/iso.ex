@@ -1456,7 +1456,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Shift Date by Duration according to its calendar.
+  Shifts Date by Duration according to its calendar.
 
   ## Examples
 
@@ -1487,7 +1487,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Shift NaiveDateTime by Duration according to its calendar.
+  Shifts NaiveDateTime by Duration according to its calendar.
 
   ## Examples
 
@@ -1526,9 +1526,7 @@ defmodule Calendar.ISO do
   end
 
   @doc """
-  Shifts time by Duration units according to its calendar.
-
-  Available units are: `:hour, :minute, :second, :microsecond`.
+  Shifts Time by Duration units according to its calendar.
 
   ## Examples
 

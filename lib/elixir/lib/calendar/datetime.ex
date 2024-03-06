@@ -1610,6 +1610,8 @@ defmodule DateTime do
       iex> result.microsecond
       {21000, 3}
 
+  To move a datetime by a complex duration supporting various units including years,
+  months, weeks as well as time units, you can use `DateTime.shift/2`.
   """
   @doc since: "1.8.0"
   @spec add(
@@ -1675,15 +1677,26 @@ defmodule DateTime do
   end
 
   @doc """
-  Shifts a datetime by given duration according to its calendar.
+  Shifts given `datetime` by `duration` according to its calendar.
 
-  Can return an ambiguous or gap datetime tuple.
+  Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
+
+  First the datetime is converted to a naive datetime. After the shift was applied
+  it is converted back to a datetime using its original time zone and time zone database,
+  potentially resulting in an ambiguous or gap DateTime result tuple.
+
+  Check `from_naive/3` for more information on ambiguous datetimes.
 
   ## Examples
 
-      iex> DateTime.shift(~U[2016-01-03 00:00:00Z], month: 2)
-      {:ok, ~U[2016-03-03 00:00:00Z]}
-
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], month: 2)
+      {:ok, ~U[2016-03-01 00:00:00Z]}
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], year: 1, week: 4)
+      {:ok, ~U[2017-01-29 00:00:00Z]}
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 25)
+      {:ok, ~U[2016-01-01 00:25:00Z]}
+      iex> DateTime.shift(~U[2016-01-01 00:00:00Z], minute: 5, microsecond: {500, 4})
+      {:ok, ~U[2016-01-01 00:05:00.0005Z]}
   """
   @doc since: "1.7.0"
   @spec shift(

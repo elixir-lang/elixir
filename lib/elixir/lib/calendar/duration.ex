@@ -1,6 +1,10 @@
 defmodule Duration do
   @moduledoc """
-  The Duration type.
+  The Duration type implements the concept of duration applicable to all calendar types.
+
+  A `Duration` has time scale units represented as integers with
+  the exception of microseconds, which are represented as a tuple `{microsecond, precision}`,
+  to be compatible with other calendar types implementing time, such as `Time`, `DateTime` and `NaiveDateTime`.
   """
 
   defstruct year: 0,
@@ -12,7 +16,6 @@ defmodule Duration do
             second: 0,
             microsecond: {0, 0}
 
-  @typedoc "Duration in calendar units"
   @type t :: %Duration{
           year: integer,
           month: integer,
@@ -24,7 +27,6 @@ defmodule Duration do
           microsecond: {integer, integer}
         }
 
-  @typedoc "Individually valid Duration units"
   @type unit ::
           {:year, integer}
           | {:month, integer}
@@ -36,7 +38,7 @@ defmodule Duration do
           | {:microsecond, {integer, integer}}
 
   @doc """
-  Create `Duration` struct from valid duration units.
+  Creates a new `Duration` struct from given `units`.
 
   Raises a KeyError when called with invalid units.
 
@@ -63,7 +65,9 @@ defmodule Duration do
   end
 
   @doc """
-  Adds two durations.
+  Adds units of given durations `d1` and `d2`.
+
+  Respects the the highest microsecond precision of the two.
 
   ## Examples
 
@@ -89,7 +93,9 @@ defmodule Duration do
   end
 
   @doc """
-  Subtracts two durations.
+  Subtracts units of given durations `d1` and `d2`.
+
+  Respects the the highest microsecond precision of the two.
 
   ## Examples
 
@@ -115,7 +121,7 @@ defmodule Duration do
   end
 
   @doc """
-  Multiplies all duration units by given integer.
+  Multiplies `duration` units by given `integer`.
 
   ## Examples
 
@@ -138,7 +144,8 @@ defmodule Duration do
   end
 
   @doc """
-  Negates all duration units.
+  Negates `duration` units.
+
 
   ## Examples
 

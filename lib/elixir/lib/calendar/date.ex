@@ -690,6 +690,9 @@ defmodule Date do
   The days are counted as Gregorian days. The date is returned in the same
   calendar as it was given in.
 
+  To move a date by a complex duration supporting various units including years,
+  months and weeks, days, you can use `Date.shift/2`.
+
   ## Examples
 
       iex> Date.add(~D[2000-01-03], -2)
@@ -761,18 +764,22 @@ defmodule Date do
   end
 
   @doc """
-  Shifts a date by given duration according to its calendar.
+  Shifts given `date` by `duration` according to its calendar.
 
-  Check `Calendar.ISO.shift_date/4` for more information.
+  Available units are: `:year, :month, :week, :day`.
+
+  Raises ArgumentError when called with time units.
 
   ## Examples
 
       iex> Date.shift(~D[2016-01-03], month: 2)
       {:ok, ~D[2016-03-03]}
-      iex> Date.shift(~D[2016-02-29], month: 1)
-      {:ok, ~D[2016-03-29]}
+      iex> Date.shift(~D[2016-01-30], month: 1)
+      {:ok, ~D[2016-02-29]}
       iex> Date.shift(~D[2016-01-31], year: 4, day: 1)
       {:ok, ~D[2020-02-01]}
+      iex> Date.shift(~D[2016-01-03], Duration.new(month: 2))
+      {:ok, ~D[2016-03-03]}
 
   """
   @doc since: "1.7.0"

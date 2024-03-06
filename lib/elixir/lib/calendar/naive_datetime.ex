@@ -448,6 +448,8 @@ defmodule NaiveDateTime do
       iex> NaiveDateTime.add(dt, 21, :second)
       ~N[2000-02-29 23:00:28]
 
+  To move a native datetime by a complex duration supporting various units including years,
+  months, weeks as well as time units, you can use `NaiveDateTime.shift/2`.
   """
   @doc since: "1.4.0"
   @spec add(Calendar.naive_datetime(), integer, :day | :hour | :minute | System.time_unit()) :: t
@@ -572,9 +574,9 @@ defmodule NaiveDateTime do
   end
 
   @doc """
-  Shifts a naive datetime by given duration according to its calendar.
+  Shifts given `naive_datetime` by `duration` according to its calendar.
 
-  Check `Calendar.ISO.shift_naive_datetime/8` for more information.
+  Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
   ## Examples
 
