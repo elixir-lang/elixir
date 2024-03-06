@@ -194,7 +194,7 @@ defmodule DateTest do
     assert Date.shift(~D[2000-01-01], month: 12) == {:ok, ~D[2001-01-01]}
     assert Date.shift(~D[0000-01-01], day: 2, year: 1, month: 37) == {:ok, ~D[0004-02-03]}
 
-    assert_raise ArgumentError, ~s/cannot shift date by time units: [:second]/, fn ->
+    assert_raise ArgumentError, ~s/cannot shift date by time units/, fn ->
       Date.shift(~D[2012-02-29], second: 86400)
     end
 

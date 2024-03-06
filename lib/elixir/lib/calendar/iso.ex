@@ -1472,9 +1472,7 @@ defmodule Calendar.ISO do
   @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
   @impl true
   def shift_date(year, month, day, duration) do
-    validate_shift_fields!(duration, :date)
-
-    shift_options = get_shift_options(:date, duration)
+    shift_options = shift_date_options(duration)
 
     Enum.reduce(shift_options, {year, month, day}, fn
       {_, 0}, date ->
@@ -1512,7 +1510,7 @@ defmodule Calendar.ISO do
         ) :: {year, month, day, hour, minute, second, microsecond}
   @impl true
   def shift_naive_datetime(year, month, day, hour, minute, second, microsecond, duration) do
-    shift_options = get_shift_options(:naive_datetime, duration)
+    shift_options = shift_datetime_options(duration)
 
     Enum.reduce(shift_options, {year, month, day, hour, minute, second, microsecond}, fn
       {_, 0}, naive_datetime ->
@@ -1543,9 +1541,7 @@ defmodule Calendar.ISO do
           {hour, minute, second, microsecond}
   @impl true
   def shift_time(hour, minute, second, microsecond, duration) do
-    validate_shift_fields!(duration, :time)
-
-    shift_options = get_shift_options(:time, duration)
+    shift_options = shift_time_options(duration)
 
     Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn
       {_, 0}, time ->
@@ -1623,14 +1619,27 @@ defmodule Calendar.ISO do
     {value, original_precision}
   end
 
-  defp get_shift_options(:date, %Duration{year: year, month: month, week: week, day: day}) do
+  defp shift_date_options(%Duration{
+         year: year,
+         month: month,
+         week: week,
+         day: day,
+         hour: 0,
+         minute: 0,
+         second: 0,
+         microsecond: {0, 0}
+       }) do
     [
       month: year * 12 + month,
       day: week * 7 + day
     ]
   end
 
-  defp get_shift_options(:naive_datetime, %Duration{
+  defp shift_date_options(_duration) do
+    raise ArgumentError, "cannot shift date by time units"
+  end
+
+  defp shift_datetime_options(%Duration{
          year: year,
          month: month,
          week: week,
@@ -1647,7 +1656,11 @@ defmodule Calendar.ISO do
     ]
   end
 
-  defp get_shift_options(:time, %Duration{
+  defp shift_time_options(%Duration{
+         year: 0,
+         month: 0,
+         week: 0,
+         day: 0,
          hour: hour,
          minute: minute,
          second: second,
@@ -1659,23 +1672,8 @@ defmodule Calendar.ISO do
     ]
   end
 
-  defp validate_shift_fields!(duration, :date) do
-    field_set? = fn
-      :microsecond, %{microsecond: {0, 0}} -> false
-      field, duration -> Map.get(duration, field) != 0
-    end
-
-    case Enum.filter([:hour, :minute, :second, :microsecond], &field_set?.(&1, duration)) do
-      [] -> :noop
-      units -> raise ArgumentError, "cannot shift date by time units: #{inspect(units)}"
-    end
-  end
-
-  defp validate_shift_fields!(duration, :time) do
-    case Enum.filter([:year, :month, :week, :day], &(Map.get(duration, &1) != 0)) do
-      [] -> :noop
-      units -> raise ArgumentError, "cannot shift time by date units: #{inspect(units)}"
-    end
+  defp shift_time_options(_duration) do
+    raise ArgumentError, "cannot shift time by date units"
   end
 
   ## Helpers
