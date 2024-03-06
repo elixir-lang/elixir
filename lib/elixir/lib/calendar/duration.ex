@@ -169,6 +169,8 @@ defmodule Duration do
   Returns `:gt` if the first duration is longer than the second and `:lt` for vice versa.
   If the two durations are equal in length in seconds `:eq` is returned.
 
+  Comparison is rounded down to the second.
+
   ## Examples
 
       iex> Duration.compare(%Duration{hour: 1, minute: 15}, %Duration{hour: 2, minute: -45})
@@ -177,6 +179,8 @@ defmodule Duration do
       :gt
       iex> Duration.compare(%Duration{day: 1, minute: 15}, %Duration{day: 2})
       :lt
+      iex> Duration.compare(%Duration{day: 1, microsecond: 15}, %Duration{day: 1})
+      :eq
 
   """
   @spec compare(t, t) :: :lt | :eq | :gt
@@ -237,7 +241,6 @@ defmodule Duration do
     {days, seconds} = div_rem(seconds, @seconds_per_day)
     {hours, seconds} = div_rem(seconds, 60 * 60)
     {minutes, seconds} = div_rem(seconds, 60)
-    {seconds, microseconds} = div_rem(seconds, 1)
 
     %Duration{
       year: years,
@@ -246,8 +249,7 @@ defmodule Duration do
       day: days,
       hour: hours,
       minute: minutes,
-      second: seconds,
-      microsecond: microseconds * 1_000_000
+      second: seconds
     }
   end
 
