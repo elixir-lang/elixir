@@ -161,20 +161,22 @@ defmodule Duration do
   end
 
   @doc false
-  @spec invalid_units([unit], :date | :time) :: keyword()
-  def invalid_units(duration_units, calendar_type)
+  @spec invalid_fields_for(t, :date | :time) :: keyword
+  def invalid_fields_for(duration, calendar_type)
 
-  def invalid_units(duration_units, :date) do
-    Enum.filter(
-      [:hour, :minute, :second, :microsecond],
-      &Keyword.has_key?(duration_units, &1)
-    )
+  def invalid_fields_for(duration, :date) do
+    Enum.filter([:hour, :minute, :second, :microsecond], &is_set?(duration, &1))
   end
 
-  def invalid_units(duration_units, :time) do
-    Enum.filter(
-      [:year, :month, :week, :day],
-      &Keyword.has_key?(duration_units, &1)
-    )
+  def invalid_fields_for(duration, :time) do
+    Enum.filter([:year, :month, :week, :day], &is_set?(duration, &1))
+  end
+
+  defp is_set?(duration, :microsecond) do
+    Map.get(duration, :microsecond) != {0, 0}
+  end
+
+  defp is_set?(duration, field) do
+    Map.get(duration, field) != 0
   end
 end

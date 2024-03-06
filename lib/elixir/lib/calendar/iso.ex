@@ -1472,6 +1472,11 @@ defmodule Calendar.ISO do
   @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
   @impl true
   def shift_date(year, month, day, duration) do
+    case Duration.invalid_fields_for(duration, :date) do
+      [] -> :noop
+      units -> raise ArgumentError, "cannot shift date by time units: #{inspect(units)}"
+    end
+
     shift_options = get_shift_options(:date, duration)
 
     Enum.reduce(shift_options, {year, month, day}, fn
@@ -1541,6 +1546,11 @@ defmodule Calendar.ISO do
           {hour, minute, second, microsecond}
   @impl true
   def shift_time(hour, minute, second, microsecond, duration) do
+    case Duration.invalid_fields_for(duration, :time) do
+      [] -> :noop
+      units -> raise ArgumentError, "cannot shift time by date units: #{inspect(units)}"
+    end
+
     shift_options = get_shift_options(:time, duration)
 
     Enum.reduce(shift_options, {hour, minute, second, microsecond}, fn

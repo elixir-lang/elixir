@@ -593,13 +593,7 @@ defmodule Time do
   end
 
   def shift(%Time{} = time, duration_units) do
-    case Duration.invalid_units(duration_units, :time) do
-      [] ->
-        shift(time, Duration.new(duration_units))
-
-      invalid_units ->
-        raise ArgumentError, "cannot shift time by date units: #{inspect(invalid_units)}"
-    end
+    shift(time, Duration.new(duration_units))
   end
 
   @doc """
