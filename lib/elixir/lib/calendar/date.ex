@@ -783,7 +783,7 @@ defmodule Date do
   end
 
   def shift(%Date{} = date, duration_units) do
-    case Duration.invalid_keys(duration_units, :date) do
+    case Duration.invalid_units(duration_units, :date) do
       [] ->
         shift(date, Duration.new(duration_units))
 

@@ -593,7 +593,7 @@ defmodule Time do
   end
 
   def shift(%Time{} = time, duration_units) do
-    case Duration.invalid_keys(duration_units, :time) do
+    case Duration.invalid_units(duration_units, :time) do
       [] ->
         shift(time, Duration.new(duration_units))
 

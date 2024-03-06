@@ -151,17 +151,17 @@ defmodule Duration do
   end
 
   @doc false
-  @spec invalid_keys([unit], :date | :time) :: keyword()
-  def invalid_keys(duration_units, calendar_type)
+  @spec invalid_units([unit], :date | :time) :: keyword()
+  def invalid_units(duration_units, calendar_type)
 
-  def invalid_keys(duration_units, :date) do
+  def invalid_units(duration_units, :date) do
     Enum.filter(
       [:hour, :minute, :second, :millisecond, :microsecond],
       &Keyword.has_key?(duration_units, &1)
     )
   end
 
-  def invalid_keys(duration_units, :time) do
+  def invalid_units(duration_units, :time) do
     Enum.filter(
       [:year, :month, :week, :day],
       &Keyword.has_key?(duration_units, &1)
