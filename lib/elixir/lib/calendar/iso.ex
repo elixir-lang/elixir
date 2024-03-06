@@ -1550,7 +1550,8 @@ defmodule Calendar.ISO do
     end)
   end
 
-  defp shift_days({year, month, day}, days) do
+  @doc false
+  def shift_days({year, month, day}, days) do
     {year, month, day} =
       date_to_iso_days(year, month, day)
       |> Kernel.+(days)
@@ -1577,8 +1578,9 @@ defmodule Calendar.ISO do
     {new_year, new_month, new_day}
   end
 
-  defp shift_time_unit({year, month, day, hour, minute, second, microsecond}, value, unit)
-       when unit in [:second, :microsecond] do
+  @doc false
+  def shift_time_unit({year, month, day, hour, minute, second, microsecond}, value, unit)
+      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
     {value, precision} = shift_time_unit_values(value, microsecond)
 
     ppd = System.convert_time_unit(86400, :second, unit)
@@ -1591,8 +1593,9 @@ defmodule Calendar.ISO do
     {year, month, day, hour, minute, second, {ms_value, precision}}
   end
 
-  defp shift_time_unit({hour, minute, second, microsecond}, value, unit)
-       when unit in [:second, :microsecond] do
+  @doc false
+  def shift_time_unit({hour, minute, second, microsecond}, value, unit)
+      when unit in [:second, :millisecond, :microsecond, :nanosecond] or is_integer(unit) do
     {value, precision} = shift_time_unit_values(value, microsecond)
 
     time = {0, time_to_day_fraction(hour, minute, second, microsecond)}

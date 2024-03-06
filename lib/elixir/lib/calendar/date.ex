@@ -709,12 +709,7 @@ defmodule Date do
   @spec add(Calendar.date(), integer()) :: t
   def add(%{calendar: Calendar.ISO} = date, days) do
     %{year: year, month: month, day: day} = date
-
-    {year, month, day} =
-      Calendar.ISO.date_to_iso_days(year, month, day)
-      |> Kernel.+(days)
-      |> Calendar.ISO.date_from_iso_days()
-
+    {year, month, day} = Calendar.ISO.shift_days({year, month, day}, days)
     %Date{calendar: Calendar.ISO, year: year, month: month, day: day}
   end
 
