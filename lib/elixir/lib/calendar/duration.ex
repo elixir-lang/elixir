@@ -9,7 +9,7 @@ defmodule Duration do
   defstruct @default
 
   @typedoc "Duration in calendar units"
-  @type t :: %__MODULE__{
+  @type t :: %Duration{
           year: integer,
           month: integer,
           week: integer,
@@ -48,7 +48,7 @@ defmodule Duration do
   def new(units) do
     case Keyword.validate(units, @fields) do
       {:ok, units} ->
-        {:ok, struct(__MODULE__, units)}
+        {:ok, struct(Duration, units)}
 
       {:error, _invalid_keys} ->
         {:error, :invalid_duration}
@@ -66,11 +66,11 @@ defmodule Duration do
   """
   @spec new!([unit]) :: t
   def new!(units) do
-    struct!(__MODULE__, units)
+    struct!(Duration, units)
   end
 
   @doc """
-  Adds two durations to one new duration.
+  Adds two durations.
 
   ## Examples
 
@@ -79,8 +79,8 @@ defmodule Duration do
 
   """
   @spec add(t, t) :: t
-  def add(%__MODULE__{} = d1, %__MODULE__{} = d2) do
-    %__MODULE__{
+  def add(%Duration{} = d1, %Duration{} = d2) do
+    %Duration{
       year: d1.year + d2.year,
       month: d1.month + d2.month,
       week: d1.week + d2.week,
@@ -93,7 +93,7 @@ defmodule Duration do
   end
 
   @doc """
-  Subtracts two durations to one new duration.
+  Subtracts two durations.
 
   ## Examples
 
@@ -102,8 +102,8 @@ defmodule Duration do
 
   """
   @spec subtract(t, t) :: t
-  def subtract(%__MODULE__{} = d1, %__MODULE__{} = d2) do
-    %__MODULE__{
+  def subtract(%Duration{} = d1, %Duration{} = d2) do
+    %Duration{
       year: d1.year - d2.year,
       month: d1.month - d2.month,
       week: d1.week - d2.week,
@@ -116,7 +116,7 @@ defmodule Duration do
   end
 
   @doc """
-  Multiplies all Duration units by given integer.
+  Multiplies all duration units by given integer.
 
   ## Examples
 
@@ -125,8 +125,8 @@ defmodule Duration do
 
   """
   @spec multiply(t, integer) :: t
-  def multiply(%__MODULE__{} = duration, integer) when is_integer(integer) do
-    %__MODULE__{
+  def multiply(%Duration{} = duration, integer) when is_integer(integer) do
+    %Duration{
       year: duration.year * integer,
       month: duration.month * integer,
       week: duration.week * integer,
@@ -139,7 +139,7 @@ defmodule Duration do
   end
 
   @doc """
-  Negates all units of a Duration.
+  Negates all duration units.
 
   ## Examples
 
@@ -148,8 +148,8 @@ defmodule Duration do
 
   """
   @spec negate(t) :: t
-  def negate(%__MODULE__{} = duration) do
-    %__MODULE__{
+  def negate(%Duration{} = duration) do
+    %Duration{
       year: -duration.year,
       month: -duration.month,
       week: -duration.week,
