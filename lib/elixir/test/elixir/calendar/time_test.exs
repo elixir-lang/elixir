@@ -109,9 +109,8 @@ defmodule TimeTest do
     assert Time.shift(time, hour: 25) == {:ok, ~T[01:00:00.0]}
     assert Time.shift(time, minute: 25) == {:ok, ~T[00:25:00.0]}
     assert Time.shift(time, second: 50) == {:ok, ~T[00:00:50.0]}
-    assert Time.shift(time, millisecond: 150) == {:ok, ~T[00:00:00.150]}
-    assert Time.shift(time, microsecond: 150) == {:ok, ~T[00:00:00.000150]}
-    assert Time.shift(time, millisecond: 150, microsecond: 100) == {:ok, ~T[00:00:00.150100]}
+    assert Time.shift(time, microsecond: {150, 6}) == {:ok, ~T[00:00:00.000150]}
+    assert Time.shift(time, microsecond: {1000, 4}) == {:ok, ~T[00:00:00.0010]}
     assert Time.shift(time, hour: 2, minute: 65, second: 5) == {:ok, ~T[03:05:05.0]}
 
     assert_raise ArgumentError, ~s/cannot shift time by date units: [:day]/, fn ->

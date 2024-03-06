@@ -1495,7 +1495,7 @@ defmodule Calendar.ISO do
       {2016, 1, 3, 1, 0, 0, {0, 0}}
       iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new(hour: 30))
       {2016, 1, 4, 6, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new(microsecond: 100))
+      iex> Calendar.ISO.shift_naive_datetime(2016, 1, 3, 0, 0, 0, {0, 0}, Duration.new(microsecond: {100, 6}))
       {2016, 1, 3, 0, 0, 0, {100, 6}}
   """
   @spec shift_naive_datetime(
@@ -1534,7 +1534,7 @@ defmodule Calendar.ISO do
 
       iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new(hour: 2))
       {15, 0, 0, {0, 0}}
-      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new(microsecond: 100))
+      iex> Calendar.ISO.shift_time(13, 0, 0, {0, 0}, Duration.new(microsecond: {100, 6}))
       {13, 0, 0, {100, 6}}
   """
   @spec shift_time(hour, minute, second, microsecond, Duration.t()) ::
@@ -1580,11 +1580,10 @@ defmodule Calendar.ISO do
   end
 
   defp shift_time_unit({year, month, day, hour, minute, second, microsecond}, value, unit)
-       when unit in [:second, :millisecond, :microsecond] do
-    {_, ms_precision} = microsecond
+       when unit in [:second, :microsecond] or is_integer(unit) do
+    {value, precision} = shift_time_unit_values(value, microsecond)
 
     ppd = System.convert_time_unit(86400, :second, unit)
-    precision = max(time_unit_to_precision(unit), ms_precision)
 
     {year, month, day, hour, minute, second, {ms_value, _}} =
       naive_datetime_to_iso_days(year, month, day, hour, minute, second, microsecond)
@@ -1594,21 +1593,30 @@ defmodule Calendar.ISO do
     {year, month, day, hour, minute, second, {ms_value, precision}}
   end
 
-  defp shift_time_unit(
-         {hour, minute, second, {_, precision} = microsecond},
-         value,
-         unit
-       )
-       when unit in [:second, :millisecond, :microsecond] do
+  defp shift_time_unit({hour, minute, second, microsecond}, value, unit)
+       when unit in [:second, :microsecond] or is_integer(unit) do
+    {value, precision} = shift_time_unit_values(value, microsecond)
+
     time = {0, time_to_day_fraction(hour, minute, second, microsecond)}
     amount_to_add = System.convert_time_unit(value, unit, :microsecond)
     total = iso_days_to_unit(time, :microsecond) + amount_to_add
     parts = Integer.mod(total, @parts_per_day)
-    precision = max(time_unit_to_precision(unit), precision)
 
     {hour, minute, second, {microsecond, _}} = time_from_day_fraction({parts, @parts_per_day})
 
     {hour, minute, second, {microsecond, precision}}
+  end
+
+  defp shift_time_unit_values({0, _}, {_, original_precision}) do
+    {0, original_precision}
+  end
+
+  defp shift_time_unit_values({ms_value, ms_precision}, {_, _}) do
+    {ms_value, ms_precision}
+  end
+
+  defp shift_time_unit_values(value, {_, original_precision}) do
+    {value, original_precision}
   end
 
   defp get_shift_options(:date, %Duration{year: year, month: month, week: week, day: day}) do
@@ -1626,13 +1634,11 @@ defmodule Calendar.ISO do
          hour: hour,
          minute: minute,
          second: second,
-         millisecond: millisecond,
          microsecond: microsecond
        }) do
     [
       month: year * 12 + month,
       second: week * 7 * 86400 + day * 86400 + hour * 3600 + minute * 60 + second,
-      millisecond: millisecond,
       microsecond: microsecond
     ]
   end
@@ -1641,12 +1647,10 @@ defmodule Calendar.ISO do
          hour: hour,
          minute: minute,
          second: second,
-         millisecond: millisecond,
          microsecond: microsecond
        }) do
     [
       second: hour * 3600 + minute * 60 + second,
-      millisecond: millisecond,
       microsecond: microsecond
     ]
   end

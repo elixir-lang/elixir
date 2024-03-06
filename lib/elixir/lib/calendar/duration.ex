@@ -10,8 +10,7 @@ defmodule Duration do
             hour: 0,
             minute: 0,
             second: 0,
-            millisecond: 0,
-            microsecond: 0
+            microsecond: {0, 0}
 
   @typedoc "Duration in calendar units"
   @type t :: %Duration{
@@ -22,8 +21,7 @@ defmodule Duration do
           hour: integer,
           minute: integer,
           second: integer,
-          millisecond: integer,
-          microsecond: integer
+          microsecond: {integer, integer}
         }
 
   @typedoc "Individually valid Duration units"
@@ -35,8 +33,7 @@ defmodule Duration do
           | {:hour, integer}
           | {:minute, integer}
           | {:second, integer}
-          | {:millisecond, integer}
-          | {:microsecond, integer}
+          | {:microsecond, {integer, integer}}
 
   @doc """
   Create `Duration` struct from valid duration units.
@@ -51,6 +48,14 @@ defmodule Duration do
   """
   @spec new([unit]) :: t
   def new(units) do
+    case Keyword.get(units, :microsecond) do
+      ms when is_integer(ms) ->
+        raise "microseconds must be a tuple {ms, precision}"
+
+      _ ->
+        :noop
+    end
+
     struct!(Duration, units)
   end
 
@@ -65,6 +70,9 @@ defmodule Duration do
   """
   @spec add(t, t) :: t
   def add(%Duration{} = d1, %Duration{} = d2) do
+    {m1, p1} = d1.microsecond
+    {m2, p2} = d2.microsecond
+
     %Duration{
       year: d1.year + d2.year,
       month: d1.month + d2.month,
@@ -73,8 +81,7 @@ defmodule Duration do
       hour: d1.hour + d2.hour,
       minute: d1.minute + d2.minute,
       second: d1.second + d2.second,
-      millisecond: d1.millisecond + d2.millisecond,
-      microsecond: d1.microsecond + d2.microsecond
+      microsecond: {m1 + m2, max(p1, p2)}
     }
   end
 
@@ -89,6 +96,9 @@ defmodule Duration do
   """
   @spec subtract(t, t) :: t
   def subtract(%Duration{} = d1, %Duration{} = d2) do
+    {m1, p1} = d1.microsecond
+    {m2, p2} = d2.microsecond
+
     %Duration{
       year: d1.year - d2.year,
       month: d1.month - d2.month,
@@ -97,8 +107,7 @@ defmodule Duration do
       hour: d1.hour - d2.hour,
       minute: d1.minute - d2.minute,
       second: d1.second - d2.second,
-      millisecond: d1.millisecond - d2.millisecond,
-      microsecond: d1.microsecond - d2.microsecond
+      microsecond: {m1 - m2, max(p1, p2)}
     }
   end
 
@@ -112,7 +121,7 @@ defmodule Duration do
 
   """
   @spec multiply(t, integer) :: t
-  def multiply(%Duration{} = duration, integer) when is_integer(integer) do
+  def multiply(%Duration{microsecond: {ms, p}} = duration, integer) when is_integer(integer) do
     %Duration{
       year: duration.year * integer,
       month: duration.month * integer,
@@ -121,8 +130,7 @@ defmodule Duration do
       hour: duration.hour * integer,
       minute: duration.minute * integer,
       second: duration.second * integer,
-      millisecond: duration.millisecond * integer,
-      microsecond: duration.microsecond * integer
+      microsecond: {ms * integer, p}
     }
   end
 
@@ -136,7 +144,7 @@ defmodule Duration do
 
   """
   @spec negate(t) :: t
-  def negate(%Duration{} = duration) do
+  def negate(%Duration{microsecond: {ms, p}} = duration) do
     %Duration{
       year: -duration.year,
       month: -duration.month,
@@ -145,8 +153,7 @@ defmodule Duration do
       hour: -duration.hour,
       minute: -duration.minute,
       second: -duration.second,
-      millisecond: -duration.millisecond,
-      microsecond: -duration.microsecond
+      microsecond: {-ms, p}
     }
   end
 
@@ -156,7 +163,7 @@ defmodule Duration do
 
   def invalid_units(duration_units, :date) do
     Enum.filter(
-      [:hour, :minute, :second, :millisecond, :microsecond],
+      [:hour, :minute, :second, :microsecond],
       &Keyword.has_key?(duration_units, &1)
     )
   end

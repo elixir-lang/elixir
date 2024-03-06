@@ -410,17 +410,17 @@ defmodule NaiveDateTimeTest do
     assert NaiveDateTime.shift(naive_datetime, minute: -45) == {:ok, ~N[1999-12-31 23:15:00]}
     assert NaiveDateTime.shift(naive_datetime, second: -30) == {:ok, ~N[1999-12-31 23:59:30]}
 
-    assert NaiveDateTime.shift(naive_datetime, microsecond: -500) ==
+    assert NaiveDateTime.shift(naive_datetime, microsecond: {-500, 6}) ==
              {:ok, ~N[1999-12-31 23:59:59.999500]}
 
-    assert NaiveDateTime.shift(naive_datetime, microsecond: 500) ==
+    assert NaiveDateTime.shift(naive_datetime, microsecond: {500, 6}) ==
              {:ok, ~N[2000-01-01 00:00:00.000500]}
 
-    assert NaiveDateTime.shift(naive_datetime, millisecond: 500) ==
-             {:ok, ~N[2000-01-01 00:00:00.500]}
+    assert NaiveDateTime.shift(naive_datetime, microsecond: {100, 6}) ==
+             {:ok, ~N[2000-01-01 00:00:00.000100]}
 
-    assert NaiveDateTime.shift(naive_datetime, millisecond: 500, microsecond: 100) ==
-             {:ok, ~N[2000-01-01 00:00:00.500100]}
+    assert NaiveDateTime.shift(naive_datetime, microsecond: {100, 4}) ==
+             {:ok, ~N[2000-01-01 00:00:00.0001]}
 
     assert NaiveDateTime.shift(naive_datetime, year: 1, month: 2) ==
              {:ok, ~N[2001-03-01 00:00:00]}
@@ -436,7 +436,7 @@ defmodule NaiveDateTimeTest do
              hour: 5,
              minute: 6,
              second: 7,
-             microsecond: 8
+             microsecond: {8, 6}
            ) == {:ok, ~N[2001-03-26 05:06:07.000008]}
 
     assert NaiveDateTime.shift(naive_datetime,
@@ -447,7 +447,7 @@ defmodule NaiveDateTimeTest do
              hour: -5,
              minute: -6,
              second: -7,
-             microsecond: -8
+             microsecond: {-8, 6}
            ) == {:ok, ~N[1998-10-06 18:53:52.999992]}
 
     assert_raise KeyError, ~s/key :months not found/, fn ->

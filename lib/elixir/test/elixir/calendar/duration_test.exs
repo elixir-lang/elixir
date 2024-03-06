@@ -21,7 +21,7 @@ defmodule DurationTest do
       hour: 5,
       minute: 6,
       second: 7,
-      microsecond: 8
+      microsecond: {8, 6}
     }
 
     d2 = %Duration{
@@ -32,7 +32,7 @@ defmodule DurationTest do
       hour: 4,
       minute: 3,
       second: 2,
-      microsecond: 1
+      microsecond: {1, 6}
     }
 
     assert Duration.add(d1, d2) == %Duration{
@@ -43,7 +43,7 @@ defmodule DurationTest do
              hour: 9,
              minute: 9,
              second: 9,
-             microsecond: 9
+             microsecond: {9, 6}
            }
 
     assert Duration.add(d1, d2) == Duration.add(d2, d1)
@@ -59,8 +59,12 @@ defmodule DurationTest do
              hour: 0,
              minute: 0,
              second: 2,
-             microsecond: 0
+             microsecond: {0, 0}
            }
+
+    d1 = %Duration{microsecond: {1000, 4}}
+    d2 = %Duration{microsecond: {5, 6}}
+    assert Duration.add(d1, d2) == %Duration{microsecond: {1005, 6}}
   end
 
   test "subtract/2" do
@@ -72,7 +76,7 @@ defmodule DurationTest do
       hour: 5,
       minute: 6,
       second: 7,
-      microsecond: 8
+      microsecond: {8, 6}
     }
 
     d2 = %Duration{
@@ -83,7 +87,7 @@ defmodule DurationTest do
       hour: 4,
       minute: 3,
       second: 2,
-      microsecond: 1
+      microsecond: {1, 6}
     }
 
     assert Duration.subtract(d1, d2) == %Duration{
@@ -94,7 +98,7 @@ defmodule DurationTest do
              hour: 1,
              minute: 3,
              second: 5,
-             microsecond: 7
+             microsecond: {7, 6}
            }
 
     assert Duration.subtract(d2, d1) == %Duration{
@@ -105,7 +109,7 @@ defmodule DurationTest do
              hour: -1,
              minute: -3,
              second: -5,
-             microsecond: -7
+             microsecond: {-7, 6}
            }
 
     assert Duration.subtract(d1, d2) != Duration.subtract(d2, d1)
@@ -121,8 +125,12 @@ defmodule DurationTest do
              hour: 0,
              minute: 0,
              second: -2,
-             microsecond: 0
+             microsecond: {0, 0}
            }
+
+    d1 = %Duration{microsecond: {1000, 4}}
+    d2 = %Duration{microsecond: {5, 6}}
+    assert Duration.subtract(d1, d2) == %Duration{microsecond: {995, 6}}
   end
 
   test "multiply/2" do
@@ -134,7 +142,7 @@ defmodule DurationTest do
       hour: 5,
       minute: 6,
       second: 7,
-      microsecond: 8
+      microsecond: {8, 6}
     }
 
     assert Duration.multiply(duration, 3) == %Duration{
@@ -145,7 +153,7 @@ defmodule DurationTest do
              hour: 15,
              minute: 18,
              second: 21,
-             microsecond: 24
+             microsecond: {24, 6}
            }
 
     assert Duration.multiply(%Duration{year: 2, day: 4, minute: 5}, 4) ==
@@ -157,7 +165,7 @@ defmodule DurationTest do
                hour: 0,
                minute: 20,
                second: 0,
-               microsecond: 0
+               microsecond: {0, 0}
              }
   end
 
@@ -170,7 +178,7 @@ defmodule DurationTest do
       hour: 5,
       minute: 6,
       second: 7,
-      microsecond: 8
+      microsecond: {8, 6}
     }
 
     assert Duration.negate(duration) == %Duration{
@@ -181,7 +189,7 @@ defmodule DurationTest do
              hour: -5,
              minute: -6,
              second: -7,
-             microsecond: -8
+             microsecond: {-8, 6}
            }
 
     assert Duration.negate(%Duration{year: 2, day: 4, minute: 5}) ==
@@ -193,7 +201,7 @@ defmodule DurationTest do
                hour: 0,
                minute: -5,
                second: 0,
-               microsecond: 0
+               microsecond: {0, 0}
              }
   end
 end
