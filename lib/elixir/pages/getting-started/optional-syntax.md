@@ -1,6 +1,6 @@
 # Optional syntax sheet
 
-In this guide, we learned that the Elixir syntax allows developers to omit delimiters in a few occasions to make code more readable. For example, we learned that parentheses are optional:
+In the previous chapters, we learned that the Elixir syntax allows developers to omit delimiters in a few occasions to make code more readable. For example, we learned that parentheses are optional:
 
 ```elixir
 iex> length([1, 2, 3]) == length [1, 2, 3]

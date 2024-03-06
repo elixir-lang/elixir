@@ -107,7 +107,7 @@ In order to manipulate keyword lists, Elixir provides the `Keyword` module. Reme
 
 ### `do`-blocks and keywords
 
-As we have seen, keywords are mostly used in the language to pass optional values. In fact, we have used keywords before in this guide. For example, we have seen:
+As we have seen, keywords are mostly used in the language to pass optional values. In fact, we have used keywords in earlier chapters. For example, we have seen:
 
 ```elixir
 iex> if true do

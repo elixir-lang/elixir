@@ -26,7 +26,7 @@ iex> Process.alive?(pid)
 false
 ```
 
-> Note: you will likely get different process identifiers than the ones we are getting in this guide.
+> Note: you will likely get different process identifiers than the ones we are showing in our snippets.
 
 We can retrieve the PID of the current process by calling `self/0`:
 
@@ -157,7 +157,7 @@ We will explore tasks and other abstractions around processes in the ["Mix and O
 
 ## State
 
-We haven't talked about state so far in this guide. If you are building an application that requires state, for example, to keep your application configuration, or you need to parse a file and keep it in memory, where would you store it?
+We haven't talked about state so far. If you are building an application that requires state, for example, to keep your application configuration, or you need to parse a file and keep it in memory, where would you store it?
 
 Processes are the most common answer to this question. We can write processes that loop infinitely, maintain state, and send and receive messages. As an example, let's write a module that starts new processes that work as a key-value store in a file named `kv.exs`:
 

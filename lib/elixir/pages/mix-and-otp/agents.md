@@ -1,6 +1,6 @@
 # Simple state management with agents
 
-In this guide, we will learn how to keep and share state between multiple entities. If you have previous programming experience, you may think of globally shared variables, but the model we will learn here is quite different. The next chapters will generalize the concepts introduced here.
+In this chapter, we will learn how to keep and share state between multiple entities. If you have previous programming experience, you may think of globally shared variables, but the model we will learn here is quite different. The next chapters will generalize the concepts introduced here.
 
 If you have skipped the *Getting Started* guide or read it long ago, be sure to re-read the [Processes](../getting-started/processes.md) chapter. We will use it as a starting point.
 
@@ -17,7 +17,7 @@ We covered processes in the *Getting Started* guide. ETS (Erlang Term Storage) i
   * `GenServer` — "Generic servers" (processes) that encapsulate state, provide sync and async calls, support code reloading, and more.
   * `Task` — Asynchronous units of computation that allow spawning a process and potentially retrieving its result at a later time.
 
-We will explore most of these abstractions in this guide. Keep in mind that they are all implemented on top of processes using the basic features provided by the VM, like `send/2`, `receive/1`, `spawn/1` and `Process.link/1`.
+We will explore these abstractions as we move forward. Keep in mind that they are all implemented on top of processes using the basic features provided by the VM, like `send/2`, `receive/1`, `spawn/1` and `Process.link/1`.
 
 Here, we will use agents, and create a module named `KV.Bucket`, responsible for storing our key-value entries in a way that allows them to be read and modified by other processes.
 
@@ -120,7 +120,7 @@ defmodule KV.Bucket do
 end
 ```
 
-The first step in our implementation is to call `use Agent`. Most of the functionality we will learn in this guide, such as `GenServer` and `Supervisor`, follow this pattern. For all of them, calling `use` generates a `child_spec/1` function with default configuration, which will be handy when we start supervising processes in chapter 4.
+The first step in our implementation is to call `use Agent`. Most of the functionality we will learn, such as `GenServer` and `Supervisor`, follow this pattern. For all of them, calling `use` generates a `child_spec/1` function with default configuration, which will be handy when we start supervising processes in chapter 4.
 
 Then we define a `start_link/1` function, which will effectively start the agent. It is a convention to define a `start_link/1` function that always accepts a list of options. We don't plan on using any options right now, but we might later on. We then proceed to call `Agent.start_link/1`, which receives an anonymous function that returns the Agent's initial state.
 
