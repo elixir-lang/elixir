@@ -459,8 +459,12 @@ defmodule Logger.Translator do
     [prefix, "Ancestors: ", inspect(ancestors) | crash_info(min_level, debug, prefix)]
   end
 
-  defp crash_info(min_level, [{:process_label, _} | info], prefix) do
+  defp crash_info(min_level, [{:process_label, :undefined} | info], prefix) do
     crash_info(min_level, info, prefix)
+  end
+
+  defp crash_info(min_level, [{:process_label, label} | debug], prefix) do
+    [prefix, "Process Label: ", inspect(label) | crash_info(min_level, debug, prefix)]
   end
 
   defp crash_info(:debug, debug, prefix) do
