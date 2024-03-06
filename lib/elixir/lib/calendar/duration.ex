@@ -143,4 +143,11 @@ defmodule Duration do
       &Keyword.has_key?(duration_units, &1)
     )
   end
+
+  def invalid_keys(duration_units, :time) do
+    Enum.filter(
+      [:year, :month, :week, :day],
+      &Keyword.has_key?(duration_units, &1)
+    )
+  end
 end

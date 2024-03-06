@@ -112,6 +112,10 @@ defmodule TimeTest do
     assert Time.shift(time, microsecond: 150) == {:ok, ~T[00:00:00.000150]}
     assert Time.shift(time, hour: 2, minute: 65, second: 5) == {:ok, ~T[03:05:05.0]}
 
+    assert_raise ArgumentError, ~s/cannot shift time by date units: [:day]/, fn ->
+      Time.shift(time, day: 1)
+    end
+
     assert_raise KeyError, ~s/key :hours not found/, fn ->
       Time.shift(time, hours: 12)
     end

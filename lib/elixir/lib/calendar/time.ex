@@ -592,8 +592,14 @@ defmodule Time do
      }}
   end
 
-  def shift(%Time{} = date = date, duration_units) do
-    shift(date, Duration.new(duration_units))
+  def shift(%Time{} = time, duration_units) do
+    case Duration.invalid_keys(duration_units, :time) do
+      [] ->
+        shift(time, Duration.new(duration_units))
+
+      invalid_units ->
+        raise ArgumentError, "cannot shift time by date units: #{inspect(invalid_units)}"
+    end
   end
 
   @doc """
