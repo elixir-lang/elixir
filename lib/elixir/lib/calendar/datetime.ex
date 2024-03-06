@@ -1723,9 +1723,17 @@ defmodule DateTime do
         duration
       )
 
-    new(
-      Date.new!(year, month, day),
-      Time.new!(hour, minute, second, microsecond),
+    from_naive(
+      %NaiveDateTime{
+        calendar: calendar,
+        year: year,
+        month: month,
+        day: day,
+        hour: hour,
+        minute: minute,
+        second: second,
+        microsecond: microsecond
+      },
       time_zone,
       time_zone_database
     )
