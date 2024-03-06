@@ -49,11 +49,14 @@ defmodule Duration do
   @spec new([unit]) :: t
   def new(units) do
     case Keyword.get(units, :microsecond) do
-      ms when is_integer(ms) ->
-        raise "microseconds must be a tuple {ms, precision}"
+      nil ->
+        :noop
+
+      ms when is_tuple(ms) ->
+        :noop
 
       _ ->
-        :noop
+        raise "microseconds must be a tuple {ms, precision}"
     end
 
     struct!(Duration, units)

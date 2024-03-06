@@ -1475,14 +1475,14 @@ defmodule Calendar.ISO do
     shift_options = get_shift_options(:date, duration)
 
     Enum.reduce(shift_options, {year, month, day}, fn
-      {_, 0}, naive_datetime ->
-        naive_datetime
+      {_, 0}, date ->
+        date
 
-      {:month, value}, naive_datetime ->
-        shift_months(naive_datetime, value)
+      {:month, value}, date ->
+        shift_months(date, value)
 
-      {:day, value}, naive_datetime ->
-        shift_days(naive_datetime, value)
+      {:day, value}, date ->
+        shift_days(date, value)
     end)
   end
 
