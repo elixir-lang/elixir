@@ -1699,11 +1699,7 @@ defmodule DateTime do
              | :utc_only_time_zone_database}
   def shift(datetime, duration, time_zone_database \\ Calendar.get_time_zone_database())
 
-  def shift(
-        %DateTime{calendar: calendar} = datetime,
-        %Duration{} = duration,
-        time_zone_database
-      ) do
+  def shift(%DateTime{calendar: calendar} = datetime, %Duration{} = duration, time_zone_database) do
     %{
       year: year,
       month: month,

@@ -1472,10 +1472,7 @@ defmodule Calendar.ISO do
   @spec shift_date(year, month, day, Duration.t()) :: {year, month, day}
   @impl true
   def shift_date(year, month, day, duration) do
-    case Duration.invalid_fields_for(duration, :date) do
-      [] -> :noop
-      units -> raise ArgumentError, "cannot shift date by time units: #{inspect(units)}"
-    end
+    validate_shift_fields!(duration, :date)
 
     shift_options = get_shift_options(:date, duration)
 
@@ -1546,10 +1543,7 @@ defmodule Calendar.ISO do
           {hour, minute, second, microsecond}
   @impl true
   def shift_time(hour, minute, second, microsecond, duration) do
-    case Duration.invalid_fields_for(duration, :time) do
-      [] -> :noop
-      units -> raise ArgumentError, "cannot shift time by date units: #{inspect(units)}"
-    end
+    validate_shift_fields!(duration, :time)
 
     shift_options = get_shift_options(:time, duration)
 
@@ -1663,6 +1657,25 @@ defmodule Calendar.ISO do
       second: hour * 3600 + minute * 60 + second,
       microsecond: microsecond
     ]
+  end
+
+  defp validate_shift_fields!(duration, :date) do
+    field_set? = fn
+      :microsecond, %{microsecond: {0, 0}} -> false
+      field, duration -> Map.get(duration, field) != 0
+    end
+
+    case Enum.filter([:hour, :minute, :second, :microsecond], &field_set?.(&1, duration)) do
+      [] -> :noop
+      units -> raise ArgumentError, "cannot shift date by time units: #{inspect(units)}"
+    end
+  end
+
+  defp validate_shift_fields!(duration, :time) do
+    case Enum.filter([:year, :month, :week, :day], &(Map.get(duration, &1) != 0)) do
+      [] -> :noop
+      units -> raise ArgumentError, "cannot shift time by date units: #{inspect(units)}"
+    end
   end
 
   ## Helpers
