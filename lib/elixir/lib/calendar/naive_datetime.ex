@@ -578,6 +578,13 @@ defmodule NaiveDateTime do
 
   Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
+  Durations are collapsed before they are applied:
+  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  - when shifting by 2 weeks and 3 days the date is shifted by 17 days
+  - all smaller units are collapsed into seconds and microseconds
+
+  Durations are applied in order of the size of the unit: `month > day > second`.
+
   ## Examples
 
       iex> NaiveDateTime.shift(~N[2016-01-31 00:00:00], month: 1)

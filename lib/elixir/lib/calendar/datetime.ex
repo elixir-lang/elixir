@@ -1681,6 +1681,13 @@ defmodule DateTime do
 
   Available units are: `:year, :month, :week, :day, :hour, :minute, :second, :microsecond`.
 
+  Durations are collapsed before they are applied:
+  - when shifting by 1 year and 2 months the date is actually shifted by 14 months
+  - when shifting by 2 weeks and 3 days the date is shifted by 17 days
+  - all smaller units are collapsed into seconds and microseconds
+
+  Durations are applied in order of the size of the unit: `month > day > second`.
+
   First the datetime is converted to a naive datetime. After the shift was applied
   it is converted back to a datetime using its original time zone and time zone database,
   potentially resulting in an ambiguous or gap DateTime result tuple.
