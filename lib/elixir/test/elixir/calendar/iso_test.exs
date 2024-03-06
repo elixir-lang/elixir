@@ -435,12 +435,6 @@ defmodule Calendar.ISOTest do
     assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(month: 2)) == {2024, 5, 2}
     assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(week: 3)) == {2024, 3, 23}
     assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(day: 5)) == {2024, 3, 7}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(hour: 24)) == {2024, 3, 3}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(minute: 1440)) == {2024, 3, 3}
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(second: 86400)) == {2024, 3, 3}
-
-    assert Calendar.ISO.shift_date(2024, 3, 2, Duration.new(microsecond: 86400 * 1_000_000)) ==
-             {2024, 3, 3}
 
     assert Calendar.ISO.shift_date(0, 1, 1, Duration.new(month: 1)) == {0, 2, 1}
     assert Calendar.ISO.shift_date(0, 1, 1, Duration.new(year: 1)) == {1, 1, 1}

@@ -135,4 +135,12 @@ defmodule Duration do
       microsecond: -duration.microsecond
     }
   end
+
+  @doc false
+  def invalid_keys(duration_units, :date) do
+    Enum.filter(
+      [:hour, :minute, :second, :microsecond],
+      &Keyword.has_key?(duration_units, &1)
+    )
+  end
 end

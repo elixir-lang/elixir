@@ -782,8 +782,14 @@ defmodule Date do
     {:ok, %Date{calendar: calendar, year: year, month: month, day: day}}
   end
 
-  def shift(%Date{} = date = date, duration_units) do
-    shift(date, Duration.new(duration_units))
+  def shift(%Date{} = date, duration_units) do
+    case Duration.invalid_keys(duration_units, :date) do
+      [] ->
+        shift(date, Duration.new(duration_units))
+
+      invalid_units ->
+        raise ArgumentError, "cannot shift date by time units: #{inspect(invalid_units)}"
+    end
   end
 
   @doc false
